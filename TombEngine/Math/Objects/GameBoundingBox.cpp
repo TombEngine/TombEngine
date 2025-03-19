@@ -1,12 +1,14 @@
 #include "framework.h"
 #include "Math/Objects/GameBoundingBox.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/Setup.h"
 #include "Math/Objects/EulerAngles.h"
 #include "Math/Objects/Pose.h"
 #include "Objects/game_object_ids.h"
+
+using namespace TEN::Animation;
 
 //namespace TEN::Math
 //{
@@ -22,9 +24,19 @@
 		Z2 = (int)round(z2);
 	}
 
+	GameBoundingBox::GameBoundingBox(const BoundingBox& aabb)
+	{
+		X1 = aabb.Center.x - aabb.Extents.x;
+		X2 = aabb.Center.x + aabb.Extents.x;
+		Y1 = aabb.Center.y - aabb.Extents.y;
+		Y2 = aabb.Center.y + aabb.Extents.y;
+		Z1 = aabb.Center.z - aabb.Extents.z;
+		Z2 = aabb.Center.z + aabb.Extents.z;
+	}
+
 	GameBoundingBox::GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
 	{
-		*this = GetFrame(objectID, animNumber, frameNumber)->BoundingBox;
+		*this = GetKeyframe(objectID, animNumber, frameNumber).BoundingBox;
 	}
 
 	// TODO: Use reference, not pointer.
@@ -33,11 +45,11 @@
 		auto frameData = GetFrameInterpData(*item);
 		if (frameData.Alpha == 0.0f)
 		{
-			*this = frameData.FramePtr0->BoundingBox;
+			*this = frameData.Keyframe0.BoundingBox;
 		}
 		else
 		{
-			*this = frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha));
+			*this = frameData.Keyframe0.BoundingBox + (((frameData.Keyframe1.BoundingBox - frameData.Keyframe0.BoundingBox) * frameData.Alpha));
 		}
 	}
 

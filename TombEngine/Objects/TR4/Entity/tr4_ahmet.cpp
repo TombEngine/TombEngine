@@ -104,7 +104,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, AHMET_ANIM_IDLE);
+		SetAnimation(*item, AHMET_ANIM_IDLE);
 		item->ItemFlags[0] = item->Pose.Position.x / BLOCK(1);
 		item->ItemFlags[1] = (item->Pose.Position.y * 4) / BLOCK(1);
 		item->ItemFlags[2] = item->Pose.Position.z / BLOCK(1);
@@ -133,15 +133,15 @@ namespace TEN::Entities::TR4
 			if (item->Animation.ActiveState == AHMET_STATE_DEATH)
 			{
 				// Don't clear.
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 				{
-					item->Animation.FrameNumber = (GetAnimData(item).frameEnd - 1);
+					item->Animation.FrameNumber = GetAnimData(*item).EndFrameNumber - 1;
 					item->Collidable = false;
 				}
 			}
 			else
 			{
-				SetAnimation(item, AHMET_ANIM_DEATH);
+				SetAnimation(*item, AHMET_ANIM_DEATH);
 				Lara.Context.InteractedItem = itemNumber; // TODO: Check if it's really required! -- TokyoSU 3/8/2022
 			}
 			
@@ -280,7 +280,7 @@ namespace TEN::Entities::TR4
 					item->Pose.Orientation.y += AI.angle;
 
 				if (!(creature->Flags & 1) &&
-					item->Animation.FrameNumber > (GetAnimData(item).frameBase + 7) &&
+					item->Animation.FrameNumber > 7 &&
 					item->TouchBits.Test(AhmetSwipeAttackLeftJoints))
 				{
 					DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -288,7 +288,7 @@ namespace TEN::Entities::TR4
 					creature->Flags |= 1;
 				}
 				else if (!(creature->Flags & 2) &&
-					item->Animation.FrameNumber > (GetAnimData(item).frameBase + 32) &&
+					item->Animation.FrameNumber > 32 &&
 					item->TouchBits.Test(AhmetSwipeAttackRightJoints))
 				{
 					DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -301,7 +301,7 @@ namespace TEN::Entities::TR4
 			case AHMET_STATE_JUMP_BITE_ATTACK:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + AHMET_ANIM_JUMP_SWIPE_ATTACK_START))
+				if (item->Animation.AnimNumber == AHMET_ANIM_JUMP_SWIPE_ATTACK_START)
 				{
 					if (abs(AI.angle) >= ANGLE(5.0f))
 					{
@@ -316,9 +316,9 @@ namespace TEN::Entities::TR4
 				else
 				{
 					if (!(creature->Flags & 1) &&
-						item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + AHMET_ANIM_JUMP_BITE_ATTACK_CONTINUE))
+						item->Animation.AnimNumber == AHMET_ANIM_JUMP_BITE_ATTACK_CONTINUE)
 					{
-						if (item->Animation.FrameNumber > (GetAnimData(item).frameBase + 11) &&
+						if (item->Animation.FrameNumber > 11 &&
 							item->TouchBits.Test(AhmetSwipeAttackLeftJoints))
 						{
 							DoDamage(creature->Enemy, AHMET_BITE_ATTACK_DAMAGE);
@@ -333,7 +333,7 @@ namespace TEN::Entities::TR4
 			case AHMET_STATE_JUMP_SWIPE_ATTACK:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + AHMET_ANIM_JUMP_SWIPE_ATTACK_START))
+				if (item->Animation.AnimNumber == AHMET_ANIM_JUMP_SWIPE_ATTACK_START)
 				{
 					if (abs(AI.angle) >= ANGLE(5.0f))
 					{
@@ -343,12 +343,14 @@ namespace TEN::Entities::TR4
 							item->Pose.Orientation.y -= ANGLE(5.0f);
 					}
 					else
+					{
 						item->Pose.Orientation.y += AI.angle;
+					}
 				}
 				else
 				{
 					if (!(creature->Flags & 1) &&
-						item->Animation.FrameNumber > (GetAnimData(item).frameBase + 14) &&
+						item->Animation.FrameNumber > 14 &&
 						item->TouchBits.Test(AhmetSwipeAttackLeftJoints))
 					{
 						DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -356,7 +358,7 @@ namespace TEN::Entities::TR4
 						creature->Flags |= 1;
 					}
 					else if (!(creature->Flags & 2) &&
-						item->Animation.FrameNumber > (GetAnimData(item).frameBase + 22) &&
+						item->Animation.FrameNumber > 22 &&
 						item->TouchBits.Test(AhmetSwipeAttackRightJoints))
 					{
 						DoDamage(creature->Enemy, AHMET_SWIPE_ATTACK_DAMAGE);
@@ -379,11 +381,8 @@ namespace TEN::Entities::TR4
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		if (item->Animation.ActiveState != AHMET_STATE_DEATH ||
-			item->Animation.FrameNumber != GetAnimData(item).frameEnd)
-		{
+		if (item->Animation.ActiveState != AHMET_STATE_DEATH || !TestLastFrame(*item))
 			return false;
-		}
 
 		Weather.Flash(255, 64, 0, 0.03f);
 
@@ -395,7 +394,7 @@ namespace TEN::Entities::TR4
 		if (item->RoomNumber != outsideRoom)
 			ItemNewRoom(itemNumber, outsideRoom);
 
-		SetAnimation(item, AHMET_ANIM_IDLE);
+		SetAnimation(*item, AHMET_ANIM_IDLE);
 		item->HitPoints = Objects[item->ObjectNumber].HitPoints;
 		AddActiveItem(itemNumber);
 

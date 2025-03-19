@@ -64,17 +64,17 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (item->TriggerFlags)
 		{
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DOBERMAN_ANIM_SIT;
+			item->Animation.AnimNumber = DOBERMAN_ANIM_SIT;
 			item->Animation.ActiveState = DOBERMAN_STATE_SIT_IDLE;
 			// TODO: item->flags2 ^= (item->flags2 ^ ((item->flags2 & 0xFE) + 2)) & 6;
 		}
 		else
 		{
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DOBERMAN_ANIM_STAND_IDLE;
+			item->Animation.AnimNumber = DOBERMAN_ANIM_STAND_IDLE;
 			item->Animation.ActiveState = DOBERMAN_STATE_STAND_IDLE;
 		}
 
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.FrameNumber = 0;
 	}
 
 	void DobermanControl(short itemNumber)
@@ -262,8 +262,8 @@ namespace TEN::Entities::Creatures::TR5
 		}
 		else if (item->Animation.ActiveState != DOBERMAN_STATE_DEATH)
 		{
-			item->Animation.AnimNumber = Objects[ID_DOBERMAN].animIndex + DOBERMAN_ANIM_DEATH;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = DOBERMAN_ANIM_DEATH;
+			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = DOBERMAN_STATE_DEATH;
 		}
 

@@ -1,13 +1,15 @@
 #include "framework.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -148,7 +150,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		int xChange = 0;
 		int zChange = 0;
@@ -164,7 +166,7 @@ namespace TEN::Entities::Traps
 			if (item.Animation.ActiveState == 1)
 			{
 				// result = 5 * item.animNumber;
-				if (item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(item))
 					return;
 			}
 			else
@@ -176,7 +178,7 @@ namespace TEN::Entities::Traps
 		int speed = 0;
 		if (item.Animation.ActiveState == 1)
 		{
-			speed = GetAnimData(item).frameEnd - item.Animation.FrameNumber;
+			speed = GetAnimData(item).EndFrameNumber - item.Animation.FrameNumber;
 		}
 		else
 		{

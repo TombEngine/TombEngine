@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_submarine.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -21,6 +21,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 using namespace TEN::Math;
@@ -32,7 +33,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 0);
+		SetAnimation(*item, 0);
 
 		if (!item->TriggerFlags)
 			item->TriggerFlags = 120;
@@ -492,7 +493,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		item->Pose.Orientation.z += 16 * item->Animation.Velocity.z;
 
-		TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
+		item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 		
 		auto probe = GetPointCollision(*item);
 

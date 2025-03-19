@@ -64,7 +64,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, BBEETLE_ANIM_IDLE);
+		SetAnimation(*item, BBEETLE_ANIM_IDLE);
 	}
 
 	void BigBeetleControl(short itemNumber)
@@ -90,7 +90,7 @@ namespace TEN::Entities::TR4
 					}
 					else
 					{
-						SetAnimation(item, BBEETLE_ANIM_DEATH_START);
+						SetAnimation(*item, BBEETLE_ANIM_DEATH_START);
 						item->Animation.IsAirborne = true;
 						item->Animation.Velocity.z = 0;
 						item->Pose.Orientation.x = 0;

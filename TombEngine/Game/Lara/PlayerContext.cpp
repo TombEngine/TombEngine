@@ -967,7 +967,7 @@ namespace TEN::Entities::Player
 			return false;
 
 		// 2) Check for jump state dispatch.
-		if (!HasStateDispatch(&item, LS_JUMP_FORWARD))
+		if (!TestStateDispatch(item, LS_JUMP_FORWARD))
 			return false;
 
 		// 3) Check running jump timer.

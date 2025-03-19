@@ -70,11 +70,11 @@ namespace TEN::Entities::Traps
 		// Sync item status.
 		handleItem.Status = headItem.Status;
 
-		//Sync item TriggerFlag
+		// Sync TriggerFlags.
 		handleItem.TriggerFlags = headItem.TriggerFlags;
 
 		// Sync animation.
-		SetAnimation(handleItem, GetAnimNumber(headItem), GetFrameNumber(headItem));
+		SetAnimation(handleItem, headItem.Animation.AnimNumber, headItem.Animation.FrameNumber);
 
 		// Sync position.
 		handleItem.Pose = headItem.Pose;
@@ -132,14 +132,12 @@ namespace TEN::Entities::Traps
 			break;
 
 		case HAMMER_STATE_FALL_END:
-			if (std::abs(item.TriggerFlags) > 0)
+			if (abs(item.TriggerFlags) > 0)
 			{
 				item.Animation.TargetState = HAMMER_STATE_RETRACT;
 
-				if (std::abs(item.TriggerFlags) == 1)
-				{
+				if (abs(item.TriggerFlags) == 1)
 					item.ItemFlags[1] = 1;
-				}
 			}
 			else
 			{
@@ -150,7 +148,7 @@ namespace TEN::Entities::Traps
 			break;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 		SyncThorHammerHandle(item);
 	}
 	
@@ -164,7 +162,7 @@ namespace TEN::Entities::Traps
 		if (!HandleItemSphereCollision(item, *playerItem))
 			return;
 
-		if (item.Animation.ActiveState == HAMMER_STATE_FALL_START && (item.Animation.FrameNumber - GetAnimData(item).frameBase) <= HAMMER_HIT_FRAME)
+		if (item.Animation.ActiveState == HAMMER_STATE_FALL_START && item.Animation.FrameNumber <= HAMMER_HIT_FRAME)
 		{
 			auto pointColl = GetPointCollision(*playerItem);
 
@@ -176,7 +174,7 @@ namespace TEN::Entities::Traps
 			playerItem->Pose.Scale = Vector3(1.0f, 0.1f, 1.0f);
 
 			DoDamage(playerItem, INT_MAX);
-			SetAnimation(playerItem, LA_BOULDER_DEATH);
+			SetAnimation(*playerItem, LA_BOULDER_DEATH);
 		}
 		else if (playerItem->HitPoints > 0)
 		{

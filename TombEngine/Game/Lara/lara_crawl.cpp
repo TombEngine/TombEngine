@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_crawl.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
@@ -17,6 +17,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -421,8 +422,8 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		if ((IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll)) ||
-			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares)) &&
-			 !IsStandingWeapon(item, player.Control.Weapon.GunType) && HasStateDispatch(item, LS_CROUCH_IDLE)))
+			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares != 0)) &&
+				!IsStandingWeapon(item, player.Control.Weapon.GunType) && TestStateDispatch(*item, LS_CROUCH_IDLE)))
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
 			player.Control.HandStatus = HandStatus::Free;
@@ -887,10 +888,10 @@ void lara_col_crawl_to_hang(ItemInfo* item, CollisionInfo* coll)
 		coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
 		coll->Setup.ForwardAngle = player.Control.MoveAngle;
 
-		TranslateItem(item, item->Pose.Orientation.y, -BLOCK(1.0f / 4));
+		item->Pose.Translate(item->Pose.Orientation.y, -BLOCK(1.0f / 4));
 		GetCollisionInfo(coll, item);
 		SnapItemToLedge(item, coll);
-		SetAnimation(item, LA_REACH_TO_HANG, 12);
+		SetAnimation(*item, LA_REACH_TO_HANG, 12);
 
 		GetCollisionInfo(coll, item);
 		item->Animation.IsAirborne = true;

@@ -59,7 +59,7 @@ namespace TEN::Entities::Traps
 
 			// Translate sword.
 			short headingAngle = Geometry::GetOrientToPoint(item.Pose.Position.ToVector3(), laraItem.Pose.Position.ToVector3()).y;
-			TranslateItem(&item, headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
+			item.Pose.Translate(headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
 
 			int vPos = item.Pose.Position.y;
 			auto pointColl = GetPointCollision(item);

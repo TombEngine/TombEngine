@@ -151,7 +151,7 @@ namespace TEN::Entities::Creatures::TR1
 		if (CreatureVault(itemNumber, angle, 2, APE_SHIFT) == 2)
 		{
 			item->Pose.Position.y = y;
-			SetAnimation(item, APE_ANIM_VAULT);
+			SetAnimation(*item, APE_ANIM_VAULT);
 		}
 	}
 
@@ -169,7 +169,7 @@ namespace TEN::Entities::Creatures::TR1
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != APE_STATE_DEATH)
-				SetAnimation(item, ApeDeathAnims[Random::GenerateInt(0, (int)ApeDeathAnims.size() - 1)]);
+				SetAnimation(*item, ApeDeathAnims[Random::GenerateInt(0, (int)ApeDeathAnims.size() - 1)]);
 		}
 		else
 		{

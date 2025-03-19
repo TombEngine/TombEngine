@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_worker_flamethrower.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -14,6 +14,8 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -54,7 +56,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, WORKER_FLAME_ANIM_IDLE);
+		SetAnimation(*item, WORKER_FLAME_ANIM_IDLE);
 	}
 
 	void WorkerFlamethrower(short itemNumber)
@@ -75,7 +77,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != WORKER_FLAME_STATE_DEATH)
-				SetAnimation(item, WORKER_FLAME_ANIM_DEATH);
+				SetAnimation(*item, WORKER_FLAME_ANIM_DEATH);
 		}
 		else
 		{

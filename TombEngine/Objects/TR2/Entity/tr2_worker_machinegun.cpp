@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_worker_machinegun.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
@@ -10,6 +10,8 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -32,7 +34,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, 12);
+		SetAnimation(item, 12);
 	}
 
 	static void ShootWorkerMachineGun(ItemInfo& item, AI_INFO& ai, const EulerAngles& extraTorsoRot)
@@ -63,7 +65,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != 7)
-				SetAnimation(item, 19);
+				SetAnimation(*item, 19);
 		}
 		else
 		{
@@ -253,23 +255,23 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.AnimNumber == GetAnimIndex(*item, 2))
+				if (item->Animation.AnimNumber == 2)
 				{
-					if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+					if (item->Animation.FrameNumber == 0)
 					{
 						ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 					}
-					else if (item->Animation.FrameNumber == GetFrameIndex(item, 6))
+					else if (item->Animation.FrameNumber == 6)
 					{
 						ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 					}
-					else if (item->Animation.FrameNumber == GetFrameIndex(item, 12))
+					else if (item->Animation.FrameNumber == 12)
 					{
 						ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 					}
 				}
-				else if (item->Animation.AnimNumber == GetAnimIndex(*item, 21) &&
-					item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				else if (item->Animation.AnimNumber == 21 &&
+					item->Animation.FrameNumber == 0)
 				{
 					ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 				}
@@ -289,19 +291,19 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if (item->Animation.FrameNumber == 0)
 				{
 					ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 				}
-				else if (item->Animation.FrameNumber == GetFrameIndex(item, 2))
+				else if (item->Animation.FrameNumber == 2)
 				{
 					ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 				}
-				else if (item->Animation.FrameNumber == GetFrameIndex(item, 6))
+				else if (item->Animation.FrameNumber == 6)
 				{
 					ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 				}
-				else if (item->Animation.FrameNumber == GetFrameIndex(item, 12))
+				else if (item->Animation.FrameNumber == 12)
 				{
 					ShootWorkerMachineGun(*item, ai, extraTorsoRot);
 				}

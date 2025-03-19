@@ -155,6 +155,42 @@ namespace TEN::Math::Geometry
 		// TODO: Consider axis.
 		return FROM_RAD(atan2(normal.x, normal.z));
 	}
+
+	BoundingBox GetAabb(const BoundingOrientedBox& obb)
+	{
+		auto corners = std::array<Vector3, 8>{}; // TODO: Use BOX_VERTEX_COUNT constant when PR containing it is merged.
+		obb.GetCorners(corners.data());
+
+		auto cornerVector = std::vector<Vector3>{};
+		cornerVector.insert(cornerVector.end(), corners.begin(), corners.end());
+		return GetAabb(cornerVector);
+	}
+
+	BoundingBox GetAabb(const std::vector<Vector3>& points)
+	{
+		auto maxPoint = Vector3(-INFINITY);
+		auto minPoint = Vector3(INFINITY);
+
+		// Determine max and min AABB points.
+		for (const auto& point : points)
+		{
+			maxPoint = Vector3(
+				std::max(maxPoint.x, point.x),
+				std::max(maxPoint.y, point.y),
+				std::max(maxPoint.z, point.z));
+
+			minPoint = Vector3(
+				std::min(minPoint.x, point.x),
+				std::min(minPoint.y, point.y),
+				std::min(minPoint.z, point.z));
+		}
+
+		// Construct and return AABB.
+		auto center = (minPoint + maxPoint) / 2;
+		auto extents = (maxPoint - minPoint) / 2;
+		return BoundingBox(center, extents);
+	}
+
 	float GetDistanceToLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1)
 	{
 		auto target = GetClosestPointOnLine(origin, linePoint0, linePoint1);
@@ -241,31 +277,6 @@ namespace TEN::Math::Geometry
 			-slopeAngle * cosDeltaAngle,
 			orient,
 			slopeAngle * sinDeltaAngle);
-	}
-
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points)
-	{
-		auto maxPoint = Vector3(-INFINITY);
-		auto minPoint = Vector3(INFINITY);
-
-		// Determine max and min AABB points.
-		for (const auto& point : points)
-		{
-			maxPoint = Vector3(
-				std::max(maxPoint.x, point.x),
-				std::max(maxPoint.y, point.y),
-				std::max(maxPoint.z, point.z));
-
-			minPoint = Vector3(
-				std::min(minPoint.x, point.x),
-				std::min(minPoint.y, point.y),
-				std::min(minPoint.z, point.z));
-		}
-
-		// Construct and return AABB.
-		auto center = (minPoint + maxPoint) / 2;
-		auto extents = (maxPoint - minPoint) / 2;
-		return BoundingBox(center, extents);
 	}
 
 	Quaternion ConvertDirectionToQuat(const Vector3& dir)

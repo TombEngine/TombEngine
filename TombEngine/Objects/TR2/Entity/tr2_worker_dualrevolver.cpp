@@ -49,7 +49,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != 11)
-				SetAnimation(item, 32);
+				SetAnimation(*item, 32);
 		}
 		else if (LaraItem->HitPoints <= 0)
 		{
@@ -269,7 +269,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (creature->Flags == 0 && TestAnimFrame(*item, 0))
+				if (creature->Flags == 0 && item->Animation.FrameNumber == 0)
 				{
 					ShotLara(item, &ai, WorkerDualGunBiteLeft, extraTorsoRot.y, 50);
 					creature->MuzzleFlash[0].Bite = WorkerDualGunBiteLeft;
@@ -286,7 +286,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (creature->Flags == 0 && TestAnimFrame(*item, 0))
+				if (creature->Flags == 0 && item->Animation.FrameNumber == 0)
 				{
 					ShotLara(item, &ai, WorkerDualGunBiteRight, extraTorsoRot.y, 50);
 					creature->MuzzleFlash[0].Bite = WorkerDualGunBiteRight;
@@ -323,7 +323,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (creature->Flags == 0 && item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if (creature->Flags == 0 && item->Animation.FrameNumber == 0)
 				{
 					ShotLara(item, &ai, WorkerDualGunBiteLeft, extraTorsoRot.y, 50);
 					ShotLara(item, &ai, WorkerDualGunBiteRight, extraTorsoRot.y, 50);

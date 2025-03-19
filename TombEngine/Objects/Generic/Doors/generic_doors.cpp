@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/generic_doors.h"
+
 #include "Specific/level.h"
 #include "Game/control/control.h"
 #include "Game/control/box.h"
@@ -9,7 +10,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/pickup/pickup.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/Sphere.h"
 #include "Objects/Generic/Switches/cog_switch.h"
 #include "Objects/objectslist.h"
@@ -23,6 +24,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/itemdata/itemdata.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Gui;
@@ -222,7 +224,7 @@ namespace TEN::Entities::Doors
 
 				if (MoveLaraPosition(CrowbarDoorPos, doorItem, laraItem))
 				{
-					SetAnimation(laraItem, LA_DOOR_OPEN_CROWBAR);
+					SetAnimation(*laraItem, LA_DOOR_OPEN_CROWBAR);
 					doorItem->Pose.Orientation.y ^= ANGLE(180.0f);
 
 					AddActiveItem(itemNumber);
@@ -388,7 +390,7 @@ namespace TEN::Entities::Doors
 			}*/
 		}
 
-		AnimateItem(doorItem);
+		AnimateItem(*doorItem);
 	}
 
 	void OpenThatDoor(DOORPOS_DATA* doorPos, DOOR_DATA* dd)

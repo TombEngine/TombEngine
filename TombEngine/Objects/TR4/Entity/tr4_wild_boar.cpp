@@ -50,7 +50,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, BOAR_ANIM_IDLE);
+		SetAnimation(*item, BOAR_ANIM_IDLE);
 	}
 
 	void WildBoarControl(short itemNumber)
@@ -184,7 +184,7 @@ namespace TEN::Entities::TR4
 			item->HitPoints = 0;
 
 			if (item->Animation.ActiveState != BOAR_STATE_DEATH)
-				SetAnimation(item, BOAR_ANIM_DEATH);
+				SetAnimation(*item, BOAR_ANIM_DEATH);
 		}
 
 		CreatureJoint(item, 0, joint0);

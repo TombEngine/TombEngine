@@ -1,14 +1,16 @@
 #include "framework.h"
-#include "Game/animation.h"
+#include "Objects/Generic/Switches/generic_switch.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
-#include "Objects/Generic/Switches/generic_switch.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -48,7 +50,7 @@ namespace TEN::Entities::Switches
 			{
 				switchItem->Animation.TargetState = SWITCH_OFF;
 				switchItem->Timer = 0;
-				AnimateItem(switchItem);
+				AnimateItem(*switchItem);
 			}
 			else
 			{
@@ -57,7 +59,7 @@ namespace TEN::Entities::Switches
 			}
 		}
 
-		AnimateItem(switchItem);
+		AnimateItem(*switchItem);
 	}
 
 	void SwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -196,23 +198,23 @@ namespace TEN::Entities::Switches
 
 					if (switchItem->Animation.ActiveState == SWITCH_OFF)
 					{
-						SetAnimation(laraItem, offAnim);
+						SetAnimation(*laraItem, offAnim);
 						switchItem->Animation.TargetState = SWITCH_ON;
 					}
 					else
 					{
-						SetAnimation(laraItem, onAnim);
+						SetAnimation(*laraItem, onAnim);
 						switchItem->Animation.TargetState = SWITCH_OFF;
 					}
 
 					ResetPlayerFlex(laraItem);
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;
 
 					AddActiveItem(itemNumber);
 					switchItem->Status = ITEM_ACTIVE;
-					AnimateItem(switchItem);
+					AnimateItem(*switchItem);
 				}
 				else
 					laraInfo->Context.InteractedItem = itemNumber;

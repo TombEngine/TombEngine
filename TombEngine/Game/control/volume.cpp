@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -11,6 +11,8 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Control::Volumes
 {

@@ -109,7 +109,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != KTHROWER_STATE_DEATH)
-				SetAnimation(item, KTHROWER_ANIM_DEATH);
+				SetAnimation(*item, KTHROWER_ANIM_DEATH);
 		}
 		else
 		{

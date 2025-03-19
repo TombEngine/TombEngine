@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/tr3_flamethrower.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
@@ -17,6 +17,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
@@ -81,7 +82,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != FLAMETHROWER_STATE_DEATH)
-				SetAnimation(item, FLAME_ANIM_DEATH);
+				SetAnimation(*item, FLAME_ANIM_DEATH);
 		}
 		else
 		{
@@ -207,7 +208,7 @@ namespace TEN::Entities::Creatures::TR3
 				extraHeadRot.y = laraAI.angle;
 
 				if (item->AIBits & GUARD)
-					SetAnimation(item, FLAME_ANIM_IDLE);
+					SetAnimation(*item, FLAME_ANIM_IDLE);
 				else if (item->AIBits & PATROL1)
 					item->Animation.TargetState = FLAMETHROWER_STATE_WALK_FORWARD;
 				else if (creature->Mood == MoodType::Escape)

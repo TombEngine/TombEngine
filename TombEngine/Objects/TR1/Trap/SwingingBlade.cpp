@@ -26,7 +26,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		SetAnimation(&item, SWINGING_BLADE_ANIM_DISABLED);
+		SetAnimation(item, SWINGING_BLADE_ANIM_DISABLED);
 		
 		// Used for damage in GenericSphereBoxCollision().
 		item.ItemFlags[3] = SWINGING_BLADE_HARM_DAMAGE;
@@ -59,8 +59,8 @@ namespace TEN::Entities::Traps
 			}
 			else
 			{
-				if (item.Animation.AnimNumber == GetAnimIndex(item, SWINGING_BLADE_ANIM_DISABLED) &&
-					item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (item.Animation.AnimNumber == SWINGING_BLADE_ANIM_DISABLED &&
+					TestLastFrame(item))
 				{
 					item.Flags &= 0xC1;
 					RemoveActiveItem(itemNumber, false);
@@ -70,6 +70,6 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 }

@@ -131,7 +131,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, WASP_STATE_IDLE);
+		SetAnimation(item, WASP_STATE_IDLE);
 		item.ItemFlags[0] = WASP_VENOM_SACK_LIGHT_POWER;
 	}
 
@@ -175,7 +175,7 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			default:
-				SetAnimation(&item, WASP_STATE_DEATH_START);
+				SetAnimation(item, WASP_STATE_DEATH_START);
 				item.Animation.IsAirborne = true;
 				item.Animation.Velocity = Vector3::Zero;
 				break;

@@ -2,7 +2,7 @@
 #include "Game/effects/tomb4fx.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
@@ -23,6 +23,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
@@ -1169,7 +1170,7 @@ void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle)
 	SoundEffect(SFX_TR4_EXPLOSION2, &laraItem->Pose);
 
 	SetLaraVehicle(laraItem, nullptr);
-	SetAnimation(laraItem, LA_FALL_START);
+	SetAnimation(*laraItem, LA_FALL_START);
 	laraItem->Animation.IsAirborne = true;
 	DoDamage(laraItem, INT_MAX);
 }
@@ -1395,7 +1396,7 @@ void UpdateShockwaves()
 
 		if (LaraItem->HitPoints > 0 && shockwave.damage)
 		{
-			const auto& bounds = GetBestFrame(*LaraItem).BoundingBox;
+			const auto& bounds = GetClosestKeyframe(*LaraItem).BoundingBox;
 			int dx = LaraItem->Pose.Position.x - shockwave.x;
 			int dz = LaraItem->Pose.Position.z - shockwave.z;
 			float dist = sqrt(SQUARE(dx) + SQUARE(dz));

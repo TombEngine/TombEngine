@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_enemy_jeep.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
@@ -213,8 +214,8 @@ namespace TEN::Entities::TR4
 			{
 				if (height4 > (item->Floor + CLICK(2)) && item->Animation.ActiveState != 5)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 8;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = 8;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = 5;
 					item->Animation.TargetState = 1;
 					item->ItemFlags[1] = 0;
@@ -254,8 +255,8 @@ namespace TEN::Entities::TR4
 
 				if (Lara.Location < item->ItemFlags[3] && item->Animation.ActiveState != 2 && item->Animation.TargetState != 2)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 1;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = 1;
+					item->Animation.FrameNumber = 0;
 					item->Animation.TargetState = 2;
 					item->Animation.ActiveState = 2;
 
@@ -358,7 +359,7 @@ namespace TEN::Entities::TR4
 				ClampRotation(item->Pose, AI.angle, item->ItemFlags[0] / 16);
 
 			creature->MaxTurn = 0;
-			AnimateItem(item);
+			AnimateItem(*item);
 
 			auto probe = GetPointCollision(*item);
 			item->Floor = probe.GetFloorHeight();

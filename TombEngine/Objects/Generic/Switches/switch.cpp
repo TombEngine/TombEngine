@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/switch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/lot.h"
 #include "Game/effects/debris.h"
@@ -12,6 +12,8 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 #include "Sound/sound.h"
+
+using namespace TEN::Animation;
 
 // NOTE: we need to decompile/inspect if these functions are still needed
 

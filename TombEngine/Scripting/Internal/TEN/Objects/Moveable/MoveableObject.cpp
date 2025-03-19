@@ -781,7 +781,7 @@ int Moveable::GetAnimSlot() const
 // @treturn int the index of the active animation
 int Moveable::GetAnimNumber() const
 {
-	return _moveable->Animation.AnimNumber - Objects[_moveable->Animation.AnimObjectID].animIndex;
+	return _moveable->Animation.AnimNumber;
 }
 
 /// Set the object's animation to the one specified by the given index.
@@ -792,7 +792,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot slot ID of the desired anim (if omitted, moveable's own slot ID is used)
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(*_moveable, animNumber);
 }
 
 /// Retrieve frame number.
@@ -801,7 +801,7 @@ void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 // @treturn int the current frame of the active animation
 int Moveable::GetFrameNumber() const
 {
-	return (_moveable->Animation.FrameNumber - GetAnimData(*_moveable).frameBase);
+	return _moveable->Animation.FrameNumber;
 }
 
 /// Get the object's velocity.
@@ -841,13 +841,14 @@ void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
 
-	unsigned int frameCount = anim.frameEnd - anim.frameBase;
+	unsigned int endFrameNumber = anim.EndFrameNumber;
 	
-	bool cond = frameNumber < frameCount;
+	bool cond = (frameNumber < endFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, frameCount-1))
+
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, endFrameNumber - 1))
 	{
-		_moveable->Animation.FrameNumber = frameNumber + anim.frameBase;
+		_moveable->Animation.FrameNumber = frameNumber;
 	}
 	else
 	{
@@ -862,7 +863,7 @@ void Moveable::SetFrameNumber(int frameNumber)
 int Moveable::GetEndFrame() const
 {
 	const auto& anim = GetAnimData(*_moveable);
-	return (anim.frameEnd - anim.frameBase);
+	return anim.EndFrameNumber;
 }
 
 /// Determine whether the moveable is active or not 
@@ -1252,8 +1253,8 @@ void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshI
 void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID)
 {
 	_moveable->Animation.AnimObjectID = objectID;
-	_moveable->Animation.AnimNumber = Objects[objectID].animIndex + animNumber;
+	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
-	_moveable->Animation.FrameNumber = GetAnimData(*_moveable).frameBase;
-	AnimateItem(_moveable);
+	_moveable->Animation.FrameNumber = 0;
+	AnimateItem(*_moveable);
 }

@@ -90,7 +90,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, MONKEY_ANIM_SIT);
+		SetAnimation(*item, MONKEY_ANIM_SIT);
 	}
 
 	void MonkeyControl(short itemNumber)
@@ -110,7 +110,7 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (item->Animation.ActiveState != MONKEY_STATE_DEATH)
 			{
-				SetAnimation(item, MONKEY_ANIM_DEATH);
+				SetAnimation(*item, MONKEY_ANIM_DEATH);
 				item->MeshBits = ALL_JOINT_BITS;
 			}
 		}
@@ -347,7 +347,7 @@ namespace TEN::Entities::Creatures::TR3
 					break;
 				else if ((creature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM ||
 					creature->Enemy->ObjectNumber == ID_KEY_ITEM4) &&
-					item->Animation.FrameNumber == (GetAnimData(item).frameBase + 12))
+					item->Animation.FrameNumber == 12)
 				{
 					if (creature->Enemy->RoomNumber == NO_VALUE ||
 						creature->Enemy->Status == ITEM_INVISIBLE ||
@@ -382,7 +382,7 @@ namespace TEN::Entities::Creatures::TR3
 					}
 				}
 				else if (creature->Enemy->ObjectNumber == ID_AI_AMBUSH &&
-					item->Animation.FrameNumber == (GetAnimData(item).frameBase + 12))
+					item->Animation.FrameNumber == 12)
 				{
 					item->AIBits = 0;
 
@@ -594,32 +594,32 @@ namespace TEN::Entities::Creatures::TR3
 			switch (CreatureVault(itemNumber, angle, 2, CLICK(0.5f)))
 			{
 			case 2:
-				SetAnimation(item, MONKEY_ANIM_VAULT_UP_0_POINT_2_BLOCKS);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_UP_0_POINT_2_BLOCKS);
 				creature->MaxTurn = 0;
 				break;
 
 			case 3:
-				SetAnimation(item, MONKEY_ANIM_VAULT_UP_0_POINT_3_BLOCKS);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_UP_0_POINT_3_BLOCKS);
 				creature->MaxTurn = 0;
 				break;
 
 			case 4:
-				SetAnimation(item, MONKEY_ANIM_VAULT_UP_1_BLOCK);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_UP_1_BLOCK);
 				creature->MaxTurn = 0;
 				break;
 
 			case -2:
-				SetAnimation(item, MONKEY_ANIM_VAULT_DOWN_0_POINT_2_BLOCKS);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_DOWN_0_POINT_2_BLOCKS);
 				creature->MaxTurn = 0;
 				break;
 
 			case -3:
-				SetAnimation(item, MONKEY_ANIM_VAULT_DOWN_0_POINT_3_BLOCKS);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_DOWN_0_POINT_3_BLOCKS);
 				creature->MaxTurn = 0;
 				break;
 
 			case -4:
-				SetAnimation(item, MONKEY_ANIM_VAULT_DOWN_1_BLOCK);
+				SetAnimation(*item, MONKEY_ANIM_VAULT_DOWN_1_BLOCK);
 				creature->MaxTurn = 0;
 				break;
 			}

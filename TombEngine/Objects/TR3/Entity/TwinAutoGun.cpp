@@ -99,7 +99,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				item.Animation.TargetState = TWIN_AUTO_GUN_STATE_IDLE;
 			}
-			else if (item.Animation.FrameNumber == GetAnimData(item).frameBase)
+			else if (item.Animation.FrameNumber == 0)
 			{
 				item.ItemFlags[0] = 1;
 
@@ -188,7 +188,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		autoGun.JointRotation[0] += deltaAngle;
 		CreatureJoint(&item, 1, tiltAngle);
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void HitTwinAutoGun(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)

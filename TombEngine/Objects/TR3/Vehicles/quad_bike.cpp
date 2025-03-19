@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Vehicles/quad_bike.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -24,6 +24,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -224,7 +225,7 @@ namespace TEN::Entities::Vehicles
 		quadBikeItem->HitPoints = 1;
 		quadBike->Revs = 0;
 
-		AnimateItem(laraItem);
+		AnimateItem(*laraItem);
 	}
 
 	static int CanQuadbikeGetOff(ItemInfo* laraItem, int direction)
@@ -268,15 +269,15 @@ namespace TEN::Entities::Vehicles
 			return true;
 
 		if ((laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_RIGHT || laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_LEFT) &&
-			TestLastFrame(laraItem))
+			TestLastFrame(*laraItem))
 		{
 			if (laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_LEFT)
 				laraItem->Pose.Orientation.y += ANGLE(90.0f);
 			else
 				laraItem->Pose.Orientation.y -= ANGLE(90.0f);
 
-			SetAnimation(laraItem, LA_STAND_IDLE);
-			TranslateItem(laraItem, laraItem->Pose.Orientation.y, -QBIKE_DISMOUNT_DISTANCE);
+			SetAnimation(*laraItem, LA_STAND_IDLE);
+			laraItem->Pose.Translate(laraItem->Pose.Orientation.y, -QBIKE_DISMOUNT_DISTANCE);
 			laraItem->Pose.Orientation.x = 0;
 			laraItem->Pose.Orientation.z = 0;
 			SetLaraVehicle(laraItem, nullptr);
@@ -284,7 +285,7 @@ namespace TEN::Entities::Vehicles
 
 			if (laraItem->Animation.ActiveState == QBIKE_STATE_FALL_OFF)
 			{
-				SetAnimation(laraItem, LA_FREEFALL);
+				SetAnimation(*laraItem, LA_FREEFALL);
 				auto pos = GetJointPosition(laraItem, LM_HIPS);
 				laraItem->Pose.Position = pos;
 				laraItem->Animation.IsAirborne = true;
@@ -547,7 +548,7 @@ namespace TEN::Entities::Vehicles
 		else
 			speed = quadBikeItem->Animation.Velocity.z;
 
-		TranslateItem(quadBikeItem, quadBike->MomentumAngle, speed);
+		quadBikeItem->Pose.Translate(quadBike->MomentumAngle, speed);
 
 		int slip = QBIKE_SLIP * phd_sin(quadBikeItem->Pose.Orientation.x);
 		if (abs(slip) > QBIKE_SLIP / 2)
@@ -1188,8 +1189,8 @@ namespace TEN::Entities::Vehicles
 			laraItem->Pose = quadBikeItem->Pose;
 				
 			AnimateQuadBike(quadBikeItem, laraItem, collide, dead);
-			AnimateItem(laraItem);
-			SyncVehicleAnimation(*quadBikeItem, *laraItem);
+			AnimateItem(*laraItem);
+			SyncVehicleAnim(*quadBikeItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 

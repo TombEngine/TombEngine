@@ -1,10 +1,12 @@
 #include "framework.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 void SpringBoardControl(short itemNumber)
 {
@@ -23,12 +25,12 @@ void SpringBoardControl(short itemNumber)
 			LaraItem->Animation.Velocity.z *= -1;
 		}
 
-		SetAnimation(LaraItem, LA_FALL_START);
+		SetAnimation(*LaraItem, LA_FALL_START);
 		LaraItem->Animation.IsAirborne = true;
 		LaraItem->Animation.Velocity.y = -240.0f;
 
 		item.Animation.TargetState = 1;
 	}
 
-	AnimateItem(&item);
+	AnimateItem(item);
 }

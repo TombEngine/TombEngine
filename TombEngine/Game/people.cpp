@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/people.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
@@ -10,6 +10,8 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Sound/sound.h"
+
+using namespace TEN::Animation;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
@@ -118,8 +120,8 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	if ((!enemy->IsCreature() && !enemy->IsLara()) || enemy->HitPoints <= 0)
 		return false;
 
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
-	const auto& boundsTarget = GetBestFrame(*enemy).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
+	const auto& boundsTarget = GetClosestKeyframe(*enemy).BoundingBox;
 
 	auto origin = GameVector(
 		item->Pose.Position.x,
@@ -158,7 +160,7 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 	short angle = ai->angle - creature->JointRotation[2];
 	if (angle > ANGLE(-maxAngleInDegrees) && angle < ANGLE(maxAngleInDegrees))
 	{
-		const auto& bounds = GetBestFrame(*enemy).BoundingBox;
+		const auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 
 		auto origin = GameVector(
 			item->Pose.Position.x,

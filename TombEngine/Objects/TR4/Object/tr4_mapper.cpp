@@ -1,16 +1,18 @@
 #include "framework.h"
 #include "Objects/TR4/Object/tr4_mapper.h"
+
 #include "Specific/level.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Lara/lara.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Renderer/RendererEnums.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::TR4
@@ -27,7 +29,7 @@ namespace TEN::Entities::TR4
         if (!TriggerActive(item))
             return;
 
-        if (item->Animation.FrameNumber - GetAnimData(item).frameBase >= 200)
+        if (item->Animation.FrameNumber >= 200)
         {
             SoundEffect(SFX_TR4_MAPPER_LASER, &item->Pose);
 
@@ -71,6 +73,6 @@ namespace TEN::Entities::TR4
             }
         }
 
-        AnimateItem(item);
+        AnimateItem(*item);
     }
 }

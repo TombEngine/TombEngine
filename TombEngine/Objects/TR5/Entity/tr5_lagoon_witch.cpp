@@ -40,7 +40,7 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto* item = &g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 1);
+		SetAnimation(*item, 1);
 		item->Pose.Position.y += CLICK(2);
 	}
 
@@ -62,9 +62,7 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (item->Animation.ActiveState != WITCH_STATE_DEATH)
 			{
-				item->Animation.ActiveState = WITCH_STATE_DEATH;
-				item->Animation.AnimNumber = object->animIndex + WITCH_ANIM_DEATH;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				SetAnimation(*item, WITCH_ANIM_DEATH);
 				item->HitPoints = 0;
 			}
 		}
@@ -129,7 +127,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (!creature->Flags &&
 					item->TouchBits.Test(LagoonWitchAttackJoints) &&
-					item->Animation.FrameNumber > GetAnimData(item).frameBase + 29)
+					item->Animation.FrameNumber > 29)
 				{
 					DoDamage(creature->Enemy, LAGOON_WITCH_ATTACK_DAMAGE);
 					CreatureEffect2(item, LagoonWitchBite, 10, item->Pose.Orientation.y, DoBloodSplat);

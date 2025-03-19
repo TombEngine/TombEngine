@@ -46,7 +46,7 @@ namespace TEN::Entities::Switches
 				laraItem->Animation.ActiveState = LS_SWITCH_DOWN;
 				laraItem->Animation.AnimNumber = LA_JUMPSWITCH_PULL;
 				laraItem->Animation.Velocity.y = 0;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				laraItem->Animation.IsAirborne = false;
 				laraInfo->Control.HandStatus = HandStatus::Busy;
 				switchItem->Animation.TargetState = SWITCH_ON;

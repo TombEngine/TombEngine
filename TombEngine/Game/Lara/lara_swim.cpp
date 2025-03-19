@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_swim.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -15,6 +15,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -42,7 +43,7 @@ void lara_as_underwater_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if ((IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back))) && laraType != LaraType::Divesuit)
 	{
-		SetAnimation(item, LA_UNDERWATER_ROLL_180_START);
+		SetAnimation(*item, LA_UNDERWATER_ROLL_180_START);
 		return;
 	}
 
@@ -87,7 +88,7 @@ void lara_as_underwater_swim_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Roll) && laraType != LaraType::Divesuit)
 	{
-		SetAnimation(item, LA_UNDERWATER_ROLL_180_START);
+		SetAnimation(*item, LA_UNDERWATER_ROLL_180_START);
 		return;
 	}
 
@@ -131,7 +132,7 @@ void lara_as_underwater_inertia(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Roll) && laraType != LaraType::Divesuit)
 	{
-		SetAnimation(item, LA_UNDERWATER_ROLL_180_START);
+		SetAnimation(*item, LA_UNDERWATER_ROLL_180_START);
 		return;
 	}
 

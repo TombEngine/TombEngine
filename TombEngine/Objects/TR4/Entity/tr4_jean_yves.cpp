@@ -2,13 +2,14 @@
 #include "Objects/TR4/Entity/tr4_jean_yves.h"
 
 #include "Game/control/control.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
@@ -38,8 +39,8 @@ namespace TEN::Entities::TR4
 
 		item->Animation.TargetState = JEAN_YVES_STATE_HANDS_BEHIND_HEAD;
 		item->Animation.ActiveState = JEAN_YVES_STATE_HANDS_BEHIND_HEAD;
-		item->Animation.AnimNumber = objectInfo->animIndex;
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.AnimNumber = 0;
+		item->Animation.FrameNumber = 0;
 	}
 
 	void JeanYvesControl(short itemNumber)
@@ -56,7 +57,7 @@ namespace TEN::Entities::TR4
 				state = 3 * (GetRandomControl() & 1);
 
 			item->Animation.TargetState = (((byte)(item->Animation.ActiveState) - 1) & 0xC) + state + 1;
-			AnimateItem(item);
+			AnimateItem(*item);
 		}
 		else
 		{
@@ -64,16 +65,16 @@ namespace TEN::Entities::TR4
 				Lara.HighestLocation = 3;
 
 			int state = (GetRandomControl() & 3) + 4 * Lara.HighestLocation;
-			int animNumber = Objects[item->ObjectNumber].animIndex + state;
+			int animNumber = state;
 			state++;
 
 			item->Animation.AnimNumber = animNumber;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = state;
 			item->Animation.TargetState = state;
 			item->TriggerFlags = Lara.HighestLocation;
 
-			AnimateItem(item);
+			AnimateItem(*item);
 		}
 	}
 }

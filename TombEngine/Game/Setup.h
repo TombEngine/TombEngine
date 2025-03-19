@@ -1,9 +1,11 @@
 #pragma once
+
 #include "Game/control/box.h"
 #include "Objects/objectslist.h"
 #include "Renderer/RendererEnums.h"
 #include "Specific/level.h"
 
+namespace TEN::Animation { struct AnimData; }
 class Vector3i;
 struct CollisionInfo;
 struct ItemInfo;
@@ -73,8 +75,6 @@ struct ObjectInfo
 	int nmeshes; // BoneCount
 	int meshIndex; // Base index in g_Level.Meshes.
 	int boneIndex; // Base index in g_Level.Bones.
-	int animIndex; // Base index in g_Level.Anims.
-	int frameBase; // Base index in g_Level.Frames.
 
 	LotType LotType;
 	HitEffect hitEffect;
@@ -95,6 +95,8 @@ struct ObjectInfo
 	bool usingDrawAnimatingItem = false;
 
 	DWORD explodableMeshbits;
+
+	std::vector<AnimData> Animations = {};
 
 	std::function<void(short itemNumber)> Initialize = nullptr;
 	std::function<void(short itemNumber)> control = nullptr;

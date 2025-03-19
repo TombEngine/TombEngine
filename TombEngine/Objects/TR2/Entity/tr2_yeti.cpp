@@ -52,7 +52,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 19);
+		SetAnimation(*item, 19);
 	}
 
 	void YetiControl(short itemNumber)
@@ -73,7 +73,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != YETI_STATE_DEATH)
-				SetAnimation(item, YETI_ANIM_DEATH);
+				SetAnimation(*item, YETI_ANIM_DEATH);
 		}
 		else
 		{
@@ -334,26 +334,26 @@ namespace TEN::Entities::Creatures::TR2
 			switch (CreatureVault(itemNumber, headingAngle, 2, 300))
 			{
 			case 2:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 34;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 34;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 10;
 				break;
 
 			case 3:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 33;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 33;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 11;
 				break;
 
 			case 4:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 32;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 32;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 12;
 				break;
 
 			case -4:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 35;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 35;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 13;
 				break;
 			}

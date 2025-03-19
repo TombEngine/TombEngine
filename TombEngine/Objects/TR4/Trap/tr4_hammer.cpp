@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_hammer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -12,6 +12,8 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 // NOTES:
 // ItemFlags[0] | ItemFlags[1] = Harm joints.
@@ -45,7 +47,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		int frameNumber = item.Animation.FrameNumber - GetAnimData(item).frameBase;
+		int frameNumber = item.Animation.FrameNumber;
 		item.ItemFlags[3] = HAMMER_HIT_DAMAGE;
 
 		if (!TriggerActive(&item))
@@ -87,8 +89,8 @@ namespace TEN::Entities::Traps
 			}
 			else
 			{
-				item.Animation.AnimNumber = Objects[item.ObjectNumber].animIndex + HAMMER_ANIM_ACTIVE;
-				item.Animation.FrameNumber = GetAnimData(item).frameBase;
+				item.Animation.AnimNumber = HAMMER_ANIM_ACTIVE;
+				item.Animation.FrameNumber = 0;
 				item.Animation.ActiveState = HAMMER_STATE_ACTIVE;
 				item.Animation.TargetState = HAMMER_STATE_ACTIVE;
 				item.ItemFlags[2] = HAMMER_OCB4_INTERVAL;
@@ -192,6 +194,6 @@ namespace TEN::Entities::Traps
 				item.Flags &= ~CODE_BITS;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 }

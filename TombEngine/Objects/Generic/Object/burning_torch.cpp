@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Object/burning_torch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/los.h"
@@ -18,6 +18,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Input;
 
@@ -78,12 +79,13 @@ namespace TEN::Entities::Generic
 
 	void DoFlameTorch()
 	{
-		const int holdAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
-		const int throwAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 1;
-		const int dropAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 2;
+		constexpr auto HOLD_ANIM_NUMBER	 = 0;
+		constexpr auto THROW_ANIM_NUMBER = 1;
+		constexpr auto DROP_ANIM_NUMBER	 = 2;
 
 		auto* laraItem = LaraItem;
 		auto* lara = GetLaraInfo(laraItem);
+		auto& animObject = Objects[ID_LARA_TORCH_ANIM];
 
 		if (lara->Torch.State == TorchState::Holding)
 		{
@@ -91,7 +93,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = true;
 				lara->LeftArm.FrameNumber = 31;
-				lara->LeftArm.AnimNumber = dropAnimNumber;
+				lara->LeftArm.AnimNumber = DROP_ANIM_NUMBER;
 				lara->Torch.State = TorchState::Dropping;
 			}
 			else if (IsHeld(In::Draw) &&
@@ -108,7 +110,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = true;
 				lara->LeftArm.FrameNumber = 1;
-				lara->LeftArm.AnimNumber = throwAnimNumber;
+				lara->LeftArm.AnimNumber = THROW_ANIM_NUMBER;
 				lara->Torch.State = TorchState::Throwing;
 
 				if (lara->Control.WaterStatus == WaterStatus::Underwater)
@@ -121,7 +123,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = false;
 				lara->LeftArm.FrameNumber = 0;
-				lara->LeftArm.AnimNumber = holdAnimNumber;
+				lara->LeftArm.AnimNumber = HOLD_ANIM_NUMBER;
 				lara->Torch.State = TorchState::Holding;
 			}
 			else
@@ -172,14 +174,14 @@ namespace TEN::Entities::Generic
 				lara->LeftArm.FrameNumber = 0;
 				lara->Flare.ControlLeft = true;
 				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;
-				lara->LeftArm.AnimNumber = holdAnimNumber;
+				lara->LeftArm.AnimNumber = HOLD_ANIM_NUMBER;
 			}
 		}
 
 		if (lara->Flare.ControlLeft)
 			lara->Control.HandStatus = HandStatus::WeaponReady;
 
-		lara->LeftArm.FrameBase = GetAnimData(lara->LeftArm.AnimNumber).FramePtr;
+		lara->LeftArm.AnimObjectID = ID_LARA_TORCH_ANIM;
 
 		if (lara->Torch.IsLit)
 		{
@@ -194,7 +196,7 @@ namespace TEN::Entities::Generic
 			if (!(Wibble & 3))
 				TriggerTorchFlame(laraItem->Index, 0);
 
-			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
+			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &Pose(pos));
 		}
 	}
 
@@ -202,6 +204,7 @@ namespace TEN::Entities::Generic
 	{
 		auto* laraItem = LaraItem;
 		auto* lara = GetLaraInfo(laraItem);
+		auto& animObject = Objects[ID_LARA_TORCH_ANIM];
 
 		if (lara->Control.Weapon.GunType == LaraWeaponType::Flare)
 			CreateFlare(*laraItem, ID_FLARE_ITEM, false);
@@ -210,12 +213,11 @@ namespace TEN::Entities::Generic
 		lara->Control.Weapon.RequestGunType = LaraWeaponType::Torch;
 		lara->Control.Weapon.GunType = LaraWeaponType::Torch;
 		lara->Flare.ControlLeft = true;
-		lara->LeftArm.AnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
 		lara->LeftArm.Locked = false;
+		lara->LeftArm.AnimObjectID = ID_LARA_TORCH_ANIM;
+		lara->LeftArm.AnimNumber = 0;
 		lara->LeftArm.FrameNumber = 0;
-		lara->LeftArm.FrameBase = GetAnimData(lara->LeftArm.AnimNumber).FramePtr;
-
-		laraItem->Model.MeshIndex[LM_LHAND] = Objects[ID_LARA_TORCH_ANIM].meshIndex + LM_LHAND;
+		laraItem->Model.MeshIndex[LM_LHAND] = animObject.meshIndex + LM_LHAND;
 	}
 
 	void TorchControl(short itemNumber)
@@ -363,7 +365,7 @@ namespace TEN::Entities::Generic
 				}
 
 				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				lara->Flare.ControlLeft = false;
 				lara->LeftArm.Locked = true;
 				lara->Context.InteractedItem = itemNumber;
@@ -378,7 +380,7 @@ namespace TEN::Entities::Generic
 			if (laraItem->Animation.AnimNumber >= LA_TORCH_LIGHT_1 &&
 				laraItem->Animation.AnimNumber <= LA_TORCH_LIGHT_5)
 			{
-				if ((laraItem->Animation.FrameNumber - GetAnimData(laraItem).frameBase) == 40)
+				if (laraItem->Animation.FrameNumber == 40)
 				{
 					TestTriggers(torchItem, true, torchItem->Flags & IFLAG_ACTIVATION_MASK);
 					torchItem->Flags |= CODE_BITS;

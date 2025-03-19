@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Object/Corpse.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -21,6 +21,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Splash;
@@ -52,13 +53,13 @@ namespace TEN::Entities::TR3
 		if (item.TriggerFlags == 1)
 		{
 			item.ItemFlags[1] = (int)CorpseFlag::Hang;
-			item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_HANG;
+			item.Animation.AnimNumber = CORPSE_ANIM_HANG;
 			item.Animation.ActiveState = CORPSE_STATE_HANG;
 		}
 		else
 		{
 			item.ItemFlags[1] = (int)CorpseFlag::Grounded;
-			item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_GROUNDED;
+			item.Animation.AnimNumber = CORPSE_ANIM_GROUNDED;
 			item.Animation.ActiveState = CORPSE_STATE_GROUNDED;
 		}
 
@@ -112,8 +113,8 @@ namespace TEN::Entities::TR3
 				item.Animation.IsAirborne = false;
 				item.Animation.Velocity = Vector3::Zero;
 				item.Animation.TargetState = CORPSE_STATE_LAND;
-				item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_LAND;
-				AlignEntityToSurface(&item, Vector2(object.radius));
+				item.Animation.AnimNumber = CORPSE_ANIM_LAND;
+				AlignEntityToSurface(&item, Vector2(Objects[item.ObjectNumber].radius));
 
 				item.ItemFlags[1] = (int)CorpseFlag::Grounded;
 				return;
@@ -131,7 +132,7 @@ namespace TEN::Entities::TR3
 			}
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		if (!TriggerActive(&item))
 			return;
@@ -163,7 +164,7 @@ namespace TEN::Entities::TR3
 			if (target.ItemFlags[1] == (int)CorpseFlag::Hang)
 			{
 				target.ItemFlags[1] = (int)CorpseFlag::Fall;
-				target.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_FALL;
+				target.Animation.AnimNumber = CORPSE_ANIM_FALL;
 				target.Animation.ActiveState = CORPSE_STATE_FALL;
 			}
 		}

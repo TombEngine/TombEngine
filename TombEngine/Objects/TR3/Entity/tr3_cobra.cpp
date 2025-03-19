@@ -50,7 +50,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, COBRA_ANIM_IDLE_TO_SLEEP, COBRA_SLEEP_FRAME);
+		SetAnimation(*item, COBRA_ANIM_IDLE_TO_SLEEP, COBRA_SLEEP_FRAME);
 		item->ItemFlags[2] = item->HitStatus;
 	}
 
@@ -69,7 +69,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0 && item->HitPoints != NOT_TARGETABLE)
 		{
 			if (item->Animation.ActiveState != COBRA_STATE_DEATH)
-				SetAnimation(item, COBRA_ANIM_DEATH);
+				SetAnimation(*item, COBRA_ANIM_DEATH);
 		}
 		else
 		{

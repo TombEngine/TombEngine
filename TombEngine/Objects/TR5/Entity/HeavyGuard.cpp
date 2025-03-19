@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/HeavyGuard.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -25,6 +25,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Spark;
@@ -188,7 +189,7 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		SetAnimation(&item, HEAVY_GUARD_ANIM_IDLE);
+		SetAnimation(item, HEAVY_GUARD_ANIM_IDLE);
 	}
 
 	void HeavyGuardControl(short itemNumber)
@@ -236,7 +237,7 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (item.Animation.ActiveState != HEAVY_GUARD_STATE_DEATH && item.TriggerFlags != 1)
 			{
-				SetAnimation(&item, HEAVY_GUARD_ANIM_DEATH);
+				SetAnimation(item, HEAVY_GUARD_ANIM_DEATH);
 			}
 			else if (item.TriggerFlags == 1)
 			{
@@ -245,9 +246,9 @@ namespace TEN::Entities::Creatures::TR5
 				case HEAVY_GUARD_STATE_FALL_START:
 				{
 					int frame = item.Animation.FrameNumber;
-					int frameStart = GetAnimData(item).frameBase;
+					int frameStart = 0;
 
-					if (frame == GetFrameIndex(&item, 48) || frame == GetFrameIndex(&item, 15))
+					if (frame == 48 || frame == 15)
 					{
 						short roomNumber = item.RoomNumber;
 						GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber),
@@ -276,7 +277,7 @@ namespace TEN::Entities::Creatures::TR5
 					break;
 
 				default:
-					SetAnimation(&item, HEAVY_GUARD_ANIM_FALL_DEATH_START);
+					SetAnimation(item, HEAVY_GUARD_ANIM_FALL_DEATH_START);
 					creature.LOT.IsJumping = true;
 					break;
 				}
@@ -386,7 +387,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (Targetable(&item, &ai) &&
 					laraAI.angle < ANGLE(33.0f) && laraAI.angle > ANGLE(-33.0f))
 				{
-					if (item.Animation.FrameNumber >= GetFrameIndex(&item, 29))
+					if (item.Animation.FrameNumber >= 29)
 						item.Animation.TargetState = HEAVY_GUARD_STATE_WALK_RAYGUN_ATTACK_RIGHT;
 					else
 						item.Animation.TargetState = HEAVY_GUARD_STATE_WALK_RAYGUN_ATTACK_LEFT;
@@ -405,7 +406,7 @@ namespace TEN::Entities::Creatures::TR5
 			case HEAVY_GUARD_STATE_WALK_RAYGUN_ATTACK_LEFT:
 				headOrient.y = laraAI.angle;
 
-				if (item.Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item.Animation.FrameNumber == 0)
 				{
 					if (item.Animation.ActiveState == HEAVY_GUARD_STATE_WALK_RAYGUN_ATTACK_LEFT)
 						FireHeavyGuardRaygun(item, false, false);
@@ -472,7 +473,7 @@ namespace TEN::Entities::Creatures::TR5
 						item.Pose.Orientation.y -= HEAVY_GUARD_IDLE_TURN_RATE_MAX;
 				}
 
-				if (TestAnimFrame(item, 17))
+				if (item.Animation.FrameNumber == 17)
 				{
 					FireHeavyGuardRaygun(item, false, false);
 					FireHeavyGuardRaygun(item, true, false);
@@ -489,7 +490,7 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item.Pose.Orientation.y -= HEAVY_GUARD_IDLE_TURN_RATE_MAX;
 
-				if (TestLastFrame(&item))
+				if (TestLastFrame(*&item))
 					item.Pose.Orientation.y += ANGLE(180.0f);
 
 				break;
@@ -499,7 +500,7 @@ namespace TEN::Entities::Creatures::TR5
 				torsoOrient.x = ai.xAngle / 2;
 				torsoOrient.y = laraAI.angle / 2;
 
-				if (TestAnimFrame(item, 18))
+				if (item.Animation.FrameNumber == 18)
 				{
 					FireHeavyGuardRaygun(item, false, false);
 					item.ItemFlags[1] = -16;

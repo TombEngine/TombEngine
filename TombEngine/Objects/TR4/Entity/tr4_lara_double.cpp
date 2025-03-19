@@ -1,12 +1,14 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_lara_double.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::TR4
 {
@@ -21,7 +23,7 @@ namespace TEN::Entities::TR4
 			if (item->HitStatus)
 				LaraItem->HitPoints = item->HitPoints;
 
-			AnimateItem(item);
+			AnimateItem(*item);
 		}
 	}
 }

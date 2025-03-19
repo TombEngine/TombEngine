@@ -2,7 +2,7 @@
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Objects/TR4/Vehicles/motorbike_info.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -24,9 +24,11 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math::Random;
+using std::vector;
 
 namespace TEN::Entities::Vehicles
 {
@@ -213,7 +215,7 @@ namespace TEN::Entities::Vehicles
 		motorbike->Revs = 0;
 		motorbike->LightPower = 0;
 
-		AnimateItem(laraItem);
+		AnimateItem(*laraItem);
 	}
 
 	static int DoMotorbikeShift(ItemInfo* motorbikeItem, Vector3i* pos, Vector3i* old)
@@ -438,20 +440,20 @@ namespace TEN::Entities::Vehicles
 			auto* item = &g_Level.Items[lara->Context.Vehicle];
 
 			if (laraItem->Animation.ActiveState == MOTORBIKE_STATE_DISMOUNT &&
-				TestLastFrame(laraItem))
+				TestLastFrame(*laraItem))
 			{
-				SetAnimation(laraItem, LA_STAND_SOLID);
+				SetAnimation(*laraItem, LA_STAND_SOLID);
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.y -= ANGLE(90.0f);
 				laraItem->Pose.Orientation.z = 0;
-				TranslateItem(laraItem, laraItem->Pose.Orientation.y, -MOTORBIKE_DISMOUNT_DISTANCE);
+				laraItem->Pose.Translate(laraItem->Pose.Orientation.y, -MOTORBIKE_DISMOUNT_DISTANCE);
 				lara->Control.HandStatus = HandStatus::Free;
 				lara->Status.Stamina = LARA_STAMINA_MAX;
 				SetLaraVehicle(laraItem, nullptr);
 				return true;
 			}
 
-			if (!TestLastFrame(laraItem))
+			if (!TestLastFrame(*laraItem))
 				return true;
 
 			// exit when falling
@@ -619,7 +621,7 @@ namespace TEN::Entities::Vehicles
 		else
 			speed = motorbikeItem->Animation.Velocity.z;
 
-		TranslateItem(motorbikeItem, motorbike->MomentumAngle, speed);
+		motorbikeItem->Pose.Translate(motorbike->MomentumAngle, speed);
 
 		if (motorbikeItem->Pose.Position.y >= floorHeight)
 		{
@@ -1101,7 +1103,7 @@ namespace TEN::Entities::Vehicles
 			if (laraItem->Animation.ActiveState == MOTORBIKE_STATE_MOVING_BACK)
 			{
 				int currentFrame = laraItem->Animation.FrameNumber;
-				int frameBase = GetAnimData(laraItem).frameBase;
+				int frameBase = 0;
 
 				if (currentFrame >= frameBase + 24 &&
 					currentFrame <= frameBase + 29)
@@ -1146,7 +1148,7 @@ namespace TEN::Entities::Vehicles
 		lara->HitDirection = -1;
 
 		// Sync vehicle with player animation.
-		SetAnimation(*motorbikeItem, GetAnimNumber(*laraItem), GetFrameNumber(laraItem));
+		SyncVehicleAnim(*motorbikeItem, *laraItem);
 
 		motorbikeItem->HitPoints = 1;
 		motorbikeItem->Flags = IFLAG_KILLED; // hmm... maybe wrong name (it can be IFLAG_CODEBITS)?
@@ -1281,8 +1283,8 @@ namespace TEN::Entities::Vehicles
 		laraItem->Pose = motorbikeItem->Pose;
 
 		AnimateMotorbike(motorbikeItem, laraItem, collide, isDead);
-		AnimateItem(laraItem);
-		SyncVehicleAnimation(*motorbikeItem, *laraItem);
+		AnimateItem(*laraItem);
+		SyncVehicleAnim(*motorbikeItem, *laraItem);
 
 		Camera.targetElevation = -ANGLE(30.0f);
 

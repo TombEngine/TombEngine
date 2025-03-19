@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/collision/collide_item.h"
@@ -21,6 +21,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -285,12 +286,12 @@ namespace TEN::Entities::Vehicles
 		{
 		case BGUN_STATE_MOUNT:
 		case BGUN_STATE_DISMOUNT:
-			AnimateItem(laraItem);
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			AnimateItem(*laraItem);
+			SyncVehicleAnim(*bigGunItem, *laraItem);
 
-			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(laraItem))
+			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(*laraItem))
 			{
-				SetAnimation(laraItem, LA_STAND_IDLE);
+				SetAnimation(*laraItem, LA_STAND_IDLE);
 				SetLaraVehicle(laraItem, nullptr);
 				lara->Control.HandStatus = HandStatus::Free;
 				bigGunItem->HitPoints = 0;
@@ -299,7 +300,7 @@ namespace TEN::Entities::Vehicles
 			break;
 
 		case BGUN_STATE_ROTATE_VERTICALLY:
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			SyncVehicleAnim(*bigGunItem, *laraItem);
 
 			if (bigGun->FireCount > 0)
 				bigGun->FireCount--;

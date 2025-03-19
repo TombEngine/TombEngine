@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_sas.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -24,6 +24,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Input;
@@ -111,7 +112,7 @@ namespace TEN::Entities::TR4
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, SAS_ANIM_STAND);
+		SetAnimation(item, SAS_ANIM_STAND);
 	}
 
 	void InitializeInjuredSas(short itemNumber)
@@ -120,16 +121,16 @@ namespace TEN::Entities::TR4
 
 		if (item.TriggerFlags)
 		{
-			item.Animation.AnimNumber = Objects[item.ObjectNumber].animIndex;
+			item.Animation.AnimNumber = 0;
 			item.Animation.TargetState = item.Animation.ActiveState = 1;
 		}
 		else
 		{
-			item.Animation.AnimNumber = Objects[item.ObjectNumber].animIndex + 3;
+			item.Animation.AnimNumber = 3;
 			item.Animation.TargetState = item.Animation.ActiveState = 4;
 		}
 
-		item.Animation.FrameNumber = GetAnimData(item).frameBase;
+		item.Animation.FrameNumber = 0;
 	}
 
 	void SasControl(short itemNumber)
@@ -196,7 +197,7 @@ namespace TEN::Entities::TR4
 				creature.Flags = 0;
 				joint2 = angle;
 
-				if (item.Animation.AnimNumber == Objects[item.ObjectNumber].animIndex + SAS_ANIM_WALK_TO_STAND)
+				if (item.Animation.AnimNumber == SAS_ANIM_WALK_TO_STAND)
 				{
 					if (abs(AI.angle) < ANGLE(10.0f))
 						item.Pose.Orientation.y += AI.angle;
@@ -476,7 +477,7 @@ namespace TEN::Entities::TR4
 					angle2 = 0;
 				}
 
-				if (item.Animation.FrameNumber == (GetAnimData(item).frameBase + 20))
+				if (item.Animation.FrameNumber == 20)
 				{
 					if (!creature.Enemy->Animation.Velocity.z)
 					{
@@ -543,7 +544,7 @@ namespace TEN::Entities::TR4
 			if (FlashGrenadeAftershockTimer > 100 &&
 				item.Animation.ActiveState != SAS_STATE_BLIND)
 			{
-				SetAnimation(&item, SAS_ANIM_BLIND, Random::GenerateInt(0, 8));
+				SetAnimation(item, SAS_ANIM_BLIND, Random::GenerateInt(0, 8));
 				creature.MaxTurn = 0;
 			}
 		}
@@ -551,7 +552,7 @@ namespace TEN::Entities::TR4
 		{
 			if (item.Animation.ActiveState != SAS_STATE_DEATH)
 			{
-				SetAnimation(&item, SAS_ANIM_DEATH);
+				SetAnimation(item, SAS_ANIM_DEATH);
 			}
 		}
 
@@ -572,7 +573,7 @@ namespace TEN::Entities::TR4
 			if (Random::TestProbability(1 / 128.0f))
 			{
 				item.Animation.TargetState = 2;
-				AnimateItem(&item);
+				AnimateItem(item);
 			}
 			else if (!(byte)GetRandomControl())
 			{
@@ -583,11 +584,11 @@ namespace TEN::Entities::TR4
 			Random::TestProbability(1 / 128.0f))
 		{
 			item.Animation.TargetState = 5;
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 		else
 		{
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 	}
 
@@ -608,7 +609,7 @@ namespace TEN::Entities::TR4
 			{
 				if (MoveLaraPosition(SasDragBodyPosition, &item, laraItem))
 				{
-					SetAnimation(laraItem, LA_DRAG_BODY);
+					SetAnimation(*laraItem, LA_DRAG_BODY);
 					ResetPlayerFlex(laraItem);
 					laraItem->Pose.Orientation.y = item.Pose.Orientation.y;
 					player.Control.HandStatus = HandStatus::Busy;
@@ -632,7 +633,7 @@ namespace TEN::Entities::TR4
 				return;
 			}
 
-			if (!TestLastFrame(&item))
+			if (!TestLastFrame(*&item))
 				return;
 
 			auto pos = GetJointPosition(&item, 0);

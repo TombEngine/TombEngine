@@ -7,7 +7,7 @@
 #include <wincodec.h>
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
 #include "Game/control/control.h"
@@ -34,6 +34,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
 
@@ -42,7 +43,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
 {
-	void Renderer::UpdateAnimation(RendererItem* rItem, RendererObject& rObject, const AnimFrameInterpData& frameData, int mask, bool useObjectWorldRotation)
+	void Renderer::UpdateAnimation(RendererItem* rItem, RendererObject& rObject, const KeyframeInterpData& interpData, int mask, bool useObjectWorldRotation)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
@@ -64,8 +65,8 @@ namespace TEN::Renderer
 			if (bonePtr == nullptr)
 				return;
 
-			if (frameData.FramePtr0->BoneOrientations.size() <= bonePtr->Index ||
-				(frameData.Alpha != 0.0f && frameData.FramePtr0->BoneOrientations.size() <= bonePtr->Index))
+			if (interpData.Keyframe0.BoneOrientations.size() <= bonePtr->Index ||
+				(interpData.Alpha != 0.0f && interpData.Keyframe0.BoneOrientations.size() <= bonePtr->Index))
 			{
 				TENLog(
 					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rItem->ObjectID) +
@@ -78,19 +79,19 @@ namespace TEN::Renderer
 			bool calculateMatrix = (mask >> bonePtr->Index) & 1;
 			if (calculateMatrix)
 			{
-				auto offset0 = frameData.FramePtr0->Offset;
-				auto rotMatrix = Matrix::CreateFromQuaternion(frameData.FramePtr0->BoneOrientations[bonePtr->Index]);
-
-				if (frameData.Alpha != 0.0f)
+				auto offset0 = interpData.Keyframe0.RootOffset;
+				auto rotMatrix = Matrix::CreateFromQuaternion(interpData.Keyframe0.BoneOrientations[bonePtr->Index]);
+				
+				if (interpData.Alpha != 0.0f)
 				{
-					auto offset1 = frameData.FramePtr1->Offset;
-					offset0 = Vector3::Lerp(offset0, offset1, frameData.Alpha);
+					auto offset1 = interpData.Keyframe1.RootOffset;
+					offset0 = Vector3::Lerp(offset0, offset1, interpData.Alpha);
 
-					auto rotMatrix2 = Matrix::CreateFromQuaternion(frameData.FramePtr1->BoneOrientations[bonePtr->Index]);
+					auto rotMatrix2 = Matrix::CreateFromQuaternion(interpData.Keyframe1.BoneOrientations[bonePtr->Index]);
 
 					auto quat1 = Quaternion::CreateFromRotationMatrix(rotMatrix);
 					auto quat2 = Quaternion::CreateFromRotationMatrix(rotMatrix2);
-					auto quat3 = Quaternion::Slerp(quat1, quat2, frameData.Alpha);
+					auto quat3 = Quaternion::Slerp(quat1, quat2, interpData.Alpha);
 
 					rotMatrix = Matrix::CreateFromQuaternion(quat3);
 				}
@@ -181,7 +182,7 @@ namespace TEN::Renderer
 		// Copy meshswaps
 		itemToDraw->MeshIds = nativeItem->Model.MeshIndex;
 
-		if (obj->animIndex == -1)
+		if (obj->Animations.empty())
 			return;
 
 		// Apply extra rotations

@@ -9,7 +9,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/pickup/pickup.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara.h"
@@ -19,6 +19,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/itemdata/door_data.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Doors
@@ -77,7 +78,7 @@ namespace TEN::Entities::Doors
 				{
 					if (MoveLaraPosition(PullDoorPos, doorItem, laraItem))
 					{
-						SetAnimation(laraItem, LA_DOOR_OPEN_PULL);
+						SetAnimation(*laraItem, LA_DOOR_OPEN_PULL);
 						doorItem->Animation.TargetState = STATE_PUSHPULL_KICK_DOOR_PULL;
 						openTheDoor = true;
 					}
@@ -90,7 +91,7 @@ namespace TEN::Entities::Doors
 					{
 						if (MoveLaraPosition(KickDoorPos, doorItem, laraItem))
 						{
-							SetAnimation(laraItem, LA_DOOR_OPEN_KICK);
+							SetAnimation(*laraItem, LA_DOOR_OPEN_KICK);
 							doorItem->Animation.TargetState = STATE_PUSHPULL_KICK_DOOR_PUSH;
 							openTheDoor = true;
 						}
@@ -101,7 +102,7 @@ namespace TEN::Entities::Doors
 					{
 						if (MoveLaraPosition(PushDoorPos, doorItem, laraItem))
 						{
-							SetAnimation(laraItem, LA_DOOR_OPEN_PUSH);
+							SetAnimation(*laraItem, LA_DOOR_OPEN_PUSH);
 							doorItem->Animation.TargetState = STATE_PUSHPULL_KICK_DOOR_PUSH;
 							openTheDoor = true;
 						}
@@ -149,6 +150,6 @@ namespace TEN::Entities::Doors
 			doorData->opened = true;
 		}
 
-		AnimateItem(doorItem);
+		AnimateItem(*doorItem);
 	}
 }

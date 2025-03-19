@@ -42,7 +42,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, CHEF_ANIM_IDLE);
+		SetAnimation(*item, CHEF_ANIM_IDLE);
 		item->Pose.Position.x += 192 * phd_sin(item->Pose.Orientation.y);
 		item->Pose.Position.z += 192 * phd_cos(item->Pose.Orientation.y);
 	}
@@ -64,38 +64,42 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (item->Animation.ActiveState != CHEF_STATE_DEATH)
 			{
-				SetAnimation(item, CHEF_ANIM_DEATH);
+				SetAnimation(*item, CHEF_ANIM_DEATH);
 				item->HitPoints = 0;
 			}
 		}
 		else
 		{
 			if (item->AIBits)
+			{
 				GetAITarget(creature);
+			}
 			else if (creature->HurtByLara)
+			{
 				creature->Enemy = LaraItem;
+			}
 
 			AI_INFO ai;
-			AI_INFO aiLaraInfo;
+			AI_INFO aiPlayerInfo;
 			CreatureAIInfo(item, &ai);
 
 			if (creature->Enemy == LaraItem)
 			{
-				aiLaraInfo.angle = ai.angle;
-				aiLaraInfo.distance = ai.distance;
+				aiPlayerInfo.angle = ai.angle;
+				aiPlayerInfo.distance = ai.distance;
 			}
 			else
 			{
 				int dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
 				int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
-				aiLaraInfo.angle = phd_atan(dz, dx) - item->Pose.Orientation.y;
-				aiLaraInfo.ahead = true;
+				aiPlayerInfo.angle = phd_atan(dz, dx) - item->Pose.Orientation.y;
+				aiPlayerInfo.ahead = true;
 
-				if (aiLaraInfo.angle <= -ANGLE(90.0f) || aiLaraInfo.angle >= ANGLE(90.0f))
-					aiLaraInfo.ahead = false;
+				if (aiPlayerInfo.angle <= -ANGLE(90.0f) || aiPlayerInfo.angle >= ANGLE(90.0f))
+					aiPlayerInfo.ahead = false;
 
-				aiLaraInfo.distance = pow(dx, 2) + pow(dz, 2);
+				aiPlayerInfo.distance = pow(dx, 2) + pow(dz, 2);
 			}
 
 			GetCreatureMood(item, &ai, true);
@@ -106,7 +110,6 @@ namespace TEN::Entities::Creatures::TR5
 			if (ai.ahead)
 			{
 				joint0 = ai.angle / 2;
-				//joint1 = info.xAngle;
 				joint2 = ai.angle / 2;
 			}
 
@@ -120,7 +123,7 @@ namespace TEN::Entities::Creatures::TR5
 					(item->TouchBits.TestAny() ||
 						item->HitStatus ||
 						LaraItem->Animation.Velocity.z > 15 ||
-						TargetVisible(item, &aiLaraInfo)))
+						TargetVisible(item, &aiPlayerInfo)))
 				{
 					item->Animation.TargetState = CHEF_STATE_TURN_180;
 					creature->Alerted = true;
@@ -133,11 +136,17 @@ namespace TEN::Entities::Creatures::TR5
 				creature->MaxTurn = 0;
 
 				if (ai.angle > 0)
+				{
 					item->Pose.Orientation.y -= ANGLE(2.0f);
+				}
 				else
+				{
 					item->Pose.Orientation.y += ANGLE(2.0f);
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				}
+				if (TestLastFrame(*item))
+				{
 					item->Pose.Orientation.y += -ANGLE(180.0f);
+				}
 
 				break;
 
@@ -147,18 +156,24 @@ namespace TEN::Entities::Creatures::TR5
 				if (abs(ai.angle) >= ANGLE(2.0f))
 				{
 					if (ai.angle > 0)
+					{
 						item->Pose.Orientation.y += ANGLE(2.0f);
+					}
 					else
+					{
 						item->Pose.Orientation.y -= ANGLE(2.0f);
+					}
 				}
 				else
+				{
 					item->Pose.Orientation.y += ai.angle;
+				}
 
 				if (!creature->Flags)
 				{
 					if (item->TouchBits & 0x2000)
 					{
-						if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 10)
+						if (item->Animation.FrameNumber > 10)
 						{
 							DoDamage(creature->Enemy, 80);
 							CreatureEffect2(item, ChefBite, 20, item->Pose.Orientation.y, DoBloodSplat);
@@ -177,12 +192,18 @@ namespace TEN::Entities::Creatures::TR5
 				if (ai.distance >= pow(682, 2))
 				{
 					if (ai.angle > ANGLE(112.5f) || ai.angle < -ANGLE(112.5f))
+					{
 						item->Animation.TargetState = CHEF_STATE_TURN_180;
+					}
 					else if (creature->Mood == MoodType::Attack)
+					{
 						item->Animation.TargetState = CHEF_STATE_WALK;
+					}
 				}
 				else if (ai.bite)
+				{
 					item->Animation.TargetState = CHEF_STATE_ATTACK;
+				}
 
 				break;
 

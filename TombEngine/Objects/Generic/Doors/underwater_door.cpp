@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/underwater_door.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -19,6 +19,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Doors
@@ -56,7 +57,7 @@ namespace TEN::Entities::Doors
 			{
 				if (MoveLaraPosition(UnderwaterDoorPos, doorItem, laraItem))
 				{
-					SetAnimation(laraItem, LA_UNDERWATER_DOOR_OPEN);
+					SetAnimation(*laraItem, LA_UNDERWATER_DOOR_OPEN);
 					laraItem->Animation.Velocity.y = 0;
 					doorItem->Status = ITEM_ACTIVE;
 
@@ -64,7 +65,7 @@ namespace TEN::Entities::Doors
 
 					doorItem->Animation.TargetState = LS_RUN_FORWARD;
 
-					AnimateItem(doorItem);
+					AnimateItem(*doorItem);
 
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;

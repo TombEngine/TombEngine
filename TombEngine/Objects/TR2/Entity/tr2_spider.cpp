@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_spider.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
@@ -14,6 +14,8 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -91,7 +93,7 @@ namespace TEN::Entities::Creatures::TR2
 			if (item->Animation.ActiveState != SPIDER_STATE_DEATH)
 			{
 				SoundEffect(SFX_TR2_SPIDER_EXPLODE, &item->Pose);
-				SetAnimation(item, SMALL_SPIDER_ANIM_DEATH);
+				SetAnimation(*item, SMALL_SPIDER_ANIM_DEATH);
 				ExplodingDeath(itemNumber, 0);
 				DisableEntityAI(itemNumber);
 				KillItem(itemNumber);
@@ -196,7 +198,7 @@ namespace TEN::Entities::Creatures::TR2
 			if (CreatureVault(itemNumber, headingAngle, 2, 0) == 2)
 			{
 				creature->MaxTurn = 0;
-				SetAnimation(item, SMALL_SPIDER_ANIM_LONG_JUMP_ATTACK); // HACK: Long jump serves as climb.
+				SetAnimation(*item, SMALL_SPIDER_ANIM_LONG_JUMP_ATTACK); // HACK: Long jump serves as climb.
 				return;
 			}
 		}
@@ -221,8 +223,8 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 7)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 2;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 2;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 7;
 			}
 		}

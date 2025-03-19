@@ -1,11 +1,13 @@
 #pragma once
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
 #include "Specific/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/newtypes.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Utils;
 
 constexpr auto MAX_SPAWNED_ITEM_COUNT = 256;
@@ -61,8 +63,8 @@ struct EntityAnimationData
 {
 	GAME_OBJECT_ID AnimObjectID = ID_NO_OBJECT;
 
-	int AnimNumber	  = 0; // g_Level.Anims index.
-	int FrameNumber	  = 0; // g_Level.Frames index.
+	int AnimNumber	  = 0;
+	int FrameNumber	  = 0;
 	int ActiveState	  = 0;
 	int TargetState	  = 0;
 	int RequiredState = NO_VALUE;
@@ -180,6 +182,8 @@ struct ItemInfo
 
 	// Getters
 
+	BoundingBox					GetAabb() const;
+	BoundingOrientedBox			GetObb() const;
 	std::vector<BoundingSphere> GetSpheres() const;
 };
 

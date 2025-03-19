@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_imp.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -15,6 +15,7 @@
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Math;
 
@@ -172,15 +173,15 @@ namespace TEN::Entities::Creatures::TR5
 		switch (item.TriggerFlags)
 		{
 		case IMP_OCB_ROLL:
-			SetAnimation(&item, IMP_ANIM_ROLL);
+			SetAnimation(item, IMP_ANIM_ROLL);
 			break;
 
 		case IMP_OCB_CLIMB_UP:
-			SetAnimation(&item, IMP_ANIM_VAULT_UP_1_STEP);
+			SetAnimation(item, IMP_ANIM_VAULT_UP_1_STEP);
 			break;
 
 		default:
-			SetAnimation(&item, IMP_ANIM_IDLE);
+			SetAnimation(item, IMP_ANIM_IDLE);
 			break;
 		}
 	}
@@ -206,9 +207,9 @@ namespace TEN::Entities::Creatures::TR5
 				CreatureAIInfo(item, &ai);
 
 				if (ai.angle > -ANGLE(67.5f) && ai.angle < ANGLE(67.5f))
-					SetAnimation(item, IMP_ANIM_BACKWARD_DEATH);
+					SetAnimation(*item, IMP_ANIM_BACKWARD_DEATH);
 				else
-					SetAnimation(item, IMP_ANIM_FORWARD_DEATH);
+					SetAnimation(*item, IMP_ANIM_FORWARD_DEATH);
 			}
 		}
 		else
@@ -393,7 +394,7 @@ namespace TEN::Entities::Creatures::TR5
 			case IMP_STATE_STONE_ATTACK:
 				RotateTowardTarget(*item, ai, IMP_ATTACK_TURN_RATE_MAX);
 				
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 40))
+				if (item->Animation.FrameNumber == 40)
 					DoImpStoneAttack(item);
 
 				break;

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_joby_spikes.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -11,6 +11,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 // TODO: Need to test and adapt formula for scaling to other heights.
@@ -58,7 +59,7 @@ namespace TEN::Entities::Traps
         auto frameData = GetFrameInterpData(*LaraItem);
 
         // Damage player.
-        int playerHeight = LaraItem->Pose.Position.y + frameData.FramePtr0->BoundingBox.Y1;
+        int playerHeight = LaraItem->Pose.Position.y + frameData.Keyframe0.BoundingBox.Y1;
         int spikeHeight = JOBY_SPIKES_MAX_SCALE * spikeLength / 4096;
 
         if (LaraItem->HitPoints > 0)

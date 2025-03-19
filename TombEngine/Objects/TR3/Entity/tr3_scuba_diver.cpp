@@ -93,7 +93,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
-			TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
+			item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 
 			auto probe = GetPointCollision(*item);
 
@@ -123,7 +123,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != SDIVER_STATE_DEATH)
-				SetAnimation(item, SDIVER_ANIM_DEATH_START);
+				SetAnimation(*item, SDIVER_ANIM_DEATH_START);
 
 			CreatureFloat(itemNumber);
 			return;

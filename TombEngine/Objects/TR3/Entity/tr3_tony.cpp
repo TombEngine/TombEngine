@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/tr3_tony.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -19,6 +19,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Boss;
@@ -503,13 +504,13 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != TONY_STATE_DEATH)
-				SetAnimation(item, TONY_ANIM_DEATH);
+				SetAnimation(*item, TONY_ANIM_DEATH);
 
-			int frameEnd = GetAnimData(*object, TONY_ANIM_DEATH).frameEnd;
-			if (item->Animation.FrameNumber >= frameEnd)
+			int endFrameNumber = GetAnimData(*object, TONY_ANIM_DEATH).EndFrameNumber;
+			if (item->Animation.FrameNumber >= endFrameNumber)
 			{
 				// Avoid having the object stop working.
-				item->Animation.FrameNumber = frameEnd;
+				item->Animation.FrameNumber = endFrameNumber;
 				item->MeshBits.ClearAll();
 
 				if (item->ItemFlags[7] < TONY_EXPLOSION_COUNT_MAX)
@@ -607,7 +608,7 @@ namespace TEN::Entities::Creatures::TR3
 					torsoY = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 40))
+				if (item->Animation.FrameNumber == 40)
 				{
 					TriggerFireBall(item, TonyFlameType::CeilingLeftHand, nullptr, item->RoomNumber, 0, 0);
 					TriggerFireBall(item, TonyFlameType::CeilingRightHand, nullptr, item->RoomNumber, 0, 0);
@@ -624,7 +625,7 @@ namespace TEN::Entities::Creatures::TR3
 					torsoY = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 28))
+				if (item->Animation.FrameNumber == 28)
 					TriggerFireBall(item, TonyFlameType::InFront, nullptr, item->RoomNumber, item->Pose.Orientation.y, 0);
 
 				break;
@@ -632,7 +633,7 @@ namespace TEN::Entities::Creatures::TR3
 			case TONY_STATE_FLIPMAP:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 56))
+				if (item->Animation.FrameNumber == 56)
 				{
 					item->ItemFlags[3] = 2;
 					SpawnShockwaveExplosion(*item, TONY_EFFECT_COLOR);
@@ -646,7 +647,7 @@ namespace TEN::Entities::Creatures::TR3
 			item->Animation.ActiveState == TONY_STATE_SHOOT_RIGHT_HAND ||
 			item->Animation.ActiveState == TONY_STATE_FLIPMAP)
 		{
-			int bright = GetFrameNumber(item);
+			int bright = item->Animation.FrameNumber;
 			if (bright > 16)
 				bright = 16;
 

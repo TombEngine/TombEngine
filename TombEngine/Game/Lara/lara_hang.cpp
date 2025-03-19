@@ -188,8 +188,8 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 			{
 				if (TestLaraClimbIdle(item, coll))
 					item->Animation.TargetState = LS_LADDER_IDLE;
-				else if (TestLastFrame(item))
-					SetAnimation(item, LA_LADDER_SHIMMY_UP);
+				else if (TestLastFrame(*item))
+					SetAnimation(*item, LA_LADDER_SHIMMY_UP);
 			}
 
 			return;
@@ -202,8 +202,8 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (TestLaraClimbIdle(item, coll))
 				item->Animation.TargetState = LS_LADDER_IDLE;
-			else if (TestLastFrame(item))
-				SetAnimation(item, LA_LADDER_SHIMMY_DOWN);
+			else if (TestLastFrame(*item))
+				SetAnimation(*item, LA_LADDER_SHIMMY_DOWN);
 		}
 	}
 }
@@ -275,7 +275,7 @@ void lara_as_shimmy_corner(ItemInfo* item, CollisionInfo* coll)
 	Camera.targetElevation = -ANGLE(33.0f);
 	Camera.laraNode = LM_TORSO;
 
-	SetLaraCornerAnimation(item, coll, TestLastFrame(item));
+	SetLaraCornerAnimation(item, coll, TestLastFrame(*item));
 }
 
 // State:		LS_HANDSTAND (54)

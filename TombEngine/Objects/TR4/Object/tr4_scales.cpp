@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Object/tr4_scales.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/Drip.h"
@@ -14,6 +14,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
@@ -33,21 +34,21 @@ void ScalesControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	if (item->Animation.FrameNumber != GetAnimData(item).frameEnd)
+	if (TestLastFrame(*item))
 	{
-		AnimateItem(item);
+		AnimateItem(*item);
 		return;
 	}
 
 	if (item->Animation.ActiveState == 1 || item->ItemFlags[1])
 	{
-		if (Objects[item->ObjectNumber].animIndex)
+		if (true/*Objects[item->ObjectNumber].animIndex*/) // TODO: Check. Not clear what the intent is.
 		{
 			RemoveActiveItem(itemNumber);
 			item->Status = ITEM_NOT_ACTIVE;
 			item->ItemFlags[1] = 0;
 
-			AnimateItem(item);
+			AnimateItem(*item);
 			return;
 		}
 
@@ -70,7 +71,7 @@ void ScalesControl(short itemNumber)
 			item->Animation.TargetState = 1;
 		}
 
-		AnimateItem(item);
+		AnimateItem(*item);
 	}
 
 	int flags = 0;
@@ -88,7 +89,7 @@ void ScalesControl(short itemNumber)
 	}
 
 	TestTriggers(item, true, flags);
-	AnimateItem(item);
+	AnimateItem(*item);
 }
 
 void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -131,15 +132,15 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			if (TestLaraPosition(ScalesBounds, item, laraItem))
 			{
 				laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
-				laraItem->Animation.FrameNumber = GetAnimData(item).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				item->Pose.Orientation.y = rotY;
 			}
-			else if (laraItem->Animation.FrameNumber == GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 51)
+			else if (laraItem->Animation.FrameNumber == 51)
 			{
 				SoundEffect(SFX_TR4_POUR_WATER, &laraItem->Pose);
 				item->Pose.Orientation.y = rotY;
 			}
-			else if (laraItem->Animation.FrameNumber == GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 74)
+			else if (laraItem->Animation.FrameNumber == 74)
 			{
 				AddActiveItem(itemNumber);
 				item->Status = ITEM_ACTIVE;
@@ -162,10 +163,10 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		}
 	}
 	
-	if ((laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_WATERSKIN_POUR_LOW).frameBase + 44 &&
-		laraItem->Animation.FrameNumber <= GetAnimData(*laraItem, LA_WATERSKIN_POUR_LOW).frameBase + 72) ||
-		(laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 51 &&
-		laraItem->Animation.FrameNumber <= GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 74))
+	if ((laraItem->Animation.FrameNumber >= 44 &&
+		laraItem->Animation.FrameNumber <= 72) ||
+		(laraItem->Animation.FrameNumber >= 51 &&
+		laraItem->Animation.FrameNumber <= 74))
 	{
 		auto pos = GetJointPosition(laraItem, LM_LHAND).ToVector3();
 		auto velocity = Vector3(0.0f, Random::GenerateFloat(32.0f, 64.0f), 0.0f);

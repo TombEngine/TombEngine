@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Entity/tr1_giant_mutant.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR1
@@ -90,7 +91,7 @@ namespace TEN::Entities::Creatures::TR1
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != MUTANT_STATE_DEATH)
-				SetAnimation(item, MUTANT_ANIM_DEATH);
+				SetAnimation(*item, MUTANT_ANIM_DEATH);
 		}
 		else
 		{
@@ -251,7 +252,7 @@ namespace TEN::Entities::Creatures::TR1
 
 		if (item->Animation.ActiveState == MUTANT_STATE_FALL)
 		{
-			AnimateItem(item);
+			AnimateItem(*item);
 
 			if (item->Pose.Position.y > item->Floor)
 			{

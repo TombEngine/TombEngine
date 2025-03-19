@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+
 #include "Specific/Input/Input.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -9,9 +10,10 @@
 #include "Game/pickup/pickup.h"
 #include "Specific/level.h"
 #include "Game/collision/collide_item.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 
@@ -71,7 +73,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_OFF;
 						}
 						else
@@ -100,7 +102,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_ON;
 						}
 						else
@@ -146,7 +148,7 @@ namespace TEN::Entities::Switches
 				switchItem->Status = ITEM_ACTIVE;
 
 				AddActiveItem(itemNumber);
-				AnimateItem(switchItem);
+				AnimateItem(*switchItem);
 			}
 		}
 		else

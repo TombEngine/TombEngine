@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_skidman.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Sphere.h"
@@ -19,6 +19,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Smoke;
 
@@ -166,7 +167,7 @@ namespace TEN::Entities::Creatures::TR2
 			}
 			else
 			{
-				AnimateItem(&riderItem);
+				AnimateItem(riderItem);
 			}
 
 			if (skidooItem->Animation.ActiveState == SMAN_STATE_MOVING || skidooItem->Animation.ActiveState == SMAN_STATE_WAIT)
@@ -310,8 +311,8 @@ namespace TEN::Entities::Creatures::TR2
 			if (skidooItem->RoomNumber != riderItem.RoomNumber)
 				ItemNewRoom(riderItemNumber, skidooItem->RoomNumber);
 
-			riderItem.Animation.AnimNumber = skidooItem->Animation.AnimNumber + (Objects[ID_SNOWMOBILE_DRIVER].animIndex - Objects[ID_SNOWMOBILE_GUN].animIndex);
-			riderItem.Animation.FrameNumber = skidooItem->Animation.FrameNumber + (GetAnimData(riderItem).frameBase - GetAnimData(skidooItem).frameBase);
+			riderItem.Animation.AnimNumber = skidooItem->Animation.AnimNumber;
+			riderItem.Animation.FrameNumber = skidooItem->Animation.FrameNumber;
 		}
 		else if (riderItem.Status == ITEM_DEACTIVATED &&
 			skidooItem->Animation.Velocity.z == 0 &&

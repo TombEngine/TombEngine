@@ -1,10 +1,12 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_birdblade.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -23,12 +25,12 @@ namespace TEN::Entities::Traps
 
 		if (!TriggerActive(&item))
 		{
-			item.Animation.FrameNumber = GetAnimData(item).frameBase;
+			item.Animation.FrameNumber = 0;
 			*((int*)&item.ItemFlags[0]) = 0;
 		}
 		else
 		{
-			int frameNumber = item.Animation.FrameNumber - GetAnimData(item).frameBase;
+			int frameNumber = item.Animation.FrameNumber;
 
 			if (frameNumber <= 14 || frameNumber >= 31)
 			{
@@ -39,7 +41,7 @@ namespace TEN::Entities::Traps
 				*((int*)&item.ItemFlags[0]) = 6;
 			}
 
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 	}
 }

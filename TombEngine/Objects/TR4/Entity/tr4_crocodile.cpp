@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_crocodile.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -16,6 +16,7 @@
 #include "Math/Math.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
@@ -83,9 +84,9 @@ namespace TEN::Entities::TR4
 		InitializeCreature(itemNumber);
 
 		if (TestEnvironment(ENV_FLAG_WATER, item))
-			SetAnimation(item, CROC_ANIM_SWIM_FORWARD);
+			SetAnimation(*item, CROC_ANIM_SWIM_FORWARD);
 		else
-			SetAnimation(item, CROC_ANIM_IDLE);
+			SetAnimation(*item, CROC_ANIM_IDLE);
 	}
 
 	bool IsCrocodileInWater(ItemInfo* item)
@@ -133,12 +134,12 @@ namespace TEN::Entities::TR4
 			{
 				if (isInWater)
 				{
-					SetAnimation(item, CROC_ANIM_WATER_DEATH);
+					SetAnimation(*item, CROC_ANIM_WATER_DEATH);
 					item->HitPoints = NOT_TARGETABLE;
 				}
 				else
 				{
-					SetAnimation(item, CROC_ANIM_LAND_DEATH);
+					SetAnimation(*item, CROC_ANIM_LAND_DEATH);
 				}
 			}
 
@@ -251,7 +252,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case CROC_STATE_BITE_ATTACK:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item->Animation.FrameNumber == 0)
 					item->Animation.RequiredState = NO_VALUE;
 
 				if (ai.bite &&
@@ -275,7 +276,7 @@ namespace TEN::Entities::TR4
 				// Water to land transition.
 				if (!IsCrocodileInWater(item))
 				{
-					SetAnimation(item, CROC_ANIM_WATER_TO_LAND);
+					SetAnimation(*item, CROC_ANIM_WATER_TO_LAND);
 					break;
 				}
 
@@ -290,7 +291,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case CROC_STATE_WATER_BITE_ATTACK:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item->Animation.FrameNumber == 0)
 					item->Animation.RequiredState = NO_VALUE;
 
 				if (ai.bite && item->TouchBits.Test(CrocodileBiteAttackJoints))

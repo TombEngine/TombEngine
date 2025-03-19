@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -12,6 +12,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
@@ -21,7 +22,7 @@ namespace TEN::Entities::Traps
 	void InitializeSpinningBlade(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
-		SetAnimation(item, 3);
+		SetAnimation(*item, 3);
 	}
 
 	void ControlSpinningBlade(short itemNumber)
@@ -68,7 +69,7 @@ namespace TEN::Entities::Traps
 			isSpinning = false;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		auto pointColl = GetPointCollision(item);
 

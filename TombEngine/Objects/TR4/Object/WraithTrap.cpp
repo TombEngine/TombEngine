@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Object/WraithTrap.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -12,6 +12,7 @@
 #include "Specific/level.h"
 #include "Game/Setup.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Input;

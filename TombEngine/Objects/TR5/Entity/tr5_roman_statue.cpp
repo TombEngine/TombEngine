@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_roman_statue.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
 #include "Game/effects/debris.h"
@@ -20,6 +20,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Spark;
@@ -268,7 +269,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, STATUE_ANIM_START_JUMP_DOWN);
+		SetAnimation(*item, STATUE_ANIM_START_JUMP_DOWN);
 		item->Status = ITEM_NOT_ACTIVE;
 		item->Pose.Position.x += 486 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.z += 486 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
@@ -319,7 +320,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		// Set recoil animation.
 		if (prevMeshSwapBits != item->Model.MeshIndex)
-			SetAnimation(item, STATUE_ANIM_RECOIL);
+			SetAnimation(*item, STATUE_ANIM_RECOIL);
 
 		if (item->HitPoints > 0)
 		{
@@ -422,7 +423,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				pos = Vector3i((pos1.x + pos2.x) / 2, (pos1.y + pos2.y) / 2, (pos1.z + pos2.z) / 2);
 
-				deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+				deltaFrame = item->Animation.FrameNumber;
 
 				if (deltaFrame > 68 && deltaFrame < 130)
 				{
@@ -542,7 +543,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Orientation.y += ai.angle;
 				}
 
-				if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 10)
+				if (item->Animation.FrameNumber > 10)
 				{
 					pos = GetJointPosition(item, 16);
 
@@ -587,7 +588,7 @@ namespace TEN::Entities::Creatures::TR5
 						pos1 = GetJointPosition(item, 14, Vector3i(-40, 64, 360));
 						pos1.y = item->Pose.Position.y - 64;
 
-						if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 34 && item->Animation.ActiveState == 3)
+						if (item->Animation.FrameNumber == 34 && item->Animation.ActiveState == 3)
 						{
 							if (item->ItemFlags[0])
 								item->ItemFlags[0]--;
@@ -603,8 +604,8 @@ namespace TEN::Entities::Creatures::TR5
 							SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(2.5f));
 						}
 
-						deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
-						int deltaFrame2 = GetAnimData(item).frameEnd - item->Animation.FrameNumber;
+						deltaFrame = item->Animation.FrameNumber;
+						int deltaFrame2 = item->Animation.FrameNumber;
 
 						if (deltaFrame2 >= 16)
 						{
@@ -698,7 +699,7 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y += ANGLE(2.0f);
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					item->Pose.Orientation.y += -ANGLE(180.0f);
 
 				break;
@@ -714,7 +715,7 @@ namespace TEN::Entities::Creatures::TR5
 					SpawnDynamicLight(RomanStatueData.Position.x, RomanStatueData.Position.y, RomanStatueData.Position.z, 16, 0, color, color / 2);
 				}
 
-				deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+				deltaFrame = item->Animation.FrameNumber;
 
 				if (deltaFrame == 34)
 				{
@@ -820,7 +821,7 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					DoDamage(creature->Enemy, 40);
 				}
-				else if (TestLastFrame(item))
+				else if (TestLastFrame(*item))
 				{
 					// Activate trigger on death
 					short roomNumber = item->ItemFlags[2] & 0xFF;
@@ -836,7 +837,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 			else
 			{
-				SetAnimation(item, STATUE_ANIM_DEATH);
+				SetAnimation(*item, STATUE_ANIM_DEATH);
 			}
 		}
 

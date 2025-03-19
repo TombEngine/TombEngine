@@ -188,7 +188,7 @@ namespace TEN::Entities::Traps
 			AlignEntityToSurface(&item, radius);
 
 			// Deactivate.
-			if (TestLastFrame(&item))
+			if (TestLastFrame(*&item))
 			{
 				RemoveActiveItem(itemNumber);
 				item.Status = ITEM_NOT_ACTIVE;
@@ -205,7 +205,7 @@ namespace TEN::Entities::Traps
 			break;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void CollideCrumblingPlatform(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

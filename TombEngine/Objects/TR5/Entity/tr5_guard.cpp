@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_guard.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
@@ -211,21 +212,21 @@ namespace TEN::Entities::Creatures::TR5
 		{
 		default:
 		case GuardOcb::Idle:
-			SetAnimation(item, GUARD_ANIM_IDLE);
+			SetAnimation(*item, GUARD_ANIM_IDLE);
 			break;
 
 		case GuardOcb::Reload:
-			SetAnimation(item, GUARD_ANIM_RELOAD);
+			SetAnimation(*item, GUARD_ANIM_RELOAD);
 			break;
 
 		case GuardOcb::DoorKick:
-			SetAnimation(item, GUARD_ANIM_OPEN_DOOR_KICK);
+			SetAnimation(*item, GUARD_ANIM_OPEN_DOOR_KICK);
 			item->Animation.TargetState = GUARD_STATE_CROUCH;
 			// TODO: item->flags2 ^= (item->flags2 ^ ((item->flags2 & 0xFE) + 2)) & 6;
 			break;
 
 		case GuardOcb::RopeDown:
-			SetAnimation(item, GUARD_ANIM_ROPE_DOWN);
+			SetAnimation(*item, GUARD_ANIM_ROPE_DOWN);
 			item->SetMeshSwapFlags(9216);
 
 			roomItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
@@ -246,7 +247,7 @@ namespace TEN::Entities::Creatures::TR5
 					roomItemNumber = item2->NextItem;
 					if (roomItemNumber == NO_VALUE)
 					{
-						item->Animation.FrameNumber = GetAnimData(item).frameBase;
+						item->Animation.FrameNumber = 0;
 						item->Animation.ActiveState = item->Animation.TargetState;
 						break;
 					}
@@ -258,32 +259,32 @@ namespace TEN::Entities::Creatures::TR5
 			break;
 
 		case GuardOcb::Sleeping:
-			SetAnimation(item, GUARD_ANIM_SLEEPING);
+			SetAnimation(*item, GUARD_ANIM_SLEEPING);
 			item->SetMeshSwapFlags(GUARD_NO_WEAPON_ON_HAND_SWAPFLAG);
 			break;
 
 		case GuardOcb::RopeDownFast:
-			SetAnimation(item, GUARD_ANIM_ROPE_DOWN_FAST);
+			SetAnimation(*item, GUARD_ANIM_ROPE_DOWN_FAST);
 			item->Pose.Position.y = GetPointCollision(*item).GetCeilingHeight() - BLOCK(2);
 			break;
 
 		case GuardOcb::WaitOnWall:
-			SetAnimation(item, GUARD_ANIM_WAITING_ON_WALL);
+			SetAnimation(*item, GUARD_ANIM_WAITING_ON_WALL);
 			break;
 
 		case GuardOcb::UseComputer:
 		case GuardOcb::UseComputerScientist:
-			SetAnimation(item, GUARD_ANIM_USE_COMPUTER);
+			SetAnimation(*item, GUARD_ANIM_USE_COMPUTER);
 			item->Pose.Position.x -= CLICK(2) * phd_sin(item->Pose.Orientation.y);
 			item->Pose.Position.z -= CLICK(2) * phd_cos(item->Pose.Orientation.y);
 			break;
 
 		case GuardOcb::StartHuntStop:
-			SetAnimation(item, GUARD_ANIM_HUNT_TO_IDLE);
+			SetAnimation(*item, GUARD_ANIM_HUNT_TO_IDLE);
 			break;
 
 		case GuardOcb::Run:
-			SetAnimation(item, GUARD_ANIM_RUN_FORWARD);
+			SetAnimation(*item, GUARD_ANIM_RUN_FORWARD);
 			break;
 		}
 	}
@@ -293,7 +294,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 0);
+		SetAnimation(*item, 0);
 		item->Pose.Position.x += BLOCK(1) * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.y += CLICK(2);
 		item->Pose.Position.z += BLOCK(1) * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
@@ -304,7 +305,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 6);
+		SetAnimation(*item, 6);
 	}
 
 	void ControlGuardLaser(short itemNumber)
@@ -361,16 +362,16 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				if (laraAI.angle >= GUARD_LARA_ANGLE_FOR_DEATH2 || laraAI.angle <= -GUARD_LARA_ANGLE_FOR_DEATH2)
 				{
-					SetAnimation(item, GUARD_ANIM_DEATH_2);
+					SetAnimation(*item, GUARD_ANIM_DEATH_2);
 					item->Pose.Orientation.y += laraAI.angle + ANGLE(-180.0f);
 				}
 				else
 				{
-					SetAnimation(item, GUARD_ANIM_DEATH_1);
+					SetAnimation(*item, GUARD_ANIM_DEATH_1);
 					item->Pose.Orientation.y += laraAI.angle;
 				}
 
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.FrameNumber = 0;
 			}
 		}
 		else
@@ -406,7 +407,7 @@ namespace TEN::Entities::Creatures::TR5
 						item->HitPoints--;
 
 					if (item->HitPoints <= 0)
-						SetAnimation(item, GUARD_ANIM_DEATH_2);
+						SetAnimation(*item, GUARD_ANIM_DEATH_2);
 				}
 			}
 
@@ -438,7 +439,7 @@ namespace TEN::Entities::Creatures::TR5
 				item->RoomNumber);
 			
 			// TODO: Deal with LaraItem global.
-			auto& bounds = GetBestFrame(*LaraItem).BoundingBox;
+			auto& bounds = GetClosestKeyframe(*LaraItem).BoundingBox;
 			auto target = GameVector(
 				LaraItem->Pose.Position.x,
 				LaraItem->Pose.Position.y + ((bounds.Y2 + 3 * bounds.Y1) / 4),
@@ -506,7 +507,7 @@ namespace TEN::Entities::Creatures::TR5
 				else if (canJump1block || canJump2blocks)
 				{
 					creature->MaxTurn = 0;
-					SetAnimation(item, GUARD_ANIM_JUMP_START);
+					SetAnimation(*item, GUARD_ANIM_JUMP_START);
 
 					if (canJump1block)
 						item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -540,7 +541,7 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y += ANGLE(2.0f);
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					item->Pose.Orientation.y += -ANGLE(180.0f);
 
 				break;
@@ -568,8 +569,8 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					if (creature->Flags)
 					{
-						if (item->Animation.FrameNumber < GetAnimData(item).frameBase + 10 &&
-							(item->Animation.FrameNumber - GetAnimData(item).frameBase) & 1)
+						if (item->Animation.FrameNumber < 10 &&
+							(item->Animation.FrameNumber & 1))
 						{
 							creature->Flags = 0;
 						}
@@ -654,7 +655,7 @@ namespace TEN::Entities::Creatures::TR5
 					if (canJump1block || canJump2blocks)
 					{
 						creature->MaxTurn = 0;
-						SetAnimation(item, GUARD_ANIM_JUMP_START);
+						SetAnimation(*item, GUARD_ANIM_JUMP_START);
 
 						if (canJump1block)
 							item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -695,7 +696,7 @@ namespace TEN::Entities::Creatures::TR5
 				else if (canJump1block || canJump2blocks)
 				{
 					creature->MaxTurn = 0;
-					SetAnimation(item, GUARD_ANIM_JUMP_START);
+					SetAnimation(*item, GUARD_ANIM_JUMP_START);
 
 					if (canJump1block)
 						item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -756,13 +757,13 @@ namespace TEN::Entities::Creatures::TR5
 			case GUARD_STATE_STAND_UP:
 			case GUARD_STATE_AWAKE_FROM_SLEEP:
 				creature->MaxTurn = 0;
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item->Animation.FrameNumber == 0)
 				{
 					TestTriggers(item, true);
 					break;
 				}
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 44)
+				if (item->Animation.FrameNumber == 44)
 				{
 					item->SetMeshSwapFlags(NO_JOINT_BITS);
 
@@ -792,8 +793,10 @@ namespace TEN::Entities::Creatures::TR5
 
 					currentItem->MeshBits = -3;
 				}
-				else if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				else if (TestLastFrame(*item))
+				{
 					item->Pose.Orientation.y -= ANGLE(90.0f);
+				}
 			
 				break;
 
@@ -840,7 +843,7 @@ namespace TEN::Entities::Creatures::TR5
 
 			case GUARD_STATE_INSERT_CODE:
 				creature->MaxTurn = 0;
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 39)
+				if (item->Animation.FrameNumber == 39)
 					TestTriggers(item, true);
 			
 				break;
@@ -856,7 +859,7 @@ namespace TEN::Entities::Creatures::TR5
 						break;
 				}
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item->Animation.FrameNumber == 0)
 				{
 					currentItem->MeshBits = 0x1FFF;
 					item->Pose.Position.x = currentItem->Pose.Position.x - CLICK(1);
@@ -866,17 +869,27 @@ namespace TEN::Entities::Creatures::TR5
 				}
 				else
 				{
-					if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 32)
+					if (item->Animation.FrameNumber == 32)
+					{
 						currentItem->MeshBits = 16381;
-					else if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 74)
+					}
+					else if (item->Animation.FrameNumber == 74)
+					{
 						currentItem->MeshBits = 278461;
-					else if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 120)
+					}
+					else if (item->Animation.FrameNumber == 120)
+					{
 						currentItem->MeshBits = 802621;
-					else if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 157)
+					}
+					else if (item->Animation.FrameNumber ==  157)
+					{
 						currentItem->MeshBits = 819001;
-					else if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 190)
+					}
+					else if (item->Animation.FrameNumber == 190)
+					{
 						currentItem->MeshBits = 17592121;
-					else if (item->Animation.FrameNumber == GetAnimData(item).frameBase + GetAnimData(item).frameEnd)
+					}
+					else if (TestLastFrame(*item))
 					{
 						currentItem->MeshBits = 0x1FFF;
 						TestTriggers(item, true);
@@ -921,7 +934,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Animation.TargetState = GUARD_STATE_IDLE;
 				}
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 39)
+				if (item->Animation.FrameNumber == 39)
 					TestTriggers(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, enemy->RoomNumber, true);
 
 				break;
@@ -988,32 +1001,32 @@ namespace TEN::Entities::Creatures::TR5
 			switch (CreatureVault(itemNumber, angle, 2, BLOCK(0.25f)))
 			{
 			case 2:
-				SetAnimation(item, GUARD_ANIM_VAULT_2_STEPS_UP);
+				SetAnimation(*item, GUARD_ANIM_VAULT_2_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case 3:
-				SetAnimation(item, GUARD_ANIM_VAULT_3_STEPS_UP);
+				SetAnimation(*item, GUARD_ANIM_VAULT_3_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case 4:
-				SetAnimation(item, GUARD_ANIM_VAULT_4_STEPS_UP);
+				SetAnimation(*item, GUARD_ANIM_VAULT_4_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case -2:
-				SetAnimation(item, GUARD_ANIM_VAULT_2_STEPS_DOWN);
+				SetAnimation(*item, GUARD_ANIM_VAULT_2_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 
 			case -3:
-				SetAnimation(item, GUARD_ANIM_VAULT_3_STEPS_DOWN);
+				SetAnimation(*item, GUARD_ANIM_VAULT_3_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 
 			case -4:
-				SetAnimation(item, GUARD_ANIM_VAULT_4_STEPS_DOWN);
+				SetAnimation(*item, GUARD_ANIM_VAULT_4_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 			}
@@ -1104,8 +1117,8 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (item->Animation.ActiveState != SNIPER_STATE_DEATH)
 			{
-				item->Animation.AnimNumber = Objects[ID_SNIPER].animIndex + 5;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 5;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = SNIPER_STATE_DEATH;
 			}
 		}
@@ -1122,7 +1135,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 0);
+		SetAnimation(*item, 0);
 		item->SetMeshSwapFlags(9216);
 	}
 
@@ -1271,8 +1284,8 @@ namespace TEN::Entities::Creatures::TR5
 					{
 						if (canJump1Sector || canJump2Sectors)
 						{
-							item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 41;
-							item->Animation.FrameNumber = GetAnimData(item).frameBase;
+							item->Animation.AnimNumber = 41;
+							item->Animation.FrameNumber = 0;
 							item->Animation.ActiveState = MAFIA2_STATE_IDLE_START_JUMP;
 							creature->MaxTurn = 0;
 
@@ -1306,14 +1319,16 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y += ANGLE(2.0f);
 
-				if (item->Animation.FrameNumber != GetAnimData(item).frameBase + 16 ||
+				if (item->Animation.FrameNumber != 16 ||
 					!item->TestMeshSwapFlags(9216))
 				{
-					if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+					if (TestLastFrame(*item))
 						item->Pose.Orientation.y += -ANGLE(180.0f);
 				}
 				else
+				{
 					item->SetMeshSwapFlags(128);
+				}
 			
 				break;
 
@@ -1337,7 +1352,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Orientation.y += ai.angle;
 				}
 			
-				if (!(creature->Flags & 1) && item->Animation.FrameNumber == GetFrameIndex(item, 2))
+				if (!(creature->Flags & 1) && item->Animation.FrameNumber == 2)
 				{
 					ShotLara(item, &ai, ArmedMafia2GunRightBite, laraAI.angle / 2, 25);
 					creature->MuzzleFlash[1].Bite = ArmedMafia2GunRightBite;
@@ -1345,7 +1360,7 @@ namespace TEN::Entities::Creatures::TR5
 					creature->Flags |= 1;
 				}
 
-				if (!(creature->Flags & 2) && item->Animation.FrameNumber == GetFrameIndex(item, 6))
+				if (!(creature->Flags & 2) && item->Animation.FrameNumber == 6)
 				{
 					ShotLara(item, &ai, ArmedMafia2GunLeftBite, laraAI.angle / 2, 25);
 					creature->MuzzleFlash[0].Bite = ArmedMafia2GunLeftBite;
@@ -1396,8 +1411,8 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					if (canJump1Sector || canJump2Sectors)
 					{
-						item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 41;
-						item->Animation.FrameNumber = GetAnimData(item).frameBase;
+						item->Animation.AnimNumber = 41;
+						item->Animation.FrameNumber = 0;
 						item->Animation.ActiveState = MAFIA2_STATE_IDLE_START_JUMP;
 						creature->MaxTurn = 0;
 
@@ -1432,8 +1447,8 @@ namespace TEN::Entities::Creatures::TR5
 				}
 				else if (canJump1Sector || canJump2Sectors)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 50;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = 50;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = MAFIA2_STATE_IDLE_START_JUMP;
 					creature->MaxTurn = 0;
 
@@ -1457,7 +1472,7 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y -= ANGLE(2.0f);
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 16 &&
+				if (item->Animation.FrameNumber == 16 &&
 					item->TestMeshSwapFlags(9216))
 				{
 					item->SetMeshSwapFlags(128);
@@ -1476,18 +1491,18 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				if (ai.angle >= ANGLE(67.5f) || ai.angle <= -ANGLE(67.5f))
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 16;
+					item->Animation.AnimNumber = 16;
 					item->Animation.ActiveState = MAFIA2_STATE_DEATH_2;
 					item->Pose.Orientation.y += ai.angle - ANGLE(18.0f);
 				}
 				else
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 11;
+					item->Animation.AnimNumber = 11;
 					item->Animation.ActiveState = MAFIA2_STATE_DEATH_1;
 					item->Pose.Orientation.y += ai.angle;
 				}
 
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.FrameNumber = 0;
 			}
 		}
 
@@ -1506,42 +1521,42 @@ namespace TEN::Entities::Creatures::TR5
 			switch (CreatureVault(itemNumber, angle, 2, CLICK(2)) + 4)
 			{
 			case 0:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 38;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 38;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 23;
 				break;
 
 			case 1:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 39;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 39;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 24;
 				creature->MaxTurn = 0;
 				break;
 
 			case 2:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 40;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 40;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 25;
 				creature->MaxTurn = 0;
 				break;
 
 			case 6:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 35;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 35;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 20;
 				creature->MaxTurn = 0;
 				break;
 
 			case 7:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 36;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 36;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 21;
 				creature->MaxTurn = 0;
 				break;
 
 			case 8:
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 37;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 37;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 22;
 				creature->MaxTurn = 0;
 				break;

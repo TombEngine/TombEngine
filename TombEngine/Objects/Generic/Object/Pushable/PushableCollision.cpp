@@ -149,19 +149,19 @@ namespace TEN::Entities::Generic
 		switch (quadrant)
 		{
 		case NORTH:
-			playerOffset.z = GetBestFrame(*LaraItem).Offset.z - BLOCK(1);
+			playerOffset.z = GetClosestKeyframe(*LaraItem).RootOffset.z - BLOCK(1);
 			break;
 
 		case EAST:
-			playerOffset.x = GetBestFrame(*LaraItem).Offset.z - BLOCK(1);
+			playerOffset.x = GetClosestKeyframe(*LaraItem).RootOffset.z - BLOCK(1);
 			break;
 
 		case SOUTH:
-			playerOffset.z = -GetBestFrame(*LaraItem).Offset.z + BLOCK(1);
+			playerOffset.z = -GetClosestKeyframe(*LaraItem).RootOffset.z + BLOCK(1);
 			break;
 
 		case WEST:
-			playerOffset.x = -GetBestFrame(*LaraItem).Offset.z + BLOCK(1);
+			playerOffset.x = -GetClosestKeyframe(*LaraItem).RootOffset.z + BLOCK(1);
 			break;
 
 		default:
@@ -225,7 +225,7 @@ namespace TEN::Entities::Generic
 
 		// If player is grabbing, check push and pull actions.
 		if (LaraItem->Animation.ActiveState != LS_PUSHABLE_GRAB || 
-			!TestLastFrame(LaraItem, LA_PUSHABLE_GRAB))
+			!TestLastFrame(*LaraItem, LA_PUSHABLE_GRAB))
 		{
 			return false;
 		}

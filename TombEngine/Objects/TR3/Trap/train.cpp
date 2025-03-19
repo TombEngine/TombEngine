@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/train.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/collision/collide_room.h"
@@ -17,6 +17,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
 
@@ -124,7 +125,7 @@ namespace TEN::Entities::Traps
 
 		DoDamage(playerItem, INT_MAX);
 
-		AnimateItem(playerItem);
+		AnimateItem(*playerItem);
 
 		player.ExtraAnim = 1;
 		player.Control.HandStatus = HandStatus::Busy;

@@ -48,8 +48,8 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 13)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 14;
-				item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+				item->Animation.AnimNumber = 14;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 13;
 			}
 		}
@@ -196,7 +196,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if (item->Animation.FrameNumber == 0)
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;
@@ -218,7 +218,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if (item->Animation.FrameNumber == 0)
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;
@@ -262,8 +262,8 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 11)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 9;
-				item->Animation.FrameNumber = GetAnimData(*item).frameBase;
+				item->Animation.AnimNumber = 9;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 11;
 			}
 		}

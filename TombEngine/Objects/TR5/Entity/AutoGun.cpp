@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/AutoGun.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/Sphere.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
@@ -14,6 +14,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
 
@@ -86,7 +87,7 @@ namespace TEN::Entities::Creatures::TR5
 		if (!TriggerActive(&item))
 			return;
 
-		if (TestLastFrame(&item))
+		if (TestLastFrame(*&item))
 		{
 			auto& autoGun = *GetCreatureInfo(&item);
 
@@ -196,7 +197,7 @@ namespace TEN::Entities::Creatures::TR5
 			item.MeshBits.Clear(AutoGunClosedHatchJoints);
 			item.MeshBits.Clear(AutoGunFlashJoints);
 
-			AnimateItem(&item);
+			AnimateItem(item);
 		}		
 	}
 }

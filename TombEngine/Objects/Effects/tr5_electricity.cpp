@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Effects/tr5_electricity.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -17,6 +17,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Ripple;
@@ -138,7 +139,7 @@ void ElectricityWiresControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	AnimateItem(item);
+	AnimateItem(*item);
 
 	if (!TriggerActive(item))
 		return;

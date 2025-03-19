@@ -9,7 +9,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/pickup/pickup.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
@@ -18,6 +18,7 @@
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Game/itemdata/door_data.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
 
 namespace TEN::Entities::Doors
@@ -70,6 +71,6 @@ namespace TEN::Entities::Doors
 			}
 		}
 
-		AnimateItem(doorItem);
+		AnimateItem(*doorItem);
 	}
 }

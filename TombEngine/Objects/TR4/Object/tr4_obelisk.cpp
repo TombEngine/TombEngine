@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Object/tr4_obelisk.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -13,6 +13,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Input;
 
@@ -20,8 +21,8 @@ void InitializeObelisk(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 3;
-	item->Animation.FrameNumber = GetAnimData(item).frameBase;
+	item->Animation.AnimNumber = 3;
+	item->Animation.FrameNumber = 0;
 
 	AddActiveItem(itemNumber);
 	item->Status = ITEM_ACTIVE;
@@ -150,45 +151,45 @@ void ObeliskControl(short itemNumber)
 	}
 	else
 	{	
-		AnimateItem(item);
+		AnimateItem(*item);
 
 		auto* obj = &Objects[item->ObjectNumber];
 		bool flag = false;
 
-		if (item->Animation.AnimNumber == obj->animIndex + 2)
+		if (item->Animation.AnimNumber == 2)
 		{
 			item->Pose.Orientation.y -= ANGLE(90.0f);
 
 			if (IsHeld(In::Action))
 			{
-				item->Animation.AnimNumber = obj->animIndex + 1;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 1;
+				item->Animation.FrameNumber = 0;
 			}
 			else
 				flag = true;
 		}
 
-		if (item->Animation.AnimNumber == obj->animIndex + 6)
+		if (item->Animation.AnimNumber == 6)
 		{
 			item->Pose.Orientation.y += ANGLE(90.0f);
 
 			if (!IsHeld(In::Action))
 			{
-				item->Animation.AnimNumber = obj->animIndex + 3;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 3;
+				item->Animation.FrameNumber = 0;
 				flag = false;
 			}
 			else
 			{
-				item->Animation.AnimNumber = obj->animIndex + 5;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 5;
+				item->Animation.FrameNumber = 0;
 			}
 		}
 
 		if (flag)
 		{
-			item->Animation.AnimNumber = obj->animIndex + 3;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = 3;
+			item->Animation.FrameNumber = 0;
 		}
 
 		if (item->TriggerFlags == 2)

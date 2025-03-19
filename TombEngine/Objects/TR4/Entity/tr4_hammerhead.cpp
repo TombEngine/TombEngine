@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_hammerhead.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"
@@ -10,6 +10,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::TR4
 {
@@ -59,7 +61,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, HAMMERHEAD_ANIM_IDLE);
+		SetAnimation(*item, HAMMERHEAD_ANIM_IDLE);
 	}
 
 	void HammerheadControl(short itemNumber)
@@ -73,7 +75,7 @@ namespace TEN::Entities::TR4
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != HAMMERHEAD_STATE_DEATH)
-				SetAnimation(item, HAMMERHEAD_ANIM_DEATH_START);
+				SetAnimation(*item, HAMMERHEAD_ANIM_DEATH_START);
 
 			item->HitPoints = 0;
 			CreatureFloat(itemNumber);
@@ -148,7 +150,7 @@ namespace TEN::Entities::TR4
 			// NOTE: in TR2 shark there was a call to CreatureKill with special kill anim
 			// Hammerhead seems to not have it in original code but this check is still there as a leftover
 			if (item->Animation.ActiveState == HAMMERHEAD_STATE_KILL)
-				AnimateItem(item);
+				AnimateItem(*item);
 			else
 			{
 				CreatureAnimation(itemNumber, angle, 0);

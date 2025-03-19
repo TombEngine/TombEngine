@@ -51,6 +51,6 @@ namespace TEN::Entities::Traps
 		else
 			item.Animation.TargetState = WALL_MOUNTED_BLADE_STATE_DISABLED;
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 }

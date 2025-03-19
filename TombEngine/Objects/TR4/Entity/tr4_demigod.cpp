@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_demigod.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -18,6 +18,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
@@ -101,7 +102,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 0);
+		SetAnimation(*item, 0);
 
 		/*if (g_Level.NumItems > 0)
 		{
@@ -213,11 +214,11 @@ namespace TEN::Entities::TR4
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		int animIndex = item->Animation.AnimNumber - Objects[item->ObjectNumber].animIndex;
+		int animNumber = item->Animation.AnimNumber;
 
-		if (animIndex == DEMIGOD2_ANIM_SINGLE_PROJECTILE_ATTACK)
+		if (animNumber == DEMIGOD2_ANIM_SINGLE_PROJECTILE_ATTACK)
 		{
-			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+			if (item->Animation.FrameNumber == 0)
 			{
 				auto origin = GetJointPosition(item, 16, Vector3i(-544, 96, 0));
 				auto target = GetJointPosition(item, 16, Vector3i(-900, 96, 0));
@@ -230,9 +231,9 @@ namespace TEN::Entities::TR4
 					TriggerDemigodMissile(&pose, item->RoomNumber, 5);
 			}
 		}
-		else if (animIndex == DEMIGOD3_ANIM_SINGLE_PROJECTILE_ATTACK)
+		else if (animNumber == DEMIGOD3_ANIM_SINGLE_PROJECTILE_ATTACK)
 		{
-			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+			if (item->Animation.FrameNumber == 0)
 			{
 				auto pos1 = GetJointPosition(item,  16, Vector3i(-544, 96, 0));
 				auto pos2 = GetJointPosition(item, 16, Vector3i(-900, 96, 0));
@@ -245,9 +246,9 @@ namespace TEN::Entities::TR4
 					TriggerDemigodMissile(&pose, item->RoomNumber, 5);
 			}
 		}
-		else if (animIndex == DEMIGOD3_ANIM_RADIAL_PROJECTILE_ATTACK)
+		else if (animNumber == DEMIGOD3_ANIM_RADIAL_PROJECTILE_ATTACK)
 		{
-			int frameNumber = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+			int frameNumber = item->Animation.FrameNumber;
 
 			if (frameNumber >= 8 && frameNumber <= 64)
 			{
@@ -359,14 +360,14 @@ namespace TEN::Entities::TR4
 				if (item->Animation.ActiveState == DEMIGOD_STATE_WALK_FORWARD ||
 					item->Animation.ActiveState == DEMIGOD_STATE_RUN_FORWARD)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DEMIGOD_ANIM_RUN_OVER_DEATH;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = DEMIGOD_ANIM_RUN_OVER_DEATH;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = DEMIGOD_STATE_RUN_OVER_DEATH;
 				}
 				else
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + DEMIGOD_ANIM_DEATH;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = DEMIGOD_ANIM_DEATH;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = DEMIGOD_STATE_DEATH;
 				}
 			}
@@ -573,7 +574,7 @@ namespace TEN::Entities::TR4
 				if (AI.ahead)
 					joint1 = -AI.xAngle;
 
-				if (item->Animation.AnimNumber == Objects[item->ObjectNumber].animIndex + DEMIGOD2_ANIM_AIM)
+				if (item->Animation.AnimNumber == DEMIGOD2_ANIM_AIM)
 				{
 					if (AI.angle >= ANGLE(7.0f))
 						item->Pose.Orientation.y += ANGLE(7.0f);
@@ -645,7 +646,7 @@ namespace TEN::Entities::TR4
 				if (AI.ahead)
 					joint1 = -AI.xAngle;
 
-				if (item->Animation.AnimNumber == Objects[(signed short)item->ObjectNumber].animIndex + DEMIGOD2_ANIM_AIM)
+				if (item->Animation.AnimNumber == DEMIGOD2_ANIM_AIM)
 				{
 					if (AI.angle >= ANGLE(7.0f))
 						item->Pose.Orientation.y += ANGLE(7.0f);
@@ -694,7 +695,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case DEMIGOD1_STATE_HAMMER_ATTACK:
-				if ((item->Animation.FrameNumber - GetAnimData(item).frameBase) == DEMIGOD_ANIM_RUN_TO_IDLE)
+				if (item->Animation.FrameNumber == DEMIGOD_ANIM_RUN_TO_IDLE)
 				{
 					auto pos = GetJointPosition(item, 17, Vector3i(80, -8, -40));
 
@@ -723,7 +724,7 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.ActiveState <= LS_LADDER_DOWN &&
 						!Lara.Location)
 					{
-						SetAnimation(LaraItem, LA_FALL_START);
+						SetAnimation(*LaraItem, LA_FALL_START);
 						LaraItem->Animation.Velocity.z = 2;
 						LaraItem->Animation.Velocity.y = 1;
 

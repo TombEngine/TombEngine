@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_setha.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -21,6 +21,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Spark;
@@ -113,7 +114,7 @@ namespace TEN::Entities::TR4
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, SETH_ANIM_IDLE);
+		SetAnimation(item, SETH_ANIM_IDLE);
 	}
 
 	void SethControl(short itemNumber)
@@ -301,8 +302,8 @@ namespace TEN::Entities::TR4
 			case SETH_STATE_POUNCE_ATTACK:
 				if (canJump)
 				{
-					if (item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + SETH_ANIM_POUNCE_ATTACK_START) &&
-						item->Animation.FrameNumber == GetAnimData(item).frameBase)
+					if (item->Animation.AnimNumber == SETH_ANIM_POUNCE_ATTACK_START &&
+						item->Animation.FrameNumber == 0)
 					{
 						creature.MaxTurn = 0;
 						creature.ReachedGoal = true;
@@ -313,7 +314,7 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.TestAny())
 					{
-						if (item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + SETH_ANIM_POUNCE_ATTACK_END))
+						if (item->Animation.AnimNumber == SETH_ANIM_POUNCE_ATTACK_END)
 						{
 							if (item->TouchBits.Test(SethPounceAttackJoints1))
 							{
@@ -341,8 +342,8 @@ namespace TEN::Entities::TR4
 				break;
 
 			case SETH_STATE_HARD_RECOIL:
-				if (item->Animation.AnimNumber == (Objects[item->Animation.AnimNumber].animIndex + SETH_ANIM_HARD_RECOIL_START) &&
-					item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (item->Animation.AnimNumber == SETH_ANIM_HARD_RECOIL_START &&
+					TestLastFrame(*item))
 				{
 					if (Random::TestProbability(SETH_HARD_RECOIL_RECOVER_CHANCE))
 						item->Animation.RequiredState = SETH_STATE_HARD_RECOIL_RECOVER;
@@ -369,8 +370,8 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.TestAny())
 					{
-						if (item->Animation.FrameNumber > (GetAnimData(item).frameBase + SETH_ANIM_POUNCE_ATTACK_START) &&
-							item->Animation.FrameNumber < (GetAnimData(item).frameBase + SETH_ANIM_IDLE_TO_HOVER))
+						if (item->Animation.FrameNumber > SETH_ANIM_POUNCE_ATTACK_START &&
+							item->Animation.FrameNumber < SETH_ANIM_IDLE_TO_HOVER)
 						{
 							DoDamage(creature.Enemy, SETH_KILL_ATTACK_DAMAGE);
 							CreatureEffect2(item, SethBite1, 25, -1, DoBloodSplat);
@@ -416,7 +417,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case SETH_STATE_HOVER:
-				if (item->Animation.AnimNumber != (Objects[item->Animation.AnimNumber].animIndex + SETH_ANIM_IDLE_TO_HOVER))
+				if (item->Animation.AnimNumber != SETH_ANIM_IDLE_TO_HOVER)
 				{
 					item->Animation.IsAirborne = false;
 					creature.MaxTurn = 0;
@@ -474,13 +475,13 @@ namespace TEN::Entities::TR4
 					if (item->Animation.ActiveState <= SETH_STATE_SINGLE_PROJECTILE_ATTACK)
 					{
 						if (abs(height4 - item->Pose.Position.y) >= BLOCK(0.5f))
-							SetAnimation(item, SETH_ANIM_SOFT_RECOIL);
+							SetAnimation(*item, SETH_ANIM_SOFT_RECOIL);
 						else
-							SetAnimation(item, SETH_ANIM_HARD_RECOIL_START);
+							SetAnimation(*item, SETH_ANIM_HARD_RECOIL_START);
 					}
 					else
 					{
-						SetAnimation(item, SETH_ANIM_HOVER_RECOIL);
+						SetAnimation(*item, SETH_ANIM_HOVER_RECOIL);
 					}
 				}
 			}

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Splash;
@@ -42,7 +43,7 @@ void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 		if (!laraItem->Animation.IsAirborne && 
 			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, laraItem))
 		{
-			SetAnimation(laraItem, LA_BOULDER_DEATH);
+			SetAnimation(*laraItem, LA_BOULDER_DEATH);
 
 			Camera.flags = CF_FOLLOW_CENTER;
 			Camera.targetAngle = ANGLE(170.0f);
@@ -366,7 +367,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 				lara->Pose.Orientation.y = item->Pose.Orientation.y;
 				lara->Pose.Orientation.x = lara->Pose.Orientation.z = 0;
 
-				SetAnimation(lara, LA_BOULDER_DEATH);
+				SetAnimation(*lara, LA_BOULDER_DEATH);
 						
 				Camera.flags = CF_FOLLOW_CENTER;
 				Camera.targetAngle = ANGLE(170.0f);
@@ -401,7 +402,7 @@ void ClassicRollingBallControl(short itemNum)
 	{
 		if (item->Animation.TargetState == 2)
 		{
-			AnimateItem(item);
+			AnimateItem(*item);
 			return;
 		}
 
@@ -419,7 +420,7 @@ void ClassicRollingBallControl(short itemNum)
 		int oldx = item->Pose.Position.x;
 		int oldz = item->Pose.Position.z;
 
-		AnimateItem(item);
+		AnimateItem(*item);
 
 		auto pointColl = GetPointCollision(*item);
 
@@ -482,6 +483,7 @@ void ClassicRollingBallControl(short itemNum)
 			item->Pose.Position.x = old->x;
 			item->Pose.Position.y = old->y;
 			item->Pose.Position.z = old->z;
+
 			if (item->RoomNumber != old->RoomNumber)
 			{
 				RemoveDrawnItem(itemNum);
@@ -490,12 +492,11 @@ void ClassicRollingBallControl(short itemNum)
 				r->itemNumber = itemNum;
 				item->RoomNumber = old->RoomNumber;
 			}
-			item->Animation.ActiveState = 0;
-			item->Animation.TargetState = 0;
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
-			item->Animation.ActiveState = GetAnimData(item).ActiveState; 
-			item->Animation.TargetState = GetAnimData(item).ActiveState;
+
+			item->Animation.AnimNumber = 0;
+			item->Animation.FrameNumber = 0;
+			item->Animation.ActiveState =
+			item->Animation.TargetState = GetAnimData(*item).StateID;
 			item->Animation.RequiredState = NO_VALUE;
 			RemoveActiveItem(itemNum);
 		}

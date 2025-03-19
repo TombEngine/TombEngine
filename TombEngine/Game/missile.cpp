@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/missile.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -17,7 +17,8 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
-using namespace TEN::Collision::Point;
+using namespace TEN::Animation;
+using namespace TEN::Collision::Point;;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Light;

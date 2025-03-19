@@ -80,11 +80,11 @@ namespace TEN::Entities::TR4
 		// OCB 1 makes the dog sitting down until fired
 		if (item->TriggerFlags)
 		{
-			SetAnimation(item, DOG_ANIM_AWAKEN);
+			SetAnimation(*item, DOG_ANIM_AWAKEN);
 			item->Status = ITEM_NOT_ACTIVE;
 		}
 		else
-			SetAnimation(item, DOG_ANIM_IDLE);
+			SetAnimation(*item, DOG_ANIM_IDLE);
 	}
 
 	void Tr4DogControl(short itemNumber)
@@ -103,10 +103,10 @@ namespace TEN::Entities::TR4
 
 		if (item->HitPoints <= 0)
 		{
-			if (item->Animation.AnimNumber == object->animIndex + 1)
+			if (item->Animation.AnimNumber == 1)
 				item->HitPoints = object->HitPoints;
 			else if (item->Animation.ActiveState != DOG_STATE_DEATH)
-				SetAnimation(item, DogDeathAnims[Random::GenerateInt(0, (int)DogDeathAnims.size() - 1)]);
+				SetAnimation(*item, DogDeathAnims[Random::GenerateInt(0, (int)DogDeathAnims.size() - 1)]);
 		}
 		else
 		{
@@ -152,7 +152,7 @@ namespace TEN::Entities::TR4
 				item->AIBits &= ~MODIFY;
 			}
 
-			int frame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+			int frame = item->Animation.FrameNumber;
 
 			switch (item->Animation.ActiveState)
 			{

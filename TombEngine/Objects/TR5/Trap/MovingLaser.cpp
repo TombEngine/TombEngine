@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Trap/MovingLaser.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -70,7 +70,7 @@ namespace TEN::Entities::Traps
 
 		if (item.TriggerFlags == 0)
 		{
-			AnimateItem(&item);
+			AnimateItem(item);
 			return;
 		}
 
@@ -83,7 +83,7 @@ namespace TEN::Entities::Traps
 				item.ItemFlags[(int)MovingLaserProperty::DistanceTraveled] = 0;
 			}
 
-			AnimateItem(&item);
+			AnimateItem(item);
 			return;
 		}
 
@@ -115,7 +115,7 @@ namespace TEN::Entities::Traps
 		if (roomNumber != item.RoomNumber)
 			ItemNewRoom(itemNumber, roomNumber);
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void CollideMovingLaser(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)

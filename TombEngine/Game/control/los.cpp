@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/los.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/tomb4fx.h"
@@ -20,6 +20,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
 using TEN::Renderer::g_Renderer;

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/collision/collide_item.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/los.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -23,6 +23,7 @@
 #include "Sound/sound.h"
 #include "Specific/winmain.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
@@ -107,7 +108,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 	int staticCount = 0;
 
 	// Establish parameters of colliding item.
-	const auto& collidingBounds = GetBestFrame(collidingItem).BoundingBox;
+	const auto& collidingBounds = GetClosestKeyframe(collidingItem).BoundingBox;
 
 	// Quickly discard collision if colliding item bounds are below tolerance threshold.
 	if (!customRadius && collidingBounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
@@ -174,7 +175,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 						continue;
 
 					// If item bounding box extents is below tolerance threshold, discard object.
-					const auto& bounds = GetBestFrame(item).BoundingBox;
+					const auto& bounds = GetClosestKeyframe(item).BoundingBox;
 					if (bounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
 						continue;
 
@@ -230,7 +231,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 
 bool TestWithGlobalCollisionBounds(ItemInfo* item, ItemInfo* laraItem, CollisionInfo* coll)
 {
-	const auto& bounds = GetBestFrame(*laraItem).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*laraItem).BoundingBox;
 
 	if ((item->Pose.Position.y + GlobalCollisionBounds.Y2) <= (laraItem->Pose.Position.y + bounds.Y1))
 		return false;
@@ -510,19 +511,19 @@ bool Move3DPosTo3DPos(ItemInfo* item, Pose& fromPose, const Pose& toPose, int ve
 			{
 			default:
 			case NORTH:
-				SetAnimation(item, LA_WALK);
+				SetAnimation(*item, LA_WALK);
 				break;
 
 			case SOUTH:
-				SetAnimation(item, LA_WALK_BACK);
+				SetAnimation(*item, LA_WALK_BACK);
 				break;
 
 			case EAST:
-				SetAnimation(item, LA_SIDESTEP_RIGHT);
+				SetAnimation(*item, LA_SIDESTEP_RIGHT);
 				break;
 
 			case WEST:
-				SetAnimation(item, LA_SIDESTEP_LEFT);
+				SetAnimation(*item, LA_SIDESTEP_LEFT);
 				break;
 			}
 
@@ -561,8 +562,8 @@ bool Move3DPosTo3DPos(ItemInfo* item, Pose& fromPose, const Pose& toPose, int ve
 
 bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius)
 {
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
-	const auto& playerBounds = GetBestFrame(*laraItem).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
+	const auto& playerBounds = GetClosestKeyframe(*laraItem).BoundingBox;
 
 	if (bounds.GetExtents() == Vector3::Zero || playerBounds.GetExtents() == Vector3::Zero)
 		return false;
@@ -599,7 +600,7 @@ bool TestBoundsCollideStatic(ItemInfo* item, const MESH_INFO& mesh, int radius)
 	if (!(bounds.Z2 != 0 || bounds.Z1 != 0 || bounds.X1 != 0 || bounds.X2 != 0 || bounds.Y1 != 0 || bounds.Y2 != 0))
 		return false;
 
-	const auto& itemBounds = GetBestFrame(*item).BoundingBox;
+	const auto& itemBounds = GetClosestKeyframe(*item).BoundingBox;
 	if (mesh.pos.Position.y + bounds.Y2 <= item->Pose.Position.y + itemBounds.Y1)
 		return false;
 
@@ -762,7 +763,9 @@ bool ItemPushItem(ItemInfo* item, ItemInfo* item2)
 	int rx = (direction.x * cosY) - (direction.z * sinY);
 	int rz = (direction.z * cosY) + (direction.x * sinY);
 
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
+	const auto& anim = GetAnimData(*item);
+	const auto& keyframe = anim.GetClosestKeyframe(item->Animation.FrameNumber);
+	const auto& bounds = keyframe.BoundingBox;
 
 	int minX = bounds.X1;
 	int maxX = bounds.X2;

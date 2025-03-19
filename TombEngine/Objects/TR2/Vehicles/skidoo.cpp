@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Vehicles/skidoo.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -22,6 +22,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -208,15 +209,15 @@ namespace TEN::Entities::Vehicles
 		if (lara->Context.Vehicle != NO_VALUE)
 		{
 			if ((laraItem->Animation.ActiveState == SKIDOO_STATE_DISMOUNT_RIGHT || laraItem->Animation.ActiveState == SKIDOO_STATE_DISMOUNT_LEFT) &&
-				TestLastFrame(laraItem))
+				TestLastFrame(*laraItem))
 			{
 				if (laraItem->Animation.ActiveState == SKIDOO_STATE_DISMOUNT_LEFT)
 					laraItem->Pose.Orientation.y += ANGLE(90.0f);
 				else
 					laraItem->Pose.Orientation.y -= ANGLE(90.0f);
 
-				SetAnimation(laraItem, LA_STAND_IDLE);
-				TranslateItem(laraItem, laraItem->Pose.Orientation.y, -SKIDOO_DISMOUNT_DISTANCE);
+				SetAnimation(*laraItem, LA_STAND_IDLE);
+				laraItem->Pose.Translate(laraItem->Pose.Orientation.y, -SKIDOO_DISMOUNT_DISTANCE);
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.z = 0;
 				lara->Control.HandStatus = HandStatus::Free;
@@ -227,9 +228,9 @@ namespace TEN::Entities::Vehicles
 				SetLaraVehicle(laraItem, nullptr);
 			}
 			else if (laraItem->Animation.ActiveState == SKIDOO_STATE_JUMP_OFF &&
-				(skidooItem->Pose.Position.y == skidooItem->Floor || TestLastFrame(laraItem)))
+				(skidooItem->Pose.Position.y == skidooItem->Floor || TestLastFrame(*laraItem)))
 			{
-				SetAnimation(laraItem, LA_FREEFALL);
+				SetAnimation(*laraItem, LA_FREEFALL);
 
 				if (skidooItem->Pose.Position.y == skidooItem->Floor)
 				{
@@ -369,7 +370,7 @@ namespace TEN::Entities::Vehicles
 				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
 			}
 
-			AnimateItem(laraItem);
+			AnimateItem(*laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
 				ExplodeVehicle(laraItem, skidooItem);
@@ -401,13 +402,13 @@ namespace TEN::Entities::Vehicles
 		else
 			laraItem->Pose.Orientation.x = laraItem->Pose.Orientation.z = 0;
 
-		AnimateItem(laraItem);
+		AnimateItem(*laraItem);
 
 		if (!dead && drive >= 0 && banditSkidoo)
 			SkidooGuns(skidooItem, laraItem);
 
 		if (!dead)
-			SyncVehicleAnimation(*skidooItem, *laraItem);
+			SyncVehicleAnim(*skidooItem, *laraItem);
 		else
 			SetAnimation(*skidooItem, SKIDOO_ANIM_IDLE);
 
@@ -883,7 +884,7 @@ namespace TEN::Entities::Vehicles
 		else
 			skidooItem->Pose.Orientation.y += skidoo->TurnRate + skidoo->ExtraRotation;
 
-		TranslateItem(skidooItem, skidoo->MomentumAngle, skidooItem->Animation.Velocity.z);
+		skidooItem->Pose.Translate(skidoo->MomentumAngle, skidooItem->Animation.Velocity.z);
 
 		int slip = SKIDOO_SLIP * phd_sin(skidooItem->Pose.Orientation.x);
 		if (abs(slip) > (SKIDOO_SLIP / 2))

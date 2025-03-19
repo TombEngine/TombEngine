@@ -74,15 +74,15 @@ static void HandlePlayerOpticAnimations(ItemInfo& item)
 		switch (player.Control.Weapon.GunType)
 		{
 			case LaraWeaponType::Crossbow:
-				animNumber = Objects[ID_CROSSBOW_ANIM].animIndex + 2;
+				animNumber = 2;
 				break;
 
 			case LaraWeaponType::Revolver:
-				animNumber = Objects[ID_REVOLVER_ANIM].animIndex + 3;
+				animNumber = 3;
 				break;
 
 			case LaraWeaponType::HK:
-				animNumber = Objects[ID_HK_ANIM].animIndex + 2;
+				animNumber = 2;
 				break;
 		}
 	}
@@ -135,8 +135,6 @@ static void HandlePlayerOpticAnimations(ItemInfo& item)
 	player.RightArm.FrameNumber = 0;
 	player.LeftArm.AnimNumber =
 	player.RightArm.AnimNumber = animNumber;
-	player.LeftArm.FrameBase =
-	player.RightArm.FrameBase = GetAnimData(animNumber).FramePtr;
 }
 
 static void ResetPlayerOpticAnimations(ItemInfo& item)
@@ -151,8 +149,6 @@ static void ResetPlayerOpticAnimations(ItemInfo& item)
 	player.RightArm.AnimNumber = 0;
 	player.LeftArm.FrameNumber =
 	player.RightArm.FrameNumber = 0;
-	player.RightArm.FrameBase =
-	player.LeftArm.FrameBase = GetAnimData(item).FramePtr;
 	player.Control.HandStatus = player.Control.Look.IsUsingLasersight ? HandStatus::WeaponReady : HandStatus::Free;
 
 	if (!player.Control.Look.IsUsingLasersight)

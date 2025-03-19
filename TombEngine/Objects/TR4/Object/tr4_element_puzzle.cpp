@@ -5,7 +5,7 @@
 #include "Game/Collision/Sphere.h"
 #include "Game/control/control.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/effects/effects.h"
@@ -16,6 +16,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/items.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Input;
 using namespace TEN::Entities::Switches;
@@ -200,10 +201,10 @@ namespace TEN::Entities::TR4
 				if (laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW && LaraItem->ItemFlags[2] == flags)
 				{
 					laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 				}
 
-				if (laraItem->Animation.FrameNumber == GetAnimData(*laraItem, LA_WATERSKIN_POUR_HIGH).frameBase + 74 &&
+				if (laraItem->Animation.FrameNumber == 74 &&
 					LaraItem->ItemFlags[2] == flags)
 				{
 					if (!puzzleItem->TriggerFlags)
@@ -247,7 +248,7 @@ namespace TEN::Entities::TR4
 				laraItem->Animation.IsAirborne)
 			{
 				if (laraItem->Animation.AnimNumber != LA_TORCH_LIGHT_3 ||
-					GetAnimData(*laraItem, LA_TORCH_LIGHT_3).frameBase + 16 ||
+					16 || // TODO: Typo?
 					puzzleItem->ItemFlags[0] != 2)
 				{
 					ElementPuzzleDoCollision(itemNumber, laraItem, coll);
@@ -275,8 +276,8 @@ namespace TEN::Entities::TR4
 
 				if (TestLaraPosition(ElementPuzzleBounds, puzzleItem, laraItem))
 				{
-					laraItem->Animation.AnimNumber = (abs(puzzleItem->Pose.Position.y- laraItem->Pose.Position.y) >> 8) + LA_TORCH_LIGHT_3;
-					laraItem->Animation.FrameNumber = GetAnimData(puzzleItem).frameBase;
+					laraItem->Animation.AnimNumber = (abs(puzzleItem->Pose.Position.y - laraItem->Pose.Position.y) >> 8) + LA_TORCH_LIGHT_3;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.ActiveState = LS_MISC_CONTROL;
 					laraInfo->Flare.ControlLeft = false;
 					laraInfo->LeftArm.Locked = true;

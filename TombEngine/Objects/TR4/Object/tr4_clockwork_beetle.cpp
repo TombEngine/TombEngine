@@ -1,14 +1,16 @@
 #include "framework.h"
 #include "Objects/TR4/Object/tr4_clockwork_beetle.h"
+
 #include "Game/items.h"
 #include "Specific/level.h"
 #include "Game/Lara/lara.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Sound/sound.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/debris.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 void ClockworkBeetleControl(short itemNumber)
@@ -19,15 +21,13 @@ void ClockworkBeetleControl(short itemNumber)
 
 	if (LaraItem->Animation.AnimNumber == LA_MECHANICAL_BEETLE_USE)
 	{
-		short fb = GetAnimData(ID_LARA, LA_MECHANICAL_BEETLE_USE).frameBase;
-
-		if (LaraItem->Animation.FrameNumber < fb + 14)
+		if (LaraItem->Animation.FrameNumber < 14)
 		{
 			beetle->Status = ITEM_INVISIBLE;
 			return;
 		}
 
-		if (LaraItem->Animation.FrameNumber < fb + 104)
+		if (LaraItem->Animation.FrameNumber < 104)
 		{
 			auto pos = GetJointPosition(LaraItem, LM_RHAND, Vector3i(0, 0, -32));
 
@@ -38,7 +38,7 @@ void ClockworkBeetleControl(short itemNumber)
 			return;
 		}
 
-		if (LaraItem->Animation.FrameNumber == fb + 104)
+		if (LaraItem->Animation.FrameNumber == 104)
 		{
 			short roomNumber = beetle->RoomNumber;
 			FloorInfo* floor = GetFloor(beetle->Pose.Position.x, beetle->Pose.Position.y, beetle->Pose.Position.z, &roomNumber);

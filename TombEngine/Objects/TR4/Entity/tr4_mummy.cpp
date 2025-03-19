@@ -80,12 +80,12 @@ namespace TEN::Entities::TR4
 
 		if (item->TriggerFlags == 2)
 		{
-			SetAnimation(item, MUMMY_ANIM_COLLAPSE_END);
+			SetAnimation(*item, MUMMY_ANIM_COLLAPSE_END);
 			item->Status = ITEM_NOT_ACTIVE;
 		}
 		else
 		{
-			SetAnimation(item, MUMMY_ANIM_ARMS_CROSSED);
+			SetAnimation(*item, MUMMY_ANIM_ARMS_CROSSED);
 		}
 	}
 
@@ -132,21 +132,21 @@ namespace TEN::Entities::TR4
 								item->Animation.ActiveState == MUMMY_STATE_WALK_FORWARD_SWIPE_ATTACK)
 							{
 								item->Animation.ActiveState = MUMMY_STATE_ARMS_UP_RECOIL;
-								item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + MUMMY_ANIM_ARMS_UP_RECOIL;
+								item->Animation.AnimNumber = MUMMY_ANIM_ARMS_UP_RECOIL;
 							}
 							else
 							{
 								item->Animation.ActiveState = MUMMY_STATE_RECOIL;
-								item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + MUMMY_ANIM_RECOIL;
+								item->Animation.AnimNumber = MUMMY_ANIM_RECOIL;
 							}
 
-							item->Animation.FrameNumber = GetAnimData(item).frameBase;
+							item->Animation.FrameNumber = 0;
 							item->Pose.Orientation.y += AI.angle;
 						}
 					}
 					else
 					{
-						SetAnimation(item, MUMMY_ANIM_COLLAPSE_START);
+						SetAnimation(*item, MUMMY_ANIM_COLLAPSE_START);
 						item->Pose.Orientation.y += AI.angle;
 						creature->MaxTurn = 0;
 					}
@@ -199,7 +199,7 @@ namespace TEN::Entities::TR4
 				{
 					creature->MaxTurn = 0;
 
-					if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+					if (TestLastFrame(*item))
 						item->TriggerFlags = 0;
 				}
 				else
@@ -281,12 +281,11 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.Test(MummySwipeAttackJoints))
 					{
-						if (item->Animation.FrameNumber > GetAnimData(item).frameBase &&
-							item->Animation.FrameNumber < GetAnimData(item).frameEnd)
+						if (item->Animation.FrameNumber > 0 && !TestLastFrame(*item))
 						{
 							DoDamage(creature->Enemy, MUMMY_SWIPE_ATTACK_DAMAGE);
 
-							if (item->Animation.AnimNumber == (Objects[item->ObjectNumber].animIndex + MUMMY_ANIM_IDLE_SWIPE_ATTACK_LEFT))
+							if (item->Animation.AnimNumber == MUMMY_ANIM_IDLE_SWIPE_ATTACK_LEFT)
 								CreatureEffect2(item, MummyBite1, 5, -1, DoBloodSplat);
 							else
 								CreatureEffect2(item, MummyBite2, 5, -1, DoBloodSplat);

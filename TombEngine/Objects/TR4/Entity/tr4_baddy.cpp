@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_baddy.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -19,6 +19,7 @@
 #include "Math/Math.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
@@ -243,8 +244,8 @@ namespace TEN::Entities::TR4
 	
 		if (!ocb || ocb > 4 && ocb < 7)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_STAND_IDLE;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_STAND_IDLE;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_IDLE;
 			item->Animation.ActiveState = BADDY_STATE_IDLE;
 			return;
@@ -253,8 +254,8 @@ namespace TEN::Entities::TR4
 		// OCB: jump right
 		if (ocb == 1)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_STAND_TO_JUMP_RIGHT;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_JUMP_RIGHT;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_JUMP_RIGHT;
 			item->Animation.ActiveState = BADDY_STATE_JUMP_RIGHT;
 			return;
@@ -263,8 +264,8 @@ namespace TEN::Entities::TR4
 		// OCB: jump left
 		if (ocb == 2)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_STAND_TO_ROLL_LEFT;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_ROLL_LEFT;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_ROLL_LEFT;
 			item->Animation.ActiveState = BADDY_STATE_ROLL_LEFT;
 			return;
@@ -273,8 +274,8 @@ namespace TEN::Entities::TR4
 		// OCB: crouch
 		if (ocb == 3)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_CROUCH;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_CROUCH;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_CROUCH;
 			item->Animation.ActiveState = BADDY_STATE_CROUCH;
 			return;
@@ -283,8 +284,8 @@ namespace TEN::Entities::TR4
 		// OCB: climb up 4 or 6 clicks 
 		if (ocb == 4)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_CLIMB_4_STEPS;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_CLIMB_4_STEPS;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_CLIMB_4_STEPS;
 			item->Animation.ActiveState = BADDY_STATE_CLIMB_4_STEPS;
 			item->Pose.Position.x += phd_sin(item->Pose.Orientation.y) * CLICK(4);
@@ -295,8 +296,8 @@ namespace TEN::Entities::TR4
 		// OCB: crouch and jump in train levels?
 		if (ocb > 100)
 		{
-			item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_CROUCH;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = BADDY_ANIM_CROUCH;
+			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_CROUCH;
 			item->Animation.ActiveState = BADDY_STATE_CROUCH;
 			item->Pose.Position.x += phd_sin(item->Pose.Orientation.y) * CLICK(4);
@@ -305,7 +306,7 @@ namespace TEN::Entities::TR4
 			return;
 		}
 	
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.FrameNumber = 0;
 	}
 
 	void BaddyControl(short itemNumber)
@@ -470,15 +471,15 @@ namespace TEN::Entities::TR4
 			case BADDY_STATE_MONKEY_GRAB:
 			case BADDY_STATE_MONKEY_IDLE:
 			case BADDY_STATE_MONKEY_FORWARD:
-				item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_MONKEY_TO_FREEFALL;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = BADDY_ANIM_MONKEY_TO_FREEFALL;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = BADDY_STATE_MONKEY_TO_FREEFALL;
 				item->Animation.Velocity.z = 0;
 				break;
 
 			default:
-				item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_STAND_DEATH;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = BADDY_ANIM_STAND_DEATH;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = BADDY_STATE_DEATH;
 				currentCreature->LOT.IsJumping = true;
 
@@ -685,8 +686,8 @@ namespace TEN::Entities::TR4
 					currentCreature->MaxTurn = 0;
 					currentCreature->LOT.IsJumping = true;
 
-					item->Animation.AnimNumber = Objects[objectNumber].animIndex + BADDY_ANIM_STAND_TO_JUMP_FORWARD;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_JUMP_FORWARD;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = BADDY_STATE_JUMP_FORWARD_1_BLOCK;
 
 					if (!canJump2Sectors)
@@ -864,7 +865,7 @@ namespace TEN::Entities::TR4
 				
 				if (Random::GenerateInt(0, 30) > 20 &&
 					objectNumber == ID_BADDY2 &&
-					item->Animation.FrameNumber == GetAnimData(item).frameBase + FRAME_BADDY_RUN_TO_SOMERSAULT &&
+					item->Animation.FrameNumber == FRAME_BADDY_RUN_TO_SOMERSAULT &&
 					height3 == height1 &&
 					abs(height1 - item->Pose.Position.y) < CLICK(1.5f) &&
 					(AI.angle > -ANGLE(22.5f) && AI.angle < ANGLE(22.5f) && AI.distance < pow(BLOCK(3), 2) || height2 >= (height1 + CLICK(2))))
@@ -914,7 +915,7 @@ namespace TEN::Entities::TR4
 				}
 
 				if (item->Animation.ActiveState != BADDY_STATE_SWORD_HIT_FRONT ||
-					item->Animation.FrameNumber < GetAnimData(item).frameBase + FRAME_BADDY_SWORD_HIT_NO_DAMAGE_MAX)
+					item->Animation.FrameNumber < FRAME_BADDY_SWORD_HIT_NO_DAMAGE_MAX)
 				{
 					if (abs(AI.angle) >= ANGLE(7.0f))
 					{
@@ -931,8 +932,8 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.Test(BaddySwordAttackJoints))
 					{
-						if (item->Animation.FrameNumber > GetAnimData(item).frameBase + FRAME_BADDY_SWORD_HIT_DAMAGE_MIN &&
-							item->Animation.FrameNumber < GetAnimData(item).frameBase + FRAME_BADDY_SWORD_HIT_DAMAGE_MAX)
+						if (item->Animation.FrameNumber > FRAME_BADDY_SWORD_HIT_DAMAGE_MIN &&
+							item->Animation.FrameNumber < FRAME_BADDY_SWORD_HIT_DAMAGE_MAX)
 						{
 							DoDamage(creature->Enemy, 120);
 							CreatureEffect2(item, BaddySwordBite, 10, item->Pose.Orientation.y, DoBloodSplat);
@@ -941,7 +942,7 @@ namespace TEN::Entities::TR4
 					}
 				}
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd - 1)
+				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
 					currentCreature->Flags = 0;
 
 				break;
@@ -1023,7 +1024,7 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.TestAny())
 					{
-						SetAnimation(LaraItem, LA_JUMP_UP);
+						SetAnimation(*LaraItem, LA_JUMP_UP);
 						LaraItem->Animation.IsAirborne = true;
 						LaraItem->Animation.Velocity.y = 2;
 						LaraItem->Animation.Velocity.y = 1;
@@ -1074,7 +1075,7 @@ namespace TEN::Entities::TR4
 			case BADDY_STATE_CROUCH_PICKUP:
 				ClampRotation(item->Pose, AI.angle, ANGLE(11.0f));
 
-				if (item->Animation.FrameNumber != GetAnimData(item).frameBase + FRAME_BADDY_CROUCH_PICKUP)
+				if (item->Animation.FrameNumber != FRAME_BADDY_CROUCH_PICKUP)
 					break;
 
 				if (!currentCreature->Enemy)
@@ -1148,8 +1149,8 @@ namespace TEN::Entities::TR4
 				}
 				ClampRotation(item->Pose, AI.angle, ANGLE(7.0f));
 
-				if (item->Animation.FrameNumber >= GetAnimData(item).frameBase + FRAME_BADDY_FIRE_MAX ||
-					item->Animation.FrameNumber == GetAnimData(item).frameBase + FRAME_BADDY_FIRE_MIN)
+				if (item->Animation.FrameNumber >= FRAME_BADDY_FIRE_MAX ||
+					item->Animation.FrameNumber == FRAME_BADDY_FIRE_MIN)
 				{
 					break;
 				}
@@ -1168,25 +1169,25 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_HOLSTER_GUN:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + FRAME_BADDY_HOLSTER_GUN)
+				if (item->Animation.FrameNumber == FRAME_BADDY_HOLSTER_GUN)
 					item->SetMeshSwapFlags(MESHSWAPFLAGS_BADDY_EMPTY);
 
 				break;
 
 			case BADDY_STATE_DRAW_GUN:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + FRAME_BADDY_DRAW_GUN)
+				if (item->Animation.FrameNumber == FRAME_BADDY_DRAW_GUN)
 					item->SetMeshSwapFlags(MESHSWAPFLAGS_BADDY_GUN);
 
 				break;
 
 			case BADDY_STATE_HOLSTER_SWORD:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + FRAME_BADDY_HOLSTER_SWORD)
+				if (item->Animation.FrameNumber == FRAME_BADDY_HOLSTER_SWORD)
 					item->SetMeshSwapFlags(MESHSWAPFLAGS_BADDY_EMPTY);
 				
 				break;
 
 			case BADDY_STATE_DRAW_SWORD:
-				if (item->Animation.FrameNumber != GetAnimData(item).frameBase + FRAME_BADDY_DRAW_SWORD)
+				if (item->Animation.FrameNumber != FRAME_BADDY_DRAW_SWORD)
 					break;
 
 				if (item->ObjectNumber == ID_BADDY1)
@@ -1219,13 +1220,13 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_SOMERSAULT:
-				if (item->Animation.AnimNumber == (Objects[objectNumber].animIndex + BADDY_ANIM_SOMERSAULT_END))
+				if (item->Animation.AnimNumber == BADDY_ANIM_SOMERSAULT_END)
 				{
 					ClampRotation(item->Pose, AI.angle, ANGLE(7.0f));
 					break;
 				}
 
-				if (item->Animation.FrameNumber != (GetAnimData(item).frameBase + FRAME_BADDY_SOMERSAULT_START_TAKE_OFF))
+				if (item->Animation.FrameNumber != FRAME_BADDY_SOMERSAULT_START_TAKE_OFF)
 					break;
 
 				currentCreature->LOT.IsJumping = true;
@@ -1236,7 +1237,7 @@ namespace TEN::Entities::TR4
 				if (item->ItemFlags[0] >= 0)
 					break;
 
-				if (item->Animation.AnimNumber != Objects[objectNumber].animIndex + BADDY_ANIM_STAND_TO_JUMP_FORWARD)
+				if (item->Animation.AnimNumber != BADDY_ANIM_STAND_TO_JUMP_FORWARD)
 					item->ItemFlags[0] += 2;
 				
 				break;
@@ -1264,27 +1265,27 @@ namespace TEN::Entities::TR4
 			switch (vault)
 			{
 			case 2:
-				SetAnimation(item, BADDY_ANIM_CLIMB_2_STEPS);
+				SetAnimation(*item, BADDY_ANIM_CLIMB_2_STEPS);
 				creature->MaxTurn = 0;
 				break;
 
 			case 3:
-				SetAnimation(item, BADDY_ANIM_CLIMB_3_STEPS);
+				SetAnimation(*item, BADDY_ANIM_CLIMB_3_STEPS);
 				creature->MaxTurn = 0;
 				break;
 
 			case 4:
-				SetAnimation(item, BADDY_ANIM_CLIMB_4_STEPS);
+				SetAnimation(*item, BADDY_ANIM_CLIMB_4_STEPS);
 				creature->MaxTurn = 0;
 				break;
 
 			case -3:
-				SetAnimation(item, BADDY_ANIM_JUMP_OFF_3_STEPS);
+				SetAnimation(*item, BADDY_ANIM_JUMP_OFF_3_STEPS);
 				creature->MaxTurn = 0;
 				break;
 
 			case -4:
-				SetAnimation(item, BADDY_ANIM_JUMP_OFF_4_STEPS);
+				SetAnimation(*item, BADDY_ANIM_JUMP_OFF_4_STEPS);
 				creature->MaxTurn = 0;
 				break;
 
@@ -1294,7 +1295,7 @@ namespace TEN::Entities::TR4
 		}
 		else
 		{
-			SetAnimation(item, BADDY_ANIM_BLIND, Random::GenerateInt(0, 8));
+			SetAnimation(*item, BADDY_ANIM_BLIND, Random::GenerateInt(0, 8));
 			creature->MaxTurn = 0;
 		}
 	}

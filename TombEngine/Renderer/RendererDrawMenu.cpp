@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/Gui.h"
@@ -18,6 +18,7 @@
 #include "Specific/winmain.h"
 #include "Version.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -810,15 +811,13 @@ namespace TEN::Renderer
 			return;
 
 		const auto& object = Objects[objectNumber];
-		if (object.animIndex != -1)
+		if (!object.Animations.empty())
 		{
-			auto frameData = AnimFrameInterpData
-			{
-				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
-				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
-				0.0f
-			};
-			UpdateAnimation(nullptr, *moveableObject, frameData, UINT_MAX);
+			auto interpData = KeyframeInterpData(
+				GetAnimData(object, 0).Keyframes[0],
+				GetAnimData(object, 0).Keyframes[0],
+				0.0f);
+			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
 		}
 
 		auto pos = _viewportToolkit.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -854,7 +853,7 @@ namespace TEN::Renderer
 			auto scaleMatrix = Matrix::CreateScale(scale);
 			auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
-			if (object.animIndex != NO_VALUE)
+			if (!object.Animations.empty())
 			{
 				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
@@ -1341,8 +1340,8 @@ namespace TEN::Renderer
 		case RendererDebugPage::PlayerStats:
 			PrintDebugMessage("PLAYER STATS");
 			PrintDebugMessage("AnimObjectID: %d", LaraItem->Animation.AnimObjectID);
-			PrintDebugMessage("AnimNumber: %d", LaraItem->Animation.AnimNumber - Objects[LaraItem->Animation.AnimObjectID].animIndex);
-			PrintDebugMessage("FrameNumber: %d", LaraItem->Animation.FrameNumber - GetAnimData(LaraItem).frameBase);
+			PrintDebugMessage("AnimNumber: %d", LaraItem->Animation.AnimNumber);
+			PrintDebugMessage("FrameNumber: %d", LaraItem->Animation.FrameNumber);
 			PrintDebugMessage("ActiveState: %d", LaraItem->Animation.ActiveState);
 			PrintDebugMessage("TargetState: %d", LaraItem->Animation.TargetState);
 			PrintDebugMessage("Velocity: %.3f, %.3f, %.3f", LaraItem->Animation.Velocity.z, LaraItem->Animation.Velocity.y, LaraItem->Animation.Velocity.x);

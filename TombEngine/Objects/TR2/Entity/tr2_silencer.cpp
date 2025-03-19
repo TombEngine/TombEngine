@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR2
 			if (item->Animation.ActiveState != SILENCER_STATE_DEATH_1 &&
 				item->Animation.ActiveState != SILENCER_STATE_DEATH_2)
 			{
-				SetAnimation(item, SILENCER_ANIM_DEATH_1);
+				SetAnimation(*item, SILENCER_ANIM_DEATH_1);
 			}
 		}
 		else
@@ -298,7 +298,7 @@ namespace TEN::Entities::Creatures::TR2
 					extraHeadRot.y = ai.angle;
 				}
 
-				if (creature->Flags == 0 && item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if (creature->Flags == 0 && item->Animation.FrameNumber == 0)
 				{
 					ShotLara(item, &ai, SilencerGunBite, extraTorsoRot.y, SILENCER_SHOOT_ATTACK_DAMAGE);
 					creature->MuzzleFlash[0].Bite = SilencerGunBite;
@@ -322,10 +322,10 @@ namespace TEN::Entities::Creatures::TR2
 				}
 
 				if (item->Animation.RequiredState == NO_VALUE &&
-					(item->Animation.AnimNumber == GetAnimIndex(*item, SILENCER_ANIM_RUN_FORWARD_SHOOT_LEFT) &&
-						item->Animation.FrameNumber == GetFrameIndex(item, 1) ||
-					item->Animation.AnimNumber == GetAnimIndex(*item, SILENCER_ANIM_RUN_FORWARD_SHOOT_RIGHT) &&
-						item->Animation.FrameNumber == GetFrameIndex(item, 3)))
+					(item->Animation.AnimNumber == SILENCER_ANIM_RUN_FORWARD_SHOOT_LEFT &&
+						item->Animation.FrameNumber == 1 ||
+					item->Animation.AnimNumber == SILENCER_ANIM_RUN_FORWARD_SHOOT_RIGHT &&
+						item->Animation.FrameNumber == 3))
 				{
 					if (!ShotLara(item, &ai, SilencerGunBite, extraTorsoRot.y, SILENCER_SHOOT_ATTACK_DAMAGE))
 						item->Animation.TargetState = SILENCER_STATE_RUN_FORWARD;

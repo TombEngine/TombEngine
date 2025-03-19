@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Vehicles/rubber_boat.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -20,6 +20,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Input;
@@ -173,7 +174,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.Velocity.y = 0;
 		lara->Control.WaterStatus = WaterStatus::Dry;
 
-		AnimateItem(laraItem);
+		AnimateItem(*laraItem);
 	}
 
 	void DrawRubberBoat(ItemInfo* rBoatItem)
@@ -771,7 +772,7 @@ namespace TEN::Entities::Vehicles
 		auto* lara = GetLaraInfo(laraItem);
 
 		if ((laraItem->Animation.ActiveState == RBOAT_STATE_JUMP_RIGHT || laraItem->Animation.ActiveState == RBOAT_STATE_JUMP_LEFT) &&
-			TestLastFrame(laraItem))
+			TestLastFrame(*laraItem))
 		{
 			if (laraItem->Animation.ActiveState == RBOAT_STATE_JUMP_LEFT)
 				laraItem->Pose.Orientation.y -= ANGLE(90.0f);
@@ -908,10 +909,10 @@ namespace TEN::Entities::Vehicles
 			rBoatItem->Pose.Orientation.z += rBoat->LeanAngle;
 			laraItem->Pose = rBoatItem->Pose;
 
-			AnimateItem(laraItem);
+			AnimateItem(*laraItem);
 
 			if (laraItem->HitPoints > 0)
-				SyncVehicleAnimation(*rBoatItem, *laraItem);
+				SyncVehicleAnim(*rBoatItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(20.0f);
 			Camera.targetDistance = BLOCK(2);

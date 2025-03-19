@@ -101,7 +101,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (item->Animation.ActiveState != COMPY_STATE_DEATH)
 			{
 				item->Animation.TargetState = COMPY_STATE_DEATH;
-				SetAnimation(item, COMPY_ANIM_DEATH);
+				SetAnimation(*item, COMPY_ANIM_DEATH);
 			}
 		}
 		else

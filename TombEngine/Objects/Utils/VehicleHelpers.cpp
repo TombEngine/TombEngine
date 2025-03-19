@@ -198,11 +198,9 @@ namespace TEN::Entities::Vehicles
 		return height;
 	}
 
-	void SyncVehicleAnimation(ItemInfo& vehicleItem, const ItemInfo& playerItem)
+	void SyncVehicleAnim(ItemInfo& vehicleItem, const ItemInfo& playerItem)
 	{
-		int animNumber = GetAnimNumber(playerItem);
-		int frameNumber = GetFrameNumber(playerItem);
-		SetAnimation(vehicleItem, animNumber, frameNumber);
+		SetAnimation(vehicleItem, playerItem.Animation.AnimNumber, playerItem.Animation.FrameNumber);
 	}
 
 	void DoVehicleCollision(ItemInfo* vehicleItem, int radius)

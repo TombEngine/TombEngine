@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_stargate.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Sphere.h"
@@ -12,6 +12,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Traps
@@ -38,7 +39,7 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(item))
 		{
 			SoundEffect(SFX_TR4_STARGATE_SWIRL, &item->Pose);
-			AnimateItem(item);
+			AnimateItem(*item);
 		}
 	}
 
@@ -65,8 +66,8 @@ namespace TEN::Entities::Traps
 
 		if (HandleItemSphereCollision(*item, *laraItem) &&
 			TriggerActive(item) &&
-			item->Animation.FrameNumber > GetAnimData(item).frameBase + 20 && // Hardcoded frame range.
-			item->Animation.FrameNumber < GetAnimData(item).frameBase + 60)
+			item->Animation.FrameNumber > 20 && // Hardcoded frame range. // TODO: Use dedicated function.
+			item->Animation.FrameNumber < 60)
 		{
 			// Blades deal damage cumulatively.
 			auto spheres = item->GetSpheres();

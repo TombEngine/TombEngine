@@ -2,7 +2,7 @@
 #include "Game/Lara/lara_fire.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
 #include "Game/control/los.h"
@@ -32,6 +32,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
@@ -330,6 +331,8 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	auto& player = *GetLaraInfo(&laraItem);
 
 	player.TargetEntity = nullptr;
+	player.LeftArm.AnimObjectID =
+	player.RightArm.AnimObjectID = GetWeaponObjectID(player.Control.Weapon.GunType);
 	player.LeftArm.FrameNumber =
 	player.RightArm.FrameNumber = 0;
 	player.LeftArm.Orientation =
@@ -343,9 +346,6 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	{
 	case LaraWeaponType::Pistol:
 	case LaraWeaponType::Uzi:
-		player.RightArm.FrameBase = Objects[ID_PISTOLS_ANIM].frameBase;
-		player.LeftArm.FrameBase = Objects[ID_PISTOLS_ANIM].frameBase;
-
 		if (player.Control.HandStatus != HandStatus::Free)
 			DrawPistolMeshes(laraItem, player.Control.Weapon.GunType);
 
@@ -357,26 +357,18 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	case LaraWeaponType::GrenadeLauncher:
 	case LaraWeaponType::HarpoonGun:
 	case LaraWeaponType::RocketLauncher:
-		player.RightArm.FrameBase = Objects[GetWeaponObjectID(player.Control.Weapon.GunType)].frameBase;
-		player.LeftArm.FrameBase = Objects[GetWeaponObjectID(player.Control.Weapon.GunType)].frameBase;
-
 		if (player.Control.HandStatus != HandStatus::Free)
 			DrawShotgunMeshes(laraItem, player.Control.Weapon.GunType);
 
 		break;
 
 	case LaraWeaponType::Flare:
-		player.RightArm.FrameBase = Objects[ID_FLARE_ANIM].frameBase;
-		player.LeftArm.FrameBase = Objects[ID_FLARE_ANIM].frameBase;
-
 		if (player.Control.HandStatus != HandStatus::Free)
 			DrawFlareMeshes(laraItem);
 
 		break;
 
 	default:
-		player.RightArm.FrameBase = GetAnimData(laraItem).FramePtr;
-		player.LeftArm.FrameBase = GetAnimData(laraItem).FramePtr;
 		break;
 	}
 }
@@ -388,7 +380,7 @@ Ammo& GetAmmo(LaraInfo& lara, LaraWeaponType weaponType)
 
 GameVector GetTargetPoint(ItemInfo& targetEntity)
 {
-	const auto& bounds = GetBestFrame(targetEntity).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(targetEntity).BoundingBox;
 
 	auto center = Vector3i(
 		(bounds.X1 + bounds.X2) / 2,
@@ -555,7 +547,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		// Draw weapon.
 		if (IsHeld(In::Draw))
 		{
-			// No weapon - no any actions.
+			// No weapon; no actions.
 			if (player.Control.Weapon.LastGunType != LaraWeaponType::None)
 				player.Control.Weapon.RequestGunType = player.Control.Weapon.LastGunType;
 		}
@@ -564,13 +556,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		{
 			if (player.Control.Weapon.GunType == LaraWeaponType::Flare)
 			{
-				// NOTE: Original engines for some reason do this check, but it introduces a bug when player
-				// can't drop a flare underwater after it was dropped and picked up again once. -- Lwmte, 20/05/23
-
-				//if (!player.LeftArm.FrameNumber)
-				{
-					player.Control.HandStatus = HandStatus::WeaponUndraw;
-				}
+				player.Control.HandStatus = HandStatus::WeaponUndraw;
 			}
 			else if (player.Inventory.TotalFlares && !player.Control.Look.IsUsingBinoculars)
 			{
@@ -609,8 +595,8 @@ void HandleWeapon(ItemInfo& laraItem)
 
 				player.Control.Weapon.GunType = player.Control.Weapon.RequestGunType;
 				InitializeNewWeapon(laraItem);
-				player.RightArm.FrameNumber = 0;
 				player.LeftArm.FrameNumber = 0;
+				player.RightArm.FrameNumber = 0;
 				player.Control.HandStatus = HandStatus::WeaponDraw;
 			}
 			else

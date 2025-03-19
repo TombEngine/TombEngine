@@ -1,6 +1,6 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/generic_doors.h"
-#include "Specific/level.h"
+
 #include "Game/control/control.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
@@ -9,7 +9,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/pickup/pickup.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
@@ -18,6 +18,7 @@
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Game/collision/collide_item.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Doors
@@ -56,7 +57,7 @@ namespace TEN::Entities::Doors
 			{
 				if (MoveLaraPosition(DoubleDoorPos, doorItem, laraItem))
 				{
-					SetAnimation(laraItem, LA_DOUBLEDOOR_OPEN_PUSH);
+					SetAnimation(*laraItem, LA_DOUBLEDOOR_OPEN_PUSH);
 
 					AddActiveItem(itemNumber);
 

@@ -1,10 +1,12 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_fourblades.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 // NOTES:
 // item.ItemFlags[0] = Damage joints.
@@ -31,12 +33,12 @@ namespace TEN::Entities::Traps
 
 		if (!TriggerActive(&item))
 		{
-			item.Animation.FrameNumber = GetAnimData(item).frameBase;
+			item.Animation.FrameNumber = 0;
 			item.ItemFlags[0] = 0;
 		}
 		else
 		{
-			int frameNumber = item.Animation.FrameNumber - GetAnimData(item).frameBase;
+			int frameNumber = item.Animation.FrameNumber;
 			if (frameNumber <= 5 ||
 				frameNumber >= 58 ||
 				frameNumber >= 8 && frameNumber <= 54)
@@ -58,7 +60,7 @@ namespace TEN::Entities::Traps
 				}
 			}
 
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 	}
 }

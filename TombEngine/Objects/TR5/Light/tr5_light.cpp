@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Light/tr5_light.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
@@ -11,6 +11,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 static ElectricalLightInfo& GetElectricalLightInfo(ItemInfo& item)

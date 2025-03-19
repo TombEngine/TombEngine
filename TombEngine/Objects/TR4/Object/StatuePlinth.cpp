@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Object/StatuePlinth.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
@@ -134,7 +134,7 @@ namespace TEN::Entities::TR4
 		}
 
 		if (playerItem->Animation.AnimNumber == LA_PICKUP_PEDESTAL_HIGH &&
-			playerItem->Animation.FrameNumber == (GetAnimData(LA_PICKUP_PEDESTAL_HIGH).frameBase + keyHoleItem.ItemFlags[0]) &&
+			playerItem->Animation.FrameNumber == keyHoleItem.ItemFlags[0] &&
 			keyHoleItem.ItemFlags[2])
 		{
 			TestTriggers(&keyHoleItem, true, keyHoleItem.Flags & 0x3E00);

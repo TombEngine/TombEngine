@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -22,6 +22,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
@@ -181,7 +182,7 @@ namespace TEN::Entities::Generic
 				// Align player.
 				if (MoveLaraPosition(PushableBlockPos, &pushableItem, playerItem))
 				{
-					SetAnimation(playerItem, LA_PUSHABLE_GRAB);
+					SetAnimation(*playerItem, LA_PUSHABLE_GRAB);
 					playerItem->Pose.Orientation = pushableItem.Pose.Orientation;
 					player.Control.IsMoving = false;
 					player.Control.HandStatus = HandStatus::Busy;
@@ -205,7 +206,7 @@ namespace TEN::Entities::Generic
 		{
 			// Not holding Action; do normal collision routine.
 			if (playerItem->Animation.ActiveState != LS_PUSHABLE_GRAB ||
-				!TestLastFrame(playerItem, LA_PUSHABLE_GRAB) ||
+				!TestLastFrame(*playerItem, LA_PUSHABLE_GRAB) ||
 				player.Context.NextCornerPos.Position.x != itemNumber)
 			{
 				// NOTE: If using room collision, use bridge collision.

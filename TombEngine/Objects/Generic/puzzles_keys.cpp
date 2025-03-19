@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/puzzles_keys.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
@@ -17,6 +17,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
@@ -82,7 +83,7 @@ void InitializePuzzleDone(short itemNumber)
 	const auto& anim = GetAnimData(receptacleItem);
 
 	receptacleItem.Animation.RequiredState = NO_VALUE;
-	receptacleItem.Animation.FrameNumber = anim.frameBase + anim.frameEnd;
+	receptacleItem.Animation.FrameNumber = anim.EndFrameNumber;
 }
 
 void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -195,7 +196,7 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 			g_Gui.SetInventoryItemChosen(NO_VALUE);
 			ResetPlayerFlex(laraItem);
-			laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			player.Control.IsMoving = false;
 			player.Control.HandStatus = HandStatus::Busy;
 			player.Context.InteractedItem = itemNumber;
@@ -258,7 +259,7 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 	if (triggerType != TRIGGER_TYPES::SWITCH)
 		return;
 
-	AnimateItem(&receptacleItem);
+	AnimateItem(receptacleItem);
 
 	// Start level with correct object when loading game.
 	if (receptacleItem.ItemFlags[5] == (int)ReusableReceptacleState::Empty)
@@ -317,7 +318,7 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 			receptacleItem.ItemFlags[0] = 1;
 
 			ResetPlayerFlex(laraItem);
-			laraItem->Animation.FrameNumber = GetAnimData(*laraItem, laraItem->Animation.AnimNumber).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			player.Control.IsMoving = false;
 			player.Control.HandStatus = HandStatus::Busy;
 			player.Context.InteractedItem = itemNumber;
@@ -364,17 +365,17 @@ void PuzzleDone(ItemInfo* item, short itemNumber)
 
 		item->ObjectNumber += GAME_OBJECT_ID{ ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1 };
 		item->ItemFlags[5] = (int)ReusableReceptacleState::Done;
-		SetAnimation(item, 0);
+		SetAnimation(*item, 0);
 		item->DisableInterpolation = true;
 		item->ResetModelToDefault();
 	}
 	else
 	{
 		item->ObjectNumber += GAME_OBJECT_ID{ ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1 };
-		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex;
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
-		item->Animation.ActiveState = GetAnimData(item).ActiveState;
-		item->Animation.TargetState = GetAnimData(item).ActiveState;
+		item->Animation.AnimNumber = 0;
+		item->Animation.FrameNumber = 0;
+		item->Animation.ActiveState =
+		item->Animation.TargetState = GetAnimData(*item).StateID;
 		item->Animation.RequiredState = NO_VALUE;
 		item->DisableInterpolation = true;
 		item->ResetModelToDefault();
@@ -396,7 +397,7 @@ void PuzzleHole(ItemInfo* item, short itemNumber)
 
 	item->ObjectNumber = GAME_OBJECT_ID(item->ObjectNumber - (ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1));
 	item->ItemFlags[5] = (int)ReusableReceptacleState::Empty;
-	SetAnimation(item, 0);
+	SetAnimation(*item, 0);
 	item->ResetModelToDefault();
 }
 
@@ -535,7 +536,7 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				}
 
 				laraItem->Animation.ActiveState = LS_INSERT_KEY;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				player->Control.IsMoving = false;
 				ResetPlayerFlex(laraItem);
 				player->Control.HandStatus = HandStatus::Busy;

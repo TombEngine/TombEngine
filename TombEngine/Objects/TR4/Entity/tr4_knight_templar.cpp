@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_knight_templar.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/effects/debris.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::TR4
@@ -62,7 +63,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, KTEMPLAR_ANIM_IDLE);
+		SetAnimation(*item, KTEMPLAR_ANIM_IDLE);
 		item->MeshBits &= 0xF7FF;
 	}
 
@@ -81,10 +82,10 @@ namespace TEN::Entities::TR4
 		short joint1 = 0;
 		short joint2 = 0;
 
-		if (item->Animation.AnimNumber == object->animIndex ||
-			(item->Animation.AnimNumber - object->animIndex) == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_1 ||
-			(item->Animation.AnimNumber - object->animIndex) == KTEMPLAR_ANIM_WALK_FORWARD_LEFT_2 ||
-			(item->Animation.AnimNumber - object->animIndex) == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_2)
+		if (item->Animation.AnimNumber == 0 ||
+			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_1 ||
+			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_LEFT_2 ||
+			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_2)
 		{
 			if (Random::TestProbability(1 / 2.0f))
 			{
@@ -179,7 +180,7 @@ namespace TEN::Entities::TR4
 			}
 
 			frameNumber = item->Animation.FrameNumber;
-			frameBase = GetAnimData(item).frameBase;
+			frameBase = 0;
 			if (frameNumber > (frameBase + 42) &&
 				frameNumber < (frameBase + 51))
 			{

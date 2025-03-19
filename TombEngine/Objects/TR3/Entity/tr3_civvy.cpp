@@ -163,7 +163,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, CIVVY_ANIM_IDLE);
+		SetAnimation(item, CIVVY_ANIM_IDLE);
 	}
 
 	void CivvyControl(short itemNumber)
@@ -191,7 +191,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != CIVVY_STATE_DEATH)
-				SetAnimation(&item, CIVVY_ANIM_DEATH);
+				SetAnimation(item, CIVVY_ANIM_DEATH);
 		}
 		else
 		{
@@ -612,22 +612,22 @@ namespace TEN::Entities::Creatures::TR3
 			{
 			case 2:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_2_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_2_STEPS_UP);
 				break;
 
 			case 3:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_3_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_3_STEPS_UP);
 				break;
 
 			case 4:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_4_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_4_STEPS_UP);
 				break;
 
 			case -4:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_4_STEPS_DOWN);
+				SetAnimation(item, CIVVY_ANIM_VAULT_4_STEPS_DOWN);
 				break;
 			}
 		}

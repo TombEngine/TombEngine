@@ -134,8 +134,6 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		// NOTE: lara is obviously loaded by default.
 		auto& laraObj = Objects[ID_LARA];
-		obj->animIndex = laraObj.animIndex;
-		obj->frameBase = laraObj.frameBase;
 		obj->Initialize = InitializeCreature;
 		obj->collision = CreatureCollision;
 		obj->control = DoppelgangerControl;

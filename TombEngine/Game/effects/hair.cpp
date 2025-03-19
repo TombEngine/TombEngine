@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/effects/Hair.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -14,6 +14,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Environment;
 using TEN::Renderer::g_Renderer;
@@ -182,12 +183,11 @@ namespace TEN::Effects::Hair
 				break;
 			}
 
-			int frameBaseIndex = GetAnimData(item.ObjectNumber, animNumber).FramePtr;
-			const auto& frame = g_Level.Frames[frameBaseIndex + player.HitFrame];
+			const auto& frame = GetAnimData(item.ObjectNumber, animNumber).Keyframes[player.HitFrame];
 			return frame.BoundingBox.GetCenter();
 		}
 
-		const auto& frame = GetBestFrame(item);
+		const auto& frame = GetClosestKeyframe(item);
 		return frame.BoundingBox.GetCenter();
 	}
 	

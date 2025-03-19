@@ -78,9 +78,9 @@ namespace TEN::Entities::Creatures::TR1
 		InitializeCreature(itemNumber);
 
 		if (TestEnvironment(ENV_FLAG_WATER, item))
-			SetAnimation(item, BIG_RAT_ANIM_SWIM);
+			SetAnimation(*item, BIG_RAT_ANIM_SWIM);
 		else
-			SetAnimation(item, BIG_RAT_ANIM_IDLE);
+			SetAnimation(*item, BIG_RAT_ANIM_IDLE);
 	}
 
 	bool RatOnWater(ItemInfo* item)
@@ -123,9 +123,9 @@ namespace TEN::Entities::Creatures::TR1
 				item->Animation.ActiveState != BIG_RAT_STATE_WATER_DEATH)
 			{
 				if (doWaterDeath)
-					SetAnimation(item, BIG_RAT_ANIM_WATER_DEATH);
+					SetAnimation(*item, BIG_RAT_ANIM_WATER_DEATH);
 				else
-					SetAnimation(item, BIG_RAT_ANIM_LAND_DEATH);
+					SetAnimation(*item, BIG_RAT_ANIM_LAND_DEATH);
 			}
 
 			if (doWaterDeath)
@@ -160,7 +160,7 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (RatOnWater(item))
 				{
-					SetAnimation(item, BIG_RAT_ANIM_SWIM);
+					SetAnimation(*item, BIG_RAT_ANIM_SWIM);
 					break;
 				}
 
@@ -213,7 +213,7 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (!RatOnWater(item))
 				{
-					SetAnimation(item, BIG_RAT_ANIM_RUN_FORWARD);
+					SetAnimation(*item, BIG_RAT_ANIM_RUN_FORWARD);
 					break;
 				}
 

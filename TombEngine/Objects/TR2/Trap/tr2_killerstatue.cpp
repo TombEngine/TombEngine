@@ -1,13 +1,15 @@
 #include "framework.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -17,8 +19,8 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.Animation.AnimNumber = Objects[item.ObjectNumber].animIndex + 3;
-		item.Animation.FrameNumber = GetAnimData(item).frameBase;
+		item.Animation.AnimNumber = 3;
+		item.Animation.FrameNumber = 0;
 		item.Animation.ActiveState = 1;
 	}
 
@@ -47,6 +49,6 @@ namespace TEN::Entities::Traps
 			DoBloodSplat(x, y, z, LaraItem->Animation.Velocity.z, d, LaraItem->RoomNumber);
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 }

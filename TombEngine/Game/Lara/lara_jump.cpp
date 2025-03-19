@@ -747,7 +747,7 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			g_GameFlow->GetSettings()->Animations.CrawlspaceDive)
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
-			TranslateItem(item, coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
+			item->Pose.Translate(coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
 		}
 		else
 			item->Animation.TargetState = LS_IDLE;

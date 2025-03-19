@@ -202,7 +202,7 @@ namespace TEN::Entities::TR4
 		if (baboonRespawn->Count < baboonRespawn->MaxCount)
 			baboonRespawn->Count++;
 
-		SetAnimation(item, BABOON_ANIM_SIT_IDLE);
+		SetAnimation(*item, BABOON_ANIM_SIT_IDLE);
 		item->HitPoints = object->HitPoints;
 
 		RemoveActiveItem(itemNumber);
@@ -241,7 +241,7 @@ namespace TEN::Entities::TR4
 			TENLog("Failed to assign ID_BABOON_INV|ID_BABOON_SILENT animation index; ID_BABOON_NORMAL not found.", LogLevel::Warning);
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, BABOON_ANIM_SIT_IDLE);
+		SetAnimation(*item, BABOON_ANIM_SIT_IDLE);
 
 		if (item->ObjectNumber == ID_BABOON_SILENT && item->TriggerFlags != 0)
 			BaboonRespawn.Add(item, item->TriggerFlags);
@@ -265,11 +265,13 @@ namespace TEN::Entities::TR4
 		{
 			if (item->Animation.ActiveState == BABOON_STATE_WALK)
 			{
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					BaboonRespawnFunction(itemNumber);
 			}
 			else if (item->Animation.ActiveState != BABOON_ACTIVATE_SWITCH)
-				SetAnimation(item, BABOON_STATE_WALK_ANIM);
+			{
+				SetAnimation(*item, BABOON_STATE_WALK_ANIM);
+			}
 		}
 		else
 		{
@@ -308,7 +310,7 @@ namespace TEN::Entities::TR4
 					abs(item->Pose.Position.y - creature->Enemy->Pose.Position.y) < CLICK(1) &&
 					abs(item->Pose.Position.z - creature->Enemy->Pose.Position.z) < CLICK(1))
 				{
-					SetAnimation(item, BABOON_ANIM_ACTIVATE_SWITCH);
+					SetAnimation(*item, BABOON_ANIM_ACTIVATE_SWITCH);
 					item->Pose.Position = creature->Enemy->Pose.Position;
 					item->Pose.Orientation.y = creature->Enemy->Pose.Orientation.y;
 					item->AIBits &= ~(FOLLOW);
@@ -488,7 +490,7 @@ namespace TEN::Entities::TR4
 				creature->MaxTurn = 0;
 				item->HitPoints = NOT_TARGETABLE;
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 212)
+				if (item->Animation.FrameNumber == 212)
 				{
 					auto pos = Vector3i::Zero;
 					if (item->Pose.Orientation.y == ANGLE(270.0f))

@@ -66,7 +66,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != RAT_STATE_DEATH)
-				SetAnimation(item, RAT_ANIM_DEATH);
+				SetAnimation(*item, RAT_ANIM_DEATH);
 		}
 		else
 		{

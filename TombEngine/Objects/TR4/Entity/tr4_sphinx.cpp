@@ -66,7 +66,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, SPHINX_ANIM_REST);
+		SetAnimation(*item, SPHINX_ANIM_REST);
 	}
 
 	void SphinxControl(short itemNumber)
@@ -114,18 +114,22 @@ namespace TEN::Entities::TR4
 		phd_atan(1228, height2 - height1);
 
 		if (item->AIBits)
+		{
 			GetAITarget(creature);
+		}
 		else
+		{
 			creature->Enemy = LaraItem;
+		}
 
-		AI_INFO AI;
-		CreatureAIInfo(item, &AI);
+		AI_INFO ai;
+		CreatureAIInfo(item, &ai);
 
 		if (!creature->Enemy->IsLara())
 			phd_atan(LaraItem->Pose.Position.z - item->Pose.Position.z, LaraItem->Pose.Position.x - item->Pose.Position.x);
 
-		GetCreatureMood(item, &AI, true);
-		CreatureMood(item, &AI, true);
+		GetCreatureMood(item, &ai, true);
+		CreatureMood(item, &ai, true);
 
 		short angle = CreatureTurn(item, creature->MaxTurn);
 
@@ -137,7 +141,7 @@ namespace TEN::Entities::TR4
 		case SPHINX_STATE_REST:
 			creature->MaxTurn = 0;
 
-			if (AI.distance < pow(BLOCK(1), 2) || item->TriggerFlags)
+			if (ai.distance < pow(BLOCK(1), 2) || item->TriggerFlags)
 				item->Animation.TargetState = SPHINX_STATE_SLEEP_TO_IDLE;
 
 			// TODO: Use TestProbability().
@@ -149,7 +153,7 @@ namespace TEN::Entities::TR4
 		case SPHINX_STATE_REST_ALERTED:
 			creature->MaxTurn = 0;
 
-			if (AI.distance < pow(BLOCK(1), 2) || item->TriggerFlags)
+			if (ai.distance < pow(BLOCK(1), 2) || item->TriggerFlags)
 				item->Animation.TargetState = SPHINX_STATE_SLEEP_TO_IDLE;
 
 			// TODO: Use TestProbability().
@@ -161,12 +165,12 @@ namespace TEN::Entities::TR4
 		case SPHINX_STATE_WALK_FORWARD:
 			creature->MaxTurn = SPHINX_WALK_TURN_ANGLE;
 
-			if (AI.distance > pow(BLOCK(1), 2) && abs(AI.angle) <= ANGLE(2.8f) ||
+			if (ai.distance > pow(BLOCK(1), 2) && abs(ai.angle) <= ANGLE(2.8f) ||
 				item->Animation.RequiredState == SPHINX_STATE_RUN_FORWARD)
 			{
 				item->Animation.TargetState = SPHINX_STATE_RUN_FORWARD;
 			}
-			else if (AI.distance < pow(BLOCK(2), 2) && item->Animation.TargetState != SPHINX_STATE_RUN_FORWARD)
+			else if (ai.distance < pow(BLOCK(2), 2) && item->Animation.TargetState != SPHINX_STATE_RUN_FORWARD)
 			{
 				if (height2 <= (item->Pose.Position.y + CLICK(1)) &&
 					height2 >= (item->Pose.Position.y - CLICK(1)))
@@ -192,9 +196,9 @@ namespace TEN::Entities::TR4
 			}
 
 			if (dx >= 50 || dz >= 50 ||
-				item->Animation.AnimNumber != Objects[item->ObjectNumber].animIndex)
+				item->Animation.AnimNumber != 0)
 			{
-				if (AI.distance > pow(BLOCK(2), 2) && abs(AI.angle) > ANGLE(2.8f))
+				if (ai.distance > pow(BLOCK(2), 2) && abs(ai.angle) > ANGLE(2.8f))
 					item->Animation.TargetState = SPHINX_STATE_IDLE;
 			}
 			else
@@ -209,7 +213,7 @@ namespace TEN::Entities::TR4
 		case SPHINX_STATE_WALK_BACK:
 			creature->MaxTurn = SPHINX_WALK_TURN_ANGLE;
 
-			if (AI.distance > pow(BLOCK(2), 2) ||
+			if (ai.distance > pow(BLOCK(2), 2) ||
 				height2 > (item->Pose.Position.y + CLICK(1)) ||
 				height2 < (item->Pose.Position.y - CLICK(1)))
 			{
@@ -220,7 +224,7 @@ namespace TEN::Entities::TR4
 			break;
 
 		case SPHINX_STATE_COLLIDE:
-			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+			if (item->Animation.FrameNumber == 0)
 			{
 				TestTriggers(item, true);
 
@@ -237,9 +241,13 @@ namespace TEN::Entities::TR4
 			creature->Flags = 0;
 
 			if (item->Animation.RequiredState == SPHINX_STATE_WALK_BACK)
+			{
 				item->Animation.TargetState = SPHINX_STATE_WALK_BACK;
+			}
 			else
+			{
 				item->Animation.TargetState = SPHINX_STATE_WALK_FORWARD;
+			}
 
 			break;
 

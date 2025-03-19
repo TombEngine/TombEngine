@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_shark.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -10,6 +10,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -32,7 +34,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != 5)
-				SetAnimation(item, 4);
+				SetAnimation(*item, 4);
 
 			CreatureFloat(itemNumber);
 			return;
@@ -112,6 +114,6 @@ namespace TEN::Entities::Creatures::TR2
 			CreatureUnderwater(item, 340);
 		}
 		else
-			AnimateItem(item);
+			AnimateItem(*item);
 	}
 }

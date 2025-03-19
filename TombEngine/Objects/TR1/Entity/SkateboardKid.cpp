@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Entity/SkateboardKid.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/misc.h"
@@ -9,6 +9,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR1
@@ -220,12 +221,12 @@ namespace TEN::Entities::Creatures::TR1
 			}
 		}
 
-		skateItem.Animation.AnimNumber = Objects[ID_SKATEBOARD].animIndex + (item.Animation.AnimNumber - Objects[ID_SKATEBOARD_KID].animIndex);
-		skateItem.Animation.FrameNumber = GetAnimData(item).frameBase + (item.Animation.FrameNumber - GetAnimData(item).frameBase);
+		skateItem.Animation.AnimNumber = item.Animation.AnimNumber;
+		skateItem.Animation.FrameNumber = item.Animation.FrameNumber;
 		skateItem.Pose.Position = item.Pose.Position;
 		skateItem.Pose.Orientation = item.Pose.Orientation;
 		UpdateItemRoom(item.ItemFlags[0]);
-		AnimateItem(&skateItem);
+		AnimateItem(skateItem);
 
 		CreatureJoint(&item, 0, extraHeadRot.y);
 		CreatureJoint(&item, 1, extraTorsoRot.x);

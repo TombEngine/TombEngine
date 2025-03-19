@@ -1,11 +1,10 @@
 #include "framework.h"
 #include "Objects/Generic/Object/generic_trapdoor.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Specific/level.h"
-#include "Game/animation.h"
 #include "Game/items.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -19,6 +18,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -112,7 +112,7 @@ namespace TEN::Entities::Generic
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
 
 		if (trapDoorItem->Animation.ActiveState == 1 &&
-			trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
+			TestLastFrame(*trapDoorItem))
 		{
 			ObjectCollision(itemNumber, laraItem, coll);
 		}
@@ -146,7 +146,7 @@ namespace TEN::Entities::Generic
 			laraItem->Animation.Velocity.y = 0;
 			laraItem->Animation.IsAirborne = false;
 			laraItem->Animation.AnimNumber = LA_TRAPDOOR_CEILING_OPEN;
-			laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			laraItem->Animation.ActiveState = LS_FREEFALL_BIS;
 			laraInfo->Control.HandStatus = HandStatus::Busy;
 			AddActiveItem(itemNumber);
@@ -165,11 +165,8 @@ namespace TEN::Entities::Generic
 				UseForcedFixedCamera = 0;
 		}
 
-		if (trapDoorItem->Animation.ActiveState == 1 &&
-			trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
-		{
+		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
 			ObjectCollision(itemNumber, laraItem, coll);
-		}
 	}
 
 	void FloorTrapDoorCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -197,7 +194,7 @@ namespace TEN::Entities::Generic
 				{
 					ResetPlayerFlex(laraItem);
 					laraItem->Animation.AnimNumber = isUnderwater ? LA_UNDERWATER_FLOOR_TRAPDOOR : LA_TRAPDOOR_FLOOR_OPEN;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.ActiveState = LS_TRAPDOOR_FLOOR_OPEN;
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;
@@ -227,7 +224,7 @@ namespace TEN::Entities::Generic
 				UseForcedFixedCamera = 0;
 		}
 
-		if (trapDoorItem->Animation.ActiveState == 1 && trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
+		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
 			ObjectCollision(itemNumber, laraItem, coll);
 	}
 
@@ -248,7 +245,7 @@ namespace TEN::Entities::Generic
 				trapDoorItem->Animation.TargetState = 0;
 		}
 
-		AnimateItem(trapDoorItem);
+		AnimateItem(*trapDoorItem);
 
 		if (trapDoorItem->Animation.ActiveState == 1 && (trapDoorItem->ItemFlags[2] || JustLoaded))
 		{
