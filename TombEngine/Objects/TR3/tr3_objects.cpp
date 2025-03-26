@@ -16,6 +16,7 @@
 #include "Objects/TR3/Entity/SophiaLeigh.h"
 #include "Objects/TR3/Entity/Raptor.h"
 #include "Objects/TR3/Entity/TwinAutoGun.h"
+#include "Objects/TR3/Entity/Willard.h"
 #include "Objects/TR3/Entity/WaspMutant.h"
 #include "Objects/TR3/Entity/Winston.h"
 #include "Objects/TR3/Entity/tr3_tony.h"
@@ -427,6 +428,21 @@ static void StartEntity(ObjectInfo* obj)
 		obj->intelligent = true;
 		obj->SetBoneRotationFlags(8, ROT_X | ROT_Z); // Torso X/Z
 		obj->SetBoneRotationFlags(9, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_WILLARD];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWillard;
+		obj->collision = CreatureCollision;
+		obj->control = ControlWillard;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 200;
+		obj->radius = 102;
+		obj->pivotLength = 50;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->SetHitEffect();
 	}
 
