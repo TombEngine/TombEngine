@@ -1101,7 +1101,7 @@ bool TestEnvironment(RoomEnvFlags environmentType, int roomNumber)
 	return TestEnvironment(environmentType, &g_Level.Rooms[roomNumber]);
 }
 
-bool TestEnvironment(RoomEnvFlags environmentType, const ROOM_INFO* room)
+bool TestEnvironment(RoomEnvFlags environmentType, const RoomData* room)
 {
 	return TestEnvironmentFlags(environmentType, room->flags);
 }

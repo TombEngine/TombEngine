@@ -2,7 +2,7 @@
 #include "Game/animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
-#include "Specific/BitField.h"
+#include "Specific/Structures/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/newtypes.h"
 
@@ -149,6 +149,11 @@ struct ItemInfo
 	unsigned char AIBits	  = 0; // AIObjectFlags enum.
 	short		  AfterDeath  = 0;
 	short		  CarriedItem = 0;
+
+	// Getters
+
+	BoundingBox			GetAabb() const;
+	BoundingOrientedBox GetObb() const;
 
 	// OCB utilities
 

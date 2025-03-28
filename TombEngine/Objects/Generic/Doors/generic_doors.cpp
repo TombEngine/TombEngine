@@ -36,12 +36,10 @@ namespace TEN::Entities::Doors
 		GameBoundingBox(
 			-BLOCK(0.5f), BLOCK(0.5f),
 			-BLOCK(1), 0,
-			0, BLOCK(0.5f)
-		),
+			0, BLOCK(0.5f)),
 		std::pair(
 			EulerAngles(ANGLE(-80.0f), ANGLE(-80.0f), ANGLE(-80.0f)),
-			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f))
-		)
+			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f)))
 	};
 
 	void InitializeDoor(short itemNumber)
@@ -167,6 +165,8 @@ namespace TEN::Entities::Doors
 			doorItem->RoomNumber = roomNumber;
 			doorItem->InDrawRoom = true;
 		}
+
+		UpdateDoorRoomCollisionMeshes(*doorData);
 	}
 
 	void DoorCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -290,6 +290,8 @@ namespace TEN::Entities::Doors
 					OpenThatDoor(&doorData->d1flip, doorData);
 					OpenThatDoor(&doorData->d2flip, doorData);
 					doorData->opened = true;
+
+					UpdateDoorRoomCollisionMeshes(*doorData);
 				}
 			}
 			else
@@ -306,6 +308,8 @@ namespace TEN::Entities::Doors
 						ShutThatDoor(&doorData->d1flip, doorData);
 						ShutThatDoor(&doorData->d2flip, doorData);
 						doorData->opened = false;
+
+						UpdateDoorRoomCollisionMeshes(*doorData);
 					}
 				}
 			}
@@ -326,6 +330,8 @@ namespace TEN::Entities::Doors
 					OpenThatDoor(&doorData->d1flip, doorData);
 					OpenThatDoor(&doorData->d2flip, doorData);
 					doorData->opened = true;
+
+					UpdateDoorRoomCollisionMeshes(*doorData);
 				}
 			}
 			else
@@ -341,6 +347,8 @@ namespace TEN::Entities::Doors
 					ShutThatDoor(&doorData->d1flip, doorData);
 					ShutThatDoor(&doorData->d2flip, doorData);
 					doorData->opened = false;
+
+					UpdateDoorRoomCollisionMeshes(*doorData);
 				}
 			}
 		}
@@ -358,6 +366,8 @@ namespace TEN::Entities::Doors
 						ShutThatDoor(&door->d1flip, door);
 						ShutThatDoor(&door->d2flip, door);
 						door->opened = false;
+
+						UpdateDoorRoomCollisionMeshes(*door);
 					}
 				}
 				else
@@ -384,6 +394,8 @@ namespace TEN::Entities::Doors
 					OpenThatDoor(&door->d2flip, door);
 					DontUnlockBox = false;
 					door->opened = true;
+
+					UpdateDoorRoomCollisionMeshes(*door);
 				}
 			}*/
 		}
@@ -393,19 +405,18 @@ namespace TEN::Entities::Doors
 
 	void OpenThatDoor(DOORPOS_DATA* doorPos, DOOR_DATA* dd)
 	{
-		FloorInfo* floor = doorPos->floor;
+		auto* sector = doorPos->floor;
+		if (sector == nullptr)
+			return;
 
-		if (floor != NULL)
+		*doorPos->floor = doorPos->data;
+
+		int pathfindingBoxID = doorPos->block;
+		if (pathfindingBoxID != NO_VALUE)
 		{
-			*doorPos->floor = doorPos->data;
-
-			short boxIndex = doorPos->block;
-			if (boxIndex != NO_VALUE)
-			{
-				g_Level.PathfindingBoxes[boxIndex].flags &= ~BLOCKED;
-				for (auto& currentCreature : ActiveCreatures)
-					currentCreature->LOT.TargetBox = NO_VALUE;
-			}
+			g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
+			for (auto& creature : ActiveCreatures)
+				creature->LOT.TargetBox = NO_VALUE;
 		}
 	}
 
@@ -413,34 +424,51 @@ namespace TEN::Entities::Doors
 	{
 		static const auto WALL_PLANE = Plane(-Vector3::UnitY, (float)NO_HEIGHT);
 
-		FloorInfo* floor = doorPos->floor;
+		auto* sector = doorPos->floor;
+		if (sector == nullptr)
+			return;
 
-		if (floor)
+		sector->PathfindingBoxID = NO_VALUE;
+		sector->TriggerIndex = 0;
+
+		// FIXME: HACK!!!!!!!
+		// Find a better way to deal with doors.
+
+		sector->SidePortalRoomNumber = NO_VALUE;
+		sector->FloorSurface.Triangles[0].PortalRoomNumber =
+		sector->FloorSurface.Triangles[1].PortalRoomNumber =
+		sector->CeilingSurface.Triangles[0].PortalRoomNumber =
+		sector->CeilingSurface.Triangles[1].PortalRoomNumber = NO_VALUE;
+		sector->FloorSurface.Triangles[0].Plane =
+		sector->FloorSurface.Triangles[1].Plane =
+		sector->CeilingSurface.Triangles[0].Plane =
+		sector->CeilingSurface.Triangles[1].Plane = WALL_PLANE;
+
+		int pathfindingBoxID = doorPos->block;
+		if (pathfindingBoxID != NO_VALUE)
 		{
-			floor->PathfindingBoxID = NO_VALUE;
-			floor->TriggerIndex = 0;
+			g_Level.PathfindingBoxes[pathfindingBoxID].flags |= BLOCKED;
 
-			// FIXME: HACK!!!!!!!
-			// We should find a better way of dealing with doors using new floordata.
+			for (auto& creature : ActiveCreatures)
+				creature->LOT.TargetBox = NO_VALUE;
+		}
+	}
 
-			floor->SidePortalRoomNumber = -1;
-			floor->FloorSurface.Triangles[0].PortalRoomNumber =
-			floor->FloorSurface.Triangles[1].PortalRoomNumber =
-			floor->CeilingSurface.Triangles[0].PortalRoomNumber =
-			floor->CeilingSurface.Triangles[1].PortalRoomNumber = NO_VALUE;
-			floor->FloorSurface.Triangles[0].Plane =
-			floor->FloorSurface.Triangles[1].Plane =
-			floor->CeilingSurface.Triangles[0].Plane =
-			floor->CeilingSurface.Triangles[1].Plane = WALL_PLANE;
+	// HACK: Regenerate room collision meshes.
+	void UpdateDoorRoomCollisionMeshes(const DOOR_DATA& door)
+	{
+		// Generate current room collision mesh.
+		if (door.d1.floor != nullptr)
+		{
+			auto& room = g_Level.Rooms[door.d1.floor->RoomNumber];
+			room.GenerateCollisionMesh();
+		}
 
-			short boxIndex = doorPos->block;
-			if (boxIndex != NO_VALUE)
-			{
-				g_Level.PathfindingBoxes[boxIndex].flags |= BLOCKED;
-
-				for (auto& currentCreature : ActiveCreatures)
-					currentCreature->LOT.TargetBox = NO_VALUE;
-			}
+		// Generate neighbor room collision mesh.
+		if (door.d2.floor != nullptr)
+		{
+			auto& room = g_Level.Rooms[door.d2.floor->RoomNumber];
+			room.GenerateCollisionMesh();
 		}
 	}
 }

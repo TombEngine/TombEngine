@@ -806,8 +806,8 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[roomNumber];
-
+		RoomData* r = &g_Level.Rooms[roomNumber];
+		
 		// Collect dynamic lights for rooms
 		for (int i = 0; i < _dynamicLights[_dynamicLightList].size(); i++)
 		{
@@ -848,7 +848,7 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[room.RoomNumber];
+		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
 		short fxNum = NO_VALUE;
 		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)

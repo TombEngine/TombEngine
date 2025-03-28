@@ -91,7 +91,7 @@ namespace TEN::Entities::Creatures::TR5
 			MESH_INFO* hitMesh = nullptr;
 			int objOnLos = ObjectOnLOS2(&origin, &target, &hitPos, &hitMesh, GAME_OBJECT_ID::ID_LARA);
 
-			if (objOnLos == NO_LOS_ITEM || objOnLos < 0)
+			if (objOnLos == NO_VALUE || objOnLos < 0)
 			{
 				if (GunShipCounter >= 15)
 					return AnimateItem(item);

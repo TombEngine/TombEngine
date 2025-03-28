@@ -3,6 +3,7 @@
 
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/collision/floordata.h"
 #include "Game/control/los.h"
@@ -15,6 +16,7 @@
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Collision::Floordata;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -224,10 +226,10 @@ namespace TEN::Entities::Player
 		auto target = target1.ToVector3();
 		auto dir = target - origin;
 		dir.Normalize();
-
+		
 		// 4) Assess static LOS.
-		auto staticLos = GetStaticObjectLos(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
-		if (staticLos.has_value())
+		auto losInteresect = GetStaticLosCollision(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
+		if (losInteresect.has_value())
 			return false;
 
 		// 5) Assess room LOS.
@@ -702,9 +704,9 @@ namespace TEN::Entities::Player
 		auto target = target1.ToVector3();
 		auto dir = target - origin;
 		dir.Normalize();
-
-		// 3) Assess ray-static collision.
-		auto staticLos = GetStaticObjectLos(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
+		
+		// 3) Assess static LOS.
+		auto staticLos = GetStaticLosCollision(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
 		if (staticLos.has_value())
 			return false;
 

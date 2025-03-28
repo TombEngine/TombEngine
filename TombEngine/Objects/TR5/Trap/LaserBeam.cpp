@@ -138,10 +138,11 @@ namespace TEN::Entities::Traps
 
 	void InitializeLaserBeam(short itemNumber)
 	{
-		const auto& item = g_Level.Items[itemNumber];
+		auto& item = g_Level.Items[itemNumber];
 
 		auto beam = LaserBeamEffect{};
 		beam.Initialize(item);
+		item.Collidable = false;
 
 		LaserBeams.insert({ itemNumber, beam });
 	}

@@ -3,6 +3,8 @@
 
 #include "Game/animation.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
+#include "Game/collision/Point.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/debris.h"
@@ -19,233 +21,126 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
+#include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
+using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
 // Globals
-int NumberLosRooms;
-int LosRooms[20];
+auto LosRoomNumbers = std::vector<int>{};
 int ClosestItem;
 int ClosestDist;
 Vector3i ClosestCoord;
 
-static int xLOS(const GameVector& origin, GameVector& target)
-{
-	int dx = target.x - origin.x;
-	if (dx == 0)
-		return 1;
-
-	int dy = BLOCK(target.y - origin.y) / dx;
-	int dz = BLOCK(target.z - origin.z) / dx;
-
-	NumberLosRooms = 1;
-	LosRooms[0] = origin.RoomNumber;
-
-	short roomNumber0 = origin.RoomNumber;
-	short roomNumber1 = origin.RoomNumber;
-
-	bool isNegative = (dx < 0);
-	int sign = (isNegative ? -1 : 1);
-
-	int x = isNegative ? (origin.x & (UINT_MAX - WALL_MASK)) : (origin.x | WALL_MASK);
-	int y = (((x - origin.x) * dy) / BLOCK(1)) + origin.y;
-	int z = (((x - origin.x) * dz) / BLOCK(1)) + origin.z;
-
-	int flag = 1;
-	while (isNegative ? (x > target.x) : (x < target.x))
-	{
-		auto* sectorPtr = GetFloor(x, y, z, &roomNumber0);
-		if (roomNumber0 != roomNumber1)
-		{
-			roomNumber1 = roomNumber0;
-			LosRooms[NumberLosRooms] = roomNumber0;
-			++NumberLosRooms;
-		}
-
-		if (y > GetFloorHeight(sectorPtr, x, y, z) ||
-			y < GetCeiling(sectorPtr, x, y, z))
-		{
-			flag = -1;
-			break;
-		}
-
-		sectorPtr = GetFloor(x + sign, y, z, &roomNumber0);
-		if (roomNumber0 != roomNumber1)
-		{
-			roomNumber1 = roomNumber0;
-			LosRooms[NumberLosRooms] = roomNumber0;
-			++NumberLosRooms;
-		}
-
-		if (y > GetFloorHeight(sectorPtr, x + sign, y, z) ||
-			y < GetCeiling(sectorPtr, x + sign, y, z))
-		{
-			flag = 0;
-			break;
-		}
-
-		x += BLOCK(sign);
-		y += dy * sign;
-		z += dz * sign;
-	}
-
-	if (flag != 1)
-		target = GameVector(x, y, z, target.RoomNumber);
-
-	target.RoomNumber = flag ? roomNumber0 : roomNumber1;
-	return flag;
-}
-
-static int zLOS(const GameVector& origin, GameVector& target)
-{
-	int dz = target.z - origin.z;
-	if (dz == 0)
-		return 1;
-
-	int dx = BLOCK(target.x - origin.x) / dz;
-	int dy = BLOCK(target.y - origin.y) / dz;
-
-	NumberLosRooms = 1;
-	LosRooms[0] = origin.RoomNumber;
-
-	short roomNumber0 = origin.RoomNumber;
-	short roomNumber1 = origin.RoomNumber;
-
-	bool isNegative = (dz < 0);
-	int sign = (isNegative ? -1 : 1);
-
-	int z = isNegative ? (origin.z & (UINT_MAX - WALL_MASK)) : (origin.z | WALL_MASK);
-	int x = (((z - origin.z) * dx) / BLOCK(1)) + origin.x;
-	int y = (((z - origin.z) * dy) / BLOCK(1)) + origin.y;
-
-	int flag = 1;
-	while (isNegative ? (z > target.z) : (z < target.z))
-	{
-		auto* sectorPtr = GetFloor(x, y, z, &roomNumber0);
-		if (roomNumber0 != roomNumber1)
-		{
-			roomNumber1 = roomNumber0;
-			LosRooms[NumberLosRooms] = roomNumber0;
-			++NumberLosRooms;
-		}
-
-		if (y > GetFloorHeight(sectorPtr, x, y, z) ||
-			y < GetCeiling(sectorPtr, x, y, z))
-		{
-			flag = -1;
-			break;
-		}
-
-		sectorPtr = GetFloor(x, y, z + sign, &roomNumber0);
-		if (roomNumber0 != roomNumber1)
-		{
-			roomNumber1 = roomNumber0;
-			LosRooms[NumberLosRooms] = roomNumber0;
-			++NumberLosRooms;
-		}
-
-		if (y > GetFloorHeight(sectorPtr, x, y, z + sign) ||
-			y < GetCeiling(sectorPtr, x, y, z + sign))
-		{
-			flag = 0;
-			break;
-		}
-
-		x += dx * sign;
-		y += dy * sign;
-		z += BLOCK(sign);
-	}
-
-	if (flag != 1)
-		target = GameVector(x, y, z, target.RoomNumber);
-
-	target.RoomNumber = flag ? roomNumber0 : roomNumber1;
-	return flag;
-}
-
-static bool ClipTarget(const GameVector& origin, GameVector& target)
-{
-	int x, y, z, wx, wy, wz;
-
-	short roomNumber = target.RoomNumber;
-	if (target.y > GetFloorHeight(GetFloor(target.x, target.y, target.z, &roomNumber), target.x, target.y, target.z))
-	{
-		x = (7 * (target.x - origin.x) >> 3) + origin.x;
-		y = (7 * (target.y - origin.y) >> 3) + origin.y;
-		z = (7 * (target.z - origin.z) >> 3) + origin.z;
-
-		for (int i = 3; i > 0; --i)
-		{
-			wx = ((target.x - x) * i >> 2) + x;
-			wy = ((target.y - y) * i >> 2) + y;
-			wz = ((target.z - z) * i >> 2) + z;
-
-			if (wy < GetFloorHeight(GetFloor(wx, wy, wz, &roomNumber), wx, wy, wz))
-				break;
-		}
-
-		target.x = wx;
-		target.y = wy;
-		target.z = wz;
-		target.RoomNumber = roomNumber;
-		return false;
-	}
-
-	roomNumber = target.RoomNumber;
-	if (target.y < GetCeiling(GetFloor(target.x, target.y, target.z, &roomNumber), target.x, target.y, target.z))
-	{
-		x = (7 * (target.x - origin.x) >> 3) + origin.x;
-		y = (7 * (target.y - origin.y) >> 3) + origin.y;
-		z = (7 * (target.z - origin.z) >> 3) + origin.z;
-
-		for (int i = 3; i > 0; --i)
-		{
-			wx = ((target.x - x) * i >> 2) + x;
-			wy = ((target.y - y) * i >> 2) + y;
-			wz = ((target.z - z) * i >> 2) + z;
-
-			if (wy > GetCeiling(GetFloor(wx, wy, wz, &roomNumber), wx, wy, wz))
-				break;
-		}
-
-		target.x = wx;
-		target.y = wy;
-		target.z = wz;
-		target.RoomNumber = roomNumber;
-		return false;
-	}
-
-	return true;
-}
-
+// Deprecated.
 bool LOS(const GameVector* origin, GameVector* target)
 {
-	int losAxis0 = 0;
-	int losAxis1 = 0;
-
-	target->RoomNumber = origin->RoomNumber;
-	if (abs(target->z - origin->z) > abs(target->x - origin->x))
+	// FAILSAFE.
+	if (origin->ToVector3i() == target->ToVector3i())
 	{
-		losAxis0 = xLOS(*origin, *target);
-		losAxis1 = zLOS(*origin, *target);
-	}
-	else
-	{
-		losAxis0 = zLOS(*origin, *target);
-		losAxis1 = xLOS(*origin, *target);
+		LosRoomNumbers.clear();
+		LosRoomNumbers.push_back(origin->RoomNumber);
+		return true;
 	}
 
-	if (losAxis1)
-	{
-		GetFloor(target->x, target->y, target->z, &target->RoomNumber);
+	auto dir = target->ToVector3() - origin->ToVector3();
+	dir.Normalize();
+	float dist = Vector3::Distance(origin->ToVector3(), target->ToVector3());
 
-		if (ClipTarget(*origin, *target) && losAxis0 == 1 && losAxis1 == 1)
-			return true;
+	auto roomLosColl = GetRoomLosCollision(origin->ToVector3(), origin->RoomNumber, dir, dist);
+	if (roomLosColl.IsIntersected)
+		*target = GameVector(roomLosColl.Position, roomLosColl.RoomNumber);
+
+	// HACK: Transplant LOS room numbers to legacy global.
+	LosRoomNumbers.clear();
+	LosRoomNumbers.insert(LosRoomNumbers.end(), roomLosColl.RoomNumbers.begin(), roomLosColl.RoomNumbers.end());
+
+	return !roomLosColl.IsIntersected;
+}
+
+// Deprecated.
+bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push)
+{
+	int x = origin->x;
+	int y = origin->y;
+	int z = origin->z;
+	short roomNumber = origin->RoomNumber;
+	short roomNumber2 = roomNumber;
+	int dx = (target->x - x) >> 3;
+	int dy = (target->y - y) >> 3;
+	int dz = (target->z - z) >> 3;
+	bool flag = false;
+	bool result = false;
+
+	int i;
+	for (i = 0; i < 8; ++i)
+	{
+		roomNumber2 = roomNumber;
+		auto* floor = GetFloor(x, y, z, &roomNumber);
+
+		if (g_Level.Rooms[roomNumber2].flags & ENV_FLAG_SWAMP)
+		{
+			flag = true;
+			break;
+		}
+
+		int floorHeight = GetFloorHeight(floor, x, y, z);
+		int ceilingHeight = GetCeiling(floor, x, y, z);
+		if (floorHeight != NO_HEIGHT && ceilingHeight != NO_HEIGHT && ceilingHeight < floorHeight)
+		{
+			if (y > floorHeight)
+			{
+				if (y - floorHeight >= push)
+				{
+					flag = true;
+					break;
+				}
+
+				y = floorHeight;
+			}
+
+			if (y < ceilingHeight)
+			{
+				if (ceilingHeight - y >= push)
+				{
+					flag = true;
+					break;
+				}
+
+				y = ceilingHeight;
+			}
+
+			result = true;
+		}
+		else if (result)
+		{
+			flag = true;
+			break;
+		}
+
+		x += dx;
+		y += dy;
+		z += dz;
 	}
 
-	return false;
+	if (i)
+	{
+		x -= dx;
+		y -= dy;
+		z -= dz;
+	}
+
+	GetFloor(x, y, z, &roomNumber2);
+	target->x = x;
+	target->y = y;
+	target->z = z;
+	target->RoomNumber = roomNumber2;
+
+	return !flag;
 }
 
 bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, bool isFiring)
@@ -273,7 +168,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, boo
 	MESH_INFO* mesh = nullptr;
 	auto vector = Vector3i::Zero;
 	int itemNumber = ObjectOnLOS2(origin, target, &vector, &mesh);
-	bool hasHit = itemNumber != NO_LOS_ITEM;
+	bool hasHit = (itemNumber != NO_LOS_ITEM);
 
 	if (hasHit)
 	{
@@ -382,8 +277,8 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, boo
 								{
 									/*if (item->objectNumber == ID_SHOOT_SWITCH3)
 									{
-										// TR4 ID_SWITCH_TYPE7
-										ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
+									// TR4 ID_SWITCH_TYPE7
+									ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
 									}*/
 
 									if (item->Flags & IFLAG_ACTIVATION_MASK &&
@@ -447,7 +342,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, boo
 }
 
 static bool DoRayBox(const GameVector& origin, const GameVector& target, const GameBoundingBox& bounds,
-					 const Pose& objectPose, Vector3i& hitPos, int closestItemNumber)
+	const Pose& objectPose, Vector3i& hitPos, int closestItemNumber)
 {
 	auto box = bounds.ToBoundingOrientedBox(objectPose);
 
@@ -495,15 +390,15 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 			// If mesh is visible.
 			if (item->MeshBits & (1 << i))
 			{
-				float distance;
 				const auto& sphere = spheres[i];
 
-				if (sphere.Intersects(rayOrigin, rayDir, distance))
+				float dist = 0.0f;
+				if (sphere.Intersects(rayOrigin, rayDir, dist))
 				{
 					// Test for minimum distance.
-					if (distance < minDist)
+					if (dist < minDist)
 					{
-						minDist = distance;
+						minDist = dist;
 						meshIndex = object->meshIndex + i;
 						bit = 1 << i;
 						sp = i;
@@ -544,18 +439,18 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	return true;
 }
 
-int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INFO** mesh, GAME_OBJECT_ID priorityObjectID)
+int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INFO** staticObj, GAME_OBJECT_ID priorityObjectID)
 {
 	ClosestItem = NO_LOS_ITEM;
 	ClosestDist = SQUARE(target->x - origin->x) + SQUARE(target->y - origin->y) + SQUARE(target->z - origin->z);
 
-	for (int r = 0; r < NumberLosRooms; ++r)
+	for (int roomNumber : LosRoomNumbers)
 	{
-		auto& room = g_Level.Rooms[LosRooms[r]];
+		auto& room = g_Level.Rooms[roomNumber];
 
 		auto pose = Pose::Zero;
 
-		if (mesh)
+		if (staticObj != nullptr)
 		{
 			for (int m = 0; m < room.mesh.size(); m++)
 			{
@@ -568,14 +463,14 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 
 					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.staticNumber))
 					{
-						*mesh = &meshp;
-						target->RoomNumber = LosRooms[r];
+						*staticObj = &meshp;
+						target->RoomNumber = roomNumber;
 					}
 				}
 			}
 		}
 
-		for (short linkNumber = room.itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+		for (int linkNumber = room.itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
 		{
 			const auto& item = g_Level.Items[linkNumber];
 
@@ -595,7 +490,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 			pose = Pose(item.Pose.Position, EulerAngles(0, item.Pose.Orientation.y, 0));
 
 			if (DoRayBox(*origin, *target, bounds, pose, *vec, linkNumber))
-				target->RoomNumber = LosRooms[r];
+				target->RoomNumber = roomNumber;
 		}
 	}
 
@@ -604,136 +499,4 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 	vec->z = ClosestCoord.z;
 
 	return ClosestItem;
-}
-
-bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push)
-{
-	int x = origin->x;
-	int y = origin->y;
-	int z = origin->z;
-	short roomNumber = origin->RoomNumber;
-	short roomNumber2 = roomNumber;
-	int dx = (target->x - x) >> 3;
-	int dy = (target->y - y) >> 3;
-	int dz = (target->z - z) >> 3;
-	bool flag = false;
-	bool result = false;
-
-	int i;
-	for (i = 0; i < 8; ++i)
-	{
-		roomNumber2 = roomNumber;
-		auto* floor = GetFloor(x, y, z, &roomNumber);
-
-		if (g_Level.Rooms[roomNumber2].flags & ENV_FLAG_SWAMP)
-		{
-			flag = true;
-			break;
-		}
-
-		int floorHeight = GetFloorHeight(floor, x, y, z);
-		int ceilingHeight = GetCeiling(floor, x, y, z);
-		if (floorHeight != NO_HEIGHT && ceilingHeight != NO_HEIGHT && ceilingHeight < floorHeight)
-		{
-			if (y > floorHeight)
-			{
-				if (y - floorHeight >= push)
-				{
-					flag = true;
-					break;
-				}
-
-				y = floorHeight;
-			}
-
-			if (y < ceilingHeight)
-			{
-				if (ceilingHeight - y >= push)
-				{
-					flag = true;
-					break;
-				}
-
-				y = ceilingHeight;
-			}
-
-			result = true;
-		}
-		else if (result)
-		{
-			flag = true;
-			break;
-		}
-
-		x += dx;
-		y += dy;
-		z += dz;
-	}
-
-	if (i)
-	{
-		x -= dx;
-		y -= dy;
-		z -= dz;
-	}
-
-	GetFloor(x, y, z, &roomNumber2);
-	target->x = x;
-	target->y = y;
-	target->z = z;
-	target->RoomNumber = roomNumber2;
-
-	return !flag;
-}
-
-// TODO: Extend to be a more general, simple, all-in-one LOS function with a variety of flags for what to detect.
-std::optional<Vector3> GetStaticObjectLos(const Vector3& origin, int roomNumber, const Vector3& dir, float dist, bool onlySolid)
-{
-	// Run through neighbor rooms.
-	const auto& room = g_Level.Rooms[roomNumber];
-	for (int neighborRoomNumber : room.NeighborRoomNumbers)
-	{
-		// Get neighbor room.
-		const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
-		if (!neighborRoom.Active())
-			continue;
-
-		// Run through statics.
-		for (const auto& staticObject : g_Level.Rooms[neighborRoomNumber].mesh)
-		{
-			// Check if static is visible.
-			if (!(staticObject.flags & StaticMeshFlags::SM_VISIBLE))
-				continue;
-
-			// Check if static is collidable.
-			if (!(staticObject.flags & StaticMeshFlags::SM_COLLISION))
-				continue;
-
-			// Check if static is solid (if applicable).
-			if (onlySolid && !(staticObject.flags & StaticMeshFlags::SM_SOLID))
-				continue;
-
-			// Test ray-box intersection.
-			auto box = GetBoundsAccurate(staticObject, false).ToBoundingOrientedBox(staticObject.pos);
-			float intersectDist = 0.0f;
-			if (box.Intersects(origin, dir, intersectDist))
-			{
-				if (intersectDist <= dist)
-					return Geometry::TranslatePoint(origin, dir, dist);
-			}
-		}
-	}
-
-	return std::nullopt;
-}
-
-std::pair<GameVector, GameVector> GetRayFrom2DPosition(const Vector2& screenPos)
-{
-	auto pos = g_Renderer.GetRay(screenPos);
-
-	auto origin = GameVector(pos.first, Camera.pos.RoomNumber);
-	auto target = GameVector(pos.second, Camera.pos.RoomNumber);
-
-	LOS(&origin, &target);
-	return std::pair<GameVector, GameVector>(origin, target);
 }

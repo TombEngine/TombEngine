@@ -399,6 +399,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Game\collision\Los.h" />
     <ClInclude Include="Game\collision\Point.h" />
     <ClInclude Include="Game\collision\Sphere.h" />
     <ClInclude Include="Game\Debug\Debug.h" />
@@ -755,6 +756,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Utils\object_helper.h" />
     <ClInclude Include="Objects\game_object_ids.h" />
     <ClInclude Include="Objects\objectslist.h" />
+    <ClInclude Include="Physics\Objects\CollisionMesh.h" />
+    <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
+    <ClInclude Include="Physics\Physics.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\BlendingBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
@@ -910,7 +914,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
-    <ClInclude Include="Specific\BitField.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\IO\ChunkId.h" />
@@ -932,6 +935,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Specific\newtypes.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_itemdata_generated.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_savegame_generated.h" />
+    <ClInclude Include="Specific\Structures\BitField.h" />
+    <ClInclude Include="Specific\Structures\BoundingVolumeHierarchy.h" />
+    <ClInclude Include="Specific\Structures\SpatialHash.h" />
     <ClInclude Include="Specific\trutils.h" />
     <ClInclude Include="Specific\winmain.h" />
     <ClInclude Include="framework.h" />
@@ -951,6 +957,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\collision\collide_item.cpp" />
     <ClCompile Include="Game\collision\collide_room.cpp" />
     <ClCompile Include="Game\collision\floordata.cpp" />
+    <ClCompile Include="Game\collision\Los.cpp" />
     <ClCompile Include="Game\collision\Point.cpp" />
     <ClCompile Include="Game\collision\Sphere.cpp" />
     <ClCompile Include="Game\control\box.cpp" />
@@ -1279,6 +1286,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR5\Trap\ZipLine.cpp" />
     <ClCompile Include="Objects\Utils\object_helper.cpp" />
     <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
     <ClCompile Include="Renderer\Frustum.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
@@ -1340,7 +1349,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
-    <ClCompile Include="Specific\BitField.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
     <ClCompile Include="Specific\Input\Bindings.cpp" />
@@ -1353,6 +1361,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Specific\level.cpp" />
     <ClCompile Include="Specific\Parallel.cpp" />
     <ClCompile Include="Specific\RGBAColor8Byte.cpp" />
+    <ClCompile Include="Specific\Structures\BitField.cpp" />
+    <ClCompile Include="Specific\Structures\BoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="Specific\Structures\SpatialHash.cpp" />
     <ClCompile Include="Specific\trutils.cpp" />
     <ClCompile Include="Specific\winmain.cpp" />
   </ItemGroup>

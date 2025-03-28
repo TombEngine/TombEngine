@@ -102,8 +102,8 @@ namespace TEN::Entities::Generic
 		bridge.GetCeilingHeight = GetTrapDoorCeilingHeight;
 		bridge.GetFloorBorder = GetTrapDoorFloorBorder;
 		bridge.GetCeilingBorder = GetTrapDoorCeilingBorder;
+		bridge.Initialize(trapDoorItem);
 
-		UpdateBridgeItem(trapDoorItem);
 		CloseTrapDoor(itemNumber);
 	}
 
@@ -234,15 +234,18 @@ namespace TEN::Entities::Generic
 	void TrapDoorControl(short itemNumber)
 	{
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*trapDoorItem);
 
-	if (TriggerActive(trapDoorItem))
-	{
-		if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
-			trapDoorItem->Animation.TargetState = 1;
-	}
-	else
-	{
-		trapDoorItem->Status = ITEM_ACTIVE;
+		bridge.Update(*trapDoorItem);
+
+		if (TriggerActive(trapDoorItem))
+		{
+			if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
+				trapDoorItem->Animation.TargetState = 1;
+		}
+		else
+		{
+			trapDoorItem->Status = ITEM_ACTIVE;
 
 			if (trapDoorItem->Animation.ActiveState == 1)
 				trapDoorItem->Animation.TargetState = 0;

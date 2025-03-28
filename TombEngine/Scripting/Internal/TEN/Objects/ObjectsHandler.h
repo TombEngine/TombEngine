@@ -109,10 +109,10 @@ private:
 		auto rooms = std::vector<std::unique_ptr<R>>{};
 		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<ROOM_INFO>>(value))
+			if (!std::holds_alternative<std::reference_wrapper<RoomData>>(value))
 				continue;
 
-			auto room = std::get<std::reference_wrapper<ROOM_INFO>>(value).get();
+			auto room = std::get<std::reference_wrapper<RoomData>>(value).get();
 			
 			if (std::any_of(room.Tags.begin(), room.Tags.end(), [&tag](const std::string& value) { return value == tag; }))
 			{

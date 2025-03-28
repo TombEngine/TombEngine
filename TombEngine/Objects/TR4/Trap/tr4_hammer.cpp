@@ -147,7 +147,7 @@ namespace TEN::Entities::Traps
 							targetItem = &g_Level.Items[targetItemNumber];
 
 							if ((targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT10) ||
-								(targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10))
+								(targetItem->ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE_1 && targetItem->ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE_10))
 							{
 								if (item.Pose.Position.x == targetItem->Pose.Position.x &&
 									item.Pose.Position.z == targetItem->Pose.Position.z)

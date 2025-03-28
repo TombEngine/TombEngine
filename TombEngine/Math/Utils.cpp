@@ -26,6 +26,14 @@ namespace TEN::Math
 		return Lerp(min1, max1, alpha);
 	}
 
+	Vector3 RoundNormal(const Vector3& normal, float epsilon)
+	{
+		return Vector3(
+			round(normal.x / epsilon),
+			round(normal.y / epsilon),
+			round(normal.z / epsilon)) * epsilon;
+	}
+
 	float Lerp(float value0, float value1, float alpha)
 	{
 		alpha = std::clamp(alpha, 0.0f, 1.0f);

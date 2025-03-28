@@ -81,6 +81,7 @@ namespace TEN::Collision::Point
 
 	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber);
 	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber, const Vector3& dir, float dist);
+	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber, const Vector3& offset);
 	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber, short headingAngle, float forward, float down = 0.0f, float right = 0.0f,
 										 const Vector3& axis = Vector3::UnitY);
 	

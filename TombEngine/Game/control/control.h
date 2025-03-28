@@ -11,7 +11,7 @@ struct AnimData;
 struct CollisionInfo;
 struct ItemInfo;
 struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
 
 enum class GameStatus
 {

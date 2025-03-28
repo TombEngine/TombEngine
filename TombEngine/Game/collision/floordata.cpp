@@ -206,7 +206,7 @@ int FloorInfo::GetSurfaceHeight(int x, int z, bool isFloor) const
 	auto normal = tri.Plane.Normal();
 	float relPlaneHeight = -((normal.x * sectorPoint.x) + (normal.z * sectorPoint.y)) / normal.y;
 
-	// Due to precision loss, we can't recover NO_HEIGHT constant from the plane, and must return original integer constant.
+	// FAILSAFE: Due to float precision loss, NO_HEIGHT constant can't be recovered from plane and original value must be returned from original definition.
 	if (tri.Plane.D() == (float)NO_HEIGHT)
 		return NO_HEIGHT;
 
@@ -235,14 +235,13 @@ int FloorInfo::GetSurfaceHeight(const Vector3i& pos, bool isFloor) const
 		if (!bridgeSurfaceHeight.has_value())
 			continue;
 
-		// Use bridge midpoint to decide whether to return bridge height or room height, in case probe point
-		// is located within the bridge. Without it, dynamic bridges may fail while Lara is standing on them.
+		// Use bridge midpoint to decide whether to return bridge height or room height in case probe point
+		// is located within bridge. Without it, dynamic bridges may fail while player stands on it.
 		int thickness = bridge.GetCeilingBorder(bridgeItem) - bridge.GetFloorBorder(bridgeItem);
 		int midpoint = bridgeItem.Pose.Position.y + thickness / 2;
 
-		// Decide whether to override midpoint with surface height, if bridge type is tilt.
-		// It is needed to prevent submerging into tilted bridges, as their surface height does not correspond
-		// to their height function.
+		// HACK: Override midpoint with surface height if bridge is tilted.
+		// Necessary to prevent submerging into tilted bridges as their surface heights do not correspond to their height functions.
 		if (bridgeItem.ObjectNumber >= GAME_OBJECT_ID::ID_BRIDGE_TILT1 &&
 			bridgeItem.ObjectNumber <= GAME_OBJECT_ID::ID_BRIDGE_TILT4)
 		{
@@ -253,9 +252,9 @@ int FloorInfo::GetSurfaceHeight(const Vector3i& pos, bool isFloor) const
 		if (isFloor)
 		{
 			// Test if bridge floor height is closer.
-			if (midpoint >= pos.y &&				// Bridge midpoint is below position.
-				*bridgeSurfaceHeight < floorHeight &&   // Bridge floor height is above current closest floor height.
-				*bridgeSurfaceHeight >= ceilingHeight)  // Bridge ceiling height is below sector ceiling height.
+			if (midpoint >= pos.y &&				   // Bridge midpoint is below position.
+				*bridgeSurfaceHeight < floorHeight &&  // Bridge floor height is above current closest floor height.
+				*bridgeSurfaceHeight >= ceilingHeight) // Bridge ceiling height is below sector ceiling height.
 			{
 				floorHeight = *bridgeSurfaceHeight;
 			}
@@ -263,7 +262,7 @@ int FloorInfo::GetSurfaceHeight(const Vector3i& pos, bool isFloor) const
 		else
 		{
 			// Test if bridge ceiling height is closer.
-			if (midpoint <= pos.y &&			// Bridge midpoint is above position.
+			if (midpoint <= pos.y &&					// Bridge midpoint is above position.
 				*bridgeSurfaceHeight > ceilingHeight && // Bridge ceiling height is below current closest ceiling height.
 				*bridgeSurfaceHeight <= floorHeight)	// Bridge floor height is above sector floor height.
 			{
@@ -744,93 +743,8 @@ namespace TEN::Collision::Floordata
 		return location;
 	}
 
-	void AddBridge(int itemNumber, int x, int z)
-	{
-		const auto& bridgeItem = g_Level.Items[itemNumber];
-		const auto& bridge = GetBridgeObject(bridgeItem);
-
-		if (!Objects.CheckID(bridgeItem.ObjectNumber))
-			return;
-
-		x += bridgeItem.Pose.Position.x;
-		z += bridgeItem.Pose.Position.z;
-
-		auto* sector = &GetSideSector(bridgeItem.RoomNumber, x, z);
-		sector->AddBridge(itemNumber);
-
-		if (bridge.GetFloorBorder != nullptr)
-		{
-			int floorBorder = bridge.GetFloorBorder(bridgeItem);
-			while (floorBorder <= sector->GetSurfaceHeight(x, z, false))
-			{
-				auto roomNumberAbove = sector->GetNextRoomNumber(x, z, false);
-				if (!roomNumberAbove.has_value())
-					break;
-
-				sector = &GetSideSector(*roomNumberAbove, x, z);
-				sector->AddBridge(itemNumber);
-			}
-		}
-		
-		if (bridge.GetCeilingBorder != nullptr)
-		{
-			int ceilingBorder = bridge.GetCeilingBorder(bridgeItem);
-			while (ceilingBorder >= sector->GetSurfaceHeight(x, z, true))
-			{
-				auto roomNumberBelow = sector->GetNextRoomNumber(x, z, true);
-				if (!roomNumberBelow.has_value())
-					break;
-
-				sector = &GetSideSector(*roomNumberBelow, x, z);
-				sector->AddBridge(itemNumber);
-			}
-		}
-	}
-
-	void RemoveBridge(int itemNumber, int x, int z)
-	{
-		const auto& bridgeItem = g_Level.Items[itemNumber];
-		const auto& bridge = GetBridgeObject(bridgeItem);
-
-		if (!Objects.CheckID(bridgeItem.ObjectNumber))
-			return;
-
-		x += bridgeItem.Pose.Position.x;
-		z += bridgeItem.Pose.Position.z;
-
-		auto* sector = &GetSideSector(bridgeItem.RoomNumber, x, z);
-		sector->RemoveBridge(itemNumber);
-
-		if (bridge.GetFloorBorder != nullptr)
-		{
-			int floorBorder = bridge.GetFloorBorder(bridgeItem);
-			while (floorBorder <= sector->GetSurfaceHeight(x, z, false))
-			{
-				auto roomNumberAbove = sector->GetNextRoomNumber(x, z, false);
-				if (!roomNumberAbove.has_value())
-					break;
-
-				sector = &GetSideSector(*roomNumberAbove, x, z);
-				sector->RemoveBridge(itemNumber);
-			}
-		}
-
-		if (bridge.GetCeilingBorder != nullptr)
-		{
-			int ceilingBorder = bridge.GetCeilingBorder(bridgeItem);
-			while (ceilingBorder >= sector->GetSurfaceHeight(x, z, true))
-			{
-				auto roomNumberBelow = sector->GetNextRoomNumber(x, z, true);
-				if (!roomNumberBelow.has_value())
-					break;
-
-				sector = &GetSideSector(*roomNumberBelow, x, z);
-				sector->RemoveBridge(itemNumber);
-			}
-		}
-	}
-
 	// TODO: Load anim frame AABBs as DX BoundingBox objects and do regular ray test for gain of 3-5 frames. -- Sezz 2024.11.07
+	// TODO: Try querying collision mesh instead.
 	// Get precise floor/ceiling height from object's bounding box.
 	// Animated objects are also supported, although horizontal collision shifting is unstable.
 	// Method: get accurate bounds in world transform by converting to OBB, then do a ray test
@@ -898,72 +812,6 @@ namespace TEN::Collision::Floordata
 	{
 		auto bounds = GameBoundingBox(&item);
 		return (item.Pose.Position.y + (isBottom ? bounds.Y2 : bounds.Y1));
-	}
-
-	// Updates BridgeItem for all blocks which are enclosed by bridge bounds.
-	void UpdateBridgeItem(const ItemInfo& item, BridgeUpdateType updateType)
-	{
-		constexpr auto SECTOR_EXTENTS = Vector3(BLOCK(0.5f));
-
-		if (!Objects.CheckID(item.ObjectNumber))
-			return;
-
-		if (!Objects[item.ObjectNumber].loaded)
-			return;
-
-		// Force removal if item was killed.
-		if (item.Flags & IFLAG_KILLED)
-			updateType = BridgeUpdateType::Remove;
-
-		// Get bridge OBB.
-		auto bridgeBox = GameBoundingBox(&item).ToBoundingOrientedBox(item.Pose);
-
-		// Get bridge OBB corners. NOTE: only 0, 1, 4, 5 are relevant.
-		auto corners = std::array<Vector3, 8>{};
-		bridgeBox.GetCorners(corners.data());
-
-		const auto& room = g_Level.Rooms[item.RoomNumber];
-
-		// Get projected AABB min and max of bridge OBB.
-		float xMin = floor((std::min(std::min(std::min(corners[0].x, corners[1].x), corners[4].x), corners[5].x) - room.Position.x) / BLOCK(1));
-		float zMin = floor((std::min(std::min(std::min(corners[0].z, corners[1].z), corners[4].z), corners[5].z) - room.Position.z) / BLOCK(1));
-		float xMax =  ceil((std::max(std::max(std::max(corners[0].x, corners[1].x), corners[4].x), corners[5].x) - room.Position.x) / BLOCK(1));
-		float zMax =  ceil((std::max(std::max(std::max(corners[0].z, corners[1].z), corners[4].z), corners[5].z) - room.Position.z) / BLOCK(1));
-
-		// Run through sectors enclosed in projected bridge AABB.
-		for (int x = 0; x < room.XSize; x++)
-		{
-			for (int z = 0; z < room.ZSize; z++)
-			{
-				float pX = (room.Position.x + BLOCK(x)) + BLOCK(0.5f);
-				float pZ = (room.Position.z + BLOCK(z)) + BLOCK(0.5f);
-				float offX = pX - item.Pose.Position.x;
-				float offZ = pZ - item.Pose.Position.z;
-
-				// Clean previous bridge state.
-				if (updateType != BridgeUpdateType::Initialize)
-					RemoveBridge(item.Index, offX, offZ);
-
-				// In removal mode; don't try re-adding to sector.
-				if (updateType == BridgeUpdateType::Remove)
-					continue;
-
-				// Sector is outside enclosed AABB space; ignore precise check.
-				if (x < xMin || z < zMin ||
-					x > xMax || z > zMax)
-				{
-					continue;
-				}
-
-				// Sector is in enclosed bridge AABB space; do more precise test.
-				// Construct OBB within same plane as bridge OBB and test intersection.
-				auto sectorBox = BoundingOrientedBox(Vector3(pX, bridgeBox.Center.y, pZ), SECTOR_EXTENTS, Vector4::UnitY);
-
-				// Add bridge to current sector if intersection is valid.
-				if (bridgeBox.Intersects(sectorBox))
-					AddBridge(item.Index, offX, offZ);
-			}
-		}
 	}
 
 	bool TestMaterial(MaterialType refMaterial, const std::vector<MaterialType>& materials)

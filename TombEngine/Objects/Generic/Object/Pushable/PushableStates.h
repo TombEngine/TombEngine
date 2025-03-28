@@ -4,7 +4,7 @@ struct ItemInfo;
 
 namespace TEN::Entities::Generic
 {
-	enum class PushableBehaviourState
+	enum class PushableBehaviorState
 	{
 		Idle,
 		Move,

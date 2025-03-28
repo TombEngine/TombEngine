@@ -89,28 +89,43 @@ static void StartObject(ObjectInfo* object)
 	for (int objectID = ID_PUSHABLE_OBJECT1; objectID <= ID_PUSHABLE_OBJECT10; objectID++)
 		InitPushableObject(object, objectID);
 
-	for (int objectID = ID_PUSHABLE_OBJECT_CLIMBABLE1; objectID <= ID_PUSHABLE_OBJECT_CLIMBABLE10; objectID++)
+	for (int objectID = ID_PUSHABLE_OBJECT_CLIMBABLE_1; objectID <= ID_PUSHABLE_OBJECT_CLIMBABLE_10; objectID++)
 		InitPushableObject(object, objectID);
 
 	object = &Objects[ID_BRIDGE_FLAT];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT1];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT2];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT3];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT4];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 }
 
 void StartSwitches(ObjectInfo* object)

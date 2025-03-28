@@ -36,8 +36,8 @@ namespace TEN::Entities::Generic
 
 	struct PushableInfo
 	{
-		PushableBehaviourState BehaviorState = PushableBehaviourState::Idle;
-		PushableSoundState	   SoundState	 = PushableSoundState::None;
+		PushableBehaviorState BehaviorState = PushableBehaviorState::Idle;
+		PushableSoundState	  SoundState	= PushableSoundState::None;
 		int AnimSetID = 0;
 
 		GameVector StartPos = GameVector::Zero;	// ?? XZ used by movement code. Y used to store water height level.
@@ -56,7 +56,7 @@ namespace TEN::Entities::Generic
 		bool UseBridgeCollision = false;
 		std::map<int, PushableEdgeAttribs> EdgeAttribs = {};
 
-		BridgeObject Bridge = {};
+		std::optional<BridgeObject> Bridge = std::nullopt;
 
 		PushableInfo();
 	};

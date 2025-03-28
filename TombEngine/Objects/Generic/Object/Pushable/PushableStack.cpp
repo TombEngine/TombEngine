@@ -34,14 +34,24 @@ namespace TEN::Entities::Generic
 
 		// 2) Prepare data to create several lists per each stack group (one for each XZ and ground floor height).
 		// PROBLEM: Missing hash function in Vector3i, creating custom version Vector3iHasher at the top of this source code.
-		std::unordered_map < Vector3i, std::vector<int>, Vector3iHasher> stackGroups; // stack Position - pushable itemNumber  
+		auto stackGroups = std::unordered_map<Vector3i, std::vector<int>, Vector3iHasher>{}; // stack Position - pushable itemNumber  
 
 		// 3) Iterate through the pushables list, to put them in their different stack groups. According to their XZ and ground floor height).
-		//Extra, I moved also the .Data initialization here, to can store data in all the pushables objects (even the ones not initialized yet).
+		// Extra, I moved also the .Data initialization here, to can store data in all the pushables objects (even the ones not initialized yet).
 		for (int itemNumber : pushableItemNumbers)
 		{
 			auto& pushableItem = g_Level.Items[itemNumber];
 			pushableItem.Data = PushableInfo();
+
+			// Initialize bridge routines.
+			auto& pushable = GetPushableInfo(pushableItem);
+			if (pushable.Bridge.has_value())
+			{
+				pushable.Bridge->GetFloorHeight = GetPushableBridgeFloorHeight;
+				pushable.Bridge->GetCeilingHeight = GetPushableBridgeCeilingHeight;
+				pushable.Bridge->GetFloorBorder = GetPushableBridgeFloorBorder;
+				pushable.Bridge->GetCeilingBorder = GetPushableBridgeCeilingBorder;
+			}
 			
 			int x = pushableItem.Pose.Position.x;
 			int z = pushableItem.Pose.Position.z;
@@ -96,7 +106,7 @@ namespace TEN::Entities::Generic
 			auto& item = items[i];
 
 			if ((item.ObjectNumber >= ID_PUSHABLE_OBJECT1 && item.ObjectNumber <= ID_PUSHABLE_OBJECT10) ||
-				(item.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && item.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10))
+				(item.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE_1 && item.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE_10))
 			{
 				pushableItemNumbers.push_back(i);
 			}
@@ -165,8 +175,8 @@ namespace TEN::Entities::Generic
 			{
 				auto& currentItem = g_Level.Items[currentItemNumber];
 
-				// If climbable pushable, is in the same XZ position and is at a lower height.
-				if ((currentItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && currentItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10) &&
+				// If climbable, is in same XZ position, and at lower height.
+				if ((currentItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE_1 && currentItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE_10) &&
 					(currentItem.Pose.Position.x == pushableItem.Pose.Position.x) && (currentItem.Pose.Position.z == pushableItem.Pose.Position.z) &&
 					(currentItem.Pose.Position.y > pushableItem.Pose.Position.y))
 				{
@@ -263,11 +273,11 @@ namespace TEN::Entities::Generic
 			auto& currentPushableItem = g_Level.Items[currentItemNumber];
 			auto& currentPushable = GetPushableInfo(currentPushableItem);
 
-			// Deactivate collision.
-			if (currentPushable.UseRoomCollision)
-				RemovePushableBridge(currentPushableItem);
+			// Disable bridge.
+			if (currentPushable.UseRoomCollision && currentPushable.Bridge.has_value())
+				currentPushable.Bridge->Disable(currentPushableItem);
 
-			currentPushable.BehaviorState = PushableBehaviourState::MoveStackHorizontal;
+			currentPushable.BehaviorState = PushableBehaviorState::MoveStackHorizontal;
 
 			currentItemNumber = currentPushable.Stack.ItemNumberAbove;
 		}
@@ -286,11 +296,11 @@ namespace TEN::Entities::Generic
 
 			currentPushableItem.Pose.Position = GetNearestSectorCenter(currentPushableItem.Pose.Position);
 
-			// Activate collision.
-			if (currentPushable.UseRoomCollision)
-				AddPushableBridge(currentPushableItem);
+			// Enable bridge.
+			if (currentPushable.UseRoomCollision && currentPushable.Bridge.has_value())
+				currentPushable.Bridge->Enable(currentPushableItem);
 
-			currentPushable.BehaviorState = PushableBehaviourState::Idle;
+			currentPushable.BehaviorState = PushableBehaviorState::Idle;
 
 			currentItemNumber = currentPushable.Stack.ItemNumberAbove;
 		}

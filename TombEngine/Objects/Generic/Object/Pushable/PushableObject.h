@@ -31,8 +31,8 @@ namespace TEN::Entities::Generic
 	PushableInfo& GetPushableInfo(const ItemInfo& item);
 	
 	void InitializePushableBlock(int itemNumber);
-	void PushableBlockControl(int itemNumber);
-	void PushableBlockCollision(int itemNumber, ItemInfo* playerItem, CollisionInfo* coll);
+	void ControlPushableBlock(int itemNumber);
+	void CollidePushableBlock(int itemNumber, ItemInfo* playerItem, CollisionInfo* coll);
 
 	int GetPushableHeight(const ItemInfo& item);
 

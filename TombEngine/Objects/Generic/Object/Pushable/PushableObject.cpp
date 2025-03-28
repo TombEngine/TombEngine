@@ -58,7 +58,7 @@ namespace TEN::Entities::Generic
 	void InitializePushableBlock(int itemNumber)
 	{
 		auto& pushableItem = g_Level.Items[itemNumber];
-		if (pushableItem.Data == NULL) // First pushableItem in initialize.
+		if (pushableItem.Data == NULL) // First pushableItem.
 			InitializePushableStacks();
 		
 		auto& pushable = GetPushableInfo(pushableItem);
@@ -66,15 +66,27 @@ namespace TEN::Entities::Generic
 		pushable.StartPos = GameVector(pushableItem.Pose.Position, pushableItem.RoomNumber);
 		pushable.Height = GetPushableHeight(pushableItem);
 
-		if (pushableItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 &&
-			pushableItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10)
+		// Set climbable.
+		if (pushableItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE_1 &&
+			pushableItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE_10)
 		{
 			pushable.UseRoomCollision = true;
-			AddPushableBridge(pushableItem);
+			pushable.UseBridgeCollision = true;
+
+			pushable.Bridge = BridgeObject();
+			pushable.Bridge->GetFloorHeight = GetPushableBridgeFloorHeight;
+			pushable.Bridge->GetCeilingHeight = GetPushableBridgeCeilingHeight;
+			pushable.Bridge->GetFloorBorder = GetPushableBridgeFloorBorder;
+			pushable.Bridge->GetCeilingBorder = GetPushableBridgeCeilingBorder;
+
+			if (pushable.Bridge.has_value())
+				pushable.Bridge->Initialize(pushableItem);
 		}
+		// Set non-climbable.
 		else
 		{
 			pushable.UseRoomCollision = false;
+			pushable.UseBridgeCollision = false;
 		}
 
 		SetPushableStopperFlag(true, pushableItem.Pose.Position, pushableItem.RoomNumber);
@@ -90,34 +102,49 @@ namespace TEN::Entities::Generic
 		AddActiveItem(itemNumber);
 	}
 
-	void PushableBlockControl(int itemNumber)
+	void ControlPushableBlock(int itemNumber)
 	{
+		const auto& player = Lara;
 		auto& pushableItem = g_Level.Items[itemNumber];
 		auto& pushable = GetPushableInfo(pushableItem);
 
-		if (Lara.Context.InteractedItem == itemNumber && Lara.Control.IsMoving)
+		if (player.Context.InteractedItem == itemNumber && player.Control.IsMoving)
 			return;
+
+		auto prevPos = pushableItem.Pose.Position;
 
 		// Handle behaviour and sound state.
 		HandlePushableBehaviorState(pushableItem);
 		HandlePushableSoundState(pushableItem);
 
-		// Update bridge.
-		AddPushableStackBridge(pushableItem, false);
-		int probeRoomNumber = GetPointCollision(pushableItem).GetRoomNumber();
-		AddPushableStackBridge(pushableItem, true);
-
 		// Update room number.
-		if (pushableItem.RoomNumber != probeRoomNumber)
+		if (pushableItem.Pose.Position != prevPos)
 		{
-			ItemNewRoom(itemNumber, probeRoomNumber);
-			pushable.StartPos.RoomNumber = pushableItem.RoomNumber;
+			// HACK: Track if bridge was disabled by behaviour state.
+			bool isEnabled = false;
+			if (pushable.Bridge.has_value())
+				isEnabled = pushable.Bridge->IsEnabled();
+
+			// HACK: Temporarily disable bridge before probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Disable(pushableItem);
+
+			int probeRoomNumber = GetPointCollision(pushableItem).GetRoomNumber();
+
+			// HACK: Reenable bridge after probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Enable(pushableItem);
+
+			// Update room number.
+			if (pushableItem.RoomNumber != probeRoomNumber)
+			{
+				ItemNewRoom(itemNumber, probeRoomNumber);
+				pushable.StartPos.RoomNumber = pushableItem.RoomNumber;
+			}
 		}
 	}
 
-	// If player is holding Action, initiates object interaction.
-	// Otherwise, activates normal object collision.
-	void PushableBlockCollision(int itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
+	void CollidePushableBlock(int itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
 		auto& pushableItem = g_Level.Items[itemNumber];
 		auto& pushable = GetPushableInfo(pushableItem);
@@ -134,7 +161,7 @@ namespace TEN::Entities::Generic
 			!playerItem->Animation.IsAirborne &&
 			player.Control.HandStatus == HandStatus::Free &&
 			IsPushableValid(pushableItem)) &&
-			pushable.BehaviorState == PushableBehaviourState::Idle && 
+			pushable.BehaviorState == PushableBehaviorState::Idle && 
 			(pushableSidesAttributes.IsPushable || pushableSidesAttributes.IsPullable) || // Can interact with this side.
 			(player.Control.IsMoving && player.Context.InteractedItem == itemNumber))	  // Already interacting.
 		{
@@ -208,7 +235,7 @@ namespace TEN::Entities::Generic
 				!TestLastFrame(playerItem, LA_PUSHABLE_GRAB) ||
 				player.Context.NextCornerPos.Position.x != itemNumber)
 			{
-				// NOTE: If using room collision, use bridge collision.
+				// Use soft moveable object collision.
 				if (!pushable.UseRoomCollision)
 					ObjectCollision(itemNumber, playerItem, coll);
 
@@ -230,6 +257,6 @@ namespace TEN::Entities::Generic
 		pointColl.GetSector().Stopper = isStopper;
 
 		// TODO: There is a problem, it also has to set/reset the flag in the flipped room.
-		// Because when flipmaps happens, it forgets about the old flag.
+		// Because when flipmaps happens, it forgets about the previous flag.
 	}
 }

@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Specific/BitField.h"
+#include "Specific/Structures/BitField.h"
 
 namespace TEN::Utils
 {

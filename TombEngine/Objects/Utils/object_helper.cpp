@@ -188,8 +188,8 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePushableBlock;
-		object->control = PushableBlockControl;
-		object->collision = PushableBlockCollision;
+		object->control = ControlPushableBlock;
+		object->collision = CollidePushableBlock;
 		object->SetHitEffect(true);
 	}
 }

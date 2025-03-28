@@ -147,7 +147,9 @@ enum class RendererDebugPage
 	InputStats,
 	CollisionStats,
 	PathfindingStats,
-	PortalDebug,
+	BridgeStats,
+	RoomStats,
+	PortalStats,
 	WireframeMode,
 
 	Count

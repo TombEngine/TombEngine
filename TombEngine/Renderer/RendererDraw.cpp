@@ -3507,7 +3507,7 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
 
-		ROOM_INFO* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
+		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
 		_shaders.Bind(Shader::Rooms);
 

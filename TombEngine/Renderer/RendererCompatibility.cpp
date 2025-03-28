@@ -218,44 +218,45 @@ namespace TEN::Renderer
 
 		for (int i = 0; i < g_Level.Rooms.size(); i++)
 		{
-			ROOM_INFO& room = g_Level.Rooms[i];
+			auto& room = g_Level.Rooms[i];
+			auto& rendererRoom = _rooms[i];
 
-			RendererRoom* r = &_rooms[i];
+			rendererRoom.RoomNumber = i;
+			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
+			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
+			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
 
-			r->RoomNumber = i;
-			r->AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
-			r->ItemsToDraw.reserve(MAX_ITEMS_DRAW);
-			r->EffectsToDraw.reserve(MAX_ITEMS_DRAW);
+			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
+			auto boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
+			auto center = (boxMin + boxMax) / 2.0f;
+			auto extents = boxMax - center;
+			rendererRoom.BoundingBox = BoundingBox(center, extents);
 
-			Vector3 boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
-			Vector3 boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
-			Vector3 center = (boxMin + boxMax) / 2.0f;
-			Vector3 extents = boxMax - center;
-			r->BoundingBox = BoundingBox(center, extents);
-
-			r->Neighbors.clear();
+			rendererRoom.Neighbors.clear();
 			for (int j : room.NeighborRoomNumbers)
-				if (g_Level.Rooms[j].Active())
-					r->Neighbors.push_back(j);
-
-			if (room.doors.size() != 0)
 			{
-				r->Doors.resize((int)room.doors.size());
+				if (g_Level.Rooms[j].Active())
+					rendererRoom.Neighbors.push_back(j);
+			}
 
-				for (int l = 0; l < room.doors.size(); l++)
+			if (!room.Portals.empty())
+			{
+				rendererRoom.Doors.resize((int)room.Portals.size());
+
+				for (int j = 0; j < room.Portals.size(); j++)
 				{
-					RendererDoor* door = &r->Doors[l];
-					ROOM_DOOR* oldDoor = &room.doors[l];
+					const auto& portal = room.Portals[j];
+					auto& rendererDoor = rendererRoom.Doors[j];
 
-					door->RoomNumber = oldDoor->room;
-					door->Normal = oldDoor->normal;
+					rendererDoor.RoomNumber = portal.RoomNumber;
+					rendererDoor.Normal = portal.Normal;
 
 					for (int k = 0; k < 4; k++)
 					{
-						door->AbsoluteVertices[k] = Vector4(
-							room.Position.x + oldDoor->vertices[k].x,
-							room.Position.y + oldDoor->vertices[k].y,
-							room.Position.z + oldDoor->vertices[k].z,
+						rendererDoor.AbsoluteVertices[k] = Vector4(
+							room.Position.x + portal.Vertices[k].x,
+							room.Position.y + portal.Vertices[k].y,
+							room.Position.z + portal.Vertices[k].z,
 							1.0f);
 					}
 				}
@@ -263,11 +264,11 @@ namespace TEN::Renderer
 
 			if (room.mesh.size() != 0)
 			{
-				r->Statics.resize(room.mesh.size());
+				rendererRoom.Statics.resize(room.mesh.size());
 
 				for (int l = 0; l < (int)room.mesh.size(); l++)
 				{
-					RendererStatic* staticInfo = &r->Statics[l];
+					RendererStatic* staticInfo = &rendererRoom.Statics[l];
 					MESH_INFO* oldMesh = &room.mesh[l];
 
 					oldMesh->Dirty = true;
@@ -275,7 +276,7 @@ namespace TEN::Renderer
 					staticInfo->ObjectNumber = oldMesh->staticNumber;
 					staticInfo->RoomNumber = oldMesh->roomNumber;
 					staticInfo->Color = oldMesh->color;
-					staticInfo->AmbientLight = r->AmbientLight;
+					staticInfo->AmbientLight = rendererRoom.AmbientLight;
 					staticInfo->Pose = oldMesh->pos;
 					staticInfo->Scale = oldMesh->scale;
 					staticInfo->OriginalSphere = Statics[staticInfo->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
@@ -382,17 +383,17 @@ namespace TEN::Renderer
 
 				bucket.Centre /= bucket.NumIndices;
 
-				r->Buckets.push_back(bucket);		
+				rendererRoom.Buckets.push_back(bucket);		
 			}
 
 			if (room.lights.size() != 0)
 			{
-				r->Lights.resize(room.lights.size());
+				rendererRoom.Lights.resize(room.lights.size());
 
 				for (int l = 0; l < room.lights.size(); l++)
 				{
-					RendererLight* light = &r->Lights[l];
-					ROOM_LIGHT* oldLight = &room.lights[l];
+					RendererLight* light = &rendererRoom.Lights[l];
+					RoomLightData* oldLight = &room.lights[l];
 
 					if (oldLight->type == 0)
 					{

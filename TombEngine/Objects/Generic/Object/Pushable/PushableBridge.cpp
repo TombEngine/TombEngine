@@ -52,55 +52,51 @@ namespace TEN::Entities::Generic
 		return item.Pose.Position.y;
 	}
 
-	void AddPushableBridge(ItemInfo& pushableItem)
+	void EnablePushableBridge(ItemInfo& pushableItem)
 	{
 		auto& pushable = GetPushableInfo(pushableItem);
 
-		if (pushable.UseRoomCollision)
+		if (pushable.UseRoomCollision && pushable.Bridge.has_value())
 		{
-			AddBridge(pushableItem.Index);
 			pushable.UseBridgeCollision = true;
+
+			auto& bridge = GetBridgeObject(pushableItem);
+			bridge.Enable(pushableItem);
 		}
 	}
 
-	void AddPushableStackBridge(ItemInfo& pushableItem, bool addBridge)
+	void EnablePushableStackBridge(ItemInfo& pushableItem, bool addBridge)
 	{
-		auto* pushableItemPtr = &g_Level.Items[pushableItem.Index];
-		const auto* pushablePtr = &GetPushableInfo(*pushableItemPtr);
+		auto* currentPushableItem = &g_Level.Items[pushableItem.Index];
+		auto* currentPushable = &GetPushableInfo(*currentPushableItem);
 
-		// NOTE: Can't have stacked items on bridge.
-		if (!pushablePtr->UseRoomCollision)
+		// NOTE: Can't stack pushable object on pushable bridge.
+		if (!currentPushable->UseRoomCollision)
 			return;
 
-		if (pushablePtr->UseBridgeCollision)
-			addBridge ? AddBridge(pushableItem.Index) : RemoveBridge(pushableItem.Index);
+		if (currentPushable->UseBridgeCollision && currentPushable->Bridge.has_value())
+			addBridge ? currentPushable->Bridge->Enable(pushableItem) : currentPushable->Bridge->Disable(pushableItem);
 		
-		while (pushablePtr->Stack.ItemNumberAbove != NO_VALUE)
+		while (currentPushable->Stack.ItemNumberAbove != NO_VALUE)
 		{
-			pushableItemPtr = &g_Level.Items[pushablePtr->Stack.ItemNumberAbove];
-			pushablePtr = &GetPushableInfo(*pushableItemPtr);
+			currentPushableItem = &g_Level.Items[currentPushable->Stack.ItemNumberAbove];
+			currentPushable = &GetPushableInfo(*currentPushableItem);
 
-			if (pushablePtr->UseBridgeCollision)
-				addBridge ? AddBridge(pushableItemPtr->Index) : RemoveBridge(pushableItemPtr->Index);
+			if (currentPushable->UseBridgeCollision && currentPushable->Bridge.has_value())
+				addBridge ? currentPushable->Bridge->Enable(*currentPushableItem) : currentPushable->Bridge->Disable(*currentPushableItem);
 		}
 	}
 
-	void RemovePushableBridge(ItemInfo& pushableItem)
+	void DisablePushableBridge(ItemInfo& pushableItem)
 	{
 		auto& pushable = GetPushableInfo(pushableItem);
 
-		if (pushable.UseRoomCollision)
+		if (pushable.UseRoomCollision && pushable.Bridge.has_value())
 		{
-			RemoveBridge(pushableItem.Index);
 			pushable.UseBridgeCollision = false;
+
+			auto& bridge = GetBridgeObject(pushableItem);
+			bridge.Disable(pushableItem);
 		}
-	}
-
-	void UpdatePushableBridge(const ItemInfo& pushableItem)
-	{
-		const auto& pushable = GetPushableInfo(pushableItem);
-
-		if (pushable.UseRoomCollision)
-			UpdateBridgeItem(pushableItem);
 	}
 }

@@ -49,3 +49,19 @@
 		Vector3i  operator /(float scalar) const;
 	};
 //}
+
+namespace std
+{
+	template <>
+	struct hash<Vector3i>
+	{
+		size_t operator ()(const Vector3i& vector) const
+		{
+			size_t seed = 0;
+			seed ^= hash<int>()(vector.x) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= hash<int>()(vector.y) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= hash<int>()(vector.z) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		}
+	};
+}

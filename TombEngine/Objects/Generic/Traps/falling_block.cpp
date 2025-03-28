@@ -59,18 +59,17 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		// Initialize routines.
-		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
-		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
-		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
-		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
-
 		item.MeshBits = 1;
-		TEN::Collision::Floordata::UpdateBridgeItem(item);
 
 		// Set mutators to EulerAngles identity by default.
 		for (auto& mutator : item.Model.Mutators)
 			mutator.Rotation = EulerAngles::Identity;
+
+		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
+		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
+		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
+		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
+		bridge.Initialize(item);
 	}
 
 	void FallingBlockCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -95,6 +94,9 @@ namespace TEN::Entities::Generic
 	void FallingBlockControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*item);
+
+		bridge.Update(*item);
 
 		if (item->TriggerFlags)
 		{
