@@ -388,6 +388,23 @@ bool LaraObject::TorchIsLit() const
 	return lara->Torch.IsLit;
 }
 
+/// Set Lara weapon type
+// @function LaraObject:SetWeaponType
+// @usage
+// Lara:SetWeaponType(WeaponType.PISTOLS, false)
+// @tparam Flow.WeaponType weaponType 
+// @tparam bool activate if `true`, also draw the weapons or set torch lit. If `false`, keep weapons holstered or leave torch unlit.
+void LaraObject::SetSkin(GAME_OBJECT_ID skin, GAME_OBJECT_ID skinJoints, GAME_OBJECT_ID hair1, GAME_OBJECT_ID hair2)
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	lara->Skin.Skin = skin;
+	lara->Skin.SkinJoints = skinJoints;
+	lara->Skin.HairPrimary = hair1;
+	lara->Skin.HairSecondary = hair2;
+
+}
+
 void LaraObject::Register(sol::table& parent)
 {
 	parent.new_usertype<LaraObject>(LUA_CLASS_NAME,
@@ -412,6 +429,7 @@ void LaraObject::Register(sol::table& parent)
 			ScriptReserved_GetTarget, &LaraObject::GetTarget,
 			ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
 			ScriptReserved_TorchIsLit, &LaraObject::TorchIsLit,
+			"SetSkin", &LaraObject::SetSkin,
 			sol::base_classes, sol::bases<Moveable>()
 		);
 }

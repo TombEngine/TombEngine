@@ -349,6 +349,13 @@ const std::vector<byte> SaveGame::Build()
 	subsuitVelocity.push_back(Lara.Control.Subsuit.Velocity[1]);
 	auto subsuitVelocityOffset = fbb.CreateVector(subsuitVelocity);
 
+	Save::PlayerSkinBuilder playerSkin{ fbb };
+	playerSkin.add_skin((int)Lara.Skin.Skin);
+	playerSkin.add_skin_joints((int)Lara.Skin.SkinJoints);
+	playerSkin.add_hair_primary((int)Lara.Skin.HairPrimary);
+	playerSkin.add_hair_secondary((int)Lara.Skin.HairSecondary);
+	auto playerSkinOffset = playerSkin.Finish();
+
 	Save::HolsterInfoBuilder holsterInfo{ fbb };
 	holsterInfo.add_back_holster((int)Lara.Control.Weapon.HolsterInfo.BackHolster);
 	holsterInfo.add_left_holster((int)Lara.Control.Weapon.HolsterInfo.LeftHolster);
@@ -586,6 +593,7 @@ const std::vector<byte> SaveGame::Build()
 	lara.add_location(Lara.Location);
 	lara.add_location_pad(Lara.LocationPad);
 	lara.add_right_arm(rightArmOffset);
+	lara.add_skin(playerSkinOffset);
 	lara.add_status(statusOffset);
 	lara.add_collision(collisionOffset);
 	lara.add_target_arm_orient(&FromEulerAngles(Lara.TargetArmOrient));
@@ -2211,6 +2219,10 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Status.Stamina = s->lara()->status()->stamina();
 	Lara.TargetEntity = (s->lara()->target_entity_number() >= 0) ? &g_Level.Items[s->lara()->target_entity_number()] : nullptr;
 	Lara.TargetArmOrient = ToEulerAngles(s->lara()->target_arm_orient());
+	Lara.Skin.Skin = static_cast<GAME_OBJECT_ID>(s->lara()->skin()->skin());
+	Lara.Skin.SkinJoints = static_cast<GAME_OBJECT_ID>(s->lara()->skin()->skin_joints());
+	Lara.Skin.HairPrimary = static_cast<GAME_OBJECT_ID>(s->lara()->skin()->hair_primary());
+	Lara.Skin.HairSecondary = static_cast<GAME_OBJECT_ID>(s->lara()->skin()->hair_secondary());
 
 	for (int i = 0; i < s->lara()->weapons()->size(); i++)
 	{

@@ -123,7 +123,7 @@ static void HandlePlayerOpticAnimations(ItemInfo& item)
 			player.TargetEntity = nullptr;
 		}
 
-		int objNumber = Objects[ID_LARA_BINOCULARS_MESH].loaded ? ID_LARA_BINOCULARS_MESH : ID_LARA_SKIN;
+		int objNumber = Objects[ID_LARA_BINOCULARS_MESH].loaded ? ID_LARA_BINOCULARS_MESH : player.Skin.Skin;
 		item.Model.MeshIndex[LM_RHAND] = Objects[objNumber].meshIndex + LM_RHAND;
 
 		player.Control.HandStatus = HandStatus::Free;

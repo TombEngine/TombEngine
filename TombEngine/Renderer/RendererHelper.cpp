@@ -392,10 +392,10 @@ namespace TEN::Renderer
 
 	RendererObject& Renderer::GetRendererObject(GAME_OBJECT_ID id)
 	{
-		if (id == GAME_OBJECT_ID::ID_LARA || id == GAME_OBJECT_ID::ID_LARA_SKIN)
+		if (id == GAME_OBJECT_ID::ID_LARA || id == Lara.Skin.Skin)
 		{
-			if (_moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].has_value())
-				return _moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].value();
+			if (_moveableObjects[Lara.Skin.Skin].has_value())
+				return _moveableObjects[Lara.Skin.Skin].value();
 			else
 				return _moveableObjects[GAME_OBJECT_ID::ID_LARA].value();
 		}

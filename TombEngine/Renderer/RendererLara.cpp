@@ -303,7 +303,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 	RendererObject& laraObj = *_moveableObjects[ID_LARA];
-	RendererObject& laraSkin = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+	RendererObject& laraSkin = GetRendererObject(Lara.Skin.Skin);
 
 	RendererRoom* room = &_rooms[LaraItem->RoomNumber];
 
@@ -382,10 +382,10 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 
 void Renderer::DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
 {
-	if (!_moveableObjects[ID_LARA_SKIN_JOINTS].has_value())
+	if (!_moveableObjects[Lara.Skin.SkinJoints].has_value())
 		return;
 
-	RendererObject& laraSkinJoints = *_moveableObjects[ID_LARA_SKIN_JOINTS];
+	RendererObject& laraSkinJoints = *_moveableObjects[Lara.Skin.SkinJoints];
 
 	for (int k = 1; k < laraSkinJoints.ObjectMeshes.size(); k++)
 	{

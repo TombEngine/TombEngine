@@ -1179,8 +1179,8 @@ void ExplodingDeath(short itemNumber, short flags)
 	ItemInfo* item = &g_Level.Items[itemNumber];
 	
 	ObjectInfo* obj;
-	if (item->IsLara() && Objects[ID_LARA_SKIN].loaded)
-		obj = &Objects[ID_LARA_SKIN];
+	if (item->IsLara() && Objects[Lara.Skin.Skin].loaded)
+		obj = &Objects[Lara.Skin.Skin];
 	else
 		obj = &Objects[item->ObjectNumber];
 	

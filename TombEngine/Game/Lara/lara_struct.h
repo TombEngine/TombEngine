@@ -1273,6 +1273,8 @@ struct PlayerEffectData
 	std::array<float, NUM_LARA_MESHES> BubbleNodes = {};
 };
 
+
+
 struct PlayerInventoryData
 {
 	bool IsBusy	 = false;
@@ -1310,6 +1312,14 @@ struct PlayerInventoryData
 	int ExaminesCombo[NUM_EXAMINES * 2] = {};
 };
 
+struct PlayerSkinData
+{
+	GAME_OBJECT_ID Skin;
+	GAME_OBJECT_ID SkinJoints;
+	GAME_OBJECT_ID HairPrimary;
+	GAME_OBJECT_ID HairSecondary;
+};
+
 struct LaraInfo
 {
 	static constexpr auto TARGET_COUNT_MAX = 16;
@@ -1319,6 +1329,7 @@ struct LaraInfo
 	PlayerStatusData	Status	  = {};
 	PlayerEffectData	Effect	  = {};
 	PlayerInventoryData Inventory = {};
+	PlayerSkinData Skin = {};
 
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};

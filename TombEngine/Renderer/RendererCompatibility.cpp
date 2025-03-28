@@ -7,6 +7,7 @@
 
 #include "Game/control/control.h"
 #include "Game/effects/Hair.h"
+#include "Game/Lara/lara.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -483,7 +484,7 @@ namespace TEN::Renderer
 		);
 
 		TENLog("Preparing object data...", LogLevel::Info);
-			 
+
 		bool isSkinPresent = false;
 
 		totalVertices = 0;
@@ -530,8 +531,8 @@ namespace TEN::Renderer
 					RendererMesh *mesh = GetRendererMeshFromTrMesh(
 						&moveable,
 						&g_Level.Meshes[obj->meshIndex + j],
-						j, MoveablesIds[i] == ID_LARA_SKIN_JOINTS,
-						MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY, &lastVertex, &lastIndex);
+						j, MoveablesIds[i] == Lara.Skin.SkinJoints,
+						MoveablesIds[i] == Lara.Skin.HairPrimary || MoveablesIds[i] == Lara.Skin.HairSecondary, &lastVertex, &lastIndex);
 
 					moveable.ObjectMeshes.push_back(mesh);
 					_meshes.push_back(mesh);
@@ -634,12 +635,12 @@ namespace TEN::Renderer
 					BuildHierarchy(&moveable);
 
 					// Fix player skin joints and hair units.
-					if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
+					if (MoveablesIds[i] == Lara.Skin.SkinJoints)
 					{
 						isSkinPresent = true;
 						int bonesToCheck[2] = { 0, 0 };
 
-						const auto& objSkin = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+						const auto& objSkin = GetRendererObject(Lara.Skin.Skin);
 
 						for (int j = 1; j < obj->nmeshes; j++)
 						{
@@ -703,11 +704,11 @@ namespace TEN::Renderer
 							}
 						}
 					}
-					else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
+					else if ((MoveablesIds[i] == Lara.Skin.HairPrimary || MoveablesIds[i] == Lara.Skin.HairSecondary) && isSkinPresent)
 					{
 						bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
-						bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
-						const auto& skinObj = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+						bool isSecond = isYoung && MoveablesIds[i] == Lara.Skin.HairSecondary;
+						const auto& skinObj = GetRendererObject(Lara.Skin.Skin);
 						const auto& settings = g_GameFlow->GetSettings()->Hair;
 
 						for (int j = 0; j < obj->nmeshes; j++)

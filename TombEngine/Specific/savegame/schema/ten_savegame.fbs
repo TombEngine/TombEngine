@@ -150,6 +150,13 @@ table WeaponInfo {
 	target_state: uint32;
 }
 
+table PlayerSkin {
+	skin: uint32;
+	skin_joints: uint32;
+	hair_primary: uint32;
+	hair_secondary: uint32;
+}
+
 table ArmInfo {
 	anim_number: int32;
 	frame_number: int32;
@@ -345,6 +352,7 @@ table Lara {
 	location_pad: int32;
 	right_arm: ArmInfo;
 	status: PlayerStatusData;
+	skin: PlayerSkin;
 	target_arm_orient: EulerAngles;
 	target_entity_number: int32;
 	torch: TorchData;

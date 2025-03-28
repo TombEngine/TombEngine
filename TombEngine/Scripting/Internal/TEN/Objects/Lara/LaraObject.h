@@ -31,4 +31,5 @@ public:
 	void ThrowAwayTorch();
 	bool TorchIsLit() const;
 	using Moveable::Moveable;
+	void SetSkin(GAME_OBJECT_ID skin, GAME_OBJECT_ID skinJoints, GAME_OBJECT_ID hair1, GAME_OBJECT_ID hair2);
 };
