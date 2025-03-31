@@ -1040,11 +1040,11 @@ namespace TEN::Renderer
 
 			case WeatherType::Snow:
 
-				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
+				if (!CheckIfSlotExists(ID_SNOW_SPRITES, "Snow rendering"))
 					return;
 
 				AddSpriteBillboard(
-					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
+					&_sprites[Objects[ID_SNOW_SPRITES].meshIndex],
 					Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor()),
 					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
 					0.0f, 1.0f, Vector2(Lerp(part.PrevSize, part.Size, GetInterpolationFactor())),
