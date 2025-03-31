@@ -45,6 +45,7 @@ enum SpriteEnumFlag
 	SP_ANIMATED	  = (1 << 16),
 	SP_LIGHT	  = (1 << 17),
 	SP_SOUND	  = (1 << 18),
+	SP_CONSTRAINED = (1 << 19),
 };
 
 enum ParticleAnimType
@@ -182,6 +183,8 @@ struct Particle
 	int lightFlickerS;
 
 	int sound;
+
+	Vector3 constraint;
 
 	int PrevX;
 	int PrevY;

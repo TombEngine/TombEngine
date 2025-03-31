@@ -103,6 +103,38 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	void Renderer::AddSpriteBillboardRotated(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
+		float scale, Vector2 size, BlendMode blendMode, const Vector3& rotationDir,
+		bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
+	{
+		if (scale <= 0.0f)
+			scale = 1.0f;
+
+		size.x *= scale;
+		size.y *= scale;
+
+		RendererSpriteToDraw spr = {};
+
+		spr.Type = SpriteType::RotatedBillboard;
+		spr.Sprite = sprite;
+		spr.pos = pos;
+		spr.Rotation = orient2D;
+		spr.Scale = scale;
+		spr.Width = size.x;
+		spr.Height = size.y;
+		spr.BlendMode = blendMode;
+		spr.LookAtAxis = rotationDir;
+		spr.SoftParticle = isSoftParticle;
+		spr.c1 = color;
+		spr.c2 = color;
+		spr.c3 = color;
+		spr.c4 = color;
+		spr.color = color;
+		spr.renderType = renderType;
+
+		view.SpritesToDraw.push_back(spr);
+	}
+
 	void Renderer::AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 		const Vector4 color, float orient2D, float scale, Vector2 size, BlendMode blendMode, bool softParticles,
 		RenderView& view)

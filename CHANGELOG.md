@@ -54,6 +54,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   - You must use this version: <https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Traps/TR1_Thor%20Hammer.wad2>
 * Added TR3 Moving Laser.
 * Added TR4 Statue Plinth.
+* Added draw rotation to advanced particles to create particles with fixed orientation.
 
 ### Lua API changes
 * Added diary module.

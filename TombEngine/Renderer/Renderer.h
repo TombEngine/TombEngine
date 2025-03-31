@@ -498,6 +498,7 @@ namespace TEN::Renderer
 		void AddSpriteBillboardConstrainedLookAt(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
 					 float scale, Vector2 size, BlendMode blendMode, const Vector3& lookAtAxis,
 					 bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+		void AddSpriteBillboardRotated(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale, Vector2 size, BlendMode blendMode, const Vector3& rotationDir, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 					 const Vector4 color, float orient2D, float scale, Vector2 size, BlendMode blendMode, bool softParticles,
 					 RenderView& view);

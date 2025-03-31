@@ -286,6 +286,7 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt] bool animated Play animates sprite sequence. __default: false__
 	// @tfield[opt] Effects.ParticleAnimationType animType Animation type of the sprite sequence. __default: TEN.Effects.ParticleAnimationType.LOOP__
 	// @tfield[opt] float frameRate Sprite sequence animation framerate. __default: 1__
+	// @tfield[opt] Rotation drawRot Sprite orientation in degrees. __default: None__
 	static void EmitAdvancedParticle(const sol::table& table)
 	{
 		constexpr auto DEFAULT_START_SIZE = 10.0f;
@@ -397,6 +398,14 @@ namespace TEN::Scripting::Effects
 		{
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WIND, part.roomNumber))
 				part.flags |= SP_WIND;
+		}
+
+		Rotation convertedConstraint = table.get_or("drawRot", Rotation(0, 0, 0));
+
+		if (!(convertedConstraint == Rotation(0, 0, 0)))
+		{
+			part.flags |= SP_CONSTRAINED;
+			part.constraint = Vector3(DEG_TO_RAD(convertedConstraint.x), DEG_TO_RAD(convertedConstraint.y), DEG_TO_RAD(convertedConstraint.z));
 		}
 	}
 	

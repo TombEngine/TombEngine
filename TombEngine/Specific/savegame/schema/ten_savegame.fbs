@@ -425,6 +425,7 @@ table ParticleInfo {
 	light_flicker: int32;
 	light_flicker_s: int32;
 	sound: int32;
+	constraint: Vector3;
 }
 
 table Soundtrack {
