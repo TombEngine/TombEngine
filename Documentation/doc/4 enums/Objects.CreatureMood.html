@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>TombEngine 1.7.2 (Developer) Lua API</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>&nbsp;TombEngine</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>1 Modules</h2>
+<ul class="nowrap">
+  <li>    <a href="../1 modules/Effects.html">Effects</a></li>
+  <li>    <a href="../1 modules/Flow.html">Flow</a></li>
+  <li>    <a href="../1 modules/Input.html">Input</a></li>
+  <li>    <a href="../1 modules/Inventory.html">Inventory</a></li>
+  <li>    <a href="../1 modules/Logic.html">Logic</a></li>
+  <li>    <a href="../1 modules/Objects.html">Objects</a></li>
+  <li>    <a href="../1 modules/Sound.html">Sound</a></li>
+  <li>    <a href="../1 modules/Strings.html">Strings</a></li>
+  <li>    <a href="../1 modules/Util.html">Util</a></li>
+  <li>    <a href="../1 modules/View.html">View</a></li>
+</ul>
+<h2>2 Classes</h2>
+<ul class="nowrap">
+  <li>    <a href="../2 classes/Collision.Probe.html">Collision.Probe</a></li>
+  <li>    <a href="../2 classes/Flow.Level.html">Flow.Level</a></li>
+  <li>    <a href="../2 classes/Flow.Settings.html">Flow.Settings</a></li>
+  <li>    <a href="../2 classes/Flow.Statistics.html">Flow.Statistics</a></li>
+  <li>    <a href="../2 classes/Objects.AIObject.html">Objects.AIObject</a></li>
+  <li>    <a href="../2 classes/Objects.Camera.html">Objects.Camera</a></li>
+  <li>    <a href="../2 classes/Objects.CreatureInfo.html">Objects.CreatureInfo</a></li>
+  <li>    <a href="../2 classes/Objects.LaraObject.html">Objects.LaraObject</a></li>
+  <li>    <a href="../2 classes/Objects.Moveable.html">Objects.Moveable</a></li>
+  <li>    <a href="../2 classes/Objects.Room.html">Objects.Room</a></li>
+  <li>    <a href="../2 classes/Objects.Sink.html">Objects.Sink</a></li>
+  <li>    <a href="../2 classes/Objects.SoundSource.html">Objects.SoundSource</a></li>
+  <li>    <a href="../2 classes/Objects.Static.html">Objects.Static</a></li>
+  <li>    <a href="../2 classes/Objects.Volume.html">Objects.Volume</a></li>
+  <li>    <a href="../2 classes/Strings.DisplayString.html">Strings.DisplayString</a></li>
+  <li>    <a href="../2 classes/View.DisplaySprite.html">View.DisplaySprite</a></li>
+</ul>
+<h2>3 Primitive Classes</h2>
+<ul class="nowrap">
+  <li>    <a href="../3 primitive classes/Flow.Fog.html">Flow.Fog</a></li>
+  <li>    <a href="../3 primitive classes/Flow.Horizon.html">Flow.Horizon</a></li>
+  <li>    <a href="../3 primitive classes/Flow.InventoryItem.html">Flow.InventoryItem</a></li>
+  <li>    <a href="../3 primitive classes/Flow.LensFlare.html">Flow.LensFlare</a></li>
+  <li>    <a href="../3 primitive classes/Flow.SkyLayer.html">Flow.SkyLayer</a></li>
+  <li>    <a href="../3 primitive classes/Flow.Starfield.html">Flow.Starfield</a></li>
+  <li>    <a href="../3 primitive classes/Color.html">Color</a></li>
+  <li>    <a href="../3 primitive classes/Rotation.html">Rotation</a></li>
+  <li>    <a href="../3 primitive classes/Time.html">Time</a></li>
+  <li>    <a href="../3 primitive classes/Vec2.html">Vec2</a></li>
+  <li>    <a href="../3 primitive classes/Vec3.html">Vec3</a></li>
+</ul>
+<h2>4 Enums</h2>
+<ul class="nowrap">
+  <li>    <a href="../4 enums/Collision.MaterialType.html">Collision.MaterialType</a></li>
+  <li>    <a href="../4 enums/Effects.BlendID.html">Effects.BlendID</a></li>
+  <li>    <a href="../4 enums/Effects.EffectID.html">Effects.EffectID</a></li>
+  <li>    <a href="../4 enums/Effects.FeatherMode.html">Effects.FeatherMode</a></li>
+  <li>    <a href="../4 enums/Effects.ParticleAnimationType.html">Effects.ParticleAnimationType</a></li>
+  <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
+  <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
+  <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <here>Objects.CreatureMood</here></li>
+  <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
+  <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
+  <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
+  <li>    <a href="../4 enums/Objects.MoveableStatus.html">Objects.MoveableStatus</a></li>
+  <li>    <a href="../4 enums/Objects.ObjID.html">Objects.ObjID</a></li>
+  <li>    <a href="../4 enums/Objects.RoomFlagID.html">Objects.RoomFlagID</a></li>
+  <li>    <a href="../4 enums/Objects.RoomReverb.html">Objects.RoomReverb</a></li>
+  <li>    <a href="../4 enums/Sound.SoundTrackType.html">Sound.SoundTrackType</a></li>
+  <li>    <a href="../4 enums/Strings.DisplayStringOption.html">Strings.DisplayStringOption</a></li>
+  <li>    <a href="../4 enums/Util.LogLevel.html">Util.LogLevel</a></li>
+  <li>    <a href="../4 enums/View.AlignMode.html">View.AlignMode</a></li>
+  <li>    <a href="../4 enums/View.CameraType.html">View.CameraType</a></li>
+  <li>    <a href="../4 enums/View.PostProcessMode.html">View.PostProcessMode</a></li>
+  <li>    <a href="../4 enums/View.ScaleMode.html">View.ScaleMode</a></li>
+</ul>
+<h2>5 Lua utility modules</h2>
+<ul class="nowrap">
+  <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
+  <li>    <a href="../5 lua utility modules/Diary.html">Diary</a></li>
+  <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
+  <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
+  <li>    <a href="../5 lua utility modules/Type.html">Type</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Enum <code>Objects.CreatureMood</code></h1>
+<p>Constants for creature mood.</p>
+<p>
+
+</p>
+
+
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" ><a href="#Objects.CreatureMood">Objects.CreatureMood</a></td>
+	<td class="summary">Table of Objects.Creature constants.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "Objects.CreatureMood"></a>
+    <strong>Objects.CreatureMood</strong>
+    </dt>
+    <dd>
+
+<p>Table of Objects.Creature constants.
+ To be used with <a href="../2 classes/Objects.CreatureInfo.html#GetMood">Objects.CreatureInfo.GetMood</a> function.</p>
+
+<ul>
+    <li><code>BORED</code></li>
+    <li><code>ATTACK</code></li>
+    <li><code>ESCAPE</code></li>
+    <li><code>STALK</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="https://github.com/hispidence/TEN-LDoc">TEN-LDoc</a> (a fork of <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a>)</i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

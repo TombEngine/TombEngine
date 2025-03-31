@@ -22,6 +22,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added missing constructor for `Collision.Probe` without room number.
 * Added optional looping argument for `View.GetFlybyPosition` and `View.GetFlybyRotation` functions.
+* Added `Objects.CreatureInfo` class to probe creature mood and other AI status.
 
 ## [Version 1.8](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8) - 2025-03-16
 

@@ -848,6 +848,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Collision\MaterialTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Collision\Probe.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\Creature.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\CreatureStates.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\HandStatuses.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ErrorModes.h" />
@@ -1306,6 +1308,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Collision\Probe.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Creature\Creature.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Time\Time.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.cpp" />

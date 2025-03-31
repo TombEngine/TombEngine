@@ -6,6 +6,8 @@
 #include "Game/Lara/lara.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/TEN/Objects/Creature/Creature.h"
+#include "Scripting/Internal/TEN/Objects/Creature/CreatureStates.h"
 #include "Scripting/Internal/TEN/Objects/Camera/CameraObject.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/HandStatuses.h"
@@ -163,6 +165,8 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
 		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
 
+	LuaCreatureInfo::Register(_table_objects);
+
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_ObjID, GAME_OBJECT_IDS);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomFlagID, ROOM_FLAG_IDS);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomReverb, ROOM_REVERB_TYPES);
@@ -170,6 +174,7 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_AmmoType, AMMO_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_HandStatus, HAND_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoveableStatus, MOVEABLE_STATUSES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_CreatureMood, CREATURE_MOOD);
 }
 
 void ObjectsHandler::TestCollidingObjects()
