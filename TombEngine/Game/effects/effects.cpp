@@ -1266,6 +1266,88 @@ void TriggerWaterfallMist(const ItemInfo& item)
 	}
 }
 
+void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color)
+{
+	static const int scale = 3;
+
+	float cos = phd_cos(angle);
+	float sin = phd_sin(angle);
+
+	int maxPosX = width * sin + pos.x;
+	int maxPosZ = width * cos + pos.z;
+	int minPosX = -width * sin + pos.x;
+	int minPosZ = -width * cos + pos.z;
+
+	float fadeMin = GetParticleDistanceFade(Vector3i(minPosX, pos.y, minPosZ));
+	float fadeMax = GetParticleDistanceFade(Vector3i(maxPosX, pos.y, maxPosZ));
+
+	if ((fadeMin == 0.0f) && (fadeMin == fadeMax))
+		return;
+
+	float finalFade = ((fadeMin >= 1.0f) && (fadeMin == fadeMax)) ? 1.0f : std::max(fadeMin, fadeMax);
+
+	auto startColor = color / 4.0f * finalFade * float(UCHAR_MAX);
+	auto endColor = color / 8.0f * finalFade * float(UCHAR_MAX);
+
+	float step = size * scale;
+	int currentStep = 0;
+
+	while (true)
+	{
+		int offset = (step * currentStep) + Random::GenerateInt(-32, 32);
+
+		if (offset > width)
+			break;
+
+		for (int sign = -1; sign <= 1; sign += 2)
+		{
+			auto* spark = GetFreeParticle();
+			spark->on = true;
+
+			char colorOffset = (Random::GenerateInt(-8, 8));
+			spark->sR = std::clamp(int(startColor.x) + colorOffset, 0, UCHAR_MAX);
+			spark->sG = std::clamp(int(startColor.y) + colorOffset, 0, UCHAR_MAX);
+			spark->sB = std::clamp(int(startColor.z) + colorOffset, 0, UCHAR_MAX);
+			spark->dR = std::clamp(int(endColor.x) + colorOffset, 0, UCHAR_MAX);
+			spark->dG = std::clamp(int(endColor.y) + colorOffset, 0, UCHAR_MAX);
+			spark->dB = std::clamp(int(endColor.z) + colorOffset, 0, UCHAR_MAX);
+
+			spark->colFadeSpeed = 1;
+			spark->blendMode = BlendMode::Additive;
+			spark->life = spark->sLife = Random::GenerateInt(8, 12);
+			spark->fadeToBlack = spark->life - 6;
+
+			spark->x = offset * sign * sin + Random::GenerateInt(-8, 8) + pos.x;
+			spark->y = Random::GenerateInt(0, 16) + pos.y - 8;
+			spark->z = offset * sign * cos + Random::GenerateInt(-8, 8) + pos.z;
+
+			spark->xVel = 0;
+			spark->yVel = Random::GenerateInt(-64, 64);
+			spark->zVel = 0;
+
+			spark->friction = 0;
+			spark->rotAng = GetRandomControl() & 0xFFF;
+			spark->scalar = scale;
+			spark->maxYvel = 0;
+			spark->rotAdd = Random::GenerateInt(-16, 16);
+			spark->gravity = -spark->yVel >> 2;
+			spark->sSize = spark->size = Random::GenerateInt(0, 3) * scale + size;
+			spark->dSize = 2 * spark->size;
+
+			spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+			spark->SpriteID = Random::GenerateInt(0, 100) > 95 ? 17 : 0;
+			spark->flags = 538;
+
+			if (sign == 1)
+			{
+				currentStep++;
+				if (currentStep == 1)
+					break;
+			}
+		}
+	}
+}
+
 void KillAllCurrentItems(short itemNumber)
 {
 	// TODO: Reimplement this functionality.

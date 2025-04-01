@@ -283,6 +283,7 @@ short DoBloodSplat(int x, int y, int z, short speed, short yRot, short roomNumbe
 void DoLotsOfBlood(int x, int y, int z, int speed, short direction, short roomNumber, int count);
 void ControlWaterfallMist(short itemNumber);
 void TriggerWaterfallMist(const ItemInfo& item);
+void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color);
 void KillAllCurrentItems(short itemNumber);
 void TriggerRocketFlame(int x, int y, int z, int xv, int yv, int zv, int itemNumber);
 void TriggerRocketSmoke(int x, int y, int z);

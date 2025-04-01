@@ -1145,6 +1145,50 @@ void TriggerUnderwaterExplosion(ItemInfo* item, int flag)
 	}
 }
 
+void TriggerUnderwaterExplosion(Vector3 position, bool flag)
+{
+	int roomNumber = FindRoomNumber(position);
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	if (!flag)
+	{
+		int x = (GetRandomControl() & 0x1FF) + position.x - CLICK(1);
+		int y = position.y;
+		int z = (GetRandomControl() & 0x1FF) + position.z - CLICK(1);
+
+
+
+		TriggerExplosionBubbles(x, y, z, room.RoomNumber);
+		TriggerExplosionSparks(x, y, z, 2, -1, 1, room.RoomNumber);
+
+		int waterHeight = GetPointCollision(Vector3i(x, y, z), room.RoomNumber).GetWaterTopHeight();
+		if (waterHeight != NO_HEIGHT)
+			SomeSparkEffect(x, waterHeight, z, 8);
+	}
+	else
+	{
+		TriggerExplosionBubble(position.x, position.y, position.z, room.RoomNumber);
+		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, room.RoomNumber);
+
+		for (int i = 0; i < 3; i++)
+			TriggerExplosionSparks(position.x, position.y, position.z, 2, -1, 1, room.RoomNumber);
+
+		int waterHeight = GetPointCollision(position, room.RoomNumber).GetWaterTopHeight();
+		if (waterHeight != NO_HEIGHT)
+		{
+			int dy = position.y - waterHeight;
+			if (dy < 2048)
+			{
+				SplashSetup.Position = Vector3(position.x, waterHeight, position.z);
+				SplashSetup.InnerRadius = 160;
+				SplashSetup.SplashPower = 2048 - dy;
+
+				SetupSplash(&SplashSetup, room.RoomNumber);
+			}
+		}
+	}
+}
+
 void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle)
 {
 	if (g_Level.Rooms[vehicle->RoomNumber].flags & ENV_FLAG_WATER)

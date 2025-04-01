@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
+#include "Game/effects/blood.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
@@ -32,10 +33,12 @@
 #include "Specific/trutils.h"
 #include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
+
 /// Functions to generate effects.
 // @tentable Effects 
 // @pragma nostrip
 
+using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Electricity;
@@ -481,7 +484,12 @@ namespace TEN::Scripting::Effects
 	// @tparam int count Sprite count. __default: 1__
 	static void EmitBlood(const Vec3& pos, TypeOrNil<int> count)
 	{
-		TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+		if (room.flags & ENV_FLAG_WATER)
+			SpawnUnderwaterBloodCloud(pos, roomNumber, (GetRandomControl() & 7) + 8, ValueOr<int>(count, 1));
+		else
+			TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
 	}
 
 	/// Emit an air bubble in a water room.
@@ -500,6 +508,27 @@ namespace TEN::Scripting::Effects
 		SpawnBubble(pos.ToVector3(), roomNumber, convertedSize, convertedAmp);
 	}
 
+	/// Emit waterfall mist.
+	// @function EmitWaterfallMist
+	// @tparam Vec3 pos World position where the effect will be spawned.
+	// @tparam[opt] float size Effect size. __Default: 64__
+	// @tparam[opt] float width Width of the effect. __Default: 32__
+	// @tparam[opt] float rot Rotation of effect in degrees. __Default: 0__
+	// @tparam[opt] Color color Color of the effect.__Default: Color(255, 255, 255, 255))__
+	static void EmitWaterfallMist(const Vec3& pos, TypeOrNil<int> size, TypeOrNil<int> width, TypeOrNil<float> angle, TypeOrNil<ScriptColor> color)
+	{
+		constexpr auto DEFAULT_SIZE = 64;
+		constexpr auto DEFAULT_WIDTH = 32;
+
+		auto convertedAngle = ANGLE(ValueOr<float>(angle, 0.0f));
+		auto convertedSize = ValueOr<int>(size, DEFAULT_SIZE);
+		auto convertedWidth = ValueOr<int>(width, DEFAULT_WIDTH);
+		auto _color = ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255));
+		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
+
+		TriggerWaterfallMist(pos, convertedSize, convertedWidth, convertedAngle, convertedColor);
+	}
+
 	/// Emit fire for one frame. Will not hurt player. Call this each frame if you want a continuous fire.
 	// @function EmitFire
 	// @tparam Vec3 pos
@@ -513,10 +542,16 @@ namespace TEN::Scripting::Effects
 	// @function MakeExplosion 
 	// @tparam Vec3 pos
 	// @tparam float size (default 512.0) this will not be the size of the sprites, but rather the distance between the origin and any additional sprites
-	// @tparam bool shockwave (default false) if true, create a very faint white shockwave which will not hurt Lara
+	// @tparam bool shockwave (default false) if true, create a very faint white shockwave which will not hurt Lara. For underwater rooms it creates a splash if the pos is near the surface.
 	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave)
 	{
-		TriggerExplosion(Vector3(pos.x, pos.y, pos.z), ValueOr<float>(size, 512.0f), true, false, ValueOr<bool>(shockwave, false), FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)));
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+
+		if (room.flags & ENV_FLAG_WATER)
+			TriggerUnderwaterExplosion(pos.ToVector3(), ValueOr<bool>(shockwave, false));
+		else
+			TriggerExplosion(Vector3(pos.x, pos.y, pos.z), ValueOr<float>(size, 512.0f), true, false, ValueOr<bool>(shockwave, false), FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)));
 	}
 
 	/// Make an earthquake
@@ -582,6 +617,78 @@ namespace TEN::Scripting::Effects
 			convertedEdgeFeatherID, /*convertedLengthFeatherID, */convertedBlendID);
 	}
 
+	/// Emit a visual sink effect.
+	// @function EmitSink
+	// @tparam Vec3 pos World position.
+	// @tparam Vec3 dir Directional vector.
+	// @tparam[opt] float radius Radius of emitter. The particles will be emitted inside the circle of provided radius measured from centre of world position. __default: 512__ 
+	// @tparam[opt] float life Lifespan in seconds. __default: 1__
+	// @tparam[opt] float vel Velocity of the particles in world units per second. __default: 512__
+	// @tfield[opt] float friction Friction affecting velocity over time in world units per second. __default: 0__
+	// @tparam[opt] float maxSize Max size of the particle. __default: 25__
+	// @tparam[opt] Color startColor Color at start of life. __default: Color(128, 128, 128)__
+	// @tparam[opt] Color endColor Color at end of life. __default: Color(0, 0, 0)__
+	static void EmitSink(const Vec3& pos, const Vec3& dir, TypeOrNil<float> radius, TypeOrNil<float> life, TypeOrNil<float> vel, TypeOrNil<float> friction, TypeOrNil<float> maxSize, TypeOrNil<ScriptColor> startColor, TypeOrNil<ScriptColor> endColor)
+	{
+		constexpr auto DEFAULT_LIFE = 1.0f;
+		constexpr auto SECS_PER_FRAME = 1.0f / (float)FPS;
+		constexpr auto DUST_SIZE_MAX = 25.0f;
+
+		auto convertedPos = pos.ToVector3();
+		auto convertedDir = dir.ToVector3();
+		auto convertedRad = ValueOr<float>(radius, BLOCK(0.5f));
+		auto convertedLife = std::max(0.1f, ValueOr<float>(life, DEFAULT_LIFE));
+		auto convertedVel = ValueOr<float>(vel, BLOCK(0.5f)) / (float)FPS;
+		auto convertedFriction = ValueOr<float>(friction, 0) / (float)FPS;
+		auto convertedMaxSize = std::max(0.1f, ValueOr<float>(maxSize, DUST_SIZE_MAX));
+		auto convertedStartColor = ValueOr<ScriptColor>(startColor, ScriptColor(128, 128, 128, 255));
+		auto convertedEndColor = ValueOr<ScriptColor>(endColor, ScriptColor(0, 0, 0, 255));
+
+		auto& part = *GetFreeParticle();
+
+		part.on = true;
+		part.SpriteSeqID = ID_DEFAULT_SPRITES;
+		part.SpriteID = SPRITE_TYPES::SPR_UNDERWATERDUST;
+		part.blendMode = BlendMode::Additive;
+
+		// Set particle colors
+		part.sR = convertedStartColor.GetR();
+		part.sG = convertedStartColor.GetG();
+		part.sB = convertedStartColor.GetB();
+
+		part.dR = convertedEndColor.GetR();
+		part.dG = convertedEndColor.GetG();
+		part.dB = convertedEndColor.GetB();
+
+		part.life =
+			part.sLife = (int)round(convertedLife / SECS_PER_FRAME);
+		part.colFadeSpeed = part.life / 2;
+		part.fadeToBlack = part.life / 3;
+
+		// Randomize position within the given radius
+		float angle = TO_DEGREES(Random::GenerateAngle());
+		float randRadius = sqrt(Random::GenerateFloat()) * convertedRad;
+
+		part.x = convertedPos.x + randRadius * cos(angle);
+		part.y = convertedPos.y + (Random::GenerateFloat() * 2.0f - 1.0f) * convertedRad;
+		part.z = convertedPos.z + randRadius * sin(angle);
+		part.roomNumber = FindRoomNumber(Vector3i(part.x, part.y, part.z));
+
+		// Normalize direction
+		convertedDir.Normalize();
+
+		part.xVel = convertedDir.x * convertedVel * 32;
+		part.yVel = convertedDir.y * convertedVel * 32;
+		part.zVel = convertedDir.z * convertedVel * 32;
+
+		// Other properties
+		part.friction = convertedFriction;
+		part.maxYvel = 0;
+		part.gravity = 0;
+		part.flags = SP_DEF | SP_EXPDEF;
+		part.sSize = part.size = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
+	}
+
 	void Register(sol::state* state, sol::table& parent) 
 	{
 		auto tableEffects = sol::table(state->lua_state(), sol::create);
@@ -598,7 +705,8 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
-
+		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
+		tableEffects.set_function(ScriptReserved_EmitSink, &EmitSink);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);

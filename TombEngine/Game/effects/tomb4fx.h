@@ -332,4 +332,5 @@ void TriggerShockwaveHitEffect(int x, int y, int z, unsigned char r, unsigned ch
 void UpdateShockwaves();
 void TriggerSmallSplash(int x, int y, int z, int number);
 void TriggerUnderwaterExplosion(ItemInfo* item, int flag);
+void TriggerUnderwaterExplosion(Vector3 position, bool flag);
 void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle);

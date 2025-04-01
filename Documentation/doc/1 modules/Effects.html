@@ -156,6 +156,10 @@
 	<td class="summary">Emit an air bubble in a water room.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#EmitWaterMist">EmitWaterMist(pos[, size][, width][, rot][, color])</a></td>
+	<td class="summary">Emit waterfall mist.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#EmitFire">EmitFire(pos, size)</a></td>
 	<td class="summary">Emit fire for one frame.</td>
 	</tr>
@@ -174,6 +178,10 @@
 	<tr>
 	<td class="name" ><a href="#EmitStreamer">EmitStreamer(mov, tag, pos, dir[, rot][, startColor][, endColor][, width][, life][, vel][, expRate][, rotRate][, edgeFeatherMode][, lengthFeatherMode][, blendID])</a></td>
 	<td class="summary">Emit an extending streamer effect.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#EmitSink">EmitSink(pos, dir[, radius][, life][, vel][, maxSize][, startColor][, endColor])</a></td>
+	<td class="summary">Emit a visual sink effect.</td>
 	</tr>
 </table>
 <h2><a href="#Tables">Tables</a></h2>
@@ -613,6 +621,48 @@ EmitAdvancedParticle(particle)</pre>
 
 </dd>
     <dt>
+    <a name = "EmitWaterMist"></a>
+    <strong>EmitWaterMist(pos[, size][, width][, rot][, color])</strong>
+    </dt>
+    <dd>
+    Emit waterfall mist.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         World position where the effect will be spawned.
+        </li>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">float</span></span>
+         Effect size. <strong>Default: 64</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">width</span>
+            <span class="types"><span class="type">float</span></span>
+         Width of the effect. <strong>Default: 32</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">rot</span>
+            <span class="types"><span class="type">float</span></span>
+         Rotation of effect in degrees. <strong>Default: 0</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">color</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Color of the effect.<strong>Default: Color(255, 255, 255, 255))</strong>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "EmitFire"></a>
     <strong>EmitFire(pos, size)</strong>
     </dt>
@@ -663,7 +713,7 @@ EmitAdvancedParticle(particle)</pre>
         </li>
         <li><span class="parameter">shockwave</span>
             <span class="types"><span class="type">bool</span></span>
-         (default false) if true, create a very faint white shockwave which will not hurt Lara
+         (default false) if true, create a very faint white shockwave which will not hurt Lara. For underwater rooms it creates a splash if the pos is near the surface.
         </li>
     </ul>
 
@@ -796,6 +846,62 @@ EmitAdvancedParticle(particle)</pre>
         <li><span class="parameter">blendID</span>
             <span class="types"><a class="type" href="../4 enums/Effects.BlendID.html#">BlendID</a></span>
          Renderer blend ID. <strong>Default: Effects.BlendID.ALPHA_BLEND</strong>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "EmitSink"></a>
+    <strong>EmitSink(pos, dir[, radius][, life][, vel][, maxSize][, startColor][, endColor])</strong>
+    </dt>
+    <dd>
+    Emit a visual sink effect.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         World position.
+        </li>
+        <li><span class="parameter">dir</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Directional vector.
+        </li>
+        <li><span class="parameter">radius</span>
+            <span class="types"><span class="type">float</span></span>
+         Radius of emitter. The particles will be emitted inside the circle of provided radius measured from centre of world position. <strong>default: 512</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">life</span>
+            <span class="types"><span class="type">float</span></span>
+         Lifespan in seconds. <strong>default: 1</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">vel</span>
+            <span class="types"><span class="type">float</span></span>
+         Velocity of the particles in world units per second. <strong>default: 512</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">maxSize</span>
+            <span class="types"><span class="type">float</span></span>
+         Max size of the particle. <strong>default: 25</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">startColor</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Color at start of life. <strong>default: Color(128, 128, 128)</strong>
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">endColor</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Color at end of life. <strong>default: Color(0, 0, 0)</strong>
          (<em>optional</em>)
         </li>
     </ul>
