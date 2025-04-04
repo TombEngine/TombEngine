@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/Lara/lara_struct.h"
+#include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 
 // TODO: Organise.
@@ -19,6 +20,7 @@ public:
 	int GetWet() const;
 	bool GetAirborne() const;
 	void SetAirborne(bool newAirborne);
+
 	std::unique_ptr<Moveable> GetVehicle() const;
 	std::unique_ptr<Moveable> GetTarget() const;
 	std::unique_ptr<Moveable> GetPlayerInteractedMoveable() const;
@@ -27,8 +29,17 @@ public:
 	void SetWeaponType(LaraWeaponType weaponType, bool activate);
 	int GetAmmoType() const;
 	int GetAmmoCount() const;
+
 	void UndrawWeapon();
-	void ThrowAwayTorch();
-	bool TorchIsLit() const;
+	void DiscardTorch();
+	bool IsTorchLit() const;
+
+	void Interact(const Moveable& mov, TypeOrNil<int> animNumber,
+				  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
+				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<InputActionID> actionID) const;
+	bool TestInteraction(const Moveable& mov,
+						 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
+						 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const;
+	
 	using Moveable::Moveable;
 };

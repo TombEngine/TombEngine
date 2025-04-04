@@ -14,6 +14,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 
+### Lua API changes
+* Added AlignToMoveable function to `Lara` to allow alignment with moveables.
+
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
 
 ### Bug fixes
