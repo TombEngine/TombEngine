@@ -666,6 +666,7 @@ namespace TEN::Renderer
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
 		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
+		void DrawObjectIn3DSpace(int objectNumber, Vector3 pos3D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void SetLoadingScreen(std::wstring& fileName);
 		void SetTextureOrDefault(Texture2D& texture, std::wstring path);
 		std::string GetDefaultAdapterName();

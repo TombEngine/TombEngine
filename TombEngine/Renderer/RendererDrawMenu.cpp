@@ -895,6 +895,118 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::DrawObjectIn3DSpace(int objectNumber, Vector3 pos3D, EulerAngles orient, float scale, float opacity, int meshBits)
+	{
+		constexpr auto AMBIENT_LIGHT_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		constexpr float NearPlane = 0.1f; // Near clipping plane
+		constexpr float FarPlane = BLOCK(100); // Far clipping plane
+
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
+		int invObjectID = g_Gui.ConvertObjectToInventoryItem(objectNumber);
+		if (invObjectID != NO_VALUE)
+		{
+			const auto& invObject = InventoryObjectTable[invObjectID];
+
+			pos3D.y += invObject.YOffset;
+			orient += invObject.Orientation;
+		}
+		
+		float aspectRatio = static_cast<float>(_screenWidth) / _screenHeight;
+
+		auto viewMatrix = Matrix::CreateLookAt(Vector3(0.0f, 0.0f, -BLOCK(1)), Vector3::Zero, Vector3::Up);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(
+			CurrentFOV, aspectRatio, NearPlane, FarPlane);
+		
+		auto& moveableObject = _moveableObjects[objectNumber];
+		if (!moveableObject.has_value())
+			return;
+
+		const auto& object = Objects[objectNumber];
+		if (object.animIndex != -1)
+		{
+			auto frameData = AnimFrameInterpData
+			{
+				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
+				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
+				0.0f
+			};
+			UpdateAnimation(nullptr, *moveableObject, frameData, UINT_MAX);
+		}
+
+		// Set vertex buffer.
+		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_context->IASetInputLayout(_inputLayout.Get());
+		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		// Set shaders.
+		_shaders.Bind(Shader::Inventory);
+
+		// Set matrices.
+		auto hudCamera = CCameraMatrixBuffer{};
+		hudCamera.CamDirectionWS = -Vector4::UnitZ;
+		hudCamera.ViewProjection = viewMatrix * projMatrix;
+		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
+		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+
+		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+		{
+			if (meshBits && !(meshBits & (1 << i)))
+				continue;
+
+			// HACK: Rotate compass needle.
+			if (objectNumber == ID_COMPASS_ITEM && i == 1)
+				moveableObject->LinearizedBones[i]->ExtraRotation = EulerAngles(0, g_Gui.CompassNeedleAngle - ANGLE(180.0f), 0).ToQuaternion();
+
+			// Construct world matrix. // pos.x, pos.y, pos.z
+			auto translationMatrix = Matrix::CreateTranslation(pos3D.x, pos3D.y, pos3D.z);
+			auto rotMatrix = orient.ToRotationMatrix();
+			auto scaleMatrix = Matrix::CreateScale(scale);
+			auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
+
+			if (object.animIndex != NO_VALUE)
+			{
+				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+			}
+			else
+			{
+				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+			}
+
+			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stItem.Color = Vector4::One;
+			_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
+
+			_cbItem.UpdateData(_stItem, _context.Get());
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+			const auto& mesh = *moveableObject->ObjectMeshes[i];
+			for (const auto& bucket : mesh.Buckets)
+			{
+				if (bucket.NumVertices == 0)
+					continue;
+
+				SetBlendMode(BlendMode::Opaque);
+				SetCullMode(CullMode::CounterClockwise); //CounterClockwise
+				SetDepthState(DepthState::Write);
+
+				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+				BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+
+				if (bucket.BlendMode != BlendMode::Opaque)
+					SetBlendMode(bucket.BlendMode, true);
+
+				SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+				DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+				_numMoveablesDrawCalls++;
+			}
+		}
+	}
+
 	void Renderer::RenderTitleImage()
 	{
 		Texture2D texture;
