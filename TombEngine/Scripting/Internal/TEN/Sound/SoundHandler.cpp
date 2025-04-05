@@ -14,7 +14,7 @@
 
 namespace TEN::Scripting::Sound
 {
-	/// Play an audio track. Supported formats are wav, mp3 and ogg.
+	/// Play an audio track. Should be placed in the `Audio` folder. Supported formats are wav, mp3 and ogg.
 	// @function PlayAudioTrack
 	// @tparam string filename Filename of a track (without file extension) to play.
 	// @tparam Sound.SoundTrackType type Type of the audio track to play.

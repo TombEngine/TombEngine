@@ -51,6 +51,10 @@ namespace TEN::Debug
 		}
 
 		auto logger = spdlog::get("multi_sink");
+
+		if (!logger)
+			return;
+
 		switch (level)
 		{
 		case LogLevel::Error:

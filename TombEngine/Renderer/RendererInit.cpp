@@ -12,21 +12,24 @@
 #include "Specific/configuration.h"
 #include "Specific/memory/Vector.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
 extern GameConfiguration g_Configuration;
 
 using namespace TEN::Renderer::Utils;
+using namespace TEN::Video;
 
 namespace TEN::Renderer
 {
-	void Renderer::Initialize(int w, int h, bool windowed, HWND handle)
+	void Renderer::Initialize(const std::string& gameDir, int w, int h, bool windowed, HWND handle)
 	{
 		TENLog("Initializing DX11...", LogLevel::Info);
 
 		_screenWidth = w;
 		_screenHeight = h;
 		_isWindowed = windowed;
+
 		InitializeScreen(w, h, handle, false);
 		InitializeCommonTextures();
 
@@ -230,6 +233,9 @@ namespace TEN::Renderer
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
+
+		// Initialize video player.
+		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
 	}
 
 	void Renderer::InitializePostProcess()

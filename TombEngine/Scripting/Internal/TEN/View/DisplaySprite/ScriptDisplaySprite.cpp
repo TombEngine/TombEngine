@@ -25,7 +25,9 @@ namespace TEN::Scripting::DisplaySprite
 		// NOTE: Single constructor with a sol::optional argument for the color doesn't work, hence the two constructors. -- Sezz 2023.10.19
 		using ctors = sol::constructors<
 			ScriptDisplaySprite(GAME_OBJECT_ID, int, const Vec2&, float, const Vec2&, const ScriptColor&),
-			ScriptDisplaySprite(GAME_OBJECT_ID, int, const Vec2&, float, const Vec2&)>;
+			ScriptDisplaySprite(GAME_OBJECT_ID, int, const Vec2&, float, const Vec2&),
+			ScriptDisplaySprite(const Vec2&, float, const Vec2&, const ScriptColor&),
+			ScriptDisplaySprite(const Vec2&, float, const Vec2&)>;
 
 		// Register type.
 		parent.new_usertype<ScriptDisplaySprite>(
@@ -49,7 +51,7 @@ namespace TEN::Scripting::DisplaySprite
 	}
 
 	/// Create a DisplaySprite object.
-	// @function DisplaySprite()
+	// @function DisplaySprite
 	// @tparam Objects.ObjID.SpriteConstants ID of the sprite sequence object.
 	// @tparam int int spriteID ID of the sprite in the sequence.
 	// @tparam Vec2 pos Display position in percent.
@@ -60,7 +62,7 @@ namespace TEN::Scripting::DisplaySprite
 	ScriptDisplaySprite::ScriptDisplaySprite(GAME_OBJECT_ID objectID, int spriteID, const Vec2& pos, float rot, const Vec2& scale, const ScriptColor& color)
 	{
 		_objectID = objectID;
-		_spriteID = spriteID;
+		_spriteID = std::clamp(spriteID, 0, INT_MAX);
 		_position = pos;
 		_rotation = rot;
 		_scale = scale;
@@ -69,9 +71,30 @@ namespace TEN::Scripting::DisplaySprite
 
 	ScriptDisplaySprite::ScriptDisplaySprite(GAME_OBJECT_ID objectID, int spriteID, const Vec2& pos, float rot, const Vec2& scale)
 	{
-		static const auto DEFAULT_COLOR = ScriptColor(255, 255, 255, 255);
+		*this = ScriptDisplaySprite(objectID, spriteID, pos, rot, scale, ScriptColor(255, 255, 255, 255));
+	}
 
-		*this = ScriptDisplaySprite(objectID, spriteID, pos, rot, scale, DEFAULT_COLOR);
+	/// Create a DisplaySprite object with a video image.
+	// Video should be played using @{View.PlayVideo} function in a background mode. If no video is played, sprite will not show.
+	// @function DisplaySprite
+	// @tparam Vec2 pos Display position in percent.
+	// @tparam float rot Rotation in degrees.
+	// @tparam Vec2 scale Horizontal and vertical scale in percent. Scaling is interpreted by the DisplaySpriteEnum.ScaleMode passed to the Draw() function call.
+	// @tparam[opt] Color color Color. __Default: Color(255, 255, 255, 255)__
+	// @treturn DisplaySprite A new DisplaySprite object with attached video image.
+	ScriptDisplaySprite::ScriptDisplaySprite(const Vec2& pos, float rot, const Vec2& scale, const ScriptColor& color)
+	{
+		_objectID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
+		_spriteID = NO_VALUE;
+		_position = pos;
+		_rotation = rot;
+		_scale = scale;
+		_color = color;
+	}
+
+	ScriptDisplaySprite::ScriptDisplaySprite(const Vec2& pos, float rot, const Vec2& scale)
+	{
+		*this = ScriptDisplaySprite(pos, rot, scale, ScriptColor(255, 255, 255, 255));
 	}
 
 	/// Get the object ID of the sprite sequence object used by the display sprite.
@@ -84,7 +107,7 @@ namespace TEN::Scripting::DisplaySprite
 
 	/// Get the sprite ID in the sprite sequence object used by the display sprite.
 	// @function DisplaySprite:GetSpriteID()
-	// @treturn int Sprite ID in the sprite sequence object.
+	// @treturn int Sprite ID in the sprite sequence object. Value __-1__ means that it is a background video, played using @{View.PlayVideo}.
 	int ScriptDisplaySprite::GetSpriteID() const
 	{
 		return _spriteID;
@@ -190,7 +213,7 @@ namespace TEN::Scripting::DisplaySprite
 		constexpr auto DEFAULT_BLEND_MODE = BlendMode::AlphaBlend;
 
 		// Object is not a sprite sequence; return early.
-		if (_objectID < GAME_OBJECT_ID::ID_HORIZON || _objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
+		if (_spriteID != NO_VALUE && (_objectID < GAME_OBJECT_ID::ID_HORIZON || _objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS))
 		{
 			TENLog("Attempted to draw display sprite from non-sprite sequence object " + std::to_string(_objectID), LogLevel::Warning);
 			return;

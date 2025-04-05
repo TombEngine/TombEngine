@@ -19,11 +19,12 @@
 #include "Scripting/Internal/LanguageScript.h"
 #include "Scripting/Include/ScriptInterfaceState.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
+#include "Video/Video.h"
 
 using namespace TEN::Renderer;
 using namespace TEN::Input;
 using namespace TEN::Utils;
-
+using namespace TEN::Video;
 
 WINAPP App;
 unsigned int ThreadID, ConsoleThreadID;
@@ -354,8 +355,11 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (!DebugMode && ThreadHandle > 0)
 			{
 				TENLog("Resuming game thread", LogLevel::Info);
+
+				if (!g_VideoPlayer.Resume())
+					ResumeAllSounds(SoundPauseMode::Global);
+
 				ResumeThread((HANDLE)ThreadHandle);
-				ResumeAllSounds(SoundPauseMode::Global);
 			}
 
 			return 0;
@@ -369,8 +373,11 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if (!DebugMode)
 		{
 			TENLog("Suspending game thread", LogLevel::Info);
+
+			if (!g_VideoPlayer.Pause())
+				PauseAllSounds(SoundPauseMode::Global);
+
 			SuspendThread((HANDLE)ThreadHandle);
-			PauseAllSounds(SoundPauseMode::Global);
 		}
 	}
 
@@ -592,7 +599,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
 		// Initialize renderer.
-		g_Renderer.Initialize(g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode, App.WindowHandle);
+		g_Renderer.Initialize(gameDir, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode, App.WindowHandle);
 
 		// Initialize audio.
 		Sound_Init(gameDir);
@@ -642,6 +649,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 void WinClose()
 {
+	g_VideoPlayer.Stop();
+
 	if (ConsoleThreadHandle)
 		CloseHandle((HANDLE)ConsoleThreadHandle);
 

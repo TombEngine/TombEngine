@@ -5,6 +5,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.8.2]
 
+## New features
+* Added video playback support.
+
 ### Bug fixes
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
 * Fixed Teleporter object.
@@ -12,6 +15,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed caustics not rendered correctly if texture compression was enabled.
 
 ### Lua API changes
+* Added `View.PlayVideoFile` function to play videos.
+* Added `Flow.SetIntroVideoPath` function to specify intro video.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29

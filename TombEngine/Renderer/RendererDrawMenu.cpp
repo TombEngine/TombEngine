@@ -903,7 +903,7 @@ namespace TEN::Renderer
 		if (!texture.Texture)
 			return;
 
-		int timeout = 10;
+		int timeout = 20;
 		float currentFade = FADE_FACTOR;
 
 		while (timeout || currentFade > 0.0f)

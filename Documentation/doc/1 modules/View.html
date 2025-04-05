@@ -172,6 +172,14 @@
 	<td class="summary">Sets the post-process tint.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#PlayVideo">PlayVideo(fileName[, background][, silent][, loop])</a></td>
+	<td class="summary">Play a video file.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#StopVideo">StopVideo()</a></td>
+	<td class="summary">Stop the currently playing video.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#PlayFlyby">PlayFlyby(seqID)</a></td>
 	<td class="summary">Play a flyby sequence.</td>
 	</tr>
@@ -261,11 +269,11 @@
     <ul>
         <li><span class="parameter">height</span>
             <span class="types"><span class="type">float</span></span>
-         <strong>(default 30)</strong> Percentage of the screen to be covered
+         (default 30). Percentage of the screen to be covered
         </li>
         <li><span class="parameter">speed</span>
             <span class="types"><span class="type">float</span></span>
-         <strong>(default 30)</strong> Coverage percent per second
+         (default 30). Coverage percent per second
         </li>
     </ul>
 
@@ -469,6 +477,58 @@
          value to use.
         </li>
     </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "PlayVideo"></a>
+    <strong>PlayVideo(fileName[, background][, silent][, loop])</strong>
+    </dt>
+    <dd>
+    Play a video file.  Should be placed in the <code>FMV</code> folder.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fileName</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Video file name.  Can be provided without extension, if type is mp4, mkv or avi.
+        </li>
+        <li><span class="parameter">background</span>
+            <span class="types"><span class="type">bool</span></span>
+         (default: false). Play video in the background mode. In such case, video must be shown using <a href="../2 classes/View.DisplaySprite.html#">View.DisplaySprite</a>.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">silent</span>
+            <span class="types"><span class="type">bool</span></span>
+         (default: false). Play video without sound.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">loop</span>
+            <span class="types"><span class="type">bool</span></span>
+         (default: false). Play video in a loop.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "StopVideo"></a>
+    <strong>StopVideo()</strong>
+    </dt>
+    <dd>
+    Stop the currently playing video.  Only possible if video is playing in the background mode.
+
+
+
 
 
 

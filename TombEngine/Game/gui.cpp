@@ -27,12 +27,14 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Utils;
+using namespace TEN::Video;
 
 namespace TEN::Gui
 {
@@ -716,7 +718,7 @@ namespace TEN::Gui
 					else
 					{
 						g_Renderer.PrepareScene(); // Just for updating blink time.
-						UpdateInputActions(item);
+						UpdateInputActions();
 					}
 
 					if (CurrentSettings.IgnoreInput)
@@ -1157,7 +1159,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		UpdateInputActions(item);
+		UpdateInputActions();
 
 		switch (MenuToDisplay)
 		{
@@ -3185,6 +3187,7 @@ namespace TEN::Gui
 	bool GuiController::CallPause()
 	{
 		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Pause);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
@@ -3249,6 +3252,7 @@ namespace TEN::Gui
 		}
 		else
 		{
+			g_VideoPlayer.Resume();
 			ResumeAllSounds(SoundPauseMode::Pause);
 		}
 
@@ -3266,6 +3270,7 @@ namespace TEN::Gui
 		player.Inventory.OldBusy = player.Inventory.IsBusy;
 
 		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Inventory);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
@@ -3296,7 +3301,7 @@ namespace TEN::Gui
 				SaveGame::Statistics.Game.TimeTaken++;
 				SaveGame::Statistics.Level.TimeTaken++;
 
-				UpdateInputActions(item);
+				UpdateInputActions();
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 				{
@@ -3387,6 +3392,7 @@ namespace TEN::Gui
 
 		AlterFOV(LastFOV);
 		g_Renderer.PrepareScene();
+		g_VideoPlayer.Resume();
 		ResumeAllSounds(SoundPauseMode::Inventory);
 
 		player.Inventory.IsBusy = player.Inventory.OldBusy;

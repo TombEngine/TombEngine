@@ -137,6 +137,10 @@ struct Soundtrack;
 struct SoundtrackBuilder;
 struct SoundtrackT;
 
+struct VideoInfo;
+struct VideoInfoBuilder;
+struct VideoInfoT;
+
 struct SwarmObjectInfo;
 struct SwarmObjectInfoBuilder;
 struct SwarmObjectInfoT;
@@ -5954,6 +5958,113 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrackDirect(
 
 flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct VideoInfoT : public flatbuffers::NativeTable {
+  typedef VideoInfo TableType;
+  std::string name{};
+  float position = 0.0f;
+  bool silent = false;
+  bool looped = false;
+};
+
+struct VideoInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef VideoInfoT NativeTableType;
+  typedef VideoInfoBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_POSITION = 6,
+    VT_SILENT = 8,
+    VT_LOOPED = 10
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  float position() const {
+    return GetField<float>(VT_POSITION, 0.0f);
+  }
+  bool silent() const {
+    return GetField<uint8_t>(VT_SILENT, 0) != 0;
+  }
+  bool looped() const {
+    return GetField<uint8_t>(VT_LOOPED, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<float>(verifier, VT_POSITION) &&
+           VerifyField<uint8_t>(verifier, VT_SILENT) &&
+           VerifyField<uint8_t>(verifier, VT_LOOPED) &&
+           verifier.EndTable();
+  }
+  VideoInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(VideoInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<VideoInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct VideoInfoBuilder {
+  typedef VideoInfo Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(VideoInfo::VT_NAME, name);
+  }
+  void add_position(float position) {
+    fbb_.AddElement<float>(VideoInfo::VT_POSITION, position, 0.0f);
+  }
+  void add_silent(bool silent) {
+    fbb_.AddElement<uint8_t>(VideoInfo::VT_SILENT, static_cast<uint8_t>(silent), 0);
+  }
+  void add_looped(bool looped) {
+    fbb_.AddElement<uint8_t>(VideoInfo::VT_LOOPED, static_cast<uint8_t>(looped), 0);
+  }
+  explicit VideoInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<VideoInfo> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<VideoInfo>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfo(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    float position = 0.0f,
+    bool silent = false,
+    bool looped = false) {
+  VideoInfoBuilder builder_(_fbb);
+  builder_.add_position(position);
+  builder_.add_name(name);
+  builder_.add_looped(looped);
+  builder_.add_silent(silent);
+  return builder_.Finish();
+}
+
+struct VideoInfo::Traits {
+  using type = VideoInfo;
+  static auto constexpr Create = CreateVideoInfo;
+};
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfoDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    float position = 0.0f,
+    bool silent = false,
+    bool looped = false) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return TEN::Save::CreateVideoInfo(
+      _fbb,
+      name__,
+      position,
+      silent,
+      looped);
+}
+
+flatbuffers::Offset<VideoInfo> CreateVideoInfo(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct SwarmObjectInfoT : public flatbuffers::NativeTable {
   typedef SwarmObjectInfo TableType;
   bool on = false;
@@ -8316,6 +8427,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<int32_t> action_queue{};
   std::vector<std::unique_ptr<TEN::Save::SoundtrackT>> soundtracks{};
   std::vector<int32_t> cd_flags{};
+  std::unique_ptr<TEN::Save::VideoInfoT> video{};
   int32_t postprocess_mode = 0;
   float postprocess_strength = 0.0f;
   std::unique_ptr<TEN::Save::Vector3> postprocess_tint{};
@@ -8383,30 +8495,31 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ACTION_QUEUE = 70,
     VT_SOUNDTRACKS = 72,
     VT_CD_FLAGS = 74,
-    VT_POSTPROCESS_MODE = 76,
-    VT_POSTPROCESS_STRENGTH = 78,
-    VT_POSTPROCESS_TINT = 80,
-    VT_ROPE = 82,
-    VT_PENDULUM = 84,
-    VT_ALTERNATE_PENDULUM = 86,
-    VT_VOLUMES = 88,
-    VT_GLOBAL_EVENT_SETS = 90,
-    VT_VOLUME_EVENT_SETS = 92,
-    VT_SCRIPT_VARS = 94,
-    VT_CALLBACKS_PRE_START = 96,
-    VT_CALLBACKS_POST_START = 98,
-    VT_CALLBACKS_PRE_END = 100,
-    VT_CALLBACKS_POST_END = 102,
-    VT_CALLBACKS_PRE_SAVE = 104,
-    VT_CALLBACKS_POST_SAVE = 106,
-    VT_CALLBACKS_PRE_LOAD = 108,
-    VT_CALLBACKS_POST_LOAD = 110,
-    VT_CALLBACKS_PRE_LOOP = 112,
-    VT_CALLBACKS_POST_LOOP = 114,
-    VT_CALLBACKS_PRE_USEITEM = 116,
-    VT_CALLBACKS_POST_USEITEM = 118,
-    VT_CALLBACKS_PRE_FREEZE = 120,
-    VT_CALLBACKS_POST_FREEZE = 122
+    VT_VIDEO = 76,
+    VT_POSTPROCESS_MODE = 78,
+    VT_POSTPROCESS_STRENGTH = 80,
+    VT_POSTPROCESS_TINT = 82,
+    VT_ROPE = 84,
+    VT_PENDULUM = 86,
+    VT_ALTERNATE_PENDULUM = 88,
+    VT_VOLUMES = 90,
+    VT_GLOBAL_EVENT_SETS = 92,
+    VT_VOLUME_EVENT_SETS = 94,
+    VT_SCRIPT_VARS = 96,
+    VT_CALLBACKS_PRE_START = 98,
+    VT_CALLBACKS_POST_START = 100,
+    VT_CALLBACKS_PRE_END = 102,
+    VT_CALLBACKS_POST_END = 104,
+    VT_CALLBACKS_PRE_SAVE = 106,
+    VT_CALLBACKS_POST_SAVE = 108,
+    VT_CALLBACKS_PRE_LOAD = 110,
+    VT_CALLBACKS_POST_LOAD = 112,
+    VT_CALLBACKS_PRE_LOOP = 114,
+    VT_CALLBACKS_POST_LOOP = 116,
+    VT_CALLBACKS_PRE_USEITEM = 118,
+    VT_CALLBACKS_POST_USEITEM = 120,
+    VT_CALLBACKS_PRE_FREEZE = 122,
+    VT_CALLBACKS_POST_FREEZE = 124
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -8515,6 +8628,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<int32_t> *cd_flags() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_CD_FLAGS);
+  }
+  const TEN::Save::VideoInfo *video() const {
+    return GetPointer<const TEN::Save::VideoInfo *>(VT_VIDEO);
   }
   int32_t postprocess_mode() const {
     return GetField<int32_t>(VT_POSTPROCESS_MODE, 0);
@@ -8667,6 +8783,8 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(soundtracks()) &&
            VerifyOffset(verifier, VT_CD_FLAGS) &&
            verifier.VerifyVector(cd_flags()) &&
+           VerifyOffset(verifier, VT_VIDEO) &&
+           verifier.VerifyTable(video()) &&
            VerifyField<int32_t>(verifier, VT_POSTPROCESS_MODE) &&
            VerifyField<float>(verifier, VT_POSTPROCESS_STRENGTH) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_POSTPROCESS_TINT) &&
@@ -8848,6 +8966,9 @@ struct SaveGameBuilder {
   void add_cd_flags(flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags) {
     fbb_.AddOffset(SaveGame::VT_CD_FLAGS, cd_flags);
   }
+  void add_video(flatbuffers::Offset<TEN::Save::VideoInfo> video) {
+    fbb_.AddOffset(SaveGame::VT_VIDEO, video);
+  }
   void add_postprocess_mode(int32_t postprocess_mode) {
     fbb_.AddElement<int32_t>(SaveGame::VT_POSTPROCESS_MODE, postprocess_mode, 0);
   }
@@ -8969,6 +9090,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> action_queue = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::Soundtrack>>> soundtracks = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags = 0,
+    flatbuffers::Offset<TEN::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
@@ -9018,6 +9140,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_postprocess_tint(postprocess_tint);
   builder_.add_postprocess_strength(postprocess_strength);
   builder_.add_postprocess_mode(postprocess_mode);
+  builder_.add_video(video);
   builder_.add_cd_flags(cd_flags);
   builder_.add_soundtracks(soundtracks);
   builder_.add_action_queue(action_queue);
@@ -9100,6 +9223,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<int32_t> *action_queue = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Save::Soundtrack>> *soundtracks = nullptr,
     const std::vector<int32_t> *cd_flags = nullptr,
+    flatbuffers::Offset<TEN::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
@@ -9199,6 +9323,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       action_queue__,
       soundtracks__,
       cd_flags__,
+      video,
       postprocess_mode,
       postprocess_strength,
       postprocess_tint,
@@ -10885,6 +11010,41 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferB
       _position);
 }
 
+inline VideoInfoT *VideoInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<VideoInfoT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void VideoInfo::UnPackTo(VideoInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = position(); _o->position = _e; }
+  { auto _e = silent(); _o->silent = _e; }
+  { auto _e = looped(); _o->looped = _e; }
+}
+
+inline flatbuffers::Offset<VideoInfo> VideoInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateVideoInfo(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfo(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const VideoInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  auto _position = _o->position;
+  auto _silent = _o->silent;
+  auto _looped = _o->looped;
+  return TEN::Save::CreateVideoInfo(
+      _fbb,
+      _name,
+      _position,
+      _silent,
+      _looped);
+}
+
 inline SwarmObjectInfoT *SwarmObjectInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<SwarmObjectInfoT>();
   UnPackTo(_o.get(), _resolver);
@@ -11744,6 +11904,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = action_queue(); if (_e) { _o->action_queue.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->action_queue[_i] = _e->Get(_i); } } }
   { auto _e = soundtracks(); if (_e) { _o->soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->soundtracks[_i] = std::unique_ptr<TEN::Save::SoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = cd_flags(); if (_e) { _o->cd_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cd_flags[_i] = _e->Get(_i); } } }
+  { auto _e = video(); if (_e) _o->video = std::unique_ptr<TEN::Save::VideoInfoT>(_e->UnPack(_resolver)); }
   { auto _e = postprocess_mode(); _o->postprocess_mode = _e; }
   { auto _e = postprocess_strength(); _o->postprocess_strength = _e; }
   { auto _e = postprocess_tint(); if (_e) _o->postprocess_tint = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
@@ -11814,6 +11975,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _action_queue = _fbb.CreateVector(_o->action_queue);
   auto _soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Soundtrack>> (_o->soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateSoundtrack(*__va->__fbb, __va->__o->soundtracks[i].get(), __va->__rehasher); }, &_va );
   auto _cd_flags = _fbb.CreateVector(_o->cd_flags);
+  auto _video = _o->video ? CreateVideoInfo(_fbb, _o->video.get(), _rehasher) : 0;
   auto _postprocess_mode = _o->postprocess_mode;
   auto _postprocess_strength = _o->postprocess_strength;
   auto _postprocess_tint = _o->postprocess_tint ? _o->postprocess_tint.get() : 0;
@@ -11876,6 +12038,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _action_queue,
       _soundtracks,
       _cd_flags,
+      _video,
       _postprocess_mode,
       _postprocess_strength,
       _postprocess_tint,

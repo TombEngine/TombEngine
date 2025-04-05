@@ -432,6 +432,13 @@ table Soundtrack {
     position: uint64;
 }
 
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
+}
+
 table SwarmObjectInfo {
 	on: bool;
 	pose: Pose;
@@ -650,6 +657,7 @@ table SaveGame {
 	action_queue: [int32];
 	soundtracks: [Soundtrack];
 	cd_flags: [int32];
+	video: VideoInfo;
 
 	postprocess_mode: int32;
 	postprocess_strength: float;

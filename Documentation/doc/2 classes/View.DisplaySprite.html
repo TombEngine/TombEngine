@@ -128,6 +128,10 @@
 	<td class="summary">Create a DisplaySprite object.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#DisplaySprite">DisplaySprite(pos, rot, scale[, color])</a></td>
+	<td class="summary">Create a DisplaySprite object with a video image.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#DisplaySprite:GetObjectID">DisplaySprite:GetObjectID()</a></td>
 	<td class="summary">Get the object ID of the sprite sequence object used by the display sprite.</td>
 	</tr>
@@ -193,7 +197,7 @@
     <strong>DisplaySprite(ID, int, pos, rot, scale[, color])</strong>
     </dt>
     <dd>
-    Create a DisplaySprite object. ()
+    Create a DisplaySprite object.
 
 
 
@@ -238,6 +242,48 @@
 
 </dd>
     <dt>
+    <a name = "DisplaySprite"></a>
+    <strong>DisplaySprite(pos, rot, scale[, color])</strong>
+    </dt>
+    <dd>
+    Create a DisplaySprite object with a video image.
+ Video should be played using <a href="../1 modules/View.html#PlayVideo">View.PlayVideo</a> function in a background mode. If no video is played, sprite will not show.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Display position in percent.
+        </li>
+        <li><span class="parameter">rot</span>
+            <span class="types"><span class="type">float</span></span>
+         Rotation in degrees.
+        </li>
+        <li><span class="parameter">scale</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Horizontal and vertical scale in percent. Scaling is interpreted by the DisplaySpriteEnum.ScaleMode passed to the Draw() function call.
+        </li>
+        <li><span class="parameter">color</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Color. <strong>Default: Color(255, 255, 255, 255)</strong>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../2 classes/View.DisplaySprite.html#DisplaySprite">DisplaySprite</a></span>
+        A new DisplaySprite object with attached video image.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "DisplaySprite:GetObjectID"></a>
     <strong>DisplaySprite:GetObjectID()</strong>
     </dt>
@@ -272,7 +318,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Sprite ID in the sprite sequence object.
+        Sprite ID in the sprite sequence object. Value <strong>-1</strong> means that it is a background video, played using <a href="../1 modules/View.html#PlayVideo">View.PlayVideo</a>.
     </ol>
 
 

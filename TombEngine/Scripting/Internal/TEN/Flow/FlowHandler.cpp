@@ -67,6 +67,13 @@ Must be a .jpg or .png image.
 */
 	tableFlow.set_function(ScriptReserved_SetIntroImagePath, &FlowHandler::SetIntroImagePath, this);
 
+/*** Video to show when loading the game.
+Must be a common video format, such as .mp4, .mkv or .avi.
+@function SetIntroVideoPath
+@tparam string path the path to the video, relative to the TombEngine exe
+*/
+	tableFlow.set_function(ScriptReserved_SetIntroVideoPath, &FlowHandler::SetIntroVideoPath, this);
+
 /*** Image to show in the background of the title screen.
 Must be a .jpg or .png image.
 __(not yet implemented)__
@@ -407,10 +414,16 @@ void FlowHandler::SetIntroImagePath(const std::string& path)
 	IntroImagePath = path;
 }
 
+void FlowHandler::SetIntroVideoPath(const std::string& path)
+{
+	IntroVideoPath = path;
+}
+
 void FlowHandler::SetTitleScreenImagePath(const std::string& path)
 {
 	TitleScreenImagePath = path;
 }
+
 
 int FlowHandler::GetTotalSecretCount()
 {

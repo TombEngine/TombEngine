@@ -39,6 +39,7 @@
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
 #include "Objects/Effects/tr4_locusts.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
@@ -59,7 +60,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/winmain.h"
-#include "Objects/Effects/Fireflies.h"
+#include "Specific/Video/Video.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -91,6 +92,7 @@ using namespace TEN::Renderer;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Effects::Fireflies;
+using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
 constexpr auto DEATH_INPUT_TIMEOUT	  = 3 * FPS;
@@ -355,13 +357,14 @@ unsigned CALLBACK GameMain(void *)
 	TimeInit();
 
 	// Do fixed-time title image.
-	if (g_GameFlow->IntroImagePath.empty())
-	{
-		TENLog("Intro image path not set.", LogLevel::Warning);
-	}
-	else
-	{
+	if (!g_GameFlow->IntroImagePath.empty())
 		g_Renderer.RenderTitleImage();
+
+	// Play intro video.
+	if (!g_GameFlow->IntroVideoPath.empty())
+	{
+		g_VideoPlayer.Play(g_GameFlow->IntroVideoPath);
+		while (g_VideoPlayer.Update());
 	}
 
 	// Execute Lua gameflow and play game.
@@ -657,6 +660,9 @@ GameStatus DoGameLoop(int levelIndex)
 	{
 		g_Synchronizer.Sync();
 
+		if (g_VideoPlayer.Update())
+			continue;
+
 		while (g_Synchronizer.Synced())
 		{
 			status = ControlPhase(false);
@@ -698,6 +704,7 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	SaveGame::SaveHub(levelIndex);
 	DeInitializeScripting(levelIndex, reason);
 
+	g_VideoPlayer.Stop();
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
@@ -720,7 +727,7 @@ void HandleControls(bool isTitle)
 {
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
-	UpdateInputActions(LaraItem, true);
+	UpdateInputActions(false, true);
 
 	if (isTitle)
 		ClearAction(In::Look);

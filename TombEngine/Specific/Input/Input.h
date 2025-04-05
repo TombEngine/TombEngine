@@ -51,7 +51,7 @@ namespace TEN::Input
 	void InitializeInput(HWND handle);
 	void DeinitializeInput();
 	void DefaultConflict();
-	void UpdateInputActions(ItemInfo* item, bool applyQueue = false);
+	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();
 	void ClearAllActions();
 	void Rumble(float power, float delayInSec = 0.3f, RumbleMode mode = RumbleMode::Both);

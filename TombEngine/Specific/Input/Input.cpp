@@ -650,10 +650,10 @@ namespace TEN::Input
 		RumbleInfo.LastPower = RumbleInfo.Power;
 	}
 
-	void UpdateInputActions(ItemInfo* item, bool applyQueue)
+	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
 		// Don't update input data during frameskip.
-		if (!g_Synchronizer.Locked())
+		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
 			ClearInputData();
 			UpdateRumble();

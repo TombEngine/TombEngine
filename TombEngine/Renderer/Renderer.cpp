@@ -6,11 +6,11 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/RenderTargetCube.h"
 #include "Renderer/Graphics/VertexBuffer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
-#include "Graphics/RenderTargetCube.h"
 
 namespace TEN::Renderer
 {
@@ -60,6 +60,18 @@ namespace TEN::Renderer
 	void Renderer::Lock()
 	{
 		_isLocked = true;
+	}
+
+	void Renderer::UpdateVideoTexture(Texture2D* texture)
+	{
+		_videoSprite.X = _videoSprite.Y = 0;
+		_videoSprite.Width = texture->Width;
+		_videoSprite.Height = texture->Height;
+		_videoSprite.UV[0] = Vector2(0,0);
+		_videoSprite.UV[1] = Vector2(1,0);
+		_videoSprite.UV[2] = Vector2(1,1);
+		_videoSprite.UV[3] = Vector2(0,1);
+		_videoSprite.Texture = texture;
 	}
 
 	void Renderer::ReloadShaders(bool recompileAAShaders)
