@@ -31,6 +31,7 @@
 #include "Objects/Generic/Switches/switch.h"
 
 // Doors
+#include "Objects/Generic/Doors/breakable_wall.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Objects/Generic/Doors/pushpull_kick_door.h"
@@ -200,8 +201,8 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePulleySwitch;
-		object->control = SwitchControl;
-		object->collision = PulleySwitchCollision;
+		object->control = ControlPulleySwitch;
+		object->collision = CollisionPulleySwitch;
 	}
 
 	object = &Objects[ID_TURN_SWITCH];
@@ -315,6 +316,18 @@ void StartDoors(ObjectInfo* object)
 		{
 			object->Initialize = InitializeDoor;
 			object->collision = UnderwaterDoorCollision;
+			object->control = PushPullKickDoorControl;
+			object->SetHitEffect(true);
+		}
+	}
+
+	for (int i = ID_BREAKABLE_WALL1; i <= ID_BREAKABLE_WALL4; i++)
+	{
+		object = &Objects[i];
+		if (object->loaded)
+		{
+			object->Initialize = InitializeDoor;
+			object->collision = BreakableWallCollision;
 			object->control = PushPullKickDoorControl;
 			object->SetHitEffect(true);
 		}

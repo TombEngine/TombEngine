@@ -13,12 +13,27 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
 {
-	ObjectCollisionBounds SwitchBounds = 
+	ObjectCollisionBounds SwitchBounds =
 	{
 		GameBoundingBox::Zero,
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f))
+		)
+	};
+	auto SwitchPos = Vector3i::Zero;
+
+	auto UnderwaterSwitchPos = Vector3i(0, -512, 0);
+	const ObjectCollisionBounds UnderwaterSwitchBounds =
+	{
+		GameBoundingBox(
+			-BLOCK(0.5f), BLOCK(0.5f),
+			-BLOCK(1), 0,
+			-BLOCK(0.5f), BLOCK(0.25f)
+		),
+		std::pair(
+			EulerAngles(ANGLE(-80.0f), ANGLE(-80.0f), ANGLE(-80.0f)),
+			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f))
 		)
 	};
 
@@ -33,8 +48,6 @@ namespace TEN::Entities::Switches
 		SWT_WALL_HOLE = 6,
 		SWT_CUSTOM = 7
 	};
-
-	auto SwitchPos = Vector3i::Zero;
 
 	void SwitchControl(short itemNumber)
 	{
@@ -65,16 +78,22 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
-		if (IsHeld(In::Action) &&
-			laraItem->Animation.ActiveState == LS_IDLE &&
-			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
-			laraInfo->Control.HandStatus == HandStatus::Free &&
-			switchItem->Status == ITEM_NOT_ACTIVE &&
-			!(switchItem->Flags & ONESHOT) &&
-			switchItem->TriggerFlags >= 0 ||
-			laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber)
+		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
+
+		bool isActionActive = laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber;
+		bool isActionReady = IsHeld(In::Action);
+		bool isPlayerAvailable = laraInfo->Control.HandStatus == HandStatus::Free && switchItem->Status == ITEM_NOT_ACTIVE && !(switchItem->Flags & ONESHOT) &&	switchItem->TriggerFlags >= 0;
+
+		bool isPlayerIdle = (!isUnderwater && laraItem->Animation.ActiveState == LS_IDLE && laraItem->Animation.AnimNumber == LA_STAND_IDLE) ||
+			(isUnderwater && laraItem->Animation.ActiveState == LS_UNDERWATER_IDLE && laraItem->Animation.AnimNumber == LA_UNDERWATER_IDLE);
+		
+		if (isActionActive || (isActionReady && isPlayerAvailable && isPlayerIdle))
 		{
 			auto bounds = GameBoundingBox(switchItem);
+
+			//Temporary code to avoid pulling any other switch in the water. This can be removed once all switches are enabled underwater.
+			if (switchItem->TriggerFlags != 3 && isUnderwater)
+				return;
 
 			if ((switchItem->TriggerFlags == 3 || switchItem->TriggerFlags == 4) && switchItem->Animation.ActiveState == SWITCH_OFF)
 				return;
@@ -139,9 +158,12 @@ namespace TEN::Entities::Switches
 					break;
 			}
 
-			if (TestLaraPosition(SwitchBounds, switchItem, laraItem))
+			const auto& boundSelection = isUnderwater ? UnderwaterSwitchBounds : SwitchBounds;
+			const auto& position = isUnderwater ? UnderwaterSwitchPos : SwitchPos;
+
+			if (TestLaraPosition(boundSelection, switchItem, laraItem))
 			{
-				if (MoveLaraPosition(SwitchPos, switchItem, laraItem))
+				if (MoveLaraPosition(position, switchItem, laraItem))
 				{
 					int onAnim = LaraAnim::LA_WALLSWITCH_DOWN;
 					int offAnim = LaraAnim::LA_WALLSWITCH_UP;
@@ -164,7 +186,7 @@ namespace TEN::Entities::Switches
 							break;
 
 						case SWT_BIG_BUTTON:
-							onAnim = LaraAnim::LA_BUTTON_LARGE_PUSH;
+							onAnim = isUnderwater ? LaraAnim::LA_UNDERWATER_WALL_KICK : LaraAnim::LA_BUTTON_LARGE_PUSH;
 							offAnim = LaraAnim::LA_BUTTON_LARGE_PUSH;
 							break;
 

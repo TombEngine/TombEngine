@@ -8,7 +8,10 @@ namespace TEN::Entities::Switches
 	enum SwitchStatus
 	{
 		SWITCH_OFF,
-		SWITCH_ON
+		SWITCH_ON,
+		SWITCH_WAIT,
+		SWITCH_ANIMATE,
+		SWITCH_ANIMATE_UNDERWATER
 	};
 	
 	void SwitchControl(short itemNumber);

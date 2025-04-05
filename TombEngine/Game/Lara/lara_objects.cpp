@@ -220,63 +220,6 @@ void lara_as_pushable_edge_slip(ItemInfo* item, CollisionInfo* coll)
 	Camera.flags = CF_FOLLOW_CENTER;
 }
 
-// ------
-// PULLEY
-// ------
-
-// State:		LS_PULLEY (104)
-// Collision:	lara_default_col()
-void lara_as_pulley(ItemInfo* item, CollisionInfo* coll)
-{
-	auto* lara = GetLaraInfo(item);
-	auto* pulleyItem = &g_Level.Items[lara->Context.InteractedItem];
-
-	lara->Control.Look.Mode = LookMode::None;
-	coll->Setup.EnableSpasm = false;
-	coll->Setup.EnableObjectPush = false;
-
-	if (IsHeld(In::Action) && pulleyItem->TriggerFlags)
-		item->Animation.TargetState = LS_PULLEY;
-	else
-		item->Animation.TargetState = LS_IDLE;
-
-	if (item->Animation.AnimNumber == LA_PULLEY_PULL &&
-		item->Animation.FrameNumber == GetAnimData(*item).frameBase + 44)
-	{
-		if (pulleyItem->TriggerFlags)
-		{
-			if (!pulleyItem->ItemFlags[1])
-			{
-				pulleyItem->TriggerFlags--;
-				if (pulleyItem->TriggerFlags)
-				{
-					if (pulleyItem->ItemFlags[2])
-					{
-						pulleyItem->ItemFlags[2] = 0;
-						pulleyItem->Status = ITEM_DEACTIVATED;
-					}
-				}
-				else
-				{
-					pulleyItem->Status = ITEM_DEACTIVATED;
-					pulleyItem->ItemFlags[2] = 1;
-
-					if (pulleyItem->ItemFlags[3] >= 0)
-						pulleyItem->TriggerFlags = abs(pulleyItem->ItemFlags[3]);
-					else
-						pulleyItem->ItemFlags[0] = 1;
-				}
-			}
-		}
-	}
-
-	if (item->Animation.AnimNumber == LA_PULLEY_RELEASE &&
-		item->Animation.FrameNumber == GetAnimData(*item).frameEnd - 1)
-	{
-		lara->Control.HandStatus = HandStatus::Free;
-	}
-}
-
 // --------------
 // HORIZONTAL BAR
 // --------------

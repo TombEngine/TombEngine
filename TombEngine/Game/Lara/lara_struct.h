@@ -222,6 +222,8 @@ enum LaraState
 	LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH = 196,
 	LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH = 197,
 
+	LS_PULLEY_UNGRAB = 198,
+
 	NUM_LARA_STATES
 };
 
@@ -613,7 +615,7 @@ enum LaraAnim
 	LA_LADDER_LEFT_CORNER_INNER_START = 367,				// Ladder around inner left corner
 	LA_LADDER_LEFT_CORNER_INNER_END = 368,
 	LA_LADDER_RIGHT_CORNER_INNER_START = 369,				// Ladder around inner right corner
-	LA_LADDER_RIGHT_CORNER_INNER_END = 370,					// TODO: Remove.
+	LA_UNUSED = 370,										// Unused.
 	LA_JUMP_UP_TO_ROPE_START = 371,							// Jump up > rope idle (1/2)
 	LA_TRAIN_OVERBOARD_DEATH = 372,							// Train overboard death
 	LA_JUMP_UP_TO_ROPE_END = 373,							// Jump up > rope idle (2/2)
@@ -822,14 +824,51 @@ enum LaraAnim
 	LA_LEDGE_JUMP_UP_END = 566,
 	LA_LEDGE_JUMP_BACK_START = 567,
 	LA_LEDGE_JUMP_BACK_END = 568,
-
+	
 	// 569-598 reserved for ladder object. -- Sezz 2023.04.16
+
+	LA_LADDER1 = 569,
+	LA_LADDER2 = 570,
+	LA_LADDER3 = 571,
+	LA_LADDER4 = 572,
+	LA_LADDER5 = 573,
+	LA_LADDER6 = 574,
+	LA_LADDER7 = 575,
+	LA_LADDER8 = 576,
+	LA_LADDER9 = 577,
+	LA_LADDER10 = 578,
+	LA_LADDER11 = 579,
+	LA_LADDER12 = 580,
+	LA_LADDER13 = 581,
+	LA_LADDER14 = 582,
+	LA_LADDER15 = 583,
+	LA_LADDER16 = 584,
+	LA_LADDER17 = 585,
+	LA_LADDER18 = 586,
+	LA_LADDER19 = 587,
+	LA_LADDER20 = 588,
+	LA_LADDER21 = 589,
+	LA_LADDER22 = 590,
+	LA_LADDER23 = 591,
+	LA_LADDER24 = 592,
+	LA_LADDER25 = 593,
+	LA_LADDER26 = 594,
+	LA_LADDER27 = 595,
+	LA_LADDER28 = 596,
+	LA_LADDER29 = 597,
+	LA_LADDER30 = 598,
+
+	//ADD NEW ANIMATIONS HERE
+	LA_UNDERWATER_WALL_KICK = 599,			// Lara kick wall underwater.
+	LA_WALL_PUSH = 600,						// Lara Push Wall.
+	LA_WALL_LEVER_SWITCH = 601,				// Use underwater level above ground
+	LA_UNDERWATER_PULLEY_GRAB = 602,		// Grab underwater pulley
+	LA_UNDERWATER_PULLEY_PULL = 603,		// Pull underwater pulley		
+	LA_UNDERWATER_PULLEY_UNGRAB = 604,		// Release underwater pulley
+	LA_CEILING_LEVER_SWITCH = 605,		// Release underwater pulley
 
 	NUM_LARA_ANIMS
 
-	// TRASHED ANIMS (reuse slots before going any higher and remove entries from this list when you do):
-	// 370,
-	// 442
 };
 
 enum LaraExtraAnim

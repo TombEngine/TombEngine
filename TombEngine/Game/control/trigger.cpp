@@ -175,6 +175,41 @@ bool SwitchTrigger(short itemNumber, short timer)
 	if (item.ObjectNumber >= ID_KEY_HOLE1 && item.ObjectNumber <= ID_KEY_HOLE16)
 		return false;
 
+	//Handle Pulley
+	if (item.ObjectNumber >= ID_PULLEY &&
+		item.ItemFlags[5] != 0 && item.ItemFlags[4] == 1 &&
+		player.Control.HandStatus != HandStatus::Busy)
+	{
+		item.Flags |= IFLAG_ACTIVATION_MASK;
+		item.Status = ITEM_ACTIVE;
+		item.ItemFlags[5] = 0;
+		return true;
+	}
+
+	if (item.ObjectNumber == ID_PULLEY &&
+		item.ItemFlags[5] != 0 && item.ItemFlags[4] == 0 &&
+		player.Control.HandStatus != HandStatus::Busy)
+	{
+		if (timer > 0)
+		{
+			item.Timer = timer;
+			item.Status = ITEM_ACTIVE;
+			item.ItemFlags[5] = 0;
+			if (timer != 1)
+				item.Timer = FPS * timer;
+
+			return true;
+		}
+
+		item.Flags |= IFLAG_ACTIVATION_MASK;
+		item.Status = ITEM_DEACTIVATED;
+		item.ItemFlags[5] = 0;
+		return true;
+	}
+
+	if (item.ObjectNumber == ID_PULLEY)
+		return false;
+
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
 	{

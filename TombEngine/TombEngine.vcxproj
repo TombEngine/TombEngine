@@ -547,6 +547,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Generic\Traps\falling_block.h" />
     <ClInclude Include="Objects\Generic\generic_objects.h" />
     <ClInclude Include="Objects\Generic\puzzles_keys.h" />
+    <ClInclude Include="Objects\Generic\Doors\breakable_wall.h" />
     <ClInclude Include="Objects\Sink.h" />
     <ClInclude Include="Objects\TR1\Entity\Centaur.h" />
     <ClInclude Include="Objects\TR1\Entity\Cowboy.h" />
@@ -1087,6 +1088,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Generic\Traps\CrumblingPlatform.cpp" />
     <ClCompile Include="Objects\Generic\Traps\dart_emitter.cpp" />
     <ClCompile Include="Objects\Generic\Traps\falling_block.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\breakable_wall.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Centaur.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Cowboy.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Kold.cpp" />
