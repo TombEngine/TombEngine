@@ -260,7 +260,7 @@ namespace TEN::Entities::Generic
 		{
 			const auto& pushable = GetPushableInfo(item);
 			
-			TENAssert(pushable.Bridge.has_value(), "GetBridgeObject() attempted to get bridge from non-climbable pushable.");
+			TENAssert(pushable.Bridge.has_value(), "`GetBridgeObject()` attempted to get bridge from non-climbable pushable.");
 			return *pushable.Bridge;
 		}
 
@@ -274,7 +274,7 @@ namespace TEN::Entities::Generic
 		{
 			auto& pushable = GetPushableInfo(item);
 
-			TENAssert(pushable.Bridge.has_value(), "GetBridgeObject() attempted to get bridge from non-climbable pushable.");
+			TENAssert(pushable.Bridge.has_value(), "`GetBridgeObject()` attempted to get bridge from non-climbable pushable.");
 			return *pushable.Bridge;
 		}
 

@@ -206,8 +206,22 @@ namespace TEN::Entities::Doors
 
 			auto quadrant = GetQuadrant(doorItem.Pose.Orientation.y);
 
-			// Get bound to flatten box corners if door is at portal.
+			// Set initial bound.
 			float bound = 0.0f;
+			switch (quadrant)
+			{
+				case CardinalDirection::NORTH:
+				case CardinalDirection::EAST:
+					bound = INFINITY;
+					break;
+
+				case CardinalDirection::SOUTH:
+				case CardinalDirection::WEST:
+					bound = -INFINITY;
+					break;
+			}
+
+			// Determine bound for flattened AABB.
 			for (auto& corner : corners)
 			{
 				switch (quadrant)
@@ -230,6 +244,7 @@ namespace TEN::Entities::Doors
 				}
 			}
 
+			// Flatten box corners for door at portal.
 			for (auto& corner : corners)
 			{
 				switch (quadrant)
