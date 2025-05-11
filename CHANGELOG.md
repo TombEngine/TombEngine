@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 * Fixed Teleporter object.
 * Fixed Wraith objects not working correctly in flipped rooms.
+* Fixed collision for bridge objects with non-standard shapes.
 * Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
 * Fixed HK shots not being registered in statistics.

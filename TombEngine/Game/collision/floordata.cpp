@@ -775,8 +775,8 @@ namespace TEN::Collision::Floordata
 		{
 			auto origin = Vector3i(pos.x, pos.y + (useBottomHeight ? VERTICAL_MARGIN : -VERTICAL_MARGIN), pos.z) - item.Pose.Position;
 
-			float sinAngle = phd_sin(-item.Pose.Orientation.y);
-			float cosAngle = phd_cos(-item.Pose.Orientation.y);
+			float sinAngle = phd_sin(item.Pose.Orientation.y);
+			float cosAngle = phd_cos(item.Pose.Orientation.y);
 
 			auto localOrigin = Vector3i(
 				(origin.x * cosAngle) - (origin.z * sinAngle),
