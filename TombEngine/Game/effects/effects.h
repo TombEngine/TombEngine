@@ -298,3 +298,4 @@ void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth);
+std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);

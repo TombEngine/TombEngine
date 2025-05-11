@@ -1156,19 +1156,19 @@ void SomeSparkEffect(int x, int y, int z, int count)
 	}
 }
 
-void TriggerUnderwaterExplosion(ItemInfo* item, bool flag)
+void TriggerUnderwaterExplosion(ItemInfo* item, bool splash)
 {
 	auto position = item->Pose.Position.ToVector3();
 
-	TriggerUnderwaterExplosion(position, flag);
+	TriggerUnderwaterExplosion(position, splash);
 }
 
-void TriggerUnderwaterExplosion(Vector3 position, bool flag, const Vector3& mainColor, const Vector3& secondColor)
+void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& mainColor, const Vector3& secondColor)
 {
 	int roomNumber = FindRoomNumber(position);
 	const auto& room = g_Level.Rooms[roomNumber];
 
-	if (flag)
+	if (splash)
 	{
 		TriggerExplosionBubble(position.x, position.y, position.z, room.RoomNumber, mainColor, secondColor);
 		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, room.RoomNumber, mainColor, secondColor);
@@ -1493,37 +1493,7 @@ void TriggerExplosionBubble(int x, int y, int z, short roomNumber, const Vector3
 	}
 	else
 	{
-		// New colored flame processing.
-		int colorS[3] = { int(mainColor.x * UCHAR_MAX), int(mainColor.y * UCHAR_MAX), int(mainColor.z * UCHAR_MAX) };
-		int colorD[3] = { int(secondColor.x * UCHAR_MAX), int(secondColor.y * UCHAR_MAX), int(secondColor.z * UCHAR_MAX) };
-
-		// Determine weakest RGB component.
-		int lowestS = UCHAR_MAX;
-		int lowestD = UCHAR_MAX;
-		for (int i = 0; i < 3; i++)
-		{
-			if (lowestS > colorS[i]) lowestS = colorS[i];
-			if (lowestD > colorD[i]) lowestD = colorD[i];
-		}
-
-		// Introduce random color shift for non-weakest RGB components.
-		constexpr auto CHROMA_SHIFT = 32;
-		constexpr auto LUMA_SHIFT = 0.5f;
-
-		for (int i = 0; i < 3; i++)
-		{
-			if (colorS[i] != lowestS)
-				colorS[i] = int(colorS[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-			if (colorD[i] != lowestD)
-				colorD[i] = int(colorD[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-			colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-			colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-			colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
-			colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
-		}
+		auto [colorS, colorD] = GenerateColorShift(mainColor, secondColor);
 
 		spark->sR = colorS[0];
 		spark->sG = colorS[1];

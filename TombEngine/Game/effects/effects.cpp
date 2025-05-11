@@ -673,37 +673,7 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 		}
 		else
 		{
-			// New colored flame processing.
-			int colorS[3] = { int(mainColor.x * UCHAR_MAX), int(mainColor.y * UCHAR_MAX), int(mainColor.z * UCHAR_MAX) };
-			int colorD[3] = { int(secondColor.x * UCHAR_MAX), int(secondColor.y * UCHAR_MAX), int(secondColor.z * UCHAR_MAX) };
-
-			// Determine weakest RGB component.
-			int lowestS = UCHAR_MAX;
-			int lowestD = UCHAR_MAX;
-			for (int i = 0; i < 3; i++)
-			{
-				if (lowestS > colorS[i]) lowestS = colorS[i];
-				if (lowestD > colorD[i]) lowestD = colorD[i];
-			}
-
-			// Introduce random color shift for non-weakest RGB components.
-			constexpr auto CHROMA_SHIFT = 32;
-			constexpr auto LUMA_SHIFT = 0.5f;
-
-			for (int i = 0; i < 3; i++)
-			{
-				if (colorS[i] != lowestS)
-					colorS[i] = int(colorS[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				if (colorD[i] != lowestD)
-					colorD[i] = int(colorD[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-				colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-				colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
-				colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
-			}
+			auto [colorS, colorD] = GenerateColorShift(mainColor, secondColor);
 
 			spark.sR = colorS[0];
 			spark.sG = colorS[1];
@@ -729,37 +699,7 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 		}
 		else
 		{
-			// New colored flame processing.
-			int colorS[3] = { int(mainColor.x * UCHAR_MAX), int(mainColor.y * UCHAR_MAX), int(mainColor.z * UCHAR_MAX) };
-			int colorD[3] = { int(secondColor.x * UCHAR_MAX), int(secondColor.y * UCHAR_MAX), int(secondColor.z * UCHAR_MAX) };
-
-			// Determine weakest RGB component.
-			int lowestS = UCHAR_MAX;
-			int lowestD = UCHAR_MAX;
-			for (int i = 0; i < 3; i++)
-			{
-				if (lowestS > colorS[i]) lowestS = colorS[i];
-				if (lowestD > colorD[i]) lowestD = colorD[i];
-			}
-
-			// Introduce random color shift for non-weakest RGB components.
-			constexpr auto CHROMA_SHIFT = 32;
-			constexpr auto LUMA_SHIFT	= 0.5f;
-
-			for (int i = 0; i < 3; i++)
-			{
-				if (colorS[i] != lowestS)
-					colorS[i] = int(colorS[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				if (colorD[i] != lowestD)
-					colorD[i] = int(colorD[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-				colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-				colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
-				colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
-			}
+			auto [colorS, colorD] = GenerateColorShift(mainColor, secondColor);
 
 			spark.sR = colorS[0];
 			spark.sG = colorS[1];
@@ -833,24 +773,18 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 	{
 		if (uw == 1)
 		{
-			if (mainColor == Vector3::Zero)
+			spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_UNDERWEXP;
+			if (mainColor != Vector3::Zero)
 			{
-				spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_UNDERWEXP;
-			}
-			else
-			{
-				spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_UNDERWEXP | SP_COLOR;
+				spark.flags |= SP_COLOR;
 			}
 		}
 		else
 		{
-			if (mainColor == Vector3::Zero)
+			spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_EXPLOSION;
+			if (mainColor != Vector3::Zero)
 			{
-				spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_EXPLOSION;
-			}
-			else
-			{
-				spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_EXPLOSION | SP_COLOR;
+				spark.flags |= SP_COLOR;
 			}
 		}
 
@@ -859,24 +793,19 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 	}
 	else if (uw == 1)
 	{
-		if (mainColor == Vector3::Zero)
+		spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_UNDERWEXP;
+		if (mainColor != Vector3::Zero)
 		{
-			spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_UNDERWEXP;
+			spark.flags |= SP_COLOR;
 		}
-		else
-		{
-			spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_UNDERWEXP | SP_COLOR;
-		}
+
 	}
 	else
 	{
-		if (mainColor == Vector3::Zero)
+		spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_EXPLOSION;
+		if (mainColor != Vector3::Zero)
 		{
-			spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_EXPLOSION;
-		}
-		else
-		{
-			spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_EXPLOSION | SP_COLOR;
+			spark.flags |= SP_COLOR;
 		}
 	}
 
@@ -946,37 +875,7 @@ void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector
 		}
 		else
 		{
-			// New colored flame processing.
-			int colorS[3] = { int(mainColor.x * UCHAR_MAX), int(mainColor.y * UCHAR_MAX), int(mainColor.z * UCHAR_MAX) };
-			int colorD[3] = { int(secondColor.x * UCHAR_MAX), int(secondColor.y * UCHAR_MAX), int(secondColor.z * UCHAR_MAX) };
-
-			// Determine weakest RGB component.
-			int lowestS = UCHAR_MAX;
-			int lowestD = UCHAR_MAX;
-			for (int i = 0; i < 3; i++)
-			{
-				if (lowestS > colorS[i]) lowestS = colorS[i];
-				if (lowestD > colorD[i]) lowestD = colorD[i];
-			}
-
-			// Introduce random color shift for non-weakest RGB components.
-			constexpr auto CHROMA_SHIFT = 32;
-			constexpr auto LUMA_SHIFT = 0.5f;
-
-			for (int i = 0; i < 3; i++)
-			{
-				if (colorS[i] != lowestS)
-					colorS[i] = int(colorS[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				if (colorD[i] != lowestD)
-					colorD[i] = int(colorD[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-				colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-				colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-				colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
-				colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
-			}
+			auto [colorS, colorD] = GenerateColorShift(mainColor, secondColor);
 
 			spark->sR = colorS[0];
 			spark->sG = colorS[1];
@@ -1610,39 +1509,7 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 	}
 	else
 	{
-		// New colored flame processing.
-
-		int colorS[3] = { int(color1.x * UCHAR_MAX), int(color1.y * UCHAR_MAX), int(color1.z * UCHAR_MAX) };
-		int colorD[3] = { int(color2.x * UCHAR_MAX), int(color2.y * UCHAR_MAX), int(color2.z * UCHAR_MAX) };
-
-		// Determine weakest RGB component.
-
-		int lowestS = UCHAR_MAX;
-		int lowestD = UCHAR_MAX;
-		for (int i = 0; i < 3; i++)
-		{
-			if (lowestS > colorS[i]) lowestS = colorS[i];
-			if (lowestD > colorD[i]) lowestD = colorD[i];
-		}
-
-		// Introduce random color shift for non-weakest RGB components.
-
-		static constexpr int CHROMA_SHIFT = 32;
-		static constexpr float LUMA_SHIFT = 0.5f;
-
-		for (int i = 0; i < 3; i++)
-		{
-			if (colorS[i] != lowestS)
-				colorS[i] = int(colorS[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-			if (colorD[i] != lowestD)
-				colorD[i] = int(colorD[i] + GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT));
-
-			colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-			colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-			colorS[i] =	std::clamp(colorS[i], 0, UCHAR_MAX);
-			colorD[i] =	std::clamp(colorD[i], 0, UCHAR_MAX);
-		}
+		auto [colorS, colorD] = GenerateColorShift(color1, color2);
 
 		spark->sR = colorS[0];
 		spark->sG = colorS[1];
@@ -2110,4 +1977,43 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 			item.RoomNumber, Random::GenerateFloat(112.0f, 128.0f),
 			flags);
 	}
+}
+
+std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
+{
+	std::array<int, 3> colorS = {
+		int(mainColor.x * UCHAR_MAX),
+		int(mainColor.y * UCHAR_MAX),
+		int(mainColor.z * UCHAR_MAX)
+	};
+
+	std::array<int, 3> colorD = {
+		int(additionalColor.x * UCHAR_MAX),
+		int(additionalColor.y * UCHAR_MAX),
+		int(additionalColor.z * UCHAR_MAX)
+	};
+
+	// Determine weakest RGB component
+	int lowestS = *std::min_element(colorS.begin(), colorS.end());
+	int lowestD = *std::min_element(colorD.begin(), colorD.end());
+
+	constexpr auto CHROMA_SHIFT = 32;
+	constexpr auto LUMA_SHIFT = 0.5f;
+
+	for (int i = 0; i < 3; i++)
+	{
+		if (colorS[i] != lowestS)
+			colorS[i] += GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+		if (colorD[i] != lowestD)
+			colorD[i] += GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+		colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
+		colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
+
+		colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
+		colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
+	}
+
+	return { colorS, colorD };
 }
