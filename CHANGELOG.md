@@ -12,8 +12,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed caustics not rendered correctly if texture compression was enabled.
 * Fixed exclusion blend mode not working correctly.
 
+### New features
+* Added support for swinging flame pendulum in "ID_CHAIN" slot.
+	- Positive OCB: normal damage.
+	- Negative OCB: flaming pendulum (sets Lara on fire).
+	- OCB 0: no fire, no damage.
+
 ### Lua API changes
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
+* Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
 
