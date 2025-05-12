@@ -37,8 +37,8 @@ void Fog::Register(sol::table& parent)
 
 /***
 @tparam Color color RGB color
-@tparam int min Distance at which fog starts (in sectors)
-@tparam int max Distance at which fog reaches the maximum strength (in sectors)
+@tparam int min Distance at which fog starts (in sectors).
+@tparam int max Distance at which fog reaches the maximum strength (in sectors).
 @treturn Fog A fog object.
 @function Fog
 */

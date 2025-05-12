@@ -35,6 +35,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
+#include "Objects/Effects/Fireflies.h"
 
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
@@ -48,6 +49,7 @@ using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR5;
 using namespace TEN::Entities::Traps;
 using namespace TEN::Math;
+using namespace TEN::Effects::Fireflies;
 
 extern BLOOD_STRUCT Blood[MAX_SPARKS_BLOOD];
 extern FIRE_SPARKS FireSparks[MAX_SPARKS_FIRE];
@@ -330,6 +332,49 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::PrepareFireflies(RenderView& view)
+	{
+		if (!Objects[ID_FIREFLY_EMITTER].loaded)
+			return;
+
+		for (auto& firefly : FireflySwarm)
+		{
+			if (!firefly.on)
+				continue;
+
+
+			if (!CheckIfSlotExists(ID_SPARK_SPRITE, "Particle rendering"))
+				continue;
+
+			auto axis = Vector3(0,0,0);
+			axis.Normalize();
+
+
+			firefly.scalar = 3;
+			firefly.size = 3;
+
+			auto pos = Vector3::Lerp(
+				Vector3(firefly.PrevX, firefly.PrevY, firefly.PrevZ),
+				Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z),
+				GetInterpolationFactor());
+
+			pos = Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z);
+
+			// Disallow sprites out of bounds.
+			int spriteIndex = Objects[firefly.SpriteSeqID].meshIndex + firefly.SpriteID;
+			spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
+
+			AddSpriteBillboard(
+				&_sprites[spriteIndex],
+				pos,
+				Color(firefly.r / (float)UCHAR_MAX, firefly.g / (float)UCHAR_MAX, firefly.b / (float)UCHAR_MAX, 1.0f),
+				TO_RAD(firefly.rotAng << 4), firefly.scalar,
+				Vector2(firefly.size, firefly.size),
+				firefly.blendMode, true, view);
+
+		}
+	}
+
 	void Renderer::PrepareSmokes(RenderView& view) 
 	{
 		for (const auto& smoke : SmokeSparks) 
@@ -510,13 +555,19 @@ namespace TEN::Renderer
 						pos += _items[particle.fxObj].InterpolatedPosition; 
 					}
 				}
+				
+				// If sprite is a video texture, bypass it if texture is inactive.
+				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || _videoSprite.Texture->Texture == nullptr))
+					continue;
 
 				// Disallow sprites out of bounds.
 				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
 
+				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
+
 				AddSpriteBillboard(
-					&_sprites[spriteIndex],
+					sprite,
 					pos,
 					Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f),
 					TO_RAD(particle.rotAng << 4), particle.scalar,
@@ -971,59 +1022,144 @@ namespace TEN::Renderer
 	void Renderer::PrepareWeatherParticles(RenderView& view) 
 	{
 		constexpr auto RAIN_WIDTH = 4.0f;
+		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
+		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(0.35f);
 
 		for (const auto& part : Weather.GetParticles())
 		{
 			if (!part.Enabled)
 				continue;
 
-			switch (part.Type)
+			auto pos  = Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor());
+			auto size = Lerp(part.PrevSize, part.Size, GetInterpolationFactor());
+
+			// Underwater dust does not need clustering.
+			if (part.Type == WeatherType::None)
 			{
-			case WeatherType::None:
+				if (!view.Camera.Frustum.SphereInFrustum(pos, size))
+					continue;
 
 				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Underwater dust rendering"))
-					return;
+					continue;
 
 				AddSpriteBillboard(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
-					Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor()),
+					pos,
 					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
-					0.0f, 1.0f, Vector2(Lerp(part.PrevSize, part.Size, GetInterpolationFactor())),
+					0.0f, 1.0f, Vector2(size),
 					BlendMode::Additive, true, view);
 
-				break;
+				continue;
+			}
 
-			case WeatherType::Snow:
+			// Clamp cluster size to 1.
+			int clusterSize = std::max(1, part.ClusterSize);
 
-				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
-					return;
+			// If particle is dying, immediately cancel the cluster.
+			if (part.Stopped)
+				clusterSize = 1;
 
-				AddSpriteBillboard(
-					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
-					Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor()),
-					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
-					0.0f, 1.0f, Vector2(Lerp(part.PrevSize, part.Size, GetInterpolationFactor())),
-					BlendMode::Additive, true, view);
+			auto finalPos = pos;
+			auto finalScale = size;
 
-				break;
+			for (int i = 0; i < clusterSize; i++)
+			{
+				// Combine particle index and cluster index for unique seeding.
+				int uniqueSeed = part.UniqueID + i;
 
-			case WeatherType::Rain:
+				if (i > 0)
+				{
+					// Use bits from uniqueSeed to determine distribution pattern.
+					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD;
+					float offsetBase = spread * ((i + 1) / (float)clusterSize);
 
-				if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Rain rendering"))
-					return;
+					// Use bits 0, 1, 2 for axis signs.
+					// Snow Y axis is always negative, so that snowflakes don't sink into room geometry.
+					float xSign = (uniqueSeed & 1) ? 1.0f : -1.0f;
+					float zSign = (uniqueSeed & 4) ? 1.0f : -1.0f;
 
-				Vector3 v;
-				part.Velocity.Normalize(v);
+					// Use bits 3, 4 for axis emphasis.
+					int axisEmphasis = uniqueSeed & 3;
+					float xScale = (axisEmphasis == 0) ? 1.1f : 0.4f;
+					float yScale = (axisEmphasis == 1) ? 1.2f : 0.5f;
+					float zScale = (axisEmphasis == 2) ? 1.0f : 0.6f;
 
-				AddSpriteBillboardConstrained(
-					&_sprites[Objects[ID_DRIP_SPRITE].meshIndex], 
-					Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor()),
-					Color(0.8f, 1.0f, 1.0f, part.Transparency()),
-					0.0f, 1.0f,
-					Vector2(RAIN_WIDTH, Lerp(part.PrevSize, part.Size, GetInterpolationFactor())),
-					BlendMode::Additive, -v, true, view);
+					Vector3 positionOffset(
+						xSign * offsetBase * xScale,
+						-(offsetBase * yScale),
+						zSign * offsetBase * zScale
+					);
 
-				break;
+					// Apply deterministic offset.
+					finalPos = pos + positionOffset;
+					finalScale = size * (1.0f + abs(phd_sin(part.UniqueID + i)));
+
+					constexpr auto SNOW_SPIN_RATE = 0.05f;
+					constexpr auto SNOW_SPIN_RADIUS = 0.3f;
+
+					if (part.Type == WeatherType::Snow)
+					{
+						// Calculate spin angle based on vertical position.
+						// Wrap the vertical position to 3 blocks and multiply by 21 to get full unsigned short value.
+						unsigned short spinAngle = ((int)abs(finalPos.y) % BLOCK(3)) * 21;
+
+						// Apply circular motion in XZ plane.
+						finalPos.x += positionOffset.x * phd_sin((short)spinAngle);
+						finalPos.z += positionOffset.z * phd_cos((short)spinAngle);
+					}
+				}
+
+				if (!view.Camera.Frustum.SphereInFrustum(finalPos, finalScale))
+					continue;
+
+				switch (part.Type)
+				{
+					case WeatherType::Snow:
+					{
+						if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
+							continue;
+
+						// Use dedicated snow sprite sequence if available, otherwise fallback to underwater dust sprite.
+						int spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+						if (Objects[ID_SNOW_SPRITES].loaded)
+							spriteIndex = Objects[ID_SNOW_SPRITES].meshIndex + (uniqueSeed % Objects[ID_SNOW_SPRITES].nmeshes);
+
+						/// Get a deterministic particle rotation from the cluster index.
+						float rot = ((float)i / (float)clusterSize) * PI_MUL_2;
+
+						AddSpriteBillboard(
+							&_sprites[spriteIndex],
+							finalPos,
+							Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+							rot, 1.0f, Vector2(finalScale),
+							BlendMode::Additive, false, view);
+
+						break;
+					}
+
+					case WeatherType::Rain:
+					{
+						if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Rain rendering"))
+							continue;
+
+						int spriteIndex = Objects[ID_DRIP_SPRITE].meshIndex;
+						if (Objects[ID_RAIN_SPRITES].loaded)
+							spriteIndex = Objects[ID_RAIN_SPRITES].meshIndex + (uniqueSeed % Objects[ID_RAIN_SPRITES].nmeshes);
+
+						Vector3 v;
+						part.Velocity.Normalize(v);
+
+						AddSpriteBillboardConstrained(
+							&_sprites[spriteIndex],
+							finalPos,
+							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
+							0.0f, 1.0f,
+							Vector2(RAIN_WIDTH, finalScale),
+							BlendMode::Additive, -v, false, view);
+
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -1036,9 +1172,23 @@ namespace TEN::Renderer
 		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
 			return false;
 
+		if (Lara.Control.Weapon.GunType == LaraWeaponType::Flare)
+			return false;
+
 		const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)Lara.Control.Weapon.GunType - 1];
 		if (!settings.MuzzleFlash)
 			return false;
+
+		// Use MP5 flash if available.
+		auto gunflash = GAME_OBJECT_ID::ID_GUN_FLASH;
+		if (Lara.Control.Weapon.GunType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded)
+			gunflash = GAME_OBJECT_ID::ID_GUN_FLASH2;
+
+		if (!_moveableObjects[gunflash].has_value())
+			return false;
+
+		const auto& flashMoveable = *_moveableObjects[gunflash];
+		const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
 		_shaders.Bind(Shader::Statics);
 
@@ -1058,100 +1208,59 @@ namespace TEN::Renderer
 		_stStatic.LightMode = (int)LightMode::Static;
 		BindStaticLights(itemPtr->LightsToDraw);
 
-		short length = 0;
-		short zOffset = 0;
-		short rotationX = 0;
-
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 		SetBlendMode(BlendMode::Additive);
 
-		if (Lara.Control.Weapon.GunType != LaraWeaponType::Flare &&
-			Lara.Control.Weapon.GunType != LaraWeaponType::Crossbow)
+		for (const auto& flashBucket : flashMesh.Buckets) 
 		{
-			switch (Lara.Control.Weapon.GunType)
+			if (flashBucket.BlendMode == BlendMode::Opaque)
+				continue;
+
+			if (flashBucket.Polygons.size() == 0)
+				continue;
+
+			BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[flashBucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+
+			auto meshOffset = g_Level.Frames[GetAnimData(gunflash, 0).FramePtr].Offset;
+			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
+
+			offset.x = -offset.x;
+			auto tMatrix = Matrix::CreateTranslation(offset);
+
+			auto worldMatrix = Matrix::Identity;
+			auto rotMatrix = Matrix::CreateRotationX(TO_RAD(Lara.Control.Weapon.GunType == LaraWeaponType::Pistol ? -16830 : -14560)); // HACK
+
+			if (Lara.LeftArm.GunFlash)
 			{
-			case LaraWeaponType::Revolver:
-				length = 192;
-				zOffset = 68;
-				rotationX = -14560;
-				break;
+				worldMatrix = itemPtr->AnimTransforms[LM_LHAND] * itemPtr->World;
+				worldMatrix = tMatrix * worldMatrix;
+				worldMatrix = rotMatrix * worldMatrix;
+				ReflectMatrixOptionally(worldMatrix);
 
-			case LaraWeaponType::Uzi:
-				length = 190;
-				zOffset = 50;
-				rotationX = -14560;
-				break;
+				_stStatic.World = worldMatrix;
+				_cbStatic.UpdateData(_stStatic, _context.Get());
 
-			case LaraWeaponType::HK:
-			case LaraWeaponType::Shotgun:
-				length = 300;
-				zOffset = 92;
-				rotationX = -14560;
-				break;
+				DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
 
-			default:
-			case LaraWeaponType::Pistol:
-				length = 180;
-				zOffset = 40;
-				rotationX = -16830;
-				break;
+				_numMoveablesDrawCalls++;
 			}
 
-			// Use MP5 flash if available.
-			auto gunflash = GAME_OBJECT_ID::ID_GUN_FLASH;
-			if (Lara.Control.Weapon.GunType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded)
+			offset.x = -offset.x;
+			tMatrix = Matrix::CreateTranslation(offset);
+
+			if (Lara.RightArm.GunFlash)
 			{
-				gunflash = GAME_OBJECT_ID::ID_GUN_FLASH2;
-				length += 20;
-				zOffset += 10;
-			}
+				worldMatrix = itemPtr->AnimTransforms[LM_RHAND] * itemPtr->World;
+				worldMatrix = tMatrix * worldMatrix;
+				worldMatrix = rotMatrix * worldMatrix;
+				ReflectMatrixOptionally(worldMatrix);
 
-			const auto& flashMoveable = *_moveableObjects[gunflash];
-			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
+				_stStatic.World = worldMatrix;
+				_cbStatic.UpdateData(_stStatic, _context.Get());
 
-			for (const auto& flashBucket : flashMesh.Buckets) 
-			{
-				if (flashBucket.BlendMode == BlendMode::Opaque)
-					continue;
+				DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
 
-				if (flashBucket.Polygons.size() == 0)
-					continue;
-
-				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[flashBucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-
-				auto tMatrix = Matrix::CreateTranslation(0, length, zOffset);
-				auto rotMatrix = Matrix::CreateRotationX(TO_RAD(rotationX));
-
-				auto worldMatrix = Matrix::Identity;
-				if (Lara.LeftArm.GunFlash)
-				{
-					worldMatrix = itemPtr->AnimTransforms[LM_LHAND] * itemPtr->World;
-					worldMatrix = tMatrix * worldMatrix;
-					worldMatrix = rotMatrix * worldMatrix;
-					ReflectMatrixOptionally(worldMatrix);
-
-					_stStatic.World = worldMatrix;
-					_cbStatic.UpdateData(_stStatic, _context.Get());
-
-					DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
-
-					_numMoveablesDrawCalls++;
-				}
-
-				if (Lara.RightArm.GunFlash)
-				{
-					worldMatrix = itemPtr->AnimTransforms[LM_RHAND] * itemPtr->World;
-					worldMatrix = tMatrix * worldMatrix;
-					worldMatrix = rotMatrix * worldMatrix;
-					ReflectMatrixOptionally(worldMatrix);
-
-					_stStatic.World = worldMatrix;
-					_cbStatic.UpdateData(_stStatic, _context.Get());
-
-					DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
-
-					_numMoveablesDrawCalls++;
-				}
+				_numMoveablesDrawCalls++;
 			}
 		}
 

@@ -17,6 +17,7 @@ This is the credit list of **all** the people who contributed to TombEngine in a
 - Sezz (player state refactoring, general coding, code cleanups, bug fixing, assets)
 - Squidshire (Hispidence) (Lua implementation, bug fixing)
 - Stranger1992 (sound asset refactoring and organisation, assets)
+- TrainWreck (asset coding and Lua enhancements)
 - TokyoSU (entity and vehicle decompilation)
 - Tomo (general coding, special FX coding, bug fixing)
 - Troye (general coding, refactoring)
@@ -49,5 +50,4 @@ This is the credit list of **all** the people who contributed to TombEngine in a
 - JoeyQuint (Standing 180° turn, monkey swing 180° turn)
 
 ### TombEngine Marketing 
-- Kubsy (Twitter and forum posts)
-- Stranger1992 (This website, Facebook, Instagram, Youtube and Twitch.
+- Stranger1992 (Tomb Engine website, Discord, Facebook, Instagram, Youtube, X, and Twitch)

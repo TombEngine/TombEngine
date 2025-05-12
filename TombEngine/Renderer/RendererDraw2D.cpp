@@ -407,7 +407,7 @@ namespace TEN::Renderer
 		_primitiveBatch->End();
 	}
 
-	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit)
+	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit, float customAspect)
 	{
 		constexpr auto VERTEX_COUNT = 4;
 		constexpr auto UV_RANGE		= std::pair<Vector2, Vector2>(Vector2(0.0f), Vector2(1.0f));
@@ -424,7 +424,7 @@ namespace TEN::Renderer
 			texture2DPtr->GetDesc(&desc);
 
 			float screenAspect = float(_screenWidth) / float(_screenHeight);
-			float imageAspect  = float(desc.Width) / float(desc.Height);
+			float imageAspect  = customAspect == 0.0f ? float(desc.Width) / float(desc.Height) : customAspect;
 
 			if (screenAspect > imageAspect)
 			{
@@ -584,7 +584,11 @@ namespace TEN::Renderer
 
 		for (const auto& displaySprite : DisplaySprites)
 		{
-			const auto& sprite = _sprites[Objects[displaySprite.ObjectID].meshIndex + displaySprite.SpriteID];
+			// If sprite is a video texture, bypass it if texture is inactive.
+			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || _videoSprite.Texture->Texture == nullptr))
+				continue;
+
+			const auto& sprite = displaySprite.SpriteID == VIDEO_SPRITE_ID ? _videoSprite : _sprites[Objects[displaySprite.ObjectID].meshIndex + displaySprite.SpriteID];
 
 			// Calculate sprite aspect ratio.
 			float spriteAspect = (float)sprite.Width / (float)sprite.Height;

@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -152,7 +152,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Create">Create(name, totalTime, loop, timerFormat, func[, ...])</a></td>
+	<td class="name" ><a href="#Create">Create(name, totalTime, loop, timerFormat, func, [...])</a></td>
 	<td class="summary">Create (but do not start) a new timer.</td>
 	</tr>
 	<tr>
@@ -160,7 +160,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
 	<td class="summary">Get a timer by its name.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#myTimer:SetFunction">myTimer:SetFunction(func[, ...])</a></td>
+	<td class="name" ><a href="#myTimer:SetFunction">myTimer:SetFunction(func, [...])</a></td>
 	<td class="summary">Give the timer a new function and args</td>
 	</tr>
 	<tr>
@@ -214,7 +214,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
     <dl class="function">
     <dt>
     <a name = "Create"></a>
-    <strong>Create(name, totalTime, loop, timerFormat, func[, ...])</strong>
+    <strong>Create(name, totalTime, loop, timerFormat, func, [...])</strong>
     </dt>
     <dd>
     Create (but do not start) a new timer. </p>
@@ -267,7 +267,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
         </li>
         <li><span class="parameter">...</span>
          a variable number of arguments with which the above function will be called
-         (<em>optional</em>)
+         <em>Optional.</em>
         </li>
     </ul>
 
@@ -312,7 +312,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
 </dd>
     <dt>
     <a name = "myTimer:SetFunction"></a>
-    <strong>myTimer:SetFunction(func[, ...])</strong>
+    <strong>myTimer:SetFunction(func, [...])</strong>
     </dt>
     <dd>
     Give the timer a new function and args
@@ -327,7 +327,7 @@ LevelFuncs.TriggerTimer = <span class="keyword">function</span>(obj)
         </li>
         <li><span class="parameter">...</span>
          a variable number of arguments with which the above function will be called
-         (<em>optional</em>)
+         <em>Optional.</em>
         </li>
     </ul>
 

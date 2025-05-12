@@ -839,14 +839,27 @@ int Spline(int x, int* knots, int nk)
 	return ((__int64)x * (((__int64)x * (((__int64)x * c1 >> 16) + c2) >> 16) + (k[2] >> 1) + ((-k[0] - 1) >> 1)) >> 16) + k[1];
 }
 
-Pose GetCameraTransform(int sequence, float alpha)
+Pose GetCameraTransform(int sequence, float alpha, bool loop)
 {
+	constexpr auto BLEND_RANGE = 0.1f;
+	constexpr auto BLEND_START = BLEND_RANGE;
+	constexpr auto BLEND_END   = 1.0f - BLEND_RANGE;
+
 	alpha = std::clamp(alpha, 0.0f, 1.0f);
+
+	if (sequence < 0 || sequence >= MAX_SPOTCAMS)
+	{
+		TENLog("Wrong flyby sequence number provided for getting camera coordinates.", LogLevel::Warning);
+		return Pose::Zero;
+	}
 
 	// Retrieve camera count in sequence.
 	int cameraCount = CameraCnt[SpotCamRemap[sequence]];
 	if (cameraCount < 2)
-		return Pose::Zero; // Not enough cameras to interpolate.
+	{
+		TENLog("Not enough cameras in flyby sequence to calculate the coordinates.", LogLevel::Warning);
+		return Pose::Zero;
+	}
 
 	// Find first ID for sequence.
 	int firstSeqID = 0;
@@ -873,15 +886,39 @@ Pose GetCameraTransform(int sequence, float alpha)
 	}
 
 	// Compute spline interpolation of main flyby camera parameters.
-	auto origin = Vector3(Spline(splineAlpha, xOrigins.data(), splinePoints),
-						  Spline(splineAlpha, yOrigins.data(), splinePoints),
-						  Spline(splineAlpha, zOrigins.data(), splinePoints));
+	auto getInterpolatedPoint = [&](float t, std::vector<int>& x, std::vector<int>& y, std::vector<int>& z) 
+	{
+		int tAlpha = int(t * (float)USHRT_MAX);
+		return Vector3(Spline(tAlpha, x.data(), splinePoints),
+					   Spline(tAlpha, y.data(), splinePoints),
+					   Spline(tAlpha, z.data(), splinePoints));
+	};
 
-	auto target = Vector3(Spline(splineAlpha, xTargets.data(), splinePoints),
-						  Spline(splineAlpha, yTargets.data(), splinePoints),
-						  Spline(splineAlpha, zTargets.data(), splinePoints));
+	auto getInterpolatedRoll = [&](float t)
+	{
+		int tAlpha = int(t * (float)USHRT_MAX);
+		return Spline(tAlpha, rolls.data(), splinePoints);
+	};
 
-	short orientZ = Spline(splineAlpha, rolls.data(), splinePoints);
+	auto origin = Vector3::Zero;
+	auto target = Vector3::Zero;
+	short orientZ = 0;
+
+	// If loop is enabled and alpha is at sequence start or end, blend between last and first cameras.
+	if (loop && (alpha < BLEND_START || alpha >= BLEND_END))
+	{
+		float blendFactor = (alpha < BLEND_START) ? (0.5f + ((alpha / BLEND_RANGE) * 0.5f)) : (((alpha - BLEND_END) / BLEND_START) * 0.5f);
+
+		origin = Vector3::Lerp(getInterpolatedPoint(BLEND_END, xOrigins, yOrigins, zOrigins), getInterpolatedPoint(BLEND_START, xOrigins, yOrigins, zOrigins), blendFactor);
+		target = Vector3::Lerp(getInterpolatedPoint(BLEND_END, xTargets, yTargets, zTargets), getInterpolatedPoint(BLEND_START, xTargets, yTargets, zTargets), blendFactor);
+		orientZ = Lerp(getInterpolatedRoll(BLEND_END), getInterpolatedRoll(BLEND_START), blendFactor);
+	}
+	else
+	{
+		origin  = getInterpolatedPoint(alpha, xOrigins, yOrigins, zOrigins);
+		target  = getInterpolatedPoint(alpha, xTargets, yTargets, zTargets);
+		orientZ = getInterpolatedRoll(alpha);
+	}
 
 	auto pose = Pose(origin, EulerAngles(target - origin));
 	pose.Orientation.z = orientZ;

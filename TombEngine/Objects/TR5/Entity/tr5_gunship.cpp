@@ -32,9 +32,7 @@ namespace TEN::Entities::Creatures::TR5
 					Vector3i(
 						(GetRandomControl() & 0x1FF) - 255,
 						(GetRandomControl() & 0x1FF) - 255,
-						(GetRandomControl() & 0x1FF) - 255
-					))
-			);
+						(GetRandomControl() & 0x1FF) - 255)));
 
 			auto target = pos;
 

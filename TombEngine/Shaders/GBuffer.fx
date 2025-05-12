@@ -1,11 +1,11 @@
 #include "./CBCamera.hlsli"
+#include "./CBItem.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
 
-#define MAX_BONES 32
 #define INSTANCED_STATIC_MESH_BUCKET_SIZE 100
 
 cbuffer RoomBuffer : register(b5)
@@ -25,12 +25,6 @@ struct InstancedStaticMesh
 cbuffer InstancedStaticMeshBuffer : register(b3)
 {
 	InstancedStaticMesh StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
-};
-
-cbuffer ItemBuffer : register(b1)
-{
-	float4x4 ItemWorld;
-	float4x4 Bones[MAX_BONES];
 };
 
 cbuffer StaticMatrixBuffer : register(b8)
@@ -120,8 +114,10 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 PixelShaderInput VSItems(VertexShaderInput input)
 {
 	PixelShaderInput output;
-
-	float4x4 world = mul(Bones[input.Bone], ItemWorld);
+	
+	// Blend and apply world matrix
+	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, true) : Bones[input.BoneIndex[0]];
+	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
 	float wibble = Wibble(input.Effects.xyz, input.Hash);

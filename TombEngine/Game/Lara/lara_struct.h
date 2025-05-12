@@ -1227,7 +1227,6 @@ struct WeaponControlData
 
 	short WeaponItem = -1;
 	bool  HasFired	 = false;
-	bool  Fired		 = false;
 
 	bool UziLeft  = false;
 	bool UziRight = false;

@@ -15,9 +15,9 @@ namespace TEN::Scripting::View
 
 	/// Table of View.ScaleMode constants. To be used with @{View.DisplaySprite} class.
 	// 
-	// - `FIT`
-	// - `FILL`
-	// - `STRETCH`
+	// - `FIT` - Image will proportionally fit the whole image into the sprite surface.
+	// - `FILL` - Image will scale up proportionally and crop to fill all sprite surface.
+	// - `STRETCH` - Image will stretch according to sprite dimensions, not taking aspect ratio into consideration.
 	// 
 	// @table View.ScaleMode
 

@@ -38,6 +38,7 @@ table LevelData {
 	horizon2_orientation: EulerAngles;
 	horizon2_transparency: float;
 
+	lensflare_enabled: bool;
 	lensflare_sprite_id: int32;
 	lensflare_pitch: float;
 	lensflare_yaw: float;
@@ -264,7 +265,6 @@ table TightropeControlData {
 table WeaponControlData {
 	weapon_item: int32;
 	has_fired: bool;
-	fired: bool;
 	uzi_left: bool;
 	uzi_right: bool;
 	gun_type: int32;
@@ -372,7 +372,6 @@ table StaticMeshInfo {
 	number: int32;
 	room_number: int32;
 	pose: Pose;
-	scale: float;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
@@ -430,6 +429,13 @@ table ParticleInfo {
 table Soundtrack {
     name: string;
     position: uint64;
+}
+
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
 }
 
 table SwarmObjectInfo {
@@ -497,6 +503,31 @@ table FishData {
 	target_item_number: int32;
 	undulation: float;
 	velocity: float;
+}
+
+table FireflyData {
+	sprite_index: int32;
+	sprite_id: int32;
+	blend_mode: int32;
+	scalar: int32;
+	position: Vector3;
+	room_number: int32;
+	position_target: Vector3;
+	orientation: EulerAngles;
+	velocity: float;
+	target_item_number: int32;
+	z_vel: float;
+	life: float;
+	number: int32;
+	d_r: int32;
+	d_g: int32;
+	d_b: int32;
+	r: int32;
+	g: int32;
+	b: int32;
+	on: bool;
+	size: float;
+	rot_ang: int32;
 }
 
 struct KeyValPair {
@@ -602,6 +633,7 @@ table SaveGame {
 	next_item_active: int32;
 	room_items: [int32];
 	fish_swarm: [FishData];
+	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
 	next_fx_free: int32;
 	next_fx_active: int32;
@@ -624,6 +656,7 @@ table SaveGame {
 	action_queue: [int32];
 	soundtracks: [Soundtrack];
 	cd_flags: [int32];
+	video: VideoInfo;
 
 	postprocess_mode: int32;
 	postprocess_strength: float;

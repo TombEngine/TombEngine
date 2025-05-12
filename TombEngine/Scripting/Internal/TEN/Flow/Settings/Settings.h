@@ -103,7 +103,9 @@ namespace TEN::Scripting
 		bool Smoke				 = false;
 		bool Shell				 = false;
 		bool MuzzleFlash		 = true;
+		bool MuzzleGlow			 = true;
 		bool ColorizeMuzzleFlash = false;
+		Vec3 MuzzleOffset = {};
 
 		static void Register(sol::table& parent);
 	};

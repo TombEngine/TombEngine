@@ -75,10 +75,13 @@ private:
 	sol::protected_function	_onFreeze  = {};
 
 	std::unordered_map<CallbackPoint, std::unordered_set<std::string>*> _callbacks;
-
 	std::vector<std::variant<std::string, unsigned int>> _savedVarPath;
 
 	bool _shortenedCalls = false;
+
+	std::string _consoleInput = {};
+
+	void PerformConsoleInput();
 
 	std::string GetRequestedPath() const;
 
@@ -132,6 +135,7 @@ public:
 	void HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator);
 	void EnableEvent(const std::string& name, EventType type);
 	void DisableEvent(const std::string& name, EventType type);
+	void AddConsoleInput(const std::string& input);
 
 	void ResetScripts(bool clearGameVars) override;
 	void ShortenTENCalls() override;

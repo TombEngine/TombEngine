@@ -422,12 +422,15 @@ namespace TEN::Renderer
 
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
+			bool inFrustum = true;
+			
 			if (!isRoomReflected && obj.ShadowType == ShadowMode::None)
 			{
+				inFrustum = false;
+
 				// Get all spheres and check if frustum intersects any of them.
 				auto spheres = GetSpheres(itemNumber);
 
-				bool inFrustum = false;
 				for (int i = 0; !inFrustum, i < spheres.size(); i++)
 				{
 					// Blow up sphere radius by half for cases of too small calculated spheres.
@@ -435,8 +438,8 @@ namespace TEN::Renderer
 						inFrustum = true;
 				}
 
-				if (!inFrustum)
-					continue;
+				// NOTE: removed continue loop here if not in frustum,
+				// for updating first positions and animations data
 			}
 
 			auto& newItem = _items[itemNumber];
@@ -487,6 +490,12 @@ namespace TEN::Renderer
 			for (int j = 0; j < MAX_BONES; j++)
 				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
 
+			// NOTE: now at least positions and animations are updated,
+			// because even off-screen the correct position is required 
+			// by GetJointPosition functions and similars
+			if (!inFrustum)
+				continue;
+
 			CalculateLightFades(&newItem);
 			CollectLightsForItem(&newItem);
 
@@ -518,10 +527,9 @@ namespace TEN::Renderer
 				mesh->Color = nativeMesh->color;
 				mesh->OriginalSphere = Statics[mesh->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 				mesh->Pose = nativeMesh->pos;
-				mesh->Scale = nativeMesh->scale;
-				mesh->Update();
+				mesh->Update(GetInterpolationFactor());
 
-				nativeMesh->Dirty = false;
+				nativeMesh->Dirty = (mesh->PrevPose != mesh->Pose);
 			}
 
 			if (!(nativeMesh->flags & StaticMeshFlags::SM_VISIBLE))
@@ -806,8 +814,8 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[roomNumber];
-
+		RoomData* r = &g_Level.Rooms[roomNumber];
+		
 		// Collect dynamic lights for rooms
 		for (int i = 0; i < _dynamicLights[_dynamicLightList].size(); i++)
 		{
@@ -826,7 +834,7 @@ namespace TEN::Renderer
 			}
 
 			// Light already on a list
-			if (std::find(renderView.LightsToDraw.begin(), renderView.LightsToDraw.end(), light) != renderView.LightsToDraw.end())
+			if (TEN::Utils::Contains(renderView.LightsToDraw, light))
 			{
 				continue;
 			}
@@ -848,7 +856,7 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[room.RoomNumber];
+		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
 		short fxNum = NO_VALUE;
 		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
@@ -921,6 +929,12 @@ namespace TEN::Renderer
 			effect.PrevTranslation = effect.Translation;
 			effect.PrevRotation = effect.Rotation;
 			effect.PrevScale = effect.Scale;
+		}
+
+		for (auto& room : _rooms)
+		{
+			for (auto& stat : room.Statics)
+				stat.PrevPose = stat.Pose;
 		}
 	}
 }

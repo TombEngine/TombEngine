@@ -550,6 +550,18 @@ namespace TEN::Collision::Point
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 
+	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber, const Vector3& offset)
+	{
+		// Get "location".
+		auto location = GetLocation(pos, roomNumber);
+
+		// Calculate probe position.
+		auto probePos = pos + offset;
+		short probeRoomNumber = GetProbeRoomNumber(pos, location, probePos);
+
+		return PointCollisionData(probePos, probeRoomNumber);
+	}
+
 	PointCollisionData GetPointCollision(const Vector3i& pos, int roomNumber, short headingAngle, float forward, float down, float right, const Vector3& axis)
 	{
 		// Get "location".

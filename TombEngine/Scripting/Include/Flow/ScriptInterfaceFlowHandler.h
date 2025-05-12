@@ -13,6 +13,7 @@ public:
 	FreezeMode	CurrentFreezeMode	= FreezeMode::None;
 
 	std::string	IntroImagePath		 = {};
+	std::string	IntroVideoPath		 = {};
 	std::string	TitleScreenImagePath = {};
 
 	int	 SelectedLevelForNewGame = 0;

@@ -26,6 +26,7 @@ namespace TEN::Scripting::Collision
 	void Probe::Register(sol::table& parent)
 	{
 		using ctors = sol::constructors<
+			Probe(const Vec3&),
 			Probe(const Vec3&, int),
 			Probe(const Vec3&, int, const Vec3&, float),
 			Probe(const Vec3&, int, const Rotation&, float),
@@ -65,13 +66,17 @@ namespace TEN::Scripting::Collision
 	/// Create a Probe at a specified world position in a room.
 	// @function Probe
 	// @tparam Vec3 pos World position.
-	// @tparam int roomNumber[opt] Room number. Must be used if probing a position in an overlapping room.
+	// @tparam[opt] int roomNumber Room number. Must be used if probing a position in an overlapping room.
 	// @treturn Probe A new Probe.
-	Probe::Probe(const Vec3& pos, TypeOrNil<int> roomNumber)
+	Probe::Probe(const Vec3& pos)
 	{
 		auto convertedPos = pos.ToVector3i();
-		int roomNumberValue = ValueOr<int>(roomNumber, FindRoomNumber(convertedPos));
-		_pointCollision = GetPointCollision(convertedPos, roomNumberValue);
+		_pointCollision = GetPointCollision(convertedPos, FindRoomNumber(convertedPos));
+	}
+
+	Probe::Probe(const Vec3& pos, int roomNumber)
+	{
+		_pointCollision = GetPointCollision(pos.ToVector3i(), roomNumber);
 	}
 
 	/// Create a Probe that casts from an origin world position in a room in a given direction for a specified distance.
@@ -326,9 +331,9 @@ namespace TEN::Scripting::Collision
 	// @function Preview
 	void Probe::Preview()
 	{
-		constexpr auto TARGET_RADIUS = 100.0f;
-		constexpr auto SPHERE_RADIUS = TARGET_RADIUS * 0.6f;
-		constexpr auto COLOR		 = Color(1.0f, 1.0f, 1.0f, 0.4f);
+		constexpr auto TARGET_RADIUS = BLOCK(0.08f);
+		constexpr auto SPHERE_RADIUS = TARGET_RADIUS * 0.4f;
+		constexpr auto COLOR		 = Color(1.0f, 1.0f, 0.8f, 0.2f);
 		constexpr auto DEBUG_PAGE	 = RendererDebugPage::CollisionStats;
 
 		auto pos = _pointCollision.GetPosition().ToVector3();

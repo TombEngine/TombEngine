@@ -24,7 +24,7 @@ using namespace TEN::Scripting::Types;
 	static auto IndexError = IndexErrorMaker(Room, ScriptReserved_Volume);
 	static auto NewIndexError = NewIndexErrorMaker(Room, ScriptReserved_Volume);
 
-	Room::Room(ROOM_INFO& room) :
+	Room::Room(RoomData& room) :
 		_room(room)
 	{
 	};

@@ -11,9 +11,9 @@ Constants for the type of the audio tracks.
 * 
 To be used with sound track functions, such as @{Sound.PlayAudioTrack} and @{Sound.StopAudioTrack}.
 
- - `ONESHOT` - used for one-time music tracks.
- - `LOOPED` - used for looped ambience or music.
- - `VOICE` - used for dialogs. Also supports subtitles, set by @{Sound.GetCurrentSubtitle} function.
+ - `ONESHOT` - Used for one-time music tracks.
+ - `LOOPED` - Used for looped ambience or music.
+ - `VOICE` - Used for dialogs. Also supports subtitles, set by @{Sound.GetCurrentSubtitle} function.
 
 @table Sound.SoundTrackType
 */

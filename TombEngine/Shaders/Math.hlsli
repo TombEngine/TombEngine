@@ -1,6 +1,8 @@
 #ifndef MATH
 #define MATH
 
+#include "./VertexInput.hlsli"
+
 #define PI		3.1415926535897932384626433832795028841971693993751058209749445923
 #define PI2		6.2831853071795864769252867665590057683943387987502116419498891846
 #define EPSILON 1e-38
@@ -23,6 +25,8 @@
 #define MAX_LIGHTS_PER_ITEM	8
 #define MAX_FOG_BULBS	32
 #define SPEC_FACTOR 64
+
+#define MAX_BONES 32
 
 struct ShaderLight
 {
@@ -390,4 +394,106 @@ float3 NormalNoise(float3 v, float3 i, float3 n)
 	// Return perturbed pixel based on reference pixel and resulting vector with threshold c attenuated by 2/5 times.
 	return lerp(v, r, c * 0.3f);
 }
+
+// Matrix (3x3) to Quaternion
+float4 RotationMatrixToQuaternion(float3x3 m)
+{
+	float4 q;
+	float trace = m[0].x + m[1].y + m[2].z;
+
+	bool tracePositive = trace > 0.0f;
+	float s0 = sqrt(trace + 1.0f) * 2.0f;
+	float4 q0 = float4(
+		(m[2].y - m[1].z) / s0,
+		(m[0].z - m[2].x) / s0,
+		(m[1].x - m[0].y) / s0,
+		0.25f * s0
+	);
+
+	bool cond1 = (m[0].x > m[1].y) && (m[0].x > m[2].z);
+	float s1 = sqrt(1.0f + m[0].x - m[1].y - m[2].z) * 2.0f;
+	float4 q1 = float4(
+		0.25f * s1,
+		(m[0].y + m[1].x) / s1,
+		(m[0].z + m[2].x) / s1,
+		(m[2].y - m[1].z) / s1
+	);
+
+	bool cond2 = m[1].y > m[2].z;
+	float s2 = sqrt(1.0f + m[1].y - m[0].x - m[2].z) * 2.0f;
+	float4 q2 = float4(
+		(m[0].y + m[1].x) / s2,
+		0.25f * s2,
+		(m[1].z + m[2].y) / s2,
+		(m[0].z - m[2].x) / s2
+	);
+
+	float s3 = sqrt(1.0f + m[2].z - m[0].x - m[1].y) * 2.0f;
+	float4 q3 = float4(
+		(m[0].z + m[2].x) / s3,
+		(m[1].z + m[2].y) / s3,
+		0.25f * s3,
+		(m[1].x - m[0].y) / s3
+	);
+
+	q = tracePositive ? q0 : (cond1 ? q1 : (cond2 ? q2 : q3));
+	return q;
+}
+
+// Quaternion to Matrix (3x3)
+float3x3 QuaternionToRotationMatrix(float4 q)
+{
+	float x2 = q.x + q.x,  y2 = q.y + q.y,	z2 = q.z + q.z;
+	float xx = q.x * x2,   yy = q.y * y2,	zz = q.z * z2;
+	float xy = q.x * y2,   xz = q.x * z2,	yz = q.y * z2;
+	float wx = q.w * x2,   wy = q.w * y2,	wz = q.w * z2;
+
+	float3x3 m;
+	m[0] = float3(1.0f - (yy + zz), xy - wz, xz + wy);
+	m[1] = float3(xy + wz, 1.0f - (xx + zz), yz - wx);
+	m[2] = float3(xz - wy, yz + wx, 1.0f - (xx + yy));
+	return m;
+}
+
+// Blend bone matrices using quaternion-based rotation and linear translation
+float4x4 BlendBoneMatrices(VertexShaderInput input, float4x4 bones[MAX_BONES], bool onlyRotation)
+{
+	float4 blendedQuat = float4(0, 0, 0, 0);
+	float3 blendedTranslation = float3(0, 0, 0);
+
+	[unroll]
+	for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+	{
+		float w = input.BoneWeight[i];
+		int index = input.BoneIndex[i];
+		float4x4 bone = bones[index];
+
+		float3x3 rot = (float3x3)bone;
+		float4 q = RotationMatrixToQuaternion(rot);
+
+		// Ensure shortest path for interpolation (flip if dot < 0)
+		float dotPrev = dot(blendedQuat, q);
+		q *= sign(dotPrev + 1e-5f); // Avoid zero dot product flip
+
+		blendedQuat += q * w;
+
+		if (!onlyRotation)
+		{
+			blendedTranslation += bone[3].xyz * w;
+		}
+	}
+
+	blendedQuat = normalize(blendedQuat);
+	float3x3 finalRot = QuaternionToRotationMatrix(blendedQuat);
+
+	float4x4 result = float4x4(
+		float4(finalRot[0], 0.0f),
+		float4(finalRot[1], 0.0f),
+		float4(finalRot[2], 0.0f),
+		float4(onlyRotation ? bones[input.BoneIndex[0]][3].xyz : blendedTranslation, 1.0f)
+	);
+
+	return result;
+}
+
 #endif // MATH

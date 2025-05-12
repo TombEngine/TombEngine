@@ -531,9 +531,9 @@ end
 -- @tparam Objects.ObjID objectIdBg Object ID for the diary's sprite.
 -- @tparam int spriteIdBg SpriteID from the specified object for the diary's sprite.
 -- @tparam Color colorBg Color of diary's sprite.
--- @tparam Vec2 pos X,Y position of the bar's background in screen percent (0-100).
+-- @tparam Vec2 pos X,Y position of the diary background sprite in screen percent (0-100).
 -- @tparam float rot rotation of the diary's sprite (0-360).
--- @tparam Vec2 scale X,Y Scaling factor for the bar's background sprite.
+-- @tparam Vec2 scale X,Y Scaling factor for the diary background sprite.
 -- @tparam View.AlignMode alignMode Alignment for the diary's sprite.
 -- @tparam View.ScaleMode scaleMode Scaling for the diary's sprite.
 -- @tparam Effects.BlendID blendMode Blending modes for the diary's sprite.

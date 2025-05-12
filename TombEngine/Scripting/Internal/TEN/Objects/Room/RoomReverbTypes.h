@@ -11,15 +11,15 @@ Constants for room reverb types.
 */
 
 /*** Table of Objects.RoomReverb constants.
-To be used with @{Objects.Room.GetReverbType} and @{Objects.Room.SetReverbType} functions.
-
+<br>
+Corresponds to room reverb setting set in Tomb Editor. To be used with @{Objects.Room.GetReverbType} and @{Objects.Room.SetReverbType} functions.
 The following constants are inside RoomReverb.
 
- - OUTSIDE
- - SMALL
- - MEDIUM
- - LARGE
- - PIPE
+ - `OUTSIDE`
+ - `SMALL`
+ - `MEDIUM`
+ - `LARGE`
+ - `PIPE`
 
 @table Objects.RoomReverb
 */

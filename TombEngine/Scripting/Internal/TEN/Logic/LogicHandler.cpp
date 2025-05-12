@@ -342,7 +342,7 @@ Possible event type values:
 @function HandleEvent
 @tparam string name Name of the event set to find.
 @tparam EventType type Event to execute.
-@tparam Objects.Moveable activator Optional activator. Default is the player object.
+@tparam[opt=Lara] Objects.Moveable activator Optional activator.
 */
 void LogicHandler::HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator)
 {
@@ -618,6 +618,28 @@ int Handle(TypeFrom& var, MapType& varsMap, size_t& numVars, std::vector<SavedVa
 	}
 
 	return first->second;
+}
+
+void LogicHandler::AddConsoleInput(const std::string& input)
+{
+	_consoleInput = input;
+}
+
+void LogicHandler::PerformConsoleInput()
+{
+	if (!_consoleInput.empty())
+	{
+		try
+		{
+			ExecuteString(_consoleInput);
+		}
+		catch (const std::exception& ex)
+		{
+			TENLog("Error executing " + _consoleInput + ": " + ex.what(), LogLevel::Error);
+		}
+
+		_consoleInput.clear();
+	}
 }
 
 std::string LogicHandler::GetRequestedPath() const
@@ -929,7 +951,7 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 @section specialobjects
 */
 
-/*** A @{Objects.Moveable} representing Lara herself.
+/*** An @{Objects.Moveable} entry representing Lara herself.
 @table Lara
 */
 void LogicHandler::ResetVariables()
@@ -1027,6 +1049,8 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 		for (const auto& name : _callbacksPreLoop)
 			CallLevelFuncByName(name, deltaTime);
 
+		PerformConsoleInput();
+
 		lua_gc(_handler.GetState()->lua_state(), LUA_GCCOLLECT, 0);
 		if (_onLoop.valid())
 			CallLevelFunc(_onLoop, deltaTime);
@@ -1098,6 +1122,8 @@ void LogicHandler::OnFreeze()
 {
 	for (const auto& name : _callbacksPreFreeze)
 		CallLevelFuncByName(name);
+
+	PerformConsoleInput();
 
 	if (_onFreeze.valid())
 		CallLevelFunc(_onFreeze);

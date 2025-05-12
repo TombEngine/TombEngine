@@ -31,6 +31,7 @@
 #include "Renderer/Structures/RendererSortableObject.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 #include "Specific/winmain.h"
 
 using namespace TEN::Effects::Hair;
@@ -199,6 +200,7 @@ namespace TEN::Renderer
 			_stItem.World = item->InterpolatedWorld;
 			_stItem.Color = item->Color;
 			_stItem.AmbientLight = item->AmbientLight;
+			_stItem.Skinned = item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
 			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 			for (int k = 0; k < MAX_BONES; k++)
 				_stItem.BoneLightModes[k] = (int)LightMode::Static;
@@ -262,6 +264,9 @@ namespace TEN::Renderer
 				continue;
 
 			objectID = gunshell->objectNumber;
+
+			if (!_moveableObjects[objectID].has_value())
+				continue;
 
 			auto translation = Matrix::CreateTranslation(gunshell->pos.Position.ToVector3());
 			auto rotMatrix = gunshell->pos.Orientation.ToRotationMatrix();
@@ -1759,6 +1764,7 @@ namespace TEN::Renderer
 		PrepareStreamers(view);
 		PrepareLaserBarriers(view);
 		PrepareSingleLaserBeam(view);
+		PrepareFireflies(view);
 
 		// Sprites grouped in buckets for instancing. Non-commutative sprites are collected at a later stage.
 		SortAndPrepareSprites(view);
@@ -2178,6 +2184,33 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);*/
 	}
 
+	void Renderer::RenderFullScreenTexture(ID3D11ShaderResourceView* texture, float aspect)
+	{
+		if (texture == nullptr)
+			return;
+
+		// Set basic render states.
+		SetBlendMode(BlendMode::Opaque);
+		SetCullMode(CullMode::CounterClockwise);
+
+		// Clear screen
+		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		// Bind back buffer.
+		_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
+		_context->RSSetViewports(1, &_viewport);
+		ResetScissor();
+
+		// Draw full screen background.
+		DrawFullScreenQuad(texture, Vector3::One, true, aspect);
+
+		ClearScene();
+
+		_context->ClearState();
+		_swapChain->Present(1, 0);
+	}
+
 	void Renderer::DumpGameScene(SceneRenderMode renderMode)
 	{
 		RenderScene(&_dumpScreenRenderTarget, _gameCamera, renderMode);
@@ -2384,6 +2417,7 @@ namespace TEN::Renderer
 
 		_stItem.Color = item->Color;
 		_stItem.AmbientLight = item->AmbientLight;
+		_stItem.Skinned = item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
 		memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
@@ -2571,6 +2605,12 @@ namespace TEN::Renderer
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
 
+								if (_staticTextures.size() <= bucket.Texture)
+								{
+									TENLog("Attempted to set incorrect static mesh texture atlas", LogLevel::Warning);
+									continue;
+								}
+
 								BindTexture(TextureRegister::ColorMap,
 									&std::get<0>(_staticTextures[bucket.Texture]),
 									SamplerStateRegister::AnisotropicClamp);
@@ -2702,12 +2742,19 @@ namespace TEN::Renderer
 			if (rendererPass != RendererPass::GBuffer)
 			{
 				// Bind caustics texture.
-				if (_causticTextures.size() > 0)
+				if (TEN::Utils::Contains(SpriteSequencesIds, (int)ID_CAUSTIC_TEXTURES))
 				{     
 					int nmeshes = -Objects[ID_CAUSTIC_TEXTURES].nmeshes;
 					int meshIndex = Objects[ID_CAUSTIC_TEXTURES].meshIndex;
-					int causticsFrame = GlobalCounter % _causticTextures.size();
-					BindTexture(TextureRegister::CausticsMap, &_causticTextures[causticsFrame], SamplerStateRegister::AnisotropicClamp);
+					int causticsFrame = GlobalCounter % nmeshes;
+					auto causticsSprite = _spriteSequences[ID_CAUSTIC_TEXTURES].SpritesList[causticsFrame];
+
+					BindTexture(TextureRegister::CausticsMap, causticsSprite->Texture, SamplerStateRegister::AnisotropicClamp);
+				
+					_stRoom.CausticsSize = Vector2(
+						(float)causticsSprite->Width / (float)causticsSprite->Texture->Width,
+						(float)causticsSprite->Height / (float)causticsSprite->Texture->Height);
+					_stRoom.CausticsStartUV = causticsSprite->UV[0];
 				} 
 
 				// Set shadow map data and bind shadow map texture.
@@ -2778,40 +2825,54 @@ namespace TEN::Renderer
 							// Draw geometry.
 							if (animated)
 							{
-								BindTexture(TextureRegister::ColorMap,
-									&std::get<0>(_animatedTextures[bucket.Texture]),
-									SamplerStateRegister::AnisotropicClamp);
-								BindTexture(TextureRegister::NormalMap,
-									&std::get<1>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+								const auto& set  = _animatedTextureSets[bucket.Texture];
 
-								const auto& set = _animatedTextureSets[bucket.Texture];
-								_stAnimated.NumFrames = set.NumTextures;
-								_stAnimated.Type = 0;
-								_stAnimated.Fps = set.Fps;
-
-								for (unsigned char j = 0; j < set.NumTextures; j++)
+								// Stream video texture, if video playback is active, otherwise show original texture.
+								if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->Texture)
 								{
-									if (j >= _stAnimated.Textures.size())
-									{
-										TENLog("Animated frame " + std::to_string(j) + " out of bounds. Too many frames in sequence.");
-										break;
-									}
+									_stAnimated.Type = 0; // Dummy type, should be set to 0 to avoid incorrect UV mapping.
+									_stAnimated.Fps  = 1;
+									_stAnimated.NumFrames = 1;
 
-									_stAnimated.Textures[j].TopLeft = set.Textures[j].UV[0];
-									_stAnimated.Textures[j].TopRight = set.Textures[j].UV[1];
-									_stAnimated.Textures[j].BottomRight = set.Textures[j].UV[2];
-									_stAnimated.Textures[j].BottomLeft = set.Textures[j].UV[3];
+									BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
+									BindTexture(TextureRegister::NormalMap, &std::get<1>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+
+									// Use normalized UVs, because we are showing the whole video texture on a single face.
+									_stAnimated.Textures[0].TopLeft     = set.Textures[0].NormalizedUV[0];
+									_stAnimated.Textures[0].TopRight    = set.Textures[0].NormalizedUV[1];
+									_stAnimated.Textures[0].BottomRight = set.Textures[0].NormalizedUV[2];
+									_stAnimated.Textures[0].BottomLeft  = set.Textures[0].NormalizedUV[3];
 								}
+								else
+								{
+									_stAnimated.Type = (int)set.Type;
+									_stAnimated.Fps  = set.Fps;
+									_stAnimated.NumFrames = set.NumTextures;
+
+									BindTexture(TextureRegister::ColorMap,  &std::get<0>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+									BindTexture(TextureRegister::NormalMap, &std::get<1>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+
+									for (unsigned char j = 0; j < set.NumTextures; j++)
+									{
+										if (j >= _stAnimated.Textures.size())
+										{
+											TENLog("Animated frame " + std::to_string(j) + " out of bounds. Too many frames in sequence.");
+											break;
+										}
+
+										_stAnimated.Textures[j].TopLeft     = set.Textures[j].UV[0];
+										_stAnimated.Textures[j].TopRight    = set.Textures[j].UV[1];
+										_stAnimated.Textures[j].BottomRight = set.Textures[j].UV[2];
+										_stAnimated.Textures[j].BottomLeft  = set.Textures[j].UV[3];
+									}
+								}
+
 								_cbAnimated.UpdateData(_stAnimated, _context.Get());
 							}
 							else
 							{
-								BindTexture(
-									TextureRegister::ColorMap, &std::get<0>(_roomTextures[bucket.Texture]),
-									SamplerStateRegister::AnisotropicClamp);
-								BindTexture(
-									TextureRegister::NormalMap, &std::get<1>(_roomTextures[bucket.Texture]),
-									SamplerStateRegister::AnisotropicClamp);
+								BindTexture(TextureRegister::ColorMap,  &std::get<0>(_roomTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+								BindTexture(TextureRegister::NormalMap, &std::get<1>(_roomTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 							}
 
 							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
@@ -3228,7 +3289,7 @@ namespace TEN::Renderer
 			}
 
 			if (blendMode == BlendMode::Opaque)
-			{
+			{ 
 				SetBlendMode(BlendMode::Opaque);
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
@@ -3500,7 +3561,7 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
 
-		ROOM_INFO* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
+		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
 		_shaders.Bind(Shader::Rooms);
 
@@ -3592,6 +3653,7 @@ namespace TEN::Renderer
 		_stItem.World = world;
 		_stItem.Color = objectInfo->Item->Color;
 		_stItem.AmbientLight = objectInfo->Item->AmbientLight;
+		_stItem.Skinned = objectInfo->Item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
 		memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 
 		const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];

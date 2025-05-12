@@ -2,7 +2,7 @@
 #include "./CBCamera.hlsli"
 #include "./Math.hlsli"
 
-struct VertexShaderInput
+struct PostProcessVertexShaderInput
 {
     float3 Position: POSITION0;
     float2 UV: TEXCOORD0;
@@ -20,7 +20,7 @@ struct PixelShaderInput
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
 
-PixelShaderInput VS(VertexShaderInput input)
+PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
 
@@ -114,27 +114,27 @@ float3 LensFlare(float2 uv, float2 pos)
 	f0 += f0 * (sin((ang + rotationOffset + 1.0f / 18.0f) * 8.0f) * 0.2f + dist * 0.1f + 0.2f);
 
 	// Lensflare glow components
-	float f2  = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.8f  * pos), 2.0f)), 0.0f) * 0.25f;
-	float f22 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.85f * pos), 2.0f)), 0.0f) * 0.23f;
-	float f23 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.9f  * pos), 2.0f)), 0.0f) * 0.21f;
+	float f2  = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.8f  * pos), 1.0f)), 0.0f) * 0.25f;
+	float f22 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.85f * pos), 1.0f)), 0.0f) * 0.23f;
+	float f23 = max(1.0f / (1.0f + 32.0f * pow(length(uvd + 0.9f  * pos), 1.0f)), 0.0f) * 0.21f;
 
 	// Circular lens artifacts
 	float2 uvx = lerp(uv, uvd, -0.5f);
-	float f4 = max(0.01f - pow(length(uvx + 0.4f * pos), 2.4f), 0.0f) * 6.0f;
-	float f42 = max(0.01f - pow(length(uvx + 0.45f * pos), 2.4f), 0.0f) * 5.0f;
-	float f43 = max(0.01f - pow(length(uvx + 0.5f * pos), 2.4f), 0.0f) * 3.0f;
+	float f4  = max(0.01f - pow(length(uvx + 0.4f  * pos), 2.4f), 0.0f) * 9.0f;
+	float f42 = max(0.01f - pow(length(uvx + 0.45f * pos), 2.4f), 0.0f) * 7.0f;
+	float f43 = max(0.01f - pow(length(uvx + 0.5f  * pos), 2.4f), 0.0f) * 6.0f;
 
 	// Smaller lens artifacts
 	uvx = lerp(uv, uvd, -0.4f);
-	float f5 = max(0.01f - pow(length(uvx + 0.2f * pos), 5.5f), 0.0f) * 2.0f;
+	float f5  = max(0.01f - pow(length(uvx + 0.2f * pos), 5.5f), 0.0f) * 2.0f;
 	float f52 = max(0.01f - pow(length(uvx + 0.4f * pos), 5.5f), 0.0f) * 2.0f;
 	float f53 = max(0.01f - pow(length(uvx + 0.6f * pos), 5.5f), 0.0f) * 2.0f;
 
 	// Symmetric artifacts
 	uvx = lerp(uv, uvd, -0.5f);
-	float f6 = max(0.01f - pow(length(uvx - 0.3f * pos), 1.6f), 0.0f) * 6.0f;
-	float f62 = max(0.01f - pow(length(uvx - 0.325f * pos), 1.6f), 0.0f) * 3.0f;
-	float f63 = max(0.01f - pow(length(uvx - 0.35f * pos), 1.6f), 0.0f) * 5.0f;
+	float f6  = max(0.01f - pow(length(uvx - 0.3f   * pos), 1.6f), 0.0f) * 9.0f;
+	float f62 = max(0.01f - pow(length(uvx - 0.325f * pos), 1.6f), 0.0f) * 6.0f;
+	float f63 = max(0.01f - pow(length(uvx - 0.35f  * pos), 1.6f), 0.0f) * 7.0f;
 
 	// Sunflare and lensflare outputs
 	float3 sunflare = float3(f0, f0, f0);
@@ -185,7 +185,7 @@ float4 PSLensFlare(PixelShaderInput input) : SV_Target
 		totalLensFlareColor += lensFlareColor;
 	}
 
-	color.xyz += totalLensFlareColor;
+	color.xyz = lerp(color.xyz, color.xyz + totalLensFlareColor, saturate(dot(totalLensFlareColor, float3(0.5f, 0.5f, 0.5f))));
 
 	return color;
 }

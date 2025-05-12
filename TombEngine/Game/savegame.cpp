@@ -10,6 +10,7 @@
 #include "Game/control/flipeffect.h"
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/weather.h"
@@ -39,18 +40,21 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Video/Video.h"
 
 using namespace flatbuffers;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
-using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Effects::Fireflies;
+using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Video;
 
 namespace Save = TEN::Save;
 
@@ -291,6 +295,15 @@ const std::vector<byte> SaveGame::Build()
 	sgGameStatisticsBuilder.add_timer(SaveGame::Statistics.Game.TimeTaken);
 	auto gameStatisticsOffset = sgGameStatisticsBuilder.Finish();
 
+	// Background video playback
+	auto videoNameOffset = fbb.CreateString(g_VideoPlayer.GetFileName());
+	Save::VideoInfoBuilder sgVideoInfoBuilder{ fbb };
+	sgVideoInfoBuilder.add_name(videoNameOffset);
+	sgVideoInfoBuilder.add_position(g_VideoPlayer.GetNormalizedPosition());
+	sgVideoInfoBuilder.add_silent(g_VideoPlayer.GetSilent());
+	sgVideoInfoBuilder.add_looped(g_VideoPlayer.GetLooped());
+	auto videoInfoOffset = sgVideoInfoBuilder.Finish();
+
 	// Lara
 	std::vector<int> puzzles;
 	for (int i = 0; i < NUM_PUZZLES; i++)
@@ -470,7 +483,6 @@ const std::vector<byte> SaveGame::Build()
 	Save::WeaponControlDataBuilder weaponControl{ fbb };
 	weaponControl.add_weapon_item(Lara.Control.Weapon.WeaponItem);
 	weaponControl.add_has_fired(Lara.Control.Weapon.HasFired);
-	weaponControl.add_fired(Lara.Control.Weapon.Fired);
 	weaponControl.add_uzi_left(Lara.Control.Weapon.UziLeft);
 	weaponControl.add_uzi_right(Lara.Control.Weapon.UziRight);
 	weaponControl.add_gun_type((int)Lara.Control.Weapon.GunType);
@@ -924,6 +936,38 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto fishSwarmOffset = fbb.CreateVector(fishSwarm);
 
+	std::vector<flatbuffers::Offset<Save::FireflyData>> fireflySwarm;
+	for (const auto& firefly : FireflySwarm)
+	{
+		Save::FireflyDataBuilder fireflySave{ fbb };
+		fireflySave.add_sprite_index(firefly.SpriteSeqID);
+		fireflySave.add_sprite_id(firefly.SpriteID);
+		fireflySave.add_blend_mode((int)firefly.blendMode);
+		fireflySave.add_scalar(firefly.scalar);
+		fireflySave.add_position(&FromVector3(firefly.Position));
+		fireflySave.add_room_number(firefly.RoomNumber);
+		fireflySave.add_position_target(&FromVector3(firefly.PositionTarget));
+		fireflySave.add_orientation(&FromEulerAngles(firefly.Orientation));
+		fireflySave.add_velocity(firefly.Velocity);
+		fireflySave.add_target_item_number((firefly.TargetItemPtr == nullptr) ? -1 : firefly.TargetItemPtr->Index);
+		fireflySave.add_z_vel(firefly.zVel);
+		fireflySave.add_life(firefly.Life);
+		fireflySave.add_number(firefly.Number);
+		fireflySave.add_d_r(firefly.rB);
+		fireflySave.add_d_g(firefly.gB);
+		fireflySave.add_d_b(firefly.bB);
+		fireflySave.add_r(firefly.r);
+		fireflySave.add_g(firefly.g);
+		fireflySave.add_b(firefly.b);
+		fireflySave.add_on(firefly.on);
+		fireflySave.add_size(firefly.size);
+		fireflySave.add_rot_ang(firefly.rotAng);
+
+		auto fireflySaveOffset = fireflySave.Finish();
+		fireflySwarm.push_back(fireflySaveOffset);
+	}
+	auto fireflySwarmOffset = fbb.CreateVector(fireflySwarm);
+
 	// TODO: In future, we should save only active FX, not whole array.
 	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
 
@@ -976,7 +1020,7 @@ const std::vector<byte> SaveGame::Build()
 	// Action queue
 	std::vector<int> actionQueue;
 	for (int i = 0; i < ActionQueueMap.size(); i++)
-		actionQueue.push_back((int)ActionQueueMap[(InputActionID)i]);
+		actionQueue.push_back((int)ActionQueueMap[(ActionID)i]);
 	auto actionQueueOffset = fbb.CreateVector(actionQueue);
 
 	// Flipmaps
@@ -1037,7 +1081,6 @@ const std::vector<byte> SaveGame::Build()
 			Save::StaticMeshInfoBuilder staticMesh{ fbb };
 
 			staticMesh.add_pose(&FromPose(room->mesh[j].pos));
-			staticMesh.add_scale(room->mesh[j].scale);
 			staticMesh.add_color(&FromVector4(room->mesh[j].color));
 
 			staticMesh.add_flags(room->mesh[j].flags);
@@ -1109,6 +1152,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_sky_layer_2_color(level->GetSkyLayerColor(1));
 	levelData.add_sky_layer_2_speed(level->GetSkyLayerSpeed(1));
 
+	levelData.add_lensflare_enabled(level->LensFlare.GetEnabled());
 	levelData.add_lensflare_color(level->LensFlare.GetColor());
 	levelData.add_lensflare_pitch(level->LensFlare.GetPitch());
 	levelData.add_lensflare_yaw(level->LensFlare.GetYaw());
@@ -1545,6 +1589,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
+	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_fxinfos(serializedEffectsOffset);
 	sgb.add_next_fx_free(NextFxFree);
 	sgb.add_next_fx_active(NextFxActive);
@@ -1552,8 +1597,8 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
 	sgb.add_soundtracks(soundtrackOffset);
-
 	sgb.add_cd_flags(soundtrackMapOffset);
+	sgb.add_video(videoInfoOffset);
 	sgb.add_action_queue(actionQueueOffset);
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
@@ -1797,6 +1842,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 
+	level->LevelFarView = s->level_data()->level_far_view();
+
 	level->Fog.MaxDistance = s->level_data()->fog_max_distance();
 	level->Fog.MinDistance = s->level_data()->fog_min_distance();
 	level->Fog.SetColor(s->level_data()->fog_color());
@@ -1809,6 +1856,7 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	level->Layer2.CloudSpeed = s->level_data()->sky_layer_2_speed();
 	level->Layer2.SetColor(s->level_data()->sky_layer_2_color());
 
+	level->LensFlare.SetEnabled(s->level_data()->lensflare_enabled());
 	level->LensFlare.SetSunSpriteID(s->level_data()->lensflare_sprite_id());
 	level->LensFlare.SetPitch(s->level_data()->lensflare_pitch());
 	level->LensFlare.SetYaw(s->level_data()->lensflare_yaw());
@@ -2085,7 +2133,6 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Control.Weapon.GunType = (LaraWeaponType)s->lara()->control()->weapon()->gun_type();
 	Lara.Control.Weapon.HasFired = s->lara()->control()->weapon()->has_fired();
 	Lara.Control.Weapon.Interval = s->lara()->control()->weapon()->interval();
-	Lara.Control.Weapon.Fired = s->lara()->control()->weapon()->fired();
 	Lara.Control.Weapon.LastGunType = (LaraWeaponType)s->lara()->control()->weapon()->last_gun_type();
 	Lara.Control.Weapon.RequestGunType = (LaraWeaponType)s->lara()->control()->weapon()->request_gun_type();
 	Lara.Control.Weapon.HolsterInfo.BackHolster = (HolsterSlot)s->lara()->control()->weapon()->holster_info()->back_holster();
@@ -2267,6 +2314,14 @@ static void ParseEffects(const Save::SaveGame* s)
 		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
 	}
 
+	// Restore video playback.
+	std::string videoName = s->video()->name()->str();
+	if (!videoName.empty())
+	{
+		g_VideoPlayer.Play(videoName, VideoPlaybackMode::Background, s->video()->silent(), s->video()->looped());
+		g_VideoPlayer.SetNormalizedPosition(s->video()->position());
+	}
+
 	// Load fish swarm.
 	for (int i = 0; i < s->fish_swarm()->size(); i++)
 	{
@@ -2287,6 +2342,38 @@ static void ParseEffects(const Save::SaveGame* s)
 		fish.Velocity = fishSave->velocity();
 
 		FishSwarm.push_back(fish);
+	}
+
+	// Load firefly swarm.
+	for (int i = 0; i < s->firefly_swarm()->size(); i++)
+	{
+		const auto& fireflySave = s->firefly_swarm()->Get(i);
+		auto firefly = FireflyData{};
+
+		firefly.SpriteSeqID = fireflySave->sprite_index();
+		firefly.SpriteID = fireflySave->sprite_id();
+		firefly.blendMode = (BlendMode)fireflySave->blend_mode();
+		firefly.scalar = fireflySave->scalar();
+		firefly.Position = ToVector3(fireflySave->position());
+		firefly.RoomNumber = fireflySave->room_number();
+		firefly.PositionTarget = ToVector3(fireflySave->position_target());
+		firefly.Orientation = ToEulerAngles(fireflySave->orientation());
+		firefly.Velocity = fireflySave->velocity();
+		firefly.TargetItemPtr = (fireflySave->target_item_number() == -1) ? nullptr : &g_Level.Items[fireflySave->target_item_number()];
+		firefly.zVel = fireflySave->z_vel();
+		firefly.Life = fireflySave->life();
+		firefly.Number = fireflySave->number();
+		firefly.rB = fireflySave->d_r();
+		firefly.gB = fireflySave->d_g();
+		firefly.bB = fireflySave->d_b();
+		firefly.r = fireflySave->r();
+		firefly.g = fireflySave->g();
+		firefly.b = fireflySave->b();
+		firefly.on = fireflySave->on();
+		firefly.size = fireflySave->size();
+		firefly.rotAng = fireflySave->rot_ang();
+
+		FireflySwarm.push_back(firefly);
 	}
 
 	// Load particles.
@@ -2430,7 +2517,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		room->mesh[number].pos = ToPose(*staticMesh->pose());
 		room->mesh[number].roomNumber = staticMesh->room_number();
-		room->mesh[number].scale = staticMesh->scale();
 		room->mesh[number].color = ToVector4(staticMesh->color());
 
 		room->mesh[number].flags = staticMesh->flags();
@@ -2492,7 +2578,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	for (int i = 0; i < s->action_queue()->size(); i++)
 	{
 		TENAssert(i < ActionQueueMap.size(), "Action queue size was changed.");
-		ActionQueueMap[(InputActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
+		ActionQueueMap[(ActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
 	}
 
 	// Legacy soundtrack map.
@@ -2536,9 +2622,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	{
 		const Save::Item* savedItem = s->items()->Get(i);
 
-		bool dynamicItem = i >= g_Level.NumItems;
+		bool isDynamicItem = (i >= g_Level.NumItems);
 
-		ItemInfo* item = &g_Level.Items[i];
+		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
 
 		item->NextItem = savedItem->next_item();
@@ -2547,7 +2633,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
 
-		ObjectInfo* obj = &Objects[item->ObjectNumber];
+		const auto* object = &Objects[item->ObjectNumber];
 		
 		item->Name = savedItem->lua_name()->str();
 		if (!item->Name.empty())
@@ -2578,9 +2664,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			continue;
 		}
 
-		// If object is bridge - remove it from existing sectors.
+		// Remove bridge from sectors.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Remove);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Disable(*item);
+		}
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
@@ -2593,7 +2682,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Animation.ActiveState = savedItem->active_state();
 		item->Animation.RequiredState = savedItem->required_state();
 		item->Animation.TargetState = savedItem->target_state();
-		item->Animation.AnimNumber = obj->animIndex + savedItem->anim_number();
+		item->Animation.AnimNumber = object->animIndex + savedItem->anim_number();
 		item->Animation.FrameNumber = savedItem->frame_number();
 		item->Animation.Velocity = ToVector3(savedItem->velocity());
 
@@ -2649,12 +2738,15 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + savedItem->anim_number();
 		}
 
-		// Re-add bridges at new position.
+		// Initialize bridges.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Initialize);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Initialize(*item);
+		}
 
 		// Creature data for intelligent items.
-		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && obj->intelligent)
+		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && object->intelligent)
 		{
 			EnableEntityAI(i, true, false);
 
@@ -2772,7 +2864,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
 
-			pushable->BehaviorState = (PushableBehaviourState)savedPushable->pushable_behaviour_state();
+			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();
 			pushable->Oscillation = savedPushable->pushable_water_force();
 

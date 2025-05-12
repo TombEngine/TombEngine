@@ -64,4 +64,4 @@ void InitializeSpotCam(short sequence);
 void CalculateSpotCameras();
 int Spline(int x, int* knots, int nk);
 
-Pose GetCameraTransform(int sequence, float alpha);
+Pose GetCameraTransform(int sequence, float alpha, bool loop);
