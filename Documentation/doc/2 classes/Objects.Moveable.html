@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -122,54 +122,48 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Moveable">Moveable(object, name, position, rotation, roomNumber, animNumber, frameNumber, hp, OCB, AIBits)</a></td>
+	<td class="name" ><a href="#Moveable">Moveable(objectID, name, position, [rotation], [roomNumber], [animNumber], [frameNumber], [hp], [OCB], [AIBits])</a></td>
 	<td class="summary">Used to generate a new moveable dynamically at runtime.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetObjectID">Moveable:GetObjectID()</a></td>
-	<td class="summary">Retrieve the object ID</td>
+	<td class="summary">Retrieve the object ID.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetObjectID">Moveable:SetObjectID(objectID)</a></td>
 	<td class="summary">Change the object's ID.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SetOnHit">Moveable:SetOnHit(callback)</a></td>
+	<td class="name" ><a href="#Moveable:SetOnHit">Moveable:SetOnHit(function)</a></td>
 	<td class="summary">Set the name of the function to be called when the moveable is shot by Lara.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SetOnKilled">Moveable:SetOnKilled(callback)</a></td>
-	<td class="summary">Set the name of the function to be called when the moveable is destroyed/killed
- Note that enemy death often occurs at the end of an animation, and not at the exact moment
- the enemy's HP becomes zero.</td>
+	<td class="name" ><a href="#Moveable:SetOnKilled">Moveable:SetOnKilled(function)</a></td>
+	<td class="summary">Set the name of the function to be called when the moveable is destroyed/killed.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SetOnCollidedWithObject">Moveable:SetOnCollidedWithObject(func)</a></td>
-	<td class="summary">Set the function to be called when this moveable collides with another moveable</td>
+	<td class="name" ><a href="#Moveable:SetOnCollidedWithObject">Moveable:SetOnCollidedWithObject(function)</a></td>
+	<td class="summary">Set the function to be called when this moveable collides with another moveable.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SetOnCollidedWithRoom">Moveable:SetOnCollidedWithRoom(func)</a></td>
+	<td class="name" ><a href="#Moveable:SetOnCollidedWithRoom">Moveable:SetOnCollidedWithRoom(function)</a></td>
 	<td class="summary">Set the function called when this moveable collides with room geometry (e.g.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetName">Moveable:GetName()</a></td>
-	<td class="summary">Get the moveable's name (its unique string identifier)
- e.g.</td>
+	<td class="summary">Get the moveable's name (its unique string identifier).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetName">Moveable:SetName(name)</a></td>
-	<td class="summary">Set the moveable's name (its unique string identifier)
- e.g.</td>
+	<td class="summary">Set the moveable's name (its unique string identifier).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetPosition">Moveable:GetPosition()</a></td>
-	<td class="summary">Get the moveable's position</td>
+	<td class="summary">Get the moveable's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetPosition">Moveable:SetPosition(position, [updateRoom])</a></td>
-	<td class="summary">Set the moveable's position
- If you are moving a moveable whose behaviour involves knowledge of room geometry,
- (e.g.</td>
+	<td class="summary">Set the moveable's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetJointPosition">Moveable:GetJointPosition(jointIndex, [offset])</a></td>
@@ -177,7 +171,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetJointRotation">Moveable:GetJointRotation(index)</a></td>
-	<td class="summary">Get the object's joint rotation</td>
+	<td class="summary">Get the object's joint rotation.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetRotation">Moveable:GetRotation()</a></td>
@@ -197,24 +191,23 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetHP">Moveable:GetHP()</a></td>
-	<td class="summary">Get current HP (hit points/health points)</td>
+	<td class="summary">Get current HP (hit points / health points).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetHP">Moveable:SetHP(HP)</a></td>
-	<td class="summary">Set current HP (hit points/health points)
- Clamped to [0, 32767] for "intelligent" entities (i.e.</td>
+	<td class="summary">Set current HP (hit points / health points).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetSlotHP">Moveable:GetSlotHP()</a></td>
-	<td class="summary">Get HP definded for that object type (hit points/health points) (Read Only).</td>
+	<td class="summary">Get HP definded for that object type (hit points / health points).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetOCB">Moveable:GetOCB()</a></td>
-	<td class="summary">Get OCB (object code bit) of the moveable</td>
+	<td class="summary">Get OCB (object code bit) of the moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetOCB">Moveable:SetOCB(OCB)</a></td>
-	<td class="summary">Set OCB (object code bit) of the moveable</td>
+	<td class="summary">Set OCB (object code bit) of the moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetEffect">Moveable:SetEffect(effect, [timeout])</a></td>
@@ -222,23 +215,23 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetCustomEffect">Moveable:SetCustomEffect(color1, color2, [timeout])</a></td>
-	<td class="summary">Set custom colored burn effect to moveable</td>
+	<td class="summary">Set custom colored burn effect to moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetEffect">Moveable:GetEffect()</a></td>
-	<td class="summary">Get current moveable effect</td>
+	<td class="summary">Get current moveable effect.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetItemFlags">Moveable:GetItemFlags(index)</a></td>
-	<td class="summary">Get the value stored in ItemFlags[index]</td>
+	<td class="summary">Get the value stored in ItemFlags[index].</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetItemFlags">Moveable:SetItemFlags(value, index)</a></td>
-	<td class="summary">Stores a value in ItemFlags[index]</td>
+	<td class="summary">Stores a value in ItemFlags[index].</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetLocationAI">Moveable:GetLocationAI()</a></td>
-	<td class="summary">Get the location value stored in the Enemy AI</td>
+	<td class="summary">Get the location value stored in the Enemy AI.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetLocationAI">Moveable:SetLocationAI(value)</a></td>
@@ -246,23 +239,19 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetColor">Moveable:GetColor()</a></td>
-	<td class="summary">Get the moveable's color</td>
+	<td class="summary">Get the moveable's color.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetColor">Moveable:SetColor(color)</a></td>
-	<td class="summary">Set the moveable's color</td>
+	<td class="summary">Set the moveable's color.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetAIBits">Moveable:GetAIBits()</a></td>
-	<td class="summary">Get AIBits of object
- This will return a table with six values, each corresponding to
- an active behaviour.</td>
+	<td class="summary">Get AIBits of object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetAIBits">Moveable:SetAIBits(bits)</a></td>
-	<td class="summary">Set AIBits of object
- Use this to force a moveable into a certain AI mode or modes, as if a certain nullmesh
- (or more than one) had suddenly spawned beneath their feet.</td>
+	<td class="summary">Set AIBits of object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetState">Moveable:GetState()</a></td>
@@ -310,7 +299,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetActive">Moveable:GetActive()</a></td>
-	<td class="summary">Determine whether the moveable is active or not</td>
+	<td class="summary">Determine whether the moveable is active or not.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetHitStatus">Moveable:GetHitStatus()</a></td>
@@ -318,11 +307,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetRoom">Moveable:GetRoom()</a></td>
-	<td class="summary">Get the current room of the object</td>
+	<td class="summary">Get the current room of the moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetRoomNumber">Moveable:GetRoomNumber()</a></td>
-	<td class="summary">Get the current room number of the object</td>
+	<td class="summary">Get the current room number of the moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetRoomNumber">Moveable:SetRoomNumber(roomID)</a></td>
@@ -338,48 +327,39 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshCount">Moveable:GetMeshCount()</a></td>
-	<td class="summary">Get number of meshes for a particular object
- Returns number of meshes in an object</td>
+	<td class="summary">Get number of meshes for a particular object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshVisible">Moveable:GetMeshVisible(index)</a></td>
-	<td class="summary">Get state of specified mesh visibility of object
- Returns true if specified mesh is visible on an object, and false
- if it is not visible.</td>
+	<td class="summary">Get state of specified mesh visibility of object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetMeshVisible">Moveable:SetMeshVisible(index, isVisible)</a></td>
-	<td class="summary">Makes specified mesh visible or invisible
- Use this to show or hide a specified mesh of an object.</td>
+	<td class="summary">Makes specified mesh visible or invisible.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:ShatterMesh">Moveable:ShatterMesh(index)</a></td>
-	<td class="summary">Shatters specified mesh and makes it invisible
- Note that you can re-enable mesh later by using SetMeshVisible().</td>
+	<td class="summary">Shatters specified mesh and makes it invisible.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshSwapped">Moveable:GetMeshSwapped(index)</a></td>
-	<td class="summary">Get state of specified mesh swap of object
- Returns true if specified mesh is swapped on an object, and false
- if it is not swapped.</td>
+	<td class="summary">Get state of specified mesh swap of object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SwapMesh">Moveable:SwapMesh(index, slotIndex, [swapIndex])</a></td>
-	<td class="summary">Set state of specified mesh swap of object
- Use this to swap specified mesh of an object.</td>
+	<td class="summary">Set state of specified mesh swap of object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:UnswapMesh">Moveable:UnswapMesh(index)</a></td>
-	<td class="summary">Set state of specified mesh swap of object
- Use this to bring back original unswapped mesh</td>
+	<td class="summary">Set state of specified mesh swap of object.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:Enable">Moveable:Enable(timeout)</a></td>
+	<td class="name" ><a href="#Moveable:Enable">Moveable:Enable([timeout])</a></td>
 	<td class="summary">Enable the item, as if a trigger for it had been stepped on.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:Disable">Moveable:Disable()</a></td>
-	<td class="summary">Disable the item, as if an antitrigger for it had been stepped on (i.e.</td>
+	<td class="summary">Disable the item, as if an antitrigger for it had been stepped on.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:Explode">Moveable:Explode()</a></td>
@@ -398,16 +378,12 @@
 	<td class="summary">Set the item's collision.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:MakeInvisible">Moveable:MakeInvisible()</a></td>
-	<td class="summary">Make the item invisible.</td>
-	</tr>
-	<tr>
 	<td class="name" ><a href="#Moveable:SetVisible">Moveable:SetVisible(visible)</a></td>
 	<td class="summary">Set the item's visibility.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetValid">Moveable:GetValid()</a></td>
-	<td class="summary">Test if the object is in a valid state (i.e.</td>
+	<td class="summary">Test if the object is in a valid state.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:Destroy">Moveable:Destroy()</a></td>
@@ -419,7 +395,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:AnimFromObject">Moveable:AnimFromObject(objectID, animNumber, stateID)</a></td>
-	<td class="summary">Borrow animation from an object</td>
+	<td class="summary">Borrow animation from an object.</td>
 	</tr>
 </table>
 
@@ -432,7 +408,7 @@
     <dl class="function">
     <dt>
     <a name = "Moveable"></a>
-    <strong>Moveable(object, name, position, rotation, roomNumber, animNumber, frameNumber, hp, OCB, AIBits)</strong>
+    <strong>Moveable(objectID, name, position, [rotation], [roomNumber], [animNumber], [frameNumber], [hp], [OCB], [AIBits])</strong>
     </dt>
     <dd>
     Used to generate a new moveable dynamically at runtime.
@@ -444,9 +420,9 @@ most can just be ignored (see usage).
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">object</span>
+        <li><span class="parameter">objectID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         ID
+         Object ID.
         </li>
         <li><span class="parameter">name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
@@ -454,43 +430,50 @@ most can just be ignored (see usage).
         </li>
         <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         position in level
+         Position in level.
         </li>
         <li><span class="parameter">rotation</span>
             <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
-         rotation rotation about x, y, and z axes (default Rotation(0, 0, 0))
+         Rotation about x, y, and z axes.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">roomNumber</span>
             <span class="types"><span class="type">int</span></span>
-         the room number the moveable is in (default: calculated automatically).
+         The room number the moveable is in. Needed if you are dealing with overlapping rooms and need to force certain room number.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">animNumber</span>
             <span class="types"><span class="type">int</span></span>
-         animation number
+         Animation number.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">frameNumber</span>
             <span class="types"><span class="type">int</span></span>
-         frame number
+         Frame number.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">hp</span>
             <span class="types"><span class="type">int</span></span>
          Hit points.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">OCB</span>
             <span class="types"><span class="type">int</span></span>
          Object code bits.
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">AIBits</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         table with AI bits (default { 0, 0, 0, 0, 0, 0 })
+         Table with six AI bits.
+         <em>Optional.</em>
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#Moveable">Moveable</a></span>
-        A new Moveable object (a wrapper around the new object)
+           <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
+        A new Moveable object.
     </ol>
 
 
@@ -509,7 +492,7 @@ most can just be ignored (see usage).
     <strong>Moveable:GetObjectID()</strong>
     </dt>
     <dd>
-    Retrieve the object ID
+    Retrieve the object ID.
 
 
 
@@ -518,7 +501,7 @@ most can just be ignored (see usage).
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-        a number representing the ID of the object.
+        A number representing the ID of the object.
     </ol>
 
 
@@ -538,7 +521,7 @@ most can just be ignored (see usage).
     <ul>
         <li><span class="parameter">objectID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         the new ID
+         The new ID.
         </li>
     </ul>
 
@@ -554,7 +537,7 @@ shiva:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)</pre>
 </dd>
     <dt>
     <a name = "Moveable:SetOnHit"></a>
-    <strong>Moveable:SetOnHit(callback)</strong>
+    <strong>Moveable:SetOnHit(function)</strong>
     </dt>
     <dd>
     Set the name of the function to be called when the moveable is shot by Lara.
@@ -564,9 +547,9 @@ shiva:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)</pre>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">callback</span>
+        <li><span class="parameter">function</span>
             <span class="types"><span class="type">function</span></span>
-         function in LevelFuncs hierarchy to call when moveable is shot
+         Callback function in LevelFuncs hierarchy to call when moveable is shot.
         </li>
     </ul>
 
@@ -577,10 +560,10 @@ shiva:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)</pre>
 </dd>
     <dt>
     <a name = "Moveable:SetOnKilled"></a>
-    <strong>Moveable:SetOnKilled(callback)</strong>
+    <strong>Moveable:SetOnKilled(function)</strong>
     </dt>
     <dd>
-    Set the name of the function to be called when the moveable is destroyed/killed
+    Set the name of the function to be called when the moveable is destroyed/killed.
  Note that enemy death often occurs at the end of an animation, and not at the exact moment
  the enemy's HP becomes zero.
 
@@ -588,9 +571,9 @@ shiva:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)</pre>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">callback</span>
+        <li><span class="parameter">function</span>
             <span class="types"><span class="type">function</span></span>
-         function in LevelFuncs hierarchy to call when enemy is killed
+         Callback function in LevelFuncs hierarchy to call when moveable is killed.
         </li>
     </ul>
 
@@ -606,18 +589,18 @@ baddy:SetOnKilled(LevelFuncs.baddyKilled)</pre>
 </dd>
     <dt>
     <a name = "Moveable:SetOnCollidedWithObject"></a>
-    <strong>Moveable:SetOnCollidedWithObject(func)</strong>
+    <strong>Moveable:SetOnCollidedWithObject(function)</strong>
     </dt>
     <dd>
-    Set the function to be called when this moveable collides with another moveable
+    Set the function to be called when this moveable collides with another moveable.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">func</span>
+        <li><span class="parameter">function</span>
             <span class="types"><span class="type">function</span></span>
-         callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two <a href="../2 classes/Objects.Moveable.html#Moveable">Moveable</a>s taking part in the collision.
+         Callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two <a href="../2 classes/Objects.Moveable.html#Moveable">Moveable</a>s taking part in the collision.
         </li>
     </ul>
 
@@ -638,7 +621,7 @@ baddy:SetOnCollidedWithObject(LevelFuncs.objCollided)</pre>
 </dd>
     <dt>
     <a name = "Moveable:SetOnCollidedWithRoom"></a>
-    <strong>Moveable:SetOnCollidedWithRoom(func)</strong>
+    <strong>Moveable:SetOnCollidedWithRoom(function)</strong>
     </dt>
     <dd>
     Set the function called when this moveable collides with room geometry (e.g.  a wall or floor). This function can take an argument that holds the <a href="../2 classes/Objects.Moveable.html#Moveable">Moveable</a> that collided with geometry.
@@ -647,9 +630,9 @@ baddy:SetOnCollidedWithObject(LevelFuncs.objCollided)</pre>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">func</span>
+        <li><span class="parameter">function</span>
             <span class="types"><span class="type">function</span></span>
-         callback function to be called (must be in LevelFuncs hierarchy)
+         Callback function to be called (must be in LevelFuncs hierarchy).
         </li>
     </ul>
 
@@ -670,9 +653,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetName()</strong>
     </dt>
     <dd>
-    Get the moveable's name (its unique string identifier)
- e.g.  "door_back_room" or "cracked_greek_statue"
- This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
+    Get the moveable's name (its unique string identifier).  This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
 
 
 
@@ -681,7 +662,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        the moveable's name
+        The moveable's name.
     </ol>
 
 
@@ -693,9 +674,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetName(name)</strong>
     </dt>
     <dd>
-    Set the moveable's name (its unique string identifier)
- e.g.  "door_back_room" or "cracked_greek_statue"
- It cannot be blank and cannot share a name with any existing object.
+    Set the moveable's name (its unique string identifier).  It cannot be blank and cannot share a name with any existing object.
 
 
 
@@ -703,7 +682,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the new moveable's name
+         The new moveable's name.
         </li>
     </ul>
 
@@ -711,7 +690,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if we successfully set the name, false otherwise (e.g. if another object has the name already)
+        true if name was successfully set, false otherwise (e.g. if another moveable has the name already).
     </ol>
 
 
@@ -723,7 +702,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetPosition()</strong>
     </dt>
     <dd>
-    Get the moveable's position
+    Get the moveable's position.
 
 
 
@@ -732,7 +711,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        a copy of the moveable's position
+        Moveable's position.
     </ol>
 
 
@@ -744,10 +723,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetPosition(position, [updateRoom])</strong>
     </dt>
     <dd>
-    Set the moveable's position
- If you are moving a moveable whose behaviour involves knowledge of room geometry,
- (e.g.  a BADDY1, which uses it for pathfinding), then the second argument should
- be true (or omitted, as true is the default). Otherwise, said moveable will not behave correctly.
+    Set the moveable's position.
 
 
 
@@ -755,12 +731,12 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         the new position of the moveable
+         The new position of the moveable.
         </li>
         <li><span class="parameter">updateRoom</span>
             <span class="types"><span class="type">bool</span></span>
-         Will room changes be automatically detected? Set to false if you are using overlapping rooms (default: true)
-         <em>Optional.</em>
+         Will room changes be automatically detected? Set to false if you are using overlapping rooms.
+         <em>Default: true.</em>
         </li>
     </ul>
 
@@ -807,7 +783,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetJointRotation(index)</strong>
     </dt>
     <dd>
-    Get the object's joint rotation
+    Get the object's joint rotation.
 
 
 
@@ -823,7 +799,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
-        a calculated copy of the moveable's joint rotation
+        Moveable's joint rotation.
     </ol>
 
 
@@ -844,7 +820,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
-        A copy of the moveable's rotation.
+        Moveable's rotation.
     </ol>
 
 
@@ -865,7 +841,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        A copy of the moveable's visual scale.
+        Moveable's visual scale.
     </ol>
 
 
@@ -885,7 +861,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">rotation</span>
             <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
-         The moveable's new rotation
+         The moveable's new rotation.
         </li>
     </ul>
 
@@ -921,7 +897,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetHP()</strong>
     </dt>
     <dd>
-    Get current HP (hit points/health points)
+    Get current HP (hit points / health points).
 
 
 
@@ -930,7 +906,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the amount of HP the moveable currently has
+        The amount of HP the moveable currently has.
     </ol>
 
 
@@ -942,8 +918,8 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetHP(HP)</strong>
     </dt>
     <dd>
-    Set current HP (hit points/health points)
- Clamped to [0, 32767] for "intelligent" entities (i.e.  anything with AI); clamped to [-32767, 32767] otherwise.
+    Set current HP (hit points / health points).
+ Clamped to [0, 32767] for "intelligent" entities (i.e. anything with AI); clamped to [-32767, 32767] otherwise.
 
 
 
@@ -951,7 +927,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">HP</span>
             <span class="types"><span class="type">int</span></span>
-         the amount of HP to give the moveable
+         The amount of HP to give the moveable.
         </li>
     </ul>
 
@@ -965,7 +941,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetSlotHP()</strong>
     </dt>
     <dd>
-    Get HP definded for that object type (hit points/health points) (Read Only).
+    Get HP definded for that object type (hit points / health points).
 
 
 
@@ -974,7 +950,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the moveable's slot default hit points
+        The moveable's slot default hit points.
     </ol>
 
 
@@ -986,7 +962,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetOCB()</strong>
     </dt>
     <dd>
-    Get OCB (object code bit) of the moveable
+    Get OCB (object code bit) of the moveable.
 
 
 
@@ -995,7 +971,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the moveable's current OCB value
+        The moveable's current OCB value.
     </ol>
 
 
@@ -1007,7 +983,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetOCB(OCB)</strong>
     </dt>
     <dd>
-    Set OCB (object code bit) of the moveable
+    Set OCB (object code bit) of the moveable.
 
 
 
@@ -1015,7 +991,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">OCB</span>
             <span class="types"><span class="type">int</span></span>
-         the new value for the moveable's OCB
+         The new value for the moveable's OCB.
         </li>
     </ul>
 
@@ -1041,7 +1017,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
         </li>
         <li><span class="parameter">timeout</span>
             <span class="types"><span class="type">float</span></span>
-         time (in seconds) after which effect turns off.
+         Time (in seconds) after which effect turns off.
          <em>Optional.</em>
         </li>
     </ul>
@@ -1056,7 +1032,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetCustomEffect(color1, color2, [timeout])</strong>
     </dt>
     <dd>
-    Set custom colored burn effect to moveable
+    Set custom colored burn effect to moveable.
 
 
 
@@ -1087,7 +1063,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetEffect()</strong>
     </dt>
     <dd>
-    Get current moveable effect
+    Get current moveable effect.
 
 
 
@@ -1108,7 +1084,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetItemFlags(index)</strong>
     </dt>
     <dd>
-    Get the value stored in ItemFlags[index]
+    Get the value stored in ItemFlags[index].
 
 
 
@@ -1124,7 +1100,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the value contained in the ItemFlags[index]
+        The value contained in the ItemFlags[index].
     </ol>
 
 
@@ -1136,7 +1112,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetItemFlags(value, index)</strong>
     </dt>
     <dd>
-    Stores a value in ItemFlags[index]
+    Stores a value in ItemFlags[index].
 
 
 
@@ -1162,7 +1138,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetLocationAI()</strong>
     </dt>
     <dd>
-    Get the location value stored in the Enemy AI
+    Get the location value stored in the Enemy AI.
 
 
 
@@ -1171,7 +1147,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><span class="type">short</span></span>
-        the value contained in the LocationAI of the creature.
+        The value contained in the LocationAI of the creature.
     </ol>
 
 
@@ -1205,7 +1181,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetColor()</strong>
     </dt>
     <dd>
-    Get the moveable's color
+    Get the moveable's color.
 
 
 
@@ -1214,7 +1190,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-        a copy of the moveable's color
+        Moveable's color.
     </ol>
 
 
@@ -1226,7 +1202,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetColor(color)</strong>
     </dt>
     <dd>
-    Set the moveable's color
+    Set the moveable's color.
 
 
 
@@ -1234,7 +1210,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         the new color of the moveable
+         The new color of the moveable.
         </li>
     </ul>
 
@@ -1249,9 +1225,9 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     </dt>
     <dd>
 
-<p>Get AIBits of object
+<p>Get AIBits of object.
  This will return a table with six values, each corresponding to
- an active behaviour.  If the object is in a certain AI mode, the table will
+ an active behaviour. If the object is in a certain AI mode, the table will
  have a <em>1</em> in the corresponding cell. Otherwise, the cell will hold
  a <em>0</em>.</p>
 
@@ -1272,7 +1248,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        a table of AI bits
+        A table of AI bits.
     </ol>
 
 
@@ -1284,7 +1260,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetAIBits(bits)</strong>
     </dt>
     <dd>
-    Set AIBits of object
+    Set AIBits of object.
  Use this to force a moveable into a certain AI mode or modes, as if a certain nullmesh
  (or more than one) had suddenly spawned beneath their feet.
 
@@ -1294,7 +1270,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <ul>
         <li><span class="parameter">bits</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         the table of AI bits
+         A table of AI bits.
         </li>
     </ul>
 
@@ -1323,7 +1299,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the index of the active state
+        The index of the active state.
     </ol>
 
 
@@ -1345,7 +1321,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the index of the target state
+        The index of the target state.
     </ol>
 
 
@@ -1367,7 +1343,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         the index of the desired state
+         The index of the desired state.
         </li>
     </ul>
 
@@ -1392,7 +1368,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        animation slot ID
+        Animation slot ID.
     </ol>
 
 
@@ -1414,7 +1390,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the index of the active animation
+        The index of the active animation.
     </ol>
 
 
@@ -1436,11 +1412,11 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         the index of the desired anim
+         The index of the desired animation.
         </li>
         <li><span class="parameter">slot</span>
             <span class="types"><span class="type">int</span></span>
-         slot ID of the desired anim (if omitted, moveable's own slot ID is used)
+         Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
          <em>Optional.</em>
         </li>
     </ul>
@@ -1465,7 +1441,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        the current frame of the active animation
+        The current frame of the active animation.
     </ol>
 
 
@@ -1488,7 +1464,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        current object velocity
+        Current object velocity.
     </ol>
 
 
@@ -1510,7 +1486,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ul>
         <li><span class="parameter">velocity</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         velocity represented as vector
+         Velocity represented as vector.
         </li>
     </ul>
 
@@ -1536,7 +1512,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ul>
         <li><span class="parameter">frame</span>
             <span class="types"><span class="type">int</span></span>
-         the new frame number
+         The new frame number.
         </li>
     </ul>
 
@@ -1572,7 +1548,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:GetActive()</strong>
     </dt>
     <dd>
-    Determine whether the moveable is active or not
+    Determine whether the moveable is active or not.
 
 
 
@@ -1581,7 +1557,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the moveable is active
+        True if the moveable is active.
     </ol>
 
 
@@ -1602,7 +1578,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the moveable was hit by something in the last gameplay frame, false otherwise
+        true if the moveable was hit by something in the last gameplay frame, false otherwise.
     </ol>
 
 
@@ -1614,7 +1590,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:GetRoom()</strong>
     </dt>
     <dd>
-    Get the current room of the object
+    Get the current room of the moveable.
 
 
 
@@ -1623,7 +1599,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Objects.Room.html#">Room</a></span>
-        current room of the object
+        Current room of the moveable.
     </ol>
 
 
@@ -1635,7 +1611,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:GetRoomNumber()</strong>
     </dt>
     <dd>
-    Get the current room number of the object
+    Get the current room number of the moveable.
 
 
 
@@ -1644,7 +1620,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        number representing the current room of the object
+        Number representing the current room of the moveable.
     </ol>
 
 
@@ -1728,7 +1704,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshCount()</strong>
     </dt>
     <dd>
-    Get number of meshes for a particular object
+    Get number of meshes for a particular object.
  Returns number of meshes in an object
 
 
@@ -1738,7 +1714,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        number of meshes
+        Number of meshes.
     </ol>
 
 
@@ -1750,7 +1726,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshVisible(index)</strong>
     </dt>
     <dd>
-    Get state of specified mesh visibility of object
+    Get state of specified mesh visibility of object.
  Returns true if specified mesh is visible on an object, and false
  if it is not visible.
 
@@ -1760,7 +1736,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh
+         Index of a mesh.
         </li>
     </ul>
 
@@ -1768,7 +1744,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        visibility status
+        Visibility status.
     </ol>
 
 
@@ -1780,7 +1756,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:SetMeshVisible(index, isVisible)</strong>
     </dt>
     <dd>
-    Makes specified mesh visible or invisible
+    Makes specified mesh visible or invisible.
  Use this to show or hide a specified mesh of an object.
 
 
@@ -1789,11 +1765,11 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh
+         Index of a mesh.
         </li>
         <li><span class="parameter">isVisible</span>
             <span class="types"><span class="type">bool</span></span>
-         true if you want the mesh to be visible, false otherwise
+         true if you want the mesh to be visible, false otherwise.
         </li>
     </ul>
 
@@ -1807,7 +1783,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:ShatterMesh(index)</strong>
     </dt>
     <dd>
-    Shatters specified mesh and makes it invisible
+    Shatters specified mesh and makes it invisible.
  Note that you can re-enable mesh later by using SetMeshVisible().
 
 
@@ -1816,7 +1792,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh
+         Index of a mesh to shatter.
         </li>
     </ul>
 
@@ -1830,9 +1806,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshSwapped(index)</strong>
     </dt>
     <dd>
-    Get state of specified mesh swap of object
- Returns true if specified mesh is swapped on an object, and false
- if it is not swapped.
+    Get state of specified mesh swap of object.
+ Returns true if specified mesh is swapped on an object, and false if it is not swapped.
 
 
 
@@ -1840,7 +1815,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh
+         Index of a mesh.
         </li>
     </ul>
 
@@ -1848,7 +1823,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        mesh swap status
+        Mesh swap status.
     </ol>
 
 
@@ -1860,7 +1835,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:SwapMesh(index, slotIndex, [swapIndex])</strong>
     </dt>
     <dd>
-    Set state of specified mesh swap of object
+    Set state of specified mesh swap of object.
  Use this to swap specified mesh of an object.
 
 
@@ -1869,15 +1844,15 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh
+         Index of a mesh.
         </li>
         <li><span class="parameter">slotIndex</span>
             <span class="types"><span class="type">int</span></span>
-         index of a slot to get meshswap from
+         Index of a slot to get meshswap from.
         </li>
         <li><span class="parameter">swapIndex</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh from meshswap slot to use
+         Index of a mesh from meshswap slot to use.
          <em>Optional.</em>
         </li>
     </ul>
@@ -1892,7 +1867,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:UnswapMesh(index)</strong>
     </dt>
     <dd>
-    Set state of specified mesh swap of object
+    Set state of specified mesh swap of object.
  Use this to bring back original unswapped mesh
 
 
@@ -1901,7 +1876,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         index of a mesh to unswap
+         Index of a mesh to unswap.
         </li>
     </ul>
 
@@ -1912,7 +1887,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 </dd>
     <dt>
     <a name = "Moveable:Enable"></a>
-    <strong>Moveable:Enable(timeout)</strong>
+    <strong>Moveable:Enable([timeout])</strong>
     </dt>
     <dd>
     Enable the item, as if a trigger for it had been stepped on.
@@ -1923,7 +1898,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">timeout</span>
             <span class="types"><span class="type">float</span></span>
-         time (in seconds) after which moveable automatically disables (optional).
+         Time (in seconds) after which moveable automatically disables.
+         <em>Optional.</em>
         </li>
     </ul>
 
@@ -1937,8 +1913,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:Disable()</strong>
     </dt>
     <dd>
-    Disable the item, as if an antitrigger for it had been stepped on (i.e.  it will close an open door or extinguish a flame emitter).
- Note that this will not trigger an OnKilled callback.
+    Disable the item, as if an antitrigger for it had been stepped on.
+ For example, it will close an open door or extinguish a flame emitter. Note that this will not trigger an OnKilled callback.
 
 
 
@@ -1992,7 +1968,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        item's collision state
+        Item's collision state.
     </ol>
 
 
@@ -2022,26 +1998,11 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 
 </dd>
     <dt>
-    <a name = "Moveable:MakeInvisible"></a>
-    <strong>Moveable:MakeInvisible()</strong>
-    </dt>
-    <dd>
-    Make the item invisible.  Alias for <code>Moveable:SetVisible(false)</code>.
-
-
-
-
-
-
-
-
-</dd>
-    <dt>
     <a name = "Moveable:SetVisible"></a>
     <strong>Moveable:SetVisible(visible)</strong>
     </dt>
     <dd>
-    Set the item's visibility.  <strong>An invisible item will have collision turned off, as if it no longer exists in the game world</strong>.
+    Set the item's visibility.  An invisible item will have collision turned off, as if it no longer exists in the game world.
 
 
 
@@ -2049,7 +2010,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">visible</span>
             <span class="types"><span class="type">bool</span></span>
-         true if the caller should become visible, false if it should become invisible
+         true if the caller should become visible, false if it should become invisible.
         </li>
     </ul>
 
@@ -2063,7 +2024,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetValid()</strong>
     </dt>
     <dd>
-    Test if the object is in a valid state (i.e.  has not been destroyed through Lua or killed by Lara).
+    Test if the object is in a valid state.  Indicates that it has not been destroyed through Lua or killed by Lara.
 
 
 
@@ -2072,7 +2033,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        valid true if the object is still not destroyed
+        true if the object is still not destroyed.
     </ol>
 
 
@@ -2110,7 +2071,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
          Mesh of a target moveable to use as a camera target.
         </li>
         <li><span class="parameter">target</span>
-            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#Moveable">Moveable</a></span>
+            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
          Target moveable to attach camera to.
         </li>
         <li><span class="parameter">mesh</span>
@@ -2129,7 +2090,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:AnimFromObject(objectID, animNumber, stateID)</strong>
     </dt>
     <dd>
-    Borrow animation from an object
+    Borrow animation from an object.
 
 
 
@@ -2137,7 +2098,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">objectID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         Object ID to take animation and stateID from.
+         Object ID to take animation and state ID from.
         </li>
         <li><span class="parameter">animNumber</span>
             <span class="types"><span class="type">int</span></span>
@@ -2145,7 +2106,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
         </li>
         <li><span class="parameter">stateID</span>
             <span class="types"><span class="type">int</span></span>
-         state State from object.
+         State from object.
         </li>
     </ul>
 

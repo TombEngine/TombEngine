@@ -481,7 +481,7 @@ namespace TEN::Renderer
 				// Otherwise all frames until next ControlPhase will not be interpolated.
 				newItem.DisableInterpolation = false;
 				
-				for (int j = 0; j < BONE_COUNT; j++)
+				for (int j = 0; j < BONE_COUNT_MAX; j++)
 					newItem.PrevAnimTransforms[j] = newItem.AnimTransforms[j];
 			}
 
@@ -495,7 +495,7 @@ namespace TEN::Renderer
 			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, interpFactor);
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
-			for (int j = 0; j < BONE_COUNT; j++)
+			for (int j = 0; j < BONE_COUNT_MAX; j++)
 				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
 
 			// NOTE: now at least positions and animations are updated,
@@ -535,10 +535,9 @@ namespace TEN::Renderer
 				mesh->Color = nativeMesh->color;
 				mesh->OriginalSphere = Statics[mesh->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 				mesh->Pose = nativeMesh->pos;
-				mesh->Scale = nativeMesh->scale;
-				mesh->Update();
+				mesh->Update(GetInterpolationFactor());
 
-				nativeMesh->Dirty = false;
+				nativeMesh->Dirty = (mesh->PrevPose != mesh->Pose);
 			}
 
 			if (!(nativeMesh->flags & StaticMeshFlags::SM_VISIBLE))
@@ -823,8 +822,8 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[roomNumber];
-
+		RoomData* r = &g_Level.Rooms[roomNumber];
+		
 		// Collect dynamic lights for rooms
 		for (int i = 0; i < _dynamicLights[_dynamicLightList].size(); i++)
 		{
@@ -865,7 +864,7 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[room.RoomNumber];
+		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
 		short fxNum = NO_VALUE;
 		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
@@ -927,7 +926,7 @@ namespace TEN::Renderer
 			item.PrevRotation = item.Rotation;
 			item.PrevScale = item.Scale;
 
-			for (int j = 0; j < BONE_COUNT; j++)
+			for (int j = 0; j < BONE_COUNT_MAX; j++)
 				item.PrevAnimTransforms[j] = item.AnimTransforms[j];
 		}
 
@@ -938,6 +937,12 @@ namespace TEN::Renderer
 			effect.PrevTranslation = effect.Translation;
 			effect.PrevRotation = effect.Rotation;
 			effect.PrevScale = effect.Scale;
+		}
+
+		for (auto& room : _rooms)
+		{
+			for (auto& stat : room.Statics)
+				stat.PrevPose = stat.Pose;
 		}
 	}
 }

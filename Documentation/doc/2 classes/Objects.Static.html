@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -381,7 +381,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        Status.  <strong>true: visible</strong>, <strong>false: invisible</strong>
+        Status. true means visible, false otherwise.
     </ol>
 
 
@@ -402,7 +402,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        Collision status.  <strong>true: can be collided with</strong>, <strong>false: no collision</strong>
+        Collision status. true if can be collided with, false otherwise.
     </ol>
 
 
@@ -423,7 +423,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        Solid Status. <strong>true: solid</strong>, <strong>false: soft</strong>
+        Solid Status. true if solid, false if soft.
     </ol>
 
 
@@ -597,7 +597,7 @@
     <ul>
         <li><span class="parameter">status</span>
             <span class="types"><span class="type">bool</span></span>
-         New status. <strong>true: solid</strong>, <strong>false: soft</strong>
+         New status, true is solid, false is soft.
         </li>
     </ul>
 
@@ -619,7 +619,7 @@
     <ul>
         <li><span class="parameter">collidable</span>
             <span class="types"><span class="type">bool</span></span>
-         New collision status. <strong>true: can be collided with</strong>, <strong>false: no collision</strong>
+         New collision status. true if can be collided with, false: no collision.
         </li>
     </ul>
 

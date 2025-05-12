@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -132,6 +132,10 @@ scripts too.</p>
 	<td class="summary">Image to show when loading the game.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#SetIntroVideoPath">SetIntroVideoPath(path)</a></td>
+	<td class="summary">Video to show when loading the game.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#SetTitleScreenImagePath">SetTitleScreenImagePath(path)</a></td>
 	<td class="summary">Image to show in the background of the title screen.</td>
 	</tr>
@@ -179,11 +183,11 @@ scripts too.</p>
 	<td class="summary">Finishes the current level, with optional level index and start position index provided.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetStatistics">GetStatistics(game)</a></td>
+	<td class="name" ><a href="#GetStatistics">GetStatistics([game])</a></td>
 	<td class="summary">Get game or level statistics.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#SetStatistics">SetStatistics(statistics, game)</a></td>
+	<td class="name" ><a href="#SetStatistics">SetStatistics(statistics, [game])</a></td>
 	<td class="summary">Set game or level statistics.</td>
 	</tr>
 	<tr>
@@ -261,11 +265,11 @@ scripts too.</p>
 	<td class="summary">Set string variable keys and their translations.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetString">GetString(string)</a></td>
+	<td class="name" ><a href="#GetString">GetString(key)</a></td>
 	<td class="summary">Get translated string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsStringPresent">IsStringPresent(string)</a></td>
+	<td class="name" ><a href="#IsStringPresent">IsStringPresent(key)</a></td>
 	<td class="summary">Check if translated string is present.</td>
 	</tr>
 	<tr>
@@ -299,7 +303,7 @@ ambient tracks.
     <ul>
         <li><span class="parameter">level</span>
             <span class="types"><a class="type" href="../2 classes/Flow.Level.html#">Level</a></span>
-         a level object
+         A level object.
         </li>
     </ul>
 
@@ -313,8 +317,7 @@ ambient tracks.
     <strong>SetIntroImagePath(path)</strong>
     </dt>
     <dd>
-    Image to show when loading the game.
-Must be a .jpg or .png image.
+    Image to show when loading the game.  Must be a .jpg or .png image.
 
 
 
@@ -322,7 +325,29 @@ Must be a .jpg or .png image.
     <ul>
         <li><span class="parameter">path</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the path to the image, relative to the TombEngine exe
+         The path to the image, relative to the TombEngine executable.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SetIntroVideoPath"></a>
+    <strong>SetIntroVideoPath(path)</strong>
+    </dt>
+    <dd>
+    Video to show when loading the game.  Must be a common video format, such as mp4, mkv, mov or avi.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         the path to the video, relative to the TombEngine exe
         </li>
     </ul>
 
@@ -336,9 +361,7 @@ Must be a .jpg or .png image.
     <strong>SetTitleScreenImagePath(path)</strong>
     </dt>
     <dd>
-    Image to show in the background of the title screen.
-Must be a .jpg or .png image.
-<strong>(not yet implemented)</strong>
+    Image to show in the background of the title screen.  Must be a .jpg or .png image. <em>Not yet implemented.</em>
 
 
 
@@ -346,7 +369,7 @@ Must be a .jpg or .png image.
     <ul>
         <li><span class="parameter">path</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the path to the image, relative to the TombEngine exe
+         The path to the image, relative to the TombEngine executable.
         </li>
     </ul>
 
@@ -369,7 +392,7 @@ Must be true or false
     <ul>
         <li><span class="parameter">enabled</span>
             <span class="types"><span class="type">bool</span></span>
-         true or false
+         True or false.
         </li>
     </ul>
 
@@ -392,7 +415,7 @@ Must be true or false
     <ul>
         <li><span class="parameter">enabled</span>
             <span class="types"><span class="type">bool</span></span>
-         true or false
+         True or false.
         </li>
     </ul>
 
@@ -406,7 +429,7 @@ Must be true or false
     <strong>EnableHomeLevel(enabled)</strong>
     </dt>
     <dd>
-    Enable or disable Home Level entry in the main menu. ()
+    Enable or disable Home Level entry in the main menu.
 
 
 
@@ -428,7 +451,7 @@ Must be true or false
     <strong>EnableLoadSave(enabled)</strong>
     </dt>
     <dd>
-    Enable or disable saving and loading of savegames. ()
+    Enable or disable saving and loading of savegames.
 
 
 
@@ -454,7 +477,7 @@ Must be true or false
     <strong>EnableFlyCheat(enabled)</strong>
     </dt>
     <dd>
-    Enable or disable the fly cheat. ()
+    Enable or disable the fly cheat.
 
 
 
@@ -485,7 +508,7 @@ Must be true or false
     <ul>
         <li><span class="parameter">enabled</span>
             <span class="types"><span class="type">bool</span></span>
-         true or false
+         True or false.
         </li>
     </ul>
 
@@ -508,7 +531,7 @@ Must be true or false
     <ul>
         <li><span class="parameter">enabled</span>
             <span class="types"><span class="type">bool</span></span>
-         true or false
+         True or false.
         </li>
     </ul>
 
@@ -524,7 +547,7 @@ Must be true or false
     <dd>
     Returns the level by index.
 Indices depend on the order in which AddLevel was called; the first added will
-have an ID of 0, the second an ID of 1, and so on.
+have an index of 0, the second an index of 1, and so on.
 
 
 
@@ -532,7 +555,7 @@ have an ID of 0, the second an ID of 1, and so on.
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         of the level
+         Index of the level.
         </li>
     </ul>
 
@@ -540,7 +563,7 @@ have an ID of 0, the second an ID of 1, and so on.
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Flow.Level.html#">Level</a></span>
-        the level indicated by the id
+        The level indicated by the index.
     </ol>
 
 
@@ -561,7 +584,7 @@ have an ID of 0, the second an ID of 1, and so on.
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Flow.Level.html#">Level</a></span>
-        the current level
+        The current level.
     </ol>
 
 
@@ -584,13 +607,13 @@ teleported to such object with OCB similar to provided second argument.
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         level index (default 0)
-         <em>Optional.</em>
+         Level index.
+         <em>Default: 0.</em>
         </li>
         <li><span class="parameter">startPos</span>
             <span class="types"><span class="type">int</span></span>
-         player start position (default 0)
-         <em>Optional.</em>
+         Player start position in the next level. Should correspond to OCB of <code>Objects.ObjID.LARA_START_POS</code> object in the next level.
+         <em>Default: 0.</em>
         </li>
     </ul>
 
@@ -601,7 +624,7 @@ teleported to such object with OCB similar to provided second argument.
 </dd>
     <dt>
     <a name = "GetStatistics"></a>
-    <strong>GetStatistics(game)</strong>
+    <strong>GetStatistics([game])</strong>
     </dt>
     <dd>
     Get game or level statistics.  For reference about statistics class, see <a href="../2 classes/Flow.Statistics.html#">Flow.Statistics</a>.
@@ -612,7 +635,8 @@ teleported to such object with OCB similar to provided second argument.
     <ul>
         <li><span class="parameter">game</span>
             <span class="types"><span class="type">bool</span></span>
-         if true, returns overall game statistics, otherwise returns current level statistics (default: false)
+         If true, returns overall game statistics, otherwise returns current level statistics.
+         <em>Default: false.</em>
         </li>
     </ul>
 
@@ -620,7 +644,7 @@ teleported to such object with OCB similar to provided second argument.
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Flow.Statistics.html#">Statistics</a></span>
-        statistics structure representing game or level statistics
+        Statistics structure representing game or level statistics.
     </ol>
 
 
@@ -629,7 +653,7 @@ teleported to such object with OCB similar to provided second argument.
 </dd>
     <dt>
     <a name = "SetStatistics"></a>
-    <strong>SetStatistics(statistics, game)</strong>
+    <strong>SetStatistics(statistics, [game])</strong>
     </dt>
     <dd>
     Set game or level statistics.  For reference about statistics class, see <a href="../2 classes/Flow.Statistics.html#">Flow.Statistics</a>.
@@ -640,11 +664,12 @@ teleported to such object with OCB similar to provided second argument.
     <ul>
         <li><span class="parameter">statistics</span>
             <span class="types"><a class="type" href="../2 classes/Flow.Statistics.html#">Statistics</a></span>
-         statistic object to set
+         Statistic object to set.
         </li>
         <li><span class="parameter">game</span>
             <span class="types"><span class="type">bool</span></span>
-         if true, sets overall game statistics, otherwise sets current level statistics (default: false)
+         If true, sets overall game statistics, otherwise sets current level statistics.
+         <em>Default: false.</em>
         </li>
     </ul>
 
@@ -667,7 +692,7 @@ teleported to such object with OCB similar to provided second argument.
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/Flow.GameStatus.html#">GameStatus</a></span>
-        the current game status
+        The current game status.
     </ol>
 
 
@@ -688,7 +713,7 @@ teleported to such object with OCB similar to provided second argument.
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/Flow.FreezeMode.html#">FreezeMode</a></span>
-        the current freeze mode
+        The current freeze mode.
     </ol>
 
 
@@ -710,7 +735,7 @@ custom menu creation, photo mode or time freeze.
     <ul>
         <li><span class="parameter">freezeMode</span>
             <span class="types"><a class="type" href="../4 enums/Flow.FreezeMode.html#">FreezeMode</a></span>
-         new freeze mode to set.
+         New freeze mode to set.
         </li>
     </ul>
 
@@ -847,7 +872,7 @@ custom menu creation, photo mode or time freeze.
     <ul>
         <li><span class="parameter">count</span>
             <span class="types"><span class="type">int</span></span>
-         new secret count.
+         New secret count.
         </li>
     </ul>
 
@@ -870,7 +895,7 @@ The index argument corresponds to the secret's unique ID, the same that would go
     <ul>
         <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         an index of current level's secret (must be from 0 to 31).
+         An index of current level's secret (must be from 0 to 31).
         </li>
     </ul>
 
@@ -994,7 +1019,7 @@ Must be an integer value (0 means no secrets).
     <ul>
         <li><span class="parameter">settings</span>
             <span class="types"><a class="type" href="../2 classes/Flow.Settings.html#">Settings</a></span>
-         a settings table
+         A settings table.
         </li>
     </ul>
 
@@ -1017,7 +1042,7 @@ Must be an integer value (0 means no secrets).
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Flow.Settings.html#">Settings</a></span>
-        current settings table
+        Current settings table.
     </ol>
 
 
@@ -1029,8 +1054,7 @@ Must be an integer value (0 means no secrets).
 
           <div class="section-description">
 
-These functions used in strings.lua, which is generated by TombIDE.
-You will not need to call them manually.
+These functions used in strings.lua, which is generated by TombIDE. You will not need to call them manually.
           </div>
     <dl class="function">
     <dt>
@@ -1045,8 +1069,8 @@ You will not need to call them manually.
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">table</span>
-            <span class="types"><span class="type">tab</span></span>
-         array-style table with strings
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         Array-style table with strings.
         </li>
     </ul>
 
@@ -1057,7 +1081,7 @@ You will not need to call them manually.
 </dd>
     <dt>
     <a name = "GetString"></a>
-    <strong>GetString(string)</strong>
+    <strong>GetString(key)</strong>
     </dt>
     <dd>
     Get translated string.
@@ -1066,9 +1090,9 @@ You will not need to call them manually.
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">string</span>
-            <span class="types"><span class="type">key</span></span>
-         key for translated string
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Key for translated string.
         </li>
     </ul>
 
@@ -1079,7 +1103,7 @@ You will not need to call them manually.
 </dd>
     <dt>
     <a name = "IsStringPresent"></a>
-    <strong>IsStringPresent(string)</strong>
+    <strong>IsStringPresent(key)</strong>
     </dt>
     <dd>
     Check if translated string is present.
@@ -1088,9 +1112,9 @@ You will not need to call them manually.
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">string</span>
-            <span class="types"><span class="type">key</span></span>
-         key for translated string
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Key for translated string.
         </li>
     </ul>
 
@@ -1112,8 +1136,8 @@ Specify which translations in the strings table correspond to which languages.
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">table</span>
-            <span class="types"><span class="type">tab</span></span>
-         array-style table with language names
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         Array-style table with language names.
         </li>
     </ul>
 

@@ -8,9 +8,7 @@
 - Support for high framerate, antialiasing, mipmapping, and SSAO.
 - Full diagonal geometry support.
 - Uncapped map size.
-- A streamlined player control scheme..
-
-Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
+- A streamlined player control scheme.
 
 *Tomb Engine* is used in conjunction with *Tomb Editor*. The repository can be found [here](https://github.com/MontyTRC89/Tomb-Editor).
 
@@ -36,6 +34,9 @@ Steps:
 
 Once done, you should be able to build a level with *Tomb Editor* and run it in *TEN*.
 
+# Contributions
+Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
+
 # Disclaimer
-This community project is unaffiliated with Core Design, Eidos Interactive, or Embracer Group AB. *Tomb Raider* is a registered trademark of Embracer Group AB. *Tomb Engine* is not for sale. The code is open-source to encourage contributions and for study purposes. We are not responsible for illegal uses of this source code. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.
+Tomb Engine uses modified MIT license for non-commercial use only. For more information, see [license](LICENSE). Tomb Engine is unaffiliated with Core Design, Eidos Interactive, or Embracer Group AB. *Tomb Raider* is a registered trademark of Embracer Group AB. Tomb Engine source code is open to encourage contributions and for study purposes. Tomb Engine team is not responsible for illegal use of this source code alone or in combination with third-party assets or components. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.
 

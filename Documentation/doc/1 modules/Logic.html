@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -132,7 +132,7 @@
 	<td class="summary">Deregister a function as a callback.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#HandleEvent">HandleEvent(name, type, activator)</a></td>
+	<td class="name" ><a href="#HandleEvent">HandleEvent(name, type, [activator])</a></td>
 	<td class="summary">Attempt to find an event set and execute a particular event from it.</td>
 	</tr>
 	<tr>
@@ -148,7 +148,7 @@
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#Lara">Lara</a></td>
-	<td class="summary">A <a href="../2 classes/Objects.Moveable.html#">Objects.Moveable</a> representing Lara herself.</td>
+	<td class="summary">An <a href="../2 classes/Objects.Moveable.html#">Objects.Moveable</a> entry representing Lara herself.</td>
 	</tr>
 </table>
 <h2><a href="#Special_tables">Special tables </a></h2>
@@ -272,7 +272,7 @@ Will have no effect if the function was not registered as a callback
 </dd>
     <dt>
     <a name = "HandleEvent"></a>
-    <strong>HandleEvent(name, type, activator)</strong>
+    <strong>HandleEvent(name, type, [activator])</strong>
     </dt>
     <dd>
     Attempt to find an event set and execute a particular event from it.
@@ -302,7 +302,8 @@ MENU</pre>
         </li>
         <li><span class="parameter">activator</span>
             <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
-         Optional activator. Default is the player object.
+         Optional activator.
+         <em>Default: Lara.</em>
         </li>
     </ul>
 
@@ -372,7 +373,7 @@ MENU</pre>
     <strong>Lara</strong>
     </dt>
     <dd>
-    A <a href="../2 classes/Objects.Moveable.html#">Objects.Moveable</a> representing Lara herself.
+    An <a href="../2 classes/Objects.Moveable.html#">Objects.Moveable</a> entry representing Lara herself.
 
 
 

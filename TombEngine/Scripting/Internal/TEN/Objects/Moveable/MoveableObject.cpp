@@ -41,17 +41,17 @@ associated getters and setters. If you do not know what to set for these,
 most can just be ignored (see usage).
 
 	@function Moveable
-	@tparam Objects.ObjID object ID
+	@tparam Objects.ObjID objectID Object ID.
 	@tparam string name Lua name.
-	@tparam Vec3 position position in level
-	@tparam Rotation rotation rotation rotation about x, y, and z axes (default Rotation(0, 0, 0))
-	@tparam int roomNumber the room number the moveable is in (default: calculated automatically).
-	@tparam int animNumber animation number
-	@tparam int frameNumber frame number
-	@tparam int hp Hit points.
-	@tparam int OCB Object code bits.
-	@tparam table AIBits table with AI bits (default { 0, 0, 0, 0, 0, 0 })
-	@treturn Moveable A new Moveable object (a wrapper around the new object)
+	@tparam Vec3 position Position in level.
+	@tparam[opt] Rotation rotation Rotation about x, y, and z axes.
+	@tparam[opt] int roomNumber The room number the moveable is in. Needed if you are dealing with overlapping rooms and need to force certain room number.
+	@tparam[opt] int animNumber Animation number.
+	@tparam[opt] int frameNumber Frame number.
+	@tparam[opt] int hp Hit points.
+	@tparam[opt] int OCB Object code bits.
+	@tparam[opt] table AIBits Table with six AI bits.
+	@treturn Objects.Moveable A new Moveable object.
 
 	@usage
 	local item = Moveable(
@@ -93,6 +93,10 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		if (std::holds_alternative<int>(hp))
 		{
 			scriptMov->SetHP(std::get<int>(hp));
+		}
+		else
+		{
+			scriptMov->SetHP(Objects[objID].HitPoints);
 		}
 
 		scriptMov->SetOcb(ValueOr<int>(ocb, 0));
@@ -242,9 +246,9 @@ void Moveable::Initialize()
 	_initialized = true;
 }
 
-/// Retrieve the object ID
+/// Retrieve the object ID.
 // @function Moveable:GetObjectID
-// @treturn Objects.ObjID a number representing the ID of the object.
+// @treturn Objects.ObjID A number representing the ID of the object.
 GAME_OBJECT_ID Moveable::GetObjectID() const
 {
 	return _moveable->ObjectNumber;
@@ -252,7 +256,7 @@ GAME_OBJECT_ID Moveable::GetObjectID() const
 
 /// Change the object's ID. This will literally change the object.
 // @function Moveable:SetObjectID
-// @tparam Objects.ObjID objectID the new ID 
+// @tparam Objects.ObjID objectID The new ID.
 // @usage
 // shiva = TEN.Objects.GetMoveableByName("shiva_60")
 // shiva:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)
@@ -291,17 +295,17 @@ int Moveable::GetIndex() const
 /// Set the name of the function to be called when the moveable is shot by Lara.
 // Note that this will be triggered twice when shot with both pistols at once. 
 // @function Moveable:SetOnHit
-// @tparam function callback function in LevelFuncs hierarchy to call when moveable is shot
+// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is shot.
 void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 {
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks.OnHit);
 }
 
-/// Set the name of the function to be called when the moveable is destroyed/killed
+/// Set the name of the function to be called when the moveable is destroyed/killed.
 // Note that enemy death often occurs at the end of an animation, and not at the exact moment
 // the enemy's HP becomes zero.
 // @function Moveable:SetOnKilled
-// @tparam function callback function in LevelFuncs hierarchy to call when enemy is killed
+// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is killed.
 // @usage
 // LevelFuncs.baddyKilled = function(theBaddy) print("You killed a baddy!") end
 // baddy:SetOnKilled(LevelFuncs.baddyKilled)
@@ -310,9 +314,9 @@ void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnKilled, *this, _moveable->Callbacks.OnKilled);
 }
 
-/// Set the function to be called when this moveable collides with another moveable
+/// Set the function to be called when this moveable collides with another moveable.
 // @function Moveable:SetOnCollidedWithObject
-// @tparam function func callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
+// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
 // @usage
 // -- obj1 is the collision moveable
 // -- obj2 is the collider moveable
@@ -328,7 +332,7 @@ void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
 
 /// Set the function called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
 // @function Moveable:SetOnCollidedWithRoom
-// @tparam function func callback function to be called (must be in LevelFuncs hierarchy)
+// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy).
 // @usage
 // LevelFuncs.roomCollided = function(obj)
 //     print(obj:GetName() .. " collided with room geometry")
@@ -339,22 +343,18 @@ void Moveable::SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb)
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, *this, _moveable->Callbacks.OnRoomCollided);
 }
 
-/// Get the moveable's name (its unique string identifier)
-// e.g. "door\_back\_room" or "cracked\_greek\_statue"
-// This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
+/// Get the moveable's name (its unique string identifier). This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
 // @function Moveable:GetName
-// @treturn string the moveable's name
+// @treturn string The moveable's name.
 std::string Moveable::GetName() const
 {
 	return _moveable->Name;
 }
 
-/// Set the moveable's name (its unique string identifier)
-// e.g. "door\_back\_room" or "cracked\_greek\_statue"
-// It cannot be blank and cannot share a name with any existing object.
+/// Set the moveable's name (its unique string identifier). It cannot be blank and cannot share a name with any existing object.
 // @function Moveable:SetName
-// @tparam string name the new moveable's name
-// @treturn bool true if we successfully set the name, false otherwise (e.g. if another object has the name already)
+// @tparam string name The new moveable's name.
+// @treturn bool true if name was successfully set, false otherwise (e.g. if another moveable has the name already).
 bool Moveable::SetName(const std::string& id) 
 {
 	if (!ScriptAssert(!id.empty(), "Name cannot be blank. Not setting name."))
@@ -382,21 +382,18 @@ bool Moveable::SetName(const std::string& id)
 	return true;
 }
 
-/// Get the moveable's position
+/// Get the moveable's position.
 // @function Moveable:GetPosition
-// @treturn Vec3 a copy of the moveable's position
+// @treturn Vec3 Moveable's position.
 Vec3 Moveable::GetPosition() const
 {
 	return Vec3(_moveable->Pose.Position);
 }
 
-/// Set the moveable's position
-// If you are moving a moveable whose behaviour involves knowledge of room geometry,
-// (e.g. a BADDY1, which uses it for pathfinding), then the second argument should
-// be true (or omitted, as true is the default). Otherwise, said moveable will not behave correctly.
+/// Set the moveable's position.
 // @function Moveable:SetPosition
-// @tparam Vec3 position the new position of the moveable 
-// @bool[opt] updateRoom Will room changes be automatically detected? Set to false if you are using overlapping rooms (default: true)
+// @tparam Vec3 position The new position of the moveable.
+// @bool[opt=true] updateRoom Will room changes be automatically detected? Set to false if you are using overlapping rooms.
 void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 {
 	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
@@ -422,7 +419,10 @@ void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 	}
 
 	if (_moveable->IsBridge())
-		UpdateBridgeItem(*_moveable);
+	{
+		auto& bridge = GetBridgeObject(*_moveable);
+		bridge.Update(*_moveable);
+	}
 
 	if (bigDistance)
 		_moveable->DisableInterpolation = true;
@@ -439,10 +439,10 @@ Vec3 Moveable::GetJointPos(int jointIndex, sol::optional<Vec3> offset) const
 	return Vec3(GetJointPosition(_moveable, jointIndex, convertedOffset));
 }
 
-/// Get the object's joint rotation
+/// Get the object's joint rotation.
 // @function Moveable:GetJointRotation
 // @tparam int index Index of a joint to get rotation.
-// @treturn Rotation a calculated copy of the moveable's joint rotation
+// @treturn Rotation Moveable's joint rotation.
 Rotation Moveable::GetJointRot(int jointIndex) const
 {
 	auto point1 = GetJointPosition(_moveable, jointIndex);
@@ -468,7 +468,7 @@ Rotation Moveable::GetJointRot(int jointIndex) const
 
 /// Get the moveable's rotation.
 // @function Moveable:GetRotation
-// @treturn Rotation A copy of the moveable's rotation.
+// @treturn Rotation Moveable's rotation.
 Rotation Moveable::GetRotation() const
 {
 	return 
@@ -481,7 +481,7 @@ Rotation Moveable::GetRotation() const
 
 /// Get the moveable's visual scale.
 // @function Moveable:GetScale
-// @treturn Vec3 A copy of the moveable's visual scale.
+// @treturn Vec3 Moveable's visual scale.
 Vec3 Moveable::GetScale() const
 {
 	return Vec3(_moveable->Pose.Scale);
@@ -489,7 +489,7 @@ Vec3 Moveable::GetScale() const
 
 /// Set the moveable's rotation.
 // @function Moveable:SetRotation
-// @tparam Rotation rotation The moveable's new rotation
+// @tparam Rotation rotation The moveable's new rotation.
 void Moveable::SetRotation(const Rotation& rot)
 {
 	constexpr auto BIG_ANGLE_THRESHOLD = ANGLE(30.0f);
@@ -500,7 +500,10 @@ void Moveable::SetRotation(const Rotation& rot)
 	_moveable->Pose.Orientation = newRot;
 
 	if (_moveable->IsBridge())
-		UpdateBridgeItem(*_moveable);
+	{
+		auto& bridge = GetBridgeObject(*_moveable);
+		bridge.Update(*_moveable);
+	}
 
 	if (bigRotation)
 		_moveable->DisableInterpolation = true;
@@ -514,18 +517,18 @@ void Moveable::SetScale(const Vec3& scale)
 	_moveable->Pose.Scale = scale.ToVector3();
 }
 
-/// Get current HP (hit points/health points)
+/// Get current HP (hit points / health points).
 // @function Moveable:GetHP
-// @treturn int the amount of HP the moveable currently has
+// @treturn int The amount of HP the moveable currently has.
 short Moveable::GetHP() const
 {
 	return _moveable->HitPoints;
 }
 
-/// Set current HP (hit points/health points)
+/// Set current HP (hit points / health points).
 // Clamped to [0, 32767] for "intelligent" entities (i.e. anything with AI); clamped to [-32767, 32767] otherwise.
 // @function Moveable:SetHP
-// @tparam int HP the amount of HP to give the moveable
+// @tparam int HP The amount of HP to give the moveable.
 void Moveable::SetHP(short hp)
 {
 	if (Objects[_moveable->ObjectNumber].intelligent && hp < 0)
@@ -541,25 +544,25 @@ void Moveable::SetHP(short hp)
 	_moveable->HitPoints = hp;
 }
 
-/// Get HP definded for that object type (hit points/health points) (Read Only).
+/// Get HP definded for that object type (hit points / health points).
 // @function Moveable:GetSlotHP
-// @treturn int the moveable's slot default hit points
+// @treturn int The moveable's slot default hit points.
 short Moveable::GetSlotHP() const
 {
 	return Objects[_moveable->ObjectNumber].HitPoints;
 }
 
-/// Get OCB (object code bit) of the moveable
+/// Get OCB (object code bit) of the moveable.
 // @function Moveable:GetOCB
-// @treturn int the moveable's current OCB value
+// @treturn int The moveable's current OCB value.
 short Moveable::GetOcb() const
 {
 	return _moveable->TriggerFlags;
 }
 
-/// Set OCB (object code bit) of the moveable
+/// Set OCB (object code bit) of the moveable.
 // @function Moveable:SetOCB
-// @tparam int OCB the new value for the moveable's OCB
+// @tparam int OCB The new value for the moveable's OCB.
 void Moveable::SetOcb(short ocb)
 {
 	_moveable->TriggerFlags = ocb;
@@ -568,7 +571,7 @@ void Moveable::SetOcb(short ocb)
 /// Set the effect for this moveable.
 // @function Moveable:SetEffect
 // @tparam Effects.EffectID effect Type of effect to assign.
-// @tparam[opt] float timeout time (in seconds) after which effect turns off.
+// @tparam[opt] float timeout Time (in seconds) after which effect turns off.
 void Moveable::SetEffect(EffectType effectType, sol::optional<float> timeout)
 {
 	int realTimeout = timeout.has_value() ? int(timeout.value() * FPS) : -1;
@@ -604,7 +607,7 @@ void Moveable::SetEffect(EffectType effectType, sol::optional<float> timeout)
 	}
 }
 
-/// Set custom colored burn effect to moveable
+/// Set custom colored burn effect to moveable.
 // @function Moveable:SetCustomEffect
 // @tparam Color color1 The primary color of the effect (also used for lighting).
 // @tparam Color color2 The secondary color of the effect.
@@ -617,7 +620,7 @@ void Moveable::SetCustomEffect(const ScriptColor& col1, const ScriptColor& col2,
 	ItemCustomBurn(_moveable, color1, color2, realTimeout);
 }
 
-/// Get current moveable effect
+/// Get current moveable effect.
 // @function Moveable:GetEffect
 // @treturn Effects.EffectID Effect type currently assigned.
 EffectType Moveable::GetEffect() const
@@ -625,16 +628,16 @@ EffectType Moveable::GetEffect() const
 	return _moveable->Effect.Type;
 }
 
-/// Get the value stored in ItemFlags[index]
+/// Get the value stored in ItemFlags[index].
 // @function Moveable:GetItemFlags
 // @tparam int index Index of the ItemFlag, can be between 0 and 7.
-// @treturn int the value contained in the ItemFlags[index]
+// @treturn int The value contained in the ItemFlags[index].
 short Moveable::GetItemFlags(int index) const
 {
 	return _moveable->ItemFlags[index];
 }
 
-/// Stores a value in ItemFlags[index]
+/// Stores a value in ItemFlags[index].
 // @function Moveable:SetItemFlags
 // @tparam short value Value to store in the moveable's ItemFlags[index].
 // @tparam int index Index of the ItemFlag where to store the value.
@@ -643,9 +646,9 @@ void Moveable::SetItemFlags(short value, int index)
 	_moveable->ItemFlags[index] = value;
 }
 
-/// Get the location value stored in the Enemy AI
+/// Get the location value stored in the Enemy AI.
 // @function Moveable:GetLocationAI
-// @treturn short the value contained in the LocationAI of the creature.
+// @treturn short The value contained in the LocationAI of the creature.
 short Moveable::GetLocationAI() const
 {
 	if (_moveable->IsCreature())
@@ -674,23 +677,23 @@ void Moveable::SetLocationAI(short value)
 	}
 }
 
-/// Get the moveable's color
+/// Get the moveable's color.
 // @function Moveable:GetColor
-// @treturn Color a copy of the moveable's color
+// @treturn Color Moveable's color.
 ScriptColor Moveable::GetColor() const
 {
 	return ScriptColor{ _moveable->Model.Color };
 }
 
-/// Set the moveable's color
+/// Set the moveable's color.
 // @function Moveable:SetColor
-// @tparam Color color the new color of the moveable 
+// @tparam Color color The new color of the moveable.
 void Moveable::SetColor(const ScriptColor& color)
 {
 	_moveable->Model.Color = color;
 }
 
-/// Get AIBits of object
+/// Get AIBits of object.
 // This will return a table with six values, each corresponding to
 // an active behaviour. If the object is in a certain AI mode, the table will
 // have a *1* in the corresponding cell. Otherwise, the cell will hold
@@ -704,7 +707,7 @@ void Moveable::SetColor(const ScriptColor& color)
 //	6 - Patrol 2
 //
 // @function Moveable:GetAIBits
-// @treturn table a table of AI bits
+// @treturn table A table of AI bits.
 aiBitsType Moveable::GetAIBits() const
 {
 	static_assert(63 == ALL_AIOBJ);
@@ -719,11 +722,11 @@ aiBitsType Moveable::GetAIBits() const
 	return ret;
 }
 
-/// Set AIBits of object
+/// Set AIBits of object.
 // Use this to force a moveable into a certain AI mode or modes, as if a certain nullmesh
 // (or more than one) had suddenly spawned beneath their feet.
 // @function Moveable:SetAIBits
-// @tparam table bits the table of AI bits
+// @tparam table bits A table of AI bits.
 // @usage 
 // local sas = TEN.Objects.GetMoveableByName("sas_enemy")
 // sas:SetAIBits({1, 0, 0, 0, 0, 0})
@@ -740,7 +743,7 @@ void Moveable::SetAIBits(aiBitsType const & bits)
 /// Retrieve the index of the current state.
 // This corresponds to the number shown in the item's state ID field in WadTool.
 // @function Moveable:GetState
-// @treturn int the index of the active state
+// @treturn int The index of the active state.
 int Moveable::GetStateNumber() const
 {
 	return _moveable->Animation.ActiveState;
@@ -749,7 +752,7 @@ int Moveable::GetStateNumber() const
 /// Retrieve the index of the target state.
 // This corresponds to the state the object is trying to get into, which is sometimes different from the active state.
 // @function Moveable:GetTargetState
-// @treturn int the index of the target state
+// @treturn int The index of the target state.
 int Moveable::GetTargetStateNumber() const
 {
 	return _moveable->Animation.TargetState;
@@ -759,7 +762,7 @@ int Moveable::GetTargetStateNumber() const
 // Performs no bounds checking. *Ensure the number given is correct, else
 // object may end up in corrupted animation state.*
 // @function Moveable:SetState
-// @tparam int index the index of the desired state 
+// @tparam int index The index of the desired state.
 void Moveable::SetStateNumber(int stateNumber)
 {
 	_moveable->Animation.TargetState = stateNumber;
@@ -769,7 +772,7 @@ void Moveable::SetStateNumber(int stateNumber)
 // In certain cases, moveable may play animations from another object slot. Use this
 // function when you need to identify such cases.
 // @function Moveable:GetAnimSlot
-// @treturn int animation slot ID
+// @treturn int Animation slot ID.
 int Moveable::GetAnimSlot() const
 {
 	return _moveable->Animation.AnimObjectID;
@@ -778,7 +781,7 @@ int Moveable::GetAnimSlot() const
 /// Retrieve the index of the current animation.
 // This corresponds to the number shown in the item's animation list in WadTool.
 // @function Moveable:GetAnim
-// @treturn int the index of the active animation
+// @treturn int The index of the active animation.
 int Moveable::GetAnimNumber() const
 {
 	return _moveable->Animation.AnimNumber;
@@ -788,8 +791,8 @@ int Moveable::GetAnimNumber() const
 // Performs no bounds checking. *Ensure the number given is correct, else
 // object may end up in corrupted animation state.*
 // @function Moveable:SetAnim
-// @tparam int index the index of the desired anim 
-// @tparam[opt] int slot slot ID of the desired anim (if omitted, moveable's own slot ID is used)
+// @tparam int index The index of the desired animation.
+// @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
 	SetAnimation(*_moveable, animNumber);
@@ -798,7 +801,7 @@ void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 /// Retrieve frame number.
 // This is the current frame of the object's active animation.
 // @function Moveable:GetFrame
-// @treturn int the current frame of the active animation
+// @treturn int The current frame of the active animation.
 int Moveable::GetFrameNumber() const
 {
 	return _moveable->Animation.FrameNumber;
@@ -808,7 +811,7 @@ int Moveable::GetFrameNumber() const
 // In most cases, only Z and Y components are used as forward and vertical velocity.
 // In some cases, primarily NPCs, X component is used as side velocity.
 // @function Moveable:GetVelocity
-// @treturn Vec3 current object velocity
+// @treturn Vec3 Current object velocity.
 Vec3 Moveable::GetVelocity() const
 {
 	return Vec3(
@@ -821,7 +824,7 @@ Vec3 Moveable::GetVelocity() const
 // In most cases, only Z and Y components are used as forward and vertical velocity.
 // In some cases, primarily NPCs, X component is used as side velocity.
 // @function Moveable:SetVelocity
-// @tparam Vec3 velocity velocity represented as vector 
+// @tparam Vec3 velocity Velocity represented as vector.
 void Moveable::SetVelocity(Vec3 velocity)
 {
 	if (_moveable->IsCreature())
@@ -836,7 +839,7 @@ void Moveable::SetVelocity(Vec3 velocity)
 // the WadTool animation editor. If the animation has no frames, the only valid argument
 // is -1.
 // @function Moveable:SetFrame
-// @tparam int frame the new frame number
+// @tparam int frame The new frame number.
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
@@ -866,9 +869,9 @@ int Moveable::GetEndFrame() const
 	return anim.EndFrameNumber;
 }
 
-/// Determine whether the moveable is active or not 
+/// Determine whether the moveable is active or not.
 // @function Moveable:GetActive
-// @treturn bool true if the moveable is active
+// @treturn bool True if the moveable is active.
 bool Moveable::GetActive() const
 {
 	return _moveable->Active;
@@ -881,23 +884,23 @@ void Moveable::SetActive(bool isActive)
 
 /// Get the hit status of the moveable.
 // @function Moveable:GetHitStatus
-// @treturn bool true if the moveable was hit by something in the last gameplay frame, false otherwise 
+// @treturn bool true if the moveable was hit by something in the last gameplay frame, false otherwise.
 bool Moveable::GetHitStatus() const
 {
 	return _moveable->HitStatus;
 }
 
-/// Get the current room of the object
+/// Get the current room of the moveable.
 // @function Moveable:GetRoom
-// @treturn Objects.Room current room of the object
+// @treturn Objects.Room Current room of the moveable.
 std::unique_ptr<Room> Moveable::GetRoom() const
 {
 	return std::make_unique<Room>(g_Level.Rooms[_moveable->RoomNumber]);
 }
 
-/// Get the current room number of the object
+/// Get the current room number of the moveable.
 // @function Moveable:GetRoomNumber
-// @treturn int number representing the current room of the object
+// @treturn int Number representing the current room of the moveable.
 int Moveable::GetRoomNumber() const
 {
 	return _moveable->RoomNumber;
@@ -951,21 +954,21 @@ void Moveable::SetStatus(ItemStatus status)
 	_moveable->Status = status;
 }
 
-/// Get number of meshes for a particular object
+/// Get number of meshes for a particular object.
 // Returns number of meshes in an object
 // @function Moveable:GetMeshCount
-// @treturn int number of meshes
+// @treturn int Number of meshes.
 short Moveable::GetMeshCount() const
 {
 	return Objects[_moveable->ObjectNumber].nmeshes;
 }
 
-/// Get state of specified mesh visibility of object
+/// Get state of specified mesh visibility of object.
 // Returns true if specified mesh is visible on an object, and false
 // if it is not visible.
 // @function Moveable:GetMeshVisible
-// @int index index of a mesh
-// @treturn bool visibility status
+// @tparam int index Index of a mesh.
+// @treturn bool Visibility status.
 bool Moveable::GetMeshVisible(int meshId) const
 {
 	if (!MeshExists(meshId))
@@ -974,11 +977,11 @@ bool Moveable::GetMeshVisible(int meshId) const
 	return _moveable->MeshBits.Test(meshId);
 }
 
-/// Makes specified mesh visible or invisible
+/// Makes specified mesh visible or invisible.
 // Use this to show or hide a specified mesh of an object.
 // @function Moveable:SetMeshVisible
-// @int index index of a mesh
-// @bool isVisible true if you want the mesh to be visible, false otherwise
+// @tparam int index Index of a mesh.
+// @tparam bool isVisible true if you want the mesh to be visible, false otherwise.
 void Moveable::SetMeshVisible(int meshId, bool isVisible)
 {
 	if (!MeshExists(meshId))
@@ -994,10 +997,10 @@ void Moveable::SetMeshVisible(int meshId, bool isVisible)
 	}
 }
 
-/// Shatters specified mesh and makes it invisible
+/// Shatters specified mesh and makes it invisible.
 // Note that you can re-enable mesh later by using SetMeshVisible().
 // @function Moveable:ShatterMesh
-// @int index index of a mesh
+// @tparam int index Index of a mesh to shatter.
 void Moveable::ShatterMesh(int meshId)
 {
 	if (!MeshExists(meshId))
@@ -1006,12 +1009,11 @@ void Moveable::ShatterMesh(int meshId)
 	ExplodeItemNode(_moveable, meshId, 0, 128);
 }
 
-/// Get state of specified mesh swap of object
-// Returns true if specified mesh is swapped on an object, and false
-// if it is not swapped.
+/// Get state of specified mesh swap of object.
+// Returns true if specified mesh is swapped on an object, and false if it is not swapped.
 // @function Moveable:GetMeshSwapped
-// @int index index of a mesh
-// @treturn bool mesh swap status
+// @tparam int index Index of a mesh.
+// @treturn bool Mesh swap status.
 bool Moveable::GetMeshSwapped(int meshId) const
 {
 	if (!MeshExists(meshId))
@@ -1020,12 +1022,12 @@ bool Moveable::GetMeshSwapped(int meshId) const
 	return _moveable->Model.MeshIndex[meshId] == _moveable->Model.BaseMesh + meshId;
 }
 
-/// Set state of specified mesh swap of object
+/// Set state of specified mesh swap of object.
 // Use this to swap specified mesh of an object.
 // @function Moveable:SwapMesh
-// @int index index of a mesh
-// @int slotIndex index of a slot to get meshswap from
-// @int[opt] swapIndex index of a mesh from meshswap slot to use
+// @tparam int index Index of a mesh.
+// @tparam int slotIndex Index of a slot to get meshswap from.
+// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use.
 void Moveable::SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex)
 {
 	if (!MeshExists(meshId))
@@ -1055,10 +1057,10 @@ void Moveable::SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshI
 	_moveable->Model.MeshIndex[meshId] = Objects[swapSlotId].meshIndex + swapMeshIndex.value();
 }
 
-/// Set state of specified mesh swap of object
+/// Set state of specified mesh swap of object.
 // Use this to bring back original unswapped mesh
 // @function Moveable:UnswapMesh
-// @int index index of a mesh to unswap
+// @tparam int index Index of a mesh to unswap.
 void Moveable::UnswapMesh(int meshId)
 {
 	if (!MeshExists(meshId))
@@ -1069,7 +1071,7 @@ void Moveable::UnswapMesh(int meshId)
 
 /// Enable the item, as if a trigger for it had been stepped on.
 // @function Moveable:Enable
-// @tparam float timeout time (in seconds) after which moveable automatically disables (optional).
+// @tparam[opt] float timeout Time (in seconds) after which moveable automatically disables.
 void Moveable::EnableItem(sol::optional<float> timer)
 {
 	if (_moveableID == NO_VALUE)
@@ -1088,8 +1090,8 @@ void Moveable::EnableItem(sol::optional<float> timer)
 		dynamic_cast<ObjectsHandler*>(g_GameScriptEntities)->TryAddColliding(_moveableID);
 }
 
-/// Disable the item, as if an antitrigger for it had been stepped on (i.e. it will close an open door or extinguish a flame emitter).
-// Note that this will not trigger an OnKilled callback.
+/// Disable the item, as if an antitrigger for it had been stepped on.
+// For example, it will close an open door or extinguish a flame emitter. Note that this will not trigger an OnKilled callback.
 // @function Moveable:Disable
 void Moveable::DisableItem()
 {
@@ -1128,29 +1130,29 @@ void Moveable::Shatter()
 }
 
 /// Get the item's collision state.
-// @treturn bool item's collision state
 // @function Moveable:GetCollidable
+// @treturn bool Item's collision state.
 bool Moveable::GetCollidable()
 {
 	return _moveable->Collidable;
 }
 
 /// Set the item's collision.
-// @bool collidable true if the caller should be collidable, false if no collision should occur.
 // @function Moveable:SetCollidable
+// @bool collidable true if the caller should be collidable, false if no collision should occur.
 void Moveable::SetCollidable(bool isCollidable)
 {
 	_moveable->Collidable = isCollidable;
 }
 
-/// Make the item invisible. Alias for `Moveable:SetVisible(false)`.
+// Make the item invisible. Alias for `Moveable:SetVisible(false)`.
 // @function Moveable:MakeInvisible
 void Moveable::MakeInvisible()
 {
 	SetVisible(false);
 }
-/// Set the item's visibility. __An invisible item will have collision turned off, as if it no longer exists in the game world__.
-// @bool visible true if the caller should become visible, false if it should become invisible
+/// Set the item's visibility. An invisible item will have collision turned off, as if it no longer exists in the game world.
+// @bool visible true if the caller should become visible, false if it should become invisible.
 // @function Moveable:SetVisible
 void Moveable::SetVisible(bool isVisible)
 {
@@ -1201,9 +1203,9 @@ void Moveable::Invalidate()
 	_initialized = false;
 }
 
-/// Test if the object is in a valid state (i.e. has not been destroyed through Lua or killed by Lara).
+/// Test if the object is in a valid state. Indicates that it has not been destroyed through Lua or killed by Lara.
 // @function Moveable:GetValid
-// @treturn bool valid true if the object is still not destroyed
+// @treturn bool true if the object is still not destroyed.
 bool Moveable::GetValid() const
 {
 	return _moveableID > NO_VALUE;
@@ -1237,18 +1239,18 @@ bool Moveable::MeshExists(int index) const
 /// Attach camera to an object.
 // @function Moveable:AttachObjCamera
 // @tparam int mesh Mesh of a moveable to use as a camera position.
-// @tparam Moveable target Target moveable to attach camera to.
+// @tparam Objects.Moveable target Target moveable to attach camera to.
 // @tparam int mesh Mesh of a target moveable to use as a camera target.
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
 }
 
-/// Borrow animation from an object
+/// Borrow animation from an object.
 // @function Moveable:AnimFromObject
-// @tparam Objects.ObjID objectID Object ID to take animation and stateID from.
+// @tparam Objects.ObjID objectID Object ID to take animation and state ID from.
 // @tparam int animNumber Animation from object.
-// @tparam int stateID state State from object.
+// @tparam int stateID State from object.
 void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID)
 {
 	_moveable->Animation.AnimObjectID = objectID;

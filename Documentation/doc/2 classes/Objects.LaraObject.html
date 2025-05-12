@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -115,7 +115,7 @@
 <div id="content">
 
 <h1>Class <code>Objects.LaraObject</code></h1>
-<p>Class for extra player-only functions.</p>
+<p>Class for player-only functions.</p>
 <p> Do not try to create an object of this type. Use the built-in <em>Lara</em> variable instead.
  LaraObject inherits all the functions of <a href="../2 classes/Objects.Moveable.html#">Moveable</a>.</p>
 
@@ -124,63 +124,63 @@
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#LaraObject:SetPoison">LaraObject:SetPoison([poison])</a></td>
-	<td class="summary">Set player poison.</td>
+	<td class="summary">Set the player's poison value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetPoison">LaraObject:GetPoison()</a></td>
-	<td class="summary">Get poison potency of Lara.</td>
+	<td class="summary">Get the player's poison value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:SetAir">LaraObject:SetAir(air)</a></td>
-	<td class="summary">Set air value of Lara.</td>
+	<td class="summary">Set the player's air value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetAir">LaraObject:GetAir()</a></td>
-	<td class="summary">Get air value of Lara.</td>
+	<td class="summary">Get the player's air value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:SetWet">LaraObject:SetWet(wetness)</a></td>
-	<td class="summary">Set wetness value of Lara (causes dripping).</td>
+	<td class="summary">Set the player's wetness value, causing drips.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetWet">LaraObject:GetWet()</a></td>
-	<td class="summary">Get wetness value of Lara.</td>
+	<td class="summary">Get the player's wetness value.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#LaraObject:SetStamina">LaraObject:SetStamina(stamina)</a></td>
-	<td class="summary">Set sprint energy value of Lara.</td>
+	<td class="name" ><a href="#LaraObject:SetStamina">LaraObject:SetStamina(New)</a></td>
+	<td class="summary">Set the player's stamina value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetStamina">LaraObject:GetStamina()</a></td>
-	<td class="summary">Get stamina value of Lara.</td>
+	<td class="summary">Get the player's stamina value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetAirborne">Moveable:GetAirborne()</a></td>
-	<td class="summary">Get the moveable's airborne status.</td>
+	<td class="summary">Get the player's airborne status (set when jumping and falling).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetAirborne">Moveable:SetAirborne(airborne)</a></td>
-	<td class="summary">Set the moveable's airborne status.</td>
+	<td class="summary">Set the player's airborne status.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:UndrawWeapon">LaraObject:UndrawWeapon()</a></td>
-	<td class="summary">Lara will undraw her weapon if it is drawn and throw away a flare if she is currently holding one.</td>
+	<td class="summary">Undraw a weapon if it is drawn and throw away a flare if currently holding one.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#LaraObject:ThrowAwayTorch">LaraObject:ThrowAwayTorch()</a></td>
-	<td class="summary">Lara will throw away the torch if she currently holds one in her hand.</td>
+	<td class="name" ><a href="#LaraObject:DiscardTorch">LaraObject:DiscardTorch()</a></td>
+	<td class="summary">Discard a held torch.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetHandStatus">LaraObject:GetHandStatus()</a></td>
-	<td class="summary">Get actual hand status of Lara.</td>
+	<td class="summary">Get the player's hand status.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetWeaponType">LaraObject:GetWeaponType()</a></td>
-	<td class="summary">Get actual weapon type of Lara.</td>
+	<td class="summary">Get the player's weapon type.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:SetWeaponType">LaraObject:SetWeaponType(weaponType, activate)</a></td>
-	<td class="summary">Set Lara weapon type.</td>
+	<td class="summary">Set the player's weapon type.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#LaraObject:GetAmmoType">LaraObject:GetAmmoType()</a></td>
@@ -203,8 +203,16 @@
 	<td class="summary">Get the player's current interacted moveable (if it exists).</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#LaraObject:TorchIsLit">LaraObject:TorchIsLit()</a></td>
-	<td class="summary">Get current light state of the torch, if it exists</td>
+	<td class="name" ><a href="#LaraObject:IsTorchLit">LaraObject:IsTorchLit()</a></td>
+	<td class="summary">Check if a held torch is lit.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LaraObject:Interact">LaraObject:Interact(mov, [animNumber], [offset], [minOffsetConstraint], [maxOffsetConstraint], [minRotConstraint], [maxRotConstraint], [actionID])</a></td>
+	<td class="summary">Align the player with a moveable object for interaction.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LaraObject:TestInteraction">LaraObject:TestInteraction(mov, [minOffsetConstraint], [maxOffsetConstraint], [minRotConstraint], [maxRotConstraint])</a></td>
+	<td class="summary">Test the player against a moveable object for interaction.</td>
 	</tr>
 </table>
 
@@ -220,7 +228,7 @@
     <strong>LaraObject:SetPoison([poison])</strong>
     </dt>
     <dd>
-    Set player poison.
+    Set the player's poison value.
 
 
 
@@ -228,7 +236,7 @@
     <ul>
         <li><span class="parameter">poison</span>
             <span class="types"><span class="type">int</span></span>
-         Poison strength. Maximum value is 128 (default 0)
+         New poison value. <strong>default: 0, max: 128</strong>
          <em>Optional.</em>
         </li>
     </ul>
@@ -247,7 +255,7 @@
     <strong>LaraObject:GetPoison()</strong>
     </dt>
     <dd>
-    Get poison potency of Lara.
+    Get the player's poison value.
 
 
 
@@ -256,7 +264,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Current poison potency.
+        Poison value.
     </ol>
 
 
@@ -272,7 +280,7 @@
     <strong>LaraObject:SetAir(air)</strong>
     </dt>
     <dd>
-    Set air value of Lara.
+    Set the player's air value.
 
 
 
@@ -280,7 +288,7 @@
     <ul>
         <li><span class="parameter">air</span>
             <span class="types"><span class="type">int</span></span>
-         Air value to give Lara. Maximum value is 1800.
+         New air value. <strong>max: 1800</strong>
         </li>
     </ul>
 
@@ -298,7 +306,7 @@
     <strong>LaraObject:GetAir()</strong>
     </dt>
     <dd>
-    Get air value of Lara.
+    Get the player's air value.
 
 
 
@@ -307,7 +315,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Current air value.
+        Air value.
     </ol>
 
 
@@ -323,7 +331,7 @@
     <strong>LaraObject:SetWet(wetness)</strong>
     </dt>
     <dd>
-    Set wetness value of Lara (causes dripping).
+    Set the player's wetness value, causing drips.
 
 
 
@@ -331,7 +339,7 @@
     <ul>
         <li><span class="parameter">wetness</span>
             <span class="types"><span class="type">int</span></span>
-         Wetness value. Maximum value is 255.
+         New wetness value. <strong>max: 255</strong>
         </li>
     </ul>
 
@@ -349,7 +357,7 @@
     <strong>LaraObject:GetWet()</strong>
     </dt>
     <dd>
-    Get wetness value of Lara.
+    Get the player's wetness value.
 
 
 
@@ -358,7 +366,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Current wetness value.
+        Wetness value.
     </ol>
 
 
@@ -371,18 +379,18 @@
 </dd>
     <dt>
     <a name = "LaraObject:SetStamina"></a>
-    <strong>LaraObject:SetStamina(stamina)</strong>
+    <strong>LaraObject:SetStamina(New)</strong>
     </dt>
     <dd>
-    Set sprint energy value of Lara.
+    Set the player's stamina value.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">stamina</span>
+        <li><span class="parameter">New</span>
             <span class="types"><span class="type">int</span></span>
-         Stamina to give to Lara. Maximum value is 120.
+         stamina value. <strong>max: 120</strong>
         </li>
     </ul>
 
@@ -400,7 +408,7 @@
     <strong>LaraObject:GetStamina()</strong>
     </dt>
     <dd>
-    Get stamina value of Lara.
+    Get the player's stamina value.
 
 
 
@@ -409,7 +417,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Current sprint value.
+        Stamina value.
     </ol>
 
 
@@ -425,7 +433,7 @@
     <strong>Moveable:GetAirborne()</strong>
     </dt>
     <dd>
-    Get the moveable's airborne status.
+    Get the player's airborne status (set when jumping and falling).
 
 
 
@@ -434,7 +442,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        True if Lara state must react to aerial forces.
+        True if airborne, otherwise false.
     </ol>
 
 
@@ -446,7 +454,7 @@
     <strong>Moveable:SetAirborne(airborne)</strong>
     </dt>
     <dd>
-    Set the moveable's airborne status.
+    Set the player's airborne status.
 
 
 
@@ -454,7 +462,7 @@
     <ul>
         <li><span class="parameter">airborne</span>
             <span class="types"><span class="type">bool</span></span>
-         New airborne status for Lara.
+         New airborne status.
         </li>
     </ul>
 
@@ -468,7 +476,7 @@
     <strong>LaraObject:UndrawWeapon()</strong>
     </dt>
     <dd>
-    Lara will undraw her weapon if it is drawn and throw away a flare if she is currently holding one.
+    Undraw a weapon if it is drawn and throw away a flare if currently holding one.
 
 
 
@@ -483,11 +491,11 @@
 
 </dd>
     <dt>
-    <a name = "LaraObject:ThrowAwayTorch"></a>
-    <strong>LaraObject:ThrowAwayTorch()</strong>
+    <a name = "LaraObject:DiscardTorch"></a>
+    <strong>LaraObject:DiscardTorch()</strong>
     </dt>
     <dd>
-    Lara will throw away the torch if she currently holds one in her hand.
+    Discard a held torch.
 
 
 
@@ -497,7 +505,7 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example">Lara:ThrowAwayTorch()</pre>
+        <pre class="example">Lara:DiscardTorch()</pre>
     </ul>
 
 </dd>
@@ -506,7 +514,7 @@
     <strong>LaraObject:GetHandStatus()</strong>
     </dt>
     <dd>
-    Get actual hand status of Lara.
+    Get the player's hand status.
 
 
 
@@ -515,7 +523,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/Objects.HandStatus.html#">HandStatus</a></span>
-        Current hand status.
+        Hand status.
     </ol>
 
 
@@ -531,7 +539,7 @@
     <strong>LaraObject:GetWeaponType()</strong>
     </dt>
     <dd>
-    Get actual weapon type of Lara.
+    Get the player's weapon type.
 
 
 
@@ -556,7 +564,7 @@
     <strong>LaraObject:SetWeaponType(weaponType, activate)</strong>
     </dt>
     <dd>
-    Set Lara weapon type.
+    Set the player's weapon type.
 
 
 
@@ -645,7 +653,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
-        current vehicle (nil if no vehicle present).
+        Current vehicle (nil if no vehicle present).
     </ol>
 
 
@@ -707,11 +715,11 @@
 
 </dd>
     <dt>
-    <a name = "LaraObject:TorchIsLit"></a>
-    <strong>LaraObject:TorchIsLit()</strong>
+    <a name = "LaraObject:IsTorchLit"></a>
+    <strong>LaraObject:IsTorchLit()</strong>
     </dt>
     <dd>
-    Get current light state of the torch, if it exists
+    Check if a held torch is lit.
 
 
 
@@ -720,15 +728,121 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        is torch currently lit or not? (false if no torch exists)
+        True if lit, otherwise false (also false if there is no torch in hand).
     </ol>
 
 
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> torchIsLit = Lara:TorchIsLit()</pre>
+        <pre class="example"><span class="keyword">local</span> isTorchLit = Lara:IsTorchLit()</pre>
     </ul>
+
+</dd>
+    <dt>
+    <a name = "LaraObject:Interact"></a>
+    <strong>LaraObject:Interact(mov, [animNumber], [offset], [minOffsetConstraint], [maxOffsetConstraint], [minRotConstraint], [maxRotConstraint], [actionID])</strong>
+    </dt>
+    <dd>
+    Align the player with a moveable object for interaction.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mov</span>
+            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
+         Moveable object to align the player with.
+        </li>
+        <li><span class="parameter">animNumber</span>
+            <span class="types"><span class="type">int</span></span>
+         The animation to play after alignment is complete.
+         <em>Default: 197 (BUTTON_PUSH).</em>
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Relative position offset from the moveable.
+         <em>Default: Vec3(0&#44; 0&#44; 312).</em>
+        </li>
+        <li><span class="parameter">minOffsetConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Minimum relative offset constraint.
+         <em>Default: Vec3(-256&#44; -512&#44; 0).</em>
+        </li>
+        <li><span class="parameter">maxOffsetConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Maximum relative offset constraint.
+         <em>Default: Vec3(256&#44; 0&#44; 512).</em>
+        </li>
+        <li><span class="parameter">minRotConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
+         Minimum relative rotation constraint.
+         <em>Default: Rotation(-10&#44; -40&#44; -10).</em>
+        </li>
+        <li><span class="parameter">maxRotConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
+         Maximum relative rotation constraint.
+         <em>Default: Rotation(10&#44; 40&#44; 10).</em>
+        </li>
+        <li><span class="parameter">actionID</span>
+            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
+         Input action ID to trigger the alignment.
+         <em>Default: Input.ActionID.ACTION.</em>
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> Lara:Interact(
+    moveable, <span class="number">197</span>,
+    Vec3(<span class="number">0</span>, <span class="number">0</span>, <span class="number">312</span>), Vec3(-<span class="number">256</span>, -<span class="number">512</span>, -<span class="number">256</span>), Vec3(<span class="number">256</span>, <span class="number">0</span>, <span class="number">512</span>),
+   Rotation(-<span class="number">10</span>, -<span class="number">30</span>, -<span class="number">10</span>), Rotation(<span class="number">10</span>, <span class="number">30</span>, <span class="number">10</span>), TEN.Input.ActionID.ACTION)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "LaraObject:TestInteraction"></a>
+    <strong>LaraObject:TestInteraction(mov, [minOffsetConstraint], [maxOffsetConstraint], [minRotConstraint], [maxRotConstraint])</strong>
+    </dt>
+    <dd>
+    Test the player against a moveable object for interaction.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mov</span>
+            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
+         Moveable object to align the player with.
+        </li>
+        <li><span class="parameter">minOffsetConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Minimum relative offset constraint.
+         <em>Default: Vec3(-256&#44; -512&#44; 0).</em>
+        </li>
+        <li><span class="parameter">maxOffsetConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         Maximum relative offset constraint.
+         <em>Default: Vec3(256&#44; 0&#44; 512).</em>
+        </li>
+        <li><span class="parameter">minRotConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
+         Minimum relative rotation constraint.
+         <em>Default: Rotation(-10&#44; -40&#44; -10).</em>
+        </li>
+        <li><span class="parameter">maxRotConstraint</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
+         Maximum relative rotation constraint.
+         <em>Default: Rotation(10&#44; 40&#44; 10).</em>
+        </li>
+    </ul>
+
+
+
+
 
 </dd>
 </dl>

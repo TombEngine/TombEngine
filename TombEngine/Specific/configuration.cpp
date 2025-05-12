@@ -16,6 +16,14 @@ using namespace TEN::Renderer;
 
 GameConfiguration g_Configuration;
 
+static const auto SAVABLE_ACTION_GROUP_IDS = std::vector<ActionGroupID>
+{
+	ActionGroupID::General,
+	ActionGroupID::Vehicle,
+	ActionGroupID::Quick,
+	ActionGroupID::Menu
+};
+
 void LoadResolutionsInCombobox(HWND handle)
 {
 	HWND cbHandle = GetDlgItem(handle, IDC_RESOLUTION);
@@ -269,22 +277,26 @@ bool SaveConfiguration()
 	}
 
 	if (g_Configuration.Bindings.empty())
-		g_Configuration.Bindings = BindingManager::DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
 	// Set Input binding keys.
-	for (int i = 0; i < (int)InputActionID::Count; i++)
+	for (auto actionGroupID : SAVABLE_ACTION_GROUP_IDS)
 	{
-		char buffer[9];
-		sprintf(buffer, "Action%d", i);
-
-		if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings.at((InputActionID)i)) != ERROR_SUCCESS)
+		const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+		for (auto actionID : actionIDGroup)
 		{
-			RegCloseKey(rootKey);
-			RegCloseKey(graphicsKey);
-			RegCloseKey(soundKey);
-			RegCloseKey(gameplayKey);
-			RegCloseKey(inputKey);
-			return false;
+			char buffer[9];
+			sprintf(buffer, "Action%d", (int)actionID);
+
+			if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings.at(actionID)) != ERROR_SUCCESS)
+			{
+				RegCloseKey(rootKey);
+				RegCloseKey(graphicsKey);
+				RegCloseKey(soundKey);
+				RegCloseKey(gameplayKey);
+				RegCloseKey(inputKey);
+				return false;
+			}
 		}
 	}
 
@@ -467,27 +479,30 @@ bool LoadConfiguration()
 			return false;
 		}
 
-		for (int i = 0; i < (int)InputActionID::Count; i++)
+		for (auto actionGroupID : SAVABLE_ACTION_GROUP_IDS)
 		{
-			DWORD tempKeyID = 0;
-			char buffer[9];
-			sprintf(buffer, "Action%d", i);
-
-			auto actionID = (InputActionID)i;
-			int boundKeyID = g_Bindings.GetBoundKeyID(InputDeviceID::Default, actionID);
-
-			if (GetDWORDRegKey(inputKey, buffer, &tempKeyID, boundKeyID) != ERROR_SUCCESS)
+			const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+			for (auto actionID : actionIDGroup)
 			{
-				RegCloseKey(rootKey);
-				RegCloseKey(graphicsKey);
-				RegCloseKey(soundKey);
-				RegCloseKey(gameplayKey);
-				RegCloseKey(inputKey);
-				return false;
-			}
+				DWORD tempKeyID = 0;
+				char buffer[9];
+				sprintf(buffer, "Action%d", (int)actionID);
 
-			g_Configuration.Bindings.insert({ (InputActionID)i, tempKeyID });
-			g_Bindings.SetKeyBinding(InputDeviceID::Custom, actionID, tempKeyID);
+				int boundKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+
+				if (GetDWORDRegKey(inputKey, buffer, &tempKeyID, boundKeyID) != ERROR_SUCCESS)
+				{
+					RegCloseKey(rootKey);
+					RegCloseKey(graphicsKey);
+					RegCloseKey(soundKey);
+					RegCloseKey(gameplayKey);
+					RegCloseKey(inputKey);
+					return false;
+				}
+
+				g_Configuration.Bindings.insert({ actionID, tempKeyID });
+				g_Bindings.SetKeyBinding(BindingProfileID::Custom, actionID, tempKeyID);
+			}
 		}
 
 		RegCloseKey(inputKey);
@@ -495,7 +510,7 @@ bool LoadConfiguration()
 	// Input key doesn't exist; use default bindings.
 	else
 	{
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(InputDeviceID::Default);
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 	}
 
 	RegCloseKey(rootKey);

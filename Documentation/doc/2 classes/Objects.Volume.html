@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -160,7 +160,7 @@
 	<td class="summary">Determine if this volume is active.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Volume:IsMoveableInside">Volume:IsMoveableInside(Moveable)</a></td>
+	<td class="name" ><a href="#Volume:IsMoveableInside">Volume:IsMoveableInside(moveable)</a></td>
 	<td class="summary">Determine if a moveable is inside this volume.</td>
 	</tr>
 	<tr>
@@ -189,7 +189,7 @@
     <strong>Volume:GetName()</strong>
     </dt>
     <dd>
-    Get the unique string identifier of this volume. ()
+    Get the unique string identifier of this volume.
 
 
 
@@ -210,7 +210,7 @@
     <strong>Volume:GetPosition()</strong>
     </dt>
     <dd>
-    Get the position of this volume. ()
+    Get the position of this volume.
 
 
 
@@ -231,7 +231,7 @@
     <strong>Volume:GetRotation()</strong>
     </dt>
     <dd>
-    Get the rotation of this volume. ()
+    Get the rotation of this volume.
 
 
 
@@ -252,7 +252,7 @@
     <strong>Volume:GetScale()</strong>
     </dt>
     <dd>
-    Get this scale of this volume. ()
+    Get this scale of this volume.
 
 
 
@@ -273,7 +273,7 @@
     <strong>Volume:SetName(name)</strong>
     </dt>
     <dd>
-    Set the unique string identifier of this volume. ()
+    Set the unique string identifier of this volume.
 
 
 
@@ -295,7 +295,7 @@
     <strong>Volume:SetPosition(pos)</strong>
     </dt>
     <dd>
-    Set the position of this volume. ()
+    Set the position of this volume.
 
 
 
@@ -317,7 +317,7 @@
     <strong>Volume:SetRotation(rot)</strong>
     </dt>
     <dd>
-    Set the rotation of this volume. ()
+    Set the rotation of this volume.
 
 
 
@@ -339,7 +339,7 @@
     <strong>Volume:SetScale(scale)</strong>
     </dt>
     <dd>
-    Set the scale of the volume. ()
+    Set the scale of the volume.
 
 
 
@@ -361,7 +361,7 @@
     <strong>Volume:GetActive()</strong>
     </dt>
     <dd>
-    Determine if this volume is active. ()
+    Determine if this volume is active.
 
 
 
@@ -379,18 +379,18 @@
 </dd>
     <dt>
     <a name = "Volume:IsMoveableInside"></a>
-    <strong>Volume:IsMoveableInside(Moveable)</strong>
+    <strong>Volume:IsMoveableInside(moveable)</strong>
     </dt>
     <dd>
-    Determine if a moveable is inside this volume. ()
+    Determine if a moveable is inside this volume.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Moveable</span>
+        <li><span class="parameter">moveable</span>
             <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
-         to be checked for containment.
+         Moveable to be checked for containment.
         </li>
     </ul>
 
@@ -410,7 +410,7 @@
     <strong>Volume:Enable()</strong>
     </dt>
     <dd>
-    Enable this volume. ()
+    Enable this volume.
 
 
 
@@ -425,7 +425,7 @@
     <strong>Volume:Disable()</strong>
     </dt>
     <dd>
-    Disable this volume. ()
+    Disable this volume.
 
 
 
@@ -440,7 +440,7 @@
     <strong>Volume:ClearActivators()</strong>
     </dt>
     <dd>
-    Clear the activators for this volume, allowing it to trigger again. ()
+    Clear the activators for this volume, allowing it to trigger again.
 
 
 

@@ -129,6 +129,14 @@ namespace TEN::Effects::Splash
 		}
 	}
 
+	void ClearSplashes()
+	{
+		SplashCount = 0;
+
+		for (auto& splash : SplashEffects)
+			splash = {};
+	}
+
 	void Splash(ItemInfo* item)
 	{
 		int probedRoomNumber = GetPointCollision(*item).GetRoomNumber();

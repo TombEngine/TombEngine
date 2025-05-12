@@ -6,7 +6,10 @@
 // @enum Collision.MaterialType
 // @pragma nostrip
 
-/// Table of MaterialType constants. To be used with @{Collision.Probe.GetFloorMaterialType} and @{Collision.Probe.GetCeilingMaterialType}.
+/// Table of MaterialType constants.
+// <br>
+// Corresponds to Tomb Editor texture sound material types.
+// To be used with @{Collision.Probe.GetFloorMaterialType} and @{Collision.Probe.GetCeilingMaterialType}.
 //
 // - `MUD`
 // - `SNOW`

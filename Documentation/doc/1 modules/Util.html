@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -144,15 +144,15 @@
 	<td class="summary">Translate a pair of pixel coordinates to display position coordinates.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#PickMoveableByDisplayPosition">PickMoveableByDisplayPosition(Display)</a></td>
+	<td class="name" ><a href="#PickMoveableByDisplayPosition">PickMoveableByDisplayPosition(position)</a></td>
 	<td class="summary">Pick a moveable by the given display position.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#PickStaticByDisplayPosition">PickStaticByDisplayPosition(Display)</a></td>
+	<td class="name" ><a href="#PickStaticByDisplayPosition">PickStaticByDisplayPosition(position)</a></td>
 	<td class="summary">Pick a static mesh by the given display position.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#PrintLog">PrintLog(message, logLevel, [allowSpam])</a></td>
+	<td class="name" ><a href="#PrintLog">PrintLog(Message, logLevel, [allowSpam])</a></td>
 	<td class="summary">Write messages within the Log file</td>
 	</tr>
 </table>
@@ -169,8 +169,7 @@
     <strong>HasLineOfSight(roomID, posA, posB)</strong>
     </dt>
     <dd>
-    Determine if there is a clear line of sight between two positions.
- NOTE: Limited to room geometry. Objects are ignored.()
+    Determine if there is a clear line of sight between two positions.  Limited to room geometry. Objects are ignored.
 
 
 
@@ -194,7 +193,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        <strong>true</strong> if there is a line of sight, <strong>false</strong> if not.
+        true if there is a line of sight, false if not.
     </ol>
 
 
@@ -358,7 +357,7 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 </dd>
     <dt>
     <a name = "PickMoveableByDisplayPosition"></a>
-    <strong>PickMoveableByDisplayPosition(Display)</strong>
+    <strong>PickMoveableByDisplayPosition(position)</strong>
     </dt>
     <dd>
     Pick a moveable by the given display position.
@@ -367,9 +366,9 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Display</span>
+        <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         space position in percent.
+         Display space position in percent.
         </li>
     </ul>
 
@@ -386,7 +385,7 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 </dd>
     <dt>
     <a name = "PickStaticByDisplayPosition"></a>
-    <strong>PickStaticByDisplayPosition(Display)</strong>
+    <strong>PickStaticByDisplayPosition(position)</strong>
     </dt>
     <dd>
     Pick a static mesh by the given display position.
@@ -395,9 +394,9 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Display</span>
+        <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         space position in percent.
+         Display space position in percent.
         </li>
     </ul>
 
@@ -414,7 +413,7 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 </dd>
     <dt>
     <a name = "PrintLog"></a>
-    <strong>PrintLog(message, logLevel, [allowSpam])</strong>
+    <strong>PrintLog(Message, logLevel, [allowSpam])</strong>
     </dt>
     <dd>
     Write messages within the Log file
@@ -428,17 +427,17 @@ To be used with <a href="../2 classes/Strings.DisplayString.html#DisplayString:G
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">message</span>
+        <li><span class="parameter">Message</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         to be displayed within the Log
+         to be displayed within the log.
         </li>
         <li><span class="parameter">logLevel</span>
             <span class="types"><a class="type" href="../4 enums/Util.LogLevel.html#">LogLevel</a></span>
-         log level to be displayed
+         Log level to be displayed.
         </li>
         <li><span class="parameter">allowSpam</span>
             <span class="types"><span class="type">bool</span></span>
-         true allows spamming of the message
+         If true, allows continuous spamming of the message.
          <em>Optional.</em>
         </li>
     </ul>

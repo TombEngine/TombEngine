@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -142,18 +142,20 @@
     </dt>
     <dd>
 
-<p>Table of Effects.BlendID constants. </p>
+<p>Table of Effects.BlendID constants.
+ <br>
+ All blending modes except <code>OPAQUE</code>, <code>ADDITIVE</code> and <code>ALPHA_BLEND</code> will use depth sorting for applicable polygons.
+ This may reduce engine performance, so it is preferable to minimize usage of other blending modes.</p>
 
 <ul>
-    <li><code>OPAQUE</code></li>
-    <li><code>ALPHA_TEST</code></li>
-    <li><code>ADDITIVE</code></li>
-    <li><code>NO_DEPTH_TEST</code></li>
-    <li><code>SUBTRACTIVE</code></li>
-    <li><code>EXCLUDE</code></li>
-    <li><code>SCREEN</code></li>
-    <li><code>LIGHTEN</code></li>
-    <li><code>ALPHA_BLEND</code></li>
+    <li><code>OPAQUE</code> - No transparency.</li>
+    <li><code>ALPHA_TEST</code> - So called "magenta transparency", every pixel can be either fully transparent or opaque.</li>
+    <li><code>ADDITIVE</code> - Standard additive blending.</li>
+    <li><code>SUBTRACTIVE</code> - Subtractive blending, with brighter texture areas making everything darker behind them.</li>
+    <li><code>EXCLUDE</code> - Produces "inversion" effect.</li>
+    <li><code>SCREEN</code> - Similar to <code>ADDITIVE</code>, but without excessive overbright.</li>
+    <li><code>LIGHTEN</code> - Similar to <code>SCREEN</code>, but with a little different blending formula.</li>
+    <li><code>ALPHA_BLEND</code> - True alpha blending. Should be used for textures with gradually changing alpha values.</li>
 </ul>
 
 

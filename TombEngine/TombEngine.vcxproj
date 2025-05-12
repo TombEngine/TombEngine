@@ -73,14 +73,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
@@ -91,14 +91,14 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x64\</OutDir>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -159,6 +159,7 @@ xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
@@ -194,7 +195,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -224,6 +225,7 @@ xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
@@ -264,13 +266,12 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <TargetMachine>MachineX86</TargetMachine>
@@ -305,6 +306,7 @@ xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
@@ -352,7 +354,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -386,6 +388,7 @@ xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
@@ -402,6 +405,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   <ItemGroup>
     <ClInclude Include="Game\Animation\Animation.h" />
     <ClInclude Include="Game\Animation\Commands.h" />
+    <ClInclude Include="Game\collision\Los.h" />
     <ClInclude Include="Game\collision\Point.h" />
     <ClInclude Include="Game\collision\Sphere.h" />
     <ClInclude Include="Game\Debug\Debug.h" />
@@ -758,6 +762,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Utils\object_helper.h" />
     <ClInclude Include="Objects\game_object_ids.h" />
     <ClInclude Include="Objects\objectslist.h" />
+    <ClInclude Include="Physics\Objects\CollisionMesh.h" />
+    <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
+    <ClInclude Include="Physics\Physics.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\BlendingBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
@@ -913,7 +920,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
-    <ClInclude Include="Specific\BitField.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\IO\ChunkId.h" />
@@ -935,11 +941,16 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Specific\newtypes.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_itemdata_generated.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_savegame_generated.h" />
+    <ClInclude Include="Specific\Structures\BitField.h" />
+    <ClInclude Include="Specific\Structures\BoundingVolumeHierarchy.h" />
+    <ClInclude Include="Specific\Structures\SpatialHash.h" />
     <ClInclude Include="Specific\trutils.h" />
+    <ClInclude Include="Specific\Video\Video.h" />
     <ClInclude Include="Specific\winmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Types.h" />
     <ClInclude Include="Version.h" />
   </ItemGroup>
   <ItemGroup>
@@ -955,6 +966,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\collision\collide_item.cpp" />
     <ClCompile Include="Game\collision\collide_room.cpp" />
     <ClCompile Include="Game\collision\floordata.cpp" />
+    <ClCompile Include="Game\collision\Los.cpp" />
     <ClCompile Include="Game\collision\Point.cpp" />
     <ClCompile Include="Game\collision\Sphere.cpp" />
     <ClCompile Include="Game\control\box.cpp" />
@@ -1284,6 +1296,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR5\Trap\ZipLine.cpp" />
     <ClCompile Include="Objects\Utils\object_helper.cpp" />
     <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
     <ClCompile Include="Renderer\Frustum.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
@@ -1345,7 +1359,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
-    <ClCompile Include="Specific\BitField.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
     <ClCompile Include="Specific\Input\Bindings.cpp" />
@@ -1358,7 +1371,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Specific\level.cpp" />
     <ClCompile Include="Specific\Parallel.cpp" />
     <ClCompile Include="Specific\RGBAColor8Byte.cpp" />
+    <ClCompile Include="Specific\Structures\BitField.cpp" />
+    <ClCompile Include="Specific\Structures\BoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="Specific\Structures\SpatialHash.cpp" />
     <ClCompile Include="Specific\trutils.cpp" />
+    <ClCompile Include="Specific\Video\Video.cpp" />
     <ClCompile Include="Specific\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -1367,21 +1384,12 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
     <None Include="Shaders\AnimatedTextures.hlsli" />
-    <None Include="Shaders\CBCamera.hlsli">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Text</FileType>
-    </None>
     <None Include="Shaders\Blending.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
       <FileType>Document</FileType>
     </None>
+    <None Include="Shaders\CBCamera.hlsli" />
+    <None Include="Shaders\CBItem.hlsli" />
     <None Include="Shaders\CBPostProcess.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>

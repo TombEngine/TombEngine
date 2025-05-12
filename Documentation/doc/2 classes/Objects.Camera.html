@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -125,11 +125,11 @@
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#Camera:GetPosition">Camera:GetPosition()</a></td>
-	<td class="summary">Get the camera's position</td>
+	<td class="summary">Get the camera's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:SetPosition">Camera:SetPosition(position)</a></td>
-	<td class="summary">Set the camera's position</td>
+	<td class="summary">Set the camera's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:GetName">Camera:GetName()</a></td>
@@ -137,24 +137,23 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:SetName">Camera:SetName(name)</a></td>
-	<td class="summary">Set the camera's name (its unique string identifier)</td>
+	<td class="summary">Set the camera's name (its unique string identifier).</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:GetRoom">Camera:GetRoom()</a></td>
-	<td class="summary">Get the current room of the camera</td>
+	<td class="summary">Get the current room of the camera.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:GetRoomNumber">Camera:GetRoomNumber()</a></td>
-	<td class="summary">Get the current room number of the camera</td>
+	<td class="summary">Get the current room number of the camera.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Camera:SetRoomNumber">Camera:SetRoomNumber(ID)</a></td>
-	<td class="summary">Set room of camera
- This is used in conjunction with SetPosition to teleport the camera to a new room.</td>
+	<td class="summary">Set room of camera.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Camera:PlayCamera">Camera:PlayCamera([Target])</a></td>
-	<td class="summary">Active the camera during that frame.</td>
+	<td class="name" ><a href="#Camera:PlayCamera">Camera:PlayCamera([target])</a></td>
+	<td class="summary">Activate the camera for the current game frame.</td>
 	</tr>
 </table>
 
@@ -170,7 +169,7 @@
     <strong>Camera:GetPosition()</strong>
     </dt>
     <dd>
-    Get the camera's position
+    Get the camera's position.
 
 
 
@@ -179,7 +178,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        a copy of the camera's position
+        Camera's position.
     </ol>
 
 
@@ -191,7 +190,7 @@
     <strong>Camera:SetPosition(position)</strong>
     </dt>
     <dd>
-    Set the camera's position
+    Set the camera's position.
 
 
 
@@ -199,7 +198,7 @@
     <ul>
         <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         the new position of the camera
+         The new position of the camera.
         </li>
     </ul>
 
@@ -222,7 +221,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        the camera's name
+        the camera's name.
     </ol>
 
 
@@ -234,7 +233,7 @@
     <strong>Camera:SetName(name)</strong>
     </dt>
     <dd>
-    Set the camera's name (its unique string identifier)
+    Set the camera's name (its unique string identifier).
 
 
 
@@ -242,7 +241,7 @@
     <ul>
         <li><span class="parameter">name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The camera's new name
+         The camera's new name.
         </li>
     </ul>
 
@@ -256,7 +255,7 @@
     <strong>Camera:GetRoom()</strong>
     </dt>
     <dd>
-    Get the current room of the camera
+    Get the current room of the camera.
 
 
 
@@ -264,8 +263,8 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">Room</span></span>
-        current room of the camera
+           <span class="types"><a class="type" href="../2 classes/Objects.Room.html#">Room</a></span>
+        Current room of the camera.
     </ol>
 
 
@@ -277,7 +276,7 @@
     <strong>Camera:GetRoomNumber()</strong>
     </dt>
     <dd>
-    Get the current room number of the camera
+    Get the current room number of the camera.
 
 
 
@@ -286,7 +285,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        number representing the current room of the camera
+        Number representing the current room of the camera.
     </ol>
 
 
@@ -298,7 +297,7 @@
     <strong>Camera:SetRoomNumber(ID)</strong>
     </dt>
     <dd>
-    Set room of camera
+    Set room of camera.
  This is used in conjunction with SetPosition to teleport the camera to a new room.
 
 
@@ -307,7 +306,7 @@
     <ul>
         <li><span class="parameter">ID</span>
             <span class="types"><span class="type">int</span></span>
-         the ID of the new room
+         The ID of the new room.
         </li>
     </ul>
 
@@ -318,17 +317,17 @@
 </dd>
     <dt>
     <a name = "Camera:PlayCamera"></a>
-    <strong>Camera:PlayCamera([Target])</strong>
+    <strong>Camera:PlayCamera([target])</strong>
     </dt>
     <dd>
-    Active the camera during that frame.
+    Activate the camera for the current game frame.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Target</span>
-            <span class="types"><span class="type">Moveable</span></span>
+        <li><span class="parameter">target</span>
+            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
          If you put a moveable, the camera will look at it. Otherwise, it will look at Lara.
          <em>Optional.</em>
         </li>

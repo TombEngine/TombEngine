@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -156,7 +156,7 @@
 	<td class="summary">Check if the sound effect is playing.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsAudioTrackPlaying">IsAudioTrackPlaying(Track)</a></td>
+	<td class="name" ><a href="#IsAudioTrackPlaying">IsAudioTrackPlaying(track)</a></td>
 	<td class="summary">Check if the audio track is playing.</td>
 	</tr>
 	<tr>
@@ -177,7 +177,7 @@
     <strong>PlayAudioTrack(filename, type)</strong>
     </dt>
     <dd>
-    Play an audio track.  Supported formats are wav, mp3 and ogg.
+    Play an audio track.  Should be placed in the <code>Audio</code> folder. Supported formats are wav, mp3 and ogg.
 
 
 
@@ -362,7 +362,7 @@
 </dd>
     <dt>
     <a name = "IsAudioTrackPlaying"></a>
-    <strong>IsAudioTrackPlaying(Track)</strong>
+    <strong>IsAudioTrackPlaying(track)</strong>
     </dt>
     <dd>
     Check if the audio track is playing.
@@ -371,7 +371,7 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Track</span>
+        <li><span class="parameter">track</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
          Filename to check. Should be without extension and without full directory path.
         </li>

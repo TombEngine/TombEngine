@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -123,7 +123,7 @@
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#nameKey">nameKey</a></td>
-	<td class="summary">(string) string key for the level's (localised) name.</td>
+	<td class="summary">(string) String key for the level's name.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#scriptFile">scriptFile</a></td>
@@ -139,7 +139,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#ambientTrack">ambientTrack</a></td>
-	<td class="summary">(string) initial ambient sound track to play.</td>
+	<td class="summary">(string) Initial ambient sound track to play.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#layer1">layer1</a></td>
@@ -151,11 +151,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#horizon1">horizon1</a></td>
-	<td class="summary">(<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) First horizon layer.</td>
+	<td class="summary">(<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Primary horizon object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#horizon2">horizon2</a></td>
-	<td class="summary">(<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Second horizon layer.</td>
+	<td class="summary">(<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Secondary horizon object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#starfield">starfield</a></td>
@@ -183,7 +183,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#laraType">laraType</a></td>
-	<td class="summary">(LaraType) Must be one of the LaraType values.</td>
+	<td class="summary">(LaraType) Appearance of Lara.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#rumble">rumble</a></td>
@@ -226,8 +226,7 @@
     <strong>nameKey</strong>
     </dt>
     <dd>
-    (string) string key for the level's (localised) name.
- Corresponds to an entry in strings.lua.
+    (string) String key for the level's name.  Corresponds to an entry in strings.lua.
 
 
 
@@ -243,7 +242,7 @@
     </dt>
     <dd>
     (string) Level-specific Lua script file.
- Path of the Lua file holding the level's logic script, relative to the location of the tombengine executable
+ Path of the Lua file holding the level's logic script, relative to the location of the Tomb Engine executable.
 
 
 
@@ -275,7 +274,7 @@
     </dt>
     <dd>
     (string) Load screen image.
- Path of the level's load screen file (.png or .jpg), relative to the location of the tombengine executable
+ Path of the level's load screen file (.png or .jpg), relative to the location of the Tomb Engine executable.
 
 
 
@@ -290,7 +289,7 @@
     <strong>ambientTrack</strong>
     </dt>
     <dd>
-    (string) initial ambient sound track to play.
+    (string) Initial ambient sound track to play.
  This is the filename of the track <strong>without</strong> the .wav extension.
 
 
@@ -336,7 +335,7 @@
     <strong>horizon1</strong>
     </dt>
     <dd>
-    (<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) First horizon layer.
+    (<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Primary horizon object.
 
 
 
@@ -351,7 +350,7 @@
     <strong>horizon2</strong>
     </dt>
     <dd>
-    (<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Second horizon layer.
+    (<a href="../3 primitive classes/Flow.Horizon.html#">Flow.Horizon</a>) Secondary horizon object.
 
 
 
@@ -413,7 +412,7 @@
     </dt>
     <dd>
     (bool) Enable flickering lightning in the sky.
- Equivalent to classic TRLE's LIGHTNING setting. As in the TRC Ireland levels.
+ Equivalent to classic TRLE's lightning setting, as in the TRC Ireland levels or TR4 Cairo levels.
 
 
 
@@ -460,20 +459,9 @@
     <strong>laraType</strong>
     </dt>
     <dd>
-    (LaraType) Must be one of the LaraType values.
-These are:</p>
-
-<pre><code>Normal
-Young
-Bunhead
-Catsuit
-Divesuit
-Invisible
-</code></pre>
-
-<p>e.g. <code>myLevel.laraType = LaraType.Divesuit</code></p>
-
-<p> <strong>Not yet fully implemented.</strong> Only types <code>Normal</code> and <code>Young</code> are guaranteed to work.
+    (LaraType) Appearance of Lara.  Must be either <code>LaraType.Normal</code> or <code>LaraType.Young</code>.
+E.g. <code>myLevel.laraType = LaraType.Young</code> will make Lara appear as young (with two ponytails rendered).
+This setting does not affect ability to use weapons or flares.
 
 
 

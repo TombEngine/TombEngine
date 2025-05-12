@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -146,12 +146,12 @@
 <p> The following constants are inside Flow.ErrorMode: <br></p>
 
 <ul>
-    <li><p><code>TERMINATE</code> - print to the log file and return to the title level when any script error is hit.
-    This is the one you will want to go for if you want to know IMMEDIATELY if something has gone wrong.</p></li>
-    <li><p><code>WARN</code> - print to the log file and continue running the application when a recoverable script error is hit.
+    <li><p><code>TERMINATE</code> - Print to the log file and return to the title level when any script error is hit.
+    This is the one you will want to go for if you want to know <em>immediately</em> if something has gone wrong.</p></li>
+    <li><p><code>WARN</code> - Print to the log file and continue running the application when a recoverable script error is hit.
     Choose this one if booting to the title level is too much for you.</p></li>
-    <li><p><code>SILENT</code> - do nothing when a recoverable script error is hit.
-    Think <strong>very</strong> carefully before using this setting. These error modes are here to help you to keep your scripts
+    <li><p><code>SILENT</code> - Do nothing when a recoverable script error is hit.
+    Think <em>very</em> carefully before using this setting. These error modes are here to help you to keep your scripts
     working properly, but if you opt to ignore errors, you won't be alerted if you've misused a function or passed
     an invalid argument.</p></li>
 </ul>

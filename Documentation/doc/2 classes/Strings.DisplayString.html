@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -129,23 +129,23 @@ when you need to use screen-space coordinates.</p>
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, Position, [scale], [color], [translated], table)</a></td>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags])</a></td>
 	<td class="summary">Create a DisplayString.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:GetColor">DisplayString:GetColor()</a></td>
-	<td class="summary">Get the display string's color</td>
+	<td class="summary">Get the display string's color.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetColor">DisplayString:SetColor(color)</a></td>
-	<td class="summary">Set the display string's color</td>
+	<td class="summary">Set the display string's color.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:GetKey">DisplayString:GetKey()</a></td>
-	<td class="summary">Get the string key to use.</td>
+	<td class="summary">Get the string key.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:SetKey">DisplayString:SetKey(string)</a></td>
+	<td class="name" ><a href="#DisplayString:SetKey">DisplayString:SetKey(key)</a></td>
 	<td class="summary">Set the string key to use.</td>
 	</tr>
 	<tr>
@@ -166,11 +166,7 @@ when you need to use screen-space coordinates.</p>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetFlags">DisplayString:SetFlags(table)</a></td>
-	<td class="summary">Set the display string's flags</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#DisplayString:SetTranslated">DisplayString:SetTranslated(shouldTranslate)</a></td>
-	<td class="summary">Set translated parameter of the string</td>
+	<td class="summary">Set the display string's flags.</td>
 	</tr>
 </table>
 
@@ -183,7 +179,7 @@ when you need to use screen-space coordinates.</p>
     <dl class="function">
     <dt>
     <a name = "DisplayString"></a>
-    <strong>DisplayString(string, Position, [scale], [color], [translated], table)</strong>
+    <strong>DisplayString(string, position, [scale], [color], [translated], [flags])</strong>
     </dt>
     <dd>
     Create a DisplayString.
@@ -197,29 +193,30 @@ For use in <a href="../1 modules/Strings.html#ShowString">ShowString</a> and <a 
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
          The string to display or key of the translated string.
         </li>
-        <li><span class="parameter">Position</span>
+        <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         of the string in pixel coordinates.
+         Position of the string in pixel coordinates.
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><span class="type">float</span></span>
-         size of the string, relative to the default size. <strong>Default: 1.0</strong>
-         <em>Optional.</em>
+         Size of the string, relative to the default size.
+         <em>Default: 1.</em>
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         the color of the text. <strong>Default: white</strong>
-         <em>Optional.</em>
+         The color of the text.
+         <em>Default: Color(255&#44; 255&#44; 255).</em>
         </li>
         <li><span class="parameter">translated</span>
             <span class="types"><span class="type">bool</span></span>
          If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua. <strong>Default: false</strong>.
-         <em>Optional.</em>
+If true, the string argument will be the key of a translated string specified in strings.lua.
+         <em>Default: false.</em>
         </li>
-        <li><span class="parameter">table</span>
+        <li><span class="parameter">flags</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-        <strong>Default: None.</strong> <em>Please note that Strings are automatically aligned to the LEFT</em>
+         Flags which affect visual representation of a string, such as shadow or alignment.
+         <em>Optional.</em>
         </li>
     </ul>
 
@@ -239,7 +236,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:GetColor()</strong>
     </dt>
     <dd>
-    Get the display string's color
+    Get the display string's color.
 
 
 
@@ -248,7 +245,7 @@ If true, the string argument will be the key of a translated string specified in
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-        a copy of the display string's color
+        Display string's color.
     </ol>
 
 
@@ -260,7 +257,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:SetColor(color)</strong>
     </dt>
     <dd>
-    Set the display string's color
+    Set the display string's color.
 
 
 
@@ -268,7 +265,7 @@ If true, the string argument will be the key of a translated string specified in
     <ul>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         the new color of the display string
+         The new color of the display string.
         </li>
     </ul>
 
@@ -282,9 +279,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:GetKey()</strong>
     </dt>
     <dd>
-    Get the string key to use.  If <code>isTranslated</code> is true when <a href="../2 classes/Strings.DisplayString.html#DisplayString">DisplayString</a>
- is called, this will be the string key for the translation that will be displayed.
- If false or omitted, this will be the string that's displayed.()
+    Get the string key.
 
 
 
@@ -293,7 +288,7 @@ If true, the string argument will be the key of a translated string specified in
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        the string to use
+        The string key.
     </ol>
 
 
@@ -302,20 +297,18 @@ If true, the string argument will be the key of a translated string specified in
 </dd>
     <dt>
     <a name = "DisplayString:SetKey"></a>
-    <strong>DisplayString:SetKey(string)</strong>
+    <strong>DisplayString:SetKey(key)</strong>
     </dt>
     <dd>
-    Set the string key to use.  If <code>isTranslated</code> is true when <a href="../2 classes/Strings.DisplayString.html#DisplayString">DisplayString</a>
- is called, this will be the string key for the translation that will be displayed.
- If false or omitted, this will be the string that's displayed.()
+    Set the string key to use.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">string</span>
+        <li><span class="parameter">key</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the new key for the display string
+         The new key for the display string.
         </li>
     </ul>
 
@@ -329,7 +322,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:SetScale(scale)</strong>
     </dt>
     <dd>
-    Set the scale of the string. ()
+    Set the scale of the string.
 
 
 
@@ -351,7 +344,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:GetScale()</strong>
     </dt>
     <dd>
-    Get the scale of the string. ()
+    Get the scale of the string.
 
 
 
@@ -373,7 +366,7 @@ If true, the string argument will be the key of a translated string specified in
     </dt>
     <dd>
     Set the position of the string.
- Screen-space coordinates are expected.()
+ Screen-space coordinates are expected.
 
 
 
@@ -396,7 +389,7 @@ If true, the string argument will be the key of a translated string specified in
     </dt>
     <dd>
     Get the position of the string.
- Screen-space coordinates are returned.()
+ Screen-space coordinates are returned.
 
 
 
@@ -417,7 +410,7 @@ If true, the string argument will be the key of a translated string specified in
     <strong>DisplayString:SetFlags(table)</strong>
     </dt>
     <dd>
-    Set the display string's flags ()
+    Set the display string's flags.
 
 
 
@@ -425,7 +418,7 @@ If true, the string argument will be the key of a translated string specified in
     <ul>
         <li><span class="parameter">table</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         the new table with display flags options
+         The new table with display flags options.
         </li>
     </ul>
 
@@ -443,29 +436,6 @@ varDisplayString:SetFlags({ TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.
 <span class="comment">-- When passing a table to a function, you can omit the parentheses
 </span>varDisplayString:SetFlags{ TEN.Strings.DisplayStringOption.CENTER }</pre>
     </ul>
-
-</dd>
-    <dt>
-    <a name = "DisplayString:SetTranslated"></a>
-    <strong>DisplayString:SetTranslated(shouldTranslate)</strong>
-    </dt>
-    <dd>
-    Set translated parameter of the string
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">shouldTranslate</span>
-            <span class="types"><span class="type">bool</span></span>
-         if true, the string's key will be used as the key for the translation that will be displayed.
- If false, the key itself will be displayed
-        </li>
-    </ul>
-
-
-
-
 
 </dd>
 </dl>

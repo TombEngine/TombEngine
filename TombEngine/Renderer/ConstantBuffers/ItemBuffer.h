@@ -11,16 +11,17 @@ namespace TEN::Renderer::ConstantBuffers
 	{
 		Matrix World;
 		//--
-		Matrix BonesMatrices[BONE_COUNT];
+		Matrix BonesMatrices[BONE_COUNT_MAX];
 		//--
 		Vector4 Color;
 		//--
 		Vector4 AmbientLight;
 		//--
-		int BoneLightModes[BONE_COUNT];
+		int BoneLightModes[BONE_COUNT_MAX];
 		//--
 		ShaderLight Lights[MAX_LIGHTS_PER_ITEM];
 		//--
 		int NumLights;
+		int Skinned;
 	};
 }

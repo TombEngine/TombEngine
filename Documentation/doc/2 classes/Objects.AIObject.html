@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -125,11 +125,11 @@
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#AIObject:GetPosition">AIObject:GetPosition()</a></td>
-	<td class="summary">Get the object's position</td>
+	<td class="summary">Get the object's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:SetPosition">AIObject:SetPosition(position)</a></td>
-	<td class="summary">Set the object's position</td>
+	<td class="summary">Set the object's position.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:GetRotationY">AIObject:GetRotationY()</a></td>
@@ -141,32 +141,31 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:GetName">AIObject:GetName()</a></td>
-	<td class="summary">Get the object's unique string identifier</td>
+	<td class="summary">Get the object's unique string identifier.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:SetName">AIObject:SetName(name)</a></td>
-	<td class="summary">Set the object's name (its unique string identifier)</td>
+	<td class="summary">Set the object's unique string identifier.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:GetRoom">AIObject:GetRoom()</a></td>
-	<td class="summary">Get the current room of the object</td>
+	<td class="summary">Get the current room of the object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:GetRoomNumber">AIObject:GetRoomNumber()</a></td>
-	<td class="summary">Get the current room number of the object</td>
+	<td class="summary">Get the current room number of the object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:SetRoomNumber">AIObject:SetRoomNumber(ID)</a></td>
-	<td class="summary">Set room number of the object
- This is used in conjunction with SetPosition to teleport the object to a new room.</td>
+	<td class="summary">Set room number of the object.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:GetObjectID">AIObject:GetObjectID()</a></td>
-	<td class="summary">Retrieve the object ID</td>
+	<td class="summary">Retrieve the object ID.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#AIObject:SetObjectID">AIObject:SetObjectID(ID)</a></td>
-	<td class="summary">Change the object's ID.</td>
+	<td class="summary">Change the object ID.</td>
 	</tr>
 </table>
 
@@ -182,7 +181,7 @@
     <strong>AIObject:GetPosition()</strong>
     </dt>
     <dd>
-    Get the object's position
+    Get the object's position.
 
 
 
@@ -191,7 +190,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        a copy of the object's position
+        A copy of the object's position.
     </ol>
 
 
@@ -203,7 +202,7 @@
     <strong>AIObject:SetPosition(position)</strong>
     </dt>
     <dd>
-    Set the object's position
+    Set the object's position.
 
 
 
@@ -211,7 +210,7 @@
     <ul>
         <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         the new position of the object
+         The new position of the object.
         </li>
     </ul>
 
@@ -226,7 +225,6 @@
     </dt>
     <dd>
     Get the object's Y-axis rotation.
- To the best of my knowledge, the rotation of an AIObject has no effect.
 
 
 
@@ -234,8 +232,8 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">number</span></span>
-        the object's Y-axis rotation
+           <span class="types"><span class="type">int</span></span>
+        The object's Y-axis rotation.
     </ol>
 
 
@@ -248,15 +246,14 @@
     </dt>
     <dd>
     Set the object's Y-axis rotation.
- To the best of my knowledge, the rotation of an AIObject has no effect.
 
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">rotation</span>
-            <span class="types"><span class="type">number</span></span>
-         The object's new Y-axis rotation
+            <span class="types"><span class="type">int</span></span>
+         The object's new Y-axis rotation.
         </li>
     </ul>
 
@@ -270,7 +267,7 @@
     <strong>AIObject:GetName()</strong>
     </dt>
     <dd>
-    Get the object's unique string identifier
+    Get the object's unique string identifier.
 
 
 
@@ -279,7 +276,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        the object's name
+        The object's name.
     </ol>
 
 
@@ -291,7 +288,7 @@
     <strong>AIObject:SetName(name)</strong>
     </dt>
     <dd>
-    Set the object's name (its unique string identifier)
+    Set the object's unique string identifier.
 
 
 
@@ -299,7 +296,7 @@
     <ul>
         <li><span class="parameter">name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The object's new name
+         The object's new name.
         </li>
     </ul>
 
@@ -313,7 +310,7 @@
     <strong>AIObject:GetRoom()</strong>
     </dt>
     <dd>
-    Get the current room of the object
+    Get the current room of the object.
 
 
 
@@ -321,8 +318,8 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">Room</span></span>
-        current room of the object
+           <span class="types"><a class="type" href="../2 classes/Objects.Room.html#">Room</a></span>
+        current room of the object.
     </ol>
 
 
@@ -334,7 +331,7 @@
     <strong>AIObject:GetRoomNumber()</strong>
     </dt>
     <dd>
-    Get the current room number of the object
+    Get the current room number of the object.
 
 
 
@@ -343,7 +340,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        number representing the current room of the object
+        Number representing the current room of the object.
     </ol>
 
 
@@ -355,7 +352,7 @@
     <strong>AIObject:SetRoomNumber(ID)</strong>
     </dt>
     <dd>
-    Set room number of the object
+    Set room number of the object.
  This is used in conjunction with SetPosition to teleport the object to a new room.
 
 
@@ -364,7 +361,7 @@
     <ul>
         <li><span class="parameter">ID</span>
             <span class="types"><span class="type">int</span></span>
-         the ID of the new room
+         The ID of the new room.
         </li>
     </ul>
 
@@ -378,7 +375,7 @@
     <strong>AIObject:GetObjectID()</strong>
     </dt>
     <dd>
-    Retrieve the object ID
+    Retrieve the object ID.
 
 
 
@@ -387,7 +384,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        a number representing the ID of the object
+        A number representing the ID of the object.
     </ol>
 
 
@@ -399,7 +396,7 @@
     <strong>AIObject:SetObjectID(ID)</strong>
     </dt>
     <dd>
-    Change the object's ID.  This will change the type of AI object it is.
+    Change the object ID.  This will change the type of AI object it is.
  Note that a baddy will gain the behaviour of the tile it's on <em>before</em> said baddy is triggered.
  This means that changing the type of an AI object beneath a moveable will have no effect.
  Instead, this function can be used to change an object that the baddy isn't standing on.
@@ -412,7 +409,7 @@
     <ul>
         <li><span class="parameter">ID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         the new ID
+         the new ID.
         </li>
     </ul>
 

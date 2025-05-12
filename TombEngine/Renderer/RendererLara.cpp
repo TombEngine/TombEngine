@@ -314,6 +314,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 
 	_stItem.Color = item->Color;
 	_stItem.AmbientLight = item->AmbientLight;
+	_stItem.Skinned = true;
 	memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, laraObj.AnimTransforms.size() * sizeof(Matrix));
 	for (int k = 0; k < laraSkin.ObjectMeshes.size(); k++)
 	{
@@ -355,6 +356,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 
 		_stItem.World = Matrix::Identity;
 		_stItem.BonesMatrices[0] = itemToDraw->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
+		_stItem.Skinned = false;
 		ReflectMatrixOptionally(_stItem.BonesMatrices[0]);
 
 		for (int i = 0; i < unit.Segments.size(); i++)

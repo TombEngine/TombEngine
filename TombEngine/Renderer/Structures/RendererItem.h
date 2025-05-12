@@ -17,9 +17,9 @@ namespace TEN::Renderer::Structures
 		Matrix	Translation = Matrix::Identity;
 		Matrix	Rotation	= Matrix::Identity;
 		Matrix	Scale		= Matrix::Identity;
-		Matrix	AnimTransforms[BONE_COUNT] = {};
+		Matrix	AnimTransforms[BONE_COUNT_MAX] = {};
 
-		Quaternion BoneOrientations[BONE_COUNT] = {};
+		Quaternion BoneOrientations[BONE_COUNT_MAX] = {};
 
 		Vector4 Color		 = Vector4::One;
 		Vector4 AmbientLight = Vector4::One;
@@ -36,7 +36,7 @@ namespace TEN::Renderer::Structures
 		Matrix	InterpolatedTranslation = Matrix::Identity;
 		Matrix	InterpolatedRotation	= Matrix::Identity;
 		Matrix	InterpolatedScale		= Matrix::Identity;
-		Matrix	InterpolatedAnimTransforms[BONE_COUNT];
+		Matrix	InterpolatedAnimTransforms[BONE_COUNT_MAX];
 
 		Vector3 PrevPosition	= Vector3::Zero;
 		int		PrevRoomNumber	= NO_VALUE;
@@ -44,6 +44,6 @@ namespace TEN::Renderer::Structures
 		Matrix	PrevTranslation = Matrix::Identity;
 		Matrix	PrevRotation	= Matrix::Identity;
 		Matrix	PrevScale		= Matrix::Identity;
-		Matrix	PrevAnimTransforms[BONE_COUNT] = {};
+		Matrix	PrevAnimTransforms[BONE_COUNT_MAX] = {};
 	};
 }

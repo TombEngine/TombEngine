@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Game/Animation/Animation.h"
 #include "Game/control/event.h"
 #include "Game/items.h"
@@ -44,10 +45,11 @@ struct ANIMATED_TEXTURES_FRAME
 
 struct ANIMATED_TEXTURES_SEQUENCE
 {
-	int atlas;
+	int Type;
+	int Atlas;
 	int Fps;
-	int numFrames;
-	std::vector<ANIMATED_TEXTURES_FRAME> frames;
+	int NumFrames;
+	std::vector<ANIMATED_TEXTURES_FRAME> Frames;
 };
 
 struct AI_OBJECT
@@ -102,28 +104,33 @@ struct MirrorData
 
 struct LevelData
 {
-	// Object data
+	// Object
+
 	int					  NumItems = 0;
 	std::vector<ItemInfo> Items	   = {};
 	std::vector<MESH>	  Meshes   = {};
 	std::vector<int>	  Bones	   = {};
 
-	// Collision data
-	std::vector<ROOM_INFO> Rooms	 = {};
-	std::vector<short>	   FloorData = {};
-	std::vector<SinkInfo>  Sinks	 = {};
+	// Collision
 
-	// Pathfinding data
+	std::vector<RoomData> Rooms		= {};
+	std::vector<short>	  FloorData = {};
+	std::vector<SinkInfo> Sinks		= {};
+
+	// Pathfinding
+
 	std::vector<BOX_INFO> PathfindingBoxes				   = {};
 	std::vector<OVERLAP>  Overlaps						   = {};
 	std::vector<int>	  Zones[(int)ZoneType::MaxZone][2] = {};
 
-	// Sound data
+	// Sound
+
 	std::vector<short>			 SoundMap	  = {};
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc. data
+	// Misc.
+
 	std::vector<LevelCameraInfo> Cameras   = {};
 	std::vector<EventSet>		 GlobalEventSets = {};
 	std::vector<EventSet>		 VolumeEventSets = {};
@@ -132,7 +139,8 @@ struct LevelData
 	std::vector<SPRITE>			 Sprites   = {};
 	std::vector<MirrorData>		 Mirrors = {};
 
-	// Texture data
+	// Texture
+
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
 	std::vector<TEXTURE> MoveablesTextures = {};
@@ -173,8 +181,6 @@ void LoadAnimatedTextures();
 void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
-
-void LoadPortal(ROOM_INFO& room);
 
 void GetCarriedItems();
 void GetAIPickups();

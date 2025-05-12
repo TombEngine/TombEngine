@@ -3,9 +3,9 @@
 #include "Game/Animation/Animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
+#include "Specific/Structures/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/RendererEnums.h"
-#include "Specific/BitField.h"
 #include "Specific/newtypes.h"
 
 using namespace TEN::Animation;
@@ -67,8 +67,8 @@ struct MoveableAnimBlendData
 	int			  FrameCount  = 0;
 	BezierCurve2D Curve		  = {};
 
-	Vector3							   RootPosition		= Vector3::Zero;
-	std::array<Quaternion, BONE_COUNT> BoneOrientations = {};
+	Vector3								   RootPosition		= Vector3::Zero;
+	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
 
 	bool IsEnabled() const;
 };
@@ -167,6 +167,12 @@ struct ItemInfo
 	short		  AfterDeath  = 0;
 	short		  CarriedItem = 0;
 
+	// Getters
+
+	BoundingBox					GetAabb() const;
+	BoundingOrientedBox			GetObb() const;
+	std::vector<BoundingSphere> GetSpheres() const;
+
 	// OCB utilities
 
 	bool TestOcb(short ocbFlags) const;
@@ -199,12 +205,6 @@ struct ItemInfo
 	bool IsLara() const;
 	bool IsCreature() const;
 	bool IsBridge() const;
-
-	// Getters
-
-	BoundingBox					GetAabb() const;
-	BoundingOrientedBox			GetObb() const;
-	std::vector<BoundingSphere> GetSpheres() const;
 };
 
 bool TestState(int refState, const std::vector<int>& stateList);

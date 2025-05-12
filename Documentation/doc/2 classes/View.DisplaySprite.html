@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -124,8 +124,12 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#DisplaySprite">DisplaySprite(ID, int, pos, rot, scale, [color])</a></td>
+	<td class="name" ><a href="#DisplaySprite">DisplaySprite(objectID, index, pos, rot, scale, [color])</a></td>
 	<td class="summary">Create a DisplaySprite object.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DisplaySprite">DisplaySprite(pos, rot, scale, [color])</a></td>
+	<td class="summary">Create a DisplaySprite object with a video image.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplaySprite:GetObjectID">DisplaySprite:GetObjectID()</a></td>
@@ -152,27 +156,27 @@
 	<td class="summary">Get the color of the display sprite.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetObjectID">DisplaySprite:SetObjectID(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetObjectID">DisplaySprite:SetObjectID(objectID)</a></td>
 	<td class="summary">Set the sprite sequence object ID used by the display sprite.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetSpriteID">DisplaySprite:SetSpriteID(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetSpriteID">DisplaySprite:SetSpriteID(spriteID)</a></td>
 	<td class="summary">Set the sprite ID in the sprite sequence object used by the display sprite.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetPosition">DisplaySprite:SetPosition(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetPosition">DisplaySprite:SetPosition(position)</a></td>
 	<td class="summary">Set the display position of the display sprite in percent.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetRotation">DisplaySprite:SetRotation(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetRotation">DisplaySprite:SetRotation(rotation)</a></td>
 	<td class="summary">Set the rotation of the display sprite in degrees.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetScale">DisplaySprite:SetScale(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetScale">DisplaySprite:SetScale(scale)</a></td>
 	<td class="summary">Set the horizontal and vertical scale of the display sprite in percent.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplaySprite:SetColor">DisplaySprite:SetColor(New)</a></td>
+	<td class="name" ><a href="#DisplaySprite:SetColor">DisplaySprite:SetColor(color)</a></td>
 	<td class="summary">Set the color of the display sprite.</td>
 	</tr>
 	<tr>
@@ -190,23 +194,65 @@
     <dl class="function">
     <dt>
     <a name = "DisplaySprite"></a>
-    <strong>DisplaySprite(ID, int, pos, rot, scale, [color])</strong>
+    <strong>DisplaySprite(objectID, index, pos, rot, scale, [color])</strong>
     </dt>
     <dd>
-    Create a DisplaySprite object. ()
+    Create a DisplaySprite object.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">ID</span>
+        <li><span class="parameter">objectID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#SpriteConstants">SpriteConstants</a></span>
-         of the sprite sequence object.
+         ID of the sprite sequence object.
         </li>
-        <li><span class="parameter">int</span>
+        <li><span class="parameter">index</span>
             <span class="types"><span class="type">int</span></span>
-         spriteID ID of the sprite in the sequence.
+         Index of the sprite in the sequence.
         </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Display position in percent.
+        </li>
+        <li><span class="parameter">rot</span>
+            <span class="types"><span class="type">float</span></span>
+         Rotation in degrees.
+        </li>
+        <li><span class="parameter">scale</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Horizontal and vertical scale in percent. Scaling is interpreted by the DisplaySpriteEnum.ScaleMode passed to the Draw() function call.
+        </li>
+        <li><span class="parameter">color</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Color.
+         <em>Default: Color(255&#44; 255&#44; 255).</em>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../2 classes/View.DisplaySprite.html#DisplaySprite">DisplaySprite</a></span>
+        A new DisplaySprite object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DisplaySprite"></a>
+    <strong>DisplaySprite(pos, rot, scale, [color])</strong>
+    </dt>
+    <dd>
+    Create a DisplaySprite object with a video image.
+ Video should be played using <a href="../1 modules/View.html#PlayVideo">View.PlayVideo</a> function in a background mode. If no video is played, sprite will not show.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
          Display position in percent.
@@ -230,7 +276,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/View.DisplaySprite.html#DisplaySprite">DisplaySprite</a></span>
-        A new DisplaySprite object.
+        A new DisplaySprite object with attached video image.
     </ol>
 
 
@@ -242,7 +288,7 @@
     <strong>DisplaySprite:GetObjectID()</strong>
     </dt>
     <dd>
-    Get the object ID of the sprite sequence object used by the display sprite. ()
+    Get the object ID of the sprite sequence object used by the display sprite.
 
 
 
@@ -263,7 +309,7 @@
     <strong>DisplaySprite:GetSpriteID()</strong>
     </dt>
     <dd>
-    Get the sprite ID in the sprite sequence object used by the display sprite. ()
+    Get the sprite ID in the sprite sequence object used by the display sprite.
 
 
 
@@ -272,7 +318,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        Sprite ID in the sprite sequence object.
+        Sprite ID in the sprite sequence object. Value <strong>-1</strong> means that it is a background video, played using <a href="../1 modules/View.html#PlayVideo">View.PlayVideo</a>.
     </ol>
 
 
@@ -284,7 +330,7 @@
     <strong>DisplaySprite:GetPosition()</strong>
     </dt>
     <dd>
-    Get the display position of the display sprite in percent. ()
+    Get the display position of the display sprite in percent.
 
 
 
@@ -305,7 +351,7 @@
     <strong>DisplaySprite:GetRotation()</strong>
     </dt>
     <dd>
-    Get the rotation of the display sprite in degrees. ()
+    Get the rotation of the display sprite in degrees.
 
 
 
@@ -326,7 +372,7 @@
     <strong>DisplaySprite:GetScale()</strong>
     </dt>
     <dd>
-    Get the horizontal and vertical scale of the display sprite in percent. ()
+    Get the horizontal and vertical scale of the display sprite in percent.
 
 
 
@@ -347,7 +393,7 @@
     <strong>DisplaySprite:GetColor()</strong>
     </dt>
     <dd>
-    Get the color of the display sprite. ()
+    Get the color of the display sprite.
 
 
 
@@ -365,18 +411,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetObjectID"></a>
-    <strong>DisplaySprite:SetObjectID(New)</strong>
+    <strong>DisplaySprite:SetObjectID(objectID)</strong>
     </dt>
     <dd>
-    Set the sprite sequence object ID used by the display sprite. (Objects.ObjID.SpriteConstants)
+    Set the sprite sequence object ID used by the display sprite.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
+        <li><span class="parameter">objectID</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#SpriteConstants">SpriteConstants</a></span>
-         sprite sequence object ID.
+         New sprite sequence object ID.
         </li>
     </ul>
 
@@ -387,18 +433,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetSpriteID"></a>
-    <strong>DisplaySprite:SetSpriteID(New)</strong>
+    <strong>DisplaySprite:SetSpriteID(spriteID)</strong>
     </dt>
     <dd>
-    Set the sprite ID in the sprite sequence object used by the display sprite. (int)
+    Set the sprite ID in the sprite sequence object used by the display sprite.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
+        <li><span class="parameter">spriteID</span>
             <span class="types"><span class="type">int</span></span>
-         sprite ID in the sprite sequence object.
+         New sprite ID in the sprite sequence object.
         </li>
     </ul>
 
@@ -409,18 +455,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetPosition"></a>
-    <strong>DisplaySprite:SetPosition(New)</strong>
+    <strong>DisplaySprite:SetPosition(position)</strong>
     </dt>
     <dd>
-    Set the display position of the display sprite in percent. (Vec2)
+    Set the display position of the display sprite in percent.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
+        <li><span class="parameter">position</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         display position in percent.
+         New display position in percent.
         </li>
     </ul>
 
@@ -431,18 +477,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetRotation"></a>
-    <strong>DisplaySprite:SetRotation(New)</strong>
+    <strong>DisplaySprite:SetRotation(rotation)</strong>
     </dt>
     <dd>
-    Set the rotation of the display sprite in degrees. (float)
+    Set the rotation of the display sprite in degrees.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
+        <li><span class="parameter">rotation</span>
             <span class="types"><span class="type">float</span></span>
-         rotation in degrees.
+         New rotation in degrees.
         </li>
     </ul>
 
@@ -453,18 +499,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetScale"></a>
-    <strong>DisplaySprite:SetScale(New)</strong>
+    <strong>DisplaySprite:SetScale(scale)</strong>
     </dt>
     <dd>
-    Set the horizontal and vertical scale of the display sprite in percent. (Vec2)
+    Set the horizontal and vertical scale of the display sprite in percent.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
+        <li><span class="parameter">scale</span>
             <span class="types"><span class="type">float</span></span>
-         horizontal and vertical scale in percent.
+         New horizontal and vertical scale in percent.
         </li>
     </ul>
 
@@ -475,18 +521,18 @@
 </dd>
     <dt>
     <a name = "DisplaySprite:SetColor"></a>
-    <strong>DisplaySprite:SetColor(New)</strong>
+    <strong>DisplaySprite:SetColor(color)</strong>
     </dt>
     <dd>
-    Set the color of the display sprite. (Color)
+    Set the color of the display sprite.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">New</span>
-            <span class="types"><span class="type">float</span></span>
-         color.
+        <li><span class="parameter">color</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         New color.
         </li>
     </ul>
 
@@ -508,23 +554,23 @@
     <ul>
         <li><span class="parameter">priority</span>
             <span class="types"><span class="type">int</span></span>
-         Draw priority. Can be thought of as a layer, with higher values having precedence. <strong>Default: 0</strong>
-         <em>Optional.</em>
+         Draw priority. Can be thought of as a layer, with higher values having precedence.
+         <em>Default: 0.</em>
         </li>
         <li><span class="parameter">alignMode</span>
             <span class="types"><a class="type" href="../4 enums/View.AlignMode.html#">AlignMode</a></span>
-         Align mode interpreting an offset from the sprite's position. <strong>Default: View.AlignMode.CENTER</strong>
-         <em>Optional.</em>
+         Align mode interpreting an offset from the sprite's position.
+         <em>Default: View.AlignMode.CENTER.</em>
         </li>
         <li><span class="parameter">scaleMode</span>
             <span class="types"><a class="type" href="../4 enums/View.ScaleMode.html#">ScaleMode</a></span>
-         Scale mode interpreting the display sprite's horizontal and vertical scale. <strong>Default: View.ScaleMode.FIT</strong>
-         <em>Optional.</em>
+         Scale mode interpreting the display sprite's horizontal and vertical scale.
+         <em>Default: View.ScaleMode.FIT.</em>
         </li>
         <li><span class="parameter">blendMode</span>
             <span class="types"><a class="type" href="../4 enums/Effects.BlendID.html#">BlendID</a></span>
-         Blend mode. <strong>Default: Effects.BlendID.ALPHABLEND</strong>
-         <em>Optional.</em>
+         Blend mode.
+         <em>Default: Effects.BlendID.ALPHABLEND.</em>
         </li>
     </ul>
 

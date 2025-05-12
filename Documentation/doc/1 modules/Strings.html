@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.8.2 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -124,15 +124,15 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#ShowString">ShowString(str, time, autoDelete)</a></td>
+	<td class="name" ><a href="#ShowString">ShowString(string, [time], [autoDelete])</a></td>
 	<td class="summary">Show some text on-screen.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#HideString">HideString(str)</a></td>
+	<td class="name" ><a href="#HideString">HideString(string)</a></td>
 	<td class="summary">Hide some on-screen text.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsStringDisplaying">IsStringDisplaying(str)</a></td>
+	<td class="name" ><a href="#IsStringDisplaying">IsStringDisplaying(string)</a></td>
 	<td class="summary">Checks if the string is shown</td>
 	</tr>
 </table>
@@ -146,7 +146,7 @@
     <dl class="function">
     <dt>
     <a name = "ShowString"></a>
-    <strong>ShowString(str, time, autoDelete)</strong>
+    <strong>ShowString(string, [time], [autoDelete])</strong>
     </dt>
     <dd>
     Show some text on-screen.
@@ -155,23 +155,21 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">str</span>
+        <li><span class="parameter">string</span>
             <span class="types"><span class="type">DisplayString</span></span>
-         the string object to draw
+         The string object to draw.
         </li>
         <li><span class="parameter">time</span>
             <span class="types"><span class="type">float</span></span>
-         the time in seconds for which to show the string.
-If not given, the string will have an "infinite" life, and will show
+         The time in seconds for which to show the string. If not given, the string will have an "infinite" life, and will show
 until <a href="../1 modules/Strings.html#HideString">HideString</a> is called or until the level is finished.
-Default: nil (i.e. infinite)
+         <em>Optional.</em>
         </li>
         <li><span class="parameter">autoDelete</span>
             <span class="types"><span class="type">bool</span></span>
-         should be string automatically deleted after timeout is reached.
-If not given, the string will remain allocated even after timeout is reached, and can be
-shown again without re-initialization.
-Default: true
+         Should be string automatically deleted after timeout is reached. If not given, the string will remain
+allocated even after timeout is reached, and can be shown again without re-initialization.
+         <em>Default: true.</em>
         </li>
     </ul>
 
@@ -182,7 +180,7 @@ Default: true
 </dd>
     <dt>
     <a name = "HideString"></a>
-    <strong>HideString(str)</strong>
+    <strong>HideString(string)</strong>
     </dt>
     <dd>
     Hide some on-screen text.
@@ -191,10 +189,9 @@ Default: true
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">str</span>
+        <li><span class="parameter">string</span>
             <span class="types"><span class="type">DisplayString</span></span>
-         the string object to hide. Must previously have been shown
-with a call to <a href="../1 modules/Strings.html#ShowString">ShowString</a>, or this function will have no effect.
+         The string object to hide. Must previously have been shown with a call to <a href="../1 modules/Strings.html#ShowString">ShowString</a>, or this function will have no effect.
         </li>
     </ul>
 
@@ -205,7 +202,7 @@ with a call to <a href="../1 modules/Strings.html#ShowString">ShowString</a>, or
 </dd>
     <dt>
     <a name = "IsStringDisplaying"></a>
-    <strong>IsStringDisplaying(str)</strong>
+    <strong>IsStringDisplaying(string)</strong>
     </dt>
     <dd>
     Checks if the string is shown
@@ -214,9 +211,9 @@ with a call to <a href="../1 modules/Strings.html#ShowString">ShowString</a>, or
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">str</span>
+        <li><span class="parameter">string</span>
             <span class="types"><span class="type">DisplayString</span></span>
-         the string object to be checked
+         The string object to be checked.
         </li>
     </ul>
 

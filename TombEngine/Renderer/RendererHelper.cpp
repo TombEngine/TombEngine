@@ -49,7 +49,7 @@ namespace TEN::Renderer
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
 
-		auto bones = std::array<RendererBone*, BONE_COUNT>{};
+		auto bones = std::array<RendererBone*, BONE_COUNT_MAX>{};
 		int nextBoneID = 0;
 
 		// Push skeleton.
@@ -176,6 +176,13 @@ namespace TEN::Renderer
 		itemToDraw->DoneAnimations = true;
 
 		auto* obj = &Objects[nativeItem->ObjectNumber];
+
+		if (!obj->loaded)
+		{
+			TENLog("Attempted to animate nonexistent object " + GetObjectName((GAME_OBJECT_ID)nativeItem->ObjectNumber), LogLevel::Error);
+			return;
+		}
+
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
 		// Copy meshswaps
@@ -576,7 +583,7 @@ namespace TEN::Renderer
 		if (!rendererItem->DoneAnimations)
 			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
 
-		if (boneID >= BONE_COUNT)
+		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
 		auto world = rendererItem->InterpolatedAnimTransforms[boneID] * rendererItem->World;
@@ -594,7 +601,7 @@ namespace TEN::Renderer
 		if (!rendererItem->DoneAnimations)
 			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
 
-		if (boneID >= BONE_COUNT)
+		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
 		return rendererItem->BoneOrientations[boneID];
