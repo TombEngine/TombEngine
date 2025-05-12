@@ -49,7 +49,7 @@ void Volume::Register(sol::table& parent)
 }
 
 /// Get the unique string identifier of this volume.
-// @function Volume:GetName()
+// @function Volume:GetName
 // @treturn string Name.
 std::string Volume::GetName() const
 {
@@ -57,7 +57,7 @@ std::string Volume::GetName() const
 }
 
 /// Get the position of this volume.
-// @function Volume:GetPosition()
+// @function Volume:GetPosition
 // @treturn Vec3 Position.
 Vec3 Volume::GetPos() const
 {
@@ -65,7 +65,7 @@ Vec3 Volume::GetPos() const
 }
 
 /// Get the rotation of this volume.
-// @function Volume:GetRotation()
+// @function Volume:GetRotation
 // @treturn Rotation Rotation.
 Rotation Volume::GetRot() const
 {
@@ -74,7 +74,7 @@ Rotation Volume::GetRot() const
 }
 
 /// Get this scale of this volume.
-// @function Volume:GetScale()
+// @function Volume:GetScale
 // @treturn Vec3 Scale.
 Vec3 Volume::GetScale() const
 {
@@ -82,7 +82,7 @@ Vec3 Volume::GetScale() const
 }
 
 /// Set the unique string identifier of this volume.
-// @function Volume:SetName()
+// @function Volume:SetName
 // @tparam string name New name.
 void Volume::SetName(const std::string& name)
 {
@@ -103,7 +103,7 @@ void Volume::SetName(const std::string& name)
 }
 
 /// Set the position of this volume.
-// @function Volume:SetPosition()
+// @function Volume:SetPosition
 // @tparam Vec3 pos New position.
 void Volume::SetPos(const Vec3& pos)
 {
@@ -112,7 +112,7 @@ void Volume::SetPos(const Vec3& pos)
 }
 
 /// Set the rotation of this volume.
-// @function Volume:SetRotation()
+// @function Volume:SetRotation
 // @tparam Rotation rot New rotation.
 void Volume::SetRot(const Rotation& rot)
 {
@@ -121,7 +121,7 @@ void Volume::SetRot(const Rotation& rot)
 }
 
 /// Set the scale of the volume.
-// @function Volume:SetScale()
+// @function Volume:SetScale
 // @tparam Vec3 scale New scale.
 void Volume::SetScale(const Vec3& scale)
 {
@@ -130,7 +130,7 @@ void Volume::SetScale(const Vec3& scale)
 }
 
 /// Determine if this volume is active.
-// @function Volume:GetActive()
+// @function Volume:GetActive
 // @treturn bool Boolean representing active status.
 bool Volume::GetActive() const
 {
@@ -138,8 +138,8 @@ bool Volume::GetActive() const
 }
 
 /// Determine if a moveable is inside this volume.
-// @function Volume:IsMoveableInside()
-// @tparam Objects.Moveable Moveable to be checked for containment.
+// @function Volume:IsMoveableInside
+// @tparam Objects.Moveable moveable Moveable to be checked for containment.
 // @treturn bool Boolean representing containment status.
 bool Volume::IsMoveableInside(const Moveable& mov)
 {
@@ -159,14 +159,14 @@ bool Volume::IsMoveableInside(const Moveable& mov)
 }
 
 /// Enable this volume.
-// @function Volume:Enable()
+// @function Volume:Enable
 void Volume::Enable()
 {
 	_volume.Enabled = true;
 }
 
 /// Disable this volume.
-// @function Volume:Disable()
+// @function Volume:Disable
 void Volume::Disable()
 {
 	ClearActivators();
@@ -174,7 +174,7 @@ void Volume::Disable()
 }
 
 /// Clear the activators for this volume, allowing it to trigger again.
-// @function Volume:ClearActivators()
+// @function Volume:ClearActivators
 void Volume::ClearActivators()
 {
 	_volume.StateQueue.clear();

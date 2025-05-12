@@ -29,9 +29,9 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds CeilingTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 900,
-			-BLOCK(0.75f), -CLICK(1)),
+			-BLOCK(0.75f), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
@@ -41,9 +41,9 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds FloorTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 0,
-			-BLOCK(1), -CLICK(1)),
+			-BLOCK(1), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
@@ -55,14 +55,12 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds WaterFloorTrapDoorBounds =
 	{
 		GameBoundingBox(
-				-BLOCK(3.0f / 8), BLOCK(3.0f / 8),
+				-BLOCK(3 / 8.0f), BLOCK(3 / 8.0f),
 				-BLOCK(0.5f), 0,
-				-BLOCK(3 / 4.0f), BLOCK(1 / 4.0f)
-			),
+				-BLOCK(0.75f), BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-80.0f), ANGLE(-80.0f), ANGLE(-80.0f)),
-			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f))
-		)
+			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f)))
 	};
 
 	static std::optional<int> GetTrapDoorFloorHeight(const ItemInfo& item, const Vector3i& pos)
@@ -102,8 +100,8 @@ namespace TEN::Entities::Generic
 		bridge.GetCeilingHeight = GetTrapDoorCeilingHeight;
 		bridge.GetFloorBorder = GetTrapDoorFloorBorder;
 		bridge.GetCeilingBorder = GetTrapDoorCeilingBorder;
+		bridge.Initialize(trapDoorItem);
 
-		UpdateBridgeItem(trapDoorItem);
 		CloseTrapDoor(itemNumber);
 	}
 
@@ -234,15 +232,18 @@ namespace TEN::Entities::Generic
 	void TrapDoorControl(short itemNumber)
 	{
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*trapDoorItem);
 
-	if (TriggerActive(trapDoorItem))
-	{
-		if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
-			trapDoorItem->Animation.TargetState = 1;
-	}
-	else
-	{
-		trapDoorItem->Status = ITEM_ACTIVE;
+		bridge.Update(*trapDoorItem);
+
+		if (TriggerActive(trapDoorItem))
+		{
+			if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
+				trapDoorItem->Animation.TargetState = 1;
+		}
+		else
+		{
+			trapDoorItem->Status = ITEM_ACTIVE;
 
 			if (trapDoorItem->Animation.ActiveState == 1)
 				trapDoorItem->Animation.TargetState = 0;
@@ -262,13 +263,19 @@ namespace TEN::Entities::Generic
 
 	void CloseTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 1;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 1;
+		bridge.Enable(trapDoorItem);
 	}
 
 	void OpenTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 0;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 0;
+		bridge.Disable(trapDoorItem);
 	}
 }

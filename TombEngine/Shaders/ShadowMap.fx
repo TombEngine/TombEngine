@@ -1,15 +1,8 @@
 #include "./CBCamera.hlsli"
+#include "./CBItem.hlsli"
 #include "./Blending.hlsli"
+#include "./Math.hlsli"
 #include "./VertexInput.hlsli"
-
-cbuffer ItemBuffer : register(b1)
-{
-	float4x4 World;
-	float4x4 Bones[32];
-	float4 ItemPosition;
-	float4 AmbientLight;
-};
-
 
 struct PixelShaderInput
 {
@@ -24,8 +17,10 @@ SamplerState Sampler : register(s0);
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
-
-	float4x4 world = mul(Bones[input.Bone], World);
+	
+	// Blend and apply world matrix
+	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, true) : Bones[input.BoneIndex[0]];
+	float4x4 world = mul(blended, World);
 
 	output.Position = mul(mul(float4(input.Position, 1.0f), world), ViewProjection);
 	output.Depth = output.Position.z / output.Position.w;

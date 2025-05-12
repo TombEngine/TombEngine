@@ -963,7 +963,11 @@ void UpdateGunFlashes()
 		part.SpriteID = 11;
 		part.blendMode = BlendMode::Additive;
 
-		auto pos = GetJointPosition(LaraItem, hand ? LM_RHAND : LM_LHAND, settings.MuzzleOffset.ToVector3i());
+		auto offset = settings.MuzzleOffset.ToVector3i();
+		if (!hand)
+			offset.x = -offset.x;
+
+		auto pos = GetJointPosition(LaraItem, hand ? LM_RHAND : LM_LHAND, offset);
 		part.x = pos.x;
 		part.y = pos.y;
 		part.z = pos.z;

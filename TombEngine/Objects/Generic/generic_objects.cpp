@@ -94,23 +94,38 @@ static void StartObject(ObjectInfo* object)
 
 	object = &Objects[ID_BRIDGE_FLAT];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT1];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT2];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT3];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT4];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 }
 
 void StartSwitches(ObjectInfo* object)

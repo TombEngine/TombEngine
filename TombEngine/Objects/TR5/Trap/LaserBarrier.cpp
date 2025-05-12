@@ -91,6 +91,8 @@ namespace TEN::Entities::Traps
 		float barrierHeight = item.Pose.Position.y - pointColl.GetCeilingHeight();
 		item.ItemFlags[0] = barrierHeight;
 
+		item.Collidable = false;
+
 		// Initialize barrier effect.
 		auto barrier = LaserBarrier{};
 		barrier.Initialize(item);

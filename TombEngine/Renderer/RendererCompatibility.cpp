@@ -68,11 +68,18 @@ namespace TEN::Renderer
 			_animatedTextures[i] = tex;
 		}
 
-		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence) {
+		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
+		{
 			RendererAnimatedTextureSet set{};
-			set.NumTextures = sequence.numFrames;
-			std::transform(sequence.frames.begin(), sequence.frames.end(), std::back_inserter(set.Textures), [](ANIMATED_TEXTURES_FRAME& frm) {
+
+			set.NumTextures = sequence.NumFrames;
+			set.Type = (AnimatedTextureType)sequence.Type;
+			set.Fps = sequence.Fps;
+
+			std::transform(sequence.Frames.begin(), sequence.Frames.end(), std::back_inserter(set.Textures), [](ANIMATED_TEXTURES_FRAME& frm)
+			{
 				RendererAnimatedTexture tex{};
+
 				tex.UV[0].x = frm.x1;
 				tex.UV[0].y = frm.y1;
 				tex.UV[1].x = frm.x2;
@@ -81,9 +88,21 @@ namespace TEN::Renderer
 				tex.UV[2].y = frm.y3;
 				tex.UV[3].x = frm.x4;
 				tex.UV[3].y = frm.y4;
+
+				float UMin = std::min({ tex.UV[0].x, tex.UV[1].x, tex.UV[2].x, tex.UV[3].x });
+				float VMin = std::min({ tex.UV[0].y, tex.UV[1].y, tex.UV[2].y, tex.UV[3].y });
+				float UMax = std::max({ tex.UV[0].x, tex.UV[1].x, tex.UV[2].x, tex.UV[3].x });
+				float VMax = std::max({ tex.UV[0].y, tex.UV[1].y, tex.UV[2].y, tex.UV[3].y });
+
+				for (int i = 0; i < 4; ++i)
+				{
+					tex.NormalizedUV[i].x = (tex.UV[i].x - UMin) / (UMax - UMin);
+					tex.NormalizedUV[i].y = (tex.UV[i].y - VMin) / (VMax - VMin);
+				}
+
 				return tex;
 			});
-			set.Fps = sequence.Fps;
+
 			return set;
 		});
 
@@ -215,44 +234,45 @@ namespace TEN::Renderer
 
 		for (int i = 0; i < g_Level.Rooms.size(); i++)
 		{
-			ROOM_INFO& room = g_Level.Rooms[i];
+			auto& room = g_Level.Rooms[i];
+			auto& rendererRoom = _rooms[i];
 
-			RendererRoom* r = &_rooms[i];
+			rendererRoom.RoomNumber = i;
+			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
+			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
+			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
 
-			r->RoomNumber = i;
-			r->AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
-			r->ItemsToDraw.reserve(MAX_ITEMS_DRAW);
-			r->EffectsToDraw.reserve(MAX_ITEMS_DRAW);
+			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
+			auto boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
+			auto center = (boxMin + boxMax) / 2.0f;
+			auto extents = boxMax - center;
+			rendererRoom.BoundingBox = BoundingBox(center, extents);
 
-			Vector3 boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
-			Vector3 boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
-			Vector3 center = (boxMin + boxMax) / 2.0f;
-			Vector3 extents = boxMax - center;
-			r->BoundingBox = BoundingBox(center, extents);
-
-			r->Neighbors.clear();
+			rendererRoom.Neighbors.clear();
 			for (int j : room.NeighborRoomNumbers)
-				if (g_Level.Rooms[j].Active())
-					r->Neighbors.push_back(j);
-
-			if (room.doors.size() != 0)
 			{
-				r->Doors.resize((int)room.doors.size());
+				if (g_Level.Rooms[j].Active())
+					rendererRoom.Neighbors.push_back(j);
+			}
 
-				for (int l = 0; l < room.doors.size(); l++)
+			if (!room.Portals.empty())
+			{
+				rendererRoom.Doors.resize((int)room.Portals.size());
+
+				for (int j = 0; j < room.Portals.size(); j++)
 				{
-					RendererDoor* door = &r->Doors[l];
-					ROOM_DOOR* oldDoor = &room.doors[l];
+					const auto& portal = room.Portals[j];
+					auto& rendererDoor = rendererRoom.Doors[j];
 
-					door->RoomNumber = oldDoor->room;
-					door->Normal = oldDoor->normal;
+					rendererDoor.RoomNumber = portal.RoomNumber;
+					rendererDoor.Normal = portal.Normal;
 
 					for (int k = 0; k < 4; k++)
 					{
-						door->AbsoluteVertices[k] = Vector4(
-							room.Position.x + oldDoor->vertices[k].x,
-							room.Position.y + oldDoor->vertices[k].y,
-							room.Position.z + oldDoor->vertices[k].z,
+						rendererDoor.AbsoluteVertices[k] = Vector4(
+							room.Position.x + portal.Vertices[k].x,
+							room.Position.y + portal.Vertices[k].y,
+							room.Position.z + portal.Vertices[k].z,
 							1.0f);
 					}
 				}
@@ -260,11 +280,11 @@ namespace TEN::Renderer
 
 			if (room.mesh.size() != 0)
 			{
-				r->Statics.resize(room.mesh.size());
+				rendererRoom.Statics.resize(room.mesh.size());
 
 				for (int l = 0; l < (int)room.mesh.size(); l++)
 				{
-					RendererStatic* staticInfo = &r->Statics[l];
+					RendererStatic* staticInfo = &rendererRoom.Statics[l];
 					MESH_INFO* oldMesh = &room.mesh[l];
 
 					oldMesh->Dirty = true;
@@ -272,13 +292,13 @@ namespace TEN::Renderer
 					staticInfo->ObjectNumber = oldMesh->staticNumber;
 					staticInfo->RoomNumber = oldMesh->roomNumber;
 					staticInfo->Color = oldMesh->color;
-					staticInfo->AmbientLight = r->AmbientLight;
-					staticInfo->Pose = oldMesh->pos;
-					staticInfo->Scale = oldMesh->scale;
+					staticInfo->AmbientLight = rendererRoom.AmbientLight;
+					staticInfo->Pose =
+					staticInfo->PrevPose = oldMesh->pos;
 					staticInfo->OriginalSphere = Statics[staticInfo->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 					staticInfo->IndexInRoom = l;
 
-					staticInfo->Update();
+					staticInfo->Update(GetInterpolationFactor());
 				}
 			}
 
@@ -345,7 +365,6 @@ namespace TEN::Renderer
 						((vertex->Position.x)* primes[0]) ^
 							((unsigned int)std::hash<float>{}(vertex->Position.y) * primes[1]) ^
 							(unsigned int)std::hash<float>{}(vertex->Position.z) * primes[2];
-						vertex->Bone = 0;
 
 						lastVertex++;
 					}
@@ -379,17 +398,17 @@ namespace TEN::Renderer
 
 				bucket.Centre /= bucket.NumIndices;
 
-				r->Buckets.push_back(bucket);		
+				rendererRoom.Buckets.push_back(bucket);		
 			}
 
 			if (room.lights.size() != 0)
 			{
-				r->Lights.resize(room.lights.size());
+				rendererRoom.Lights.resize(room.lights.size());
 
 				for (int l = 0; l < room.lights.size(); l++)
 				{
-					RendererLight* light = &r->Lights[l];
-					ROOM_LIGHT* oldLight = &room.lights[l];
+					RendererLight* light = &rendererRoom.Lights[l];
+					RoomLightData* oldLight = &room.lights[l];
 
 					if (oldLight->type == 0)
 					{
@@ -678,9 +697,10 @@ namespace TEN::Renderer
 												int y2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.y + skinBone->GlobalTranslation.y;
 												int z2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.z + skinBone->GlobalTranslation.z;
 
+												// Joint vertex and skin mesh vertex are aligned, connect them.
 												if (abs(x1 - x2) < 2 && abs(y1 - y2) < 2 && abs(z1 - z2) < 2)
 												{
-													jointVertex->Bone = bonesToCheck[k];
+													jointVertex->BoneIndex[0] = bonesToCheck[k];
 													jointVertex->Position = skinVertex->Position;
 													jointVertex->Normal = skinVertex->Normal;
 
@@ -695,6 +715,15 @@ namespace TEN::Renderer
 
 										if (isDone)
 											break;
+									}
+
+									// Joint vertex and skin mesh vertex are not connected, specify both bone weights for blending.
+									if (!isDone)
+									{
+										jointVertex->BoneIndex[0] = j;
+										jointVertex->BoneWeight[0] = 0.5f;
+										jointVertex->BoneIndex[1] = jointBone->Parent->Index;
+										jointVertex->BoneWeight[1] = 0.5f;
 									}
 								}
 							}
@@ -717,7 +746,7 @@ namespace TEN::Renderer
 								for (int v1 = 0; v1 < currentBucket.NumVertices; v1++)
 								{
 									auto* currentVertex = &_moveablesVertices[currentBucket.StartVertex + v1];
-									currentVertex->Bone = j + 1;
+									currentVertex->BoneIndex[0] = j + 1;
 
 									// Link mesh 0 to root mesh.
 									if (j == 0)
@@ -749,7 +778,7 @@ namespace TEN::Renderer
 												if ((parentVertex->OriginalIndex == vertices1[currentVertex->OriginalIndex] &&  isSecond) ||
 													(parentVertex->OriginalIndex == vertices0[currentVertex->OriginalIndex] && !isSecond))
 												{
-													currentVertex->Bone = 0;
+													currentVertex->BoneIndex[0] = 0;
 													currentVertex->Position = parentVertex->Position;
 													currentVertex->Normal = parentVertex->Normal;
 												}
@@ -781,7 +810,7 @@ namespace TEN::Renderer
 
 												if (abs(x1 - x2) == 0 && abs(y1 - y2) == 0 && abs(z1 - z2) == 0)
 												{
-													currentVertex->Bone = j;
+													currentVertex->BoneIndex[0] = j;
 													currentVertex->Position = parentVertex->Position;
 													currentVertex->Normal = parentVertex->Normal;
 													break;
@@ -953,7 +982,7 @@ namespace TEN::Renderer
 					vertex.Color.z = meshPtr->colors[v].z;
 					vertex.Color.w = 1.0f;
 
-					vertex.Bone = meshPtr->bones[v];
+					vertex.BoneIndex[0] = meshPtr->bones[v];
 					vertex.OriginalIndex = v;
 
 					vertex.Effects = Vector4(meshPtr->effects[v].x, meshPtr->effects[v].y, meshPtr->effects[v].z, poly->shineStrength);

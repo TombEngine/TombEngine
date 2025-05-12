@@ -47,13 +47,12 @@ DisplayString::DisplayString()
 For use in @{Strings.ShowString|ShowString} and @{Strings.HideString|HideString}.
 @function DisplayString
 @tparam string string The string to display or key of the translated string.
-@tparam Vec2 Position of the string in pixel coordinates.
-@tparam[opt] float scale size of the string, relative to the default size. __Default: 1.0__
-@tparam[opt] Color color the color of the text. __Default: white__
-@tparam[opt] bool translated If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua. __Default: false__.
-@tparam Strings.DisplayStringOption table
-__Default: None.__ _Please note that Strings are automatically aligned to the LEFT_
+@tparam Vec2 position Position of the string in pixel coordinates.
+@tparam[opt=1] float scale Size of the string, relative to the default size.
+@tparam[opt=Color(255&#44; 255&#44; 255)] Color color The color of the text.
+@tparam[opt=false] bool translated If false or omitted, the input string argument will be displayed.
+If true, the string argument will be the key of a translated string specified in strings.lua.
+@tparam[opt] Strings.DisplayStringOption flags Flags which affect visual representation of a string, such as shadow or alignment.
 @treturn DisplayString A new DisplayString object.
 */
 static std::unique_ptr<DisplayString> CreateString(const std::string& key, const Vec2& pos, TypeOrNil<float> scale, TypeOrNil<ScriptColor> color,
@@ -140,55 +139,51 @@ void DisplayString::Register(sol::table& parent)
 		ScriptReserved_DisplayString,
 		sol::call_constructor, &DisplayStringWrapper,
 
-		/// Get the display string's color
+		/// Get the display string's color.
 		// @function DisplayString:GetColor
-		// @treturn Color a copy of the display string's color
+		// @treturn Color Display string's color.
 		ScriptReserved_GetColor, &DisplayString::GetColor,
 
-		/// Set the display string's color 
+		/// Set the display string's color.
 		// @function DisplayString:SetColor
-		// @tparam Color color the new color of the display string 
+		// @tparam Color color The new color of the display string.
 		ScriptReserved_SetColor, &DisplayString::SetColor,
 
-		/// Get the string key to use. If `isTranslated` is true when @{DisplayString}
-		// is called, this will be the string key for the translation that will be displayed.
-		// If false or omitted, this will be the string that's displayed.
-		// @function DisplayString:GetKey()
-		// @treturn string the string to use
+		/// Get the string key.
+		// @function DisplayString:GetKey
+		// @treturn string The string key.
 		ScriptReserved_GetKey, &DisplayString::GetKey, 
 
-		/// Set the string key to use. If `isTranslated` is true when @{DisplayString}
-		// is called, this will be the string key for the translation that will be displayed.
-		// If false or omitted, this will be the string that's displayed.
-		// @function DisplayString:SetKey()
-		// @tparam string string the new key for the display string 
+		/// Set the string key to use.
+		// @function DisplayString:SetKey
+		// @tparam string key The new key for the display string.
 		ScriptReserved_SetKey, &DisplayString::SetKey, 
 
 		/// Set the scale of the string.
-		// @function DisplayString:SetScale()
+		// @function DisplayString:SetScale
 		// @tparam float scale New scale of the string relative to the default size.
 		ScriptReserved_SetScale, &DisplayString::SetScale,
 
 		/// Get the scale of the string.
-		// @function DisplayString:GetScale()
+		// @function DisplayString:GetScale
 		// @treturn float Scale.
 		ScriptReserved_GetScale, &DisplayString::GetScale,
 
 		/// Set the position of the string.
 		// Screen-space coordinates are expected.
-		// @function DisplayString:SetPosition()
+		// @function DisplayString:SetPosition
 		// @tparam Vec2 pos New position in pixel coordinates.
 		ScriptReserved_SetPosition, &DisplayString::SetPosition,
 
 		/// Get the position of the string.
 		// Screen-space coordinates are returned.
-		// @function DisplayString:GetPosition()
+		// @function DisplayString:GetPosition
 		// @treturn Vec2 pos Position in pixel coordinates.
 		ScriptReserved_GetPosition, &DisplayString::GetPosition,
 
-		/// Set the display string's flags 
-		// @function DisplayString:SetFlags()
-		// @tparam table table the new table with display flags options
+		/// Set the display string's flags.
+		// @function DisplayString:SetFlags
+		// @tparam table table The new table with display flags options.
 		// @usage
 		// local varDisplayString = DisplayString('example string', 0, 0, Color(255, 255, 255), false)
 		// possible values:
@@ -200,10 +195,7 @@ void DisplayString::Register(sol::table& parent)
 		// varDisplayString:SetFlags{ TEN.Strings.DisplayStringOption.CENTER }
 		ScriptReserved_SetFlags, &DisplayString::SetFlags,
 
-		/// Set translated parameter of the string
-		// @function DisplayString:SetTranslated
-		// @tparam bool shouldTranslate if true, the string's key will be used as the key for the translation that will be displayed.
-		// If false, the key itself will be displayed
+		// DEPRECATED
 		ScriptReserved_SetTranslated, &DisplayString::SetTranslated);
 }
 

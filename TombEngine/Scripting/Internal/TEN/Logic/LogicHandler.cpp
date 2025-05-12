@@ -342,7 +342,7 @@ Possible event type values:
 @function HandleEvent
 @tparam string name Name of the event set to find.
 @tparam EventType type Event to execute.
-@tparam Objects.Moveable activator Optional activator. Default is the player object.
+@tparam[opt=Lara] Objects.Moveable activator Optional activator.
 */
 void LogicHandler::HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator)
 {
@@ -951,7 +951,7 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 @section specialobjects
 */
 
-/*** A @{Objects.Moveable} representing Lara herself.
+/*** An @{Objects.Moveable} entry representing Lara herself.
 @table Lara
 */
 void LogicHandler::ResetVariables()

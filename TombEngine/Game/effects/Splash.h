@@ -60,5 +60,6 @@ namespace TEN::Effects::Splash
 
 	void SetupSplash(const SplashEffectSetup* const setup, int room);
 	void UpdateSplashes();
+	void ClearSplashes();
 	void Splash(ItemInfo* item);
 }

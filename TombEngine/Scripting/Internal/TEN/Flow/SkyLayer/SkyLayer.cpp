@@ -19,11 +19,11 @@ void SkyLayer::Register(sol::table & parent)
 		ctors(),
 		sol::call_constructor, ctors(),	
 
-		/// (@{Color}) RGB sky color
+		/// (@{Color}) RGB sky color.
 		//@mem color
 				"color", sol::property(&SkyLayer::GetColor, &SkyLayer::SetColor),
 
-		/*** (int) cloud speed.
+		/*** (int) Cloud speed.
 
 		Values can be between [-32768, 32767], with positive numbers resulting in a sky that scrolls from
 		west to east, and negative numbers resulting in one that travels east to west.
@@ -38,8 +38,8 @@ void SkyLayer::Register(sol::table & parent)
 }
 
 /*** 
-@tparam Color color RGB color
-@tparam int speed cloud speed
+@tparam Color color RGB color.
+@tparam int speed Cloud speed.
 @treturn SkyLayer A SkyLayer object.
 @function SkyLayer
 */

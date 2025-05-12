@@ -871,7 +871,6 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
-	player.Control.Weapon.Fired = true;
 
 	auto vOrigin = GameVector(pos);
 	short roomNumber = laraItem.RoomNumber;
