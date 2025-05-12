@@ -1014,6 +1014,8 @@ enum GAME_OBJECT_ID : short
 	ID_CUSTOM_AMMO_GRAPHICS,
 	ID_DIARY_SPRITES,
 	ID_DIARY_ENTRY_SPRITES,
+	ID_SNOW_SPRITES,
+	ID_RAIN_SPRITES,
 
 	ID_NUMBER_OBJECTS = 1408 // Compatibility. Remove this constant when slot count is nearing 1408.
 };

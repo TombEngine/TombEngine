@@ -300,17 +300,17 @@ namespace TEN::Entities::Vehicles
 
 	void ModulateVehicleTurnRateX(short* turnRate, short accelRate, short minTurnRate, short maxTurnRate)
 	{
-		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, -AxisMap[InputAxisID::Move].y);
+		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, -AxisMap[AxisID::Move].y);
 	}
 
 	void ModulateVehicleTurnRateY(short* turnRate, short accelRate, short minTurnRate, short maxTurnRate)
 	{
-		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, AxisMap[InputAxisID::Move].x);
+		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, AxisMap[AxisID::Move].x);
 	}
 	
 	void ModulateVehicleLean(ItemInfo* vehicleItem, short baseRate, short maxAngle)
 	{
-		float axisCoeff = AxisMap[InputAxisID::Move].x;
+		float axisCoeff = AxisMap[AxisID::Move].x;
 		int sign = copysign(1, axisCoeff);
 		short maxAngleNormalized = maxAngle * axisCoeff;
 		vehicleItem->Pose.Orientation.z += std::min<short>(baseRate, abs(maxAngleNormalized - vehicleItem->Pose.Orientation.z) / 3) * sign;

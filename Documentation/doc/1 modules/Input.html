@@ -86,6 +86,7 @@
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -124,6 +125,18 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
+	<td class="name" ><a href="#GetAnalogKeyValue">GetAnalogKeyValue(actionID)</a></td>
+	<td class="summary">Get the analog value of an action key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetAnalogAxis">GetAnalogAxis(Axis)</a></td>
+	<td class="summary">Get an analog axis.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetMouseDisplayPosition">GetMouseDisplayPosition()</a></td>
+	<td class="summary">Get the display position of the cursor in percent.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#IsKeyHit">IsKeyHit(actionID)</a></td>
 	<td class="summary">Check if an action key is being hit.</td>
 	</tr>
@@ -152,14 +165,6 @@
 	<td class="summary">Clear all action keys.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetAnalogKeyValue">GetAnalogKeyValue(actionID)</a></td>
-	<td class="summary">Get the analog value of an action key.</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#GetMouseDisplayPosition">GetMouseDisplayPosition()</a></td>
-	<td class="summary">Get the display position of the cursor in percent.</td>
-	</tr>
-	<tr>
 	<td class="name" ><a href="#Vibrate">Vibrate(strength, [time])</a></td>
 	<td class="summary">Vibrate the game controller if the function is available and the setting is on.</td>
 	</tr>
@@ -172,6 +177,83 @@
     <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
+    <dt>
+    <a name = "GetAnalogKeyValue"></a>
+    <strong>GetAnalogKeyValue(actionID)</strong>
+    </dt>
+    <dd>
+    Get the analog value of an action key.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">actionID</span>
+            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
+         Action ID to query.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">float</span></span>
+        Analog value in the range [0, 1].
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetAnalogAxis"></a>
+    <strong>GetAnalogAxis(Axis)</strong>
+    </dt>
+    <dd>
+    Get an analog axis.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">Axis</span>
+            <span class="types"><a class="type" href="../4 enums/Input.AxisID.html#">AxisID</a></span>
+         ID to fetch.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+        Analog axis with components in the range [-1, 1].
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetMouseDisplayPosition"></a>
+    <strong>GetMouseDisplayPosition()</strong>
+    </dt>
+    <dd>
+    Get the display position of the cursor in percent.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+        Cursor display position in percent.
+    </ol>
+
+
+
+
+</dd>
     <dt>
     <a name = "IsKeyHit"></a>
     <strong>IsKeyHit(actionID)</strong>
@@ -334,55 +416,6 @@
 
 
 
-
-
-
-
-</dd>
-    <dt>
-    <a name = "GetAnalogKeyValue"></a>
-    <strong>GetAnalogKeyValue(actionID)</strong>
-    </dt>
-    <dd>
-    Get the analog value of an action key.
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">actionID</span>
-            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
-         Action ID to query.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">float</span></span>
-        Analog value in the range [0, 1].
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "GetMouseDisplayPosition"></a>
-    <strong>GetMouseDisplayPosition()</strong>
-    </dt>
-    <dd>
-    Get the display position of the cursor in percent.
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-        Cursor display position in percent.
-    </ol>
 
 
 

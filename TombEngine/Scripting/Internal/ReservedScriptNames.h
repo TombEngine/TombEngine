@@ -9,7 +9,6 @@ static constexpr char ScriptReserved_Logic[]			= "Logic";
 static constexpr char ScriptReserved_Objects[]			= "Objects";
 static constexpr char ScriptReserved_Strings[]			= "Strings";
 static constexpr char ScriptReserved_Inventory[]		= "Inventory";
-static constexpr char ScriptReserved_Input[]			= "Input";
 static constexpr char ScriptReserved_Sound[]			= "Sound";
 static constexpr char ScriptReserved_View[]				= "View";
 static constexpr char ScriptReserved_Util[]				= "Util";
@@ -328,7 +327,6 @@ static constexpr char ScriptReserved_MakeExplosion[]				= "MakeExplosion";
 static constexpr char ScriptReserved_MakeEarthquake[]				= "MakeEarthquake";
 
 static constexpr char ScriptReserved_GetWind[]						= "GetWind";
-static constexpr char ScriptReserved_Vibrate[]						= "Vibrate";
 static constexpr char ScriptReserved_FlashScreen[]					= "FlashScreen";
 static constexpr char ScriptReserved_FadeIn[]						= "FadeIn";
 static constexpr char ScriptReserved_FadeOut[]						= "FadeOut";
@@ -346,15 +344,22 @@ static constexpr char ScriptReserved_SetPostProcessTint[]			= "SetPostProcessTin
 static constexpr char ScriptReserved_GetCameraPosition[]			= "GetCameraPosition";
 static constexpr char ScriptReserved_GetCameraTarget[]				= "GetCameraTarget";
 
-static constexpr char ScriptReserved_ClearAllKeys[]					= "ClearAllKeys";
-static constexpr char ScriptReserved_ClearKey[]						= "ClearKey";
-static constexpr char ScriptReserved_GetAnalogKeyValue[]			= "GetAnalogKeyValue";
-static constexpr char ScriptReserved_GetMouseDisplayPosition[]		= "GetMouseDisplayPosition";
-static constexpr char ScriptReserved_IsKeyHeld[]					= "IsKeyHeld";
-static constexpr char ScriptReserved_IsKeyHit[]						= "IsKeyHit";
-static constexpr char ScriptReserved_IsKeyPulsed[]					= "IsKeyPulsed";
-static constexpr char ScriptReserved_IsKeyReleased[]				= "IsKeyReleased";
-static constexpr char ScriptReserved_PushKey[]						= "PushKey";
+// Input
+
+static constexpr char ScriptReserved_Input[]							= "Input";
+static constexpr char ScriptReserved_InputActionID[]					= "ActionID";
+static constexpr char ScriptReserved_InputAxisID[]						= "AxisID";
+static constexpr char ScriptReserved_InputClearAllKeys[]				= "ClearAllKeys";
+static constexpr char ScriptReserved_InputClearKey[]					= "ClearKey";
+static constexpr char ScriptReserved_InputGetAnalogKeyValue[]			= "GetAnalogKeyValue";
+static constexpr char ScriptReserved_InputGetAnalogAxis[]				= "GetAnalogAxis";
+static constexpr char ScriptReserved_InputGetMouseDisplayPosition[]		= "GetMouseDisplayPosition";
+static constexpr char ScriptReserved_InputIsKeyHeld[]					= "IsKeyHeld";
+static constexpr char ScriptReserved_InputIsKeyHit[]					= "IsKeyHit";
+static constexpr char ScriptReserved_InputIsKeyPulsed[]					= "IsKeyPulsed";
+static constexpr char ScriptReserved_InputIsKeyReleased[]				= "IsKeyReleased";
+static constexpr char ScriptReserved_InputVibrate[]						= "Vibrate";
+static constexpr char ScriptReserved_InputPushKey[]						= "PushKey";
 
 static constexpr char ScriptReserved_FlipMap[]						= "FlipMap";
 static constexpr char ScriptReserved_GetFlipMapStatus[]				= "GetFlipMapStatus";
@@ -387,7 +392,6 @@ static constexpr char ScriptReserved_PlayerTestInteraction[]		= "TestInteraction
 static constexpr char ScriptReserved_ObjID[]					= "ObjID";
 static constexpr char ScriptReserved_BlendID[]					= "BlendID";
 static constexpr char ScriptReserved_EffectID[]					= "EffectID";
-static constexpr char ScriptReserved_ActionID[]					= "ActionID";
 static constexpr char ScriptReserved_CameraType[]				= "CameraType";
 static constexpr char ScriptReserved_PostProcessMode[]			= "PostProcessMode";
 static constexpr char ScriptReserved_SoundTrackType[]			= "SoundTrackType";

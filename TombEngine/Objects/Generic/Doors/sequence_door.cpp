@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/generic_doors.h"
+
 #include "Specific/level.h"
 #include "Game/control/control.h"
 #include "Game/control/box.h"
@@ -14,6 +15,7 @@
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Game/misc.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/sequence_door.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Game/itemdata/door_data.h"
@@ -25,7 +27,7 @@ namespace TEN::Entities::Doors
 	void SequenceDoorControl(short itemNumber)
 	{
 		auto* doorItem = &g_Level.Items[itemNumber];
-		auto* doorData = (DOOR_DATA*)doorItem->Data;
+		auto* door = &GetDoorObject(*doorItem);
 
 		if (CurrentSequence == 3)
 		{
@@ -46,25 +48,27 @@ namespace TEN::Entities::Doors
 		{
 			if (doorItem->Animation.ActiveState == 1)
 			{
-				if (!doorData->opened)
+				if (!door->opened)
 				{
-					OpenThatDoor(&doorData->d1, doorData);
-					OpenThatDoor(&doorData->d2, doorData);
-					OpenThatDoor(&doorData->d1flip, doorData);
-					OpenThatDoor(&doorData->d2flip, doorData);
-					doorData->opened = true;
+					OpenThatDoor(&door->d1, door);
+					OpenThatDoor(&door->d2, door);
+					OpenThatDoor(&door->d1flip, door);
+					OpenThatDoor(&door->d2flip, door);
+					DisableDoorCollisionMesh(*doorItem);
+					door->opened = true;
 					doorItem->Flags |= 0x3E;
 				}
 			}
 			else
 			{
-				if (doorData->opened)
+				if (door->opened)
 				{
-					ShutThatDoor(&doorData->d1, doorData);
-					ShutThatDoor(&doorData->d2, doorData);
-					ShutThatDoor(&doorData->d1flip, doorData);
-					ShutThatDoor(&doorData->d2flip, doorData);
-					doorData->opened = false;
+					ShutThatDoor(&door->d1, door);
+					ShutThatDoor(&door->d2, door);
+					ShutThatDoor(&door->d1flip, door);
+					ShutThatDoor(&door->d2flip, door);
+					EnableDoorCollisionMesh(*doorItem);
+					door->opened = false;
 					doorItem->Flags &= 0xC1;
 				}
 			}

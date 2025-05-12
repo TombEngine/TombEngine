@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Util/Util.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/control/los.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
@@ -18,6 +19,7 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Los;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Scripting::Util

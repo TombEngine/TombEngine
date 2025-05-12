@@ -9,11 +9,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added skinned meshes support for any object slot.
 * Added video playback support.
 * Added muzzle glow effect for firearms.
+* Added weather particle clustering and increase weather particle performance.
 * Added examine mode text rendering (string key should be in the format like `examine1_text` etc).
 
 ### Bug fixes
 * Fixed Teleporter object.
 * Fixed Wraith objects not working correctly in flipped rooms.
+* Fixed fishes missing random targets due to distance.
+* Fixed fishes and compsognatuses not attacking corpses.
+* Fixed collision issues for subsector bridges and bridges moving between rooms.
 * Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
 * Fixed HK shots not being registered in statistics.
@@ -26,19 +30,22 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed hair object not rendered correctly if alpha blended textures are present.
 * Fixed static meshes not interpolating when dynamically changing their positional data.
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
+* Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Removed legacy TR5 search object code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
-* Optimized weather particle rendering.
 
 ### Lua API changes
-* Added `Moveable:SwapSkin` and `Moveable:UnswapSkin` for skinned moveable mesh management.
-* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
+* Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxis` functions.
+* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
+* Added `Moveable:SwapSkin` and `Moveable:UnswapSkin` for skinned moveable mesh management.
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
-* Fixed `Moveable:GetJointPosition` not returning correct results if moveable is invisible or not rendered.
+* Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration. 
+* Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
+* Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 * Fixed `Util.PickMoveableByDisplayPosition`.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29

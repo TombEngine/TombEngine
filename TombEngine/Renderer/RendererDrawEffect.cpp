@@ -1022,6 +1022,8 @@ namespace TEN::Renderer
 	void Renderer::PrepareWeatherParticles(RenderView& view) 
 	{
 		constexpr auto RAIN_WIDTH = 4.0f;
+		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
+		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(0.35f);
 
 		for (const auto& part : Weather.GetParticles())
 		{
@@ -1031,15 +1033,14 @@ namespace TEN::Renderer
 			auto pos  = Vector3::Lerp(part.PrevPosition, part.Position, GetInterpolationFactor());
 			auto size = Lerp(part.PrevSize, part.Size, GetInterpolationFactor());
 
-			if (!view.Camera.Frustum.SphereInFrustum(pos, size))
-				continue;
-
-			switch (part.Type)
+			// Underwater dust does not need clustering.
+			if (part.Type == WeatherType::None)
 			{
-			case WeatherType::None:
+				if (!view.Camera.Frustum.SphereInFrustum(pos, size))
+					continue;
 
 				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Underwater dust rendering"))
-					return;
+					continue;
 
 				AddSpriteBillboard(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
@@ -1048,39 +1049,117 @@ namespace TEN::Renderer
 					0.0f, 1.0f, Vector2(size),
 					BlendMode::Additive, true, view);
 
-				break;
+				continue;
+			}
 
-			case WeatherType::Snow:
+			// Clamp cluster size to 1.
+			int clusterSize = std::max(1, part.ClusterSize);
 
-				if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
-					return;
+			// If particle is dying, immediately cancel the cluster.
+			if (part.Stopped)
+				clusterSize = 1;
 
-				AddSpriteBillboard(
-					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
-					pos,
-					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
-					0.0f, 1.0f, Vector2(size),
-					BlendMode::Additive, true, view);
+			auto finalPos = pos;
+			auto finalScale = size;
 
-				break;
+			for (int i = 0; i < clusterSize; i++)
+			{
+				// Combine particle index and cluster index for unique seeding.
+				int uniqueSeed = part.UniqueID + i;
 
-			case WeatherType::Rain:
+				if (i > 0)
+				{
+					// Use bits from uniqueSeed to determine distribution pattern.
+					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD;
+					float offsetBase = spread * ((i + 1) / (float)clusterSize);
 
-				if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Rain rendering"))
-					return;
+					// Use bits 0, 1, 2 for axis signs.
+					// Snow Y axis is always negative, so that snowflakes don't sink into room geometry.
+					float xSign = (uniqueSeed & 1) ? 1.0f : -1.0f;
+					float zSign = (uniqueSeed & 4) ? 1.0f : -1.0f;
 
-				Vector3 v;
-				part.Velocity.Normalize(v);
+					// Use bits 3, 4 for axis emphasis.
+					int axisEmphasis = uniqueSeed & 3;
+					float xScale = (axisEmphasis == 0) ? 1.1f : 0.4f;
+					float yScale = (axisEmphasis == 1) ? 1.2f : 0.5f;
+					float zScale = (axisEmphasis == 2) ? 1.0f : 0.6f;
 
-				AddSpriteBillboardConstrained(
-					&_sprites[Objects[ID_DRIP_SPRITE].meshIndex], 
-					pos,
-					Color(0.8f, 1.0f, 1.0f, part.Transparency()),
-					0.0f, 1.0f,
-					Vector2(RAIN_WIDTH, size),
-					BlendMode::Additive, -v, true, view);
+					Vector3 positionOffset(
+						xSign * offsetBase * xScale,
+						-(offsetBase * yScale),
+						zSign * offsetBase * zScale
+					);
 
-				break;
+					// Apply deterministic offset.
+					finalPos = pos + positionOffset;
+					finalScale = size * (1.0f + abs(phd_sin(part.UniqueID + i)));
+
+					constexpr auto SNOW_SPIN_RATE = 0.05f;
+					constexpr auto SNOW_SPIN_RADIUS = 0.3f;
+
+					if (part.Type == WeatherType::Snow)
+					{
+						// Calculate spin angle based on vertical position.
+						// Wrap the vertical position to 3 blocks and multiply by 21 to get full unsigned short value.
+						unsigned short spinAngle = ((int)abs(finalPos.y) % BLOCK(3)) * 21;
+
+						// Apply circular motion in XZ plane.
+						finalPos.x += positionOffset.x * phd_sin((short)spinAngle);
+						finalPos.z += positionOffset.z * phd_cos((short)spinAngle);
+					}
+				}
+
+				if (!view.Camera.Frustum.SphereInFrustum(finalPos, finalScale))
+					continue;
+
+				switch (part.Type)
+				{
+					case WeatherType::Snow:
+					{
+						if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Snow rendering"))
+							continue;
+
+						// Use dedicated snow sprite sequence if available, otherwise fallback to underwater dust sprite.
+						int spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+						if (Objects[ID_SNOW_SPRITES].loaded)
+							spriteIndex = Objects[ID_SNOW_SPRITES].meshIndex + (uniqueSeed % Objects[ID_SNOW_SPRITES].nmeshes);
+
+						/// Get a deterministic particle rotation from the cluster index.
+						float rot = ((float)i / (float)clusterSize) * PI_MUL_2;
+
+						AddSpriteBillboard(
+							&_sprites[spriteIndex],
+							finalPos,
+							Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+							rot, 1.0f, Vector2(finalScale),
+							BlendMode::Additive, false, view);
+
+						break;
+					}
+
+					case WeatherType::Rain:
+					{
+						if (!CheckIfSlotExists(ID_DRIP_SPRITE, "Rain rendering"))
+							continue;
+
+						int spriteIndex = Objects[ID_DRIP_SPRITE].meshIndex;
+						if (Objects[ID_RAIN_SPRITES].loaded)
+							spriteIndex = Objects[ID_RAIN_SPRITES].meshIndex + (uniqueSeed % Objects[ID_RAIN_SPRITES].nmeshes);
+
+						Vector3 v;
+						part.Velocity.Normalize(v);
+
+						AddSpriteBillboardConstrained(
+							&_sprites[spriteIndex],
+							finalPos,
+							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
+							0.0f, 1.0f,
+							Vector2(RAIN_WIDTH, finalScale),
+							BlendMode::Additive, -v, false, view);
+
+						break;
+					}
+				}
 			}
 		}
 	}

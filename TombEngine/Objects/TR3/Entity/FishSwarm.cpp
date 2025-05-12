@@ -156,7 +156,7 @@ namespace TEN::Entities::Creatures::TR3
 					if (dist < closestDist &&
 						targetItem.ObjectNumber == ID_CORPSE &&
 						targetItem.Active && TriggerActive(&targetItem) &&
-						targetItem.ItemFlags[1] == (int)CorpseFlag::Grounded &&
+						targetItem.ItemFlags[7] == (int)CorpseFlag::Grounded &&
 						TestEnvironment(ENV_FLAG_WATER, targetItem.RoomNumber))
 					{
 						item.ItemFlags[4] = 1;
@@ -242,6 +242,7 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		constexpr auto WATER_SURFACE_OFFSET = CLICK(0.5f);
 		constexpr auto FLEE_VEL				= 20.0f;
+		constexpr auto TARGET_REACHED_TOLERANCE = BLOCK(0.5f);
 
 		static const auto SPHERE = BoundingSphere(Vector3::Zero, BLOCK(1 / 8.0f));
 
@@ -401,7 +402,7 @@ namespace TEN::Entities::Creatures::TR3
 					leaderItem.ItemFlags[2]++;
 				}
 			}
-			else if (ItemNearTarget(fish.Position, fish.TargetItemPtr, BLOCK(2)) &&
+			else if (Vector3i::Distance(fish.Position, desiredPos) < TARGET_REACHED_TOLERANCE &&
 				fish.LeaderItemPtr == fish.TargetItemPtr)
 			{
 				leaderItem.ItemFlags[2] = 0;

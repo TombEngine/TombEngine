@@ -697,7 +697,9 @@ namespace TEN::Renderer
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
 
-		void			SetGraphicsSettingsChanged();
+		void SetGraphicsSettingsChanged();
+
+		RendererDebugPage GetDebugPage() const;
 	};
 
 	extern Renderer g_Renderer;

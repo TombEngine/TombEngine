@@ -176,6 +176,13 @@ namespace TEN::Renderer
 		itemToDraw->DoneAnimations = true;
 
 		auto* obj = &Objects[nativeItem->ObjectNumber];
+
+		if (!obj->loaded)
+		{
+			TENLog("Attempted to animate nonexistent object " + GetObjectName((GAME_OBJECT_ID)nativeItem->ObjectNumber), LogLevel::Error);
+			return;
+		}
+
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
 		// Copy meshswaps

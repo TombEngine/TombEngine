@@ -18,11 +18,13 @@
 #include <optional>
 #include <regex>
 #include <set>
+#include <stack>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <queue>
+#include <unordered_set>
 #include <vector>
 
 // DirerctX 11
@@ -54,7 +56,6 @@ using namespace DirectX::SimpleMath;
 // =========
 
 #include "Types.h"
-
 #include "Game/Debug/Debug.h"
 
 using namespace TEN::Debug;
