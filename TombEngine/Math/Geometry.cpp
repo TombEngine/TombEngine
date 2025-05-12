@@ -156,39 +156,52 @@ namespace TEN::Math::Geometry
 		return FROM_RAD(atan2(normal.x, normal.z));
 	}
 
-	BoundingBox GetAabb(const BoundingOrientedBox& obb)
+	BoundingBox GetAabb(const BoundingOrientedBox& box)
 	{
-		auto corners = std::array<Vector3, 8>{}; // TODO: Use BOX_VERTEX_COUNT constant when PR containing it is merged.
-		obb.GetCorners(corners.data());
+		// Get corners.
+		auto corners = std::array<Vector3, BoundingOrientedBox::CORNER_COUNT>{};
+		box.GetCorners(corners.data());
 
-		auto cornerVector = std::vector<Vector3>{};
-		cornerVector.insert(cornerVector.end(), corners.begin(), corners.end());
-		return GetAabb(cornerVector);
+		// Transfer corners to vector.
+		auto cornersVector = std::vector<Vector3>{};
+		cornersVector.insert(cornersVector.end(), corners.begin(), corners.end());
+
+		// Return bounding box.
+		return Geometry::GetAabb(cornersVector);
 	}
 
 	BoundingBox GetAabb(const std::vector<Vector3>& points)
 	{
-		auto maxPoint = Vector3(-INFINITY);
 		auto minPoint = Vector3(INFINITY);
+		auto maxPoint = Vector3(-INFINITY);
 
 		// Determine max and min AABB points.
 		for (const auto& point : points)
 		{
-			maxPoint = Vector3(
-				std::max(maxPoint.x, point.x),
-				std::max(maxPoint.y, point.y),
-				std::max(maxPoint.z, point.z));
-
 			minPoint = Vector3(
 				std::min(minPoint.x, point.x),
 				std::min(minPoint.y, point.y),
 				std::min(minPoint.z, point.z));
+
+			maxPoint = Vector3(
+				std::max(maxPoint.x, point.x),
+				std::max(maxPoint.y, point.y),
+				std::max(maxPoint.z, point.z));
 		}
 
 		// Construct and return AABB.
 		auto center = (minPoint + maxPoint) / 2;
 		auto extents = (maxPoint - minPoint) / 2;
 		return BoundingBox(center, extents);
+	}
+
+	float GetAabbArea(const BoundingBox& box)
+	{
+		float width = box.Extents.x * 2;
+		float height = box.Extents.y * 2;
+		float depth = box.Extents.z * 2;
+
+		return (((width * height) + (width * depth) + (height * depth)) * 2);
 	}
 
 	float GetDistanceToLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1)

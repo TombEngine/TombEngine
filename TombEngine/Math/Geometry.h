@@ -52,6 +52,7 @@ namespace TEN::Math::Geometry
 
 	BoundingBox GetAabb(const BoundingOrientedBox& obb);
 	BoundingBox GetAabb(const std::vector<Vector3>& points);
+	float		GetAabbArea(const BoundingBox& box);
 
 	// Misc. getters
 

@@ -33,12 +33,21 @@ namespace TEN::Entities::Generic
 		auto pointColl = GetPointCollision(pushableItem);
 		if (pushable.UseRoomCollision)
 		{
-			RemovePushableBridge(pushableItem);
+			// HACK: Track if bridge was disabled by behaviour state.
+			bool isEnabled = false;
+			if (pushable.Bridge.has_value())
+				isEnabled = pushable.Bridge->IsEnabled();
+
+			// HACK: Temporarily disable bridge before probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Disable(pushableItem);
 
 			pointColl = GetPointCollision(pushableItem);
 			pointColl.GetFloorHeight();
 
-			AddPushableBridge(pushableItem);
+			// HACK: Reenable bridge after probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Enable(pushableItem);
 		}
 
 		// 1) Check for wall.
@@ -307,27 +316,34 @@ namespace TEN::Entities::Generic
 
 		auto pushableColl = PushableCollisionData{};
 
+		// TODO: If bridges system changes, this routine may be similar to object pushables ones, consider for review.
 		if (pushable.UseBridgeCollision)
 		{
-			RemovePushableBridge(item);
+			// HACK: Track if bridge was disabled by behaviour state.
+			bool isEnabled = false;
+			if (pushable.Bridge.has_value())
+				isEnabled = pushable.Bridge->IsEnabled();
+
+			// HACK: Temporarily disable bridge before probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Disable(item);
 
 			pointColl = GetPointCollision(item);
-			pointColl.GetFloorHeight();
 
 			waterHeight = pointColl.GetWaterSurfaceHeight();
-
 			if (waterHeight == NO_HEIGHT && TestEnvironment(ENV_FLAG_SWAMP, item.RoomNumber))
 				waterHeight = g_Level.Rooms[item.RoomNumber].TopHeight;
 
 			pushableColl.FloorHeight = pointColl.GetFloorHeight();
 			pushableColl.CeilingHeight = pointColl.GetCeilingHeight();
 
-			AddPushableBridge(item);
+			// HACK: Reenable bridge after probing.
+			if (isEnabled && pushable.Bridge.has_value())
+				pushable.Bridge->Enable(item);
 		}
 		else
 		{
 			waterHeight = pointColl.GetWaterSurfaceHeight();
-			
 			if (waterHeight == NO_HEIGHT && TestEnvironment(ENV_FLAG_SWAMP, item.RoomNumber))
 				waterHeight = g_Level.Rooms[item.RoomNumber].TopHeight;
 

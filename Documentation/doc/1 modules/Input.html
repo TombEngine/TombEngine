@@ -124,23 +124,27 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Vibrate">Vibrate(strength, [time])</a></td>
-	<td class="summary">Vibrate the game controller if the function is available and the setting is on.</td>
+	<td class="name" ><a href="#IsKeyHit">IsKeyHit(actionID)</a></td>
+	<td class="summary">Check if an action key is being hit.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyIsHeld">KeyIsHeld(action)</a></td>
+	<td class="name" ><a href="#IsKeyHeld">IsKeyHeld(actionID, [delaySec])</a></td>
 	<td class="summary">Check if an action key is being held.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyIsHit">KeyIsHit(action)</a></td>
-	<td class="summary">Check if an action key is being hit or clicked.</td>
+	<td class="name" ><a href="#IsKeyPulsed">IsKeyPulsed(actionID, delaySec, [initialDelaySec])</a></td>
+	<td class="summary">Check if an action key is being pulsed.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyPush">KeyPush(action)</a></td>
+	<td class="name" ><a href="#IsKeyReleased">IsKeyReleased(actionID, [maxDelaySec])</a></td>
+	<td class="summary">Check if an action key is being released.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#KeyPush">KeyPush(actionID)</a></td>
 	<td class="summary">Simulate an action key push.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyClear">KeyClear(action)</a></td>
+	<td class="name" ><a href="#KeyClear">KeyClear(actionID)</a></td>
 	<td class="summary">Clear an action key.</td>
 	</tr>
 	<tr>
@@ -148,8 +152,16 @@
 	<td class="summary">Clear all action keys.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#GetAnalogKeyValue">GetAnalogKeyValue(actionID)</a></td>
+	<td class="summary">Get the analog value of an action key.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#GetMouseDisplayPosition">GetMouseDisplayPosition()</a></td>
 	<td class="summary">Get the display position of the cursor in percent.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Vibrate">Vibrate(strength, [time])</a></td>
+	<td class="summary">Vibrate the game controller if the function is available and the setting is on.</td>
 	</tr>
 </table>
 
@@ -161,24 +173,19 @@
 
     <dl class="function">
     <dt>
-    <a name = "Vibrate"></a>
-    <strong>Vibrate(strength, [time])</strong>
+    <a name = "IsKeyHit"></a>
+    <strong>IsKeyHit(actionID)</strong>
     </dt>
     <dd>
-    Vibrate the game controller if the function is available and the setting is on.
+    Check if an action key is being hit.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">strength</span>
-            <span class="types"><span class="type">float</span></span>
-         Vibration strength.
-        </li>
-        <li><span class="parameter">time</span>
-            <span class="types"><span class="type">float</span></span>
-         Vibration time in seconds.
-         <em>Default: 0.3.</em>
+        <li><span class="parameter">actionID</span>
+            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
+         Action ID to check.
         </li>
     </ul>
 
@@ -188,8 +195,8 @@
 
 </dd>
     <dt>
-    <a name = "KeyIsHeld"></a>
-    <strong>KeyIsHeld(action)</strong>
+    <a name = "IsKeyHeld"></a>
+    <strong>IsKeyHeld(actionID, [delaySec])</strong>
     </dt>
     <dd>
     Check if an action key is being held.
@@ -198,9 +205,14 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">action</span>
+        <li><span class="parameter">actionID</span>
             <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
          Action ID to check.
+        </li>
+        <li><span class="parameter">delaySec</span>
+            <span class="types"><span class="type">float</span></span>
+         Delay time in seconds before a hold can be registered.
+         <em>Default: 0.</em>
         </li>
     </ul>
 
@@ -210,19 +222,56 @@
 
 </dd>
     <dt>
-    <a name = "KeyIsHit"></a>
-    <strong>KeyIsHit(action)</strong>
+    <a name = "IsKeyPulsed"></a>
+    <strong>IsKeyPulsed(actionID, delaySec, [initialDelaySec])</strong>
     </dt>
     <dd>
-    Check if an action key is being hit or clicked.
+    Check if an action key is being pulsed.
+ Note that to avoid a stutter on the second pulse, <code>initialDelaySec</code> must be a multiple of <code>delaySec</code>.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">action</span>
+        <li><span class="parameter">actionID</span>
             <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
          Action ID to check.
+        </li>
+        <li><span class="parameter">delaySec</span>
+            <span class="types"><span class="type">float</span></span>
+         Delay time in seconds between pulses.
+        </li>
+        <li><span class="parameter">initialDelaySec</span>
+            <span class="types"><span class="type">float</span></span>
+         Initial delay time in seconds on the first pulse.
+         <em>Default: 0.</em>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "IsKeyReleased"></a>
+    <strong>IsKeyReleased(actionID, [maxDelaySec])</strong>
+    </dt>
+    <dd>
+    Check if an action key is being released.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">actionID</span>
+            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
+         Action ID to check.
+        </li>
+        <li><span class="parameter">maxDelaySec</span>
+            <span class="types"><span class="type">float</span></span>
+         Max delay time in seconds between hit and release within which a release can be registered.
+         <em>Default: infinity.</em>
         </li>
     </ul>
 
@@ -233,7 +282,7 @@
 </dd>
     <dt>
     <a name = "KeyPush"></a>
-    <strong>KeyPush(action)</strong>
+    <strong>KeyPush(actionID)</strong>
     </dt>
     <dd>
     Simulate an action key push.
@@ -242,7 +291,7 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">action</span>
+        <li><span class="parameter">actionID</span>
             <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
          Action ID to push.
         </li>
@@ -255,7 +304,7 @@
 </dd>
     <dt>
     <a name = "KeyClear"></a>
-    <strong>KeyClear(action)</strong>
+    <strong>KeyClear(actionID)</strong>
     </dt>
     <dd>
     Clear an action key.
@@ -264,7 +313,7 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">action</span>
+        <li><span class="parameter">actionID</span>
             <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
          Action ID to clear.
         </li>
@@ -291,6 +340,34 @@
 
 </dd>
     <dt>
+    <a name = "GetAnalogKeyValue"></a>
+    <strong>GetAnalogKeyValue(actionID)</strong>
+    </dt>
+    <dd>
+    Get the analog value of an action key.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">actionID</span>
+            <span class="types"><a class="type" href="../4 enums/Input.ActionID.html#">ActionID</a></span>
+         Action ID to query.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">float</span></span>
+        Analog value in the range [0, 1].
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "GetMouseDisplayPosition"></a>
     <strong>GetMouseDisplayPosition()</strong>
     </dt>
@@ -306,6 +383,33 @@
            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
         Cursor display position in percent.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Vibrate"></a>
+    <strong>Vibrate(strength, [time])</strong>
+    </dt>
+    <dd>
+    Vibrate the game controller if the function is available and the setting is on.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">strength</span>
+            <span class="types"><span class="type">float</span></span>
+         Vibration strength.
+        </li>
+        <li><span class="parameter">time</span>
+            <span class="types"><span class="type">float</span></span>
+         Vibration time in seconds.
+         <em>Default: 0.3.</em>
+        </li>
+    </ul>
+
 
 
 
