@@ -481,7 +481,7 @@ namespace TEN::Scripting::Effects
 	/// Emit blood.
 	// @function EmitBlood
 	// @tparam Vec3 pos World position.
-	// @tparam[opt=1] int count Blood count.
+	// @tparam[opt=1] int count Blood sprite count.
 	static void EmitBlood(const Vec3& pos, TypeOrNil<int> count)
 	{
 		int roomNumber = FindRoomNumber(pos.ToVector3i());
