@@ -32,7 +32,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Removed legacy TR5 search object code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
-* Updated MakeExplosion and EmitBlood to spawn correct effects when used underwater.
 
 ### Lua API changes
 * Added `Effects.EmitFlow` and `Effects.EmitWaterfallMist` functions.
@@ -44,6 +43,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ability to use gunflash parameters for all weapons in weapon settings.
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration. 
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
+* Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 * Fixed `Util.PickMoveableByDisplayPosition`.
 
