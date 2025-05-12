@@ -87,7 +87,7 @@ namespace TEN::Effects::Hair
 			int waterHeight = GetPointCollision(pos, roomNumber).GetWaterTopHeight();
 
 			// Get collision spheres.
-			auto spheres = GetSpheres(item, isYoung);
+			auto spheres = GetSpheres(item);
 
 			// Update segments.
 			for (int i = 1; i < Segments.size(); i++)
@@ -218,7 +218,7 @@ namespace TEN::Effects::Hair
 		return (absOrient * twistRot);
 	}
 
-	std::vector<BoundingSphere> HairUnit::GetSpheres(const ItemInfo& item, bool isYoung)
+	std::vector<BoundingSphere> HairUnit::GetSpheres(const ItemInfo& item)
 	{
 		constexpr auto SPHERE_COUNT		   = 8;
 		constexpr auto TORSO_SPHERE_OFFSET = Vector3i(-10, 0, 25);
@@ -236,8 +236,6 @@ namespace TEN::Effects::Hair
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_TORSO]];
 		pos = GetJointPosition(item, LM_TORSO, Vector3i(mesh->sphere.Center) + TORSO_SPHERE_OFFSET).ToVector3();
 		spheres.push_back(BoundingSphere(pos, mesh->sphere.Radius));
-		if (isYoung)
-			spheres.back().Radius = spheres.back().Radius - ((spheres.back().Radius / 4) + (spheres.back().Radius / 8));
 
 		// Head sphere.
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_HEAD]];
@@ -245,9 +243,7 @@ namespace TEN::Effects::Hair
 		spheres.push_back(BoundingSphere(pos, mesh->sphere.Radius));
 
 		// Neck sphere.
-		spheres.push_back(BoundingSphere(
-			(spheres[1].Center + (spheres[2].Center * 2)) / 3,
-			isYoung ? 0.0f : (spheres[2].Radius * 0.75f)));
+		spheres.push_back(BoundingSphere((spheres[1].Center + (spheres[2].Center * 2)) / 3, (spheres[2].Radius * 0.75f)));
 
 		// Left arm sphere.
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_LINARM]];
@@ -274,9 +270,6 @@ namespace TEN::Effects::Hair
 			BoundingSphere(
 				pos + ((spheres[0].Center - pos) / 2),
 				mesh->sphere.Radius));
-
-		if (isYoung)
-			spheres[1].Center = (spheres[1].Center + spheres[2].Center) / 2;
 
 		return spheres;
 	}
