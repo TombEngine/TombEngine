@@ -25,6 +25,8 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
+	settings.Graphics.skinning = true
+	
 	settings.Hud.statusBars = true
 	settings.Hud.loadingBar = true
 	settings.Hud.speedometer = true

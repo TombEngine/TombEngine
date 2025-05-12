@@ -5,6 +5,7 @@
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
 #include "Specific/IO/ChunkReader.h"
@@ -77,13 +78,15 @@ struct SPRITE
 
 struct MESH
 {
+	bool hidden;
 	LightMode lightMode;
 	BoundingSphere sphere;
 	std::vector<Vector3> positions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> colors;
 	std::vector<Vector3> effects; // X = glow, Y = move, Z = refract
-	std::vector<int> bones;
+	std::vector<std::array<unsigned char, 4>> boneIndices;
+	std::vector<std::array<unsigned char, 4>> boneWeights;
 	std::vector<BUCKET> buckets;
 };
 

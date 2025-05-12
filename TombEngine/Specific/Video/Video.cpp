@@ -264,7 +264,8 @@ namespace TEN::Video
 		_silent = silent;
 		_playbackMode = mode;
 		_fileName = fullVideoName;
-		_needRender = _updateInput = false;
+		_needRender = false;
+		_updateInput = true;
 
 		auto* media = libvlc_media_new_path(_fileName.c_str());
 		if (media == nullptr)

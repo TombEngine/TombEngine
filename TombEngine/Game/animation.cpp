@@ -734,7 +734,7 @@ Vector3i GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite)
 	return GetJointPosition(item, bite.BoneID, bite.Position);
 }
 
-Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex)
+Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSign)
 {
 	const auto& object = Objects[objectID];
 	int boneIndex = object.boneIndex + (jointIndex * 4);
@@ -742,8 +742,13 @@ Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex)
 	if (g_Level.Bones.size() <= boneIndex)
 		return Vector3::Zero;
 
-	int* bonePtr = &g_Level.Bones[object.boneIndex + (jointIndex * 4)];
-	return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+	int* bonePtr = &g_Level.Bones[boneIndex];
+	auto result = Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+
+	if (discardZSign)
+		result.z = abs(result.z);
+
+	return result;
 }
 
 Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)

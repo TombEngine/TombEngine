@@ -196,28 +196,57 @@ namespace TEN::Renderer
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 			auto& obj = GetRendererObject((GAME_OBJECT_ID)item->ObjectID);
+			auto skinMode = GetSkinningMode(obj, item->SkinIndex);
+
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
 
 			_stItem.World = item->InterpolatedWorld;
 			_stItem.Color = item->Color;
 			_stItem.AmbientLight = item->AmbientLight;
-			_stItem.Skinned = item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
-			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			_stItem.Skinned = (int)skinMode;
+
 			for (int k = 0; k < MAX_BONES; k++)
 				_stItem.BoneLightModes[k] = (int)LightMode::Static;
 
+			if (skinMode == SkinningMode::Full)
+			{
+				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
+					_stItem.BonesMatrices[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+				_cbItem.UpdateData(_stItem, _context.Get());
+
+				auto* mesh = GetMesh(item->SkinIndex);
+
+				for (auto& bucket : mesh->Buckets)
+				{
+					if (bucket.NumVertices == 0)
+						continue;
+
+					if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+						continue;
+
+					// Draw vertices.
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+
+					_numShadowMapDrawCalls++;
+				}
+			}
+
+			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			_cbItem.UpdateData(_stItem, _context.Get());
-			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
 			{
-				if (item->MeshIds.size() <= k)
+				if (item->MeshIndex.size() <= k)
 				{
 					TENLog("Mesh structure was not properly initialized for object " + GetObjectName((GAME_OBJECT_ID)item->ObjectID));
 					break;
 				}
 
-				auto* mesh = GetMesh(item->MeshIds[k]);
+				auto* mesh = GetMesh(item->MeshIndex[k]);
+
+				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)
+					continue;
 
 				for (auto& bucket : mesh->Buckets)
 				{
@@ -238,8 +267,10 @@ namespace TEN::Renderer
 			{
 				auto& room = _rooms[item->RoomNumber];
 
+				if (skinMode == SkinningMode::Classic)
+					DrawLaraJoints(item, &room, renderView, RendererPass::ShadowMap);
+
 				DrawLaraHolsters(item, &room, renderView, RendererPass::ShadowMap);
-				DrawLaraJoints(item, &room, renderView, RendererPass::ShadowMap);
 				DrawLaraHair(item, &room, renderView, RendererPass::ShadowMap);
 			}
 		}
@@ -2411,28 +2442,43 @@ namespace TEN::Renderer
 		RendererRoom* room = &_rooms[item->RoomNumber];
 		RendererObject& moveableObj = *_moveableObjects[item->ObjectID];
 
+		auto skinMode = GetSkinningMode(moveableObj, item->SkinIndex);
+
 		// Bind item main properties
 		_stItem.World = item->InterpolatedWorld;
 		ReflectMatrixOptionally(_stItem.World);
 
 		_stItem.Color = item->Color;
 		_stItem.AmbientLight = item->AmbientLight;
-		_stItem.Skinned = item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
-		memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+		_stItem.Skinned = (int)skinMode;
 
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+		for (int k = 0; k < item->MeshIndex.size(); k++)
+			_stItem.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade, acceptsShadows);
+
+		if (skinMode == SkinningMode::Full)
+		{
+			for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
+				_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+			_cbItem.UpdateData(_stItem, _context.Get());
+
+			DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
+		}
+
+		memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 		_cbItem.UpdateData(_stItem, _context.Get());
 
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
+		for (int k = 0; k < item->MeshIndex.size(); k++)
 		{
 			if (!nativeItem->MeshBits.Test(k))
 				continue;
 
-			DrawMoveableMesh(item, GetMesh(item->MeshIds[k]), room, k, view, rendererPass);
+			if (skinMode == SkinningMode::Full && g_Level.Meshes[nativeItem->Model.MeshIndex[k]].hidden)
+				continue;
+
+			DrawMesh(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view, rendererPass);
 		}
 	}
 
@@ -3204,7 +3250,7 @@ namespace TEN::Renderer
 		_swapChain->Present(1, 0);
 	}
 
-	void Renderer::DrawMoveableMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererRoom* room, int boneIndex, RenderView& view, RendererPass rendererPass)
+	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)
 	{
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
@@ -3223,9 +3269,10 @@ namespace TEN::Renderer
 						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
 
 						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::Moveable;
+						object.ObjectType = type;
 						object.Centre = center;
 						object.Distance = dist;
+						object.Skinned = skinned;
 						object.BlendMode = blendMode;
 						object.Bucket = &bucket;
 						object.Item = itemToDraw;
@@ -3400,6 +3447,7 @@ namespace TEN::Renderer
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
 					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
+					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
 					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
 					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
 				{
@@ -3412,6 +3460,32 @@ namespace TEN::Renderer
 				}
 
 				DrawItemSorted(object, lastObjectType, view);
+
+				if (i == view.TransparentObjectsToDraw.size())
+					return;
+
+				i--;
+			}
+			else if (object->ObjectType == RendererObjectType::HairPrimary ||
+					 object->ObjectType == RendererObjectType::HairSecondary)
+			{
+				while (i < view.TransparentObjectsToDraw.size() &&
+					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
+					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
+					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
+					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
+					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
+					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
+				{
+					auto* currentObject = &view.TransparentObjectsToDraw[i];
+					_sortedPolygonsIndices.bulk_push_back(
+						_moveablesIndices.data(),
+						currentObject->Polygon->BaseIndex,
+						currentObject->Polygon->Shape == 0 ? 6 : 3);
+					i++;
+				}
+
+				DrawHairSorted(object, lastObjectType, view, object->ObjectType == RendererObjectType::HairPrimary ? 0 : 1);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3653,10 +3727,22 @@ namespace TEN::Renderer
 		_stItem.World = world;
 		_stItem.Color = objectInfo->Item->Color;
 		_stItem.AmbientLight = objectInfo->Item->AmbientLight;
-		_stItem.Skinned = objectInfo->Item->ObjectID == GAME_OBJECT_ID::ID_LARA; // TODO: Implement for all skinned objects!
-		memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+		_stItem.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
 		const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];
+
+		if (objectInfo->Skinned)
+		{
+			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
+				_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+		}
+		else
+		{
+			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+		}
+
+		_cbItem.UpdateData(_stItem, _context.Get());
+
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
@@ -3753,6 +3839,78 @@ namespace TEN::Renderer
 		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
 
 		_numSortedStaticsDrawCalls++;
+		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+	}
+
+	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index)
+	{
+		if (index >= HairEffect.Units.size())
+		{
+			TENLog("Attempt to draw nonexistent hair unit", LogLevel::Warning);
+			return;
+		}
+
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_context->IASetInputLayout(_inputLayout.Get());
+
+		SetDepthState(DepthState::Read);
+		SetCullMode(CullMode::CounterClockwise);
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+		_shaders.Bind(Shader::Items);
+
+		// Bind main item properties.
+		Matrix world = objectInfo->Item->InterpolatedWorld;
+		_stItem.World = world;
+		_stItem.Color = objectInfo->Item->Color;
+		_stItem.AmbientLight = objectInfo->Item->AmbientLight;
+		_stItem.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
+
+		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
+
+		_stItem.World = Matrix::Identity;
+		_stItem.BonesMatrices[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		ReflectMatrixOptionally(_stItem.BonesMatrices[0]);
+
+		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
+
+		for (int i = 0; i < HairEffect.Units[index].Segments.size(); i++)
+		{
+			const auto& segment = HairEffect.Units[index].Segments[i];
+			auto worldMatrix = segment.GlobalTransform;
+
+			ReflectMatrixOptionally(worldMatrix);
+
+			_stItem.BonesMatrices[i + 1] = worldMatrix;
+			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+		}
+
+		_cbItem.UpdateData(_stItem, _context.Get());
+
+		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
+			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+
+		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
+		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
+		_cbItem.UpdateData(_stItem, _context.Get());
+
+		BindTexture(
+			TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[objectInfo->Bucket->Texture]),
+			SamplerStateRegister::AnisotropicClamp);
+		BindTexture(
+			TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[objectInfo->Bucket->Texture]),
+			SamplerStateRegister::AnisotropicClamp);
+
+		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
+		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+
+		_numSortedMoveablesDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 

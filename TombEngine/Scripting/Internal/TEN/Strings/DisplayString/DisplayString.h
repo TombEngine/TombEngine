@@ -21,6 +21,7 @@ Constants for Display String Options.
  - `RIGHT` - Set the horizontal origin point to right of the string.
  - `SHADOW` - Gives the string a small drop shadow.
  - `BLINK` - Blinks the string.
+ - `VERTICAL_CENTER` - Set the vertical origin point to the center of the string.
 */
 
 enum class DisplayStringOptions
@@ -29,6 +30,7 @@ enum class DisplayStringOptions
 	Outline,
 	Right,
 	Blink,
+	VerticalCenter,
 
 	Count
 };
@@ -41,7 +43,8 @@ static const std::unordered_map<std::string, DisplayStringOptions> DISPLAY_STRIN
 	{ "CENTER", DisplayStringOptions::Center },
 	{ "SHADOW", DisplayStringOptions::Outline },
 	{ "RIGHT", DisplayStringOptions::Right },
-	{ "BLINK", DisplayStringOptions::Blink }
+	{ "BLINK", DisplayStringOptions::Blink },
+	{ "VERTICAL_CENTER", DisplayStringOptions::VerticalCenter }
 };
 
 class UserDisplayString

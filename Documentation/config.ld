@@ -12,7 +12,7 @@ new_type("luautil", "5 Lua utility modules", true)
 
 not_luadoc = true
 
-local version = "1.8.2"
+local version = "1.9"
 project = "&nbsp;TombEngine"
 title = "TombEngine " .. version .. " Lua API"
 description = "TombEngine " .. version .. " scripting interface"
@@ -33,8 +33,6 @@ If you are scripting levels, TombEngine will often kick you back to the title sc
 This might get annoying, but it's on purpose. If your Lua script contains a syntax error (e.g. you're missing `end` at the end of a function), the Lua interpreter will not be able to continue running the script. If it tried to keep running, you'd probably see some pretty strange behaviour, and would possibly get a crash regardless. If this happens, check __logs/TENLog.txt__ and look for an error message with the word "unrecoverable".
 
 Happy building!
-
-\- _squidshire and the TombEngine development team._
 ]]
 
 convert_opt=true 

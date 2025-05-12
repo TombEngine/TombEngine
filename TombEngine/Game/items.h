@@ -97,6 +97,7 @@ struct EntityModelData
 {
 	int BaseMesh = 0;
 
+	int SkinIndex = NO_VALUE;
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators  = {};
 

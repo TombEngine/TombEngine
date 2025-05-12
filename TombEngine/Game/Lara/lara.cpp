@@ -61,9 +61,6 @@ CollisionInfo LaraCollision = {};
 
 static void HandlePlayerDebug(const ItemInfo& item)
 {
-	if constexpr (!DEBUG_BUILD)
-		return;
-
 	// Collision stats.
 	if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionStats)
 	{
@@ -74,9 +71,10 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	{
 		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
 	}
-	// Room stats.
-	else if (g_Renderer.GetDebugPage() == RendererDebugPage::RoomStats)
+	// Collision mesh stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
 	{
+		auto bridgeItemNumbers = std::set<int>{};
 		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
 
 		PrintDebugMessage("Room number: %d", room.RoomNumber);
@@ -84,11 +82,10 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
 		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
 
-		// Draw room collision meshes.
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
 			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
-			
+
 			neighborRoom.CollisionMesh.DrawDebug();
 
 			// Draw door collision meshes.
@@ -99,17 +96,6 @@ static void HandlePlayerDebug(const ItemInfo& item)
 
 				door.CollisionMesh.DrawDebug();
 			}
-		}
-	}
-	// Bridge stats.
-	else if (g_Renderer.GetDebugPage() == RendererDebugPage::BridgeStats)
-	{
-		auto bridgeItemNumbers = std::set<int>{};
-
-		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
-		for (int neighborRoomNumber : room.NeighborRoomNumbers)
-		{
-			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
 
 			// Collect bridge item numbers.
 			for (int bridgeItemNumber : neighborRoom.Bridges.GetIds())
@@ -131,11 +117,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		// Print bridge item numbers in sector.
 		auto pointColl = GetPointCollision(item);
 		PrintDebugMessage("Bridge moveable IDs in room %d, sector %d:", pointColl.GetRoomNumber(), pointColl.GetSector().ID);
-		if (pointColl.GetSector().BridgeItemNumbers.empty())
-		{
-			PrintDebugMessage("None");
-		}
-		else
+		if (!pointColl.GetSector().BridgeItemNumbers.empty())
 		{
 			for (int bridgeItemNumber : pointColl.GetSector().BridgeItemNumbers)
 				PrintDebugMessage("%d", bridgeItemNumber);

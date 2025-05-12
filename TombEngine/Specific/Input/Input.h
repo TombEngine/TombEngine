@@ -11,11 +11,15 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
-	enum class InputAxisID
+	enum class AxisID
 	{
 		Move,
 		Camera,
+
 		Mouse,
+		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
+		/*StickLeft,
+		StickRight,*/
 
 		Count
 	};
@@ -44,9 +48,9 @@ namespace TEN::Input
 	};
 
 	extern std::unordered_map<int, float>				  KeyMap;
-	extern std::unordered_map<InputAxisID, Vector2>		  AxisMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
 	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
+	extern std::unordered_map<AxisID, Vector2>			  AxisMap;
 
 	void InitializeInput(HWND handle);
 	void DeinitializeInput();

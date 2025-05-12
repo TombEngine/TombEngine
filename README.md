@@ -1,6 +1,6 @@
 # Tomb Engine 
 
-![Logo](https://github.com/MontyTRC89/TombEngine/blob/7c50d26ca898c74978336d41e16ce3ce0c8ecacd/TEN%20logo.png)
+![Logo](https://github.com/TombEngine/TombEngine/blob/7c50d26ca898c74978336d41e16ce3ce0c8ecacd/TEN%20logo.png)
 
 *Tomb Engine* (*TEN*) is an open-source custom level engine which aims to abolish limits and fix bugs of the classic Tomb Raider games. It aims to introduce new features, refine old ones, and provide a user-friendly level creation process. Current support includes:
 - *Lua* as the native scripting language.
@@ -38,5 +38,4 @@ Once done, you should be able to build a level with *Tomb Editor* and run it in 
 Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
 
 # Disclaimer
-Tomb Engine uses modified MIT license for non-commercial use only. For more information, see [license](LICENSE). Tomb Engine is unaffiliated with Core Design, Eidos Interactive, or Embracer Group AB. *Tomb Raider* is a registered trademark of Embracer Group AB. Tomb Engine source code is open to encourage contributions and for study purposes. Tomb Engine team is not responsible for illegal use of this source code alone or in combination with third-party assets or components. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.
-
+Tomb Engine uses modified MIT license for non-commercial use only. For more information, see [license](https://github.com/TombEngine/TombEngine?tab=License-1-ov-file#readme). Tomb Engine is unaffiliated with the Crystal Dynamics group of companies or Embracer Group AB. *Tomb Raider* is a trademark of the Crystal Dynamics group of companies. Tomb Engine team is not responsible for illegal use of this source code and built binaries alone or in combination with third-party assets or components. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.

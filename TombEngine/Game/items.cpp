@@ -168,6 +168,7 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
 		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
+		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;

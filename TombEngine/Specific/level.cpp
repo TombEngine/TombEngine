@@ -292,6 +292,7 @@ void LoadObjects()
 	{
 		auto mesh = MESH{};
 
+		mesh.hidden = ReadBool();
 		mesh.lightMode = (LightMode)ReadUInt8();
 
 		mesh.sphere.Center.x = ReadFloat();
@@ -310,8 +311,10 @@ void LoadObjects()
 		mesh.effects.resize(vertexCount);
 		ReadBytes(mesh.effects.data(), 12 * vertexCount);
 
-		mesh.bones.resize(vertexCount);
-		ReadBytes(mesh.bones.data(), 4 * vertexCount);
+		mesh.boneIndices.resize(vertexCount);
+		mesh.boneWeights.resize(vertexCount);
+		ReadBytes(mesh.boneIndices.data(), sizeof(unsigned char) * 4 * vertexCount);
+		ReadBytes(mesh.boneWeights.data(), sizeof(unsigned char) * 4 * vertexCount);
 		
 		int bucketCount = ReadCount();
 		mesh.buckets.reserve(bucketCount);
@@ -449,7 +452,8 @@ void LoadObjects()
 		}
 
 		Objects[objNum].loaded = true;
-		Objects[objNum].nmeshes = ReadInt32();
+		Objects[objNum].skinIndex = ReadInt32();
+		Objects[objNum].nmeshes   = ReadInt32();
 		Objects[objNum].meshIndex = ReadInt32();
 		Objects[objNum].boneIndex = ReadInt32();
 		Objects[objNum].frameBase = ReadInt32();

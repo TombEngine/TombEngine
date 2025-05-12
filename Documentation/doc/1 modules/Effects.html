@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -86,6 +86,7 @@
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -124,7 +125,7 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#EmitLightningArc">EmitLightningArc(origin, target, [color.], [life], [amplitude], [beamWidth], [detail], [smooth], [endDrift])</a></td>
+	<td class="name" ><a href="#EmitLightningArc">EmitLightningArc(origin, target, [color], [life], [amplitude], [beamWidth], [detail], [smooth], [endDrift])</a></td>
 	<td class="summary">Emit a lightning arc.</td>
 	</tr>
 	<tr>
@@ -193,7 +194,7 @@
     <dl class="function">
     <dt>
     <a name = "EmitLightningArc"></a>
-    <strong>EmitLightningArc(origin, target, [color.], [life], [amplitude], [beamWidth], [detail], [smooth], [endDrift])</strong>
+    <strong>EmitLightningArc(origin, target, [color], [life], [amplitude], [beamWidth], [detail], [smooth], [endDrift])</strong>
     </dt>
     <dd>
     Emit a lightning arc.
@@ -204,21 +205,15 @@
     <ul>
         <li><span class="parameter">origin</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-
-
-
+         Lightning origin (start) position.
         </li>
         <li><span class="parameter">target</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-
-
-
+         Lightning target (end) position.
         </li>
-        <li><span class="parameter">color.</span>
+        <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-
-
-
+         Color.
          <em>Default: Color(255&#44; 255&#44; 255).</em>
         </li>
         <li><span class="parameter">life</span>
@@ -436,7 +431,7 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         Origin Position.
+         World position.
         </li>
         <li><span class="parameter">innerRadius</span>
             <span class="types"><span class="type">int</span></span>
@@ -494,7 +489,7 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         position of the light
+         World position of the light.
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -537,11 +532,11 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         position of the light
+         World position of the light.
         </li>
         <li><span class="parameter">dir</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         normal which indicates light direction
+         Normal which indicates light direction.
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -593,9 +588,7 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-
-
-
+         World position.
         </li>
         <li><span class="parameter">count</span>
             <span class="types"><span class="type">int</span></span>
@@ -654,7 +647,7 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         Position.
+         World position.
         </li>
         <li><span class="parameter">size</span>
             <span class="types"><span class="type">float</span></span>
@@ -681,9 +674,7 @@ EmitAdvancedParticle(particle)</pre>
     <ul>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-
-
-
+         World position.
         </li>
         <li><span class="parameter">size</span>
             <span class="types"><span class="type">float</span></span>

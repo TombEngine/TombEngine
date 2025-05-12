@@ -128,7 +128,7 @@ namespace TEN::Scripting::Input
 	// 
 	// @table Input.ActionID
 
-	static const std::unordered_map<std::string, ActionID> ACTION_IDS
+	static const auto ACTION_IDS = std::unordered_map<std::string, ActionID>
 	{
 		{ "FORWARD", In::Forward },
 		{ "BACK", In::Back },

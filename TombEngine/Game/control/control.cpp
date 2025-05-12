@@ -364,7 +364,7 @@ unsigned CALLBACK GameMain(void *)
 	// Play intro video.
 	if (!g_GameFlow->IntroVideoPath.empty())
 	{
-		g_VideoPlayer.Play(g_GameFlow->IntroVideoPath);
+		g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
 		while (DoTheGame && g_VideoPlayer.Update());
 	}
 

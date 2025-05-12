@@ -93,12 +93,16 @@ namespace TEN::Input
 		Vehicle,
 		Quick,
 		Menu,
+
 		Keyboard,
 		Mouse,
 		//Gamepad
 	};
 
 	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;
+	extern const std::vector<ActionGroupID>			USER_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupID>			RAW_ACTION_GROUP_IDS;
+
 
 	class Action
 	{

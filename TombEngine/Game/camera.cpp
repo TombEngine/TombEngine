@@ -94,7 +94,7 @@ void DoThumbstickCamera()
 
 	if (Camera.laraNode == -1 && Camera.target.ToVector3i() == OldCam.target)
 	{
-		const auto& axisCoeff = AxisMap[InputAxisID::Camera];
+		const auto& axisCoeff = AxisMap[AxisID::Camera];
 
 		if (abs(axisCoeff.x) > EPSILON && abs(Camera.targetAngle) == 0)
 			Camera.targetAngle = ANGLE(VERTICAL_CONSTRAINT_ANGLE * axisCoeff.x);

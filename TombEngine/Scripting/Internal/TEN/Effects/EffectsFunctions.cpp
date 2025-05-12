@@ -50,9 +50,9 @@ namespace TEN::Scripting::Effects
 {
 	/// Emit a lightning arc.  
 	// @function EmitLightningArc
-	// @tparam Vec3 origin
-	// @tparam Vec3 target
-	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color.
+	// @tparam Vec3 origin Lightning origin (start) position.
+	// @tparam Vec3 target Lightning target (end) position.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
 	// @tparam[opt=1] float life Lifetime in seconds. Clamped to [0, 4.233] for now because of strange internal maths.
 	// @tparam[opt=20] int amplitude Strength of the lightning - the higher the value, the "taller" the arcs. Clamped to [1, 255].
 	// @tparam[opt=2] int beamWidth Beam width. Clamped to [1, 127].
@@ -402,7 +402,7 @@ namespace TEN::Scripting::Effects
 	
 	/// Emit a shockwave, similar to that seen when a harpy projectile hits something.
 	// @function EmitShockwave
-	// @tparam Vec3 pos Origin Position.
+	// @tparam Vec3 pos World position.
 	// @tparam[opt=0] int innerRadius Initial inner radius of the shockwave circle - 128 will be approx a click, 512 approx a block.
 	// @tparam[opt=128] int outerRadius Initial outer radius of the shockwave circle.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
@@ -443,7 +443,7 @@ namespace TEN::Scripting::Effects
 	/// Emit dynamic light that lasts for a single frame.
 	// If you want a light that sticks around, you must call this each frame.
 	// @function EmitLight
-	// @tparam Vec3 pos position of the light
+	// @tparam Vec3 pos World position of the light.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color light color.
 	// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
@@ -458,8 +458,8 @@ namespace TEN::Scripting::Effects
 	/// Emit dynamic directional spotlight that lasts for a single frame.
 	// If you want a light that sticks around, you must call this each frame.
 	// @function EmitSpotLight
-	// @tparam Vec3 pos position of the light
-	// @tparam Vec3 dir normal which indicates light direction
+	// @tparam Vec3 pos World position of the light.
+	// @tparam Vec3 dir Normal which indicates light direction.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
 	// @tparam[opt=10] int radius Overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units.
 	// @tparam[opt=5] int falloff Radius, at which light starts to fade out, measured in "clicks".
@@ -477,7 +477,7 @@ namespace TEN::Scripting::Effects
 
 	/// Emit blood.
 	// @function EmitBlood
-	// @tparam Vec3 pos
+	// @tparam Vec3 pos World position.
 	// @tparam[opt=1] int count Sprite count.
 	static void EmitBlood(const Vec3& pos, TypeOrNil<int> count)
 	{
@@ -502,7 +502,7 @@ namespace TEN::Scripting::Effects
 
 	/// Emit fire for one frame. Will not hurt player. Call this each frame if you want a continuous fire.
 	// @function EmitFire
-	// @tparam Vec3 pos Position.
+	// @tparam Vec3 pos World position.
 	// @tparam[opt=1] float size Fire size.
 	static void EmitFire(const Vec3& pos, TypeOrNil<float> size)
 	{
@@ -511,7 +511,7 @@ namespace TEN::Scripting::Effects
 
 	/// Make an explosion. Does not hurt Lara
 	// @function MakeExplosion 
-	// @tparam Vec3 pos
+	// @tparam Vec3 pos World position.
 	// @tparam[opt=512] float size This will not be the size of the sprites, but rather the distance between the origin and any additional sprites.
 	// @tparam[opt=false] bool shockwave If true, create a very faint white shockwave which will not hurt Lara.
 	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave)

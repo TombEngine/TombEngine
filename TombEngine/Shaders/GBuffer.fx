@@ -116,7 +116,7 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	PixelShaderInput output;
 	
 	// Blend and apply world matrix
-	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, true) : Bones[input.BoneIndex[0]];
+	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
 	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects

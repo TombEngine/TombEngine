@@ -30,9 +30,9 @@ namespace TEN::Input
 
 	RumbleData									   RumbleInfo = {};
 	std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
-	std::unordered_map<InputAxisID, Vector2>	   AxisMap;			// Key = axis ID, value = axis.
 	std::unordered_map<ActionID, Action>		   ActionMap;		// Key = action ID, value = action.
 	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
+	std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
 	// OIS interfaces
 
@@ -71,19 +71,19 @@ namespace TEN::Input
 		for (int i = 0; i < KEY_COUNT; i++)
 			KeyMap[i] = 0.0f;
 
-		// Initialize axis map.
-		for (int i = 0; i < (int)InputAxisID::Count; i++)
-		{
-			auto inputAxis = (InputAxisID)i;
-			AxisMap[inputAxis] = Vector2::Zero;
-		}
-
 		// Initialize action and action queue maps.
 		for (int i = 0; i < (int)ActionID::Count; i++)
 		{
 			auto actionID = (ActionID)i;
 			ActionMap[actionID] = Action(actionID);
 			ActionQueueMap[actionID] = ActionQueueState::None;
+		}
+
+		// Initialize axis map.
+		for (int i = 0; i < (int)AxisID::Count; i++)
+		{
+			auto axisID = (AxisID)i;
+			AxisMap[axisID] = Vector2::Zero;
 		}
 
 		try
@@ -275,19 +275,19 @@ namespace TEN::Input
 			auto profileID = (BindingProfileID)i;
 			if (g_Bindings.GetBoundKeyID(profileID, In::Forward) == keyID)
 			{
-				AxisMap[InputAxisID::Move].y = 1.0f;
+				AxisMap[AxisID::Move].y = 1.0f;
 			}
 			else if (g_Bindings.GetBoundKeyID(profileID, In::Back) == keyID)
 			{
-				AxisMap[InputAxisID::Move].y = -1.0f;
+				AxisMap[AxisID::Move].y = -1.0f;
 			}
 			else if (g_Bindings.GetBoundKeyID(profileID, In::Left) == keyID)
 			{
-				AxisMap[InputAxisID::Move].x = -1.0f;
+				AxisMap[AxisID::Move].x = -1.0f;
 			}
 			else if (g_Bindings.GetBoundKeyID(profileID, In::Right) == keyID)
 			{
-				AxisMap[InputAxisID::Move].x = 1.0f;
+				AxisMap[AxisID::Move].x = 1.0f;
 			}
 		}
 	}
@@ -399,7 +399,7 @@ namespace TEN::Input
 			normAxes *= sensitivity;
 
 			// Set mouse axis values.
-			AxisMap[InputAxisID::Mouse] = normAxes;
+			AxisMap[AxisID::Mouse] = normAxes;
 		}
 		catch (OIS::Exception& ex)
 		{
@@ -407,7 +407,7 @@ namespace TEN::Input
 		}
 	}
 	
-	static void ReadGameController()
+	static void ReadGamepad()
 	{
 		if (OisGamepad == nullptr)
 			return;
@@ -424,7 +424,7 @@ namespace TEN::Input
 			// Poll axes.
 			for (int axis = 0; axis < state.mAxes.size(); axis++)
 			{
-				// NOTE: Anything above 6 existing XBOX/PS controller axes not supported (2 sticks plus 2 triggers).
+				// NOTE: Anything above 6 existing XBOX/PS controller axes not supported (2 sticks + 2 triggers).
 				if (axis >= GAMEPAD_AXIS_COUNT)
 					break;
 
@@ -452,33 +452,33 @@ namespace TEN::Input
 				// Register analog input in certain direction.
 				// If axis is bound as directional controls, register axis as directional input.
 				// Otherwise, register as camera movement input (for future).
-				// NOTE: abs() operations are needed to avoid issues with inverted axes on different controllers.
+				// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
 
 				if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
 				{
-					AxisMap[InputAxisID::Move].y = abs(scaledValue);
+					AxisMap[AxisID::Move].y = abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
 				{
-					AxisMap[InputAxisID::Move].y = -abs(scaledValue);
+					AxisMap[AxisID::Move].y = -abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left)  == usedKeyID)
 				{
-					AxisMap[InputAxisID::Move].x = -abs(scaledValue);
+					AxisMap[AxisID::Move].x = -abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
 				{
-					AxisMap[InputAxisID::Move].x = abs(scaledValue);
+					AxisMap[AxisID::Move].x = abs(scaledValue);
 				}
 				else if (!TestBoundKey(usedKeyID))
 				{
 					if ((axis % 2) == 0)
 					{
-						AxisMap[InputAxisID::Camera].y = normalizedValue;
+						AxisMap[AxisID::Camera].y = normalizedValue;
 					}
 					else
 					{
-						AxisMap[InputAxisID::Camera].x = normalizedValue;
+						AxisMap[AxisID::Camera].x = normalizedValue;
 					}
 				}
 			}
@@ -655,7 +655,7 @@ namespace TEN::Input
 			UpdateRumble();
 			ReadKeyboard();
 			ReadMouse();
-			ReadGameController();
+			ReadGamepad();
 		}
 
 		DefaultConflict();
@@ -847,16 +847,16 @@ namespace TEN::Input
 
 	const Vector2& GetMoveAxis()
 	{
-		return AxisMap[InputAxisID::Move];
+		return AxisMap[AxisID::Move];
 	}
 
 	const Vector2& GetCameraAxis()
 	{
-		return AxisMap[InputAxisID::Camera];
+		return AxisMap[AxisID::Camera];
 	}
 
 	const Vector2& GetMouseAxis()
 	{
-		return AxisMap[InputAxisID::Mouse];
+		return AxisMap[AxisID::Mouse];
 	}
 }
