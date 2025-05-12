@@ -1069,7 +1069,7 @@ void DoLaraFallDamage(ItemInfo* item)
 		else
 		{
 			float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
-			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f));
+			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f), true);
 		}
 
 		float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;

@@ -6,7 +6,7 @@ struct SinkInfo;
 struct SoundSourceInfo;
 struct TriggerVolume;
 struct AI_OBJECT;
-struct ROOM_INFO;
+struct RoomData;
 
 using VarMapVal = std::variant<
 	int,
@@ -16,4 +16,4 @@ using VarMapVal = std::variant<
 	std::reference_wrapper<SoundSourceInfo>,
 	std::reference_wrapper<TriggerVolume>,
 	std::reference_wrapper<AI_OBJECT>,
-	std::reference_wrapper<ROOM_INFO>>;
+	std::reference_wrapper<RoomData>>;

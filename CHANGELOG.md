@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 * Fixed Teleporter object.
 * Fixed Wraith objects not working correctly in flipped rooms.
+* Fixed collision issues for subsector bridges and bridges moving between rooms.
 * Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
 * Fixed HK shots not being registered in statistics.
@@ -25,6 +26,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SSAO incorrectly applied through alpha blended textures.
 * Fixed static meshes not interpolating when dynamically changing their positional data.
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
+* Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Removed legacy TR5 search object code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.

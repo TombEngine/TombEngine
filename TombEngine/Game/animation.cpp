@@ -474,6 +474,12 @@ void SetAnimation(ItemInfo* item, int animNumber, int frameNumber)
 
 const AnimData& GetAnimData(int animIndex)
 {
+	if (animIndex < 0 || animIndex >= g_Level.Anims.size())
+	{
+		TENLog("GetAnimData() attempted to access incorrect animation.", LogLevel::Error);
+		return g_Level.Anims[0];
+	}
+
 	return g_Level.Anims[animIndex];
 }
 
@@ -491,7 +497,15 @@ const AnimData& GetAnimData(const ObjectInfo& object, int animNumber)
 const AnimData& GetAnimData(const ItemInfo& item, int animNumber)
 {
 	if (animNumber == NO_VALUE)
+	{
+		if (item.Animation.AnimNumber == NO_VALUE)
+		{
+			TENLog("Object " + GetObjectName(item.ObjectNumber) + " has no animations.", LogLevel::Error);
+			return GetAnimData(0);
+		}
+
 		return GetAnimData(item.Animation.AnimNumber);
+	}
 
 	const auto& object = Objects[item.Animation.AnimObjectID];
 	return GetAnimData(object, animNumber);

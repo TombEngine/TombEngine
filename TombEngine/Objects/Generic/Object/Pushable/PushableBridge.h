@@ -10,8 +10,7 @@ namespace TEN::Entities::Generic
 	int GetPushableBridgeFloorBorder(const ItemInfo& item);
 	int GetPushableBridgeCeilingBorder(const ItemInfo& item);
 
-	void AddPushableBridge(ItemInfo& pushableItem);
-	void AddPushableStackBridge(ItemInfo& pushableItem, bool addBridge);
-	void RemovePushableBridge(ItemInfo& pushableItem);
-	void UpdatePushableBridge(const ItemInfo& pushableItem);
+	void EnablePushableBridge(ItemInfo& pushableItem);
+	void EnablePushableStackBridge(ItemInfo& pushableItem, bool addBridge);
+	void DisablePushableBridge(ItemInfo& pushableItem);
 }

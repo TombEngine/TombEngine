@@ -393,7 +393,7 @@ void ClassicRollingBallControl(short itemNum)
 {
 	int ydist, dist;
 	GameVector* old;
-	ROOM_INFO* r;
+	RoomData* r;
 
 	auto* item = &g_Level.Items[itemNum];
 
