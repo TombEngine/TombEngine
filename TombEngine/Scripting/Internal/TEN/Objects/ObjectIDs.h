@@ -1258,7 +1258,8 @@ The following ObjID members refer to sprites.
 	RAIN_SPRITES
 @table SpriteConstants
 */
-static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
+static const auto GAME_OBJECT_IDS = std::unordered_map<std::string, GAME_OBJECT_ID>
+{
 	{ "LARA", ID_LARA },
 	{ "LARA_EXTRA_ANIMS", ID_LARA_EXTRA_ANIMS },
 	{ "PISTOLS_ANIM", ID_PISTOLS_ANIM },

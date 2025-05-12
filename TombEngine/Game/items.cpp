@@ -715,10 +715,8 @@ const std::string& GetObjectName(GAME_OBJECT_ID objectID)
 {
 	static const auto UNKNOWN_OBJECT = std::string("Unknown Object");
 
-	for (auto it = GAME_OBJECT_IDS.begin(); it != GAME_OBJECT_IDS.end(); ++it)
+	for (const auto& [name, id] : GAME_OBJECT_IDS)
 	{
-		const auto [name, id] = *it;
-
 		if (id == objectID)
 			return name;
 	}
