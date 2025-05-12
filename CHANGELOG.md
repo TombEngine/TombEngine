@@ -14,8 +14,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed exclusion blend mode not working correctly.
 * Fixed SSAO incorrectly applied through alpha blended textures.
 * Fixed HK sound effects.
-* Fixed fish missing random targets due to spacing.
-* Fixed fishes and compies not attacking corpses anymore.
+* Fixed fishes missing random targets due to distance.
+* Fixed fishes and compsognatuses not attacking corpses.
 
 ### New features
 * Added muzzle glow effect for firearms.
