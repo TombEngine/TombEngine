@@ -8,30 +8,44 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## New features
 * Added video playback support.
 * Added muzzle glow effect for firearms.
+* Added weather particle clustering and increase weather particle performance.
+* Added examine mode text rendering (string key should be in the format like `examine1_text` etc).
 
 ### Bug fixes
-* Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
 * Fixed Teleporter object.
 * Fixed Wraith objects not working correctly in flipped rooms.
-* Fixed lensflare enabled status not saved in a savegame.
+* Fixed fishes missing random targets due to distance.
+* Fixed fishes and compsognatuses not attacking corpses.
+* Fixed collision issues for subsector bridges and bridges moving between rooms.
+* Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
 * Fixed HK shots not being registered in statistics.
 * Fixed distorted knee and elbow joint vertices.
+* Fixed multi-mesh objects not shattering correctly.
+* Fixed splash effects remaining in the level after reloading from the savegame.
 * Fixed caustics not rendered correctly if texture compression was enabled.
 * Fixed exclusion blend mode not working correctly.
-* Updated MakeExplosion and EmitBlood to spawn correct effects when used underwater.
 * Fixed SSAO incorrectly applied through alpha blended textures.
+* Fixed static meshes not interpolating when dynamically changing their positional data.
+* Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
+* Fixed crashes when activating objects without animations.
+* Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Removed legacy TR5 search object code which caused issues with meshswaps.
+* Removed excessive HK nerfing in running state.
+* Updated MakeExplosion and EmitBlood to spawn correct effects when used underwater.
 
 ### Lua API changes
-* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
+* Added `Effects.EmitFlow` and `Effects.EmitWaterfallMist` functions.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
+* Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxis` functions.
+* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
+* Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration. 
+* Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
-* Added `EmitWaterfallMist` under Effects.
-* Added `EmitSink` under Effects.
+* Fixed `Util.PickMoveableByDisplayPosition`.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
 

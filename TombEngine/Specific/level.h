@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Game/animation.h"
 #include "Game/control/event.h"
 #include "Game/items.h"
@@ -103,35 +104,41 @@ struct MirrorData
 // LevelData
 struct LEVEL
 {
-	// Object data
+	// Object
+
 	int					  NumItems = 0;
 	std::vector<ItemInfo> Items	   = {};
 	std::vector<MESH>	  Meshes   = {};
 	std::vector<int>	  Bones	   = {};
 
-	// Animation data
+	// Animation
+
 	std::vector<AnimData>				Anims	 = {};
 	std::vector<AnimFrame>				Frames	 = {};
 	std::vector<StateDispatchData>		Changes	 = {};
 	std::vector<StateDispatchRangeData> Ranges	 = {};
 	std::vector<int>					Commands = {};
 
-	// Collision data
-	std::vector<ROOM_INFO> Rooms	 = {};
-	std::vector<short>	   FloorData = {};
-	std::vector<SinkInfo>  Sinks	 = {};
+	// Collision
 
-	// Pathfinding data
+	std::vector<RoomData> Rooms		= {};
+	std::vector<short>	  FloorData = {};
+	std::vector<SinkInfo> Sinks		= {};
+
+	// Pathfinding
+
 	std::vector<BOX_INFO> PathfindingBoxes				   = {};
 	std::vector<OVERLAP>  Overlaps						   = {};
 	std::vector<int>	  Zones[(int)ZoneType::MaxZone][2] = {};
 
-	// Sound data
+	// Sound
+
 	std::vector<short>			 SoundMap	  = {};
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc. data
+	// Misc.
+
 	std::vector<LevelCameraInfo> Cameras   = {};
 	std::vector<EventSet>		 GlobalEventSets = {};
 	std::vector<EventSet>		 VolumeEventSets = {};
@@ -140,7 +147,8 @@ struct LEVEL
 	std::vector<SPRITE>			 Sprites   = {};
 	std::vector<MirrorData>		 Mirrors = {};
 
-	// Texture data
+	// Texture
+
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
 	std::vector<TEXTURE> MoveablesTextures = {};
@@ -181,8 +189,6 @@ void LoadAnimatedTextures();
 void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
-
-void LoadPortal(ROOM_INFO& room);
 
 void GetCarriedItems();
 void GetAIPickups();

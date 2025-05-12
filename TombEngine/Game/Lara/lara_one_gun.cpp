@@ -1120,13 +1120,9 @@ bool FireHK(ItemInfo& laraItem, bool inaccurateMode)
 	
 	// HACK: Backup unmodified accuracy/damage values.
 	short accuracy = Weapons[(int)LaraWeaponType::HK].ShotAccuracy;
-	int damage = Weapons[(int)LaraWeaponType::HK].Damage;
 
 	if (inaccurateMode)
-	{
 		Weapons[(int)LaraWeaponType::HK].ShotAccuracy = accuracy * 3;
-		Weapons[(int)LaraWeaponType::HK].Damage = damage / 3;
-	}
 
 	bool hasFired = FireWeapon(LaraWeaponType::HK, player.TargetEntity, laraItem, angles) != FireWeaponType::NoAmmo;
 
@@ -1138,7 +1134,6 @@ bool FireHK(ItemInfo& laraItem, bool inaccurateMode)
 
 	// HACK: Restore accuracy/damage values.
 	Weapons[(int)LaraWeaponType::HK].ShotAccuracy = accuracy;
-	Weapons[(int)LaraWeaponType::HK].Damage = damage;
 
 	return hasFired;
 }

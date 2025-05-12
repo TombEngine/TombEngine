@@ -476,14 +476,14 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	if ((IsHeld(In::Forward) || IsHeld(In::Back)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Vertical))
 	{
-		axisCoeff.x = AxisMap[InputAxisID::Move].y;
+		axisCoeff.x = AxisMap[AxisID::Move].y;
 	}
 
 	// Determine Y axis coefficient.
 	if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Horizontal))
 	{
-		axisCoeff.y = AxisMap[InputAxisID::Move].x;
+		axisCoeff.y = AxisMap[AxisID::Move].x;
 	}
 
 	// Determine turn rate base values.
@@ -583,7 +583,7 @@ void HandlePlayerLean(ItemInfo* item, CollisionInfo* coll, short baseRate, short
 	if (!item->Animation.Velocity.z)
 		return;
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = maxAngle * axisCoeff;
 
@@ -604,7 +604,7 @@ void HandlePlayerCrawlFlex(ItemInfo& item)
 	if (item.Animation.Velocity.z == 0.0f)
 		return;
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = FLEX_ANGLE_MAX * axisCoeff;
 
@@ -1069,7 +1069,7 @@ void DoLaraFallDamage(ItemInfo* item)
 		else
 		{
 			float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
-			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f));
+			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f), true);
 		}
 
 		float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;
@@ -1231,7 +1231,7 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 {
 	auto* lara = GetLaraInfo(item);
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	if (item->Animation.IsAirborne)
 	{
 		int sign = std::copysign(1, axisCoeff);

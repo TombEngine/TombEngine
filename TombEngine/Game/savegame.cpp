@@ -1020,7 +1020,7 @@ const std::vector<byte> SaveGame::Build()
 	// Action queue
 	std::vector<int> actionQueue;
 	for (int i = 0; i < ActionQueueMap.size(); i++)
-		actionQueue.push_back((int)ActionQueueMap[(InputActionID)i]);
+		actionQueue.push_back((int)ActionQueueMap[(ActionID)i]);
 	auto actionQueueOffset = fbb.CreateVector(actionQueue);
 
 	// Flipmaps
@@ -1081,7 +1081,6 @@ const std::vector<byte> SaveGame::Build()
 			Save::StaticMeshInfoBuilder staticMesh{ fbb };
 
 			staticMesh.add_pose(&FromPose(room->mesh[j].pos));
-			staticMesh.add_scale(room->mesh[j].scale);
 			staticMesh.add_color(&FromVector4(room->mesh[j].color));
 
 			staticMesh.add_flags(room->mesh[j].flags);
@@ -1843,6 +1842,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 
+	level->LevelFarView = s->level_data()->level_far_view();
+
 	level->Fog.MaxDistance = s->level_data()->fog_max_distance();
 	level->Fog.MinDistance = s->level_data()->fog_min_distance();
 	level->Fog.SetColor(s->level_data()->fog_color());
@@ -2516,7 +2517,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		room->mesh[number].pos = ToPose(*staticMesh->pose());
 		room->mesh[number].roomNumber = staticMesh->room_number();
-		room->mesh[number].scale = staticMesh->scale();
 		room->mesh[number].color = ToVector4(staticMesh->color());
 
 		room->mesh[number].flags = staticMesh->flags();
@@ -2578,7 +2578,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	for (int i = 0; i < s->action_queue()->size(); i++)
 	{
 		TENAssert(i < ActionQueueMap.size(), "Action queue size was changed.");
-		ActionQueueMap[(InputActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
+		ActionQueueMap[(ActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
 	}
 
 	// Legacy soundtrack map.
@@ -2622,9 +2622,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	{
 		const Save::Item* savedItem = s->items()->Get(i);
 
-		bool dynamicItem = i >= g_Level.NumItems;
+		bool isDynamicItem = (i >= g_Level.NumItems);
 
-		ItemInfo* item = &g_Level.Items[i];
+		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
 
 		item->NextItem = savedItem->next_item();
@@ -2633,7 +2633,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
 
-		ObjectInfo* obj = &Objects[item->ObjectNumber];
+		const auto* object = &Objects[item->ObjectNumber];
 		
 		item->Name = savedItem->lua_name()->str();
 		if (!item->Name.empty())
@@ -2664,9 +2664,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			continue;
 		}
 
-		// If object is bridge - remove it from existing sectors.
+		// Remove bridge from sectors.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Remove);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Disable(*item);
+		}
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
@@ -2679,7 +2682,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Animation.ActiveState = savedItem->active_state();
 		item->Animation.RequiredState = savedItem->required_state();
 		item->Animation.TargetState = savedItem->target_state();
-		item->Animation.AnimNumber = obj->animIndex + savedItem->anim_number();
+		item->Animation.AnimNumber = object->animIndex + savedItem->anim_number();
 		item->Animation.FrameNumber = savedItem->frame_number();
 		item->Animation.Velocity = ToVector3(savedItem->velocity());
 
@@ -2735,12 +2738,15 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + savedItem->anim_number();
 		}
 
-		// Re-add bridges at new position.
+		// Initialize bridges.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Initialize);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Initialize(*item);
+		}
 
 		// Creature data for intelligent items.
-		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && obj->intelligent)
+		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && object->intelligent)
 		{
 			EnableEntityAI(i, true, false);
 
@@ -2858,7 +2864,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
 
-			pushable->BehaviorState = (PushableBehaviourState)savedPushable->pushable_behaviour_state();
+			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();
 			pushable->Oscillation = savedPushable->pushable_water_force();
 

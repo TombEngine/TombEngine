@@ -15,6 +15,7 @@ namespace TEN::Renderer::Structures
 		int ObjectNumber;
 		int RoomNumber;
 		int IndexInRoom;
+		Pose PrevPose;
 		Pose Pose;
 		Matrix World;
 		Vector4 Color;
@@ -24,14 +25,15 @@ namespace TEN::Renderer::Structures
 		bool CacheLights;
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
-		float Scale;
 
-		void Update()
+		void Update(float interpolationFactor)
 		{
-			World = (Pose.Orientation.ToRotationMatrix() *
-				Matrix::CreateScale(Scale) *
-				Matrix::CreateTranslation(Pose.Position.x, Pose.Position.y, Pose.Position.z));
-			Sphere = BoundingSphere(Vector3::Transform(OriginalSphere.Center, World), OriginalSphere.Radius * Scale);
+			auto pos = Vector3::Lerp(PrevPose.Position.ToVector3(), Pose.Position.ToVector3(), interpolationFactor);
+			auto scale = Vector3::Lerp(PrevPose.Scale, Pose.Scale, interpolationFactor);
+			auto orient = Matrix::Lerp(PrevPose.Orientation.ToRotationMatrix(), Pose.Orientation.ToRotationMatrix(), interpolationFactor);
+
+			World = (orient * Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos));
+			Sphere = BoundingSphere(Vector3::Transform(OriginalSphere.Center, World), OriginalSphere.Radius * std::max(std::max(Pose.Scale.x, Pose.Scale.y), Pose.Scale.z));
 			CacheLights = true;
 		}
 	};

@@ -543,6 +543,7 @@ void CleanUp()
 	ClearFootprints();
 	ClearDrips();
 	ClearRipples();
+	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
 	DisableSmokeParticles();

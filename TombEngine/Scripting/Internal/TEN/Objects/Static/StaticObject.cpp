@@ -98,7 +98,8 @@ namespace TEN::Scripting
 	// @treturn float World scale.
 	float Static::GetScale() const
 	{
-		return _static.scale;
+		// TODO: Decide what to return when Vector3 scale is also exposed.
+		return _static.pos.Scale.x;
 	}
 
 	/// Get this static's color.
@@ -193,7 +194,7 @@ namespace TEN::Scripting
 	// @tparam float scale New world scale.
 	void Static::SetScale(float scale)
 	{
-		_static.scale = scale;
+		_static.pos.Scale = Vector3(scale);
 		_static.Dirty = true;
 	}
 

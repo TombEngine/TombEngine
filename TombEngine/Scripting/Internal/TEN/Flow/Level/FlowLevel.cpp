@@ -140,24 +140,6 @@ void Level::SetWeatherStrength(float val)
 	}
 }
 
-void Level::SetLevelFarView(short val)
-{
-	static_assert(MIN_FAR_VIEW == 3200.0f, "Please update the comment, docs, and warning message if this number changes.");
-	const short min = std::ceil(MIN_FAR_VIEW / BLOCK(1));
-	bool cond = val >= min;
-
-	std::string msg{ "farView value must be 4 or greater." };
-	if (!ScriptAssert(cond, msg))
-	{
-		// Will be set to default by the renderer
-		LevelFarView = 0;
-	}
-	else
-	{
-		LevelFarView = val;
-	}
-}
-
 const SkyLayer& Level::GetSkyLayer(int index) const
 {
 	TENAssert(index == 0 || index == 1, "Sky layer index must be 0 or 1.");
@@ -224,7 +206,7 @@ float Level::GetFogMaxDistance() const
 	return Fog.MaxDistance;
 }
 
-short Level::GetFarView() const
+float Level::GetFarView() const
 {
 	return float(LevelFarView);
 }
