@@ -178,7 +178,7 @@ bool SwitchTrigger(short itemNumber, short timer)
 
 	//Handle Pulley
 	if (item.ObjectNumber == ID_PULLEY)
-		TriggerPulley(itemNumber, timer);
+		return TriggerPulley(itemNumber, timer);
 
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
