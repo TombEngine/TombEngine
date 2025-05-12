@@ -30,13 +30,13 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed excessive HK nerfing in running state.
 
 ### Lua API changes
-* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
+* Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxis` functions.
+* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration. 
-* Added `Input.IsKeyPulsed` and `Input.IsKeyReleased` functions.
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 * Fixed `Util.PickMoveableByDisplayPosition`.
