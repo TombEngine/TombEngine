@@ -240,8 +240,8 @@ namespace TEN::Entities::Creatures::TR3
 
 	void UpdateFishSwarm()
 	{
-		constexpr auto WATER_SURFACE_OFFSET = CLICK(0.5f);
-		constexpr auto FLEE_VEL				= 20.0f;
+		constexpr auto WATER_SURFACE_OFFSET		= CLICK(0.5f);
+		constexpr auto FLEE_VEL					= 20.0f;
 		constexpr auto TARGET_REACHED_TOLERANCE = BLOCK(0.5f);
 
 		static const auto SPHERE = BoundingSphere(Vector3::Zero, BLOCK(1 / 8.0f));

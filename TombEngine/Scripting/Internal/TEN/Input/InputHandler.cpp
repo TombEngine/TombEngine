@@ -31,7 +31,8 @@ namespace TEN::Scripting::Input
 
 	/// Get the analog value of an action key.
 	// Returns either 0 or 1 for digital key mappings (e.g. keyboard or gamepad buttons),
-	// but may return arbirtrary values for analog key mappings (e.g. gamepad or mouse axes).
+	// but may return arbitrary values in the range 0 to 1 for analog key mappings
+	// (e.g. gamepad sticks, gamepad triggers, or mouse axes).
 	// @function GetAnalogKeyValue
 	// @tparam Input.ActionID actionID Action ID to query.
 	// @treturn float Analog value in the range [0, 1].
@@ -115,7 +116,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Simulate an action key push.
-	// @function KeyPush
+	// @function PushKey
 	// @tparam Input.ActionID actionID Action ID to push.
 	static void PushKey(int actionID)
 	{
@@ -126,7 +127,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Clear an action key.
-	// @function KeyClear
+	// @function ClearKey
 	// @tparam Input.ActionID actionID Action ID to clear.
 	static void ClearKey(int actionID)
 	{
@@ -137,7 +138,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Clear all action keys.
-	// @function KeyClearAll
+	// @function ClearAllKeys
 	static void ClearAllKeys()
 	{
 		for (auto& [keyActionID, queue] : ActionQueueMap)

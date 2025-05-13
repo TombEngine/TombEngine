@@ -11,7 +11,7 @@ namespace TEN::Scripting::Input
 	// @pragma nostrip
 
 	/// Table of Input.AxisID constants.
-	// To be used with @{Input.GetAxis}.
+	// To be used with @{Input.GetAnalogAxis}.
 	//
 	//	MOVE
 	//	CAMERA
