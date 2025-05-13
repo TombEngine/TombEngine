@@ -544,7 +544,7 @@ namespace TEN::Renderer
 					// HACK: mesh pointer 0 is the placeholder for Lara's body parts and is right hand with pistols
 					// We need to override the bone index because the engine will take mesh 0 while drawing pistols anim,
 					// and vertices have bone index 0 and not 10.
-					RendererMesh *mesh = GetRendererMeshFromTrMesh(
+					auto* mesh = GetRendererMeshFromTrMesh(
 						&moveable,
 						&g_Level.Meshes[obj->meshIndex + j],
 						j, MoveablesIds[i] == ID_LARA_SKIN_JOINTS,
@@ -556,7 +556,7 @@ namespace TEN::Renderer
 
 				if (obj->skinIndex != NO_VALUE)
 				{
-					RendererMesh* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
+					auto* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
 					_meshes.push_back(mesh);
 				}
 
@@ -767,7 +767,7 @@ namespace TEN::Renderer
 										for (int b = 1; b < vertex.BoneIndex[w]; b++)
 											offset += GetJointOffset((GAME_OBJECT_ID)MoveablesIds[i], b, true);
 
-										vertex.Position += offset * (vertex.BoneWeight[w] / 255.0f);
+										vertex.Position += offset * (vertex.BoneWeight[w] / (float)UCHAR_MAX);
 									}
 								}
 							}
