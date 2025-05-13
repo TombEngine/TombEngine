@@ -742,7 +742,7 @@ Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSig
 	if (g_Level.Bones.size() <= boneIndex)
 		return Vector3::Zero;
 
-	int* bonePtr = &g_Level.Bones[object.boneIndex + (jointIndex * 4)];
+	int* bonePtr = &g_Level.Bones[boneIndex];
 	auto result = Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
 
 	if (discardZSign)

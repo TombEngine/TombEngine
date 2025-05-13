@@ -154,10 +154,6 @@ namespace TEN::Effects::Hair
 	Vector3 HairUnit::GetRelBaseOffset(int hairUnitID, bool isYoung)
 	{
 		auto objectID = isYoung && hairUnitID ? ID_HAIR_SECONDARY : ID_HAIR_PRIMARY;
-
-		if (Objects[objectID].skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning)
-			return Vector3::Zero;
-
 		return g_GameFlow->GetSettings()->Hair[GetHairTypeIndex(hairUnitID, isYoung)].Offset;
 	}
 

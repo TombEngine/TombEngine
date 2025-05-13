@@ -390,10 +390,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 				worldMatrix = Matrix::CreateRotationY(PI) * worldMatrix;
 
 			ReflectMatrixOptionally(worldMatrix);
-			_stItem.BonesMatrices[j + 1] = worldMatrix;
-
-			// Store calculated world matrix not to recalculate it when drawing alpha blended polygons.
-			segment.GlobalTransform = worldMatrix;
+			_stItem.BonesMatrices[j + 1] = segment.GlobalTransform = worldMatrix;
 
 			_stItem.BoneLightModes[j] = (int)LightMode::Dynamic;
 		}
