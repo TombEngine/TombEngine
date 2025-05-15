@@ -8,21 +8,21 @@ struct VertexShaderInput
     float2 UV : TEXCOORD0;
 
     float4 Color : COLOR;
-    float4 ColorB1 : TEXCOORD1;
-    float4 ColorB2 : TEXCOORD2;
-    float4 ColorB3 : TEXCOORD3;
+    float4 ColorB1 : COLB1;
+    float4 ColorB2 : COLB2;
+    float4 ColorB3 : COLB3;
 
     float3 Tangent : TANGENT;
     float3 Binormal : BINORMAL;
 
     uint4 BoneIndex : BONEINDICES;
-    float4 BoneWeight : BONEWEIGHTS;
+    uint4 BoneWeight : BONEWEIGHTS;
 
     uint AnimationFrameOffset : ANIMATIONFRAMEOFFSET;
     float4 Effects : EFFECTS;
     uint PolyIndex : POLYINDEX;
     uint DrawIndex : DRAWINDEX;
-    uint Hash : HASH; // usato come uint per compatibilità driver
+    uint Hash : HASH;
 };
 
 #endif // VERTEXINPUT

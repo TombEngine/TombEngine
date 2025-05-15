@@ -129,6 +129,8 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	output.Normal = normalize(mul(input.Normal, (float3x3)world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
+	
+    float4 _unused = (input.ColorB1 + input.ColorB2 + input.ColorB3);
 
 	return output;
 }

@@ -3985,7 +3985,7 @@ namespace TEN::Renderer
 	void Renderer::InterpolateCamera(float interpFactor)
 	{
 		_interpolationFactor = interpFactor;
-		 
+		  
 		// Interpolate camera.
 		if (!Camera.DisableInterpolation)
 		{    

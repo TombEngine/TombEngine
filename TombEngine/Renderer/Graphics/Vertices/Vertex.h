@@ -9,6 +9,9 @@ namespace TEN::Renderer::Graphics::Vertices
 		Vector3 Normal	 = Vector3::Zero;
 		Vector2 UV		 = Vector2::Zero;
 		Vector4 Color	 = Vector4::Zero;
+		Vector4 ColorB1 = Vector4::Zero;
+		Vector4 ColorB2 = Vector4::Zero;
+		Vector4 ColorB3 = Vector4::Zero;
 		Vector3 Tangent	 = Vector3::Zero;
 		Vector3 Binormal = Vector3::Zero;
 
@@ -20,9 +23,5 @@ namespace TEN::Renderer::Graphics::Vertices
 		unsigned int IndexInPoly		  = 0;
 		unsigned int OriginalIndex		  = 0;
 		unsigned int Hash				  = 0;
-
-		Vector4 ColorB1 = Vector4::Zero;
-		Vector4 ColorB2 = Vector4::Zero;
-		Vector4 ColorB3 = Vector4::Zero;
 	};
 }
