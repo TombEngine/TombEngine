@@ -27,13 +27,16 @@ struct PixelShaderInput
 	float3 WorldPosition: POSITION0;
 	float3 Normal: NORMAL;
 	float2 UV: TEXCOORD0;
-	float4 Color: COLOR;
+	float4 Color: COLOR0;
 	float Sheen : SHEEN;
 	float4 PositionCopy : TEXCOORD1;
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
 	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+    float3 Binormal : BINORMAL;
+    float4 ColorB1 : COLOR1;
+    float4 ColorB2 : COLOR2;
+    float4 ColorB3 : COLOR3;
 };
 
 Texture2D Texture : register(t0);
@@ -81,11 +84,13 @@ PixelShaderInput VS(VertexShaderInput input)
 	
 	output.Position = screenPos;
 	output.Normal = input.Normal;
-	output.Color = float4(col, input.Color.w);
+    output.Color = float4(col, input.Color.w);
+    output.ColorB1 = input.ColorB1;
+    output.ColorB2 = input.ColorB2;
+    output.ColorB3 = input.ColorB3;
 	output.PositionCopy = screenPos;
 
 #ifdef ANIMATED
-
 	if (Type == 0)
 		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
 	else
@@ -130,7 +135,19 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
 
-	float3 lighting = input.Color.xyz;
+    float3 RNMBasis0 = float3(0.57735027, 0.57735027, 0.57735027);
+    float3 RNMBasis1 = float3(-0.57735027, -0.57735027, 0.57735027);
+    float3 RNMBasis2 = float3(-0.57735027, 0.57735027, -0.57735027);
+
+    float w1 = max(0, dot(normal, RNMBasis0));
+    float w2 = max(0, dot(normal, RNMBasis1));
+    float w3 = max(0, dot(normal, RNMBasis2));
+
+    float3 lighting =
+		input.ColorB1.xyz * w1 +
+		input.ColorB2.xyz * w2 +
+		input.ColorB3.xyz * w3;
+
 	bool doLights = true;
 
 	float occlusion = 1.0f;
@@ -200,8 +217,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 
         lighting += (caustics * attenuation * 2.0f);
     }
-
+	
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
+	
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;
 	output.Color.xyz = saturate(output.Color.xyz);
 

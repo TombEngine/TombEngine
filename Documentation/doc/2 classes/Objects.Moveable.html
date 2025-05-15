@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -128,11 +128,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetObjectID">Moveable:GetObjectID()</a></td>
-	<td class="summary">Retrieve the object ID.</td>
+	<td class="summary">Retrieve the object ID from a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetObjectID">Moveable:SetObjectID(objectID)</a></td>
-	<td class="summary">Change the object's ID.</td>
+	<td class="summary">Change the moveable's object ID.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetOnHit">Moveable:SetOnHit(function)</a></td>
@@ -172,7 +172,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetJointRotation">Moveable:GetJointRotation(index)</a></td>
-	<td class="summary">Get the object's joint rotation.</td>
+	<td class="summary">Get the moveable's joint rotation.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetRotation">Moveable:GetRotation()</a></td>
@@ -200,7 +200,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetSlotHP">Moveable:GetSlotHP()</a></td>
-	<td class="summary">Get HP definded for that object type (hit points / health points).</td>
+	<td class="summary">Get HP (hit points / health points) definded for that object ID.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetOCB">Moveable:GetOCB()</a></td>
@@ -248,11 +248,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetAIBits">Moveable:GetAIBits()</a></td>
-	<td class="summary">Get AIBits of object.</td>
+	<td class="summary">Get AIBits of a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetAIBits">Moveable:SetAIBits(bits)</a></td>
-	<td class="summary">Set AIBits of object.</td>
+	<td class="summary">Set AIBits of a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetState">Moveable:GetState()</a></td>
@@ -264,7 +264,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetState">Moveable:SetState(index)</a></td>
-	<td class="summary">Set the object's state to the one specified by the given index.</td>
+	<td class="summary">Set the moveable's state to the one specified by the given index.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetAnimSlot">Moveable:GetAnimSlot()</a></td>
@@ -276,7 +276,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetAnim">Moveable:SetAnim(index, [slot])</a></td>
-	<td class="summary">Set the object's animation to the one specified by the given index.</td>
+	<td class="summary">Set the moveable's animation to the one specified by the given index.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetFrame">Moveable:GetFrame()</a></td>
@@ -284,11 +284,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetVelocity">Moveable:GetVelocity()</a></td>
-	<td class="summary">Get the object's velocity.</td>
+	<td class="summary">Get the moveable's velocity.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetVelocity">Moveable:SetVelocity(velocity)</a></td>
-	<td class="summary">Set the object's velocity to specified value.</td>
+	<td class="summary">Set the moveable's velocity to specified value.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetFrame">Moveable:SetFrame(frame)</a></td>
@@ -328,11 +328,11 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshCount">Moveable:GetMeshCount()</a></td>
-	<td class="summary">Get number of meshes for a particular object.</td>
+	<td class="summary">Get number of meshes for a particular moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshVisible">Moveable:GetMeshVisible(index)</a></td>
-	<td class="summary">Get state of specified mesh visibility of object.</td>
+	<td class="summary">Get visibility state of a specified mesh of a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:SetMeshVisible">Moveable:SetMeshVisible(index, isVisible)</a></td>
@@ -344,15 +344,23 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetMeshSwapped">Moveable:GetMeshSwapped(index)</a></td>
-	<td class="summary">Get state of specified mesh swap of object.</td>
+	<td class="summary">Get state of specified mesh swap of a moveable.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SwapMesh">Moveable:SwapMesh(index, slotIndex, [swapIndex])</a></td>
-	<td class="summary">Set state of specified mesh swap of object.</td>
+	<td class="name" ><a href="#Moveable:SwapMesh">Moveable:SwapMesh(index, objectID, [swapIndex])</a></td>
+	<td class="summary">Set state of specified mesh swap of a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:UnswapMesh">Moveable:UnswapMesh(index)</a></td>
-	<td class="summary">Set state of specified mesh swap of object.</td>
+	<td class="summary">Unset specified mesh swap of a moveable.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Moveable:SwapSkin">Moveable:SwapSkin(objectID, [swapIndex])</a></td>
+	<td class="summary">Swap skinned mesh of a moveable.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Moveable:UnswapSkin">Moveable:UnswapSkin()</a></td>
+	<td class="summary">Unset skinned mesh swap of a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:Enable">Moveable:Enable([timeout])</a></td>
@@ -384,7 +392,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:GetValid">Moveable:GetValid()</a></td>
-	<td class="summary">Test if the object is in a valid state.</td>
+	<td class="summary">Test if the moveable is in a valid state.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:Destroy">Moveable:Destroy()</a></td>
@@ -392,7 +400,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:AttachObjCamera">Moveable:AttachObjCamera(mesh, target, mesh)</a></td>
-	<td class="summary">Attach camera to an object.</td>
+	<td class="summary">Attach camera to a moveable.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Moveable:AnimFromObject">Moveable:AnimFromObject(objectID, animNumber, stateID)</a></td>
@@ -493,7 +501,7 @@ most can just be ignored (see usage).
     <strong>Moveable:GetObjectID()</strong>
     </dt>
     <dd>
-    Retrieve the object ID.
+    Retrieve the object ID from a moveable.
 
 
 
@@ -502,7 +510,7 @@ most can just be ignored (see usage).
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-        A number representing the ID of the object.
+        A number representing the object ID of the moveable.
     </ol>
 
 
@@ -514,7 +522,7 @@ most can just be ignored (see usage).
     <strong>Moveable:SetObjectID(objectID)</strong>
     </dt>
     <dd>
-    Change the object's ID.  This will literally change the object.
+    Change the moveable's object ID.  This will literally change the moveable.
 
 
 
@@ -654,7 +662,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetName()</strong>
     </dt>
     <dd>
-    Get the moveable's name (its unique string identifier).  This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
+    Get the moveable's name (its unique string identifier).  This corresponds with the "Lua Name" field in a moveable's properties in Tomb Editor.
 
 
 
@@ -675,7 +683,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetName(name)</strong>
     </dt>
     <dd>
-    Set the moveable's name (its unique string identifier).  It cannot be blank and cannot share a name with any existing object.
+    Set the moveable's name (its unique string identifier).  It cannot be blank and cannot share a name with any other existing moveable.
 
 
 
@@ -784,7 +792,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetJointRotation(index)</strong>
     </dt>
     <dd>
-    Get the object's joint rotation.
+    Get the moveable's joint rotation.
 
 
 
@@ -942,7 +950,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:GetSlotHP()</strong>
     </dt>
     <dd>
-    Get HP definded for that object type (hit points / health points).
+    Get HP (hit points / health points) definded for that object ID.
 
 
 
@@ -1226,9 +1234,9 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     </dt>
     <dd>
 
-<p>Get AIBits of object.
+<p>Get AIBits of a moveable.
  This will return a table with six values, each corresponding to
- an active behaviour. If the object is in a certain AI mode, the table will
+ an active behaviour. If the moveable is in a certain AI mode, the table will
  have a <em>1</em> in the corresponding cell. Otherwise, the cell will hold
  a <em>0</em>.</p>
 
@@ -1261,7 +1269,7 @@ baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)</pre>
     <strong>Moveable:SetAIBits(bits)</strong>
     </dt>
     <dd>
-    Set AIBits of object.
+    Set AIBits of a moveable.
  Use this to force a moveable into a certain AI mode or modes, as if a certain nullmesh
  (or more than one) had suddenly spawned beneath their feet.
 
@@ -1313,7 +1321,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     </dt>
     <dd>
     Retrieve the index of the target state.
- This corresponds to the state the object is trying to get into, which is sometimes different from the active state.
+ This corresponds to the state the moveable is trying to get into, which is sometimes different from the active state.
 
 
 
@@ -1334,9 +1342,9 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:SetState(index)</strong>
     </dt>
     <dd>
-    Set the object's state to the one specified by the given index.
+    Set the moveable's state to the one specified by the given index.
  Performs no bounds checking. <em>Ensure the number given is correct, else
- object may end up in corrupted animation state.</em>
+ moveable may end up in corrupted animation state.</em>
 
 
 
@@ -1403,9 +1411,9 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:SetAnim(index, [slot])</strong>
     </dt>
     <dd>
-    Set the object's animation to the one specified by the given index.
+    Set the moveable's animation to the one specified by the given index.
  Performs no bounds checking. <em>Ensure the number given is correct, else
- object may end up in corrupted animation state.</em>
+ moveable may end up in corrupted animation state.</em>
 
 
 
@@ -1433,7 +1441,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     </dt>
     <dd>
     Retrieve frame number.
- This is the current frame of the object's active animation.
+ This is the current frame of the moveable's active animation.
 
 
 
@@ -1454,7 +1462,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:GetVelocity()</strong>
     </dt>
     <dd>
-    Get the object's velocity.
+    Get the moveable's velocity.
  In most cases, only Z and Y components are used as forward and vertical velocity.
  In some cases, primarily NPCs, X component is used as side velocity.
 
@@ -1465,7 +1473,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        Current object velocity.
+        Current moveable velocity.
     </ol>
 
 
@@ -1477,7 +1485,7 @@ sas:SetAIBits({<span class="number">1</span>, <span class="number">0</span>, <sp
     <strong>Moveable:SetVelocity(velocity)</strong>
     </dt>
     <dd>
-    Set the object's velocity to specified value.
+    Set the moveable's velocity to specified value.
  In most cases, only Z and Y components are used as forward and vertical velocity.
  In some cases, primarily NPCs, X component is used as side velocity.
 
@@ -1705,8 +1713,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshCount()</strong>
     </dt>
     <dd>
-    Get number of meshes for a particular object.
- Returns number of meshes in an object
+    Get number of meshes for a particular moveable.
+ Returns number of meshes in an object.
 
 
 
@@ -1727,8 +1735,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshVisible(index)</strong>
     </dt>
     <dd>
-    Get state of specified mesh visibility of object.
- Returns true if specified mesh is visible on an object, and false
+    Get visibility state of a specified mesh of a moveable.
+ Returns true if specified mesh is visible on a moveable, and false
  if it is not visible.
 
 
@@ -1758,7 +1766,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     </dt>
     <dd>
     Makes specified mesh visible or invisible.
- Use this to show or hide a specified mesh of an object.
+ Use this to show or hide a specified mesh of a moveable.
 
 
 
@@ -1807,8 +1815,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetMeshSwapped(index)</strong>
     </dt>
     <dd>
-    Get state of specified mesh swap of object.
- Returns true if specified mesh is swapped on an object, and false if it is not swapped.
+    Get state of specified mesh swap of a moveable.
+ Returns true if specified mesh is swapped on a moveable, and false if it is not swapped.
 
 
 
@@ -1833,11 +1841,10 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 </dd>
     <dt>
     <a name = "Moveable:SwapMesh"></a>
-    <strong>Moveable:SwapMesh(index, slotIndex, [swapIndex])</strong>
+    <strong>Moveable:SwapMesh(index, objectID, [swapIndex])</strong>
     </dt>
     <dd>
-    Set state of specified mesh swap of object.
- Use this to swap specified mesh of an object.
+    Set state of specified mesh swap of a moveable.  Use this to swap specified mesh of a moveable.
 
 
 
@@ -1847,9 +1854,9 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
             <span class="types"><span class="type">int</span></span>
          Index of a mesh.
         </li>
-        <li><span class="parameter">slotIndex</span>
+        <li><span class="parameter">objectID</span>
             <span class="types"><span class="type">int</span></span>
-         Index of a slot to get meshswap from.
+         ID of a slot to get meshswap from.
         </li>
         <li><span class="parameter">swapIndex</span>
             <span class="types"><span class="type">int</span></span>
@@ -1868,8 +1875,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:UnswapMesh(index)</strong>
     </dt>
     <dd>
-    Set state of specified mesh swap of object.
- Use this to bring back original unswapped mesh
+    Unset specified mesh swap of a moveable.  Use this to bring back original unswapped mesh.
 
 
 
@@ -1880,6 +1886,49 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
          Index of a mesh to unswap.
         </li>
     </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Moveable:SwapSkin"></a>
+    <strong>Moveable:SwapSkin(objectID, [swapIndex])</strong>
+    </dt>
+    <dd>
+    Swap skinned mesh of a moveable.  Use this to replace one skinned mesh with another.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">objectID</span>
+            <span class="types"><span class="type">int</span></span>
+         ID of a slot to get skinned meshswap from.
+        </li>
+        <li><span class="parameter">swapIndex</span>
+            <span class="types"><span class="type">int</span></span>
+         If set, swaps skinned mesh with bone mesh with a specified index.
+ Use if you have several skinned meshes (e.g. outfits) in a single slot.
+         <em>Optional.</em>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Moveable:UnswapSkin"></a>
+    <strong>Moveable:UnswapSkin()</strong>
+    </dt>
+    <dd>
+    Unset skinned mesh swap of a moveable.  Use this to bring back original unswapped skinned mesh.
+
+
+
 
 
 
@@ -2025,7 +2074,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:GetValid()</strong>
     </dt>
     <dd>
-    Test if the object is in a valid state.  Indicates that it has not been destroyed through Lua or killed by Lara.
+    Test if the moveable is in a valid state.  Indicates that it has not been destroyed through Lua or killed by Lara.
 
 
 
@@ -2034,7 +2083,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the object is still not destroyed.
+        true if the moveable is still not destroyed.
     </ol>
 
 
@@ -2046,7 +2095,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:Destroy()</strong>
     </dt>
     <dd>
-    Destroy the moveable.  This will mean it can no longer be used, except to re-initialize it with another object.
+    Destroy the moveable.  This will mean it can no longer be used, except to re-initialize it with another moveable.
 
 
 
@@ -2061,7 +2110,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <strong>Moveable:AttachObjCamera(mesh, target, mesh)</strong>
     </dt>
     <dd>
-    Attach camera to an object.
+    Attach camera to a moveable.
 
 
 

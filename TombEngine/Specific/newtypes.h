@@ -24,3 +24,10 @@ struct BUCKET
 	int numTriangles;
 	std::vector<POLYGON> polygons;
 };
+
+struct VERTEXCOLORS
+{
+	Vector3 ColorB1;
+	Vector3 ColorB2;
+	Vector3 ColorB3;
+};

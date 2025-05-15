@@ -11,6 +11,7 @@ enum class ReverbType;
 class FloorInfo;
 class GameBoundingBox;
 struct BUCKET;
+struct VERTEXCOLORS;
 struct TriggerVolume;
 
 constexpr auto MAX_FLIPMAP	= 256;
@@ -170,7 +171,7 @@ struct RoomData
 	std::vector<RoomLightData> lights	 = {};
 	std::vector<Vector3>	   positions = {};
 	std::vector<Vector3>	   normals	 = {};
-	std::vector<Vector3>	   colors	 = {};
+	std::vector<VERTEXCOLORS>  colors	 = {};
 	std::vector<Vector3>	   effects	 = {};
 	std::vector<BUCKET>		   buckets	 = {};
 

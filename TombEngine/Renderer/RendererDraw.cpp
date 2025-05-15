@@ -3971,7 +3971,7 @@ namespace TEN::Renderer
 
 		// Blur step.
 		_shaders.Bind(Shader::SsaoBlur);
-
+		    
 		_context->ClearRenderTargetView(_SSAOBlurredRenderTarget.RenderTargetView.Get(), Colors::Black);
 		_context->OMSetRenderTargets(1, _SSAOBlurredRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 
@@ -3985,10 +3985,10 @@ namespace TEN::Renderer
 	void Renderer::InterpolateCamera(float interpFactor)
 	{
 		_interpolationFactor = interpFactor;
-
+		 
 		// Interpolate camera.
 		if (!Camera.DisableInterpolation)
-		{
+		{    
 			_gameCamera.Camera.WorldPosition = Vector3::Lerp(_oldGameCamera.Camera.WorldPosition, _currentGameCamera.Camera.WorldPosition, interpFactor);
 			_gameCamera.Camera.WorldDirection = Vector3::Lerp(_oldGameCamera.Camera.WorldDirection, _currentGameCamera.Camera.WorldDirection, interpFactor);
 			_gameCamera.Camera.View = Matrix::Lerp(_oldGameCamera.Camera.View, _currentGameCamera.Camera.View, interpFactor);

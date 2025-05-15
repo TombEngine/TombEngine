@@ -20,5 +20,9 @@ namespace TEN::Renderer::Graphics::Vertices
 		unsigned int IndexInPoly		  = 0;
 		unsigned int OriginalIndex		  = 0;
 		unsigned int Hash				  = 0;
+
+		Vector4 ColorB1 = Vector4::Zero;
+		Vector4 ColorB2 = Vector4::Zero;
+		Vector4 ColorB3 = Vector4::Zero;
 	};
 }

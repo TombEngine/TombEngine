@@ -1,21 +1,28 @@
 #ifndef VERTEXINPUT
 #define VERTEXINPUT
 
-struct VertexShaderInput 
+struct VertexShaderInput
 {
-	float3 Position: POSITION0;
-	float3 Normal: NORMAL0;
-	float2 UV: TEXCOORD0;
-	float4 Color: COLOR0;
-	float3 Tangent: TANGENT0;
-	float3 Binormal: BINORMAL0;
-	uint4 BoneIndex: BONEINDICES;
-	uint4 BoneWeight: BONEWEIGHTS;
-	unsigned int AnimationFrameOffset: ANIMATIONFRAMEOFFSET;
-	float4 Effects: EFFECTS;
-	unsigned int PolyIndex : POLYINDEX;
-	unsigned int Index: DRAWINDEX;
-	int Hash : HASH;
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD0;
+
+    float4 Color : COLOR;
+    float4 ColorB1 : TEXCOORD1;
+    float4 ColorB2 : TEXCOORD2;
+    float4 ColorB3 : TEXCOORD3;
+
+    float3 Tangent : TANGENT;
+    float3 Binormal : BINORMAL;
+
+    uint4 BoneIndex : BONEINDICES;
+    float4 BoneWeight : BONEWEIGHTS;
+
+    uint AnimationFrameOffset : ANIMATIONFRAMEOFFSET;
+    float4 Effects : EFFECTS;
+    uint PolyIndex : POLYINDEX;
+    uint DrawIndex : DRAWINDEX;
+    uint Hash : HASH; // usato come uint per compatibilità driver
 };
 
 #endif // VERTEXINPUT

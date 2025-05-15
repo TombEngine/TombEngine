@@ -352,7 +352,10 @@ namespace TEN::Renderer
 
 						vertex->Normal = poly.normals[k];
 						vertex->UV = poly.textureCoordinates[k];
-						vertex->Color = Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f);
+						vertex->Color = Vector4(room.colors[index].ColorB1.x, room.colors[index].ColorB1.y, room.colors[index].ColorB1.z, 1.0f);
+						vertex->ColorB1 = Vector4(room.colors[index].ColorB1.x, room.colors[index].ColorB1.y, room.colors[index].ColorB1.z, 1.0f);
+						vertex->ColorB2 = Vector4(room.colors[index].ColorB2.x, room.colors[index].ColorB2.y, room.colors[index].ColorB2.z, 1.0f);
+						vertex->ColorB3 = Vector4(room.colors[index].ColorB3.x, room.colors[index].ColorB3.y, room.colors[index].ColorB3.z, 1.0f);
 						vertex->Tangent = poly.tangents[k];
 						vertex->Binormal = poly.binormals[k];
 						vertex->AnimationFrameOffset = poly.animatedFrame;

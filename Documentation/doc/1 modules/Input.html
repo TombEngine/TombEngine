@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -153,15 +153,15 @@
 	<td class="summary">Check if an action key is being released.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyPush">KeyPush(actionID)</a></td>
+	<td class="name" ><a href="#PushKey">PushKey(actionID)</a></td>
 	<td class="summary">Simulate an action key push.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyClear">KeyClear(actionID)</a></td>
+	<td class="name" ><a href="#ClearKey">ClearKey(actionID)</a></td>
 	<td class="summary">Clear an action key.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#KeyClearAll">KeyClearAll()</a></td>
+	<td class="name" ><a href="#ClearAllKeys">ClearAllKeys()</a></td>
 	<td class="summary">Clear all action keys.</td>
 	</tr>
 	<tr>
@@ -183,6 +183,9 @@
     </dt>
     <dd>
     Get the analog value of an action key.
+ Returns either 0 or 1 for digital key mappings (e.g. keyboard or gamepad buttons),
+ but may return arbitrary values in the range 0 to 1 for analog key mappings
+ (e.g. gamepad sticks, gamepad triggers, or mouse axes).
 
 
 
@@ -363,8 +366,8 @@
 
 </dd>
     <dt>
-    <a name = "KeyPush"></a>
-    <strong>KeyPush(actionID)</strong>
+    <a name = "PushKey"></a>
+    <strong>PushKey(actionID)</strong>
     </dt>
     <dd>
     Simulate an action key push.
@@ -385,8 +388,8 @@
 
 </dd>
     <dt>
-    <a name = "KeyClear"></a>
-    <strong>KeyClear(actionID)</strong>
+    <a name = "ClearKey"></a>
+    <strong>ClearKey(actionID)</strong>
     </dt>
     <dd>
     Clear an action key.
@@ -407,8 +410,8 @@
 
 </dd>
     <dt>
-    <a name = "KeyClearAll"></a>
-    <strong>KeyClearAll()</strong>
+    <a name = "ClearAllKeys"></a>
+    <strong>ClearAllKeys()</strong>
     </dt>
     <dd>
     Clear all action keys.

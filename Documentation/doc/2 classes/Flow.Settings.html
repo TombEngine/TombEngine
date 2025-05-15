@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -199,6 +199,13 @@
 	<tr>
 	<td class="name" ><a href="#flicker">flicker</a></td>
 	<td class="summary">Toggle flicker effect.</td>
+	</tr>
+</table>
+<h2><a href="#Graphics">Graphics </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" ><a href="#skinning">skinning</a></td>
+	<td class="summary">Enable skinning.</td>
 	</tr>
 </table>
 <h2><a href="#Hair">Hair </a></h2>
@@ -732,6 +739,34 @@
 
 </dd>
 </dl>
+    <h2 class="section-header has-description"><a name="Graphics"></a>Graphics </h2>
+
+          <div class="section-description">
+           These settings are used to enable or disable certain graphics features.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "skinning"></a>
+    <strong>skinning</strong>
+    </dt>
+    <dd>
+    Enable skinning.
+
+
+
+    <ul>
+        <li><span class="parameter">skinning</span>
+            <span class="types"><span class="type">bool</span></span>
+         If enabled, skinning will be used for animated objects with skin. Disable to force classic TR workflow.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
     <h2 class="section-header has-description"><a name="Hair"></a>Hair </h2>
 
           <div class="section-description">
@@ -766,7 +801,7 @@
     <strong>offset</strong>
     </dt>
     <dd>
-    Relative braid offset to a headmesh.
+    Relative braid offset to a headmesh.  Not used with skinned hair mesh.
 
 
 
@@ -787,7 +822,7 @@
     <strong>indices</strong>
     </dt>
     <dd>
-    Braid connection indices.
+    Braid connection indices.  Not used with skinned hair mesh.
 
 
 

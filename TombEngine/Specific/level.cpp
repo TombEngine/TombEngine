@@ -810,7 +810,15 @@ void LoadStaticRoomData()
 
 		room.colors.reserve(vertexCount);
 		for (int j = 0; j < vertexCount; j++)
-			room.colors.push_back(ReadVector3());
+		{
+			VERTEXCOLORS vertexColors;
+
+			vertexColors.ColorB1 = ReadVector3();
+			vertexColors.ColorB2 = ReadVector3();
+			vertexColors.ColorB3 = ReadVector3();
+
+			room.colors.push_back(vertexColors);
+		}
 
 		room.effects.reserve(vertexCount);
 		for (int j = 0; j < vertexCount; j++)
