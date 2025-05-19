@@ -10,6 +10,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added muzzle glow effect for firearms.
 * Added weather particle clustering and increase weather particle performance.
 * Added examine mode text rendering (string key should be in the format like `examine1_text` etc).
+* Added Breakable Wall. Can be used on ground or underwater.
+* Underwater switches can now be used above ground. Asset change required for both the switches.
+  - You must use this version: 			https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/<insert address here>
+* Big Push Switch (OCB3) can now be used underwater.
 
 ### Bug fixes
 * Fixed Teleporter object.
@@ -28,6 +32,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
 * Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
+* Pulley has been refactored. Now, there is no need to add OCB1 for a single pull.
+ - You must use this version: 			https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/<insert address here>
 * Removed legacy TR5 search object code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
 
@@ -94,7 +100,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   - You must use this version: <https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Traps/TR1_Thor%20Hammer.wad2>
 * Added TR3 Moving Laser.
 * Added TR4 Statue Plinth.
-* Added Breakable Wall. Can be used on ground or underwater.
 
 ### Lua API changes
 * Added diary module.
