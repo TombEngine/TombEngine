@@ -122,7 +122,7 @@ namespace TEN::Entities::Switches
 
 						AddActiveItem(itemNumber);
 						switchItem->Status = ITEM_ACTIVE;
-						switchItem->Animation.TargetState = isUnderwater ? SWITCH_ANIMATE_UNDERWATER : SWITCH_ANIMATE;
+						switchItem->Animation.TargetState = isUnderwater ? PULLEY_ANIMATE_UNDERWATER : PULLEY_ANIMATE;
 
 						if (!isUnderwater)
 							switchItem->Pose.Orientation.y = oldYrot;
@@ -160,7 +160,7 @@ namespace TEN::Entities::Switches
 
 		switch (switchItem->Animation.ActiveState)
 		{
-		case SwitchStatus::SWITCH_ANIMATE:
+		case PulleyStatus::PULLEY_ANIMATE:
 			// Decrement TriggerFlags when reaching the base frame
 			if (isPulling && isBaseFrame && switchItem->TriggerFlags > 0)
 			{
@@ -170,7 +170,7 @@ namespace TEN::Entities::Switches
 			// If Ctrl is released, switch goes into WAIT state after animation ends
 			if (!IsHeld(In::Action) && isPulling && switchItem->TriggerFlags > 0)
 			{
-				switchItem->Animation.TargetState = SwitchStatus::SWITCH_WAIT;
+				switchItem->Animation.TargetState = PulleyStatus::PULLEY_WAIT;
 				LaraItem->Animation.TargetState = LS_PULLEY_UNGRAB;
 			}
 
@@ -181,11 +181,11 @@ namespace TEN::Entities::Switches
 
 				if (switchItem->ItemFlags[PulleyFlags::State] == 1)
 				{
-					switchItem->Animation.TargetState = SwitchStatus::SWITCH_OFF;
+					switchItem->Animation.TargetState = PulleyStatus::PULLEY_OFF;
 				}
 				else if (switchItem->ItemFlags[PulleyFlags::State] == 0)
 				{
-					switchItem->Animation.TargetState = SwitchStatus::SWITCH_ON;
+					switchItem->Animation.TargetState = PulleyStatus::PULLEY_ON;
 				}
 
 				LaraItem->Animation.TargetState = LS_PULLEY_UNGRAB;
@@ -193,7 +193,7 @@ namespace TEN::Entities::Switches
 			}
 			break;
 
-		case SwitchStatus::SWITCH_ON:
+		case PulleyStatus::PULLEY_ON:
 			// Restore TriggerFlags if the switch is re-used
 			if (switchItem->ItemFlags[PulleyFlags::PullCount] >= 0 && switchItem->ItemFlags[PulleyFlags::PullCountReset] == 1)
 			{
@@ -204,7 +204,7 @@ namespace TEN::Entities::Switches
 			}
 			break;
 
-		case SwitchStatus::SWITCH_OFF:
+		case PulleyStatus::PULLEY_OFF:
 			// Restore TriggerFlags if the switch is re-used
 			if (switchItem->ItemFlags[PulleyFlags::PullCount] >= 0 && switchItem->ItemFlags[PulleyFlags::PullCountReset] == 1)
 			{
@@ -215,7 +215,7 @@ namespace TEN::Entities::Switches
 			}
 			break;
 
-		case SwitchStatus::SWITCH_WAIT:
+		case PulleyStatus::PULLEY_WAIT:
 			// If Ctrl is pressed again, transition to ANIMATE state (handled in collision code)
 			break;
 		}
@@ -226,23 +226,23 @@ namespace TEN::Entities::Switches
 		auto& item = g_Level.Items[itemNumber];
 		const auto& player = Lara;
 
-		if (item.ItemFlags[5] != 0 && item.ItemFlags[4] == 1 &&
+		if (item.ItemFlags[PulleyFlags::Status] != 0 && item.ItemFlags[PulleyFlags::State] == 1 &&
 			player.Control.HandStatus != HandStatus::Busy)
 		{
 			item.Flags |= IFLAG_ACTIVATION_MASK;
 			item.Status = ITEM_ACTIVE;
-			item.ItemFlags[5] = 0;
+			item.ItemFlags[PulleyFlags::Status] = 0;
 			return true;
 		}
 
-		if (item.ItemFlags[5] != 0 && item.ItemFlags[4] == 0 &&
+		if (item.ItemFlags[PulleyFlags::Status] != 0 && item.ItemFlags[PulleyFlags::State] == 0 &&
 			player.Control.HandStatus != HandStatus::Busy)
 		{
 			if (timer > 0)
 			{
 				item.Timer = timer;
 				item.Status = ITEM_ACTIVE;
-				item.ItemFlags[5] = 0;
+				item.ItemFlags[PulleyFlags::Status] = 0;
 				if (timer != 1)
 					item.Timer = FPS * timer;
 
@@ -251,7 +251,7 @@ namespace TEN::Entities::Switches
 
 			item.Flags |= IFLAG_ACTIVATION_MASK;
 			item.Status = ITEM_DEACTIVATED;
-			item.ItemFlags[5] = 0;
+			item.ItemFlags[PulleyFlags::Status] = 0;
 			return true;
 		}
 

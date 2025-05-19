@@ -9,9 +9,7 @@ namespace TEN::Entities::Switches
 	{
 		SWITCH_OFF,
 		SWITCH_ON,
-		SWITCH_WAIT,
-		SWITCH_ANIMATE,
-		SWITCH_ANIMATE_UNDERWATER
+		SWITCH_ANIMATE // Used to animate switches based on different conditions, such as underwater animations for switches for above ground switches.
 	};
 	
 	void SwitchControl(short itemNumber);

@@ -3,6 +3,15 @@
 struct CollisionInfo;
 struct ItemInfo;
 
+enum PulleyStatus
+{
+	PULLEY_OFF,
+	PULLEY_ON,
+	PULLEY_WAIT,
+	PULLEY_ANIMATE,
+	PULLEY_ANIMATE_UNDERWATER
+};
+
 namespace TEN::Entities::Switches
 {
 	void InitializePulleySwitch(short itemNumber);
