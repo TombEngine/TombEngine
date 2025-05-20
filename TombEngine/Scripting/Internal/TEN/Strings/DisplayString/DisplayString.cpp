@@ -97,7 +97,7 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 	return ptr;
 }
 
-/*** Create a DisplayString word-wrapped within a specified area.
+/*** Create a DisplayString word-wrapped within a specified area. Other parameters are the same as above.
 @function DisplayString
 @tparam string string
 @tparam Vec2 position
@@ -105,7 +105,8 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 @tparam[opt=1] float scale
 @tparam[opt] ScriptColor color
 @tparam[opt=false] bool translated
-@tparam[opt] table flags
+@tparam[opt] Strings.DisplayStringOption flags
+@treturn DisplayString A new word-wrapped DisplayString object.
 */
 
 // HACK: Constructor wrapper for DisplayString smart pointer to maintain compatibility with deprecated version calls.
