@@ -134,7 +134,7 @@ when you need to use screen-space coordinates.</p>
 	<td class="summary">Create a DisplayString.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, position, area, [scale], [color], [translated], [flags])</a></td>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [area], [scale], [color], [translated], [flags])</a></td>
 	<td class="summary">Create a DisplayString word-wrapped within a specified area.</td>
 	</tr>
 	<tr>
@@ -246,7 +246,7 @@ If true, the string argument will be treated as the key of a translated string s
 </dd>
     <dt>
     <a name = "DisplayString"></a>
-    <strong>DisplayString(string, position, area, [scale], [color], [translated], [flags])</strong>
+    <strong>DisplayString(string, position, [area], [scale], [color], [translated], [flags])</strong>
     </dt>
     <dd>
     Create a DisplayString word-wrapped within a specified area.
@@ -270,6 +270,7 @@ If true, the string argument will be treated as the key of a translated string s
         <li><span class="parameter">area</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
          Rectangular area to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
+         <em>Default: Vec2(0&#44; 0).</em>
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><span class="type">float</span></span>

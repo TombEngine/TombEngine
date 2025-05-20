@@ -101,7 +101,7 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 @function DisplayString
 @tparam string string
 @tparam Vec2 position
-@tparam[opt = Vec2(0 & #44; 0)] Vec2 area Rectangular area to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
+@tparam[opt=Vec2(0&#44; 0)] Vec2 area Rectangular area to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
 @tparam[opt=1] float scale
 @tparam[opt] ScriptColor color
 @tparam[opt=false] bool translated
