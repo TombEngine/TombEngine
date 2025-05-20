@@ -1,15 +1,16 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/pulley_switch.h"
+
+#include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
-#include "Specific/Input/Input.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/pickup/pickup.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Sound/sound.h"
-#include "Game/pickup/pickup.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/items.h"
 
 using namespace TEN::Input;
 
@@ -21,6 +22,15 @@ enum PulleyFlags
 	PullCount,
 	State,
 	Status
+};
+
+enum PulleyStatus
+{
+	PULLEY_OFF,
+	PULLEY_ON,
+	PULLEY_WAIT,
+	PULLEY_ANIMATE,
+	PULLEY_ANIMATE_UNDERWATER
 };
 
 namespace TEN::Entities::Switches
