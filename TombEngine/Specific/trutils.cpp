@@ -154,6 +154,18 @@ namespace TEN::Utils
 		strings.push_back(string.substr(prev));
 		return strings;
 	}
+	
+	std::vector<std::wstring> SplitWords(const std::wstring& input)
+	{
+		std::vector<std::wstring> words;
+		std::wstringstream stream(input);
+		std::wstring word;
+
+		while (stream >> word)
+			words.push_back(word);
+
+		return words;
+	}
 
 	int GetHash(const std::string& string)
 	{

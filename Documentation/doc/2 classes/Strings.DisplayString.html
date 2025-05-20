@@ -134,6 +134,10 @@ when you need to use screen-space coordinates.</p>
 	<td class="summary">Create a DisplayString.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, area, [scale], [color], [translated], [flags])</a></td>
+	<td class="summary">Create a DisplayString word-wrapped within a specified area.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#DisplayString:GetColor">DisplayString:GetColor()</a></td>
 	<td class="summary">Get the display string's color.</td>
 	</tr>
@@ -150,20 +154,28 @@ when you need to use screen-space coordinates.</p>
 	<td class="summary">Set the string key to use.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
+	<td class="summary">Get the scale of the string.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#DisplayString:SetScale">DisplayString:SetScale(scale)</a></td>
 	<td class="summary">Set the scale of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
-	<td class="summary">Get the scale of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
+	<td class="summary">Get the position of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetPosition">DisplayString:SetPosition(pos)</a></td>
 	<td class="summary">Set the position of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
-	<td class="summary">Get the position of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetArea">DisplayString:GetArea()</a></td>
+	<td class="summary">Get the word-wrapping area of the string.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DisplayString:SetArea">DisplayString:SetArea(pos)</a></td>
+	<td class="summary">Set the word-wrapping area of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetFlags">DisplayString:SetFlags(table)</a></td>
@@ -210,8 +222,8 @@ For use in <a href="../1 modules/Strings.html#ShowString">ShowString</a> and <a 
         </li>
         <li><span class="parameter">translated</span>
             <span class="types"><span class="type">bool</span></span>
-         If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua.
+         If false or omitted, the input string argument will be displayed as is.
+If true, the string argument will be treated as the key of a translated string specified in strings.lua.
          <em>Default: false.</em>
         </li>
         <li><span class="parameter">flags</span>
@@ -227,6 +239,68 @@ If true, the string argument will be the key of a translated string specified in
            <span class="types"><a class="type" href="../2 classes/Strings.DisplayString.html#DisplayString">DisplayString</a></span>
         A new DisplayString object.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DisplayString"></a>
+    <strong>DisplayString(string, position, area, [scale], [color], [translated], [flags])</strong>
+    </dt>
+    <dd>
+    Create a DisplayString word-wrapped within a specified area.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">string</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+
+
+        </li>
+        <li><span class="parameter">position</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+
+
+
+        </li>
+        <li><span class="parameter">area</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Rectangular area to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
+        </li>
+        <li><span class="parameter">scale</span>
+            <span class="types"><span class="type">float</span></span>
+
+
+
+         <em>Default: 1.</em>
+        </li>
+        <li><span class="parameter">color</span>
+            <span class="types"><span class="type">ScriptColor</span></span>
+
+
+
+         <em>Optional.</em>
+        </li>
+        <li><span class="parameter">translated</span>
+            <span class="types"><span class="type">bool</span></span>
+
+
+
+         <em>Default: false.</em>
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+
+
+         <em>Optional.</em>
+        </li>
+    </ul>
+
 
 
 
@@ -319,6 +393,27 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
+    <a name = "DisplayString:GetScale"></a>
+    <strong>DisplayString:GetScale()</strong>
+    </dt>
+    <dd>
+    Get the scale of the string.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">float</span></span>
+        Scale.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "DisplayString:SetScale"></a>
     <strong>DisplayString:SetScale(scale)</strong>
     </dt>
@@ -341,11 +436,12 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetScale"></a>
-    <strong>DisplayString:GetScale()</strong>
+    <a name = "DisplayString:GetPosition"></a>
+    <strong>DisplayString:GetPosition()</strong>
     </dt>
     <dd>
-    Get the scale of the string.
+    Get the position of the string.
+ Screen-space coordinates are returned.
 
 
 
@@ -353,8 +449,8 @@ If true, the string argument will be the key of a translated string specified in
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">float</span></span>
-        Scale.
+           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+        pos Position in pixel coordinates.
     </ol>
 
 
@@ -385,12 +481,12 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetPosition"></a>
-    <strong>DisplayString:GetPosition()</strong>
+    <a name = "DisplayString:GetArea"></a>
+    <strong>DisplayString:GetArea()</strong>
     </dt>
     <dd>
-    Get the position of the string.
- Screen-space coordinates are returned.
+    Get the word-wrapping area of the string.
+ Screen-space coordinates are returned. If <code>Vec2(0, 0)</code> is returned, it means there is no word wrapping for this string.
 
 
 
@@ -399,8 +495,31 @@ If true, the string argument will be the key of a translated string specified in
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-        pos Position in pixel coordinates.
+        area Word-wrapping area in pixel coordinates.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DisplayString:SetArea"></a>
+    <strong>DisplayString:SetArea(pos)</strong>
+    </dt>
+    <dd>
+    Set the word-wrapping area of the string.
+ Screen-space coordinates are expected. If set to <code>Vec2(0, 0)</code>, no word wrapping will occur.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         New word-wrapping area in pixel coordinates.
+        </li>
+    </ul>
+
 
 
 
