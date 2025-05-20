@@ -267,6 +267,4 @@ namespace TEN::Entities::Switches
 
 		return false;
 	}
-
-
 }

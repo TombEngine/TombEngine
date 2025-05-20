@@ -91,7 +91,7 @@ namespace TEN::Entities::Switches
 		{
 			auto bounds = GameBoundingBox(switchItem);
 
-			//Temporary code to avoid pulling any other switch in the water. This can be removed once all switches are enabled underwater.
+			// TODO: Temporary code to avoid pulling any other switch in the water. This can be removed once all switches are enabled underwater.
 			if (switchItem->TriggerFlags != 3 && isUnderwater)
 				return;
 
