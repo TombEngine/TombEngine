@@ -60,6 +60,7 @@ void lara_as_crouch_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
@@ -69,35 +70,69 @@ void lara_as_crouch_idle(ItemInfo* item, CollisionInfo* coll)
 	if (player.Control.Look.IsUsingBinoculars)
 		return;
 
+	// Turn.
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
 
 	if ((IsHeld(In::Crouch) || player.Control.KeepLow) && CanCrouch(*item, *coll))
 	{
+		// Turn 180.
 		if (IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back)))
 		{
 			item->Animation.TargetState = LS_CROUCH_TURN_180;
 			return;
 		}
 
+		// Crouch roll.
 		if (IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CROUCH_ROLL;
 			return;
 		}
 
+		// Look.
 		if (IsHeld(In::Look) && CanPlayerLookAround(*item))
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
 			return;
 		}
 
+		// Crawl.
 		if ((IsHeld(In::Forward) || IsHeld(In::Back)) && CanCrouchToCrawl(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CRAWL_IDLE;
 			return;
 		}
 
+		// Sidestep.
+		if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+		{
+			if (CanSidestepLeft(*item, *coll))
+			{
+				item->Animation.TargetState = LS_CROUCH_STEP_LEFT;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_CROUCH_IDLE;
+			}
+
+			return;
+		}
+		else if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+		{
+			if (CanSidestepRight(*item, *coll))
+			{
+				item->Animation.TargetState = LS_CROUCH_STEP_RIGHT;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_CROUCH_IDLE;
+			}
+
+			return;
+		}
+
+		// Turn.
 		if (IsHeld(In::Left))
 		{
 			item->Animation.TargetState = LS_CROUCH_TURN_LEFT;
@@ -109,10 +144,12 @@ void lara_as_crouch_idle(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 
+		// Idle.
 		item->Animation.TargetState = LS_CROUCH_IDLE;
 		return;
 	}
 
+	// Idle.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -246,6 +283,7 @@ void lara_as_crouch_turn_left(ItemInfo* item, CollisionInfo* coll)
 
 	AlignLaraToSurface(item);
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
@@ -254,18 +292,29 @@ void lara_as_crouch_turn_left(ItemInfo* item, CollisionInfo* coll)
 
 	if ((IsHeld(In::Crouch) || player.Control.KeepLow) && CanCrouch(*item, *coll))
 	{
+		// Crouch roll.
 		if (IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CROUCH_ROLL;
 			return;
 		}
 
+		// Crawl.
 		if ((IsHeld(In::Forward) || IsHeld(In::Back)) && CanCrouchToCrawl(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CRAWL_IDLE;
 			return;
 		}
 
+		// Sidestep left.
+		if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)) &&
+			CanSidestepRight(*item, *coll))
+		{
+			item->Animation.TargetState = LS_CROUCH_STEP_LEFT;
+			return;
+		}
+
+		// Turn left.
 		if (IsHeld(In::Left))
 		{
 			item->Animation.TargetState = LS_CROUCH_TURN_LEFT;
@@ -273,10 +322,12 @@ void lara_as_crouch_turn_left(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 
+		// Idle.
 		item->Animation.TargetState = LS_CROUCH_IDLE;
 		return;
 	}
 
+	// Idle.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -299,6 +350,7 @@ void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 
 	AlignLaraToSurface(item);
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
@@ -307,18 +359,57 @@ void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 
 	if ((IsHeld(In::Crouch) || player.Control.KeepLow) && CanCrouch(*item, *coll))
 	{
+		// Crouch roll.
 		if (IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CROUCH_ROLL;
 			return;
 		}
 
+		// Crawl.
 		if ((IsHeld(In::Forward) || IsHeld(In::Back)) && CanCrouchToCrawl(*item, *coll))
 		{
 			item->Animation.TargetState = LS_CRAWL_IDLE;
 			return;
 		}
 
+		// Sidestep.
+		if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+		{
+			if (CanSidestepLeft(*item, *coll))
+			{
+				item->Animation.TargetState = LS_CROUCH_STEP_LEFT;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_CROUCH_IDLE;
+			}
+
+			return;
+		}
+		else if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+		{
+			if (CanSidestepRight(*item, *coll))
+			{
+				item->Animation.TargetState = LS_CROUCH_STEP_RIGHT;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_CROUCH_IDLE;
+			}
+
+			return;
+		}
+
+		// Sidestep right.
+		if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)) &&
+			CanSidestepLeft(*item, *coll))
+		{
+			item->Animation.TargetState = LS_CROUCH_STEP_RIGHT;
+			return;
+		}
+
+		// Turn right.
 		if (IsHeld(In::Right))
 		{
 			item->Animation.TargetState = LS_CROUCH_TURN_RIGHT;
@@ -326,10 +417,12 @@ void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 
+		// Idle.
 		item->Animation.TargetState = LS_CROUCH_IDLE;
 		return;
 	}
 
+	// Idle.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -338,6 +431,176 @@ void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 void lara_col_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 {
 	lara_col_crouch_idle(item, coll);
+}
+
+// State:	  LS_CROUCH_STEP_LEFT (198)
+// Collision: lara_col_crouch_step_left()
+void lara_as_crouch_step_left(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::Vertical;
+
+	if (item->HitPoints <= 0)
+	{
+		item->Animation.TargetState = LS_DEATH;
+		return;
+	}
+
+	if (player.Control.IsMoving)
+	{
+		ResetPlayerTurnRateY(*item);
+		return;
+	}
+
+	// Walk action locks orientation.
+	if (IsHeld(In::Walk))
+	{
+		ResetPlayerTurnRateY(*item);
+	}
+	else if (IsHeld(In::Left) || IsHeld(In::Right))
+	{
+		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
+	}
+
+	if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+	{
+		item->Animation.TargetState = LS_CROUCH_STEP_LEFT;
+		return;
+	}
+
+	item->Animation.TargetState = LS_CROUCH_IDLE;
+}
+
+// State:	LS_CROUCH_STEP_LEFT (198)
+// Control: lara_as_crouch_step_left()
+void lara_col_crouch_step_left(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	item->Animation.Velocity.y = 0.0f;
+	item->Animation.IsAirborne = false;
+	player.Control.KeepLow = IsInLowSpace(*item, *coll);
+	player.Control.IsLow = true;
+	player.Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+	coll->Setup.Radius = LARA_RADIUS_CRAWL;
+	coll->Setup.Height = LARA_HEIGHT_CRAWL;
+	coll->Setup.LowerFloorBound = CRAWL_STEPUP_HEIGHT;
+	coll->Setup.UpperFloorBound = -CRAWL_STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = LARA_HEIGHT_CRAWL;
+	coll->Setup.BlockFloorSlopeDown = true;
+	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.BlockDeathFloorDown = true;
+	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	GetCollisionInfo(coll, item, true);
+
+	if (LaraDeflectEdgeCrawl(item, coll))
+		LaraCollideStopCrawl(item, coll);
+
+	if (CanFall(*item, *coll))
+	{
+		SetLaraFallAnimation(item);
+		return;
+	}
+
+	if (CanSlide(*item, *coll))
+	{
+		SetLaraSlideAnimation(item, coll);
+		return;
+	}
+
+	ShiftItem(item, coll);
+
+	if (CanChangeElevation(*item, *coll))
+	{
+		HandlePlayerElevationChange(item, coll);
+		return;
+	}
+}
+
+// State:	  LS_CROUCH_STEP_RIGHT (199)
+// Collision: lara_col_crouch_step_right()
+void lara_as_crouch_step_right(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::Vertical;
+
+	if (item->HitPoints <= 0)
+	{
+		item->Animation.TargetState = LS_DEATH;
+		return;
+	}
+
+	if (player.Control.IsMoving)
+	{
+		ResetPlayerTurnRateY(*item);
+		return;
+	}
+
+	// Walk action locks orientation.
+	if (IsHeld(In::Walk))
+	{
+		ResetPlayerTurnRateY(*item);
+	}
+	else if (IsHeld(In::Left) || IsHeld(In::Right))
+	{
+		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_CRAWL_TURN_RATE_MAX);
+	}
+
+	if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+	{
+		item->Animation.TargetState = LS_CROUCH_STEP_RIGHT;
+		return;
+	}
+
+	item->Animation.TargetState = LS_CROUCH_IDLE;
+}
+
+// State:	LS_CROUCH_STEP_RIGHT (199)
+// Control: lara_as_step_right()
+void lara_col_crouch_step_right(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	item->Animation.Velocity.y = 0.0f;
+	item->Animation.IsAirborne = false;
+	player.Control.KeepLow = IsInLowSpace(*item, *coll);
+	player.Control.IsLow = true;
+	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+	coll->Setup.Radius = LARA_RADIUS_CRAWL;
+	coll->Setup.Height = LARA_HEIGHT_CRAWL;
+	coll->Setup.LowerFloorBound = CRAWL_STEPUP_HEIGHT;
+	coll->Setup.UpperFloorBound = -CRAWL_STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = LARA_HEIGHT_CRAWL;
+	coll->Setup.BlockFloorSlopeDown = true;
+	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.BlockDeathFloorDown = true;
+	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	GetCollisionInfo(coll, item, true);
+
+	if (LaraDeflectEdgeCrawl(item, coll))
+		LaraCollideStopCrawl(item, coll);
+
+	if (CanFall(*item, *coll))
+	{
+		SetLaraFallAnimation(item);
+		return;
+	}
+
+	if (CanSlide(*item, *coll))
+	{
+		SetLaraSlideAnimation(item, coll);
+		return;
+	}
+
+	ShiftItem(item, coll);
+
+	if (CanChangeElevation(*item, *coll))
+	{
+		HandlePlayerElevationChange(item, coll);
+		return;
+	}
 }
 
 // State:	  LS_CROUCH_TURN_180 (171)
