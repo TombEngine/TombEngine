@@ -196,6 +196,7 @@ namespace TEN::Scripting::DisplaySprite
 	/// Draw the display sprite in display space for the current frame.
 	// @function DisplaySprite:Draw
 	// @tparam[opt=0] int priority Draw priority. Can be thought of as a layer, with higher values having precedence.
+	// Negative values will draw sprite above strings, while positive values will draw it under.
 	// @tparam[opt=View.AlignMode.CENTER] View.AlignMode alignMode Align mode interpreting an offset from the sprite's position.
 	// @tparam[opt=View.ScaleMode.FIT] View.ScaleMode scaleMode Scale mode interpreting the display sprite's horizontal and vertical scale.
 	// @tparam[opt=Effects.BlendID.ALPHABLEND] Effects.BlendID blendMode Blend mode.

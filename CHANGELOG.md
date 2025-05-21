@@ -6,8 +6,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.9]
 
 ## New features
-* Added skinned meshes support for any object slot.
-* Added video playback support.
+* Added skinned meshes support for any object.
+* Added video playback and video texture streaming support.
 * Added muzzle glow effect for firearms.
 * Added weather particle clustering and increase weather particle density and performance.
 * Added examine mode text rendering (string key should be in the format like `examine1_text`, `examine2_text` etc).
@@ -17,12 +17,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ability to use big push switch (OCB 3) underwater.
 
 ### Bug fixes
-* Fixed single lasers going through walls.
-* Fixed teleporter object.
-* Fixed wraith objects not working correctly in flipped rooms.
-* Fixed spiky ceiling object not having default speed assigned.
-* Fixed fish missing random targets due to distance.
-* Fixed fish and compsognathus not attacking corpses.
+* Fixed LASER_BEAM object going through walls.
+* Fixed TELEPORTER object.
+* Fixed WRAITH objects not working correctly in flipped rooms.
+* Fixed SPIKY_CEILING object not having default speed assigned.
+* Fixed FISH_EMITTER object missing random targets due to distance.
+* Fixed FISH_EMITTER and COMPSOGNATHUS objects not attacking corpses.
 * Fixed collision issues for subsector bridges and bridges moving between rooms.
 * Fixed missing step up animation when switching from tread to wade.
 * Fixed ledge grabbing on platforms made from lowered ceilings.
@@ -35,7 +35,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed caustics not rendered correctly if texture compression was enabled.
 * Fixed exclusion blend mode not working correctly.
 * Fixed SSAO incorrectly applied through alpha blended textures.
-* Fixed hair object not rendered correctly if alpha blended textures are present.
+* Fixed hair not rendered correctly if alpha blended textures are present.
 * Fixed disappearing Lara when climbing through specific L-shaped portal setups.
 * Fixed clipping of overlapped rooms during flyby sequences.
 * Fixed static meshes not interpolating when dynamically changing their positional data.
@@ -44,10 +44,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Refactored pulley object. There is no need to use OCB 1 for a single pull.
   [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/<insert address here>).
-* Removed legacy TR5 search object code which caused issues with meshswaps.
+* Removed legacy TR5 SEARCH_OBJECT1 code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
+* Removed mipmapping for point filter rendering mode.
 
 ### Lua API changes
+* Added `Flow.ItemAction` enum to reconfigure inventory item actions.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
 * Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxisValue` functions.
 * Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
@@ -55,6 +57,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
+* Added ability to specify negative priority values for `View.DisplaySprite` to draw it above strings.
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
 * Added `Strings.DisplayStringOption.VERTICAL_CENTER` flag for vertically centering multiline strings.
 * Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
