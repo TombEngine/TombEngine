@@ -22,7 +22,7 @@ StringsHandler::StringsHandler(sol::state* lua, sol::table& parent) :
 /***
 Show some text on-screen.
 @function ShowString
-@tparam DisplayString string The string object to draw.
+@tparam Strings.DisplayString string The string object to draw.
 @tparam[opt] float time The time in seconds for which to show the string. If not given, the string will have an "infinite" life, and will show
 until @{HideString} is called or until the level is finished.
 @tparam[opt=true] bool autoDelete Should be string automatically deleted after timeout is reached. If not given, the string will remain
@@ -33,14 +33,14 @@ allocated even after timeout is reached, and can be shown again without re-initi
 /***
 Hide some on-screen text.
 @function HideString
-@tparam DisplayString string The string object to hide. Must previously have been shown with a call to @{ShowString}, or this function will have no effect.
+@tparam Strings.DisplayString string The string object to hide. Must previously have been shown with a call to @{ShowString}, or this function will have no effect.
 */
 	table.set_function(ScriptReserved_HideString, [this](const DisplayString& string) { ShowString(string, 0.0f, false); });
 
 /***
 Checks if the string is shown
 @function IsStringDisplaying
-@tparam DisplayString string The string object to be checked.
+@tparam Strings.DisplayString string The string object to be checked.
 @treturn bool true if it is shown, false if it is hidden
 */
 	table.set_function(ScriptReserved_IsStringDisplaying, &StringsHandler::IsStringDisplaying, this);

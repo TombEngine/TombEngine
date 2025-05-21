@@ -9,9 +9,9 @@
 
 /// Table of Util.LogLevel constants. To be used with @{Util.PrintLog} function.
 //
-// - `INFO`
-// - `WARNING`
-// - `ERROR`
+// - `INFO` - Only information messages will be shown.
+// - `WARNING` - Non-critical warnings and information messages will be shown.
+// - `ERROR` - Critical errors, non-critical warnings and information messages will be shown.
 //
 // @table Util.LogLevel
 

@@ -226,7 +226,7 @@ enum class PrintStringFlags
 	Blink			= (1 << 1),
 	Right			= (1 << 2),
 	Outline			= (1 << 3),
-	VerticalCenter	= (1 << 4),
+	VerticalCenter	= (1 << 4)
 };
 
 enum class RendererPass

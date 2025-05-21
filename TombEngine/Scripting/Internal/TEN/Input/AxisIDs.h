@@ -13,9 +13,9 @@ namespace TEN::Scripting::Input
 	/// Table of Input.AxisID constants.
 	// To be used with @{Input.GetAnalogAxis}.
 	//
-	//	MOVE
-	//	CAMERA
-	//	MOUSE
+	// - `MOVE` - Analog axis configured for player's movement.
+	// - `CAMERA` - Analog axis configured for camera movement.
+	// - `MOUSE` - Raw mouse input analog axis.
 	//
 	//@table Input.AxisID
 
