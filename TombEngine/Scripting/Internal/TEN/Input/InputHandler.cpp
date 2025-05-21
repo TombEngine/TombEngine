@@ -47,7 +47,7 @@ namespace TEN::Scripting::Input
 	/// Get the analog value of an axis.
 	// @function GetAnalogAxis
 	// @tparam Input.AxisID axis Axis ID to fetch.
-	// @treturn Vec2 Analog axis with components in the range [-1, 1].
+	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
 	static Vec2 GetAnalogAxisValue(AxisID axisID)
 	{
 		return Vec2(AxisMap[axisID]);

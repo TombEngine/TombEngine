@@ -17,11 +17,11 @@ Constants for Display String Options.
 /*** Strings.DisplayStringOption constants. To be used with @{Strings.DisplayString} class.
 @table Strings.DisplayStringOption
 
- - `CENTER` - Set the horizontal origin point to the center of the string.
- - `RIGHT` - Set the horizontal origin point to right of the string.
- - `SHADOW` - Gives the string a small drop shadow.
- - `BLINK` - Blinks the string.
+ - `CENTER` - Sets the horizontal origin point to the center of the string.
+ - `RIGHT` - Sets the horizontal origin point to the right side of the string.
  - `VERTICAL_CENTER` - Sets the vertical origin point of the multiline string to the center.
+ - `SHADOW` - Gives the string a drop shadow effect.
+ - `BLINK` - Blinks the string.
 */
 
 enum class DisplayStringOptions
