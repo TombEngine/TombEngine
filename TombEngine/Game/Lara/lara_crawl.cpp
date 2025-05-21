@@ -530,7 +530,7 @@ void lara_as_crouch_step_right(ItemInfo* item, CollisionInfo* coll)
 }
 
 // State:	LS_CROUCH_STEP_RIGHT (199)
-// Control: lara_as_step_right()
+// Control: lara_as_crouch_step_right()
 void lara_col_crouch_step_right(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
