@@ -457,8 +457,8 @@ void lara_col_crouch_step_left(ItemInfo* item, CollisionInfo* coll)
 	player.Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
 	coll->Setup.Radius = LARA_RADIUS_CRAWL;
 	coll->Setup.Height = LARA_HEIGHT_CRAWL;
-	coll->Setup.LowerFloorBound = CRAWL_STEPUP_HEIGHT;
-	coll->Setup.UpperFloorBound = -CRAWL_STEPUP_HEIGHT;
+	coll->Setup.LowerFloorBound = CLICK(0.8f);
+	coll->Setup.UpperFloorBound = -CLICK(0.8f);
 	coll->Setup.LowerCeilingBound = LARA_HEIGHT_CRAWL;
 	coll->Setup.BlockFloorSlopeDown = true;
 	coll->Setup.BlockFloorSlopeUp = true;
@@ -542,8 +542,8 @@ void lara_col_crouch_step_right(ItemInfo* item, CollisionInfo* coll)
 	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
 	coll->Setup.Radius = LARA_RADIUS_CRAWL;
 	coll->Setup.Height = LARA_HEIGHT_CRAWL;
-	coll->Setup.LowerFloorBound = CRAWL_STEPUP_HEIGHT;
-	coll->Setup.UpperFloorBound = -CRAWL_STEPUP_HEIGHT;
+	coll->Setup.LowerFloorBound = CLICK(0.8f);
+	coll->Setup.UpperFloorBound = -CLICK(0.8f);
 	coll->Setup.LowerCeilingBound = LARA_HEIGHT_CRAWL;
 	coll->Setup.BlockFloorSlopeDown = true;
 	coll->Setup.BlockFloorSlopeUp = true;
