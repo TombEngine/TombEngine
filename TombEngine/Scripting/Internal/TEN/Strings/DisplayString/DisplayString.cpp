@@ -54,10 +54,12 @@ For use in @{Strings.ShowString|ShowString} and @{Strings.HideString|HideString}
 @tparam[opt=false] bool translated If false or omitted, the input string argument will be displayed as is.
 If true, the string argument will be treated as the key of a translated string specified in strings.lua.
 @tparam[opt] Strings.DisplayStringOption flags Flags which affect visual representation of a string, such as shadow or alignment.
+@tparam[opt=Vec2(0&#44; 0)] Vec2 area Rectangular area in pixels to perform word wrapping.
+No word wrapping will occur if this parameter is default or omitted.
 @treturn DisplayString A new DisplayString object.
 */
-static std::unique_ptr<DisplayString> CreateString(const std::string& key, const Vec2& pos, TypeOrNil<Vec2> area, TypeOrNil<float> scale, TypeOrNil<ScriptColor> color,
-												   TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags)
+static std::unique_ptr<DisplayString> CreateString(const std::string& key, const Vec2& pos, TypeOrNil<float> scale, TypeOrNil<ScriptColor> color,
+												   TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, TypeOrNil<Vec2> area)
 {
 	auto ptr = std::make_unique<DisplayString>();
 	auto id = ptr->GetID();
@@ -97,21 +99,9 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 	return ptr;
 }
 
-/*** Create a DisplayString word-wrapped within a specified area. Other parameters are the same as above.
-@function DisplayString
-@tparam string string
-@tparam Vec2 position
-@tparam[opt=Vec2(0&#44; 0)] Vec2 area Rectangular area in pixels to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
-@tparam[opt=1] float scale
-@tparam[opt] ScriptColor color
-@tparam[opt=false] bool translated
-@tparam[opt] Strings.DisplayStringOption flags
-@treturn DisplayString A new word-wrapped DisplayString object.
-*/
-
 // HACK: Constructor wrapper for DisplayString smart pointer to maintain compatibility with deprecated version calls.
 std::unique_ptr<DisplayString> DisplayStringWrapper(const std::string& key, sol::object unkArg0, sol::object unkArg1, TypeOrNil<ScriptColor> color,
-								 TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags)
+								 TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, TypeOrNil<Vec2> area)
 {
 	// Deprecated constructor 1 (prior to word wrapping implementation).
 	if (unkArg0.is<Vec2>() && (unkArg1.is<float>() || unkArg1 == sol::nil))
@@ -119,7 +109,7 @@ std::unique_ptr<DisplayString> DisplayStringWrapper(const std::string& key, sol:
 		auto pos = (Vec2)unkArg0.as<Vec2>();
 		float scale = unkArg1 == sol::nil ? 1.0f : unkArg1.as<float>();
 
-		return CreateString(key, pos, Vec2(0, 0), scale, color, isTranslated, flags);
+		return CreateString(key, pos, scale, color, isTranslated, flags, area);
 
 	}
 	// Deprecated constructor 2 (prior to Vec2 position implementation).
@@ -127,7 +117,7 @@ std::unique_ptr<DisplayString> DisplayStringWrapper(const std::string& key, sol:
 	{
 		auto pos = Vec2((float)unkArg0.as<int>(), (float)unkArg1.as<int>());
 
-		return CreateString(key, pos, Vec2(0, 0), 1.0f, color, isTranslated, flags);
+		return CreateString(key, pos, 1.0f, color, isTranslated, flags, area);
 	}
 
 	TENLog("Failed to create DisplayString. Unknown parameters.");
@@ -143,7 +133,7 @@ void DisplayString::Register(sol::table& parent)
 {
 	parent.new_usertype<DisplayString>(
 		ScriptReserved_DisplayString,
-		sol::call_constructor, sol::factories(&CreateString, &DisplayStringWrapper),
+		sol::call_constructor, &DisplayStringWrapper,
 
 		/// Get the display string's color.
 		// @function DisplayString:GetColor

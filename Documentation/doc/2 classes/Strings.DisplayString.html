@@ -130,12 +130,8 @@ when you need to use screen-space coordinates.</p>
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags])</a></td>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags], [area])</a></td>
 	<td class="summary">Create a DisplayString.</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [area], [scale], [color], [translated], [flags])</a></td>
-	<td class="summary">Create a DisplayString word-wrapped within a specified area.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:GetColor">DisplayString:GetColor()</a></td>
@@ -192,7 +188,7 @@ when you need to use screen-space coordinates.</p>
     <dl class="function">
     <dt>
     <a name = "DisplayString"></a>
-    <strong>DisplayString(string, position, [scale], [color], [translated], [flags])</strong>
+    <strong>DisplayString(string, position, [scale], [color], [translated], [flags], [area])</strong>
     </dt>
     <dd>
     Create a DisplayString.
@@ -231,6 +227,12 @@ If true, the string argument will be treated as the key of a translated string s
          Flags which affect visual representation of a string, such as shadow or alignment.
          <em>Optional.</em>
         </li>
+        <li><span class="parameter">area</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Rectangular area in pixels to perform word wrapping.
+No word wrapping will occur if this parameter is default or omitted.
+         <em>Default: Vec2(0&#44; 0).</em>
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -238,75 +240,6 @@ If true, the string argument will be treated as the key of a translated string s
 
            <span class="types"><a class="type" href="../2 classes/Strings.DisplayString.html#DisplayString">DisplayString</a></span>
         A new DisplayString object.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "DisplayString"></a>
-    <strong>DisplayString(string, position, [area], [scale], [color], [translated], [flags])</strong>
-    </dt>
-    <dd>
-    Create a DisplayString word-wrapped within a specified area.  Other parameters are the same as above.
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">string</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-
-
-        </li>
-        <li><span class="parameter">position</span>
-            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-
-
-
-        </li>
-        <li><span class="parameter">area</span>
-            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         Rectangular area in pixels to perform word wrapping. No word wrapping will occur if this parameter is default or omitted.
-         <em>Default: Vec2(0&#44; 0).</em>
-        </li>
-        <li><span class="parameter">scale</span>
-            <span class="types"><span class="type">float</span></span>
-
-
-
-         <em>Default: 1.</em>
-        </li>
-        <li><span class="parameter">color</span>
-            <span class="types"><span class="type">ScriptColor</span></span>
-
-
-
-         <em>Optional.</em>
-        </li>
-        <li><span class="parameter">translated</span>
-            <span class="types"><span class="type">bool</span></span>
-
-
-
-         <em>Default: false.</em>
-        </li>
-        <li><span class="parameter">flags</span>
-            <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-
-
-
-         <em>Optional.</em>
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../2 classes/Strings.DisplayString.html#DisplayString">DisplayString</a></span>
-        A new word-wrapped DisplayString object.
     </ol>
 
 
