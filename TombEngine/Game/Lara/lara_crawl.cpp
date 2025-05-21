@@ -373,34 +373,6 @@ void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 
-		// Sidestep.
-		if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
-		{
-			if (CanSidestepLeft(*item, *coll))
-			{
-				item->Animation.TargetState = LS_CROUCH_STEP_LEFT;
-			}
-			else
-			{
-				item->Animation.TargetState = LS_CROUCH_IDLE;
-			}
-
-			return;
-		}
-		else if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
-		{
-			if (CanSidestepRight(*item, *coll))
-			{
-				item->Animation.TargetState = LS_CROUCH_STEP_RIGHT;
-			}
-			else
-			{
-				item->Animation.TargetState = LS_CROUCH_IDLE;
-			}
-
-			return;
-		}
-
 		// Sidestep right.
 		if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)) &&
 			CanSidestepLeft(*item, *coll))
