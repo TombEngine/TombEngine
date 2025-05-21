@@ -210,8 +210,8 @@ namespace TEN::Entities::Switches
 				laraItem->Animation.ActiveState == LS_JUMP_UP &&
 				laraItem->Animation.IsAirborne &&
 				lara->Control.HandStatus == HandStatus::Free &&
-				switchItem->Status != ITEM_ACTIVE ||
-				(lara->Control.IsMoving && lara->Context.InteractedItem == itemNumber)))
+				switchItem->Animation.ActiveState == SWITCH_OFF) ||
+				(lara->Control.IsMoving && lara->Context.InteractedItem == itemNumber))
 			{
 				if (TestLaraPosition(CeilingSwitchBounds1, switchItem, laraItem))
 				{
