@@ -176,7 +176,7 @@ bool SwitchTrigger(short itemNumber, short timer)
 	if (item.ObjectNumber >= ID_KEY_HOLE1 && item.ObjectNumber <= ID_KEY_HOLE16)
 		return false;
 
-	//Handle Pulley
+	// Handle pulley.
 	if (item.ObjectNumber == ID_PULLEY)
 		return TriggerPulley(itemNumber, timer);
 
