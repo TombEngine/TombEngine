@@ -45,6 +45,7 @@ namespace TEN::Renderer
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
 			float stringScale = (uiScale * fontScale) * scale;
+			float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * stringScale;
 
 			std::vector<std::wstring> stringLines;
 
@@ -52,15 +53,14 @@ namespace TEN::Renderer
 			{
 				auto words = SplitWords(TEN::Utils::ToWString(string)); // Implement this to split on spaces
 				std::wstring currentLine;
-				float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * uiScale * fontScale * scale;
 
 				float currentLineWidth = 0.0f;
 
 				for (const auto& word : words)
 				{
-					float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * uiScale * fontScale * scale;
+					float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
 
-					if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x))
+					if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
 					{
 						stringLines.push_back(currentLine);
 						currentLine.clear();
@@ -96,7 +96,7 @@ namespace TEN::Renderer
 			}
 
 			// Calculate maximum textbox height.
-			float maxHeight = (area.y > 0.0f) ? area.y * uiScale : 0.0f;
+			float maxHeight = (area.y > 0.0f) ? area.y * factor.y : 0.0f;
 			if (maxHeight > 0.0f && totalHeight > maxHeight)
 				totalHeight = maxHeight;
 
