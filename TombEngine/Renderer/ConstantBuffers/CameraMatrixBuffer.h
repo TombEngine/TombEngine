@@ -14,6 +14,8 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Matrix Projection;
 		//--
+		Matrix InverseView;
+		//--
 		Matrix InverseProjection;
 		//--
 		Matrix DualParaboloidView;

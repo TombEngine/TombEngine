@@ -12,6 +12,9 @@ namespace TEN::Renderer::Graphics::Vertices
 		Vector4 ColorB1 = Vector4::Zero;
 		Vector4 ColorB2 = Vector4::Zero;
 		Vector4 ColorB3 = Vector4::Zero;
+		Vector4 ColorB4 = Vector4::Zero;
+		Vector4 ColorB5 = Vector4::Zero;
+		Vector4 ColorB6 = Vector4::Zero;
 		Vector3 Tangent	 = Vector3::Zero;
 		Vector3 Binormal = Vector3::Zero;
 

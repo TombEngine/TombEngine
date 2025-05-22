@@ -37,6 +37,9 @@ struct PixelShaderInput
     float4 ColorB1 : COLOR1;
     float4 ColorB2 : COLOR2;
     float4 ColorB3 : COLOR3;
+    float4 ColorB4 : COLOR4;
+    float4 ColorB5 : COLOR5;
+    float4 ColorB6 : COLOR6;
 };
 
 Texture2D Texture : register(t0);
@@ -133,20 +136,50 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
+    normal = mul(float4(normal, 1.0f), InverseView).xyz;
+	
 	normal = normalize(mul(normal, TBN));
+    //if (determinant(TBN) < 0.0f)
+     //   normal.z *= -1.0f;
+	
+	
 
-    float3 RNMBasis0 = float3(0.57735027, 0.57735027, 0.57735027);
-    float3 RNMBasis1 = float3(-0.57735027, -0.57735027, 0.57735027);
-    float3 RNMBasis2 = float3(-0.57735027, 0.57735027, -0.57735027);
+    //float3 RNMBasis0 = float3(0.57735027, 0.57735027, 0.57735027);
+    //float3 RNMBasis1 = float3(-0.57735027, -0.57735027, 0.57735027);
+    //float3 RNMBasis2 = float3(-0.57735027, 0.57735027, -0.57735027);
+
+    float3 RNMBasis0 = float3(1, 0, 0);
+    float3 RNMBasis1 = float3(-1, 0, 0);
+    float3 RNMBasis2 = float3(0, 1, 0);
+    float3 RNMBasis3 = float3(0, -1, 0);
+    float3 RNMBasis4 = float3(0, 0, 1);
+    float3 RNMBasis5 = float3(0, 0, -1);
 
     float w1 = max(0, dot(normal, RNMBasis0));
     float w2 = max(0, dot(normal, RNMBasis1));
     float w3 = max(0, dot(normal, RNMBasis2));
+    float w4 = max(0, dot(normal, RNMBasis3));
+    float w5 = max(0, dot(normal, RNMBasis4));
+    float w6 = max(0, dot(normal, RNMBasis5));
 
-    float3 lighting =
+    float sum = w1 + w2 + w3 + w4 + w5 + w6;
+	
+    float3 lighting = input.Color.xyz;
+	
+   //if (sum > 0)
+    {
+        lighting = 
+        
 		input.ColorB1.xyz * w1 +
 		input.ColorB2.xyz * w2 +
-		input.ColorB3.xyz * w3;
+		input.ColorB3.xyz * w3 +
+		input.ColorB4.xyz * w4 +
+		input.ColorB5.xyz * w5 +
+		input.ColorB6.xyz * w6;
+		
+        lighting *= 2.0f;
+    }
+   
 
 	bool doLights = true;
 

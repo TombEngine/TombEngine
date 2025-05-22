@@ -130,7 +130,7 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
 	
-    float4 _unused = (input.ColorB1 + input.ColorB2 + input.ColorB3);
+    float4 _unused = (input.ColorB1 + input.ColorB2 + input.ColorB3 + input.ColorB4 + input.ColorB5 + input.ColorB6);
 
 	return output;
 }
@@ -184,7 +184,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
-
+ //   if (determinant(TBN) < 0.0f)
+  //      normal.z *= -1.0f;
+	
 	output.Normals.xyz = normal;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
 

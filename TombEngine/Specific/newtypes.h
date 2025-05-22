@@ -30,4 +30,7 @@ struct VERTEXCOLORS
 	Vector3 ColorB1;
 	Vector3 ColorB2;
 	Vector3 ColorB3;
+	Vector3 ColorB4;
+	Vector3 ColorB5;
+	Vector3 ColorB6;
 };

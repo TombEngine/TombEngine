@@ -147,7 +147,7 @@ namespace TEN::Renderer
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
-
+		 
 		auto shadowLightPos = (_shadowLight->Hash == 0) ?
 			_shadowLight->Position :
 			Vector3::Lerp(_shadowLight->PrevPosition, _shadowLight->Position, GetInterpolationFactor());

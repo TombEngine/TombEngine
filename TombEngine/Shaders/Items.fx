@@ -74,7 +74,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
 	
-    float4 _unused = (input.ColorB1 + input.ColorB2 + input.ColorB3);
+    float4 _unused = (input.ColorB1 + input.ColorB2 + input.ColorB3 + input.ColorB4 + input.ColorB5 + input.ColorB6);
 
 	return output;
 }

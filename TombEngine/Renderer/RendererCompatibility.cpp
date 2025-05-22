@@ -332,7 +332,7 @@ namespace TEN::Renderer
 					Vector3 p1 = room.positions[poly.indices[0]];
 					Vector3 p2 = room.positions[poly.indices[1]];
 					Vector3 p3 = room.positions[poly.indices[2]];
-
+ 
 					Vector3 n = (p2 - p1).Cross(p3 - p1);
 					n.Normalize();
 
@@ -347,7 +347,7 @@ namespace TEN::Renderer
 						vertex->Position.x = room.Position.x + room.positions[index].x;
 						vertex->Position.y = room.Position.y + room.positions[index].y;
 						vertex->Position.z = room.Position.z + room.positions[index].z;
-
+						 
 						bucket.Centre += vertex->Position;
 
 						vertex->Normal = poly.normals[k];
@@ -356,6 +356,9 @@ namespace TEN::Renderer
 						vertex->ColorB1 = Vector4(room.colors[index].ColorB1.x, room.colors[index].ColorB1.y, room.colors[index].ColorB1.z, 1.0f);
 						vertex->ColorB2 = Vector4(room.colors[index].ColorB2.x, room.colors[index].ColorB2.y, room.colors[index].ColorB2.z, 1.0f);
 						vertex->ColorB3 = Vector4(room.colors[index].ColorB3.x, room.colors[index].ColorB3.y, room.colors[index].ColorB3.z, 1.0f);
+						vertex->ColorB4 = Vector4(room.colors[index].ColorB4.x, room.colors[index].ColorB4.y, room.colors[index].ColorB4.z, 1.0f);
+						vertex->ColorB5 = Vector4(room.colors[index].ColorB5.x, room.colors[index].ColorB5.y, room.colors[index].ColorB5.z, 1.0f);
+						vertex->ColorB6 = Vector4(room.colors[index].ColorB6.x, room.colors[index].ColorB6.y, room.colors[index].ColorB6.z, 1.0f);
 						vertex->Tangent = poly.tangents[k];
 						vertex->Binormal = poly.binormals[k];
 						vertex->AnimationFrameOffset = poly.animatedFrame;

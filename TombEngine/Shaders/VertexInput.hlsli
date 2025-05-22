@@ -8,9 +8,12 @@ struct VertexShaderInput
     float2 UV : TEXCOORD0;
 
     float4 Color : COLOR;
-    float4 ColorB1 : COLB1;
-    float4 ColorB2 : COLB2;
-    float4 ColorB3 : COLB3;
+    float4 ColorB1 : COLB0;
+    float4 ColorB2 : COLB1;
+    float4 ColorB3 : COLB2;
+    float4 ColorB4 : COLB3;
+    float4 ColorB5 : COLB4;
+    float4 ColorB6 : COLB5;
 
     float3 Tangent : TANGENT;
     float3 Binormal : BINORMAL;
