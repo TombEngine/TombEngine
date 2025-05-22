@@ -824,16 +824,13 @@ enum LaraAnim
 	LA_LEDGE_JUMP_UP_END = 566,
 	LA_LEDGE_JUMP_BACK_START = 567,
 	LA_LEDGE_JUMP_BACK_END = 568,
-	
-	// 569-598 reserved for ladder object. -- Sezz 2023.04.16
-
-	LA_UNDERWATER_WALL_KICK = 599,			// Lara kick wall underwater.
-	LA_WALL_PUSH = 600,						// Lara Push Wall above ground.
-	LA_WALL_LEVER_SWITCH = 601,				// Use lever above ground
-	LA_UNDERWATER_PULLEY_GRAB = 602,		// Grab underwater pulley
-	LA_UNDERWATER_PULLEY_PULL = 603,		// Pull underwater pulley		
-	LA_UNDERWATER_PULLEY_UNGRAB = 604,		// Release underwater pulley
-	LA_CEILING_LEVER_SWITCH = 605,			// Use ceiling switch above ground
+	LA_UNDERWATER_WALL_KICK = 569,			// Lara kick wall underwater.
+	LA_WALL_PUSH = 570,						// Lara Push Wall above ground.
+	LA_WALL_LEVER_SWITCH = 571,				// Use lever above ground
+	LA_UNDERWATER_PULLEY_GRAB = 572,		// Grab underwater pulley
+	LA_UNDERWATER_PULLEY_PULL = 573,		// Pull underwater pulley		
+	LA_UNDERWATER_PULLEY_UNGRAB = 574,		// Release underwater pulley
+	LA_CEILING_LEVER_SWITCH = 575,			// Use ceiling switch above ground
 
 	//ADD NEW ANIMATIONS HERE
 
