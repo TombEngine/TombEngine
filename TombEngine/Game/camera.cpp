@@ -63,7 +63,7 @@ GameVector LookCamPosition;
 GameVector LookCamTarget;
 CAMERA_INFO Camera;
 GameVector ForcedFixedCamera;
-int UseForcedFixedCamera;
+bool UseForcedFixedCamera;
 
 CameraType BinocularOldCamera;
 
@@ -284,7 +284,7 @@ void InitializeCamera()
 
 	AlterFOV(ANGLE(DEFAULT_FOV));
 
-	UseForcedFixedCamera = 0;
+	UseForcedFixedCamera = false;
 	CalculateCamera(LaraCollision);
 
 	// Fade in screen.
@@ -1067,7 +1067,7 @@ void CalculateCamera(const CollisionInfo& coll)
 		LastPosition = Camera.pos;
 	}
 
-	if (UseForcedFixedCamera != 0)
+	if (UseForcedFixedCamera)
 	{
 		Camera.type = CameraType::Fixed;
 		if (Camera.oldType != CameraType::Fixed)
@@ -1306,6 +1306,23 @@ bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, sh
 		return false;
 
 	return camSphere.Intersects(bounds.ToBoundingOrientedBox(pose));
+}
+
+bool TestLockedCamera()
+{
+	// Check if break condition is met.
+	if (Camera.type != CameraType::Look && Camera.type != CameraType::Combat)
+		return true;
+
+	// Check if there's an active fixed camera.
+	if (Camera.number == NO_VALUE)
+		return true;
+
+	// Check if locked bit is set for a given fixed camera.
+	if (!(g_Level.Cameras[Camera.number].Flags & (int)LevelCameraFlags::Locked))
+		return false;
+
+	return true;
 }
 
 float GetParticleDistanceFade(const Vector3i& pos)

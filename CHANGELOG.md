@@ -12,8 +12,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added weather particle clustering and increase weather particle density and performance.
 * Added examine mode text rendering (string key should be in the format like `examine1_text`, `examine2_text` etc).
 * Added breakable wall object with land and underwater modes.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_BreakableWall.wad2.
 * Added land mode for underwater switches. Asset change required for both types of underwater switches.
-  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/<insert address here>).
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_WallSwitch.wad2).
 * Added ability to use big push switch (OCB 3) underwater.
 
 ### Bug fixes
@@ -29,6 +30,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
 * Fixed HK shots not being registered in statistics.
+* Fixed incorrect arm rotation for revolver animations in crouched state.
 * Fixed distorted knee and elbow joint vertices.
 * Fixed multi-mesh objects not shattering correctly.
 * Fixed splash effects remaining in the level after reloading from the savegame.
@@ -38,12 +40,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed hair not rendered correctly if alpha blended textures are present.
 * Fixed disappearing Lara when climbing through specific L-shaped portal setups.
 * Fixed clipping of overlapped rooms during flyby sequences.
+* Fixed locked camera flag and glide timer not working for fixed cameras.
 * Fixed static meshes not interpolating when dynamically changing their positional data.
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
 * Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Refactored pulley object. There is no need to use OCB 1 for a single pull.
-  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/<insert address here>).
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_Pulley.wad2).
+* Fixed incorrect conversion of non-Latin characters in the setup dialog.
 * Removed legacy TR5 SEARCH_OBJECT1 code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
 * Removed mipmapping for point filter rendering mode.

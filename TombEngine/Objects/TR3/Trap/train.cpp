@@ -92,7 +92,7 @@ namespace TEN::Entities::Traps
 				ForcedFixedCamera.y = GetPointCollision(Vector3i(ForcedFixedCamera.x, item.Pose.Position.y - CLICK(2), ForcedFixedCamera.z), item.RoomNumber).GetFloorHeight();
 
 				ForcedFixedCamera.RoomNumber = roomNumber;
-				UseForcedFixedCamera = 1;
+				UseForcedFixedCamera = true;
 			}
 		}
 		else

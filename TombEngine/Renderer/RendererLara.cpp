@@ -6,6 +6,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/control/control.h"
 #include "Game/spotcam.h"
 #include "Game/camera.h"
@@ -143,6 +144,10 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 		ArmInfo* leftArm = &Lara.LeftArm;
 		ArmInfo* rightArm = &Lara.RightArm;
+
+		// HACK: Treat revolver as pistols in crouched state.
+		if (IsCrouching(LaraItem) && gunType == LaraWeaponType::Revolver)
+			gunType = LaraWeaponType::Pistol;
 
 		// HACK: Back guns are handled differently.
 		switch (gunType)
