@@ -835,8 +835,9 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_hit_points(itemToSerialize.HitPoints);
 		serializedItem.add_item_flags(itemFlagsOffset);
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
-		serializedItem.add_mesh_pointers(meshPointerOffset);
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
+		serializedItem.add_mesh_index(meshPointerOffset);
+		serializedItem.add_skin_index(itemToSerialize.Model.SkinIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
 		serializedItem.add_pose(&FromPose(itemToSerialize.Pose));
 		serializedItem.add_required_state(itemToSerialize.Animation.RequiredState);
@@ -2692,9 +2693,11 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Mesh stuff
 		item->MeshBits = savedItem->mesh_bits();
 		item->Model.BaseMesh = savedItem->base_mesh();
-		item->Model.MeshIndex.resize(savedItem->mesh_pointers()->size());
-		for (int j = 0; j < savedItem->mesh_pointers()->size(); j++)
-			item->Model.MeshIndex[j] = savedItem->mesh_pointers()->Get(j);
+		item->Model.SkinIndex = savedItem->skin_index();
+
+		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
+		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
+			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
 
 		// Flags and timers
 		for (int j = 0; j < 7; j++)

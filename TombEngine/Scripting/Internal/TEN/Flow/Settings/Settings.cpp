@@ -41,6 +41,7 @@ namespace TEN::Scripting
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
 		FlareSettings::Register(parent);
+		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
 		PhysicsSettings::Register(parent);
@@ -52,8 +53,9 @@ namespace TEN::Scripting
 			sol::constructors<Settings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(Settings, ScriptReserved_Settings),
 			ScriptReserved_AnimSettings, &Settings::Animations,
-			ScriptReserved_FlareSettings, &Settings::Flare,
 			ScriptReserved_CameraSettings, &Settings::Camera,
+			ScriptReserved_FlareSettings, &Settings::Flare,
+			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
@@ -175,6 +177,21 @@ namespace TEN::Scripting
 		"flicker", &FlareSettings::Flicker);
 	}
 
+	/// Graphics
+	// @section Graphics
+	// These settings are used to enable or disable certain graphics features.
+
+	void GraphicsSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<GraphicsSettings>(ScriptReserved_GraphicsSettings, sol::constructors<GraphicsSettings()>(),
+			sol::call_constructor, sol::constructors<GraphicsSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
+
+			/// Enable skinning.
+			// @tfield bool skinning If enabled, skinning will be used for animated objects with skin. Disable to force classic TR workflow.
+			"skinning", &GraphicsSettings::Skinning);
+	}
+
 	/// Hair
 	// @section Hair
 	// This is a table of braid object settings. <br>
@@ -191,11 +208,11 @@ namespace TEN::Scripting
 		// @tfield int mesh Index of a root mesh to which hair will attach. Root mesh may be different for each hair object.
 		"rootMesh", &HairSettings::RootMesh,
 
-		/// Relative braid offset to a headmesh.
+		/// Relative braid offset to a headmesh. Not used with skinned hair mesh.
 		// @tfield Vec3 offset Specifies how braid is positioned in relation to a headmesh.
 		"offset", &HairSettings::Offset,
 	
-		/// Braid connection indices.
+		/// Braid connection indices. Not used with skinned hair mesh.
 		// @tfield table indices A list of headmesh's vertex connection indices. Each index corresponds to nearest braid rootmesh vertex. Amount of indices is unlimited.
 		"indices", &HairSettings::Indices);
 	}

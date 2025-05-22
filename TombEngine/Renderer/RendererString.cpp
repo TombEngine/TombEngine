@@ -39,8 +39,23 @@ namespace TEN::Renderer
 			float uiScale = (screenRes.x > screenRes.y) ? factor.y : factor.x;
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
+			float stringScale = (uiScale * fontScale) * scale;
 
 			auto stringLines = SplitString(TEN::Utils::ToWString(string));
+
+			// Calculate total height for vertical centering.
+			float totalHeight = 0.0f;
+			for (const auto& line : stringLines)
+			{
+				if (line.empty())
+					totalHeight += fontSpacing * stringScale;
+				else
+					totalHeight += Vector2(_gameFont->MeasureString(line.c_str())).y * stringScale;
+			}
+
+			// Compute vertical offset if vertical centering is requested.
+			float yBase = (flags & (int)PrintStringFlags::VerticalCenter) ? (pos.y * uiScale) - (totalHeight / 2.0f) : (pos.y * uiScale);
+
 			float yOffset = 0.0f;
 			for (const auto& line : stringLines)
 			{
@@ -51,7 +66,7 @@ namespace TEN::Renderer
 				rString.X = 0;
 				rString.Y = 0;
 				rString.Color = color;
-				rString.Scale = (uiScale * fontScale) * scale;
+				rString.Scale = stringScale;
 
 				// Measure string.
 				auto size = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line.c_str())) * rString.Scale;
@@ -71,7 +86,7 @@ namespace TEN::Renderer
 					rString.X = pos.x * factor.x + indent;
 				}
 
-				rString.Y = (pos.y * uiScale) + yOffset;
+				rString.Y = yBase + yOffset;
 
 				if (flags & (int)PrintStringFlags::Blink)
 				{

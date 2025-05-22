@@ -31,7 +31,8 @@ namespace TEN::Scripting::Input
 
 	/// Get the analog value of an action key.
 	// Returns either 0 or 1 for digital key mappings (e.g. keyboard or gamepad buttons),
-	// but may return arbirtrary values for analog key mappings (e.g. gamepad or mouse axes).
+	// but may return arbitrary values in the range 0 to 1 for analog key mappings
+	// (e.g. gamepad sticks, gamepad triggers, or mouse axes).
 	// @function GetAnalogKeyValue
 	// @tparam Input.ActionID actionID Action ID to query.
 	// @treturn float Analog value in the range [0, 1].
@@ -43,11 +44,11 @@ namespace TEN::Scripting::Input
 		return GetActionValue((ActionID)actionID);
 	}
 
-	/// Get an analog axis.
-	// @function GetAnalogAxis
-	// @tparam Input.AxisID Axis ID to fetch.
-	// @treturn Vec2 Analog axis with components in the range [-1, 1].
-	static Vec2 GetAnalogAxis(AxisID axisID)
+	/// Get the analog value of an axis.
+	// @function GetAnalogAxisValue
+	// @tparam Input.AxisID axis Axis ID to fetch.
+	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
+	static Vec2 GetAnalogAxisValue(AxisID axisID)
 	{
 		return Vec2(AxisMap[axisID]);
 	}
@@ -115,7 +116,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Simulate an action key push.
-	// @function KeyPush
+	// @function PushKey
 	// @tparam Input.ActionID actionID Action ID to push.
 	static void PushKey(int actionID)
 	{
@@ -126,7 +127,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Clear an action key.
-	// @function KeyClear
+	// @function ClearKey
 	// @tparam Input.ActionID actionID Action ID to clear.
 	static void ClearKey(int actionID)
 	{
@@ -137,7 +138,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Clear all action keys.
-	// @function KeyClearAll
+	// @function ClearAllKeys
 	static void ClearAllKeys()
 	{
 		for (auto& [keyActionID, queue] : ActionQueueMap)
@@ -159,7 +160,7 @@ namespace TEN::Scripting::Input
 
 		parent.set(ScriptReserved_Input, table);
 		table.set_function(ScriptReserved_InputGetAnalogKeyValue, &GetAnalogKeyValue);
-		table.set_function(ScriptReserved_InputGetAnalogAxis, &GetAnalogAxis);
+		table.set_function(ScriptReserved_InputGetAnalogAxisValue, &GetAnalogAxisValue);
 		table.set_function(ScriptReserved_InputGetMouseDisplayPosition, &GetMouseDisplayPosition);
 		table.set_function(ScriptReserved_InputIsKeyHit, &IsKeyHit);
 		table.set_function(ScriptReserved_InputIsKeyHeld, &IsKeyHeld);

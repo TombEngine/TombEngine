@@ -56,13 +56,26 @@ namespace TEN::Renderer
 
 		_invalidateCache = false;
 
-		// Prepare real DX scissor test rectangle.
+		bool laraFound = false;
+
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
+			// Prepare real DX scissor test rectangle.
 			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
 			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
+
+			// Indicate that Lara object is found.
+			if (roomPtr->RoomNumber == LaraItem->RoomNumber)
+				laraFound = true;
+		}
+
+		// HACK: Force adding Lara's room to room list, in case she is in one of camera's neighbor rooms.
+		if (!laraFound && Contains(_rooms[renderView.Camera.RoomNumber].Neighbors, (int)LaraItem->RoomNumber))
+		{
+			renderView.RoomsToDraw.push_back(&_rooms[LaraItem->RoomNumber]);
+			CollectItems(LaraItem->RoomNumber, renderView);
 		}
 
 		// Collect fog bulbs.

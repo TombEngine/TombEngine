@@ -93,7 +93,8 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	mesh_pointers: [int32];
+	skin_index: int32;
+	mesh_index: [int32];
 
 	effect_type: int32;
 	effect_light_colour: Vector3;

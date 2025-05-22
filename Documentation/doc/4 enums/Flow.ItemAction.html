@@ -81,11 +81,11 @@
   <li>    <a href="../4 enums/Effects.BlendID.html">Effects.BlendID</a></li>
   <li>    <a href="../4 enums/Effects.EffectID.html">Effects.EffectID</a></li>
   <li>    <a href="../4 enums/Effects.StreamerFeatherMode.html">Effects.StreamerFeatherMode</a></li>
-  <li>    <here>Effects.ParticleAnimationType</here></li>
+  <li>    <a href="../4 enums/Effects.ParticleAnimationType.html">Effects.ParticleAnimationType</a></li>
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
-  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
+  <li>    <here>Flow.ItemAction</here></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
   <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
@@ -116,16 +116,18 @@
 
 <div id="content">
 
-<h1>Enum <code>Effects.ParticleAnimationType</code></h1>
-<p>Constants for particle animation type constants.</p>
-<p> To be used with <a href="../1 modules/Effects.html#EmitAdvancedParticle">Effects.EmitAdvancedParticle</a> function.</p>
+<h1>Enum <code>Flow.ItemAction</code></h1>
+<p>Constants for item actions.</p>
+<p>
+
+</p>
 
 
 <h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Effects.ParticleAnimationType">Effects.ParticleAnimationType</a></td>
-	<td class="summary">Table of Effects.ParticleAnimationType type constants.</td>
+	<td class="name" ><a href="#Flow.ItemAction">Flow.ItemAction</a></td>
+	<td class="summary">Table of Flow.ItemAction constants.</td>
 	</tr>
 </table>
 
@@ -137,18 +139,31 @@
 
     <dl class="function">
     <dt>
-    <a name = "Effects.ParticleAnimationType"></a>
-    <strong>Effects.ParticleAnimationType</strong>
+    <a name = "Flow.ItemAction"></a>
+    <strong>Flow.ItemAction</strong>
     </dt>
     <dd>
 
-<p>Table of Effects.ParticleAnimationType type constants.  To be used with particles.</p>
+<p>Table of Flow.ItemAction constants.  To be used with <a href="../3 primitive classes/Flow.InventoryItem.html#">Flow.InventoryItem</a> class.</p>
 
 <ul>
-    <li><code>LOOP</code> - Frames loop sequentially.</li>
-    <li><code>ONE_SHOT</code> - Frames play once and freeze on the last frame.</li>
-    <li><code>BACK_AND_FORTH</code> - Frames bounce back and forth.</li>
-    <li><code>LIFE_TIME_SPREAD</code> - Frames are distributed over the particle's lifetime</li>
+    <li><code>USE</code> - Use the item.</li>
+    <li><code>EQUIP</code> - Equip the item. Used only with weapons.</li>
+    <li><code>EXAMINE</code> - Examine the item. Used only with examine objects.</li>
+    <li><code>COMBINE</code> - Combine the item with another item. Used only with combineable objects.</li>
+    <li><code>SEPARATE</code> - Separate items. Used only with objects that were combined before.</li>
+    <li><code>LOAD</code> - Load game.</li>
+    <li><code>SAVE</code> - Save game.</li>
+    <li><code>STATISTICS</code> - Show statistics screen.</li>
+    <li><code>CHOOSE_AMMO_SHOTGUN</code> - Choose ammo type for the shotgun.</li>
+    <li><code>CHOOSE_AMMO_CROSSBOW</code> - Choose ammo type for the crossbow.</li>
+    <li><code>CHOOSE_AMMO_GRENADEGUN</code> - Choose ammo type for the grenade launcher.</li>
+    <li><code>CHOOSE_AMMO_UZI</code> - Choose ammo type for the Uzi.</li>
+    <li><code>CHOOSE_AMMO_PISTOLS</code> - Choose ammo type for the pistols.</li>
+    <li><code>CHOOSE_AMMO_REVOLVER</code> - Choose ammo type for the revolver.</li>
+    <li><code>CHOOSE_AMMO_HK</code> - Choose ammo type for the HK gun.</li>
+    <li><code>CHOOSE_AMMO_HARPOON</code> - Choose ammo type for the harpoon gun.</li>
+    <li><code>CHOOSE_AMMO_ROCKET</code> - Choose ammo type for the rocket launcher.</li>
 </ul>
 
 

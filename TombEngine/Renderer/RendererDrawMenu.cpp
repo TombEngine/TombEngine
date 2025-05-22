@@ -283,7 +283,7 @@ namespace TEN::Renderer
 			// Mouse sensitivity
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), PRINTSTRING_COLOR_ORANGE, SF(titleOption == 9));
 			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), PRINTSTRING_COLOR_WHITE, SF(titleOption == 9));
-			GetNextLinePosition(&y);
+			GetNextBlockPosition(&y);
 
 			// Apply
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), PRINTSTRING_COLOR_ORANGE, SF_Center(titleOption == 10));
@@ -971,7 +971,7 @@ namespace TEN::Renderer
 		// If string is found, draw it and shift examine position upwards.
 		if (GetHash(string) != GetHash(stringKey))
 		{
-			AddString(screenPos.x, screenPos.y + screenPos.y / 4.0f, g_GameFlow->GetString(stringKey.c_str()), PRINTSTRING_COLOR_WHITE, SF_Center());
+			AddString(screenPos.x, screenPos.y + screenPos.y / 2.0f, g_GameFlow->GetString(stringKey.c_str()), PRINTSTRING_COLOR_WHITE, SF_Center() | (int)PrintStringFlags::VerticalCenter);
 			screenPos.y -= screenPos.y / 4.0f;
 		}
 
@@ -1134,8 +1134,9 @@ namespace TEN::Renderer
 
 		// Draw display sprites sorted by priority.
 		CollectDisplaySprites(_gameCamera);
-		DrawDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
 		DrawAllStrings();
+		DrawDisplaySprites(_gameCamera, true);
 
 		ClearScene();
 
@@ -1232,9 +1233,6 @@ namespace TEN::Renderer
 				Vector2(20, 560), Vector4(1.0f, 0, 0, 0.5f), 0.7f, 0);
 		}
 #endif
-
-		if (!DebugMode || CurrentLevel == 0)
-			return;
 
 		const auto& playerItem = *LaraItem;
 		const auto& player = GetLaraInfo(playerItem);
@@ -1373,20 +1371,26 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::InputStats:
 		{
-			auto clickedActions = BitField((int)In::Count);
-			auto heldActions = BitField((int)In::Count);
-			auto releasedActions = BitField((int)In::Count);
+			int	 size			 = (int)ACTION_ID_GROUPS[(int)USER_ACTION_GROUP_IDS.back()].back();
+			auto clickedActions	 = BitField(size);
+			auto heldActions	 = BitField(size);
+			auto releasedActions = BitField(size);
 
-			for (const auto& [actionID, action] : ActionMap)
+			for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 			{
-				if (action.IsClicked())
-					clickedActions.Set((int)action.GetID());
+				for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+				{
+					const auto& action = ActionMap.at(actionID);
 
-				if (action.IsHeld())
-					heldActions.Set((int)action.GetID());
+					if (action.IsClicked())
+						clickedActions.Set((int)action.GetID());
 
-				if (action.IsReleased())
-					releasedActions.Set((int)action.GetID());
+					if (action.IsHeld())
+						heldActions.Set((int)action.GetID());
+
+					if (action.IsReleased())
+						releasedActions.Set((int)action.GetID());
+				}
 			}
 
 			PrintDebugMessage("INPUT STATS");
@@ -1417,12 +1421,8 @@ namespace TEN::Renderer
 			PrintDebugMessage("BoxNumber: %d", playerItem.BoxNumber);
 			break;
 
-		case RendererDebugPage::BridgeStats:
-			PrintDebugMessage("BRIDGE STATS");
-			break;
-
-		case RendererDebugPage::RoomStats:
-			PrintDebugMessage("ROOM STATS");
+		case RendererDebugPage::CollisionMeshStats:
+			PrintDebugMessage("COLLISION MESH STATS");
 			break;
 
 		case RendererDebugPage::PortalStats:

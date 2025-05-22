@@ -298,6 +298,9 @@ namespace TEN::Video
 		if (_playbackMode == VideoPlaybackMode::Exclusive)
 			PauseAllSounds(SoundPauseMode::Global);
 
+		// Starting flag is needed to avoid race conditions with asynchronous playback.
+		_starting = true;
+
 		return true;
 	}
 
@@ -404,7 +407,7 @@ namespace TEN::Video
 			App.ResetClock = true;
 			UpdateInputActions(true);
 			interruptPlayback = IsHeld(In::Deselect) || IsHeld(In::Look);
-			_updateInput = false;
+			_updateInput = _starting = false;
 		}
 
 		auto state = libvlc_media_player_get_state(_player);
@@ -418,7 +421,7 @@ namespace TEN::Video
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video or video has finished playback or in an error, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error || state == libvlc_Stopped)
+		if (interruptPlayback || state == libvlc_Error || (!_starting && state == libvlc_Stopped))
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.

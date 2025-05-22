@@ -31,10 +31,11 @@ namespace TEN::Video
 		std::string		  _fileName		  = {};
 		std::string		  _videoDirectory = {};
 
-		// Render synchronization
+		// Synchronization
 
 		bool _needRender	 = false;
 		bool _updateInput	 = false;
+		bool _starting		 = false;
 		bool _deInitializing = false;
 
 		// Renderer Resources

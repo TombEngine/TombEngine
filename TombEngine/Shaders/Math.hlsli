@@ -27,6 +27,7 @@
 #define SPEC_FACTOR 64
 
 #define MAX_BONES 32
+#define MAX_BONE_WEIGHTS 4
 
 struct ShaderLight
 {
@@ -437,7 +438,7 @@ float4 RotationMatrixToQuaternion(float3x3 m)
 	);
 
 	q = tracePositive ? q0 : (cond1 ? q1 : (cond2 ? q2 : q3));
-	return q;
+	return normalize(q);
 }
 
 // Quaternion to Matrix (3x3)
@@ -455,45 +456,69 @@ float3x3 QuaternionToRotationMatrix(float4 q)
 	return m;
 }
 
-// Blend bone matrices using quaternion-based rotation and linear translation
 float4x4 BlendBoneMatrices(VertexShaderInput input, float4x4 bones[MAX_BONES], bool onlyRotation)
 {
-	float4 blendedQuat = float4(0, 0, 0, 0);
-	float3 blendedTranslation = float3(0, 0, 0);
-
-	[unroll]
-	for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+	if (onlyRotation)
 	{
-		float w = input.BoneWeight[i];
-		int index = input.BoneIndex[i];
-		float4x4 bone = bones[index];
+		float4 blendedQuat = float4(0, 0, 0, 0);
+		float3 blendedTranslation = float3(0, 0, 0);
 
-		float3x3 rot = (float3x3)bone;
-		float4 q = RotationMatrixToQuaternion(rot);
-
-		// Ensure shortest path for interpolation (flip if dot < 0)
-		float dotPrev = dot(blendedQuat, q);
-		q *= sign(dotPrev + 1e-5f); // Avoid zero dot product flip
-
-		blendedQuat += q * w;
-
-		if (!onlyRotation)
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
 		{
-			blendedTranslation += bone[3].xyz * w;
+			float w = float(input.BoneWeight[i]) / 255.0f;
+			int index = input.BoneIndex[i];
+			float4x4 bone = bones[index];
+
+			float3x3 rot = (float3x3)bone;
+			float4 q = RotationMatrixToQuaternion(rot);
+
+			// Ensure shortest path for interpolation (flip if dot < 0)
+			float dotPrev = dot(blendedQuat, q);
+			q *= sign(dotPrev + 1e-5f); // Avoid zero dot product flip
+
+			blendedQuat += q * w;
 		}
+
+		blendedQuat = normalize(blendedQuat);
+		float3x3 finalRot = QuaternionToRotationMatrix(blendedQuat);
+
+		float4x4 result = float4x4(
+			float4(finalRot[0], 0.0f),
+			float4(finalRot[1], 0.0f),
+			float4(finalRot[2], 0.0f),
+			float4(bones[input.BoneIndex[0]][3].xyz, 1.0f)
+		);
+
+		return result;
 	}
+	else
+	{
+		float totalWeight = 0.0f;
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+			totalWeight += float(input.BoneWeight[i]) / 255.0f;
 
-	blendedQuat = normalize(blendedQuat);
-	float3x3 finalRot = QuaternionToRotationMatrix(blendedQuat);
+		// Avoid divide-by-zero and excessive weights
+		if (totalWeight < EPSILON)
+			return bones[input.BoneIndex[0]];
 
-	float4x4 result = float4x4(
-		float4(finalRot[0], 0.0f),
-		float4(finalRot[1], 0.0f),
-		float4(finalRot[2], 0.0f),
-		float4(onlyRotation ? bones[input.BoneIndex[0]][3].xyz : blendedTranslation, 1.0f)
-	);
+		float4x4 blendedMatrix = (float4x4)0;
 
-	return result;
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+		{
+			float w = (float(input.BoneWeight[i]) / 255.0f) / totalWeight; // Normalize weights
+			blendedMatrix += bones[input.BoneIndex[i]] * w;
+		}
+
+		// Remove artifacts
+		blendedMatrix[0].w = 0.0f;
+		blendedMatrix[1].w = 0.0f;
+		blendedMatrix[2].w = 0.0f;
+		blendedMatrix[3].w = 1.0f;
+
+		return blendedMatrix;
+	}
 }
-
 #endif // MATH

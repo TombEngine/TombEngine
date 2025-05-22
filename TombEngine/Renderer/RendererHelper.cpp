@@ -186,7 +186,8 @@ namespace TEN::Renderer
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
 		// Copy meshswaps
-		itemToDraw->MeshIds = nativeItem->Model.MeshIndex;
+		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
 
 		if (obj->animIndex == -1)
 			return;
@@ -342,7 +343,7 @@ namespace TEN::Renderer
 	void Renderer::BuildHierarchyRecursive(RendererObject *obj, RendererBone *node, RendererBone *parentNode)
 	{
 		node->GlobalTransform = node->Transform * parentNode->GlobalTransform;
-		obj->BindPoseTransforms[node->Index] = node->GlobalTransform;
+		obj->BindPoseTransforms[node->Index] = node->GlobalTransform.Invert();
 		obj->Skeleton->GlobalTranslation = Vector3::Zero;
 		node->GlobalTranslation = node->Translation + parentNode->GlobalTranslation;
 
@@ -353,7 +354,7 @@ namespace TEN::Renderer
 	void Renderer::BuildHierarchy(RendererObject *obj)
 	{
 		obj->Skeleton->GlobalTransform = obj->Skeleton->Transform;
-		obj->BindPoseTransforms[obj->Skeleton->Index] = obj->Skeleton->GlobalTransform;
+		obj->BindPoseTransforms[obj->Skeleton->Index] = obj->Skeleton->GlobalTransform.Invert();
 		obj->Skeleton->GlobalTranslation = Vector3::Zero;
 
 		for (auto* childNode : obj->Skeleton->Children)
@@ -477,6 +478,17 @@ namespace TEN::Renderer
 			auto& obj = *_moveableObjects[nativeItem->ObjectNumber];
 			*outMatrix = obj.AnimationTransforms[jointIndex] * rendererItem->World;
 		}
+	}
+
+	SkinningMode Renderer::GetSkinningMode(const RendererObject& obj, int skinIndex)
+	{
+		if (g_GameFlow->GetSettings()->Graphics.Skinning && skinIndex != NO_VALUE)
+			return SkinningMode::Full;
+
+		if (obj.Id == GAME_OBJECT_ID::ID_LARA || obj.Id == GAME_OBJECT_ID::ID_LARA_SKIN)
+			return SkinningMode::Classic;
+		else
+			return SkinningMode::None;
 	}
 
 	Vector4 Renderer::GetPortalRect(Vector4 v, Vector4 vp) 
