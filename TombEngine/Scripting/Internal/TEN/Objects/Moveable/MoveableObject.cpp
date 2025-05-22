@@ -190,8 +190,8 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_ShatterMesh, &Moveable::ShatterMesh,
 		ScriptReserved_SwapMesh, &Moveable::SwapMesh,
 		ScriptReserved_UnswapMesh, &Moveable::UnswapMesh,
-		ScriptReserved_SwapSkin, &Moveable::SwapSkin,
-		ScriptReserved_UnswapSkin, &Moveable::UnswapSkin,
+		ScriptReserved_SwapSkinnedMesh, &Moveable::SwapSkinnedMesh,
+		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject);
@@ -1069,11 +1069,11 @@ void Moveable::UnswapMesh(int meshId)
 }
 
 /// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.
-// @function Moveable:SwapSkin
+// @function Moveable:SwapSkinnedMesh
 // @tparam int objectID ID of a slot to get skinned meshswap from.
 // @tparam[opt] int swapIndex If set, swaps skinned mesh with bone mesh with a specified index.
 // Use if you have several skinned meshes (e.g. outfits) in a single slot.
-void Moveable::SwapSkin(int objectID, sol::optional<int> swapIndex)
+void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 {
 	if (objectID <= NO_VALUE || objectID >= ID_NUMBER_OBJECTS || !Objects[objectID].loaded)
 	{
@@ -1100,8 +1100,8 @@ void Moveable::SwapSkin(int objectID, sol::optional<int> swapIndex)
 }
 
 /// Unset skinned mesh swap of a moveable. Use this to bring back original unswapped skinned mesh.
-// @function Moveable:UnswapSkin
-void Moveable::UnswapSkin()
+// @function Moveable:UnswapSkinnedMesh
+void Moveable::UnswapSkinnedMesh()
 {
 	int realID = _moveable->ObjectNumber == GAME_OBJECT_ID::ID_LARA ? GAME_OBJECT_ID::ID_LARA_SKIN : _moveable->ObjectNumber;
 	_moveable->Model.SkinIndex = Objects[realID].skinIndex;

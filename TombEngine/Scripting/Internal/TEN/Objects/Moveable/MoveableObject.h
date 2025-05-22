@@ -117,8 +117,8 @@ public:
 	void ShatterMesh(int meshId);
 	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
-	void SwapSkin(int swapSlotId, sol::optional<int> swapIndex);
-	void UnswapSkin();
+	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);

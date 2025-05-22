@@ -85,6 +85,7 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
   <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
@@ -129,8 +130,8 @@
 	<td class="summary">Get the analog value of an action key.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetAnalogAxis">GetAnalogAxis(Axis)</a></td>
-	<td class="summary">Get an analog axis.</td>
+	<td class="name" ><a href="#GetAnalogAxisValue">GetAnalogAxisValue(axis)</a></td>
+	<td class="summary">Get the analog value of an axis.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#GetMouseDisplayPosition">GetMouseDisplayPosition()</a></td>
@@ -209,19 +210,19 @@
 
 </dd>
     <dt>
-    <a name = "GetAnalogAxis"></a>
-    <strong>GetAnalogAxis(Axis)</strong>
+    <a name = "GetAnalogAxisValue"></a>
+    <strong>GetAnalogAxisValue(axis)</strong>
     </dt>
     <dd>
-    Get an analog axis.
+    Get the analog value of an axis.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">Axis</span>
+        <li><span class="parameter">axis</span>
             <span class="types"><a class="type" href="../4 enums/Input.AxisID.html#">AxisID</a></span>
-         ID to fetch.
+         Axis ID to fetch.
         </li>
     </ul>
 
@@ -229,7 +230,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-        Analog axis with components in the range [-1, 1].
+        Relative analog axis value with components in the range [-1, 1].
     </ol>
 
 

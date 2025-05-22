@@ -222,10 +222,11 @@ enum class AlphaTestMode
 
 enum class PrintStringFlags
 {
-	Center	= (1 << 0),
-	Blink	= (1 << 1),
-	Right	= (1 << 2),
-	Outline	= (1 << 3)
+	Center			= (1 << 0),
+	Blink			= (1 << 1),
+	Right			= (1 << 2),
+	Outline			= (1 << 3),
+	VerticalCenter	= (1 << 4)
 };
 
 enum class RendererPass

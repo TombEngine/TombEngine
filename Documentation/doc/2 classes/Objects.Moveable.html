@@ -85,6 +85,7 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
   <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
@@ -355,11 +356,11 @@
 	<td class="summary">Unset specified mesh swap of a moveable.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:SwapSkin">Moveable:SwapSkin(objectID, [swapIndex])</a></td>
+	<td class="name" ><a href="#Moveable:SwapSkinnedMesh">Moveable:SwapSkinnedMesh(objectID, [swapIndex])</a></td>
 	<td class="summary">Swap skinned mesh of a moveable.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:UnswapSkin">Moveable:UnswapSkin()</a></td>
+	<td class="name" ><a href="#Moveable:UnswapSkinnedMesh">Moveable:UnswapSkinnedMesh()</a></td>
 	<td class="summary">Unset skinned mesh swap of a moveable.</td>
 	</tr>
 	<tr>
@@ -1893,8 +1894,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 
 </dd>
     <dt>
-    <a name = "Moveable:SwapSkin"></a>
-    <strong>Moveable:SwapSkin(objectID, [swapIndex])</strong>
+    <a name = "Moveable:SwapSkinnedMesh"></a>
+    <strong>Moveable:SwapSkinnedMesh(objectID, [swapIndex])</strong>
     </dt>
     <dd>
     Swap skinned mesh of a moveable.  Use this to replace one skinned mesh with another.
@@ -1921,8 +1922,8 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 
 </dd>
     <dt>
-    <a name = "Moveable:UnswapSkin"></a>
-    <strong>Moveable:UnswapSkin()</strong>
+    <a name = "Moveable:UnswapSkinnedMesh"></a>
+    <strong>Moveable:UnswapSkinnedMesh()</strong>
     </dt>
     <dd>
     Unset skinned mesh swap of a moveable.  Use this to bring back original unswapped skinned mesh.

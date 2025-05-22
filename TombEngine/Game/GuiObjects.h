@@ -258,7 +258,7 @@ namespace TEN::Gui
 		OPT_EQUIP				   = (1 << 1),
 		OPT_USE					   = (1 << 2),
 		OPT_COMBINABLE			   = (1 << 3),
-		OPT_SEPERABLE			   = (1 << 4),
+		OPT_SEPARABLE			   = (1 << 4),
 		OPT_EXAMINABLE			   = (1 << 5),
 		OPT_CHOOSE_AMMO_SHOTGUN	   = (1 << 6),
 		OPT_CHOOSE_AMMO_CROSSBOW   = (1 << 7),

@@ -1950,12 +1950,13 @@ namespace TEN::Renderer
 
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 		{
-			// Draw display sprites sorted by priority.
 			CollectDisplaySprites(view);
-			DrawDisplaySprites(view);
+			DrawDisplaySprites(view, false);
 
 			DrawDebugInfo(view);
 			DrawAllStrings();
+
+			DrawDisplaySprites(view, true);
 		}
 
 		time2 = std::chrono::high_resolution_clock::now();

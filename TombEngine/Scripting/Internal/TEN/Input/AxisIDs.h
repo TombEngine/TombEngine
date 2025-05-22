@@ -11,17 +11,16 @@ namespace TEN::Scripting::Input
 	// @pragma nostrip
 
 	/// Table of Input.AxisID constants.
-	// To be used with @{Input.GetAnalogAxis}.
+	// To be used with @{Input.GetAnalogAxisValue}.
 	//
-	//	MOVE
-	//	CAMERA
-	//	MOUSE
+	// - `MOVE` - Analog axis configured for player's movement.
+	// - `CAMERA` - Analog axis configured for camera movement.
+	// - `MOUSE` - Raw mouse input analog axis.
 	//
 	//@table Input.AxisID
 
 	static const auto AXIS_IDS = std::unordered_map<std::string, AxisID>
 	{
-
 		{ "MOVE", AxisID::Move },
 		{ "CAMERA", AxisID::Camera },
 		{ "MOUSE", AxisID::Mouse }

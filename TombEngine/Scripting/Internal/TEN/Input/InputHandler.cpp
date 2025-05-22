@@ -44,11 +44,11 @@ namespace TEN::Scripting::Input
 		return GetActionValue((ActionID)actionID);
 	}
 
-	/// Get an analog axis.
-	// @function GetAnalogAxis
-	// @tparam Input.AxisID Axis ID to fetch.
-	// @treturn Vec2 Analog axis with components in the range [-1, 1].
-	static Vec2 GetAnalogAxis(AxisID axisID)
+	/// Get the analog value of an axis.
+	// @function GetAnalogAxisValue
+	// @tparam Input.AxisID axis Axis ID to fetch.
+	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
+	static Vec2 GetAnalogAxisValue(AxisID axisID)
 	{
 		return Vec2(AxisMap[axisID]);
 	}
@@ -160,7 +160,7 @@ namespace TEN::Scripting::Input
 
 		parent.set(ScriptReserved_Input, table);
 		table.set_function(ScriptReserved_InputGetAnalogKeyValue, &GetAnalogKeyValue);
-		table.set_function(ScriptReserved_InputGetAnalogAxis, &GetAnalogAxis);
+		table.set_function(ScriptReserved_InputGetAnalogAxisValue, &GetAnalogAxisValue);
 		table.set_function(ScriptReserved_InputGetMouseDisplayPosition, &GetMouseDisplayPosition);
 		table.set_function(ScriptReserved_InputIsKeyHit, &IsKeyHit);
 		table.set_function(ScriptReserved_InputIsKeyHeld, &IsKeyHeld);

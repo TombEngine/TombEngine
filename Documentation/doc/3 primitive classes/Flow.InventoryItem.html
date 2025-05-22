@@ -85,6 +85,7 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
   <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
@@ -185,15 +186,8 @@ Z
          <em>Not currently implemented</em> (will have no effect regardless of what you set it to).
         </li>
         <li><span class="parameter">action</span>
-            <span class="types"><span class="type">ItemAction</span></span>
-         is this usable, equippable, combineable or examinable?<br/>
-Must be one of:</p>
-<pre><code>EQUIP
-USE
-COMBINE
-EXAMINE
-</code></pre>
-<p>e.g. <code>myItem.action = ItemAction.EXAMINE</code>
+            <span class="types"><a class="type" href="../4 enums/Flow.ItemAction.html#">ItemAction</a></span>
+         Item action or set of actions to assign. Item actions can be combined, for example: <code>ItemAction.USE | ItemAction.SAVE</code>.
         </li>
     </ul>
 

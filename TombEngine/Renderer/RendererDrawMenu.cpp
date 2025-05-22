@@ -283,7 +283,7 @@ namespace TEN::Renderer
 			// Mouse sensitivity
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), PRINTSTRING_COLOR_ORANGE, SF(titleOption == 9));
 			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), PRINTSTRING_COLOR_WHITE, SF(titleOption == 9));
-			GetNextLinePosition(&y);
+			GetNextBlockPosition(&y);
 
 			// Apply
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), PRINTSTRING_COLOR_ORANGE, SF_Center(titleOption == 10));
@@ -971,7 +971,7 @@ namespace TEN::Renderer
 		// If string is found, draw it and shift examine position upwards.
 		if (GetHash(string) != GetHash(stringKey))
 		{
-			AddString(screenPos.x, screenPos.y + screenPos.y / 4.0f, g_GameFlow->GetString(stringKey.c_str()), PRINTSTRING_COLOR_WHITE, SF_Center());
+			AddString(screenPos.x, screenPos.y + screenPos.y / 2.0f, g_GameFlow->GetString(stringKey.c_str()), PRINTSTRING_COLOR_WHITE, SF_Center() | (int)PrintStringFlags::VerticalCenter);
 			screenPos.y -= screenPos.y / 4.0f;
 		}
 
@@ -1134,8 +1134,9 @@ namespace TEN::Renderer
 
 		// Draw display sprites sorted by priority.
 		CollectDisplaySprites(_gameCamera);
-		DrawDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
 		DrawAllStrings();
+		DrawDisplaySprites(_gameCamera, true);
 
 		ClearScene();
 
@@ -1370,23 +1371,26 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::InputStats:
 		{
-			auto clickedActions = BitField((int)In::Load);
-			auto heldActions = BitField((int)In::Load);
-			auto releasedActions = BitField((int)In::Load);
+			int	 size			 = (int)ACTION_ID_GROUPS[(int)USER_ACTION_GROUP_IDS.back()].back();
+			auto clickedActions	 = BitField(size);
+			auto heldActions	 = BitField(size);
+			auto releasedActions = BitField(size);
 
-			for (const auto& [actionID, action] : ActionMap)
+			for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 			{
-				if ((int)action.GetID() > clickedActions.GetSize())
-					continue;
+				for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+				{
+					const auto& action = ActionMap.at(actionID);
 
-				if (action.IsClicked())
-					clickedActions.Set((int)action.GetID());
+					if (action.IsClicked())
+						clickedActions.Set((int)action.GetID());
 
-				if (action.IsHeld())
-					heldActions.Set((int)action.GetID());
+					if (action.IsHeld())
+						heldActions.Set((int)action.GetID());
 
-				if (action.IsReleased())
-					releasedActions.Set((int)action.GetID());
+					if (action.IsReleased())
+						releasedActions.Set((int)action.GetID());
+				}
 			}
 
 			PrintDebugMessage("INPUT STATS");

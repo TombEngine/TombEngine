@@ -50,8 +50,8 @@ For use in @{Strings.ShowString|ShowString} and @{Strings.HideString|HideString}
 @tparam Vec2 position Position of the string in pixel coordinates.
 @tparam[opt=1] float scale Size of the string, relative to the default size.
 @tparam[opt=Color(255&#44; 255&#44; 255)] Color color The color of the text.
-@tparam[opt=false] bool translated If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua.
+@tparam[opt=false] bool translated If false or omitted, the input string argument will be displayed as is.
+If true, the string argument will be treated as the key of a translated string specified in strings.lua.
 @tparam[opt] Strings.DisplayStringOption flags Flags which affect visual representation of a string, such as shadow or alignment.
 @treturn DisplayString A new DisplayString object.
 */
