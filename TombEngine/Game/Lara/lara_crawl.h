@@ -21,6 +21,10 @@ void lara_as_crouch_turn_left(ItemInfo* item, CollisionInfo* coll);
 void lara_col_crouch_turn_left(ItemInfo* item, CollisionInfo* coll);
 void lara_as_crouch_turn_right(ItemInfo* item, CollisionInfo* coll);
 void lara_col_crouch_turn_right(ItemInfo* item, CollisionInfo* coll);
+void lara_as_crouch_step_left(ItemInfo* item, CollisionInfo* coll);
+void lara_col_crouch_step_left(ItemInfo* item, CollisionInfo* coll);
+void lara_as_crouch_step_right(ItemInfo* item, CollisionInfo* coll);
+void lara_col_crouch_step_right(ItemInfo* item, CollisionInfo* coll);
 void lara_as_crouch_turn_180(ItemInfo* item, CollisionInfo* coll);
 void lara_col_crouch_turn_180(ItemInfo* item, CollisionInfo* coll);
 

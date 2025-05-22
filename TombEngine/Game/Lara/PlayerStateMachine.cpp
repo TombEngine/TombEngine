@@ -233,6 +233,8 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_DOWN_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_CROUCH_STEP_LEFT] = std::pair(lara_as_crouch_step_left, lara_col_crouch_step_left);
+		PlayerBehaviorStateRoutines[LS_CROUCH_STEP_RIGHT] = std::pair(lara_as_crouch_step_right, lara_col_crouch_step_right);
 	}
 
 	void HandlePlayerBehaviorState(ItemInfo& item, CollisionInfo& coll, PlayerBehaviorStateRoutineType routineType)
