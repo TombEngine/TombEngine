@@ -80,8 +80,9 @@ struct CollisionSetupData
 	bool BlockMonkeySwingEdge = false;
 	
 	// Inquirers
-	bool EnableObjectPush = false;
-	bool EnableSpasm	  = false;
+	bool EnableObjectPush	= false;
+	bool EnableSpasm		= false;
+	bool ForceSolidStatics	= false;
 
 	// Previous parameters
 	Vector3i	   PrevPosition		= Vector3i::Zero;
@@ -150,5 +151,5 @@ bool TestEnvironment(RoomEnvFlags environmentType, int x, int y, int z, int room
 bool TestEnvironment(RoomEnvFlags environmentType, const Vector3i& pos, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const ItemInfo* item);
 bool TestEnvironment(RoomEnvFlags environmentType, int roomNumber);
-bool TestEnvironment(RoomEnvFlags environmentType, RoomData* room);
+bool TestEnvironment(RoomEnvFlags environmentType, const RoomData* room);
 bool TestEnvironmentFlags(RoomEnvFlags environmentType, int flags);

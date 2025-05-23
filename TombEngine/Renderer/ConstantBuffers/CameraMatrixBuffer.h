@@ -37,13 +37,14 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Vector4 FogColor;
 		//--
-		int FogMinDistance;
-		int FogMaxDistance;
+		float FogMinDistance;
+		float FogMaxDistance;
 		float NearPlane;
 		float FarPlane;
 		//--
+		int RefreshRate;
 		int NumFogBulbs;
-		Vector3 Padding2;
+		Vector2 Padding2;
 		//--
 		ShaderFogBulb FogBulbs[MAX_FOG_BULBS_DRAW];
 	};

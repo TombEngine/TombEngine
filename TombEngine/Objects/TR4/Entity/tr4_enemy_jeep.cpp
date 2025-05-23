@@ -159,7 +159,7 @@ namespace TEN::Entities::TR4
 				item->MeshBits = -98305;
 
 				pos = GetJointPosition(item, 11, Vector3i(0, -144, -1024));
-				TriggerDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
 
 				if (item->ItemFlags[0] < 0)
 					item->ItemFlags[0] = 0;

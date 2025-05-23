@@ -91,7 +91,7 @@ namespace TEN::Entities::TR4
 				TriggerFireFlame(spherePtr->Center.x, spherePtr->Center.y, spherePtr->Center.z, FlameType::Medium);
 		}
 
-		TriggerDynamicLight(
+		SpawnDynamicLight(
 			item->Pose.Position.x,
 			item->Pose.Position.y - CLICK(1),
 			item->Pose.Position.z,

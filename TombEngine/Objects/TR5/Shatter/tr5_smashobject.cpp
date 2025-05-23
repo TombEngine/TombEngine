@@ -38,7 +38,7 @@ void SmashObject(short itemNumber)
 
 	auto* box = &g_Level.PathfindingBoxes[room->Sectors[sector].PathfindingBoxID];
 	if (box->flags & 0x8000)
-		box->flags &= ~BOX_BLOCKED;
+		box->flags &= ~BLOCKED;
 
 	SoundEffect(SFX_TR5_SMASH_GLASS, &item->Pose);
 

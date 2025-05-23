@@ -13,12 +13,12 @@ namespace TEN::Math
 
 	float Vector2i::Distance(const Vector2i& origin, const Vector2i& target)
 	{
-		return Vector2::Distance(origin.ToVector2(), target.ToVector2());
+		return std::sqrt(DistanceSquared(origin, target));
 	}
 	
 	float Vector2i::DistanceSquared(const Vector2i& origin, const Vector2i& target)
 	{
-		return Vector2::DistanceSquared(origin.ToVector2(), target.ToVector2());
+		return (SQUARE(target.x - origin.x) + SQUARE(target.y - origin.y));
 	}
 
 	Vector2 Vector2i::ToVector2() const

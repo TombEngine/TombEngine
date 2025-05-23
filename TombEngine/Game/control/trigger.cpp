@@ -47,16 +47,16 @@ int TriggerActive(ItemInfo* item)
 			{
 				--item->Timer;
 				if (!item->Timer)
-					item->Timer = -1;
+					item->Timer = NO_VALUE;
 			}
-			else if (item->Timer < -1)
+			else if (item->Timer < NO_VALUE)
 			{
 				++item->Timer;
-				if (item->Timer == -1)
+				if (item->Timer == NO_VALUE)
 					item->Timer = 0;
 			}
 
-			if (item->Timer <= -1)
+			if (item->Timer <= NO_VALUE)
 				flag = !flag;
 		}
 	}
@@ -333,35 +333,49 @@ short* GetTriggerIndex(ItemInfo* item)
 void Antitrigger(short const value, short const flags)
 {
 	ItemInfo* item = &g_Level.Items[value];
-	if (item->ObjectNumber == ID_EARTHQUAKE)
+
+	if (item->Flags & IFLAG_KILLED)
+		return;
+
+	if (item->ObjectNumber == ID_EARTHQUAKE) // HACK: move to earthquake control function!
 	{
 		item->ItemFlags[0] = 0;
 		item->ItemFlags[1] = 100;
 	}
 
-	item->Flags &= ~(CODE_BITS | REVERSE);
+	item->Flags &= ~(CODE_BITS | IFLAG_REVERSE);
 
 	if (flags & ONESHOT)
 		item->Flags |= ATONESHOT;
 
-	if (item->Active && Objects[item->ObjectNumber].intelligent)
+	if (Objects[item->ObjectNumber].intelligent)
 	{
-		DisableEntityAI(value);
-		RemoveActiveItem(value, false);
-		item->Active = false;
-		item->Status = ITEM_INVISIBLE;
+		if (item->Active)
+		{
+			DisableEntityAI(value);
+			RemoveActiveItem(value, false);
+			item->Status = ITEM_INVISIBLE;
+		}
+	}
+	else
+	{
+		item->Status = ITEM_DEACTIVATED;
 	}
 }
 
 void Trigger(short const value, short const flags)
 {
 	ItemInfo* item = &g_Level.Items[value];
+
+	if (item->Flags & IFLAG_KILLED)
+		return;
+
 	item->Flags |= TRIGGERED;
 
 	if (flags & ONESHOT)
 		item->Flags |= ONESHOT;
 
-	if (!(item->Active) && !(item->Flags & IFLAG_KILLED))
+	if (!item->Active)
 	{
 		if (Objects[item->ObjectNumber].intelligent)
 		{
@@ -369,38 +383,40 @@ void Trigger(short const value, short const flags)
 			{
 				if (item->Status == ITEM_INVISIBLE)
 				{
-					item->TouchBits = NO_JOINT_BITS;
 					if (EnableEntityAI(value, false))
 					{
-						item->Status = ITEM_ACTIVE;
 						AddActiveItem(value);
 					}
 					else
 					{
 						item->Status = ITEM_INVISIBLE;
 						AddActiveItem(value);
+						return;
 					}
 				}
 			}
 			else
 			{
-				item->TouchBits = NO_JOINT_BITS;
-				item->Status = ITEM_ACTIVE;
 				AddActiveItem(value);
 				EnableEntityAI(value, true);
 			}
 		}
 		else
 		{
-			item->TouchBits = NO_JOINT_BITS;
 			AddActiveItem(value);
-			item->Status = ITEM_ACTIVE;
 		}
+
+		item->Status = ITEM_ACTIVE;
+		item->TouchBits = NO_JOINT_BITS;
+		item->DisableInterpolation = true;
 	}
 }
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
 {
+	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+		return;
+
 	bool switchOff = false;
 	bool flipAvailable = false;
 	int flip = NO_VALUE;
@@ -411,6 +427,10 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 	auto data = GetTriggerIndex(floor, x, y, z);
 
 	if (!data)
+		return;
+
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
+	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
 		return;
 
 	short triggerType = (*(data++) >> 8) & TRIGGER_BITS;
@@ -579,14 +599,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				&& (item->Flags & ONESHOT))
 				break;
 
-			if (triggerType != TRIGGER_TYPES::ANTIPAD 
-				&& triggerType != TRIGGER_TYPES::ANTITRIGGER 
-				&& triggerType != TRIGGER_TYPES::HEAVYANTITRIGGER)
-			{
-				if (item->ObjectNumber == ID_DART_EMITTER && item->Active)
-					break;
-			}
-
 			item->Timer = timer;
 			if (timer != 1)
 				item->Timer = FPS * timer;
@@ -596,10 +608,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			{
 				if (heavyFlags >= 0)
 				{
-					//if (switchFlag)
-						//item->Flags |= (flags & CODE_BITS);
-					//else
-
 					item->Flags ^= (flags & CODE_BITS);
 
 					if (flags & ONESHOT)
@@ -774,10 +782,11 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (switchOff)
 				break;
 
-			if (!(SaveGame::Statistics.Level.Secrets & (1 << value)))
+			if (!(SaveGame::Statistics.SecretBits & (1 << value)))
 			{
 				PlaySecretTrack();
-				SaveGame::Statistics.Level.Secrets |= (1 << value);
+				SaveGame::Statistics.SecretBits |= (1 << value);
+				SaveGame::Statistics.Level.Secrets++;
 				SaveGame::Statistics.Game.Secrets++;
 			}
 			break;
@@ -837,7 +846,11 @@ void TestTriggers(ItemInfo* item, bool isHeavy, int heavyFlags)
 	short roomNumber = item->RoomNumber;
 	auto floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 
-	TestTriggers(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, floor, item->Index, isHeavy, heavyFlags);
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
+	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
+		return;
+
+	TestTriggers(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, floor, (Activator)short(item->Index), isHeavy, heavyFlags);
 }
 
 void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFlags)
@@ -845,7 +858,7 @@ void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFl
 	auto roomNum = roomNumber;
 	auto floor = GetFloor(x, y, z, &roomNum);
 
-	// Don't process legacy triggers if trigger triggerer wasn't used
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
 	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
 		return;
 
@@ -854,10 +867,14 @@ void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFl
 
 void ProcessSectorFlags(ItemInfo* item)
 {
-	auto pointColl = GetPointCollision(*item);
-	auto& sector = GetPointCollision(*item).GetBottomSector();
+	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+		return;
 
 	bool isPlayer = item->IsLara();
+
+	// HACK: because of L-shaped portal configurations, we need to fetch room number from Location struct for player.
+	auto pointColl = isPlayer ? GetPointCollision(item->Pose.Position, item->Location.RoomNumber) : GetPointCollision(*item);
+	auto& sector = pointColl.GetBottomSector();
 
 	// Set monkeyswing and wall climb statuses for player.
 	if (isPlayer)

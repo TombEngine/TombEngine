@@ -3,6 +3,7 @@
 
 #include "Game/animation.h"
 #include "Game/control/box.h"
+#include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Lara/lara.h"
@@ -177,8 +178,8 @@ namespace TEN::Entities::Creatures::TR3
 				{
 					auto pos = GetJointPosition(item, SealMutantGasBite.BoneID, Vector3(0.0f, -SEAL_MUTANT_FLAME_LIGHT_Y_OFFSET, 0.0f));
 					auto color = Color(Random::GenerateFloat(0.75f, 1.0f), Random::GenerateFloat(0.4f, 0.5f), Random::GenerateFloat(0.0f, 0.25f));
-					float falloff = Random::GenerateFloat(0.03f, 0.04f);
-					TriggerDynamicLight(pos.ToVector3(), color, falloff);
+					float falloff = Random::GenerateFloat(BLOCK(1.5f), BLOCK(2.5f));
+					SpawnDynamicPointLight(pos.ToVector3(), color, falloff);
 				}
 			}
 			else if (TestAnimFrameRange(item, 1, 124))
@@ -205,7 +206,7 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else
 			{
-				TargetNearestEntity(&item, &creature, SealMutantAttackTargetObjectIds, false);
+				TargetNearestEntity(item, SealMutantAttackTargetObjectIds, false);
 			}
 
 			AI_INFO ai;

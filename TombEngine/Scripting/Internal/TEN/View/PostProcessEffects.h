@@ -8,20 +8,18 @@ Constants for the post-process effects to apply.
 @pragma nostrip
 */
 
-/*** View.PostProcessMode constants.
+/*** Table of View.PostProcessMode effect constants. To be used with @{View.SetPostProcessMode} function.
 
-The following constants are inside PostProcessMode.
+ - `NONE` - No postprocess effect.
+ - `MONOCHROME` - Black & white effect.
+ - `NEGATIVE` - Negative image effect.
+ - `EXCLUSION` - Similar to negative effect, but with different color operation.
 
-	NONE
-	MONOCHROME
-	NEGATIVE
-	EXCLUSION
-
-@section View.PostProcessMode
+@table View.PostProcessMode
 */
 
-/*** Table of post-process effect constants (for use with SetPostProcessMode() function).
-@table CONSTANT_STRING_HERE
+/***  (for use with SetPostProcessMode() function).
+@ PostProcessMode
 */
 
 static const std::unordered_map<std::string, PostProcessMode> POSTPROCESS_MODES

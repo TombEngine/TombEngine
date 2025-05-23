@@ -31,7 +31,7 @@ namespace TEN::Entities::Generic
 		constexpr auto DEFAULT_OSC		   = 0.75f;
 		constexpr auto DEFAULT_STACK_LIMIT = 3;
 
-		BehaviorState = PushableBehaviourState::Idle;
+		BehaviorState = PushableBehaviorState::Idle;
 		SoundState = PushableSoundState::None;
 		AnimSetID = 0;
 
@@ -50,12 +50,6 @@ namespace TEN::Entities::Generic
 		IsBuoyant = false;
 		UseRoomCollision = false;
 		UseBridgeCollision = false;
-
-		// Initialize bridge routines.
-		Bridge.GetFloorHeight = GetPushableBridgeFloorHeight;
-		Bridge.GetCeilingHeight = GetPushableBridgeCeilingHeight;
-		Bridge.GetFloorBorder = GetPushableBridgeFloorBorder;
-		Bridge.GetCeilingBorder = GetPushableBridgeCeilingBorder;
 
 		EdgeAttribs =
 		{

@@ -202,7 +202,7 @@ Timer = {
 					str:SetColor(pausedColor)
 				end
 
-				TEN.Strings.ShowString(str, 1)
+				TEN.Strings.ShowString(str, 1, false)
 			end
 
 		end

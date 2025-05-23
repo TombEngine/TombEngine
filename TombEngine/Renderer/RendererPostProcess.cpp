@@ -4,31 +4,52 @@
 
 namespace TEN::Renderer
 {
-	void Renderer::DrawPostprocess(RenderTarget2D* renderTarget, RenderView& view)
+	void Renderer::DrawPostprocess(RenderTarget2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
 	{
+		_doingFullscreenPass = true;
+
+		// Apply antialiasing.
+		switch (g_Config.AntialiasingMode)
+		{
+		case AntialiasingMode::None:
+			break;
+
+		case AntialiasingMode::Low:
+			ApplyFXAA(&_renderTarget, view);
+			break;
+
+		case AntialiasingMode::Medium:
+		case AntialiasingMode::High:
+			ApplySMAA(&_renderTarget, view);
+			break;
+		}
+
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::Write);
 		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
+		float screenFadeFactor = renderMode == SceneRenderMode::Full ? g_ScreenEffect.ScreenFadeCurrent : 1.0f;
+		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? Smoothstep(g_ScreenEffect.CinematicBarsHeight) * SPOTCAM_CINEMATIC_BARS_HEIGHT : 0.0f;
+
+		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
+		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
 		_stPostProcessBuffer.ViewportWidth = _screenWidth;
 		_stPostProcessBuffer.ViewportHeight = _screenHeight;
-		_stPostProcessBuffer.ScreenFadeFactor = g_ScreenEffect.ScreenFadeCurrent;
-		_stPostProcessBuffer.CinematicBarsHeight = Smoothstep(g_ScreenEffect.CinematicBarsHeight) * SPOTCAM_CINEMATIC_BARS_HEIGHT;
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
-		// Common vertex shader to all fullscreen effects
-		_context->VSSetShader(_vsPostProcess.Get(), nullptr, 0);
+		// Common vertex shader to all fullscreen effects.
+		_shaders.Bind(Shader::PostProcess);
 
-		// We draw a fullscreen triangle
+		// Draw fullscreen triangle.
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		UINT stride = sizeof(PostProcessVertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
@@ -37,34 +58,56 @@ namespace TEN::Renderer
 		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
-		_context->PSSetShader(_psPostProcessCopy.Get(), nullptr, 0);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_renderTarget, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
-		// Let's do ping-pong between the two post-process render targets
+		// Ping-pong between two post-process render targets.
 		int currentRenderTarget = 0;
-		int destinationRenderTarget = 1;
+		int destRenderTarget = 1;
 
-		// Apply color scheme
+		// Lens flares.
+		if (!view.LensFlaresToDraw.empty())
+		{
+			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+
+			_shaders.Bind(Shader::PostProcessLensFlare);
+
+			for (int i = 0; i < view.LensFlaresToDraw.size(); i++)
+			{
+				_stPostProcessBuffer.LensFlares[i].Position = view.LensFlaresToDraw[i].Position;
+				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
+			}
+			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
+			_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+
+			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
+			DrawTriangles(3, 0);
+
+			destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
+			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
+		}
+
+		// Apply color scheme.
 		if (_postProcessMode != PostProcessMode::None && _postProcessStrength > EPSILON)
 		{
-			_context->ClearRenderTargetView(_postProcessRenderTarget[destinationRenderTarget].RenderTargetView.Get(), clearColor);
-			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destinationRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
-			
+			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+
 			switch (_postProcessMode)
 			{
 			case PostProcessMode::Monochrome:
-				_context->PSSetShader(_psPostProcessMonochrome.Get(), nullptr, 0);
+				_shaders.Bind(Shader::PostProcessMonochrome);
 				break;
 
 			case PostProcessMode::Negative:
-				_context->PSSetShader(_psPostProcessNegative.Get(), nullptr, 0);
+				_shaders.Bind(Shader::PostProcessNegative);
 				break;
 
 			case PostProcessMode::Exclusion:
-				_context->PSSetShader(_psPostProcessExclusion.Get(), nullptr, 0);
+				_shaders.Bind(Shader::PostProcessExclusion);
 				break;
-				 
+
 			default:
 				return;
 			}
@@ -72,12 +115,12 @@ namespace TEN::Renderer
 			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
 			DrawTriangles(3, 0);
 
-			destinationRenderTarget = 0;
-			currentRenderTarget = 1;
-		}  
+			destRenderTarget = (destRenderTarget == 1) ? 0 : 1;
+			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
+		}
 
-		// Do the final pass
-		_context->PSSetShader(_psPostProcessFinalPass.Get(), nullptr, 0);
+		// Do final pass.
+		_shaders.Bind(Shader::PostProcessFinalPass);
 
 		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
@@ -85,6 +128,8 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
 
 		DrawTriangles(3, 0);
+
+		_doingFullscreenPass = false;
 	}
 
 	PostProcessMode Renderer::GetPostProcessMode()
@@ -126,7 +171,7 @@ namespace TEN::Renderer
 		ResetScissor();
 
 		// Common vertex shader to all fullscreen effects
-		_context->VSSetShader(_vsPostProcess.Get(), nullptr, 0);
+		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -141,7 +186,6 @@ namespace TEN::Renderer
 		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, dest->RenderTargetView.GetAddressOf(), nullptr);
 
-		_context->PSSetShader(_psPostProcessCopy.Get(), nullptr, 0);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 	}

@@ -124,7 +124,7 @@ namespace TEN::Entities::TR4
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
 			short random = GetRandomControl();
-			TriggerDynamicLight(
+			SpawnDynamicLight(
 				pos.x, pos.y, pos.z,
 				15,
 				255 - ((random >> 4) & 0x1F),
@@ -501,7 +501,7 @@ namespace TEN::Entities::TR4
 								((random >> 10) & 0x3F) + pos1.z - 64,
 								FlameType::Trail);
 
-							TriggerDynamicLight(
+							SpawnDynamicLight(
 								pos1.x - 32,
 								pos1.y - 64,
 								pos1.z - 32,
@@ -516,7 +516,7 @@ namespace TEN::Entities::TR4
 					else
 					{
 						TriggerMetalSparks(pos1.x, pos1.y, pos1.z, -1, -1, 0, Vector3(1.0f, 1.0f, 0.3f), 1);
-						TriggerDynamicLight(
+						SpawnDynamicLight(
 							pos1.x, pos1.y, pos1.z,
 							10,
 							random & 0x1F,
@@ -526,7 +526,7 @@ namespace TEN::Entities::TR4
 				}
 				else
 				{
-					TriggerDynamicLight(
+					SpawnDynamicLight(
 						pos1.x - 32,
 						pos1.y - 64,
 						pos1.z - 32,
@@ -544,7 +544,7 @@ namespace TEN::Entities::TR4
 			}
 			else
 			{
-				TriggerDynamicLight(
+				SpawnDynamicLight(
 					pos1.x, pos1.y, pos1.z,
 					10,
 					random & 0x1F,

@@ -70,12 +70,12 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (item->Animation.ActiveState != 6 && item->Animation.ActiveState != 11)
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
 			TriggerPilotFlame(itemNumber, 9);
 		}
 		else
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
 		}
 
 		if (item->HitPoints <= 0)
@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else
 			{
-				TargetNearestEntity(item, creature, FlamethrowerTargetIds, false);
+				TargetNearestEntity(*item, FlamethrowerTargetIds, false);
 			}
 
 			AI_INFO AI;

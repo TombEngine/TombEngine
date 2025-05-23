@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -134,6 +135,8 @@ void UpdateSpiders()
 
 			if (spider->On)
 			{
+				spider->StoreInterpolationData();
+
 				int x = spider->Pose.Position.x;
 				int y = spider->Pose.Position.y;
 				int z = spider->Pose.Position.z;
@@ -141,7 +144,7 @@ void UpdateSpiders()
 				spider->Pose.Position.x += spider->Velocity * phd_sin(spider->Pose.Orientation.y);
 				spider->Pose.Position.y += spider->VerticalVelocity;
 				spider->Pose.Position.z += spider->Velocity * phd_cos(spider->Pose.Orientation.y);
-				spider->VerticalVelocity += GRAVITY;
+				spider->VerticalVelocity += g_GameFlow->GetSettings()->Physics.Gravity;
 
 				int dx = LaraItem->Pose.Position.x - spider->Pose.Position.x;
 				int dy = LaraItem->Pose.Position.y - spider->Pose.Position.y;
@@ -241,6 +244,10 @@ void UpdateSpiders()
 
 				if (!i && !(GetRandomControl() & 4))
 					SoundEffect(SFX_TR5_INSECTS,&spider->Pose);
+
+				auto tMatrix = Matrix::CreateTranslation(spider->Pose.Position.ToVector3());
+				auto rotMatrix = spider->Pose.Orientation.ToRotationMatrix();
+				spider->Transform = rotMatrix * tMatrix;
 			}
 		}
 	}

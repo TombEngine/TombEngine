@@ -123,7 +123,7 @@ namespace TEN::Entities::Creatures::TR3
 		else
 		{
 			// NOTE: Ignores other small dinosaurs.
-			TargetNearestEntity(&item, &creature, RaptorIgnoredObjectIds);
+			TargetNearestEntity(item, RaptorIgnoredObjectIds);
 
 			AI_INFO ai;
 			if (item.AIBits)

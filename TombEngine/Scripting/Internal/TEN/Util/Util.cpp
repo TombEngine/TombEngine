@@ -13,9 +13,9 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/Util/LevelLog.h"
-#include "Scripting/Internal/TEN/Vec2/Vec2.h"
-#include "Scripting/Internal/TEN/Vec3/Vec3.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 
@@ -23,39 +23,29 @@ using namespace TEN::Collision::Los;
 using namespace TEN::Config;
 using TEN::Renderer::g_Renderer;
 
-/// Utility functions for various calculations.
-// @tentable Util
-// @pragma nostrip
-
 namespace TEN::Scripting::Util
 {
-	/// Determine if there is a clear line of sight between two positions.
-	// NOTE: Limited to room geometry. Objects are ignored.
-	// @function HasLineOfSight()
+	/// Utility functions for various calculations.
+	// @tentable Util
+	// @pragma nostrip
+
+	/// Determine if there is a clear line of sight between two positions. Limited to room geometry. Objects are ignored.
+	// @function HasLineOfSight
 	// @tparam float roomID Room ID of the first position's room.
 	// @tparam Vec3 posA First position.
 	// @tparam Vec3 posB Second position.
-	// @treturn bool __true__ if there is a line of sight, __false__ if not.
+	// @treturn bool true if there is a line of sight, false if not.
 	// @usage
 	// local flamePlinthPos = flamePlinth:GetPosition() + Vec3(0, flamePlinthHeight, 0);
 	// print(Misc.HasLineOfSight(enemyHead:GetRoomNumber(), enemyHead:GetPosition(), flamePlinthPos))
-	[[nodiscard]] static bool HasLineOfSight(int roomID, const Vec3& posA, const Vec3& posB)
+	static bool HasLineOfSight(int roomID, const Vec3& posA, const Vec3& posB)
 	{
 		auto vector0 = posA.ToGameVector();
 		auto vector1 = posB.ToGameVector();
 
+		MESH_INFO* mesh = nullptr;
 		auto vector = Vector3i::Zero;
-		return (LOS(&vector0, &vector1) && ObjectOnLOS2(&vector0, &vector1, &vector, nullptr) == NO_VALUE);
-	}
-
-	///Calculate the distance between two positions.
-	//@function CalculateDistance
-	//@tparam Vec3 posA First position.
-	//@tparam Vec3 posB Second position.
-	//@treturn float Distance between two positions.
-	static float CalculateDistance(const Vec3& posA, const Vec3& posB)
-	{
-		return posA.Distance(posB);
+		return (LOS(&vector0, &vector1) && ObjectOnLOS2(&vector0, &vector1, &vector, &mesh) == NO_LOS_ITEM);
 	}
 
 	/// Calculate the horizontal distance between two positions.
@@ -134,7 +124,7 @@ namespace TEN::Scripting::Util
 
 	/// Pick a moveable by the given display position.
 	// @function PickMoveableByDisplayPosition
-	// @tparam Vec2 Display space position in percent.
+	// @tparam Vec2 position Display space position in percent.
 	// @treturn Objects.Moveable Picked moveable (nil if no moveable was found under the cursor).
 	static sol::optional <std::unique_ptr<Moveable>> PickMoveable(const Vec2& screenPos)
 	{
@@ -142,7 +132,7 @@ namespace TEN::Scripting::Util
 		auto ray = GetRayFrom2DPosition(Vector2(int(std::get<0>(realScreenPos)), int(std::get<1>(realScreenPos))));
 
 		auto vector = Vector3i::Zero;
-		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr, GAME_OBJECT_ID::ID_LARA);
+		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr);
 
 		if (itemNumber == NO_VALUE || itemNumber < 0)
 			return sol::nullopt;
@@ -152,7 +142,7 @@ namespace TEN::Scripting::Util
 
 	/// Pick a static mesh by the given display position.
 	// @function PickStaticByDisplayPosition
-	// @tparam Vec2 Display space position in percent.
+	// @tparam Vec2 position Display space position in percent.
 	// @treturn Objects.Static Picked static mesh (nil if no static mesh was found under the cursor).
 	static sol::optional <std::unique_ptr<Static>> PickStatic(const Vec2& screenPos)
 	{
@@ -177,9 +167,9 @@ namespace TEN::Scripting::Util
 	//
 	//<a href="https://www.lua.org/manual/5.4/manual.html#pdf-debug.traceback">debug.traceback</a>
 	//@function PrintLog
-	//@tparam string message to be displayed within the Log
-	//@tparam Misc.LogLevel logLevel log level to be displayed
-	//@tparam[opt] bool allowSpam true allows spamming of the message
+	//@tparam string Message to be displayed within the log.
+	//@tparam Util.LogLevel logLevel Log level to be displayed.
+	//@tparam[opt] bool allowSpam If true, allows continuous spamming of the message.
 	// 
 	//@usage
 	//PrintLog('test info log', LogLevel.INFO)
@@ -190,7 +180,12 @@ namespace TEN::Scripting::Util
 	// 
 	static void PrintLog(const std::string& message, const LogLevel& level, TypeOrNil<bool> allowSpam)
 	{
-		TENLog(message, level, LogConfig::All, USE_IF_HAVE(bool, allowSpam, false));
+		TENLog(message, level, LogConfig::All, ValueOr<bool>(allowSpam, false));
+	}
+
+	static float CalculateDistance(const Vec3& posA, const Vec3& posB)
+	{
+		return posA.Distance(posB);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -199,7 +194,6 @@ namespace TEN::Scripting::Util
 		parent.set(ScriptReserved_Util, tableUtil);
 
 		tableUtil.set_function(ScriptReserved_HasLineOfSight, &HasLineOfSight);
-		tableUtil.set_function(ScriptReserved_CalculateDistance, &CalculateDistance);
 		tableUtil.set_function(ScriptReserved_CalculateHorizontalDistance, &CalculateHorizontalDistance);
 		tableUtil.set_function(ScriptReserved_GetDisplayPosition, &GetDisplayPosition);
 		tableUtil.set_function(ScriptReserved_PickMoveable, &PickMoveable);
@@ -208,7 +202,10 @@ namespace TEN::Scripting::Util
 		tableUtil.set_function(ScriptReserved_ScreenToPercent, &ScreenToPercent);
 		tableUtil.set_function(ScriptReserved_PrintLog, &PrintLog);
 
+		// COMPATIBILITY
+		tableUtil.set_function("CalculateDistance", &CalculateDistance);
+
 		auto handler = LuaHandler(state);
-		handler.MakeReadOnlyTable(tableUtil, ScriptReserved_LogLevel, LOG_LEVEL);
+		handler.MakeReadOnlyTable(tableUtil, ScriptReserved_LogLevel, LOG_LEVEL_IDS);
 	}
 }

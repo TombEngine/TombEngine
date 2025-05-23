@@ -1,6 +1,9 @@
 #pragma once
+
 #include "Math/Math.h"
+#include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
+#include "Specific/Input/Keys.h"
 
 using namespace TEN::Math;
 
@@ -111,7 +114,7 @@ namespace TEN::Config
 
 		// Controls
 
-		std::vector<int>	  KeyBindings			  = {};
+		//BindingProfile		  KeyBindings			  = {}; // TODO: Restore.
 		bool				  EnableTankCameraControl = false;
 		bool				  InvertCameraXAxis		  = false;
 		bool				  InvertCameraYAxis		  = false;

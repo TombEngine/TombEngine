@@ -25,6 +25,7 @@ enum class SavedVarType
 	Vec2,
 	Vec3,
 	Rotation,
+	Time,
 	Color,
 	FuncName,
 
@@ -39,6 +40,7 @@ using SavedVar = std::variant<
 	Vector2,  // Vec2
 	Vector3,  // Vec3
 	Vector3,  // Rotation
+	int,	  // Time
 	D3DCOLOR, // Color
 	FuncName>;
 
@@ -58,7 +60,9 @@ public:
 	virtual void OnSave() = 0;
 	virtual void OnEnd(GameStatus reason) = 0;
 	virtual void OnUseItem(GAME_OBJECT_ID objectNumber) = 0;
+	virtual void OnFreeze() = 0;
 
+	virtual void AddConsoleInput(const std::string& input) = 0;
 	virtual void ShortenTENCalls() = 0;
 	virtual void FreeLevelScripts() = 0;
 	virtual void ResetScripts(bool clearGameVars) = 0;
@@ -68,7 +72,7 @@ public:
 	virtual void ExecuteFunction(const std::string& luaFuncName, short idOne, short idTwo = 0) = 0;
 
 	virtual void GetVariables(std::vector<SavedVar>& vars) = 0;
-	virtual void SetVariables(const std::vector<SavedVar>& vars) = 0;
+	virtual void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) = 0;
 
 	virtual void GetCallbackStrings(
 		std::vector<std::string>& preStart,
@@ -80,7 +84,11 @@ public:
 		std::vector<std::string>& preLoad,
 		std::vector<std::string>& postLoad,
 		std::vector<std::string>& preLoop,
-		std::vector<std::string>& postLoop) const = 0;
+		std::vector<std::string>& postLoop,
+		std::vector<std::string>& preUseItem,
+		std::vector<std::string>& postUseItem,
+		std::vector<std::string>& preBreak,
+		std::vector<std::string>& postBreak) const = 0;
 
 	virtual void SetCallbackStrings(
 		const std::vector<std::string>& preStart,
@@ -92,7 +100,11 @@ public:
 		const std::vector<std::string>& preLoad,
 		const std::vector<std::string>& postLoad,
 		const std::vector<std::string>& preLoop,
-		const std::vector<std::string>& postLoop) = 0;
+		const std::vector<std::string>& postLoop,
+		const std::vector<std::string>& preUseItem,
+		const std::vector<std::string>& postUseItem,
+		const std::vector<std::string>& preBreak,
+		const std::vector<std::string>& postBreak) = 0;
 };
 
 extern ScriptInterfaceGame* g_GameScript;

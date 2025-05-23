@@ -29,9 +29,9 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds CeilingTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 900,
-			-BLOCK(0.75f), -CLICK(1)),
+			-BLOCK(0.75f), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
@@ -41,14 +41,27 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds FloorTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 0,
-			-BLOCK(1), -CLICK(1)),
+			-BLOCK(1), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
 	};
+
 	static auto FloorTrapDoorPos = Vector3i(0, 0, -655);
+
+	static auto WaterFloorTrapDoorPos = Vector3i(0, -CLICK(1), -655);
+	const ObjectCollisionBounds WaterFloorTrapDoorBounds =
+	{
+		GameBoundingBox(
+				-BLOCK(3 / 8.0f), BLOCK(3 / 8.0f),
+				-BLOCK(0.5f), 0,
+				-BLOCK(0.75f), BLOCK(0.25f)),
+		std::pair(
+			EulerAngles(ANGLE(-80.0f), ANGLE(-80.0f), ANGLE(-80.0f)),
+			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f)))
+	};
 
 	static std::optional<int> GetTrapDoorFloorHeight(const ItemInfo& item, const Vector3i& pos)
 	{
@@ -161,19 +174,26 @@ namespace TEN::Entities::Generic
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
 
-		if ((IsHeld(In::Action) &&
-			laraItem->Animation.ActiveState == LS_IDLE &&
-			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
-			laraInfo->Control.HandStatus == HandStatus::Free &&
-			trapDoorItem->Status != ITEM_ACTIVE) ||
-			(laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber))
+		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
+
+		const auto& bounds = isUnderwater ? WaterFloorTrapDoorBounds : FloorTrapDoorBounds;
+		const auto& position = isUnderwater ? WaterFloorTrapDoorPos : FloorTrapDoorPos;
+
+		bool isActionActive = laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber;
+		bool isActionReady = IsHeld(In::Action);
+		bool isPlayerAvailable = laraInfo->Control.HandStatus == HandStatus::Free && trapDoorItem->Status != ITEM_ACTIVE;
+
+		bool isPlayerIdle = (!isUnderwater && laraItem->Animation.ActiveState == LS_IDLE && laraItem->Animation.AnimNumber == LA_STAND_IDLE) ||
+							( isUnderwater && laraItem->Animation.ActiveState == LS_UNDERWATER_IDLE && laraItem->Animation.AnimNumber == LA_UNDERWATER_IDLE);
+		
+		if (isActionActive || (isActionReady && isPlayerAvailable && isPlayerIdle))
 		{
-			if (TestLaraPosition(FloorTrapDoorBounds, trapDoorItem, laraItem))
+			if (TestLaraPosition(bounds, trapDoorItem, laraItem))
 			{
-				if (MoveLaraPosition(FloorTrapDoorPos, trapDoorItem, laraItem))
+				if (MoveLaraPosition(position, trapDoorItem, laraItem))
 				{
 					ResetPlayerFlex(laraItem);
-					laraItem->Animation.AnimNumber = LA_TRAPDOOR_FLOOR_OPEN;
+					laraItem->Animation.AnimNumber = isUnderwater ? LA_UNDERWATER_FLOOR_TRAPDOOR : LA_TRAPDOOR_FLOOR_OPEN;
 					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
 					laraItem->Animation.ActiveState = LS_TRAPDOOR_FLOOR_OPEN;
 					laraInfo->Control.IsMoving = false;
@@ -210,31 +230,31 @@ namespace TEN::Entities::Generic
 
 	void TrapDoorControl(short itemNumber)
 	{
-		auto& trapDoorItem = g_Level.Items[itemNumber];
-		auto& bridge = GetBridgeObject(trapDoorItem);
-		
-		bridge.Update(trapDoorItem);
+		auto* trapDoorItem = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*trapDoorItem);
 
-		if (TriggerActive(&trapDoorItem))
+		bridge.Update(*trapDoorItem);
+
+		if (TriggerActive(trapDoorItem))
 		{
-			if (!trapDoorItem.Animation.ActiveState && trapDoorItem.TriggerFlags >= 0)
-				trapDoorItem.Animation.TargetState = 1;
+			if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
+				trapDoorItem->Animation.TargetState = 1;
 		}
 		else
 		{
-			trapDoorItem.Status = ITEM_ACTIVE;
+			trapDoorItem->Status = ITEM_ACTIVE;
 
-			if (trapDoorItem.Animation.ActiveState == 1)
-				trapDoorItem.Animation.TargetState = 0;
+			if (trapDoorItem->Animation.ActiveState == 1)
+				trapDoorItem->Animation.TargetState = 0;
 		}
 
-		AnimateItem(&trapDoorItem);
+		AnimateItem(trapDoorItem);
 
-		if (trapDoorItem.Animation.ActiveState == 1 && (trapDoorItem.ItemFlags[2] || JustLoaded))
+		if (trapDoorItem->Animation.ActiveState == 1 && (trapDoorItem->ItemFlags[2] || JustLoaded))
 		{
 			OpenTrapDoor(itemNumber);
 		}
-		else if (!trapDoorItem.Animation.ActiveState && !trapDoorItem.ItemFlags[2])
+		else if (!trapDoorItem->Animation.ActiveState && !trapDoorItem->ItemFlags[2])
 		{
 			CloseTrapDoor(itemNumber);
 		}
@@ -242,13 +262,19 @@ namespace TEN::Entities::Generic
 
 	void CloseTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 1;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 1;
+		bridge.Enable(trapDoorItem);
 	}
 
 	void OpenTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 0;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 0;
+		bridge.Disable(trapDoorItem);
 	}
 }

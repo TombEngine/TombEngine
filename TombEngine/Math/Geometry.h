@@ -7,7 +7,13 @@ class Vector3i;
 
 namespace TEN::Math::Geometry
 {
-	// Integer-based point translation
+	// Float-based 2D point translation
+
+	Vector2 TranslatePoint(const Vector2& point, short orient, const Vector2& relOffset);
+	Vector2 TranslatePoint(const Vector2& point, short orient, float dist);
+	Vector2 TranslatePoint(const Vector2& point, const Vector2& dir, float dist);
+
+	// Integer-based 3D point translation
 
 	Vector3i TranslatePoint(const Vector3i& point, short headingAngle, float forward, float down = 0.0f, float right = 0.0f, const Vector3& axis = Vector3::UnitY);
 	Vector3i TranslatePoint(const Vector3i& point, short headingAngle, const Vector3i& relOffset, const Vector3& axis = Vector3::UnitY);
@@ -16,7 +22,7 @@ namespace TEN::Math::Geometry
 	Vector3i TranslatePoint(const Vector3i& point, const AxisAngle& orient, float dist);
 	Vector3i TranslatePoint(const Vector3i& point, const Vector3& dir, float dist);
 
-	// Float-based point translation
+	// Float-based 3D point translation
 
 	Vector3 TranslatePoint(const Vector3& point, short headingAngle, float forward, float down = 0.0f, float right = 0.0f, const Vector3& axis = Vector3::UnitY);
 	Vector3 TranslatePoint(const Vector3& point, short headingAngle, const Vector3& relOffset, const Vector3& axis = Vector3::UnitY);
@@ -36,6 +42,12 @@ namespace TEN::Math::Geometry
 	short GetSurfaceSlopeAngle(const Vector3& normal, const Vector3& axis = Vector3::UnitY);
 	short GetSurfaceAspectAngle(const Vector3& normal, const Vector3& axis = Vector3::UnitY);
 
+	// Line getters
+
+	float	GetDistanceToLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1);
+	Vector3 GetClosestPointOnLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1);
+	Vector3 GetClosestPointOnLinePerp(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1, const Vector3& axis = Vector3::UnitY);
+
 	// Box getters
 
 	BoundingBox GetBoundingBox(const BoundingOrientedBox& box);
@@ -44,9 +56,6 @@ namespace TEN::Math::Geometry
 
 	// Misc. getters
 
-	float		GetDistanceToLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1);
-	Vector3		GetClosestPointOnLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1);
-	Vector3		GetClosestPointOnLinePerp(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1, const Vector3& axis = Vector3::UnitY);
 	EulerAngles GetOrientToPoint(const Vector3& origin, const Vector3& target);
 	EulerAngles GetRelOrientToNormal(short orient, const Vector3& normal, const Vector3& axis = Vector3::UnitY);
 

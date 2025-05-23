@@ -29,14 +29,16 @@ constexpr auto MAX_DYNAMIC_LIGHTS = 1024;
 constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(1);
 constexpr auto CAMERA_LIGHT_COLLECTION_RADIUS = BLOCK(4);
 
-constexpr auto MAX_TRANSPARENT_FACES = 16384;
-constexpr auto MAX_TRANSPARENT_VERTICES = (MAX_TRANSPARENT_FACES * 6);
+constexpr auto MAX_TRANSPARENT_FACES		  = 16384;
+constexpr auto MAX_TRANSPARENT_VERTICES		  = MAX_TRANSPARENT_FACES * 6;
 constexpr auto MAX_TRANSPARENT_FACES_PER_ROOM = 16384;
-constexpr auto TRANSPARENT_BUCKET_SIZE = (3840 * 16);
-constexpr auto ALPHA_TEST_THRESHOLD = 0.5f;
-constexpr auto FAST_ALPHA_BLEND_THRESHOLD = 0.5f;
+constexpr auto TRANSPARENT_BUCKET_SIZE		  = 3840 * 16;
+constexpr auto ALPHA_TEST_THRESHOLD			  = 0.5f;
+constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
+constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
 
 constexpr auto MAX_BONES = 32;
+constexpr auto MAX_BONE_WEIGHTS = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
@@ -58,14 +60,13 @@ constexpr auto SKY_INDICES_COUNT = 6 * SKY_TILES_COUNT * SKY_TILES_COUNT;
 constexpr auto SKY_TRIANGLES_COUNT = 2 * SKY_TILES_COUNT * SKY_TILES_COUNT;
 
 constexpr auto MAX_ROOMS_DRAW = 256;
-constexpr auto MAX_STATICS_DRAW = 128;
-constexpr auto MAX_EFFECTS_DRAW = 16;
 constexpr auto MAX_ITEMS_DRAW = 128;
 constexpr auto MAX_LIGHTS_DRAW = 48;
 constexpr auto MAX_FOG_BULBS_DRAW = 32;
 constexpr auto MAX_SPRITES_DRAW = 512;
+constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
-constexpr auto ROOM_AMBIENT_MAP_SIZE = 32;
+constexpr auto ROOM_AMBIENT_MAP_SIZE = 64;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
 enum class LightType
@@ -91,6 +92,13 @@ enum class BlendMode
 	Lighten = 10,
 	AlphaBlend = 11,
 	FastAlphaBlend = 12
+};
+
+enum class SkinningMode
+{
+	None = 0,
+	Full = 1,
+	Classic = 2
 };
 
 enum class CullMode
@@ -146,7 +154,8 @@ enum class RendererDebugPage
 	PlayerStats,
 	InputStats,
 	CollisionStats,
-	RoomMeshStats,
+	CollisionMeshStats,
+	PortalStats,
 	PathfindingStats,
 	WireframeMode,
 
@@ -213,10 +222,11 @@ enum class AlphaTestMode
 
 enum class PrintStringFlags
 {
-	Center	= (1 << 0),
-	Blink	= (1 << 1),
-	Right	= (1 << 2),
-	Outline	= (1 << 3)
+	Center			= (1 << 0),
+	Blink			= (1 << 1),
+	Right			= (1 << 2),
+	Outline			= (1 << 3),
+	VerticalCenter	= (1 << 4)
 };
 
 enum class RendererPass
@@ -227,7 +237,15 @@ enum class RendererPass
 	CollectTransparentFaces,
 	Additive,
 	GBuffer,
+	GunFlashes,
 	RoomAmbient
+};
+
+enum class SceneRenderMode
+{
+	Full,
+	NoHud,
+	NoPostprocess
 };
 
 enum class SpriteRenderType
@@ -245,7 +263,9 @@ enum class RendererObjectType
 	Moveable, 
 	Static,
 	Sprite,
-	MoveableAsStatic // For rats, bats, spiders, beetles
+	MoveableAsStatic, // For rats, bats, spiders, beetles
+	HairPrimary,
+	HairSecondary
 };
 
 enum class SMAAMode

@@ -50,11 +50,12 @@ float PS(PixelShaderInput input) : SV_Target
     float3 position = ReconstructPositionFromDepth(input.UV);
     float3 encodedNormal = NormalsTexture.Sample(NormalsSampler, input.UV).xyz;
 
-    // Let's avoid SSAO on the skybox and on surfaces with no normals
-    if (length(encodedNormal) <= 0.0001f)
-	{
-		return float4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
+    float farMask = step(40960.0f, length(position)); // 1 if too far
+    float noNormalMask = step(length(encodedNormal), 0.0001f); // 1 if normal is too small
+    float earlyExit = saturate(farMask + noNormalMask); // 0 if both are fine
+   
+    if (earlyExit > 0.0f)
+        return float4(1.0f, 1.0f, 1.0f, 1.0f);
 
     float3 normal = DecodeNormal(encodedNormal);
     float3 randomVec = NoiseTexture.Sample(NoiseSampler, input.UV * noiseScale).xyz;
@@ -82,7 +83,8 @@ float PS(PixelShaderInput input) : SV_Target
         float sampleDepth = ReconstructPositionFromDepth(offset.xy).z;
         float rangeCheck = smoothstep(0.0, 1.0, radius / abs(position.z - sampleDepth));
 
-        occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
+        occlusion += lerp(0.0f, rangeCheck, step(0.0, sampleDepth - samplePos.z - bias));
+        //occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
     }
 
     occlusion = 1.0 - (occlusion / kernelSize);

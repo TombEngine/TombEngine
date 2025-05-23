@@ -50,7 +50,7 @@ BoundingOrientedBox ItemInfo::GetObb() const
 	auto frameData = GetFrameInterpData(*this);
 	if (frameData.Alpha == 0.0f)
 		return frameData.FramePtr0->BoundingBox.ToBoundingOrientedBox(Pose);
-		
+
 	return (frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha))).ToBoundingOrientedBox(Pose);
 }
 
@@ -168,6 +168,7 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
 		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
+		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -286,8 +287,7 @@ void KillItem(short const itemNumber)
 		if (item->ObjectNumber != GAME_OBJECT_ID::ID_NO_OBJECT && item->IsBridge())
 		{
 			auto& bridge = GetBridgeObject(*item);
-			bridge.DeassignSectors(*item);
-
+			
 			auto& room = g_Level.Rooms[item->RoomNumber];
 			room.Bridges.Remove(item->Index);
 		}
@@ -331,7 +331,7 @@ void AddActiveItem(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	item->Flags |= IFLAG_TRIGGERED;
 
-	if (Objects[item->ObjectNumber].control == NULL)
+	if (Objects[item->ObjectNumber].control == nullptr)
 	{
 		item->Status = ITEM_NOT_ACTIVE;
 		return;
@@ -497,13 +497,13 @@ void InitializeFXArray()
 	NextFxActive = NO_VALUE;
 	NextFxFree = 0;
 
-	for (int i = 0; i < NUM_EFFECTS; i++)
+	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
 	{
 		auto* fx = &EffectList[i];
 		fx->nextFx = i + 1;
 	}
 
-	EffectList[NUM_EFFECTS - 1].nextFx = NO_VALUE;
+	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
 }
 
 void RemoveDrawnItem(short itemNumber) 
@@ -578,7 +578,7 @@ void InitializeItem(short itemNumber)
 		item.ObjectNumber == ID_CROSSBOW_ITEM ||
 		item.ObjectNumber == ID_REVOLVER_ITEM)
 	{
-		item.MeshBits = 1;
+		item.MeshBits = 1 << 0;
 	}
 	else
 	{
@@ -628,6 +628,8 @@ short CreateItem()
 	short itemNumber = NextItemFree;
 	g_Level.Items[NextItemFree].Flags = 0;
 	NextItemFree = g_Level.Items[NextItemFree].NextItem;
+
+	g_Level.Items[itemNumber].DisableInterpolation = true;
 
 	return itemNumber;
 }
@@ -704,7 +706,7 @@ int GlobalItemReplace(short search, GAME_OBJECT_ID replace)
 
 const std::string& GetObjectName(GAME_OBJECT_ID objectID)
 {
-	for (auto it = kObjIDs.begin(); it != kObjIDs.end(); ++it)
+	for (auto it = GAME_OBJECT_IDS.begin(); it != GAME_OBJECT_IDS.end(); ++it)
 	{
 		if (it->second == objectID)
 			return it->first;
@@ -782,34 +784,31 @@ void UpdateAllItems()
 	while (itemNumber != NO_VALUE)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		int nextItemNumber = item.NextActive;
+		itemNumber = item.NextActive;
 
 		if (!Objects.CheckID(item.ObjectNumber))
 			continue;
 
+		if (g_GameFlow->LastFreezeMode != FreezeMode::None && !Objects[item.ObjectNumber].AlwaysActive)
+			continue;
+
 		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
-			if (item.IsBridge())
-				int i = 0;
+			if (Objects[item.ObjectNumber].control)
+				Objects[item.ObjectNumber].control(item.Index);
 
-			const auto& object = Objects[item.ObjectNumber];
-			if (object.control != nullptr)
-				object.control(itemNumber);
-
-			TestVolumes(itemNumber);
+			TestVolumes(item.Index);
 			ProcessEffects(&item);
 
 			if (item.AfterDeath > 0 && item.AfterDeath < ITEM_DEATH_TIMEOUT && !(Wibble & 3))
 				item.AfterDeath++;
 			if (item.AfterDeath == ITEM_DEATH_TIMEOUT)
-				KillItem(itemNumber);
+				KillItem(item.Index);
 		}
 		else
 		{
-			KillItem(itemNumber);
+			KillItem(item.Index);
 		}
-
-		itemNumber = nextItemNumber;
 	}
 
 	InItemControlLoop = false;
@@ -849,7 +848,7 @@ bool UpdateItemRoom(short itemNumber)
 	return false;
 }
 
-void DoDamage(ItemInfo* item, int damage)
+void DoDamage(ItemInfo* item, int damage, bool silent)
 {
 	static int lastHurtTime = 0;
 
@@ -857,20 +856,34 @@ void DoDamage(ItemInfo* item, int damage)
 		return;
 
 	item->HitStatus = true;
-
 	item->HitPoints -= damage;
-	if (item->HitPoints < 0)
+
+	if (item->HitPoints <= 0)
+	{
 		item->HitPoints = 0;
+
+		if (!item->IsLara())
+		{
+			SaveGame::Statistics.Level.Kills++;
+			SaveGame::Statistics.Game.Kills++;
+		}
+	}
 
 	if (item->IsLara())
 	{
 		if (damage > 0)
 		{
-			float power = item->HitPoints ? Random::GenerateFloat(0.1f, 0.4f) : 0.5f;
-			Rumble(power, 0.15f);
+			if (!silent)
+			{
+				float power = item->HitPoints ? Random::GenerateFloat(0.1f, 0.4f) : 0.5f;
+				Rumble(power, 0.15f);
+			}
+
+			SaveGame::Statistics.Game.DamageTaken += damage;
+			SaveGame::Statistics.Level.DamageTaken += damage;
 		}
 
-		if ((GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))
+		if (!silent && (GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))
 		{
 			SoundEffect(SFX_TR4_LARA_INJURY, &LaraItem->Pose);
 			lastHurtTime = GlobalCounter;
@@ -887,6 +900,7 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	{
 		if (target->HitPoints > 0)
 		{
+			SaveGame::Statistics.Game.AmmoHits++;
 			SaveGame::Statistics.Level.AmmoHits++;
 			DoDamage(target, damage);
 		}
@@ -915,7 +929,7 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 			break;
 
 		case HitEffect::Richochet:
-			TriggerRicochetSpark(pos.value(), source.Pose.Orientation.y, 3, 0);
+			TriggerRicochetSpark(pos.value(), source.Pose.Orientation.y);
 			break;
 
 		case HitEffect::Smoke:

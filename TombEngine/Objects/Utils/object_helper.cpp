@@ -140,7 +140,6 @@ void InitPickup(ObjectInfo* object, int objectNumber, std::function<ControlFunct
 	if (object->loaded)
 	{
 		object->Initialize = InitializePickup;
-
 		object->collision = PickupCollision;
 		object->control = (func != nullptr) ? func : PickupControl;
 		object->isPickup = true;
@@ -156,7 +155,6 @@ void InitFlare(ObjectInfo* object, int objectNumber)
 		object->collision = PickupCollision;
 		object->control = FlareControl;
 		object->pivotLength = 256;
-		object->HitPoints = 256; // Time.
 		object->usingDrawAnimatingItem = false;
 		object->isPickup = true;
 	}
@@ -190,8 +188,8 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePushableBlock;
-		object->control = PushableBlockControl;
-		object->collision = PushableBlockCollision;
+		object->control = ControlPushableBlock;
+		object->collision = CollidePushableBlock;
 		object->SetHitEffect(true);
 	}
 }

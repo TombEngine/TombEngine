@@ -1,25 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara.h"
 
-#include "Game/Lara/lara_basic.h"
-#include "Game/Lara/lara_cheat.h"
-#include "Game/Lara/lara_climb.h"
-#include "Game/Lara/lara_collide.h"
-#include "Game/Lara/lara_crawl.h"
-#include "Game/Lara/lara_fire.h"
-#include "Game/Lara/lara_hang.h"
-#include "Game/Lara/lara_helpers.h"
-#include "Game/Lara/lara_helpers.h"
-#include "Game/Lara/lara_initialise.h"
-#include "Game/Lara/lara_jump.h"
-#include "Game/Lara/lara_monkey.h"
-#include "Game/Lara/lara_objects.h"
-#include "Game/Lara/lara_one_gun.h"
-#include "Game/Lara/lara_overhang.h"
-#include "Game/Lara/lara_slide.h"
-#include "Game/Lara/lara_surface.h"
-#include "Game/Lara/lara_swim.h"
-#include "Game/Lara/lara_tests.h"
 #include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
@@ -32,14 +13,28 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/Gui.h"
 #include "Game/items.h"
+#include "Game/Lara/lara_basic.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_climb.h"
 #include "Game/Lara/lara_collide.h"
+#include "Game/Lara/lara_crawl.h"
 #include "Game/Lara/lara_fire.h"
+#include "Game/Lara/lara_hang.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_initialise.h"
+#include "Game/Lara/lara_jump.h"
+#include "Game/Lara/lara_monkey.h"
+#include "Game/Lara/lara_objects.h"
+#include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/lara_overhang.h"
+#include "Game/Lara/lara_slide.h"
+#include "Game/Lara/lara_surface.h"
+#include "Game/Lara/lara_swim.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/Lara/PlayerStateMachine.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -52,223 +47,101 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
+using namespace TEN::Entities::Doors;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
 
-LaraInfo Lara = {};
-ItemInfo* LaraItem;
+using TEN::Renderer::g_Renderer;
+
+LaraInfo	  Lara			= {};
+ItemInfo*	  LaraItem		= nullptr;
 CollisionInfo LaraCollision = {};
 
-#include "Specific/Structures/SpatialHash.h"
-using namespace TEN::Structures;
-
-//debug
-#include <Game/control/los.h>
-#include "Specific/Input/Input.h"
-#include <OISKeyboard.h>
-#include <Game/collision/Los.h>
-using namespace TEN::Collision::Room;
-using namespace TEN::Collision::Los;
-
-static void HandleLosDebug(const ItemInfo& item)
+static void HandlePlayerDebug(const ItemInfo& item)
 {
-	static auto rot = EulerAngles::Identity;
-	if (KeyMap[OIS::KC_T])
+	// Collision stats.
+	if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionStats)
 	{
-		rot.x += ANGLE(2);
+		DrawNearbySectorFlags(item);
 	}
-	else if (KeyMap[OIS::KC_G])
+	// Pathfinding stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
 	{
-		rot.x -= ANGLE(2);
+		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
 	}
-
-	auto dir = (item.Pose.Orientation + rot).ToDirection();
-
-	float dist = BLOCK(4.5f);
-
-	short roomNumber = item.RoomNumber;
-	GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber);
-
-	auto origin = (item.Pose.Position + Vector3i(0, -BLOCK(0.9f), 0)).ToVector3();
-	auto target = Geometry::TranslatePoint(origin, dir, dist);
-	auto los = GetLosCollision(origin, roomNumber, dir, dist, true, true, true);
-	float closestDist = los.Room.Distance;
-	target = los.Room.Position;
-
-	for (const auto& movLos : los.Moveables)
+	// Collision mesh stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
 	{
-		if (movLos.Moveable->ObjectNumber == ID_LARA)
-			continue;
+		auto bridgeItemNumbers = std::set<int>{};
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
 
-		if (movLos.Distance < closestDist)
+		PrintDebugMessage("Room number: %d", room.RoomNumber);
+		PrintDebugMessage("Sectors: %d", room.Sectors.size());
+		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
+		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
+
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
-			closestDist = movLos.Distance;
-			target = movLos.Position;
-			break;
-		}
-	}
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
 
-	for (const auto& staticLos : los.Statics)
-	{
-		if (staticLos.Distance < closestDist)
-		{
-			closestDist = staticLos.Distance;
-			target = staticLos.Position;
-			break;
-		}
-	}
+			neighborRoom.CollisionMesh.DrawDebug();
 
-	DrawDebugLine(origin, target, Vector4::One);
-	DrawDebugTarget(target, Quaternion::Identity, 100, Color(1, 1, 1));
-}
+			// Draw door collision meshes.
+			for (int doorItemNumber : neighborRoom.Doors.GetIds())
+			{
+				const auto& doorItem = g_Level.Items[doorItemNumber];
+				const auto& door = GetDoorObject(doorItem);
 
-static void HandleBridgeDebug(const ItemInfo& item)
-{
-	// Force init bridges. For some reason they don't init properly right now.
-	static bool hasRun = false;
-	if (!hasRun)
-	{
-		for (auto& item2 : g_Level.Items)
-		{
-			if (!item2.IsBridge())
-				continue;
+				door.CollisionMesh.DrawDebug();
+			}
 
-			auto& bridge = GetBridgeObject(item2);
-			bridge.Initialize(item2);
+			// Collect bridge item numbers.
+			for (int bridgeItemNumber : neighborRoom.Bridges.GetIds())
+				bridgeItemNumbers.insert(bridgeItemNumber);
+
+			// Draw bridge tree.
+			neighborRoom.Bridges.DrawDebug();
 		}
 
-		hasRun = true;
+		// Draw bridge collision meshes.
+		for (int bridgeItemNumber : bridgeItemNumbers)
+		{
+			auto& bridgeItem = g_Level.Items[bridgeItemNumber];
+			auto& bridge = GetBridgeObject(bridgeItem);
+
+			bridge.GetCollisionMesh().DrawDebug();
+		}
+
+		// Print bridge item numbers in sector.
+		auto pointColl = GetPointCollision(item);
+		PrintDebugMessage("Bridge moveable IDs in room %d, sector %d:", pointColl.GetRoomNumber(), pointColl.GetSector().ID);
+		if (!pointColl.GetSector().BridgeItemNumbers.empty())
+		{
+			for (int bridgeItemNumber : pointColl.GetSector().BridgeItemNumbers)
+				PrintDebugMessage("%d", bridgeItemNumber);
+		}
 	}
-
-	// Move bridge with mouse.
-	/*auto pointColl = GetPointCollision(item);
-	if (pointColl.GetFloorBridgeItemNumber() != NO_VALUE)
+	// Portal stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
 	{
-		auto& bridgeItem = g_Level.Items[pointColl.GetFloorBridgeItemNumber()];
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
+		PrintDebugMessage("Portals in room %d: %d", room.RoomNumber, room.Portals.size());
 
-		bridgeItem.Pose.Position += Vector3i(GetMouseAxis().x * BLOCK(0.5f), 0, GetMouseAxis().y * BLOCK(0.5f));
-		UpdateItemRoom(bridgeItem.Index);
-	}*/
-}
-
-// temp
-bool IsPointInFront2(const Vector3& origin, const Vector3& target, const Vector3& normal)
-{
-	auto deltaPos = target - origin;
-	float dotProduct = deltaPos.Dot(normal);
-
-	return (dotProduct >= 0.0f);
-}
-
-//temp
-static BoundingBox GetAabb(const std::vector<Vector3>& points)
-{
-	auto maxPoint = Vector3(-INFINITY);
-	auto minPoint = Vector3(INFINITY);
-
-	// Determine max and min AABB points.
-	for (const auto& point : points)
-	{
-		maxPoint = Vector3(
-			std::max(maxPoint.x, point.x),
-			std::max(maxPoint.y, point.y),
-			std::max(maxPoint.z, point.z));
-
-		minPoint = Vector3(
-			std::min(minPoint.x, point.x),
-			std::min(minPoint.y, point.y),
-			std::min(minPoint.z, point.z));
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+			for (const auto& portal : neighborRoom.Portals)
+				portal.CollisionMesh.DrawDebug();
+		}
 	}
-
-	// Construct and return AABB.
-	auto center = (minPoint + maxPoint) / 2;
-	auto extents = (maxPoint - minPoint) / 2;
-	return BoundingBox(center, extents);
-}
-
-//temp
-static BoundingBox GetAabb(const BoundingOrientedBox& obb)
-{
-	auto corners = std::array<Vector3, 8>{}; // TODO: Use BOX_VERTEX_COUNT constant when PR containing it is merged.
-	obb.GetCorners(corners.data());
-
-	auto cornerVector = std::vector<Vector3>{};
-	cornerVector.insert(cornerVector.end(), corners.begin(), corners.end());
-	return GetAabb(cornerVector);
-}
-
-void HandleSpatialHashDebug(const ItemInfo& item)
-{
-	struct TestObject
-	{
-		BoundingOrientedBox Obb		= BoundingOrientedBox();
-		BoundingOrientedBox PrevObb = BoundingOrientedBox();
-	};
-
-	static auto debugSpatialHash = SpatialHash(BLOCK(0.5f));
-	static auto testObj = TestObject{};
-
-	// Modify OBB extents.
-	float exp = BLOCK(0.01f);
-	if (KeyMap[OIS::KC_1])
-		testObj.Obb.Extents.x += exp;
-	else if (KeyMap[OIS::KC_Q])
-		testObj.Obb.Extents.x -= exp;
-	if (KeyMap[OIS::KC_2])
-		testObj.Obb.Extents.y += exp;
-	else if (KeyMap[OIS::KC_W])
-		testObj.Obb.Extents.y -= exp;
-	if (KeyMap[OIS::KC_3])
-		testObj.Obb.Extents.z += exp;
-	else if (KeyMap[OIS::KC_E])
-		testObj.Obb.Extents.z -= exp;
-
-	// Rotate OBB.
-	if (KeyMap[OIS::KC_6])
-		testObj.Obb.Orientation = Quaternion(testObj.Obb.Orientation) * EulerAngles(ANGLE(2), 0, 0).ToQuaternion();
-	else if (KeyMap[OIS::KC_Y])
-		testObj.Obb.Orientation = Quaternion(testObj.Obb.Orientation) * EulerAngles(ANGLE(-2), 0, 0).ToQuaternion();
-	if (KeyMap[OIS::KC_7])
-		testObj.Obb.Orientation = Quaternion(testObj.Obb.Orientation) * EulerAngles(0, ANGLE(2), 0).ToQuaternion();
-	else if (KeyMap[OIS::KC_U])
-		testObj.Obb.Orientation = Quaternion(testObj.Obb.Orientation) * EulerAngles(0, ANGLE(-2), 0).ToQuaternion();
-
-	// Set boxes.
-	testObj.Obb.Center = item.Pose.Position.ToVector3() + Vector3(0, -BLOCK(1), 0);
-	g_Renderer.AddDebugBox(testObj.Obb, Color(1, 1, 0));
-
-	// Insert to DSC.
-	debugSpatialHash.Move(item.Index, testObj.Obb, testObj.PrevObb);
-	debugSpatialHash.DrawDebug();
-
-	// Update prev AABB.
-	testObj.PrevObb = testObj.Obb;
 }
 
 void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
-
-	// ----DEBUG
-	
-	short deltaAngle = Geometry::GetShortestAngle(GetPlayerHeadingAngleY(*item), g_Camera.actualAngle);
-	//PrintDebugMessage("%d", abs(deltaAngle));
-
-	// Regenerate room mesh.
-	static bool dbGenerate = true;
-	if (KeyMap[OIS::KC_Q] && dbGenerate)
-		g_Level.Rooms[item->RoomNumber].GenerateCollisionMesh();
-	dbGenerate = !KeyMap[OIS::KC_Q];
-
-	HandleLosDebug(*item);
-	HandleBridgeDebug(*item);
-	//HandleSpatialHashDebug(*item);
-	HandleLosDebug(*item);
-
-	//--------
 
 	// Update reference move axis.
 	if (GetMoveAxis() != Vector2::Zero)
@@ -290,7 +163,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			player.Control.HandStatus = HandStatus::Free;
 		}
 
-		++player.Control.Count.PositionAdjust;
+		player.Control.Count.PositionAdjust++;
 	}
 	else
 	{
@@ -415,7 +288,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			// Determine if player's head is above water surface. Needed to prevent
 			// pre-TR5 bug where player would keep submerged until root mesh was above water level.
 			isWaterOnHeadspace = TestEnvironment(
-				ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - CLICK(1), item->Pose.Position.z,
+				RoomEnvFlags::ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - CLICK(1), item->Pose.Position.z,
 				GetPointCollision(*item, 0, 0, -CLICK(1)).GetRoomNumber());
 
 			if (water.WaterDepth == NO_HEIGHT || abs(water.HeightFromWater) >= CLICK(1) || isWaterOnHeadspace ||
@@ -538,31 +411,11 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 		break;
 	}
 
-	SaveGame::Statistics.Game.Distance += (int)round(Vector3i::Distance(prevPos, item->Pose.Position));
+	int deltaDist = (int)round(Vector3i::Distance(prevPos, item->Pose.Position));
+	SaveGame::Statistics.Game.Distance  += deltaDist;
+	SaveGame::Statistics.Level.Distance += deltaDist;
 
-	if (DebugMode)
-	{
-		if (GetDebugPage() == RendererDebugPage::RoomMeshStats)
-		{
-			const auto& room = g_Level.Rooms[item->RoomNumber];
-
-			room.CollisionMesh.DrawDebug();
-			//for (const auto& portal : room.Portals)
-			//	portal.CollisionMesh.DrawDebug();
-
-
-			for (const auto& bridgeMovID : room.Bridges.GetIds())
-			{
-				const auto& bridgeItem = g_Level.Items[bridgeMovID];
-				const auto& bridge = GetBridgeObject(bridgeItem);
-
-				bridge.GetCollisionMesh().DrawDebug();
-			}
-		}
-
-		DrawNearbyPathfinding(GetPointCollision(*item).GetBottomSector().PathfindingBoxID);
-		DrawNearbySectorFlags(*item);
-	}
+	HandlePlayerDebug(*item);
 }
 
 void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
@@ -581,13 +434,12 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockMonkeySwingEdge = false;
 	coll->Setup.EnableObjectPush = true;
 	coll->Setup.EnableSpasm = true;
+	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
 	coll->Setup.PrevAnimObjectID = item->Animation.AnimObjectID;
 	coll->Setup.PrevAnimNumber = item->Animation.AnimNumber;
 	coll->Setup.PrevFrameNumber = item->Animation.FrameNumber;
 	coll->Setup.PrevState = item->Animation.ActiveState;
-
-	UpdateLaraRoom(item, -LARA_HEIGHT / 2);
 
 	// Handle look-around.
 	if (((IsHeld(In::Look) && CanPlayerLookAround(*item)) ||
@@ -601,6 +453,8 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 		ResetPlayerLookAround(*item);
 	}
 	player.Control.Look.Mode = LookMode::None;
+
+	UpdateLaraRoom(item, -LARA_HEIGHT / 2);
 
 	// Process vehicles.
 	if (HandleLaraVehicle(item, coll))
@@ -647,6 +501,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockMonkeySwingEdge = false;
 	coll->Setup.EnableObjectPush = true;
 	coll->Setup.EnableSpasm = false;
+	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
 
 	player.Control.IsLow = false;
@@ -720,6 +575,7 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockMonkeySwingEdge = false;
 	coll->Setup.EnableObjectPush = true;
 	coll->Setup.EnableSpasm = false;
+	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
 
 	player.Control.IsLow = false;
@@ -834,6 +690,7 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 
 		ResetPlayerFlex(item);
 		InitializeLaraMeshes(item);
+		item->Animation.IsAirborne = false;
 		item->HitPoints = LARA_HEALTH_MAX;
 		player.Control.HandStatus = HandStatus::Free;
 	}
@@ -852,6 +709,7 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 
 	// Control player.
 	InItemControlLoop = true;
+
 	LaraControl(item, &LaraCollision);
 	HandlePlayerFlyCheat(*item);
 	InItemControlLoop = false;

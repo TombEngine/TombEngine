@@ -10,21 +10,18 @@ Constants for room reverb types.
 @pragma nostrip
 */
 
-/*** Objects.RoomReverb constants.
-
+/*** Table of Objects.RoomReverb constants.
+<br>
+Corresponds to room reverb setting set in Tomb Editor. To be used with @{Objects.Room.GetReverbType} and @{Objects.Room.SetReverbType} functions.
 The following constants are inside RoomReverb.
 
-	OUTSIDE
-	SMALL
-	MEDIUM
-	LARGE
-	PIPE
+ - `OUTSIDE`
+ - `SMALL`
+ - `MEDIUM`
+ - `LARGE`
+ - `PIPE`
 
-@section Objects.RoomReverb
-*/
-
-/*** Table of room reverb constants (for use with Room:SetReverb / Room:GetReverb command).
-@table CONSTANT_STRING_HERE
+@table Objects.RoomReverb
 */
 
 static const std::unordered_map<std::string, ReverbType> ROOM_REVERB_TYPES

@@ -5,6 +5,7 @@
 #include <array>
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Math/Random.h"
 
@@ -23,6 +24,8 @@ namespace TEN::Effects::Spark
 
 			if (!s.active)
 				continue;
+			
+			s.StoreInterpolationData();
 
 			s.age += 1;
 			if (s.age > s.life)
@@ -98,6 +101,45 @@ namespace TEN::Effects::Spark
 			s.destinationColor = Vector4::Zero;
 			s.active = true;
 		}
+
+		auto& sptr = *GetFreeParticle();
+
+		sptr = {};
+		sptr.on = true;
+		sptr.dynamic = NO_VALUE;
+		sptr.sR = colorStart.x * 0.33f * UCHAR_MAX;
+		sptr.sG = colorStart.y * 0.33f * UCHAR_MAX;
+		sptr.sB = colorStart.z * 0.33f * UCHAR_MAX;
+		sptr.dR = 0;
+		sptr.dG = 0;
+		sptr.dB = 0;
+		sptr.colFadeSpeed = 4;
+		sptr.fadeToBlack = 0;
+		sptr.life = 4;
+		sptr.sLife = 4;
+		sptr.blendMode = BlendMode::Additive;
+		sptr.x = pos.x;
+		sptr.y = pos.y;
+		sptr.z = pos.z;
+		sptr.xVel = 0;
+		sptr.yVel = 0;
+		sptr.zVel = 0;
+		sptr.flags = SP_SCALE | SP_DEF | SP_ROTATE;
+		sptr.rotAng = GenerateAngle(0, 4095);
+
+		if (TestProbability(1 / 2.0f))
+			sptr.rotAdd = 64 - GenerateAngle(0, 63);
+		else
+			sptr.rotAdd = GenerateAngle(0, 63) + 64;
+
+		sptr.scalar = 3;
+		sptr.SpriteSeqID = ID_DEFAULT_SPRITES;
+		sptr.SpriteID = SPR_BULLETIMPACT;
+		sptr.size = GenerateInt(6, 12);
+		sptr.sSize = sptr.size;
+		sptr.dSize = 1;
+		sptr.maxYvel = 0;
+		sptr.gravity = 0;
 	}
 
 	void TriggerFrictionSpark(const GameVector& pos, const EulerAngles& angle, float length, int count)

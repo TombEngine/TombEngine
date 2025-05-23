@@ -9,6 +9,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Room;
 
@@ -203,6 +204,41 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 		CreateZone(item);
 
 	SlotsUsed++;
+}
+
+void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyObjectIds, bool ignoreKeyObjectIds)
+{
+	auto& creature = *GetCreatureInfo(&item);
+
+	float closestDistSqr = INFINITY;
+	for (auto& target : ActiveCreatures)
+	{
+		auto& targetItem = g_Level.Items[target->ItemNumber];
+		if (targetItem.Index == item.Index)
+			continue;
+
+		// Ignore or specifically target key object IDs.
+		if (!keyObjectIds.empty() && (ignoreKeyObjectIds ? Contains(keyObjectIds, targetItem.ObjectNumber) : !Contains(keyObjectIds, targetItem.ObjectNumber)))
+			continue;
+
+		if (&targetItem != &item && targetItem.HitPoints > 0 && targetItem.Status != ITEM_INVISIBLE)
+		{
+			float distSqr = Vector3i::DistanceSquared(item.Pose.Position, targetItem.Pose.Position);
+			if (distSqr < closestDistSqr)
+			{
+				creature.Enemy = &targetItem;
+				closestDistSqr = distSqr;
+			}
+		}
+	}
+
+	// Handle player as special case.
+	if (!keyObjectIds.empty() && (ignoreKeyObjectIds ? Contains(keyObjectIds, ID_LARA) : !Contains(keyObjectIds, ID_LARA)))
+		return;
+
+	float distToPlayerSqr = Vector3i::DistanceSquared(item.Pose.Position, LaraItem->Pose.Position);
+	if (distToPlayerSqr < closestDistSqr)
+		creature.Enemy = LaraItem;
 }
 
 void SetEntityTarget(short itemNum, short target)

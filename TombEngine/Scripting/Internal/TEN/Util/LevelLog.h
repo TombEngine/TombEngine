@@ -1,31 +1,21 @@
 #pragma once
-#include <string>
-#include <unordered_map>
 
 #include "Game/Debug/Debug.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 
-/***
-Constants for LogLevel IDs.
-@enum Util.LogLevel
-@pragma nostrip
-*/
+/// Constants for LogLevel IDs.
+// @enum Util.LogLevel
+// @pragma nostrip
 
-/*** Util.LogLevel constants.
-The following constants are inside LogLevel.
+/// Table of Util.LogLevel constants. To be used with @{Util.PrintLog} function.
+//
+// - `INFO` - Only information messages will be shown.
+// - `WARNING` - Non-critical warnings and information messages will be shown.
+// - `ERROR` - Critical errors, non-critical warnings and information messages will be shown.
+//
+// @table Util.LogLevel
 
-	INFO
-	WARNING
-	ERROR
-
-@section Util.LogLevel
-*/
-
-/*** Table of LogLevel ID constants (for use with PrintLog() command).
-@table CONSTANT_STRING_HERE
-*/
-
-static const std::unordered_map<std::string, LogLevel> LOG_LEVEL
+static const auto LOG_LEVEL_IDS = std::unordered_map<std::string, LogLevel>
 {
 	{ ScriptReserved_LogLevelInfo, LogLevel::Info },
 	{ ScriptReserved_LogLevelWarning, LogLevel::Warning },

@@ -9,54 +9,13 @@ using namespace TEN::Math;
 
 //namespace TEN::Math
 //{
-	const Pose Pose::Zero = Pose(Vector3i::Zero, EulerAngles::Identity);
+	const Pose Pose::Zero = Pose(Vector3i::Zero, EulerAngles::Identity, Vector3::One);
 
-	Pose::Pose()
-	{
-	}
-
-	Pose::Pose(const Vector3i& pos)
-	{
-		Position = pos;
-	}
-
-	Pose::Pose(int xPos, int yPos, int zPos)
-	{
-		Position = Vector3i(xPos, yPos, zPos);
-	}
-
-	Pose::Pose(const EulerAngles& orient)
-	{
-		Orientation = orient;
-	}
-
-	Pose::Pose(short xOrient, short yOrient, short zOrient)
-	{
-		Orientation = EulerAngles(xOrient, yOrient, zOrient);
-	}
-
-	Pose::Pose(const Vector3i& pos, const EulerAngles& orient)
+	Pose::Pose(const Vector3i& pos, const EulerAngles& orient, const Vector3& scale)
 	{
 		Position = pos;
 		Orientation = orient;
-	}
-
-	Pose::Pose(const Vector3i& pos, short xOrient, short yOrient, short zOrient)
-	{
-		Position = pos;
-		Orientation = EulerAngles(xOrient, yOrient, zOrient);
-	}
-
-	Pose::Pose(int xPos, int yPos, int zPos, const EulerAngles& orient)
-	{
-		Position = Vector3i(xPos, yPos, zPos);
-		Orientation = orient;
-	}
-
-	Pose::Pose(int xPos, int yPos, int zPos, short xOrient, short yOrient, short zOrient)
-	{
-		Position = Vector3i(xPos, yPos, zPos);
-		Orientation = EulerAngles(xOrient, yOrient, zOrient);
+		Scale = scale;
 	}
 
 	void Pose::Translate(short headingAngle, float forward, float down, float right)
@@ -74,9 +33,17 @@ using namespace TEN::Math;
 		Position = Geometry::TranslatePoint(Position, dir, dist);
 	}
 
+	Matrix Pose::ToMatrix() const
+	{
+		auto translationMatrix = Matrix::CreateTranslation(Position.ToVector3());
+		auto rotMatrix = Orientation.ToRotationMatrix();
+		auto scaleMatrix = Matrix::CreateScale(Scale);
+		return (scaleMatrix * rotMatrix * translationMatrix);
+	}
+
 	bool Pose::operator ==(const Pose& pose) const
 	{
-		return ((Position == pose.Position) && (Orientation == pose.Orientation));
+		return (Position == pose.Position && Orientation == pose.Orientation && Scale == pose.Scale);
 	}
 
 	bool Pose::operator !=(const Pose& pose) const

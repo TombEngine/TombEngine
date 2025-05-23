@@ -4,7 +4,12 @@
 -- Intro image is a splash screen which appears before actual loading screen.
 -- If you don't want it to appear, just remove this line.
 
-Flow.SetIntroImagePath("Screens\\main.jpg")
+Flow.SetIntroImagePath("Screens\\intro.jpg")
+
+-- Intro video plays right after or instead of intro image, if specified.
+-- If you don't want it to appear, just remove this line.
+
+Flow.SetIntroVideoPath("Fmv\\intro.mp4")
 
 -- Set overall amount of secrets in game.
 -- If set to 0, secrets won't be displayed in statistics.
@@ -57,7 +62,7 @@ test = Level.new()
 test.nameKey = "level_test"
 test.scriptFile = "Scripts\\Levels\\New_Level.lua"
 test.ambientTrack = "108"
-test.levelFile = "Data\\TestLevel.ten"
+test.levelFile = "Data\\Tut1_water.ten"
 test.loadScreenFile = "Screens\\rome.jpg"
 
 -- 0 is no weather, 1 is rain, 2 is snow.

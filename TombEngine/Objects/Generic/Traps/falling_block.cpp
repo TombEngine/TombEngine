@@ -59,17 +59,17 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
-		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
-		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
-		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
-		bridge.Initialize(item);
-
 		item.MeshBits = 1;
 
 		// Set mutators to EulerAngles identity by default.
 		for (auto& mutator : item.Model.Mutators)
 			mutator.Rotation = EulerAngles::Identity;
+
+		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
+		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
+		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
+		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
+		bridge.Initialize(item);
 	}
 
 	void FallingBlockCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

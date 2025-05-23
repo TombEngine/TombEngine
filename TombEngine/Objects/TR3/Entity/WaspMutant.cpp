@@ -66,7 +66,8 @@ namespace TEN::Entities::Creatures::TR3
 		auto pos = Random::GeneratePointInSphere(sphere);
 
 		particle.on = true;
-		particle.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		particle.SpriteSeqID = ID_DEFAULT_SPRITES;
+		particle.SpriteID = 0;
 		particle.blendMode = BlendMode::Additive;
 		particle.fxObj = itemNumber;
 		particle.nodeNumber = ParticleNodeOffsetIDs::NodeWasp;
@@ -113,7 +114,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Spawn light.
 		auto pos = GetJointPosition(&item, WaspVenomSackBite);
-		TriggerDynamicLight(
+		SpawnDynamicLight(
 			pos.x, pos.y, pos.z,
 			item.ItemFlags[0],
 			WaspVenomSackLightColor.x * UCHAR_MAX,

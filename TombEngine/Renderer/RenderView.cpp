@@ -52,6 +52,9 @@ namespace TEN::Renderer
 		DisplaySpritesToDraw.clear();
 		SortedStaticsToDraw.clear();
 		FogBulbsToDraw.clear();
+		LensFlaresToDraw.clear();
+		TransparentObjectsToDraw.clear();
+		Mirrors.clear();
 	}
 
 	RenderViewCamera::RenderViewCamera(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height)

@@ -32,9 +32,7 @@ namespace TEN::Entities::Creatures::TR5
 					Vector3i(
 						(GetRandomControl() & 0x1FF) - 255,
 						(GetRandomControl() & 0x1FF) - 255,
-						(GetRandomControl() & 0x1FF) - 255
-					))
-			);
+						(GetRandomControl() & 0x1FF) - 255)));
 
 			auto target = pos;
 
@@ -96,7 +94,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (GunShipCounter >= 15)
 					return AnimateItem(item);
 
-				TriggerDynamicLight(
+				SpawnDynamicLight(
 					origin.x, origin.y, origin.z, 16,
 					(GetRandomControl() & 0x3F) + 96,
 					(GetRandomControl() & 0x1F) + 64,
@@ -104,21 +102,19 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (!los2)
 				{
-					TriggerRicochetSpark(target, 2 * GetRandomControl(), 3, 0);
-					TriggerRicochetSpark(target, 2 * GetRandomControl(), 3, 0);
+					TriggerRicochetSpark(target, 2 * GetRandomControl());
 				}
 
 				if (objOnLos < 0 && GetRandomControl() & 1)
 				{
-					if (StaticObjects[hitMesh->staticNumber].shatterType != ShatterType::None)
+					if (Statics[hitMesh->staticNumber].shatterType != ShatterType::None)
 					{
 						ShatterObject(0, hitMesh, 64, target.RoomNumber, 0);
 						TestTriggers(hitMesh->pos.Position.x, hitMesh->pos.Position.y, hitMesh->pos.Position.z, target.RoomNumber, true);
 						SoundEffect(GetShatterSound(hitMesh->staticNumber), &hitMesh->pos);
 					}
 
-					TriggerRicochetSpark(GameVector(hitPos), 2 * GetRandomControl(), 3, 0);
-					TriggerRicochetSpark(GameVector(hitPos), 2 * GetRandomControl(), 3, 0);
+					TriggerRicochetSpark(GameVector(hitPos), 2 * GetRandomControl());
 				}
 			}
 			else
@@ -137,7 +133,7 @@ namespace TEN::Entities::Creatures::TR5
 				}
 				else
 				{
-					TriggerDynamicLight(
+					SpawnDynamicLight(
 						origin.x, origin.y, origin.z,
 						16,
 						(GetRandomControl() & 0x3F) + 96,

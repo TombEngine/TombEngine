@@ -10,6 +10,35 @@
 
 namespace TEN::Math::Geometry
 {
+	Vector2 TranslatePoint(const Vector2& point, short orient, const Vector2& relOffset)
+	{
+		float sinOrient = sin(TO_RAD(orient));
+		float cosOrient = cos(TO_RAD(orient));
+
+		auto offset = Vector2(
+			(cosOrient * relOffset.x) - (sinOrient * relOffset.y),
+			(sinOrient * relOffset.x) + (cosOrient * relOffset.y));
+
+		return (point + offset);
+	}
+
+	Vector2 TranslatePoint(const Vector2& point, short orient, float dist)
+	{
+		auto dir = Vector2(
+			cos(TO_RAD(orient)),
+			sin(TO_RAD(orient)));
+
+		return TranslatePoint(point, dir, dist);
+	}
+
+	Vector2 TranslatePoint(const Vector2& point, const Vector2& dir, float dist)
+	{
+		auto dirNorm = dir;
+		dirNorm.Normalize();
+
+		return (point + (dirNorm * dist));
+	}
+
 	Vector3i TranslatePoint(const Vector3i& point, short headingAngle, float forward, float down, float right, const Vector3& axis)
 	{
 		return Vector3i(TranslatePoint(point.ToVector3(), headingAngle, forward, down, right, axis));

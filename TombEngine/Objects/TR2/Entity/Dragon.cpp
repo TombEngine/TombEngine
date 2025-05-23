@@ -193,9 +193,9 @@ namespace TEN::Entities::Creatures::TR2
 				Random::GenerateFloat(0.8f, 0.9f),
 				Random::GenerateFloat(0.4f, 0.5f),
 				Random::GenerateFloat(0.2f, 0.3f));
-			float falloff = Random::GenerateFloat(0.1f, 0.4f);
+			float falloff = Random::GenerateFloat(BLOCK(6), BLOCK(20));
 
-			TriggerDynamicLight(pos, color, falloff);
+			SpawnDynamicPointLight(pos, color, falloff);
 		}
 		break;
 
@@ -205,9 +205,9 @@ namespace TEN::Entities::Creatures::TR2
 				Random::GenerateFloat(0.8f, 0.9f),
 				Random::GenerateFloat(0.2f, 0.3f),
 				Random::GenerateFloat(0.0f, 0.1f));
-			float falloff = Random::GenerateFloat(0.1f, 0.2f);
+			float falloff = Random::GenerateFloat(BLOCK(6), BLOCK(12));
 
-			TriggerDynamicLight(pos, color, falloff);
+			SpawnDynamicPointLight(pos, color, falloff);
 		}
 		break;
 		}
@@ -235,7 +235,8 @@ namespace TEN::Entities::Creatures::TR2
 			dir.Normalize();
 			dir *= VEL;
 
-			fire.spriteIndex = Objects[ID_FIRE_SPRITES].meshIndex + Random::GenerateInt(0, 35);
+			fire.SpriteSeqID = ID_FIRE_SPRITES;
+			fire.SpriteID = Random::GenerateInt(0, 35);
 
 			fire.x = pos.x;
 			fire.y = pos.y;
@@ -293,7 +294,8 @@ namespace TEN::Entities::Creatures::TR2
 
 			auto& smoke = *GetFreeParticle();
 
-			smoke.spriteIndex = Objects[ID_SMOKE_SPRITES].meshIndex + Random::GenerateInt(0, 10);
+			smoke.SpriteSeqID = ID_SMOKE_SPRITES;
+			smoke.SpriteID = Random::GenerateInt(0, 10);
 			smoke.on = true;
 			smoke.x = pos.x;
 			smoke.y = pos.y;

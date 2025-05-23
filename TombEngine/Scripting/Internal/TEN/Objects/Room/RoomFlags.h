@@ -10,30 +10,28 @@ Constants for room flag IDs.
 @pragma nostrip
 */
 
-/*** Objects.RoomFlagID constants.
+/*** Table of Objects.RoomFlagID constants.
+<br>
+Corresponds to room flags in Tomb Editor. To be used with @{Objects.Room.SetFlag} and @{Objects.Room.GetFlag} functions.
 
 The following constants are inside RoomFlagID.
 
-	WATER
-	QUICKSAND
-	SKYBOX
-	WIND
-	COLD
-	DAMAGE
-	NOLENSFLARE
+ - `WATER`
+ - `QUICKSAND`
+ - `SKYBOX`
+ - `WIND`
+ - `COLD`
+ - `DAMAGE`
+ - `NOLENSFLARE`
 
-@section Objects.RoomFlagID
-*/
-
-/*** Table of room flag ID constants (for use with Room:SetFlag / Room:GetFlag command).
-@table CONSTANT_STRING_HERE
+@table Objects.RoomFlagID
 */
 
 static const std::unordered_map<std::string, RoomEnvFlags> ROOM_FLAG_IDS
 {
 	{ "WATER", RoomEnvFlags::ENV_FLAG_WATER },
 	{ "QUICKSAND", RoomEnvFlags::ENV_FLAG_SWAMP },
-	{ "SKYBOX", RoomEnvFlags::ENV_FLAG_OUTSIDE },
+	{ "SKYBOX", RoomEnvFlags::ENV_FLAG_SKYBOX },
 	{ "WIND", RoomEnvFlags::ENV_FLAG_WIND },
 	{ "COLD", RoomEnvFlags::ENV_FLAG_COLD },
 	{ "DAMAGE", RoomEnvFlags::ENV_FLAG_DAMAGE },

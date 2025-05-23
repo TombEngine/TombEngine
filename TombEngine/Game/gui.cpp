@@ -469,8 +469,8 @@ namespace TEN::Gui
 		for (int i = 0; i < g_Config.SupportedScreenResolutions.size(); i++)
 		{
 			auto screenRes = g_Config.SupportedScreenResolutions[i];
-			if (screenRes.x == CurrentSettings.Configuration.ScreenWidth &&
-				screenRes.y == CurrentSettings.Configuration.ScreenHeight)
+			if (screenRes.x == CurrentSettings.Config.ScreenWidth &&
+				screenRes.y == CurrentSettings.Config.ScreenHeight)
 			{
 				CurrentSettings.SelectedScreenResolution = i;
 				break;
@@ -514,22 +514,22 @@ namespace TEN::Gui
 			{
 			case ControlsSettingsOption::TankCameraControl:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableTankCameraControl = !CurrentSettings.Configuration.EnableTankCameraControl;
+				CurrentSettings.Config.EnableTankCameraControl = !CurrentSettings.Config.EnableTankCameraControl;
 				break;
 
 			case ControlsSettingsOption::InvertCameraXAxis:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.InvertCameraXAxis = !CurrentSettings.Configuration.InvertCameraXAxis;
+				CurrentSettings.Config.InvertCameraXAxis = !CurrentSettings.Config.InvertCameraXAxis;
 				break;
 
 			case ControlsSettingsOption::InvertCameraYAxis:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
+				CurrentSettings.Config.InvertCameraYAxis = !CurrentSettings.Config.InvertCameraYAxis;
 				break;
 
 			case ControlsSettingsOption::EnableRumble:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableRumble = !CurrentSettings.Configuration.EnableRumble;
+				CurrentSettings.Config.EnableRumble = !CurrentSettings.Config.EnableRumble;
 				break;
 			}
 		}
@@ -539,11 +539,11 @@ namespace TEN::Gui
 			switch (SelectedOption)
 			{
 			case ControlsSettingsOption::MouseSensitivity:
-				if (CurrentSettings.Configuration.MouseSensitivity > GameConfiguration::MOUSE_SENSITIVITY_MIN)
+				if (CurrentSettings.Config.MouseSensitivity > GameConfiguration::MOUSE_SENSITIVITY_MIN)
 				{
-					CurrentSettings.Configuration.MouseSensitivity -= 1;
-					if (CurrentSettings.Configuration.MouseSensitivity < GameConfiguration::MOUSE_SENSITIVITY_MIN)
-						CurrentSettings.Configuration.MouseSensitivity = GameConfiguration::MOUSE_SENSITIVITY_MIN;
+					CurrentSettings.Config.MouseSensitivity -= 1;
+					if (CurrentSettings.Config.MouseSensitivity < GameConfiguration::MOUSE_SENSITIVITY_MIN)
+						CurrentSettings.Config.MouseSensitivity = GameConfiguration::MOUSE_SENSITIVITY_MIN;
 
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
@@ -553,19 +553,19 @@ namespace TEN::Gui
 			case ControlsSettingsOption::MenuOptionLooping:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				switch (CurrentSettings.Configuration.MenuOptionLoopingMode)
+				switch (CurrentSettings.Config.MenuOptionLoopingMode)
 				{
 				default:
 				case MenuOptionLoopingMode::AllMenus:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
 					break;
 
 				case MenuOptionLoopingMode::SaveLoadOnly:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
 					break;
 
 				case MenuOptionLoopingMode::Off:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 					break;
 				}
 			}
@@ -576,11 +576,11 @@ namespace TEN::Gui
 			switch (SelectedOption)
 			{
 			case ControlsSettingsOption::MouseSensitivity:
-				if (CurrentSettings.Configuration.MouseSensitivity < GameConfiguration::MOUSE_SENSITIVITY_MAX)
+				if (CurrentSettings.Config.MouseSensitivity < GameConfiguration::MOUSE_SENSITIVITY_MAX)
 				{
-					CurrentSettings.Configuration.MouseSensitivity += 1;
-					if (CurrentSettings.Configuration.MouseSensitivity > GameConfiguration::MOUSE_SENSITIVITY_MAX)
-						CurrentSettings.Configuration.MouseSensitivity = GameConfiguration::MOUSE_SENSITIVITY_MAX;
+					CurrentSettings.Config.MouseSensitivity += 1;
+					if (CurrentSettings.Config.MouseSensitivity > GameConfiguration::MOUSE_SENSITIVITY_MAX)
+						CurrentSettings.Config.MouseSensitivity = GameConfiguration::MOUSE_SENSITIVITY_MAX;
 
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
@@ -590,19 +590,19 @@ namespace TEN::Gui
 			case ControlsSettingsOption::MenuOptionLooping:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				switch (CurrentSettings.Configuration.MenuOptionLoopingMode)
+				switch (CurrentSettings.Config.MenuOptionLoopingMode)
 				{
 				default:
 				case MenuOptionLoopingMode::AllMenus:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 					break;
 
 				case MenuOptionLoopingMode::SaveLoadOnly:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
 					break;
 
 				case MenuOptionLoopingMode::Off:
-					CurrentSettings.Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
+					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
 					break;
 				}
 			}
@@ -624,10 +624,10 @@ namespace TEN::Gui
 
 			case ControlsSettingsOption::Apply:
 			{
-				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Config.EnableRumble;
+				bool indicateRumble = CurrentSettings.Config.EnableRumble && !g_Config.EnableRumble;
 
 				// Save configuration.
-				g_Config = CurrentSettings.Configuration;
+				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
 				// Rumble if setting was changed.
@@ -711,17 +711,17 @@ namespace TEN::Gui
 				}
 				else
 				{
-					int selectedKey = 0;
-					for (selectedKey = 0; selectedKey < MAX_INPUT_SLOTS; selectedKey++)
+					int selectedKeyID = 0;
+					for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
 					{
-						if (KeyMap[selectedKey])
+						if (KeyMap[selectedKeyID])
 							break;
 					}
 
-					if (selectedKey == MAX_INPUT_SLOTS)
-						selectedKey = 0;
+					if (selectedKeyID == KEY_COUNT)
+						selectedKeyID = 0;
 
-					if (selectedKey && !g_KeyNames[selectedKey].empty())
+					if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 					{
 						unsigned int baseIndex = 0;
 						switch (MenuToDisplay)
@@ -742,7 +742,7 @@ namespace TEN::Gui
 							break;
 						}
 
-						Bindings[1][baseIndex + SelectedOption] = selectedKey;
+						g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
 						DefaultConflict();
 
 						CurrentSettings.NewKeyWaitTimer = 0.0f;
@@ -758,7 +758,7 @@ namespace TEN::Gui
 				}
 				else
 				{
-					g_Renderer.RenderTitle();
+					//g_Renderer.RenderTitle();
 					g_Camera.numberFrames = g_Renderer.Synchronize();
 					int numFrames = g_Camera.numberFrames;
 					ControlPhase(numFrames);
@@ -820,11 +820,13 @@ namespace TEN::Gui
 				if (SelectedOption == (OptionCount - 1))
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.KeyBindings = Bindings[1];
-					g_Config.KeyBindings = Bindings[1];
+
+					//CurrentSettings.Config.KeyBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom); // TODO: Restore.
+					//g_Config.KeyBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom); // TODO: Restore.
 					SaveConfiguration();
-					MenuToDisplay = Menu::Controls;
-					SelectedOption = 0;
+
+					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
+					SelectedOption = 2;
 					return;
 				}
 
@@ -832,9 +834,11 @@ namespace TEN::Gui
 				if (SelectedOption == OptionCount)
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-					Bindings[1] = CurrentSettings.Configuration.KeyBindings;
-					MenuToDisplay = Menu::Controls;
-					SelectedOption = 0;
+
+					//g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Config.KeyBindings); // TODO: Restore.
+
+					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
+					SelectedOption = 2;
 					return;
 				}
 			}
@@ -889,7 +893,7 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				int controlMode = (int)CurrentSettings.Configuration.ControlMode;
+				int controlMode = (int)CurrentSettings.Config.ControlMode;
 				GuiIsPulsed(In::Left) ? --controlMode : ++controlMode;
 
 				if (controlMode < (int)ControlMode::Classic)
@@ -901,62 +905,62 @@ namespace TEN::Gui
 					controlMode = (int)ControlMode::Classic;
 				}
 
-				CurrentSettings.Configuration.ControlMode = (Config::ControlMode)controlMode;
+				CurrentSettings.Config.ControlMode = (Config::ControlMode)controlMode;
 			}
 			break;
 
 			case GameplaySettingsOption::SwimControlMode:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.SwimControlMode == SwimControlMode::Omnidirectional)
+				if (CurrentSettings.Config.SwimControlMode == SwimControlMode::Omnidirectional)
 				{
-					CurrentSettings.Configuration.SwimControlMode = SwimControlMode::Planar;
+					CurrentSettings.Config.SwimControlMode = SwimControlMode::Planar;
 				}
 				else
 				{
-					CurrentSettings.Configuration.SwimControlMode = SwimControlMode::Omnidirectional;
+					CurrentSettings.Config.SwimControlMode = SwimControlMode::Omnidirectional;
 				}
 
 				break;
 
 			case GameplaySettingsOption::WalkToggle:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableWalkToggle = !CurrentSettings.Configuration.EnableWalkToggle;
+				CurrentSettings.Config.EnableWalkToggle = !CurrentSettings.Config.EnableWalkToggle;
 				break;
 
 			case GameplaySettingsOption::CrouchToggle:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableCrouchToggle = !CurrentSettings.Configuration.EnableCrouchToggle;
+				CurrentSettings.Config.EnableCrouchToggle = !CurrentSettings.Config.EnableCrouchToggle;
 				break;
 
 			case GameplaySettingsOption::ClimbToggle:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableClimbToggle = !CurrentSettings.Configuration.EnableClimbToggle;
+				CurrentSettings.Config.EnableClimbToggle = !CurrentSettings.Config.EnableClimbToggle;
 				break;
 
 			case GameplaySettingsOption::AutoMonkeySwingJump:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAutoMonkeySwingJump = !CurrentSettings.Configuration.EnableAutoMonkeySwingJump;
+				CurrentSettings.Config.EnableAutoMonkeySwingJump = !CurrentSettings.Config.EnableAutoMonkeySwingJump;
 				break;
 
 			case GameplaySettingsOption::AutoTargeting:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAutoTargeting = !CurrentSettings.Configuration.EnableAutoTargeting;
+				CurrentSettings.Config.EnableAutoTargeting = !CurrentSettings.Config.EnableAutoTargeting;
 				break;
 
 			case GameplaySettingsOption::OppositeActionRoll:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableOppositeActionRoll = !CurrentSettings.Configuration.EnableOppositeActionRoll;
+				CurrentSettings.Config.EnableOppositeActionRoll = !CurrentSettings.Config.EnableOppositeActionRoll;
 				break;
 
 			case GameplaySettingsOption::TargetHighlighter:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				CurrentSettings.Config.EnableTargetHighlighter = !CurrentSettings.Config.EnableTargetHighlighter;
 				break;
 
 			case GameplaySettingsOption::Subtitles:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableSubtitles = !CurrentSettings.Configuration.EnableSubtitles;
+				CurrentSettings.Config.EnableSubtitles = !CurrentSettings.Config.EnableSubtitles;
 				break;
 			}
 		}
@@ -971,7 +975,7 @@ namespace TEN::Gui
 			{
 			case GameplaySettingsOption::Apply:
 				// Save configuration.
-				g_Config = CurrentSettings.Configuration;
+				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
 				MenuToDisplay = Menu::Options;
@@ -1030,64 +1034,64 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::WindowModeOption:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.WindowMode == WindowMode::Windowed)
+				if (CurrentSettings.Config.WindowMode == WindowMode::Windowed)
 				{
-					CurrentSettings.Configuration.WindowMode = WindowMode::Fullscreen;
+					CurrentSettings.Config.WindowMode = WindowMode::Fullscreen;
 				}
 				else
 				{
-					CurrentSettings.Configuration.WindowMode = WindowMode(int(CurrentSettings.Configuration.WindowMode) - 1);
+					CurrentSettings.Config.WindowMode = WindowMode(int(CurrentSettings.Config.WindowMode) - 1);
 				}
 				
 				break;
 				
 			/*case DisplaySettingsOption::FrameRateModeOption:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.FrameRateMode == FrameRateMode::Thirty)
+				if (CurrentSettings.Config.FrameRateMode == FrameRateMode::Thirty)
 				{
-					CurrentSettings.Configuration.FrameRateMode = FrameRateMode::Sixty;
+					CurrentSettings.Config.FrameRateMode = FrameRateMode::Sixty;
 				}
 				else
 				{
-					CurrentSettings.Configuration.FrameRateMode = FrameRateMode(int(CurrentSettings.Configuration.FrameRateMode) - 1);
+					CurrentSettings.Config.FrameRateMode = FrameRateMode(int(CurrentSettings.Config.FrameRateMode) - 1);
 				}
 				
 				break;*/
 
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::None)
+				if (CurrentSettings.Config.ShadowType == ShadowMode::None)
 				{
-					CurrentSettings.Configuration.ShadowType = ShadowMode::All;
+					CurrentSettings.Config.ShadowType = ShadowMode::All;
 				}
 				else
 				{
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) - 1);
+					CurrentSettings.Config.ShadowType = ShadowMode(int(CurrentSettings.Config.ShadowType) - 1);
 				}
 
 				break;
 
 			case DisplaySettingsOption::Caustics:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
+				CurrentSettings.Config.EnableCaustics = !CurrentSettings.Config.EnableCaustics;
 				break;
 
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::None)
+				if (CurrentSettings.Config.AntialiasingMode == AntialiasingMode::None)
 				{
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::High;
+					CurrentSettings.Config.AntialiasingMode = AntialiasingMode::High;
 				}
 				else
 				{
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) - 1);
+					CurrentSettings.Config.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Config.AntialiasingMode) - 1);
 				}
 
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				CurrentSettings.Config.EnableAmbientOcclusion = !CurrentSettings.Config.EnableAmbientOcclusion;
 				break;
 			}
 		}
@@ -1105,64 +1109,64 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::WindowModeOption:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.WindowMode == WindowMode::Fullscreen)
+				if (CurrentSettings.Config.WindowMode == WindowMode::Fullscreen)
 				{
-					CurrentSettings.Configuration.WindowMode = WindowMode::Windowed;
+					CurrentSettings.Config.WindowMode = WindowMode::Windowed;
 				}
 				else
 				{
-					CurrentSettings.Configuration.WindowMode = WindowMode(int(CurrentSettings.Configuration.WindowMode) + 1);
+					CurrentSettings.Config.WindowMode = WindowMode(int(CurrentSettings.Config.WindowMode) + 1);
 				}
 
 				break;
 
 			/*case DisplaySettingsOption::FrameRateModeOption:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.FrameRateMode == FrameRateMode::Sixty)
+				if (CurrentSettings.Config.FrameRateMode == FrameRateMode::Sixty)
 				{
-					CurrentSettings.Configuration.FrameRateMode = FrameRateMode::Thirty;
+					CurrentSettings.Config.FrameRateMode = FrameRateMode::Thirty;
 				}
 				else
 				{
-					CurrentSettings.Configuration.FrameRateMode = FrameRateMode(int(CurrentSettings.Configuration.FrameRateMode) + 1);
+					CurrentSettings.Config.FrameRateMode = FrameRateMode(int(CurrentSettings.Config.FrameRateMode) + 1);
 				}
 
 				break;*/
 
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
+				if (CurrentSettings.Config.ShadowType == ShadowMode::All)
 				{
-					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
+					CurrentSettings.Config.ShadowType = ShadowMode::None;
 				}
 				else
 				{
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) + 1);
+					CurrentSettings.Config.ShadowType = ShadowMode(int(CurrentSettings.Config.ShadowType) + 1);
 				}
 
 				break;
 
 			case DisplaySettingsOption::Caustics:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
+				CurrentSettings.Config.EnableCaustics = !CurrentSettings.Config.EnableCaustics;
 				break;
 
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::High)
+				if (CurrentSettings.Config.AntialiasingMode == AntialiasingMode::High)
 				{
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::None;
+					CurrentSettings.Config.AntialiasingMode = AntialiasingMode::None;
 				}
 				else
 				{
-					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) + 1);
+					CurrentSettings.Config.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Config.AntialiasingMode) + 1);
 				}
 
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				CurrentSettings.Config.EnableAmbientOcclusion = !CurrentSettings.Config.EnableAmbientOcclusion;
 				break;
 			}
 		}
@@ -1177,17 +1181,17 @@ namespace TEN::Gui
 			{
 				// Save configuration.
 				auto screenRes = g_Config.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
-				CurrentSettings.Configuration.ScreenWidth = screenRes.x;
-				CurrentSettings.Configuration.ScreenHeight = screenRes.y;
+				CurrentSettings.Config.ScreenWidth = screenRes.x;
+				CurrentSettings.Config.ScreenHeight = screenRes.y;
 
-				g_Config = CurrentSettings.Configuration;
+				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
 				// Reset screen and go back.
 				g_Renderer.ChangeScreenResolution(
-					CurrentSettings.Configuration.ScreenWidth,
-					CurrentSettings.Configuration.ScreenHeight,
-					CurrentSettings.Configuration.WindowMode == WindowMode::Windowed);
+					CurrentSettings.Config.ScreenWidth,
+					CurrentSettings.Config.ScreenHeight,
+					CurrentSettings.Config.WindowMode == WindowMode::Windowed);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
@@ -1234,7 +1238,7 @@ namespace TEN::Gui
 			{
 			case SoundSettingsOption::Reverb:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableReverb = !CurrentSettings.Configuration.EnableReverb;
+				CurrentSettings.Config.EnableReverb = !CurrentSettings.Config.EnableReverb;
 				break;
 			}
 		}
@@ -1245,26 +1249,26 @@ namespace TEN::Gui
 			switch (SelectedOption)
 			{
 			case SoundSettingsOption::MusicVolume:
-				if (CurrentSettings.Configuration.MusicVolume > 0)
+				if (CurrentSettings.Config.MusicVolume > 0)
 				{
-					CurrentSettings.Configuration.MusicVolume -= SOUND_VOLUME_STEP;
-					if (CurrentSettings.Configuration.MusicVolume < 0)
-						CurrentSettings.Configuration.MusicVolume = 0;
+					CurrentSettings.Config.MusicVolume -= SOUND_VOLUME_STEP;
+					if (CurrentSettings.Config.MusicVolume < 0)
+						CurrentSettings.Config.MusicVolume = 0;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetVolumeTracks(CurrentSettings.Config.MusicVolume);
 					isVolumeAdjusted = true;
 				}
 
 				break;
 
 			case SoundSettingsOption::SfxVolume:
-				if (CurrentSettings.Configuration.SfxVolume > 0)
+				if (CurrentSettings.Config.SfxVolume > 0)
 				{
-					CurrentSettings.Configuration.SfxVolume -= SOUND_VOLUME_STEP;
-					if (CurrentSettings.Configuration.SfxVolume < 0)
-						CurrentSettings.Configuration.SfxVolume = 0;
+					CurrentSettings.Config.SfxVolume -= SOUND_VOLUME_STEP;
+					if (CurrentSettings.Config.SfxVolume < 0)
+						CurrentSettings.Config.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetVolumeFX(CurrentSettings.Config.SfxVolume);
 					isVolumeAdjusted = true;
 				}
 
@@ -1284,26 +1288,26 @@ namespace TEN::Gui
 			switch (SelectedOption)
 			{
 			case SoundSettingsOption::MusicVolume:
-				if (CurrentSettings.Configuration.MusicVolume < GameConfiguration::SOUND_VOLUME_MAX)
+				if (CurrentSettings.Config.MusicVolume < GameConfiguration::SOUND_VOLUME_MAX)
 				{
-					CurrentSettings.Configuration.MusicVolume += SOUND_VOLUME_STEP;
-					if (CurrentSettings.Configuration.MusicVolume > GameConfiguration::SOUND_VOLUME_MAX)
-						CurrentSettings.Configuration.MusicVolume = GameConfiguration::SOUND_VOLUME_MAX;
+					CurrentSettings.Config.MusicVolume += SOUND_VOLUME_STEP;
+					if (CurrentSettings.Config.MusicVolume > GameConfiguration::SOUND_VOLUME_MAX)
+						CurrentSettings.Config.MusicVolume = GameConfiguration::SOUND_VOLUME_MAX;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetVolumeTracks(CurrentSettings.Config.MusicVolume);
 					isVolumeAdjusted = true;
 				}
 
 				break;
 
 			case SoundSettingsOption::SfxVolume:
-				if (CurrentSettings.Configuration.SfxVolume < GameConfiguration::SOUND_VOLUME_MAX)
+				if (CurrentSettings.Config.SfxVolume < GameConfiguration::SOUND_VOLUME_MAX)
 				{
-					CurrentSettings.Configuration.SfxVolume += SOUND_VOLUME_STEP;
-					if (CurrentSettings.Configuration.SfxVolume > GameConfiguration::SOUND_VOLUME_MAX)
-						CurrentSettings.Configuration.SfxVolume = GameConfiguration::SOUND_VOLUME_MAX;
+					CurrentSettings.Config.SfxVolume += SOUND_VOLUME_STEP;
+					if (CurrentSettings.Config.SfxVolume > GameConfiguration::SOUND_VOLUME_MAX)
+						CurrentSettings.Config.SfxVolume = GameConfiguration::SOUND_VOLUME_MAX;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetVolumeFX(CurrentSettings.Config.SfxVolume);
 					isVolumeAdjusted = true;
 				}
 
@@ -1326,7 +1330,7 @@ namespace TEN::Gui
 			if (SelectedOption == SoundSettingsOption::Apply)
 			{
 				// Save configuration.
-				g_Config = CurrentSettings.Configuration;
+				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
 				MenuToDisplay = Menu::Options;
@@ -1345,7 +1349,7 @@ namespace TEN::Gui
 
 	void GuiController::BackupOptions()
 	{
-		CurrentSettings.Configuration = g_Config;
+		CurrentSettings.Config = g_Config;
 	}
 
 	void GuiController::HandleOptionsInput()
@@ -1797,131 +1801,161 @@ namespace TEN::Gui
 		Ammo.CurrentGrenadeGunAmmoType = 0;
 		Ammo.CurrentCrossBowAmmoType = 0;
 
-		if (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() != LaraType::Young)
+		if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
 		{
-			if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
-				InsertObjectIntoList(INV_OBJECT_PISTOLS);
-			else if (Ammo.AmountPistolsAmmo)
-				InsertObjectIntoList(INV_OBJECT_PISTOLS_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Uzi].Present)
-				InsertObjectIntoList(INV_OBJECT_UZIS);
-			else if (Ammo.AmountUziAmmo)
-				InsertObjectIntoList(INV_OBJECT_UZI_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_REVOLVER_LASER);
-				else
-					InsertObjectIntoList(INV_OBJECT_REVOLVER);
-			}
-			else if (Ammo.AmountRevolverAmmo)
-				InsertObjectIntoList(INV_OBJECT_REVOLVER_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Shotgun].Present)
-			{
-				InsertObjectIntoList(INV_OBJECT_SHOTGUN);
-
-				if (player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentShotGunAmmoType = 1;
-			}
-			else
-			{
-				if (Ammo.AmountShotGunAmmo1)
-					InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_1);
-
-				if (Ammo.AmountShotGunAmmo2)
-					InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_2);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::HK].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_HK_LASERSIGHT);
-				else
-					InsertObjectIntoList(INV_OBJECT_HK);
-
-				if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
-					Ammo.CurrentHKAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
-					Ammo.CurrentHKAmmoType = 2;
-			}
-			else if (Ammo.AmountHKAmmo1)
-				InsertObjectIntoList(INV_OBJECT_HK_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_LASER);
-				else
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW);
-
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentCrossBowAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo3)
-					Ammo.CurrentCrossBowAmmoType = 2;
-			}
-			else
-			{
-				if (Ammo.AmountCrossBowAmmo1)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_1);
-
-				if (Ammo.AmountCrossBowAmmo2)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_2);
-
-				if (Ammo.AmountCrossBowAmmo3)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_3);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
-			{
-				InsertObjectIntoList(INV_OBJECT_GRENADE_LAUNCHER);
-
-				if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentGrenadeGunAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo3)
-					Ammo.CurrentGrenadeGunAmmoType = 2;
-			}
-			else
-			{
-				if (Ammo.AmountGrenadeAmmo1)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_1);
-
-				if (Ammo.AmountGrenadeAmmo2)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_2);
-
-				if (Ammo.AmountGrenadeAmmo3)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_3);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
-				InsertObjectIntoList(INV_OBJECT_ROCKET_LAUNCHER);
-			else if (Ammo.AmountRocketsAmmo)
-				InsertObjectIntoList(INV_OBJECT_ROCKET_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
-				InsertObjectIntoList(INV_OBJECT_HARPOON_GUN);
-			else if (Ammo.AmountHarpoonAmmo)
-				InsertObjectIntoList(INV_OBJECT_HARPOON_AMMO);
-
-			if (player.Inventory.HasLasersight)
-				InsertObjectIntoList(INV_OBJECT_LASERSIGHT);
-
-			if (player.Inventory.HasSilencer)
-				InsertObjectIntoList(INV_OBJECT_SILENCER);
-
-			if (player.Inventory.HasBinoculars)
-				InsertObjectIntoList(INV_OBJECT_BINOCULARS);
-
-			if (player.Inventory.TotalFlares)
-				InsertObjectIntoList(INV_OBJECT_FLARES);
+			InsertObjectIntoList(INV_OBJECT_PISTOLS);
+		}
+		else if (Ammo.AmountPistolsAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_PISTOLS_AMMO);
 		}
 
-		InsertObjectIntoList(INV_OBJECT_TIMEX);//every level has the timex? what's a good way to check?!
+		if (player.Weapons[(int)LaraWeaponType::Uzi].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_UZIS);
+		}
+		else if (Ammo.AmountUziAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_UZI_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_REVOLVER_LASER);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_REVOLVER);
+			}
+		}
+		else if (Ammo.AmountRevolverAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_REVOLVER_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Shotgun].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_SHOTGUN);
+
+			if (player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentShotGunAmmoType = 1;
+		}
+		else
+		{
+			if (Ammo.AmountShotGunAmmo1)
+				InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_1);
+
+			if (Ammo.AmountShotGunAmmo2)
+				InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_2);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::HK].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_HK_LASERSIGHT);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_HK);
+			}
+
+			if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
+				Ammo.CurrentHKAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
+				Ammo.CurrentHKAmmoType = 2;
+		}
+		else if (Ammo.AmountHKAmmo1)
+		{
+			InsertObjectIntoList(INV_OBJECT_HK_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_LASER);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW);
+			}
+
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentCrossBowAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo3)
+				Ammo.CurrentCrossBowAmmoType = 2;
+		}
+		else
+		{
+			if (Ammo.AmountCrossBowAmmo1)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_1);
+
+			if (Ammo.AmountCrossBowAmmo2)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_2);
+
+			if (Ammo.AmountCrossBowAmmo3)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_3);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_GRENADE_LAUNCHER);
+
+			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentGrenadeGunAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo3)
+				Ammo.CurrentGrenadeGunAmmoType = 2;
+		}
+		else
+		{
+			if (Ammo.AmountGrenadeAmmo1)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_1);
+
+			if (Ammo.AmountGrenadeAmmo2)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_2);
+
+			if (Ammo.AmountGrenadeAmmo3)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_3);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_ROCKET_LAUNCHER);
+		}
+		else if (Ammo.AmountRocketsAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_ROCKET_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_HARPOON_GUN);
+		}
+		else if (Ammo.AmountHarpoonAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_HARPOON_AMMO);
+		}
+
+		if (player.Inventory.HasLasersight)
+			InsertObjectIntoList(INV_OBJECT_LASERSIGHT);
+
+		if (player.Inventory.HasSilencer)
+			InsertObjectIntoList(INV_OBJECT_SILENCER);
+
+		if (player.Inventory.HasBinoculars)
+			InsertObjectIntoList(INV_OBJECT_BINOCULARS);
+
+		if (player.Inventory.TotalFlares)
+			InsertObjectIntoList(INV_OBJECT_FLARES);
+
+		if (player.Inventory.HasStopwatch)
+			InsertObjectIntoList(INV_OBJECT_STOPWATCH);
 
 		if (player.Inventory.TotalSmallMedipacks)
 			InsertObjectIntoList(INV_OBJECT_SMALL_MEDIPACK);
@@ -1998,13 +2032,15 @@ namespace TEN::Gui
 				InsertObjectIntoList(INV_OBJECT_EXAMINE1_COMBO1 + i);
 		}
 
-		if (player.Inventory.Diary.Present)
+		if (player.Inventory.HasDiary)
 			InsertObjectIntoList(INV_OBJECT_DIARY);
 
 		if (g_GameFlow->IsLoadSaveEnabled())
 		{
-			InsertObjectIntoList(INV_OBJECT_LOAD_FLOPPY);
-			InsertObjectIntoList(INV_OBJECT_SAVE_FLOPPY);
+			if (player.Inventory.HasLoad)
+				InsertObjectIntoList(INV_OBJECT_LOAD_FLOPPY);
+			if (player.Inventory.HasSave)
+				InsertObjectIntoList(INV_OBJECT_SAVE_FLOPPY);
 		}
 
 		Rings[(int)RingTypes::Inventory].ObjectListMovement = 0;
@@ -2427,7 +2463,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[(int)In::Flare].Update(1.0f);
+					ActionMap[In::Flare].Update(1.0f);
 
 					HandleWeapon(item);
 					ClearAllActions();
@@ -2685,17 +2721,10 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_SEPERABLE)
+				if (options & OPT_SEPARABLE)
 				{
 					CurrentOptions[n].Type = MenuType::Seperate;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[3].c_str());
-					n++;
-				}
-
-				if (options & OPT_DIARY)
-				{
-					CurrentOptions[n].Type = MenuType::Diary;
-					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[11].c_str());
 					n++;
 				}
 			}
@@ -2827,11 +2856,6 @@ namespace TEN::Gui
 					case MenuType::Use:
 						MenuActive = false;
 						ItemUsed = true;
-						break;
-
-					case MenuType::Diary:
-						SetInventoryMode(InventoryMode::Diary);
-						player.Inventory.Diary.CurrentPage = 1;
 						break;
 					}
 				}
@@ -3490,7 +3514,9 @@ namespace TEN::Gui
 				return false;
 
 			TimeInMenu++;
-			GameTimer++;
+			GlobalCounter++;
+			SaveGame::Statistics.Game.TimeTaken++;
+			SaveGame::Statistics.Level.TimeTaken++;
 
 			UpdateInputActions(item);
 
@@ -3515,10 +3541,6 @@ namespace TEN::Gui
 
 			case InventoryMode::Examine:
 				DoExamineMode();
-				break;
-
-			case InventoryMode::Diary:
-				DoDiary(item);
 				break;
 
 			case InventoryMode::Load:
@@ -3616,39 +3638,12 @@ namespace TEN::Gui
 		auto needleOrient = EulerAngles(0, CompassNeedleAngle, 0);
 		needleOrient.Lerp(EulerAngles(0, item->Pose.Orientation.y, 0), LERP_ALPHA);
 
-		float wibble = std::sin(((float)(GameTimer & 0x3F) / (float)0x3F) * PI_MUL_2);
+		float wibble = std::sin(((float)(GlobalCounter & 0x3F) / (float)0x3F) * PI_MUL_2);
 		this->CompassNeedleAngle = needleOrient.y + ANGLE(wibble);
 
 		// HACK: Needle is rotated in the draw function.
 		const auto& invObject = InventoryObjectTable[INV_OBJECT_COMPASS];
 		g_Renderer.DrawObjectIn2DSpace(ID_COMPASS_ITEM, POS_2D, EulerAngles::Identity, invObject.Scale1 * 1.5f);
-	}
-
-	void GuiController::DoDiary(ItemInfo* item)
-	{
-		auto& player = GetLaraInfo(*item);
-
-		SetInventoryMode(InventoryMode::Diary);
-
-		if ((GuiIsPulsed(In::Right) && !IsHeld(In::Left)) &&
-			player.Inventory.Diary.CurrentPage < player.Inventory.Diary.NumPages)
-		{
-			player.Inventory.Diary.CurrentPage++;
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-		}
-
-		if ((GuiIsPulsed(In::Left) && !IsHeld(In::Right)) &&
-			player.Inventory.Diary.CurrentPage > 1)
-		{
-			player.Inventory.Diary.CurrentPage--;
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-		}
-
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			SetInventoryMode(InventoryMode::None);
-		}
 	}
 
 	int GuiController::GetLoadSaveSelection()

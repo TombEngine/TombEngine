@@ -13,6 +13,7 @@
 #include "Math/Math.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -39,7 +40,7 @@ static void PerformAnimCommands(ItemInfo& item, bool isFrameBased)
 		return;
 
 	// Get command data pointer.
-	short* commandDataPtr = &g_Level.Commands[anim.CommandIndex];
+	int* commandDataPtr = &g_Level.Commands[anim.CommandIndex];
 
 	for (int i = anim.NumCommands; i > 0; i--)
 	{
@@ -62,6 +63,8 @@ static void PerformAnimCommands(ItemInfo& item, bool isFrameBased)
 				{
 					UpdateItemRoom(item.Index);
 				}
+
+				item.DisableInterpolation = true;
 			}
 
 			commandDataPtr += 3;
@@ -116,45 +119,11 @@ static void PerformAnimCommands(ItemInfo& item, bool isFrameBased)
 			int frameNumber = commandDataPtr[0];
 			if (isFrameBased && item.Animation.FrameNumber == frameNumber)
 			{
-				// Get sound ID and sound environment flag from packed data.
-				int soundID = commandDataPtr[1] & 0xFFF;	   // Exclude last 4 bits for sound ID.
-				int soundEnvFlag = commandDataPtr[1] & 0xF000; // Keep only last 4 bits for sound environment flag.
+				// Get sound ID and sound environment flag.
+				int soundID = commandDataPtr[1];
+				auto requiredSoundEnv = (SoundEnvironment)commandDataPtr[2];
 
-				// FAILSAFE.
-				if (item.RoomNumber == NO_VALUE)
-				{
-					SoundEffect(soundID, &item.Pose, SoundEnvironment::Always);
-					commandDataPtr += 2;
-					break;
-				}
-
-				// Get required sound environment from flag.
-				auto requiredSoundEnv = SoundEnvironment::Always;
-				switch (soundEnvFlag)
-				{
-				default:
-				case 0:
-					requiredSoundEnv = SoundEnvironment::Always;
-					break;
-
-				case (1 << 14):
-					requiredSoundEnv = SoundEnvironment::Land;
-					break;
-
-				case (1 << 15):
-					requiredSoundEnv = SoundEnvironment::ShallowWater;
-					break;
-
-				case (1 << 12):
-					requiredSoundEnv = SoundEnvironment::Swamp;
-					break;
-
-				case (1 << 13):
-					requiredSoundEnv = SoundEnvironment::Underwater;
-					break;
-				}
-
-				int roomNumberAtPos = GetPointCollision(item).GetRoomNumber();
+				int roomNumberAtPos = (item.RoomNumber == NO_VALUE) ? g_Camera.RoomNumber : GetPointCollision(item).GetRoomNumber();
 				bool isWater = TestEnvironment(ENV_FLAG_WATER, roomNumberAtPos);
 				bool isSwamp = TestEnvironment(ENV_FLAG_SWAMP, roomNumberAtPos);
 
@@ -199,15 +168,22 @@ static void PerformAnimCommands(ItemInfo& item, bool isFrameBased)
 					SoundEffect(soundID, &item.Pose, *soundEnv);
 			}
 
-			commandDataPtr += 2;
-		}
+			commandDataPtr += 3;
 			break;
+		}
 
 		case AnimCommandType::Flipeffect:
 			if (isFrameBased && item.Animation.FrameNumber == commandDataPtr[0])
-				DoFlipEffect((commandDataPtr[1] & 0x3FFF), &item);
+				DoFlipEffect(commandDataPtr[1], &item);
 
 			commandDataPtr += 2;
+			break;
+
+		case AnimCommandType::DisableInterpolation:
+			if (isFrameBased && item.Animation.FrameNumber == commandDataPtr[0])
+				item.DisableInterpolation = true;
+
+			commandDataPtr += 1;
 			break;
 
 		default:
@@ -310,10 +286,13 @@ void AnimateItem(ItemInfo* item)
 			}
 			else
 			{
-				item->Animation.Velocity.y += GetEffectiveGravity(item->Animation.Velocity.y);
-				item->Animation.Velocity.z += animAccel.z;
+				if (item->Animation.ActiveState != LS_FLY_CHEAT)
+				{
+					item->Animation.Velocity.y += GetEffectiveGravity(item->Animation.Velocity.y);
+					item->Animation.Velocity.z += animAccel.z;
 
-				item->Pose.Position.y += item->Animation.Velocity.y;
+					item->Pose.Position.y += item->Animation.Velocity.y;
+				}
 			}
 		}
 		else
@@ -495,6 +474,12 @@ void SetAnimation(ItemInfo* item, int animNumber, int frameNumber)
 
 const AnimData& GetAnimData(int animIndex)
 {
+	if (animIndex < 0 || animIndex >= g_Level.Anims.size())
+	{
+		TENLog("GetAnimData() attempted to access incorrect animation.", LogLevel::Error);
+		return g_Level.Anims[0];
+	}
+
 	return g_Level.Anims[animIndex];
 }
 
@@ -512,7 +497,15 @@ const AnimData& GetAnimData(const ObjectInfo& object, int animNumber)
 const AnimData& GetAnimData(const ItemInfo& item, int animNumber)
 {
 	if (animNumber == NO_VALUE)
+	{
+		if (item.Animation.AnimNumber == NO_VALUE)
+		{
+			TENLog("Object " + GetObjectName(item.ObjectNumber) + " has no animations.", LogLevel::Error);
+			return GetAnimData(0);
+		}
+
 		return GetAnimData(item.Animation.AnimNumber);
+	}
 
 	const auto& object = Objects[item.Animation.AnimObjectID];
 	return GetAnimData(object, animNumber);
@@ -587,7 +580,7 @@ const AnimFrame& GetBestFrame(const ItemInfo& item)
 
 float GetEffectiveGravity(float verticalVel)
 {
-	return ((verticalVel >= VERTICAL_VELOCITY_GRAVITY_THRESHOLD) ? 1.0f : GRAVITY);
+	return ((verticalVel >= VERTICAL_VELOCITY_GRAVITY_THRESHOLD) ? 1.0f : g_GameFlow->GetSettings()->Physics.Gravity);
 }
 
 int GetAnimNumber(const ItemInfo& item)
@@ -710,8 +703,20 @@ void ClampRotation(Pose& outPose, short angle, short rotation)
 
 Vector3i GetJointPosition(const ItemInfo& item, int jointIndex, const Vector3i& relOffset)
 {
+	bool incorrectJoint = false;
+	if (jointIndex < 0 || jointIndex >= Objects[item.ObjectNumber].nmeshes)
+	{
+		TENLog("Unknown joint ID specified for object " + GetObjectName(item.ObjectNumber), LogLevel::Warning, LogConfig::All);
+		incorrectJoint = true;
+	}
+
+	// Always return object's root position if it's invisible, because we can't predict its
+	// joint position otherwise, since it's not animated.
+	if (incorrectJoint || Objects[item.ObjectNumber].drawRoutine == nullptr || item.Status == ITEM_INVISIBLE)
+		return Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation, relOffset);
+
 	// Use matrices done in renderer to transform relative offset.
-	return Vector3i(g_Renderer.GetAbsEntityBonePosition(item.Index, jointIndex, relOffset.ToVector3()));
+	return Vector3i(g_Renderer.GetMoveableBonePosition(item.Index, jointIndex, relOffset.ToVector3()));
 }
 
 Vector3i GetJointPosition(ItemInfo* item, int jointIndex, const Vector3i& relOffset)
@@ -729,24 +734,26 @@ Vector3i GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite)
 	return GetJointPosition(item, bite.BoneID, bite.Position);
 }
 
-Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex)
+Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSign)
 {
 	const auto& object = Objects[objectID];
+	int boneIndex = object.boneIndex + (jointIndex * 4);
 
-	int* bonePtr = &g_Level.Bones[object.boneIndex + (jointIndex * 4)];
-	return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+	if (g_Level.Bones.size() <= boneIndex)
+		return Vector3::Zero;
+
+	int* bonePtr = &g_Level.Bones[boneIndex];
+	auto result = Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+
+	if (discardZSign)
+		result.z = abs(result.z);
+
+	return result;
 }
 
-Quaternion GetBoneOrientation(const ItemInfo& item, int boneIndex)
+Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)
 {
-	static const auto REF_DIRECTION = Vector3::UnitZ;
-
-	auto origin = g_Renderer.GetAbsEntityBonePosition(item.Index, boneIndex);
-	auto target = g_Renderer.GetAbsEntityBonePosition(item.Index, boneIndex, REF_DIRECTION);
-
-	auto direction = target - origin;
-	direction.Normalize();
-	return Geometry::ConvertDirectionToQuat(direction);
+	return g_Renderer.GetMoveableBoneOrientation(item.Index, boneID);
 }
 
 // NOTE: Will not work for bones at ends of hierarchies.

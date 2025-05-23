@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/items.h"
 #include "Math/Math.h"
+#include "Specific/Clock.h"
 
 struct CollisionInfo;
 
@@ -18,8 +19,7 @@ enum class CameraType
 	Fixed,
 	Look,
 	Combat,
-	Heavy,
-	Object
+	Heavy
 };
 
 enum class CameraFlag
@@ -172,6 +172,8 @@ struct CameraInfo
 	Vector3		   PrevIdeal			   = Vector3::Zero;
 	int			   PrevIdealRoomNumber	   = 0;
 	CameraType	   PrevBinocularCameraType = CameraType::Chase;
+
+	bool DisableInterpolation = false;
 
 	// Getters
 

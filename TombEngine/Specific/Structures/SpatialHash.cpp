@@ -50,7 +50,7 @@ namespace TEN::Structures
 			return {};
 
 		// Return object IDs from cell.
-		const auto& cell = it->second;
+		const auto& [keyPos, cell] = *it;
 		return cell.ObjectIds;
 	}
 
@@ -72,7 +72,7 @@ namespace TEN::Structures
 				continue;
 
 			// Collect object IDs from cell.
-			const auto& cell = it->second;
+			const auto& [keyPos, cell] = *it;
 			objectIds.insert(cell.ObjectIds.begin(), cell.ObjectIds.end());
 		}
 
@@ -97,7 +97,7 @@ namespace TEN::Structures
 				continue;
 
 			// Collect object IDs from cell.
-			const auto& cell = it->second;
+			const auto& [keyPos, cell] = *it;
 			objectIds.insert(cell.ObjectIds.begin(), cell.ObjectIds.end());
 		}
 
@@ -122,7 +122,7 @@ namespace TEN::Structures
 				continue;
 
 			// Collect object IDs from cell.
-			const auto& cell = it->second;
+			const auto& [keyPos, cell] = *it;
 			objectIds.insert(cell.ObjectIds.begin(), cell.ObjectIds.end());
 		}
 
@@ -147,7 +147,7 @@ namespace TEN::Structures
 				continue;
 
 			// Collect object IDs from cell.
-			const auto& cell = it->second;
+			const auto& [keyPos, cell] = *it;
 			objectIds.insert(cell.ObjectIds.begin(), cell.ObjectIds.end());
 		}
 
@@ -159,64 +159,64 @@ namespace TEN::Structures
 		return _cellMap.empty();
 	}
 
-	void SpatialHash::Insert(int objectID, const BoundingBox& aabb)
+	void SpatialHash::Insert(int objectId, const BoundingBox& aabb)
 	{
 		// Insert object ID into cells intersecting AABB.
 		auto keys = GetCellKeys(aabb);
-		Insert(objectID, keys);
+		Insert(objectId, keys);
 	}
 
-	void SpatialHash::Insert(int objectID, const BoundingOrientedBox& obb)
+	void SpatialHash::Insert(int objectId, const BoundingOrientedBox& obb)
 	{
 		// Insert object ID into cells intersecting OBB.
 		auto keys = GetCellKeys(obb);
-		Insert(objectID, keys);
+		Insert(objectId, keys);
 	}
 
-	void SpatialHash::Insert(int objectID, const BoundingSphere& sphere)
+	void SpatialHash::Insert(int objectId, const BoundingSphere& sphere)
 	{
 		// Insert object ID into cells intersecting sphere.
 		auto keys = GetCellKeys(sphere);
-		Insert(objectID, keys);
+		Insert(objectId, keys);
 	}
 
-	void SpatialHash::Move(int objectID, const BoundingBox& aabb, const BoundingBox& prevAabb)
+	void SpatialHash::Move(int objectId, const BoundingBox& aabb, const BoundingBox& prevAabb)
 	{
-		Remove(objectID, prevAabb);
-		Insert(objectID, aabb);
+		Remove(objectId, prevAabb);
+		Insert(objectId, aabb);
 	}
 
-	void SpatialHash::Move(int objectID, const BoundingOrientedBox& obb, BoundingOrientedBox& prevObb)
+	void SpatialHash::Move(int objectId, const BoundingOrientedBox& obb, BoundingOrientedBox& prevObb)
 	{
-		Remove(objectID, prevObb);
-		Insert(objectID, obb);
+		Remove(objectId, prevObb);
+		Insert(objectId, obb);
 	}
 
-	void SpatialHash::Move(int objectID, const BoundingSphere& sphere, const BoundingSphere& prevSphere)
+	void SpatialHash::Move(int objectId, const BoundingSphere& sphere, const BoundingSphere& prevSphere)
 	{
-		Remove(objectID, prevSphere);
-		Insert(objectID, sphere);
+		Remove(objectId, prevSphere);
+		Insert(objectId, sphere);
 	}
 
-	void SpatialHash::Remove(int objectID, const BoundingBox& prevAabb)
+	void SpatialHash::Remove(int objectId, const BoundingBox& prevAabb)
 	{
 		// Remove object ID from cells intersecting previous AABB.
 		auto keys = GetCellKeys(prevAabb);
-		Remove(objectID, keys);
+		Remove(objectId, keys);
 	}
 
-	void SpatialHash::Remove(int objectID, const BoundingOrientedBox& prevObb)
+	void SpatialHash::Remove(int objectId, const BoundingOrientedBox& prevObb)
 	{
 		// Remove object ID from cells intersecting previous OBB.
 		auto keys = GetCellKeys(prevObb);
-		Remove(objectID, keys);
+		Remove(objectId, keys);
 	}
 
-	void SpatialHash::Remove(int objectID, const BoundingSphere& prevSphere)
+	void SpatialHash::Remove(int objectId, const BoundingSphere& prevSphere)
 	{
 		// Remove object ID from cells intersecting previous sphere.
 		auto keys = GetCellKeys(prevSphere);
-		Remove(objectID, keys);
+		Remove(objectId, keys);
 	}
 
 	void SpatialHash::DrawDebug() const
@@ -395,7 +395,7 @@ namespace TEN::Structures
 		return keys;
 	}
 
-	void SpatialHash::Insert(int objectID, const std::vector<Vector3i>& keys)
+	void SpatialHash::Insert(int objectId, const std::vector<Vector3i>& keys)
 	{
 		// Insert object ID into cells at keys.
 		for (auto& key : keys)
@@ -404,12 +404,12 @@ namespace TEN::Structures
 			auto [it, isInserted] = _cellMap.try_emplace(key, Cell(BoundingBox(key.ToVector3(), _cellAabbExtents)));
 
 			// Insert object ID into cell.
-			auto& cell = it->second;
-			cell.ObjectIds.insert(objectID);
+			auto& [keyPos, cell] = *it;
+			cell.ObjectIds.insert(objectId);
 		}
 	}
 
-	void SpatialHash::Remove(int objectID, const std::vector<Vector3i>& keys)
+	void SpatialHash::Remove(int objectId, const std::vector<Vector3i>& keys)
 	{
 		// Remove object ID from cells at keys.
 		for (const auto& key : keys)
@@ -420,8 +420,8 @@ namespace TEN::Structures
 				continue;
 
 			// Remove object ID from cell.
-			auto& cell = it->second;
-			cell.ObjectIds.erase(objectID);
+			auto& [keyPos, cell] = *it;
+			cell.ObjectIds.erase(objectId);
 
 			// Remove cell if empty.
 			if (cell.ObjectIds.empty())

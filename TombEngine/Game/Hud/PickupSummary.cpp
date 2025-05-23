@@ -2,8 +2,11 @@
 #include "Game/Hud/PickupSummary.h"
 
 #include "Game/pickup/pickup.h"
+#include "Game/pickup/pickup_ammo.h"
+#include "Game/pickup/pickup_consumable.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
 
 using namespace TEN::Math;
@@ -38,6 +41,8 @@ namespace TEN::Hud
 		constexpr auto STRING_SCALAR_ALPHA = 0.25f;
 		constexpr auto ROT_RATE			   = ANGLE(360.0f / (LIFE_MAX * FPS));
 		constexpr auto ROT				   = EulerAngles(0, ROT_RATE, 0);
+
+		StoreInterpolationData();
 
 		// Move offscreen.
 		if (Life <= 0.0f && isHead)
@@ -122,6 +127,21 @@ namespace TEN::Hud
 		pickup.StringScalar = 0.0f;
 	}
 
+	void PickupSummaryController::AddDisplayPickup(const ItemInfo& item)
+	{
+		// NOTE: Ammo and consumables are a special case, as internal amount differs from pickup amount.
+		int ammoCount = GetDefaultAmmoCount(item.ObjectNumber);
+		int consumableCount = GetDefaultConsumableCount(item.ObjectNumber);
+
+		int count = DISPLAY_PICKUP_COUNT_ARG_DEFAULT;
+		if (ammoCount != NO_VALUE)
+			count = ammoCount;
+		if (consumableCount != NO_VALUE)
+			count = consumableCount;
+
+		AddDisplayPickup(item.ObjectNumber, item.Pose.Position.ToVector3(), (item.HitPoints > 0) ? item.HitPoints : count);
+	}
+
 	void PickupSummaryController::AddDisplayPickup(GAME_OBJECT_ID objectID, const Vector3& pos, unsigned int count)
 	{
 		// Project 3D position to 2D origin.
@@ -154,6 +174,9 @@ namespace TEN::Hud
 	void PickupSummaryController::Draw() const
 	{
 		//DrawDebug();
+
+		if (!g_GameFlow->GetSettings()->Hud.PickupNotifier)
+			return;
 
 		if (_displayPickups.empty())
 			return;

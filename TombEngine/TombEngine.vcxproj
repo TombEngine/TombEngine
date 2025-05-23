@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -73,14 +73,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
@@ -88,19 +88,19 @@
     <IntDir>$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
     <TargetExt>.exe</TargetExt>
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x64\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)</TargetName>
@@ -120,7 +120,7 @@
       <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -139,20 +139,35 @@
       </Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>CD $(ProjectDir)..\Documentation\
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\savegame\schema\generate_code.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
 CALL compile.bat .
 
-CD $(ProjectDir)Specific\savegame\schema\
-CALL gen.bat
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
 
-md "$(SolutionDir)Build\$(Configuration)\Shaders"
-xcopy /Y /D "$(ProjectDir)Shaders\*.*" "$(SolutionDir)Build\$(Configuration)\Shaders\"
-xcopy /Y /D "$(ProjectDir)Shaders\HUD\*.hlsl" "$(SolutionDir)Build\$(Configuration)\Shaders\HUD\"
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
       <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -171,7 +186,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
@@ -180,7 +195,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -190,20 +205,35 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       </Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>CD $(ProjectDir)..\Documentation\
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\savegame\schema\generate_code.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
 CALL compile.bat .
 
-CD $(ProjectDir)Specific\savegame\schema\
-CALL gen.bat
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
 
-md "$(SolutionDir)Build\$(Configuration)\Shaders"
-xcopy /Y /D "$(ProjectDir)Shaders\*.*" "$(SolutionDir)Build\$(Configuration)\Shaders\"
-xcopy /Y /D "$(ProjectDir)Shaders\HUD\*.hlsl" "$(SolutionDir)Build\$(Configuration)\Shaders\HUD\"
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
       <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -221,7 +251,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -232,7 +262,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <FloatingPointModel>Fast</FloatingPointModel>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
@@ -241,11 +271,11 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <TargetMachine>MachineX86</TargetMachine>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>del "$(TargetDir)*.pdb" /q
@@ -254,20 +284,37 @@ del "$(TargetDir)*.exp" /q
 del "$(TargetDir)OIS_d.dll" /q</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>CD $(ProjectDir)..\Documentation\
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
 CALL compile.bat .
 
-CD $(ProjectDir)Specific\savegame\schema\
+CD "$(ProjectDir)Specific\savegame\schema\"
 CALL gen.bat
 
-md "$(SolutionDir)Build\$(Configuration)\Shaders"
-xcopy /Y /D "$(ProjectDir)Shaders\*.*" "$(SolutionDir)Build\$(Configuration)\Shaders\"
-xcopy /Y /D "$(ProjectDir)Shaders\HUD\*.hlsl" "$(SolutionDir)Build\$(Configuration)\Shaders\HUD\"
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
@@ -287,7 +334,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -298,7 +345,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <FloatingPointModel>Fast</FloatingPointModel>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
@@ -307,10 +354,10 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"</Command>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;zlib.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>del "$(TargetDir)*.pdb" /q
@@ -319,20 +366,37 @@ del "$(TargetDir)*.exp" /q
 del "$(TargetDir)OIS_d.dll" /q</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>CD $(ProjectDir)..\Documentation\
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
 CALL compile.bat .
 
-CD $(ProjectDir)Specific\savegame\schema\
+CD "$(ProjectDir)Specific\savegame\schema\"
 CALL gen.bat
 
-md "$(SolutionDir)Build\$(Configuration)\Shaders"
-xcopy /Y /D "$(ProjectDir)Shaders\*.*" "$(SolutionDir)Build\$(Configuration)\Shaders\"
-xcopy /Y /D "$(ProjectDir)Shaders\HUD\*.hlsl" "$(SolutionDir)Build\$(Configuration)\Shaders\HUD\"
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
@@ -345,6 +409,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Game\Debug\Debug.h" />
     <ClInclude Include="Game\effects\Bubble.h" />
     <ClInclude Include="Game\effects\DisplaySprite.h" />
+    <ClInclude Include="Game\effects\Light.h" />
+    <ClInclude Include="Game\effects\Splash.h" />
     <ClInclude Include="Game\GuiObjects.h" />
     <ClInclude Include="Game\Hud\Hud.h" />
     <ClInclude Include="Game\Hud\PickupSummary.h" />
@@ -409,6 +475,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Game\itemdata\door_data.h" />
     <ClInclude Include="Game\itemdata\itemdata.h" />
     <ClInclude Include="Game\items.h" />
+    <ClInclude Include="Game\Lara\Optics.h" />
     <ClInclude Include="Game\Lara\PlayerContext.h" />
     <ClInclude Include="Game\Lara\PlayerContextData.h" />
     <ClInclude Include="Game\Lara\PlayerStateMachine.h" />
@@ -431,7 +498,6 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Math\Legacy.h" />
     <ClInclude Include="Math\Math.h" />
     <ClInclude Include="Math\Objects\AxisAngle.h" />
-    <ClInclude Include="Math\Objects\CollisionMesh.h" />
     <ClInclude Include="Math\Objects\EulerAngles.h" />
     <ClInclude Include="Math\Objects\GameBoundingBox.h" />
     <ClInclude Include="Math\Objects\GameVector.h" />
@@ -445,7 +511,9 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\Effects\effect_objects.h" />
     <ClInclude Include="Objects\Effects\EmberEmitter.h" />
     <ClInclude Include="Objects\Effects\enemy_missile.h" />
+    <ClInclude Include="Objects\Effects\Fireflies.h" />
     <ClInclude Include="Objects\Effects\flame_emitters.h" />
+    <ClInclude Include="Objects\Effects\LensFlare.h" />
     <ClInclude Include="Objects\Effects\tr4_locusts.h" />
     <ClInclude Include="Objects\Effects\tr5_electricity.h" />
     <ClInclude Include="Objects\Generic\Doors\double_doors.h" />
@@ -498,6 +566,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\TR1\Entity\tr1_wolf.h" />
     <ClInclude Include="Objects\TR1\Entity\WingedMutant.h" />
     <ClInclude Include="Objects\TR1\Trap\DamoclesSword.h" />
+    <ClInclude Include="Objects\TR1\Trap\ElectricBall.h" />
+    <ClInclude Include="Objects\TR1\Trap\ThorHammer.h" />
     <ClInclude Include="Objects\TR1\Trap\SlammingDoors.h" />
     <ClInclude Include="Objects\TR1\tr1_objects.h" />
     <ClInclude Include="Objects\TR1\Trap\SwingingBlade.h" />
@@ -601,6 +671,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\TR4\Entity\tr4_von_croy.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_wild_boar.h" />
     <ClInclude Include="Objects\TR4\Floor\tr4_burningfloor.h" />
+    <ClInclude Include="Objects\TR4\Object\StatuePlinth.h" />
     <ClInclude Include="Objects\TR4\Object\WraithTrap.h" />
     <ClInclude Include="Objects\TR4\Object\tr4_clockwork_beetle.h" />
     <ClInclude Include="Objects\TR4\Object\tr4_element_puzzle.h" />
@@ -634,10 +705,11 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\TR4\Vehicles\motorbike.h" />
     <ClInclude Include="Objects\TR4\Vehicles\motorbike_info.h" />
     <ClInclude Include="Objects\TR4\tr4_objects.h" />
+    <ClInclude Include="Objects\TR5\Emitter\tr5_smoke_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_bats_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_rats_emitter.h" />
-    <ClInclude Include="Objects\TR5\Emitter\tr5_smoke_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_spider_emitter.h" />
+    <ClInclude Include="Objects\TR5\Emitter\Waterfall.h" />
     <ClInclude Include="Objects\TR5\Entity\AutoGun.h" />
     <ClInclude Include="Objects\TR5\Entity\HeavyGuard.h" />
     <ClInclude Include="Objects\TR5\Entity\tr5_brownbeast.h" />
@@ -676,6 +748,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\TR5\Switch\tr5_raisingcog.h" />
     <ClInclude Include="Objects\TR5\Trap\LaserBarrier.h" />
     <ClInclude Include="Objects\TR5\Trap\LaserBeam.h" />
+    <ClInclude Include="Objects\TR5\Trap\MovingLaser.h" />
     <ClInclude Include="Objects\TR5\Trap\tr5_explosion.h" />
     <ClInclude Include="Objects\TR5\Trap\tr5_fallingceiling.h" />
     <ClInclude Include="Objects\TR5\Trap\tr5_romehammer.h" />
@@ -687,6 +760,9 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Objects\Utils\object_helper.h" />
     <ClInclude Include="Objects\game_object_ids.h" />
     <ClInclude Include="Objects\objectslist.h" />
+    <ClInclude Include="Physics\Objects\CollisionMesh.h" />
+    <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
+    <ClInclude Include="Physics\Physics.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\BlendingBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
@@ -718,6 +794,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Renderer\Graphics\Vertices\Vertex.h" />
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
+    <ClInclude Include="Renderer\ShaderManager\ShaderManager.h" />
+    <ClInclude Include="Renderer\Structures\RendererMirror.h" />
     <ClInclude Include="Renderer\RendererSprite2D.h" />
     <ClInclude Include="Renderer\RendererBucket.h" />
     <ClInclude Include="Renderer\RendererPolygon.h" />
@@ -738,6 +816,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Renderer\Structures\RendererFogBulb.h" />
     <ClInclude Include="Renderer\Structures\RendererHudBar.h" />
     <ClInclude Include="Renderer\Structures\RendererItem.h" />
+    <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
     <ClInclude Include="Renderer\Structures\RendererLight.h" />
     <ClInclude Include="Renderer\Structures\RendererLine2D.h" />
     <ClInclude Include="Renderer\Structures\RendererLine3D.h" />
@@ -748,12 +827,14 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Renderer\Structures\RendererRoom.h" />
     <ClInclude Include="Renderer\Structures\RendererRoomAmbientMap.h" />
     <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
+    <ClInclude Include="Renderer\Structures\RendererShader.h" />
     <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteSequence.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteToDraw.h" />
+    <ClInclude Include="Renderer\Structures\RendererStar.h" />
     <ClInclude Include="Renderer\Structures\RendererStatic.h" />
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
@@ -764,26 +845,39 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Scripting\Include\ScriptInterfaceState.h" />
     <ClInclude Include="Scripting\Include\Strings\ScriptInterfaceStringsHandler.h" />
     <ClInclude Include="Scripting\Include\VarMapVal.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Input\AxisIDs.h" />
     <ClInclude Include="Scripting\Internal\AudioTracks.h" />
     <ClInclude Include="Scripting\Internal\LanguageScript.h" />
     <ClInclude Include="Scripting\Internal\LuaHandler.h" />
     <ClInclude Include="Scripting\Internal\ReservedScriptNames.h" />
     <ClInclude Include="Scripting\Internal\ScriptAssert.h" />
     <ClInclude Include="Scripting\Internal\ScriptUtil.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Color\Color.h" />
-    <ClInclude Include="Scripting\Internal\TEN\DisplaySprite\ScriptDisplaySprite.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\FeatherModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\ParticleAnimTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Collision\MaterialTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Collision\Probe.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ItemActions.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\HandStatuses.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ErrorModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Color\Color.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Time\Time.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\BlendIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectsFunctions.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Flow\Animations\Animations.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Settings\Settings.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\FlowHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Fog\Fog.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Flow\GameStatuses.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\FreezeModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\GameStatuses.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\InventoryItem\InventoryItem.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\LensFlare\LensFlare.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Level\FlowLevel.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Flow\Mirror\Mirror.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Flow\Settings\Settings.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\SkyLayer\SkyLayer.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Starfield\Starfield.h" />
     <ClInclude Include="Scripting\Internal\TEN\Input\ActionIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Input\InputHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Inventory\InventoryHandler.h" />
@@ -810,15 +904,15 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Static\StaticObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Rotation\Rotation.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Rotation\Rotation.h" />
     <ClInclude Include="Scripting\Internal\TEN\Sound\SoundHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Sound\SoundTrackTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.h" />
     <ClInclude Include="Scripting\Internal\TEN\Strings\StringsHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Util\LevelLog.h" />
     <ClInclude Include="Scripting\Internal\TEN\Util\Util.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Vec2\Vec2.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Vec3\Vec3.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Vec2\Vec2.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Vec3\Vec3.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\AlignModes.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\CameraTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\PostProcessEffects.h" />
@@ -826,7 +920,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
-    <ClInclude Include="Specific\BitField.h" />
+    <ClInclude Include="Specific\Input\Bindings.h" />
+    <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\IO\ChunkId.h" />
     <ClInclude Include="Specific\IO\ChunkReader.h" />
     <ClInclude Include="Specific\IO\ChunkWriter.h" />
@@ -835,6 +930,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Specific\Input\Input.h" />
     <ClInclude Include="Specific\Input\InputAction.h" />
     <ClInclude Include="Specific\LevelCameraInfo.h" />
+    <ClInclude Include="Specific\Parallel.h" />
     <ClInclude Include="Specific\RGBAColor8Byte.h" />
     <ClInclude Include="Specific\clock.h" />
     <ClInclude Include="Specific\configuration.h" />
@@ -845,13 +941,17 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="Specific\newtypes.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_itemdata_generated.h" />
     <ClInclude Include="Specific\savegame\flatbuffers\ten_savegame_generated.h" />
+    <ClInclude Include="Specific\Structures\BitField.h" />
     <ClInclude Include="Specific\Structures\BoundingVolumeHierarchy.h" />
     <ClInclude Include="Specific\Structures\SpatialHash.h" />
     <ClInclude Include="Specific\trutils.h" />
+    <ClInclude Include="Specific\Video\Video.h" />
     <ClInclude Include="Specific\winmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Types.h" />
+    <ClInclude Include="Version.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="framework.cpp">
@@ -888,10 +988,12 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Game\effects\Footprint.cpp" />
     <ClCompile Include="Game\effects\Hair.cpp" />
     <ClCompile Include="Game\effects\item_fx.cpp" />
+    <ClCompile Include="Game\effects\Light.cpp" />
     <ClCompile Include="Game\effects\Ripple.cpp" />
     <ClCompile Include="Game\effects\simple_particle.cpp" />
     <ClCompile Include="Game\effects\smoke.cpp" />
     <ClCompile Include="Game\effects\spark.cpp" />
+    <ClCompile Include="Game\effects\Splash.cpp" />
     <ClCompile Include="Game\effects\Streamer.cpp" />
     <ClCompile Include="Game\effects\tomb4fx.cpp" />
     <ClCompile Include="Game\effects\weather.cpp" />
@@ -926,6 +1028,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Game\Lara\lara_swim.cpp" />
     <ClCompile Include="Game\Lara\lara_tests.cpp" />
     <ClCompile Include="Game\Lara\lara_two_guns.cpp" />
+    <ClCompile Include="Game\Lara\Optics.cpp" />
     <ClCompile Include="Game\Lara\PlayerContext.cpp" />
     <ClCompile Include="Game\Lara\PlayerStateMachine.cpp" />
     <ClCompile Include="Game\misc.cpp" />
@@ -944,7 +1047,6 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Math\Geometry.cpp" />
     <ClCompile Include="Math\Legacy.cpp" />
     <ClCompile Include="Math\Objects\AxisAngle.cpp" />
-    <ClCompile Include="Math\Objects\CollisionMesh.cpp" />
     <ClCompile Include="Math\Objects\EulerAngles.cpp" />
     <ClCompile Include="Math\Objects\GameBoundingBox.cpp" />
     <ClCompile Include="Math\Objects\GameVector.cpp" />
@@ -958,7 +1060,9 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\Effects\effect_objects.cpp" />
     <ClCompile Include="Objects\Effects\EmberEmitter.cpp" />
     <ClCompile Include="Objects\Effects\enemy_missile.cpp" />
+    <ClCompile Include="Objects\Effects\Fireflies.cpp" />
     <ClCompile Include="Objects\Effects\flame_emitters.cpp" />
+    <ClCompile Include="Objects\Effects\LensFlare.cpp" />
     <ClCompile Include="Objects\Effects\tr4_locusts.cpp" />
     <ClCompile Include="Objects\Effects\tr5_electricity.cpp" />
     <ClCompile Include="Objects\Generic\Doors\double_doors.cpp" />
@@ -1012,6 +1116,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\TR1\Entity\WingedMutant.cpp" />
     <ClCompile Include="Objects\TR1\tr1_objects.cpp" />
     <ClCompile Include="Objects\TR1\Trap\DamoclesSword.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\ElectricBall.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\ThorHammer.cpp" />
     <ClCompile Include="Objects\TR1\Trap\SlammingDoors.cpp" />
     <ClCompile Include="Objects\TR1\Trap\SwingingBlade.cpp" />
     <ClCompile Include="Objects\TR2\Entity\Bartoli.cpp" />
@@ -1105,6 +1211,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\TR4\Entity\tr4_wild_boar.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Wraith.cpp" />
     <ClCompile Include="Objects\TR4\Floor\tr4_burningfloor.cpp" />
+    <ClCompile Include="Objects\TR4\Object\StatuePlinth.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_clockwork_beetle.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_element_puzzle.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_mapper.cpp" />
@@ -1136,10 +1243,11 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\TR4\Trap\tr4_teethspike.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\jeep.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\motorbike.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\tr5_smoke_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_bats_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_rats_emitter.cpp" />
-    <ClCompile Include="Objects\TR5\Emitter\tr5_smoke_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_spider_emitter.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\Waterfall.cpp" />
     <ClCompile Include="Objects\TR5\Entity\AutoGun.cpp" />
     <ClCompile Include="Objects\TR5\Entity\HeavyGuard.cpp" />
     <ClCompile Include="Objects\TR5\Entity\tr5_brownbeast.cpp" />
@@ -1177,6 +1285,7 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\TR5\tr5_objects.cpp" />
     <ClCompile Include="Objects\TR5\Trap\LaserBarrier.cpp" />
     <ClCompile Include="Objects\TR5\Trap\LaserBeam.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\MovingLaser.cpp" />
     <ClCompile Include="Objects\TR5\Trap\tr5_explosion.cpp" />
     <ClCompile Include="Objects\TR5\Trap\tr5_fallingceiling.cpp" />
     <ClCompile Include="Objects\TR5\Trap\tr5_romehammer.cpp" />
@@ -1185,6 +1294,8 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Objects\TR5\Trap\ZipLine.cpp" />
     <ClCompile Include="Objects\Utils\object_helper.cpp" />
     <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
     <ClCompile Include="Renderer\Frustum.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
@@ -1204,21 +1315,26 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Renderer\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
     <ClCompile Include="Renderer\RenderView.cpp" />
+    <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptAssert.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptInterfaceState.cpp" />
     <ClCompile Include="Scripting\Internal\ScriptUtil.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Color\Color.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\DisplaySprite\ScriptDisplaySprite.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Collision\Probe.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Time\Time.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Effects\EffectsFunctions.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Flow\Animations\Animations.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Settings\Settings.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\FlowHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Fog\Fog.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\InventoryItem\InventoryItem.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\LensFlare\LensFlare.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Level\FlowLevel.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Flow\Mirror\Mirror.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Flow\Settings\Settings.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\SkyLayer\SkyLayer.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Starfield\Starfield.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Input\InputHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Inventory\InventoryHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Logic\LogicHandler.cpp" />
@@ -1232,48 +1348,46 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Static\StaticObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Rotation\Rotation.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Rotation\Rotation.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Sound\SoundHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Strings\StringsHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Util\Util.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Vec2\Vec2.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\Vec3\Vec3.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Vec2\Vec2.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
-    <ClCompile Include="Specific\BitField.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
+    <ClCompile Include="Specific\Input\Bindings.cpp" />
     <ClCompile Include="Specific\Input\Input.cpp" />
     <ClCompile Include="Specific\Input\InputAction.cpp" />
+    <ClCompile Include="Specific\Input\Keys.cpp" />
     <ClCompile Include="Specific\IO\ChunkId.cpp" />
     <ClCompile Include="Specific\IO\ChunkReader.cpp" />
     <ClCompile Include="Specific\IO\Streams.cpp" />
     <ClCompile Include="Specific\level.cpp" />
+    <ClCompile Include="Specific\Parallel.cpp" />
     <ClCompile Include="Specific\RGBAColor8Byte.cpp" />
+    <ClCompile Include="Specific\Structures\BitField.cpp" />
     <ClCompile Include="Specific\Structures\BoundingVolumeHierarchy.cpp" />
     <ClCompile Include="Specific\Structures\SpatialHash.cpp" />
     <ClCompile Include="Specific\trutils.cpp" />
+    <ClCompile Include="Specific\Video\Video.cpp" />
     <ClCompile Include="Specific\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Objects\Generic\Switches\rail_switch.h" />
     <None Include="packages.config" />
-    <None Include="Resources.aps" />
+    <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
     <None Include="Shaders\AnimatedTextures.hlsli" />
-    <None Include="Shaders\CBCamera.hlsli">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Text</FileType>
+    <None Include="Shaders\Blending.hlsli">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\Blending.hlsli" />
+    <None Include="Shaders\CBCamera.hlsli" />
+    <None Include="Shaders\CBItem.hlsli" />
     <None Include="Shaders\CBPostProcess.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -1300,9 +1414,6 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="ten.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\HUD.hlsl">
@@ -1529,6 +1640,9 @@ xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"</Command>
     <None Include="Shaders\PostProcess.fx">
       <DeploymentContent>true</DeploymentContent>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Ten.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

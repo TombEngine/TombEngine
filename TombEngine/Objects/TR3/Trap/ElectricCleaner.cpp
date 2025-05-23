@@ -151,7 +151,7 @@ namespace TEN::Entities::Traps
 				auto pos = GetJointPosition(&item, joint, Vector3i(-160, -8, 16));
 
 				byte c = Random::GenerateInt(0, 64) + 128;
-				TriggerDynamicLight(pos.x, pos.y, pos.z, 10, c >> 2, c >> 1, c);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, c >> 2, c >> 1, c);
 
 				auto& spark = GetFreeSparkParticle();
 

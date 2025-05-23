@@ -1,12 +1,11 @@
 #pragma once
-#include <string>
 
 struct SinkInfo
 {
+	std::string Name	 = {};
 	Vector3		Position = Vector3::Zero;
 	int			Strength = 0;
 	int			BoxIndex = 0;
-	std::string Name	 = {};
 
 	SinkInfo()
 	{

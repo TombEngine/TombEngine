@@ -139,7 +139,7 @@ Texture2D searchTex : register(t8);
 /**
  * Function wrappers
  */
-void DX11_SMAAEdgeDetectionVS(float3 position : POSITION,
+void VSEdgeDetection(float3 position : POSITION,
     out float4 svPosition : SV_POSITION,
     inout float2 texcoord : TEXCOORD0,
     out float4 offset[3] : TEXCOORD1) {
@@ -147,7 +147,7 @@ void DX11_SMAAEdgeDetectionVS(float3 position : POSITION,
     SMAAEdgeDetectionVS(texcoord, offset);
 }
 
-void DX11_SMAABlendingWeightCalculationVS(float3 position : POSITION,
+void VSBlendingWeightCalculation(float3 position : POSITION,
     out float4 svPosition : SV_POSITION,
     inout float2 texcoord : TEXCOORD0,
     out float2 pixcoord : TEXCOORD1,
@@ -156,7 +156,7 @@ void DX11_SMAABlendingWeightCalculationVS(float3 position : POSITION,
     SMAABlendingWeightCalculationVS(texcoord, pixcoord, offset);
 }
 
-void DX11_SMAANeighborhoodBlendingVS(float3 position : POSITION,
+void VSNeighborhoodBlending(float3 position : POSITION,
     out float4 svPosition : SV_POSITION,
     inout float2 texcoord : TEXCOORD0,
     out float4 offset : TEXCOORD1) {
@@ -164,19 +164,19 @@ void DX11_SMAANeighborhoodBlendingVS(float3 position : POSITION,
     SMAANeighborhoodBlendingVS(texcoord, offset);
 }
 
-void DX11_SMAAResolveVS(float3 position : POSITION,
+void VSResolve(float3 position : POSITION,
     out float4 svPosition : SV_POSITION,
     inout float2 texcoord : TEXCOORD0) {
     svPosition = float4(position, 1.0f);
 }
 
-void DX11_SMAASeparateVS(float3 position : POSITION,
+void VSSeparate(float3 position : POSITION,
     out float4 svPosition : SV_POSITION,
     inout float2 texcoord : TEXCOORD0) {
     svPosition = float4(position, 1.0f);
 }
 
-float2 DX11_SMAALumaEdgeDetectionPS(float4 position : SV_POSITION,
+float2 PSLumaEdgeDetection(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     float4 offset[3] : TEXCOORD1) : SV_TARGET{
 #if SMAA_PREDICATION
@@ -186,7 +186,7 @@ return SMAALumaEdgeDetectionPS(texcoord, offset, colorTexGamma);
 #endif
 }
 
-float2 DX11_SMAAColorEdgeDetectionPS(float4 position : SV_POSITION,
+float2 PSColorEdgeDetection(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     float4 offset[3] : TEXCOORD1) : SV_TARGET{
 #if SMAA_PREDICATION
@@ -196,20 +196,20 @@ return SMAAColorEdgeDetectionPS(texcoord, offset, colorTexGamma);
 #endif
 }
 
-float2 DX11_SMAADepthEdgeDetectionPS(float4 position : SV_POSITION,
+float2 PSDepthEdgeDetection(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     float4 offset[3] : TEXCOORD1) : SV_TARGET{
 return SMAADepthEdgeDetectionPS(texcoord, offset, depthTex);
 }
 
-float4 DX11_SMAABlendingWeightCalculationPS(float4 position : SV_POSITION,
+float4 PSBlendingWeightCalculation(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     float2 pixcoord : TEXCOORD1,
     float4 offset[3] : TEXCOORD2) : SV_TARGET{
 return SMAABlendingWeightCalculationPS(texcoord, pixcoord, offset, edgesTex, areaTex, searchTex, subsampleIndices);
 }
 
-float4 DX11_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
+float4 PSNeighborhoodBlending(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     float4 offset : TEXCOORD1) : SV_TARGET{
 #if SMAA_REPROJECTION
@@ -219,7 +219,7 @@ return SMAANeighborhoodBlendingPS(texcoord, offset, colorTex, blendTex);
 #endif
 }
 
-float4 DX11_SMAAResolvePS(float4 position : SV_POSITION,
+float4 PSResolve(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0) : SV_TARGET{
 #if SMAA_REPROJECTION
 return SMAAResolvePS(texcoord, colorTex, colorTexPrev, velocityTex);
@@ -228,7 +228,7 @@ return SMAAResolvePS(texcoord, colorTex, colorTexPrev);
 #endif
 }
 
-void DX11_SMAASeparatePS(float4 position : SV_POSITION,
+void PSSeparate(float4 position : SV_POSITION,
     float2 texcoord : TEXCOORD0,
     out float4 target0 : SV_TARGET0,
     out float4 target1 : SV_TARGET1) {
@@ -240,9 +240,9 @@ void DX11_SMAASeparatePS(float4 position : SV_POSITION,
  */
 technique10 LumaEdgeDetection {
     pass LumaEdgeDetection {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAAEdgeDetectionVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSEdgeDetection()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAALumaEdgeDetectionPS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSLumaEdgeDetection()));
 
         SetDepthStencilState(DisableDepthReplaceStencil, 1);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
@@ -251,9 +251,9 @@ technique10 LumaEdgeDetection {
 
 technique10 ColorEdgeDetection {
     pass ColorEdgeDetection {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAAEdgeDetectionVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSEdgeDetection()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAAColorEdgeDetectionPS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSColorEdgeDetection()));
 
         SetDepthStencilState(DisableDepthReplaceStencil, 1);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
@@ -262,9 +262,9 @@ technique10 ColorEdgeDetection {
 
 technique10 DepthEdgeDetection {
     pass DepthEdgeDetection {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAAEdgeDetectionVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSEdgeDetection()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAADepthEdgeDetectionPS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSDepthEdgeDetection()));
 
         SetDepthStencilState(DisableDepthReplaceStencil, 1);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
@@ -276,9 +276,9 @@ technique10 DepthEdgeDetection {
  */
 technique10 BlendingWeightCalculation {
     pass BlendingWeightCalculation {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAABlendingWeightCalculationVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSBlendingWeightCalculation()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAABlendingWeightCalculationPS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSBlendingWeightCalculation()));
 
         SetDepthStencilState(DisableDepthUseStencil, 1);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
@@ -290,9 +290,9 @@ technique10 BlendingWeightCalculation {
  */
 technique10 NeighborhoodBlending {
     pass NeighborhoodBlending {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAANeighborhoodBlendingVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSNeighborhoodBlending()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAANeighborhoodBlendingPS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSNeighborhoodBlending()));
 
         SetDepthStencilState(DisableDepthStencil, 0);
         SetBlendState(Blend, float4(blendFactor, blendFactor, blendFactor, blendFactor), 0xFFFFFFFF);
@@ -305,9 +305,9 @@ technique10 NeighborhoodBlending {
  */
 technique10 Resolve {
     pass Resolve {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAAResolveVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSResolve()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAAResolvePS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSResolve()));
 
         SetDepthStencilState(DisableDepthStencil, 0);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
@@ -319,9 +319,9 @@ technique10 Resolve {
  */
 technique10 Separate {
     pass Separate {
-        SetVertexShader(CompileShader(vs_4_0, DX11_SMAASeparateVS()));
+        SetVertexShader(CompileShader(vs_4_0, VSSeparate()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(PS_VERSION, DX11_SMAASeparatePS()));
+        SetPixelShader(CompileShader(PS_VERSION, PSSeparate()));
 
         SetDepthStencilState(DisableDepthStencil, 0);
         SetBlendState(NoBlending, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);

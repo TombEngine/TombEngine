@@ -6,11 +6,9 @@ struct MESH_INFO;
 
 namespace TEN::Control::Volumes
 {
-	constexpr auto NO_CALL_COUNTER = -1;
-
 	using Activator = std::variant<
 		std::nullptr_t,
-		short,
+		int,
 		MESH_INFO*,
 		CameraInfo*>;
 
@@ -42,6 +40,7 @@ namespace TEN::Control::Volumes
 		Start,
 		End,
 		UseItem,
+		Freeze,
 
 		Count
 	};
@@ -52,7 +51,8 @@ namespace TEN::Control::Volumes
 		std::string		Function = {};
 		std::string		Data = {};
 
-		int CallCounter = NO_CALL_COUNTER;
+		bool Enabled = true;
+		int  CallCounter = NO_VALUE;
 	};
 
 	struct EventSet

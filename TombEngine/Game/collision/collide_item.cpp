@@ -10,6 +10,7 @@
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/simple_particle.h"
+#include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -20,13 +21,16 @@
 #include "Math/Math.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
+#include "Specific/winmain.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Math;
 
 constexpr auto ANIMATED_ALIGNMENT_FRAME_COUNT_THRESHOLD = 6;
+constexpr auto COLLIDABLE_BOUNDS_THRESHOLD = 4;
 
 // Globals
 
@@ -95,7 +99,6 @@ void GenericSphereBoxCollision(short itemNumber, ItemInfo* playerItem, Collision
 
 CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible, bool ignorePlayer, float customRadius, ObjectCollectionMode mode)
 {
-	constexpr auto EXTENTS_LENGTH_MIN	= 2.0f;
 	constexpr auto ROUGH_BOX_HEIGHT_MIN = BLOCK(1 / 8.0f);
 
 	auto collObjects = CollidedObjectData{};
@@ -105,13 +108,23 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 
 	// Establish parameters of colliding item.
 	const auto& collidingBounds = GetBestFrame(collidingItem).BoundingBox;
-	auto collidingExtents = collidingBounds.GetExtents();
-	auto collidingSphere = BoundingSphere(collidingBounds.GetCenter() + collidingItem.Pose.Position.ToVector3(), collidingExtents.Length());
-	auto collidingCircle = Vector3(collidingSphere.Center.x, collidingSphere.Center.z, (customRadius > 0.0f) ? customRadius : std::hypot(collidingExtents.x, collidingExtents.z));
 
 	// Quickly discard collision if colliding item bounds are below tolerance threshold.
-	if (collidingSphere.Radius <= EXTENTS_LENGTH_MIN)
+	if (!customRadius && collidingBounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
 		return collObjects;
+
+	// Convert bounding box to DX bounds.
+	auto convertedBounds = collidingBounds.ToBoundingOrientedBox(collidingItem.Pose);
+
+	// Create conservative AABB for rough tests.
+	auto collidingAabb = collidingBounds.ToConservativeBoundingBox(collidingItem.Pose);
+
+	// Override extents if specified.
+	if (customRadius > 0.0f)
+	{
+		collidingAabb = BoundingBox(collidingItem.Pose.Position.ToVector3(), Vector3(customRadius));
+		convertedBounds.Extents = Vector3(customRadius);
+	}
 
 	// Run through neighboring rooms.
 	const auto& room = g_Level.Rooms[collidingItem.RoomNumber];
@@ -144,13 +157,12 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 						continue;
 
 					// Ignore items not feasible for collision.
-					if (item.Index == collidingItem.Index ||
-						item.Flags & IFLAG_KILLED || item.MeshBits == NO_JOINT_BITS ||
-						(object.drawRoutine == nullptr && !item.IsLara()) ||
-						(object.collision == nullptr && !item.IsLara()))
-					{
+					if (item.Index == collidingItem.Index || item.Flags & IFLAG_KILLED || item.MeshBits == NO_JOINT_BITS)
 						continue;
-					}
+
+					// Ignore non-collidable non-player.
+					if (!item.IsLara() && (!item.Collidable || object.drawRoutine == nullptr || object.collision == nullptr))
+						continue;
 
 					// HACK: Ignore UPV and big gun.
 					if ((item.ObjectNumber == ID_UPV || item.ObjectNumber == ID_BIGGUN) && item.HitPoints == 1)
@@ -161,39 +173,19 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 					if (dist > COLLISION_CHECK_DISTANCE)
 						continue;
 
-					const auto& bounds = GetBestFrame(item).BoundingBox;
-					auto extents = bounds.GetExtents();
-
 					// If item bounding box extents is below tolerance threshold, discard object.
-					if (extents.Length() <= EXTENTS_LENGTH_MIN)
+					const auto& bounds = GetBestFrame(item).BoundingBox;
+					if (bounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
 						continue;
 
-					// Test rough vertical distance to discard objects not intersecting vertically.
-					if (((collidingItem.Pose.Position.y + collidingBounds.Y1) - ROUGH_BOX_HEIGHT_MIN) >
-						((item.Pose.Position.y + bounds.Y2) + ROUGH_BOX_HEIGHT_MIN))
-					{
-						continue;
-					}
-					if (((collidingItem.Pose.Position.y + collidingBounds.Y2) + ROUGH_BOX_HEIGHT_MIN) <
-						((item.Pose.Position.y + bounds.Y1) - ROUGH_BOX_HEIGHT_MIN))
-					{
-						continue;
-					}
-
-					// Test rough circle intersection to discard objects not intersecting horizontally.
-					auto circle = Vector3(item.Pose.Position.x, item.Pose.Position.z, std::hypot(extents.x, extents.z));
-					if (!Geometry::CircleIntersects(circle, collidingCircle))
+					// Test conservative AABB intersection.
+					auto aabb = bounds.ToConservativeBoundingBox(item.Pose);
+					if (!aabb.Intersects(collidingAabb))
 						continue;
 
-					auto box0 = bounds.ToBoundingOrientedBox(item.Pose);
-					auto box1 = collidingBounds.ToBoundingOrientedBox(collidingItem.Pose);
-
-					// Override extents if specified.
-					if (customRadius > 0.0f)
-						box1.Extents = Vector3(customRadius);
-
-					// Test accurate box intersection.
-					if (box0.Intersects(box1))
+					// Test accurate OBB intersection.
+					auto obb = bounds.ToBoundingOrientedBox(item.Pose);
+					if (obb.Intersects(convertedBounds))
 						collObjects.Items.push_back(&item);
 				}
 				while (itemNumber != NO_VALUE);
@@ -215,34 +207,19 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 				if (dist > COLLISION_CHECK_DISTANCE)
 					continue;
 
+				// Skip if either bounding box has any zero extent (not a collidable volume).
 				const auto& bounds = GetBoundsAccurate(staticObj, false);
-
-				// Test rough vertical distance to discard statics not intersecting vertically.
-				if (((collidingItem.Pose.Position.y + collidingBounds.Y1) - ROUGH_BOX_HEIGHT_MIN) >
-					((staticObj.pos.Position.y + bounds.Y2) + ROUGH_BOX_HEIGHT_MIN))
-				{
-					continue;
-				}
-				if (((collidingItem.Pose.Position.y + collidingBounds.Y2) + ROUGH_BOX_HEIGHT_MIN) <
-					((staticObj.pos.Position.y + bounds.Y1) - ROUGH_BOX_HEIGHT_MIN))
-				{
-					continue;
-				}
-
-				// Test rough circle intersection to discard statics not intersecting horizontally.
-				auto circle = Vector3(staticObj.pos.Position.x, staticObj.pos.Position.z, (bounds.GetExtents() * Vector3(1.0f, 0.0f, 1.0f)).Length());
-				if (!Geometry::CircleIntersects(circle, collidingCircle))
+				if (bounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
 					continue;
 
-				auto box0 = bounds.ToBoundingOrientedBox(staticObj.pos.Position);
-				auto box1 = collidingBounds.ToBoundingOrientedBox(collidingItem.Pose);
+				// Test conservative AABB intersection.
+				auto aabb = bounds.ToConservativeBoundingBox(staticObj.pos);
+				if (!aabb.Intersects(collidingAabb))
+					continue;
 
-				// Override extents if specified.
-				if (customRadius > 0.0f)
-					box1.Extents = Vector3(customRadius);
-
-				// Test accurate box intersection.
-				if (box0.Intersects(box1))
+				// Test accurate OBB intersection.
+				auto obb = bounds.ToBoundingOrientedBox(staticObj.pos.Position);
+				if (obb.Intersects(convertedBounds))
 					collObjects.Statics.push_back(&staticObj);
 			}
 		}
@@ -283,7 +260,8 @@ bool TestWithGlobalCollisionBounds(ItemInfo* item, ItemInfo* laraItem, Collision
 
 void TestForObjectOnLedge(ItemInfo* item, CollisionInfo* coll)
 {
-	int height = GameBoundingBox(item).GetHeight();
+	auto bbox = GameBoundingBox(item).ToBoundingOrientedBox(item->Pose);
+	auto height = (bbox.Center - bbox.Extents).y - CLICK(1);
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -292,8 +270,9 @@ void TestForObjectOnLedge(ItemInfo* item, CollisionInfo* coll)
 
 		auto origin = Vector3(
 			item->Pose.Position.x + (sinHeading * (coll->Setup.Radius)),
-			item->Pose.Position.y - (height + CLICK(1)),
+			height,
 			item->Pose.Position.z + (cosHeading * (coll->Setup.Radius)));
+
 		auto mxR = Matrix::CreateFromYawPitchRoll(TO_RAD(coll->Setup.ForwardAngle), 0.0f, 0.0f);
 		auto direction = (Matrix::CreateTranslation(Vector3::UnitZ) * mxR).Translation();
 
@@ -354,6 +333,29 @@ void TestForObjectOnLedge(ItemInfo* item, CollisionInfo* coll)
 
 bool TestLaraPosition(const ObjectCollisionBounds& bounds, ItemInfo* item, ItemInfo* laraItem)
 {
+	constexpr auto DEBUG_BOX_COLOR = Color(1.0f, 0.0f, 0.0f);
+
+	// Draw oriented debug interaction box.
+	if (DebugMode)
+	{
+		auto obb = bounds.BoundingBox.ToBoundingOrientedBox(item->Pose);
+		auto rotMatrix = item->Pose.Orientation.ToRotationMatrix();
+
+		DrawDebugBox(obb, DEBUG_BOX_COLOR, RendererDebugPage::CollisionStats);
+		DrawDebugLine(
+			obb.Center + Vector3::Transform(Vector3(0.0f, -obb.Extents.y, 0.0f), rotMatrix),
+			obb.Center + Vector3::Transform(Vector3(0.0f, -obb.Extents.y, obb.Extents.z), rotMatrix),
+			DEBUG_BOX_COLOR, RendererDebugPage::CollisionStats);
+		DrawDebugLine(
+			obb.Center + Vector3::Transform(Vector3(0.0f, -obb.Extents.y, obb.Extents.z), rotMatrix),
+			obb.Center + Vector3::Transform(Vector3(0.0f, obb.Extents.y, obb.Extents.z), rotMatrix),
+			DEBUG_BOX_COLOR, RendererDebugPage::CollisionStats);
+		DrawDebugLine(
+			obb.Center + Vector3::Transform(Vector3(0.0f, obb.Extents.y, 0.0f), rotMatrix),
+			obb.Center + Vector3::Transform(Vector3(0.0f, obb.Extents.y, obb.Extents.z), rotMatrix),
+			DEBUG_BOX_COLOR, RendererDebugPage::CollisionStats);
+	}
+
 	auto deltaOrient = laraItem->Pose.Orientation - item->Pose.Orientation;
 	if (deltaOrient.x < bounds.OrientConstraint.first.x || deltaOrient.x > bounds.OrientConstraint.second.x ||
 		deltaOrient.y < bounds.OrientConstraint.first.y || deltaOrient.y > bounds.OrientConstraint.second.y ||
@@ -365,11 +367,7 @@ bool TestLaraPosition(const ObjectCollisionBounds& bounds, ItemInfo* item, ItemI
 	auto pos = (laraItem->Pose.Position - item->Pose.Position).ToVector3();
 	auto rotMatrix = item->Pose.Orientation.ToRotationMatrix();
 
-	// This solves once for all the minus sign hack of CreateFromYawPitchRoll.
-	// In reality it should be the inverse, but the inverse of a rotation matrix is equal to the transpose
-	// and transposing a matrix is faster.
-	// It's the only piece of code that does it, because we want Lara's location relative to the identity frame
-	// of the object we are test against.
+	// NOTE: Transpose = faster inverse.
 	rotMatrix = rotMatrix.Transpose();
 
 	pos = Vector3::Transform(pos, rotMatrix);
@@ -565,6 +563,9 @@ bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius)
 {
 	const auto& bounds = GetBestFrame(*item).BoundingBox;
 	const auto& playerBounds = GetBestFrame(*laraItem).BoundingBox;
+
+	if (bounds.GetExtents() == Vector3::Zero || playerBounds.GetExtents() == Vector3::Zero)
+		return false;
 
 	if ((item->Pose.Position.y + bounds.Y2) <= (laraItem->Pose.Position.y + playerBounds.Y1))
 		return false;
@@ -891,7 +892,8 @@ void CollideBridgeItems(ItemInfo& item, CollisionInfo& coll, PointCollisionData&
 		auto deltaPose = Pose(deltaPos, deltaOrient);
 
 		// Item is grounded and bridge position changed; set shift.
-		if (deltaPose != Pose::Zero && !item.Animation.IsAirborne)
+		if (deltaPose != Pose::Zero && !item.Animation.IsAirborne &&
+			item.IsLara() ? (GetLaraInfo(item).Control.WaterStatus != WaterStatus::Underwater && GetLaraInfo(item).Control.WaterStatus != WaterStatus::FlyCheat) : true)
 		{
 			const auto& bridgePos = bridgeItem.Pose.Position;
 
@@ -930,6 +932,7 @@ void CollideBridgeItems(ItemInfo& item, CollisionInfo& coll, PointCollisionData&
 
 void CollideSolidStatics(ItemInfo* item, CollisionInfo* coll)
 {
+	coll->HitStatic = false;
 	coll->HitTallObject = false;
 
 	for (auto i : g_Level.Rooms[item->RoomNumber].NeighborRoomNumbers)
@@ -939,8 +942,16 @@ void CollideSolidStatics(ItemInfo* item, CollisionInfo* coll)
 
 		for (auto& mesh : g_Level.Rooms[i].mesh)
 		{
-			// Only process meshes which are visible and solid.
-			if (!(mesh.flags & StaticMeshFlags::SM_VISIBLE) || !(mesh.flags & StaticMeshFlags::SM_SOLID))
+			// Only process meshes which are visible.
+			if (!(mesh.flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			// Bypass static meshes which are marked as non-collidable.
+			if (!(mesh.flags & StaticMeshFlags::SM_COLLISION))
+				continue;
+
+			// Only process meshes which are solid, or if solid mode is set by the setup.
+			if (!coll->Setup.ForceSolidStatics && !(mesh.flags & StaticMeshFlags::SM_SOLID))
 				continue;
 
 			float distance = Vector3i::Distance(item->Pose.Position, mesh.pos.Position);
@@ -957,12 +968,12 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 {
 	bool result = false;
 
+	// Ignore processing null bounds.
+	if (box.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
+		return false;
+
 	// Get DX static bounds in global coordinates.
 	auto staticBounds = box.ToBoundingOrientedBox(pose);
-
-	// Ignore processing null bounds.
-	if (Vector3(staticBounds.Extents) == Vector3::Zero)
-		return false;
 
 	// Get local TR bounds and DX item bounds in global coordinates.
 	auto itemBBox = GameBoundingBox(item);
@@ -1791,7 +1802,7 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 
 	if (isPlayer)
 	{
-		GetLaraInfo(*item).HitDirection = -1;
+		GetLaraInfo(*item).HitDirection = NO_VALUE;
 
 		if (item->HitPoints <= 0)
 			return;
@@ -1887,7 +1898,12 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 
 		for (auto& staticObject : neighborRoom.mesh)
 		{
+			// Check if static is visible.
 			if (!(staticObject.flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			// Check if static is collidable.
+			if (!(staticObject.flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// For Lara, solid static mesh collisions are directly managed by GetCollisionInfo,
@@ -1906,7 +1922,7 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 			// HACK: Shatter statics only by harmful vehicles.
 			if (!isPlayer && 
 				!isHarmless && abs(item->Animation.Velocity.z) > VEHICLE_COLLISION_TERMINAL_VELOCITY &&
-				StaticObjects[staticObject.staticNumber].shatterType != ShatterType::None)
+				Statics[staticObject.staticNumber].shatterType != ShatterType::None)
 			{
 				SoundEffect(GetShatterSound(staticObject.staticNumber), &staticObject.pos);
 				ShatterObject(nullptr, &staticObject, -128, item->RoomNumber, 0);

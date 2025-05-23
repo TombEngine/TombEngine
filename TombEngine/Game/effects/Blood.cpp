@@ -58,6 +58,8 @@ namespace TEN::Effects::Blood
 			if (uwBlood.Life <= 0.0f)
 				continue;
 
+			uwBlood.StoreInterpolationData();
+
 			// Update size.
 			if (uwBlood.Size < UW_BLOOD_SIZE_MAX)
 				uwBlood.Size += 4.0f;

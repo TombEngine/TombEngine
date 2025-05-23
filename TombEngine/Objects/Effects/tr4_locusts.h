@@ -14,7 +14,13 @@ struct LOCUST_INFO
     short escapeZrot;
     BYTE counter;
 
-    Matrix Transform;
+    Matrix Transform     = Matrix::Identity;
+    Matrix PrevTransform = Matrix::Identity;
+
+    void StoreInterpolationData()
+    {
+        PrevTransform = Transform;
+    }
 };
 
 namespace TEN::Entities::TR4 

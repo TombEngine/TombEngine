@@ -81,7 +81,7 @@ namespace TEN::Entities::TR4
 		if (item->TriggerFlags == 2)
 		{
 			SetAnimation(item, MUMMY_ANIM_COLLAPSE_END);
-			item->Status -= ITEM_INVISIBLE;
+			item->Status = ITEM_NOT_ACTIVE;
 		}
 		else
 		{

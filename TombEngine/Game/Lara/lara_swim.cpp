@@ -87,7 +87,7 @@ void lara_as_underwater_idle(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 	}
 
-	item->Animation.Velocity.y -= LARA_SWIM_VELOCITY_DECEL;
+	item->Animation.Velocity.y -= g_GameFlow->GetSettings()->Physics.SwimVelocity * LARA_SWIM_VELOCITY_DECEL_COEFF;
 	if (item->Animation.Velocity.y < 0.0f)
 		item->Animation.Velocity.y = 0.0f;
 
@@ -189,9 +189,11 @@ void lara_as_underwater_swim_forward(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_UNDERWATER_INERTIA;
 	}
 
-	item->Animation.Velocity.y += LARA_SWIM_VELOCITY_ACCEL;
-	if (item->Animation.Velocity.y > LARA_SWIM_VELOCITY_MAX)
-		item->Animation.Velocity.y = LARA_SWIM_VELOCITY_MAX;
+	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
+	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+	if (item->Animation.Velocity.y > baseVel * LARA_SWIM_VELOCITY_MAX_COEFF)
+		item->Animation.Velocity.y = baseVel * LARA_SWIM_VELOCITY_MAX_COEFF;
 }
 
 // State:		LS_UNDERWATER_SWIM_FORWARD (17)
@@ -241,11 +243,13 @@ void lara_as_underwater_inertia(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 	}
 
-	item->Animation.Velocity.y -= LARA_SWIM_VELOCITY_DECEL;
+	const auto& settings = g_GameFlow->GetSettings()->Physics;
+
+	item->Animation.Velocity.y -= settings.SwimVelocity * LARA_SWIM_VELOCITY_DECEL_COEFF;
 	if (item->Animation.Velocity.y < 0.0f)
 		item->Animation.Velocity.y = 0.0f;
 
-	if (item->Animation.Velocity.y < LARA_SWIM_INTERTIA_VELOCITY_MIN)
+	if (item->Animation.Velocity.y < (settings.SwimVelocity * LARA_SWIM_INTERTIA_VELOCITY_MIN_COEFF))
 		item->Animation.TargetState = LS_UNDERWATER_IDLE;
 }
 
@@ -267,7 +271,7 @@ void lara_as_underwater_death(ItemInfo* item, CollisionInfo* coll)
 
 	player.Control.Look.Mode = LookMode::None;
 
-	item->Animation.Velocity.y -= LARA_SWIM_VELOCITY_DECEL;
+	item->Animation.Velocity.y -= g_GameFlow->GetSettings()->Physics.SwimVelocity * LARA_SWIM_VELOCITY_DECEL_COEFF;
 	if (item->Animation.Velocity.y < 0.0f)
 		item->Animation.Velocity.y = 0.0f;
 

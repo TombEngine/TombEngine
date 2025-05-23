@@ -5,9 +5,9 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/LevelCameraInfo.h"
 #include "Specific/level.h"
-#include "Scripting/Internal/TEN/Vec3/Vec3.h"
 
 /***
 Basic cameras that can point at Lara or at a CAMERA_TARGET.
@@ -16,8 +16,8 @@ Basic cameras that can point at Lara or at a CAMERA_TARGET.
 @pragma nostrip
 */
 
-static auto IndexError = index_error_maker(CameraObject, ScriptReserved_Camera);
-static auto NewIndexError = newindex_error_maker(CameraObject, ScriptReserved_Camera);
+static auto IndexError = IndexErrorMaker(CameraObject, ScriptReserved_Camera);
+static auto NewIndexError = NewIndexErrorMaker(CameraObject, ScriptReserved_Camera);
 
 CameraObject::CameraObject(LevelCameraInfo & ref) : m_camera{ref}
 {};
@@ -29,45 +29,45 @@ void CameraObject::Register(sol::table& parent)
 		sol::meta_function::index, IndexError,
 		sol::meta_function::new_index, NewIndexError,
 
-		/// Get the camera's position
+		/// Get the camera's position.
 		// @function Camera:GetPosition
-		// @treturn Vec3 a copy of the camera's position
+		// @treturn Vec3 Camera's position.
 		ScriptReserved_GetPosition, &CameraObject::GetPos,
 
-		/// Set the camera's position
+		/// Set the camera's position.
 		// @function Camera:SetPosition
-		// @tparam Vec3 position the new position of the camera 
+		// @tparam Vec3 position The new position of the camera.
 		ScriptReserved_SetPosition, &CameraObject::SetPos,
 
 		/// Get the camera's unique string identifier
 		// @function Camera:GetName
-		// @treturn string the camera's name
+		// @treturn string the camera's name.
 		ScriptReserved_GetName, &CameraObject::GetName,
 
-		/// Set the camera's name (its unique string identifier)
+		/// Set the camera's name (its unique string identifier).
 		// @function Camera:SetName
-		// @tparam string name The camera's new name
+		// @tparam string name The camera's new name.
 		ScriptReserved_SetName, &CameraObject::SetName,
 
-		/// Get the current room of the camera
+		/// Get the current room of the camera.
 		// @function Camera:GetRoom
-		// @treturn Room current room of the camera
+		// @treturn Objects.Room Current room of the camera.
 		ScriptReserved_GetRoom, &CameraObject::GetRoom,
 
-		/// Get the current room number of the camera
+		/// Get the current room number of the camera.
 		// @function Camera:GetRoomNumber
-		// @treturn int number representing the current room of the camera
+		// @treturn int Number representing the current room of the camera.
 		ScriptReserved_GetRoomNumber, &CameraObject::GetRoomNumber,
 
-		/// Set room of camera 
+		/// Set room of camera.
 		// This is used in conjunction with SetPosition to teleport the camera to a new room.
 		// @function Camera:SetRoomNumber
-		// @tparam int ID the ID of the new room 
+		// @tparam int ID The ID of the new room.
 		ScriptReserved_SetRoomNumber, &CameraObject::SetRoomNumber,
 
-		/// Active the camera during that frame.
+		/// Activate the camera for the current game frame.
 		// @function Camera:PlayCamera
-		// @tparam[opt] Moveable Target If you put a moveable, the camera will look at it. Otherwise, it will look at Lara.
+		// @tparam[opt] Objects.Moveable target If you put a moveable, the camera will look at it. Otherwise, it will look at Lara.
 		ScriptReserved_PlayCamera, &CameraObject::PlayCamera);
 }
 
@@ -90,14 +90,12 @@ std::string CameraObject::GetName() const
 void CameraObject::SetName(std::string const & id) 
 {
 	if (!ScriptAssert(!id.empty(), "Name cannot be blank. Not setting name."))
-	{
 		return;
-	}
 
-	if (s_callbackSetName(id, m_camera))
+	if (_callbackSetName(id, m_camera))
 	{
-		// remove the old name if we have one
-		s_callbackRemoveName(m_camera.Name);
+		// Remove old name if it exists.
+		_callbackRemoveName(m_camera.Name);
 		m_camera.Name = id;
 	}
 	else

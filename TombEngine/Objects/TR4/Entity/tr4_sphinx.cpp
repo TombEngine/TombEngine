@@ -95,7 +95,7 @@ namespace TEN::Entities::TR4
 
 				if (((mesh->pos.Position.z / BLOCK(1)) == (z / BLOCK(1))) &&
 					((mesh->pos.Position.x / BLOCK(1)) == (x / BLOCK(1))) &&
-					StaticObjects[mesh->staticNumber].shatterType != ShatterType::None)
+					Statics[mesh->staticNumber].shatterType != ShatterType::None)
 				{
 					ShatterObject(nullptr, mesh, -64, item->RoomNumber, 0);
 					SoundEffect(SFX_TR4_SMASH_ROCK, &item->Pose);

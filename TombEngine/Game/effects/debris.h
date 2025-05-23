@@ -70,6 +70,20 @@ struct DebrisFragment
 	bool active;
 	bool isStatic;
 	Matrix Transform;
+
+	Matrix PrevTransform = Matrix::Identity;
+
+	void UpdateTransform()
+	{
+		auto translation = Matrix::CreateTranslation(worldPosition.x, worldPosition.y, worldPosition.z);
+		auto rot = Matrix::CreateFromQuaternion(rotation);
+		Transform = rot * translation;
+	}
+
+	void StoreInterpolationData()
+	{
+		PrevTransform = Transform;
+	}
 };
 
 extern SHATTER_ITEM ShatterItem;

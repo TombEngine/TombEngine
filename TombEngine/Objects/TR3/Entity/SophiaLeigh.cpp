@@ -150,7 +150,7 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void KnockbackCollision(ItemInfo& item, short headingAngle)
 	{
-		item.HitPoints -= 200;
+		DoDamage(&item, 200);
 		item.HitStatus = true;
 
 		short diff = item.Pose.Orientation.y - headingAngle;
@@ -224,7 +224,7 @@ namespace TEN::Entities::Creatures::TR3
 			(item.Animation.AnimNumber == GetAnimIndex(item, SOPHIALEIGH_ANIM_SCEPTER_SHOOT) && item.Animation.FrameNumber > GetFrameIndex(&item, 39) && item.Animation.FrameNumber < GetFrameIndex(&item, 47)) ||
 			(item.Animation.AnimNumber == GetAnimIndex(item, SOPHIALEIGH_ANIM_SCEPTER_SMALL_SHOOT) && item.Animation.FrameNumber > GetFrameIndex(&item, 14) && item.Animation.FrameNumber < GetFrameIndex(&item, 18)))
 		{
-			TriggerDynamicLight(
+			SpawnDynamicLight(
 				pos.x, pos.y, pos.z,
 				item.ItemFlags[1] + SOPHIALEIGH_LIGHTNING_GLOW_SIZE,
 				SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX);
@@ -234,7 +234,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else if (item.Animation.AnimNumber == GetAnimIndex(item, SOPHIALEIGH_ANIM_SUMMON_END) && item.Animation.FrameNumber >= GetFrameIndex(&item, 3) && item.ItemFlags[1] > 0)
 		{
-			TriggerDynamicLight(
+			SpawnDynamicLight(
 				pos.x, pos.y, pos.z,
 				item.ItemFlags[1] + SOPHIALEIGH_LIGHTNING_GLOW_SIZE,
 				SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX);
@@ -631,7 +631,7 @@ namespace TEN::Entities::Creatures::TR3
 				sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 				shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
 
-				auto pos = Pose(item.Pose.Position, 0, 0, 0);
+				auto pos = Pose(item.Pose.Position, EulerAngles::Identity);
 
 				SpawnSophiaSparks(shockwavePos.Position.ToVector3(), Vector3(SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX), 5, 2);
 				TriggerShockwave(&shockwavePos, SOPHIALEIGH_SHOCKWAVE_INNER_SIZE, SOPHIALEIGH_SHOCKWAVE_OUTER_SIZE, SOPHIALEIGH_SHOCKWAVE_SPEED,

@@ -136,8 +136,9 @@ namespace TEN::Effects::Bubble
 
 	void UpdateBubbles()
 	{
-		constexpr auto LIFE_FULL_SCALE	 = std::max(BUBBLE_LIFE_MAX - 0.25f, 0.0f);
-		constexpr auto LIFE_START_FADING = std::min(1.0f, BUBBLE_LIFE_MAX);
+		constexpr auto LIFE_FULL_SCALE		= std::max(BUBBLE_LIFE_MAX - 0.25f, 0.0f);
+		constexpr auto LIFE_START_FADING	= std::min(1.0f, BUBBLE_LIFE_MAX);
+		constexpr int  ROOM_UPDATE_INTERVAL = 10;
 
 		if (Bubbles.empty())
 			return;
@@ -147,19 +148,25 @@ namespace TEN::Effects::Bubble
 			if (bubble.Life <= 0.0f)
 				continue;
 
-			// Update room number. TODO: Should use GetPointCollision(), but calling it for each bubble is very inefficient.
-			auto roomVector = RoomVector(bubble.RoomNumber, int(bubble.Position.y - bubble.Gravity));
-			int roomNumber = GetRoomVector(roomVector, Vector3i(bubble.Position.x, bubble.Position.y - bubble.Gravity, bubble.Position.z)).RoomNumber;
+			bubble.StoreInterpolationData();
+
 			int prevRoomNumber = bubble.RoomNumber;
-			bubble.RoomNumber = roomNumber;
+
+			int updateOffset = (int)(bubble.Position.x + bubble.Position.y + bubble.Position.z) % ROOM_UPDATE_INTERVAL;
+			if (GlobalCounter % ROOM_UPDATE_INTERVAL == updateOffset)
+			{
+				auto roomVector = RoomVector(bubble.RoomNumber, int(bubble.Position.y - bubble.Gravity));
+				auto testPosition = Vector3i(bubble.Position.x, bubble.Position.y - bubble.Gravity, bubble.Position.z);
+				bubble.RoomNumber = GetRoomVector(roomVector, testPosition).RoomNumber;;
+			}
 
 			// Out of water.
-			if (!TestEnvironment(ENV_FLAG_WATER, roomNumber))
+			if (bubble.RoomNumber != prevRoomNumber && !TestEnvironment(ENV_FLAG_WATER, bubble.RoomNumber))
 			{
 				// Hit water surface; spawn ripple.
 				SpawnRipple(
 					Vector3(bubble.Position.x, g_Level.Rooms[prevRoomNumber].TopHeight, bubble.Position.z),
-					roomNumber,
+					bubble.RoomNumber,
 					((bubble.SizeMax.x + bubble.SizeMax.y) / 2) * 0.5f,
 					(int)RippleFlags::SlowFade);
 
@@ -167,8 +174,7 @@ namespace TEN::Effects::Bubble
 				continue;
 			}
 			// Hit ceiling. NOTE: This is a hacky check. New collision fetching should provide fast info on a need-to-know basis.
-			else if (bubble.RoomNumber == prevRoomNumber &&
-				bubble.Position.y <= g_Level.Rooms[prevRoomNumber].TopHeight)
+			else if (bubble.RoomNumber == prevRoomNumber && bubble.Position.y <= g_Level.Rooms[prevRoomNumber].TopHeight)
 			{
 				bubble.Life = 0.0f;
 				continue;

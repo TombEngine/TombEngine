@@ -17,83 +17,86 @@ public:
 	bool AddMoveableToMap(ItemInfo* key, Moveable* mov);
 	bool RemoveMoveableFromMap(ItemInfo* key, Moveable* mov);
 
-	bool TryAddColliding(short id) override
+	bool TryAddColliding(int id) override
 	{
-		ItemInfo* item = &g_Level.Items[id];
-		bool hasName = !(item->Callbacks.OnObjectCollided.empty() && item->Callbacks.OnRoomCollided.empty());
-		if (hasName && item->Collidable && (item->Status != ITEM_INVISIBLE))
-			return m_collidingItems.insert(id).second;
+		const auto& item = g_Level.Items[id];
+
+		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		if (hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
+			return _collidingItems.insert(id).second;
 
 		return false;
 	}
 
-	bool TryRemoveColliding(short id, bool force = false) override
+	bool TryRemoveColliding(int id, bool force = false) override
 	{
-		ItemInfo* item = &g_Level.Items[id];
-		bool hasName = !(item->Callbacks.OnObjectCollided.empty() && item->Callbacks.OnRoomCollided.empty());
-		if(!force && hasName && item->Collidable && (item->Status != ITEM_INVISIBLE))
+		const auto& item = g_Level.Items[id];
+
+		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		if (!force && hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
 			return false;
 
-		return m_collidingItemsToRemove.insert(id).second;
+		return _collidingItemsToRemove.insert(id).second;
 	}
 
 	void TestCollidingObjects() override;
 
 private:
-	LuaHandler m_handler;
-	// A map between moveables and the engine entities they represent. This is needed
-	// so that something that is killed by the engine can notify all corresponding
-	// Lua variables which can then become invalid.
-	std::unordered_map<ItemInfo *, std::unordered_set<Moveable*>>	moveables{};
-	std::unordered_map<std::string, VarMapVal>						m_nameMap{};
-	std::unordered_map<std::string, short>	 						m_itemsMapName{};
-	// A set of items that are visible, collidable, and have Lua OnCollide callbacks.
-	std::unordered_set<short>		 								m_collidingItems{};
-	std::unordered_set<short>		 								m_collidingItemsToRemove{};
-	sol::table m_table_objects;
+	LuaHandler _handler;
 
+	// Map between Lua moveables and engine moveables. Needed so that when something is killed,
+	// TEN can notify all corresponding Lua variables to become invalid.
 
-	void AssignLara() override;
+	std::unordered_map<ItemInfo*, std::unordered_set<Moveable*>> _moveables	   = {};
+	std::unordered_map<std::string, VarMapVal>					 _nameMap	   = {};
+	std::unordered_map<std::string, int>	 					 _itemsMapName = {};
 
-	template <typename R, char const* S>
+	// Map of moveables that are visible, collidable, and have Lua OnCollide callbacks.
+
+	std::unordered_set<int> _collidingItems			= {};
+	std::unordered_set<int> _collidingItemsToRemove = {};
+	sol::table				_table_objects			= {};
+
+	void AssignPlayer() override;
+
+	template <typename R, const char* S>
 	std::unique_ptr<R> GetByName(const std::string& name)
 	{
-		if (!ScriptAssertF(m_nameMap.find(name) != m_nameMap.end(), "{} name not found: {}", S, name))
+		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
-		else
-			return std::make_unique<R>(std::get<R::IdentifierType>(m_nameMap.at(name)));
+
+		return std::make_unique<R>(std::get<R::IdentifierType>(_nameMap.at(name)));
 	}
 
 	template <typename R>
-	std::vector <std::unique_ptr<R>> GetMoveablesBySlot(GAME_OBJECT_ID objID)
+	std::vector <std::unique_ptr<R>> GetMoveablesBySlot(GAME_OBJECT_ID objectID)
 	{
-		std::vector<std::unique_ptr<R>> items = {};
-		for (auto& [key, val] : m_nameMap)
+		auto movs = std::vector<std::unique_ptr<R>>{};
+		for (const auto& [key, val] : _nameMap)
 		{
-			if (!std::holds_alternative<short>(val))
+			if (!std::holds_alternative<int>(val))
 				continue;
 
-			auto& item = g_Level.Items[GetIndexByName(key)];
-
-			if (objID == item.ObjectNumber)
-				items.push_back(GetByName<Moveable, ScriptReserved_Moveable>(key));
+			const auto& item = g_Level.Items[GetIndexByName(key)];
+			if (objectID == item.ObjectNumber)
+				movs.push_back(GetByName<Moveable, ScriptReserved_Moveable>(key));
 		}
 
-		return items;
+		return movs;
 	}
 
 	template <typename R>
 	std::vector <std::unique_ptr<R>> GetStaticsBySlot(int slot)
 	{
-		std::vector<std::unique_ptr<R>> items = {};
-		for (auto& [key, val] : m_nameMap)
+		auto items = std::vector<std::unique_ptr<R>>{};
+		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<MESH_INFO>>(val))
+			if (!std::holds_alternative<std::reference_wrapper<MESH_INFO>>(value))
 				continue;
 			
-			auto meshInfo = std::get<std::reference_wrapper<MESH_INFO>>(val).get();
+			auto staticObj = std::get<std::reference_wrapper<MESH_INFO>>(value).get();
 
-			if (meshInfo.staticNumber == slot)
+			if (staticObj.staticNumber == slot)
 				items.push_back(GetByName<Static, ScriptReserved_Static>(key));
 		}
 
@@ -103,16 +106,15 @@ private:
 	template <typename R>
 	std::vector <std::unique_ptr<R>> GetRoomsByTag(std::string tag)
 	{
-		std::vector<std::unique_ptr<R>> rooms = {};
-		for (auto& [key, val] : m_nameMap)
+		auto rooms = std::vector<std::unique_ptr<R>>{};
+		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<RoomData>>(val))
+			if (!std::holds_alternative<std::reference_wrapper<RoomData>>(value))
 				continue;
 
-			auto room = std::get<std::reference_wrapper<RoomData>>(val).get();
+			auto room = std::get<std::reference_wrapper<RoomData>>(value).get();
 			
-			if (std::any_of(room.Tags.begin(), room.Tags.end(),
-				[&tag](const std::string& value) { return value == tag; }))
+			if (std::any_of(room.Tags.begin(), room.Tags.end(), [&tag](const std::string& value) { return value == tag; }))
 			{
 				rooms.push_back(GetByName<Room, ScriptReserved_Room>(key));
 			}
@@ -121,9 +123,9 @@ private:
 		return rooms;
 	}
 
-	[[nodiscard]] short GetIndexByName(std::string const& name) const override
+	int GetIndexByName(std::string const& name) const override
 	{
-		return std::get<short>(m_nameMap.at(name));
+		return std::get<int>(_nameMap.at(name));
 	}
 
 	bool AddName(const std::string& key, VarMapVal val) override
@@ -131,17 +133,19 @@ private:
 		if (key.empty())
 			return false;
 
-		auto p = std::pair< const std::string&, VarMapVal>{ key, val };
-		return m_nameMap.insert(p).second;
+		auto p = std::pair<const std::string&, VarMapVal>(key, val);
+		return _nameMap.insert(p).second;
 	}
 
 	bool RemoveName(const std::string& key)
 	{
-		return m_nameMap.erase(key);
+		return _nameMap.erase(key);
 	}
 
 	void FreeEntities() override
 	{
-		m_nameMap.clear();
+		_nameMap.clear();
+		_collidingItemsToRemove.clear();
+		_collidingItems.clear();
 	}
 };

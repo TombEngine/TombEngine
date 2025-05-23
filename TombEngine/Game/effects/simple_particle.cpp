@@ -13,9 +13,11 @@ namespace TEN::Effects
 
 	SimpleParticle& GetFreeSimpleParticle()
 	{
-		for (auto& p : simpleParticles)
-			if (!p.active)
-				return p;
+		for (auto& part : simpleParticles)
+		{
+			if (!part.active)
+				return part;
+		}
 
 		return simpleParticles[0];
 	}
@@ -28,17 +30,18 @@ namespace TEN::Effects
 		float z = std::cos(angle + angleVariation);
 		x = x* -500 + snowMobile->Pose.Position.x;
 		z = z* -500 + snowMobile->Pose.Position.z;
-		SimpleParticle& p = GetFreeSimpleParticle();
-		p = {};
-		p.active = true;
-		p.life = Random::GenerateFloat(8, 14);
-		p.room = snowMobile->RoomNumber;
-		p.ageRate = Random::GenerateFloat(0.9f, 1.3f);
+
+		SimpleParticle& part = GetFreeSimpleParticle();
+		part = {};
+		part.active = true;
+		part.life = Random::GenerateFloat(8, 14);
+		part.room = snowMobile->RoomNumber;
+		part.ageRate = Random::GenerateFloat(0.9f, 1.3f);
 		float size = Random::GenerateFloat(96, 128);
-		p.worldPosition = {x, float(snowMobile->Pose.Position.y) - size / 2 , z};
-		p.sequence = ID_SKIDOO_SNOW_TRAIL_SPRITES;
-		p.size = Random::GenerateFloat(256, 512);
-		p.blendMode = BlendMode::AlphaBlend;
+		part.worldPosition = {x, float(snowMobile->Pose.Position.y) - size / 2 , z};
+		part.sequence = ID_SKIDOO_SNOW_TRAIL_SPRITES;
+		part.size = Random::GenerateFloat(256, 512);
+		part.blendMode = BlendMode::AlphaBlend;
 	}
 
 	void TriggerSpeedboatFoam(ItemInfo* boat, Vector3 offset)
@@ -47,39 +50,42 @@ namespace TEN::Effects
 		{
 			float size = Random::GenerateFloat(96, 128);
 			float angle = TO_RAD(boat->Pose.Orientation.y);
-			float angleVariation = i*2*10 * RADIAN;
+			float angleVariation = i * 2 * 10 * RADIAN;
 			float y = float(boat->Pose.Position.y) - size / 2 + offset.y;
 			float x = std::sin(angle + angleVariation);
 			float z = std::cos(angle + angleVariation);
 			x = x * offset.z + z * offset.x + boat->Pose.Position.x;
 			z = z * offset.z + x * offset.x + boat->Pose.Position.z;
-			SimpleParticle& p = GetFreeSimpleParticle();
-			p = {};
-			p.active = true;
-			p.life = Random::GenerateFloat(5, 9);
-			p.room = boat->RoomNumber;
-			p.ageRate = Random::GenerateFloat(0.9f, 1.3f);
-			p.worldPosition = { x, y, z };
-			p.sequence = ID_MOTORBOAT_FOAM_SPRITES;
-			p.size = Random::GenerateFloat(256, 512);
-			p.blendMode = BlendMode::Additive;
+
+			auto& part = GetFreeSimpleParticle();
+			part = {};
+			part.active = true;
+			part.life = Random::GenerateFloat(5, 9);
+			part.room = boat->RoomNumber;
+			part.ageRate = Random::GenerateFloat(0.9f, 1.3f);
+			part.worldPosition = { x, y, z };
+			part.sequence = ID_MOTORBOAT_FOAM_SPRITES;
+			part.size = Random::GenerateFloat(256, 512);
+			part.blendMode = BlendMode::Additive;
 		}
 	}
 
 	void UpdateSimpleParticles()
 	{
-		for (auto& p : simpleParticles)
+		for (auto& part : simpleParticles)
 		{
-			if (!p.active)
+			if (!part.active)
 				continue;
 
-			p.age+= p.ageRate;
-			if (p.life < p.age)
-				p.active = false;
+			part.StoreInterpolationData();
 
-			int numSprites = -Objects[p.sequence].nmeshes - 1;
-			float normalizedAge = p.age / p.life;
-			p.sprite = Lerp(0.0f, numSprites, normalizedAge);
+			part.age+= part.ageRate;
+			if (part.life < part.age)
+				part.active = false;
+
+			int spriteCount = -Objects[part.sequence].nmeshes - 1;
+			float normalizedAge = part.age / part.life;
+			part.sprite = Lerp(0.0f, spriteCount, normalizedAge);
 		}
 	}
 }

@@ -14,12 +14,12 @@
 
 	float Vector3i::Distance(const Vector3i& origin, const Vector3i& target)
 	{
-		return Vector3::Distance(origin.ToVector3(), target.ToVector3());
+		return std::sqrt(DistanceSquared(origin, target));
 	}
-	
+
 	float Vector3i::DistanceSquared(const Vector3i& origin, const Vector3i& target)
 	{
-		return Vector3::DistanceSquared(origin.ToVector3(), target.ToVector3());
+		return (SQUARE(target.x - origin.x) + SQUARE(target.y - origin.y) + SQUARE(target.z - origin.z));
 	}
 
 	void Vector3i::Lerp(const Vector3i& target, float alpha)

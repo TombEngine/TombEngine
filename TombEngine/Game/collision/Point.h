@@ -36,6 +36,7 @@ namespace TEN::Collision::Point
 	public:
 		// Constructors
 
+		PointCollisionData() = default;
 		PointCollisionData(const Vector3i& pos, int roomNumber);
 
 		// Getters

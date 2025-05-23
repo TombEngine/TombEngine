@@ -71,7 +71,7 @@ namespace TEN::Entities::TR4
 				fade = 0;
 
 			AddFire(item->Pose.Position.x, item->Pose.Position.y - 620, item->Pose.Position.z, item->RoomNumber, 0.5f, fade);
-			TriggerDynamicLight(item->Pose.Position.x, item->Pose.Position.y - 768, item->Pose.Position.z, 12, r, g, b);
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y - 768, item->Pose.Position.z, 12, r, g, b);
 			return;
 		}
 

@@ -118,7 +118,7 @@ namespace TEN::Gui
 	{
 		static constexpr auto NEW_KEY_WAIT_TIMEOUT = 3.0f * FPS;
 
-		GameConfiguration Configuration = {};
+		GameConfiguration Config = {};
 
 		int	  SelectedScreenResolution = 0;
 		bool  IgnoreInput			   = false; // Ignore input until all actions are inactive.
@@ -239,7 +239,6 @@ namespace TEN::Gui
 		void UpdateWeaponStatus(ItemInfo* item);
 		void DoStatisticsMode();
 		void DoExamineMode();
-		void DoDiary(ItemInfo* item);
 		LoadResult DoLoad();
 		bool DoSave();
 		void DoInventory(ItemInfo* item);

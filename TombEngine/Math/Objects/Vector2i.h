@@ -5,7 +5,7 @@ namespace TEN::Math
 	class Vector2i
 	{
 	public:
-		// Members
+		// Fields
 
 		int x = 0;
 		int y = 0;
@@ -16,7 +16,7 @@ namespace TEN::Math
 
 		// Constructors
 
-		constexpr Vector2i() {};
+		constexpr Vector2i() = default;
 		constexpr Vector2i(int x, int y) { this->x = x; this->y = y; };
 				  Vector2i(const Vector2& vector);
 

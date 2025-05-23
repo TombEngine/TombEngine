@@ -369,12 +369,12 @@ namespace TEN::Entities::Creatures::TR5
 								{
 									SpawnGuardianSparks(origin1.ToVector3(), colorSparks, 3);
 									SpawnElectricityGlow(origin1.ToVector3(), (GetRandomControl() & 3) + 32, color.x, color.y, color.z);
-									TriggerDynamicLight(origin1.x, origin1.y, origin1.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
+									SpawnDynamicLight(origin1.x, origin1.y, origin1.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
 
 									if (!guardian->LOS[i] && guardian->fireArcs[i] != nullptr)
 									{
 										SpawnElectricityGlow(guardian->fireArcs[i]->pos4, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
-										TriggerDynamicLight(guardian->fireArcs[i]->pos4.x, guardian->fireArcs[i]->pos4.y, guardian->fireArcs[i]->pos4.z, (GetRandomControl() & 3) + 6, color.x, color.y, color.z);
+										SpawnDynamicLight(guardian->fireArcs[i]->pos4.x, guardian->fireArcs[i]->pos4.y, guardian->fireArcs[i]->pos4.z, (GetRandomControl() & 3) + 6, color.x, color.y, color.z);
 										SpawnGuardianSparks(guardian->fireArcs[i]->pos4, colorSparks, 3);
 									}
 								}
@@ -579,7 +579,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			SpawnElectricityGlow(target, (GetRandomControl() & 3) + size + 8, color.x, color.y, color.z);
-			TriggerDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
+			SpawnDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
 		}
 
 		if (!(GlobalCounter & 3))
@@ -591,9 +591,12 @@ namespace TEN::Entities::Creatures::TR5
 	void DoGuardianDeath(int itemNumber, ItemInfo& item)
 	{
 		const auto& guardian = GetGuardianInfo(item);
-
-		ExplodeItemNode(&g_Level.Items[guardian.BaseItem], 0, 0, 128);
-		KillItem(guardian.BaseItem);
+		
+		if (g_Level.Items[guardian.BaseItem].ObjectNumber == ID_LASERHEAD_BASE)
+		{
+			ExplodeItemNode(&g_Level.Items[guardian.BaseItem], 0, 0, 128);
+			KillItem(guardian.BaseItem);
+		}
 
 		ExplodeItemNode(&item, 0, 0, 128);
 
@@ -605,7 +608,6 @@ namespace TEN::Entities::Creatures::TR5
 		TriggerShockwave(&item.Pose, 32, 160, 64, 0, 128, 64, 36, EulerAngles(0x3000, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
 		TriggerShockwave(&item.Pose, 32, 160, 64, 0, 128, 64, 36, EulerAngles(0x6000, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
 
-		g_Level.Items[guardian.PuzzleItem].Pose.Position.y = item.Pose.Position.y;
 		TestTriggers(&item, true);
 
 		SoundEffect(SFX_TR5_GOD_HEAD_BLAST, &item.Pose, SoundEnvironment::Land, 0.5f);

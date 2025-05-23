@@ -292,19 +292,19 @@ namespace TEN::Config
 		}
 
 		// Set Controls\\KeyBindings keys.
-		g_Config.KeyBindings.resize((int)In::Count);
+		//g_Config.KeyBindings.resize((int)In::Count);
 		for (int i = 0; i < (int)In::Count; i++)
 		{
 			char buffer[9];
 			sprintf(buffer, "Action%d", i);
 
-			if (SetDWORDRegKey(keyBindingsKey, buffer, g_Config.KeyBindings[i]) != ERROR_SUCCESS)
+			/*if (SetDWORDRegKey(keyBindingsKey, buffer, g_Config.KeyBindings[i]) != ERROR_SUCCESS)
 			{
 				RegCloseKey(rootKey);
 				RegCloseKey(controlsKey);
 				RegCloseKey(keyBindingsKey);
 				return false;
-			}
+			}*/
 		}
 
 		// Open Gameplay subkey.
@@ -496,22 +496,22 @@ namespace TEN::Config
 				char buffer[9];
 				sprintf(buffer, "Action%d", i);
 
-				if (GetDWORDRegKey(keyBindingsKey, buffer, &tempAction, Bindings[0][i]) != ERROR_SUCCESS)
+				/*if (GetDWORDRegKey(keyBindingsKey, buffer, &tempAction, Bindings[0][i]) != ERROR_SUCCESS)
 				{
 					RegCloseKey(rootKey);
 					RegCloseKey(controlsKey);
 					RegCloseKey(keyBindingsKey);
 					return false;
-				}
+				}*/
 
-				g_Config.KeyBindings.push_back(tempAction);
-				Bindings[1][i] = tempAction;
+				//g_Config.KeyBindings.push_back(tempAction);
+				//KeyBindings[1][i] = tempAction;
 			}
 		}
 		else
 		{
 			// "KeyBindings" key doesn't exist; use default bindings.
-			g_Config.KeyBindings = Bindings[0];
+			//g_Config.KeyBindings = Bindings[0];
 		}
 
 		// Open Gameplay subkey.

@@ -4,6 +4,7 @@
 //
 #define IDD_SETUP                       103
 #define IDI_ICON1                       108
+#define IDR_TITLELEVEL                  109
 #define IDC_CHK_ENABLE_SOUND2           1012
 #define IDC_GFXADAPTER                  1020
 #define IDC_GFXADAPTERTXT               1021

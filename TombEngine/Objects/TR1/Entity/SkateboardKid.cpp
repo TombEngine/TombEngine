@@ -77,7 +77,7 @@ namespace TEN::Entities::Creatures::TR1
 		AddActiveItem(skateItemNumber);
 
 		skate.Active = false;
-		skate.Status |= ITEM_INVISIBLE;
+		skate.Status = ITEM_INVISIBLE;
 		item.ItemFlags[0] = skateItemNumber;
 	}
 

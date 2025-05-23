@@ -76,7 +76,7 @@ namespace TEN::Entities::Traps
 
 		item.Pose.Orientation.x = -(rh - floorHeight) * 2;
 
-		TriggerDynamicLight(item.Pose.Position.x + BLOCK(3) * sinY, item.Pose.Position.y, item.Pose.Position.z + BLOCK(3) * cosY, 16, 31, 31, 31);
+		SpawnDynamicLight(item.Pose.Position.x + BLOCK(3) * sinY, item.Pose.Position.y, item.Pose.Position.z + BLOCK(3) * cosY, 16, 31, 31, 31);
 
 		if (item.ItemFlags[1] != TRAIN_VEL)
 		{

@@ -1,9 +1,11 @@
 #pragma once
 
 // References:
-// https://github.com/erincatto/box2d/blob/main/include/box2d/b2_dynamic_tree.h
-// https://github.com/erincatto/box2d/blob/main/src/collision/b2_dynamic_tree.cpp
+// https://github.com/erincatto/box2d/blob/28adacf82377d4113f2ed00586141463244b9d10/src/dynamic_tree.c
 // https://www.gdcvault.com/play/1025909/Math-for-Game-Developers-Dynamic
+
+// NOTE: _leafIdMap is a hash map for convenience. If performance suffers with too many Move() and Remove() calls, a method with faster access can be implemented.
+// However, it requires maintaining an odd index variable outside the BVH instance, so a hash map is preferred for the benefit of cleaner code. -- Sezz 2024.11.05
 
 namespace TEN::Structures
 {
@@ -20,23 +22,23 @@ namespace TEN::Structures
 	private:
 		struct Node
 		{
-			int			ObjectID = NO_VALUE; // NOTE: Only stored by leaf.
+			int			ObjectId = NO_VALUE; // NOTE: Only stored by leaf.
 			BoundingBox Aabb	 = BoundingBox();
 
 			int Height		 = 0;
-			int ParentID	 = NO_VALUE;
-			int LeftChildID	 = NO_VALUE;
-			int RightChildID = NO_VALUE;
+			int ParentId	 = NO_VALUE;
+			int LeftChildId	 = NO_VALUE;
+			int RightChildId = NO_VALUE;
 
 			bool IsLeaf() const;
 		};
 
-		// Members
+		// Fields
 
 		std::vector<Node>			 _nodes		  = {};
-		std::vector<int>			 _freeNodeIds = {};
-		std::unordered_map<int, int> _leafIDMap	  = {}; // Key = object ID, value = leaf ID.
-		int							 _rootID	  = NO_VALUE;
+		std::stack<int>				 _freeNodeIds = {};
+		std::unordered_map<int, int> _leafIdMap	  = {}; // Key = object ID, value = leaf ID.
+		int							 _rootId	  = NO_VALUE;
 
 	public:
 		// Constructors
@@ -60,9 +62,9 @@ namespace TEN::Structures
 
 		// Utilities
 
-		void Insert(int objectID, const BoundingBox& aabb, float boundary = 0.0f);
-		void Move(int objectID, const BoundingBox& aabb, float boundary = 0.0f);
-		void Remove(int objectID);
+		void Insert(int objectId, const BoundingBox& aabb, float boundary = 0.0f);
+		void Move(int objectId, const BoundingBox& aabb, float boundary = 0.0f);
+		void Remove(int objectId);
 
 		// Debug
 
@@ -75,14 +77,14 @@ namespace TEN::Structures
 
 		// Dynamic helpers
 
-		int GetNewNodeID();
-		int GetBestSiblingLeafID(int leafID) const;
+		int GetNewNodeId();
+		int GetBestSiblingLeafId(int leafId) const;
 
-		void InsertLeaf(int leafID);
-		void RemoveLeaf(int leafID);
-		void RefitNode(int nodeID);
-		void RemoveNode(int nodeID);
-		int	 BalanceNode(int nodeID);
+		void InsertLeaf(int leafId);
+		void RemoveLeaf(int leafId);
+		void RefitNode(int nodeId);
+		void RemoveNode(int nodeId);
+		int	 BalanceNode(int nodeId);
 
 		// Static helpers
 
@@ -92,6 +94,6 @@ namespace TEN::Structures
 		// Debug helpers
 
 		void Validate() const;
-		void Validate(int nodeID) const;
+		void Validate(int nodeId) const;
 	} Bvh;
 }

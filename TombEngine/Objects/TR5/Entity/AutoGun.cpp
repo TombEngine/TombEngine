@@ -63,19 +63,16 @@ namespace TEN::Entities::Creatures::TR5
 		smoke.fadeToBlack = 32;
 		smoke.blendMode = BlendMode::Additive;
 		smoke.life = smoke.sLife = Random::GenerateInt(40, 44);
-		smoke.x = smokePos.x;
-		smoke.y = smokePos.y;
-		smoke.z = smokePos.z;
-		smoke.xVel = 0;
-		smoke.yVel = 0;
-		smoke.zVel = 0;
+		smoke.position.x = smokePos.x;
+		smoke.position.y = smokePos.y;
+		smoke.position.z = smokePos.z;
+		smoke.velocity = Vector3i::Zero;
 		smoke.friction = 4;
 		smoke.flags = SP_ROTATE;
 		smoke.rotAng = Random::GenerateInt(0, 4096);
 		smoke.rotAdd = Random::GenerateInt(-32, 32);
 		smoke.maxYvel = 0;
 		smoke.gravity = Random::GenerateInt(-4, -8);
-		smoke.mirror = 0;
 		smoke.dSize = Random::GenerateInt(24, 40);
 		smoke.sSize = smoke.dSize / 4;
 		smoke.size = smoke.dSize / 4;
@@ -129,7 +126,7 @@ namespace TEN::Entities::Creatures::TR5
 					item.MeshBits.Set(AutoGunFlashJoints);
 
 					auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
-					TriggerDynamicLight(origin.x, origin.y, origin.z, 10, lightColor.x, lightColor.y, lightColor.z);
+					SpawnDynamicLight(origin.x, origin.y, origin.z, 10, lightColor.x, lightColor.y, lightColor.z);
 
 					// Spawn blood.
 					if (Random::TestProbability(AUTO_GUN_BLOOD_EFFECT_CHANCE))
@@ -170,7 +167,7 @@ namespace TEN::Entities::Creatures::TR5
 						pos.z += dz + GetRandomControl() - 128;
 
 						if (!LOS(&origin, &pos))
-							TriggerRicochetSpark(pos, Random::GenerateAngle(), 3, 0);
+							TriggerRicochetSpark(pos, Random::GenerateAngle());
 					}
 				}
 				else

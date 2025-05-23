@@ -1,5 +1,4 @@
 #pragma once
-
 #include "game_object_ids.h"
 
 template <typename T, typename Enum> constexpr bool is_underlying = std::is_same_v<T, std::underlying_type_t<Enum>>;
@@ -32,8 +31,8 @@ template <typename T> std::enable_if_t<std::is_same_v<T, std::underlying_type_t<
 		SPR_SPLASH4,
 		SPR_SPLASH,
 		SPR_RIPPLES,
-		SPR_LENSFLARE,
-		SPR_LENSFLARE_LIGHT,
+		SPR_LENS_FLARE,
+		SPR_LENS_FLARE_LIGHT,
 		SPR_BULLETIMPACT,
 		SPR_BUBBLES,
 		SPR_UNDERWATERDUST,
@@ -50,5 +49,9 @@ template <typename T> std::enable_if_t<std::is_same_v<T, std::underlying_type_t<
 		SPR_GUI_UP,
 		SPR_GUI_LEFT,
 		SPR_GUI_RIGHT,
-		SPR_LIGHTHING
+		SPR_LIGHTHING,
+		SPR_LENS_FLARE_1,
+		SPR_LENS_FLARE_2,
+		SPR_LENS_FLARE_3,
+		SPR_LENS_FLARE_4
 	};

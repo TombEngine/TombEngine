@@ -17,16 +17,16 @@ namespace TEN::Structures
 			Cell(const BoundingBox& aabb);
 		};
 
-		// Members
+		// Fields
 
-		std::unordered_map<Vector3i, Cell> _cellMap = {};
+		std::unordered_map<Vector3i, Cell> _cellMap = {}; // Key = position, value = cell.
 
 		float	_cellSize		 = 0.0f;
 		Vector3 _cellAabbExtents = Vector3::Zero;
 
 	public:
 		// Constructors
-		
+
 		SpatialHash(float cellSize);
 
 		// Getters
@@ -46,15 +46,15 @@ namespace TEN::Structures
 
 		// Utilities
 
-		void Insert(int objectID, const BoundingBox& aabb);
-		void Insert(int objectID, const BoundingOrientedBox& obb);
-		void Insert(int objectID, const BoundingSphere& sphere);
-		void Move(int objectID, const BoundingBox& aabb, const BoundingBox& prevAabb);
-		void Move(int objectID, const BoundingOrientedBox& obb, BoundingOrientedBox& prevObb);
-		void Move(int objectID, const BoundingSphere& sphere, const BoundingSphere& prevSphere);
-		void Remove(int objectID, const BoundingBox& prevAabb);
-		void Remove(int objectID, const BoundingOrientedBox& prevObb);
-		void Remove(int objectID, const BoundingSphere& prevSphere);
+		void Insert(int objectId, const BoundingBox& aabb);
+		void Insert(int objectId, const BoundingOrientedBox& obb);
+		void Insert(int objectId, const BoundingSphere& sphere);
+		void Move(int objectId, const BoundingBox& aabb, const BoundingBox& prevAabb);
+		void Move(int objectId, const BoundingOrientedBox& obb, BoundingOrientedBox& prevObb);
+		void Move(int objectId, const BoundingSphere& sphere, const BoundingSphere& prevSphere);
+		void Remove(int objectId, const BoundingBox& prevAabb);
+		void Remove(int objectId, const BoundingOrientedBox& prevObb);
+		void Remove(int objectId, const BoundingSphere& prevSphere);
 
 		// Debug
 
@@ -71,7 +71,7 @@ namespace TEN::Structures
 
 		// Utility helpers
 
-		void Insert(int objectID, const std::vector<Vector3i>& keys);
-		void Remove(int objectID, const std::vector<Vector3i>& keys);
+		void Insert(int objectId, const std::vector<Vector3i>& keys);
+		void Remove(int objectId, const std::vector<Vector3i>& keys);
 	};
 }

@@ -36,7 +36,7 @@ float2 CalculateUVRotate(float2 uv, unsigned int frame)
 
 float2 GetFrame(unsigned int index, unsigned int offset)
 {
-	float speed = FPS / 30.0f;
+    float speed = (float)FPS / 30.0f;
 	int frame = int(Frame * speed + offset) % NumAnimFrames;
 
 	float2 result = 0;

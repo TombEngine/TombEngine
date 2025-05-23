@@ -6,24 +6,18 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./CBStatic.hlsli"
 
 cbuffer RoomBuffer : register(b5)
 {
-	float2 CausticsStartUV;
-	float2 CausticsScale;
-	float4 AmbientColor;
-	ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
-	int NumRoomLights;
-	int Water;
-	int Caustics;
-	int Padding;
-};
-
-cbuffer SkyBuffer : register(b2)
-{
-	float4x4 World;
-	float4 Color;
-	int ApplyFogBulbs;
+    int Water;
+    int Caustics;
+    int NumRoomLights;
+    int Padding;
+    float2 CausticsStartUV;
+    float2 CausticsScale;
+    float4 AmbientColor;
+    ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 };
 
 struct PixelShaderInput

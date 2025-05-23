@@ -130,6 +130,8 @@ void UpdateBats()
 		if (!bat->On)
 			continue;
 
+		bat->StoreInterpolationData();
+
 		if ((LaraItem->Effect.Type != EffectType::None || LaraItem->HitPoints <= 0) &&
 			bat->Counter > 90 &&
 			!(GetRandomControl() & 7))

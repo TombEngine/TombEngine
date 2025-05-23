@@ -7,19 +7,15 @@ Constants for the type of the audio tracks.
 @pragma nostrip
 */
 
-/*** Sound.SoundTrackType constants.
+/*** Table of Sound.SoundTrackType constants.
+* 
+To be used with sound track functions, such as @{Sound.PlayAudioTrack} and @{Sound.StopAudioTrack}.
 
-The following constants are inside SoundTrackType.
+ - `ONESHOT` - Used for one-time music tracks.
+ - `LOOPED` - Used for looped ambience or music.
+ - `VOICE` - Used for dialogs. Also supports subtitles, set by @{Sound.GetCurrentSubtitle} function.
 
-	ONESHOT
-	LOOPED
-	VOICE
-
-@section Sound.SoundTrackType
-*/
-
-/*** Table of sound track type constants (for use with sound track functions).
-@table CONSTANT_STRING_HERE
+@table Sound.SoundTrackType
 */
 
 static const std::unordered_map<std::string, SoundTrackType> SOUNDTRACK_TYPE

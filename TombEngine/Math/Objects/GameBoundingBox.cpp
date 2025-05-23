@@ -85,6 +85,36 @@
 		Z2 = (int)round(boxMax.z);
 	}
 
+	BoundingSphere GameBoundingBox::ToLocalBoundingSphere() const
+	{
+		return BoundingSphere(GetCenter(), GetExtents().Length());
+	}
+
+	BoundingBox GameBoundingBox::ToConservativeBoundingBox(const Pose& pose) const
+	{
+		// Calculate conservative radius in XZ plane for Y-axis rotation.
+		auto extents = GetExtents();
+		float xzRadius = sqrt(extents.x * extents.x + extents.z * extents.z);
+
+		// Extents remain unchanged along Y-axis.
+		auto conservativeExtents = Vector3(xzRadius, extents.y, xzRadius);
+
+		// Manual 2D rotation for Y-axis only.
+		auto center = GetCenter();
+		float cos = phd_cos(pose.Orientation.y);
+		float sin = phd_sin(pose.Orientation.y);
+
+		// Rotate centerOffset in XZ plane (ignore Y rotation for height).
+		float rotatedX =  (cos * center.x) + (sin * center.z);
+		float rotatedZ = -(sin * center.x) + (cos * center.z);
+
+		// Box center is now position plus rotated offset.
+		auto rotatedCenter = pose.Position.ToVector3() + Vector3(rotatedX, center.y, rotatedZ);
+
+		// Build and return conservative AABB.
+		return BoundingBox(rotatedCenter, conservativeExtents);
+	}
+
 	BoundingOrientedBox GameBoundingBox::ToBoundingOrientedBox(const Pose& pose) const
 	{
 		return ToBoundingOrientedBox(pose.Position.ToVector3(), pose.Orientation.ToQuaternion());
@@ -137,11 +167,27 @@
 			Z1 * scalar, Z2 * scalar);
 	}
 
+	GameBoundingBox GameBoundingBox::operator *(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 * scalar.x, X2 * scalar.x,
+			Y1 * scalar.y, Y2 * scalar.y,
+			Z1 * scalar.z, Z2 * scalar.z);
+	}
+
 	GameBoundingBox GameBoundingBox::operator /(float scalar) const
 	{
 		return GameBoundingBox(
 			X1 / scalar, X2 / scalar,
 			Y1 / scalar, Y2 / scalar,
 			Z1 / scalar, Z2 / scalar);
+	}
+
+	GameBoundingBox GameBoundingBox::operator /(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 / scalar.x, X2 / scalar.x,
+			Y1 / scalar.y, Y2 / scalar.y,
+			Z1 / scalar.z, Z2 / scalar.z);
 	}
 //}

@@ -9,7 +9,7 @@ struct AI_OBJECT;
 struct RoomData;
 
 using VarMapVal = std::variant<
-	short,
+	int,
 	std::reference_wrapper<MESH_INFO>,
 	std::reference_wrapper<LevelCameraInfo>,
 	std::reference_wrapper<SinkInfo>,

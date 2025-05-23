@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
 #include "Objects/Generic/Object/rope.h"
@@ -45,6 +46,12 @@ void lara_as_pickup(ItemInfo* item, CollisionInfo* coll)
 
 	if (TestLastFrame(item))
 		item->Animation.TargetState = GetNextAnimState(item);
+}
+
+void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
+{
+	LaraDefaultCollision(item, coll);
+	ShiftItem(item, coll);
 }
 
 // State:		LS_PICKUP_FLARE (67)

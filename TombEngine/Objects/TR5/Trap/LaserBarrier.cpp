@@ -91,6 +91,8 @@ namespace TEN::Entities::Traps
 		float barrierHeight = item.Pose.Position.y - pointColl.GetCeilingHeight();
 		item.ItemFlags[0] = barrierHeight;
 
+		item.Collidable = false;
+
 		// Initialize barrier effect.
 		auto barrier = LaserBarrier{};
 		barrier.Initialize(item);
@@ -100,7 +102,7 @@ namespace TEN::Entities::Traps
 	static void SpawnLaserBarrierLight(const ItemInfo& item, float intensity, float amplitude)
 	{
 		float intensityNorm = intensity - Random::GenerateFloat(0.0f, amplitude);
-		TriggerDynamicLight(
+		SpawnDynamicLight(
 			item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z,
 			8,
 			intensityNorm * (item.Model.Color.x / 2),

@@ -15,11 +15,13 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
 using namespace TEN::Config;
 using namespace TEN::Gui;
 using namespace TEN::Math;
+using namespace TEN::Video;
 
 enum SoundSourceFlags
 {
@@ -47,7 +49,7 @@ const BASS_BFX_FREEVERB BASS_ReverbTypes[(int)ReverbType::Count] =    // Reverb 
   {  1.0f,     0.25f,     0.90f,    1.00f,    1.0f,     0,      -1     }	// 4 = Pipe
 };
 
-const  std::string TRACKS_EXTENSIONS[] = {".wav", ".mp3", ".ogg"};
+const  std::string TRACKS_EXTENSIONS[] = {".wav", ".ogg", ".mp3" };
 const  std::string TRACKS_PATH = "Audio/";
 static std::string FullAudioDirectory;
 
@@ -77,6 +79,7 @@ void SetVolumeTracks(int vol)
 void SetVolumeFX(int vol)
 {
 	GlobalFXVolume = vol;
+	g_VideoPlayer.SetVolume(vol);
 }
 
 bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
@@ -491,7 +494,7 @@ std::optional<std::string> GetCurrentSubtitle()
 	return std::nullopt;
 }
 
-void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD position)
+void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional<QWORD> pos, int forceFadeInTime)
 {
 	if (!g_Config.EnableSound)
 		return;
@@ -506,10 +509,11 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)mode].Channel);
 	if (channelActive && SoundtrackSlot[(int)mode].Track.compare(track) == 0)
 	{
-		// Same track is incoming with different playhead, set it to a new position.
+		// Same track is incoming with different playhead; set it to new position.
 		auto stream = SoundtrackSlot[(int)mode].Channel;
-		if (position && (BASS_ChannelGetLength(stream, BASS_POS_BYTE) > position))
-			BASS_ChannelSetPosition(stream, position, BASS_POS_BYTE);
+		if (pos.has_value() && BASS_ChannelGetLength(stream, BASS_POS_BYTE) > pos.value())
+			BASS_ChannelSetPosition(stream, pos.value(), BASS_POS_BYTE);
+
 		return;
 	}
 
@@ -566,28 +570,30 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 	// BGM tracks are crossfaded, and additionally shuffled a bit to make things more natural.
 	// Think everybody are fed up with same start-up sounds of Caves ambience...
 
-	if (crossfade && BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
+	if (forceFadeInTime > 0 || (crossfade && BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel)))
 	{		
 		// Crossfade...
 		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, 0.0f);
-		BASS_ChannelSlideAttribute(stream, BASS_ATTRIB_VOL, masterVolume, crossfadeTime);
+		BASS_ChannelSlideAttribute(stream, BASS_ATTRIB_VOL, masterVolume, (forceFadeInTime > 0) ? forceFadeInTime : crossfadeTime);
 
 		// Shuffle...
 		// Only activates if no custom position is passed as argument.
-		if (!position)
+		if (!pos.has_value())
 		{
 			QWORD newPos = BASS_ChannelGetLength(stream, BASS_POS_BYTE) * (static_cast<float>(GetRandomControl()) / static_cast<float>(RAND_MAX));
 			BASS_ChannelSetPosition(stream, newPos, BASS_POS_BYTE);
 		}
 	}
 	else
+	{
 		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, masterVolume);
+	}
 
 	BASS_ChannelPlay(stream, false);
 
 	// Try to restore position, if specified.
-	if (position && (BASS_ChannelGetLength(stream, BASS_POS_BYTE) > position))
-		BASS_ChannelSetPosition(stream, position, BASS_POS_BYTE);
+	if (pos.has_value() && BASS_ChannelGetLength(stream, BASS_POS_BYTE) > pos.value())
+		BASS_ChannelSetPosition(stream, pos.value(), BASS_POS_BYTE);
 
 	if (Sound_CheckBASSError("Playing soundtrack '%s'", true, fullTrackName.filename().string().c_str()))
 		return;
@@ -660,7 +666,7 @@ void PlaySoundTrack(int index, short mask)
 	PlaySoundTrack(SoundTracks[index].Name, SoundTracks[index].Mode);
 }
 
-void StopSoundTracks(bool excludeAmbience)
+void StopSoundTracks(int fadeoutTime, bool excludeAmbience)
 {
 	for (int i = 0; i < (int)SoundTrackType::Count; i++)
 	{
@@ -668,12 +674,15 @@ void StopSoundTracks(bool excludeAmbience)
 		if (excludeAmbience && type == SoundTrackType::BGM)
 			continue;
 
-		StopSoundTrack(type, SOUND_XFADETIME_ONESHOT);
+		StopSoundTrack(type, fadeoutTime);
 	}
 }
 
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime)
 {
+	if (SoundtrackSlot[(int)mode].Channel == NULL)
+		return;
+	
 	// Do fadeout.
 	BASS_ChannelSlideAttribute(SoundtrackSlot[(int)mode].Channel, BASS_ATTRIB_VOL | BASS_SLIDE_LOG, -1.0f, fadeoutTime);
 
@@ -696,7 +705,7 @@ std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type)
 		return std::pair<std::string, QWORD>();
 
 	std::filesystem::path path = track.Track;
-	return std::pair<std::string, QWORD>(path.stem().string(), BASS_ChannelGetPosition(track.Channel, BASS_POS_BYTE));
+	return std::pair<std::string, QWORD>(path.string(), BASS_ChannelGetPosition(track.Channel, BASS_POS_BYTE));
 }
 
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData)
@@ -1075,14 +1084,11 @@ void PlaySecretTrack()
 
 int GetShatterSound(int shatterID)
 {
-	auto fxID = StaticObjects[shatterID].shatterSound;
-	if (fxID != -1 && fxID < NUM_SFX)
+	auto fxID = Statics[shatterID].shatterSound;
+	if (fxID != NO_VALUE && fxID < g_Level.SoundMap.size())
 		return fxID;
 
-	if (shatterID < 3)
-		return SFX_TR5_SMASH_WOOD;
-	else
-		return SFX_TR4_SMASH_ROCK;
+	return SFX_TR4_SMASH_ROCK;
 }
 
 void PlaySoundSources()

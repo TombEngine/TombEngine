@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Math/Math.h"
+#include "Physics/Physics.h"
 
 using namespace TEN::Math;
+using namespace TEN::Physics;
 
 class FloorInfo;
 class GameBoundingBox;
@@ -22,24 +24,25 @@ extern int  FlipMap[MAX_FLIPMAP];
 
 enum RoomEnvFlags
 {
-	ENV_FLAG_WATER			  = 1 << 0,
-	ENV_FLAG_SWAMP			  = 1 << 2,
-	ENV_FLAG_OUTSIDE		  = 1 << 3,
-	ENV_FLAG_DYNAMIC_LIT	  = 1 << 4,
-	ENV_FLAG_WIND			  = 1 << 5,
-	ENV_FLAG_NOT_NEAR_OUTSIDE = 1 << 6,
-	ENV_FLAG_NO_LENSFLARE	  = 1 << 7,
-	ENV_FLAG_MIST			  = 1 << 8,
-	ENV_FLAG_CAUSTICS		  = 1 << 9,
-	ENV_FLAG_UNKNOWN3		  = 1 << 10,
-	ENV_FLAG_DAMAGE			  = 1 << 11,
-	ENV_FLAG_COLD			  = 1 << 12
+	ENV_FLAG_WATER			 = 1 << 0,
+	ENV_FLAG_SWAMP			 = 1 << 2,
+	ENV_FLAG_SKYBOX			 = 1 << 3,
+	ENV_FLAG_DYNAMIC_LIT	 = 1 << 4,
+	ENV_FLAG_WIND			 = 1 << 5,
+	ENV_FLAG_NOT_NEAR_SKYBOX = 1 << 6,
+	ENV_FLAG_NO_LENSFLARE	 = 1 << 7,
+	ENV_FLAG_MIST			 = 1 << 8,
+	ENV_FLAG_CAUSTICS		 = 1 << 9,
+	ENV_FLAG_UNKNOWN3		 = 1 << 10,
+	ENV_FLAG_DAMAGE			 = 1 << 11,
+	ENV_FLAG_COLD			 = 1 << 12
 };
 
 enum StaticMeshFlags : short
 {
-	SM_VISIBLE = 1,
-	SM_SOLID = 2
+	SM_VISIBLE	 = 1 << 0,
+	SM_SOLID	 = 1 << 1,
+	SM_COLLISION = 1 << 2
 };
 
 struct RoomVertexData
@@ -50,6 +53,21 @@ struct RoomVertexData
 	Vector3 color;
 	int		effects;
 	int		index;
+};
+
+struct MESH_INFO
+{
+	Pose pos;
+	int roomNumber;
+	short staticNumber;
+	short flags;
+	Vector4 color;
+	short HitPoints;
+	std::string Name;
+	bool Dirty;
+	
+	BoundingOrientedBox GetObb() const;
+	BoundingOrientedBox GetVisibilityObb() const;
 };
 
 struct RoomLightData
@@ -66,23 +84,7 @@ struct RoomLightData
 	bool castShadows;
 };
 
-struct MESH_INFO
-{
-	Pose pos;
-	int roomNumber;
-	float scale;
-	short staticNumber;
-	short flags;
-	Vector4 color;
-	short HitPoints;
-	std::string Name;
-	bool Dirty;
-
-	BoundingOrientedBox GetObb() const;
-	BoundingOrientedBox GetVisibilityObb() const;
-};
-
-struct RoomPortalData
+struct PortalData
 {
 private:
 	static constexpr auto VERTEX_COUNT = 4;
@@ -102,7 +104,7 @@ private:
 
 	static constexpr auto AABB_BOUNDARY = BLOCK(0.1f);
 
-	// Members
+	// Fields
 
 	Bvh _tree = Bvh();
 
@@ -122,6 +124,10 @@ public:
 	void Insert(int id, const BoundingBox& aabb);
 	void Move(int id, const BoundingBox& aabb);
 	void Remove(int id);
+
+	// Debug
+
+	void DrawDebug() const;
 };
 
 // TODO: Make class?
@@ -131,11 +137,12 @@ struct RoomData
 	std::string				 Name		= {};
 	std::vector<std::string> Tags		= {};
 
-	Vector3i Position	  = Vector3i::Zero;
-	int		 BottomHeight = 0;
-	int		 TopHeight	  = 0;
-	int		 XSize		  = 0;
-	int		 ZSize		  = 0;
+	Vector3i	Position	 = Vector3i::Zero;
+	BoundingBox Aabb		 = BoundingBox();
+	int			BottomHeight = 0; // Deprecated. Can derive from AABB instead.
+	int			TopHeight	 = 0; // Deprecated. Can derive from AABB instead.
+	int			XSize		 = 0;
+	int			ZSize		 = 0;
 
 	Vector3 ambient;
 	int flags;
@@ -147,23 +154,18 @@ struct RoomData
 	short fxNumber;
 	bool boundActive;
 
-	std::set<int> NeighborRoomNumbers = {};
-
-	// Object members
-
+	std::vector<int> NeighborRoomNumbers = {};
+	
 	//RoomObjectHandler Moveables = RoomObjectHandler(); // TODO: Refactor linked list of items in room to use a BVH instead.
 	//RoomObjectHandler Statics	= RoomObjectHandler(); // TODO: Refactor to use BVH.
 	std::vector<MESH_INFO> mesh = {}; // Statics
 
-	// Collision members
-
-	CollisionMesh				CollisionMesh  = TEN::Math::CollisionMesh();
-	RoomObjectHandler			Bridges		   = RoomObjectHandler();
-	std::vector<RoomPortalData> Portals		   = {};
-	std::vector<TriggerVolume>	TriggerVolumes = {};
-	std::vector<FloorInfo>		Sectors		   = {};
-
-	// Renderer members
+	CollisionMesh			   CollisionMesh  = {};
+	RoomObjectHandler		   Bridges		  = RoomObjectHandler();
+	RoomObjectHandler		   Doors		  = RoomObjectHandler();
+	std::vector<PortalData>	   Portals		  = {};
+	std::vector<TriggerVolume> TriggerVolumes = {};
+	std::vector<FloorInfo>	   Sectors		  = {};
 
 	std::vector<RoomLightData> lights	 = {};
 	std::vector<Vector3>	   positions = {};
@@ -183,18 +185,18 @@ private:
 };
 
 void DoFlipMap(int group);
+void ResetRoomData();
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID);
 bool IsPointInRoom(const Vector3i& pos, int roomNumber);
-int FindRoomNumber(const Vector3i& pos, int startRoomNumber = NO_VALUE);
+int FindRoomNumber(const Vector3i& pos, int startRoomNumber = NO_VALUE, bool onlyNeighbors = false);
 Vector3i GetRoomCenter(int roomNumber);
 int IsRoomOutside(int x, int y, int z);
 void InitializeNeighborRoomList();
 
 GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox);
+std::vector<int> GetNeighborRoomNumbers(int roomNumber, unsigned int searchDepth);
 
 namespace TEN::Collision::Room
 {
-	RoomData& GetRoom(int roomNumber);
-
 	FloorInfo* GetSector(RoomData* room, int x, int z);
 }

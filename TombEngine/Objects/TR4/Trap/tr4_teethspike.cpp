@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_teethspike.h"
 
+#include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -161,6 +162,11 @@ namespace TEN::Entities::Traps
 					{
 						SetAnimation(LaraItem, LA_SPIKE_DEATH);
 						LaraItem->Animation.IsAirborne = false;
+
+						g_Camera.flags = CameraFlag::FollowCenter;
+						g_Camera.targetAngle = ANGLE(-150.0f);
+						g_Camera.targetElevation = ANGLE(-25.0f);
+						g_Camera.targetDistance = BLOCK(2);
 					}
 				}
 			}

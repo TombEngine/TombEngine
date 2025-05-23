@@ -132,7 +132,7 @@ namespace TEN::Entities::TR4
 
 	void BaboonDieEffect(ItemInfo* item)
 	{
-		auto pose = Pose(item->Pose.Position.x, item->Pose.Position.y - CLICK(0.5f), item->Pose.Position.z);
+		auto pose = Pose(Vector3i(item->Pose.Position.x, item->Pose.Position.y - CLICK(0.5f), item->Pose.Position.z));
 
 		// Trigger shockwave effect.
 		TriggerBaboonShockwave(pose, ANGLE(0.0f));

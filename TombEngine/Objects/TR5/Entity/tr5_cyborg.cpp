@@ -215,7 +215,7 @@ namespace TEN::Entities::Creatures::TR5
 			SpawnElectricityGlow(pos, 48, 32, 32, 64);
 	
 			SpawnCyborgSpark(pos);
-			TriggerDynamicLight(pos.x, pos.y, pos.z, Random::GenerateInt(4, 20), 31, 63, 127);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, Random::GenerateInt(4, 20), 31, 63, 127);
 
 			SoundEffect(SFX_TR5_HITMAN_SPARKS_SHORT, &item.Pose);
 

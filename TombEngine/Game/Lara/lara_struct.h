@@ -532,7 +532,7 @@ enum LaraAnim
 	LA_CRAWL_BACK_TO_IDLE_RIGHT = 277,								// Crawl back > crawl idle, right foot first
 	LA_REMOVE_PUZZLE = 278,											// Remove puzzle item > idle
 	LA_CRAWL_BACK_TO_IDLE_LEFT = 279,								// Crawl back > crawl idle, left foot first
-	LA_CRAWL_BACK_TO_IDLE_LEFT_END = 280,							// Unused.
+	LA_REMOVE_PUZZLE_UNDERWATER = 280,								// Remove puzzle item > underwater idle
 	LA_CRAWL_TURN_LEFT_TO_IDLE_EARLY = 281,							// Crawl rotate left > crawl idle, early opportunity
 	LA_CRAWL_TURN_RIGHT_TO_IDLE_EARLY = 282,						// Crawl rotate right > crawl idle, early opportunity
 	LA_MONKEY_TURN_LEFT_TO_IDLE_EARLY = 283,						// Turn left on monkey swing > monkey swing idle, 1st opportunity
@@ -624,7 +624,6 @@ enum LaraAnim
 	LA_PUSHABLE_BLOCK_PUSH_EDGE_SLIP = 366,
 	LA_LADDER_LEFT_CORNER_INNER_START = 367,				// Ladder around inner left corner
 	LA_RUN_FORWARD_TO_STAND_IDLE_EARLY_START = 368,			// Run forward start > stand idle (1/2)
-	LA_LADDER_LEFT_CORNER_INNER_END = 368,					// TODO: Remove.
 	LA_LADDER_RIGHT_CORNER_INNER_START = 369,				// Ladder around inner right corner
 	LA_RUN_FORWARD_TO_STAND_IDLE_EARLY_END = 370,			// Run forward start > stand idle (2/2)
 	LA_JUMP_UP_TO_ROPE_START = 371,							// Jump up > rope idle (1/2)
@@ -701,7 +700,7 @@ enum LaraAnim
 	LA_PICKUP_SARCOPHAGUS = 439,							// Pickup from sarcophagus
 	LA_DRAG_BODY = 440,										// Drag dead body
 	LA_BINOCULARS_IDLE = 441,								// Stand, looking through binoculars
-	LA_UNUSED_442 = 442,									// Formelly, LA_BIG_SCORPION_DEATH, but that animation is now in LARA EXTRA ANIMS so this slot is unused.
+	LA_UNDERWATER_FLOOR_TRAPDOOR = 442,						// Underwater floor trapdoor
 	LA_ELEVATOR_RECOVER = 443,								// Recover from elevator crash
 	LA_MECHANICAL_BEETLE_USE = 444,							// Wind mechanical beetle, place on floor
 	LA_FLY_CHEAT = 445,										// Fly cheat
@@ -846,7 +845,7 @@ enum LaraAnim
 	NUM_LARA_ANIMS
 
 	// TRASHED ANIMS (reuse slots before going any higher and remove entries from this list when you do):
-	// 280,
+	// 370,
 	// 442
 };
 
@@ -1163,29 +1162,6 @@ struct TorchData
 	TorchState State = TorchState::Holding;
 };
 
-// TODO: Troye's abandoned dairy feature.
-constexpr int MAX_DIARY_PAGES			 = 64;
-constexpr int MAX_DIARY_STRINGS_PER_PAGE = 8;
-
-struct DiaryString
-{
-	Vector2i Position = Vector2i::Zero;
-	int		 StringID = 0;
-};
-
-struct DiaryPage
-{
-	DiaryString	Strings[MAX_DIARY_STRINGS_PER_PAGE] = {};
-};
-
-struct DiaryInfo
-{
-	bool		 Present				= false;
-	DiaryPage	 Pages[MAX_DIARY_PAGES] = {};
-	unsigned int NumPages				= 0;
-	unsigned int CurrentPage			= 0;
-};
-
 struct LaraCountData
 {
 	unsigned int Pose			= 0;
@@ -1259,7 +1235,6 @@ struct WeaponControlData
 
 	short WeaponItem = NO_VALUE;
 	bool  HasFired	 = false;
-	bool  Fired		 = false;
 
 	bool UziLeft  = false;
 	bool UziRight = false;
@@ -1330,8 +1305,6 @@ struct PlayerInventoryData
 	bool IsBusy	 = false;
 	bool OldBusy = false;
 
-	DiaryInfo Diary = {};
-
 	byte BeetleLife;
 	int BeetleComponents; // BeetleComponentFlags enum
 	byte SmallWaterskin;  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 4 (has skin + 3 = 4)
@@ -1342,6 +1315,11 @@ struct PlayerInventoryData
 	int TotalFlares;
 	unsigned int TotalSecrets;
 
+	bool HasLoad	   = false;
+	bool HasSave	   = false;
+	bool HasStopwatch  = false;
+	bool HasCompass	   = false;
+	bool HasDiary	   = false;
 	bool HasBinoculars = false;
 	bool HasCrowbar	   = false;
 	bool HasTorch	   = false;

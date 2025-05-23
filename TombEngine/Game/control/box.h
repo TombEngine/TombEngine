@@ -55,29 +55,33 @@ struct OVERLAP
 
 #define CreatureEffectFunction short(int x, int y, int z, short speed, short yRot, short roomNumber)
 
-constexpr auto BOX_BLOCKED = (1 << 14); // unpassable for other enemies, always set for movable blocks & closed doors
-constexpr auto BOX_LAST = (1 << 15); // unpassable by large enemies (T-Rex, Centaur, etc), always set behind doors
+// TODO: Following constants can be moved to new flag enums for improved clarity.
 
-constexpr auto REVERSE = 0x4000;
 constexpr auto BLOCKABLE = 0x8000;
-constexpr auto BLOCKED = 0x4000;
-constexpr auto SEARCH_NUMBER = 0x7FFF;
-constexpr auto BLOCKED_SEARCH = 0x8000;
-constexpr auto BOX_JUMP = 0x800;
-constexpr auto BOX_MONKEY = 0x2000;
+constexpr auto BLOCKED   = 0x4000;
+
+constexpr auto SEARCH_NUMBER  = INT_MAX;
+constexpr auto SEARCH_BLOCKED = (1 << 31);
+
+constexpr auto BOX_JUMP    = 0x800;
+constexpr auto BOX_MONKEY  = 0x2000;
 constexpr auto BOX_END_BIT = 0x8000;
-constexpr auto EXPAND_LEFT = 0x1;
-constexpr auto EXPAND_RIGHT = 0x2;
-constexpr auto EXPAND_TOP = 0x4;
+
+constexpr auto EXPAND_LEFT   = 0x1;
+constexpr auto EXPAND_RIGHT  = 0x2;
+constexpr auto EXPAND_TOP    = 0x4;
 constexpr auto EXPAND_BOTTOM = 0x8;
+
 constexpr auto NO_FLYING = 0;
-constexpr auto FLY_ZONE = 0x2000;
-constexpr auto CLIP_LEFT = 0x1;
-constexpr auto CLIP_RIGHT = 0x2;
-constexpr auto CLIP_TOP = 0x4;
+constexpr auto FLY_ZONE  = 0x2000;
+
+constexpr auto CLIP_LEFT   = 0x1;
+constexpr auto CLIP_RIGHT  = 0x2;
+constexpr auto CLIP_TOP    = 0x4;
 constexpr auto CLIP_BOTTOM = 0x8;
-constexpr auto SECONDARY_CLIP = 0x10;
-constexpr auto ALL_CLIP = (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
+constexpr auto CLIP_ALL    = (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
+
+constexpr auto CLIP_SECONDARY = 0x10;
 
 void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
 void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
@@ -99,7 +103,7 @@ void CreatureFloat(short itemNumber);
 void CreatureJoint(ItemInfo* item, short joint, short required, short maxAngle = ANGLE(70.0f));
 void CreatureTilt(ItemInfo* item, short angle);
 short CreatureTurn(ItemInfo* item, short maxTurn);
-void CreatureDie(int itemNumber, bool doExplosion);
+void CreatureDie(int itemNumber, bool doExplosion, bool forceExplosion = false);
 void CreatureDie(int itemNumber, bool doExplosion, int flags);
 bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumber, LOTInfo* LOT);
 int CreatureCreature(short itemNumber);

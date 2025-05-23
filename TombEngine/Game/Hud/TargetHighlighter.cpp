@@ -75,6 +75,9 @@ namespace TEN::Hud
 		constexpr auto ORIENT_LERP_ALPHA	   = 0.1f;
 		constexpr auto RADIUS_LERP_ALPHA	   = 0.2f;
 
+		if (Position.has_value())
+			StoreInterpolationData();
+
 		// Update active status.
 		IsActive = isActive;
 
@@ -130,41 +133,49 @@ namespace TEN::Hud
 
 	void CrosshairData::Draw() const
 	{
-		constexpr auto SPRITE_SEQUENCE_OBJECT_ID = ID_CROSSHAIR;
+		constexpr auto SPRITE_SEQUENCE_OBJECT_ID = ID_CROSSHAIR_GRAPHICS;
 		constexpr auto STATIC_ELEMENT_SPRITE_ID	 = 0;
 		constexpr auto SEGMENT_ELEMENT_SPRITE_ID = 1;
 		constexpr auto PRIORITY					 = 0; // TODO: Check later. May interfere with Lua display sprites. -- Sezz 2023.10.06
-		constexpr auto ALIGN_MODE				 = DisplaySpriteAlignMode::Center;
-		constexpr auto SCALE_MODE				 = DisplaySpriteScaleMode::Fill;
-		constexpr auto BLEND_MODE				 = BlendMode::Additive;
 
 		if (!Position.has_value())
 			return;
 
+		auto pos0 = Vector2::Lerp(PrevPosition, *Position, g_Renderer.GetInterpolationFactor());
+		short orient0 = PrevOrientation + Geometry::GetShortestAngle(PrevOrientation, Orientation) * g_Renderer.GetInterpolationFactor();
+		float scale = Lerp(PrevScale, Scale, g_Renderer.GetInterpolationFactor());
+		auto color = Color::Lerp(PrevColor, Color, g_Renderer.GetInterpolationFactor());
+
 		// Draw main static element.
 		AddDisplaySprite(
 			SPRITE_SEQUENCE_OBJECT_ID, STATIC_ELEMENT_SPRITE_ID,
-			*Position, Orientation, Vector2(Scale), Color,
-			PRIORITY, ALIGN_MODE, SCALE_MODE, BLEND_MODE);
+			pos0, orient0, Vector2(scale), color,
+			PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fill,
+			BlendMode::Additive, DisplaySpritePhase::Draw);
 
 		// Draw animated outer segment elements.
-		for (const auto& segment : Segments)
+		for (int i = 0; i < Segments.size(); i++)
 		{
-			auto pos = *Position + segment.PosOffset;
-			short orient = Orientation + segment.OrientOffset;
-			auto scale = Vector2(Scale / 2);
+			const auto& segment = Segments[i];
+			const auto& prevSegment = PrevSegments[i];
+
+			auto pos1 = pos0 + Vector2::Lerp(prevSegment.PosOffset, segment.PosOffset, g_Renderer.GetInterpolationFactor());
+			short orient1 = orient0 + (prevSegment.OrientOffset + (Geometry::GetShortestAngle(prevSegment.OrientOffset, segment.OrientOffset) * g_Renderer.GetInterpolationFactor()));
 
 			AddDisplaySprite(
 				SPRITE_SEQUENCE_OBJECT_ID, SEGMENT_ELEMENT_SPRITE_ID,
-				pos, orient, scale, Color,
-				PRIORITY, ALIGN_MODE, SCALE_MODE, BLEND_MODE);
+				pos1, orient1, Vector2(scale / 2), color,
+				PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fill,
+				BlendMode::Additive, DisplaySpritePhase::Draw);
 		}
 	}
 
 	void TargetHighlighterController::Update(const ItemInfo& playerItem)
 	{
-		// Check if target highlighter is enabled.
-		if (!g_Config.EnableTargetHighlighter)
+		const auto& player = GetLaraInfo(playerItem);
+
+		// Check if target highlighter is enabled or lasersight is active.
+		if (!g_Config.EnableTargetHighlighter || player.Control.Look.IsUsingBinoculars)
 		{
 			if (!_crosshairs.empty())
 				_crosshairs.clear();
@@ -172,27 +183,25 @@ namespace TEN::Hud
 			return;
 		}
 
-		const auto& player = GetLaraInfo(playerItem);
-
 		// Loop over player targets.
 		auto itemNumbers = std::vector<int>{};
-		for (const auto* itemPtr : player.TargetList)
+		for (const auto* item : player.TargetList)
 		{
-			if (itemPtr == nullptr)
+			if (item == nullptr)
 				continue;
 
 			// Collect item number.
-			if (itemPtr->HitPoints != NOT_TARGETABLE)
-				itemNumbers.push_back(itemPtr->Index);
+			if (item->HitPoints != NOT_TARGETABLE)
+				itemNumbers.push_back(item->Index);
 
 			// Find crosshair at item number key.
-			auto it = _crosshairs.find(itemPtr->Index);
+			auto it = _crosshairs.find(item->Index);
 			if (it == _crosshairs.end())
 				continue;
 
 			// Set crosshair as primary or peripheral.
 			auto& crosshair = it->second;
-			if (player.TargetEntity != nullptr && itemPtr->Index == player.TargetEntity->Index)
+			if (player.TargetEntity != nullptr && item->Index == player.TargetEntity->Index)
 			{
 				crosshair.SetPrimary();
 			}

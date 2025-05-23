@@ -1315,7 +1315,7 @@ namespace TEN::Entities::TR4
 			{
 				// Baddy2 bullet deflection with sword.
 				SoundEffect(SFX_TR4_BADDY_SWORD_RICOCHET, &target.Pose);
-				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 				return;
 			}
 			else if (object.hitEffect == HitEffect::Blood)

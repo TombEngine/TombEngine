@@ -82,7 +82,7 @@ namespace TEN::Entities::Creatures::TR2
 
 		if (item.Flags & IFLAG_REVERSE)
 		{
-			item.Status &= ~ITEM_INVISIBLE;
+			item.Status = ITEM_NOT_ACTIVE;
 		}
 		else
 		{

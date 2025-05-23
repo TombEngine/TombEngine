@@ -7,16 +7,20 @@
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
-#include "Renderer/Renderer.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
+#include "Objects/Generic/Doors/generic_doors.h"
+#include "Physics/Physics.h"
+#include "Renderer/Renderer.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
+using namespace TEN::Entities::Doors;
 using namespace TEN::Math;
+using namespace TEN::Physics;
 using namespace TEN::Renderer;
 using namespace TEN::Utils;
 
@@ -36,13 +40,48 @@ BoundingOrientedBox MESH_INFO::GetVisibilityObb() const
 	return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(pos);
 }
 
+std::vector<int> RoomObjectHandler::GetIds() const
+{
+	return _tree.GetBoundedObjectIds();
+}
+
+std::vector<int> RoomObjectHandler::GetBoundedIds(const Ray& ray, float dist) const
+{
+	return _tree.GetBoundedObjectIds(ray, dist);
+}
+
+std::vector<int> RoomObjectHandler::GetBoundedIds(const BoundingSphere& sphere) const
+{
+	return _tree.GetBoundedObjectIds(sphere);
+}
+
+void RoomObjectHandler::Insert(int id, const BoundingBox& aabb)
+{
+	_tree.Insert(id, aabb, AABB_BOUNDARY);
+}
+
+void RoomObjectHandler::Move(int id, const BoundingBox& aabb)
+{
+	_tree.Move(id, aabb, AABB_BOUNDARY);
+}
+
+void RoomObjectHandler::Remove(int id)
+{
+	_tree.Remove(id);
+}
+
+void RoomObjectHandler::DrawDebug() const
+{
+	_tree.DrawDebug();
+}
+
 bool RoomData::Active() const
 {
 	if (flipNumber == NO_VALUE)
 		return true;
 
 	// Since engine swaps whole room memory block but substitutes flippedRoom,
-	// must check both original room number and flippedRoom equality,
+	// both original room number and flippedRoom must be chekhed for equality,
 	// as well as NO_VALUE if checking non-flipped rooms.
 	return (!FlipStats[flipNumber] && flippedRoom != RoomNumber && flippedRoom != NO_VALUE) ||
 		   ( FlipStats[flipNumber] && flippedRoom == RoomNumber);
@@ -62,7 +101,7 @@ void RoomData::GenerateCollisionMesh()
 			const auto* sectorNorth = &Sectors[(x * ZSize) + (z + 1)];
 			if (sectorNorth->SidePortalRoomNumber != NO_VALUE)
 			{
-				const auto& room = GetRoom(sectorNorth->SidePortalRoomNumber);
+				const auto& room = g_Level.Rooms[sectorNorth->SidePortalRoomNumber];
 				auto gridCoord = GetRoomGridCoord(sectorNorth->SidePortalRoomNumber, sectorNorth->Position.x, sectorNorth->Position.y);
 
 				sectorNorth = &room.Sectors[(gridCoord.x * room.ZSize) + gridCoord.y];
@@ -72,7 +111,7 @@ void RoomData::GenerateCollisionMesh()
 			const auto* sectorSouth = &Sectors[(x * ZSize) + (z - 1)];
 			if (sectorSouth->SidePortalRoomNumber != NO_VALUE)
 			{
-				const auto& prevRoomZ = GetRoom(sectorSouth->SidePortalRoomNumber);
+				const auto& prevRoomZ = g_Level.Rooms[sectorSouth->SidePortalRoomNumber];
 				auto prevRoomGridCoordZ = GetRoomGridCoord(sectorSouth->SidePortalRoomNumber, sectorSouth->Position.x, sectorSouth->Position.y);
 
 				sectorSouth = &prevRoomZ.Sectors[(prevRoomGridCoordZ.x * prevRoomZ.ZSize) + prevRoomGridCoordZ.y];
@@ -82,7 +121,7 @@ void RoomData::GenerateCollisionMesh()
 			const auto* sectorEast = &Sectors[((x + 1) * ZSize) + z];
 			if (sectorEast->SidePortalRoomNumber != NO_VALUE)
 			{
-				const auto& room = GetRoom(sectorEast->SidePortalRoomNumber);
+				const auto& room = g_Level.Rooms[sectorEast->SidePortalRoomNumber];
 				auto gridCoord = GetRoomGridCoord(sectorEast->SidePortalRoomNumber, sectorEast->Position.x, sectorEast->Position.y);
 
 				sectorEast = &room.Sectors[(gridCoord.x * room.ZSize) + gridCoord.y];
@@ -92,7 +131,7 @@ void RoomData::GenerateCollisionMesh()
 			const auto* sectorWest = &Sectors[((x - 1) * ZSize) + z];
 			if (sectorWest->SidePortalRoomNumber != NO_VALUE)
 			{
-				const auto& room = GetRoom(sectorWest->SidePortalRoomNumber);
+				const auto& room = g_Level.Rooms[sectorWest->SidePortalRoomNumber];
 				auto gridCoord = GetRoomGridCoord(sectorWest->SidePortalRoomNumber, sectorWest->Position.x, sectorWest->Position.y);
 
 				sectorWest = &room.Sectors[(gridCoord.x * room.ZSize) + gridCoord.y];
@@ -101,9 +140,10 @@ void RoomData::GenerateCollisionMesh()
 			CollectSectorCollisionMeshTriangles(desc, sector, *sectorNorth, *sectorSouth, *sectorEast, *sectorWest);
 		}
 	}
+	desc.Optimize();
 
 	// Create collision mesh.
-	CollisionMesh = TEN::Math::CollisionMesh(Position.ToVector3(), Quaternion::Identity, desc);
+	CollisionMesh = TEN::Physics::CollisionMesh(Position.ToVector3(), Quaternion::Identity, desc);
 }
 
 void RoomData::CollectSectorCollisionMeshTriangles(CollisionMeshDesc& desc,
@@ -452,34 +492,7 @@ void RoomData::CollectSectorCollisionMeshTriangles(CollisionMeshDesc& desc,
 			}
 		}
 
-		// 2.5) Collect west cardinal wall triangles.
-		bool isTriWallWest = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.IsWall : surfVerts.Tri1.IsWall;
-		if (!isTriWallWest || !surfVerts.WestNeighbor.IsWall)
-		{
-			// Full wall.
-			if (isFloor && (!isTriWallWest && surfVerts.WestNeighbor.IsWall))
-			{
-				const auto& vertex0 = sectorVerts.Floor.IsSplitAngle0 ? sectorVerts.Floor.Tri0.Vertex0 : sectorVerts.Floor.Tri1.Vertex0;
-				const auto& vertex1 = sectorVerts.Floor.IsSplitAngle0 ? sectorVerts.Floor.Tri0.Vertex1 : sectorVerts.Floor.Tri1.Vertex1;
-				const auto& vertex2 = sectorVerts.Ceil.IsSplitAngle0 ? sectorVerts.Ceil.Tri0.Vertex1 : sectorVerts.Ceil.Tri1.Vertex1;
-				const auto& vertex3 = sectorVerts.Ceil.IsSplitAngle0 ? sectorVerts.Ceil.Tri0.Vertex0 : sectorVerts.Ceil.Tri1.Vertex0;
-
-				insertWallTriangles(isFloor, vertex0, vertex1, vertex2, vertex3);
-			}
-			// Step wall.
-			else if (!isTriWallWest && !surfVerts.WestNeighbor.IsWall)
-			{
-				const auto& vertex0 = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.Vertex0 : surfVerts.Tri1.Vertex0;
-				const auto& vertex1 = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.Vertex1 : surfVerts.Tri1.Vertex1;
-				const auto& vertex2 = surfVerts.WestNeighbor.Vertex1;
-				const auto& vertex3 = surfVerts.WestNeighbor.Vertex0;
-
-				if (isFloor ? !(vertex0.y <= vertex3.y && vertex1.y <= vertex2.y) : !(vertex0.y >= vertex3.y && vertex1.y >= vertex2.y))
-					insertWallTriangles(isFloor, vertex0, vertex1, vertex2, vertex3);
-			}
-		}
-
-		// 2.6) Collect east cardinal wall triangles.
+		// 2.5) Collect east cardinal wall triangles.
 		bool isTriWallEast = surfVerts.IsSplitAngle0 ? surfVerts.Tri1.IsWall : surfVerts.Tri0.IsWall;
 		if (!isTriWallEast || !surfVerts.EastNeighbor.IsWall)
 		{
@@ -506,38 +519,35 @@ void RoomData::CollectSectorCollisionMeshTriangles(CollisionMeshDesc& desc,
 			}
 		}
 
+		// 2.6) Collect west cardinal wall triangles.
+		bool isTriWallWest = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.IsWall : surfVerts.Tri1.IsWall;
+		if (!isTriWallWest || !surfVerts.WestNeighbor.IsWall)
+		{
+			// Full wall.
+			if (isFloor && (!isTriWallWest && surfVerts.WestNeighbor.IsWall))
+			{
+				const auto& vertex0 = sectorVerts.Floor.IsSplitAngle0 ? sectorVerts.Floor.Tri0.Vertex0 : sectorVerts.Floor.Tri1.Vertex0;
+				const auto& vertex1 = sectorVerts.Floor.IsSplitAngle0 ? sectorVerts.Floor.Tri0.Vertex1 : sectorVerts.Floor.Tri1.Vertex1;
+				const auto& vertex2 = sectorVerts.Ceil.IsSplitAngle0 ? sectorVerts.Ceil.Tri0.Vertex1 : sectorVerts.Ceil.Tri1.Vertex1;
+				const auto& vertex3 = sectorVerts.Ceil.IsSplitAngle0 ? sectorVerts.Ceil.Tri0.Vertex0 : sectorVerts.Ceil.Tri1.Vertex0;
+
+				insertWallTriangles(isFloor, vertex0, vertex1, vertex2, vertex3);
+			}
+			// Step wall.
+			else if (!isTriWallWest && !surfVerts.WestNeighbor.IsWall)
+			{
+				const auto& vertex0 = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.Vertex0 : surfVerts.Tri1.Vertex0;
+				const auto& vertex1 = surfVerts.IsSplitAngle0 ? surfVerts.Tri0.Vertex1 : surfVerts.Tri1.Vertex1;
+				const auto& vertex2 = surfVerts.WestNeighbor.Vertex1;
+				const auto& vertex3 = surfVerts.WestNeighbor.Vertex0;
+
+				if (isFloor ? !(vertex0.y <= vertex3.y && vertex1.y <= vertex2.y) : !(vertex0.y >= vertex3.y && vertex1.y >= vertex2.y))
+					insertWallTriangles(isFloor, vertex0, vertex1, vertex2, vertex3);
+			}
+		}
+
 		isFloor = !isFloor;
 	}
-}
-
-std::vector<int> RoomObjectHandler::GetIds() const
-{
-	return _tree.GetBoundedObjectIds();
-}
-
-std::vector<int> RoomObjectHandler::GetBoundedIds(const Ray& ray, float dist) const
-{
-	return _tree.GetBoundedObjectIds(ray, dist);
-}
-
-std::vector<int> RoomObjectHandler::GetBoundedIds(const BoundingSphere& sphere) const
-{
-	return _tree.GetBoundedObjectIds(sphere);
-}
-
-void RoomObjectHandler::Insert(int id, const BoundingBox& aabb)
-{
-	_tree.Insert(id, aabb, AABB_BOUNDARY);
-}
-
-void RoomObjectHandler::Move(int id, const BoundingBox& aabb)
-{
-	_tree.Move(id, aabb, AABB_BOUNDARY);
-}
-
-void RoomObjectHandler::Remove(int id)
-{
-	_tree.Remove(id);
 }
 
 static void AddRoomFlipItems(const RoomData& room)
@@ -548,7 +558,8 @@ static void AddRoomFlipItems(const RoomData& room)
 		auto& item = g_Level.Items[itemNumber];
 		const auto& object = Objects[item.ObjectNumber];
 
-		// Add bridge.
+		// Initialize bridges.
+		// TODO: If all bridges can be initialized on level load, even ones in not yet loaded rooms, this can call `bridge.Update()` instead. -- Sezz 2025.03.27
 		if (item.IsBridge())
 		{
 			auto& bridge = GetBridgeObject(item);
@@ -578,12 +589,78 @@ static void RemoveRoomFlipItems(const RoomData& room)
 		if (item.IsBridge())
 		{
 			auto& bridge = GetBridgeObject(item);
-			bridge.DeassignSectors(item);
-
-			auto& room = GetRoom(item.RoomNumber);
-			room.Bridges.Remove(item.Index);
+			bridge.Disable(item);
 		}
 	}
+}
+
+static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoom)
+{
+	RemoveRoomFlipItems(activeRoom);
+
+	// Swap rooms.
+	std::swap(activeRoom, flippedRoom);
+	activeRoom.flippedRoom = flippedRoom.flippedRoom;
+	flippedRoom.flippedRoom = NO_VALUE;
+	activeRoom.itemNumber = flippedRoom.itemNumber;
+	activeRoom.fxNumber = flippedRoom.fxNumber;
+
+	AddRoomFlipItems(activeRoom);
+
+	// Update active room sectors.
+	for (auto& sector : activeRoom.Sectors)
+		sector.RoomNumber = roomNumber;
+
+	// Update flipped room sectors.
+	for (auto& sector : flippedRoom.Sectors)
+		sector.RoomNumber = activeRoom.flippedRoom;
+
+	// Update renderer data.
+	g_Renderer.FlipRooms(roomNumber, activeRoom.flippedRoom);
+}
+
+void ResetRoomData()
+{
+	// Remove all door collisions.
+	for (const auto& item : g_Level.Items)
+	{
+		if (item.ObjectNumber == NO_VALUE || !item.Data.is<DOOR_DATA>())
+			continue;
+
+		auto& doorItem = g_Level.Items[item.Index];
+		auto& door = GetDoorObject(doorItem);
+
+		if (door.opened)
+			continue;
+
+		OpenThatDoor(&door.d1, &door);
+		OpenThatDoor(&door.d2, &door);
+		OpenThatDoor(&door.d1flip, &door);
+		OpenThatDoor(&door.d2flip, &door);
+		DisableDoorCollisionMesh(doorItem);
+		door.opened = true;
+	}
+
+	// Unflip all rooms and remove all bridges and stopper flags.
+	for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
+	{
+		auto& room = g_Level.Rooms[roomNumber];
+		if (room.flippedRoom != NO_VALUE && room.flipNumber != NO_VALUE && FlipStats[room.flipNumber])
+		{
+			auto& flippedRoom = g_Level.Rooms[room.flippedRoom];
+			FlipRooms(roomNumber, room, flippedRoom);
+		}
+
+		for (auto& sector : room.Sectors)
+		{
+			sector.Stopper = false;
+			sector.BridgeItemNumbers.clear();
+		}
+	}
+
+	// Make sure no pathfinding boxes are blocked (either by doors or by other door-like objects).
+	for (int pathfindingBoxID = 0; pathfindingBoxID < g_Level.PathfindingBoxes.size(); pathfindingBoxID++)
+		g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
 }
 
 void DoFlipMap(int group)
@@ -597,40 +674,13 @@ void DoFlipMap(int group)
 	// Run through rooms.
 	for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
 	{
-		auto& room = GetRoom(roomNumber);
+		auto& room = g_Level.Rooms[roomNumber];
 
 		// Handle flipmap.
-		if (room.flippedRoom >= 0 && room.flipNumber == group)
+		if (room.flippedRoom != NO_VALUE && room.flipNumber == group)
 		{
-			auto& flippedRoom = GetRoom(room.flippedRoom);
-
-			RemoveRoomFlipItems(room);
-
-			// Swap rooms.
-			std::swap(room, flippedRoom);
-			room.flippedRoom = flippedRoom.flippedRoom;
-			flippedRoom.flippedRoom = NO_VALUE;
-			room.itemNumber = flippedRoom.itemNumber;
-			room.fxNumber = flippedRoom.fxNumber;
-
-			AddRoomFlipItems(room);
-
-			g_Renderer.FlipRooms(roomNumber, room.flippedRoom);
-
-			// Update active room sectors.
-			for (auto& sector : room.Sectors)
-				sector.RoomNumber = roomNumber;
-
-			// Update flipped room sectors.
-			for (auto& sector : flippedRoom.Sectors)
-				sector.RoomNumber = room.flippedRoom;
-
-			// Regenerate neighbor room collision meshes.
-			for (int neightborRoomNumber : room.NeighborRoomNumbers)
-			{
-				auto& neighborRoom = GetRoom(neightborRoomNumber);
-				neighborRoom.GenerateCollisionMesh();
-			}
+			auto& flippedRoom = g_Level.Rooms[room.flippedRoom];
+			FlipRooms(roomNumber, room, flippedRoom);
 		}
 	}
 
@@ -643,7 +693,7 @@ void DoFlipMap(int group)
 
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)
 {
-	int itemNumber = GetRoom(roomNumber).itemNumber;
+	int itemNumber = g_Level.Rooms[roomNumber].itemNumber;
 	if (itemNumber == NO_VALUE)
 		return false;
 
@@ -676,7 +726,7 @@ int IsRoomOutside(int x, int y, int z)
 	for (int i = 0; i < OutsideRoomTable[xTable][zTable].size(); i++)
 	{
 		int roomNumber = OutsideRoomTable[xTable][zTable][i];
-		const auto& room = GetRoom(roomNumber);
+		const auto& room = g_Level.Rooms[roomNumber];
 
 		if ((x > (room.Position.x + BLOCK(1)) && x < (room.Position.x + (room.XSize - 1) * BLOCK(1))) &&
 			(y > room.TopHeight && y < room.BottomHeight) &&
@@ -709,11 +759,11 @@ GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox)
 
 	if (getVisibilityBox)
 	{
-		bounds = StaticObjects[mesh.staticNumber].visibilityBox * mesh.scale;
+		bounds = Statics[mesh.staticNumber].visibilityBox * mesh.pos.Scale;
 	}
 	else
 	{
-		bounds = StaticObjects[mesh.staticNumber].collisionBox * mesh.scale;
+		bounds = Statics[mesh.staticNumber].collisionBox * mesh.pos.Scale;
 	}
 
 	return bounds;
@@ -721,7 +771,10 @@ GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox)
 
 bool IsPointInRoom(const Vector3i& pos, int roomNumber)
 {
-	const auto& room = GetRoom(roomNumber);
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	if (!room.Active())
+		return false;
 
 	if (pos.z >= (room.Position.z + BLOCK(1)) && pos.z <= (room.Position.z + BLOCK(room.ZSize - 1)) &&
 		pos.y <= room.BottomHeight && pos.y > room.TopHeight &&
@@ -733,26 +786,29 @@ bool IsPointInRoom(const Vector3i& pos, int roomNumber)
 	return false;
 }
 
-int FindRoomNumber(const Vector3i& pos, int startRoomNumber)
+int FindRoomNumber(const Vector3i& pos, int startRoomNumber, bool onlyNeighbors)
 {
 	if (startRoomNumber != NO_VALUE && startRoomNumber < g_Level.Rooms.size())
 	{
-		const auto& room = GetRoom(startRoomNumber);
+		const auto& room = g_Level.Rooms[startRoomNumber];
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
-			const auto& neighborRoom = GetRoom(neighborRoomNumber);
-			if (neighborRoomNumber != startRoomNumber && neighborRoom.Active() &&
-				IsPointInRoom(pos, neighborRoomNumber))
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+			if (neighborRoomNumber != startRoomNumber && IsPointInRoom(pos, neighborRoomNumber))
 			{
 				return neighborRoomNumber;
 			}
 		}
 	}
 
-	for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
+	if (!onlyNeighbors)
 	{
-		if (IsPointInRoom(pos, roomNumber) && GetRoom(roomNumber).Active())
-			return roomNumber;
+		// TODO: Optimise search to O(log n) with BVH. -- Sezz 2025.03.01
+		for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
+		{
+			if (IsPointInRoom(pos, roomNumber))
+				return roomNumber;
+		}
 	}
 
 	return (startRoomNumber != NO_VALUE) ? startRoomNumber : 0;
@@ -760,51 +816,39 @@ int FindRoomNumber(const Vector3i& pos, int startRoomNumber)
 
 Vector3i GetRoomCenter(int roomNumber)
 {
-	const auto& room = GetRoom(roomNumber);
-
-	int halfLength = BLOCK(room.XSize) / 2;
-	int halfDepth = BLOCK(room.ZSize) / 2;
-	int halfHeight = (room.TopHeight - room.BottomHeight) / 2;
-
-	// Calculate and return center.
-	return Vector3i(
-		room.Position.x + halfLength,
-		room.BottomHeight + halfHeight,
-		room.Position.z + halfDepth);
+	const auto& room = g_Level.Rooms[roomNumber];
+	return Vector3i(room.Aabb.Center);
 }
 
-static std::set<int> GetNeighborRoomNumbers(int roomNumber, unsigned int searchDepth, std::set<int>& visitedRoomNumbers = std::set<int>{})
+std::vector<int> GetNeighborRoomNumbers(int roomNumber, unsigned int searchDepth)
 {
-	auto neighborRoomNumbers = std::set<int>{};
+	// Initialize stack.
+	auto stack = std::stack<std::pair<int, unsigned int>>{}; // First = room number, second = depth.
+	stack.push({ roomNumber, searchDepth });
 
-	// Search depth limit reached; return early.
-	if (searchDepth == 0)
-		return neighborRoomNumbers;
-
-	// Invalid room; return early.
-	if (g_Level.Rooms.size() <= roomNumber)
-		return neighborRoomNumbers;
-
-	// Collect current room number as neighbor of itself.
-	visitedRoomNumbers.insert(roomNumber);
-
-	// Recursively collect neighbors of current neighbor.
-	const auto& room = GetRoom(roomNumber);
-	if (room.Portals.empty())
+	// Collect neighbor room numbers.
+	auto neighborRoomNumbers = std::vector<int>{};
+	while (!stack.empty())
 	{
-		neighborRoomNumbers.insert(roomNumber);
-	}
-	else
-	{
-		for (int i = 0; i < room.Portals.size(); i++)
-		{
-			int neighborRoomNumber = room.Portals[i].RoomNumber;
-			neighborRoomNumbers.insert(neighborRoomNumber);
+		auto [currentRoomNumber, depth] = stack.top();
+		stack.pop();
 
-			auto nextNeighborRoomNumbers = GetNeighborRoomNumbers(neighborRoomNumber, searchDepth - 1, visitedRoomNumbers);
-			neighborRoomNumbers.insert(nextNeighborRoomNumbers.begin(), nextNeighborRoomNumbers.end());
-		}
+		// Add neighbor room number.
+		neighborRoomNumbers.push_back(currentRoomNumber);
+
+		// Depth limit reached; continue.
+		if (depth <= 0)
+			continue;
+
+		// Get room and check for neighbors.
+		const auto& room = g_Level.Rooms[currentRoomNumber];
+		for (const auto& portal : room.Portals)
+			stack.push({ portal.RoomNumber, depth - 1 });
 	}
+
+	// Sort and remove duplicates.
+	std::sort(neighborRoomNumbers.begin(), neighborRoomNumbers.end());
+	neighborRoomNumbers.erase(std::unique(neighborRoomNumbers.begin(), neighborRoomNumbers.end()), neighborRoomNumbers.end());
 
 	return neighborRoomNumbers;
 }
@@ -815,39 +859,28 @@ void InitializeNeighborRoomList()
 
 	for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
 	{
-		auto& room = GetRoom(roomNumber);
+		auto& room = g_Level.Rooms[roomNumber];
 		room.NeighborRoomNumbers = GetNeighborRoomNumbers(roomNumber, SEARCH_DEPTH);
 	}
 
 	// Add flipped variations of itself.
 	for (int roomNumber = 0; roomNumber < g_Level.Rooms.size(); roomNumber++)
 	{
-		auto& room = GetRoom(roomNumber);
+		auto& room = g_Level.Rooms[roomNumber];
 		if (room.flippedRoom == NO_VALUE)
 			continue;
 
 		if (!Contains(room.NeighborRoomNumbers, room.flippedRoom))
-			room.NeighborRoomNumbers.insert(room.flippedRoom);
+			room.NeighborRoomNumbers.push_back(room.flippedRoom);
 
-		auto& flippedRoom = GetRoom(room.flippedRoom);
+		auto& flippedRoom = g_Level.Rooms[room.flippedRoom];
 		if (!Contains(flippedRoom.NeighborRoomNumbers, roomNumber))
-			flippedRoom.NeighborRoomNumbers.insert(roomNumber);
+			flippedRoom.NeighborRoomNumbers.push_back(roomNumber);
 	}
 }
 
 namespace TEN::Collision::Room
 {
-	RoomData& GetRoom(int roomNumber)
-	{
-		if (roomNumber < 0 || roomNumber >= g_Level.Rooms.size())
-		{
-			TENLog("Attempted to get invalid room " + std::to_string(roomNumber) + ". Returning room 0.", LogLevel::Warning);
-			return g_Level.Rooms.front();
-		}
-
-		return g_Level.Rooms[roomNumber];
-	}
-
 	// TODO: Can use floordata's GetRoomGridCoord()?
 	FloorInfo* GetSector(RoomData* room, int x, int z)
 	{

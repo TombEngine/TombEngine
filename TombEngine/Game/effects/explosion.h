@@ -18,6 +18,19 @@ namespace TEN::Effects::Explosion
 		int room;
 		int sprite;
 		bool active;
+
+		Vector3 oldPos;
+		Vector4 oldTint;
+		float oldSize;
+		float oldRotation;
+
+		void StoreInterpolationData()
+		{
+			oldPos = pos;
+			oldTint = tint;
+			oldSize = size;
+			oldRotation = rotation;
+		}
 	};
 	extern std::array<ExplosionParticle, 64> explosionParticles;
 

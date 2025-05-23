@@ -1,3 +1,4 @@
+-- ldignore
 local Util = {}
 
 Util.ShortenTENCalls = function()

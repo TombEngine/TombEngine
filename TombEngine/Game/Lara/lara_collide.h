@@ -25,6 +25,7 @@ void GetLaraDeadlyBounds();
 void LaraJumpCollision(ItemInfo* item, CollisionInfo* coll, short moveAngle);
 void LaraSurfaceCollision(ItemInfo* item, CollisionInfo* coll);
 void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll);
+void LaraDefaultCollision(ItemInfo* item, CollisionInfo* coll);
 
 void LaraWaterCurrent(ItemInfo* item, CollisionInfo* coll);
 

@@ -6,18 +6,36 @@ struct ItemInfo;
 
 namespace TEN::Effects::Hair
 {
+	enum class PlayerHairType
+	{
+		Normal,
+		YoungLeft,
+		YoungRight
+	};
+
 	class HairUnit
 	{
 	private:
 		// Constants
 
-		static constexpr auto HAIR_GRAVITY = 10.0f;
+		static constexpr auto HAIR_GRAVITY_COEFF = 1.66f;
 
 		struct HairSegment
 		{
 			Vector3	   Position	   = Vector3::Zero;
 			Vector3	   Velocity	   = Vector3::Zero;
 			Quaternion Orientation = Quaternion::Identity;
+
+			Vector3	   PrevPosition	   = Vector3::Zero;
+			Quaternion PrevOrientation = Quaternion::Identity;
+
+			Matrix	   GlobalTransform = Matrix::Identity;
+
+			void StoreInterpolationData()
+			{
+				PrevPosition = Position;
+				PrevOrientation = Orientation;
+			}
 		};
 
 	public:
@@ -29,6 +47,10 @@ namespace TEN::Effects::Hair
 		GAME_OBJECT_ID			 ObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 		std::vector<HairSegment> Segments = {};
 
+		// Getters
+		
+		static int GetRootMeshID(int hairUnitID);
+
 		// Utilities
 
 		void Update(const ItemInfo& item, int hairUnitID);
@@ -36,10 +58,12 @@ namespace TEN::Effects::Hair
 	private:
 		// Helpers
 
+		static int GetHairTypeIndex(int hairUnitID, bool isYoung);
+
 		Vector3						GetRelBaseOffset(int hairUnitID, bool isYoung);
 		Vector3						GetWaterProbeOffset(const ItemInfo& item);
 		Quaternion					GetSegmentOrientation(const Vector3& origin, const Vector3& target, const Quaternion& baseOrient);
-		std::vector<BoundingSphere> GetSpheres(const ItemInfo& item, bool isYoung);
+		std::vector<BoundingSphere> GetSpheres(const ItemInfo& item);
 
 		void CollideSegmentWithRoom(HairSegment& segment, int waterHeight, int roomNumber, bool isOnLand);
 		void CollideSegmentWithSpheres(HairSegment& segment, const std::vector<BoundingSphere>& spheres);

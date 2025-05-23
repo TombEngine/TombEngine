@@ -2,13 +2,13 @@
 #include "Game/animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
-#include "Specific/BitField.h"
+#include "Specific/Structures/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/newtypes.h"
 
 using namespace TEN::Utils;
 
-constexpr auto ITEM_COUNT_MAX  = 1024;
+constexpr auto MAX_SPAWNED_ITEM_COUNT = 256;
 constexpr auto ITEM_FLAG_COUNT = 8;
 
 constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
@@ -97,6 +97,7 @@ struct EntityModelData
 {
 	int BaseMesh = 0;
 
+	int SkinIndex = NO_VALUE;
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators  = {};
 
@@ -109,7 +110,7 @@ struct ItemInfo
 	int			   Index		= 0;			// ItemNumber // TODO: Make int.
 	GAME_OBJECT_ID ObjectNumber = ID_NO_OBJECT; // ObjectID
 
-	/*ItemStatus*/int Status = ITEM_NOT_ACTIVE;
+	ItemStatus Status = ITEM_NOT_ACTIVE;
 	bool	   Active = false;
 
 	// TODO: Refactor linked list.
@@ -128,11 +129,12 @@ struct ItemInfo
 	short	   RoomNumber = 0; // TODO: Make int.
 	int		   Floor	  = 0;
 
-	int	 HitPoints	= 0;
-	bool HitStatus	= false;
-	bool LookedAt	= false;
-	bool Collidable = false;
-	bool InDrawRoom = false;
+	int	 HitPoints			  = 0;
+	bool HitStatus			  = false;
+	bool LookedAt			  = false;
+	bool Collidable			  = false;
+	bool InDrawRoom			  = false;
+	bool DisableInterpolation = false;
 
 	int BoxNumber = 0;
 	int Timer	  = 0;
@@ -209,7 +211,7 @@ std::vector<int> FindAllItems(GAME_OBJECT_ID objectID);
 std::vector<int> FindCreatedItems(GAME_OBJECT_ID objectID);
 ItemInfo* FindItem(GAME_OBJECT_ID objectID);
 int FindItem(ItemInfo* item);
-void DoDamage(ItemInfo* item, int damage);
+void DoDamage(ItemInfo* item, int damage, bool silent = false);
 void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn = true);
 void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);

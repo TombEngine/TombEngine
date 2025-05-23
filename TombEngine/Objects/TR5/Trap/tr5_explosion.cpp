@@ -153,7 +153,7 @@ namespace TEN::Entities::Traps
 						else if (itemPtr->ObjectNumber != ID_SWITCH_TYPE7 && itemPtr->ObjectNumber != ID_SWITCH_TYPE8)
 						{
 							if (Objects[itemPtr->ObjectNumber].intelligent)
-								DoExplosiveDamage(*LaraItem, *itemPtr, item, Weapons[(int)LaraWeaponType::GrenadeLauncher].ExplosiveDamage);
+								DoExplosiveDamage(*LaraItem, *itemPtr, item, Weapons[(int)LaraWeaponType::GrenadeLauncher].Damage);
 						}
 						else
 						{
@@ -163,7 +163,7 @@ namespace TEN::Entities::Traps
 
 					for (auto* staticPtr : collObjects.Statics)
 					{
-						if (StaticObjects[staticPtr->staticNumber].shatterType != ShatterType::None)
+						if (Statics[staticPtr->staticNumber].shatterType != ShatterType::None)
 						{
 							TriggerExplosionSparks(staticPtr->pos.Position.x, staticPtr->pos.Position.y, staticPtr->pos.Position.z, 3, -2, 0, item.RoomNumber);
 							staticPtr->pos.Position.y -= 128;

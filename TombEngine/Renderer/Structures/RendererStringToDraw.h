@@ -11,7 +11,7 @@ namespace TEN::Renderer::Structures
 		float Y;
 		int Flags;
 		std::wstring String;
-		Vector3 Color;
+		Vector4 Color;
 		float Scale;
 	};
 }

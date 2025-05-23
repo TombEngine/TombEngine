@@ -12,8 +12,8 @@
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererSprite2D.h"
 #include "Renderer/Structures/RendererSpriteToDraw.h"
-#include "Renderer/Structures/RendererStatic.h"
-#include "Specific/memory/LinearArrayBuffer.h"
+#include "Renderer/Structures/RendererLensFlare.h"
+#include "Renderer/Structures/RendererMirror.h"
 
 namespace TEN::Renderer 
 {
@@ -53,6 +53,8 @@ namespace TEN::Renderer
 		std::vector<RendererDisplaySpriteToDraw>	DisplaySpritesToDraw	 = {};
 		std::map<int, std::vector<RendererStatic*>> SortedStaticsToDraw		 = {};
 		std::vector<RendererSortableObject>			TransparentObjectsToDraw = {};
+		std::vector<RendererLensFlare>				LensFlaresToDraw		 = {};
+		std::vector<RendererMirror>					Mirrors					 = {};
 
 		RenderView(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height);
 		RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, float width, float height, int roomNumber, float nearPlane, float farPlane, float fov);

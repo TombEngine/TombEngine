@@ -44,7 +44,7 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto FISH_CATCH_UP_FACTOR			 = 0.2f;
 	constexpr auto FISH_TARGET_DISTANCE_MAX		 = SQUARE(BLOCK(0.01f));
 	constexpr auto FISH_BASE_SEPARATION_DISTANCE = 210.0f;
-	constexpr auto FISH_UPDATE_INTERVAL_TIME	 = 0.2f;
+	constexpr auto FISH_UPDATE_INTERVAL_TIME	 = 6;
 
 	std::vector<FishData> FishSwarm = {};
 
@@ -147,7 +147,7 @@ namespace TEN::Entities::Creatures::TR3
 			float closestDist = INFINITY;
 			for (auto& targetItem : g_Level.Items)
 			{
-				if (!Objects.CheckID(targetItem.ObjectNumber) || targetItem.Index == itemNumber || targetItem.RoomNumber == NO_VALUE)
+				if (!Objects.CheckID(targetItem.ObjectNumber, true) || targetItem.Index == itemNumber || targetItem.RoomNumber == NO_VALUE)
 					continue;
 
 				if (SameZone(&creature, &targetItem) && item.TriggerFlags < 0)
@@ -156,7 +156,7 @@ namespace TEN::Entities::Creatures::TR3
 					if (dist < closestDist &&
 						targetItem.ObjectNumber == ID_CORPSE &&
 						targetItem.Active && TriggerActive(&targetItem) &&
-						targetItem.ItemFlags[1] == (int)CorpseFlag::Grounded &&
+						targetItem.ItemFlags[7] == (int)CorpseFlag::Grounded &&
 						TestEnvironment(ENV_FLAG_WATER, targetItem.RoomNumber))
 					{
 						item.ItemFlags[4] = 1;
@@ -240,8 +240,9 @@ namespace TEN::Entities::Creatures::TR3
 
 	void UpdateFishSwarm()
 	{
-		constexpr auto WATER_SURFACE_OFFSET = CLICK(0.5f);
-		constexpr auto FLEE_VEL				= 20.0f;
+		constexpr auto WATER_SURFACE_OFFSET		= CLICK(0.5f);
+		constexpr auto FLEE_VEL					= 20.0f;
+		constexpr auto TARGET_REACHED_TOLERANCE = BLOCK(0.5f);
 
 		static const auto SPHERE = BoundingSphere(Vector3::Zero, BLOCK(1 / 8.0f));
 
@@ -260,6 +261,8 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (fish.Life <= 0.0f)
 				continue;
+
+			fish.StoreInterpolationData();
 
 			// Increase separation distance for each fish.
 			float separationDist = FISH_BASE_SEPARATION_DISTANCE + (fishID * 3);
@@ -399,7 +402,7 @@ namespace TEN::Entities::Creatures::TR3
 					leaderItem.ItemFlags[2]++;
 				}
 			}
-			else if (ItemNearTarget(fish.Position, fish.TargetItemPtr, BLOCK(2)) &&
+			else if (Vector3i::Distance(fish.Position, desiredPos) < TARGET_REACHED_TOLERANCE &&
 				fish.LeaderItemPtr == fish.TargetItemPtr)
 			{
 				leaderItem.ItemFlags[2] = 0;
@@ -416,6 +419,8 @@ namespace TEN::Entities::Creatures::TR3
 			fish.Undulation += std::clamp(movementValue / 2, 0.3f, 1.0f);
 			if (fish.Undulation > PI_MUL_2)
 				fish.Undulation -= PI_MUL_2;
+
+			fish.Transform = fish.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(fish.Position);
 		}
 	}
 

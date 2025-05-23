@@ -6,19 +6,23 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/RenderTargetCube.h"
 #include "Renderer/Graphics/VertexBuffer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
-#include "Graphics/RenderTargetCube.h"
 
 namespace TEN::Renderer
 {
 	using namespace TEN::Renderer::Structures;
 	using namespace Utils;
+
 	Renderer g_Renderer;
 
-	Renderer::Renderer() : _gameCamera({0, 0, 0}, {0, 0, 1}, {0, 1, 0}, 1, 1, 0, 1, 10, 90)
+	Renderer::Renderer() :
+		_gameCamera({0, 0, 0}, {0, 0, 1}, {0, 1, 0}, 1, 1, 0, 1, 10, 90),
+		_oldGameCamera({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, 1, 1, 0, 1, 10, 90),
+		_currentGameCamera({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, 1, 1, 0, 1, 10, 90)
 	{
 	}
 
@@ -29,12 +33,10 @@ namespace TEN::Renderer
 
 	void Renderer::FreeRendererData()
 	{
-		_shadowLight = nullptr;
-
-		ClearSceneItems();
-
+		_items.resize(0);
+		_effects.resize(0);
 		_moveableObjects.resize(0);
-		_staticObjects.resize(0);
+		_staticObjects.clear();
 		_sprites.resize(0);
 		_rooms.resize(0);
 		_roomTextures.resize(0);
@@ -44,25 +46,15 @@ namespace TEN::Renderer
 		_animatedTextures.resize(0);
 		_animatedTextureSets.resize(0);
 
+		_shadowLight = nullptr;
+
+		_dynamicLightList = 0;
+		for (auto& dynamicLightList : _dynamicLights)
+			dynamicLightList.resize(0);
+
 		for (auto& mesh : _meshes)
 			delete mesh;
 		_meshes.resize(0);
-
-		for (auto& item : _items)
-		{
-			item.PrevRoomNumber = NO_VALUE;
-			item.RoomNumber = NO_VALUE;
-			item.ItemNumber = NO_VALUE;
-			item.LightsToDraw.clear();
-		}
-	}
-
-	void Renderer::ClearSceneItems()
-	{
-		_lines2DToDraw.clear();
-		_lines3DToDraw.clear();
-		_triangles3DToDraw.clear();
-		_gameCamera.Clear();
 	}
 
 	void Renderer::Lock()
@@ -70,17 +62,41 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
+	void Renderer::UpdateVideoTexture(Texture2D* texture)
+	{
+		_videoSprite.X = _videoSprite.Y = 0;
+		_videoSprite.Width = texture->Width;
+		_videoSprite.Height = texture->Height;
+		_videoSprite.UV[0] = Vector2(0,0);
+		_videoSprite.UV[1] = Vector2(1,0);
+		_videoSprite.UV[2] = Vector2(1,1);
+		_videoSprite.UV[3] = Vector2(0,1);
+		_videoSprite.Texture = texture;
+	}
+
+	void Renderer::ReloadShaders(bool recompileAAShaders)
+	{
+		try
+		{
+			_shaders.LoadShaders(_screenWidth, _screenHeight, recompileAAShaders);
+		}
+		catch (const std::exception& e)
+		{
+			TENLog("An exception occured during shader reload: " + std::string(e.what()), LogLevel::Error);
+		}
+	}
+
 	int Renderer::Synchronize()
 	{
 		// Sync the renderer
-		int nf = Sync();
+		int nf = TimeSync();
 		if (nf < 2)
 		{
 			int i = 2 - nf;
 			nf = 2;
 			do
 			{
-				while (!Sync());
+				while (!TimeSync());
 				i--;
 			}
 			while (i);
@@ -158,7 +174,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -196,7 +212,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -208,35 +224,70 @@ namespace TEN::Renderer
 		}
 
 		_context->PSSetSamplers((UINT)registerType, 1, &samplerState);
-	} 
+	}
+
+	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)
+	{
+		memcpy(&lights[index], &light, sizeof(ShaderLight));
+
+		// Precalculate ranges so that it's not recalculated in shader for every pixel.
+		if (light.Type == LightType::Spot)
+		{
+			lights[index].InRange  = cos(light.InRange * (PI / 180.0f));
+			lights[index].OutRange = cos(light.OutRange * (PI / 180.0f));
+		}
+
+		// If light has hash, interpolate its position with previous position.
+		if (light.Hash != 0)
+		{
+			lights[index].Position  = Vector3::Lerp(light.PrevPosition, light.Position, GetInterpolationFactor());
+			lights[index].Direction = Vector3::Lerp(light.PrevDirection, light.Direction, GetInterpolationFactor());
+		}
+
+		ReflectVectorOptionally(lights[index].Position);
+		ReflectVectorOptionally(lights[index].Direction);
+
+		// Bitmask light type to filter it in the shader later.
+		return (1 << (31 - (int)light.Type));
+	}
 
 	void Renderer::BindRoomLights(std::vector<RendererLight*>& lights)
 	{
+		int lightTypeMask = 0;
+
 		for (int i = 0; i < lights.size(); i++)
-			memcpy(&_stRoom.RoomLights[i], lights[i], sizeof(ShaderLight));
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stRoom.RoomLights, i);
 		
-		_stRoom.NumRoomLights = (int)lights.size();
+		_stRoom.NumRoomLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindStaticLights(std::vector<RendererLight*>& lights)
 	{
+		int lightTypeMask = 0;
+
 		for (int i = 0; i < lights.size(); i++)
-			memcpy(&_stStatic.Lights[i], lights[i], sizeof(ShaderLight));
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stStatic.Lights, i);
 		
-		_stStatic.NumLights = (int)lights.size();
+		_stStatic.NumLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID)
 	{
-		for (int i = 0; i < lights.size(); i++)
-			memcpy(&_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].Lights[i], lights[i], sizeof(ShaderLight));
+		int lightTypeMask = 0;
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].NumLights = (int)lights.size();
+		for (int i = 0; i < lights.size(); i++)
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stInstancedStaticMeshBuffer.StaticMeshes[instanceID].Lights, i);
+
+		_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].NumLights = (int)lights.size() | lightTypeMask;
 	}
 
-	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade)
+	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow)
 	{
+		constexpr int SHADOWABLE_MASK = (1 << 16);
+
+		int lightTypeMask = 0;
 		int numLights = 0;
+
 		for (int i = 0; i < lights.size(); i++)
 		{
 			float fadedCoeff = 1.0f;
@@ -255,12 +306,12 @@ namespace TEN::Renderer
 			if (fadedCoeff == 0.0f)
 				continue;
 
-			memcpy(&_stItem.Lights[numLights], lights[i], sizeof(ShaderLight));
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stItem.Lights, numLights);
 			_stItem.Lights[numLights].Intensity *= fadedCoeff;
 			numLights++;
 		}
 
-		_stItem.NumLights = numLights;
+		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
 	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
@@ -424,5 +475,15 @@ namespace TEN::Renderer
 		rects[0].bottom = _screenHeight;
 
 		_context->RSSetScissorRects(1, rects);
+	}
+
+	void Renderer::SetGraphicsSettingsChanged()
+	{
+		_graphicsSettingsChanged = true;
+	}
+
+	RendererDebugPage Renderer::GetDebugPage() const
+	{
+		return _debugPage;
 	}
 }

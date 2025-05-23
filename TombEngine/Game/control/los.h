@@ -1,11 +1,15 @@
 #pragma once
+
 #include "Game/room.h"
 #include "Objects/objectslist.h"
 #include "Math/Math.h"
 
 struct MESH_INFO;
 
+constexpr auto NO_LOS_ITEM = INT_MAX;
+
 // Legacy LOS functions
+
 bool LOS(const GameVector* origin, GameVector* target);
 bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push);
 bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, bool isFiring);

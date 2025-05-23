@@ -1,4 +1,4 @@
-#include "Scripting/Internal/TEN/Vec2/Vec2.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
 using CallbackDrawString = std::function<
 	void(

@@ -884,7 +884,7 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_DEATH;
 		}
 		else if ((IsHeld(In::Crouch) || CanCrawlspaceDive(*item, *coll)) &&
-			g_GameFlow->HasCrawlspaceDive())
+			g_GameFlow->GetSettings()->Animations.CrawlspaceDive)
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
 			TranslateItem(item, coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
@@ -915,7 +915,7 @@ void lara_col_swan_dive(ItemInfo* item, CollisionInfo* coll)
 	auto& player = GetLaraInfo(*item);
 
 	auto bounds = GameBoundingBox(item);
-	int realHeight = g_GameFlow->HasCrawlspaceDive() ? (bounds.GetHeight() * 0.7f) : LARA_HEIGHT;
+	int realHeight = g_GameFlow->GetSettings()->Animations.CrawlspaceDive ? (bounds.GetHeight() * 0.7f) : LARA_HEIGHT;
 
 	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.Height = std::max(LARA_HEIGHT_CRAWL, realHeight);

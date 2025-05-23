@@ -19,12 +19,12 @@ namespace TEN::Entities::Traps
 
 		if (TriggerActive(&item))
 		{
-		   item.Status = ITEM_ACTIVE;
+			item.Status = ITEM_ACTIVE;
 			AnimateItem(&item);
 		}
 		else if (item.TriggerFlags == 2)
 		{
-		   item.Status |= ITEM_INVISIBLE;
+			item.Status = ITEM_INVISIBLE;
 		}
 	}
 

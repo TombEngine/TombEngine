@@ -18,6 +18,8 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
 {
+	constexpr auto LARSON_ALERT_RANGE = SQUARE(BLOCK(2));
+
 	#define STATE_TR5_LARSON_STOP	1
 	#define STATE_TR5_LARSON_WALK	2
 	#define STATE_TR5_LARSON_RUN	3
@@ -58,6 +60,8 @@ namespace TEN::Entities::Creatures::TR5
 			item->Pose.Position.z += STEPUP_HEIGHT;
 	}
 
+	// TODO: Make larson 1:1 from TOMB5 code. TokyoSU: 10/27/2024
+	// This code is a mess...
 	void LarsonControl(short itemNumber)
 	{
 		if (!CreatureActive(itemNumber))
@@ -73,15 +77,14 @@ namespace TEN::Entities::Creatures::TR5
 		short joint2 = 0;
 
 		// TODO: When Larson's HP is below 40, he runs away in Streets of Rome. Keeping block commented for reference.
-		/*if (item->HitPoints <= TR5_LARSON_MIN_HP && !(item->flags & IFLAG_INVISIBLE))
+		if (item->HitPoints <= TR5_LARSON_MIN_HP && !(item->Flags & IFLAG_INVISIBLE))
 		{
 			item->HitPoints = TR5_LARSON_MIN_HP;
-			creature->flags++;
-		}*/
+			creature->Flags++;
+		}
 
 		if (creature->MuzzleFlash[0].Delay != 0)
 			creature->MuzzleFlash[0].Delay--;
-
 		if (creature->MuzzleFlash[1].Delay != 0)
 			creature->MuzzleFlash[1].Delay--;
 
@@ -89,20 +92,13 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (CurrentLevel == 2)
 			{
-				item->Animation.IsAirborne = false;
-				item->Status = ITEM_DEACTIVATED;
-				item->Collidable = false;
-				item->HitStatus = false;
+				item->AIBits = AMBUSH;
 				item->ItemFlags[3] = 1;
 			}
 			else
 			{
-				item->Animation.IsAirborne = false;
-				item->Status = ITEM_ACTIVE;
-				item->Collidable = false;
-				item->HitStatus = false;
+				item->AIBits = GUARD;
 			}
-
 			item->TriggerFlags = 0;
 		}
 
@@ -120,25 +116,23 @@ namespace TEN::Entities::Creatures::TR5
 				joint2 = AI.angle;
 
 			// FIXME: This should make Larson run away, but it doesn't work.
-			/*if (creature->flags)
+			// FIXME: 10/27/2024 - TokyoSU: Implemented TOMB5 way, should work now but need test.
+			if (creature->Flags)
 			{
 				item->HitPoints = 60;
-				item->IsAirborne = false;
-				item->HitStatus = false;
-				item->Collidable = false;
-				item->Status = ITEM_DESACTIVATED;
+				item->AIBits = AMBUSH;
 				creature->Flags = 0;
-			}*/
+			}
 
 			GetCreatureMood(item, &AI, true);
 			CreatureMood(item, &AI, true);
 
-			if (AI.distance < SQUARE(BLOCK(2)) &&
+			if (AI.distance < LARSON_ALERT_RANGE &&
 				LaraItem->Animation.Velocity.z > 20.0f ||
 				item->HitStatus ||
 				TargetVisible(item, &AI) != 0)
 			{
-				item->Status &= ~ITEM_ACTIVE;
+				item->AIBits &= ~GUARD;
 				creature->Alerted = true;
 			}
 

@@ -25,6 +25,14 @@ namespace TEN::Entities::Creatures::TR3
 
 		ItemInfo* TargetItemPtr = nullptr;
 		ItemInfo* LeaderItemPtr = nullptr;
+
+		Matrix Transform	 = Matrix::Identity;
+		Matrix PrevTransform = Matrix::Identity;
+
+		void StoreInterpolationData()
+		{
+			PrevTransform = Transform;
+		}
 	};
 
 	extern std::vector<FishData> FishSwarm;

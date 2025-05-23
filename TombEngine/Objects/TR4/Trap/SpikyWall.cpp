@@ -91,7 +91,7 @@ namespace TEN::Entities::Traps
 					abs(pointColl0.GetPosition().z - mesh.pos.Position.z) < BLOCK(1)) ||
 					abs(pointColl1.GetPosition().x - mesh.pos.Position.x) < BLOCK(1) &&
 					abs(pointColl1.GetPosition().z - mesh.pos.Position.z) < BLOCK(1) &&
-					StaticObjects[mesh.staticNumber].shatterType != ShatterType::None)
+					Statics[mesh.staticNumber].shatterType != ShatterType::None)
 				{					
 					if (mesh.HitPoints != 0)
 						continue;

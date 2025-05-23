@@ -1,5 +1,6 @@
 #pragma once
-#include "Scripting/Internal/TEN/Color/Color.h"
+
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
 
 struct ItemInfo;
 

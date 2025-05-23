@@ -22,22 +22,39 @@ namespace TEN::Effects::Hair
 {
 	HairEffectController HairEffect = {};
 
+	int HairUnit::GetRootMeshID(int hairUnitID)
+	{
+		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+		int meshID = g_GameFlow->GetSettings()->Hair[GetHairTypeIndex(hairUnitID, isYoung)].RootMesh;
+
+		if (meshID >= LARA_MESHES::NUM_LARA_MESHES)
+		{
+			TENLog("Incorrect root mesh index specified for hair object. Check settings file.", LogLevel::Warning);
+			return LARA_MESHES::LM_HEAD;
+		}
+
+		return meshID;
+	}
+
 	void HairUnit::Update(const ItemInfo& item, int hairUnitID)
 	{
+		for (auto& segment : Segments)
+			segment.StoreInterpolationData();
+
 		const auto& player = GetLaraInfo(item);
 
 		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
 
 		// Get world matrix from head bone.
 		auto worldMatrix = Matrix::Identity;
-		g_Renderer.GetBoneMatrix(item.Index, LM_HEAD, &worldMatrix);
+		g_Renderer.GetBoneMatrix(item.Index, GetRootMeshID(hairUnitID), &worldMatrix);
 
 		// Apply base offset to world matrix.
 		auto relOffset = GetRelBaseOffset(hairUnitID, isYoung);
 		worldMatrix = Matrix::CreateTranslation(relOffset) * worldMatrix;
 
 		// Use player's head bone orientation as base.
-		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(GetBoneOrientation(item, LM_HEAD)));
+		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(GetBoneOrientation(item, LM_HEAD))) * item.Pose.Orientation.ToQuaternion();
 
 		// Set position of base segment.
 		Segments[0].Position = worldMatrix.Translation();
@@ -51,7 +68,7 @@ namespace TEN::Effects::Hair
 				auto& nextSegment = Segments[i + 1];
 
 				// NOTE: Joint offset determines segment length.
-				auto jointOffset = GetJointOffset(ObjectID, i);
+				auto jointOffset = GetJointOffset(ObjectID, i, true);
 
 				worldMatrix = Matrix::CreateTranslation(segment.Position);
 				worldMatrix = Matrix::CreateFromQuaternion(segment.Orientation) * worldMatrix;
@@ -70,7 +87,7 @@ namespace TEN::Effects::Hair
 			int waterHeight = GetPointCollision(pos, roomNumber).GetWaterTopHeight();
 
 			// Get collision spheres.
-			auto spheres = GetSpheres(item, isYoung);
+			auto spheres = GetSpheres(item);
 
 			// Update segments.
 			for (int i = 1; i < Segments.size(); i++)
@@ -95,8 +112,9 @@ namespace TEN::Effects::Hair
 				worldMatrix = Matrix::CreateFromQuaternion(prevSegment.Orientation) * worldMatrix;
 
 				auto jointOffset = (i == (Segments.size() - 1)) ?
-					GetJointOffset(ObjectID, (i - 1) - 1) :
-					GetJointOffset(ObjectID, (i - 1));
+					GetJointOffset(ObjectID, (i - 1) - 1, true) :
+					GetJointOffset(ObjectID, (i - 1), true);
+
 				worldMatrix = Matrix::CreateTranslation(jointOffset) * worldMatrix;
 
 				segment.Position = worldMatrix.Translation();
@@ -105,31 +123,37 @@ namespace TEN::Effects::Hair
 		}
 	}
 
-	Vector3 HairUnit::GetRelBaseOffset(int hairUnitID, bool isYoung)
+	int HairUnit::GetHairTypeIndex(int hairUnitID, bool isYoung)
 	{
-		auto relOffset = Vector3::Zero;
+		int hairType = (int)PlayerHairType::Normal;
+
 		if (isYoung)
 		{
 			switch (hairUnitID)
 			{
-			// Left pigtail offset.
+			// Left offset.
 			case 0:
-				relOffset = Vector3(-48.0f, -48.0f, -50.0f);
+				hairType = (int)PlayerHairType::YoungLeft;
 				break;
 
-			// Right pigtail offset.
+			// Right offset.
 			case 1:
-				relOffset = Vector3(48.0f, -48.0f, -50.0f);
+				hairType = (int)PlayerHairType::YoungRight;
 				break;
 			}
 		}
 		else
 		{
-			// Center braid offset.
-			relOffset = Vector3(-4.0f, -4.0f, -48.0f);
+			// Center offset.
+			hairType = (int)PlayerHairType::Normal;
 		}
 
-		return relOffset;
+		return hairType;
+	}
+
+	Vector3 HairUnit::GetRelBaseOffset(int hairUnitID, bool isYoung)
+	{
+		return g_GameFlow->GetSettings()->Hair[GetHairTypeIndex(hairUnitID, isYoung)].Offset;
 	}
 
 	Vector3 HairUnit::GetWaterProbeOffset(const ItemInfo& item)
@@ -173,6 +197,11 @@ namespace TEN::Effects::Hair
 		// Calculate absolute orientation.
 		auto absDir = target - origin;
 		absDir.Normalize();
+
+		// FAILSAFE: Handle case with zero normal (can happen if 2 hair segments have same offset).
+		if (absDir == Vector3::Zero)
+			return Quaternion::Identity;
+
 		auto absOrient = Geometry::ConvertDirectionToQuat(absDir);
 
 		// Calculate relative twist rotation.
@@ -184,7 +213,7 @@ namespace TEN::Effects::Hair
 		return (absOrient * twistRot);
 	}
 
-	std::vector<BoundingSphere> HairUnit::GetSpheres(const ItemInfo& item, bool isYoung)
+	std::vector<BoundingSphere> HairUnit::GetSpheres(const ItemInfo& item)
 	{
 		constexpr auto SPHERE_COUNT		   = 8;
 		constexpr auto TORSO_SPHERE_OFFSET = Vector3i(-10, 0, 25);
@@ -202,8 +231,6 @@ namespace TEN::Effects::Hair
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_TORSO]];
 		pos = GetJointPosition(item, LM_TORSO, Vector3i(mesh->sphere.Center) + TORSO_SPHERE_OFFSET).ToVector3();
 		spheres.push_back(BoundingSphere(pos, mesh->sphere.Radius));
-		if (isYoung)
-			spheres.back().Radius = spheres.back().Radius - ((spheres.back().Radius / 4) + (spheres.back().Radius / 8));
 
 		// Head sphere.
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_HEAD]];
@@ -211,9 +238,7 @@ namespace TEN::Effects::Hair
 		spheres.push_back(BoundingSphere(pos, mesh->sphere.Radius));
 
 		// Neck sphere.
-		spheres.push_back(BoundingSphere(
-			(spheres[1].Center + (spheres[2].Center * 2)) / 3,
-			isYoung ? 0.0f : (spheres[2].Radius * 0.75f)));
+		spheres.push_back(BoundingSphere((spheres[1].Center + (spheres[2].Center * 2)) / 3, (spheres[2].Radius * 0.75f)));
 
 		// Left arm sphere.
 		mesh = &g_Level.Meshes[item.Model.MeshIndex[LM_LINARM]];
@@ -241,9 +266,6 @@ namespace TEN::Effects::Hair
 				pos + ((spheres[0].Center - pos) / 2),
 				mesh->sphere.Radius));
 
-		if (isYoung)
-			spheres[1].Center = (spheres[1].Center + spheres[2].Center) / 2;
-
 		return spheres;
 	}
 	
@@ -264,7 +286,7 @@ namespace TEN::Effects::Hair
 				segment.Position += Weather.Wind() * 2;
 
 			// Apply gravity.
-			segment.Position.y += HAIR_GRAVITY;
+			segment.Position.y += g_GameFlow->GetSettings()->Physics.Gravity * HAIR_GRAVITY_COEFF;
 
 			// Float on water surface.
 			if (waterHeight != NO_HEIGHT && segment.Position.y > waterHeight)
@@ -321,7 +343,7 @@ namespace TEN::Effects::Hair
 		{
 			auto& unit = Units[i];
 
-			auto objectID = (i == 0) ? ID_SINGLE_BRAID_HAIR : ID_DUAL_PIGTAIL_HAIR;
+			auto objectID = (i == 0) ? ID_HAIR_PRIMARY : ID_HAIR_SECONDARY;
 			const auto& object = Objects[objectID];
 
 			unit.IsEnabled = (object.loaded && (i == 0 || (i == 1 && isYoung)));
@@ -332,7 +354,7 @@ namespace TEN::Effects::Hair
 			// Initialize segments.
 			for (auto& segment : unit.Segments)
 			{
-				segment.Position = GetJointOffset(objectID, 0);
+				segment.Position = GetJointOffset(objectID, 0, true);
 				segment.Velocity = Vector3::Zero;
 				segment.Orientation = DEFAULT_ORIENT.ToQuaternion();
 			}

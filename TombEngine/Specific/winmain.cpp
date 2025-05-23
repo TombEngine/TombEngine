@@ -3,7 +3,6 @@
 
 #include <CommCtrl.h>
 #include <process.h>
-#include <resource.h>
 #include <iostream>
 #include <codecvt>
 #include <filesystem>
@@ -11,28 +10,25 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
-#include "Scripting/Include/ScriptInterfaceLevel.h"
-#include "Scripting/Include/ScriptInterfaceState.h"
-#include "Scripting/Internal/LanguageScript.h"
+#include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
-#include "Specific/Input/Input.h"
-#include "Specific/level.h"
+#include "Specific/Parallel.h"
 #include "Specific/trutils.h"
+#include "Scripting/Internal/LanguageScript.h"
+#include "Scripting/Include/ScriptInterfaceState.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
+#include "Video/Video.h"
 
 using namespace TEN::Config;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Utils;
-
-using std::exception;
-using std::string;
-using std::cout;
-using std::endl;
+using namespace TEN::Video;
 
 WINAPP App;
-unsigned int ThreadID;
-uintptr_t ThreadHandle;
+unsigned int ThreadID, ConsoleThreadID;
+uintptr_t ThreadHandle, ConsoleThreadHandle;
 HACCEL hAccTable;
 bool DebugMode = false;
 HWND WindowsHandle;
@@ -51,6 +47,70 @@ bool ArgEquals(wchar_t* incomingArg, std::string name)
 	return (lowerArg == "-" + name) || (lowerArg == "/" + name);
 }
 
+void CheckIfRedistInstalled()
+{
+	// Before doing any actions, check if VC redist is installed, because otherwise it can
+	// silently crash at any moment. Still allows to run the game in any case, even if user
+	// decides not to install redistributables.
+
+	const char* redistKey =
+#ifdef _WIN64
+		R"(SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64)";
+#else
+		R"(SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86)";
+#endif
+
+	HKEY hKey;
+	LSTATUS result = RegOpenKeyExA(HKEY_LOCAL_MACHINE, redistKey, 0, KEY_READ, &hKey);
+	if (result == ERROR_SUCCESS)
+	{
+		DWORD majorVersion = 0;
+		DWORD minorVersion = 0;
+		DWORD dataSize = sizeof(DWORD);
+
+		if (RegQueryValueExA(hKey, "Major", NULL, NULL, (LPBYTE)&majorVersion, &dataSize) == ERROR_SUCCESS &&
+			RegQueryValueExA(hKey, "Minor", NULL, NULL, (LPBYTE)&minorVersion, &dataSize) == ERROR_SUCCESS)
+		{
+			RegCloseKey(hKey);
+
+			if (majorVersion >= 14 && minorVersion >= 40)
+			{
+				HMODULE hModule = LoadLibraryW(L"vcruntime140.dll");
+				if (hModule != NULL)
+				{
+					FreeLibrary(hModule);
+					return;
+				}
+			}
+		}
+		else
+		{
+			RegCloseKey(hKey);
+		}
+	}
+
+	const char* redistUrl =
+#ifdef _WIN64
+		R"(https://aka.ms/vs/17/release/vc_redist.x64.exe)";
+#else
+		R"(https://aka.ms/vs/17/release/vc_redist.x86.exe)";
+#endif
+
+	const char* message = "TombEngine requires Visual C++ 2015-2022 Redistributable to be installed. Would you like to download it now?";
+	int msgBoxResult = MessageBoxA(NULL, message, "Missing libraries", MB_ICONWARNING | MB_OKCANCEL);
+
+	if (msgBoxResult == IDOK)
+	{
+		HINSTANCE hResult = ShellExecuteA(NULL, "open", redistUrl, NULL, NULL, SW_SHOWNORMAL);
+
+		if ((intptr_t)hResult <= 32)
+		{
+			MessageBoxA(NULL, (LPCSTR)("Failed to start browser to download runtimes. Error code: " +
+				std::to_string((long)(intptr_t)hResult)).c_str(), "Error", MB_ICONERROR | MB_OK);
+		}
+	}
+}
+
 Vector2i GetScreenResolution()
 {
 	RECT desktop;
@@ -60,6 +120,22 @@ Vector2i GetScreenResolution()
 	resolution.x = desktop.right;
 	resolution.y = desktop.bottom;
 	return resolution;
+}
+
+int GetCurrentScreenRefreshRate()
+{
+	DEVMODE devmode;
+	memset(&devmode, 0, sizeof(devmode));
+	devmode.dmSize = sizeof(devmode);
+	
+	if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode))
+	{
+		return devmode.dmDisplayFrequency;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 std::vector<Vector2i> GetAllSupportedScreenResolutions()
@@ -115,20 +191,93 @@ void DisableDpiAwareness()
 	FreeLibrary(lib);
 }
 
+bool GenerateDummyLevel(const std::string& levelPath)
+{
+	// Try loading embedded resource "data.bin"
+	HRSRC hResource = FindResource(NULL, MAKEINTRESOURCE(IDR_TITLELEVEL), "BIN");
+	if (hResource == NULL)
+	{
+		TENLog("Embedded title level file not found.", LogLevel::Error);
+		return false;
+	}
+
+	// Load resource into memory.
+	HGLOBAL hGlobal = LoadResource(NULL, hResource);
+	if (hGlobal == NULL)
+	{
+		TENLog("Failed to load embedded title level file.", LogLevel::Error);
+		return false;
+	}
+
+	// Lock resource to get data pointer.
+	void* pData = LockResource(hGlobal);
+	DWORD dwSize = SizeofResource(NULL, hResource);
+
+	// Write resource data to file.
+	try
+	{
+		auto dir = std::filesystem::path(levelPath).parent_path();
+		if (!dir.empty())
+			std::filesystem::create_directories(dir);
+
+		auto outFile = std::ofstream(levelPath, std::ios::binary);
+		if (!outFile)
+			throw std::ios_base::failure("Failed to create title level file.");
+
+		outFile.write(reinterpret_cast<const char*>(pData), dwSize);
+		if (!outFile)
+			throw std::ios_base::failure("Failed to write to title level file.");
+
+		outFile.close();
+	}
+	catch (const std::exception& ex)
+	{
+		TENLog("Error while generating title level file: " + std::string(ex.what()), LogLevel::Error);
+		return false;
+	}
+
+	return true;
+}
+
+unsigned CALLBACK ConsoleInput(void*)
+{
+	auto input = std::string();
+	while (!ThreadEnded)
+	{
+		if (!std::getline(std::cin, input))
+			break;
+
+		if (std::regex_match(input, std::regex("^\\s*$")))
+			continue;
+
+		if (g_GameScript == nullptr)
+		{
+			TENLog("Scripting engine not initialized.", LogLevel::Error);
+			continue;
+		}
+		else
+		{
+			g_GameScript->AddConsoleInput(input);
+		}
+	}
+
+	return true;
+}
+
 void WinProcMsg()
 {
-	MSG Msg;
+	MSG msg;
 
 	do
 	{
-		GetMessage(&Msg, 0, 0, 0);
-		if (!TranslateAccelerator(WindowsHandle, hAccTable, &Msg))
+		GetMessage(&msg, 0, 0, 0);
+		if (!TranslateAccelerator(WindowsHandle, hAccTable, &msg))
 		{
-			TranslateMessage(&Msg);
-			DispatchMessage(&Msg);
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 	}
-	while (!ThreadEnded && Msg.message != WM_QUIT);
+	while (!ThreadEnded && msg.message != WM_QUIT);
 }
 
 void CALLBACK HandleWmCommand(unsigned short wParam)
@@ -142,17 +291,6 @@ void CALLBACK HandleWmCommand(unsigned short wParam)
 			SuspendThread((HANDLE)ThreadHandle);
 			g_Renderer.ToggleFullScreen();
 			ResumeThread((HANDLE)ThreadHandle);
-
-			if (g_Renderer.IsFullsScreen())
-			{
-				SetCursor(nullptr);
-				ShowCursor(false);
-			}
-			else
-			{
-				SetCursor(LoadCursorA(App.hInstance, (LPCSTR)0x68));
-				ShowCursor(true);
-			}
 		}
 	}
 }
@@ -164,6 +302,21 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	// Disables ALT + SPACE
 	if (msg == WM_SYSCOMMAND && wParam == SC_KEYMENU)
 		return 0;
+	
+	if (msg == WM_SETCURSOR)
+	{
+		if (LOWORD(lParam) == HTCLIENT)
+		{
+			SetCursor(g_Renderer.IsFullsScreen() ? nullptr : App.WindowClass.hCursor);
+			return 1;
+		}
+	}
+
+	if (msg == WM_ACTIVATEAPP)
+	{
+		App.ResetClock = true;
+		return DefWindowProcA(hWnd, msg, wParam, (LPARAM)lParam);
+	}
 
 	if (msg > WM_CLOSE)
 	{
@@ -198,8 +351,11 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (!DebugMode && ThreadHandle > 0)
 			{
 				TENLog("Resuming game thread", LogLevel::Info);
+
+				if (!g_VideoPlayer.Resume())
+					ResumeAllSounds(SoundPauseMode::Global);
+
 				ResumeThread((HANDLE)ThreadHandle);
-				ResumeAllSounds(SoundPauseMode::Global);
 			}
 
 			return 0;
@@ -213,8 +369,11 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if (!DebugMode)
 		{
 			TENLog("Suspending game thread", LogLevel::Info);
+
+			if (!g_VideoPlayer.Pause())
+				PauseAllSounds(SoundPauseMode::Global);
+
 			SuspendThread((HANDLE)ThreadHandle);
-			PauseAllSounds(SoundPauseMode::Global);
 		}
 	}
 
@@ -228,6 +387,8 @@ int main()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+	CheckIfRedistInstalled();
+
 	// Process command line arguments.
 	bool setup = false;
 	std::string levelFile = {};
@@ -268,8 +429,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Hide console window if mode isn't debug.
 #ifndef _DEBUG
 	if (!DebugMode)
-		ShowWindow(GetConsoleWindow(), 0);
+	{
+		FreeConsole();
+	}
+	else
 #endif
+	{
+		ConsoleThreadHandle = BeginThread(ConsoleInput, ConsoleThreadID);
+	}
 
 	// Clear application structure.
 	memset(&App, 0, sizeof(WINAPP));
@@ -277,18 +444,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Initialize logging.
 	InitTENLog(gameDir);
 
+	auto windowName = std::string("Starting TombEngine");
+
 	// Indicate version.
 	auto ver = GetProductOrFileVersion(false);
-	auto windowName = (std::string("Starting TombEngine version ") +
-					   std::to_string(ver[0]) + "." +
-					   std::to_string(ver[1]) + "." +
-					   std::to_string(ver[2]) + " " +
+
+	if (ver.size() == 4)
+	{
+		windowName = windowName + " version " +
+					 std::to_string(ver[0]) + "." +
+					 std::to_string(ver[1]) + "." +
+					 std::to_string(ver[2]) + "." +
+					 std::to_string(ver[3]);
+	}
+
 #ifdef _WIN64
-					   "(64-bit)"
+	windowName = windowName + " (64-bit)";
 #else
-					   "(32-bit)"
+	windowName = windowName + " (32-bit)";
 #endif
-					   );
+
 	TENLog(windowName, LogLevel::Info);
 
 	// Initialize savegame and scripting systems.
@@ -346,7 +521,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	App.WindowClass.lpfnWndProc = WinAppProc;
 	App.WindowClass.cbClsExtra = 0;
 	App.WindowClass.cbWndExtra = 0;
-	App.WindowClass.hCursor = LoadCursor(App.hInstance, IDC_ARROW);
+	App.WindowClass.hCursor = LoadCursorA(NULL, IDC_ARROW);
 
 	// Register main window.
 	if (!RegisterClass(&App.WindowClass))
@@ -357,6 +532,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	// Create renderer and enumerate adapters and video modes.
 	g_Renderer.Create();
+
+	// Initialize key bindings.
+	g_Bindings.Initialize();
 
 	// Load configuration and optionally show setup dialog.
 	InitDefaultConfiguration();
@@ -420,7 +598,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
 		// Initialize renderer.
-		g_Renderer.Initialize(g_Config.ScreenWidth, g_Config.ScreenHeight, g_Config.WindowMode == WindowMode::Windowed, App.WindowHandle);
+		g_Renderer.Initialize(gameDir, g_Config.ScreenWidth, g_Config.ScreenHeight, g_Config.WindowMode == WindowMode::Windowed, App.WindowHandle);
 
 		// Initialize audio.
 		Sound_Init(gameDir);
@@ -437,8 +615,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		UpdateWindow(WindowsHandle);
 		ShowWindow(WindowsHandle, nShowCmd);
 
-		SetCursor(NULL);
-		ShowCursor(FALSE);
 		hAccTable = LoadAccelerators(hInstance, (LPCSTR)0x65);
 	}
 	catch (std::exception& ex)
@@ -450,6 +626,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	DoTheGame = true;
 
+	g_Parallel.Initialize();
 	ThreadEnded = false;
 	ThreadHandle = BeginThread(GameMain, ThreadID);
 
@@ -463,34 +640,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	while (DoTheGame);
 
+	TENLog("Cleaning up and exiting...", LogLevel::Info);
+
 	WinClose();
 	exit(EXIT_SUCCESS);
 }
 
 void WinClose()
 {
+	if (ConsoleThreadHandle)
+		CloseHandle((HANDLE)ConsoleThreadHandle);
+
 	WaitForSingleObject((HANDLE)ThreadHandle, 5000);
-
 	DestroyAcceleratorTable(hAccTable);
-
-	Sound_DeInit();
-	DeinitializeInput();
-
-	TENLog("Cleaning up and exiting...", LogLevel::Info);
-	
-	delete g_GameScript;
-	g_GameScript = nullptr;
-
-	delete g_GameFlow;
-	g_GameFlow = nullptr;
-
-	delete g_GameScriptEntities;
-	g_GameScriptEntities = nullptr;
-
-	delete g_GameStringsHandler;
-	g_GameStringsHandler = nullptr;
-
 	ShutdownTENLog();
-
 	CoUninitialize();
 }

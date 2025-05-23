@@ -258,7 +258,7 @@ void AnimatingControl(short itemNumber)
 	else if (item.TriggerFlags == 2) //Make the animating dissapear when anti-triggered.
 	{
 		RemoveActiveItem(itemNumber);
-		item.Status |= ITEM_INVISIBLE;
+		item.Status = ITEM_INVISIBLE;
 	}
 
 	// TODO: ID_SHOOT_SWITCH2 is probably the bell in Trajan Markets, use Lua for that.

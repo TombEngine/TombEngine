@@ -5,8 +5,9 @@
 #include "Game/collision/Sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Setup.h"
-#include "Specific/level.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
@@ -30,7 +31,7 @@ bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits)
 		auto spheres = item->GetSpheres();
 		ShatterItem.yRot = item->Pose.Orientation.y;
 		ShatterItem.bit = 1 << node;
-		ShatterItem.meshIndex = Objects[item->ObjectNumber].meshIndex + node;
+		ShatterItem.meshIndex = (node < item->Model.MeshIndex.size()) ? item->Model.MeshIndex[node] : item->Model.BaseMesh;
 		ShatterItem.sphere.Center = spheres[node].Center;
 		ShatterItem.color = item->Model.Color;
 		ShatterItem.flags = item->ObjectNumber == ID_CROSSBOW_BOLT ? 0x400 : 0;
@@ -60,7 +61,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 {
 	int meshIndex = 0;
 	short yRot = 0;
-	float scale;
+	Vector3 scale;
 	Vector3 pos;
 	bool isStatic;
 
@@ -70,10 +71,10 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 			return;
 
 		isStatic = true;
-		meshIndex = StaticObjects[mesh->staticNumber].meshNumber;
+		meshIndex = Statics[mesh->staticNumber].meshNumber;
 		yRot = mesh->pos.Orientation.y;
 		pos = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
-		scale = mesh->scale;
+		scale = mesh->pos.Scale;
 
 		if (mesh->HitPoints <= 0)
 			mesh->flags &= ~StaticMeshFlags::SM_VISIBLE;
@@ -88,7 +89,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 		meshIndex = item->meshIndex;
 		yRot = item->yRot;
 		pos = item->sphere.Center;
-		scale = 1.0f;
+		scale = Vector3::One;
 	}
 
 	auto fragmentsMesh = &g_Level.Meshes[meshIndex];
@@ -172,7 +173,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 				fragment->isStatic = isStatic;
 				fragment->active = true;
 				fragment->terminalVelocity = 1024;
-				fragment->gravity = Vector3(0, 7, 0);
+				fragment->gravity = Vector3(0, g_GameFlow->GetSettings()->Physics.Gravity, 0);
 				fragment->restitution = 0.6f;
 				fragment->friction = 0.6f;
 				fragment->linearDrag = .99f;
@@ -183,6 +184,9 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 				fragment->numBounces = 0;
 				fragment->color = isStatic ? mesh->color : item->color;
 				fragment->lightMode = fragmentsMesh->lightMode;
+
+				fragment->UpdateTransform();
+				fragment->StoreInterpolationData();
 			}
 		}
 	}
@@ -216,6 +220,8 @@ void UpdateDebris()
 	{
 		if (deb.active)
 		{
+			deb.StoreInterpolationData();
+
 			FloorInfo* floor;
 			short roomNumber;
 
@@ -257,9 +263,7 @@ void UpdateDebris()
 				deb.numBounces++;
 			}
 
-			auto translation = Matrix::CreateTranslation(deb.worldPosition.x, deb.worldPosition.y, deb.worldPosition.z);
-			auto rotation = Matrix::CreateFromQuaternion(deb.rotation);
-			deb.Transform = rotation * translation;
+			deb.UpdateTransform();
 		}
 	}
 }

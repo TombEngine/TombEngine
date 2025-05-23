@@ -3,6 +3,7 @@
 #pragma code_page(65001)
 
 #include "resource.h"
+#include "Version.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -26,8 +27,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,0,0
- PRODUCTVERSION 1,7,1,0
+ FILEVERSION TEN_MAJOR_VERSION,TEN_MINOR_VERSION,TEN_BUILD_NUMBER,TEN_REVISION_NUMBER
+ PRODUCTVERSION TEN_MAJOR_VERSION, TEN_MINOR_VERSION, TEN_BUILD_NUMBER, TEN_REVISION_NUMBER
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -43,12 +44,12 @@ BEGIN
         BLOCK "000904b0"
         BEGIN
             VALUE "CompanyName", "Tomb Engine Development Community"
-            VALUE "FileVersion", "1.4.0.0"
             VALUE "InternalName", "TombEngine.exe"
             VALUE "LegalCopyright", "Copyright (c) 2024"
             VALUE "OriginalFilename", "TombEngine.exe"
             VALUE "ProductName", "Tomb Engine"
-            VALUE "ProductVersion", "1.7.1.0"
+            VALUE "FileVersion", TEN_VERSION_STRING
+            VALUE "ProductVersion", TEN_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
@@ -64,7 +65,8 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "ten.ico"
+IDI_ICON1               ICON                    "Resources\\Ten.ico"
+IDR_TITLELEVEL          BIN                     "Resources\\Title.bin"
 
 
 /////////////////////////////////////////////////////////////////////////////

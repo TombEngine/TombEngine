@@ -6,6 +6,8 @@ constexpr auto MAX_SPOTCAMS = 256;
 constexpr auto SPOTCAM_CINEMATIC_BARS_HEIGHT = 1.0f / 16;
 constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED = 1.0f / FPS;
 
+class Pose;
+
 struct SPOTCAM
 {
 	int x;
@@ -61,3 +63,5 @@ void InitializeSpotCamSequences(bool startFirstSequence);
 void InitializeSpotCam(short sequence);
 void CalculateSpotCameras();
 int Spline(int x, int* knots, int nk);
+
+Pose GetCameraTransform(int sequence, float alpha, bool loop);

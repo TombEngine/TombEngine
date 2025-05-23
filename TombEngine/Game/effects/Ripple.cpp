@@ -59,6 +59,8 @@ namespace TEN::Effects::Ripple
 			if (ripple.Life <= 0.0f)
 				continue;
 
+			ripple.StoreInterpolationData();
+
 			// Update size.
 			if (ripple.Size < RIPPLE_SIZE_MAX)
 				ripple.Size += (ripple.Flags & ((int)RippleFlags::SlowFade | (int)RippleFlags::OnGround)) ? SIZE_STEP_SMALL : SIZE_STEP_LARGE;

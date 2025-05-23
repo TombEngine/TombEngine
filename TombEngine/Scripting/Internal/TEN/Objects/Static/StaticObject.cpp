@@ -1,267 +1,268 @@
-#pragma once
 #include "framework.h"
 
 #include "Game/effects/debris.h"
+#include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
-#include "Scripting/Internal/TEN/Vec3/Vec3.h"
-#include "Scripting/Internal/TEN/Rotation/Rotation.h"
-#include "Scripting/Internal/TEN/Color/Color.h"
-#include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/ReservedScriptNames.h"
-/***
-Statics
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 
-@tenclass Objects.Static
-@pragma nostrip
-*/
+using namespace TEN::Scripting::Types;
 
-static auto IndexError = index_error_maker(Static, ScriptReserved_Static);
-static auto NewIndexError = newindex_error_maker(Static, ScriptReserved_Static);
+/// Represents a static object in the game world.
+//
+// @tenclass Objects.Static
+// @pragma nostrip
 
-Static::Static(MESH_INFO & ref) : m_mesh{ref}
-{};
-
-void Static::Register(sol::table & parent)
+namespace TEN::Scripting
 {
-	parent.new_usertype<Static>(ScriptReserved_Static,
-		sol::no_constructor, // ability to spawn new ones could be added later
-		sol::meta_function::index, IndexError,
-		sol::meta_function::new_index, NewIndexError,
+	static auto IndexError = IndexErrorMaker(Static, ScriptReserved_Static);
+	static auto NewIndexError = NewIndexErrorMaker(Static, ScriptReserved_Static);
 
-		/// Enable the static, for cases when it was shattered or manually disabled before.
-		// @function Static:Enable
-		ScriptReserved_Enable, &Static::Enable,
-
-		/// Disable the static
-		// @function Static:Disable
-		ScriptReserved_Disable, &Static::Disable,
-
-		/// Get static mesh visibility
-		// @function Static:GetActive
-		// @treturn bool visibility state
-		ScriptReserved_GetActive, &Static::GetActive,
-
-		/// Get static mesh solid collision state
-		// @function Static:GetSolid
-		// @treturn bool solid collision state (true if solid, false if soft)
-		ScriptReserved_GetSolid, &Static::GetSolid,
-
-		/// Set static mesh solid collision state
-		// @function Static:SetSolid
-		// @tparam bool solidState if set, collision will be solid, if not, will be soft
-		ScriptReserved_SetSolid, &Static::SetSolid,
-
-		/// Get the static's position
-		// @function Static:GetPosition
-		// @treturn Vec3 a copy of the static's position
-		ScriptReserved_GetPosition, &Static::GetPos,
-
-		/// Set the static's position
-		// @function Static:SetPosition
-		// @tparam Vec3 position the new position of the static 
-		ScriptReserved_SetPosition, &Static::SetPos,
-
-		/// Get the static's rotation
-		// @function Static:GetRotation
-		// @treturn Rotation a copy of the static's rotation
-		ScriptReserved_GetRotation, &Static::GetRot,
-
-		/// Set the static's rotation
-		// @function Static:SetRotation
-		// @tparam Rotation rotation the static's new rotation
-		ScriptReserved_SetRotation, &Static::SetRot,
-
-		/// Get the static's scale
-		// @function Static:GetScale
-		// @treturn float current static scale
-		ScriptReserved_GetScale, &Static::GetScale,
-
-		/// Set the static's scale
-		// @function Static:SetScale
-		// @tparam Scale scale the static's new scale
-		ScriptReserved_SetScale, &Static::SetScale,
-
-		/// Get current HP (hit points/health points)
-		// Used only with shatterable static meshes.
-		// @function Static:GetHP
-		// @treturn int the amount of HP the static currently has
-		ScriptReserved_GetHP, &Static::GetHP,
-
-		/// Set current HP (hit points/health points)
-		// Used only with shatterable static meshes.
-		// @function Static:SetHP
-		// @tparam int HP the amount of HP to give the static
-		ScriptReserved_SetHP, &Static::SetHP,
-
-		/// Get the static's unique string identifier
-		// @function Static:GetName
-		// @treturn string the static's name
-		ScriptReserved_GetName, &Static::GetName,
-
-		/// Set the static's name (its unique string identifier)
-		// e.g. "my\_vase" or "oldrubble"
-		// @function Static:SetName
-		// @tparam string name The static's new name
-		ScriptReserved_SetName, &Static::SetName,
-
-		/// Get the static's slot number (as listed in Tomb Editor and WadTool)
-		// @function Static:GetSlot
-		// @treturn string the static's slot number
-		ScriptReserved_GetSlot, &Static::GetSlot,
-
-		/// Set the static's slot number (as listed in Tomb Editor and WadTool)
-		// @function Static:SetSlot
-		// @tparam int slot The static's slot number 
-		ScriptReserved_SetSlot, &Static::SetSlot,
-
-		/// Get the static's color
-		// @function Static:GetColor
-		// @treturn Color a copy of the static's color
-		ScriptReserved_GetColor, &Static::GetColor,
-
-		/// Set the static's color
-		// @function Static:SetColor
-		// @tparam Color color the new color of the static 
-		ScriptReserved_SetColor, &Static::SetColor,
-
-		/// Shatter static mesh
-		// @function Static:Shatter
-		ScriptReserved_Shatter, &Static::Shatter);
-}
-
-void Static::Enable()
-{
-	m_mesh.flags |= StaticMeshFlags::SM_VISIBLE;
-}
-
-void Static::Disable()
-{
-	m_mesh.flags &= ~StaticMeshFlags::SM_VISIBLE;
-}
-
-bool Static::GetActive()
-{
-	return (m_mesh.flags & StaticMeshFlags::SM_VISIBLE) != 0;
-}
-
-bool Static::GetSolid()
-{
-	return (m_mesh.flags & StaticMeshFlags::SM_SOLID) != 0;
-}
-
-void Static::SetSolid(bool yes)
-{
-	if (yes)
-		m_mesh.flags |= StaticMeshFlags::SM_SOLID;
-	else
-		m_mesh.flags &= ~StaticMeshFlags::SM_SOLID;
-}
-
-Vec3 Static::GetPos() const
-{
-	return Vec3(m_mesh.pos.Position.x, m_mesh.pos.Position.y, m_mesh.pos.Position.z);
-}
-
-void Static::SetPos(Vec3 const& pos)
-{
-	m_mesh.pos.Position.x = pos.x;
-	m_mesh.pos.Position.y = pos.y;
-	m_mesh.pos.Position.z = pos.z;
-	m_mesh.Dirty = true;
-}
-
-float Static::GetScale() const
-{
-	return m_mesh.scale;
-}
-
-void Static::SetScale(float const& scale)
-{
-	m_mesh.scale = scale;
-	m_mesh.Dirty = true;
-}
-
-int Static::GetHP() const
-{
-	return m_mesh.HitPoints;
-}
-
-void Static::SetHP(short hitPoints)
-{
-	m_mesh.HitPoints = hitPoints;
-}
-
-// This does not guarantee that the returned value will be identical
-// to a value written in via SetRot - only that the angle measures
-// will be mathematically equal
-// (e.g. 90 degrees = -270 degrees = 450 degrees)
-Rotation Static::GetRot() const
-{
-	return 
+	void Static::Register(sol::table& parent)
 	{
-		TO_DEGREES(m_mesh.pos.Orientation.x),
-		TO_DEGREES(m_mesh.pos.Orientation.y),
-		TO_DEGREES(m_mesh.pos.Orientation.z)
+		// Register type.
+		parent.new_usertype<Static>(
+			ScriptReserved_Static,
+			sol::no_constructor, // TODO: Add feature to spawn statics.
+			sol::meta_function::index, IndexError,
+			sol::meta_function::new_index, NewIndexError,
+
+			ScriptReserved_StaticGetName, &Static::GetName,
+			ScriptReserved_StaticGetSlot, &Static::GetSlot,
+			ScriptReserved_StaticGetPosition, &Static::GetPosition,
+			ScriptReserved_StaticGetRotation, &Static::GetRotation,
+			ScriptReserved_StaticGetScale, &Static::GetScale, // TODO: Deprecate. Should return Vec3 converted from static.Pose.Scale.
+			ScriptReserved_StaticGetColor, &Static::GetColor,
+			ScriptReserved_StaticGetHP, &Static::GetHitPoints, // TODO: Deprecate.
+			ScriptReserved_StaticGetActive, &Static::GetActiveStatus, // TODO: Deprecate. Rename Lua func to GetActiveStatus.
+			ScriptReserved_StaticGetCollidable, &Static::GetCollidable,
+			ScriptReserved_StaticGetSolid, &Static::GetSolidStatus, // TODO: Deprecate. Rename Lua func to GetSolidStatus.
+
+			ScriptReserved_StaticSetName, &Static::SetName,
+			ScriptReserved_StaticSetSlot, &Static::SetSlot,
+			ScriptReserved_StaticSetPosition, &Static::SetPosition,
+			ScriptReserved_StaticSetRotation, &Static::SetRotation,
+			ScriptReserved_StaticSetScale, &Static::SetScale,
+			ScriptReserved_StaticSetColor, &Static::SetColor,
+			ScriptReserved_StaticSetHitPoints, &Static::SetHitPoints, // TODO: Deprecate. Rename Lua func to SetHitPoints.
+			ScriptReserved_StaticSetCollidable, &Static::SetCollidable,
+			ScriptReserved_StaticSetSolid, &Static::SetSolidStatus, // TODO: Deprecate. Rename Lua func to SetSolidStatus.
+			
+			ScriptReserved_StaticEnable, &Static::Enable,
+			ScriptReserved_StaticDisable, &Static::Disable,
+			ScriptReserved_StaticShatter, &Static::Shatter);
+	}
+
+	Static::Static(MESH_INFO& staticObj) :
+		_static(staticObj)
+	{
 	};
-}
 
-void Static::SetRot(Rotation const& rot)
-{
-	m_mesh.pos.Orientation.x = ANGLE(rot.x);
-	m_mesh.pos.Orientation.y = ANGLE(rot.y);
-	m_mesh.pos.Orientation.z = ANGLE(rot.z);
-	m_mesh.Dirty = true;
-}
-
-std::string Static::GetName() const
-{
-	return m_mesh.Name;
-}
-
-void Static::SetName(std::string const & name) 
-{
-	if (!ScriptAssert(!name.empty(), "Name cannot be blank. Not setting name."))
+	/// Get this static's unique string identifier.
+	// @function Static:GetName
+	// @treturn string Name string.
+	std::string Static::GetName() const
 	{
-		return;
+		return _static.Name;
 	}
 
-	if (s_callbackSetName(name, m_mesh))
+	/// Get this static's slot ID.
+	// @function Static:GetSlot
+	// @treturn int Slot ID.
+	int Static::GetSlot() const
 	{
-		// remove the old name if we have one
-		s_callbackRemoveName(m_mesh.Name);
-		m_mesh.Name = name;
+		return _static.staticNumber;
 	}
-	else
+
+	/// Get this static's world position.
+	// @function Static:GetPosition
+	// @treturn Vec3 World position.
+	Vec3 Static::GetPosition() const
 	{
-		ScriptAssertF(false, "Could not add name {} - does an object with this name already exist?", name);
-		TENLog("Name will not be set", LogLevel::Warning, LogConfig::All);
+		return Vec3(_static.pos.Position);
 	}
-}
 
-int Static::GetSlot() const
-{
-	return m_mesh.staticNumber;
-}
+	/// Get this static's world rotation.
+	// @function Static:GetRotation
+	// @treturn Rotation World rotation.
+	Rotation Static::GetRotation() const
+	{
+		return Rotation(_static.pos.Orientation);
+	}
 
-void Static::SetSlot(int slot)
-{
-	m_mesh.staticNumber = slot;
-	m_mesh.Dirty = true;
-}
+	/// Get this static's world scale.
+	// @function Static:GetScale
+	// @treturn float World scale.
+	float Static::GetScale() const
+	{
+		// TODO: Decide what to return when Vector3 scale is also exposed.
+		return _static.pos.Scale.x;
+	}
 
-ScriptColor Static::GetColor() const
-{
-	return ScriptColor{ m_mesh.color };
-}
+	/// Get this static's color.
+	// @function Static:GetColor
+	// @treturn Color Color.
+	ScriptColor Static::GetColor() const
+	{
+		return ScriptColor(_static.color);
+	}
 
-void Static::SetColor(ScriptColor const& col)
-{
-	m_mesh.color = col;
-	m_mesh.Dirty = true;
-}
+	/// Get this static's hit points. Used only with shatterable statics.
+	// @function Static:GetHP
+	// @treturn int Hit points.
+	int Static::GetHitPoints() const
+	{
+		return _static.HitPoints;
+	}
 
-void Static::Shatter()
-{
-	ShatterObject(nullptr, &m_mesh, -128, m_mesh.roomNumber, 0);
+	/// Get this static's visibility status.
+	// @function Static:GetActive
+	// @treturn bool Status. true means visible, false otherwise.
+	bool Static::GetActiveStatus() const
+	{
+		return ((_static.flags & StaticMeshFlags::SM_VISIBLE) != 0);
+	}
+
+	/// Get this static's collision status.
+	// @function Static:GetCollidable
+	// @treturn bool Collision status. true if can be collided with, false otherwise.
+	bool Static::GetCollidable() const
+	{
+		return ((_static.flags & StaticMeshFlags::SM_COLLISION) != 0);
+	}
+
+	/// Get this static's solid collision status.
+	// @function Static:GetSolid
+	// @treturn bool Solid Status. true if solid, false if soft.
+	bool Static::GetSolidStatus() const
+	{
+		return ((_static.flags & StaticMeshFlags::SM_SOLID) != 0);
+	}
+
+	/// Set this static's unique identifier string.
+	// @function Static:SetName
+	// @tparam string name New name.
+	void Static::SetName(const std::string& name)
+	{
+		if (!ScriptAssert(!name.empty(), "Name cannot be blank. Not setting name."))
+			return;
+
+		if (_callbackSetName(name, _static))
+		{
+			_callbackRemoveName(_static.Name);
+			_static.Name = name;
+		}
+		else
+		{
+			ScriptAssertF(false, "Could not add name {} - an object with this name may already exist.", name);
+			TENLog("Name will not be set.", LogLevel::Warning, LogConfig::All);
+		}
+	}
+
+	/// Set this static's slot ID.
+	// @function Static:SetSlot
+	// @tparam int slotID New slot ID.
+	void Static::SetSlot(int slotID)
+	{
+		_static.staticNumber = slotID;
+		_static.Dirty = true;
+	}
+
+	/// Set this static's world position.
+	// @function Static:SetPosition
+	// @tparam Vec3 pos New world position.
+	void Static::SetPosition(const Vec3& pos)
+	{
+		_static.pos.Position = pos.ToVector3i();
+		_static.Dirty = true;
+	}
+
+	/// Set this static's rotation.
+	// @function Static:SetRotation
+	// @tparam Rotation rot New rotation.
+	void Static::SetRotation(const Rotation& rot)
+	{
+		_static.pos.Orientation = rot.ToEulerAngles();
+		_static.Dirty = true;
+	}
+
+	/// Set this static's world scale.
+	// @function Static:SetScale
+	// @tparam float scale New world scale.
+	void Static::SetScale(float scale)
+	{
+		_static.pos.Scale = Vector3(scale);
+		_static.Dirty = true;
+	}
+
+	/// Set this static's color.
+	// @function Static:SetColor
+	// @tparam Color color New color.
+	void Static::SetColor(ScriptColor const& col)
+	{
+		_static.color = col;
+		_static.Dirty = true;
+	}
+
+	/// Set this static's hit points. Used only with shatterable statics.
+	// @function Static:SetHP
+	// @tparam int hitPoints New hit points.
+	void Static::SetHitPoints(int hitPoints)
+	{
+		_static.HitPoints = hitPoints;
+	}
+
+	/// Set this static's solid collision status.
+	// @function Static:SetSolid
+	// @tparam bool status New status, true is solid, false is soft.
+	void Static::SetSolidStatus(bool status)
+	{
+		if (status)
+		{
+			_static.flags |= StaticMeshFlags::SM_SOLID;
+		}
+		else
+		{
+			_static.flags &= ~StaticMeshFlags::SM_SOLID;
+		}
+	}
+
+	/// Set this static's collision status.
+	// @function Static:SetCollidable
+	// @tparam bool collidable New collision status. true if can be collided with, false: no collision.
+	void Static::SetCollidable(bool collidable)
+	{
+		if (collidable)
+		{
+			_static.flags |= StaticMeshFlags::SM_COLLISION;
+		}
+		else
+		{
+			_static.flags &= ~StaticMeshFlags::SM_COLLISION;
+		}
+	}
+
+	/// Enable this static. Used when previously shattered disabled manually.
+	// @function Static:Enable
+	void Static::Enable()
+	{
+		_static.flags |= StaticMeshFlags::SM_VISIBLE;
+	}
+
+	/// Disable this static.
+	// @function Static:Disable
+	void Static::Disable()
+	{
+		_static.flags &= ~StaticMeshFlags::SM_VISIBLE;
+	}
+
+	/// Shatter this static.
+	// @function Static:Shatter
+	void Static::Shatter()
+	{
+		ShatterObject(nullptr, &_static, -128, _static.roomNumber, 0);
+	}
 }

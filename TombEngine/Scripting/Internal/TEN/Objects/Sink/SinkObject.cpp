@@ -1,107 +1,106 @@
 #pragma once
+
 #include "framework.h"
-#include "SinkObject.h"
+#include "Scripting/Internal/TEN/Objects/Sink/SinkObject.h"
 
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/TEN/Vec3/Vec3.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 
-/***
-Sink
+/// Represents a sink object.
+//
+// @tenclass Objects.Sink
+// @pragma nostrip
 
-@tenclass Objects.Sink
-@pragma nostrip
-*/
-
-static auto IndexError = index_error_maker(Sink, ScriptReserved_Sink);
-static auto NewIndexError = newindex_error_maker(Sink, ScriptReserved_Sink);
-
-Sink::Sink(SinkInfo& ref) : m_sink{ref}
-{};
-
-void Sink::Register(sol::table& parent)
+namespace TEN::Scripting::Objects
 {
-	parent.new_usertype<Sink>(ScriptReserved_Sink,
-		sol::no_constructor, // ability to spawn new ones could be added later
-		sol::meta_function::index, IndexError,
-		sol::meta_function::new_index, NewIndexError,
+	static auto IndexError = IndexErrorMaker(Sink, ScriptReserved_Sink);
+	static auto NewIndexError = NewIndexErrorMaker(Sink, ScriptReserved_Sink);
 
-		/// Get the sink's position
-		// @function Sink:GetPosition
-		// @treturn Vec3 a copy of the sink's position
-		ScriptReserved_GetPosition, &Sink::GetPos,
-
-		/// Set the sink's position
-		// @function Sink:SetPosition
-		// @tparam Vec3 position the new position of the sink 
-		ScriptReserved_SetPosition, &Sink::SetPos,
-
-		/// Get the sink's unique string identifier
-		// e.g. "strong\_river\_current" or "propeller\_death\_sink"
-		// @function Sink:GetName
-		// @treturn string the sink's name
-		ScriptReserved_GetName, &Sink::GetName,
-
-		/// Set the sink's name (its unique string identifier)
-		// @function Sink:SetName
-		// @tparam string name The sink's new name
-		ScriptReserved_SetName, &Sink::SetName,
-
-		/// Get the sink's strength
-		// @function Sink:GetStrength
-		// @treturn int the sink's current strength
-		ScriptReserved_GetStrength, &Sink::GetStrength,
-
-		/// Set the strength of the sink
-		// Higher numbers provide stronger currents. Will be clamped to [1, 32].
-		// @function Sink:SetStrength
-		// @tparam int strength The sink's new strength
-		ScriptReserved_SetStrength, &Sink::SetStrength
-	);
-}
-
-Vec3 Sink::GetPos() const
-{
-	return Vec3(m_sink.Position);
-}
-
-void Sink::SetPos(const Vec3& pos)
-{
-	m_sink.Position = Vector3(pos.x, pos.y, pos.z);
-}
-
-std::string Sink::GetName() const
-{
-	return m_sink.Name;
-}
-
-void Sink::SetName(const std::string& id) 
-{
-	if (!ScriptAssert(!id.empty(), "Name cannot be blank. Not setting name."))
+	Sink::Sink(SinkInfo& sink) :
+		_sink(sink)
 	{
-		return;
+	};
+
+	void Sink::Register(sol::table& parent)
+	{
+		parent.new_usertype<Sink>(
+			ScriptReserved_Sink,
+			sol::no_constructor, // TODO: Add feature to spawn sinks.
+			sol::meta_function::index, IndexError,
+			sol::meta_function::new_index, NewIndexError,
+
+			ScriptReserved_SinkGetName, &Sink::GetName,
+			ScriptReserved_SinkGetPosition, &Sink::GetPosition,
+			ScriptReserved_SinkGetStrength, &Sink::GetStrength,
+
+			ScriptReserved_SinkSetName, &Sink::SetName,
+			ScriptReserved_SinkSetPosition, &Sink::SetPosition,
+			ScriptReserved_SinkSetStrength, &Sink::SetStrength);
 	}
 
-	if (s_callbackSetName(id, m_sink))
+	/// Get this sink's unique string identifier.
+	// @function Sink:GetName
+	// @treturn string Name.
+	std::string Sink::GetName() const
 	{
-		// remove the old name if we have one
-		s_callbackRemoveName(m_sink.Name);
-		m_sink.Name = id;
+		return _sink.Name;
 	}
-	else
+
+	/// Get this sink's world position.
+	// @function Sink:GetPosition
+	// @treturn Vec3 World position.
+	Vec3 Sink::GetPosition() const
 	{
-		ScriptAssertF(false, "Could not add name {} - does an object with this name already exist?", id);
-		TENLog("Name will not be set", LogLevel::Warning, LogConfig::All);
+		return Vec3(_sink.Position);
 	}
-}
 
-int Sink::GetStrength() const
-{
-	return m_sink.Strength;
-}
+	/// Get this sink's strength.
+	// @function Sink:GetStrength
+	// @treturn int Strength.
+	int Sink::GetStrength() const
+	{
+		return _sink.Strength;
+	}
 
-void Sink::SetStrength(int strength)
-{
-	m_sink.Strength = std::clamp(strength, 1, 32);
+	/// Set this sink's unique string identifier.
+	// @function Sink:SetName
+	// @tparam string name New name.
+	void Sink::SetName(const std::string& name)
+	{
+		if (!ScriptAssert(!name.empty(), "Name cannot be blank. Not setting name."))
+			return;
+
+		if (_callbackSetName(name, _sink))
+		{
+			_callbackRemoveName(_sink.Name);
+			_sink.Name = name;
+		}
+		else
+		{
+			ScriptAssertF(false, "Could not add name {} - object with this name may already exist.", name);
+			TENLog("Name will not be set.", LogLevel::Warning, LogConfig::All);
+		}
+	}
+
+	/// Set this sink's world position.
+	// @function Sink:SetPosition
+	// @tparam Vec3 pos New world position.
+	void Sink::SetPosition(const Vec3& pos)
+	{
+		_sink.Position = pos.ToVector3();
+	}
+
+	/// Set this sink's strength.
+	// Higher numbers provide stronger currents. Clamped to the range [1, 32].
+	// @function Sink:SetStrength
+	// @tparam int strength New strength.
+	void Sink::SetStrength(int strength)
+	{
+		constexpr auto STRENGTH_MAX = 32;
+		constexpr auto STRENGTH_MIN = 1;
+
+		_sink.Strength = std::clamp(strength, STRENGTH_MIN, STRENGTH_MAX);
+	}
 }

@@ -14,6 +14,7 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/Lara/Optics.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -340,22 +341,22 @@ CameraLosCollisionData CameraInfo::GetLos(const Vector3& origin, int roomNumber,
 	cameraLos.IsIntersected = los.Room.IsIntersected;
 	cameraLos.Distance = los.Room.Distance;
 
-	// 3) Clip moveable.
-	for (const auto& movLos : los.Moveables)
+	// 3) Clip item.
+	for (const auto& itemLos : los.Items)
 	{
-		if (!TestCollidableMoveable(*movLos.Moveable))
+		if (!TestCollidableMoveable(*itemLos.Item))
 			continue;
 
-		if (movLos.Distance < cameraLos.Distance)
+		if (itemLos.Distance < cameraLos.Distance)
 		{
-			auto normal = movLos.Moveable->GetObb().Center - origin;
+			auto normal = itemLos.Item->GetObb().Center - origin;
 			normal.Normalize();
 
 			cameraLos.Normal = normal;
-			cameraLos.Position = movLos.Position;
-			cameraLos.RoomNumber = movLos.RoomNumber;
+			cameraLos.Position = itemLos.Position;
+			cameraLos.RoomNumber = itemLos.RoomNumber;
 			cameraLos.IsIntersected = true;
-			cameraLos.Distance = movLos.Distance;
+			cameraLos.Distance = itemLos.Distance;
 			break;
 		}
 	}
@@ -959,18 +960,10 @@ void BinocularCamera(ItemInfo* item)
 	SetFov(7 * (ANGLE(11.5f) - player.Control.Look.OpticRange), false);
 
 	int x = item->Pose.Position.x;
-	int y = item->Pose.Position.y - CLICK(2);
+	int y = item->Pose.Position.y + GameBoundingBox(item).Y1;
 	int z = item->Pose.Position.z;
 
 	auto pointColl = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
-	if (pointColl.GetCeilingHeight() <= (y - CLICK(1)))
-	{
-		y -= CLICK(1);
-	}
-	else
-	{
-		y = pointColl.GetCeilingHeight() + CLICK(0.25f);
-	}
 
 	g_Camera.Position.x = x;
 	g_Camera.Position.y = y;
@@ -1030,7 +1023,7 @@ void BinocularCamera(ItemInfo* item)
 	{
 		auto origin = Vector3i(g_Camera.Position);
 		auto target = Vector3i(g_Camera.LookAt);
-		LaraTorch(&origin, &target, player.ExtraHeadRot.y, 192);
+		//LaraTorch(&origin, &target, player.ExtraHeadRot.y, 192); // TODO: Restore.
 	}
 }
 
@@ -1060,6 +1053,27 @@ void ConfirmCameraTargetPos()
 	{
 		g_Camera.LookAt = pos;
 	}
+}
+
+// HACK: Temporary fix for camera bouncing on slopes during player death.
+static bool CalculateDeathCamera(const ItemInfo& item)
+{
+	// If player is alive, it's not a death camera.
+	if (item.HitPoints > 0)
+		return false;
+
+	// If player is in a special death animation (from EXTRA_ANIMS slot) triggered by enemies.
+	if (item.Animation.AnimObjectID == ID_LARA_EXTRA_ANIMS)
+		return true;
+
+	// Special death animations.
+	if (item.Animation.AnimNumber == LA_SPIKE_DEATH ||
+		item.Animation.AnimNumber == LA_TRAIN_OVERBOARD_DEATH)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void CalculateCamera(ItemInfo& playerItem, const CollisionInfo& coll)
@@ -1313,7 +1327,8 @@ bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, fl
 void RumbleScreen()
 {
 	if (!(GlobalCounter & 0x1FF))
-		SoundEffect(SFX_TR5_KLAXON, nullptr, SoundEnvironment::Land, 0.25f);
+		// SFX Enum Changed from TR5 and pitch shift removed. User can set this in their sound XML. Stranger1992 31st August 2024
+		SoundEffect(SFX_TR4_ENVIORONMENT_RUMBLE, nullptr, SoundEnvironment::Land);
 
 	if (g_Camera.RumbleTimer >= 0)
 		g_Camera.RumbleTimer++;

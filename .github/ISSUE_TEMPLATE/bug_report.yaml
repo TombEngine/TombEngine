@@ -1,5 +1,5 @@
 name: Bug report
-description: Create a report to help us improve
+description: Create a report to help us understand and diagnose your issue. Your contribution is welcomed and valued! It is highly recommended that you are using the latest version before submitting a bug report.
 title: "[ bug Report ]"
 labels: Awaiting Triage
 
@@ -8,18 +8,19 @@ body:
 - type: markdown
   attributes:
     value: |
-      Please follow this document in order to report a bug 
+      Please follow this document in order to report a bug. It is highly recommended that you are using the latest version before submitting a bug report.
 
 - type: dropdown
   attributes:
     label: TombEngine version
     description: |
-      Please select the TombEngine Version from the dropdown list.
+      Please select the TombEngine Version from the dropdown list. 
     options:
-      - v1.4
-      - v1.3
-      - v1.2
-      - v1.1
+      - Development Build
+      - v1.8.0 (latest version)
+      - v1.7.1
+      - v1.7.0
+      - v1.5
   validations:
     required: true
 
@@ -29,10 +30,11 @@ body:
     description: |
       Please select the Tomb Editor version used from the dropdown list.
     options:
+      - Development Build
+      - v1.8.0 (latest version)
+      - v1.7.2
       - v1.7.1
       - v1.7.0
-      - v1.6.9
-      - v1.6.8
   validations:
     required: true
 
@@ -65,18 +67,6 @@ body:
       A clear and concise description of what you expected to happen.
     placeholder: |
       A description of what should happen here.
-  validations:
-    required: true
-
-- type: textarea
-  attributes:
-    label: Screenshots
-    description: |
-      Please check this box if you have provided screenshots or any other media for this issue
-      **note** If you do not provide screenshots or anything else, it may be hard for devs to investigate
-      provide a link to your screenshot here or simply drag and drop your screenshot into this textbox
-    placeholder: |
-      A description of any additional content here.
   validations:
     required: true
 

@@ -5,7 +5,7 @@
 	class Vector3i
 	{
 	public:
-		// Members
+		// Fields
 
 		int x = 0;
 		int y = 0;
@@ -17,7 +17,7 @@
 
 		// Constructors
 
-		constexpr Vector3i() {};
+		constexpr Vector3i() = default;
 		constexpr Vector3i(int x, int y, int z) { this->x = x; this->y = y; this->z = z; };
 				  Vector3i(const Vector3& vector);
 
@@ -53,14 +53,14 @@
 namespace std
 {
 	template <>
-	struct std::hash<Vector3i>
+	struct hash<Vector3i>
 	{
 		size_t operator ()(const Vector3i& vector) const
 		{
 			size_t seed = 0;
-			seed ^= std::hash<int>()(vector.x) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<int>()(vector.y) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<int>()(vector.z) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= hash<int>()(vector.x) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= hash<int>()(vector.y) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= hash<int>()(vector.z) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			return seed;
 		}
 	};

@@ -26,6 +26,8 @@
 
 // Traps
 #include "Objects/TR1/Trap/DamoclesSword.h"
+#include "Objects/TR1/Trap/ElectricBall.h"
+#include "Objects/TR1/Trap/ThorHammer.h"
 #include "Objects/TR1/Trap/SlammingDoors.h"
 #include "Objects/TR1/Trap/SwingingBlade.h"
 
@@ -249,6 +251,26 @@ static void StartTrap(ObjectInfo* obj)
 		obj->shadowType = ShadowMode::All;
 		obj->SetHitEffect(true);
 	}
+	
+	obj = &Objects[ID_THOR_HAMMER_HANDLE];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HEAD, "Thor hammer");
+		obj->Initialize = InitializeThorHammer;
+		obj->collision = CollideThorHammerHandle;
+		obj->control = ControlThorHammer;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_THOR_HAMMER_HEAD];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HANDLE, "Thor hammer");
+		obj->collision = CollideThorHammer;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
 
 	obj = &Objects[ID_SLAMMING_DOORS];
 	if (obj->loaded)
@@ -268,6 +290,27 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = GenericSphereBoxCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_ELECTRIC_BALL];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricBall;
+		obj->control = ControlElectricBall;
+		obj->collision = GenericSphereBoxCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = NOT_TARGETABLE;
+		obj->radius = 512;
+		obj->intelligent = true;
+		obj->SetHitEffect(true);	
+	}
+
+	obj = &Objects[ID_ELECTRIC_BALL_IMPACT_POINT];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricBallImpactPoint;
+		obj->drawRoutine = nullptr;
+		obj->usingDrawAnimatingItem = false;
 	}
 }
 

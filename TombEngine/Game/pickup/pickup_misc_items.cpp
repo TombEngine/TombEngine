@@ -78,7 +78,23 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 		break;
 
 	case ID_DIARY_ITEM:
-		lara.Inventory.Diary.Present = add;
+		lara.Inventory.HasDiary = add;
+		break;
+
+	case ID_PC_LOAD_INV_ITEM:
+		lara.Inventory.HasLoad = add;
+		break;
+
+	case ID_PC_SAVE_INV_ITEM:
+		lara.Inventory.HasSave = add;
+		break;
+
+	case ID_STOPWATCH_ITEM:
+		lara.Inventory.HasStopwatch = add;
+		break;
+
+	case ID_COMPASS_ITEM:
+		lara.Inventory.HasCompass = add;
 		break;
 
 	case ID_WATERSKIN1_EMPTY:
@@ -173,7 +189,19 @@ std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 		return lara.Inventory.HasCrowbar;
 
 	case ID_DIARY_ITEM:
-		return lara.Inventory.Diary.Present;
+		return lara.Inventory.HasDiary;
+
+	case ID_PC_LOAD_INV_ITEM:
+		return lara.Inventory.HasLoad;
+
+	case ID_PC_SAVE_INV_ITEM:
+		return lara.Inventory.HasSave;
+
+	case ID_STOPWATCH_ITEM:
+		return lara.Inventory.HasStopwatch;
+
+	case ID_COMPASS_ITEM:
+		return lara.Inventory.HasCompass;
 
 	case ID_WATERSKIN1_EMPTY:
 		return lara.Inventory.SmallWaterskin == 1;

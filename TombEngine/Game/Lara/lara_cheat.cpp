@@ -8,6 +8,7 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 
@@ -21,6 +22,8 @@ namespace TEN::Entities::Player
 		constexpr auto TURN_FLAGS	 = (int)PlayerTurnFlags::TurnX | (int)PlayerTurnFlags::TurnY;
 		constexpr auto LIGHT_FALLOFF = 0.1f;
 		constexpr auto LIGHT_COLOR	 = Color(0.6f, 0.6f, 0.6f);
+
+		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
 		if (!g_Config.IsUsingModernControls())
 		{
@@ -44,11 +47,7 @@ namespace TEN::Entities::Player
 		}
 
 		if (IsHeld(In::Action))
-		{
-			TriggerDynamicLight(
-				item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
-				LIGHT_FALLOFF * UCHAR_MAX, LIGHT_COLOR.R() * UCHAR_MAX, LIGHT_COLOR.G() * UCHAR_MAX, LIGHT_COLOR.B() * UCHAR_MAX);
-		}
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 31, 150, 150, 150);
 
 		if (g_Config.IsUsingModernControls() ?
 			(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)):
@@ -59,13 +58,13 @@ namespace TEN::Entities::Player
 
 			float velCoeff = IsHeld(In::Sprint) ? 2.5f : 1.0f;
 
-			item->Animation.Velocity.y += (LARA_SWIM_VELOCITY_ACCEL * 4) * velCoeff;
-			if (item->Animation.Velocity.y > (LARA_SWIM_VELOCITY_MAX * 2) * velCoeff)
-				item->Animation.Velocity.y = (LARA_SWIM_VELOCITY_MAX * 2) * velCoeff;
+			item->Animation.Velocity.y += ((baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF) * 4) * velCoeff;
+			if (item->Animation.Velocity.y > (baseVel * 2) * velCoeff)
+				item->Animation.Velocity.y = (baseVel * 2) * velCoeff;
 		}
 		else
 		{
-			if (item->Animation.Velocity.y >= LARA_SWIM_VELOCITY_ACCEL)
+			if (item->Animation.Velocity.y >= (baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF))
 			{
 				item->Animation.Velocity.y -= item->Animation.Velocity.y / 8;
 			}

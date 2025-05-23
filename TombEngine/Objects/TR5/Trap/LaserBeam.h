@@ -22,8 +22,13 @@ namespace TEN::Entities::Traps
 		bool IsLethal		  = false;
 		bool IsHeavyActivator = false;
 
+		std::array<Vector3, SUBDIVISION_COUNT * 2> OldVertices = {};
+		Vector4 OldColor;
+
 		void Initialize(const ItemInfo& item);
 		void Update(const ItemInfo& item);
+
+		void StoreInterpolationData();
 	};
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams;

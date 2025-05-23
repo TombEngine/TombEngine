@@ -85,18 +85,18 @@ void Renderer::UpdateLaraAnimations(bool force)
 	if (!force && rItem.DoneAnimations)
 		return;
 
+	if (_moveableObjects.empty())
+		return;
+
 	auto& playerObject = *_moveableObjects[ID_LARA];
 
 	// Clear extra rotations.
 	for (auto& bone : playerObject.LinearizedBones)
 		bone->ExtraRotation = Quaternion::Identity;
 
-	// Player world matrix.
-	auto tMatrix = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
-	auto rotMatrix = LaraItem->Pose.Orientation.ToRotationMatrix();
-
-	_laraWorldMatrix = rotMatrix * tMatrix;
-	rItem.World = _laraWorldMatrix;
+	// Set player world matrix.
+	_playerWorldMatrix = LaraItem->Pose.ToMatrix();
+	rItem.World = _playerWorldMatrix;
 
 	auto frameData = GetFrameInterpData(*LaraItem);
 
@@ -134,10 +134,19 @@ void Renderer::UpdateLaraAnimations(bool force)
 	
 	UpdateAnimation(&rItem, playerObject, frameData, mask);
 
-	// Calculate matrices for arms based on current weapon status.
-	if (Lara.Control.Weapon.GunType != LaraWeaponType::Flare &&
-		(Lara.Control.HandStatus == HandStatus::Free || Lara.Control.HandStatus == HandStatus::Busy) ||
-		Lara.Control.Weapon.GunType == LaraWeaponType::Flare && !Lara.Flare.ControlLeft)
+	auto gunType = Lara.Control.Weapon.GunType;
+	auto handStatus = Lara.Control.HandStatus;
+
+	// HACK: Treat binoculars as two-handed weapon.
+	if (Lara.Control.Look.IsUsingBinoculars)
+	{
+		gunType = LaraWeaponType::Shotgun;
+		handStatus = HandStatus::WeaponReady;
+	}
+
+	// Then the arms, based on current weapon status.
+	if (gunType != LaraWeaponType::Flare && (handStatus == HandStatus::Free || handStatus == HandStatus::Busy) ||
+		gunType == LaraWeaponType::Flare && !Lara.Flare.ControlLeft)
 	{
 		// Mask both arms.
 		mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND) | MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
@@ -146,24 +155,23 @@ void Renderer::UpdateLaraAnimations(bool force)
 	}
 	else
 	{
-		// While handling weapon, apply relative rotation to arms.
-		if (Lara.Control.Weapon.GunType == LaraWeaponType::Pistol ||
-			Lara.Control.Weapon.GunType == LaraWeaponType::Uzi)
+		// While handling weapon, extra rotation may be applied to arms.
+		if (gunType == LaraWeaponType::Revolver)
 		{
-			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
+			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
 		else
 		{
-			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
+			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
 
 		ArmInfo* leftArm = &Lara.LeftArm;
 		ArmInfo* rightArm = &Lara.RightArm;
 
-		// HACK: Back guns handled differently.
-		switch (Lara.Control.Weapon.GunType)
+		// HACK: Back guns are handled differently.
+		switch (gunType)
 		{
 		case LaraWeaponType::Shotgun:
 		case LaraWeaponType::HK:
@@ -175,7 +183,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			// Left arm
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 
-			if (shouldAnimateUpperBody(Lara.Control.Weapon.GunType))
+			if (shouldAnimateUpperBody(gunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 
 			auto shotgunFrameData = AnimFrameInterpData
@@ -294,21 +302,19 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 	// Copy matrices in player object.
 	for (int m = 0; m < NUM_LARA_MESHES; m++)
-		playerObject.AnimationTransforms[m] = rItem.AnimationTransforms[m];
+		playerObject.AnimationTransforms[m] = rItem.AnimTransforms[m];
 
 	// Copy meshswap indices.
+	rItem.SkinIndex = LaraItem->Model.SkinIndex;
 	rItem.MeshIndex = LaraItem->Model.MeshIndex;
 	rItem.DoneAnimations = true;
 }
 
-void TEN::Renderer::Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
+void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 {
-	// Don't draw player if using optics.
-	if (Lara.Control.Look.OpticRange != 0 || SpotcamDontDrawLara)
-		return;
-
-	// Don't draw player if on title level and disabled.
-	if (CurrentLevel == 0 && !g_GameFlow->IsLaraInTitleEnabled())
+	// TODO: Avoid Lara global.
+	// Don't draw player if using optics (but still draw reflections).
+	if (Lara.Control.Look.OpticRange != 0 && _currentMirror == nullptr)
 		return;
 
 	auto* item = &_items[LaraItem->Index];
@@ -323,40 +329,61 @@ void TEN::Renderer::Renderer::DrawLara(RenderView& view, RendererPass rendererPa
 	_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 	_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-	RendererObject& laraObj = *_moveableObjects[ID_LARA];
-	RendererObject& laraSkin = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+	auto& laraObj = *_moveableObjects[ID_LARA];
+	auto skinMode = GetSkinningMode(laraObj, item->SkinIndex);
 
 	RendererRoom* room = &_rooms[LaraItem->RoomNumber];
 
-	_stItem.World = _laraWorldMatrix;
+	_stItem.World = item->InterpolatedWorld;
+	ReflectMatrixOptionally(_stItem.World);
+
 	_stItem.Color = item->Color;
 	_stItem.AmbientLight = item->AmbientLight;
-	memcpy(_stItem.BonesMatrices, laraObj.AnimationTransforms.data(), laraObj.AnimationTransforms.size() * sizeof(Matrix));
-	for (int k = 0; k < laraSkin.ObjectMeshes.size(); k++)
+	_stItem.Skinned = (int)skinMode;
+
+	for (int k = 0; k < item->MeshIndex.size(); k++)
+		_stItem.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
+
+	bool acceptsShadows = laraObj.ShadowType == ShadowMode::None;
+	BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade, acceptsShadows);
+
+	if (skinMode == SkinningMode::Full)
 	{
-		_stItem.BoneLightModes[k] = (int)GetMesh(nativeItem->Model.MeshIndex[k])->LightMode;
+		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
+			_stItem.BonesMatrices[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+		_cbItem.UpdateData(_stItem, _context.Get());
+
+		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 	}
-	BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade);
+
+	memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
 	_cbItem.UpdateData(_stItem, _context.Get());
 
-	for (int k = 0; k < laraSkin.ObjectMeshes.size(); k++)
+	for (int k = 0; k < item->MeshIndex.size(); k++)
 	{
 		if (!nativeItem->MeshBits.Test(k))
 			continue;
 
-		DrawMoveableMesh(item, GetMesh(nativeItem->Model.MeshIndex[k]), room, k, view, rendererPass);
+		if (skinMode == SkinningMode::Full && g_Level.Meshes[nativeItem->Model.MeshIndex[k]].hidden)
+			continue;
+
+		DrawMesh(item, GetMesh(item->MeshIndex[k]), RendererObjectType::Moveable, k, false, view, rendererPass);
 	}
 
+	if (skinMode == SkinningMode::Classic)
+		DrawLaraJoints(item, room, view, rendererPass);
+
 	DrawLaraHolsters(item, room, view, rendererPass);
-	DrawLaraJoints(item, room, view, rendererPass);
 	DrawLaraHair(item, room, view, rendererPass);
 }
 
 void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
 {
+	bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
+
 	for (int i = 0; i < HairEffect.Units.size(); i++)
 	{
-		const auto& unit = HairEffect.Units[i];
+		auto& unit = HairEffect.Units[i];
 		if (!unit.IsEnabled)
 			continue;
 
@@ -364,26 +391,49 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 		if (!object.loaded)
 			continue;
 
+		bool skinned = object.skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning;
+		bool flipped = skinned || (GetJointOffset(unit.ObjectID, 1).z < 0);
+		auto objectType = i ? RendererObjectType::HairSecondary : RendererObjectType::HairPrimary;
+
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];
 
 		_stItem.World = Matrix::Identity;
-		_stItem.BonesMatrices[0] = itemToDraw->AnimationTransforms[LM_HEAD] * _laraWorldMatrix;
+		_stItem.BonesMatrices[0] = itemToDraw->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
+		_stItem.Skinned = (int)skinned;
 
-		for (int i = 0; i < unit.Segments.size(); i++)
+		ReflectMatrixOptionally(_stItem.BonesMatrices[0]);
+
+		for (int j = 0; j < unit.Segments.size(); j++)
 		{
-			const auto& segment = unit.Segments[i];
-			auto worldMatrix = Matrix::CreateFromQuaternion(segment.Orientation) * Matrix::CreateTranslation(segment.Position);
+			auto& segment = unit.Segments[j];
+			auto worldMatrix = 
+				Matrix::CreateFromQuaternion(
+					Quaternion::Lerp(segment.PrevOrientation, segment.Orientation, GetInterpolationFactor(forceValue))) *
+				Matrix::CreateTranslation(
+					Vector3::Lerp(segment.PrevPosition, segment.Position, GetInterpolationFactor(forceValue)));
 
-			_stItem.BonesMatrices[i + 1] = worldMatrix;
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			if (flipped)
+				worldMatrix = Matrix::CreateRotationY(PI) * worldMatrix;
+
+			ReflectMatrixOptionally(worldMatrix);
+			_stItem.BonesMatrices[j + 1] = segment.GlobalTransform = worldMatrix;
+
+			_stItem.BoneLightModes[j] = (int)LightMode::Dynamic;
 		}
 
 		_cbItem.UpdateData(_stItem, _context.Get());
 
-		for (int i = 0; i < rendererObject.ObjectMeshes.size(); i++)
+		if (skinned)
 		{
-			auto& rendererMesh = *rendererObject.ObjectMeshes[i];
-			DrawMoveableMesh(itemToDraw, &rendererMesh, room, i, view, rendererPass);
+			DrawMesh(itemToDraw, GetMesh(object.skinIndex), objectType, 0, true, view, rendererPass);
+		}
+		else
+		{
+			for (int j = 0; j < rendererObject.ObjectMeshes.size(); j++)
+			{
+				auto& rendererMesh = *rendererObject.ObjectMeshes[j];
+				DrawMesh(itemToDraw, &rendererMesh, objectType, j, false, view, rendererPass);
+			}
 		}
 	}
 }
@@ -398,34 +448,34 @@ void Renderer::DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, Rend
 	for (int k = 1; k < laraSkinJoints.ObjectMeshes.size(); k++)
 	{
 		RendererMesh* mesh = laraSkinJoints.ObjectMeshes[k];
-		DrawMoveableMesh(itemToDraw, mesh, room, k, view, rendererPass);
+		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, k, false, view, rendererPass);
 	}
 }
 
 void Renderer::DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
 {
-	HolsterSlot leftHolsterID = Lara.Control.Weapon.HolsterInfo.LeftHolster;
-	HolsterSlot rightHolsterID = Lara.Control.Weapon.HolsterInfo.RightHolster;
-	HolsterSlot backHolsterID = Lara.Control.Weapon.HolsterInfo.BackHolster;
+	auto leftHolsterID  = Lara.Control.Weapon.HolsterInfo.LeftHolster;
+	auto rightHolsterID = Lara.Control.Weapon.HolsterInfo.RightHolster;
+	auto backHolsterID  = Lara.Control.Weapon.HolsterInfo.BackHolster;
 
 	if (_moveableObjects[static_cast<int>(leftHolsterID)])
 	{
 		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(leftHolsterID)];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_LTHIGH];
-		DrawMoveableMesh(itemToDraw, mesh, room, LM_LTHIGH, view, rendererPass);
+		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_LTHIGH, false, view, rendererPass);
 	}
 
 	if (_moveableObjects[static_cast<int>(rightHolsterID)])
 	{
 		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(rightHolsterID)];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_RTHIGH];
-		DrawMoveableMesh(itemToDraw, mesh, room, LM_RTHIGH, view, rendererPass);
+		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_RTHIGH, false, view, rendererPass);
 	}
 
 	if (backHolsterID != HolsterSlot::Empty && _moveableObjects[static_cast<int>(backHolsterID)])
 	{
 		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(backHolsterID)];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_TORSO];
-		DrawMoveableMesh(itemToDraw, mesh, room, LM_TORSO, view, rendererPass);
+		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_TORSO, false, view, rendererPass);
 	}
 }

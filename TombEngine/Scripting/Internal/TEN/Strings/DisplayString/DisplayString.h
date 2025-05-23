@@ -1,6 +1,28 @@
 #pragma once
-#include "Scripting/Internal/TEN/Color/Color.h"
-#include "Scripting/Internal/TEN/Vec2/Vec2.h"
+
+#include "Game/control/control.h"
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
+
+namespace TEN::Scripting::Types { class ScriptColor; }
+
+using namespace TEN::Scripting::Types;
+
+/***
+Constants for Display String Options.
+@enum Strings.DisplayStringOption
+@pragma nostrip
+*/
+
+/*** Strings.DisplayStringOption constants. To be used with @{Strings.DisplayString} class.
+@table Strings.DisplayStringOption
+
+ - `CENTER` - Sets the horizontal origin point to the center of the string.
+ - `RIGHT` - Sets the horizontal origin point to the right side of the string.
+ - `VERTICAL_CENTER` - Sets the vertical origin point of the multiline string to the center.
+ - `SHADOW` - Gives the string a drop shadow effect.
+ - `BLINK` - Blinks the string.
+*/
 
 enum class DisplayStringOptions
 {
@@ -8,6 +30,7 @@ enum class DisplayStringOptions
 	Outline,
 	Right,
 	Blink,
+	VerticalCenter,
 
 	Count
 };
@@ -20,7 +43,8 @@ static const std::unordered_map<std::string, DisplayStringOptions> DISPLAY_STRIN
 	{ "CENTER", DisplayStringOptions::Center },
 	{ "SHADOW", DisplayStringOptions::Outline },
 	{ "RIGHT", DisplayStringOptions::Right },
-	{ "BLINK", DisplayStringOptions::Blink }
+	{ "BLINK", DisplayStringOptions::Blink },
+	{ "VERTICAL_CENTER", DisplayStringOptions::VerticalCenter }
 };
 
 class UserDisplayString
@@ -42,11 +66,13 @@ private:
 	bool _isTranslated	 = false;
 	bool _deleteWhenZero = false;
 
+	FreezeMode _owner = FreezeMode::None;
+
 	// Constructors
 	UserDisplayString() = default;
 
 public:
-	UserDisplayString(const std::string& key, const Vec2& pos, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated);
+	UserDisplayString(const std::string& key, const Vec2& pos, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
 };
 
 using DisplayStringID	 = uintptr_t;

@@ -41,6 +41,8 @@
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
 #include "Objects/TR5/Emitter/tr5_smoke_emitter.h"
+#include "Objects/TR5/Emitter/Waterfall.h"
+#include "Objects/Effects/Fireflies.h"
 
 // Objects
 #include "Objects/TR5/Light/tr5_light.h"
@@ -56,10 +58,11 @@
 
 // Traps
 #include "Objects/Effects/EmberEmitter.h"
-#include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
+#include "Objects/TR5/Trap/MovingLaser.h"
 #include "Objects/TR5/Trap/ZipLine.h"
+#include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
 #include "Objects/TR5/Trap/tr5_romehammer.h"
@@ -74,9 +77,12 @@
 #include "Objects/TR5/Shatter/tr5_smashobject.h"
 
 using namespace TEN::Effects::EmberEmitter;
+using namespace TEN::Effects::SmokeEmitter;
+using namespace TEN::Effects::WaterfallEmitter;
 using namespace TEN::Entities::Creatures::TR5;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
+using namespace TEN::Effects::Fireflies;
 
 static void StartEntity(ObjectInfo *obj)
 {
@@ -733,7 +739,7 @@ static void StartObject(ObjectInfo *obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeSmokeEmitter;
-		obj->control = SmokeEmitterControl;
+		obj->control = ControlSmokeEmitter;
 		obj->drawRoutine = nullptr;
 		obj->usingDrawAnimatingItem = false;
 	}
@@ -742,7 +748,7 @@ static void StartObject(ObjectInfo *obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeSmokeEmitter;
-		obj->control = SmokeEmitterControl;
+		obj->control = ControlSmokeEmitter;
 		obj->drawRoutine = nullptr;
 		obj->usingDrawAnimatingItem = false;
 	}
@@ -751,7 +757,16 @@ static void StartObject(ObjectInfo *obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeSmokeEmitter;
-		obj->control = SmokeEmitterControl;
+		obj->control = ControlSmokeEmitter;
+		obj->drawRoutine = nullptr;
+		obj->usingDrawAnimatingItem = false;
+	}
+
+	obj = &Objects[ID_WATERFALL_EMITTER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWaterfall;
+		obj->control = ControlWaterfall;
 		obj->drawRoutine = nullptr;
 		obj->usingDrawAnimatingItem = false;
 	}
@@ -759,7 +774,6 @@ static void StartObject(ObjectInfo *obj)
 	obj = &Objects[ID_TELEPORTER];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeTeleporter;
 		obj->control = ControlTeleporter;
 		obj->drawRoutine = nullptr;
 	}
@@ -781,6 +795,14 @@ static void StartObject(ObjectInfo *obj)
 	{
 		obj->drawRoutine = nullptr;
 		obj->control = ControlEmberEmitter;
+	}
+
+	obj = &Objects[ID_FIREFLY_EMITTER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFireflySwarm;
+		obj->control = ControlFireflySwarm;
+		obj->drawRoutine = NULL;
 	}
 
 	obj = &Objects[ID_GEN_SLOT1];
@@ -816,13 +838,6 @@ static void StartObject(ObjectInfo *obj)
 		obj->drawRoutine = nullptr;             // go to nullsub_44() !
 
 		obj->usingDrawAnimatingItem = false;
-	}
-
-	obj = &Objects[ID_LENS_FLARE];
-	if (obj->loaded)
-	{
-		//obj->drawRoutine = DrawLensFlare;
-
 	}
 
 	obj = &Objects[ID_WATERFALLSS1];
@@ -958,6 +973,15 @@ static void StartTrap(ObjectInfo *obj)
 		obj->drawRoutine = nullptr;
 		obj->usingDrawAnimatingItem = false;
 	}
+
+	obj = &Objects[ID_MOVING_LASER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeMovingLaser;
+		obj->control = ControlMovingLaser;
+		obj->collision = CollideMovingLaser;
+		obj->SetHitEffect(true);
+	}
 }
 
 static void StartSwitch(ObjectInfo *obj)
@@ -1048,6 +1072,10 @@ static void StartPickup(ObjectInfo *obj)
 	InitPickup(obj, ID_WATERSKIN2_EMPTY);
 	InitPickup(obj, ID_GOLDROSE_ITEM);
 	InitPickup(obj, ID_DIARY_ITEM);
+	InitPickup(obj, ID_PC_LOAD_INV_ITEM);
+	InitPickup(obj, ID_PC_SAVE_INV_ITEM);
+	InitPickup(obj, ID_STOPWATCH_ITEM);
+	InitPickup(obj, ID_COMPASS_ITEM);
 }
 
 void InitializeTR5Objects()

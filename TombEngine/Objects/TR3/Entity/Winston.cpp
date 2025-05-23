@@ -315,7 +315,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			if (object.hitEffect == HitEffect::Richochet)
 			{
-				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 				SoundEffect(SFX_TR3_WINSTON_CUPS, &target.Pose);
 			}
 		}

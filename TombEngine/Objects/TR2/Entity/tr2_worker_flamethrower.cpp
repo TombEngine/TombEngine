@@ -81,12 +81,12 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != WORKER_FLAME_STATE_ATTACK && item->Animation.ActiveState != WORKER_FLAME_STATE_WALK_FORWARD_ATTACK)
 			{
-				TriggerDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 10, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 10, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
 				TriggerPilotFlame(itemNumber, WorkerFlamethrowerBite.BoneID);
 			}
 			else
 			{
-				TriggerDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 14, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 14, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
 				ThrowFire(itemNumber, WorkerFlamethrowerBite.BoneID, WorkerFlamethrowerOffset, WorkerFlamethrowerOffset);
 			}
 

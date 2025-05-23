@@ -9,7 +9,7 @@ namespace TEN::Structures
 {
 	bool BoundingVolumeHierarchy::Node::IsLeaf() const
 	{
-		return (LeftChildID == NO_VALUE && RightChildID == NO_VALUE);
+		return (LeftChildId == NO_VALUE && RightChildId == NO_VALUE);
 	}
 
 	BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<int>& objectIds, const std::vector<BoundingBox>& aabbs, BvhBuildStrategy strategy)
@@ -23,18 +23,19 @@ namespace TEN::Structures
 
 	unsigned int BoundingVolumeHierarchy::GetSize() const
 	{
-		return (unsigned int)_leafIDMap.size();
+		return (unsigned int)_leafIdMap.size();
 	}
 
 	std::vector<int> BoundingVolumeHierarchy::GetBoundedObjectIds() const
 	{
 		auto objectIds = std::vector<int>{};
-		if (_leafIDMap.empty())
+		if (_leafIdMap.empty())
 			return objectIds;
 
 		// Collect all object IDs.
-		for (const auto& [objectID, leafID] : _leafIDMap)
-			objectIds.push_back(objectID);
+		objectIds.reserve(_leafIdMap.size());
+		for (const auto& [keyObjectId, leafId] : _leafIdMap)
+			objectIds.push_back(keyObjectId);
 
 		return objectIds;
 	}
@@ -82,37 +83,45 @@ namespace TEN::Structures
 
 	bool BoundingVolumeHierarchy::IsEmpty() const
 	{
-		return _leafIDMap.empty();
+		return _leafIdMap.empty();
 	}
 
-	void BoundingVolumeHierarchy::Insert(int objectID, const BoundingBox& aabb, float boundary)
+	void BoundingVolumeHierarchy::Insert(int objectId, const BoundingBox& aabb, float boundary)
 	{
+		// FAILSAFE: Find leaf containing object ID.
+		auto it = _leafIdMap.find(objectId);
+		if (it != _leafIdMap.end())
+		{
+			TENLog("BVH: Attempted to insert leaf with existing object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+			return;
+		}
+
 		// Allocate new leaf.
-		int leafID = GetNewNodeID();
-		auto& leaf = _nodes[leafID];
+		int leafId = GetNewNodeId();
+		auto& leaf = _nodes[leafId];
 
 		// Set initial parameters.
-		leaf.ObjectID = objectID;
+		leaf.ObjectId = objectId;
 		leaf.Aabb = BoundingBox(aabb.Center, aabb.Extents + Vector3(boundary));
 		leaf.Height = 0;
 
 		// Insert new leaf.
-		InsertLeaf(leafID);
+		InsertLeaf(leafId);
 	}
 
-	void BoundingVolumeHierarchy::Move(int objectID, const BoundingBox& aabb, float boundary)
+	void BoundingVolumeHierarchy::Move(int objectId, const BoundingBox& aabb, float boundary)
 	{
 		// Find leaf containing object ID.
-		auto it = _leafIDMap.find(objectID);
-		if (it == _leafIDMap.end())
+		auto it = _leafIdMap.find(objectId);
+		if (it == _leafIdMap.end())
 		{
-			TENLog("BVH: Attempted to move missing leaf with object ID " + std::to_string(objectID) + ".", LogLevel::Warning);
+			TENLog("BVH: Attempted to move missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
 			return;
 		}
 
 		// Get leaf.
-		int leafID = it->second;
-		auto& leaf = _nodes[leafID];
+		const auto& [keyObjectId, leafId] = *it;
+		auto& leaf = _nodes[leafId];
 
 		// Test if object AABB is inside node AABB.
 		if (leaf.Aabb.Contains(aabb) == ContainmentType::CONTAINS)
@@ -130,35 +139,35 @@ namespace TEN::Structures
 		}
 
 		// Reinsert leaf.
-		RemoveLeaf(leafID);
-		Insert(objectID, aabb, boundary);
+		RemoveLeaf(leafId);
+		Insert(objectId, aabb, boundary);
 	}
 
-	void BoundingVolumeHierarchy::Remove(int objectID)
+	void BoundingVolumeHierarchy::Remove(int objectId)
 	{
 		// Find leaf containing object ID.
-		auto it = _leafIDMap.find(objectID);
-		if (it == _leafIDMap.end())
+		auto it = _leafIdMap.find(objectId);
+		if (it == _leafIdMap.end())
 		{
-			TENLog("BVH: Attempted to remove missing leaf with object ID " + std::to_string(objectID) + ".", LogLevel::Warning);
+			TENLog("BVH: Attempted to remove missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
 			return;
 		}
 
 		// Remove leaf.
-		int leafID = it->second;
-		RemoveLeaf(leafID);
+		const auto& [keyObjectId, leafId] = *it;
+		RemoveLeaf(leafId);
 	}
 
 	void BoundingVolumeHierarchy::DrawDebug() const
 	{
 		constexpr auto BOX_COLOR = Color(1.0f, 1.0f, 1.0f, 0.5f);
 
-		PrintDebugMessage("BOUNDING TREE DEBUG");
+		//PrintDebugMessage("BOUNDING TREE DEBUG");
 
 		if (!_nodes.empty())
 		{
-			PrintDebugMessage("Nodes: %d", (int)_nodes.size());
-			PrintDebugMessage("Root height: %d", _nodes[_rootID].Height);
+			//PrintDebugMessage("Nodes: %d", (int)_nodes.size());
+			//PrintDebugMessage("Root height: %d", _nodes[_rootId].Height);
 		}
 
 		for (const auto& node : _nodes)
@@ -173,19 +182,21 @@ namespace TEN::Structures
 
 		// Initialize stack.
 		auto stack = std::stack<int>{};
-		stack.push(_rootID);
+		stack.push(_rootId);
 
 		// Traverse tree.
-		while (!stack.empty())
+		auto nodeIds = std::stack<int>{};
+		nodeIds.push(_rootId);
+		while (!nodeIds.empty())
 		{
-			int nodeID = stack.top();
-			stack.pop();
+			int nodeId = nodeIds.top();
+			nodeIds.pop();
 
 			// Invalid node; continue.
-			if (nodeID == NO_VALUE)
+			if (nodeId == NO_VALUE)
 				continue;
 
-			const auto& node = _nodes[nodeID];
+			const auto& node = _nodes[nodeId];
 
 			// Test node collision.
 			if (!testCollRoutine(node))
@@ -194,53 +205,54 @@ namespace TEN::Structures
 			// Leaf node; collect object ID.
 			if (node.IsLeaf())
 			{
-				objectIds.push_back(node.ObjectID);
+				objectIds.push_back(node.ObjectId);
 			}
 			// Inner node; push children onto stack for traversal.
 			else
 			{
-				if (node.LeftChildID != NO_VALUE)
-					stack.push(node.LeftChildID);
+				if (node.LeftChildId != NO_VALUE)
+					nodeIds.push(node.LeftChildId);
 
-				if (node.RightChildID != NO_VALUE)
-					stack.push(node.RightChildID);
+				if (node.RightChildId != NO_VALUE)
+					nodeIds.push(node.RightChildId);
 			}
 		}
 
 		return objectIds;
 	}
 
-	int BoundingVolumeHierarchy::GetNewNodeID()
+	int BoundingVolumeHierarchy::GetNewNodeId()
 	{
-		int nodeID = 0;
+		int nodeId = 0;
 
 		// Allocate and get new empty node ID.
 		if (_freeNodeIds.empty())
 		{
-			nodeID = (int)_nodes.size();
+			nodeId = (int)_nodes.size();
 			_nodes.emplace_back();
+			nodeId = (int)_nodes.size() - 1;
 		}
 		// Get existing empty node ID.
 		else
 		{
-			nodeID = _freeNodeIds.back();
-			_freeNodeIds.pop_back();
+			nodeId = _freeNodeIds.top();
+			_freeNodeIds.pop();
 		}
 
-		return nodeID;
+		return nodeId;
 	}
 
-	int BoundingVolumeHierarchy::GetBestSiblingLeafID(int leafID) const
+	int BoundingVolumeHierarchy::GetBestSiblingLeafId(int leafId) const
 	{
-		const auto& leaf = _nodes[leafID];
+		const auto& leaf = _nodes[leafId];
 
 		// Branch and bound for best sibling leaf.
-		int siblingID = _rootID;
-		while (!_nodes[siblingID].IsLeaf())
+		int siblingId = _rootId;
+		while (!_nodes[siblingId].IsLeaf())
 		{
-			const auto& sibling = _nodes[siblingID];
-			int leftChildID = sibling.LeftChildID;
-			int rightChildID = sibling.RightChildID;
+			const auto& sibling = _nodes[siblingId];
+			int leftChildId = sibling.LeftChildId;
+			int rightChildId = sibling.RightChildId;
 
 			float area = Geometry::GetBoundingBoxArea(sibling.Aabb);
 			float inheritCost = Geometry::GetBoundingBoxArea(leaf.Aabb) * 2;
@@ -253,9 +265,9 @@ namespace TEN::Structures
 
 			// Calculate cost of descending into left child.
 			float leftCost = INFINITY;
-			if (leftChildID != NO_VALUE)
+			if (leftChildId != NO_VALUE)
 			{
-				const auto& leftChild = _nodes[leftChildID];
+				const auto& leftChild = _nodes[leftChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, leftChild.Aabb, leaf.Aabb);
 				float newArea = Geometry::GetBoundingBoxArea(aabb);
@@ -267,9 +279,9 @@ namespace TEN::Structures
 
 			// Calculate cost of descending into right child.
 			float rightCost = INFINITY;
-			if (rightChildID != NO_VALUE)
+			if (rightChildId != NO_VALUE)
 			{
-				const auto& rightChild = _nodes[rightChildID];
+				const auto& rightChild = _nodes[rightChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, rightChild.Aabb, leaf.Aabb);
 				float newArea = Geometry::GetBoundingBoxArea(aabb);
@@ -284,186 +296,191 @@ namespace TEN::Structures
 				break;
 
 			// Descend.
-			siblingID = (leftCost < rightCost) ? leftChildID : rightChildID;
-			if (siblingID == NO_VALUE)
+			siblingId = (leftCost < rightCost) ? leftChildId : rightChildId;
+			if (siblingId == NO_VALUE)
 			{
 				TENLog("BVH: Sibling leaf search failed.", LogLevel::Warning);
 				break;
 			}
 		}
 
-		return siblingID;
+		return siblingId;
 	}
 
-	void BoundingVolumeHierarchy::InsertLeaf(int leafID)
+	void BoundingVolumeHierarchy::InsertLeaf(int leafId)
 	{
 		// Create root if empty.
-		if (_rootID == NO_VALUE)
+		if (_rootId == NO_VALUE)
 		{
-			auto& leaf = _nodes[leafID];
+			auto& leaf = _nodes[leafId];
 
-			_leafIDMap.insert({ leaf.ObjectID, leafID });
-			_rootID = leafID;
+			_leafIdMap.insert({ leaf.ObjectId, leafId });
+			_rootId = leafId;
 			return;
 		}
 
 		// Allocate new parent.
-		int parentID = GetNewNodeID();
-		auto& parent = _nodes[parentID];
+		int parentId = GetNewNodeId();
+		auto& parent = _nodes[parentId];
 
 		// Get sibling leaf and new leaf.
-		int siblingID = GetBestSiblingLeafID(leafID);
-		auto& sibling = _nodes[siblingID];
-		auto& leaf = _nodes[leafID];
+		int siblingId = GetBestSiblingLeafId(leafId);
+		auto& sibling = _nodes[siblingId];
+		auto& leaf = _nodes[leafId];
 
 		// Calculate merged AABB of sibling leaf and new leaf.
 		auto aabb = BoundingBox();
 		BoundingBox::CreateMerged(aabb, sibling.Aabb, leaf.Aabb);
 
 		// Get previous parent.
-		int prevParentID = sibling.ParentID;
+		int prevParentId = sibling.ParentId;
 
 		// Update nodes.
 		parent.Aabb = aabb;
 		parent.Height = sibling.Height + 1;
-		parent.ParentID = prevParentID;
-		parent.LeftChildID = siblingID;
-		parent.RightChildID = leafID;
-		sibling.ParentID = parentID;
-		leaf.ParentID = parentID;
+		parent.ParentId = prevParentId;
+		parent.LeftChildId = siblingId;
+		parent.RightChildId = leafId;
+		sibling.ParentId = parentId;
+		leaf.ParentId = parentId;
 
-		if (prevParentID == NO_VALUE)
+		if (prevParentId == NO_VALUE)
 		{
-			_rootID = parentID;
+			_rootId = parentId;
 		}
 		else
 		{
-			auto& prevParent = _nodes[prevParentID];
+			auto& prevParent = _nodes[prevParentId];
 
 			// Update previous parent's child reference.
-			if (prevParent.LeftChildID == siblingID)
+			if (prevParent.LeftChildId == siblingId)
 			{
-				prevParent.LeftChildID = parentID;
+				prevParent.LeftChildId = parentId;
 			}
 			else
 			{
-				prevParent.RightChildID = parentID;
+				prevParent.RightChildId = parentId;
 			}
 		}
 
 		// Refit.
-		RefitNode(leafID);
+		RefitNode(leafId);
 
 		// Store object-leaf association.
-		_leafIDMap.insert({ leaf.ObjectID, leafID });
+		_leafIdMap.insert({ leaf.ObjectId, leafId });
 
-		//Validate(leafID);
+		//Validate(leafId);
 	}
 
-	void BoundingVolumeHierarchy::RemoveLeaf(int leafID)
+	void BoundingVolumeHierarchy::RemoveLeaf(int leafId)
 	{
-		int nodeID = leafID;
-		int parentID = _nodes[nodeID].ParentID;
+		int nodeId = leafId;
+		int parentId = _nodes[nodeId].ParentId;
 
 		// Remove node.
-		RemoveNode(nodeID);
+		RemoveNode(nodeId);
 
 		// Prune branch up to root.
-		while (parentID != NO_VALUE)
+		while (parentId != NO_VALUE)
 		{
-			auto& parentNode = _nodes[parentID];
+			auto& parent = _nodes[parentId];
 
 			// Check if parent becomes new leaf.
-			int siblingID = (parentNode.LeftChildID == nodeID) ? parentNode.RightChildID : parentNode.LeftChildID;
-			auto& siblingNode = _nodes[siblingID];
+			int siblingId = (parent.LeftChildId == nodeId) ? parent.RightChildId : parent.LeftChildId;
+			auto& sibling = _nodes[siblingId];
 
-			if (parentNode.LeftChildID == nodeID || parentNode.RightChildID == nodeID)
+			// Rearrange nodes local to removal.
+			if (parent.LeftChildId == nodeId || parent.RightChildId == nodeId)
 			{
 				// Replace parent with sibling.
-				if (parentNode.ParentID != NO_VALUE)
+				if (parent.ParentId != NO_VALUE)
 				{
-					auto& grandparentNode = _nodes[parentNode.ParentID];
-					if (grandparentNode.LeftChildID == parentID)
+					auto& grandparent = _nodes[parent.ParentId];
+					if (grandparent.LeftChildId == parentId)
 					{
-						grandparentNode.LeftChildID = siblingID;
+						grandparent.LeftChildId = siblingId;
 					}
 					else
 					{
-						grandparentNode.RightChildID = siblingID;
+						grandparent.RightChildId = siblingId;
 					}
 
-					siblingNode.ParentID = parentNode.ParentID;
+					sibling.ParentId = parent.ParentId;
 				}
 				else
 				{
 					// No grandparent; sibling becomes root.
-					_rootID = siblingID;
-					siblingNode.ParentID = NO_VALUE;
+					_rootId = siblingId;
+					sibling.ParentId = NO_VALUE;
 				}
 
-				RemoveNode(parentID);
-				parentID = siblingNode.ParentID;
+				// Refit sibling (new parent).
+				RefitNode(siblingId);
+
+				// Remove previous parent.
+				RemoveNode(parentId);
+				parentId = sibling.ParentId;
 			}
+			// Refit up hierarchy.
 			else
 			{
-				// Refit valid node.
-				RefitNode(parentID);
-				parentID = NO_VALUE;
+				// Refit parent.
+				RefitNode(parentId);
+				parentId = NO_VALUE;
 			}
 		}
 	}
 
-	void BoundingVolumeHierarchy::RefitNode(int nodeID)
+	void BoundingVolumeHierarchy::RefitNode(int nodeId)
 	{
-		const auto& node = _nodes[nodeID];
+		const auto& node = _nodes[nodeId];
 
 		// Retread tree branch to refit AABBs.
-		int parentID = node.ParentID;
-		while (parentID != NO_VALUE)
+		int parentId = node.ParentId;
+		while (parentId != NO_VALUE)
 		{
 			// Balance node and get new subtree root.
-			int newParentID = BalanceNode(parentID);
-			auto& parent = _nodes[newParentID];
+			int newParentId = BalanceNode(parentId);
+			auto& parent = _nodes[newParentId];
 
-			if (parent.LeftChildID != NO_VALUE && parent.RightChildID != NO_VALUE)
+			if (parent.LeftChildId != NO_VALUE && parent.RightChildId != NO_VALUE)
 			{
-				const auto& leftChild = _nodes[parent.LeftChildID];
-				const auto& rightChild = _nodes[parent.RightChildID];
+				const auto& leftChild = _nodes[parent.LeftChildId];
+				const auto& rightChild = _nodes[parent.RightChildId];
 
 				BoundingBox::CreateMerged(parent.Aabb, leftChild.Aabb, rightChild.Aabb);
 				parent.Height = std::max(leftChild.Height, rightChild.Height) + 1;
 			}
-			else if (parent.LeftChildID != NO_VALUE)
+			else if (parent.LeftChildId != NO_VALUE)
 			{
-				const auto& leftChild = _nodes[parent.LeftChildID];
+				const auto& leftChild = _nodes[parent.LeftChildId];
 
 				parent.Aabb = leftChild.Aabb;
 				parent.Height = leftChild.Height + 1;
 			}
-			else if (parent.RightChildID != NO_VALUE)
+			else if (parent.RightChildId != NO_VALUE)
 			{
-				const auto& rightChild = _nodes[parent.RightChildID];
+				const auto& rightChild = _nodes[parent.RightChildId];
 
 				parent.Aabb = rightChild.Aabb;
 				parent.Height = rightChild.Height + 1;
 			}
 
-			int prevParentID = parentID;
-			parentID = parent.ParentID;
+			parentId = parent.ParentId;
 		}
 	}
 
-	void BoundingVolumeHierarchy::RemoveNode(int nodeID)
+	void BoundingVolumeHierarchy::RemoveNode(int nodeId)
 	{
-		auto& node = _nodes[nodeID];
+		auto& node = _nodes[nodeId];
 
 		// Remove leaf from map.
 		if (node.IsLeaf())
-			_leafIDMap.erase(node.ObjectID);
+			_leafIdMap.erase(node.ObjectId);
 
 		// Clear node and mark free.
 		node = {};
-		_freeNodeIds.push_back(nodeID);
+		_freeNodeIds.push(nodeId);
 
 		// Shrink capacity if empty to avoid memory bloat.
 		if (_nodes.size() == _freeNodeIds.size())
@@ -472,22 +489,22 @@ namespace TEN::Structures
 
 	// Performs left or right tree rotation if input node is imbalanced.
 	// Returns new subtree root ID.
-	int BoundingVolumeHierarchy::BalanceNode(int nodeID)
+	int BoundingVolumeHierarchy::BalanceNode(int nodeId)
 	{
-		if (nodeID == NO_VALUE)
-			return nodeID;
+		if (nodeId == NO_VALUE)
+			return nodeId;
 
-		auto& nodeA = _nodes[nodeID];
+		auto& nodeA = _nodes[nodeId];
 		if (nodeA.IsLeaf() || nodeA.Height < 2)
-			return nodeID;
+			return nodeId;
 
-		int nodeIDB = nodeA.LeftChildID;
-		int nodeIDC = nodeA.RightChildID;
-		if (nodeIDB == NO_VALUE || nodeIDC == NO_VALUE)
-			return nodeID;
+		int nodeIdB = nodeA.LeftChildId;
+		int nodeIdC = nodeA.RightChildId;
+		if (nodeIdB == NO_VALUE || nodeIdC == NO_VALUE)
+			return nodeId;
 
-		auto& nodeB = _nodes[nodeIDB];
-		auto& nodeC = _nodes[nodeIDC];
+		auto& nodeB = _nodes[nodeIdB];
+		auto& nodeC = _nodes[nodeIdC];
 
 		// Calculate balance.
 		int balance = nodeC.Height - nodeB.Height;
@@ -495,35 +512,35 @@ namespace TEN::Structures
 		// Rotate C up.
 		if (balance > 1)
 		{
-			int nodeIDF = nodeC.LeftChildID;
-			int nodeIDG = nodeC.RightChildID;
-			if (nodeIDF == NO_VALUE || nodeIDG == NO_VALUE)
-				return nodeID;
+			int nodeIdF = nodeC.LeftChildId;
+			int nodeIdG = nodeC.RightChildId;
+			if (nodeIdF == NO_VALUE || nodeIdG == NO_VALUE)
+				return nodeId;
 
-			auto& nodeF = _nodes[nodeIDF];
-			auto& nodeG = _nodes[nodeIDG];
+			auto& nodeF = _nodes[nodeIdF];
+			auto& nodeG = _nodes[nodeIdG];
 
 			// Swap A and C.
-			nodeC.ParentID = nodeA.ParentID;
-			nodeC.LeftChildID = nodeID;
-			nodeA.ParentID = nodeIDC;
+			nodeC.ParentId = nodeA.ParentId;
+			nodeC.LeftChildId = nodeId;
+			nodeA.ParentId = nodeIdC;
 
 			// Make A's previous parent point to C.
-			if (nodeC.ParentID != NO_VALUE)
+			if (nodeC.ParentId != NO_VALUE)
 			{
-				auto& parent = _nodes[nodeC.ParentID];
-				if (parent.LeftChildID == nodeID)
+				auto& parent = _nodes[nodeC.ParentId];
+				if (parent.LeftChildId == nodeId)
 				{
-					parent.LeftChildID = nodeIDC;
+					parent.LeftChildId = nodeIdC;
 				}
 				else
 				{
-					parent.RightChildID = nodeIDC;
+					parent.RightChildId = nodeIdC;
 				}
 			}
 			else
 			{
-				_rootID = nodeIDC;
+				_rootId = nodeIdC;
 			}
 
 			// Rotate.
@@ -534,9 +551,9 @@ namespace TEN::Structures
 				nodeA.Height = std::max(nodeB.Height, nodeG.Height) + 1;
 				nodeC.Height = std::max(nodeA.Height, nodeF.Height) + 1;
 
-				nodeG.ParentID = nodeID;
-				nodeC.RightChildID = nodeIDF;
-				nodeA.RightChildID = nodeIDG;
+				nodeG.ParentId = nodeId;
+				nodeC.RightChildId = nodeIdF;
+				nodeA.RightChildId = nodeIdG;
 			}
 			else
 			{
@@ -545,45 +562,45 @@ namespace TEN::Structures
 				nodeA.Height = std::max(nodeB.Height, nodeF.Height) + 1;
 				nodeC.Height = std::max(nodeA.Height, nodeG.Height) + 1;
 
-				nodeF.ParentID = nodeID;
-				nodeC.RightChildID = nodeIDG;
-				nodeA.RightChildID = nodeIDF;
+				nodeF.ParentId = nodeId;
+				nodeC.RightChildId = nodeIdG;
+				nodeA.RightChildId = nodeIdF;
 			}
 
-			return nodeIDC;
+			return nodeIdC;
 		}
 		// Rotate B up.
 		else if (balance < -1)
 		{
-			int nodeIDD = nodeB.LeftChildID;
-			int nodeIDE = nodeB.RightChildID;
-			if (nodeIDD == NO_VALUE || nodeIDE == NO_VALUE)
-				return nodeID;
+			int nodeIdD = nodeB.LeftChildId;
+			int nodeIdE = nodeB.RightChildId;
+			if (nodeIdD == NO_VALUE || nodeIdE == NO_VALUE)
+				return nodeId;
 
-			auto& nodeD = _nodes[nodeIDD];
-			auto& nodeE = _nodes[nodeIDE];
+			auto& nodeD = _nodes[nodeIdD];
+			auto& nodeE = _nodes[nodeIdE];
 
 			// Swap A and B.
-			nodeB.ParentID = nodeA.ParentID;
-			nodeB.LeftChildID = nodeID;
-			nodeA.ParentID = nodeIDB;
+			nodeB.ParentId = nodeA.ParentId;
+			nodeB.LeftChildId = nodeId;
+			nodeA.ParentId = nodeIdB;
 
 			// Make A's previous parent point to B.
-			if (nodeB.ParentID != NO_VALUE)
+			if (nodeB.ParentId != NO_VALUE)
 			{
-				auto& parent = _nodes[nodeB.ParentID];
-				if (parent.LeftChildID == nodeID)
+				auto& parent = _nodes[nodeB.ParentId];
+				if (parent.LeftChildId == nodeId)
 				{
-					parent.LeftChildID = nodeIDB;
+					parent.LeftChildId = nodeIdB;
 				}
 				else
 				{
-					parent.RightChildID = nodeIDB;
+					parent.RightChildId = nodeIdB;
 				}
 			}
 			else
 			{
-				_rootID = nodeIDB;
+				_rootId = nodeIdB;
 			}
 
 			// Rotate.
@@ -594,9 +611,9 @@ namespace TEN::Structures
 				nodeA.Height = std::max(nodeC.Height, nodeE.Height) + 1;
 				nodeB.Height = std::max(nodeA.Height, nodeD.Height) + 1;
 
-				nodeB.RightChildID = nodeIDD;
-				nodeA.LeftChildID = nodeIDE;
-				nodeE.ParentID = nodeID;
+				nodeB.RightChildId = nodeIdD;
+				nodeA.LeftChildId = nodeIdE;
+				nodeE.ParentId = nodeId;
 			}
 			else
 			{
@@ -605,15 +622,15 @@ namespace TEN::Structures
 				nodeA.Height = std::max(nodeC.Height, nodeD.Height) + 1;
 				nodeB.Height = std::max(nodeA.Height, nodeE.Height) + 1;
 
-				nodeB.RightChildID = nodeIDE;
-				nodeA.LeftChildID = nodeIDD;
-				nodeD.ParentID = nodeID;
+				nodeB.RightChildId = nodeIdE;
+				nodeA.LeftChildId = nodeIdD;
+				nodeD.ParentId = nodeId;
 			}
 
-			return nodeIDB;
+			return nodeIdB;
 		}
 
-		return nodeID;
+		return nodeId;
 	}
 
 	void BoundingVolumeHierarchy::Build(const std::vector<int>& objectIds, const std::vector<BoundingBox>& aabbs, BvhBuildStrategy strategy)
@@ -623,7 +640,7 @@ namespace TEN::Structures
 
 		// Build tree recursively.
 		Build(objectIds, aabbs, 0, (int)objectIds.size(), strategy);
-		_rootID = (int)_nodes.size() - 1;
+		_rootId = (int)_nodes.size() - 1;
 
 		//Validate();
 	}
@@ -647,15 +664,15 @@ namespace TEN::Structures
 		// Leaf node.
 		if ((end - start) == 1)
 		{
-			int leafID = (int)_nodes.size();
+			int leafId = (int)_nodes.size();
 
-			node.ObjectID = objectIds[start];
+			node.ObjectId = objectIds[start];
 			node.Height = 0;
 
 			// Add new leaf.
 			_nodes.push_back(node);
-			_leafIDMap.insert({ node.ObjectID, leafID });
-			return leafID;
+			_leafIdMap.insert({ node.ObjectId, leafId });
+			return leafId;
 		}
 		// Inner node.
 		else
@@ -703,39 +720,39 @@ namespace TEN::Structures
 			int bestSplit = getBestSplit();
 
 			// Create children recursively.
-			node.LeftChildID = Build(objectIds, aabbs, start, bestSplit, strategy);
-			node.RightChildID = Build(objectIds, aabbs, bestSplit, end, strategy);
+			node.LeftChildId = Build(objectIds, aabbs, start, bestSplit, strategy);
+			node.RightChildId = Build(objectIds, aabbs, bestSplit, end, strategy);
 
 			// Set parent ID for children.
-			int nodeID = (int)_nodes.size();
-			if (node.LeftChildID != NO_VALUE)
-				_nodes[node.LeftChildID].ParentID = nodeID;
-			if (node.RightChildID != NO_VALUE)
-				_nodes[node.RightChildID].ParentID = nodeID;
+			int nodeId = (int)_nodes.size();
+			if (node.LeftChildId != NO_VALUE)
+				_nodes[node.LeftChildId].ParentId = nodeId;
+			if (node.RightChildId != NO_VALUE)
+				_nodes[node.RightChildId].ParentId = nodeId;
 
 			// Set height.
 			node.Height = std::max(
-				(node.LeftChildID != NO_VALUE) ? _nodes[node.LeftChildID].Height : 0, 
-				(node.RightChildID != NO_VALUE) ? _nodes[node.RightChildID].Height : 0) + 1;
+				(node.LeftChildId != NO_VALUE) ? _nodes[node.LeftChildId].Height : 0, 
+				(node.RightChildId != NO_VALUE) ? _nodes[node.RightChildId].Height : 0) + 1;
 
 			// Add new inner node.
 			_nodes.push_back(node);
-			return nodeID;
+			return nodeId;
 		}
 	}
 
 	void BoundingVolumeHierarchy::Validate() const
 	{
-		Validate(_rootID);
+		Validate(_rootId);
 
 		// Validate unique object IDs.
 		auto objectIds = GetBoundedObjectIds();
-		for (int refObjectID : objectIds)
+		for (int refObjectId : objectIds)
 		{
 			unsigned int count = 0;
-			for (int objectID : objectIds)
+			for (int objectId : objectIds)
 			{
-				if (refObjectID == objectID)
+				if (refObjectId == objectId)
 					count++;
 			}
 
@@ -743,56 +760,56 @@ namespace TEN::Structures
 		}
 	}
 
-	void BoundingVolumeHierarchy::Validate(int nodeID) const
+	void BoundingVolumeHierarchy::Validate(int nodeId) const
 	{
-		if (nodeID == NO_VALUE)
+		if (nodeId == NO_VALUE)
 			return;
 
 		// Get node.
-		const auto& node = _nodes[nodeID];
+		const auto& node = _nodes[nodeId];
 
 		// Validate root.
-		if (nodeID == _rootID)
-			TENAssert(node.ParentID == NO_VALUE, "BVH: Root node cannot have parent.");
+		if (nodeId == _rootId)
+			TENAssert(node.ParentId == NO_VALUE, "BVH: Root node cannot have parent.");
 
 		// Validate leaf node.
 		if (node.IsLeaf())
 		{
-			TENAssert(node.ObjectID != NO_VALUE, "BVH: Leaf node must contain object ID.");
+			TENAssert(node.ObjectId != NO_VALUE, "BVH: Leaf node must contain object ID.");
 			TENAssert(node.Height == 0, "BVH: Leaf node must have height of 0.");
 		}
 		// Validate inner node.
 		else
 		{
-			TENAssert(node.ObjectID == NO_VALUE, "BVH: Inner node cannot contain object ID.");
+			TENAssert(node.ObjectId == NO_VALUE, "BVH: Inner node cannot contain object ID.");
 			TENAssert(node.Height != 0, "BVH: Inner node cannot have height of 0.");
 		}
 
 		// Validate parent.
-		if (nodeID != _rootID)
-			TENAssert(node.ParentID != NO_VALUE, "BVH: Non-root node must have parent.");
+		if (nodeId != _rootId)
+			TENAssert(node.ParentId != NO_VALUE, "BVH: Non-root node must have parent.");
 
 		// Validate parent of children.
-		if (node.LeftChildID != NO_VALUE)
+		if (node.LeftChildId != NO_VALUE)
 		{
-			const auto& leftChild = _nodes[node.LeftChildID];
-			TENAssert(leftChild.ParentID == nodeID, "BVH: Left child has wrong parent.");
+			const auto& leftChild = _nodes[node.LeftChildId];
+			TENAssert(leftChild.ParentId == nodeId, "BVH: Left child has wrong parent.");
 		}
-		if (node.RightChildID != NO_VALUE)
+		if (node.RightChildId != NO_VALUE)
 		{
-			const auto& rightChild = _nodes[node.RightChildID];
-			TENAssert(rightChild.ParentID == nodeID, "BVH: Right child has wrong parent.");
+			const auto& rightChild = _nodes[node.RightChildId];
+			TENAssert(rightChild.ParentId == nodeId, "BVH: Right child has wrong parent.");
 		}
 
 		// Validate height.
-		if (nodeID != _rootID)
+		if (nodeId != _rootId)
 		{
-			const auto& parent = _nodes[node.ParentID];
+			const auto& parent = _nodes[node.ParentId];
 			TENAssert(node.Height < parent.Height, "BVH: Child height must be less than parent height.");
 		}
 
 		// Validate recursively.
-		Validate(node.LeftChildID);
-		Validate(node.RightChildID);
+		Validate(node.LeftChildId);
+		Validate(node.RightChildId);
 	}
 }
