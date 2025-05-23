@@ -23,7 +23,7 @@ using namespace TEN::Renderer;
 
 extern ScriptInterfaceFlowHandler *g_GameFlow;
 
-bool shouldAnimateUpperBody(const LaraWeaponType& weapon)
+bool ShouldAnimateUpperBody(const LaraWeaponType& weapon)
 {
 	const auto& nativeItem = *LaraItem;
 	auto& player = Lara;
@@ -162,7 +162,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			// Left arm
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 
-			if (shouldAnimateUpperBody(gunType))
+			if (ShouldAnimateUpperBody(gunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 
 			auto shotgunFrameData = AnimFrameInterpData
@@ -176,7 +176,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			// Right arm
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			if (shouldAnimateUpperBody(Lara.Control.Weapon.GunType))
+			if (ShouldAnimateUpperBody(Lara.Control.Weapon.GunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 
 			shotgunFrameData = AnimFrameInterpData

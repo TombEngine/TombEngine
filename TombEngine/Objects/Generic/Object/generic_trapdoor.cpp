@@ -151,7 +151,7 @@ namespace TEN::Entities::Generic
 			trapDoorItem->Status = ITEM_ACTIVE;
 			trapDoorItem->Animation.TargetState = 1;
 
-			UseForcedFixedCamera = 1;
+			UseForcedFixedCamera = true;
 			ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 1024;
 			ForcedFixedCamera.y = trapDoorItem->Pose.Position.y + 1024;
 			ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 1024;
@@ -160,7 +160,7 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 &&
@@ -203,7 +203,7 @@ namespace TEN::Entities::Generic
 					trapDoorItem->Status = ITEM_ACTIVE;
 					trapDoorItem->Animation.TargetState = 1;
 
-					UseForcedFixedCamera = 1;
+					UseForcedFixedCamera = true;
 					ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 2048;
 					ForcedFixedCamera.y = trapDoorItem->Pose.Position.y - 2048;
 
@@ -222,7 +222,7 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 && trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)

@@ -15,6 +15,7 @@ namespace TEN::Utils
 	std::wstring ToWString(const char* cString);
 
 	std::vector<std::wstring> SplitString(const std::wstring& string);
+	std::vector<std::wstring> SplitWords(const std::wstring& input);
 
 	int GetHash(const std::string& string);
 

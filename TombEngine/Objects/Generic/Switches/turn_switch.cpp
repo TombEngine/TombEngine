@@ -250,7 +250,7 @@ namespace TEN::Entities::Switches
 			RemoveActiveItem(itemNumber);
 
 			Lara.Control.HandStatus = HandStatus::Free;
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 			Camera.DisableInterpolation = true;
 			switchItem->ItemFlags[1] = 2;
 		}

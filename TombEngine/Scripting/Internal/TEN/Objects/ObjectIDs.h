@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 26/04/2025.
+// Last generated on 10-05-2025.
 
 #include <unordered_map>
 #include <string>
@@ -699,6 +699,7 @@ The following constants are inside ObjID.
 	SEQUENCE_SWITCH3
 	STEEL_DOOR
 	GOD_HEAD
+	BREAKABLE_WALL
 	PISTOLS_ITEM
 	PISTOLS_AMMO_ITEM
 	UZI_ITEM
@@ -1943,6 +1944,7 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "SEQUENCE_SWITCH3", ID_SEQUENCE_SWITCH3 },
 	{ "STEEL_DOOR", ID_STEEL_DOOR },
 	{ "GOD_HEAD", ID_GOD_HEAD },
+	{ "BREAKABLE_WALL", ID_BREAKABLE_WALL },
 	{ "PISTOLS_ITEM", ID_PISTOLS_ITEM },
 	{ "PISTOLS_AMMO_ITEM", ID_PISTOLS_AMMO_ITEM },
 	{ "UZI_ITEM", ID_UZI_ITEM },

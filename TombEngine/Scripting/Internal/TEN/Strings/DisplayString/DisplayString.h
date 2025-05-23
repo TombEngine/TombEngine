@@ -56,6 +56,7 @@ private:
 	// Members
 	std::string _key	  = {};
 	Vec2		_position = Vec2(0, 0);
+	Vec2		_area	  = Vec2(0, 0);
 	float		_scale	  = 1.0f;
 	D3DCOLOR	_color	  = 0xFFFFFFFF;
 	FlagArray	_flags	  = {};
@@ -72,7 +73,7 @@ private:
 	UserDisplayString() = default;
 
 public:
-	UserDisplayString(const std::string& key, const Vec2& pos, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
+	UserDisplayString(const std::string& key, const Vec2& pos, const Vec2& area, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
 };
 
 using DisplayStringID	 = uintptr_t;
@@ -99,12 +100,14 @@ public:
 	DisplayStringID GetID() const;
 	std::string		GetKey() const;
 	Vec2			GetPosition() const;
+	Vec2			GetArea() const;
 	float			GetScale() const;
 	ScriptColor		GetColor() const;
 
 	// Setters
 	void SetKey(const std::string& key);
 	void SetPosition(const sol::variadic_args& args);
+	void SetArea(Vec2 area);
 	void SetScale(float scale);
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);
