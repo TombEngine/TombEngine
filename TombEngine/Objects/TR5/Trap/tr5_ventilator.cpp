@@ -53,16 +53,16 @@ namespace TEN::Entities::Traps
 
 		auto& part = *GetFreeParticle();
 
-		part.on = 1;
+		part.on = true;
 		part.SpriteSeqID = ID_DEFAULT_SPRITES;
 		part.SpriteID = SPRITE_TYPES::SPR_UNDERWATERDUST;
 		part.sR = 0;
 		part.sG = 0;
 		part.sB = 0;
 		part.dR = part.dG = (48 * speed) / 64;
+		part.dB = (speed * ((GetRandomControl() & 8) + 48)) / 64;
 		part.colFadeSpeed = 4;
 		part.fadeToBlack = 8;
-		part.dB = (speed * ((GetRandomControl() & 8) + 48)) / 64;
 		part.blendMode = BlendMode::Additive;
 		part.life = part.sLife = (GetRandomControl() & 3) + 20;
 
@@ -129,7 +129,7 @@ namespace TEN::Entities::Traps
 
 			part.yVel = 0;
 		}
-
+		part.roomNumber = FindRoomNumber(Vector3i(part.x, part.y, part.z));
 		part.friction = 85;
 		part.xVel = (speed * part.xVel) / 128;
 		part.yVel = (speed * part.yVel) / 128;
@@ -139,6 +139,7 @@ namespace TEN::Entities::Traps
 		part.flags = SP_SCALE | SP_ROTATE | SP_DEF | SP_EXPDEF;
 		part.rotAng = ANGLE(0.0f) >> 4;
 		part.rotAdd = ANGLE(0.0f) >> 4;
+		part.scalar = 0.5;
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(DUST_SIZE_MAX / 2, DUST_SIZE_MAX);
 	}
 
