@@ -105,7 +105,7 @@ namespace TEN::Entities::Traps
 
 			if (TriggerActive(&item))
 			{
-				*(int*)&item.ItemFlags[0] = 0x787E;
+				item.ItemFlags[0] = 1;
 				AnimateItem(&item);
 
 				auto pos = GetJointPosition(item, 4, Vector3i(0, 260, 0));
@@ -135,7 +135,7 @@ namespace TEN::Entities::Traps
 
 			if (TriggerActive(&item))
 			{
-				*(int*)&item.ItemFlags[0] = 0x787E;
+				item.ItemFlags[0] = 1;
 				AnimateItem(&item);
 				return;
 			}
@@ -152,7 +152,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		*(int*)&item.ItemFlags[0] = 0;
+		item.ItemFlags[0] = 0;
 	}
 
 	void CollideChain(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
@@ -172,8 +172,6 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation.y = 0;
 		auto spheres = item.GetSpheres();
 		item.Pose.Orientation.y = prevYOrient;
-
-		int harmBits = *(int*)&item.ItemFlags[0]; // NOTE: Value spread across ItemFlags[0] and ItemFlags[1].
 
 		auto collidedBits = item.TouchBits;
 		if (item.ItemFlags[2] != 0)
@@ -196,12 +194,12 @@ namespace TEN::Entities::Traps
 				GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
 
 				auto pos = playerItem->Pose.Position;
-				if (ItemPushItem(&item, playerItem, coll, harmBits & 1, 3) && (harmBits & 1))
+				if (ItemPushItem(&item, playerItem, coll, item.ItemFlags[0], 3) && (item.ItemFlags[0]))
 				{
 					DoDamage(playerItem, item.ItemFlags[3]);
 
 					if (item.ItemFlags[5])
-						TEN::Effects::Items::ItemBurn(LaraItem);
+						TEN::Effects::Items::ItemBurn(playerItem);
 
 					auto deltaPos = pos - playerItem->Pose.Position;
 					if (deltaPos != Vector3i::Zero)
@@ -214,8 +212,6 @@ namespace TEN::Entities::Traps
 						playerItem->Pose.Position += deltaPos;
 				}
 			}
-
-			harmBits >>= 1;
 		}
 	}
 }
