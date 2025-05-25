@@ -118,22 +118,22 @@
 
 <h1>Primitive Class <code>Rotation</code></h1>
 <p>Represents a 3D rotation.</p>
-<p> All angle components are in degrees clamped to the range [0.0, 360.0].</p>
+<p> All angle components are in degrees, automatically clamped to the range [0, 360], excluding raw access.</p>
 
 
 <h2><a href="#Members">Members</a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#x">x</a></td>
-	<td class="summary">(float) X angle component in degrees.</td>
+	<td class="summary">(float) Raw X angle component in degrees.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#y">y</a></td>
-	<td class="summary">(float) Y angle component in degrees.</td>
+	<td class="summary">(float) Raw Y angle component in degrees.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#z">z</a></td>
-	<td class="summary">(float) Z angle component in degrees.</td>
+	<td class="summary">(float) Raw Z angle component in degrees.</td>
 	</tr>
 </table>
 <h2><a href="#Functions">Functions</a></h2>
@@ -149,6 +149,10 @@
 	<tr>
 	<td class="name" ><a href="#Direction">Direction()</a></td>
 	<td class="summary">Get the normalized direction vector of this Rotation.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Signed">Signed()</a></td>
+	<td class="summary">Get the signed version of this Rotation, clamped to [-180, 180].</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#__tostring">__tostring(rot)</a></td>
@@ -170,7 +174,7 @@
     <strong>x</strong>
     </dt>
     <dd>
-    (float) X angle component in degrees.
+    (float) Raw X angle component in degrees.  Does not automaticaly clamp to [0, 360].
 
 
 
@@ -185,7 +189,7 @@
     <strong>y</strong>
     </dt>
     <dd>
-    (float) Y angle component in degrees.
+    (float) Raw Y angle component in degrees.  Does not automaticaly clamp to [0, 360].
 
 
 
@@ -200,7 +204,7 @@
     <strong>z</strong>
     </dt>
     <dd>
-    (float) Z angle component in degrees.
+    (float) Raw Z angle component in degrees.  Does not automaticaly clamp to [0, 360].
 
 
 
@@ -297,6 +301,27 @@
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
         Normalized direction vector.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Signed"></a>
+    <strong>Signed()</strong>
+    </dt>
+    <dd>
+    Get the signed version of this Rotation, clamped to [-180, 180].
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Rotation.html#">Rotation</a></span>
+        Signed rotation.
     </ol>
 
 
