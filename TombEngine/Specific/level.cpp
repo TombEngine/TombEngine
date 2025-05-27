@@ -813,6 +813,7 @@ void LoadStaticRoomData()
 		{
 			VERTEXCOLORS vertexColors;
 
+			vertexColors.Color = ReadVector3();
 			vertexColors.ColorB1 = ReadVector3();
 			vertexColors.ColorB2 = ReadVector3();
 			vertexColors.ColorB3 = ReadVector3();

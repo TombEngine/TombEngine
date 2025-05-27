@@ -2778,7 +2778,7 @@ namespace TEN::Renderer
 			{
 				_shaders.Bind(Shader::Rooms);
 			}
-
+			 
 			UINT stride = sizeof(Vertex);
 			UINT offset = 0;
 
@@ -2827,7 +2827,7 @@ namespace TEN::Renderer
 			}
 
 			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
-			{
+			{ 
 				const auto& room = *view.RoomsToDraw[i];
 				const auto& nativeRoom = g_Level.Rooms[room.RoomNumber];				
 
@@ -2838,6 +2838,7 @@ namespace TEN::Renderer
 					BindRoomLights(view.LightsToDraw);
 				}
 
+				//_stRoom.NewLightingSystem = 1  ;
 				_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
 				_cbRoom.UpdateData(_stRoom, _context.Get());
 

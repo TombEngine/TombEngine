@@ -27,6 +27,7 @@ struct BUCKET
 
 struct VERTEXCOLORS
 {
+	Vector3 Color;
 	Vector3 ColorB1;
 	Vector3 ColorB2;
 	Vector3 ColorB3;

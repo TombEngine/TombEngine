@@ -592,6 +592,11 @@ namespace TEN::Input
 			g_Renderer.SwitchDebugPage(KeyMap[OIS::KC_F10]);
 		dbDebugPage = !(KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]);
 
+		if ((KeyMap[OIS::KC_F8]))
+			g_Renderer.SetNewLightingSystem(1);
+		else
+			g_Renderer.SetNewLightingSystem(0);
+
 		// Reload shaders.
 		static bool dbReloadShaders = true;
 		if (KeyMap[OIS::KC_F9] && dbReloadShaders)

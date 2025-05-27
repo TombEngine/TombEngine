@@ -609,6 +609,11 @@ namespace TEN::Renderer
 		Renderer();
 		~Renderer();
 
+		inline void SetNewLightingSystem(int value)
+		{
+			_stRoom.NewLightingSystem = value;
+		}
+
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Create();
