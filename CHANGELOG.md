@@ -8,9 +8,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## New features
 * Added skinned meshes support for any object.
 * Added video playback and video texture streaming support.
-* Added muzzle glow effect for firearms.
+* Added muzzle glow effect for firearms and flares.
 * Added weather particle clustering and increase weather particle density and performance.
-* Added examine mode text rendering (string key should be in the format like `examine1_text` etc).
+* Added examine mode text rendering (string key should be in the format like `examine1_text`, `examine2_text`, and so on).
+* Added breakable wall object with land and underwater modes.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_BreakableWall.wad2).
+* Added land mode for underwater switches. Asset change required for both types of underwater switches.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_WallSwitch.wad2).
+* Added ability to use big push switch (OCB 3) underwater.
 
 ### Bug fixes
 * Fixed LASER_BEAM object going through walls.
@@ -19,12 +24,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SPIKY_CEILING object not having default speed assigned.
 * Fixed FISH_EMITTER object missing random targets due to distance.
 * Fixed FISH_EMITTER and COMPSOGNATHUS objects not attacking corpses.
+* Fixed locked camera flag and glide timer not working for fixed cameras.
+* Fixed weapon hotkeys not unholstering already selected weapon.
+* Fixed weapons not hitting non-intelligent objects.
 * Fixed collision issues for subsector bridges and bridges moving between rooms.
 * Fixed missing step up animation when switching from tread to wade.
 * Fixed ledge grabbing on platforms made from lowered ceilings.
 * Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
-* Fixed HK shots not being registered in statistics.
+* Fixed HK and crossbow shots not being registered in statistics.
+* Fixed incorrect arm rotation for revolver animations in crouched state.
 * Fixed distorted knee and elbow joint vertices.
 * Fixed multi-mesh objects not shattering correctly.
 * Fixed splash effects remaining in the level after reloading from the savegame.
@@ -38,24 +47,30 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
 * Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
+* Fixed incorrect conversion of non-Latin characters in the setup dialog.
+* Refactored pulley object. There is no need to use OCB 1 for a single pull.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_Pulley.wad2).
 * Removed legacy TR5 SEARCH_OBJECT1 code which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
 * Removed mipmapping for point filter rendering mode.
 
 ### Lua API changes
+* Added `Effects.EmitFlow` and `Effects.EmitWaterfallMist` functions.
 * Added `Flow.ItemAction` enum to reconfigure inventory item actions.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
 * Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxisValue` functions.
 * Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
-* Added `Moveable:SwapSkin` and `Moveable:UnswapSkin` for skinned moveable mesh management.
+* Added `Moveable:SwapSkinnedMesh` and `Moveable:UnswapSkinnedMesh` for skinned mesh management.
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
 * Added ability to specify negative priority values for `View.DisplaySprite` to draw it above strings.
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
+* Added area parameter for `Strings.DisplayString` for automatic word wrapping.
 * Added `Strings.DisplayStringOption.VERTICAL_CENTER` flag for vertically centering multiline strings.
 * Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
+* Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 * Fixed `Util.PickMoveableByDisplayPosition`.
 

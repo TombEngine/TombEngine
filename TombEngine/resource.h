@@ -6,8 +6,6 @@
 #define IDI_ICON1                       108
 #define IDR_TITLELEVEL                  109
 #define IDC_CHK_ENABLE_SOUND2           1012
-#define IDC_GFXADAPTER                  1020
-#define IDC_GFXADAPTERTXT               1021
 #define IDC_OUTSETTINGSTXT              1022
 #define IDC_OUTSETTINGS                 1023
 #define IDC_RESOLUTION                  1024
@@ -34,7 +32,6 @@
 #define IDC_GROUP_RENDER_OPTIONS        1060
 #define IDC_GROUP_RESOLUTION            1062
 #define IDC_GROUP_OUTPUT_SETTINGS       1063
-#define IDC_GROUP_GFXADAPTER            1064
 #define IDC_GROUP_SOUND                 1065
 #define IDC_AMBIENT_OCCLUSION           1066
 

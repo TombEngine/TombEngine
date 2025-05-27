@@ -237,7 +237,6 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
 	}
 }
 
-
 /// Get player weapon ammo type.
 // @function LaraObject:GetAmmoType
 // @treturn Objects.AmmoType Player weapon ammo type.
@@ -473,6 +472,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 // @tparam[opt=Vec3(256&#44; 0&#44; 512)] Vec3 maxOffsetConstraint Maximum relative offset constraint.
 // @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
 // @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
+// @treturn bool Returns true if the player is inside the specified bounds.
 bool LaraObject::TestInteraction(const Moveable& mov,
 								 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 								 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const

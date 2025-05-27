@@ -10,9 +10,11 @@
 #include "Specific/Input/Input.h"
 #include "Specific/winmain.h"
 #include "Sound/sound.h"
+#include "trutils.h"
 
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::Utils;
 
 GameConfiguration g_Configuration;
 
@@ -67,18 +69,17 @@ BOOL CALLBACK DialogProc(HWND handle, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		//DB_Log(6, "WM_INITDIALOG");
 
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_GFXADAPTER), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_DISPLAY_ADAPTER));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OUTPUT_SETTINGS));
-		SendMessageA(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OK));
-		SendMessageA(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CANCEL));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SCREEN_RESOLUTION));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ENABLE_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_WINDOWED));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_RENDER_OPTIONS));
-		SendMessageA(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SHADOWS));
-		SendMessageA(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CAUSTICS));
-		SendMessageA(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ANTIALIASING));
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OUTPUT_SETTINGS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OK))).c_str());
+		SendMessageW(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CANCEL))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SCREEN_RESOLUTION))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ENABLE_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_WINDOWED))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_RENDER_OPTIONS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SHADOWS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CAUSTICS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ANTIALIASING))).c_str());
 
 		LoadResolutionsInCombobox(handle);
 		LoadSoundDevicesInCombobox(handle);

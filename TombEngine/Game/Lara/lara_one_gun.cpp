@@ -1168,8 +1168,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		if (player.Control.Weapon.GunType == LaraWeaponType::Revolver)
 		{
 			player.Control.Weapon.Interval = 16.0f;
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
 			isFiring = true;
 
 			if (!ammo.HasInfinite())
@@ -1184,9 +1182,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		}
 		else if (player.Control.Weapon.GunType == LaraWeaponType::HK)
 		{
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
-
 			bool playSound = false;
 
 			if (weapon.WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
@@ -1230,9 +1225,14 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 			if (!ammo.HasInfinite() && isFiring)
 				ammo--;
 		}
-	}
 
-	GetTargetOnLOS(&Camera.pos, &Camera.target, true, isFiring);
+		if (isFiring)
+		{
+			SaveGame::Statistics.Level.AmmoUsed++;
+			SaveGame::Statistics.Game.AmmoUsed++;
+			GetTargetOnLOS(&Camera.pos, &Camera.target);
+		}
+	}
 }
 
 void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
@@ -1438,7 +1438,7 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 {
 	if (TestEnvironment(ENV_FLAG_WATER, item.RoomNumber))
 	{
-		TriggerUnderwaterExplosion(&item, 0);
+		TriggerUnderwaterExplosion(&item, true);
 	}
 	else
 	{

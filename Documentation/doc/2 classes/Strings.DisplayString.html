@@ -131,7 +131,7 @@ when you need to use screen-space coordinates.</p>
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags])</a></td>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags], [area])</a></td>
 	<td class="summary">Create a DisplayString.</td>
 	</tr>
 	<tr>
@@ -151,20 +151,28 @@ when you need to use screen-space coordinates.</p>
 	<td class="summary">Set the string key to use.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
+	<td class="summary">Get the scale of the string.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#DisplayString:SetScale">DisplayString:SetScale(scale)</a></td>
 	<td class="summary">Set the scale of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
-	<td class="summary">Get the scale of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
+	<td class="summary">Get the position of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetPosition">DisplayString:SetPosition(pos)</a></td>
 	<td class="summary">Set the position of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
-	<td class="summary">Get the position of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetArea">DisplayString:GetArea()</a></td>
+	<td class="summary">Get the word-wrapping area of the string.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DisplayString:SetArea">DisplayString:SetArea(pos)</a></td>
+	<td class="summary">Set the word-wrapping area of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetFlags">DisplayString:SetFlags(table)</a></td>
@@ -181,7 +189,7 @@ when you need to use screen-space coordinates.</p>
     <dl class="function">
     <dt>
     <a name = "DisplayString"></a>
-    <strong>DisplayString(string, position, [scale], [color], [translated], [flags])</strong>
+    <strong>DisplayString(string, position, [scale], [color], [translated], [flags], [area])</strong>
     </dt>
     <dd>
     Create a DisplayString.
@@ -219,6 +227,12 @@ If true, the string argument will be treated as the key of a translated string s
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
          Flags which affect visual representation of a string, such as shadow or alignment.
          <em>Optional.</em>
+        </li>
+        <li><span class="parameter">area</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Rectangular area in pixels to perform word wrapping.
+No word wrapping will occur if this parameter is default or omitted.
+         <em>Default: Vec2(0&#44; 0).</em>
         </li>
     </ul>
 
@@ -320,6 +334,27 @@ If true, the string argument will be treated as the key of a translated string s
 
 </dd>
     <dt>
+    <a name = "DisplayString:GetScale"></a>
+    <strong>DisplayString:GetScale()</strong>
+    </dt>
+    <dd>
+    Get the scale of the string.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">float</span></span>
+        Scale.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "DisplayString:SetScale"></a>
     <strong>DisplayString:SetScale(scale)</strong>
     </dt>
@@ -342,11 +377,12 @@ If true, the string argument will be treated as the key of a translated string s
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetScale"></a>
-    <strong>DisplayString:GetScale()</strong>
+    <a name = "DisplayString:GetPosition"></a>
+    <strong>DisplayString:GetPosition()</strong>
     </dt>
     <dd>
-    Get the scale of the string.
+    Get the position of the string.
+ Screen-space coordinates are returned.
 
 
 
@@ -354,8 +390,8 @@ If true, the string argument will be treated as the key of a translated string s
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">float</span></span>
-        Scale.
+           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+        pos Position in pixel coordinates.
     </ol>
 
 
@@ -386,12 +422,12 @@ If true, the string argument will be treated as the key of a translated string s
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetPosition"></a>
-    <strong>DisplayString:GetPosition()</strong>
+    <a name = "DisplayString:GetArea"></a>
+    <strong>DisplayString:GetArea()</strong>
     </dt>
     <dd>
-    Get the position of the string.
- Screen-space coordinates are returned.
+    Get the word-wrapping area of the string.
+ Screen-space coordinates are returned. If <code>Vec2(0, 0)</code> is returned, it means there is no word wrapping for this string.
 
 
 
@@ -400,8 +436,31 @@ If true, the string argument will be treated as the key of a translated string s
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-        pos Position in pixel coordinates.
+        area Word-wrapping area in pixel coordinates.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DisplayString:SetArea"></a>
+    <strong>DisplayString:SetArea(pos)</strong>
+    </dt>
+    <dd>
+    Set the word-wrapping area of the string.
+ Screen-space coordinates are expected. If set to <code>Vec2(0, 0)</code>, no word wrapping will occur.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         New word-wrapping area in pixel coordinates.
+        </li>
+    </ul>
+
 
 
 

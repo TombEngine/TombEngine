@@ -514,6 +514,10 @@ bool DoFlareLight(ItemInfo& item, const Vector3i& pos, int flareLife)
 		}
 	}
 
+	// Spawn glow effect.
+	if (settings.Glow)
+		TriggerGlow(GameVector(lightPos, item.RoomNumber), color, 192);
+
 	// Return chaff spawn status.
 	return ((isDying || isEnding) ? spawnChaff : true);
 }

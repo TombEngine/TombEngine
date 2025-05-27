@@ -353,37 +353,51 @@ void HandlePlayerQuickActions(ItemInfo& item)
 			player.Control.Weapon.RequestGunType = weaponType;
 	}
 
+	auto requestedGunType = LaraWeaponType::None;
+
 	// Handle weapon requests.
 	if (IsClicked(In::Weapon1) && player.Weapons[(int)LaraWeaponType::Pistol].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Pistol;
+		requestedGunType = LaraWeaponType::Pistol;
 
 	if (IsClicked(In::Weapon2) && player.Weapons[(int)LaraWeaponType::Shotgun].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Shotgun;
+		requestedGunType = LaraWeaponType::Shotgun;
 
 	if (IsClicked(In::Weapon3) && player.Weapons[(int)LaraWeaponType::Uzi].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Uzi;
+		requestedGunType = LaraWeaponType::Uzi;
 
 	if (IsClicked(In::Weapon4) && player.Weapons[(int)LaraWeaponType::Revolver].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
+		requestedGunType = LaraWeaponType::Revolver;
 
 	if (IsClicked(In::Weapon5) && player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::GrenadeLauncher;
+		requestedGunType = LaraWeaponType::GrenadeLauncher;
 
 	if (IsClicked(In::Weapon6) && player.Weapons[(int)LaraWeaponType::Crossbow].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Crossbow;
+		requestedGunType = LaraWeaponType::Crossbow;
 
 	if (IsClicked(In::Weapon7) && player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::HarpoonGun;
+		requestedGunType = LaraWeaponType::HarpoonGun;
 
 	if (IsClicked(In::Weapon8) && player.Weapons[(int)LaraWeaponType::HK].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::HK;
+		requestedGunType = LaraWeaponType::HK;
 
 	if (IsClicked(In::Weapon9) && player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::RocketLauncher;
+		requestedGunType = LaraWeaponType::RocketLauncher;
 
 	// TODO: 10th possible weapon, probably grapple gun.
 	/*if (IsClicked(In::Weapon10) && player.Weapons[(int)LaraWeaponType::].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::;*/
+		requestedGunType = LaraWeaponType::;*/
+
+	if (requestedGunType != LaraWeaponType::None)
+	{
+		player.Control.Weapon.RequestGunType = requestedGunType;
+
+		// Reset current weapon if it matches the requested type, so that player can re-unholster it.
+		if (player.Control.HandStatus == HandStatus::Free &&
+			player.Control.Weapon.RequestGunType == player.Control.Weapon.GunType)
+		{
+			player.Control.Weapon.GunType = LaraWeaponType::None;
+		}
+	}
 }
 
 bool CanPlayerLookAround(const ItemInfo& item)

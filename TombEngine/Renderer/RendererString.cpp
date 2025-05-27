@@ -26,6 +26,11 @@ namespace TEN::Renderer
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
 	{
+		AddString(string, pos, Vector2::Zero, Color(color), 1.0f, flags);
+	}
+
+	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags)
+	{
 		if (_isLocked)
 			return;
 
@@ -40,8 +45,45 @@ namespace TEN::Renderer
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
 			float stringScale = (uiScale * fontScale) * scale;
+			float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * stringScale;
 
-			auto stringLines = SplitString(TEN::Utils::ToWString(string));
+			std::vector<std::wstring> stringLines;
+
+			if (area.x > 0)
+			{
+				auto words = SplitWords(TEN::Utils::ToWString(string)); // Implement this to split on spaces
+				std::wstring currentLine;
+
+				float currentLineWidth = 0.0f;
+
+				for (const auto& word : words)
+				{
+					float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
+
+					if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
+					{
+						stringLines.push_back(currentLine);
+						currentLine.clear();
+						currentLineWidth = 0.0f;
+					}
+
+					if (!currentLine.empty())
+					{
+						currentLine += L" ";
+						currentLineWidth += spaceWidth;
+					}
+
+					currentLine += word;
+					currentLineWidth += wordWidth;
+				}
+
+				if (!currentLine.empty())
+					stringLines.push_back(currentLine);
+			}
+			else
+			{
+				stringLines = SplitString(TEN::Utils::ToWString(string));
+			}
 
 			// Calculate total height for vertical centering.
 			float totalHeight = 0.0f;
@@ -52,6 +94,11 @@ namespace TEN::Renderer
 				else
 					totalHeight += Vector2(_gameFont->MeasureString(line.c_str())).y * stringScale;
 			}
+
+			// Calculate maximum textbox height.
+			float maxHeight = (area.y > 0.0f) ? area.y * factor.y : 0.0f;
+			if (maxHeight > 0.0f && totalHeight > maxHeight)
+				totalHeight = maxHeight;
 
 			// Compute vertical offset if vertical centering is requested.
 			float yBase = (flags & (int)PrintStringFlags::VerticalCenter) ? (pos.y * uiScale) - (totalHeight / 2.0f) : (pos.y * uiScale);
@@ -69,15 +116,19 @@ namespace TEN::Renderer
 				rString.Scale = stringScale;
 
 				// Measure string.
-				auto size = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line.c_str())) * rString.Scale;
+				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line.c_str())) * rString.Scale;
+
+				// If height clipping enabled, stop drawing when exceeding maxHeight.
+				if (maxHeight > 0.0f && (yOffset + stringSize.y) > maxHeight)
+					break;
 
 				if (flags & (int)PrintStringFlags::Center)
 				{
-					rString.X = (pos.x * factor.x) - (size.x / 2.0f);
+					rString.X = (pos.x * factor.x) - (stringSize.x / 2.0f);
 				}
 				else if (flags & (int)PrintStringFlags::Right)
 				{
-					rString.X = (pos.x * factor.x) - size.x;
+					rString.X = (pos.x * factor.x) - stringSize.x;
 				}
 				else
 				{
@@ -93,7 +144,7 @@ namespace TEN::Renderer
 					rString.Color *= _blinkColorValue;
 				}
 
-				yOffset += size.y;
+				yOffset += stringSize.y;
 				_stringsToDraw.push_back(rString);
 			}
 		}

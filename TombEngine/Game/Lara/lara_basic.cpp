@@ -70,7 +70,7 @@ void lara_as_controlled(ItemInfo* item, CollisionInfo* coll)
 		player.Control.HandStatus = HandStatus::Free;
 
 		if (UseForcedFixedCamera)
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 	}
 }
 

@@ -143,7 +143,7 @@ bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push)
 	return !flag;
 }
 
-bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, bool isFiring)
+bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 {
 	auto dir = target->ToVector3() - origin->ToVector3();
 	dir.Normalize();
@@ -153,187 +153,169 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, boo
 
 	GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
 
-	if (isFiring && Lara.Control.Look.IsUsingLasersight)
+	if (Lara.Control.Look.IsUsingLasersight)
 	{
 		Lara.Control.Weapon.HasFired = true;
 		Lara.RightArm.GunFlash = Weapons[(int)Lara.Control.Weapon.GunType].FlashTime;
 
 		if (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver)
 			SoundEffect(SFX_TR4_REVOLVER_FIRE, nullptr);
-	}
 
-	bool hitProcessed = false;
+		if (Lara.Control.Weapon.GunType == LaraWeaponType::Crossbow)
+		{
+			FireCrossBowFromLaserSight(*LaraItem, origin, &target2);
+			return false;
+		}
+	}
 
 	MESH_INFO* mesh = nullptr;
 	auto vector = Vector3i::Zero;
 	int itemNumber = ObjectOnLOS2(origin, target, &vector, &mesh);
 	bool hasHit = (itemNumber != NO_LOS_ITEM);
 
-	if (hasHit)
+	if (!hasHit)
 	{
-		target2.x = vector.x - ((vector.x - origin->x) >> 5);
-		target2.y = vector.y - ((vector.y - origin->y) >> 5);
-		target2.z = vector.z - ((vector.z - origin->z) >> 5);
-
-		GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
-
-		if (isFiring)
-		{
-			if (Lara.Control.Weapon.GunType != LaraWeaponType::Crossbow)
-			{
-				if (itemNumber < 0)
-				{
-					if (Statics[mesh->staticNumber].shatterType != ShatterType::None)
-					{
-						const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
-						mesh->HitPoints -= weapon.Damage;
-						ShatterImpactData.impactDirection = dir;
-						ShatterImpactData.impactLocation = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
-						ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
-						SoundEffect(GetShatterSound(mesh->staticNumber), (Pose*)mesh);
-						hitProcessed = true;
-					}
-
-					TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
-				}
-				else
-				{
-					auto* item = &g_Level.Items[itemNumber];
-
-					if (item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4)
-					{
-						if ((Objects[item->ObjectNumber].explodableMeshbits & ShatterItem.bit) &&
-							Lara.Control.Look.IsUsingLasersight)
-						{
-								item->MeshBits &= ~ShatterItem.bit;
-								ShatterImpactData.impactDirection = dir;
-								ShatterImpactData.impactLocation = ShatterItem.sphere.Center;
-								ShatterObject(&ShatterItem, 0, 128, target2.RoomNumber, 0);
-								TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y, false);
-								hitProcessed = true;
-						}
-						else
-						{
-							auto* object = &Objects[item->ObjectNumber];
-
-							if (drawTarget && (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver ||
-											   Lara.Control.Weapon.GunType == LaraWeaponType::HK))
-							{
-								if (object->intelligent || object->HitRoutine)
-								{
-									const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
-
-									auto spheres = item->GetSpheres();
-									auto ray = Ray(origin->ToVector3(), dir);
-									float bestDistance = INFINITY;
-									int bestJointIndex = NO_VALUE;
-
-									for (int i = 0; i < spheres.size(); i++)
-									{
-										float dist = 0.0f;
-										if (ray.Intersects(spheres[i], dist))
-										{
-											if (dist < bestDistance)
-											{
-												bestDistance = dist;
-												bestJointIndex = i;
-											}
-										}
-									}
-
-									HitTarget(LaraItem, item, &target2, Weapons[(int)Lara.Control.Weapon.GunType].AlternateDamage, false, bestJointIndex);
-									hitProcessed = true;
-								}
-								else
-								{
-									// TR5
-									if (object->hitEffect == HitEffect::Richochet)
-										TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
-								}
-							}
-							else if (item->ObjectNumber >= ID_SMASH_OBJECT1 && item->ObjectNumber <= ID_SMASH_OBJECT8)
-							{
-								SmashObject(itemNumber);
-								hitProcessed = true;
-							}
-						}
-					}
-					else
-					{
-						if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
-						{
-							if (!(item->Flags & 0x40))
-							{
-								if (item->ObjectNumber == ID_SHOOT_SWITCH1)
-									ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
-
-								if (item->TriggerFlags == 444 && item->ObjectNumber == ID_SHOOT_SWITCH2)
-								{
-									// TR5 ID_SWITCH_TYPE_8/ID_SHOOT_SWITCH2
-									ProcessExplodingSwitchType8(item);
-								}
-								else
-								{
-									/*if (item->objectNumber == ID_SHOOT_SWITCH3)
-									{
-									// TR4 ID_SWITCH_TYPE7
-									ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
-									}*/
-
-									if (item->Flags & IFLAG_ACTIVATION_MASK &&
-										(item->Flags & IFLAG_ACTIVATION_MASK) != IFLAG_ACTIVATION_MASK)
-									{
-										TestTriggers(item->Pose.Position.x, item->Pose.Position.y - 256, item->Pose.Position.z, item->RoomNumber, true, item->Flags & IFLAG_ACTIVATION_MASK);
-									}
-									else
-									{
-										short triggerItems[8];
-										for (int count = GetSwitchTrigger(item, triggerItems, 1); count > 0; --count)
-										{
-											AddActiveItem(triggerItems[count - 1]);
-											g_Level.Items[triggerItems[count - 1]].Status = ITEM_ACTIVE;
-											g_Level.Items[triggerItems[count - 1]].Flags |= IFLAG_ACTIVATION_MASK;
-										}
-									}
-								}
-							}
-
-							if (item->Status != ITEM_DEACTIVATED)
-							{
-								AddActiveItem(itemNumber);
-								item->Status = ITEM_ACTIVE;
-								item->Flags |= IFLAG_ACTIVATION_MASK | 0x40;
-							}
-
-							hitProcessed = true;
-						}
-
-						TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
-					}
-				}
-			}
-			else
-			{
-				if (Lara.Control.Look.IsUsingLasersight && isFiring)
-					FireCrossBowFromLaserSight(*LaraItem, origin, &target2);
-			}
-		}
-	}
-	else
-	{
-		if (Lara.Control.Weapon.GunType == LaraWeaponType::Crossbow)
-		{
-			if (isFiring && Lara.Control.Look.IsUsingLasersight)
-				FireCrossBowFromLaserSight(*LaraItem, origin, &target2);
-		}
-		else
+		if (!result)
 		{
 			target2.x -= (target2.x - origin->x) >> 5;
 			target2.y -= (target2.y - origin->y) >> 5;
 			target2.z -= (target2.z - origin->z) >> 5;
 
-			if (isFiring && !result)
-				TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+			TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+		}
+
+		return false;
+	}
+
+	bool hitProcessed = false;
+
+	target2.x = vector.x - ((vector.x - origin->x) >> 5);
+	target2.y = vector.y - ((vector.y - origin->y) >> 5);
+	target2.z = vector.z - ((vector.z - origin->z) >> 5);
+	GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
+
+	if (itemNumber < 0)
+	{
+		if (Statics[mesh->staticNumber].shatterType != ShatterType::None)
+		{
+			const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
+			mesh->HitPoints -= weapon.Damage;
+			ShatterImpactData.impactDirection = dir;
+			ShatterImpactData.impactLocation = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
+			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
+			SoundEffect(GetShatterSound(mesh->staticNumber), (Pose*)mesh);
+			hitProcessed = true;
+		}
+
+		TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+	}
+	else
+	{
+		auto* item = &g_Level.Items[itemNumber];
+
+		if (item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4)
+		{
+			if ((Objects[item->ObjectNumber].explodableMeshbits & ShatterItem.bit) &&
+				Lara.Control.Look.IsUsingLasersight)
+			{
+					item->MeshBits &= ~ShatterItem.bit;
+					ShatterImpactData.impactDirection = dir;
+					ShatterImpactData.impactLocation = ShatterItem.sphere.Center;
+					ShatterObject(&ShatterItem, 0, 128, target2.RoomNumber, 0);
+					TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y, false);
+					hitProcessed = true;
+			}
+			else
+			{
+				auto* object = &Objects[item->ObjectNumber];
+
+				if (object->intelligent || object->HitRoutine)
+				{
+					const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
+
+					auto spheres = item->GetSpheres();
+					auto ray = Ray(origin->ToVector3(), dir);
+					float bestDistance = INFINITY;
+					int bestJointIndex = NO_VALUE;
+
+					for (int i = 0; i < spheres.size(); i++)
+					{
+						float dist = 0.0f;
+						if (ray.Intersects(spheres[i], dist))
+						{
+							if (dist < bestDistance)
+							{
+								bestDistance = dist;
+								bestJointIndex = i;
+							}
+						}
+					}
+
+					HitTarget(LaraItem, item, &target2, Weapons[(int)Lara.Control.Weapon.GunType].Damage, false, bestJointIndex);
+					hitProcessed = true;
+				}
+				else if (object->hitEffect == HitEffect::Richochet)
+				{
+					TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+				}
+				else if (item->ObjectNumber >= ID_SMASH_OBJECT1 && item->ObjectNumber <= ID_SMASH_OBJECT8)
+				{
+					SmashObject(itemNumber);
+					hitProcessed = true;
+				}
+			}
+		}
+		else
+		{
+			if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
+			{
+				if (!(item->Flags & 0x40))
+				{
+					if (item->ObjectNumber == ID_SHOOT_SWITCH1)
+						ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
+
+					if (item->TriggerFlags == 444 && item->ObjectNumber == ID_SHOOT_SWITCH2)
+					{
+						// TR5 ID_SWITCH_TYPE_8/ID_SHOOT_SWITCH2
+						ProcessExplodingSwitchType8(item);
+					}
+					else
+					{
+						/*if (item->objectNumber == ID_SHOOT_SWITCH3)
+						{
+						// TR4 ID_SWITCH_TYPE7
+						ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
+						}*/
+
+						if (item->Flags & IFLAG_ACTIVATION_MASK &&
+							(item->Flags & IFLAG_ACTIVATION_MASK) != IFLAG_ACTIVATION_MASK)
+						{
+							TestTriggers(item->Pose.Position.x, item->Pose.Position.y - 256, item->Pose.Position.z, item->RoomNumber, true, item->Flags & IFLAG_ACTIVATION_MASK);
+						}
+						else
+						{
+							short triggerItems[8];
+							for (int count = GetSwitchTrigger(item, triggerItems, 1); count > 0; --count)
+							{
+								AddActiveItem(triggerItems[count - 1]);
+								g_Level.Items[triggerItems[count - 1]].Status = ITEM_ACTIVE;
+								g_Level.Items[triggerItems[count - 1]].Flags |= IFLAG_ACTIVATION_MASK;
+							}
+						}
+					}
+				}
+
+				if (item->Status != ITEM_DEACTIVATED)
+				{
+					AddActiveItem(itemNumber);
+					item->Status = ITEM_ACTIVE;
+					item->Flags |= IFLAG_ACTIVATION_MASK | 0x40;
+				}
+
+				hitProcessed = true;
+			}
+
+			TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
 		}
 	}
 

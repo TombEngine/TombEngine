@@ -407,7 +407,8 @@ namespace TEN::Renderer
 			texture2DPtr = spriteToDraw.SpritePtr->Texture;
 		}
 		
-		_primitiveBatch->End();
+		if (texture2DPtr != nullptr)
+			_primitiveBatch->End();
 	}
 
 	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit, float customAspect)

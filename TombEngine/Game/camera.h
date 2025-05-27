@@ -66,7 +66,7 @@ constexpr auto DEFAULT_FOV = 80.0f;
 
 extern CAMERA_INFO Camera;
 extern GameVector ForcedFixedCamera;
-extern int UseForcedFixedCamera;
+extern bool UseForcedFixedCamera;
 extern CameraType BinocularOldCamera;
 extern short CurrentFOV;
 extern short LastFOV;
@@ -101,6 +101,7 @@ void CalculateCamera(const CollisionInfo& coll);
 void CalculateBounce(bool binocularMode);
 void RumbleScreen();
 bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, short radius);
+bool TestLockedCamera();
 void ItemPushCamera(GameBoundingBox* bounds, Pose* pos, short radius);
 void ItemsCollideCamera();
 void RefreshFixedCamera(short camNumber);
