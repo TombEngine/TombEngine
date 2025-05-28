@@ -11,7 +11,8 @@ Constants for room flag IDs.
 */
 
 /*** Table of Objects.RoomFlagID constants.
-To be used with @{Objects.Room.SetFlag} and @{Objects.Room.GetFlag} functions.
+<br>
+Corresponds to room flags in Tomb Editor. To be used with @{Objects.Room.SetFlag} and @{Objects.Room.GetFlag} functions.
 
 The following constants are inside RoomFlagID.
 

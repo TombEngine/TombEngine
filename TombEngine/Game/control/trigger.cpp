@@ -19,6 +19,7 @@
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/Generic/Switches/pulley_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
 #include "Objects/objectslist.h"
 #include "Objects/TR3/Vehicles/kayak.h"
@@ -175,6 +176,10 @@ bool SwitchTrigger(short itemNumber, short timer)
 	if (item.ObjectNumber >= ID_KEY_HOLE1 && item.ObjectNumber <= ID_KEY_HOLE16)
 		return false;
 
+	// Handle pulley.
+	if (item.ObjectNumber == ID_PULLEY)
+		return TriggerPulley(itemNumber, timer);
+
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
 	{
@@ -282,7 +287,7 @@ void RefreshCamera(short type, short* data)
 			{
 				Camera.number = value;
 
-				if ((Camera.timer < 0) || (Camera.type == CameraType::Look) || (Camera.type == CameraType::Combat))
+				if (Camera.timer < 0 || !TestLockedCamera())
 				{
 					Camera.timer = -1;
 					targetOk = 0;
@@ -297,7 +302,7 @@ void RefreshCamera(short type, short* data)
 			break;
 
 		case TO_TARGET:
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat)
+			if (!TestLockedCamera())
 				break;
 
 			Camera.item = &g_Level.Items[value];
@@ -651,7 +656,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			Camera.number = value;
 
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat && !(g_Level.Cameras[value].Flags & 3))
+			if (!TestLockedCamera())
 				break;
 
 			if (triggerType == TRIGGER_TYPES::COMBAT)

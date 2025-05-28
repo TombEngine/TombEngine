@@ -110,6 +110,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 		samplePosition = samplePosition * 0.5f + 0.5f;
 		samplePosition.y = 1.0f - samplePosition.y;
 		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+		
+		if (BlendMode == BLENDMODE_ALPHABLEND)
+			occlusion = lerp(occlusion, 1.0f, tex.w);
 	}
 
 	float3 color = (mode == 0) ?

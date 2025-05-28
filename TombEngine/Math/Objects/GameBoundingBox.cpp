@@ -167,11 +167,27 @@
 			Z1 * scalar, Z2 * scalar);
 	}
 
+	GameBoundingBox GameBoundingBox::operator *(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 * scalar.x, X2 * scalar.x,
+			Y1 * scalar.y, Y2 * scalar.y,
+			Z1 * scalar.z, Z2 * scalar.z);
+	}
+
 	GameBoundingBox GameBoundingBox::operator /(float scalar) const
 	{
 		return GameBoundingBox(
 			X1 / scalar, X2 / scalar,
 			Y1 / scalar, Y2 / scalar,
 			Z1 / scalar, Z2 / scalar);
+	}
+
+	GameBoundingBox GameBoundingBox::operator /(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 / scalar.x, X2 / scalar.x,
+			Y1 / scalar.y, Y2 / scalar.y,
+			Z1 / scalar.z, Z2 / scalar.z);
 	}
 //}

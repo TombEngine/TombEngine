@@ -141,6 +141,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 		samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
 		samplePosition.y = 1.0f - samplePosition.y;
 		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+		
+		if (BlendMode == BLENDMODE_ALPHABLEND)
+			occlusion = lerp(occlusion, 1.0f, output.Color.w);
 	}
 
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);

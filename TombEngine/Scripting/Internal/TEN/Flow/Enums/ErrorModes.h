@@ -14,14 +14,14 @@ namespace TEN::Scripting
 	//
 	// The following constants are inside Flow.ErrorMode: <br>
 	// 
-	// - `TERMINATE` - print to the log file and return to the title level when any script error is hit.
-	// This is the one you will want to go for if you want to know IMMEDIATELY if something has gone wrong.
+	// - `TERMINATE` - Print to the log file and return to the title level when any script error is hit.
+	// This is the one you will want to go for if you want to know _immediately_ if something has gone wrong.
 	// 
-	// - `WARN` - print to the log file and continue running the application when a recoverable script error is hit.
+	// - `WARN` - Print to the log file and continue running the application when a recoverable script error is hit.
 	// Choose this one if booting to the title level is too much for you.
 	// 
-	// - `SILENT` - do nothing when a recoverable script error is hit.
-	// Think __very__ carefully before using this setting. These error modes are here to help you to keep your scripts
+	// - `SILENT` - Do nothing when a recoverable script error is hit.
+	// Think _very_ carefully before using this setting. These error modes are here to help you to keep your scripts
 	// working properly, but if you opt to ignore errors, you won't be alerted if you've misused a function or passed
 	// an invalid argument.
 	// 

@@ -474,6 +474,12 @@ void SetAnimation(ItemInfo* item, int animNumber, int frameNumber)
 
 const AnimData& GetAnimData(int animIndex)
 {
+	if (animIndex < 0 || animIndex >= g_Level.Anims.size())
+	{
+		TENLog("GetAnimData() attempted to access incorrect animation.", LogLevel::Error);
+		return g_Level.Anims[0];
+	}
+
 	return g_Level.Anims[animIndex];
 }
 
@@ -491,7 +497,15 @@ const AnimData& GetAnimData(const ObjectInfo& object, int animNumber)
 const AnimData& GetAnimData(const ItemInfo& item, int animNumber)
 {
 	if (animNumber == NO_VALUE)
+	{
+		if (item.Animation.AnimNumber == NO_VALUE)
+		{
+			TENLog("Object " + GetObjectName(item.ObjectNumber) + " has no animations.", LogLevel::Error);
+			return GetAnimData(0);
+		}
+
 		return GetAnimData(item.Animation.AnimNumber);
+	}
 
 	const auto& object = Objects[item.Animation.AnimObjectID];
 	return GetAnimData(object, animNumber);
@@ -720,7 +734,7 @@ Vector3i GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite)
 	return GetJointPosition(item, bite.BoneID, bite.Position);
 }
 
-Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex)
+Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSign)
 {
 	const auto& object = Objects[objectID];
 	int boneIndex = object.boneIndex + (jointIndex * 4);
@@ -728,8 +742,13 @@ Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex)
 	if (g_Level.Bones.size() <= boneIndex)
 		return Vector3::Zero;
 
-	int* bonePtr = &g_Level.Bones[object.boneIndex + (jointIndex * 4)];
-	return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+	int* bonePtr = &g_Level.Bones[boneIndex];
+	auto result = Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+
+	if (discardZSign)
+		result.z = abs(result.z);
+
+	return result;
 }
 
 Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)

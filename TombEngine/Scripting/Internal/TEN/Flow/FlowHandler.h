@@ -69,6 +69,7 @@ public:
 	void		SetSecretCount(int secretsNum);
 	void		AddSecret(int levelSecretIndex);
 	void		SetIntroImagePath(const std::string& path);
+	void		SetIntroVideoPath(const std::string& path);
 	void		SetTitleScreenImagePath(const std::string& path);
 	int			GetTotalSecretCount();
 	void		SetTotalSecretCount(int secretsNumber);

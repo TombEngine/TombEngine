@@ -107,7 +107,7 @@ Vec2 Vec2::Translate(const Vec2& dir, float dist)
 
 /// Get a copy of this Vec2 translated in the direction of the input rotation in degrees by the input distance.
 // @function Vec2:Translate
-// @tparam Rotation rot Rotation in degrees defining the direction.
+// @tparam float rot Rotation in degrees defining the direction.
 // @tparam float dist Distance.
 // @treturn Vec2 Translated vector.
 Vec2 Vec2::Translate(float rot, float dist)

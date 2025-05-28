@@ -46,9 +46,16 @@ bool TestValidLedge(ItemInfo* item, CollisionInfo* coll, bool ignoreHeadroom, bo
 	// Determine probe top point
 	int y = item->Pose.Position.y - coll->Setup.Height;
 
+	// Convert coordinates to Vector3i
+	auto leftOffset  = Vector3i(item->Pose.Position.x + xl, y, item->Pose.Position.z + zl);
+	auto rightOffset = Vector3i(item->Pose.Position.x + xr, y, item->Pose.Position.z + zr);
+
+	// Get true room number
+	auto trueRoomNumber = GetRoomVector(item->Location, Vector3i(item->Pose.Position.x, y, item->Pose.Position.z)).RoomNumber;
+
 	// Get frontal collision data
-	auto frontLeft  = GetPointCollision(Vector3i(item->Pose.Position.x + xl, y, item->Pose.Position.z + zl), GetRoomVector(item->Location, Vector3i(item->Pose.Position.x, y, item->Pose.Position.z)).RoomNumber);
-	auto frontRight = GetPointCollision(Vector3i(item->Pose.Position.x + xr, y, item->Pose.Position.z + zr), GetRoomVector(item->Location, Vector3i(item->Pose.Position.x, y, item->Pose.Position.z)).RoomNumber);
+	auto frontLeft  = GetPointCollision(leftOffset, trueRoomNumber);
+	auto frontRight = GetPointCollision(rightOffset, trueRoomNumber);
 
 	// If any of the frontal collision results intersects item bounds, return false, because there is material intersection.
 	// This check helps to filter out cases when Lara is formally facing corner but ledge check returns true because probe distance is fixed.
@@ -57,18 +64,18 @@ bool TestValidLedge(ItemInfo* item, CollisionInfo* coll, bool ignoreHeadroom, bo
 	if (frontLeft.GetCeilingHeight() >(item->Pose.Position.y - coll->Setup.Height) || frontRight.GetCeilingHeight() > (item->Pose.Position.y - coll->Setup.Height))
 		return false;
 
-	//DrawDebugSphere(Vector3(item->pos.Position.x + xl, left, item->pos.Position.z + zl), 64, Vector4::One, RendererDebugPage::CollisionStats);
-	//DrawDebugSphere(Vector3(item->pos.Position.x + xr, right, item->pos.Position.z + zr), 64, Vector4::One, RendererDebugPage::CollisionStats);
+	//DrawDebugSphere(leftOffset.ToVector3(), 64, Vector4::One, RendererDebugPage::CollisionStats);
+	//DrawDebugSphere(rightOffset.ToVector3(), 64, Vector4::One, RendererDebugPage::CollisionStats);
 	
 	// Determine ledge probe embed offset.
 	// We use 0.2f radius extents here for two purposes. First - we can't guarantee that shifts weren't already applied
 	// and misfire may occur. Second - it guarantees that Lara won't land on a very thin edge of diagonal geometry.
-	int xf = phd_sin(coll->NearestLedgeAngle) * (coll->Setup.Radius * 1.2f);
-	int zf = phd_cos(coll->NearestLedgeAngle) * (coll->Setup.Radius * 1.2f);
+	leftOffset  = Geometry::TranslatePoint(leftOffset,  item->Pose.Orientation, coll->Setup.Radius * 1.2f);
+	rightOffset = Geometry::TranslatePoint(rightOffset, item->Pose.Orientation, coll->Setup.Radius * 1.2f);
 
 	// Get floor heights at both points
-	auto left = GetPointCollision(Vector3i(item->Pose.Position.x + xf + xl, y, item->Pose.Position.z + zf + zl), GetRoomVector(item->Location, Vector3i(item->Pose.Position.x, y, item->Pose.Position.z)).RoomNumber).GetFloorHeight();
-	auto right = GetPointCollision(Vector3i(item->Pose.Position.x + xf + xr, y, item->Pose.Position.z + zf + zr), GetRoomVector(item->Location, Vector3i(item->Pose.Position.x, y, item->Pose.Position.z)).RoomNumber).GetFloorHeight();
+	auto left = GetPointCollision(leftOffset, trueRoomNumber).GetFloorHeight();
+	auto right = GetPointCollision(rightOffset, trueRoomNumber).GetFloorHeight();
 
 	// If specified, limit vertical search zone only to nearest height
 	if (heightLimit && (abs(left - y) > CLICK(0.5f) || abs(right - y) > CLICK(0.5f)))
@@ -393,7 +400,8 @@ int TestLaraEdgeCatch(ItemInfo* item, CollisionInfo* coll, int* edge)
 	auto bounds = GameBoundingBox(item);
 	int heightDif = coll->Front.Floor - bounds.Y1;
 
-	if (heightDif < 0 == heightDif + item->Animation.Velocity.y < 0)
+	if ((heightDif < 0 && heightDif + item->Animation.Velocity.y < 0) || 
+		(heightDif > 0 && heightDif + item->Animation.Velocity.y > 0))
 	{
 		heightDif = item->Pose.Position.y + bounds.Y1;
 
@@ -889,7 +897,7 @@ bool TestPlayerWaterStepOut(ItemInfo* item, CollisionInfo* coll)
 		return false;
 	}
 
-	if ((pointColl.GetFloorHeight() - vPos) >= -CLICK(0.5f))
+	if (coll->Middle.Floor >= -CLICK(0.5f))
 	{
 		SetAnimation(item, LA_STAND_IDLE);
 	}
@@ -1131,6 +1139,31 @@ static std::vector<LaraWeaponType> StandingWeaponTypes
 bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 {
 	return (TestLaraWeaponType(weaponType, StandingWeaponTypes) || GetLaraInfo(*item).Weapons[(int)weaponType].HasLasersight);
+}
+
+bool IsCrouching(const ItemInfo* item)
+{
+	bool crouching =
+		item->Animation.ActiveState == LS_CROUCH_IDLE ||
+		item->Animation.ActiveState == LS_CROUCH_ROLL ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_LEFT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_RIGHT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_180 ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
+
+	// HACK: Unless we have a better way to detect the phase of animation,
+	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
+	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
+	{
+		int frameCount = g_Level.Anims[item->Animation.AnimNumber].frameEnd - g_Level.Anims[item->Animation.AnimNumber].frameBase;
+		int midpoint = frameCount * 0.75f;
+
+		if (item->Animation.FrameNumber <= g_Level.Anims[item->Animation.AnimNumber].frameBase + midpoint)
+			crouching = true;
+	}
+
+	return crouching;
 }
 
 bool IsVaultState(int state)

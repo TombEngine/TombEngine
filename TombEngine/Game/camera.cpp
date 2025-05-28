@@ -63,7 +63,7 @@ GameVector LookCamPosition;
 GameVector LookCamTarget;
 CAMERA_INFO Camera;
 GameVector ForcedFixedCamera;
-int UseForcedFixedCamera;
+bool UseForcedFixedCamera;
 
 CameraType BinocularOldCamera;
 
@@ -94,7 +94,7 @@ void DoThumbstickCamera()
 
 	if (Camera.laraNode == -1 && Camera.target.ToVector3i() == OldCam.target)
 	{
-		const auto& axisCoeff = AxisMap[InputAxisID::Camera];
+		const auto& axisCoeff = AxisMap[AxisID::Camera];
 
 		if (abs(axisCoeff.x) > EPSILON && abs(Camera.targetAngle) == 0)
 			Camera.targetAngle = ANGLE(VERTICAL_CONSTRAINT_ANGLE * axisCoeff.x);
@@ -284,7 +284,7 @@ void InitializeCamera()
 
 	AlterFOV(ANGLE(DEFAULT_FOV));
 
-	UseForcedFixedCamera = 0;
+	UseForcedFixedCamera = false;
 	CalculateCamera(LaraCollision);
 
 	// Fade in screen.
@@ -987,8 +987,6 @@ void BinocularCamera(ItemInfo* item)
 	LookAt(&Camera, 0);
 	UpdateMikePos(*item);
 	Camera.oldType = Camera.type;
-
-	GetTargetOnLOS(&Camera.pos, &Camera.target, false, false);
 }
 
 void ConfirmCameraTargetPos()
@@ -1067,7 +1065,7 @@ void CalculateCamera(const CollisionInfo& coll)
 		LastPosition = Camera.pos;
 	}
 
-	if (UseForcedFixedCamera != 0)
+	if (UseForcedFixedCamera)
 	{
 		Camera.type = CameraType::Fixed;
 		if (Camera.oldType != CameraType::Fixed)
@@ -1308,6 +1306,23 @@ bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, sh
 	return camSphere.Intersects(bounds.ToBoundingOrientedBox(pose));
 }
 
+bool TestLockedCamera()
+{
+	// Check if break condition is met.
+	if (Camera.type != CameraType::Look && Camera.type != CameraType::Combat)
+		return true;
+
+	// Check if there's an active fixed camera.
+	if (Camera.number == NO_VALUE)
+		return true;
+
+	// Check if locked bit is set for a given fixed camera.
+	if (!(g_Level.Cameras[Camera.number].Flags & (int)LevelCameraFlags::Locked))
+		return false;
+
+	return true;
+}
+
 float GetParticleDistanceFade(const Vector3i& pos)
 {
 	float dist = Vector3::Distance(Camera.pos.ToVector3(), pos.ToVector3());
@@ -1530,38 +1545,6 @@ void PrepareCamera()
 	}
 }
 
-static void DrawPortals()
-{
-	constexpr auto EXT_COLOR = Color(1.0f, 1.0f, 0.0f, 0.15f);
-	constexpr auto INT_COLOR = Color(1.0f, 0.0f, 0.0f, 0.15f);
-
-	if (!DebugMode)
-		return;
-
-	auto neighborRoomNumbers = GetNeighborRoomNumbers(Camera.pos.RoomNumber, 1);
-	for (auto& roomNumber : neighborRoomNumbers)
-	{
-		const auto& room = g_Level.Rooms[roomNumber];
-
-		auto pos = room.Position.ToVector3();
-		auto color = (roomNumber == Camera.pos.RoomNumber) ? INT_COLOR : EXT_COLOR;
-
-		for (const auto& door : room.doors)
-		{
-			DrawDebugTriangle(door.vertices[0] + pos, door.vertices[1] + pos, door.vertices[2] + pos, color, RendererDebugPage::PortalDebug);
-			DrawDebugTriangle(door.vertices[2] + pos, door.vertices[3] + pos, door.vertices[0] + pos, color, RendererDebugPage::PortalDebug);
-
-			DrawDebugLine(door.vertices[0] + pos, door.vertices[2] + pos, color, RendererDebugPage::PortalDebug);
-			DrawDebugLine(door.vertices[1] + pos, door.vertices[3] + pos, color, RendererDebugPage::PortalDebug);
-
-			auto center = pos + ((door.vertices[0] + door.vertices[1] + door.vertices[2] + door.vertices[3]) / 4);
-			auto target = Geometry::TranslatePoint(center, door.normal, CLICK(1));
-
-			DrawDebugLine(center, target, color, RendererDebugPage::PortalDebug);
-		}
-	}
-}
-
 void UpdateCamera()
 {
 	// HACK: Disable interpolation when switching to/from flyby camera.
@@ -1586,8 +1569,6 @@ void UpdateCamera()
 
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
-
-	DrawPortals();
 }
 
 void UpdateMikePos(const ItemInfo& item)

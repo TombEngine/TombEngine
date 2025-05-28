@@ -10,10 +10,10 @@
 //
 // To be used with @{Objects.Moveable.GetStatus} and @{Objects.Moveable.SetStatus} functions.
 //
-// - `INACTIVE` - moveable is inactive (was never activated).
-// - `ACTIVE` - moveable is active.
-// - `DEACTIVATED` - moveable is deactivated (was previously active and later deactivated).
-// - `INVISIBLE` - moveable is invisible.
+// - `INACTIVE` - Moveable is inactive (was never activated).
+// - `ACTIVE` - Moveable is active.
+// - `DEACTIVATED` - Moveable is deactivated (was previously active and later deactivated).
+// - `INVISIBLE` - Moveable is invisible.
 //
 // @table Objects.MoveableStatus
 

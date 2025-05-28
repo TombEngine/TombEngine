@@ -11,11 +11,15 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
-	enum class InputAxisID
+	enum class AxisID
 	{
 		Move,
 		Camera,
+
 		Mouse,
+		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
+		/*StickLeft,
+		StickRight,*/
 
 		Count
 	};
@@ -43,35 +47,39 @@ namespace TEN::Input
 		float	   FadeSpeed = 0.0f;
 	};
 
-	extern std::unordered_map<int, float>					   KeyMap;
-	extern std::unordered_map<InputAxisID, Vector2>			   AxisMap;
-	extern std::unordered_map<InputActionID, InputAction>	   ActionMap;
-	extern std::unordered_map<InputActionID, ActionQueueState> ActionQueueMap;
+	extern std::unordered_map<int, float>				  KeyMap;
+	extern std::unordered_map<ActionID, Action>			  ActionMap;
+	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
+	extern std::unordered_map<AxisID, Vector2>			  AxisMap;
 
 	void InitializeInput(HWND handle);
 	void DeinitializeInput();
 	void DefaultConflict();
-	void UpdateInputActions(ItemInfo* item, bool applyQueue = false);
+	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();
 	void ClearAllActions();
-	void Rumble(float power, float delayInSec = 0.3f, RumbleMode mode = RumbleMode::Both);
+	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
     void ApplyDefaultBindings();
     bool ApplyDefaultXInputBindings();
 
 	Vector2 GetMouse2DPosition();
 
-	void		 ClearAction(InputActionID actionID);
+	void		 ClearAction(ActionID actionID);
 	bool		 NoAction();
-	bool		 IsClicked(InputActionID actionID);
-	bool		 IsHeld(InputActionID actionID, float delayInSec = 0.0f);
-	bool		 IsPulsed(InputActionID actionID, float delayInSec, float initialDelayInSec = 0.0f);
-	bool		 IsReleased(InputActionID actionID, float maxDelayInSec = INFINITY);
-	float		 GetActionValue(InputActionID actionID);
-	unsigned int GetActionTimeActive(InputActionID actionID);
-	unsigned int GetActionTimeInactive(InputActionID actionID);
+	bool		 IsClicked(ActionID actionID);
+	bool		 IsHeld(ActionID actionID, float delaySec = 0.0f);
+	bool		 IsPulsed(ActionID actionID, float delaySec, float initialDelaySec = 0.0f);
+	bool		 IsReleased(ActionID actionID, float maxDelaySec = INFINITY);
+	float		 GetActionValue(ActionID actionID);
+	unsigned int GetActionTimeActive(ActionID actionID);
+	unsigned int GetActionTimeInactive(ActionID actionID);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();
 	bool IsOpticActionHeld();
+
+	const Vector2& GetMoveAxis();
+	const Vector2& GetCameraAxis();
+	const Vector2& GetMouseAxis();
 }

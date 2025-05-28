@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Util/Util.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/control/los.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
@@ -18,6 +19,7 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Los;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Scripting::Util
@@ -26,13 +28,12 @@ namespace TEN::Scripting::Util
 	// @tentable Util
 	// @pragma nostrip
 
-	/// Determine if there is a clear line of sight between two positions.
-	// NOTE: Limited to room geometry. Objects are ignored.
-	// @function HasLineOfSight()
+	/// Determine if there is a clear line of sight between two positions. Limited to room geometry. Objects are ignored.
+	// @function HasLineOfSight
 	// @tparam float roomID Room ID of the first position's room.
 	// @tparam Vec3 posA First position.
 	// @tparam Vec3 posB Second position.
-	// @treturn bool __true__ if there is a line of sight, __false__ if not.
+	// @treturn bool true if there is a line of sight, false if not.
 	// @usage
 	// local flamePlinthPos = flamePlinth:GetPosition() + Vec3(0, flamePlinthHeight, 0);
 	// print(Misc.HasLineOfSight(enemyHead:GetRoomNumber(), enemyHead:GetPosition(), flamePlinthPos))
@@ -122,7 +123,7 @@ namespace TEN::Scripting::Util
 
 	/// Pick a moveable by the given display position.
 	// @function PickMoveableByDisplayPosition
-	// @tparam Vec2 Display space position in percent.
+	// @tparam Vec2 position Display space position in percent.
 	// @treturn Objects.Moveable Picked moveable (nil if no moveable was found under the cursor).
 	static sol::optional <std::unique_ptr<Moveable>> PickMoveable(const Vec2& screenPos)
 	{
@@ -130,7 +131,7 @@ namespace TEN::Scripting::Util
 		auto ray = GetRayFrom2DPosition(Vector2(int(std::get<0>(realScreenPos)), int(std::get<1>(realScreenPos))));
 
 		auto vector = Vector3i::Zero;
-		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr, GAME_OBJECT_ID::ID_LARA);
+		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr);
 
 		if (itemNumber == NO_LOS_ITEM || itemNumber < 0)
 			return sol::nullopt;
@@ -140,7 +141,7 @@ namespace TEN::Scripting::Util
 
 	/// Pick a static mesh by the given display position.
 	// @function PickStaticByDisplayPosition
-	// @tparam Vec2 Display space position in percent.
+	// @tparam Vec2 position Display space position in percent.
 	// @treturn Objects.Static Picked static mesh (nil if no static mesh was found under the cursor).
 	static sol::optional <std::unique_ptr<Static>> PickStatic(const Vec2& screenPos)
 	{
@@ -165,9 +166,9 @@ namespace TEN::Scripting::Util
 	//
 	//<a href="https://www.lua.org/manual/5.4/manual.html#pdf-debug.traceback">debug.traceback</a>
 	//@function PrintLog
-	//@tparam string message to be displayed within the Log
-	//@tparam Util.LogLevel logLevel log level to be displayed
-	//@tparam[opt] bool allowSpam true allows spamming of the message
+	//@tparam string Message to be displayed within the log.
+	//@tparam Util.LogLevel logLevel Log level to be displayed.
+	//@tparam[opt] bool allowSpam If true, allows continuous spamming of the message.
 	// 
 	//@usage
 	//PrintLog('test info log', LogLevel.INFO)

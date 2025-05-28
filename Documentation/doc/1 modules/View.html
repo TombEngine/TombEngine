@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -85,7 +85,9 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -124,15 +126,15 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#FadeIn">FadeIn(speed)</a></td>
+	<td class="name" ><a href="#FadeIn">FadeIn([speed])</a></td>
 	<td class="summary">Do a full-screen fade-in from black.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#FadeOut">FadeOut(speed)</a></td>
+	<td class="name" ><a href="#FadeOut">FadeOut([speed])</a></td>
 	<td class="summary">Do a full-screen fade-to-black.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#SetCineBars">SetCineBars(height, speed)</a></td>
+	<td class="name" ><a href="#SetCineBars">SetCineBars([height], [speed])</a></td>
 	<td class="summary">Move black cinematic bars in from the top and bottom of the game window.</td>
 	</tr>
 	<tr>
@@ -164,7 +166,7 @@
 	<td class="summary">Sets the post-process effect mode, like negative or monochrome.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#SetPostProcessStrength">SetPostProcessStrength(strength)</a></td>
+	<td class="name" ><a href="#SetPostProcessStrength">SetPostProcessStrength([strength])</a></td>
 	<td class="summary">Sets the post-process effect strength.</td>
 	</tr>
 	<tr>
@@ -172,15 +174,39 @@
 	<td class="summary">Sets the post-process tint.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#PlayVideo">PlayVideo(fileName, [background], [silent], [loop])</a></td>
+	<td class="summary">Play a video file.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#StopVideo">StopVideo()</a></td>
+	<td class="summary">Stop the currently playing video.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetVideoPosition">GetVideoPosition()</a></td>
+	<td class="summary">Gets the currently playing video position.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SetVideoPosition">SetVideoPosition(position)</a></td>
+	<td class="summary">Sets the currently playing video position.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetVideoDominantColor">GetVideoDominantColor()</a></td>
+	<td class="summary">Gets the dominant color for the current video frame.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#IsVideoPlaying">IsVideoPlaying([name])</a></td>
+	<td class="summary">Checks if video is currently playing.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#PlayFlyby">PlayFlyby(seqID)</a></td>
 	<td class="summary">Play a flyby sequence.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetFlybyPosition">GetFlybyPosition(seqID, progress[, loop])</a></td>
+	<td class="name" ><a href="#GetFlybyPosition">GetFlybyPosition(seqID, progress, [loop])</a></td>
 	<td class="summary">Get a flyby sequence's position at a specified progress point in percent.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetFlybyRotation">GetFlybyRotation(seqID, progress[, loop])</a></td>
+	<td class="name" ><a href="#GetFlybyRotation">GetFlybyRotation(seqID, progress, [loop])</a></td>
 	<td class="summary">Get a flyby sequence's rotation at a specified progress point in percent.</td>
 	</tr>
 	<tr>
@@ -188,7 +214,7 @@
 	<td class="summary">Reset object camera back to Lara and deactivate object camera.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#FlashScreen">FlashScreen(color, speed)</a></td>
+	<td class="name" ><a href="#FlashScreen">FlashScreen([color], [speed])</a></td>
 	<td class="summary">Flash screen.</td>
 	</tr>
 	<tr>
@@ -206,7 +232,7 @@
     <dl class="function">
     <dt>
     <a name = "FadeIn"></a>
-    <strong>FadeIn(speed)</strong>
+    <strong>FadeIn([speed])</strong>
     </dt>
     <dd>
     Do a full-screen fade-in from black.
@@ -217,7 +243,8 @@
     <ul>
         <li><span class="parameter">speed</span>
             <span class="types"><span class="type">float</span></span>
-         (default 1.0). Speed in units per second. A value of 1 will make the fade take one second.
+         Speed in units per second. A value of 1 will make the fade take one second.
+         <em>Default: 1.</em>
         </li>
     </ul>
 
@@ -228,7 +255,7 @@
 </dd>
     <dt>
     <a name = "FadeOut"></a>
-    <strong>FadeOut(speed)</strong>
+    <strong>FadeOut([speed])</strong>
     </dt>
     <dd>
     Do a full-screen fade-to-black.  The screen will remain black until a call to FadeIn.
@@ -239,7 +266,8 @@
     <ul>
         <li><span class="parameter">speed</span>
             <span class="types"><span class="type">float</span></span>
-         (default 1.0). Speed in units per second. A value of 1 will make the fade take one second.
+         Speed in units per second. A value of 1 will make the fade take one second.
+         <em>Default: 1.</em>
         </li>
     </ul>
 
@@ -250,7 +278,7 @@
 </dd>
     <dt>
     <a name = "SetCineBars"></a>
-    <strong>SetCineBars(height, speed)</strong>
+    <strong>SetCineBars([height], [speed])</strong>
     </dt>
     <dd>
     Move black cinematic bars in from the top and bottom of the game window.
@@ -261,11 +289,13 @@
     <ul>
         <li><span class="parameter">height</span>
             <span class="types"><span class="type">float</span></span>
-         <strong>(default 30)</strong> Percentage of the screen to be covered
+         Percentage of the screen to be covered.
+         <em>Default: 30.</em>
         </li>
         <li><span class="parameter">speed</span>
             <span class="types"><span class="type">float</span></span>
-         <strong>(default 30)</strong> Coverage percent per second
+         Coverage percent per second.
+         <em>Default: 30.</em>
         </li>
     </ul>
 
@@ -287,7 +317,7 @@
     <ul>
         <li><span class="parameter">angle</span>
             <span class="types"><span class="type">float</span></span>
-         in degrees (clamped to [10, 170])
+         Angle in degrees (clamped to [10, 170]).
         </li>
     </ul>
 
@@ -310,7 +340,7 @@
     <ol>
 
            <span class="types"><span class="type">float</span></span>
-        current FOV angle in degrees
+        Current FOV angle in degrees.
     </ol>
 
 
@@ -331,7 +361,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../4 enums/View.CameraType.html#">CameraType</a></span>
-        value used by the Main Camera.
+        Value used by the game camera.
     </ol>
 
 
@@ -360,7 +390,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        current camera position
+        Current camera position.
     </ol>
 
 
@@ -381,7 +411,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        current camera target
+        Current camera target.
     </ol>
 
 
@@ -402,7 +432,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Objects.Room.html#">Room</a></span>
-        current room of the camera
+        Current room of the camera.
     </ol>
 
 
@@ -422,7 +452,7 @@
     <ul>
         <li><span class="parameter">effect</span>
             <span class="types"><a class="type" href="../4 enums/View.PostProcessMode.html#">PostProcessMode</a></span>
-         type to set.
+         Effect type to set.
         </li>
     </ul>
 
@@ -433,7 +463,7 @@
 </dd>
     <dt>
     <a name = "SetPostProcessStrength"></a>
-    <strong>SetPostProcessStrength(strength)</strong>
+    <strong>SetPostProcessStrength([strength])</strong>
     </dt>
     <dd>
     Sets the post-process effect strength.
@@ -444,7 +474,8 @@
     <ul>
         <li><span class="parameter">strength</span>
             <span class="types"><span class="type">float</span></span>
-         (default 1.0). How strong the effect is.
+         How strong the effect is.
+         <em>Default: 1.</em>
         </li>
     </ul>
 
@@ -476,6 +507,152 @@
 
 </dd>
     <dt>
+    <a name = "PlayVideo"></a>
+    <strong>PlayVideo(fileName, [background], [silent], [loop])</strong>
+    </dt>
+    <dd>
+    Play a video file.  File should be placed in the <code>FMV</code> folder.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fileName</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Video file name.  Can be provided without extension, if type is mp4, mkv, mov or avi.
+        </li>
+        <li><span class="parameter">background</span>
+            <span class="types"><span class="type">bool</span></span>
+         Play video in the background mode.
+ In such case, video won't play in fullscreen, but must be shown using special animated texture type in Tomb Editor, or using <a href="../2 classes/View.DisplaySprite.html#">View.DisplaySprite</a>.
+         <em>Default: false.</em>
+        </li>
+        <li><span class="parameter">silent</span>
+            <span class="types"><span class="type">bool</span></span>
+         Play video without sound.
+         <em>Default: false.</em>
+        </li>
+        <li><span class="parameter">loop</span>
+            <span class="types"><span class="type">bool</span></span>
+         Play video in a loop.
+         <em>Default: false.</em>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "StopVideo"></a>
+    <strong>StopVideo()</strong>
+    </dt>
+    <dd>
+    Stop the currently playing video.  Only possible if video is playing in the background mode.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetVideoPosition"></a>
+    <strong>GetVideoPosition()</strong>
+    </dt>
+    <dd>
+    Gets the currently playing video position.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Time.html#">Time</a></span>
+        Current video position.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SetVideoPosition"></a>
+    <strong>SetVideoPosition(position)</strong>
+    </dt>
+    <dd>
+    Sets the currently playing video position.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">position</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Time.html#">Time</a></span>
+         New video position.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetVideoDominantColor"></a>
+    <strong>GetVideoDominantColor()</strong>
+    </dt>
+    <dd>
+    Gets the dominant color for the current video frame.  If no video is playing, returns black.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+        Dominant video color.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "IsVideoPlaying"></a>
+    <strong>IsVideoPlaying([name])</strong>
+    </dt>
+    <dd>
+    Checks if video is currently playing.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Video file name. If provided, checks if the currently playing video file name is the same as the provided one.
+         <em>Optional.</em>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        True if video is currently playing.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "PlayFlyby"></a>
     <strong>PlayFlyby(seqID)</strong>
     </dt>
@@ -499,7 +676,7 @@
 </dd>
     <dt>
     <a name = "GetFlybyPosition"></a>
-    <strong>GetFlybyPosition(seqID, progress[, loop])</strong>
+    <strong>GetFlybyPosition(seqID, progress, [loop])</strong>
     </dt>
     <dd>
     Get a flyby sequence's position at a specified progress point in percent.
@@ -519,7 +696,7 @@
         <li><span class="parameter">loop</span>
             <span class="types"><span class="type">bool</span></span>
          Smooth the position near start and end points, as if the sequence is looped.
-         (<em>optional</em>)
+         <em>Optional.</em>
         </li>
     </ul>
 
@@ -536,7 +713,7 @@
 </dd>
     <dt>
     <a name = "GetFlybyRotation"></a>
-    <strong>GetFlybyRotation(seqID, progress[, loop])</strong>
+    <strong>GetFlybyRotation(seqID, progress, [loop])</strong>
     </dt>
     <dd>
     Get a flyby sequence's rotation at a specified progress point in percent.
@@ -556,7 +733,7 @@
         <li><span class="parameter">loop</span>
             <span class="types"><span class="type">bool</span></span>
          Smooth the position near start and end points, as if the sequence is looped.
-         (<em>optional</em>)
+         <em>Optional.</em>
         </li>
     </ul>
 
@@ -588,7 +765,7 @@
 </dd>
     <dt>
     <a name = "FlashScreen"></a>
-    <strong>FlashScreen(color, speed)</strong>
+    <strong>FlashScreen([color], [speed])</strong>
     </dt>
     <dd>
     Flash screen.
@@ -599,11 +776,13 @@
     <ul>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         (default Color(255, 255, 255))
+         Color.
+         <em>Default: Color(255&#44; 255&#44; 255).</em>
         </li>
         <li><span class="parameter">speed</span>
             <span class="types"><span class="type">float</span></span>
-         (default 1.0). Speed in units per second. Value of 1 will make flash take one second. Clamped to [0.005, 1.0].
+         Speed in units per second. Value of 1 will make flash take one second. Clamped to [0.005, 1.0].
+         <em>Default: 1.</em>
         </li>
     </ul>
 

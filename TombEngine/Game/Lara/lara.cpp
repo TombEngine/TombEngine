@@ -34,6 +34,7 @@
 #include "Game/Lara/PlayerStateMachine.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -46,6 +47,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
+using namespace TEN::Entities::Doors;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -56,6 +58,85 @@ using TEN::Renderer::g_Renderer;
 LaraInfo	  Lara			= {};
 ItemInfo*	  LaraItem		= nullptr;
 CollisionInfo LaraCollision = {};
+
+static void HandlePlayerDebug(const ItemInfo& item)
+{
+	// Collision stats.
+	if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionStats)
+	{
+		DrawNearbySectorFlags(item);
+	}
+	// Pathfinding stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
+	{
+		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
+	}
+	// Collision mesh stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
+	{
+		auto bridgeItemNumbers = std::set<int>{};
+		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+
+		PrintDebugMessage("Room number: %d", room.RoomNumber);
+		PrintDebugMessage("Sectors: %d", room.Sectors.size());
+		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
+		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
+
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+
+			neighborRoom.CollisionMesh.DrawDebug();
+
+			// Draw door collision meshes.
+			for (int doorItemNumber : neighborRoom.Doors.GetIds())
+			{
+				const auto& doorItem = g_Level.Items[doorItemNumber];
+				const auto& door = GetDoorObject(doorItem);
+
+				door.CollisionMesh.DrawDebug();
+			}
+
+			// Collect bridge item numbers.
+			for (int bridgeItemNumber : neighborRoom.Bridges.GetIds())
+				bridgeItemNumbers.insert(bridgeItemNumber);
+
+			// Draw bridge tree.
+			neighborRoom.Bridges.DrawDebug();
+		}
+
+		// Draw bridge collision meshes.
+		for (int bridgeItemNumber : bridgeItemNumbers)
+		{
+			auto& bridgeItem = g_Level.Items[bridgeItemNumber];
+			auto& bridge = GetBridgeObject(bridgeItem);
+
+			bridge.GetCollisionMesh().DrawDebug();
+		}
+
+		// Print bridge item numbers in sector.
+		auto pointColl = GetPointCollision(item);
+		PrintDebugMessage("Bridge moveable IDs in room %d, sector %d:", pointColl.GetRoomNumber(), pointColl.GetSector().ID);
+		if (!pointColl.GetSector().BridgeItemNumbers.empty())
+		{
+			for (int bridgeItemNumber : pointColl.GetSector().BridgeItemNumbers)
+				PrintDebugMessage("%d", bridgeItemNumber);
+		}
+	}
+	// Portal stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
+	{
+		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+		PrintDebugMessage("Portals in room %d: %d", room.RoomNumber, room.Portals.size());
+
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+			for (const auto& portal : neighborRoom.Portals)
+				portal.CollisionMesh.DrawDebug();
+		}
+	}
+}
 
 void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
@@ -77,7 +158,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			player.Control.HandStatus = HandStatus::Free;
 		}
 
-		++player.Control.Count.PositionAdjust;
+		player.Control.Count.PositionAdjust++;
 	}
 	else
 	{
@@ -329,11 +410,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 	SaveGame::Statistics.Game.Distance  += deltaDist;
 	SaveGame::Statistics.Level.Distance += deltaDist;
 
-	if (DebugMode)
-	{
-		DrawNearbyPathfinding(GetPointCollision(*item).GetBottomSector().PathfindingBoxID);
-		DrawNearbySectorFlags(*item);
-	}
+	HandlePlayerDebug(*item);
 }
 
 void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)

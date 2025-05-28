@@ -2,7 +2,7 @@
 #include "./CBCamera.hlsli"
 #include "./Math.hlsli"
 
-struct VertexShaderInput
+struct PostProcessVertexShaderInput
 {
     float3 Position: POSITION0;
     float2 UV: TEXCOORD0;
@@ -20,7 +20,7 @@ struct PixelShaderInput
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
 
-PixelShaderInput VS(VertexShaderInput input)
+PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
 
