@@ -5,14 +5,13 @@
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/pickup/pickup.h"
-#include "Renderer/Renderer.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
+#include "Specific/configuration.h"
 
 using namespace TEN::Hud;
 using namespace TEN::Gui;
-using TEN::Renderer::g_Renderer;
 
 /***
 Inventory manipulation
@@ -36,15 +35,16 @@ namespace TEN::Scripting::InventoryHandler
 		
 		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto convertedStartPosition = ValueOr<Vec2>(startPosition, Vec2(0.0f));
-			if (Vec2::IsEqualTo(convertedStartPosition, Vec2(0.0f)))
-			{
-				auto pos = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
-				auto pos2D = g_Renderer.Get2DPosition(pos);
-				convertedStartPosition = Vec2(pos2D->x, pos2D->y);
-			}
-
-			g_Hud.PickupSummary.AddDisplayPickup(objectID, convertedStartPosition.ToVector2(), convertedCount);
+			auto convertedStartPosition = ValueOr<Vec2>(startPosition, Vec2(50.0f, 50.0f));
+			
+			// Convert percentage-based position (0–100%) to screen pixel coordinates
+			float fWidth = g_Configuration.ScreenWidth;
+			float fHeight = g_Configuration.ScreenHeight;
+			int resX = (int)std::round(fWidth / 100.0f * convertedStartPosition.x);
+			int resY = (int)std::round(fHeight / 100.0f * convertedStartPosition.y);
+			auto screenPosition = Vector2(resX, resY);
+			
+			g_Hud.PickupSummary.AddDisplayPickup(objectID, screenPosition, convertedCount);
 		}
 	}
 
