@@ -26,8 +26,7 @@ namespace TEN::Scripting::InventoryHandler
 	//@tparam Objects.ObjID objectID Object ID of the item to add.
 	//@tparam[opt=1] int count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
 	//@tparam[opt=false] bool addToPickupSummary If true, display the item in the pickup summary. Default is false.
-	//@tparam[opt=Vec2(50&#44; 50)] Vec2 startPosition Screen position in percentage, where the pickup object should start from. Default is middle of the screen.
-	static void GiveItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count, TypeOrNil<bool> addToPickupSummary, TypeOrNil<Vec2> startPosition)
+	static void GiveItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count, TypeOrNil<bool> addToPickupSummary)
 	{
 		auto convertedCount = ValueOr<int>(count, 1);
 
@@ -35,13 +34,13 @@ namespace TEN::Scripting::InventoryHandler
 		
 		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto convertedStartPosition = ValueOr<Vec2>(startPosition, Vec2(50.0f, 50.0f));
+			auto startPosition = Vector2(110.0f, 85.0f));
 			
 			// Convert percentage-based position (0–100%) to screen pixel coordinates
 			float fWidth = g_Configuration.ScreenWidth;
 			float fHeight = g_Configuration.ScreenHeight;
-			int resX = (int)std::round(fWidth / 100.0f * convertedStartPosition.x);
-			int resY = (int)std::round(fHeight / 100.0f * convertedStartPosition.y);
+			int resX = (int)std::round(fWidth / 100.0f * startPosition.x);
+			int resY = (int)std::round(fHeight / 100.0f * startPosition.y);
 			auto screenPosition = Vector2(resX, resY);
 			
 			g_Hud.PickupSummary.AddDisplayPickup(objectID, screenPosition, convertedCount);
