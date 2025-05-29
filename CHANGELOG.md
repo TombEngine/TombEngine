@@ -67,6 +67,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
 * Added `glow` parameter to flare settings.
+* Added `Inventory.GiveItem` Vec2 argument to set on screen start position.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
 * Added ability to specify negative priority values for `View.DisplaySprite` to draw it above strings.
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
