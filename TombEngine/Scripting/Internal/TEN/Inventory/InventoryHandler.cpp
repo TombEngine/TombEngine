@@ -5,10 +5,14 @@
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/pickup/pickup.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
 using namespace TEN::Hud;
 using namespace TEN::Gui;
+using TEN::Renderer::g_Renderer;
 
 /***
 Inventory manipulation
@@ -21,26 +25,37 @@ namespace TEN::Scripting::InventoryHandler
 	/// Add an item to the player's inventory.
 	//@function GiveItem
 	//@tparam Objects.ObjID objectID Object ID of the item to add.
-	//@int[opt] count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	//@bool[opt] addToPickupSummary If true, display the item in the pickup summary. Default is false.
-	static void GiveItem(GAME_OBJECT_ID objectID, sol::optional<int> count, sol::optional<bool> addToPickupSummary)
+	//@tparam[opt=1] int count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	//@tparam[opt=false] bool addToPickupSummary If true, display the item in the pickup summary. Default is false.
+	//@tparam[opt=Vec2(50&#44; 50)] Vec2 startPosition Screen position in pixels where object should start from. Default is middle of the screen.
+	static void GiveItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count, TypeOrNil<bool> addToPickupSummary, TypeOrNil<Vec2> startPosition)
 	{
-		PickedUpObject(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+
+		PickedUpObject(objectID, convertedCount);
 		
-		if (addToPickupSummary.value_or(false))
+		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto pos = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
-			g_Hud.PickupSummary.AddDisplayPickup(objectID, pos, count.value_or(1));
+			auto convertedStartPosition = ValueOr<Vec2>(startPosition, Vec2(0.0f));
+			if (Vec2::IsEqualTo(convertedStartPosition, Vec2(0.0f)))
+			{
+				auto pos = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
+				auto pos2D = g_Renderer.Get2DPosition(pos);
+				convertedStartPosition = Vec2(pos2D->x, pos2D->y);
+			}
+
+			g_Hud.PickupSummary.AddDisplayPickup(objectID, convertedStartPosition.ToVector2(), convertedCount);
 		}
 	}
 
 	/// Remove an item from the player's inventory.
 	//@function TakeItem
 	//@tparam Objects.ObjID Object ID of the item to remove.
-	//@int[opt] count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	static void TakeItem(GAME_OBJECT_ID objectID, sol::optional<int> count)
+	//@tparam[opt=1] int count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	static void TakeItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count)
 	{
-		RemoveObjectFromInventory(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+		RemoveObjectFromInventory(objectID, convertedCount);
 	}
 
 	/// Get the amount of an item held in the player's inventory.
