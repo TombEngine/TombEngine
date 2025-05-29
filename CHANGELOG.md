@@ -3,37 +3,81 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.8.2]
+## [Version 1.9]
 
 ## New features
-* Added video playback support.
-* Added muzzle glow effect for firearms.
+* Added skinned meshes support for any object.
+* Added video playback and video texture streaming support.
+* Added muzzle glow effect for firearms and flares.
+* Added weather particle clustering and increase weather particle density and performance.
+* Added examine mode text rendering (string key should be in the format like `examine1_text`, `examine2_text`, and so on).
+* Added breakable wall object with land and underwater modes.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_BreakableWall.wad2).
+* Added land mode for underwater switches. Asset change required for both types of underwater switches.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_WallSwitch.wad2).
+* Added ability to use big push switch (OCB 3) underwater.
 
 ### Bug fixes
-* Fixed Teleporter object.
-* Fixed Wraith objects not working correctly in flipped rooms.
-* Fixed lensflare enabled status not saved in a savegame.
+* Fixed LASER_BEAM object going through walls.
+* Fixed WRAITH objects not working correctly in flipped rooms.
+* Fixed SPIKY_CEILING object not having default speed assigned.
+* Fixed FISH_EMITTER object missing random targets due to distance.
+* Fixed FISH_EMITTER and COMPSOGNATHUS objects not attacking corpses.
+* Fixed TELEPORTER object.
+* Fixed AI_PATROL and AI_AMBUSH objects.
+* Fixed locked camera flag and glide timer not working for fixed cameras.
+* Fixed weapon hotkeys not unholstering already selected weapon.
+* Fixed weapons not hitting non-intelligent objects.
+* Fixed collision issues for subsector bridges and bridges moving between rooms.
+* Fixed missing step up animation when switching from tread to wade.
+* Fixed ledge grabbing on platforms made from lowered ceilings.
+* Fixed dozy mode switching to a swim state after special death animation has played.
+* Fixed lensflare enabled status and far view not saved in a savegame.
 * Fixed HK sound effects.
-* Fixed HK shots not being registered in statistics.
+* Fixed HK and crossbow shots not being registered in statistics.
+* Fixed incorrect arm rotation for revolver animations in crouched state.
 * Fixed distorted knee and elbow joint vertices.
+* Fixed multi-mesh objects not shattering correctly.
 * Fixed splash effects remaining in the level after reloading from the savegame.
 * Fixed caustics not rendered correctly if texture compression was enabled.
 * Fixed exclusion blend mode not working correctly.
 * Fixed SSAO incorrectly applied through alpha blended textures.
+* Fixed hair not rendered correctly if alpha blended textures are present.
+* Fixed disappearing Lara when climbing through specific L-shaped portal setups.
+* Fixed clipping of overlapped rooms during flyby sequences.
 * Fixed static meshes not interpolating when dynamically changing their positional data.
 * Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
+* Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
-* Removed legacy TR5 search object code which caused issues with meshswaps.
+* Fixed incorrect conversion of non-Latin characters in the setup dialog.
+* Fixed PUZZLE_HOLE Poseidon statue animation (ID 423). You must use updated Lara object from base wad.
+* Refactored PULLEY object. There is no need to use OCB 1 for a single pull.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_Pulley.wad2).
+* Removed legacy TR5 code for SEARCH_OBJECT1 which caused issues with meshswaps.
 * Removed excessive HK nerfing in running state.
-* Optimized weather particle rendering.
+* Removed mipmapping for point filter rendering mode.
 
 ### Lua API changes
-* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
+* Added `Effects.EmitFlow` and `Effects.EmitWaterfallMist` functions.
+* Added `Flow.ItemAction` enum to reconfigure inventory item actions.
 * Added `Flow.SetIntroVideoPath` function to specify intro video.
+* Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxisValue` functions.
+* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
+* Added `Moveable:SwapSkinnedMesh` and `Moveable:UnswapSkinnedMesh` for skinned mesh management.
 * Added `Lara:Interact` function to allow alignment with moveables.
 * Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
+* Added `glow` parameter to flare settings.
 * Added ability to use gunflash parameters for all weapons in weapon settings.
+* Added ability to specify negative priority values for `View.DisplaySprite` to draw it above strings.
+* Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
+* Added area parameter for `Strings.DisplayString` for automatic word wrapping.
+* Added `Strings.DisplayStringOption.VERTICAL_CENTER` flag for vertically centering multiline strings.
+* Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
+* Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
+* Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
+* Fixed `Rotation` class to use unsigned 0-360 degree range, and provide `Rotation:Signed` method to get legacy -180-180 range.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
+* Fixed `Util.PickMoveableByDisplayPosition`.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
 

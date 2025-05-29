@@ -1,9 +1,11 @@
 #pragma once
+
 #include "Game/animation.h"
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
 #include "Specific/IO/ChunkReader.h"
@@ -76,13 +78,15 @@ struct SPRITE
 
 struct MESH
 {
+	bool hidden;
 	LightMode lightMode;
 	BoundingSphere sphere;
 	std::vector<Vector3> positions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> colors;
 	std::vector<Vector3> effects; // X = glow, Y = move, Z = refract
-	std::vector<int> bones;
+	std::vector<std::array<unsigned char, 4>> boneIndices;
+	std::vector<std::array<unsigned char, 4>> boneWeights;
 	std::vector<BUCKET> buckets;
 };
 
@@ -112,35 +116,41 @@ struct WaterPlane
 // LevelData
 struct LEVEL
 {
-	// Object data
+	// Object
+
 	int					  NumItems = 0;
 	std::vector<ItemInfo> Items	   = {};
 	std::vector<MESH>	  Meshes   = {};
 	std::vector<int>	  Bones	   = {};
 
-	// Animation data
+	// Animation
+
 	std::vector<AnimData>				Anims	 = {};
 	std::vector<AnimFrame>				Frames	 = {};
 	std::vector<StateDispatchData>		Changes	 = {};
 	std::vector<StateDispatchRangeData> Ranges	 = {};
 	std::vector<int>					Commands = {};
 
-	// Collision data
-	std::vector<ROOM_INFO> Rooms	 = {};
-	std::vector<short>	   FloorData = {};
-	std::vector<SinkInfo>  Sinks	 = {};
+	// Collision
 
-	// Pathfinding data
+	std::vector<RoomData> Rooms		= {};
+	std::vector<short>	  FloorData = {};
+	std::vector<SinkInfo> Sinks		= {};
+
+	// Pathfinding
+
 	std::vector<BOX_INFO> PathfindingBoxes				   = {};
 	std::vector<OVERLAP>  Overlaps						   = {};
 	std::vector<int>	  Zones[(int)ZoneType::MaxZone][2] = {};
 
-	// Sound data
+	// Sound
+
 	std::vector<short>			 SoundMap	  = {};
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc. data
+	// Misc.
+
 	std::vector<LevelCameraInfo> Cameras   = {};
 	std::vector<EventSet>		 GlobalEventSets = {};
 	std::vector<EventSet>		 VolumeEventSets = {};
@@ -150,7 +160,8 @@ struct LEVEL
 	std::vector<MirrorData>		 Mirrors = {};
 	std::vector<WaterPlane>		 WaterPlanes = {};
 
-	// Texture data
+	// Texture
+
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
 	std::vector<TEXTURE> MoveablesTextures = {};
@@ -192,8 +203,6 @@ void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
 void LoadWaterPlanes();
-
-void LoadPortal(ROOM_INFO& room);
 
 void GetCarriedItems();
 void GetAIPickups();

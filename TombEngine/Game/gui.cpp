@@ -125,7 +125,7 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
-	bool GuiController::GuiIsPulsed(InputActionID actionID) const
+	bool GuiController::GuiIsPulsed(ActionID actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
@@ -135,7 +135,7 @@ namespace TEN::Gui
 			return false;
 
 		// Pulse only directional inputs.
-		auto oppositeAction = std::optional<InputActionID>(std::nullopt);
+		auto oppositeAction = std::optional<ActionID>(std::nullopt);
 		switch (actionID)
 		{
 		case In::Forward:
@@ -738,7 +738,7 @@ namespace TEN::Gui
 						if (selectedKeyID == KEY_COUNT)
 							selectedKeyID = 0;
 
-						if (selectedKeyID && !GetKeyName(selectedKeyID).empty())
+						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -759,7 +759,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(InputDeviceID::Custom, InputActionID(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;
@@ -862,8 +862,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(InputDeviceID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(InputDeviceID::Custom);
+					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 					SaveConfiguration();
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
@@ -876,7 +876,7 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					g_Bindings.SetBindingProfile(InputDeviceID::Custom, CurrentSettings.Configuration.Bindings);
+					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
@@ -888,7 +888,7 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				g_Bindings.SetBindingProfile(InputDeviceID::Custom, CurrentSettings.Configuration.Bindings);
+				g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
@@ -1985,7 +1985,7 @@ namespace TEN::Gui
 		CombineRingFadeVal = 0;
 		CombineRingFadeDir = 0;
 		CombineTypeFlag = 0;
-		SeperateTypeFlag = 0;
+		SeparateTypeFlag = 0;
 		CombineObject1 = 0;
 		CombineObject2 = 0;
 		NormalRingFadeVal = 128;
@@ -2448,9 +2448,9 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_SEPERABLE)
+				if (options & OPT_SEPARABLE)
 				{
-					CurrentOptions[n].Type = MenuType::Seperate;
+					CurrentOptions[n].Type = MenuType::Separate;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[3].c_str());
 					n++;
 				}
@@ -2574,8 +2574,8 @@ namespace TEN::Gui
 						CombineRingFadeDir = 1;
 						break;
 
-					case MenuType::Seperate:
-						SeperateTypeFlag = 1;
+					case MenuType::Separate:
+						SeparateTypeFlag = 1;
 						NormalRingFadeDir = 2;
 						break;
 
@@ -2814,7 +2814,7 @@ namespace TEN::Gui
 					ConstructObjectList(item);
 					SetupObjectListStartPosition(CombineObject1);
 				}
-				else if (SeperateTypeFlag)
+				else if (SeparateTypeFlag)
 				{
 					SeparateObject(item, Rings[(int)RingTypes::Inventory].CurrentObjectList[Rings[(int)RingTypes::Inventory].CurrentObjectInList].InventoryItem);
 				}

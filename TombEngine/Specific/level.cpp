@@ -20,6 +20,7 @@
 #include "Game/spotcam.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Sink.h"
+#include "Physics/Physics.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
@@ -30,6 +31,7 @@
 #include "Specific/trutils.h"
 #include "Specific/winmain.h"
 
+using namespace TEN::Physics;
 using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
@@ -254,13 +256,13 @@ void LoadItems()
 	// Initialize items.
 	for (int i = 0; i <= 1; i++)
 	{
-		// HACK: Initialize bridges first. Required because other items need final floordata to init properly.
+		// HACK: Initialize bridge items first. Required because other items need final floordata to init properly.
 		if (i == 0)
 		{
 			for (int j = 0; j < g_Level.NumItems; j++)
 			{
 				const auto& item = g_Level.Items[j];
-				if (Contains(BRIDGE_OBJECT_IDS, item.ObjectNumber))
+				if (item.IsBridge())
 					InitializeItem(j);
 			}
 		}
@@ -290,6 +292,7 @@ void LoadObjects()
 	{
 		auto mesh = MESH{};
 
+		mesh.hidden = ReadBool();
 		mesh.lightMode = (LightMode)ReadUInt8();
 
 		mesh.sphere.Center.x = ReadFloat();
@@ -308,8 +311,10 @@ void LoadObjects()
 		mesh.effects.resize(vertexCount);
 		ReadBytes(mesh.effects.data(), 12 * vertexCount);
 
-		mesh.bones.resize(vertexCount);
-		ReadBytes(mesh.bones.data(), 4 * vertexCount);
+		mesh.boneIndices.resize(vertexCount);
+		mesh.boneWeights.resize(vertexCount);
+		ReadBytes(mesh.boneIndices.data(), sizeof(unsigned char) * 4 * vertexCount);
+		ReadBytes(mesh.boneWeights.data(), sizeof(unsigned char) * 4 * vertexCount);
 		
 		int bucketCount = ReadCount();
 		mesh.buckets.reserve(bucketCount);
@@ -451,7 +456,8 @@ void LoadObjects()
 		}
 
 		Objects[objNum].loaded = true;
-		Objects[objNum].nmeshes = ReadInt32();
+		Objects[objNum].skinIndex = ReadInt32();
+		Objects[objNum].nmeshes   = ReadInt32();
 		Objects[objNum].meshIndex = ReadInt32();
 		Objects[objNum].boneIndex = ReadInt32();
 		Objects[objNum].frameBase = ReadInt32();
@@ -783,8 +789,8 @@ void LoadDynamicRoomData()
 
 void LoadStaticRoomData()
 {
-	constexpr auto ILLEGAL_FLOOR_SLOPE_ANGLE   = ANGLE(36.0f);
-	constexpr auto ILLEGAL_CEILING_SLOPE_ANGLE = ANGLE(45.0f);
+	constexpr auto SECTOR_AABB_CENTER_OFFSET = Vector3(BLOCK(0.5f), 0.0f, BLOCK(0.5f));
+	constexpr auto SECTOR_AABB_EXTENTS_BASE	= Vector3(BLOCK(0.5f), 0.0f, BLOCK(0.5f));
 
 	int roomCount = ReadCount();
 	TENLog("Room count: " + std::to_string(roomCount), LogLevel::Info);
@@ -876,11 +882,50 @@ void LoadStaticRoomData()
 
 		int portalCount = ReadCount();
 		for (int j = 0; j < portalCount; j++)
-			LoadPortal(room);
+		{
+			auto portal = PortalData{};
+
+			portal.RoomNumber = ReadInt16();
+			portal.Normal.x = ReadInt32();
+			portal.Normal.y = ReadInt32();
+			portal.Normal.z = ReadInt32();
+
+			for (auto& vertex : portal.Vertices)
+			{
+				vertex.x = ReadInt32();
+				vertex.y = ReadInt32();
+				vertex.z = ReadInt32();
+			}
+
+			// HACK: To derive correct normal from collision mesh triangle vertices, they must be in the correct clockwise or counter-clockwise order.
+			// This hack differentiates between wall and floor/ceiling portals to account for improperly written level data. -- Sezz 2024.11.04
+			auto desc = CollisionMeshDesc();
+			bool isWallPortal = (portal.Normal.y != 0.0f);
+			if (isWallPortal)
+			{
+				desc.InsertTriangle(portal.Vertices[0], portal.Vertices[1], portal.Vertices[2]);
+				desc.InsertTriangle(portal.Vertices[0], portal.Vertices[2], portal.Vertices[3]);
+			}
+			else
+			{
+				desc.InsertTriangle(portal.Vertices[2], portal.Vertices[1], portal.Vertices[0]);
+				desc.InsertTriangle(portal.Vertices[3], portal.Vertices[2], portal.Vertices[0]);
+			}
+			portal.CollisionMesh = CollisionMesh(room.Position.ToVector3(), Quaternion::Identity, desc);
+
+			room.Portals.push_back(portal);
+		}
 
 		room.ZSize = ReadInt32();
 		room.XSize = ReadInt32();
 		auto roomPos = Vector2i(room.Position.x, room.Position.z);
+
+		auto center = Vector3(
+			room.Position.x + (BLOCK(room.XSize) / 2),
+			room.BottomHeight + (room.TopHeight - room.BottomHeight) / 2,
+			room.Position.z + (BLOCK(room.ZSize) / 2));
+		auto extents = Vector3((BLOCK(room.XSize) / 2) - BLOCK(1), (room.BottomHeight - room.TopHeight) / 2, (BLOCK(room.ZSize) / 2) - BLOCK(1));
+		room.Aabb = BoundingBox(center, extents);
 
 		room.Sectors.reserve(room.XSize * room.ZSize);
 		for (int x = 0; x < room.XSize; x++)
@@ -889,8 +934,13 @@ void LoadStaticRoomData()
 			{
 				auto sector = FloorInfo{};
 
+				sector.ID = (x * room.ZSize) + z;
 				sector.Position = roomPos + Vector2i(BLOCK(x), BLOCK(z));
 				sector.RoomNumber = i;
+
+				auto center = Vector3(sector.Position.x, room.Aabb.Center.y, sector.Position.y) + SECTOR_AABB_CENTER_OFFSET;
+				auto extents = Vector3(SECTOR_AABB_EXTENTS_BASE.x, room.Aabb.Extents.y, SECTOR_AABB_EXTENTS_BASE.z);
+				sector.Aabb = BoundingBox(center, extents);
 
 				sector.TriggerIndex = ReadInt32();
 				sector.PathfindingBoxID = ReadInt32();
@@ -903,16 +953,16 @@ void LoadStaticRoomData()
 				sector.Stopper = (bool)ReadInt32();
 
 				sector.FloorSurface.SplitAngle = FROM_RAD(ReadFloat());
-				sector.FloorSurface.Triangles[0].SteepSlopeAngle = ILLEGAL_FLOOR_SLOPE_ANGLE;
-				sector.FloorSurface.Triangles[1].SteepSlopeAngle = ILLEGAL_FLOOR_SLOPE_ANGLE;
+				sector.FloorSurface.Triangles[0].SteepSlopeAngle = DEFAULT_STEEP_FLOOR_SLOPE_ANGLE;
+				sector.FloorSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_FLOOR_SLOPE_ANGLE;
 				sector.FloorSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.FloorSurface.Triangles[1].PortalRoomNumber = ReadInt32();
 				sector.FloorSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
 				sector.FloorSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
 
 				sector.CeilingSurface.SplitAngle = FROM_RAD(ReadFloat());
-				sector.CeilingSurface.Triangles[0].SteepSlopeAngle = ILLEGAL_CEILING_SLOPE_ANGLE;
-				sector.CeilingSurface.Triangles[1].SteepSlopeAngle = ILLEGAL_CEILING_SLOPE_ANGLE;
+				sector.CeilingSurface.Triangles[0].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
+				sector.CeilingSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.CeilingSurface.Triangles[1].PortalRoomNumber = ReadInt32();
 				sector.CeilingSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
@@ -937,7 +987,7 @@ void LoadStaticRoomData()
 		room.lights.reserve(lightCount);
 		for (int j = 0; j < lightCount; j++)
 		{
-			auto light = ROOM_LIGHT{};
+			auto light = RoomLightData{};
 
 			light.x = ReadInt32();
 			light.y = ReadInt32();
@@ -961,6 +1011,10 @@ void LoadStaticRoomData()
 
 		room.RoomNumber = i;
 	}
+
+	// Generate room collision meshes.
+	for (auto& room : g_Level.Rooms)
+		room.GenerateCollisionMesh();
 }
 
 void LoadRooms()
@@ -975,6 +1029,8 @@ void LoadRooms()
 	int floordataCount = ReadInt32(); 
 	g_Level.FloorData.resize(floordataCount);
 	ReadBytes(g_Level.FloorData.data(), floordataCount * sizeof(short));
+
+	InitializeNeighborRoomList();
 }
 
 void FreeLevel(bool partial)
@@ -1411,7 +1467,6 @@ bool LoadLevel(const std::string& path, bool partial)
 		// Initialize game.
 		InitializeGameFlags();
 		InitializeLara(!InitializeGame && CurrentLevel > 0);
-		InitializeNeighborRoomList();
 		GetCarriedItems();
 		GetAIPickups();
 		g_GameScriptEntities->AssignPlayer();
@@ -1731,11 +1786,8 @@ void GetAIPickups()
 					object->roomNumber == item->RoomNumber &&
 					object->objectNumber < ID_AI_PATROL2)
 				{
-					item->AIBits = (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
+					item->AIBits |= (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
 					item->ItemFlags[3] = object->triggerFlags;
-
-					if (object->objectNumber != ID_AI_GUARD)
-						object->roomNumber = NO_VALUE;
 				}
 			}
 
@@ -1777,23 +1829,4 @@ void BuildOutsideRoomsTable()
 			}
 		}
 	}
-}
-
-void LoadPortal(ROOM_INFO& room) 
-{
-	auto door = ROOM_DOOR{};
-
-	door.room = ReadInt16();
-	door.normal.x = ReadInt32();
-	door.normal.y = ReadInt32();
-	door.normal.z = ReadInt32();
-
-	for (int k = 0; k < 4; k++)
-	{
-		door.vertices[k].x = ReadInt32();
-		door.vertices[k].y = ReadInt32();
-		door.vertices[k].z = ReadInt32();
-	}
-
-	room.doors.push_back(door);
 }

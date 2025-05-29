@@ -334,23 +334,26 @@ namespace TEN::Renderer
 		DrawFullScreenQuad(texture, Vector3(fade), true);
 	}
 
-	void Renderer::DrawDisplaySprites(RenderView& renderView)
+	void Renderer::DrawDisplaySprites(RenderView& renderView, bool negativePriority)
 	{
 		constexpr auto VERTEX_COUNT = 4;
 
 		if (renderView.DisplaySpritesToDraw.empty())
 			return;
 
-		_shaders.Bind(Shader::FullScreenQuad);
-
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
-
 		Texture2D* texture2DPtr = nullptr;
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
+			if ((spriteToDraw.Priority >= 0) == negativePriority)
+				continue;
+
 			if (texture2DPtr == nullptr)
 			{
+				_shaders.Bind(Shader::FullScreenQuad);
+
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				_context->IASetInputLayout(_inputLayout.Get());
+
 				_primitiveBatch->Begin();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
@@ -404,7 +407,8 @@ namespace TEN::Renderer
 			texture2DPtr = spriteToDraw.SpritePtr->Texture;
 		}
 		
-		_primitiveBatch->End();
+		if (texture2DPtr != nullptr)
+			_primitiveBatch->End();
 	}
 
 	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit, float customAspect)

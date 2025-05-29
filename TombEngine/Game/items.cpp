@@ -40,6 +40,20 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
+BoundingBox ItemInfo::GetAabb() const
+{
+	return Geometry::GetBoundingBox(GetObb());
+}
+
+BoundingOrientedBox ItemInfo::GetObb() const
+{
+	auto frameData = GetFrameInterpData(*this);
+	if (frameData.Alpha == 0.0f)
+		return frameData.FramePtr0->BoundingBox.ToBoundingOrientedBox(Pose);
+
+	return (frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha))).ToBoundingOrientedBox(Pose);
+}
+
 bool ItemInfo::TestOcb(short ocbFlags) const
 {
 	return ((TriggerFlags & ocbFlags) == ocbFlags);
@@ -154,6 +168,7 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
 		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
+		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -276,7 +291,12 @@ void KillItem(short const itemNumber)
 		// AI target generation uses a hack with making a dummy item without ObjectNumber.
 		// Therefore, a check should be done here to prevent access violation.
 		if (item->ObjectNumber != GAME_OBJECT_ID::ID_NO_OBJECT && item->IsBridge())
-			UpdateBridgeItem(*item, BridgeUpdateType::Remove);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			
+			auto& room = g_Level.Rooms[item->RoomNumber];
+			room.Bridges.Remove(item->Index);
+		}
 
 		GameScriptHandleKilled(itemNumber, true);
 
@@ -317,7 +337,7 @@ void AddActiveItem(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	item->Flags |= IFLAG_TRIGGERED;
 
-	if (Objects[item->ObjectNumber].control == NULL)
+	if (Objects[item->ObjectNumber].control == nullptr)
 	{
 		item->Status = ITEM_NOT_ACTIVE;
 		return;
@@ -559,7 +579,7 @@ void InitializeItem(short itemNumber)
 		item->ObjectNumber == ID_CROSSBOW_ITEM ||
 		item->ObjectNumber == ID_REVOLVER_ITEM)
 	{
-		item->MeshBits = 1;
+		item->MeshBits = 1 << 0;
 	}
 	else
 	{
@@ -759,34 +779,35 @@ void UpdateAllItems()
 {
 	InItemControlLoop = true;
 
-	short itemNumber = NextItemActive;
+	int itemNumber = NextItemActive;
 	while (itemNumber != NO_VALUE)
 	{
-		auto* item = &g_Level.Items[itemNumber];
-		itemNumber = item->NextActive;
+		auto& item = g_Level.Items[itemNumber];
+		itemNumber = item.NextActive;
 
-		if (!Objects.CheckID(item->ObjectNumber))
+		if (!Objects.CheckID(item.ObjectNumber))
 			continue;
 
-		if (g_GameFlow->LastFreezeMode != FreezeMode::None && !Objects[item->ObjectNumber].AlwaysActive)
+		if (g_GameFlow->LastFreezeMode != FreezeMode::None && !Objects[item.ObjectNumber].AlwaysActive)
 			continue;
 
-		if (item->AfterDeath <= ITEM_DEATH_TIMEOUT)
+		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
-			if (Objects[item->ObjectNumber].control)
-				Objects[item->ObjectNumber].control(item->Index);
+			if (Objects[item.ObjectNumber].control)
+				Objects[item.ObjectNumber].control(item.Index);
 
-			TestVolumes(item->Index);
-			ProcessEffects(item);
+			TestVolumes(item.Index);
+			ProcessEffects(&item);
 
-			if (item->AfterDeath > 0 && item->AfterDeath < ITEM_DEATH_TIMEOUT && !(Wibble & 3))
-				item->AfterDeath++;
-			if (item->AfterDeath == ITEM_DEATH_TIMEOUT)
-				KillItem(item->Index);
+			if (item.AfterDeath > 0 && item.AfterDeath < ITEM_DEATH_TIMEOUT && !(Wibble & 3))
+				item.AfterDeath++;
+			if (item.AfterDeath == ITEM_DEATH_TIMEOUT)
+				KillItem(item.Index);
 		}
 		else
-			KillItem(item->Index);
-
+		{
+			KillItem(item.Index);
+		}
 	}
 
 	InItemControlLoop = false;
@@ -893,7 +914,9 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (!target->Callbacks.OnHit.empty())
 	{
 		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-		g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+
+		if (index != NO_VALUE)
+			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
 	}
 }
 

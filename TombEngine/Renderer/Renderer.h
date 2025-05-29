@@ -113,6 +113,7 @@ namespace TEN::Renderer
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
+		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _lightenBlendState = nullptr;
@@ -458,7 +459,7 @@ namespace TEN::Renderer
 		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
-		void DrawDisplaySprites(RenderView& view);
+		void DrawDisplaySprites(RenderView& view, bool negativePriority);
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
 		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
@@ -466,6 +467,7 @@ namespace TEN::Renderer
 		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);
@@ -495,7 +497,7 @@ namespace TEN::Renderer
 		void DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
 		void DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
 		void DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawMoveableMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererRoom* room, int boneIndex, RenderView& view, RendererPass rendererPass);
+		void DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass);
 		void PrepareSimpleParticles(RenderView& view);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
@@ -666,6 +668,7 @@ namespace TEN::Renderer
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, D3DCOLOR color, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags);
+		void AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags);
 		void AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 		void FreeRendererData();
 		void AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash = 0);
@@ -706,6 +709,7 @@ namespace TEN::Renderer
 		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
 		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
+		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void SetLoadingScreen(std::wstring& fileName);
 		void SetTextureOrDefault(Texture2D& texture, std::wstring path);
@@ -733,7 +737,9 @@ namespace TEN::Renderer
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
 
-		void			SetGraphicsSettingsChanged();
+		void SetGraphicsSettingsChanged();
+
+		RendererDebugPage GetDebugPage() const;
 	};
 
 	extern Renderer g_Renderer;

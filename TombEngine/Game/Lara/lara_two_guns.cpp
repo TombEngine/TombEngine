@@ -101,6 +101,9 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	if (laraItem.MeshBits.TestAny() && arm.GunSmoke)
 	{
 		auto relOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3();
+		if (!isRightWeapon)
+			relOffset.x = -relOffset.x;
+
 		auto pos = GetJointPosition(&laraItem, isRightWeapon ? LM_RHAND : LM_LHAND, relOffset);
 
 		TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, arm.GunSmoke);

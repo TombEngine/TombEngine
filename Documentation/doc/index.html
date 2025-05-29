@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="ldoc.css" type="text/css" />
 </head>
 <body>
@@ -85,7 +85,9 @@
   <li>    <a href="4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -115,7 +117,7 @@
 <div id="content">
 
 
-  <h2>TombEngine 1.8.2 scripting interface</h2>
+  <h2>TombEngine 1.9 scripting interface</h2>
   <p>Welcome to the TombEngine scripting API.</p>
 
 <p>Note that this is primarily a reference document, not a tutorial, so expect descriptions to be fairly sparse.
@@ -134,8 +136,6 @@ local door = GetMoveableByName("door_type4_14")
 <p>This might get annoying, but it's on purpose. If your Lua script contains a syntax error (e.g. you're missing <code>end</code> at the end of a function), the Lua interpreter will not be able to continue running the script. If it tried to keep running, you'd probably see some pretty strange behaviour, and would possibly get a crash regardless. If this happens, check <strong>logs/TENLog.txt</strong> and look for an error message with the word "unrecoverable".</p>
 
 <p>Happy building!</p>
-
-<p>- <em>squidshire and the TombEngine development team.</em></p>
 
 <h2>1 Modules</h2>
 <table class="module_list">
@@ -325,8 +325,16 @@ local door = GetMoveableByName("door_type4_14")
 		<td class="summary">Constants for game statuses.</td>
 	</tr>
 	<tr>
+		<td class="name"  ><a href="4 enums/Flow.ItemAction.html">Flow.ItemAction</a></td>
+		<td class="summary">Constants for item actions.</td>
+	</tr>
+	<tr>
 		<td class="name"  ><a href="4 enums/Input.ActionID.html">Input.ActionID</a></td>
 		<td class="summary">Constants for action key IDs.</td>
+	</tr>
+	<tr>
+		<td class="name"  ><a href="4 enums/Input.AxisID.html">Input.AxisID</a></td>
+		<td class="summary">Constants for analog axis IDs.</td>
 	</tr>
 	<tr>
 		<td class="name"  ><a href="4 enums/Objects.AmmoType.html">Objects.AmmoType</a></td>

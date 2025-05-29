@@ -402,7 +402,7 @@ bool FireShotgun(ItemInfo& laraItem)
 		if (!ammo.HasInfinite())
 			ammo--;
 
-		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Shotgun].MuzzleOffset.ToVector3i();
+		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Shotgun - 1].MuzzleOffset.ToVector3i();
 
 		auto pos = GetJointPosition(&laraItem, LM_RHAND, offset + Vector3::UnitY * CLICK(2));
 		auto pos2 = GetJointPosition(&laraItem, LM_RHAND, offset);
@@ -587,7 +587,8 @@ bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose)
 	}
 	else
 	{
-		auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(-2, 373, 77));
+		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::HarpoonGun - 1].MuzzleOffset.ToVector3i();
+		auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 		harpoonItem.RoomNumber = laraItem.RoomNumber;
 
 		int floorHeight = GetPointCollision(jointPos, harpoonItem.RoomNumber).GetFloorHeight();
@@ -673,7 +674,8 @@ bool FireGrenade(ItemInfo& laraItem)
 	grenadeItem.ObjectNumber = ID_GRENADE;
 	grenadeItem.RoomNumber = laraItem.RoomNumber;
 
-	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 276, 80));
+	auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::GrenadeLauncher - 1].MuzzleOffset.ToVector3i();
+	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 	grenadeItem.Pose.Position = jointPos;
 	auto smokePos = jointPos;
 
@@ -854,12 +856,14 @@ bool FireRocket(ItemInfo& laraItem)
 	if (!ammo.HasInfinite())
 		ammo--;
 
-	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 180, 72));
+	auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::RocketLauncher - 1].MuzzleOffset.ToVector3i();
+	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 
 	auto pos =
 	rocketItem.Pose.Position = jointPos;
 
-	jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 2004, 72));
+	offset.y += BLOCK(1);
+	jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 
 	player.LeftArm.GunSmoke = 32;
 
@@ -1168,8 +1172,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		if (player.Control.Weapon.GunType == LaraWeaponType::Revolver)
 		{
 			player.Control.Weapon.Interval = 16.0f;
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
 			isFiring = true;
 
 			if (!ammo.HasInfinite())
@@ -1184,9 +1186,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		}
 		else if (player.Control.Weapon.GunType == LaraWeaponType::HK)
 		{
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
-
 			bool playSound = false;
 
 			if (weapon.WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
@@ -1230,9 +1229,14 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 			if (!ammo.HasInfinite() && isFiring)
 				ammo--;
 		}
-	}
 
-	GetTargetOnLOS(&Camera.pos, &Camera.target, true, isFiring);
+		if (isFiring)
+		{
+			SaveGame::Statistics.Level.AmmoUsed++;
+			SaveGame::Statistics.Game.AmmoUsed++;
+			GetTargetOnLOS(&Camera.pos, &Camera.target);
+		}
+	}
 }
 
 void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
@@ -1438,7 +1442,7 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 {
 	if (TestEnvironment(ENV_FLAG_WATER, item.RoomNumber))
 	{
-		TriggerUnderwaterExplosion(&item, 0);
+		TriggerUnderwaterExplosion(&item, true);
 	}
 	else
 	{

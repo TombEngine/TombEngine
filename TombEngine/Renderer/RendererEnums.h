@@ -119,6 +119,13 @@ enum class WaterDirection
 	West = 3
 };
 
+enum class SkinningMode
+{
+	None = 0,
+	Full = 1,
+	Classic = 2
+};
+
 enum class CullMode
 {
 	Unknown = -1,
@@ -172,8 +179,9 @@ enum class RendererDebugPage
 	PlayerStats,
 	InputStats,
 	CollisionStats,
+	CollisionMeshStats,
+	PortalStats,
 	PathfindingStats,
-	PortalDebug,
 	WireframeMode,
 
 	Count
@@ -246,10 +254,11 @@ enum class AlphaTestMode
 
 enum class PrintStringFlags
 {
-	Center	= (1 << 0),
-	Blink	= (1 << 1),
-	Right	= (1 << 2),
-	Outline	= (1 << 3)
+	Center			= (1 << 0),
+	Blink			= (1 << 1),
+	Right			= (1 << 2),
+	Outline			= (1 << 3),
+	VerticalCenter	= (1 << 4)
 };
 
 enum class RendererPass
@@ -288,7 +297,9 @@ enum class RendererObjectType
 	Moveable, 
 	Static,
 	Sprite,
-	MoveableAsStatic // For rats, bats, spiders, beetles
+	MoveableAsStatic, // For rats, bats, spiders, beetles
+	HairPrimary,
+	HairSecondary
 };
 
 enum class SMAAMode

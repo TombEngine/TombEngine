@@ -537,6 +537,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Create renderer and enumerate adapters and video modes.
 	g_Renderer.Create();
 
+	// Initialize key bindings.
+	g_Bindings.Initialize();
+
 	// Load configuration and optionally show setup dialog.
 	InitDefaultConfiguration();
 	if (setup || !LoadConfiguration())

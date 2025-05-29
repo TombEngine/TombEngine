@@ -29,6 +29,8 @@ namespace TEN::Effects::Hair
 			Vector3	   PrevPosition	   = Vector3::Zero;
 			Quaternion PrevOrientation = Quaternion::Identity;
 
+			Matrix	   GlobalTransform = Matrix::Identity;
+
 			void StoreInterpolationData()
 			{
 				PrevPosition = Position;
@@ -61,7 +63,7 @@ namespace TEN::Effects::Hair
 		Vector3						GetRelBaseOffset(int hairUnitID, bool isYoung);
 		Vector3						GetWaterProbeOffset(const ItemInfo& item);
 		Quaternion					GetSegmentOrientation(const Vector3& origin, const Vector3& target, const Quaternion& baseOrient);
-		std::vector<BoundingSphere> GetSpheres(const ItemInfo& item, bool isYoung);
+		std::vector<BoundingSphere> GetSpheres(const ItemInfo& item);
 
 		void CollideSegmentWithRoom(HairSegment& segment, int waterHeight, int roomNumber, bool isOnLand);
 		void CollideSegmentWithSpheres(HairSegment& segment, const std::vector<BoundingSphere>& spheres);

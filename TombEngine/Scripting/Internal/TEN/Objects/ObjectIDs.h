@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 18/04/2025.
+// Last generated on 29/05/2025.
 
 #include <unordered_map>
 #include <string>
@@ -699,6 +699,7 @@ The following constants are inside ObjID.
 	SEQUENCE_SWITCH3
 	STEEL_DOOR
 	GOD_HEAD
+	BREAKABLE_WALL
 	PISTOLS_ITEM
 	PISTOLS_AMMO_ITEM
 	UZI_ITEM
@@ -1003,6 +1004,8 @@ The following constants are inside ObjID.
 	CUSTOM_AMMO_GRAPHICS
 	DIARY_SPRITES
 	DIARY_ENTRY_SPRITES
+	SNOW_SPRITES
+	RAIN_SPRITES
 	DYNAMIC_WATER_SPRITES
 @table Members
 */
@@ -1255,6 +1258,8 @@ The following ObjID members refer to sprites.
 	CUSTOM_AMMO_GRAPHICS
 	DIARY_SPRITES
 	DIARY_ENTRY_SPRITES
+	SNOW_SPRITES
+	RAIN_SPRITES
 	DYNAMIC_WATER_SPRITES
 @table SpriteConstants
 */
@@ -1941,6 +1946,7 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "SEQUENCE_SWITCH3", ID_SEQUENCE_SWITCH3 },
 	{ "STEEL_DOOR", ID_STEEL_DOOR },
 	{ "GOD_HEAD", ID_GOD_HEAD },
+	{ "BREAKABLE_WALL", ID_BREAKABLE_WALL },
 	{ "PISTOLS_ITEM", ID_PISTOLS_ITEM },
 	{ "PISTOLS_AMMO_ITEM", ID_PISTOLS_AMMO_ITEM },
 	{ "UZI_ITEM", ID_UZI_ITEM },
@@ -2245,5 +2251,7 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "CUSTOM_AMMO_GRAPHICS", ID_CUSTOM_AMMO_GRAPHICS },
 	{ "DIARY_SPRITES", ID_DIARY_SPRITES },
 	{ "DIARY_ENTRY_SPRITES", ID_DIARY_ENTRY_SPRITES },
+	{ "SNOW_SPRITES", ID_SNOW_SPRITES },
+	{ "RAIN_SPRITES", ID_RAIN_SPRITES },
 	{ "DYNAMIC_WATER_SPRITES", ID_DYNAMIC_WATER_SPRITES }
 };

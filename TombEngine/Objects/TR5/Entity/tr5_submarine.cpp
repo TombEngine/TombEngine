@@ -504,7 +504,7 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				LaraItem->HitStatus = true;
 				KillItem(itemNumber);
-				TriggerUnderwaterExplosion(item, 1);
+				TriggerUnderwaterExplosion(item, false);
 				SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 				SoundEffect(SFX_TR5_VEHICLE_DIVESUIT_HIT, &LaraItem->Pose, SoundEnvironment::Always);
 				DoDamage(LaraItem, 200);
@@ -527,7 +527,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->Pose.Position.x = x;
 			item->Pose.Position.y = y;
 			item->Pose.Position.z = z;
-			TriggerUnderwaterExplosion(item, 1);
+			TriggerUnderwaterExplosion(item, false);
 			SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 			KillItem(itemNumber);
 		}

@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.2 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -85,7 +85,9 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -129,7 +131,7 @@ when you need to use screen-space coordinates.</p>
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags])</a></td>
+	<td class="name" ><a href="#DisplayString">DisplayString(string, position, [scale], [color], [translated], [flags], [area])</a></td>
 	<td class="summary">Create a DisplayString.</td>
 	</tr>
 	<tr>
@@ -149,20 +151,28 @@ when you need to use screen-space coordinates.</p>
 	<td class="summary">Set the string key to use.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
+	<td class="summary">Get the scale of the string.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#DisplayString:SetScale">DisplayString:SetScale(scale)</a></td>
 	<td class="summary">Set the scale of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetScale">DisplayString:GetScale()</a></td>
-	<td class="summary">Get the scale of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
+	<td class="summary">Get the position of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetPosition">DisplayString:SetPosition(pos)</a></td>
 	<td class="summary">Set the position of the string.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#DisplayString:GetPosition">DisplayString:GetPosition()</a></td>
-	<td class="summary">Get the position of the string.</td>
+	<td class="name" ><a href="#DisplayString:GetArea">DisplayString:GetArea()</a></td>
+	<td class="summary">Get the word-wrapping area of the string.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DisplayString:SetArea">DisplayString:SetArea(pos)</a></td>
+	<td class="summary">Set the word-wrapping area of the string.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#DisplayString:SetFlags">DisplayString:SetFlags(table)</a></td>
@@ -179,7 +189,7 @@ when you need to use screen-space coordinates.</p>
     <dl class="function">
     <dt>
     <a name = "DisplayString"></a>
-    <strong>DisplayString(string, position, [scale], [color], [translated], [flags])</strong>
+    <strong>DisplayString(string, position, [scale], [color], [translated], [flags], [area])</strong>
     </dt>
     <dd>
     Create a DisplayString.
@@ -209,14 +219,20 @@ For use in <a href="../1 modules/Strings.html#ShowString">ShowString</a> and <a 
         </li>
         <li><span class="parameter">translated</span>
             <span class="types"><span class="type">bool</span></span>
-         If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua.
+         If false or omitted, the input string argument will be displayed as is.
+If true, the string argument will be treated as the key of a translated string specified in strings.lua.
          <em>Default: false.</em>
         </li>
         <li><span class="parameter">flags</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
          Flags which affect visual representation of a string, such as shadow or alignment.
          <em>Optional.</em>
+        </li>
+        <li><span class="parameter">area</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         Rectangular area in pixels to perform word wrapping.
+No word wrapping will occur if this parameter is default or omitted.
+         <em>Default: Vec2(0&#44; 0).</em>
         </li>
     </ul>
 
@@ -318,6 +334,27 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
+    <a name = "DisplayString:GetScale"></a>
+    <strong>DisplayString:GetScale()</strong>
+    </dt>
+    <dd>
+    Get the scale of the string.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">float</span></span>
+        Scale.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "DisplayString:SetScale"></a>
     <strong>DisplayString:SetScale(scale)</strong>
     </dt>
@@ -340,11 +377,12 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetScale"></a>
-    <strong>DisplayString:GetScale()</strong>
+    <a name = "DisplayString:GetPosition"></a>
+    <strong>DisplayString:GetPosition()</strong>
     </dt>
     <dd>
-    Get the scale of the string.
+    Get the position of the string.
+ Screen-space coordinates are returned.
 
 
 
@@ -352,8 +390,8 @@ If true, the string argument will be the key of a translated string specified in
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">float</span></span>
-        Scale.
+           <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+        pos Position in pixel coordinates.
     </ol>
 
 
@@ -384,12 +422,12 @@ If true, the string argument will be the key of a translated string specified in
 
 </dd>
     <dt>
-    <a name = "DisplayString:GetPosition"></a>
-    <strong>DisplayString:GetPosition()</strong>
+    <a name = "DisplayString:GetArea"></a>
+    <strong>DisplayString:GetArea()</strong>
     </dt>
     <dd>
-    Get the position of the string.
- Screen-space coordinates are returned.
+    Get the word-wrapping area of the string.
+ Screen-space coordinates are returned. If <code>Vec2(0, 0)</code> is returned, it means there is no word wrapping for this string.
 
 
 
@@ -398,8 +436,31 @@ If true, the string argument will be the key of a translated string specified in
     <ol>
 
            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-        pos Position in pixel coordinates.
+        area Word-wrapping area in pixel coordinates.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DisplayString:SetArea"></a>
+    <strong>DisplayString:SetArea(pos)</strong>
+    </dt>
+    <dd>
+    Set the word-wrapping area of the string.
+ Screen-space coordinates are expected. If set to <code>Vec2(0, 0)</code>, no word wrapping will occur.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
+         New word-wrapping area in pixel coordinates.
+        </li>
+    </ul>
+
 
 
 

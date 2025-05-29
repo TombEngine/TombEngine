@@ -364,7 +364,7 @@ unsigned CALLBACK GameMain(void *)
 	// Play intro video.
 	if (!g_GameFlow->IntroVideoPath.empty())
 	{
-		g_VideoPlayer.Play(g_GameFlow->IntroVideoPath);
+		g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
 		while (DoTheGame && g_VideoPlayer.Update());
 	}
 
@@ -592,13 +592,14 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		}
 
 		g_GameScript->InitCallbacks();
-		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, float scale, int flags)
+		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, Vec2& area, float scale, int flags)
 		{
 			g_Renderer.AddString(
 				key,
-				Vector2(
-					(pos.x / g_Configuration.ScreenWidth) * DISPLAY_SPACE_RES.x,
-					(pos.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((pos.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(pos.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((area.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(area.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
 				Color(color), scale, flags);
 		});
 	}

@@ -50,7 +50,7 @@ namespace TEN::Gui
 		Use,
 		ChooseAmmo,
 		Combine,
-		Seperate,
+		Separate,
 		Equip,
 		Ammo1,
 		Ammo2,
@@ -120,7 +120,7 @@ namespace TEN::Gui
 	{
 	private:
 		// Input inquirers
-		bool GuiIsPulsed(InputActionID actionID) const;
+		bool GuiIsPulsed(ActionID actionID) const;
 		bool GuiIsSelected(bool onClicked = true) const;
 		bool GuiIsDeselected() const;
 		bool CanSelect() const;
@@ -139,7 +139,7 @@ namespace TEN::Gui
 		short CombineObject1;
 		short CombineObject2;
 		bool ItemUsed;
-		char SeperateTypeFlag;
+		char SeparateTypeFlag;
 		char CombineTypeFlag;
 		InventoryRing Rings[2];
 		int CurrentSelectedOption;

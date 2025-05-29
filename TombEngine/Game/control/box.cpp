@@ -1321,7 +1321,7 @@ void GetAITarget(CreatureInfo* creature)
 		creature->Enemy = LaraItem;
 		if (creature->Alerted)
 		{
-			item->AIBits = ~GUARD;
+			item->AIBits &= ~GUARD;
 			if (item->AIBits & AMBUSH)
 				item->AIBits |= MODIFY;
 		}
@@ -1332,25 +1332,21 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			item->AIBits &= ~PATROL1;
 			if (item->AIBits & AMBUSH)
-			{
 				item->AIBits |= MODIFY;
-				// NOTE: added in TR5
-				//item->itemFlags[3] = (creature->Tosspad & 0xFF);
-			}
 		}
 		else if (!creature->Patrol)
 		{
 			if (enemyObjectNumber != ID_AI_PATROL1)
 				FindAITargetObject(creature, ID_AI_PATROL1);
 		}
-		else if (enemyObjectNumber != ID_AI_PATROL2)
+		else
 		{
-			FindAITargetObject(creature, ID_AI_PATROL2);
+			if (enemyObjectNumber != ID_AI_PATROL2)
+				FindAITargetObject(creature, ID_AI_PATROL2);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS ||
-			Objects[item->ObjectNumber].waterCreature)
+		
+		if ((enemyObjectNumber == ID_AI_PATROL1 || enemyObjectNumber == ID_AI_PATROL2) &&
+			Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			TestTriggers(enemy, true);
 			creature->Patrol = !creature->Patrol;
@@ -1358,21 +1354,17 @@ void GetAITarget(CreatureInfo* creature)
 	}
 	else if (item->AIBits & AMBUSH)
 	{
-		// First if was removed probably after TR3 and was it used by monkeys?
-		/*if (!(item->aiBits & MODIFY) && !creature->hurtByLara)
-			creature->enemy = LaraItem;
-		else*/ if (enemyObjectNumber != ID_AI_AMBUSH)
-			FindAITargetObject(creature, ID_AI_AMBUSH);
-		/*else if (item->objectNumber == ID_MONKEY)
-			return;*/
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		if (enemyObjectNumber != ID_AI_AMBUSH)
 		{
-			TestTriggers(enemy, true);		
+			FindAITargetObject(creature, ID_AI_AMBUSH);
+		}
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
+		{
+			TestTriggers(enemy, true);
 			creature->ReachedGoal = true;
 			creature->Enemy = LaraItem;
-			item->AIBits &= ~(AMBUSH /* | MODIFY*/);
+			item->AIBits &= ~AMBUSH;
+
 			if (item->AIBits != MODIFY)
 			{
 				item->AIBits |= GUARD;
@@ -1386,7 +1378,7 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			creature->Enemy = LaraItem;
 			creature->Alerted = true;
-			//item->aiBits &= ~FOLLOW;
+			item->AIBits &= ~FOLLOW;
 		}
 		else if (item->HitStatus)
 		{
@@ -1396,27 +1388,12 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			FindAITargetObject(creature, ID_AI_FOLLOW);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			creature->ReachedGoal = true;
 			item->AIBits &= ~FOLLOW;
 		}
 	}
-	/*else if (item->objectNumber == ID_MONKEY && item->carriedItem == NO_VALUE)
-	{
-		if (item->aiBits != MODIFY)
-		{
-			if (enemyObjectNumber != ID_SMALLMEDI_ITEM)
-				FindAITargetObject(creature, ID_SMALLMEDI_ITEM);
-		}
-		else
-		{
-			if (enemyObjectNumber != ID_KEY_ITEM4)
-				FindAITargetObject(creature, ID_KEY_ITEM4);
-		}
-	}*/
 }
 
 // Old TR3 way.

@@ -16,6 +16,7 @@
 #include "Scripting/Internal/TEN/Flow/Enums/ErrorModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/FreezeModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
+#include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"

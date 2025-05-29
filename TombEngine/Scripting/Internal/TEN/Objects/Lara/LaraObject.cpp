@@ -237,7 +237,6 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
 	}
 }
 
-
 /// Get player weapon ammo type.
 // @function LaraObject:GetAmmoType
 // @treturn Objects.AmmoType Player weapon ammo type.
@@ -416,7 +415,7 @@ bool LaraObject::IsTorchLit() const
 //	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
 void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<InputActionID> actionID) const
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID) const
 {
 	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
 	auto convertedOffsetConstraintMin = ValueOr<Vec3>(offsetConstraintMin, Vec3(-BLOCK(0.25f), -BLOCK(0.5f), 0.0f));
@@ -424,7 +423,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
 	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
 	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
-	auto convertedActionID = ValueOr<InputActionID>(actionID, In::Action);
+	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
 
 	auto interactionBasis = ObjectCollisionBounds
 	{
@@ -473,6 +472,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 // @tparam[opt=Vec3(256&#44; 0&#44; 512)] Vec3 maxOffsetConstraint Maximum relative offset constraint.
 // @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
 // @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
+// @treturn bool Returns true if the player is inside the specified bounds.
 bool LaraObject::TestInteraction(const Moveable& mov,
 								 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 								 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const
