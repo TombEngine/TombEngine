@@ -34,7 +34,7 @@ namespace TEN::Scripting::InventoryHandler
 		
 		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto startPosition = Vector2(110.0f, 85.0f));
+			auto startPosition = Vector2(110.0f, 85.0f);
 			
 			// Convert percentage-based position (0–100%) to screen pixel coordinates
 			float fWidth = g_Configuration.ScreenWidth;
