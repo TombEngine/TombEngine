@@ -7,8 +7,6 @@
 #include "Game/pickup/pickup.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
-#include "Specific/configuration.h"
 
 using namespace TEN::Hud;
 using namespace TEN::Gui;

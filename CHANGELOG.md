@@ -76,9 +76,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
 * Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
 * Fixed `Rotation` class to use unsigned 0-360 degree range, and provide `Rotation:Signed` method to get legacy -180-180 range.
+* Fixed `Inventory.GiveItem` screen position to start from the side of the screen.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
 * Fixed `Util.PickMoveableByDisplayPosition`.
-* Fixed `Inventory.GiveItem` on screen start position to start from the side of the screen.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
 
