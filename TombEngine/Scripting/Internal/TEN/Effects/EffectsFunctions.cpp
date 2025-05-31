@@ -224,7 +224,7 @@ namespace TEN::Scripting::Effects
 			part.flags |= SP_WIND;
 	}
 
-	/// Emit a particle with extensive configuration options, including sprite sequence animation, lights, sounds, and damage effects.
+	/// Emit a particle with extensive configuration options. Options include sprite sequence animation, lights, sounds, and damage effects.
 	// @function EmitAdvancedParticle
 	// @tparam ParticleData particleData Table containing particle data.
 	// @usage
@@ -529,69 +529,13 @@ namespace TEN::Scripting::Effects
 		TriggerWaterfallMist(pos, convertedSize, convertedWidth, convertedAngle, convertedColor);
 	}
 
-	/// Emit fire for one frame. Will not hurt player. Call this each frame if you want a continuous fire.
+	/// Emit fire for a single frame. Will not hurt player. Call this each frame if you want a continuous fire.
 	// @function EmitFire
 	// @tparam Vec3 pos World position.
 	// @tparam[opt=1] float size Fire size.
 	static void EmitFire(const Vec3& pos, TypeOrNil<float> size)
 	{
 		AddFire(pos.x, pos.y, pos.z, FindRoomNumber(pos.ToVector3i()), ValueOr<float>(size, 1));
-	}
-
-	/// Make an explosion. Does not hurt Lara
-	// @function MakeExplosion 
-	// @tparam Vec3 pos World position.
-	// @tparam[opt=512] float size Size of the shockwave if enabled.
-	// @tparam[opt=false] bool shockwave If true, creates a very faint shockwave which will not hurt Lara.
-	// For underwater rooms, it creates a splash if `pos` is near the surface. Shockwave uses `mainColor` if provided.
-	// @tparam[opt] Color mainColor Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
-	// @tparam[opt] Color additionalColor Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
-	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave, TypeOrNil<ScriptColor> mainColor, TypeOrNil<ScriptColor> additionalColor)
-	{
-		auto convertedShockwave = ValueOr<bool>(shockwave, false);
-		auto convertedSize = ValueOr<float>(size, 512.0f);
-
-		auto convertedMainColor = ValueOr<ScriptColor>(mainColor, ScriptColor(0, 0, 0));
-		auto convertedAdditionalColor = ValueOr<ScriptColor>(additionalColor, convertedMainColor);
-
-		int roomNumber = FindRoomNumber(pos.ToVector3i());
-		const auto& room = g_Level.Rooms[roomNumber];
-
-		if (room.flags & ENV_FLAG_WATER)
-			TriggerUnderwaterExplosion(pos.ToVector3(), ValueOr<bool>(shockwave, false), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
-		else
-		{
-			TriggerExplosionSparks(pos.x, pos.y, pos.z, 3, -2, 0, FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
-
-			if (convertedShockwave)
-			{
-				auto shockPos = Pose(Vector3i(pos));
-
-				if (Vector3(convertedMainColor) == Vector3::Zero)
-				TriggerShockwave(&shockPos, 0, convertedSize, 64, 128, 96, 0, 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
-				else
-				TriggerShockwave(&shockPos, 0, convertedSize, 64, convertedMainColor.GetR(), convertedMainColor.GetG(), convertedMainColor.GetB(), 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
-			}
-
-		}
-	}
-
-	/// Make an earthquake
-	// @function MakeEarthquake 
-	// @tparam[opt=100] int strength How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
-	static void Earthquake(TypeOrNil<int> strength)
-	{
-		int str = ValueOr<int>(strength, 100);
-		Camera.bounce = -str;
-	}
-
-	/// Get the wind vector for the current game frame.
-	// This represents the 3D displacement applied by the engine on things like particles affected by wind.
-	// @function GetWind()
-	// @treturn Vec3 Wind vector.
-	static Vec3 GetWind()
-	{
-		return Vec3(Weather.Wind());
 	}
 
 	/// Emit an extending streamer effect.
@@ -715,6 +659,62 @@ namespace TEN::Scripting::Effects
 		part.flags = SP_SCALE | SP_ROTATE | SP_DEF | SP_EXPDEF;
 		part.scalar = 2;
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
+	}
+
+	/// Make an explosion. Does not hurt Lara
+	// @function MakeExplosion 
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=512] float size Size of the shockwave if enabled.
+	// @tparam[opt=false] bool shockwave If true, creates a very faint shockwave which will not hurt Lara.
+	// For underwater rooms, it creates a splash if `pos` is near the surface. Shockwave uses `mainColor` if provided.
+	// @tparam[opt] Color mainColor Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
+	// @tparam[opt] Color additionalColor Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
+	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave, TypeOrNil<ScriptColor> mainColor, TypeOrNil<ScriptColor> additionalColor)
+	{
+		auto convertedShockwave = ValueOr<bool>(shockwave, false);
+		auto convertedSize = ValueOr<float>(size, 512.0f);
+
+		auto convertedMainColor = ValueOr<ScriptColor>(mainColor, ScriptColor(0, 0, 0));
+		auto convertedAdditionalColor = ValueOr<ScriptColor>(additionalColor, convertedMainColor);
+
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+
+		if (room.flags & ENV_FLAG_WATER)
+			TriggerUnderwaterExplosion(pos.ToVector3(), ValueOr<bool>(shockwave, false), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+		else
+		{
+			TriggerExplosionSparks(pos.x, pos.y, pos.z, 3, -2, 0, FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+
+			if (convertedShockwave)
+			{
+				auto shockPos = Pose(Vector3i(pos));
+
+				if (Vector3(convertedMainColor) == Vector3::Zero)
+					TriggerShockwave(&shockPos, 0, convertedSize, 64, 128, 96, 0, 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+				else
+					TriggerShockwave(&shockPos, 0, convertedSize, 64, convertedMainColor.GetR(), convertedMainColor.GetG(), convertedMainColor.GetB(), 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+			}
+
+		}
+	}
+
+	/// Make an earthquake.
+	// @function MakeEarthquake 
+	// @tparam[opt=100] int strength How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
+	static void Earthquake(TypeOrNil<int> strength)
+	{
+		int str = ValueOr<int>(strength, 100);
+		Camera.bounce = -str;
+	}
+
+	/// Get the wind vector for the current game frame.
+	// This represents the 3D displacement applied by the engine on things like particles affected by wind.
+	// @function GetWind()
+	// @treturn Vec3 Wind vector.
+	static Vec3 GetWind()
+	{
+		return Vec3(Weather.Wind());
 	}
 
 	void Register(sol::state* state, sol::table& parent) 

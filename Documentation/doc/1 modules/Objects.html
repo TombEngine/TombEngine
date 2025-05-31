@@ -117,33 +117,27 @@
 <div id="content">
 
 <h1>Table <code>Objects</code></h1>
-<p>Objects including moveables, statics, cameras, and others.</p>
-<p>
-
-</p>
+<p>Objects include moveables, statics, cameras, and others.</p>
+<p> Every object accessible by script API must have unique name, disregarding its type.</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" ><a href="#GetMoveableByName">GetMoveableByName(name)</a></td>
-	<td class="summary">Get a moveable by its name.</td>
+	<td class="summary">Get a Moveable by its name.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetMoveablesBySlot">GetMoveablesBySlot(slot)</a></td>
+	<td class="summary">Get moveables by their slot.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#GetStaticByName">GetStaticByName(name)</a></td>
 	<td class="summary">Get a Static by its name.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetMoveablesBySlot">GetMoveablesBySlot(slot)</a></td>
-	<td class="summary">Get moveables by its slot.</td>
-	</tr>
-	<tr>
 	<td class="name" ><a href="#GetStaticsBySlot">GetStaticsBySlot(slot)</a></td>
-	<td class="summary">Get statics by its slot.</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#GetRoomsByTag">GetRoomsByTag(tag)</a></td>
-	<td class="summary">Get rooms by tag.</td>
+	<td class="summary">Get statics by their slot.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#GetCameraByName">GetCameraByName(name)</a></td>
@@ -169,6 +163,14 @@
 	<td class="name" ><a href="#GetRoomByName">GetRoomByName(name)</a></td>
 	<td class="summary">Get a Room by its name.</td>
 	</tr>
+	<tr>
+	<td class="name" ><a href="#GetRoomsByTag">GetRoomsByTag(tag)</a></td>
+	<td class="summary">Get rooms by tag.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#IsNameInUse">IsNameInUse(name)</a></td>
+	<td class="summary">Check if a given script name is in use by any object type.</td>
+	</tr>
 </table>
 
 <br/>
@@ -183,7 +185,7 @@
     <strong>GetMoveableByName(name)</strong>
     </dt>
     <dd>
-    Get a moveable by its name.
+    Get a Moveable by its name.
 
 
 
@@ -199,7 +201,35 @@
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
-        a non-owning Moveable referencing the item.
+        A non-owning Moveable referencing the item.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetMoveablesBySlot"></a>
+    <strong>GetMoveablesBySlot(slot)</strong>
+    </dt>
+    <dd>
+    Get moveables by their slot.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">slot</span>
+            <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
+         The unique slot of the moveable, e.g. <code>Objects.ObjID.ANIMATING1</code>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Table of moveables referencing the given slot.
     </ol>
 
 
@@ -227,35 +257,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../2 classes/Objects.Static.html#">Static</a></span>
-        a non-owning Static referencing the static mesh.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "GetMoveablesBySlot"></a>
-    <strong>GetMoveablesBySlot(slot)</strong>
-    </dt>
-    <dd>
-    Get moveables by its slot.
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">slot</span>
-            <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         The unique slot of the moveable, e.g. <code>Objects.ObjID.ANIMATING1</code>.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        Table of moveables referencing the given slot.
+        A non-owning Static referencing the static mesh.
     </ol>
 
 
@@ -267,7 +269,7 @@
     <strong>GetStaticsBySlot(slot)</strong>
     </dt>
     <dd>
-    Get statics by its slot.
+    Get statics by their slot.
 
 
 
@@ -284,34 +286,6 @@
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
         Table of static meshes referencing the given slot.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "GetRoomsByTag"></a>
-    <strong>GetRoomsByTag(tag)</strong>
-    </dt>
-    <dd>
-    Get rooms by tag.
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">tag</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Tag to select rooms by.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        Table of rooms containing the given tag.
     </ol>
 
 
@@ -480,6 +454,62 @@
 
            <span class="types"><a class="type" href="../2 classes/Objects.Room.html#">Room</a></span>
         A non-owning Room referencing the room.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetRoomsByTag"></a>
+    <strong>GetRoomsByTag(tag)</strong>
+    </dt>
+    <dd>
+    Get rooms by tag.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Tag to select rooms by.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Table of rooms containing the given tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "IsNameInUse"></a>
+    <strong>IsNameInUse(name)</strong>
+    </dt>
+    <dd>
+    Check if a given script name is in use by any object type.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name to check.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        True if name is in use and an object with a given name is present, false if not.
     </ol>
 
 

@@ -787,6 +787,9 @@ GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox)
 
 bool IsPointInRoom(const Vector3i& pos, int roomNumber)
 {
+	if (roomNumber < 0 || roomNumber >= g_Level.Rooms.size())
+		return false;
+
 	const auto& room = g_Level.Rooms[roomNumber];
 
 	if (!room.Active())

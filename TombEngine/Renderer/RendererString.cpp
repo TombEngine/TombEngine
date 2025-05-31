@@ -51,34 +51,46 @@ namespace TEN::Renderer
 
 			if (area.x > 0)
 			{
-				auto words = SplitWords(TEN::Utils::ToWString(string)); // Implement this to split on spaces
-				std::wstring currentLine;
+				// Split the string into native lines first.
+				auto inputLines = SplitString(TEN::Utils::ToWString(string));
 
-				float currentLineWidth = 0.0f;
-
-				for (const auto& word : words)
+				for (const auto& inputLine : inputLines)
 				{
-					float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
-
-					if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
+					if (inputLine.empty())
 					{
-						stringLines.push_back(currentLine);
-						currentLine.clear();
-						currentLineWidth = 0.0f;
+						// Preserve empty lines.
+						stringLines.push_back(L"");
+						continue;
+					}
+
+					auto words = SplitWords(inputLine);
+					std::wstring currentLine;
+					float currentLineWidth = 0.0f;
+
+					for (const auto& word : words)
+					{
+						float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
+
+						if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
+						{
+							stringLines.push_back(currentLine);
+							currentLine.clear();
+							currentLineWidth = 0.0f;
+						}
+
+						if (!currentLine.empty())
+						{
+							currentLine += L" ";
+							currentLineWidth += spaceWidth;
+						}
+
+						currentLine += word;
+						currentLineWidth += wordWidth;
 					}
 
 					if (!currentLine.empty())
-					{
-						currentLine += L" ";
-						currentLineWidth += spaceWidth;
-					}
-
-					currentLine += word;
-					currentLineWidth += wordWidth;
+						stringLines.push_back(currentLine);
 				}
-
-				if (!currentLine.empty())
-					stringLines.push_back(currentLine);
 			}
 			else
 			{

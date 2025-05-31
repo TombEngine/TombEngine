@@ -914,7 +914,9 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (!target->Callbacks.OnHit.empty())
 	{
 		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-		g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+
+		if (index != NO_VALUE)
+			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
 	}
 }
 
