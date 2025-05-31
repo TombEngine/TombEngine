@@ -32,16 +32,8 @@ namespace TEN::Scripting::InventoryHandler
 		
 		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto startPosition = Vector2(110.0f, 85.0f);
-			
-			// Convert percentage-based position (0–100%) to screen pixel coordinates
-			float fWidth = g_Configuration.ScreenWidth;
-			float fHeight = g_Configuration.ScreenHeight;
-			int resX = (int)std::round(fWidth / 100.0f * startPosition.x);
-			int resY = (int)std::round(fHeight / 100.0f * startPosition.y);
-			auto screenPosition = Vector2(resX, resY);
-			
-			g_Hud.PickupSummary.AddDisplayPickup(objectID, screenPosition, convertedCount);
+			constexpr auto START_POS_MULT = Vector2(1.1f, 0.85f);
+			g_Hud.PickupSummary.AddDisplayPickup(objectID, DISPLAY_SPACE_RES * START_POS_MULT, convertedCount);
 		}
 	}
 
