@@ -1387,6 +1387,9 @@ bool LoadLevel(const std::string& path, bool partial)
 		auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
 		for (int i = 0; i < assemblyVersion.size(); i++)
 		{
+			if (i >= 3)
+				break; // Don't compare revision number.
+
 			if (assemblyVersion[i] != version[i])
 			{
 				TENLog("Level version is different from TEN version.", LogLevel::Warning);
@@ -1766,11 +1769,8 @@ void GetAIPickups()
 					object->roomNumber == item->RoomNumber &&
 					object->objectNumber < ID_AI_PATROL2)
 				{
-					item->AIBits = (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
+					item->AIBits |= (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
 					item->ItemFlags[3] = object->triggerFlags;
-
-					if (object->objectNumber != ID_AI_GUARD)
-						object->roomNumber = NO_VALUE;
 				}
 			}
 

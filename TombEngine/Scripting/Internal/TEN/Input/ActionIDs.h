@@ -13,6 +13,8 @@ namespace TEN::Scripting::Input
 	/// Table of Input.ActionID constants.
 	// To be used with @{Input.IsKeyHit}, @{Input.IsKeyHeld}, and other similar functions.
 	// 
+	// Mapped action IDs:
+	// 
 	// 	FORWARD
 	// 	BACK
 	// 	LEFT
@@ -58,6 +60,8 @@ namespace TEN::Scripting::Input
 	// 	SAVE
 	// 	LOAD
 	// 
+	// Raw keyboard input IDs:
+	//
 	//	A
 	//	B
 	//	C
@@ -120,6 +124,8 @@ namespace TEN::Scripting::Input
 	//	SHIFT
 	//	ALT
 	// 
+	// Raw mouse input IDs:
+	//
 	//	MOUSE_CLICK_LEFT
 	//	MOUSE_CLICK_MIDDLE
 	//	MOUSE_CLICK_RIGHT

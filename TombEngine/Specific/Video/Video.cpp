@@ -217,6 +217,30 @@ namespace TEN::Video
 		_vlcInstance = nullptr;
 	}
 
+	void VideoHandler::SetAudioDevice(std::string suggestedDeviceName)
+	{
+		if (_vlcInstance == nullptr || _player == nullptr)
+		{
+			TENLog("VLC player is not initialized.", LogLevel::Error);
+			return;
+		}
+
+		auto* devList = libvlc_audio_output_device_enum(_player);
+		for (auto* node = devList; node != nullptr; node = node->p_next)
+		{
+			if (node->psz_description != suggestedDeviceName)
+				continue;
+
+			if (libvlc_audio_output_device_set(_player, node->psz_device) != 0)
+				TENLog("Failed to set VLC audio output device: " + suggestedDeviceName, LogLevel::Error);
+
+			break;
+		}
+
+		libvlc_audio_output_device_list_release(devList);
+		HandleError();
+	}
+
 	bool VideoHandler::Play(const std::string& filename, VideoPlaybackMode mode, bool silent, bool loop)
 	{
 		auto fullVideoName = filename;
@@ -283,11 +307,12 @@ namespace TEN::Video
 			return false;
 		}
 
+		SetAudioDevice(Sound_GetDeviceName());
+		SetVolume(_volume);
+
 		libvlc_video_set_callbacks(_player, OnLockFrame, OnUnlockFrame, nullptr, this);
 		libvlc_video_set_format_callbacks(_player, OnSetup, nullptr);
 		libvlc_media_player_play(_player);
-
-		SetVolume(_volume);
 
 		if (!HandleError())
 			return false;

@@ -62,6 +62,25 @@ most can just be ignored (see usage).
 static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string& name, const Vec3& pos, const TypeOrNil<Rotation>& rot, TypeOrNil<int> room,
 										TypeOrNil<int> animNumber, TypeOrNil<int> frameNumber, TypeOrNil<int> hp, TypeOrNil<int> ocb, const TypeOrNil<aiBitsType>& aiBits)
 {
+	if (objID < 0 || objID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS || !Objects[objID].loaded)
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": object not loaded or ID is invalid.", LogLevel::Error);
+		return nullptr;
+	}
+
+	int roomNumber = ValueOr<int>(room, FindRoomNumber(pos.ToVector3i()));
+	if (roomNumber == NO_VALUE || !IsPointInRoom(pos.ToVector3i(), roomNumber))
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": position is not in a valid room.", LogLevel::Error);
+		return nullptr;
+	}
+
+	if (g_GameScriptEntities->GetIndexByName(name) != NO_VALUE)
+	{
+		TENLog("Can't create moveable with name '" + name + "': name is already in use.", LogLevel::Error);
+		return nullptr;
+	}
+
 	int movID = CreateItem();
 	auto scriptMov = std::make_unique<Moveable>(movID, false);
 
@@ -70,16 +89,8 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		auto& mov = g_Level.Items[movID];
 
 		scriptMov->SetObjectID(objID);
-
-		if (std::holds_alternative<int>(room))
-		{
-			scriptMov->SetPosition(pos, false);
-			scriptMov->SetRoomNumber(std::get<int>(room));
-		}
-		else
-		{
-			scriptMov->SetPosition(pos, true);
-		}
+		scriptMov->SetPosition(pos, false);
+		scriptMov->SetRoomNumber(roomNumber);
 
 		scriptMov->SetRotation(ValueOr<Rotation>(rot, Rotation()));
 		scriptMov->Initialize();

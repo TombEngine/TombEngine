@@ -546,7 +546,7 @@
     <ul>
         <li><span class="parameter">visible</span>
             <span class="types"><span class="type">bool</span></span>
-         true: Makes the bar visible.; false: Hides the bar.
+         <code>true</code> makes the bar visible, <code>false</code> hides the bar.
         </li>
     </ul>
 
@@ -569,7 +569,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the bar is visible and false if it is not.
+        <code>true</code> if the bar is visible and <code>false</code> if it is not.
     </ol>
 
 
@@ -590,7 +590,7 @@
     <ol>
 
            <span class="types"><span class="type">float</span></span>
-        returns the current value of a custom bar.
+        Returns the current value of a custom bar.
     </ol>
 
 
@@ -683,8 +683,8 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's background. sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's background sprite (0-360).
         </li>
     </ul>
 
@@ -731,8 +731,8 @@
          Object ID for the bar's background sprite.
         </li>
         <li><span class="parameter">id</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar's background.
         </li>
     </ul>
 
@@ -841,8 +841,8 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's sprite (0-360).
         </li>
     </ul>
 
@@ -911,8 +911,8 @@
          Object ID for the bar sprite.
         </li>
         <li><span class="parameter">id</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar.
         </li>
     </ul>
 
@@ -1019,8 +1019,8 @@
          Object ID for the bar's background sprite.
         </li>
         <li><span class="parameter">spriteIdBg</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar's background.
         </li>
         <li><span class="parameter">colorBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1032,7 +1032,7 @@
         </li>
         <li><span class="parameter">rotBg</span>
             <span class="types"><span class="type">float</span></span>
-         rotation of the bar's background. sprite (0-360).
+         Rotation of the bar's background sprite (0-360).
         </li>
         <li><span class="parameter">scaleBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1055,8 +1055,8 @@
          Object ID for the bar sprite.
         </li>
         <li><span class="parameter">spriteIdBar</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar.
         </li>
         <li><span class="parameter">colorBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1096,10 +1096,10 @@
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
+         Alignment and effects for the text. Note that text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the text.
         </li>
         <li><span class="parameter">textColor</span>
@@ -1111,7 +1111,7 @@
          Whether to hide the text.
         </li>
         <li><span class="parameter">alphaBlendSpeed</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Speed of alpha blending for bar visibility (0-255).
         </li>
         <li><span class="parameter">blink</span>
@@ -1119,8 +1119,8 @@
          Whether the bar blinks.
         </li>
         <li><span class="parameter">blinkLimit</span>
-            <span class="types"><span class="type">number</span></span>
-         % Limit below which bar starts blinking (0-1).
+            <span class="types"><span class="type">float</span></span>
+         Limit below which bar starts blinking (0-1).
         </li>
     </ul>
 
@@ -1141,7 +1141,7 @@
     <h3>Fields:</h3>
     <ul>
         <li><span class="parameter">getActionType</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Determines the bar type: 1: Health, 2: Air, 3: Stamina.
         </li>
         <li><span class="parameter">objectIdBg</span>
@@ -1149,8 +1149,8 @@
          Object ID for the bar's background sprite.
         </li>
         <li><span class="parameter">spriteIdBg</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar's background.
         </li>
         <li><span class="parameter">colorBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1161,8 +1161,8 @@
          X,Y position of the bar's background in screen percent (0-100).
         </li>
         <li><span class="parameter">rotBg</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's background. sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's background. sprite (0-360).
         </li>
         <li><span class="parameter">scaleBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1185,8 +1185,8 @@
          Object ID for the bar sprite.
         </li>
         <li><span class="parameter">spriteIdBar</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar.
         </li>
         <li><span class="parameter">colorBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1197,8 +1197,8 @@
          X,Y position of the bar in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's sprite (0-360).
         </li>
         <li><span class="parameter">scaleBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1217,7 +1217,7 @@
          Blending modes for the bar.
         </li>
         <li><span class="parameter">alphaBlendSpeed</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Speed of alpha blending for bar visibility (0-255).
         </li>
         <li><span class="parameter">showBar</span>
@@ -1229,8 +1229,8 @@
          Whether the bar blinks.
         </li>
         <li><span class="parameter">blinkLimit</span>
-            <span class="types"><span class="type">number</span></span>
-         % Limit below which bar starts blinking (0-1).
+            <span class="types"><span class="type">float</span></span>
+         Limit below which bar starts blinking (0-1).
         </li>
     </ul>
 
@@ -1259,8 +1259,8 @@
          Object ID for the bar's background sprite.
         </li>
         <li><span class="parameter">spriteIdBg</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar's background.
         </li>
         <li><span class="parameter">colorBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1271,8 +1271,8 @@
          X,Y position of the bar's background in screen percent (0-100).
         </li>
         <li><span class="parameter">rotBg</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's background. sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's background sprite (0-360).
         </li>
         <li><span class="parameter">scaleBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1295,8 +1295,8 @@
          Object ID for the bar sprite.
         </li>
         <li><span class="parameter">spriteIdBar</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar.
         </li>
         <li><span class="parameter">colorBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1307,8 +1307,8 @@
          X,Y position of the bar in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's sprite (0-360).
         </li>
         <li><span class="parameter">scaleBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1336,10 +1336,10 @@
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
+         Alignment and effects for the text. Note text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the text.
         </li>
         <li><span class="parameter">textColor</span>
@@ -1351,7 +1351,7 @@
          Whether to hide the text.
         </li>
         <li><span class="parameter">alphaBlendSpeed</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Speed of alpha blending for bar visibility (0-255).
         </li>
         <li><span class="parameter">object</span>
@@ -1367,8 +1367,8 @@
          Whether the bar blinks.
         </li>
         <li><span class="parameter">blinkLimit</span>
-            <span class="types"><span class="type">number</span></span>
-         %Limit below which bar starts blinking (0-1).
+            <span class="types"><span class="type">float</span></span>
+         Limit below which bar starts blinking (0-1).
         </li>
     </ul>
 
@@ -1393,8 +1393,8 @@
          Object ID for the bar's background sprite.
         </li>
         <li><span class="parameter">spriteIdBg</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar's background.
         </li>
         <li><span class="parameter">colorBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1405,8 +1405,8 @@
          X,Y position of the bar's background in screen percent (0-100).
         </li>
         <li><span class="parameter">rotBg</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's background. sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's background sprite (0-360).
         </li>
         <li><span class="parameter">scaleBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1429,8 +1429,8 @@
          Object ID for the bar sprite.
         </li>
         <li><span class="parameter">spriteIdBar</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the bar.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the bar.
         </li>
         <li><span class="parameter">colorBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -1441,8 +1441,8 @@
          X,Y position of the bar in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the bar's sprite (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the bar's sprite (0-360).
         </li>
         <li><span class="parameter">scaleBar</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -1461,15 +1461,15 @@
          Blending modes for the bar.
         </li>
         <li><span class="parameter">textPos</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          X position of the text.
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
+         Alignment and effects for the text. Note that text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the text.
         </li>
         <li><span class="parameter">textColor</span>
@@ -1481,7 +1481,7 @@
          Whether to hide the enemy name text.
         </li>
         <li><span class="parameter">alphaBlendSpeed</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Speed of alpha blending for bar visibility (0-255).
         </li>
         <li><span class="parameter">blink</span>
@@ -1489,8 +1489,8 @@
          Whether the bar blinks.
         </li>
         <li><span class="parameter">blinkLimit</span>
-            <span class="types"><span class="type">number</span></span>
-         %Limit below which bar starts blinking (0-1).
+            <span class="types"><span class="type">float</span></span>
+         Limit below which bar starts blinking (0-1).
         </li>
     </ul>
 

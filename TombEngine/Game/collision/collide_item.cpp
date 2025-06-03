@@ -853,7 +853,7 @@ bool ItemPushStatic(ItemInfo* item, const MESH_INFO& mesh, CollisionInfo* coll)
 	{
 		coll->Setup.PrevPosition = item->Pose.Position;
 		if (item->IsLara())
-			UpdateLaraRoom(item, -10);
+			UpdateLaraRoom(item, -coll->Setup.Height / 2);
 	}
 	else
 	{

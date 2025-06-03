@@ -497,7 +497,7 @@ int	FlowHandler::GetNumLevels() const
 int FlowHandler::GetLevelNumber(const std::string& fileName)
 {
 	if (fileName.empty())
-		return -1;
+		return NO_VALUE;
 
 	auto fileNameWithForwardSlashes = fileName;
 	std::replace(fileNameWithForwardSlashes.begin(), fileNameWithForwardSlashes.end(), '\\', '/');

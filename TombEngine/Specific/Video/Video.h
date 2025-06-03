@@ -82,6 +82,10 @@ namespace TEN::Video
 		bool Update();
 
 	private:
+		// Initialize
+		
+		void SetAudioDevice(std::string suggestedDeviceName);
+
 		// Update
 
 		void UpdateExclusive();

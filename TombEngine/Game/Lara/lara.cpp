@@ -450,7 +450,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 	player.Control.Look.Mode = LookMode::None;
 
-	UpdateLaraRoom(item, -LARA_HEIGHT / 2);
+	UpdateLaraRoom(item, -coll->Setup.Height / 2);
 
 	// Process vehicles.
 	if (HandleLaraVehicle(item, coll))
@@ -544,7 +544,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.Vehicle == NO_VALUE)
 		HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Collision);
 
-	UpdateLaraRoom(item, LARA_RADIUS);
+	UpdateLaraRoom(item, coll->Setup.Radius);
 	HandleWeapon(*item);
 
 	ProcessSectorFlags(item);
@@ -671,7 +671,7 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Walk) && !IsHeld(In::Look))
 	{
 		if (TestEnvironment(ENV_FLAG_WATER, item) ||
-			(player.Context.WaterSurfaceDist > 0 && player.Context.WaterSurfaceDist != NO_HEIGHT))
+			(player.Context.WaterSurfaceDist > 0 && player.Context.WaterSurfaceDist != -NO_HEIGHT))
 		{
 			SetAnimation(item, LA_UNDERWATER_IDLE);
 			player.Control.WaterStatus = WaterStatus::Underwater;
@@ -689,6 +689,7 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.IsAirborne = false;
 		item->HitPoints = LARA_HEALTH_MAX;
 		player.Control.HandStatus = HandStatus::Free;
+		player.ExtraAnim = NO_VALUE;
 	}
 }
 

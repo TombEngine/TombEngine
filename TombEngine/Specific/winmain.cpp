@@ -601,11 +601,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// Unlike CoInitialize(), this line prevents event spamming if a .dll fails.
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
+		// Initialize audio (should be called prior to initializing renderer, because video handler needs it).
+		Sound_Init(gameDir);
+
 		// Initialize renderer.
 		g_Renderer.Initialize(gameDir, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode, App.WindowHandle);
-
-		// Initialize audio.
-		Sound_Init(gameDir);
 
 		// Initialize input.
 		InitializeInput(App.WindowHandle);

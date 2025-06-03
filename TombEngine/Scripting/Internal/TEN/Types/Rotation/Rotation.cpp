@@ -9,7 +9,7 @@ using namespace TEN::Math;
 namespace TEN::Scripting
 {
 	/// Represents a 3D rotation.
-	// All angle components are in degrees clamped to the range [0.0, 360.0].
+	// All angle components are in degrees, automatically clamped to the range [0, 360], excluding raw access.
 	// @tenprimitive Rotation
 	// @pragma nostrip
 
@@ -32,16 +32,17 @@ namespace TEN::Scripting
 			// Utilities
 			ScriptReserved_RotationLerp, &Rotation::Lerp,
 			ScriptReserved_RotationDirection, &Rotation::Direction,
+			ScriptReserved_RotationSigned, &Rotation::Signed,
 
-			/// (float) X angle component in degrees.
+			/// (float) Raw X angle component in degrees. Does not automaticaly clamp to [0, 360].
 			// @mem x
 			"x", &Rotation::x,
 
-			/// (float) Y angle component in degrees.
+			/// (float) Raw Y angle component in degrees. Does not automaticaly clamp to [0, 360].
 			// @mem y
 			"y", &Rotation::y,
 
-			/// (float) Z angle component in degrees.
+			/// (float) Raw Z angle component in degrees. Does not automaticaly clamp to [0, 360].
 			// @mem z
 			"z", &Rotation::z);
 	}
@@ -54,23 +55,23 @@ namespace TEN::Scripting
 	// @treturn Rotation A new Rotation object.
 	Rotation::Rotation(float x, float y, float z)
 	{
-		this->x = x;
-		this->y = y;
-		this->z = z;
+		this->x = WrapToUnsignedAngle(x);
+		this->y = WrapToUnsignedAngle(y);
+		this->z = WrapToUnsignedAngle(z);
 	}
 
 	Rotation::Rotation(const Vector3& vec)
 	{
-		x = vec.x;
-		y = vec.y;
-		z = vec.z;
+		x = WrapToUnsignedAngle(vec.x);
+		y = WrapToUnsignedAngle(vec.y);
+		z = WrapToUnsignedAngle(vec.z);
 	}
 
 	Rotation::Rotation(const EulerAngles& eulers)
 	{
-		x = TO_DEGREES(eulers.x);
-		y = TO_DEGREES(eulers.y);
-		z = TO_DEGREES(eulers.z);
+		x = WrapToUnsignedAngle(TO_DEGREES(eulers.x));
+		y = WrapToUnsignedAngle(TO_DEGREES(eulers.y));
+		z = WrapToUnsignedAngle(TO_DEGREES(eulers.z));
 	}
 
 	/// Get the linearly interpolated Rotation between this Rotation and the input Rotation according to the input alpha.
@@ -94,6 +95,18 @@ namespace TEN::Scripting
 		return Vec3(eulers.ToDirection());
 	}
 
+	/// Get the signed version of this Rotation, clamped to [-180, 180].
+	// @function Signed
+	// @treturn Rotation Signed rotation.
+	Rotation Rotation::Signed() const
+	{
+		auto signedRot = Rotation();
+		signedRot.x = WrapToSignedAngle(x);
+		signedRot.y = WrapToSignedAngle(y);
+		signedRot.z = WrapToSignedAngle(z);
+		return signedRot;
+	}
+
 	/// @function __tostring
 	// @tparam Rotation rot This Rotation.
 	// @treturn string A string showing the X, Y, and Z angle components of this Rotation.
@@ -114,38 +127,47 @@ namespace TEN::Scripting
 
 	bool Rotation::operator ==(const Rotation& rot) const
 	{
-		return (rot.x == x && rot.y == y && rot.z == z);
+		return (WrapToUnsignedAngle(rot.x) == WrapToUnsignedAngle(x) &&
+				WrapToUnsignedAngle(rot.y) == WrapToUnsignedAngle(y) &&
+				WrapToUnsignedAngle(rot.z) == WrapToUnsignedAngle(z));
 	}
 
 	Rotation Rotation::operator +(const Rotation& rot) const
 	{
-		return Rotation(WrapAngle(x + rot.x), WrapAngle(y + rot.y), WrapAngle(z + rot.z));
+		return Rotation(WrapToUnsignedAngle(x + rot.x), WrapToUnsignedAngle(y + rot.y), WrapToUnsignedAngle(z + rot.z));
 	}
 
 	Rotation Rotation::operator -(const Rotation& rot) const
 	{
-		return Rotation(WrapAngle(x - rot.x), WrapAngle(y - rot.y), WrapAngle(z - rot.z));
+		return Rotation(WrapToUnsignedAngle(x - rot.x), WrapToUnsignedAngle(y - rot.y), WrapToUnsignedAngle(z - rot.z));
 	}
 
 	Rotation& Rotation::operator +=(const Rotation& rot)
 	{
-		x = WrapAngle(x + rot.x);
-		y = WrapAngle(y + rot.y);
-		z = WrapAngle(z + rot.z);
+		x = WrapToUnsignedAngle(x + rot.x);
+		y = WrapToUnsignedAngle(y + rot.y);
+		z = WrapToUnsignedAngle(z + rot.z);
 		return *this;
 	}
 
 	Rotation& Rotation::operator -=(const Rotation& rot)
 	{
-		x = WrapAngle(x - rot.x);
-		y = WrapAngle(y - rot.y);
-		z = WrapAngle(z - rot.z);
+		x = WrapToUnsignedAngle(x - rot.x);
+		y = WrapToUnsignedAngle(y - rot.y);
+		z = WrapToUnsignedAngle(z - rot.z);
 		return *this;
 	}
 
-	float Rotation::WrapAngle(float angle) const
+	float Rotation::WrapToUnsignedAngle(float angle) const
 	{
 		angle -= std::floor(angle / 360.0f) * 360.0f;
 		return ((angle < 0.0f) ? (angle + 360.0f) : angle);
+	}
+	
+	float Rotation::WrapToSignedAngle(float angle) const
+	{
+		// Wrap to a signed angle first to clamp extra rotation loops.
+		auto result = WrapToUnsignedAngle(angle);
+		return (result > 180.0f) ? result - 360.0f : result;
 	}
 }

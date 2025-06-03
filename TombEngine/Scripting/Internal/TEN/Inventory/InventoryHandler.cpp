@@ -6,6 +6,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/pickup/pickup.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptUtil.h"
 
 using namespace TEN::Hud;
 using namespace TEN::Gui;
@@ -21,26 +22,29 @@ namespace TEN::Scripting::InventoryHandler
 	/// Add an item to the player's inventory.
 	//@function GiveItem
 	//@tparam Objects.ObjID objectID Object ID of the item to add.
-	//@int[opt] count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	//@bool[opt] addToPickupSummary If true, display the item in the pickup summary. Default is false.
-	static void GiveItem(GAME_OBJECT_ID objectID, sol::optional<int> count, sol::optional<bool> addToPickupSummary)
+	//@tparam[opt=1] int count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	//@tparam[opt=false] bool addToPickupSummary If true, display the item in the pickup summary. Default is false.
+	static void GiveItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count, TypeOrNil<bool> addToPickupSummary)
 	{
-		PickedUpObject(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+
+		PickedUpObject(objectID, convertedCount);
 		
-		if (addToPickupSummary.value_or(false))
+		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto pos = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
-			g_Hud.PickupSummary.AddDisplayPickup(objectID, pos, count.value_or(1));
+			constexpr auto START_POS_MULT = Vector2(1.1f, 0.85f);
+			g_Hud.PickupSummary.AddDisplayPickup(objectID, DISPLAY_SPACE_RES * START_POS_MULT, convertedCount);
 		}
 	}
 
 	/// Remove an item from the player's inventory.
 	//@function TakeItem
 	//@tparam Objects.ObjID Object ID of the item to remove.
-	//@int[opt] count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	static void TakeItem(GAME_OBJECT_ID objectID, sol::optional<int> count)
+	//@tparam[opt=1] int count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	static void TakeItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count)
 	{
-		RemoveObjectFromInventory(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+		RemoveObjectFromInventory(objectID, convertedCount);
 	}
 
 	/// Get the amount of an item held in the player's inventory.

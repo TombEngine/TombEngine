@@ -117,11 +117,19 @@
 <div id="content">
 
 <h1>Lua utility module <code>EventSequence</code></h1>
-<p>Event sequence - a chain of functions to call at specified times, modeled after TRNG's organizers.</p>
+<p><style>.section-header.has-description {border-top: 1px solid #ccc; padding-top: 1em;}</style>
+ A chain of functions to call at specified times, modeled after TRNG's organizers.</p>
 <p>
 
 
-<p> Works atop the Timer, and so is updated automatically pre-OnControlPhase, and saved automatically when the game is saved.</p>
+<p> Works atop the Timer, and so is updated automatically pre-OnControlPhase, and saved automatically when the game is saved.
+ The sequence can be paused, unpaused, stopped, and started, and can be set to loop.</p>
+
+<p> To use EventSequence inside scripts you need to call the module:</p>
+
+<pre>
+<span class="keyword">local</span> EventSequence = <span class="global">require</span>(<span class="string">"Engine.EventSequence"</span>)
+</pre>
 
 <p> Example usage:</p>
 
@@ -144,9 +152,8 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 </span>LevelFuncs.TriggerSequence = <span class="keyword">function</span>(obj)
     <span class="keyword">local</span> posSteve = TEN.Objects.GetMoveableByName(<span class="string">"stevePosNullmesh"</span>):GetPosition()
     <span class="keyword">local</span> posChris = TEN.Objects.GetMoveableByName(<span class="string">"chrisPosNullmesh"</span>):GetPosition()
-    <span class="keyword">local</span> mySeq = EventSequence.Get(<span class="string">"my_seq"</span>)
-    <span class="keyword">if</span> <span class="keyword">not</span> mySeq <span class="keyword">then</span>
-        mySeq = EventSequence.Create(<span class="string">"my_seq"</span>,
+    <span class="keyword">if</span> <span class="keyword">not</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+        EventSequence.Create(<span class="string">"my_seq"</span>,
             <span class="keyword">false</span>, <span class="comment">-- does not loop
 </span>            {seconds = <span class="keyword">true</span>, deciseconds = <span class="keyword">true</span>}, <span class="comment">-- timer format, see Timer for details
 </span>            <span class="number">6</span>, <span class="comment">-- seconds until call the function specified in next arg
@@ -160,7 +167,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
     <span class="keyword">end</span>
 
     <span class="comment">-- event sequences are inactive to begin with and so need to be started
-</span>    mySeq:Start()
+</span>    EventSequence.Get(<span class="string">"my_seq"</span>):Start()
 <span class="keyword">end</span>
 </pre>
 
@@ -170,7 +177,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Create">Create(name, loop, timerFormat, [...])</a></td>
+	<td class="name" ><a href="#Create">Create(name, loop, timerFormat, ...)</a></td>
 	<td class="summary">Create (but do not start) a new event sequence.</td>
 	</tr>
 	<tr>
@@ -178,24 +185,35 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 	<td class="summary">Get an event sequence by its name.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#mySequence:SetPaused">mySequence:SetPaused(p)</a></td>
-	<td class="summary">Pause or unpause the sequence.</td>
+	<td class="name" ><a href="#IfExists">IfExists(name)</a></td>
+	<td class="summary">Check if an event sequence exists.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#mySequence:IsPaused">mySequence:IsPaused()</a></td>
-	<td class="summary">Get whether or not the sequence is paused</td>
+	<td class="name" ><a href="#Delete">Delete(name)</a></td>
+	<td class="summary">Delete an event sequence.</td>
 	</tr>
+</table>
+<h2><a href="#Class_EventSequence">Class EventSequence </a></h2>
+<table class="function_list">
 	<tr>
-	<td class="name" ><a href="#mySequence:Start">mySequence:Start()</a></td>
+	<td class="name" ><a href="#EventSequence:Start">EventSequence:Start()</a></td>
 	<td class="summary">Begin or unpause a sequence.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#mySequence:Stop">mySequence:Stop()</a></td>
+	<td class="name" ><a href="#EventSequence:SetPaused">EventSequence:SetPaused(p)</a></td>
+	<td class="summary">Pause or unpause the sequence.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#EventSequence:Stop">EventSequence:Stop()</a></td>
 	<td class="summary">Stop the sequence.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#mySequence:IsActive">mySequence:IsActive()</a></td>
-	<td class="summary">Get whether or not the sequence is active</td>
+	<td class="name" ><a href="#EventSequence:IsPaused">EventSequence:IsPaused()</a></td>
+	<td class="summary">Returns whether the sequence is paused.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#EventSequence:IsActive">EventSequence:IsActive()</a></td>
+	<td class="summary">Returns whether the sequence is active.</td>
 	</tr>
 </table>
 
@@ -208,7 +226,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
     <dl class="function">
     <dt>
     <a name = "Create"></a>
-    <strong>Create(name, loop, timerFormat, [...])</strong>
+    <strong>Create(name, loop, timerFormat, ...)</strong>
     </dt>
     <dd>
     Create (but do not start) a new event sequence.
@@ -223,15 +241,20 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
         </li>
         <li><span class="parameter">loop</span>
             <span class="types"><span class="type">bool</span></span>
-         if true, the sequence will start again from its first timer once its final function has been called
+         If <code>true</code>, the sequence will start again from its first timer once its final function has been called.
         </li>
         <li><span class="parameter">timerFormat</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> or <span class="type">bool</span></span>
-         same as in Timer. This is mainly for debugging. <strong>This will not work properly if another sequence or timer is showing a countdown.</strong>
+         Same as in <a href="Timer.html#timerFormat">Timer format</a> for Timer. This is mainly for debugging. <strong>This will not work properly if another sequence or timer is showing a countdown.</strong>
         </li>
         <li><span class="parameter">...</span>
-         a variable number of pairs of arguments - a time in seconds, followed by the function (must be defined in the LevelFuncs table) to call once the time has elapsed, followed by another duration in seconds, another function name, etc. You can specify a function either by its name as a string, or by a table with the function name as the first member, followed by its arguments (see above example).
-         <em>Optional.</em>
+            <span class="types"><span class="type">float</span>, <span class="type">LevelFuncs</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         A variable number of pairs of arguments, each pair consisting of:<br>
+ - a time in seconds (positive values are accepted and with only 1 tenth of a second [<strong>0.1</strong>]),<br>
+ - followed by the function defined in the <em>LevelFuncs</em> table to call once the time has elapsed,<br>
+ - followed by another duration in seconds, another function name, etc.</p>
+
+<p> You can specify a function either by its name, or by a <em>table</em> <strong>{ }</strong> with the function name as the first member, followed by its arguments (see example).
         </li>
     </ul>
 
@@ -244,6 +267,51 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> EventSequence = <span class="global">require</span>(<span class="string">"Engine.EventSequence"</span>)
+<span class="keyword">local</span> TimerFormat = {seconds = <span class="keyword">true</span>, deciseconds = <span class="keyword">true</span>}
+
+<span class="comment">-- Example 1 function without arguments:
+</span><span class="comment">-- This creates a sequence that calls LevelFuncs.Func after 2 seconds
+</span><span class="comment">-- then LevelFuncs.Func after 3 seconds
+</span><span class="comment">-- and finally LevelFuncs.Func after 4 seconds
+</span>LevelFuncs.Func = <span class="keyword">function</span> ()
+   <span class="keyword">local</span> pos = TEN.Vec2(TEN.Util.PercentToScreen(<span class="number">50</span>, <span class="number">10</span>))
+   <span class="keyword">local</span> str = TEN.Strings.DisplayString(<span class="string">"Repeated function without arguments"</span>, pos, <span class="number">1</span>)
+   TEN.Strings.ShowString(str, <span class="number">1</span>)
+<span class="keyword">end</span>
+EventSequence.Create(
+   <span class="string">"test1"</span>, <span class="comment">-- sequence's name
+</span>   <span class="keyword">true</span>, <span class="comment">-- loop
+</span>   TimerFormat, <span class="comment">-- timer format
+</span>   <span class="number">2.0</span>,  <span class="comment">-- seconds until call the function
+</span>   LevelFuncs.Func, <span class="comment">-- first function to call
+</span>   <span class="number">3.0</span>,
+   LevelFuncs.Func,
+   <span class="number">4.0</span>,
+   LevelFuncs.Func)
+
+<span class="comment">-- Example 2 function with arguments:
+</span><span class="comment">-- This creates a sequence that calls LevelFuncs.Func2("1", 5, 10) after 2.3 seconds
+</span><span class="comment">-- then LevelFuncs.Func2("2", 5, 15) after 3.1 seconds
+</span><span class="comment">-- and finally LevelFuncs.Func2("3", 5, 20) after 4.8 seconds
+</span>LevelFuncs.Func2 = <span class="keyword">function</span> (text, x, y)
+   <span class="keyword">local</span> pos = TEN.Vec2(TEN.Util.PercentToScreen(x, y))
+   <span class="keyword">local</span> str = TEN.Strings.DisplayString(<span class="string">"Function "</span> .. text .. <span class="string">"!"</span>, pos, <span class="number">1</span>)
+   TEN.Strings.ShowString(str, <span class="number">1</span>)
+<span class="keyword">end</span>
+EventSequence.Create(
+   <span class="string">"test2"</span>, <span class="comment">-- sequence's name
+</span>   <span class="keyword">true</span>, <span class="comment">-- loop
+</span>   <span class="keyword">false</span>, <span class="comment">-- no countdown is displayed
+</span>   <span class="number">2.3</span>,
+   {LevelFuncs.Func2, <span class="string">"1"</span>, <span class="number">5</span>, <span class="number">10</span>},
+   <span class="number">3.1</span>,
+   {LevelFuncs.Func2, <span class="string">"2"</span>, <span class="number">5</span>, <span class="number">15</span>},
+   <span class="number">4.8</span>,
+   {LevelFuncs.Func2, <span class="string">"3"</span>, <span class="number">5</span>, <span class="number">20</span>})</pre>
+    </ul>
 
 </dd>
     <dt>
@@ -259,67 +327,111 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
     <ul>
         <li><span class="parameter">name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The label that was given to the sequence when it was created
+         The label that was given to the sequence when it was created.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../5 lua utility modules/EventSequence.html#">EventSequence</a></span>
-        The sequence
+           <span class="types"><a class="type" href="../5 lua utility modules/EventSequence.html#">EventSequence</a> or <span class="type">nil</span></span>
+        The sequence if it exists, <code>nil</code> if it does not exist.
     </ol>
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span>EventSequence.Get(<span class="string">"my_seq"</span>)</pre>
+    </ul>
 
 </dd>
     <dt>
-    <a name = "mySequence:SetPaused"></a>
-    <strong>mySequence:SetPaused(p)</strong>
+    <a name = "IfExists"></a>
+    <strong>IfExists(name)</strong>
     </dt>
     <dd>
-    Pause or unpause the sequence.  If showing the remaining time on-screen, its color will be set to yellow (paused) or white (unpaused).
+    Check if an event sequence exists.
 
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">p</span>
-            <span class="types"><span class="type">bool</span></span>
-         if true, the sequence will be paused; if false, it will be unpaused
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The label that was given to the event sequence when it was created.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        <code>true</code> if the event sequence exists, <code>false</code> if it does not exist.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span><span class="comment">-- This function checks if an event sequence named "my_seq" exists and starts it
+</span>LevelFuncs.CheckAndStart = <span class="keyword">function</span>()
+   <span class="keyword">if</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+      EventSequence.Get(<span class="string">"my_seq"</span>):Start()
+   <span class="keyword">end</span>
+<span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "Delete"></a>
+    <strong>Delete(name)</strong>
+    </dt>
+    <dd>
+    Delete an event sequence.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The label that was given to the event sequence when it was created.
         </li>
     </ul>
 
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span>EventSequence.Delete(<span class="string">"my_seq"</span>)</pre>
+    </ul>
 
 </dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_EventSequence"></a>Class EventSequence </h2>
+
+          <div class="section-description">
+          List of all methods of the EventSequence object.  It is always recommended to check the existence of a sequence with the <em>EventSequence.IfExists()</em> function before using methods, to avoid errors or unexpected behavior. When calling a method, it is recommended to use the <em>EventSequence.Get()</em> function, to avoid errors after loading a save game.
+          </div>
+            <h3>Usage:</h3>
+            <pre class="example"><span class="comment">-- Examples of some methods
+</span>EventSequence.Get(<span class="string">"my_seq"</span>):Start()
+EventSequence.Get(<span class="string">"my_seq"</span>):Stop()
+EventSequence.Get(<span class="string">"my_seq"</span>):SetPaused(<span class="keyword">true</span>)
+
+<span class="comment">-- check if sequence exists before using methods
+</span><span class="keyword">if</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):Start()
+<span class="keyword">end</span></pre>
+    <dl class="function">
     <dt>
-    <a name = "mySequence:IsPaused"></a>
-    <strong>mySequence:IsPaused()</strong>
-    </dt>
-    <dd>
-    Get whether or not the sequence is paused
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">bool</span></span>
-        true if the timer is paused, false if otherwise
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "mySequence:Start"></a>
-    <strong>mySequence:Start()</strong>
+    <a name = "EventSequence:Start"></a>
+    <strong>EventSequence:Start()</strong>
     </dt>
     <dd>
     Begin or unpause a sequence.  If showing the remaining time on-screen, its color will be set to white.
@@ -330,11 +442,52 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span><span class="keyword">if</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):Start()
+<span class="keyword">end</span></pre>
+    </ul>
 
 </dd>
     <dt>
-    <a name = "mySequence:Stop"></a>
-    <strong>mySequence:Stop()</strong>
+    <a name = "EventSequence:SetPaused"></a>
+    <strong>EventSequence:SetPaused(p)</strong>
+    </dt>
+    <dd>
+    Pause or unpause the sequence.  If showing the remaining time on-screen, its color will be set to yellow (paused) or white (unpaused).
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">p</span>
+            <span class="types"><span class="type">bool</span></span>
+         If <code>true</code>, the sequence will be paused; if <code>false</code>, it will be unpaused.
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example 1: Pause the sequence
+</span><span class="keyword">if</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):SetPaused(<span class="keyword">true</span>)
+<span class="keyword">end</span>
+
+<span class="comment">-- Example 2: Unpause the sequence
+</span><span class="keyword">if</span> EventSequence.IfExists(<span class="string">"my_seq"</span>) <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):SetPaused(<span class="keyword">false</span>)
+<span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "EventSequence:Stop"></a>
+    <strong>EventSequence:Stop()</strong>
     </dt>
     <dd>
     Stop the sequence.
@@ -345,14 +498,19 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span>EventSequence.Get(<span class="string">"my_seq"</span>):Stop()</pre>
+    </ul>
 
 </dd>
     <dt>
-    <a name = "mySequence:IsActive"></a>
-    <strong>mySequence:IsActive()</strong>
+    <a name = "EventSequence:IsPaused"></a>
+    <strong>EventSequence:IsPaused()</strong>
     </dt>
     <dd>
-    Get whether or not the sequence is active
+    Returns whether the sequence is paused.
 
 
 
@@ -361,11 +519,51 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the sequence is active, false if otherwise
+        <code>true</code> If the timer is paused, <code>false</code> if otherwise.
     </ol>
 
 
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example 1: paused sequence
+</span><span class="keyword">if</span> <span class="keyword">not</span> EventSequence.Get(<span class="string">"my_seq"</span>):IsPaused() <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):SetPaused(<span class="keyword">true</span>)
+<span class="keyword">end</span>
+
+<span class="comment">-- Example 2: unpause the sequence
+</span><span class="keyword">if</span> EventSequence.Get(<span class="string">"my_seq"</span>):IsPaused() <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):SetPaused(<span class="keyword">false</span>)
+<span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "EventSequence:IsActive"></a>
+    <strong>EventSequence:IsActive()</strong>
+    </dt>
+    <dd>
+    Returns whether the sequence is active.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        <code>true</code> If the sequence is active, <code>false</code> if otherwise.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example:
+</span><span class="keyword">if</span> <span class="keyword">not</span> EventSequence.Get(<span class="string">"my_seq"</span>):IsActive() <span class="keyword">then</span>
+   EventSequence.Get(<span class="string">"my_seq"</span>):Start()
+<span class="keyword">end</span></pre>
+    </ul>
 
 </dd>
 </dl>

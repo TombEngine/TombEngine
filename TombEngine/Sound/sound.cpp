@@ -1051,6 +1051,19 @@ void Sound_DeInit()
 		FreeLibrary(ADPCMLibrary);
 }
 
+std::string Sound_GetDeviceName()
+{
+	if (!g_Configuration.EnableSound)
+		return {};
+
+	BASS_DEVICEINFO info;
+
+	if (BASS_GetDeviceInfo(g_Configuration.SoundDevice, &info))
+		return std::string(info.name);
+
+	return {};
+}
+
 bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 {
 	va_list argptr;
