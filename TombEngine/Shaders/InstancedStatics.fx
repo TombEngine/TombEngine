@@ -33,8 +33,8 @@ struct PixelShaderInput
 	float4 PositionCopy : TEXCOORD1;
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
-	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+	float3 Tangent: TEXCOORD3;
+	float3 Binormal: TEXCOORD4;
 	uint InstanceID : SV_InstanceID;
 };
 
