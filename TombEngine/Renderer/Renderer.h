@@ -85,7 +85,7 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Utils;
 	using namespace DirectX::SimpleMath;
 
-	using TexturePair = std::tuple<Texture2D, Texture2D>;
+	using TexturePair = std::tuple<Texture2D, Texture2D, Texture2D>;
 
 	class Renderer
 	{
@@ -516,7 +516,7 @@ namespace TEN::Renderer
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
-		Texture2D CreateDefaultNormalTexture();
+		Texture2D CreateDefaultTexture(std::vector<byte> color);
 		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
 		void InitializeSpriteQuad();

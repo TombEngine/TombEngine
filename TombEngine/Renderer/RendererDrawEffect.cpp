@@ -1390,10 +1390,9 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 	}
 
-	Texture2D Renderer::CreateDefaultNormalTexture() 
+	Texture2D Renderer::CreateDefaultTexture(std::vector<byte> color)
 	{
-		auto data = std::vector<byte>{ 128, 128, 255, 1 };
-		return Texture2D(_device.Get(), 1, 1, data.data());
+		return Texture2D(_device.Get(), 1, 1, color.data());
 	}
 
 	void Renderer::PrepareFootprints(RenderView& view) 

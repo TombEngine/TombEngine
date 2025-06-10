@@ -48,6 +48,9 @@ SamplerState CausticsTextureSampler : register(s2);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
+Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
+SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+
 struct PixelShaderOutput
 {
 	float4 Color: SV_TARGET0;
@@ -125,6 +128,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(output.Color);
+	
+    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
+    float specular = ambientOcclusionRoughnessSpecular.x;
+    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
+    float roughness = ambientOcclusionRoughnessSpecular.z;
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
@@ -145,6 +153,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 		if (BlendMode == BLENDMODE_ALPHABLEND)
 			occlusion = lerp(occlusion, 1.0f, output.Color.w);
 	}
+	
+	occlusion *= ambientOcclusion;
 
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
 	lighting = DoBlobShadows(input.WorldPosition, lighting);

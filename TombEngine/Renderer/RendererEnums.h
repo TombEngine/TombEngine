@@ -182,7 +182,8 @@ enum class TextureRegister
 	DepthMap = 6,
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
-	SSAO = 9
+	SSAO = 9,
+	AmbientOcclusionRoughnessSpecularMap = 10
 };
 
 enum class SamplerStateRegister

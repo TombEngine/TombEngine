@@ -2651,7 +2651,7 @@ namespace TEN::Renderer
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-
+								  
 								if (_staticTextures.size() <= bucket.Texture)
 								{
 									TENLog("Attempted to set incorrect static mesh texture atlas", LogLevel::Warning);
@@ -2663,6 +2663,8 @@ namespace TEN::Renderer
 									SamplerStateRegister::AnisotropicClamp);
 								BindTexture(TextureRegister::NormalMap,
 									&std::get<1>(_staticTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+								BindTexture(TextureRegister::AmbientOcclusionRoughnessSpecularMap, 
+									&std::get<2>(_staticTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
 								DrawIndexedInstancedTriangles(bucket.NumIndices, instancesCount, bucket.StartIndex, 0);
 
@@ -2898,6 +2900,8 @@ namespace TEN::Renderer
 
 									BindTexture(TextureRegister::ColorMap,  &std::get<0>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 									BindTexture(TextureRegister::NormalMap, &std::get<1>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+									BindTexture(TextureRegister::AmbientOcclusionRoughnessSpecularMap,
+										&std::get<2>(_animatedTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
 									for (unsigned char j = 0; j < set.NumTextures; j++)
 									{
@@ -2920,6 +2924,8 @@ namespace TEN::Renderer
 							{
 								BindTexture(TextureRegister::ColorMap,  &std::get<0>(_roomTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 								BindTexture(TextureRegister::NormalMap, &std::get<1>(_roomTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+								BindTexture(TextureRegister::AmbientOcclusionRoughnessSpecularMap,
+									&std::get<2>(_roomTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 							}
 
 							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
@@ -3311,10 +3317,12 @@ namespace TEN::Renderer
 					{
 						if (!SetupBlendModeAndAlphaTest(blendMode, rendererPass, p))
 							continue;
-
+						 
 						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 						BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-
+						BindTexture(TextureRegister::AmbientOcclusionRoughnessSpecularMap,
+							&std::get<2>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+						 
 						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
 
 						_numMoveablesDrawCalls++;

@@ -569,6 +569,14 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
+		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasAmbientOcclusionRoughnessSpecularMap)
+		{
+			size = ReadInt32();
+			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+		}
+
 		g_Level.RoomTextures.push_back(texture);
 	}
 
@@ -593,6 +601,14 @@ void LoadTextures()
 			size = ReadInt32();
 			texture.normalMapData.resize(size);
 			ReadBytes(texture.normalMapData.data(), size);
+		}
+
+		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasAmbientOcclusionRoughnessSpecularMap)
+		{
+			size = ReadInt32();
+			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
 		}
 
 		g_Level.MoveablesTextures.push_back(texture);
@@ -621,6 +637,14 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
+		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasAmbientOcclusionRoughnessSpecularMap)
+		{
+			size = ReadInt32();
+			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+		}
+
 		g_Level.StaticsTextures.push_back(texture);
 	}
 
@@ -647,12 +671,20 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
+		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasAmbientOcclusionRoughnessSpecularMap)
+		{
+			size = ReadInt32();
+			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+		}
+
 		g_Level.AnimatedTextures.push_back(texture);
 	}
 
 	textureCount = ReadCount();
 	TENLog("Sprite texture count: " + std::to_string(textureCount), LogLevel::Info);
-
+	
 	g_Level.SpritesTextures.reserve(textureCount);
 	for (int i = 0; i < textureCount; i++)
 	{

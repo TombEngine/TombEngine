@@ -40,6 +40,9 @@ namespace TEN::Renderer
 		for (auto& dynamicLightList : _dynamicLights)
 			dynamicLightList.clear();
 
+		auto emptyNormalMap = std::vector<byte>{ 128, 128, 255, 255 };
+		auto emptyAmbientOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 255, 255, 255 };
+
 		int allocatedItemSize = (int)g_Level.Items.size() + MAX_SPAWNED_ITEM_COUNT;
 
 		auto item = RendererItem();
@@ -54,17 +57,31 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.AnimatedTextures.size(); i++)
 		{
 			TEXTURE* texture = &g_Level.AnimatedTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ambientOcclusionRoughnessSpecular;
+			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			{
+				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+			}
+			else
+			{
+				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+			}
+
+			TexturePair tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ambientOcclusionRoughnessSpecular);
 			_animatedTextures[i] = tex;
 		}
 
@@ -116,14 +133,28 @@ namespace TEN::Renderer
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ambientOcclusionRoughnessSpecular;
+			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			{
+				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+			}
+			else
+			{
+				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+			}
+
+			TexturePair tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ambientOcclusionRoughnessSpecular);
+
 			_roomTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES
@@ -142,17 +173,32 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.MoveablesTextures.size(); i++)
 		{
 			TEXTURE *texture = &g_Level.MoveablesTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ambientOcclusionRoughnessSpecular;
+			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			{
+				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+			}
+			else
+			{
+				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+			}
+
+			TexturePair tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ambientOcclusionRoughnessSpecular);
+
 			_moveablesTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES
@@ -171,17 +217,32 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.StaticsTextures.size(); i++)
 		{
 			TEXTURE *texture = &g_Level.StaticsTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ambientOcclusionRoughnessSpecular;
+			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			{
+				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+			}
+			else
+			{
+				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+			}
+
+			TexturePair tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ambientOcclusionRoughnessSpecular);
+
 			_staticTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES

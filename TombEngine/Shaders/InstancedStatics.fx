@@ -52,6 +52,9 @@ SamplerState NormalTextureSampler : register(s1);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
+Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
+SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -93,7 +96,13 @@ PixelShaderOutput PS(PixelShaderInput input)
 	PixelShaderOutput output;
 
 	float4 tex = Texture.Sample(Sampler, input.UV);
+	
 	DoAlphaTest(tex);
+	
+    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
+    float specular = ambientOcclusionRoughnessSpecular.x;
+    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
+    float roughness = ambientOcclusionRoughnessSpecular.z;
 
 	uint mode = StaticMeshes[input.InstanceID].LightInfo.y;
 	uint numLights = StaticMeshes[input.InstanceID].LightInfo.x;
@@ -114,7 +123,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 		if (BlendMode == BLENDMODE_ALPHABLEND)
 			occlusion = lerp(occlusion, 1.0f, tex.w);
 	}
-
+	
+    occlusion *= ambientOcclusion;
+	
 	float3 color = (mode == 0) ?
 		CombineLights(
 			StaticMeshes[input.InstanceID].AmbientLight.xyz,
@@ -125,7 +136,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen,
 			StaticMeshes[input.InstanceID].InstancedStaticLights,
 			numLights,
-			input.FogBulbs.w) :
+			input.FogBulbs.w,
+			specular,
+			roughness) :
 		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);

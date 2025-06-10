@@ -33,6 +33,9 @@ SamplerState Sampler : register(s0);
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
 
+Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
+SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
@@ -74,7 +77,13 @@ PixelShaderOutput PS(PixelShaderInput input)
 	PixelShaderOutput output;
 
 	float4 tex = Texture.Sample(Sampler, input.UV);
+	
     DoAlphaTest(tex);
+	
+    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
+    float specular = ambientOcclusionRoughnessSpecular.x;
+    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
+    float roughness = ambientOcclusionRoughnessSpecular.z;
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
@@ -90,7 +99,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen, 
 			StaticLights, 
 			NumStaticLights,
-			input.FogBulbs.w) :
+			input.FogBulbs.w,
+			specular,
+			roughness) :
 		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);

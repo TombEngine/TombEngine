@@ -44,6 +44,9 @@ SamplerState AmbientMapBackSampler : register(s8);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
+Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
+SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
@@ -92,8 +95,14 @@ PixelShaderOutput PS(PixelShaderInput input)
 		input.UV = CalculateUVRotate(input.UV, 0);
 
 	float4 tex = Texture.Sample(Sampler, input.UV);	
+	
     DoAlphaTest(tex);
 
+    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
+    float specular = ambientOcclusionRoughnessSpecular.x;
+    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
+    float roughness = ambientOcclusionRoughnessSpecular.z;
+	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
@@ -133,6 +142,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 		if (BlendMode == BLENDMODE_ALPHABLEND)
 			occlusion = lerp(occlusion, 1.0f, tex.w);
 	}
+	
+    occlusion *= ambientOcclusion;
 
 	float3 color = (BoneLightModes[input.Bone / 4][input.Bone % 4] == 0) ?
 		CombineLights(
@@ -144,7 +155,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen,
 			ItemLights, 
 			NumItemLights,
-			input.FogBulbs.w) :
+			input.FogBulbs.w,
+			specular,
+			roughness) :
 		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
 
 	float shadowable = step(0.5f, float((NumItemLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
