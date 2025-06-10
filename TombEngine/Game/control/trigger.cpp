@@ -289,7 +289,7 @@ void RefreshCamera(short type, short* data)
 
 				if (Camera.timer < 0 || !TestLockedCamera())
 				{
-					Camera.timer = -1;
+					Camera.timer = NO_VALUE;
 					targetOk = 0;
 					break;
 				}

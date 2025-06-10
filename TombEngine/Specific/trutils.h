@@ -25,6 +25,7 @@ namespace TEN::Utils
 	Vector2 Convert2DPositionToNDC(const Vector2& pos);
 	Vector2 ConvertNDCTo2DPosition(const Vector2& ndc);
 
+	std::wstring GetBinaryPath(bool includeExeName);
 	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion);
 
 	template <typename TElement>

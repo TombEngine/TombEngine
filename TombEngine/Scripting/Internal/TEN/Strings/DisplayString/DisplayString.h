@@ -76,7 +76,7 @@ public:
 	UserDisplayString(const std::string& key, const Vec2& pos, const Vec2& area, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
 };
 
-using DisplayStringID	 = uintptr_t;
+using DisplayStringID	 = unsigned int;
 using SetItemCallback	 = std::function<bool(DisplayStringID, const UserDisplayString&)>;
 using RemoveItemCallback = std::function<bool(DisplayStringID)>;
 using GetItemCallback	 = std::function<std::optional<std::reference_wrapper<UserDisplayString>>(DisplayStringID)>;

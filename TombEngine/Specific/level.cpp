@@ -1791,6 +1791,9 @@ void GetAIPickups()
 				{
 					item->AIBits |= (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
 					item->ItemFlags[3] = object->triggerFlags;
+
+					if (object->objectNumber != ID_AI_PATROL1)
+						object->roomNumber = NO_VALUE;
 				}
 			}
 

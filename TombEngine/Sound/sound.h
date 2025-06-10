@@ -6,6 +6,8 @@
 #include "Sound/sound_effects.h"
 
 constexpr auto SOUND_NO_CHANNEL              = -1;
+constexpr auto SOUND_SAMPLE_RATE             = 44100;
+constexpr auto SOUND_CHANNEL_COUNT           = 2;
 constexpr auto SOUND_BASS_UNITS              = 1.0f / 1024.0f;	// TR->BASS distance unit coefficient
 constexpr auto SOUND_MAXVOL_RADIUS           = 1024.0f;		// Max. volume hearing distance
 constexpr auto SOUND_OMNIPRESENT_ORIGIN      = Vector3(1.17549e-038f, 1.17549e-038f, 1.17549e-038f);
@@ -180,6 +182,9 @@ std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
 
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData);
 
+void Sound_VideoPlayCallback(void* opaque, const void* samples, unsigned count, int64_t pts);
+void Sound_VideoFlushCallback(void* data, int64_t pts);
+
 void  SetVolumeTracks(int vol);
 void  SetVolumeFX(int vol);
 
@@ -197,4 +202,3 @@ float Sound_DistanceToListener(Vector3 position);
 float Sound_Attenuate(float gain, float distance, float radius);
 bool  Sound_UpdateEffectPosition(int index, Pose *position, bool force = false);
 bool  Sound_UpdateEffectAttributes(int index, float pitch, float gain);
-std::string Sound_GetDeviceName();

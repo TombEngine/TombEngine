@@ -16,6 +16,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added land mode for underwater switches. Asset change required for both types of underwater switches.
   [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_WallSwitch.wad2).
 * Added ability to use big push switch (OCB 3) underwater.
+* Added extra behaviour for PIERRE and LARSON objects with non-zero OCBs to escape to either AI_AMBUSH with the same OCB, if it exists, or to any other point.
 
 ### Bug fixes
 * Fixed LASER_BEAM object going through walls.
@@ -24,7 +25,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed FISH_EMITTER object missing random targets due to distance.
 * Fixed FISH_EMITTER and COMPSOGNATHUS objects not attacking corpses.
 * Fixed TELEPORTER object.
-* Fixed AI_PATROL and AI_AMBUSH objects.
+* Fixed AI_PATROL and AI_AMBUSH objects to work with suitable enemies.
 * Fixed locked camera flag and glide timer not working for fixed cameras.
 * Fixed weapon hotkeys not unholstering already selected weapon.
 * Fixed weapons not hitting non-intelligent objects.
@@ -36,9 +37,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed HK sound effects.
 * Fixed HK and crossbow shots not being registered in statistics.
 * Fixed incorrect arm rotation for revolver animations in crouched state.
+* Fixed incorrect flare effects position in crouched state.
 * Fixed distorted knee and elbow joint vertices.
 * Fixed multi-mesh objects not shattering correctly.
 * Fixed splash effects remaining in the level after reloading from the savegame.
+* Fixed pickup notifier displaying wrong meshes for crossbow and lasersight.
 * Fixed caustics not rendered correctly if texture compression was enabled.
 * Fixed exclusion blend mode not working correctly.
 * Fixed SSAO incorrectly applied through alpha blended textures.
@@ -51,6 +54,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed crashes when activating objects without animations.
 * Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
 * Fixed incorrect conversion of non-Latin characters in the setup dialog.
+* Fixed menu option scrolling when input keys are held.
 * Fixed PUZZLE_HOLE Poseidon statue animation (ID 423). You must use updated Lara object from base wad.
 * Refactored PULLEY object. There is no need to use OCB 1 for a single pull.
   [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_Pulley.wad2).
@@ -77,9 +81,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
 * Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
+* Fixed `DisplayString` class prematurely deleting timed strings in rare occasions.
 * Fixed `Rotation` class to use unsigned 0-360 degree range, and provide `Rotation:Signed` method to get legacy -180-180 range.
 * Fixed `Inventory.GiveItem` screen position to start from the side of the screen.
 * Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
+* Fixed `Moveable.GetMeshSwapped` function not working correctly.
 * Fixed `Util.PickMoveableByDisplayPosition`.
 
 ## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29

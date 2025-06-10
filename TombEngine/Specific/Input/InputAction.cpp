@@ -145,8 +145,8 @@ namespace TEN::Input
 		float activeDelaySec = (_timeActive > SecToGameFrames(initialDelaySec)) ? delaySec : initialDelaySec;
 		unsigned int activeDelayGameFrames = SecToGameFrames(activeDelaySec);
 
-		unsigned int delayGameFrames = SecToGameFrames(_timeActive) * activeDelayGameFrames;
-		unsigned int prevDelayGameFrames = SecToGameFrames(_prevTimeActive) * activeDelayGameFrames;
+		unsigned int delayGameFrames = (unsigned int)floor(_timeActive / activeDelayGameFrames) * activeDelayGameFrames;
+		unsigned int prevDelayGameFrames = (unsigned int)floor(_prevTimeActive / activeDelayGameFrames) * activeDelayGameFrames;
 		return (delayGameFrames > prevDelayGameFrames);
 	}
 

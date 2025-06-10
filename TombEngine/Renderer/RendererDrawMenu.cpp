@@ -764,9 +764,10 @@ namespace TEN::Renderer
 		auto orient = EulerAngles::Lerp(pickup.PrevOrientation, pickup.Orientation, GetInterpolationFactor());
 		float scale = Lerp(pickup.PrevScale, pickup.Scale, GetInterpolationFactor());
 		float opacity = Lerp(pickup.PrevOpacity, pickup.Opacity, GetInterpolationFactor());
+		int invObjectID = g_Gui.ConvertObjectToInventoryItem(pickup.ObjectID);
 
 		// Draw display pickup.
-		DrawObjectIn2DSpace(pickup.ObjectID, pos, orient, scale);
+		DrawObjectIn2DSpace(pickup.ObjectID, pos, orient, scale, 1.0f, InventoryObjectTable[invObjectID].MeshBits);
 
 		// Draw count string.
 		if (pickup.Count != 1)

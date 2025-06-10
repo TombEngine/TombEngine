@@ -1450,10 +1450,10 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool 
 			aiObject.boxNumber = GetSector(room, aiObject.pos.Position.x - room->Position.x, aiObject.pos.Position.z - room->Position.z)->PathfindingBoxID;
 
 			if (item.BoxNumber == NO_VALUE || aiObject.boxNumber == NO_VALUE)
-				return;
+				continue;
 
 			if (checkSameZone && (zone[item.BoxNumber] != zone[aiObject.boxNumber]))
-				return;
+				continue;
 
 			// Don't check for same zone. Needed for Sophia Leigh.
 			foundObject = &aiObject;

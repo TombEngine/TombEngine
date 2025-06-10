@@ -457,8 +457,14 @@ void FlowHandler::LoadFlowScript()
 	}
 }
 
-char const * FlowHandler::GetString(const char* id) const
+ const char* FlowHandler::GetString(const char* id) const
 {
+	if (id == nullptr || *id == '\0')
+	{
+		TENLog("Provided string ID is empty.", LogLevel::Warning);
+		return _translationMap.begin()->second[0].c_str();
+	}
+
 	if (!ScriptAssert(_translationMap.find(id) != _translationMap.end(), std::string{ "Couldn't find string " } + id))
 	{
 		return id;

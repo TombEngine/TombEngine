@@ -45,7 +45,7 @@ public:
 	void		SetGameDir(const std::string& assetDir) override;
 	void		AddLevel(Level const& level);
 	void		LoadFlowScript();
-	char const*	GetString(const char* id) const;
+	const char* GetString(const char* id) const;
 	bool		IsStringPresent(const char* id) const;
 	void		SetStrings(sol::nested<std::unordered_map<std::string, std::vector<std::string>>>&& src);
 	void		SetLanguageNames(sol::as_table_t<std::vector<std::string>>&& src);

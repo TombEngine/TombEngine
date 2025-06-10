@@ -523,7 +523,9 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 
 	// Visually adapt head and torso orientations.
 	player.ExtraHeadRot = player.Control.Look.Orientation / 2;
+
 	if (player.Control.HandStatus != HandStatus::Busy &&
+		!player.Control.IsLow &&
 		!player.LeftArm.Locked && !player.RightArm.Locked &&
 		player.Context.Vehicle == NO_VALUE)
 	{

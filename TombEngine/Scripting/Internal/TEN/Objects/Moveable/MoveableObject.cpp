@@ -1031,7 +1031,7 @@ bool Moveable::GetMeshSwapped(int meshId) const
 	if (!MeshExists(meshId))
 		return false;
 
-	return _moveable->Model.MeshIndex[meshId] == _moveable->Model.BaseMesh + meshId;
+	return _moveable->Model.MeshIndex[meshId] != _moveable->Model.BaseMesh + meshId;
 }
 
 /// Set state of specified mesh swap of a moveable. Use this to swap specified mesh of a moveable.

@@ -31,6 +31,7 @@ enum SoundSourceFlags
 
 HSAMPLE BASS_SamplePointer[SOUND_MAX_SAMPLES];
 HSTREAM BASS_3D_Mixdown;
+HSTREAM BASS_Video;
 HFX     BASS_FXHandler[(int)SoundFilter::Count];
 
 HMODULE ADPCMLibrary = NULL; // Temporary hack for unexpected ADPCM codec unload on Win11 systems.
@@ -78,7 +79,6 @@ void SetVolumeTracks(int vol)
 void SetVolumeFX(int vol)
 {
 	GlobalFXVolume = vol;
-	g_VideoPlayer.SetVolume(vol);
 }
 
 bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
@@ -713,6 +713,26 @@ static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD
 		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)SoundTrackType::BGM].Channel, BASS_ATTRIB_VOL, (float)GlobalMusicVolume / 100.0f, SOUND_XFADETIME_BGM_START);
 }
 
+void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, int64_t pts)
+{
+	if (!BASS_ChannelIsActive(BASS_Video))
+	{
+		BASS_ChannelPlay(BASS_Video, false);
+		BASS_ChannelSetAttribute(BASS_Video, BASS_ATTRIB_VOL, GlobalFXVolume / 100.0f);
+		Sound_CheckBASSError("Starting audio stream routing for video playback", false);
+	}
+
+	int bytes = count * SOUND_CHANNEL_COUNT * sizeof(float);
+	BASS_StreamPutData(BASS_Video, samples, bytes);
+	Sound_CheckBASSError("Video playback audio stream buffering", false);
+}
+
+void Sound_VideoFlushCallback(void* data, int64_t pts)
+{
+	BASS_ChannelStop(BASS_Video);
+	Sound_CheckBASSError("Stopping audio stream routing for video playback", false);
+}
+
 void Sound_FreeSample(int index)
 {
 	if (BASS_SamplePointer[index] != NULL)
@@ -984,7 +1004,7 @@ void Sound_Init(const std::string& gameDirectory)
 	// HACK: Manually force-load ADPCM codec, because on Win11 systems it may suddenly unload otherwise.
 	ADPCMLibrary = LoadLibrary("msadp32.acm");
 
-	BASS_Init(g_Configuration.SoundDevice, 44100, BASS_DEVICE_3D, WindowsHandle, NULL);
+	BASS_Init(g_Configuration.SoundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, WindowsHandle, NULL);
 	if (Sound_CheckBASSError("Initializing BASS sound device", true))
 		return;
 
@@ -1006,8 +1026,11 @@ void Sound_Init(const std::string& gameDirectory)
 	// Create 3D mixdown channel and make it play forever.
 	// For realtime mixer channels, we need minimum buffer latency. It shouldn't affect reliability.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 40);
-	BASS_3D_Mixdown = BASS_StreamCreate(44100, 2, BASS_SAMPLE_FLOAT, STREAMPROC_DEVICE_3D, NULL);
+	BASS_3D_Mixdown = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_DEVICE_3D, NULL);
 	BASS_ChannelPlay(BASS_3D_Mixdown, false);
+
+	// Create video channel for video playback.
+	BASS_Video = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_PUSH, NULL);
 
 	// Reset buffer back to normal value.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 300);
@@ -1049,19 +1072,6 @@ void Sound_DeInit()
 	// HACK: Manually unload previously loaded ADPCM codec.
 	if (ADPCMLibrary != NULL)
 		FreeLibrary(ADPCMLibrary);
-}
-
-std::string Sound_GetDeviceName()
-{
-	if (!g_Configuration.EnableSound)
-		return {};
-
-	BASS_DEVICEINFO info;
-
-	if (BASS_GetDeviceInfo(g_Configuration.SoundDevice, &info))
-		return std::string(info.name);
-
-	return {};
 }
 
 bool Sound_CheckBASSError(const char* message, bool verbose, ...)
