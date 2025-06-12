@@ -41,7 +41,7 @@ float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specular
 		float3 reflectDir = reflect(lightDir, n);
 
         float3 color = light.Color.xyz;
-        float intensity = specularIntensity; //saturate(light.Intensity);
+        float intensity = specularIntensity;
 		float spec = pow(saturate(dot(CamDirectionWS.xyz, reflectDir)), strength * SPEC_FACTOR);
 
 		return spec * color * intensity;
@@ -85,7 +85,7 @@ float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, f
 				float3 reflectDir = reflect(lightDir, n);
 
                 float3 color = light.Color.xyz;
-                float intensity = specularIntensity; //saturate(light.Intensity);
+                float intensity = specularIntensity;
 				float spec = pow(saturate(dot(CamDirectionWS.xyz, reflectDir)), strength * SPEC_FACTOR);
 				float falloff = saturate((outerRange - distance) / (outerRange - innerRange + 1.0f));
 
@@ -138,7 +138,7 @@ float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light)
     return saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
 }
 
-void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, out float3 pointOutput, out float3 spotOutput)
+void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float specularIntensity, out float3 pointOutput, out float3 spotOutput)
 {
     float3 lightVec = light.Position.xyz - pos;
     float  distance = length(lightVec);
@@ -151,6 +151,9 @@ void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, out float
     float d = saturate(dot(normal, lightDir));
     pointOutput = saturate(light.Color.xyz * light.Intensity * distanceAttenuation * d);
     spotOutput  = saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
+	
+    pointOutput += DoSpecularSpot(pos, normal, light, 1.0f, specularIntensity);
+    spotOutput += DoSpecularSpot(pos, normal, light, 1.0f, specularIntensity);
 }
 
 float3 DoDirectionalLight(float3 pos, float3 normal, ShaderLight light)
