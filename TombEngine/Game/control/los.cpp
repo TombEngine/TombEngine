@@ -235,7 +235,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 
 					auto spheres = item->GetSpheres();
 					auto ray = Ray(origin->ToVector3(), dir);
-					float bestDistance = INFINITY;
+					float bestDistance = FLT_MAX;
 					int bestJointIndex = NO_VALUE;
 
 					for (int i = 0; i < spheres.size(); i++)
@@ -346,7 +346,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	int meshIndex = 0;
 	int bit = 0;
 	int sp = -2;
-	float minDist = INFINITY;
+	float minDist = FLT_MAX;
 
 	if (closestItemNumber < 0)
 	{

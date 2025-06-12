@@ -285,7 +285,7 @@ namespace TEN::Hud
 		if (_crosshairs.size() >= CROSSHAIR_COUNT_MAX)
 		{
 			int key = 0;
-			float smallestScale = INFINITY;
+			float smallestScale = FLT_MAX;
 			
 			for (auto& [itemNumber, crosshair] : _crosshairs)
 			{

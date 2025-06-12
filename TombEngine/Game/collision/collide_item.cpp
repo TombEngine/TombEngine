@@ -76,20 +76,12 @@ void GenericSphereBoxCollision(short itemNumber, ItemInfo* playerItem, Collision
 			GlobalCollisionBounds.Z1 = sphere.Center.z - sphere.Radius - item.Pose.Position.z;
 			GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
 
-			auto pos = playerItem->Pose.Position;
-			if (ItemPushItem(&item, playerItem, coll, harmBits & 1, 3) && (harmBits & 1))
+			if (ItemPushItem(&item, playerItem, coll, harmBits & 1, 3) && (harmBits & 1) && (item.ItemFlags[3] > 0))
 			{
 				DoDamage(playerItem, item.ItemFlags[3]);
 
-				auto deltaPos = pos - playerItem->Pose.Position;
-				if (deltaPos != Vector3i::Zero)
-				{
-					if (TriggerActive(&item))
-						TriggerLaraBlood();
-				}
-
-				if (!coll->Setup.EnableObjectPush)
-					playerItem->Pose.Position += deltaPos;
+				if (TriggerActive(&item))
+					TriggerLaraBlood();
 			}
 		}
 

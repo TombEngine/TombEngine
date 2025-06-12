@@ -136,7 +136,7 @@ namespace TEN::Entities::TR4
 				else
 				{
 					creature->Enemy = nullptr;
-					float minDistance = INFINITY;
+					float minDistance = FLT_MAX;
 
 					for (auto& currentCreature : ActiveCreatures)
 					{

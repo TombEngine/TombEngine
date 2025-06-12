@@ -152,7 +152,7 @@ namespace TEN::Input
 
 	bool Action::IsReleased(float delaySecMax) const
 	{
-		unsigned int delayGameFramesMax = (delaySecMax == INFINITY) ? UINT_MAX : SecToGameFrames(delaySecMax);
+		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
 		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
 	}
 

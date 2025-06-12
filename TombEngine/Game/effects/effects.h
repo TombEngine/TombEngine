@@ -237,7 +237,7 @@ TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
 		return effects.emplace_back();
 
 	TEffect* effectPtr = nullptr;
-	float shortestLife = INFINITY;
+	float shortestLife = FLT_MAX;
 
 	// Find effect with shortest remaining life.
 	for (auto& effect : effects)
