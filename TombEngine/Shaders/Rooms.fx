@@ -48,8 +48,11 @@ SamplerState CausticsTextureSampler : register(s2);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
-Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
-SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+Texture2D OcclusionRoughnessSpecularTexture : register(t10);
+SamplerState OcclusionRoughnessSpecularSampler : register(s10);
+
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
 
 struct PixelShaderOutput
 {
@@ -129,11 +132,13 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	DoAlphaTest(output.Color);
 	
-    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
-    float specular = ambientOcclusionRoughnessSpecular.x;
-    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
-    float roughness = ambientOcclusionRoughnessSpecular.z;
-
+    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
+    float ambientOcclusion = occlusionRoughnessSpecular.x;
+    float roughness = occlusionRoughnessSpecular.y;
+    float specular = occlusionRoughnessSpecular.z;
+    
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
@@ -213,6 +218,9 @@ PixelShaderOutput PS(PixelShaderInput input)
     }
 
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
+	
+    lighting += emissive;
+	
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;
 	output.Color.xyz = saturate(output.Color.xyz);
 

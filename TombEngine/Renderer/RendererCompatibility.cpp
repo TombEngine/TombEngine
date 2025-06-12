@@ -41,7 +41,8 @@ namespace TEN::Renderer
 			dynamicLightList.clear();
 
 		auto emptyNormalMap = std::vector<byte>{ 128, 128, 255, 255 };
-		auto emptyAmbientOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 255, 255, 255 };
+		auto emptyOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 255, 255, 255 };
+		auto emptyEmissiveMap = std::vector<byte>{ 0, 0, 0, 0 };
 
 		int allocatedItemSize = (int)g_Level.Items.size() + MAX_SPAWNED_ITEM_COUNT;
 
@@ -68,20 +69,31 @@ namespace TEN::Renderer
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			Texture2D ambientOcclusionRoughnessSpecular;
-			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			Texture2D occlusionRoughnessSpecular;
+			if (texture->occlusionRoughnessSpecularMapData.size() < 1)
 			{
-				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+				occlusionRoughnessSpecular = CreateDefaultTexture(emptyOcclusionRoughnessSpecularMap);
 			}
 			else
 			{
-				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+				occlusionRoughnessSpecular = Texture2D(_device.Get(), texture->occlusionRoughnessSpecularMapData.data(), (int)texture->occlusionRoughnessSpecularMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
 			TexturePair tex = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
 				normal,
-				ambientOcclusionRoughnessSpecular);
+				occlusionRoughnessSpecular,
+				emissive);
 			_animatedTextures[i] = tex;
 		}
 
@@ -140,20 +152,31 @@ namespace TEN::Renderer
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			Texture2D ambientOcclusionRoughnessSpecular;
-			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			Texture2D occlusionRoughnessSpecular;
+			if (texture->occlusionRoughnessSpecularMapData.size() < 1)
 			{
-				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+				occlusionRoughnessSpecular = CreateDefaultTexture(emptyOcclusionRoughnessSpecularMap);
 			}
 			else
 			{
-				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+				occlusionRoughnessSpecular = Texture2D(_device.Get(), texture->occlusionRoughnessSpecularMapData.data(), (int)texture->occlusionRoughnessSpecularMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
 			TexturePair tex = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
 				normal,
-				ambientOcclusionRoughnessSpecular);
+				occlusionRoughnessSpecular,
+				emissive);
 
 			_roomTextures[i] = tex;
 
@@ -184,20 +207,31 @@ namespace TEN::Renderer
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			Texture2D ambientOcclusionRoughnessSpecular;
-			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			Texture2D occlusionRoughnessSpecular;
+			if (texture->occlusionRoughnessSpecularMapData.size() < 1)
 			{
-				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+				occlusionRoughnessSpecular = CreateDefaultTexture(emptyOcclusionRoughnessSpecularMap);
 			}
 			else
 			{
-				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+				occlusionRoughnessSpecular = Texture2D(_device.Get(), texture->occlusionRoughnessSpecularMapData.data(), (int)texture->occlusionRoughnessSpecularMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
 			TexturePair tex = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
 				normal,
-				ambientOcclusionRoughnessSpecular);
+				occlusionRoughnessSpecular,
+				emissive);
 
 			_moveablesTextures[i] = tex;
 
@@ -228,20 +262,31 @@ namespace TEN::Renderer
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			Texture2D ambientOcclusionRoughnessSpecular;
-			if (texture->ambientOcclusionRoughnessSpecularMapData.size() < 1)
+			Texture2D occlusionRoughnessSpecular;
+			if (texture->occlusionRoughnessSpecularMapData.size() < 1)
 			{
-				ambientOcclusionRoughnessSpecular = CreateDefaultTexture(emptyAmbientOcclusionRoughnessSpecularMap);
+				occlusionRoughnessSpecular = CreateDefaultTexture(emptyOcclusionRoughnessSpecularMap);
 			}
 			else
 			{
-				ambientOcclusionRoughnessSpecular = Texture2D(_device.Get(), texture->ambientOcclusionRoughnessSpecularMapData.data(), (int)texture->ambientOcclusionRoughnessSpecularMapData.size());
+				occlusionRoughnessSpecular = Texture2D(_device.Get(), texture->occlusionRoughnessSpecularMapData.data(), (int)texture->occlusionRoughnessSpecularMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
 			TexturePair tex = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
 				normal,
-				ambientOcclusionRoughnessSpecular);
+				occlusionRoughnessSpecular,
+				emissive);
 
 			_staticTextures[i] = tex;
 

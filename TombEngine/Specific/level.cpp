@@ -569,12 +569,20 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasAmbientOcclusionRoughnessSpecularMap)
+		bool hasOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasOcclusionRoughnessSpecularMap)
 		{
 			size = ReadInt32();
-			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+			texture.occlusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.RoomTextures.push_back(texture);
@@ -603,12 +611,20 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasAmbientOcclusionRoughnessSpecularMap)
+		bool hasOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasOcclusionRoughnessSpecularMap)
 		{
 			size = ReadInt32();
-			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+			texture.occlusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.MoveablesTextures.push_back(texture);
@@ -637,12 +653,20 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasAmbientOcclusionRoughnessSpecularMap)
+		bool hasOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasOcclusionRoughnessSpecularMap)
 		{
 			size = ReadInt32();
-			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+			texture.occlusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.StaticsTextures.push_back(texture);
@@ -671,12 +695,20 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasAmbientOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasAmbientOcclusionRoughnessSpecularMap)
+		bool hasOcclusionRoughnessSpecularMap = ReadBool();
+		if (hasOcclusionRoughnessSpecularMap)
 		{
 			size = ReadInt32();
-			texture.ambientOcclusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.ambientOcclusionRoughnessSpecularMapData.data(), size);
+			texture.occlusionRoughnessSpecularMapData.resize(size);
+			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.AnimatedTextures.push_back(texture);

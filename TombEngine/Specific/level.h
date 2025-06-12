@@ -29,7 +29,8 @@ struct TEXTURE
 	int height;
 	std::vector<byte> colorMapData;
 	std::vector<byte> normalMapData;
-	std::vector<byte> ambientOcclusionRoughnessSpecularMapData;
+	std::vector<byte> occlusionRoughnessSpecularMapData;
+	std::vector<byte> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME

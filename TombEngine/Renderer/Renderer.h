@@ -85,7 +85,7 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Utils;
 	using namespace DirectX::SimpleMath;
 
-	using TexturePair = std::tuple<Texture2D, Texture2D, Texture2D>;
+	using TexturePair = std::tuple<Texture2D, Texture2D, Texture2D, Texture2D>;
 
 	class Renderer
 	{

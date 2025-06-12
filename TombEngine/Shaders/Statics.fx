@@ -33,8 +33,11 @@ SamplerState Sampler : register(s0);
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
 
-Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
-SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
+Texture2D OcclusionRoughnessSpecularTexture : register(t10);
+SamplerState OcclusionRoughnessSpecularSampler : register(s10);
+
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
@@ -80,10 +83,12 @@ PixelShaderOutput PS(PixelShaderInput input)
 	
     DoAlphaTest(tex);
 	
-    float4 ambientOcclusionRoughnessSpecular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV);
-    float specular = ambientOcclusionRoughnessSpecular.x;
-    float ambientOcclusion = ambientOcclusionRoughnessSpecular.y;
-    float roughness = ambientOcclusionRoughnessSpecular.z;
+    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
+    float ambientOcclusion = occlusionRoughnessSpecular.x;
+    float roughness = occlusionRoughnessSpecular.y;
+    float specular = occlusionRoughnessSpecular.z;
+    
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
