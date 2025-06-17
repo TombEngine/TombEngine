@@ -229,7 +229,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			{
 				auto* object = &Objects[item->ObjectNumber];
 
-				if (object->intelligent || object->HitRoutine)
+				if ((object->intelligent || object->HitRoutine) && object->drawRoutine)
 				{
 					const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 
@@ -461,7 +461,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 			if (priorityObjectID != GAME_OBJECT_ID::ID_NO_OBJECT && item.ObjectNumber != priorityObjectID)
 				continue;
 
-			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || !item.Collidable))
+			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].drawRoutine == nullptr || !item.Collidable))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && priorityObjectID != ID_LARA)
