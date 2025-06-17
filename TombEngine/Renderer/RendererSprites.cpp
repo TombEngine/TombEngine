@@ -300,7 +300,7 @@ namespace TEN::Renderer
 
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(spriteToDraw, view);
 					_stInstancedSpriteBuffer.Sprites[i].Color = spriteToDraw.color;
-					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1.0f;
+					_stInstancedSpriteBuffer.Sprites[i].PerVertexColor = 0;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = spriteToDraw.SoftParticle ? 1.0f : 0.0f;
 					_stInstancedSpriteBuffer.Sprites[i].RenderType = (int)spriteToDraw.renderType;
 
@@ -348,37 +348,44 @@ namespace TEN::Renderer
 
 				_shaders.Bind(Shader::InstancedSprites);
 
+				// Set up vertex buffer and parameters.
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+				_context->IASetVertexBuffers(0, 1, _spritesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
 				wasGpuSet = true;
 			}
 			
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
+			_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
+			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
+			_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)spriteBucket.RenderType;
+
+			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
+
+			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = spriteBucket.Sprite->UV[0].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = spriteBucket.Sprite->UV[1].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = spriteBucket.Sprite->UV[2].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = spriteBucket.Sprite->UV[3].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = spriteBucket.Sprite->UV[0].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = spriteBucket.Sprite->UV[1].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = spriteBucket.Sprite->UV[2].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = spriteBucket.Sprite->UV[3].y;
+
+			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+
 			int spritesToDraw = 0;
 
 			for (auto& rDrawSprite : spriteBucket.SpritesToDraw)
 			{
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].World = Matrix::Identity;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].RenderType = (int)spriteBucket.RenderType;
-			
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].Color = rDrawSprite.color;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].IsBillboard = 0.0f;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].IsSoftParticle = rDrawSprite.SoftParticle ? 1.0f : 0.0f;
-
-				// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[0].x = rDrawSprite.Sprite->UV[0].x;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[0].y = rDrawSprite.Sprite->UV[1].x;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[0].z = rDrawSprite.Sprite->UV[2].x;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[0].w = rDrawSprite.Sprite->UV[3].x;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[1].x = rDrawSprite.Sprite->UV[0].y;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[1].y = rDrawSprite.Sprite->UV[1].y;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[1].z = rDrawSprite.Sprite->UV[2].y;
-				_stInstancedSpriteBuffer.Sprites[spritesToDraw].UV[1].w = rDrawSprite.Sprite->UV[3].y;
-
 				auto vertex0 = Vertex{};
 				vertex0.Position = rDrawSprite.vtx1;
 				vertex0.UV = rDrawSprite.Sprite->UV[0];
 				vertex0.Color = rDrawSprite.c1;
+				vertex0.IndexInPoly = 0;
 
 				ReflectVectorOptionally(vertex0.Position);
 
@@ -386,6 +393,7 @@ namespace TEN::Renderer
 				vertex1.Position = rDrawSprite.vtx2;
 				vertex1.UV = rDrawSprite.Sprite->UV[1];
 				vertex1.Color = rDrawSprite.c2;
+				vertex1.IndexInPoly = 1;
 
 				ReflectVectorOptionally(vertex1.Position);
 
@@ -393,6 +401,7 @@ namespace TEN::Renderer
 				vertex2.Position = rDrawSprite.vtx3;
 				vertex2.UV = rDrawSprite.Sprite->UV[2];
 				vertex2.Color = rDrawSprite.c3;
+				vertex2.IndexInPoly = 2;
 
 				ReflectVectorOptionally(vertex2.Position);
 
@@ -400,21 +409,22 @@ namespace TEN::Renderer
 				vertex3.Position = rDrawSprite.vtx4;
 				vertex3.UV = rDrawSprite.Sprite->UV[3];
 				vertex3.Color = rDrawSprite.c4;
+				vertex3.IndexInPoly = 3;
 
 				ReflectVectorOptionally(vertex3.Position);
 
 				_spritesVertices.push_back(vertex0);
 				_spritesVertices.push_back(vertex1);
-				_spritesVertices.push_back(vertex2);
 				_spritesVertices.push_back(vertex3);
+				_spritesVertices.push_back(vertex2);
 
 				spritesToDraw++;
 
 				if (spritesToDraw == INSTANCED_SPRITES_BUCKET_SIZE || spritesToDraw == spriteBucket.SpritesToDraw.size())
 				{
-					_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+					_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, spritesToDraw * 4);
 
-					DrawInstancedTriangles(4, spritesToDraw, 0);
+					DrawInstancedTriangles(spritesToDraw * 4, 1, 0);
 
 					_numInstancedSpritesDrawCalls++;
 		
@@ -444,8 +454,7 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
 			GetWorldMatrixForSprite(*object->Sprite, view) :
 			Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].Color = object->Sprite->color;
-		_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)object->Sprite->renderType;
 
@@ -496,8 +505,8 @@ namespace TEN::Renderer
 			_spritesVertices.clear();
 			_spritesVertices.push_back(vertex0);
 			_spritesVertices.push_back(vertex1);
-			_spritesVertices.push_back(vertex2);
 			_spritesVertices.push_back(vertex3);
+			_spritesVertices.push_back(vertex2);
 
 			_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, 4);
 
@@ -527,8 +536,7 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].Color = Vector4::One;
-		_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 0;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)objectInfo->Sprite->renderType;
 
@@ -541,7 +549,7 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].UV[1].y = objectInfo->Sprite->Sprite->UV[1].y;
 		_stInstancedSpriteBuffer.Sprites[0].UV[1].z = objectInfo->Sprite->Sprite->UV[2].y;
 		_stInstancedSpriteBuffer.Sprites[0].UV[1].w = objectInfo->Sprite->Sprite->UV[3].y;
-
+		
 		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
 		SetDepthState(DepthState::Read);

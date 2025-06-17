@@ -14,9 +14,9 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Vector4 Color;
 		//--
-		float IsBillboard;
 		float IsSoftParticle;
 		int RenderType;
+		int PerVertexColor;
 	};
 
 	struct alignas(16) CInstancedSpriteBuffer

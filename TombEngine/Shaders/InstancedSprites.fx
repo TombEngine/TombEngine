@@ -26,9 +26,9 @@ struct InstancedSprite
 	float4x4 World;
 	float4 UV[2];
 	float4 Color;
-	float IsBillboard;
 	float IsSoftParticle;
     int RenderType;
+    int PerVertexColor;
 };
 
 cbuffer InstancedSpriteBuffer : register(b13)
@@ -46,22 +46,16 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
 
+    InstancedSprite sprite = Sprites[InstanceID];
+	
 	float4 worldPosition;
 
-	if (Sprites[InstanceID].IsBillboard == 1)
-	{
-		worldPosition = mul(float4(input.Position, 1.0f), Sprites[InstanceID].World);
-		output.Position = mul(mul(float4(input.Position, 1.0f), Sprites[InstanceID].World), ViewProjection);
-	}
-	else
-	{
-		worldPosition = float4(input.Position, 1.0f);
-		output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
-	}
+    worldPosition = mul(float4(input.Position, 1.0f), sprite.World);
+    output.Position = mul(worldPosition, ViewProjection);
 
 	output.PositionCopy = output.Position;
-	output.Color = Sprites[InstanceID].Color;
-	output.UV = float2(Sprites[InstanceID].UV[0][input.PolyIndex], Sprites[InstanceID].UV[1][input.PolyIndex]);
+    output.Color = lerp(sprite.Color, input.Color, saturate((float) sprite.PerVertexColor));
+    output.UV = float2(sprite.UV[0][input.PolyIndex], sprite.UV[1][input.PolyIndex]);
 	output.InstanceID  = InstanceID;
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
@@ -88,9 +82,11 @@ float Contrast(float Input, float ContrastPower)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
+    InstancedSprite sprite = Sprites[input.InstanceID];
+	
 	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
-	if (Sprites[input.InstanceID].IsSoftParticle == 1)
+    if (sprite.IsSoftParticle == 1)
 	{
 		float particleDepth = input.PositionCopy.z / input.PositionCopy.w;
 		input.PositionCopy.xy /= input.PositionCopy.w;
@@ -108,18 +104,17 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		output.w = min(output.w, fade);
 	}
 	
-    if (Sprites[input.InstanceID].RenderType == 1)
+    if (sprite.RenderType == 1)
     {
         output = DoLaserBarrierEffect(input.Position.xyz, output, input.UV, FADE_FACTOR, Frame);
     }
 
-    if (Sprites[input.InstanceID].RenderType == 2)
+    if (sprite.RenderType == 2)
     {
         output = DoLaserBeamEffect(input.Position.xyz, output, input.UV, FADE_FACTOR, Frame);
     }
-
-	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
-	output.xyz = saturate(output.xyz);
+	
+    output.xyz = saturate(output.xyz * (1.0f - Luma(input.FogBulbs.xyz)));
 
 	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
 
