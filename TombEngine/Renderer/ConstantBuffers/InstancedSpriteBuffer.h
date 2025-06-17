@@ -16,6 +16,7 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		float IsBillboard;
 		float IsSoftParticle;
+		int RenderType;
 	};
 
 	struct alignas(16) CInstancedSpriteBuffer

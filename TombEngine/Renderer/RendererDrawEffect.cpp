@@ -1614,11 +1614,9 @@ namespace TEN::Renderer
 				{
 					_debrisVertexBuffer.Update(_context.Get(), _debrisVertices.data(), 0, debrisToDraw * 3);
 
-					_context->DrawInstanced(debrisToDraw * 3, 1, 0, 0);
+					DrawInstancedTriangles(debrisToDraw * 3, 1, 0);
 
 					_numDebrisDrawCalls++;
-					_numDrawCalls++;
-					_numTriangles++;
 
 					debrisToDraw = 0;
 					_debrisVertices.clear();

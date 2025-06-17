@@ -18,7 +18,6 @@ namespace TEN::Renderer::Utils
 		RoomAmbientSky,
 		Items,
 		InstancedStatics,
-		Sprites,
 		InstancedSprites,
 		Sky,
 		Solid,

@@ -108,7 +108,7 @@ namespace TEN::Renderer
 			Vector4(0.18f, 0.3f, 0.72f, 1.0f),
 			Vector4(0.18f, 0.3f, 0.72f, 1.0f)
 		};
-
+		 
 		int shift = MenuVerticalLineSpacing / 2;
 
 		g_MusicVolumeBar = new RendererHudBar(_device.Get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);

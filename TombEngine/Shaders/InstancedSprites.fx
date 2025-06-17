@@ -2,11 +2,13 @@
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
+#include "./SpriteEffects.hlsli"
 #include "./ShaderLight.hlsli"
 
 // NOTE: This shader is used for all opaque or not sorted transparent sprites, that can be instanced for a faster drawing
 
 #define INSTANCED_SPRITES_BUCKET_SIZE 512
+#define FADE_FACTOR .789f
 
 struct PixelShaderInput
 {
@@ -26,6 +28,7 @@ struct InstancedSprite
 	float4 Color;
 	float IsBillboard;
 	float IsSoftParticle;
+    int RenderType;
 };
 
 cbuffer InstancedSpriteBuffer : register(b13)
@@ -91,6 +94,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	{
 		float particleDepth = input.PositionCopy.z / input.PositionCopy.w;
 		input.PositionCopy.xy /= input.PositionCopy.w;
+		
 		float2 texCoord = 0.5f * (float2(input.PositionCopy.x, -input.PositionCopy.y) + 1);
 		float sceneDepth = DepthTexture.Sample(DepthSampler, texCoord).x;
 
@@ -98,13 +102,21 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		particleDepth = LinearizeDepth(particleDepth, NearPlane, FarPlane);
 
 		if (particleDepth - sceneDepth > 0.01f)
-		{
-			discard;
-		}
+            discard;
 
 		float fade = (sceneDepth - particleDepth) * 1024.0f;
 		output.w = min(output.w, fade);
 	}
+	
+    if (Sprites[input.InstanceID].RenderType == 1)
+    {
+        output = DoLaserBarrierEffect(input.Position.xyz, output, input.UV, FADE_FACTOR, Frame);
+    }
+
+    if (Sprites[input.InstanceID].RenderType == 2)
+    {
+        output = DoLaserBeamEffect(input.Position.xyz, output, input.UV, FADE_FACTOR, Frame);
+    }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
 	output.xyz = saturate(output.xyz);

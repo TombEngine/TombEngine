@@ -100,7 +100,6 @@ namespace TEN::Renderer::Utils
 
 		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex);
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex);
-		Load(Shader::Sprites, "Sprites", "", ShaderType::PixelAndVertex);
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex);
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex);
 		Load(Shader::FullScreenQuad, "FullScreenQuad", "", ShaderType::PixelAndVertex);

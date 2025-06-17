@@ -78,7 +78,6 @@ namespace TEN::Renderer
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
 		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
-		_cbSprite = CreateConstantBuffer<CSpriteBuffer>();
 		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
 		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
 		_cbHUD.UpdateData(_stHUD, _context.Get());
@@ -250,6 +249,9 @@ namespace TEN::Renderer
 
 		_debrisVertices.reserve(MAX_DEBRIS * 3);
 		_debrisVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_DEBRIS * 3, _debrisVertices);
+
+		_spritesVertices.reserve(INSTANCED_SPRITES_BUCKET_SIZE * 4);
+		_spritesVertexBuffer = VertexBuffer<Vertex>(_device.Get(), INSTANCED_SPRITES_BUCKET_SIZE * 4, _spritesVertices);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
