@@ -170,7 +170,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	shadow = DoBlobShadows(input.WorldPosition, shadow);
 	color = lerp(color, shadow, shadowable);
 
-	output.Color = saturate(float4(color * occlusion, tex.w));
+    output.Color = saturate(float4(color * occlusion + emissive, tex.w));
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 	output.Color.w *= input.Color.w;
