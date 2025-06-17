@@ -207,7 +207,7 @@ enum class ConstantBufferRegister
 	Room = 5,
 	AnimatedTextures = 6,
 	PostProcess = 7,
-	Static = 8,
+	Sky = 8,
 	Sprite = 9,
 	Hud = 10,
 	HudBar = 11,

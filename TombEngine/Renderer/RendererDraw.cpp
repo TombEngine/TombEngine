@@ -576,11 +576,11 @@ namespace TEN::Renderer
 				if (rendererPass == RendererPass::GBuffer)
 				{
 					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferStatics);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
 				}
 				else
 				{
-					_shaders.Bind(Shader::Statics);
+					_shaders.Bind(Shader::InstancedStatics);
 				}
 
 				UINT stride = sizeof(Vertex);
@@ -591,7 +591,7 @@ namespace TEN::Renderer
 
 				RendererObject& moveableObj = *_moveableObjects[ID_RATS_EMITTER];
 
-				_stStatic.LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 				for (int i = 0; i < NUM_RATS; i++)
 				{
@@ -605,14 +605,14 @@ namespace TEN::Renderer
 						auto world = rat->Transform;
 						ReflectMatrixOptionally(world);
 
-						_stStatic.World = world;
-						_stStatic.Color = Vector4::One;
-						_stStatic.AmbientLight = _rooms[rat->RoomNumber].AmbientLight;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[rat->RoomNumber].AmbientLight;
 
 						if (rendererPass != RendererPass::GBuffer)
-							BindStaticLights(_rooms[rat->RoomNumber].LightsToDraw);
+							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						_cbStatic.UpdateData(_stStatic, _context.Get());
+						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 						for (const auto& bucket : mesh.Buckets)
 						{
@@ -629,7 +629,7 @@ namespace TEN::Renderer
 								BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 								BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
-								DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
 							}
@@ -697,11 +697,11 @@ namespace TEN::Renderer
 				if (rendererPass == RendererPass::GBuffer)
 				{
 					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferStatics);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
 				}
 				else
 				{
-					_shaders.Bind(Shader::Statics);
+					_shaders.Bind(Shader::InstancedStatics);
 				}
 
 				unsigned int stride = sizeof(Vertex);
@@ -712,7 +712,7 @@ namespace TEN::Renderer
 
 				const auto& moveableObj = *_moveableObjects[ID_FISH_EMITTER];
 
-				_stStatic.LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 				for (const auto& fish : FishSwarm)
 				{
@@ -721,14 +721,14 @@ namespace TEN::Renderer
 
 					const auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
 
-					_stStatic.World = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
-					_stStatic.Color = Vector4::One;
-					_stStatic.AmbientLight = _rooms[fish.RoomNumber].AmbientLight;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[fish.RoomNumber].AmbientLight;
 
 					if (rendererPass != RendererPass::GBuffer)
-						BindStaticLights(_rooms[fish.RoomNumber].LightsToDraw);
+						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					_cbStatic.UpdateData(_stStatic, _context.Get());
+					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 					for (const auto& bucket : mesh.Buckets)
 					{
@@ -744,7 +744,7 @@ namespace TEN::Renderer
 							BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 							BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
-							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+							DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 							_numMoveablesDrawCalls++;
 						}
@@ -1070,11 +1070,11 @@ namespace TEN::Renderer
 				if (rendererPass == RendererPass::GBuffer)
 				{
 					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferStatics);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
 				}
 				else
 				{
-					_shaders.Bind(Shader::Statics);
+					_shaders.Bind(Shader::InstancedStatics);
 				}
 
 				unsigned int stride = sizeof(Vertex);
@@ -1086,7 +1086,7 @@ namespace TEN::Renderer
 				auto* obj = &Objects[ID_LOCUSTS];
 				auto& moveableObj = *_moveableObjects[ID_LOCUSTS];
 
-				_stStatic.LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 				for (const auto& locust : TEN::Entities::TR4::Locusts)
 				{
@@ -1098,10 +1098,10 @@ namespace TEN::Renderer
 					auto world = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(world);
 
-					_stStatic.World = world;
-					_stStatic.Color = Vector4::One;
-					_stStatic.AmbientLight = _rooms[locust.roomNumber].AmbientLight;
-					_cbStatic.UpdateData(_stStatic, _context.Get());
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[locust.roomNumber].AmbientLight;
+					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 					for (auto& bucket : mesh.Buckets)
 					{
@@ -1117,7 +1117,7 @@ namespace TEN::Renderer
 							BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 							BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
-							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+							DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 							_numMoveablesDrawCalls++;
 						}
@@ -1816,7 +1816,7 @@ namespace TEN::Renderer
 		BindConstantBufferVS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBufferVS(ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBufferVS(ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBufferVS(ConstantBufferRegister::Static, _cbStatic.get());
+		BindConstantBufferVS(ConstantBufferRegister::Sky, _cbSkyBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::Sprite, _cbSprite.get());
 		BindConstantBufferVS(ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBufferVS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
@@ -1828,7 +1828,7 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBufferPS(ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBufferPS(ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBufferPS(ConstantBufferRegister::Static, _cbStatic.get());
+		BindConstantBufferPS(ConstantBufferRegister::Sky, _cbSkyBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::Sprite, _cbSprite.get());
 		BindConstantBufferPS(ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBufferPS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
@@ -2053,10 +2053,10 @@ namespace TEN::Renderer
 						Camera.pos.y - 1536.0f, Camera.pos.z);
 					auto world = rotation * translation;
 
-					_stStatic.World = (rotation * translation);
-					_stStatic.Color = weather.SkyColor(s);
-					_stStatic.ApplyFogBulbs = s == 0 ? 1 : 0;
-					_cbStatic.UpdateData(_stStatic, _context.Get());
+					_stSkyBuffer.World = (rotation * translation);
+					_stSkyBuffer.Color = weather.SkyColor(s);
+					_stSkyBuffer.ApplyFogBulbs = s == 0 ? 1 : 0;
+					_cbSkyBuffer.UpdateData(_stSkyBuffer, _context.Get());
 
 					DrawIndexedTriangles(SKY_INDICES_COUNT, 0, 0);
 				}
@@ -2072,10 +2072,10 @@ namespace TEN::Renderer
 
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
 
-				_stStatic.World = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
-				_stStatic.Color = Vector4::One;
-				_stStatic.ApplyFogBulbs = 1;
-				_cbStatic.UpdateData(_stStatic, _context.Get());
+				_stSkyBuffer.World = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
+				_stSkyBuffer.Color = Vector4::One;
+				_stSkyBuffer.ApplyFogBulbs = 1;
+				_cbSkyBuffer.UpdateData(_stSkyBuffer, _context.Get());
 
 				for (const auto* mesh : moveableObj.ObjectMeshes)
 				{
@@ -2530,17 +2530,17 @@ namespace TEN::Renderer
 					if (IgnoreReflectionPassForRoom(current->RoomNumber))
 						continue;
 
-					_stStatic.World = current->World;
-					_stStatic.Color = current->Color;
-					_stStatic.AmbientLight = room->AmbientLight;
-					_stStatic.LightMode = (int)refMesh->LightMode;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = current->World;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = current->Color;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = room->AmbientLight;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)refMesh->LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
 					{
-						BindStaticLights(current->LightsToDraw);
+						BindInstancedStaticLights(current->LightsToDraw);
 					}
 
-					_cbStatic.UpdateData(_stStatic, _context.Get());
+					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 					for (auto& bucket : refMesh->Buckets)
 					{
@@ -2996,10 +2996,10 @@ namespace TEN::Renderer
 					renderView.Camera.WorldPosition.z);
 				auto world = rotation * translation;
 
-				_stStatic.World = (rotation * translation);
-				_stStatic.Color = Weather.SkyColor(layer);
-				_stStatic.ApplyFogBulbs = layer == 0 ? 1 : 0;
-				_cbStatic.UpdateData(_stStatic, _context.Get());
+				_stSkyBuffer.World = (rotation * translation);
+				_stSkyBuffer.Color = Weather.SkyColor(layer);
+				_stSkyBuffer.ApplyFogBulbs = layer == 0 ? 1 : 0;
+				_cbSkyBuffer.UpdateData(_stSkyBuffer, _context.Get());
 
 				DrawIndexedTriangles(SKY_INDICES_COUNT, 0, 0);
 
@@ -3169,10 +3169,10 @@ namespace TEN::Renderer
 
 			float alpha = levelPtr->GetHorizonTransparency(layer);
 
-			_stStatic.World = rotMatrix * translationMatrix * cameraMatrix;
-			_stStatic.Color = Color(1.0f, 1.0f, 1.0f, alpha);
-			_stStatic.ApplyFogBulbs = 1;
-			_cbStatic.UpdateData(_stStatic, _context.Get());
+			_stSkyBuffer.World = rotMatrix * translationMatrix * cameraMatrix;
+			_stSkyBuffer.Color = Color(1.0f, 1.0f, 1.0f, alpha);
+			_stSkyBuffer.ApplyFogBulbs = 1;
+			_cbSkyBuffer.UpdateData(_stSkyBuffer, _context.Get());
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 			for (const auto* mesh : moveableObj.ObjectMeshes)
@@ -3787,16 +3787,16 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
-		_shaders.Bind(Shader::Statics);
+		_shaders.Bind(Shader::InstancedStatics);
 
 		auto world = objectInfo->Static->World;
-		_stStatic.World = world;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
 
-		_stStatic.Color = objectInfo->Static->Color;
-		_stStatic.AmbientLight = objectInfo->Room->AmbientLight;
-		_stStatic.LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
-		BindStaticLights(objectInfo->Static->LightsToDraw);
-		_cbStatic.UpdateData(_stStatic, _context.Get());
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = objectInfo->Static->Color;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
+		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
+		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3810,8 +3810,9 @@ namespace TEN::Renderer
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
+		 
 		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
 
 		_numSortedStaticsDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
@@ -3825,16 +3826,16 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
-		_shaders.Bind(Shader::Statics);
-
+		_shaders.Bind(Shader::InstancedStatics);
+		  
 		auto world = objectInfo->World;
-		_stStatic.World = world;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
 
-		_stStatic.Color = Vector4::One;
-		_stStatic.AmbientLight = objectInfo->Room->AmbientLight;
-		_stStatic.LightMode = (int)objectInfo->LightMode;
-		BindStaticLights(objectInfo->Room->LightsToDraw);
-		_cbStatic.UpdateData(_stStatic, _context.Get());
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
+		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
+		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3849,7 +3850,7 @@ namespace TEN::Renderer
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
 
 		_numSortedStaticsDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;

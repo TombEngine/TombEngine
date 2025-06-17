@@ -99,7 +99,6 @@ namespace TEN::Renderer::Utils
 		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::Vertex);
 
 		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex);
-		Load(Shader::Statics, "Statics", "", ShaderType::PixelAndVertex);
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex);
 		Load(Shader::Sprites, "Sprites", "", ShaderType::PixelAndVertex);
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex);
@@ -119,7 +118,6 @@ namespace TEN::Renderer::Utils
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex);
 		Load(Shader::GBufferRoomsAnimated, "GBuffer", "Rooms", ShaderType::Vertex, roomAnimated);
 		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex);
-		Load(Shader::GBufferStatics, "GBuffer", "Statics", ShaderType::Vertex);
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex);
 	}
 

@@ -6,7 +6,7 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
-#include "./CBStatic.hlsli"
+#include "./CBSky.hlsli"
 
 cbuffer RoomBuffer : register(b5)
 {

@@ -779,9 +779,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\ConstantBuffers\ShaderFogBulb.h" />
     <ClInclude Include="Renderer\ConstantBuffers\ShaderLight.h" />
     <ClInclude Include="Renderer\ConstantBuffers\ShadowLightBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\SkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\SMAABuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\SpriteBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\StaticBuffer.h" />
     <ClInclude Include="Renderer\Frustum.h" />
     <ClInclude Include="Renderer\Graphics\IndexBuffer.h" />
     <ClInclude Include="Renderer\Graphics\RenderTarget2D.h" />
@@ -1383,17 +1383,24 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="packages.config" />
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
-    <None Include="Shaders\AnimatedTextures.hlsli" />
+    <None Include="Shaders\AnimatedTextures.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\Blending.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\CBCamera.hlsli" />
-    <None Include="Shaders\CBItem.hlsli" />
+    <None Include="Shaders\CBCamera.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\CBItem.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\CBPostProcess.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\CBStatic.hlsli">
+    <None Include="Shaders\CBSky.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\SMAA.hlsli">
@@ -1405,11 +1412,15 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\Math.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\Shadows.hlsli" />
+    <None Include="Shaders\Shadows.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\SpriteEffects.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\VertexEffects.hlsli" />
+    <None Include="Shaders\VertexEffects.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\VertexInput.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -1449,6 +1460,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Inventory.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1472,6 +1484,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\InstancedSprites.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1495,6 +1508,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Items.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1518,6 +1532,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Rooms.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1545,6 +1560,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\ShadowMap.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1556,6 +1572,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Sky.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1567,6 +1584,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Solid.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1578,6 +1596,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Sprites.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -1589,17 +1608,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
-    </None>
-    <None Include="Shaders\Statics.fx">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1613,6 +1622,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1645,6 +1655,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\Ten.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\HUD.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

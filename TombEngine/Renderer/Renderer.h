@@ -23,7 +23,6 @@
 #include "Renderer/RendererEnums.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Structures/RendererLight.h"
-#include "Renderer/ConstantBuffers/StaticBuffer.h"
 #include "Renderer/ConstantBuffers/LightBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
@@ -39,6 +38,7 @@
 #include "Renderer/ConstantBuffers/ConstantBuffer.h"
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
+#include "Renderer/ConstantBuffers/SkyBuffer.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
@@ -134,8 +134,6 @@ namespace TEN::Renderer
 		ConstantBuffer<CCameraMatrixBuffer> _cbCameraMatrices;
 		CItemBuffer _stItem;
 		ConstantBuffer<CItemBuffer> _cbItem;
-		CStaticBuffer _stStatic;
-		ConstantBuffer<CStaticBuffer> _cbStatic;
 		CLightBuffer _stLights;
 		ConstantBuffer<CLightBuffer> _cbLights;
 		CRoomBuffer _stRoom;
@@ -158,6 +156,8 @@ namespace TEN::Renderer
 		ConstantBuffer<CBlendingBuffer> _cbBlending;
 		CInstancedStaticMeshBuffer _stInstancedStaticMeshBuffer;
 		ConstantBuffer<CInstancedStaticMeshBuffer> _cbInstancedStaticMeshBuffer;
+		CSkyBuffer _stSkyBuffer;
+		ConstantBuffer<CSkyBuffer> _cbSkyBuffer;
 		CSMAABuffer _stSMAABuffer;
 		ConstantBuffer<CSMAABuffer> _cbSMAABuffer;
 
@@ -352,6 +352,11 @@ namespace TEN::Renderer
 		VertexBuffer<Vertex> _sortedPolygonsVertexBuffer;
 		IndexBuffer _sortedPolygonsIndexBuffer;
 
+		// Debris
+
+		std::vector<Vertex> _debrisVertices;
+		VertexBuffer<Vertex> _debrisVertexBuffer;
+
 		// High framerate
 
 		float _interpolationFactor	   = 0.0f;
@@ -366,7 +371,6 @@ namespace TEN::Renderer
 		void BindTexture(TextureRegister registerType, TextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
-		void BindStaticLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);
 		void BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow);
 		void BindRenderTargetAsTexture(TextureRegister registerType, RenderTarget2D* target, SamplerStateRegister samplerType);

@@ -3,7 +3,7 @@
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
-#include "./CBStatic.hlsli"
+#include "./CBSky.hlsli"
 
 struct PixelShaderInput
 {

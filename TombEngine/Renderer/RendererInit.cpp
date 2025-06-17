@@ -14,6 +14,7 @@
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
+#include "Game/effects/debris.h"
 
 extern GameConfiguration g_Configuration;
 
@@ -63,7 +64,7 @@ namespace TEN::Renderer
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
 		_cbItem = CreateConstantBuffer<CItemBuffer>();
-		_cbStatic = CreateConstantBuffer<CStaticBuffer>();
+		_cbSkyBuffer = CreateConstantBuffer<CSkyBuffer>();
 		_cbLights = CreateConstantBuffer<CLightBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
@@ -246,6 +247,9 @@ namespace TEN::Renderer
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
+
+		_debrisVertices.reserve(MAX_DEBRIS * 3);
+		_debrisVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_DEBRIS * 3, _debrisVertices);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());

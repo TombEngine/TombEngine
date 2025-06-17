@@ -1191,7 +1191,7 @@ namespace TEN::Renderer
 		const auto& flashMoveable = *_moveableObjects[gunflash];
 		const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
-		_shaders.Bind(Shader::Statics);
+		_shaders.Bind(Shader::InstancedStatics);
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
@@ -1204,10 +1204,10 @@ namespace TEN::Renderer
 		auto* itemPtr = &_items[LaraItem->Index];
 
 		// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-		_stStatic.Color = settings.ColorizeMuzzleFlash ? ((Vector4)settings.FlashColor / 2) : Vector4::One;
-		_stStatic.AmbientLight = room.AmbientLight;
-		_stStatic.LightMode = (int)LightMode::Static;
-		BindStaticLights(itemPtr->LightsToDraw);
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = settings.ColorizeMuzzleFlash ? ((Vector4)settings.FlashColor / 2) : Vector4::One;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = room.AmbientLight;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
+		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
 
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 		SetBlendMode(BlendMode::Additive);
@@ -1238,10 +1238,10 @@ namespace TEN::Renderer
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stStatic.World = worldMatrix;
-				_cbStatic.UpdateData(_stStatic, _context.Get());
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
+				_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
-				DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
+				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
 				_numMoveablesDrawCalls++;
 			}
@@ -1256,10 +1256,10 @@ namespace TEN::Renderer
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stStatic.World = worldMatrix;
-				_cbStatic.UpdateData(_stStatic, _context.Get());
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
+				_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
-				DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
+				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
 				_numMoveablesDrawCalls++;
 			}
@@ -1271,7 +1271,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawBaddyGunflashes(RenderView& view)
 	{
-		_shaders.Bind(Shader::Statics);
+		_shaders.Bind(Shader::InstancedStatics);
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
@@ -1294,11 +1294,11 @@ namespace TEN::Renderer
 				auto& creature = *GetCreatureInfo(&nativeItem);
 				const auto& rRoom = _rooms[nativeItem.RoomNumber];
 
-				_stStatic.Color = Vector4::One;
-				_stStatic.AmbientLight = rRoom.AmbientLight;
-				_stStatic.LightMode = (int)LightMode::Static;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = rRoom.AmbientLight;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
 
-				BindStaticLights(rItemPtr->LightsToDraw); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
+				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
 				SetBlendMode(BlendMode::Additive);
 				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
@@ -1335,10 +1335,10 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stStatic.World = worldMatrix;
-						_cbStatic.UpdateData(_stStatic, _context.Get());
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
+						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
-						DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
+						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
 						_numMoveablesDrawCalls++;
 					}
@@ -1377,10 +1377,10 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stStatic.World = worldMatrix;
-						_cbStatic.UpdateData(_stStatic, _context.Get());
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
+						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
-						DrawIndexedTriangles(flashBucket.NumIndices, flashBucket.StartIndex, 0);
+						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
 						_numMoveablesDrawCalls++;
 					}
@@ -1468,12 +1468,12 @@ namespace TEN::Renderer
 		auto world = effect->InterpolatedWorld;
 		ReflectMatrixOptionally(world);
 
-		_stStatic.World = world;
-		_stStatic.Color = effect->Color;
-		_stStatic.AmbientLight = effect->AmbientLight;
-		_stStatic.LightMode = (int)LightMode::Dynamic;
-		BindStaticLights(effect->LightsToDraw);
-		_cbStatic.UpdateData(_stStatic, _context.Get());
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = effect->Color;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = effect->AmbientLight;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(effect->LightsToDraw, 0);
+		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 		auto& mesh = *effect->Mesh;
 		for (auto& bucket : mesh.Buckets) 
@@ -1491,8 +1491,8 @@ namespace TEN::Renderer
 				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 				BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
 
-				DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0); 
-				
+				DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
+
 				_numEffectsDrawCalls++;
 			}
 		}
@@ -1500,7 +1500,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
 	{
-		_shaders.Bind(Shader::Statics);
+		_shaders.Bind(Shader::InstancedStatics);
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
@@ -1541,14 +1541,23 @@ namespace TEN::Renderer
 
 		if (activeDebrisExist)
 		{
-			_shaders.Bind(Shader::Statics);
+			unsigned int stride = sizeof(Vertex);
+			unsigned int offset = 0;
+			_context->IASetVertexBuffers(0, 1, _debrisVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			_context->IASetInputLayout(_inputLayout.Get());
+
+			_shaders.Bind(Shader::InstancedStatics);
 
 			SetCullMode(CullMode::None);
 
-			_primitiveBatch->Begin();
+			int debrisToDraw = 0;
+			int i = 0;
 
 			for (auto& deb : DebrisFragments)
 			{
+				i++;
+
 				if (deb.active)
 				{
 					if (IgnoreReflectionPassForRoom(deb.roomNumber))
@@ -1566,12 +1575,14 @@ namespace TEN::Renderer
 						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
 					}
 
-					_stStatic.World = Matrix::Identity;
-					_stStatic.Color = deb.color;
-					_stStatic.AmbientLight = _rooms[deb.roomNumber].AmbientLight;
-					_stStatic.LightMode = (int)deb.lightMode;
+					debrisToDraw++;
 
-					_cbStatic.UpdateData(_stStatic, _context.Get());
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Identity;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
+
+					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(matrix);
@@ -1594,18 +1605,25 @@ namespace TEN::Renderer
 					vtx2.Normal = deb.mesh.Normals[2];
 					vtx2.Color = deb.mesh.Colors[2];
 
-					_primitiveBatch->DrawTriangle(vtx0, vtx1, vtx2);
+					_debrisVertices.push_back(vtx0);
+					_debrisVertices.push_back(vtx1);
+					_debrisVertices.push_back(vtx2);
+				}
+
+				if (i == MAX_DEBRIS && debrisToDraw > 0 || debrisToDraw == MAX_DEBRIS)
+				{
+					_debrisVertexBuffer.Update(_context.Get(), _debrisVertices.data(), 0, debrisToDraw * 3);
+
+					_context->DrawInstanced(debrisToDraw * 3, 1, 0, 0);
 
 					_numDebrisDrawCalls++;
 					_numDrawCalls++;
 					_numTriangles++;
+
+					debrisToDraw = 0;
+					_debrisVertices.clear();
 				}
 			}
-
-			_primitiveBatch->End();
-
-			// TODO: temporary fix, we need to remove every use of SpriteBatch and PrimitiveBatch because
-			// they mess up render states cache.
 
 			SetBlendMode(BlendMode::Opaque, true);
 			SetDepthState(DepthState::Write, true);
