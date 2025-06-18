@@ -61,7 +61,6 @@
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/TR5/Trap/MovingLaser.h"
-#include "Objects/TR5/Trap/ZipLine.h"
 #include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
@@ -855,15 +854,6 @@ static void StartObject(ObjectInfo *obj)
 
 static void StartTrap(ObjectInfo *obj)
 {
-	obj = &Objects[ID_ZIPLINE_HANDLE];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeZipLine;
-		obj->collision = CollideZipLine;
-		obj->control = ControlZipLine;
-		obj->SetHitEffect(true);
-	}
-
 	obj = &Objects[ID_PROPELLER_H];
 	if (obj->loaded)
 	{
