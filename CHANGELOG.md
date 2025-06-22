@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.9.1]
 
 ## New features
+* Added final shot before death for TROOPS slot, if Lara is in sight.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
 

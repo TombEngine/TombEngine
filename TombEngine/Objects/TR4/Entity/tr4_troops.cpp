@@ -47,6 +47,8 @@ namespace TEN::Entities::TR4
 
 	};
 
+	constexpr auto TROOPS_DAMAGE = 23;
+
 	void InitializeTroops(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -65,6 +67,59 @@ namespace TEN::Entities::TR4
 		}
 
 		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+	}
+
+	void TestTroopsDeathAttack(ItemInfo& item)
+	{
+		if (item.Animation.ActiveState != TROOP_STATE_DEATH)
+			return;
+
+		auto animNumber = item.Animation.AnimNumber - Objects[item.Animation.AnimObjectID].animIndex;
+		if (animNumber != 19)
+			return;
+
+		const auto& anim = GetAnimData(item);
+
+		int frameCount = anim.frameEnd - anim.frameBase;
+		int frameNumber = item.Animation.FrameNumber - anim.frameBase;
+
+		constexpr auto NUM_SHOTS = 4;
+
+		int frameBase = frameCount - (frameCount / 3);
+		int interval  = (frameCount / 3) / NUM_SHOTS - 1;
+
+		bool doShot = false;
+
+		for (int i = 0; i < NUM_SHOTS; i++)
+		{
+			if (frameNumber == frameBase + interval * i)
+			{
+				doShot = true;
+				break;
+			}
+		}
+
+		if (!doShot)
+			return;
+
+		auto* creature = GetCreatureInfo(&item);
+
+		if (creature->Enemy == nullptr || (!creature->Enemy->IsLara() && !creature->Enemy->IsCreature()))
+			return;
+
+		AI_INFO AI;
+		CreatureAIInfo(&item, &AI);
+
+		if (!Targetable(&item, &AI))
+			return;
+
+		if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || AI.angle > ANGLE(10.0f) || AI.angle < ANGLE(-10.0f))
+			return;
+
+		SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item.Pose);
+		ShotLara(&item, &AI, TroopsBite1, 0, TROOPS_DAMAGE);
+		creature->MuzzleFlash[0].Bite = TroopsBite1;
+		creature->MuzzleFlash[0].Delay = 2;
 	}
 
 	void TroopsControl(short itemNumber)
@@ -130,6 +185,10 @@ namespace TEN::Entities::TR4
 					item->Animation.ActiveState = TROOP_STATE_DEATH;
 					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 				}
+			}
+			else
+			{
+				TestTroopsDeathAttack(*item);
 			}
 		}
 		else
@@ -369,7 +428,7 @@ namespace TEN::Entities::TR4
 				}
 				else
 				{
-					ShotLara(item, &AI, TroopsBite1, joint0, 23);
+					ShotLara(item, &AI, TroopsBite1, joint0, TROOPS_DAMAGE);
 					creature->MuzzleFlash[0].Bite = TroopsBite1;
 					creature->MuzzleFlash[0].Delay = 2;
 					creature->Flags = 5;
@@ -431,7 +490,7 @@ namespace TEN::Entities::TR4
 				}
 				else
 				{
-					ShotLara(item, &AI, TroopsBite1, joint0, 23);
+					ShotLara(item, &AI, TroopsBite1, joint0, TROOPS_DAMAGE);
 					creature->MuzzleFlash[0].Bite = TroopsBite1;
 					creature->MuzzleFlash[0].Delay = 2;
 					creature->Flags = 5;
