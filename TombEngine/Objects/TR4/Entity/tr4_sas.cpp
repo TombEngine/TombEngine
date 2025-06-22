@@ -553,6 +553,10 @@ namespace TEN::Entities::TR4
 			{
 				SetAnimation(&item, SAS_ANIM_DEATH);
 			}
+			else
+			{
+				PerformFinalAttack(item, SasGunBite, SAS_ANIM_DEATH, SAS_SHOT_DAMAGE, SFX_TR3_SWAT_SMG_FIRE);
+			}
 		}
 
 		CreatureTilt(&item, tilt);
