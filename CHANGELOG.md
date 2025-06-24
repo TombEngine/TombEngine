@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## New features
 * Added final shot before death for TROOPS slot, if Lara is in sight.
+* Added ability to open doors with draw weapon key in dozy mode.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
 
@@ -18,6 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed ROLLINGBALL interpolation and collision detection.
 * Fixed underwater drifting when using PULLEY object.
 * Fixed incorrect hardcoded sounds for the ZIPLINE_HANDLE.
+* Fixed JEEP vehicle locking incorrect Lara animation after using reverse.
 * Fixed inability to use revolver with lasersight in crouched state.
 * Fixed incorrect room collision for negative room coordinates.
 * Fixed exclusive video playback not working when triggered at the end of a level.
