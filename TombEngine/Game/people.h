@@ -11,3 +11,4 @@ short GunHit(int x, int y, int z, short velocity, short yRot, short roomNumber);
 short GunShot(int x, int y, int z, short velocity, short yRot, short roomNumber);
 bool Targetable(ItemInfo* item, AI_INFO* ai);
 bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees = 45.0f);
+void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int deathStateID, int damage, SOUND_EFFECTS soundID);

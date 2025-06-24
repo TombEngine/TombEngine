@@ -177,3 +177,53 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 
 	return false;
 }
+
+void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int deathAnimNumber, int damage, SOUND_EFFECTS soundID)
+{
+	auto animNumber = item.Animation.AnimNumber - Objects[item.Animation.AnimObjectID].animIndex;
+	if (animNumber != deathAnimNumber)
+		return;
+
+	const auto& anim = GetAnimData(item);
+
+	int frameCount = anim.frameEnd - anim.frameBase;
+	int frameNumber = item.Animation.FrameNumber - anim.frameBase;
+
+	constexpr auto NUM_SHOTS = 4;
+
+	int frameBase = frameCount - (frameCount / 3);
+	int interval = (frameCount / 3) / NUM_SHOTS - 1;
+
+	bool doShot = false;
+
+	for (int i = 0; i < NUM_SHOTS; i++)
+	{
+		if (frameNumber == frameBase + interval * i)
+		{
+			doShot = true;
+			break;
+		}
+	}
+
+	if (!doShot)
+		return;
+
+	auto* creature = GetCreatureInfo(&item);
+
+	if (creature->Enemy == nullptr || (!creature->Enemy->IsLara() && !creature->Enemy->IsCreature()))
+		return;
+
+	AI_INFO AI;
+	CreatureAIInfo(&item, &AI);
+
+	if (!Targetable(&item, &AI))
+		return;
+
+	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || AI.angle > ANGLE(15.0f) || AI.angle < ANGLE(-15.0f))
+		return;
+
+	SoundEffect(soundID, &item.Pose);
+	ShotLara(&item, &AI, bite, 0, damage);
+	creature->MuzzleFlash[0].Bite = bite;
+	creature->MuzzleFlash[0].Delay = 2;
+}
