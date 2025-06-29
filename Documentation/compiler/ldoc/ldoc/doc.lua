@@ -1315,128 +1315,169 @@ function Module:dump(verbose)
 end
 
 function Item:isFunction()
-	return self.type == 'function'
+   return self.type == 'function'
+end
+
+function Item:isClass()
+   return self.type == 'classmod' or self.type == 'tenclass' or self.type == 'tenprimitive'
+end
+
+function Item:isEnum()
+   return self.type == 'enum'
 end
 
 function Module:dumpToXML()
-	if not doc.project_level(self.type) then return end
-	for item in self.items:iter() do
-		if item:isFunction() then
-			item:dumpToXML(self.name)
-		end
-	end
+   -- Check if this module itself is a class or enum
+   if self.type == 'classmod' or self.type == 'tenclass' or self.type == 'tenprimitive' then
+      self:dumpModuleAsClassToXML()
+      return
+   elseif self.type == 'enum' then
+      self:dumpModuleAsEnumToXML()
+      return
+   end
+
+   -- Regular module with items
+   if not doc.project_level(self.type) then return end
+   for item in self.items:iter() do
+      if item:isFunction() then
+         item:dumpToXML(self.name)
+      elseif item:isClass() then
+         item:dumpClassToXML(self.name)
+      elseif item:isEnum() then
+         item:dumpEnumToXML(self.name)
+      end
+   end
 end
 
 function Item:dumpToXML(moduleName)
-	local nIndents = 0
-	function printAndIndent(str)
-		io.write('\n'..string.rep('\t', nIndents) .. str)
-		nIndents = nIndents + 1
-	end
+   local nIndents = 2 -- Start with 2 tabs for proper nesting under <functions>
 
-	function justPrint(str)
-		io.write(str)
-	end
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
 
-	function printAndUnindent(str, newLine)
-		nIndents = nIndents - 1
-		if newLine then
-			io.write('\n',string.rep('\t', nIndents),str)
-		else
+   local function justPrint(str)
+      io.write(str)
+   end
 
-			io.write(str)
-		end
-	end
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
 
-	function trim(str)
-		return str:gsub("^%s*(.-)%s*$", "%1")
-	end
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
 
-		local callerType = self.name:match("(%w+)")
-		local funcName = self.name:match("%w+[:%.](%w+)")
-		if not funcName then
-			funcName = callerType
-			callerType = nil
-		end
+   local function trim(str)
+      return str:gsub("^%s*(.-)%s*$", "%1")
+   end
 
-		printAndIndent('<function>')
+   local callerType = self.name:match("(%w+)")
+   local funcName = self.name:match("%w+[:%.](%w+)")
 
-		printAndIndent '<module>'
-		justPrint(moduleName)
-		printAndUnindent '</module>'
-		if callerType then
-			printAndIndent '<caller>'
-			justPrint(callerType)
-			printAndUnindent '</caller>'
-		end
-		if funcName then
-			printAndIndent '<name>'
-			justPrint(funcName)
-			printAndUnindent '</name>'
-		end
+   if not funcName then
+      funcName = callerType
+      callerType = nil
+   end
 
-		if self.summary:len() > 0 then
-			printAndIndent '<summary>'
-			justPrint(self.summary)
-			printAndUnindent '</summary>'
-		end
+   printAndIndent('<function>')
 
-		if self.description and self.description:match '%S' then
-			printAndIndent '<description>'
-			justPrint(trim(self.description))
-			printAndUnindent '</description>'
-		end
-		if self.params and #self.params > 0 then
-			printAndIndent '<parameters>'
-			for i,p in ipairs(self.params) do
-				printAndIndent '<parameter>'
-				printAndIndent '<name>'
-				justPrint(p)
-				printAndUnindent '</name>'
+   printAndIndent '<module>'
+   justPrint(moduleName)
+   printAndUnindent '</module>'
 
-				local paramType = self:type_of_param(i)
-				printAndIndent("<type>") 
-				if p == "..." then
-					paramType = "..."
-				elseif paramType:len() == 0 then
-					print("Parameter " .. i .. " of function " .. funcName .. 
-					" in module " .. moduleName .. " has no type")
-				end
-				justPrint(paramType)
-				printAndUnindent("</type>") 
-				local descText = trim(self.params.map[p])
-				if descText:len() > 0 then
-					printAndIndent '<description>'
-					justPrint(descText)
-					printAndUnindent '</description>'
-				end
-				printAndUnindent('</parameter>', true)
-			end
-			printAndUnindent('</parameters>', true)
-		end
-		if self.ret and #self.ret > 0 then
-			printAndIndent("<returns>") 
-			for i,r in ipairs(self.ret) do
-				printAndIndent("<return>") 
-				local returnType = self:type_of_ret(i)
-				printAndIndent("<type>") 
-				if returnType:len() == 0 then
-					print("Return value " .. i .. " of function " .. funcName ..
-					" in module " .. moduleName .. " has no type")
-				end
-				justPrint(returnType)
+   if callerType then
+      printAndIndent '<caller>'
+      justPrint(callerType)
+      printAndUnindent '</caller>'
+   end
 
-				printAndUnindent("</type>") 
+   if funcName then
+      printAndIndent '<name>'
+      justPrint(funcName)
+      printAndUnindent '</name>'
+   end
 
-				printAndIndent("<description>") 
-				justPrint(r)
+   if self.summary:len() > 0 then
+      printAndIndent '<summary>'
+      justPrint(self.summary)
+      printAndUnindent '</summary>'
+   end
 
-				printAndUnindent("</description>") 
-				printAndUnindent("</return>", true) 
-			end
-			printAndUnindent("</returns>", true) 
-		end
-		printAndUnindent ('</function>\n', true)
+   if self.description and self.description:match '%S' then
+      printAndIndent '<description>'
+      justPrint(trim(self.description))
+      printAndUnindent '</description>'
+   end
+
+   if self.params and #self.params > 0 then
+      printAndIndent '<parameters>'
+
+      for i, p in ipairs(self.params) do
+         printAndIndent '<parameter>'
+
+         printAndIndent '<name>'
+         justPrint(p)
+         printAndUnindent '</name>'
+
+         local paramType = self:type_of_param(i)
+         printAndIndent("<type>")
+
+         if p == "..." then
+            paramType = "..."
+         elseif paramType:len() == 0 then
+            print("Parameter " .. i .. " of function " .. funcName ..
+               " in module " .. moduleName .. " has no type")
+         end
+
+         justPrint(paramType)
+         printAndUnindent("</type>")
+
+         local descText = trim(self.params.map[p])
+
+         if descText:len() > 0 then
+            printAndIndent '<description>'
+            justPrint(descText)
+            printAndUnindent '</description>'
+         end
+
+         printAndUnindent('</parameter>', true)
+      end
+
+      printAndUnindent('</parameters>', true)
+   end
+
+   if self.ret and #self.ret > 0 then
+      printAndIndent("<returns>")
+
+      for i, r in ipairs(self.ret) do
+         printAndIndent("<return>")
+
+         local returnType = self:type_of_ret(i)
+         printAndIndent("<type>")
+
+         if returnType:len() == 0 then
+            print("Return value " .. i .. " of function " .. funcName ..
+               " in module " .. moduleName .. " has no type")
+         end
+
+         justPrint(returnType)
+         printAndUnindent("</type>")
+
+         printAndIndent("<description>")
+         justPrint(r)
+         printAndUnindent("</description>")
+
+         printAndUnindent("</return>", true)
+      end
+
+      printAndUnindent("</returns>", true)
+   end
+
+   printAndUnindent('</function>', true)
 end
 
 -- make a text dump of the contents of this File object.
@@ -1507,6 +1548,476 @@ function doc.filter_objects_through_function(filter, module_list)
 
    local ok,err = pcall(f,module_list)
    if not ok then quit("dump failed: "..err) end
+end
+
+function Item:dumpClassToXML(moduleName)
+   local nIndents = 2 -- Start with 2 tabs for proper nesting under <classes>
+
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
+
+   local function justPrint(str)
+      io.write(str)
+   end
+
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
+
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
+
+   local function trim(str)
+      return str:gsub("^%s*(.-)%s*$", "%1")
+   end
+
+   printAndIndent('<class>')
+
+   printAndIndent '<module>'
+   justPrint(moduleName)
+   printAndUnindent '</module>'
+
+   printAndIndent '<name>'
+   justPrint(self.name)
+   printAndUnindent '</name>'
+
+   printAndIndent '<type>'
+   justPrint(self.type)
+   printAndUnindent '</type>'
+
+   if self.summary and self.summary:len() > 0 then
+      printAndIndent '<summary>'
+      justPrint(self.summary)
+      printAndUnindent '</summary>'
+   end
+
+   if self.description and self.description:match '%S' then
+      printAndIndent '<description>'
+      justPrint(trim(self.description))
+      printAndUnindent '</description>'
+   end
+
+   -- Export class methods and fields
+   if self.items and #self.items > 0 then
+      printAndIndent '<members>'
+
+      for item in self.items:iter() do
+         if item.type == 'function' then
+            printAndIndent '<method>'
+
+            printAndIndent '<name>'
+            justPrint(item.name)
+            printAndUnindent '</name>'
+
+            if item.summary and item.summary:len() > 0 then
+               printAndIndent '<summary>'
+               justPrint(item.summary)
+               printAndUnindent '</summary>'
+            end
+
+            if item.description and item.description:match '%S' then
+               printAndIndent '<description>'
+               justPrint(trim(item.description))
+               printAndUnindent '</description>'
+            end
+
+            -- Export method parameters
+            if item.params and #item.params > 0 then
+               printAndIndent '<parameters>'
+
+               for i, p in ipairs(item.params) do
+                  printAndIndent '<parameter>'
+
+                  printAndIndent '<name>'
+                  justPrint(p)
+                  printAndUnindent '</name>'
+
+                  local paramType = item:type_of_param(i)
+
+                  printAndIndent("<type>")
+                  justPrint(paramType)
+                  printAndUnindent("</type>")
+
+                  local descText = trim(item.params.map[p])
+
+                  if descText:len() > 0 then
+                     printAndIndent '<description>'
+                     justPrint(descText)
+                     printAndUnindent '</description>'
+                  end
+
+                  printAndUnindent('</parameter>', true)
+               end
+
+               printAndUnindent('</parameters>', true)
+            end
+
+            -- Export method return values
+            if item.ret and #item.ret > 0 then
+               printAndIndent("<returns>")
+
+               for i, r in ipairs(item.ret) do
+                  printAndIndent("<return>")
+
+                  local returnType = item:type_of_ret(i)
+
+                  printAndIndent("<type>")
+                  justPrint(returnType)
+                  printAndUnindent("</type>")
+
+                  printAndIndent("<description>")
+                  justPrint(r)
+                  printAndUnindent("</description>")
+
+                  printAndUnindent("</return>", true)
+               end
+
+               printAndUnindent("</returns>", true)
+            end
+
+            printAndUnindent('</method>', true)
+         else
+            -- For fields and other members
+            printAndIndent '<field>'
+
+            printAndIndent '<name>'
+            justPrint(item.name)
+            printAndUnindent '</name>'
+
+            if item.summary and item.summary:len() > 0 then
+               printAndIndent '<summary>'
+               justPrint(item.summary)
+               printAndUnindent '</summary>'
+            end
+
+            if item.description and item.description:match '%S' then
+               printAndIndent '<description>'
+               justPrint(trim(item.description))
+               printAndUnindent '</description>'
+            end
+
+            printAndUnindent('</field>', true)
+         end
+      end
+
+      printAndUnindent('</members>', true)
+   end
+
+   printAndUnindent('</class>', true)
+end
+
+function Module:dumpModuleAsClassToXML()
+   local nIndents = 2 -- Start with 2 tabs for proper nesting under <classes>
+
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
+
+   local function justPrint(str)
+      io.write(str)
+   end
+
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
+
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
+
+   local function trim(str)
+      return str:gsub("^%s*(.-)%s*$", "%1")
+   end
+
+   printAndIndent('<class>')
+
+   printAndIndent '<name>'
+   justPrint(self.name)
+   printAndUnindent '</name>'
+
+   printAndIndent '<type>'
+   justPrint(self.type)
+   printAndUnindent '</type>'
+
+   if self.summary and self.summary:len() > 0 then
+      printAndIndent '<summary>'
+      justPrint(self.summary)
+      printAndUnindent '</summary>'
+   end
+
+   if self.description and self.description:match '%S' then
+      printAndIndent '<description>'
+      justPrint(trim(self.description))
+      printAndUnindent '</description>'
+   end
+
+   -- Export class methods and fields
+   if self.items and #self.items > 0 then
+      printAndIndent '<members>'
+
+      for item in self.items:iter() do
+         if item.type == 'function' then
+            printAndIndent '<method>'
+
+            printAndIndent '<name>'
+            justPrint(item.name)
+            printAndUnindent '</name>'
+
+            if item.summary and item.summary:len() > 0 then
+               printAndIndent '<summary>'
+               justPrint(item.summary)
+               printAndUnindent '</summary>'
+            end
+
+            if item.description and item.description:match '%S' then
+               printAndIndent '<description>'
+               justPrint(trim(item.description))
+               printAndUnindent '</description>'
+            end
+
+            -- Export method parameters
+            if item.params and #item.params > 0 then
+               printAndIndent '<parameters>'
+
+               for i, p in ipairs(item.params) do
+                  printAndIndent '<parameter>'
+
+                  printAndIndent '<name>'
+                  justPrint(p)
+                  printAndUnindent '</name>'
+
+                  local paramType = item:type_of_param(i)
+
+                  printAndIndent("<type>")
+                  justPrint(paramType)
+                  printAndUnindent("</type>")
+
+                  local descText = trim(item.params.map[p])
+
+                  if descText:len() > 0 then
+                     printAndIndent '<description>'
+                     justPrint(descText)
+                     printAndUnindent '</description>'
+                  end
+
+                  printAndUnindent('</parameter>', true)
+               end
+
+               printAndUnindent('</parameters>', true)
+            end
+
+            -- Export method return values
+            if item.ret and #item.ret > 0 then
+               printAndIndent("<returns>")
+
+               for i, r in ipairs(item.ret) do
+                  printAndIndent("<return>")
+
+                  local returnType = item:type_of_ret(i)
+
+                  printAndIndent("<type>")
+                  justPrint(returnType)
+                  printAndUnindent("</type>")
+
+                  printAndIndent("<description>")
+                  justPrint(r)
+                  printAndUnindent("</description>")
+
+                  printAndUnindent("</return>", true)
+               end
+
+               printAndUnindent("</returns>", true)
+            end
+
+            printAndUnindent('</method>', true)
+         else
+            -- For fields and other members
+            printAndIndent '<field>'
+
+            printAndIndent '<name>'
+            justPrint(item.name)
+            printAndUnindent '</name>'
+
+            if item.summary and item.summary:len() > 0 then
+               printAndIndent '<summary>'
+               justPrint(item.summary)
+               printAndUnindent '</summary>'
+            end
+
+            if item.description and item.description:match '%S' then
+               printAndIndent '<description>'
+               justPrint(trim(item.description))
+               printAndUnindent '</description>'
+            end
+
+            printAndUnindent('</field>', true)
+         end
+      end
+
+      printAndUnindent('</members>', true)
+   end
+
+   printAndUnindent('</class>', true)
+end
+
+function Module:dumpModuleAsEnumToXML()
+   local nIndents = 2 -- Start with 2 tabs for proper nesting under <enums>
+
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
+
+   local function justPrint(str)
+      io.write(str)
+   end
+
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
+
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
+
+   local function trim(str)
+      return str:gsub("^%s*(.-)%s*$", "%1")
+   end
+
+   printAndIndent('<enum>')
+
+   printAndIndent '<name>'
+   justPrint(self.name)
+   printAndUnindent '</name>'
+
+   if self.summary and self.summary:len() > 0 then
+      printAndIndent '<summary>'
+      justPrint(self.summary)
+      printAndUnindent '</summary>'
+   end
+
+   if self.description and self.description:match '%S' then
+      printAndIndent '<description>'
+      justPrint(trim(self.description))
+      printAndUnindent '</description>'
+   end
+
+   -- Export enum values from items
+   if self.items and #self.items > 0 then
+      printAndIndent '<values>'
+
+      for item in self.items:iter() do
+         printAndIndent '<value>'
+
+         printAndIndent '<name>'
+         justPrint(item.name)
+         printAndUnindent '</name>'
+
+         if item.summary and item.summary:len() > 0 then
+            printAndIndent '<summary>'
+            justPrint(item.summary)
+            printAndUnindent '</summary>'
+         end
+
+         if item.description and item.description:match '%S' then
+            printAndIndent '<description>'
+            justPrint(trim(item.description))
+            printAndUnindent '</description>'
+         end
+
+         printAndUnindent('</value>', true)
+      end
+
+      printAndUnindent('</values>', true)
+   end
+
+   printAndUnindent('</enum>', true)
+end
+
+function Item:dumpEnumToXML(moduleName)
+   local nIndents = 2 -- Start with 2 tabs for proper nesting under <enums>
+
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
+
+   local function justPrint(str)
+      io.write(str)
+   end
+
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
+
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
+
+   local function trim(str)
+      return str:gsub("^%s*(.-)%s*$", "%1")
+   end
+
+   printAndIndent('<enum>')
+
+   printAndIndent '<module>'
+   justPrint(moduleName)
+   printAndUnindent '</module>'
+
+   printAndIndent '<name>'
+   justPrint(self.name)
+   printAndUnindent '</name>'
+
+   if self.summary and self.summary:len() > 0 then
+      printAndIndent '<summary>'
+      justPrint(self.summary)
+      printAndUnindent '</summary>'
+   end
+
+   if self.description and self.description:match '%S' then
+      printAndIndent '<description>'
+      justPrint(trim(self.description))
+      printAndUnindent '</description>'
+   end
+
+   -- Export enum values
+   if self.params and #self.params > 0 then
+      printAndIndent '<values>'
+
+      for i, p in ipairs(self.params) do
+         printAndIndent '<value>'
+
+         printAndIndent '<name>'
+         justPrint(p)
+         printAndUnindent '</name>'
+
+         local descText = trim(self.params.map[p])
+
+         if descText:len() > 0 then
+            printAndIndent '<description>'
+            justPrint(descText)
+            printAndUnindent '</description>'
+         end
+
+         printAndUnindent('</value>', true)
+      end
+
+      printAndUnindent('</values>', true)
+   end
+
+   printAndUnindent('</enum>', true)
 end
 
 return doc
