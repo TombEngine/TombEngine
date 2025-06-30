@@ -698,7 +698,7 @@ if #functions > 0 then
    io.write('\t<functions>')
 
    for _, func_data in ipairs(functions) do
-      func_data.item:dumpToXML(func_data.module)
+      func_data.item:dumpFunctionToXML(func_data.module)
    end
 
    io.write('\t</functions>\n')
