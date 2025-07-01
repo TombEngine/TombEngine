@@ -8,7 +8,7 @@
 
 using namespace TEN::Utils;
 
-constexpr auto MAX_SPAWNED_ITEM_COUNT = 512;
+constexpr auto MAX_SPAWNED_ITEM_COUNT = 1024;
 constexpr auto ITEM_FLAG_COUNT = 8;
 
 constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
