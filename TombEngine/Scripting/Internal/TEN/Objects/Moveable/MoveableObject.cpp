@@ -82,6 +82,13 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 	}
 
 	int movID = CreateItem();
+
+	if (movID == NO_VALUE)
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": unable to get free moveable slot. Too many moveables created?", LogLevel::Error);
+		return nullptr;
+	}
+
 	auto scriptMov = std::make_unique<Moveable>(movID, false);
 
 	if (ScriptAssert(scriptMov->SetName(name), "Could not set name for Moveable. Returning an invalid object."))
