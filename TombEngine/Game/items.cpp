@@ -204,6 +204,45 @@ std::vector<BoundingSphere> ItemInfo::GetSpheres() const
 	return g_Renderer.GetSpheres(Index);
 }
 
+ItemInfo* ItemHandler::Get() const
+{
+	if (g_Level.Items.empty())
+		return nullptr;
+
+	if (_index < 0 || _index >= g_Level.Items.size())
+		return &g_Level.Items[0];
+
+	return &g_Level.Items[_index];
+}
+
+ItemHandler& ItemHandler::operator=(ItemInfo* ptr)
+{
+	if (ptr)
+		_index = ptr->Index;
+	else
+		_index = NO_VALUE;
+
+	return *this;
+}
+
+ItemHandler::operator ItemInfo* () const
+{
+	return Get();
+}
+
+ItemInfo* ItemHandler::operator->() const
+{
+	return static_cast<ItemInfo*>(*this);
+}
+
+ItemInfo& ItemHandler::operator*() const
+{
+	if (_index < 0 || _index >= g_Level.Items.size())
+		return g_Level.Items[0];
+
+	return g_Level.Items[_index];
+}
+
 bool TestState(int refState, const std::vector<int>& stateList)
 {
 	for (const auto& state : stateList)

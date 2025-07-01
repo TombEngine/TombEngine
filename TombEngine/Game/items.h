@@ -189,6 +189,22 @@ struct ItemInfo
 	std::vector<BoundingSphere> GetSpheres() const;
 };
 
+class ItemHandler
+{
+private:
+	int _index = NO_VALUE;
+
+public:
+	ItemHandler() = default;
+	ItemHandler& operator=(ItemInfo* ptr);
+
+	operator ItemInfo* () const;
+
+	ItemInfo* Get() const;
+	ItemInfo* operator->() const;
+	ItemInfo& operator*() const;
+};
+
 bool TestState(int refState, const std::vector<int>& stateList);
 void EffectNewRoom(short fxNumber, short roomNumber);
 void ItemNewRoom(short itemNumber, short roomNumber);

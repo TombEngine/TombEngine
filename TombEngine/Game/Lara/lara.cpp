@@ -57,7 +57,7 @@ using namespace TEN::Gui;
 using TEN::Renderer::g_Renderer;
 
 LaraInfo	  Lara			= {};
-ItemInfo*	  LaraItem		= nullptr;
+ItemHandler	  LaraItem		= {};
 CollisionInfo LaraCollision = {};
 
 static void HandlePlayerDebug(const ItemInfo& item)

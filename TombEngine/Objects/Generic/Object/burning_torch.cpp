@@ -82,7 +82,7 @@ namespace TEN::Entities::Generic
 		const int throwAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 1;
 		const int dropAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 2;
 
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		if (lara->Torch.State == TorchState::Holding)
@@ -200,7 +200,7 @@ namespace TEN::Entities::Generic
 
 	void GetFlameTorch()
 	{
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		if (lara->Control.Weapon.GunType == LaraWeaponType::Flare)

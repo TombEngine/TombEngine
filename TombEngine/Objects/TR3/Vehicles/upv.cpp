@@ -304,7 +304,7 @@ namespace TEN::Entities::Vehicles
 
 		auto* UPVItem = &g_Level.Items[itemNumber];
 		auto* UPV = GetUPVInfo(UPVItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		if (lara->Context.Vehicle == itemNumber)
