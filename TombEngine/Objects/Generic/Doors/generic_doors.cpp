@@ -480,8 +480,8 @@ namespace TEN::Entities::Doors
 		if (pathfindingBoxID != NO_VALUE)
 		{
 			g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 
@@ -514,8 +514,8 @@ namespace TEN::Entities::Doors
 		{
 			g_Level.PathfindingBoxes[pathfindingBoxID].flags |= BLOCKED;
 
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 

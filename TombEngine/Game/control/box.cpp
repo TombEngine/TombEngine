@@ -203,7 +203,7 @@ void AlertNearbyGuards(ItemInfo* item)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* currentCreature = ActiveCreatures[i];
+		auto* currentCreature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
 		if (currentCreature->ItemNumber == NO_VALUE)
 			continue;
 
@@ -228,7 +228,8 @@ void AlertAllGuards(short itemNumber)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* creature = ActiveCreatures[i];
+		auto* creature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
+
 		if (creature->ItemNumber == NO_VALUE)
 			continue;
 

@@ -7,6 +7,7 @@
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
+#include "Game/misc.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Generic/Doors/generic_doors.h"
@@ -687,8 +688,8 @@ void DoFlipMap(int group)
 	FlipStatus =
 	FlipStats[group] = !FlipStats[group];
 
-	for (auto& creature : ActiveCreatures)
-		creature->LOT.TargetBox = NO_VALUE;
+	for (auto creatureIndex : ActiveCreatures)
+		GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 }
 
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)

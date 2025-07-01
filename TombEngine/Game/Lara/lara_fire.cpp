@@ -946,8 +946,10 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
-	for (auto* creaturePtr : ActiveCreatures)
+	for (auto creatureIndex : ActiveCreatures)
 	{
+		auto* creaturePtr = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 		// Continue loop if no item.
 		if (creaturePtr->ItemNumber == NO_VALUE)
 			continue;
