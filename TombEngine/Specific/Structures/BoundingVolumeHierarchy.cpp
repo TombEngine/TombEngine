@@ -92,7 +92,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it != _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to insert leaf with existing object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -115,7 +117,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to move missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -149,7 +153,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to remove missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -293,7 +299,9 @@ namespace TEN::Structures
 			siblingId = (leftCost < rightCost) ? leftChildId : rightChildId;
 			if (siblingId == NO_VALUE)
 			{
+#if _DEBUG
 				TENLog("BVH: Sibling leaf search failed.", LogLevel::Warning);
+#endif
 				break;
 			}
 		}
