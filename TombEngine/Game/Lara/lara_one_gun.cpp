@@ -436,6 +436,13 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	if (player.Control.Weapon.WeaponItem == NO_VALUE)
 	{
 		player.Control.Weapon.WeaponItem = CreateItem();
+
+		if (player.Control.Weapon.WeaponItem == NO_VALUE)
+		{
+			TENLog("Failed to create weapon item, no free moveable slots available.", LogLevel::Error);
+			return;
+		}
+
 		weaponItemPtr = &g_Level.Items[player.Control.Weapon.WeaponItem];
 		weaponItemPtr->ObjectNumber = GetWeaponObjectID(weaponType);
 
