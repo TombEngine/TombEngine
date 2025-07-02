@@ -275,6 +275,12 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 
 void KillItem(short const itemNumber)
 {
+	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
+	{
+		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		return;
+	}
+
 	if (InItemControlLoop)
 	{
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber | 0x8000;
