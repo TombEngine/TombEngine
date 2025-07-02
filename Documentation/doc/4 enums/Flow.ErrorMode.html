@@ -118,16 +118,25 @@
 
 <h1>Enum <code>Flow.ErrorMode</code></h1>
 <p>Constants for error modes.</p>
-<p>
+<p> To be used in <a href="../2 classes/Flow.Settings.html#errorMode">errorMode</a> setting.
+ <br>
+ In all of these modes, an <em>unrecoverable</em> error will boot you to the title level. If the title level itself
+ has an unrecoverable error, the game will close.</p>
 
-</p>
 
-
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Members">Members</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Flow.ErrorMode">Flow.ErrorMode</a></td>
-	<td class="summary">Table of Flow.ErrorMode constants.</td>
+	<td class="name" ><a href="#SILENT">SILENT</a></td>
+	<td class="summary">Do nothing when a recoverable script error is hit.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WARN">WARN</a></td>
+	<td class="summary">Print to the log file and continue running the application when a recoverable script error is hit.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#TERMINATE">TERMINATE</a></td>
+	<td class="summary">Print to the log file and return to the title level when any script error is hit.</td>
 	</tr>
 </table>
 
@@ -135,32 +144,51 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Members"></a>Members</h2>
 
     <dl class="function">
     <dt>
-    <a name = "Flow.ErrorMode"></a>
-    <strong>Flow.ErrorMode</strong>
+    <a name = "SILENT"></a>
+    <strong>SILENT</strong>
     </dt>
     <dd>
-    Table of Flow.ErrorMode constants.  To be used in <a href="../2 classes/Flow.Settings.html#errorMode">errorMode</a> setting.</p>
+    Do nothing when a recoverable script error is hit.
+ <br>
+ Think <em>very</em> carefully before using this setting.
+ These error modes are here to help you to keep your scripts working properly,
+ but if you opt to ignore errors, you won't be alerted if you've misused a function or passed an invalid argument.
 
-<p> The following constants are inside Flow.ErrorMode: <br></p>
 
-<ul>
-    <li><p><code>TERMINATE</code> - Print to the log file and return to the title level when any script error is hit.
-    This is the one you will want to go for if you want to know <em>immediately</em> if something has gone wrong.</p></li>
-    <li><p><code>WARN</code> - Print to the log file and continue running the application when a recoverable script error is hit.
-    Choose this one if booting to the title level is too much for you.</p></li>
-    <li><p><code>SILENT</code> - Do nothing when a recoverable script error is hit.
-    Think <em>very</em> carefully before using this setting. These error modes are here to help you to keep your scripts
-    working properly, but if you opt to ignore errors, you won't be alerted if you've misused a function or passed
-    an invalid argument.</p></li>
-</ul>
 
-<p> In all of these modes, an <em>unrecoverable</em> error will boot you to the title level. If the title level itself
- has an unrecoverable error, the game will close.
 
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WARN"></a>
+    <strong>WARN</strong>
+    </dt>
+    <dd>
+    Print to the log file and continue running the application when a recoverable script error is hit.
+ Choose this one if booting to the title level is too much for you.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TERMINATE"></a>
+    <strong>TERMINATE</strong>
+    </dt>
+    <dd>
+    Print to the log file and return to the title level when any script error is hit.
+ This is the one you will want to go for if you want to know <em>immediately</em> if something has gone wrong.
 
 
 

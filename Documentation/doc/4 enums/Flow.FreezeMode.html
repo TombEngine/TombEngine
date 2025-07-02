@@ -118,16 +118,26 @@
 
 <h1>Enum <code>Flow.FreezeMode</code></h1>
 <p>Constants for freeze modes.</p>
-<p>
-
-</p>
+<p> To be used with <a href="../1 modules/Flow.html#GetFreezeMode">Flow.GetFreezeMode</a> and <a href="../1 modules/Flow.html#SetFreezeMode">Flow.SetFreezeMode</a> functions.</p>
 
 
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Members">Members</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#FreezeMode">FreezeMode</a></td>
-	<td class="summary">Table of Flow.FreezeMode constants.</td>
+	<td class="name" ><a href="#NONE">NONE</a></td>
+	<td class="summary">Normal in-game operation.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#FULL">FULL</a></td>
+	<td class="summary">Game is completely frozen, as in pause or inventory menus.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SPECTATOR">SPECTATOR</a></td>
+	<td class="summary">Game is completely frozen, but with ability to control camera.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#PLAYER">PLAYER</a></td>
+	<td class="summary">Game is completely frozen, but with ability to control player.</td>
 	</tr>
 </table>
 
@@ -135,25 +145,60 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Members"></a>Members</h2>
 
     <dl class="function">
     <dt>
-    <a name = "FreezeMode"></a>
-    <strong>FreezeMode</strong>
+    <a name = "NONE"></a>
+    <strong>NONE</strong>
     </dt>
     <dd>
+    Normal in-game operation.
 
-<p>Table of Flow.FreezeMode constants.
- To be used with <a href="../1 modules/Flow.html#GetFreezeMode">Flow.GetFreezeMode</a> and <a href="../1 modules/Flow.html#SetFreezeMode">Flow.SetFreezeMode</a> functions.</p>
 
-<ul>
-    <li><code>NONE</code> - Normal in-game operation.</li>
-    <li><code>FULL</code> - Game is completely frozen, as in pause or inventory menus.</li>
-    <li><code>SPECTATOR</code> - Game is completely frozen, but with ability to control camera.</li>
-    <li><code>PLAYER</code> - Game is completely frozen, but with ability to control player. Experimental.</li>
-</ul>
 
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "FULL"></a>
+    <strong>FULL</strong>
+    </dt>
+    <dd>
+    Game is completely frozen, as in pause or inventory menus.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SPECTATOR"></a>
+    <strong>SPECTATOR</strong>
+    </dt>
+    <dd>
+    Game is completely frozen, but with ability to control camera.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "PLAYER"></a>
+    <strong>PLAYER</strong>
+    </dt>
+    <dd>
+    Game is completely frozen, but with ability to control player.  Experimental.
 
 
 

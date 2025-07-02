@@ -118,16 +118,439 @@
 
 <h1>Enum <code>Input.ActionID</code></h1>
 <p>Constants for action key IDs.</p>
-<p>
+<p> Contains mapped action IDs, raw keyboard input IDs, and raw mouse input IDs.
+ To be used with <a href="../1 modules/Input.html#IsKeyHit">Input.IsKeyHit</a>, <a href="../1 modules/Input.html#IsKeyHeld">Input.IsKeyHeld</a>, and other similar functions.</p>
 
-</p>
 
-
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Members">Members</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Input.ActionID">Input.ActionID</a></td>
-	<td class="summary">Table of Input.ActionID constants.</td>
+	<td class="name" ><a href="#FORWARD">FORWARD</a></td>
+	<td class="summary">Forward action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BACK">BACK</a></td>
+	<td class="summary">Back action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LEFT">LEFT</a></td>
+	<td class="summary">Left action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#RIGHT">RIGHT</a></td>
+	<td class="summary">Right action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#STEP_LEFT">STEP_LEFT</a></td>
+	<td class="summary">Step left action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#STEP_RIGHT">STEP_RIGHT</a></td>
+	<td class="summary">Step right action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WALK">WALK</a></td>
+	<td class="summary">Walk action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SPRINT">SPRINT</a></td>
+	<td class="summary">Sprint action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#CROUCH">CROUCH</a></td>
+	<td class="summary">Crouch action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#JUMP">JUMP</a></td>
+	<td class="summary">Jump action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ROLL">ROLL</a></td>
+	<td class="summary">Roll action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ACTION">ACTION</a></td>
+	<td class="summary">Action key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DRAW">DRAW</a></td>
+	<td class="summary">Draw weapon action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LOOK">LOOK</a></td>
+	<td class="summary">Look action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ACCELERATE">ACCELERATE</a></td>
+	<td class="summary">Accelerate action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#REVERSE">REVERSE</a></td>
+	<td class="summary">Reverse action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#FASTER">FASTER</a></td>
+	<td class="summary">Faster action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SLOWER">SLOWER</a></td>
+	<td class="summary">Slower action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BRAKE">BRAKE</a></td>
+	<td class="summary">Brake action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#FIRE">FIRE</a></td>
+	<td class="summary">Fire action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#FLARE">FLARE</a></td>
+	<td class="summary">Flare action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SMALL_MEDIPACK">SMALL_MEDIPACK</a></td>
+	<td class="summary">Small medipack action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LARGE_MEDIPACK">LARGE_MEDIPACK</a></td>
+	<td class="summary">Large medipack action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#PREVIOUS_WEAPON">PREVIOUS_WEAPON</a></td>
+	<td class="summary">Previous weapon action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#NEXT_WEAPON">NEXT_WEAPON</a></td>
+	<td class="summary">Next weapon action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_1">WEAPON_1</a></td>
+	<td class="summary">Weapon 1 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_2">WEAPON_2</a></td>
+	<td class="summary">Weapon 2 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_3">WEAPON_3</a></td>
+	<td class="summary">Weapon 3 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_4">WEAPON_4</a></td>
+	<td class="summary">Weapon 4 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_5">WEAPON_5</a></td>
+	<td class="summary">Weapon 5 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_6">WEAPON_6</a></td>
+	<td class="summary">Weapon 6 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_7">WEAPON_7</a></td>
+	<td class="summary">Weapon 7 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_8">WEAPON_8</a></td>
+	<td class="summary">Weapon 8 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_9">WEAPON_9</a></td>
+	<td class="summary">Weapon 9 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WEAPON_10">WEAPON_10</a></td>
+	<td class="summary">Weapon 10 action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SELECT">SELECT</a></td>
+	<td class="summary">Select action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DESELECT">DESELECT</a></td>
+	<td class="summary">Deselect action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#PAUSE">PAUSE</a></td>
+	<td class="summary">Pause action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#INVENTORY">INVENTORY</a></td>
+	<td class="summary">Inventory action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SAVE">SAVE</a></td>
+	<td class="summary">Save action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LOAD">LOAD</a></td>
+	<td class="summary">Load action.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#A">A</a></td>
+	<td class="summary">Keyboard A key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#B">B</a></td>
+	<td class="summary">Keyboard B key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#C">C</a></td>
+	<td class="summary">Keyboard C key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#D">D</a></td>
+	<td class="summary">Keyboard D key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#E">E</a></td>
+	<td class="summary">Keyboard E key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#F">F</a></td>
+	<td class="summary">Keyboard F key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#G">G</a></td>
+	<td class="summary">Keyboard G key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#H">H</a></td>
+	<td class="summary">Keyboard H key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#I">I</a></td>
+	<td class="summary">Keyboard I key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#J">J</a></td>
+	<td class="summary">Keyboard J key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#K">K</a></td>
+	<td class="summary">Keyboard K key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#L">L</a></td>
+	<td class="summary">Keyboard L key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#M">M</a></td>
+	<td class="summary">Keyboard M key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#N">N</a></td>
+	<td class="summary">Keyboard N key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#O">O</a></td>
+	<td class="summary">Keyboard O key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#P">P</a></td>
+	<td class="summary">Keyboard P key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Q">Q</a></td>
+	<td class="summary">Keyboard Q key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#R">R</a></td>
+	<td class="summary">Keyboard R key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#S">S</a></td>
+	<td class="summary">Keyboard S key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#T">T</a></td>
+	<td class="summary">Keyboard T key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#U">U</a></td>
+	<td class="summary">Keyboard U key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#V">V</a></td>
+	<td class="summary">Keyboard V key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#W">W</a></td>
+	<td class="summary">Keyboard W key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#X">X</a></td>
+	<td class="summary">Keyboard X key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Y">Y</a></td>
+	<td class="summary">Keyboard Y key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Z">Z</a></td>
+	<td class="summary">Keyboard Z key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#1">1</a></td>
+	<td class="summary">Keyboard 1 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#2">2</a></td>
+	<td class="summary">Keyboard 2 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#3">3</a></td>
+	<td class="summary">Keyboard 3 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#4">4</a></td>
+	<td class="summary">Keyboard 4 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#5">5</a></td>
+	<td class="summary">Keyboard 5 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#6">6</a></td>
+	<td class="summary">Keyboard 6 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#7">7</a></td>
+	<td class="summary">Keyboard 7 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#8">8</a></td>
+	<td class="summary">Keyboard 8 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#9">9</a></td>
+	<td class="summary">Keyboard 9 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#0">0</a></td>
+	<td class="summary">Keyboard 0 key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#RETURN">RETURN</a></td>
+	<td class="summary">Return/Enter key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ESCAPE">ESCAPE</a></td>
+	<td class="summary">Escape key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BACKSPACE">BACKSPACE</a></td>
+	<td class="summary">Backspace key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#TAB">TAB</a></td>
+	<td class="summary">Tab key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SPACE">SPACE</a></td>
+	<td class="summary">Space key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#HOME">HOME</a></td>
+	<td class="summary">Home key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#END">END</a></td>
+	<td class="summary">End key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#DELETE">DELETE</a></td>
+	<td class="summary">Delete key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MINUS">MINUS</a></td>
+	<td class="summary">Minus key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#EQUALS">EQUALS</a></td>
+	<td class="summary">Equals key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BRACKET_LEFT">BRACKET_LEFT</a></td>
+	<td class="summary">Left bracket key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BRACKET_RIGHT">BRACKET_RIGHT</a></td>
+	<td class="summary">Right bracket key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#BACKSLASH">BACKSLASH</a></td>
+	<td class="summary">Backslash key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SEMICOLON">SEMICOLON</a></td>
+	<td class="summary">Semicolon key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#APOSTROPHE">APOSTROPHE</a></td>
+	<td class="summary">Apostrophe key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#COMMA">COMMA</a></td>
+	<td class="summary">Comma key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#PERIOD">PERIOD</a></td>
+	<td class="summary">Period key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SLASH">SLASH</a></td>
+	<td class="summary">Slash key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ARROW_UP">ARROW_UP</a></td>
+	<td class="summary">Arrow up key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ARROW_DOWN">ARROW_DOWN</a></td>
+	<td class="summary">Arrow down key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ARROW_LEFT">ARROW_LEFT</a></td>
+	<td class="summary">Arrow left key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ARROW_RIGHT">ARROW_RIGHT</a></td>
+	<td class="summary">Arrow right key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#CTRL">CTRL</a></td>
+	<td class="summary">Control key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SHIFT">SHIFT</a></td>
+	<td class="summary">Shift key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ALT">ALT</a></td>
+	<td class="summary">Alt key.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MOUSE_CLICK_LEFT">MOUSE_CLICK_LEFT</a></td>
+	<td class="summary">Mouse left click.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MOUSE_CLICK_MIDDLE">MOUSE_CLICK_MIDDLE</a></td>
+	<td class="summary">Mouse middle click.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MOUSE_CLICK_RIGHT">MOUSE_CLICK_RIGHT</a></td>
+	<td class="summary">Mouse right click.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MOUSE_SCROLL_UP">MOUSE_SCROLL_UP</a></td>
+	<td class="summary">Mouse scroll up.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MOUSE_SCROLL_DOWN">MOUSE_SCROLL_DOWN</a></td>
+	<td class="summary">Mouse scroll down.</td>
 	</tr>
 </table>
 
@@ -135,139 +558,1605 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Members"></a>Members</h2>
 
     <dl class="function">
     <dt>
-    <a name = "Input.ActionID"></a>
-    <strong>Input.ActionID</strong>
+    <a name = "FORWARD"></a>
+    <strong>FORWARD</strong>
     </dt>
     <dd>
-    Table of Input.ActionID constants.
- To be used with <a href="../1 modules/Input.html#IsKeyHit">Input.IsKeyHit</a>, <a href="../1 modules/Input.html#IsKeyHeld">Input.IsKeyHeld</a>, and other similar functions.</p>
+    Forward action.
 
-<p> Mapped action IDs:</p>
 
-<pre><code>FORWARD
-BACK
-LEFT
-RIGHT
-STEP_LEFT
-STEP_RIGHT
-WALK
-SPRINT
-CROUCH
-JUMP
-ROLL
-ACTION
-DRAW
-LOOK
 
-ACCELERATE
-REVERSE
-FASTER
-SLOWER
-BRAKE
-FIRE
 
-FLARE
-SMALL_MEDIPACK
-LARGE_MEDIPACK
-PREVIOUS_WEAPON
-NEXT_WEAPON
-WEAPON_1
-WEAPON_2
-WEAPON_3
-WEAPON_4
-WEAPON_5
-WEAPON_6
-WEAPON_7
-WEAPON_8
-WEAPON_9
-WEAPON_10
 
-SELECT
-DESELECT
-PAUSE
-INVENTORY
-SAVE
-LOAD
-</code></pre>
 
-<p> Raw keyboard input IDs:</p>
 
-<pre><code>A
-B
-C
-D
-E
-F
-G
-H
-I
-J
-K
-L
-M
-N
-O
-P
-Q
-R
-S
-T
-U
-V
-W
-X
-Y
-Z
-1
-2
-3
-4
-5
-6
-7
-8
-9
-0
-RETURN
-ESCAPE
-BACKSPACE
-TAB
-SPACE
-HOME
-END
-DELETE
-MINUS
-EQUALS
-BRACKET_LEFT
-BRACKET_RIGHT
-BACKSLASH
-SEMICOLON
-APOSTROPHE
-COMMA
-PERIOD
-SPASH
-ARROW_UP
-ARROW_DOWN
-ARROW_LEFT
-ARROW_RIGHT
-CTRL
-SHIFT
-ALT
-</code></pre>
 
-<p> Raw mouse input IDs:</p>
+</dd>
+    <dt>
+    <a name = "BACK"></a>
+    <strong>BACK</strong>
+    </dt>
+    <dd>
+    Back action.
 
-<pre><code>MOUSE_CLICK_LEFT
-MOUSE_CLICK_MIDDLE
-MOUSE_CLICK_RIGHT
-MOUSE_SCROLL_UP
-MOUSE_SCROLL_DOWN
-</code></pre>
-<p>
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "LEFT"></a>
+    <strong>LEFT</strong>
+    </dt>
+    <dd>
+    Left action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "RIGHT"></a>
+    <strong>RIGHT</strong>
+    </dt>
+    <dd>
+    Right action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "STEP_LEFT"></a>
+    <strong>STEP_LEFT</strong>
+    </dt>
+    <dd>
+    Step left action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "STEP_RIGHT"></a>
+    <strong>STEP_RIGHT</strong>
+    </dt>
+    <dd>
+    Step right action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WALK"></a>
+    <strong>WALK</strong>
+    </dt>
+    <dd>
+    Walk action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SPRINT"></a>
+    <strong>SPRINT</strong>
+    </dt>
+    <dd>
+    Sprint action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "CROUCH"></a>
+    <strong>CROUCH</strong>
+    </dt>
+    <dd>
+    Crouch action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "JUMP"></a>
+    <strong>JUMP</strong>
+    </dt>
+    <dd>
+    Jump action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ROLL"></a>
+    <strong>ROLL</strong>
+    </dt>
+    <dd>
+    Roll action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ACTION"></a>
+    <strong>ACTION</strong>
+    </dt>
+    <dd>
+    Action key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DRAW"></a>
+    <strong>DRAW</strong>
+    </dt>
+    <dd>
+    Draw weapon action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "LOOK"></a>
+    <strong>LOOK</strong>
+    </dt>
+    <dd>
+    Look action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ACCELERATE"></a>
+    <strong>ACCELERATE</strong>
+    </dt>
+    <dd>
+    Accelerate action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "REVERSE"></a>
+    <strong>REVERSE</strong>
+    </dt>
+    <dd>
+    Reverse action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "FASTER"></a>
+    <strong>FASTER</strong>
+    </dt>
+    <dd>
+    Faster action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SLOWER"></a>
+    <strong>SLOWER</strong>
+    </dt>
+    <dd>
+    Slower action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "BRAKE"></a>
+    <strong>BRAKE</strong>
+    </dt>
+    <dd>
+    Brake action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "FIRE"></a>
+    <strong>FIRE</strong>
+    </dt>
+    <dd>
+    Fire action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "FLARE"></a>
+    <strong>FLARE</strong>
+    </dt>
+    <dd>
+    Flare action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SMALL_MEDIPACK"></a>
+    <strong>SMALL_MEDIPACK</strong>
+    </dt>
+    <dd>
+    Small medipack action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "LARGE_MEDIPACK"></a>
+    <strong>LARGE_MEDIPACK</strong>
+    </dt>
+    <dd>
+    Large medipack action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "PREVIOUS_WEAPON"></a>
+    <strong>PREVIOUS_WEAPON</strong>
+    </dt>
+    <dd>
+    Previous weapon action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "NEXT_WEAPON"></a>
+    <strong>NEXT_WEAPON</strong>
+    </dt>
+    <dd>
+    Next weapon action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_1"></a>
+    <strong>WEAPON_1</strong>
+    </dt>
+    <dd>
+    Weapon 1 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_2"></a>
+    <strong>WEAPON_2</strong>
+    </dt>
+    <dd>
+    Weapon 2 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_3"></a>
+    <strong>WEAPON_3</strong>
+    </dt>
+    <dd>
+    Weapon 3 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_4"></a>
+    <strong>WEAPON_4</strong>
+    </dt>
+    <dd>
+    Weapon 4 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_5"></a>
+    <strong>WEAPON_5</strong>
+    </dt>
+    <dd>
+    Weapon 5 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_6"></a>
+    <strong>WEAPON_6</strong>
+    </dt>
+    <dd>
+    Weapon 6 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_7"></a>
+    <strong>WEAPON_7</strong>
+    </dt>
+    <dd>
+    Weapon 7 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_8"></a>
+    <strong>WEAPON_8</strong>
+    </dt>
+    <dd>
+    Weapon 8 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_9"></a>
+    <strong>WEAPON_9</strong>
+    </dt>
+    <dd>
+    Weapon 9 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WEAPON_10"></a>
+    <strong>WEAPON_10</strong>
+    </dt>
+    <dd>
+    Weapon 10 action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SELECT"></a>
+    <strong>SELECT</strong>
+    </dt>
+    <dd>
+    Select action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DESELECT"></a>
+    <strong>DESELECT</strong>
+    </dt>
+    <dd>
+    Deselect action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "PAUSE"></a>
+    <strong>PAUSE</strong>
+    </dt>
+    <dd>
+    Pause action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "INVENTORY"></a>
+    <strong>INVENTORY</strong>
+    </dt>
+    <dd>
+    Inventory action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SAVE"></a>
+    <strong>SAVE</strong>
+    </dt>
+    <dd>
+    Save action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "LOAD"></a>
+    <strong>LOAD</strong>
+    </dt>
+    <dd>
+    Load action.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "A"></a>
+    <strong>A</strong>
+    </dt>
+    <dd>
+    Keyboard A key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "B"></a>
+    <strong>B</strong>
+    </dt>
+    <dd>
+    Keyboard B key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "C"></a>
+    <strong>C</strong>
+    </dt>
+    <dd>
+    Keyboard C key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "D"></a>
+    <strong>D</strong>
+    </dt>
+    <dd>
+    Keyboard D key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "E"></a>
+    <strong>E</strong>
+    </dt>
+    <dd>
+    Keyboard E key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "F"></a>
+    <strong>F</strong>
+    </dt>
+    <dd>
+    Keyboard F key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "G"></a>
+    <strong>G</strong>
+    </dt>
+    <dd>
+    Keyboard G key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "H"></a>
+    <strong>H</strong>
+    </dt>
+    <dd>
+    Keyboard H key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "I"></a>
+    <strong>I</strong>
+    </dt>
+    <dd>
+    Keyboard I key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "J"></a>
+    <strong>J</strong>
+    </dt>
+    <dd>
+    Keyboard J key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "K"></a>
+    <strong>K</strong>
+    </dt>
+    <dd>
+    Keyboard K key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "L"></a>
+    <strong>L</strong>
+    </dt>
+    <dd>
+    Keyboard L key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "M"></a>
+    <strong>M</strong>
+    </dt>
+    <dd>
+    Keyboard M key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "N"></a>
+    <strong>N</strong>
+    </dt>
+    <dd>
+    Keyboard N key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "O"></a>
+    <strong>O</strong>
+    </dt>
+    <dd>
+    Keyboard O key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "P"></a>
+    <strong>P</strong>
+    </dt>
+    <dd>
+    Keyboard P key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Q"></a>
+    <strong>Q</strong>
+    </dt>
+    <dd>
+    Keyboard Q key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "R"></a>
+    <strong>R</strong>
+    </dt>
+    <dd>
+    Keyboard R key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "S"></a>
+    <strong>S</strong>
+    </dt>
+    <dd>
+    Keyboard S key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "T"></a>
+    <strong>T</strong>
+    </dt>
+    <dd>
+    Keyboard T key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "U"></a>
+    <strong>U</strong>
+    </dt>
+    <dd>
+    Keyboard U key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "V"></a>
+    <strong>V</strong>
+    </dt>
+    <dd>
+    Keyboard V key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "W"></a>
+    <strong>W</strong>
+    </dt>
+    <dd>
+    Keyboard W key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "X"></a>
+    <strong>X</strong>
+    </dt>
+    <dd>
+    Keyboard X key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Y"></a>
+    <strong>Y</strong>
+    </dt>
+    <dd>
+    Keyboard Y key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Z"></a>
+    <strong>Z</strong>
+    </dt>
+    <dd>
+    Keyboard Z key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "1"></a>
+    <strong>1</strong>
+    </dt>
+    <dd>
+    Keyboard 1 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "2"></a>
+    <strong>2</strong>
+    </dt>
+    <dd>
+    Keyboard 2 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "3"></a>
+    <strong>3</strong>
+    </dt>
+    <dd>
+    Keyboard 3 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "4"></a>
+    <strong>4</strong>
+    </dt>
+    <dd>
+    Keyboard 4 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "5"></a>
+    <strong>5</strong>
+    </dt>
+    <dd>
+    Keyboard 5 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "6"></a>
+    <strong>6</strong>
+    </dt>
+    <dd>
+    Keyboard 6 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "7"></a>
+    <strong>7</strong>
+    </dt>
+    <dd>
+    Keyboard 7 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "8"></a>
+    <strong>8</strong>
+    </dt>
+    <dd>
+    Keyboard 8 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "9"></a>
+    <strong>9</strong>
+    </dt>
+    <dd>
+    Keyboard 9 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "0"></a>
+    <strong>0</strong>
+    </dt>
+    <dd>
+    Keyboard 0 key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "RETURN"></a>
+    <strong>RETURN</strong>
+    </dt>
+    <dd>
+    Return/Enter key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ESCAPE"></a>
+    <strong>ESCAPE</strong>
+    </dt>
+    <dd>
+    Escape key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "BACKSPACE"></a>
+    <strong>BACKSPACE</strong>
+    </dt>
+    <dd>
+    Backspace key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TAB"></a>
+    <strong>TAB</strong>
+    </dt>
+    <dd>
+    Tab key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SPACE"></a>
+    <strong>SPACE</strong>
+    </dt>
+    <dd>
+    Space key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "HOME"></a>
+    <strong>HOME</strong>
+    </dt>
+    <dd>
+    Home key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "END"></a>
+    <strong>END</strong>
+    </dt>
+    <dd>
+    End key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "DELETE"></a>
+    <strong>DELETE</strong>
+    </dt>
+    <dd>
+    Delete key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MINUS"></a>
+    <strong>MINUS</strong>
+    </dt>
+    <dd>
+    Minus key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "EQUALS"></a>
+    <strong>EQUALS</strong>
+    </dt>
+    <dd>
+    Equals key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "BRACKET_LEFT"></a>
+    <strong>BRACKET_LEFT</strong>
+    </dt>
+    <dd>
+    Left bracket key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "BRACKET_RIGHT"></a>
+    <strong>BRACKET_RIGHT</strong>
+    </dt>
+    <dd>
+    Right bracket key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "BACKSLASH"></a>
+    <strong>BACKSLASH</strong>
+    </dt>
+    <dd>
+    Backslash key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SEMICOLON"></a>
+    <strong>SEMICOLON</strong>
+    </dt>
+    <dd>
+    Semicolon key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "APOSTROPHE"></a>
+    <strong>APOSTROPHE</strong>
+    </dt>
+    <dd>
+    Apostrophe key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "COMMA"></a>
+    <strong>COMMA</strong>
+    </dt>
+    <dd>
+    Comma key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "PERIOD"></a>
+    <strong>PERIOD</strong>
+    </dt>
+    <dd>
+    Period key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SLASH"></a>
+    <strong>SLASH</strong>
+    </dt>
+    <dd>
+    Slash key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ARROW_UP"></a>
+    <strong>ARROW_UP</strong>
+    </dt>
+    <dd>
+    Arrow up key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ARROW_DOWN"></a>
+    <strong>ARROW_DOWN</strong>
+    </dt>
+    <dd>
+    Arrow down key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ARROW_LEFT"></a>
+    <strong>ARROW_LEFT</strong>
+    </dt>
+    <dd>
+    Arrow left key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ARROW_RIGHT"></a>
+    <strong>ARROW_RIGHT</strong>
+    </dt>
+    <dd>
+    Arrow right key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "CTRL"></a>
+    <strong>CTRL</strong>
+    </dt>
+    <dd>
+    Control key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SHIFT"></a>
+    <strong>SHIFT</strong>
+    </dt>
+    <dd>
+    Shift key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ALT"></a>
+    <strong>ALT</strong>
+    </dt>
+    <dd>
+    Alt key.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MOUSE_CLICK_LEFT"></a>
+    <strong>MOUSE_CLICK_LEFT</strong>
+    </dt>
+    <dd>
+    Mouse left click.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MOUSE_CLICK_MIDDLE"></a>
+    <strong>MOUSE_CLICK_MIDDLE</strong>
+    </dt>
+    <dd>
+    Mouse middle click.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MOUSE_CLICK_RIGHT"></a>
+    <strong>MOUSE_CLICK_RIGHT</strong>
+    </dt>
+    <dd>
+    Mouse right click.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MOUSE_SCROLL_UP"></a>
+    <strong>MOUSE_SCROLL_UP</strong>
+    </dt>
+    <dd>
+    Mouse scroll up.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MOUSE_SCROLL_DOWN"></a>
+    <strong>MOUSE_SCROLL_DOWN</strong>
+    </dt>
+    <dd>
+    Mouse scroll down.
 
 
 

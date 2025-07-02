@@ -73,57 +73,26 @@ $header = @"
 #include <string>
 #include "Objects/game_object_ids.h"
 
-/***
-Constants for object IDs.
-@enum Objects.ObjID
-@pragma nostrip
-*/
+/// Constants for object IDs.
+// @enum Objects.ObjID
+// @pragma nostrip
 
-/*** Objects.ObjID constants.
-
-The following constants are inside ObjID.
-
-"@
-
-$body = $enumValues | ForEach-Object { "`t$_" }
-$footer = @"
-@table Members
-*/
-"@
-
-# Pickup Constants Section.
-$pickupHeader = @"
-
-/*** Objects.ObjID pickup constants.
-
-The following ObjID members refer to pickups.
-
-"@
-
-$pickupBody = $pickupConstants | ForEach-Object { "`t$_" }
-$pickupFooter = @"
-@table PickupConstants
-*/
-"@
-
-# Sprite Constants Section.
-$spriteHeader = @"
-
-/*** Objects.ObjID sprite constants.
-
-The following ObjID members refer to sprites.
-
-"@
-
-$spriteBody = $spriteConstants | ForEach-Object { "`t$_" }
-$spriteFooter = @"
-@table SpriteConstants
-*/
 "@
 
 # Map definition.
 $mapHeader = "static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {"
-$mapBody = ($enumValues | ForEach-Object { "`t" + '{ "' + "$_" + '", ID_' + "$_" + ' }' }) -join ",`r`n"
+$mapBody = ($enumValues | ForEach-Object {
+    $enumName = $_
+    $description = "Generic constant"
+    
+    if ($enumName -in $pickupConstants) {
+        $description = "Pickup constant"
+    } elseif ($enumName -in $spriteConstants) {
+        $description = "Sprite constant"
+    }
+    
+    "`t/// $description.`r`n`t// @mem $_`r`n`t" + '{ "' + "$_" + '", ID_' + "$_" + ' }'
+}) -join ",`r`n"
 $mapFooter = "};"
 
 # Write to output file

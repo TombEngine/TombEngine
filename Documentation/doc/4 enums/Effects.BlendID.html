@@ -118,16 +118,51 @@
 
 <h1>Enum <code>Effects.BlendID</code></h1>
 <p>Constants for blend mode IDs.</p>
-<p>
+<p> All blending modes except <a href="../4 enums/Effects.BlendID.html#OPAQUE">OPAQUE</a>, <a href="../4 enums/Effects.BlendID.html#ADDITIVE">ADDITIVE</a> and <a href="../4 enums/Effects.BlendID.html#ALPHA_BLEND">ALPHA_BLEND</a> will use depth sorting for applicable polygons.
+ This may reduce engine performance, so it is preferable to minimize usage of other blending modes.</p>
 
-</p>
 
-
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Members">Members</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Effects.BlendID">Effects.BlendID</a></td>
-	<td class="summary">Table of Effects.BlendID constants.</td>
+	<td class="name" ><a href="#OPAQUE">OPAQUE</a></td>
+	<td class="summary">No transparency.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ALPHA_TEST">ALPHA_TEST</a></td>
+	<td class="summary">So called "magenta transparency", every pixel can be either fully transparent or opaque.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ADDITIVE">ADDITIVE</a></td>
+	<td class="summary">Standard additive blending.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#NO_DEPTH_TEST">NO_DEPTH_TEST</a></td>
+	<td class="summary">No depth test blending.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SUBTRACTIVE">SUBTRACTIVE</a></td>
+	<td class="summary">Subtractive blending, with brighter texture areas making everything darker behind them.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#WIREFRAME">WIREFRAME</a></td>
+	<td class="summary">Wireframe mode.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#EXCLUDE">EXCLUDE</a></td>
+	<td class="summary">Produces "inversion" effect.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#SCREEN">SCREEN</a></td>
+	<td class="summary">Similar to <a href="../4 enums/Effects.BlendID.html#ADDITIVE">ADDITIVE</a>, but without excessive overbright.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#LIGHTEN">LIGHTEN</a></td>
+	<td class="summary">Similar to <a href="../4 enums/Effects.BlendID.html#SCREEN">SCREEN</a>, but with a little different blending formula.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#ALPHA_BLEND">ALPHA_BLEND</a></td>
+	<td class="summary">True alpha blending.</td>
 	</tr>
 </table>
 
@@ -135,32 +170,150 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Members"></a>Members</h2>
 
     <dl class="function">
     <dt>
-    <a name = "Effects.BlendID"></a>
-    <strong>Effects.BlendID</strong>
+    <a name = "OPAQUE"></a>
+    <strong>OPAQUE</strong>
     </dt>
     <dd>
-
-<p>Table of Effects.BlendID constants.
- <br>
- All blending modes except <code>OPAQUE</code>, <code>ADDITIVE</code> and <code>ALPHA_BLEND</code> will use depth sorting for applicable polygons.
- This may reduce engine performance, so it is preferable to minimize usage of other blending modes.</p>
-
-<ul>
-    <li><code>OPAQUE</code> - No transparency.</li>
-    <li><code>ALPHA_TEST</code> - So called "magenta transparency", every pixel can be either fully transparent or opaque.</li>
-    <li><code>ADDITIVE</code> - Standard additive blending.</li>
-    <li><code>SUBTRACTIVE</code> - Subtractive blending, with brighter texture areas making everything darker behind them.</li>
-    <li><code>EXCLUDE</code> - Produces "inversion" effect.</li>
-    <li><code>SCREEN</code> - Similar to <code>ADDITIVE</code>, but without excessive overbright.</li>
-    <li><code>LIGHTEN</code> - Similar to <code>SCREEN</code>, but with a little different blending formula.</li>
-    <li><code>ALPHA_BLEND</code> - True alpha blending. Should be used for textures with gradually changing alpha values.</li>
-</ul>
+    No transparency.
 
 
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ALPHA_TEST"></a>
+    <strong>ALPHA_TEST</strong>
+    </dt>
+    <dd>
+    So called "magenta transparency", every pixel can be either fully transparent or opaque.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ADDITIVE"></a>
+    <strong>ADDITIVE</strong>
+    </dt>
+    <dd>
+    Standard additive blending.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "NO_DEPTH_TEST"></a>
+    <strong>NO_DEPTH_TEST</strong>
+    </dt>
+    <dd>
+    No depth test blending.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SUBTRACTIVE"></a>
+    <strong>SUBTRACTIVE</strong>
+    </dt>
+    <dd>
+    Subtractive blending, with brighter texture areas making everything darker behind them.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "WIREFRAME"></a>
+    <strong>WIREFRAME</strong>
+    </dt>
+    <dd>
+    Wireframe mode.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "EXCLUDE"></a>
+    <strong>EXCLUDE</strong>
+    </dt>
+    <dd>
+    Produces "inversion" effect.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SCREEN"></a>
+    <strong>SCREEN</strong>
+    </dt>
+    <dd>
+    Similar to <a href="../4 enums/Effects.BlendID.html#ADDITIVE">ADDITIVE</a>, but without excessive overbright.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "LIGHTEN"></a>
+    <strong>LIGHTEN</strong>
+    </dt>
+    <dd>
+    Similar to <a href="../4 enums/Effects.BlendID.html#SCREEN">SCREEN</a>, but with a little different blending formula.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ALPHA_BLEND"></a>
+    <strong>ALPHA_BLEND</strong>
+    </dt>
+    <dd>
+    True alpha blending.  Should be used for textures with gradually changing alpha values.
 
 
 
