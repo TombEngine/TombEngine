@@ -629,6 +629,8 @@ void InitializeItem(short itemNumber)
 	item->Timer = 0;
 	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
 
+	item->Effect = {};
+
 	if (item->ObjectNumber == ID_HK_ITEM ||
 		item->ObjectNumber == ID_HK_AMMO_ITEM ||
 		item->ObjectNumber == ID_CROSSBOW_ITEM ||
