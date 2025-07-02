@@ -198,9 +198,9 @@ public:
 	ItemHandler() = default;
 	ItemHandler& operator=(ItemInfo* ptr);
 
-	operator ItemInfo* () const;
-
 	ItemInfo* Get() const;
+
+	operator ItemInfo* () const;
 	ItemInfo* operator->() const;
 	ItemInfo& operator*() const;
 };
