@@ -701,7 +701,7 @@ if #functions > 0 then
       func_data.item:dumpFunctionToXML(func_data.module)
    end
 
-   io.write('\t</functions>\n')
+   io.write('\n\t</functions>\n')
 end
 
 -- Export classes section
@@ -718,7 +718,7 @@ if #classes > 0 then
       end
    end
 
-   io.write('\t</classes>\n')
+   io.write('\n\t</classes>\n')
 end
 
 -- Export enums section
@@ -735,11 +735,11 @@ if #enums > 0 then
       end
    end
 
-   io.write('\t</enums>')
+   io.write('\n\t</enums>')
 end
 
 -- Close root element
-io.write('</api>\n')
+io.write('\n</api>\n')
 
 io.close(handle)
 

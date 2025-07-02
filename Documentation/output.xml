@@ -4132,7 +4132,8 @@ allocated even after timeout is reached, and can be shown again without re-initi
 					<description>`true` if the variable is a LevelFunc, `false` otherwise.</description>
 				</return>
 			</returns>
-		</function>	</functions>
+		</function>
+	</functions>
 	<classes>
 		<class>
 			<name>Collision.Probe</name>
@@ -8465,7 +8466,8 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					</parameters>
 				</method>
 			</members>
-		</class>	</classes>
+		</class>
+	</classes>
 	<enums>
 		<enum>
 			<name>Collision.MaterialType</name>
@@ -13697,4 +13699,6 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<summary>Image will stretch according to sprite dimensions, not taking aspect ratio into consideration.</summary>
 				</value>
 			</values>
-		</enum>	</enums></api>
+		</enum>
+	</enums>
+</api>
