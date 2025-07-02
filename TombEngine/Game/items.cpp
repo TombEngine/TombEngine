@@ -210,7 +210,12 @@ ItemInfo* ItemHandler::Get() const
 		return nullptr;
 
 	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
 		return &g_Level.Items[0];
+	}
 
 	return &g_Level.Items[_index];
 }
@@ -238,7 +243,12 @@ ItemInfo* ItemHandler::operator->() const
 ItemInfo& ItemHandler::operator*() const
 {
 	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
 		return g_Level.Items[0];
+	}
 
 	return g_Level.Items[_index];
 }
