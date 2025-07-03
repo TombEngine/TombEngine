@@ -8,6 +8,7 @@
 #include "Math/Objects/Pose.h"
 #include "Math/Objects/Vector2i.h"
 #include "Math/Objects/Vector3i.h"
+#include "Math/Objects/Vector4i.h"
 #include "Math/Random.h"
 #include "Math/Solvers.h"
 #include "Math/Utils.h"

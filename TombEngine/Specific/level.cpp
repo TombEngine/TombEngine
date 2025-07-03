@@ -157,6 +157,33 @@ Vector4 ReadVector4()
 	return value;
 }
 
+Vector2i ReadVector2i()
+{
+	Vector2i value;
+	value.x = ReadInt32();
+	value.y = ReadInt32();
+	return value;
+}
+
+Vector3i ReadVector3i()
+{
+	Vector3i value;
+	value.x = ReadInt32();
+	value.y = ReadInt32();
+	value.z = ReadInt32();
+	return value;
+}
+
+Vector4i ReadVector4i()
+{
+	Vector4i value;
+	value.x = ReadInt32();
+	value.y = ReadInt32();
+	value.z = ReadInt32();
+	value.w = ReadInt32();
+	return value;
+}
+
 bool ReadBool()
 {
 	return bool(ReadUInt8());
@@ -324,7 +351,29 @@ void LoadObjects()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
+			bucket.materialType = (MaterialShaderType)ReadUInt8();
 			bucket.animated = ReadBool();
+			bucket.floatParameters0 = ReadVector4();
+			bucket.floatParameters1 = ReadVector4();
+			bucket.floatParameters2 = ReadVector4();
+			bucket.floatParameters3 = ReadVector4();
+			bucket.integerParameters0 = ReadVector4i();
+			bucket.integerParameters1 = ReadVector4i();
+			bucket.integerParameters2 = ReadVector4i();
+			bucket.integerParameters3 = ReadVector4i();
+			bucket.vector2Parameters0 = ReadVector2();
+			bucket.vector2Parameters1 = ReadVector2();
+			bucket.vector2Parameters2 = ReadVector2();
+			bucket.vector2Parameters3 = ReadVector2();
+			bucket.vector3Parameters0 = ReadVector3();
+			bucket.vector3Parameters1 = ReadVector3();
+			bucket.vector3Parameters2 = ReadVector3();
+			bucket.vector3Parameters3 = ReadVector3();
+			bucket.vector4Parameters0 = ReadVector4();
+			bucket.vector4Parameters1 = ReadVector4();
+			bucket.vector4Parameters2 = ReadVector4();
+			bucket.vector4Parameters3 = ReadVector4();
+
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
 
@@ -888,7 +937,29 @@ void LoadStaticRoomData()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
+			bucket.materialType = (MaterialShaderType)ReadUInt8();
 			bucket.animated = ReadBool();
+			bucket.floatParameters0 = ReadVector4();
+			bucket.floatParameters1 = ReadVector4();
+			bucket.floatParameters2 = ReadVector4();
+			bucket.floatParameters3 = ReadVector4();
+			bucket.integerParameters0 = ReadVector4i();
+			bucket.integerParameters1 = ReadVector4i();
+			bucket.integerParameters2 = ReadVector4i();
+			bucket.integerParameters3 = ReadVector4i();
+			bucket.vector2Parameters0 = ReadVector2();
+			bucket.vector2Parameters1 = ReadVector2();
+			bucket.vector2Parameters2 = ReadVector2();
+			bucket.vector2Parameters3 = ReadVector2();
+			bucket.vector3Parameters0 = ReadVector3();
+			bucket.vector3Parameters1 = ReadVector3();
+			bucket.vector3Parameters2 = ReadVector3();
+			bucket.vector3Parameters3 = ReadVector3();
+			bucket.vector4Parameters0 = ReadVector4();
+			bucket.vector4Parameters1 = ReadVector4();
+			bucket.vector4Parameters2 = ReadVector4();
+			bucket.vector4Parameters3 = ReadVector4();
+
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
 

@@ -94,6 +94,12 @@ enum class BlendMode
 	FastAlphaBlend = 12
 };
 
+enum class MaterialShaderType
+{
+	Opaque = 0,
+	Water = 1
+};
+
 enum class SkinningMode
 {
 	None = 0,

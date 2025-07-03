@@ -504,6 +504,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Objects\Pose.h" />
     <ClInclude Include="Math\Objects\Vector2i.h" />
     <ClInclude Include="Math\Objects\Vector3i.h" />
+    <ClInclude Include="Math\Objects\Vector4i.h" />
     <ClInclude Include="Math\Random.h" />
     <ClInclude Include="Math\Solvers.h" />
     <ClInclude Include="Math\Utils.h" />
@@ -1053,6 +1054,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Math\Objects\Pose.cpp" />
     <ClCompile Include="Math\Objects\Vector2i.cpp" />
     <ClCompile Include="Math\Objects\Vector3i.cpp" />
+    <ClCompile Include="Math\Objects\Vector4i.cpp" />
     <ClCompile Include="Math\Random.cpp" />
     <ClCompile Include="Math\Solvers.cpp" />
     <ClCompile Include="Math\Utils.cpp" />
