@@ -3,6 +3,11 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.9.2]
+
+### Bug fixes
+* Fixed puzzle holes losing collision after inserting puzzle items.
+
 ## [Version 1.9.1]
 
 ### New features
