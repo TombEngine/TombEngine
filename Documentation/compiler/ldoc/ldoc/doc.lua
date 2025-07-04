@@ -1458,9 +1458,10 @@ local function escapeXMLContent(str)
    -- Replace special XML characters
    str = str:gsub("&", "&amp;")
 
-   -- Replace <br> with XML-friendly <br />
-   str = str:gsub("<br>", "<br />")
-   str = str:gsub("<br/>", "<br />")
+   -- Replace <br> with XML-friendly <br /> and escape special characters
+   str = str:gsub("<br>", "&lt;br /&gt;")
+   str = str:gsub("<br/>", "&lt;br /&gt;")
+   str = str:gsub("<br />", "&lt;br /&gt;")
 
    return str
 end

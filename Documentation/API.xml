@@ -3329,9 +3329,9 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>...</name>
 					<type>...</type>
-					<description>A variable number of pairs of arguments, each pair consisting of:<br />
- - a time in seconds (positive values are accepted and with only 1 tenth of a second [__0.1__]),<br />
- - followed by the function defined in the *LevelFuncs* table to call once the time has elapsed,<br />
+					<description>A variable number of pairs of arguments, each pair consisting of:&lt;br /&gt;
+ - a time in seconds (positive values are accepted and with only 1 tenth of a second [__0.1__]),&lt;br /&gt;
+ - followed by the function defined in the *LevelFuncs* table to call once the time has elapsed,&lt;br /&gt;
  - followed by another duration in seconds, another function name, etc.
 
  You can specify a function either by its name, or by a *table* __{ }__ with the function name as the first member, followed by its arguments (see example).</description>
@@ -3451,12 +3451,12 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>name</name>
 					<type>string</type>
-					<description>A label to give this timer; used to retrieve the timer later.<br />__Do not give your timers a name beginning with __TEN, as this is reserved for timers used by other internal libaries__.</description>
+					<description>A label to give this timer; used to retrieve the timer later.&lt;br /&gt;__Do not give your timers a name beginning with __TEN, as this is reserved for timers used by other internal libaries__.</description>
 				</parameter>
 				<parameter>
 					<name>totalTime</name>
 					<type>float</type>
-					<description>Duration of the timer, in seconds.<br />Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!</description>
+					<description>Duration of the timer, in seconds.&lt;br /&gt;Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!</description>
 				</parameter>
 				<parameter>
 					<name>loop</name>
@@ -3588,7 +3588,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 			<returns>
 				<return>
 					<type>float</type>
-					<description>The remaining time in seconds of timer.<br />Seconds have an accuracy of 0.1 tenths. Example: 1.5 - 6.0 - 9.9 - 123.6</description>
+					<description>The remaining time in seconds of timer.&lt;br /&gt;Seconds have an accuracy of 0.1 tenths. Example: 1.5 - 6.0 - 9.9 - 123.6</description>
 				</return>
 			</returns>
 		</function>
@@ -3620,7 +3620,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>remainingTime</name>
 					<type>float</type>
-					<description>The new time remaining for the timer in seconds.<br />
+					<description>The new time remaining for the timer in seconds.&lt;br /&gt;
  Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!</description>
 				</parameter>
 			</parameters>
@@ -3635,19 +3635,19 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>operator</name>
 					<type>int</type>
-					<description>The type of comparison.<br />
- 0 : If the remaining time is equal to the value<br />
- 1 : If the remaining time is different from the value<br />
- 2 : If the remaining time is less the value<br />
- 3 : If the remaining time is less or equal to the value<br />
- 4 : If the remaining time is greater the value<br />
+					<description>The type of comparison.&lt;br /&gt;
+ 0 : If the remaining time is equal to the value&lt;br /&gt;
+ 1 : If the remaining time is different from the value&lt;br /&gt;
+ 2 : If the remaining time is less the value&lt;br /&gt;
+ 3 : If the remaining time is less or equal to the value&lt;br /&gt;
+ 4 : If the remaining time is greater the value&lt;br /&gt;
  5 : If the remaining time is greater or equal to the value</description>
 				</parameter>
 				<parameter>
 					<name>seconds</name>
 					<type>float</type>
-					<description>The value in seconds to compare.<br />
- Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!<br />
+					<description>The value in seconds to compare.&lt;br /&gt;
+ Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!&lt;br /&gt;
  Please note: to have continuous control, the remaining time must be controlled within the *OnLoop* event and only when the Timer is active @{Timer.IsActive}.</description>
 				</parameter>
 			</parameters>
@@ -3680,7 +3680,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 			<returns>
 				<return>
 					<type>float</type>
-					<description>The timer's total time in seconds.<br />
+					<description>The timer's total time in seconds.&lt;br /&gt;
  Seconds have an accuracy of 0.1 tenths. Example: 1.5 - 6.0 - 9.9 - 123.6</description>
 				</return>
 			</returns>
@@ -3714,7 +3714,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>totalTime</name>
 					<type>float</type>
-					<description>Timer's new total time in seconds.<br />
+					<description>Timer's new total time in seconds.&lt;br /&gt;
  Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!</description>
 				</parameter>
 			</parameters>
@@ -3729,18 +3729,18 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>operator</name>
 					<type>int</type>
-					<description>The type of comparison.<br />
- 0 : If the total time is equal to the value<br />
- 1 : If the total time is different from the value<br />
- 2 : If the total time is less the value<br />
- 3 : If the total time is less or equal to the value<br />
- 4 : If the total time is greater the value<br />
+					<description>The type of comparison.&lt;br /&gt;
+ 0 : If the total time is equal to the value&lt;br /&gt;
+ 1 : If the total time is different from the value&lt;br /&gt;
+ 2 : If the total time is less the value&lt;br /&gt;
+ 3 : If the total time is less or equal to the value&lt;br /&gt;
+ 4 : If the total time is greater the value&lt;br /&gt;
  5 : If the total time is greater or equal to the value</description>
 				</parameter>
 				<parameter>
 					<name>seconds</name>
 					<type>float</type>
-					<description>the value in seconds to compare.<br />
+					<description>the value in seconds to compare.&lt;br /&gt;
  Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!</description>
 				</parameter>
 			</parameters>
@@ -3874,7 +3874,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 				<parameter>
 					<name>optionsTable</name>
 					<type>table</type>
-					<description>Table containing timer's new text options. See @{Strings.DisplayStringOption}<br /></description>
+					<description>Table containing timer's new text options. See @{Strings.DisplayStringOption}&lt;br /&gt;</description>
 				</parameter>
 			</parameters>
 		</function>
@@ -3907,8 +3907,8 @@ allocated even after timeout is reached, and can be shown again without re-initi
 			<caller>Timer</caller>
 			<name>IsTicking</name>
 			<summary>Checks if the timer has ticked (every 0.1 seconds).</summary>
-			<description>Returns `true` every 0.1 seconds when the timer is active and not paused.<br />
- TEN's engine runs on a 0.03-second internal tick, while this timer ticks every 0.1 seconds.<br />
+			<description>Returns `true` every 0.1 seconds when the timer is active and not paused.&lt;br /&gt;
+ TEN's engine runs on a 0.03-second internal tick, while this timer ticks every 0.1 seconds.&lt;br /&gt;
  Use `IsTicking()` to ensure consistency and avoid unexpected behavior — for example, inside the `OnLoop` event.</description>
 			<returns>
 				<return>
@@ -4566,13 +4566,13 @@ allocated even after timeout is reached, and can be shown again without re-initi
 						<parameter>
 							<name>yOffset</name>
 							<type>float</type>
-							<description>y-axis offset (positive values move the item down).<br />
+							<description>y-axis offset (positive values move the item down).&lt;br /&gt;
 A value of about 100 will cause the item to display directly below its usual position.</description>
 						</parameter>
 						<parameter>
 							<name>scale</name>
 							<type>float</type>
-							<description>item size (1 being standard size).<br />
+							<description>item size (1 being standard size).&lt;br /&gt;
 A value of 0.5 will cause the item to render at half the size,
 and a value of 2 will cause the item to render at twice the size.</description>
 						</parameter>
@@ -4584,7 +4584,7 @@ and a value of 2 will cause the item to render at twice the size.</description>
 						<parameter>
 							<name>axis</name>
 							<type>RotationAxis</type>
-							<description>Axis to rotate around when the item is observed at in the inventory.<br />
+							<description>Axis to rotate around when the item is observed at in the inventory.&lt;br /&gt;
 Note that this is entirely separate from the `rot` field described above.
 Must one of the following:
 	X
@@ -4985,14 +4985,14 @@ This setting does not affect ability to use weapons or flares.</description>
 				<field>
 					<name>multithreaded</name>
 					<summary>Use multithreading in certain calculations.</summary>
-					<description><br />
+					<description>&lt;br /&gt;
  When set to `true`, some performance-critical calculations will be performed in parallel, which can give
  a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
 				</field>
 				<field>
 					<name>fastReload</name>
 					<summary>Can the game utilize the fast reload feature?</summary>
-					<description><br />
+					<description>&lt;br /&gt;
  When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
  the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
  (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
@@ -8699,14 +8699,14 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<name>Flow.ErrorMode</name>
 			<summary>Constants for error modes.</summary>
 			<description>To be used in @{Flow.Settings.System.errorMode} setting.
- <br />
+ &lt;br /&gt;
  In all of these modes, an *unrecoverable* error will boot you to the title level. If the title level itself
  has an unrecoverable error, the game will close.</description>
 			<values>
 				<value>
 					<name>SILENT</name>
 					<summary>Do nothing when a recoverable script error is hit.</summary>
-					<description><br />
+					<description>&lt;br /&gt;
  Think _very_ carefully before using this setting.
  These error modes are here to help you to keep your scripts working properly,
  but if you opt to ignore errors, you won't be alerted if you've misused a function or passed an invalid argument.</description>
@@ -9414,7 +9414,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<name>Objects.WeaponType</name>
 			<summary>Constants for weapon types.</summary>
 			<description>To be used with @{Objects.LaraObject.GetWeaponType} and @{Objects.LaraObject.SetWeaponType} functions.
- <br />
+ &lt;br /&gt;
  Note that this table also contains the flare and torch, as they are internally counted as "weapons" in the engine.</description>
 			<values>
 				<value>
