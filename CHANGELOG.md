@@ -7,6 +7,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed random crashes when spawning or killing enemies.
+* Fixed slowdowns and freezes when too many sounds are playing.
 
 ## [Version 1.9.1]
 
