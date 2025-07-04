@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
 * Fixed random crashes when spawning or killing enemies.
 * Fixed slowdowns and freezes when too many sounds are playing.
 
