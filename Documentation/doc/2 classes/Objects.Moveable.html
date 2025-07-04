@@ -400,7 +400,7 @@
 	<td class="summary">Destroy the moveable.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Moveable:AttachObjCamera">Moveable:AttachObjCamera(mesh, target, mesh)</a></td>
+	<td class="name" ><a href="#Moveable:AttachObjCamera">Moveable:AttachObjCamera(mesh, target, targetMesh)</a></td>
 	<td class="summary">Attach camera to a moveable.</td>
 	</tr>
 	<tr>
@@ -2108,7 +2108,7 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
 </dd>
     <dt>
     <a name = "Moveable:AttachObjCamera"></a>
-    <strong>Moveable:AttachObjCamera(mesh, target, mesh)</strong>
+    <strong>Moveable:AttachObjCamera(mesh, target, targetMesh)</strong>
     </dt>
     <dd>
     Attach camera to a moveable.
@@ -2119,13 +2119,13 @@ sas:SetPosition(newPos, <span class="keyword">false</span>)</pre>
     <ul>
         <li><span class="parameter">mesh</span>
             <span class="types"><span class="type">int</span></span>
-         Mesh of a target moveable to use as a camera target.
+         Mesh of a moveable to use as a camera position.
         </li>
         <li><span class="parameter">target</span>
             <span class="types"><a class="type" href="../2 classes/Objects.Moveable.html#">Moveable</a></span>
          Target moveable to attach camera to.
         </li>
-        <li><span class="parameter">mesh</span>
+        <li><span class="parameter">targetMesh</span>
             <span class="types"><span class="type">int</span></span>
          Mesh of a target moveable to use as a camera target.
         </li>

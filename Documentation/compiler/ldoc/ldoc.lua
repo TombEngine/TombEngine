@@ -658,7 +658,7 @@ for F in file_list:iter() do
    end
 end
 
-local handle = io.open("output.xml", "w")
+local handle = io.open("API.xml", "w")
 io.output(handle)
 
 -- Write XML header and root element

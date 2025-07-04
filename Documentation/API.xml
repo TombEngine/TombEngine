@@ -5472,7 +5472,7 @@ This setting does not affect ability to use weapons or flares.</description>
 					</returns>
 				</method>
 				<method>
-					<name>Moveable:GetAirborne</name>
+					<name>LaraObject:GetAirborne</name>
 					<summary>Get the player's airborne status (set when jumping and falling).</summary>
 					<returns>
 						<return>
@@ -5482,7 +5482,7 @@ This setting does not affect ability to use weapons or flares.</description>
 					</returns>
 				</method>
 				<method>
-					<name>Moveable:SetAirborne</name>
+					<name>LaraObject:SetAirborne</name>
 					<summary>Set the player's airborne status.</summary>
 					<parameters>
 						<parameter>
@@ -6595,7 +6595,7 @@ most can just be ignored (see usage).</description>
 						<parameter>
 							<name>mesh</name>
 							<type>int</type>
-							<description>Mesh of a target moveable to use as a camera target.</description>
+							<description>Mesh of a moveable to use as a camera position.</description>
 						</parameter>
 						<parameter>
 							<name>target</name>
@@ -6603,7 +6603,7 @@ most can just be ignored (see usage).</description>
 							<description>Target moveable to attach camera to.</description>
 						</parameter>
 						<parameter>
-							<name>mesh</name>
+							<name>targetMesh</name>
 							<type>int</type>
 							<description>Mesh of a target moveable to use as a camera target.</description>
 						</parameter>
@@ -9136,43 +9136,43 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<summary>Keyboard Z key.</summary>
 				</value>
 				<value>
-					<name>1</name>
+					<name>Num1</name>
 					<summary>Keyboard 1 key.</summary>
 				</value>
 				<value>
-					<name>2</name>
+					<name>Num2</name>
 					<summary>Keyboard 2 key.</summary>
 				</value>
 				<value>
-					<name>3</name>
+					<name>Num3</name>
 					<summary>Keyboard 3 key.</summary>
 				</value>
 				<value>
-					<name>4</name>
+					<name>Num4</name>
 					<summary>Keyboard 4 key.</summary>
 				</value>
 				<value>
-					<name>5</name>
+					<name>Num5</name>
 					<summary>Keyboard 5 key.</summary>
 				</value>
 				<value>
-					<name>6</name>
+					<name>Num6</name>
 					<summary>Keyboard 6 key.</summary>
 				</value>
 				<value>
-					<name>7</name>
+					<name>Num7</name>
 					<summary>Keyboard 7 key.</summary>
 				</value>
 				<value>
-					<name>8</name>
+					<name>Num8</name>
 					<summary>Keyboard 8 key.</summary>
 				</value>
 				<value>
-					<name>9</name>
+					<name>Num9</name>
 					<summary>Keyboard 9 key.</summary>
 				</value>
 				<value>
-					<name>0</name>
+					<name>Num0</name>
 					<summary>Keyboard 0 key.</summary>
 				</value>
 				<value>

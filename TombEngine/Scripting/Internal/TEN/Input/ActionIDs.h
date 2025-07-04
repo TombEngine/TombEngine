@@ -283,44 +283,44 @@ namespace TEN::Scripting::Input
 		{ "Z", In::Z },
 
 		/// Keyboard 1 key.
-		// @mem 1
-		{ "1", In::Num1 },
+		// @mem Num1
+		{ "Num1", In::Num1 },
 
 		/// Keyboard 2 key.
-		// @mem 2
-		{ "2", In::Num2 },
+		// @mem Num2
+		{ "Num2", In::Num2 },
 
 		/// Keyboard 3 key.
-		// @mem 3
-		{ "3", In::Num3 },
+		// @mem Num3
+		{ "Num3", In::Num3 },
 
 		/// Keyboard 4 key.
-		// @mem 4
-		{ "4", In::Num4 },
+		// @mem Num4
+		{ "Num4", In::Num4 },
 
 		/// Keyboard 5 key.
-		// @mem 5
-		{ "5", In::Num5 },
+		// @mem Num5
+		{ "Num5", In::Num5 },
 
 		/// Keyboard 6 key.
-		// @mem 6
-		{ "6", In::Num6 },
+		// @mem Num6
+		{ "Num6", In::Num6 },
 
 		/// Keyboard 7 key.
-		// @mem 7
-		{ "7", In::Num7 },
+		// @mem Num7
+		{ "Num7", In::Num7 },
 
 		/// Keyboard 8 key.
-		// @mem 8
-		{ "8", In::Num8 },
+		// @mem Num8
+		{ "Num8", In::Num8 },
 
 		/// Keyboard 9 key.
-		// @mem 9
-		{ "9", In::Num9 },
+		// @mem Num9
+		{ "Num9", In::Num9 },
 
 		/// Keyboard 0 key.
-		// @mem 0
-		{ "0", In::Num0 },
+		// @mem Num0
+		{ "Num0", In::Num0 },
 
 		/// Return/Enter key.
 		// @mem RETURN
@@ -440,6 +440,18 @@ namespace TEN::Scripting::Input
 
 		/// Mouse scroll down.
 		// @mem MOUSE_SCROLL_DOWN
-		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown }
+		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
+
+		// COMPATIBILITY
+		{ "1", In::Num1 },
+		{ "2", In::Num2 },
+		{ "3", In::Num3 },
+		{ "4", In::Num4 },
+		{ "5", In::Num5 },
+		{ "6", In::Num6 },
+		{ "7", In::Num7 },
+		{ "8", In::Num8 },
+		{ "9", In::Num9 },
+		{ "0", In::Num0 }
 	};
 }
