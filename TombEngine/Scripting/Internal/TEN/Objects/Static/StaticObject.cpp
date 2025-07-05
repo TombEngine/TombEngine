@@ -140,7 +140,7 @@ namespace TEN::Scripting
 	// @treturn bool Collision status. true if can be collided with, false otherwise.
 	bool Static::GetCollidable() const
 	{
-		return ((_static.flags & StaticMeshFlags::SM_COLLISION) != 0);
+		return ((_static.Flags & StaticMeshFlags::SM_COLLISION) != 0);
 	}
 
 	/// Get this static's solid collision status.
@@ -246,11 +246,11 @@ namespace TEN::Scripting
 	{
 		if (collidable)
 		{
-			_static.flags |= StaticMeshFlags::SM_COLLISION;
+			_static.Flags |= StaticMeshFlags::SM_COLLISION;
 		}
 		else
 		{
-			_static.flags &= ~StaticMeshFlags::SM_COLLISION;
+			_static.Flags &= ~StaticMeshFlags::SM_COLLISION;
 		}
 	}
 

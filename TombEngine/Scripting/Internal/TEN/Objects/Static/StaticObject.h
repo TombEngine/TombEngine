@@ -47,6 +47,7 @@ namespace TEN::Scripting
 		int			   GetHP() const;
 		bool		   GetActiveStatus() const;
 		bool		   GetSolidStatus() const;
+		bool		   GetCollidable() const;
 
 		// Setters
 
@@ -58,6 +59,7 @@ namespace TEN::Scripting
 		void SetColor(const ScriptColor& color);
 		void SetHP(int hitPoints);
 		void SetSolidStatus(bool status);
+		void SetCollidable(bool status);
 
 		// Utilities
 

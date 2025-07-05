@@ -496,6 +496,7 @@ constexpr char ScriptReserved_StaticGetPosition[]	= "GetPosition";
 constexpr char ScriptReserved_StaticGetRotation[]	= "GetRotation";
 constexpr char ScriptReserved_StaticGetScale[]		= "GetScale";
 constexpr char ScriptReserved_StaticGetSolid[]		= "GetSolid";
+constexpr char ScriptReserved_StaticGetCollidable[] = "GetCollidable";
 constexpr char ScriptReserved_StaticSetColor[]		= "SetColor";
 constexpr char ScriptReserved_StaticSetHP[]			= "SetHP";
 constexpr char ScriptReserved_StaticSetName[]		= "SetName";
