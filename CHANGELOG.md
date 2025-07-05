@@ -12,6 +12,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed random crashes when spawning or killing enemies.
 * Fixed slowdowns and freezes when too many sounds are playing.
 * Fixed Doppler effect not applied to sounds.
+* Fixed HUD bars displaying incorrect update animation after loading savegame.
 
 ## [Version 1.9.1]
 

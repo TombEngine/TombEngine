@@ -643,6 +643,7 @@ void InitializeOrLoadGame(bool loadGame)
 
 		InitializeGame = false;
 
+		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
 		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
