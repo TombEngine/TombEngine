@@ -9,23 +9,6 @@
 
 using namespace TEN::Scripting;
 
-static const std::unordered_map<std::string, WeatherType> WEATHER_TYPES
-{
-	{ "None", WeatherType::None },
-	{ "Rain", WeatherType::Rain },
-	{ "Snow", WeatherType::Snow }
-};
-
-static const std::unordered_map<std::string, LaraType> PLAYER_TYPES
-{
-	{ "Normal", LaraType::Normal },
-	{ "Young", LaraType::Young },
-	{ "Bunhead", LaraType::Bunhead },
-	{ "Catsuit", LaraType::Catsuit },
-	{ "Divesuit", LaraType::Divesuit },
-	{ "Invisible", LaraType::Invisible }
-};
-
 struct Level : public ScriptInterfaceLevel
 {
 	Fog			Fog			 = {};

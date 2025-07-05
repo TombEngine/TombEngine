@@ -8862,6 +8862,54 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			</values>
 		</enum>
 		<enum>
+			<name>Flow.LaraType</name>
+			<summary>Constants for player types.</summary>
+			<values>
+				<value>
+					<name>Normal</name>
+					<summary>Normal Lara.</summary>
+				</value>
+				<value>
+					<name>Young</name>
+					<summary>Young Lara.</summary>
+				</value>
+				<value>
+					<name>Bunhead</name>
+					<summary>Bunhead Lara.</summary>
+				</value>
+				<value>
+					<name>Catsuit</name>
+					<summary>Catsuit Lara.</summary>
+				</value>
+				<value>
+					<name>Divesuit</name>
+					<summary>Divesuit Lara.</summary>
+				</value>
+				<value>
+					<name>Invisible</name>
+					<summary>Invisible Lara.</summary>
+				</value>
+			</values>
+		</enum>
+		<enum>
+			<name>Flow.WeatherType</name>
+			<summary>Constants for weather types.</summary>
+			<values>
+				<value>
+					<name>None</name>
+					<summary>No weather.</summary>
+				</value>
+				<value>
+					<name>Rain</name>
+					<summary>Rain weather.</summary>
+				</value>
+				<value>
+					<name>Snow</name>
+					<summary>Snow weather.</summary>
+				</value>
+			</values>
+		</enum>
+		<enum>
 			<name>Input.ActionID</name>
 			<summary>Constants for action key IDs.</summary>
 			<description>Contains mapped action IDs, raw keyboard input IDs, and raw mouse input IDs.
@@ -9136,43 +9184,43 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<summary>Keyboard Z key.</summary>
 				</value>
 				<value>
-					<name>Num1</name>
+					<name>NUM1</name>
 					<summary>Keyboard 1 key.</summary>
 				</value>
 				<value>
-					<name>Num2</name>
+					<name>NUM2</name>
 					<summary>Keyboard 2 key.</summary>
 				</value>
 				<value>
-					<name>Num3</name>
+					<name>NUM3</name>
 					<summary>Keyboard 3 key.</summary>
 				</value>
 				<value>
-					<name>Num4</name>
+					<name>NUM4</name>
 					<summary>Keyboard 4 key.</summary>
 				</value>
 				<value>
-					<name>Num5</name>
+					<name>NUM5</name>
 					<summary>Keyboard 5 key.</summary>
 				</value>
 				<value>
-					<name>Num6</name>
+					<name>NUM6</name>
 					<summary>Keyboard 6 key.</summary>
 				</value>
 				<value>
-					<name>Num7</name>
+					<name>NUM7</name>
 					<summary>Keyboard 7 key.</summary>
 				</value>
 				<value>
-					<name>Num8</name>
+					<name>NUM8</name>
 					<summary>Keyboard 8 key.</summary>
 				</value>
 				<value>
-					<name>Num9</name>
+					<name>NUM9</name>
 					<summary>Keyboard 9 key.</summary>
 				</value>
 				<value>
-					<name>Num0</name>
+					<name>NUM0</name>
 					<summary>Keyboard 0 key.</summary>
 				</value>
 				<value>

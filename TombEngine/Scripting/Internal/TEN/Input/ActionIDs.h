@@ -283,44 +283,44 @@ namespace TEN::Scripting::Input
 		{ "Z", In::Z },
 
 		/// Keyboard 1 key.
-		// @mem Num1
-		{ "Num1", In::Num1 },
+		// @mem NUM1
+		{ "NUM1", In::Num1 },
 
 		/// Keyboard 2 key.
-		// @mem Num2
-		{ "Num2", In::Num2 },
+		// @mem NUM2
+		{ "NUM2", In::Num2 },
 
 		/// Keyboard 3 key.
-		// @mem Num3
-		{ "Num3", In::Num3 },
+		// @mem NUM3
+		{ "NUM3", In::Num3 },
 
 		/// Keyboard 4 key.
-		// @mem Num4
-		{ "Num4", In::Num4 },
+		// @mem NUM4
+		{ "NUM4", In::Num4 },
 
 		/// Keyboard 5 key.
-		// @mem Num5
-		{ "Num5", In::Num5 },
+		// @mem NUM5
+		{ "NUM5", In::Num5 },
 
 		/// Keyboard 6 key.
-		// @mem Num6
-		{ "Num6", In::Num6 },
+		// @mem NUM6
+		{ "NUM6", In::Num6 },
 
 		/// Keyboard 7 key.
-		// @mem Num7
-		{ "Num7", In::Num7 },
+		// @mem NUM7
+		{ "NUM7", In::Num7 },
 
 		/// Keyboard 8 key.
-		// @mem Num8
-		{ "Num8", In::Num8 },
+		// @mem NUM8
+		{ "NUM8", In::Num8 },
 
 		/// Keyboard 9 key.
-		// @mem Num9
-		{ "Num9", In::Num9 },
+		// @mem NUM9
+		{ "NUM9", In::Num9 },
 
 		/// Keyboard 0 key.
-		// @mem Num0
-		{ "Num0", In::Num0 },
+		// @mem NUM0
+		{ "NUM0", In::Num0 },
 
 		/// Return/Enter key.
 		// @mem RETURN
