@@ -287,6 +287,8 @@ namespace TEN::Renderer
 					auto& rendererStatic = rendererRoom.Statics[l];
 					auto& nativeStatic = room.mesh[l];
 
+					nativeStatic.Dirty = true;
+
 					rendererStatic.ObjectNumber = nativeStatic.Slot;
 					rendererStatic.RoomNumber = nativeStatic.RoomNumber;
 					rendererStatic.Color = nativeStatic.Color;
@@ -296,7 +298,6 @@ namespace TEN::Renderer
 					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 					rendererStatic.IndexInRoom = l;
 
-					nativeStatic.Dirty = true;
 					rendererStatic.Update(GetInterpolationFactor());
 				}
 			}
