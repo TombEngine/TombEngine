@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <api>
 	<functions>
 		<function>
@@ -4791,215 +4791,6 @@ This setting does not affect ability to use weapons or flares.</description>
 			</members>
 		</class>
 		<class>
-			<name>Flow.Settings</name>
-			<type>tenclass</type>
-			<summary>Global engine settings which don't fall into particular category or can't be assigned to a specific object.</summary>
-			<description>Can be accessed using @{Flow.SetSettings} and @{Flow.GetSettings} functions.</description>
-			<members>
-				<field>
-					<name>crawlExtended</name>
-					<summary>Extended crawl moveset.</summary>
-				</field>
-				<field>
-					<name>crouchRoll</name>
-					<summary>Crouch roll.</summary>
-				</field>
-				<field>
-					<name>crawlspaceSwandive</name>
-					<summary>Crawlspace dive.</summary>
-				</field>
-				<field>
-					<name>sprintJump</name>
-					<summary>Sprint jump.</summary>
-				</field>
-				<field>
-					<name>ledgeJumps</name>
-					<summary>Ledge jumps.</summary>
-				</field>
-				<field>
-					<name>poseTimeout</name>
-					<summary>Pose timeout.</summary>
-				</field>
-				<field>
-					<name>binocularLightColor</name>
-					<summary>Determines highlight color in binocular mode.</summary>
-				</field>
-				<field>
-					<name>lasersightLightColor</name>
-					<summary>Determines highlight color in lasersight mode.</summary>
-				</field>
-				<field>
-					<name>objectCollision</name>
-					<summary>Specify whether camera can collide with objects.</summary>
-				</field>
-				<field>
-					<name>color</name>
-					<summary>Flare color.</summary>
-				</field>
-				<field>
-					<name>offset</name>
-					<summary>Muzzle offset.</summary>
-				</field>
-				<field>
-					<name>range</name>
-					<summary>Light range.</summary>
-				</field>
-				<field>
-					<name>timeout</name>
-					<summary>Burn timeout.</summary>
-				</field>
-				<field>
-					<name>pickupCount</name>
-					<summary>Default flare pickup count.</summary>
-				</field>
-				<field>
-					<name>lensflareBrightness</name>
-					<summary>Lens flare brightness.</summary>
-				</field>
-				<field>
-					<name>sparks</name>
-					<summary>Toggle spark effect.</summary>
-				</field>
-				<field>
-					<name>smoke</name>
-					<summary>Toggle smoke effect.</summary>
-				</field>
-				<field>
-					<name>muzzleGlow</name>
-					<summary>Toggle muzzle glow effect.</summary>
-				</field>
-				<field>
-					<name>flicker</name>
-					<summary>Toggle flicker effect.</summary>
-				</field>
-				<field>
-					<name>skinning</name>
-					<summary>Enable skinning.</summary>
-				</field>
-				<field>
-					<name>mesh</name>
-					<summary>Root mesh to which hair object will attach to.</summary>
-				</field>
-				<field>
-					<name>offset</name>
-					<summary>Relative braid offset to a headmesh.</summary>
-					<description>Not used with skinned hair mesh.</description>
-				</field>
-				<field>
-					<name>indices</name>
-					<summary>Braid connection indices.</summary>
-					<description>Not used with skinned hair mesh.</description>
-				</field>
-				<field>
-					<name>statusBars</name>
-					<summary>Toggle in-game status bars visibility.</summary>
-				</field>
-				<field>
-					<name>loadingBar</name>
-					<summary>Toggle loading bar visibility.</summary>
-				</field>
-				<field>
-					<name>speedometer</name>
-					<summary>Toggle speedometer visibility.</summary>
-				</field>
-				<field>
-					<name>pickupNotifier</name>
-					<summary>Toggle pickup notifier visibility.</summary>
-				</field>
-				<field>
-					<name>gravity</name>
-					<summary>Global world gravity.</summary>
-				</field>
-				<field>
-					<name>swimVelocity</name>
-					<summary>Swim velocity.</summary>
-				</field>
-				<field>
-					<name>accuracy</name>
-					<summary>Shooting accuracy.</summary>
-				</field>
-				<field>
-					<name>targetingDistance</name>
-					<summary>Targeting distance.</summary>
-				</field>
-				<field>
-					<name>interval</name>
-					<summary>Shooting interval.</summary>
-				</field>
-				<field>
-					<name>damage</name>
-					<summary>Damage.</summary>
-				</field>
-				<field>
-					<name>alternateDamage</name>
-					<summary>Alternate damage.</summary>
-				</field>
-				<field>
-					<name>waterLevel</name>
-					<summary>Water level.</summary>
-				</field>
-				<field>
-					<name>pickupCount</name>
-					<summary>Default ammo pickup count.</summary>
-				</field>
-				<field>
-					<name>flashColor</name>
-					<summary>Gunflash color.</summary>
-				</field>
-				<field>
-					<name>flashRange</name>
-					<summary>Gunflash range.</summary>
-				</field>
-				<field>
-					<name>flashDuration</name>
-					<summary>Gunflash duration.</summary>
-				</field>
-				<field>
-					<name>smoke</name>
-					<summary>Gun smoke.</summary>
-				</field>
-				<field>
-					<name>shell</name>
-					<summary>Gun shell.</summary>
-				</field>
-				<field>
-					<name>muzzleFlash</name>
-					<summary>Display muzzle flash.</summary>
-				</field>
-				<field>
-					<name>muzzleGlow</name>
-					<summary>Display muzzle glow.</summary>
-				</field>
-				<field>
-					<name>colorizeMuzzleFlash</name>
-					<summary>Colorize muzzle flash.</summary>
-				</field>
-				<field>
-					<name>muzzleOffset</name>
-					<summary>Muzzle offset.</summary>
-				</field>
-				<field>
-					<name>errorMode</name>
-					<summary>How should the application respond to script errors?</summary>
-				</field>
-				<field>
-					<name>multithreaded</name>
-					<summary>Use multithreading in certain calculations.</summary>
-					<description>&lt;br /&gt;
- When set to `true`, some performance-critical calculations will be performed in parallel, which can give
- a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
-				</field>
-				<field>
-					<name>fastReload</name>
-					<summary>Can the game utilize the fast reload feature?</summary>
-					<description>&lt;br /&gt;
- When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
- the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
- (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
-				</field>
-			</members>
-		</class>
-		<class>
 			<name>Flow.SkyLayer</name>
 			<type>tenprimitive</type>
 			<summary>Describes a layer of moving clouds.</summary>
@@ -8465,6 +8256,389 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 						</parameter>
 					</parameters>
 				</method>
+			</members>
+		</class>
+		<class>
+			<name>Flow.AnimSettings</name>
+			<type>tenclass</type>
+			<summary>These settings determine whether a specific moveset is available in-game.</summary>
+			<description>These settings determine whether a specific moveset is available in-game.</description>
+			<members>
+				<field>
+					<name>crawlExtended</name>
+					<summary>When enabled, player will be able to traverse across one-click steps in crawlspaces.</summary>
+					<description>Extended crawl moveset.</description>
+				</field>
+				<field>
+					<name>crouchRoll</name>
+					<summary>When enabled, player can perform crawlspace roll by pressing sprint key.</summary>
+					<description>Crouch roll.</description>
+				</field>
+				<field>
+					<name>crawlspaceSwandive</name>
+					<summary>When enabled, player will be able to swandive into crawlspaces.</summary>
+					<description>Crawlspace dive.</description>
+				</field>
+				<field>
+					<name>overhangClimb</name>
+					<summary>Enables overhang climbing feature. Currently does not work.</summary>
+					<description>Overhang climbing.</description>
+				</field>
+				<field>
+					<name>slideExtended</name>
+					<summary>If enabled, player will be able to change slide direction with controls. Currently does not work.</summary>
+					<description>Extended slide mechanics.</description>
+				</field>
+				<field>
+					<name>sprintJump</name>
+					<summary>If enabled, player will be able to perform extremely long jump when sprinting.</summary>
+					<description>Sprint jump.</description>
+				</field>
+				<field>
+					<name>ledgeJumps</name>
+					<summary>If this setting is enabled, player will be able to jump upwards while hanging on the ledge.</summary>
+					<description>Ledge jumps.</description>
+				</field>
+				<field>
+					<name>poseTimeout</name>
+					<summary>If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).</summary>
+					<description>Pose timeout.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.FlareSettings</name>
+			<type>tenclass</type>
+			<summary>These settings change appearance and behaviour of a flare.</summary>
+			<description>These settings change appearance and behaviour of a flare.</description>
+			<members>
+				<field>
+					<name>color</name>
+					<summary>Flare color. Used for sparks and lensflare coloring as well.</summary>
+					<description>Flare color.</description>
+				</field>
+				<field>
+					<name>offset</name>
+					<summary>A relative muzzle offset where light and particle effects originate from.</summary>
+					<description>Muzzle offset.</description>
+				</field>
+				<field>
+					<name>range</name>
+					<summary>Flare light radius or range. Represented in "clicks" equal to 256 world units.</summary>
+					<description>Light range.</description>
+				</field>
+				<field>
+					<name>timeout</name>
+					<summary>Flare burn timeout. Flare will stop working after given timeout (specified in seconds).</summary>
+					<description>Burn timeout.</description>
+				</field>
+				<field>
+					<name>pickupCount</name>
+					<summary>Specifies amount of flares that you get when you pick up a box of flares.</summary>
+					<description>Default flare pickup count.</description>
+				</field>
+				<field>
+					<name>lensflareBrightness</name>
+					<summary>Brightness multiplier. Specifies how bright lens flare is in relation to light (on a range from 0 to 1).</summary>
+					<description>Lens flare brightness.</description>
+				</field>
+				<field>
+					<name>sparks</name>
+					<summary>Spark effect. Determines whether flare generates sparks when burning.</summary>
+					<description>Toggle spark effect.</description>
+				</field>
+				<field>
+					<name>smoke</name>
+					<summary>Smoke effect. Determines whether flare generates smoke when burning.</summary>
+					<description>Toggle smoke effect.</description>
+				</field>
+				<field>
+					<name>muzzleGlow</name>
+					<summary>Glow effect. Determines whether flare generates glow when burning.</summary>
+					<description>Toggle muzzle glow effect.</description>
+				</field>
+				<field>
+					<name>flicker</name>
+					<summary>Light and lensflare flickering. When turned off, flare light will be constant.</summary>
+					<description>Toggle flicker effect.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.HairSettings</name>
+			<type>tenclass</type>
+			<summary>This is a table of braid object settings. &lt;br&gt; Table consists of three entries, with first one representing classic Lara braid, and 2 and 3 representing left and right young Lara braids respectively. Therefore, if you want to access classic Lara braid settings, use `settings.Hair[1]`, and so on.</summary>
+			<description>This is a table of braid object settings. &lt;br&gt; Table consists of three entries, with first one representing classic Lara braid, and 2 and 3 representing left and right young Lara braids respectively. Therefore, if you want to access classic Lara braid settings, use `settings.Hair[1]`, and so on.</description>
+			<members>
+				<field>
+					<name>rootMesh</name>
+					<summary>Index of a root mesh to which hair will attach. Root mesh may be different for each hair object.</summary>
+					<description>Root mesh to which hair object will attach to.</description>
+				</field>
+				<field>
+					<name>offset</name>
+					<summary>Specifies how braid is positioned in relation to a headmesh.</summary>
+					<description>Relative braid offset to a headmesh. Not used with skinned hair mesh.</description>
+				</field>
+				<field>
+					<name>indices</name>
+					<summary>A list of headmesh's vertex connection indices. Each index corresponds to nearest braid rootmesh vertex. Amount of indices is unlimited.</summary>
+					<description>Braid connection indices. Not used with skinned hair mesh.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.WeaponSettings</name>
+			<type>tenclass</type>
+			<summary>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</summary>
+			<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</description>
+			<members>
+				<field>
+					<name>accuracy</name>
+					<summary>Determines accuracy range in angles (smaller angles mean higher accuracy). Applicable only for firearms.</summary>
+					<description>Shooting accuracy.</description>
+				</field>
+				<field>
+					<name>targetingDistance</name>
+					<summary>Specifies maximum targeting distance in world units (1 block = 1024 world units) for a given weapon.</summary>
+					<description>Targeting distance.</description>
+				</field>
+				<field>
+					<name>interval</name>
+					<summary>Specifies an interval (in frames), after which Lara is able to shoot again. Not applicable for backholster weapons.</summary>
+					<description>Shooting interval.</description>
+				</field>
+				<field>
+					<name>damage</name>
+					<summary>Amount of hit points taken for every hit.</summary>
+					<description>Damage.</description>
+				</field>
+				<field>
+					<name>alternateDamage</name>
+					<summary>For crossbow, specifies damage for explosive ammo.</summary>
+					<description>Alternate damage.</description>
+				</field>
+				<field>
+					<name>waterLevel</name>
+					<summary>Specifies water depth, at which Lara will put weapons back into holsters, indicating it's not possible to use it in water.</summary>
+					<description>Water level.</description>
+				</field>
+				<field>
+					<name>pickupCount</name>
+					<summary>Amount of ammo which is given with every ammo pickup for this weapon.</summary>
+					<description>Default ammo pickup count.</description>
+				</field>
+				<field>
+					<name>flashColor</name>
+					<summary>specifies the color of the gunflash.</summary>
+					<description>Gunflash color.</description>
+				</field>
+				<field>
+					<name>flashRange</name>
+					<summary>specifies the range of the gunflash.</summary>
+					<description>Gunflash range.</description>
+				</field>
+				<field>
+					<name>flashDuration</name>
+					<summary>specifies the duration of a gunflash effect.</summary>
+					<description>Gunflash duration.</description>
+				</field>
+				<field>
+					<name>smoke</name>
+					<summary>if set to true, indicates that weapon emits gun smoke.</summary>
+					<description>Gun smoke.</description>
+				</field>
+				<field>
+					<name>shell</name>
+					<summary>If set to true, indicates that weapon emits gun shell. Applicable only for firearms.</summary>
+					<description>Gun shell.</description>
+				</field>
+				<field>
+					<name>muzzleFlash</name>
+					<summary>specifies whether muzzle flash should be displayed or not.</summary>
+					<description>Display muzzle flash.</description>
+				</field>
+				<field>
+					<name>muzzleGlow</name>
+					<summary>specifies whether muzzle glow should be displayed or not.</summary>
+					<description>Display muzzle glow.</description>
+				</field>
+				<field>
+					<name>colorizeMuzzleFlash</name>
+					<summary>specifies whether muzzle flash should be tinted with the same color as gunflash color.</summary>
+					<description>Colorize muzzle flash.</description>
+				</field>
+				<field>
+					<name>muzzleOffset</name>
+					<summary>specifies offset for spawning muzzle gunflash effects.</summary>
+					<description>Muzzle offset.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.SystemSettings</name>
+			<type>tenclass</type>
+			<summary>Global system settings that is not directly related to gameplay.</summary>
+			<description>Global system settings that is not directly related to gameplay.</description>
+			<members>
+				<field>
+					<name>errorMode</name>
+					<summary>How should the application respond to script errors?</summary>
+				</field>
+				<field>
+					<name>multithreaded</name>
+					<summary>Determines whether to use multithreading or not.</summary>
+					<description>Use multithreading in certain calculations. &lt;br&gt; When set to `true`, some performance-critical calculations will be performed in parallel, which can give a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
+				</field>
+				<field>
+					<name>fastReload</name>
+					<summary>Toggles fast reload on or off.</summary>
+					<description>Can the game utilize the fast reload feature? &lt;br&gt; When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as the level loaded from the savegame. It will not work if the level timestamp or checksum has changed (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.GraphicsSettings</name>
+			<type>tenclass</type>
+			<summary>These settings are used to enable or disable certain graphics features.</summary>
+			<description>These settings are used to enable or disable certain graphics features.</description>
+			<members>
+				<field>
+					<name>skinning</name>
+					<summary>If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.</summary>
+					<description>Enable skinning.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.PhysicsSettings</name>
+			<type>tenclass</type>
+			<summary>Here you will find various settings for game world physics.</summary>
+			<description>Here you will find various settings for game world physics.</description>
+			<members>
+				<field>
+					<name>gravity</name>
+					<summary>Specifies global gravity. Mostly affects Lara and several other objects.</summary>
+					<description>Global world gravity.</description>
+				</field>
+				<field>
+					<name>swimVelocity</name>
+					<summary>Specifies swim velocity for Lara. Affects both surface and underwater.</summary>
+					<description>Swim velocity.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.HudSettings</name>
+			<type>tenclass</type>
+			<summary>These settings determine visibility of particular in-game HUD elements.</summary>
+			<description>These settings determine visibility of particular in-game HUD elements.</description>
+			<members>
+				<field>
+					<name>statusBars</name>
+					<summary>If disabled, all status bars (health, air, stamina) will be hidden.</summary>
+					<description>Toggle in-game status bars visibility.</description>
+				</field>
+				<field>
+					<name>loadingBar</name>
+					<summary>If disabled, loading bar will be invisible in game.</summary>
+					<description>Toggle loading bar visibility.</description>
+				</field>
+				<field>
+					<name>speedometer</name>
+					<summary>If disabled, speedometer will be invisible in game.</summary>
+					<description>Toggle speedometer visibility.</description>
+				</field>
+				<field>
+					<name>pickupNotifier</name>
+					<summary>If disabled, pickup notifier will be invisible in game.</summary>
+					<description>Toggle pickup notifier visibility.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.CameraSettings</name>
+			<type>tenclass</type>
+			<summary>Parameters to customize camera and everything related to it.</summary>
+			<description>Parameters to customize camera and everything related to it.</description>
+			<members>
+				<field>
+					<name>binocularLightColor</name>
+					<summary>Color of highlight, when player presses action. Zero color means there will be no highlight.</summary>
+					<description>Determines highlight color in binocular mode.</description>
+				</field>
+				<field>
+					<name>lasersightLightColor</name>
+					<summary>Lasersight highlight color. Zero color means there will be no highlight.</summary>
+					<description>Determines highlight color in lasersight mode.</description>
+				</field>
+				<field>
+					<name>objectCollision</name>
+					<summary>When enabled, camera will collide with moveables and statics. Disable for TR4-like camera behaviour.</summary>
+					<description>Specify whether camera can collide with objects.</description>
+				</field>
+			</members>
+		</class>
+		<class>
+			<name>Flow.Settings</name>
+			<type>tenclass</type>
+			<summary>Global engine settings which don't fall into particular category or can't be assigned to a specific object. Can be accessed using @{Flow.SetSettings} and @{Flow.GetSettings} functions.</summary>
+			<description>Global engine settings which don't fall into particular category or can't be assigned to a specific object. Can be accessed using @{Flow.SetSettings} and @{Flow.GetSettings} functions.</description>
+			<members>
+				<field>
+					<name>Animations</name>
+					<type>Flow.AnimSettings</type>
+					<summary>These settings determine whether a specific moveset is available in-game.</summary>
+					<description>These settings determine whether a specific moveset is available in-game.</description>
+				</field>
+				<field>
+					<name>Camera</name>
+					<type>Flow.CameraSettings</type>
+					<summary>Parameters to customize camera and everything related to it.</summary>
+					<description>Parameters to customize camera and everything related to it.</description>
+				</field>
+				<field>
+					<name>Flare</name>
+					<type>Flow.FlareSettings</type>
+					<summary>These settings change appearance and behaviour of a flare.</summary>
+					<description>These settings change appearance and behaviour of a flare.</description>
+				</field>
+				<field>
+					<name>Graphics</name>
+					<type>Flow.GraphicsSettings</type>
+					<summary>These settings are used to enable or disable certain graphics features.</summary>
+					<description>These settings are used to enable or disable certain graphics features.</description>
+				</field>
+				<field>
+					<name>Hair</name>
+					<type>Flow.HairSettings</type>
+					<summary>This is a table of braid object settings. &lt;br&gt; Table consists of three entries, with first one representing classic Lara braid, and 2 and 3 representing left and right young Lara braids respectively. Therefore, if you want to access classic Lara braid settings, use `settings.Hair[1]`, and so on.</summary>
+					<description>This is a table of braid object settings. &lt;br&gt; Table consists of three entries, with first one representing classic Lara braid, and 2 and 3 representing left and right young Lara braids respectively. Therefore, if you want to access classic Lara braid settings, use `settings.Hair[1]`, and so on.</description>
+				</field>
+				<field>
+					<name>Hud</name>
+					<type>Flow.HudSettings</type>
+					<summary>These settings determine visibility of particular in-game HUD elements.</summary>
+					<description>These settings determine visibility of particular in-game HUD elements.</description>
+				</field>
+				<field>
+					<name>Physics</name>
+					<type>Flow.PhysicsSettings</type>
+					<summary>Here you will find various settings for game world physics.</summary>
+					<description>Here you will find various settings for game world physics.</description>
+				</field>
+				<field>
+					<name>System</name>
+					<type>Flow.SystemSettings</type>
+					<summary>Global system settings that is not directly related to gameplay.</summary>
+					<description>Global system settings that is not directly related to gameplay.</description>
+				</field>
+				<field>
+					<name>Weapons</name>
+					<type>Flow.WeaponSettings</type>
+					<summary>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</summary>
+					<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</description>
+				</field>
 			</members>
 		</class>
 	</classes>
