@@ -37,6 +37,8 @@ enum GAME_OBJECT_ID : short;
 
 		GameBoundingBox GetVisibilityAabb() const; // TODO: Use DX BoundingBox natively.
 		GameBoundingBox GetCollisionAabb() const; // TODO: Use DX BoundingBox natively.
+		BoundingOrientedBox GetObb() const;
+		BoundingOrientedBox GetVisibilityObb() const;
 
 	private:
 		// Helpers

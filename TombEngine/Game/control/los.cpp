@@ -168,7 +168,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		}
 	}
 
-	MESH_INFO* mesh = nullptr;
+	StaticMesh* mesh = nullptr;
 	auto vector = Vector3i::Zero;
 	int itemNumber = ObjectOnLOS2(origin, target, &vector, &mesh);
 	bool hasHit = (itemNumber != NO_LOS_ITEM);
@@ -196,14 +196,14 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 
 	if (itemNumber < 0)
 	{
-		if (Statics[mesh->staticNumber].shatterType != ShatterType::None)
+		if (Statics[mesh->Slot].shatterType != ShatterType::None)
 		{
 			const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 			mesh->HitPoints -= weapon.Damage;
 			ShatterImpactData.impactDirection = dir;
-			ShatterImpactData.impactLocation = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
+			ShatterImpactData.impactLocation = mesh->Transform.Position.ToVector3();
 			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
-			SoundEffect(GetShatterSound(mesh->staticNumber), (Pose*)mesh);
+			SoundEffect(GetShatterSound(mesh->Slot), (Pose*)mesh);
 			hitProcessed = true;
 		}
 

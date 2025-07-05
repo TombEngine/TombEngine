@@ -36,6 +36,16 @@
 		aabb.Z2 = (center.z + scaledExtents.z) + scaledOffset.z;
 	}
 
+	BoundingOrientedBox StaticMesh::GetObb() const
+	{
+		return GetBoundsAccurate(*this, false).ToBoundingOrientedBox(Transform);
+	}
+
+	BoundingOrientedBox StaticMesh::GetVisibilityObb() const
+	{
+		return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(Transform);
+	}
+
 	GameBoundingBox& GetBoundsAccurate(const StaticMesh& staticObj, bool getVisibilityAabb)
 	{
 		static auto aabb = GameBoundingBox();
