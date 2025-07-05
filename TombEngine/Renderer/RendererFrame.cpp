@@ -540,9 +540,9 @@ namespace TEN::Renderer
 				rendererStatic.Color = nativeStatic.Color;
 				rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 				rendererStatic.Pose = nativeStatic.Transform;
-				mesh->Update(GetInterpolationFactor());
+				rendererStatic.Update(GetInterpolationFactor());
 
-				nativeStatic.Dirty = (mesh->PrevPose != mesh->Pose);
+				nativeStatic.Dirty = (rendererStatic.PrevPose != rendererStatic.Pose);
 			}
 
 			if (!(nativeStatic.Flags & StaticMeshFlags::SM_VISIBLE))
