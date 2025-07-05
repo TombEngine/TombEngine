@@ -7,9 +7,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed projectile weapon hits not registering in statistics and collision callbacks.
 * Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
 * Fixed random crashes when spawning or killing enemies.
 * Fixed slowdowns and freezes when too many sounds are playing.
+* Fixed Doppler effect not applied to sounds.
 
 ## [Version 1.9.1]
 

@@ -64,6 +64,8 @@ static int SecretSoundIndex = 5;
 static int GlobalMusicVolume;
 static int GlobalFXVolume;
 
+static Vector3 oldMikePos = Vector3::Zero;
+
 void SetVolumeTracks(int vol) 
 {
 	GlobalMusicVolume = vol;
@@ -970,6 +972,9 @@ void Sound_UpdateScene()
 
 	// Apply current listener position.
 
+	auto velocity = (oldMikePos - Camera.mikePos.ToVector3()) * (float)FPS;
+	oldMikePos = Camera.mikePos.ToVector3();
+
 	Vector3 at = Vector3(Camera.target.x, Camera.target.y, Camera.target.z) -
 		Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z);
 	at.Normalize();
@@ -977,14 +982,14 @@ void Sound_UpdateScene()
 		Camera.mikePos.x,
 		Camera.mikePos.y,
 		Camera.mikePos.z);
-	auto laraVel = BASS_3DVECTOR(					// Vel
-		Lara.Context.WaterCurrentPull.x,
-		Lara.Context.WaterCurrentPull.y,
-		Lara.Context.WaterCurrentPull.z);
+	auto mikeVel = BASS_3DVECTOR(					// Vel
+		velocity.x,
+		velocity.y,
+		velocity.z);
 	auto atVec = BASS_3DVECTOR(at.x, at.y, at.z);	// At
 	auto upVec = BASS_3DVECTOR(0.0f, 1.0f, 0.0f);	// Up
 	BASS_Set3DPosition(&mikePos,
-					   &laraVel,
+					   &mikeVel,
 					   &atVec,
 					   &upVec);
 	BASS_Apply3D();
@@ -1024,7 +1029,7 @@ void Sound_Init(const std::string& gameDirectory)
 
 	// Set 3D world parameters.
 	// Rolloff is lessened since we have own attenuation implementation.
-	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 0.5f);	
+	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 1.0f);	
 	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL);
 
 	// Set minimum latency and 2 threads for updating.
