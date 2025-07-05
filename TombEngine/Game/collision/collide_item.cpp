@@ -939,7 +939,7 @@ void CollideSolidStatics(ItemInfo* item, CollisionInfo* coll)
 				continue;
 
 			// Bypass static meshes which are marked as non-collidable.
-			if (!(mesh.flags & StaticMeshFlags::SM_COLLISION))
+			if (!(mesh.Flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// Only process meshes which are solid, or if solid mode is set by the setup.
@@ -1891,11 +1891,11 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 		for (auto& staticObject : neighborRoom.mesh)
 		{
 			// Check if static is visible.
-			if (!(staticObject.flags & StaticMeshFlags::SM_VISIBLE))
+			if (!(staticObject.Flags & StaticMeshFlags::SM_VISIBLE))
 				continue;
 
 			// Check if static is collidable.
-			if (!(staticObject.flags & StaticMeshFlags::SM_COLLISION))
+			if (!(staticObject.Flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// For Lara, solid static mesh collisions are directly managed by GetCollisionInfo,

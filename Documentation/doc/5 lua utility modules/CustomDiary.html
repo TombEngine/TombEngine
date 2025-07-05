@@ -106,7 +106,7 @@
 <h2>5 Lua utility modules</h2>
 <ul class="nowrap">
   <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
-  <li>    <here>Diary</here></li>
+  <li>    <here>CustomDiary</here></li>
   <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
   <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
   <li>    <a href="../5 lua utility modules/Type.html">Type</a></li>
@@ -116,7 +116,7 @@
 
 <div id="content">
 
-<h1>Lua utility module <code>Diary</code></h1>
+<h1>Lua utility module <code>CustomDiary</code></h1>
 <p>This module provides functions to create and manage diaries.</p>
 <p>
 <p> It maintains diary definitions and entries through all levels and hubs.
@@ -143,95 +143,95 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#CustomDiary.ImportDiary">CustomDiary.ImportDiary(fileName)</a></td>
+	<td class="name" ><a href="#ImportDiary">ImportDiary(fileName)</a></td>
 	<td class="summary">Imports diary from an external file.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary.Create">CustomDiary.Create(object, objectIdBg, spriteIdBg, colorBg, pos, rot, scale, alignMode, scaleMode, blendMode, alpha, pageSound, exitSound)</a></td>
+	<td class="name" ><a href="#Create">Create(object, objectIdBg, spriteIdBg, colorBg, pos, rot, scale, alignMode, scaleMode, blendMode, alpha, pageSound, exitSound)</a></td>
 	<td class="summary">Creates a diary with extensive configuration options.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary.Get">CustomDiary.Get(object)</a></td>
+	<td class="name" ><a href="#Get">Get(object)</a></td>
 	<td class="summary">The function retrieves a diary by its unique object.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary.Delete">CustomDiary.Delete(object)</a></td>
+	<td class="name" ><a href="#Delete">Delete(object)</a></td>
 	<td class="summary">The function removes a custom diary and its associated data from the system.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary.Status">CustomDiary.Status(value)</a></td>
+	<td class="name" ><a href="#Status">Status(value)</a></td>
 	<td class="summary">The function adds the callback to enable diaries in levels.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:IsVisible">CustomDiary:IsVisible()</a></td>
+	<td class="name" ><a href="#IsVisible">IsVisible()</a></td>
 	<td class="summary">The function checks whether the specified diary is currently visible.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ShowDiary">CustomDiary:ShowDiary(pageIndex)</a></td>
+	<td class="name" ><a href="#ShowDiary">ShowDiary(pageIndex)</a></td>
 	<td class="summary">The function displays the specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:GetUnlockedPageCount">CustomDiary:GetUnlockedPageCount()</a></td>
+	<td class="name" ><a href="#GetUnlockedPageCount">GetUnlockedPageCount()</a></td>
 	<td class="summary">The function returns the number of unlocked pages in the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:UnlockPages">CustomDiary:UnlockPages(pageIndex, notification)</a></td>
+	<td class="name" ><a href="#UnlockPages">UnlockPages(pageIndex, notification)</a></td>
 	<td class="summary">The function unlocks the specified diary up to the given page number.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ClearPage">CustomDiary:ClearPage(pageIndex)</a></td>
+	<td class="name" ><a href="#ClearPage">ClearPage(pageIndex)</a></td>
 	<td class="summary">The function clears the page for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:AddTextEntry">CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)</a></td>
+	<td class="name" ><a href="#AddTextEntry">AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)</a></td>
 	<td class="summary">Adds a text entry to the specified page for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:AddImageEntry">CustomDiary:AddImageEntry(pageIndex, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode)</a></td>
+	<td class="name" ><a href="#AddImageEntry">AddImageEntry(pageIndex, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode)</a></td>
 	<td class="summary">Adds an image entry to the specified page for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:AddNarration">CustomDiary:AddNarration(pageIndex, trackName)</a></td>
+	<td class="name" ><a href="#AddNarration">AddNarration(pageIndex, trackName)</a></td>
 	<td class="summary">Add a narration track in the voice channel to the page.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:RemoveNarration">CustomDiary:RemoveNarration(pageIndex)</a></td>
+	<td class="name" ><a href="#RemoveNarration">RemoveNarration(pageIndex)</a></td>
 	<td class="summary">Remove the narration track from the page of the specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:AddBackground">CustomDiary:AddBackground(objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, alpha)</a></td>
+	<td class="name" ><a href="#AddBackground">AddBackground(objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, alpha)</a></td>
 	<td class="summary">Add a background image for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ClearBackground">CustomDiary:ClearBackground()</a></td>
+	<td class="name" ><a href="#ClearBackground">ClearBackground()</a></td>
 	<td class="summary">Clears settings for the background for the specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:CustomizeNotification">CustomDiary:CustomizeNotification(notificationTime, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, notificationSound)</a></td>
+	<td class="name" ><a href="#CustomizeNotification">CustomizeNotification(notificationTime, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, notificationSound)</a></td>
 	<td class="summary">Customizes the notification icon and sound for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ClearNotification">CustomDiary:ClearNotification()</a></td>
+	<td class="name" ><a href="#ClearNotification">ClearNotification()</a></td>
 	<td class="summary">Clears settings for the notification system for the specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:CustomizePageNumbers">CustomDiary:CustomizePageNumbers(pageNoType, prefix, separator, textPos, textOptions, textScale, textColor)</a></td>
+	<td class="name" ><a href="#CustomizePageNumbers">CustomizePageNumbers(pageNoType, prefix, separator, textPos, textOptions, textScale, textColor)</a></td>
 	<td class="summary">Customizes the page numbers for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ClearPageNumbers">CustomDiary:ClearPageNumbers()</a></td>
+	<td class="name" ><a href="#ClearPageNumbers">ClearPageNumbers()</a></td>
 	<td class="summary">Clears settings for the page numbers for the specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:CustomizeControls">CustomDiary:CustomizeControls(textPos, textOptions, textScale, textColor)</a></td>
+	<td class="name" ><a href="#CustomizeControls">CustomizeControls(textPos, textOptions, textScale, textColor)</a></td>
 	<td class="summary">Customizes the controls text for the diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:CustomizeControlsText">CustomDiary:CustomizeControlsText(string1, string2, string3, string4, separator)</a></td>
+	<td class="name" ><a href="#CustomizeControlsText">CustomizeControlsText(string1, string2, string3, string4, separator)</a></td>
 	<td class="summary">Customizes the display text for controls for specified diary.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#CustomDiary:ClearControls">CustomDiary:ClearControls()</a></td>
+	<td class="name" ><a href="#ClearControls">ClearControls()</a></td>
 	<td class="summary">Clears settings for the specified diary's controls text.</td>
 	</tr>
 </table>
@@ -244,8 +244,8 @@
 
     <dl class="function">
     <dt>
-    <a name = "CustomDiary.ImportDiary"></a>
-    <strong>CustomDiary.ImportDiary(fileName)</strong>
+    <a name = "ImportDiary"></a>
+    <strong>ImportDiary(fileName)</strong>
     </dt>
     <dd>
     Imports diary from an external file.
@@ -268,8 +268,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary.Create"></a>
-    <strong>CustomDiary.Create(object, objectIdBg, spriteIdBg, colorBg, pos, rot, scale, alignMode, scaleMode, blendMode, alpha, pageSound, exitSound)</strong>
+    <a name = "Create"></a>
+    <strong>Create(object, objectIdBg, spriteIdBg, colorBg, pos, rot, scale, alignMode, scaleMode, blendMode, alpha, pageSound, exitSound)</strong>
     </dt>
     <dd>
     Creates a diary with extensive configuration options.
@@ -336,7 +336,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">CustomDiary</span></span>
+           <span class="types"><a class="type" href="../5 lua utility modules/CustomDiary.html#">CustomDiary</a></span>
 
 
 
@@ -347,8 +347,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary.Get"></a>
-    <strong>CustomDiary.Get(object)</strong>
+    <a name = "Get"></a>
+    <strong>Get(object)</strong>
     </dt>
     <dd>
     The function retrieves a diary by its unique object.  This function is useful when you need to access or manipulate a diary that has already been created .
@@ -366,7 +366,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">CustomDiary</span></span>
+           <span class="types"><a class="type" href="../5 lua utility modules/CustomDiary.html#">CustomDiary</a></span>
         The diary created using the object.
     </ol>
 
@@ -375,8 +375,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary.Delete"></a>
-    <strong>CustomDiary.Delete(object)</strong>
+    <a name = "Delete"></a>
+    <strong>Delete(object)</strong>
     </dt>
     <dd>
     The function removes a custom diary and its associated data from the system.  It ensures that the diary is no longer tracked or accessible in the LevelVars.Engine.Diaries.
@@ -398,8 +398,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary.Status"></a>
-    <strong>CustomDiary.Status(value)</strong>
+    <a name = "Status"></a>
+    <strong>Status(value)</strong>
     </dt>
     <dd>
     The function adds the callback to enable diaries in levels.  This needs to be added to every level preferably in the LevelFuncs.OnStart.
@@ -420,8 +420,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:IsVisible"></a>
-    <strong>CustomDiary:IsVisible()</strong>
+    <a name = "IsVisible"></a>
+    <strong>IsVisible()</strong>
     </dt>
     <dd>
     The function checks whether the specified diary is currently visible.
@@ -441,8 +441,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ShowDiary"></a>
-    <strong>CustomDiary:ShowDiary(pageIndex)</strong>
+    <a name = "ShowDiary"></a>
+    <strong>ShowDiary(pageIndex)</strong>
     </dt>
     <dd>
     The function displays the specified diary.  Can be used to call the diary directly using volume or classic triggers.
@@ -463,8 +463,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:GetUnlockedPageCount"></a>
-    <strong>CustomDiary:GetUnlockedPageCount()</strong>
+    <a name = "GetUnlockedPageCount"></a>
+    <strong>GetUnlockedPageCount()</strong>
     </dt>
     <dd>
     The function returns the number of unlocked pages in the diary.
@@ -484,8 +484,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:UnlockPages"></a>
-    <strong>CustomDiary:UnlockPages(pageIndex, notification)</strong>
+    <a name = "UnlockPages"></a>
+    <strong>UnlockPages(pageIndex, notification)</strong>
     </dt>
     <dd>
     The function unlocks the specified diary up to the given page number. <br/>
@@ -512,8 +512,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ClearPage"></a>
-    <strong>CustomDiary:ClearPage(pageIndex)</strong>
+    <a name = "ClearPage"></a>
+    <strong>ClearPage(pageIndex)</strong>
     </dt>
     <dd>
     The function clears the page for the diary.
@@ -534,8 +534,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:AddTextEntry"></a>
-    <strong>CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)</strong>
+    <a name = "AddTextEntry"></a>
+    <strong>AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)</strong>
     </dt>
     <dd>
     Adds a text entry to the specified page for the diary.
@@ -576,8 +576,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:AddImageEntry"></a>
-    <strong>CustomDiary:AddImageEntry(pageIndex, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode)</strong>
+    <a name = "AddImageEntry"></a>
+    <strong>AddImageEntry(pageIndex, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode)</strong>
     </dt>
     <dd>
     Adds an image entry to the specified page for the diary.
@@ -634,8 +634,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:AddNarration"></a>
-    <strong>CustomDiary:AddNarration(pageIndex, trackName)</strong>
+    <a name = "AddNarration"></a>
+    <strong>AddNarration(pageIndex, trackName)</strong>
     </dt>
     <dd>
     Add a narration track in the voice channel to the page.  Track is played with the draw button.
@@ -660,8 +660,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:RemoveNarration"></a>
-    <strong>CustomDiary:RemoveNarration(pageIndex)</strong>
+    <a name = "RemoveNarration"></a>
+    <strong>RemoveNarration(pageIndex)</strong>
     </dt>
     <dd>
     Remove the narration track from the page of the specified diary.
@@ -682,8 +682,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:AddBackground"></a>
-    <strong>CustomDiary:AddBackground(objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, alpha)</strong>
+    <a name = "AddBackground"></a>
+    <strong>AddBackground(objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, alpha)</strong>
     </dt>
     <dd>
     Add a background image for the diary.
@@ -740,8 +740,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ClearBackground"></a>
-    <strong>CustomDiary:ClearBackground()</strong>
+    <a name = "ClearBackground"></a>
+    <strong>ClearBackground()</strong>
     </dt>
     <dd>
     Clears settings for the background for the specified diary.
@@ -755,8 +755,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:CustomizeNotification"></a>
-    <strong>CustomDiary:CustomizeNotification(notificationTime, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, notificationSound)</strong>
+    <a name = "CustomizeNotification"></a>
+    <strong>CustomizeNotification(notificationTime, objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, notificationSound)</strong>
     </dt>
     <dd>
     Customizes the notification icon and sound for the diary.
@@ -817,8 +817,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ClearNotification"></a>
-    <strong>CustomDiary:ClearNotification()</strong>
+    <a name = "ClearNotification"></a>
+    <strong>ClearNotification()</strong>
     </dt>
     <dd>
     Clears settings for the notification system for the specified diary.
@@ -832,8 +832,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:CustomizePageNumbers"></a>
-    <strong>CustomDiary:CustomizePageNumbers(pageNoType, prefix, separator, textPos, textOptions, textScale, textColor)</strong>
+    <a name = "CustomizePageNumbers"></a>
+    <strong>CustomizePageNumbers(pageNoType, prefix, separator, textPos, textOptions, textScale, textColor)</strong>
     </dt>
     <dd>
     Customizes the page numbers for the diary.
@@ -878,8 +878,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ClearPageNumbers"></a>
-    <strong>CustomDiary:ClearPageNumbers()</strong>
+    <a name = "ClearPageNumbers"></a>
+    <strong>ClearPageNumbers()</strong>
     </dt>
     <dd>
     Clears settings for the page numbers for the specified diary.
@@ -893,8 +893,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:CustomizeControls"></a>
-    <strong>CustomDiary:CustomizeControls(textPos, textOptions, textScale, textColor)</strong>
+    <a name = "CustomizeControls"></a>
+    <strong>CustomizeControls(textPos, textOptions, textScale, textColor)</strong>
     </dt>
     <dd>
     Customizes the controls text for the diary.
@@ -927,8 +927,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:CustomizeControlsText"></a>
-    <strong>CustomDiary:CustomizeControlsText(string1, string2, string3, string4, separator)</strong>
+    <a name = "CustomizeControlsText"></a>
+    <strong>CustomizeControlsText(string1, string2, string3, string4, separator)</strong>
     </dt>
     <dd>
     Customizes the display text for controls for specified diary.
@@ -965,8 +965,8 @@
 
 </dd>
     <dt>
-    <a name = "CustomDiary:ClearControls"></a>
-    <strong>CustomDiary:ClearControls()</strong>
+    <a name = "ClearControls"></a>
+    <strong>ClearControls()</strong>
     </dt>
     <dd>
     Clears settings for the specified diary's controls text.

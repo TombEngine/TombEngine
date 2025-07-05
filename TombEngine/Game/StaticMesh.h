@@ -10,10 +10,11 @@ enum GAME_OBJECT_ID : short;
 // TODO: Come up with a namespace.
 //namespace TEN
 //{
-	enum StaticMeshFlags
+	enum StaticMeshFlags : short
 	{
-		SM_VISIBLE = 1 << 0,
-		SM_SOLID   = 1 << 1
+		SM_VISIBLE	 = 1 << 0,
+		SM_SOLID	 = 1 << 1,
+		SM_COLLISION = 1 << 2
 	};
 
 	struct StaticMesh

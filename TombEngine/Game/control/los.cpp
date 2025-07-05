@@ -420,7 +420,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	return true;
 }
 
-int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INFO** staticObj, GAME_OBJECT_ID priorityObjectID)
+int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** staticObj, GAME_OBJECT_ID priorityObjectID)
 {
 	ClosestItem = NO_LOS_ITEM;
 	ClosestDist = SQUARE(target->x - origin->x) + SQUARE(target->y - origin->y) + SQUARE(target->z - origin->z);
@@ -437,12 +437,12 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 			{
 				auto& meshp = room.mesh[m];
 
-				if (meshp.flags & StaticMeshFlags::SM_VISIBLE)
+				if (meshp.Flags & StaticMeshFlags::SM_VISIBLE)
 				{
 					auto bounds = GetBoundsAccurate(meshp, false);
-					pose = Pose(meshp.pos.Position, EulerAngles(0, meshp.pos.Orientation.y, 0));
+					pose = Pose(meshp.Transform.Position, EulerAngles(0, meshp.Transform.Orientation.y, 0));
 
-					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.staticNumber))
+					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.Slot))
 					{
 						*staticObj = &meshp;
 						target->RoomNumber = roomNumber;

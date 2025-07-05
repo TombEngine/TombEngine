@@ -22,6 +22,7 @@
 #include "Game/spotcam.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
+#include "Game/StaticMesh.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
