@@ -1,7 +1,6 @@
 #include "framework.h"
 
 #include "Game/effects/debris.h"
-#include "Objects/game_object_ids.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/ScriptAssert.h"
@@ -59,11 +58,7 @@ namespace TEN::Scripting
 			// Utilities
 			ScriptReserved_StaticEnable, &Static::Enable,
 			ScriptReserved_StaticDisable, &Static::Disable,
-			ScriptReserved_StaticShatter, &Static::Shatter,
-			
-			// COMPATIBILITY
-			"GetHP", &Static::GetHP,
-			"SetHP", &Static::SetHP);
+			ScriptReserved_StaticShatter, &Static::Shatter);
 	}
 
 	Static::Static(StaticMesh& staticObj) :
@@ -207,6 +202,12 @@ namespace TEN::Scripting
 		_static.Dirty = true;
 	}
 
+	void Static::SetScale(float scale)
+	{
+		_static.Transform.Scale = Vector3(scale);
+		_static.Dirty = true;
+	}
+
 	/// Set this static's color.
 	// @function Static:SetColor
 	// @tparam Color color New color.
@@ -273,11 +274,5 @@ namespace TEN::Scripting
 	void Static::Shatter()
 	{
 		ShatterObject(nullptr, &_static, -128, _static.RoomNumber, 0);
-	}
-
-	void Static::SetScale(float scale)
-	{
-		_static.Transform.Scale = Vector3(scale);
-		_static.Dirty = true;
 	}
 }

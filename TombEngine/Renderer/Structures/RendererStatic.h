@@ -20,7 +20,7 @@ namespace TEN::Renderer::Structures
 
 		std::vector<RendererLight*>	   LightsToDraw;
 		std::vector<RendererLightNode> CachedRoomLights;
-		bool						   CacheLights;
+		bool CacheLights;
 
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
