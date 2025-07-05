@@ -561,7 +561,7 @@ namespace TEN::Renderer
 			if (!isRoomReflected && !renderView.Camera.Frustum.SphereInFrustum(rendererStatic.Sphere.Center, rendererStatic.Sphere.Radius))
 				continue;
 
-			// Collect lights;
+			// Collect lights.
 			auto lights = std::vector<RendererLight*>{};
 			auto cachedRoomLights = std::vector<RendererLightNode>{};
 			if (rendererObj.ObjectMeshes.front()->LightMode != LightMode::Static)
@@ -569,14 +569,14 @@ namespace TEN::Renderer
 				if (rendererStatic.CacheLights || _invalidateCache)
 				{
 					// Collect all lights and return cached light for next frames.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(),1024, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
 					rendererStatic.CacheLights = false;
 					rendererStatic.CachedRoomLights = cachedRoomLights;
 				}
 				else
 				{
 					// Collect only dynamic lights and use cached lights from rooms.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), 1024, rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
 				}
 			}
 			rendererStatic.LightsToDraw = lights;
