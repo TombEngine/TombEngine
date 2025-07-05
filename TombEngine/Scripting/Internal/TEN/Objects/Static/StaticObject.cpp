@@ -33,25 +33,25 @@ namespace TEN::Scripting
 
 			// Getters
 			ScriptReserved_StaticGetName, &Static::GetName,
-			ScriptReserved_StaticGetObjectId, &Static::GetObjectId,
+			ScriptReserved_StaticGetSlot, &Static::GetSlot,
 			ScriptReserved_StaticGetPosition, &Static::GetPosition,
 			ScriptReserved_StaticGetRotation, &Static::GetRotation,
 			ScriptReserved_StaticGetScale, &Static::GetScale,
 			ScriptReserved_StaticGetColor, &Static::GetColor,
-			ScriptReserved_StaticGetHitPoints, &Static::GetHitPoints,
+			ScriptReserved_StaticGetHP, &Static::GetHP,
 			ScriptReserved_StaticGetActive, &Static::GetActiveStatus, // TODO: Deprecate. Rename Lua func to GetActiveStatus.
 			ScriptReserved_StaticGetSolid, &Static::GetSolidStatus, // TODO: Deprecate. Rename Lua func to GetSolidStatus.
 
 			// Setters
 			ScriptReserved_StaticSetName, &Static::SetName,
-			ScriptReserved_StaticSetObjectId, &Static::SetObjectId,
+			ScriptReserved_StaticSetSlot, &Static::SetSlot,
 			ScriptReserved_StaticSetPosition, &Static::SetPosition,
 			ScriptReserved_StaticSetRotation, &Static::SetRotation,
 			ScriptReserved_StaticSetScale, sol::overload(
 				(void(Static::*)(const Vec3&))(&Static::SetScale),
 				(void(Static::*)(float))(&Static::SetScale)), // COMPATIBILITY
 			ScriptReserved_StaticSetColor, &Static::SetColor,
-			ScriptReserved_StaticSetHitPoints, &Static::SetHitPoints,
+			ScriptReserved_StaticSetHP, &Static::SetHP,
 			ScriptReserved_StaticSetSolid, &Static::SetSolidStatus, // TODO: Deprecate. Rename Lua func to SetSolidStatus.
 			
 			// Utilities
@@ -60,13 +60,11 @@ namespace TEN::Scripting
 			ScriptReserved_StaticShatter, &Static::Shatter,
 			
 			// COMPATIBILITY
-			"GetSlot", &Static::GetObjectId,
-			"GetHP", &Static::GetHitPoints,
-			"SetSlot", &Static::SetObjectId,
-			"SetHP", &Static::SetHitPoints);
+			"GetHP", &Static::GetHP,
+			"SetHP", &Static::SetHP);
 	}
 
-	Static::Static(MESH_INFO& staticObj) :
+	Static::Static(StaticMesh& staticObj) :
 		_static(staticObj)
 	{
 	};
@@ -79,12 +77,12 @@ namespace TEN::Scripting
 		return _static.Name;
 	}
 
-	/// Get this static's object ID.
-	// @function Static:GetObjectID
-	// @treturn Objects.ObjID Object ID.
-	GAME_OBJECT_ID Static::GetObjectId() const
+	/// Get this static's slot ID.
+	// @function Static:GetSlot
+	// @treturn int Slot ID.
+	int Static::GetSlot() const
 	{
-		return _static.ObjectId;
+		return _static.Slot;
 	}
 
 	/// Get this static's world position.
@@ -120,9 +118,9 @@ namespace TEN::Scripting
 	}
 
 	/// Get this static's hit points. Used only with shatterable statics.
-	// @function Static:GetHitPoints
+	// @function Static:GetHP
 	// @treturn int Hit points.
-	int Static::GetHitPoints() const
+	int Static::GetHP() const
 	{
 		return _static.HitPoints;
 	}
@@ -163,12 +161,12 @@ namespace TEN::Scripting
 		}
 	}
 
-	/// Set this static's object ID.
-	// @function Static:SetObjectID
-	// @tparam Objects.ObjID slotID New object ID.
-	void Static::SetObjectId(GAME_OBJECT_ID objectId)
+	/// Set this static's slot ID.
+	// @function Static:SetSlot
+	// @tparam int slotID New slot ID.
+	void Static::SetSlot(int slotID)
 	{
-		_static.ObjectId = objectId;
+		_static.Slot = slotID;
 		_static.Dirty = true;
 	}
 
@@ -209,9 +207,9 @@ namespace TEN::Scripting
 	}
 
 	/// Set this static's hit points. Used only with shatterable statics.
-	// @function Static:SetHitPoints
+	// @function Static:SetHP
 	// @tparam int hitPoints New hit points.
-	void Static::SetHitPoints(int hitPoints)
+	void Static::SetHP(int hitPoints)
 	{
 		_static.HitPoints = hitPoints;
 	}

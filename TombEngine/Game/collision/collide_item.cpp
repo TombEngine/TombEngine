@@ -592,7 +592,7 @@ bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius)
 	return false;
 }
 
-bool TestBoundsCollideStatic(ItemInfo* item, const MESH_INFO& mesh, int radius)
+bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
@@ -798,7 +798,7 @@ bool ItemPushItem(ItemInfo* item, ItemInfo* item2)
 }
 
 // NOTE: Previously ItemPushLaraStatic().
-bool ItemPushStatic(ItemInfo* item, const MESH_INFO& mesh, CollisionInfo* coll)
+bool ItemPushStatic(ItemInfo* item, const StaticMesh& mesh, CollisionInfo* coll)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
@@ -1913,9 +1913,9 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 			// HACK: Shatter statics only by harmful vehicles.
 			if (!isPlayer && 
 				!isHarmless && abs(item->Animation.Velocity.z) > VEHICLE_COLLISION_TERMINAL_VELOCITY &&
-				Statics[staticObject.ObjectId].shatterType != ShatterType::None)
+				Statics[staticObject.Slot].shatterType != ShatterType::None)
 			{
-				SoundEffect(GetShatterSound(staticObject.ObjectId), &staticObject.Transform);
+				SoundEffect(GetShatterSound(staticObject.Slot), &staticObject.Transform);
 				ShatterObject(nullptr, &staticObject, -128, item->RoomNumber, 0);
 			}
 			else if (coll->Setup.EnableObjectPush)

@@ -16,7 +16,7 @@ using namespace TEN::Renderer;
 ShatterImpactInfo ShatterImpactData;
 SHATTER_ITEM ShatterItem;
 short SmashedMeshCount;
-MESH_INFO* SmashedMesh[32];
+StaticMesh* SmashedMesh[32];
 short SmashedMeshRoom[32];
 std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
@@ -57,7 +57,7 @@ DebrisFragment* GetFreeDebrisFragment()
 	return nullptr;
 }
 
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel)
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel)
 {
 	int meshIndex = 0;
 	short yRot = 0;
@@ -71,7 +71,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 			return;
 
 		isStatic = true;
-		meshIndex = Statics[mesh->ObjectId].meshNumber;
+		meshIndex = Statics[mesh->Slot].meshNumber;
 		yRot = mesh->Transform.Orientation.y;
 		pos = Vector3(mesh->Transform.Position.x, mesh->Transform.Position.y, mesh->Transform.Position.z);
 		scale = mesh->Transform.Scale;

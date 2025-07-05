@@ -2,14 +2,14 @@
 #include <variant>
 
 struct CAMERA_INFO;
-struct MESH_INFO;
+struct StaticMesh;
 
 namespace TEN::Control::Volumes
 {
 	using Activator = std::variant<
 		std::nullptr_t,
 		int,
-		MESH_INFO*,
+		StaticMesh*,
 		CAMERA_INFO*>;
 
 	enum class ActivatorFlags

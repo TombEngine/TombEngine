@@ -15,7 +15,7 @@ namespace TEN::Scripting
 {
 	class Rotation;
 
-	class Static : public NamedBase<Static, MESH_INFO&>
+	class Static : public NamedBase<Static, StaticMesh&>
 	{
 	public:
 		static void Register(sol::table& parent);
@@ -23,40 +23,40 @@ namespace TEN::Scripting
 	private:
 		// Fields
 
-		MESH_INFO& _static;
+		StaticMesh& _static;
 
 	public:
 		// Aliases
 
-		using IdentifierType = std::reference_wrapper<MESH_INFO>;
+		using IdentifierType = std::reference_wrapper<StaticMesh>;
 
 		// Constructors, destructors
 
-		Static(MESH_INFO& staticObj);
+		Static(StaticMesh& staticObj);
 		Static(const Static& staticObj) = delete;
 		~Static() = default;
 
 		// Getters
 
 		std::string	   GetName() const;
-		GAME_OBJECT_ID GetObjectId() const;
+		int			   GetSlot() const;
 		Vec3		   GetPosition() const;
 		Rotation	   GetRotation() const;
 		Vec3		   GetScale() const;
 		ScriptColor	   GetColor() const;
-		int			   GetHitPoints() const;
+		int			   GetHP() const;
 		bool		   GetActiveStatus() const;
 		bool		   GetSolidStatus() const;
 
 		// Setters
 
 		void SetName(const std::string& name);
-		void SetObjectId(GAME_OBJECT_ID objectId);
+		void SetSlot(int slotID);
 		void SetPosition(const Vec3& pos);
 		void SetRotation(const Rotation& rot);
 		void SetScale(const Vec3& scale);
 		void SetColor(const ScriptColor& color);
-		void SetHitPoints(int hitPoints);
+		void SetHP(int hitPoints);
 		void SetSolidStatus(bool status);
 
 		// Utilities

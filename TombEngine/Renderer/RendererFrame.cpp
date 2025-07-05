@@ -504,7 +504,7 @@ namespace TEN::Renderer
 
 			if (nativeStatic.Dirty || _invalidateCache)
 			{
-				rendererStatic.ObjectNumber = nativeStatic.ObjectId;
+				rendererStatic.ObjectNumber = nativeStatic.Slot;
 				rendererStatic.Color = nativeStatic.Color;
 				rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 				rendererStatic.Pose = nativeStatic.Transform;

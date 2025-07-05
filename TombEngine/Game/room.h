@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/StaticObject.h"
+#include "Game/StaticMesh.h"
 #include "Math/Math.h"
 
 using namespace TEN::Math;
@@ -94,7 +94,7 @@ struct ROOM_INFO
 
 	std::vector<FloorInfo>	   Sectors		  = {};
 	std::vector<ROOM_LIGHT>	   lights		  = {};
-	std::vector<MESH_INFO>	   mesh			  = {}; // Statics
+	std::vector<StaticMesh>	   mesh			  = {}; // Statics
 	std::vector<TriggerVolume> TriggerVolumes = {};
 
 	std::vector<Vector3>   positions = {};

@@ -730,7 +730,7 @@ void LoadDynamicRoomData()
 			mesh.Transform.Scale = Vector3(ReadFloat()); // TODO: Write Vector3 scale to level.
 			mesh.Flags = ReadUInt16();
 			mesh.Color = ReadVector4();
-			mesh.ObjectId = (GAME_OBJECT_ID)ReadUInt16();
+			mesh.Slot = (GAME_OBJECT_ID)ReadUInt16();
 			mesh.HitPoints = ReadInt16();
 			mesh.Name = ReadString();
 

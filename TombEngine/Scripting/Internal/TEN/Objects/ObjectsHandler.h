@@ -91,12 +91,12 @@ private:
 		auto items = std::vector<std::unique_ptr<R>>{};
 		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<MESH_INFO>>(value))
+			if (!std::holds_alternative<std::reference_wrapper<StaticMesh>>(value))
 				continue;
 			
-			auto staticObj = std::get<std::reference_wrapper<MESH_INFO>>(value).get();
+			auto staticObj = std::get<std::reference_wrapper<StaticMesh>>(value).get();
 
-			if (staticObj.ObjectId == slot)
+			if (staticObj.Slot == slot)
 				items.push_back(GetByName<Static, ScriptReserved_Static>(key));
 		}
 

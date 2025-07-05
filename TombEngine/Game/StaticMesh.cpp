@@ -1,25 +1,25 @@
 #include "framework.h"
-#include "Game/StaticObject.h"
+#include "Game/StaticMesh.h"
 
 #include "Game/Setup.h"
 
 //namespace TEN
 //{
-	GameBoundingBox MESH_INFO::GetVisibilityAabb() const
+	GameBoundingBox StaticMesh::GetVisibilityAabb() const
 	{
-		auto aabb = Statics[ObjectId].visibilityBox;
+		auto aabb = Statics[Slot].visibilityBox;
 		ScaleAabb(aabb);
 		return aabb;
 	}
 
-	GameBoundingBox MESH_INFO::GetCollisionAabb() const
+	GameBoundingBox StaticMesh::GetCollisionAabb() const
 	{
-		auto aabb = Statics[ObjectId].collisionBox;
+		auto aabb = Statics[Slot].collisionBox;
 		ScaleAabb(aabb);
 		return aabb;
 	}
 
-	void MESH_INFO::ScaleAabb(GameBoundingBox& aabb) const
+	void StaticMesh::ScaleAabb(GameBoundingBox& aabb) const
 	{
 		// Calculate scaled parameters.
 		auto center = aabb.GetCenter();
@@ -36,7 +36,7 @@
 		aabb.Z2 = (center.z + scaledExtents.z) + scaledOffset.z;
 	}
 
-	GameBoundingBox& GetBoundsAccurate(const MESH_INFO& staticObj, bool getVisibilityAabb)
+	GameBoundingBox& GetBoundsAccurate(const StaticMesh& staticObj, bool getVisibilityAabb)
 	{
 		static auto aabb = GameBoundingBox();
 

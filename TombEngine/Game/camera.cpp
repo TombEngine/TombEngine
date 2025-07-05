@@ -1407,7 +1407,7 @@ static std::vector<int> FillCollideableItemList()
 	return itemList;
 }
 
-bool CheckStaticCollideCamera(MESH_INFO* mesh)
+bool CheckStaticCollideCamera(StaticMesh* mesh)
 {
 	bool isCloseEnough = Vector3i::Distance(mesh->Transform.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
 	if (!isCloseEnough)
@@ -1433,9 +1433,9 @@ bool CheckStaticCollideCamera(MESH_INFO* mesh)
 	return true;
 }
 
-std::vector<MESH_INFO*> FillCollideableStaticsList()
+std::vector<StaticMesh*> FillCollideableStaticsList()
 {
-	std::vector<MESH_INFO*> staticList;
+	std::vector<StaticMesh*> staticList;
 	auto& roomList = g_Level.Rooms[Camera.pos.RoomNumber].NeighborRoomNumbers;
 
 	for (int i : roomList)

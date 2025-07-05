@@ -270,7 +270,7 @@ namespace TEN::Renderer
 					auto& rendererStatic = r->Statics[l];
 					auto& nativeStatic = room.mesh[l];
 
-					rendererStatic.ObjectNumber = nativeStatic.ObjectId;
+					rendererStatic.ObjectNumber = nativeStatic.Slot;
 					rendererStatic.RoomNumber = nativeStatic.RoomNumber;
 					rendererStatic.Color = nativeStatic.Color;
 					rendererStatic.AmbientLight = r->AmbientLight;

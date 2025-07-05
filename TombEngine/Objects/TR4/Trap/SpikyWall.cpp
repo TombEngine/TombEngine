@@ -91,7 +91,7 @@ namespace TEN::Entities::Traps
 					abs(pointColl0.GetPosition().z - staticObj.Transform.Position.z) < BLOCK(1)) ||
 					abs(pointColl1.GetPosition().x - staticObj.Transform.Position.x) < BLOCK(1) &&
 					abs(pointColl1.GetPosition().z - staticObj.Transform.Position.z) < BLOCK(1) &&
-					Statics[staticObj.ObjectId].shatterType != ShatterType::None)
+					Statics[staticObj.Slot].shatterType != ShatterType::None)
 				{					
 					if (staticObj.HitPoints != 0)
 						continue;

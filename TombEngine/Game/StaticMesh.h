@@ -16,15 +16,13 @@ enum GAME_OBJECT_ID : short;
 		SM_SOLID   = 1 << 1
 	};
 
-	// class StaticObject
-	struct MESH_INFO
+	struct StaticMesh
 	{
 	public:
 		// Fields
 
 		std::string	   Name		= {};
-		//int			   Id		= 0; // TODO: Store static ID.
-		GAME_OBJECT_ID ObjectId = GAME_OBJECT_ID::ID_NO_OBJECT;
+		int			   Slot		= NO_VALUE;
 
 		Pose  Transform  = Pose::Zero;
 		int	  RoomNumber = 0;
@@ -46,5 +44,5 @@ enum GAME_OBJECT_ID : short;
 	};
 
 	// TODO: Deprecate.
-	GameBoundingBox& GetBoundsAccurate(const MESH_INFO& staticObj, bool getVisibilityAabb);
+	GameBoundingBox& GetBoundsAccurate(const StaticMesh& staticObj, bool getVisibilityAabb);
 //}

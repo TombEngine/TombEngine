@@ -233,7 +233,7 @@ namespace TEN::Control::Volumes
 		TestVolumes(camera->pos.RoomNumber, box, ActivatorFlags::Flyby, camera);
 	}
 
-	void TestVolumes(int roomNumber, MESH_INFO* mesh)
+	void TestVolumes(int roomNumber, StaticMesh* mesh)
 	{
 		auto box = GetBoundsAccurate(*mesh, false).ToBoundingOrientedBox(mesh->Transform);
 		
