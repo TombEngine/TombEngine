@@ -371,7 +371,7 @@ table Sink {
 }
 
 table StaticMeshInfo {
-	id: int32;
+	number: int32;
 	transform: Pose;
 	room_number: int32;
 	color: Vector4;
