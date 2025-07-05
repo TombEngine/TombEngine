@@ -35,8 +35,6 @@ namespace TEN::Scripting
 		int	  GetMeteorCount() const;
 		int	  GetMeteorSpawnDensity() const;
 		float GetMeteorVelocity() const;
-		bool  GetStarsEnabledStatus() const;
-		bool  GetMeteorsEnabledStatus() const;
 
 		// Setters
 

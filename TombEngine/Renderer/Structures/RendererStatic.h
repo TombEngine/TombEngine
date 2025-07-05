@@ -12,6 +12,7 @@ namespace TEN::Renderer::Structures
 		int RoomNumber;
 		int IndexInRoom;
 
+		Pose 	PrevPose;
 		Pose	Pose;
 		Matrix	World;
 		Vector4 Color;
@@ -24,11 +25,15 @@ namespace TEN::Renderer::Structures
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
 
-		void Update()
+		void Update(float interpolationFactor)
 		{
-			auto translationMatrix = Matrix::CreateTranslation(Pose.Position.ToVector3());
-			auto rotMatrix = Pose.Orientation.ToRotationMatrix();
-			auto scaleMatrix = Matrix::CreateScale(Pose.Scale);
+			auto pos = Vector3::Lerp(PrevPose.Position.ToVector3(), Pose.Position.ToVector3(), interpolationFactor);
+			auto scale = Vector3::Lerp(PrevPose.Scale, Pose.Scale, interpolationFactor);
+			
+			auto translationMatrix = Matrix::CreateTranslation(pos);
+			auto scaleMatrix = Matrix::CreateScale(scale);
+			auto rotMatrix = Matrix::Lerp(PrevPose.Orientation.ToRotationMatrix(), Pose.Orientation.ToRotationMatrix(), interpolationFactor);
+			
 			auto worldMatrix = rotMatrix * scaleMatrix * translationMatrix;
 
 			auto sphereCenter = Vector3::Transform(OriginalSphere.Center, World);
@@ -37,6 +42,7 @@ namespace TEN::Renderer::Structures
 
 			World = worldMatrix;
 			Sphere = BoundingSphere(sphereCenter, sphereRadius);
+			
 			CacheLights = true;
 		}
 	};

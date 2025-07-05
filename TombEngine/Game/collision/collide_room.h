@@ -6,8 +6,8 @@
 enum RoomEnvFlags;
 class FloorInfo;
 struct ItemInfo;
+struct RoomData;
 struct StaticMesh;
-struct ROOM_INFO;
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;
@@ -151,5 +151,5 @@ bool TestEnvironment(RoomEnvFlags environmentType, int x, int y, int z, int room
 bool TestEnvironment(RoomEnvFlags environmentType, const Vector3i& pos, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const ItemInfo* item);
 bool TestEnvironment(RoomEnvFlags environmentType, int roomNumber);
-bool TestEnvironment(RoomEnvFlags environmentType, const ROOM_INFO* room);
+bool TestEnvironment(RoomEnvFlags environmentType, const RoomData* room);
 bool TestEnvironmentFlags(RoomEnvFlags environmentType, int flags);

@@ -8,7 +8,7 @@ using namespace TEN::Math;
 
 // Directories
 
-constexpr auto REGKEY_ROOT	   = "Software\\TombEngine\\1.1.0";
+constexpr auto REGKEY_ROOT	   = "Software\\TombEngine\\1.7.0";
 constexpr auto REGKEY_GRAPHICS = "Graphics";
 constexpr auto REGKEY_SOUND	   = "Sound";
 constexpr auto REGKEY_GAMEPLAY = "Gameplay";
@@ -93,10 +93,9 @@ struct GameConfiguration
 	bool EnableThumbstickCamera	   = false;
 
 	// Input
-
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
-	std::vector<int>	  Bindings				= {};
+	BindingProfile		  Bindings				= {};
 
 	std::vector<Vector2i> SupportedScreenResolutions = {};
 	std::string			  AdapterName				 = {};

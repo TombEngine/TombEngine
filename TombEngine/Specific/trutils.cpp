@@ -154,6 +154,18 @@ namespace TEN::Utils
 		strings.push_back(string.substr(prev));
 		return strings;
 	}
+	
+	std::vector<std::wstring> SplitWords(const std::wstring& input)
+	{
+		std::vector<std::wstring> words;
+		std::wstringstream stream(input);
+		std::wstring word;
+
+		while (stream >> word)
+			words.push_back(word);
+
+		return words;
+	}
 
 	int GetHash(const std::string& string)
 	{
@@ -205,18 +217,33 @@ namespace TEN::Utils
             ((1.0f - ndc.y) * DISPLAY_SPACE_RES.y) / 2);
     }
 
-	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
+	std::wstring GetBinaryPath(bool includeExeName)
 	{
-		wchar_t fileName[UCHAR_MAX] = {};
+		static const int MAX_PATH_LENGTH = 1024;
+		wchar_t fileName[MAX_PATH_LENGTH] = {};
 
-		if (!GetModuleFileNameW(nullptr, fileName, UCHAR_MAX))
+		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
 		{
-			TENLog("Can't get current assembly filename", LogLevel::Error);
-			return {};
+			TENLog("Can't get current assembly path", LogLevel::Error);
+			return std::wstring();
 		}
 
+		auto result = std::wstring(fileName);
+		std::replace(result.begin(), result.end(), '\\', '/');
+
+		if (includeExeName)
+			return result;
+
+		size_t pos = result.find_last_of(L"/");
+		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
+	}
+
+	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
+	{
+		auto fileName = GetBinaryPath(true);
+
 		DWORD dummy;
-		DWORD size = GetFileVersionInfoSizeW(fileName, &dummy);
+		DWORD size = GetFileVersionInfoSizeW(fileName.data(), &dummy);
 
 		if (size == 0)
 		{
@@ -227,7 +254,7 @@ namespace TEN::Utils
 		std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
 
 		// Load version info.
-		if (!GetFileVersionInfoW(fileName, 0, size, buffer.get()))
+		if (!GetFileVersionInfoW(fileName.data(), 0, size, buffer.get()))
 		{
 			TENLog("GetFileVersionInfoW failed", LogLevel::Error);
 			return {};

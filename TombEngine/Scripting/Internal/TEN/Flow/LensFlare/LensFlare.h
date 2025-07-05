@@ -39,7 +39,7 @@ namespace TEN::Scripting
 		float		GetPitch() const;
 		float		GetYaw() const;
 		ScriptColor GetColor() const;
-		bool		GetEnabledStatus() const;
+		bool		GetEnabled() const;
 
 		// Setters
 
@@ -47,5 +47,6 @@ namespace TEN::Scripting
 		void SetPitch(float pitch);
 		void SetYaw(float yaw);
 		void SetColor(const ScriptColor& color);
+		void SetEnabled(bool value);
 	};
 }

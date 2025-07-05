@@ -76,20 +76,12 @@ void GenericSphereBoxCollision(short itemNumber, ItemInfo* playerItem, Collision
 			GlobalCollisionBounds.Z1 = sphere.Center.z - sphere.Radius - item.Pose.Position.z;
 			GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
 
-			auto pos = playerItem->Pose.Position;
-			if (ItemPushItem(&item, playerItem, coll, harmBits & 1, 3) && (harmBits & 1))
+			if (ItemPushItem(&item, playerItem, coll, harmBits & 1, 3) && (harmBits & 1) && (item.ItemFlags[3] > 0))
 			{
 				DoDamage(playerItem, item.ItemFlags[3]);
 
-				auto deltaPos = pos - playerItem->Pose.Position;
-				if (deltaPos != Vector3i::Zero)
-				{
-					if (TriggerActive(&item))
-						TriggerLaraBlood();
-				}
-
-				if (!coll->Setup.EnableObjectPush)
-					playerItem->Pose.Position += deltaPos;
+				if (TriggerActive(&item))
+					TriggerLaraBlood();
 			}
 		}
 
@@ -853,7 +845,7 @@ bool ItemPushStatic(ItemInfo* item, const StaticMesh& mesh, CollisionInfo* coll)
 	{
 		coll->Setup.PrevPosition = item->Pose.Position;
 		if (item->IsLara())
-			UpdateLaraRoom(item, -10);
+			UpdateLaraRoom(item, -coll->Setup.Height / 2);
 	}
 	else
 	{
@@ -944,6 +936,10 @@ void CollideSolidStatics(ItemInfo* item, CollisionInfo* coll)
 		{
 			// Only process meshes which are visible.
 			if (!(mesh.Flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			// Bypass static meshes which are marked as non-collidable.
+			if (!(mesh.flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// Only process meshes which are solid, or if solid mode is set by the setup.
@@ -1894,7 +1890,12 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 
 		for (auto& staticObject : neighborRoom.mesh)
 		{
-			if (!(staticObject.Flags & StaticMeshFlags::SM_VISIBLE))
+			// Check if static is visible.
+			if (!(staticObject.flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			// Check if static is collidable.
+			if (!(staticObject.flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// For Lara, solid static mesh collisions are directly managed by GetCollisionInfo,

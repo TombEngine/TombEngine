@@ -8,11 +8,13 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Specific/Input/Input.h"
+#include "Specific/trutils.h"
 #include "Specific/winmain.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::Utils;
 
 GameConfiguration g_Configuration;
 
@@ -67,18 +69,17 @@ BOOL CALLBACK DialogProc(HWND handle, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		//DB_Log(6, "WM_INITDIALOG");
 
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_GFXADAPTER), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_DISPLAY_ADAPTER));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OUTPUT_SETTINGS));
-		SendMessageA(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OK));
-		SendMessageA(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CANCEL));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SCREEN_RESOLUTION));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ENABLE_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_WINDOWED));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_RENDER_OPTIONS));
-		SendMessageA(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SHADOWS));
-		SendMessageA(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CAUSTICS));
-		SendMessageA(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ANTIALIASING));
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OUTPUT_SETTINGS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OK))).c_str());
+		SendMessageW(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CANCEL))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SCREEN_RESOLUTION))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ENABLE_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_WINDOWED))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_RENDER_OPTIONS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SHADOWS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CAUSTICS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ANTIALIASING))).c_str());
 
 		LoadResolutionsInCombobox(handle);
 		LoadSoundDevicesInCombobox(handle);
@@ -268,21 +269,27 @@ bool SaveConfiguration()
 		return false;
 	}
 
-	// Set Input binding keys.
-	g_Configuration.Bindings.resize((int)In::Count);
-	for (int i = 0; i < (int)In::Count; i++)
-	{
-		char buffer[9];
-		sprintf(buffer, "Action%d", i);
+	if (g_Configuration.Bindings.empty())
+		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
-		if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings[i]) != ERROR_SUCCESS)
+	// Set Input binding keys.
+	for (auto actionGroupID : USER_ACTION_GROUP_IDS)
+	{
+		const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+		for (auto actionID : actionIDGroup)
 		{
-			RegCloseKey(rootKey);
-			RegCloseKey(graphicsKey);
-			RegCloseKey(soundKey);
-			RegCloseKey(gameplayKey);
-			RegCloseKey(inputKey);
-			return false;
+			char buffer[9];
+			sprintf(buffer, "Action%d", (int)actionID);
+
+			if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings.at(actionID)) != ERROR_SUCCESS)
+			{
+				RegCloseKey(rootKey);
+				RegCloseKey(graphicsKey);
+				RegCloseKey(soundKey);
+				RegCloseKey(gameplayKey);
+				RegCloseKey(inputKey);
+				return false;
+			}
 		}
 	}
 
@@ -465,32 +472,38 @@ bool LoadConfiguration()
 			return false;
 		}
 
-		for (int i = 0; i < (int)In::Count; i++)
+		for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 		{
-			DWORD tempAction = 0;
-			char buffer[9];
-			sprintf(buffer, "Action%d", i);
-
-			if (GetDWORDRegKey(inputKey, buffer, &tempAction, Bindings[0][i]) != ERROR_SUCCESS)
+			const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+			for (auto actionID : actionIDGroup)
 			{
-				RegCloseKey(rootKey);
-				RegCloseKey(graphicsKey);
-				RegCloseKey(soundKey);
-				RegCloseKey(gameplayKey);
-				RegCloseKey(inputKey);
-				return false;
-			}
+				DWORD tempKeyID = 0;
+				char buffer[9];
+				sprintf(buffer, "Action%d", (int)actionID);
 
-			g_Configuration.Bindings.push_back(tempAction);
-			Bindings[1][i] = tempAction;
+				int boundKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+
+				if (GetDWORDRegKey(inputKey, buffer, &tempKeyID, boundKeyID) != ERROR_SUCCESS)
+				{
+					RegCloseKey(rootKey);
+					RegCloseKey(graphicsKey);
+					RegCloseKey(soundKey);
+					RegCloseKey(gameplayKey);
+					RegCloseKey(inputKey);
+					return false;
+				}
+
+				g_Configuration.Bindings.insert({ actionID, tempKeyID });
+				g_Bindings.SetKeyBinding(BindingProfileID::Custom, actionID, tempKeyID);
+			}
 		}
 
 		RegCloseKey(inputKey);
 	}
+	// Input key doesn't exist; use default bindings.
 	else
 	{
-		// "Input" key does not exist; use default bindings.
-		g_Configuration.Bindings = Bindings[0];
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 	}
 
 	RegCloseKey(rootKey);
@@ -502,10 +515,10 @@ bool LoadConfiguration()
 	g_Configuration.ScreenWidth = screenWidth;
 	g_Configuration.ScreenHeight = screenHeight;
 	g_Configuration.EnableWindowedMode = enableWindowedMode;
-	g_Configuration.ShadowType = ShadowMode(shadowMode);
+	g_Configuration.ShadowType = (ShadowMode)shadowMode;
 	g_Configuration.ShadowBlobsMax = shadowBlobsMax;
 	g_Configuration.EnableCaustics = enableCaustics;
-	g_Configuration.AntialiasingMode = AntialiasingMode(antialiasingMode);
+	g_Configuration.AntialiasingMode = (AntialiasingMode)antialiasingMode;
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;
 	g_Configuration.EnableHighFramerate = enableHighFramerate;
@@ -581,7 +594,6 @@ LONG GetBoolRegKey(HKEY hKey, LPCSTR strValueName, bool* bValue, bool bDefaultVa
 
 	return nError;
 }
-
 
 LONG GetStringRegKey(HKEY hKey, LPCSTR strValueName, char** strValue, char* strDefaultValue)
 {

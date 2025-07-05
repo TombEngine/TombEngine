@@ -194,11 +194,11 @@ sol::object GetVariable(sol::table tab, sol::object key)
 	return tab.raw_get<sol::object>(key);
 }
 
-LogicHandler::LogicHandler(sol::state* lua, sol::table & parent) : m_handler{ lua }
+LogicHandler::LogicHandler(sol::state* lua, sol::table& parent) : _handler{ lua }
 {
-	m_handler.GetState()->set_function("print", &LogicHandler::LogPrint, this);
+	_handler.GetState()->set_function("print", &LogicHandler::LogPrint, this);
 
-	sol::table tableLogic{ m_handler.GetState()->lua_state(), sol::create };
+	auto tableLogic = sol::table(_handler.GetState()->lua_state(), sol::create);
 
 	parent.set(ScriptReserved_Logic, tableLogic);
 
@@ -208,24 +208,24 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table & parent) : m_handler{ lu
 	tableLogic.set_function(ScriptReserved_EnableEvent, &LogicHandler::EnableEvent, this);
 	tableLogic.set_function(ScriptReserved_DisableEvent, &LogicHandler::DisableEvent, this);
 
-	m_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EndReason, LEVEL_END_REASONS);
-	m_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_CallbackPoint, CALLBACK_POINTS);
-	m_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EventType, EVENT_TYPES);
+	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EndReason, LEVEL_END_REASONS);
+	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_CallbackPoint, CALLBACK_POINTS);
+	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EventType, EVENT_TYPES);
 
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreStart, &m_callbacksPreStart));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostStart, &m_callbacksPostStart));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreLoad, &m_callbacksPreLoad));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostLoad, &m_callbacksPostLoad));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreLoop, &m_callbacksPreLoop));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostLoop, &m_callbacksPostLoop));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreSave, &m_callbacksPreSave));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostSave, &m_callbacksPostSave));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreEnd, &m_callbacksPreEnd));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostEnd, &m_callbacksPostEnd));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreUseItem, &m_callbacksPreUseItem));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostUseItem, &m_callbacksPostUseItem));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PreFreeze, &m_callbacksPreFreeze));
-	m_callbacks.insert(std::make_pair(CallbackPoint::PostFreeze, &m_callbacksPostFreeze));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreStart, &_callbacksPreStart));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostStart, &_callbacksPostStart));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreLoad, &_callbacksPreLoad));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostLoad, &_callbacksPostLoad));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreLoop, &_callbacksPreLoop));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostLoop, &_callbacksPostLoop));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreSave, &_callbacksPreSave));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostSave, &_callbacksPostSave));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreEnd, &_callbacksPreEnd));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostEnd, &_callbacksPostEnd));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreUseItem, &_callbacksPreUseItem));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostUseItem, &_callbacksPostUseItem));
+	_callbacks.insert(std::make_pair(CallbackPoint::PreFreeze, &_callbacksPreFreeze));
+	_callbacks.insert(std::make_pair(CallbackPoint::PostFreeze, &_callbacksPostFreeze));
 
 	LevelFunc::Register(tableLogic);
 
@@ -234,10 +234,10 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table & parent) : m_handler{ lu
 
 void LogicHandler::ResetGameTables() 
 {
-	auto state = m_handler.GetState();
+	auto state = _handler.GetState();
 	MakeSpecialTable(state, ScriptReserved_GameVars, &GetVariable, &SetVariable);
 
-	(*state)[ScriptReserved_GameVars][ScriptReserved_Engine] = sol::table{ *state, sol::create };
+	(*state)[ScriptReserved_GameVars][ScriptReserved_Engine] = sol::table(*state, sol::create);
 }
 
 /*** Register a function as a callback.
@@ -286,9 +286,8 @@ Any returned value will be discarded.
 */
 void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
-	auto it = m_callbacks.find(point);
-
-	if (it == m_callbacks.end()) 
+	auto it = _callbacks.find(point);
+	if (it == _callbacks.end()) 
 	{
 		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
@@ -315,8 +314,8 @@ Will have no effect if the function was not registered as a callback
 */
 void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
-	auto it = m_callbacks.find(point);
-	if (it == m_callbacks.end())
+	auto it = _callbacks.find(point);
+	if (it == _callbacks.end())
 	{
 		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
@@ -343,7 +342,7 @@ Possible event type values:
 @function HandleEvent
 @tparam string name Name of the event set to find.
 @tparam EventType type Event to execute.
-@tparam Objects.Moveable activator Optional activator. Default is the player object.
+@tparam[opt=Lara] Objects.Moveable activator Optional activator.
 */
 void LogicHandler::HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator)
 {
@@ -374,7 +373,7 @@ void LogicHandler::DisableEvent(const std::string& name, EventType type)
 
 void LogicHandler::ResetLevelTables()
 {
-	auto state = m_handler.GetState();
+	auto state = _handler.GetState();
 	MakeSpecialTable(state, ScriptReserved_LevelVars, &GetVariable, &SetVariable);
 
 	(*state)[ScriptReserved_LevelVars][ScriptReserved_Engine] = sol::table{ *state, sol::create };
@@ -382,15 +381,15 @@ void LogicHandler::ResetLevelTables()
 
 sol::object LogicHandler::GetLevelFuncsMember(sol::table tab, const std::string& name)
 {
-	std::string partName = tab.raw_get<std::string>(strKey);
-	auto& map = m_levelFuncs_tablesOfNames[partName];
+	auto partName = tab.raw_get<std::string>(strKey);
+	auto& map = _levelFuncs_tablesOfNames[partName];
 
 	auto fullNameIt = map.find(name);
 	if (fullNameIt != std::cend(map))
 	{
 		std::string_view key = fullNameIt->second;
-		if (m_levelFuncs_levelFuncObjects[key].valid())
-			return m_levelFuncs_levelFuncObjects[key];
+		if (_levelFuncs_levelFuncObjects[key].valid())
+			return _levelFuncs_levelFuncObjects[key];
 	}
 
 	return sol::nil;
@@ -400,7 +399,7 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 {
 	if (sol::type::lua_nil == value.get_type())
 	{
-		std::string error{ "Tried to set " + std::string{ScriptReserved_LevelFuncs} + " member " };
+		auto error = std::string("Tried to set " + std::string{ScriptReserved_LevelFuncs} + " member ");
 		error += name + " to nil; this not permitted at this time.";
 		return ScriptAssert(false, error);
 	}
@@ -409,27 +408,27 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 		// Add name to table of names.
 		auto partName = tab.raw_get<std::string>(strKey);
 		auto fullName = partName + "." + name;
-		auto& parentNameTab = m_levelFuncs_tablesOfNames[partName];
+		auto& parentNameTab = _levelFuncs_tablesOfNames[partName];
 		parentNameTab.insert_or_assign(name, fullName);
 
 		// Create LevelFunc userdata and add that too.
 		LevelFunc levelFuncObject;
 		levelFuncObject.m_funcName = fullName;
 		levelFuncObject.m_handler = this;
-		m_levelFuncs_levelFuncObjects[fullName] = levelFuncObject;
+		_levelFuncs_levelFuncObjects[fullName] = levelFuncObject;
 
 		// Add function itself.
-		m_levelFuncs_luaFunctions[fullName] = value;
+		_levelFuncs_luaFunctions[fullName] = value;
 	}
 	else if (sol::type::table == value.get_type())
 	{
 		// Create and add new name map.
-		std::unordered_map<std::string, std::string> newNameMap;
+		auto newNameMap = std::unordered_map<std::string, std::string>{};
 		auto fullName = tab.raw_get<std::string>(strKey) + "." + name;
-		m_levelFuncs_tablesOfNames.insert_or_assign(fullName, newNameMap);
+		_levelFuncs_tablesOfNames.insert_or_assign(fullName, newNameMap);
 
 		// Create new table to put in the LevelFuncs hierarchy.
-		auto newLevelFuncsTab = MakeSpecialTable(m_handler.GetState(), name, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
+		auto newLevelFuncsTab = MakeSpecialTable(_handler.GetState(), name, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
 		newLevelFuncsTab.raw_set(strKey, fullName);
 		tab.raw_set(name, newLevelFuncsTab);
 
@@ -440,7 +439,7 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 	}
 	else
 	{
-		std::string error{ "Failed to add " };
+		auto error = std::string("Failed to add ");
 		error += name + " to " + ScriptReserved_LevelFuncs + " or one of its tables; it must be a function or a table of functions.";
 		return ScriptAssert(false, error);
 	}
@@ -450,10 +449,10 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 
 void LogicHandler::LogPrint(sol::variadic_args args)
 {
-	std::string str;
+	auto str = std::string();
 	for (const sol::object& o : args)
 	{
-		auto strPart = (*m_handler.GetState())["tostring"](o).get<std::string>();
+		auto strPart = (*_handler.GetState())["tostring"](o).get<std::string>();
 		str += strPart;
 		str += "\t";
 	}
@@ -465,10 +464,10 @@ void LogicHandler::ResetScripts(bool clearGameVars)
 {
 	FreeLevelScripts();
 
-	for (auto& [first, second] : m_callbacks)
+	for (auto& [first, second] : _callbacks)
 		second->clear();
 
-	auto currentPackage = m_handler.GetState()->get<sol::table>("package");
+	auto currentPackage = _handler.GetState()->get<sol::table>("package");
 	auto currentLoaded = currentPackage.get<sol::table>("loaded");
 
 	for (auto& [first, second] : currentLoaded)
@@ -477,35 +476,35 @@ void LogicHandler::ResetScripts(bool clearGameVars)
 	if (clearGameVars)
 		ResetGameTables();
 
-	m_handler.ResetGlobals();
+	_handler.ResetGlobals();
 
-	m_shortenedCalls = false;
+	_shortenedCalls = false;
 
-	m_handler.GetState()->collect_garbage();
+	_handler.GetState()->collect_garbage();
 }
 
 void LogicHandler::FreeLevelScripts()
 {
-	m_levelFuncs = MakeSpecialTable(m_handler.GetState(), ScriptReserved_LevelFuncs, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
-	m_levelFuncs.raw_set(strKey, ScriptReserved_LevelFuncs);
+	_levelFuncs = MakeSpecialTable(_handler.GetState(), ScriptReserved_LevelFuncs, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
+	_levelFuncs.raw_set(strKey, ScriptReserved_LevelFuncs);
 
-	m_levelFuncs[ScriptReserved_Engine] = sol::table{ *m_handler.GetState(), sol::create };
+	_levelFuncs[ScriptReserved_Engine] = sol::table(*_handler.GetState(), sol::create);
 
-	m_levelFuncs_tablesOfNames.clear();
-	m_levelFuncs_luaFunctions.clear();
-	m_levelFuncs_levelFuncObjects = sol::table{ *m_handler.GetState(), sol::create };
+	_levelFuncs_tablesOfNames.clear();
+	_levelFuncs_luaFunctions.clear();
+	_levelFuncs_levelFuncObjects = sol::table(*_handler.GetState(), sol::create);
 
-	m_levelFuncs_tablesOfNames.emplace(std::make_pair(ScriptReserved_LevelFuncs, std::unordered_map<std::string, std::string>{}));
+	_levelFuncs_tablesOfNames.emplace(std::make_pair(ScriptReserved_LevelFuncs, std::unordered_map<std::string, std::string>{}));
 
 	ResetLevelTables();
-	m_onStart = sol::nil;
-	m_onLoad = sol::nil;
-	m_onLoop = sol::nil;
-	m_onSave = sol::nil;
-	m_onEnd = sol::nil;
-	m_onUseItem = sol::nil;
-	m_onBreak = sol::nil;
-	m_handler.GetState()->collect_garbage();
+	_onStart = sol::nil;
+	_onLoad = sol::nil;
+	_onLoop = sol::nil;
+	_onSave = sol::nil;
+	_onEnd = sol::nil;
+	_onUseItem = sol::nil;
+	_onFreeze = sol::nil;
+	_handler.GetState()->collect_garbage();
 }
 
 // Used when loading.
@@ -516,13 +515,13 @@ void LogicHandler::SetVariables(const std::vector<SavedVar>& vars, bool onlyLeve
 
 	ResetLevelTables();
 
-	std::unordered_map<unsigned int, sol::table> solTables;
+	auto solTables = std::unordered_map<unsigned int, sol::table>{};
 
 	for(int i = 0; i < vars.size(); ++i)
 	{
 		if (std::holds_alternative<IndexTable>(vars[i]))
 		{
-			solTables.try_emplace(i, *m_handler.GetState(), sol::create);
+			solTables.try_emplace(i, *_handler.GetState(), sol::create);
 			auto indexTab = std::get<IndexTable>(vars[i]);
 			for (auto& [first, second] : indexTab)
 			{
@@ -530,7 +529,7 @@ void LogicHandler::SetVariables(const std::vector<SavedVar>& vars, bool onlyLeve
 				// create it if need be
 				if (std::holds_alternative<IndexTable>(vars[second]))
 				{
-					solTables.try_emplace(second, *m_handler.GetState(), sol::create);
+					solTables.try_emplace(second, *_handler.GetState(), sol::create);
 					solTables[i][vars[first]] = solTables[second];
 				}
 				else if (std::holds_alternative<double>(vars[second]))
@@ -594,14 +593,14 @@ void LogicHandler::SetVariables(const std::vector<SavedVar>& vars, bool onlyLeve
 
 	sol::table levelVars = rootTable[ScriptReserved_LevelVars];
 	for (auto& [first, second] : levelVars)
-		(*m_handler.GetState())[ScriptReserved_LevelVars][first] = second;
+		(*_handler.GetState())[ScriptReserved_LevelVars][first] = second;
 
 	if (onlyLevelVars)
 		return;
 
 	sol::table gameVars = rootTable[ScriptReserved_GameVars];
 	for (auto& [first, second] : gameVars)
-		(*m_handler.GetState())[ScriptReserved_GameVars][first] = second;
+		(*_handler.GetState())[ScriptReserved_GameVars][first] = second;
 }
 
 template<SavedVarType TypeEnum, typename TypeTo, typename TypeFrom, typename MapType>
@@ -621,12 +620,34 @@ int Handle(TypeFrom& var, MapType& varsMap, size_t& numVars, std::vector<SavedVa
 	return first->second;
 }
 
+void LogicHandler::AddConsoleInput(const std::string& input)
+{
+	_consoleInput = input;
+}
+
+void LogicHandler::PerformConsoleInput()
+{
+	if (!_consoleInput.empty())
+	{
+		try
+		{
+			ExecuteString(_consoleInput);
+		}
+		catch (const std::exception& ex)
+		{
+			TENLog("Error executing " + _consoleInput + ": " + ex.what(), LogLevel::Error);
+		}
+
+		_consoleInput.clear();
+	}
+}
+
 std::string LogicHandler::GetRequestedPath() const
 {
-	std::string path;
-	for (unsigned int i = 0; i < m_savedVarPath.size(); ++i)
+	auto path = std::string();
+	for (unsigned int i = 0; i < _savedVarPath.size(); ++i)
 	{
-		auto key = m_savedVarPath[i];
+		auto key = _savedVarPath[i];
 		if (std::holds_alternative<unsigned int>(key))
 		{
 			path += "[" + std::to_string(std::get<unsigned int>(key)) + "]";
@@ -635,9 +656,13 @@ std::string LogicHandler::GetRequestedPath() const
 		{
 			auto part = std::get<std::string>(key);
 			if (i > 0)
+			{
 				path += "." + part;
+			}
 			else
+			{
 				path += part;
+			}
 		}
 	}
 
@@ -647,15 +672,15 @@ std::string LogicHandler::GetRequestedPath() const
 // Used when saving.
 void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 {
-	sol::table tab{ *m_handler.GetState(), sol::create };
-	tab[ScriptReserved_LevelVars] = (*m_handler.GetState())[ScriptReserved_LevelVars];
-	tab[ScriptReserved_GameVars] = (*m_handler.GetState())[ScriptReserved_GameVars];
+	auto tab = sol::table(*_handler.GetState(), sol::create);
+	tab[ScriptReserved_LevelVars] = (*_handler.GetState())[ScriptReserved_LevelVars];
+	tab[ScriptReserved_GameVars] = (*_handler.GetState())[ScriptReserved_GameVars];
 
-	std::unordered_map<void const*, unsigned int> varsMap;
-	std::unordered_map<double, unsigned int> numMap;
-	std::unordered_map<bool, unsigned int> boolMap;
+	auto varsMap = std::unordered_map<void const*, unsigned int>{};
+	auto numMap = std::unordered_map<double, unsigned int>{};
+	auto boolMap = std::unordered_map<bool, unsigned int>{};
 
-	size_t numVars = 0;
+	size_t varCount = 0;
 
 	// The following functions will all try to put their values in a map. If it succeeds
 	// then the value was not already in the map, so we can put it into the var vector.
@@ -667,12 +692,12 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 
 	auto handleNum = [&](auto num, auto map)
 	{
-		auto [first, second] = map.insert(std::make_pair(num, (int)numVars));
+		auto [first, second] = map.insert(std::make_pair(num, (int)varCount));
 
 		if (second)
 		{
 			vars.push_back(num);
-			++numVars;
+			++varCount;
 		}
 
 		return first->second;
@@ -681,12 +706,12 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 	auto handleStr = [&](const sol::object& obj)
 	{
 		auto str = obj.as<sol::string_view>();
-		auto [first, second] = varsMap.insert(std::make_pair(str.data(), (int)numVars));
+		auto [first, second] = varsMap.insert(std::make_pair(str.data(), (int)varCount));
 
 		if (second)
 		{
 			vars.push_back(std::string{ str.data() });
-			++numVars;
+			++varCount;
 		}
 
 		return first->second;
@@ -694,12 +719,12 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 
 	auto handleFuncName = [&](const LevelFunc& fnh)
 	{
-		auto [first, second] = varsMap.insert(std::make_pair(&fnh, (int)numVars));
+		auto [first, second] = varsMap.insert(std::make_pair(&fnh, (int)varCount));
 
 		if (second)
 		{
 			vars.push_back(FuncName{ std::string{ fnh.m_funcName } });
-			++numVars;
+			++varCount;
 		}
 
 		return first->second;
@@ -707,11 +732,11 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 
 	std::function<unsigned int(const sol::table&)> populate = [&](const sol::table& obj)
 	{
-		auto [first, second] = varsMap.insert(std::make_pair(obj.pointer(), (int)numVars));
+		auto [first, second] = varsMap.insert(std::make_pair(obj.pointer(), (int)varCount));
 
 		if(second)
 		{
-			++numVars;
+			++varCount;
 			auto id = first->second;
 
 			vars.push_back(IndexTable{});
@@ -729,7 +754,7 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 				{
 					keyIndex = handleStr(first);
 					key = std::string{ first.as<sol::string_view>().data() };
-					m_savedVarPath.push_back(key);
+					_savedVarPath.push_back(key);
 				}
 					break;
 
@@ -744,7 +769,7 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 					{
 						keyIndex = handleNum(data, numMap);
 						key = static_cast<unsigned int>(data);
-						m_savedVarPath.push_back(key);
+						_savedVarPath.push_back(key);
 					}
 				}
 					break;
@@ -784,23 +809,23 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 				{
 					if (second.is<Vec2>())
 					{
-						putInVars(Handle<SavedVarType::Vec2, Vector2>(second.as<Vec2>(), varsMap, numVars, vars));
+						putInVars(Handle<SavedVarType::Vec2, Vector2>(second.as<Vec2>(), varsMap, varCount, vars));
 					}
 					else if (second.is<Vec3>())
 					{
-						putInVars(Handle<SavedVarType::Vec3, Vector3>(second.as<Vec3>(), varsMap, numVars, vars));
+						putInVars(Handle<SavedVarType::Vec3, Vector3>(second.as<Vec3>(), varsMap, varCount, vars));
 					}
 					else if (second.is<Rotation>())
 					{
-						putInVars(Handle<SavedVarType::Rotation, Vector3>(second.as<Rotation>(), varsMap, numVars, vars));
+						putInVars(Handle<SavedVarType::Rotation, Vector3>(second.as<Rotation>(), varsMap, varCount, vars));
 					}
 					else if (second.is<Time>())
 					{
-						putInVars(Handle<SavedVarType::Time, int>(second.as<Time>(), varsMap, numVars, vars));
+						putInVars(Handle<SavedVarType::Time, int>(second.as<Time>(), varsMap, varCount, vars));
 					}
 					else if (second.is<ScriptColor>())
 					{
-						putInVars(Handle<SavedVarType::Color, D3DCOLOR>(second.as<ScriptColor>(), varsMap, numVars, vars));
+						putInVars(Handle<SavedVarType::Color, D3DCOLOR>(second.as<ScriptColor>(), varsMap, varCount, vars));
 					}
 					else if (second.is<LevelFunc>())
 					{
@@ -817,7 +842,7 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 					ScriptAssert(false, "Tried saving an unsupported type as a value; variable is " + GetRequestedPath());
 				}
 
-				m_savedVarPath.pop_back();
+				_savedVarPath.pop_back();
 			}
 		}
 
@@ -845,30 +870,30 @@ void LogicHandler::GetCallbackStrings(
 {
 	auto populateWith = [](std::vector<std::string>& dest, const std::unordered_set<std::string>& src)
 	{
-		for (const auto& s : src)
-			dest.push_back(s);
+		for (const auto& string : src)
+			dest.push_back(string);
 	};
 
-	populateWith(preStart, m_callbacksPreStart);
-	populateWith(postStart, m_callbacksPostStart);
+	populateWith(preStart, _callbacksPreStart);
+	populateWith(postStart, _callbacksPostStart);
 
-	populateWith(preEnd, m_callbacksPreEnd);
-	populateWith(postEnd, m_callbacksPostEnd);
+	populateWith(preEnd, _callbacksPreEnd);
+	populateWith(postEnd, _callbacksPostEnd);
 
-	populateWith(preSave, m_callbacksPreSave);
-	populateWith(postSave, m_callbacksPostSave);
+	populateWith(preSave, _callbacksPreSave);
+	populateWith(postSave, _callbacksPostSave);
 
-	populateWith(preLoad, m_callbacksPreLoad);
-	populateWith(postLoad, m_callbacksPostLoad);
+	populateWith(preLoad, _callbacksPreLoad);
+	populateWith(postLoad, _callbacksPostLoad);
 
-	populateWith(preLoop, m_callbacksPreLoop);
-	populateWith(postLoop, m_callbacksPostLoop);
+	populateWith(preLoop, _callbacksPreLoop);
+	populateWith(postLoop, _callbacksPostLoop);
 
-	populateWith(preUseItem, m_callbacksPreUseItem);
-	populateWith(postUseItem, m_callbacksPostUseItem);
+	populateWith(preUseItem, _callbacksPreUseItem);
+	populateWith(postUseItem, _callbacksPostUseItem);
 
-	populateWith(preBreak, m_callbacksPreFreeze);
-	populateWith(postBreak, m_callbacksPostFreeze);
+	populateWith(preBreak, _callbacksPreFreeze);
+	populateWith(postBreak, _callbacksPostFreeze);
 }
 
 void LogicHandler::SetCallbackStrings(	
@@ -893,26 +918,26 @@ void LogicHandler::SetCallbackStrings(
 			dest.insert(string);
 	};
 
-	populateWith(m_callbacksPreStart, preStart);
-	populateWith(m_callbacksPostStart, postStart);
+	populateWith(_callbacksPreStart, preStart);
+	populateWith(_callbacksPostStart, postStart);
 
-	populateWith(m_callbacksPreEnd, preEnd);
-	populateWith(m_callbacksPostEnd, postEnd);
+	populateWith(_callbacksPreEnd, preEnd);
+	populateWith(_callbacksPostEnd, postEnd);
 
-	populateWith(m_callbacksPreSave, preSave);
-	populateWith(m_callbacksPostSave, postSave);
+	populateWith(_callbacksPreSave, preSave);
+	populateWith(_callbacksPostSave, postSave);
 
-	populateWith(m_callbacksPreLoad, preLoad);
-	populateWith(m_callbacksPostLoad, postLoad);
+	populateWith(_callbacksPreLoad, preLoad);
+	populateWith(_callbacksPostLoad, postLoad);
 
-	populateWith(m_callbacksPreLoop, preLoop);
-	populateWith(m_callbacksPostLoop, postLoop);
+	populateWith(_callbacksPreLoop, preLoop);
+	populateWith(_callbacksPostLoop, postLoop);
 
-	populateWith(m_callbacksPreUseItem, preUseItem);
-	populateWith(m_callbacksPostUseItem, postUseItem);
+	populateWith(_callbacksPreUseItem, preUseItem);
+	populateWith(_callbacksPostUseItem, postUseItem);
 
-	populateWith(m_callbacksPreFreeze, preBreak);
-	populateWith(m_callbacksPostFreeze, postBreak);
+	populateWith(_callbacksPreFreeze, preBreak);
+	populateWith(_callbacksPostFreeze, postBreak);
 }
 
 template <typename R, char const * S, typename mapType>
@@ -926,12 +951,12 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 @section specialobjects
 */
 
-/*** A @{Objects.Moveable} representing Lara herself.
+/*** An @{Objects.Moveable} entry representing Lara herself.
 @table Lara
 */
 void LogicHandler::ResetVariables()
 {
-	(*m_handler.GetState())["Lara"] = nullptr;
+	(*_handler.GetState())["Lara"] = nullptr;
 }
 
 void LogicHandler::ShortenTENCalls()
@@ -956,33 +981,33 @@ void LogicHandler::ShortenTENCalls()
 
 	ExecuteString(str);
 
-	m_shortenedCalls = true;
+	_shortenedCalls = true;
 }
 
 void LogicHandler::ExecuteScriptFile(const std::string& luaFilename)
 {
-	if (!m_shortenedCalls)
+	if (!_shortenedCalls)
 		ShortenTENCalls();
 
-	m_handler.ExecuteScript(luaFilename);
+	_handler.ExecuteScript(luaFilename);
 }
 
 void LogicHandler::ExecuteString(const std::string& command)
 {
-	m_handler.ExecuteString(command);
+	_handler.ExecuteString(command);
 }
 
 // These wind up calling CallLevelFunc, which is where all error checking is.
 void LogicHandler::ExecuteFunction(const std::string& name, short idOne, short idTwo) 
 {
-	auto func = m_levelFuncs_luaFunctions[name];
+	auto func = _levelFuncs_luaFunctions[name];
 
 	func(std::make_unique<Moveable>(idOne), std::make_unique<Moveable>(idTwo));
 }
 
 void LogicHandler::ExecuteFunction(const std::string& name, TEN::Control::Volumes::Activator activator, const std::string& arguments)
 {
-	sol::protected_function func = (*m_handler.GetState())[ScriptReserved_LevelFuncs][name.c_str()];
+	sol::protected_function func = (*_handler.GetState())[ScriptReserved_LevelFuncs][name.c_str()];
 	if (std::holds_alternative<int>(activator))
 	{
 		func(std::make_unique<Moveable>(std::get<int>(activator), true), arguments);
@@ -995,25 +1020,25 @@ void LogicHandler::ExecuteFunction(const std::string& name, TEN::Control::Volume
 
 void LogicHandler::OnStart()
 {
-	for (const auto& name : m_callbacksPreStart)
+	for (const auto& name : _callbacksPreStart)
 		CallLevelFuncByName(name);
 
-	if (m_onStart.valid())
-		CallLevelFunc(m_onStart);
+	if (_onStart.valid())
+		CallLevelFunc(_onStart);
 
-	for (const auto& name : m_callbacksPostStart)
+	for (const auto& name : _callbacksPostStart)
 		CallLevelFuncByName(name);
 }
 
 void LogicHandler::OnLoad()
 {
-	for (const auto& name : m_callbacksPreLoad)
+	for (const auto& name : _callbacksPreLoad)
 		CallLevelFuncByName(name);
 
-	if (m_onLoad.valid())
-		CallLevelFunc(m_onLoad);
+	if (_onLoad.valid())
+		CallLevelFunc(_onLoad);
 
-	for (const auto& name : m_callbacksPostLoad)
+	for (const auto& name : _callbacksPostLoad)
 		CallLevelFuncByName(name);
 }
 
@@ -1021,29 +1046,31 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 {
 	if (!postLoop)
 	{
-		for (const auto& name : m_callbacksPreLoop)
+		for (const auto& name : _callbacksPreLoop)
 			CallLevelFuncByName(name, deltaTime);
 
-		lua_gc(m_handler.GetState()->lua_state(), LUA_GCCOLLECT, 0);
-		if (m_onLoop.valid())
-			CallLevelFunc(m_onLoop, deltaTime);
+		PerformConsoleInput();
+
+		lua_gc(_handler.GetState()->lua_state(), LUA_GCCOLLECT, 0);
+		if (_onLoop.valid())
+			CallLevelFunc(_onLoop, deltaTime);
 	}
 	else
 	{
-		for (const auto& name : m_callbacksPostLoop)
+		for (const auto& name : _callbacksPostLoop)
 			CallLevelFuncByName(name, deltaTime);
 	}
 }
 
 void LogicHandler::OnSave()
 {
-	for (const auto& name : m_callbacksPreSave)
+	for (const auto& name : _callbacksPreSave)
 		CallLevelFuncByName(name);
 
-	if (m_onSave.valid())
-		CallLevelFunc(m_onSave);
+	if (_onSave.valid())
+		CallLevelFunc(_onSave);
 
-	for (const auto& name : m_callbacksPostSave)
+	for (const auto& name : _callbacksPostSave)
 		CallLevelFuncByName(name);
 }
 
@@ -1069,37 +1096,39 @@ void LogicHandler::OnEnd(GameStatus reason)
 		break;
 	}
 
-	for (const auto& name : m_callbacksPreEnd)
+	for (const auto& name : _callbacksPreEnd)
 		CallLevelFuncByName(name, endReason);
 
-	if (m_onEnd.valid())
-		CallLevelFunc(m_onEnd, endReason);
+	if (_onEnd.valid())
+		CallLevelFunc(_onEnd, endReason);
 
-	for (const auto& name : m_callbacksPostEnd)
+	for (const auto& name : _callbacksPostEnd)
 		CallLevelFuncByName(name, endReason);
 }
 
 void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
 {
-	for (const auto& name : m_callbacksPreUseItem)
+	for (const auto& name : _callbacksPreUseItem)
 		CallLevelFuncByName(name, objectNumber);
 
-	if (m_onUseItem.valid())
-		CallLevelFunc(m_onUseItem, objectNumber);
+	if (_onUseItem.valid())
+		CallLevelFunc(_onUseItem, objectNumber);
 
-	for (const auto& name : m_callbacksPostUseItem)
+	for (const auto& name : _callbacksPostUseItem)
 		CallLevelFuncByName(name, objectNumber);
 }
 
 void LogicHandler::OnFreeze()
 {
-	for (const auto& name : m_callbacksPreFreeze)
+	for (const auto& name : _callbacksPreFreeze)
 		CallLevelFuncByName(name);
 
-	if (m_onBreak.valid())
-		CallLevelFunc(m_onBreak);
+	PerformConsoleInput();
+
+	if (_onFreeze.valid())
+		CallLevelFunc(_onFreeze);
 		
-	for (const auto& name : m_callbacksPostFreeze)
+	for (const auto& name : _callbacksPostFreeze)
 		CallLevelFuncByName(name);
 }
 
@@ -1226,8 +1255,8 @@ void LogicHandler::InitCallbacks()
 {
 	auto assignCB = [this](sol::protected_function& func, const std::string& luaFunc)
 	{
-		auto state = m_handler.GetState();
-		std::string fullName = std::string{ ScriptReserved_LevelFuncs } + "." + luaFunc;
+		auto state = _handler.GetState();
+		auto fullName = std::string(ScriptReserved_LevelFuncs) + "." + luaFunc;
 
 		sol::object theData = (*state)[ScriptReserved_LevelFuncs][luaFunc];
 
@@ -1236,20 +1265,20 @@ void LogicHandler::InitCallbacks()
 
 		LevelFunc fnh = (*state)[ScriptReserved_LevelFuncs][luaFunc];
 
-		func = m_levelFuncs_luaFunctions[fnh.m_funcName];
+		func = _levelFuncs_luaFunctions[fnh.m_funcName];
 
 		if (!func.valid())
 			TENLog("Level's script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.");
 	};
 
-	assignCB(m_onStart, ScriptReserved_OnStart);
-	assignCB(m_onLoad, ScriptReserved_OnLoad);
-	assignCB(m_onLoop, ScriptReserved_OnLoop);
-	assignCB(m_onSave, ScriptReserved_OnSave);
-	assignCB(m_onEnd, ScriptReserved_OnEnd);
-	assignCB(m_onUseItem, ScriptReserved_OnUseItem);
-	assignCB(m_onBreak, ScriptReserved_OnFreeze);
+	assignCB(_onStart, ScriptReserved_OnStart);
+	assignCB(_onLoad, ScriptReserved_OnLoad);
+	assignCB(_onLoop, ScriptReserved_OnLoop);
+	assignCB(_onSave, ScriptReserved_OnSave);
+	assignCB(_onEnd, ScriptReserved_OnEnd);
+	assignCB(_onUseItem, ScriptReserved_OnUseItem);
+	assignCB(_onFreeze, ScriptReserved_OnFreeze);
 
 	// COMPATIBILITY
-	assignCB(m_onLoop, "OnControlPhase");
+	assignCB(_onLoop, "OnControlPhase");
 }

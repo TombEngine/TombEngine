@@ -1,6 +1,7 @@
 #pragma once
-#include "Math/Math.h"
+
 #include "Objects/Effects/LensFlare.h"
+#include "Objects/game_object_ids.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 
 using namespace TEN::Entities::Effects;
@@ -8,6 +9,7 @@ using namespace TEN::Entities::Effects;
 namespace TEN::Effects::Environment 
 {
 	constexpr auto WEATHER_PARTICLE_SPAWN_DENSITY		 = 32;
+	constexpr auto WEATHER_PARTICLE_CLUSTER_MULT		 = 16.0f;
 	constexpr auto WEATHER_PARTICLE_COUNT_MAX			 = 2048;
 	constexpr auto WEATHER_PARTICLE_COLL_CHECK_DELAY_MAX = 5.0f;
 
@@ -69,6 +71,7 @@ namespace TEN::Effects::Environment
 	struct WeatherParticle
 	{
 		WeatherType Type = WeatherType::None;
+		int UniqueID = 0;
 
 		Vector3 Position   = Vector3::Zero;
 		int		RoomNumber = NO_VALUE;
@@ -78,6 +81,7 @@ namespace TEN::Effects::Environment
 		float Life				  = 0.0f;
 		float CollisionCheckDelay = 0.0f;
 		float Size				  = 0.0f;
+		int   ClusterSize		  = 1;
 
 		bool Enabled = false;
 		bool Stopped = false;
@@ -100,6 +104,48 @@ namespace TEN::Effects::Environment
 
 	class EnvironmentController
 	{
+	private:
+		// Weather
+
+		std::vector<WeatherParticle> Particles = {};
+
+		// Sky
+
+		Vector4 SkyCurrentColor[2]	  = {};
+		short	SkyCurrentPosition[2] = {};
+
+		// Wind
+
+		int WindX		= 0;
+		int WindZ		= 0;
+		int WindAngle	= 0;
+		int WindDAngle	= 0;
+		int WindCurrent = 0;
+
+		// Flash fader
+
+		Vector3 FlashColorBase = Vector3::Zero;
+		float	FlashSpeed	   = 1.0f;
+		float	FlashProgress  = 0.0f;
+
+		// Lightning
+
+		int	 StormCount		= 0;
+		int	 StormRand		= 0;
+		int	 StormTimer		= 0;
+		byte StormSkyColor	= 1;
+		byte StormSkyColor2 = 1;
+
+		// Starfield
+
+		std::vector<StarParticle>	Stars		   = {};
+		std::vector<MeteorParticle> Meteors		   = {};
+		bool						ResetStarField = true;
+
+		// Lens flare
+
+		LensFlare GlobalLensFlare = {};
+
 	public:
 		EnvironmentController();
 
@@ -117,47 +163,13 @@ namespace TEN::Effects::Environment
 		const std::vector<MeteorParticle>&	GetMeteors() const { return Meteors; }
 
 	private:
-		// Weather
-		std::vector<WeatherParticle> Particles = {};
-
-		// Sky
-		Vector4 SkyCurrentColor[2]	  = {};
-		short	SkyCurrentPosition[2] = {};
-
-		// Wind
-		int WindX = 0;
-		int WindZ = 0;
-		int WindAngle = 0;
-		int WindDAngle = 0;
-		int WindCurrent = 0;
-
-		// Flash fader
-		Vector3 FlashColorBase = Vector3::Zero;
-		float	FlashSpeed	   = 1.0f;
-		float	FlashProgress  = 0.0f;
-
-		// Lightning
-		int	 StormCount		= 0;
-		int	 StormRand		= 0;
-		int	 StormTimer		= 0;
-		byte StormSkyColor	= 1;
-		byte StormSkyColor2 = 1;
-
-		// Starfield
-		std::vector<StarParticle>	Stars	= {};
-		std::vector<MeteorParticle> Meteors = {};
-		bool ResetStarField = true;
-
-		// Lens flare
-		LensFlare GlobalLensFlare = {};
-
-		void UpdateStarfield(const ScriptInterfaceLevel& level);
+		void UpdateWeather(const ScriptInterfaceLevel& level);
 		void UpdateSky(const ScriptInterfaceLevel& level);
-		void UpdateStorm(const ScriptInterfaceLevel& level);
 		void UpdateWind(const ScriptInterfaceLevel& level);
 		void UpdateFlash(const ScriptInterfaceLevel& level);
-		void UpdateWeather(const ScriptInterfaceLevel& level);
 		void UpdateLightning();
+		void UpdateStarfield(const ScriptInterfaceLevel& level);
+		void UpdateStorm(const ScriptInterfaceLevel& level);
 
 		void SpawnDustParticles(const ScriptInterfaceLevel& level);
 		void SpawnWeatherParticles(const ScriptInterfaceLevel& level);

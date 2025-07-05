@@ -40,6 +40,7 @@ namespace TEN::Hud
 		void Initialize(const ItemInfo& item);
 		void Update(const ItemInfo& item);
 		void Draw(const ItemInfo& item) const;
+		void Clamp(const ItemInfo& item);
 		void Clear();
 
 	private:

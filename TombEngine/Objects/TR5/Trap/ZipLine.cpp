@@ -148,7 +148,7 @@ namespace TEN::Entities::Traps
 				laraItem.Animation.Velocity.z = zipLineItem.Animation.Velocity.y;
 			}
 
-			SoundEffect(SFX_TR4_VONCROY_KNIFE_SWISH, &zipLineItem.Pose);
+			SoundEffect(SFX_TR2_ZIPLINE_STOP, &zipLineItem.Pose);
 			RemoveActiveItem(itemNumber);
 			zipLineItem.Status = ITEM_NOT_ACTIVE;
 			zipLineItem.Flags -= IFLAG_INVISIBLE;
@@ -160,7 +160,7 @@ namespace TEN::Entities::Traps
 				laraItem.Pose.Position = zipLineItem.Pose.Position;
 
 			// Whizz sound.
-			SoundEffect(SFX_TR4_TRAIN_DOOR_CLOSE, &zipLineItem.Pose);
+			SoundEffect(SFX_TR2_ZIPLINE_GO, &zipLineItem.Pose);
 		}
 	}
 }

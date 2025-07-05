@@ -45,24 +45,6 @@ static WeaponAnimData GetWeaponAnimData(LaraWeaponType weaponType)
 	return ((it != ANIM_DATA_MAP.end()) ? it->second : ANIM_DATA_MAP.at(LaraWeaponType::None));
 }
 
-static Vector3i GetWeaponSmokeRelOffset(LaraWeaponType weaponType, bool isRightWeapon)
-{
-	switch (weaponType)
-	{
-	case LaraWeaponType::Pistol:
-		return Vector3i(isRightWeapon ? -16 : 4, 128, 40);
-
-	case LaraWeaponType::Revolver:
-		return Vector3i(isRightWeapon ? -32 : 16, 160, 56);
-
-	case LaraWeaponType::Uzi:
-		return Vector3i(isRightWeapon ? -16 : 8, 140, 48);
-
-	default:
-		return Vector3i::Zero;
-	}
-}
-
 static void SetArmInfo(const ItemInfo& laraItem, ArmInfo& arm, int frame)
 {
 	const auto& player = GetLaraInfo(laraItem);
@@ -118,8 +100,12 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	// Spawn weapon smoke.
 	if (laraItem.MeshBits.TestAny() && arm.GunSmoke)
 	{
-		auto relOffset = GetWeaponSmokeRelOffset(weaponType, isRightWeapon);
+		auto relOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3();
+		if (!isRightWeapon)
+			relOffset.x = -relOffset.x;
+
 		auto pos = GetJointPosition(&laraItem, isRightWeapon ? LM_RHAND : LM_LHAND, relOffset);
+
 		TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, arm.GunSmoke);
 	}
 

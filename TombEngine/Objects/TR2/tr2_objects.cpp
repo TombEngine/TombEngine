@@ -432,7 +432,7 @@ static void StartEntity(ObjectInfo* obj)
 	obj = &Objects[ID_DRAGON_FRONT];
 	if (obj->loaded)
 	{
-		CheckIfSlotExists(ID_DRAGON_BACK, "ID_DRAGON_BACK");
+		CheckIfSlotExists(ID_DRAGON_BACK, "Dragon");
 		obj->Initialize = InitializeDragon;
 		obj->collision = CollideDragonFront;
 		obj->control = ControlDragon;
@@ -449,9 +449,9 @@ static void StartEntity(ObjectInfo* obj)
 	obj = &Objects[ID_DRAGON_BACK];
 	if (obj->loaded)
 	{
-		CheckIfSlotExists(ID_DRAGON_FRONT, "ID_DRAGON_FRONT");
-		CheckIfSlotExists(ID_DRAGON_BONE_FRONT, "ID_DRAGON_BONE_FRONT");
-		CheckIfSlotExists(ID_DRAGON_BONE_BACK, "ID_DRAGON_BONE_BACK");
+		CheckIfSlotExists(ID_DRAGON_FRONT, "Dragon");
+		CheckIfSlotExists(ID_DRAGON_BONE_FRONT, "Dragon");
+		CheckIfSlotExists(ID_DRAGON_BONE_BACK, "Dragon");
 		obj->collision = CollideDragonBack;
 		obj->SetHitEffect(false, true);
 		obj->shadowType = ShadowMode::All;
@@ -472,9 +472,9 @@ static void StartEntity(ObjectInfo* obj)
 	obj = &Objects[ID_MARCO_BARTOLI];
 	if (obj->loaded)
 	{
-		CheckIfSlotExists(ID_SPHERE_OF_DOOM, "ID_SPHERE_OF_DOOM");
-		CheckIfSlotExists(ID_SPHERE_OF_DOOM2, "ID_SPHERE_OF_DOOM2");
-		CheckIfSlotExists(ID_SPHERE_OF_DOOM3, "ID_SPHERE_OF_DOOM3");
+		CheckIfSlotExists(ID_SPHERE_OF_DOOM, "Marco Bartoli");
+		CheckIfSlotExists(ID_SPHERE_OF_DOOM2, "Marco Bartoli");
+		CheckIfSlotExists(ID_SPHERE_OF_DOOM3, "Marco Bartoli");
 		obj->Initialize = InitializeBartoli;
 		obj->control = ControlBartoli;
 	}

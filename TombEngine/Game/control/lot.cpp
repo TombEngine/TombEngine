@@ -210,7 +210,7 @@ void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyO
 {
 	auto& creature = *GetCreatureInfo(&item);
 
-	float closestDistSqr = INFINITY;
+	float closestDistSqr = FLT_MAX;
 	for (auto& target : ActiveCreatures)
 	{
 		auto& targetItem = g_Level.Items[target->ItemNumber];

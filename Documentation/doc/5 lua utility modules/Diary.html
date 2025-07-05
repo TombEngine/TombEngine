@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.7.2 (Developer) Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -45,6 +45,7 @@
 </ul>
 <h2>2 Classes</h2>
 <ul class="nowrap">
+  <li>    <a href="../2 classes/Collision.Probe.html">Collision.Probe</a></li>
   <li>    <a href="../2 classes/Flow.Level.html">Flow.Level</a></li>
   <li>    <a href="../2 classes/Flow.Settings.html">Flow.Settings</a></li>
   <li>    <a href="../2 classes/Flow.Statistics.html">Flow.Statistics</a></li>
@@ -63,6 +64,7 @@
 <h2>3 Primitive Classes</h2>
 <ul class="nowrap">
   <li>    <a href="../3 primitive classes/Flow.Fog.html">Flow.Fog</a></li>
+  <li>    <a href="../3 primitive classes/Flow.Horizon.html">Flow.Horizon</a></li>
   <li>    <a href="../3 primitive classes/Flow.InventoryItem.html">Flow.InventoryItem</a></li>
   <li>    <a href="../3 primitive classes/Flow.LensFlare.html">Flow.LensFlare</a></li>
   <li>    <a href="../3 primitive classes/Flow.SkyLayer.html">Flow.SkyLayer</a></li>
@@ -75,12 +77,17 @@
 </ul>
 <h2>4 Enums</h2>
 <ul class="nowrap">
+  <li>    <a href="../4 enums/Collision.MaterialType.html">Collision.MaterialType</a></li>
   <li>    <a href="../4 enums/Effects.BlendID.html">Effects.BlendID</a></li>
   <li>    <a href="../4 enums/Effects.EffectID.html">Effects.EffectID</a></li>
+  <li>    <a href="../4 enums/Effects.StreamerFeatherMode.html">Effects.StreamerFeatherMode</a></li>
+  <li>    <a href="../4 enums/Effects.ParticleAnimationType.html">Effects.ParticleAnimationType</a></li>
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -98,6 +105,7 @@
 </ul>
 <h2>5 Lua utility modules</h2>
 <ul class="nowrap">
+  <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
   <li>    <here>Diary</here></li>
   <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
   <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
@@ -109,8 +117,7 @@
 <div id="content">
 
 <h1>Lua utility module <code>Diary</code></h1>
-<p>Diaries:
- The module provides functions to create and manage Diaries.</p>
+<p>This module provides functions to create and manage diaries.</p>
 <p>
 <p> It maintains diary definitions and entries through all levels and hubs.
  Each diary is accessed by the object that was used to create it. </p>
@@ -241,7 +248,8 @@
     <strong>CustomDiary.ImportDiary(fileName)</strong>
     </dt>
     <dd>
-    Imports diary from an external file.  There are different types that must be defined. (diary, background, controls, pageNumbers, notification, image, text, narration). Each of the section's arguements are the same as the functions described in this documentation.
+    Imports diary from an external file.
+ There are different types that must be defined. (diary, background, controls, pageNumbers, notification, image, text, narration). Each of the section's arguements are the same as the functions described in this documentation.
  Refer to DiarySetup.lua file for a sample script.
 
 
@@ -281,7 +289,7 @@
         </li>
         <li><span class="parameter">spriteIdBg</span>
             <span class="types"><span class="type">int</span></span>
-         SpriteID from the specified object for the diary's sprite.
+         Sprite ID from the specified object for the diary's sprite.
         </li>
         <li><span class="parameter">colorBg</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -289,15 +297,15 @@
         </li>
         <li><span class="parameter">pos</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         X,Y position of the bar's background in screen percent (0-100).
+         X,Y position of the diary background sprite in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
             <span class="types"><span class="type">float</span></span>
-         rotation of the diary's sprite (0-360).
+         Rotation of the diary's sprite (0-360).
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
-         X,Y Scaling factor for the bar's background sprite.
+         X,Y Scaling factor for the diary background sprite.
         </li>
         <li><span class="parameter">alignMode</span>
             <span class="types"><a class="type" href="../4 enums/View.AlignMode.html#">AlignMode</a></span>
@@ -312,8 +320,8 @@
          Blending modes for the diary's sprite.
         </li>
         <li><span class="parameter">alpha</span>
-            <span class="types"><span class="type">number</span></span>
-         alpha value for the diary's sprite (0-255).
+            <span class="types"><span class="type">int</span></span>
+         Alpha value for the diary's sprite (0-255).
         </li>
         <li><span class="parameter">pageSound</span>
             <span class="types"><a class="type" href="../1 modules/Sound.html#">Sound</a></span>
@@ -351,7 +359,7 @@
     <ul>
         <li><span class="parameter">object</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         The pickup object that was used to create the diary (596-611,986).
+         The pickup object that was used to create the diary (596-611, 986).
         </li>
     </ul>
 
@@ -380,7 +388,7 @@
     <ul>
         <li><span class="parameter">object</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
-         The pickup object that was used to create the diary (596-611,986).
+         The pickup object that was used to create the diary (596-611, 986).
         </li>
     </ul>
 
@@ -425,7 +433,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        true if the diary is visible and false if it is not.
+        <code>true</code> if the diary is visible and <code>false</code> if it is not.
     </ol>
 
 
@@ -468,7 +476,7 @@
     <ol>
 
            <span class="types"><span class="type">int</span></span>
-        total number of unlocked pages in the diary.
+        Total number of unlocked pages in the diary.
     </ol>
 
 
@@ -538,7 +546,7 @@
     <ul>
         <li><span class="parameter">pageIndex</span>
             <span class="types"><span class="type">int</span></span>
-         page number to add the text entry to.
+         Page number to add the text entry to.
         </li>
         <li><span class="parameter">text</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
@@ -550,10 +558,10 @@
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
+         Alignment and effects for the text. Note that text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the text.
         </li>
         <li><span class="parameter">textColor</span>
@@ -580,15 +588,15 @@
     <ul>
         <li><span class="parameter">pageIndex</span>
             <span class="types"><span class="type">int</span></span>
-         page number to add the image entry to.
+         Page number to add the image entry to.
         </li>
         <li><span class="parameter">objectId</span>
             <span class="types"><a class="type" href="../4 enums/Objects.ObjID.html#">ObjID</a></span>
          Object ID for the image entry sprite.
         </li>
         <li><span class="parameter">spriteId</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the image entry.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the image entry.
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -599,8 +607,8 @@
          X,Y position of the image entry in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the image entry (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the image entry (0-360).
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -638,7 +646,7 @@
     <ul>
         <li><span class="parameter">pageIndex</span>
             <span class="types"><span class="type">int</span></span>
-         page number to add the narration track to.
+         Page number to add the narration track to.
         </li>
         <li><span class="parameter">trackName</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
@@ -664,7 +672,7 @@
     <ul>
         <li><span class="parameter">pageIndex</span>
             <span class="types"><span class="type">int</span></span>
-         page number to remove the narration track from.
+         Page number to remove the narration track from.
         </li>
     </ul>
 
@@ -689,8 +697,8 @@
          Object ID for the diary's background.
         </li>
         <li><span class="parameter">spriteId</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the diary's background.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the diary's background.
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -702,7 +710,7 @@
         </li>
         <li><span class="parameter">rot</span>
             <span class="types"><span class="type">float</span></span>
-         rotation of the diary's background sprite (0-360).
+         Rotation of the diary's background sprite (0-360).
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -721,8 +729,8 @@
          Blending modes for the diary's background.
         </li>
         <li><span class="parameter">alpha</span>
-            <span class="types"><span class="type">number</span></span>
-         alpha value for the diary's background (0-255).
+            <span class="types"><span class="type">int</span></span>
+         Alpha value for the diary's background (0-255).
         </li>
     </ul>
 
@@ -758,7 +766,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">notificationTime</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">int</span></span>
          Time in seconds the notification icon will show on screen.
         </li>
         <li><span class="parameter">objectId</span>
@@ -766,8 +774,8 @@
          Object ID for the notification icon.
         </li>
         <li><span class="parameter">spriteId</span>
-            <span class="types"><span class="type">number</span></span>
-         SpriteID from the specified object for the notification icon.
+            <span class="types"><span class="type">int</span></span>
+         Sprite ID from the specified object for the notification icon.
         </li>
         <li><span class="parameter">color</span>
             <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
@@ -778,8 +786,8 @@
          X,Y position of the notification icon in screen percent (0-100).
         </li>
         <li><span class="parameter">rot</span>
-            <span class="types"><span class="type">number</span></span>
-         rotation of the notification icon (0-360).
+            <span class="types"><span class="type">float</span></span>
+         Rotation of the notification icon (0-360).
         </li>
         <li><span class="parameter">scale</span>
             <span class="types"><a class="type" href="../3 primitive classes/Vec2.html#">Vec2</a></span>
@@ -852,10 +860,10 @@
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
+         Alignment and effects for the text. Note that text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the page numbers.
         </li>
         <li><span class="parameter">textColor</span>
@@ -901,10 +909,10 @@
         </li>
         <li><span class="parameter">textOptions</span>
             <span class="types"><a class="type" href="../4 enums/Strings.DisplayStringOption.html#">DisplayStringOption</a></span>
-         alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT.
+         Alignment and effects for the text. Note that text is automatically aligned to the left.
         </li>
         <li><span class="parameter">textScale</span>
-            <span class="types"><span class="type">number</span></span>
+            <span class="types"><span class="type">float</span></span>
          Scale factor for the controls.
         </li>
         <li><span class="parameter">textColor</span>

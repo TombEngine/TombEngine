@@ -7,11 +7,13 @@
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Specific/configuration.h"
+#include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Specific/winmain.h"
@@ -281,7 +283,7 @@ namespace TEN::Renderer
 			// Mouse sensitivity
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), PRINTSTRING_COLOR_ORANGE, SF(titleOption == 9));
 			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), PRINTSTRING_COLOR_WHITE, SF(titleOption == 9));
-			GetNextLinePosition(&y);
+			GetNextBlockPosition(&y);
 
 			// Apply
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), PRINTSTRING_COLOR_ORANGE, SF_Center(titleOption == 10));
@@ -315,8 +317,11 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int index = Bindings[1][k] ? Bindings[1][k] : Bindings[0][k];
-						AddString(MenuRightSideEntry, y, g_KeyNames[index].c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
+						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
+
+						int key = userKeyID ? userKeyID : defaultKeyID;
+						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -365,8 +370,11 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int index = Bindings[1][baseIndex + k] ? Bindings[1][baseIndex + k] : Bindings[0][baseIndex + k];
-						AddString(MenuRightSideEntry, y, g_KeyNames[index].c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
+
+						int key = userKeyID ? userKeyID : defaultKeyID;
+						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -421,8 +429,11 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int index = Bindings[1][baseIndex + k] ? Bindings[1][baseIndex + k] : Bindings[0][baseIndex + k];
-						AddString(MenuRightSideEntry, y, g_KeyNames[index].c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
+
+						int key = userKeyID ? userKeyID : defaultKeyID;
+						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -470,8 +481,11 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int index = Bindings[1][baseIndex + k] ? Bindings[1][baseIndex + k] : Bindings[0][baseIndex + k];
-						AddString(MenuRightSideEntry, y, g_KeyNames[index].c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
+
+						int key = userKeyID ? userKeyID : defaultKeyID;
+						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -750,9 +764,10 @@ namespace TEN::Renderer
 		auto orient = EulerAngles::Lerp(pickup.PrevOrientation, pickup.Orientation, GetInterpolationFactor());
 		float scale = Lerp(pickup.PrevScale, pickup.Scale, GetInterpolationFactor());
 		float opacity = Lerp(pickup.PrevOpacity, pickup.Opacity, GetInterpolationFactor());
+		int invObjectID = g_Gui.ConvertObjectToInventoryItem(pickup.ObjectID);
 
 		// Draw display pickup.
-		DrawObjectIn2DSpace(pickup.ObjectID, pos, orient, scale);
+		DrawObjectIn2DSpace(pickup.ObjectID, pos, orient, scale, 1.0f, InventoryObjectTable[invObjectID].MeshBits);
 
 		// Draw count string.
 		if (pickup.Count != 1)
@@ -890,7 +905,7 @@ namespace TEN::Renderer
 		if (!texture.Texture)
 			return;
 
-		int timeout = 10;
+		int timeout = 20;
 		float currentFade = FADE_FACTOR;
 
 		while (timeout || currentFade > 0.0f)
@@ -916,7 +931,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawExamines()
 	{
-		constexpr auto SCREEN_POS = Vector2(400.0f, 300.0f);
+		auto screenPos = Vector2(DISPLAY_SPACE_RES.x / 2, DISPLAY_SPACE_RES.y / 2);
 
 		static EulerAngles orient = EulerAngles::Identity;
 		static float scaler = 1.2f;
@@ -950,10 +965,23 @@ namespace TEN::Renderer
 		if (scaler < 0.8f)
 			scaler = 0.8f;
 
+		// Construct string key and try to get it.
+		auto stringKey = TEN::Utils::ToLower(GetObjectName((GAME_OBJECT_ID)object.ObjectNumber)) + "_text";
+		auto string = g_GameFlow->GetString(stringKey.c_str());
+
+		// If string is found, draw it and shift examine position upwards.
+		if (GetHash(string) != GetHash(stringKey))
+		{
+			AddString(screenPos.x, screenPos.y + screenPos.y / 2.0f, g_GameFlow->GetString(stringKey.c_str()), PRINTSTRING_COLOR_WHITE, SF_Center() | (int)PrintStringFlags::VerticalCenter);
+			screenPos.y -= screenPos.y / 4.0f;
+		}
+
 		float savedScale = object.Scale1;
 		object.Scale1 = scaler;
-		DrawObjectIn2DSpace(g_Gui.ConvertInventoryItemToObject(invItem), SCREEN_POS, orient, object.Scale1);
+		DrawObjectIn2DSpace(g_Gui.ConvertInventoryItemToObject(invItem), screenPos, orient, object.Scale1);
 		object.Scale1 = savedScale;
+
+		DrawAllStrings();
 	}
 
 	void Renderer::RenderInventoryScene(RenderTarget2D* renderTarget, TextureBase* background, float backgroundFade)
@@ -1107,8 +1135,9 @@ namespace TEN::Renderer
 
 		// Draw display sprites sorted by priority.
 		CollectDisplaySprites(_gameCamera);
-		DrawDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
 		DrawAllStrings();
+		DrawDisplaySprites(_gameCamera, true);
 
 		ClearScene();
 
@@ -1206,12 +1235,12 @@ namespace TEN::Renderer
 		}
 #endif
 
-		if (!DebugMode || CurrentLevel == 0)
-			return;
+		const auto& playerItem = *LaraItem;
+		const auto& player = GetLaraInfo(playerItem);
 
 		_currentLineHeight = DISPLAY_SPACE_RES.y / 30;
 
-		const auto& room = g_Level.Rooms[LaraItem->RoomNumber];
+		const auto& room = g_Level.Rooms[playerItem.RoomNumber];
 
 		float aspectRatio = _screenWidth / (float)_screenHeight;
 		int thumbWidth = _screenWidth / 8;
@@ -1312,13 +1341,13 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::DimensionStats:
 			PrintDebugMessage("DIMENSION STATS");
-			PrintDebugMessage("Position: %d, %d, %d", LaraItem->Pose.Position.x, LaraItem->Pose.Position.y, LaraItem->Pose.Position.z);
-			PrintDebugMessage("Orientation: %d, %d, %d", LaraItem->Pose.Orientation.x, LaraItem->Pose.Orientation.y, LaraItem->Pose.Orientation.z);
-			PrintDebugMessage("Scale: %.3f, %.3f, %.3f", LaraItem->Pose.Scale.x, LaraItem->Pose.Scale.y, LaraItem->Pose.Scale.z);
-			PrintDebugMessage("RoomNumber: %d", LaraItem->RoomNumber);
-			PrintDebugMessage("PathfindingBoxID: %d", LaraItem->BoxNumber);
-			PrintDebugMessage((Lara.Context.WaterSurfaceDist == -NO_HEIGHT ? "WaterSurfaceDist: N/A" : "WaterSurfaceDist: %d"), Lara.Context.WaterSurfaceDist);
-			PrintDebugMessage("Room Position: %d, %d, %d, %d", room.Position.z, room.Position.z, room.Position.z + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
+			PrintDebugMessage("Position: %d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
+			PrintDebugMessage("Orientation: %d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
+			PrintDebugMessage("Scale: %.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
+			PrintDebugMessage("Room number: %d", playerItem.RoomNumber);
+			PrintDebugMessage("PathfindingBoxID: %d", playerItem.BoxNumber);
+			PrintDebugMessage((player.Context.WaterSurfaceDist == -NO_HEIGHT ? "WaterSurfaceDist: N/A" : "WaterSurfaceDist: %d"), player.Context.WaterSurfaceDist);
+			PrintDebugMessage("Room Bounds: %d, %d, %d, %d", room.Position.z, room.Position.z, room.Position.z + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
 			PrintDebugMessage("Room.y, minFloor, maxCeiling: %d, %d, %d ", room.Position.y, room.BottomHeight, room.TopHeight);
 			PrintDebugMessage("Camera Position: %d, %d, %d", Camera.pos.x, Camera.pos.y, Camera.pos.z);
 			PrintDebugMessage("Camera LookAt: %d, %d, %d", Camera.target.x, Camera.target.y, Camera.target.z);
@@ -1327,45 +1356,51 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PlayerStats:
 			PrintDebugMessage("PLAYER STATS");
-			PrintDebugMessage("AnimObjectID: %d", LaraItem->Animation.AnimObjectID);
-			PrintDebugMessage("AnimNumber: %d", LaraItem->Animation.AnimNumber - Objects[LaraItem->Animation.AnimObjectID].animIndex);
-			PrintDebugMessage("FrameNumber: %d", LaraItem->Animation.FrameNumber - GetAnimData(LaraItem).frameBase);
-			PrintDebugMessage("ActiveState: %d", LaraItem->Animation.ActiveState);
-			PrintDebugMessage("TargetState: %d", LaraItem->Animation.TargetState);
-			PrintDebugMessage("Velocity: %.3f, %.3f, %.3f", LaraItem->Animation.Velocity.z, LaraItem->Animation.Velocity.y, LaraItem->Animation.Velocity.x);
-			PrintDebugMessage("IsAirborne: %d", LaraItem->Animation.IsAirborne);
-			PrintDebugMessage("HandStatus: %d", Lara.Control.HandStatus);
-			PrintDebugMessage("WaterStatus: %d", Lara.Control.WaterStatus);
-			PrintDebugMessage("CanClimbLadder: %d", Lara.Control.CanClimbLadder);
-			PrintDebugMessage("CanMonkeySwing: %d", Lara.Control.CanMonkeySwing);
-			PrintDebugMessage("Target HitPoints: %d", Lara.TargetEntity ? Lara.TargetEntity->HitPoints : 0);
+			PrintDebugMessage("AnimObjectID: %d", playerItem.Animation.AnimObjectID);
+			PrintDebugMessage("AnimNumber: %d", playerItem.Animation.AnimNumber - Objects[playerItem.Animation.AnimObjectID].animIndex);
+			PrintDebugMessage("FrameNumber: %d", playerItem.Animation.FrameNumber - GetAnimData(LaraItem).frameBase);
+			PrintDebugMessage("ActiveState: %d", playerItem.Animation.ActiveState);
+			PrintDebugMessage("TargetState: %d", playerItem.Animation.TargetState);
+			PrintDebugMessage("Velocity: %.3f, %.3f, %.3f", playerItem.Animation.Velocity.z, playerItem.Animation.Velocity.y, playerItem.Animation.Velocity.x);
+			PrintDebugMessage("IsAirborne: %d", playerItem.Animation.IsAirborne);
+			PrintDebugMessage("HandStatus: %d", player.Control.HandStatus);
+			PrintDebugMessage("WaterStatus: %d", player.Control.WaterStatus);
+			PrintDebugMessage("CanClimbLadder: %d", player.Control.CanClimbLadder);
+			PrintDebugMessage("CanMonkeySwing: %d", player.Control.CanMonkeySwing);
+			PrintDebugMessage("Target HitPoints: %d", player.TargetEntity ? player.TargetEntity->HitPoints : 0);
 			break;
 
 		case RendererDebugPage::InputStats:
 		{
-			auto clickedActions = BitField((int)In::Count);
-			auto heldActions = BitField((int)In::Count);
-			auto releasedActions = BitField((int)In::Count);
+			int	 size			 = (int)ACTION_ID_GROUPS[(int)USER_ACTION_GROUP_IDS.back()].back();
+			auto clickedActions	 = BitField(size);
+			auto heldActions	 = BitField(size);
+			auto releasedActions = BitField(size);
 
-			for (const auto& action : ActionMap)
+			for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 			{
-				if (action.IsClicked())
-					clickedActions.Set((int)action.GetID());
+				for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+				{
+					const auto& action = ActionMap.at(actionID);
 
-				if (action.IsHeld())
-					heldActions.Set((int)action.GetID());
+					if (action.IsClicked())
+						clickedActions.Set((int)action.GetID());
 
-				if (action.IsReleased())
-					releasedActions.Set((int)action.GetID());
+					if (action.IsHeld())
+						heldActions.Set((int)action.GetID());
+
+					if (action.IsReleased())
+						releasedActions.Set((int)action.GetID());
+				}
 			}
 
 			PrintDebugMessage("INPUT STATS");
 			PrintDebugMessage(("Clicked actions: " + clickedActions.ToString()).c_str());
 			PrintDebugMessage(("Held actions: " + heldActions.ToString()).c_str());
 			PrintDebugMessage(("Released actions: " + releasedActions.ToString()).c_str());
-			PrintDebugMessage("Move axes: %.3f, %.3f", AxisMap[(int)InputAxis::Move].x, AxisMap[(int)InputAxis::Move].y);
-			PrintDebugMessage("Camera axes: %.3f, %.3f", AxisMap[(int)InputAxis::Camera].x, AxisMap[(int)InputAxis::Camera].y);
-			PrintDebugMessage("Mouse axes: %.3f, %.3f", AxisMap[(int)InputAxis::Mouse].x, AxisMap[(int)InputAxis::Mouse].y);
+			PrintDebugMessage("Move axes: %.3f, %.3f", GetMoveAxis().x, GetMoveAxis().y);
+			PrintDebugMessage("Camera axes: %.3f, %.3f", GetCameraAxis().x, GetCameraAxis().y);
+			PrintDebugMessage("Mouse axes: %.3f, %.3f", GetMouseAxis().x, GetMouseAxis().y);
 			PrintDebugMessage("Cursor pos: %.3f, %.3f", GetMouse2DPosition().x, GetMouse2DPosition().y);
 		}
 			break;
@@ -1384,21 +1419,25 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
-			PrintDebugMessage("BoxNumber: %d", LaraItem->BoxNumber);
+			PrintDebugMessage("BoxNumber: %d", playerItem.BoxNumber);
 			break;
 
-		case RendererDebugPage::WireframeMode:
-			PrintDebugMessage("WIREFRAME MODE");
+		case RendererDebugPage::CollisionMeshStats:
+			PrintDebugMessage("COLLISION MESH STATS");
 			break;
 
-		case RendererDebugPage::PortalDebug:
-			PrintDebugMessage("PORTAL DEBUG");
-			PrintDebugMessage("Camera RoomNumber: %d", Camera.pos.RoomNumber);
+		case RendererDebugPage::PortalStats:
+			PrintDebugMessage("PORTAL STATS");
+			PrintDebugMessage("Camera room number: %d", Camera.pos.RoomNumber);
 			PrintDebugMessage("Room collector time: %d", _timeRoomsCollector);
 			PrintDebugMessage("Rooms: %d", view.RoomsToDraw.size());
 			PrintDebugMessage("    CheckPortal() calls: %d", _numCheckPortalCalls);
 			PrintDebugMessage("    GetVisibleRooms() calls: %d", _numGetVisibleRoomsCalls);
 			PrintDebugMessage("    Dot products: %d", _numDotProducts);
+			break;
+
+		case RendererDebugPage::WireframeMode:
+			PrintDebugMessage("WIREFRAME MODE");
 			break;
 
 		default:

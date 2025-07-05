@@ -62,6 +62,7 @@ public:
 	virtual void OnUseItem(GAME_OBJECT_ID objectNumber) = 0;
 	virtual void OnFreeze() = 0;
 
+	virtual void AddConsoleInput(const std::string& input) = 0;
 	virtual void ShortenTENCalls() = 0;
 	virtual void FreeLevelScripts() = 0;
 	virtual void ResetScripts(bool clearGameVars) = 0;

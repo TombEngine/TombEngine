@@ -6,10 +6,18 @@ namespace TEN::Renderer::Structures
 {
 	using namespace DirectX::SimpleMath;
 
+	enum class AnimatedTextureType
+	{
+		Frames,
+		UVRotate,
+		Video
+	};
+
 	struct RendererAnimatedTextureSet
 	{
-		int NumTextures;
-		int Fps;
+		AnimatedTextureType Type = AnimatedTextureType::Frames;
+		int NumTextures = 0;
+		int Fps = 0;
 		std::vector<RendererAnimatedTexture> Textures;
 	};
 }

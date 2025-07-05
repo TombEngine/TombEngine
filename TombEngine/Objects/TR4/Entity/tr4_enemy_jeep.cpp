@@ -68,22 +68,14 @@ namespace TEN::Entities::TR4
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		item->ItemFlags[0] = -80;
+		InitializeCreature(itemNumber);
 
-		if (g_Level.NumItems > 0)
-		{
-			for (int i = 0; i < g_Level.NumItems; i++)
-			{
-				auto* other = &g_Level.Items[i];
-
-				if (other == item || other->TriggerFlags != item->TriggerFlags)
-					continue;
-
-				item->ItemFlags[1] = i;
-				other->ItemFlags[0] = -80;
-				other->Pose.Position.y = item->Pose.Position.y - BLOCK(1);
-			}
-		}
+		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 9;
+		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.ActiveState = 0;
+		item->Animation.TargetState = 0;
+		item->MeshBits = 0xFFFDBFFF;
+		item->Status = ITEM_NOT_ACTIVE;
 	}
 
 	void EnemyJeepControl(short itemNumber)
@@ -156,7 +148,7 @@ namespace TEN::Entities::TR4
 			case 0:
 			case 2:
 				item->ItemFlags[0] -= 128;
-				item->MeshBits = -98305;
+				item->MeshBits = 0xFFFE7FFF;
 
 				pos = GetJointPosition(item, 11, Vector3i(0, -144, -1024));
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
@@ -305,7 +297,7 @@ namespace TEN::Entities::TR4
 
 					if (aiObject != nullptr)
 					{
-						creature->Enemy = nullptr;
+						creature->Enemy = target;
 						target->ObjectNumber = aiObject->objectNumber;
 						target->RoomNumber = aiObject->roomNumber;
 						target->Pose.Position = aiObject->pos.Position;

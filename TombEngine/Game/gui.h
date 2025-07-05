@@ -50,7 +50,7 @@ namespace TEN::Gui
 		Use,
 		ChooseAmmo,
 		Combine,
-		Seperate,
+		Separate,
 		Equip,
 		Ammo1,
 		Ammo2,
@@ -111,9 +111,9 @@ namespace TEN::Gui
 
 		GameConfiguration Configuration = {};
 
-		int	  SelectedScreenResolution = 0;
-		bool  IgnoreInput			   = false; // Ignore input until all actions are inactive.
-		float NewKeyWaitTimer		   = 0.0f;
+		int	 SelectedScreenResolution = 0;
+		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
+		int	 NewKeyWaitTimer		  = 0;
 	};
 
 	class GuiController
@@ -132,14 +132,14 @@ namespace TEN::Gui
 		int OptionCount;
 		int SelectedSaveSlot;
 
-		float TimeInMenu = -1.0f;
+		int TimeInMenu = NO_VALUE;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
 		short CombineObject1;
 		short CombineObject2;
 		bool ItemUsed;
-		char SeperateTypeFlag;
+		char SeparateTypeFlag;
 		char CombineTypeFlag;
 		InventoryRing Rings[2];
 		int CurrentSelectedOption;

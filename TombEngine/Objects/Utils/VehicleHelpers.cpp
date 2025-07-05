@@ -300,17 +300,17 @@ namespace TEN::Entities::Vehicles
 
 	void ModulateVehicleTurnRateX(short* turnRate, short accelRate, short minTurnRate, short maxTurnRate)
 	{
-		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, -AxisMap[(int)InputAxis::Move].y);
+		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, -AxisMap[AxisID::Move].y);
 	}
 
 	void ModulateVehicleTurnRateY(short* turnRate, short accelRate, short minTurnRate, short maxTurnRate)
 	{
-		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, AxisMap[(int)InputAxis::Move].x);
+		*turnRate = ModulateVehicleTurnRate(*turnRate, accelRate, minTurnRate, maxTurnRate, AxisMap[AxisID::Move].x);
 	}
 	
 	void ModulateVehicleLean(ItemInfo* vehicleItem, short baseRate, short maxAngle)
 	{
-		float axisCoeff = AxisMap[(int)InputAxis::Move].x;
+		float axisCoeff = AxisMap[AxisID::Move].x;
 		int sign = copysign(1, axisCoeff);
 		short maxAngleNormalized = maxAngle * axisCoeff;
 		vehicleItem->Pose.Orientation.z += std::min<short>(baseRate, abs(maxAngleNormalized - vehicleItem->Pose.Orientation.z) / 3) * sign;
@@ -355,11 +355,12 @@ namespace TEN::Entities::Vehicles
 
 	void SpawnVehicleWake(const ItemInfo& vehicleItem, const Vector3& relOffset, int waterHeight, bool isUnderwater)
 	{
-		constexpr auto COLOR				 = Vector4(0.75f);
-		constexpr auto LIFE_MAX				 = 2.5f;
-		constexpr auto VEL_ABS				 = 4.0f;
-		constexpr auto SCALE_RATE_ON_WATER	 = 6.0f;
-		constexpr auto SCALE_RATE_UNDERWATER = 1.5f;
+		constexpr auto COLOR_START		   = Color(0.75f, 0.75f, 0.75f, 0.75f);
+		constexpr auto COLOR_END		   = Color(0.0f, 0.0f, 0.0f, 0.0f);
+		constexpr auto LIFE_MAX			   = 2.5f;
+		constexpr auto VEL_ABS			   = 4.0f;
+		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
+		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
@@ -373,23 +374,25 @@ namespace TEN::Entities::Vehicles
 
 		// Determine key parameters.
 		auto positions = GetVehicleWakePositions(vehicleItem, relOffset, waterHeight, isUnderwater, isMovingForward);
-		auto direction = -vehicleItem.Pose.Orientation.ToDirection();
+		auto dir = -vehicleItem.Pose.Orientation.ToDirection();
 		short orient2D = isUnderwater ? vehicleItem.Pose.Orientation.z : 0;
 		float life = isUnderwater ? (LIFE_MAX / 2) : LIFE_MAX;
 		float vel = isMovingForward ? VEL_ABS : -VEL_ABS;
-		float scaleRate = isUnderwater ? SCALE_RATE_UNDERWATER : SCALE_RATE_ON_WATER;
+		float expRate = isUnderwater ? EXP_RATE_UNDERWATER : EXP_RATE_ON_WATER;
 
 		// Spawn left wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagLeft,
-			positions.first, direction, orient2D, COLOR,
-			0.0f, life, vel, scaleRate, 0, (int)StreamerFlags::FadeLeft);
+			positions.first, dir, orient2D, COLOR_START, COLOR_END,
+			0.0f, life, vel, expRate, 0,
+			StreamerFeatherMode::Right, BlendMode::Additive);
 
 		// Spawn right wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagRight,
-			positions.second, direction, orient2D, COLOR,
-			0.0f, life, vel, scaleRate, 0, (int)StreamerFlags::FadeRight);
+			positions.second, dir, orient2D, COLOR_START, COLOR_END,
+			0.0f, life, vel, expRate, 0,
+			StreamerFeatherMode::Left, BlendMode::Additive);
 	}
 
 	void HandleVehicleSpeedometer(float vel, float velMax)

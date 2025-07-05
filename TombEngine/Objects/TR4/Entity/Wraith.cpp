@@ -38,12 +38,12 @@ namespace TEN::Entities::TR4
 
 	static void SpawnWraithTails(const ItemInfo& item)
 	{
-		constexpr auto OFFSET	  = Vector3(0.0f, -10.0f, -50.0f);
-		constexpr auto WIDTH	  = 8.0f;
-		constexpr auto LIFE_MAX	  = 0.5f;
-		constexpr auto VEL		  = 4.0f;
-		constexpr auto SCALE_RATE = 1.0f;
-		constexpr auto FLAGS	  = (int)StreamerFlags::FadeRight;
+		constexpr auto OFFSET	 = Vector3(0.0f, -10.0f, -50.0f);
+		constexpr auto COLOR_END = Color(0.0f, 0.0f, 0.0f, 0.0f);
+		constexpr auto WIDTH	 = 8.0f;
+		constexpr auto LIFE_MAX	 = 0.5f;
+		constexpr auto VEL		 = 4.0f;
+		constexpr auto EXP_RATE	 = 1.0f;
 
 		enum class TailTag
 		{
@@ -52,20 +52,20 @@ namespace TEN::Entities::TR4
 			Third
 		};
 
-		auto color = Vector4::Zero;
+		auto colorStart = Vector4::Zero;
 		switch (item.ObjectNumber)
 		{
 		default:
 		case ID_WRAITH1:
-			color = Vector4(1.0f, 0.6f, 0.0f, 1.0f);
+			colorStart = Vector4(1.0f, 0.6f, 0.0f, 1.0f);
 			break;
 
 		case ID_WRAITH2:
-			color = Vector4(0.0f, 0.5f, 1.0f, 1.0f);
+			colorStart = Vector4(0.0f, 0.5f, 1.0f, 1.0f);
 			break;
 
 		case ID_WRAITH3:
-			color = Vector4(1.0f);
+			colorStart = Vector4(1.0f);
 			break;
 		}
 
@@ -73,29 +73,32 @@ namespace TEN::Entities::TR4
 		auto rotMatrix = item.Pose.Orientation.ToRotationMatrix();
 		auto pos = posBase + Vector3::Transform(OFFSET, rotMatrix);
 
-		auto direction0 = Geometry::RotatePoint(posBase, EulerAngles(ANGLE(50.0f), 0, 0));
-		auto direction1 = Geometry::RotatePoint(posBase, EulerAngles(ANGLE(-50.0f), 0, 0));
-		auto direction2 = Geometry::RotatePoint(posBase, EulerAngles(0, ANGLE(50.0f), 0));
+		auto dir0 = Geometry::RotatePoint(posBase, EulerAngles(ANGLE(50.0f), 0, 0));
+		auto dir1 = Geometry::RotatePoint(posBase, EulerAngles(ANGLE(-50.0f), 0, 0));
+		auto dir2 = Geometry::RotatePoint(posBase, EulerAngles(0, ANGLE(50.0f), 0));
 
 		short orient2D = item.Pose.Orientation.z;
 
 		// Spawn first tail.
 		StreamerEffect.Spawn(
 			item.Index, (int)TailTag::First,
-			pos, direction0, orient2D, color,
-			WIDTH, LIFE_MAX, VEL, SCALE_RATE, 0, FLAGS);
+			pos, dir0, orient2D, colorStart, COLOR_END,
+			WIDTH, LIFE_MAX, VEL, EXP_RATE, 0,
+			StreamerFeatherMode::Center, BlendMode::Additive);
 
 		// Spawn second tail.
 		StreamerEffect.Spawn(
 			item.Index, (int)TailTag::Second,
-			pos, direction1, orient2D, color,
-			WIDTH, LIFE_MAX, VEL, SCALE_RATE, 0, FLAGS);
+			pos, dir1, orient2D, colorStart, COLOR_END,
+			WIDTH, LIFE_MAX, VEL, EXP_RATE, 0,
+			StreamerFeatherMode::Center, BlendMode::Additive);
 
 		// Spawn third tail.
 		StreamerEffect.Spawn(
 			item.Index, (int)TailTag::Third,
-			pos, direction2, orient2D, color,
-			WIDTH, LIFE_MAX, VEL, SCALE_RATE, 0, FLAGS);
+			pos, dir2, orient2D, colorStart, COLOR_END,
+			WIDTH, LIFE_MAX, VEL, EXP_RATE, 0,
+			StreamerFeatherMode::Center, BlendMode::Additive);
 	}
 
 	static void WraithWallEffect(Vector3i pos, short yRot, int objectNumber)
@@ -305,6 +308,11 @@ namespace TEN::Entities::TR4
 			item.Pose.Orientation.x += angleV;
 		}
 
+		// Translate wraith.
+		item.Pose.Position.x += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.y);
+		item.Pose.Position.y += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.x);
+		item.Pose.Position.z += item.Animation.Velocity.z * phd_cos(item.Pose.Orientation.y);
+
 		auto pointColl = GetPointCollision(item);
 
 		bool hasHitWall = false;
@@ -314,13 +322,8 @@ namespace TEN::Entities::TR4
 			hasHitWall = true;
 		}
 
-		// Translate wraith.
-		item.Pose.Position.x += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.y);
-		item.Pose.Position.y += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.x);
-		item.Pose.Position.z += item.Animation.Velocity.z * phd_cos(item.Pose.Orientation.y);
-
 		if (pointColl.GetRoomNumber() != item.RoomNumber)
-			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
+			ItemNewRoom(itemNumber, FindRoomNumber(item.Pose.Position, item.RoomNumber));
 
 		for (int linkItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkItemNumber != NO_VALUE; linkItemNumber = g_Level.Items[linkItemNumber].NextItem)
 		{

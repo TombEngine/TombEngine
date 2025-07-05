@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.7.2 (Developer) Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -45,6 +45,7 @@
 </ul>
 <h2>2 Classes</h2>
 <ul class="nowrap">
+  <li>    <a href="../2 classes/Collision.Probe.html">Collision.Probe</a></li>
   <li>    <a href="../2 classes/Flow.Level.html">Flow.Level</a></li>
   <li>    <a href="../2 classes/Flow.Settings.html">Flow.Settings</a></li>
   <li>    <a href="../2 classes/Flow.Statistics.html">Flow.Statistics</a></li>
@@ -63,6 +64,7 @@
 <h2>3 Primitive Classes</h2>
 <ul class="nowrap">
   <li>    <a href="../3 primitive classes/Flow.Fog.html">Flow.Fog</a></li>
+  <li>    <a href="../3 primitive classes/Flow.Horizon.html">Flow.Horizon</a></li>
   <li>    <a href="../3 primitive classes/Flow.InventoryItem.html">Flow.InventoryItem</a></li>
   <li>    <a href="../3 primitive classes/Flow.LensFlare.html">Flow.LensFlare</a></li>
   <li>    <a href="../3 primitive classes/Flow.SkyLayer.html">Flow.SkyLayer</a></li>
@@ -75,12 +77,17 @@
 </ul>
 <h2>4 Enums</h2>
 <ul class="nowrap">
+  <li>    <a href="../4 enums/Collision.MaterialType.html">Collision.MaterialType</a></li>
   <li>    <a href="../4 enums/Effects.BlendID.html">Effects.BlendID</a></li>
   <li>    <a href="../4 enums/Effects.EffectID.html">Effects.EffectID</a></li>
+  <li>    <a href="../4 enums/Effects.StreamerFeatherMode.html">Effects.StreamerFeatherMode</a></li>
+  <li>    <a href="../4 enums/Effects.ParticleAnimationType.html">Effects.ParticleAnimationType</a></li>
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -98,6 +105,7 @@
 </ul>
 <h2>5 Lua utility modules</h2>
 <ul class="nowrap">
+  <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
   <li>    <a href="../5 lua utility modules/Diary.html">Diary</a></li>
   <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
   <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
@@ -150,6 +158,10 @@
 	<td class="summary">Get this static's visibility status.</td>
 	</tr>
 	<tr>
+	<td class="name" ><a href="#Static:GetCollidable">Static:GetCollidable()</a></td>
+	<td class="summary">Get this static's collision status.</td>
+	</tr>
+	<tr>
 	<td class="name" ><a href="#Static:GetSolid">Static:GetSolid()</a></td>
 	<td class="summary">Get this static's solid collision status.</td>
 	</tr>
@@ -184,6 +196,10 @@
 	<tr>
 	<td class="name" ><a href="#Static:SetSolid">Static:SetSolid(status)</a></td>
 	<td class="summary">Set this static's solid collision status.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Static:SetCollidable">Static:SetCollidable(collidable)</a></td>
+	<td class="summary">Set this static's collision status.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#Static:Enable">Static:Enable()</a></td>
@@ -367,7 +383,28 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        Status.  <strong>true: visible</strong>, <strong>false: invisible</strong>
+        Status. true means visible, false otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Static:GetCollidable"></a>
+    <strong>Static:GetCollidable()</strong>
+    </dt>
+    <dd>
+    Get this static's collision status.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        Collision status. true if can be collided with, false otherwise.
     </ol>
 
 
@@ -388,7 +425,7 @@
     <ol>
 
            <span class="types"><span class="type">bool</span></span>
-        Solid Status. <strong>true: solid</strong>, <strong>false: soft</strong>
+        Solid Status. true if solid, false if soft.
     </ol>
 
 
@@ -562,7 +599,29 @@
     <ul>
         <li><span class="parameter">status</span>
             <span class="types"><span class="type">bool</span></span>
-         New status. <strong>true: solid</strong>, <strong>false: soft</strong>
+         New status, true is solid, false is soft.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Static:SetCollidable"></a>
+    <strong>Static:SetCollidable(collidable)</strong>
+    </dt>
+    <dd>
+    Set this static's collision status.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">collidable</span>
+            <span class="types"><span class="type">bool</span></span>
+         New collision status. true if can be collided with, false: no collision.
         </li>
     </ul>
 

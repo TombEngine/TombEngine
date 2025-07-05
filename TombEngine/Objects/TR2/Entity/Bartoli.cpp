@@ -81,21 +81,21 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
 		}
 
 		if (effectTimer == timeExplosion2)
 		{
 			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM2);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
 		}
 
 		if (effectTimer == timeExplosion3)
 		{
 			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM3);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
 			item.Animation.FrameNumber = animationFrameEnd;
 		}
 

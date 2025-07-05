@@ -2,26 +2,26 @@
 
 #include "Game/items.h"
 
-/// Constants for effect IDs.
-// @enum Effects.EffectID
-// @pragma nostrip
-
-/// Table of Effects.EffectID constants.
-// To be used with @{Objects.Moveable.SetEffect} and @{Objects.Moveable.GetEffect} functions.
-//
-// - `NONE`
-// - `FIRE`
-// - `SPARKS`
-// - `SMOKE`
-// - `ELECTRIC_IGNITE`
-// - `RED_IGNITE`
-// - `CADAVER`
-// - `CUSTOM`
-//
-// @table Effects.EffectID
-
 namespace TEN::Scripting::Effects
 {
+	/// Constants for effect IDs.
+	// @enum Effects.EffectID
+	// @pragma nostrip
+
+	/// Table of Effects.EffectID constants.
+	// To be used with @{Objects.Moveable.SetEffect} and @{Objects.Moveable.GetEffect} functions.
+	//
+	// - `NONE`
+	// - `FIRE`
+	// - `SPARKS`
+	// - `SMOKE`
+	// - `ELECTRIC_IGNITE`
+	// - `RED_IGNITE`
+	// - `CADAVER`
+	// - `CUSTOM`
+	//
+	// @table Effects.EffectID
+
 	static const auto EFFECT_IDS = std::unordered_map<std::string, EffectType>
 	{
 		{ "NONE", EffectType::None },
@@ -37,3 +37,4 @@ namespace TEN::Scripting::Effects
 		{ "REDIGNITE", EffectType::RedIgnite }
 	};
 }
+

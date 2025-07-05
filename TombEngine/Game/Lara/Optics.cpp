@@ -207,13 +207,6 @@ bool HandlePlayerOptics(ItemInfo& item)
 	if (item.Animation.ActiveState == LS_IDLE || item.Animation.AnimNumber == LA_STAND_IDLE)
 		breakOptics = false;
 
-	// Crouching; can use optics.
-	if ((player.Control.IsLow || !IsHeld(In::Crouch)) &&
-		(item.Animation.TargetState == LS_CROUCH_IDLE || item.Animation.AnimNumber == LA_CROUCH_IDLE))
-	{
-		breakOptics = false;
-	}
-
 	// If lasersight and Look is not held, exit optics.
 	if (player.Control.Look.IsUsingLasersight && !IsHeld(In::Look))
 		breakOptics = true;

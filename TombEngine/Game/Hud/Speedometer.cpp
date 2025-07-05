@@ -70,14 +70,14 @@ namespace TEN::Hud
 
 		// Draw dial.
 		AddDisplaySprite(
-			ID_SPEEDOMETER, DIAL_ELEMENT_SPRITE_ID,
+			ID_SPEEDOMETER_GRAPHICS, DIAL_ELEMENT_SPRITE_ID,
 			POS, 0, SCALE, color,
 			DIAL_PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend,
 			DisplaySpritePhase::Draw);
 
 		// Draw pointer.
 		AddDisplaySprite(
-			ID_SPEEDOMETER, POINTER_ELEMENT_SPRITE_ID,
+			ID_SPEEDOMETER_GRAPHICS, POINTER_ELEMENT_SPRITE_ID,
 			POS, pointerAngle + POINTER_ANGLE_OFFSET, SCALE, color,
 			POINTER_PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend,
 			DisplaySpritePhase::Draw);

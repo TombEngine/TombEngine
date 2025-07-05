@@ -62,6 +62,8 @@ namespace TEN::Entities::Vehicles
 
 	constexpr auto MOTORBIKE_WAKE_OFFSET = Vector3(BLOCK(1 / 16.0f), 0, BLOCK(1 / 8.0f));
 
+	constexpr auto MOTORBIKE_LIGHT_HASH = 0x1F4B;
+
 	#define MOTORBIKE_FORWARD_TURN_ANGLE ANGLE(1.5f)
 	#define MOTORBIKE_BACK_TURN_ANGLE ANGLE(0.5f)
 	#define MOTORBIKE_TURN_ANGLE_MAX ANGLE(5.0f)
@@ -319,12 +321,14 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
-		auto origin = GetJointPosition(motorbikeItem, 0, Vector3i(0, -470, 1836));
-		auto target = GetJointPosition(motorbikeItem, 0, Vector3i(0, -470, 20780));
-		int random = (motorbike->LightPower * 2) - (GetRandomControl() & 0xF);
+		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), 0)).ToVector3();
+		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		// TODO: Use target as direction vector for spotlight.
-		SpawnDynamicLight(origin.x, origin.y, origin.z, 8, random, random / 2, 0);
+		target = target - origin;
+		target.Normalize();
+
+		float random = (motorbike->LightPower * 2) - Random::GenerateInt(0, 16);
+		SpawnDynamicSpotLight(origin, target, Vector4(random / (float)UCHAR_MAX, random / 1.5f / (float)UCHAR_MAX, 0, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, MOTORBIKE_LIGHT_HASH);
 	}
 
 	static void TriggerMotorbikeExhaustSmoke(int x, int y, int z, short angle, short speed, bool moving)

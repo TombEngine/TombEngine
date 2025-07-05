@@ -971,7 +971,8 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return;
-	auto* box = &g_Level.PathfindingBoxes[boxNumber];
+
+	const auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
 	// Maximize target precision. DO NOT change bracket precedence!
 	LOT->Target.x = (int)((box->top  * BLOCK(1)) + (float)GetRandomControl() * (((float)(box->bottom - box->top) - 1.0f) / 32.0f) + CLICK(2.0f));
@@ -1150,6 +1151,7 @@ bool StalkBox(ItemInfo* item, ItemInfo* enemy, int boxNumber)
 {
 	if (enemy == nullptr || boxNumber == NO_VALUE)
 		return false;
+
 	auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
 	int xRange = STALK_DIST + ((box->bottom - box->top) * BLOCK(1));
@@ -1319,7 +1321,7 @@ void GetAITarget(CreatureInfo* creature)
 		creature->Enemy = LaraItem;
 		if (creature->Alerted)
 		{
-			item->AIBits = ~GUARD;
+			item->AIBits &= ~GUARD;
 			if (item->AIBits & AMBUSH)
 				item->AIBits |= MODIFY;
 		}
@@ -1330,25 +1332,21 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			item->AIBits &= ~PATROL1;
 			if (item->AIBits & AMBUSH)
-			{
 				item->AIBits |= MODIFY;
-				// NOTE: added in TR5
-				//item->itemFlags[3] = (creature->Tosspad & 0xFF);
-			}
 		}
 		else if (!creature->Patrol)
 		{
 			if (enemyObjectNumber != ID_AI_PATROL1)
 				FindAITargetObject(creature, ID_AI_PATROL1);
 		}
-		else if (enemyObjectNumber != ID_AI_PATROL2)
+		else
 		{
-			FindAITargetObject(creature, ID_AI_PATROL2);
+			if (enemyObjectNumber != ID_AI_PATROL2)
+				FindAITargetObject(creature, ID_AI_PATROL2);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS ||
-			Objects[item->ObjectNumber].waterCreature)
+		
+		if ((enemyObjectNumber == ID_AI_PATROL1 || enemyObjectNumber == ID_AI_PATROL2) &&
+			Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			TestTriggers(enemy, true);
 			creature->Patrol = !creature->Patrol;
@@ -1356,21 +1354,17 @@ void GetAITarget(CreatureInfo* creature)
 	}
 	else if (item->AIBits & AMBUSH)
 	{
-		// First if was removed probably after TR3 and was it used by monkeys?
-		/*if (!(item->aiBits & MODIFY) && !creature->hurtByLara)
-			creature->enemy = LaraItem;
-		else*/ if (enemyObjectNumber != ID_AI_AMBUSH)
-			FindAITargetObject(creature, ID_AI_AMBUSH);
-		/*else if (item->objectNumber == ID_MONKEY)
-			return;*/
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		if (enemyObjectNumber != ID_AI_AMBUSH)
 		{
-			TestTriggers(enemy, true);		
+			FindAITargetObject(creature, ID_AI_AMBUSH);
+		}
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
+		{
+			TestTriggers(enemy, true);
 			creature->ReachedGoal = true;
 			creature->Enemy = LaraItem;
-			item->AIBits &= ~(AMBUSH /* | MODIFY*/);
+			item->AIBits &= ~AMBUSH;
+
 			if (item->AIBits != MODIFY)
 			{
 				item->AIBits |= GUARD;
@@ -1384,7 +1378,7 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			creature->Enemy = LaraItem;
 			creature->Alerted = true;
-			//item->aiBits &= ~FOLLOW;
+			item->AIBits &= ~FOLLOW;
 		}
 		else if (item->HitStatus)
 		{
@@ -1394,27 +1388,12 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			FindAITargetObject(creature, ID_AI_FOLLOW);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			creature->ReachedGoal = true;
 			item->AIBits &= ~FOLLOW;
 		}
 	}
-	/*else if (item->objectNumber == ID_MONKEY && item->carriedItem == NO_VALUE)
-	{
-		if (item->aiBits != MODIFY)
-		{
-			if (enemyObjectNumber != ID_SMALLMEDI_ITEM)
-				FindAITargetObject(creature, ID_SMALLMEDI_ITEM);
-		}
-		else
-		{
-			if (enemyObjectNumber != ID_KEY_ITEM4)
-				FindAITargetObject(creature, ID_KEY_ITEM4);
-		}
-	}*/
 }
 
 // Old TR3 way.
@@ -1471,10 +1450,10 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool 
 			aiObject.boxNumber = GetSector(room, aiObject.pos.Position.x - room->Position.x, aiObject.pos.Position.z - room->Position.z)->PathfindingBoxID;
 
 			if (item.BoxNumber == NO_VALUE || aiObject.boxNumber == NO_VALUE)
-				return;
+				continue;
 
 			if (checkSameZone && (zone[item.BoxNumber] != zone[aiObject.boxNumber]))
-				return;
+				continue;
 
 			// Don't check for same zone. Needed for Sophia Leigh.
 			foundObject = &aiObject;
@@ -1635,8 +1614,11 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	auto* LOT = &creature->LOT;
 
 	auto* enemy = creature->Enemy;
-	if (enemy == nullptr)
-		return;
+
+	// HACK: Fallback to bored mood from attack or escape mood if enemy was cleared.
+	// Replaces previous "fix" with early exit, because it was breaking friendly NPC pathfinding. -- Lwmte, 24.03.25
+	if (enemy == nullptr && (creature->Mood == MoodType::Attack || creature->Mood == MoodType::Escape))
+		creature->Mood = MoodType::Bored;
 
 	int boxNumber;
 	switch (creature->Mood)
@@ -1645,7 +1627,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 		if (ValidBox(item, AI->zoneNumber, boxNumber))
 		{
-			if (StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0 && creature->Enemy)
+			if (StalkBox(item, enemy, boxNumber) && creature->Enemy && enemy->HitPoints > 0)
 			{
 				TargetBox(LOT, boxNumber);
 				creature->Mood = MoodType::Bored;

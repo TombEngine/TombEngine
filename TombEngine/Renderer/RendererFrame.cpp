@@ -5,6 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
@@ -16,8 +17,9 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Entities::Effects;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Effects::Environment;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
@@ -54,13 +56,26 @@ namespace TEN::Renderer
 
 		_invalidateCache = false;
 
-		// Prepare real DX scissor test rectangle.
+		bool laraFound = false;
+
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
+			// Prepare real DX scissor test rectangle.
 			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
 			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
+
+			// Indicate that Lara object is found.
+			if (roomPtr->RoomNumber == LaraItem->RoomNumber)
+				laraFound = true;
+		}
+
+		// HACK: Force adding Lara's room to room list, in case she is in one of camera's neighbor rooms.
+		if (!laraFound && Contains(_rooms[renderView.Camera.RoomNumber].Neighbors, (int)LaraItem->RoomNumber))
+		{
+			renderView.RoomsToDraw.push_back(&_rooms[LaraItem->RoomNumber]);
+			CollectItems(LaraItem->RoomNumber, renderView);
 		}
 
 		// Collect fog bulbs.
@@ -401,6 +416,9 @@ namespace TEN::Renderer
 			if (item.Status == ITEM_INVISIBLE)
 				continue;
 
+			if (item.Model.Color.w < EPSILON)
+				continue;
+
 			if (item.ObjectNumber == ID_LARA && (SpotcamOverlay || SpotcamDontDrawLara))
 				continue;
 
@@ -417,12 +435,15 @@ namespace TEN::Renderer
 
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
+			bool inFrustum = true;
+			
 			if (!isRoomReflected && obj.ShadowType == ShadowMode::None)
 			{
+				inFrustum = false;
+
 				// Get all spheres and check if frustum intersects any of them.
 				auto spheres = GetSpheres(itemNumber);
 
-				bool inFrustum = false;
 				for (int i = 0; !inFrustum, i < spheres.size(); i++)
 				{
 					// Blow up sphere radius by half for cases of too small calculated spheres.
@@ -430,8 +451,8 @@ namespace TEN::Renderer
 						inFrustum = true;
 				}
 
-				if (!inFrustum)
-					continue;
+				// NOTE: removed continue loop here if not in frustum,
+				// for updating first positions and animations data
 			}
 
 			auto& newItem = _items[itemNumber];
@@ -449,7 +470,11 @@ namespace TEN::Renderer
 			// Renderer slot has no interpolation flag set in case it is fetched for first time (e.g. item first time in frustum).
 			newItem.DisableInterpolation = item.DisableInterpolation || newItem.DisableInterpolation;
 
-			if (newItem.DisableInterpolation)
+			// Disable interpolation when object has traveled significant distance.
+			// Needed because when object goes out of frustum, previous position doesn't update.
+			bool posChanged = Vector3::Distance(newItem.PrevPosition, newItem.Position) > BLOCK(1);
+
+			if (newItem.DisableInterpolation || posChanged)
 			{
 				// NOTE: Interpolation always returns same result.
 				newItem.PrevPosition = newItem.Position;
@@ -467,15 +492,22 @@ namespace TEN::Renderer
 
 			// Force interpolation only for player in player freeze mode.
 			bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player && item.ObjectNumber == ID_LARA;
+			float interpFactor = GetInterpolationFactor(forceValue);
 
-			newItem.InterpolatedPosition = Vector3::Lerp(newItem.PrevPosition, newItem.Position, GetInterpolationFactor(forceValue));
-			newItem.InterpolatedTranslation = Matrix::Lerp(newItem.PrevTranslation, newItem.Translation, GetInterpolationFactor(forceValue));
-			newItem.InterpolatedRotation = Matrix::Lerp(newItem.InterpolatedRotation, newItem.Rotation, GetInterpolationFactor(forceValue));
-			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, GetInterpolationFactor(forceValue));
-			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, GetInterpolationFactor(forceValue));
+			newItem.InterpolatedPosition = Vector3::Lerp(newItem.PrevPosition, newItem.Position, interpFactor);
+			newItem.InterpolatedTranslation = Matrix::Lerp(newItem.PrevTranslation, newItem.Translation, interpFactor);
+			newItem.InterpolatedRotation = Matrix::Lerp(newItem.InterpolatedRotation, newItem.Rotation, interpFactor);
+			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, interpFactor);
+			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
 			for (int j = 0; j < MAX_BONES; j++)
 				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
+
+			// NOTE: now at least positions and animations are updated,
+			// because even off-screen the correct position is required 
+			// by GetJointPosition functions and similars
+			if (!inFrustum)
+				continue;
 
 			CalculateLightFades(&newItem);
 			CollectLightsForItem(&newItem);
@@ -508,12 +540,15 @@ namespace TEN::Renderer
 				rendererStatic.Color = nativeStatic.Color;
 				rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 				rendererStatic.Pose = nativeStatic.Transform;
-				rendererStatic.Update();
+				mesh->Update(GetInterpolationFactor());
 
-				nativeStatic.Dirty = false;
+				nativeStatic.Dirty = (mesh->PrevPose != mesh->Pose);
 			}
 
 			if (!(nativeStatic.Flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			if (nativeStatic.Color.w < EPSILON)
 				continue;
 
 			if (!_staticObjects[Statics.GetIndex(rendererStatic.ObjectNumber)].has_value())
@@ -790,8 +825,8 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[roomNumber];
-
+		RoomData* r = &g_Level.Rooms[roomNumber];
+		
 		// Collect dynamic lights for rooms
 		for (int i = 0; i < _dynamicLights[_dynamicLightList].size(); i++)
 		{
@@ -810,7 +845,7 @@ namespace TEN::Renderer
 			}
 
 			// Light already on a list
-			if (std::find(renderView.LightsToDraw.begin(), renderView.LightsToDraw.end(), light) != renderView.LightsToDraw.end())
+			if (TEN::Utils::Contains(renderView.LightsToDraw, light))
 			{
 				continue;
 			}
@@ -832,7 +867,7 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[room.RoomNumber];
+		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
 		short fxNum = NO_VALUE;
 		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
@@ -905,6 +940,12 @@ namespace TEN::Renderer
 			effect.PrevTranslation = effect.Translation;
 			effect.PrevRotation = effect.Rotation;
 			effect.PrevScale = effect.Scale;
+		}
+
+		for (auto& room : _rooms)
+		{
+			for (auto& stat : room.Statics)
+				stat.PrevPose = stat.Pose;
 		}
 	}
 }

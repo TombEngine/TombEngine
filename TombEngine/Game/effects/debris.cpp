@@ -31,7 +31,7 @@ bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits)
 		auto spheres = item->GetSpheres();
 		ShatterItem.yRot = item->Pose.Orientation.y;
 		ShatterItem.bit = 1 << node;
-		ShatterItem.meshIndex = Objects[item->ObjectNumber].meshIndex + node;
+		ShatterItem.meshIndex = (node < item->Model.MeshIndex.size()) ? item->Model.MeshIndex[node] : item->Model.BaseMesh;
 		ShatterItem.sphere.Center = spheres[node].Center;
 		ShatterItem.color = item->Model.Color;
 		ShatterItem.flags = item->ObjectNumber == ID_CROSSBOW_BOLT ? 0x400 : 0;

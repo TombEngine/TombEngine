@@ -7,8 +7,8 @@ cbuffer CBCamera : register(b0)
 {
 	float4x4 ViewProjection;
 	float4x4 View;
-	float4x4 Projection;
-	float4x4 InverseProjection;
+    float4x4 Projection;
+    float4x4 InverseProjection;
 	float4x4 DualParaboloidView;
 	float4 CamPositionWS;
 	float4 CamDirectionWS;
@@ -28,8 +28,8 @@ cbuffer CBCamera : register(b0)
 	//--
 	float4 FogColor;
 	//--
-	int FogMinDistance;
-	int FogMaxDistance;
+	float FogMinDistance;
+	float FogMaxDistance;
 	float NearPlane;
 	float FarPlane;
 	//--

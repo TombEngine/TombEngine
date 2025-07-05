@@ -96,6 +96,7 @@ namespace TEN::Renderer
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
+		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _lightenBlendState = nullptr;
@@ -231,6 +232,7 @@ namespace TEN::Renderer
 		std::vector<TexturePair>							   _moveablesTextures;
 		std::vector<TexturePair>							   _staticTextures;
 		std::vector<Texture2D>								   _spritesTextures;
+		RendererSprite										   _videoSprite; // Video texture is an unique case
 
 		Matrix _playerWorldMatrix;
 
@@ -340,7 +342,7 @@ namespace TEN::Renderer
 
 		// Special effects
 
-		std::vector<Texture2D> _causticTextures;
+		//std::vector<Texture2D> _causticTextures;
 		RendererMirror* _currentMirror = nullptr;
 
 		// Transparency
@@ -409,6 +411,7 @@ namespace TEN::Renderer
 		void PrepareFires(RenderView& view);
 		void PrepareParticles(RenderView& view);
 		void PrepareSmokes(RenderView& view);
+		void PrepareFireflies(RenderView& view);
 		void PrepareElectricity(RenderView& view);
 		void PrepareHelicalLasers(RenderView& view);
 		void PrepareBlood(RenderView& view);
@@ -421,7 +424,7 @@ namespace TEN::Renderer
 		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
-		void DrawDisplaySprites(RenderView& view);
+		void DrawDisplaySprites(RenderView& view, bool negativePriority);
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
 		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
@@ -429,6 +432,7 @@ namespace TEN::Renderer
 		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);
@@ -450,7 +454,7 @@ namespace TEN::Renderer
 		void PrepareShockwaves(RenderView& view);
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
-		void DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit = true);
+		void DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit = true, float customAspect = 0.0f);
 		void DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit = true);
 		void PrepareSmokeParticles(RenderView& view);
 		void PrepareSparkParticles(RenderView& view);
@@ -458,7 +462,7 @@ namespace TEN::Renderer
 		void DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
 		void DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
 		void DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass);
-		void DrawMoveableMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererRoom* room, int boneIndex, RenderView& view, RendererPass rendererPass);
+		void DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass);
 		void PrepareSimpleParticles(RenderView& view);
 		void PrepareStreamers(RenderView& view);
 		void PrepareFootprints(RenderView& view);
@@ -580,9 +584,20 @@ namespace TEN::Renderer
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
 		{
 			return !(blendMode == BlendMode::Opaque ||
-				blendMode == BlendMode::AlphaTest ||
-				blendMode == BlendMode::Additive ||
-				blendMode == BlendMode::FastAlphaBlend);
+					 blendMode == BlendMode::AlphaTest ||
+					 blendMode == BlendMode::Additive ||
+					 blendMode == BlendMode::FastAlphaBlend);
+		}
+
+		static inline BlendMode GetBlendModeFromAlpha(BlendMode blendMode, float alpha)
+		{
+			if (alpha < ALPHA_BLEND_THRESHOLD &&
+				(blendMode == BlendMode::Opaque || blendMode == BlendMode::AlphaTest || blendMode == BlendMode::FastAlphaBlend))
+			{
+				return BlendMode::AlphaBlend;
+			}
+
+			return blendMode;
 		}
 
 		inline RendererObject& GetStaticRendererObject(short objectNumber)
@@ -597,7 +612,7 @@ namespace TEN::Renderer
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Create();
-		void Initialize(int w, int h, bool windowed, HWND handle);
+		void Initialize(const std::string& gameDir, int w, int h, bool windowed, HWND handle);
 		void ReloadShaders(bool recompileAAShaders = false);
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);
@@ -615,12 +630,15 @@ namespace TEN::Renderer
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, D3DCOLOR color, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags);
+		void AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags);
 		void AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 		void FreeRendererData();
 		void AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash = 0);
 		void AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash = 0);
 		void RenderLoadingScreen(float percentage);
 		void RenderFreezeMode(float interpFactor, bool staticBackground);
+		void RenderFullScreenTexture(ID3D11ShaderResourceView* texture, float aspect);
+		void UpdateVideoTexture(Texture2D* texture);
 		void UpdateProgress(float value);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
@@ -653,6 +671,7 @@ namespace TEN::Renderer
 		void UpdateItemAnimations(int itemNumber, bool force);
 		std::vector<BoundingSphere> GetSpheres(int itemNumber);
 		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
+		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void SetLoadingScreen(std::wstring& fileName);
 		void SetTextureOrDefault(Texture2D& texture, std::wstring path);
@@ -680,7 +699,9 @@ namespace TEN::Renderer
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
 
-		void			SetGraphicsSettingsChanged();
+		void SetGraphicsSettingsChanged();
+
+		RendererDebugPage GetDebugPage() const;
 	};
 
 	extern Renderer g_Renderer;

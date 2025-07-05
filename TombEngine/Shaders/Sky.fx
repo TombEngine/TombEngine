@@ -41,6 +41,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	float3 light = saturate(Color.xyz - float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w) * 1.4f);
 	output.xyz *= light;
 	output.xyz += saturate(input.FogBulbs.xyz);
+	output.w *= Color.w;
 
 	return output;
 }

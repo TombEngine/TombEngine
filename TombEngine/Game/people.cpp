@@ -16,6 +16,9 @@ bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short ex
 	auto* creature = GetCreatureInfo(item);
 	auto* enemy = creature->Enemy;
 
+	if (enemy == nullptr)
+		return false;
+
 	bool hasHit = false;
 	bool isTargetable = false;
 
@@ -91,7 +94,7 @@ short GunMiss(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 short GunHit(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	auto pos = GetJointPosition(LaraItem, (25 * GetRandomControl()) >> 15);
+	auto pos = GetJointPosition(LaraItem, Random::GenerateInt(0, NUM_LARA_MESHES - 1));
 	DoBloodSplat(pos.x, pos.y, pos.z, (GetRandomControl() & 3) + 3, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 	return GunShot(x, y, z, velocity, yRot, roomNumber);
 }
@@ -103,8 +106,7 @@ short GunShot(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 bool Targetable(ItemInfo* item, AI_INFO* ai)
 {
-	// Discard it entity is not a creature (only creatures can use Targetable())
-	// or if the target is not visible.
+	// Discard it entity is not a creature (only creatures can use Targetable()) or if the target is not visible.
 	if (!item->IsCreature() || !ai->ahead || ai->distance >= SQUARE(MAX_VISIBILITY_DISTANCE))
 		return false;
 
@@ -114,7 +116,7 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	if (creature->Enemy == nullptr)
 		return false;
 
-	// Only Lara or a creature may be targeted.
+	// Only player or a creature may be targeted.
 	if ((!enemy->IsCreature() && !enemy->IsLara()) || enemy->HitPoints <= 0)
 		return false;
 
@@ -136,7 +138,7 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	Vector3i vector = {};
 	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh);
 	if (losItemIndex == item->Index)
-		losItemIndex = NO_LOS_ITEM; // Don't find itself
+		losItemIndex = NO_LOS_ITEM; // Don't find itself.
 
 	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
 }

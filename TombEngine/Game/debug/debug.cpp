@@ -13,7 +13,8 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Debug
 {
-	static auto StartTime = std::chrono::high_resolution_clock::time_point{};
+	static auto startTime = std::chrono::high_resolution_clock::time_point{};
+	static auto prevString = std::string();
 
 	void InitTENLog(const std::string& logDirContainingDir)
 	{
@@ -40,7 +41,6 @@ namespace TEN::Debug
 
 	void TENLog(const std::string_view& msg, LogLevel level, LogConfig config, bool allowSpam)
 	{
-		static auto prevString = std::string();
 		if (prevString == msg && !allowSpam)
 			return;
 
@@ -51,6 +51,10 @@ namespace TEN::Debug
 		}
 
 		auto logger = spdlog::get("multi_sink");
+
+		if (!logger)
+			return;
+
 		switch (level)
 		{
 		case LogLevel::Error:
@@ -73,13 +77,13 @@ namespace TEN::Debug
 
 	void StartDebugTimer()
 	{
-		StartTime = std::chrono::high_resolution_clock::now();
+		startTime = std::chrono::high_resolution_clock::now();
 	}
 
 	void EndDebugTimer()
 	{
 		auto endTime = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - StartTime);
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
 		
 		PrintDebugMessage("Execution (microseconds): %d", duration);
 	}

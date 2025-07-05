@@ -957,35 +957,9 @@ namespace TEN::Entities::Vehicles
 							laraItem->Animation.TargetState = JS_FWD_LEFT;
 						else if (IsHeld(In::Right))
 							laraItem->Animation.TargetState = JS_FWD_RIGHT;
+						else
+							laraItem->Animation.TargetState = JS_IDLE;
 					}
-
-	/*				if (!(IsClicked(In::Walk)))
-					{
-						if (!(IsClicked(In::Sprint)))
-						{
-							if (IsHeld(In::Accelerate) && !IsHeld(In::Brake))
-							{
-								laraItem->TargetState = JS_DRIVE_FORWARD;
-								break;
-							}
-							else if (IsHeld(In::Left))
-								laraItem->TargetState = JS_FWD_LEFT;
-							else if (IsHeld(In::Right))
-								laraItem->TargetState = JS_FWD_RIGHT;
-						}
-						else if (jeep->Gear < 1)
-						{
-							jeep->Gear++;
-							if (jeep->Gear == 1)
-								laraItem->TargetState = JS_DRIVE_BACK;
-
-						}
-					}
-					else
-					{
-						if (jeep->Gear)
-							jeep->Gear--;
-					}*/
 				}
 
 				break;
@@ -1018,11 +992,11 @@ namespace TEN::Entities::Vehicles
 				}
 
 				break;
-
-			case 2:
-			case 3:
-			case 4:
-			case 5:
+				
+			case JS_CRASH_RIGHT:
+			case JS_CRASH_BACK:
+			case JS_CRASH_LEFT:
+			case JS_CRASH_FORWARD:
 				if (dead)
 					laraItem->Animation.TargetState = JS_IDLE;
 				else if (IsHeld(In::Accelerate) || IsHeld(In::Brake))

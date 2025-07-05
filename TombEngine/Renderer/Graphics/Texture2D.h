@@ -144,48 +144,6 @@ namespace TEN::Renderer::Graphics
 			Height = desc.Height;
 		}
 
-		Texture2D(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, int x, int y, int width, int height)
-		{
-			Width = width;
-			Height = height;
-
-			D3D11_TEXTURE2D_DESC fromDesc = {};
-			texture->GetDesc(&fromDesc);
-
-			auto desc = D3D11_TEXTURE2D_DESC{};
-			desc.Width = width;
-			desc.Height = height;
-			desc.Format = fromDesc.Format;
-			desc.CPUAccessFlags = 0;
-			desc.MiscFlags = 0;
-			desc.MipLevels = 1;
-			desc.ArraySize = 1;
-			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			desc.SampleDesc.Count = 1;
-			desc.SampleDesc.Quality = 0;
-			desc.Usage = D3D11_USAGE_DEFAULT;
-
-			throwIfFailed(device->CreateTexture2D(&desc, nullptr, &Texture));
-
-			D3D11_BOX sourceRegion;
-			sourceRegion.left = x;
-			sourceRegion.right = x + width;
-			sourceRegion.top = y;
-			sourceRegion.bottom = y + height;
-			sourceRegion.front = 0;
-			sourceRegion.back = 1;
-
-			context->CopySubresourceRegion(Texture.Get(), 0, 0, 0, 0, texture, 0, &sourceRegion);
-
-			auto shaderDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
-			shaderDesc.Format = desc.Format;
-			shaderDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			shaderDesc.Texture2D.MostDetailedMip = 0;
-			shaderDesc.Texture2D.MipLevels = 1;
-
-			throwIfFailed(device->CreateShaderResourceView(Texture.Get(), &shaderDesc, ShaderResourceView.GetAddressOf()));
-		}
-
 		~Texture2D() = default;
 	};
 }

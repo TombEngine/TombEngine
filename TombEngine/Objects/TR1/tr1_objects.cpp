@@ -26,9 +26,10 @@
 
 // Traps
 #include "Objects/TR1/Trap/DamoclesSword.h"
+#include "Objects/TR1/Trap/ElectricBall.h"
+#include "Objects/TR1/Trap/ThorHammer.h"
 #include "Objects/TR1/Trap/SlammingDoors.h"
 #include "Objects/TR1/Trap/SwingingBlade.h"
-#include "Objects/TR1/Trap/ElectricBall.h"
 
 using namespace TEN::Entities::Creatures::TR1;
 using namespace TEN::Entities::Traps;
@@ -247,6 +248,26 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeDamoclesSword;
 		obj->control = ControlDamoclesSword;
 		obj->collision = CollideDamoclesSword;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
+	
+	obj = &Objects[ID_THOR_HAMMER_HANDLE];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HEAD, "Thor hammer");
+		obj->Initialize = InitializeThorHammer;
+		obj->collision = CollideThorHammerHandle;
+		obj->control = ControlThorHammer;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_THOR_HAMMER_HEAD];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HANDLE, "Thor hammer");
+		obj->collision = CollideThorHammer;
 		obj->shadowType = ShadowMode::All;
 		obj->SetHitEffect(true);
 	}

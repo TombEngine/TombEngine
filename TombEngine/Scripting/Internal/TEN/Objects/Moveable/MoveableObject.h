@@ -54,6 +54,7 @@ public:
 	Vec3 GetJointPos(int jointID, sol::optional<Vec3> offset) const;
 	Rotation GetJointRot(int index) const;
 	Rotation GetRotation() const;
+	Vec3 GetScale() const;
 	int GetStateNumber() const;
 	int GetTargetStateNumber() const;
 	int GetAnimNumber() const;
@@ -84,6 +85,7 @@ public:
 	std::unique_ptr<Room> GetRoom() const;
 	int GetRoomNumber() const;
 	void SetRotation(const Rotation& rot);
+	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
 	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex);
 	void SetFrameNumber(int frameNumber);
@@ -113,8 +115,10 @@ public:
 	void Invalidate();
 	void Destroy();
 	void ShatterMesh(int meshId);
-	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex);
+	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
+	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);

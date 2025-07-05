@@ -37,8 +37,8 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Vector4 FogColor;
 		//--
-		int FogMinDistance;
-		int FogMaxDistance;
+		float FogMinDistance;
+		float FogMaxDistance;
 		float NearPlane;
 		float FarPlane;
 		//--

@@ -871,7 +871,6 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
-	player.Control.Weapon.Fired = true;
 
 	auto vOrigin = GameVector(pos);
 	short roomNumber = laraItem.RoomNumber;
@@ -881,13 +880,13 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	if (targetEntity == nullptr)
 	{
 		auto vTarget = GameVector(target);
-		GetTargetOnLOS(&vOrigin, &vTarget, false, true);
+		GetTargetOnLOS(&vOrigin, &vTarget);
 		return FireWeaponType::Miss;
 	}
 
 	auto spheres = targetEntity->GetSpheres();
 	int closestJointIndex = NO_VALUE;
-	float closestDist = INFINITY;
+	float closestDist = FLT_MAX;
 	for (int i = 0; i < spheres.size(); i++)
 	{
 		float dist = 0.0f;
@@ -904,7 +903,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	if (closestJointIndex == NO_VALUE)
 	{
 		auto vTarget = GameVector(target);
-		GetTargetOnLOS(&vOrigin, &vTarget, false, true);
+		GetTargetOnLOS(&vOrigin, &vTarget);
 		return FireWeaponType::Miss;
 	}
 	else
@@ -914,7 +913,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 
 		// NOTE: It seems that entities hit by the player in the normal way must have GetTargetOnLOS return false.
 		// It's strange, but this replicates original behaviour until we fully understand what is happening.
-		if (!GetTargetOnLOS(&vOrigin, &vTarget, false, true))
+		if (!GetTargetOnLOS(&vOrigin, &vTarget))
 			HitTarget(&laraItem, targetEntity, &vTarget, weapon.Damage, false, closestJointIndex);
 
 		return FireWeaponType::PossibleHit;
@@ -942,8 +941,8 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 
 	ItemInfo* closestEntityPtr = nullptr;
 
-	float closestDistance = INFINITY;
-	short closestHeadingAngle = MAXSHORT;
+	float closestDistance = FLT_MAX;
+	short closestHeadingAngle = SHRT_MAX;
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
