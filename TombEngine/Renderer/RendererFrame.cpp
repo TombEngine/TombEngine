@@ -516,7 +516,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::CollectStatics(int roomNumber, RenderView& renderView)
+	void Renderer::CollectStatics(short roomNumber, RenderView& renderView)
 	{
 		if (_rooms.size() <= roomNumber)
 			return;
