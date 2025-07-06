@@ -1455,13 +1455,15 @@ end
 local function escapeXMLContent(str)
    if not str then return str end
 
-   -- Replace special XML characters
-   str = str:gsub("&", "&amp;")
+   -- Replace &#44; with the comma character
+   str = str:gsub("&#44;", ",")
 
-   -- Replace <br> with XML-friendly <br /> and escape special characters
-   str = str:gsub("<br>", "&lt;br /&gt;")
-   str = str:gsub("<br/>", "&lt;br /&gt;")
-   str = str:gsub("<br />", "&lt;br /&gt;")
+   -- Replace special characters with their XML entities
+   str = str:gsub("&", "&amp;")
+   str = str:gsub("<", "&lt;")
+   str = str:gsub(">", "&gt;")
+   str = str:gsub('"', "&quot;")
+   str = str:gsub("'", "&apos;")
 
    return str
 end
@@ -1502,6 +1504,17 @@ local function writeParameters(writer, item, moduleName, funcName)
       end
 
       writeXMLElement(writer, 'type', paramType)
+
+      -- Check if parameter is optional and get default value
+      local defaultValue = item:default_of_param(p)
+
+      if defaultValue then
+         writeXMLElement(writer, 'optional', 'true')
+
+         if defaultValue ~= true then
+            writeXMLElement(writer, 'defaultValue', tostring(defaultValue))
+         end
+      end
 
       local descText = trim(item.params.map[p])
       writeXMLElementWithContent(writer, 'description', descText)
