@@ -488,7 +488,7 @@ namespace TEN::Scripting::Effects
 		constexpr auto DEFAULT_DENSITY = 1.0f;
 
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
-		int rad = (float)(ValueOr<int>(radius, 20) * BLOCK(0.25f));
+		int rad = (float)(ValueOr<int>(radius, 20));
 		int dens = (float)(ValueOr<float>(density, DEFAULT_DENSITY));
 		SpawnDynamicFogBulb(pos.ToVector3(), rad, dens, color, GetHash(ValueOr<std::string>(name, std::string())));
 	}

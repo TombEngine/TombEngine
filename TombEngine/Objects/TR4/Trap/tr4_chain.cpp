@@ -17,7 +17,19 @@ namespace TEN::Entities::Traps
 	constexpr auto PENDULUM_FIRE_FOG_RADIUS = 4;
 	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
 
-	void TriggerPendulumFlame(int itemNumber, Vector3i pos)
+	enum PendulumFlags
+	{
+		PUSH_ITEM = 0,
+		COLLIDE_BITS = 2,
+		FLAME_EFFECT = 3,
+		OBJ_PUSH = 4,
+		FIRE_COLOR_R = 5,
+		FIRE_COLOR_G = 6,
+		FIRE_COLOR_B = 7
+	};
+
+
+	void TriggerPendulumFlame(int itemNumber, Vector3i pos, Color color)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
@@ -26,9 +38,9 @@ namespace TEN::Entities::Traps
 		spark->sR = (GetRandomControl() & 0x1F) + 48;
 		spark->sG = spark->sR >> 1;
 		spark->sB = 0;
-		spark->dR = (GetRandomControl() & 0x3F) + 192;
-		spark->dG = (GetRandomControl() & 0x3F) + 128;
-		spark->dB = 32;
+		spark->dR = color.x;
+		spark->dG = color.y;
+		spark->dB = color.z;
 		spark->colFadeSpeed = (GetRandomControl() & 3) + 12;
 		spark->fadeToBlack = 8;
 
@@ -59,13 +71,13 @@ namespace TEN::Entities::Traps
 		spark->scalar = spark->life < 32 ? 4 : 3;
 		spark->size = (GetRandomControl() & 7) + 20;
 		spark->sSize = spark->size;
-		spark->dSize = static_cast<int>(spark->size) >> 2;
+		spark->dSize = static_cast<int>(spark->size) >> 3;
 
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = 0;
 	}
 
-	void TriggerPendulumSpark(const GameVector& pos, const EulerAngles& angle, float length, int count)
+	void TriggerPendulumSpark(const GameVector& pos, const EulerAngles& angle, float length, int count, Color color)
 	{
 		for (int i = 0; i < count; i++)
 		{
@@ -84,8 +96,13 @@ namespace TEN::Entities::Traps
 			Vector3 v = Vector3(sin(ang), vAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
 			v.Normalize(v);
 			s.velocity =  v* Random::GenerateFloat(32, 64);
-			s.sourceColor = Vector4(1, 0.7f, 0.4f, 1);
-			s.destinationColor = Vector4(0.4f, 0.1f, 0, 0.5f);
+
+			auto sourceColorR = std::clamp(color.x - 0.2f, 0.0f, 1.0f);
+			auto sourceColorG = std::clamp(color.y - 0.2f, 0.0f, 1.0f);
+			auto sourceColorB = std::clamp(color.z - 0.2f, 0.0f, 1.0f);
+
+			s.sourceColor = Vector4(sourceColorR, sourceColorG, sourceColorB, 1);
+			s.destinationColor = Vector4(color.x, color.y, color.z, 0.5f);
 			s.active = true;
 		}
 	}    
@@ -97,22 +114,58 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
+		
+
+
 		if (item.TriggerFlags < 0)
 		{
-			item.ItemFlags[2] = 1;
-			item.ItemFlags[3] = 75;
-			item.ItemFlags[5] = 1; // Set the item on fire when collide.
+			int damage = abs(item.TriggerFlags);
+
+			item.ItemFlags[PendulumFlags::COLLIDE_BITS] = 1;
+			item.ItemFlags[PendulumFlags::FLAME_EFFECT] = 1; // Set the item on fire when collide.
 
 			if (TriggerActive(&item))
 			{
-				item.ItemFlags[0] = 1;
+				item.ItemFlags[PendulumFlags::PUSH_ITEM] = 1;
 				AnimateItem(&item);
 
 				auto pos = GetJointPosition(item, 4, Vector3i(0, 260, 0));
 				auto angle = GetBoneOrientation(item, 5);
-				unsigned char r = 51 - ((GetRandomControl() / 16) & 6);
-				unsigned char g = 44 - ((GetRandomControl() / 64) & 6);
-				unsigned char b = GetRandomControl() & 10;
+
+				item.ItemFlags[PendulumFlags::FIRE_COLOR_R] = 0;
+				item.ItemFlags[PendulumFlags::FIRE_COLOR_G] = 0;
+				item.ItemFlags[PendulumFlags::FIRE_COLOR_B] = 255;
+
+
+				unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R] ;
+				unsigned char g = item.ItemFlags[PendulumFlags::FIRE_COLOR_G] ;
+				unsigned char b = item.ItemFlags[PendulumFlags::FIRE_COLOR_B] ;
+
+				Vector3 flameColor1 = Vector3::Zero;
+				Vector3 flameColor2 = Vector3::Zero;
+
+				if (item.ItemFlags[PendulumFlags::FIRE_COLOR_R] == 0 &&
+					item.ItemFlags[PendulumFlags::FIRE_COLOR_G] == 0 &&
+					item.ItemFlags[PendulumFlags::FIRE_COLOR_B] == 0)
+				{
+					 r = 51 - ((GetRandomControl() / 16) & 6);
+					 g = 44 - ((GetRandomControl() / 64) & 6);
+					 b = GetRandomControl() & 10;	
+
+					// flameColor1 = Vector3(sourceColorR, sourceColorG, sourceColorB);
+					// flameColor2 = Vector3(r, g, b);
+				}
+				else
+				{
+					auto sourceColorR = std::clamp(r + 0.2f, 0.0f, 1.0f);
+					auto sourceColorG = std::clamp(g + 0.2f, 0.0f, 1.0f);
+					auto sourceColorB = std::clamp(b + 0.2f, 0.0f, 1.0f);
+
+					flameColor1 = Vector3(sourceColorR, sourceColorG, sourceColorB);
+					flameColor2 = Vector3(r, g, b);
+				}
+
+
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 12, r, g, b);
 
 				r += 125 - ((GetRandomControl() / 16) & 4);
@@ -121,38 +174,37 @@ namespace TEN::Entities::Traps
 				auto color = Color(r / (float)CHAR_MAX, g / (float)CHAR_MAX, b / (float)CHAR_MAX);
 
 				SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
-				TriggerPendulumFlame(itemNumber, pos);
-				TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGHT, 1);
+				TriggerPendulumFlame(itemNumber, pos, color);
+				TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGHT, 1, color);
+				//TriggerAttackFlame(pos, Vector3(r, g, b), 22);
+				TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, flameColor1, flameColor2);
 
 				return;
 			}
 		}
 		else if (item.TriggerFlags > 0)
 		{
-			item.ItemFlags[2] = 1;
-			item.ItemFlags[3] = 75;
-			item.ItemFlags[5] = 0;
+			item.ItemFlags[PendulumFlags::COLLIDE_BITS] = 1;
+			item.ItemFlags[PendulumFlags::FLAME_EFFECT] = 0;
 
 			if (TriggerActive(&item))
 			{
-				item.ItemFlags[0] = 1;
+				item.ItemFlags[PendulumFlags::PUSH_ITEM] = 1;
 				AnimateItem(&item);
 				return;
 			}
 		} 
 		else
 		{
-			item.ItemFlags[3] = 25;
-
 			if (TriggerActive(&item))
 			{
-				*(int*)&item.ItemFlags[0] = 0x780;
+				*(int*)&item.ItemFlags[PendulumFlags::PUSH_ITEM] = 0x780;
 				AnimateItem(&item);
 				return;
 			}
 		}
 
-		item.ItemFlags[0] = 0;
+		item.ItemFlags[PendulumFlags::PUSH_ITEM] = 0;
 	}
 
 	void CollideChain(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
@@ -174,10 +226,10 @@ namespace TEN::Entities::Traps
 		item.Pose.Orientation.y = prevYOrient;
 
 		auto collidedBits = item.TouchBits;
-		if (item.ItemFlags[2] != 0)
+		if (item.ItemFlags[PendulumFlags::COLLIDE_BITS] != 0)
 			collidedBits.Clear(0);
 
-		coll->Setup.EnableObjectPush = (item.ItemFlags[4] == 0);
+		coll->Setup.EnableObjectPush = (item.ItemFlags[PendulumFlags::OBJ_PUSH] == 0);
 
 		// Handle push and damage.
 		for (int i = 0; i < spheres.size(); i++)
@@ -194,11 +246,18 @@ namespace TEN::Entities::Traps
 				GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
 
 				auto pos = playerItem->Pose.Position;
-				if (ItemPushItem(&item, playerItem, coll, item.ItemFlags[0], 3) && (item.ItemFlags[0]))
+				if (ItemPushItem(&item, playerItem, coll, item.ItemFlags[PendulumFlags::PUSH_ITEM], 3) && (item.ItemFlags[PendulumFlags::PUSH_ITEM]))
 				{
-					DoDamage(playerItem, item.ItemFlags[3]);
+					if (item.TriggerFlags < 0)
+					{
+						DoDamage(playerItem, abs(item.TriggerFlags));
+					}
+					else 
+					{
+						DoDamage(playerItem, item.TriggerFlags);
+					}
 
-					if (item.ItemFlags[5])
+					if (item.ItemFlags[PendulumFlags::FLAME_EFFECT])
 						TEN::Effects::Items::ItemBurn(playerItem);
 
 					auto deltaPos = pos - playerItem->Pose.Position;
