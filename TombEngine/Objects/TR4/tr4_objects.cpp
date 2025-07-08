@@ -776,6 +776,7 @@ namespace TEN::Entities
 		obj = &Objects[ID_CHAIN];
 		if (obj->loaded)
 		{
+			obj->Initialize = InitializeChain;
 			obj->control = ControlChain;
 			obj->collision = CollideChain;	
 			obj->SetHitEffect(true);

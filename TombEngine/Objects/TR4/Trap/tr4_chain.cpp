@@ -20,6 +20,7 @@ namespace TEN::Entities::Traps
 	enum PendulumFlags
 	{
 		PUSH_ITEM = 0,
+		FLAME_MESH = 1,
 		COLLIDE_BITS = 2,
 		FLAME_EFFECT = 3,
 		OBJ_PUSH = 4,
@@ -27,7 +28,6 @@ namespace TEN::Entities::Traps
 		FIRE_COLOR_G = 6,
 		FIRE_COLOR_B = 7
 	};
-
 
 	void TriggerPendulumFlame(int itemNumber, Vector3i pos, Color color)
 	{
@@ -107,15 +107,23 @@ namespace TEN::Entities::Traps
 		}
 	}    
 
+	void InitializeChain(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		item.ItemFlags[PendulumFlags::FLAME_MESH] = 4;
+
+		item.ItemFlags[PendulumFlags::FIRE_COLOR_R] = 0;
+		item.ItemFlags[PendulumFlags::FIRE_COLOR_G] = 0;
+		item.ItemFlags[PendulumFlags::FIRE_COLOR_B] = 0;
+	}
+
 	void ControlChain(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
 		if (!TriggerActive(&item))
 			return;
-
-		
-
 
 		if (item.TriggerFlags < 0)
 		{
@@ -129,17 +137,14 @@ namespace TEN::Entities::Traps
 				item.ItemFlags[PendulumFlags::PUSH_ITEM] = 1;
 				AnimateItem(&item);
 
-				auto pos = GetJointPosition(item, 4, Vector3i(0, 260, 0));
+				auto flameMesh = item.ItemFlags[PendulumFlags::FLAME_MESH];
+
+				auto pos = GetJointPosition(item, flameMesh, Vector3i(0, 260, 0));
 				auto angle = GetBoneOrientation(item, 5);
 
-				//item.ItemFlags[PendulumFlags::FIRE_COLOR_R] = 0;
-				//item.ItemFlags[PendulumFlags::FIRE_COLOR_G] = 0;
-				//item.ItemFlags[PendulumFlags::FIRE_COLOR_B] = 255;
-
-
-				unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R] ;
-				unsigned char g = item.ItemFlags[PendulumFlags::FIRE_COLOR_G] ;
-				unsigned char b = item.ItemFlags[PendulumFlags::FIRE_COLOR_B] ;
+				unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R];
+				unsigned char g = item.ItemFlags[PendulumFlags::FIRE_COLOR_G];
+				unsigned char b = item.ItemFlags[PendulumFlags::FIRE_COLOR_B];
 
 				Vector3 flameColor1 = Vector3::Zero;
 				Vector3 flameColor2 = Vector3::Zero;
@@ -151,9 +156,6 @@ namespace TEN::Entities::Traps
 					 r = 51 - ((GetRandomControl() / 16) & 6);
 					 g = 44 - ((GetRandomControl() / 64) & 6);
 					 b = GetRandomControl() & 10;	
-
-					// flameColor1 = Vector3(sourceColorR, sourceColorG, sourceColorB);
-					// flameColor2 = Vector3(r, g, b);
 				}
 				else
 				{
@@ -165,7 +167,6 @@ namespace TEN::Entities::Traps
 					flameColor2 = Vector3(r, g, b);
 				}
 
-
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 12, r, g, b);
 
 				r += 125 - ((GetRandomControl() / 16) & 4);
@@ -176,7 +177,6 @@ namespace TEN::Entities::Traps
 				SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
 				TriggerPendulumFlame(itemNumber, pos, color);
 				TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGHT, 1, color);
-				//TriggerAttackFlame(pos, Vector3(r, g, b), 22);
 				TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, flameColor1, flameColor2);
 
 				return;
