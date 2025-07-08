@@ -132,9 +132,9 @@ namespace TEN::Entities::Traps
 				auto pos = GetJointPosition(item, 4, Vector3i(0, 260, 0));
 				auto angle = GetBoneOrientation(item, 5);
 
-				item.ItemFlags[PendulumFlags::FIRE_COLOR_R] = 0;
-				item.ItemFlags[PendulumFlags::FIRE_COLOR_G] = 0;
-				item.ItemFlags[PendulumFlags::FIRE_COLOR_B] = 255;
+				//item.ItemFlags[PendulumFlags::FIRE_COLOR_R] = 0;
+				//item.ItemFlags[PendulumFlags::FIRE_COLOR_G] = 0;
+				//item.ItemFlags[PendulumFlags::FIRE_COLOR_B] = 255;
 
 
 				unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R] ;
