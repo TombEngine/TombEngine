@@ -2251,7 +2251,6 @@ namespace TEN::Renderer
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)

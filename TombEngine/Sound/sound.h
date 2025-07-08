@@ -8,8 +8,8 @@
 constexpr auto SOUND_NO_CHANNEL              = -1;
 constexpr auto SOUND_SAMPLE_RATE             = 44100;
 constexpr auto SOUND_CHANNEL_COUNT           = 2;
-constexpr auto SOUND_BASS_UNITS              = 1.0f / 1024.0f;	// TR->BASS distance unit coefficient
-constexpr auto SOUND_MAXVOL_RADIUS           = 1024.0f;		// Max. volume hearing distance
+constexpr auto SOUND_BASS_UNITS              = 1.0f / 420.0f;	// TR->BASS distance unit coefficient (in meters)
+constexpr auto SOUND_MAXVOL_RADIUS           = 1024.0f;			// Max. volume hearing distance
 constexpr auto SOUND_OMNIPRESENT_ORIGIN      = Vector3(1.17549e-038f, 1.17549e-038f, 1.17549e-038f);
 constexpr auto SOUND_MAX_SAMPLES             = 8192;
 constexpr auto SOUND_MAX_CHANNELS            = 32;

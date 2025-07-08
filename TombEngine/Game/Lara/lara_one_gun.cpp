@@ -1606,6 +1606,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 				}
 				else if (currentObject.damageType == DamageMode::Any)
 				{
+					auto hitPoint = GameVector(GameBoundingBox(itemPtr).GetCenter() + itemPtr->Pose.Position.ToVector3(), itemPtr->RoomNumber);
+
 					if (type == ProjectileType::Poison)
 					{
 						if (itemPtr->IsCreature())
@@ -1613,10 +1615,12 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 						if (itemPtr->IsLara())
 							GetLaraInfo(itemPtr)->Status.Poison += 5;
+
+						HitTarget(&emitter, itemPtr, &hitPoint, 0, false);
 					}
 					else
 					{
-						DoDamage(itemPtr, damage);
+						HitTarget(&emitter, itemPtr, &hitPoint, damage, false);
 					}
 				}
 			}

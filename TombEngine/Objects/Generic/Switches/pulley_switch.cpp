@@ -125,6 +125,7 @@ namespace TEN::Entities::Switches
 						laraItem->Animation.AnimNumber = isUnderwater ? LA_UNDERWATER_PULLEY_GRAB : LA_PULLEY_GRAB;
 						laraItem->Animation.ActiveState = LS_PULLEY;
 						laraItem->Animation.TargetState = LS_PULLEY;
+						laraItem->Animation.Velocity = Vector3::Zero;
 						laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
 						laraInfo->Control.IsMoving = false;
 						laraInfo->Control.HandStatus = HandStatus::Busy;

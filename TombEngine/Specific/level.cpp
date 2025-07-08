@@ -38,6 +38,8 @@ using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 
+constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";
+
 const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS =
 {
 	ID_EXPANDING_PLATFORM,
@@ -1503,20 +1505,24 @@ bool LoadLevel(const std::string& path, bool partial)
 		LastLevelFilePath = path;
 		LastLevelHash = levelHash;
 		LastLevelTimestamp = std::filesystem::last_write_time(path);
-		
-		TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
-		// Check if level version is higher than engine version
-		auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
-		for (int i = 0; i < assemblyVersion.size(); i++)
+		// Only check version if this is not a dummy level, because dummy level is rarely updated.
+		if (path.find(DUMMY_LEVEL_NAME) == std::string_view::npos)
 		{
-			if (i >= 3)
-				break; // Don't compare revision number.
+			TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
-			if (assemblyVersion[i] != version[i])
+			// Check if level version is higher than engine version
+			auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
+			for (int i = 0; i < assemblyVersion.size(); i++)
 			{
-				TENLog("Level version is different from TEN version.", LogLevel::Warning);
-				break;
+				if (i >= 3)
+					break; // Don't compare revision number.
+
+				if (assemblyVersion[i] != version[i])
+				{
+					TENLog("Level version is different from TEN version.", LogLevel::Warning);
+					break;
+				}
 			}
 		}
 
@@ -1759,7 +1765,7 @@ bool LoadLevelFile(int levelIndex)
 	{
 		if (levelIndex == 0)
 		{
-			levelPath = assetDir + "dummy.ten";
+			levelPath = assetDir + DUMMY_LEVEL_NAME;
 			GenerateDummyLevel(levelPath);
 			TENLog("Title level file not found, using dummy level.", LogLevel::Info);
 			isDummyLevel = true;

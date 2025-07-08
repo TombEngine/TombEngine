@@ -462,6 +462,12 @@ namespace TEN::Renderer
 			if (!particle.on)
 				continue;
 
+			if (particle.DisableInterpolation)
+			{
+				particle.DisableInterpolation = false;
+				particle.StoreInterpolationData();
+			}
+
 			if (particle.flags & SP_DEF)
 			{
 				auto pos = Vector3::Lerp(

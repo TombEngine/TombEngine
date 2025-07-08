@@ -70,6 +70,7 @@ namespace TEN::Video
 		// Inquirers
 
 		bool IsPlaying() const;
+		bool IsBackgroundPlaybackQueued() const;
 
 		// Utilties
 

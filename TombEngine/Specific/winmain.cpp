@@ -431,7 +431,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	gameDir = ConstructAssetDirectory(gameDir);
 
 	// Hide console window if mode isn't debug.
-#ifndef _DEBUG
+#if !_DEBUG
 	if (!DebugMode)
 	{
 		FreeConsole();

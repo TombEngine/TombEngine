@@ -3,6 +3,45 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.9.2]
+
+### Bug fixes
+* Fixed ROLLINGBALL not stopped by full walls.
+* Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed projectile weapon hits not registering in statistics and collision callbacks.
+* Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
+* Fixed Doppler effect not applied to sounds.
+* Fixed HUD bars displaying incorrect update animation after loading savegame.
+
+## [Version 1.9.1]
+
+### New features
+* Added ability to open doors with draw weapon key in dozy mode.
+* Added headlight for UPV.
+* Use spotlight with shadow casting for motorbike headlight.
+
+### Bug fixes
+* Fixed WATERFALL_EMITTER performance and occasional game freezes, and make it work with OCB 0.
+* Fixed SENTRY_GUN object not tracking Lara at some angles.
+* Fixed ENEMY_JEEP object lifting all other objects in a level one block up.
+* Fixed ELECTRIC_CLEANER not following correct directions.
+* Fixed ROLLINGBALL interpolation and collision detection.
+* Fixed underwater drifting when using PULLEY object.
+* Fixed incorrect hardcoded sounds for the ZIPLINE_HANDLE.
+* Fixed JEEP vehicle locking incorrect Lara animation after using reverse.
+* Fixed inability to use revolver with lasersight in crouched state.
+* Fixed incorrect room collision for negative room coordinates.
+* Fixed exclusive video playback not working when triggered at the end of a level.
+* Fixed garbage particle positions in high FPS mode.
+* Fixed issues with garbage camera movement when switching between fixed cameras.
+* Fixed issues with sound initialization if sound device list has changed.
+
+### Lua API changes
+* Added `weatherClustering` setting to `Flow.Level`.
+* Fixed `Camera:SetPosition` interfering with non-fixed camera position.
+* Renamed `Camera:PlayCamera` to `Camera:Play`.
+
 ## [Version 1.9]
 
 ## New features

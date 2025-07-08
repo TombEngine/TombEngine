@@ -7,6 +7,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
+#include "Game/control/los.h"
 #include "Game/control/volume.h"
 #include "Game/effects/Hair.h"
 #include "Game/effects/item_fx.h"
@@ -690,6 +691,32 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 		item->HitPoints = LARA_HEALTH_MAX;
 		player.Control.HandStatus = HandStatus::Free;
 		player.ExtraAnim = NO_VALUE;
+	}
+
+	// Open doors in front by pressing the Draw button.
+	if (IsClicked(In::Draw))
+	{
+		auto origin = item->Pose.Position;
+		auto target = Geometry::TranslatePoint(item->Pose.Position, item->Pose.Orientation, BLOCK(2));
+		auto gameOrigin = GameVector(origin, item->RoomNumber);
+		auto gameTarget = GameVector(target, FindRoomNumber(target, item->RoomNumber, true));
+
+		Vector3i vector = {};
+		bool inSight = !LOS(&gameOrigin, &gameTarget);
+		int itemNumber = ObjectOnLOS2(&gameOrigin, &gameTarget, &vector, nullptr);
+
+		if (inSight && itemNumber != NO_LOS_ITEM)
+		{
+			auto distance = Vector3i::Distance(origin, vector);
+			auto objectName = GetObjectName(g_Level.Items[itemNumber].ObjectNumber);
+
+			if (distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			{
+				g_Level.Items[itemNumber].Flags |= CODE_BITS;
+				Trigger(itemNumber);
+			}
+		}
+
 	}
 }
 

@@ -243,13 +243,13 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
-	if ((g_Level.Items[itemNumber].TriggerFlags - 998) > 1)
+	if (g_Level.Items[itemNumber].TriggerFlags != 999)
 		ObjectCollision(itemNumber, laraItem, coll);
 
 	auto& receptacleItem = g_Level.Items[itemNumber];
 	auto& player = GetLaraInfo(*laraItem);
 
-	// NOTE: Only execute code below if Triggertype is switch trigger.
+	// NOTE: Only execute code below if Trigger type is switch trigger.
 	short* triggerIndexPtr = GetTriggerIndex(&receptacleItem);
 	if (triggerIndexPtr == nullptr)
 		return;

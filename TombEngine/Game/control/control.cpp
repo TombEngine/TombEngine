@@ -643,6 +643,7 @@ void InitializeOrLoadGame(bool loadGame)
 
 		InitializeGame = false;
 
+		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
 		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
@@ -699,6 +700,9 @@ GameStatus DoGameLoop(int levelIndex)
 
 			legacy30FpsDoneDraw = false;
 		}
+
+		if (g_VideoPlayer.IsBackgroundPlaybackQueued())
+			continue;
 
 		if (status != GameStatus::Normal)
 			break;
