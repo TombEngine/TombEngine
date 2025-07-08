@@ -35,6 +35,7 @@ public:
 	virtual bool GetStormEnabled() const = 0;
 	virtual bool GetRumbleEnabled() const = 0;
 	virtual float GetWeatherStrength() const = 0;
+	virtual bool GetWeatherClustering() const = 0;
 	virtual WeatherType GetWeatherType() const = 0;
 	virtual RGBAColor8Byte GetSkyLayerColor(int index) const = 0;
 	virtual RGBAColor8Byte GetFogColor() const = 0;

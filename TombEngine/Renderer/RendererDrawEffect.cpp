@@ -42,14 +42,16 @@ using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Splash;
+using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR5;
 using namespace TEN::Entities::Traps;
 using namespace TEN::Math;
-using namespace TEN::Effects::Fireflies;
+using namespace TEN::Renderer::Structures;
 
 extern BLOOD_STRUCT Blood[MAX_SPARKS_BLOOD];
 extern FIRE_SPARKS FireSparks[MAX_SPARKS_FIRE];
@@ -59,7 +61,6 @@ extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
 namespace TEN::Renderer 
 {
-	using namespace TEN::Renderer::Structures;
 
 	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
 		
@@ -460,6 +461,12 @@ namespace TEN::Renderer
 		{
 			if (!particle.on)
 				continue;
+
+			if (particle.DisableInterpolation)
+			{
+				particle.DisableInterpolation = false;
+				particle.StoreInterpolationData();
+			}
 
 			if (particle.flags & SP_DEF)
 			{
@@ -1640,11 +1647,6 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareSparkParticles(RenderView& view)
 	{
-		using TEN::Effects::Spark::SparkParticle;
-		using TEN::Effects::Spark::SparkParticles;
-
-		extern std::array<SparkParticle, 128> SparkParticles;
-
 		for (int i = 0; i < SparkParticles.size(); i++) 
 		{
 			auto& s = SparkParticles[i];

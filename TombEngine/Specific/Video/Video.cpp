@@ -4,6 +4,7 @@
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
+#include "Specific/trutils.h"
 #include "Specific/winmain.h"
 
 using namespace TEN::Input;
@@ -13,6 +14,7 @@ namespace TEN::Video
 	VideoHandler g_VideoPlayer = {};
 
 	static const std::string			  VIDEO_PATH	   = "FMV/";
+	static const std::wstring			  VIDEO_PLUGIN_CACHE_PATH = L"plugins/plugins.dat";
 	static const std::vector<std::string> VIDEO_EXTENSIONS = { ".mp4", ".avi", ".mkv", ".mov" };
 
 	int VideoHandler::GetPosition() const
@@ -144,17 +146,6 @@ namespace TEN::Video
 		HandleError();
 	}
 
-	void VideoHandler::SetVolume(int volume)
-	{
-		// Set volume even if player is not available because volume may be externally changed from settings.
-		_volume = std::clamp(volume, 0, 100);
-
-		if (_player != nullptr)
-			libvlc_audio_set_volume(_player, _silent ? 0.0f : _volume);
-
-		HandleError();
-	}
-
 	bool VideoHandler::IsPlaying() const
 	{
 		if (_player == nullptr)
@@ -164,18 +155,41 @@ namespace TEN::Video
 		return (state == libvlc_Playing);
 	}
 
+	bool VideoHandler::IsBackgroundPlaybackQueued() const
+	{
+		if (_player == nullptr || _playbackMode != VideoPlaybackMode::Exclusive)
+			return false;
+
+		// Using VLC player state is unsafe, because it runs in parallel, so we always return true.
+		return true;
+	}
+
 	void VideoHandler::Initialize(const std::string& gameDir, ID3D11Device* device, ID3D11DeviceContext* context)
 	{
 		TENLog("Initializing video player...", LogLevel::Info);
 
-		// Disable video output and title because rendering is done to a D3D texture.
-#ifdef _DEBUG
-		const char* args[] = { "--vout=none", "--no-video-title", "--no-media-library"};
-		_vlcInstance = libvlc_new(3, args);
+		auto pluginCachePath = GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
+
+		std::vector<const char*> vlcArgs;
+		vlcArgs.push_back("--vout=none");		 // Disable video output and title because rendering is done to a D3D texture.
+		vlcArgs.push_back("--aout=adummy");		 // Disable audio output because audio is routed to BASS.
+		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
+		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
+
+#if !_DEBUG
+		vlcArgs.push_back("--quiet");			 // Don't generate excessive VLC warnings in the console.
+#endif
+
+		if (!std::filesystem::is_regular_file(pluginCachePath))
+		{
+			TENLog("Rebuilding video plugin cache", LogLevel::Info);
+			vlcArgs.push_back("--reset-plugins-cache");
+		}
+
+		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
+
+#if _DEBUG
 		//libvlc_log_set(_vlcInstance, OnLog, nullptr);
-#else
-		const char* args[] = { "--vout=none", "--no-video-title", "--no-media-library", "--quiet" };
-		_vlcInstance = libvlc_new(4, args);
 #endif
 
 		HandleError();
@@ -283,11 +297,17 @@ namespace TEN::Video
 			return false;
 		}
 
-		libvlc_video_set_callbacks(_player, OnLockFrame, OnUnlockFrame, nullptr, this);
-		libvlc_video_set_format_callbacks(_player, OnSetup, nullptr);
-		libvlc_media_player_play(_player);
+		// Route sound data to BASS, if video is not played in silent mode.
+		if (!_silent)
+		{
+			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
+			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
+		}
 
-		SetVolume(_volume);
+		// Route video data to D3D texture and play video.
+		libvlc_video_set_callbacks(_player, OnLockFrame, OnUnlockFrame, nullptr, this);
+		libvlc_video_set_format_callbacks(_player, OnVideoSetup, nullptr);
+		libvlc_media_player_play(_player);
 
 		if (!HandleError())
 			return false;
@@ -296,7 +316,7 @@ namespace TEN::Video
 		TENLog("Playing video file: " + filePath.filename().string() + " (" + (mode == VideoPlaybackMode::Exclusive ? "Exclusive" : "Background") + " mode)", LogLevel::Info);
 
 		if (_playbackMode == VideoPlaybackMode::Exclusive)
-			PauseAllSounds(SoundPauseMode::Global);
+			PauseAllSounds(SoundPauseMode::Pause);
 
 		// Starting flag is needed to avoid race conditions with asynchronous playback.
 		_starting = true;
@@ -425,7 +445,7 @@ namespace TEN::Video
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
-			ResumeAllSounds(SoundPauseMode::Global);
+			ResumeAllSounds(SoundPauseMode::Pause);
 		}
 
 		HandleError();
@@ -604,7 +624,16 @@ namespace TEN::Video
 		TENLog("VLC: " + std::string(logMgs), logLevel);
 	}
 
-	unsigned int VideoHandler::OnSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)
+	int VideoHandler::OnAudioSetup(void** data, char* format, unsigned* rate, unsigned* channels)
+	{
+		strncpy(format, "FL32", 4); // 32-bit float, little-endian (default format)
+		*rate = SOUND_SAMPLE_RATE;
+		*channels = SOUND_CHANNEL_COUNT;
+
+		return 0;
+	}
+
+	unsigned int VideoHandler::OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)
 	{
 		strncpy(chroma, "BGRA", 4);
 

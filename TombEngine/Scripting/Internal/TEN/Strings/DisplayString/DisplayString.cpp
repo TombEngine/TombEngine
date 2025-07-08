@@ -10,6 +10,8 @@
 
 using namespace TEN::Scripting::Types;
 
+static DisplayStringID _nextID = 0;
+
 /*** A string appearing on the screen.
 Can be used for subtitles and "2001, somewhere in Egypt"-style messages.
 
@@ -38,10 +40,7 @@ UserDisplayString::UserDisplayString(const std::string& key, const Vec2& pos, co
 
 DisplayString::DisplayString()
 {
-	// We don't ever dereference this pointer; it's just
-	// a handy way to get a unique key for a hash map.
-
-	_id = reinterpret_cast<DisplayStringID>(this);
+	_id = ++_nextID;
 }
 
 /*** Create a DisplayString.

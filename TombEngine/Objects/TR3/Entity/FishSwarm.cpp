@@ -144,7 +144,7 @@ namespace TEN::Entities::Creatures::TR3
 		// TODO: In future also check for other enemies like sharks or crocodile.
 		if (!item.ItemFlags[4] && TestGlobalTimeInterval(FISH_UPDATE_INTERVAL_TIME))
 		{
-			float closestDist = INFINITY;
+			float closestDist = FLT_MAX;
 			for (auto& targetItem : g_Level.Items)
 			{
 				if (!Objects.CheckID(targetItem.ObjectNumber, true) || targetItem.Index == itemNumber || targetItem.RoomNumber == NO_VALUE)
@@ -253,7 +253,7 @@ namespace TEN::Entities::Creatures::TR3
 		const auto& player = GetLaraInfo(playerItem);
 
 		const FishData* closestFishPtr = nullptr;
-		float minDistToTarget = INFINITY;
+		float minDistToTarget = FLT_MAX;
 		int minDist = INT_MAX;
 
 		int fishID = 0;

@@ -16,6 +16,9 @@ bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short ex
 	auto* creature = GetCreatureInfo(item);
 	auto* enemy = creature->Enemy;
 
+	if (enemy == nullptr)
+		return false;
+
 	bool hasHit = false;
 	bool isTargetable = false;
 
@@ -91,7 +94,7 @@ short GunMiss(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 short GunHit(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	auto pos = GetJointPosition(LaraItem, (25 * GetRandomControl()) >> 15);
+	auto pos = GetJointPosition(LaraItem, Random::GenerateInt(0, NUM_LARA_MESHES - 1));
 	DoBloodSplat(pos.x, pos.y, pos.z, (GetRandomControl() & 3) + 3, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 	return GunShot(x, y, z, velocity, yRot, roomNumber);
 }

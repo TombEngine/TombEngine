@@ -112,7 +112,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsReleased((ActionID)actionID, ValueOr<float>(maxDelaySec, INFINITY));
+		return IsReleased((ActionID)actionID, ValueOr<float>(maxDelaySec, FLT_MAX));
 	}
 
 	/// Simulate an action key push.

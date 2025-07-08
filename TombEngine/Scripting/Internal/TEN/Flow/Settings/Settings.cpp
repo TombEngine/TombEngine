@@ -172,9 +172,9 @@ namespace TEN::Scripting
 		// @tfield bool smoke Smoke effect. Determines whether flare generates smoke when burning.
 		"smoke", &FlareSettings::Smoke,
 
-		/// Toggle glow effect.
-		// @tfield bool glow Glow effect. Determines whether flare generates glow when burning.
-		"glow", &FlareSettings::Glow,
+		/// Toggle muzzle glow effect.
+		// @tfield bool muzzleGlow Glow effect. Determines whether flare generates glow when burning.
+		"muzzleGlow", &FlareSettings::MuzzleGlow,
 
 		/// Toggle flicker effect.
 		// @tfield bool flicker Light and lensflare flickering. When turned off, flare light will be constant.
@@ -192,7 +192,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
 
 			/// Enable skinning.
-			// @tfield bool skinning If enabled, skinning will be used for animated objects with skin. Disable to force classic TR workflow.
+			// @tfield bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
 			"skinning", &GraphicsSettings::Skinning);
 	}
 

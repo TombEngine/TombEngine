@@ -56,6 +56,8 @@ namespace TEN::Entities::Vehicles
 	constexpr int UPV_HARPOON_VELOCITY = CLICK(1);
 	constexpr int UPV_SHIFT = 128;
 
+	constexpr int UPV_LIGHT_HASH = 0x1F4C;
+
 	// TODO: These should probably be done in the wad. @Sezz 2022.06.24
 	constexpr auto UPV_DEATH_FRAME_1 = 16;
 	constexpr auto UPV_DEATH_FRAME_2 = 17;
@@ -215,6 +217,20 @@ namespace TEN::Entities::Vehicles
 		UPVItem->HitPoints = 1;
 
 		AnimateItem(laraItem);
+	}
+
+	static void DrawUPVLight(ItemInfo* upvItem)
+	{
+		auto* upv = GetUPVInfo(upvItem);
+
+		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
+		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
+
+		target = target - origin;
+		target.Normalize();
+
+		float lightIntensity = 0.5f + Random::GenerateFloat(0.0f, 0.1f);
+		SpawnDynamicSpotLight(origin, target, Vector4(lightIntensity, lightIntensity, lightIntensity, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, UPV_LIGHT_HASH);
 	}
 
 	static void FireUPVHarpoon(ItemInfo* UPVItem, ItemInfo* laraItem)
@@ -519,6 +535,7 @@ namespace TEN::Entities::Vehicles
 		auto* UPV = GetUPVInfo(UPVItem);
 		auto* lara = GetLaraInfo(laraItem);
 
+		DrawUPVLight(UPVItem);
 		TestUPVDismount(UPVItem, laraItem);
 
 		int frame = laraItem->Animation.FrameNumber - GetAnimData(laraItem).frameBase;

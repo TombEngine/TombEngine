@@ -146,7 +146,7 @@ Particle* GetFreeParticle()
 	}
 
 	// No free particles; get particle with shortest life.
-	float shortestLife = INFINITY;
+	float shortestLife = FLT_MAX;
 	if (partID == NO_VALUE)
 	{
 		for (int i = 0; i < MAX_PARTICLES; i++)
@@ -167,6 +167,7 @@ Particle* GetFreeParticle()
 	part.blendMode = BlendMode::Additive;
 	part.extras = 0;
 	part.dynamic = NO_VALUE;
+	part.DisableInterpolation = true;
 
 	return &part;
 }

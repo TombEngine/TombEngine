@@ -353,7 +353,6 @@ namespace TEN::Collision::Los
 					if (prevIntersectPos == intersectPos)
 					{
 						traversePortal = false;
-						TENLog("GetRoomLosCollision(): Room portals cannot lead back to each other.", LogLevel::Warning);
 					}
 				}
 				// Hit tangible triangle; collect remaining room LOS data.

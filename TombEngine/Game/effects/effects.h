@@ -123,6 +123,7 @@ struct NODEOFFSET_INFO
 struct Particle
 {
 	bool on;
+	bool DisableInterpolation;
 
 	GAME_OBJECT_ID SpriteSeqID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
 	int	SpriteID = 0;
@@ -237,7 +238,7 @@ TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
 		return effects.emplace_back();
 
 	TEffect* effectPtr = nullptr;
-	float shortestLife = INFINITY;
+	float shortestLife = FLT_MAX;
 
 	// Find effect with shortest remaining life.
 	for (auto& effect : effects)

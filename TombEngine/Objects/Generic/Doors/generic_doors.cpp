@@ -212,12 +212,12 @@ namespace TEN::Entities::Doors
 			{
 				case CardinalDirection::NORTH:
 				case CardinalDirection::EAST:
-					bound = INFINITY;
+					bound = FLT_MAX;
 					break;
 
 				case CardinalDirection::SOUTH:
 				case CardinalDirection::WEST:
-					bound = -INFINITY;
+					bound = -FLT_MAX;
 					break;
 			}
 

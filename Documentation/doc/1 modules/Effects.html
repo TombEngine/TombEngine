@@ -135,7 +135,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#EmitAdvancedParticle">EmitAdvancedParticle(particleData)</a></td>
-	<td class="summary">Emit a particle with extensive configuration options, including sprite sequence animation, lights, sounds, and damage effects.</td>
+	<td class="summary">Emit a particle with extensive configuration options.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#EmitShockwave">EmitShockwave(pos, [innerRadius], [outerRadius], [color], [lifetime], [speed], [angle], [hurtsLara])</a></td>
@@ -163,19 +163,7 @@
 	</tr>
 	<tr>
 	<td class="name" ><a href="#EmitFire">EmitFire(pos, [size])</a></td>
-	<td class="summary">Emit fire for one frame.</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#MakeExplosion">MakeExplosion(pos, [size], [shockwave], [mainColor], [additionalColor])</a></td>
-	<td class="summary">Make an explosion.</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#MakeEarthquake">MakeEarthquake([strength])</a></td>
-	<td class="summary">Make an earthquake</td>
-	</tr>
-	<tr>
-	<td class="name" ><a href="#GetWind">GetWind()</a></td>
-	<td class="summary">Get the wind vector for the current game frame.</td>
+	<td class="summary">Emit fire for a single frame.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#EmitStreamer">EmitStreamer(mov, tag, pos, dir, [rot], [startColor], [endColor], [width], [life], [vel], [expRate], [rotRate], [edgeFeatherMode], [lengthFeatherMode], [blendID])</a></td>
@@ -184,6 +172,18 @@
 	<tr>
 	<td class="name" ><a href="#EmitFlow">EmitFlow(pos, dir, [radius], [life], [friction], [maxSize], [startColor], [endColor], [spriteSeqID], [spriteID])</a></td>
 	<td class="summary">Emit a particle flowing effect.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MakeExplosion">MakeExplosion(pos, [size], [shockwave], [mainColor], [additionalColor])</a></td>
+	<td class="summary">Make an explosion.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#MakeEarthquake">MakeEarthquake([strength])</a></td>
+	<td class="summary">Make an earthquake.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#GetWind">GetWind()</a></td>
+	<td class="summary">Get the wind vector for the current game frame.</td>
 	</tr>
 </table>
 <h2><a href="#Tables">Tables</a></h2>
@@ -376,7 +376,7 @@
     <strong>EmitAdvancedParticle(particleData)</strong>
     </dt>
     <dd>
-    Emit a particle with extensive configuration options, including sprite sequence animation, lights, sounds, and damage effects.
+    Emit a particle with extensive configuration options.  Options include sprite sequence animation, lights, sounds, and damage effects.
 
 
 
@@ -690,7 +690,7 @@ EmitAdvancedParticle(particle)</pre>
     <strong>EmitFire(pos, [size])</strong>
     </dt>
     <dd>
-    Emit fire for one frame.  Will not hurt player. Call this each frame if you want a continuous fire.
+    Emit fire for a single frame.  Will not hurt player. Call this each frame if you want a continuous fire.
 
 
 
@@ -707,94 +707,6 @@ EmitAdvancedParticle(particle)</pre>
         </li>
     </ul>
 
-
-
-
-
-</dd>
-    <dt>
-    <a name = "MakeExplosion"></a>
-    <strong>MakeExplosion(pos, [size], [shockwave], [mainColor], [additionalColor])</strong>
-    </dt>
-    <dd>
-    Make an explosion.  Does not hurt Lara
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">pos</span>
-            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-         World position.
-        </li>
-        <li><span class="parameter">size</span>
-            <span class="types"><span class="type">float</span></span>
-         Size of the shockwave if enabled.
-         <em>Default: 512.</em>
-        </li>
-        <li><span class="parameter">shockwave</span>
-            <span class="types"><span class="type">bool</span></span>
-         If true, creates a very faint shockwave which will not hurt Lara.
- For underwater rooms, it creates a splash if <code>pos</code> is near the surface. Shockwave uses <code>mainColor</code> if provided.
-         <em>Default: false.</em>
-        </li>
-        <li><span class="parameter">mainColor</span>
-            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
-         <em>Optional.</em>
-        </li>
-        <li><span class="parameter">additionalColor</span>
-            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
-         Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
-         <em>Optional.</em>
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "MakeEarthquake"></a>
-    <strong>MakeEarthquake([strength])</strong>
-    </dt>
-    <dd>
-    Make an earthquake
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">strength</span>
-            <span class="types"><span class="type">int</span></span>
-         How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
-         <em>Default: 100.</em>
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "GetWind"></a>
-    <strong>GetWind()</strong>
-    </dt>
-    <dd>
-    Get the wind vector for the current game frame.
- This represents the 3D displacement applied by the engine on things like particles affected by wind.()
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
-        Wind vector.
-    </ol>
 
 
 
@@ -950,6 +862,94 @@ EmitAdvancedParticle(particle)</pre>
         </li>
     </ul>
 
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MakeExplosion"></a>
+    <strong>MakeExplosion(pos, [size], [shockwave], [mainColor], [additionalColor])</strong>
+    </dt>
+    <dd>
+    Make an explosion.  Does not hurt Lara
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pos</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+         World position.
+        </li>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">float</span></span>
+         Size of the shockwave if enabled.
+         <em>Default: 512.</em>
+        </li>
+        <li><span class="parameter">shockwave</span>
+            <span class="types"><span class="type">bool</span></span>
+         If true, creates a very faint shockwave which will not hurt Lara.
+ For underwater rooms, it creates a splash if <code>pos</code> is near the surface. Shockwave uses <code>mainColor</code> if provided.
+         <em>Default: false.</em>
+        </li>
+        <li><span class="parameter">mainColor</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
+         <em>Optional.</em>
+        </li>
+        <li><span class="parameter">additionalColor</span>
+            <span class="types"><a class="type" href="../3 primitive classes/Color.html#">Color</a></span>
+         Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
+         <em>Optional.</em>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "MakeEarthquake"></a>
+    <strong>MakeEarthquake([strength])</strong>
+    </dt>
+    <dd>
+    Make an earthquake.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">strength</span>
+            <span class="types"><span class="type">int</span></span>
+         How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
+         <em>Default: 100.</em>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "GetWind"></a>
+    <strong>GetWind()</strong>
+    </dt>
+    <dd>
+    Get the wind vector for the current game frame.
+ This represents the 3D displacement applied by the engine on things like particles affected by wind.()
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../3 primitive classes/Vec3.html#">Vec3</a></span>
+        Wind vector.
+    </ol>
 
 
 

@@ -172,8 +172,8 @@ namespace TEN::Math::Geometry
 
 	BoundingBox GetBoundingBox(const std::vector<Vector3>& points)
 	{
-		auto minPoint = Vector3(INFINITY);
-		auto maxPoint = Vector3(-INFINITY);
+		auto minPoint = Vector3(FLT_MAX);
+		auto maxPoint = Vector3(-FLT_MAX);
 
 		// Determine max and min AABB points.
 		for (const auto& point : points)

@@ -141,7 +141,6 @@ namespace TEN::Entities::Traps
 
 		auto beam = LaserBeamEffect{};
 		beam.Initialize(item);
-		item.Collidable = false;
 
 		LaserBeams.insert({ itemNumber, beam });
 	}

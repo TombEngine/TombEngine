@@ -8,9 +8,9 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Specific/Input/Input.h"
+#include "Specific/trutils.h"
 #include "Specific/winmain.h"
 #include "Sound/sound.h"
-#include "trutils.h"
 
 using namespace TEN::Input;
 using namespace TEN::Renderer;

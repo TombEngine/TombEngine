@@ -229,13 +229,13 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			{
 				auto* object = &Objects[item->ObjectNumber];
 
-				if (object->intelligent || object->HitRoutine)
+				if ((object->intelligent || object->HitRoutine) && object->drawRoutine)
 				{
 					const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 
 					auto spheres = item->GetSpheres();
 					auto ray = Ray(origin->ToVector3(), dir);
-					float bestDistance = INFINITY;
+					float bestDistance = FLT_MAX;
 					int bestJointIndex = NO_VALUE;
 
 					for (int i = 0; i < spheres.size(); i++)
@@ -346,7 +346,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	int meshIndex = 0;
 	int bit = 0;
 	int sp = -2;
-	float minDist = INFINITY;
+	float minDist = FLT_MAX;
 
 	if (closestItemNumber < 0)
 	{
@@ -461,7 +461,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 			if (priorityObjectID != GAME_OBJECT_ID::ID_NO_OBJECT && item.ObjectNumber != priorityObjectID)
 				continue;
 
-			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || !item.Collidable))
+			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].drawRoutine == nullptr || !item.Collidable))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && priorityObjectID != ID_LARA)

@@ -145,14 +145,14 @@ namespace TEN::Input
 		float activeDelaySec = (_timeActive > SecToGameFrames(initialDelaySec)) ? delaySec : initialDelaySec;
 		unsigned int activeDelayGameFrames = SecToGameFrames(activeDelaySec);
 
-		unsigned int delayGameFrames = SecToGameFrames(_timeActive) * activeDelayGameFrames;
-		unsigned int prevDelayGameFrames = SecToGameFrames(_prevTimeActive) * activeDelayGameFrames;
+		unsigned int delayGameFrames = (unsigned int)floor(_timeActive / activeDelayGameFrames) * activeDelayGameFrames;
+		unsigned int prevDelayGameFrames = (unsigned int)floor(_prevTimeActive / activeDelayGameFrames) * activeDelayGameFrames;
 		return (delayGameFrames > prevDelayGameFrames);
 	}
 
 	bool Action::IsReleased(float delaySecMax) const
 	{
-		unsigned int delayGameFramesMax = (delaySecMax == INFINITY) ? UINT_MAX : SecToGameFrames(delaySecMax);
+		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
 		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
 	}
 

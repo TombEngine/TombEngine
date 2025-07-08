@@ -66,9 +66,12 @@ void CameraObject::Register(sol::table& parent)
 		ScriptReserved_SetRoomNumber, &CameraObject::SetRoomNumber,
 
 		/// Activate the camera for the current game frame.
-		// @function Camera:PlayCamera
+		// @function Camera:Play
 		// @tparam[opt] Objects.Moveable target If you put a moveable, the camera will look at it. Otherwise, it will look at Lara.
-		ScriptReserved_PlayCamera, &CameraObject::PlayCamera);
+		ScriptReserved_PlayCamera, &CameraObject::Play,
+
+		// Compatibility.
+		"PlayCamera", &CameraObject::Play);
 }
 
 Vec3 CameraObject::GetPos() const
@@ -128,12 +131,17 @@ void CameraObject::SetRoomNumber(short room)
 	m_camera.RoomNumber = room;
 }
 
-void CameraObject::PlayCamera(sol::optional<Moveable&> TargetObj)
+void CameraObject::Play(sol::optional<Moveable&> targetObj)
 {
+	if (Camera.last != m_camera.Index || Camera.lastType != CameraType::Fixed)
+		Camera.DisableInterpolation = true;
+
 	Camera.number = m_camera.Index;
 	Camera.type = CameraType::Fixed;
+	Camera.timer = 0;
+	Camera.speed = 1;
 
-	if (TargetObj.has_value()) //Otherwise, it will point to Lara by default.
-		Camera.item = &g_Level.Items[TargetObj.value().GetIndex()];
+	if (targetObj.has_value()) //Otherwise, it will point to Lara by default.
+		Camera.item = &g_Level.Items[targetObj.value().GetIndex()];
 }
 

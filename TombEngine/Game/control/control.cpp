@@ -357,15 +357,19 @@ unsigned CALLBACK GameMain(void *)
 
 	TimeInit();
 
-	// Do fixed-time title image.
-	if (!g_GameFlow->IntroImagePath.empty())
-		g_Renderer.RenderTitleImage();
-
-	// Play intro video.
-	if (!g_GameFlow->IntroVideoPath.empty())
+	// Proceed with intro content only if game isn't started from the editor.
+	if (CurrentLevel == NO_VALUE)
 	{
-		g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
-		while (DoTheGame && g_VideoPlayer.Update());
+		// Do fixed-time title image.
+		if (!g_GameFlow->IntroImagePath.empty())
+			g_Renderer.RenderTitleImage();
+
+		// Play intro video.
+		if (!g_GameFlow->IntroVideoPath.empty())
+		{
+			g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
+			while (DoTheGame && g_VideoPlayer.Update());
+		}
 	}
 
 	// Execute Lua gameflow and play game.
@@ -639,6 +643,7 @@ void InitializeOrLoadGame(bool loadGame)
 
 		InitializeGame = false;
 
+		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
 		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
@@ -695,6 +700,9 @@ GameStatus DoGameLoop(int levelIndex)
 
 			legacy30FpsDoneDraw = false;
 		}
+
+		if (g_VideoPlayer.IsBackgroundPlaybackQueued())
+			continue;
 
 		if (status != GameStatus::Normal)
 			break;

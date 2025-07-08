@@ -16,6 +16,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
@@ -250,6 +251,9 @@ void DrawFlare(ItemInfo& laraItem)
 	{
 		int armFrame = player.LeftArm.FrameNumber + 1;
 		player.Flare.ControlLeft = true;
+
+		// HACK: Solve problems with incorrect particle orientation. -- Lwmte, 08.06.2025
+		g_Renderer.UpdateLaraAnimations(true);
 
 		if (armFrame < 33 || armFrame > 94)
 		{
@@ -515,8 +519,8 @@ bool DoFlareLight(ItemInfo& item, const Vector3i& pos, int flareLife)
 	}
 
 	// Spawn glow effect.
-	if (settings.Glow)
-		TriggerGlow(GameVector(lightPos, item.RoomNumber), color, 192);
+	if (settings.MuzzleGlow)
+		TriggerGlow(GameVector(pos, item.RoomNumber), color, 192);
 
 	// Return chaff spawn status.
 	return ((isDying || isEnding) ? spawnChaff : true);

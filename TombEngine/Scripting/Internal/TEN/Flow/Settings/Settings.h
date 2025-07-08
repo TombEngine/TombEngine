@@ -42,7 +42,7 @@ namespace TEN::Scripting
 		bool		Sparks				= true;
 		bool		Smoke				= true;
 		bool		Flicker				= true;
-		bool		Glow				= false;
+		bool		MuzzleGlow			= false;
 		int			Range				= 9;
 		int			Timeout				= 60;
 		int			PickupCount			= 12;
