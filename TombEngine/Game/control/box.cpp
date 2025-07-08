@@ -971,7 +971,8 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return;
-	auto* box = &g_Level.PathfindingBoxes[boxNumber];
+
+	const auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
 	// Maximize target precision. DO NOT change bracket precedence!
 	LOT->Target.x = (int)((box->top  * BLOCK(1)) + (float)GetRandomControl() * (((float)(box->bottom - box->top) - 1.0f) / 32.0f) + CLICK(2.0f));
@@ -1637,9 +1638,9 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	auto* enemy = creature->Enemy;
 
-	// HACK: Fallback to bored mood from attack mood if enemy was cleared.
+	// HACK: Fallback to bored mood from attack or escape mood if enemy was cleared.
 	// Replaces previous "fix" with early exit, because it was breaking friendly NPC pathfinding. -- Lwmte, 24.03.25
-	if (enemy == nullptr && creature->Mood == MoodType::Attack)
+	if (enemy == nullptr && (creature->Mood == MoodType::Attack || creature->Mood == MoodType::Escape))
 		creature->Mood = MoodType::Bored;
 
 	int boxNumber;

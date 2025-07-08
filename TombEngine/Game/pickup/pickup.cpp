@@ -1239,30 +1239,6 @@ void SearchObjectControl(short itemNumber)
 		AnimateItem(item);
 
 	int frameNumber = item->Animation.FrameNumber - GetAnimData(item).frameBase;
-	if (item->ObjectNumber == ID_SEARCH_OBJECT1)
-	{
-		if (frameNumber > 0)
-		{
-			item->SetMeshSwapFlags(NO_JOINT_BITS);
-			item->MeshBits = ALL_JOINT_BITS;
-		}
-		else
-		{
-			item->SetMeshSwapFlags(ALL_JOINT_BITS);
-			item->MeshBits = 7;
-		}
-	}
-	else if (item->ObjectNumber == ID_SEARCH_OBJECT2)
-	{
-		if (frameNumber == 18)
-		{
-			item->MeshBits = 1;
-		}
-		else if (frameNumber == 172)
-		{
-			item->MeshBits = 2;
-		}
-	}
 
 	if (frameNumber == SearchCollectFrames[objectNumber])
 	{

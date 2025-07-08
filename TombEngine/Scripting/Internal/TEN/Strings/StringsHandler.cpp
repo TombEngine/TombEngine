@@ -21,31 +21,26 @@ StringsHandler::StringsHandler(sol::state* lua, sol::table& parent) :
 
 /***
 Show some text on-screen.
-@tparam DisplayString str the string object to draw
 @function ShowString
-@tparam float time the time in seconds for which to show the string.
-If not given, the string will have an "infinite" life, and will show
+@tparam Strings.DisplayString string The string object to draw.
+@tparam[opt] float time The time in seconds for which to show the string. If not given, the string will have an "infinite" life, and will show
 until @{HideString} is called or until the level is finished.
-Default: nil (i.e. infinite)
-@tparam bool autoDelete should be string automatically deleted after timeout is reached.
-If not given, the string will remain allocated even after timeout is reached, and can be
-shown again without re-initialization.
-Default: true
+@tparam[opt=true] bool autoDelete Should be string automatically deleted after timeout is reached. If not given, the string will remain
+allocated even after timeout is reached, and can be shown again without re-initialization.
 */
 	table.set_function(ScriptReserved_ShowString, &StringsHandler::ShowString, this);
 
 /***
 Hide some on-screen text.
 @function HideString
-@tparam DisplayString str the string object to hide. Must previously have been shown
-with a call to @{ShowString}, or this function will have no effect.
+@tparam Strings.DisplayString string The string object to hide. Must previously have been shown with a call to @{ShowString}, or this function will have no effect.
 */
 	table.set_function(ScriptReserved_HideString, [this](const DisplayString& string) { ShowString(string, 0.0f, false); });
 
 /***
 Checks if the string is shown
 @function IsStringDisplaying
-@tparam DisplayString str the string object to be checked
+@tparam Strings.DisplayString string The string object to be checked.
 @treturn bool true if it is shown, false if it is hidden
 */
 	table.set_function(ScriptReserved_IsStringDisplaying, &StringsHandler::IsStringDisplaying, this);
@@ -134,7 +129,10 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 				if (str._flags[(size_t)DisplayStringOptions::Blink])
 					flags |= (int)PrintStringFlags::Blink;
 
-				m_callbackDrawSring(cstr, str._color, str._position, str._scale, flags);
+				if (str._flags[(size_t)DisplayStringOptions::VerticalCenter])
+					flags |= (int)PrintStringFlags::VerticalCenter;
+
+				m_callbackDrawSring(cstr, str._color, str._position, str._area, str._scale, flags);
 
 				str._timeRemaining -= deltaTime;
 			}

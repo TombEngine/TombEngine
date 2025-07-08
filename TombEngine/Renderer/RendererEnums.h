@@ -38,6 +38,7 @@ constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
 constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
 
 constexpr auto MAX_BONES = 32;
+constexpr auto MAX_BONE_WEIGHTS = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
@@ -93,6 +94,13 @@ enum class BlendMode
 	FastAlphaBlend = 12
 };
 
+enum class SkinningMode
+{
+	None = 0,
+	Full = 1,
+	Classic = 2
+};
+
 enum class CullMode
 {
 	Unknown = -1,
@@ -146,8 +154,9 @@ enum class RendererDebugPage
 	PlayerStats,
 	InputStats,
 	CollisionStats,
+	CollisionMeshStats,
+	PortalStats,
 	PathfindingStats,
-	PortalDebug,
 	WireframeMode,
 
 	Count
@@ -213,10 +222,11 @@ enum class AlphaTestMode
 
 enum class PrintStringFlags
 {
-	Center	= (1 << 0),
-	Blink	= (1 << 1),
-	Right	= (1 << 2),
-	Outline	= (1 << 3)
+	Center			= (1 << 0),
+	Blink			= (1 << 1),
+	Right			= (1 << 2),
+	Outline			= (1 << 3),
+	VerticalCenter	= (1 << 4)
 };
 
 enum class RendererPass
@@ -253,7 +263,9 @@ enum class RendererObjectType
 	Moveable, 
 	Static,
 	Sprite,
-	MoveableAsStatic // For rats, bats, spiders, beetles
+	MoveableAsStatic, // For rats, bats, spiders, beetles
+	HairPrimary,
+	HairSecondary
 };
 
 enum class SMAAMode

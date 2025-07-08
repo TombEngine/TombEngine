@@ -222,6 +222,8 @@ enum LaraState
 	LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH = 196,
 	LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH = 197,
 
+	LS_PULLEY_UNGRAB = 198,
+
 	NUM_LARA_STATES
 };
 
@@ -613,7 +615,7 @@ enum LaraAnim
 	LA_LADDER_LEFT_CORNER_INNER_START = 367,				// Ladder around inner left corner
 	LA_LADDER_LEFT_CORNER_INNER_END = 368,
 	LA_LADDER_RIGHT_CORNER_INNER_START = 369,				// Ladder around inner right corner
-	LA_LADDER_RIGHT_CORNER_INNER_END = 370,					// TODO: Remove.
+	LA_LADDER_RIGHT_CORNER_INNER_END = 370,					// Unused.
 	LA_JUMP_UP_TO_ROPE_START = 371,							// Jump up > rope idle (1/2)
 	LA_TRAIN_OVERBOARD_DEATH = 372,							// Train overboard death
 	LA_JUMP_UP_TO_ROPE_END = 373,							// Jump up > rope idle (2/2)
@@ -822,14 +824,18 @@ enum LaraAnim
 	LA_LEDGE_JUMP_UP_END = 566,
 	LA_LEDGE_JUMP_BACK_START = 567,
 	LA_LEDGE_JUMP_BACK_END = 568,
+	LA_UNDERWATER_WALL_KICK = 569,			// Lara kick wall underwater.
+	LA_WALL_PUSH = 570,						// Lara Push Wall above ground.
+	LA_WALL_LEVER_SWITCH = 571,				// Use lever above ground
+	LA_UNDERWATER_PULLEY_GRAB = 572,		// Grab underwater pulley
+	LA_UNDERWATER_PULLEY_PULL = 573,		// Pull underwater pulley		
+	LA_UNDERWATER_PULLEY_UNGRAB = 574,		// Release underwater pulley
+	LA_CEILING_LEVER_SWITCH = 575,			// Use ceiling switch above ground
 
-	// 569-598 reserved for ladder object. -- Sezz 2023.04.16
+	//ADD NEW ANIMATIONS HERE
 
 	NUM_LARA_ANIMS
 
-	// TRASHED ANIMS (reuse slots before going any higher and remove entries from this list when you do):
-	// 370,
-	// 442
 };
 
 enum LaraExtraAnim
@@ -1218,7 +1224,6 @@ struct WeaponControlData
 
 	short WeaponItem = -1;
 	bool  HasFired	 = false;
-	bool  Fired		 = false;
 
 	bool UziLeft  = false;
 	bool UziRight = false;

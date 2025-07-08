@@ -3,7 +3,7 @@
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <head>
-    <title>TombEngine 1.8.1 Lua API</title>
+    <title>TombEngine 1.9 Lua API</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
@@ -85,7 +85,9 @@
   <li>    <a href="../4 enums/Flow.ErrorMode.html">Flow.ErrorMode</a></li>
   <li>    <a href="../4 enums/Flow.FreezeMode.html">Flow.FreezeMode</a></li>
   <li>    <a href="../4 enums/Flow.GameStatus.html">Flow.GameStatus</a></li>
+  <li>    <a href="../4 enums/Flow.ItemAction.html">Flow.ItemAction</a></li>
   <li>    <a href="../4 enums/Input.ActionID.html">Input.ActionID</a></li>
+  <li>    <a href="../4 enums/Input.AxisID.html">Input.AxisID</a></li>
   <li>    <a href="../4 enums/Objects.AmmoType.html">Objects.AmmoType</a></li>
   <li>    <a href="../4 enums/Objects.HandStatus.html">Objects.HandStatus</a></li>
   <li>    <a href="../4 enums/Objects.WeaponType.html">Objects.WeaponType</a></li>
@@ -168,7 +170,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" ><a href="#Create">Create(name, loop, timerFormat[, ...])</a></td>
+	<td class="name" ><a href="#Create">Create(name, loop, timerFormat, [...])</a></td>
 	<td class="summary">Create (but do not start) a new event sequence.</td>
 	</tr>
 	<tr>
@@ -206,7 +208,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
     <dl class="function">
     <dt>
     <a name = "Create"></a>
-    <strong>Create(name, loop, timerFormat[, ...])</strong>
+    <strong>Create(name, loop, timerFormat, [...])</strong>
     </dt>
     <dd>
     Create (but do not start) a new event sequence.
@@ -229,7 +231,7 @@ LevelFuncs.SpawnBaddy = <span class="keyword">function</span>(baddy, name, pos)
         </li>
         <li><span class="parameter">...</span>
          a variable number of pairs of arguments - a time in seconds, followed by the function (must be defined in the LevelFuncs table) to call once the time has elapsed, followed by another duration in seconds, another function name, etc. You can specify a function either by its name as a string, or by a table with the function name as the first member, followed by its arguments (see above example).
-         (<em>optional</em>)
+         <em>Optional.</em>
         </li>
     </ul>
 

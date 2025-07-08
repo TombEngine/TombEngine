@@ -61,12 +61,11 @@ struct Level : public ScriptInterfaceLevel
 	RGBAColor8Byte GetSkyLayerColor(int index) const override;
 	LaraType GetLaraType() const override;
 	void SetWeatherStrength(float val);
-	void SetLevelFarView(short val);
 	static void Register(sol::table& parent);
 	WeatherType GetWeatherType() const override;
 	float GetFogMinDistance() const override;
 	float GetFogMaxDistance() const override;
-	short GetFarView() const override;
+	float GetFarView() const override;
 	void SetSecrets(int secrets);
 	int GetSecrets() const override;
 	std::string GetAmbientTrack() const override;

@@ -507,7 +507,7 @@ void CalculateSpotCameras()
 			auto pos = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
 			int collRoomNumber = GetPointCollision(pos, SpotCam[CurrentSplineCamera].roomNumber).GetRoomNumber();
 
-			if (collRoomNumber != Camera.pos.RoomNumber)
+			if (collRoomNumber != Camera.pos.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
 				collRoomNumber = FindRoomNumber(pos, SpotCam[CurrentSplineCamera].roomNumber);
 
 			Camera.pos.RoomNumber = collRoomNumber;

@@ -24,13 +24,12 @@ void Level::Register(sol::table& parent)
 		sol::constructors<Level()>(),
 		sol::call_constructor, sol::constructors<Level()>(),
 
-/// (string) string key for the level's (localised) name.
-// Corresponds to an entry in strings.lua.
+/// (string) String key for the level's name. Corresponds to an entry in strings.lua.
 //@mem nameKey
 		"nameKey", &Level::NameStringKey,
 
 /// (string) Level-specific Lua script file.
-// Path of the Lua file holding the level's logic script, relative to the location of the tombengine executable
+// Path of the Lua file holding the level's logic script, relative to the location of the Tomb Engine executable.
 //@mem scriptFile
 		"scriptFile", &Level::ScriptFileName,
 
@@ -40,11 +39,11 @@ void Level::Register(sol::table& parent)
 		"levelFile", &Level::FileName,
 
 /// (string) Load screen image.
-// Path of the level's load screen file (.png or .jpg), relative to the location of the tombengine executable
+// Path of the level's load screen file (.png or .jpg), relative to the location of the Tomb Engine executable.
 //@mem loadScreenFile
 		"loadScreenFile", &Level::LoadScreenFileName,
 		
-/// (string) initial ambient sound track to play.
+/// (string) Initial ambient sound track to play.
 // This is the filename of the track __without__ the .wav extension.
 //@mem ambientTrack
 		"ambientTrack", &Level::AmbientTrack,
@@ -57,12 +56,12 @@ void Level::Register(sol::table& parent)
 //@mem layer2
 		"layer2", &Level::Layer2,
 
-///  (@{Flow.Horizon}) First horizon layer.
+///  (@{Flow.Horizon}) Primary horizon object.
 //@mem horizon1
 		"horizon1", &Level::Horizon1,
 		"horizon", sol::property(&Level::GetHorizon1Enabled, &Level::SetHorizon1Enabled), // Compatibility.
 
-///  (@{Flow.Horizon}) Second horizon layer.
+///  (@{Flow.Horizon}) Secondary horizon object.
 //@mem horizon2
 		"horizon2", &Level::Horizon2,
 
@@ -80,7 +79,7 @@ void Level::Register(sol::table& parent)
 		"fog", &Level::Fog,
 
 /// (bool) Enable flickering lightning in the sky.
-// Equivalent to classic TRLE's LIGHTNING setting. As in the TRC Ireland levels.
+// Equivalent to classic TRLE's lightning setting, as in the TRC Ireland levels or TR4 Cairo levels.
 //@mem storm
 		"storm", &Level::Storm,
 
@@ -94,19 +93,10 @@ void Level::Register(sol::table& parent)
 //@mem weatherStrength
 		"weatherStrength", &Level::WeatherStrength,
 
-/*** (LaraType) Must be one of the LaraType values.
-These are:
+/*** (LaraType) Appearance of Lara. Must be either `LaraType.Normal` or `LaraType.Young`.
+E.g. `myLevel.laraType = LaraType.Young` will make Lara appear as young (with two ponytails rendered).
+This setting does not affect ability to use weapons or flares.
 
-	Normal  
-	Young
-	Bunhead
-	Catsuit
-	Divesuit
-	Invisible
-
-e.g. `myLevel.laraType = LaraType.Divesuit`
-
- __Not yet fully implemented.__ Only types `Normal` and `Young` are guaranteed to work.
  @mem laraType*/
 		"laraType", &Level::Type,
 
@@ -147,24 +137,6 @@ void Level::SetWeatherStrength(float val)
 	else
 	{
 		WeatherStrength = val;
-	}
-}
-
-void Level::SetLevelFarView(short val)
-{
-	static_assert(MIN_FAR_VIEW == 3200.0f, "Please update the comment, docs, and warning message if this number changes.");
-	const short min = std::ceil(MIN_FAR_VIEW / BLOCK(1));
-	bool cond = val >= min;
-
-	std::string msg{ "farView value must be 4 or greater." };
-	if (!ScriptAssert(cond, msg))
-	{
-		// Will be set to default by the renderer
-		LevelFarView = 0;
-	}
-	else
-	{
-		LevelFarView = val;
 	}
 }
 
@@ -234,7 +206,7 @@ float Level::GetFogMaxDistance() const
 	return Fog.MaxDistance;
 }
 
-short Level::GetFarView() const
+float Level::GetFarView() const
 {
 	return float(LevelFarView);
 }

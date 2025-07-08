@@ -1,5 +1,5 @@
 name: Bug report
-description: Create a report to help us understand and diagnose your issue. Your contribution is welcomed and valued!
+description: Create a report to help us understand and diagnose your issue. Your contribution is welcomed and valued! It is highly recommended that you are using the latest version before submitting a bug report.
 title: "[ bug Report ]"
 labels: Awaiting Triage
 
@@ -8,17 +8,19 @@ body:
 - type: markdown
   attributes:
     value: |
-      Please follow this document in order to report a bug 
+      Please follow this document in order to report a bug. It is highly recommended that you are using the latest version before submitting a bug report.
 
 - type: dropdown
   attributes:
     label: TombEngine version
     description: |
-      Please select the TombEngine Version from the dropdown list.
+      Please select the TombEngine Version from the dropdown list. 
     options:
       - Development Build
-      - v1.5.0.2 (Latest Release)
-      - v1.4
+      - v1.8.0 (latest version)
+      - v1.7.1
+      - v1.7.0
+      - v1.5
   validations:
     required: true
 
@@ -29,6 +31,7 @@ body:
       Please select the Tomb Editor version used from the dropdown list.
     options:
       - Development Build
+      - v1.8.0 (latest version)
       - v1.7.2
       - v1.7.1
       - v1.7.0

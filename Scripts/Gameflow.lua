@@ -4,7 +4,12 @@
 -- Intro image is a splash screen which appears before actual loading screen.
 -- If you don't want it to appear, just remove this line.
 
-Flow.SetIntroImagePath("Screens\\main.jpg")
+Flow.SetIntroImagePath("Screens\\intro.jpg")
+
+-- Intro video plays right after or instead of intro image, if specified.
+-- If you don't want it to appear, just remove this line.
+
+Flow.SetIntroVideoPath("Fmv\\intro.mp4")
 
 -- Set overall amount of secrets in game.
 -- If set to 0, secrets won't be displayed in statistics.

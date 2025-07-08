@@ -137,6 +137,10 @@ struct Soundtrack;
 struct SoundtrackBuilder;
 struct SoundtrackT;
 
+struct VideoInfo;
+struct VideoInfoBuilder;
+struct VideoInfoT;
+
 struct SwarmObjectInfo;
 struct SwarmObjectInfoBuilder;
 struct SwarmObjectInfoT;
@@ -571,6 +575,7 @@ struct LevelDataT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Save::Vector3> horizon2_position{};
   std::unique_ptr<TEN::Save::EulerAngles> horizon2_orientation{};
   float horizon2_transparency = 0.0f;
+  bool lensflare_enabled = false;
   int32_t lensflare_sprite_id = 0;
   float lensflare_pitch = 0.0f;
   float lensflare_yaw = 0.0f;
@@ -610,14 +615,15 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_HORIZON2_POSITION = 46,
     VT_HORIZON2_ORIENTATION = 48,
     VT_HORIZON2_TRANSPARENCY = 50,
-    VT_LENSFLARE_SPRITE_ID = 52,
-    VT_LENSFLARE_PITCH = 54,
-    VT_LENSFLARE_YAW = 56,
-    VT_LENSFLARE_COLOR = 58,
-    VT_STARFIELD_STAR_COUNT = 60,
-    VT_STARFIELD_METEOR_COUNT = 62,
-    VT_STARFIELD_METEOR_SPAWN_DENSITY = 64,
-    VT_STARFIELD_METEOR_VELOCITY = 66
+    VT_LENSFLARE_ENABLED = 52,
+    VT_LENSFLARE_SPRITE_ID = 54,
+    VT_LENSFLARE_PITCH = 56,
+    VT_LENSFLARE_YAW = 58,
+    VT_LENSFLARE_COLOR = 60,
+    VT_STARFIELD_STAR_COUNT = 62,
+    VT_STARFIELD_METEOR_COUNT = 64,
+    VT_STARFIELD_METEOR_SPAWN_DENSITY = 66,
+    VT_STARFIELD_METEOR_VELOCITY = 68
   };
   int32_t level_far_view() const {
     return GetField<int32_t>(VT_LEVEL_FAR_VIEW, 0);
@@ -691,6 +697,9 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float horizon2_transparency() const {
     return GetField<float>(VT_HORIZON2_TRANSPARENCY, 0.0f);
   }
+  bool lensflare_enabled() const {
+    return GetField<uint8_t>(VT_LENSFLARE_ENABLED, 0) != 0;
+  }
   int32_t lensflare_sprite_id() const {
     return GetField<int32_t>(VT_LENSFLARE_SPRITE_ID, 0);
   }
@@ -741,6 +750,7 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Save::Vector3>(verifier, VT_HORIZON2_POSITION) &&
            VerifyField<TEN::Save::EulerAngles>(verifier, VT_HORIZON2_ORIENTATION) &&
            VerifyField<float>(verifier, VT_HORIZON2_TRANSPARENCY) &&
+           VerifyField<uint8_t>(verifier, VT_LENSFLARE_ENABLED) &&
            VerifyField<int32_t>(verifier, VT_LENSFLARE_SPRITE_ID) &&
            VerifyField<float>(verifier, VT_LENSFLARE_PITCH) &&
            VerifyField<float>(verifier, VT_LENSFLARE_YAW) &&
@@ -832,6 +842,9 @@ struct LevelDataBuilder {
   void add_horizon2_transparency(float horizon2_transparency) {
     fbb_.AddElement<float>(LevelData::VT_HORIZON2_TRANSPARENCY, horizon2_transparency, 0.0f);
   }
+  void add_lensflare_enabled(bool lensflare_enabled) {
+    fbb_.AddElement<uint8_t>(LevelData::VT_LENSFLARE_ENABLED, static_cast<uint8_t>(lensflare_enabled), 0);
+  }
   void add_lensflare_sprite_id(int32_t lensflare_sprite_id) {
     fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_SPRITE_ID, lensflare_sprite_id, 0);
   }
@@ -893,6 +906,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     const TEN::Save::Vector3 *horizon2_position = 0,
     const TEN::Save::EulerAngles *horizon2_orientation = 0,
     float horizon2_transparency = 0.0f,
+    bool lensflare_enabled = false,
     int32_t lensflare_sprite_id = 0,
     float lensflare_pitch = 0.0f,
     float lensflare_yaw = 0.0f,
@@ -928,6 +942,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
   builder_.add_weather_strength(weather_strength);
   builder_.add_weather_type(weather_type);
   builder_.add_level_far_view(level_far_view);
+  builder_.add_lensflare_enabled(lensflare_enabled);
   builder_.add_horizon2_enabled(horizon2_enabled);
   builder_.add_horizon1_enabled(horizon1_enabled);
   builder_.add_sky_layer_2_enabled(sky_layer_2_enabled);
@@ -1086,7 +1101,8 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t ai_bits = 0;
   TEN::Save::ItemDataUnion data{};
   int32_t base_mesh = 0;
-  std::vector<int32_t> mesh_pointers{};
+  int32_t skin_index = 0;
+  std::vector<int32_t> mesh_index{};
   int32_t effect_type = 0;
   std::unique_ptr<TEN::Save::Vector3> effect_light_colour{};
   std::unique_ptr<TEN::Save::Vector3> effect_primary_colour{};
@@ -1138,17 +1154,18 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DATA_TYPE = 66,
     VT_DATA = 68,
     VT_BASE_MESH = 70,
-    VT_MESH_POINTERS = 72,
-    VT_EFFECT_TYPE = 74,
-    VT_EFFECT_LIGHT_COLOUR = 76,
-    VT_EFFECT_PRIMARY_COLOUR = 78,
-    VT_EFFECT_SECONDARY_COLOUR = 80,
-    VT_EFFECT_COUNT = 82,
-    VT_LUA_NAME = 84,
-    VT_LUA_ON_KILLED_NAME = 86,
-    VT_LUA_ON_HIT_NAME = 88,
-    VT_LUA_ON_COLLIDED_WITH_OBJECT_NAME = 90,
-    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 92
+    VT_SKIN_INDEX = 72,
+    VT_MESH_INDEX = 74,
+    VT_EFFECT_TYPE = 76,
+    VT_EFFECT_LIGHT_COLOUR = 78,
+    VT_EFFECT_PRIMARY_COLOUR = 80,
+    VT_EFFECT_SECONDARY_COLOUR = 82,
+    VT_EFFECT_COUNT = 84,
+    VT_LUA_NAME = 86,
+    VT_LUA_ON_KILLED_NAME = 88,
+    VT_LUA_ON_HIT_NAME = 90,
+    VT_LUA_ON_COLLIDED_WITH_OBJECT_NAME = 92,
+    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 94
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1316,8 +1333,11 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t base_mesh() const {
     return GetField<int32_t>(VT_BASE_MESH, 0);
   }
-  const flatbuffers::Vector<int32_t> *mesh_pointers() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_MESH_POINTERS);
+  int32_t skin_index() const {
+    return GetField<int32_t>(VT_SKIN_INDEX, 0);
+  }
+  const flatbuffers::Vector<int32_t> *mesh_index() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_MESH_INDEX);
   }
   int32_t effect_type() const {
     return GetField<int32_t>(VT_EFFECT_TYPE, 0);
@@ -1387,8 +1407,9 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_DATA) &&
            VerifyItemData(verifier, data(), data_type()) &&
            VerifyField<int32_t>(verifier, VT_BASE_MESH) &&
-           VerifyOffset(verifier, VT_MESH_POINTERS) &&
-           verifier.VerifyVector(mesh_pointers()) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_INDEX) &&
+           VerifyOffset(verifier, VT_MESH_INDEX) &&
+           verifier.VerifyVector(mesh_index()) &&
            VerifyField<int32_t>(verifier, VT_EFFECT_TYPE) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_EFFECT_LIGHT_COLOUR) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_EFFECT_PRIMARY_COLOUR) &&
@@ -1601,8 +1622,11 @@ struct ItemBuilder {
   void add_base_mesh(int32_t base_mesh) {
     fbb_.AddElement<int32_t>(Item::VT_BASE_MESH, base_mesh, 0);
   }
-  void add_mesh_pointers(flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_pointers) {
-    fbb_.AddOffset(Item::VT_MESH_POINTERS, mesh_pointers);
+  void add_skin_index(int32_t skin_index) {
+    fbb_.AddElement<int32_t>(Item::VT_SKIN_INDEX, skin_index, 0);
+  }
+  void add_mesh_index(flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index) {
+    fbb_.AddOffset(Item::VT_MESH_INDEX, mesh_index);
   }
   void add_effect_type(int32_t effect_type) {
     fbb_.AddElement<int32_t>(Item::VT_EFFECT_TYPE, effect_type, 0);
@@ -1681,7 +1705,8 @@ inline flatbuffers::Offset<Item> CreateItem(
     TEN::Save::ItemData data_type = TEN::Save::ItemData::NONE,
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_pointers = 0,
+    int32_t skin_index = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index = 0,
     int32_t effect_type = 0,
     const TEN::Save::Vector3 *effect_light_colour = 0,
     const TEN::Save::Vector3 *effect_primary_colour = 0,
@@ -1703,7 +1728,8 @@ inline flatbuffers::Offset<Item> CreateItem(
   builder_.add_effect_primary_colour(effect_primary_colour);
   builder_.add_effect_light_colour(effect_light_colour);
   builder_.add_effect_type(effect_type);
-  builder_.add_mesh_pointers(mesh_pointers);
+  builder_.add_mesh_index(mesh_index);
+  builder_.add_skin_index(skin_index);
   builder_.add_base_mesh(base_mesh);
   builder_.add_data(data);
   builder_.add_ai_bits(ai_bits);
@@ -1782,7 +1808,8 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     TEN::Save::ItemData data_type = TEN::Save::ItemData::NONE,
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
-    const std::vector<int32_t> *mesh_pointers = nullptr,
+    int32_t skin_index = 0,
+    const std::vector<int32_t> *mesh_index = nullptr,
     int32_t effect_type = 0,
     const TEN::Save::Vector3 *effect_light_colour = 0,
     const TEN::Save::Vector3 *effect_primary_colour = 0,
@@ -1794,7 +1821,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     const char *lua_on_collided_with_object_name = nullptr,
     const char *lua_on_collided_with_room_name = nullptr) {
   auto item_flags__ = item_flags ? _fbb.CreateVector<int32_t>(*item_flags) : 0;
-  auto mesh_pointers__ = mesh_pointers ? _fbb.CreateVector<int32_t>(*mesh_pointers) : 0;
+  auto mesh_index__ = mesh_index ? _fbb.CreateVector<int32_t>(*mesh_index) : 0;
   auto lua_name__ = lua_name ? _fbb.CreateString(lua_name) : 0;
   auto lua_on_killed_name__ = lua_on_killed_name ? _fbb.CreateString(lua_on_killed_name) : 0;
   auto lua_on_hit_name__ = lua_on_hit_name ? _fbb.CreateString(lua_on_hit_name) : 0;
@@ -1836,7 +1863,8 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       data_type,
       data,
       base_mesh,
-      mesh_pointers__,
+      skin_index,
+      mesh_index__,
       effect_type,
       effect_light_colour,
       effect_primary_colour,
@@ -3787,7 +3815,6 @@ struct WeaponControlDataT : public flatbuffers::NativeTable {
   typedef WeaponControlData TableType;
   int32_t weapon_item = 0;
   bool has_fired = false;
-  bool fired = false;
   bool uzi_left = false;
   bool uzi_right = false;
   int32_t gun_type = 0;
@@ -3806,25 +3833,21 @@ struct WeaponControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_WEAPON_ITEM = 4,
     VT_HAS_FIRED = 6,
-    VT_FIRED = 8,
-    VT_UZI_LEFT = 10,
-    VT_UZI_RIGHT = 12,
-    VT_GUN_TYPE = 14,
-    VT_REQUEST_GUN_TYPE = 16,
-    VT_LAST_GUN_TYPE = 18,
-    VT_HOLSTER_INFO = 20,
-    VT_NUM_SHOTS_FIRED = 22,
-    VT_INTERVAL = 24,
-    VT_TIMER = 26
+    VT_UZI_LEFT = 8,
+    VT_UZI_RIGHT = 10,
+    VT_GUN_TYPE = 12,
+    VT_REQUEST_GUN_TYPE = 14,
+    VT_LAST_GUN_TYPE = 16,
+    VT_HOLSTER_INFO = 18,
+    VT_NUM_SHOTS_FIRED = 20,
+    VT_INTERVAL = 22,
+    VT_TIMER = 24
   };
   int32_t weapon_item() const {
     return GetField<int32_t>(VT_WEAPON_ITEM, 0);
   }
   bool has_fired() const {
     return GetField<uint8_t>(VT_HAS_FIRED, 0) != 0;
-  }
-  bool fired() const {
-    return GetField<uint8_t>(VT_FIRED, 0) != 0;
   }
   bool uzi_left() const {
     return GetField<uint8_t>(VT_UZI_LEFT, 0) != 0;
@@ -3857,7 +3880,6 @@ struct WeaponControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_WEAPON_ITEM) &&
            VerifyField<uint8_t>(verifier, VT_HAS_FIRED) &&
-           VerifyField<uint8_t>(verifier, VT_FIRED) &&
            VerifyField<uint8_t>(verifier, VT_UZI_LEFT) &&
            VerifyField<uint8_t>(verifier, VT_UZI_RIGHT) &&
            VerifyField<int32_t>(verifier, VT_GUN_TYPE) &&
@@ -3884,9 +3906,6 @@ struct WeaponControlDataBuilder {
   }
   void add_has_fired(bool has_fired) {
     fbb_.AddElement<uint8_t>(WeaponControlData::VT_HAS_FIRED, static_cast<uint8_t>(has_fired), 0);
-  }
-  void add_fired(bool fired) {
-    fbb_.AddElement<uint8_t>(WeaponControlData::VT_FIRED, static_cast<uint8_t>(fired), 0);
   }
   void add_uzi_left(bool uzi_left) {
     fbb_.AddElement<uint8_t>(WeaponControlData::VT_UZI_LEFT, static_cast<uint8_t>(uzi_left), 0);
@@ -3930,7 +3949,6 @@ inline flatbuffers::Offset<WeaponControlData> CreateWeaponControlData(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t weapon_item = 0,
     bool has_fired = false,
-    bool fired = false,
     bool uzi_left = false,
     bool uzi_right = false,
     int32_t gun_type = 0,
@@ -3951,7 +3969,6 @@ inline flatbuffers::Offset<WeaponControlData> CreateWeaponControlData(
   builder_.add_weapon_item(weapon_item);
   builder_.add_uzi_right(uzi_right);
   builder_.add_uzi_left(uzi_left);
-  builder_.add_fired(fired);
   builder_.add_has_fired(has_fired);
   return builder_.Finish();
 }
@@ -5201,7 +5218,6 @@ struct StaticMeshInfoT : public flatbuffers::NativeTable {
   int32_t number = 0;
   int32_t room_number = 0;
   std::unique_ptr<TEN::Save::Pose> pose{};
-  float scale = 0.0f;
   std::unique_ptr<TEN::Save::Vector4> color{};
   int32_t hit_points = 0;
   int32_t flags = 0;
@@ -5215,10 +5231,9 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NUMBER = 4,
     VT_ROOM_NUMBER = 6,
     VT_POSE = 8,
-    VT_SCALE = 10,
-    VT_COLOR = 12,
-    VT_HIT_POINTS = 14,
-    VT_FLAGS = 16
+    VT_COLOR = 10,
+    VT_HIT_POINTS = 12,
+    VT_FLAGS = 14
   };
   int32_t number() const {
     return GetField<int32_t>(VT_NUMBER, 0);
@@ -5228,9 +5243,6 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Save::Pose *pose() const {
     return GetStruct<const TEN::Save::Pose *>(VT_POSE);
-  }
-  float scale() const {
-    return GetField<float>(VT_SCALE, 0.0f);
   }
   const TEN::Save::Vector4 *color() const {
     return GetStruct<const TEN::Save::Vector4 *>(VT_COLOR);
@@ -5246,7 +5258,6 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_NUMBER) &&
            VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<TEN::Save::Pose>(verifier, VT_POSE) &&
-           VerifyField<float>(verifier, VT_SCALE) &&
            VerifyField<TEN::Save::Vector4>(verifier, VT_COLOR) &&
            VerifyField<int32_t>(verifier, VT_HIT_POINTS) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
@@ -5269,9 +5280,6 @@ struct StaticMeshInfoBuilder {
   }
   void add_pose(const TEN::Save::Pose *pose) {
     fbb_.AddStruct(StaticMeshInfo::VT_POSE, pose);
-  }
-  void add_scale(float scale) {
-    fbb_.AddElement<float>(StaticMeshInfo::VT_SCALE, scale, 0.0f);
   }
   void add_color(const TEN::Save::Vector4 *color) {
     fbb_.AddStruct(StaticMeshInfo::VT_COLOR, color);
@@ -5298,7 +5306,6 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
     int32_t number = 0,
     int32_t room_number = 0,
     const TEN::Save::Pose *pose = 0,
-    float scale = 0.0f,
     const TEN::Save::Vector4 *color = 0,
     int32_t hit_points = 0,
     int32_t flags = 0) {
@@ -5306,7 +5313,6 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
   builder_.add_flags(flags);
   builder_.add_hit_points(hit_points);
   builder_.add_color(color);
-  builder_.add_scale(scale);
   builder_.add_pose(pose);
   builder_.add_room_number(room_number);
   builder_.add_number(number);
@@ -5953,6 +5959,113 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrackDirect(
 }
 
 flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct VideoInfoT : public flatbuffers::NativeTable {
+  typedef VideoInfo TableType;
+  std::string name{};
+  float position = 0.0f;
+  bool silent = false;
+  bool looped = false;
+};
+
+struct VideoInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef VideoInfoT NativeTableType;
+  typedef VideoInfoBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_POSITION = 6,
+    VT_SILENT = 8,
+    VT_LOOPED = 10
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  float position() const {
+    return GetField<float>(VT_POSITION, 0.0f);
+  }
+  bool silent() const {
+    return GetField<uint8_t>(VT_SILENT, 0) != 0;
+  }
+  bool looped() const {
+    return GetField<uint8_t>(VT_LOOPED, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<float>(verifier, VT_POSITION) &&
+           VerifyField<uint8_t>(verifier, VT_SILENT) &&
+           VerifyField<uint8_t>(verifier, VT_LOOPED) &&
+           verifier.EndTable();
+  }
+  VideoInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(VideoInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<VideoInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct VideoInfoBuilder {
+  typedef VideoInfo Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(VideoInfo::VT_NAME, name);
+  }
+  void add_position(float position) {
+    fbb_.AddElement<float>(VideoInfo::VT_POSITION, position, 0.0f);
+  }
+  void add_silent(bool silent) {
+    fbb_.AddElement<uint8_t>(VideoInfo::VT_SILENT, static_cast<uint8_t>(silent), 0);
+  }
+  void add_looped(bool looped) {
+    fbb_.AddElement<uint8_t>(VideoInfo::VT_LOOPED, static_cast<uint8_t>(looped), 0);
+  }
+  explicit VideoInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<VideoInfo> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<VideoInfo>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfo(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    float position = 0.0f,
+    bool silent = false,
+    bool looped = false) {
+  VideoInfoBuilder builder_(_fbb);
+  builder_.add_position(position);
+  builder_.add_name(name);
+  builder_.add_looped(looped);
+  builder_.add_silent(silent);
+  return builder_.Finish();
+}
+
+struct VideoInfo::Traits {
+  using type = VideoInfo;
+  static auto constexpr Create = CreateVideoInfo;
+};
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfoDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    float position = 0.0f,
+    bool silent = false,
+    bool looped = false) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return TEN::Save::CreateVideoInfo(
+      _fbb,
+      name__,
+      position,
+      silent,
+      looped);
+}
+
+flatbuffers::Offset<VideoInfo> CreateVideoInfo(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct SwarmObjectInfoT : public flatbuffers::NativeTable {
   typedef SwarmObjectInfo TableType;
@@ -6888,7 +7001,7 @@ struct FireflyDataT : public flatbuffers::NativeTable {
   int32_t b = 0;
   bool on = false;
   float size = 0.0f;
-  int32_t rot_Ang = 0;
+  int32_t rot_ang = 0;
 };
 
 struct FireflyData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -6982,7 +7095,7 @@ struct FireflyData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float size() const {
     return GetField<float>(VT_SIZE, 0.0f);
   }
-  int32_t rot_Ang() const {
+  int32_t rot_ang() const {
     return GetField<int32_t>(VT_ROT_ANG, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
@@ -7083,8 +7196,8 @@ struct FireflyDataBuilder {
   void add_size(float size) {
     fbb_.AddElement<float>(FireflyData::VT_SIZE, size, 0.0f);
   }
-  void add_rot_Ang(int32_t rot_Ang) {
-    fbb_.AddElement<int32_t>(FireflyData::VT_ROT_ANG, rot_Ang, 0);
+  void add_rot_ang(int32_t rot_ang) {
+    fbb_.AddElement<int32_t>(FireflyData::VT_ROT_ANG, rot_ang, 0);
   }
   explicit FireflyDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -7120,9 +7233,9 @@ inline flatbuffers::Offset<FireflyData> CreateFireflyData(
     int32_t b = 0,
     bool on = false,
     float size = 0.0f,
-    int32_t rot_Ang = 0) {
+    int32_t rot_ang = 0) {
   FireflyDataBuilder builder_(_fbb);
-  builder_.add_rot_Ang(rot_Ang);
+  builder_.add_rot_ang(rot_ang);
   builder_.add_size(size);
   builder_.add_b(b);
   builder_.add_g(g);
@@ -8316,6 +8429,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<int32_t> action_queue{};
   std::vector<std::unique_ptr<TEN::Save::SoundtrackT>> soundtracks{};
   std::vector<int32_t> cd_flags{};
+  std::unique_ptr<TEN::Save::VideoInfoT> video{};
   int32_t postprocess_mode = 0;
   float postprocess_strength = 0.0f;
   std::unique_ptr<TEN::Save::Vector3> postprocess_tint{};
@@ -8383,30 +8497,31 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ACTION_QUEUE = 70,
     VT_SOUNDTRACKS = 72,
     VT_CD_FLAGS = 74,
-    VT_POSTPROCESS_MODE = 76,
-    VT_POSTPROCESS_STRENGTH = 78,
-    VT_POSTPROCESS_TINT = 80,
-    VT_ROPE = 82,
-    VT_PENDULUM = 84,
-    VT_ALTERNATE_PENDULUM = 86,
-    VT_VOLUMES = 88,
-    VT_GLOBAL_EVENT_SETS = 90,
-    VT_VOLUME_EVENT_SETS = 92,
-    VT_SCRIPT_VARS = 94,
-    VT_CALLBACKS_PRE_START = 96,
-    VT_CALLBACKS_POST_START = 98,
-    VT_CALLBACKS_PRE_END = 100,
-    VT_CALLBACKS_POST_END = 102,
-    VT_CALLBACKS_PRE_SAVE = 104,
-    VT_CALLBACKS_POST_SAVE = 106,
-    VT_CALLBACKS_PRE_LOAD = 108,
-    VT_CALLBACKS_POST_LOAD = 110,
-    VT_CALLBACKS_PRE_LOOP = 112,
-    VT_CALLBACKS_POST_LOOP = 114,
-    VT_CALLBACKS_PRE_USEITEM = 116,
-    VT_CALLBACKS_POST_USEITEM = 118,
-    VT_CALLBACKS_PRE_FREEZE = 120,
-    VT_CALLBACKS_POST_FREEZE = 122
+    VT_VIDEO = 76,
+    VT_POSTPROCESS_MODE = 78,
+    VT_POSTPROCESS_STRENGTH = 80,
+    VT_POSTPROCESS_TINT = 82,
+    VT_ROPE = 84,
+    VT_PENDULUM = 86,
+    VT_ALTERNATE_PENDULUM = 88,
+    VT_VOLUMES = 90,
+    VT_GLOBAL_EVENT_SETS = 92,
+    VT_VOLUME_EVENT_SETS = 94,
+    VT_SCRIPT_VARS = 96,
+    VT_CALLBACKS_PRE_START = 98,
+    VT_CALLBACKS_POST_START = 100,
+    VT_CALLBACKS_PRE_END = 102,
+    VT_CALLBACKS_POST_END = 104,
+    VT_CALLBACKS_PRE_SAVE = 106,
+    VT_CALLBACKS_POST_SAVE = 108,
+    VT_CALLBACKS_PRE_LOAD = 110,
+    VT_CALLBACKS_POST_LOAD = 112,
+    VT_CALLBACKS_PRE_LOOP = 114,
+    VT_CALLBACKS_POST_LOOP = 116,
+    VT_CALLBACKS_PRE_USEITEM = 118,
+    VT_CALLBACKS_POST_USEITEM = 120,
+    VT_CALLBACKS_PRE_FREEZE = 122,
+    VT_CALLBACKS_POST_FREEZE = 124
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -8515,6 +8630,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<int32_t> *cd_flags() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_CD_FLAGS);
+  }
+  const TEN::Save::VideoInfo *video() const {
+    return GetPointer<const TEN::Save::VideoInfo *>(VT_VIDEO);
   }
   int32_t postprocess_mode() const {
     return GetField<int32_t>(VT_POSTPROCESS_MODE, 0);
@@ -8667,6 +8785,8 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(soundtracks()) &&
            VerifyOffset(verifier, VT_CD_FLAGS) &&
            verifier.VerifyVector(cd_flags()) &&
+           VerifyOffset(verifier, VT_VIDEO) &&
+           verifier.VerifyTable(video()) &&
            VerifyField<int32_t>(verifier, VT_POSTPROCESS_MODE) &&
            VerifyField<float>(verifier, VT_POSTPROCESS_STRENGTH) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_POSTPROCESS_TINT) &&
@@ -8848,6 +8968,9 @@ struct SaveGameBuilder {
   void add_cd_flags(flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags) {
     fbb_.AddOffset(SaveGame::VT_CD_FLAGS, cd_flags);
   }
+  void add_video(flatbuffers::Offset<TEN::Save::VideoInfo> video) {
+    fbb_.AddOffset(SaveGame::VT_VIDEO, video);
+  }
   void add_postprocess_mode(int32_t postprocess_mode) {
     fbb_.AddElement<int32_t>(SaveGame::VT_POSTPROCESS_MODE, postprocess_mode, 0);
   }
@@ -8969,6 +9092,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> action_queue = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::Soundtrack>>> soundtracks = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> cd_flags = 0,
+    flatbuffers::Offset<TEN::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
@@ -9018,6 +9142,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_postprocess_tint(postprocess_tint);
   builder_.add_postprocess_strength(postprocess_strength);
   builder_.add_postprocess_mode(postprocess_mode);
+  builder_.add_video(video);
   builder_.add_cd_flags(cd_flags);
   builder_.add_soundtracks(soundtracks);
   builder_.add_action_queue(action_queue);
@@ -9100,6 +9225,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<int32_t> *action_queue = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Save::Soundtrack>> *soundtracks = nullptr,
     const std::vector<int32_t> *cd_flags = nullptr,
+    flatbuffers::Offset<TEN::Save::VideoInfo> video = 0,
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
@@ -9199,6 +9325,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       action_queue__,
       soundtracks__,
       cd_flags__,
+      video,
       postprocess_mode,
       postprocess_strength,
       postprocess_tint,
@@ -9260,6 +9387,7 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = horizon2_position(); if (_e) _o->horizon2_position = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
   { auto _e = horizon2_orientation(); if (_e) _o->horizon2_orientation = std::unique_ptr<TEN::Save::EulerAngles>(new TEN::Save::EulerAngles(*_e)); }
   { auto _e = horizon2_transparency(); _o->horizon2_transparency = _e; }
+  { auto _e = lensflare_enabled(); _o->lensflare_enabled = _e; }
   { auto _e = lensflare_sprite_id(); _o->lensflare_sprite_id = _e; }
   { auto _e = lensflare_pitch(); _o->lensflare_pitch = _e; }
   { auto _e = lensflare_yaw(); _o->lensflare_yaw = _e; }
@@ -9302,6 +9430,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _horizon2_position = _o->horizon2_position ? _o->horizon2_position.get() : 0;
   auto _horizon2_orientation = _o->horizon2_orientation ? _o->horizon2_orientation.get() : 0;
   auto _horizon2_transparency = _o->horizon2_transparency;
+  auto _lensflare_enabled = _o->lensflare_enabled;
   auto _lensflare_sprite_id = _o->lensflare_sprite_id;
   auto _lensflare_pitch = _o->lensflare_pitch;
   auto _lensflare_yaw = _o->lensflare_yaw;
@@ -9336,6 +9465,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _horizon2_position,
       _horizon2_orientation,
       _horizon2_transparency,
+      _lensflare_enabled,
       _lensflare_sprite_id,
       _lensflare_pitch,
       _lensflare_yaw,
@@ -9424,7 +9554,8 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = data_type(); _o->data.type = _e; }
   { auto _e = data(); if (_e) _o->data.value = TEN::Save::ItemDataUnion::UnPack(_e, data_type(), _resolver); }
   { auto _e = base_mesh(); _o->base_mesh = _e; }
-  { auto _e = mesh_pointers(); if (_e) { _o->mesh_pointers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mesh_pointers[_i] = _e->Get(_i); } } }
+  { auto _e = skin_index(); _o->skin_index = _e; }
+  { auto _e = mesh_index(); if (_e) { _o->mesh_index.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mesh_index[_i] = _e->Get(_i); } } }
   { auto _e = effect_type(); _o->effect_type = _e; }
   { auto _e = effect_light_colour(); if (_e) _o->effect_light_colour = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
   { auto _e = effect_primary_colour(); if (_e) _o->effect_primary_colour = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
@@ -9479,7 +9610,8 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _data_type = _o->data.type;
   auto _data = _o->data.Pack(_fbb);
   auto _base_mesh = _o->base_mesh;
-  auto _mesh_pointers = _fbb.CreateVector(_o->mesh_pointers);
+  auto _skin_index = _o->skin_index;
+  auto _mesh_index = _fbb.CreateVector(_o->mesh_index);
   auto _effect_type = _o->effect_type;
   auto _effect_light_colour = _o->effect_light_colour ? _o->effect_light_colour.get() : 0;
   auto _effect_primary_colour = _o->effect_primary_colour ? _o->effect_primary_colour.get() : 0;
@@ -9526,7 +9658,8 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _data_type,
       _data,
       _base_mesh,
-      _mesh_pointers,
+      _skin_index,
+      _mesh_index,
       _effect_type,
       _effect_light_colour,
       _effect_primary_colour,
@@ -10187,7 +10320,6 @@ inline void WeaponControlData::UnPackTo(WeaponControlDataT *_o, const flatbuffer
   (void)_resolver;
   { auto _e = weapon_item(); _o->weapon_item = _e; }
   { auto _e = has_fired(); _o->has_fired = _e; }
-  { auto _e = fired(); _o->fired = _e; }
   { auto _e = uzi_left(); _o->uzi_left = _e; }
   { auto _e = uzi_right(); _o->uzi_right = _e; }
   { auto _e = gun_type(); _o->gun_type = _e; }
@@ -10209,7 +10341,6 @@ inline flatbuffers::Offset<WeaponControlData> CreateWeaponControlData(flatbuffer
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const WeaponControlDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _weapon_item = _o->weapon_item;
   auto _has_fired = _o->has_fired;
-  auto _fired = _o->fired;
   auto _uzi_left = _o->uzi_left;
   auto _uzi_right = _o->uzi_right;
   auto _gun_type = _o->gun_type;
@@ -10223,7 +10354,6 @@ inline flatbuffers::Offset<WeaponControlData> CreateWeaponControlData(flatbuffer
       _fbb,
       _weapon_item,
       _has_fired,
-      _fired,
       _uzi_left,
       _uzi_right,
       _gun_type,
@@ -10663,7 +10793,6 @@ inline void StaticMeshInfo::UnPackTo(StaticMeshInfoT *_o, const flatbuffers::res
   { auto _e = number(); _o->number = _e; }
   { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
-  { auto _e = scale(); _o->scale = _e; }
   { auto _e = color(); if (_e) _o->color = std::unique_ptr<TEN::Save::Vector4>(new TEN::Save::Vector4(*_e)); }
   { auto _e = hit_points(); _o->hit_points = _e; }
   { auto _e = flags(); _o->flags = _e; }
@@ -10680,7 +10809,6 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   auto _number = _o->number;
   auto _room_number = _o->room_number;
   auto _pose = _o->pose ? _o->pose.get() : 0;
-  auto _scale = _o->scale;
   auto _color = _o->color ? _o->color.get() : 0;
   auto _hit_points = _o->hit_points;
   auto _flags = _o->flags;
@@ -10689,7 +10817,6 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
       _number,
       _room_number,
       _pose,
-      _scale,
       _color,
       _hit_points,
       _flags);
@@ -10883,6 +11010,41 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferB
       _fbb,
       _name,
       _position);
+}
+
+inline VideoInfoT *VideoInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<VideoInfoT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void VideoInfo::UnPackTo(VideoInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = position(); _o->position = _e; }
+  { auto _e = silent(); _o->silent = _e; }
+  { auto _e = looped(); _o->looped = _e; }
+}
+
+inline flatbuffers::Offset<VideoInfo> VideoInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateVideoInfo(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<VideoInfo> CreateVideoInfo(flatbuffers::FlatBufferBuilder &_fbb, const VideoInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const VideoInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  auto _position = _o->position;
+  auto _silent = _o->silent;
+  auto _looped = _o->looped;
+  return TEN::Save::CreateVideoInfo(
+      _fbb,
+      _name,
+      _position,
+      _silent,
+      _looped);
 }
 
 inline SwarmObjectInfoT *SwarmObjectInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11228,7 +11390,7 @@ inline void FireflyData::UnPackTo(FireflyDataT *_o, const flatbuffers::resolver_
   { auto _e = b(); _o->b = _e; }
   { auto _e = on(); _o->on = _e; }
   { auto _e = size(); _o->size = _e; }
-  { auto _e = rot_Ang(); _o->rot_Ang = _e; }
+  { auto _e = rot_ang(); _o->rot_ang = _e; }
 }
 
 inline flatbuffers::Offset<FireflyData> FireflyData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FireflyDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11260,7 +11422,7 @@ inline flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBuffe
   auto _b = _o->b;
   auto _on = _o->on;
   auto _size = _o->size;
-  auto _rot_Ang = _o->rot_Ang;
+  auto _rot_ang = _o->rot_ang;
   return TEN::Save::CreateFireflyData(
       _fbb,
       _sprite_index,
@@ -11284,7 +11446,7 @@ inline flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBuffe
       _b,
       _on,
       _size,
-      _rot_Ang);
+      _rot_ang);
 }
 
 inline ScriptTableT *ScriptTable::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11744,6 +11906,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = action_queue(); if (_e) { _o->action_queue.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->action_queue[_i] = _e->Get(_i); } } }
   { auto _e = soundtracks(); if (_e) { _o->soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->soundtracks[_i] = std::unique_ptr<TEN::Save::SoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = cd_flags(); if (_e) { _o->cd_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cd_flags[_i] = _e->Get(_i); } } }
+  { auto _e = video(); if (_e) _o->video = std::unique_ptr<TEN::Save::VideoInfoT>(_e->UnPack(_resolver)); }
   { auto _e = postprocess_mode(); _o->postprocess_mode = _e; }
   { auto _e = postprocess_strength(); _o->postprocess_strength = _e; }
   { auto _e = postprocess_tint(); if (_e) _o->postprocess_tint = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
@@ -11814,6 +11977,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _action_queue = _fbb.CreateVector(_o->action_queue);
   auto _soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Soundtrack>> (_o->soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateSoundtrack(*__va->__fbb, __va->__o->soundtracks[i].get(), __va->__rehasher); }, &_va );
   auto _cd_flags = _fbb.CreateVector(_o->cd_flags);
+  auto _video = _o->video ? CreateVideoInfo(_fbb, _o->video.get(), _rehasher) : 0;
   auto _postprocess_mode = _o->postprocess_mode;
   auto _postprocess_strength = _o->postprocess_strength;
   auto _postprocess_tint = _o->postprocess_tint ? _o->postprocess_tint.get() : 0;
@@ -11876,6 +12040,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _action_queue,
       _soundtracks,
       _cd_flags,
+      _video,
       _postprocess_mode,
       _postprocess_strength,
       _postprocess_tint,

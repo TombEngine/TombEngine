@@ -19,11 +19,14 @@ local settings = Flow.Settings.new()
 	settings.Flare.offset = Vec3(0, 0, 41)
 	settings.Flare.range = 9
 	settings.Flare.timeout = 60
-	settings.Flare.lensflareBrightness = 1.0
+	settings.Flare.lensflareBrightness = 0.5
+	settings.Flare.glow = false
 	settings.Flare.sparks = true
 	settings.Flare.smoke = true
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
+	
+	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
 	settings.Hud.loadingBar = true

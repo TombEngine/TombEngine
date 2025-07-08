@@ -180,7 +180,7 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 			if (puzzleType == PuzzleType::Specfic)
 			{
-				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
+				laraItem->Animation.ActiveState = LS_INSERT_PUZZLE;
 				laraItem->Animation.AnimNumber = -receptacleItem.TriggerFlags;
 
 				if (laraItem->Animation.AnimNumber != LA_TRIDENT_SET)

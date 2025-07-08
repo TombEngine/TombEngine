@@ -66,7 +66,7 @@ namespace TEN::Scripting
 	// @tparam int meteorCount Meteor count. __Max: 100__
 	// @tparam int meteorSpawnDensity Meteor spawn density.
 	// @tparam int meteorVel Meteor velocity.
-	// @treturn StarField A new Starfield object.
+	// @treturn Starfield A new Starfield object.
 	Starfield::Starfield(int starCount, int meteorCount, int meteorSpawnDensity, float meteorVel)
 	{
 		if (starCount < 0 || starCount > STAR_COUNT_MAX)

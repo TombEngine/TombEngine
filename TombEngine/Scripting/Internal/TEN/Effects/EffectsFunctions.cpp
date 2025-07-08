@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
+#include "Game/effects/blood.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
@@ -32,10 +33,12 @@
 #include "Specific/trutils.h"
 #include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
+
 /// Functions to generate effects.
 // @tentable Effects 
 // @pragma nostrip
 
+using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Electricity;
@@ -46,19 +49,19 @@ using namespace TEN::Effects::Streamer;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
 
-namespace TEN::Scripting::Effects
+namespace TEN::Scripting::Effects 
 {
-	/// Emit a lightning arc.
+	/// Emit a lightning arc.  
 	// @function EmitLightningArc
-	// @tparam Vec3 origin
-	// @tparam Vec3 target
-	// @tparam Color color (default Color(255, 255, 255))
-	// @tparam float life Lifetime in seconds. Clamped to [0, 4.233] for now because of strange internal maths. __default: 1__
-	// @tparam int amplitude "strength" of the lightning - the higher the value, the "taller" the arcs. Clamped to [1, 255]. __default: 20__
-	// @tparam int beamWidth Clamped to [1, 127]. __default 2__
-	// @tparam int detail Higher numbers equal more segments, but it's not a 1:1 correlation. Clamped to [1, 127]. __default: 10__
-	// @tparam bool smooth If true, the arc will have large, smooth curves; if false, it will have small, jagged spikes. __default: false__
-	// @tparam bool endDrift If true, the end of the arc will be able to gradually drift away from its destination in a random direction __default: false__
+	// @tparam Vec3 origin Lightning origin (start) position.
+	// @tparam Vec3 target Lightning target (end) position.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
+	// @tparam[opt=1] float life Lifetime in seconds. Clamped to [0, 4.233] for now because of strange internal maths.
+	// @tparam[opt=20] int amplitude Strength of the lightning - the higher the value, the "taller" the arcs. Clamped to [1, 255].
+	// @tparam[opt=2] int beamWidth Beam width. Clamped to [1, 127].
+	// @tparam[opt=10] int detail Higher numbers equal more segments, but it's not a 1:1 correlation. Clamped to [1, 127].
+	// @tparam[opt=false] bool smooth If true, the arc will have large, smooth curves; if false, it will have small, jagged spikes.
+	// @tparam[opt=false] bool endDrift If true, the end of the arc will be able to gradually drift away from its destination in a random direction.
 	static void EmitLightningArc(const Vec3& origin, const Vec3& target, TypeOrNil<ScriptColor> color, TypeOrNil<float> life, TypeOrNil<int> amplitude,
 								 TypeOrNil<int> beamWidth, TypeOrNil<int> segments, TypeOrNil<bool> smooth, TypeOrNil<bool> endDrift)
 	{
@@ -113,18 +116,18 @@ namespace TEN::Scripting::Effects
 	// @tparam Vec3 pos World position.
 	// @tparam Vec3 vel Directional velocity.
 	// @tparam int spriteID Sprite ID in the sprite sequence slot.
-	// @tparam float gravity Effect of gravity. Positive value ascends, negative value descends. __default: 0__
-	// @tparam float rotVel Rotational velocity in degrees. __default: 0__
-	// @tparam Color startColor Color at start of life. __default: Color(255, 255, 255)__
-	// @tparam Color endColor Color at end of life. This will finish long before the end of the particle's life due to internal math. __default: Color(255, 255, 255)__
-	// @tparam Effects.BlendID blendMode Render blend mode. __TEN.Effects.BlendID.ALPHA_BLEND__
-	// @tparam float startSize Size at start of life. __default: 10__
-	// @tparam float endSize Size at end of life. __default: 0__
-	// @tparam float life Lifespan in seconds. __default: 2__
-	// @tparam bool damage Harm the player on collision. __default: false__
-	// @tparam bool poison Poison the player on collision. __default: false__
-	// @tparam Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID. __default: Objects.ObjID.DEFAULT_SPRITES__
-	// @tparam float startRot Rotation at start of life. __default: random__
+	// @tparam[opt=0] float gravity Effect of gravity. Positive value ascends, negative value descends.
+	// @tparam[opt=0] float rotVel Rotational velocity in degrees.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color startColor Color at start of life.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color endColor Color at end of life. This will finish long before the end of the particle's life due to internal math.
+	// @tparam[opt=TEN.Effects.BlendID.ALPHA_BLEND] Effects.BlendID blendMode Render blend mode.
+	// @tparam[opt=10] float startSize Size at start of life. 
+	// @tparam[opt=0] float endSize Size at end of life.
+	// @tparam[opt=2] float life Lifespan in seconds.
+	// @tparam[opt=false] bool damage Harm the player on collision.
+	// @tparam[opt=false] bool poison Poison the player on collision.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=random] float startRot Rotation at start of life.
 	// @usage
 	// EmitParticle(
 	//     pos,
@@ -223,7 +226,7 @@ namespace TEN::Scripting::Effects
 
 	/// Emit a particle with extensive configuration options, including sprite sequence animation, lights, sounds, and damage effects.
 	// @function EmitAdvancedParticle
-	// @tparam ParticleData ParticleData Table containing particle data.
+	// @tparam ParticleData particleData Table containing particle data.
 	// @usage
 	// local particle =
 	// {
@@ -261,31 +264,31 @@ namespace TEN::Scripting::Effects
 	// @table ParticleData
 	// @tfield Vec3 pos World position.
 	// @tfield Vec3 vel Directional velocity in world units per second.
-	// @tfield[opt] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID. __default: Objects.ObjID.DEFAULT_SPRITES__
-	// @tfield[opt] int spriteID Sprite ID in the sprite sequence slot. __default: 0__
-	// @tfield[opt] float life Lifespan in seconds. __default: 2__
-	// @tfield[opt] float maxYVel Maximum vertical velocity in world units per second. __default: 0__
-	// @tfield[opt] float gravity Effect of gravity in world units per second. Positive value ascend, negative value descend. __default: 0__
-	// @tfield[opt] float friction Friction affecting velocity over time in world units per second. __default: 0__
-	// @tfield[opt] float startRot Rotation at start of life. __default: random__
-	// @tfield[opt] float rotVel Rotational velocity in degrees per second. __default: 0__
-	// @tfield[opt] float startSize Size at start of life. __default: 10__
-	// @tfield[opt] float endSize Size at end of life. __default: 0__
-	// @tfield[opt] Color startColor Color at start of life. __default: Color(255, 255, 255)__
-	// @tfield[opt] Color endColor Color at end of life. Note that this will finish long before the end of life due to internal math. __default: Color(255, 255, 255)__
-	// @tfield[opt] Effects.BlendID blendMode Render blend mode. __default: TEN.Effects.BlendID.ALPHA_BLEND__
-	// @tfield[opt] bool damage Harm the player on collision. __default: false__
-	// @tfield[opt] bool poison Poison the player on collision. __default: false__
-	// @tfield[opt] bool burn Burn the player on collision. __default: false__
-	// @tfield[opt] bool wind Affect position by wind in outside rooms. __default: false__
-	// @tfield[opt] int damageHit Player damage amount on collision. __default: 2__
-	// @tfield[opt] bool light Emit a colored light. CAUTION: Recommended only for a single particle. Too many particles with lights can overwhelm the lighting system. __default: false__
-	// @tfield[opt] int lightRadius Light radius in 1/4 blocks. __default: 0__
-	// @tfield[opt] int lightFlicker Interval at which the light should flicker. __default: 0__
-	// @tfield[opt] int soundID Sound ID to play. CAUTION: Recommended only for a single particle. Too many particles with sounds can overwhelm the sound system. __default: none__
-	// @tfield[opt] bool animated Play animates sprite sequence. __default: false__
-	// @tfield[opt] Effects.ParticleAnimationType animType Animation type of the sprite sequence. __default: TEN.Effects.ParticleAnimationType.LOOP__
-	// @tfield[opt] float frameRate Sprite sequence animation framerate. __default: 1__
+	// @tfield[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tfield[opt=0] int spriteID Sprite ID in the sprite sequence slot.
+	// @tfield[opt=2] float life Lifespan in seconds.
+	// @tfield[opt=0] float maxYVel Maximum vertical velocity in world units per second.
+	// @tfield[opt=0] float gravity Effect of gravity in world units per second. Positive value ascend, negative value descend.
+	// @tfield[opt=0] float friction Friction affecting velocity over time in world units per second.
+	// @tfield[opt=random] float startRot Rotation at start of life.
+	// @tfield[opt=0] float rotVel Rotational velocity in degrees per second.
+	// @tfield[opt=10] float startSize Size at start of life.
+	// @tfield[opt=0] float endSize Size at end of life.
+	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color startColor Color at start of life.
+	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color endColor Color at end of life. Note that this will finish long before the end of life due to internal math.
+	// @tfield[opt=TEN.Effects.BlendID.ALPHA_BLEND] Effects.BlendID blendMode Render blend mode.
+	// @tfield[opt=false] bool damage Harm the player on collision.
+	// @tfield[opt=false] bool poison Poison the player on collision.
+	// @tfield[opt=false] bool burn Burn the player on collision.
+	// @tfield[opt=false] bool wind Affect position by wind in outside rooms.
+	// @tfield[opt=2] int damageHit Player damage amount on collision.
+	// @tfield[opt=false] bool light Emit a colored light. __Caution__: Recommended only for a single particle. Too many particles with lights can overwhelm the lighting system.
+	// @tfield[opt=0] int lightRadius Light radius in 1/4 blocks.
+	// @tfield[opt=0] int lightFlicker Interval at which the light should flicker.
+	// @tfield[opt] int soundID Sound ID to play. __Caution__: Recommended only for a single particle. Too many particles with sounds can overwhelm the sound system.
+	// @tfield[opt=false] bool animated Play animates sprite sequence.
+	// @tfield[opt=TEN.Effects.ParticleAnimationType.LOOP] Effects.ParticleAnimationType animType Animation type of the sprite sequence.
+	// @tfield[opt=1] float frameRate Sprite sequence animation framerate.
 	static void EmitAdvancedParticle(const sol::table& table)
 	{
 		constexpr auto DEFAULT_START_SIZE = 10.0f;
@@ -402,14 +405,14 @@ namespace TEN::Scripting::Effects
 	
 	/// Emit a shockwave, similar to that seen when a harpy projectile hits something.
 	// @function EmitShockwave
-	// @tparam Vec3 pos Origin position
-	// @tparam int innerRadius (default 0) Initial inner radius of the shockwave circle - 128 will be approx a click, 512 approx a block
-	// @tparam int outerRadius (default 128) Initial outer radius of the shockwave circle
-	// @tparam Color color (default Color(255, 255, 255))
-	// @tparam float lifetime (default 1.0) Lifetime in seconds (max 8.5 because of inner maths weirdness)
-	// @tparam int speed (default 50) Initial speed of the shockwave's expansion (the shockwave will always slow as it goes)
-	// @tparam int angle (default 0) Angle about the X axis - a value of 90 will cause the shockwave to be entirely vertical
-	// @tparam bool hurtsLara (default false) If true, the shockwave will hurt Lara, with the damage being relative to the shockwave's current speed
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=0] int innerRadius Initial inner radius of the shockwave circle - 128 will be approx a click, 512 approx a block.
+	// @tparam[opt=128] int outerRadius Initial outer radius of the shockwave circle.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
+	// @tparam[opt=1.0] float lifetime Lifetime in seconds (max 8.5 because of inner maths weirdness).
+	// @tparam[opt=50] int speed Initial speed of the shockwave's expansion (the shockwave will always slow as it goes).
+	// @tparam[opt=0] int angle Angle about the X axis - a value of 90 will cause the shockwave to be entirely vertical.
+	// @tparam[opt=false] bool hurtsLara If true, the shockwave will hurt Lara, with the damage being relative to the shockwave's current speed.
 	static void EmitShockwave(Vec3 pos, TypeOrNil<int> innerRadius, TypeOrNil<int> outerRadius, TypeOrNil<ScriptColor> col,
 							  TypeOrNil<float> lifetime, TypeOrNil<int> speed, TypeOrNil<int> angle, TypeOrNil<bool> hurtPlayer)
 	{
@@ -443,11 +446,11 @@ namespace TEN::Scripting::Effects
 	/// Emit dynamic light that lasts for a single frame.
 	// If you want a light that sticks around, you must call this each frame.
 	// @function EmitLight
-	// @tparam Vec3 pos position of the light
-	// @tparam[opt] Color color light color (default Color(255, 255, 255))
-	// @tparam[opt] int radius measured in "clicks" or 256 world units (default 20)
-	// @tparam[opt] bool shadows determines whether light should generate dynamic shadows for applicable moveables (default is false)
-	// @tparam[opt] string name if provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights)
+	// @tparam Vec3 pos World position of the light.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color light color.
+	// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
+	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
+	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
 	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
@@ -458,14 +461,14 @@ namespace TEN::Scripting::Effects
 	/// Emit dynamic directional spotlight that lasts for a single frame.
 	// If you want a light that sticks around, you must call this each frame.
 	// @function EmitSpotLight
-	// @tparam Vec3 pos position of the light
-	// @tparam Vec3 dir normal which indicates light direction
-	// @tparam[opt] Color color (default Color(255, 255, 255))
-	// @tparam[opt] int radius overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units (default 10)
-	// @tparam[opt] int falloff radius, at which light starts to fade out, measured in "clicks" (default 5)
-	// @tparam[opt] int distance distance, at which light cone fades out, measured in "clicks" (default 20)
-	// @tparam[opt] bool shadows determines whether light should generate dynamic shadows for applicable moveables (default is false)
-	// @tparam[opt] string name if provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights)
+	// @tparam Vec3 pos World position of the light.
+	// @tparam Vec3 dir Normal which indicates light direction.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
+	// @tparam[opt=10] int radius Overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units.
+	// @tparam[opt=5] int falloff Radius, at which light starts to fade out, measured in "clicks".
+	// @tparam[opt=20] int distance Distance, at which light cone fades out, measured in "clicks".
+	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
+	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
 	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<int> falloff, TypeOrNil<int> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
@@ -495,18 +498,23 @@ namespace TEN::Scripting::Effects
 
 	/// Emit blood.
 	// @function EmitBlood
-	// @tparam Vec3 pos
-	// @tparam int count Sprite count. __default: 1__
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=1] int count Blood sprite count.
 	static void EmitBlood(const Vec3& pos, TypeOrNil<int> count)
 	{
-		TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+		if (room.flags & ENV_FLAG_WATER)
+			SpawnUnderwaterBloodCloud(pos, roomNumber, (GetRandomControl() & 7) + 8, ValueOr<int>(count, 1));
+		else
+			TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
 	}
 
 	/// Emit an air bubble in a water room.
 	// @function EmitAirBubble
 	// @tparam Vec3 pos World position where the effect will be spawned. Must be in a water room.
-	// @tparam[opt] float size Sprite size. __Default: 32__
-	// @tparam[opt] float amp Oscillation amplitude. __Default: 32__
+	// @tparam[opt=32] float size Sprite size.
+	// @tparam[opt=32] float amp Oscillation amplitude.
 	static void EmitAirBubble(const Vec3& pos, TypeOrNil<float> size, TypeOrNil<float> amp)
 	{
 		constexpr auto DEFAULT_SIZE = 128.0f;
@@ -518,10 +526,31 @@ namespace TEN::Scripting::Effects
 		SpawnBubble(pos.ToVector3(), roomNumber, convertedSize, convertedAmp);
 	}
 
+	/// Emit waterfall mist.
+	// @function EmitWaterfallMist
+	// @tparam Vec3 pos World position where the effect will be spawned.
+	// @tparam[opt=64] float size Effect size.
+	// @tparam[opt=32] float width Width of the effect.
+	// @tparam[opt=0] float rot Rotation of effect in degrees.
+	// @tparam[opt=Color(255&#44; 255&#44; 255&#44; 255)] Color color Color of the effect.
+	static void EmitWaterfallMist(const Vec3& pos, TypeOrNil<int> size, TypeOrNil<int> width, TypeOrNil<float> angle, TypeOrNil<ScriptColor> color)
+	{
+		constexpr auto DEFAULT_SIZE = 64;
+		constexpr auto DEFAULT_WIDTH = 32;
+
+		auto convertedAngle = ANGLE(ValueOr<float>(angle, 0.0f));
+		auto convertedSize = ValueOr<int>(size, DEFAULT_SIZE);
+		auto convertedWidth = ValueOr<int>(width, DEFAULT_WIDTH);
+		auto _color = ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255));
+		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
+
+		TriggerWaterfallMist(pos, convertedSize, convertedWidth, convertedAngle, convertedColor);
+	}
+
 	/// Emit fire for one frame. Will not hurt player. Call this each frame if you want a continuous fire.
 	// @function EmitFire
-	// @tparam Vec3 pos
-	// @tparam float size Fire size. __default: 1__
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=1] float size Fire size.
 	static void EmitFire(const Vec3& pos, TypeOrNil<float> size)
 	{
 		AddFire(pos.x, pos.y, pos.z, FindRoomNumber(pos.ToVector3i()), ValueOr<float>(size, 1));
@@ -529,17 +558,45 @@ namespace TEN::Scripting::Effects
 
 	/// Make an explosion. Does not hurt Lara
 	// @function MakeExplosion 
-	// @tparam Vec3 pos
-	// @tparam float size (default 512.0) this will not be the size of the sprites, but rather the distance between the origin and any additional sprites
-	// @tparam bool shockwave (default false) if true, create a very faint white shockwave which will not hurt Lara
-	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave)
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=512] float size Size of the shockwave if enabled.
+	// @tparam[opt=false] bool shockwave If true, creates a very faint shockwave which will not hurt Lara.
+	// For underwater rooms, it creates a splash if `pos` is near the surface. Shockwave uses `mainColor` if provided.
+	// @tparam[opt] Color mainColor Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
+	// @tparam[opt] Color additionalColor Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
+	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave, TypeOrNil<ScriptColor> mainColor, TypeOrNil<ScriptColor> additionalColor)
 	{
-		TriggerExplosion(Vector3(pos.x, pos.y, pos.z), ValueOr<float>(size, 512.0f), true, false, ValueOr<bool>(shockwave, false), FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)));
+		auto convertedShockwave = ValueOr<bool>(shockwave, false);
+		auto convertedSize = ValueOr<float>(size, 512.0f);
+
+		auto convertedMainColor = ValueOr<ScriptColor>(mainColor, ScriptColor(0, 0, 0));
+		auto convertedAdditionalColor = ValueOr<ScriptColor>(additionalColor, convertedMainColor);
+
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+
+		if (room.flags & ENV_FLAG_WATER)
+			TriggerUnderwaterExplosion(pos.ToVector3(), ValueOr<bool>(shockwave, false), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+		else
+		{
+			TriggerExplosionSparks(pos.x, pos.y, pos.z, 3, -2, 0, FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+
+			if (convertedShockwave)
+			{
+				auto shockPos = Pose(Vector3i(pos));
+
+				if (Vector3(convertedMainColor) == Vector3::Zero)
+				TriggerShockwave(&shockPos, 0, convertedSize, 64, 128, 96, 0, 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+				else
+				TriggerShockwave(&shockPos, 0, convertedSize, 64, convertedMainColor.GetR(), convertedMainColor.GetG(), convertedMainColor.GetB(), 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+			}
+
+		}
 	}
 
 	/// Make an earthquake
 	// @function MakeEarthquake 
-	// @tparam int strength (default 100) How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
+	// @tparam[opt=100] int strength How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
 	static void Earthquake(TypeOrNil<int> strength)
 	{
 		int str = ValueOr<int>(strength, 100);
@@ -558,20 +615,20 @@ namespace TEN::Scripting::Effects
 	/// Emit an extending streamer effect.
 	// @function EmitStreamer
 	// @tparam Moveable mov Moveable object with which to associate the effect.
-	// @tparam int[opt] tag Numeric tag with which to associate the effect on the moveable. __Default: 0__
+	// @tparam int tag Numeric tag with which to associate the effect on the moveable.
 	// @tparam Vec3 pos World position.
 	// @tparam Vec3 dir Direction vector of movement velocity.
-	// @tparam[opt] float rot Start rotation in degrees. __Default: 0__
-	// @tparam[opt] Color startColor Color at the start of life. __Default: Color(255, 255, 255, 255))__
-	// @tparam[opt] Color endColor Color at the end of life. __Default: Color(0, 0, 0, 0))__
-	// @tparam[opt] float width Width in world units. __Default: 0__
-	// @tparam[opt] float life Lifetime in seconds. __Default: 1__
-	// @tparam[opt] float vel Movement velocity in world units per second. __Default: 0__
-	// @tparam[opt] float expRate Width expansion rate in world units per second. __Default: 0__
-	// @tparam[opt] float rotRate Rotation rate in degrees per second. __Default: 0__
-	// @tparam[opt] Effects.StreamerFeatherMode edgeFeatherMode Edge feather mode. __Default: Effects.StreamerFeatherMode.NONE__
-	// @tparam[opt] Effects.StreamerFeatherMode lengthFeatherMode Length feather mode. __UNIMPLEMENTED, currently will always leave a fading tail__
-	// @tparam[opt] Effects.BlendID blendID Renderer blend ID. __Default: Effects.BlendID.ALPHA_BLEND__
+	// @tparam[opt=0] float rot Start rotation in degrees.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color startColor Color at the start of life.
+	// @tparam[opt=Color(0&#44; 0&#44; 0)] Color endColor Color at the end of life.
+	// @tparam[opt=0] float width Width in world units.
+	// @tparam[opt=1] float life Lifetime in seconds.
+	// @tparam[opt=0] float vel Movement velocity in world units per second.
+	// @tparam[opt=0] float expRate Width expansion rate in world units per second.
+	// @tparam[opt=0] float rotRate Rotation rate in degrees per second.
+	// @tparam[opt=Effects.StreamerFeatherMode.NONE] Effects.StreamerFeatherMode edgeFeatherMode Edge feather mode.
+	// @tparam[opt=Effects.StreamerFeatherMode.LEFT] Effects.StreamerFeatherMode lengthFeatherMode Length feather mode. _Not yet implemented._
+	// @tparam[opt=Effects.BlendID.ALPHA_BLEND] Effects.BlendID blendID Renderer blend ID.
 	static void EmitStreamer(const Moveable& mov, TypeOrNil<int> tag, const Vec3& pos, const Vec3& dir, TypeOrNil<float> rot, TypeOrNil<ScriptColor> startColor, TypeOrNil<ScriptColor> endColor,
 							 TypeOrNil<float> width, TypeOrNil<float> life, TypeOrNil<float> vel, TypeOrNil<float> expRate, TypeOrNil<float> rotRate,
 							 TypeOrNil<StreamerFeatherMode> edgeFeatherMode, TypeOrNil<StreamerFeatherMode> lengthFeatherMode, TypeOrNil<BlendMode> blendID)
@@ -600,6 +657,84 @@ namespace TEN::Scripting::Effects
 			convertedEdgeFeatherID, /*convertedLengthFeatherID, */convertedBlendID);
 	}
 
+	/// Emit a particle flowing effect.
+	// @function EmitFlow
+	// @tparam Vec3 pos World position.
+	// @tparam Vec3 dir Directional velocity of the particles in world units per second.
+	// @tparam[opt=512] float radius Radius of emitter. The particles will be emitted inside the circle of provided radius measured from centre of world position.
+	// @tparam[opt=1] float life Lifespan in seconds.
+	// @tparam[opt=0] float friction Friction affecting velocity over time in world units per second.
+	// @tparam[opt=25] float maxSize Max size of the particle.
+	// @tparam[opt=Color(128&#44; 128&#44; 128)] Color startColor Color at start of life.
+	// @tparam[opt=Color(0&#44; 0&#44; 0)] Color endColor Color at end of life.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=14 (UNDERWATER_DUST)] int spriteID Sprite ID in the sprite sequence slot.
+	static void EmitFlow(const Vec3& pos, const Vec3& dir, TypeOrNil<float> radius, TypeOrNil<float> life, TypeOrNil<float> friction, TypeOrNil<float> maxSize, TypeOrNil<ScriptColor> startColor, TypeOrNil<ScriptColor> endColor, TypeOrNil<GAME_OBJECT_ID> spriteSeqID, TypeOrNil<int> spriteID)
+	{
+		constexpr auto DEFAULT_LIFE = 1.0f;
+		constexpr auto SECS_PER_FRAME = 1.0f / (float)FPS;
+		constexpr auto DUST_SIZE_MAX = 25.0f;
+
+		auto convertedSpriteSeqID = ValueOr<GAME_OBJECT_ID>(spriteSeqID, ID_DEFAULT_SPRITES);
+		if (!CheckIfSlotExists(convertedSpriteSeqID, "EmitParticle() script function."))
+			return;
+
+		auto convertedPos = pos.ToVector3();
+		auto convertedDir = dir.ToVector3() / (float)FPS;
+		auto convertedRad = ValueOr<float>(radius, BLOCK(0.5f));
+		auto convertedLife = std::max(0.1f, ValueOr<float>(life, DEFAULT_LIFE));
+		auto convertedFriction = ValueOr<float>(friction, 0) / (float)FPS;
+		auto convertedMaxSize = std::max(0.1f, ValueOr<float>(maxSize, DUST_SIZE_MAX));
+		auto convertedStartColor = ValueOr<ScriptColor>(startColor, ScriptColor(128, 128, 128, 255));
+		auto convertedEndColor = ValueOr<ScriptColor>(endColor, ScriptColor(0, 0, 0, 255));
+		auto convertedSpriteID = ValueOr<int>(spriteID, SPRITE_TYPES::SPR_UNDERWATERDUST);
+
+		auto& part = *GetFreeParticle();
+
+		part.on = true;
+		part.SpriteSeqID = convertedSpriteSeqID;
+		part.SpriteID = convertedSpriteID;
+		part.blendMode = BlendMode::Additive;
+
+		// Set particle colors
+		part.sR = convertedStartColor.GetR();
+		part.sG = convertedStartColor.GetG();
+		part.sB = convertedStartColor.GetB();
+
+		part.dR = convertedEndColor.GetR();
+		part.dG = convertedEndColor.GetG();
+		part.dB = convertedEndColor.GetB();
+
+		part.life =
+			part.sLife = (int)round(convertedLife / SECS_PER_FRAME);
+		part.colFadeSpeed = part.life / 2;
+		part.fadeToBlack = part.life / 3;
+
+		// Randomize position within the given radius
+		float angle = TO_DEGREES(Random::GenerateAngle());
+		float randRadius = sqrt(Random::GenerateFloat()) * convertedRad;
+
+		part.x = convertedPos.x + randRadius * cos(angle);
+		part.y = convertedPos.y + (Random::GenerateFloat() * 2.0f - 1.0f) * convertedRad;
+		part.z = convertedPos.z + randRadius * sin(angle);
+		part.roomNumber = FindRoomNumber(Vector3i(part.x, part.y, part.z));
+
+		part.xVel = convertedDir.x * 32;
+		part.yVel = convertedDir.y * 32;
+		part.zVel = convertedDir.z * 32;
+
+		part.rotAng = ANGLE(0.0f) >> 4;
+		part.rotAdd = ANGLE(0.0f) >> 4;
+
+		// Other properties
+		part.friction = convertedFriction;
+		part.maxYvel = 0;
+		part.gravity = 0;
+		part.flags = SP_SCALE | SP_ROTATE | SP_DEF | SP_EXPDEF;
+		part.scalar = 2;
+		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
+	}
+
 	void Register(sol::state* state, sol::table& parent) 
 	{
 		auto tableEffects = sol::table(state->lua_state(), sol::create);
@@ -617,7 +752,8 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
-
+		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
+		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);

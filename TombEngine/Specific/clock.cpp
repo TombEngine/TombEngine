@@ -128,3 +128,13 @@ bool TestGlobalTimeInterval(unsigned int intervalGameFrames, unsigned int offset
 
 	return ((GlobalCounter % intervalGameFrames) == offsetGameFrames);
 }
+
+unsigned int SecToGameFrames(float sec)
+{
+	return ((unsigned int)round(sec / (float)FPS));
+}
+
+float GameFramesToSec(unsigned int gameFrames)
+{
+	return ((float)gameFrames / (float)FPS);
+}

@@ -30,7 +30,7 @@ namespace TEN::Scripting
 			// @mem enabled
 			"enabled", sol::property(&LensFlare::GetEnabled, &LensFlare::SetEnabled),
 
-			/// (@{Objects.ObjID.SpriteConstants}) Lens flare's sun sprite object ID.
+			/// (int) Lens flare's sun sprite ID in DEFAULT_SPRITES sequence.
 			// @mem spriteID
 			"spriteID", sol::property(&LensFlare::GetSunSpriteID, &LensFlare::SetSunSpriteID),
 

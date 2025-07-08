@@ -38,6 +38,7 @@ table LevelData {
 	horizon2_orientation: EulerAngles;
 	horizon2_transparency: float;
 
+	lensflare_enabled: bool;
 	lensflare_sprite_id: int32;
 	lensflare_pitch: float;
 	lensflare_yaw: float;
@@ -92,7 +93,8 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	mesh_pointers: [int32];
+	skin_index: int32;
+	mesh_index: [int32];
 
 	effect_type: int32;
 	effect_light_colour: Vector3;
@@ -264,7 +266,6 @@ table TightropeControlData {
 table WeaponControlData {
 	weapon_item: int32;
 	has_fired: bool;
-	fired: bool;
 	uzi_left: bool;
 	uzi_right: bool;
 	gun_type: int32;
@@ -372,7 +373,6 @@ table StaticMeshInfo {
 	number: int32;
 	room_number: int32;
 	pose: Pose;
-	scale: float;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
@@ -430,6 +430,13 @@ table ParticleInfo {
 table Soundtrack {
     name: string;
     position: uint64;
+}
+
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
 }
 
 table SwarmObjectInfo {
@@ -521,7 +528,7 @@ table FireflyData {
 	b: int32;
 	on: bool;
 	size: float;
-	rot_Ang: int32;
+	rot_ang: int32;
 }
 
 struct KeyValPair {
@@ -650,6 +657,7 @@ table SaveGame {
 	action_queue: [int32];
 	soundtracks: [Soundtrack];
 	cd_flags: [int32];
+	video: VideoInfo;
 
 	postprocess_mode: int32;
 	postprocess_strength: float;

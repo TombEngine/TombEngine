@@ -37,9 +37,9 @@ namespace TEN::Scripting::Types
 			"a", sol::property(&ScriptColor::GetA, &ScriptColor::SetA));
 	}
 
-	/// @int R red component
-	// @int G green component
-	// @int B blue component
+	/// @int R Red component.
+	// @int G Green component.
+	// @int B Blue component.
 	// @treturn Color A new Color object.
 	// @function Color
 	ScriptColor::ScriptColor(byte r, byte g, byte b) :

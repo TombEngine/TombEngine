@@ -21,13 +21,13 @@ enum class ScriptCameraType
 /*** Table of View.CameraType constants. To be used with @{View.GetCameraType} function.
 @table CameraType
 
- - `NORMAL` - standard in-game camera when weapons are holstered.
- - `COMBAT` - in-game camera when weapons are unholstered.
- - `FIXED` - classic fixed camera.
- - `LOOK` - look camera.
- - `FLYBY` - flyby or tracking camera.
- - `BINOCULARS` - binoculars is active.
- - `LASERSIGHT` - lasersight is active.
+ - `NORMAL` - Standard in-game camera when weapons are holstered.
+ - `COMBAT` - In-game camera when weapons are unholstered.
+ - `FIXED` - Classic fixed camera.
+ - `LOOK` - Look camera.
+ - `FLYBY` - Flyby or tracking camera.
+ - `BINOCULARS` - Binocular camera.
+ - `LASERSIGHT` - Lasersight camera.
 */
 
 static const std::unordered_map<std::string, ScriptCameraType> CAMERA_TYPE
