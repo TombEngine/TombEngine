@@ -10,10 +10,11 @@
 #include "Game/effects/spark.h"
 
 using namespace TEN::Effects::Spark;
+using namespace TEN::Effects::Items;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto PENDULUM_FIRE_FOG_DENSITY = 0.08f;
+	constexpr auto PENDULUM_FIRE_FOG_DENSITY = 15;
 	constexpr auto PENDULUM_FIRE_FOG_RADIUS = 4;
 	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
 
@@ -258,7 +259,26 @@ namespace TEN::Entities::Traps
 					}
 
 					if (item.ItemFlags[PendulumFlags::FLAME_EFFECT])
-						TEN::Effects::Items::ItemBurn(playerItem);
+					{
+						if (item.ItemFlags[PendulumFlags::FIRE_COLOR_R] == 0 &&
+							item.ItemFlags[PendulumFlags::FIRE_COLOR_G] == 0 &&
+							item.ItemFlags[PendulumFlags::FIRE_COLOR_B] == 0)
+						{
+							TEN::Effects::Items::ItemBurn(playerItem);
+						}
+						else
+						{
+							unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R];
+							unsigned char g = item.ItemFlags[PendulumFlags::FIRE_COLOR_G];
+							unsigned char b = item.ItemFlags[PendulumFlags::FIRE_COLOR_B];
+
+							auto sourceColorR = std::clamp(r + 0.2f, 0.0f, 1.0f);
+							auto sourceColorG = std::clamp(g + 0.2f, 0.0f, 1.0f);
+							auto sourceColorB = std::clamp(b + 0.2f, 0.0f, 1.0f);
+
+							ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3(r, g, b));
+						}
+					}
 
 					auto deltaPos = pos - playerItem->Pose.Position;
 					if (deltaPos != Vector3i::Zero)
