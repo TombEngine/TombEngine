@@ -106,7 +106,7 @@
 <h2>5 Lua utility modules</h2>
 <ul class="nowrap">
   <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
-  <li>    <a href="../5 lua utility modules/Diary.html">Diary</a></li>
+  <li>    <a href="../5 lua utility modules/CustomDiary.html">CustomDiary</a></li>
   <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
   <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
   <li>    <a href="../5 lua utility modules/Type.html">Type</a></li>
@@ -140,75 +140,79 @@
 	<td class="summary">Create a Probe that casts from an origin world position, where a given relative offset is rotated according to a given rotation.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetPosition">GetPosition()</a></td>
+	<td class="name" ><a href="#Probe:GetPosition">Probe:GetPosition()</a></td>
 	<td class="summary">Get the world position of this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetRoom">GetRoom()</a></td>
+	<td class="name" ><a href="#Probe:GetRoom">Probe:GetRoom()</a></td>
 	<td class="summary">Get the Room object of this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetRoomName">GetRoomName()</a></td>
+	<td class="name" ><a href="#Probe:GetRoomName">Probe:GetRoomName()</a></td>
 	<td class="summary">Get the room name of this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetFloorHeight">GetFloorHeight()</a></td>
+	<td class="name" ><a href="#Probe:GetRoomNumber">Probe:GetRoomNumber()</a></td>
+	<td class="summary">Get the room number of this Probe.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#Probe:GetFloorHeight">Probe:GetFloorHeight()</a></td>
 	<td class="summary">Get the floor height at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetCeilingHeight">GetCeilingHeight()</a></td>
+	<td class="name" ><a href="#Probe:GetCeilingHeight">Probe:GetCeilingHeight()</a></td>
 	<td class="summary">Get the ceiling height at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetWaterSurfaceHeight">GetWaterSurfaceHeight()</a></td>
+	<td class="name" ><a href="#Probe:GetWaterSurfaceHeight">Probe:GetWaterSurfaceHeight()</a></td>
 	<td class="summary">Get the water surface height at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetFloorNormal">GetFloorNormal()</a></td>
+	<td class="name" ><a href="#Probe:GetFloorNormal">Probe:GetFloorNormal()</a></td>
 	<td class="summary">Get the normal of the floor at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetCeilingNormal">GetCeilingNormal()</a></td>
+	<td class="name" ><a href="#Probe:GetCeilingNormal">Probe:GetCeilingNormal()</a></td>
 	<td class="summary">Get the normal of the ceiling at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetFloorMaterialType">GetFloorMaterialType()</a></td>
+	<td class="name" ><a href="#Probe:GetFloorMaterialType">Probe:GetFloorMaterialType()</a></td>
 	<td class="summary">Get the material type of the floor at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#GetCeilingMaterialType">GetCeilingMaterialType()</a></td>
+	<td class="name" ><a href="#Probe:GetCeilingMaterialType">Probe:GetCeilingMaterialType()</a></td>
 	<td class="summary">Get the material type of the ceiling at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsSteepFloor">IsSteepFloor()</a></td>
+	<td class="name" ><a href="#Probe:IsSteepFloor">Probe:IsSteepFloor()</a></td>
 	<td class="summary">Check if the floor at this Probe is steep.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsSteepCeiling">IsSteepCeiling()</a></td>
+	<td class="name" ><a href="#Probe:IsSteepCeiling">Probe:IsSteepCeiling()</a></td>
 	<td class="summary">Check if the ceiling at this Probe is steep.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsWall">IsWall()</a></td>
+	<td class="name" ><a href="#Probe:IsWall">Probe:IsWall()</a></td>
 	<td class="summary">Check if the Probe is inside a wall.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsInsideSolidGeometry">IsInsideSolidGeometry()</a></td>
+	<td class="name" ><a href="#Probe:IsInsideSolidGeometry">Probe:IsInsideSolidGeometry()</a></td>
 	<td class="summary">Check if this Probe is inside solid geometry (below a floor, above a ceiling, inside a bridge, or inside a wall).</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsClimbableWall">IsClimbableWall(headingAngle)</a></td>
+	<td class="name" ><a href="#Probe:IsClimbableWall">Probe:IsClimbableWall(headingAngle)</a></td>
 	<td class="summary">Check if there is a climbable wall in the given heading angle at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsMonkeySwing">IsMonkeySwing()</a></td>
+	<td class="name" ><a href="#Probe:IsMonkeySwing">Probe:IsMonkeySwing()</a></td>
 	<td class="summary">Check if there is a monkey swing sector at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#IsDeath">IsDeath()</a></td>
+	<td class="name" ><a href="#Probe:IsDeath">Probe:IsDeath()</a></td>
 	<td class="summary">Check if there is a death sector at this Probe.</td>
 	</tr>
 	<tr>
-	<td class="name" ><a href="#Preview">Preview()</a></td>
+	<td class="name" ><a href="#Probe:Preview">Probe:Preview()</a></td>
 	<td class="summary">Preview this Probe in the Collision Stats debug page.</td>
 	</tr>
 </table>
@@ -377,8 +381,8 @@
 
 </dd>
     <dt>
-    <a name = "GetPosition"></a>
-    <strong>GetPosition()</strong>
+    <a name = "Probe:GetPosition"></a>
+    <strong>Probe:GetPosition()</strong>
     </dt>
     <dd>
     Get the world position of this Probe.
@@ -398,8 +402,8 @@
 
 </dd>
     <dt>
-    <a name = "GetRoom"></a>
-    <strong>GetRoom()</strong>
+    <a name = "Probe:GetRoom"></a>
+    <strong>Probe:GetRoom()</strong>
     </dt>
     <dd>
     Get the Room object of this Probe.
@@ -419,8 +423,8 @@
 
 </dd>
     <dt>
-    <a name = "GetRoomName"></a>
-    <strong>GetRoomName()</strong>
+    <a name = "Probe:GetRoomName"></a>
+    <strong>Probe:GetRoomName()</strong>
     </dt>
     <dd>
     Get the room name of this Probe.
@@ -440,8 +444,29 @@
 
 </dd>
     <dt>
-    <a name = "GetFloorHeight"></a>
-    <strong>GetFloorHeight()</strong>
+    <a name = "Probe:GetRoomNumber"></a>
+    <strong>Probe:GetRoomNumber()</strong>
+    </dt>
+    <dd>
+    Get the room number of this Probe.
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">int</span></span>
+        Room number.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Probe:GetFloorHeight"></a>
+    <strong>Probe:GetFloorHeight()</strong>
     </dt>
     <dd>
     Get the floor height at this Probe.
@@ -461,8 +486,8 @@
 
 </dd>
     <dt>
-    <a name = "GetCeilingHeight"></a>
-    <strong>GetCeilingHeight()</strong>
+    <a name = "Probe:GetCeilingHeight"></a>
+    <strong>Probe:GetCeilingHeight()</strong>
     </dt>
     <dd>
     Get the ceiling height at this Probe.
@@ -482,8 +507,8 @@
 
 </dd>
     <dt>
-    <a name = "GetWaterSurfaceHeight"></a>
-    <strong>GetWaterSurfaceHeight()</strong>
+    <a name = "Probe:GetWaterSurfaceHeight"></a>
+    <strong>Probe:GetWaterSurfaceHeight()</strong>
     </dt>
     <dd>
     Get the water surface height at this Probe.
@@ -503,8 +528,8 @@
 
 </dd>
     <dt>
-    <a name = "GetFloorNormal"></a>
-    <strong>GetFloorNormal()</strong>
+    <a name = "Probe:GetFloorNormal"></a>
+    <strong>Probe:GetFloorNormal()</strong>
     </dt>
     <dd>
     Get the normal of the floor at this Probe.
@@ -524,8 +549,8 @@
 
 </dd>
     <dt>
-    <a name = "GetCeilingNormal"></a>
-    <strong>GetCeilingNormal()</strong>
+    <a name = "Probe:GetCeilingNormal"></a>
+    <strong>Probe:GetCeilingNormal()</strong>
     </dt>
     <dd>
     Get the normal of the ceiling at this Probe.
@@ -545,8 +570,8 @@
 
 </dd>
     <dt>
-    <a name = "GetFloorMaterialType"></a>
-    <strong>GetFloorMaterialType()</strong>
+    <a name = "Probe:GetFloorMaterialType"></a>
+    <strong>Probe:GetFloorMaterialType()</strong>
     </dt>
     <dd>
     Get the material type of the floor at this Probe.
@@ -566,8 +591,8 @@
 
 </dd>
     <dt>
-    <a name = "GetCeilingMaterialType"></a>
-    <strong>GetCeilingMaterialType()</strong>
+    <a name = "Probe:GetCeilingMaterialType"></a>
+    <strong>Probe:GetCeilingMaterialType()</strong>
     </dt>
     <dd>
     Get the material type of the ceiling at this Probe.
@@ -587,8 +612,8 @@
 
 </dd>
     <dt>
-    <a name = "IsSteepFloor"></a>
-    <strong>IsSteepFloor()</strong>
+    <a name = "Probe:IsSteepFloor"></a>
+    <strong>Probe:IsSteepFloor()</strong>
     </dt>
     <dd>
     Check if the floor at this Probe is steep.
@@ -608,8 +633,8 @@
 
 </dd>
     <dt>
-    <a name = "IsSteepCeiling"></a>
-    <strong>IsSteepCeiling()</strong>
+    <a name = "Probe:IsSteepCeiling"></a>
+    <strong>Probe:IsSteepCeiling()</strong>
     </dt>
     <dd>
     Check if the ceiling at this Probe is steep.
@@ -629,8 +654,8 @@
 
 </dd>
     <dt>
-    <a name = "IsWall"></a>
-    <strong>IsWall()</strong>
+    <a name = "Probe:IsWall"></a>
+    <strong>Probe:IsWall()</strong>
     </dt>
     <dd>
     Check if the Probe is inside a wall.  Can be used to determine if a wall and ceiling exist.
@@ -650,8 +675,8 @@
 
 </dd>
     <dt>
-    <a name = "IsInsideSolidGeometry"></a>
-    <strong>IsInsideSolidGeometry()</strong>
+    <a name = "Probe:IsInsideSolidGeometry"></a>
+    <strong>Probe:IsInsideSolidGeometry()</strong>
     </dt>
     <dd>
     Check if this Probe is inside solid geometry (below a floor, above a ceiling, inside a bridge, or inside a wall).
@@ -671,8 +696,8 @@
 
 </dd>
     <dt>
-    <a name = "IsClimbableWall"></a>
-    <strong>IsClimbableWall(headingAngle)</strong>
+    <a name = "Probe:IsClimbableWall"></a>
+    <strong>Probe:IsClimbableWall(headingAngle)</strong>
     </dt>
     <dd>
     Check if there is a climbable wall in the given heading angle at this Probe.
@@ -699,8 +724,8 @@
 
 </dd>
     <dt>
-    <a name = "IsMonkeySwing"></a>
-    <strong>IsMonkeySwing()</strong>
+    <a name = "Probe:IsMonkeySwing"></a>
+    <strong>Probe:IsMonkeySwing()</strong>
     </dt>
     <dd>
     Check if there is a monkey swing sector at this Probe.
@@ -720,8 +745,8 @@
 
 </dd>
     <dt>
-    <a name = "IsDeath"></a>
-    <strong>IsDeath()</strong>
+    <a name = "Probe:IsDeath"></a>
+    <strong>Probe:IsDeath()</strong>
     </dt>
     <dd>
     Check if there is a death sector at this Probe.
@@ -741,8 +766,8 @@
 
 </dd>
     <dt>
-    <a name = "Preview"></a>
-    <strong>Preview()</strong>
+    <a name = "Probe:Preview"></a>
+    <strong>Probe:Preview()</strong>
     </dt>
     <dd>
     Preview this Probe in the Collision Stats debug page.

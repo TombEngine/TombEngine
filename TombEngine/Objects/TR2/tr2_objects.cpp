@@ -35,7 +35,6 @@
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
-#include "Objects/TR2/Trap/turning_blade.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -552,24 +551,6 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeKillerStatue;
 		obj->control = ControlKillerStatue;
 		obj->collision = ObjectCollision;
-		obj->SetHitEffect(true);
-	}
-
-	obj = &Objects[ID_TURNING_WALLBLADE];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeTurningBlade;
-		obj->control = ControlTurningBlade;
-		obj->collision = CollideTurningBlade;
-		obj->SetHitEffect(true);
-	}
-
-	obj = &Objects[ID_TURNING_CEILINGBLADE];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeTurningBlade;
-		obj->control = ControlTurningBlade;
-		obj->collision = CollideTurningBlade;
 		obj->SetHitEffect(true);
 	}
 }

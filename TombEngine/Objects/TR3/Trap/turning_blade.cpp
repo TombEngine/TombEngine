@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR2/Trap/turning_blade.h"
+#include "Objects/TR3/Trap/turning_blade.h"
 
 #include "Game/animation.h"
 #include "Game/collision/collide_item.h"
@@ -19,7 +19,7 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto TURNING_BLADE_HARM_DAMAGE = 100;
+	constexpr auto TURNING_BLADE_HARM_DAMAGE = 50;
 
 	const std::vector<unsigned int> TurningBladeHarmJoints = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 	const std::vector<Vector3i> TurningBladeBounds =
@@ -76,6 +76,13 @@ namespace TEN::Entities::Traps
 						(GetRandomControl() & 3) + 2,
 						GetRandomControl() * 2,
 						laraItem->RoomNumber);
+
+					TriggerLaraBlood();
+
+					if (laraItem->HitPoints > 0)
+						{
+							ItemPushItem(item, laraItem, coll, false, 1);
+						}
 				}
 			}
 		}
