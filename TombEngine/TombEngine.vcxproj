@@ -1147,7 +1147,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR2\Trap\tr2_killerstatue.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_spinningblade.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_springboard.cpp" />
-    <ClCompile Include="Objects\TR2\Trap\turning_blade.cpp" />
     <ClCompile Include="Objects\TR2\Vehicles\skidoo.cpp" />
     <ClCompile Include="Objects\TR2\Vehicles\speedboat.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Compsognathus.cpp" />

@@ -19,7 +19,7 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto TURNING_BLADE_HARM_DAMAGE = 50;
+	constexpr auto TURNING_BLADE_HARM_DAMAGE = 100;
 
 	const std::vector<unsigned int> TurningBladeHarmJoints = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 	const std::vector<Vector3i> TurningBladeBounds =
@@ -80,9 +80,9 @@ namespace TEN::Entities::Traps
 					TriggerLaraBlood();
 
 					if (laraItem->HitPoints > 0)
-						{
-							ItemPushItem(item, laraItem, coll, false, 1);
-						}
+					{
+						ItemPushItem(item, laraItem, coll, false, 1);
+					}
 				}
 			}
 		}
