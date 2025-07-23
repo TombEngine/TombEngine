@@ -5,7 +5,7 @@ Menu.__index = Menu
 LevelFuncs.Engine.Menu = {}
 LevelVars.Engine.Menus = {}
 
-Menu.Create = function (menuName, title, items, hideItemNames)
+Menu.Create = function (menuName, title, items, acceptFunction, exitFunction, hideItemNames)
 
     local self = {name = menuName}
 
@@ -25,7 +25,8 @@ Menu.Create = function (menuName, title, items, hideItemNames)
     LevelVars.Engine.Menus[menuName].currentItem        = 1
     LevelVars.Engine.Menus[menuName].visible			= false
     LevelVars.Engine.Menus[menuName].hideItemNames      = hideItemNames or false
-
+    LevelVars.Engine.Menus[menuName].exitFunction       = exitFunction 
+    LevelVars.Engine.Menus[menuName].acceptFunction     = acceptFunction 
     return setmetatable(self, Menu)
 end
 
@@ -51,9 +52,9 @@ Menu.Status = function(value)
 
     if LevelVars.Engine.Menus then
         if value == true then
-            TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Menu.DrawMenu)
+            TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Menu.DrawMenu)
         elseif value == false then
-            TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Menu.DrawMenu)
+            TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Menu.DrawMenu)
         end
     end
 end
@@ -151,8 +152,11 @@ LevelFuncs.Engine.Menu.DrawMenu = function()
                 if #currentItem.options > 1 then
 					currentItem.currentOption = currentItem.currentOption % #currentItem.options + 1
 				end
+            elseif KeyIsHit(ActionID.ACTION) then
+                menu.acceptFunction()
+                return
             elseif KeyIsHit(ActionID.INVENTORY) then
-                print("Exiting Menu.")
+                menu.exitFunction()
                 return
             end
 
@@ -161,39 +165,50 @@ LevelFuncs.Engine.Menu.DrawMenu = function()
                 TEN.Strings.ShowString(titleNode, 1/30)
             end
 
-            local itemsText = ""
+            local optionsY = 20
+            local offset = 6
+
             if not menu.hideItemNames then
                 for i, item in ipairs(menu.items) do
-                    if i == menu.currentItem then
-                        itemsText = itemsText .. "> " .. item.itemName .. "\n" -- Highlight current item
-                    else
-                        itemsText = itemsText .. "  " .. item.itemName .. "\n"
-                    end
+
+
+                local optionsY2 = optionsY + offset * (i-1)
+                -- Draw the items
+
+
+                local itemsNode = LevelFuncs.Engine.Node.GenerateString(item.itemName, 10, optionsY2, 1.0, 0, 0, Color(0, 255, 255), 1)
+                TEN.Strings.ShowString(itemsNode, 1/30)
                 end
             end
 
-            -- Draw the items
-            local itemsNode = LevelFuncs.Engine.Node.GenerateString(itemsText, 10, 20, 1.0, 0, 0, Color(0, 255, 255), 1)
-            TEN.Strings.ShowString(itemsNode, 1/30)
+            
 
             -- Get the currently selected options
-            local optionsText = ""
 
-            for i, item in ipairs(menu.items) do
-                local selectedOption = item.options[item.currentOption] -- Get the selected option for each item
-                if menu.hideItemNames and i == menu.currentItem and #item.options > 1 then
-                    optionsText = optionsText .. "< " .. selectedOption .." >\n" -- Highlight current item
-                else
-                    optionsText = optionsText .. "  " .. selectedOption .. "\n"
-                end
-                
-            end
+            local flagsHighlight = {Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
+            local flagsNormal = {Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
 
             local optionsX = menu.hideItemNames and 10 or 50
+            
+            for i, item in ipairs(menu.items) do
+                local selectedOption = item.options[item.currentOption] -- Get the selected option for each item
+                    
+                
+                local optionsY2 = optionsY + offset * (i-1)
+                -- Draw the current option
+                local optionsNode = LevelFuncs.Engine.Node.GenerateString(selectedOption, optionsX, optionsY2, 1.0, 0, 0, Color(0, 255, 255), 1)
 
-            -- Draw the current option
-            local optionsNode = LevelFuncs.Engine.Node.GenerateString(optionsText, optionsX, 20, 1.0, 0, 0, Color(0, 255, 255), 1)
-            TEN.Strings.ShowString(optionsNode, 1/30)
+                if i == menu.currentItem then
+                    optionsNode:SetFlags(flagsHighlight)
+                else
+                    optionsNode:SetFlags(flagsNormal)
+                end
+
+                TEN.Strings.ShowString(optionsNode, 1/30)
+
+            end
+
+
        end
     end
 end
