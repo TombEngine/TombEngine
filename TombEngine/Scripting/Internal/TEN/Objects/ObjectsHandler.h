@@ -22,7 +22,7 @@ public:
 		const auto& item = g_Level.Items[id];
 
 		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
-		if (hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
+		if (hasName && (item.IsLara() || item.Collidable))
 			return _collidingItems.insert(id).second;
 
 		return false;
@@ -33,7 +33,7 @@ public:
 		const auto& item = g_Level.Items[id];
 
 		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
-		if (!force && hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
+		if (!force && hasName && (item.IsLara() || item.Collidable))
 			return false;
 
 		return _collidingItemsToRemove.insert(id).second;

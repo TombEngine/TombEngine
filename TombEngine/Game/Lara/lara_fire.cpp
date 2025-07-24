@@ -867,7 +867,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist);
+	auto target = origin + (directionNorm * weapon.TargetDist * 3.0f);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;

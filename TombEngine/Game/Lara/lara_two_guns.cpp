@@ -192,12 +192,8 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	// Wind animation backward.
 	else
 	{
-		// Let SHOOT_CONTINUE (3) finish.
-		if (frame >= weaponAnimData.RecoilAnim && frame < (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
-			frame++;
-
 		// At SHOOT_CONTINUE (3) end frame; go to START_SHOOT (0) end frame.
-		if (frame == (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
+		if (frame >= weaponAnimData.RecoilAnim)
 		{
 			frame = weaponAnimData.Draw1Anim2;
 		}
