@@ -2,34 +2,46 @@ local Menu = {}
 local debug = true
 Menu.__index = Menu
 
+Menu.Type = {
+    ITEMS_ONLY = 1,
+    ITEMS_AND_OPTIONS = 2,
+    OPTIONS_ONLY = 3,
+}
+
 LevelFuncs.Engine.Menu = {}
 LevelVars.Engine.Menus = {}
 
-Menu.Create = function (menuName, title, items, acceptFunction, exitFunction, hideItemNames)
-
-    local self = {name = menuName}
+Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, menuType)
+    local self = { name = menuName }
 
     if debug and LevelVars.Engine.Menus[menuName] then
-    print("Warning: a menu with name " .. menuName .. " already exists; overwriting it with a new one...")
+        print("Warning: a menu with name " .. menuName .. " already exists; overwriting it with a new one...")
     end
 
-    -- Initialize each item's currentOption if not provided
-	for _, item in ipairs(items or {}) do
-		item.currentOption = item.currentOption or 1
-	end
+    if menuType ~= Menu.Type.ITEMS_ONLY then
+        for _, item in ipairs(items or {}) do
+            item.currentOption = item.currentOption or 1
+        end
+    end
 
-    LevelVars.Engine.Menus[menuName]			        = {}
-    LevelVars.Engine.Menus[menuName].name				= menuName
-    LevelVars.Engine.Menus[menuName].title				= title
-    LevelVars.Engine.Menus[menuName].items  			= items or {}
-    LevelVars.Engine.Menus[menuName].currentItem        = 1
-    LevelVars.Engine.Menus[menuName].visible			= false
-    LevelVars.Engine.Menus[menuName].hideItemNames      = hideItemNames or false
-    LevelVars.Engine.Menus[menuName].exitFunction       = exitFunction 
-    LevelVars.Engine.Menus[menuName].acceptFunction     = acceptFunction 
+    LevelVars.Engine.Menus[menuName] = {
+        name = menuName,
+        title = title,
+        items = items or {},
+        currentItem = 1,
+        visible = false,
+        menuType = menuType or Menu.Type.ITEMS_AND_OPTIONS,
+        exitFunction = exitFunction,
+        acceptFunction = acceptFunction,
+        visibleStartIndex = 1,
+        maxVisibleItems = 6,
+        scrollY = 0,
+        targetScrollY = 0,
+        wrapAround = wrapAround or false
+    }
+
     return setmetatable(self, Menu)
 end
-
 
 Menu.Get = function(menuName)
     
@@ -68,6 +80,13 @@ function Menu:SetVisibility(visible)
     --the visible variable is a boolean
 	if LevelVars.Engine.Menus[self.name] then
 		LevelVars.Engine.Menus[self.name].visible = visible == true
+	end
+end
+
+function Menu:SetWrapAround(wrapAround)
+    --the visible variable is a boolean
+	if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].wrapAround = wrapAround
 	end
 end
 
@@ -130,86 +149,115 @@ function Menu:getOptionIndexForItem(itemIndex)
 
 end
 
+local PerformFunction = function(functionString)
+    local func = LevelFuncs[functionString]
+    if func and (type(func) == "function" or type(func) == "userdata") then
+        return func()
+    end
+end
+
 LevelFuncs.Engine.Menu.DrawMenu = function()
 
+    for _, menu in pairs(LevelVars.Engine.Menus) do
+        if menu.visible then
+            local itemCount = #menu.items
 
-    for _, menu in pairs (LevelVars.Engine.Menus) do
-
-       if menu.visible==true then
-    
-		
             if KeyIsHit(ActionID.FORWARD) then
-                menu.currentItem = (menu.currentItem - 2) % #menu.items + 1 -- Move up
+                 if menu.wrapAround then
+                    menu.currentItem = (menu.currentItem - 2) % itemCount + 1
+                else
+                    if menu.currentItem > 1 then
+                        menu.currentItem = menu.currentItem - 1
+                    end
+                end
             elseif KeyIsHit(ActionID.BACK) then
-                menu.currentItem = menu.currentItem % #menu.items + 1 -- Move down
-            elseif KeyIsHit(ActionID.LEFT) then
+                if menu.wrapAround then
+                    menu.currentItem = menu.currentItem % itemCount + 1
+                else
+                    if menu.currentItem < itemCount then
+                        menu.currentItem = menu.currentItem + 1
+                    end
+                end
+            elseif KeyIsHit(ActionID.LEFT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
                 local currentItem = menu.items[menu.currentItem]
-                if #currentItem.options > 1 then 
-					currentItem.currentOption = (currentItem.currentOption - 2) % #currentItem.options + 1
-				end
-            elseif KeyIsHit(ActionID.RIGHT) then
+                if currentItem.options and #currentItem.options > 1 then
+                    currentItem.currentOption = (currentItem.currentOption - 2) % #currentItem.options + 1
+                end
+            elseif KeyIsHit(ActionID.RIGHT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
                 local currentItem = menu.items[menu.currentItem]
-                if #currentItem.options > 1 then
-					currentItem.currentOption = currentItem.currentOption % #currentItem.options + 1
-				end
+                if currentItem.options and #currentItem.options > 1 then
+                    currentItem.currentOption = currentItem.currentOption % #currentItem.options + 1
+                end
             elseif KeyIsHit(ActionID.ACTION) then
-                menu.acceptFunction()
-                return
+                if menu.acceptFunction then PerformFunction(menu.acceptFunction) end
             elseif KeyIsHit(ActionID.INVENTORY) then
-                menu.exitFunction()
+                if menu.exitFunction then PerformFunction(menu.exitFunction) end
                 return
             end
 
             if menu.title then
                 local titleNode = LevelFuncs.Engine.Node.GenerateString(menu.title, 10, 10, 1.5, 0, 0, Color(255, 255, 255), 1)
-                TEN.Strings.ShowString(titleNode, 1/30)
+                TEN.Strings.ShowString(titleNode, 1 / 30)
             end
 
-            local optionsY = 20
+            local baseY = 20
             local offset = 6
-
-            if not menu.hideItemNames then
-                for i, item in ipairs(menu.items) do
-
-
-                local optionsY2 = optionsY + offset * (i-1)
-                -- Draw the items
-
-
-                local itemsNode = LevelFuncs.Engine.Node.GenerateString(item.itemName, 10, optionsY2, 1.0, 0, 0, Color(0, 255, 255), 1)
-                TEN.Strings.ShowString(itemsNode, 1/30)
-                end
-            end
-
-            
-
-            -- Get the currently selected options
-
             local flagsHighlight = {Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
             local flagsNormal = {Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
 
-            local optionsX = menu.hideItemNames and 10 or 50
-            
-            for i, item in ipairs(menu.items) do
-                local selectedOption = item.options[item.currentOption] -- Get the selected option for each item
-                    
-                
-                local optionsY2 = optionsY + offset * (i-1)
-                -- Draw the current option
-                local optionsNode = LevelFuncs.Engine.Node.GenerateString(selectedOption, optionsX, optionsY2, 1.0, 0, 0, Color(0, 255, 255), 1)
+           -- Store previous visibleStartIndex to detect change
+            menu.prevVisibleStartIndex = menu.prevVisibleStartIndex or menu.visibleStartIndex
 
-                if i == menu.currentItem then
-                    optionsNode:SetFlags(flagsHighlight)
-                else
-                    optionsNode:SetFlags(flagsNormal)
-                end
-
-                TEN.Strings.ShowString(optionsNode, 1/30)
-
+            -- Adjust visibleStartIndex based on current selection
+            if menu.currentItem < menu.visibleStartIndex then
+                menu.visibleStartIndex = menu.currentItem
+            elseif menu.currentItem >= menu.visibleStartIndex + menu.maxVisibleItems then
+                menu.visibleStartIndex = menu.currentItem - menu.maxVisibleItems + 1
             end
 
+            -- If visibleStartIndex changed, update scroll target
+            if menu.visibleStartIndex ~= menu.prevVisibleStartIndex then
+                menu.targetScrollY = (menu.visibleStartIndex - 1) * offset
+                menu.prevVisibleStartIndex = menu.visibleStartIndex
+            end
 
-       end
+            -- Smooth scroll animation
+            menu.scrollY = menu.scrollY + (menu.targetScrollY - menu.scrollY) * 0.2
+
+            for i = 1, #menu.items do
+                local item = menu.items[i]
+                local y = baseY + (i - 1) * offset - menu.scrollY
+
+                -- Skip items not in visible drawing range
+                if i < menu.visibleStartIndex or i > menu.visibleStartIndex + menu.maxVisibleItems - 1 then
+                    goto continue
+                end
+
+                if menu.menuType == Menu.Type.ITEMS_ONLY or menu.menuType == Menu.Type.ITEMS_AND_OPTIONS then
+                    local itemNode = LevelFuncs.Engine.Node.GenerateString(item.itemName, 10, y, 1.0, 0, 0, Color(0, 255, 255), 1)
+                    if menu.menuType == Menu.Type.ITEMS_ONLY and i == menu.currentItem then
+                        itemNode:SetFlags(flagsHighlight)
+                    else
+                        itemNode:SetFlags(flagsNormal)
+                    end
+                    TEN.Strings.ShowString(itemNode, 1 / 30)
+                end
+
+                if menu.menuType == Menu.Type.OPTIONS_ONLY or menu.menuType == Menu.Type.ITEMS_AND_OPTIONS then
+                    local selectedOption = item.options and item.options[item.currentOption] or ""
+                    local optionsX = menu.menuType == Menu.Type.OPTIONS_ONLY and 10 or 50
+                    local optNode = LevelFuncs.Engine.Node.GenerateString(selectedOption, optionsX, y, 1.0, 0, 0, Color(0, 255, 255), 1)
+                    if i == menu.currentItem then
+                        optNode:SetFlags(flagsHighlight)
+                    else
+                        optNode:SetFlags(flagsNormal)
+                    end
+                    TEN.Strings.ShowString(optNode, 1 / 30)
+                end
+
+                ::continue::
+            end
+        end
     end
 end
 
