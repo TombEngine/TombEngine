@@ -6,11 +6,19 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.9.2]
 
 ### Bug fixes
+* Fixed ROLLINGBALL not stopped by full walls.
+* Fixed several JEEP and MOTORBIKE vehicle collision bugs.
 * Fixed puzzle holes losing collision after inserting puzzle items.
 * Fixed projectile weapon hits not registering in statistics and collision callbacks.
 * Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
+* Fixed firearms bullet range limited to targeting range.
+* Fixed pistols not allowing to spam fire in untargeted mode.
+* Fixed several issues with exploding body part effects.
 * Fixed Doppler effect not applied to sounds.
 * Fixed HUD bars displaying incorrect update animation after loading savegame.
+
+### Lua API changes
+* Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
 
 ## [Version 1.9.1]
 

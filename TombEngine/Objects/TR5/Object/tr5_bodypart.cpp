@@ -29,7 +29,12 @@ static void BodyPartExplode(FX_INFO& fx)
 {
 	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -2, 0, fx.roomNumber);
 	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -1, 0, fx.roomNumber);
-	TriggerShockwave(&fx.pos, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles(ANGLE(12.0f), 0, 0), 0, true, false, false, (int)ShockwaveStyle::Normal);
+
+	// Lift explosion effect a little to make shockwave visible on flat floors.
+	auto pose = fx.pos;
+	pose.Position.y -= CLICK(0.5f);
+
+	TriggerShockwave(&pose, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 	
 	if (ItemNearLara(fx.pos.Position, BODY_PART_EXPLODE_DAMAGE_RANGE))
 		DoDamage(LaraItem, BODY_PART_EXPLODE_DAMAGE);
@@ -48,6 +53,8 @@ void ControlBodyPart(short fxNumber)
 			fx->pos.Orientation.x += 4 * fx->fallspeed;
 
 		fx->fallspeed += g_GameFlow->GetSettings()->Physics.Gravity;
+		fx->pos.Orientation.x += ANGLE(5);
+		fx->pos.Orientation.z += ANGLE(10);
 	}
 	else
 	{

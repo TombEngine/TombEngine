@@ -126,15 +126,15 @@ void RollingBallControl(short itemNumber)
 	auto rightFloor = GetPointCollision(Vector3i(rightX, item->Pose.Position.y, rightZ), item->RoomNumber);
 	auto leftFloor  = GetPointCollision(Vector3i(leftX,  item->Pose.Position.y, leftZ),  item->RoomNumber);
 
-	int frontHeight = frontFloor.GetFloorHeight() - bigRadius;
-	int backHeight  = backFloor.GetFloorHeight()  - bigRadius;
-	int rightHeight = rightFloor.GetFloorHeight() - bigRadius;
-	int leftHeight  = leftFloor.GetFloorHeight()  - bigRadius;
+	int frontHeight = frontFloor.GetFloorHeight() - (frontFloor.IsWall() ? 0 : bigRadius);
+	int backHeight  = backFloor.GetFloorHeight()  - (backFloor.IsWall()  ? 0 : bigRadius);
+	int rightHeight = rightFloor.GetFloorHeight() - (rightFloor.IsWall() ? 0 : bigRadius);
+	int leftHeight  = leftFloor.GetFloorHeight()  - (leftFloor.IsWall()  ? 0 : bigRadius);
 
-	int frontCeiling = frontFloor.GetCeilingHeight() + bigRadius;
-	int backCeiling  = backFloor.GetCeilingHeight()  + bigRadius;
-	int rightCeiling = rightFloor.GetCeilingHeight() + bigRadius;
-	int leftCeiling  = leftFloor.GetCeilingHeight()  + bigRadius;
+	int frontCeiling = frontFloor.GetCeilingHeight() + (frontFloor.IsWall() ? 0 : bigRadius);
+	int backCeiling  = backFloor.GetCeilingHeight()  + (backFloor.IsWall()  ? 0 : bigRadius);
+	int rightCeiling = rightFloor.GetCeilingHeight() + (rightFloor.IsWall() ? 0 : bigRadius);
+	int leftCeiling  = leftFloor.GetCeilingHeight()  + (leftFloor.IsWall()  ? 0 : bigRadius);
 
 	frontX = item->Pose.Position.x;
 	frontZ = item->Pose.Position.z + bigRadius;
@@ -150,15 +150,15 @@ void RollingBallControl(short itemNumber)
 	auto rightFarFloor = GetPointCollision(Vector3i(rightX, item->Pose.Position.y, rightZ), item->RoomNumber);
 	auto leftFarFloor  = GetPointCollision(Vector3i(leftX,  item->Pose.Position.y, leftZ),  item->RoomNumber);
 
-	int frontFarHeight = fronFarFloor.GetFloorHeight()  - bigRadius;
-	int backFarHeight  = backFarFloor.GetFloorHeight()  - bigRadius;
-	int rightFarHeight = rightFarFloor.GetFloorHeight() - bigRadius;
-	int leftFarHeight  = leftFarFloor.GetFloorHeight()  - bigRadius;
+	int frontFarHeight = fronFarFloor.GetFloorHeight()  - (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int backFarHeight  = backFarFloor.GetFloorHeight()  - (backFarFloor.IsWall()  ? 0 : bigRadius);
+	int rightFarHeight = rightFarFloor.GetFloorHeight() - (rightFarFloor.IsWall() ? 0 : bigRadius);
+	int leftFarHeight  = leftFarFloor.GetFloorHeight()  - (leftFarFloor.IsWall()  ? 0 : bigRadius);
 
-	int frontFarCeiling = fronFarFloor.GetCeilingHeight()  + bigRadius;
-	int backFarCeiling  = backFarFloor.GetCeilingHeight()  + bigRadius;
-	int rightFarCeiling = rightFarFloor.GetCeilingHeight() + bigRadius;
-	int leftFarCeiling  = leftFarFloor.GetCeilingHeight()  + bigRadius;
+	int frontFarCeiling = fronFarFloor.GetCeilingHeight()  + (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int backFarCeiling  = backFarFloor.GetCeilingHeight()  + (backFarFloor.IsWall()  ? 0 : bigRadius);
+	int rightFarCeiling = rightFarFloor.GetCeilingHeight() + (rightFarFloor.IsWall() ? 0 : bigRadius);
+	int leftFarCeiling  = leftFarFloor.GetCeilingHeight()  + (leftFarFloor.IsWall()  ? 0 : bigRadius);
 
 	if (item->Pose.Position.y - dh > -CLICK(1) ||
 		item->Pose.Position.y - frontFarHeight >= CLICK(2) ||
@@ -313,9 +313,9 @@ void RollingBallControl(short itemNumber)
 		if (((angle - item->Pose.Orientation.y) & 0x7fff) >= 512)
 		{
 			if (angle <= item->Pose.Orientation.y || angle - item->Pose.Orientation.y >= 0x8000)
-				item->Pose.Orientation.y -= CLICK(2);
+				item->Pose.Orientation.y -= ANGLE(2.8f);
 			else
-				item->Pose.Orientation.y += CLICK(2);
+				item->Pose.Orientation.y += ANGLE(2.8f);
 		}
 		else
 			item->Pose.Orientation.y = angle;
