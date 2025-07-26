@@ -380,7 +380,7 @@ namespace TEN::Renderer
 		void CollectMirrors(RenderView& renderView);
 		void CollectRooms(RenderView& renderView, bool onlyRooms);
 		void CollectItems(short roomNumber, RenderView& renderView);
-		void CollectStatics(int roomNumber, RenderView& renderView);
+		void CollectStatics(short roomNumber, RenderView& renderView);
 		void CollectLights(const Vector3& pos, float radius, int roomNumber, int prevRoomNumber, bool prioritizeShadowLight, bool useCachedRoomLights, std::vector<RendererLightNode>* roomsLights, std::vector<RendererLight*>* outputLights);
 		void CollectLightsForItem(RendererItem* item);
 		void CollectLightsForEffect(short roomNumber, RendererEffect* effect);
