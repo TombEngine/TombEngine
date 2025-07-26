@@ -1556,7 +1556,10 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 			staticPtr->HitPoints -= damage;
 			if (staticPtr->HitPoints <= 0)
+			{
+				SoundEffect(GetShatterSound(staticPtr->staticNumber), &staticPtr->pos);
 				ShatterObject(nullptr, staticPtr, -128, projectile.RoomNumber, 0);
+			}
 
 			if (!isExplosive)
 				continue;

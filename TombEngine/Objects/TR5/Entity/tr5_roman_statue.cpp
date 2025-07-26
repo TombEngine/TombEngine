@@ -561,7 +561,7 @@ namespace TEN::Entities::Creatures::TR5
 								if (Statics[mesh->Slot].shatterType != ShatterType::None)
 								{
 									ShatterObject(0, mesh, -64, LaraItem->RoomNumber, 0);
-									SoundEffect(GetShatterSound(mesh->Slot), (Pose*)mesh);
+									SoundEffect(GetShatterSound(mesh->Slot), &mesh->Transform);
 
 									floor->Stopper = false;
 

@@ -203,7 +203,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			ShatterImpactData.impactDirection = dir;
 			ShatterImpactData.impactLocation = mesh->Transform.Position.ToVector3();
 			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
-			SoundEffect(GetShatterSound(mesh->Slot), (Pose*)mesh);
+			SoundEffect(GetShatterSound(mesh->Slot), &mesh->Transform);
 			hitProcessed = true;
 		}
 
