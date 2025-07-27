@@ -479,16 +479,30 @@ short CreateNewEffect(short roomNumber)
 	if (NextFxFree != NO_VALUE)
 	{
 		auto* fx = &EffectList[NextFxFree];
+
+		// HACK: Overcome a self-referencing deadlock by checking if nextFx points to the same index.
+		if (fxNumber == fx->nextFx)
+			return NO_VALUE;
+
 		NextFxFree = fx->nextFx;
 
 		auto* room = &g_Level.Rooms[roomNumber];
 
 		fx->roomNumber = roomNumber;
 		fx->nextFx = room->fxNumber;
-		room->fxNumber = fxNumber;
 		fx->nextActive = NextFxActive;
+
 		NextFxActive = fxNumber;
+		room->fxNumber = fxNumber;
+
+		fx->speed = 0;
 		fx->color = Vector4::One;
+		fx->fallspeed = 0;
+		fx->frameNumber = 0;
+		fx->counter = 0;
+		fx->flag1 = 0;
+		fx->flag2 = 0;
+		fx->DisableInterpolation = true;
 	}
 
 	return fxNumber;
@@ -500,10 +514,7 @@ void InitializeFXArray()
 	NextFxFree = 0;
 
 	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-	{
-		auto* fx = &EffectList[i];
-		fx->nextFx = i + 1;
-	}
+		EffectList[i].nextFx = i + 1;
 
 	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
 }

@@ -13,7 +13,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
 * Fixed firearms bullet range limited to targeting range.
 * Fixed pistols not allowing to spam fire in untargeted mode.
-* Fixed several issues with exploding body part effects.
+* Fixed crashes and visual issues with exploding body part effects.
 * Fixed shatterable static meshes not producing shatter sound when hit by projectile weapons.
 * Fixed Doppler effect not applied to sounds.
 * Fixed HUD bars displaying incorrect update animation after loading savegame.
