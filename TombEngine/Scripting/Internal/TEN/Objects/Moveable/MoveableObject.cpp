@@ -677,7 +677,7 @@ short Moveable::GetLocationAI() const
 		return creature->LocationAI;
 	}
 
-	TENLog("Trying to get LocationAI value from non-creature moveable. Value does not exist so it's returning 0.", LogLevel::Error);
+	TENLog("Trying to get LocationAI value from a non-creature moveable but the value does not exist. Returning 0.", LogLevel::Error);
 	return 0;
 }
 
@@ -693,7 +693,7 @@ void Moveable::SetLocationAI(short value)
 	}
 	else
 	{
-		TENLog("Trying to set a value in nonexisting variable. Non creature moveable hasn't got LocationAI.", LogLevel::Error);
+		TENLog("Trying to set a value in non-existing variable but Non-creature moveable does not have LocationAI!", LogLevel::Error);
 	}
 }
 
@@ -848,7 +848,7 @@ Vec3 Moveable::GetVelocity() const
 void Moveable::SetVelocity(Vec3 velocity)
 {
 	if (_moveable->IsCreature())
-		ScriptWarn("Attempt to set velocity to a creature. In may not work, as velocity is overridden by AI.");
+		ScriptWarn("Attempt to set velocity to a creature. It may not work, as velocity is overridden by AI.");
 
 	_moveable->Animation.Velocity = Vector3(velocity.x, velocity.y, velocity.z);
 }
@@ -1296,7 +1296,7 @@ bool Moveable::MeshExists(int index) const
 // @function Moveable:AttachObjCamera
 // @tparam int mesh Mesh of a moveable to use as a camera position.
 // @tparam Objects.Moveable target Target moveable to attach camera to.
-// @tparam int mesh Mesh of a target moveable to use as a camera target.
+// @tparam int targetMesh Mesh of a target moveable to use as a camera target.
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
