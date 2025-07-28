@@ -84,12 +84,12 @@ namespace TEN::Entities::TR4
 
 				for (auto creatureIndex : ActiveCreatures)
 				{
-					auto* currentItem = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
 
-					if (currentItem->ItemNumber == NO_VALUE || currentItem->ItemNumber == itemNumber)
+					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 						continue;
 
-					auto* target = &g_Level.Items[currentItem->ItemNumber];
+					auto* target = &g_Level.Items[currentCreature->ItemNumber];
 					if (target->ObjectNumber != ID_WILD_BOAR)
 					{
 						int dx2 = target->Pose.Position.x - item->Pose.Position.x;
