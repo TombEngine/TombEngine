@@ -911,7 +911,7 @@ void DropPickups(ItemInfo* item)
 		{
 			auto& object = Statics[staticPtr->Slot];
 
-			auto box = object.collisionBox.ToBoundingOrientedBox(staticPtr->Transform);
+			auto box = object.collisionBox.ToBoundingOrientedBox(staticPtr->Pose);
 			if (box.Intersects(sphere))
 			{
 				collidedWithObject = true;
@@ -1014,7 +1014,7 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 		if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 			continue;
 
-		if (item->Pose.Position.x != staticObj.Transform.Position.x || item->Pose.Position.z != staticObj.Transform.Position.z)
+		if (item->Pose.Position.x != staticObj.Pose.Position.x || item->Pose.Position.z != staticObj.Pose.Position.z)
 			continue;
 
 		const auto& bounds = GetBestFrame(*item).BoundingBox;

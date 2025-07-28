@@ -201,9 +201,9 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 			mesh->HitPoints -= weapon.Damage;
 			ShatterImpactData.impactDirection = dir;
-			ShatterImpactData.impactLocation = mesh->Transform.Position.ToVector3();
+			ShatterImpactData.impactLocation = mesh->Pose.Position.ToVector3();
 			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
-			SoundEffect(GetShatterSound(mesh->Slot), &mesh->Transform);
+			SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
 			hitProcessed = true;
 		}
 
@@ -440,7 +440,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 				if (meshp.Flags & StaticMeshFlags::SM_VISIBLE)
 				{
 					auto bounds = GetBoundsAccurate(meshp, false);
-					pose = Pose(meshp.Transform.Position, EulerAngles(0, meshp.Transform.Orientation.y, 0));
+					pose = Pose(meshp.Pose.Position, EulerAngles(0, meshp.Pose.Orientation.y, 0));
 
 					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.Slot))
 					{

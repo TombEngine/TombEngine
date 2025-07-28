@@ -93,8 +93,8 @@ namespace TEN::Entities::TR4
 			{
 				auto* mesh = &room->mesh[i];
 
-				if (((mesh->Transform.Position.z / BLOCK(1)) == (z / BLOCK(1))) &&
-					((mesh->Transform.Position.x / BLOCK(1)) == (x / BLOCK(1))) &&
+				if (((mesh->Pose.Position.z / BLOCK(1)) == (z / BLOCK(1))) &&
+					((mesh->Pose.Position.x / BLOCK(1)) == (x / BLOCK(1))) &&
 					Statics[mesh->Slot].shatterType != ShatterType::None)
 				{
 					ShatterObject(nullptr, mesh, -64, item->RoomNumber, 0);

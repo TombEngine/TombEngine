@@ -1557,15 +1557,15 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 			staticPtr->HitPoints -= damage;
 			if (staticPtr->HitPoints <= 0)
 			{
-				SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Transform);
+				SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Pose);
 				ShatterObject(nullptr, staticPtr, -128, projectile.RoomNumber, 0);
 			}
 
 			if (!isExplosive)
 				continue;
 
-			TriggerExplosionSparks(staticPtr->Transform.Position.x, staticPtr->Transform.Position.y, staticPtr->Transform.Position.z, 3, -2, 0, projectile.RoomNumber);
-			auto pose = Pose(Vector3i(staticPtr->Transform.Position.x, staticPtr->Transform.Position.y - 128, staticPtr->Transform.Position.z), EulerAngles(0, staticPtr->Transform.Orientation.y, 0));
+			TriggerExplosionSparks(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y, staticPtr->Pose.Position.z, 3, -2, 0, projectile.RoomNumber);
+			auto pose = Pose(Vector3i(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y - 128, staticPtr->Pose.Position.z), EulerAngles(0, staticPtr->Pose.Orientation.y, 0));
 			TriggerShockwave(&pose, 40, 176, 64, 0, 96, 128, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 		}
 

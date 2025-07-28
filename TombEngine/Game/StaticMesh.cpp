@@ -24,8 +24,8 @@
 		// Calculate scaled parameters.
 		auto center = aabb.GetCenter();
 		auto extents = aabb.GetExtents();
-		auto scaledExtents = extents * Transform.Scale;
-		auto scaledOffset = (center * Transform.Scale) - center;
+		auto scaledExtents = extents * Pose.Scale;
+		auto scaledOffset = (center * Pose.Scale) - center;
 
 		// Scale AABB.
 		aabb.X1 = (center.x - scaledExtents.x) + scaledOffset.x;
@@ -38,12 +38,12 @@
 
 	BoundingOrientedBox StaticMesh::GetObb() const
 	{
-		return GetBoundsAccurate(*this, false).ToBoundingOrientedBox(Transform);
+		return GetBoundsAccurate(*this, false).ToBoundingOrientedBox(Pose);
 	}
 
 	BoundingOrientedBox StaticMesh::GetVisibilityObb() const
 	{
-		return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(Transform);
+		return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(Pose);
 	}
 
 	GameBoundingBox& GetBoundsAccurate(const StaticMesh& staticObj, bool getVisibilityAabb)

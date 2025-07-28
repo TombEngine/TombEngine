@@ -213,8 +213,8 @@ namespace TEN::Collision::Los
 				if (obb.Intersects(origin, dir, intersectDist) && intersectDist <= los.Room.Distance)
 				{
 					auto pos = Geometry::TranslatePoint(origin, dir, intersectDist);
-					auto offset = pos - staticObj->Transform.Position.ToVector3();
-					int roomNumber = GetPointCollision(staticObj->Transform.Position, staticObj->RoomNumber, offset).GetRoomNumber();
+					auto offset = pos - staticObj->Pose.Position.ToVector3();
+					int roomNumber = GetPointCollision(staticObj->Pose.Position, staticObj->RoomNumber, offset).GetRoomNumber();
 
 					auto staticLos = StaticLosCollisionData{};
 					staticLos.Static = staticObj;

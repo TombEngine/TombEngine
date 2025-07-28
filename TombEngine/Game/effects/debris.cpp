@@ -72,9 +72,9 @@ void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumb
 
 		isStatic = true;
 		meshIndex = Statics[mesh->Slot].meshNumber;
-		yRot = mesh->Transform.Orientation.y;
-		pos = Vector3(mesh->Transform.Position.x, mesh->Transform.Position.y, mesh->Transform.Position.z);
-		scale = mesh->Transform.Scale;
+		yRot = mesh->Pose.Orientation.y;
+		pos = Vector3(mesh->Pose.Position.x, mesh->Pose.Position.y, mesh->Pose.Position.z);
+		scale = mesh->Pose.Scale;
 
 		if (mesh->HitPoints <= 0)
 			mesh->Flags &= ~StaticMeshFlags::SM_VISIBLE;

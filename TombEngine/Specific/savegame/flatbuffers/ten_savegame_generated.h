@@ -5227,7 +5227,7 @@ flatbuffers::Offset<Sink> CreateSink(flatbuffers::FlatBufferBuilder &_fbb, const
 struct StaticMeshInfoT : public flatbuffers::NativeTable {
   typedef StaticMeshInfo TableType;
   int32_t number = 0;
-  std::unique_ptr<TEN::Save::Pose> transform{};
+  std::unique_ptr<TEN::Save::Pose> pose{};
   int32_t room_number = 0;
   std::unique_ptr<TEN::Save::Vector4> color{};
   int32_t hit_points = 0;
@@ -5240,7 +5240,7 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NUMBER = 4,
-    VT_TRANSFORM = 6,
+    VT_POSE = 6,
     VT_ROOM_NUMBER = 8,
     VT_COLOR = 10,
     VT_HIT_POINTS = 12,
@@ -5249,8 +5249,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t number() const {
     return GetField<int32_t>(VT_NUMBER, 0);
   }
-  const TEN::Save::Pose *transform() const {
-    return GetStruct<const TEN::Save::Pose *>(VT_TRANSFORM);
+  const TEN::Save::Pose *pose() const {
+    return GetStruct<const TEN::Save::Pose *>(VT_POSE);
   }
   int32_t room_number() const {
     return GetField<int32_t>(VT_ROOM_NUMBER, 0);
@@ -5267,7 +5267,7 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_NUMBER) &&
-           VerifyField<TEN::Save::Pose>(verifier, VT_TRANSFORM) &&
+           VerifyField<TEN::Save::Pose>(verifier, VT_POSE) &&
            VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<TEN::Save::Vector4>(verifier, VT_COLOR) &&
            VerifyField<int32_t>(verifier, VT_HIT_POINTS) &&
@@ -5286,8 +5286,8 @@ struct StaticMeshInfoBuilder {
   void add_number(int32_t number) {
     fbb_.AddElement<int32_t>(StaticMeshInfo::VT_NUMBER, number, 0);
   }
-  void add_transform(const TEN::Save::Pose *transform) {
-    fbb_.AddStruct(StaticMeshInfo::VT_TRANSFORM, transform);
+  void add_pose(const TEN::Save::Pose *pose) {
+    fbb_.AddStruct(StaticMeshInfo::VT_POSE, pose);
   }
   void add_room_number(int32_t room_number) {
     fbb_.AddElement<int32_t>(StaticMeshInfo::VT_ROOM_NUMBER, room_number, 0);
@@ -5315,7 +5315,7 @@ struct StaticMeshInfoBuilder {
 inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t number = 0,
-    const TEN::Save::Pose *transform = 0,
+    const TEN::Save::Pose *pose = 0,
     int32_t room_number = 0,
     const TEN::Save::Vector4 *color = 0,
     int32_t hit_points = 0,
@@ -5325,7 +5325,7 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
   builder_.add_hit_points(hit_points);
   builder_.add_color(color);
   builder_.add_room_number(room_number);
-  builder_.add_transform(transform);
+  builder_.add_pose(pose);
   builder_.add_number(number);
   return builder_.Finish();
 }
@@ -10805,7 +10805,7 @@ inline void StaticMeshInfo::UnPackTo(StaticMeshInfoT *_o, const flatbuffers::res
   (void)_o;
   (void)_resolver;
   { auto _e = number(); _o->number = _e; }
-  { auto _e = transform(); if (_e) _o->transform = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
+  { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
   { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = color(); if (_e) _o->color = std::unique_ptr<TEN::Save::Vector4>(new TEN::Save::Vector4(*_e)); }
   { auto _e = hit_points(); _o->hit_points = _e; }
@@ -10821,7 +10821,7 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StaticMeshInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _number = _o->number;
-  auto _transform = _o->transform ? _o->transform.get() : 0;
+  auto _pose = _o->pose ? _o->pose.get() : 0;
   auto _room_number = _o->room_number;
   auto _color = _o->color ? _o->color.get() : 0;
   auto _hit_points = _o->hit_points;
@@ -10829,7 +10829,7 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   return TEN::Save::CreateStaticMeshInfo(
       _fbb,
       _number,
-      _transform,
+      _pose,
       _room_number,
       _color,
       _hit_points,

@@ -539,7 +539,7 @@ namespace TEN::Renderer
 				rendererStatic.ObjectNumber = nativeStatic.Slot;
 				rendererStatic.Color = nativeStatic.Color;
 				rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
-				rendererStatic.Pose = nativeStatic.Transform;
+				rendererStatic.Pose = nativeStatic.Pose;
 				rendererStatic.Update(GetInterpolationFactor());
 
 				nativeStatic.Dirty = (rendererStatic.PrevPose != rendererStatic.Pose);

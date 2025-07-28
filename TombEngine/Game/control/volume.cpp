@@ -235,7 +235,7 @@ namespace TEN::Control::Volumes
 
 	void TestVolumes(int roomNumber, StaticMesh* mesh)
 	{
-		auto box = GetBoundsAccurate(*mesh, false).ToBoundingOrientedBox(mesh->Transform);
+		auto box = GetBoundsAccurate(*mesh, false).ToBoundingOrientedBox(mesh->Pose);
 		
 		TestVolumes(roomNumber, box, ActivatorFlags::Static, mesh);
 	}

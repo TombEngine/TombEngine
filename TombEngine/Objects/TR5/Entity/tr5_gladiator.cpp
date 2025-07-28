@@ -344,9 +344,9 @@ namespace TEN::Entities::Creatures::TR5
 						{
 							auto* mesh = &room->mesh[i];
 
-							if (!((pos.z ^ mesh->Transform.Position.z) & 0xFFFFFC00))
+							if (!((pos.z ^ mesh->Pose.Position.z) & 0xFFFFFC00))
 							{
-								if (!((pos.x ^ mesh->Transform.Position.x) & 0xFFFFFC00))
+								if (!((pos.x ^ mesh->Pose.Position.x) & 0xFFFFFC00))
 								{
 									if (Statics[mesh->Slot].shatterType != ShatterType::None)
 									{

@@ -25,7 +25,7 @@ enum GAME_OBJECT_ID : short;
 		std::string	   Name		= {};
 		int			   Slot		= NO_VALUE;
 
-		Pose  Transform  = Pose::Zero;
+		Pose  Pose		 = Pose::Zero;
 		int	  RoomNumber = 0;
 		Color Color		 = SimpleMath::Color();
 

@@ -372,7 +372,7 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	transform: Pose;
+	pose: Pose;
 	room_number: int32;
 	color: Vector4;
 	hit_points: int32;

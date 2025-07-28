@@ -294,7 +294,7 @@ namespace TEN::Renderer
 					rendererStatic.Color = nativeStatic.Color;
 					rendererStatic.AmbientLight = rendererRoom.AmbientLight;
 					rendererStatic.Pose =
-					rendererStatic.PrevPose = nativeStatic.Transform;
+					rendererStatic.PrevPose = nativeStatic.Pose;
 					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
 					rendererStatic.IndexInRoom = l;
 

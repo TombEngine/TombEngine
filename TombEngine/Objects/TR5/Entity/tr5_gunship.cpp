@@ -110,8 +110,8 @@ namespace TEN::Entities::Creatures::TR5
 					if (Statics[hitMesh->Slot].shatterType != ShatterType::None)
 					{
 						ShatterObject(0, hitMesh, 64, target.RoomNumber, 0);
-						TestTriggers(hitMesh->Transform.Position.x, hitMesh->Transform.Position.y, hitMesh->Transform.Position.z, target.RoomNumber, true);
-						SoundEffect(GetShatterSound(hitMesh->Slot), &hitMesh->Transform);
+						TestTriggers(hitMesh->Pose.Position.x, hitMesh->Pose.Position.y, hitMesh->Pose.Position.z, target.RoomNumber, true);
+						SoundEffect(GetShatterSound(hitMesh->Slot), &hitMesh->Pose);
 					}
 
 					TriggerRicochetSpark(GameVector(hitPos), 2 * GetRandomControl());

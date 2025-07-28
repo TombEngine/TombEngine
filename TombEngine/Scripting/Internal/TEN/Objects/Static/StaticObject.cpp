@@ -87,7 +87,7 @@ namespace TEN::Scripting
 	// @treturn Vec3 World position.
 	Vec3 Static::GetPosition() const
 	{
-		return Vec3(_static.Transform.Position);
+		return Vec3(_static.Pose.Position);
 	}
 
 	/// Get this static's world rotation.
@@ -95,7 +95,7 @@ namespace TEN::Scripting
 	// @treturn Rotation World rotation.
 	Rotation Static::GetRotation() const
 	{
-		return Rotation(_static.Transform.Orientation);
+		return Rotation(_static.Pose.Orientation);
 	}
 
 	/// Get this static's world scale.
@@ -103,7 +103,7 @@ namespace TEN::Scripting
 	// @treturn Vec3 World scale.
 	Vec3 Static::GetScale() const
 	{
-		return Vec3(_static.Transform.Scale);
+		return Vec3(_static.Pose.Scale);
 	}
 
 	/// Get this static's color.
@@ -180,7 +180,7 @@ namespace TEN::Scripting
 	// @tparam Vec3 pos New world position.
 	void Static::SetPosition(const Vec3& pos)
 	{
-		_static.Transform.Position = pos.ToVector3i();
+		_static.Pose.Position = pos.ToVector3i();
 		_static.Dirty = true;
 	}
 
@@ -189,7 +189,7 @@ namespace TEN::Scripting
 	// @tparam Rotation rot New rotation.
 	void Static::SetRotation(const Rotation& rot)
 	{
-		_static.Transform.Orientation = rot.ToEulerAngles();
+		_static.Pose.Orientation = rot.ToEulerAngles();
 		_static.Dirty = true;
 	}
 
@@ -198,13 +198,13 @@ namespace TEN::Scripting
 	// @tparam Vec3 scale New world scale.
 	void Static::SetScale(const Vec3& scale)
 	{
-		_static.Transform.Scale = scale.ToVector3();
+		_static.Pose.Scale = scale.ToVector3();
 		_static.Dirty = true;
 	}
 
 	void Static::SetScale(float scale)
 	{
-		_static.Transform.Scale = Vector3(scale);
+		_static.Pose.Scale = Vector3(scale);
 		_static.Dirty = true;
 	}
 

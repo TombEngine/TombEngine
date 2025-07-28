@@ -165,11 +165,11 @@ namespace TEN::Entities::Traps
 					{
 						if (Statics[staticPtr->Slot].shatterType != ShatterType::None)
 						{
-							TriggerExplosionSparks(staticPtr->Transform.Position.x, staticPtr->Transform.Position.y, staticPtr->Transform.Position.z, 3, -2, 0, item.RoomNumber);
-							staticPtr->Transform.Position.y -= 128;
-							TriggerShockwave(&staticPtr->Transform, 40, 176, 64, 128, 96, 0, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
-							staticPtr->Transform.Position.y += 128;
-							SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Transform);
+							TriggerExplosionSparks(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y, staticPtr->Pose.Position.z, 3, -2, 0, item.RoomNumber);
+							staticPtr->Pose.Position.y -= 128;
+							TriggerShockwave(&staticPtr->Pose, 40, 176, 64, 128, 96, 0, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+							staticPtr->Pose.Position.y += 128;
+							SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Pose);
 							ShatterObject(nullptr, staticPtr, -128, item.RoomNumber, 0);
 						}
 					}

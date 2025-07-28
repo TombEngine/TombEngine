@@ -1083,7 +1083,7 @@ const std::vector<byte> SaveGame::Build()
 			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
 			staticObjBuilder.add_number(j);
-			staticObjBuilder.add_transform(&FromPose(room->mesh[j].Transform));
+			staticObjBuilder.add_pose(&FromPose(room->mesh[j].Pose));
 			staticObjBuilder.add_room_number(room->RoomNumber);
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
@@ -2520,7 +2520,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		int number = savedStaticObj.number();
 		auto& staticObj = room.mesh[number];
 
-		staticObj.Transform = ToPose(*savedStaticObj.transform());
+		staticObj.Pose = ToPose(*savedStaticObj.pose());
 		staticObj.RoomNumber = savedStaticObj.room_number();
 		staticObj.Color = ToVector4(savedStaticObj.color());
 		staticObj.HitPoints = savedStaticObj.hit_points();
@@ -2530,9 +2530,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (!staticObj.Flags)
 		{
 			int roomNumber = savedStaticObj.room_number();
-			auto& sector = *GetFloor(staticObj.Transform.Position.x, staticObj.Transform.Position.y, staticObj.Transform.Position.z, (short*)&roomNumber);
+			auto& sector = *GetFloor(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, (short*)&roomNumber);
 
-			TestTriggers(staticObj.Transform.Position.x, staticObj.Transform.Position.y, staticObj.Transform.Position.z, savedStaticObj.room_number(), true, 0);
+			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
 			sector.Stopper = false;
 		}
 	}
