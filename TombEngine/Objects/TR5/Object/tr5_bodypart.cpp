@@ -53,8 +53,6 @@ void ControlBodyPart(short fxNumber)
 			fx->pos.Orientation.x += 4 * fx->fallspeed;
 
 		fx->fallspeed += g_GameFlow->GetSettings()->Physics.Gravity;
-		fx->pos.Orientation.x += ANGLE(5);
-		fx->pos.Orientation.z += ANGLE(10);
 	}
 	else
 	{
@@ -174,6 +172,11 @@ void ControlBodyPart(short fxNumber)
 				fx->speed = 0;
 
 			fx->pos.Position.y = y;
+		}
+		else
+		{
+			fx->pos.Orientation.x += ANGLE(5);
+			fx->pos.Orientation.z += ANGLE(10);
 		}
 
 		if (!fx->speed && ++fx->flag1 > BODY_PART_LIFE)

@@ -8,6 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 * Fixed ROLLINGBALL not stopped by full walls.
 * Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed smoke emitters crashing the game if placed underwater with OCB 0.
 * Fixed puzzle holes losing collision after inserting puzzle items.
 * Fixed projectile weapon hits not registering in statistics and collision callbacks.
 * Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
