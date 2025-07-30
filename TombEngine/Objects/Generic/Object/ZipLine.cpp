@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR5/Trap/ZipLine.h"
+#include "Objects/Generic/Object/ZipLine.h"
 
 #include "Game/animation.h"
 #include "Game/collision/collide_item.h"
