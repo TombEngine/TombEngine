@@ -8,6 +8,15 @@ Menu.Type = {
     OPTIONS_ONLY = 3,
 }
 
+local SOUND_MAP =
+{
+    PLAYER_NO = 2,
+    MENU_ROTATE = 108,
+    MENU_SELECT = 109,
+    MENU_CHOOSE = 111,
+    MENU_COMBINE = 114
+}
+
 LevelFuncs.Engine.Menu = {}
 LevelVars.Engine.Menus = {}
 
@@ -19,6 +28,12 @@ local SCROLL_SPEED = 0.2
 
 local percentPos = function(x, y)
     return TEN.Vec2(TEN.Util.PercentToScreen(x, y))
+end
+
+local colorCombine = function(color, transparency)
+
+    return Color(color.r, color.g, color.b, transparency)
+
 end
 
 Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, menuType)
@@ -34,8 +49,6 @@ Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, men
         end
     end
 
-    local lineSpacing  = percentPos(4, 0).x
-
     LevelVars.Engine.Menus[menuName] = {
         name = menuName,
         titleString = title,
@@ -47,17 +60,21 @@ Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, men
         acceptFunction = acceptFunction,
         wrapAroundItems = false,
         wrapAroundOptions = false,
-        lineSpacing = lineSpacing,
-        selectedFlags = TEXT_FLAGS_SELECT,
-        unselectedFlags = TEXT_FLAGS_NORMAL,
-        fontColor = NORMAL_FONT_COLOR,
-        fontScale = 1,
-        itemsPosition = percentPos(10, 20),
-        optionsPosition = percentPos(50, 20),
-        titleColor = HEADER_FONT_COLOR,
-        titlePosition = percentPos(10, 10),
-        titleScale = 1.5,
-        titleFlags = {Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER},
+        lineSpacing = 6,
+        itemsPosition = Vec2(10, 20),
+        itemsTextFlags = TEXT_FLAGS_NORMAL,
+        itemsSelectedFlags = TEXT_FLAGS_SELECT,
+        itemsTextColor = NORMAL_FONT_COLOR,
+        itemsTextScale = 1,
+        optionsPosition = Vec2(50, 20),
+        optionsTextFlags = TEXT_FLAGS_NORMAL,
+        optionsSelectedFlags = TEXT_FLAGS_SELECT,
+        optionsTextColor = NORMAL_FONT_COLOR,
+        optionsTextScale = 1,
+        titlePosition = Vec2(50, 10),
+        titleTextFlags = TEXT_FLAGS_NORMAL,
+        titleTextColor = HEADER_FONT_COLOR,
+        titleTextScale = 1.5,
         menuTransparency = 255,
         visibleStartIndex = 1,
         maxVisibleItems = 6,
@@ -104,7 +121,21 @@ end
 
 function Menu:Draw()
 	if LevelVars.Engine.Menus[self.name] then
-		LevelFuns.Engine.Menus.DrawMenu(self.name)
+		LevelFuncs.Engine.Menu.DrawMenu(self.name)
+	end
+end
+
+function Menu:Reset()
+	local menu = LevelVars.Engine.Menus[self.name]
+	if not menu then return end
+
+	menu.currentItem = 1
+	menu.visibleStartIndex = 1
+	menu.scrollY = 0
+	menu.targetScrollY = 0
+
+	for _, item in ipairs(menu.items) do
+		item.currentOption = 1
 	end
 end
 
@@ -118,7 +149,9 @@ end
 function Menu:SetTransparency(transparency)
 	if LevelVars.Engine.Menus[self.name] then
 
-		LevelVars.Engine.Menus[self.name].transparency = transparency * 255
+        if transparency < 0 or transparency > 1 then return end
+		LevelVars.Engine.Menus[self.name].menuTransparency = transparency * 255
+
     end
 end
 
@@ -146,24 +179,38 @@ function Menu:SetExitFunction(functionName)
 	end
 end
 
-function Menu:SetSelectedFlags(flags)
+function Menu:SetOnOptionChangeFunction(itemName, functionName)
 	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].selectedFlags = flags
+        local menu = LevelVars.Engine.Menus[self.name]
+
+        for _, item in ipairs(menu.items) do
+            if item.itemName == itemName then
+                item.onOptionChange = functionName
+                break
+            end
+        end
+
 	end
 end
 
-function Menu:SetUnselectedFlags(flags)
+function Menu:SetSelectedItemFlags(flags)
 	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].unselectedFlags = flags
+		LevelVars.Engine.Menus[self.name].itemsSelectedFlags = flags
+	end
+end
+
+function Menu:SetSelectedOptionsFlags(flags)
+	if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].optionsSelectedFlags = flags
 	end
 end
 
 function Menu:SetTitle(title, fontColor, titleScale, flags)
 	if LevelVars.Engine.Menus[self.name] then
 		LevelVars.Engine.Menus[self.name].titleString = title
-        LevelVars.Engine.Menus[self.name].titleColor = fontColor
-        LevelVars.Engine.Menus[self.name].titleScale = titleScale
-        LevelVars.Engine.Menus[self.name].titleFlags = flags
+        LevelVars.Engine.Menus[self.name].titleTextColor = fontColor
+        LevelVars.Engine.Menus[self.name].titleTextScale = titleScale
+        LevelVars.Engine.Menus[self.name].titleTextFlags = flags
 	end
 end
 
@@ -173,10 +220,19 @@ function Menu:SetTitlePosition(titlePosition)
 	end
 end
 
-function Menu:SetItemsFont(fontColor, fontScale)
+function Menu:SetItemsFont(fontColor, fontScale, flags)
 	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].fontColor = fontColor
-        LevelVars.Engine.Menus[self.name].fontScale = fontScale
+		LevelVars.Engine.Menus[self.name].itemsTextColor = fontColor
+        LevelVars.Engine.Menus[self.name].itemsTextScale = fontScale
+        LevelVars.Engine.Menus[self.name].itemsTextFlags = flags
+	end
+end
+
+function Menu:SetOptionsFont(fontColor, fontScale, flags)
+	if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].optionsTextColor = fontColor
+        LevelVars.Engine.Menus[self.name].optionsTextScale = fontScale
+        LevelVars.Engine.Menus[self.name].optionsTextFlags = flags
 	end
 end
 
@@ -194,9 +250,7 @@ end
 
 function Menu:SetLineSpacing(lineSpacing)
 	if LevelVars.Engine.Menus[self.name] then
-
-        local line  = percentPos(lineSpacing, 0).x
-		LevelVars.Engine.Menus[self.name].lineSpacing = line
+		LevelVars.Engine.Menus[self.name].lineSpacing = lineSpacing
 	end
 end
 
@@ -223,7 +277,7 @@ end
 function Menu:getOptionForItem(itemIndex)
     -- Returns the currently selected option for a specific item by index
     local menu = LevelVars.Engine.Menus[self.name]
-   if debug and not menu.items or not menu.items[itemIndex] then
+   if debug and (not menu.items or not menu.items[itemIndex]) then
         error("Invalid item index: " .. tostring(itemIndex))
     end
     local item = menu.items[itemIndex]
@@ -248,7 +302,7 @@ end
 
 function Menu:getOptionIndexForItem(itemIndex)
     local menu = LevelVars.Engine.Menus[self.name]
-    if debug and not menu.items or not menu.items[itemIndex] then
+    if debug and (not menu.items or not menu.items[itemIndex]) then
         error("Invalid item index: " .. tostring(itemIndex))
     end
     local item = menu.items[itemIndex]
@@ -260,10 +314,20 @@ function Menu:getOptionIndexForItem(itemIndex)
 end
 
 local PerformFunction = function(functionString)
-    local func = LevelFuncs[functionString]
-    if func and (type(func) == "function" or type(func) == "userdata") then
-        return func()
-    end
+    local parts = {}
+	for part in string.gmatch(functionString, "[^%.]+") do
+		table.insert(parts, part)
+	end
+
+	local func = LevelFuncs
+	for _, key in ipairs(parts) do
+		func = func[key]
+		if not func then return end
+	end
+
+	if type(func) == "function" or type(func) == "userdata" then
+		return func()
+	end
 end
 
 local Input = function(menuName)
@@ -272,8 +336,11 @@ local Input = function(menuName)
 
     local itemCount = #menu.items
 
+    if itemCount == 0 then return end
+
     if KeyIsHit(ActionID.FORWARD) then
-            if menu.wrapAroundItems then
+        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+        if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
         else
             if menu.currentItem > 1 then
@@ -281,6 +348,7 @@ local Input = function(menuName)
             end
         end
     elseif KeyIsHit(ActionID.BACK) then
+        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
         else
@@ -289,6 +357,7 @@ local Input = function(menuName)
             end
         end
     elseif KeyIsHit(ActionID.LEFT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             if menu.wrapAroundOptions then
@@ -296,8 +365,13 @@ local Input = function(menuName)
             else
                 currentItem.currentOption = math.max(1, currentItem.currentOption - 1)
             end
+
+            if currentItem.onOptionChange then
+                PerformFunction(currentItem.onOptionChange)
+		    end
         end
     elseif KeyIsHit(ActionID.RIGHT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             if menu.wrapAroundOptions then
@@ -305,11 +379,20 @@ local Input = function(menuName)
             else
                 currentItem.currentOption = math.min(#currentItem.options, currentItem.currentOption + 1)
             end
+
+            if currentItem.onOptionChange then
+                PerformFunction(currentItem.onOptionChange)
+		    end
         end
     elseif KeyIsHit(ActionID.ACTION) then
-        if menu.acceptFunction then PerformFunction(menu.acceptFunction) end
+        if menu.acceptFunction then 
+            TEN.Sound.PlaySound(SOUND_MAP.MENU_CHOOSE)
+            PerformFunction(menu.acceptFunction)
+        end
     elseif KeyIsHit(ActionID.INVENTORY) then
-        if menu.exitFunction then PerformFunction(menu.exitFunction) end
+        if menu.exitFunction then 
+            TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+            PerformFunction(menu.exitFunction) end
         return
     end
 
@@ -323,15 +406,13 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
         
         Input(menuName)
 
-        if menu.title then
-            local titleNode = DisplayString(menu.title, menu.titlePosition, menu.titleScale, Color(menu.titleColor.r, menu.titleColor.g, menu.titleColor.b, menu.menuTransparency) , false, menu.titleFlags)
+        if menu.titleString then
+            local titleNode = DisplayString(menu.titleString, percentPos(menu.titlePosition.x, menu.titlePosition.y), menu.titleTextScale, colorCombine(menu.titleTextColor, menu.menuTransparency) , false, menu.titleTextFlags)
             TEN.Strings.ShowString(titleNode, 1 / 30)
         end
 
         local baseYItems = menu.itemsPosition.y
         local offset = menu.lineSpacing
-        -- local minY = baseY
-        -- local maxY = baseY + offset * (menu.maxVisibleItems - 1)
 
         -- Store previous visibleStartIndex to detect change
         menu.prevVisibleStartIndex = menu.prevVisibleStartIndex or menu.visibleStartIndex
@@ -356,19 +437,17 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
             local item = menu.items[i]
             local yItems = baseYItems + (i - 1) * offset - menu.scrollY
 
-            -- if y < minY or y > maxY then goto continue end
-
             -- Skip items not in visible drawing range
             if i < menu.visibleStartIndex or i > menu.visibleStartIndex + menu.maxVisibleItems - 1 then
                 goto continue
             end
 
             if menu.menuType == Menu.Type.ITEMS_ONLY or menu.menuType == Menu.Type.ITEMS_AND_OPTIONS then
-                local itemNode = DisplayString(item.itemName, Vec2(menu.itemsPosition.x, yItems), menu.fontScale, Color(menu.fontColor.r, menu.fontColor.g, menu.fontColor.b, menu.menuTransparency), false)
+                local itemNode = DisplayString(item.itemName, percentPos(menu.itemsPosition.x, yItems), menu.itemsTextScale, colorCombine(menu.itemsTextColor, menu.menuTransparency), false)
                 if menu.menuType == Menu.Type.ITEMS_ONLY and i == menu.currentItem then
-                    itemNode:SetFlags(menu.selectedFlags)
+                    itemNode:SetFlags(menu.itemsSelectedFlags)
                 else
-                    itemNode:SetFlags(menu.unselectedFlags)
+                    itemNode:SetFlags(menu.itemsTextFlags)
                 end
                 TEN.Strings.ShowString(itemNode, 1 / 30)
             end
@@ -377,11 +456,11 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
                 local baseYOptions = menu.optionsPosition.y
                 local yOptions = baseYOptions + (i - 1) * offset - menu.scrollY
                 local selectedOption = item.options and item.options[item.currentOption] or ""
-                local optNode = DisplayString(selectedOption, Vec2(menu.optionsPosition.x, yOptions), menu.fontScale, Color(menu.fontColor.r, menu.fontColor.g, menu.fontColor.b, menu.menuTransparency), false)
+                local optNode = DisplayString(selectedOption, percentPos(menu.optionsPosition.x, yOptions), menu.optionsTextScale, colorCombine(menu.optionsTextColor, menu.menuTransparency), false)
                 if i == menu.currentItem then
-                    optNode:SetFlags(menu.selectedFlags)
+                    optNode:SetFlags(menu.optionsSelectedFlags)
                 else
-                    optNode:SetFlags(menu.unselectedFlags)
+                    optNode:SetFlags(menu.optionsTextFlags)
                 end
                 TEN.Strings.ShowString(optNode, 1 / 30)
             end
