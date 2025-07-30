@@ -555,7 +555,7 @@ namespace TEN::Entities::TR4
 			}
 			else
 			{
-				PerformFinalAttack(item, SasGunBite, SAS_ANIM_DEATH, SAS_SHOT_DAMAGE, SFX_TR3_SWAT_SMG_FIRE);
+				PerformFinalAttack(item, SasGunBite, 8, SAS_ANIM_DEATH, SAS_SHOT_DAMAGE, SFX_TR3_SWAT_SMG_FIRE);
 			}
 		}
 

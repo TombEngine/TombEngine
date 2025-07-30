@@ -134,7 +134,7 @@ namespace TEN::Entities::TR4
 			}
 			else
 			{
-				PerformFinalAttack(*item, TroopsBite1, 19, TROOPS_SHOT_DAMAGE, SFX_TR3_OIL_SMG_FIRE);
+				PerformFinalAttack(*item, TroopsBite1, 8, 19, TROOPS_SHOT_DAMAGE, SFX_TR3_OIL_SMG_FIRE);
 			}
 		}
 		else

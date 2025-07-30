@@ -11,6 +11,9 @@
 #include "Game/misc.h"
 #include "Sound/sound.h"
 
+constexpr auto FINAL_SHOT_CONE_ANGLE = ANGLE(15.0f);
+constexpr auto FINAL_SHOT_COUNT = 4;
+
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
 	auto* creature = GetCreatureInfo(item);
@@ -178,7 +181,7 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 	return false;
 }
 
-void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int deathAnimNumber, int damage, SOUND_EFFECTS soundID)
+void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBoneNumber, int deathAnimNumber, int damage, SOUND_EFFECTS soundID)
 {
 	auto animNumber = item.Animation.AnimNumber - Objects[item.Animation.AnimObjectID].animIndex;
 	if (animNumber != deathAnimNumber)
@@ -189,14 +192,15 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int deathA
 	int frameCount = anim.frameEnd - anim.frameBase;
 	int frameNumber = item.Animation.FrameNumber - anim.frameBase;
 
-	constexpr auto NUM_SHOTS = 4;
-
+	// Calculate frame range when final attack may occur. It is limited to last third of the animation.
 	int frameBase = frameCount - (frameCount / 3);
-	int interval = (frameCount / 3) / NUM_SHOTS - 1;
+
+	// Based on final shot count, calculate interval on which shots will occur.
+	int interval = (frameCount / 3) / FINAL_SHOT_COUNT - 1;
 
 	bool doShot = false;
 
-	for (int i = 0; i < NUM_SHOTS; i++)
+	for (int i = 0; i < FINAL_SHOT_COUNT; i++)
 	{
 		if (frameNumber == frameBase + interval * i)
 		{
@@ -219,11 +223,26 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int deathA
 	if (!Targetable(&item, &AI))
 		return;
 
-	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || AI.angle > ANGLE(15.0f) || AI.angle < ANGLE(-15.0f))
+	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || AI.angle > FINAL_SHOT_CONE_ANGLE || AI.angle < -FINAL_SHOT_CONE_ANGLE)
 		return;
 
-	SoundEffect(soundID, &item.Pose);
+	// Since death animation may not end up facing the enemy (e.g. SAS falls on the ground in the opposite direction), perform
+	// additional dot product test to make sure that dying entity's head is facing enemy.
+
+	auto origin = GetJointPosition(&item, headBoneNumber);
+	auto target = GetJointPosition(&item, headBoneNumber, Vector3::Forward * BLOCK(1));
+
+	auto coneDirection = (origin - target).ToVector3();
+	coneDirection.Normalize();
+
+	auto toTarget = (creature->Enemy->Pose.Position - origin).ToVector3();
+	toTarget.Normalize();
+
+	if (coneDirection.Dot(toTarget) < TO_RAD(FINAL_SHOT_CONE_ANGLE))
+		return; // Enemy head is not within shooting angle.
+
 	ShotLara(&item, &AI, bite, 0, damage);
+	SoundEffect(soundID, &item.Pose);
 	creature->MuzzleFlash[0].Bite = bite;
 	creature->MuzzleFlash[0].Delay = 2;
 }
