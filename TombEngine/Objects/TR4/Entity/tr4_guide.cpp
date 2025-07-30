@@ -189,8 +189,10 @@ namespace TEN::Entities::TR4
 		{
 			int minDistance = INT_MAX;
 
-			for (auto& currentCreature : ActiveCreatures)
+			for (auto creatureIndex : ActiveCreatures)
 			{
+				auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 				if (currentCreature->ItemNumber == NO_VALUE ||
 					currentCreature->ItemNumber == itemNumber)
 				{

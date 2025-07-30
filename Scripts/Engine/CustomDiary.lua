@@ -14,7 +14,7 @@
 --	--This method opens the diary on the 3rd page
 --	diary:showDiary(3)
 --
--- @luautil Diary
+-- @luautil CustomDiary
 
 local Type = require("Engine.Type")
 

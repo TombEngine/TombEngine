@@ -204,6 +204,55 @@ std::vector<BoundingSphere> ItemInfo::GetSpheres() const
 	return g_Renderer.GetSpheres(Index);
 }
 
+ItemInfo* ItemHandler::Get() const
+{
+	if (g_Level.Items.empty() || _index == NO_VALUE)
+		return nullptr;
+
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
+		return &g_Level.Items[0];
+	}
+
+	return &g_Level.Items[_index];
+}
+
+ItemHandler& ItemHandler::operator=(ItemInfo* ptr)
+{
+	if (ptr)
+		_index = ptr->Index;
+	else
+		_index = NO_VALUE;
+
+	return *this;
+}
+
+ItemHandler::operator ItemInfo* () const
+{
+	return Get();
+}
+
+ItemInfo* ItemHandler::operator->() const
+{
+	return static_cast<ItemInfo*>(*this);
+}
+
+ItemInfo& ItemHandler::operator*() const
+{
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
+		return g_Level.Items[0];
+	}
+
+	return g_Level.Items[_index];
+}
+
 bool TestState(int refState, const std::vector<int>& stateList)
 {
 	for (const auto& state : stateList)
@@ -236,6 +285,12 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 
 void KillItem(short const itemNumber)
 {
+	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
+	{
+		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		return;
+	}
+
 	if (InItemControlLoop)
 	{
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber | 0x8000;
@@ -479,16 +534,30 @@ short CreateNewEffect(short roomNumber)
 	if (NextFxFree != NO_VALUE)
 	{
 		auto* fx = &EffectList[NextFxFree];
+
+		// HACK: Overcome a self-referencing deadlock by checking if nextFx points to the same index.
+		if (fxNumber == fx->nextFx)
+			return NO_VALUE;
+
 		NextFxFree = fx->nextFx;
 
 		auto* room = &g_Level.Rooms[roomNumber];
 
 		fx->roomNumber = roomNumber;
 		fx->nextFx = room->fxNumber;
-		room->fxNumber = fxNumber;
 		fx->nextActive = NextFxActive;
+
 		NextFxActive = fxNumber;
+		room->fxNumber = fxNumber;
+
+		fx->speed = 0;
 		fx->color = Vector4::One;
+		fx->fallspeed = 0;
+		fx->frameNumber = 0;
+		fx->counter = 0;
+		fx->flag1 = 0;
+		fx->flag2 = 0;
+		fx->DisableInterpolation = true;
 	}
 
 	return fxNumber;
@@ -500,10 +569,7 @@ void InitializeFXArray()
 	NextFxFree = 0;
 
 	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-	{
-		auto* fx = &EffectList[i];
-		fx->nextFx = i + 1;
-	}
+		EffectList[i].nextFx = i + 1;
 
 	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
 }
@@ -573,6 +639,8 @@ void InitializeItem(short itemNumber)
 	item->LookedAt = false;
 	item->Timer = 0;
 	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
+
+	item->Effect = {};
 
 	if (item->ObjectNumber == ID_HK_ITEM ||
 		item->ObjectNumber == ID_HK_AMMO_ITEM ||

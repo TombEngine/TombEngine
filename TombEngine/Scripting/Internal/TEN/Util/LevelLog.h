@@ -4,20 +4,21 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 
 /// Constants for LogLevel IDs.
+// To be used with @{Util.PrintLog} function.
 // @enum Util.LogLevel
 // @pragma nostrip
 
-/// Table of Util.LogLevel constants. To be used with @{Util.PrintLog} function.
-//
-// - `INFO` - Only information messages will be shown.
-// - `WARNING` - Non-critical warnings and information messages will be shown.
-// - `ERROR` - Critical errors, non-critical warnings and information messages will be shown.
-//
-// @table Util.LogLevel
-
 static const auto LOG_LEVEL_IDS = std::unordered_map<std::string, LogLevel>
 {
+	/// Only information messages will be shown.
+	// @mem INFO
 	{ ScriptReserved_LogLevelInfo, LogLevel::Info },
+
+	/// Non-critical warnings and information messages will be shown.
+	// @mem WARNING
 	{ ScriptReserved_LogLevelWarning, LogLevel::Warning },
+
+	/// Critical errors, non-critical warnings and information messages will be shown.
+	// @mem ERROR
 	{ ScriptReserved_LogLevelError, LogLevel::Error }
 };

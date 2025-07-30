@@ -3,10 +3,34 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.9.1]
+## [Version 1.9.2]
 
 ## New features
-* Added final shot before death for TROOPS slot, if Lara is in sight.
+* Added final shot before death for TROOPS and SAS slot, if Lara is in sight.
+
+### Bug fixes
+* Fixed ROLLINGBALL not stopped by full walls.
+* Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed smoke emitters crashing the game if placed underwater with OCB 0.
+* Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed projectile weapon hits not registering in statistics and collision callbacks.
+* Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
+* Fixed firearms bullet range limited to targeting range.
+* Fixed pistols not allowing to spam fire in untargeted mode.
+* Fixed random crashes and visual issues with exploding body part effects.
+* Fixed random crashes when spawning or killing enemies.
+* Fixed shatterable static meshes not producing shatter sound when hit by projectile weapons.
+* Fixed HUD bars displaying incorrect update animation after loading savegame.
+* Fixed slowdowns and freezes when too many sounds are playing.
+* Fixed Doppler effect not applied to sounds.
+
+### Lua API changes
+* Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
+* Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
+
+## [Version 1.9.1]
+
+### New features
 * Added ability to open doors with draw weapon key in dozy mode.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
@@ -23,10 +47,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed inability to use revolver with lasersight in crouched state.
 * Fixed incorrect room collision for negative room coordinates.
 * Fixed exclusive video playback not working when triggered at the end of a level.
+* Fixed garbage particle positions in high FPS mode.
 * Fixed issues with garbage camera movement when switching between fixed cameras.
 * Fixed issues with sound initialization if sound device list has changed.
 
 ### Lua API changes
+* Added `weatherClustering` setting to `Flow.Level`.
 * Fixed `Camera:SetPosition` interfering with non-fixed camera position.
 * Renamed `Camera:PlayCamera` to `Camera:Play`.
 

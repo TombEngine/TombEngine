@@ -106,7 +106,7 @@
 <h2>5 Lua utility modules</h2>
 <ul class="nowrap">
   <li>    <a href="../5 lua utility modules/CustomBar.html">CustomBar</a></li>
-  <li>    <a href="../5 lua utility modules/Diary.html">Diary</a></li>
+  <li>    <a href="../5 lua utility modules/CustomDiary.html">CustomDiary</a></li>
   <li>    <a href="../5 lua utility modules/EventSequence.html">EventSequence</a></li>
   <li>    <a href="../5 lua utility modules/Timer.html">Timer</a></li>
   <li>    <a href="../5 lua utility modules/Type.html">Type</a></li>
@@ -182,6 +182,10 @@
 	<tr>
 	<td class="name" ><a href="#weatherStrength">weatherStrength</a></td>
 	<td class="summary">(float) Choose weather strength.</td>
+	</tr>
+	<tr>
+	<td class="name" ><a href="#weatherClustering">weatherClustering</a></td>
+	<td class="summary">(bool) Choose if weather should be clustered or not.</td>
 	</tr>
 	<tr>
 	<td class="name" ><a href="#laraType">laraType</a></td>
@@ -447,6 +451,22 @@
     <dd>
     (float) Choose weather strength.
  Must be value between <code>0.1</code> and <code>1.0</code>.
+
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "weatherClustering"></a>
+    <strong>weatherClustering</strong>
+    </dt>
+    <dd>
+    (bool) Choose if weather should be clustered or not.
+ You can set it to <code>false</code> globally or in specific regions of your level where clusters can slip through paper-thin walls.
 
 
 

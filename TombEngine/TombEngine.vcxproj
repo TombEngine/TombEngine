@@ -493,6 +493,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\savegame.h" />
     <ClInclude Include="Game\Setup.h" />
     <ClInclude Include="Game\spotcam.h" />
+    <ClInclude Include="Game\StaticMesh.h" />
     <ClInclude Include="Math\Constants.h" />
     <ClInclude Include="Math\Geometry.h" />
     <ClInclude Include="Math\Legacy.h" />
@@ -846,6 +847,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Include\ScriptInterfaceState.h" />
     <ClInclude Include="Scripting\Include\Strings\ScriptInterfaceStringsHandler.h" />
     <ClInclude Include="Scripting\Include\VarMapVal.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\LaraTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\WeatherTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Input\AxisIDs.h" />
     <ClInclude Include="Scripting\Internal\AudioTracks.h" />
     <ClInclude Include="Scripting\Internal\LanguageScript.h" />
@@ -1045,6 +1048,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\savegame.cpp" />
     <ClCompile Include="Game\Setup.cpp" />
     <ClCompile Include="Game\spotcam.cpp" />
+    <ClCompile Include="Game\StaticMesh.cpp" />
     <ClCompile Include="Math\Geometry.cpp" />
     <ClCompile Include="Math\Legacy.cpp" />
     <ClCompile Include="Math\Objects\AxisAngle.cpp" />

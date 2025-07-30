@@ -106,7 +106,7 @@ Vec3 Vec3::Normalize() const
 }
 
 /// Get a copy of this Vec3 translated in the input Vec3 direction by the input distance.
-// @function Translate
+// @function Vec3:Translate
 // @tparam Vec3 dir Direction vector. Normalized automatically to length 1.
 // @tparam float dist Distance.
 // @treturn Vec3 Translated vector.
@@ -116,7 +116,7 @@ Vec3 Vec3::Translate(const Vec3& dir, float dist)
 }
 
 /// Get a copy of this Vec3 translated in the direction of the input Rotation object by the input distance.
-// @function Translate
+// @function Vec3:Translate
 // @tparam Rotation rot Rotation object defining the direction.
 // @tparam float dist Distance.
 // @treturn Vec3 Translated vector.
@@ -126,7 +126,7 @@ Vec3 Vec3::Translate(const Rotation& rot, float dist)
 }
 
 /// Get a copy of this Vec3 translated by an offset, where the input relative offset Vec3 is rotated according to the input Rotation object.
-// @function Translate
+// @function Vec3:Translate
 // @tparam Rotation rot Rotation object rotating the input relative offset vector.
 // @tparam Vec3 relOffset Relative offset vector before rotation.
 // @treturn Vec3 Translated vector.

@@ -13,7 +13,8 @@ table LevelData {
 	rumble_enabled: bool;
 	weather_type: int32;
 	weather_strength: float;
-	
+	weather_clustering: bool;
+
 	fog_color: int32;
 	fog_min_distance: float;
 	fog_max_distance: float;
@@ -371,8 +372,8 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	room_number: int32;
 	pose: Pose;
+	room_number: int32;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;

@@ -167,6 +167,7 @@ Particle* GetFreeParticle()
 	part.blendMode = BlendMode::Additive;
 	part.extras = 0;
 	part.dynamic = NO_VALUE;
+	part.DisableInterpolation = true;
 
 	return &part;
 }

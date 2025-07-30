@@ -14,7 +14,7 @@ namespace TEN::Scripting
 {
 	class Rotation;
 
-	class Static : public NamedBase<Static, MESH_INFO&>
+	class Static : public NamedBase<Static, StaticMesh&>
 	{
 	public:
 		static void Register(sol::table& parent);
@@ -22,28 +22,28 @@ namespace TEN::Scripting
 	private:
 		// Fields
 
-		MESH_INFO& _static;
+		StaticMesh& _static;
 
 	public:
 		// Aliases
 
-		using IdentifierType = std::reference_wrapper<MESH_INFO>;
+		using IdentifierType = std::reference_wrapper<StaticMesh>;
 
 		// Constructors, destructors
 
-		Static(MESH_INFO& staticObj);
+		Static(StaticMesh& staticObj);
 		Static(const Static& staticObj) = delete;
 		~Static() = default;
 
 		// Getters
 
-		std::string GetName() const;
+		std::string	GetName() const;
 		int			GetSlot() const;
 		Vec3		GetPosition() const;
 		Rotation	GetRotation() const;
-		float		GetScale() const;
-		ScriptColor GetColor() const;
-		int			GetHitPoints() const;
+		Vec3		GetScale() const;
+		ScriptColor	GetColor() const;
+		int			GetHP() const;
 		bool		GetActiveStatus() const;
 		bool		GetCollidable() const;
 		bool		GetSolidStatus() const;
@@ -54,9 +54,9 @@ namespace TEN::Scripting
 		void SetSlot(int slotID);
 		void SetPosition(const Vec3& pos);
 		void SetRotation(const Rotation& rot);
-		void SetScale(float scale);
+		void SetScale(const Vec3& scale);
 		void SetColor(const ScriptColor& color);
-		void SetHitPoints(int hitPoints);
+		void SetHP(int hitPoints);
 		void SetCollidable(bool status);
 		void SetSolidStatus(bool status);
 
@@ -69,5 +69,9 @@ namespace TEN::Scripting
 		// Operators
 
 		Static& operator =(const Static& staticObj) = delete;
+
+		// COMPATIBILITY
+
+		void SetScale(float scale);
 	};
 }

@@ -1227,25 +1227,23 @@ void ExplodingDeath(short itemNumber, short flags)
 
 	for (int i = 0; i < obj->nmeshes; i++)
 	{
-		Matrix boneMatrix;
-		g_Renderer.GetBoneMatrix(itemNumber, i, &boneMatrix);
-		boneMatrix = world * boneMatrix;
-
 		if (!item->MeshBits.Test(i))
 			continue;
 
 		item->MeshBits.Clear(i);
 
-		if (i == 0 ||  ((GetRandomControl() & 3) != 0 && (flags & BODY_DO_EXPLOSION)))
+		if (i == 0 || ((GetRandomControl() & 3) != 0 && (flags & BODY_DO_EXPLOSION)))
 		{
+			auto bonePos = GetJointPosition(item, i, Vector3i::Zero);
+
 			short fxNumber = CreateNewEffect(item->RoomNumber);
 			if (fxNumber != NO_VALUE)
 			{
-				FX_INFO* fx = &EffectList[fxNumber];
+				auto* fx = &EffectList[fxNumber];
 
-				fx->pos.Position.x = boneMatrix.Translation().x;
-				fx->pos.Position.y = boneMatrix.Translation().y - BODY_PART_SPAWN_VERTICAL_OFFSET;
-				fx->pos.Position.z = boneMatrix.Translation().z;
+				fx->pos.Position.x = bonePos.x;
+				fx->pos.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
+				fx->pos.Position.z = bonePos.z;
 
 				fx->roomNumber = item->RoomNumber;
 				fx->pos.Orientation.x = 0;

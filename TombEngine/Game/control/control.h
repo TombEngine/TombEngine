@@ -10,8 +10,8 @@ class GameBoundingBox;
 struct AnimData;
 struct CollisionInfo;
 struct ItemInfo;
-struct MESH_INFO;
 struct RoomData;
+struct StaticMesh;
 
 enum class GameStatus
 {

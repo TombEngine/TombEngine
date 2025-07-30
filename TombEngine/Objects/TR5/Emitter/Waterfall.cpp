@@ -96,7 +96,7 @@ namespace TEN::Effects::WaterfallEmitter
             auto rotMatrix = item.Pose.Orientation.ToRotationMatrix();
             auto relOffset = Vector3(Random::GenerateFloat(-waterfallWidth / 2.0f, waterfallWidth / 2.0f), 0.0f, 0.0f);
             auto offset = Vector3::Transform(relOffset, rotMatrix);
-            auto pos = item.Pose.Position.ToVector3() + offset;
+            auto pos = item.Pose.Position.ToVector3() + Vector3(0, -CLICK(0.25f), 0) + offset;
 
             vel.y = Random::GenerateFloat(0.0f, 16.0f);
 

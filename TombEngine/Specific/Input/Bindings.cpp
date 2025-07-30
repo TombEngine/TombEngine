@@ -171,8 +171,8 @@ namespace TEN::Input
 		{ In::MouseClickLeft,	MK_LCLICK },
 		{ In::MouseClickMiddle, MK_MCLICK },
 		{ In::MouseClickRight,	MK_RCLICK },
-		{ In::MouseScrollUp,	MK_AXIS_X_NEG },
-		{ In::MouseScrollDown,	MK_AXIS_X_POS }
+		{ In::MouseScrollUp,	MK_AXIS_Z_NEG },
+		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
 	};
 
 	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const

@@ -143,7 +143,7 @@ int LaraObject::GetStamina() const
 }
 
 /// Get the player's airborne status (set when jumping and falling).
-// @function Moveable:GetAirborne
+// @function LaraObject:GetAirborne
 // @treturn bool True if airborne, otherwise false.
 bool LaraObject::GetAirborne() const
 {
@@ -151,7 +151,7 @@ bool LaraObject::GetAirborne() const
 }
 
 /// Set the player's airborne status.
-// @function Moveable:SetAirborne
+// @function LaraObject:SetAirborne
 // @tparam bool airborne New airborne status.
 void LaraObject::SetAirborne(bool newAirborne)
 {

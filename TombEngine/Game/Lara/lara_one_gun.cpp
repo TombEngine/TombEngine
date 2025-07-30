@@ -436,6 +436,13 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	if (player.Control.Weapon.WeaponItem == NO_VALUE)
 	{
 		player.Control.Weapon.WeaponItem = CreateItem();
+
+		if (player.Control.Weapon.WeaponItem == NO_VALUE)
+		{
+			TENLog("Failed to create weapon item, no free moveable slots available.", LogLevel::Error);
+			return;
+		}
+
 		weaponItemPtr = &g_Level.Items[player.Control.Weapon.WeaponItem];
 		weaponItemPtr->ObjectNumber = GetWeaponObjectID(weaponType);
 
@@ -1551,18 +1558,21 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 			hasHit = hasHitNotByEmitter = doShatter = true;
 			doExplosion = isExplosive;
 
-			if (Statics[staticPtr->staticNumber].shatterType == ShatterType::None)
+			if (Statics[staticPtr->Slot].shatterType == ShatterType::None)
 				continue;
 
 			staticPtr->HitPoints -= damage;
 			if (staticPtr->HitPoints <= 0)
+			{
+				SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Pose);
 				ShatterObject(nullptr, staticPtr, -128, projectile.RoomNumber, 0);
+			}
 
 			if (!isExplosive)
 				continue;
 
-			TriggerExplosionSparks(staticPtr->pos.Position.x, staticPtr->pos.Position.y, staticPtr->pos.Position.z, 3, -2, 0, projectile.RoomNumber);
-			auto pose = Pose(Vector3i(staticPtr->pos.Position.x, staticPtr->pos.Position.y - 128, staticPtr->pos.Position.z), EulerAngles(0, staticPtr->pos.Orientation.y, 0));
+			TriggerExplosionSparks(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y, staticPtr->Pose.Position.z, 3, -2, 0, projectile.RoomNumber);
+			auto pose = Pose(Vector3i(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y - 128, staticPtr->Pose.Position.z), EulerAngles(0, staticPtr->Pose.Orientation.y, 0));
 			TriggerShockwave(&pose, 40, 176, 64, 0, 96, 128, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 		}
 
@@ -1606,6 +1616,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 				}
 				else if (currentObject.damageType == DamageMode::Any)
 				{
+					auto hitPoint = GameVector(GameBoundingBox(itemPtr).GetCenter() + itemPtr->Pose.Position.ToVector3(), itemPtr->RoomNumber);
+
 					if (type == ProjectileType::Poison)
 					{
 						if (itemPtr->IsCreature())
@@ -1613,10 +1625,12 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 						if (itemPtr->IsLara())
 							GetLaraInfo(itemPtr)->Status.Poison += 5;
+
+						HitTarget(&emitter, itemPtr, &hitPoint, 0, false);
 					}
 					else
 					{
-						DoDamage(itemPtr, damage);
+						HitTarget(&emitter, itemPtr, &hitPoint, damage, false);
 					}
 				}
 			}
