@@ -434,7 +434,7 @@ namespace TEN::Renderer
 					if (fire.color != Vector4::One)
 					{
 						auto color3 = Vector3(color.x, color.y, color.z);
-						color *= Vector4::Lerp(Vector4::One, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
 					}
 
 					AddSpriteBillboard(
