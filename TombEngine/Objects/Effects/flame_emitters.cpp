@@ -148,7 +148,7 @@ namespace TEN::Entities::Effects
 					}
 
 					if (smallFlameAlpha < UCHAR_MAX)
-						AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, 0.5f, smallFlameAlpha);
+						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 0.5f, smallFlameAlpha);
 
 					if (jetFlameVel)
 					{
@@ -182,7 +182,7 @@ namespace TEN::Entities::Effects
 			else
 			{
 				// Normal flames.
-				AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, 2.0f);
+				AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 2.0f);
 
 				SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 					16 - (GetRandomControl() & 1),
@@ -212,7 +212,7 @@ namespace TEN::Entities::Effects
 					if (item->TriggerFlags == 123)
 					{
 						// Middle of the block
-						AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, 0.25f, item->ItemFlags[3]);
+						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 0.25f, item->ItemFlags[3]);
 					}
 					else
 					{
@@ -233,7 +233,7 @@ namespace TEN::Entities::Effects
 							break;
 						}
 
-						AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, size, item->ItemFlags[3]);
+						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, size, item->ItemFlags[3]);
 					}
 				}
 
