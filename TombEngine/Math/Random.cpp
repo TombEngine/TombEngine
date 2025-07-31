@@ -12,11 +12,23 @@ namespace TEN::Math::Random
 
 	int GenerateInt(int low, int high)
 	{
+		if (low == high)
+			return low;
+
+		if (low > high)
+			std::swap(low, high);
+
 		return (Engine() / (Engine.max() / (high - low + 1) + 1) + low);
 	}
 
 	float GenerateFloat(float low, float high)
 	{
+		if (low == high)
+			return low;
+
+		if (low > high)
+			std::swap(low, high);
+
 		return ((high - low) * Engine() / Engine.max() + low);
 	}
 

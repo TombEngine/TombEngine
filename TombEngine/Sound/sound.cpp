@@ -299,7 +299,7 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 	}
 
 	// Create sample's stream and reset buffer back to normal value.
-	HSTREAM channel = BASS_SampleGetChannel(BASS_SamplePointer[sampleToPlay], true);
+	HSTREAM channel = BASS_SampleGetChannel(BASS_SamplePointer[sampleToPlay], 0);
 
 	if (Sound_CheckBASSError("Trying to create channel for sample %d", false, sampleToPlay))
 		return false;
@@ -924,10 +924,10 @@ void Sound_UpdateScene()
 
 	// Apply environmental effects
 
-	static int currentReverb = -1;
+	static int currentReverb = NO_VALUE;
 	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[Camera.pos.RoomNumber].reverbType : (int)ReverbType::Small;
 
-	if (currentReverb == -1 || roomReverb != currentReverb)
+	if (currentReverb == NO_VALUE || roomReverb != currentReverb)
 	{
 		currentReverb = roomReverb;
 		if (currentReverb < (int)ReverbType::Count)

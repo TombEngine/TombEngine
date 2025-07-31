@@ -138,8 +138,10 @@ namespace TEN::Entities::TR4
 					creature->Enemy = nullptr;
 					float minDistance = FLT_MAX;
 
-					for (auto& currentCreature : ActiveCreatures)
+					for (auto creatureIndex : ActiveCreatures)
 					{
+						auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 						if (currentCreature->ItemNumber != NO_VALUE && currentCreature->ItemNumber != itemNumber)
 						{
 							auto* currentItem = &g_Level.Items[currentCreature->ItemNumber];

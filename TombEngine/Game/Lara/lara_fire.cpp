@@ -867,7 +867,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist);
+	auto target = origin + (directionNorm * weapon.TargetDist * 3.0f);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
@@ -946,8 +946,10 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
-	for (auto* creaturePtr : ActiveCreatures)
+	for (auto creatureIndex : ActiveCreatures)
 	{
+		auto* creaturePtr = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 		// Continue loop if no item.
 		if (creaturePtr->ItemNumber == NO_VALUE)
 			continue;

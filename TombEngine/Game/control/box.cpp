@@ -203,7 +203,7 @@ void AlertNearbyGuards(ItemInfo* item)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* currentCreature = ActiveCreatures[i];
+		auto* currentCreature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
 		if (currentCreature->ItemNumber == NO_VALUE)
 			continue;
 
@@ -228,7 +228,8 @@ void AlertAllGuards(short itemNumber)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* creature = ActiveCreatures[i];
+		auto* creature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
+
 		if (creature->ItemNumber == NO_VALUE)
 			continue;
 
@@ -2139,7 +2140,7 @@ void InitializeItemBoxData()
 	{
 		for (const auto& mesh : room.mesh)
 		{
-			long index = ((mesh.pos.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.pos.Position.x - room.Position.x) / BLOCK(1));
+			long index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
 			if (index >= room.Sectors.size())
 				continue;
 
@@ -2149,11 +2150,11 @@ void InitializeItemBoxData()
 
 			if (!(g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags & BLOCKED))
 			{
-				int floorHeight = floor->GetSurfaceHeight(mesh.pos.Position.x, mesh.pos.Position.z, true);
+				int floorHeight = floor->GetSurfaceHeight(mesh.Pose.Position.x, mesh.Pose.Position.z, true);
 				const auto& bBox = GetBoundsAccurate(mesh, false);
 
-				if (floorHeight <= mesh.pos.Position.y - bBox.Y2 + CLICK(2) &&
-					floorHeight < mesh.pos.Position.y - bBox.Y1)
+				if (floorHeight <= mesh.Pose.Position.y - bBox.Y2 + CLICK(2) &&
+					floorHeight < mesh.Pose.Position.y - bBox.Y1)
 				{
 					if (bBox.X1 == 0 || bBox.X2 == 0 || bBox.Z1 == 0 || bBox.Z2 == 0 ||
 					  ((bBox.X1 < 0) ^ (bBox.X2 < 0)) && ((bBox.Z1 < 0) ^ (bBox.Z2 < 0)))

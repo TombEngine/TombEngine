@@ -121,8 +121,10 @@ namespace TEN::Entities::Creatures::TR3
 
 		float nearestDistance = FLT_MAX;
 		ItemInfo* result = nullptr;
-		for (auto& targetCreature : ActiveCreatures)
+		for (auto creatureIndex : ActiveCreatures)
 		{
+			auto* targetCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 			// Ignore itself and invalid entities.
 			if (targetCreature->ItemNumber == NO_VALUE || targetCreature->ItemNumber == item.Index)
 				continue;

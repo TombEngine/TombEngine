@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/items.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -28,7 +29,7 @@ public:
 	static void Register(sol::state& state, sol::table& parent);
 
 protected:
-	ItemInfo* _moveable = nullptr;
+	ItemHandler _moveable = {};
 
 private:
 	int	 _moveableID  = 0;

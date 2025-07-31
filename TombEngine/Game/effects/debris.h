@@ -90,11 +90,11 @@ extern SHATTER_ITEM ShatterItem;
 extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 extern ShatterImpactInfo ShatterImpactData;
 extern short SmashedMeshCount;
-extern MESH_INFO* SmashedMesh[32];
+extern StaticMesh* SmashedMesh[32];
 extern short SmashedMeshRoom[32];
 
 bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits);
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel);
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel);
 DebrisFragment* GetFreeDebrisFragment();
 Vector3 CalculateFragmentImpactVelocity(const Vector3& fragmentWorldPosition, const Vector3& impactDirection, const Vector3& impactLocation);
 void DisableDebris();

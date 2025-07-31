@@ -809,7 +809,7 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* rBoatItem = &g_Level.Items[itemNumber];
 		auto* rBoat = GetRubberBoatInfo(rBoatItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		bool noTurn = true;

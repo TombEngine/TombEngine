@@ -1314,131 +1314,6 @@ function Module:dump(verbose)
    end
 end
 
-function Item:isFunction()
-	return self.type == 'function'
-end
-
-function Module:dumpToXML()
-	if not doc.project_level(self.type) then return end
-	for item in self.items:iter() do
-		if item:isFunction() then
-			item:dumpToXML(self.name)
-		end
-	end
-end
-
-function Item:dumpToXML(moduleName)
-	local nIndents = 0
-	function printAndIndent(str)
-		io.write('\n'..string.rep('\t', nIndents) .. str)
-		nIndents = nIndents + 1
-	end
-
-	function justPrint(str)
-		io.write(str)
-	end
-
-	function printAndUnindent(str, newLine)
-		nIndents = nIndents - 1
-		if newLine then
-			io.write('\n',string.rep('\t', nIndents),str)
-		else
-
-			io.write(str)
-		end
-	end
-
-	function trim(str)
-		return str:gsub("^%s*(.-)%s*$", "%1")
-	end
-
-		local callerType = self.name:match("(%w+)")
-		local funcName = self.name:match("%w+[:%.](%w+)")
-		if not funcName then
-			funcName = callerType
-			callerType = nil
-		end
-
-		printAndIndent('<function>')
-
-		printAndIndent '<module>'
-		justPrint(moduleName)
-		printAndUnindent '</module>'
-		if callerType then
-			printAndIndent '<caller>'
-			justPrint(callerType)
-			printAndUnindent '</caller>'
-		end
-		if funcName then
-			printAndIndent '<name>'
-			justPrint(funcName)
-			printAndUnindent '</name>'
-		end
-
-		if self.summary:len() > 0 then
-			printAndIndent '<summary>'
-			justPrint(self.summary)
-			printAndUnindent '</summary>'
-		end
-
-		if self.description and self.description:match '%S' then
-			printAndIndent '<description>'
-			justPrint(trim(self.description))
-			printAndUnindent '</description>'
-		end
-		if self.params and #self.params > 0 then
-			printAndIndent '<parameters>'
-			for i,p in ipairs(self.params) do
-				printAndIndent '<parameter>'
-				printAndIndent '<name>'
-				justPrint(p)
-				printAndUnindent '</name>'
-
-				local paramType = self:type_of_param(i)
-				printAndIndent("<type>") 
-				if p == "..." then
-					paramType = "..."
-				elseif paramType:len() == 0 then
-					print("Parameter " .. i .. " of function " .. funcName .. 
-					" in module " .. moduleName .. " has no type")
-				end
-				justPrint(paramType)
-				printAndUnindent("</type>") 
-				local descText = trim(self.params.map[p])
-				if descText:len() > 0 then
-					printAndIndent '<description>'
-					justPrint(descText)
-					printAndUnindent '</description>'
-				end
-				printAndUnindent('</parameter>', true)
-			end
-			printAndUnindent('</parameters>', true)
-		end
-		if self.ret and #self.ret > 0 then
-			printAndIndent("<returns>") 
-			for i,r in ipairs(self.ret) do
-				printAndIndent("<return>") 
-				local returnType = self:type_of_ret(i)
-				printAndIndent("<type>") 
-				if returnType:len() == 0 then
-					print("Return value " .. i .. " of function " .. funcName ..
-					" in module " .. moduleName .. " has no type")
-				end
-				justPrint(returnType)
-
-				printAndUnindent("</type>") 
-
-				printAndIndent("<description>") 
-				justPrint(r)
-
-				printAndUnindent("</description>") 
-				printAndUnindent("</return>", true) 
-			end
-			printAndUnindent("</returns>", true) 
-		end
-		printAndUnindent ('</function>\n', true)
-end
-
 -- make a text dump of the contents of this File object.
 -- The level of detail is controlled by the 'verbose' parameter.
 -- Primarily intended as a debugging tool.
@@ -1507,6 +1382,336 @@ function doc.filter_objects_through_function(filter, module_list)
 
    local ok,err = pcall(f,module_list)
    if not ok then quit("dump failed: "..err) end
+end
+
+function Item:isFunction()
+   return self.type == 'function'
+end
+
+function Item:isClass()
+   return self.type == 'classmod' or self.type == 'tenclass' or self.type == 'tenprimitive'
+end
+
+function Item:isEnum()
+   return self.type == 'enum'
+end
+
+function Module:dumpToXML()
+   -- Check if this module itself is a class or enum
+   if self.type == 'classmod' or self.type == 'tenclass' or self.type == 'tenprimitive' then
+      self:dumpModuleAsClassToXML()
+      return
+   elseif self.type == 'enum' then
+      self:dumpModuleAsEnumToXML()
+      return
+   end
+
+   -- Regular module with items
+   if not doc.project_level(self.type) then return end
+   for item in self.items:iter() do
+      if item:isFunction() then
+         item:dumpFunctionToXML(self.name)
+      elseif item:isClass() then
+         item:dumpClassToXML(self.name)
+      elseif item:isEnum() then
+         item:dumpEnumToXML(self.name)
+      end
+   end
+end
+
+local function createXMLWriter(initialIndent)
+   local nIndents = initialIndent or 2
+
+   local function printAndIndent(str)
+      io.write('\n' .. string.rep('\t', nIndents) .. str)
+      nIndents = nIndents + 1
+   end
+
+   local function justPrint(str)
+      io.write(str)
+   end
+
+   local function printAndUnindent(str, newLine)
+      nIndents = nIndents - 1
+
+      if newLine then
+         io.write('\n', string.rep('\t', nIndents), str)
+      else
+         io.write(str)
+      end
+   end
+
+   return {
+      printAndIndent = printAndIndent,
+      justPrint = justPrint,
+      printAndUnindent = printAndUnindent
+   }
+end
+
+local function trim(str)
+   return str:gsub("^%s*(.-)%s*$", "%1")
+end
+
+local function escapeXMLContent(str)
+   if not str then return str end
+
+   -- Replace &#44; with the comma character
+   str = str:gsub("&#44;", ",")
+
+   -- Replace special characters with their XML entities
+   str = str:gsub("&", "&amp;")
+   str = str:gsub("<", "&lt;")
+   str = str:gsub(">", "&gt;")
+   str = str:gsub('"', "&quot;")
+   str = str:gsub("'", "&apos;")
+
+   return str
+end
+
+local function writeXMLElement(writer, tagName, content)
+   writer.printAndIndent('<' .. tagName .. '>')
+
+   if content then
+      writer.justPrint(escapeXMLContent(content))
+   end
+
+   writer.printAndUnindent('</' .. tagName .. '>')
+end
+
+local function writeXMLElementWithContent(writer, tagName, content)
+   if content and content:len() > 0 then
+      writeXMLElement(writer, tagName, content)
+   end
+end
+
+local function writeParameters(writer, item, moduleName, funcName)
+   if not item.params or #item.params == 0 then return end
+
+   writer.printAndIndent('<parameters>')
+
+   for i, p in ipairs(item.params) do
+      writer.printAndIndent('<parameter>')
+
+      writeXMLElement(writer, 'name', p)
+
+      local paramType = item:type_of_param(i)
+
+      if p == "..." then
+         paramType = "..."
+      elseif paramType:len() == 0 then
+         print("Parameter " .. i .. " of function " .. (funcName or item.name) ..
+            " in module " .. (moduleName or "unknown") .. " has no type")
+      end
+
+      writeXMLElement(writer, 'type', paramType)
+
+      -- Check if parameter is optional and get default value
+      local defaultValue = item:default_of_param(p)
+
+      if defaultValue then
+         writeXMLElement(writer, 'optional', 'true')
+
+         if defaultValue ~= true then
+            writeXMLElement(writer, 'defaultValue', tostring(defaultValue))
+         end
+      end
+
+      local descText = trim(item.params.map[p])
+      writeXMLElementWithContent(writer, 'description', descText)
+
+      writer.printAndUnindent('</parameter>', true)
+   end
+
+   writer.printAndUnindent('</parameters>', true)
+end
+
+local function writeReturns(writer, item, moduleName, funcName)
+   if not item.ret or #item.ret == 0 then return end
+
+   writer.printAndIndent('<returns>')
+
+   for i, r in ipairs(item.ret) do
+      writer.printAndIndent('<return>')
+
+      local returnType = item:type_of_ret(i)
+
+      if returnType:len() == 0 then
+         print("Return value " .. i .. " of function " .. (funcName or item.name) ..
+            " in module " .. (moduleName or "unknown") .. " has no type")
+      end
+
+      writeXMLElement(writer, 'type', returnType)
+      writeXMLElement(writer, 'description', r)
+
+      writer.printAndUnindent('</return>', true)
+   end
+
+   writer.printAndUnindent('</returns>', true)
+end
+
+local function writeBasicInfo(writer, item, moduleName)
+   if moduleName then
+      writeXMLElement(writer, 'module', moduleName)
+   end
+
+   writeXMLElement(writer, 'name', item.name)
+
+   if item.type and item.type ~= 'enum' then
+      writeXMLElement(writer, 'type', item.type)
+   end
+
+   writeXMLElementWithContent(writer, 'summary', item.summary)
+
+   if item.description and item.description:match('%S') then
+      writeXMLElement(writer, 'description', trim(item.description))
+   end
+end
+
+function Item:dumpFunctionToXML(moduleName)
+   local writer = createXMLWriter(2)
+
+   local callerType = self.name:match("(%w+)")
+   local funcName = self.name:match("%w+[:%.](%w+)")
+
+   if not funcName then
+      funcName = callerType
+      callerType = nil
+   end
+
+   writer.printAndIndent('<function>')
+
+   writeXMLElement(writer, 'module', moduleName)
+
+   if callerType then
+      writeXMLElement(writer, 'caller', callerType)
+   end
+
+   if funcName then
+      writeXMLElement(writer, 'name', funcName)
+   end
+
+   writeXMLElementWithContent(writer, 'summary', self.summary)
+
+   if self.description and self.description:match('%S') then
+      writeXMLElement(writer, 'description', trim(self.description))
+   end
+
+   writeParameters(writer, self, moduleName, funcName)
+   writeReturns(writer, self, moduleName, funcName)
+
+   writer.printAndUnindent('</function>', true)
+end
+
+local function writeMembers(writer, items)
+   if not items or #items == 0 then return end
+
+   writer.printAndIndent('<members>')
+
+   for item in items:iter() do
+      if item.type == 'function' then
+         writer.printAndIndent('<method>')
+
+         writeXMLElement(writer, 'name', item.name)
+         writeXMLElementWithContent(writer, 'summary', item.summary)
+
+         if item.description and item.description:match('%S') then
+            writeXMLElement(writer, 'description', trim(item.description))
+         end
+
+         writeParameters(writer, item)
+         writeReturns(writer, item)
+
+         writer.printAndUnindent('</method>', true)
+      else
+         writer.printAndIndent('<field>')
+
+         writeXMLElement(writer, 'name', item.name)
+         writeXMLElementWithContent(writer, 'summary', item.summary)
+
+         if item.description and item.description:match('%S') then
+            writeXMLElement(writer, 'description', trim(item.description))
+         end
+
+         writer.printAndUnindent('</field>', true)
+      end
+   end
+
+   writer.printAndUnindent('</members>', true)
+end
+
+function Item:dumpClassToXML(moduleName)
+   local writer = createXMLWriter(2)
+
+   writer.printAndIndent('<class>')
+   writeBasicInfo(writer, self, moduleName)
+   writeMembers(writer, self.items)
+   writer.printAndUnindent('</class>', true)
+end
+
+function Module:dumpModuleAsClassToXML()
+   local writer = createXMLWriter(2)
+
+   writer.printAndIndent('<class>')
+   writeBasicInfo(writer, self)
+   writeMembers(writer, self.items)
+   writer.printAndUnindent('</class>', true)
+end
+
+local function writeEnumValues(writer, items, useParams)
+   local hasValues = false
+
+   if useParams and items.params and #items.params > 0 then
+      hasValues = true
+      writer.printAndIndent('<values>')
+
+      for i, p in ipairs(items.params) do
+         writer.printAndIndent('<value>')
+         writeXMLElement(writer, 'name', p)
+
+         local descText = trim(items.params.map[p])
+         writeXMLElementWithContent(writer, 'description', descText)
+
+         writer.printAndUnindent('</value>', true)
+      end
+   elseif not useParams and items and #items > 0 then
+      hasValues = true
+      writer.printAndIndent('<values>')
+
+      for item in items:iter() do
+         writer.printAndIndent('<value>')
+
+         writeXMLElement(writer, 'name', item.name)
+         writeXMLElementWithContent(writer, 'summary', item.summary)
+
+         if item.description and item.description:match('%S') then
+            writeXMLElement(writer, 'description', trim(item.description))
+         end
+
+         writer.printAndUnindent('</value>', true)
+      end
+   end
+
+   if hasValues then
+      writer.printAndUnindent('</values>', true)
+   end
+end
+
+function Module:dumpModuleAsEnumToXML()
+   local writer = createXMLWriter(2)
+
+   writer.printAndIndent('<enum>')
+   writeBasicInfo(writer, self)
+   writeEnumValues(writer, self.items, false)
+   writer.printAndUnindent('</enum>', true)
+end
+
+function Item:dumpEnumToXML(moduleName)
+   local writer = createXMLWriter(2)
+
+   writer.printAndIndent('<enum>')
+   writeBasicInfo(writer, self, moduleName)
+   writeEnumValues(writer, self, true)
+   writer.printAndUnindent('</enum>', true)
 end
 
 return doc

@@ -169,7 +169,7 @@ namespace TEN::Entities::Switches
 
 	void TurnSwitchControl(short itemNumber)
 	{
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		if (g_Level.Items[itemNumber].ItemFlags[0] == TURN_SWITCH_CLOCKWISE)

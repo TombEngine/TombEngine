@@ -126,7 +126,7 @@ namespace TEN::Scripting::Effects
 	// @tparam[opt=2] float life Lifespan in seconds.
 	// @tparam[opt=false] bool damage Harm the player on collision.
 	// @tparam[opt=false] bool poison Poison the player on collision.
-	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
 	// @tparam[opt=random] float startRot Rotation at start of life.
 	// @usage
 	// EmitParticle(
@@ -264,7 +264,7 @@ namespace TEN::Scripting::Effects
 	// @table ParticleData
 	// @tfield Vec3 pos World position.
 	// @tfield Vec3 vel Directional velocity in world units per second.
-	// @tfield[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tfield[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
 	// @tfield[opt=0] int spriteID Sprite ID in the sprite sequence slot.
 	// @tfield[opt=2] float life Lifespan in seconds.
 	// @tfield[opt=0] float maxYVel Maximum vertical velocity in world units per second.
@@ -593,7 +593,7 @@ namespace TEN::Scripting::Effects
 	// @tparam[opt=25] float maxSize Max size of the particle.
 	// @tparam[opt=Color(128&#44; 128&#44; 128)] Color startColor Color at start of life.
 	// @tparam[opt=Color(0&#44; 0&#44; 0)] Color endColor Color at end of life.
-	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
 	// @tparam[opt=14 (UNDERWATER_DUST)] int spriteID Sprite ID in the sprite sequence slot.
 	static void EmitFlow(const Vec3& pos, const Vec3& dir, TypeOrNil<float> radius, TypeOrNil<float> life, TypeOrNil<float> friction, TypeOrNil<float> maxSize, TypeOrNil<ScriptColor> startColor, TypeOrNil<ScriptColor> endColor, TypeOrNil<GAME_OBJECT_ID> spriteSeqID, TypeOrNil<int> spriteID)
 	{
