@@ -9,6 +9,7 @@
 #include "Specific/level.h"
 #include "Game/effects/spark.h"
 
+using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
 
@@ -18,13 +19,24 @@ namespace TEN::Entities::Traps
 	constexpr auto PENDULUM_FIRE_FOG_RADIUS = 4;
 	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
 
+	const std::vector<unsigned int> ChainHarmJoints = { 8, 9, 10, 11 };
+	const std::vector<unsigned int> FirePendulumHarmJoints = { 4, 5 };
+	const std::vector<Vector3i> PendulumBounds =
+	{
+		Vector3i(-CLICK(2), CLICK(2), -BLOCK(2)),
+		Vector3i(-896, -96, 96),
+		Vector3i(-CLICK(2), CLICK(2), -128),
+		Vector3i(0, -96, 96),
+		Vector3i(-CLICK(2), -384, -BLOCK(2)),
+		Vector3i(0, -96, 96),
+		Vector3i(384, CLICK(2), -BLOCK(2)),
+		Vector3i(0, -96, 96)
+	};
+
 	enum PendulumFlags
 	{
-		PUSH_ITEM = 0,
 		FLAME_MESH = 1,
-		COLLIDE_BITS = 2,
 		FLAME_EFFECT = 3,
-		OBJ_PUSH = 4,
 		FIRE_COLOR_R = 5,
 		FIRE_COLOR_G = 6,
 		FIRE_COLOR_B = 7
@@ -54,7 +66,7 @@ namespace TEN::Entities::Traps
 		spark->yVel = -16 - (GetRandomControl() & 0xF);
 		spark->zVel = (GetRandomControl() & 0x3F) - 32;
 		spark->friction = 4;
-		spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_ITEM ;
+		spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_ITEM;
 
 		if (GetRandomControl() & 1)
 		{
@@ -96,7 +108,7 @@ namespace TEN::Entities::Traps
 			float vAng = -TO_RAD(angle.x);
 			Vector3 v = Vector3(sin(ang), vAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
 			v.Normalize(v);
-			s.velocity =  v* Random::GenerateFloat(32, 64);
+			s.velocity = v * Random::GenerateFloat(32, 64);
 
 			auto sourceColorR = std::clamp(color.x - 0.2f, 0.0f, 1.0f);
 			auto sourceColorG = std::clamp(color.y - 0.2f, 0.0f, 1.0f);
@@ -130,12 +142,10 @@ namespace TEN::Entities::Traps
 		{
 			int damage = abs(item.TriggerFlags);
 
-			item.ItemFlags[PendulumFlags::COLLIDE_BITS] = 1;
 			item.ItemFlags[PendulumFlags::FLAME_EFFECT] = 1; // Set the item on fire when collide.
 
 			if (TriggerActive(&item))
 			{
-				item.ItemFlags[PendulumFlags::PUSH_ITEM] = 1;
 				AnimateItem(&item);
 
 				auto flameMesh = item.ItemFlags[PendulumFlags::FLAME_MESH];
@@ -185,12 +195,10 @@ namespace TEN::Entities::Traps
 		}
 		else if (item.TriggerFlags > 0)
 		{
-			item.ItemFlags[PendulumFlags::COLLIDE_BITS] = 1;
 			item.ItemFlags[PendulumFlags::FLAME_EFFECT] = 0;
 
 			if (TriggerActive(&item))
 			{
-				item.ItemFlags[PendulumFlags::PUSH_ITEM] = 1;
 				AnimateItem(&item);
 				return;
 			}
@@ -199,78 +207,55 @@ namespace TEN::Entities::Traps
 		{
 			if (TriggerActive(&item))
 			{
-				*(int*)&item.ItemFlags[PendulumFlags::PUSH_ITEM] = 0x780;
 				AnimateItem(&item);
 				return;
 			}
 		}
-
-		item.ItemFlags[PendulumFlags::PUSH_ITEM] = 0;
 	}
 
 	void CollideChain(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
-		auto& item = g_Level.Items[itemNumber];
-		if (item.Status == ITEM_INVISIBLE)
+		auto* item = &g_Level.Items[itemNumber];
+
+		if (item->Status == ITEM_INVISIBLE)
 			return;
 
-		if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
+		if (!TestBoundsCollide(item, playerItem, coll->Setup.Radius))
 			return;
 
-		TEN::Collision::Sphere::HandleItemSphereCollision(item, *playerItem);
-		if (!item.TouchBits.TestAny())
-			return;
-
-		short prevYOrient = item.Pose.Orientation.y;
-		item.Pose.Orientation.y = 0;
-		auto spheres = item.GetSpheres();
-		item.Pose.Orientation.y = prevYOrient;
-
-		auto collidedBits = item.TouchBits;
-		if (item.ItemFlags[PendulumFlags::COLLIDE_BITS] != 0)
-			collidedBits.Clear(0);
-
-		coll->Setup.EnableObjectPush = (item.ItemFlags[PendulumFlags::OBJ_PUSH] == 0);
-
-		// Handle push and damage.
-		for (int i = 0; i < spheres.size(); i++)
+		if (HandleItemSphereCollision(*item, *playerItem) &&
+			TriggerActive(item))
 		{
-			if (collidedBits.Test(i))
+			auto spheres = item->GetSpheres();
+			auto harmJoints = item->TriggerFlags < 0 ? FirePendulumHarmJoints : ChainHarmJoints;
+			auto damage = item->TriggerFlags < 0 ? abs(item->TriggerFlags) : item->TriggerFlags;
+
+			for (int i = 0; i < harmJoints.size(); i++)
 			{
-				const auto& sphere = spheres[i];
-
-				GlobalCollisionBounds.X1 = sphere.Center.x - sphere.Radius - item.Pose.Position.x;
-				GlobalCollisionBounds.X2 = sphere.Center.x + sphere.Radius - item.Pose.Position.x;
-				GlobalCollisionBounds.Y1 = sphere.Center.y - sphere.Radius - item.Pose.Position.y;
-				GlobalCollisionBounds.Y2 = sphere.Center.y + sphere.Radius - item.Pose.Position.y;
-				GlobalCollisionBounds.Z1 = sphere.Center.z - sphere.Radius - item.Pose.Position.z;
-				GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
-
-				auto pos = playerItem->Pose.Position;
-				if (ItemPushItem(&item, playerItem, coll, item.ItemFlags[PendulumFlags::PUSH_ITEM], 3) && (item.ItemFlags[PendulumFlags::PUSH_ITEM]))
+				if (item->TouchBits.Test(harmJoints[i]))
 				{
-					if (item.TriggerFlags < 0)
+					DoDamage(playerItem, damage);
+
+					TriggerLaraBlood();
+
+					if (playerItem->HitPoints > 0)
 					{
-						DoDamage(playerItem, abs(item.TriggerFlags));
-					}
-					else 
-					{
-						DoDamage(playerItem, item.TriggerFlags);
+						ItemPushItem(item, playerItem, coll, false, 1);
 					}
 
-					if (item.ItemFlags[PendulumFlags::FLAME_EFFECT])
+					if (item->ItemFlags[PendulumFlags::FLAME_EFFECT])
 					{
-						if (item.ItemFlags[PendulumFlags::FIRE_COLOR_R] == 0 &&
-							item.ItemFlags[PendulumFlags::FIRE_COLOR_G] == 0 &&
-							item.ItemFlags[PendulumFlags::FIRE_COLOR_B] == 0)
+						if (item->ItemFlags[PendulumFlags::FIRE_COLOR_R] == 0 &&
+							item->ItemFlags[PendulumFlags::FIRE_COLOR_G] == 0 &&
+							item->ItemFlags[PendulumFlags::FIRE_COLOR_B] == 0)
 						{
 							TEN::Effects::Items::ItemBurn(playerItem);
 						}
 						else
 						{
-							unsigned char r = item.ItemFlags[PendulumFlags::FIRE_COLOR_R];
-							unsigned char g = item.ItemFlags[PendulumFlags::FIRE_COLOR_G];
-							unsigned char b = item.ItemFlags[PendulumFlags::FIRE_COLOR_B];
+							unsigned char r = item->ItemFlags[PendulumFlags::FIRE_COLOR_R];
+							unsigned char g = item->ItemFlags[PendulumFlags::FIRE_COLOR_G];
+							unsigned char b = item->ItemFlags[PendulumFlags::FIRE_COLOR_B];
 
 							auto sourceColorR = std::clamp(r + 0.2f, 0.0f, 1.0f);
 							auto sourceColorG = std::clamp(g + 0.2f, 0.0f, 1.0f);
@@ -279,16 +264,6 @@ namespace TEN::Entities::Traps
 							ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3(r, g, b));
 						}
 					}
-
-					auto deltaPos = pos - playerItem->Pose.Position;
-					if (deltaPos != Vector3i::Zero)
-					{
-						if (TriggerActive(&item))
-							TriggerLaraBlood();
-					}
-
-					if (!coll->Setup.EnableObjectPush)
-						playerItem->Pose.Position += deltaPos;
 				}
 			}
 		}
