@@ -34,11 +34,6 @@ namespace TEN::Entities::Traps
 		Vector3i(0, -96, 96)
 	};
 
-	void InitializeTurningBlade(short itemNumber)
-	{
-
-	}
-
 	void ControlTurningBlade(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];

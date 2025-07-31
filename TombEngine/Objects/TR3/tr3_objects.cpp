@@ -528,19 +528,17 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = GenericSphereBoxCollision;
 	}
 
-	obj = &Objects[ID_TURNING_WALLBLADE];
+	obj = &Objects[ID_TURNING_WALL_BLADE];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeTurningBlade;
 		obj->control = ControlTurningBlade;
 		obj->collision = CollideTurningBlade;
 		obj->SetHitEffect(true);
 	}
 
-	obj = &Objects[ID_TURNING_CEILINGBLADE];
+	obj = &Objects[ID_TURNING_CEILING_BLADE];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeTurningBlade;
 		obj->control = ControlTurningBlade;
 		obj->collision = CollideTurningBlade;
 		obj->SetHitEffect(true);
