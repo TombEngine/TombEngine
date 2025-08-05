@@ -96,8 +96,8 @@ namespace TEN::Renderer
 
 				for (int i = 0; i < 4; ++i)
 				{
-					tex.NormalizedUV[i].x = (tex.UV[i].x - UMin) / (UMax - UMin);
-					tex.NormalizedUV[i].y = (tex.UV[i].y - VMin) / (VMax - VMin);
+					tex.NormalizedUV[i].x = round((tex.UV[i].x - UMin) / (UMax - UMin));
+					tex.NormalizedUV[i].y = round((tex.UV[i].y - VMin) / (VMax - VMin));
 				}
 
 				return tex;

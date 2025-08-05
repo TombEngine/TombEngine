@@ -9,8 +9,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
 
 ### Bug fixes
+* Fixed inability to perform backjumps or grabs after climbing onto a triangular slope.
 * Fixed ROLLINGBALL not stopped by full walls.
 * Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed undead enemies not killed in a proper way by vehicles.
 * Fixed smoke emitters crashing the game if placed underwater with OCB 0.
 * Fixed puzzle holes losing collision after inserting puzzle items.
 * Fixed projectile weapon hits not registering in statistics and collision callbacks.
@@ -23,6 +25,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed HUD bars displaying incorrect update animation after loading savegame.
 * Fixed slowdowns and freezes when too many sounds are playing.
 * Fixed Doppler effect not applied to sounds.
+* Fixed incorrect cropping for video textures.
 
 ### Lua API changes
 * Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
