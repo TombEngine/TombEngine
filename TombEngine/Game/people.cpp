@@ -11,9 +11,6 @@
 #include "Game/misc.h"
 #include "Sound/sound.h"
 
-constexpr auto FINAL_SHOT_CONE_ANGLE = ANGLE(15.0f);
-constexpr auto FINAL_SHOT_COUNT = 4;
-
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
 	auto* creature = GetCreatureInfo(item);
@@ -187,6 +184,10 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 	if (animNumber != deathAnimNumber)
 		return;
 
+	// No more shots left.
+	if (item.ItemFlags[FINAL_SHOT_FLAG_INDEX] <= 0)
+		return;
+
 	const auto& anim = GetAnimData(item);
 
 	int frameCount = anim.frameEnd - anim.frameBase;
@@ -204,6 +205,13 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 	{
 		if (frameNumber == frameBase + interval * i)
 		{
+			// Decrease shot count.
+			item.ItemFlags[FINAL_SHOT_FLAG_INDEX]--; 
+
+			// No more shots left.
+			if (item.ItemFlags[FINAL_SHOT_FLAG_INDEX] <= 0)
+				return;
+
 			doShot = true;
 			break;
 		}
@@ -223,7 +231,7 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 	if (!Targetable(&item, &AI))
 		return;
 
-	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || AI.angle > FINAL_SHOT_CONE_ANGLE || AI.angle < -FINAL_SHOT_CONE_ANGLE)
+	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || abs(AI.verticalDistance) > BLOCK(1) || AI.angle > FINAL_SHOT_CONE_ANGLE || AI.angle < -FINAL_SHOT_CONE_ANGLE)
 		return;
 
 	// Since death animation may not end up facing the enemy (e.g. SAS falls on the ground in the opposite direction), perform

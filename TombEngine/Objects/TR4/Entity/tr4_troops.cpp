@@ -131,6 +131,8 @@ namespace TEN::Entities::TR4
 					item->Animation.ActiveState = TROOP_STATE_DEATH;
 					item->Animation.FrameNumber = GetAnimData(item).frameBase;
 				}
+
+				item->ItemFlags[FINAL_SHOT_FLAG_INDEX] = Random::GenerateInt(1, FINAL_SHOT_COUNT);
 			}
 			else
 			{

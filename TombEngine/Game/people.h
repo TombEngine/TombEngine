@@ -5,6 +5,10 @@ struct CreatureBiteInfo;
 
 constexpr auto MAX_VISIBILITY_DISTANCE = BLOCK(8);
 
+constexpr auto FINAL_SHOT_CONE_ANGLE = ANGLE(15.0f);
+constexpr auto FINAL_SHOT_COUNT = 4;
+constexpr auto FINAL_SHOT_FLAG_INDEX = 7;
+
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage);
 short GunMiss(int x, int y, int z, short velocity, short yRot, short roomNumber);
 short GunHit(int x, int y, int z, short velocity, short yRot, short roomNumber);
