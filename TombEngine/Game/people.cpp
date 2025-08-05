@@ -231,7 +231,7 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 	if (!Targetable(&item, &AI))
 		return;
 
-	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || abs(AI.verticalDistance) > BLOCK(1) || AI.angle > FINAL_SHOT_CONE_ANGLE || AI.angle < -FINAL_SHOT_CONE_ANGLE)
+	if (!AI.ahead || AI.distance > SQUARE(BLOCK(6)) || abs(AI.verticalDistance) > BLOCK(1) || abs(AI.angle) > FINAL_SHOT_CONE_ANGLE)
 		return;
 
 	// Since death animation may not end up facing the enemy (e.g. SAS falls on the ground in the opposite direction), perform
