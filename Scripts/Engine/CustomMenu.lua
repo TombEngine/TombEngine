@@ -1,5 +1,5 @@
 local Menu = {}
-local debug = true
+local debug = false
 Menu.__index = Menu
 
 Menu.Type = {
@@ -10,11 +10,8 @@ Menu.Type = {
 
 local SOUND_MAP =
 {
-    PLAYER_NO = 2,
-    MENU_ROTATE = 108,
-    MENU_SELECT = 109,
-    MENU_CHOOSE = 111,
-    MENU_COMBINE = 114
+    menuSelect = 109,
+    menuChoose = 111
 }
 
 LevelFuncs.Engine.Menu = {}
@@ -22,6 +19,9 @@ LevelVars.Engine.Menus = {}
 
 local NORMAL_FONT_COLOR = Color(255,255,255,255)
 local HEADER_FONT_COLOR = Color(216,117,49,255)
+local HEADER_FONT_SCALE = 1.6
+local NORMAL_FONT_SCALE = 1
+local LINE_SPACING = 6
 local TEXT_FLAGS_SELECT = {Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
 local TEXT_FLAGS_NORMAL = {Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER}
 local SCROLL_SPEED = 0.2
@@ -58,26 +58,31 @@ Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, men
         menuType = menuType or Menu.Type.ITEMS_AND_OPTIONS,
         exitFunction = exitFunction,
         acceptFunction = acceptFunction,
+        itemChangeFunction = nil,
         wrapAroundItems = false,
         wrapAroundOptions = false,
-        lineSpacing = 6,
+        maxVisibleItems = 16,
+        lineSpacing = LINE_SPACING,
         itemsPosition = Vec2(10, 20),
         itemsTextFlags = TEXT_FLAGS_NORMAL,
         itemsSelectedFlags = TEXT_FLAGS_SELECT,
         itemsTextColor = NORMAL_FONT_COLOR,
-        itemsTextScale = 1,
+        itemsTextScale = NORMAL_FONT_SCALE,
+        itemsTranslate = false,
         optionsPosition = Vec2(50, 20),
         optionsTextFlags = TEXT_FLAGS_NORMAL,
         optionsSelectedFlags = TEXT_FLAGS_SELECT,
         optionsTextColor = NORMAL_FONT_COLOR,
-        optionsTextScale = 1,
+        optionsTextScale = NORMAL_FONT_SCALE,
+        optionsTranslate = false,
         titlePosition = Vec2(50, 10),
         titleTextFlags = TEXT_FLAGS_NORMAL,
         titleTextColor = HEADER_FONT_COLOR,
-        titleTextScale = 1.5,
+        titleTextScale = HEADER_FONT_SCALE,
+        titleTranslate = false,
         menuTransparency = 255,
+        sounds = SOUND_MAP,
         visibleStartIndex = 1,
-        maxVisibleItems = 6,
         scrollY = 0,
         targetScrollY = 0
     }
@@ -149,7 +154,8 @@ end
 function Menu:SetTransparency(transparency)
 	if LevelVars.Engine.Menus[self.name] then
 
-        if transparency < 0 or transparency > 1 then return end
+        transparency = math.max(0, math.min(1, transparency))
+
 		LevelVars.Engine.Menus[self.name].menuTransparency = transparency * 255
 
     end
@@ -179,6 +185,12 @@ function Menu:SetExitFunction(functionName)
 	end
 end
 
+function Menu:SetOnItemChangeFunction(functionName)
+	if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].itemChangeFunction = functionName
+	end
+end
+
 function Menu:SetOnOptionChangeFunction(itemName, functionName)
 	if LevelVars.Engine.Menus[self.name] then
         local menu = LevelVars.Engine.Menus[self.name]
@@ -205,13 +217,24 @@ function Menu:SetSelectedOptionsFlags(flags)
 	end
 end
 
-function Menu:SetTitle(title, fontColor, titleScale, flags)
-	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].titleString = title
-        LevelVars.Engine.Menus[self.name].titleTextColor = fontColor
-        LevelVars.Engine.Menus[self.name].titleTextScale = titleScale
-        LevelVars.Engine.Menus[self.name].titleTextFlags = flags
-	end
+function Menu:SetTitle(title, fontColor, titleScale, flags, translate)
+	local menu = LevelVars.Engine.Menus[self.name]
+    if not menu then return end
+    if title ~= nil then
+        menu.titleString = title
+    end
+    if fontColor ~= nil then
+        menu.titleTextColor = fontColor
+    end
+    if titleScale ~= nil then
+        menu.titleTextScale = titleScale
+    end
+    if flags ~= nil then
+        menu.titleTextFlags = flags
+    end
+    if translate ~= nil then
+        menu.titleTranslate = translate
+    end
 end
 
 function Menu:SetTitlePosition(titlePosition)
@@ -221,19 +244,52 @@ function Menu:SetTitlePosition(titlePosition)
 end
 
 function Menu:SetItemsFont(fontColor, fontScale, flags)
-	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].itemsTextColor = fontColor
-        LevelVars.Engine.Menus[self.name].itemsTextScale = fontScale
-        LevelVars.Engine.Menus[self.name].itemsTextFlags = flags
+    local menu = LevelVars.Engine.Menus[self.name]
+    if not menu then return end
+
+    if fontColor ~= nil then
+        menu.itemsTextColor = fontColor
+    end
+    if titleScale ~= nil then
+        menu.itemsTextScale = fontScale
+    end
+    if flags ~= nil then
+        menu.itemsTextFlags = flags
+    end
+
+end
+
+function Menu:SetItemsTranslate(translate)
+
+    if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].itemsTranslate = translate
 	end
+
 end
 
 function Menu:SetOptionsFont(fontColor, fontScale, flags)
-	if LevelVars.Engine.Menus[self.name] then
-		LevelVars.Engine.Menus[self.name].optionsTextColor = fontColor
-        LevelVars.Engine.Menus[self.name].optionsTextScale = fontScale
-        LevelVars.Engine.Menus[self.name].optionsTextFlags = flags
+
+    local menu = LevelVars.Engine.Menus[self.name]
+    if not menu then return end
+
+    if fontColor ~= nil then
+        menu.optionsTextColor = fontColor
+    end
+    if titleScale ~= nil then
+        menu.optionsTextScale = fontScale
+    end
+    if flags ~= nil then
+        menu.optionsTextFlags = flags
+    end
+
+end
+
+function Menu:SetOptionsTranslate(translate)
+
+    if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].optionsTranslate = translate
 	end
+
 end
 
 function Menu:SetItemsPosition(position)
@@ -254,9 +310,39 @@ function Menu:SetLineSpacing(lineSpacing)
 	end
 end
 
+function Menu:SetVisibleItems(itemCount)
+	if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].maxVisibleItems = itemCount
+	end
+end
+
 function Menu:IsVisible()
 	local menu = LevelVars.Engine.Menus[self.name]
     return menu and menu.visible or false
+end
+
+function Menu:SetSoundEffects(select, choose)
+    if not LevelVars.Engine.Menus[self.name] then return end
+
+    local menu = LevelVars.Engine.Menus[self.name]
+    menu.sounds = {}
+
+    if type(select) == "number" then
+        menu.sounds.menuSelect = select
+    end
+    if type(choose) == "number" then
+        menu.sounds.menuChoose = choose
+    end
+
+end
+
+function Menu:ClearSoundEffects()
+
+    if not LevelVars.Engine.Menus[self.name] then return end
+
+    local menu = LevelVars.Engine.Menus[self.name]
+    menu.sounds = {}
+
 end
 
 -- Getter Methods
@@ -330,16 +416,25 @@ local PerformFunction = function(functionString)
 	end
 end
 
+local PlaySoundEffect = function(menuName, soundIndex)
+    local menu = LevelVars.Engine.Menus[menuName]
+    if menu and menu.sounds and type(soundIndex) == "number" then
+        TEN.Sound.PlaySound(soundIndex)
+    end
+end
+
 local Input = function(menuName)
 
     local menu = LevelVars.Engine.Menus[menuName]
 
     local itemCount = #menu.items
 
+    local previousItem = menu.currentItem
+
     if itemCount == 0 then return end
 
     if KeyIsHit(ActionID.FORWARD) then
-        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+        if menu.sounds then PlaySoundEffect(menu.name, menu.sounds.menuSelect) end
         if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
         else
@@ -347,8 +442,13 @@ local Input = function(menuName)
                 menu.currentItem = menu.currentItem - 1
             end
         end
+
+        if previousItem ~= menu.currentItem and menu.itemChangeFunction then
+            PerformFunction(menu.itemChangeFunction)
+        end
+        
     elseif KeyIsHit(ActionID.BACK) then
-        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+        PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
         else
@@ -356,8 +456,12 @@ local Input = function(menuName)
                 menu.currentItem = menu.currentItem + 1
             end
         end
+
+        if previousItem ~= menu.currentItem and menu.itemChangeFunction then
+            PerformFunction(menu.itemChangeFunction)
+        end
     elseif KeyIsHit(ActionID.LEFT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
-        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+        PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             if menu.wrapAroundOptions then
@@ -371,7 +475,7 @@ local Input = function(menuName)
 		    end
         end
     elseif KeyIsHit(ActionID.RIGHT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
-        TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+        PlaySoundEffect(menu.name, menu.sounds.menuSelect)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             if menu.wrapAroundOptions then
@@ -386,12 +490,12 @@ local Input = function(menuName)
         end
     elseif KeyIsHit(ActionID.ACTION) then
         if menu.acceptFunction then 
-            TEN.Sound.PlaySound(SOUND_MAP.MENU_CHOOSE)
+            PlaySoundEffect(menu.name, menu.sounds.menuChoose)
             PerformFunction(menu.acceptFunction)
         end
     elseif KeyIsHit(ActionID.INVENTORY) then
         if menu.exitFunction then 
-            TEN.Sound.PlaySound(SOUND_MAP.MENU_SELECT)
+            PlaySoundEffect(menu.name, menu.sounds.menuSelect)
             PerformFunction(menu.exitFunction) end
         return
     end
@@ -407,7 +511,13 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
         Input(menuName)
 
         if menu.titleString then
-            local titleNode = DisplayString(menu.titleString, percentPos(menu.titlePosition.x, menu.titlePosition.y), menu.titleTextScale, colorCombine(menu.titleTextColor, menu.menuTransparency) , false, menu.titleTextFlags)
+
+            --Hack to hardcode the translate to false for strings which are blank
+                local translate = menu.titleTranslate
+
+                if menu.titleString == "" then translate = false end
+
+            local titleNode = DisplayString(menu.titleString, percentPos(menu.titlePosition.x, menu.titlePosition.y), menu.titleTextScale, colorCombine(menu.titleTextColor, menu.menuTransparency) , translate, menu.titleTextFlags)
             TEN.Strings.ShowString(titleNode, 1 / 30)
         end
 
@@ -443,7 +553,13 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
             end
 
             if menu.menuType == Menu.Type.ITEMS_ONLY or menu.menuType == Menu.Type.ITEMS_AND_OPTIONS then
-                local itemNode = DisplayString(item.itemName, percentPos(menu.itemsPosition.x, yItems), menu.itemsTextScale, colorCombine(menu.itemsTextColor, menu.menuTransparency), false)
+                
+                --Hack to hardcode the translate to false for strings which are blank
+                local translate = menu.itemsTranslate
+
+                if item.itemName == "" then translate = false end
+
+                local itemNode = DisplayString(item.itemName, percentPos(menu.itemsPosition.x, yItems), menu.itemsTextScale, colorCombine(menu.itemsTextColor, menu.menuTransparency), translate)
                 if menu.menuType == Menu.Type.ITEMS_ONLY and i == menu.currentItem then
                     itemNode:SetFlags(menu.itemsSelectedFlags)
                 else
@@ -456,7 +572,7 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
                 local baseYOptions = menu.optionsPosition.y
                 local yOptions = baseYOptions + (i - 1) * offset - menu.scrollY
                 local selectedOption = item.options and item.options[item.currentOption] or ""
-                local optNode = DisplayString(selectedOption, percentPos(menu.optionsPosition.x, yOptions), menu.optionsTextScale, colorCombine(menu.optionsTextColor, menu.menuTransparency), false)
+                local optNode = DisplayString(selectedOption, percentPos(menu.optionsPosition.x, yOptions), menu.optionsTextScale, colorCombine(menu.optionsTextColor, menu.menuTransparency), menu.optionsTranslate)
                 if i == menu.currentItem then
                     optNode:SetFlags(menu.optionsSelectedFlags)
                 else
