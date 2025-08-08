@@ -5,6 +5,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.9.2]
 
+### New Features
+* Added swinging flame pendulum from TR3 in the Slot number 458 (ID_FIRE_PENDULUM). 
+	- Positive OCB: normal damage.
+
 ### Bug fixes
 * Fixed ROLLINGBALL not stopped by full walls.
 * Fixed several JEEP and MOTORBIKE vehicle collision bugs.
@@ -55,10 +59,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added land mode for underwater switches. Asset change required for both types of underwater switches.
   [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_WallSwitch.wad2).
 * Added ability to use big push switch (OCB 3) underwater.
-* Added swinging flame pendulum from TR3 in the CHAIN slot. 
-	- Positive OCB: normal damage.
-	- Negative OCB: flaming pendulum (sets Lara on fire).
-	- OCB 0: no fire, no damage.
 
 ### Bug fixes
 * Fixed LASER_BEAM object going through walls.

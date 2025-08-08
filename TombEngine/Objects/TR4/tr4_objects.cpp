@@ -778,7 +778,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeChain;
 			obj->control = ControlChain;
-			obj->collision = CollideChain;	
+			obj->collision = GenericSphereBoxCollision;
 			obj->SetHitEffect(true);
 		}
 
