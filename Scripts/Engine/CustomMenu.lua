@@ -11,7 +11,7 @@ Menu.Type = {
 local SOUND_MAP =
 {
     menuSelect = 109,
-    menuChoose = 111
+    menuChoose = 111,
 }
 
 LevelFuncs.Engine.Menu = {}
@@ -488,12 +488,12 @@ local Input = function(menuName)
                 PerformFunction(currentItem.onOptionChange)
 		    end
         end
-    elseif KeyIsHit(ActionID.ACTION) then
+    elseif KeyIsHit(ActionID.ACTION) or KeyIsHit(ActionID.SELECT) then
         if menu.acceptFunction then 
             PlaySoundEffect(menu.name, menu.sounds.menuChoose)
             PerformFunction(menu.acceptFunction)
         end
-    elseif KeyIsHit(ActionID.INVENTORY) then
+    elseif KeyIsHit(ActionID.INVENTORY) or KeyIsHit(ActionID.DESELECT) then
         if menu.exitFunction then 
             PlaySoundEffect(menu.name, menu.sounds.menuSelect)
             PerformFunction(menu.exitFunction) end
