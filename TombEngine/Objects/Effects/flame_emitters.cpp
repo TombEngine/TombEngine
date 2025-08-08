@@ -75,7 +75,12 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			ItemBurn(itemPtr, itemPtr->IsLara() ? -1 : FLAME_ITEM_BURN_TIMEOUT);
+			Vector3 PrimaryColor = item->Model.Color;
+			Vector3 SecondaryColor = Vector4(std::clamp(item->Model.Color.x - 0.2f, 0.0f, 2.0f),
+				std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
+				std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
+
+			item->Model.Color != Vector4(1.0f, 1.0f, 1.0f, 1.0f) ? ItemCustomBurn(LaraItem, PrimaryColor, SecondaryColor, -1) : ItemBurn(itemPtr, itemPtr->IsLara() ? -1 : FLAME_ITEM_BURN_TIMEOUT);		
 		}
 	}
 
@@ -503,7 +508,7 @@ namespace TEN::Entities::Effects
 						int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
 						if (SQUARE(dx) + SQUARE(dz) < SQUARE(FLAME_BIG_RADIUS - FLAME_RADIUS))
-							ItemBurn(LaraItem);
+							ItemBurn(LaraItem);						
 					}
 				}
 				else
@@ -523,7 +528,6 @@ namespace TEN::Entities::Effects
 		if (Lara.Control.Weapon.GunType != LaraWeaponType::Torch ||
 			Lara.Control.HandStatus != HandStatus::WeaponReady ||
 			Lara.LeftArm.Locked ||
-			Lara.Torch.IsLit == (item->Status & 1) ||
 			item->Timer == -1 ||
 			!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
@@ -575,6 +579,15 @@ namespace TEN::Entities::Effects
 				else
 				{
 					Lara.Torch.State = TorchState::JustLit;
+
+					if (item->Status == ITEM_ACTIVE)
+					{
+						Lara.Torch.PrimaryColor = item->Model.Color;
+						Lara.Torch.SecondaryColor = Vector4(std::clamp(item->Model.Color.x - 0.2f, 0.0f, 2.0f),
+							std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
+							std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
+					}
+										
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
 					laraItem->ItemFlags[3] = 1;
 					laraItem->Animation.AnimNumber = (dy >> 8) + LA_TORCH_LIGHT_1;
@@ -600,9 +613,12 @@ namespace TEN::Entities::Effects
 				{
 					TestTriggers(item, true, item->Flags & IFLAG_ACTIVATION_MASK);
 
+					const auto& lara = *GetLaraInfo(laraItem);
+
 					item->Flags |= CODE_BITS;
 					item->ItemFlags[3] = 0;
 					item->Status = ITEM_ACTIVE;
+					item->Model.Color = lara.Torch.PrimaryColor;
 
 					AddActiveItem(itemNumber);
 				}

@@ -92,7 +92,7 @@ static void HandlePlayerOpticAnimations(ItemInfo& item)
 		if (player.Control.Weapon.GunType == LaraWeaponType::Flare ||
 			player.Control.Weapon.GunType == LaraWeaponType::Torch)
 		{
-			CreateFlare(item, player.Control.Weapon.GunType == LaraWeaponType::Flare ? ID_FLARE_ITEM : ID_BURNING_TORCH_ITEM, 0);
+			CreateFlare(item, player.Control.Weapon.GunType == LaraWeaponType::Flare ? ID_FLARE_ITEM : ID_BURNING_TORCH_ITEM, 0, Vector4::Zero, Vector4::Zero);
 			UndrawFlareMeshes(item);
 
 			player.Torch.State = TorchState::Holding;

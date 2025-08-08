@@ -195,7 +195,7 @@ void UndrawFlare(ItemInfo& laraItem)
 
 		if (armFrame == 21)
 		{
-			CreateFlare(laraItem, ID_FLARE_ITEM, true);
+			CreateFlare(laraItem, ID_FLARE_ITEM, true, Vector4::Zero, Vector4::Zero);
 			UndrawFlareMeshes(laraItem);
 			player.Flare.Life = 0;
 		}
@@ -317,7 +317,7 @@ void SetFlareArm(ItemInfo& laraItem, int armFrame)
 	player.LeftArm.FrameBase = GetAnimData(flareAnimNumber).FramePtr;
 }
 
-void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
+void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown, Vector4 color1, Vector4 color2)
 {
 	const auto& lara = *GetLaraInfo(&laraItem);
 
@@ -399,6 +399,8 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	else
 	{
 		flareItem.ItemFlags[3] = lara.Torch.IsLit;
+        flareItem.Effect.PrimaryEffectColor = Vector3(lara.Torch.PrimaryColor.x, lara.Torch.PrimaryColor.y, lara.Torch.PrimaryColor.z);
+		flareItem.Effect.SecondaryEffectColor = Vector3(lara.Torch.SecondaryColor.x, lara.Torch.SecondaryColor.y, lara.Torch.SecondaryColor.z);
 	}
 
 	AddActiveItem(itemNumber);

@@ -398,6 +398,8 @@ const std::vector<byte> SaveGame::Build()
 	Save::TorchDataBuilder torch{ fbb };
 	torch.add_state(currentTorchState);
 	torch.add_is_lit(Lara.Torch.IsLit);
+	torch.add_primary_color(&FromVector4(Lara.Torch.PrimaryColor));
+	torch.add_secondary_color(&FromVector4(Lara.Torch.SecondaryColor));
 	auto torchOffset = torch.Finish();
 
 	Save::LaraInventoryDataBuilder inventory{ fbb };
@@ -2191,6 +2193,14 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
 	Lara.RightArm.Orientation = ToEulerAngles(s->lara()->right_arm()->rotation());
 	Lara.Torch.IsLit = s->lara()->torch()->is_lit();
+	Lara.Torch.PrimaryColor.x = s->lara()->torch()->primary_color()->x();
+	Lara.Torch.PrimaryColor.y = s->lara()->torch()->primary_color()->y();
+	Lara.Torch.PrimaryColor.z = s->lara()->torch()->primary_color()->z();
+	Lara.Torch.PrimaryColor.w = s->lara()->torch()->primary_color()->w();
+	Lara.Torch.SecondaryColor.x = s->lara()->torch()->secondary_color()->x();
+	Lara.Torch.SecondaryColor.y = s->lara()->torch()->secondary_color()->y();
+	Lara.Torch.SecondaryColor.z = s->lara()->torch()->secondary_color()->z();
+	Lara.Torch.SecondaryColor.w = s->lara()->torch()->secondary_color()->w();
 	Lara.Torch.State = (TorchState)s->lara()->torch()->state();
 	Lara.Control.Rope.Segment = s->lara()->control()->rope()->segment();
 	Lara.Control.Rope.Direction = s->lara()->control()->rope()->direction();

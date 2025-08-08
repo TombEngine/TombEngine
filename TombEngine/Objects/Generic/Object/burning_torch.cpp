@@ -23,19 +23,23 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
 {
-	void TriggerTorchFlame(int fxObject, unsigned char node)
+	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector3i pos, Vector4 color1, Vector4 color2)
 	{
 		auto* spark = GetFreeParticle();
 
+		auto* item = &g_Level.Items[fxObject];
+
+		auto pos1 = GetJointPosition(item, 13, pos);
+
 		spark->on = true;
 
-		spark->sR = 1.0f * UCHAR_MAX;
-		spark->sB = 0.2f * UCHAR_MAX;
-		spark->sG = Random::GenerateFloat(0.2f, 0.3f) * UCHAR_MAX;
-		spark->dR = Random::GenerateFloat(-0.25f, 0.0f) * UCHAR_MAX;
-		spark->dB = 0.1f * UCHAR_MAX;
-		spark->dG =
-		spark->dG = Random::GenerateFloat(-0.5f, -0.25f) * UCHAR_MAX;
+		spark->sR = color1.x * UCHAR_MAX;
+		spark->sG = color1.y * UCHAR_MAX;
+		spark->sB = color1.z * UCHAR_MAX;
+		
+		spark->dR = color2.x * UCHAR_MAX;
+		spark->dG = color2.y * UCHAR_MAX;
+		spark->dB = color2.z * UCHAR_MAX;
 
 		spark->fadeToBlack = 8;
 		spark->colFadeSpeed = Random::GenerateInt(12, 15);
@@ -43,9 +47,9 @@ namespace TEN::Entities::Generic
 		spark->life =
 		spark->sLife = Random::GenerateInt(24, 31);
 
-		spark->x = Random::GenerateInt(-8, 8);
-		spark->y = 0;
-		spark->z = Random::GenerateInt(-8, 8);
+		spark->x = pos1.x + Random::GenerateFloat(-0.8f, 0.8f);
+		spark->y = pos1.y;
+		spark->z = pos1.z + Random::GenerateFloat(-0.8f, 0.8f);
 
 		spark->xVel = Random::GenerateInt(-128, 128);
 		spark->yVel = Random::GenerateInt(-31, -16);
@@ -53,7 +57,7 @@ namespace TEN::Entities::Generic
 
 		spark->friction = 5;
 
-		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
+		spark->flags =  SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
 
 		spark->blendMode = BlendMode::Additive;
 
@@ -63,9 +67,7 @@ namespace TEN::Entities::Generic
 			spark->rotAdd = Random::GenerateFloat(0.0f, 0.16f) * SCHAR_MAX;
 
 		spark->gravity = Random::GenerateInt (-31, -16);
-		spark->nodeNumber = node;
 		spark->maxYvel = Random::GenerateFloat(-0.16f, 0.0f) * SCHAR_MAX;
-		spark->fxObj = fxObject;
 		spark->scalar = 1;
 		spark->sSize =
 		spark->size = Random::GenerateFloat(64, 150);
@@ -76,7 +78,7 @@ namespace TEN::Entities::Generic
 		spark->SpriteID = spriteOffset;
 	}
 
-	void DoFlameTorch()
+	void DoFlameTorch()//Wenn Lara die Fackel in der Hand hält
 	{
 		const int holdAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
 		const int throwAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 1;
@@ -139,7 +141,7 @@ namespace TEN::Entities::Generic
 				else if (lara->LeftArm.FrameNumber == 12)
 				{
 					laraItem->Model.MeshIndex[LM_LHAND] = laraItem->Model.BaseMesh + LM_LHAND;
-					CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, true);
+					CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, true, lara->Torch.PrimaryColor, lara->Torch.SecondaryColor);
 					lara->Torch.IsLit = false;
 				}
 			}
@@ -159,7 +161,7 @@ namespace TEN::Entities::Generic
 			else if (lara->LeftArm.FrameNumber == 36)
 			{
 				laraItem->Model.MeshIndex[LM_LHAND] = laraItem->Model.BaseMesh + LM_LHAND;
-				CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, false);
+				CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, false, lara->Torch.PrimaryColor, lara->Torch.SecondaryColor);
 				lara->Torch.IsLit = false;
 			}
 		}
@@ -171,7 +173,7 @@ namespace TEN::Entities::Generic
 				lara->Torch.State = TorchState::Holding;
 				lara->LeftArm.FrameNumber = 0;
 				lara->Flare.ControlLeft = true;
-				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;
+				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;				
 				lara->LeftArm.AnimNumber = holdAnimNumber;
 			}
 		}
@@ -191,8 +193,17 @@ namespace TEN::Entities::Generic
 			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
 			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
+			Vector4 color1 = lara->Torch.PrimaryColor;
+			Vector4 color2 = lara->Torch.SecondaryColor;
+
+			if (lara->Torch.PrimaryColor == Vector4::One)
+			{
+				 color1 = Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.2f , 1.0f);
+				 color2 = Vector4(Random::GenerateFloat(-0.25f, 0.0f) , Random::GenerateFloat(-0.5f, -0.25f) , 0.1f , 1.0f);
+			}
+
 			if (!(Wibble & 3))
-				TriggerTorchFlame(laraItem->Index, 0);
+				TriggerTorchFlame(laraItem->Index, 13, Vector3i(-20, 50, 170), color1, color2);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
 		}
@@ -204,7 +215,7 @@ namespace TEN::Entities::Generic
 		auto* lara = GetLaraInfo(laraItem);
 
 		if (lara->Control.Weapon.GunType == LaraWeaponType::Flare)
-			CreateFlare(*laraItem, ID_FLARE_ITEM, false);
+			CreateFlare(*laraItem, ID_FLARE_ITEM, false, Vector4::Zero, Vector4::Zero);
 
 		lara->Control.HandStatus = HandStatus::WeaponReady;
 		lara->Control.Weapon.RequestGunType = LaraWeaponType::Torch;
@@ -290,8 +301,17 @@ namespace TEN::Entities::Generic
 			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
 			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 			
+			Vector4 color1 = Vector4(item->Effect.PrimaryEffectColor.x, item->Effect.PrimaryEffectColor.y, item->Effect.PrimaryEffectColor.z, 1.0f);
+			Vector4 color2 = Vector4(item->Effect.SecondaryEffectColor.x, item->Effect.SecondaryEffectColor.y, item->Effect.SecondaryEffectColor.z, 1.0f);
+			
+			if (item->Effect.PrimaryEffectColor == Vector3::One)
+			{
+				color1 = Vector4(1.0f , Random::GenerateFloat(0.2f, 0.3f), 0.2f, 1.0f);
+				color2 = Vector4(Random::GenerateFloat(-0.25f, 0.0f), Random::GenerateFloat(-0.5f, -0.25f), 0.1f, 1.0f);
+			}
+
 			if (!(Wibble & 7))
-				TriggerTorchFlame(itemNumber, 1);
+				TriggerTorchFlame(itemNumber, 0, Vector3i(0, -30, 170), color1, color2);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 		}
@@ -309,7 +329,6 @@ namespace TEN::Entities::Generic
 			lara->Control.Weapon.GunType != LaraWeaponType::Torch ||
 			lara->Control.HandStatus != HandStatus::WeaponReady ||
 			lara->LeftArm.Locked ||
-			lara->Torch.IsLit == (torchItem->Status == ITEM_ACTIVE) ||
 			torchItem->Timer == -1)
 		{
 			if (torchItem->ObjectNumber == ID_BURNING_ROOTS)

@@ -1148,6 +1148,8 @@ struct FlareData
 struct TorchData
 {
 	bool	   IsLit = false;
+	Vector4	   PrimaryColor = Vector4::Zero;
+	Vector4    SecondaryColor = Vector4::Zero;
 	TorchState State = TorchState::Holding;
 };
 
