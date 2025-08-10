@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Trap/turning_blade.h"
+#include "Objects/TR3/Trap/TurningBlade.h"
 
 #include "Game/animation.h"
 #include "Game/collision/collide_item.h"
@@ -48,36 +48,38 @@ namespace TEN::Entities::Traps
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
+		if (!TriggerActive(item))
+			return;
+
 		if (item->Status == ITEM_INVISIBLE)
 			return;
 
 		if (!TestBoundsCollide(item, laraItem, coll->Setup.Radius))
 			return;
 
-		if (HandleItemSphereCollision(*item, *laraItem) &&
-			TriggerActive(item))
+		if (!HandleItemSphereCollision(*item, *laraItem))
+			return;
+
+		// Blades deal damage cumulatively.
+		auto spheres = item->GetSpheres();
+		for (int i = 0; i < TurningBladeHarmJoints.size(); i++)
 		{
-			// Blades deal damage cumulatively.
-			auto spheres = item->GetSpheres();
-			for (int i = 0; i < TurningBladeHarmJoints.size(); i++)
+			if (item->TouchBits.Test(TurningBladeHarmJoints[i]))
 			{
-				if (item->TouchBits.Test(TurningBladeHarmJoints[i]))
+				DoDamage(laraItem, TURNING_BLADE_HARM_DAMAGE);
+				DoBloodSplat(
+					(GetRandomControl() & 0x3F) + laraItem->Pose.Position.x - 32,
+					(GetRandomControl() & 0x1F) + spheres[i].Center.y - 16,
+					(GetRandomControl() & 0x3F) + laraItem->Pose.Position.z - 32,
+					(GetRandomControl() & 3) + 2,
+					GetRandomControl() * 2,
+					laraItem->RoomNumber);
+
+				TriggerLaraBlood();
+
+				if (laraItem->HitPoints > 0)
 				{
-					DoDamage(laraItem, TURNING_BLADE_HARM_DAMAGE);
-					DoBloodSplat(
-						(GetRandomControl() & 0x3F) + laraItem->Pose.Position.x - 32,
-						(GetRandomControl() & 0x1F) + spheres[i].Center.y - 16,
-						(GetRandomControl() & 0x3F) + laraItem->Pose.Position.z - 32,
-						(GetRandomControl() & 3) + 2,
-						GetRandomControl() * 2,
-						laraItem->RoomNumber);
-
-					TriggerLaraBlood();
-
-					if (laraItem->HitPoints > 0)
-					{
-						ItemPushItem(item, laraItem, coll, false, 1);
-					}
+					ItemPushItem(item, laraItem, coll, false, 1);
 				}
 			}
 		}
