@@ -42,6 +42,7 @@
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/HeavyStamper.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -525,6 +526,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeWallMountedBlade;
 		obj->control = WallMountedBladeControl;
 		obj->collision = GenericSphereBoxCollision;
+	}
+
+	obj = &Objects[ID_HEAVY_STAMPER];
+	if (obj->loaded)
+	{
+		obj->control = ControlHeavyStamper;
+		obj->collision = CollideHeavyStamper;
+		obj->SetHitEffect(true);
 	}
 }
 
