@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.9.2]
 
 ## New features
+* Added TURNING_WALL_BLADE (ID 456) and TURNING_CEILING_BLADE (ID 457) objects from TR3. 
 * Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
 
 ### Bug fixes
