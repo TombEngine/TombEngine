@@ -33,6 +33,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed overbright ambient light not applied correctly to moveables.
 
 ### Lua API changes
+* Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 * Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
 * Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
 * Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
@@ -140,7 +141,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
 * Added area parameter for `Strings.DisplayString` for automatic word wrapping.
 * Added `Strings.DisplayStringOption.VERTICAL_CENTER` flag for vertically centering multiline strings.
-* Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 * Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
 * Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
 * Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
