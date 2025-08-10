@@ -42,7 +42,7 @@
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
-#include "Objects/TR3/Trap/fire_pendulum.h"
+#include "Objects/TR3/Trap/FirePendulum.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"

@@ -626,7 +626,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR3\Entity\Winston.h" />
     <ClInclude Include="Objects\TR3\Object\Corpse.h" />
     <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
-    <ClInclude Include="Objects\TR3\Trap\fire_pendulum.h" />
+    <ClInclude Include="Objects\TR3\Trap\FirePendulum.h" />
     <ClInclude Include="Objects\TR3\Trap\train.h" />
     <ClInclude Include="Objects\TR3\Trap\WallMountedBlade.h" />
     <ClInclude Include="Objects\TR3\Vehicles\big_gun.h" />
@@ -1179,7 +1179,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR3\Entity\Winston.cpp" />
     <ClCompile Include="Objects\TR3\tr3_objects.cpp" />
     <ClCompile Include="Objects\TR3\Trap\ElectricCleaner.cpp" />
-    <ClCompile Include="Objects\TR3\Trap\fire_pendulum.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\FirePendulum.cpp" />
     <ClCompile Include="Objects\TR3\Trap\train.cpp" />
     <ClCompile Include="Objects\TR3\Trap\WallMountedBlade.cpp" />
     <ClCompile Include="Objects\TR3\Vehicles\big_gun.cpp" />
