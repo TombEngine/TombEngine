@@ -321,8 +321,8 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
-		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), 0)).ToVector3();
-		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
+		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), CLICK(1))).ToVector3();
+		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), BLOCK(1))).ToVector3();
 
 		target = target - origin;
 		target.Normalize();

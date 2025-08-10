@@ -899,6 +899,8 @@ namespace TEN::Renderer
 				newEffect->PrevRotation = newEffect->Rotation;
 				newEffect->PrevWorld = newEffect->World;
 				newEffect->PrevScale = newEffect->Scale;
+
+				fx->DisableInterpolation = false;
 			}
 
 			newEffect->InterpolatedPosition = Vector3::Lerp(newEffect->PrevPosition, newEffect->Position, GetInterpolationFactor());

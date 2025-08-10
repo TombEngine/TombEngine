@@ -1151,7 +1151,13 @@ bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 
 void SayNo()
 {
-	SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+	static int lastNoTimestamp = NO_VALUE;
+
+	if ((GlobalCounter - lastNoTimestamp) > FPS)
+	{
+		lastNoTimestamp = GlobalCounter;
+		SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+	}
 }
 
 void PlaySecretTrack()

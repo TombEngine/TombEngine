@@ -1838,6 +1838,12 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 
 			if (isPlayer)
 			{
+				// Ignore all non-intelligent objects, if player is on a vehicle. This way we avoid
+				// any collision routine calls for any interactable objects, as in original, but fix
+				// the issue with enemies not hurting Lara on a vehicle via hand combat.
+				if (GetLaraInfo(*item).Context.Vehicle != NO_VALUE && !object.intelligent)
+					continue;
+
 				// Objects' own collision routines were almost universally written only for
 				// managing collisions with Lara and nothing else. Until all of these routines
 				// are refactored (which won't happen anytime soon), we need this differentiation.
@@ -1871,14 +1877,26 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 					}
 					else
 					{
-						DoDamage(&linkItem, INT_MAX);
-						DoLotsOfBlood(
-							linkItem.Pose.Position.x,
-							item->Pose.Position.y - CLICK(1),
-							linkItem.Pose.Position.z,
-							item->Animation.Velocity.z,
-							item->Pose.Orientation.y,
-							linkItem.RoomNumber, 3);
+						switch (object.damageType)
+						{
+						case DamageMode::None:
+							// Undead enemies push the vehicle.
+							ItemPushItem(&linkItem, item, coll, false, 0);
+							break;
+
+						case DamageMode::Any:
+							// Normal enemies are killed by the vehicle.
+							DoDamage(&linkItem, INT_MAX);
+							DoLotsOfBlood(linkItem.Pose.Position.x, item->Pose.Position.y - CLICK(1), linkItem.Pose.Position.z,
+								item->Animation.Velocity.z, item->Pose.Orientation.y, linkItem.RoomNumber, 3);
+							break;
+
+						case DamageMode::Explosion:
+							// Enemies which can be only exploded shatter to pieces.
+							SoundEffect(SFX_TR4_LARA_THUD, &linkItem.Pose);
+							CreatureDie(itemNumber, true, BODY_DO_EXPLOSION | BODY_NO_FLAME | BODY_NO_SHATTER_EFFECT);
+							break;
+						}
 					}
 				}
 				else if (coll->Setup.EnableObjectPush)
