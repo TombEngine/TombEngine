@@ -120,7 +120,7 @@ This setting does not affect ability to use weapons or flares.
 //@mem resetHub
 		"resetHub", &Level::ResetHub,
 
-/// (table of @{Flow.InventoryItem}s) A table of inventory object layout overrides.
+/// (@{Flow.InventoryItem}[]) A table of inventory object layout overrides.
 //@mem objects
 		"objects", &Level::InventoryObjects,
 

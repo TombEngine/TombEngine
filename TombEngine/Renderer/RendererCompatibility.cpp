@@ -96,8 +96,8 @@ namespace TEN::Renderer
 
 				for (int i = 0; i < 4; ++i)
 				{
-					tex.NormalizedUV[i].x = (tex.UV[i].x - UMin) / (UMax - UMin);
-					tex.NormalizedUV[i].y = (tex.UV[i].y - VMin) / (VMax - VMin);
+					tex.NormalizedUV[i].x = round((tex.UV[i].x - UMin) / (UMax - UMin));
+					tex.NormalizedUV[i].y = round((tex.UV[i].y - VMin) / (VMax - VMin));
 				}
 
 				return tex;
@@ -284,21 +284,21 @@ namespace TEN::Renderer
 
 				for (int l = 0; l < (int)room.mesh.size(); l++)
 				{
-					RendererStatic* staticInfo = &rendererRoom.Statics[l];
-					MESH_INFO* oldMesh = &room.mesh[l];
+					auto& rendererStatic = rendererRoom.Statics[l];
+					auto& nativeStatic = room.mesh[l];
 
-					oldMesh->Dirty = true;
+					nativeStatic.Dirty = true;
 
-					staticInfo->ObjectNumber = oldMesh->staticNumber;
-					staticInfo->RoomNumber = oldMesh->roomNumber;
-					staticInfo->Color = oldMesh->color;
-					staticInfo->AmbientLight = rendererRoom.AmbientLight;
-					staticInfo->Pose =
-					staticInfo->PrevPose = oldMesh->pos;
-					staticInfo->OriginalSphere = Statics[staticInfo->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
-					staticInfo->IndexInRoom = l;
+					rendererStatic.ObjectNumber = nativeStatic.Slot;
+					rendererStatic.RoomNumber = nativeStatic.RoomNumber;
+					rendererStatic.Color = nativeStatic.Color;
+					rendererStatic.AmbientLight = rendererRoom.AmbientLight;
+					rendererStatic.Pose =
+					rendererStatic.PrevPose = nativeStatic.Pose;
+					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
+					rendererStatic.IndexInRoom = l;
 
-					staticInfo->Update(GetInterpolationFactor());
+					rendererStatic.Update(GetInterpolationFactor());
 				}
 			}
 

@@ -5,18 +5,37 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.9.2]
 
-### New Features
-* Added swinging flame pendulum from TR3 in the Slot number 458 (ID_FIRE_PENDULUM). 
-	- Positive OCB: normal damage.
+## New features
+* Added FIRE_PENDULUM (ID 458) object from TR3. 
+* Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
 
 ### Bug fixes
+* Fixed inability to perform backjumps or grabs after climbing onto a triangular slope.
 * Fixed ROLLINGBALL not stopped by full walls.
 * Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed undead enemies not killed in a proper way by vehicles.
+* Fixed smoke emitters crashing the game if placed underwater with OCB 0.
 * Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed incorrect distance checks on very large room coordinates which could have caused random Lara teleportations.
 * Fixed projectile weapon hits not registering in statistics and collision callbacks.
-* Fixed incorrect distance checks on a very large room coordinates which could have caused random Lara teleportations.
-* Fixed Doppler effect not applied to sounds.
+* Fixed firearms bullet range limited to targeting range.
+* Fixed significantly worse firearm accuracy compared to the original engines.
+* Fixed pistols not allowing to spam fire in untargeted mode.
+* Fixed two-handed weapon targeting when locked on enemy.
+* Fixed random crashes and visual issues with exploding body part effects.
+* Fixed random crashes when spawning or killing enemies.
+* Fixed shatterable static meshes not producing shatter sound when hit by projectile weapons.
+* Fixed mechanical beetle and waterskin inventory items not appearing in the inventory.
 * Fixed HUD bars displaying incorrect update animation after loading savegame.
+* Fixed slowdowns and freezes when too many sounds are playing.
+* Fixed Doppler effect not applied to sounds.
+* Fixed incorrect cropping for video textures.
+* Fixed overbright ambient light not applied correctly to moveables.
+
+### Lua API changes
+* Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
+* Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
+* Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
 
 ## [Version 1.9.1]
 

@@ -1832,10 +1832,10 @@ namespace TEN::Gui
 
 		if (player.Inventory.BeetleComponents)
 		{
-			if (player.Inventory.BeetleComponents & 2)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_1)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART1);
 
-			if (player.Inventory.BeetleComponents & 4)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_2)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART2);
 		}
 

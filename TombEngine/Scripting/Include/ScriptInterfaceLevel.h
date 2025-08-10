@@ -13,10 +13,7 @@ enum class LaraType
 {
 	Normal = 1,
 	Young = 2,
-	Bunhead = 3,
-	Catsuit = 4,
-	Divesuit = 5,
-	Invisible = 7
+	Divesuit = 3
 };
 
 class ScriptInterfaceLevel

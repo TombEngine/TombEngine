@@ -52,7 +52,7 @@ namespace TEN::Scripting::DisplaySprite
 
 	/// Create a DisplaySprite object.
 	// @function DisplaySprite
-	// @tparam Objects.ObjID.SpriteConstants objectID ID of the sprite sequence object.
+	// @tparam Objects.ObjID objectID ID of the sprite sequence object.
 	// @tparam int index Index of the sprite in the sequence.
 	// @tparam Vec2 pos Display position in percent.
 	// @tparam float rot Rotation in degrees.
@@ -99,7 +99,7 @@ namespace TEN::Scripting::DisplaySprite
 
 	/// Get the object ID of the sprite sequence object used by the display sprite.
 	// @function DisplaySprite:GetObjectID
-	// @treturn Objects.ObjID.SpriteConstants Sprite sequence object ID.
+	// @treturn Objects.ObjID Sprite sequence object ID.
 	GAME_OBJECT_ID ScriptDisplaySprite::GetObjectID() const
 	{
 		return _objectID;
@@ -147,7 +147,7 @@ namespace TEN::Scripting::DisplaySprite
 
 	/// Set the sprite sequence object ID used by the display sprite.
 	// @function DisplaySprite:SetObjectID
-	// @tparam Objects.ObjID.SpriteConstants objectID New sprite sequence object ID.
+	// @tparam Objects.ObjID objectID New sprite sequence object ID.
 	void ScriptDisplaySprite::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;

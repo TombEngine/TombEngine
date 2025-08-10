@@ -3,47 +3,67 @@
 #include "Game/control/control.h"
 #include "Game/Lara/lara_struct.h"
 
-/// Constants for weapon types.
-// @enum Objects.WeaponType
-// @pragma nostrip
-
-/// Table of Objects.WeaponType constants.
-// To be used with @{Objects.LaraObject.GetWeaponType} and @{Objects.LaraObject.SetWeaponType} functions.
-// 
-// Note that this table also contains the flare and torch, as they are internally counted as "weapons" the engine.
-// 
-// - `NONE`
-// - `PISTOLS`
-// - `UZIS`
-// - `REVOLVER`
-// - `SHOTGUN`
-// - `HK`
-// - `CROSSBOW`
-// - `FLARE`
-// - `TORCH`
-// - `GRENADE_LAUNCHER`
-// - `HARPOON_GUN`
-// - `ROCKET_LAUNCHER`
-// 
-// @table Objects.WeaponType
-
 namespace TEN::Scripting
 {
+	/// Constants for weapon types.
+	// To be used with @{Objects.LaraObject.GetWeaponType} and @{Objects.LaraObject.SetWeaponType} functions.
+	// <br>
+	// Note that this table also contains the flare and torch, as they are internally counted as "weapons" in the engine.
+	// @enum Objects.WeaponType
+	// @pragma nostrip
+
 	static const auto WEAPON_TYPES = std::unordered_map<std::string, LaraWeaponType>
 	{
+		/// No weapon.
+		// @mem NONE
 		{ "NONE", LaraWeaponType::None },
-		{ "PISTOL", LaraWeaponType::Pistol },
+
+		/// Pistols.
+		// @mem PISTOLS
 		{ "PISTOLS", LaraWeaponType::Pistol },
-		{ "REVOLVER", LaraWeaponType::Revolver },
-		{ "UZI", LaraWeaponType::Uzi },
+
+		/// Uzi submachine guns.
+		// @mem UZIS
 		{ "UZIS", LaraWeaponType::Uzi },
+
+		/// Revolver.
+		// @mem REVOLVER
+		{ "REVOLVER", LaraWeaponType::Revolver },
+
+		/// Shotgun.
+		// @mem SHOTGUN
 		{ "SHOTGUN", LaraWeaponType::Shotgun },
+
+		/// HK MP5.
+		// @mem HK
 		{ "HK", LaraWeaponType::HK },
+
+		/// Crossbow.
+		// @mem CROSSBOW
 		{ "CROSSBOW", LaraWeaponType::Crossbow },
+
+		/// Flare.
+		// @mem FLARE
 		{ "FLARE", LaraWeaponType::Flare },
+
+		/// Torch.
+		// @mem TORCH
 		{ "TORCH", LaraWeaponType::Torch },
+
+		/// Grenade launcher.
+		// @mem GRENADE_LAUNCHER
 		{ "GRENADE_LAUNCHER", LaraWeaponType::GrenadeLauncher },
+
+		/// Harpoon gun.
+		// @mem HARPOON_GUN
 		{ "HARPOON_GUN", LaraWeaponType::HarpoonGun },
-		{ "ROCKET_LAUNCHER", LaraWeaponType::RocketLauncher }
+
+		/// Rocket launcher.
+		// @mem ROCKET_LAUNCHER
+		{ "ROCKET_LAUNCHER", LaraWeaponType::RocketLauncher },
+
+		// COMPATIBILITY
+		{ "PISTOL", LaraWeaponType::Pistol },
+		{ "UZI", LaraWeaponType::Uzi }
 	};
 }

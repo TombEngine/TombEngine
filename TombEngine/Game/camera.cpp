@@ -17,6 +17,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
+#include "Game/StaticMesh.h"
 #include "Math/Math.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Sound/sound.h"
@@ -1434,13 +1435,13 @@ static std::vector<int> FillCollideableItemList()
 	return itemList;
 }
 
-bool CheckStaticCollideCamera(MESH_INFO* mesh)
+bool CheckStaticCollideCamera(StaticMesh* mesh)
 {
-	bool isCloseEnough = Vector3i::Distance(mesh->pos.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
+	bool isCloseEnough = Vector3i::Distance(mesh->Pose.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
 	if (!isCloseEnough)
 		return false;
 
-	if (!(mesh->flags & StaticMeshFlags::SM_VISIBLE))
+	if (!(mesh->Flags & StaticMeshFlags::SM_VISIBLE))
 		return false;
 
 	const auto& bounds = GetBoundsAccurate(*mesh, false);
@@ -1460,9 +1461,9 @@ bool CheckStaticCollideCamera(MESH_INFO* mesh)
 	return true;
 }
 
-std::vector<MESH_INFO*> FillCollideableStaticsList()
+std::vector<StaticMesh*> FillCollideableStaticsList()
 {
-	std::vector<MESH_INFO*> staticList;
+	std::vector<StaticMesh*> staticList;
 	auto& roomList = g_Level.Rooms[Camera.pos.RoomNumber].NeighborRoomNumbers;
 
 	for (int i : roomList)
@@ -1527,18 +1528,18 @@ void ItemsCollideCamera()
 		if (!mesh)
 			return;
 
-		auto distance = Vector3i::Distance(mesh->pos.Position, LaraItem->Pose.Position);
+		auto distance = Vector3i::Distance(mesh->Pose.Position, LaraItem->Pose.Position);
 		if (distance > COLL_CANCEL_THRESHOLD)
 			continue;
 
 		auto bounds = GetBoundsAccurate(*mesh, false);
-		if (TestBoundsCollideCamera(bounds, mesh->pos, CAMERA_RADIUS))
-			ItemPushCamera(&bounds, &mesh->pos, RADIUS);
+		if (TestBoundsCollideCamera(bounds, mesh->Pose, CAMERA_RADIUS))
+			ItemPushCamera(&bounds, &mesh->Pose, RADIUS);
 
 		if (DebugMode)
 		{
 			DrawDebugBox(
-				bounds.ToBoundingOrientedBox(mesh->pos),
+				bounds.ToBoundingOrientedBox(mesh->Pose),
 				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 		}
 	}

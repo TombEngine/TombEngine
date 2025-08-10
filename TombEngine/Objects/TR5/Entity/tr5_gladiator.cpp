@@ -344,11 +344,11 @@ namespace TEN::Entities::Creatures::TR5
 						{
 							auto* mesh = &room->mesh[i];
 
-							if (!((pos.z ^ mesh->pos.Position.z) & 0xFFFFFC00))
+							if (!((pos.z ^ mesh->Pose.Position.z) & 0xFFFFFC00))
 							{
-								if (!((pos.x ^ mesh->pos.Position.x) & 0xFFFFFC00))
+								if (!((pos.x ^ mesh->Pose.Position.x) & 0xFFFFFC00))
 								{
-									if (Statics[mesh->staticNumber].shatterType != ShatterType::None)
+									if (Statics[mesh->Slot].shatterType != ShatterType::None)
 									{
 										ShatterObject(0, mesh, -64, LaraItem->RoomNumber, 0);
 										//SoundEffect(ShatterSounds[gfCurrentLevel - 5][*(v28 + 18)], v28);

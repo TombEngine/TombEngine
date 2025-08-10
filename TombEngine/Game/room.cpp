@@ -7,6 +7,7 @@
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
+#include "Game/misc.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Generic/Doors/generic_doors.h"
@@ -29,16 +30,6 @@ bool FlipStats[MAX_FLIPMAP];
 int  FlipMap[MAX_FLIPMAP];
 
 std::vector<short> OutsideRoomTable[OUTSIDE_SIZE][OUTSIDE_SIZE];
-
-BoundingOrientedBox MESH_INFO::GetObb() const
-{
-	return GetBoundsAccurate(*this, false).ToBoundingOrientedBox(pos);
-}
-
-BoundingOrientedBox MESH_INFO::GetVisibilityObb() const
-{
-	return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(pos);
-}
 
 std::vector<int> RoomObjectHandler::GetIds() const
 {
@@ -687,8 +678,8 @@ void DoFlipMap(int group)
 	FlipStatus =
 	FlipStats[group] = !FlipStats[group];
 
-	for (auto& creature : ActiveCreatures)
-		creature->LOT.TargetBox = NO_VALUE;
+	for (auto creatureIndex : ActiveCreatures)
+		GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 }
 
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)
@@ -767,22 +758,6 @@ namespace TEN::Collision::Room
 
 		return &room->Sectors[sectorID];
 	}
-}
-
-GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox)
-{
-	static auto bounds = GameBoundingBox();
-
-	if (getVisibilityBox)
-	{
-		bounds = Statics[mesh.staticNumber].visibilityBox * mesh.pos.Scale;
-	}
-	else
-	{
-		bounds = Statics[mesh.staticNumber].collisionBox * mesh.pos.Scale;
-	}
-
-	return bounds;
 }
 
 bool IsPointInRoom(const Vector3i& pos, int roomNumber)

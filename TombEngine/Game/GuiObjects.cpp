@@ -906,8 +906,8 @@ namespace TEN::Gui
 	{
 		auto& player = GetLaraInfo(*item);
 
-		player.Inventory.BeetleComponents |= BEETLECOMP_FLAG_BEETLE;  // Get beetle.
 		player.Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_1; // Remove combo 1.
 		player.Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_2; // Remove combo 2.
+		player.Inventory.BeetleComponents |= BEETLECOMP_FLAG_BEETLE;  // Get beetle.
 	}
 }

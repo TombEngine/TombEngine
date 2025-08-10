@@ -1,11 +1,10 @@
 #pragma once
 #include "Game/camera.h"
 
-/***
-Constants for the type of the Camera.
-@enum View.CameraType
-@pragma nostrip
-*/
+/// Constants for the type of the Camera.
+// To be used with @{View.GetCameraType} function.
+// @enum View.CameraType
+// @pragma nostrip
 
 enum class ScriptCameraType
 {
@@ -18,27 +17,37 @@ enum class ScriptCameraType
 	Lasersight
 };
 
-/*** Table of View.CameraType constants. To be used with @{View.GetCameraType} function.
-@table CameraType
-
- - `NORMAL` - Standard in-game camera when weapons are holstered.
- - `COMBAT` - In-game camera when weapons are unholstered.
- - `FIXED` - Classic fixed camera.
- - `LOOK` - Look camera.
- - `FLYBY` - Flyby or tracking camera.
- - `BINOCULARS` - Binocular camera.
- - `LASERSIGHT` - Lasersight camera.
-*/
-
 static const std::unordered_map<std::string, ScriptCameraType> CAMERA_TYPE
 {
-	{ "CHASE",		ScriptCameraType::Normal		}, // DEPRECATED
-	{ "NORMAL",		ScriptCameraType::Normal		},
-	{ "COMBAT",		ScriptCameraType::Combat		},
-	{ "FIXED",		ScriptCameraType::Fixed			},
-	{ "HEAVY",		ScriptCameraType::Fixed			}, // DEPRECATED
-	{ "LOOK",		ScriptCameraType::Look			},
-	{ "FLYBY",		ScriptCameraType::Flyby			},
-	{ "BINOCULARS", ScriptCameraType::Binoculars	},
-	{ "LASERSIGHT", ScriptCameraType::Lasersight	}
+	/// Standard in-game camera when weapons are holstered.
+	// @mem NORMAL
+	{ "NORMAL", ScriptCameraType::Normal },
+
+	/// In-game camera when weapons are unholstered.
+	// @mem COMBAT
+	{ "COMBAT", ScriptCameraType::Combat },
+
+	/// Classic fixed camera.
+	// @mem FIXED
+	{ "FIXED", ScriptCameraType::Fixed },
+
+	/// Look camera.
+	// @mem LOOK
+	{ "LOOK", ScriptCameraType::Look },
+
+	/// Flyby or tracking camera.
+	// @mem FLYBY
+	{ "FLYBY", ScriptCameraType::Flyby },
+
+	/// Binocular camera.
+	// @mem BINOCULARS
+	{ "BINOCULARS", ScriptCameraType::Binoculars },
+
+	/// Lasersight camera.
+	// @mem LASERSIGHT
+	{ "LASERSIGHT", ScriptCameraType::Lasersight },
+
+	// Deprecated aliases
+	{ "CHASE", ScriptCameraType::Normal }, // DEPRECATED
+	{ "HEAVY", ScriptCameraType::Fixed }   // DEPRECATED
 };

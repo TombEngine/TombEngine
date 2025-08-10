@@ -57,7 +57,7 @@ using namespace TEN::Gui;
 using TEN::Renderer::g_Renderer;
 
 LaraInfo	  Lara			= {};
-ItemInfo*	  LaraItem		= nullptr;
+ItemHandler	  LaraItem		= {};
 CollisionInfo LaraCollision = {};
 
 static void HandlePlayerDebug(const ItemInfo& item)
@@ -455,7 +455,10 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 
 	// Process vehicles.
 	if (HandleLaraVehicle(item, coll))
+	{
+		DoObjectCollision(item, coll);
 		return;
+	}
 
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);

@@ -22,6 +22,7 @@
 #include "Game/spotcam.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
+#include "Game/StaticMesh.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
@@ -1071,24 +1072,23 @@ const std::vector<byte> SaveGame::Build()
 	auto flybyCamerasOffset = fbb.CreateVector(flybyCameras);
 
 	// Static meshes and volumes
-	std::vector<flatbuffers::Offset<Save::StaticMeshInfo>> staticMeshes;
-	std::vector<flatbuffers::Offset<Save::Volume>> volumes;
+	auto staticMeshes = std::vector<flatbuffers::Offset<Save::StaticMeshInfo>>{};
+	auto volumes = std::vector<flatbuffers::Offset<Save::Volume>>{};
 	for (int i = 0; i < g_Level.Rooms.size(); i++)
 	{
 		auto* room = &g_Level.Rooms[i];
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
-			Save::StaticMeshInfoBuilder staticMesh{ fbb };
+			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
-			staticMesh.add_pose(&FromPose(room->mesh[j].pos));
-			staticMesh.add_color(&FromVector4(room->mesh[j].color));
-
-			staticMesh.add_flags(room->mesh[j].flags);
-			staticMesh.add_hit_points(room->mesh[j].HitPoints);
-			staticMesh.add_room_number(room->RoomNumber);
-			staticMesh.add_number(j);
-			staticMeshes.push_back(staticMesh.Finish());
+			staticObjBuilder.add_number(j);
+			staticObjBuilder.add_pose(&FromPose(room->mesh[j].Pose));
+			staticObjBuilder.add_room_number(room->RoomNumber);
+			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
+			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
+			staticObjBuilder.add_flags(room->mesh[j].Flags);
+			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
 		for (int j = 0; j < room->TriggerVolumes.size(); j++)
@@ -2511,28 +2511,29 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		g_Level.Rooms[room->index()].reverbType = (ReverbType)room->reverb_type();
 	}
 
-	// Static objects.
+	// Static objects
 	for (int i = 0; i < s->static_meshes()->size(); i++)
 	{
-		auto staticMesh = s->static_meshes()->Get(i);
-		auto room = &g_Level.Rooms[staticMesh->room_number()];
-		int number = staticMesh->number();
+		const auto& savedStaticObj = *s->static_meshes()->Get(i);
+		auto& room = g_Level.Rooms[savedStaticObj.room_number()];
 
-		room->mesh[number].pos = ToPose(*staticMesh->pose());
-		room->mesh[number].roomNumber = staticMesh->room_number();
-		room->mesh[number].color = ToVector4(staticMesh->color());
+		int number = savedStaticObj.number();
+		auto& staticObj = room.mesh[number];
 
-		room->mesh[number].flags = staticMesh->flags();
-		room->mesh[number].HitPoints = staticMesh->hit_points();
-
-		room->mesh[number].Dirty = true;
+		staticObj.Pose = ToPose(*savedStaticObj.pose());
+		staticObj.RoomNumber = savedStaticObj.room_number();
+		staticObj.Color = ToVector4(savedStaticObj.color());
+		staticObj.HitPoints = savedStaticObj.hit_points();
+		staticObj.Flags = savedStaticObj.flags();
+		staticObj.Dirty = true;
 		
-		if (!room->mesh[number].flags)
+		if (!staticObj.Flags)
 		{
-			short roomNumber = staticMesh->room_number();
-			FloorInfo* floor = GetFloor(room->mesh[number].pos.Position.x, room->mesh[number].pos.Position.y, room->mesh[number].pos.Position.z, &roomNumber);
-			TestTriggers(room->mesh[number].pos.Position.x, room->mesh[number].pos.Position.y, room->mesh[number].pos.Position.z, staticMesh->room_number(), true, 0);
-			floor->Stopper = false;
+			int roomNumber = savedStaticObj.room_number();
+			auto& sector = *GetFloor(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, (short*)&roomNumber);
+
+			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
+			sector.Stopper = false;
 		}
 	}
 

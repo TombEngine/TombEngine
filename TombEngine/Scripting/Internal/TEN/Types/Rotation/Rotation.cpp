@@ -86,7 +86,8 @@ namespace TEN::Scripting
 		return Rotation(EulerAngles::Lerp(orientFrom, orientTo, alpha));
 	}
 
-	/// Get the normalized direction vector of this Rotation.
+	/// Get the normalized direction vector of this Rotation. 
+	// Can be used to get an offset from a rotation by multiplying needed distance value with this vector.
 	// @function Direction
 	// @treturn Vec3 Normalized direction vector.
 	Vec3 Rotation::Direction() const
