@@ -30,7 +30,7 @@ namespace TEN::Entities::Traps
 
 			if (TriggerActive(&item))
 			{
-				*(int*)&item.ItemFlags[0] = 0x780;
+				*(int*)&item.ItemFlags[0] = 7;
 				AnimateItem(&item);
 				return;
 			}

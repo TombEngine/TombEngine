@@ -43,6 +43,7 @@
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/HeavyStamper.h"
+#include "Objects/TR3/Trap/DrillPit.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -533,6 +534,14 @@ static void StartTrap(ObjectInfo* obj)
 	{
 		obj->control = ControlHeavyStamper;
 		obj->collision = CollideHeavyStamper;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_DRILL_PIT];
+	if (obj->loaded)
+	{
+		obj->control = ControlDrillPit;
+		obj->collision = CollideDrillPit;
 		obj->SetHitEffect(true);
 	}
 }
