@@ -82,6 +82,7 @@ Menu.Create = function(menuName, title, items, acceptFunction, exitFunction, men
         titleTranslate = false,
         menuTransparency = 255,
         sounds = SOUND_MAP,
+        inputs = true,
         visibleStartIndex = 1,
         scrollY = 0,
         targetScrollY = 0
@@ -345,6 +346,14 @@ function Menu:ClearSoundEffects()
 
 end
 
+function Menu:EnableInputs(inputs)
+
+    if LevelVars.Engine.Menus[self.name] then
+		LevelVars.Engine.Menus[self.name].inputs = inputs
+	end
+
+end
+
 -- Getter Methods
 function Menu:getCurrentItem()
     -- Returns the currently selected item
@@ -396,6 +405,26 @@ function Menu:getOptionIndexForItem(itemIndex)
         error("currentOption is not defined for item index: " .. tostring(itemIndex))
     end
     return item.currentOption
+
+end
+
+function Menu:setOptionIndexForItem(itemIndex, optionIndex)
+    local menu = LevelVars.Engine.Menus[self.name]
+    if debug and (not menu.items or not menu.items[itemIndex]) then
+        error("Invalid item index: " .. tostring(itemIndex))
+    end
+    local item = menu.items[itemIndex]
+    if debug and not item.currentOption then
+        error("currentOption is not defined for item index: " .. tostring(itemIndex))
+    end
+    
+    local maxOptions = item.options and #item.options or 1
+    if maxOptions < 1 then
+        error("Item at index " .. tostring(itemIndex) .. " has no options.")
+    end
+
+    optionIndex = math.max(1, math.min(optionIndex, maxOptions))
+    item.currentOption = optionIndex
 
 end
 
@@ -508,7 +537,7 @@ LevelFuncs.Engine.Menu.DrawMenu = function(menuName)
 
     if menu.visible then
         
-        Input(menuName)
+        if menu.inputs then Input(menuName) end
 
         if menu.titleString then
 
