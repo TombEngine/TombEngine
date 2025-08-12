@@ -2,15 +2,9 @@
 #include "Objects/Generic/Traps/Pendulum.h"
 
 #include "Game/animation.h"
-#include "Game/camera.h"
 #include "Game/collision/Sphere.h"
-#include "Game/effects/debris.h"
 #include "Game/collision/collide_item.h"
-#include "Game/room.h"
-#include "Game/Setup.h"
-#include "Math/Math.h"
-#include "Objects/Generic/Object/BridgeObject.h"
-#include "Sound/sound.h"
+#include "Game/effects/effects.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;

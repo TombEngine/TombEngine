@@ -5,8 +5,6 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/effects.h"
-#include "Game/items.h"
-#include "Game/Lara/lara.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
