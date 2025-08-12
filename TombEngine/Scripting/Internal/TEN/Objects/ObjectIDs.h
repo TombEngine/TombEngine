@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 11.08.2025.
+// Last generated on 12.08.2025.
 
 #include <unordered_map>
 #include <string>
@@ -1116,6 +1116,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem DRILL_PIT
 	{ "DRILL_PIT", ID_DRILL_PIT },
+	/// Object ID.
+	// @mem SPIKED_FRAME
+	{ "SPIKED_FRAME", ID_SPIKED_FRAME },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },

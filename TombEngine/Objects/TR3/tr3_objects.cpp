@@ -39,11 +39,12 @@
 #include "Objects/TR3/Object/Corpse.h"
 
 // Traps
+#include "Objects/TR3/Trap/DrillPit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
+#include "Objects/TR3/Trap/HeavyStamper.h"
+#include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
-#include "Objects/TR3/Trap/HeavyStamper.h"
-#include "Objects/TR3/Trap/DrillPit.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -542,6 +543,14 @@ static void StartTrap(ObjectInfo* obj)
 	{
 		obj->control = ControlDrillPit;
 		obj->collision = CollideDrillPit;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SPIKED_FRAME];
+	if (obj->loaded)
+	{
+		obj->control = ControlSPikedFrame;
+		obj->collision = CollideSpikedFrame;
 		obj->SetHitEffect(true);
 	}
 }
