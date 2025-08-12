@@ -1119,6 +1119,15 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem SPIKED_FRAME
 	{ "SPIKED_FRAME", ID_SPIKED_FRAME },
+	/// Object ID.
+	// @mem SWINGING_SANDBAG
+	{ "SWINGING_SANDBAG", ID_SWINGING_SANDBAG },
+	/// Object ID.
+	// @mem SWINGING_BOX
+	{ "SWINGING_BOX", ID_SWINGING_BOX },
+	/// Object ID.
+	// @mem OVERHEAD_PULLEY_HOOK
+	{ "OVERHEAD_PULLEY_HOOK", ID_OVERHEAD_PULLEY_HOOK },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },

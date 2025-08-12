@@ -141,6 +141,7 @@ struct ItemInfo
 
 	BitField TouchBits = BitField::Default; // TouchFlags
 	BitField MeshBits  = BitField::Default; // MeshFlags
+	std::vector<unsigned int> HarmJoints = {};
 
 	std::array<short, ITEM_FLAG_COUNT> ItemFlags = {};
 	unsigned short Flags		= 0; // ItemFlags enum

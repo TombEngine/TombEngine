@@ -35,6 +35,7 @@
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
+#include "Objects/Generic/Traps/Pendulum.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -552,6 +553,32 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = ControlKillerStatue;
 		obj->collision = ObjectCollision;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_SANDBAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwingingSandbag;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_BOX];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwingingBox;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_OVERHEAD_PULLEY_HOOK];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeOverheadPulleyHook;
+		obj->control = ControlPendulum;
+		obj->collision = GenericSphereBoxCollision;
 	}
 }
 
