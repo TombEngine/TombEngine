@@ -947,13 +947,6 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 	return std::make_unique<R>(map.at(name), false);
 }
 
-/*** Special objects
-@section specialobjects
-*/
-
-/*** An @{Objects.Moveable} entry representing Lara herself.
-@table Lara
-*/
 void LogicHandler::ResetVariables()
 {
 	(*_handler.GetState())["Lara"] = nullptr;

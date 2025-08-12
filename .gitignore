@@ -1,5 +1,6 @@
 enc_temp_folder/
 Build/
+Documentation/doc/
 TombEngine/x64/
 TombEngine/Debug/
 TombEngine/Release/

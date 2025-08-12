@@ -6,6 +6,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.9.2]
 
 ## New features
+* Added FIRE_PENDULUM (ID 458) object from TR3.
+* Added TURNING_WALL_BLADE (ID 456) and TURNING_CEILING_BLADE (ID 457) objects from TR3.
 * Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
 
 ### Bug fixes
@@ -20,6 +22,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed firearms bullet range limited to targeting range.
 * Fixed significantly worse firearm accuracy compared to the original engines.
 * Fixed pistols not allowing to spam fire in untargeted mode.
+* Fixed two-handed weapon targeting when locked on enemy.
 * Fixed random crashes and visual issues with exploding body part effects.
 * Fixed random crashes when spawning or killing enemies.
 * Fixed shatterable static meshes not producing shatter sound when hit by projectile weapons.
@@ -28,9 +31,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed slowdowns and freezes when too many sounds are playing.
 * Fixed Doppler effect not applied to sounds.
 * Fixed incorrect cropping for video textures.
+* Fixed snapping while transitioning between two gliding fixed cameras.
 * Fixed overbright ambient light not applied correctly to moveables.
 
 ### Lua API changes
+* Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 * Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
 * Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
 * Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
@@ -41,6 +46,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ability to open doors with draw weapon key in dozy mode.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
+* Added turning wall blade: SLOT ID: 456, turning ceiling blade: SLOT ID: 457.
 
 ### Bug fixes
 * Fixed WATERFALL_EMITTER performance and occasional game freezes, and make it work with OCB 0.
@@ -76,7 +82,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added land mode for underwater switches. Asset change required for both types of underwater switches.
   [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_WallSwitch.wad2).
 * Added ability to use big push switch (OCB 3) underwater.
-* Added extra behaviour for PIERRE and LARSON objects with non-zero OCBs to escape to either AI_AMBUSH with the same OCB, if it exists, or to any other point.
 
 ### Bug fixes
 * Fixed LASER_BEAM object going through walls.

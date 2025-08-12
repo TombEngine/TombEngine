@@ -210,6 +210,12 @@ void ObjectsHandler::TestCollidingObjects()
 
 void ObjectsHandler::AssignPlayer()
 {
+	/// Special objects
+	// @section specialobjects
+
+	/// An @{Objects.LaraObject} entry representing Lara herself. Can be used to quickly access player data, without getting Lara moveable by name.
+	// Can be also used with any methods of @{Objects.Moveable}.
+	// @tfield Objects.LaraObject Lara A global Lara object.
 	_table_objects.set(ScriptReserved_Lara, LaraObject(LaraItem->Index, true));
 }
 

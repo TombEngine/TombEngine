@@ -40,6 +40,8 @@ using namespace TEN::Utils;
 
 int FlashGrenadeAftershockTimer = 0;
 
+constexpr auto WEAPON_MAX_DISTANCE_MULTIPLIER = 3.0f;
+
 // States in which Lara will hold an active flare out in front.
 const auto FlarePoseStates = std::vector<int>
 {
@@ -867,7 +869,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist * 3.0f);
+	auto target = origin + (directionNorm * weapon.TargetDist * WEAPON_MAX_DISTANCE_MULTIPLIER);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
