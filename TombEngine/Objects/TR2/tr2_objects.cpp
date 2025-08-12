@@ -32,10 +32,11 @@
 #include "Objects/TR2/Entity/tr2_yeti.h" // OK
 
 // Traps
+#include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR2/Trap/OverheadPulleyHook.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
-#include "Objects/Generic/Traps/Pendulum.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -558,7 +559,7 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_SWINGING_SANDBAG];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeSwingingSandbag;
+		obj->Initialize = InitializePendulum;
 		obj->control = ControlPendulum;
 		obj->collision = CollidePendulum;
 		obj->SetHitEffect(true);
@@ -567,7 +568,7 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_SWINGING_BOX];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeSwingingBox;
+		obj->Initialize = InitializePendulum;
 		obj->control = ControlPendulum;
 		obj->collision = CollidePendulum;
 		obj->SetHitEffect(true);
@@ -576,9 +577,8 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_OVERHEAD_PULLEY_HOOK];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeOverheadPulleyHook;
-		obj->control = ControlPendulum;
-		obj->collision = GenericSphereBoxCollision;
+		obj->control = ControlOverheadPulleyHook;
+		obj->collision = CollideOverheadPulleyHook;
 	}
 }
 

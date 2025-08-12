@@ -17,45 +17,11 @@ using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Generic
 {
-	void InitializeSwingingSandbag(short itemNumber)
+	void InitializePendulum(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.HarmJoints = { 2 };
-
-		const std::vector<unsigned int> SwingingSandbagHarmJoints = { 2 };
-		// Set harm joints.
-		auto bitField = BitField::Default;
-		bitField.Set(SwingingSandbagHarmJoints);
-		item.ItemFlags[0] = 2;//bitField.ToPackedBits();
-		item.ItemFlags[3] = item.TriggerFlags;
-	}
-
-	void InitializeSwingingBox(short itemNumber)
-	{
-		auto& item = g_Level.Items[itemNumber];
-
-		item.HarmJoints = { 2 };
-
-		const std::vector<unsigned int> SwingingBoxHarmJoints = { 2 };
-		// Set harm joints.
-		auto bitField = BitField::Default;
-		bitField.Set(SwingingBoxHarmJoints);
-		item.ItemFlags[0] = 2;//bitField.ToPackedBits();
-		item.ItemFlags[3] = item.TriggerFlags;
-	}
-
-	void InitializeOverheadPulleyHook(short itemNumber)
-	{
-		auto& item = g_Level.Items[itemNumber];
-
-		const std::vector<unsigned int> OverheadPulleyHookHarmJoints = { 2, 3 };
-		// Set harm joints.
-		auto bitField = BitField::Default;
-		bitField.Set(OverheadPulleyHookHarmJoints);
-		item.ItemFlags[0] = bitField.ToPackedBits();
-
-
+		item.ItemFlags[0] = 2;
 		item.ItemFlags[3] = item.TriggerFlags;
 	}
 
@@ -71,9 +37,6 @@ namespace TEN::Entities::Generic
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		if (!TriggerActive(item))
-			return;
-
 		if (item->Status == ITEM_INVISIBLE)
 			return;
 
@@ -83,17 +46,19 @@ namespace TEN::Entities::Generic
 		if (!HandleItemSphereCollision(*item, *playerItem))
 			return;
 
-			if (item->TouchBits.Test(item->ItemFlags[0]))
+		if (item->TouchBits.Test(item->ItemFlags[0]))
+		{
+			if (playerItem->HitPoints > 0)
 			{
-				DoDamage(playerItem, abs(item->TriggerFlags));
-
-				TriggerLaraBlood();
-
-				if (playerItem->HitPoints > 0)
-				{
-					ItemPushItem(item, playerItem, coll, false, 1);
-				}
+				ItemPushItem(item, playerItem, coll, false, 1);
 			}
-		
+
+			if (!TriggerActive(item))
+				return;
+
+			DoDamage(playerItem, abs(item->TriggerFlags));
+
+			TriggerLaraBlood();
+		}
 	}
 }

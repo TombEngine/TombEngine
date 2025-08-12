@@ -594,6 +594,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR2\Entity\tr2_worker_machinegun.h" />
     <ClInclude Include="Objects\TR2\Entity\tr2_worker_shotgun.h" />
     <ClInclude Include="Objects\TR2\Entity\tr2_yeti.h" />
+    <ClInclude Include="Objects\TR2\Trap\OverheadPulleyHook.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_killerstatue.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_spinningblade.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_springboard.h" />
@@ -1152,6 +1153,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR2\Entity\tr2_worker_shotgun.cpp" />
     <ClCompile Include="Objects\TR2\Entity\tr2_yeti.cpp" />
     <ClCompile Include="Objects\TR2\tr2_objects.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\OverheadPulleyHook.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_killerstatue.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_spinningblade.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_springboard.cpp" />

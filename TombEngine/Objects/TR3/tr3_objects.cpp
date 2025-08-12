@@ -39,6 +39,7 @@
 #include "Objects/TR3/Object/Corpse.h"
 
 // Traps
+#include "Objects/Generic/Traps/Pendulum.h"
 #include "Objects/TR3/Trap/DrillPit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/HeavyStamper.h"
@@ -552,6 +553,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = ControlSPikedFrame;
 		obj->collision = CollideSpikedFrame;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_IRON_ANCHOR];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
 	}
 }
 
