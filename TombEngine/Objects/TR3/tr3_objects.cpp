@@ -566,7 +566,7 @@ static void StartTrap(ObjectInfo* obj)
 		obj->SetHitEffect(true);
 	}
 
-	obj = &Objects[ID_DRILL_PIT];
+	obj = &Objects[ID_DRILL_BIT];
 	if (obj->loaded)
 	{
 		obj->control = ControlDrillPit;
