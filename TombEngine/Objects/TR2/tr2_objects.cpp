@@ -33,6 +33,7 @@
 
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR2/Trap/CircularSaw.h"
 #include "Objects/TR2/Trap/OverheadPulleyHook.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
@@ -574,11 +575,29 @@ static void StartTrap(ObjectInfo* obj)
 		obj->SetHitEffect(true);
 	}
 
+	obj = &Objects[ID_SWINGING_SPIKE_BAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
 	obj = &Objects[ID_OVERHEAD_PULLEY_HOOK];
 	if (obj->loaded)
 	{
 		obj->control = ControlOverheadPulleyHook;
 		obj->collision = CollideOverheadPulleyHook;
+	}
+
+	obj = &Objects[ID_CIRCULAR_SAW];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCircularSaw;
+		obj->control = ControlCircularSaw;
+		obj->collision = CollideCircularSaw;
+		obj->SetHitEffect(true);
 	}
 }
 
