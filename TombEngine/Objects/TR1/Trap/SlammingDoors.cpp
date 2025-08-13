@@ -81,7 +81,8 @@ namespace TEN::Entities::Traps
 
 	void SpawnSlammingDoorSparks(const Vector3i& localOffset, const ItemInfo& item)
 	{
-		static const std::array<std::pair<int, int>, 6> yOffsetRanges = {
+		static const std::array<std::pair<int, int>, 6> yOffsetRanges = 
+		{
 			std::pair{-800, -900},
 			std::pair{-600, -700},
 			std::pair{-500, -600},
@@ -113,7 +114,7 @@ namespace TEN::Entities::Traps
 			s.friction = 0.98f;
 			s.gravity = 1.2f;
 			s.width = 9.0f;
-			s.height = 65.0f;
+			s.height = 85.0f;
 			s.room = pos.RoomNumber;
 			s.pos = pos.ToVector3();
 			float ang = TO_RAD(angle);
