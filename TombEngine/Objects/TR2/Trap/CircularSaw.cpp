@@ -31,8 +31,7 @@ namespace TEN::Entities::Traps
 		CIRCULAR_SAW_ANIM_DISABLED = 0,
 		CIRCULAR_SAW_ANIM_ACTIVATING = 1,
 		CIRCULAR_SAW_ANIM_ENABLED = 2,
-		CIRCULAR_SAW_ANIM_DEACTIVATING = 3
-		
+		CIRCULAR_SAW_ANIM_DEACTIVATING = 3	
 	};
 
 	void InitializeCircularSaw(short itemNumber)
