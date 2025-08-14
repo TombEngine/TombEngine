@@ -319,6 +319,7 @@ function New-XmlClassElement {
     $classElement = $XmlDoc.CreateElement("class")
     $classElement.AppendChild((New-XmlElementWithText $XmlDoc "name" $ClassInfo.Name)) | Out-Null
     $classElement.AppendChild((New-XmlElementWithText $XmlDoc "type" $TEN_CLASS_TYPE)) | Out-Null
+    $classElement.AppendChild((New-XmlElementWithText $XmlDoc "ctor" "false")) | Out-Null
 
     # Only add summary if it's not empty
     if ($ClassInfo.Summary -and $ClassInfo.Summary.Trim() -ne "") {
