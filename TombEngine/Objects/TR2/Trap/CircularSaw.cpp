@@ -77,7 +77,24 @@ namespace TEN::Entities::Traps
 		}
 
 		if (item.Animation.AnimNumber == GetAnimIndex(item, CIRCULAR_SAW_ANIM_ENABLED))
-			TriggerSawSparkles(&item);
+		{
+			if (item.ItemFlags[5])
+			{
+				StopSoundEffect(SFX_TR2_SAW_REVVING);
+				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 4);
+				item.ItemFlags[5]--;
+			}
+			else if (item.TriggerFlags)
+			{
+				TriggerSawSparkles(&item);
+				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 3);
+			}
+			else
+			{
+
+				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 1, 2);
+			}
+		}
 
 		AnimateItem(&item);
 	}
@@ -168,7 +185,11 @@ namespace TEN::Entities::Traps
 					DoDamage(playerItem, item.ItemFlags[3]);
 
 					if (TriggerActive(&item))
+					{
+						item.ItemFlags[5] = 12;
 						TriggerLaraBlood();
+						DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);
+					}
 				}
 			}
 
