@@ -5,12 +5,19 @@ set LDOC_DIR=.\compiler\ldoc
 set LUA_PATH=.\compiler\?.lua
 set LUA_CPATH=.\compiler\?.dll
 
+REM Check if argument is provided, if not, set to "."
+if "%~1"=="" (
+    set ARG=.
+) else (
+    set ARG=%*
+)
+
 echo Building LDoc documentation...
 rmdir /s /q %DOC_DIR%
 mkdir %DOC_DIR%
 
 echo Running LDoc compiler...
-.\compiler\lua.exe %LDOC_DIR%\\ldoc.lua %*
+.\compiler\lua.exe %LDOC_DIR%\ldoc.lua %ARG%
 
 if %ERRORLEVEL% neq 0 (
     echo LDoc compilation failed with error code %ERRORLEVEL%
