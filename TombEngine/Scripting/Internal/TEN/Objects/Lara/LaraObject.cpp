@@ -26,6 +26,7 @@ using namespace TEN::Input;
 // LaraObject inherits all the functions of @{Objects.Moveable|Moveable}.
 //
 // @tenclass Objects.LaraObject
+// @inherits Objects.Moveable
 // @pragma nostrip
 
 constexpr auto LUA_CLASS_NAME{ ScriptReserved_LaraObject };

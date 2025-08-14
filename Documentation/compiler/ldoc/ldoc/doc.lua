@@ -26,7 +26,7 @@ local known_tags = {
    param = 'M', see = 'M', comment = 'M', advancedDesc = 'ML', usage = 'ML', ['return'] = 'M', field = 'M', author='M',set='M';
    class = 'id', name = 'id', pragma = 'id', alias = 'id',
    copyright = 'S', summary = 'S', description = 'S', release = 'S', license = 'S',
-   fixme = 'S', todo = 'S', warning = 'S', raise = 'S', charset = 'S', within = 'S',
+   fixme = 'S', todo = 'S', warning = 'S', raise = 'S', charset = 'S', within = 'S', inherits = 'S',
    ['local'] = 'N', export = 'N', private = 'N', constructor = 'N', static = 'N',include = 'S',
    -- project-level
    module = 'T', script = 'T', example = 'T', topic = 'T', submodule='T', classmod='T', file='T',
@@ -1558,6 +1558,11 @@ local function writeBasicInfo(writer, item, moduleName)
 
    if item.type and item.type ~= 'enum' then
       writeXMLElement(writer, 'type', item.type)
+   end
+
+   -- Add inheritance information if present
+   if item.tags and item.tags.inherits then
+      writeXMLElement(writer, 'inherits', item.tags.inherits)
    end
 
    writeXMLElementWithContent(writer, 'summary', item.summary)
