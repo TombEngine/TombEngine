@@ -38,6 +38,7 @@
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
+#include "Objects/TR5/Object/tr5_rollingball.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -597,6 +598,24 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeCircularSaw;
 		obj->control = ControlCircularSaw;
 		obj->collision = CollideCircularSaw;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_ROLLING_BARRELS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_MULTIPLE_BOULDERS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
 		obj->SetHitEffect(true);
 	}
 }

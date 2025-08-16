@@ -408,7 +408,7 @@ void ClassicRollingBallControl(short itemNum)
 
 	if (item->Status == ITEM_ACTIVE)
 	{
-		if (item->Animation.TargetState == 2)
+		if (item->Animation.ActiveState == 2)
 		{
 			AnimateItem(item);
 			return;
@@ -448,7 +448,7 @@ void ClassicRollingBallControl(short itemNum)
 				Camera.bounce = -40 * (BLOCK(10) - dist) / BLOCK(10);
 		}
 
-		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL)
+		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL || item->ObjectNumber == ID_ROLLING_BARRELS)
 		{
 			dist = 320;
 			ydist = 832;
@@ -473,13 +473,25 @@ void ClassicRollingBallControl(short itemNum)
 		if (y1 < item->Pose.Position.y || y2 > (item->Pose.Position.y - ydist))
 		{
 			StopSoundEffect(SFX_TR4_ROLLING_BALL);
-			item->Status = ITEM_DEACTIVATED;
 			item->Pose.Position.y = item->Floor;
 			item->Pose.Position.x = oldx;
 			item->Pose.Position.z = oldz;
 			item->Animation.Velocity.z = 0;
 			item->Animation.Velocity.y = 0;
 			item->TouchBits = NO_JOINT_BITS;
+	
+			if (item->ObjectNumber == ID_ROLLING_BARRELS || item->ObjectNumber == ID_MULTIPLE_BOULDERS)
+			{ 
+				if (item->Animation.AnimNumber == 2)
+				{
+					item->Status = ITEM_DEACTIVATED;
+				}
+
+				item->Animation.TargetState = 2;
+			}
+			else
+				item->Status = ITEM_DEACTIVATED;
+
 		}
 	}
 	else if (item->Status == ITEM_DEACTIVATED)
