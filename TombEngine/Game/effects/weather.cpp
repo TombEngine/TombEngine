@@ -35,7 +35,7 @@ namespace TEN::Effects::Environment
 			result *= (StartLife - Life) / fade;
 
 		if (Type != WeatherType::Snow)
-			result *= 0.45f;
+			result *= 0.35f;
 
 		return result;
 	}
@@ -417,6 +417,16 @@ namespace TEN::Effects::Environment
 				}
 			}
 
+			float baseRange = COLLISION_CHECK_DISTANCE;
+			float rainRange = baseRange * RAIN_RENDER_RANGE_MULT;
+			float range = (part.Type == WeatherType::Rain) ? rainRange : baseRange;
+
+			if (abs(Camera.pos.x - part.Position.x) > range ||
+				abs(Camera.pos.z - part.Position.z) > range)
+			{
+				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
+			}
+
 			// If collision was updated, process with position checks.
 			if (collisionCalculated)
 			{
@@ -443,7 +453,7 @@ namespace TEN::Effects::Environment
 					if (part.Type == WeatherType::Rain)
 					{
 						part.Enabled = false;
-						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);
+						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);				
 					}
 
 					continue;
@@ -587,7 +597,22 @@ namespace TEN::Effects::Environment
 
 				newParticlesCount++;
 
-				float dist = (level.GetWeatherType() == WeatherType::Snow) ? COLLISION_CHECK_DISTANCE : (COLLISION_CHECK_DISTANCE / 2);
+
+				float dist = 0;
+
+					if (level.GetWeatherType() == WeatherType::Snow)
+					{
+						dist = COLLISION_CHECK_DISTANCE;
+					}
+					else if (level.GetWeatherType() == WeatherType::Rain)
+					{
+						dist = COLLISION_CHECK_DISTANCE * RAIN_SPAWN_RANGE_MULT;
+					}
+					else
+					{
+						dist = COLLISION_CHECK_DISTANCE / 2;
+					}
+				
 				float radius = Random::GenerateInt(0, dist);
 				short angle = Random::GenerateAngle(ANGLE(-180), ANGLE(179));
 
@@ -623,7 +648,7 @@ namespace TEN::Effects::Environment
 					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT) : 1;
 					part.Size = Random::GenerateFloat(RAIN_SIZE_MAX / 2, RAIN_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(RAIN_VELOCITY_MAX / 2, RAIN_VELOCITY_MAX) * (part.Size / RAIN_SIZE_MAX) * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f);
-					part.Life = (RAIN_VELOCITY_MAX * 2) - part.Velocity.y;
+					part.Life = (RAIN_VELOCITY_MAX) - part.Velocity.y;
 					break;
 				}
 

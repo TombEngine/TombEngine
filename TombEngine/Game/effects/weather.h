@@ -15,7 +15,7 @@ namespace TEN::Effects::Environment
 
 	constexpr auto DUST_SIZE_MAX = 25.0f;
 	constexpr auto SNOW_SIZE_MAX = 32.0f;
-	constexpr auto RAIN_SIZE_MAX = 128.0f;
+	constexpr auto RAIN_SIZE_MAX = 256.0f;
 
 	constexpr auto WEATHER_PARTICLE_HORIZONTAL_VELOCITY = 8.0f;
 	constexpr auto SNOW_VELOCITY_MAX					= 128.0f;
@@ -35,6 +35,9 @@ namespace TEN::Effects::Environment
 	constexpr auto METEOR_PARTICLE_VELOCITY		 = 32.0f;
 	constexpr auto METEOR_PARTICLE_SPAWN_DENSITY = 4;
 	constexpr auto METEOR_PARTICLE_FADE_TIME	 = 30.0f;
+
+	constexpr float RAIN_RENDER_RANGE_MULT = 0.70f;
+	constexpr float RAIN_SPAWN_RANGE_MULT = 0.70f;
 
 	struct StarParticle
 	{

@@ -1028,9 +1028,11 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareWeatherParticles(RenderView& view) 
 	{
-		constexpr auto RAIN_WIDTH = 4.0f;
 		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
-		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(0.35f);
+		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(1.0f);
+
+		constexpr auto RAIN_WIDTH_NEAR = 0.5f;
+		constexpr auto RAIN_WIDTH_FAR = 14.0f;
 
 		for (const auto& part : Weather.GetParticles())
 		{
@@ -1077,7 +1079,7 @@ namespace TEN::Renderer
 				if (i > 0)
 				{
 					// Use bits from uniqueSeed to determine distribution pattern.
-					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD;
+					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD ;
 					float offsetBase = spread * ((i + 1) / (float)clusterSize);
 
 					// Use bits 0, 1, 2 for axis signs.
@@ -1089,7 +1091,7 @@ namespace TEN::Renderer
 					int axisEmphasis = uniqueSeed & 3;
 					float xScale = (axisEmphasis == 0) ? 1.1f : 0.4f;
 					float yScale = (axisEmphasis == 1) ? 1.2f : 0.5f;
-					float zScale = (axisEmphasis == 2) ? 1.0f : 0.6f;
+					float zScale = (axisEmphasis == 2) ? 1.0f : 0.1f;
 
 					Vector3 positionOffset(
 						xSign * offsetBase * xScale,
@@ -1156,12 +1158,25 @@ namespace TEN::Renderer
 						Vector3 v;
 						part.Velocity.Normalize(v);
 
+						// Distance to camera
+						const Vector3 camPos = view.Camera.WorldPosition;
+						float dist = (finalPos - camPos).Length();
+
+						// Define interpolation range:
+						// near = ~1 block (no widening), far = expanded rain render range
+						float nearD = BLOCK(0.5f);
+						float farD = COLLISION_CHECK_DISTANCE * RAIN_RENDER_RANGE_MULT;
+						float t = std::clamp((dist - nearD) / std::max(1.0f, (farD - nearD)), 0.0f, 1.0f);
+
+						// Blend rain width based on distance
+						float width = Lerp(RAIN_WIDTH_NEAR, RAIN_WIDTH_FAR, t);
+
 						AddSpriteBillboardConstrained(
 							&_sprites[spriteIndex],
 							finalPos,
 							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
 							0.0f, 1.0f,
-							Vector2(RAIN_WIDTH, finalScale),
+							Vector2(width, finalScale),
 							BlendMode::Additive, -v, false, view);
 
 						break;
