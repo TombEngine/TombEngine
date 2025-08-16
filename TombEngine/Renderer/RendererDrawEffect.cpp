@@ -1091,7 +1091,7 @@ namespace TEN::Renderer
 					int axisEmphasis = uniqueSeed & 3;
 					float xScale = (axisEmphasis == 0) ? 1.1f : 0.4f;
 					float yScale = (axisEmphasis == 1) ? 1.2f : 0.5f;
-					float zScale = (axisEmphasis == 2) ? 1.0f : 0.1f;
+					float zScale = (axisEmphasis == 2) ? 1.0f : 0.6f;
 
 					Vector3 positionOffset(
 						xSign * offsetBase * xScale,
