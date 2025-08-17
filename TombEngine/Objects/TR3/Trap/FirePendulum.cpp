@@ -20,17 +20,6 @@ namespace TEN::Entities::Traps
 	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
 
 	const std::vector<unsigned int> FirePendulumHarmJoints = { 4, 5 };
-	const std::vector<Vector3i> PendulumBounds =
-	{
-		Vector3i(-CLICK(2), CLICK(2), -BLOCK(2)),
-		Vector3i(-896, -96, 96),
-		Vector3i(-CLICK(2), CLICK(2), -128),
-		Vector3i(0, -96, 96),
-		Vector3i(-CLICK(2), -384, -BLOCK(2)),
-		Vector3i(0, -96, 96),
-		Vector3i(384, CLICK(2), -BLOCK(2)),
-		Vector3i(0, -96, 96)
-	};
 
 	enum PendulumFlags
 	{
@@ -58,7 +47,6 @@ namespace TEN::Entities::Traps
 		spark->extras = 0;
 		spark->life = Random::GenerateInt(1,15);
 		spark->sLife = spark->life;
-		spark->dynamic = 1;
 
 		spark->xVel = (GetRandomControl() & 0x3F) - 32;
 		spark->yVel = -16 - (GetRandomControl() & 0xF);
@@ -229,7 +217,6 @@ namespace TEN::Entities::Traps
 					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3(r, g, b));
 				}
 			}
-
 		}
 	}
 }
