@@ -3,6 +3,11 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.9.2.1]() - 2025
+
+### Bug fixes
+* Fixed FIRE_PENDULUM light being overblown when weapons with explosive weapons are used.
+
 ## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
 
 ## New features
