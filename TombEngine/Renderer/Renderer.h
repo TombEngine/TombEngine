@@ -388,7 +388,7 @@ namespace TEN::Renderer
 		void CollectLightsForRoom(short roomNumber, RenderView& renderView);
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
-		void CollectDecalsForRoom(short roomNumber);
+		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
 		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);

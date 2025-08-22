@@ -340,7 +340,7 @@ namespace TEN::Renderer
 			renderView.RoomsToDraw.push_back(room);
 
 			CollectLightsForRoom(to, renderView);
-			CollectDecalsForRoom(to);
+			CollectDecalsForRoom(to, renderView);
 
 			if (!onlyRooms)
 			{
@@ -844,7 +844,7 @@ namespace TEN::Renderer
 		item->AmbientLight *= nativeItem->Model.Color;
 	}
 
-	void Renderer::CollectDecalsForRoom(short roomNumber)
+	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)
 	{
 		if (_rooms.size() <= roomNumber)
 			return;
@@ -858,6 +858,9 @@ namespace TEN::Renderer
 
 		for (auto& decal : Decals)
 		{
+			if (!renderView.Camera.Frustum.SphereInFrustum(decal.Sphere.Center, decal.Sphere.Radius))
+				continue;
+
 			bool decalInRoom = (decal.RoomNumber == room.RoomNumber);
 
 			if (!decalInRoom)
