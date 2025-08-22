@@ -380,13 +380,13 @@ bool FireShotgun(ItemInfo& laraItem)
 
 	bool hasFired = false;
 	int scatter = Weapons[(int)LaraWeaponType::Shotgun].ShotAccuracy * 
-		(player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo1) ? 1 : 3;
+		(player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo1) ? 1 : 25;
 
 	for (int i = 0; i < SHOTGUN_PELLET_COUNT; i++)
 	{
 		auto wobbledArmOrient = EulerAngles(
-			armOrient.x + scatter * (GetRandomControl() - ANGLE(90.0f)) / 65536,
-			armOrient.y + scatter * (GetRandomControl() - ANGLE(90.0f)) / 65536,
+			armOrient.x + (GetRandomControl() - ANGLE(90.0f)) / (USHRT_MAX / ANGLE(scatter)),
+			armOrient.y + (GetRandomControl() - ANGLE(90.0f)) / (USHRT_MAX / ANGLE(scatter)),
 			0);
 
 		if (FireWeapon(LaraWeaponType::Shotgun, player.TargetEntity, laraItem, wobbledArmOrient) != FireWeaponType::NoAmmo)

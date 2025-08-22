@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 * Fixed FIRE_PENDULUM light being overblown when weapons with explosive weapons are used.
 * Fixed motorbike sound going silent while doing jumps.
+* Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed intense GPU usage when engine window is minimized.
