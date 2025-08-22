@@ -14,7 +14,7 @@ namespace TEN::Renderer::ConstantBuffers
 		int Water;
 		int Caustics;
 		int NumRoomLights;
-		int Padding;
+		int NumRoomDecals;
 		//--
 		Vector2 CausticsStartUV;
 		Vector2 CausticsSize;

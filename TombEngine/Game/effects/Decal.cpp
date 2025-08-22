@@ -18,7 +18,7 @@ namespace TEN::Effects::Decal
 		{
 			default:
 			case DecalType::BulletHole:
-				radius = CLICK(0.15f) * Random::GenerateFloat(0.9f, 1.1f);
+				radius = CLICK(0.2f) * Random::GenerateFloat(0.9f, 1.1f);
 				opacity = Random::GenerateFloat(0.6f, 0.8f) * Random::GenerateFloat(0.8f, 1.2f);
 				break;
 

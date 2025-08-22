@@ -328,6 +328,8 @@ namespace TEN::Renderer
 			_stRoom.RoomDecals[i].Opacity = decals[i].Opacity;
 			_stRoom.RoomDecals[i].Pattern = decals[i].Pattern;
 		}
+
+		_stRoom.NumRoomDecals = (int)decals.size();
 	}
 
 	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)

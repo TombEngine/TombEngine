@@ -14,7 +14,7 @@ cbuffer RoomBuffer : register(b5)
 	int Water;
 	int Caustics;
 	int NumRoomLights;
-	int Padding;
+	int NumRoomDecals;
 	float2 CausticsStartUV;
     float2 CausticsSize;
 	float4 AmbientColor;
@@ -168,23 +168,24 @@ PixelShaderOutput PS(PixelShaderInput input)
 	}
 
 	float decalMask = 0.0f;
-    for (int i = 0; i < MAX_DECALS_PER_ROOM; i++)
+    for (int i = 0; i < NumRoomDecals; i++)
     {
-		if (RoomDecals[i].Opacity > EPSILON)
-		{
-			float radius = RoomDecals[i].Radius;
-			float3 pos = input.WorldPosition - RoomDecals[i].Position;
-			float  distance = length(pos);
+		if (RoomDecals[i].Opacity < EPSILON)
+			continue;
 			
-			float2 coords = pos.xy * 0.5 + pos.zx * 0.5;
-			float noiseVal = NebularNoise(coords * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3); // Scale jaggedness frequency.
-			
-			float noisyRadius = radius * (1.0 + 0.25 * (noiseVal * 2.0 - 1.0));
-			float edge = saturate((noisyRadius - distance) / noisyRadius);
-			float fade = saturate((radius - distance) / radius);
-			
-			decalMask = max(decalMask, (edge * 1) * RoomDecals[i].Opacity);
-		}
+		float radius = RoomDecals[i].Radius;
+		float3 pos = input.WorldPosition - RoomDecals[i].Position;
+		float  distance = length(pos);
+		
+		float2 coords = pos.xy * 0.5 + pos.zx * 0.5;
+		float noiseVal = NebularNoise(coords * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3); // Scale jaggedness frequency.
+		float noisyRadius = radius * (1.0 + 0.25 * (noiseVal * 2.0 - 1.0));
+		
+		float edge = saturate((noisyRadius - distance) / noisyRadius);
+		float fade = saturate((radius - distance) / radius);
+		float hole = saturate((radius / 5 - distance) / (radius / 5)) * (1 - RoomDecals[i].Pattern);
+		
+		decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
     }
 	lighting *= (1.0f - decalMask);
 
