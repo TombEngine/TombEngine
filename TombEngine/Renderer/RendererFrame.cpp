@@ -856,21 +856,32 @@ namespace TEN::Renderer
 		if (Decals.empty())
 			return;
 
-		for (int j : room.Neighbors)
+		for (auto& decal : Decals)
 		{
-			for (auto& decal : Decals)
+			bool decalInRoom = (decal.RoomNumber == room.RoomNumber);
+
+			if (!decalInRoom)
 			{
-				if (decal.RoomNumber == j || decal.RoomNumber == room.RoomNumber)
+				for (auto j : room.Neighbors)
 				{
-					RendererDecal newDecal;
-
-					newDecal.Position = decal.Position;
-					newDecal.Radius = decal.Radius;
-					newDecal.Opacity = decal.Opacity;
-					newDecal.Pattern = (int)decal.Type;
-
-					room.Decals.push_back(newDecal);
+					if (_rooms[j].BoundingBox.Intersects(decal.Sphere))
+					{
+						decalInRoom = true;
+						break;
+					}
 				}
+			}
+
+			if (decalInRoom)
+			{
+				RendererDecal newDecal;
+
+				newDecal.Position = decal.Sphere.Center;
+				newDecal.Radius = decal.Sphere.Radius;
+				newDecal.Opacity = decal.Opacity;
+				newDecal.Pattern = (int)decal.Type;
+
+				room.Decals.push_back(newDecal);
 			}
 		}
 	}

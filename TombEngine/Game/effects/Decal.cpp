@@ -18,8 +18,8 @@ namespace TEN::Effects::Decal
 		{
 			default:
 			case DecalType::BulletHole:
-				radius = CLICK(0.2f) * Random::GenerateFloat(0.9f, 1.1f);
-				opacity = Random::GenerateFloat(0.6f, 0.8f) * Random::GenerateFloat(0.8f, 1.2f);
+				radius = CLICK(0.10f) * Random::GenerateFloat(0.9f, 1.1f);
+				opacity = Random::GenerateFloat(0.4f, 0.6f) * Random::GenerateFloat(0.8f, 1.2f);
 				break;
 
 			case DecalType::Explosion:
@@ -29,10 +29,10 @@ namespace TEN::Effects::Decal
 		}
 
 		decal.Type = type;
-		decal.Position = pos;
+		decal.Sphere.Center = pos;
+		decal.Sphere.Radius = radius;
 		decal.RoomNumber = roomNumber;
 		decal.StartOpacity = opacity;
-		decal.Radius = radius;
 		decal.Life = std::round(Decal::LIFE_MAX);
 	}
 
