@@ -12,7 +12,7 @@ namespace TEN::Effects::Decal
 	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type)
 	{
 		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
-		if (!Lara.Control.Look.IsUsingLasersight && distance > COLLISION_CHECK_DISTANCE)
+		if (type == DecalType::BulletHole && !Lara.Control.Look.IsUsingLasersight && distance > COLLISION_CHECK_DISTANCE)
 			return;
 
 		auto& decal = GetNewEffect(Decals, Decal::COUNT_MAX);
