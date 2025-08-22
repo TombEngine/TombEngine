@@ -156,9 +156,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 	}
 
 	float decalMask = 0.0f;
-    for (int i = 0; i < NumRoomDecals; i++)
-    {
-		if (RoomDecals[i].Opacity < EPSILON)
 	if (!Animated)
 	{
 			for (int i = 0; i < NumRoomDecals; i++)
