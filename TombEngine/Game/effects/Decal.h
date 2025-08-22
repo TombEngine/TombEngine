@@ -28,6 +28,8 @@ namespace TEN::Effects::Decal
 
 		float StartOpacity = 0.0f;
 		float Opacity = 0.0f;
+
+		void UpdateNeighbors();
 	};
 
 	extern std::vector<Decal> Decals;

@@ -10,6 +10,24 @@ namespace TEN::Effects::Decal
 {
 	std::vector<Decal> Decals;
 
+	void Decal::UpdateNeighbors()
+	{
+		Neighbors.fill(NO_VALUE);
+
+		int neighborCount = 0;
+		for (int i : g_Level.Rooms[RoomNumber].NeighborRoomNumbers)
+		{
+			if (g_Level.Rooms[i].Aabb.Intersects(Sphere))
+			{
+				Neighbors[neighborCount] = i;
+				neighborCount++;
+			}
+
+			if (neighborCount >= Neighbors.size())
+				break;
+		}
+	}
+
 	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type)
 	{
 		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
@@ -46,20 +64,7 @@ namespace TEN::Effects::Decal
 		decal.Sphere.Radius = radius;
 		decal.RoomNumber = roomNumber;
 
-		decal.Neighbors.fill(NO_VALUE);
-
-		int neighborCount = 0;
-		for (int i : g_Level.Rooms[roomNumber].NeighborRoomNumbers)
-		{
-			if (g_Level.Rooms[i].Aabb.Intersects(decal.Sphere))
-			{
-				decal.Neighbors[neighborCount] = i;
-				neighborCount++;
-			}
-
-			if (neighborCount >= decal.Neighbors.size())
-				break;
-		}
+		decal.UpdateNeighbors();
 	}
 
 	void UpdateDecals()

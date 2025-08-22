@@ -2413,6 +2413,8 @@ static void ParseEffects(const Save::SaveGame* s)
 		decal.Opacity = decalSave->opacity();
 		decal.StartOpacity = decalSave->start_opacity();
 
+		decal.UpdateNeighbors();
+
 		Decals.push_back(decal);
 	}
 
