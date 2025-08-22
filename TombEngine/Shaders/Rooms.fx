@@ -174,7 +174,7 @@ PixelShaderOutput PS(PixelShaderInput input)
         float  distance = length(pos);
         
         float2 coords = pos.xy * 0.5 + pos.zx * 0.5;
-        float noiseVal = PerlinNoise(coords * 0.3 / (RoomDecals[i].Pattern + 1)); // Scale jaggedness frequency.
+        float noiseVal = NebularNoise(coords * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3); // Scale jaggedness frequency.
         
         float noisyRadius = radius * (1.0 + 0.25 * (noiseVal * 2.0 - 1.0));
         float edge = saturate((noisyRadius - distance) / noisyRadius);
