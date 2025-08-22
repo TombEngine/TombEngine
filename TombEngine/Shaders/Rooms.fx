@@ -1,4 +1,5 @@
 #include "./CBCamera.hlsli"
+#include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -8,19 +9,6 @@
 #include "./ShaderLight.hlsli"
 
 #define ROOM_LIGHT_COEFF 0.7f
-
-cbuffer RoomBuffer : register(b5)
-{
-	int Water;
-	int Caustics;
-	int NumRoomLights;
-	int NumRoomDecals;
-	float2 CausticsStartUV;
-    float2 CausticsSize;
-	float4 AmbientColor;
-	ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
-	ShaderDecal RoomDecals[MAX_DECALS_PER_ROOM];
-};
 
 struct PixelShaderInput
 {
@@ -171,23 +159,36 @@ PixelShaderOutput PS(PixelShaderInput input)
     for (int i = 0; i < NumRoomDecals; i++)
     {
 		if (RoomDecals[i].Opacity < EPSILON)
-			continue;
+	if (!Animated)
+	{
+			for (int i = 0; i < NumRoomDecals; i++)
+		{
+			float radius   = RoomDecals[i].Radius;
+			float3 pos     = input.WorldPosition - RoomDecals[i].Position;
+			float distance = length(pos);
+
+			if (distance > radius * 1.3f)
+				continue;
+
+			//float2 localUV = (pos.xy * 0.5f + pos.zx * 0.5f) / radius * 0.5f + 0.5f;
+			//float2 noiseUV = DecalsStartUV + localUV * DecalsSize;
+			//float noiseVal = DecalsTexture.SampleLevel(DecalsTextureSampler, noiseUV, 0.0f).r;
 			
-		float radius = RoomDecals[i].Radius;
-		float3 pos = input.WorldPosition - RoomDecals[i].Position;
-		float  distance = length(pos);
-		
-		float2 coords = pos.xy * 0.5 + pos.zx * 0.5;
-		float noiseVal = NebularNoise(coords * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3); // Scale jaggedness frequency.
-		float noisyRadius = radius * (1.0 + 0.25 * (noiseVal * 2.0 - 1.0));
-		
-		float edge = saturate((noisyRadius - distance) / noisyRadius);
-		float fade = saturate((radius - distance) / radius);
-		float hole = saturate((radius / 5 - distance) / (radius / 5)) * (1 - RoomDecals[i].Pattern);
-		
-		decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
-    }
-	lighting *= (1.0f - decalMask);
+			
+			float2 localUV = pos.xy * 0.5 + pos.zx * 0.5;
+			float noiseVal = NebularNoise(localUV * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3);
+
+			float noisyRadius = radius * (1.0f + 0.25f * (noiseVal * 2.0f - 1.0f));
+			float holeRadius = radius / 4.0f;
+
+			float edge = saturate((noisyRadius - distance) / noisyRadius);
+			float fade = saturate((radius - distance) / radius);
+			float hole = saturate((holeRadius - distance) / holeRadius) * (1 - RoomDecals[i].Pattern);
+
+			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
+		}
+	}
+	lighting *= (1.0 - decalMask);
 
     if (Caustics)
     {

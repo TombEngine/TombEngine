@@ -13,6 +13,7 @@ namespace TEN::Effects::Decal
 
 		auto radius = 1.0f;
 		auto opacity = 1.0f;
+		auto life = Decal::LIFE_MAX;
 
 		switch (type)
 		{
@@ -25,6 +26,7 @@ namespace TEN::Effects::Decal
 			case DecalType::Explosion:
 				radius = CLICK(3.0f) * Random::GenerateFloat(0.7f, 1.3f);
 				opacity = Random::GenerateFloat(0.9f, 1.0f) * Random::GenerateFloat(0.8f, 1.2f);
+				life *= 2.0f;
 				break;
 		}
 
@@ -33,7 +35,7 @@ namespace TEN::Effects::Decal
 		decal.Sphere.Radius = radius;
 		decal.RoomNumber = roomNumber;
 		decal.StartOpacity = opacity;
-		decal.Life = std::round(Decal::LIFE_MAX);
+		decal.Life = life;
 	}
 
 	void UpdateDecals()

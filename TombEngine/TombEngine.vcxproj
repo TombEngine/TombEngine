@@ -1404,6 +1404,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\CBPostProcess.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="Shaders\CBRoom.hlsli" />
     <None Include="Shaders\CBStatic.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
