@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/effects/Decal.h"
 
+#include "Game/camera.h"
 #include "Game/effects/effects.h"
 
 namespace TEN::Effects::Decal
@@ -9,6 +10,10 @@ namespace TEN::Effects::Decal
 
 	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type)
 	{
+		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
+		if (distance > COLLISION_CHECK_DISTANCE)
+			return;
+
 		auto& decal = GetNewEffect(Decals, Decal::COUNT_MAX);
 
 		auto radius = 1.0f;
