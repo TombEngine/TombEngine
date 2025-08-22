@@ -83,17 +83,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Normal = input.Normal;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-
-#ifdef ANIMATED
-
-	if (Type == 0)
-		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
-	else
-		output.UV = input.UV; // TODO: true UVRotate in future?
-#else
-	output.UV = input.UV;
-#endif
-	
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 	output.WorldPosition = pos;
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;
@@ -121,6 +111,9 @@ float3 PackNormal(float3 n)
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
+	
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
 
 	output.Color = Texture.Sample(Sampler, input.UV);
 

@@ -1533,6 +1533,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
 	{
+		TexturesAreNotAnimated();
+
 		bool activeDebrisExist = false;
 		for (auto& deb : DebrisFragments)
 		{
@@ -1554,6 +1556,10 @@ namespace TEN::Renderer
 
 			_primitiveBatch->Begin();
 
+			bool lastAnimated = false;
+			int lastTexture = NO_VALUE;
+			bool firstDebris = true;
+
 			for (auto& deb : DebrisFragments)
 			{
 				if (deb.active)
@@ -1564,7 +1570,17 @@ namespace TEN::Renderer
 					if (!SetupBlendModeAndAlphaTest(deb.mesh.blendMode, rendererPass, 0))
 						continue;
 
-					if (deb.isStatic)
+					if (!firstDebris && (lastTexture != deb.mesh.tex || lastAnimated != deb.mesh.Animated))
+					{
+						_primitiveBatch->End();
+						_primitiveBatch->Begin();
+					}
+
+					if (deb.mesh.Animated)
+					{
+						BindTexture(TextureRegister::ColorMap, &std::get<0>(_animatedTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
+					}
+					else if (deb.isStatic)
 					{
 						BindTexture(TextureRegister::ColorMap, &std::get<0>(_staticTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
 					}
@@ -1606,6 +1622,10 @@ namespace TEN::Renderer
 					_numDebrisDrawCalls++;
 					_numDrawCalls++;
 					_numTriangles++;
+
+					lastAnimated = deb.mesh.Animated;
+					lastTexture = deb.mesh.tex;
+					firstDebris = false;
 				}
 			}
 

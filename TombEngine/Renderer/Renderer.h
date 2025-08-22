@@ -404,7 +404,7 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
-		void DrawWaterfalls(RendererItem* item, RenderView& view, int fps, RendererPass rendererPass);
+		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
 		void DrawLara(RenderView& view, RendererPass rendererPass);
@@ -523,7 +523,8 @@ namespace TEN::Renderer
 		void InitializePostProcess();
 		void CreateSSAONoiseTexture();
 		void InitializeSMAA();
-
+		void SetupAnimatedTextures(const RendererBucket& bucket);
+		
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
 		inline bool IgnoreReflectionPassForRoom(int roomNumber)
@@ -603,6 +604,17 @@ namespace TEN::Renderer
 		inline RendererObject& GetStaticRendererObject(short objectNumber)
 		{
 			return _staticObjects[Statics.GetIndex(objectNumber)].value();
+		}
+
+		inline void TexturesAreNotAnimated()
+		{
+			_stAnimated.Animated = 0;
+			_cbAnimated.UpdateData(_stAnimated, _context.Get());
+		}
+
+		static inline bool IsWaterfall(short objectNumber)
+		{
+			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
 		}
 
 	public:

@@ -3,7 +3,15 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.9.2.1]() - 2025
+## [Version 1.9.3]
+
+## New features
+* Added animated textures support for all objects.
+* Added UVRotate support.
+* Increased level loading speed by switching to LZ4 compression format.
+* Fixed motorbike sound going silent while doing jumps.
+* Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed controls being stuck when engine window is out of focus.
 
 ### Bug fixes
 * Fixed FIRE_PENDULUM light being overblown when weapons with explosive weapons are used.

@@ -2,7 +2,7 @@
 #include "Specific/level.h"
 
 #include <process.h>
-#include <zlib.h>
+#include <lz4.h>
 
 #include "Game/animation.h"
 #include "Game/animation.h"
@@ -1126,7 +1126,8 @@ void LoadAnimatedTextures()
 		sequence.Atlas = ReadInt32();
 		sequence.Fps   = ReadUInt8();
 		sequence.Type  = ReadUInt8();
-		ReadUInt16(); // Unused.
+		sequence.UVRotateDirection = ReadFloat();
+		sequence.UVRotateSpeed = ReadFloat();
 		sequence.NumFrames = ReadCount();
 
 		for (int j = 0; j < sequence.NumFrames; j++)
@@ -1249,23 +1250,14 @@ void FileClose(FILE* ptr)
 
 bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned long uncompressedSize)
 {
-	z_stream strm;
-	ZeroMemory(&strm, sizeof(z_stream));
-	strm.avail_in = compressedSize;
-	strm.avail_out = uncompressedSize;
-	strm.next_out = (BYTE*)dest;
-	strm.next_in = (BYTE*)src;
+	int decompressedSize = LZ4_decompress_safe(
+		reinterpret_cast<const char*>(src),
+		reinterpret_cast<char*>(dest),
+		static_cast<int>(compressedSize),
+		static_cast<int>(uncompressedSize)
+	);
 
-	inflateInit(&strm);
-	inflate(&strm, Z_FULL_FLUSH);
-
-	if (strm.total_out == uncompressedSize)
-	{
-		inflateEnd(&strm);
-		return true;
-	}
-
-	return false;
+	return decompressedSize == static_cast<int>(uncompressedSize);
 }
 
 long GetRemainingSize(FILE* filePtr)

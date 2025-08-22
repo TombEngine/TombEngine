@@ -3047,7 +3047,7 @@ namespace TEN::Gui
 					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
-				if (!i && !ring.ObjectListMovement)
+				if (!i && !ring.ObjectListMovement) 
 				{
 					if (invObject.RotFlags & INV_ROT_X)
 						listObject.Orientation.x += ANGLE(5.0f / g_Renderer.GetFramerateMultiplier());
