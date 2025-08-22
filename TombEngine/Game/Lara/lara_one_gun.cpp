@@ -1471,7 +1471,8 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 
 void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& prevPos, ProjectileType type, int damage)
 {
-	auto pointColl = GetPointCollision(projectile);
+	auto pointColl  = GetPointCollision(projectile);
+	auto pointColl2 = GetPointCollision((projectile.Pose.Position + prevPos) / 2, projectile.RoomNumber);
 
 	bool hasHit = false;
 	bool hasHitNotByEmitter = false;
@@ -1481,8 +1482,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 	// For non-grenade projectiles, check for room collision.
 	if (type < ProjectileType::Grenade)
 	{
-		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y ||
-			pointColl.GetCeilingHeight() > projectile.Pose.Position.y)
+		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y || pointColl2.GetFloorHeight() < projectile.Pose.Position.y ||
+			pointColl.GetCeilingHeight() > projectile.Pose.Position.y || pointColl2.GetCeilingHeight() > projectile.Pose.Position.y)
 		{
 			hasHit = hasHitNotByEmitter = true;
 		}

@@ -452,6 +452,8 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if ((signed int)(unsigned short)wParam > 0 && (signed int)(unsigned short)wParam <= 2)
 		{
+			SetInputLockState(false);
+
 			if (!g_Configuration.EnableWindowedMode)
 				g_Renderer.ToggleFullScreen(true);
 
@@ -470,6 +472,8 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	else
 	{
+		SetInputLockState(true);
+
 		if (!g_Configuration.EnableWindowedMode)
 			ShowWindow(hWnd, SW_MINIMIZE);
 

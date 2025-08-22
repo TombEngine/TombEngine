@@ -12,6 +12,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Increased level loading speed by switching to LZ4 compression format.
 * Fixed motorbike sound going silent while doing jumps.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed controls being stuck when engine window is out of focus.
 
 ### Bug fixes
 

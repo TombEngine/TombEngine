@@ -34,6 +34,8 @@ namespace TEN::Input
 	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
 	std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
+	bool InputLocked = false; // Disables control polling in case application is defocused.
+
 	// OIS interfaces
 
 	static OIS::InputManager*  OisInputManager = nullptr;
@@ -179,6 +181,11 @@ namespace TEN::Input
 		OIS::InputManager::destroyInputSystem(OisInputManager);
 	}
 
+	void SetInputLockState(bool locked)
+	{
+		InputLocked = locked;
+	}
+
 	void ClearInputData()
 	{
 		for (auto& [keyID, value] : KeyMap)
@@ -294,7 +301,7 @@ namespace TEN::Input
 
 	static void ReadKeyboard()
 	{
-		if (OisKeyboard == nullptr)
+		if (InputLocked || OisKeyboard == nullptr)
 			return;
 
 		try
@@ -322,7 +329,7 @@ namespace TEN::Input
 
 	static void ReadMouse()
 	{
-		if (OisMouse == nullptr)
+		if (InputLocked || OisMouse == nullptr)
 			return;
 
 		try
@@ -409,7 +416,7 @@ namespace TEN::Input
 	
 	static void ReadGamepad()
 	{
-		if (OisGamepad == nullptr)
+		if (InputLocked || OisGamepad == nullptr)
 			return;
 
 		try
