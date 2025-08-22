@@ -11,16 +11,20 @@ namespace TEN::Effects::Decal
 
 	struct Decal
 	{
-		static constexpr auto COUNT_MAX = 16;
-		static constexpr auto LIFE_MAX = 5.0f * FPS;
+		static constexpr auto COUNT_MAX = 32;
+		static constexpr auto COUNT_THRESHOLD = COUNT_MAX / 2;
+		static constexpr auto LIFE_MAX = 6 * FPS;
 		static constexpr auto LIFE_START_FADING = LIFE_MAX / 2;
+		static constexpr auto LIFE_QUEUE_FADEOUT = FPS / 2;
 		
 		BoundingSphere Sphere = {};
 		int RoomNumber = NO_VALUE;
 
 		DecalType Type = DecalType::BulletHole;
 
-		float Life = 0.0f;
+		int Life = 0;
+		int LifeStartFading = 0;
+
 		float StartOpacity = 0.0f;
 		float Opacity = 0.0f;
 	};

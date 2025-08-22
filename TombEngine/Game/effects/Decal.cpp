@@ -42,6 +42,7 @@ namespace TEN::Effects::Decal
 		decal.RoomNumber = roomNumber;
 		decal.StartOpacity = opacity;
 		decal.Life = life;
+		decal.LifeStartFading = Decal::LIFE_START_FADING;
 	}
 
 	void UpdateDecals()
@@ -51,20 +52,50 @@ namespace TEN::Effects::Decal
 
 		for (auto& decal : Decals)
 		{
-			if (decal.Life <= 0.0f)
+			if (decal.Life <= 0)
 				continue;
 
-			// Update opacity.
-			if (decal.Life <= Decal::LIFE_START_FADING)
+			if (decal.Life <= decal.LifeStartFading)
 			{
-				float alpha = 1.0f - (decal.Life / Decal::LIFE_START_FADING);
+				float alpha = 1.0f - ((float)decal.Life / (float)decal.LifeStartFading);
 				decal.Opacity = Lerp(decal.StartOpacity, 0.0f, alpha);
 			}
 			else
+			{
 				decal.Opacity = decal.StartOpacity;
+			}
 
-			// Update life.
-			decal.Life -= 1.0f;
+			decal.Life--;
+		}
+
+		if ((int)Decals.size() > Decal::COUNT_THRESHOLD)
+		{
+			int excess = (int)Decals.size() - Decal::COUNT_THRESHOLD;
+
+			for (auto& decal : Decals)
+			{
+				if (decal.LifeStartFading <= Decal::LIFE_QUEUE_FADEOUT)
+				{
+					excess--;
+					continue;
+				}
+			}
+
+			if (excess > 0)
+			{
+				for (auto& decal : Decals)
+				{
+					if (decal.LifeStartFading <= Decal::LIFE_QUEUE_FADEOUT)
+						continue;
+
+					decal.Life = ((float)decal.Life / (float)decal.LifeStartFading) * Decal::LIFE_QUEUE_FADEOUT;
+					decal.LifeStartFading = Decal::LIFE_QUEUE_FADEOUT;
+					excess--;
+
+					if (excess <= 0)
+						break;
+				}
+			}
 		}
 
 		ClearInactiveEffects(Decals);
