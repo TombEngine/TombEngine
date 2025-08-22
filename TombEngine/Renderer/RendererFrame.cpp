@@ -865,9 +865,9 @@ namespace TEN::Renderer
 
 			if (!decalInRoom)
 			{
-				for (auto j : room.Neighbors)
+				for (auto j : decal.Neighbors)
 				{
-					if (_rooms[j].BoundingBox.Intersects(decal.Sphere))
+					if (j == roomNumber)
 					{
 						decalInRoom = true;
 						break;

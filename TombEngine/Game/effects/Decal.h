@@ -19,6 +19,7 @@ namespace TEN::Effects::Decal
 		
 		BoundingSphere Sphere = {};
 		int RoomNumber = NO_VALUE;
+		std::array<int, 4> Neighbors = {};
 
 		DecalType Type = DecalType::BulletHole;
 

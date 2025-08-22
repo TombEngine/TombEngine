@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/effects/effects.h"
 #include "Game/Lara/lara.h"
+#include "Specific/level.h"
 
 namespace TEN::Effects::Decal
 {
@@ -37,12 +38,28 @@ namespace TEN::Effects::Decal
 		}
 
 		decal.Type = type;
-		decal.Sphere.Center = pos;
-		decal.Sphere.Radius = radius;
-		decal.RoomNumber = roomNumber;
 		decal.StartOpacity = opacity;
 		decal.Life = life;
 		decal.LifeStartFading = Decal::LIFE_START_FADING;
+
+		decal.Sphere.Center = pos;
+		decal.Sphere.Radius = radius;
+		decal.RoomNumber = roomNumber;
+
+		decal.Neighbors.fill(NO_VALUE);
+
+		int neighborCount = 0;
+		for (int i : g_Level.Rooms[roomNumber].NeighborRoomNumbers)
+		{
+			if (g_Level.Rooms[i].Aabb.Intersects(decal.Sphere))
+			{
+				decal.Neighbors[neighborCount] = i;
+				neighborCount++;
+			}
+
+			if (neighborCount >= decal.Neighbors.size())
+				break;
+		}
 	}
 
 	void UpdateDecals()
