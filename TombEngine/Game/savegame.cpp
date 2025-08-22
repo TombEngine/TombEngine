@@ -970,6 +970,24 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto fireflySwarmOffset = fbb.CreateVector(fireflySwarm);
 
+	std::vector<flatbuffers::Offset<Save::Decal>> decals;
+	for (const auto& decal : Decals)
+	{
+		Save::DecalBuilder decalSave{ fbb };
+		decalSave.add_position(&FromVector3(decal.Sphere.Center));
+		decalSave.add_radius(decal.Sphere.Radius);
+		decalSave.add_room_number(decal.RoomNumber);
+		decalSave.add_type((int)decal.Type);
+		decalSave.add_life(decal.Life);
+		decalSave.add_life_start_fading(decal.LifeStartFading);
+		decalSave.add_opacity(decal.Opacity);
+		decalSave.add_start_opacity(decal.StartOpacity);
+
+		auto decalSaveOffset = decalSave.Finish();
+		decals.push_back(decalSaveOffset);
+	}
+	auto decalOffset = fbb.CreateVector(decals);
+
 	// TODO: In future, we should save only active FX, not whole array.
 	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
 
@@ -1592,6 +1610,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
+	sgb.add_decals(decalOffset);
 	sgb.add_fxinfos(serializedEffectsOffset);
 	sgb.add_next_fx_free(NextFxFree);
 	sgb.add_next_fx_active(NextFxActive);
@@ -2377,6 +2396,24 @@ static void ParseEffects(const Save::SaveGame* s)
 		firefly.rotAng = fireflySave->rot_ang();
 
 		FireflySwarm.push_back(firefly);
+	}
+
+	// Load decals.
+	for (int i = 0; i < s->decals()->size(); i++)
+	{
+		const auto& decalSave = s->decals()->Get(i);
+		auto decal = Decal{};
+
+		decal.Sphere.Center = ToVector3(decalSave->position());
+		decal.Sphere.Radius = decalSave->radius();
+		decal.RoomNumber = decalSave->room_number();
+		decal.Type = (DecalType)decalSave->type();
+		decal.Life = decalSave->life();
+		decal.LifeStartFading = decalSave->life_start_fading();
+		decal.Opacity = decalSave->opacity();
+		decal.StartOpacity = decalSave->start_opacity();
+
+		Decals.push_back(decal);
 	}
 
 	// Load particles.

@@ -469,6 +469,17 @@ table Pendulum {
 	node: int32;
 }
 
+table Decal {
+	position: Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
+}
+
 table EventSet {
 	index: int32;
 	statuses: [bool];
@@ -648,6 +659,7 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	decals: [Decal];
 	flip_maps: [int32];
 	flip_stats: [int32];
 	flip_effect: int32;
