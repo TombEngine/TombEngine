@@ -28,12 +28,11 @@ using namespace TEN::Utils;
 using namespace TEN::Video;
 
 WINAPP App;
-unsigned int ThreadID, ConsoleThreadID;
+unsigned int ThreadID, ConsoleThreadID, ThreadSuspendCount;
 uintptr_t ThreadHandle, ConsoleThreadHandle;
 HACCEL hAccTable;
 bool DebugMode = false;
 HWND WindowsHandle;
-DWORD MainThreadID;
 
 // Indicates to hybrid graphics systems to prefer discrete part by default.
 extern "C"
@@ -457,7 +456,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (!g_Configuration.EnableWindowedMode)
 				g_Renderer.ToggleFullScreen(true);
 
-			if (!DebugMode && ThreadHandle > 0)
+			if (ThreadHandle > 0 && ThreadSuspendCount > 0)
 			{
 				TENLog("Resuming game thread", LogLevel::Info);
 
@@ -465,6 +464,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					ResumeAllSounds(SoundPauseMode::Global);
 
 				ResumeThread((HANDLE)ThreadHandle);
+				ThreadSuspendCount--;
 			}
 
 			return 0;
@@ -477,7 +477,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if (!g_Configuration.EnableWindowedMode)
 			ShowWindow(hWnd, SW_MINIMIZE);
 
-		if (!DebugMode)
+		if ((!DebugMode || IsIconic(hWnd)) && ThreadSuspendCount == 0)
 		{
 			TENLog("Suspending game thread", LogLevel::Info);
 
@@ -485,6 +485,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				PauseAllSounds(SoundPauseMode::Global);
 
 			SuspendThread((HANDLE)ThreadHandle);
+			ThreadSuspendCount++;
 		}
 	}
 
@@ -740,6 +741,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	g_Parallel.Initialize();
 	ThreadEnded = false;
+	ThreadSuspendCount = 0;
 	ThreadHandle = BeginThread(GameMain, ThreadID);
 
 	// The game window likes to steal input anyway, so let's put it at the
