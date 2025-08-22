@@ -314,6 +314,22 @@ namespace TEN::Renderer
 		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
+	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
+	{
+		memset(_stRoom.RoomDecals, 0, Decal::COUNT_MAX * sizeof(ShaderDecal));
+
+		for (int i = 0; i < decals.size(); i++)
+		{
+			if (i >= Decal::COUNT_MAX)
+				break;
+
+			_stRoom.RoomDecals[i].Position = decals[i].Position;
+			_stRoom.RoomDecals[i].Radius = decals[i].Radius;
+			_stRoom.RoomDecals[i].Opacity = decals[i].Opacity;
+			_stRoom.RoomDecals[i].Pattern = decals[i].Pattern;
+		}
+	}
+
 	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
 	{
 		_context->VSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);

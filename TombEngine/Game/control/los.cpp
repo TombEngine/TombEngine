@@ -177,10 +177,11 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 	{
 		if (!result)
 		{
+			SpawnDecal(target2.ToVector3(), target2.RoomNumber, DecalType::BulletHole);
+
 			target2.x -= (target2.x - origin->x) >> 5;
 			target2.y -= (target2.y - origin->y) >> 5;
 			target2.z -= (target2.z - origin->z) >> 5;
-
 			TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
 		}
 

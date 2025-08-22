@@ -9,6 +9,7 @@
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
 #include "Game/effects/Bubble.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/effects.h"
@@ -66,6 +67,7 @@ using namespace std::chrono;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
@@ -198,6 +200,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateDebris();
 	UpdateGunFlashes();
 	UpdateGunShells();
+	UpdateDecals();
 	UpdateFootprints();
 	UpdateSplashes();
 	UpdateElectricityArcs();
@@ -544,6 +547,7 @@ void CleanUp()
 	ClearUnderwaterBloodParticles();
 	ClearBubbles();
 	ClearAllDisplaySprites();
+	ClearDecals();
 	ClearFootprints();
 	ClearDrips();
 	ClearRipples();

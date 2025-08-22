@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include "Game/control/control.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/Hair.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
@@ -15,6 +16,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
 
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Renderer::Graphics;
 
@@ -243,6 +245,7 @@ namespace TEN::Renderer
 			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
+			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
 			auto boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
