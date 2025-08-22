@@ -8,8 +8,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## New features
 * Added animated textures support for all objects.
 * Added UVRotate support.
+* Added bullet hole and explosion decals for room geometry.
 * Increased level loading speed by switching to LZ4 compression format.
 * Fixed motorbike sound going silent while doing jumps.
+* Fixed projectiles sometimes flying through narrow room geometry corners.
 
 ### Bug fixes
 
