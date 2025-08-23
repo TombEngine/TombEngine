@@ -150,7 +150,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 			laraItem->Animation.Velocity.y = false;
 			laraItem->Animation.IsAirborne = false;
 
-			ResetPlayerFlex(barItem);
+			ResetPlayerFlex(laraItem);
 
 			if (test1)
 				laraItem->Pose.Orientation.y = barItem->Pose.Orientation.y;

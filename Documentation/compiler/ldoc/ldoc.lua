@@ -658,11 +658,89 @@ for F in file_list:iter() do
    end
 end
 
-local handle = io.open("output.xml", "w")
+local handle = io.open("API.xml", "w")
 io.output(handle)
+
+-- Write XML header and root element
+io.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+io.write('<api>\n')
+
+-- Collect items by type for organized output
+local functions = {}
+local classes = {}
+local enums = {}
+
 for mod in module_list:iter() do
-	mod:dumpToXML()
+   if not doc.project_level(mod.type) then
+      -- Skip non-project level modules
+   elseif mod.type == 'classmod' or mod.type == 'tenclass' or mod.type == 'tenprimitive' then
+      -- Module is a class
+      table.insert(classes, mod)
+   elseif mod.type == 'enum' then
+      -- Module is an enum
+      table.insert(enums, mod)
+   else
+      -- Regular module with functions and items
+      for item in mod.items:iter() do
+         if item:isFunction() then
+            table.insert(functions, { item = item, module = mod.name })
+         elseif item:isClass() then
+            table.insert(classes, item)
+         elseif item:isEnum() then
+            table.insert(enums, item)
+         end
+      end
+   end
 end
+
+-- Export functions section
+if #functions > 0 then
+   io.write('\t<functions>')
+
+   for _, func_data in ipairs(functions) do
+      func_data.item:dumpFunctionToXML(func_data.module)
+   end
+
+   io.write('\n\t</functions>\n')
+end
+
+-- Export classes section
+if #classes > 0 then
+   io.write('\t<classes>')
+
+   for _, class_item in ipairs(classes) do
+      if type(class_item.dumpModuleAsClassToXML) == 'function' then
+         -- Module-level class
+         class_item:dumpModuleAsClassToXML()
+      else
+         -- Item-level class
+         class_item:dumpClassToXML("Unknown")
+      end
+   end
+
+   io.write('\n\t</classes>\n')
+end
+
+-- Export enums section
+if #enums > 0 then
+   io.write('\t<enums>')
+
+   for _, enum_item in ipairs(enums) do
+      if type(enum_item.dumpModuleAsEnumToXML) == 'function' then
+         -- Module-level enum
+         enum_item:dumpModuleAsEnumToXML()
+      else
+         -- Item-level enum
+         enum_item:dumpEnumToXML("Unknown")
+      end
+   end
+
+   io.write('\n\t</enums>')
+end
+
+-- Close root element
+io.write('\n</api>\n')
+
 io.close(handle)
 
 for mod in module_list:iter() do

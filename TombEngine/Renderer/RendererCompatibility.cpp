@@ -69,12 +69,14 @@ namespace TEN::Renderer
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
-		{
+		{  
 			RendererAnimatedTextureSet set{};
 
 			set.NumTextures = sequence.NumFrames;
 			set.Type = (AnimatedTextureType)sequence.Type;
 			set.Fps = sequence.Fps;
+			set.UVRotateSpeed = sequence.UVRotateSpeed;
+			set.UVRotateDirection = sequence.UVRotateDirection;
 
 			std::transform(sequence.Frames.begin(), sequence.Frames.end(), std::back_inserter(set.Textures), [](ANIMATED_TEXTURES_FRAME& frm)
 			{
@@ -96,8 +98,8 @@ namespace TEN::Renderer
 
 				for (int i = 0; i < 4; ++i)
 				{
-					tex.NormalizedUV[i].x = (tex.UV[i].x - UMin) / (UMax - UMin);
-					tex.NormalizedUV[i].y = (tex.UV[i].y - VMin) / (VMax - VMin);
+					tex.NormalizedUV[i].x = round((tex.UV[i].x - UMin) / (UMax - UMin));
+					tex.NormalizedUV[i].y = round((tex.UV[i].y - VMin) / (VMax - VMin));
 				}
 
 				return tex;
@@ -284,21 +286,21 @@ namespace TEN::Renderer
 
 				for (int l = 0; l < (int)room.mesh.size(); l++)
 				{
-					RendererStatic* staticInfo = &rendererRoom.Statics[l];
-					MESH_INFO* oldMesh = &room.mesh[l];
+					auto& rendererStatic = rendererRoom.Statics[l];
+					auto& nativeStatic = room.mesh[l];
 
-					oldMesh->Dirty = true;
+					nativeStatic.Dirty = true;
 
-					staticInfo->ObjectNumber = oldMesh->staticNumber;
-					staticInfo->RoomNumber = oldMesh->roomNumber;
-					staticInfo->Color = oldMesh->color;
-					staticInfo->AmbientLight = rendererRoom.AmbientLight;
-					staticInfo->Pose =
-					staticInfo->PrevPose = oldMesh->pos;
-					staticInfo->OriginalSphere = Statics[staticInfo->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
-					staticInfo->IndexInRoom = l;
+					rendererStatic.ObjectNumber = nativeStatic.Slot;
+					rendererStatic.RoomNumber = nativeStatic.RoomNumber;
+					rendererStatic.Color = nativeStatic.Color;
+					rendererStatic.AmbientLight = rendererRoom.AmbientLight;
+					rendererStatic.Pose =
+					rendererStatic.PrevPose = nativeStatic.Pose;
+					rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
+					rendererStatic.IndexInRoom = l;
 
-					staticInfo->Update(GetInterpolationFactor());
+					rendererStatic.Update(GetInterpolationFactor());
 				}
 			}
 
@@ -1010,7 +1012,7 @@ namespace TEN::Renderer
 					vertex.Binormal.x = poly->binormals[k].x;
 					vertex.Binormal.y = poly->binormals[k].y;
 					vertex.Binormal.z = poly->binormals[k].z;
-
+					 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 
@@ -1021,6 +1023,9 @@ namespace TEN::Renderer
 
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
+
+					vertex.AnimationFrameOffset = poly->animatedFrame;
+					vertex.IndexInPoly = k;
 
 					vertex.OriginalIndex = v;
 

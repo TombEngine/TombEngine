@@ -7,6 +7,7 @@
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
+#include "Game/StaticMesh.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Math/Math.h"
@@ -77,7 +78,7 @@ namespace TEN::Collision::Los
 		return items;
 	}
 
-	static std::vector<MESH_INFO*> GetNearbyStatics(const std::vector<int>& roomNumbers)
+	static std::vector<StaticMesh*> GetNearbyStatics(const std::vector<int>& roomNumbers)
 	{
 		// Collect neighbor room numbers.
 		auto neighborRoomNumbers = std::set<int>{};
@@ -88,7 +89,7 @@ namespace TEN::Collision::Los
 		}
 
 		// Run through neighbor rooms.
-		auto statics = std::vector<MESH_INFO*>{};
+		auto statics = std::vector<StaticMesh*>{};
 		for (int neighborRoomNumber : neighborRoomNumbers)
 		{
 			auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
@@ -99,7 +100,7 @@ namespace TEN::Collision::Los
 			for (auto& staticObj : neighborRoom.mesh)
 			{
 				// Check visibility.
-				if (!(staticObj.flags & StaticMeshFlags::SM_VISIBLE))
+				if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 					continue;
 
 				// Collect static.
@@ -212,8 +213,8 @@ namespace TEN::Collision::Los
 				if (obb.Intersects(origin, dir, intersectDist) && intersectDist <= los.Room.Distance)
 				{
 					auto pos = Geometry::TranslatePoint(origin, dir, intersectDist);
-					auto offset = pos - staticObj->pos.Position.ToVector3();
-					int roomNumber = GetPointCollision(staticObj->pos.Position, staticObj->roomNumber, offset).GetRoomNumber();
+					auto offset = pos - staticObj->Pose.Position.ToVector3();
+					int roomNumber = GetPointCollision(staticObj->Pose.Position, staticObj->RoomNumber, offset).GetRoomNumber();
 
 					auto staticLos = StaticLosCollisionData{};
 					staticLos.Static = staticObj;
@@ -425,11 +426,11 @@ namespace TEN::Collision::Los
 		for (auto& staticLos : los.Statics)
 		{
 			// Check if static is solid (if applicable).
-			if (collideOnlySolid && !(staticLos.Static->flags & StaticMeshFlags::SM_SOLID))
+			if (collideOnlySolid && !(staticLos.Static->Flags & StaticMeshFlags::SM_SOLID))
 				continue;
 
 			// Check if static is collidable.
-			if (!(staticLos.Static->flags & StaticMeshFlags::SM_COLLISION))
+			if (!(staticLos.Static->Flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			return staticLos;

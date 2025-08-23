@@ -191,11 +191,11 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 			for (auto& staticObj : neighborRoom.mesh)
 			{
 				// Discard invisible statics.
-				if (!(staticObj.flags & StaticMeshFlags::SM_VISIBLE))
+				if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 					continue;
 
 				// Test rough distance to discard statics beyond collision check threshold.
-				float dist = Vector3i::Distance(staticObj.pos.Position, collidingItem.Pose.Position);
+				float dist = Vector3i::Distance(staticObj.Pose.Position, collidingItem.Pose.Position);
 				if (dist > COLLISION_CHECK_DISTANCE)
 					continue;
 
@@ -205,12 +205,12 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 					continue;
 
 				// Test conservative AABB intersection.
-				auto aabb = bounds.ToConservativeBoundingBox(staticObj.pos);
+				auto aabb = bounds.ToConservativeBoundingBox(staticObj.Pose);
 				if (!aabb.Intersects(collidingAabb))
 					continue;
 
 				// Test accurate OBB intersection.
-				auto obb = bounds.ToBoundingOrientedBox(staticObj.pos.Position);
+				auto obb = bounds.ToBoundingOrientedBox(staticObj.Pose.Position);
 				if (obb.Intersects(convertedBounds))
 					collObjects.Statics.push_back(&staticObj);
 			}
@@ -304,12 +304,12 @@ void TestForObjectOnLedge(ItemInfo* item, CollisionInfo* coll)
 
 			for (auto& mesh : g_Level.Rooms[i].mesh)
 			{
-				if (!(mesh.flags & StaticMeshFlags::SM_VISIBLE))
+				if (!(mesh.Flags & StaticMeshFlags::SM_VISIBLE))
 					continue;
 
-				if (Vector3i::Distance(item->Pose.Position, mesh.pos.Position) < COLLISION_CHECK_DISTANCE)
+				if (Vector3i::Distance(item->Pose.Position, mesh.Pose.Position) < COLLISION_CHECK_DISTANCE)
 				{
-					const auto& bBox = GetBoundsAccurate(mesh, false).ToBoundingOrientedBox(mesh.pos);
+					const auto& bBox = GetBoundsAccurate(mesh, false).ToBoundingOrientedBox(mesh.Pose);
 					float distance;
 
 					if (bBox.Intersects(origin, direction, distance) && distance < (coll->Setup.Radius * 2))
@@ -584,7 +584,7 @@ bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius)
 	return false;
 }
 
-bool TestBoundsCollideStatic(ItemInfo* item, const MESH_INFO& mesh, int radius)
+bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
@@ -592,17 +592,17 @@ bool TestBoundsCollideStatic(ItemInfo* item, const MESH_INFO& mesh, int radius)
 		return false;
 
 	const auto& itemBounds = GetBestFrame(*item).BoundingBox;
-	if (mesh.pos.Position.y + bounds.Y2 <= item->Pose.Position.y + itemBounds.Y1)
+	if (mesh.Pose.Position.y + bounds.Y2 <= item->Pose.Position.y + itemBounds.Y1)
 		return false;
 
-	if (mesh.pos.Position.y + bounds.Y1 >= item->Pose.Position.y + itemBounds.Y2)
+	if (mesh.Pose.Position.y + bounds.Y1 >= item->Pose.Position.y + itemBounds.Y2)
 		return false;
 
-	float sinY = phd_sin(mesh.pos.Orientation.y);
-	float cosY = phd_cos(mesh.pos.Orientation.y);
+	float sinY = phd_sin(mesh.Pose.Orientation.y);
+	float cosY = phd_cos(mesh.Pose.Orientation.y);
 
-	int x = item->Pose.Position.x - mesh.pos.Position.x;
-	int z = item->Pose.Position.z - mesh.pos.Position.z;
+	int x = item->Pose.Position.x - mesh.Pose.Position.x;
+	int z = item->Pose.Position.z - mesh.Pose.Position.z;
 	int dx = (x * cosY) - (z * sinY);
 	int dz = (z * cosY) + (x * sinY);
 
@@ -790,15 +790,15 @@ bool ItemPushItem(ItemInfo* item, ItemInfo* item2)
 }
 
 // NOTE: Previously ItemPushLaraStatic().
-bool ItemPushStatic(ItemInfo* item, const MESH_INFO& mesh, CollisionInfo* coll)
+bool ItemPushStatic(ItemInfo* item, const StaticMesh& mesh, CollisionInfo* coll)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
-	float sinY = phd_sin(mesh.pos.Orientation.y);
-	float cosY = phd_cos(mesh.pos.Orientation.y);
+	float sinY = phd_sin(mesh.Pose.Orientation.y);
+	float cosY = phd_cos(mesh.Pose.Orientation.y);
 	
-	auto direction = item->Pose.Position - mesh.pos.Position;
-	auto dz = item->Pose.Position.z - mesh.pos.Position.z;
+	auto direction = item->Pose.Position - mesh.Pose.Position;
+	auto dz = item->Pose.Position.z - mesh.Pose.Position.z;
 	auto rx = (direction.x * cosY) - (direction.z * sinY);
 	auto rz = (direction.z * cosY) + (direction.x * sinY);
 	auto minX = bounds.X1 - coll->Setup.Radius;
@@ -827,8 +827,8 @@ bool ItemPushStatic(ItemInfo* item, const MESH_INFO& mesh, CollisionInfo* coll)
 	else
 		rz -= bottom;
 
-	item->Pose.Position.x = mesh.pos.Position.x + cosY * rx + sinY * rz;
-	item->Pose.Position.z = mesh.pos.Position.z + cosY * rz - sinY * rx;
+	item->Pose.Position.x = mesh.Pose.Position.x + cosY * rx + sinY * rz;
+	item->Pose.Position.z = mesh.Pose.Position.z + cosY * rz - sinY * rx;
 
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
@@ -935,21 +935,21 @@ void CollideSolidStatics(ItemInfo* item, CollisionInfo* coll)
 		for (auto& mesh : g_Level.Rooms[i].mesh)
 		{
 			// Only process meshes which are visible.
-			if (!(mesh.flags & StaticMeshFlags::SM_VISIBLE))
+			if (!(mesh.Flags & StaticMeshFlags::SM_VISIBLE))
 				continue;
 
 			// Bypass static meshes which are marked as non-collidable.
-			if (!(mesh.flags & StaticMeshFlags::SM_COLLISION))
+			if (!(mesh.Flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// Only process meshes which are solid, or if solid mode is set by the setup.
-			if (!coll->Setup.ForceSolidStatics && !(mesh.flags & StaticMeshFlags::SM_SOLID))
+			if (!coll->Setup.ForceSolidStatics && !(mesh.Flags & StaticMeshFlags::SM_SOLID))
 				continue;
 
-			float distance = Vector3i::Distance(item->Pose.Position, mesh.pos.Position);
+			float distance = Vector3i::Distance(item->Pose.Position, mesh.Pose.Position);
 			if (distance < COLLISION_CHECK_DISTANCE)
 			{
-				if (CollideSolidBounds(item, GetBoundsAccurate(mesh, false), mesh.pos, coll))
+				if (CollideSolidBounds(item, GetBoundsAccurate(mesh, false), mesh.Pose, coll))
 					coll->HitStatic = true;
 			}
 		}
@@ -1838,6 +1838,12 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 
 			if (isPlayer)
 			{
+				// Ignore all non-intelligent objects, if player is on a vehicle. This way we avoid
+				// any collision routine calls for any interactable objects, as in original, but fix
+				// the issue with enemies not hurting Lara on a vehicle via hand combat.
+				if (GetLaraInfo(*item).Context.Vehicle != NO_VALUE && !object.intelligent)
+					continue;
+
 				// Objects' own collision routines were almost universally written only for
 				// managing collisions with Lara and nothing else. Until all of these routines
 				// are refactored (which won't happen anytime soon), we need this differentiation.
@@ -1871,14 +1877,26 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 					}
 					else
 					{
-						DoDamage(&linkItem, INT_MAX);
-						DoLotsOfBlood(
-							linkItem.Pose.Position.x,
-							item->Pose.Position.y - CLICK(1),
-							linkItem.Pose.Position.z,
-							item->Animation.Velocity.z,
-							item->Pose.Orientation.y,
-							linkItem.RoomNumber, 3);
+						switch (object.damageType)
+						{
+						case DamageMode::None:
+							// Undead enemies push the vehicle.
+							ItemPushItem(&linkItem, item, coll, false, 0);
+							break;
+
+						case DamageMode::Any:
+							// Normal enemies are killed by the vehicle.
+							DoDamage(&linkItem, INT_MAX);
+							DoLotsOfBlood(linkItem.Pose.Position.x, item->Pose.Position.y - CLICK(1), linkItem.Pose.Position.z,
+								item->Animation.Velocity.z, item->Pose.Orientation.y, linkItem.RoomNumber, 3);
+							break;
+
+						case DamageMode::Explosion:
+							// Enemies which can be only exploded shatter to pieces.
+							SoundEffect(SFX_TR4_LARA_THUD, &linkItem.Pose);
+							CreatureDie(itemNumber, true, BODY_DO_EXPLOSION | BODY_NO_FLAME | BODY_NO_SHATTER_EFFECT);
+							break;
+						}
 					}
 				}
 				else if (coll->Setup.EnableObjectPush)
@@ -1891,19 +1909,19 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 		for (auto& staticObject : neighborRoom.mesh)
 		{
 			// Check if static is visible.
-			if (!(staticObject.flags & StaticMeshFlags::SM_VISIBLE))
+			if (!(staticObject.Flags & StaticMeshFlags::SM_VISIBLE))
 				continue;
 
 			// Check if static is collidable.
-			if (!(staticObject.flags & StaticMeshFlags::SM_COLLISION))
+			if (!(staticObject.Flags & StaticMeshFlags::SM_COLLISION))
 				continue;
 
 			// For Lara, solid static mesh collisions are directly managed by GetCollisionInfo,
 			// so we bypass them here to avoid interference.
-			if (isPlayer && (staticObject.flags & StaticMeshFlags::SM_SOLID))
+			if (isPlayer && (staticObject.Flags & StaticMeshFlags::SM_SOLID))
 				continue;
 
-			if (Vector3i::Distance(staticObject.pos.Position, item->Pose.Position) >= COLLISION_CHECK_DISTANCE)
+			if (Vector3i::Distance(staticObject.Pose.Position, item->Pose.Position) >= COLLISION_CHECK_DISTANCE)
 				continue;
 
 			if (!TestBoundsCollideStatic(item, staticObject, coll->Setup.Radius))
@@ -1914,9 +1932,9 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 			// HACK: Shatter statics only by harmful vehicles.
 			if (!isPlayer && 
 				!isHarmless && abs(item->Animation.Velocity.z) > VEHICLE_COLLISION_TERMINAL_VELOCITY &&
-				Statics[staticObject.staticNumber].shatterType != ShatterType::None)
+				Statics[staticObject.Slot].shatterType != ShatterType::None)
 			{
-				SoundEffect(GetShatterSound(staticObject.staticNumber), &staticObject.pos);
+				SoundEffect(GetShatterSound(staticObject.Slot), &staticObject.Pose);
 				ShatterObject(nullptr, &staticObject, -128, item->RoomNumber, 0);
 			}
 			else if (coll->Setup.EnableObjectPush)

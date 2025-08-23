@@ -102,12 +102,8 @@ namespace TEN::Entities::Vehicles
 			return false;
 		}
 
-		int x = laraItem->Pose.Position.x - bigGunItem->Pose.Position.x;
-		int y = laraItem->Pose.Position.y - bigGunItem->Pose.Position.y;
-		int z = laraItem->Pose.Position.z - bigGunItem->Pose.Position.z;
-
-		int distance = SQUARE(x) + SQUARE(y) + SQUARE(z);
-		if (distance > BLOCK(30))
+		auto distance = Vector3i::Distance(laraItem->Pose.Position, bigGunItem->Pose.Position);
+		if (distance > CLICK(0.5f))
 			return false;
 
 		short deltaAngle = abs(laraItem->Pose.Orientation.y - bigGunItem->Pose.Orientation.y);

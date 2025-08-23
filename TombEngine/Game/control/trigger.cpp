@@ -311,8 +311,10 @@ void RefreshCamera(short type, short* data)
 	} while (!(trigger & END_BIT));
 
 	if (Camera.item)
+	{
 		if (!targetOk || (targetOk == 2 && Camera.item->LookedAt && Camera.item != Camera.lastItem))
 			Camera.item = nullptr;
+	}
 
 	if (Camera.number == NO_VALUE && Camera.timer > 0)
 		Camera.timer = NO_VALUE;
@@ -667,8 +669,14 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			if (Camera.number != Camera.last || triggerType == TRIGGER_TYPES::SWITCH)
 			{
+				// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
+				Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
 				Camera.timer = (trigger & TIMER_BITS) * FPS;
 				Camera.type = heavy ? CameraType::Heavy : CameraType::Fixed;
+
+				// If camera is not gliding, disable interpolation.
+				Camera.DisableInterpolation = (Camera.speed == 1);
+
 				if (trigger & ONESHOT)
 					g_Level.Cameras[Camera.number].Flags |= ONESHOT;
 			}

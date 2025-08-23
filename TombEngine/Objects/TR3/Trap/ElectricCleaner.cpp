@@ -256,20 +256,21 @@ namespace TEN::Entities::Traps
 
 				// Search for next direction.
 				auto forwardDir = EulerAngles(0, item.Pose.Orientation.y, 0).ToDirection();
-				auto rightDir = EulerAngles(0, item.Pose.Orientation.y + ANGLE(90.0f), 0).ToDirection();
-				auto newDir = Vector3::Zero;
+				auto rightDir   = EulerAngles(0, item.Pose.Orientation.y + ANGLE(90.0f), 0).ToDirection();
+				auto leftDir    = EulerAngles(0, item.Pose.Orientation.y - ANGLE(90.0f), 0).ToDirection();
+				auto newDir     = Vector3::Zero;
 				
 				if (flagPriorityForward)
 				{
 					// Forward, left, right.
 					if (flagCounterClockwiseOrder)
 					{
-						newDir = GetElectricCleanerMovementDirection(item, forwardDir, -rightDir, rightDir);
+						newDir = GetElectricCleanerMovementDirection(item, forwardDir, leftDir, rightDir);
 					}
 					// Forward, right, left.
 					else
 					{
-						newDir = GetElectricCleanerMovementDirection(item, forwardDir, rightDir, -rightDir);
+						newDir = GetElectricCleanerMovementDirection(item, forwardDir, rightDir, leftDir);
 					}
 				}
 				else
@@ -277,12 +278,12 @@ namespace TEN::Entities::Traps
 					// Right, forward, left.
 					if (flagCounterClockwiseOrder)
 					{
-						newDir = GetElectricCleanerMovementDirection(item, rightDir, forwardDir, -rightDir);
+						newDir = GetElectricCleanerMovementDirection(item, rightDir, forwardDir, leftDir);
 					}
 					// Left, forward, right.
 					else
 					{
-						newDir = GetElectricCleanerMovementDirection(item, -rightDir, forwardDir, rightDir);
+						newDir = GetElectricCleanerMovementDirection(item, leftDir, forwardDir, rightDir);
 					}
 				}
 

@@ -210,11 +210,12 @@ namespace TEN::Entities::Generic
 				{
 					SetAnimation(playerItem, LA_PUSHABLE_GRAB);
 					playerItem->Pose.Orientation = pushableItem.Pose.Orientation;
+					ResetPlayerFlex(playerItem);
 					player.Control.IsMoving = false;
+					player.Control.TurnRate = 0;
 					player.Control.HandStatus = HandStatus::Busy;
 					player.Context.NextCornerPos.Position.x = itemNumber; // TODO: Do this differently.
 				}
-
 				player.Context.InteractedItem = itemNumber;
 			}
 			else

@@ -5,6 +5,7 @@
 #define IDD_SETUP                       103
 #define IDI_ICON1                       108
 #define IDR_TITLELEVEL                  109
+#define IDR_CRASHMSG                    110
 #define IDC_CHK_ENABLE_SOUND2           1012
 #define IDC_OUTSETTINGSTXT              1022
 #define IDC_OUTSETTINGS                 1023

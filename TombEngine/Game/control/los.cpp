@@ -168,7 +168,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		}
 	}
 
-	MESH_INFO* mesh = nullptr;
+	StaticMesh* mesh = nullptr;
 	auto vector = Vector3i::Zero;
 	int itemNumber = ObjectOnLOS2(origin, target, &vector, &mesh);
 	bool hasHit = (itemNumber != NO_LOS_ITEM);
@@ -196,14 +196,14 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 
 	if (itemNumber < 0)
 	{
-		if (Statics[mesh->staticNumber].shatterType != ShatterType::None)
+		if (Statics[mesh->Slot].shatterType != ShatterType::None)
 		{
 			const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 			mesh->HitPoints -= weapon.Damage;
 			ShatterImpactData.impactDirection = dir;
-			ShatterImpactData.impactLocation = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
+			ShatterImpactData.impactLocation = mesh->Pose.Position.ToVector3();
 			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
-			SoundEffect(GetShatterSound(mesh->staticNumber), (Pose*)mesh);
+			SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
 			hitProcessed = true;
 		}
 
@@ -420,7 +420,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	return true;
 }
 
-int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INFO** staticObj, GAME_OBJECT_ID priorityObjectID)
+int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** staticObj, GAME_OBJECT_ID priorityObjectID)
 {
 	ClosestItem = NO_LOS_ITEM;
 	ClosestDist = SQUARE(target->x - origin->x) + SQUARE(target->y - origin->y) + SQUARE(target->z - origin->z);
@@ -437,12 +437,12 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INF
 			{
 				auto& meshp = room.mesh[m];
 
-				if (meshp.flags & StaticMeshFlags::SM_VISIBLE)
+				if (meshp.Flags & StaticMeshFlags::SM_VISIBLE)
 				{
 					auto bounds = GetBoundsAccurate(meshp, false);
-					pose = Pose(meshp.pos.Position, EulerAngles(0, meshp.pos.Orientation.y, 0));
+					pose = Pose(meshp.Pose.Position, EulerAngles(0, meshp.Pose.Orientation.y, 0));
 
-					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.staticNumber))
+					if (DoRayBox(*origin, *target, bounds, pose, *vec, -1 - meshp.Slot))
 					{
 						*staticObj = &meshp;
 						target->RoomNumber = roomNumber;

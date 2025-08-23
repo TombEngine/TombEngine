@@ -37,22 +37,18 @@ namespace TEN::Scripting::Types
 			"a", sol::property(&ScriptColor::GetA, &ScriptColor::SetA));
 	}
 
-	/// @int R Red component.
+	/// Create a Color object.
+	// @function Color
+	// @int R Red component.
 	// @int G Green component.
 	// @int B Blue component.
+	// @int[opt=255] A Alpha (transparency) component.
 	// @treturn Color A new Color object.
-	// @function Color
 	ScriptColor::ScriptColor(byte r, byte g, byte b) :
 		_color(r, g, b)
 	{
 	}
 
-	// @function Color()
-	// @int R Red component.
-	// @int G Green component.
-	// @int B Blue component.
-	// @int A Alpha component (0 = invisible, 255 = opaque).
-	// @treturn Color A new Color object.
 	ScriptColor::ScriptColor(byte r, byte g, byte b, byte a) :
 		ScriptColor(r, g, b)
 	{

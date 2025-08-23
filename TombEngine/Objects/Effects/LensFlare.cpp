@@ -103,7 +103,7 @@ namespace TEN::Entities::Effects
 			// Check room occlusion.
 			isVisible = LOS(&origin, &target);
 
-			MESH_INFO* mesh = nullptr;
+			StaticMesh* mesh = nullptr;
 			auto pointOfContact = Vector3i();
 
 			// Check occlusion for all static meshes and moveables but player.

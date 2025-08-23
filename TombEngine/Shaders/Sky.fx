@@ -4,6 +4,7 @@
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./CBStatic.hlsli"
+#include "./AnimatedTextures.hlsli"
 
 struct PixelShaderInput
 {
@@ -26,7 +27,17 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position = mul(worldPosition, ViewProjection);
 	output.Normal = input.Normal;
 	output.Color = input.Color;
-	output.UV = input.UV;
+
+#ifdef ANIMATED
+
+	if (Type == 0)
+		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
+	else
+		output.UV = input.UV; // TODO: true UVRotate in future?
+#else
+    output.UV = input.UV;
+#endif
+	
 	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
 
 	return output;

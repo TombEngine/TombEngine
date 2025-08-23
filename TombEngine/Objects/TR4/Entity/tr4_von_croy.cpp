@@ -228,11 +228,12 @@ namespace TEN::Entities::TR4
 		{
 			int minDistance = INT_MAX;
 			int distance;
-			auto* targetCreature = ActiveCreatures[0];
+			auto* targetCreature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[0]]);
 
-			for (auto& currentCreature : ActiveCreatures)
+			for (auto creatureIndex : ActiveCreatures)
 			{
-				targetCreature = currentCreature;
+				targetCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 				if (targetCreature->ItemNumber == NO_VALUE ||
 					targetCreature->ItemNumber == itemNumber ||
 					g_Level.Items[targetCreature->ItemNumber].ObjectNumber == ID_VON_CROY ||

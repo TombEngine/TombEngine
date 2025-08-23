@@ -123,6 +123,7 @@ struct NODEOFFSET_INFO
 struct Particle
 {
 	bool on;
+	bool DisableInterpolation;
 
 	GAME_OBJECT_ID SpriteSeqID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
 	int	SpriteID = 0;

@@ -5,7 +5,7 @@
 
 class GameVector;
 struct ItemInfo;
-struct MESH_INFO;
+struct StaticMesh;
 
 using namespace TEN::Math;
 using namespace TEN::Physics;
@@ -46,9 +46,9 @@ namespace TEN::Collision::Los
 
 	struct StaticLosCollisionData
 	{
-		MESH_INFO* Static	  = nullptr;
-		Vector3	   Position	  = Vector3::Zero;
-		int		   RoomNumber = 0;
+		StaticMesh* Static		= nullptr;
+		Vector3	    Position	= Vector3::Zero;
+		int		    RoomNumber	= 0;
 
 		float Distance			= 0.0f;
 		bool  IsOriginContained = false;

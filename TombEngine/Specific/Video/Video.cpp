@@ -176,7 +176,7 @@ namespace TEN::Video
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
-#ifndef _DEBUG
+#if !_DEBUG
 		vlcArgs.push_back("--quiet");			 // Don't generate excessive VLC warnings in the console.
 #endif
 
@@ -188,7 +188,7 @@ namespace TEN::Video
 
 		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
 
-#ifdef _DEBUG
+#if _DEBUG
 		//libvlc_log_set(_vlcInstance, OnLog, nullptr);
 #endif
 

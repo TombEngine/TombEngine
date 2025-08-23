@@ -40,6 +40,8 @@ using namespace TEN::Utils;
 
 int FlashGrenadeAftershockTimer = 0;
 
+constexpr auto WEAPON_MAX_DISTANCE_MULTIPLIER = 3.0f;
+
 // States in which Lara will hold an active flare out in front.
 const auto FlarePoseStates = std::vector<int>
 {
@@ -867,7 +869,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist);
+	auto target = origin + (directionNorm * weapon.TargetDist * WEAPON_MAX_DISTANCE_MULTIPLIER);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
@@ -890,6 +892,15 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	for (int i = 0; i < spheres.size(); i++)
 	{
 		float dist = 0.0f;
+		constexpr auto SPHERE_SCALING_FACTOR = 0.065f;
+
+		// HACK: Compensate for ray-sphere intersection distance.
+		float distanceToSphere = (spheres[i].Center - origin).Length();
+		float factor = distanceToSphere / weapon.TargetDist;
+		float radiusExpansion = Smoothstep(factor) * (distanceToSphere * SPHERE_SCALING_FACTOR);
+
+		spheres[i].Radius = spheres[i].Radius + radiusExpansion;
+
 		if (ray.Intersects(spheres[i], dist))
 		{
 			if (dist < closestDist)
@@ -946,8 +957,10 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
-	for (auto* creaturePtr : ActiveCreatures)
+	for (auto creatureIndex : ActiveCreatures)
 	{
+		auto* creaturePtr = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 		// Continue loop if no item.
 		if (creaturePtr->ItemNumber == NO_VALUE)
 			continue;

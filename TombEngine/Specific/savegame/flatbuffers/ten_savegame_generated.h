@@ -556,6 +556,7 @@ struct LevelDataT : public flatbuffers::NativeTable {
   bool rumble_enabled = false;
   int32_t weather_type = 0;
   float weather_strength = 0.0f;
+  bool weather_clustering = false;
   int32_t fog_color = 0;
   float fog_min_distance = 0.0f;
   float fog_max_distance = 0.0f;
@@ -596,34 +597,35 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_RUMBLE_ENABLED = 8,
     VT_WEATHER_TYPE = 10,
     VT_WEATHER_STRENGTH = 12,
-    VT_FOG_COLOR = 14,
-    VT_FOG_MIN_DISTANCE = 16,
-    VT_FOG_MAX_DISTANCE = 18,
-    VT_SKY_LAYER_1_ENABLED = 20,
-    VT_SKY_LAYER_1_COLOR = 22,
-    VT_SKY_LAYER_1_SPEED = 24,
-    VT_SKY_LAYER_2_ENABLED = 26,
-    VT_SKY_LAYER_2_COLOR = 28,
-    VT_SKY_LAYER_2_SPEED = 30,
-    VT_HORIZON1_ENABLED = 32,
-    VT_HORIZON1_OBJECT_ID = 34,
-    VT_HORIZON1_POSITION = 36,
-    VT_HORIZON1_ORIENTATION = 38,
-    VT_HORIZON1_TRANSPARENCY = 40,
-    VT_HORIZON2_ENABLED = 42,
-    VT_HORIZON2_OBJECT_ID = 44,
-    VT_HORIZON2_POSITION = 46,
-    VT_HORIZON2_ORIENTATION = 48,
-    VT_HORIZON2_TRANSPARENCY = 50,
-    VT_LENSFLARE_ENABLED = 52,
-    VT_LENSFLARE_SPRITE_ID = 54,
-    VT_LENSFLARE_PITCH = 56,
-    VT_LENSFLARE_YAW = 58,
-    VT_LENSFLARE_COLOR = 60,
-    VT_STARFIELD_STAR_COUNT = 62,
-    VT_STARFIELD_METEOR_COUNT = 64,
-    VT_STARFIELD_METEOR_SPAWN_DENSITY = 66,
-    VT_STARFIELD_METEOR_VELOCITY = 68
+    VT_WEATHER_CLUSTERING = 14,
+    VT_FOG_COLOR = 16,
+    VT_FOG_MIN_DISTANCE = 18,
+    VT_FOG_MAX_DISTANCE = 20,
+    VT_SKY_LAYER_1_ENABLED = 22,
+    VT_SKY_LAYER_1_COLOR = 24,
+    VT_SKY_LAYER_1_SPEED = 26,
+    VT_SKY_LAYER_2_ENABLED = 28,
+    VT_SKY_LAYER_2_COLOR = 30,
+    VT_SKY_LAYER_2_SPEED = 32,
+    VT_HORIZON1_ENABLED = 34,
+    VT_HORIZON1_OBJECT_ID = 36,
+    VT_HORIZON1_POSITION = 38,
+    VT_HORIZON1_ORIENTATION = 40,
+    VT_HORIZON1_TRANSPARENCY = 42,
+    VT_HORIZON2_ENABLED = 44,
+    VT_HORIZON2_OBJECT_ID = 46,
+    VT_HORIZON2_POSITION = 48,
+    VT_HORIZON2_ORIENTATION = 50,
+    VT_HORIZON2_TRANSPARENCY = 52,
+    VT_LENSFLARE_ENABLED = 54,
+    VT_LENSFLARE_SPRITE_ID = 56,
+    VT_LENSFLARE_PITCH = 58,
+    VT_LENSFLARE_YAW = 60,
+    VT_LENSFLARE_COLOR = 62,
+    VT_STARFIELD_STAR_COUNT = 64,
+    VT_STARFIELD_METEOR_COUNT = 66,
+    VT_STARFIELD_METEOR_SPAWN_DENSITY = 68,
+    VT_STARFIELD_METEOR_VELOCITY = 70
   };
   int32_t level_far_view() const {
     return GetField<int32_t>(VT_LEVEL_FAR_VIEW, 0);
@@ -639,6 +641,9 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   float weather_strength() const {
     return GetField<float>(VT_WEATHER_STRENGTH, 0.0f);
+  }
+  bool weather_clustering() const {
+    return GetField<uint8_t>(VT_WEATHER_CLUSTERING, 0) != 0;
   }
   int32_t fog_color() const {
     return GetField<int32_t>(VT_FOG_COLOR, 0);
@@ -731,6 +736,7 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_RUMBLE_ENABLED) &&
            VerifyField<int32_t>(verifier, VT_WEATHER_TYPE) &&
            VerifyField<float>(verifier, VT_WEATHER_STRENGTH) &&
+           VerifyField<uint8_t>(verifier, VT_WEATHER_CLUSTERING) &&
            VerifyField<int32_t>(verifier, VT_FOG_COLOR) &&
            VerifyField<float>(verifier, VT_FOG_MIN_DISTANCE) &&
            VerifyField<float>(verifier, VT_FOG_MAX_DISTANCE) &&
@@ -784,6 +790,9 @@ struct LevelDataBuilder {
   }
   void add_weather_strength(float weather_strength) {
     fbb_.AddElement<float>(LevelData::VT_WEATHER_STRENGTH, weather_strength, 0.0f);
+  }
+  void add_weather_clustering(bool weather_clustering) {
+    fbb_.AddElement<uint8_t>(LevelData::VT_WEATHER_CLUSTERING, static_cast<uint8_t>(weather_clustering), 0);
   }
   void add_fog_color(int32_t fog_color) {
     fbb_.AddElement<int32_t>(LevelData::VT_FOG_COLOR, fog_color, 0);
@@ -887,6 +896,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     bool rumble_enabled = false,
     int32_t weather_type = 0,
     float weather_strength = 0.0f,
+    bool weather_clustering = false,
     int32_t fog_color = 0,
     float fog_min_distance = 0.0f,
     float fog_max_distance = 0.0f,
@@ -947,6 +957,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
   builder_.add_horizon1_enabled(horizon1_enabled);
   builder_.add_sky_layer_2_enabled(sky_layer_2_enabled);
   builder_.add_sky_layer_1_enabled(sky_layer_1_enabled);
+  builder_.add_weather_clustering(weather_clustering);
   builder_.add_rumble_enabled(rumble_enabled);
   builder_.add_storm_enabled(storm_enabled);
   return builder_.Finish();
@@ -5216,8 +5227,8 @@ flatbuffers::Offset<Sink> CreateSink(flatbuffers::FlatBufferBuilder &_fbb, const
 struct StaticMeshInfoT : public flatbuffers::NativeTable {
   typedef StaticMeshInfo TableType;
   int32_t number = 0;
-  int32_t room_number = 0;
   std::unique_ptr<TEN::Save::Pose> pose{};
+  int32_t room_number = 0;
   std::unique_ptr<TEN::Save::Vector4> color{};
   int32_t hit_points = 0;
   int32_t flags = 0;
@@ -5229,8 +5240,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NUMBER = 4,
-    VT_ROOM_NUMBER = 6,
-    VT_POSE = 8,
+    VT_POSE = 6,
+    VT_ROOM_NUMBER = 8,
     VT_COLOR = 10,
     VT_HIT_POINTS = 12,
     VT_FLAGS = 14
@@ -5238,11 +5249,11 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t number() const {
     return GetField<int32_t>(VT_NUMBER, 0);
   }
-  int32_t room_number() const {
-    return GetField<int32_t>(VT_ROOM_NUMBER, 0);
-  }
   const TEN::Save::Pose *pose() const {
     return GetStruct<const TEN::Save::Pose *>(VT_POSE);
+  }
+  int32_t room_number() const {
+    return GetField<int32_t>(VT_ROOM_NUMBER, 0);
   }
   const TEN::Save::Vector4 *color() const {
     return GetStruct<const TEN::Save::Vector4 *>(VT_COLOR);
@@ -5256,8 +5267,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_NUMBER) &&
-           VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<TEN::Save::Pose>(verifier, VT_POSE) &&
+           VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<TEN::Save::Vector4>(verifier, VT_COLOR) &&
            VerifyField<int32_t>(verifier, VT_HIT_POINTS) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
@@ -5275,11 +5286,11 @@ struct StaticMeshInfoBuilder {
   void add_number(int32_t number) {
     fbb_.AddElement<int32_t>(StaticMeshInfo::VT_NUMBER, number, 0);
   }
-  void add_room_number(int32_t room_number) {
-    fbb_.AddElement<int32_t>(StaticMeshInfo::VT_ROOM_NUMBER, room_number, 0);
-  }
   void add_pose(const TEN::Save::Pose *pose) {
     fbb_.AddStruct(StaticMeshInfo::VT_POSE, pose);
+  }
+  void add_room_number(int32_t room_number) {
+    fbb_.AddElement<int32_t>(StaticMeshInfo::VT_ROOM_NUMBER, room_number, 0);
   }
   void add_color(const TEN::Save::Vector4 *color) {
     fbb_.AddStruct(StaticMeshInfo::VT_COLOR, color);
@@ -5304,8 +5315,8 @@ struct StaticMeshInfoBuilder {
 inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t number = 0,
-    int32_t room_number = 0,
     const TEN::Save::Pose *pose = 0,
+    int32_t room_number = 0,
     const TEN::Save::Vector4 *color = 0,
     int32_t hit_points = 0,
     int32_t flags = 0) {
@@ -5313,8 +5324,8 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
   builder_.add_flags(flags);
   builder_.add_hit_points(hit_points);
   builder_.add_color(color);
-  builder_.add_pose(pose);
   builder_.add_room_number(room_number);
+  builder_.add_pose(pose);
   builder_.add_number(number);
   return builder_.Finish();
 }
@@ -9368,6 +9379,7 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = rumble_enabled(); _o->rumble_enabled = _e; }
   { auto _e = weather_type(); _o->weather_type = _e; }
   { auto _e = weather_strength(); _o->weather_strength = _e; }
+  { auto _e = weather_clustering(); _o->weather_clustering = _e; }
   { auto _e = fog_color(); _o->fog_color = _e; }
   { auto _e = fog_min_distance(); _o->fog_min_distance = _e; }
   { auto _e = fog_max_distance(); _o->fog_max_distance = _e; }
@@ -9411,6 +9423,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _rumble_enabled = _o->rumble_enabled;
   auto _weather_type = _o->weather_type;
   auto _weather_strength = _o->weather_strength;
+  auto _weather_clustering = _o->weather_clustering;
   auto _fog_color = _o->fog_color;
   auto _fog_min_distance = _o->fog_min_distance;
   auto _fog_max_distance = _o->fog_max_distance;
@@ -9446,6 +9459,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _rumble_enabled,
       _weather_type,
       _weather_strength,
+      _weather_clustering,
       _fog_color,
       _fog_min_distance,
       _fog_max_distance,
@@ -10791,8 +10805,8 @@ inline void StaticMeshInfo::UnPackTo(StaticMeshInfoT *_o, const flatbuffers::res
   (void)_o;
   (void)_resolver;
   { auto _e = number(); _o->number = _e; }
-  { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
+  { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = color(); if (_e) _o->color = std::unique_ptr<TEN::Save::Vector4>(new TEN::Save::Vector4(*_e)); }
   { auto _e = hit_points(); _o->hit_points = _e; }
   { auto _e = flags(); _o->flags = _e; }
@@ -10807,16 +10821,16 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const StaticMeshInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _number = _o->number;
-  auto _room_number = _o->room_number;
   auto _pose = _o->pose ? _o->pose.get() : 0;
+  auto _room_number = _o->room_number;
   auto _color = _o->color ? _o->color.get() : 0;
   auto _hit_points = _o->hit_points;
   auto _flags = _o->flags;
   return TEN::Save::CreateStaticMeshInfo(
       _fbb,
       _number,
-      _room_number,
       _pose,
+      _room_number,
       _color,
       _hit_points,
       _flags);

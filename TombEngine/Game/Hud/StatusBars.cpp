@@ -74,6 +74,16 @@ namespace TEN::Hud
 		UpdateStaminaBar(item);
 	}
 
+	void StatusBarsController::Clamp(const ItemInfo& item)
+	{
+		const auto& player = GetLaraInfo(item);
+
+		_airBar.Value = _airBar.TargetValue = player.Status.Air / LARA_AIR_MAX;
+		_exposureBar.Value = _exposureBar.TargetValue = player.Status.Exposure / LARA_EXPOSURE_MAX;
+		_healthBar.Value = _healthBar.TargetValue = item.HitPoints / LARA_HEALTH_MAX;
+		_staminaBar.Value = _staminaBar.TargetValue = player.Status.Stamina / LARA_STAMINA_MAX;
+	}
+
 	void StatusBarsController::Draw(const ItemInfo& item) const
 	{
 		// Avoid drawing if HUD is disabled.

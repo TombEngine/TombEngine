@@ -1138,7 +1138,7 @@ static std::vector<LaraWeaponType> StandingWeaponTypes
 
 bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 {
-	return (TestLaraWeaponType(weaponType, StandingWeaponTypes) || GetLaraInfo(*item).Weapons[(int)weaponType].HasLasersight);
+	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
 }
 
 bool IsCrouching(const ItemInfo* item)

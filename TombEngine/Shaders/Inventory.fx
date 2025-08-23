@@ -2,6 +2,7 @@
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./AnimatedTextures.hlsli"
 
 cbuffer ItemBuffer : register(b1)
 {
@@ -30,31 +31,36 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	output.Position = mul(mul(float4(input.Position, 1.0f), World), ViewProjection);
 	output.Normal = (mul(float4(input.Normal, 0.0f), World).xyz);
-	output.Color = input.Color;
-	output.UV = input.UV;
-	output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
+    output.Color = input.Color;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
 	output.Sheen = input.Effects.w;
 	return output;
 }
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	float4 output = Texture.Sample(Sampler, input.UV);
-  float3 normal = normalize(input.Normal);
-  float3 pos = normalize(input.WorldPosition);
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+	
+    float4 output = Texture.Sample(Sampler, input.UV);
+    float3 normal = normalize(input.Normal);
+    float3 pos = normalize(input.WorldPosition);
 
-	DoAlphaTest(output);
-	ShaderLight l;
-	l.Color = float3(1.0f, 1.0f, 0.5f);
-	l.Intensity = 0.3f;
-	l.Type = LT_SUN;
-	l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
+    DoAlphaTest(output);
+	
+    ShaderLight l;
+    l.Color = float3(1.0f, 1.0f, 0.5f);
+    l.Intensity = 0.3f;
+    l.Type = LT_SUN;
+    l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
-		output.xyz += DoDirectionalLight(pos, normal, l);
-		output.xyz += DoSpecularSun(input.Normal, l, input.Sheen);
+    output.xyz += DoDirectionalLight(pos, normal, l);
+    output.xyz += DoSpecularSun(input.Normal, l, input.Sheen);
 
-		//adding some pertubations to the lighting to add a cool effect
-		float3 noise = SimplexNoise(output.xyz);
-		output.xyz = NormalNoise(output, noise, normal);
-	return output;
+	//adding some pertubations to the lighting to add a cool effect
+    float3 noise = SimplexNoise(output.xyz);
+    output.xyz = NormalNoise(output, noise, normal);
+	
+    return output;
 }

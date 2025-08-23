@@ -831,13 +831,12 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-		// Set shaders.
-		_shaders.Bind(Shader::Inventory);
-
 		// Set matrices.
 		auto hudCamera = CCameraMatrixBuffer{};
 		hudCamera.CamDirectionWS = -Vector4::UnitZ;
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
+		hudCamera.Frame = GlobalCounter;
+		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
@@ -849,6 +848,8 @@ namespace TEN::Renderer
 			// HACK: Rotate compass needle.
 			if (objectNumber == ID_COMPASS_ITEM && i == 1)
 				moveableObject->LinearizedBones[i]->ExtraRotation = EulerAngles(0, g_Gui.CompassNeedleAngle - ANGLE(180.0f), 0).ToQuaternion();
+
+			_shaders.Bind(Shader::Inventory);
 
 			// Construct world matrix.
 			auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
@@ -870,29 +871,44 @@ namespace TEN::Renderer
 			_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
 
 			_cbItem.UpdateData(_stItem, _context.Get());
+
 			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
 			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
-			for (const auto& bucket : mesh.Buckets)
-			{
-				if (bucket.NumVertices == 0)
-					continue;
 
-				SetBlendMode(BlendMode::Opaque);
-				SetCullMode(CullMode::CounterClockwise);
-				SetDepthState(DepthState::Write);
+			for (int animated = 0; animated < 2; animated++)
+			{				
+				for (const auto& bucket : mesh.Buckets)
+				{
+					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+						continue;
 
-				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-				BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+					SetBlendMode(BlendMode::Opaque);
+					SetCullMode(CullMode::CounterClockwise);
+					SetDepthState(DepthState::Write);
 
-				 if (bucket.BlendMode != BlendMode::Opaque)
-					SetBlendMode(bucket.BlendMode, true);
+					if (animated)
+					{
+						SetupAnimatedTextures(bucket);
+					}
+					else
+					{
+						TexturesAreNotAnimated();
 
-				SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
-				DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-				_numMoveablesDrawCalls++;
+						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+						BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+					}
+
+					if (bucket.BlendMode != BlendMode::Opaque)
+						SetBlendMode(bucket.BlendMode, true);
+
+					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					_numMoveablesDrawCalls++;
+				}
 			}
 		}
 	}

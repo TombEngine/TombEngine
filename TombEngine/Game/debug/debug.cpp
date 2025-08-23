@@ -2,6 +2,7 @@
 #include "Game/Debug/Debug.h"
 
 #include <chrono>
+#include <filesystem>
 #include <spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -13,20 +14,74 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Debug
 {
+	constexpr auto MAX_LOG_FILES = 20;
+
 	static auto startTime = std::chrono::high_resolution_clock::time_point{};
 	static auto prevString = std::string();
 
+	static std::string GetTimestampString()
+	{
+		auto now = std::chrono::system_clock::now();
+		auto t = std::chrono::system_clock::to_time_t(now);
+
+		std::tm tmBuf{};
+		localtime_s(&tmBuf, &t);
+
+		std::ostringstream oss;
+		oss << std::put_time(&tmBuf, "%Y-%m-%d_%H-%M-%S");
+		return oss.str();
+	}
+
+	static void CleanupOldLogs(const std::filesystem::path& logDir)
+	{
+		std::vector<std::filesystem::directory_entry> logFiles;
+
+		if (!std::filesystem::exists(logDir))
+			return;
+
+		for (const auto& entry : std::filesystem::directory_iterator(logDir))
+		{
+			if (entry.is_regular_file() && entry.path().extension() == ".txt")
+				logFiles.push_back(entry);
+		}
+
+		if (logFiles.size() <= MAX_LOG_FILES)
+			return;
+
+		std::sort(logFiles.begin(), logFiles.end(),
+			[](const auto& a, const auto& b)
+			{
+				return std::filesystem::last_write_time(a) < std::filesystem::last_write_time(b);
+			});
+
+		// Delete oldest until we have MAX_LOG_FILES.
+		while (logFiles.size() > MAX_LOG_FILES)
+		{
+			try
+			{
+				std::filesystem::remove(logFiles.front());
+			}
+			catch (...) {}
+			logFiles.erase(logFiles.begin());
+		}
+	}
+
 	void InitTENLog(const std::string& logDirContainingDir)
 	{
-		// "true" means create new log file each time game is run.
-		auto logPath = logDirContainingDir + "Logs/TENLog.txt";
-		auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath, true);
+		auto logDir = std::filesystem::path(logDirContainingDir) / "Logs";
+		std::filesystem::create_directories(logDir);
 
-		auto logger = std::shared_ptr<spdlog::logger>();
+		// Remove oldest logs if over the limit.
+		CleanupOldLogs(logDir);
 
-		// Set file and console log targets.
+		// Create unique filename.
+		std::string filename = "TENLog_" + GetTimestampString() + ".txt";
+		auto logPath = logDir / filename;
+
+		auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
 		auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		logger = std::make_shared<spdlog::logger>(std::string("multi_sink"), spdlog::sinks_init_list{ fileSink, consoleSink });
+
+		auto logger = std::make_shared<spdlog::logger>("multi_sink", spdlog::sinks_init_list{ fileSink, consoleSink });
 
 		spdlog::initialize_logger(logger);
 		logger->set_level(spdlog::level::info);

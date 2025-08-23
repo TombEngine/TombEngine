@@ -60,7 +60,7 @@ LevelVars.Engine.Timer = {}
 LevelVars.Engine.Timer = {timers = {}}
 
 --- Create (but do not start) a new timer.
--- @tparam string name A label to give this timer; used to retrieve the timer later.<br>__Do not give your timers a name beginning with __TEN, as this is reserved for timers used by other internal libaries__.
+-- @tparam string name A label to give this timer; used to retrieve the timer later.<br>__Do not give your timers a name beginning with \_\_TEN, as this is reserved for timers used by other internal libaries__.
 -- @tparam float totalTime Duration of the timer, in seconds.<br>Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!
 -- @tparam[opt=false] bool loop If true, the timer will start again immediately after the time has elapsed.
 -- @tparam[opt=false] ?table|bool timerFormat Sets the remaining time display. See <a href="#timerFormat">Timer format</a>.
