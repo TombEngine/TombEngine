@@ -1031,8 +1031,8 @@ namespace TEN::Renderer
 		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
 		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(1.0f);
 
-		constexpr auto RAIN_WIDTH_NEAR = 0.5f;
-		constexpr auto RAIN_WIDTH_FAR = 14.0f;
+		constexpr auto RAIN_WIDTH_NEAR = 1.5f;
+		constexpr auto RAIN_WIDTH_FAR = 15.0f;
 
 		for (const auto& part : Weather.GetParticles())
 		{
