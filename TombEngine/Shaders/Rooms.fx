@@ -166,11 +166,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			if (distance > radius * 1.3f)
 				continue;
-
-			//float2 localUV = (pos.xy * 0.5f + pos.zx * 0.5f) / radius * 0.5f + 0.5f;
-			//float2 noiseUV = DecalsStartUV + localUV * DecalsSize;
-			//float noiseVal = DecalsTexture.SampleLevel(DecalsTextureSampler, noiseUV, 0.0f).r;
-			
 			
 			float2 localUV = pos.xy * 0.5 + pos.zx * 0.5;
 			float noiseVal = NebularNoise(localUV * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3);
