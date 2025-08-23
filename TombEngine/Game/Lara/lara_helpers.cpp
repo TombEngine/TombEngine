@@ -1076,21 +1076,27 @@ void DoLaraFallDamage(ItemInfo* item)
 	constexpr auto RUMBLE_POWER_COEFF = 0.7f;
 	constexpr auto RUMBLE_DELAY		  = 0.3f;
 
-	if (item->Animation.Velocity.y >= LARA_DAMAGE_VELOCITY)
-	{
-		if (item->Animation.Velocity.y >= LARA_DEATH_VELOCITY)
-		{
-			item->HitPoints = 0;
-		}
-		else
-		{
-			float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
-			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f), true);
-		}
+	if (item->Animation.Velocity.y < LARA_DAMAGE_VELOCITY)
+		return;
 
-		float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;
-		Rumble(rumblePower, RUMBLE_DELAY);
+	auto pointColl = GetPointCollision(*item);
+
+	if ((pointColl.TestEnvironmentFlag(RoomEnvFlags::ENV_FLAG_WATER) || pointColl.TestEnvironmentFlag(RoomEnvFlags::ENV_FLAG_SWAMP)) &&
+		pointColl.GetWaterBottomHeight() >= CLICK(2))
+		return;
+
+	if (item->Animation.Velocity.y >= LARA_DEATH_VELOCITY)
+	{
+		item->HitPoints = 0;
 	}
+	else
+	{
+		float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
+		DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f), true);
+	}
+
+	float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;
+	Rumble(rumblePower, RUMBLE_DELAY);
 }
 
 LaraInfo& GetLaraInfo(ItemInfo& item)

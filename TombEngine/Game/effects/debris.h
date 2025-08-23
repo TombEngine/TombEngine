@@ -48,6 +48,7 @@ struct DebrisMesh
 	std::array<Vector3, 3> Normals;
 	std::array<Vector4, 3> Colors;
 	int tex;
+	bool Animated;
 };
 
 struct DebrisFragment

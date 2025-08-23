@@ -28,12 +28,11 @@ using namespace TEN::Utils;
 using namespace TEN::Video;
 
 WINAPP App;
-unsigned int ThreadID, ConsoleThreadID;
+unsigned int ThreadID, ConsoleThreadID, ThreadSuspendCount;
 uintptr_t ThreadHandle, ConsoleThreadHandle;
 HACCEL hAccTable;
 bool DebugMode = false;
 HWND WindowsHandle;
-DWORD MainThreadID;
 
 // Indicates to hybrid graphics systems to prefer discrete part by default.
 extern "C"
@@ -357,11 +356,57 @@ LONG WINAPI HandleException(EXCEPTION_POINTERS* exceptionInfo)
 
 	auto errorMessage = "Unhandled exception: " + std::string(codeName) + " at " + oss.str() + ".";
 
-	// Set application to debug mode to prevent losing focus in fullscreen mode.
-	DebugMode = true;
-
 	// Log the exception and show error message.
 	TENLog(errorMessage, LogLevel::Error);
+
+	// Optionally print stack trace, if engine is in debug mode.
+	if (DebugMode)
+	{
+		oss = std::ostringstream{};
+		oss << "Stack trace:\n";
+
+		CONTEXT ctx = *exceptionInfo->ContextRecord;
+		STACKFRAME64 stack = {};
+
+		stack.AddrPC.Mode =
+		stack.AddrFrame.Mode =
+		stack.AddrStack.Mode = AddrModeFlat;
+
+#ifdef _M_IX86
+		DWORD machineType = IMAGE_FILE_MACHINE_I386;
+		stack.AddrPC.Offset = ctx.Eip;
+		stack.AddrFrame.Offset = ctx.Ebp;
+		stack.AddrStack.Offset = ctx.Esp;
+#elif _M_X64
+		DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
+		stack.AddrPC.Offset = ctx.Rip;
+		stack.AddrFrame.Offset = ctx.Rsp;
+		stack.AddrStack.Offset = ctx.Rsp;
+#endif
+
+		HANDLE thread = GetCurrentThread();
+
+		constexpr int STACK_DEPTH = 32;
+		for (int frame = 0; frame < STACK_DEPTH; ++frame)
+		{
+			if (!StackWalk64(machineType, process, thread, &stack, &ctx, NULL,
+				SymFunctionTableAccess64, SymGetModuleBase64, NULL))
+				break;
+
+			if (stack.AddrPC.Offset == 0)
+				break;
+
+			if (SymFromAddr(process, stack.AddrPC.Offset, 0, symbol))
+				oss << "  [" << frame << "] " << symbol->Name << " (0x" << std::hex << stack.AddrPC.Offset << ")\n";
+			else
+				oss << "  [" << frame << "] " << "0x" << std::hex << stack.AddrPC.Offset << "\n";
+		}
+
+		TENLog(oss.str(), LogLevel::Error);
+	}
+
+	// Set engine to debug mode to prevent losing focus in fullscreen mode and show error message.
+	DebugMode = true;
 	ShowExternalMessageBox(errorMessage);
 
 	return EXCEPTION_EXECUTE_HANDLER;
@@ -452,10 +497,12 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if ((signed int)(unsigned short)wParam > 0 && (signed int)(unsigned short)wParam <= 2)
 		{
+			SetInputLockState(false);
+
 			if (!g_Configuration.EnableWindowedMode)
 				g_Renderer.ToggleFullScreen(true);
 
-			if (!DebugMode && ThreadHandle > 0)
+			if (ThreadHandle > 0 && ThreadSuspendCount > 0)
 			{
 				TENLog("Resuming game thread", LogLevel::Info);
 
@@ -463,6 +510,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					ResumeAllSounds(SoundPauseMode::Global);
 
 				ResumeThread((HANDLE)ThreadHandle);
+				ThreadSuspendCount--;
 			}
 
 			return 0;
@@ -470,10 +518,12 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	else
 	{
+		SetInputLockState(true);
+
 		if (!g_Configuration.EnableWindowedMode)
 			ShowWindow(hWnd, SW_MINIMIZE);
 
-		if (!DebugMode)
+		if ((!DebugMode || IsIconic(hWnd)) && ThreadSuspendCount == 0)
 		{
 			TENLog("Suspending game thread", LogLevel::Info);
 
@@ -481,6 +531,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				PauseAllSounds(SoundPauseMode::Global);
 
 			SuspendThread((HANDLE)ThreadHandle);
+			ThreadSuspendCount++;
 		}
 	}
 
@@ -736,6 +787,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	g_Parallel.Initialize();
 	ThreadEnded = false;
+	ThreadSuspendCount = 0;
 	ThreadHandle = BeginThread(GameMain, ThreadID);
 
 	// The game window likes to steal input anyway, so let's put it at the

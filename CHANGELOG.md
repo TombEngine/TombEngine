@@ -3,7 +3,24 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.9.2]
+## [Version 1.9.3]
+
+## New features
+* Added animated textures support for all objects.
+* Added UVRotate support.
+* Increased level loading speed by switching to LZ4 compression format.
+
+### Bug fixes
+* Fixed FIRE_PENDULUM light being overblown when weapons with explosive weapons are used.
+* Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
+* Fixed motorbike sound going silent while doing jumps.
+* Fixed dying while landing into shallow water after freefall.
+* Fixed shotgun wideshot ammo having same accuracy as normal ammo.
+* Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed controls being stuck when engine window is out of focus.
+* Fixed intense GPU usage when engine window is minimized.
+
+## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
 
 ## New features
 * Added FIRE_PENDULUM (ID 458) object from TR3.
@@ -39,12 +56,13 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed overbright ambient light not applied correctly to moveables.
 
 ### Lua API changes
+* Added log warnings in case callbacks or level functions are being redefined.
 * Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 * Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
 * Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
 * Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
 
-## [Version 1.9.1]
+## [Version 1.9.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.1) - 2025-06-25
 
 ### New features
 * Added ability to open doors with draw weapon key in dozy mode.
@@ -73,7 +91,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `Camera:SetPosition` interfering with non-fixed camera position.
 * Renamed `Camera:PlayCamera` to `Camera:Play`.
 
-## [Version 1.9]
+## [Version 1.9](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9) - 2025-05-19
 
 ## New features
 * Added skinned meshes support for any object.

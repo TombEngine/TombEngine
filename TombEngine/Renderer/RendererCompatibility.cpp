@@ -69,12 +69,14 @@ namespace TEN::Renderer
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
-		{
+		{  
 			RendererAnimatedTextureSet set{};
 
 			set.NumTextures = sequence.NumFrames;
 			set.Type = (AnimatedTextureType)sequence.Type;
 			set.Fps = sequence.Fps;
+			set.UVRotateSpeed = sequence.UVRotateSpeed;
+			set.UVRotateDirection = sequence.UVRotateDirection;
 
 			std::transform(sequence.Frames.begin(), sequence.Frames.end(), std::back_inserter(set.Textures), [](ANIMATED_TEXTURES_FRAME& frm)
 			{
@@ -1010,7 +1012,7 @@ namespace TEN::Renderer
 					vertex.Binormal.x = poly->binormals[k].x;
 					vertex.Binormal.y = poly->binormals[k].y;
 					vertex.Binormal.z = poly->binormals[k].z;
-
+					 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 
@@ -1021,6 +1023,9 @@ namespace TEN::Renderer
 
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
+
+					vertex.AnimationFrameOffset = poly->animatedFrame;
+					vertex.IndexInPoly = k;
 
 					vertex.OriginalIndex = v;
 

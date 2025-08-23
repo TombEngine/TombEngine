@@ -617,7 +617,7 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	GetCollisionInfo(coll, item); // HACK: Lara may step off poles in mid-air upon reload without this.
-	if (coll->Middle.Floor <= 0 &&
+	if (coll->Middle.Floor <= CLICK(0.125f) &&
 		item->Animation.AnimNumber != LA_POLE_JUMP_BACK) // Hack.
 	{
 		item->Animation.TargetState = LS_IDLE;

@@ -1146,7 +1146,7 @@ namespace TEN::Entities::Vehicles
 		else
 		{
 			if (motorbike->EngineRevs < 0xFFFF)
-				motorbike->EngineRevs += (motorbike->EngineRevs - 0xFFFF) / 8;
+				motorbike->EngineRevs += (0xFFFF - motorbike->EngineRevs) / 8;
 
 			*pitch = motorbike->EngineRevs;
 		}
