@@ -1466,7 +1466,8 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 	SoundEffect(SFX_TR4_EXPLOSION1, &item.Pose, SoundEnvironment::Land, 0.7f, 0.5f);
 	SoundEffect(SFX_TR4_EXPLOSION2, &item.Pose);
 
-	SpawnDecal(prevPos.ToVector3(), item.RoomNumber, DecalType::Explosion);
+	auto decalPos = Vector3i::Lerp(prevPos, item.Pose.Position, 0.5f);
+	SpawnDecal(decalPos.ToVector3(), item.RoomNumber, DecalType::Explosion);
 }
 
 void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& prevPos, ProjectileType type, int damage)
