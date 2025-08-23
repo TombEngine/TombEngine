@@ -13,7 +13,7 @@ namespace TEN::Effects::Decal
 	{
 		static constexpr auto COUNT_MAX = 32;
 		static constexpr auto COUNT_THRESHOLD = COUNT_MAX / 2;
-		static constexpr auto LIFE_MAX = 6 * FPS;
+		static constexpr auto LIFE_MAX = 8 * FPS;
 		static constexpr auto LIFE_START_FADING = LIFE_MAX / 2;
 		static constexpr auto LIFE_QUEUE_FADEOUT = FPS / 2;
 		
