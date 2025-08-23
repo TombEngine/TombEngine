@@ -155,10 +155,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 		}
 	}
 
-	float decalMask = 0.0f;
-	if (!Animated)
+	if (!Animated && NumRoomDecals > 0)
 	{
-			for (int i = 0; i < NumRoomDecals; i++)
+		float decalMask = 0.0f;
+
+		for (int i = 0; i < NumRoomDecals; i++)
 		{
 			float radius   = RoomDecals[i].Radius;
 			float3 pos     = input.WorldPosition - RoomDecals[i].Position;
@@ -179,8 +180,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
 		}
+
+		lighting *= (1.0 - decalMask);
 	}
-	lighting *= (1.0 - decalMask);
 
     if (Caustics)
     {
