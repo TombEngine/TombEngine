@@ -453,7 +453,7 @@ namespace TEN::Effects::Environment
 					if (part.Type == WeatherType::Rain)
 					{
 						part.Enabled = false;
-						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);				
+						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);
 					}
 
 					continue;
@@ -600,18 +600,18 @@ namespace TEN::Effects::Environment
 
 				float dist = 0;
 
-					if (level.GetWeatherType() == WeatherType::Snow)
-					{
-						dist = COLLISION_CHECK_DISTANCE;
-					}
-					else if (level.GetWeatherType() == WeatherType::Rain)
-					{
-						dist = COLLISION_CHECK_DISTANCE * RAIN_SPAWN_RANGE_MULT;
-					}
-					else
-					{
-						dist = COLLISION_CHECK_DISTANCE / 2;
-					}
+				if (level.GetWeatherType() == WeatherType::Snow)
+				{
+					dist = COLLISION_CHECK_DISTANCE;
+				}
+				else if (level.GetWeatherType() == WeatherType::Rain)
+				{
+					dist = COLLISION_CHECK_DISTANCE * RAIN_SPAWN_RANGE_MULT;
+				}
+				else
+				{
+					dist = COLLISION_CHECK_DISTANCE / 2;
+				}
 				
 				float radius = Random::GenerateInt(0, dist);
 				short angle = Random::GenerateAngle(ANGLE(-180), ANGLE(179));

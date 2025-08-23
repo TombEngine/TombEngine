@@ -1079,7 +1079,7 @@ namespace TEN::Renderer
 				if (i > 0)
 				{
 					// Use bits from uniqueSeed to determine distribution pattern.
-					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD ;
+					float spread = part.Type == WeatherType::Snow ? SNOW_CLUSTER_SPREAD : RAIN_CLUSTER_SPREAD;
 					float offsetBase = spread * ((i + 1) / (float)clusterSize);
 
 					// Use bits 0, 1, 2 for axis signs.
