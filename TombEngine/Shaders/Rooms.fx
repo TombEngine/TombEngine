@@ -176,7 +176,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			float edge = saturate((noisyRadius - distance) / noisyRadius);
 			float fade = saturate((radius - distance) / radius);
-			float hole = saturate((holeRadius - distance) / holeRadius * (1 + RoomDecals[i].Pattern * 0.3f)) * (1 - RoomDecals[i].Pattern);
+			float hole = saturate((holeRadius - distance) / (holeRadius * 1.3f)) * (1 - RoomDecals[i].Pattern);
 
 			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
 		}
