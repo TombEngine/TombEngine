@@ -318,6 +318,12 @@ namespace TEN::Renderer
 	{
 		memset(_stRoom.RoomDecals, 0, Decal::COUNT_MAX * sizeof(ShaderDecal));
 
+		if (!g_Configuration.EnableDecals)
+		{
+			_stRoom.NumRoomDecals = 0;
+			return;
+		}
+
 		for (int i = 0; i < decals.size(); i++)
 		{
 			if (i >= Decal::COUNT_MAX)

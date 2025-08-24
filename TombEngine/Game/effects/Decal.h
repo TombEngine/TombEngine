@@ -11,7 +11,7 @@ namespace TEN::Effects::Decal
 
 	struct Decal
 	{
-		static constexpr auto COUNT_MAX = 32;
+		static constexpr auto COUNT_MAX = 48;
 		static constexpr auto COUNT_THRESHOLD = COUNT_MAX / 2;
 		static constexpr auto LIFE_MAX = 8 * FPS;
 		static constexpr auto LIFE_START_FADING = LIFE_MAX / 2;

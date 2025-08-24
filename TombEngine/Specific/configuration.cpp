@@ -187,6 +187,7 @@ bool SaveConfiguration()
 		SetDWORDRegKey(graphicsKey, REGKEY_SHADOW_MAP_SIZE, g_Configuration.ShadowMapSize) != ERROR_SUCCESS ||
 		SetDWORDRegKey(graphicsKey, REGKEY_SHADOW_BLOBS_MAX, g_Configuration.ShadowBlobsMax) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_ENABLE_CAUSTICS, g_Configuration.EnableCaustics) != ERROR_SUCCESS ||
+		SetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, g_Configuration.EnableDecals) != ERROR_SUCCESS ||
 		SetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, (DWORD)g_Configuration.AntialiasingMode) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, g_Configuration.EnableAmbientOcclusion) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, g_Configuration.EnableHighFramerate) != ERROR_SUCCESS)
@@ -321,6 +322,7 @@ void InitDefaultConfiguration()
 	g_Configuration.ShadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
 	g_Configuration.EnableCaustics = true;
+	g_Configuration.EnableDecals = true;
 	g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
@@ -371,6 +373,7 @@ bool LoadConfiguration()
 	DWORD shadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	DWORD shadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
 	bool enableCaustics = false;
+	bool enableDecals = false;
 	DWORD antialiasingMode = 1;
 	bool enableAmbientOcclusion = false;
 	bool enableHighFramerate = false;
@@ -383,6 +386,7 @@ bool LoadConfiguration()
 		GetDWORDRegKey(graphicsKey, REGKEY_SHADOW_MAP_SIZE, &shadowMapSize, GameConfiguration::DEFAULT_SHADOW_MAP_SIZE) != ERROR_SUCCESS ||
 		GetDWORDRegKey(graphicsKey, REGKEY_SHADOW_BLOBS_MAX, &shadowBlobsMax, GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_ENABLE_CAUSTICS, &enableCaustics, true) != ERROR_SUCCESS ||
+		GetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, &enableDecals, true) != ERROR_SUCCESS ||
 		GetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, &antialiasingMode, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, &enableAmbientOcclusion, false) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, &enableHighFramerate, false) != ERROR_SUCCESS)
@@ -518,6 +522,7 @@ bool LoadConfiguration()
 	g_Configuration.ShadowType = (ShadowMode)shadowMode;
 	g_Configuration.ShadowBlobsMax = shadowBlobsMax;
 	g_Configuration.EnableCaustics = enableCaustics;
+	g_Configuration.EnableDecals = enableDecals;
 	g_Configuration.AntialiasingMode = (AntialiasingMode)antialiasingMode;
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;

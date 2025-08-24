@@ -23,6 +23,7 @@ constexpr auto REGKEY_SHADOWS			   = "ShadowsMode";
 constexpr auto REGKEY_SHADOW_MAP_SIZE	   = "ShadowMapSize";
 constexpr auto REGKEY_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
 constexpr auto REGKEY_ENABLE_CAUSTICS	   = "EnableCaustics";
+constexpr auto REGKEY_ENABLE_DECALS		   = "EnableDecals";
 constexpr auto REGKEY_ANTIALIASING_MODE	   = "AntialiasingMode";
 constexpr auto REGKEY_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
 constexpr auto REGKEY_HIGH_FRAMERATE       = "EnableHighFramerate";
@@ -71,6 +72,7 @@ struct GameConfiguration
 	int		   ShadowMapSize	  = DEFAULT_SHADOW_MAP_SIZE;
 	int		   ShadowBlobsMax	  = DEFAULT_SHADOW_BLOBS_MAX;
 	bool	   EnableCaustics	  = false;
+	bool	   EnableDecals		  = true;
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;

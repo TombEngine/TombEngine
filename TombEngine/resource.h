@@ -15,7 +15,6 @@
 #define IDC_RESOLUTIONTXT               1029
 #define IDC_HARDACCEL                   1030
 #define IDC_SOFTWARE                    1031
-#define IDC_BILINEAR                    1032
 #define IDC_CAUSTICS                    1032
 #define IDC_TEXRESTXT                   1033
 #define IDC_ANTIALIASING                1034

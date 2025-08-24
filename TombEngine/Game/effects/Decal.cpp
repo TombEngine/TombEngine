@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/effects/effects.h"
 #include "Game/Lara/lara.h"
+#include "Specific/configuration.h"
 #include "Specific/level.h"
 
 namespace TEN::Effects::Decal
@@ -30,6 +31,9 @@ namespace TEN::Effects::Decal
 
 	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type)
 	{
+		if (!g_Configuration.EnableDecals)
+			return;
+
 		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
 		if (type == DecalType::BulletHole && !Lara.Control.Look.IsUsingLasersight && distance > COLLISION_CHECK_DISTANCE)
 			return;
