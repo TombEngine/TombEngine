@@ -38,6 +38,9 @@ namespace TEN::Effects::Environment
 
 	constexpr float RAIN_RENDER_RANGE_MULT = 0.70f;
 	constexpr float RAIN_SPAWN_RANGE_MULT = 0.70f;
+	constexpr float WEATHER_SPAWN_DIST_SNOW = 8192.0f;
+	constexpr float WEATHER_SPAWN_DIST_RAIN = 5734.4f;
+	constexpr float WEATHER_SPAWN_DIST_OTHER = 4096.0f;
 
 	struct StarParticle
 	{

@@ -417,12 +417,11 @@ namespace TEN::Effects::Environment
 				}
 			}
 
-			float baseRange = COLLISION_CHECK_DISTANCE;
-			float rainRange = baseRange * RAIN_RENDER_RANGE_MULT;
-			float range = (part.Type == WeatherType::Rain) ? rainRange : baseRange;
+			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
 
-			if (abs(Camera.pos.x - part.Position.x) > range ||
-				abs(Camera.pos.z - part.Position.z) > range)
+			if (part.Type == WeatherType::Rain &&				
+				(abs(Camera.pos.x - part.Position.x) > range ||
+				abs(Camera.pos.z - part.Position.z) > range))
 			{
 				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
@@ -600,17 +599,19 @@ namespace TEN::Effects::Environment
 
 				float dist = 0;
 
+
+
 				if (level.GetWeatherType() == WeatherType::Snow)
 				{
-					dist = COLLISION_CHECK_DISTANCE;
+					dist = WEATHER_SPAWN_DIST_SNOW;
 				}
 				else if (level.GetWeatherType() == WeatherType::Rain)
 				{
-					dist = COLLISION_CHECK_DISTANCE * RAIN_SPAWN_RANGE_MULT;
+					dist = WEATHER_SPAWN_DIST_RAIN;
 				}
 				else
 				{
-					dist = COLLISION_CHECK_DISTANCE / 2;
+					dist = WEATHER_SPAWN_DIST_OTHER;
 				}
 				
 				float radius = Random::GenerateInt(0, dist);
