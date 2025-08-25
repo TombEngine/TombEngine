@@ -1,4 +1,5 @@
 #include "./CBCamera.hlsli"
+#include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -8,18 +9,6 @@
 #include "./ShaderLight.hlsli"
 
 #define ROOM_LIGHT_COEFF 0.7f
-
-cbuffer RoomBuffer : register(b5)
-{
-	int Water;
-	int Caustics;
-	int NumRoomLights;
-	int Padding;
-	float2 CausticsStartUV;
-	float2 CausticsScale;
-	float4 AmbientColor;
-	ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
-};
 
 struct PixelShaderInput
 {
@@ -83,17 +72,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Normal = input.Normal;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-
-#ifdef ANIMATED
-
-	if (Type == 0)
-		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
-	else
-		output.UV = input.UV; // TODO: true UVRotate in future?
-#else
-	output.UV = input.UV;
-#endif
-	
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 	output.WorldPosition = pos;
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;
@@ -121,6 +100,9 @@ float3 PackNormal(float3 n)
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
+	
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
 
 	output.Color = Texture.Sample(Sampler, input.UV);
 
@@ -141,6 +123,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 		samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
 		samplePosition.y = 1.0f - samplePosition.y;
 		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+		
+		if (BlendMode == BLENDMODE_ALPHABLEND)
+			occlusion = lerp(occlusion, 1.0f, output.Color.w);
 	}
 
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
@@ -170,29 +155,62 @@ PixelShaderOutput PS(PixelShaderInput input)
 		}
 	}
 
-	if (Caustics)
+	if (!Animated && NumRoomDecals > 0)
 	{
-		float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
+		float decalMask = 0.0f;
 
-		float3 blending = abs(normal);
-		blending = normalize(max(blending, 0.00001f));
-		float b = (blending.x + blending.y + blending.z);
-		blending /= float3(b, b, b);
+		for (int i = 0; i < NumRoomDecals; i++)
+		{
+			float radius   = RoomDecals[i].Radius;
+			float3 pos     = input.WorldPosition - RoomDecals[i].Position;
+			float distance = length(pos);
 
-		float3 p = frac(input.WorldPosition.xyz / 2048.0f); 
-		
-		float3 xaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, float2(p.z, p.y), 0).xyz;
-		float3 yaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, float2(p.z, p.x), 0).xyz;
-		float3 zaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, float2(p.y, p.x), 0).xyz;
+			if (distance > radius * 1.3f)
+				continue;
+			
+			float2 localUV = pos.xy * 0.5 + pos.zx * 0.5;
+			float noiseVal = NebularNoise(localUV * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3);
 
-		float3 xc = xaxis * blending.x;
-		float3 yc = yaxis * blending.y;
-		float3 zc = zaxis * blending.z;
+			float noisyRadius = radius * (1.0f + 0.25f * (noiseVal * 2.0f - 1.0f));
+			float holeRadius = radius / 4.0f;
 
-		float3 caustics = xc + yc + zc;
+			float edge = saturate((noisyRadius - distance) / noisyRadius);
+			float fade = saturate((radius - distance) / radius);
+			float hole = saturate((holeRadius - distance) / (holeRadius * 1.3f)) * (1 - RoomDecals[i].Pattern);
 
-		lighting += (caustics * attenuation * 2.0f);
+			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
+		}
+
+		lighting *= (1.0 - decalMask);
 	}
+
+    if (Caustics)
+    {
+        float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
+
+        float3 blending = abs(normal);
+        blending = normalize(max(blending, 0.00001f));
+        float b = (blending.x + blending.y + blending.z);
+        blending /= float3(b, b, b);
+
+        float3 p = frac(input.WorldPosition.xyz / 2048.0f);
+	
+		float2 uv_x = CausticsStartUV + float2(p.z, p.y) * CausticsSize;
+        float2 uv_y = CausticsStartUV + float2(p.z, p.x) * CausticsSize;
+        float2 uv_z = CausticsStartUV + float2(p.y, p.x) * CausticsSize;
+
+        float3 xaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_x, 0).xyz;
+        float3 yaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_y, 0).xyz;
+        float3 zaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_z, 0).xyz;
+
+        float3 xc = xaxis * blending.x;
+        float3 yc = yaxis * blending.y;
+        float3 zc = zaxis * blending.z;
+
+        float3 caustics = xc + yc + zc;
+
+        lighting += (caustics * attenuation * 2.0f);
+    }
 
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;

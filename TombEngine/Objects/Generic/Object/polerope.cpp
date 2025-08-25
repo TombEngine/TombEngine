@@ -53,7 +53,7 @@ namespace TEN::Entities::Generic
 	{
 		GameBoundingBox(
 			-BLOCK(0.25f), BLOCK(0.25f),
-			0, 0, 
+			-10, 10, 
 			-BLOCK(0.5f), BLOCK(0.5f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),

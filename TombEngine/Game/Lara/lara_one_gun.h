@@ -28,7 +28,7 @@ enum class ProjectileType
 
 void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType);
 void ReadyShotgun(ItemInfo& laraItem, LaraWeaponType weaponType);
-void FireShotgun(ItemInfo& laraItem);
+bool FireShotgun(ItemInfo& laraItem);
 void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType);
 void UndrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType);
 void DrawShotgunMeshes(ItemInfo& laraItem, LaraWeaponType weaponType);
@@ -36,16 +36,15 @@ void UndrawShotgunMeshes(ItemInfo& laraItem, LaraWeaponType weaponType);
 
 bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose = std::nullopt);
 void HarpoonBoltControl(short itemNumber);
-void FireGrenade(ItemInfo& laraItem);
+bool FireGrenade(ItemInfo& laraItem);
 void GrenadeControl(short itemNumber);
-void FireRocket(ItemInfo& laraItem);
-void FireRocket(ItemInfo& laraItem);
+bool FireRocket(ItemInfo& laraItem);
 void RocketControl(short itemNumber);
-void FireCrossbow(ItemInfo& laraItem, const std::optional<Pose>& pose = std::nullopt);
+bool FireCrossbow(ItemInfo& laraItem, const std::optional<Pose>& pose = std::nullopt);
 void FireCrossBowFromLaserSight(ItemInfo& laraItem, GameVector* origin, GameVector* target);
 void CrossbowBoltControl(short itemNumber);
 
-void FireHK(ItemInfo& laraItem, bool inaccurateMode);
+bool FireHK(ItemInfo& laraItem, bool inaccurateMode);
 void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType);
 void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType);
 

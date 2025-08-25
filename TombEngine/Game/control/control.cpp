@@ -9,6 +9,7 @@
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
 #include "Game/effects/Bubble.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/effects.h"
@@ -39,6 +40,7 @@
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
 #include "Objects/Effects/tr4_locusts.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
@@ -59,11 +61,13 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/winmain.h"
+#include "Specific/Video/Video.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
@@ -89,6 +93,8 @@ using namespace TEN::Math;
 using namespace TEN::Renderer;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Effects;
+using namespace TEN::Effects::Fireflies;
+using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
 constexpr auto DEATH_INPUT_TIMEOUT	  = 3 * FPS;
@@ -192,7 +198,9 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateBlood();
 	UpdateBubbles();
 	UpdateDebris();
+	UpdateGunFlashes();
 	UpdateGunShells();
+	UpdateDecals();
 	UpdateFootprints();
 	UpdateSplashes();
 	UpdateElectricityArcs();
@@ -211,6 +219,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateLocusts();
 	UpdateUnderwaterBloodParticles();
 	UpdateFishSwarm();
+	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
 
 	// Update HUD.
@@ -351,19 +360,26 @@ unsigned CALLBACK GameMain(void *)
 
 	TimeInit();
 
-	// Do fixed-time title image.
-	if (g_GameFlow->IntroImagePath.empty())
+	// Proceed with intro content only if game isn't started from the editor.
+	if (CurrentLevel == NO_VALUE)
 	{
-		TENLog("Intro image path not set.", LogLevel::Warning);
-	}
-	else
-	{
-		g_Renderer.RenderTitleImage();
+		// Do fixed-time title image.
+		if (!g_GameFlow->IntroImagePath.empty())
+			g_Renderer.RenderTitleImage();
+
+		// Play intro video.
+		if (!g_GameFlow->IntroVideoPath.empty())
+		{
+			g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
+			while (DoTheGame && g_VideoPlayer.Update());
+		}
 	}
 
 	// Execute Lua gameflow and play game.
 	g_GameFlow->DoFlow();
-
+	
+	// Exit game.
+	DeInitialize();
 	DoTheGame = false;
 
 	// Finish thread.
@@ -389,6 +405,7 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 	InitializeCamera();
 	InitializeSpotCamSequences(isTitle);
 	InitializeItemBoxData();
+	InitializeSpecialEffects();
 
 	// Initialize scripting.
 	InitializeScripting(levelIndex, loadGame);
@@ -414,14 +431,14 @@ void UpdateShatters()
 		SmashedMeshCount--;
 
 		auto* floor = GetFloor(
-			SmashedMesh[SmashedMeshCount]->pos.Position.x,
-			SmashedMesh[SmashedMeshCount]->pos.Position.y,
-			SmashedMesh[SmashedMeshCount]->pos.Position.z,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.x,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.y,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.z,
 			&SmashedMeshRoom[SmashedMeshCount]);
 
-		TestTriggers(SmashedMesh[SmashedMeshCount]->pos.Position.x,
-			SmashedMesh[SmashedMeshCount]->pos.Position.y,
-			SmashedMesh[SmashedMeshCount]->pos.Position.z,
+		TestTriggers(SmashedMesh[SmashedMeshCount]->Pose.Position.x,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.y,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.z,
 			SmashedMeshRoom[SmashedMeshCount], true);
 
 		TestVolumes(SmashedMeshRoom[SmashedMeshCount], SmashedMesh[SmashedMeshCount]);
@@ -485,6 +502,25 @@ int GetRandomDraw()
 	return Random::GenerateInt();
 }
 
+void DeInitialize()
+{
+	g_VideoPlayer.DeInitialize();
+	Sound_DeInit();
+	DeinitializeInput();
+
+	delete g_GameScript;
+	g_GameScript = nullptr;
+
+	delete g_GameFlow;
+	g_GameFlow = nullptr;
+
+	delete g_GameScriptEntities;
+	g_GameScriptEntities = nullptr;
+
+	delete g_GameStringsHandler;
+	g_GameStringsHandler = nullptr;
+}
+
 void CleanUp()
 {
 	// Reset oscillator seed.
@@ -511,9 +547,11 @@ void CleanUp()
 	ClearUnderwaterBloodParticles();
 	ClearBubbles();
 	ClearAllDisplaySprites();
+	ClearDecals();
 	ClearFootprints();
 	ClearDrips();
 	ClearRipples();
+	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
 	DisableSmokeParticles();
@@ -562,13 +600,14 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		}
 
 		g_GameScript->InitCallbacks();
-		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, float scale, int flags)
+		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, Vec2& area, float scale, int flags)
 		{
 			g_Renderer.AddString(
 				key,
-				Vector2(
-					(pos.x / g_Configuration.ScreenWidth) * DISPLAY_SPACE_RES.x,
-					(pos.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((pos.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(pos.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((area.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(area.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
 				Color(color), scale, flags);
 		});
 	}
@@ -581,7 +620,8 @@ void InitializeScripting(int levelIndex, bool loadGame)
 void DeInitializeScripting(int levelIndex, GameStatus reason)
 {
 	// Reload gameflow script to clear level script variables.
-	g_GameFlow->LoadFlowScript();
+	if (reason != GameStatus::ExitGame)
+		g_GameFlow->LoadFlowScript();
 
 	g_GameScript->FreeLevelScripts();
 	g_GameScriptEntities->FreeEntities();
@@ -607,6 +647,7 @@ void InitializeOrLoadGame(bool loadGame)
 
 		InitializeGame = false;
 
+		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
 		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
@@ -653,6 +694,9 @@ GameStatus DoGameLoop(int levelIndex)
 	{
 		g_Synchronizer.Sync();
 
+		if (g_VideoPlayer.Update())
+			continue;
+
 		while (g_Synchronizer.Synced())
 		{
 			status = ControlPhase(false);
@@ -660,6 +704,9 @@ GameStatus DoGameLoop(int levelIndex)
 
 			legacy30FpsDoneDraw = false;
 		}
+
+		if (g_VideoPlayer.IsBackgroundPlaybackQueued())
+			continue;
 
 		if (status != GameStatus::Normal)
 			break;
@@ -681,7 +728,7 @@ GameStatus DoGameLoop(int levelIndex)
 		}
 	}
 
-	EndGameLoop(levelIndex, status);
+	EndGameLoop(levelIndex, DoTheGame ? status : GameStatus::ExitGame);
 
 	return status;
 }
@@ -691,9 +738,12 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	// Save last screenshot for loading screen.
 	g_Renderer.DumpGameScene();
 
-	SaveGame::SaveHub(levelIndex);
+	if (reason == GameStatus::LevelComplete)
+		SaveGame::SaveHub(levelIndex);
+
 	DeInitializeScripting(levelIndex, reason);
 
+	g_VideoPlayer.Stop();
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
@@ -716,7 +766,7 @@ void HandleControls(bool isTitle)
 {
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
-	UpdateInputActions(LaraItem, true);
+	UpdateInputActions(false, true);
 
 	if (isTitle)
 		ClearAction(In::Look);

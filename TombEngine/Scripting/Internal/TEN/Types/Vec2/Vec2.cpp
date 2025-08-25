@@ -84,15 +84,6 @@ Vec2::Vec2(const Vector2& vector)
 	y = vector.y;
 }*/
 
-/// Metafunction. Use tostring(vector).
-// @tparam Vec2 This Vec2.
-// @treturn string A string showing the X and Y components of the Vec2.
-// @function __tostring
-std::string Vec2::ToString() const
-{
-	return "{" + std::to_string(x) + ", " + std::to_string(y) + "}";
-}
-
 /// Get a copy of this Vec2 normalized to length 1.
 // @function Vec2:Normalize
 // @treturn Vec2 Normalized vector.
@@ -105,7 +96,7 @@ Vec2 Vec2::Normalize() const
 }
 
 /// Get a copy of this Vec2 translated in the input Vec2 direction by the input distance.
-// @function Translate
+// @function Vec2:Translate
 // @tparam Vec2 dir Direction vector. Normalized automatically to length 1.
 // @tparam float dist Distance.
 // @treturn Vec2 Translated vector.
@@ -115,8 +106,8 @@ Vec2 Vec2::Translate(const Vec2& dir, float dist)
 }
 
 /// Get a copy of this Vec2 translated in the direction of the input rotation in degrees by the input distance.
-// @function Translate
-// @tparam Rotation rot Rotation in degrees defining the direction.
+// @function Vec2:Translate
+// @tparam float rot Rotation in degrees defining the direction.
 // @tparam float dist Distance.
 // @treturn Vec2 Translated vector.
 Vec2 Vec2::Translate(float rot, float dist)
@@ -125,7 +116,7 @@ Vec2 Vec2::Translate(float rot, float dist)
 }
 
 /// Get a copy of this Vec2 translated by an offset, where the input relative offset Vec2 is rotated according to the input rotation in degrees.
-// @function Translate
+// @function Vec2:Translate
 // @tparam float rot Rotation in degrees rotating the input relative offset vector.
 // @tparam Vec2 relOffset Relative offset vector before rotation.
 // @treturn Vec2 Translated vector.
@@ -201,6 +192,15 @@ float Vec2::Distance(const Vec2& vector) const
 float Vec2::Length() const
 {
 	return ToVector2().Length();
+}
+
+/// Metafunction. Use tostring(vector).
+// @tparam Vec2 This Vec2.
+// @treturn string A string showing the X and Y components of the Vec2.
+// @function __tostring
+std::string Vec2::ToString() const
+{
+	return "{" + std::to_string(x) + ", " + std::to_string(y) + "}";
 }
 
 Vec2 Vec2::Add(const Vec2& vector0, const Vec2& vector1)

@@ -9,7 +9,7 @@
 
 namespace TEN::Scripting
 {
-	/// Represents a horizon.
+	/// Represents a horizon. To be used with @{Flow.Level.horizon1} and @{Flow.Level.horizon2} properties.
 	//
 	// @tenprimitive Flow.Horizon
 	// @pragma nostrip
@@ -22,22 +22,32 @@ namespace TEN::Scripting
 
 		// Register type.
 		parent.new_usertype<Horizon>(
-			ScriptReserved_Horizon,
+			"Horizon",
 			ctors(), sol::call_constructor, ctors(),
 
-			// Getters
-			ScriptReserved_HorizonGetEnabled, &Horizon::GetEnabled,
-			ScriptReserved_HorizonGetObjectID, &Horizon::GetObjectID,
-			ScriptReserved_HorizonGetPosition, &Horizon::GetPosition,
-			ScriptReserved_HorizonGetRotation, &Horizon::GetRotation,
-			ScriptReserved_HorizonGetTransparency, &Horizon::GetTransparency,
+			/// (bool) Horizon enabled state.
+			// If set to true, horizon will be visible.
+			// @mem enabled
+			"enabled", sol::property(&Horizon::GetEnabled, &Horizon::SetEnabled),
 
-			// Setters
-			ScriptReserved_HorizonSetEnabled, &Horizon::SetEnabled,
-			ScriptReserved_HorizonSetObjectID, &Horizon::SetObjectID,
-			ScriptReserved_HorizonSetPosition, &Horizon::SetPosition,
-			ScriptReserved_HorizonSetRotation, &Horizon::SetRotation,
-			ScriptReserved_HorizonSetTransparency, &Horizon::SetTransparency);
+			/// (@{Objects.ObjID}) Horizon object ID.
+			// @mem objectID
+			"objectID", sol::property(&Horizon::GetObjectID, &Horizon::SetObjectID),
+
+			/// (@{Vec3}) Horizon position.
+			// Specifies an offset from the camera origin.
+			// @mem position
+			"position", sol::property(&Horizon::GetPosition, &Horizon::SetPosition),
+
+			/// (@{Rotation}) Horizon rotation.
+			// Specifies horizon rotation.
+			// @mem rotation
+			"rotation", sol::property(&Horizon::GetRotation, &Horizon::SetRotation),
+
+			/// (float) Horizon transparency.
+			// Specifies horizon transparency on a range from 0 to 1.
+			// @mem transparency
+			"transparency", sol::property(&Horizon::GetTransparency, &Horizon::SetTransparency));
 	}
 
 	/// Create a horizon object.
@@ -56,89 +66,53 @@ namespace TEN::Scripting
 		_enabled = enabled;
 	}
 
-	/// Get the horizon's enabled state.
-	// @function GetEnabled
-	// @treturn bool Enabled state.
 	bool Horizon::GetEnabled() const
 	{
 		return _enabled;
 	}
 
-	/// Get the horizon's slot object ID.
-	// @function GetObjectID
-	// @treturn Objects.ObjID Object ID.
 	GAME_OBJECT_ID Horizon::GetObjectID() const
 	{
 		return _objectID;
 	}
 
-	/// Get the horizon's world position.
-	// @function GetPosition
-	// @treturn Vec3 Position.
 	const Vec3 Horizon::GetPosition() const
 	{
 		return _position;
 	}
 
-	/// Get the horizon's rotation.
-	// @function GetRotation
-	// @treturn Rotation Rotation.
 	const Rotation Horizon::GetRotation() const
 	{
 		return _rotation;
 	}
 
-	/// Get the horizon's transparency.
-	// @function GetTransparency
-	// @treturn float Transparency.
 	const float Horizon::GetTransparency() const
 	{
 		return _transparency;
 	}
 
-	/// Set the horizon's enabled state.
-	// @function SetEnabled
-	// @tparam bool enabled New enabled state.
 	void Horizon::SetEnabled(bool value)
 	{
 		_enabled = value;
 	}
 
-	/// Set the horizon's object ID.
-	// @function SetObjectID
-	// @tparam Objects.ObjID objectID Object ID.
 	void Horizon::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;
 	}
 
-	/// Set the horizon's world position.
-	// @function SetPosition
-	// @tparam Vec3 pos New world position.
-	// @tparam[opt] bool noInterpolation Disable interpolation with the previous frame's position. __default: false__
 	void Horizon::SetPosition(const Vec3& pos, TypeOrNil<bool> noInterpolation)
 	{
-		bool convertedDisableInterp = ValueOr<bool>(noInterpolation, false);
-
-		_prevPosition = convertedDisableInterp ? pos : _position;
+		_prevPosition = ValueOr<bool>(noInterpolation, false) ? pos : _position;
 		_position = pos;
 	}
 
-	/// Set the horizon's rotation.
-	// @function SetRotation
-	// @tparam Rotation rot New rotation.
-	// @tparam[opt] bool noInterpolation Disable interpolation with the previous frame's rotation. __default: false__
 	void Horizon::SetRotation(const Rotation& rot, TypeOrNil<bool> noInterpolation)
 	{
-		bool convertedDisableInterp = ValueOr<bool>(noInterpolation, false);
-
-		_prevRotation = convertedDisableInterp ? rot : _rotation;
+		_prevRotation = ValueOr<bool>(noInterpolation, false) ? rot : _rotation;
 		_rotation = rot;
 	}
 
-	/// Set the horizon's transparency.
-	// @function SetTransparency
-	// @tparam float transparency New transparency alpha.
 	void Horizon::SetTransparency(float value)
 	{
 		_transparency = value;

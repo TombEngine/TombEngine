@@ -14,7 +14,7 @@
 --	--This method opens the diary on the 3rd page
 --	diary:showDiary(3)
 --
--- @luautil Diary
+-- @luautil CustomDiary
 
 local Type = require("Engine.Type")
 
@@ -25,7 +25,8 @@ LevelFuncs.Engine.Diaries = {}
 GameVars.Engine.Diaries = GameVars.Engine.Diaries or {}
 GameVars.Engine.LastUsedDiary = GameVars.Engine.LastUsedDiary or nil
 
---- Imports diary from an external file. There are different types that must be defined. (diary, background, controls, pageNumbers, notification, image, text, narration). Each of the section's arguements are the same as the functions described in this documentation.
+--- Imports diary from an external file.
+-- There are different types that must be defined. (diary, background, controls, pageNumbers, notification, image, text, narration). Each of the section's arguements are the same as the functions described in this documentation.
 -- Refer to DiarySetup.lua file for a sample script. 
 -- @tparam string fileName Name of file in the script folder without extension to import the diary from.
 
@@ -529,15 +530,15 @@ end
 -- Parameters:
 -- @tparam Objects.ObjID object The pickup object that will be used to create the diary. The diary can be created using PICKUP_ITEMX (596-611) or DIARY_ITEM (986). Access the diary by selecting the item in the inventory. 
 -- @tparam Objects.ObjID objectIdBg Object ID for the diary's sprite.
--- @tparam int spriteIdBg SpriteID from the specified object for the diary's sprite.
+-- @tparam int spriteIdBg Sprite ID from the specified object for the diary's sprite.
 -- @tparam Color colorBg Color of diary's sprite.
--- @tparam Vec2 pos X,Y position of the bar's background in screen percent (0-100).
--- @tparam float rot rotation of the diary's sprite (0-360).
--- @tparam Vec2 scale X,Y Scaling factor for the bar's background sprite.
+-- @tparam Vec2 pos X,Y position of the diary background sprite in screen percent (0-100).
+-- @tparam float rot Rotation of the diary's sprite (0-360).
+-- @tparam Vec2 scale X,Y Scaling factor for the diary background sprite.
 -- @tparam View.AlignMode alignMode Alignment for the diary's sprite.
 -- @tparam View.ScaleMode scaleMode Scaling for the diary's sprite.
 -- @tparam Effects.BlendID blendMode Blending modes for the diary's sprite.
--- @tparam number alpha alpha value for the diary's sprite (0-255).
+-- @tparam int alpha Alpha value for the diary's sprite (0-255).
 -- @tparam Sound pageSound Sound to play with page turn.
 -- @tparam Sound exitSound Sound to play when existing the diary.
 -- @treturn CustomDiary
@@ -653,7 +654,7 @@ CustomDiary.Create = function(object, objectIdBg, spriteIdBg, colorBg, pos, rot,
 end
 
 --- The function retrieves a diary by its unique object. This function is useful when you need to access or manipulate a diary that has already been created .
--- @tparam Objects.ObjID object The pickup object that was used to create the diary (596-611,986).
+-- @tparam Objects.ObjID object The pickup object that was used to create the diary (596-611, 986).
 -- @treturn CustomDiary The diary created using the object.
 CustomDiary.Get = function(object)
 	local dataName = object .. "_diarydata"
@@ -667,7 +668,7 @@ end
 
 --- The function removes a custom diary and its associated data from the system. It ensures that the diary is no longer tracked or accessible in the LevelVars.Engine.Diaries. 
 -- Please call this once a diary has served its purpose. It helps reduce the savegame size.
--- @tparam Objects.ObjID object The pickup object that was used to create the diary (596-611,986).
+-- @tparam Objects.ObjID object The pickup object that was used to create the diary (596-611, 986).
 CustomDiary.Delete = function (object)
     local dataName = object .. "_diarydata"
 	if GameVars.Engine.Diaries[dataName] then
@@ -695,7 +696,7 @@ CustomDiary.Status = function(value)
 end
 
 --- The function checks whether the specified diary is currently visible.
--- @treturn bool true if the diary is visible and false if it is not.
+-- @treturn bool `true` if the diary is visible and `false` if it is not.
 function CustomDiary:IsVisible()
 
 	if GameVars.Engine.Diaries[self.Name] then
@@ -725,7 +726,7 @@ function CustomDiary:ShowDiary(pageIndex)
 end
 
 --- The function returns the number of unlocked pages in the diary.
--- @treturn int total number of unlocked pages in the diary.
+-- @treturn int Total number of unlocked pages in the diary.
 function CustomDiary:GetUnlockedPageCount()
 
 	if GameVars.Engine.Diaries[self.Name] then
@@ -783,11 +784,11 @@ function CustomDiary:ClearPage(pageIndex)
 end
 
 --- Adds a text entry to the specified page for the diary.
--- @tparam int pageIndex page number to add the text entry to.
+-- @tparam int pageIndex Page number to add the text entry to.
 -- @tparam string text Text entry to be added to the page.
 -- @tparam Vec2 textPos X,Y position of the text.
--- @tparam Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
--- @tparam number textScale Scale factor for the text.
+-- @tparam Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
+-- @tparam float textScale Scale factor for the text.
 -- @tparam Color textColor Color of the text.
 function CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)
     local textEntry = {}
@@ -840,12 +841,12 @@ function CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textSca
 end
 
 --- Adds an image entry to the specified page for the diary.
--- @tparam int pageIndex page number to add the image entry to.
+-- @tparam int pageIndex Page number to add the image entry to.
 -- @tparam Objects.ObjID objectId Object ID for the image entry sprite.
--- @tparam number spriteId SpriteID from the specified object for the image entry.
+-- @tparam int spriteId Sprite ID from the specified object for the image entry.
 -- @tparam Color color Color of image entry.
 -- @tparam Vec2 pos X,Y position of the image entry in screen percent (0-100).
--- @tparam number rot rotation of the image entry (0-360).
+-- @tparam float rot Rotation of the image entry (0-360).
 -- @tparam Vec2 scale X,Y Scaling factor for the image entry.
 -- @tparam View.AlignMode alignMode Alignment for the image entry.
 -- @tparam View.ScaleMode scaleMode Scaling for the image entry.
@@ -920,7 +921,7 @@ function CustomDiary:AddImageEntry(pageIndex, objectId, spriteId, color, pos, ro
 end
 
 --- Add a narration track in the voice channel to the page. Track is played with the draw button.
--- @tparam int pageIndex page number to add the narration track to.
+-- @tparam int pageIndex Page number to add the narration track to.
 -- @tparam string trackName of track (without file extension) to play.
 function CustomDiary:AddNarration(pageIndex, trackName)
 
@@ -944,7 +945,7 @@ function CustomDiary:AddNarration(pageIndex, trackName)
 end
 
 --- Remove the narration track from the page of the specified diary.
--- @tparam int pageIndex page number to remove the narration track from.
+-- @tparam int pageIndex Page number to remove the narration track from.
 function CustomDiary:RemoveNarration(pageIndex)
 
     if not Type.IsNumber(pageIndex) or pageIndex > #GameVars.Engine.Diaries[self.Name].Pages or pageIndex <=0 then
@@ -960,15 +961,15 @@ function CustomDiary:RemoveNarration(pageIndex)
 
 --- Add a background image for the diary.
 -- @tparam Objects.ObjID objectId Object ID for the diary's background.
--- @tparam number spriteId SpriteID from the specified object for the diary's background.
+-- @tparam int spriteId Sprite ID from the specified object for the diary's background.
 -- @tparam Color color Color of diary's background.
 -- @tparam Vec2 pos X,Y position of the diary's background in screen percent (0-100).
--- @tparam float rot rotation of the diary's background sprite (0-360).
+-- @tparam float rot Rotation of the diary's background sprite (0-360).
 -- @tparam Vec2 scale X,Y Scaling factor for the diary's background.
 -- @tparam View.AlignMode alignMode Alignment for the diary's background.
 -- @tparam View.ScaleMode scaleMode Scaling for the diary's background.
 -- @tparam Effects.BlendID blendMode Blending modes for the diary's background.
--- @tparam number alpha alpha value for the diary's background (0-255).
+-- @tparam int alpha Alpha value for the diary's background (0-255).
 function CustomDiary:AddBackground(objectId, spriteId, color, pos, rot, scale, alignMode, scaleMode, blendMode, alpha)
     if GameVars.Engine.Diaries[self.Name] then
 
@@ -1046,12 +1047,12 @@ function CustomDiary:ClearBackground()
 end
 
 --- Customizes the notification icon and sound for the diary.
--- @tparam number notificationTime Time in seconds the notification icon will show on screen.
+-- @tparam int notificationTime Time in seconds the notification icon will show on screen.
 -- @tparam Objects.ObjID objectId Object ID for the notification icon.
--- @tparam number spriteId SpriteID from the specified object for the notification icon.
+-- @tparam int spriteId Sprite ID from the specified object for the notification icon.
 -- @tparam Color color Color of notification icon.
 -- @tparam Vec2 pos X,Y position of the notification icon in screen percent (0-100).
--- @tparam number rot rotation of the notification icon (0-360).
+-- @tparam float rot Rotation of the notification icon (0-360).
 -- @tparam Vec2 scale X,Y Scaling factor for the notification icon.
 -- @tparam View.AlignMode alignMode Alignment for the notification icon.
 -- @tparam View.ScaleMode scaleMode Scaling for the notification icon.
@@ -1147,8 +1148,8 @@ end
 -- @tparam string prefix Prefix to be added for type 2 of page numbers.
 -- @tparam string separator Separator to be added for type 2 of page numbers.
 -- @tparam Vec2 textPos X,Y position of the page numbers.
--- @tparam Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
--- @tparam number textScale Scale factor for the page numbers.
+-- @tparam Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
+-- @tparam float textScale Scale factor for the page numbers.
 -- @tparam Color textColor Color of the page numbers.
 function CustomDiary:CustomizePageNumbers(pageNoType, prefix, separator, textPos, textOptions, textScale, textColor)
 
@@ -1223,8 +1224,8 @@ end
 
 --- Customizes the controls text for the diary.
 -- @tparam Vec2 textPos X,Y position of the controls text.
--- @tparam Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT.
--- @tparam number textScale Scale factor for the controls.
+-- @tparam Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
+-- @tparam float textScale Scale factor for the controls.
 -- @tparam Color textColor Color of the page controls.
 function CustomDiary:CustomizeControls(textPos, textOptions, textScale, textColor)
     if GameVars.Engine.Diaries[self.Name] then

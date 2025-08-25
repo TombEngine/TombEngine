@@ -31,7 +31,8 @@ namespace TEN::Scripting::Collision
         // Constructors
 
 		Probe() = default;
-		Probe(const Vec3& pos, TypeOrNil<int> roomNumber);
+		Probe(const Vec3& pos);
+		Probe(const Vec3& pos, int roomNumber);
 		Probe(const Vec3& origin, int roomNumber, const Vec3& dir, float dist);
 		Probe(const Vec3& origin, int roomNumber, const Rotation& rot, float dist);
 		Probe(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset);

@@ -2,13 +2,13 @@
 #include "Game/animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
-#include "Specific/BitField.h"
+#include "Specific/Structures/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/newtypes.h"
 
 using namespace TEN::Utils;
 
-constexpr auto MAX_SPAWNED_ITEM_COUNT = 256;
+constexpr auto MAX_SPAWNED_ITEM_COUNT = 1024;
 constexpr auto ITEM_FLAG_COUNT = 8;
 
 constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
@@ -97,6 +97,7 @@ struct EntityModelData
 {
 	int BaseMesh = 0;
 
+	int SkinIndex = NO_VALUE;
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators  = {};
 
@@ -150,6 +151,11 @@ struct ItemInfo
 	short		  AfterDeath  = 0;
 	short		  CarriedItem = 0;
 
+	// Getters
+
+	BoundingBox			GetAabb() const;
+	BoundingOrientedBox GetObb() const;
+
 	// OCB utilities
 
 	bool TestOcb(short ocbFlags) const;
@@ -181,6 +187,22 @@ struct ItemInfo
 	// Getters
 
 	std::vector<BoundingSphere> GetSpheres() const;
+};
+
+class ItemHandler
+{
+private:
+	int _index = NO_VALUE;
+
+public:
+	ItemHandler() = default;
+	ItemHandler& operator=(ItemInfo* ptr);
+
+	ItemInfo* Get() const;
+
+	operator ItemInfo* () const;
+	ItemInfo* operator->() const;
+	ItemInfo& operator*() const;
 };
 
 bool TestState(int refState, const std::vector<int>& stateList);

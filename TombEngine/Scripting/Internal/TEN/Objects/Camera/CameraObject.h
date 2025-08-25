@@ -33,7 +33,7 @@ public:
 	std::string GetName() const;
 	void SetName(std::string const &);
 
-	void PlayCamera(sol::optional<Moveable&> TargetObj);
+	void Play(sol::optional<Moveable&> targetObj);
 
 private:
 	LevelCameraInfo & m_camera;

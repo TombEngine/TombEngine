@@ -17,6 +17,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -25,9 +26,13 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Math;
+using namespace TEN::Effects::Fireflies;
 
 namespace TEN::Entities::TR3
 {
+	constexpr auto FLY_EFFECT_MAX_WIDTH = -1;
+	constexpr auto FLY_AMOUNT = 16;
+
 	enum CorpseState
 	{
 		CORPSE_STATE_GROUNDED = 0,
@@ -51,19 +56,25 @@ namespace TEN::Entities::TR3
 
 		if (item.TriggerFlags == 1)
 		{
-			item.ItemFlags[1] = (int)CorpseFlag::Hang;
+			item.ItemFlags[7] = (int)CorpseFlag::Hang;
 			item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_HANG;
 			item.Animation.ActiveState = CORPSE_STATE_HANG;
 		}
 		else
 		{
-			item.ItemFlags[1] = (int)CorpseFlag::Grounded;
+			item.ItemFlags[7] = (int)CorpseFlag::Grounded;
 			item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_GROUNDED;
 			item.Animation.ActiveState = CORPSE_STATE_GROUNDED;
 		}
 
+		item.ItemFlags[FirefliesItemFlags::RemoveFliesEffect] = 0;
+
 		AddActiveItem(itemNumber);
 		item.Status = ITEM_ACTIVE;
+
+		item.ItemFlags[FirefliesItemFlags::TargetItemPtr] = item.Index;
+		item.ItemFlags[FirefliesItemFlags::TriggerFlags] = -1;
+		item.HitPoints = FLY_AMOUNT;
 	}
 
 	void ControlCorpse(short itemNumber)
@@ -71,9 +82,11 @@ namespace TEN::Entities::TR3
 		auto& item = g_Level.Items[itemNumber];
 		const auto& object = Objects[item.ObjectNumber];
 
-		if (item.ItemFlags[1] == (int)CorpseFlag::Fall)
+		if (item.ItemFlags[7] == (int)CorpseFlag::Fall)
 		{
 			bool isWater = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber);
+			bool isSwamp = TestEnvironment(RoomEnvFlags::ENV_FLAG_SWAMP, item.RoomNumber);
+
 			float verticalVelCoeff = isWater ? 81.0f : 1.0f;
 			
 			auto pointColl = GetPointCollision(item);
@@ -94,31 +107,37 @@ namespace TEN::Entities::TR3
 				ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
 			}
 
-			pointColl = GetPointCollision(item);
+			// Remove fly effect when in water.
+			if (isWater || isSwamp)
+			{
+				item.ItemFlags[FirefliesItemFlags::RemoveFliesEffect] = 1;
+			}
+
+			auto bounds = GameBoundingBox(&item);
+
 			item.Animation.IsAirborne = true;
 
-			if (pointColl.GetFloorHeight() < item.Pose.Position.y)
+			if (pointColl.GetFloorHeight() <= item.Pose.Position.y - bounds.Y2)
 			{
 				if (!isWater)
 				{
-					item.Pose.Position.y = item.Pose.Position.y - item.Animation.Velocity.y;
+					item.Pose.Position.y = pointColl.GetFloorHeight();
 					SoundEffect(SFX_TR4_CROCGOD_LAND, &item.Pose);
 				}
-				else
+				else 
 				{
-					item.Pose.Position.y = item.Pose.Position.y;
+					item.Pose.Position.y = pointColl.GetFloorHeight();
 				}
 
 				item.Animation.IsAirborne = false;
 				item.Animation.Velocity = Vector3::Zero;
 				item.Animation.TargetState = CORPSE_STATE_LAND;
 				item.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_LAND;
-				AlignEntityToSurface(&item, Vector2(object.radius));
 
-				item.ItemFlags[1] = (int)CorpseFlag::Grounded;
+				item.ItemFlags[7] = (int)CorpseFlag::Grounded;
 				return;
 			}
-			else
+			else if (item.Animation.ActiveState == CORPSE_STATE_FALL)
 			{
 				if (isWater)
 				{
@@ -133,17 +152,56 @@ namespace TEN::Entities::TR3
 
 		AnimateItem(&item);
 
-		if (!TriggerActive(&item))
-			return;
-
-		int meshCount = object.nmeshes;
-		for (int i = 0; i < meshCount; i++)
+		if (!TriggerActive(&item) || item.ItemFlags[FirefliesItemFlags::RemoveFliesEffect] == 1)
 		{
-			if (Random::TestProbability(1 / 72.0f))
+			// Remove all fireflies associated with this item.
+			RemoveFireflies(item);
+
+			// Reset ItemFlags.
+			if (item.HitPoints == NOT_TARGETABLE)
+				item.HitPoints = FLY_AMOUNT;
+
+			item.ItemFlags[FirefliesItemFlags::Spawncounter] = 0;
+
+			return;
+		}
+		else
+		{
+			AddActiveItem(itemNumber);
+			item.Status = ITEM_ACTIVE;
+		}
+
+		// Spawn fly effect.
+		if (item.HitPoints != NOT_TARGETABLE)
+		{
+			int fireflyCount = item.HitPoints - item.ItemFlags[FirefliesItemFlags::Spawncounter];
+
+			if (fireflyCount < 0)
 			{
-				auto pos = GetJointPosition(&item, i).ToVector3();
-				SpawnCorpseEffect(pos);
+				int firefliesToTurnOff = -fireflyCount;
+				for (auto& firefly : FireflySwarm)
+				{
+					if (firefly.TargetItemPtr == &item && firefly.Life > 0.0f)
+					{
+						firefly.Life = 0.0f;
+						firefly.on = false;
+						firefliesToTurnOff--;
+
+						if (firefliesToTurnOff == 0)
+							break;
+					}
+				}
 			}
+			else if (fireflyCount > 0)
+			{
+				for (int i = 0; i < fireflyCount; i++)
+				{
+					SpawnFireflySwarm(item, FLY_EFFECT_MAX_WIDTH);
+				}
+			}
+
+			item.ItemFlags[FirefliesItemFlags::Spawncounter] = item.HitPoints;
+			item.HitPoints = NOT_TARGETABLE;
 		}
 	}
 
@@ -160,9 +218,9 @@ namespace TEN::Entities::TR3
 		{
 			DoBloodSplat(pos->x, pos->y, pos->z, Random::GenerateInt(4, 8), source.Pose.Orientation.y, pos->RoomNumber);
 
-			if (target.ItemFlags[1] == (int)CorpseFlag::Hang)
+			if (target.ItemFlags[7] == (int)CorpseFlag::Hang)
 			{
-				target.ItemFlags[1] = (int)CorpseFlag::Fall;
+				target.ItemFlags[7] = (int)CorpseFlag::Fall;
 				target.Animation.AnimNumber = object.animIndex + CORPSE_ANIM_FALL;
 				target.Animation.ActiveState = CORPSE_STATE_FALL;
 			}

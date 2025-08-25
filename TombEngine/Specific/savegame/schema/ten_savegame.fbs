@@ -13,11 +13,11 @@ table LevelData {
 	rumble_enabled: bool;
 	weather_type: int32;
 	weather_strength: float;
-	
-	fog_enabled: bool;
+	weather_clustering: bool;
+
 	fog_color: int32;
-	fog_min_distance: int32;
-	fog_max_distance: int32;
+	fog_min_distance: float;
+	fog_max_distance: float;
 
 	sky_layer_1_enabled: bool;
 	sky_layer_1_color: int32;
@@ -39,6 +39,7 @@ table LevelData {
 	horizon2_orientation: EulerAngles;
 	horizon2_transparency: float;
 
+	lensflare_enabled: bool;
 	lensflare_sprite_id: int32;
 	lensflare_pitch: float;
 	lensflare_yaw: float;
@@ -93,7 +94,8 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	mesh_pointers: [int32];
+	skin_index: int32;
+	mesh_index: [int32];
 
 	effect_type: int32;
 	effect_light_colour: Vector3;
@@ -265,7 +267,6 @@ table TightropeControlData {
 table WeaponControlData {
 	weapon_item: int32;
 	has_fired: bool;
-	fired: bool;
 	uzi_left: bool;
 	uzi_right: bool;
 	gun_type: int32;
@@ -371,9 +372,8 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	room_number: int32;
 	pose: Pose;
-	scale: float;
+	room_number: int32;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
@@ -433,6 +433,13 @@ table Soundtrack {
     position: uint64;
 }
 
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
+}
+
 table SwarmObjectInfo {
 	on: bool;
 	pose: Pose;
@@ -460,6 +467,17 @@ table Pendulum {
 	position: Vector3;
 	velocity: Vector3;
 	node: int32;
+}
+
+table Decal {
+	position: Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
 }
 
 table EventSet {
@@ -498,6 +516,31 @@ table FishData {
 	target_item_number: int32;
 	undulation: float;
 	velocity: float;
+}
+
+table FireflyData {
+	sprite_index: int32;
+	sprite_id: int32;
+	blend_mode: int32;
+	scalar: int32;
+	position: Vector3;
+	room_number: int32;
+	position_target: Vector3;
+	orientation: EulerAngles;
+	velocity: float;
+	target_item_number: int32;
+	z_vel: float;
+	life: float;
+	number: int32;
+	d_r: int32;
+	d_g: int32;
+	d_b: int32;
+	r: int32;
+	g: int32;
+	b: int32;
+	on: bool;
+	size: float;
+	rot_ang: int32;
 }
 
 struct KeyValPair {
@@ -603,6 +646,7 @@ table SaveGame {
 	next_item_active: int32;
 	room_items: [int32];
 	fish_swarm: [FishData];
+	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
 	next_fx_free: int32;
 	next_fx_active: int32;
@@ -615,6 +659,7 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	decals: [Decal];
 	flip_maps: [int32];
 	flip_stats: [int32];
 	flip_effect: int32;
@@ -625,6 +670,7 @@ table SaveGame {
 	action_queue: [int32];
 	soundtracks: [Soundtrack];
 	cd_flags: [int32];
+	video: VideoInfo;
 
 	postprocess_mode: int32;
 	postprocess_strength: float;

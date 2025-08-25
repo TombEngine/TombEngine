@@ -409,7 +409,7 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 	shadow = saturate(shadow);
 	diffuse *= tex;
 
-	float3 ambTex = saturate(ambient - shadow) * tex;
+	float3 ambTex = (ambient - shadow) * tex;
 	float3 combined = ambTex + diffuse + spec;
 
 	combined -= float3(fogBulbsDensity, fogBulbsDensity, fogBulbsDensity);

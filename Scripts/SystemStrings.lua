@@ -62,6 +62,7 @@ local strings =
 	combine = { "Combine" },
 	combine_with = { "Combine With" },
 	controls = { "Controls" },
+	decals = { "Weapon Decals" },
 	disabled = { "Disabled" },
 	display = { "Display Settings" },
 	display_adapter = { "Display Adapter" },

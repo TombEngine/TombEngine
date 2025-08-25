@@ -5,5 +5,6 @@ using CallbackDrawString = std::function<
 		const std::string&,
 		D3DCOLOR,
 		Vec2,
+		Vec2,  // Area
 		float, // Scale
 		int)>; // Flags

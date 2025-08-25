@@ -16,7 +16,7 @@ using namespace TEN::Renderer;
 ShatterImpactInfo ShatterImpactData;
 SHATTER_ITEM ShatterItem;
 short SmashedMeshCount;
-MESH_INFO* SmashedMesh[32];
+StaticMesh* SmashedMesh[32];
 short SmashedMeshRoom[32];
 std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
@@ -31,7 +31,7 @@ bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits)
 		auto spheres = item->GetSpheres();
 		ShatterItem.yRot = item->Pose.Orientation.y;
 		ShatterItem.bit = 1 << node;
-		ShatterItem.meshIndex = Objects[item->ObjectNumber].meshIndex + node;
+		ShatterItem.meshIndex = (node < item->Model.MeshIndex.size()) ? item->Model.MeshIndex[node] : item->Model.BaseMesh;
 		ShatterItem.sphere.Center = spheres[node].Center;
 		ShatterItem.color = item->Model.Color;
 		ShatterItem.flags = item->ObjectNumber == ID_CROSSBOW_BOLT ? 0x400 : 0;
@@ -57,27 +57,27 @@ DebrisFragment* GetFreeDebrisFragment()
 	return nullptr;
 }
 
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel)
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel)
 {
 	int meshIndex = 0;
 	short yRot = 0;
-	float scale;
+	Vector3 scale;
 	Vector3 pos;
 	bool isStatic;
 
 	if (mesh)
 	{
-		if (!(mesh->flags & StaticMeshFlags::SM_VISIBLE))
+		if (!(mesh->Flags & StaticMeshFlags::SM_VISIBLE))
 			return;
 
 		isStatic = true;
-		meshIndex = Statics[mesh->staticNumber].meshNumber;
-		yRot = mesh->pos.Orientation.y;
-		pos = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
-		scale = mesh->scale;
+		meshIndex = Statics[mesh->Slot].meshNumber;
+		yRot = mesh->Pose.Orientation.y;
+		pos = Vector3(mesh->Pose.Position.x, mesh->Pose.Position.y, mesh->Pose.Position.z);
+		scale = mesh->Pose.Scale;
 
 		if (mesh->HitPoints <= 0)
-			mesh->flags &= ~StaticMeshFlags::SM_VISIBLE;
+			mesh->Flags &= ~StaticMeshFlags::SM_VISIBLE;
 
 		SmashedMeshRoom[SmashedMeshCount] = roomNumber;
 		SmashedMesh[SmashedMeshCount] = mesh;
@@ -89,7 +89,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 		meshIndex = item->meshIndex;
 		yRot = item->yRot;
 		pos = item->sphere.Center;
-		scale = 1.0f;
+		scale = Vector3::One;
 	}
 
 	auto fragmentsMesh = &g_Level.Meshes[meshIndex];
@@ -129,9 +129,9 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(TO_RAD(yRot), 0, 0);
 
-				Vector3 pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
-				Vector3 pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
-				Vector3 pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
+				auto pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
+				auto pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
+				auto pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
 
 				Vector2 uv1 = poly->textureCoordinates[indices[j * 3 + 0]];
 				Vector2 uv2 = poly->textureCoordinates[indices[j * 3 + 1]];
@@ -169,6 +169,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				fragment->mesh.blendMode = renderBucket.blendMode;
 				fragment->mesh.tex = renderBucket.texture;
+				fragment->mesh.Animated = renderBucket.animated;
 
 				fragment->isStatic = isStatic;
 				fragment->active = true;
@@ -182,7 +183,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 				fragment->velocity = CalculateFragmentImpactVelocity(fragment->worldPosition, ShatterImpactData.impactDirection, ShatterImpactData.impactLocation);
 				fragment->roomNumber = roomNumber;
 				fragment->numBounces = 0;
-				fragment->color = isStatic ? mesh->color : item->color;
+				fragment->color = isStatic ? mesh->Color : item->color;
 				fragment->lightMode = fragmentsMesh->lightMode;
 
 				fragment->UpdateTransform();

@@ -331,7 +331,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Knockback the target if Sophia in tower mode.
 		// Avoid spawning rings if target is dead.
-		if (ai.distance < SOPHIALEIGH_KNOCKBACK_RANGE && creature->Flags <= 0 && creature->Enemy->HitPoints > 0)
+		if (ai.distance < SQUARE(SOPHIALEIGH_KNOCKBACK_RANGE) && creature->Flags <= 0 && creature->Enemy->HitPoints > 0)
 		{
 			TriggerKnockback(item);
 			creature->Flags = 50;

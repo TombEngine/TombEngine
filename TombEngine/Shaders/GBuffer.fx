@@ -1,11 +1,11 @@
 #include "./CBCamera.hlsli"
+#include "./CBItem.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
 
-#define MAX_BONES 32
 #define INSTANCED_STATIC_MESH_BUCKET_SIZE 100
 
 cbuffer RoomBuffer : register(b5)
@@ -25,12 +25,6 @@ struct InstancedStaticMesh
 cbuffer InstancedStaticMeshBuffer : register(b3)
 {
 	InstancedStaticMesh StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
-};
-
-cbuffer ItemBuffer : register(b1)
-{
-	float4x4 ItemWorld;
-	float4x4 Bones[MAX_BONES];
 };
 
 cbuffer StaticMatrixBuffer : register(b8)
@@ -102,17 +96,8 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Normal = input.Normal;
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;
-	output.PositionCopy = screenPos;
-	
-#ifdef ANIMATED
-
-	if (Type == 0)
-		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
-	else
-		output.UV = input.UV; // TODO: true UVRotate in future?
-#else
-    output.UV = input.UV;
-#endif
+    output.PositionCopy = screenPos;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 
 	return output;
 }
@@ -120,17 +105,19 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 PixelShaderInput VSItems(VertexShaderInput input)
 {
 	PixelShaderInput output;
-
-	float4x4 world = mul(Bones[input.Bone], ItemWorld);
+	
+	// Blend and apply world matrix
+	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
+	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
 	float wibble = Wibble(input.Effects.xyz, input.Hash);
 	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
 
 	output.Position = mul(mul(float4(pos, 1.0f), world), ViewProjection);
-	output.PositionCopy = output.Position;
-	output.UV = input.UV;
-	output.Normal = normalize(mul(input.Normal, (float3x3)world).xyz);
+    output.PositionCopy = output.Position;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.Normal = normalize(mul(input.Normal, (float3x3) world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
 
@@ -147,9 +134,9 @@ PixelShaderInput VSStatics(VertexShaderInput input)
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticWorld));
 
 	output.Position = mul(worldPosition, ViewProjection);
-	output.PositionCopy = output.Position;
-	output.UV = input.UV;
-	output.Normal = normalize(mul(input.Normal, (float3x3)StaticWorld).xyz);
+    output.PositionCopy = output.Position;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.Normal = normalize(mul(input.Normal, (float3x3) StaticWorld).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticWorld).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticWorld).xyz);
 
@@ -166,9 +153,9 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
 	output.Position = mul(worldPosition, ViewProjection);
-	output.PositionCopy = output.Position;
-	output.UV = input.UV;
-	output.Normal = normalize(mul(input.Normal, (float3x3)StaticMeshes[InstanceID].World).xyz);
+    output.PositionCopy = output.Position;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.Normal = normalize(mul(input.Normal, (float3x3) StaticMeshes[InstanceID].World).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticMeshes[InstanceID].World).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticMeshes[InstanceID].World).xyz);
 
@@ -178,6 +165,9 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
+	
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
 
 	float4 color = Texture.Sample(Sampler, input.UV);
 

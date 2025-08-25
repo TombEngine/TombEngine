@@ -40,6 +40,8 @@ using namespace TEN::Utils;
 
 int FlashGrenadeAftershockTimer = 0;
 
+constexpr auto WEAPON_MAX_DISTANCE_MULTIPLIER = 3.0f;
+
 // States in which Lara will hold an active flare out in front.
 const auto FlarePoseStates = std::vector<int>
 {
@@ -867,11 +869,10 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist);
+	auto target = origin + (directionNorm * weapon.TargetDist * WEAPON_MAX_DISTANCE_MULTIPLIER);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
-	player.Control.Weapon.Fired = true;
 
 	auto vOrigin = GameVector(pos);
 	short roomNumber = laraItem.RoomNumber;
@@ -881,16 +882,25 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	if (targetEntity == nullptr)
 	{
 		auto vTarget = GameVector(target);
-		GetTargetOnLOS(&vOrigin, &vTarget, false, true);
+		GetTargetOnLOS(&vOrigin, &vTarget);
 		return FireWeaponType::Miss;
 	}
 
 	auto spheres = targetEntity->GetSpheres();
 	int closestJointIndex = NO_VALUE;
-	float closestDist = INFINITY;
+	float closestDist = FLT_MAX;
 	for (int i = 0; i < spheres.size(); i++)
 	{
 		float dist = 0.0f;
+		constexpr auto SPHERE_SCALING_FACTOR = 0.065f;
+
+		// HACK: Compensate for ray-sphere intersection distance.
+		float distanceToSphere = (spheres[i].Center - origin).Length();
+		float factor = distanceToSphere / weapon.TargetDist;
+		float radiusExpansion = Smoothstep(factor) * (distanceToSphere * SPHERE_SCALING_FACTOR);
+
+		spheres[i].Radius = spheres[i].Radius + radiusExpansion;
+
 		if (ray.Intersects(spheres[i], dist))
 		{
 			if (dist < closestDist)
@@ -904,7 +914,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	if (closestJointIndex == NO_VALUE)
 	{
 		auto vTarget = GameVector(target);
-		GetTargetOnLOS(&vOrigin, &vTarget, false, true);
+		GetTargetOnLOS(&vOrigin, &vTarget);
 		return FireWeaponType::Miss;
 	}
 	else
@@ -914,7 +924,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 
 		// NOTE: It seems that entities hit by the player in the normal way must have GetTargetOnLOS return false.
 		// It's strange, but this replicates original behaviour until we fully understand what is happening.
-		if (!GetTargetOnLOS(&vOrigin, &vTarget, false, true))
+		if (!GetTargetOnLOS(&vOrigin, &vTarget))
 			HitTarget(&laraItem, targetEntity, &vTarget, weapon.Damage, false, closestJointIndex);
 
 		return FireWeaponType::PossibleHit;
@@ -942,13 +952,15 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 
 	ItemInfo* closestEntityPtr = nullptr;
 
-	float closestDistance = INFINITY;
-	short closestHeadingAngle = MAXSHORT;
+	float closestDistance = FLT_MAX;
+	short closestHeadingAngle = SHRT_MAX;
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
-	for (auto* creaturePtr : ActiveCreatures)
+	for (auto creatureIndex : ActiveCreatures)
 	{
+		auto* creaturePtr = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 		// Continue loop if no item.
 		if (creaturePtr->ItemNumber == NO_VALUE)
 			continue;

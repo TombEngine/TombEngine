@@ -155,8 +155,6 @@ namespace TEN::Renderer::Structures
 				vertices[i].Position = barVertices[i];
 				vertices[i].Color = colors[i];
 				vertices[i].UV = barUVs[i];
-				vertices[i].Normal = Vector3::Zero;
-				vertices[i].Bone = 0.0f;
 			}
 
 			InnerVertexBuffer = VertexBuffer<Vertex>(devicePtr, (int)vertices.size(), &vertices[0]);
@@ -168,8 +166,6 @@ namespace TEN::Renderer::Structures
 				borderVertices[i].Position = barBorderVertices[i];
 				borderVertices[i].Color = Vector4::One;
 				borderVertices[i].UV = barBorderUVs[i];
-				borderVertices[i].Normal = Vector3::Zero;
-				borderVertices[i].Bone = 0.0f;
 			}
 
 			VertexBufferBorder = VertexBuffer<Vertex>(devicePtr, (int)borderVertices.size(), &borderVertices[0]);

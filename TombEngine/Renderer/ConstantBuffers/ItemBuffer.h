@@ -22,5 +22,6 @@ namespace TEN::Renderer::ConstantBuffers
 		ShaderLight Lights[MAX_LIGHTS_PER_ITEM];
 		//--
 		int NumLights;
+		int Skinned;
 	};
 }

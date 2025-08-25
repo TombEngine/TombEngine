@@ -169,7 +169,7 @@ namespace TEN::Entities::Switches
 
 	void TurnSwitchControl(short itemNumber)
 	{
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		if (g_Level.Items[itemNumber].ItemFlags[0] == TURN_SWITCH_CLOCKWISE)
@@ -250,7 +250,7 @@ namespace TEN::Entities::Switches
 			RemoveActiveItem(itemNumber);
 
 			Lara.Control.HandStatus = HandStatus::Free;
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 			Camera.DisableInterpolation = true;
 			switchItem->ItemFlags[1] = 2;
 		}

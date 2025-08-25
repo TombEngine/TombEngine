@@ -10,6 +10,8 @@
 
 using namespace TEN::Scripting::Types;
 
+static DisplayStringID _nextID = 0;
+
 /*** A string appearing on the screen.
 Can be used for subtitles and "2001, somewhere in Egypt"-style messages.
 
@@ -24,9 +26,10 @@ when you need to use screen-space coordinates.
 @pragma nostrip
 */
 
-UserDisplayString::UserDisplayString(const std::string& key, const Vec2& pos, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner) :
+UserDisplayString::UserDisplayString(const std::string& key, const Vec2& pos, const Vec2& area, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner) :
 	_key(key),
 	_position(pos),
+	_area(area),
 	_scale(scale),
 	_color(color),
 	_flags(flags),
@@ -37,38 +40,28 @@ UserDisplayString::UserDisplayString(const std::string& key, const Vec2& pos, fl
 
 DisplayString::DisplayString()
 {
-	// We don't ever dereference this pointer; it's just
-	// a handy way to get a unique key for a hash map.
-
-	_id = reinterpret_cast<DisplayStringID>(this);
+	_id = ++_nextID;
 }
 
 /*** Create a DisplayString.
 For use in @{Strings.ShowString|ShowString} and @{Strings.HideString|HideString}.
 @function DisplayString
 @tparam string string The string to display or key of the translated string.
-@tparam Vec2 Position of the string in pixel coordinates.
-@tparam[opt] float scale size of the string, relative to the default size. __Default: 1.0__
-@tparam[opt] Color color the color of the text. __Default: white__
-@tparam[opt] bool translated If false or omitted, the input string argument will be displayed.
-If true, the string argument will be the key of a translated string specified in strings.lua. __Default: false__.
-@tparam Strings.DisplayStringOption table
-__Default: None.__ _Please note that Strings are automatically aligned to the LEFT_
+@tparam Vec2 position Position of the string in pixel coordinates.
+@tparam[opt=1] float scale Size of the string, relative to the default size.
+@tparam[opt=Color(255&#44; 255&#44; 255)] Color color The color of the text.
+@tparam[opt=false] bool translated If false or omitted, the input string argument will be displayed as is.
+If true, the string argument will be treated as the key of a translated string specified in strings.lua.
+@tparam[opt] Strings.DisplayStringOption flags Flags which affect visual representation of a string, such as shadow or alignment.
+@tparam[opt=Vec2(0&#44; 0)] Vec2 area Rectangular area in pixels to perform word wrapping.
+No word wrapping will occur if this parameter is default or omitted.
 @treturn DisplayString A new DisplayString object.
 */
 static std::unique_ptr<DisplayString> CreateString(const std::string& key, const Vec2& pos, TypeOrNil<float> scale, TypeOrNil<ScriptColor> color,
-												   TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, sol::this_state state)
+												   TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, TypeOrNil<Vec2> area)
 {
 	auto ptr = std::make_unique<DisplayString>();
 	auto id = ptr->GetID();
-
-	auto getCallStack = [state]
-	{
-		luaL_traceback(state, state, nullptr, 0);
-		auto traceback = std::string(lua_tostring(state, -1));
-		lua_pop(state, 1);
-		return traceback;
-	};
 
 	auto flagArray = FlagArray{};
 	if (std::holds_alternative<sol::table>(flags))
@@ -82,19 +75,22 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 	}
 	else if (!std::holds_alternative<sol::nil_t>(flags))
 	{
-		ScriptAssertF(false, "Wrong argument type for {}.new \"flags\" argument; must be a table or nil.\n{}", ScriptReserved_DisplayString, getCallStack());
+		ScriptAssertF(false, "Wrong argument type for {}.new \"flags\" argument; must be a table or nil.", ScriptReserved_DisplayString);
 	}
 
 	if (!IsValidOptional(isTranslated))	
-		ScriptAssertF(false, "Wrong argument type for {}.new \"translated\" argument; must be a bool or nil.\n{}", ScriptReserved_DisplayString, getCallStack());
+		ScriptAssertF(false, "Wrong argument type for {}.new \"translated\" argument; must be a bool or nil.", ScriptReserved_DisplayString);
 
 	if (!IsValidOptional(color))	
-		ScriptAssertF(false, "Wrong argument type for {}.new \"color\" argument; must be a {} or nil.\n{}", ScriptReserved_DisplayString, ScriptReserved_Color, getCallStack());
+		ScriptAssertF(false, "Wrong argument type for {}.new \"color\" argument; must be a {} or nil.", ScriptReserved_DisplayString, ScriptReserved_Color);
 
 	if (!IsValidOptional(scale))	
-		ScriptAssertF(false, "Wrong argument type for {}.new \"scale\" argument; must be a float or nil.\n{}", ScriptReserved_DisplayString, getCallStack());
+		ScriptAssertF(false, "Wrong argument type for {}.new \"scale\" argument; must be a float or nil.", ScriptReserved_DisplayString);
 
-	auto string = UserDisplayString(key, pos, ValueOr<float>(scale, 1.0f), ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255)),
+	if (!IsValidOptional(area))
+		ScriptAssertF(false, "Wrong argument type for {}.new \"size\" argument; must be an int or nil.", ScriptReserved_DisplayString);
+
+	auto string = UserDisplayString(key, pos, ValueOr<Vec2>(area, Vec2(0, 0)), ValueOr<float>(scale, 1.0f), ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255)),
 									flagArray, ValueOr<bool>(isTranslated, false), g_GameFlow->CurrentFreezeMode);
 
 
@@ -103,30 +99,28 @@ static std::unique_ptr<DisplayString> CreateString(const std::string& key, const
 }
 
 // HACK: Constructor wrapper for DisplayString smart pointer to maintain compatibility with deprecated version calls.
-sol::object DisplayStringWrapper(const std::string& key, sol::object unkArg0, sol::object unkArg1, TypeOrNil<ScriptColor> color,
-								 TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, sol::this_state state)
+std::unique_ptr<DisplayString> DisplayStringWrapper(const std::string& key, sol::object unkArg0, sol::object unkArg1, TypeOrNil<ScriptColor> color,
+								 TypeOrNil<bool> isTranslated, TypeOrNil<sol::table> flags, TypeOrNil<Vec2> area)
 {
-	// Regular constructor.
+	// Deprecated constructor 1 (prior to word wrapping implementation).
 	if (unkArg0.is<Vec2>() && (unkArg1.is<float>() || unkArg1 == sol::nil))
 	{
 		auto pos = (Vec2)unkArg0.as<Vec2>();
 		float scale = unkArg1 == sol::nil ? 1.0f : unkArg1.as<float>();
 
-		auto displayString = CreateString(key, pos, scale, color, isTranslated, flags, state);
-		return sol::make_object(state, displayString.release());
+		return CreateString(key, pos, scale, color, isTranslated, flags, area);
 
 	}
-	// Deprecated constructor.
+	// Deprecated constructor 2 (prior to Vec2 position implementation).
 	else if (unkArg0.is<int>() && unkArg1.is<int>())
 	{
 		auto pos = Vec2((float)unkArg0.as<int>(), (float)unkArg1.as<int>());
 
-		auto displayString = CreateString(key, pos, 1.0f, color, isTranslated, flags, state);
-		return sol::make_object(state, displayString.release());
+		return CreateString(key, pos, 1.0f, color, isTranslated, flags, area);
 	}
 
 	TENLog("Failed to create DisplayString. Unknown parameters.");
-	return sol::object(state, sol::nil);
+	return nullptr;
 }
 
 DisplayString::~DisplayString()
@@ -140,55 +134,63 @@ void DisplayString::Register(sol::table& parent)
 		ScriptReserved_DisplayString,
 		sol::call_constructor, &DisplayStringWrapper,
 
-		/// Get the display string's color
+		/// Get the display string's color.
 		// @function DisplayString:GetColor
-		// @treturn Color a copy of the display string's color
+		// @treturn Color Display string's color.
 		ScriptReserved_GetColor, &DisplayString::GetColor,
 
-		/// Set the display string's color 
+		/// Set the display string's color.
 		// @function DisplayString:SetColor
-		// @tparam Color color the new color of the display string 
+		// @tparam Color color The new color of the display string.
 		ScriptReserved_SetColor, &DisplayString::SetColor,
 
-		/// Get the string key to use. If `isTranslated` is true when @{DisplayString}
-		// is called, this will be the string key for the translation that will be displayed.
-		// If false or omitted, this will be the string that's displayed.
-		// @function DisplayString:GetKey()
-		// @treturn string the string to use
-		ScriptReserved_GetKey, &DisplayString::GetKey, 
+		/// Get the string key.
+		// @function DisplayString:GetKey
+		// @treturn string The string key.
+		ScriptReserved_GetKey, &DisplayString::GetKey,
 
-		/// Set the string key to use. If `isTranslated` is true when @{DisplayString}
-		// is called, this will be the string key for the translation that will be displayed.
-		// If false or omitted, this will be the string that's displayed.
-		// @function DisplayString:SetKey()
-		// @tparam string string the new key for the display string 
-		ScriptReserved_SetKey, &DisplayString::SetKey, 
-
-		/// Set the scale of the string.
-		// @function DisplayString:SetScale()
-		// @tparam float scale New scale of the string relative to the default size.
-		ScriptReserved_SetScale, &DisplayString::SetScale,
+		/// Set the string key to use.
+		// @function DisplayString:SetKey
+		// @tparam string key The new key for the display string.
+		ScriptReserved_SetKey, &DisplayString::SetKey,
 
 		/// Get the scale of the string.
-		// @function DisplayString:GetScale()
+		// @function DisplayString:GetScale
 		// @treturn float Scale.
 		ScriptReserved_GetScale, &DisplayString::GetScale,
 
-		/// Set the position of the string.
-		// Screen-space coordinates are expected.
-		// @function DisplayString:SetPosition()
-		// @tparam Vec2 pos New position in pixel coordinates.
-		ScriptReserved_SetPosition, &DisplayString::SetPosition,
+		/// Set the scale of the string.
+		// @function DisplayString:SetScale
+		// @tparam float scale New scale of the string relative to the default size.
+		ScriptReserved_SetScale, &DisplayString::SetScale,
 
 		/// Get the position of the string.
 		// Screen-space coordinates are returned.
-		// @function DisplayString:GetPosition()
+		// @function DisplayString:GetPosition
 		// @treturn Vec2 pos Position in pixel coordinates.
 		ScriptReserved_GetPosition, &DisplayString::GetPosition,
 
-		/// Set the display string's flags 
-		// @function DisplayString:SetFlags()
-		// @tparam table table the new table with display flags options
+		/// Set the position of the string.
+		// Screen-space coordinates are expected.
+		// @function DisplayString:SetPosition
+		// @tparam Vec2 pos New position in pixel coordinates.
+		ScriptReserved_SetPosition, &DisplayString::SetPosition,
+
+		/// Get the word-wrapping area of the string.
+		// Screen-space coordinates are returned. If `Vec2(0, 0)` is returned, it means there is no word wrapping for this string.
+		// @function DisplayString:GetArea
+		// @treturn Vec2 area Word-wrapping area in pixel coordinates.
+		ScriptReserved_GetArea, &DisplayString::GetArea,
+
+		/// Set the word-wrapping area of the string.
+		// Screen-space coordinates are expected. If set to `Vec2(0, 0)`, no word wrapping will occur.
+		// @function DisplayString:SetArea
+		// @tparam Vec2 pos New word-wrapping area in pixel coordinates.
+		ScriptReserved_SetArea, &DisplayString::SetArea,
+
+		/// Set the display string's flags.
+		// @function DisplayString:SetFlags
+		// @tparam table table The new table with display flags options.
 		// @usage
 		// local varDisplayString = DisplayString('example string', 0, 0, Color(255, 255, 255), false)
 		// possible values:
@@ -200,16 +202,25 @@ void DisplayString::Register(sol::table& parent)
 		// varDisplayString:SetFlags{ TEN.Strings.DisplayStringOption.CENTER }
 		ScriptReserved_SetFlags, &DisplayString::SetFlags,
 
-		/// Set translated parameter of the string
-		// @function DisplayString:SetTranslated
-		// @tparam bool shouldTranslate if true, the string's key will be used as the key for the translation that will be displayed.
-		// If false, the key itself will be displayed
+		// DEPRECATED
 		ScriptReserved_SetTranslated, &DisplayString::SetTranslated);
 }
 
 DisplayStringID DisplayString::GetID() const
 {
 	return _id;
+}
+
+void DisplayString::SetArea(Vec2 area)
+{
+	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
+	displayString._area = area;
+}
+
+Vec2 DisplayString::GetArea() const
+{
+	const UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
+	return displayString._area;
 }
 
 void DisplayString::SetScale(float scale)

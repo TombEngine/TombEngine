@@ -32,7 +32,7 @@ namespace TEN::Effects::Spark
 			PrevVelocity = velocity;
 		}
 	};
-	extern std::array<SparkParticle, 128> SparkParticles;
+	extern std::array<SparkParticle, 256> SparkParticles;
 			
 	void UpdateSparkParticles();
 	void DisableSparkParticles();

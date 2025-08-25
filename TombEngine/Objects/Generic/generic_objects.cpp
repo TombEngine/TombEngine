@@ -16,6 +16,7 @@
 #include "Objects/Generic/Object/polerope.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Objects/Generic/Object/rope.h"
+#include "Objects/Generic/Object/ZipLine.h"
 
 // Switches
 #include "Objects/Generic/Switches/cog_switch.h"
@@ -31,6 +32,7 @@
 #include "Objects/Generic/Switches/switch.h"
 
 // Doors
+#include "Objects/Generic/Doors/breakable_wall.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Objects/Generic/Doors/pushpull_kick_door.h"
@@ -94,23 +96,47 @@ static void StartObject(ObjectInfo* object)
 
 	object = &Objects[ID_BRIDGE_FLAT];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT1];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT2];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT3];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT4];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
+
+	object = &Objects[ID_ZIPLINE_HANDLE];
+	if (object->loaded)
+	{
+		object->Initialize = InitializeZipLine;
+		object->collision = CollideZipLine;
+		object->control = ControlZipLine;
+		object->SetHitEffect(true);
+	}
 }
 
 void StartSwitches(ObjectInfo* object)
@@ -176,7 +202,7 @@ void StartSwitches(ObjectInfo* object)
 		object->shadowType = ShadowMode::All;
 	}
 
-	for (int objectID = ID_UNDERWATER_WALL_SWITCH_1; objectID <= ID_UNDERWATER_WALL_SWITCH_2; objectID++)
+	for (int objectID = ID_UNDERWATER_WALL_SWITCH1; objectID <= ID_UNDERWATER_WALL_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)
@@ -186,7 +212,7 @@ void StartSwitches(ObjectInfo* object)
 		}
 	}
 
-	for (int objectID = ID_UNDERWATER_CEILING_SWITCH_1; objectID <= ID_UNDERWATER_CEILING_SWITCH_2; objectID++)
+	for (int objectID = ID_UNDERWATER_CEILING_SWITCH1; objectID <= ID_UNDERWATER_CEILING_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)
@@ -200,8 +226,8 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePulleySwitch;
-		object->control = SwitchControl;
-		object->collision = PulleySwitchCollision;
+		object->control = ControlPulleySwitch;
+		object->collision = CollisionPulleySwitch;
 	}
 
 	object = &Objects[ID_TURN_SWITCH];
@@ -318,6 +344,15 @@ void StartDoors(ObjectInfo* object)
 			object->control = PushPullKickDoorControl;
 			object->SetHitEffect(true);
 		}
+	}
+
+	object = &Objects[ID_BREAKABLE_WALL];
+	if (object->loaded)
+	{
+		object->Initialize = InitializeDoor;
+		object->collision = BreakableWallCollision;
+		object->control = PushPullKickDoorControl;
+		object->SetHitEffect(true);
 	}
 
 	for (int objectID = ID_PUSHPULL_DOOR1; objectID <= ID_KICK_DOOR4; objectID++)

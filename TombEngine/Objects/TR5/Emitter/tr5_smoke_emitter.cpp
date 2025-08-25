@@ -140,8 +140,11 @@ namespace TEN::Effects::SmokeEmitter
 
 		bool ignoreDamage = item.ItemFlags[3] & SmokeEmitterFlags::NoDamage;
 		if (!ignoreDamage && TestGlobalTimeInterval(DAMAGE_TIME_INTERVAL))
+		{
 			part.flags |= SP_DAMAGE;
-
+			part.damage = 2;
+		}
+			
 		part.rotAng = Random::GenerateAngle(ANGLE(0.0f), ANGLE(22.5f));
 		part.rotAdd = Random::GenerateAngle(ANGLE(0.04f), ANGLE(0.08f)) * (Random::TestProbability(1 / 2.0f) ? 1 : -1);
 
@@ -384,7 +387,7 @@ namespace TEN::Effects::SmokeEmitter
 					steamPauseTimer = item.TriggerFlags >> 4;
 				}
 
-				SoundEffect(SFX_TR4_STEAM_EMITTER_LOOP, &item.Pose);
+				SoundEffect(SFX_TEN_STEAM_EMITTER_LOOP, &item.Pose);
 			}
 
 			if (!drawNormalSmoke)

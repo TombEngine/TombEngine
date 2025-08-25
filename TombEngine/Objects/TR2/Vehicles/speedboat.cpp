@@ -810,7 +810,7 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* speedboatItem = &g_Level.Items[itemNumber];
 		auto* speedboat = GetSpeedboatInfo(speedboatItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		int collide = SpeedboatDynamics(itemNumber, laraItem);

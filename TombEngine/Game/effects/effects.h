@@ -123,6 +123,7 @@ struct NODEOFFSET_INFO
 struct Particle
 {
 	bool on;
+	bool DisableInterpolation;
 
 	GAME_OBJECT_ID SpriteSeqID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
 	int	SpriteID = 0;
@@ -237,7 +238,7 @@ TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
 		return effects.emplace_back();
 
 	TEffect* effectPtr = nullptr;
-	float shortestLife = INFINITY;
+	float shortestLife = FLT_MAX;
 
 	// Find effect with shortest remaining life.
 	for (auto& effect : effects)
@@ -273,6 +274,7 @@ void DetatchSpark(int num, SpriteEnumFlag type);
 void UpdateSparks();
 void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true);
 void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv);
+void TriggerGlow(const GameVector& pos, const Vector3& color, int scale);
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void TriggerExplosionSmokeEnd(int x, int y, int z, int uw);
 void TriggerExplosionSmoke(int x, int y, int z, int uw);
@@ -283,6 +285,7 @@ short DoBloodSplat(int x, int y, int z, short speed, short yRot, short roomNumbe
 void DoLotsOfBlood(int x, int y, int z, int speed, short direction, short roomNumber, int count);
 void ControlWaterfallMist(short itemNumber);
 void TriggerWaterfallMist(const ItemInfo& item);
+void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color);
 void KillAllCurrentItems(short itemNumber);
 void TriggerRocketFlame(int x, int y, int z, int xv, int yv, int zv, int itemNumber);
 void TriggerRocketSmoke(int x, int y, int z);
@@ -291,9 +294,10 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 void SpawnCorpseEffect(const Vector3& pos);
 void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale);
 void TriggerRocketFire(int x, int y, int z);
-void TriggerExplosionBubbles(int x, int y, int z, short roomNumber);
+void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void Ricochet(Pose& pos);
 void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth);
+std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);

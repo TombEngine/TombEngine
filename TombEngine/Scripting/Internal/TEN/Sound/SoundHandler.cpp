@@ -14,90 +14,90 @@
 
 namespace TEN::Scripting::Sound
 {
-	/// Play an audio track
-	//@function PlayAudioTrack
-	//@tparam string name of track (without file extension) to play
-	//@tparam Sound.SoundTrackType type of the audio track to play
+	/// Play an audio track. Should be placed in the `Audio` folder. Supported formats are wav, mp3 and ogg.
+	// @function PlayAudioTrack
+	// @tparam string filename Filename of a track (without file extension) to play.
+	// @tparam Sound.SoundTrackType type Type of the audio track to play.
 	static void PlayAudioTrack(const std::string& trackName, TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
 		PlaySoundTrack(trackName, playMode);
 	}
 
-	/// Set and play an ambient track
+	/// Set and play an ambient track.
 	// @function SetAmbientTrack
-	// @tparam string name of track (without file extension) to play
-	// @tparam bool fromStart specifies whether ambient track should play from the start, or crossfade at a random position
+	// @tparam string name Name of track (without file extension) to play.
+	// @tparam bool fromStart Specifies whether ambient track should play from the start, or crossfade at a random position.
 	static void SetAmbientTrack(const std::string& trackName, TypeOrNil<bool> fromTheBeginning)
 	{
 		auto pos = ValueOr<bool>(fromTheBeginning, false) ? std::optional<QWORD>(0) : std::optional<QWORD>();
 		PlaySoundTrack(trackName, SoundTrackType::BGM, pos, pos.has_value() ? SOUND_XFADETIME_ONESHOT : SOUND_XFADETIME_BGM);
 	}
 
-	///Stop any audio tracks currently playing
-	//@function StopAudioTracks
+	/// Stop any audio tracks currently playing.
+	// @function StopAudioTracks
 	static void StopAudioTracks()
 	{
 		StopSoundTracks();
 	}
 
-	///Stop audio track that is currently playing
-	//@function StopAudioTrack
-	//@tparam Sound.SoundTrackType type of the audio track
+	/// Stop audio track that is currently playing.
+	// @function StopAudioTrack
+	// @tparam Sound.SoundTrackType type Type of the audio track.
 	static void StopAudioTrack(TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
 		StopSoundTrack(playMode, SOUND_XFADETIME_ONESHOT);
 	}
 
-	///Get current loudness level for specified track type
-	//@function GetAudioTrackLoudness
-	//@tparam Sound.SoundTrackType type of the audio track
-	//@treturn float current loudness of a specified audio track
+	/// Get current loudness level for specified track type.
+	// @function GetAudioTrackLoudness
+	// @tparam Sound.SoundTrackType type Type of the audio track.
+	// @treturn float Current loudness of a specified audio track.
 	static float GetAudioTrackLoudness(TypeOrNil<SoundTrackType> mode)
 	{
 		auto playMode = ValueOr<SoundTrackType>(mode, SoundTrackType::OneShot);
 		return GetSoundTrackLoudness(playMode);
 	}
 
-	/// Play sound effect
-	//@function PlaySound
-	//@tparam int sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
-	////@tparam[opt] Vec3 position The 3D position of the sound, i.e. where the sound "comes from". If not given, the sound will not be positional.
+	/// Play sound effect.
+	// @function PlaySound
+	// @tparam int soundID Sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
+	// @tparam[opt] Vec3 position The 3D position of the sound, i.e. where the sound "comes from". If not given, the sound will not be positional.
 	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos)
 	{
 		SoundEffect(soundID, pos.has_value() ? &Pose(pos->ToVector3i()) : nullptr, SoundEnvironment::Always);
 	}
 
-	/// Stop sound effect
-	//@function StopSound
-	//@tparam int sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
+	/// Stop sound effect.
+	// @function StopSound
+	// @tparam int soundID Sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
 	static void StopSound(int id)
 	{
 		StopSoundEffect(id);
 	}
 
-	/// Check if the sound effect is playing
-	//@function IsSoundPlaying
-	//@tparam int Sound ID to check. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
+	/// Check if the sound effect is playing.
+	// @function IsSoundPlaying
+	// @tparam int soundID Sound ID to check. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
 	static bool IsSoundPlaying(int effectID)
 	{
 		return (Sound_EffectIsPlaying(effectID, nullptr) != SOUND_NO_CHANNEL);
 	}
 
-	/// Check if the audio track is playing
-	//@function IsAudioTrackPlaying
-	//@tparam string Track filename to check. Should be without extension and without full directory path.
+	/// Check if the audio track is playing.
+	// @function IsAudioTrackPlaying
+	// @tparam string track Filename to check. Should be without extension and without full directory path.
 	static bool IsAudioTrackPlaying(const std::string& trackName)
 	{
 		return Sound_TrackIsPlaying(trackName);
 	}
 
-	///Get current subtitle string for a voice track currently playing.
-	//Subtitle file must be in .srt format, have same filename as voice track, and be placed in same directory as voice track.
-	//Returns nil if no voice track is playing or no subtitle present.
-	//@function GetCurrentSubtitle
-	//@treturn string current subtitle string
+	/// Get current subtitle string for a voice track currently playing.
+	// Subtitle file must be in .srt format, have same filename as voice track, and be placed in same directory as voice track.
+	// Returns nil if no voice track is playing or no subtitle present.
+	// @function GetCurrentSubtitle
+	// @treturn string Current subtitle string.
 	static TypeOrNil<std::string> GetCurrentVoiceTrackSubtitle()
 	{
 		auto& result = GetCurrentSubtitle();

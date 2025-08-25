@@ -24,7 +24,7 @@ using namespace TEN::Scripting::Types;
 	static auto IndexError = IndexErrorMaker(Room, ScriptReserved_Volume);
 	static auto NewIndexError = NewIndexErrorMaker(Room, ScriptReserved_Volume);
 
-	Room::Room(ROOM_INFO& room) :
+	Room::Room(RoomData& room) :
 		_room(room)
 	{
 	};
@@ -51,7 +51,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Get the room's number.
-	// @function Room:GetRoomNumber()
+	// @function Room:GetRoomNumber
 	// @treturn int Room number.
 	int Room::GetRoomNumber() const
 	{
@@ -59,7 +59,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Get the room's unique string identifier.
-	// @function Room:GetName()
+	// @function Room:GetName
 	// @treturn string Room name.
 	std::string Room::GetName() const
 	{
@@ -67,7 +67,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Get the room's ambient light color.
-	// @function Room:GetColor()
+	// @function Room:GetColor
 	// @treturn Color Ambient light color.
 	ScriptColor Room::GetColor() const
 	{
@@ -75,7 +75,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Get the room's reverb type.
-	// @function Room:GetReverbType()
+	// @function Room:GetReverbType
 	// @treturn Objects.RoomReverb Reverb type.
 	ReverbType Room::GetReverbType() const
 	{
@@ -83,7 +83,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Set the room's unique string identifier.
-	// @function Room:SetName()
+	// @function Room:SetName
 	// @tparam string name New name.
 	void Room::SetName(const std::string& name)
 	{
@@ -104,17 +104,17 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Set the room's reverb type.
-	// @function Room:SetReverbType()
-	// @tparam Objects.RoomReverb Reverb type.
+	// @function Room:SetReverbType
+	// @tparam Objects.RoomReverb reverb Reverb type.
 	void Room::SetReverbType(ReverbType reverb)
 	{
 		_room.reverbType = reverb;
 	}
 
 	/// Set the room's specified flag.
-	// @function Room:SetFlag()
+	// @function Room:SetFlag
 	// @tparam Objects.RoomFlagID flagID Room flag ID.
-	// @tparam bool Boolean to set the flag to.
+	// @tparam bool value Boolean to set the flag to.
 	void Room::SetFlag(RoomEnvFlags flag, bool value)
 	{
 		if (value)
@@ -128,7 +128,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Get the room's specified flag value (true or false).
-	// @function Room:GetFlag()
+	// @function Room:GetFlag
 	// @tparam Objects.RoomFlagID flagID Room flag ID.
 	bool Room::IsTagPresent(const std::string& tag) const
 	{
@@ -144,7 +144,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Check if the specified tag is set for the room.
-	// @function Room:IsTagPresent()
+	// @function Room:IsTagPresent
 	// @tparam string tag Text tag to check (case sensitive).
 	// @treturn bool Boolean of the tag's presence.
 	bool Room::GetActive() const
@@ -153,7 +153,7 @@ using namespace TEN::Scripting::Types;
 	}
 
 	/// Check if the room is active.
-	// @function Room:GetActive()
+	// @function Room:GetActive
 	// @treturn bool Boolean of the room's active status.
 	bool Room::GetFlag(RoomEnvFlags flag) const
 	{

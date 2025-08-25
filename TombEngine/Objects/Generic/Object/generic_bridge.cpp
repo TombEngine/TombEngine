@@ -64,7 +64,8 @@ namespace TEN::Entities::Generic
 		bridgeItem.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(bridgeItem);
 
-		// Initialize routines.
+		AddActiveItem(itemNumber);
+
 		switch (bridgeItem.ObjectNumber)
 		{
 		default:
@@ -104,6 +105,14 @@ namespace TEN::Entities::Generic
 			break;
 		}
 
-		UpdateBridgeItem(bridgeItem, BridgeUpdateType::Initialize);
+		bridge.Initialize(bridgeItem);
+	}
+
+	void ControlBridge(short itemNumber)
+	{
+		auto& bridgeItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(bridgeItem);
+
+		bridge.Update(bridgeItem);
 	}
 }

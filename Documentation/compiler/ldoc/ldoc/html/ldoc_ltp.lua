@@ -215,12 +215,12 @@ return [==[
 #       end
         $(M(item.params.map[p],item))
 #       if def == true then
-         (<em>optional</em>)
+         (<em>Optional.</em>)
 #      elseif def then
-         (<em>default</em> $(def))
+         (<em>Default.</em> $(def))
 #       end
 #       if item:readonly(p) then
-          <em>readonly</em>
+          <em>Read-only.</em>
 #       end
         </li>
 #     end

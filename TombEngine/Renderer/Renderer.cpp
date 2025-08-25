@@ -6,11 +6,11 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/RenderTargetCube.h"
 #include "Renderer/Graphics/VertexBuffer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
-#include "Graphics/RenderTargetCube.h"
 
 namespace TEN::Renderer
 {
@@ -60,6 +60,18 @@ namespace TEN::Renderer
 	void Renderer::Lock()
 	{
 		_isLocked = true;
+	}
+
+	void Renderer::UpdateVideoTexture(Texture2D* texture)
+	{
+		_videoSprite.X = _videoSprite.Y = 0;
+		_videoSprite.Width = texture->Width;
+		_videoSprite.Height = texture->Height;
+		_videoSprite.UV[0] = Vector2(0,0);
+		_videoSprite.UV[1] = Vector2(1,0);
+		_videoSprite.UV[2] = Vector2(1,1);
+		_videoSprite.UV[3] = Vector2(0,1);
+		_videoSprite.Texture = texture;
 	}
 
 	void Renderer::ReloadShaders(bool recompileAAShaders)
@@ -162,7 +174,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -200,7 +212,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -300,6 +312,30 @@ namespace TEN::Renderer
 		}
 
 		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
+	}
+
+	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
+	{
+		memset(_stRoom.RoomDecals, 0, Decal::COUNT_MAX * sizeof(ShaderDecal));
+
+		if (!g_Configuration.EnableDecals)
+		{
+			_stRoom.NumRoomDecals = 0;
+			return;
+		}
+
+		for (int i = 0; i < decals.size(); i++)
+		{
+			if (i >= Decal::COUNT_MAX)
+				break;
+
+			_stRoom.RoomDecals[i].Position = decals[i].Position;
+			_stRoom.RoomDecals[i].Radius = decals[i].Radius;
+			_stRoom.RoomDecals[i].Opacity = decals[i].Opacity;
+			_stRoom.RoomDecals[i].Pattern = decals[i].Pattern;
+		}
+
+		_stRoom.NumRoomDecals = (int)decals.size();
 	}
 
 	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
@@ -468,5 +504,10 @@ namespace TEN::Renderer
 	void Renderer::SetGraphicsSettingsChanged()
 	{
 		_graphicsSettingsChanged = true;
+	}
+
+	RendererDebugPage Renderer::GetDebugPage() const
+	{
+		return _debugPage;
 	}
 }

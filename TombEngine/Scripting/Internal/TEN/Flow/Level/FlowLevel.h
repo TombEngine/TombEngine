@@ -9,23 +9,6 @@
 
 using namespace TEN::Scripting;
 
-static const std::unordered_map<std::string, WeatherType> WEATHER_TYPES
-{
-	{ "None", WeatherType::None },
-	{ "Rain", WeatherType::Rain },
-	{ "Snow", WeatherType::Snow }
-};
-
-static const std::unordered_map<std::string, LaraType> PLAYER_TYPES
-{
-	{ "Normal", LaraType::Normal },
-	{ "Young", LaraType::Young },
-	{ "Bunhead", LaraType::Bunhead },
-	{ "Catsuit", LaraType::Catsuit },
-	{ "Divesuit", LaraType::Divesuit },
-	{ "Invisible", LaraType::Invisible }
-};
-
 struct Level : public ScriptInterfaceLevel
 {
 	Fog			Fog			 = {};
@@ -39,10 +22,11 @@ struct Level : public ScriptInterfaceLevel
 	TEN::Scripting::LensFlare LensFlare = {};
 	TEN::Scripting::Starfield Starfield = {};
 
-	WeatherType Weather			= WeatherType::None;
-	float		WeatherStrength = 1.0f;
-	bool		Storm			= false;
-	bool		Rumble			= false;
+	WeatherType Weather				= WeatherType::None;
+	float		WeatherStrength		= 1.0f;
+	bool		WeatherClustering	= true;
+	bool		Storm				= false;
+	bool		Rumble				= false;
 
 	LaraType Type = LaraType::Normal;
 	int LevelSecrets = 0;
@@ -53,7 +37,6 @@ struct Level : public ScriptInterfaceLevel
 	// TODO: Clean up this mess.
 
 	RGBAColor8Byte GetFogColor() const override;
-	bool GetFogEnabled() const override;
 	float GetWeatherStrength() const override;
 	bool GetSkyLayerEnabled(int index) const override;
 	bool GetStormEnabled() const override;
@@ -62,12 +45,12 @@ struct Level : public ScriptInterfaceLevel
 	RGBAColor8Byte GetSkyLayerColor(int index) const override;
 	LaraType GetLaraType() const override;
 	void SetWeatherStrength(float val);
-	void SetLevelFarView(short val);
 	static void Register(sol::table& parent);
 	WeatherType GetWeatherType() const override;
-	short GetFogMinDistance() const override;
-	short GetFogMaxDistance() const override;
-	short GetFarView() const override;
+	bool GetWeatherClustering() const override;
+	float GetFogMinDistance() const override;
+	float GetFogMaxDistance() const override;
+	float GetFarView() const override;
 	void SetSecrets(int secrets);
 	int GetSecrets() const override;
 	std::string GetAmbientTrack() const override;
@@ -94,8 +77,6 @@ struct Level : public ScriptInterfaceLevel
 	Color GetLensFlareColor() const override;
 
 	// Starfield getters
-	bool  GetStarfieldStarsEnabled() const override;
-	bool  GetStarfieldMeteorsEnabled() const override;
 	int	  GetStarfieldStarCount() const override;
 	int	  GetStarfieldMeteorCount() const override;
 	int	  GetStarfieldMeteorSpawnDensity() const override;
