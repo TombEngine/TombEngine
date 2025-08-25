@@ -2,6 +2,7 @@
 #include "Game/people.h"
 
 #include "Game/animation.h"
+#include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
@@ -10,6 +11,8 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Sound/sound.h"
+
+using namespace TEN::Collision::Point;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
@@ -81,14 +84,16 @@ bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short ex
 
 short GunMiss(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	// TODO: Remove -128 and fix ricochet effect going on floor. -- TokyoSU 2023.04.28
 	auto pos = GameVector(
 		LaraItem->Pose.Position.x + ((GetRandomControl() - 0x4000) << 9) / 0x7FFF,
 		LaraItem->Floor - 128,
 		LaraItem->Pose.Position.z + ((GetRandomControl() - 0x4000) << 9) / 0x7FFF,
 		LaraItem->RoomNumber);
 
+	pos.y = GetPointCollision(pos.ToVector3i(), pos.RoomNumber).GetFloorHeight();
+
 	Ricochet(Pose(pos.ToVector3i()));
+	SpawnDecal(pos.ToVector3(), pos.RoomNumber, DecalType::BulletHole);
 	return GunShot(x, y, z, velocity, yRot, roomNumber);
 }
 
