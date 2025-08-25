@@ -596,11 +596,7 @@ namespace TEN::Effects::Environment
 
 				newParticlesCount++;
 
-
 				float dist = 0;
-
-
-
 				if (level.GetWeatherType() == WeatherType::Snow)
 				{
 					dist = WEATHER_SPAWN_DIST_SNOW;
