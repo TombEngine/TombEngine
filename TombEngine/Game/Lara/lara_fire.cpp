@@ -937,6 +937,9 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 {
 	constexpr auto playerSize = LARA_RADIUS * 2.0f;
 
+	if (!g_GameFlow->GetSettings()->Gameplay.TargetObjectOcclusion)
+		return false;
+
 	auto dir = target - origin;
 	dir.Normalize();
 
