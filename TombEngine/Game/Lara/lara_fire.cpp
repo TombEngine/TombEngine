@@ -950,12 +950,16 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 	auto staticLos = GetStaticLosCollision(origin, playerItem.RoomNumber, dir, distance);
 	if (staticLos.has_value() && staticLos.value().Static != nullptr && staticLos.value().Distance < distance)
 	{
-		// Filter out statics that are too small.
-		auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
-		auto radius = Vector2(extents.x, extents.z).Length();
+		// Don't filter out shatterables.
+		if (Statics[staticLos.value().Static->Slot].shatterType == ShatterType::None)
+		{
+			// Filter out statics that are too small.
+			auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
+			auto radius = Vector2(extents.x, extents.z).Length();
 
-		if (radius > playerSize && extents.y > playerSize)
-			return true;
+			if (radius > playerSize && extents.y > playerSize)
+				return true;
+		}
 	}
 
 	// Assess moveable line of sight.
