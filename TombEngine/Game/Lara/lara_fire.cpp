@@ -935,11 +935,13 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 
 bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 target, float distance)
 {
+	constexpr auto playerSize = LARA_RADIUS * 2.0f;
+
 	auto dir = target - origin;
 	dir.Normalize();
 
 	// We need to subtract Lara's radius from distance to avoid near plane false negatives.
-	distance -= LARA_RADIUS;
+	distance -= playerSize;
 
 	// Assess static mesh line of sight.
 	auto staticLos = GetStaticLosCollision(origin, playerItem.RoomNumber, dir, distance);
@@ -949,7 +951,7 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 		auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
 		auto radius = Vector2(extents.x, extents.z).Length();
 
-		if (radius > LARA_RADIUS)
+		if (radius > playerSize && extents.y > playerSize)
 			return true;
 	}
 
@@ -964,7 +966,7 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 			auto extents = moveableLos.value().Item->GetAabb().Extents;
 			auto radius = Vector2(extents.x, extents.z).Length();
 
-			if (radius > LARA_RADIUS)
+			if (radius > playerSize && extents.y > playerSize)
 				return true;
 		}
 	}
