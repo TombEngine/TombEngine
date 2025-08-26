@@ -141,7 +141,7 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 
 	StaticMesh* mesh = nullptr;
 	Vector3i vector = {};
-	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh);
+	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT, item->Index);
 	if (losItemIndex == item->Index)
 		losItemIndex = NO_LOS_ITEM; // Don't find itself.
 
