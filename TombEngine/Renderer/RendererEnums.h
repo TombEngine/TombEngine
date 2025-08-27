@@ -305,3 +305,9 @@ enum class PostProcessMode
 	Negative = 2,
 	Exclusion = 3
 };
+
+enum class MaterialShaderType
+{
+	Opaque = 0,
+	Water = 1
+};

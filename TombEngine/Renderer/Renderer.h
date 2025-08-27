@@ -85,7 +85,7 @@ namespace TEN::Renderer
 	using namespace TEN::Renderer::Utils;
 	using namespace DirectX::SimpleMath;
 
-	using TexturePair = std::tuple<Texture2D, Texture2D>;
+	using AtlasTexturesSet = std::tuple<Texture2D, Texture2D, Texture2D, Texture2D>;
 
 	class Renderer
 	{
@@ -227,10 +227,10 @@ namespace TEN::Renderer
 		std::vector<RendererSpriteSequence>					   _spriteSequences;
 		std::vector<RendererAnimatedTextureSet>				   _animatedTextureSets;
 		std::vector<RendererMesh*>							   _meshes;
-		std::vector<TexturePair>							   _roomTextures;
-		std::vector<TexturePair>							   _animatedTextures;
-		std::vector<TexturePair>							   _moveablesTextures;
-		std::vector<TexturePair>							   _staticTextures;
+		std::vector<AtlasTexturesSet>							   _roomTextures;
+		std::vector<AtlasTexturesSet>							   _animatedTextures;
+		std::vector<AtlasTexturesSet>							   _moveablesTextures;
+		std::vector<AtlasTexturesSet>							   _staticTextures;
 		std::vector<Texture2D>								   _spritesTextures;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
 
@@ -526,7 +526,8 @@ namespace TEN::Renderer
 		void CreateSSAONoiseTexture();
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
-		
+		Texture2D CreateDefaultTexture(std::vector<byte> color);
+
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
 		inline bool IgnoreReflectionPassForRoom(int roomNumber)

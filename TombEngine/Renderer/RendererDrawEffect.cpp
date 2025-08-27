@@ -1762,4 +1762,9 @@ namespace TEN::Renderer
 				BlendMode::AlphaBlend, true, view);
 		}
 	}
+
+	Texture2D Renderer::CreateDefaultTexture(std::vector<byte> color)
+	{
+		return Texture2D(_device.Get(), 1, 1, color.data());
+	}
 }
