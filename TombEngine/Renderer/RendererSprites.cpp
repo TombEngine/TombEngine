@@ -301,7 +301,9 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(spriteToDraw, view);
 					_stInstancedSpriteBuffer.Sprites[i].Color = spriteToDraw.color;
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1.0f;
+					_stInstancedSpriteBuffer.Sprites[i].PerVertexColor = 0;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = spriteToDraw.SoftParticle ? 1.0f : 0.0f;
+					_stInstancedSpriteBuffer.Sprites[i].RenderType = (int)spriteToDraw.renderType;
 
 					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = spriteToDraw.Sprite->UV[0].x;
@@ -338,25 +340,45 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 				BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
 
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
 
-				_shaders.Bind(Shader::Sprites);
+				_shaders.Bind(Shader::InstancedSprites);
+
+				// Set up vertex buffer and parameters.
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+				_context->IASetVertexBuffers(0, 1, _spritesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 				wasGpuSet = true;
 			}
 			
-			_stSprite.IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
-			_stSprite.RenderType = (int)spriteBucket.RenderType;
-			_cbSprite.UpdateData(_stSprite, _context.Get());
+			_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
+			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
+			_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)spriteBucket.RenderType;
+
+			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
+
+			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = spriteBucket.Sprite->UV[0].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = spriteBucket.Sprite->UV[1].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = spriteBucket.Sprite->UV[2].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = spriteBucket.Sprite->UV[3].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = spriteBucket.Sprite->UV[0].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = spriteBucket.Sprite->UV[1].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = spriteBucket.Sprite->UV[2].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = spriteBucket.Sprite->UV[3].y;
+
+			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
-			_primitiveBatch->Begin();
+			int spritesToDraw = 0;
 
 			for (auto& rDrawSprite : spriteBucket.SpritesToDraw)
 			{
@@ -364,6 +386,7 @@ namespace TEN::Renderer
 				vertex0.Position = rDrawSprite.vtx1;
 				vertex0.UV = rDrawSprite.Sprite->UV[0];
 				vertex0.Color = rDrawSprite.c1;
+				vertex0.IndexInPoly = 0;
 
 				ReflectVectorOptionally(vertex0.Position);
 
@@ -371,6 +394,7 @@ namespace TEN::Renderer
 				vertex1.Position = rDrawSprite.vtx2;
 				vertex1.UV = rDrawSprite.Sprite->UV[1];
 				vertex1.Color = rDrawSprite.c2;
+				vertex1.IndexInPoly = 1;
 
 				ReflectVectorOptionally(vertex1.Position);
 
@@ -378,6 +402,7 @@ namespace TEN::Renderer
 				vertex2.Position = rDrawSprite.vtx3;
 				vertex2.UV = rDrawSprite.Sprite->UV[2];
 				vertex2.Color = rDrawSprite.c3;
+				vertex2.IndexInPoly = 2;
 
 				ReflectVectorOptionally(vertex2.Position);
 
@@ -385,18 +410,29 @@ namespace TEN::Renderer
 				vertex3.Position = rDrawSprite.vtx4;
 				vertex3.UV = rDrawSprite.Sprite->UV[3];
 				vertex3.Color = rDrawSprite.c4;
+				vertex3.IndexInPoly = 3;
 
 				ReflectVectorOptionally(vertex3.Position);
 
-				_primitiveBatch->DrawTriangle(vertex0, vertex1, vertex3);
-				_primitiveBatch->DrawTriangle(vertex1, vertex2, vertex3);
+				_spritesVertices.push_back(vertex0);
+				_spritesVertices.push_back(vertex1);
+				_spritesVertices.push_back(vertex3);
+				_spritesVertices.push_back(vertex2);
 
-				_numTriangles += 2;
-				_numSpritesDrawCalls += 2;
-				_numDrawCalls += 2;
+				spritesToDraw++;
+
+				if (spritesToDraw == INSTANCED_SPRITES_BUCKET_SIZE || spritesToDraw == spriteBucket.SpritesToDraw.size())
+				{
+					_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, spritesToDraw * 4);
+
+					DrawInstancedTriangles(spritesToDraw * 4, 1, 0);
+
+					_numInstancedSpritesDrawCalls++;
+
+					spritesToDraw = 0;
+					_spritesVertices.clear();
+				}
 			}
-
-			_primitiveBatch->End();
 		}
 
 		// Set up vertex parameters.
@@ -405,100 +441,90 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view)
 	{
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::LinearClamp);
+
+		SetDepthState(DepthState::Read);
+		SetCullMode(CullMode::None);
+		SetBlendMode(object->Sprite->BlendMode);
+		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+
+		_shaders.Bind(Shader::InstancedSprites);
+
+		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
+			GetWorldMatrixForSprite(*object->Sprite, view) :
+			Matrix::Identity;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
+		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)object->Sprite->renderType;
+
+		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].x = object->Sprite->Sprite->UV[0].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].y = object->Sprite->Sprite->UV[1].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].z = object->Sprite->Sprite->UV[2].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].w = object->Sprite->Sprite->UV[3].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].x = object->Sprite->Sprite->UV[0].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].y = object->Sprite->Sprite->UV[1].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].z = object->Sprite->Sprite->UV[2].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].w = object->Sprite->Sprite->UV[3].y;
+
+		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
+
+		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+
+		// Set up vertex buffer and parameters.
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
 		if (object->Sprite->Type != SpriteType::ThreeD)
 		{
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-			BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::LinearClamp);
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::None);
-			SetBlendMode(object->Sprite->BlendMode);
-			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-			_shaders.Bind(Shader::InstancedSprites);
-
-			// Set up vertex buffer and parameters.
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-
-			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(*object->Sprite, view);
-			_stInstancedSpriteBuffer.Sprites[0].Color = object->Sprite->color;
-			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
-			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
-
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = object->Sprite->Sprite->UV[0].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = object->Sprite->Sprite->UV[1].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = object->Sprite->Sprite->UV[2].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = object->Sprite->Sprite->UV[3].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = object->Sprite->Sprite->UV[0].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = object->Sprite->Sprite->UV[1].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = object->Sprite->Sprite->UV[2].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = object->Sprite->Sprite->UV[3].y;
-
-			BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
-
-			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
-			 
-			// Draw sprites with instancing.
-			DrawInstancedTriangles(4, 1, 0);
-
-			_numSortedSpritesDrawCalls++;
-			_numSortedTriangles += 2;
-
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 		else
 		{
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-			BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::LinearClamp);
-
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::None);
-			SetBlendMode(object->Sprite->BlendMode);
-			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-			_shaders.Bind(Shader::Sprites);
-
-			_stSprite.IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
-			_stSprite.RenderType = (int)object->Sprite->renderType;
-			_cbSprite.UpdateData(_stSprite, _context.Get());
-
-			BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
-
 			auto vertex0 = Vertex{};
 			vertex0.Position = object->Sprite->vtx1;
 			vertex0.UV = object->Sprite->Sprite->UV[0];
 			vertex0.Color = object->Sprite->c1;
+			vertex0.IndexInPoly = 0;
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = object->Sprite->vtx2;
 			vertex1.UV = object->Sprite->Sprite->UV[1];
 			vertex1.Color = object->Sprite->c2;
+			vertex1.IndexInPoly = 1;
 
 			auto vertex2 = Vertex{};
 			vertex2.Position = object->Sprite->vtx3;
 			vertex2.UV = object->Sprite->Sprite->UV[2];
 			vertex2.Color = object->Sprite->c3;
+			vertex2.IndexInPoly = 2;
 
 			auto vertex3 = Vertex{};
 			vertex3.Position = object->Sprite->vtx4;
 			vertex3.UV = object->Sprite->Sprite->UV[3];
 			vertex3.Color = object->Sprite->c4;
+			vertex3.IndexInPoly = 3;
 
-			_primitiveBatch->Begin();
-			_primitiveBatch->DrawTriangle(vertex0, vertex1, vertex3);
-			_primitiveBatch->DrawTriangle(vertex1, vertex2, vertex3);
-			_primitiveBatch->End();
+			_spritesVertices.clear();
+			_spritesVertices.push_back(vertex0);
+			_spritesVertices.push_back(vertex1);
+			_spritesVertices.push_back(vertex3);
+			_spritesVertices.push_back(vertex2);
 
-			_numSortedSpritesDrawCalls += 2;
-			_numDrawCalls += 2;
-			_numTriangles += 2;
-			_numSortedTriangles += 2;
+			_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, 4);
+
+			_context->IASetVertexBuffers(0, 1, _spritesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		}
+
+		// Draw sprites with instancing.
+		DrawInstancedTriangles(4, 1, 0);
+
+		_numSortedSpritesDrawCalls++;
+		_numSortedTriangles += 2;
+
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
@@ -506,7 +532,7 @@ namespace TEN::Renderer
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
 
-		_shaders.Bind(Shader::Sprites);
+		_shaders.Bind(Shader::InstancedSprites);
 
 		_sortedPolygonsVertexBuffer.Update(_context.Get(), _sortedPolygonsVertices.data(), 0, (int)_sortedPolygonsVertices.size());
 
@@ -514,9 +540,22 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
-		_stSprite.IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
-		_stSprite.RenderType = (int)objectInfo->Sprite->renderType;
-		_cbSprite.UpdateData(_stSprite, _context.Get());
+		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
+		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)objectInfo->Sprite->renderType;
+
+		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].x = objectInfo->Sprite->Sprite->UV[0].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].y = objectInfo->Sprite->Sprite->UV[1].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].z = objectInfo->Sprite->Sprite->UV[2].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[0].w = objectInfo->Sprite->Sprite->UV[3].x;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].x = objectInfo->Sprite->Sprite->UV[0].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].y = objectInfo->Sprite->Sprite->UV[1].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].z = objectInfo->Sprite->Sprite->UV[2].y;
+		_stInstancedSpriteBuffer.Sprites[0].UV[1].w = objectInfo->Sprite->Sprite->UV[3].y;
+
+		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);
@@ -526,7 +565,7 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
 
-		DrawTriangles((int)_sortedPolygonsVertices.size(), 0);
+		DrawInstancedTriangles((int)_sortedPolygonsVertices.size(), 1, 0);
 
 		_numSortedSpritesDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsVertices.size() / 3;

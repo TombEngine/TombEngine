@@ -33,7 +33,6 @@
 #include "Renderer/ConstantBuffers/AnimatedBuffer.h"
 #include "Renderer/ConstantBuffers/BlendingBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
-#include "Renderer/ConstantBuffers/SpriteBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedStaticBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/ConstantBuffer.h"
@@ -147,8 +146,6 @@ namespace TEN::Renderer
 		ConstantBuffer<CHUDBuffer> _cbHUD;
 		CHUDBarBuffer _stHUDBar;
 		ConstantBuffer<CHUDBarBuffer> _cbHUDBar;
-		CSpriteBuffer _stSprite;
-		ConstantBuffer<CSpriteBuffer> _cbSprite;
 		CPostProcessBuffer _stPostProcessBuffer;
 		ConstantBuffer<CPostProcessBuffer> _cbPostProcessBuffer;
 		CInstancedSpriteBuffer _stInstancedSpriteBuffer;
@@ -174,6 +171,10 @@ namespace TEN::Renderer
 		Vector4 _blinkColorValue = Vector4::Zero;
 		float _blinkTime    = 0.0f;
 		float _oldBlinkTime = 0.0f;
+
+		// Sprites
+		std::vector<Vertex> _spritesVertices;
+		VertexBuffer<Vertex> _spritesVertexBuffer;
 
 		// Graphics resources
 

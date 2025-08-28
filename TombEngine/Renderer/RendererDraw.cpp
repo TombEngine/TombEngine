@@ -1850,7 +1850,6 @@ namespace TEN::Renderer
 		BindConstantBufferVS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBufferVS(ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBufferVS(ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBufferVS(ConstantBufferRegister::Sprite, _cbSprite.get());
 		BindConstantBufferVS(ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBufferVS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
@@ -1862,7 +1861,6 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBufferPS(ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBufferPS(ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBufferPS(ConstantBufferRegister::Sprite, _cbSprite.get());
 		BindConstantBufferPS(ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBufferPS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
@@ -3583,21 +3581,25 @@ namespace TEN::Renderer
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
 					v0.Color = spr->c1;
+					v0.IndexInPoly = 0;
 
 					Vertex v1;
 					v1.Position = Vector3::Transform(p1t, world);
 					v1.UV = uv1;
 					v1.Color = spr->c2;
+					v1.IndexInPoly = 1;
 
 					Vertex v2;
 					v2.Position = Vector3::Transform(p2t, world);
 					v2.UV = uv2;
 					v2.Color = spr->c3;
+					v2.IndexInPoly = 2;
 
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
 					v3.Color = spr->c4;
+					v3.IndexInPoly = 3;
 
 					_sortedPolygonsVertices.push_back(v0);
 					_sortedPolygonsVertices.push_back(v1);
