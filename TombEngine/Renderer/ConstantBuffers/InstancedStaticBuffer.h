@@ -21,7 +21,7 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int NumLights;
 		int LightMode;
-		int Padding1;
+		int ApplyFogBulbs;
 		int Padding2;
 	};
 

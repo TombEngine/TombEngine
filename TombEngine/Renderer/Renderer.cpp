@@ -261,16 +261,6 @@ namespace TEN::Renderer
 		_stRoom.NumRoomLights = (int)lights.size() | lightTypeMask;
 	}
 
-	void Renderer::BindStaticLights(std::vector<RendererLight*>& lights)
-	{
-		int lightTypeMask = 0;
-
-		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stStatic.Lights, i);
-		
-		_stStatic.NumLights = (int)lights.size() | lightTypeMask;
-	}
-
 	void Renderer::BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID)
 	{
 		int lightTypeMask = 0;

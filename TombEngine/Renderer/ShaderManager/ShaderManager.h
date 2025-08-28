@@ -16,7 +16,6 @@ namespace TEN::Renderer::Utils
 		RoomAmbient,
 		RoomAmbientSky,
 		Items,
-		Statics,
 		InstancedStatics,
 		Sprites,
 		InstancedSprites,
@@ -38,7 +37,6 @@ namespace TEN::Renderer::Utils
 		GBuffer,
 		GBufferRooms,
 		GBufferItems,
-		GBufferStatics,
 		GBufferInstancedStatics,
 
 		// SMAA
