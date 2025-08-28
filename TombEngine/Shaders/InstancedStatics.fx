@@ -53,6 +53,12 @@ SamplerState NormalTextureSampler : register(s1);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
+Texture2D OcclusionRoughnessSpecularTexture : register(t10);
+SamplerState OcclusionRoughnessSpecularSampler : register(s10);
+
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
+
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -82,13 +88,6 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	return output;
 }
 
-float3 UnpackNormalMap(float4 n)
-{
-	n = n * 2.0f - 1.0f;
-	n.z = saturate(1.0f - dot(n.xy, n.xy));
-	return n.xyz;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
@@ -97,8 +96,16 @@ PixelShaderOutput PS(PixelShaderInput input)
         input.UV = CalculateUVRotate(input.UV, 0);
 
 	float4 tex = Texture.Sample(Sampler, input.UV);
+	
 	DoAlphaTest(tex);
 
+    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
+    float ambientOcclusion = occlusionRoughnessSpecular.x;
+    float roughness = occlusionRoughnessSpecular.y;
+    float specular = occlusionRoughnessSpecular.z;
+	
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	
 	uint mode = StaticMeshes[input.InstanceID].LightInfo.y;
 	uint numLights = StaticMeshes[input.InstanceID].LightInfo.x;
 
@@ -106,18 +113,20 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
 
-	float occlusion = 1.0f;
-	if (AmbientOcclusion == 1)
-	{
-		float2 samplePosition;
-		samplePosition = input.PositionCopy.xy / input.PositionCopy.w;
-		samplePosition = samplePosition * 0.5f + 0.5f;
-		samplePosition.y = 1.0f - samplePosition.y;
-		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+    float occlusion = 1.0f;
+    if (AmbientOcclusion == 1)
+    {
+        float2 samplePosition;
+        samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // perspective divide
+        samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
+        samplePosition.y = 1.0f - samplePosition.y;
+        occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
 		
-		if (BlendMode == BLENDMODE_ALPHABLEND)
-			occlusion = lerp(occlusion, 1.0f, tex.w);
-	}
+        if (BlendMode == BLENDMODE_ALPHABLEND)
+            occlusion = lerp(occlusion, 1.0f, tex.w);
+    }
+	
+    occlusion *= ambientOcclusion;
 
 	float3 color = (mode == 0) ?
 		CombineLights(
@@ -129,8 +138,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen,
 			StaticMeshes[input.InstanceID].InstancedStaticLights,
 			numLights,
-			input.FogBulbs.w) :
-		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
+			input.FogBulbs.w, 
+			emissive, 
+			specular) :
+		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);

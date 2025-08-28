@@ -19,18 +19,31 @@ struct PixelShaderInput
 	float3 WorldPosition : POSITION;
 	float2 UV: TEXCOORD;
 	float4 Color: COLOR;
-	float Sheen : SHEEN;
+    float Sheen : SHEEN;
+    float3 Tangent : TANGENT;
+    float3 Binormal : BINORMAL;
 };
 
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
+
+Texture2D NormalTexture : register(t1);
+SamplerState NormalTextureSampler : register(s1);
+
+Texture2D OcclusionRoughnessSpecularTexture : register(t10);
+SamplerState OcclusionRoughnessSpecularSampler : register(s10);
+
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
 
 	output.Position = mul(mul(float4(input.Position, 1.0f), World), ViewProjection);
-	output.Normal = (mul(float4(input.Normal, 0.0f), World).xyz);
+    output.Normal = (mul(input.Normal, (float3x3) World).xyz);
+    output.Tangent = normalize(mul(input.Tangent, (float3x3) World).xyz);
+    output.Binormal = normalize(mul(input.Binormal, (float3x3) World).xyz);
     output.Color = input.Color;
     output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
     output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
@@ -44,10 +57,20 @@ float4 PS(PixelShaderInput input) : SV_TARGET
         input.UV = CalculateUVRotate(input.UV, 0);
 	
     float4 output = Texture.Sample(Sampler, input.UV);
-    float3 normal = normalize(input.Normal);
     float3 pos = normalize(input.WorldPosition);
 
     DoAlphaTest(output);
+    
+    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
+    float ambientOcclusion = occlusionRoughnessSpecular.x;
+    float roughness = occlusionRoughnessSpecular.y;
+    float specular = occlusionRoughnessSpecular.z;
+	
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	
+    float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+    float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
+    normal = normalize(mul(normal, TBN));
 	
     ShaderLight l;
     l.Color = float3(1.0f, 1.0f, 0.5f);
@@ -56,7 +79,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
     output.xyz += DoDirectionalLight(pos, normal, l);
-    output.xyz += DoSpecularSun(input.Normal, l, input.Sheen);
+    output.xyz += DoSpecularSun(normal, l, input.Sheen, specular);
 
 	//adding some pertubations to the lighting to add a cool effect
     float3 noise = SimplexNoise(output.xyz);

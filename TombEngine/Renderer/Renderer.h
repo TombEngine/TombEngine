@@ -494,6 +494,8 @@ namespace TEN::Renderer
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 		void CopyRenderTarget(RenderTarget2D* source, RenderTarget2D* dest, RenderView& view);
+		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
+		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 					 Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);

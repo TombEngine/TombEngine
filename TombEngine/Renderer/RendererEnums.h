@@ -182,7 +182,9 @@ enum class TextureRegister
 	DepthMap = 6,
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
-	SSAO = 9
+	SSAO = 9,
+	OcclusionRoughnessSpecularMap = 10,
+	EmissiveMap = 11
 };
 
 enum class SamplerStateRegister
@@ -268,6 +270,13 @@ enum class RendererObjectType
 	HairSecondary
 };
 
+enum class TextureSource
+{
+	Rooms,
+	Moveables,
+	Statics,
+	Animated
+};
 enum class SMAAMode
 {
 	MODE_SMAA_1X,

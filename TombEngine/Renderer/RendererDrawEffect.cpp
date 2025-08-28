@@ -1498,24 +1498,32 @@ namespace TEN::Renderer
 		_cbStatic.UpdateData(_stStatic, _context.Get());
 
 		auto& mesh = *effect->Mesh;
-		for (auto& bucket : mesh.Buckets) 
+		
+		for (int animated = 0; animated < 2; animated++)
 		{
-			if (bucket.NumVertices == 0)
-				continue;
-
-			int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-
-			for (int p = 0; p < passes; p++)
+			for (auto& bucket : mesh.Buckets)
 			{
-				if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+				{
+					continue;
+				}
+
+				if (bucket.NumVertices == 0)
 					continue;
 
-				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-				BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
 
-				DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0); 
-				
-				_numEffectsDrawCalls++;
+				for (int p = 0; p < passes; p++)
+				{
+					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+						continue;
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+
+					_numEffectsDrawCalls++;
+				}
 			}
 		}
 	}

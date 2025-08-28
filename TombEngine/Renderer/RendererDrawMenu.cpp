@@ -893,18 +893,7 @@ namespace TEN::Renderer
 					SetCullMode(CullMode::CounterClockwise);
 					SetDepthState(DepthState::Write);
 
-					if (animated)
-					{
-						SetupAnimatedTextures(bucket);
-					}
-					else
-					{
-						TexturesAreNotAnimated();
-
-
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-						BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-					}
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 					if (bucket.BlendMode != BlendMode::Opaque)
 						SetBlendMode(bucket.BlendMode, true);
@@ -1071,8 +1060,8 @@ namespace TEN::Renderer
 				g_Gui.GetInventoryMode() == InventoryMode::Examine)
 			{
 				// Set texture.
-				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
-				BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
+				//BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
+				//BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
 			}
 
 			switch (g_Gui.GetInventoryMode())

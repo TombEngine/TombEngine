@@ -27,17 +27,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position = mul(worldPosition, ViewProjection);
 	output.Normal = input.Normal;
 	output.Color = input.Color;
-
-#ifdef ANIMATED
-
-	if (Type == 0)
-		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
-	else
-		output.UV = input.UV; // TODO: true UVRotate in future?
-#else
-    output.UV = input.UV;
-#endif
-	
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
 
 	return output;
@@ -45,6 +35,9 @@ PixelShaderInput VS(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+	
 	float4 output = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(output);

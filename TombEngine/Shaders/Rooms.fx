@@ -37,6 +37,12 @@ SamplerState CausticsTextureSampler : register(s2);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
+Texture2D OcclusionRoughnessSpecularTexture : register(t10);
+SamplerState OcclusionRoughnessSpecularSampler : register(s10);
+
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
+
 struct PixelShaderOutput
 {
 	float4 Color: SV_TARGET0;
@@ -83,13 +89,6 @@ PixelShaderInput VS(VertexShaderInput input)
 	return output;
 }
 
-float3 UnpackNormalMap(float4 n)
-{
-	n = n * 2.0f - 1.0f;
-	n.z = saturate(1.0f - dot(n.xy, n.xy));
-	return n.xyz;
-}
-
 float3 PackNormal(float3 n)
 {
 	n = (n + 1.0f) * 0.5f;
@@ -107,6 +106,13 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(output.Color);
+	
+    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
+    float ambientOcclusion = occlusionRoughnessSpecular.x;
+    float roughness = occlusionRoughnessSpecular.y;
+    float specular = occlusionRoughnessSpecular.z;
+	
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
@@ -115,18 +121,20 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 lighting = input.Color.xyz;
 	bool doLights = true;
 
-	float occlusion = 1.0f;
-	if (AmbientOcclusion == 1)
-	{
-		float2 samplePosition;
-		samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // Perspective divide
-		samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
-		samplePosition.y = 1.0f - samplePosition.y;
-		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+    float occlusion = 1.0f;
+    if (AmbientOcclusion == 1)
+    {
+        float2 samplePosition;
+        samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // perspective divide
+        samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
+        samplePosition.y = 1.0f - samplePosition.y;
+        occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
 		
-		if (BlendMode == BLENDMODE_ALPHABLEND)
-			occlusion = lerp(occlusion, 1.0f, output.Color.w);
-	}
+        if (BlendMode == BLENDMODE_ALPHABLEND)
+            occlusion = lerp(occlusion, 1.0f, output.Color.w);
+    }
+	
+    occlusion *= ambientOcclusion;
 
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
 	lighting = DoBlobShadows(input.WorldPosition, lighting);
@@ -138,8 +146,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		if (onlyPointLights)
 		{
-			lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-		}
+            lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
+            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 1.0f, specular);
+        }
 		else
 		{
 			// Room dynamic lights can only be spot or point, so we use simplified function for that.
@@ -149,7 +158,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
-			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], pointLight, spotLight);
+			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, pointLight, spotLight);
 			
 			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight  * isSpot * ROOM_LIGHT_COEFF;
 		}
@@ -212,6 +221,9 @@ PixelShaderOutput PS(PixelShaderInput input)
         lighting += (caustics * attenuation * 2.0f);
     }
 
+	// Emissive materials
+    lighting += emissive;
+	
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;
 	output.Color.xyz = saturate(output.Color.xyz);

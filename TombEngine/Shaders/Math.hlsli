@@ -530,4 +530,12 @@ float4x4 BlendBoneMatrices(VertexShaderInput input, float4x4 bones[MAX_BONES], b
 		return blendedMatrix;
 	}
 }
+
+float3 UnpackNormalMap(float4 n)
+{
+    n = n * 2.0f - 1.0f;
+    n.z = saturate(1.0f - dot(n.xy, n.xy));
+    return n.xyz;
+}
+
 #endif // MATH
