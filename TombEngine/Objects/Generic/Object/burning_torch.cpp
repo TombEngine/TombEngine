@@ -78,7 +78,7 @@ namespace TEN::Entities::Generic
 		spark->SpriteID = spriteOffset;
 	}
 
-	void DoFlameTorch()//Wenn Lara die Fackel in der Hand hält
+	void DoFlameTorch()
 	{
 		const int holdAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
 		const int throwAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 1;

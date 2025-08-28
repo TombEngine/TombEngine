@@ -584,8 +584,8 @@ namespace TEN::Entities::Effects
 					{
 						Lara.Torch.PrimaryColor = item->Model.Color;
 						Lara.Torch.SecondaryColor = Vector4(std::clamp(item->Model.Color.x - 0.2f, 0.0f, 2.0f),
-							std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
-							std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
+															std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
+															std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
 					}
 										
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
