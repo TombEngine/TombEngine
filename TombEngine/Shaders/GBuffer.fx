@@ -1,35 +1,15 @@
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"
+#include "./CBInstancedStatics.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
 
-#define INSTANCED_STATIC_MESH_BUCKET_SIZE 100
-
 cbuffer RoomBuffer : register(b5)
 {
 	int Water;
-};
-
-struct InstancedStaticMesh
-{
-	float4x4 World;
-	float4 Color;
-	float4 AmbientLight;
-	ShaderLight InstancedStaticLights[MAX_LIGHTS_PER_ITEM];
-	uint4 LightInfo;
-};
-
-cbuffer InstancedStaticMeshBuffer : register(b3)
-{
-	InstancedStaticMesh StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
-};
-
-cbuffer StaticMatrixBuffer : register(b8)
-{
-	float4x4 StaticWorld;
 };
 
 struct PixelShaderInput
@@ -124,30 +104,12 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	return output;
 }
 
-PixelShaderInput VSStatics(VertexShaderInput input)
-{
-	PixelShaderInput output;
-
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
-
-	float4 worldPosition = (mul(float4(pos, 1.0f), StaticWorld));
-
-	output.Position = mul(worldPosition, ViewProjection);
-    output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
-    output.Normal = normalize(mul(input.Normal, (float3x3) StaticWorld).xyz);
-	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticWorld).xyz);
-	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticWorld).xyz);
-
-	return output;
-}
-
 PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
 
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
+	// Calculate vertex effects
+    float wibble = Wibble(input.Effects.xyz, input.Hash);
 	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
 
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));

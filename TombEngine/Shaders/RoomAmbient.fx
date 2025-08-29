@@ -1,6 +1,6 @@
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
-#include "./CBStatic.hlsli"
+#include "./CBSky.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"

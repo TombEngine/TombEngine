@@ -4,7 +4,7 @@
 #include "./ShaderLight.hlsli"
 #include "./AnimatedTextures.hlsli"
 
-cbuffer ItemBuffer : register(b1)
+cbuffer CBInventoryItem : register(b1)
 {
 	float4x4 World;
 	float4x4 Bones[32];

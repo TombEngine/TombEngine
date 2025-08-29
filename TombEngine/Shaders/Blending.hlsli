@@ -1,6 +1,7 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
+#include "./CBBlending.hlsli"
 #include "./Math.hlsli"
 
 #define ALPHATEST_NONE			0
@@ -21,13 +22,6 @@
 #define ZERO	   float3(0.0f, 0.0f, 0.0f)
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
-
-cbuffer BlendingBuffer : register(b12)
-{
-	uint BlendMode;
-	int AlphaTest;
-	float AlphaThreshold;
-};
 
 void DoAlphaTest(float4 inputColor)
 {

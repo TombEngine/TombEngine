@@ -1,7 +1,7 @@
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
 
-cbuffer CBSkyBuffer : register(b8)
+cbuffer CBSky : register(b8)
 {
     float4x4 World;
 	//--

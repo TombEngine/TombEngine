@@ -89,13 +89,6 @@ PixelShaderInput VS(VertexShaderInput input)
 	return output;
 }
 
-float3 PackNormal(float3 n)
-{
-	n = (n + 1.0f) * 0.5f;
-	n.z = 0;
-	return n.xyz;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;

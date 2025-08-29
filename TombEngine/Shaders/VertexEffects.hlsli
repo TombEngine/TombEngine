@@ -5,7 +5,7 @@
 float Wibble(float3 effect, int hash)
 {
     float shouldWibble = step(0.0f, effect.x + effect.y);
-    float wibble = sin((((Frame + hash) % 256) / WIBBLE_FRAME_PERIOD) * PI2);
+    float wibble = sin((((InterpolatedFrame + hash) % 256) / WIBBLE_FRAME_PERIOD) * PI2);
 
     return wibble * shouldWibble;
 }
