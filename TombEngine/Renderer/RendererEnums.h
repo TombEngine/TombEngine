@@ -52,6 +52,7 @@ constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
 constexpr auto INSTANCED_SPRITES_BUCKET_SIZE = 512;
+constexpr auto MAX_SPRITES_VERTICES			 = INSTANCED_SPRITES_BUCKET_SIZE * 6;
 
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;

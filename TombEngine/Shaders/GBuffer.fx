@@ -1,16 +1,12 @@
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"
 #include "./CBInstancedStatics.hlsli"
+#include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
-
-cbuffer RoomBuffer : register(b5)
-{
-	int Water;
-};
 
 struct PixelShaderInput
 {

@@ -305,15 +305,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = spriteToDraw.SoftParticle ? 1.0f : 0.0f;
 					_stInstancedSpriteBuffer.Sprites[i].RenderType = (int)spriteToDraw.renderType;
 
-					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = spriteToDraw.Sprite->UV[0].x;
-					_stInstancedSpriteBuffer.Sprites[i].UV[0].y = spriteToDraw.Sprite->UV[1].x;
-					_stInstancedSpriteBuffer.Sprites[i].UV[0].z = spriteToDraw.Sprite->UV[2].x;
-					_stInstancedSpriteBuffer.Sprites[i].UV[0].w = spriteToDraw.Sprite->UV[3].x;
-					_stInstancedSpriteBuffer.Sprites[i].UV[1].x = spriteToDraw.Sprite->UV[0].y;
-					_stInstancedSpriteBuffer.Sprites[i].UV[1].y = spriteToDraw.Sprite->UV[1].y;
-					_stInstancedSpriteBuffer.Sprites[i].UV[1].z = spriteToDraw.Sprite->UV[2].y;
-					_stInstancedSpriteBuffer.Sprites[i].UV[1].w = spriteToDraw.Sprite->UV[3].y;
+					PackSpritesTextureCoordinates(i, spriteToDraw.Sprite);
 				}
 			};
 			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
@@ -340,7 +332,7 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 				BindRenderTargetAsTexture(TextureRegister::DepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
 
@@ -357,6 +349,7 @@ namespace TEN::Renderer
 				wasGpuSet = true;
 			}
 			
+			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 0;
 			_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 			_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)spriteBucket.RenderType;
@@ -364,15 +357,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = spriteBucket.Sprite->UV[0].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = spriteBucket.Sprite->UV[1].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = spriteBucket.Sprite->UV[2].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = spriteBucket.Sprite->UV[3].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = spriteBucket.Sprite->UV[0].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = spriteBucket.Sprite->UV[1].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = spriteBucket.Sprite->UV[2].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = spriteBucket.Sprite->UV[3].y;
+			PackSpritesTextureCoordinates(0, spriteBucket.Sprite);
 
 			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
@@ -418,14 +403,16 @@ namespace TEN::Renderer
 				_spritesVertices.push_back(vertex1);
 				_spritesVertices.push_back(vertex3);
 				_spritesVertices.push_back(vertex2);
+				_spritesVertices.push_back(vertex3);
+				_spritesVertices.push_back(vertex1);
 
 				spritesToDraw++;
 
 				if (spritesToDraw == INSTANCED_SPRITES_BUCKET_SIZE || spritesToDraw == spriteBucket.SpritesToDraw.size())
 				{
-					_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, spritesToDraw * 4);
+					_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, spritesToDraw * 6);
 
-					DrawInstancedTriangles(spritesToDraw * 4, 1, 0);
+					DrawInstancedTriangles(spritesToDraw * 6, 1, 0);
 
 					_numInstancedSpritesDrawCalls++;
 
@@ -459,20 +446,12 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)object->Sprite->renderType;
 
-		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].x = object->Sprite->Sprite->UV[0].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].y = object->Sprite->Sprite->UV[1].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].z = object->Sprite->Sprite->UV[2].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].w = object->Sprite->Sprite->UV[3].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].x = object->Sprite->Sprite->UV[0].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].y = object->Sprite->Sprite->UV[1].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].z = object->Sprite->Sprite->UV[2].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].w = object->Sprite->Sprite->UV[3].y;
-
-		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
+		PackSpritesTextureCoordinates(0, object->Sprite->Sprite);
 
 		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
+		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
+		
 		// Set up vertex buffer and parameters.
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
@@ -545,15 +524,7 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)objectInfo->Sprite->renderType;
 
-		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].x = objectInfo->Sprite->Sprite->UV[0].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].y = objectInfo->Sprite->Sprite->UV[1].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].z = objectInfo->Sprite->Sprite->UV[2].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[0].w = objectInfo->Sprite->Sprite->UV[3].x;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].x = objectInfo->Sprite->Sprite->UV[0].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].y = objectInfo->Sprite->Sprite->UV[1].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].z = objectInfo->Sprite->Sprite->UV[2].y;
-		_stInstancedSpriteBuffer.Sprites[0].UV[1].w = objectInfo->Sprite->Sprite->UV[3].y;
+		PackSpritesTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
 		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
 
@@ -569,5 +540,19 @@ namespace TEN::Renderer
 
 		_numSortedSpritesDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsVertices.size() / 3;
+	}
+
+	void Renderer::PackSpritesTextureCoordinates(int instanceId, RendererSprite* sprite)
+	{
+		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+	
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].x = sprite->UV[0].x;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].y = sprite->UV[1].x;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].z = sprite->UV[2].x;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].w = sprite->UV[3].x;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[1].x = sprite->UV[0].y;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[1].y = sprite->UV[1].y;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[1].z = sprite->UV[2].y;
+		_stInstancedSpriteBuffer.Sprites[instanceId].UV[1].w = sprite->UV[3].y;
 	}
 }

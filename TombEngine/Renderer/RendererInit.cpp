@@ -246,8 +246,8 @@ namespace TEN::Renderer
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
 
-		_spritesVertices.reserve(INSTANCED_SPRITES_BUCKET_SIZE * 4);
-		_spritesVertexBuffer = VertexBuffer<Vertex>(_device.Get(), INSTANCED_SPRITES_BUCKET_SIZE * 4, _spritesVertices);
+		_spritesVertices.reserve(MAX_SPRITES_VERTICES);
+		_spritesVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITES_VERTICES, _spritesVertices);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
