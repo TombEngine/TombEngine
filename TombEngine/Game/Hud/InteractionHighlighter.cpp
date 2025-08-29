@@ -37,6 +37,8 @@ namespace TEN::Hud
 			case InteractiveObjectType::StartPosOnly:
 				return (item.Status != ITEM_ACTIVE && item.StartPose.Position == item.Pose.Position);
 		}
+
+		return true;
 	}
 
 	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
