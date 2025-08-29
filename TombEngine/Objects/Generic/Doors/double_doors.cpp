@@ -17,6 +17,8 @@
 #include "Game/misc.h"
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Game/collision/collide_item.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Input;
 
@@ -40,6 +42,8 @@ namespace TEN::Entities::Doors
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&

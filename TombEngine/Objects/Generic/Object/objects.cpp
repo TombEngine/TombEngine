@@ -69,6 +69,8 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 {
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* tightropeItem = &g_Level.Items[itemNumber];
+
+
 	
 	if ((!IsHeld(In::Action) ||
 		laraItem->Animation.ActiveState != LS_IDLE ||

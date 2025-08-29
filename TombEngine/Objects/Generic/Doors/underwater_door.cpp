@@ -18,6 +18,8 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Input;
 
@@ -41,6 +43,9 @@ namespace TEN::Entities::Doors
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
+
+		if (doorItem->Status != ITEM_ACTIVE)
+			g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_UNDERWATER_IDLE &&

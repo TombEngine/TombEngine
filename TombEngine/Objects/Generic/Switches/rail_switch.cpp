@@ -8,6 +8,8 @@
 #include "Game/collision/collide_item.h"
 #include "Game/animation.h"
 #include "Game/items.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Input;
 
@@ -33,6 +35,9 @@ namespace TEN::Entities::Switches
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		int flag = 0;
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
+
 
 		if ((!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||

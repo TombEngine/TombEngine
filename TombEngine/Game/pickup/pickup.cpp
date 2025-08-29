@@ -400,6 +400,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	if (item->ObjectNumber == ID_FLARE_ITEM && item->Active && lara->Control.Weapon.GunType == LaraWeaponType::Flare)
 		return;
 
+	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
+
 	item->Pose.Orientation.y = laraItem->Pose.Orientation.y;
 	item->Pose.Orientation.z = 0.0f;
 

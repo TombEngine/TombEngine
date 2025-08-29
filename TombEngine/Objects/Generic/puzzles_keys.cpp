@@ -122,6 +122,8 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 		puzzleType = PuzzleType::Specfic;
 	}
 
+	g_Hud.InteractionHighlighter.Test(*laraItem, receptacleItem);
+
 	bool isUnderwater = (player.Control.WaterStatus == WaterStatus::Underwater);
 	const auto& activeBounds = isUnderwater ? WaterKeyHoleBounds : PuzzleBounds;
 

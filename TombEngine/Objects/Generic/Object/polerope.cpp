@@ -14,6 +14,8 @@
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Input;
@@ -66,6 +68,8 @@ namespace TEN::Entities::Generic
 		auto& player = GetLaraInfo(*laraItem);
 
 		bool isFacingPole = Geometry::IsPointInFront(laraItem->Pose, poleItem.Pose.Position.ToVector3());
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, poleItem);
 
 		// Mount while grounded.
 		if (IsHeld(In::Action) && isFacingPole &&

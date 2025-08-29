@@ -21,6 +21,8 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
@@ -152,6 +154,8 @@ namespace TEN::Entities::Generic
 
 		int quadrant = GetQuadrant(LaraItem->Pose.Orientation.y);
 		auto& pushableSidesAttributes = pushable.EdgeAttribs[quadrant]; // NOTE: 0 = north, 1 = east, 2 = south, 3 = west.
+
+		g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
 
 		// Align player to pushable.
 		if ((IsHeld(In::Action) &&

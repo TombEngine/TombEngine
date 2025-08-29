@@ -8,6 +8,8 @@
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Input;
 
@@ -77,6 +79,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 
