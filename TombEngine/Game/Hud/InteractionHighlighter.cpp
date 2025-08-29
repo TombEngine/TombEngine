@@ -24,7 +24,7 @@ namespace TEN::Hud
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
 
-	bool InteractionHighlighterController::TestHardcodedSetup(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
+	bool InteractionHighlighterController::TestObjectType(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
 	{
 		switch (type)
 		{
@@ -51,7 +51,7 @@ namespace TEN::Hud
 		if (distance > INTERACTION_DISTANCE)
 			return;
 
-		if (!TestHardcodedSetup(player, item, type))
+		if (!TestObjectType(player, item, type))
 			return;
 
 		if (!player.IsLara())

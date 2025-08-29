@@ -32,7 +32,7 @@ namespace TEN::Hud
 
 		// Utilities
 
-		bool TestHardcodedSetup(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type);
+		bool TestObjectType(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type);
 
 	public:
 		// Utilities
