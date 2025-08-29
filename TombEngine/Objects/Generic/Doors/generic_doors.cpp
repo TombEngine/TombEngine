@@ -23,6 +23,8 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Collision::Room;
 using namespace TEN::Collision::Sphere;
@@ -290,11 +292,15 @@ namespace TEN::Entities::Doors
 		auto& doorItem = g_Level.Items[itemNumber];
 		auto& player = GetLaraInfo(*playerItem);
 
-		if (doorItem.TriggerFlags == 2 &&
-			doorItem.Status == ITEM_NOT_ACTIVE && !doorItem.Animation.IsAirborne && // CHECK
+		bool canBeOpenedWithCrowbar = doorItem.TriggerFlags == 2;
+		if (canBeOpenedWithCrowbar)
+			g_Hud.InteractionHighlighter.Test(*playerItem, doorItem, InteractiveObjectType::Door);
+
+		if (canBeOpenedWithCrowbar && doorItem.Status == ITEM_NOT_ACTIVE &&
 			((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
 				playerItem->Animation.ActiveState == LS_IDLE &&
 				playerItem->Animation.AnimNumber == LA_STAND_IDLE &&
+				!playerItem->Animation.IsAirborne &&
 				!playerItem->HitStatus &&
 				player.Control.HandStatus == HandStatus::Free ||
 				player.Control.IsMoving && player.Context.InteractedItem == itemNumber))

@@ -20,6 +20,8 @@
 #include "Objects/Generic/Doors/pushpull_kick_door.h"
 #include "Game/collision/collide_item.h"
 #include "Game/itemdata/door_data.h"
+#include <Game/Hud/Hud.h>
+using namespace TEN::Hud;
 
 using namespace TEN::Input;
 
@@ -54,6 +56,8 @@ namespace TEN::Entities::Doors
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem, InteractiveObjectType::Door);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&

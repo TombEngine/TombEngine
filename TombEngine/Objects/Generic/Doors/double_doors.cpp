@@ -43,7 +43,7 @@ namespace TEN::Entities::Doors
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem, InteractiveObjectType::Door);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&

@@ -24,15 +24,32 @@ namespace TEN::Hud
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item)
+	bool InteractionHighlighterController::TestHardcodedSetup(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
+	{
+		switch (type)
+		{
+			case InteractiveObjectType::Generic:
+				return true;
+
+			case InteractiveObjectType::Door:
+				return (item.Status != ITEM_ACTIVE);
+
+			case InteractiveObjectType::StartPosOnly:
+				return (item.Status != ITEM_ACTIVE && item.StartPose.Position == item.Pose.Position);
+		}
+	}
+
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
 	{
 		// Another interaction highlight takes priority.
 		if (_isActive)
 			return;
 
 		auto distance = Vector3::Distance(player.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
-
 		if (distance > INTERACTION_DISTANCE)
+			return;
+
+		if (!TestHardcodedSetup(player, item, type))
 			return;
 
 		if (!player.IsLara())

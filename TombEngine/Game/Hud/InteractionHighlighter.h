@@ -13,6 +13,13 @@ namespace TEN::Hud
 		Talk
 	};
 
+	enum class InteractiveObjectType
+	{
+		Generic,
+		Door,
+		StartPosOnly
+	};
+
 	class InteractionHighlighterController
 	{
 	private:
@@ -23,10 +30,14 @@ namespace TEN::Hud
 		float _fade;
 		InteractionType _type;
 
+		// Utilities
+
+		bool TestHardcodedSetup(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type);
+
 	public:
 		// Utilities
 
-		void Test(ItemInfo& actor, ItemInfo& item);
+		void Test(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type = InteractiveObjectType::Generic);
 		void Show(ItemInfo& item, InteractionType type = InteractionType::Undefined);
 		void Draw() const;
 		void Update();

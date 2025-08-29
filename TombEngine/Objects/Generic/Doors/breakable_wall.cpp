@@ -65,7 +65,7 @@ namespace TEN::Entities::Doors
 		auto* player = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem, InteractiveObjectType::Door);
 
 		bool isUnderwater = (player->Control.WaterStatus == WaterStatus::Underwater);
 

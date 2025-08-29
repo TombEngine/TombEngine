@@ -38,7 +38,6 @@ namespace TEN::Entities::Switches
 
 		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
-
 		if ((!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
 			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
