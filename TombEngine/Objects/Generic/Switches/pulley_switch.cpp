@@ -90,7 +90,7 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Always);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 

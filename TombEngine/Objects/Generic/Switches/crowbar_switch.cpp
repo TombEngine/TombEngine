@@ -53,7 +53,7 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		ItemInfo* switchItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Always);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
 		int doSwitch = 0;
 

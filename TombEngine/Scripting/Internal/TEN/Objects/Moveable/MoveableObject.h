@@ -130,6 +130,7 @@ public:
 	void SetCollidable(bool isCollidable);
 	void Explode();
 	void Shatter();
+	void ShowInteractionHighlight();
 
 	// Operators
 
