@@ -20,6 +20,7 @@ namespace TEN::Hud
 
 	constexpr float INTERACTION_PADDING = CLICK(0.75f);
 	constexpr float INTERACTION_DISTANCE = BLOCK(2);
+	constexpr float INTERACTION_DISTANCE_TOLERANCE = CLICK(1);
 	constexpr float INTERACTION_ANGLE = TO_RAD(ANGLE(35.0f));
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
@@ -168,57 +169,60 @@ namespace TEN::Hud
 	void InteractionHighlighterController::SetAttributes(ItemInfo& item, InteractionType type)
 	{
 		auto bounds = item.GetAabb();
-		_position = bounds.Center;
+		auto position = bounds.Center;
+		auto newType = type;
 
 		if (type != InteractionType::Undefined)
 		{
-			_type = type;
+			newType = type;
 		}
 		else
 		{
 			if (Objects[item.ObjectNumber].isPickup)
 			{
-				_type = InteractionType::Pickup;
+				newType = InteractionType::Pickup;
 				_checkDirection = false;
 
 				if (!item.TriggerFlags)
-					_position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
+					position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
 				else
-					_position.y -= PICKUP_OFFSET;
+					position.y -= PICKUP_OFFSET;
 			}
 			else if (item.IsCreature())
 			{
-				_type = InteractionType::Talk;
-				_position.y -= bounds.Extents.y * 1.5f;
+				newType = InteractionType::Talk;
+				position.y -= bounds.Extents.y * 1.5f;
 				_checkDirection = true;
 			}
 			else
 			{
-				_type = InteractionType::Use;
+				newType = InteractionType::Use;
 
 				// If object bounds are too narrow, show highlighter above the object.
 				if (abs(bounds.Extents.y) > CLICK(1))
-					_position.y += abs(bounds.Extents.y) / 3.0f;
+					position.y += abs(bounds.Extents.y) / 3.0f;
 				else
-					_position.y -= bounds.Extents.y;
+					position.y -= bounds.Extents.y;
 
 				// HACK: Extend for other direction-agnostic objects if necessary.
 				_checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
 			}
 		}
+
+		// If interaction target changes significantly, start crossfade.
+		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != newType)
+		{
+			_previous = _current;
+			_current.Fade = 0.0f;
+		}
+
+		_current.Position = position;
+		_current.Type = newType;
 	}
 
 	void InteractionHighlighterController::Draw() const
 	{
 		if (!g_Configuration.EnableInteractionHighlighter)
-			return;
-
-		if (_fade <= 0.0f)
-			return;
-
-		// Project world to screen
-		auto pos2D = g_Renderer.Get2DPosition(_position);
-		if (!pos2D.has_value())
 			return;
 
 		if (!Objects[ID_INTERACTION_SPRITES].loaded || Objects[ID_INTERACTION_SPRITES].nmeshes == 0)
@@ -227,42 +231,51 @@ namespace TEN::Hud
 			return;
 		}
 
-		// Pick sprite based on type.
-		int spriteID = std::max(0, (int)_type - 1);
+		auto drawState = [&](const HighlightState& state)
+		{
+			if (state.Fade <= 0.0f)
+				return;
 
-		if (abs(Objects[ID_INTERACTION_SPRITES].nmeshes) <= spriteID)
-			spriteID = 0;
+			auto pos2D = g_Renderer.Get2DPosition(state.Position);
+			if (!pos2D.has_value())
+				return;
 
-		float alpha = _fade;
+			int spriteID = std::max(0, (int)state.Type - 1);
+			if (abs(Objects[ID_INTERACTION_SPRITES].nmeshes) <= spriteID)
+				spriteID = 0;
 
-		// Oscillate brightness every 2 seconds (60 frames at 30 FPS).
-		float phase = (GlobalCounter % (int)FADE_RATE) / FADE_RATE;
-		float oscillation = 0.75f + 0.25f * sin(phase * PI * 2.0f);
+			float alpha = state.Fade;
+			float phase = (GlobalCounter % (int)FADE_RATE) / FADE_RATE;
+			float oscillation = 0.75f + 0.25f * sin(phase * PI * 2.0f);
+			alpha *= oscillation;
 
-		alpha *= oscillation;
+			auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 
-		auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
+			AddDisplaySprite(
+				ID_INTERACTION_SPRITES, spriteID,
+				*pos2D, 0, Vector2(0.1f), color,
+				0, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fill,
+				BlendMode::Additive, DisplaySpritePhase::Draw);
+		};
 
-		AddDisplaySprite(
-			ID_INTERACTION_SPRITES, spriteID,
-			*pos2D, 0, Vector2(0.1f), color,
-			0, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fill,
-			BlendMode::Additive, DisplaySpritePhase::Draw);
+		drawState(_previous);
+		drawState(_current);
 	}
 
 	void InteractionHighlighterController::Update()
 	{
-		// Fade in if active
 		if (_isActive)
 		{
-			if (_fade < 1.0f)
-				_fade = std::min(1.0f, _fade + FADE_SPEED);
+			_current.Fade = std::min(1.0f, _current.Fade + FADE_SPEED);
 		}
 		else
 		{
-			if (_fade > 0.0f)
-				_fade = std::max(0.0f, _fade - FADE_SPEED);
+			_current.Fade = std::max(0.0f, _current.Fade - FADE_SPEED);
 		}
+
+		// Always fade out previous highlight.
+		if (_previous.Fade > 0.0f)
+			_previous.Fade = std::max(0.0f, _previous.Fade - FADE_SPEED);
 
 		// Reset for next frame — if Show() not called again, we fade out
 		_isActive = false;
@@ -271,8 +284,8 @@ namespace TEN::Hud
 	void InteractionHighlighterController::Clear()
 	{
 		_isActive = false;
-		_fade = 0.0f;
-		_type = InteractionType::Use;
-		_position = Vector3::Zero;
+
+		_previous = {};
+		_current  = {};
 	}
 }

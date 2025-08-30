@@ -23,15 +23,22 @@ namespace TEN::Hud
 	class InteractionHighlighterController
 	{
 	private:
+		// Types
+
+		struct HighlightState
+		{
+			Vector3 Position = Vector3::Zero;
+			InteractionType Type = InteractionType::Undefined;
+			float Fade = 0.0f;
+		};
+
 		// Members
 
 		bool _isActive			= false;
 		bool _checkDirection	= false;
 
-		Vector3 _position		= {};
-		float _fade				= 0.0f;
-
-		InteractionType _type	= InteractionType::Undefined;
+		HighlightState _current;
+		HighlightState _previous;
 
 		// Utilities
 
