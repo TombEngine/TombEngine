@@ -956,6 +956,7 @@ namespace TEN::Gui
 			AutoMonkeySwingJump,
 			AutoTargeting,
 			TargetHighlighter,
+			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
 
@@ -1008,6 +1009,11 @@ namespace TEN::Gui
 			case OtherSettingsOption::TargetHighlighter:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				break;
+
+			case OtherSettingsOption::InteractionHighlighter:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
 				break;
 
 			case OtherSettingsOption::ToggleRumble:

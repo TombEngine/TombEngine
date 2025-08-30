@@ -91,6 +91,10 @@ namespace TEN::Hud
 
 	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode)
 	{
+		// Interaction highlighter is disabled, don't do tests to conserve CPU.
+		if (!g_Configuration.EnableTargetHighlighter)
+			return;
+
 		// Another interaction highlight takes priority.
 		if (_isActive)
 			return;
@@ -177,6 +181,9 @@ namespace TEN::Hud
 
 	void InteractionHighlighterController::Draw() const
 	{
+		if (!g_Configuration.EnableTargetHighlighter)
+			return;
+
 		if (_fade <= 0.0f)
 			return;
 
