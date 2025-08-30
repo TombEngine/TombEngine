@@ -38,7 +38,7 @@ namespace TEN::Hud
 		// Utilities
 
 		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always);
-		void Show(ItemInfo& item, InteractionType type = InteractionType::Undefined);
+		void SetAttributes(ItemInfo& item, InteractionType type = InteractionType::Undefined);
 		void Draw() const;
 		void Update();
 		void Clear();

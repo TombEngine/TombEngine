@@ -115,6 +115,9 @@ namespace TEN::Hud
 		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !player.GetObb().Intersects(boundingBox))
 			return;
 
+		// Determine interaction type and position.
+		SetAttributes(item);
+
 		// Don't check facing direction for pickups, because they are too small to check it.
 		if (_type != InteractionType::Pickup)
 		{
@@ -131,13 +134,12 @@ namespace TEN::Hud
 				return;
 		}
 
-		Show(item);
+		// Show the highlight.
+		_isActive = true;
 	}
 
-	void InteractionHighlighterController::Show(ItemInfo& item, InteractionType type)
+	void InteractionHighlighterController::SetAttributes(ItemInfo& item, InteractionType type)
 	{
-		_isActive = true;
-
 		auto bounds = item.GetAabb();
 		_position = bounds.Center;
 
