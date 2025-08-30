@@ -193,7 +193,12 @@ namespace TEN::Hud
 			else
 			{
 				_type = InteractionType::Use;
-				_position.y += abs(bounds.Extents.y) / 3.0f;
+
+				// If object bounds are too narrow, show highlighter above the object.
+				if (abs(bounds.Extents.y) > CLICK(1))
+					_position.y += abs(bounds.Extents.y) / 3.0f;
+				else
+					_position.y -= bounds.Extents.y;
 
 				// HACK: Extend for other direction-agnostic objects if necessary.
 				_checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
