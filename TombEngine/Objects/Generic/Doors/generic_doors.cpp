@@ -300,7 +300,6 @@ namespace TEN::Entities::Doors
 			((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
 				playerItem->Animation.ActiveState == LS_IDLE &&
 				playerItem->Animation.AnimNumber == LA_STAND_IDLE &&
-				!doorItem.Animation.IsAirborne &&
 				!playerItem->HitStatus &&
 				player.Control.HandStatus == HandStatus::Free ||
 				player.Control.IsMoving && player.Context.InteractedItem == itemNumber))
