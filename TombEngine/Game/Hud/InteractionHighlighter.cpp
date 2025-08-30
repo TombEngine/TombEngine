@@ -111,11 +111,14 @@ namespace TEN::Hud
 			return;
 
 		// Inflate object bounding box a little to increase highlight tolerance.
-		auto boundingBox = item.GetObb();
-		boundingBox.Extents = boundingBox.Extents + Vector3::One * INTERACTION_PADDING;
+		auto itemBoundingBox = item.GetObb();
+		auto inflatedBoundingBox = itemBoundingBox;
+		inflatedBoundingBox.Extents = itemBoundingBox.Extents + Vector3::One * INTERACTION_PADDING;
+
+		const auto playerBoundingBox = player.GetObb();
 
 		// Only check bounding box intersection if not in custom mode.
-		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !player.GetObb().Intersects(boundingBox))
+		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !playerBoundingBox.Intersects(inflatedBoundingBox))
 			return;
 
 		// Determine interaction type and position.
@@ -124,16 +127,28 @@ namespace TEN::Hud
 		// Don't check facing direction for pickups, because they are too small to check it.
 		if (_checkDirection)
 		{
-			auto direction = boundingBox.Center - player.Pose.Position.ToVector3();
-			direction.y = 0.0f;
-			direction.Normalize();
+			auto dir = itemBoundingBox.Center - player.Pose.Position.ToVector3();
+			dir.y = 0.0f;
+			dir.Normalize();
 
-			// Actor's forward vector (based on yaw only).
 			auto playerYaw = TO_RAD(player.Pose.Orientation.y);
 			auto playerForward = Vector3(sin(playerYaw), 0.0f, cos(playerYaw));
 
-			// Actor should face item.
-			if (playerForward.Dot(direction) < INTERACTION_ANGLE)
+			bool intersectionTest = false;
+			bool directionTest = (playerForward.Dot(dir) >= INTERACTION_ANGLE);
+
+			// Perform additional intersection test, if object bounds are too big (e.g. pushables or doors).
+
+			if (!directionTest && (itemBoundingBox.Extents.x > CLICK(1) || itemBoundingBox.Extents.z > CLICK(1)))
+			{
+				auto dir = player.Pose.Orientation.ToDirection();
+				auto center = (Vector3)playerBoundingBox.Center;
+
+				float distance = INTERACTION_DISTANCE;
+				intersectionTest = itemBoundingBox.Intersects(center, dir, distance);
+			}
+
+			if (!directionTest && !intersectionTest)
 				return;
 		}
 
