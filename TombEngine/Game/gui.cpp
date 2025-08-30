@@ -2062,24 +2062,6 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
-		const auto CROUCH_STATES = std::vector<int>
-		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT,
-			LS_CROUCH_TURN_180
-		};
-		const auto CRAWL_STATES = std::vector<int>
-		{
-			LS_CRAWL_IDLE,
-			LS_CRAWL_FORWARD,
-			LS_CRAWL_BACK,
-			LS_CRAWL_TURN_LEFT,
-			LS_CRAWL_TURN_RIGHT,
-			LS_CRAWL_TURN_180,
-			LS_CRAWL_TO_HANG
-		};
-
 		auto& player = GetLaraInfo(item);
 
 		player.Inventory.OldBusy = false;

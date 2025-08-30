@@ -41,6 +41,13 @@ namespace TEN::Hud
 
 		bool armsBusy = (lara.Control.IsMoving || lara.Control.HandStatus != HandStatus::Free);
 
+		// HACK: Arms are set to busy when Lara is crawling for some reason, so we override that.
+		if (Objects[item.ObjectNumber].isPickup && item.ObjectNumber != ID_BURNING_TORCH_ITEM &&
+			TestState(player.Animation.ActiveState, CRAWL_STATES))
+		{
+			armsBusy = false;
+		}
+
 		// Filter custom interaction type based on interaction mode object ID.
 		bool conditionsMet = true;
 
