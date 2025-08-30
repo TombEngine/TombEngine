@@ -73,7 +73,7 @@ namespace TEN::Hud
 					break;
 
 				case ID_TIGHT_ROPE:
-					conditionsMet = player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(2)));
+					conditionsMet = lara.Control.Tightrope.TimeOnTightrope == 0 && player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(2)));
 					break;
 
 				case ID_FLAME_EMITTER:
