@@ -271,7 +271,9 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 		return;
 	}
 
-	// Activate triggers when startig level for first time.
+	g_Hud.InteractionHighlighter.Test(*laraItem, receptacleItem);
+
+	// Activate triggers when starting level for first time.
 	if (receptacleItem.ItemFlags[5] == (int)ReusableReceptacleState::None)
 	{
 		receptacleItem.ItemFlags[1] = true;
@@ -477,6 +479,9 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		return;
 
 	short triggerType = (*(triggerIndexPtr++) >> 8) & TRIGGER_BITS;
+
+	auto interactionMode = (triggerType == TRIGGER_TYPES::SWITCH) ? InteractionMode::Always : InteractionMode::Activation;
+	g_Hud.InteractionHighlighter.Test(*laraItem, *keyHoleItem, interactionMode);
 
 	bool isUnderwater = (player->Control.WaterStatus == WaterStatus::Underwater);
 	const auto& activeBounds = isUnderwater ? WaterKeyHoleBounds : KeyHoleBounds;

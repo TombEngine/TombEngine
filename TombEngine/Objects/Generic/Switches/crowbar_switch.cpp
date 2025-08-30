@@ -1,18 +1,21 @@
 #include "framework.h"
-#include "Objects/Generic/Switches/generic_switch.h"
-#include "Specific/Input/Input.h"
+
+#include "Game/animation.h"
+#include "Game/collision/collide_item.h"
+#include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
-#include "Objects/Generic/Switches/crowbar_switch.h"
-#include "Game/Gui.h"
-#include "Sound/sound.h"
 #include "Game/pickup/pickup.h"
+#include "Objects/Generic/Switches/crowbar_switch.h"
+#include "Objects/Generic/Switches/generic_switch.h"
+#include "Sound/sound.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/animation.h"
-#include "Game/items.h"
 
 using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -49,6 +52,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		ItemInfo* switchItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Always);
 
 		int doSwitch = 0;
 

@@ -129,7 +129,7 @@ namespace TEN::Entities::Generic
 		laraItem->Pose.Orientation.y += ANGLE(180.0f);
 
 		if (result || result2)
-			g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractiveObjectType::Door);
+			g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_JUMP_UP &&
@@ -178,7 +178,7 @@ namespace TEN::Entities::Generic
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractiveObjectType::Door);
+		g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 

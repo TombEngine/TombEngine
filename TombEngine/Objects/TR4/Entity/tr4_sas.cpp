@@ -601,6 +601,8 @@ namespace TEN::Entities::TR4
 		auto& item = g_Level.Items[itemNumber];
 		auto& player = *GetLaraInfo(laraItem);
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, item);
+
 		if ((IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
 			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&

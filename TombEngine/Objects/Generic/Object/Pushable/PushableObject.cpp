@@ -8,6 +8,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/control/box.h"
 #include "Game/control/flipeffect.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -21,11 +22,11 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include <Game/Hud/Hud.h>
-using namespace TEN::Hud;
+
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic

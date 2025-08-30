@@ -13,11 +13,11 @@ namespace TEN::Hud
 		Talk
 	};
 
-	enum class InteractiveObjectType
+	enum class InteractionMode
 	{
-		Generic,
-		Door,
-		StartPosOnly
+		Always,		// Can be interacted with at any time.
+		Activation,	// Can only be interacted when not activated (e.g. doors or switches).
+		Custom		// Specific object types which may need additional checks based on object ID.
 	};
 
 	class InteractionHighlighterController
@@ -32,12 +32,12 @@ namespace TEN::Hud
 
 		// Utilities
 
-		bool TestObjectType(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type);
+		bool TestObjectType(ItemInfo& actor, ItemInfo& item, InteractionMode mode);
 
 	public:
 		// Utilities
 
-		void Test(ItemInfo& actor, ItemInfo& item, InteractiveObjectType type = InteractiveObjectType::Generic);
+		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always);
 		void Show(ItemInfo& item, InteractionType type = InteractionType::Undefined);
 		void Draw() const;
 		void Update();

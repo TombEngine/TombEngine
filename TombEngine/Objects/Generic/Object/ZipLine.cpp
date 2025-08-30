@@ -5,6 +5,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -12,10 +13,9 @@
 #include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
-#include <Game/Hud/Hud.h>
-using namespace TEN::Hud;
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -47,7 +47,7 @@ namespace TEN::Entities::Traps
 		auto& zipLineItem = g_Level.Items[itemNumber];
 		auto& player = GetLaraInfo(*laraItem);
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractiveObjectType::StartPosOnly);
+		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
 		if ((IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&

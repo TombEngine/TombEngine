@@ -9,6 +9,7 @@
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/itemdata/door_data.h"
 #include "Game/itemdata/itemdata.h"
 #include "Game/items.h"
@@ -23,12 +24,11 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include <Game/Hud/Hud.h>
-using namespace TEN::Hud;
 
 using namespace TEN::Collision::Room;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Physics;
 
@@ -294,13 +294,13 @@ namespace TEN::Entities::Doors
 
 		bool canBeOpenedWithCrowbar = doorItem.TriggerFlags == 2;
 		if (canBeOpenedWithCrowbar)
-			g_Hud.InteractionHighlighter.Test(*playerItem, doorItem, InteractiveObjectType::Door);
+			g_Hud.InteractionHighlighter.Test(*playerItem, doorItem, InteractionMode::Activation);
 
 		if (canBeOpenedWithCrowbar && doorItem.Status == ITEM_NOT_ACTIVE &&
 			((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
 				playerItem->Animation.ActiveState == LS_IDLE &&
 				playerItem->Animation.AnimNumber == LA_STAND_IDLE &&
-				!playerItem->Animation.IsAirborne &&
+				!doorItem.Animation.IsAirborne &&
 				!playerItem->HitStatus &&
 				player.Control.HandStatus == HandStatus::Free ||
 				player.Control.IsMoving && player.Context.InteractedItem == itemNumber))

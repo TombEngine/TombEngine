@@ -6,6 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_flare.h"
@@ -19,6 +20,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Entities::Effects;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
@@ -301,6 +303,8 @@ namespace TEN::Entities::Generic
 	{
 		auto* torchItem = &g_Level.Items[itemNumber];
 		auto* lara = GetLaraInfo(laraItem);
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *torchItem, InteractionMode::Custom);
 
 		if (!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||

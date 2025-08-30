@@ -24,24 +24,32 @@ namespace TEN::Hud
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
 
-	bool InteractionHighlighterController::TestObjectType(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
+	bool InteractionHighlighterController::TestObjectType(ItemInfo& player, ItemInfo& item, InteractionMode mode)
 	{
-		switch (type)
+		switch (mode)
 		{
-			case InteractiveObjectType::Generic:
+			case InteractionMode::Always:
 				return true;
 
-			case InteractiveObjectType::Door:
+			case InteractionMode::Activation:
 				return (item.Status != ITEM_ACTIVE);
+		}
 
-			case InteractiveObjectType::StartPosOnly:
+		switch (item.ObjectNumber)
+		{
+			case ID_ZIPLINE_HANDLE:
 				return (item.Status != ITEM_ACTIVE && item.StartPose.Position == item.Pose.Position);
+
+			case ID_FLAME_EMITTER:
+			{
+				return true;
+			}
 		}
 
 		return true;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractiveObjectType type)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode)
 	{
 		// Another interaction highlight takes priority.
 		if (_isActive)
@@ -51,7 +59,7 @@ namespace TEN::Hud
 		if (distance > INTERACTION_DISTANCE)
 			return;
 
-		if (!TestObjectType(player, item, type))
+		if (item.Status == ITEM_INVISIBLE)
 			return;
 
 		if (!player.IsLara())
@@ -71,11 +79,15 @@ namespace TEN::Hud
 		if (lara->Context.Vehicle != NO_VALUE)
 			return;
 
+		if (!TestObjectType(player, item, mode))
+			return;
+
 		// Inflate object bounding box a little to increase highlight tolerance.
 		auto boundingBox = item.GetObb();
 		boundingBox.Extents = boundingBox.Extents + Vector3::One * INTERACTION_PADDING;
 
-		if (!player.GetObb().Intersects(boundingBox))
+		// Only check bounding box intersection if not in custom mode.
+		if (mode != InteractionMode::Custom && !player.GetObb().Intersects(boundingBox))
 			return;
 
 		// Don't check facing direction for pickups, because they are too small to check it.
