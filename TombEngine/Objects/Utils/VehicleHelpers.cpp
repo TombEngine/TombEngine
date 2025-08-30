@@ -62,6 +62,8 @@ namespace TEN::Entities::Vehicles
 		if (!TestBoundsCollide(vehicleItem, laraItem, coll->Setup.Radius) || !HandleItemSphereCollision(*vehicleItem, *laraItem))
 			return VehicleMountType::None;
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *vehicleItem);
+
 		bool hasInputAction = IsHeld(In::Action);
 
 		short deltaHeadingAngle = vehicleItem->Pose.Orientation.y - laraItem->Pose.Orientation.y;

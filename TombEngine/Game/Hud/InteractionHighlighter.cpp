@@ -80,13 +80,15 @@ namespace TEN::Hud
 				{
 					bool hasTorch = lara.Control.Weapon.GunType == LaraWeaponType::Torch &&
 									lara.Control.HandStatus == HandStatus::WeaponReady &&
-									!lara.LeftArm.Locked && !lara.Torch.IsLit;
+									!lara.LeftArm.Locked;
+
+					bool canIgnite = hasTorch && (lara.Torch.IsLit == (item.Status == ITEM_NOT_ACTIVE));
 
 					// Flame emitter interaction overrides hand status checks, if player carries unlit torch.
 					if (hasTorch)
 						armsBusy = false;
 
-					conditionsMet = hasTorch && player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(3)));
+					conditionsMet = hasTorch && canIgnite && player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(3)));
 					break;
 				}
 				break;
