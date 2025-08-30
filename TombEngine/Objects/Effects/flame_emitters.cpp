@@ -10,6 +10,7 @@
 #include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -24,6 +25,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Items;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Effects
@@ -519,6 +521,8 @@ namespace TEN::Entities::Effects
 	void FlameEmitterCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *item, InteractionMode::Custom);
 
 		if (Lara.Control.Weapon.GunType != LaraWeaponType::Torch ||
 			Lara.Control.HandStatus != HandStatus::WeaponReady ||

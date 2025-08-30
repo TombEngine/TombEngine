@@ -24,29 +24,70 @@ namespace TEN::Hud
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
 
-	bool InteractionHighlighterController::TestObjectType(ItemInfo& player, ItemInfo& item, InteractionMode mode)
+	bool InteractionHighlighterController::TestInteractionConditions(ItemInfo& player, ItemInfo& item, InteractionMode mode)
 	{
+		if (!player.IsLara())
+			return false;
+
+		auto& lara = GetLaraInfo(player);
+
+		// Never highlight in optics mode.
+		if (lara.Control.Look.IsUsingBinoculars || lara.Control.Look.IsUsingLasersight)
+			return false;
+
+		// Never highlight in vehicle mode.
+		if (lara.Context.Vehicle != NO_VALUE)
+			return false;
+
+		bool armsBusy = (lara.Control.IsMoving || lara.Control.HandStatus != HandStatus::Free);
+
+		// Filter custom interaction type based on interaction mode object ID.
+		bool conditionsMet = true;
+
 		switch (mode)
 		{
 			case InteractionMode::Always:
-				return true;
+				conditionsMet = true;
+				break;
 
 			case InteractionMode::Activation:
-				return (item.Status != ITEM_ACTIVE);
-		}
+				conditionsMet = (item.Status == ITEM_NOT_ACTIVE);
+				break;
 
-		switch (item.ObjectNumber)
-		{
-			case ID_ZIPLINE_HANDLE:
-				return (item.Status != ITEM_ACTIVE && item.StartPose.Position == item.Pose.Position);
+			case InteractionMode::Custom:
 
-			case ID_FLAME_EMITTER:
-			{
-				return true;
+				switch (item.ObjectNumber)
+				{
+				case ID_ZIPLINE_HANDLE:
+					conditionsMet = (item.Status != ITEM_ACTIVE && item.StartPose.Position == item.Pose.Position);
+					break;
+
+				case ID_CROWDOVE_SWITCH:
+					conditionsMet = ((item.MeshBits & 4) != 0);
+					break;
+
+				case ID_TIGHT_ROPE:
+					conditionsMet = player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(2)));
+					break;
+
+				case ID_FLAME_EMITTER:
+				{
+					bool hasTorch = lara.Control.Weapon.GunType == LaraWeaponType::Torch &&
+									lara.Control.HandStatus == HandStatus::WeaponReady &&
+									!lara.Torch.IsLit;
+
+					// Flame emitter interaction overrides hand status checks, if player carries unlit torch.
+					if (hasTorch)
+						armsBusy = false;
+
+					conditionsMet = hasTorch && player.GetObb().Contains(BoundingSphere(item.Pose.Position.ToVector3(), CLICK(3)));
+					break;
+				}
+				break;
 			}
 		}
 
-		return true;
+		return !armsBusy && conditionsMet;
 	}
 
 	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode)
@@ -62,24 +103,8 @@ namespace TEN::Hud
 		if (item.Status == ITEM_INVISIBLE)
 			return;
 
-		if (!player.IsLara())
-			return;
-
-		auto* lara = GetLaraInfo(&player);
-
-		// If player is already moving into object position, or hands are busy, don't highlight.
-		if (lara->Control.IsMoving || lara->Control.HandStatus != HandStatus::Free)
-			return;
-
-		// Never highlight in optics mode.
-		if (lara->Control.Look.IsUsingBinoculars || lara->Control.Look.IsUsingLasersight)
-			return;
-
-		// Never highlight in vehicle mode.
-		if (lara->Context.Vehicle != NO_VALUE)
-			return;
-
-		if (!TestObjectType(player, item, mode))
+		// Test object interaction conditions.
+		if (!TestInteractionConditions(player, item, mode))
 			return;
 
 		// Inflate object bounding box a little to increase highlight tolerance.
@@ -87,7 +112,7 @@ namespace TEN::Hud
 		boundingBox.Extents = boundingBox.Extents + Vector3::One * INTERACTION_PADDING;
 
 		// Only check bounding box intersection if not in custom mode.
-		if (mode != InteractionMode::Custom && !player.GetObb().Intersects(boundingBox))
+		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !player.GetObb().Intersects(boundingBox))
 			return;
 
 		// Don't check facing direction for pickups, because they are too small to check it.

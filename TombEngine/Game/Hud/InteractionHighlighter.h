@@ -32,7 +32,7 @@ namespace TEN::Hud
 
 		// Utilities
 
-		bool TestObjectType(ItemInfo& actor, ItemInfo& item, InteractionMode mode);
+		bool TestInteractionConditions(ItemInfo& actor, ItemInfo& item, InteractionMode mode);
 
 	public:
 		// Utilities

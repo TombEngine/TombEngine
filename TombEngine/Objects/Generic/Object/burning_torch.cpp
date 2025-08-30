@@ -6,7 +6,6 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
-#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_flare.h"
@@ -20,7 +19,6 @@
 #include "Specific/level.h"
 
 using namespace TEN::Entities::Effects;
-using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
@@ -296,101 +294,6 @@ namespace TEN::Entities::Generic
 				TriggerTorchFlame(itemNumber, 1);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
-		}
-	}
-
-	void FireCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
-	{
-		auto* torchItem = &g_Level.Items[itemNumber];
-		auto* lara = GetLaraInfo(laraItem);
-
-		g_Hud.InteractionHighlighter.Test(*laraItem, *torchItem, InteractionMode::Custom);
-
-		if (!IsHeld(In::Action) ||
-			laraItem->Animation.ActiveState != LS_IDLE ||
-			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
-			laraItem->Animation.IsAirborne ||
-			lara->Control.Weapon.GunType != LaraWeaponType::Torch ||
-			lara->Control.HandStatus != HandStatus::WeaponReady ||
-			lara->LeftArm.Locked ||
-			lara->Torch.IsLit == (torchItem->Status == ITEM_ACTIVE) ||
-			torchItem->Timer == -1)
-		{
-			if (torchItem->ObjectNumber == ID_BURNING_ROOTS)
-				ObjectCollision(itemNumber, laraItem, coll);
-		}
-		else
-		{
-			short yOrient = torchItem->Pose.Orientation.y;
-
-			switch (torchItem->ObjectNumber)
-			{
-			case ID_FLAME_EMITTER:
-				FireBounds.BoundingBox.X1 = -256;
-				FireBounds.BoundingBox.X2 = 256;
-				FireBounds.BoundingBox.Y1 = 0;
-				FireBounds.BoundingBox.Y2 = 1024;
-				FireBounds.BoundingBox.Z1 = -800;
-				FireBounds.BoundingBox.Z2 = 800;
-				break;
-
-			case ID_FLAME_EMITTER2:
-				FireBounds.BoundingBox.X1 = -256;
-				FireBounds.BoundingBox.X2 = 256;
-				FireBounds.BoundingBox.Y1 = 0;
-				FireBounds.BoundingBox.Y2 = 1024;
-				FireBounds.BoundingBox.Z1 = -600;
-				FireBounds.BoundingBox.Z2 = 600;
-				break;
-
-			case ID_BURNING_ROOTS:
-				FireBounds.BoundingBox.X1 = -384;
-				FireBounds.BoundingBox.X2 = 384;
-				FireBounds.BoundingBox.Y1 = 0;
-				FireBounds.BoundingBox.Y2 = 2048;
-				FireBounds.BoundingBox.Z1 = -384;
-				FireBounds.BoundingBox.Z2 = 384;
-				break;
-			}
-
-			torchItem->Pose.Orientation.y = laraItem->Pose.Orientation.y;
-
-			if (TestLaraPosition(FireBounds, torchItem, laraItem))
-			{
-				if (torchItem->ObjectNumber == ID_BURNING_ROOTS)
-					laraItem->Animation.AnimNumber = LA_TORCH_LIGHT_5;
-				else
-				{
-					int dy = abs(laraItem->Pose.Position.y - torchItem->Pose.Position.y);
-					laraItem->ItemFlags[3] = 1;
-					laraItem->Animation.AnimNumber = (dy >> 8) + LA_TORCH_LIGHT_1;
-				}
-
-				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
-				lara->Flare.ControlLeft = false;
-				lara->LeftArm.Locked = true;
-				lara->Context.InteractedItem = itemNumber;
-			}
-
-			torchItem->Pose.Orientation.y = yOrient;
-		}
-		if (laraItem->Animation.ActiveState == LS_MISC_CONTROL &&
-			lara->Context.InteractedItem == itemNumber &&
-			torchItem->Status != ITEM_ACTIVE)
-		{
-			if (laraItem->Animation.AnimNumber >= LA_TORCH_LIGHT_1 &&
-				laraItem->Animation.AnimNumber <= LA_TORCH_LIGHT_5)
-			{
-				if ((laraItem->Animation.FrameNumber - GetAnimData(laraItem).frameBase) == 40)
-				{
-					TestTriggers(torchItem, true, torchItem->Flags & IFLAG_ACTIVATION_MASK);
-					torchItem->Flags |= CODE_BITS;
-					torchItem->ItemFlags[3] = 0;
-					torchItem->Status = ITEM_ACTIVE;
-					AddActiveItem(itemNumber);
-				}
-			}
 		}
 	}
 }
