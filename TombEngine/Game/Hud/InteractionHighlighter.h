@@ -25,10 +25,13 @@ namespace TEN::Hud
 	private:
 		// Members
 
-		bool _isActive;
-		Vector3 _position;
-		float _fade;
-		InteractionType _type;
+		bool _isActive			= false;
+		bool _checkDirection	= false;
+
+		Vector3 _position		= {};
+		float _fade				= 0.0f;
+
+		InteractionType _type	= InteractionType::Undefined;
 
 		// Utilities
 

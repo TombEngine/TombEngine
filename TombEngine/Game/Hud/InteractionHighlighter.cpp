@@ -55,7 +55,6 @@ namespace TEN::Hud
 				break;
 
 			case InteractionMode::Custom:
-
 				switch (item.ObjectNumber)
 				{
 				case ID_ZIPLINE_HANDLE:
@@ -74,7 +73,7 @@ namespace TEN::Hud
 				{
 					bool hasTorch = lara.Control.Weapon.GunType == LaraWeaponType::Torch &&
 									lara.Control.HandStatus == HandStatus::WeaponReady &&
-									!lara.Torch.IsLit;
+									!lara.LeftArm.Locked && !lara.Torch.IsLit;
 
 					// Flame emitter interaction overrides hand status checks, if player carries unlit torch.
 					if (hasTorch)
@@ -119,7 +118,7 @@ namespace TEN::Hud
 		SetAttributes(item);
 
 		// Don't check facing direction for pickups, because they are too small to check it.
-		if (_type != InteractionType::Pickup)
+		if (_checkDirection)
 		{
 			auto direction = boundingBox.Center - player.Pose.Position.ToVector3();
 			direction.y = 0.0f;
@@ -152,6 +151,7 @@ namespace TEN::Hud
 			if (Objects[item.ObjectNumber].isPickup)
 			{
 				_type = InteractionType::Pickup;
+				_checkDirection = false;
 
 				if (!item.TriggerFlags)
 					_position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
@@ -162,11 +162,15 @@ namespace TEN::Hud
 			{
 				_type = InteractionType::Talk;
 				_position.y -= bounds.Extents.y * 1.5f;
+				_checkDirection = true;
 			}
 			else
 			{
 				_type = InteractionType::Use;
 				_position.y += abs(bounds.Extents.y) / 3.0f;
+
+				// HACK: Extend for other direction-agnostic objects if necessary.
+				_checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
 			}
 		}
 	}
