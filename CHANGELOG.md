@@ -26,6 +26,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed intense GPU usage when engine window is minimized.
 
 ### Lua API changes
+* Added `Moveable:ShowInteractionHighlight` method.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
 
 ## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
