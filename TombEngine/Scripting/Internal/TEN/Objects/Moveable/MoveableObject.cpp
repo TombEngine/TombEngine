@@ -1321,8 +1321,5 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 // @function Moveable:ShowInteractionHighlight
 void Moveable::ShowInteractionHighlight()
 {
-	if (!_moveable->Active)
-		return;
-
 	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable);
 }
