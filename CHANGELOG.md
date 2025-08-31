@@ -3,7 +3,7 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.9.3]
+## [Version 1.10]
 
 ## New features
 * Added animated textures support for all objects.
@@ -21,6 +21,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed enemies shooting through objects.
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
 * Fixed controls being stuck when engine window is out of focus.
+* Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
 * Fixed intense GPU usage when engine window is minimized.
 
 ### Lua API changes

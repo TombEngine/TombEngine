@@ -114,6 +114,8 @@ namespace TEN::Entities::TR4
 						g_Gui.SetEnterInventory(keyItem);
 						keyHoleItem.ItemFlags[1] = 1;
 					}
+					else if (IsClicked(In::Action))
+						SayNo();
 				}
 
 				keyHoleItem.Pose.Orientation.y = prevYOrient;
