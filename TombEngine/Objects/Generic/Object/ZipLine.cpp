@@ -47,6 +47,9 @@ namespace TEN::Entities::Traps
 		auto& zipLineItem = g_Level.Items[itemNumber];
 		auto& player = GetLaraInfo(*laraItem);
 
+		if (zipLineItem.Status != ITEM_NOT_ACTIVE)
+			return;
+
 		g_Hud.InteractionHighlighter.Test(*laraItem, zipLineItem, InteractionMode::Custom);
 
 		if ((IsHeld(In::Action) &&
