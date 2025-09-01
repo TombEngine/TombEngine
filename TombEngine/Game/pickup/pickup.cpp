@@ -544,12 +544,15 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			item->Pose.Orientation = prevOrient;
 			return;
 		}
+
 		if (!lara->Control.IsMoving)
 		{
 			if (g_Gui.GetInventoryItemChosen() == NO_VALUE)
 			{
 				if (g_Gui.IsObjectInInventory(ID_CROWBAR_ITEM))
 					g_Gui.SetEnterInventory(ID_CROWBAR_ITEM);
+				else if (IsClicked(In::Action))
+					SayNo();
 
 				item->Pose.Orientation = prevOrient;
 				return;

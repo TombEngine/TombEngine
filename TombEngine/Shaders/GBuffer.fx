@@ -167,7 +167,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 	PixelShaderOutput output;
 	
     if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);
+        if (IsWaterfall == 1)
+            input.UV = CalculateUVRotateForLegacyWaterfalls(input.UV, 0);
+        else
+            input.UV = CalculateUVRotate(input.UV, 0);
 
 	float4 color = Texture.Sample(Sampler, input.UV);
 
