@@ -225,6 +225,9 @@ namespace TEN::Hud
 		if (!g_Configuration.EnableInteractionHighlighter)
 			return;
 
+		if (!_isActive)
+			return;
+
 		if (!Objects[ID_INTERACTION_SPRITES].loaded || Objects[ID_INTERACTION_SPRITES].nmeshes == 0)
 		{
 			TENLog("Missing sprite sequence " + GetObjectName(ID_INTERACTION_SPRITES) + " for drawing interaction highlighter", LogLevel::Warning);
