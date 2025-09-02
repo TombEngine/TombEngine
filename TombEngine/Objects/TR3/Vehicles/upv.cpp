@@ -977,11 +977,7 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 
-			if (probe.GetRoomNumber() != UPVItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(UPVItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose = UPVItem->Pose;
 

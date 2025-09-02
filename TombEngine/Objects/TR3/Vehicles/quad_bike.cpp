@@ -1179,11 +1179,7 @@ namespace TEN::Entities::Vehicles
 
 		if (!(quadBike->Flags & QBIKE_FLAG_DEAD))
 		{
-			if (probe.GetRoomNumber() != quadBikeItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(quadBikeItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose = quadBikeItem->Pose;
 				
