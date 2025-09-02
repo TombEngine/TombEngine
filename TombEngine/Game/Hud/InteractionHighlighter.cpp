@@ -225,7 +225,7 @@ namespace TEN::Hud
 		if (!g_Configuration.EnableInteractionHighlighter)
 			return;
 
-		if (!_isActive)
+		if (_previous.Fade == 0.0f && _current.Fade == 0.0f)
 			return;
 
 		if (!Objects[ID_INTERACTION_SPRITES].loaded || Objects[ID_INTERACTION_SPRITES].nmeshes == 0)
