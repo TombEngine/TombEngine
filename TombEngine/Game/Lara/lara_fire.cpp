@@ -4,6 +4,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/animation.h"
 #include "Game/camera.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Sphere.h"
 #include "Game/control/los.h"
 #include "Game/control/lot.h"
@@ -32,6 +33,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
@@ -39,6 +41,8 @@ using namespace TEN::Math;
 using namespace TEN::Utils;
 
 int FlashGrenadeAftershockTimer = 0;
+
+constexpr auto WEAPON_MAX_DISTANCE_MULTIPLIER = 3.0f;
 
 // States in which Lara will hold an active flare out in front.
 const auto FlarePoseStates = std::vector<int>
@@ -867,7 +871,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist * 3.0f);
+	auto target = origin + (directionNorm * weapon.TargetDist * WEAPON_MAX_DISTANCE_MULTIPLIER);
 	auto ray = Ray(origin, directionNorm);
 
 	player.Control.Weapon.HasFired = true;
@@ -890,6 +894,15 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	for (int i = 0; i < spheres.size(); i++)
 	{
 		float dist = 0.0f;
+		constexpr auto SPHERE_SCALING_FACTOR = 0.065f;
+
+		// HACK: Compensate for ray-sphere intersection distance.
+		float distanceToSphere = (spheres[i].Center - origin).Length();
+		float factor = distanceToSphere / weapon.TargetDist;
+		float radiusExpansion = Smoothstep(factor) * (distanceToSphere * SPHERE_SCALING_FACTOR);
+
+		spheres[i].Radius = spheres[i].Radius + radiusExpansion;
+
 		if (ray.Intersects(spheres[i], dist))
 		{
 			if (dist < closestDist)
@@ -920,6 +933,54 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	}
 }
 
+bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 target, float distance)
+{
+	constexpr auto playerSize = LARA_RADIUS * 2.0f;
+
+	if (!g_GameFlow->GetSettings()->Gameplay.TargetObjectOcclusion)
+		return false;
+
+	auto dir = target - origin;
+	dir.Normalize();
+
+	// We need to subtract Lara's radius from distance to avoid near plane false negatives.
+	distance -= playerSize;
+
+	// Assess static mesh line of sight.
+	auto staticLos = GetStaticLosCollision(origin, playerItem.RoomNumber, dir, distance);
+	if (staticLos.has_value() && staticLos.value().Static != nullptr && staticLos.value().Distance < distance)
+	{
+		// Don't filter out shatterables.
+		if (Statics[staticLos.value().Static->Slot].shatterType == ShatterType::None)
+		{
+			// Filter out statics that are too small.
+			auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
+			auto radius = Vector2(extents.x, extents.z).Length();
+
+			if (radius > playerSize && extents.y > playerSize)
+				return true;
+		}
+	}
+
+	// Assess moveable line of sight.
+	auto moveableLos = GetItemLosCollision(origin, playerItem.RoomNumber, dir, distance);
+	if (moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < distance)
+	{
+		// Don't filter out creatures.
+		if (!Objects[moveableLos.value().Item->ObjectNumber].intelligent)
+		{
+			// Filter out moveables that are too small.
+			auto extents = moveableLos.value().Item->GetAabb().Extents;
+			auto radius = Vector2(extents.x, extents.z).Length();
+
+			if (radius > playerSize && extents.y > playerSize)
+				return true;
+		}
+	}
+
+	return false;
+}
+
 void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 {
 	if (!g_Configuration.EnableAutoTargeting)
@@ -933,9 +994,11 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 		return;
 	}
 
+	float muzzleOffset = GetJointPosition(&laraItem, LM_RHAND).y - laraItem.Pose.Position.y;
+
 	auto origin = GameVector(
 		laraItem.Pose.Position.x,
-		GetJointPosition(&laraItem, LM_RHAND).y, // Muzzle offset.
+		laraItem.Pose.Position.y + muzzleOffset,
 		laraItem.Pose.Position.z,
 		laraItem.RoomNumber);
 
@@ -960,14 +1023,22 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 		if (item.HitPoints <= 0)
 			continue;
 
+		// Offset target position to the same height as muzzle.
+		Vector3 pos = item.Pose.Position.ToVector3();
+		pos.y += muzzleOffset;
+
 		// Check distance.
-		float distance = Vector3::Distance(origin.ToVector3(), item.Pose.Position.ToVector3());
+		float distance = Vector3::Distance(origin.ToVector3(), pos);
 		if (distance > maxDistance)
 			continue;
 
-		// Assess line of sight.
+		// Assess room line of sight.
 		auto target = GetTargetPoint(item);
 		if (!LOS(&origin, &target))
+			continue;
+
+		// Assess occlusion by other moveables and static meshes.
+		if (IsTargetOccludedByObjects(laraItem, origin.ToVector3(), target.ToVector3(), distance))
 			continue;
 
 		// Assess whether relative orientation falls within weapon's lock constraints.

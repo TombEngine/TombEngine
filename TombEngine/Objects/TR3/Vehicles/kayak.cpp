@@ -1111,11 +1111,7 @@ namespace TEN::Entities::Vehicles
 
 		if (lara->Context.Vehicle != NO_VALUE)
 		{
-			if (kayakItem->RoomNumber != probe.GetRoomNumber())
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(kayakItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose.Position = kayakItem->Pose.Position;
 			laraItem->Pose.Orientation.x = kayakItem->Pose.Orientation.x;

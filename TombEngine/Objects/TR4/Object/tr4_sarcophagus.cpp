@@ -2,6 +2,7 @@
 #include "Objects/TR4/Object/tr4_sarcophagus.h"
 
 #include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -10,6 +11,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 const auto SarcophagusPosition = Vector3i(0, 0, -300);
@@ -30,6 +32,8 @@ void SarcophagusCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 {
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* sarcItem = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *sarcItem, InteractionMode::Activation);
 
 	if (IsHeld(In::Action) &&
 		laraItem->Animation.ActiveState == LS_IDLE &&

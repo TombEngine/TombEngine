@@ -21,6 +21,7 @@
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
@@ -278,14 +279,7 @@ void UpdateWibble()
 
 void UpdateSparks()
 {
-	auto bounds = GameBoundingBox(LaraItem);
-	DeadlyBounds = GameBoundingBox(
-		LaraItem->Pose.Position.x + bounds.X1,
-		LaraItem->Pose.Position.x + bounds.X2,
-		LaraItem->Pose.Position.y + bounds.Y1,
-		LaraItem->Pose.Position.y + bounds.Y2,
-		LaraItem->Pose.Position.z + bounds.Z1,
-		LaraItem->Pose.Position.z + bounds.Z2);
+	GetLaraDeadlyBounds();
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{

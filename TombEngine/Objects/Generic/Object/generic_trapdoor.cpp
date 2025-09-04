@@ -128,6 +128,9 @@ namespace TEN::Entities::Generic
 		bool result2 = TestLaraPosition(CeilingTrapDoorBounds, trapDoorItem, laraItem);
 		laraItem->Pose.Orientation.y += ANGLE(180.0f);
 
+		if (result || result2)
+			g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
+
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_JUMP_UP &&
 			laraItem->Animation.IsAirborne &&
@@ -174,6 +177,8 @@ namespace TEN::Entities::Generic
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 

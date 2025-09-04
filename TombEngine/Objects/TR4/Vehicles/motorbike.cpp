@@ -321,8 +321,8 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
-		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), 0)).ToVector3();
-		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
+		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), CLICK(1))).ToVector3();
+		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), BLOCK(1))).ToVector3();
 
 		target = target - origin;
 		target.Normalize();
@@ -1146,7 +1146,7 @@ namespace TEN::Entities::Vehicles
 		else
 		{
 			if (motorbike->EngineRevs < 0xFFFF)
-				motorbike->EngineRevs += (motorbike->EngineRevs - 0xFFFF) / 8;
+				motorbike->EngineRevs += (0xFFFF - motorbike->EngineRevs) / 8;
 
 			*pitch = motorbike->EngineRevs;
 		}
@@ -1292,11 +1292,7 @@ namespace TEN::Entities::Vehicles
 		motorbikeItem->Pose.Orientation.x += (xRot - motorbikeItem->Pose.Orientation.x) / 4;
 		motorbikeItem->Pose.Orientation.z += (zRot - motorbikeItem->Pose.Orientation.z) / 4;
 
-		if (probe.GetRoomNumber() != motorbikeItem->RoomNumber)
-		{
-			ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-			ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-		}
+		UpdateVehicleRoom(motorbikeItem, laraItem, probe.GetRoomNumber());
 
 		laraItem->Pose = motorbikeItem->Pose;
 

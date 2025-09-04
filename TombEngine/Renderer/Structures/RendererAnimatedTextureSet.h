@@ -18,6 +18,8 @@ namespace TEN::Renderer::Structures
 		AnimatedTextureType Type = AnimatedTextureType::Frames;
 		int NumTextures = 0;
 		int Fps = 0;
+		float UVRotateSpeed = 0.0f;
+		float UVRotateDirection = 0.0f;
 		std::vector<RendererAnimatedTexture> Textures;
 	};
 }

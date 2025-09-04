@@ -13,6 +13,7 @@ namespace TEN::Hud
 
 	void HudController::Update(const ItemInfo& playerItem)
 	{
+		InteractionHighlighter.Update();
 		TargetHighlighter.Update(playerItem);
 		Speedometer.Update();
 		PickupSummary.Update();
@@ -21,6 +22,7 @@ namespace TEN::Hud
 
 	void HudController::Draw(const ItemInfo& playerItem) const
 	{
+		InteractionHighlighter.Draw();
 		TargetHighlighter.Draw();
 		Speedometer.Draw();
 		PickupSummary.Draw();
@@ -29,6 +31,7 @@ namespace TEN::Hud
 
 	void HudController::Clear()
 	{
+		InteractionHighlighter.Clear();
 		TargetHighlighter.Clear();
 		Speedometer.Clear();
 		PickupSummary.Clear();

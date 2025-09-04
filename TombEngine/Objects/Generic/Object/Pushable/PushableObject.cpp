@@ -8,6 +8,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/control/box.h"
 #include "Game/control/flipeffect.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -22,8 +23,10 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
@@ -153,6 +156,8 @@ namespace TEN::Entities::Generic
 		int quadrant = GetQuadrant(LaraItem->Pose.Orientation.y);
 		auto& pushableSidesAttributes = pushable.EdgeAttribs[quadrant]; // NOTE: 0 = north, 1 = east, 2 = south, 3 = west.
 
+		g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
+
 		// Align player to pushable.
 		if ((IsHeld(In::Action) &&
 			!IsHeld(In::Forward) &&
@@ -210,11 +215,12 @@ namespace TEN::Entities::Generic
 				{
 					SetAnimation(playerItem, LA_PUSHABLE_GRAB);
 					playerItem->Pose.Orientation = pushableItem.Pose.Orientation;
+					ResetPlayerFlex(playerItem);
 					player.Control.IsMoving = false;
+					player.Control.TurnRate = 0;
 					player.Control.HandStatus = HandStatus::Busy;
 					player.Context.NextCornerPos.Position.x = itemNumber; // TODO: Do this differently.
 				}
-
 				player.Context.InteractedItem = itemNumber;
 			}
 			else

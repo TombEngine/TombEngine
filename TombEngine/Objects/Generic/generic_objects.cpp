@@ -16,6 +16,7 @@
 #include "Objects/Generic/Object/polerope.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Objects/Generic/Object/rope.h"
+#include "Objects/Generic/Object/ZipLine.h"
 
 // Switches
 #include "Objects/Generic/Switches/cog_switch.h"
@@ -126,6 +127,15 @@ static void StartObject(ObjectInfo* object)
 	{
 		object->Initialize = InitializeBridge;
 		object->control = ControlBridge;
+	}
+
+	object = &Objects[ID_ZIPLINE_HANDLE];
+	if (object->loaded)
+	{
+		object->Initialize = InitializeZipLine;
+		object->collision = CollideZipLine;
+		object->control = ControlZipLine;
+		object->SetHitEffect(true);
 	}
 }
 

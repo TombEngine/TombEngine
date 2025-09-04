@@ -27,6 +27,8 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Vehicles
 {
+	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
+
 	enum class VehicleWakeEffectTag
 	{
 		FrontLeft,
@@ -50,6 +52,9 @@ namespace TEN::Entities::Vehicles
 		// Assess vertical distance to vehicle.
 		if (abs(laraItem->Pose.Position.y - vehicleItem->Pose.Position.y) > maxVerticalDistance)
 			return VehicleMountType::None;
+
+		// Do interaction highlight before bounds testing to give player more visual tolerance.
+		g_Hud.InteractionHighlighter.Test(*laraItem, *vehicleItem);
 
 		// Assess 2D distance to vehicle.
 		float distance2D = Vector2::Distance(
@@ -159,7 +164,7 @@ namespace TEN::Entities::Vehicles
 		pos->z = vehicleItem->Pose.Position.z + (forward * cosY) - (right * sinY);
 
 		// Get collision a bit higher to be able to detect bridges.
-		auto probe = GetPointCollision(Vector3i(pos->x, pos->y - CLICK(2), pos->z), vehicleItem->RoomNumber);
+		auto probe = GetPointCollision(Vector3i(pos->x, pos->y - VEHICLE_BASE_HEIGHT, pos->z), vehicleItem->RoomNumber);
 
 		if (pos->y < probe.GetCeilingHeight() || probe.GetCeilingHeight() == NO_HEIGHT)
 			return NO_HEIGHT;
@@ -399,5 +404,21 @@ namespace TEN::Entities::Vehicles
 	{
 		float value = abs(vel / velMax);
 		g_Hud.Speedometer.UpdateValue(value);
+	}
+
+	void UpdateVehicleRoom(ItemInfo* vehicleItem, ItemInfo* laraItem, int currentRoomNumber)
+	{
+		auto finalPos = vehicleItem->Pose.Position;
+		finalPos.y -= VEHICLE_BASE_HEIGHT;
+		auto roomNumber = FindRoomNumber(finalPos, currentRoomNumber, true);
+
+		if (roomNumber != currentRoomNumber)
+			currentRoomNumber = roomNumber;
+
+		if (currentRoomNumber != vehicleItem->RoomNumber)
+		{
+			ItemNewRoom(vehicleItem->Index, currentRoomNumber);
+			ItemNewRoom(laraItem->Index, currentRoomNumber);
+		}
 	}
 }

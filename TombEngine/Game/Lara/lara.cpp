@@ -455,7 +455,10 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 
 	// Process vehicles.
 	if (HandleLaraVehicle(item, coll))
+	{
+		DoObjectCollision(item, coll);
 		return;
+	}
 
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);

@@ -4,6 +4,7 @@
 #include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -11,6 +12,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -91,6 +93,8 @@ namespace TEN::Entities::Switches
 		auto* player = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
+
 		bool isUnderwater = (player->Control.WaterStatus == WaterStatus::Underwater);
 
 		bool isActionActive = player->Control.IsMoving && player->Context.InteractedItem == itemNumber;
@@ -159,6 +163,8 @@ namespace TEN::Entities::Switches
 		auto* switchItem = &g_Level.Items[itemNumber];
 		bool doInteraction = false;
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
+
 		bool isUnderwater = (lara->Control.WaterStatus == WaterStatus::Underwater);
 
 		if (isUnderwater)
@@ -214,7 +220,6 @@ namespace TEN::Entities::Switches
 		}
 		else
 		{
-
 			if ((IsHeld(In::Action) &&
 				laraItem->Animation.ActiveState == LS_JUMP_UP &&
 				laraItem->Animation.IsAirborne &&

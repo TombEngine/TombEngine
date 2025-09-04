@@ -369,6 +369,7 @@ namespace TEN::Renderer
 		void BindStaticLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);
 		void BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow);
+		void BindRoomDecals(const std::vector<RendererDecal>& decals);
 		void BindRenderTargetAsTexture(TextureRegister registerType, RenderTarget2D* target, SamplerStateRegister samplerType);
 		void BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer);
 		void BindConstantBufferPS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer);
@@ -387,6 +388,7 @@ namespace TEN::Renderer
 		void CollectLightsForRoom(short roomNumber, RenderView& renderView);
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
+		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
 		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
@@ -404,7 +406,7 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
-		void DrawWaterfalls(RendererItem* item, RenderView& view, int fps, RendererPass rendererPass);
+		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
 		void DrawLara(RenderView& view, RendererPass rendererPass);
@@ -523,7 +525,8 @@ namespace TEN::Renderer
 		void InitializePostProcess();
 		void CreateSSAONoiseTexture();
 		void InitializeSMAA();
-
+		void SetupAnimatedTextures(const RendererBucket& bucket);
+		
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
 		inline bool IgnoreReflectionPassForRoom(int roomNumber)
@@ -605,6 +608,17 @@ namespace TEN::Renderer
 			return _staticObjects[Statics.GetIndex(objectNumber)].value();
 		}
 
+		inline void TexturesAreNotAnimated()
+		{
+			_stAnimated.Animated = 0;
+			_cbAnimated.UpdateData(_stAnimated, _context.Get());
+		}
+
+		static inline bool IsWaterfall(short objectNumber)
+		{
+			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
+		}
+
 	public:
 		Renderer();
 		~Renderer();
@@ -634,6 +648,7 @@ namespace TEN::Renderer
 		void AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 		void FreeRendererData();
 		void AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash = 0);
+		void AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash = 0);
 		void AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash = 0);
 		void RenderLoadingScreen(float percentage);
 		void RenderFreezeMode(float interpFactor, bool staticBackground);

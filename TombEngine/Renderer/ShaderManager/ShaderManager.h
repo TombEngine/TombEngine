@@ -12,7 +12,6 @@ namespace TEN::Renderer::Utils
 
 		None,
 		Rooms,
-		RoomsAnimated,
 		RoomsTransparent,
 		RoomAmbient,
 		RoomAmbientSky,
@@ -38,7 +37,6 @@ namespace TEN::Renderer::Utils
 
 		GBuffer,
 		GBufferRooms,
-		GBufferRoomsAnimated,
 		GBufferItems,
 		GBufferStatics,
 		GBufferInstancedStatics,

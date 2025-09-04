@@ -21,6 +21,7 @@
 
 #define SHADOWABLE_MASK (1 << 16)
 
+#define MAX_DECALS_PER_ROOM 48
 #define MAX_LIGHTS_PER_ROOM	48
 #define MAX_LIGHTS_PER_ITEM	8
 #define MAX_FOG_BULBS	32
@@ -52,6 +53,14 @@ struct ShaderFogBulb
 	float3 FogBulbToCameraVector;
 	float SquaredCameraToFogBulbDistance;
 	float4 Padding2;
+};
+
+struct ShaderDecal
+{
+	float3 Position;
+	unsigned int Pattern;
+	float Radius;
+	float Opacity;
 };
 
 float Luma(float3 color)

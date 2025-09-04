@@ -4,6 +4,7 @@
 #include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
@@ -18,6 +19,7 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
@@ -41,6 +43,7 @@ namespace TEN::Renderer
 			room.EffectsToDraw.clear();
 			room.StaticsToDraw.clear();
 			room.LightsToDraw.clear();
+			room.Decals.clear();
 			room.Visited = false;
 			room.ViewPort = VIEW_PORT;
 
@@ -81,6 +84,27 @@ namespace TEN::Renderer
 		// Collect fog bulbs.
 		std::vector<RendererFogBulb> tempFogBulbs;
 		tempFogBulbs.reserve(MAX_FOG_BULBS_DRAW);
+
+		for (auto& light : _dynamicLights[_dynamicLightList])
+		{
+			if (light.Type != LightType::FogBulb)
+				continue;
+
+			// Test bigger radius to avoid bad clipping.
+			if (renderView.Camera.Frustum.SphereInFrustum(light.Position, light.Out * 1.2f))
+			{
+				RendererFogBulb bulb;
+
+				bulb.Position = light.Position;
+				bulb.Density = light.Intensity;
+				bulb.Color = light.Color;
+				bulb.Radius = light.Out;
+				bulb.FogBulbToCameraVector = bulb.Position - renderView.Camera.WorldPosition;
+				bulb.Distance = bulb.FogBulbToCameraVector.Length();
+
+				tempFogBulbs.push_back(bulb);
+			}
+		}
 
 		for (auto& room : _rooms)
 		{
@@ -316,6 +340,7 @@ namespace TEN::Renderer
 			renderView.RoomsToDraw.push_back(room);
 
 			CollectLightsForRoom(to, renderView);
+			CollectDecalsForRoom(to, renderView);
 
 			if (!onlyRooms)
 			{
@@ -819,6 +844,51 @@ namespace TEN::Renderer
 		item->AmbientLight *= nativeItem->Model.Color;
 	}
 
+	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)
+	{
+		if (_rooms.size() <= roomNumber)
+			return;
+
+		RendererRoom& room = _rooms[roomNumber];
+
+		room.Decals.clear();
+
+		if (Decals.empty())
+			return;
+
+		for (auto& decal : Decals)
+		{
+			if (!renderView.Camera.Frustum.SphereInFrustum(decal.Sphere.Center, decal.Sphere.Radius))
+				continue;
+
+			bool decalInRoom = (decal.RoomNumber == room.RoomNumber);
+
+			if (!decalInRoom)
+			{
+				for (auto j : decal.Neighbors)
+				{
+					if (j == roomNumber)
+					{
+						decalInRoom = true;
+						break;
+					}
+				}
+			}
+
+			if (decalInRoom)
+			{
+				RendererDecal newDecal;
+
+				newDecal.Position = decal.Sphere.Center;
+				newDecal.Radius = decal.Sphere.Radius;
+				newDecal.Opacity = decal.Opacity;
+				newDecal.Pattern = (int)decal.Type;
+
+				room.Decals.push_back(newDecal);
+			}
+		}
+	}
+
 	void Renderer::CollectLightsForRoom(short roomNumber, RenderView &renderView)
 	{
 		if (_rooms.size() <= roomNumber)
@@ -899,6 +969,8 @@ namespace TEN::Renderer
 				newEffect->PrevRotation = newEffect->Rotation;
 				newEffect->PrevWorld = newEffect->World;
 				newEffect->PrevScale = newEffect->Scale;
+
+				fx->DisableInterpolation = false;
 			}
 
 			newEffect->InterpolatedPosition = Vector3::Lerp(newEffect->PrevPosition, newEffect->Position, GetInterpolationFactor());
