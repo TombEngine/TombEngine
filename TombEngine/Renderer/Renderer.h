@@ -114,6 +114,7 @@ namespace TEN::Renderer
 
 		RenderTarget2D _normalsRenderTarget;
 		RenderTarget2D _depthRenderTarget;
+		RenderTarget2D _emissiveRenderTarget;
 		RenderTarget2D _backBuffer;
 		RenderTarget2D _dumpScreenRenderTarget;
 		RenderTarget2D _renderTarget;

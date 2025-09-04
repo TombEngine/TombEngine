@@ -1921,7 +1921,7 @@ namespace TEN::Renderer
 
 		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
 
-		ID3D11RenderTargetView* pRenderViewPtrs[2];
+		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
 		// Bind main render target.
 		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
@@ -1932,10 +1932,12 @@ namespace TEN::Renderer
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsRenderTarget.RenderTargetView.Get(), Colors::Black);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
+		_context->ClearRenderTargetView(_emissiveRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 
 		pRenderViewPtrs[0] = _normalsRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _depthRenderTarget.RenderTargetView.Get();
-		_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
+		pRenderViewPtrs[2] = _emissiveRenderTarget.RenderTargetView.Get();
+		_context->OMSetRenderTargets(3, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 
 		// Render G-Buffer pass.
 		DoRenderPass(RendererPass::GBuffer, view, true);

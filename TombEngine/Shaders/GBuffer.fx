@@ -24,10 +24,14 @@ SamplerState Sampler : register(s0);
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
 
+Texture2D EmissiveTexture : register(t11);
+SamplerState EmissiveSampler : register(s11);
+
 struct PixelShaderOutput
 {
 	float4 Normals: SV_TARGET0;
 	float Depth: SV_TARGET1;
+    float4 Emissive : SV_Target2;
 };
 
 float3 DecodeNormalMap(float4 n)
@@ -133,6 +137,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float4 color = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(color);
+	
+    float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
@@ -140,6 +146,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	output.Normals.xyz = normal;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
-
+    output.Emissive = emissive;
+	
 	return output;
 }
