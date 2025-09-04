@@ -131,15 +131,7 @@ namespace TEN::Entities::Switches
 				if (laraInfo->Inventory.HasCrowbar)
 					g_Gui.SetEnterInventory(ID_CROWBAR_ITEM);
 				else
-				{
-					if (OldPickupPos.x != laraItem->Pose.Position.x || OldPickupPos.y != laraItem->Pose.Position.y || OldPickupPos.z != laraItem->Pose.Position.z)
-					{
-						OldPickupPos.x = laraItem->Pose.Position.x;
-						OldPickupPos.y = laraItem->Pose.Position.y;
-						OldPickupPos.z = laraItem->Pose.Position.z;
-						SayNo();
-					}
-				}
+					SayNo(laraItem->Pose.Position);
 			}
 			else
 			{

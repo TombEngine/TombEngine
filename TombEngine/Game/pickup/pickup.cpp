@@ -132,7 +132,6 @@ const ObjectCollisionBounds MSBounds =
 
 int NumRPickups;
 short RPickups[16];
-Vector3i OldPickupPos;
 
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count)
 {

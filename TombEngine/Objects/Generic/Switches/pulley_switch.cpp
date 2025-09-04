@@ -115,13 +115,7 @@ namespace TEN::Entities::Switches
 				{
 					if (switchItem->ItemFlags[PulleyFlags::NotHidden])
 					{
-						if (OldPickupPos.x != laraItem->Pose.Position.x || OldPickupPos.y != laraItem->Pose.Position.y || OldPickupPos.z != laraItem->Pose.Position.z)
-						{
-							OldPickupPos.x = laraItem->Pose.Position.x;
-							OldPickupPos.y = laraItem->Pose.Position.y;
-							OldPickupPos.z = laraItem->Pose.Position.z;
-							SayNo();
-						}
+						SayNo(laraItem->Pose.Position);
 					}
 					else if (MoveLaraPosition(position, switchItem, laraItem))
 					{

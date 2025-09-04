@@ -18,6 +18,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed dying while landing into shallow water after freefall.
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed original game issue where enemies could be targeted through objects and static meshes.
 * Fixed enemies shooting through objects.
 * Fixed motorbike sound going silent while doing jumps.
 * Fixed original vehicle collision issues while moving between stacked rooms.

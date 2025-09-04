@@ -318,14 +318,7 @@ namespace TEN::Entities::Doors
 						}
 						else
 						{
-							if (OldPickupPos.x != playerItem->Pose.Position.x || OldPickupPos.y != playerItem->Pose.Position.y || OldPickupPos.z != playerItem->Pose.Position.z)
-							{
-								OldPickupPos.x = playerItem->Pose.Position.x;
-								OldPickupPos.y = playerItem->Pose.Position.y;
-								OldPickupPos.z = playerItem->Pose.Position.z;
-								SayNo();
-							}
-
+							SayNo(playerItem->Pose.Position);
 							doorItem.Pose.Orientation.y ^= ANGLE(180.0f);
 						}
 
