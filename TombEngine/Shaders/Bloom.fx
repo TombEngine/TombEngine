@@ -1,12 +1,3 @@
-// ================================================================
-// Bloom LDR (no RT sRGB) – Full FX: VS + PS per tutti gli step
-// Steps:
-//   1) BrightPass -> BloomSeed (FP16)
-//   2) Dual-Kawase Down (2-5 livelli)
-//   3) Dual-Kawase Up (additivo)
-//   4) Composite su scena LDR (con ritorno a sRGB se RT non-sRGB)
-// ================================================================
-
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
 #include "./Math.hlsli"
@@ -29,6 +20,9 @@ struct PixelShaderInput
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
 
+Texture2D GlowTexture : register(t1);
+SamplerState GlowSampler : register(s1);
+
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
@@ -41,162 +35,98 @@ PixelShaderInput VS(PostProcessVertexShaderInput input)
     return output;
 }
 
-float4 PS(PixelShaderInput input) : SV_Target
+float4 PSGlowDownscale(PixelShaderInput input) : SV_Target
 {
-    return ColorTexture.Sample(ColorSampler, input.UV);
+    float2 texel = InvViewSize;
+    
+    float3 s = 0;
+    s += ColorTexture.Sample(ColorSampler, input.UV + float2(-texel.x, -texel.y));
+    s += ColorTexture.Sample(ColorSampler, input.UV + float2(+texel.x, -texel.y));
+    s += ColorTexture.Sample(ColorSampler, input.UV + float2(-texel.x, +texel.y));
+    s += ColorTexture.Sample(ColorSampler, input.UV + float2(+texel.x, +texel.y));
+    
+    return float4(s * 0.25, 1); 
 }
 
-// ===================== Samplers & Buffers =======================
-SamplerState sLinearClamp : register(s0);
-SamplerState sPointClamp : register(s1);
-
-// b0: parametri bloom
-/*cbuffer BloomCB : register(b10)
+float4 PSGlowBlur(PixelShaderInput input) : SV_Target
 {
-    float threshold; // LDR: ~0.8 .. 0.95 (se bright pass dalla scena)
-    float knee; // 0.5 tipico (ammorbidisce la soglia)
-    float intensity; // 0.5 .. 1.2 (composite)
-    float _pad0;
+    // Parametri
+    const float Radius = 3.5f; // in "pixel full-res" (coerente con /4 sotto). Prova 3.5â€“6.0 per glow molto ampio
+    const float Intensity = 1.0f;
+
+    // Pass lavori su RT downscaled di 4x  compensa gli offset con /4
+    const float2 texel = InvViewSize / 4.0f;
+
+    const float2 r1 = Radius * texel; // anello 1
+    const float2 r2 = r1 * 2.0; // anello 2
+    const float2 r3 = r1 * 3.0; // anello 3 (facoltativo, pesa poco)
+
+    // Pesi (grossomodo gauss): somma 1, normalizzata sotto
+    const float w0 = 0.06;
+    const float w1c = 0.10; // cross r1
+    const float w1d = 0.06; // diag  r1
+    const float w2c = 0.05; // cross r2
+    const float w2d = 0.025; // diag  r2
+    const float w3c = 0.0125; // cross r3 (facoltativo)
+
+    float3 c = 0;
+
+    // Centro
+    c += ColorTexture.Sample(ColorSampler, input.UV).rgb * w0;
+
+    // r1 - cross
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(+r1.x, 0)).rgb * w1c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(-r1.x, 0)).rgb * w1c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, +r1.y)).rgb * w1c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, -r1.y)).rgb * w1c;
+
+    // r1 - diagonali
+    c += ColorTexture.Sample(ColorSampler, input.UV + r1).rgb * w1d;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(+r1.x, -r1.y)).rgb * w1d;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(-r1.x, +r1.y)).rgb * w1d;
+    c += ColorTexture.Sample(ColorSampler, input.UV - r1).rgb * w1d;
+
+    // r2 - cross
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(+r2.x, 0)).rgb * w2c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(-r2.x, 0)).rgb * w2c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, +r2.y)).rgb * w2c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, -r2.y)).rgb * w2c;
+
+    // r2 - diagonali
+    c += ColorTexture.Sample(ColorSampler, input.UV + r2).rgb * w2d;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(+r2.x, -r2.y)).rgb * w2d;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(-r2.x, +r2.y)).rgb * w2d;
+    c += ColorTexture.Sample(ColorSampler, input.UV - r2).rgb * w2d;
+
+    // r3 - cross (opzionale: commenta se vuoi risparmiare)
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(+r3.x, 0)).rgb * w3c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(-r3.x, 0)).rgb * w3c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, +r3.y)).rgb * w3c;
+    c += ColorTexture.Sample(ColorSampler, input.UV + float2(0, -r3.y)).rgb * w3c;
+
+    // Normalizzazione (somma pesi 1.05)
+    const float totalW = w0 + 4.0 * (w1c + w1d + w2c + w2d) + 4.0 * w3c;
+    c *= (Intensity / totalW);
+
+    return float4(c, 1.0);
 }
 
-// b1: parametri Kawase (down/up)
-cbuffer KawaseCB : register(b11)
-{
-    float2 texelSize; // 1.0/Width, 1.0/Height del target corrente
-    float radius; // 1.0 .. 2.0
-    float _pad1;
-}*/
 
-// ===================== Utility – sRGB/Linear ====================
-// Conversione precisa sRGB <-> Linear (per canali RGB)
-float3 SRGBToLinear(float3 c)
+float3 SoftAddBlend(float3 base, float3 add)   // Screen-like
 {
-    float3 lo = c / 12.92;
-    float3 hi = pow((c + 0.055) / 1.055, 2.4);
-    float3 cond = step(c, 0.04045.xxx);
-    return lerp(hi, lo, cond); // if c<=0.04045 -> lo else hi
+    return 1.0 - (1.0 - base) * (1.0 - add);
 }
 
-float3 LinearToSRGB(float3 c)
+float4 PSGlowCombine(PixelShaderInput input) : SV_Target
 {
-    c = saturate(c);
-    float3 lo = 12.92 * c;
-    float3 hi = 1.055 * pow(c, 1.0 / 2.4) - 0.055;
-    float3 cond = step(c, 0.0031308.xxx);
-    return lerp(hi, lo, cond); // if c<=0.0031308 -> lo else hi
-}
+    float GlowIntensity = 1.2;
+    int SoftAdd = 1;
+    
+    float3 base = ColorTexture.Sample(ColorSampler, input.UV).rgb;
+    float3 glow = GlowTexture.Sample(GlowSampler, input.UV).rgb * GlowIntensity;
 
-// Soft-threshold (stile ACES/Unreal), adattato a LDR
-float3 SoftThreshold(float3 colorLinear, float th, float k)
-{
-    float y = Luma(colorLinear);
-    float kk = th * k;
-    float t = saturate((y - th + kk) / max(kk, 1e-6));
-    float soft = min(y, th) + (t * t) * (kk * 0.25);
-    float w = saturate((y - soft) / max(y, 1e-6));
-    return colorLinear * w;
-}
+    float3 outc = (SoftAdd != 0) ? SoftAddBlend(base, glow)
+                                 : saturate(base + glow);
 
-// ========================= 1) Bright Pass =======================
-// Input: Scene LDR RGBA8 (NON sRGB RT). Se la scena è "baked sRGB", usa PS_BrightPass_sRGB.
-// Output: BloomSeed FP16 (RGB in LINEARE).
-
-// t0: Scene LDR (sRGB baked)
-Texture2D SceneLDR_sRGB : register(t0);
-
-// Variante: scena già in LINEARE LDR (meno comune)
-Texture2D SceneLDR_Linear : register(t0);
-
-#define THRESHOLD 0.85
-#define KNEE 0.5
-#define RADIUS 1.5
-#define INTENSITY 0.8
-
-// Bright pass da scena sRGB baked (linearizza -> soft-threshold -> lineare)
-float4 PS_BrightPass_sRGB(PixelShaderInput i) : SV_Target
-{
-    float3 c_srgb = SceneLDR_sRGB.Sample(sLinearClamp, i.UV).rgb;
-    float3 c_lin = SRGBToLinear(c_srgb);
-    float3 seed = SoftThreshold(c_lin, THRESHOLD, KNEE);
-    return float4(seed, 1.0); // verso RT FP16
-}
-
-// Bright pass da scena già lineare
-float4 PS_BrightPass_Linear(PixelShaderInput i) : SV_Target
-{
-    float3 c_lin = SceneLDR_Linear.Sample(sLinearClamp, i.UV).rgb;
-    float3 seed = SoftThreshold(c_lin, THRESHOLD, KNEE);
-    return float4(seed, 1.0); // verso RT FP16
-}
-
-// Pass-through (se hai già un "seed" separato, p.es. specular+emissive): copia 1:1
-Texture2D PreSeed_Linear : register(t0);
-float4 PSSeedPassthrough(PixelShaderInput i) : SV_Target
-{
-    return float4(PreSeed_Linear.Sample(sLinearClamp, i.UV).rgb, 1.0);
-}
-
-// ====================== 2) Dual-Kawase Down =====================
-// Input: t0 = src (LINEARE), Output: FP16 LINEARE
-Texture2D SrcTex : register(t0);
-
-float4 PSKawaseDown(PixelShaderInput i) : SV_Target
-{
-    float2 o = RADIUS * InvViewSize;
-    float4 sum = 0;
-    sum += SrcTex.Sample(sLinearClamp, i.UV);
-    sum += SrcTex.Sample(sLinearClamp, i.UV + float2(o.x, 0));
-    sum += SrcTex.Sample(sLinearClamp, i.UV + float2(-o.x, 0));
-    sum += SrcTex.Sample(sLinearClamp, i.UV + float2(0, o.y));
-    sum += SrcTex.Sample(sLinearClamp, i.UV + float2(0, -o.y));
-    return sum * (1.0 / 5.0);
-}
-
-// ======================= 3) Dual-Kawase Up ======================
-// Input: t0 = lowTex (LINEARE), t1 = highTex (LINEARE), Output: FP16 LINEARE (additivo)
-Texture2D LowTex : register(t0);
-Texture2D HighTex : register(t1);
-
-float4 PSKawaseUp(PixelShaderInput i) : SV_Target
-{
-    float2 o = RADIUS * InvViewSize;
-    float4 up = 0;
-    up += LowTex.Sample(sLinearClamp, i.UV);
-    up += LowTex.Sample(sLinearClamp, i.UV + float2(o.x, 0));
-    up += LowTex.Sample(sLinearClamp, i.UV + float2(-o.x, 0));
-    up += LowTex.Sample(sLinearClamp, i.UV + float2(0, o.y));
-    up += LowTex.Sample(sLinearClamp, i.UV + float2(0, -o.y));
-    up *= (1.0 / 5.0);
-
-    float4 hi = HighTex.Sample(sLinearClamp, i.UV);
-    return up + hi; // somma additiva
-}
-
-// ============================ 4) Composite ======================
-// Input: t0 = Scene LDR (sRGB baked o lineare), t1 = Bloom (LINEARE)
-// Output: RT finale LDR (RGBA8). Poiché il RT **non è sRGB**, offriamo due varianti.
-
-// Caso A (consigliato): scena LDR sRGB baked -> linearizza, somma, ritorno a sRGB manuale
-Texture2D SceneLDR_sRGB_Composite : register(t0);
-Texture2D BloomTex_Linear : register(t1);
-
-float4 PS_Composite_ToSRGB(PixelShaderInput i) : SV_Target
-{
-    float3 scene_srgb = SceneLDR_sRGB_Composite.Sample(sLinearClamp, i.UV).rgb;
-    float3 scene_lin = SRGBToLinear(scene_srgb);
-    float3 bloom_lin = BloomTex_Linear.Sample(sLinearClamp, i.UV).rgb;
-
-    float3 out_lin = scene_lin + bloom_lin * INTENSITY;
-    float3 out_srgb = LinearToSRGB(out_lin);
-    return float4(out_srgb, 1.0);
-}
-
-// Caso B (meno comune): scena già in LINEARE -> somma, ma scrivi direttamente (se farai gamma dopo)
-Texture2D SceneLDR_Linear_Composite : register(t0);
-
-float4 PSComposite_LinearOut(PixelShaderInput i) : SV_Target
-{
-    float3 scene_lin = SceneLDR_Linear_Composite.Sample(sLinearClamp, i.UV).rgb;
-    float3 bloom_lin = BloomTex_Linear.Sample(sLinearClamp, i.UV).rgb;
-    return float4(scene_lin + bloom_lin * INTENSITY, 1.0);
+    return float4(outc, 1);
 }

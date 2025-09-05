@@ -116,6 +116,12 @@ namespace TEN::Renderer::Utils
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex);
 		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex);
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex);
+
+
+		Load(Shader::Glow, "Bloom", "", ShaderType::Vertex);
+		Load(Shader::GlowDownscale, "Bloom", "GlowDownscale", ShaderType::Pixel);
+		Load(Shader::Glow, "Bloom", "GlowBlur", ShaderType::Pixel);
+		Load(Shader::Glow, "Bloom", "GlowCombine", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)

@@ -62,6 +62,11 @@ namespace TEN::Renderer::Utils
 		Ssao,
 		SsaoBlur,
 
+		Glow,
+		GlowDownscale,
+		GlowBlur,
+		GlowCombine,
+
 		Count
 	};
 

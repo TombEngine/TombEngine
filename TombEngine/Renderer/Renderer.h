@@ -119,6 +119,7 @@ namespace TEN::Renderer
 		RenderTarget2D _dumpScreenRenderTarget;
 		RenderTarget2D _renderTarget;
 		RenderTarget2D _postProcessRenderTarget[2];
+		RenderTarget2D _glowRenderTarget[2];
 		RenderTarget2D _tempRenderTarget;
 		RenderTarget2D _tempRoomAmbientRenderTarget1;
 		RenderTarget2D _tempRoomAmbientRenderTarget2;

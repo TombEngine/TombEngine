@@ -1842,7 +1842,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
 		SetCullMode(CullMode::CounterClockwise, true);
-
+		 
 		// Bind constant buffers.
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
@@ -1918,7 +1918,7 @@ namespace TEN::Renderer
 			cameraConstantBuffer.FogBulbs[i].SquaredCameraToFogBulbDistance = SQUARE(view.FogBulbsToDraw[i].Distance);
 			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
 		}
-
+		 
 		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
@@ -1945,6 +1945,65 @@ namespace TEN::Renderer
 		// Calculate ambient occlusion.
 		if (g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
+
+		// Calculate glow
+		{
+			SetBlendMode(BlendMode::Opaque, true);
+			SetCullMode(CullMode::CounterClockwise, true);
+			SetDepthState(DepthState::Write, true);
+			  
+			D3D11_VIEWPORT viewport;
+			viewport.TopLeftX = 0;
+			viewport.TopLeftY = 0;
+			viewport.Width = _screenWidth /4;
+			viewport.Height = _screenHeight/4;
+			viewport.MinDepth = 0;
+			viewport.MaxDepth = 1;
+			 
+			_context->RSSetViewports(1, &viewport);
+
+			D3D11_RECT rects[1];
+			rects[0].left = 0;
+			rects[0].right = _screenWidth / 4;
+			rects[0].top = 0;
+			rects[0].bottom = _screenHeight / 4;
+
+			_context->RSSetScissorRects(1, rects);
+
+			// Common vertex shader to all fullscreen effects
+			_shaders.Bind(Shader::Glow);
+
+			// We draw a fullscreen triangle
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+
+			UINT stride = sizeof(PostProcessVertex);
+			UINT offset = 0;
+
+			_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
+			_shaders.Bind(Shader::GlowDownscale);
+
+			float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
+			_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+
+			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
+			DrawTriangles(3, 0);
+
+			_shaders.Bind(Shader::GlowBlur);
+
+			_context->ClearRenderTargetView(_glowRenderTarget[1].RenderTargetView.Get(), clearColor);
+			_context->OMSetRenderTargets(1, _glowRenderTarget[1].RenderTargetView.GetAddressOf(), nullptr);
+
+			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+			DrawTriangles(3, 0);
+
+			_context->RSSetViewports(1, &view.Viewport);
+			ResetScissor(); 
+		}
+
+
 
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());

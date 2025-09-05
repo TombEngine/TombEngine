@@ -41,9 +41,6 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
-		// Common vertex shader to all fullscreen effects.
-		_shaders.Bind(Shader::PostProcess);
-
 		// Draw fullscreen triangle.
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
@@ -52,6 +49,9 @@ namespace TEN::Renderer
 		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
+		// Common vertex shader to all fullscreen effects.
+		_shaders.Bind(Shader::PostProcess);
 
 		// Copy render target to post process render target.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -64,6 +64,22 @@ namespace TEN::Renderer
 		// Ping-pong between two post-process render targets.
 		int currentRenderTarget = 0;
 		int destRenderTarget = 1;
+
+		// Emissive combine
+		_shaders.Bind(Shader::Glow);
+		_shaders.Bind(Shader::GlowCombine);
+
+		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_glowRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
+		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
+
+		_shaders.Bind(Shader::PostProcess);
 
 		// Lens flares.
 		if (!view.LensFlaresToDraw.empty())
