@@ -269,6 +269,21 @@ namespace TEN::Entities::Creatures::TR3
 			fishID += 1;
 
 			auto& leaderItem = *fish.LeaderItemPtr;
+
+			if (!TriggerActive(&leaderItem))
+			{
+				// Remove all fishes associated with this item.
+				RemoveFishSwarm(leaderItem);
+
+				// Reset ItemFlags.
+				if (leaderItem.HitPoints == NOT_TARGETABLE)
+					leaderItem.HitPoints = leaderItem.ItemFlags[5];
+
+				leaderItem.Pose.Position = leaderItem.StartPose.Position;
+				leaderItem.ItemFlags[5] = 0;
+				return;
+			}
+
 			if (!leaderItem.ItemFlags[2] && fish.TargetItemPtr == fish.LeaderItemPtr)
 			{
 				if (!fish.IsPatrolling)
@@ -422,6 +437,20 @@ namespace TEN::Entities::Creatures::TR3
 
 			fish.Transform = fish.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(fish.Position);
 		}
+	}
+
+	void RemoveFishSwarm(ItemInfo& item)
+	{
+		FishSwarm.erase(std::remove_if(FishSwarm.begin(), FishSwarm.end(),
+			[&item](FishData& fish)
+			{
+				if (fish.LeaderItemPtr == &item)
+				{
+					fish.Life = 0.0f;
+					return true;
+				}
+				return false;
+			}), FishSwarm.end());
 	}
 
 	void ClearFishSwarm()

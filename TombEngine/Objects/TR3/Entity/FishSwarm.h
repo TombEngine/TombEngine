@@ -6,7 +6,7 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto FISH_COUNT_MAX = 512;
+	constexpr auto FISH_COUNT_MAX = 2048;
 
 	struct FishData
 	{
@@ -41,5 +41,6 @@ namespace TEN::Entities::Creatures::TR3
 	void ControlFishSwarm(short itemNumber);
 
 	void UpdateFishSwarm();
+	void RemoveFishSwarm(ItemInfo& item);
 	void ClearFishSwarm();
 }
