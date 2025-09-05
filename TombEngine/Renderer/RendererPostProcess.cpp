@@ -41,7 +41,6 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
-		// Draw fullscreen triangle.
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
@@ -50,7 +49,6 @@ namespace TEN::Renderer
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
-		// Common vertex shader to all fullscreen effects.
 		_shaders.Bind(Shader::PostProcess);
 
 		// Copy render target to post process render target.
@@ -65,15 +63,19 @@ namespace TEN::Renderer
 		int currentRenderTarget = 0;
 		int destRenderTarget = 1;
 
-		// Emissive combine
+		// Glow combine
 		_shaders.Bind(Shader::Glow);
 		_shaders.Bind(Shader::GlowCombine);
+
+		_stPostProcessBuffer.GlowSoftAdd = 1;
+		_stPostProcessBuffer.GlowIntensity = 1.5f;
+		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
 		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_glowRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
 		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
@@ -205,4 +207,79 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 	}
+}
+
+void Renderer::CalculateGlow(RenderView& view)
+{
+	SetBlendMode(BlendMode::Opaque, true);
+	SetCullMode(CullMode::CounterClockwise, true);
+	SetDepthState(DepthState::Write, true);
+
+	D3D11_VIEWPORT viewport;
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = _screenWidth / GLOW_DOWNSCALE_FACTOR;
+	viewport.Height = _screenHeight / GLOW_DOWNSCALE_FACTOR;
+	viewport.MinDepth = 0;
+	viewport.MaxDepth = 1;
+
+	_context->RSSetViewports(1, &viewport);
+
+	D3D11_RECT rects[1];
+	rects[0].left = 0;
+	rects[0].right = _screenWidth / GLOW_DOWNSCALE_FACTOR;
+	rects[0].top = 0;
+	rects[0].bottom = _screenHeight / GLOW_DOWNSCALE_FACTOR;
+
+	_context->RSSetScissorRects(1, rects);
+
+	_shaders.Bind(Shader::Glow);
+
+	_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+
+	UINT stride = sizeof(PostProcessVertex);
+	UINT offset = 0;
+
+	_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
+	// Downscale and extract bright areas.
+	_shaders.Bind(Shader::GlowDownscale);
+
+	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
+	_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+
+	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
+	DrawTriangles(3, 0);
+
+	_shaders.Bind(Shader::GlowBlur);
+
+	_stPostProcessBuffer.TexelSize = Vector2(1.0f / (_screenWidth / 4.0f), 1.0f / (_screenHeight / 4.0f));
+	_stPostProcessBuffer.BlurSigma = 3.0f;
+	_stPostProcessBuffer.BlurRadius = 24;
+	
+	// Horizontal blur
+	_context->ClearRenderTargetView(_glowRenderTarget[1].RenderTargetView.Get(), clearColor);
+	_context->OMSetRenderTargets(1, _glowRenderTarget[1].RenderTargetView.GetAddressOf(), nullptr);
+
+	_stPostProcessBuffer.BlurDirection = Vector2(1.0f, 0.0f);
+	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+
+	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+	DrawTriangles(3, 0);
+
+	// Vertical blur
+	_stPostProcessBuffer.BlurDirection = Vector2(0.0f, 1.0f);
+	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+
+	_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
+	_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+
+	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[1], SamplerStateRegister::LinearClamp);
+	DrawTriangles(3, 0);
+	
+	// Reset viewport
+	_context->RSSetViewports(1, &view.Viewport);
+	ResetScissor();
 }

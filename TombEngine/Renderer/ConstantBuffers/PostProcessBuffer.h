@@ -26,5 +26,14 @@ namespace TEN::Renderer::ConstantBuffers
 		ShaderLensFlare LensFlares[MAX_LENS_FLARES_DRAW];
 		//--
 		int NumLensFlares;
+		Vector3 Padding3;
+		//--
+		Vector2 TexelSize;
+		Vector2 BlurDirection;
+		//--
+		float BlurSigma;
+		int BlurRadius;
+		float GlowIntensity;
+		int GlowSoftAdd;
 	};
 }

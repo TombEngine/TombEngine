@@ -70,6 +70,8 @@ constexpr auto MAX_LENS_FLARES_DRAW = 8;
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 64;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
+constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
+
 enum class LightType
 {
 	Sun = 0,

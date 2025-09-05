@@ -44,6 +44,11 @@ namespace TEN::Renderer::Utils
 
 		Load(Shader::Ssao, "SSAO", "", ShaderType::Pixel);
 		Load(Shader::SsaoBlur, "SSAO", "Blur", ShaderType::Pixel);
+
+		Load(Shader::Glow, "Glow", "", ShaderType::Vertex);
+		Load(Shader::GlowDownscale, "Glow", "GlowDownscale", ShaderType::Pixel);
+		Load(Shader::GlowBlur, "Glow", "GlowBlur", ShaderType::Pixel);
+		Load(Shader::GlowCombine, "Glow", "GlowCombine", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)
@@ -116,12 +121,6 @@ namespace TEN::Renderer::Utils
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex);
 		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex);
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex);
-
-
-		Load(Shader::Glow, "Bloom", "", ShaderType::Vertex);
-		Load(Shader::GlowDownscale, "Bloom", "GlowDownscale", ShaderType::Pixel);
-		Load(Shader::Glow, "Bloom", "GlowBlur", ShaderType::Pixel);
-		Load(Shader::Glow, "Bloom", "GlowCombine", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)

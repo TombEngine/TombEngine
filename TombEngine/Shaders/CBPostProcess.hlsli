@@ -24,4 +24,13 @@ cbuffer CBPostProcess : register(b7)
     ShaderLensFlare LensFlares[8];
     //--
     int NumLensFlares;
+    float3 Padding3;
+    //--
+    float2 TexelSize; 
+    float2 BlurDirection; 
+    //--
+    float BlurSigma;
+    int BlurRadius;
+    float GlowIntensity;
+    int GlowSoftAdd;
 };
