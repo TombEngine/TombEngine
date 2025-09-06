@@ -117,6 +117,14 @@ namespace TEN::Entities::Effects
 		return active;
 	}
 
+	static Vector4 GetFlameColor(Vector4 sourceColor)
+	{
+		if (sourceColor == Vector4::One)
+			return Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f), 0.1f, 1.0f) * UCHAR_MAX;
+
+		return sourceColor * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+	}
+
 	void FlameEmitterControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -224,10 +232,11 @@ namespace TEN::Entities::Effects
 				AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 2.0f, item->ItemFlags[3]);
 
 				float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
+				auto color = GetFlameColor(item->Model.Color);
+
 				SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 					(16 - (GetRandomControl() & 1)) * multiplier,
-					(GetRandomControl() & 0x3F) + 192,
-					(GetRandomControl() & 0x1F) + 96, 0);
+					color.x, color.y, color.z);
 
 				SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
@@ -278,11 +287,11 @@ namespace TEN::Entities::Effects
 				if (item->TriggerFlags == 0 || item->TriggerFlags == 2)
 				{
 					float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
+					auto color = GetFlameColor(item->Model.Color);
+
 					SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 						10 * multiplier,
-						(GetRandomControl() & 0x3F) + 192,
-						(GetRandomControl() & 0x1F) + 96,
-						0);
+						color.x, color.y, color.z);
 				}
 
 				if (item->TriggerFlags == 2)
