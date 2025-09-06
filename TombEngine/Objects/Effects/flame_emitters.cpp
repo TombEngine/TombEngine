@@ -31,6 +31,7 @@ using namespace TEN::Input;
 namespace TEN::Entities::Effects
 {
 	constexpr int FLAME_RADIUS = CLICK(0.5f);
+	constexpr int FLAME_OFFSET = CLICK(1 / 4.0f);
 	constexpr int FLAME_BIG_RADIUS = CLICK(2.33f);
 	constexpr int FLAME_ITEM_BURN_TIMEOUT = 3 * FPS;
 
@@ -63,7 +64,7 @@ namespace TEN::Entities::Effects
 		)
 	};
 
-	void BurnNearbyItems(ItemInfo* item, int radius)
+	static void BurnNearbyItems(ItemInfo* item, int radius)
 	{
 		auto collObjects = GetCollidedObjects(*item, true, false, radius, ObjectCollectionMode::Items);
 		for (auto* itemPtr : collObjects.Items)
@@ -86,11 +87,42 @@ namespace TEN::Entities::Effects
 		}
 	}
 
+	static bool CalculateActiveState(ItemInfo* item)
+	{
+		bool active = TriggerActive(item);
+
+		// Modify fade value in case flame emitter is being activated or deactivated.
+		// Additionally return activity status depending on whether fade is finished or not.
+
+		if (active)
+		{
+			if (item->ItemFlags[3] > 0)
+			{
+				item->ItemFlags[3] -= 16;
+				item->ItemFlags[3] = std::max(0, (int)item->ItemFlags[3]);
+			}
+		}
+		else
+		{
+			if (item->ItemFlags[3] < UCHAR_MAX)
+			{
+				item->ItemFlags[3] += 32;
+				item->ItemFlags[3] = std::min(UCHAR_MAX, (int)item->ItemFlags[3]);
+				active = true;
+			}
+			else
+				active = false;
+		}
+
+		return active;
+	}
+
 	void FlameEmitterControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		bool active = (item->TriggerFlags < 0) ? TriggerActive(item) : CalculateActiveState(item);
 
-		if (TriggerActive(item))
+		if (active)
 		{
 			// Jet flame.
 			if (item->TriggerFlags < 0)
@@ -189,10 +221,11 @@ namespace TEN::Entities::Effects
 			else
 			{
 				// Normal flames.
-				AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 2.0f);
+				AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 2.0f, item->ItemFlags[3]);
 
+				float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
 				SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
-					16 - (GetRandomControl() & 1),
+					(16 - (GetRandomControl() & 1)) * multiplier,
 					(GetRandomControl() & 0x3F) + 192,
 					(GetRandomControl() & 0x1F) + 96, 0);
 
@@ -207,8 +240,9 @@ namespace TEN::Entities::Effects
 	void FlameEmitter2Control(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		bool active = (item->TriggerFlags < 0) ? TriggerActive(item) : CalculateActiveState(item);
 
-		if (TriggerActive(item))
+		if (active)
 		{
 			// If not an emitter for flipmaps
 			if (item->TriggerFlags >= 0)
@@ -216,52 +250,39 @@ namespace TEN::Entities::Effects
 				// If not a moving flame
 				if (item->TriggerFlags != 2)
 				{
-					if (item->TriggerFlags == 123)
+					float size = 1.0f;
+					switch (item->TriggerFlags)
 					{
-						// Middle of the block
-						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 0.25f, item->ItemFlags[3]);
+					default:
+					case 0:
+						size = 2.0f;
+						break;
+
+					case 1:
+						size = 1.0f;
+						break;
+
+					case 3:
+						size = 0.5f;
+						break;
+
+					case 4:
+					case 123:
+						size = 0.25f;
+						break;
 					}
-					else
-					{
-						float size = 1.0f;
-						switch (item->TriggerFlags)
-						{
-						default:
-						case 0:
-							size = 2.0f;
-							break;
 
-						case 1:
-							size = 1.0f;
-							break;
-
-						case 3:
-							size = 0.5f;
-							break;
-						}
-
-						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, size, item->ItemFlags[3]);
-					}
+					AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, size, item->ItemFlags[3]);
 				}
 
 				if (item->TriggerFlags == 0 || item->TriggerFlags == 2)
 				{
-					if (item->ItemFlags[3])
-					{
-						SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
-							10,
-							(((GetRandomControl() & 0x3F) + 192) * item->ItemFlags[3]) >> 8,
-							((GetRandomControl() & 0x1F) + 96 * item->ItemFlags[3]) >> 8,
-							0);
-					}
-					else
-					{
-						SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
-							10,
-							(GetRandomControl() & 0x3F) + 192,
-							(GetRandomControl() & 0x1F) + 96,
-							0);
-					}
+					float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
+					SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
+						10 * multiplier,
+						(GetRandomControl() & 0x3F) + 192,
+						(GetRandomControl() & 0x1F) + 96,
+						0);
 				}
 
 				if (item->TriggerFlags == 2)
@@ -304,6 +325,8 @@ namespace TEN::Entities::Effects
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
+		item->Pose.Position.y -= FLAME_OFFSET;
+
 		if (item->TriggerFlags < 0)
 		{
 			item->ItemFlags[0] = (GetRandomControl() & 0x3F) + 90;
@@ -331,13 +354,20 @@ namespace TEN::Entities::Effects
 				}
 			}
 		}
+		else
+		{
+			item->ItemFlags[3] = UCHAR_MAX;
+		}
 	}
 
 	void InitializeFlameEmitter2(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		item->Pose.Position.y -= 64;
+		item->Pose.Position.y -= FLAME_OFFSET;
+
+		if (item->TriggerFlags >= 0)
+			item->ItemFlags[3] = UCHAR_MAX;
 
 		if (item->TriggerFlags != 123)
 		{
@@ -620,7 +650,7 @@ namespace TEN::Entities::Effects
 					const auto& lara = *GetLaraInfo(laraItem);
 
 					item->Flags |= CODE_BITS;
-					item->ItemFlags[3] = 0;
+					item->ItemFlags[3] = (item->ObjectNumber != ID_FLAME_EMITTER3) ? UCHAR_MAX : 0;
 					item->Status = ITEM_ACTIVE;
 					item->Model.Color = lara.Torch.PrimaryColor;
 

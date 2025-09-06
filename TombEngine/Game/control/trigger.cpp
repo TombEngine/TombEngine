@@ -413,10 +413,11 @@ void Trigger(short const value, short const flags)
 			AddActiveItem(value);
 		}
 
-		item->Status = ITEM_ACTIVE;
 		item->TouchBits = NO_JOINT_BITS;
 		item->DisableInterpolation = true;
 	}
+
+	item->Status = ITEM_ACTIVE;
 }
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)

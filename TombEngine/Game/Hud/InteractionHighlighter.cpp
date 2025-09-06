@@ -5,6 +5,7 @@
 #include "Game/effects/DisplaySprite.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Specific/configuration.h"
@@ -17,6 +18,8 @@ namespace TEN::Hud
 {
 	constexpr auto FADE_SPEED = 0.1f;
 	constexpr auto FADE_RATE  = 2.0f * FPS;
+
+	constexpr auto SPRITE_SCALE = 0.07f;
 
 	constexpr float INTERACTION_PADDING = CLICK(0.75f);
 	constexpr float INTERACTION_DISTANCE = BLOCK(2);
@@ -34,6 +37,10 @@ namespace TEN::Hud
 
 		// Never highlight in optics mode.
 		if (lara.Control.Look.IsUsingBinoculars || lara.Control.Look.IsUsingLasersight)
+			return false;
+
+		// Never highlight if flyby camera is active.
+		if (UseSpotCam)
 			return false;
 
 		// Never highlight in vehicle mode.
@@ -78,12 +85,13 @@ namespace TEN::Hud
 					break;
 
 				case ID_FLAME_EMITTER:
+				case ID_FLAME_EMITTER2:
 				{
 					bool hasTorch = lara.Control.Weapon.GunType == LaraWeaponType::Torch &&
 									lara.Control.HandStatus == HandStatus::WeaponReady &&
 									!lara.LeftArm.Locked;
 
-					bool canIgnite = hasTorch && (lara.Torch.IsLit == (item.Status == ITEM_NOT_ACTIVE));
+					bool canIgnite = hasTorch && (lara.Torch.IsLit == (item.Status == ITEM_NOT_ACTIVE || item.Status == ITEM_DEACTIVATED));
 
 					// Flame emitter interaction overrides hand status checks, if player carries unlit torch.
 					if (hasTorch)
@@ -93,6 +101,9 @@ namespace TEN::Hud
 					break;
 				}
 				break;
+
+				default:
+					return false;
 			}
 		}
 
@@ -234,6 +245,10 @@ namespace TEN::Hud
 			return;
 		}
 
+		auto distance = Vector3::Distance(Camera.pos.ToVector3(), _current.Position);
+		float scale = std::min(SPRITE_SCALE, INTERACTION_DISTANCE / distance * SPRITE_SCALE);
+		float distanceAlpha = std::min(1.0f, scale * 10.0f);
+
 		auto drawState = [&](const HighlightState& state)
 		{
 			if (state.Fade <= 0.0f)
@@ -251,12 +266,13 @@ namespace TEN::Hud
 			float phase = (GlobalCounter % (int)FADE_RATE) / FADE_RATE;
 			float oscillation = 0.75f + 0.25f * sin(phase * PI * 2.0f);
 			alpha *= oscillation;
+			alpha *= distanceAlpha;
 
 			auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 
 			AddDisplaySprite(
 				ID_INTERACTION_SPRITES, spriteID,
-				*pos2D, 0, Vector2(0.1f), color,
+				*pos2D, 0, Vector2(scale), color,
 				0, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fill,
 				BlendMode::Additive, DisplaySpritePhase::Draw);
 		};

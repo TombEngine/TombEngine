@@ -10,11 +10,13 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added UVRotate support.
 * Added interaction highlighter.
 * Added bullet hole and explosion decals for room geometry.
+* Added fading when activating and deactivating FLAME_EMITTER and FLAME_EMITTER2 objects.
 * Increased level loading speed by switching to LZ4 compression format.
 
 ### Bug fixes
-* Fixed FIRE_PENDULUM light being overblown when weapons with explosive weapons are used.
+* Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
 * Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
+* Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed dying while landing into shallow water after freefall.
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
@@ -79,7 +81,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ability to open doors with draw weapon key in dozy mode.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
-* Added turning wall blade: SLOT ID: 456, turning ceiling blade: SLOT ID: 457.
 
 ### Bug fixes
 * Fixed WATERFALL_EMITTER performance and occasional game freezes, and make it work with OCB 0.
