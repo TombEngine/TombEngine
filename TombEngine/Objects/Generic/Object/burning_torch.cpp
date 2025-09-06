@@ -184,12 +184,6 @@ namespace TEN::Entities::Generic
 		if (lara->Torch.IsLit)
 		{
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
-			auto lightColor = Color(
-				Random::GenerateFloat(0.75f, 1.0f),
-				Random::GenerateFloat(0.4f, 0.5f),
-				0.0f);
-			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
-			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
 			Vector4 color1 = lara->Torch.PrimaryColor;
 			Vector4 color2 = lara->Torch.SecondaryColor;
@@ -199,6 +193,10 @@ namespace TEN::Entities::Generic
 				 color1 = Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.1f , 1.0f);
 				 color2 = Vector4(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f, 1.0f);
 			}
+
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, color1.x * brightness, color1.y * brightness, color1.z * brightness);
 
 			if (!(Wibble & 3))
 				TriggerTorchFlame(laraItem->Index, 0, color1, color2);
@@ -292,21 +290,18 @@ namespace TEN::Entities::Generic
 
 		if (item->ItemFlags[3])
 		{
-			auto lightColor = Color(
-				Random::GenerateFloat(0.75f, 1.0f),
-				Random::GenerateFloat(0.4f, 0.5f),
-				0.0f);
-			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
-			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
-			
 			Vector4 color1 = Vector4(item->Effect.PrimaryEffectColor.x, item->Effect.PrimaryEffectColor.y, item->Effect.PrimaryEffectColor.z, 1.0f);
 			Vector4 color2 = Vector4(item->Effect.SecondaryEffectColor.x, item->Effect.SecondaryEffectColor.y, item->Effect.SecondaryEffectColor.z, 1.0f);
-			
+
 			if (item->Effect.PrimaryEffectColor == Vector3::One)
 			{
 				color1 = Vector4(1.0f , Random::GenerateFloat(0.2f, 0.3f), 0.2f, 1.0f);
 				color2 = Vector4(Random::GenerateFloat(-0.25f, 0.0f), Random::GenerateFloat(-0.5f, -0.25f), 0.1f, 1.0f);
 			}
+
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff, color1.x * brightness, color1.y * brightness, color1.z * brightness);
 
 			if (!(Wibble & 7))
 				TriggerTorchFlame(itemNumber, 1, color1, color2);
