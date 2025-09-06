@@ -23,13 +23,9 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
 {
-	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector3i pos, Vector4 color1, Vector4 color2)
+	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector4 color1, Vector4 color2)
 	{
 		auto* spark = GetFreeParticle();
-
-		auto* item = &g_Level.Items[fxObject];
-
-		auto pos1 = GetJointPosition(item, 13, pos);
 
 		spark->on = true;
 
@@ -43,13 +39,12 @@ namespace TEN::Entities::Generic
 
 		spark->fadeToBlack = 8;
 		spark->colFadeSpeed = Random::GenerateInt(12, 15);
-		spark->blendMode = BlendMode::Additive;
 		spark->life =
 		spark->sLife = Random::GenerateInt(24, 31);
 
-		spark->x = pos1.x + Random::GenerateFloat(-0.8f, 0.8f);
-		spark->y = pos1.y;
-		spark->z = pos1.z + Random::GenerateFloat(-0.8f, 0.8f);
+		spark->x = Random::GenerateInt(-8, 8);
+		spark->y = 
+		spark->z = Random::GenerateInt(-8, 8);
 
 		spark->xVel = Random::GenerateInt(-128, 128);
 		spark->yVel = Random::GenerateInt(-31, -16);
@@ -57,7 +52,10 @@ namespace TEN::Entities::Generic
 
 		spark->friction = 5;
 
-		spark->flags =  SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
+		spark->nodeNumber = node;
+		spark->fxObj = fxObject;
+
+		spark->flags =  SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
 
 		spark->blendMode = BlendMode::Additive;
 
@@ -198,12 +196,12 @@ namespace TEN::Entities::Generic
 
 			if (lara->Torch.PrimaryColor == Vector4::One)
 			{
-				 color1 = Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.2f , 1.0f);
-				 color2 = Vector4(Random::GenerateFloat(-0.25f, 0.0f) , Random::GenerateFloat(-0.5f, -0.25f) , 0.1f , 1.0f);
+				 color1 = Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.1f , 1.0f);
+				 color2 = Vector4(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f, 1.0f);
 			}
 
 			if (!(Wibble & 3))
-				TriggerTorchFlame(laraItem->Index, 13, Vector3i(-20, 50, 170), color1, color2);
+				TriggerTorchFlame(laraItem->Index, 0, color1, color2);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
 		}
@@ -311,7 +309,7 @@ namespace TEN::Entities::Generic
 			}
 
 			if (!(Wibble & 7))
-				TriggerTorchFlame(itemNumber, 0, Vector3i(0, -30, 170), color1, color2);
+				TriggerTorchFlame(itemNumber, 1, color1, color2);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 		}
