@@ -116,7 +116,7 @@ struct NODEOFFSET_INFO
 	short y;
 	short z;
 	char meshNum;
-	unsigned char gotIt;
+	int itemNumber;
 };
 
 // TODO: Refactor this entire struct.

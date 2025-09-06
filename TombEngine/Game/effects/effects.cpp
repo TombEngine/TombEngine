@@ -66,25 +66,25 @@ int Wibble = 0;
 Vector3i NodeVectors[ParticleNodeOffsetIDs::NodeMax];
 NODEOFFSET_INFO NodeOffsets[ParticleNodeOffsetIDs::NodeMax] =
 {
-	{ -16, 40, 160, 13, false },		// TR5 offset 0
-	{ -16, -8, 160, 0, false },			// TR5 offset 1
-	{ 0, 0, 256, 8, false },			// TR5 offset 2
-	{ 0, 0, 256, 17, false },			// TR5 offset 3
-	{ 0, 0, 256, 26, false },			// TR5 offset 4
-	{ 0, 144, 40, 10, false },			// TR5 offset 5
-	{ -40, 64, 360, 14, false },		// TR5 offset 6
-	{ 0, -600, -40, 0, false },			// TR5 offset 7
-	{ 0, 32, 16, 9, false },			// TR5 offset 8
-	{ 0, 340, 64, 7, false },			// TR3 offset 9
-	{ 0, 0, -96, 10, false },			// TR3 offset 10
-	{ 16, 48, 320, 13, false },			// TR3 offset 11
-	{ 0, -256, 0, 5, false },			// TR3 offset 12
-	{ 0, 64, 0, 10, false },			// TR3 offset 13
-	{ 0, 64, 0, 13, false },			// TR3 offset 14
-	{ -32, -16, -192, 13, false },		// TR3 offset 15
-	{ -64, 410, 0, 20, false },			// TR3 offset 16
-	{ 64, 410, 0, 23, false },			// TR3 offset 17
-	{ 0, 0, 0, 0, false }				// Empty offset 18
+	{ -16, 40, 160, 13, NO_VALUE },		// TR5 offset 0
+	{ -16, -8, 160, 0, NO_VALUE },		// TR5 offset 1
+	{ 0, 0, 256, 8, NO_VALUE },			// TR5 offset 2
+	{ 0, 0, 256, 17, NO_VALUE },		// TR5 offset 3
+	{ 0, 0, 256, 26, NO_VALUE },		// TR5 offset 4
+	{ 0, 144, 40, 10, NO_VALUE },		// TR5 offset 5
+	{ -40, 64, 360, 14, NO_VALUE },		// TR5 offset 6
+	{ 0, -600, -40, 0, NO_VALUE },		// TR5 offset 7
+	{ 0, 32, 16, 9, NO_VALUE },			// TR5 offset 8
+	{ 0, 340, 64, 7, NO_VALUE },		// TR3 offset 9
+	{ 0, 0, -96, 10, NO_VALUE },		// TR3 offset 10
+	{ 16, 48, 320, 13, NO_VALUE },		// TR3 offset 11
+	{ 0, -256, 0, 5, NO_VALUE },		// TR3 offset 12
+	{ 0, 64, 0, 10, NO_VALUE },			// TR3 offset 13
+	{ 0, 64, 0, 13, NO_VALUE },			// TR3 offset 14
+	{ -32, -16, -192, 13, NO_VALUE },	// TR3 offset 15
+	{ -64, 410, 0, 20, NO_VALUE },		// TR3 offset 16
+	{ 64, 410, 0, 23, NO_VALUE },		// TR3 offset 17
+	{ 0, 0, 0, 0, NO_VALUE }			// Empty offset 18
 };
 
 void DetatchSpark(int number, SpriteEnumFlag type)

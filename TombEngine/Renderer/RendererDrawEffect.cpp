@@ -465,7 +465,7 @@ namespace TEN::Renderer
 	void Renderer::PrepareParticles(RenderView& view)
 	{
 		for (int i = 0; i < ParticleNodeOffsetIDs::NodeMax; i++)
-			NodeOffsets[i].gotIt = false;
+			NodeOffsets[i].itemNumber = NO_VALUE;
 
 		for (auto& particle : Particles)
 		{
@@ -531,7 +531,7 @@ namespace TEN::Renderer
 					auto nodePos = Vector3i::Zero;
 					if (particle.flags & SP_NODEATTACH)
 					{
-						if (NodeOffsets[particle.nodeNumber].gotIt)
+						if (NodeOffsets[particle.nodeNumber].itemNumber == particle.fxObj)
 						{
 							nodePos = NodeVectors[particle.nodeNumber];
 						}
@@ -551,7 +551,7 @@ namespace TEN::Renderer
 								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
 							}
 
-							NodeOffsets[particle.nodeNumber].gotIt = true;
+							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
 							NodeVectors[particle.nodeNumber] = nodePos;
 						}
 
