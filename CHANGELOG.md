@@ -10,7 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added UVRotate support.
 * Added interaction highlighter.
 * Added bullet hole and explosion decals for room geometry.
-* Added fading when activating and deactivating FLAME_EMITTER and FLAME_EMITTER2 objects.
+* Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
 * Increased level loading speed by switching to LZ4 compression format.
 
 ### Bug fixes
