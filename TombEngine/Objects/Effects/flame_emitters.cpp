@@ -78,12 +78,18 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			Vector3 PrimaryColor = item->Model.Color;
-			Vector3 SecondaryColor = Vector4(std::clamp(item->Model.Color.x - 0.2f, 0.0f, 2.0f),
-				std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
-				std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
+			if (item->Model.Color == Vector4::One)
+			{
+				ItemBurn(itemPtr, itemPtr->IsLara() ? NO_VALUE : FLAME_ITEM_BURN_TIMEOUT);
+			}
+			else
+			{
+				auto secondaryColor = Vector3(std::max(item->Model.Color.x - 0.2f, 0.0f),
+											  std::max(item->Model.Color.y - 0.2f, 0.0f),
+											  std::max(item->Model.Color.z - 0.2f, 0.0f));
 
-			item->Model.Color != Vector4(1.0f, 1.0f, 1.0f, 1.0f) ? ItemCustomBurn(LaraItem, PrimaryColor, SecondaryColor, -1) : ItemBurn(itemPtr, itemPtr->IsLara() ? -1 : FLAME_ITEM_BURN_TIMEOUT);		
+				ItemCustomBurn(itemPtr, (Vector3)item->Model.Color, secondaryColor, NO_VALUE);
+			}
 		}
 	}
 
