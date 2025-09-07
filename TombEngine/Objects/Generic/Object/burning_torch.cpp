@@ -185,8 +185,8 @@ namespace TEN::Entities::Generic
 		{
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
 
-			auto color1 = lara->Torch.PrimaryColor;
-			auto color2 = lara->Torch.SecondaryColor;
+			auto color1 = lara->Torch.PrimaryColor / 2.0f;
+			auto color2 = lara->Torch.SecondaryColor / 2.0f;
 
 			if (lara->Torch.PrimaryColor == Vector3::One)
 			{
@@ -290,8 +290,8 @@ namespace TEN::Entities::Generic
 
 		if (item->ItemFlags[3])
 		{
-			auto color1 = item->Effect.PrimaryEffectColor;
-			auto color2 = item->Effect.SecondaryEffectColor;
+			auto color1 = item->Effect.PrimaryEffectColor / 2.0f;
+			auto color2 = item->Effect.SecondaryEffectColor / 2.0f;
 
 			if (item->Effect.PrimaryEffectColor == Vector3::One)
 			{
