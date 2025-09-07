@@ -23,7 +23,7 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
 {
-	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector4 color1, Vector4 color2)
+	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector3 color1, Vector3 color2)
 	{
 		auto* spark = GetFreeParticle();
 
@@ -43,7 +43,7 @@ namespace TEN::Entities::Generic
 		spark->sLife = Random::GenerateInt(24, 31);
 
 		spark->x = Random::GenerateInt(-8, 8);
-		spark->y = 
+		spark->y = 0;
 		spark->z = Random::GenerateInt(-8, 8);
 
 		spark->xVel = Random::GenerateInt(-128, 128);
@@ -55,7 +55,7 @@ namespace TEN::Entities::Generic
 		spark->nodeNumber = node;
 		spark->fxObj = fxObject;
 
-		spark->flags =  SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
+		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
 
 		spark->blendMode = BlendMode::Additive;
 
@@ -171,7 +171,7 @@ namespace TEN::Entities::Generic
 				lara->Torch.State = TorchState::Holding;
 				lara->LeftArm.FrameNumber = 0;
 				lara->Flare.ControlLeft = true;
-				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;				
+				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;
 				lara->LeftArm.AnimNumber = holdAnimNumber;
 			}
 		}
@@ -185,13 +185,13 @@ namespace TEN::Entities::Generic
 		{
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
 
-			Vector4 color1 = lara->Torch.PrimaryColor;
-			Vector4 color2 = lara->Torch.SecondaryColor;
+			auto color1 = lara->Torch.PrimaryColor;
+			auto color2 = lara->Torch.SecondaryColor;
 
-			if (lara->Torch.PrimaryColor == Vector4::One)
+			if (lara->Torch.PrimaryColor == Vector3::One)
 			{
-				 color1 = Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.1f , 1.0f);
-				 color2 = Vector4(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f, 1.0f);
+				 color1 = Vector3(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.1f);
+				 color2 = Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
 			}
 
 			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
@@ -290,13 +290,13 @@ namespace TEN::Entities::Generic
 
 		if (item->ItemFlags[3])
 		{
-			Vector4 color1 = Vector4(item->Effect.PrimaryEffectColor.x, item->Effect.PrimaryEffectColor.y, item->Effect.PrimaryEffectColor.z, 1.0f);
-			Vector4 color2 = Vector4(item->Effect.SecondaryEffectColor.x, item->Effect.SecondaryEffectColor.y, item->Effect.SecondaryEffectColor.z, 1.0f);
+			auto color1 = item->Effect.PrimaryEffectColor;
+			auto color2 = item->Effect.SecondaryEffectColor;
 
 			if (item->Effect.PrimaryEffectColor == Vector3::One)
 			{
-				color1 = Vector4(1.0f , Random::GenerateFloat(0.2f, 0.3f), 0.2f, 1.0f);
-				color2 = Vector4(Random::GenerateFloat(-0.25f, 0.0f), Random::GenerateFloat(-0.5f, -0.25f), 0.1f, 1.0f);
+				color1 = Vector3(1.0f , Random::GenerateFloat(0.2f, 0.3f), 0.2f);
+				color2 = Vector3(Random::GenerateFloat(-0.25f, 0.0f), Random::GenerateFloat(-0.5f, -0.25f), 0.1f);
 			}
 
 			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;

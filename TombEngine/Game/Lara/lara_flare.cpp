@@ -399,8 +399,8 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	else
 	{
 		flareItem.ItemFlags[3] = lara.Torch.IsLit;
-        flareItem.Effect.PrimaryEffectColor = Vector3(lara.Torch.PrimaryColor.x, lara.Torch.PrimaryColor.y, lara.Torch.PrimaryColor.z);
-		flareItem.Effect.SecondaryEffectColor = Vector3(lara.Torch.SecondaryColor.x, lara.Torch.SecondaryColor.y, lara.Torch.SecondaryColor.z);
+        flareItem.Effect.PrimaryEffectColor = lara.Torch.PrimaryColor;
+		flareItem.Effect.SecondaryEffectColor = lara.Torch.SecondaryColor;
 	}
 
 	AddActiveItem(itemNumber);

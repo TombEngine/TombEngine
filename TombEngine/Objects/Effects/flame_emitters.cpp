@@ -556,7 +556,7 @@ namespace TEN::Entities::Effects
 						int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
 						if (SQUARE(dx) + SQUARE(dz) < SQUARE(FLAME_BIG_RADIUS - FLAME_RADIUS))
-							ItemBurn(LaraItem);						
+							ItemBurn(LaraItem);
 					}
 				}
 				else
@@ -632,10 +632,8 @@ namespace TEN::Entities::Effects
 
 					if (item->Status == ITEM_ACTIVE)
 					{
-						Lara.Torch.PrimaryColor = item->Model.Color;
-						Lara.Torch.SecondaryColor = Vector4(std::clamp(item->Model.Color.x - 0.2f, 0.0f, 2.0f),
-															std::clamp(item->Model.Color.y - 0.2f, 0.0f, 2.0f),
-															std::clamp(item->Model.Color.z - 0.2f, 0.0f, 2.0f), 1.0f);
+						Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
+						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
 					}
 										
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
@@ -668,7 +666,7 @@ namespace TEN::Entities::Effects
 					item->Flags |= CODE_BITS;
 					item->ItemFlags[3] = (item->ObjectNumber != ID_FLAME_EMITTER3) ? UCHAR_MAX : 0;
 					item->Status = ITEM_ACTIVE;
-					item->Model.Color = lara.Torch.PrimaryColor;
+					item->Model.Color = Vector4(lara.Torch.PrimaryColor.x, lara.Torch.PrimaryColor.y, lara.Torch.PrimaryColor.z, 1.0f);
 
 					AddActiveItem(itemNumber);
 				}
