@@ -135,8 +135,8 @@ namespace TEN::Entities::Traps
 		unsigned char g = item.ItemFlags[PendulumFlags::FireColorGreen];
 		unsigned char b = item.ItemFlags[PendulumFlags::FireColorBlue];
 
-		Vector3 flameColor1 = Vector3::Zero;
-		Vector3 flameColor2 = Vector3::Zero;
+		auto flameColor1 = Vector3::Zero;
+		auto flameColor2 = Vector3::Zero;
 
 		if (item.ItemFlags[PendulumFlags::FireColorRed] == 0 &&
 			item.ItemFlags[PendulumFlags::FireColorGreen] == 0 &&
