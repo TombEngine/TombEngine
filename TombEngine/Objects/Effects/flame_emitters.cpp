@@ -128,7 +128,7 @@ namespace TEN::Entities::Effects
 		if (sourceColor == Vector4::One)
 			return Vector4(1.0f, Random::GenerateFloat(0.2f, 0.3f), 0.1f, 1.0f) * UCHAR_MAX;
 
-		return sourceColor * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
 	}
 
 	void FlameEmitterControl(short itemNumber)
@@ -147,10 +147,11 @@ namespace TEN::Entities::Effects
 					// Constant flames.
 					SoundEffect(SFX_TR4_FLAME_EMITTER, &item->Pose);
 					TriggerSuperJetFlame(item, -256 - (3072 * GlobalCounter & 0x1C00), GlobalCounter & 1);
+
+					auto color = GetFlameColor(item->Model.Color);
 					SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 						(GetRandomControl() & 3) + 20,
-						(GetRandomControl() & 0x3F) + 192,
-						(GetRandomControl() & 0x1F) + 96, 0);
+						color.x, color.y, color.z);
 				}
 				else
 				{
@@ -216,10 +217,10 @@ namespace TEN::Entities::Effects
 							TriggerSuperJetFlame(item, jetFlameVel, GlobalCounter & 1);
 						}
 
+						auto color = GetFlameColor(item->Model.Color);
 						SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 							(-jetFlameVel >> 10) - (GetRandomControl() & 1) + 16,
-							(GetRandomControl() & 0x3F) + 192,
-							(GetRandomControl() & 0x1F) + 96, 0);
+							color.x, color.y, color.z);
 					}
 					else
 					{

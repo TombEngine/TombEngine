@@ -165,6 +165,7 @@ Particle* GetFreeParticle()
 	auto& part = Particles[partID];
 	part.SpriteSeqID = ID_DEFAULT_SPRITES;
 	part.SpriteID = 0;
+	part.fxObj = NO_VALUE;
 	part.blendMode = BlendMode::Additive;
 	part.extras = 0;
 	part.dynamic = NO_VALUE;
@@ -488,7 +489,12 @@ void UpdateSparks()
 						if (spark.z + ds > DeadlyBounds.Z1 && spark.z - ds < DeadlyBounds.Z2)
 						{
 							if (spark.flags & SP_FIRE)
-								ItemBurn(LaraItem);
+							{
+								if (spark.fxObj != NO_VALUE && g_Level.Items.size() > spark.fxObj && g_Level.Items[spark.fxObj].ObjectNumber == ID_FLAME_EMITTER)
+									ItemCustomBurn(LaraItem, (Vector3)g_Level.Items[spark.fxObj].Model.Color, (Vector3)g_Level.Items[spark.fxObj].Model.Color);
+								else
+									ItemBurn(LaraItem);
+							}
 
 							if (spark.flags & SP_DAMAGE)
 								DoDamage(LaraItem, spark.damage);
@@ -1087,12 +1093,33 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 		if (size < 512)
 			size = 512;
 
+		if (item->Model.Color == Vector4::One)
+		{
+			sptr->sR = sptr->sG = (GetRandomControl() & 0x1F) + 48;
+			sptr->sB = (GetRandomControl() & 0x3F) - 64;
+			sptr->dR = (GetRandomControl() & 0x3F) - 64;
+			sptr->dG = (GetRandomControl() & 0x3F) - 128;
+			sptr->dB = 32;
+		}
+		else
+		{
+			auto colorD = item->Model.Color / 2.0f * UCHAR_MAX;
+			auto luma = Luma((Vector3)item->Model.Color / 2.0f) * 0.85f * UCHAR_MAX;
+			auto colorS = Vector3(0.15f * colorD.x + luma,
+								  0.15f * colorD.y + luma,
+								  0.15f * colorD.z + luma);
+
+			sptr->sR = colorS.x;
+			sptr->sG = colorS.y;
+			sptr->sB = colorS.z;
+			sptr->dR = colorD.x;
+			sptr->dG = colorD.y;
+			sptr->dB = colorD.z;
+
+			sptr->fxObj = item->Index;
+		}
+
 		sptr->on = 1;
-		sptr->sR = sptr->sG = (GetRandomControl() & 0x1F) + 48;
-		sptr->sB = (GetRandomControl() & 0x3F) - 64;
-		sptr->dR = (GetRandomControl() & 0x3F) - 64;
-		sptr->dG = (GetRandomControl() & 0x3F) - 128;
-		sptr->dB = 32;
 		sptr->colFadeSpeed = 8;
 		sptr->fadeToBlack = 8;
 		sptr->blendMode = BlendMode::Additive;
