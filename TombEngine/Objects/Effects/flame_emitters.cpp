@@ -577,6 +577,7 @@ namespace TEN::Entities::Effects
 		if (Lara.Control.Weapon.GunType != LaraWeaponType::Torch ||
 			Lara.Control.HandStatus != HandStatus::WeaponReady ||
 			Lara.LeftArm.Locked ||
+			Lara.Torch.IsLit == (item->Status == ITEM_ACTIVE) ||
 			item->Timer == -1 ||
 			!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
@@ -628,12 +629,8 @@ namespace TEN::Entities::Effects
 				else
 				{
 					Lara.Torch.State = TorchState::JustLit;
-
-					if (item->Status == ITEM_ACTIVE)
-					{
-						Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
-						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
-					}
+					Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
+					Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
 										
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
 					laraItem->ItemFlags[3] = 1;
