@@ -45,10 +45,9 @@ namespace TEN::Renderer::Utils
 		Load(Shader::Ssao, "SSAO", "", ShaderType::Pixel);
 		Load(Shader::SsaoBlur, "SSAO", "Blur", ShaderType::Pixel);
 
-		Load(Shader::Glow, "Glow", "", ShaderType::Vertex);
-		Load(Shader::GlowDownscale, "Glow", "GlowDownscale", ShaderType::Pixel);
-		Load(Shader::GlowBlur, "Glow", "GlowBlur", ShaderType::Pixel);
-		Load(Shader::GlowCombine, "Glow", "GlowCombine", ShaderType::Pixel);
+		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel);
+		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel);
+		Load(Shader::GlowCombine, "PostProcess", "GlowCombine", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

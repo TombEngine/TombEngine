@@ -13,8 +13,7 @@ cbuffer CBPostProcess : register(b7)
 {
     float CinematicBarsHeight;
     float ScreenFadeFactor;
-    int ViewportWidth;
-    int ViewportHeight;
+    float2 ViewportSize;
     //--
     float EffectStrength;
     float3 Tint;
@@ -24,7 +23,8 @@ cbuffer CBPostProcess : register(b7)
     ShaderLensFlare LensFlares[8];
     //--
     int NumLensFlares;
-    float3 Padding3;
+    float DownscaleFactor;
+    float2 Padding3;
     //--
     float2 TexelSize; 
     float2 BlurDirection; 

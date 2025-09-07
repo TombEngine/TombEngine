@@ -35,8 +35,7 @@ namespace TEN::Renderer
 
 		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
 		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
-		_stPostProcessBuffer.ViewportWidth = _screenWidth;
-		_stPostProcessBuffer.ViewportHeight = _screenHeight;
+		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
@@ -64,7 +63,6 @@ namespace TEN::Renderer
 		int destRenderTarget = 1;
 
 		// Glow combine
-		_shaders.Bind(Shader::Glow);
 		_shaders.Bind(Shader::GlowCombine);
 
 		_stPostProcessBuffer.GlowSoftAdd = 1;
@@ -75,7 +73,7 @@ namespace TEN::Renderer
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
 		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
@@ -233,8 +231,10 @@ void Renderer::CalculateGlow(RenderView& view)
 
 	_context->RSSetScissorRects(1, rects);
 
-	_shaders.Bind(Shader::Glow);
+	_shaders.Bind(Shader::PostProcess);
 
+	_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
+	
 	_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
@@ -243,8 +243,11 @@ void Renderer::CalculateGlow(RenderView& view)
 
 	_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
-	// Downscale and extract bright areas.
-	_shaders.Bind(Shader::GlowDownscale);
+	// Downscale 
+	_shaders.Bind(Shader::Downscale);
+
+	_stPostProcessBuffer.DownscaleFactor = GLOW_DOWNSCALE_FACTOR;
+	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
 	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
@@ -253,11 +256,12 @@ void Renderer::CalculateGlow(RenderView& view)
 	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
 	DrawTriangles(3, 0);
 
-	_shaders.Bind(Shader::GlowBlur);
+	// Blur
+	_shaders.Bind(Shader::Blur);
 
-	_stPostProcessBuffer.TexelSize = Vector2(1.0f / (_screenWidth / 4.0f), 1.0f / (_screenHeight / 4.0f));
-	_stPostProcessBuffer.BlurSigma = 3.0f;
-	_stPostProcessBuffer.BlurRadius = 24;
+	_stPostProcessBuffer.TexelSize = Vector2(1.0f / (_screenWidth / GLOW_DOWNSCALE_FACTOR), 1.0f / (_screenHeight / GLOW_DOWNSCALE_FACTOR));
+	_stPostProcessBuffer.BlurSigma = GLOW_BLUR_SIGMA;
+	_stPostProcessBuffer.BlurRadius = GLOW_BLUR_RADIUS;
 	
 	// Horizontal blur
 	_context->ClearRenderTargetView(_glowRenderTarget[1].RenderTargetView.Get(), clearColor);

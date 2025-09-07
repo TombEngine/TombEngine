@@ -45,7 +45,7 @@ float PS(PixelShaderInput input) : SV_Target
 {
     float4 output;
 
-    float2 noiseScale = float2(ViewportWidth / 4.0f, ViewportHeight / 4.0f);
+    float2 noiseScale = ViewportSize / 4.0f;
 
     float3 position = ReconstructPositionFromDepth(input.UV);
     float3 encodedNormal = NormalsTexture.Sample(NormalsSampler, input.UV).xyz;
@@ -99,7 +99,7 @@ float normpdf(float x, float sigma)
 
 float PSBlur(PixelShaderInput input) : SV_Target
 {
-    float2 texelSize = 1.0f / float2(ViewportWidth, ViewportHeight);
+    float2 texelSize = TexelSize;
     float result = 0.0f;
 
     const int kernelSize = (MSIZE - 1) / 2;

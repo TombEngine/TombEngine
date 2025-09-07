@@ -71,6 +71,8 @@ constexpr auto ROOM_AMBIENT_MAP_SIZE = 64;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
+constexpr auto GLOW_BLUR_SIGMA = 10.0f;
+constexpr auto GLOW_BLUR_RADIUS = 24.0f;
 
 enum class LightType
 {
