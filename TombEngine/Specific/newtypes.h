@@ -19,7 +19,7 @@ struct BUCKET
 {
 	int texture;
 	BlendMode blendMode;
-	MaterialShaderType materialType;
+	int materialIndex;
 	bool animated;
 	Vector4 floatParameters0;
 	Vector4 floatParameters1;

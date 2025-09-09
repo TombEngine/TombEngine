@@ -326,12 +326,8 @@ void LoadObjects()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
-			bucket.materialType = (MaterialShaderType)ReadUInt8();
+			bucket.materialIndex = ReadInt32();
 			bucket.animated = ReadBool();
-			bucket.floatParameters0 = ReadVector4();
-			bucket.floatParameters1 = ReadVector4();
-			bucket.floatParameters2 = ReadVector4();
-			bucket.floatParameters3 = ReadVector4();
 
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
@@ -896,12 +892,8 @@ void LoadStaticRoomData()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
-			bucket.materialType = (MaterialShaderType)ReadUInt8();
+			bucket.materialIndex = ReadInt32();
 			bucket.animated = ReadBool();
-			bucket.floatParameters0 = ReadVector4();
-			bucket.floatParameters1 = ReadVector4();
-			bucket.floatParameters2 = ReadVector4();
-			bucket.floatParameters3 = ReadVector4();
 
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
@@ -1152,6 +1144,7 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
+	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1506,6 +1499,8 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
+			LoadMaterials();
+
 			UpdateProgress(70);
 
 			FinalizeBlock();
@@ -1682,6 +1677,30 @@ void LoadMirrors()
 		mirror.Enabled = true;
 
 		mirror.ReflectionMatrix = Matrix::CreateReflection(mirror.Plane);
+	}
+}
+
+void LoadMaterials()
+{
+	int materialsCount = ReadCount();
+	TENLog("Materials count: " + std::to_string(materialsCount), LogLevel::Info);
+	g_Level.Materials.reserve(materialsCount);
+
+	for (int i = 0; i < materialsCount; i++)
+	{
+		auto& material = g_Level.Materials.emplace_back();
+
+		material.Name = ReadString();
+		material.Type = (MaterialShaderType)ReadInt32();
+		material.Parameters0 = ReadVector4();
+		material.Parameters1 = ReadVector4();
+		material.Parameters2 = ReadVector4();
+		material.Parameters3 = ReadVector4();
+		material.HasNormalMap = ReadBool();
+		material.HasAmbientOcclusionMap = ReadBool();
+		material.HasRoughnessMap = ReadBool();
+		material.HasSpecularMap = ReadBool();
+		material.HasEmissiveMap = ReadBool();
 	}
 }
 

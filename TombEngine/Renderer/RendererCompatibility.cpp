@@ -424,6 +424,7 @@ namespace TEN::Renderer
 
 				bucket.Animated = levelBucket.animated;
 				bucket.BlendMode = static_cast<BlendMode>(levelBucket.blendMode);
+				bucket.MaterialIndex = levelBucket.materialIndex;
 				bucket.Texture = levelBucket.texture;
 				bucket.StartVertex = lastVertex;
 				bucket.StartIndex = lastIndex;
@@ -1085,6 +1086,7 @@ namespace TEN::Renderer
 			bucket.Animated = levelBucket->animated;
 			bucket.Texture = levelBucket->texture;
 			bucket.BlendMode = static_cast<BlendMode>(levelBucket->blendMode);
+			bucket.MaterialIndex = levelBucket->materialIndex;
 			bucket.StartVertex = *lastVertex;
 			bucket.StartIndex = *lastIndex;
 			bucket.NumVertices = levelBucket->numQuads * 4 + levelBucket->numTriangles * 3;
