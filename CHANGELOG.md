@@ -28,6 +28,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
 * Fixed intense GPU usage when engine window is minimized.
+* Fixed FishEmitter so fish can now be antitriggered.
 
 ### Lua API changes
 * Added `Moveable:ShowInteractionHighlight` method.
