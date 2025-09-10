@@ -410,8 +410,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto finalPos = vehicleItem->Pose.Position;
 		finalPos.y -= VEHICLE_BASE_HEIGHT;
-		auto roomNumber = FindRoomNumber(finalPos, currentRoomNumber, true);
 
+		auto roomNumber = FindRoomNumber(finalPos, currentRoomNumber, true);
 		if (roomNumber != currentRoomNumber)
 			currentRoomNumber = roomNumber;
 
