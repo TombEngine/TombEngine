@@ -2499,7 +2499,6 @@ namespace TEN::Renderer
 		_stItem.Color = item->Color;
 		_stItem.AmbientLight = item->AmbientLight;
 		_stItem.Skinned = (int)skinMode;
-		_stItem.Reflections = 0;
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
 			_stItem.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
@@ -3286,6 +3285,13 @@ namespace TEN::Renderer
 					// TODO: in the future uniform this thing
 					if (IsWaterfall(itemToDraw->ObjectID) && animated == 1)
 						continue;
+
+					_stItem.Reflections = 0;
+					if (bucket.MaterialIndex != -1)
+					{
+						_stItem.Reflections = g_Level.Materials[bucket.MaterialIndex].Type == MaterialShaderType::Reflective ? 1 : 0;
+					}
+					_cbItem.UpdateData(_stItem, _context.Get());
 
 					auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
