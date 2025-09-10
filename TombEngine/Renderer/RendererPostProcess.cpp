@@ -66,7 +66,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::GlowCombine);
 
 		_stPostProcessBuffer.GlowSoftAdd = 1;
-		_stPostProcessBuffer.GlowIntensity = 1.5f;
+		_stPostProcessBuffer.GlowIntensity = 1.0f;
 		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
 
 		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
