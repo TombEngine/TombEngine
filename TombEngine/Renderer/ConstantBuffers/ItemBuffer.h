@@ -23,5 +23,6 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int NumLights;
 		int Skinned;
+		int Reflections;
 	};
 }

@@ -319,6 +319,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	_stItem.Color = item->Color;
 	_stItem.AmbientLight = item->AmbientLight;
 	_stItem.Skinned = (int)skinMode;
+	_stItem.Reflections = 1;
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
 		_stItem.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;

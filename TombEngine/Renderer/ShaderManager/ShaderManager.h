@@ -67,6 +67,7 @@ namespace TEN::Renderer::Utils
 		Blur,
 		Downscale,
 		GlowCombine,
+		LegacyReflections,
 
 		Count
 	};

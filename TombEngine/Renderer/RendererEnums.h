@@ -322,5 +322,5 @@ enum class PostProcessMode
 enum class MaterialShaderType
 {
 	Opaque = 0,
-	Water = 1
+	Reflective = 1
 };
