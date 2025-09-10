@@ -582,7 +582,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeLocust;
 			obj->control = LocustControl;
-			obj->drawRoutine = NULL;
+			obj->drawRoutine = nullptr;
 		}
 
 		obj = &Objects[ID_WRAITH1];
@@ -611,7 +611,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeBeetleSwarm;
 			obj->control = BeetleSwarmControl;
-			obj->drawRoutine = NULL;
+			obj->drawRoutine = nullptr;
 		}
 
 		obj = &Objects[ID_SAS_DYING];

@@ -1149,9 +1149,18 @@ bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 	return bassError != 0;
 }
 
-void SayNo()
+void SayNo(std::optional<Vector3i> referencePosition)
 {
 	static int lastNoTimestamp = NO_VALUE;
+	static Vector3i lastReferencePosition = Vector3i::Zero;
+
+	if (referencePosition.has_value())
+	{
+		if (referencePosition.value() == lastReferencePosition)
+			return;
+
+		lastReferencePosition = referencePosition.value();
+	}
 
 	if ((GlobalCounter - lastNoTimestamp) > FPS)
 	{

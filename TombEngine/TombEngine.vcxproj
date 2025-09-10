@@ -414,6 +414,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\effects\Splash.h" />
     <ClInclude Include="Game\GuiObjects.h" />
     <ClInclude Include="Game\Hud\Hud.h" />
+    <ClInclude Include="Game\Hud\InteractionHighlighter.h" />
     <ClInclude Include="Game\Hud\PickupSummary.h" />
     <ClInclude Include="Game\Hud\Speedometer.h" />
     <ClInclude Include="Game\Hud\StatusBars.h" />
@@ -1010,6 +1011,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\gui.cpp" />
     <ClCompile Include="Game\GuiObjects.cpp" />
     <ClCompile Include="Game\Hud\Hud.cpp" />
+    <ClCompile Include="Game\Hud\InteractionHighlighter.cpp" />
     <ClCompile Include="Game\Hud\PickupSummary.cpp" />
     <ClCompile Include="Game\Hud\Speedometer.cpp" />
     <ClCompile Include="Game\Hud\StatusBars.cpp" />

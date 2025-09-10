@@ -6,6 +6,7 @@
 #include "Game/control/control.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
@@ -17,6 +18,7 @@
 using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
+using namespace TEN::Hud;
 
 ObjectCollisionBounds ScalesBounds =
 {
@@ -94,6 +96,8 @@ void ScalesControl(short itemNumber)
 void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
 	ItemInfo* item = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
 	if (TestBoundsCollide(item, laraItem, LARA_RADIUS))
 	{

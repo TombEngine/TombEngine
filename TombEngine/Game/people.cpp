@@ -111,7 +111,7 @@ short GunShot(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 bool Targetable(ItemInfo* item, AI_INFO* ai)
 {
-	// Discard it entity is not a creature (only creatures can use Targetable()) or if the target is not visible.
+	// Discard if entity is not a creature (only creatures can use Targetable()) or if the target is not visible.
 	if (!item->IsCreature() || !ai->ahead || ai->distance >= SQUARE(MAX_VISIBILITY_DISTANCE))
 		return false;
 
@@ -139,11 +139,16 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 		enemy->Pose.Position.z,
 		enemy->RoomNumber); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
 
+	// Temporarily ignore self occlusion for LOS check.
+	bool collidable = item->Collidable;
+	item->Collidable = false;
+
 	StaticMesh* mesh = nullptr;
 	Vector3i vector = {};
-	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT, item->Index);
-	if (losItemIndex == item->Index)
-		losItemIndex = NO_LOS_ITEM; // Don't find itself.
+	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT);
+
+	// Restore collidability.
+	item->Collidable = collidable;
 
 	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
 }

@@ -363,12 +363,7 @@ namespace TEN::Entities::Vehicles
 
 		if (skidooItem->Flags & IFLAG_INVISIBLE)
 		{
-			if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
-
+			UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 			AnimateItem(laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
@@ -378,12 +373,7 @@ namespace TEN::Entities::Vehicles
 		}
 
 		SkidooAnimation(skidooItem, laraItem, collide, dead);
-
-		if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-		{
-			ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-			ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-		}
+		UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 
 		if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALLOFF)
 		{

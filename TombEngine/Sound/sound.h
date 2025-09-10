@@ -163,8 +163,8 @@ void FreeSamples();
 void StopAllSounds();
 void PauseAllSounds(SoundPauseMode mode);
 void ResumeAllSounds(SoundPauseMode mode);
-void SayNo();
 void PlaySoundSources();
+void SayNo(std::optional<Vector3i> referencePosition = std::nullopt);
 int  GetShatterSound(int shatterID);
 
 void PlaySoundTrack(const std::string& trackName, SoundTrackType mode, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);

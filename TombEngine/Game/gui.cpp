@@ -956,6 +956,7 @@ namespace TEN::Gui
 			AutoMonkeySwingJump,
 			AutoTargeting,
 			TargetHighlighter,
+			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
 
@@ -1008,6 +1009,11 @@ namespace TEN::Gui
 			case OtherSettingsOption::TargetHighlighter:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				break;
+
+			case OtherSettingsOption::InteractionHighlighter:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
 				break;
 
 			case OtherSettingsOption::ToggleRumble:
@@ -2056,24 +2062,6 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
-		const auto CROUCH_STATES = std::vector<int>
-		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT,
-			LS_CROUCH_TURN_180
-		};
-		const auto CRAWL_STATES = std::vector<int>
-		{
-			LS_CRAWL_IDLE,
-			LS_CRAWL_FORWARD,
-			LS_CRAWL_BACK,
-			LS_CRAWL_TURN_LEFT,
-			LS_CRAWL_TURN_RIGHT,
-			LS_CRAWL_TURN_180,
-			LS_CRAWL_TO_HANG
-		};
-
 		auto& player = GetLaraInfo(item);
 
 		player.Inventory.OldBusy = false;

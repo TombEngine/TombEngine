@@ -654,8 +654,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	catch (TENScriptException const& e)
 	{
-		std::string msg = std::string{ "A Lua error occurred while setting up scripts; " } + __func__ + ": " + e.what();
-		TENLog(msg, LogLevel::Error, LogConfig::All);
+		auto errorMessage = std::string{ "A Lua error occurred while setting up scripts; " } + __func__ + ": " + e.what();
+		TENLog(errorMessage, LogLevel::Error, LogConfig::All);
+		ShowExternalMessageBox(errorMessage);
 		ShutdownTENLog();
 		return 0;
 	}
@@ -778,7 +779,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error during game initialization: " + std::string(ex.what()), LogLevel::Error);
+		auto errorMessage = "Error during game initialization: " + std::string(ex.what());
+		TENLog(errorMessage, LogLevel::Error);
+		ShowExternalMessageBox(errorMessage);
 		WinClose();
 		exit(EXIT_FAILURE);
 	}
