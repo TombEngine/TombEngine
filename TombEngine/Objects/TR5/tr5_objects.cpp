@@ -801,7 +801,7 @@ static void StartObject(ObjectInfo *obj)
 	{
 		obj->Initialize = InitializeFireflySwarm;
 		obj->control = ControlFireflySwarm;
-		obj->drawRoutine = NULL;
+		obj->drawRoutine = nullptr;
 	}
 
 	obj = &Objects[ID_GEN_SLOT1];

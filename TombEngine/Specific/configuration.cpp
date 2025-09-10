@@ -236,6 +236,7 @@ bool SaveConfiguration()
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_MONKEY_JUMP, g_Configuration.EnableAutoMonkeySwingJump) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_TARGETING, g_Configuration.EnableAutoTargeting) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_TARGET_HIGHLIGHTER, g_Configuration.EnableTargetHighlighter) != ERROR_SUCCESS ||
+		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_INTERACTION_HIGHLIGHTER, g_Configuration.EnableInteractionHighlighter) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_RUMBLE, g_Configuration.EnableRumble) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_THUMBSTICK_CAMERA, g_Configuration.EnableThumbstickCamera) != ERROR_SUCCESS)
 	{
@@ -337,6 +338,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableAutoMonkeySwingJump = false;
 	g_Configuration.EnableAutoTargeting = true;
 	g_Configuration.EnableTargetHighlighter = true;
+	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
 
@@ -440,6 +442,7 @@ bool LoadConfiguration()
 	bool enableSubtitles = true;
 	bool enableAutoTargeting = true;
 	bool enableTargetHighlighter = true;
+	bool enableInteractionHighlighter = true;
 	bool enableRumble = true;
 	bool enableThumbstickCamera = true;
 
@@ -448,6 +451,7 @@ bool LoadConfiguration()
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_SUBTITLES, &enableSubtitles, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_TARGETING, &enableAutoTargeting, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_TARGET_HIGHLIGHTER, &enableTargetHighlighter, true) != ERROR_SUCCESS ||
+		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_INTERACTION_HIGHLIGHTER, &enableInteractionHighlighter, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_RUMBLE, &enableRumble, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_THUMBSTICK_CAMERA, &enableThumbstickCamera, true) != ERROR_SUCCESS)
 	{
@@ -538,6 +542,7 @@ bool LoadConfiguration()
 	g_Configuration.EnableAutoMonkeySwingJump = enableAutoMonkeySwingJump;
 	g_Configuration.EnableAutoTargeting = enableAutoTargeting;
 	g_Configuration.EnableTargetHighlighter = enableTargetHighlighter;
+	g_Configuration.EnableInteractionHighlighter = enableInteractionHighlighter;
 	g_Configuration.EnableRumble = enableRumble;
 	g_Configuration.EnableThumbstickCamera = enableThumbstickCamera;
 
