@@ -34,11 +34,9 @@ namespace TEN::Hud
 
 		// Members
 
-		bool _isActive			= false;
-		bool _checkDirection	= false;
-
-		HighlightState _current;
-		HighlightState _previous;
+		bool _isActive = false;
+		HighlightState _current = {};
+		HighlightState _previous = {};
 
 		// Utilities
 
@@ -48,7 +46,6 @@ namespace TEN::Hud
 		// Utilities
 
 		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always);
-		void SetAttributes(ItemInfo& item, InteractionType type = InteractionType::Undefined);
 		void Draw() const;
 		void Update();
 		void Clear();

@@ -41,6 +41,7 @@ bool TestLaraLadderClimbOut(ItemInfo* item, CollisionInfo* coll);
 void TestLaraWaterDepth(ItemInfo* item, CollisionInfo* coll);
 
 bool TestLaraWeaponType(LaraWeaponType refWeaponType, const std::vector<LaraWeaponType>& weaponTypeList);
+bool TestLaraTorchFlame(ItemInfo* item, ItemInfo* flameItem);
 bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType);
 bool IsCrouching(const ItemInfo* item);
 bool IsVaultState(int state);

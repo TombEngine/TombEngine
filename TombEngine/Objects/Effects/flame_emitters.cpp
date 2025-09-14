@@ -14,6 +14,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -577,8 +578,8 @@ namespace TEN::Entities::Effects
 		if (Lara.Control.Weapon.GunType != LaraWeaponType::Torch ||
 			Lara.Control.HandStatus != HandStatus::WeaponReady ||
 			Lara.LeftArm.Locked ||
-			Lara.Torch.IsLit == (item->Status == ITEM_ACTIVE) ||
 			item->Timer == -1 ||
+			!TestLaraTorchFlame(laraItem, item) ||
 			!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
 			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||

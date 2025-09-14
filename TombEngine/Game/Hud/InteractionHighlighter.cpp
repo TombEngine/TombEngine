@@ -5,6 +5,7 @@
 #include "Game/effects/DisplaySprite.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
@@ -91,7 +92,7 @@ namespace TEN::Hud
 									lara.Control.HandStatus == HandStatus::WeaponReady &&
 									!lara.LeftArm.Locked;
 
-					bool canIgnite = hasTorch && (lara.Torch.IsLit == (item.Status == ITEM_NOT_ACTIVE || item.Status == ITEM_DEACTIVATED));
+					bool canIgnite = hasTorch && TestLaraTorchFlame(&player, &item);
 
 					// Flame emitter interaction overrides hand status checks, if player carries unlit torch.
 					if (hasTorch)
@@ -120,10 +121,12 @@ namespace TEN::Hud
 		if (_isActive)
 			return;
 
+		// Rough interaction distance test.
 		auto distance = Vector3::Distance(player.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
 		if (distance > INTERACTION_DISTANCE)
 			return;
 
+		// Discard invisible objects.
 		if (item.Status == ITEM_INVISIBLE)
 			return;
 
@@ -142,11 +145,43 @@ namespace TEN::Hud
 		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !playerBoundingBox.Intersects(inflatedBoundingBox))
 			return;
 
-		// Determine interaction type and position.
-		SetAttributes(item);
+		auto position = itemBoundingBox.Center;
+		auto type = InteractionType::Undefined;
+		bool checkDirection = false;
+
+		// Decide on interaction highlight parameters based on object type.
+		if (Objects[item.ObjectNumber].isPickup)
+		{
+			type = InteractionType::Pickup;
+			checkDirection = false;
+
+			if (!item.TriggerFlags)
+				position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
+			else
+				position.y -= PICKUP_OFFSET;
+		}
+		else if (item.IsCreature())
+		{
+			type = InteractionType::Talk;
+			position.y -= itemBoundingBox.Extents.y * 1.5f;
+			checkDirection = true;
+		}
+		else
+		{
+			type = InteractionType::Use;
+
+			// If object bounds are too narrow, show highlighter above the object.
+			if (abs(itemBoundingBox.Extents.y) > CLICK(1))
+				position.y += abs(itemBoundingBox.Extents.y) / 3.0f;
+			else
+				position.y -= itemBoundingBox.Extents.y;
+
+			// HACK: Extend for other direction-agnostic objects if necessary.
+			checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
+		}
 
 		// Don't check facing direction for pickups, because they are too small to check it.
-		if (_checkDirection)
+		if (checkDirection)
 		{
 			auto dir = itemBoundingBox.Center - player.Pose.Position.ToVector3();
 			dir.y = 0.0f;
@@ -173,62 +208,17 @@ namespace TEN::Hud
 				return;
 		}
 
-		// Show the highlight.
-		_isActive = true;
-	}
-
-	void InteractionHighlighterController::SetAttributes(ItemInfo& item, InteractionType type)
-	{
-		auto bounds = item.GetAabb();
-		auto position = bounds.Center;
-		auto newType = type;
-
-		if (type != InteractionType::Undefined)
-		{
-			newType = type;
-		}
-		else
-		{
-			if (Objects[item.ObjectNumber].isPickup)
-			{
-				newType = InteractionType::Pickup;
-				_checkDirection = false;
-
-				if (!item.TriggerFlags)
-					position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
-				else
-					position.y -= PICKUP_OFFSET;
-			}
-			else if (item.IsCreature())
-			{
-				newType = InteractionType::Talk;
-				position.y -= bounds.Extents.y * 1.5f;
-				_checkDirection = true;
-			}
-			else
-			{
-				newType = InteractionType::Use;
-
-				// If object bounds are too narrow, show highlighter above the object.
-				if (abs(bounds.Extents.y) > CLICK(1))
-					position.y += abs(bounds.Extents.y) / 3.0f;
-				else
-					position.y -= bounds.Extents.y;
-
-				// HACK: Extend for other direction-agnostic objects if necessary.
-				_checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
-			}
-		}
-
 		// If interaction target changes significantly, start crossfade.
-		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != newType)
+		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != type)
 		{
 			_previous = _current;
 			_current.Fade = 0.0f;
 		}
 
+		// Show the highlight.
 		_current.Position = position;
-		_current.Type = newType;
+		_current.Type = type;
+		_isActive = true;
 	}
 
 	void InteractionHighlighterController::Draw() const
