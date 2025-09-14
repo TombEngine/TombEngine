@@ -18,6 +18,7 @@ namespace TEN::Entities::Traps
 	constexpr auto PENDULUM_FIRE_FOG_DENSITY = 15;
 	constexpr auto PENDULUM_FIRE_FOG_RADIUS = 4;
 	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
+	constexpr auto PENDULUM_DAMAGE_VALUE = 75;
 
 	const std::vector<unsigned int> FirePendulumHarmJoints = { 4, 5 };
 	const std::vector<Vector3i> PendulumBounds =
@@ -175,7 +176,9 @@ namespace TEN::Entities::Traps
 
 		auto color = Color(r / (float)CHAR_MAX, g / (float)CHAR_MAX, b / (float)CHAR_MAX);
 
+		if (item.TriggerFlags)
 		SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
+
 		TriggerPendulumFlame(itemNumber, pos, color);
 		TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGHT, 1, color);
 		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, flameColor1, flameColor2);
@@ -201,7 +204,7 @@ namespace TEN::Entities::Traps
 		{
 			if (item->TouchBits.Test(FirePendulumHarmJoints[i]))
 			{
-				DoDamage(playerItem, abs(item->TriggerFlags));
+				DoDamage(playerItem, PENDULUM_DAMAGE_VALUE);
 
 				TriggerLaraBlood();
 

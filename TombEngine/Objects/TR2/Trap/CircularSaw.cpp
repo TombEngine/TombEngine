@@ -90,7 +90,6 @@ namespace TEN::Entities::Traps
 			}
 			else
 			{
-
 				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 1, 2);
 			}
 		}
