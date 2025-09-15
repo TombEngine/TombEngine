@@ -629,10 +629,13 @@ namespace TEN::Entities::Effects
 					laraItem->Animation.AnimNumber = LA_TORCH_LIGHT_5;
 				else
 				{
+					if (item->Status == ITEM_ACTIVE)
+					{
+						Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
+						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
+					}
+
 					Lara.Torch.State = TorchState::JustLit;
-					Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
-					Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
-										
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
 					laraItem->ItemFlags[3] = 1;
 					laraItem->Animation.AnimNumber = (dy >> 8) + LA_TORCH_LIGHT_1;
