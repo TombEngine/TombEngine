@@ -221,6 +221,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateTransientLaserBeams();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);

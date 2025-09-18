@@ -111,6 +111,38 @@ namespace TEN::Renderer
 					BlendMode::Additive, view, SpriteRenderType::LaserBeam);
 			}
 		}
+
+		// 2) Transiente Laser (NEU)
+		const auto& pool = TEN::Entities::Traps::GetTransientLaserPool();
+
+		for (int i = 0; i < TEN::Entities::Traps::MAX_TRANSIENT_LASERS; ++i)
+		{
+			const auto& slot = pool[i];
+			const auto& beam = slot.Effect;
+
+			if (!slot.On || slot.Life <= 0.0f || !beam.IsActive)
+				continue;
+
+			const float t = GetInterpolationFactor();
+			const auto  color = Color::Lerp(beam.OldColor, beam.Color, t);
+
+			for (int s = 0; s < LaserBeamEffect::SUBDIVISION_COUNT; ++s)
+			{
+				const bool last = (s == LaserBeamEffect::SUBDIVISION_COUNT - 1);
+
+				AddColoredQuad(
+					Vector3::Lerp(beam.OldVertices[s], beam.Vertices[s], t),
+					Vector3::Lerp(beam.OldVertices[last ? 0 : s + 1], beam.Vertices[last ? 0 : s + 1], t),
+					Vector3::Lerp(
+						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (last ? 0 : s + 1)],
+						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (last ? 0 : s + 1)], t),
+					Vector3::Lerp(
+						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + s],
+						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + s], t),
+					color, color, color, color,
+					BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+			}
+		}
 	}
 
 	void Renderer::PrepareStreamers(RenderView& view)
