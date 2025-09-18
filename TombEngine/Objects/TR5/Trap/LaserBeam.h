@@ -8,8 +8,6 @@ struct ItemInfo;
 
 namespace TEN::Entities::Traps
 {
-	using LaserHandle = int;      // oder int, wie du magst
-	static constexpr LaserHandle NO_LASER = 0;
 	static constexpr int MAX_TRANSIENT_LASERS = 128;
 
 	struct LaserBeamEffect
@@ -30,19 +28,15 @@ namespace TEN::Entities::Traps
 		Vector4 OldColor = Vector4::Zero;
 
 		void Initialize(const ItemInfo& item);
-		void InitializeManual(const Vector4& color, float radius, bool lethal, bool heavy);
-
 		void Update(const ItemInfo& item);
 		void StoreInterpolationData();
 	};
 
-	// ===== Transiente Laser (rahmenlos, keine Items) =====
 	struct TransientBeam
 	{
 		LaserBeamEffect Effect;
-
-		// Pose/Render-Daten
 		Vector3     Pos;
+
 		int         RoomNumber = 0;
 		EulerAngles Orientation;
 		Vector4     ModelColor = Vector4::Zero;

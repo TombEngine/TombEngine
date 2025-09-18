@@ -29,17 +29,12 @@ namespace TEN::Entities::Traps
 	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX = 0.1f;
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
-	//static std::unordered_map<long long, TransientBeam> GTransientBeams;
 	static std::array<TransientBeam, MAX_TRANSIENT_LASERS> GTransientPool{};
-	static uint64_t GFrameCounter = 0;
-	static long long GAutoIdSeq = 0;
-
 
 	static int AcquireTransientIndex()
 	{
 		int freeIndex = -1;
 
-		// 1) Freien Slot nehmen
 		for (int i = 0; i < MAX_TRANSIENT_LASERS; ++i)
 		{
 			const auto& s = GTransientPool[i];
@@ -53,7 +48,6 @@ namespace TEN::Entities::Traps
 		if (freeIndex != -1)
 			return freeIndex;
 
-		// 2) Keiner frei -> kürzeste Life recyceln
 		float shortest = FLT_MAX;
 		int   best = 0;
 		for (int i = 0; i < MAX_TRANSIENT_LASERS; ++i)
@@ -78,20 +72,6 @@ namespace TEN::Entities::Traps
 		IsLethal = (item.TriggerFlags > 0);
 		IsHeavyActivator = (item.TriggerFlags <= 0);
 	}
-
-	void LaserBeamEffect::InitializeManual(const Vector4& color, float radius, bool lethal, bool heavy)
-	{
-		constexpr auto RADIUS_STEP = BLOCK(0.002f);
-
-		Color = color;
-		Color.w = std::clamp(Color.w, 0.0f, 1.0f);
-		Radius = std::max(0.0f, radius * RADIUS_STEP);
-		IsLethal = lethal;
-		IsHeavyActivator = (!lethal && heavy);
-		IsActive = true;
-	}
-
-
 
 	static void SpawnLaserSpark(const GameVector& pos, short angle, int count, const Vector4& colorStart)
 	{
@@ -163,9 +143,11 @@ namespace TEN::Entities::Traps
 
 	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool isHeavyActivator)
 	{
-		// Slot holen
+		//free slot
 		const int idx = AcquireTransientIndex();
 		auto& slot = GTransientPool[idx];
+
+		constexpr auto RADIUS_STEP = BLOCK(0.002f);
 
 		slot.Pos = position.ToVector3();
 		slot.RoomNumber = position.RoomNumber;
@@ -174,7 +156,7 @@ namespace TEN::Entities::Traps
 		slot.Effect.Color = color;
 		slot.Life = 2.0f;
 		slot.On = true;
-		slot.Effect.Radius = radius;
+		slot.Effect.Radius = radius * RADIUS_STEP;
 		
 		auto orient = orientation;
 		auto dir = orient.ToDirection();
@@ -365,9 +347,7 @@ namespace TEN::Entities::Traps
 
 	void ClearLaserBeamEffects()
 	{
-		LaserBeams.clear();           // bestehende Item-Laser
-		GFrameCounter = 0;
-		GAutoIdSeq = 0;
-		for (auto& s : GTransientPool) { s = {}; } // reset
+		LaserBeams.clear();
+		for (auto& s : GTransientPool) { s = {}; }
 	}
 }
