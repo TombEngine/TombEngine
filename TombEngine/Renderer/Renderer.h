@@ -343,6 +343,9 @@ namespace TEN::Renderer
 		RenderTarget2D _roomAmbientMapFront;
 		RenderTarget2D _roomAmbientMapBack;
 
+		// Legacy reflection effect
+		RenderTarget2D _legacyReflectionsRenderTarget[2];
+
 		// Special effects
 
 		//std::vector<Texture2D> _causticTextures;

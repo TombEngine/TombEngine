@@ -13,7 +13,8 @@ cbuffer CBRoom : register(b5)
     float2 CausticsStartUV;
     float2 CausticsSize;
 	//--
-    float4 AmbientColor;
+    float3 AmbientColor;
+    float RoomReflections;
 	//--
     ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 	//--

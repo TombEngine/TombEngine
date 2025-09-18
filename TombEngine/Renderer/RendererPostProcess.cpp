@@ -78,9 +78,23 @@ namespace TEN::Renderer
 
 		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
-
+		
 		_shaders.Bind(Shader::PostProcess);
+		_shaders.Bind(Shader::LegacyReflections);
+		 
+		// Legacy reflections
+		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(2), &_normalsRenderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(4), &_renderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(5), &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		
+		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
+		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
+		
 		// Lens flares.
 		if (!view.LensFlaresToDraw.empty())
 		{

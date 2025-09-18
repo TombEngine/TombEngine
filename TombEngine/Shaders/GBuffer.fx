@@ -16,6 +16,7 @@ struct PixelShaderInput
 	float3 Binormal: BINORMAL;
 	float2 UV: TEXCOORD0;
 	float4 PositionCopy : TEXCOORD1;
+    int Reflections : TEXCOORD2;
 };
 
 Texture2D Texture : register(t0);
@@ -26,6 +27,9 @@ SamplerState NormalTextureSampler : register(s1);
 
 Texture2D EmissiveTexture : register(t11);
 SamplerState EmissiveSampler : register(s11);
+
+Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
+SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
 
 struct PixelShaderOutput
 {
@@ -78,7 +82,8 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Binormal = input.Binormal;
     output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
-
+    output.Reflections = RoomReflections;
+	
 	return output;
 }
 
@@ -100,7 +105,8 @@ PixelShaderInput VSItems(VertexShaderInput input)
     output.Normal = normalize(mul(input.Normal, (float3x3) world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
-
+    output.Reflections = Reflections;
+	
 	return output;
 }
 
@@ -120,7 +126,8 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
     output.Normal = normalize(mul(input.Normal, (float3x3) StaticMeshes[InstanceID].World).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticMeshes[InstanceID].World).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticMeshes[InstanceID].World).xyz);
-
+    output.Reflections = 0;
+	
 	return output;
 }
 
@@ -139,14 +146,17 @@ PixelShaderOutput PS(PixelShaderInput input)
 	DoAlphaTest(color);
 	
     float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-
+    float roughness = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV).y;
+	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;
+    output.Normals.w = input.Reflections;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
-    output.Emissive = emissive;
+    output.Emissive.xyz = emissive.xyz;
+    output.Emissive.w = roughness;
 	
 	return output;
 }

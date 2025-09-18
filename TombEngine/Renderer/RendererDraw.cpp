@@ -2866,13 +2866,13 @@ namespace TEN::Renderer
 				if (rendererPass != RendererPass::GBuffer)
 				{
 					_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom.flags & ENV_FLAG_WATER));
-					_stRoom.AmbientColor = room.AmbientLight;
+					_stRoom.AmbientColor = Vector3(room.AmbientLight.x, room.AmbientLight.y, room.AmbientLight.z);
 					BindRoomLights(view.LightsToDraw);
 					BindRoomDecals(room.Decals);
 				}
 
 				_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-				_cbRoom.UpdateData(_stRoom, _context.Get());
+				//_cbRoom.UpdateData(_stRoom, _context.Get());
 
 				SetScissor(room.ClipBounds);
 
@@ -2882,6 +2882,13 @@ namespace TEN::Renderer
 					{
 						if (((animated == 1) ^ bucket.Animated) || bucket.NumVertices == 0)
 							continue;
+
+						_stRoom.RoomReflections = 0;
+						if (bucket.MaterialIndex != -1)
+						{
+							_stRoom.RoomReflections = g_Level.Materials[bucket.MaterialIndex].Type == MaterialShaderType::Reflective ? 1 : 0;
+						}
+						_cbRoom.UpdateData(_stRoom, _context.Get());
 
 						int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 
@@ -3279,6 +3286,13 @@ namespace TEN::Renderer
 					if (IsWaterfall(itemToDraw->ObjectID) && animated == 1)
 						continue;
 
+					_stItem.Reflections = 0;
+					if (bucket.MaterialIndex != -1)
+					{
+						_stItem.Reflections = g_Level.Materials[bucket.MaterialIndex].Type == MaterialShaderType::Reflective ? 1 : 0;
+					}
+					_cbItem.UpdateData(_stItem, _context.Get());
+
 					auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
 					if (rendererPass == RendererPass::ShadowMap)
@@ -3642,10 +3656,11 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_stRoom.Caustics = (int)(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER));
-		_stRoom.AmbientColor = objectInfo->Room->AmbientLight;
+		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
 		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+		_stRoom.RoomReflections = 0;
 		_cbRoom.UpdateData(_stRoom, _context.Get());
 
 		SetScissor(objectInfo->Room->ClipBounds);

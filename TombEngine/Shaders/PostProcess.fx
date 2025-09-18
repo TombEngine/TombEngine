@@ -32,6 +32,12 @@ SamplerState NormalsSampler : register(s2);
 Texture2D GlowTexture : register(t3);
 SamplerState GlowSampler : register(s3);
 
+Texture2D LegacyEnvironmentTexture : register(t4);
+SamplerState LegacyEnvironmentSampler : register(s4);
+
+Texture2D RoughnessTexture : register(t5);
+SamplerState RoughnessSampler : register(s5);
+
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
@@ -311,4 +317,49 @@ float4 PSGlowCombine(PixelShaderInput input) : SV_Target
                                  : saturate(base + glow);
 
     return float4(outc, 1);
+}
+
+float3 DecodeNormal(float3 n)
+{
+    return (n * 2.0f - 1.0f);
+}
+
+float2 ToCentralSquare(float2 uvEnv, float aspect)
+{
+    if (aspect >= 1.0)
+    {
+        float sx = rcp(aspect);
+        return float2(uvEnv.x * sx + (0.5 - 0.5 * sx), uvEnv.y);
+    }
+    else
+    {
+        float sy = aspect;
+        return float2(uvEnv.x, uvEnv.y * sy + (0.5 - 0.5 * sy));
+    }
+}
+
+float4 PSLegacyReflections(PixelShaderInput input) : SV_Target
+{
+    float3 baseCol = ColorTexture.Sample(ColorSampler, input.UV).rgb;
+    
+    float4 nm = NormalsTexture.Sample(NormalsSampler, input.UV);
+    float3 N = DecodeNormal(nm.xyz);
+    float m = nm.w;
+    
+    float r = saturate(RoughnessTexture.Sample(RoughnessSampler, input.UV).w);
+    
+    float2 uvEnv = N.xy * 0.5 + 0.5;
+    uvEnv = uvEnv.yx;
+    
+    float2 uvSq = ToCentralSquare(uvEnv, ViewportSize.x / ViewportSize.y);
+    float3 envCol = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, uvSq).rgb;
+    
+    envCol *= float3(1, 1, 1);
+    
+    float strength = pow(saturate(1.0 - r), 1.0f);
+    
+    float w = saturate(m * 0.5f * strength);
+    float3 outCol = lerp(baseCol, envCol, w);
+
+    return float4(outCol, 1.0);
 }
