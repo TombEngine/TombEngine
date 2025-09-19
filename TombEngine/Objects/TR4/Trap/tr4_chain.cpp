@@ -42,7 +42,7 @@ namespace TEN::Entities::Traps
 				auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 				//auto orient = Geometry::GetOrientToPoint(origin, target)
 
-				TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item.RoomNumber), orient, 4, Vector4(0.0f, 1.0f, 0.0f, 1.0f), true, true, true);
+				TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item.RoomNumber), orient, 4, 4, Vector4(0.0f, 1.0f, 0.0f, 1.0f), true, true, true);
 				return;
 			}
 		}
