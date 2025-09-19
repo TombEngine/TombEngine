@@ -32,6 +32,7 @@
 #include "Renderer/ConstantBuffers/AnimatedBuffer.h"
 #include "Renderer/ConstantBuffers/BlendingBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
+#include "Renderer/ConstantBuffers/MaterialBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedStaticBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/ConstantBuffer.h"
@@ -112,9 +113,9 @@ namespace TEN::Renderer
 
 		// Render targets
 
-		RenderTarget2D _normalsRenderTarget;
+		RenderTarget2D _normalsAndMaterialIndexRenderTarget;
 		RenderTarget2D _depthRenderTarget;
-		RenderTarget2D _emissiveRenderTarget;
+		RenderTarget2D _emissiveAndRoughnessRenderTarget;
 		RenderTarget2D _backBuffer;
 		RenderTarget2D _dumpScreenRenderTarget;
 		RenderTarget2D _renderTarget;
@@ -159,6 +160,8 @@ namespace TEN::Renderer
 		ConstantBuffer<CSMAABuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
 		ConstantBuffer<CSkyBuffer> _cbSky;
+		CMaterialBuffer _stMaterial;
+		ConstantBuffer<CMaterialBuffer> _cbMaterial;
 
 		// Primitive batches
 
@@ -170,7 +173,7 @@ namespace TEN::Renderer
 		std::unique_ptr<SpriteFont> _gameFont;
 		std::vector<RendererStringToDraw> _stringsToDraw;
 		Vector4 _blinkColorValue = Vector4::Zero;
-		float _blinkTime    = 0.0f;
+		float _blinkTime = 0.0f;
 		float _oldBlinkTime = 0.0f;
 
 		// Sprites
@@ -218,8 +221,8 @@ namespace TEN::Renderer
 
 		// Lines
 
-		std::vector<RendererLine2D>		_lines2DToDraw	   = {};
-		std::vector<RendererLine3D>		_lines3DToDraw	   = {};
+		std::vector<RendererLine2D>		_lines2DToDraw = {};
+		std::vector<RendererLine3D>		_lines3DToDraw = {};
 		std::vector<RendererTriangle3D> _triangles3DToDraw = {};
 
 		// Textures, objects and sprites
@@ -274,6 +277,11 @@ namespace TEN::Renderer
 		int _numCheckPortalCalls = 0;
 		int _numGetVisibleRoomsCalls = 0;
 
+		int _numConstantBufferUpdates = 0;
+
+		int _numExecutedMaterialsUpdates = 0;
+		int _numRequestedMaterialsUpdates = 0;
+
 		float _currentLineHeight = 0.0f;;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
@@ -305,6 +313,7 @@ namespace TEN::Renderer
 		BlendMode _lastBlendMode;
 		DepthState _lastDepthState;
 		CullMode _lastCullMode;
+		int _lastMaterialIndex;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
@@ -360,7 +369,7 @@ namespace TEN::Renderer
 
 		// High framerate
 
-		float _interpolationFactor	   = 0.0f;
+		float _interpolationFactor = 0.0f;
 		bool  _graphicsSettingsChanged = false;
 
 		// Shader manager
@@ -457,7 +466,7 @@ namespace TEN::Renderer
 		void DrawExamines();
 		void DrawDebris(RenderView& view, RendererPass rendererPass);
 		void DrawFullScreenImage(ID3D11ShaderResourceView* texture, float fade, ID3D11RenderTargetView* target,
-		                         ID3D11DepthStencilView* depthTarget);
+			ID3D11DepthStencilView* depthTarget);
 		void PrepareShockwaves(RenderView& view);
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
@@ -481,7 +490,7 @@ namespace TEN::Renderer
 		void RenderLoadSaveMenu();
 		void RenderOptionsMenu(Menu menu, int initialY);
 		void RenderNewInventory();
-		void RenderToCubemap(const RenderTargetCube& dest, const Vector3& pos, int roomNumber); 
+		void RenderToCubemap(const RenderTargetCube& dest, const Vector3& pos, int roomNumber);
 		void RenderBlobShadows(RenderView& renderView);
 		void RenderShadowMap(RendererItem* item, RenderView& view);
 		void RenderItemShadows(RenderView& renderView);
@@ -505,24 +514,24 @@ namespace TEN::Renderer
 		void CalculateGlow(RenderView& view);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
-					 Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddSpriteBillboardConstrained(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
-					 float scale, Vector2 size, BlendMode blendMode, const Vector3& constrainAxis,
-					 bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+			float scale, Vector2 size, BlendMode blendMode, const Vector3& constrainAxis,
+			bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddSpriteBillboardConstrainedLookAt(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
-					 float scale, Vector2 size, BlendMode blendMode, const Vector3& lookAtAxis,
-					 bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+			float scale, Vector2 size, BlendMode blendMode, const Vector3& lookAtAxis,
+			bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
-					 const Vector4 color, float orient2D, float scale, Vector2 size, BlendMode blendMode, bool softParticles,
-					 RenderView& view);
+			const Vector4 color, float orient2D, float scale, Vector2 size, BlendMode blendMode, bool softParticles,
+			RenderView& view);
 		void AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
-					 const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3, float orient2D,
-					 float scale, Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3, float orient2D,
+			float scale, Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
-							const Vector4& color, BlendMode blendMode, RenderView& view);
+			const Vector4& color, BlendMode blendMode, RenderView& view);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
-							const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
-							BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3,
+			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
@@ -536,6 +545,7 @@ namespace TEN::Renderer
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
 		Texture2D CreateDefaultTexture(std::vector<byte> color);
+		void BindMaterial(int materialIndex, bool force);
 
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
@@ -543,7 +553,7 @@ namespace TEN::Renderer
 		{
 			return (_currentMirror != nullptr && roomNumber != _currentMirror->RoomNumber);
 		}
-		
+
 		inline void ReflectVectorOptionally(Vector3& vector)
 		{
 			if (_currentMirror == nullptr)
@@ -589,6 +599,13 @@ namespace TEN::Renderer
 		}
 
 		template <typename C>
+		inline void UpdateConstantBuffer(C& data, ConstantBuffer<C>& cb) noexcept
+		{
+			cb.UpdateData(data, _context.Get());
+			_numConstantBufferUpdates++;
+		}
+
+		template <typename C>
 		ConstantBuffer<C> CreateConstantBuffer()
 		{
 			return ConstantBuffer<C>(_device.Get());
@@ -597,9 +614,9 @@ namespace TEN::Renderer
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
 		{
 			return !(blendMode == BlendMode::Opaque ||
-					 blendMode == BlendMode::AlphaTest ||
-					 blendMode == BlendMode::Additive ||
-					 blendMode == BlendMode::FastAlphaBlend);
+				blendMode == BlendMode::AlphaTest ||
+				blendMode == BlendMode::Additive ||
+				blendMode == BlendMode::FastAlphaBlend);
 		}
 
 		static inline BlendMode GetBlendModeFromAlpha(BlendMode blendMode, float alpha)
@@ -621,7 +638,7 @@ namespace TEN::Renderer
 		inline void TexturesAreNotAnimated()
 		{
 			_stAnimated.Animated = 0;
-			_cbAnimated.UpdateData(_stAnimated, _context.Get());
+			UpdateConstantBuffer(_stAnimated, _cbAnimated);
 		}
 
 		static inline bool IsWaterfall(short objectNumber)
@@ -714,7 +731,7 @@ namespace TEN::Renderer
 		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
-							  int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
+			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
 		void CollectDisplaySprites(RenderView& renderView);
 
 		PostProcessMode	GetPostProcessMode();

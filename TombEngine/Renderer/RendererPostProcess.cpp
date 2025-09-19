@@ -38,7 +38,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
-		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
@@ -50,7 +50,9 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::PostProcess);
 
-		// Copy render target to post process render target.
+		// *** START OF POST-PROCESSING CHAIN ***
+		
+		// Copy render target to post process render target. --------------------------------------------------------------------
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
@@ -62,12 +64,12 @@ namespace TEN::Renderer
 		int currentRenderTarget = 0;
 		int destRenderTarget = 1;
 
-		// Glow combine
+		// Glow combine ---------------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::GlowCombine);
 
 		_stPostProcessBuffer.GlowSoftAdd = 1;
 		_stPostProcessBuffer.GlowIntensity = 1.0f;
-		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
@@ -79,23 +81,23 @@ namespace TEN::Renderer
 		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
 		
+		// Legacy reflections ---------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::PostProcess);
 		_shaders.Bind(Shader::LegacyReflections);
-		 
-		// Legacy reflections
+		
 		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(2), &_normalsRenderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(2), &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(4), &_renderTarget, SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(5), &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(5), &_emissiveAndRoughnessRenderTarget, SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 		
 		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
 		
-		// Lens flares.
+		// Lens flares ----------------------------------------------------------------------------------------------------------
 		if (!view.LensFlaresToDraw.empty())
 		{
 			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
@@ -109,7 +111,7 @@ namespace TEN::Renderer
 				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
-			_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+			UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
 			DrawTriangles(3, 0);
@@ -118,7 +120,7 @@ namespace TEN::Renderer
 			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
 		}
 
-		// Apply color scheme.
+		// Color scheme ----------------------------------------------------------------------------------------------------------
 		if (_postProcessMode != PostProcessMode::None && _postProcessStrength > EPSILON)
 		{
 			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
@@ -149,7 +151,7 @@ namespace TEN::Renderer
 			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
 		}
 
-		// Do final pass.
+		// Final pass ----------------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::PostProcessFinalPass);
 
 		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
@@ -261,13 +263,13 @@ void Renderer::CalculateGlow(RenderView& view)
 	_shaders.Bind(Shader::Downscale);
 
 	_stPostProcessBuffer.DownscaleFactor = GLOW_DOWNSCALE_FACTOR;
-	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+	UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
 	_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
-	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveRenderTarget, SamplerStateRegister::LinearClamp);
+	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveAndRoughnessRenderTarget, SamplerStateRegister::LinearClamp);
 	DrawTriangles(3, 0);
 
 	// Blur
@@ -282,14 +284,14 @@ void Renderer::CalculateGlow(RenderView& view)
 	_context->OMSetRenderTargets(1, _glowRenderTarget[1].RenderTargetView.GetAddressOf(), nullptr);
 
 	_stPostProcessBuffer.BlurDirection = Vector2(1.0f, 0.0f);
-	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+	UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 	BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
 	DrawTriangles(3, 0);
 
 	// Vertical blur
 	_stPostProcessBuffer.BlurDirection = Vector2(0.0f, 1.0f);
-	_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+	UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 	_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
 	_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);

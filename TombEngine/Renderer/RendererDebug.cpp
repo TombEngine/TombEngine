@@ -21,7 +21,7 @@ namespace TEN::Renderer
 		_numSpritesDrawCalls = 0;
 		_numInstancedSpritesDrawCalls = 0;
 		_numSortedSpritesDrawCalls = 0;
-
+		
 		_numLinesDrawCalls = 0;
 
 		_numTriangles = 0;
@@ -34,6 +34,11 @@ namespace TEN::Renderer
 		_numDotProducts = 0;
 		_numCheckPortalCalls = 0;
 		_numGetVisibleRoomsCalls = 0;
+
+		_numConstantBufferUpdates = 0;
+
+		_numRequestedMaterialsUpdates = 0;
+		_numExecutedMaterialsUpdates = 0;
 
 		_currentLineHeight;
 	}

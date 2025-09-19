@@ -73,13 +73,14 @@ namespace TEN::Renderer
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
 		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
+		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
 		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
 		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
 		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
-		_cbHUD.UpdateData(_stHUD, _context.Get());
+		UpdateConstantBuffer(_stHUD, _cbHUD);
 		_currentCausticsFrame = 0;
 
 		// Preallocate lists.
@@ -493,8 +494,8 @@ namespace TEN::Renderer
 		_dumpScreenRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_shadowMap = Texture2DArray(_device.Get(), g_Configuration.ShadowMapSize, 6, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_depthRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R32_FLOAT, false, DXGI_FORMAT_UNKNOWN);
-		_normalsRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-		_emissiveRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_normalsAndMaterialIndexRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_emissiveAndRoughnessRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAORenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAOBlurredRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_glowRenderTarget[0] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);

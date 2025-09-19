@@ -1,5 +1,6 @@
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
+#include "./CBMaterial.hlsli"
 #include "./Math.hlsli"
 
 #define MAX_BLUR_RADIUS 100
@@ -340,26 +341,34 @@ float2 ToCentralSquare(float2 uvEnv, float aspect)
 
 float4 PSLegacyReflections(PixelShaderInput input) : SV_Target
 {
-    float3 baseCol = ColorTexture.Sample(ColorSampler, input.UV).rgb;
+    float3 baseColor = ColorTexture.Sample(ColorSampler, input.UV).rgb;
     
     float4 nm = NormalsTexture.Sample(NormalsSampler, input.UV);
-    float3 N = DecodeNormal(nm.xyz);
-    float m = nm.w;
+    float materialIndex = nm.w;
+        
+    if (materialIndex == MATERIAL_REFLECTIVE)
+    {
+        float3 N = DecodeNormal(nm.xyz);
+       
+        float r = saturate(RoughnessTexture.Sample(RoughnessSampler, input.UV).w);
     
-    float r = saturate(RoughnessTexture.Sample(RoughnessSampler, input.UV).w);
+        float2 uvEnv = N.xy * 0.5f + 0.5f;
+        uvEnv = float2(uvEnv.x, 1.0f - uvEnv.y);
     
-    float2 uvEnv = N.xy * 0.5 + 0.5;
-    uvEnv = uvEnv.yx;
+        float2 uvSq = ToCentralSquare(uvEnv, ViewportSize.x / ViewportSize.y);
+        float3 envCol = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, uvSq).rgb;
     
-    float2 uvSq = ToCentralSquare(uvEnv, ViewportSize.x / ViewportSize.y);
-    float3 envCol = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, uvSq).rgb;
+        envCol *= float3(1, 1, 1);
     
-    envCol *= float3(1, 1, 1);
+        float strength = pow(saturate(1.0f - r), 1.0f);
     
-    float strength = pow(saturate(1.0 - r), 1.0f);
-    
-    float w = saturate(m * 0.5f * strength);
-    float3 outCol = lerp(baseCol, envCol, w);
+        float w = saturate(0.5f * strength);
+        float3 outCol = lerp(baseColor, envCol, w);
 
-    return float4(outCol, 1.0);
+        return float4(outCol, 1.0f);
+    }
+    else
+    {
+        return float4(baseColor, 1.0f);
+    }    
 }

@@ -19,7 +19,6 @@ cbuffer CBItem : register(b1)
 	//--
 	int NumItemLights;
     int Skinned;
-    int Reflections;
 };
 
 #endif // CBITEMSHADER

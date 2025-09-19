@@ -44,7 +44,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::SmaaColorEdgeDetection);
 		 
 		_stSMAABuffer.BlendFactor = 1.0f;
-		_cbSMAABuffer.UpdateData(_stSMAABuffer, _context.Get());
+		UpdateConstantBuffer(_stSMAABuffer, _cbSMAABuffer);
 		BindConstantBufferPS(static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_SMAASceneRenderTarget, SamplerStateRegister::LinearClamp);
@@ -62,7 +62,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::SmaaBlendingWeightCalculation);
 
 		_stSMAABuffer.SubsampleIndices = Vector4::Zero;
-		_cbSMAABuffer.UpdateData(_stSMAABuffer, _context.Get());
+		UpdateConstantBuffer(_stSMAABuffer, _cbSMAABuffer);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_SMAASceneRenderTarget, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_SMAASceneSRGBRenderTarget, SamplerStateRegister::LinearClamp);
@@ -126,7 +126,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Fxaa);
 
 		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
-		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 		
 		BindTexture(TextureRegister::ColorMap, &_tempRenderTarget, SamplerStateRegister::AnisotropicClamp);
 

@@ -188,7 +188,7 @@ namespace TEN::Renderer
 
 			auto shadowProjection = CCameraMatrixBuffer{};
 			shadowProjection.ViewProjection = view * projection;
-			_cbCameraMatrices.UpdateData(shadowProjection, _context.Get());
+			UpdateConstantBuffer(shadowProjection, _cbCameraMatrices);
 			BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
@@ -213,7 +213,7 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
 					_stItem.BonesMatrices[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
-				_cbItem.UpdateData(_stItem, _context.Get());
+				UpdateConstantBuffer(_stItem, _cbItem);
 
 				auto* mesh = GetMesh(item->SkinIndex);
 
@@ -233,7 +233,7 @@ namespace TEN::Renderer
 			}
 
 			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
-			_cbItem.UpdateData(_stItem, _context.Get());
+			UpdateConstantBuffer(_stItem, _cbItem);
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
 			{
@@ -336,7 +336,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+			UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -345,6 +345,7 @@ namespace TEN::Renderer
 					continue;
 
 				BindBucketTextures(bucket, TextureSource::Moveables, false);
+				BindMaterial(bucket.MaterialIndex, false);
 
 				DrawIndexedInstancedTriangles(bucket.NumIndices, gunShellCount, bucket.StartIndex, 0);
 
@@ -610,7 +611,7 @@ namespace TEN::Renderer
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -619,14 +620,15 @@ namespace TEN::Renderer
 								if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 									continue;
 
+								BindBucketTextures(bucket, TextureSource::Moveables, animated);
+								BindMaterial(bucket.MaterialIndex, false);
+
 								int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 
 								for (int p = 0; p < passes; p++)
 								{
 									if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 										continue;
-
-									BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 									DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
@@ -727,7 +729,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -736,14 +738,15 @@ namespace TEN::Renderer
 							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 								continue;
 
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
 							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
 							for (int p = 0; p < passCount; p++)
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-
-								BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
+	
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
@@ -848,7 +851,7 @@ namespace TEN::Renderer
 					_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 					_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -857,13 +860,14 @@ namespace TEN::Renderer
 							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 								continue;
 
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
 							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
 							for (int p = 0; p < passCount; p++)
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-
-								BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 								DrawIndexedInstancedTriangles(bucket.NumIndices, batCount, bucket.StartIndex, 0);
 
@@ -978,7 +982,7 @@ namespace TEN::Renderer
 					_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 					_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -987,13 +991,14 @@ namespace TEN::Renderer
 							if (bucket.NumVertices == 0)
 								continue;
 
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
 							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
 							for (int p = 0; p < passCount; p++)
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-
-								BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 								DrawIndexedInstancedTriangles(bucket.NumIndices, beetleCount, bucket.StartIndex, 0);
 
@@ -1109,7 +1114,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.roomNumber].LightsToDraw, 0);
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1118,13 +1123,14 @@ namespace TEN::Renderer
 							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 								continue;
 
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
 							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
 							for (int p = 0; p < passCount; p++)
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-
-								BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
@@ -1837,14 +1843,10 @@ namespace TEN::Renderer
 		auto time2 = std::chrono::high_resolution_clock::now();
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
-
-		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
 		 
 		// Bind constant buffers.
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		BindConstantBufferVS(ConstantBufferRegister::Material, _cbMaterial.get());
 		BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
 		BindConstantBufferVS(ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
@@ -1856,6 +1858,7 @@ namespace TEN::Renderer
 		BindConstantBufferVS(ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		BindConstantBufferPS(ConstantBufferRegister::Material, _cbMaterial.get());
 		BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
 		BindConstantBufferPS(ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
@@ -1865,6 +1868,13 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::Sky, _cbSky.get());
+
+
+		// Reset GPU state.
+		SetBlendMode(BlendMode::Opaque, true);
+		SetDepthState(DepthState::Write, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		BindMaterial(0, true);
 
 		// Set up vertex parameters.
 		_context->IASetInputLayout(_inputLayout.Get());
@@ -1918,8 +1928,8 @@ namespace TEN::Renderer
 			cameraConstantBuffer.FogBulbs[i].SquaredCameraToFogBulbDistance = SQUARE(view.FogBulbsToDraw[i].Distance);
 			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
 		}
-		 
-		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
+		
+		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
@@ -1930,13 +1940,13 @@ namespace TEN::Renderer
 		DrawHorizonAndSky(view, _renderTarget.DepthStencilView.Get());
 
 		// Build G-Buffer (normals + depth).
-		_context->ClearRenderTargetView(_normalsRenderTarget.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Black);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
-		_context->ClearRenderTargetView(_emissiveRenderTarget.RenderTargetView.Get(), Colors::Transparent);
+		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 
-		pRenderViewPtrs[0] = _normalsRenderTarget.RenderTargetView.Get();
+		pRenderViewPtrs[0] = _normalsAndMaterialIndexRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _depthRenderTarget.RenderTargetView.Get();
-		pRenderViewPtrs[2] = _emissiveRenderTarget.RenderTargetView.Get();
+		pRenderViewPtrs[2] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
 		_context->OMSetRenderTargets(3, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 
 		// Render G-Buffer pass.
@@ -2097,7 +2107,7 @@ namespace TEN::Renderer
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = s == 0 ? 1 : 0;
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					DrawIndexedInstancedTriangles(SKY_INDICES_COUNT, 1, 0, 0);
 				}
@@ -2120,7 +2130,7 @@ namespace TEN::Renderer
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = 1;
 
-				_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+				UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 				for (const auto* mesh : moveableObj.ObjectMeshes)
 				{
@@ -2177,7 +2187,7 @@ namespace TEN::Renderer
 			_stRoom.AmbientColor = room->AmbientLight;
 			_stRoom.NumRoomLights = 0;
 			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-			_cbRoom.UpdateData(_stRoom, _context.Get());
+			UpdateConstantBuffer(_stRoom, _cbRoom);
 
 			for (auto& bucket : room->Buckets)
 			{
@@ -2475,13 +2485,13 @@ namespace TEN::Renderer
 		_stAnimated.Textures[0].BottomLeft  = Vector2(minX, maxY);
 		_stAnimated.Textures[0].BottomRight = Vector2(maxX, maxY);
 		
-		_cbAnimated.UpdateData(_stAnimated, _context.Get());
+		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 
 		DrawAnimatingItem(item, view, rendererPass);
 
 		// Reset animated buffer after rendering just in case
 		_stAnimated.Fps = _stAnimated.NumFrames = _stAnimated.Type = 0;
-		_cbAnimated.UpdateData(_stAnimated, _context.Get());
+		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 	}
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
@@ -2510,13 +2520,13 @@ namespace TEN::Renderer
 		{
 			for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
 				_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
-			_cbItem.UpdateData(_stItem, _context.Get());
+			UpdateConstantBuffer(_stItem, _cbItem);
 
 			DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 		}
 
 		memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
 		{
@@ -2686,7 +2696,7 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -2697,14 +2707,15 @@ namespace TEN::Renderer
 									continue;
 								}
 
+								BindBucketTextures(bucket, TextureSource::Statics, animated);
+								BindMaterial(bucket.MaterialIndex, false);
+
 								int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 								for (int p = 0; p < passes; p++)
 								{
 									if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 										continue;
-
-									BindBucketTextures(bucket, TextureSource::Statics, animated);
-
+																		
 									DrawIndexedInstancedTriangles(bucket.NumIndices, instancesCount, bucket.StartIndex, 0);
 
 									_numInstancedStaticsDrawCalls++;
@@ -2850,7 +2861,7 @@ namespace TEN::Renderer
 					_stShadowMap.CastShadows = false;
 				}
 
-				_cbShadowMap.UpdateData(_stShadowMap, _context.Get());
+				UpdateConstantBuffer(_stShadowMap, _cbShadowMap);
 			}
 
 			if (g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
@@ -2872,7 +2883,7 @@ namespace TEN::Renderer
 				}
 
 				_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-				//_cbRoom.UpdateData(_stRoom, _context.Get());
+				UpdateConstantBuffer(_stRoom, _cbRoom);
 
 				SetScissor(room.ClipBounds);
 
@@ -2883,21 +2894,15 @@ namespace TEN::Renderer
 						if (((animated == 1) ^ bucket.Animated) || bucket.NumVertices == 0)
 							continue;
 
-						_stRoom.RoomReflections = 0;
-						if (bucket.MaterialIndex != -1)
-						{
-							_stRoom.RoomReflections = g_Level.Materials[bucket.MaterialIndex].Type == MaterialShaderType::Reflective ? 1 : 0;
-						}
-						_cbRoom.UpdateData(_stRoom, _context.Get());
-
+						BindMaterial(bucket.MaterialIndex, false);
+						BindBucketTextures(bucket, TextureSource::Rooms, animated);
+						
 						int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 
 						for (int p = 0; p < passes; p++)
 						{
 							if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 								continue;
-
-							BindBucketTextures(bucket, TextureSource::Rooms, animated);
 
 							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
 
@@ -2967,7 +2972,7 @@ namespace TEN::Renderer
 				_stSky.Color = Weather.SkyColor(layer);
 				_stSky.ApplyFogBulbs = layer == 0 ? 1 : 0;
 				_stSky.Ambient = Vector4::One;
-				_cbSky.UpdateData(_stSky, _context.Get());
+				UpdateConstantBuffer(_stSky, _cbSky);
 
 				DrawIndexedTriangles(SKY_INDICES_COUNT, 0, 0);
 
@@ -3037,7 +3042,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 				}
 
-				_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+				UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 				// Draw sprites with instancing.
 				DrawInstancedTriangles(4, starsToDraw, 0);
@@ -3100,7 +3105,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 					}
 
-					_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 					// Draw sprites with instancing.
 					DrawInstancedTriangles(4, meteorsToDraw, 0);
@@ -3141,7 +3146,7 @@ namespace TEN::Renderer
 			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
 			_stSky.Color = Color(1.0f, 1.0f, 1.0f, alpha);
 			_stSky.ApplyFogBulbs = 1;
-			_cbSky.UpdateData(_stSky, _context.Get());
+			UpdateConstantBuffer(_stSky, _cbSky);
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 			for (auto* mesh : moveableObj.ObjectMeshes)
@@ -3214,7 +3219,7 @@ namespace TEN::Renderer
 
 			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
-			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+			UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
@@ -3286,13 +3291,6 @@ namespace TEN::Renderer
 					if (IsWaterfall(itemToDraw->ObjectID) && animated == 1)
 						continue;
 
-					_stItem.Reflections = 0;
-					if (bucket.MaterialIndex != -1)
-					{
-						_stItem.Reflections = g_Level.Materials[bucket.MaterialIndex].Type == MaterialShaderType::Reflective ? 1 : 0;
-					}
-					_cbItem.UpdateData(_stItem, _context.Get());
-
 					auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
 					if (rendererPass == RendererPass::ShadowMap)
@@ -3308,17 +3306,26 @@ namespace TEN::Renderer
 					{
 						int passes = rendererPass == RendererPass::Opaque && blendMode == BlendMode::AlphaTest ? 2 : 1;
 
+						// HACK: for waterfalls
+						if (IsWaterfall(itemToDraw->ObjectID))
+							BindAtlasTextures(bucket, TextureSource::Moveables);
+						else
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+
+						if (itemToDraw->ObjectID == ID_LARA)
+						{
+							_stMaterial.MaterialType = (int)MaterialShaderType::Reflective;
+							UpdateConstantBuffer(_stMaterial, _cbMaterial);
+							_lastMaterialIndex = -1;
+						}
+						else
+							BindMaterial(bucket.MaterialIndex, false);
+
 						for (int p = 0; p < passes; p++)
 						{
 							if (!SetupBlendModeAndAlphaTest(blendMode, rendererPass, p))
 								continue;
-							
-							// HACK: for waterfalls
-							if (IsWaterfall(itemToDraw->ObjectID))
-								BindAtlasTextures(bucket, TextureSource::Moveables);
-							else
-								BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					
+												
 							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
 
 							_numMoveablesDrawCalls++;
@@ -3660,8 +3667,7 @@ namespace TEN::Renderer
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
 		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-		_stRoom.RoomReflections = 0;
-		_cbRoom.UpdateData(_stRoom, _context.Get());
+		UpdateConstantBuffer(_stRoom, _cbRoom);
 
 		SetScissor(objectInfo->Room->ClipBounds);
 
@@ -3669,7 +3675,8 @@ namespace TEN::Renderer
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
-
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
+		
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
@@ -3715,16 +3722,17 @@ namespace TEN::Renderer
 			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 		}
 
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3752,7 +3760,7 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3760,6 +3768,7 @@ namespace TEN::Renderer
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3787,7 +3796,7 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3795,6 +3804,7 @@ namespace TEN::Renderer
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3852,16 +3862,17 @@ namespace TEN::Renderer
 			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
 		}
 
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3917,13 +3928,13 @@ namespace TEN::Renderer
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_depthRenderTarget, SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_normalsRenderTarget, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::PointWrap);
 		BindTexture(static_cast<TextureRegister>(2), &_SSAONoiseTexture, SamplerStateRegister::PointWrap);
 
 		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
 		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _screenWidth, 1.0f / _screenHeight);
 		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
-		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		DrawTriangles(3, 0);
 
@@ -4026,7 +4037,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		_cbAnimated.UpdateData(_stAnimated, _context.Get());
+		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 	}
 
 	void Renderer::BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated)

@@ -20,7 +20,7 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector2 CausticsSize;
 		//--
 		Vector3 AmbientColor;
-		float RoomReflections;
+		float RoomPadding0;
 		//--
 		ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 		//--

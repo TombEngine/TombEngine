@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;
 		_lastDepthState = DepthState::Unknown;
+		_lastMaterialIndex = NO_VALUE;
 
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
 		_spriteSequences.resize(ID_NUMBER_OBJECTS);
@@ -51,7 +52,7 @@ namespace TEN::Renderer
 		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
 
 		auto emptyNormalMap = std::vector<byte>{ 128, 128, 255, 255 };
-		auto emptyOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 255, 255, 255 };
+		auto emptyOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 0, 255, 255 };
 		auto emptyEmissiveMap = std::vector<byte>{ 0, 0, 0, 0 };
 
 		TENLog("Allocated renderer object memory.", LogLevel::Info);

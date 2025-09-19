@@ -1260,7 +1260,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+				UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1278,7 +1278,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+				UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1358,7 +1358,7 @@ namespace TEN::Renderer
 						ReflectMatrixOptionally(worldMatrix);
 
 						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1400,7 +1400,7 @@ namespace TEN::Renderer
 						ReflectMatrixOptionally(worldMatrix);
 
 						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1496,7 +1496,7 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = effect->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 		auto& mesh = *effect->Mesh;
 		
@@ -1618,7 +1618,7 @@ namespace TEN::Renderer
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
 
-					_cbInstancedStaticMeshBuffer.UpdateData(_stInstancedStaticMeshBuffer, _context.Get());
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(matrix);

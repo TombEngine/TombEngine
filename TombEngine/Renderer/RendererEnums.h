@@ -207,6 +207,7 @@ enum class ConstantBufferRegister
 {
 	Camera = 0,
 	Item = 1,
+	Material = 2,
 	InstancedStatics = 3,
 	ShadowLight = 4,
 	Room = 5,

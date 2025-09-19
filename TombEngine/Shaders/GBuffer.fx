@@ -2,6 +2,7 @@
 #include "./CBItem.hlsli"
 #include "./CBInstancedStatics.hlsli"
 #include "./CBRoom.hlsli"
+#include "./CBMaterial.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
@@ -16,7 +17,6 @@ struct PixelShaderInput
 	float3 Binormal: BINORMAL;
 	float2 UV: TEXCOORD0;
 	float4 PositionCopy : TEXCOORD1;
-    int Reflections : TEXCOORD2;
 };
 
 Texture2D Texture : register(t0);
@@ -82,7 +82,6 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Binormal = input.Binormal;
     output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
-    output.Reflections = RoomReflections;
 	
 	return output;
 }
@@ -105,7 +104,6 @@ PixelShaderInput VSItems(VertexShaderInput input)
     output.Normal = normalize(mul(input.Normal, (float3x3) world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
-    output.Reflections = Reflections;
 	
 	return output;
 }
@@ -126,7 +124,6 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
     output.Normal = normalize(mul(input.Normal, (float3x3) StaticMeshes[InstanceID].World).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticMeshes[InstanceID].World).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticMeshes[InstanceID].World).xyz);
-    output.Reflections = 0;
 	
 	return output;
 }
@@ -153,7 +150,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;
-    output.Normals.w = input.Reflections;
+    output.Normals.w = MaterialType;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = emissive.xyz;
     output.Emissive.w = roughness;

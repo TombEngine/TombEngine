@@ -311,7 +311,7 @@ namespace TEN::Renderer
 			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
-			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+			UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, (int)spriteBucket.SpritesToDraw.size(), 0);
@@ -359,7 +359,7 @@ namespace TEN::Renderer
 
 			PackSpritesTextureCoordinates(0, spriteBucket.Sprite);
 
-			_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+			UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -448,7 +448,7 @@ namespace TEN::Renderer
 
 		PackSpritesTextureCoordinates(0, object->Sprite->Sprite);
 
-		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+		UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		
@@ -526,7 +526,7 @@ namespace TEN::Renderer
 
 		PackSpritesTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
-		_cbInstancedSpriteBuffer.UpdateData(_stInstancedSpriteBuffer, _context.Get());
+		UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);

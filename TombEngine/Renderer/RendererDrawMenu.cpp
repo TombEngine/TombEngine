@@ -847,7 +847,7 @@ namespace TEN::Renderer
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
 		hudCamera.Frame = GlobalCounter;
 		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
-		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
+		UpdateConstantBuffer(hudCamera, _cbCameraMatrices);
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
@@ -880,7 +880,7 @@ namespace TEN::Renderer
 			_stItem.Color = Vector4::One;
 			_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
 
-			_cbItem.UpdateData(_stItem, _context.Get());
+			UpdateConstantBuffer(_stItem, _cbItem);
 
 			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
 			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
@@ -899,6 +899,7 @@ namespace TEN::Renderer
 					SetDepthState(DepthState::Write);
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
 
 					if (bucket.BlendMode != BlendMode::Opaque)
 						SetBlendMode(bucket.BlendMode, true);
@@ -1291,6 +1292,8 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Sprites: %d", _numSortedSpritesDrawCalls);
 			PrintDebugMessage("SHADOW MAP draw calls: %d", _numShadowMapDrawCalls);
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
+			PrintDebugMessage("Constant buffers updates: %d", _numConstantBufferUpdates);
+			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
 
 			_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
 
@@ -1299,7 +1302,7 @@ namespace TEN::Renderer
 			rect.right = rect.left+ thumbWidth;
 			rect.bottom = rect.top+thumbWidth / aspectRatio;
 
-			_spriteBatch->Draw(_normalsRenderTarget.ShaderResourceView.Get(), rect);
+			_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
 			thumbY += thumbWidth / aspectRatio;
 
 			rect.left = _screenWidth - thumbWidth;

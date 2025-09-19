@@ -330,13 +330,13 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	{
 		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
 			_stItem.BonesMatrices[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 	}
 
 	memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
-	_cbItem.UpdateData(_stItem, _context.Get());
+	UpdateConstantBuffer(_stItem, _cbItem);
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
 	{
@@ -400,7 +400,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			_stItem.BoneLightModes[j] = (int)LightMode::Dynamic;
 		}
 
-		_cbItem.UpdateData(_stItem, _context.Get());
+		UpdateConstantBuffer(_stItem, _cbItem);
 
 		if (skinned)
 		{

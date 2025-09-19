@@ -338,6 +338,26 @@ namespace TEN::Renderer
 		_context->PSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);
 	}
 
+	void Renderer::BindMaterial(int materialIndex, bool force)
+	{
+		_numRequestedMaterialsUpdates++;
+
+		if (materialIndex != _lastMaterialIndex || force)
+		{
+			_stMaterial.MaterialType = (int)g_Level.Materials[materialIndex].Type;
+			_stMaterial.MaterialParameters0 = g_Level.Materials[materialIndex].Parameters0;
+			_stMaterial.MaterialParameters1 = g_Level.Materials[materialIndex].Parameters1;
+			_stMaterial.MaterialParameters2 = g_Level.Materials[materialIndex].Parameters2;
+			_stMaterial.MaterialParameters3 = g_Level.Materials[materialIndex].Parameters3;
+
+			UpdateConstantBuffer(_stMaterial, _cbMaterial);
+
+			_lastMaterialIndex = materialIndex;
+
+			_numExecutedMaterialsUpdates++;
+		}
+	}
+
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
 	{
 		if (blendMode != _lastBlendMode || force)
@@ -378,7 +398,7 @@ namespace TEN::Renderer
 			}
 
 			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
-			_cbBlending.UpdateData(_stBlending, _context.Get());
+			UpdateConstantBuffer(_stBlending, _cbBlending);
 			
 			_lastBlendMode = blendMode;
 		}
@@ -464,7 +484,7 @@ namespace TEN::Renderer
 		{
 			_stBlending.AlphaTest = (int)mode;
 			_stBlending.AlphaThreshold = threshold;
-			_cbBlending.UpdateData(_stBlending, _context.Get());
+			UpdateConstantBuffer(_stBlending, _cbBlending);
 			BindConstantBufferPS(ConstantBufferRegister::Blending, _cbBlending.get());
 		}
 	}

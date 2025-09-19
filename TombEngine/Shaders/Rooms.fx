@@ -1,5 +1,6 @@
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
+#include "./CBMaterial.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -114,6 +115,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 lighting = input.Color.xyz;
 	bool doLights = true;
 
+	// Ambient occlusion
     float occlusion = 1.0f;
     if (AmbientOcclusion == 1)
     {
@@ -129,6 +131,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	
     occlusion *= ambientOcclusion;
 
+	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
 	lighting = DoBlobShadows(input.WorldPosition, lighting);
 
@@ -157,6 +160,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 		}
 	}
 
+	// Decals
 	if (!Animated && NumRoomDecals > 0)
 	{
 		float decalMask = 0.0f;
@@ -186,6 +190,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 		lighting *= (1.0 - decalMask);
 	}
 
+	// Caustics
     if (Caustics)
     {
         float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
@@ -217,6 +222,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	// Emissive materials
     lighting += emissive;
 	
+	// Fog bulbs and final color and light mixing
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;
 	output.Color.xyz = saturate(output.Color.xyz);

@@ -144,7 +144,7 @@ namespace TEN::Renderer
 		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->Width, borderSprite->Height / (float)borderSprite->Texture->Height);
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		 
@@ -170,7 +170,7 @@ namespace TEN::Renderer
 		RendererSprite* innerSprite = &_sprites[Objects[textureSlot].meshIndex];
 		_stHUDBar.BarStartUV = innerSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->Width, innerSprite->Height / (float)innerSprite->Texture->Height);
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
@@ -207,7 +207,7 @@ namespace TEN::Renderer
 
 		_stHUDBar.BarStartUV = Vector2::Zero;
 		_stHUDBar.BarScale = Vector2::One;
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
@@ -226,7 +226,7 @@ namespace TEN::Renderer
 		_stHUDBar.Percent = percentage / 100.0f;
 		_stHUDBar.Poisoned = false;
 		_stHUDBar.Frame = 0; 
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
