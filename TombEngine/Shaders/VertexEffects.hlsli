@@ -20,13 +20,18 @@ static float DecodeWeight(uint effect)
 float Wibble(uint effect, int hash)
 {
     float glow = DecodeGlow(effect);
-    float move = DecodeMove(effect);    
+    float move = DecodeMove(effect);
     
-    float shouldWibble = step(0.0f, glow + move);
-    float wibble = sin((((InterpolatedFrame + hash) % 256) / WIBBLE_FRAME_PERIOD) * PI2);
+    float enabled = (glow + move) > 0.0f ? 1.0f : 0.0f;
+    
+    float phaseOffset = (float) ((uint) hash & 255) * (1.0f / 256.0f);
+    
+    float phase = frac(InterpolatedFrame / WIBBLE_FRAME_PERIOD + phaseOffset);
 
-    return wibble * shouldWibble;
+    float wibble = sin(phase * PI2); // [-1,1]
+    return wibble * enabled;
 }
+
 
 float3 Glow(float3 color, uint effect, float wibble)
 {
