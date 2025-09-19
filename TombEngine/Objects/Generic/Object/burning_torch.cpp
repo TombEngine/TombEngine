@@ -76,6 +76,22 @@ namespace TEN::Entities::Generic
 		spark->SpriteID = spriteOffset;
 	}
 
+	static Vector3 GetStartTorchColor(Vector3 sourceColor)
+	{
+		if (sourceColor == Vector3::One)
+			return Vector3(1.0f, Random::GenerateFloat(0.2f, 0.3f), 0.1f);
+
+		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f);
+	}
+
+	static Vector3 GetEndTorchColor(Vector3 sourceColor)
+	{
+		if (sourceColor == Vector3::One)
+			return Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
+
+		return sourceColor / 2.0f * Random::GenerateFloat(0.35f, 0.45f);
+	}
+
 	void DoFlameTorch()
 	{
 		const int holdAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
@@ -189,25 +205,21 @@ namespace TEN::Entities::Generic
 				lara->Torch.PrimaryColor = lara->Torch.SecondaryColor;
 
 			auto alpha = (float)lara->Torch.Fade / ((float)FPS * lara->Torch.FADE_TIMEOUT);
-			auto currentColor = Vector3::Lerp(lara->Torch.SecondaryColor, lara->Torch.PrimaryColor, alpha);
 
-			auto color1 = currentColor / 2.0f;
-			auto color2 = color1 * 0.8f;
+			auto primaryColor   = GetStartTorchColor(lara->Torch.PrimaryColor);
+			auto secondaryColor = GetStartTorchColor(lara->Torch.SecondaryColor);
 
-			if (lara->Torch.PrimaryColor == Vector3::One)
-			{
-				 color1 = Vector3(1.0f, Random::GenerateFloat(0.2f, 0.3f) , 0.1f);
-				 color2 = Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
-			}
+			auto startColor   = Vector3::Lerp(secondaryColor, primaryColor, alpha);
+			auto endColor	  = GetEndTorchColor(lara->Torch.PrimaryColor);
 
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
 
 			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * (1.0f - alpha);
 			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * (1.0f - alpha);
-			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, color1.x * brightness, color1.y * brightness, color1.z * brightness);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, startColor.x * brightness, startColor.y * brightness, startColor.z * brightness);
 
 			if (!(Wibble & 3))
-				TriggerTorchFlame(laraItem->Index, 0, color1, color2);
+				TriggerTorchFlame(laraItem->Index, 0, startColor, endColor);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
 		}
