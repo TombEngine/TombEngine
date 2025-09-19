@@ -471,10 +471,13 @@ namespace TEN::Renderer
 						vertex->Tangent = poly.tangents[k];
 						vertex->Binormal = poly.binormals[k];
 						vertex->AnimationFrameOffset = poly.animatedFrame;
-						vertex->IndexInPoly = k;
 						vertex->OriginalIndex = index;
-						vertex->Effects = Vector4(room.effects[index].x, room.effects[index].y, room.effects[index].z, 0);
-
+						vertex->Effects = ((int)(room.effects[index].x * 63.0f) << 0) |
+							((int)(room.effects[index].y * 63.0f) << 6) |
+							((int)(room.effects[index].z) << 12) | 
+							(0 << 13) |
+							(k << 19);
+							
 						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
 						vertex->Hash = (unsigned int)std::hash<float>{}
 						((vertex->Position.x)* primes[0]) ^
@@ -1139,11 +1142,15 @@ namespace TEN::Renderer
 					vertex.BoneWeight = meshPtr->boneWeights[v];
 
 					vertex.AnimationFrameOffset = poly->animatedFrame;
-					vertex.IndexInPoly = k;
+				
+					vertex.Effects = ((int)(meshPtr->effects[v].x * 63.0f) << 0) |
+						((int)(meshPtr->effects[v].y * 63.0f) << 6) |
+						((int)(meshPtr->effects[v].z) << 12) |
+						((int)(poly->shineStrength * 63.0f) << 13) |
+						(k << 19);
 
 					vertex.OriginalIndex = v;
 
-					vertex.Effects = Vector4(meshPtr->effects[v].x, meshPtr->effects[v].y, meshPtr->effects[v].z, poly->shineStrength);
 					vertex.Hash = (unsigned int)std::hash<float>{}
 						(vertex.Position.x) ^
 							(unsigned int)std::hash<float>{}(vertex.Position.y) ^

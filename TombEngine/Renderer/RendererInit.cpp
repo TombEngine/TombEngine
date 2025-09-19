@@ -51,14 +51,13 @@ namespace TEN::Renderer
 			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "EFFECTS",              0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "POLYINDEX",            0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "EFFECTS",              0, DXGI_FORMAT_R32_UINT,		     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "DRAWINDEX",            0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "HASH",                 0, DXGI_FORMAT_R32_SINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 
 		const auto& roomShader = _shaders.Get(Shader::Rooms);
-		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 13, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
+		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 12, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
 
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
@@ -327,7 +326,7 @@ namespace TEN::Renderer
 		quadVertices[0].Normal.Normalize();
 		quadVertices[0].UV = Vector2(0, 1);
 		quadVertices[0].Color = Vector4(1, 1, 1, 1);
-		quadVertices[0].IndexInPoly = 3;
+		quadVertices[0].Effects = 3 << 19;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
@@ -335,7 +334,7 @@ namespace TEN::Renderer
 		quadVertices[1].Normal.Normalize();
 		quadVertices[1].UV = Vector2(0, 0);
 		quadVertices[1].Color = Vector4(1, 1, 1, 1);
-		quadVertices[1].IndexInPoly = 0;
+		quadVertices[1].Effects = 0 << 19;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
@@ -343,7 +342,7 @@ namespace TEN::Renderer
 		quadVertices[3].Normal.Normalize();
 		quadVertices[3].UV = Vector2(1, 0);
 		quadVertices[3].Color = Vector4(1, 1, 1, 1);
-		quadVertices[3].IndexInPoly = 1;
+		quadVertices[3].Effects = 1 << 19;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
@@ -351,7 +350,7 @@ namespace TEN::Renderer
 		quadVertices[2].Normal.Normalize();
 		quadVertices[2].UV = Vector2(1, 1);
 		quadVertices[2].Color = Vector4(1, 1, 1, 1);
-		quadVertices[2].IndexInPoly = 2;
+		quadVertices[2].Effects = 2 << 19;
 
 		_quadVertexBuffer = VertexBuffer<Vertex>(_device.Get(), 4, quadVertices.data());
 	}

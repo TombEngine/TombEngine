@@ -61,10 +61,12 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 		worldPosition = float4(input.Position, 1.0f);
 		output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
 	}
+	
+    int polyIndex = (input.Effects >> 19) & 3;
 
 	output.PositionCopy = output.Position;
     output.Color = lerp(sprite.Color, input.Color, saturate((float) sprite.PerVertexColor));
-    output.UV = float2(sprite.UV[0][input.PolyIndex], sprite.UV[1][input.PolyIndex]);
+    output.UV = float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
 	output.InstanceID  = InstanceID;
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);

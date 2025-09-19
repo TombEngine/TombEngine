@@ -371,7 +371,7 @@ namespace TEN::Renderer
 				vertex0.Position = rDrawSprite.vtx1;
 				vertex0.UV = rDrawSprite.Sprite->UV[0];
 				vertex0.Color = rDrawSprite.c1;
-				vertex0.IndexInPoly = 0;
+				vertex0.Effects = 0 << 19;
 
 				ReflectVectorOptionally(vertex0.Position);
 
@@ -379,7 +379,7 @@ namespace TEN::Renderer
 				vertex1.Position = rDrawSprite.vtx2;
 				vertex1.UV = rDrawSprite.Sprite->UV[1];
 				vertex1.Color = rDrawSprite.c2;
-				vertex1.IndexInPoly = 1;
+				vertex1.Effects = 1 << 19;
 
 				ReflectVectorOptionally(vertex1.Position);
 
@@ -387,7 +387,7 @@ namespace TEN::Renderer
 				vertex2.Position = rDrawSprite.vtx3;
 				vertex2.UV = rDrawSprite.Sprite->UV[2];
 				vertex2.Color = rDrawSprite.c3;
-				vertex2.IndexInPoly = 2;
+				vertex2.Effects = 2 << 19;
 
 				ReflectVectorOptionally(vertex2.Position);
 
@@ -395,7 +395,7 @@ namespace TEN::Renderer
 				vertex3.Position = rDrawSprite.vtx4;
 				vertex3.UV = rDrawSprite.Sprite->UV[3];
 				vertex3.Color = rDrawSprite.c4;
-				vertex3.IndexInPoly = 3;
+				vertex3.Effects = 3 << 19;
 
 				ReflectVectorOptionally(vertex3.Position);
 
@@ -466,25 +466,25 @@ namespace TEN::Renderer
 			vertex0.Position = object->Sprite->vtx1;
 			vertex0.UV = object->Sprite->Sprite->UV[0];
 			vertex0.Color = object->Sprite->c1;
-			vertex0.IndexInPoly = 0;
+			vertex0.Effects = 0 << 19;
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = object->Sprite->vtx2;
 			vertex1.UV = object->Sprite->Sprite->UV[1];
 			vertex1.Color = object->Sprite->c2;
-			vertex1.IndexInPoly = 1;
+			vertex1.Effects = 1 << 19;
 
 			auto vertex2 = Vertex{};
 			vertex2.Position = object->Sprite->vtx3;
 			vertex2.UV = object->Sprite->Sprite->UV[2];
 			vertex2.Color = object->Sprite->c3;
-			vertex2.IndexInPoly = 2;
+			vertex2.Effects = 2 << 19;
 
 			auto vertex3 = Vertex{};
 			vertex3.Position = object->Sprite->vtx4;
 			vertex3.UV = object->Sprite->Sprite->UV[3];
 			vertex3.Color = object->Sprite->c4;
-			vertex3.IndexInPoly = 3;
+			vertex3.Effects = 3 << 19;
 
 			_spritesVertices.clear();
 			_spritesVertices.push_back(vertex0);

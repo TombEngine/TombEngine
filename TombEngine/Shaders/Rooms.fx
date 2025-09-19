@@ -55,12 +55,12 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Setting effect weight on TE side prevents portal vertices from moving.
 	// Here we just read weight and decide if we should apply refraction or movement effect.
-	float weight = input.Effects.z;
+    float weight = (input.Effects >> 12) & 1;
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz * weight, wibble);
-	float3 col = Glow(input.Color.xyz, input.Effects.xyz, wibble);
+	float wibble = Wibble(input.Effects, input.Hash);
+	float3 pos = Move(input.Position, input.Effects * weight, wibble);
+	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
@@ -79,7 +79,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Normal = input.Normal;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
 	output.WorldPosition = pos;
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;

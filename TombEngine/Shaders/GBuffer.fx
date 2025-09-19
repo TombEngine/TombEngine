@@ -57,11 +57,11 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 
 	// Setting effect weight on TE side prevents portal vertices from moving.
 	// Here we just read weight and decide if we should apply refraction or movement effect.
-	float weight = input.Effects.z;
+    int weight = (input.Effects >> 12) & 1;
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz * weight, wibble);
+	float wibble = Wibble(input.Effects, input.Hash);
+	float3 pos = Move(input.Position, input.Effects * weight, wibble);
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
@@ -81,7 +81,7 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;
     output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
 	
 	return output;
 }
@@ -95,12 +95,12 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
+	float wibble = Wibble(input.Effects, input.Hash);
+	float3 pos = Move(input.Position, input.Effects, wibble);
 
 	output.Position = mul(mul(float4(pos, 1.0f), world), ViewProjection);
     output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
     output.Normal = normalize(mul(input.Normal, (float3x3) world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
@@ -113,14 +113,14 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
 	PixelShaderInput output;
 
 	// Calculate vertex effects
-    float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
+    float wibble = Wibble(input.Effects, input.Hash);
+	float3 pos = Move(input.Position, input.Effects, wibble);
 
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
 	output.Position = mul(worldPosition, ViewProjection);
     output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
     output.Normal = normalize(mul(input.Normal, (float3x3) StaticMeshes[InstanceID].World).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticMeshes[InstanceID].World).xyz);
 	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticMeshes[InstanceID].World).xyz);

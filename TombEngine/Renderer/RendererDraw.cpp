@@ -3305,21 +3305,14 @@ namespace TEN::Renderer
 					else
 					{
 						int passes = rendererPass == RendererPass::Opaque && blendMode == BlendMode::AlphaTest ? 2 : 1;
-
+						
 						// HACK: for waterfalls
 						if (IsWaterfall(itemToDraw->ObjectID))
 							BindAtlasTextures(bucket, TextureSource::Moveables);
 						else
 							BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
-						if (itemToDraw->ObjectID == ID_LARA)
-						{
-							_stMaterial.MaterialType = (int)MaterialShaderType::Reflective;
-							UpdateConstantBuffer(_stMaterial, _cbMaterial);
-							_lastMaterialIndex = -1;
-						}
-						else
-							BindMaterial(bucket.MaterialIndex, false);
+						BindMaterial(bucket.MaterialIndex, false);
 
 						for (int p = 0; p < passes; p++)
 						{
@@ -3605,25 +3598,25 @@ namespace TEN::Renderer
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
 					v0.Color = spr->c1;
-					v0.IndexInPoly = 0;
+					v0.Effects = 0 << 19;
 
 					Vertex v1;
 					v1.Position = Vector3::Transform(p1t, world);
 					v1.UV = uv1;
 					v1.Color = spr->c2;
-					v1.IndexInPoly = 1;
+					v1.Effects = 1 << 19;
 
 					Vertex v2;
 					v2.Position = Vector3::Transform(p2t, world);
 					v2.UV = uv2;
 					v2.Color = spr->c3;
-					v2.IndexInPoly = 2;
-
+					v2.Effects = 2 << 19;
+				    
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
 					v3.Color = spr->c4;
-					v3.IndexInPoly = 3;
+					v3.Effects = 3 << 19;
 
 					_sortedPolygonsVertices.push_back(v0);
 					_sortedPolygonsVertices.push_back(v1);

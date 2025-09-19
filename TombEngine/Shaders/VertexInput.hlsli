@@ -12,8 +12,7 @@ struct VertexShaderInput
 	uint4 BoneIndex: BONEINDICES;
 	uint4 BoneWeight: BONEWEIGHTS;
 	unsigned int AnimationFrameOffset: ANIMATIONFRAMEOFFSET;
-	float4 Effects: EFFECTS;
-	unsigned int PolyIndex : POLYINDEX;
+	uint Effects: EFFECTS;
 	unsigned int Index: DRAWINDEX;
 	int Hash : HASH;
 };
