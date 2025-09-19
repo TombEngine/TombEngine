@@ -168,7 +168,12 @@ namespace TEN::Renderer
 		sprite.c4 = color3;
 		sprite.BlendMode = blendMode;
 		sprite.pos = (vertex0 + vertex1 + vertex2 + vertex3) / 4.0f;
-		sprite.SoftParticle = false;
+
+		if (renderType == SpriteRenderType::LightCone)
+			sprite.SoftParticle = true;
+		else
+			sprite.SoftParticle = false;
+
 		sprite.renderType = renderType;
 
 		view.SpritesToDraw.push_back(sprite);

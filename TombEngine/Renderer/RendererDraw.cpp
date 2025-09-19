@@ -1879,6 +1879,7 @@ namespace TEN::Renderer
 		PrepareStreamers(view);
 		PrepareLaserBarriers(view);
 		PrepareSingleLaserBeam(view);
+		PrepareSingleLightCone(view);
 		PrepareFireflies(view);
 
 		// Sprites grouped in buckets for instancing. Non-commutative sprites are collected at a later stage.

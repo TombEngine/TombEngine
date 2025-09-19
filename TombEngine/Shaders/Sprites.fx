@@ -81,6 +81,12 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	{
 		output = DoLaserBeamEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
 	}
+	
+    if (RenderType == 3)
+    {
+        output = DoLightConeEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
+    }
+
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
 	output.xyz = saturate(output.xyz);

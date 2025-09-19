@@ -161,14 +161,14 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 	auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 	//auto orient = Geometry::GetOrientToPoint(origin, target)
 
-	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 3, 150, Vector4(1.0f, 0.0f, 0.0f, 1.0f), true, true, false);
+	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 3, Vector4(1.0f, 0.0f, 0.0f, 1.0f), false, true, false);
 
 	 pos1 = GetJointPosition(item, LM_RHAND, Vector3i(0, 0, 0));
 	 pos2 = GetJointPosition(item, LM_RHAND, Vector3i(0, 0, 450));
 
 	 orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 
-	TEN::Entities::Traps::EmitTransientLaserBeam( GameVector(pos1, item->RoomNumber), orient, 2, 2, Vector4(1.0f, 0.0f, 0.0f, 1.0f), true, true, false);
+	TEN::Entities::Traps::EmitTransientLaserBeam( GameVector(pos1, item->RoomNumber), orient, 2, Vector4(1.0f, 0.0f, 0.0f, 1.0f), false, true, false);
 
 	// Handle object interation adjustment parameters.
 	if (player.Control.IsMoving)

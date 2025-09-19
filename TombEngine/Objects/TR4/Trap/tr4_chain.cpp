@@ -7,7 +7,7 @@
 #include "Specific/level.h"
 
 #include "Objects/TR5/Trap/LaserBeam.h"
-#include "Specific/level.h"
+#include "Objects/effects/LightCone.h"
 
 namespace TEN::Entities::Traps
 {
@@ -42,7 +42,17 @@ namespace TEN::Entities::Traps
 				auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 				//auto orient = Geometry::GetOrientToPoint(origin, target)
 
-				TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item.RoomNumber), orient, 4, 4, Vector4(0.0f, 1.0f, 0.0f, 1.0f), true, true, true);
+				TEN::Effects::LightCone::EmitTransientLightCone(GameVector(pos1, item.RoomNumber), orient, 15, 250, 8250, Vector4(1.0f, 1.0f, 0.5f, 1.0f), 2.0f, true, false, false, false);
+
+
+				 pos1 = GetJointPosition(item, 0, Vector3i(38, -45, 0));
+				 pos2 = GetJointPosition(item, 0, Vector3i(-382, 445, 0));
+
+				 orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
+				//auto orient = Geometry::GetOrientToPoint(origin, target)
+
+				TEN::Effects::LightCone::EmitTransientLightCone(GameVector(pos1, item.RoomNumber), orient, 15, 250, 8250, Vector4(1.0f, 1.0f, 0.5f, 1.0f), 2.0f, true, false, false, false);
+
 				return;
 			}
 		}

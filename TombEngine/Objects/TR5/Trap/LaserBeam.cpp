@@ -25,7 +25,7 @@ using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto LASER_BEAM_LIGHT_INTENSITY	  = 0.2f;
+	constexpr auto LASER_BEAM_LIGHT_INTENSITY = 0.2f;
 	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX = 0.1f;
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
@@ -132,7 +132,7 @@ namespace TEN::Entities::Traps
 			if (!s.On || s.Life <= 0.0f || !s.Effect.IsActive)
 				continue;
 
-					if (s.Life <= 0.0f)
+			if (s.Life <= 0.0f)
 			{
 				s.On = false;
 				s.Effect.IsActive = false;
@@ -141,14 +141,14 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, float startRadius, float endRadius, const Vector4& color, bool isLethal, bool hasSparks, bool isHeavyActivator)
+	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool isHeavyActivator)
 	{
 		//free slot
 		const int idx = AcquireTransientIndex();
 		auto& slot = GTransientPool[idx];
 
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
-		
+
 		slot.Pos = position.ToVector3();
 		slot.RoomNumber = position.RoomNumber;
 		slot.Orientation = orientation;
@@ -156,12 +156,12 @@ namespace TEN::Entities::Traps
 		slot.Effect.Color = color;
 		slot.Life = 2.0f;
 		slot.On = true;
-		//slot.Effect.Radius = radius * RADIUS_STEP;
+		slot.Effect.Radius = radius * RADIUS_STEP;
 
-			// Radien skalieren wie bisher
-		slot.StartRadius = std::max(0.0f, startRadius) * RADIUS_STEP;
-		slot.EndRadius = std::max(0.0f, endRadius) * RADIUS_STEP;
-				
+
+
+
+
 		auto orient = orientation;
 		auto dir = orient.ToDirection();
 		const Vector3 origin = slot.Pos + dir * 4.0f;
@@ -184,30 +184,34 @@ namespace TEN::Entities::Traps
 		float length = Vector3::Distance(origin, los.Position);
 
 		// Calculate cylinder vertices.
-		const Vector3 centerStart = origin;
-		const Vector3 centerEnd = los.Position;
+		float angle = 0.0f;
+		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 
-		float a = 0.0f;
-		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; ++i)
+
+
 		{
-			const float s = sin(a), c = cos(a);
+			float sinAngle = sin(angle);
+			float cosAngle = cos(angle);
 
-			const auto relStart = Vector3(slot.StartRadius * s, slot.StartRadius * c, 0.0f);
-			const auto relEnd = Vector3(slot.EndRadius * s, slot.EndRadius * c, 0.0f);
+			auto relVertex = Vector3(slot.Effect.Radius * sinAngle, slot.Effect.Radius * cosAngle, 0.0f);
+			auto vertex = position.ToVector3() + Vector3::Transform(relVertex, rotMatrix);
 
-			const auto vStart = centerStart + Vector3::Transform(relStart, rotMatrix);
-			const auto vEnd = centerEnd + Vector3::Transform(relEnd, rotMatrix);
+			slot.Effect.Vertices[i] = vertex;
+			slot.Effect.Vertices[slot.Effect.SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
 
-			slot.Effect.Vertices[i] = vStart;
-			slot.Effect.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i] = vEnd;
+			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
 
-			a += PI_MUL_2 / LaserBeamEffect::SUBDIVISION_COUNT;
+
+
 		}
 
-		GameVector tempOrigin = origin;
+		GameVector tempOrigin = position;
 		GameVector tempTarget(los.Position, los.RoomNumber);
 
-		//DrawDebugLine(position.ToVector3(), los.Position, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+
+		//DrawDebugLine(tempOrigin.ToVector3(), los.Position, Vector4(0, 1, 1, 1), RendererDebugPage::None);
+
+
 		bool los2 = LOS(&tempOrigin, &GameVector(los.Position, los.RoomNumber));
 
 		auto hitPos = Vector3i::Zero;
@@ -230,7 +234,7 @@ namespace TEN::Entities::Traps
 			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);
 			SpawnLaserBeamLight(position.ToVector3(), position.RoomNumber, color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
- 
+
 		std::copy(slot.Effect.Vertices.begin(), slot.Effect.Vertices.end(), slot.Effect.OldVertices.begin());
 		slot.Effect.OldColor = slot.Effect.Color;
 		slot.Effect.IsActive = true;

@@ -36,7 +36,9 @@
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
 #include "Objects/Effects/Fireflies.h"
+#include "Objects/effects/LightCone.h"
 
+using namespace TEN::Effects::LightCone;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
@@ -144,6 +146,256 @@ namespace TEN::Renderer
 			}
 		}
 	}
+
+	/*void Renderer::PrepareSingleLightCone(RenderView& view)
+	{
+		using namespace TEN::Entities::Traps;
+
+		const auto& pool = GetTransientLightConePool();
+		const float t = GetInterpolationFactor();
+
+		for (int i = 0; i < MAX_TRANSIENT_LIGHT_CONES; ++i)
+		{
+			const auto& slot = pool[i];
+			const auto& cone = slot.Effect;
+
+			if (!slot.On || slot.Life <= 0.0f || !cone.IsActive)
+				continue;
+
+			// Falls du Color-Lerp willst, nimm OldColor ins Effect auf.
+			// Hier erzeugen wir einfach ein Color aus der aktuellen Vector4-Farbe:
+			const auto color = Color::Lerp(cone.Color, cone.Color, t);
+
+			// 1) Seitenfläche (Streifen)
+			for (int s = 0; s < LightConeEffect::SUBDIVISION_COUNT; ++s)
+			{
+				const bool last = (s == LightConeEffect::SUBDIVISION_COUNT - 1);
+
+				AddColoredQuad(
+					Vector3::Lerp(cone.OldVertices[s], cone.Vertices[s], t),
+					Vector3::Lerp(cone.OldVertices[last ? 0 : (s + 1)], cone.Vertices[last ? 0 : (s + 1)], t),
+					Vector3::Lerp(cone.OldVertices[LightConeEffect::SUBDIVISION_COUNT + (last ? 0 : (s + 1))],
+						cone.Vertices[LightConeEffect::SUBDIVISION_COUNT + (last ? 0 : (s + 1))], t),
+					Vector3::Lerp(cone.OldVertices[LightConeEffect::SUBDIVISION_COUNT + s],
+						cone.Vertices[LightConeEffect::SUBDIVISION_COUNT + s], t),
+					color, color, color, color,
+					BlendMode::Additive, view, SpriteRenderType::LightCone);
+			}
+
+			// 2) Optionale "Slices" im Volumen (füllt den Kegel sichtbar)
+			//    0 lassen, wenn du nur die Hülle willst.
+			const int SLICE_COUNT = 8;
+			if (SLICE_COUNT > 0)
+			{
+				// Achse berechnen aus Slot-Orientierung
+				Vector3 axis = slot.Orientation.ToDirection();
+				axis.Normalize(axis);
+
+				// Länge (Fallback auf MAX_VISIBILITY_DISTANCE)
+				const float len = (slot.MaxLength > 0.0f ? slot.MaxLength : 8192);
+
+				// Orthonormale Basis (right, upOrtho) um die Achse
+				Vector3 up = (fabs(axis.y) < 0.99f) ? Vector3(0.0f, 1.0f, 0.0f) : Vector3(1.0f, 0.0f, 0.0f);
+
+				Vector3 right = up.Cross(axis);
+				if (right.LengthSquared() < 1e-6f)
+				{
+					up = Vector3(0.0f, 0.0f, 1.0f);
+					right = up.Cross(axis);
+				}
+				right.Normalize(right);
+
+				Vector3 upOrtho = axis.Cross(right);
+				upOrtho.Normalize(upOrtho);
+
+				// Slices quer zur Achse (quadratische Quads)
+				for (int si = 1; si <= SLICE_COUNT; ++si)
+				{
+					const float k = static_cast<float>(si) / static_cast<float>(SLICE_COUNT + 1); // (0,1)
+					const float r = Lerp(slot.StartRadius, slot.EndRadius, k);
+					const Vector3 center = slot.Pos + axis * (len * k);
+
+					const Vector3 v0 = center + (-right - upOrtho) * r;
+					const Vector3 v1 = center + (right - upOrtho) * r;
+					const Vector3 v2 = center + (right + upOrtho) * r;
+					const Vector3 v3 = center + (-right + upOrtho) * r;
+
+					AddColoredQuad(
+						v0, v1, v2, v3,
+						color, color, color, color,
+						BlendMode::Additive, view, SpriteRenderType::LightCone);
+				}
+			}
+		}
+	}*/
+
+
+	// --- kleine Helfer, C++-quivalente zu HLSL saturate/smoothstep ---
+	static inline float Saturate(float x) {
+		return std::clamp(x, 0.0f, 1.0f);
+	}
+	static inline float SmoothStep(float edge0, float edge1, float x) {
+		if (edge0 == edge1) return (x < edge0) ? 0.0f : 1.0f;
+		float t = Saturate((x - edge0) / (edge1 - edge0));
+		return t * t * (3.0f - 2.0f * t);
+	}
+
+	// deterministisches Jitter aus int
+	static inline float JitterSigned(int n) {
+		// einfacher Hash 
+		float s = std::sinf(n * 12.9898f) * 43758.5453f;
+		float f = s - std::floor(s);
+		return f * 2.0f - 1.0f; // 
+	}
+
+	static inline bool IsPointInsideTruncatedCone(
+		const Vector3& P, const Vector3& apex, const Vector3& dirUnit, float len, float r0, float r1)
+	{
+		Vector3 v = P - apex;
+		float d = v.Dot(dirUnit);
+		if (d < 0.0f || d > len)
+			return false;
+
+		float r = Lerp(r0, r1, d / std::max(1.0f, len));
+		float distFromAxis = (v - dirUnit * d).Length();
+		return (distFromAxis <= r);
+	}
+
+	// sehr einfache Henyey–Greenstein-Annäherung (nur Skalar)
+	static inline float PhaseHG(float cosTheta, float g)
+	{
+		float g2 = g * g;
+		float denom = powf(1.0f + g2 - 2.0f * g * cosTheta, 1.5f);
+		return (1.0f - g2) / std::max(1e-3f, 4.0f * PI * denom);
+	}
+
+	void Renderer::PrepareSingleLightCone(RenderView& view)
+	{
+		using namespace TEN::Entities::Traps;
+
+		const auto& pool = GetTransientLightConePool();
+		const float t = GetInterpolationFactor();
+
+		// Grundparameter – gern nach Geschmack tunen
+		constexpr float EDGE_ALPHA_MUL_BASE = 0.25f; // Hülle
+		constexpr float G_ANISOTROPY = 0.65f; // 0.5..0.85 (vorwärtsstreuend)
+
+		for (int i = 0; i < MAX_TRANSIENT_LIGHT_CONES; ++i)
+		{
+			const auto& slot = pool[i];
+			const auto& cone = slot.Effect;
+			if (!slot.On || slot.Life <= 0.0f || !cone.IsActive)
+				continue;
+
+			const auto color = cone.Color;
+
+			// --- Achse/Geometrie ---
+			Vector3 axis = slot.Orientation.ToDirection();
+			axis.Normalize(axis);
+			const float len = (slot.MaxLength > 0.0f ? slot.MaxLength : 8192.0f);
+
+			// Kamera drin?
+			const bool camInside = IsPointInsideTruncatedCone(
+				view.Camera.WorldPosition, slot.Pos, axis, len, slot.StartRadius, slot.EndRadius); // NEW
+
+			// adaptives LOD & Basisdichte
+			const int   SLICE_COUNT = camInside ? 32 : 20;     // NEW
+			const float BASE_SLICE_ALPHA = camInside ? 0.16f : 0.08f; // NEW
+
+			// Orthonormale Basis um die Achse
+			Vector3 up = (std::fabs(axis.y) < 0.99f) ? Vector3(0.0f, 1.0f, 0.0f) : Vector3(1.0f, 0.0f, 0.0f);
+			Vector3 right = up.Cross(axis);
+			if (right.LengthSquared() < 1e-6f)
+			{
+				up = Vector3(0.0f, 0.0f, 1.0f);
+				right = up.Cross(axis);
+			}
+			right.Normalize(right);
+			Vector3 upOrtho = axis.Cross(right);
+			upOrtho.Normalize(upOrtho);
+
+			// Achsprofil: hell nahe Quelle, nach vorn ausblendend – dein Profil, leicht geglättet
+			auto AxialProfile = [](float k) -> float
+				{
+					float nearBoost = powf(1.0f - k, 0.25f);
+					float farFade = (k < 0.65f) ? 1.0f : (1.0f - (k - 0.65f) / 0.35f);
+					if (farFade < 0.0f) farFade = 0.0f;
+					return std::clamp(nearBoost * farFade, 0.0f, 1.0f);
+				};
+
+			// =========================
+			// 1) VOLUMEN-SLICES (Quads)
+			// =========================
+			if (SLICE_COUNT > 0)
+			{
+				for (int si = 1; si <= SLICE_COUNT; ++si)
+				{
+					// gleichmäßiges k, plus deterministisches Jitter
+					const float step = 1.0f / float(SLICE_COUNT + 1);
+					const float kBase = float(si) * step;
+					const float kJit = 0.5f * step * JitterSigned(si);
+					float k = std::clamp(kBase + kJit, 0.0f, 1.0f);
+
+					// Radius an dieser Stelle + kleiner “Wobble”
+					float currentR = Lerp(slot.StartRadius, slot.EndRadius, k);
+					currentR *= (1.0f + 0.04f * JitterSigned(si + 73));
+
+					const Vector3 center = slot.Pos + axis * (len * k);
+
+					// Blickrichtungsfaktor (HG-Phase) – pro Slice-Zentrum
+					const Vector3 camToCenter = (view.Camera.WorldPosition - center);
+					const float   cosTheta = (-camToCenter).Dot(axis) / std::max(1e-4f, camToCenter.Length());
+					const float   phase = PhaseHG(cosTheta, G_ANISOTROPY); // NEW
+
+					// radialer Abfall: innen dichter, zur Hülle dünner
+					// (wir nutzen “Radial” als Faktor für die ganze Scheibe)
+					const float radialGain = 0.85f; // etwas reicher im Zentrum
+					// hier genügt ein globaler radialer Faktor (pro Slice),
+					// wir nehmen 0.85..1.0, näher an der Quelle automatisch höher via AxialProfile
+
+					// finale Slice-Alpha
+					auto sliceColor = color;
+					sliceColor.w *= BASE_SLICE_ALPHA * AxialProfile(k) * radialGain * phase; // NEW
+
+					// Quad-Ecken orthogonal zur Achse
+					const Vector3 v0 = center + (-right - upOrtho) * currentR;
+					const Vector3 v1 = center + (right - upOrtho) * currentR;
+					const Vector3 v2 = center + (right + upOrtho) * currentR;
+					const Vector3 v3 = center + (-right + upOrtho) * currentR;
+
+					AddColoredQuad(
+						v0, v1, v2, v3,
+						sliceColor, sliceColor, sliceColor, sliceColor,
+						BlendMode::Additive, view, SpriteRenderType::LightCone);
+				}
+			}
+
+			// =========================
+			// 2) SEITEN-HÜLLE (Kegelgitter)
+			// =========================
+			{
+				auto edgeColor = color;
+				edgeColor.w *= EDGE_ALPHA_MUL_BASE * (camInside ? 0.6f : 1.0f); // innen etwas schwächer, damit Volumen dominiert // NEW
+
+				for (int s = 0; s < LightConeEffect::SUBDIVISION_COUNT; ++s)
+				{
+					const bool last = (s == LightConeEffect::SUBDIVISION_COUNT - 1);
+
+					AddColoredQuad(
+						Vector3::Lerp(cone.OldVertices[s], cone.Vertices[s], t),
+						Vector3::Lerp(cone.OldVertices[last ? 0 : s + 1], cone.Vertices[last ? 0 : s + 1], t),
+						Vector3::Lerp(cone.OldVertices[LightConeEffect::SUBDIVISION_COUNT + (last ? 0 : s + 1)],
+							cone.Vertices[LightConeEffect::SUBDIVISION_COUNT + (last ? 0 : s + 1)], t),
+						Vector3::Lerp(cone.OldVertices[LightConeEffect::SUBDIVISION_COUNT + s],
+							cone.Vertices[LightConeEffect::SUBDIVISION_COUNT + s], t),
+						edgeColor, edgeColor, edgeColor, edgeColor,
+						BlendMode::Additive, view, SpriteRenderType::LightCone);
+				}
+			}
+		}
+	}
+
+
 
 	void Renderer::PrepareStreamers(RenderView& view)
 	{

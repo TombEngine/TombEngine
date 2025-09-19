@@ -62,6 +62,7 @@
 #include "Specific/level.h"
 #include "Specific/winmain.h"
 #include "Specific/Video/Video.h"
+#include "Objects/effects/LightCone.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -95,6 +96,8 @@ using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Video;
+using namespace TEN::Effects::LightCone;
+
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
 constexpr auto DEATH_INPUT_TIMEOUT	  = 3 * FPS;
@@ -222,6 +225,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
 	UpdateTransientLaserBeams();
+	UpdateTransientLightCones();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -555,6 +559,7 @@ void CleanUp()
 	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
+	ClearLightConeEffects();
 	DisableSmokeParticles();
 	DisableSparkParticles();
 	DisableDebris();

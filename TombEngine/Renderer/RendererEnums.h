@@ -252,7 +252,8 @@ enum class SpriteRenderType
 {
 	Default,
 	LaserBarrier,
-	LaserBeam
+	LaserBeam,
+	LightCone
 };
 
 enum class RendererObjectType
