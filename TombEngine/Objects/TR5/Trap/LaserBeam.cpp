@@ -148,7 +148,7 @@ namespace TEN::Entities::Traps
 		auto& slot = GTransientPool[idx];
 
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
-
+		
 		slot.Pos = position.ToVector3();
 		slot.RoomNumber = position.RoomNumber;
 		slot.Orientation = orientation;
@@ -157,7 +157,7 @@ namespace TEN::Entities::Traps
 		slot.Life = 2.0f;
 		slot.On = true;
 		slot.Effect.Radius = radius * RADIUS_STEP;
-		
+				
 		auto orient = orientation;
 		auto dir = orient.ToDirection();
 		auto rotMatrix = orient.ToRotationMatrix();
@@ -195,6 +195,29 @@ namespace TEN::Entities::Traps
 		}
 
 		//DrawDebugLine(position.ToVector3(), los.Position, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+		bool los2 = LOS(&position, &GameVector(los.Position, los.RoomNumber));
+
+		auto hitPos = Vector3i::Zero;
+
+		GameVector tempOrigin = position;
+		GameVector tempTarget(los.Position, los.RoomNumber);
+
+		if (ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
+		{
+			if (isLethal &&
+				LaraItem->HitPoints > 0 && LaraItem->Effect.Type != EffectType::Smoke)
+			{
+				ItemRedLaserBurn(LaraItem, FPS * 2);
+				DoDamage(LaraItem, MAXINT);
+			}
+			else if (isHeavyActivator)
+			{
+				//TestTriggers(&item, true, item.Flags & IFLAG_ACTIVATION_MASK);
+			}
+
+			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);
+			SpawnLaserBeamLight(position.ToVector3(), position.RoomNumber, color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+		}
  
 		std::copy(slot.Effect.Vertices.begin(), slot.Effect.Vertices.end(), slot.Effect.OldVertices.begin());
 		slot.Effect.OldColor = slot.Effect.Color;

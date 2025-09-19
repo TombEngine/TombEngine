@@ -6,6 +6,9 @@
 #include "Game/items.h"
 #include "Specific/level.h"
 
+#include "Objects/TR5/Trap/LaserBeam.h"
+#include "Specific/level.h"
+
 namespace TEN::Entities::Traps
 {
 	void ControlChain(short itemNumber)
@@ -32,6 +35,14 @@ namespace TEN::Entities::Traps
 			{
 				*(int*)&item.ItemFlags[0] = 0x780;
 				AnimateItem(&item);
+
+				auto pos1 = GetJointPosition(item, 5, Vector3i(38, -45, 0));
+				auto pos2 = GetJointPosition(item, 5, Vector3i(382, -45,0));
+
+				auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
+				//auto orient = Geometry::GetOrientToPoint(origin, target)
+
+				TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item.RoomNumber), orient, 4, Vector4(0.0f, 1.0f, 0.0f, 1.0f), true, true, true);
 				return;
 			}
 		}
