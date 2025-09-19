@@ -25,7 +25,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Post-processing Settings XML structure...
-powershell.exe -File "settings_class_post_process.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "settings_class_post_process.ps1"
 
 if %ERRORLEVEL% neq 0 (
     echo XML post-processing failed with error code %ERRORLEVEL%

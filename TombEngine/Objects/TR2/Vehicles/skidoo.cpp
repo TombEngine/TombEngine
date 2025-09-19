@@ -497,7 +497,7 @@ namespace TEN::Entities::Vehicles
 		else if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALL &&
 			collide && !dead)
 		{
-			if (laraItem->Animation.ActiveState != SKIDOO_STATE_HIT)
+			if (laraItem->Animation.TargetState != SKIDOO_STATE_HIT)
 			{
 				if (collide == SKIDOO_ANIM_HIT_FRONT)
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT1, &skidooItem->Pose);

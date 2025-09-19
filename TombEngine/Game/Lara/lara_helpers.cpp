@@ -1088,6 +1088,10 @@ void DoLaraFallDamage(ItemInfo* item)
 	if (item->Animation.Velocity.y >= LARA_DEATH_VELOCITY)
 	{
 		item->HitPoints = 0;
+
+		// HACK: Process floor death flag here to drown player in rapids after freefall.
+		item->Pose.Position.y = item->Floor;
+		ProcessSectorFlags(item);
 	}
 	else
 	{
