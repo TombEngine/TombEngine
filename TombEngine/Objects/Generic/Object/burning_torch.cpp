@@ -79,7 +79,7 @@ namespace TEN::Entities::Generic
 	static Vector3 GetStartTorchColor(Vector3 sourceColor)
 	{
 		if (sourceColor == Vector3::One)
-			return Vector3(1.0f, Random::GenerateFloat(0.2f, 0.3f), 0.1f);
+			return Vector3(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f);
 
 		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f);
 	}
@@ -314,21 +314,16 @@ namespace TEN::Entities::Generic
 
 		if (item->ItemFlags[3])
 		{
-			auto color1 = item->Effect.PrimaryEffectColor / 2.0f;
-			auto color2 = color1 * 0.8f;
-
-			if (item->Effect.PrimaryEffectColor == Vector3::One)
-			{
-				color1 = Vector3(1.0f , Random::GenerateFloat(0.2f, 0.3f), 0.2f);
-				color2 = Vector3(Random::GenerateFloat(-0.25f, 0.0f), Random::GenerateFloat(-0.5f, -0.25f), 0.1f);
-			}
+			auto startColor = GetStartTorchColor((Vector3)item->Effect.PrimaryEffectColor);
+			auto endColor   = GetEndTorchColor((Vector3)item->Effect.PrimaryEffectColor);
 
 			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
 			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
-			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff, color1.x * brightness, color1.y * brightness, color1.z * brightness);
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 
+							  lightFalloff, startColor.x * brightness, startColor.y * brightness, startColor.z * brightness);
 
 			if (!(Wibble & 7))
-				TriggerTorchFlame(itemNumber, 1, color1, color2);
+				TriggerTorchFlame(itemNumber, 1, startColor, endColor);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 		}
