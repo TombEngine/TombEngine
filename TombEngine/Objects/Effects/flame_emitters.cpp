@@ -631,8 +631,8 @@ namespace TEN::Entities::Effects
 				{
 					if (item->Status == ITEM_ACTIVE)
 					{
-						Lara.Torch.PrimaryColor = (Vector3)item->Model.Color;
-						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color * 0.8f;
+						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color;
+						Lara.Torch.Fade = Lara.Torch.FADE_TIMEOUT * FPS;
 					}
 
 					Lara.Torch.State = TorchState::JustLit;

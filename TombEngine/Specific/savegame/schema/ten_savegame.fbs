@@ -179,6 +179,7 @@ enum TorchState:int32 {
 table TorchData {
 	state: TorchState;
 	is_lit: bool;
+	fade: int32;
 	primary_color: Vector3;
 	secondary_color: Vector3;
 }

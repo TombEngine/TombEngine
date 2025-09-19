@@ -183,10 +183,16 @@ namespace TEN::Entities::Generic
 
 		if (lara->Torch.IsLit)
 		{
-			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
+			if (lara->Torch.Fade > 0)
+				lara->Torch.Fade--;
+			else
+				lara->Torch.PrimaryColor = lara->Torch.SecondaryColor;
 
-			auto color1 = lara->Torch.PrimaryColor / 2.0f;
-			auto color2 = lara->Torch.SecondaryColor / 2.0f;
+			auto alpha = (float)lara->Torch.Fade / ((float)FPS * lara->Torch.FADE_TIMEOUT);
+			auto currentColor = Vector3::Lerp(lara->Torch.SecondaryColor, lara->Torch.PrimaryColor, alpha);
+
+			auto color1 = currentColor / 2.0f;
+			auto color2 = color1 * 0.8f;
 
 			if (lara->Torch.PrimaryColor == Vector3::One)
 			{
@@ -194,14 +200,20 @@ namespace TEN::Entities::Generic
 				 color2 = Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
 			}
 
-			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
-			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
+
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * (1.0f - alpha);
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * (1.0f - alpha);
 			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, color1.x * brightness, color1.y * brightness, color1.z * brightness);
 
 			if (!(Wibble & 3))
 				TriggerTorchFlame(laraItem->Index, 0, color1, color2);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
+		}
+		else
+		{
+			lara->Torch.PrimaryColor = Vector3::Zero;
 		}
 	}
 
@@ -291,7 +303,7 @@ namespace TEN::Entities::Generic
 		if (item->ItemFlags[3])
 		{
 			auto color1 = item->Effect.PrimaryEffectColor / 2.0f;
-			auto color2 = item->Effect.SecondaryEffectColor / 2.0f;
+			auto color2 = color1 * 0.8f;
 
 			if (item->Effect.PrimaryEffectColor == Vector3::One)
 			{
