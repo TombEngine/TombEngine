@@ -167,9 +167,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			if (distance > radius * 1.3f)
 				continue;
-			
-			float2 localUV = pos.xy * 0.5 + pos.zx * 0.5;
-			float noiseVal = NebularNoise(localUV * 0.3 / (RoomDecals[i].Pattern + 1), 1, 0.5, 0.3);
+				
+			float2 uv = float2(dot(pos, input.Tangent), dot(pos, input.Binormal));
+			uv *= (8.0f / (RoomDecals[i].Pattern + 1) * 2.0f / radius);
+
+			float noiseVal = NebularNoise(uv, 1, 0.5f, 0.3f);
 
 			float noisyRadius = radius * (1.0f + 0.25f * (noiseVal * 2.0f - 1.0f));
 			float holeRadius = radius / 4.0f;

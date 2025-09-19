@@ -374,16 +374,16 @@ CALL compile.bat .
 CD "$(ProjectDir)Specific\savegame\schema\"
 CALL gen.bat
 
-SET BuildDir=$(SolutionDir)Build\$(Configuration)
-SET ShaderDir=%BuildDir%\Shaders
-SET ScriptsDir=%BuildDir%\Scripts
-SET EngineDir=%ScriptsDir%\Engine
+SET "BuildDir=$(SolutionDir)Build\$(Configuration)"
+SET "ShaderDir=%BuildDir%\Shaders"
+SET "ScriptsDir=%BuildDir%\Scripts"
+SET "EngineDir=%ScriptsDir%\Engine"
 
-if not exist %ShaderDir% mkdir %ShaderDir%
-if not exist %ScriptsDir% mkdir %ScriptsDir%
-if not exist %EngineDir% mkdir %EngineDir%
+if not exist "%ShaderDir%" mkdir "%ShaderDir%"
+if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
+if not exist "%EngineDir%" mkdir "%EngineDir%"
 
-xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
@@ -391,12 +391,12 @@ xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
 
-xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
-xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" "%EngineDir%"
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
 
-if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
-if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" "%ScriptsDir%"
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" "%ScriptsDir%"
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" "%ScriptsDir%"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
