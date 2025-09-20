@@ -4,6 +4,7 @@
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./SpriteEffects.hlsli"
+#include "./VertexEffects.hlsli"
 
 // NOTE: This shader is used for all opaque or not sorted transparent sprites, that can be instanced for a faster drawing
 
@@ -62,7 +63,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 		output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
 	}
 	
-    int polyIndex = (input.Effects >> 19) & 3;
+    int polyIndex = DecodeIndexInPoly(input.Effects);
 
 	output.PositionCopy = output.Position;
     output.Color = lerp(sprite.Color, input.Color, saturate((float) sprite.PerVertexColor));

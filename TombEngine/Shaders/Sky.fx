@@ -5,6 +5,7 @@
 #include "./ShaderLight.hlsli"
 #include "./CBSky.hlsli"
 #include "./AnimatedTextures.hlsli"
+#include "./VertexEffects.hlsli"
 
 struct PixelShaderInput
 {
@@ -27,7 +28,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position = mul(worldPosition, ViewProjection);
 	output.Normal = input.Normal;
 	output.Color = input.Color;
-    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
 	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
 
 	return output;

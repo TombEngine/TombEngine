@@ -512,6 +512,7 @@ namespace TEN::Renderer
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
 		void PackSpritesTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void CalculateGlow(RenderView& view);
+		int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);

@@ -79,7 +79,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Normal = input.Normal;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
 	output.WorldPosition = pos;
 	output.Tangent = input.Tangent;
 	output.Binormal = input.Binormal;

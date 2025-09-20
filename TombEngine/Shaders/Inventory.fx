@@ -3,6 +3,7 @@
 #include "./VertexInput.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./AnimatedTextures.hlsli"
+#include "./VertexEffects.hlsli"
 
 cbuffer CBInventoryItem : register(b1)
 {
@@ -45,9 +46,9 @@ PixelShaderInput VS(VertexShaderInput input)
     output.Tangent = normalize(mul(input.Tangent, (float3x3) World).xyz);
     output.Binormal = normalize(mul(input.Binormal, (float3x3) World).xyz);
     output.Color = input.Color;
-    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
     output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
-    output.Sheen = ((input.Effects >> 13) & 64) / 64.0f;
+    output.Sheen = DecodeSheen(input.Effects);
 	return output;
 }
 

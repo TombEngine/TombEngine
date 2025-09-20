@@ -11,9 +11,9 @@ struct VertexShaderInput
 	float3 Binormal: BINORMAL0;
 	uint4 BoneIndex: BONEINDICES;
 	uint4 BoneWeight: BONEWEIGHTS;
-	unsigned int AnimationFrameOffset: ANIMATIONFRAMEOFFSET;
+	uint AnimationFrameOffset: ANIMATIONFRAMEOFFSET;
 	uint Effects: EFFECTS;
-	unsigned int Index: DRAWINDEX;
+	uint Index: DRAWINDEX;
 	int Hash : HASH;
 };
 

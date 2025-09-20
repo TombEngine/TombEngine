@@ -65,11 +65,11 @@ PixelShaderInput VS(VertexShaderInput input)
 	float3 worldPosition = mul(float4(pos, 1.0f), world).xyz;
 
 	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
-    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
 	output.Color = float4(col, input.Color.w);
 	output.Color *= Color;
 	output.PositionCopy = output.Position;
-    output.Sheen = ((input.Effects >> 13) & 64) / 64.0f;
+    output.Sheen = DecodeSheen(input.Effects);
 	output.Bone = input.BoneIndex[0];
 	output.WorldPosition = worldPosition;
 

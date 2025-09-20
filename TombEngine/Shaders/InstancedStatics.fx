@@ -57,12 +57,12 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
     output.Position = mul(worldPosition, ViewProjection);
-    output.UV = GetUVPossiblyAnimated(input.UV, (input.Effects >> 19) & 3, input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
     output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
 	output.Color *= StaticMeshes[InstanceID].Color;
 	output.PositionCopy = output.Position;
-    output.Sheen = ((input.Effects >> 13) & 64) / 64.0f;
+    output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;
 
 	output.Normal = normalize(mul(input.Normal, (float3x3)StaticMeshes[InstanceID].World).xyz);

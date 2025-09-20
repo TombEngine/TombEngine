@@ -4,17 +4,27 @@
 
 static float DecodeGlow(uint effect)
 {
-    return float((effect >> 0) & 63) / 63.0f;
+    return float((effect >> 0) & 255) / 255.0f;
 }
 
 static float DecodeMove(uint effect)
 {
-    return float((effect >> 6) & 63) / 63.0f;
+    return float((effect >> 8) & 255) / 255.0f;
 }
 
 static float DecodeWeight(uint effect)
 {
-    return float((effect >> 12) & 1);
+    return float((effect >> 24) & 1);
+}
+
+static int DecodeIndexInPoly(uint effect)
+{
+    return int((effect >> 25) & 3);
+}
+
+static float DecodeSheen(uint effect)
+{
+    return float((effect >> 16) & 255) / 255.0f;
 }
 
 float Wibble(uint effect, int hash)

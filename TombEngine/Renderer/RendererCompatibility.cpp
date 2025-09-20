@@ -24,6 +24,17 @@ namespace TEN::Renderer
 {
 	template class VertexBuffer<Vertex>;
 
+	int Renderer::PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
+	{
+		int packed = 
+			((int)(effects.x * 255.0f) << 0) |
+			((int)(effects.y * 255.0f) << 8) |
+			((int)(sheen * 255.0f) << 16) |
+			((int)effects.z << 24) |
+			(indexInPoly << 25);
+		return packed;
+	}
+
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
@@ -472,11 +483,7 @@ namespace TEN::Renderer
 						vertex->Binormal = poly.binormals[k];
 						vertex->AnimationFrameOffset = poly.animatedFrame;
 						vertex->OriginalIndex = index;
-						vertex->Effects = ((int)(room.effects[index].x * 63.0f) << 0) |
-							((int)(room.effects[index].y * 63.0f) << 6) |
-							((int)(room.effects[index].z) << 12) | 
-							(0 << 13) |
-							(k << 19);
+						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
 							
 						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
 						vertex->Hash = (unsigned int)std::hash<float>{}
@@ -1137,17 +1144,13 @@ namespace TEN::Renderer
 					vertex.Color.y = meshPtr->colors[v].y;
 					vertex.Color.z = meshPtr->colors[v].z;
 					vertex.Color.w = 1.0f;
-
+					
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
 
 					vertex.AnimationFrameOffset = poly->animatedFrame;
 				
-					vertex.Effects = ((int)(meshPtr->effects[v].x * 63.0f) << 0) |
-						((int)(meshPtr->effects[v].y * 63.0f) << 6) |
-						((int)(meshPtr->effects[v].z) << 12) |
-						((int)(poly->shineStrength * 63.0f) << 13) |
-						(k << 19);
+					vertex.Effects = PackEffectsAndIndexInPoly(meshPtr->effects[v], poly->shineStrength, k);
 
 					vertex.OriginalIndex = v;
 
