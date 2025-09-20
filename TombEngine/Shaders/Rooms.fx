@@ -76,13 +76,13 @@ PixelShaderInput VS(VertexShaderInput input)
 	}
 	
 	output.Position = screenPos;
-	output.Normal = input.Normal;
+    output.Normal = input.Normal.xyz;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
 	output.WorldPosition = pos;
-	output.Tangent = input.Tangent;
-    output.Binormal = normalize(cross(input.Normal, input.Tangent));
+    output.Tangent = input.Tangent.xyz;
+    output.Binormal = normalize(cross(input.Normal.xyz, input.Tangent.xyz));
 
 	output.FogBulbs = DoFogBulbsForVertex(output.WorldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(output.WorldPosition);

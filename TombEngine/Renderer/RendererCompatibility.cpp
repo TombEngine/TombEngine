@@ -465,10 +465,10 @@ namespace TEN::Renderer
 
 						bucket.Centre += vertex->Position;
 
-						vertex->Normal = poly.normals[k];
+						vertex->Normal = PackNormal(poly.normals[k]);
 						vertex->UV = poly.textureCoordinates[k];
 						vertex->Color = PackColor(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
-						vertex->Tangent = poly.tangents[k];
+						vertex->Tangent = PackNormal(poly.tangents[k]);
 						vertex->AnimationFrameOffset = poly.animatedFrame;
 						vertex->OriginalIndex = index;
 						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
@@ -1113,13 +1113,8 @@ namespace TEN::Renderer
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
 					 
-					vertex.Normal.x = poly->normals[k].x;
-					vertex.Normal.y = poly->normals[k].y;
-					vertex.Normal.z = poly->normals[k].z;
-
-					vertex.Tangent.x = poly->tangents[k].x;
-					vertex.Tangent.y = poly->tangents[k].y;
-					vertex.Tangent.z = poly->tangents[k].z;
+					vertex.Normal = PackNormal(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
+					vertex.Tangent = PackNormal(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;

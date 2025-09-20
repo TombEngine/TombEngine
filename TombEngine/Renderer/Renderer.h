@@ -646,7 +646,7 @@ namespace TEN::Renderer
 			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
 		}
 
-		static inline int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
+		static inline unsigned int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
 		{
 			int packed =
 				((int)(effects.x * 255.0f) << 0) |
@@ -657,7 +657,7 @@ namespace TEN::Renderer
 			return packed;
 		}
 
-		static inline int PackColor(Vector4 c)
+		static inline unsigned int PackColor(Vector4 c)
 		{
 			auto to8 = [](float v) -> uint32_t {
 				float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
@@ -670,6 +670,24 @@ namespace TEN::Renderer
 			uint32_t A = to8(c.w);
 
 			return (R) | (G << 8) | (B << 16) | (A << 24);
+		}
+
+		static inline unsigned int PackNormal(Vector3 n)
+		{
+			n.Normalize();
+
+			auto ToS8 = [](float v) -> uint32_t {
+				float x = std::clamp(v, -1.0f, 1.0f) * 127.0f; // [-127..127]
+				return static_cast<int8_t>(std::lround(x));
+				};
+
+			const uint8_t R = static_cast<uint8_t>(ToS8(n.x));
+			const uint8_t G = static_cast<uint8_t>(ToS8(n.y));
+			const uint8_t B = static_cast<uint8_t>(ToS8(n.z));
+			const uint8_t A = static_cast<uint8_t>(ToS8(0.0f));
+
+			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
+			return (uint32_t)R | ((uint32_t)G << 8) | ((uint32_t)B << 16) | ((uint32_t)A << 24);
 		}
 
 	public:

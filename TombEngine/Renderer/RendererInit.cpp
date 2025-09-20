@@ -43,10 +43,10 @@ namespace TEN::Renderer
 		D3D11_INPUT_ELEMENT_DESC inputLayoutItems[] =
 		{
 			{ "POSITION",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",               0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",               0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD",             0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "COLOR",                0, DXGI_FORMAT_R8G8B8A8_UNORM,	 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TANGENT",              0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TANGENT",              0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -321,32 +321,36 @@ namespace TEN::Renderer
 
 		//Bottom Left
 		quadVertices[0].Position = Vector3(-0.5, -0.5, 0);
-		quadVertices[0].Normal = Vector3(-1, -1, 1);
-		quadVertices[0].Normal.Normalize();
+		Vector3 normal = Vector3(-1, -1, 1);
+		normal.Normalize();
+		quadVertices[0].Normal = PackNormal(normal);
 		quadVertices[0].UV = Vector2(0, 1);
 		quadVertices[0].Color = PackColor(Vector4::One);
 		quadVertices[0].Effects = 3 << 25;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
-		quadVertices[1].Normal = Vector3(-1, 1, 1);
-		quadVertices[1].Normal.Normalize();
+		normal = Vector3(-1, 1, 1);
+		normal.Normalize();
+		quadVertices[1].Normal = PackNormal(normal);
 		quadVertices[1].UV = Vector2(0, 0);
 		quadVertices[1].Color = PackColor(Vector4::One);
 		quadVertices[1].Effects = 0 << 25;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
-		quadVertices[3].Normal = Vector3(1, 1, 1);
-		quadVertices[3].Normal.Normalize();
+		normal = Vector3(1, 1, 1);
+		normal.Normalize();
+		quadVertices[3].Normal = PackNormal(normal);
 		quadVertices[3].UV = Vector2(1, 0);
 		quadVertices[3].Color = PackColor(Vector4::One);
 		quadVertices[3].Effects = 1 << 25;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
-		quadVertices[2].Normal = Vector3(1, -1, 1);
-		quadVertices[2].Normal.Normalize();
+		normal = Vector3(1, -1, 1);
+		normal.Normalize();
+		quadVertices[2].Normal = PackNormal(normal);
 		quadVertices[2].UV = Vector2(1, 1);
 		quadVertices[2].Color = PackColor(Vector4::One);
 		quadVertices[2].Effects = 2 << 25;

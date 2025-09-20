@@ -73,9 +73,9 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Bone = input.BoneIndex[0];
 	output.WorldPosition = worldPosition;
 
-	output.Normal = normalize(mul(input.Normal, (float3x3)world).xyz);
-	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
-    output.Binormal = normalize(mul(normalize(cross(input.Normal, input.Tangent)), (float3x3) world).xyz);
+    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
+    output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) world).xyz);
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);

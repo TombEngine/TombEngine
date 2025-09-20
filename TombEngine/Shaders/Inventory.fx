@@ -42,9 +42,9 @@ PixelShaderInput VS(VertexShaderInput input)
 	PixelShaderInput output;
 
 	output.Position = mul(mul(float4(input.Position, 1.0f), World), ViewProjection);
-    output.Normal = (mul(input.Normal, (float3x3) World).xyz);
-    output.Tangent = normalize(mul(input.Tangent, (float3x3) World).xyz);
-    output.Binormal = normalize(mul(normalize(cross(input.Normal, input.Tangent)), (float3x3) World).xyz);
+    output.Normal = (mul(input.Normal.xyz, (float3x3) World).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) World).xyz);
+    output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) World).xyz);
     output.Color = input.Color;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
     output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
