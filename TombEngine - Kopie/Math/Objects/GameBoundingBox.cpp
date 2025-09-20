@@ -1,0 +1,221 @@
+#include "framework.h"
+#include "Math/Objects/GameBoundingBox.h"
+
+#include "Game/animation.h"
+#include "Game/items.h"
+#include "Game/Setup.h"
+#include "Math/Objects/EulerAngles.h"
+#include "Math/Objects/Pose.h"
+#include "Objects/game_object_ids.h"
+
+//namespace TEN::Math
+//{
+	const GameBoundingBox GameBoundingBox::Zero = GameBoundingBox(0, 0, 0, 0, 0, 0);
+
+	GameBoundingBox::GameBoundingBox(float x1, float x2, float y1, float y2, float z1, float z2)
+	{
+		X1 = (int)round(x1);
+		X2 = (int)round(x2);
+		Y1 = (int)round(y1);
+		Y2 = (int)round(y2);
+		Z1 = (int)round(z1);
+		Z2 = (int)round(z2);
+	}
+
+	GameBoundingBox::GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
+	{
+		*this = GetFrame(objectID, animNumber, frameNumber)->BoundingBox;
+	}
+
+	// TODO: Use reference, not pointer.
+	GameBoundingBox::GameBoundingBox(const ItemInfo* item)
+	{
+		auto frameData = GetFrameInterpData(*item);
+		if (frameData.Alpha == 0.0f)
+		{
+			*this = frameData.FramePtr0->BoundingBox;
+		}
+		else
+		{
+			*this = frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha));
+		}
+	}
+
+	int GameBoundingBox::GetWidth() const
+	{
+		return abs(X2 - X1);
+	}
+
+	int GameBoundingBox::GetHeight() const
+	{
+		return abs(Y2 - Y1);
+	}
+
+	int GameBoundingBox::GetDepth() const
+	{
+		return abs(Z2 - Z1);
+	}
+
+	Vector3 GameBoundingBox::GetCenter() const
+	{
+		return ((Vector3(X1, Y1, Z1) + Vector3(X2, Y2, Z2)) / 2);
+	}
+
+	Vector3 GameBoundingBox::GetExtents() const
+	{
+		return ((Vector3(X2, Y2, Z2) - Vector3(X1, Y1, Z1)) / 2);
+	}
+
+	void GameBoundingBox::Rotate(const EulerAngles& rot)
+	{
+		// Original min/max.
+		auto min = Vector3(X1, Y1, Z1);
+		auto max = Vector3(X2, Y2, Z2);
+
+		// All 8 corners of the box.
+		Vector3 corners[8] =
+		{
+			{min.x, min.y, min.z},
+			{max.x, min.y, min.z},
+			{min.x, max.y, min.z},
+			{max.x, max.y, min.z},
+			{min.x, min.y, max.z},
+			{max.x, min.y, max.z},
+			{min.x, max.y, max.z},
+			{max.x, max.y, max.z}
+		};
+
+		// Rotation matrix.
+		auto rotMatrix = rot.ToRotationMatrix();
+
+		// Rotate and track new min/max.
+		auto newMin = Vector3( FLT_MAX,  FLT_MAX,  FLT_MAX);
+		auto newMax = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		for (auto& c : corners)
+		{
+			auto rotCorner = Vector3::Transform(c, rotMatrix);
+			newMin.x = std::min(newMin.x, rotCorner.x);
+			newMin.y = std::min(newMin.y, rotCorner.y);
+			newMin.z = std::min(newMin.z, rotCorner.z);
+
+			newMax.x = std::max(newMax.x, rotCorner.x);
+			newMax.y = std::max(newMax.y, rotCorner.y);
+			newMax.z = std::max(newMax.z, rotCorner.z);
+		}
+
+		// Assign integer-rounded bounds.
+		X1 = (int)std::floor(newMin.x);
+		Y1 = (int)std::floor(newMin.y);
+		Z1 = (int)std::floor(newMin.z);
+		X2 = (int)std::ceil(newMax.x);
+		Y2 = (int)std::ceil(newMax.y);
+		Z2 = (int)std::ceil(newMax.z);
+	}
+
+	BoundingSphere GameBoundingBox::ToLocalBoundingSphere() const
+	{
+		return BoundingSphere(GetCenter(), GetExtents().Length());
+	}
+
+	BoundingBox GameBoundingBox::ToConservativeBoundingBox(const Pose& pose) const
+	{
+		// Calculate conservative radius in XZ plane for Y-axis rotation.
+		auto extents = GetExtents();
+		float xzRadius = sqrt(extents.x * extents.x + extents.z * extents.z);
+
+		// Extents remain unchanged along Y-axis.
+		auto conservativeExtents = Vector3(xzRadius, extents.y, xzRadius);
+
+		// Manual 2D rotation for Y-axis only.
+		auto center = GetCenter();
+		float cos = phd_cos(pose.Orientation.y);
+		float sin = phd_sin(pose.Orientation.y);
+
+		// Rotate centerOffset in XZ plane (ignore Y rotation for height).
+		float rotatedX =  (cos * center.x) + (sin * center.z);
+		float rotatedZ = -(sin * center.x) + (cos * center.z);
+
+		// Box center is now position plus rotated offset.
+		auto rotatedCenter = pose.Position.ToVector3() + Vector3(rotatedX, center.y, rotatedZ);
+
+		// Build and return conservative AABB.
+		return BoundingBox(rotatedCenter, conservativeExtents);
+	}
+
+	BoundingOrientedBox GameBoundingBox::ToBoundingOrientedBox(const Pose& pose) const
+	{
+		return ToBoundingOrientedBox(pose.Position.ToVector3(), pose.Orientation.ToQuaternion());
+	}
+
+	BoundingOrientedBox GameBoundingBox::ToBoundingOrientedBox(const Vector3& pos, const Quaternion& orient) const
+	{
+		auto box = BoundingOrientedBox();
+		BoundingOrientedBox(GetCenter(), GetExtents(), Vector4::UnitY).Transform(box, 1.0f, orient, pos);
+		return box;
+	}
+
+	GameBoundingBox GameBoundingBox::operator +(const GameBoundingBox& bounds) const
+	{
+		return GameBoundingBox(
+			X1 + bounds.X1, X2 + bounds.X2,
+			Y1 + bounds.Y1, Y2 + bounds.Y2,
+			Z1 + bounds.Z1, Z2 + bounds.Z2);
+	}
+
+	GameBoundingBox GameBoundingBox::operator +(const Pose& pose) const
+	{
+		return GameBoundingBox(
+			X1 + pose.Position.x, X2 + pose.Position.x,
+			Y1 + pose.Position.y, Y2 + pose.Position.y,
+			Z1 + pose.Position.z, Z2 + pose.Position.z);
+	}
+
+	GameBoundingBox GameBoundingBox::operator -(const GameBoundingBox& bounds) const
+	{
+		return GameBoundingBox(
+			X1 - bounds.X1, X2 - bounds.X2,
+			Y1 - bounds.Y1, Y2 - bounds.Y2,
+			Z1 - bounds.Z1, Z2 - bounds.Z2);
+	}
+
+	GameBoundingBox GameBoundingBox::operator -(const Pose& pose) const
+	{
+		return GameBoundingBox(
+			X1 - pose.Position.x, X2 - pose.Position.x,
+			Y1 - pose.Position.y, Y2 - pose.Position.y,
+			Z1 - pose.Position.z, Z2 - pose.Position.z);
+	}
+
+	GameBoundingBox GameBoundingBox::operator *(float scalar) const
+	{
+		return GameBoundingBox(
+			X1 * scalar, X2 * scalar,
+			Y1 * scalar, Y2 * scalar,
+			Z1 * scalar, Z2 * scalar);
+	}
+
+	GameBoundingBox GameBoundingBox::operator *(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 * scalar.x, X2 * scalar.x,
+			Y1 * scalar.y, Y2 * scalar.y,
+			Z1 * scalar.z, Z2 * scalar.z);
+	}
+
+	GameBoundingBox GameBoundingBox::operator /(float scalar) const
+	{
+		return GameBoundingBox(
+			X1 / scalar, X2 / scalar,
+			Y1 / scalar, Y2 / scalar,
+			Z1 / scalar, Z2 / scalar);
+	}
+
+	GameBoundingBox GameBoundingBox::operator /(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 / scalar.x, X2 / scalar.x,
+			Y1 / scalar.y, Y2 / scalar.y,
+			Z1 / scalar.z, Z2 / scalar.z);
+	}
+//}

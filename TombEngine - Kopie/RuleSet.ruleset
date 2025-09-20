@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="New Rule Set" Description=" " ToolsVersion="16.0">
+	<Rules AnalyzerId="Microsoft.Analyzers.ManagedCodeAnalysis" RuleNamespace="Microsoft.Rules.Managed">
+	</Rules>
+	<Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
+		<Rule Id="C26812" Action="Hidden" />
+		<Rule Id="C26439" Action="Hidden" />
+		<Rule Id="C26495" Action="Hidden" />
+	</Rules>
+</RuleSet>

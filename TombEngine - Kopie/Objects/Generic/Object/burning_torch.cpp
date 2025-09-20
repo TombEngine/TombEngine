@@ -1,0 +1,299 @@
+#include "framework.h"
+#include "Objects/Generic/Object/burning_torch.h"
+
+#include "Game/animation.h"
+#include "Game/collision/collide_room.h"
+#include "Game/collision/collide_item.h"
+#include "Game/control/los.h"
+#include "Game/effects/effects.h"
+#include "Game/items.h"
+#include "Game/Lara/lara.h"
+#include "Game/Lara/lara_flare.h"
+#include "Game/Lara/lara_helpers.h"
+#include "Game/Setup.h"
+#include "Objects/Effects/flame_emitters.h"
+#include "Renderer/RendererEnums.h"
+#include "Sound/sound.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/Input/Input.h"
+#include "Specific/level.h"
+
+using namespace TEN::Entities::Effects;
+using namespace TEN::Input;
+
+namespace TEN::Entities::Generic
+{
+	void TriggerTorchFlame(int fxObject, unsigned char node)
+	{
+		auto* spark = GetFreeParticle();
+
+		spark->on = true;
+
+		spark->sR = 1.0f * UCHAR_MAX;
+		spark->sB = 0.2f * UCHAR_MAX;
+		spark->sG = Random::GenerateFloat(0.2f, 0.3f) * UCHAR_MAX;
+		spark->dR = Random::GenerateFloat(-0.25f, 0.0f) * UCHAR_MAX;
+		spark->dB = 0.1f * UCHAR_MAX;
+		spark->dG =
+		spark->dG = Random::GenerateFloat(-0.5f, -0.25f) * UCHAR_MAX;
+
+		spark->fadeToBlack = 8;
+		spark->colFadeSpeed = Random::GenerateInt(12, 15);
+		spark->blendMode = BlendMode::Additive;
+		spark->life =
+		spark->sLife = Random::GenerateInt(24, 31);
+
+		spark->x = Random::GenerateInt(-8, 8);
+		spark->y = 0;
+		spark->z = Random::GenerateInt(-8, 8);
+
+		spark->xVel = Random::GenerateInt(-128, 128);
+		spark->yVel = Random::GenerateInt(-31, -16);
+		spark->zVel = Random::GenerateInt(-128, 128);
+
+		spark->friction = 5;
+
+		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
+
+		spark->blendMode = BlendMode::Additive;
+
+		if (Random::TestProbability(1 / 2.0f))
+			spark->rotAdd = Random::GenerateFloat(-0.16f / 127.0f, 0.0f) * SCHAR_MAX;
+		else
+			spark->rotAdd = Random::GenerateFloat(0.0f, 0.16f) * SCHAR_MAX;
+
+		spark->gravity = Random::GenerateInt (-31, -16);
+		spark->nodeNumber = node;
+		spark->maxYvel = Random::GenerateFloat(-0.16f, 0.0f) * SCHAR_MAX;
+		spark->fxObj = fxObject;
+		spark->scalar = 1;
+		spark->sSize =
+		spark->size = Random::GenerateFloat(64, 150);
+		spark->dSize = spark->size / 8;
+
+		int spriteOffset = GlobalCounter % Objects[ID_FIRE_SPRITES].nmeshes;
+		spark->SpriteSeqID = ID_FIRE_SPRITES;
+		spark->SpriteID = spriteOffset;
+	}
+
+	void DoFlameTorch()
+	{
+		const int holdAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
+		const int throwAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 1;
+		const int dropAnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex + 2;
+
+		auto* laraItem = LaraItem.Get();
+		auto* lara = GetLaraInfo(laraItem);
+
+		if (lara->Torch.State == TorchState::Holding)
+		{
+			if (lara->Control.Weapon.RequestGunType != lara->Control.Weapon.GunType)
+			{
+				lara->LeftArm.Locked = true;
+				lara->LeftArm.FrameNumber = 31;
+				lara->LeftArm.AnimNumber = dropAnimNumber;
+				lara->Torch.State = TorchState::Dropping;
+			}
+			else if (IsHeld(In::Draw) &&
+				!laraItem->Animation.IsAirborne &&
+				laraItem->Animation.Velocity.y == 0.0f &&
+				laraItem->Animation.ActiveState != LS_JUMP_PREPARE &&
+				laraItem->Animation.ActiveState != LS_JUMP_UP &&
+				laraItem->Animation.ActiveState != LS_JUMP_FORWARD &&
+				laraItem->Animation.ActiveState != LS_JUMP_BACK &&
+				laraItem->Animation.ActiveState != LS_JUMP_LEFT &&
+				laraItem->Animation.ActiveState != LS_JUMP_RIGHT ||
+				lara->Control.WaterStatus == WaterStatus::TreadWater ||
+				lara->Control.WaterStatus == WaterStatus::Underwater)
+			{
+				lara->LeftArm.Locked = true;
+				lara->LeftArm.FrameNumber = 1;
+				lara->LeftArm.AnimNumber = throwAnimNumber;
+				lara->Torch.State = TorchState::Throwing;
+
+				if (lara->Control.WaterStatus == WaterStatus::Underwater)
+					lara->Torch.IsLit = false;
+			}
+		}
+		else if (lara->Torch.State == TorchState::Throwing)
+		{
+			if (lara->LeftArm.FrameNumber < 12 && laraItem->Animation.IsAirborne)
+			{
+				lara->LeftArm.Locked = false;
+				lara->LeftArm.FrameNumber = 0;
+				lara->LeftArm.AnimNumber = holdAnimNumber;
+				lara->Torch.State = TorchState::Holding;
+			}
+			else
+			{
+				lara->LeftArm.FrameNumber++;
+				if (lara->LeftArm.FrameNumber == 27)
+				{
+					lara->Flare.ControlLeft = false;
+					lara->LeftArm.Locked = false;
+					lara->Torch.State = TorchState::Holding;
+					lara->Control.Weapon.GunType = lara->Control.Weapon.LastGunType;
+					lara->Control.Weapon.RequestGunType = LaraWeaponType::None;
+					lara->Control.HandStatus = HandStatus::Free;
+				}
+				else if (lara->LeftArm.FrameNumber == 12)
+				{
+					laraItem->Model.MeshIndex[LM_LHAND] = laraItem->Model.BaseMesh + LM_LHAND;
+					CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, true);
+					lara->Torch.IsLit = false;
+				}
+			}
+		}
+		else if (lara->Torch.State == TorchState::Dropping)
+		{
+			lara->LeftArm.FrameNumber++;
+			if (lara->LeftArm.FrameNumber == 41)
+			{
+				lara->Flare.ControlLeft = false;
+				lara->LeftArm.Locked = false;
+				lara->Torch.State = TorchState::Holding;
+				lara->Control.Weapon.LastGunType = LaraWeaponType::None;
+				lara->Control.Weapon.GunType = LaraWeaponType::None;
+				lara->Control.HandStatus = HandStatus::Free;
+			}
+			else if (lara->LeftArm.FrameNumber == 36)
+			{
+				laraItem->Model.MeshIndex[LM_LHAND] = laraItem->Model.BaseMesh + LM_LHAND;
+				CreateFlare(*laraItem, ID_BURNING_TORCH_ITEM, false);
+				lara->Torch.IsLit = false;
+			}
+		}
+		else if (lara->Torch.State == TorchState::JustLit)
+		{
+			if (laraItem->Animation.ActiveState != LS_MISC_CONTROL)
+			{
+				lara->LeftArm.Locked = false;
+				lara->Torch.State = TorchState::Holding;
+				lara->LeftArm.FrameNumber = 0;
+				lara->Flare.ControlLeft = true;
+				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;
+				lara->LeftArm.AnimNumber = holdAnimNumber;
+			}
+		}
+
+		if (lara->Flare.ControlLeft)
+			lara->Control.HandStatus = HandStatus::WeaponReady;
+
+		lara->LeftArm.FrameBase = GetAnimData(lara->LeftArm.AnimNumber).FramePtr;
+
+		if (lara->Torch.IsLit)
+		{
+			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
+			auto lightColor = Color(
+				Random::GenerateFloat(0.75f, 1.0f),
+				Random::GenerateFloat(0.4f, 0.5f),
+				0.0f);
+			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+
+			if (!(Wibble & 3))
+				TriggerTorchFlame(laraItem->Index, 0);
+
+			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
+		}
+	}
+
+	void GetFlameTorch()
+	{
+		auto* laraItem = LaraItem.Get();
+		auto* lara = GetLaraInfo(laraItem);
+
+		if (lara->Control.Weapon.GunType == LaraWeaponType::Flare)
+			CreateFlare(*laraItem, ID_FLARE_ITEM, false);
+
+		lara->Control.HandStatus = HandStatus::WeaponReady;
+		lara->Control.Weapon.RequestGunType = LaraWeaponType::Torch;
+		lara->Control.Weapon.GunType = LaraWeaponType::Torch;
+		lara->Flare.ControlLeft = true;
+		lara->LeftArm.AnimNumber = Objects[ID_LARA_TORCH_ANIM].animIndex;
+		lara->LeftArm.Locked = false;
+		lara->LeftArm.FrameNumber = 0;
+		lara->LeftArm.FrameBase = GetAnimData(lara->LeftArm.AnimNumber).FramePtr;
+
+		laraItem->Model.MeshIndex[LM_LHAND] = Objects[ID_LARA_TORCH_ANIM].meshIndex + LM_LHAND;
+	}
+
+	void TorchControl(short itemNumber)
+	{
+		auto* item = &g_Level.Items[itemNumber];
+
+		if (item->Animation.Velocity.y)
+		{
+			item->Pose.Orientation.x -= ANGLE(5.0f);
+			item->Pose.Orientation.z += ANGLE(5.0f);
+		}
+		else if (!item->Animation.Velocity.z)
+		{
+			item->Pose.Orientation.x = 0;
+			item->Pose.Orientation.z = 0;
+		}
+
+		auto vel = Vector3i(
+			item->Animation.Velocity.z * phd_sin(item->Pose.Orientation.y),
+			item->Animation.Velocity.y,
+			item->Animation.Velocity.z * phd_cos(item->Pose.Orientation.y));
+
+		auto prevPos = item->Pose.Position;
+		item->Pose.Position += Vector3i(vel.x, 0, vel.z);
+
+		if (TestEnvironment(ENV_FLAG_WATER, item) ||
+			TestEnvironment(ENV_FLAG_SWAMP, item))
+		{
+			item->Animation.Velocity.y += (5 - item->Animation.Velocity.y) / 2;
+			item->Animation.Velocity.z += (5 - item->Animation.Velocity.z) / 2;
+
+			if (item->ItemFlags[3] != 0)
+				item->ItemFlags[3] = 0;
+		}
+		else
+		{
+			item->Animation.Velocity.y += g_GameFlow->GetSettings()->Physics.Gravity;
+		}
+
+		item->Pose.Position.y += item->Animation.Velocity.y;
+		DoProjectileDynamics(itemNumber, prevPos.x, prevPos.y, prevPos.z, vel.x, vel.y, vel.z);
+
+		// Collide with entities.
+		auto collObjects = GetCollidedObjects(*item, true, true);
+		if (!collObjects.IsEmpty())
+		{
+			LaraCollision.Setup.EnableObjectPush = true;
+			if (!collObjects.Items.empty())
+			{
+				const auto& object = Objects[collObjects.Items.front()->ObjectNumber];
+
+				if (!object.intelligent &&
+					!collObjects.Items.front()->IsLara())
+				{
+					ObjectCollision(collObjects.Items.front()->Index, item, &LaraCollision);
+				}
+			}
+			else if (!collObjects.Statics.empty())
+			{
+				ItemPushStatic(item, *collObjects.Statics.front(), &LaraCollision);
+			}
+			
+			item->Animation.Velocity.z = -int(item->Animation.Velocity.z / 1.5f);
+		}
+
+		if (item->ItemFlags[3])
+		{
+			auto lightColor = Color(
+				Random::GenerateFloat(0.75f, 1.0f),
+				Random::GenerateFloat(0.4f, 0.5f),
+				0.0f);
+			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+			
+			if (!(Wibble & 7))
+				TriggerTorchFlame(itemNumber, 1);
+
+			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
+		}
+	}
+}

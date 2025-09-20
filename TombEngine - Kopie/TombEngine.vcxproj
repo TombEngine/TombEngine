@@ -1,0 +1,1679 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{15AB0220-541C-4DA1-94EB-ED3C47E4582E}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>TombEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>TombEngine</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
+    <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\lz4\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <TargetExt>.exe</TargetExt>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)</TargetName>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x64\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x86\</OutDir>
+    <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog\x86;$(SolutionDir)Libs\lua\x86;$(SolutionDir)Libs\zlib\x86;$(SolutionDir)Libs\lz4\x86;$(SolutionDir)Libs\vlc\x86;$(SolutionDir)Libs\bass\x86;$(SolutionDir)Libs\ois\x86</LibraryPath>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x64</ExecutablePath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\zlib\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\ois\x64</LibraryPath>
+    <TargetExt>.exe</TargetExt>
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\x64\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
+      <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\savegame\schema\generate_code.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
+CALL compile.bat .
+
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+
+xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
+      <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;OIS_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Specific\savegame\schema\generate_code.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
+CALL compile.bat .
+
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+
+xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+      <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <StringPooling>true</StringPooling>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
+      <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <LargeAddressAware>true</LargeAddressAware>
+      <TargetMachine>MachineX86</TargetMachine>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+    <PostBuildEvent>
+      <Command>del "$(TargetDir)*.pdb" /q
+del "$(TargetDir)*.lib" /q
+del "$(TargetDir)*.exp" /q
+del "$(TargetDir)OIS_d.dll" /q</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
+CALL compile.bat .
+
+CD "$(ProjectDir)Specific\savegame\schema\"
+CALL gen.bat
+
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+
+xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\ois\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x86\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x86\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <StringPooling>true</StringPooling>
+      <AdditionalOptions>/Zc:__cplusplus /experimental:external /external:anglebrackets /bigobj</AdditionalOptions>
+      <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;spdlog.lib;libvlc.lib;libvlccore.lib;OIS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+    <PostBuildEvent>
+      <Command>del "$(TargetDir)*.pdb" /q
+del "$(TargetDir)*.lib" /q
+del "$(TargetDir)*.exp" /q
+del "$(TargetDir)OIS_d.dll" /q</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>powershell -ExecutionPolicy Bypass -File "$(SolutionDir)\Documentation\generate_objectlist.ps1"
+
+CD "$(ProjectDir)..\Documentation\"
+CALL compile.bat .
+
+CD "$(ProjectDir)Specific\savegame\schema\"
+CALL gen.bat
+
+SET BuildDir=$(SolutionDir)Build\$(Configuration)
+SET ShaderDir=%BuildDir%\Shaders
+SET ScriptsDir=%BuildDir%\Scripts
+SET EngineDir=%ScriptsDir%\Engine
+
+if not exist %ShaderDir% mkdir %ShaderDir%
+if not exist %ScriptsDir% mkdir %ScriptsDir%
+if not exist %EngineDir% mkdir %EngineDir%
+
+xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+
+xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\ois\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\zlib\x64\*.dll" "$(TargetDir)"
+
+xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
+xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
+
+if not exist "%ScriptsDir%\Gameflow.lua" xcopy /Y "$(SolutionDir)Scripts\Gameflow.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Settings.lua" xcopy /Y "$(SolutionDir)Scripts\Settings.lua" %ScriptsDir%
+if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.lua" %ScriptsDir%</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating documentation, savegame flatbuffer and copying needed files...</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Game\collision\Los.h" />
+    <ClInclude Include="Game\collision\Point.h" />
+    <ClInclude Include="Game\collision\Sphere.h" />
+    <ClInclude Include="Game\Debug\Debug.h" />
+    <ClInclude Include="Game\effects\Bubble.h" />
+    <ClInclude Include="Game\effects\Decal.h" />
+    <ClInclude Include="Game\effects\DisplaySprite.h" />
+    <ClInclude Include="Game\effects\Light.h" />
+    <ClInclude Include="Game\effects\Splash.h" />
+    <ClInclude Include="Game\GuiObjects.h" />
+    <ClInclude Include="Game\Hud\Hud.h" />
+    <ClInclude Include="Game\Hud\InteractionHighlighter.h" />
+    <ClInclude Include="Game\Hud\PickupSummary.h" />
+    <ClInclude Include="Game\Hud\Speedometer.h" />
+    <ClInclude Include="Game\Hud\StatusBars.h" />
+    <ClInclude Include="Game\Hud\TargetHighlighter.h" />
+    <ClInclude Include="Game\Lara\lara.h" />
+    <ClInclude Include="Game\Lara\lara_basic.h" />
+    <ClInclude Include="Game\Lara\lara_cheat.h" />
+    <ClInclude Include="Game\Lara\lara_climb.h" />
+    <ClInclude Include="Game\Lara\lara_collide.h" />
+    <ClInclude Include="Game\Lara\lara_crawl.h" />
+    <ClInclude Include="Game\Lara\lara_fire.h" />
+    <ClInclude Include="Game\Lara\lara_flare.h" />
+    <ClInclude Include="Game\Lara\lara_hang.h" />
+    <ClInclude Include="Game\Lara\lara_helpers.h" />
+    <ClInclude Include="Game\Lara\lara_initialise.h" />
+    <ClInclude Include="Game\Lara\lara_jump.h" />
+    <ClInclude Include="Game\Lara\lara_monkey.h" />
+    <ClInclude Include="Game\Lara\lara_objects.h" />
+    <ClInclude Include="Game\Lara\lara_one_gun.h" />
+    <ClInclude Include="Game\Lara\lara_overhang.h" />
+    <ClInclude Include="Game\Lara\lara_slide.h" />
+    <ClInclude Include="Game\Lara\lara_struct.h" />
+    <ClInclude Include="Game\Lara\lara_surface.h" />
+    <ClInclude Include="Game\Lara\lara_swim.h" />
+    <ClInclude Include="Game\Lara\lara_test_structs.h" />
+    <ClInclude Include="Game\Lara\lara_tests.h" />
+    <ClInclude Include="Game\Lara\lara_two_guns.h" />
+    <ClInclude Include="Game\animation.h" />
+    <ClInclude Include="Game\camera.h" />
+    <ClInclude Include="Game\collision\collide_item.h" />
+    <ClInclude Include="Game\collision\collide_room.h" />
+    <ClInclude Include="Game\collision\floordata.h" />
+    <ClInclude Include="Game\control\box.h" />
+    <ClInclude Include="Game\control\control.h" />
+    <ClInclude Include="Game\control\flipeffect.h" />
+    <ClInclude Include="Game\control\los.h" />
+    <ClInclude Include="Game\control\lot.h" />
+    <ClInclude Include="Game\control\trigger.h" />
+    <ClInclude Include="Game\control\volume.h" />
+    <ClInclude Include="Game\control\event.h" />
+    <ClInclude Include="Game\effects\Blood.h" />
+    <ClInclude Include="Game\effects\Drip.h" />
+    <ClInclude Include="Game\effects\Electricity.h" />
+    <ClInclude Include="Game\effects\Footprint.h" />
+    <ClInclude Include="Game\effects\Hair.h" />
+    <ClInclude Include="Game\effects\Ripple.h" />
+    <ClInclude Include="Game\effects\Streamer.h" />
+    <ClInclude Include="Game\effects\chaffFX.h" />
+    <ClInclude Include="Game\effects\debris.h" />
+    <ClInclude Include="Game\effects\effects.h" />
+    <ClInclude Include="Game\effects\explosion.h" />
+    <ClInclude Include="Game\effects\item_fx.h" />
+    <ClInclude Include="Game\effects\simple_particle.h" />
+    <ClInclude Include="Game\effects\smoke.h" />
+    <ClInclude Include="Game\effects\spark.h" />
+    <ClInclude Include="Game\effects\tomb4fx.h" />
+    <ClInclude Include="Game\effects\weather.h" />
+    <ClInclude Include="Game\gui.h" />
+    <ClInclude Include="Game\itemdata\creature_info.h" />
+    <ClInclude Include="Game\itemdata\door_data.h" />
+    <ClInclude Include="Game\itemdata\itemdata.h" />
+    <ClInclude Include="Game\items.h" />
+    <ClInclude Include="Game\Lara\Optics.h" />
+    <ClInclude Include="Game\Lara\PlayerContext.h" />
+    <ClInclude Include="Game\Lara\PlayerContextData.h" />
+    <ClInclude Include="Game\Lara\PlayerStateMachine.h" />
+    <ClInclude Include="Game\misc.h" />
+    <ClInclude Include="Game\missile.h" />
+    <ClInclude Include="Game\people.h" />
+    <ClInclude Include="Game\pickup\pickup.h" />
+    <ClInclude Include="Game\pickup\pickup_ammo.h" />
+    <ClInclude Include="Game\pickup\pickup_consumable.h" />
+    <ClInclude Include="Game\pickup\pickup_key_items.h" />
+    <ClInclude Include="Game\pickup\pickup_misc_items.h" />
+    <ClInclude Include="Game\pickup\pickup_weapon.h" />
+    <ClInclude Include="Game\pickup\pickuputil.h" />
+    <ClInclude Include="Game\room.h" />
+    <ClInclude Include="Game\savegame.h" />
+    <ClInclude Include="Game\Setup.h" />
+    <ClInclude Include="Game\spotcam.h" />
+    <ClInclude Include="Game\StaticMesh.h" />
+    <ClInclude Include="Math\Constants.h" />
+    <ClInclude Include="Math\Geometry.h" />
+    <ClInclude Include="Math\Legacy.h" />
+    <ClInclude Include="Math\Math.h" />
+    <ClInclude Include="Math\Objects\AxisAngle.h" />
+    <ClInclude Include="Math\Objects\EulerAngles.h" />
+    <ClInclude Include="Math\Objects\GameBoundingBox.h" />
+    <ClInclude Include="Math\Objects\GameVector.h" />
+    <ClInclude Include="Math\Objects\Pose.h" />
+    <ClInclude Include="Math\Objects\Vector2i.h" />
+    <ClInclude Include="Math\Objects\Vector3i.h" />
+    <ClInclude Include="Math\Random.h" />
+    <ClInclude Include="Math\Solvers.h" />
+    <ClInclude Include="Math\Utils.h" />
+    <ClInclude Include="Objects\Effects\Boss.h" />
+    <ClInclude Include="Objects\Effects\effect_objects.h" />
+    <ClInclude Include="Objects\Effects\EmberEmitter.h" />
+    <ClInclude Include="Objects\Effects\enemy_missile.h" />
+    <ClInclude Include="Objects\Effects\Fireflies.h" />
+    <ClInclude Include="Objects\Effects\flame_emitters.h" />
+    <ClInclude Include="Objects\Effects\LensFlare.h" />
+    <ClInclude Include="Objects\Effects\LightCone.h" />
+    <ClInclude Include="Objects\Effects\tr4_locusts.h" />
+    <ClInclude Include="Objects\Effects\tr5_electricity.h" />
+    <ClInclude Include="Objects\Generic\Doors\double_doors.h" />
+    <ClInclude Include="Objects\Generic\Doors\generic_doors.h" />
+    <ClInclude Include="Objects\Generic\Doors\pushpull_kick_door.h" />
+    <ClInclude Include="Objects\Generic\Doors\sequence_door.h" />
+    <ClInclude Include="Objects\Generic\Doors\steel_door.h" />
+    <ClInclude Include="Objects\Generic\Doors\underwater_door.h" />
+    <ClInclude Include="Objects\Generic\Object\BridgeObject.h" />
+    <ClInclude Include="Objects\Generic\Object\burning_torch.h" />
+    <ClInclude Include="Objects\Generic\Object\generic_bridge.h" />
+    <ClInclude Include="Objects\Generic\Object\generic_trapdoor.h" />
+    <ClInclude Include="Objects\Generic\Object\objects.h" />
+    <ClInclude Include="Objects\Generic\Object\polerope.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableBridge.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableCollision.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableEffects.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableInfo.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableObject.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableSound.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableStack.h" />
+    <ClInclude Include="Objects\Generic\Object\Pushable\PushableStates.h" />
+    <ClInclude Include="Objects\Generic\Object\rope.h" />
+    <ClInclude Include="Objects\Generic\Object\ZipLine.h" />
+    <ClInclude Include="Objects\Generic\Switches\AirlockSwitch.h" />
+    <ClInclude Include="Objects\Generic\Switches\cog_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\crowbar_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\fullblock_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\generic_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\jump_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\pulley_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\turn_switch.h" />
+    <ClInclude Include="Objects\Generic\Switches\underwater_switch.h" />
+    <ClInclude Include="Objects\Generic\Traps\CrumblingPlatform.h" />
+    <ClInclude Include="Objects\Generic\Traps\dart_emitter.h" />
+    <ClInclude Include="Objects\Generic\Traps\falling_block.h" />
+    <ClInclude Include="Objects\Generic\generic_objects.h" />
+    <ClInclude Include="Objects\Generic\puzzles_keys.h" />
+    <ClInclude Include="Objects\Generic\Doors\breakable_wall.h" />
+    <ClInclude Include="Objects\Sink.h" />
+    <ClInclude Include="Objects\TR1\Entity\Centaur.h" />
+    <ClInclude Include="Objects\TR1\Entity\Cowboy.h" />
+    <ClInclude Include="Objects\TR1\Entity\Kold.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_ape.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_bear.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_big_rat.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_doppelganger.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_giant_mutant.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_natla.h" />
+    <ClInclude Include="Objects\TR1\Entity\SkateboardKid.h" />
+    <ClInclude Include="Objects\TR1\Entity\tr1_wolf.h" />
+    <ClInclude Include="Objects\TR1\Entity\WingedMutant.h" />
+    <ClInclude Include="Objects\TR1\Trap\DamoclesSword.h" />
+    <ClInclude Include="Objects\TR1\Trap\ElectricBall.h" />
+    <ClInclude Include="Objects\TR1\Trap\ThorHammer.h" />
+    <ClInclude Include="Objects\TR1\Trap\SlammingDoors.h" />
+    <ClInclude Include="Objects\TR1\tr1_objects.h" />
+    <ClInclude Include="Objects\TR1\Trap\SwingingBlade.h" />
+    <ClInclude Include="Objects\TR2\Entity\Bartoli.h" />
+    <ClInclude Include="Objects\TR2\Entity\Dragon.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_barracuda.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_bird_monster.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_eagle_or_crow.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_knife_thrower.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_mercenary.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_monk.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_rat.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_shark.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_silencer.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_skidman.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_spear_guardian.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_spider.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_sword_guardian.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_worker_dualrevolver.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_worker_flamethrower.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_worker_machinegun.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_worker_shotgun.h" />
+    <ClInclude Include="Objects\TR2\Entity\tr2_yeti.h" />
+    <ClInclude Include="Objects\TR2\Trap\tr2_killerstatue.h" />
+    <ClInclude Include="Objects\TR2\Trap\tr2_spinningblade.h" />
+    <ClInclude Include="Objects\TR2\Trap\tr2_springboard.h" />
+    <ClInclude Include="Objects\TR2\Vehicles\skidoo.h" />
+    <ClInclude Include="Objects\TR2\Vehicles\skidoo_info.h" />
+    <ClInclude Include="Objects\TR2\Vehicles\speedboat.h" />
+    <ClInclude Include="Objects\TR2\Vehicles\speedboat_info.h" />
+    <ClInclude Include="Objects\TR2\tr2_objects.h" />
+    <ClInclude Include="Objects\TR3\Entity\Compsognathus.h" />
+    <ClInclude Include="Objects\TR3\Entity\FishSwarm.h" />
+    <ClInclude Include="Objects\TR3\Entity\Lizard.h" />
+    <ClInclude Include="Objects\TR3\Entity\SealMutant.h" />
+    <ClInclude Include="Objects\TR3\Entity\PunaBoss.h" />
+    <ClInclude Include="Objects\TR3\Entity\Raptor.h" />
+    <ClInclude Include="Objects\TR3\Entity\Shiva.h" />
+    <ClInclude Include="Objects\TR3\Entity\SophiaLeigh.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_claw_mutant.h" />
+    <ClInclude Include="Objects\TR3\Entity\TwinAutoGun.h" />
+    <ClInclude Include="Objects\TR3\Entity\WaspMutant.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_civvy.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_cobra.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_flamethrower.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_monkey.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_mp_gun.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_mp_stick.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_scuba_diver.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_tiger.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_tony.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_trex.h" />
+    <ClInclude Include="Objects\TR3\Entity\tr3_tribesman.h" />
+    <ClInclude Include="Objects\TR3\Entity\Winston.h" />
+    <ClInclude Include="Objects\TR3\Object\Corpse.h" />
+    <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
+    <ClInclude Include="Objects\TR3\Trap\FirePendulum.h" />
+    <ClInclude Include="Objects\TR3\Trap\train.h" />
+    <ClInclude Include="Objects\TR3\Trap\TurningBlade.h" />
+    <ClInclude Include="Objects\TR3\Trap\WallMountedBlade.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\big_gun.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\big_gun_info.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\kayak.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\kayak_info.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\minecart.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\minecart_info.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\quad_bike.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\quad_bike_info.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\rubber_boat.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\rubber_boat_info.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\upv.h" />
+    <ClInclude Include="Objects\TR3\Vehicles\upv_info.h" />
+    <ClInclude Include="Objects\TR3\tr3_objects.h" />
+    <ClInclude Include="Objects\TR4\Entity\Wraith.h" />
+    <ClInclude Include="Objects\TR4\Entity\WraithInfo.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_ahmet.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_baboon.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_baddy.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_bat.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_beetle_swarm.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_big_beetle.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_big_scorpion.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_crocodile.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_demigod.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_dog.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_enemy_jeep.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_guide.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_hammerhead.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_harpy.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_horseman.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_jean_yves.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_knight_templar.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_lara_double.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_mummy.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_mutant.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_sas.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_sentry_gun.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_setha.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_skeleton.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_small_scorpion.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_sphinx.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_troops.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_von_croy.h" />
+    <ClInclude Include="Objects\TR4\Entity\tr4_wild_boar.h" />
+    <ClInclude Include="Objects\TR4\Floor\tr4_burningfloor.h" />
+    <ClInclude Include="Objects\TR4\Object\StatuePlinth.h" />
+    <ClInclude Include="Objects\TR4\Object\WraithTrap.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_clockwork_beetle.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_element_puzzle.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_mapper.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_obelisk.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_sarcophagus.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_scales.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_senet.h" />
+    <ClInclude Include="Objects\TR4\Trap\SpikyCeiling.h" />
+    <ClInclude Include="Objects\TR4\Trap\SpikyWall.h" />
+    <ClInclude Include="Objects\TR4\Trap\SquishyBlock.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_birdblade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_blade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_catwalkblade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_chain.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_cog.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_fourblades.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_hammer.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_joby_spikes.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_mine.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_moving_blade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_plinthblade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_plough.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_sethblade.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_slicerdicer.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_spikeball.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_stargate.h" />
+    <ClInclude Include="Objects\TR4\Trap\tr4_teethspike.h" />
+    <ClInclude Include="Objects\TR4\Vehicles\jeep.h" />
+    <ClInclude Include="Objects\TR4\Vehicles\jeep_info.h" />
+    <ClInclude Include="Objects\TR4\Vehicles\motorbike.h" />
+    <ClInclude Include="Objects\TR4\Vehicles\motorbike_info.h" />
+    <ClInclude Include="Objects\TR4\tr4_objects.h" />
+    <ClInclude Include="Objects\TR5\Emitter\tr5_smoke_emitter.h" />
+    <ClInclude Include="Objects\TR5\Emitter\tr5_bats_emitter.h" />
+    <ClInclude Include="Objects\TR5\Emitter\tr5_rats_emitter.h" />
+    <ClInclude Include="Objects\TR5\Emitter\tr5_spider_emitter.h" />
+    <ClInclude Include="Objects\TR5\Emitter\Waterfall.h" />
+    <ClInclude Include="Objects\TR5\Entity\AutoGun.h" />
+    <ClInclude Include="Objects\TR5\Entity\HeavyGuard.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_brownbeast.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_chef.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_cyborg.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_doberman.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_dog.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_ghost.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_gladiator.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_guard.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_gunship.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_hydra.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_imp.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_lagoon_witch.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_larson.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_laser_head.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_laserhead_info.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_lion.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_reaper.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_roman_statue.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_submarine.h" />
+    <ClInclude Include="Objects\TR5\Entity\tr5_willowwisp.h" />
+    <ClInclude Include="Objects\TR5\Light\tr5_light.h" />
+    <ClInclude Include="Objects\TR5\Light\tr5_light_info.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_bodypart.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_expandingplatform.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_genslot.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_highobject.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_missile.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_raisingblock.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_rollingball.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_teleporter.h" />
+    <ClInclude Include="Objects\TR5\Object\tr5_twoblockplatform.h" />
+    <ClInclude Include="Objects\TR5\Shatter\tr5_smashobject.h" />
+    <ClInclude Include="Objects\TR5\Switch\tr5_crowdove_switch.h" />
+    <ClInclude Include="Objects\TR5\Switch\tr5_raisingcog.h" />
+    <ClInclude Include="Objects\TR5\Trap\LaserBarrier.h" />
+    <ClInclude Include="Objects\TR5\Trap\LaserBeam.h" />
+    <ClInclude Include="Objects\TR5\Trap\MovingLaser.h" />
+    <ClInclude Include="Objects\TR5\Trap\tr5_explosion.h" />
+    <ClInclude Include="Objects\TR5\Trap\tr5_fallingceiling.h" />
+    <ClInclude Include="Objects\TR5\Trap\tr5_romehammer.h" />
+    <ClInclude Include="Objects\TR5\Trap\tr5_ventilator.h" />
+    <ClInclude Include="Objects\TR5\Trap\tr5_wreckingball.h" />
+    <ClInclude Include="Objects\TR5\Trap\ZipLine.h" />
+    <ClInclude Include="Objects\TR5\tr5_objects.h" />
+    <ClInclude Include="Objects\Utils\VehicleHelpers.h" />
+    <ClInclude Include="Objects\Utils\object_helper.h" />
+    <ClInclude Include="Objects\game_object_ids.h" />
+    <ClInclude Include="Objects\objectslist.h" />
+    <ClInclude Include="Physics\Objects\CollisionMesh.h" />
+    <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
+    <ClInclude Include="Physics\Physics.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\BlendingBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\ConstantBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\HUDBarBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\HUDBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\InstancedSpriteBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\InstancedStaticBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\ItemBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\LightBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\PostProcessBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\RoomBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\ShaderFogBulb.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\ShaderLight.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\ShadowLightBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\SMAABuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\SpriteBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\StaticBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\VolConeBuffer.h" />
+    <ClInclude Include="Renderer\Frustum.h" />
+    <ClInclude Include="Renderer\Graphics\IndexBuffer.h" />
+    <ClInclude Include="Renderer\Graphics\RenderTarget2D.h" />
+    <ClInclude Include="Renderer\Graphics\RenderTargetCube.h" />
+    <ClInclude Include="Renderer\Graphics\Texture2D.h" />
+    <ClInclude Include="Renderer\Graphics\Texture2DArray.h" />
+    <ClInclude Include="Renderer\Graphics\TextureBase.h" />
+    <ClInclude Include="Renderer\Graphics\VertexBuffer.h" />
+    <ClInclude Include="Renderer\Graphics\Vertices\PostProcessVertex.h" />
+    <ClInclude Include="Renderer\Graphics\Vertices\SpriteVertex.h" />
+    <ClInclude Include="Renderer\Graphics\Vertices\Vertex.h" />
+    <ClInclude Include="Renderer\Renderer.h" />
+    <ClInclude Include="Renderer\RendererEnums.h" />
+    <ClInclude Include="Renderer\ShaderManager\ShaderManager.h" />
+    <ClInclude Include="Renderer\Structures\RendererDecal.h" />
+    <ClInclude Include="Renderer\Structures\RendererMirror.h" />
+    <ClInclude Include="Renderer\RendererSprite2D.h" />
+    <ClInclude Include="Renderer\RendererBucket.h" />
+    <ClInclude Include="Renderer\RendererPolygon.h" />
+    <ClInclude Include="Renderer\RendererRectangle.h" />
+    <ClInclude Include="Renderer\RendererSpriteVertex.h" />
+    <ClInclude Include="Renderer\RendererTransparentFace.h" />
+    <ClInclude Include="Renderer\RendererUtils.h" />
+    <ClInclude Include="Renderer\RenderView.h" />
+    <ClInclude Include="Renderer\SMAA\AreaTex.h" />
+    <ClInclude Include="Renderer\SMAA\SearchTex.h" />
+    <ClInclude Include="Renderer\Structures\RendererAnimatedTexture.h" />
+    <ClInclude Include="Renderer\Structures\RendererAnimatedTextureSet.h" />
+    <ClInclude Include="Renderer\Structures\RendererBone.h" />
+    <ClInclude Include="Renderer\Structures\RendererBucket.h" />
+    <ClInclude Include="Renderer\Structures\RendererDisplayMode.h" />
+    <ClInclude Include="Renderer\Structures\RendererDoor.h" />
+    <ClInclude Include="Renderer\Structures\RendererEffect.h" />
+    <ClInclude Include="Renderer\Structures\RendererFogBulb.h" />
+    <ClInclude Include="Renderer\Structures\RendererHudBar.h" />
+    <ClInclude Include="Renderer\Structures\RendererItem.h" />
+    <ClInclude Include="Renderer\Structures\RendererLensFlare.h" />
+    <ClInclude Include="Renderer\Structures\RendererLight.h" />
+    <ClInclude Include="Renderer\Structures\RendererLine2D.h" />
+    <ClInclude Include="Renderer\Structures\RendererLine3D.h" />
+    <ClInclude Include="Renderer\Structures\RendererMesh.h" />
+    <ClInclude Include="Renderer\Structures\RendererObject.h" />
+    <ClInclude Include="Renderer\Structures\RendererPolygon.h" />
+    <ClInclude Include="Renderer\Structures\RendererRectangle.h" />
+    <ClInclude Include="Renderer\Structures\RendererRoom.h" />
+    <ClInclude Include="Renderer\Structures\RendererRoomAmbientMap.h" />
+    <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
+    <ClInclude Include="Renderer\Structures\RendererShader.h" />
+    <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
+    <ClInclude Include="Renderer\Structures\RendererSprite.h" />
+    <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
+    <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
+    <ClInclude Include="Renderer\Structures\RendererSpriteSequence.h" />
+    <ClInclude Include="Renderer\Structures\RendererSpriteToDraw.h" />
+    <ClInclude Include="Renderer\Structures\RendererStar.h" />
+    <ClInclude Include="Renderer\Structures\RendererStatic.h" />
+    <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
+    <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
+    <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
+    <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
+    <ClInclude Include="Scripting\Include\ScriptInterfaceGame.h" />
+    <ClInclude Include="Scripting\Include\ScriptInterfaceLevel.h" />
+    <ClInclude Include="Scripting\Include\ScriptInterfaceState.h" />
+    <ClInclude Include="Scripting\Include\Strings\ScriptInterfaceStringsHandler.h" />
+    <ClInclude Include="Scripting\Include\VarMapVal.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\LaraTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\WeatherTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Input\AxisIDs.h" />
+    <ClInclude Include="Scripting\Internal\AudioTracks.h" />
+    <ClInclude Include="Scripting\Internal\LanguageScript.h" />
+    <ClInclude Include="Scripting\Internal\LuaHandler.h" />
+    <ClInclude Include="Scripting\Internal\ReservedScriptNames.h" />
+    <ClInclude Include="Scripting\Internal\ScriptAssert.h" />
+    <ClInclude Include="Scripting\Internal\ScriptUtil.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\FeatherModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\ParticleAnimTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Collision\MaterialTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Collision\Probe.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ItemActions.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\HandStatuses.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ErrorModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Color\Color.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Time\Time.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\BlendIDs.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\EffectIDs.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\EffectsFunctions.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Settings\Settings.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\FlowHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Fog\Fog.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\FreezeModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\GameStatuses.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\InventoryItem\InventoryItem.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\LensFlare\LensFlare.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Level\FlowLevel.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\SkyLayer\SkyLayer.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Starfield\Starfield.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Input\ActionIDs.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Input\InputHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Inventory\InventoryHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Logic\LevelFunc.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Logic\LogicHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Misc\ActionIDs.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Misc\CameraTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Misc\LevelLog.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Misc\Miscellaneous.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Misc\SoundTrackTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\AIObject\AIObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Camera\CameraObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\AmmoTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\LaraObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Moveable\MoveableObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Moveable\MoveableStatuses.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\NamedBase.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\ObjectIDs.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\ObjectsHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomFlags.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomReverbTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Sink\SinkObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Static\StaticObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Rotation\Rotation.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Sound\SoundHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Sound\SoundTrackTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Strings\StringsHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Util\LevelLog.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Util\Util.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Vec2\Vec2.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Types\Vec3\Vec3.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\AlignModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\CameraTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\PostProcessEffects.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\ScaleModes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
+    <ClInclude Include="Sound\sound.h" />
+    <ClInclude Include="Sound\sound_effects.h" />
+    <ClInclude Include="Specific\Input\Bindings.h" />
+    <ClInclude Include="Specific\Input\Keys.h" />
+    <ClInclude Include="Specific\IO\ChunkId.h" />
+    <ClInclude Include="Specific\IO\ChunkReader.h" />
+    <ClInclude Include="Specific\IO\ChunkWriter.h" />
+    <ClInclude Include="Specific\IO\LEB128.h" />
+    <ClInclude Include="Specific\IO\Streams.h" />
+    <ClInclude Include="Specific\Input\Input.h" />
+    <ClInclude Include="Specific\Input\InputAction.h" />
+    <ClInclude Include="Specific\LevelCameraInfo.h" />
+    <ClInclude Include="Specific\Parallel.h" />
+    <ClInclude Include="Specific\RGBAColor8Byte.h" />
+    <ClInclude Include="Specific\clock.h" />
+    <ClInclude Include="Specific\configuration.h" />
+    <ClInclude Include="Specific\fast_vector.h" />
+    <ClInclude Include="Specific\level.h" />
+    <ClInclude Include="Specific\memory\LinearArrayBuffer.h" />
+    <ClInclude Include="Specific\memory\Vector.h" />
+    <ClInclude Include="Specific\newtypes.h" />
+    <ClInclude Include="Specific\savegame\flatbuffers\ten_itemdata_generated.h" />
+    <ClInclude Include="Specific\savegame\flatbuffers\ten_savegame_generated.h" />
+    <ClInclude Include="Specific\Structures\BitField.h" />
+    <ClInclude Include="Specific\Structures\BoundingVolumeHierarchy.h" />
+    <ClInclude Include="Specific\Structures\SpatialHash.h" />
+    <ClInclude Include="Specific\trutils.h" />
+    <ClInclude Include="Specific\Video\Video.h" />
+    <ClInclude Include="Specific\winmain.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Types.h" />
+    <ClInclude Include="Version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="framework.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Game\animation.cpp" />
+    <ClCompile Include="Game\camera.cpp" />
+    <ClCompile Include="Game\collision\collide_item.cpp" />
+    <ClCompile Include="Game\collision\collide_room.cpp" />
+    <ClCompile Include="Game\collision\floordata.cpp" />
+    <ClCompile Include="Game\collision\Los.cpp" />
+    <ClCompile Include="Game\collision\Point.cpp" />
+    <ClCompile Include="Game\collision\Sphere.cpp" />
+    <ClCompile Include="Game\control\box.cpp" />
+    <ClCompile Include="Game\control\control.cpp" />
+    <ClCompile Include="Game\control\flipeffect.cpp" />
+    <ClCompile Include="Game\control\los.cpp" />
+    <ClCompile Include="Game\control\lot.cpp" />
+    <ClCompile Include="Game\control\trigger.cpp" />
+    <ClCompile Include="Game\control\volume.cpp" />
+    <ClCompile Include="Game\Debug\Debug.cpp" />
+    <ClCompile Include="Game\effects\Blood.cpp" />
+    <ClCompile Include="Game\effects\Bubble.cpp" />
+    <ClCompile Include="Game\effects\chaffFX.cpp" />
+    <ClCompile Include="Game\effects\debris.cpp" />
+    <ClCompile Include="Game\effects\Decal.cpp" />
+    <ClCompile Include="Game\effects\DisplaySprite.cpp" />
+    <ClCompile Include="Game\effects\Drip.cpp" />
+    <ClCompile Include="Game\effects\effects.cpp" />
+    <ClCompile Include="Game\effects\Electricity.cpp" />
+    <ClCompile Include="Game\effects\explosion.cpp" />
+    <ClCompile Include="Game\effects\Footprint.cpp" />
+    <ClCompile Include="Game\effects\Hair.cpp" />
+    <ClCompile Include="Game\effects\item_fx.cpp" />
+    <ClCompile Include="Game\effects\Light.cpp" />
+    <ClCompile Include="Game\effects\Ripple.cpp" />
+    <ClCompile Include="Game\effects\simple_particle.cpp" />
+    <ClCompile Include="Game\effects\smoke.cpp" />
+    <ClCompile Include="Game\effects\spark.cpp" />
+    <ClCompile Include="Game\effects\Splash.cpp" />
+    <ClCompile Include="Game\effects\Streamer.cpp" />
+    <ClCompile Include="Game\effects\tomb4fx.cpp" />
+    <ClCompile Include="Game\effects\weather.cpp" />
+    <ClCompile Include="Game\gui.cpp" />
+    <ClCompile Include="Game\GuiObjects.cpp" />
+    <ClCompile Include="Game\Hud\Hud.cpp" />
+    <ClCompile Include="Game\Hud\InteractionHighlighter.cpp" />
+    <ClCompile Include="Game\Hud\PickupSummary.cpp" />
+    <ClCompile Include="Game\Hud\Speedometer.cpp" />
+    <ClCompile Include="Game\Hud\StatusBars.cpp" />
+    <ClCompile Include="Game\Hud\TargetHighlighter.cpp" />
+    <ClCompile Include="Game\itemdata\creature_info.cpp" />
+    <ClCompile Include="Game\itemdata\itemdata.cpp" />
+    <ClCompile Include="Game\items.cpp" />
+    <ClCompile Include="Game\Lara\lara.cpp" />
+    <ClCompile Include="Game\Lara\lara_basic.cpp" />
+    <ClCompile Include="Game\Lara\lara_cheat.cpp" />
+    <ClCompile Include="Game\Lara\lara_climb.cpp" />
+    <ClCompile Include="Game\Lara\lara_collide.cpp" />
+    <ClCompile Include="Game\Lara\lara_crawl.cpp" />
+    <ClCompile Include="Game\Lara\lara_fire.cpp" />
+    <ClCompile Include="Game\Lara\lara_flare.cpp" />
+    <ClCompile Include="Game\Lara\lara_hang.cpp" />
+    <ClCompile Include="Game\Lara\lara_helpers.cpp" />
+    <ClCompile Include="Game\Lara\lara_initialise.cpp" />
+    <ClCompile Include="Game\Lara\lara_jump.cpp" />
+    <ClCompile Include="Game\Lara\lara_monkey.cpp" />
+    <ClCompile Include="Game\Lara\lara_objects.cpp" />
+    <ClCompile Include="Game\Lara\lara_one_gun.cpp" />
+    <ClCompile Include="Game\Lara\lara_overhang.cpp" />
+    <ClCompile Include="Game\Lara\lara_slide.cpp" />
+    <ClCompile Include="Game\Lara\lara_surface.cpp" />
+    <ClCompile Include="Game\Lara\lara_swim.cpp" />
+    <ClCompile Include="Game\Lara\lara_tests.cpp" />
+    <ClCompile Include="Game\Lara\lara_two_guns.cpp" />
+    <ClCompile Include="Game\Lara\Optics.cpp" />
+    <ClCompile Include="Game\Lara\PlayerContext.cpp" />
+    <ClCompile Include="Game\Lara\PlayerStateMachine.cpp" />
+    <ClCompile Include="Game\misc.cpp" />
+    <ClCompile Include="Game\missile.cpp" />
+    <ClCompile Include="Game\people.cpp" />
+    <ClCompile Include="Game\pickup\pickup.cpp" />
+    <ClCompile Include="Game\pickup\pickup_ammo.cpp" />
+    <ClCompile Include="Game\pickup\pickup_consumable.cpp" />
+    <ClCompile Include="Game\pickup\pickup_key_items.cpp" />
+    <ClCompile Include="Game\pickup\pickup_misc_items.cpp" />
+    <ClCompile Include="Game\pickup\pickup_weapon.cpp" />
+    <ClCompile Include="Game\room.cpp" />
+    <ClCompile Include="Game\savegame.cpp" />
+    <ClCompile Include="Game\Setup.cpp" />
+    <ClCompile Include="Game\spotcam.cpp" />
+    <ClCompile Include="Game\StaticMesh.cpp" />
+    <ClCompile Include="Math\Geometry.cpp" />
+    <ClCompile Include="Math\Legacy.cpp" />
+    <ClCompile Include="Math\Objects\AxisAngle.cpp" />
+    <ClCompile Include="Math\Objects\EulerAngles.cpp" />
+    <ClCompile Include="Math\Objects\GameBoundingBox.cpp" />
+    <ClCompile Include="Math\Objects\GameVector.cpp" />
+    <ClCompile Include="Math\Objects\Pose.cpp" />
+    <ClCompile Include="Math\Objects\Vector2i.cpp" />
+    <ClCompile Include="Math\Objects\Vector3i.cpp" />
+    <ClCompile Include="Math\Random.cpp" />
+    <ClCompile Include="Math\Solvers.cpp" />
+    <ClCompile Include="Math\Utils.cpp" />
+    <ClCompile Include="Objects\Effects\Boss.cpp" />
+    <ClCompile Include="Objects\Effects\effect_objects.cpp" />
+    <ClCompile Include="Objects\Effects\EmberEmitter.cpp" />
+    <ClCompile Include="Objects\Effects\enemy_missile.cpp" />
+    <ClCompile Include="Objects\Effects\Fireflies.cpp" />
+    <ClCompile Include="Objects\Effects\flame_emitters.cpp" />
+    <ClCompile Include="Objects\Effects\LensFlare.cpp" />
+    <ClCompile Include="Objects\Effects\LightCone.cpp" />
+    <ClCompile Include="Objects\Effects\tr4_locusts.cpp" />
+    <ClCompile Include="Objects\Effects\tr5_electricity.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\double_doors.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\generic_doors.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\pushpull_kick_door.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\sequence_door.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\steel_door.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\underwater_door.cpp" />
+    <ClCompile Include="Objects\Generic\generic_objects.cpp" />
+    <ClCompile Include="Objects\Generic\Object\BridgeObject.cpp" />
+    <ClCompile Include="Objects\Generic\Object\burning_torch.cpp" />
+    <ClCompile Include="Objects\Generic\Object\generic_bridge.cpp" />
+    <ClCompile Include="Objects\Generic\Object\generic_trapdoor.cpp" />
+    <ClCompile Include="Objects\Generic\Object\objects.cpp" />
+    <ClCompile Include="Objects\Generic\Object\polerope.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableBridge.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableCollision.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableEffects.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableInfo.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableObject.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableSound.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableStack.cpp" />
+    <ClCompile Include="Objects\Generic\Object\Pushable\PushableStates.cpp" />
+    <ClCompile Include="Objects\Generic\Object\rope.cpp" />
+    <ClCompile Include="Objects\Generic\Object\ZipLine.cpp" />
+    <ClCompile Include="Objects\Generic\puzzles_keys.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\AirlockSwitch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\cog_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\crowbar_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\fullblock_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\generic_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\jump_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\pulley_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\rail_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\turn_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Switches\underwater_switch.cpp" />
+    <ClCompile Include="Objects\Generic\Traps\CrumblingPlatform.cpp" />
+    <ClCompile Include="Objects\Generic\Traps\dart_emitter.cpp" />
+    <ClCompile Include="Objects\Generic\Traps\falling_block.cpp" />
+    <ClCompile Include="Objects\Generic\Doors\breakable_wall.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\Centaur.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\Cowboy.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\Kold.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_ape.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_bear.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_big_rat.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_doppelganger.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_giant_mutant.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_natla.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\SkateboardKid.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\tr1_wolf.cpp" />
+    <ClCompile Include="Objects\TR1\Entity\WingedMutant.cpp" />
+    <ClCompile Include="Objects\TR1\tr1_objects.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\DamoclesSword.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\ElectricBall.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\ThorHammer.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\SlammingDoors.cpp" />
+    <ClCompile Include="Objects\TR1\Trap\SwingingBlade.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\Bartoli.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\Dragon.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_barracuda.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_bird_monster.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_eagle_or_crow.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_knife_thrower.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_mercenary.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_monk.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_rat.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_shark.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_silencer.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_skidman.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_spear_guardian.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_spider.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_sword_guardian.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_worker_dualrevolver.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_worker_flamethrower.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_worker_machinegun.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_worker_shotgun.cpp" />
+    <ClCompile Include="Objects\TR2\Entity\tr2_yeti.cpp" />
+    <ClCompile Include="Objects\TR2\tr2_objects.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\tr2_killerstatue.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\tr2_spinningblade.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\tr2_springboard.cpp" />
+    <ClCompile Include="Objects\TR2\Vehicles\skidoo.cpp" />
+    <ClCompile Include="Objects\TR2\Vehicles\speedboat.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\Compsognathus.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\FishSwarm.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\Lizard.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\SealMutant.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\PunaBoss.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\Raptor.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\Shiva.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\SophiaLeigh.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_civvy.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_claw_mutant.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_cobra.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_flamethrower.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_monkey.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_mp_gun.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_mp_stick.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_scuba_diver.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_tiger.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_tony.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_trex.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\tr3_tribesman.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\TwinAutoGun.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\WaspMutant.cpp" />
+    <ClCompile Include="Objects\TR3\Object\corpse.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\Winston.cpp" />
+    <ClCompile Include="Objects\TR3\tr3_objects.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\ElectricCleaner.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\FirePendulum.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\train.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\TurningBlade.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\WallMountedBlade.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\big_gun.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\kayak.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\minecart.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\quad_bike.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\rubber_boat.cpp" />
+    <ClCompile Include="Objects\TR3\Vehicles\upv.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_ahmet.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_baboon.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_baddy.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_bat.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_beetle_swarm.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_big_beetle.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_big_scorpion.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_crocodile.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_demigod.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_dog.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_enemy_jeep.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_guide.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_hammerhead.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_harpy.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_horseman.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_jean_yves.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_knight_templar.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_lara_double.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_mummy.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_mutant.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_sas.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_sentry_gun.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_setha.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_skeleton.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_small_scorpion.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_sphinx.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_troops.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_von_croy.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\tr4_wild_boar.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\Wraith.cpp" />
+    <ClCompile Include="Objects\TR4\Floor\tr4_burningfloor.cpp" />
+    <ClCompile Include="Objects\TR4\Object\StatuePlinth.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_clockwork_beetle.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_element_puzzle.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_mapper.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_obelisk.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_sarcophagus.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_scales.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_senet.cpp" />
+    <ClCompile Include="Objects\TR4\Object\WraithTrap.cpp" />
+    <ClCompile Include="Objects\TR4\tr4_objects.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\SpikyCeiling.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\SpikyWall.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\SquishyBlock.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_birdblade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_blade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_catwalkblade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_chain.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_cog.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_fourblades.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_hammer.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_joby_spikes.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_mine.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_moving_blade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_plinthblade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_plough.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_sethblade.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_slicerdicer.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_spikeball.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_stargate.cpp" />
+    <ClCompile Include="Objects\TR4\Trap\tr4_teethspike.cpp" />
+    <ClCompile Include="Objects\TR4\Vehicles\jeep.cpp" />
+    <ClCompile Include="Objects\TR4\Vehicles\motorbike.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\tr5_smoke_emitter.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\tr5_bats_emitter.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\tr5_rats_emitter.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\tr5_spider_emitter.cpp" />
+    <ClCompile Include="Objects\TR5\Emitter\Waterfall.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\AutoGun.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\HeavyGuard.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_brownbeast.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_chef.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_cyborg.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_doberman.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_dog.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_ghost.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_gladiator.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_guard.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_gunship.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_hydra.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_imp.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_lagoon_witch.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_larson.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_laser_head.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_lion.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_reaper.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_roman_statue.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_submarine.cpp" />
+    <ClCompile Include="Objects\TR5\Entity\tr5_willowwisp.cpp" />
+    <ClCompile Include="Objects\TR5\Light\tr5_light.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_bodypart.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_expandingplatform.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_genslot.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_highobject.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_missile.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_raisingblock.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_rollingball.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_teleporter.cpp" />
+    <ClCompile Include="Objects\TR5\Object\tr5_twoblockplatform.cpp" />
+    <ClCompile Include="Objects\TR5\Shatter\tr5_smashobject.cpp" />
+    <ClCompile Include="Objects\TR5\Switch\tr5_crowdove_switch.cpp" />
+    <ClCompile Include="Objects\TR5\Switch\tr5_raisingcog.cpp" />
+    <ClCompile Include="Objects\TR5\tr5_objects.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\LaserBarrier.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\LaserBeam.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\MovingLaser.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\tr5_explosion.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\tr5_fallingceiling.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\tr5_romehammer.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\tr5_ventilator.cpp" />
+    <ClCompile Include="Objects\TR5\Trap\tr5_wreckingball.cpp" />
+    <ClCompile Include="Objects\Utils\object_helper.cpp" />
+    <ClCompile Include="Objects\Utils\VehicleHelpers.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMesh.cpp" />
+    <ClCompile Include="Physics\Objects\CollisionMeshDesc.cpp" />
+    <ClCompile Include="Renderer\Frustum.cpp" />
+    <ClCompile Include="Renderer\Renderer.cpp" />
+    <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
+    <ClCompile Include="Renderer\RendererCompatibility.cpp" />
+    <ClCompile Include="Renderer\RendererDebug.cpp" />
+    <ClCompile Include="Renderer\RendererDraw.cpp" />
+    <ClCompile Include="Renderer\RendererDraw2D.cpp" />
+    <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
+    <ClCompile Include="Renderer\RendererDrawMenu.cpp" />
+    <ClCompile Include="Renderer\RendererFrame.cpp" />
+    <ClCompile Include="Renderer\RendererHelper.cpp" />
+    <ClCompile Include="Renderer\RendererInit.cpp" />
+    <ClCompile Include="Renderer\RendererLara.cpp" />
+    <ClCompile Include="Renderer\RendererPostProcess.cpp" />
+    <ClCompile Include="Renderer\RendererSettings.cpp" />
+    <ClCompile Include="Renderer\RendererSprites.cpp" />
+    <ClCompile Include="Renderer\RendererString.cpp" />
+    <ClCompile Include="Renderer\RendererUtils.cpp" />
+    <ClCompile Include="Renderer\RenderView.cpp" />
+    <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
+    <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\ScriptAssert.cpp" />
+    <ClCompile Include="Scripting\Internal\ScriptInterfaceState.cpp" />
+    <ClCompile Include="Scripting\Internal\ScriptUtil.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Collision\Probe.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Time\Time.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Effects\EffectsFunctions.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Settings\Settings.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\FlowHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Fog\Fog.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\InventoryItem\InventoryItem.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\LensFlare\LensFlare.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Level\FlowLevel.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\SkyLayer\SkyLayer.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Starfield\Starfield.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Input\InputHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Inventory\InventoryHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Logic\LogicHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\AIObject\AIObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Camera\CameraObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Lara\LaraObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Moveable\MoveableObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\ObjectsHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Room\RoomObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Sink\SinkObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Static\StaticObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Volume\VolumeObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Rotation\Rotation.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Sound\SoundHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Strings\DisplayString\DisplayString.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Strings\StringsHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Util\Util.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Vec2\Vec2.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
+    <ClCompile Include="Sound\sound.cpp" />
+    <ClCompile Include="Specific\clock.cpp" />
+    <ClCompile Include="Specific\configuration.cpp" />
+    <ClCompile Include="Specific\Input\Bindings.cpp" />
+    <ClCompile Include="Specific\Input\Input.cpp" />
+    <ClCompile Include="Specific\Input\InputAction.cpp" />
+    <ClCompile Include="Specific\Input\Keys.cpp" />
+    <ClCompile Include="Specific\IO\ChunkId.cpp" />
+    <ClCompile Include="Specific\IO\ChunkReader.cpp" />
+    <ClCompile Include="Specific\IO\Streams.cpp" />
+    <ClCompile Include="Specific\level.cpp" />
+    <ClCompile Include="Specific\Parallel.cpp" />
+    <ClCompile Include="Specific\RGBAColor8Byte.cpp" />
+    <ClCompile Include="Specific\Structures\BitField.cpp" />
+    <ClCompile Include="Specific\Structures\BoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="Specific\Structures\SpatialHash.cpp" />
+    <ClCompile Include="Specific\trutils.cpp" />
+    <ClCompile Include="Specific\Video\Video.cpp" />
+    <ClCompile Include="Specific\winmain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Objects\Generic\Switches\rail_switch.h" />
+    <None Include="packages.config" />
+    <None Include="Resources\Title.bin" />
+    <None Include="RuleSet.ruleset" />
+    <None Include="Shaders\AnimatedTextures.hlsli" />
+    <None Include="Shaders\Blending.hlsli">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\CBCamera.hlsli" />
+    <None Include="Shaders\CBItem.hlsli" />
+    <None Include="Shaders\CBPostProcess.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\CBRoom.hlsli" />
+    <None Include="Shaders\CBStatic.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\SMAA.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\ShaderLight.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\Math.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\Shadows.hlsli" />
+    <None Include="Shaders\SpriteEffects.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\VertexEffects.hlsli" />
+    <None Include="Shaders\VertexInput.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\HUD.hlsl">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\FullscreenQuad.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Inventory.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+    </None>
+    <None Include="Shaders\InstancedSprites.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+    </None>
+    <None Include="Shaders\Items.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+    </None>
+    <None Include="Shaders\Rooms.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.1</ShaderModel>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.1</ShaderModel>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">SHADOW_MAP_SIZE=512</PreprocessorDefinitions>
+    </None>
+    <None Include="Shaders\ShadowMap.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Sky.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Solid.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Sprites.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Statics.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\InstancedStatics.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\GBuffer.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\RoomAmbient.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\SMAA.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\FXAA.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\SSAO.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\PostProcess.fx">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Ten.ico" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.XAudio2.Redist.1.2.10\build\native\Microsoft.XAudio2.Redist.targets" Condition="Exists('..\packages\Microsoft.XAudio2.Redist.1.2.10\build\native\Microsoft.XAudio2.Redist.targets')" />
+    <Import Project="..\packages\directxtk_desktop_2019.2022.12.16.1\build\native\directxtk_desktop_2019.targets" Condition="Exists('..\packages\directxtk_desktop_2019.2022.12.16.1\build\native\directxtk_desktop_2019.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.XAudio2.Redist.1.2.10\build\native\Microsoft.XAudio2.Redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.XAudio2.Redist.1.2.10\build\native\Microsoft.XAudio2.Redist.targets'))" />
+    <Error Condition="!Exists('..\packages\directxtk_desktop_2019.2022.12.16.1\build\native\directxtk_desktop_2019.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtk_desktop_2019.2022.12.16.1\build\native\directxtk_desktop_2019.targets'))" />
+  </Target>
+</Project>
