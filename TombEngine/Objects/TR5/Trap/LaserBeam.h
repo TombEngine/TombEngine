@@ -45,15 +45,10 @@ namespace TEN::Entities::Traps
 		uint64_t    LastSeenFrame = 0;
 		Vector3		TargetPos;
 		int			TargetRoomNumber = 0;
-
-
-		float       StartRadius = 0.0f;    // NEU (in Welt-Einheiten nach Skalierung)
-		float       EndRadius = 0.0f;    // NEU
-
 	};
 
 	const std::array<TransientBeam, MAX_TRANSIENT_LASERS>& GetTransientLaserPool();
-	void EmitTransientLaserBeam(const GameVector& position,	const EulerAngles& orientation, float radius,  const Vector4& color,	bool isLethal, bool hasSparks, bool isHeavyActivator);
+	void EmitTransientLaserBeam(const GameVector& position,	const EulerAngles& orientation, float radius, const Vector4& color,	bool isLethal, bool hasSparks, bool isHeavyActivator);
 	void UpdateTransientLaserBeams();
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams;

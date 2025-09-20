@@ -157,18 +157,13 @@ namespace TEN::Entities::Traps
 		slot.Life = 2.0f;
 		slot.On = true;
 		slot.Effect.Radius = radius * RADIUS_STEP;
-
-
-
-
-
+				
 		auto orient = orientation;
 		auto dir = orient.ToDirection();
-		const Vector3 origin = slot.Pos + dir * 4.0f;
 		auto rotMatrix = orient.ToRotationMatrix();
 
 		// Hit wall; spawn sparks and light.
-		auto los = GetRoomLosCollision(origin, slot.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
+		auto los = GetRoomLosCollision(position.ToVector3(), slot.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
 		if (los.IsIntersected)
 		{
 			if (hasSparks)
@@ -181,14 +176,11 @@ namespace TEN::Entities::Traps
 			SpawnLaserBeamLight(los.Position, los.RoomNumber, slot.Effect.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
-		float length = Vector3::Distance(origin, los.Position);
+		float length = Vector3::Distance(position.ToVector3(), los.Position);
 
 		// Calculate cylinder vertices.
 		float angle = 0.0f;
 		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
-
-
-
 		{
 			float sinAngle = sin(angle);
 			float cosAngle = cos(angle);
@@ -200,23 +192,15 @@ namespace TEN::Entities::Traps
 			slot.Effect.Vertices[slot.Effect.SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
 
 			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
-
-
-
 		}
 
-		GameVector tempOrigin = position;
-		GameVector tempTarget(los.Position, los.RoomNumber);
-
-
-		//DrawDebugLine(tempOrigin.ToVector3(), los.Position, Vector4(0, 1, 1, 1), RendererDebugPage::None);
-
-
-		bool los2 = LOS(&tempOrigin, &GameVector(los.Position, los.RoomNumber));
+		//DrawDebugLine(position.ToVector3(), los.Position, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+		bool los2 = LOS(&position, &GameVector(los.Position, los.RoomNumber));
 
 		auto hitPos = Vector3i::Zero;
 
-
+		GameVector tempOrigin = position;
+		GameVector tempTarget(los.Position, los.RoomNumber);
 
 		if (ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
 		{
