@@ -75,7 +75,7 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	output.Normal = normalize(mul(input.Normal, (float3x3)world).xyz);
 	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
-	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
+    output.Binormal = normalize(mul(normalize(cross(input.Normal, input.Tangent)), (float3x3) world).xyz);
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);

@@ -416,13 +416,13 @@ namespace TEN::Renderer
 			vertex0.Position.x = line.Origin.x;
 			vertex0.Position.y = line.Origin.y;
 			vertex0.Position.z = 1.0f;
-			vertex0.Color = line.Color;
+			vertex0.Color = PackColor(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position.x = line.Target.x;
 			vertex1.Position.y = line.Target.y;
 			vertex1.Position.z = 1.0f;
-			vertex1.Color = line.Color;
+			vertex1.Color = PackColor(line.Color);
 
 			vertex0.Position = Vector3::Transform(vertex0.Position, worldMatrix);
 			vertex1.Position = Vector3::Transform(vertex1.Position, worldMatrix);
@@ -1158,11 +1158,11 @@ namespace TEN::Renderer
 		{
 			auto vertex0 = Vertex{};
 			vertex0.Position = line.Origin;
-			vertex0.Color = line.Color;
+			vertex0.Color = PackColor(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = line.Target;
-			vertex1.Color = line.Color;
+			vertex1.Color = PackColor(line.Color);
 
 			_primitiveBatch->DrawLine(vertex0, vertex1);
 
@@ -1197,7 +1197,7 @@ namespace TEN::Renderer
 			{
 				auto rVertex = Vertex{};
 				rVertex.Position = vertex;
-				rVertex.Color = tri.Color;
+				rVertex.Color = PackColor(tri.Color);
 
 				rVertices.push_back(rVertex);
 			}
@@ -1940,7 +1940,7 @@ namespace TEN::Renderer
 		DrawHorizonAndSky(view, _renderTarget.DepthStencilView.Get());
 
 		// Build G-Buffer (normals + depth).
-		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
 		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 
@@ -3597,26 +3597,26 @@ namespace TEN::Renderer
 					Vertex v0;
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
-					v0.Color = spr->c1;
-					v0.Effects = 0 << 19;
+					v0.Color = PackColor(spr->c1);
+					v0.Effects = 0 << 25;
 
 					Vertex v1;
 					v1.Position = Vector3::Transform(p1t, world);
 					v1.UV = uv1;
-					v1.Color = spr->c2;
-					v1.Effects = 1 << 19;
+					v1.Color = PackColor(spr->c2);
+					v1.Effects = 1 << 25;
 
 					Vertex v2;
 					v2.Position = Vector3::Transform(p2t, world);
 					v2.UV = uv2;
-					v2.Color = spr->c3;
-					v2.Effects = 2 << 19;
+					v2.Color = PackColor(spr->c3);
+					v2.Effects = 2 << 25;
 				    
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
-					v3.Color = spr->c4;
-					v3.Effects = 3 << 19;
+					v3.Color = PackColor(spr->c4);
+					v3.Effects = 3 << 25;
 
 					_sortedPolygonsVertices.push_back(v0);
 					_sortedPolygonsVertices.push_back(v1);

@@ -512,7 +512,6 @@ namespace TEN::Renderer
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
 		void PackSpritesTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void CalculateGlow(RenderView& view);
-		int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
@@ -645,6 +644,32 @@ namespace TEN::Renderer
 		static inline bool IsWaterfall(short objectNumber)
 		{
 			return (objectNumber >= ID_WATERFALL1 && objectNumber <= ID_WATERFALLSS2);
+		}
+
+		static inline int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
+		{
+			int packed =
+				((int)(effects.x * 255.0f) << 0) |
+				((int)(effects.y * 255.0f) << 8) |
+				((int)(sheen * 255.0f) << 16) |
+				((int)effects.z << 24) |
+				(indexInPoly << 25);
+			return packed;
+		}
+
+		static inline int PackColor(Vector4 c)
+		{
+			auto to8 = [](float v) -> uint32_t {
+				float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
+				return static_cast<uint32_t>(std::lround(x));
+				};
+
+			uint32_t R = to8(c.x);
+			uint32_t G = to8(c.y);
+			uint32_t B = to8(c.z);
+			uint32_t A = to8(c.w);
+
+			return (R) | (G << 8) | (B << 16) | (A << 24);
 		}
 
 	public:

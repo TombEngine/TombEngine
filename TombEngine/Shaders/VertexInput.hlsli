@@ -8,7 +8,6 @@ struct VertexShaderInput
 	float2 UV: TEXCOORD0;
 	float4 Color: COLOR0;
 	float3 Tangent: TANGENT0;
-	float3 Binormal: BINORMAL0;
 	uint4 BoneIndex: BONEINDICES;
 	uint4 BoneWeight: BONEWEIGHTS;
 	uint AnimationFrameOffset: ANIMATIONFRAMEOFFSET;

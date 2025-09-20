@@ -1627,19 +1627,19 @@ namespace TEN::Renderer
 					vtx0.Position = Vector3::Transform(deb.mesh.Positions[0], matrix);
 					vtx0.UV = deb.mesh.TextureCoordinates[0];
 					vtx0.Normal = deb.mesh.Normals[0];
-					vtx0.Color = deb.mesh.Colors[0];
+					vtx0.Color = PackColor(deb.mesh.Colors[0]);
 
 					Vertex vtx1;
 					vtx1.Position = Vector3::Transform(deb.mesh.Positions[1], matrix);
 					vtx1.UV = deb.mesh.TextureCoordinates[1];
 					vtx1.Normal = deb.mesh.Normals[1];
-					vtx1.Color = deb.mesh.Colors[1];
+					vtx1.Color = PackColor(deb.mesh.Colors[1]);
 
 					Vertex vtx2;
 					vtx2.Position = Vector3::Transform(deb.mesh.Positions[2], matrix);
 					vtx2.UV = deb.mesh.TextureCoordinates[2];
 					vtx2.Normal = deb.mesh.Normals[2];
-					vtx2.Color = deb.mesh.Colors[2];
+					vtx2.Color = PackColor(deb.mesh.Colors[2]);
 
 					_primitiveBatch->DrawTriangle(vtx0, vtx1, vtx2);
 

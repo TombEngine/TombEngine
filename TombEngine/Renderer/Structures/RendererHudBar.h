@@ -153,7 +153,7 @@ namespace TEN::Renderer::Structures
 			for (int i = 0; i < VERTEX_COUNT; i++)
 			{
 				vertices[i].Position = barVertices[i];
-				vertices[i].Color = colors[i];
+				vertices[i].Color = UINT_MAX;
 				vertices[i].UV = barUVs[i];
 			}
 
@@ -164,7 +164,7 @@ namespace TEN::Renderer::Structures
 			for (int i = 0; i < barBorderVertices.size(); i++)
 			{
 				borderVertices[i].Position = barBorderVertices[i];
-				borderVertices[i].Color = Vector4::One;
+				borderVertices[i].Color = UINT_MAX;
 				borderVertices[i].UV = barBorderUVs[i];
 			}
 

@@ -38,16 +38,15 @@ namespace TEN::Renderer
 
 		// Initialize render states.
 		_renderStates = std::make_unique<CommonStates>(_device.Get());
-
+	    
 		// Initialize input layout using first vertex shader.
 		D3D11_INPUT_ELEMENT_DESC inputLayoutItems[] =
 		{
 			{ "POSITION",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL",               0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD",             0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",                0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",                0, DXGI_FORMAT_R8G8B8A8_UNORM,	 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TANGENT",              0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "BINORMAL",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -57,7 +56,7 @@ namespace TEN::Renderer
 		};
 
 		const auto& roomShader = _shaders.Get(Shader::Rooms);
-		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 12, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
+		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 11, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
 
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
@@ -325,32 +324,32 @@ namespace TEN::Renderer
 		quadVertices[0].Normal = Vector3(-1, -1, 1);
 		quadVertices[0].Normal.Normalize();
 		quadVertices[0].UV = Vector2(0, 1);
-		quadVertices[0].Color = Vector4(1, 1, 1, 1);
-		quadVertices[0].Effects = 3 << 19;
+		quadVertices[0].Color = PackColor(Vector4::One);
+		quadVertices[0].Effects = 3 << 25;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
 		quadVertices[1].Normal = Vector3(-1, 1, 1);
 		quadVertices[1].Normal.Normalize();
 		quadVertices[1].UV = Vector2(0, 0);
-		quadVertices[1].Color = Vector4(1, 1, 1, 1);
-		quadVertices[1].Effects = 0 << 19;
+		quadVertices[1].Color = PackColor(Vector4::One);
+		quadVertices[1].Effects = 0 << 25;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
 		quadVertices[3].Normal = Vector3(1, 1, 1);
 		quadVertices[3].Normal.Normalize();
 		quadVertices[3].UV = Vector2(1, 0);
-		quadVertices[3].Color = Vector4(1, 1, 1, 1);
-		quadVertices[3].Effects = 1 << 19;
+		quadVertices[3].Color = PackColor(Vector4::One);
+		quadVertices[3].Effects = 1 << 25;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
 		quadVertices[2].Normal = Vector3(1, -1, 1);
 		quadVertices[2].Normal.Normalize();
 		quadVertices[2].UV = Vector2(1, 1);
-		quadVertices[2].Color = Vector4(1, 1, 1, 1);
-		quadVertices[2].Effects = 2 << 19;
+		quadVertices[2].Color = PackColor(Vector4::One);
+		quadVertices[2].Effects = 2 << 25;
 
 		_quadVertexBuffer = VertexBuffer<Vertex>(_device.Get(), 4, quadVertices.data());
 	}
@@ -383,10 +382,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = PackColor(Vector4::One);
 
 				lastVertex++;
 
@@ -395,10 +391,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = PackColor(Vector4::One);
 
 				lastVertex++;
 
@@ -407,10 +400,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = PackColor(Vector4::One);
 
 				lastVertex++;
 
@@ -419,10 +409,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = PackColor(Vector4::One);
 
 				lastVertex++;
 			}

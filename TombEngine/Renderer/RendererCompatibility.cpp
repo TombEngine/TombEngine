@@ -24,17 +24,6 @@ namespace TEN::Renderer
 {
 	template class VertexBuffer<Vertex>;
 
-	int Renderer::PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
-	{
-		int packed = 
-			((int)(effects.x * 255.0f) << 0) |
-			((int)(effects.y * 255.0f) << 8) |
-			((int)(sheen * 255.0f) << 16) |
-			((int)effects.z << 24) |
-			(indexInPoly << 25);
-		return packed;
-	}
-
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
@@ -478,9 +467,8 @@ namespace TEN::Renderer
 
 						vertex->Normal = poly.normals[k];
 						vertex->UV = poly.textureCoordinates[k];
-						vertex->Color = Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f);
+						vertex->Color = PackColor(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
 						vertex->Tangent = poly.tangents[k];
-						vertex->Binormal = poly.binormals[k];
 						vertex->AnimationFrameOffset = poly.animatedFrame;
 						vertex->OriginalIndex = index;
 						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
@@ -1133,17 +1121,15 @@ namespace TEN::Renderer
 					vertex.Tangent.y = poly->tangents[k].y;
 					vertex.Tangent.z = poly->tangents[k].z;
 
-					vertex.Binormal.x = poly->binormals[k].x;
-					vertex.Binormal.y = poly->binormals[k].y;
-					vertex.Binormal.z = poly->binormals[k].z;
-					 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 
-					vertex.Color.x = meshPtr->colors[v].x;
-					vertex.Color.y = meshPtr->colors[v].y;
-					vertex.Color.z = meshPtr->colors[v].z;
-					vertex.Color.w = 1.0f;
+					vertex.Color = PackColor(
+						Vector4(
+							meshPtr->colors[v].x,
+							meshPtr->colors[v].y,
+							meshPtr->colors[v].z,
+							1.0f));
 					
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
