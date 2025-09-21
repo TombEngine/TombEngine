@@ -55,7 +55,7 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Setting effect weight on TE side prevents portal vertices from moving.
 	// Here we just read weight and decide if we should apply refraction or movement effect.
-    float weight = (input.Effects >> 12) & 1;
+    float weight = DecodeWeight(input.Effects);
 
 	// Calculate vertex effects
 	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
