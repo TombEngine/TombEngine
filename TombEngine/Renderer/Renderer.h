@@ -672,7 +672,7 @@ namespace TEN::Renderer
 			return (R) | (G << 8) | (B << 16) | (A << 24);
 		}
 
-		static inline unsigned int PackNormal(Vector3 n)
+		static inline unsigned int PackVector3(Vector3 n)
 		{
 			n.Normalize();
 
@@ -688,6 +688,20 @@ namespace TEN::Renderer
 
 			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
 			return (uint32_t)R | ((uint32_t)G << 8) | ((uint32_t)B << 16) | ((uint32_t)A << 24);
+		}
+
+		static inline unsigned int PackAnimationFrameOffsetIndexHash(int frameOffset, int meshIndex, int hash)
+		{
+			int packed =
+				((hash & 0xFF) << 0) |
+				((meshIndex & 0xFFFF) << 8) | 
+				((frameOffset & 0xFF) << 24);
+			return packed;
+		}
+
+		static inline int GetOriginalIndex(unsigned int v)
+		{
+			return ((v >> 8) & 0xFFFF);
 		}
 
 	public:

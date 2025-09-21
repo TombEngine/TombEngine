@@ -27,6 +27,16 @@ static float DecodeSheen(uint effect)
     return float((effect >> 16) & 255) / 255.0f;
 }
 
+static int DecodeAnimationFrameOffset(uint animationFrameOffsetIndexHash)
+{
+    return int((animationFrameOffsetIndexHash >> 24) & 255);
+}
+
+static int DecodeHash(uint animationFrameOffsetIndexHash)
+{
+    return int(animationFrameOffsetIndexHash & 255);
+}
+
 float Wibble(uint effect, int hash)
 {
     float glow = DecodeGlow(effect);
@@ -34,14 +44,13 @@ float Wibble(uint effect, int hash)
     
     float enabled = (glow + move) > 0.0f ? 1.0f : 0.0f;
     
-    float phaseOffset = (float) ((uint) hash & 255) * (1.0f / 256.0f);
+    float phaseOffset = (float) hash * (1.0f / 256.0f);
     
     float phase = frac(InterpolatedFrame / WIBBLE_FRAME_PERIOD + phaseOffset);
 
     float wibble = sin(phase * PI2); // [-1,1]
     return wibble * enabled;
 }
-
 
 float3 Glow(float3 color, uint effect, float wibble)
 {

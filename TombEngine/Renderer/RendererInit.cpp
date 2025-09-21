@@ -49,14 +49,12 @@ namespace TEN::Renderer
 			{ "TANGENT",              0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "EFFECTS",              0, DXGI_FORMAT_R32_UINT,		     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "DRAWINDEX",            0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "HASH",                 0, DXGI_FORMAT_R32_SINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+			{ "EFFECTS",			  1, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 
 		const auto& roomShader = _shaders.Get(Shader::Rooms);
-		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 11, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
+		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 9, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
 
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
@@ -323,7 +321,7 @@ namespace TEN::Renderer
 		quadVertices[0].Position = Vector3(-0.5, -0.5, 0);
 		Vector3 normal = Vector3(-1, -1, 1);
 		normal.Normalize();
-		quadVertices[0].Normal = PackNormal(normal);
+		quadVertices[0].Normal = PackVector3(normal);
 		quadVertices[0].UV = Vector2(0, 1);
 		quadVertices[0].Color = PackColor(Vector4::One);
 		quadVertices[0].Effects = 3 << 25;
@@ -332,7 +330,7 @@ namespace TEN::Renderer
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
 		normal = Vector3(-1, 1, 1);
 		normal.Normalize();
-		quadVertices[1].Normal = PackNormal(normal);
+		quadVertices[1].Normal = PackVector3(normal);
 		quadVertices[1].UV = Vector2(0, 0);
 		quadVertices[1].Color = PackColor(Vector4::One);
 		quadVertices[1].Effects = 0 << 25;
@@ -341,7 +339,7 @@ namespace TEN::Renderer
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
 		normal = Vector3(1, 1, 1);
 		normal.Normalize();
-		quadVertices[3].Normal = PackNormal(normal);
+		quadVertices[3].Normal = PackVector3(normal);
 		quadVertices[3].UV = Vector2(1, 0);
 		quadVertices[3].Color = PackColor(Vector4::One);
 		quadVertices[3].Effects = 1 << 25;
@@ -350,7 +348,7 @@ namespace TEN::Renderer
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
 		normal = Vector3(1, -1, 1);
 		normal.Normalize();
-		quadVertices[2].Normal = PackNormal(normal);
+		quadVertices[2].Normal = PackVector3(normal);
 		quadVertices[2].UV = Vector2(1, 1);
 		quadVertices[2].Color = PackColor(Vector4::One);
 		quadVertices[2].Effects = 2 << 25;

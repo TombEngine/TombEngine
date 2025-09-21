@@ -10,10 +10,8 @@ struct VertexShaderInput
 	float4 Tangent: TANGENT0;
 	uint4 BoneIndex: BONEINDICES;
 	uint4 BoneWeight: BONEWEIGHTS;
-	uint AnimationFrameOffset: ANIMATIONFRAMEOFFSET;
-	uint Effects: EFFECTS;
-	uint Index: DRAWINDEX;
-	int Hash : HASH;
+	uint Effects: EFFECTS0;
+    uint AnimationFrameOffsetIndexHash : EFFECTS1;
 };
 
 #endif // VERTEXINPUT

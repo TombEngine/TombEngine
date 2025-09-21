@@ -28,7 +28,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position = mul(worldPosition, ViewProjection);
     output.Normal = input.Normal.xyz;
 	output.Color = input.Color;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
 
 	return output;

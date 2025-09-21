@@ -58,7 +58,7 @@ PixelShaderInput VS(VertexShaderInput input)
     float weight = (input.Effects >> 12) & 1;
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, input.Hash);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects * weight, wibble);
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
@@ -79,7 +79,7 @@ PixelShaderInput VS(VertexShaderInput input)
     output.Normal = input.Normal.xyz;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
     output.Tangent = input.Tangent.xyz;
     output.Binormal = normalize(cross(input.Normal.xyz, input.Tangent.xyz));

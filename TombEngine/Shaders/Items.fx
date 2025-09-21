@@ -59,13 +59,13 @@ PixelShaderInput VS(VertexShaderInput input)
 	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, input.Hash);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 	float3 worldPosition = mul(float4(pos, 1.0f), world).xyz;
 
 	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = float4(col, input.Color.w);
 	output.Color *= Color;
 	output.PositionCopy = output.Position;

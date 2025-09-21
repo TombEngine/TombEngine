@@ -465,20 +465,20 @@ namespace TEN::Renderer
 
 						bucket.Centre += vertex->Position;
 
-						vertex->Normal = PackNormal(poly.normals[k]);
+						vertex->Normal = PackVector3(poly.normals[k]);
 						vertex->UV = poly.textureCoordinates[k];
 						vertex->Color = PackColor(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
-						vertex->Tangent = PackNormal(poly.tangents[k]);
-						vertex->AnimationFrameOffset = poly.animatedFrame;
-						vertex->OriginalIndex = index;
-						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
-							
-						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
-						vertex->Hash = (unsigned int)std::hash<float>{}
-						((vertex->Position.x)* primes[0]) ^
-							((unsigned int)std::hash<float>{}(vertex->Position.y) * primes[1]) ^
-							(unsigned int)std::hash<float>{}(vertex->Position.z) * primes[2];
+						vertex->Tangent = PackVector3(poly.tangents[k]);
 
+						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
+						unsigned int hash = (unsigned int)std::hash<float>{}
+						((vertex->Position.x) * primes[0]) ^
+							((unsigned int)std::hash<float>{}(vertex->Position.y)* primes[1]) ^
+							(unsigned int)std::hash<float>{}(vertex->Position.z)* primes[2];
+
+						vertex->AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, index, hash);
+						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
+						
 						lastVertex++;
 					}
 
@@ -912,9 +912,11 @@ namespace TEN::Renderer
 										const auto* parentMesh = skinObj.ObjectMeshes[rootMesh];
 										const auto* parentBone = skinObj.LinearizedBones[rootMesh];
 
+										int currentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+
 										// Link listed vertices.
-										if ((!isSecond && currentVertex->OriginalIndex >= vertices0.size()) || 
-											 (isSecond && currentVertex->OriginalIndex >= vertices1.size()))
+										if ((!isSecond && currentOriginalIndex >= vertices0.size()) ||
+											 (isSecond && currentOriginalIndex >= vertices1.size()))
 										{
 											continue;
 										}
@@ -925,8 +927,11 @@ namespace TEN::Renderer
 											for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
 											{
 												const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
-												if ((parentVertex->OriginalIndex == vertices1[currentVertex->OriginalIndex] &&  isSecond) ||
-													(parentVertex->OriginalIndex == vertices0[currentVertex->OriginalIndex] && !isSecond))
+
+												int parentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+
+												if ((parentOriginalIndex == vertices1[currentOriginalIndex] &&  isSecond) ||
+													(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
 												{
 													currentVertex->BoneIndex[0] = 0;
 													currentVertex->Position = parentVertex->Position;
@@ -1113,8 +1118,8 @@ namespace TEN::Renderer
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
 					 
-					vertex.Normal = PackNormal(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
-					vertex.Tangent = PackNormal(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
+					vertex.Normal = PackVector3(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
+					vertex.Tangent = PackVector3(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
@@ -1129,16 +1134,13 @@ namespace TEN::Renderer
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
 
-					vertex.AnimationFrameOffset = poly->animatedFrame;
-				
-					vertex.Effects = PackEffectsAndIndexInPoly(meshPtr->effects[v], poly->shineStrength, k);
-
-					vertex.OriginalIndex = v;
-
-					vertex.Hash = (unsigned int)std::hash<float>{}
+					unsigned int hash = (unsigned int)std::hash<float>{}
 						(vertex.Position.x) ^
-							(unsigned int)std::hash<float>{}(vertex.Position.y) ^
-							(unsigned int)std::hash<float>{}(vertex.Position.z);
+						(unsigned int)std::hash<float>{}(vertex.Position.y) ^
+						(unsigned int)std::hash<float>{}(vertex.Position.z);
+
+					vertex.AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly->animatedFrame, v, hash);	
+					vertex.Effects = PackEffectsAndIndexInPoly(meshPtr->effects[v], poly->shineStrength, k);
 
 					if (obj->Type == 0)
 						_moveablesVertices[*lastVertex] = vertex;

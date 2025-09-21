@@ -44,7 +44,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	// Set z for z-buffering and neutralize w
 	output.Position.z = (L - NearPlane) / (FarPlane - NearPlane);
 	output.Position.w = 1.0f;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = input.Color;
 
 	return output;

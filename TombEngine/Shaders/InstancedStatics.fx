@@ -50,14 +50,14 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
 
-	float wibble = Wibble(input.Effects, input.Hash);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
     output.Position = mul(worldPosition, ViewProjection);
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
 	output.Color *= StaticMeshes[InstanceID].Color;

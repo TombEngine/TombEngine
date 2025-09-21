@@ -60,7 +60,7 @@ PixelShaderInput VSRooms(VertexShaderInput input)
     int weight = (input.Effects >> 12) & 1;
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, input.Hash);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects * weight, wibble);
 
 	// Refraction
@@ -81,7 +81,7 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Tangent = input.Tangent.xyz;
     output.Binormal = normalize(cross(input.Normal.xyz, input.Tangent.xyz));
     output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	
 	return output;
 }
@@ -95,12 +95,12 @@ PixelShaderInput VSItems(VertexShaderInput input)
 	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, input.Hash);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 
 	output.Position = mul(mul(float4(pos, 1.0f), world), ViewProjection);
     output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
     output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) world).xyz);
@@ -113,14 +113,14 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
 	PixelShaderInput output;
 
 	// Calculate vertex effects
-    float wibble = Wibble(input.Effects, input.Hash);
+    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
 	output.Position = mul(worldPosition, ViewProjection);
     output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), input.AnimationFrameOffset);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) StaticMeshes[InstanceID].World).xyz);
