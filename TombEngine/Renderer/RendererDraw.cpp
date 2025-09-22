@@ -1874,7 +1874,11 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
 		SetCullMode(CullMode::CounterClockwise, true);
+
 		BindMaterial(0, true);
+		
+		_stAnimated.Animated = 0;
+		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 
 		// Set up vertex parameters.
 		_context->IASetInputLayout(_inputLayout.Get());

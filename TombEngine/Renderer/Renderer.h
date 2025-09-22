@@ -637,6 +637,8 @@ namespace TEN::Renderer
 
 		inline void TexturesAreNotAnimated()
 		{
+			if (_stAnimated.Animated == 0)
+				return;
 			_stAnimated.Animated = 0;
 			UpdateConstantBuffer(_stAnimated, _cbAnimated);
 		}
