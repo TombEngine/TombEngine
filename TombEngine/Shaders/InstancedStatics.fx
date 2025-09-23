@@ -127,7 +127,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			numLights,
 			input.FogBulbs.w, 
 			emissive, 
-			specular) :
+			specular, 
+			roughness) :
 		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);

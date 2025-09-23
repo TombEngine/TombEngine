@@ -80,7 +80,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
     output.xyz += DoDirectionalLight(pos, normal, l);
-    output.xyz += DoSpecularSun(normal, l, input.Sheen, specular);
+    output.xyz += DoSpecularSun(normal, l, input.Sheen, specular, roughness);
 
 	//adding some pertubations to the lighting to add a cool effect
     float3 noise = SimplexNoise(output.xyz);

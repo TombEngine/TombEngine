@@ -143,7 +143,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 		if (onlyPointLights)
 		{
             lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 1.0f, specular);
+            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 1.0f, specular, roughness);
         }
 		else
 		{
@@ -154,7 +154,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
-			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, pointLight, spotLight);
+			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
 			
 			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight  * isSpot * ROOM_LIGHT_COEFF;
 		}

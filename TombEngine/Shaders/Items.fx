@@ -158,7 +158,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			NumItemLights,
 			input.FogBulbs.w,
 			emissive, 
-			specular) :
+			specular,
+			roughness) :
 		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
 
 	float shadowable = step(0.5f, float((NumItemLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
