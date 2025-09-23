@@ -9,7 +9,7 @@ static float RoughnessToExpMul(float roughness)
     float r = saturate(roughness);
     r = max(r, 0.04);
     float gloss = 1.0 - r;
-    return lerp(0.25, 4.0, gloss * gloss);
+    return lerp(0.04, 4.0, gloss * gloss);
 }
 
 float3 DoSpecularPoint(float3 pos, float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
