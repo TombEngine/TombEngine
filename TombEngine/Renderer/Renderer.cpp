@@ -247,6 +247,8 @@ namespace TEN::Renderer
 		ReflectVectorOptionally(lights[index].Position);
 		ReflectVectorOptionally(lights[index].Direction);
 
+		lights[index].Direction.Normalize();
+
 		// Bitmask light type to filter it in the shader later.
 		return (1 << (31 - (int)light.Type));
 	}
