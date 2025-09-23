@@ -117,7 +117,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	// Ambient occlusion
     float occlusion = 1.0f;
-    if (AmbientOcclusion == 1)
+    if (AmbientOcclusion == 1 && (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND))
     {
         float2 samplePosition;
         samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // perspective divide
