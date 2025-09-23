@@ -201,7 +201,8 @@ namespace TEN::Entities::Generic
 		{
 			if (lara->Torch.Fade > 0)
 				lara->Torch.Fade--;
-			else
+
+			if (!lara->Torch.Fade)
 				lara->Torch.PrimaryColor = lara->Torch.SecondaryColor;
 
 			auto alpha = (float)lara->Torch.Fade / ((float)FPS * lara->Torch.FADE_TIMEOUT);
@@ -209,13 +210,16 @@ namespace TEN::Entities::Generic
 			auto primaryColor   = GetStartTorchColor(lara->Torch.PrimaryColor);
 			auto secondaryColor = GetStartTorchColor(lara->Torch.SecondaryColor);
 
-			auto startColor   = Vector3::Lerp(secondaryColor, primaryColor, alpha);
+			auto startColor   = lara->Torch.Fade ? Vector3::Lerp(secondaryColor, primaryColor, alpha) : primaryColor;
 			auto endColor	  = GetEndTorchColor(lara->Torch.PrimaryColor);
 
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
 
-			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * (1.0f - alpha);
-			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * (1.0f - alpha);
+			auto fade = (lara->Torch.PrimaryColor == Vector3::Zero) ? (1.0f - alpha) : 1.0f;
+
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * fade;
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * fade;
+
 			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, startColor.x * brightness, startColor.y * brightness, startColor.z * brightness);
 
 			if (!(Wibble & 3))
