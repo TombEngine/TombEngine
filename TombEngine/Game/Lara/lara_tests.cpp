@@ -1130,7 +1130,7 @@ bool TestLaraTorchFlame(ItemInfo* item, ItemInfo* flameItem)
 	auto* lara = GetLaraInfo(item);
 
 	bool bothIgnited = (lara->Torch.IsLit == (flameItem->Status == ITEM_ACTIVE));
-	bool colorsEqual = (lara->Torch.PrimaryColor == (Vector3)flameItem->Model.Color);
+	bool colorsEqual = (lara->Torch.CurrentColor == (Vector3)flameItem->Model.Color);
 
 	return !bothIgnited || (lara->Torch.IsLit && !colorsEqual);
 }

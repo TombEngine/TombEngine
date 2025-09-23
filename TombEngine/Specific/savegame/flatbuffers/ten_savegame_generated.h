@@ -2667,8 +2667,8 @@ struct TorchDataT : public flatbuffers::NativeTable {
   TEN::Save::TorchState state = TEN::Save::TorchState::holding;
   bool is_lit = false;
   int32_t fade = 0;
-  std::unique_ptr<TEN::Save::Vector3> primary_color{};
-  std::unique_ptr<TEN::Save::Vector3> secondary_color{};
+  std::unique_ptr<TEN::Save::Vector3> current_color{};
+  std::unique_ptr<TEN::Save::Vector3> next_color{};
 };
 
 struct TorchData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2679,8 +2679,8 @@ struct TorchData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STATE = 4,
     VT_IS_LIT = 6,
     VT_FADE = 8,
-    VT_PRIMARY_COLOR = 10,
-    VT_SECONDARY_COLOR = 12
+    VT_CURRENT_COLOR = 10,
+    VT_NEXT_COLOR = 12
   };
   TEN::Save::TorchState state() const {
     return static_cast<TEN::Save::TorchState>(GetField<int32_t>(VT_STATE, 0));
@@ -2691,19 +2691,19 @@ struct TorchData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t fade() const {
     return GetField<int32_t>(VT_FADE, 0);
   }
-  const TEN::Save::Vector3 *primary_color() const {
-    return GetStruct<const TEN::Save::Vector3 *>(VT_PRIMARY_COLOR);
+  const TEN::Save::Vector3 *current_color() const {
+    return GetStruct<const TEN::Save::Vector3 *>(VT_CURRENT_COLOR);
   }
-  const TEN::Save::Vector3 *secondary_color() const {
-    return GetStruct<const TEN::Save::Vector3 *>(VT_SECONDARY_COLOR);
+  const TEN::Save::Vector3 *next_color() const {
+    return GetStruct<const TEN::Save::Vector3 *>(VT_NEXT_COLOR);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_STATE) &&
            VerifyField<uint8_t>(verifier, VT_IS_LIT) &&
            VerifyField<int32_t>(verifier, VT_FADE) &&
-           VerifyField<TEN::Save::Vector3>(verifier, VT_PRIMARY_COLOR) &&
-           VerifyField<TEN::Save::Vector3>(verifier, VT_SECONDARY_COLOR) &&
+           VerifyField<TEN::Save::Vector3>(verifier, VT_CURRENT_COLOR) &&
+           VerifyField<TEN::Save::Vector3>(verifier, VT_NEXT_COLOR) &&
            verifier.EndTable();
   }
   TorchDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2724,11 +2724,11 @@ struct TorchDataBuilder {
   void add_fade(int32_t fade) {
     fbb_.AddElement<int32_t>(TorchData::VT_FADE, fade, 0);
   }
-  void add_primary_color(const TEN::Save::Vector3 *primary_color) {
-    fbb_.AddStruct(TorchData::VT_PRIMARY_COLOR, primary_color);
+  void add_current_color(const TEN::Save::Vector3 *current_color) {
+    fbb_.AddStruct(TorchData::VT_CURRENT_COLOR, current_color);
   }
-  void add_secondary_color(const TEN::Save::Vector3 *secondary_color) {
-    fbb_.AddStruct(TorchData::VT_SECONDARY_COLOR, secondary_color);
+  void add_next_color(const TEN::Save::Vector3 *next_color) {
+    fbb_.AddStruct(TorchData::VT_NEXT_COLOR, next_color);
   }
   explicit TorchDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2746,11 +2746,11 @@ inline flatbuffers::Offset<TorchData> CreateTorchData(
     TEN::Save::TorchState state = TEN::Save::TorchState::holding,
     bool is_lit = false,
     int32_t fade = 0,
-    const TEN::Save::Vector3 *primary_color = 0,
-    const TEN::Save::Vector3 *secondary_color = 0) {
+    const TEN::Save::Vector3 *current_color = 0,
+    const TEN::Save::Vector3 *next_color = 0) {
   TorchDataBuilder builder_(_fbb);
-  builder_.add_secondary_color(secondary_color);
-  builder_.add_primary_color(primary_color);
+  builder_.add_next_color(next_color);
+  builder_.add_current_color(current_color);
   builder_.add_fade(fade);
   builder_.add_state(state);
   builder_.add_is_lit(is_lit);
@@ -10161,8 +10161,8 @@ inline void TorchData::UnPackTo(TorchDataT *_o, const flatbuffers::resolver_func
   { auto _e = state(); _o->state = _e; }
   { auto _e = is_lit(); _o->is_lit = _e; }
   { auto _e = fade(); _o->fade = _e; }
-  { auto _e = primary_color(); if (_e) _o->primary_color = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
-  { auto _e = secondary_color(); if (_e) _o->secondary_color = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
+  { auto _e = current_color(); if (_e) _o->current_color = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
+  { auto _e = next_color(); if (_e) _o->next_color = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
 }
 
 inline flatbuffers::Offset<TorchData> TorchData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TorchDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -10176,15 +10176,15 @@ inline flatbuffers::Offset<TorchData> CreateTorchData(flatbuffers::FlatBufferBui
   auto _state = _o->state;
   auto _is_lit = _o->is_lit;
   auto _fade = _o->fade;
-  auto _primary_color = _o->primary_color ? _o->primary_color.get() : 0;
-  auto _secondary_color = _o->secondary_color ? _o->secondary_color.get() : 0;
+  auto _current_color = _o->current_color ? _o->current_color.get() : 0;
+  auto _next_color = _o->next_color ? _o->next_color.get() : 0;
   return TEN::Save::CreateTorchData(
       _fbb,
       _state,
       _is_lit,
       _fade,
-      _primary_color,
-      _secondary_color);
+      _current_color,
+      _next_color);
 }
 
 inline LaraInventoryDataT *LaraInventoryData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

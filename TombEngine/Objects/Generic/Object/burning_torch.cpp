@@ -203,19 +203,19 @@ namespace TEN::Entities::Generic
 				lara->Torch.Fade--;
 
 			if (!lara->Torch.Fade)
-				lara->Torch.PrimaryColor = lara->Torch.SecondaryColor;
+				lara->Torch.CurrentColor = lara->Torch.NextColor;
 
 			auto alpha = (float)lara->Torch.Fade / ((float)FPS * lara->Torch.FADE_TIMEOUT);
 
-			auto primaryColor   = GetStartTorchColor(lara->Torch.PrimaryColor);
-			auto secondaryColor = GetStartTorchColor(lara->Torch.SecondaryColor);
+			auto currentColor = GetStartTorchColor(lara->Torch.CurrentColor);
+			auto nextColor    = GetStartTorchColor(lara->Torch.NextColor);
 
-			auto startColor   = lara->Torch.Fade ? Vector3::Lerp(secondaryColor, primaryColor, alpha) : primaryColor;
-			auto endColor	  = GetEndTorchColor(lara->Torch.PrimaryColor);
+			auto startColor   = lara->Torch.Fade ? Vector3::Lerp(nextColor, currentColor, alpha) : currentColor;
+			auto endColor	  = GetEndTorchColor(lara->Torch.CurrentColor);
 
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
 
-			auto fade = (lara->Torch.PrimaryColor == Vector3::Zero) ? (1.0f - alpha) : 1.0f;
+			auto fade = (lara->Torch.CurrentColor == Vector3::Zero) ? (1.0f - alpha) : 1.0f;
 
 			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * fade;
 			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * fade;
@@ -229,7 +229,7 @@ namespace TEN::Entities::Generic
 		}
 		else
 		{
-			lara->Torch.PrimaryColor = Vector3::Zero;
+			lara->Torch.CurrentColor = Vector3::Zero;
 		}
 	}
 

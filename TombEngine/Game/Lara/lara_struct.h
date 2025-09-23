@@ -1151,8 +1151,8 @@ struct TorchData
 
 	bool	   IsLit = false;
 	int		   Fade = 0;
-	Vector3	   PrimaryColor = Vector3::Zero;
-	Vector3    SecondaryColor = Vector3::Zero;
+	Vector3	   CurrentColor = Vector3::Zero;
+	Vector3    NextColor = Vector3::Zero;
 	TorchState State = TorchState::Holding;
 };
 

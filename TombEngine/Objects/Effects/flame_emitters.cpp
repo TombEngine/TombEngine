@@ -631,7 +631,7 @@ namespace TEN::Entities::Effects
 				{
 					if (item->Status == ITEM_ACTIVE)
 					{
-						Lara.Torch.SecondaryColor = (Vector3)item->Model.Color;
+						Lara.Torch.NextColor = (Vector3)item->Model.Color;
 						Lara.Torch.Fade = Lara.Torch.FADE_TIMEOUT * FPS;
 					}
 
@@ -666,7 +666,7 @@ namespace TEN::Entities::Effects
 					item->Flags |= CODE_BITS;
 					item->ItemFlags[3] = (item->ObjectNumber != ID_FLAME_EMITTER3) ? UCHAR_MAX : 0;
 					item->Status = ITEM_ACTIVE;
-					item->Model.Color = Vector4(lara.Torch.PrimaryColor.x, lara.Torch.PrimaryColor.y, lara.Torch.PrimaryColor.z, 1.0f);
+					item->Model.Color = Vector4(lara.Torch.CurrentColor.x, lara.Torch.CurrentColor.y, lara.Torch.CurrentColor.z, 1.0f);
 
 					AddActiveItem(itemNumber);
 				}

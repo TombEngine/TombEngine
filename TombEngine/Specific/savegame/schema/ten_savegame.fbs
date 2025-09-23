@@ -180,8 +180,8 @@ table TorchData {
 	state: TorchState;
 	is_lit: bool;
 	fade: int32;
-	primary_color: Vector3;
-	secondary_color: Vector3;
+	current_color: Vector3;
+	next_color: Vector3;
 }
 
 table LaraInventoryData {
