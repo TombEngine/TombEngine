@@ -13,6 +13,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added fading when activating and deactivating FLAME_EMITTER and FLAME_EMITTER2 objects.
 * Added ability to colorize ROPE objects.
 * Increased level loading speed by switching to LZ4 compression format.
+* Added new material system supporting specular maps, normal maps, emissive maps, roughness maps, ambient occlusion maps.
+* Increased renderer performances
+* Added bloom effect for emissive materials
 
 ### Bug fixes
 * Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
@@ -33,6 +36,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
 * Fixed intense GPU usage when engine window is minimized.
+* Fixed wrong highlights when sun lights were used in mirror setups.
+* Fixed SSAO applied multiple times when additive surfaces are present in scene.
+* Fixed waves movement and underwater light effects not being at full framerate.
 
 ### Lua API changes
 * Added `Moveable:ShowInteractionHighlight` method.
