@@ -13,7 +13,7 @@ cbuffer CBPostProcess : register(b7)
 {
     float CinematicBarsHeight;
     float ScreenFadeFactor;
-    float2 ViewportSize;
+    uint2 ViewportSize;
     //--
     float EffectStrength;
     float3 Tint;

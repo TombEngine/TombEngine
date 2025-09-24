@@ -3928,7 +3928,7 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::PointWrap);
 		BindTexture(static_cast<TextureRegister>(2), &_SSAONoiseTexture, SamplerStateRegister::PointWrap);
 
-		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _screenWidth, 1.0f / _screenHeight);
 		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);

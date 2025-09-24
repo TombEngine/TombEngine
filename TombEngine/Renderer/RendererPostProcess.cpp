@@ -35,7 +35,7 @@ namespace TEN::Renderer
 
 		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
 		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
-		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
@@ -249,7 +249,7 @@ void Renderer::CalculateGlow(RenderView& view)
 
 	_shaders.Bind(Shader::PostProcess);
 
-	_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
+	_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 	
 	_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());

@@ -125,7 +125,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Fxaa);
 
-		_stPostProcessBuffer.ViewportSize = Vector2(_screenWidth, _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 		
 		BindTexture(TextureRegister::ColorMap, &_tempRenderTarget, SamplerStateRegister::AnisotropicClamp);

@@ -15,7 +15,7 @@ namespace TEN::Renderer::ConstantBuffers
 	{
 		float CinematicBarsHeight;
 		float ScreenFadeFactor;
-		Vector2 ViewportSize;
+		Vector2i ViewportSize;
 		//--
 		float EffectStrength;
 		Vector3 Tint;
