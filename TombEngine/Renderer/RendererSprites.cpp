@@ -344,7 +344,7 @@ namespace TEN::Renderer
 				// Set up vertex buffer and parameters.
 				unsigned int stride = sizeof(Vertex);
 				unsigned int offset = 0;
-				_context->IASetVertexBuffers(0, 1, _spritesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 				wasGpuSet = true;
 			}
@@ -399,25 +399,25 @@ namespace TEN::Renderer
 
 				ReflectVectorOptionally(vertex3.Position);
 
-				_spritesVertices.push_back(vertex0);
-				_spritesVertices.push_back(vertex1);
-				_spritesVertices.push_back(vertex3);
-				_spritesVertices.push_back(vertex2);
-				_spritesVertices.push_back(vertex3);
-				_spritesVertices.push_back(vertex1);
+				_spriteVertices.push_back(vertex0);
+				_spriteVertices.push_back(vertex1);
+				_spriteVertices.push_back(vertex3);
+				_spriteVertices.push_back(vertex2);
+				_spriteVertices.push_back(vertex3);
+				_spriteVertices.push_back(vertex1);
 
 				spritesToDraw++;
 
 				if (spritesToDraw == INSTANCED_SPRITES_BUCKET_SIZE || spritesToDraw == spriteBucket.SpritesToDraw.size())
 				{
-					_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, spritesToDraw * 6);
+					_spriteVertexBuffer.Update(_context.Get(), _spriteVertices.data(), 0, spritesToDraw * 6);
 
 					DrawInstancedTriangles(spritesToDraw * 6, 1, 0);
 
 					_numInstancedSpritesDrawCalls++;
 
 					spritesToDraw = 0;
-					_spritesVertices.clear();
+					_spriteVertices.clear();
 				}
 			}
 		}
@@ -486,15 +486,15 @@ namespace TEN::Renderer
 			vertex3.Color = PackColor(object->Sprite->c4);
 			vertex3.Effects = 3 << 25;
 
-			_spritesVertices.clear();
-			_spritesVertices.push_back(vertex0);
-			_spritesVertices.push_back(vertex1);
-			_spritesVertices.push_back(vertex3);
-			_spritesVertices.push_back(vertex2);
+			_spriteVertices.clear();
+			_spriteVertices.push_back(vertex0);
+			_spriteVertices.push_back(vertex1);
+			_spriteVertices.push_back(vertex3);
+			_spriteVertices.push_back(vertex2);
 
-			_spritesVertexBuffer.Update(_context.Get(), _spritesVertices.data(), 0, 4);
+			_spriteVertexBuffer.Update(_context.Get(), _spriteVertices.data(), 0, 4);
 
-			_context->IASetVertexBuffers(0, 1, _spritesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		}
 
 		// Draw sprites with instancing.

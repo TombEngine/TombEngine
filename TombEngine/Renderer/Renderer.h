@@ -127,6 +127,16 @@ namespace TEN::Renderer
 		RenderTarget2D _tempRoomAmbientRenderTarget3;
 		RenderTarget2D _tempRoomAmbientRenderTarget4;
 		Texture2DArray _shadowMap;
+		RenderTarget2D _legacyReflectionsRenderTarget[2];
+		RenderTarget2D _roomAmbientMapFront;
+		RenderTarget2D _roomAmbientMapBack;
+		RenderTarget2D _SSAORenderTarget;
+		RenderTarget2D _SSAOBlurredRenderTarget;
+		RenderTarget2D _SMAASceneRenderTarget;
+		RenderTarget2D _SMAASceneSRGBRenderTarget;
+		RenderTarget2D _SMAADepthRenderTarget;
+		RenderTarget2D _SMAAEdgesRenderTarget;
+		RenderTarget2D _SMAABlendRenderTarget;
 
 		// Constant buffers
 
@@ -177,8 +187,8 @@ namespace TEN::Renderer
 		float _oldBlinkTime = 0.0f;
 
 		// Sprites
-		std::vector<Vertex> _spritesVertices;
-		VertexBuffer<Vertex> _spritesVertexBuffer;
+		std::vector<Vertex> _spriteVertices;
+		VertexBuffer<Vertex> _spriteVertexBuffer;
 
 		// Graphics resources
 
@@ -323,11 +333,6 @@ namespace TEN::Renderer
 
 		Texture2D _SMAAAreaTexture;
 		Texture2D _SMAASearchTexture;
-		RenderTarget2D _SMAASceneRenderTarget;
-		RenderTarget2D _SMAASceneSRGBRenderTarget;
-		RenderTarget2D _SMAADepthRenderTarget;
-		RenderTarget2D _SMAAEdgesRenderTarget;
-		RenderTarget2D _SMAABlendRenderTarget;
 
 		// Post-process
 
@@ -343,17 +348,7 @@ namespace TEN::Renderer
 		// SSAO
 
 		Texture2D _SSAONoiseTexture;
-		RenderTarget2D _SSAORenderTarget;
-		RenderTarget2D _SSAOBlurredRenderTarget;
 		std::vector<Vector4> _SSAOKernel;
-
-		// New ambient light techinque
-
-		RenderTarget2D _roomAmbientMapFront;
-		RenderTarget2D _roomAmbientMapBack;
-
-		// Legacy reflection effect
-		RenderTarget2D _legacyReflectionsRenderTarget[2];
 
 		// Special effects
 
