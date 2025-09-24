@@ -12,12 +12,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added bullet hole and explosion decals for room geometry.
 * Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
 * Added ability to colorize ROPE objects.
+* Added ability to antitrigger FISH_EMITTER.
 * Increased level loading speed by switching to LZ4 compression format.
 
 ### Bug fixes
 * Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
 * Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
 * Fixed GRENADE object not being activated by triggers and heavy triggers under shatters.
+* Fixed FISH_EMITTER fish escape direction when player is nearby.
 * Fixed several collision issues for TRAIN object.
 * Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed dying while landing into shallow water after freefall.
