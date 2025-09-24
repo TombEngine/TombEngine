@@ -52,7 +52,7 @@ constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
 constexpr auto INSTANCED_SPRITES_BUCKET_SIZE = 512;
-constexpr auto MAX_SPRITES_VERTICES			 = INSTANCED_SPRITES_BUCKET_SIZE * 6;
+constexpr auto MAX_SPRITE_VERTICES 			 = INSTANCED_SPRITES_BUCKET_SIZE * 6;
 
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;
@@ -73,6 +73,12 @@ constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
 constexpr auto GLOW_BLUR_RADIUS = 24.0f;
+
+constexpr auto GLOW_VERTEX_SHIFT = 0;
+constexpr auto MOVE_VERTEX_SHIFT = 8;
+constexpr auto SHININESS_VERTEX_SHIFT = 16;
+constexpr auto LOCKED_VERTEX_SHIFT = 24;
+constexpr auto INDEX_IN_POLY_VERTEX_SHIFT = 25;
 
 enum class LightType
 {

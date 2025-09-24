@@ -538,4 +538,10 @@ float3 UnpackNormalMap(float4 n)
     return n.xyz;
 }
 
+inline float Gaussian(float x, float sigma)
+{
+    // exp( -x^2 / (2*sigma^2) )
+    return exp(-(x * x) / (2.0 * sigma * sigma));
+}
+
 #endif // MATH

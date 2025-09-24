@@ -117,11 +117,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	// Ambient occlusion
     float occlusion = 1.0f;
-    if (AmbientOcclusion == 1 && (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND))
+    if (AmbientOcclusion == 1 && BlendModeSupportsSSAO())
     {
         float2 samplePosition;
-        samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // perspective divide
-        samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
+        samplePosition = input.PositionCopy.xy / input.PositionCopy.w; 
+        samplePosition = samplePosition * 0.5f + 0.5f;
         samplePosition.y = 1.0f - samplePosition.y;
         occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
 		

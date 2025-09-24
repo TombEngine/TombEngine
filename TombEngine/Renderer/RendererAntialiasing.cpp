@@ -20,8 +20,8 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		UINT stride = sizeof(PostProcessVertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
@@ -106,8 +106,8 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		UINT stride = sizeof(PostProcessVertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 

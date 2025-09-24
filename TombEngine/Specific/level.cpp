@@ -1682,11 +1682,11 @@ void LoadMirrors()
 
 void LoadMaterials()
 {
-	int materialsCount = ReadCount();
-	TENLog("Materials count: " + std::to_string(materialsCount), LogLevel::Info);
-	g_Level.Materials.reserve(materialsCount);
+	int materialCount = ReadCount();
+	TENLog("Materials count: " + std::to_string(materialCount), LogLevel::Info);
+	g_Level.Materials.reserve(materialCount);
 
-	for (int i = 0; i < materialsCount; i++)
+	for (int i = 0; i < materialCount; i++)
 	{
 		auto& material = g_Level.Materials.emplace_back();
 

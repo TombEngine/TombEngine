@@ -23,6 +23,11 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
+inline bool BlendModeSupportsSSAO()
+{
+    return (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND);
+}
+
 void DoAlphaTest(float4 inputColor)
 {
 	if (AlphaTest == ALPHATEST_GREATER_THAN && inputColor.w < AlphaThreshold)

@@ -209,12 +209,6 @@ float4 PSLensFlare(PixelShaderInput input) : SV_Target
 	return color;
 }
 
-inline float Gaussian(float x, float sigma)
-{
-    // exp( -x^2 / (2*sigma^2) )
-    return exp(-(x * x) / (2.0 * sigma * sigma));
-}
-
 float4 PSBlurBilinear(PixelShaderInput input) : SV_Target
 {
     int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);

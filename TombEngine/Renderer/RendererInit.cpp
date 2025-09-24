@@ -243,8 +243,8 @@ namespace TEN::Renderer
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
 
-		_spriteVertices.reserve(MAX_SPRITES_VERTICES);
-		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITES_VERTICES, _spriteVertices);
+		_spriteVertices.reserve(MAX_SPRITE_VERTICES );
+		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITE_VERTICES , _spriteVertices);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
@@ -319,12 +319,12 @@ namespace TEN::Renderer
 
 		//Bottom Left
 		quadVertices[0].Position = Vector3(-0.5, -0.5, 0);
-		Vector3 normal = Vector3(-1, -1, 1);
+		auto normal = Vector3(-1, -1, 1);
 		normal.Normalize();
 		quadVertices[0].Normal = PackVector3(normal);
 		quadVertices[0].UV = Vector2(0, 1);
-		quadVertices[0].Color = PackColor(Vector4::One);
-		quadVertices[0].Effects = 3 << 25;
+		quadVertices[0].Color = VectorColorToRGBA(Vector4::One);
+		quadVertices[0].Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
@@ -332,8 +332,8 @@ namespace TEN::Renderer
 		normal.Normalize();
 		quadVertices[1].Normal = PackVector3(normal);
 		quadVertices[1].UV = Vector2(0, 0);
-		quadVertices[1].Color = PackColor(Vector4::One);
-		quadVertices[1].Effects = 0 << 25;
+		quadVertices[1].Color = VectorColorToRGBA(Vector4::One);
+		quadVertices[1].Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
@@ -341,8 +341,8 @@ namespace TEN::Renderer
 		normal.Normalize();
 		quadVertices[3].Normal = PackVector3(normal);
 		quadVertices[3].UV = Vector2(1, 0);
-		quadVertices[3].Color = PackColor(Vector4::One);
-		quadVertices[3].Effects = 1 << 25;
+		quadVertices[3].Color = VectorColorToRGBA(Vector4::One);
+		quadVertices[3].Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
@@ -350,8 +350,8 @@ namespace TEN::Renderer
 		normal.Normalize();
 		quadVertices[2].Normal = PackVector3(normal);
 		quadVertices[2].UV = Vector2(1, 1);
-		quadVertices[2].Color = PackColor(Vector4::One);
-		quadVertices[2].Effects = 2 << 25;
+		quadVertices[2].Color = VectorColorToRGBA(Vector4::One);
+		quadVertices[2].Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		_quadVertexBuffer = VertexBuffer<Vertex>(_device.Get(), 4, quadVertices.data());
 	}
@@ -384,7 +384,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color = PackColor(Vector4::One);
+				vertices[lastVertex].Color = VectorColorToRGBA(Vector4::One);
 
 				lastVertex++;
 
@@ -393,7 +393,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color = PackColor(Vector4::One);
+				vertices[lastVertex].Color = VectorColorToRGBA(Vector4::One);
 
 				lastVertex++;
 
@@ -402,7 +402,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color = PackColor(Vector4::One);
+				vertices[lastVertex].Color = VectorColorToRGBA(Vector4::One);
 
 				lastVertex++;
 
@@ -411,7 +411,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color = PackColor(Vector4::One);
+				vertices[lastVertex].Color = VectorColorToRGBA(Vector4::One);
 
 				lastVertex++;
 			}

@@ -1690,11 +1690,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\HDR.fx">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Shaders\Glow.fx">
       <DeploymentContent>true</DeploymentContent>
     </None>

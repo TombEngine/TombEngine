@@ -506,7 +506,7 @@ namespace TEN::Renderer
 		void CopyRenderTarget(RenderTarget2D* source, RenderTarget2D* dest, RenderView& view);
 		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
-		void PackSpritesTextureCoordinates(int instanceId, RendererSprite* sprite);
+		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void CalculateGlow(RenderView& view);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
@@ -539,7 +539,7 @@ namespace TEN::Renderer
 		void CreateSSAONoiseTexture();
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
-		Texture2D CreateDefaultTexture(std::vector<byte> color);
+		Texture2D CreateDefaultTexture(std::vector<unsigned char> color);
 
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
@@ -645,15 +645,15 @@ namespace TEN::Renderer
 		static inline unsigned int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
 		{
 			int packed =
-				((int)(effects.x * 255.0f) << 0) |
-				((int)(effects.y * 255.0f) << 8) |
-				((int)(sheen * 255.0f) << 16) |
-				((int)effects.z << 24) |
-				(indexInPoly << 25);
+				((int)(effects.x * 255.0f) << GLOW_VERTEX_SHIFT) |
+				((int)(effects.y * 255.0f) << MOVE_VERTEX_SHIFT) |
+				((int)(sheen * 255.0f) << SHININESS_VERTEX_SHIFT) |
+				((int)effects.z << LOCKED_VERTEX_SHIFT) |
+				(indexInPoly << INDEX_IN_POLY_VERTEX_SHIFT);
 			return packed;
 		}
 
-		static inline unsigned int PackColor(Vector4 c)
+		static inline unsigned int VectorColorToRGBA(Vector4 c)
 		{
 			auto to8 = [](float v) -> unsigned int {
 				float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;

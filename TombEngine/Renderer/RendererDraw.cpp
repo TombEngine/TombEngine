@@ -416,13 +416,13 @@ namespace TEN::Renderer
 			vertex0.Position.x = line.Origin.x;
 			vertex0.Position.y = line.Origin.y;
 			vertex0.Position.z = 1.0f;
-			vertex0.Color = PackColor(line.Color);
+			vertex0.Color = VectorColorToRGBA(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position.x = line.Target.x;
 			vertex1.Position.y = line.Target.y;
 			vertex1.Position.z = 1.0f;
-			vertex1.Color = PackColor(line.Color);
+			vertex1.Color = VectorColorToRGBA(line.Color);
 
 			vertex0.Position = Vector3::Transform(vertex0.Position, worldMatrix);
 			vertex1.Position = Vector3::Transform(vertex1.Position, worldMatrix);
@@ -583,8 +583,8 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				UINT stride = sizeof(Vertex);
-				UINT offset = 0;
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
 
 				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -1158,11 +1158,11 @@ namespace TEN::Renderer
 		{
 			auto vertex0 = Vertex{};
 			vertex0.Position = line.Origin;
-			vertex0.Color = PackColor(line.Color);
+			vertex0.Color = VectorColorToRGBA(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = line.Target;
-			vertex1.Color = PackColor(line.Color);
+			vertex1.Color = VectorColorToRGBA(line.Color);
 
 			_primitiveBatch->DrawLine(vertex0, vertex1);
 
@@ -1197,7 +1197,7 @@ namespace TEN::Renderer
 			{
 				auto rVertex = Vertex{};
 				rVertex.Position = vertex;
-				rVertex.Color = PackColor(tri.Color);
+				rVertex.Color = VectorColorToRGBA(tri.Color);
 
 				rVertices.push_back(rVertex);
 			}
@@ -2563,8 +2563,8 @@ namespace TEN::Renderer
 			}
 
 			// Bind vertex and index buffer
-			UINT stride = sizeof(Vertex);
-			UINT offset = 0;
+			unsigned int stride = sizeof(Vertex);
+			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 			_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
@@ -2644,8 +2644,8 @@ namespace TEN::Renderer
 			}
 
 			// Bind vertex and index buffer
-			UINT stride = sizeof(Vertex);
-			UINT offset = 0;
+			unsigned int stride = sizeof(Vertex);
+			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 			_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 			
@@ -2826,8 +2826,8 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::Rooms);
 			}
 
-			UINT stride = sizeof(Vertex);
-			UINT offset = 0;
+			unsigned int stride = sizeof(Vertex);
+			unsigned int offset = 0;
 
 			// Bind vertex and index buffer.
 			_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
@@ -2944,8 +2944,8 @@ namespace TEN::Renderer
 		if (Lara.Control.Look.OpticRange != 0)
 			AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
-		UINT stride = sizeof(Vertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
 
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
@@ -2997,8 +2997,8 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedSprites);
 
 			// Set up vertex buffer and parameters.
-			UINT stride = sizeof(Vertex);
-			UINT offset = 0;
+			unsigned int stride = sizeof(Vertex);
+			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 			BindTexture(TextureRegister::ColorMap, _sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3].Texture, SamplerStateRegister::LinearClamp);
@@ -3603,26 +3603,26 @@ namespace TEN::Renderer
 					Vertex v0;
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
-					v0.Color = PackColor(spr->c1);
-					v0.Effects = 0 << 25;
+					v0.Color = VectorColorToRGBA(spr->c1);
+					v0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					Vertex v1;
 					v1.Position = Vector3::Transform(p1t, world);
 					v1.UV = uv1;
-					v1.Color = PackColor(spr->c2);
-					v1.Effects = 1 << 25;
+					v1.Color = VectorColorToRGBA(spr->c2);
+					v1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					Vertex v2;
 					v2.Position = Vector3::Transform(p2t, world);
 					v2.UV = uv2;
-					v2.Color = PackColor(spr->c3);
-					v2.Effects = 2 << 25;
+					v2.Color = VectorColorToRGBA(spr->c3);
+					v2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 				    
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
-					v3.Color = PackColor(spr->c4);
-					v3.Effects = 3 << 25;
+					v3.Color = VectorColorToRGBA(spr->c4);
+					v3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					_sortedPolygonsVertices.push_back(v0);
 					_sortedPolygonsVertices.push_back(v1);
@@ -3655,8 +3655,8 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Rooms);
 
-		UINT stride = sizeof(Vertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
 		_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
@@ -3744,8 +3744,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
-		UINT stride = sizeof(Vertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
 		_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
@@ -3780,8 +3780,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
-		UINT stride = sizeof(Vertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
 		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
@@ -4001,6 +4001,8 @@ namespace TEN::Renderer
 			_stAnimated.Textures[0].TopRight = set.Textures[0].NormalizedUV[1]; 
 			_stAnimated.Textures[0].BottomRight = set.Textures[0].NormalizedUV[2];
 			_stAnimated.Textures[0].BottomLeft = set.Textures[0].NormalizedUV[3];
+
+			BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
 		} 
 		else if (set.Type == AnimatedTextureType::UVRotate)
 		{
@@ -4050,7 +4052,15 @@ namespace TEN::Renderer
 			TexturesAreNotAnimated();
 		}
 
-		BindAtlasTextures(bucket, animated ? TextureSource::Animated : textureSource);
+		if (animated)
+		{
+			const auto& set = _animatedTextureSets[bucket.Texture];
+
+			if (set.Type != AnimatedTextureType::Video)
+				BindAtlasTextures(bucket, TextureSource::Animated);
+		}
+		else
+			BindAtlasTextures(bucket, textureSource);
 	}
 
 	void Renderer::BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource)
