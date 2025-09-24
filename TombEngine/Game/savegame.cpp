@@ -929,8 +929,8 @@ const std::vector<byte> SaveGame::Build()
 		fishSave.add_life(fish.Life);
 		fishSave.add_mesh_index(fish.MeshIndex);
 		fishSave.add_orientation(&FromEulerAngles(fish.Orientation));
-		fishSave.add_position(&FromVector3(fish.Position));
-		fishSave.add_position_target(&FromVector3(fish.PositionTarget));
+		fishSave.add_position(&FromVector3i(fish.Position));
+		fishSave.add_position_target(&FromVector3i(fish.PositionTarget));
 		fishSave.add_room_number(fish.RoomNumber);
 		fishSave.add_target_item_number((fish.TargetItemPtr == nullptr) ? -1 : fish.TargetItemPtr->Index);
 		fishSave.add_undulation(fish.Undulation);
@@ -2362,8 +2362,8 @@ static void ParseEffects(const Save::SaveGame* s)
 		fish.Life = fishSave->life();
 		fish.MeshIndex = fishSave->mesh_index();
 		fish.Orientation = ToEulerAngles(fishSave->orientation());
-		fish.Position = ToVector3(fishSave->position());
-		fish.PositionTarget = ToVector3(fishSave->position_target());
+		fish.Position = ToVector3i(fishSave->position());
+		fish.PositionTarget = ToVector3i(fishSave->position_target());
 		fish.RoomNumber = fishSave->room_number();
 		fish.TargetItemPtr = (fishSave->target_item_number() == -1) ? nullptr : &g_Level.Items[fishSave->target_item_number()];
 		fish.Undulation = fishSave->undulation();
