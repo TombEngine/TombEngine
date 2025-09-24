@@ -416,6 +416,27 @@ namespace TEN::Renderer
 				auto* spark = &FireSparks[i];
 				if (spark->on)
 				{
+					// Calculate original flame color.
+					auto color = Vector4::Lerp(
+						Vector4(
+							spark->PrevColor.x / 255.0f * fade,
+							spark->PrevColor.y / 255.0f * fade,
+							spark->PrevColor.z / 255.0f * fade,
+							1.0f),
+						Vector4(
+							spark->color.x / 255.0f * fade,
+							spark->color.y / 255.0f * fade,
+							spark->color.z / 255.0f * fade,
+							1.0f),
+						GetInterpolationFactor());
+
+					// Influence flame color with object color via chroma modulation.
+					if (fire.color != Vector4::One)
+					{
+						auto color3 = Vector3(color.x, color.y, color.z);
+						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+					}
+
 					AddSpriteBillboard(
 						&_sprites[spark->def],
 						Vector3::Lerp(
@@ -428,18 +449,7 @@ namespace TEN::Renderer
 								fire.position.y + spark->position.y * fire.size / 2,
 								fire.position.z + spark->position.z * fire.size / 2),
 							GetInterpolationFactor()),
-						Vector4::Lerp(
-							Vector4(
-								spark->PrevColor.x / 255.0f * fade,
-								spark->PrevColor.y / 255.0f * fade,
-								spark->PrevColor.z / 255.0f * fade,
-								1.0f),
-							Vector4(
-								spark->color.x / 255.0f * fade,
-								spark->color.y / 255.0f * fade,
-								spark->color.z / 255.0f * fade,
-								1.0f),
-							GetInterpolationFactor()),
+						color,
 						TO_RAD(Lerp(spark->PrevRotAng << 4, spark->rotAng << 4, GetInterpolationFactor())),
 						Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor()),
 						Vector2::Lerp(
@@ -455,7 +465,7 @@ namespace TEN::Renderer
 	void Renderer::PrepareParticles(RenderView& view)
 	{
 		for (int i = 0; i < ParticleNodeOffsetIDs::NodeMax; i++)
-			NodeOffsets[i].gotIt = false;
+			NodeOffsets[i].itemNumber = NO_VALUE;
 
 		for (auto& particle : Particles)
 		{
@@ -521,7 +531,7 @@ namespace TEN::Renderer
 					auto nodePos = Vector3i::Zero;
 					if (particle.flags & SP_NODEATTACH)
 					{
-						if (NodeOffsets[particle.nodeNumber].gotIt)
+						if (NodeOffsets[particle.nodeNumber].itemNumber == particle.fxObj)
 						{
 							nodePos = NodeVectors[particle.nodeNumber];
 						}
@@ -541,7 +551,7 @@ namespace TEN::Renderer
 								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
 							}
 
-							NodeOffsets[particle.nodeNumber].gotIt = true;
+							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
 							NodeVectors[particle.nodeNumber] = nodePos;
 						}
 

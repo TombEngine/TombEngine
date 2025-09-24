@@ -23,23 +23,22 @@ using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
 {
-	void TriggerTorchFlame(int fxObject, unsigned char node)
+	static void TriggerTorchFlame(int fxObject, unsigned char node, Vector3 color1, Vector3 color2)
 	{
 		auto* spark = GetFreeParticle();
 
 		spark->on = true;
 
-		spark->sR = 1.0f * UCHAR_MAX;
-		spark->sB = 0.2f * UCHAR_MAX;
-		spark->sG = Random::GenerateFloat(0.2f, 0.3f) * UCHAR_MAX;
-		spark->dR = Random::GenerateFloat(-0.25f, 0.0f) * UCHAR_MAX;
-		spark->dB = 0.1f * UCHAR_MAX;
-		spark->dG =
-		spark->dG = Random::GenerateFloat(-0.5f, -0.25f) * UCHAR_MAX;
+		spark->sR = color1.x * UCHAR_MAX;
+		spark->sG = color1.y * UCHAR_MAX;
+		spark->sB = color1.z * UCHAR_MAX;
+		
+		spark->dR = color2.x * UCHAR_MAX;
+		spark->dG = color2.y * UCHAR_MAX;
+		spark->dB = color2.z * UCHAR_MAX;
 
 		spark->fadeToBlack = 8;
 		spark->colFadeSpeed = Random::GenerateInt(12, 15);
-		spark->blendMode = BlendMode::Additive;
 		spark->life =
 		spark->sLife = Random::GenerateInt(24, 31);
 
@@ -53,6 +52,9 @@ namespace TEN::Entities::Generic
 
 		spark->friction = 5;
 
+		spark->nodeNumber = node;
+		spark->fxObj = fxObject;
+
 		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
 
 		spark->blendMode = BlendMode::Additive;
@@ -63,9 +65,7 @@ namespace TEN::Entities::Generic
 			spark->rotAdd = Random::GenerateFloat(0.0f, 0.16f) * SCHAR_MAX;
 
 		spark->gravity = Random::GenerateInt (-31, -16);
-		spark->nodeNumber = node;
 		spark->maxYvel = Random::GenerateFloat(-0.16f, 0.0f) * SCHAR_MAX;
-		spark->fxObj = fxObject;
 		spark->scalar = 1;
 		spark->sSize =
 		spark->size = Random::GenerateFloat(64, 150);
@@ -74,6 +74,22 @@ namespace TEN::Entities::Generic
 		int spriteOffset = GlobalCounter % Objects[ID_FIRE_SPRITES].nmeshes;
 		spark->SpriteSeqID = ID_FIRE_SPRITES;
 		spark->SpriteID = spriteOffset;
+	}
+
+	static Vector3 GetStartTorchColor(Vector3 sourceColor)
+	{
+		if (sourceColor == Vector3::One)
+			return Vector3(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f);
+
+		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f);
+	}
+
+	static Vector3 GetEndTorchColor(Vector3 sourceColor)
+	{
+		if (sourceColor == Vector3::One)
+			return Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
+
+		return sourceColor / 2.0f * Random::GenerateFloat(0.35f, 0.45f);
 	}
 
 	void DoFlameTorch()
@@ -183,18 +199,37 @@ namespace TEN::Entities::Generic
 
 		if (lara->Torch.IsLit)
 		{
+			if (lara->Torch.Fade > 0)
+				lara->Torch.Fade--;
+
+			if (!lara->Torch.Fade)
+				lara->Torch.CurrentColor = lara->Torch.NextColor;
+
+			auto alpha = (float)lara->Torch.Fade / ((float)FPS * lara->Torch.FADE_TIMEOUT);
+
+			auto currentColor = GetStartTorchColor(lara->Torch.CurrentColor);
+			auto nextColor    = GetStartTorchColor(lara->Torch.NextColor);
+
+			auto startColor   = lara->Torch.Fade ? Vector3::Lerp(nextColor, currentColor, alpha) : currentColor;
+			auto endColor	  = GetEndTorchColor(lara->Torch.CurrentColor);
+
 			auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(-32, 64, 256));
-			auto lightColor = Color(
-				Random::GenerateFloat(0.75f, 1.0f),
-				Random::GenerateFloat(0.4f, 0.5f),
-				0.0f);
-			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
-			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+
+			auto fade = (lara->Torch.CurrentColor == Vector3::Zero) ? (1.0f - alpha) : 1.0f;
+
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX * fade;
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX * fade;
+
+			SpawnDynamicLight(pos.x, pos.y, pos.z, lightFalloff, startColor.x * brightness, startColor.y * brightness, startColor.z * brightness);
 
 			if (!(Wibble & 3))
-				TriggerTorchFlame(laraItem->Index, 0);
+				TriggerTorchFlame(laraItem->Index, 0, startColor, endColor);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, (Pose*)&pos);
+		}
+		else
+		{
+			lara->Torch.CurrentColor = Vector3::Zero;
 		}
 	}
 
@@ -283,15 +318,16 @@ namespace TEN::Entities::Generic
 
 		if (item->ItemFlags[3])
 		{
-			auto lightColor = Color(
-				Random::GenerateFloat(0.75f, 1.0f),
-				Random::GenerateFloat(0.4f, 0.5f),
-				0.0f);
-			float lightFalloff = Random::GenerateFloat(0.04f, 0.045f);
-			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, lightFalloff * UCHAR_MAX, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
-			
+			auto startColor = GetStartTorchColor((Vector3)item->Effect.PrimaryEffectColor);
+			auto endColor   = GetEndTorchColor((Vector3)item->Effect.PrimaryEffectColor);
+
+			unsigned char lightFalloff = Random::GenerateFloat(0.04f, 0.045f) * UCHAR_MAX;
+			unsigned char brightness = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 
+							  lightFalloff, startColor.x * brightness, startColor.y * brightness, startColor.z * brightness);
+
 			if (!(Wibble & 7))
-				TriggerTorchFlame(itemNumber, 1);
+				TriggerTorchFlame(itemNumber, 1, startColor, endColor);
 
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 		}

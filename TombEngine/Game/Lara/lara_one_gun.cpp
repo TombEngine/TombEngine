@@ -762,6 +762,13 @@ void GrenadeControl(short itemNumber)
 
 	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
 
+	// Force grenade to explode if it was activated externally.
+	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
+	{
+		grenadeItem.HitPoints = 0;
+		grenadeItem.ItemFlags[0] = (int)ProjectileType::Explosive;
+	}
+	
 	// Check if above water and update Y and Z velocities.
 	bool aboveWater = false;
 	if (TestEnvironment(ENV_FLAG_WATER, grenadeItem.RoomNumber) ||

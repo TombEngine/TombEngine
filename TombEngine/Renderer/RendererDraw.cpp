@@ -391,7 +391,7 @@ namespace TEN::Renderer
 
 				AddSpriteBillboardConstrained(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_EMPTY1],
-					pos, _rooms[rope.room].AmbientLight,
+					pos, _rooms[rope.room].AmbientLight * g_Level.Items[rope.index].Model.Color,
 					PI_DIV_2, 1.0f, Vector2(32.0f, Vector3::Distance(pos0, pos1)), BlendMode::AlphaBlend, dir, false, view);
 			}
 		}

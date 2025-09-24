@@ -46,5 +46,5 @@ namespace TEN::Entities::Vehicles
 
 	void SpawnVehicleWake(const ItemInfo& vehicleItem, const Vector3& relOffset, int waterHeight, bool isUnderwater = false);
 	void HandleVehicleSpeedometer(float vel, float velMax);
-	void UpdateVehicleRoom(ItemInfo* vehicleItem, ItemInfo* laraItem, int currentRoomNumber);
+	void UpdateVehicleRoom(ItemInfo* vehicleItem, ItemInfo* laraItem = nullptr, int currentRoomNumber = NO_VALUE);
 }

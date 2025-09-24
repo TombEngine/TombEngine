@@ -14,6 +14,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -78,7 +79,18 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			ItemBurn(itemPtr, itemPtr->IsLara() ? -1 : FLAME_ITEM_BURN_TIMEOUT);
+			if (item->Model.Color == Vector4::One)
+			{
+				ItemBurn(itemPtr, itemPtr->IsLara() ? NO_VALUE : FLAME_ITEM_BURN_TIMEOUT);
+			}
+			else
+			{
+				auto secondaryColor = Vector3(std::max(item->Model.Color.x - 0.2f, 0.0f),
+											  std::max(item->Model.Color.y - 0.2f, 0.0f),
+											  std::max(item->Model.Color.z - 0.2f, 0.0f));
+
+				ItemCustomBurn(itemPtr, (Vector3)item->Model.Color, secondaryColor, NO_VALUE);
+			}
 		}
 	}
 
@@ -112,6 +124,14 @@ namespace TEN::Entities::Effects
 		return active;
 	}
 
+	static Vector4 GetFlameColor(Vector4 sourceColor)
+	{
+		if (sourceColor == Vector4::One)
+			return Vector4(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f, 1.0f) * UCHAR_MAX;
+
+		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+	}
+
 	void FlameEmitterControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -128,10 +148,11 @@ namespace TEN::Entities::Effects
 					// Constant flames.
 					SoundEffect(SFX_TR4_FLAME_EMITTER, &item->Pose);
 					TriggerSuperJetFlame(item, -256 - (3072 * GlobalCounter & 0x1C00), GlobalCounter & 1);
+
+					auto color = GetFlameColor(item->Model.Color);
 					SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 						(GetRandomControl() & 3) + 20,
-						(GetRandomControl() & 0x3F) + 192,
-						(GetRandomControl() & 0x1F) + 96, 0);
+						color.x, color.y, color.z);
 				}
 				else
 				{
@@ -182,7 +203,7 @@ namespace TEN::Entities::Effects
 					}
 
 					if (smallFlameAlpha < UCHAR_MAX)
-						AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, 0.5f, smallFlameAlpha);
+						AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 0.5f, smallFlameAlpha);
 
 					if (jetFlameVel)
 					{
@@ -197,10 +218,10 @@ namespace TEN::Entities::Effects
 							TriggerSuperJetFlame(item, jetFlameVel, GlobalCounter & 1);
 						}
 
+						auto color = GetFlameColor(item->Model.Color);
 						SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 							(-jetFlameVel >> 10) - (GetRandomControl() & 1) + 16,
-							(GetRandomControl() & 0x3F) + 192,
-							(GetRandomControl() & 0x1F) + 96, 0);
+							color.x, color.y, color.z);
 					}
 					else
 					{
@@ -216,13 +237,14 @@ namespace TEN::Entities::Effects
 			else
 			{
 				// Normal flames.
-				AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, 2.0f, item->ItemFlags[3]);
+				AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, 2.0f, item->ItemFlags[3]);
 
 				float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
+				auto color = GetFlameColor(item->Model.Color);
+
 				SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 					(16 - (GetRandomControl() & 1)) * multiplier,
-					(GetRandomControl() & 0x3F) + 192,
-					(GetRandomControl() & 0x1F) + 96, 0);
+					color.x, color.y, color.z);
 
 				SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
@@ -267,17 +289,17 @@ namespace TEN::Entities::Effects
 						break;
 					}
 
-					AddFire(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber, size, item->ItemFlags[3]);
+					AddFire(item->Pose.Position, item->RoomNumber, item->Model.Color, size, item->ItemFlags[3]);
 				}
 
 				if (item->TriggerFlags == 0 || item->TriggerFlags == 2)
 				{
 					float multiplier = (float)(UCHAR_MAX - item->ItemFlags[3]) / float(UCHAR_MAX);
+					auto color = GetFlameColor(item->Model.Color);
+
 					SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 						10 * multiplier,
-						(GetRandomControl() & 0x3F) + 192,
-						(GetRandomControl() & 0x1F) + 96,
-						0);
+						color.x, color.y, color.z);
 				}
 
 				if (item->TriggerFlags == 2)
@@ -509,17 +531,16 @@ namespace TEN::Entities::Effects
 					i = item->ItemFlags[1] & 7;
 					x = 16 * (Flame3xzoffs[i][0] - 32);
 					z = 16 * (Flame3xzoffs[i][1] - 32);
-					TriggerFireFlame(x + item->Pose.Position.x, item->Pose.Position.y, z + item->Pose.Position.z, FlameType::Small);
 				}
 				else
 				{
 					i = item->ItemFlags[1] >> 3;
 					x = 16 * (Flame3xzoffs[i + 8][0] - 32);
 					z = 16 * (Flame3xzoffs[i + 8][1] - 32);
-					TriggerFireFlame(x + item->Pose.Position.x, item->Pose.Position.y, z + item->Pose.Position.z, FlameType::Small);
 				}
 
 				SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
+				TriggerFireFlame(x + item->Pose.Position.x, item->Pose.Position.y, z + item->Pose.Position.z, FlameType::Small);
 				SpawnDynamicLight(x, item->Pose.Position.y, z, 12, (GetRandomControl() & 0x3F) + 192, ((GetRandomControl() >> 4) & 0x1F) + 96, 0);
 
 				auto pos = item->Pose.Position;
@@ -557,8 +578,8 @@ namespace TEN::Entities::Effects
 		if (Lara.Control.Weapon.GunType != LaraWeaponType::Torch ||
 			Lara.Control.HandStatus != HandStatus::WeaponReady ||
 			Lara.LeftArm.Locked ||
-			Lara.Torch.IsLit == (item->Status & 1) ||
 			item->Timer == -1 ||
+			!TestLaraTorchFlame(laraItem, item) ||
 			!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
 			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
@@ -608,6 +629,12 @@ namespace TEN::Entities::Effects
 					laraItem->Animation.AnimNumber = LA_TORCH_LIGHT_5;
 				else
 				{
+					if (item->Status == ITEM_ACTIVE)
+					{
+						Lara.Torch.NextColor = (Vector3)item->Model.Color;
+						Lara.Torch.Fade = Lara.Torch.FADE_TIMEOUT * FPS;
+					}
+
 					Lara.Torch.State = TorchState::JustLit;
 					int dy = abs(laraItem->Pose.Position.y - item->Pose.Position.y);
 					laraItem->ItemFlags[3] = 1;
@@ -634,9 +661,12 @@ namespace TEN::Entities::Effects
 				{
 					TestTriggers(item, true, item->Flags & IFLAG_ACTIVATION_MASK);
 
+					const auto& lara = *GetLaraInfo(laraItem);
+
 					item->Flags |= CODE_BITS;
 					item->ItemFlags[3] = (item->ObjectNumber != ID_FLAME_EMITTER3) ? UCHAR_MAX : 0;
 					item->Status = ITEM_ACTIVE;
+					item->Model.Color = Vector4(lara.Torch.CurrentColor.x, lara.Torch.CurrentColor.y, lara.Torch.CurrentColor.z, 1.0f);
 
 					AddActiveItem(itemNumber);
 				}

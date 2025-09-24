@@ -1047,7 +1047,7 @@ namespace TEN::Entities::Vehicles
 	void KayakLaraRapidsDrown(ItemInfo* laraItem)
 	{
 		// Already drowning...
-		if (laraItem->HitPoints <= 0)
+		if (laraItem->HitPoints == -1)
 			return;
 
 		auto* lara = GetLaraInfo(laraItem);

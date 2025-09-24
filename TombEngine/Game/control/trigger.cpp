@@ -916,8 +916,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		{
 			const auto& player = GetLaraInfo(*item);
 
-			if (!IsJumpState((LaraState)item->Animation.ActiveState) || 
-				player.Control.WaterStatus != WaterStatus::Dry)
+			if (!IsJumpState((LaraState)item->Animation.ActiveState) || player.Control.WaterStatus != WaterStatus::Dry || item->HitPoints <= 0)
 			{
 				// Check floor material.
 				auto material = sector.GetSurfaceMaterial(pointColl.GetPosition().x, pointColl.GetPosition().z, true);
