@@ -1413,12 +1413,6 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 	}
 
-	Texture2D Renderer::CreateDefaultNormalTexture() 
-	{
-		auto data = std::vector<byte>{ 128, 128, 255, 1 };
-		return Texture2D(_device.Get(), 1, 1, data.data());
-	}
-
 	void Renderer::PrepareFootprints(RenderView& view) 
 	{
 		for (const auto& footprint : Footprints)

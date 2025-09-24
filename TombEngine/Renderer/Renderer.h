@@ -382,6 +382,7 @@ namespace TEN::Renderer
 		void BindRenderTargetAsTexture(TextureRegister registerType, RenderTarget2D* target, SamplerStateRegister samplerType);
 		void BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer);
 		void BindConstantBufferPS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer);
+		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
 		void UpdateAnimation(RendererItem* item, RendererObject& obj, const AnimFrameInterpData& frameData, int mask, bool useObjectWorldRotation = false);
@@ -531,7 +532,6 @@ namespace TEN::Renderer
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
-		Texture2D CreateDefaultNormalTexture();
 		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
 		void InitializeSpriteQuad();
@@ -540,7 +540,6 @@ namespace TEN::Renderer
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
 		Texture2D CreateDefaultTexture(std::vector<byte> color);
-		void BindMaterial(int materialIndex, bool force);
 
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
@@ -656,15 +655,15 @@ namespace TEN::Renderer
 
 		static inline unsigned int PackColor(Vector4 c)
 		{
-			auto to8 = [](float v) -> uint32_t {
+			auto to8 = [](float v) -> unsigned int {
 				float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
-				return static_cast<uint32_t>(std::lround(x));
+				return static_cast<unsigned int>(std::lround(x));
 				};
 
-			uint32_t R = to8(c.x);
-			uint32_t G = to8(c.y);
-			uint32_t B = to8(c.z);
-			uint32_t A = to8(c.w);
+			unsigned int R = to8(c.x);
+			unsigned int G = to8(c.y);
+			unsigned int B = to8(c.z);
+			unsigned int A = to8(c.w);
 
 			return (R) | (G << 8) | (B << 16) | (A << 24);
 		}
@@ -673,18 +672,18 @@ namespace TEN::Renderer
 		{
 			n.Normalize();
 
-			auto ToS8 = [](float v) -> uint32_t {
+			auto ToS8 = [](float v) -> unsigned int {
 				float x = std::clamp(v, -1.0f, 1.0f) * 127.0f; // [-127..127]
 				return static_cast<int8_t>(std::lround(x));
 				};
 
-			const uint8_t R = static_cast<uint8_t>(ToS8(n.x));
-			const uint8_t G = static_cast<uint8_t>(ToS8(n.y));
-			const uint8_t B = static_cast<uint8_t>(ToS8(n.z));
-			const uint8_t A = static_cast<uint8_t>(ToS8(0.0f));
+			const unsigned char R = static_cast<unsigned char>(ToS8(n.x));
+			const unsigned char G = static_cast<unsigned char>(ToS8(n.y));
+			const unsigned char B = static_cast<unsigned char>(ToS8(n.z));
+			const unsigned char A = static_cast<unsigned char>(ToS8(0.0f));
 
 			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
-			return (uint32_t)R | ((uint32_t)G << 8) | ((uint32_t)B << 16) | ((uint32_t)A << 24);
+			return (unsigned int)R | ((unsigned int)G << 8) | ((unsigned int)B << 16) | ((unsigned int)A << 24);
 		}
 
 		static inline unsigned int PackAnimationFrameOffsetIndexHash(int frameOffset, int meshIndex, int hash)
