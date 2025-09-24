@@ -51,9 +51,9 @@ namespace TEN::Renderer
 		auto effect = RendererEffect();
 		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
 		
-		auto emptyNormalMap = std::vector<byte>{ 128, 128, 255, 255 };
-		auto emptyOcclusionRoughnessSpecularMap = std::vector<byte>{ 255, 255, 0, 255 };
-		auto emptyEmissiveMap = std::vector<byte>{ 0, 0, 0, 0 };
+		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
+		auto emptyOcclusionRoughnessSpecularMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
+		auto emptyEmissiveMap = std::vector<unsigned char>{ 0, 0, 0, 0 };
 
 		TENLog("Allocated renderer object memory.", LogLevel::Info);
 
@@ -1124,12 +1124,7 @@ namespace TEN::Renderer
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 
-					vertex.Color = PackColor(
-						Vector4(
-							meshPtr->colors[v].x,
-							meshPtr->colors[v].y,
-							meshPtr->colors[v].z,
-							1.0f));
+					vertex.Color = PackColor(Vector4(meshPtr->colors[v].x, meshPtr->colors[v].y, meshPtr->colors[v].z, 1.0f));
 					
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];

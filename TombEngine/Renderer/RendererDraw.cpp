@@ -2994,6 +2994,8 @@ namespace TEN::Renderer
 
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
+			_shaders.Bind(Shader::InstancedSprites);
+
 			// Set up vertex buffer and parameters.
 			UINT stride = sizeof(Vertex);
 			UINT offset = 0;
