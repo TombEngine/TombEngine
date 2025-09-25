@@ -79,7 +79,7 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	output.Position = screenPos;
     output.Normal = input.Normal.xyz;
 	output.Tangent = input.Tangent.xyz;
-    output.Binormal = normalize(cross(input.Normal.xyz, input.Tangent.xyz));
+    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
     output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	
@@ -103,7 +103,7 @@ PixelShaderInput VSItems(VertexShaderInput input)
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
-    output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) world).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
 	
 	return output;
 }
@@ -123,7 +123,7 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.Binormal = normalize(mul(normalize(cross(input.Normal.xyz, input.Tangent.xyz)), (float3x3) StaticMeshes[InstanceID].World).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
 	
 	return output;
 }

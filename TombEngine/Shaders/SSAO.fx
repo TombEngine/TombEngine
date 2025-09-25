@@ -1,3 +1,4 @@
+#include "./Math.hlsli"
 #include "./VertexInput.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBPostProcess.hlsli"
@@ -61,7 +62,7 @@ float PS(PixelShaderInput input) : SV_Target
     float3 randomVec = NoiseTexture.Sample(NoiseSampler, input.UV * noiseScale).xyz;
 
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-    float3 bitangent = cross(normal, tangent);
+    float3 bitangent = SafeNormalize(cross(normal, tangent));
     float3x3 TBN = float3x3(tangent, bitangent, normal);
 
     float occlusion = 0.0f;

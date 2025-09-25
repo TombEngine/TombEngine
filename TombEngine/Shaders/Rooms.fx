@@ -82,7 +82,7 @@ PixelShaderInput VS(VertexShaderInput input)
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
     output.Tangent = input.Tangent.xyz;
-    output.Binormal = normalize(cross(input.Normal.xyz, input.Tangent.xyz));
+    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
 
 	output.FogBulbs = DoFogBulbsForVertex(output.WorldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(output.WorldPosition);

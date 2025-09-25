@@ -544,4 +544,13 @@ inline float Gaussian(float x, float sigma)
     return exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
+float3 SafeNormalize(float3 v)
+{
+    const float eps = 1e-8;
+    float l2 = dot(v, v);
+    float invLen = rsqrt(max(l2, eps));
+    float mask = saturate(l2 / (l2 + eps));
+    return v * invLen * mask;
+}
+
 #endif // MATH
