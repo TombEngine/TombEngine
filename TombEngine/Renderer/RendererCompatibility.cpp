@@ -928,7 +928,7 @@ namespace TEN::Renderer
 											{
 												const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
 
-												int parentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+												int parentOriginalIndex = GetOriginalIndex(parentVertex->AnimationFrameOffsetIndexHash);
 
 												if ((parentOriginalIndex == vertices1[currentOriginalIndex] &&  isSecond) ||
 													(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
