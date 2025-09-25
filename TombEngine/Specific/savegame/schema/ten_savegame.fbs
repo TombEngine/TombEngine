@@ -179,6 +179,9 @@ enum TorchState:int32 {
 table TorchData {
 	state: TorchState;
 	is_lit: bool;
+	fade: int32;
+	current_color: Vector3;
+	next_color: Vector3;
 }
 
 table LaraInventoryData {

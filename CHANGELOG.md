@@ -10,8 +10,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added UVRotate support.
 * Added interaction highlighter.
 * Added bullet hole and explosion decals for room geometry.
-* Added fading when activating and deactivating FLAME_EMITTER and FLAME_EMITTER2 objects.
+* Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
 * Added ability to colorize ROPE objects.
+* Added ability to antitrigger FISH_EMITTER.
 * Increased level loading speed by switching to LZ4 compression format.
 * Added new material system supporting specular maps, normal maps, emissive maps, roughness maps, ambient occlusion maps.
 * Increased renderer performances
@@ -21,17 +22,20 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
 * Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
 * Fixed GRENADE object not being activated by triggers and heavy triggers under shatters.
+* Fixed FISH_EMITTER fish escape direction when player is nearby.
 * Fixed several collision issues for TRAIN object.
 * Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed dying while landing into shallow water after freefall.
 * Fixed rapids drowning animation not triggering after freefall.
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed original game issue with multiple burning torches not working correctly.
 * Fixed original game issue where enemies could be targeted through objects and static meshes.
 * Fixed enemies shooting through objects.
 * Fixed motorbike sound going silent while doing jumps.
 * Fixed several original game issues with vehicle collision near crawlspaces and stacked rooms.
 * Fixed ability to draw weapons on a tightrope.
+* Fixed incorrect ladder dismounts onto sloped floors.
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.

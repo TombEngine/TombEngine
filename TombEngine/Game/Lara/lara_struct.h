@@ -1147,7 +1147,12 @@ struct FlareData
 
 struct TorchData
 {
+	static constexpr auto FADE_TIMEOUT = 0.5f;
+
 	bool	   IsLit = false;
+	int		   Fade = 0;
+	Vector3	   CurrentColor = Vector3::Zero;
+	Vector3    NextColor = Vector3::Zero;
 	TorchState State = TorchState::Holding;
 };
 

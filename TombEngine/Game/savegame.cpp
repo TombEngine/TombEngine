@@ -398,6 +398,9 @@ const std::vector<byte> SaveGame::Build()
 	Save::TorchDataBuilder torch{ fbb };
 	torch.add_state(currentTorchState);
 	torch.add_is_lit(Lara.Torch.IsLit);
+	torch.add_fade(Lara.Torch.Fade);
+	torch.add_current_color(&FromVector3(Lara.Torch.CurrentColor));
+	torch.add_next_color(&FromVector3(Lara.Torch.NextColor));
 	auto torchOffset = torch.Finish();
 
 	Save::LaraInventoryDataBuilder inventory{ fbb };
@@ -926,8 +929,8 @@ const std::vector<byte> SaveGame::Build()
 		fishSave.add_life(fish.Life);
 		fishSave.add_mesh_index(fish.MeshIndex);
 		fishSave.add_orientation(&FromEulerAngles(fish.Orientation));
-		fishSave.add_position(&FromVector3(fish.Position));
-		fishSave.add_position_target(&FromVector3(fish.PositionTarget));
+		fishSave.add_position(&FromVector3i(fish.Position));
+		fishSave.add_position_target(&FromVector3i(fish.PositionTarget));
 		fishSave.add_room_number(fish.RoomNumber);
 		fishSave.add_target_item_number((fish.TargetItemPtr == nullptr) ? -1 : fish.TargetItemPtr->Index);
 		fishSave.add_undulation(fish.Undulation);
@@ -2210,6 +2213,9 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
 	Lara.RightArm.Orientation = ToEulerAngles(s->lara()->right_arm()->rotation());
 	Lara.Torch.IsLit = s->lara()->torch()->is_lit();
+	Lara.Torch.Fade = s->lara()->torch()->fade();
+	Lara.Torch.CurrentColor = ToVector3(s->lara()->torch()->current_color());
+	Lara.Torch.NextColor = ToVector3(s->lara()->torch()->next_color());
 	Lara.Torch.State = (TorchState)s->lara()->torch()->state();
 	Lara.Control.Rope.Segment = s->lara()->control()->rope()->segment();
 	Lara.Control.Rope.Direction = s->lara()->control()->rope()->direction();
@@ -2356,8 +2362,8 @@ static void ParseEffects(const Save::SaveGame* s)
 		fish.Life = fishSave->life();
 		fish.MeshIndex = fishSave->mesh_index();
 		fish.Orientation = ToEulerAngles(fishSave->orientation());
-		fish.Position = ToVector3(fishSave->position());
-		fish.PositionTarget = ToVector3(fishSave->position_target());
+		fish.Position = ToVector3i(fishSave->position());
+		fish.PositionTarget = ToVector3i(fishSave->position_target());
 		fish.RoomNumber = fishSave->room_number();
 		fish.TargetItemPtr = (fishSave->target_item_number() == -1) ? nullptr : &g_Level.Items[fishSave->target_item_number()];
 		fish.Undulation = fishSave->undulation();

@@ -166,6 +166,7 @@ struct DRIP_STRUCT
 struct FIRE_LIST
 {
 	Vector3i position;
+	Vector4 color;
 	unsigned char fade;
 	float size;
 	short roomNumber;
@@ -313,6 +314,7 @@ void ThrowPoison(const ItemInfo& item, const CreatureBiteInfo& bite, const Vecto
 void UpdateFireProgress();
 void ClearFires();
 void AddFire(int x, int y, int z, short roomNum, float size, short fade = 1);
+void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
 void UpdateFireSparks();
 int GetFreeSmokeSpark();
 void UpdateSmoke();

@@ -99,6 +99,20 @@ namespace TEN::Math
 		return float((color.x * RED_COEFF) + (color.y * GREEN_COEFF) + (color.z * BLUE_COEFF));
 	}
 
+	float Chroma(const Vector3& color)
+	{
+		float r = color.x;
+		float g = color.y;
+		float b = color.z;
+
+		float maxVal = std::max({ r, g, b });
+		float minVal = std::min({ r, g, b });
+		float chroma = maxVal - minVal;
+
+		float normalizedChroma = (maxVal == 0.0f) ? 0.0f : (chroma / maxVal);
+		return normalizedChroma;
+	}
+
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint)
 	{
 		float luma = Luma(tint);

@@ -28,6 +28,7 @@ namespace TEN::Math
 	// Color
 
 	float	Luma(const Vector3& color);
+	float	Chroma(const Vector3& color);
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint);
 	Vector4 Screen(const Vector4& ambient, const Vector4& tint);
 }
