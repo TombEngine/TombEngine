@@ -7,8 +7,12 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 
+#include "Renderer/Renderer.h"
+#include "Game/Debug/Debug.h"
+
 using namespace TEN::Math;
 using namespace TEN::Effects::Spark;
+using namespace TEN::Debug;
 
 namespace TEN::Effects::Electricity
 {
@@ -137,6 +141,53 @@ namespace TEN::Effects::Electricity
 		spark.flags = SP_DEF | SP_SCALE;
 	}
 
+	BoundingSphere GetMeshSphere(const ItemInfo& item, const int meshNumber, const Vector3i& offset)
+	{
+		auto SPHERE_OFFSET = offset;
+
+		const auto* mesh = &g_Level.Meshes[item.Model.MeshIndex[meshNumber]];
+		auto pos = GetJointPosition(item, meshNumber, Vector3i(mesh->sphere.Center) + SPHERE_OFFSET).ToVector3();
+
+		return BoundingSphere(pos, mesh->sphere.Radius);
+	}
+
+	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, int frequency)
+	{
+		// NOTE: Code makes electric effect correctly spawn randomly on any mesh bounds.
+
+		int randomIndex = Random::GenerateInt(0, 100);
+		auto pos1 = Vector3::Zero;
+		auto pos2 = Vector3::Zero;
+
+		if (randomIndex < frequency)
+		{
+			auto sphere = GetMeshSphere(item, jointNumber, offset);
+
+			//DrawDebugSphere(sphere, Vector4(0, 1, 0, 1), RendererDebugPage::None, true);
+
+			auto pos2 = Random::GeneratePointOnSphere(sphere);
+
+			SpawnElectricityGlow(pos2, 28, 32, 32, 64);
+
+			SpawnCyborgSpark(pos2);
+			SpawnDynamicLight(pos2.x, pos2.y, pos2.z, Random::GenerateInt(4, 8), 31, 63, 127);
+
+
+
+			
+		}
+		randomIndex = Random::GenerateInt(0, 200);
+		if (randomIndex < frequency)
+		{
+			auto sphere = GetMeshSphere(item, jointNumber, offset);
+
+			pos1 = Random::GeneratePointOnSphere(sphere);
+			pos2 = Random::GeneratePointOnSphere(sphere);
+
+			SpawnElectricity(pos1, pos2, Random::GenerateInt(8, 16), 32, 64, 128, 24, (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::ThinIn, 6, 8);
+		}
+	}
+
 	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, const float spawnRadius, float beamOriginRadius, float beamTargetRadius, int frequency, const Vector3& pos)
 	{
 		// TODO: Make electric effect correctly spawn randomly on any mesh bounds surface and water surfaces. -- Tomo
@@ -163,10 +214,10 @@ namespace TEN::Effects::Electricity
 			SpawnCyborgSpark(pos2);
 			SpawnDynamicLight(pos2.x, pos2.y, pos2.z, Random::GenerateInt(4, 8), 31, 63, 127);
 
-			sphere = BoundingSphere(pos1, beamOriginRadius);
+			sphere =BoundingSphere(pos1, beamOriginRadius);
 			auto sphere1 = BoundingSphere(pos1, beamTargetRadius);
 			pos1 = Random::GeneratePointOnSphere(sphere);
-			pos2 = Random::GeneratePointOnSphere(sphere1);
+			pos2 = Random::GeneratePointOnSphere(sphere);
 
 			SpawnElectricity(pos1, pos2, Random::GenerateInt(8, 16), 32, 64, 128, 24, (int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::ThinIn, 6, 8);
 		}

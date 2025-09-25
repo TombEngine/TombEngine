@@ -43,6 +43,8 @@
 #include "Specific/Input/Input.h"
 #include "Specific/winmain.h"
 
+#include "Objects/TR5/Trap/LaserBeam.h"
+
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
@@ -149,6 +151,27 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 		AlertNearbyGuards(item);
 		player.Control.Weapon.HasFired = false;
 	}
+
+	auto offset = GetJointPosition(item, LM_HEAD, Vector3i(0, -4, 64));
+
+	auto pos1 = GetJointPosition(item, LM_HEAD, Vector3i(38, -45, 0));
+	auto pos2 = GetJointPosition(item, LM_HEAD, Vector3i(38, -45, 450));
+
+	auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
+	//auto orient = Geometry::GetOrientToPoint(origin, target)
+
+	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 2048, 3, Vector4(1.0f, 0.0f, 0.0f, 1.0f),  false, true);
+
+
+	pos1 = GetJointPosition(item, LM_RHAND, Vector3i(0, 40, 0));
+	pos2 = GetJointPosition(item, LM_RHAND, Vector3i(0, 40, 450));
+
+	orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
+
+	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 3, Vector4(0.0f, 0.7f, 1.0f, 1.0f), false, true);
+	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 1, Vector4(1.0f, 1.0f, 1.0f, 1.0f), false, true);
+	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 4, Vector4(0.0f, 0.7f, 1.0f, 0.3f), false, true);
+
 
 	// Handle object interation adjustment parameters.
 	if (player.Control.IsMoving)

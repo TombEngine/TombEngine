@@ -12,6 +12,8 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
+		SpawnElectricEffect(item, 2, Vector3i::Zero, 6);
+
 		if (item.TriggerFlags)
 		{
 			item.ItemFlags[2] = 1;

@@ -25,10 +25,42 @@ using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto LASER_BEAM_LIGHT_INTENSITY	  = 0.2f;
+	constexpr auto LASER_BEAM_LIGHT_INTENSITY = 0.2f;
 	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX = 0.1f;
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
+	static std::array<TransientBeam, MAX_TRANSIENT_LASERS> GTransientPool{};
+
+	static int AcquireTransientIndex()
+	{
+		int freeIndex = -1;
+
+		for (int i = 0; i < MAX_TRANSIENT_LASERS; ++i)
+		{
+			const auto& s = GTransientPool[i];
+			if (!s.On || s.Life <= 0.0f || !s.Effect.IsActive)
+			{
+				freeIndex = i;
+				break;
+			}
+		}
+
+		if (freeIndex != -1)
+			return freeIndex;
+
+		float shortest = FLT_MAX;
+		int   best = 0;
+		for (int i = 0; i < MAX_TRANSIENT_LASERS; ++i)
+		{
+			const auto& s = GTransientPool[i];
+			if (s.Life < shortest)
+			{
+				shortest = s.Life;
+				best = i;
+			}
+		}
+		return best;
+	}
 
 	void LaserBeamEffect::Initialize(const ItemInfo& item)
 	{
@@ -89,6 +121,115 @@ namespace TEN::Entities::Traps
 
 		OldColor = Color;
 	}
+
+	void UpdateTransientLaserBeams()
+	{
+		for (int i = 0; i < MAX_TRANSIENT_LASERS; ++i)
+		{
+			auto& s = GTransientPool[i];
+
+			s.Life -= 1.2f;
+			if (!s.On || s.Life <= 0.0f || !s.Effect.IsActive)
+				continue;
+
+			if (s.Life <= 0.0f)
+			{
+				s.On = false;
+				s.Effect.IsActive = false;
+				ClearLaserBeamEffects();
+				continue;
+			}
+		}
+	}
+
+	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks)
+	{
+		//free slot
+		const int idx = AcquireTransientIndex();
+		auto& slot = GTransientPool[idx];
+
+		constexpr auto RADIUS_STEP = BLOCK(0.002f);
+
+		slot.Pos = position.ToVector3();
+		slot.RoomNumber = position.RoomNumber;
+		slot.Orientation = orientation;
+		slot.ModelColor = color;
+		slot.Effect.Color = color;
+		slot.Life = 2.0f;
+		slot.On = true;
+		slot.Effect.Radius = radius * RADIUS_STEP;
+
+		auto orient = orientation;
+		auto dir = orient.ToDirection();
+		auto rotMatrix = orient.ToRotationMatrix();
+
+		// Hit wall; spawn sparks and light.
+		auto los = GetRoomLosCollision(position.ToVector3(), slot.RoomNumber, dir, lenght);
+		if (los.IsIntersected)
+		{
+			if (hasSparks)
+			{
+				auto targetGameVector = GameVector(los.Position, los.RoomNumber);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, slot.Effect.Color);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, slot.Effect.Color);
+			}
+
+			SpawnLaserBeamLight(los.Position, los.RoomNumber, slot.Effect.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+		}
+
+		//NOTE: Should this be GameVector?
+		slot.TargetPos = los.Position;
+		slot.TargetRoomNumber = los.RoomNumber;
+
+		float length = Vector3::Distance(position.ToVector3(), los.Position);
+
+		// Calculate cylinder vertices.
+		float angle = 0.0f;
+		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
+		{
+			float sinAngle = sin(angle);
+			float cosAngle = cos(angle);
+
+			auto relVertex = Vector3(slot.Effect.Radius * sinAngle, slot.Effect.Radius * cosAngle, 0.0f);
+			auto vertex = position.ToVector3() + Vector3::Transform(relVertex, rotMatrix);
+
+			slot.Effect.Vertices[i] = vertex;
+			slot.Effect.Vertices[slot.Effect.SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
+
+			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
+		}
+
+		//DrawDebugLine(position.ToVector3(), los.Position, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+		bool los2 = LOS(&position, &GameVector(los.Position, los.RoomNumber));
+
+		auto hitPos = Vector3i::Zero;
+
+		GameVector tempOrigin = position;
+		GameVector tempTarget(los.Position, los.RoomNumber);
+
+		if (ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
+		{
+			if (isLethal &&
+				LaraItem->HitPoints > 0 && LaraItem->Effect.Type != EffectType::Smoke)
+			{
+				ItemRedLaserBurn(LaraItem, FPS * 2);
+				DoDamage(LaraItem, MAXINT);
+			}
+
+			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);
+			SpawnLaserBeamLight(position.ToVector3(), position.RoomNumber, color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+		}
+
+		std::copy(slot.Effect.Vertices.begin(), slot.Effect.Vertices.end(), slot.Effect.OldVertices.begin());
+		slot.Effect.OldColor = slot.Effect.Color;
+		slot.Effect.IsActive = true;
+	}
+
+	const std::array<TransientBeam, MAX_TRANSIENT_LASERS>& GetTransientLaserPool()
+	{
+		return GTransientPool;
+	}
+
 
 	void LaserBeamEffect::Update(const ItemInfo& item)
 	{
@@ -231,5 +372,6 @@ namespace TEN::Entities::Traps
 	void ClearLaserBeamEffects()
 	{
 		LaserBeams.clear();
+		for (auto& s : GTransientPool) { s = {}; }
 	}
 }
