@@ -4001,8 +4001,6 @@ namespace TEN::Renderer
 			_stAnimated.Textures[0].TopRight = set.Textures[0].NormalizedUV[1]; 
 			_stAnimated.Textures[0].BottomRight = set.Textures[0].NormalizedUV[2];
 			_stAnimated.Textures[0].BottomLeft = set.Textures[0].NormalizedUV[3];
-
-			BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
 		} 
 		else if (set.Type == AnimatedTextureType::UVRotate)
 		{
@@ -4056,7 +4054,9 @@ namespace TEN::Renderer
 		{
 			const auto& set = _animatedTextureSets[bucket.Texture];
 
-			if (set.Type != AnimatedTextureType::Video)
+			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->Texture)
+				BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
+			else
 				BindAtlasTextures(bucket, TextureSource::Animated);
 		}
 		else
