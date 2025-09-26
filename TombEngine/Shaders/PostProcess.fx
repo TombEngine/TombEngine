@@ -378,30 +378,6 @@ float4 PSReflections(PixelShaderInput input) : SV_Target
 
         return float4(outCol, 1.0f);
     }
-    else if (materialIndex == MATERIAL_SKYBOX_REFLECTIVE)
-    {
-        // Reflection from skybox 
-        
-        float3 position = ReconstructPositionFromDepth(input.UV);
-        float3 viewDirection = normalize(position - CamPositionWS);
-    
-        float roughness = RoughnessTexture.Sample(RoughnessSampler, input.UV).w;
-        
-        float3 d = mul(float4(viewDirection, 0.0f), DualParaboloidView).xyz;
-        d.z = max(d.z, 0.0);
-         
-        float2 proj = d.xy / (d.z + 1.0f);
-        float2 reflectedUV = saturate(proj * 0.5f + 0.5f);
-        reflectedUV.y = 1.0 - reflectedUV.y;
-        
-        float3 reflectedColor = SkyBoxReflectionsTexture.Sample(SkyBoxReflectionsSampler, reflectedUV).rgb;
-    
-        float strength = pow(saturate(1.0f - roughness), 1.0f);
-    
-        float3 outCol = lerp(baseColor, reflectedColor, strength);
-
-        return float4(outCol, 1.0f);
-    }
     else
     {
         // Just return the base color

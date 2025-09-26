@@ -7,6 +7,7 @@
 #include "./Blending.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
+#include "./CBMaterial.hlsli"
 
 struct PixelShaderInput
 {
@@ -49,6 +50,9 @@ SamplerState OcclusionRoughnessSpecularSampler : register(s10);
 
 Texture2D EmissiveTexture : register(t11);
 SamplerState EmissiveSampler : register(s11);
+
+Texture2D SkyBoxReflectionsTexture : register(t12);
+SamplerState SkyBoxReflectionsSampler : register(s12);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
@@ -171,6 +175,20 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 	output.Color.w *= input.Color.w;
+	
+	// Skybox reflections
+    if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
+    {
+        float3 viewDirection = normalize(input.WorldPosition - CamPositionWS);
+        float3 d = mul(float4(viewDirection, 0.0f), DualParaboloidView).xyz;
+        d.z = max(d.z, 0.0);
+        float2 proj = d.xy / (d.z + 1.0f);
+        float2 reflectedUV = saturate(proj * 0.5f + 0.5f);
+        reflectedUV.y = 1.0 - reflectedUV.y;
+        float3 reflectedColor = SkyBoxReflectionsTexture.Sample(SkyBoxReflectionsSampler, reflectedUV).rgb;
+        float strength = pow(saturate(1.0f - roughness), 1.0f);
+        output.Color.xyz = lerp(output.Color.xyz, reflectedColor, strength);
+    }
 
 	return output;
 }

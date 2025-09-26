@@ -195,7 +195,8 @@ enum class TextureRegister
 	EnvironmentMapBack = 8,
 	SSAO = 9,
 	OcclusionRoughnessSpecularMap = 10,
-	EmissiveMap = 11
+	EmissiveMap = 11,
+	SkyBoxReflections = 12
 };
 
 enum class SamplerStateRegister
