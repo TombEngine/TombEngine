@@ -74,7 +74,7 @@ PixelShaderInput VSSky(VertexShaderInput input)
 	output.Position.z = (L - NearPlane) / (FarPlane - NearPlane);
 	output.Position.w = 1.0f;
 
-	output.UV = input.UV;
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = Color;
 
 	return output;
@@ -82,16 +82,35 @@ PixelShaderInput VSSky(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET0
 {
-    if (Type == 1)
+    if (Animated && Type == 1)
         input.UV = CalculateUVRotate(input.UV, 0);
 	
-	float4 output = Texture.Sample(Sampler, input.UV);
+    float4 output = Texture.Sample(Sampler, input.UV);
 
-	clip(input.ClipDepth);
+    clip(input.ClipDepth);
 
-	DoAlphaTest(output);
+    DoAlphaTest(output);
 
-	output.xyz *= input.Color.xyz;
+    output.xyz *= input.Color.xyz;
 
-	return output;
+    return output;
+}
+
+
+float4 PSSky(PixelShaderInput input) : SV_TARGET
+{
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+	
+    float4 output = Texture.Sample(Sampler, input.UV);
+	
+    clip(input.ClipDepth);
+
+    DoAlphaTest(output);
+
+    float3 light = saturate(Color.xyz);
+    output.xyz *= light;
+    output.w *= Color.w;
+
+    return output;
 }

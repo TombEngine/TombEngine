@@ -137,6 +137,7 @@ namespace TEN::Renderer
 		RenderTarget2D _SMAADepthRenderTarget;
 		RenderTarget2D _SMAAEdgesRenderTarget;
 		RenderTarget2D _SMAABlendRenderTarget;
+		RenderTarget2D _skyboxRenderTarget;
 
 		// Constant buffers
 
@@ -412,7 +413,8 @@ namespace TEN::Renderer
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
-		void DrawHorizonAndSky(RenderView& renderView, ID3D11DepthStencilView* depthTarget);
+		void DrawHorizonAndSky(RenderTarget2D* renderTarget, bool forParaboloid, RenderView& renderView);
+		void DrawHorizonAndSkyForReflections(RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);

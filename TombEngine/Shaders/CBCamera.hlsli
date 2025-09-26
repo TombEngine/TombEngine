@@ -11,6 +11,8 @@ cbuffer CBCamera : register(b0)
 	//--
     float4x4 Projection;
 	//--
+    float4x4 InverseView;
+	//--
     float4x4 InverseProjection;
 	//--
     float4x4 DualParaboloidView;

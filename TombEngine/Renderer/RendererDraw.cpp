@@ -1884,11 +1884,15 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		// TODO: Needs improvements before enabling it.
-		// RenderSimpleSceneToParaboloid(&_roomAmbientMapFront, LaraItem->Pose.Position.ToVector3(), 1);
-		// RenderSimpleSceneToParaboloid(&_roomAmbientMapBack, LaraItem->Pose.Position.ToVector3(), -1);
+		// Draw skybox to paraboloid
+		DrawHorizonAndSkyForReflections(view);
+
+		_stAnimated.Animated = 0;
+		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 
 		// Bind and clear render target.
+		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
+
 		_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -1903,7 +1907,7 @@ namespace TEN::Renderer
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
-		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(LaraItem->Pose.Position.ToVector3(), LaraItem->Pose.Position.ToVector3() + Vector3(0, 0, 1024), -Vector3::UnitY);
+		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
 
 		if (level.GetFogMaxDistance() > 0)
 		{
@@ -1932,16 +1936,15 @@ namespace TEN::Renderer
 			cameraConstantBuffer.FogBulbs[i].SquaredCameraToFogBulbDistance = SQUARE(view.FogBulbsToDraw[i].Distance);
 			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
 		}
+
+		cameraConstantBuffer.Emisphere = 0;
 		
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
-		// Bind main render target.
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
-
 		// Draw horizon and sky.
-		DrawHorizonAndSky(view, _renderTarget.DepthStencilView.Get());
+		DrawHorizonAndSky(&_renderTarget, false, view);
 
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
@@ -2920,7 +2923,48 @@ namespace TEN::Renderer
 		}
 	}
 	
-	void Renderer::DrawHorizonAndSky(RenderView& renderView, ID3D11DepthStencilView* depthTarget)
+	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
+	{
+		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView.Get(), Colors::Black);
+		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView.GetAddressOf(), _skyboxRenderTarget.DepthStencilView.Get());
+
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = ROOM_AMBIENT_MAP_SIZE;
+		viewport.Height = ROOM_AMBIENT_MAP_SIZE;
+		viewport.MinDepth = 0;
+		viewport.MaxDepth = 1;
+
+		_context->RSSetViewports(1, &viewport);
+
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = ROOM_AMBIENT_MAP_SIZE;
+		rects[0].top = 0;
+		rects[0].bottom = ROOM_AMBIENT_MAP_SIZE;
+
+		_context->RSSetScissorRects(1, rects);
+
+		SetBlendMode(BlendMode::Opaque);
+		SetCullMode(CullMode::CounterClockwise);
+
+		auto view = RenderView(&Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
+
+		CCameraMatrixBuffer cameraConstantBuffer;
+		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
+		cameraConstantBuffer.Emisphere = -1;
+		cameraConstantBuffer.Frame = GlobalCounter;
+		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
+		cameraConstantBuffer.RefreshRate = _refreshRate;
+		view.FillConstantBuffer(cameraConstantBuffer);
+		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
+
+		DrawHorizonAndSky(&_skyboxRenderTarget, true, view);
+	}
+
+	void Renderer::DrawHorizonAndSky(RenderTarget2D* renderTarget, bool forParaboloid, RenderView& renderView)
 	{
 		constexpr auto STAR_SIZE = 2;
 		constexpr auto SUN_SIZE	 = 64;
@@ -2938,7 +2982,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || !anyOutsideRooms)
+		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && !forParaboloid))
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)
@@ -2950,7 +2994,7 @@ namespace TEN::Renderer
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
-		_shaders.Bind(Shader::Sky);
+		_shaders.Bind(forParaboloid ? Shader::RoomAmbientSky : Shader::Sky);
 		BindTexture(TextureRegister::ColorMap, &_skyTexture, SamplerStateRegister::AnisotropicClamp);
 
 		_context->IASetVertexBuffers(0, 1, _skyVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
@@ -2984,9 +3028,9 @@ namespace TEN::Renderer
 			}
 		}
 
-		_context->ClearDepthStencilView(depthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
-		if (Weather.GetStars().size() > 0)
+		if (Weather.GetStars().size() > 0 && !forParaboloid)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3131,8 +3175,8 @@ namespace TEN::Renderer
 
 			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
 				continue;
-
-			_shaders.Bind(Shader::Sky);
+			
+			_shaders.Bind(forParaboloid ? Shader::RoomAmbientSky : Shader::Sky);
 
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Opaque);
@@ -3182,7 +3226,7 @@ namespace TEN::Renderer
 		}
 
 		// Eventually draw the sun sprite.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal)
+		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !forParaboloid)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3234,7 +3278,7 @@ namespace TEN::Renderer
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.
-		_context->ClearDepthStencilView(depthTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	void Renderer::Render(float interpFactor)

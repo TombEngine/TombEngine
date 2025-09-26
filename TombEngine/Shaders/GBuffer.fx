@@ -150,7 +150,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;
-    output.Normals.w = MaterialType;
+    output.Normals.w = MaterialType / 64.0f;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = emissive.xyz;
     output.Emissive.w = roughness;

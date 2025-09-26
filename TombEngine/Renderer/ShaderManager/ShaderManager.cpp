@@ -48,7 +48,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel);
 		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel);
 		Load(Shader::GlowCombine, "PostProcess", "GlowCombine", ShaderType::Pixel);
-		Load(Shader::LegacyReflections, "PostProcess", "LegacyReflections", ShaderType::Pixel);
+		Load(Shader::Reflections, "PostProcess", "Reflections", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)
@@ -95,11 +95,11 @@ namespace TEN::Renderer::Utils
 		D3D_SHADER_MACRO animated[] = { "ANIMATED", "", nullptr, nullptr };
 		D3D_SHADER_MACRO roomTransparent[] = { "TRANSPARENT", "", nullptr, nullptr };
 		D3D_SHADER_MACRO shadowMap[] = { "SHADOW_MAP", "", nullptr, nullptr };
-
+		
 		Load(Shader::Rooms, "Rooms", "", ShaderType::PixelAndVertex);
 		Load(Shader::RoomsTransparent, "Rooms", "", ShaderType::Pixel, roomTransparent);
 		Load(Shader::RoomAmbient, "RoomAmbient", "", ShaderType::PixelAndVertex);
-		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::Vertex);
+		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex);
 		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex);
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex);
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex);

@@ -39,6 +39,9 @@ SamplerState LegacyEnvironmentSampler : register(s4);
 Texture2D RoughnessTexture : register(t5);
 SamplerState RoughnessSampler : register(s5);
 
+Texture2D SkyBoxReflectionsTexture : register(t6);
+SamplerState SkyBoxReflectionsSampler : register(s6);
+
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
@@ -333,36 +336,75 @@ float2 ToCentralSquare(float2 uvEnv, float aspect)
     }
 }
 
-float4 PSLegacyReflections(PixelShaderInput input) : SV_Target
+float3 ReconstructPositionFromDepth(float2 uv)
+{
+    float x = uv.x * 2.0f - 1.0f;
+    float y = (1.0f - uv.y) * 2.0f - 1.0f;
+    float z = DepthTexture.Sample(DepthSampler, uv).x;
+
+    float4 projectedPosition = float4(x, y, z, 1.0f);
+    float4 position = mul(projectedPosition, InverseProjection);
+
+    float3 viewPos = position.xyz / position.w;
+    
+    return mul(float4(viewPos, 1.0f), InverseView).xyz;
+}
+
+float4 PSReflections(PixelShaderInput input) : SV_Target
 {
     float3 baseColor = ColorTexture.Sample(ColorSampler, input.UV).rgb;
     
-    float4 nm = NormalsTexture.Sample(NormalsSampler, input.UV);
-    float materialIndex = nm.w;
+    float4 normalAndMaterialIndex = NormalsTexture.Sample(NormalsSampler, input.UV);
+    int materialIndex = (int) (normalAndMaterialIndex.w * 64.0f);
         
     if (materialIndex == MATERIAL_REFLECTIVE)
     {
-        float3 N = DecodeNormal(nm.xyz);
+        // Framebuffer trick reflections like for TR2
+        
+        float3 normal = DecodeNormal(normalAndMaterialIndex.xyz);
        
-        float r = saturate(RoughnessTexture.Sample(RoughnessSampler, input.UV).w);
+        float roughness = RoughnessTexture.Sample(RoughnessSampler, input.UV).w;
     
-        float2 uvEnv = N.xy * 0.5f + 0.5f;
-        uvEnv = float2(uvEnv.x, 1.0f - uvEnv.y);
+        float2 reflectedUV = normal.xy * 0.5f + 0.5f;
+        reflectedUV = float2(reflectedUV.x, 1.0f - reflectedUV.y);
     
-        float2 uvSq = ToCentralSquare(uvEnv, ViewportSize.x / ViewportSize.y);
-        float3 envCol = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, uvSq).rgb;
-    
-        envCol *= float3(1, 1, 1);
-    
-        float strength = pow(saturate(1.0f - r), 1.0f);
+        float2 reflectedUVSquare = ToCentralSquare(reflectedUV, ViewportSize.x / ViewportSize.y);
+        float3 reflectedColor = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, reflectedUVSquare).rgb;
+
+        float strength = pow(saturate(1.0f - roughness), 1.0f);
     
         float w = saturate(0.5f * strength);
-        float3 outCol = lerp(baseColor, envCol, w);
+        float3 outCol = lerp(baseColor, reflectedColor, w);
+
+        return float4(outCol, 1.0f);
+    }
+    else if (materialIndex == MATERIAL_SKYBOX_REFLECTIVE)
+    {
+        // Reflection from skybox 
+        
+        float3 position = ReconstructPositionFromDepth(input.UV);
+        float3 viewDirection = normalize(position - CamPositionWS);
+    
+        float roughness = RoughnessTexture.Sample(RoughnessSampler, input.UV).w;
+        
+        float3 d = mul(float4(viewDirection, 0.0f), DualParaboloidView).xyz;
+        d.z = max(d.z, 0.0);
+         
+        float2 proj = d.xy / (d.z + 1.0f);
+        float2 reflectedUV = saturate(proj * 0.5f + 0.5f);
+        reflectedUV.y = 1.0 - reflectedUV.y;
+        
+        float3 reflectedColor = SkyBoxReflectionsTexture.Sample(SkyBoxReflectionsSampler, reflectedUV).rgb;
+    
+        float strength = pow(saturate(1.0f - roughness), 1.0f);
+    
+        float3 outCol = lerp(baseColor, reflectedColor, strength);
 
         return float4(outCol, 1.0f);
     }
     else
     {
+        // Just return the base color
         return float4(baseColor, 1.0f);
     }    
 }
