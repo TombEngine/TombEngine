@@ -116,7 +116,7 @@ struct NODEOFFSET_INFO
 	short y;
 	short z;
 	char meshNum;
-	unsigned char gotIt;
+	int itemNumber;
 };
 
 // TODO: Refactor this entire struct.
@@ -127,7 +127,7 @@ struct Particle
 
 	GAME_OBJECT_ID SpriteSeqID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
 	int	SpriteID = 0;
-	int	fxObj;
+	int	fxObj = NO_VALUE;
 
 	int x;
 	int y;

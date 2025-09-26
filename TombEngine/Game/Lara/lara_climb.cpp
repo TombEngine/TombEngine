@@ -545,7 +545,9 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		int dz = int(cos(TO_RAD(item->Pose.Orientation.y - ANGLE(90.0f))) * 10);
 		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
 			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
+		bool slope = GetPointCollision(Vector3i(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz), troomnumber).IsSteepFloor();
+
+		if (!slope && height < CLICK(1.5f)) // LADDER dismounts (left/right)
 		{
 			item->Animation.TargetState = LS_LADDER_DISMOUNT_LEFT;
 			item->Animation.ActiveState = LS_MISC_CONTROL;
@@ -558,8 +560,9 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		int dz = int(cos(TO_RAD(item->Pose.Orientation.y + ANGLE(90.0f))) * 10);
 		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
 			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
+		bool slope = GetPointCollision(Vector3i(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz), troomnumber).IsSteepFloor();
 
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
+		if (!slope && height < CLICK(1.5f)) // LADDER dismounts (left/right)
 		{
 			item->Animation.TargetState = LS_LADDER_DISMOUNT_RIGHT;
 			item->Animation.ActiveState = LS_MISC_CONTROL;

@@ -295,6 +295,8 @@ void DoPickup(ItemInfo* laraItem)
 
 		GetFlameTorch();
 		lara->Torch.IsLit = (pickupItem->ItemFlags[3] & 1);
+		lara->Torch.Fade = 0;
+		lara->Torch.CurrentColor = lara->Torch.NextColor = pickupItem->Effect.PrimaryEffectColor;
 
 		KillItem(pickupItemNumber);
 		pickupItem->Pose.Orientation = prevOrient;

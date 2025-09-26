@@ -66,25 +66,25 @@ int Wibble = 0;
 Vector3i NodeVectors[ParticleNodeOffsetIDs::NodeMax];
 NODEOFFSET_INFO NodeOffsets[ParticleNodeOffsetIDs::NodeMax] =
 {
-	{ -16, 40, 160, 13, false },		// TR5 offset 0
-	{ -16, -8, 160, 0, false },			// TR5 offset 1
-	{ 0, 0, 256, 8, false },			// TR5 offset 2
-	{ 0, 0, 256, 17, false },			// TR5 offset 3
-	{ 0, 0, 256, 26, false },			// TR5 offset 4
-	{ 0, 144, 40, 10, false },			// TR5 offset 5
-	{ -40, 64, 360, 14, false },		// TR5 offset 6
-	{ 0, -600, -40, 0, false },			// TR5 offset 7
-	{ 0, 32, 16, 9, false },			// TR5 offset 8
-	{ 0, 340, 64, 7, false },			// TR3 offset 9
-	{ 0, 0, -96, 10, false },			// TR3 offset 10
-	{ 16, 48, 320, 13, false },			// TR3 offset 11
-	{ 0, -256, 0, 5, false },			// TR3 offset 12
-	{ 0, 64, 0, 10, false },			// TR3 offset 13
-	{ 0, 64, 0, 13, false },			// TR3 offset 14
-	{ -32, -16, -192, 13, false },		// TR3 offset 15
-	{ -64, 410, 0, 20, false },			// TR3 offset 16
-	{ 64, 410, 0, 23, false },			// TR3 offset 17
-	{ 0, 0, 0, 0, false }				// Empty offset 18
+	{ -16, 40, 160, 13, NO_VALUE },		// TR5 offset 0
+	{ -16, -8, 160, 0, NO_VALUE },		// TR5 offset 1
+	{ 0, 0, 256, 8, NO_VALUE },			// TR5 offset 2
+	{ 0, 0, 256, 17, NO_VALUE },		// TR5 offset 3
+	{ 0, 0, 256, 26, NO_VALUE },		// TR5 offset 4
+	{ 0, 144, 40, 10, NO_VALUE },		// TR5 offset 5
+	{ -40, 64, 360, 14, NO_VALUE },		// TR5 offset 6
+	{ 0, -600, -40, 0, NO_VALUE },		// TR5 offset 7
+	{ 0, 32, 16, 9, NO_VALUE },			// TR5 offset 8
+	{ 0, 340, 64, 7, NO_VALUE },		// TR3 offset 9
+	{ 0, 0, -96, 10, NO_VALUE },		// TR3 offset 10
+	{ 16, 48, 320, 13, NO_VALUE },		// TR3 offset 11
+	{ 0, -256, 0, 5, NO_VALUE },		// TR3 offset 12
+	{ 0, 64, 0, 10, NO_VALUE },			// TR3 offset 13
+	{ 0, 64, 0, 13, NO_VALUE },			// TR3 offset 14
+	{ -32, -16, -192, 13, NO_VALUE },	// TR3 offset 15
+	{ -64, 410, 0, 20, NO_VALUE },		// TR3 offset 16
+	{ 64, 410, 0, 23, NO_VALUE },		// TR3 offset 17
+	{ 0, 0, 0, 0, NO_VALUE }			// Empty offset 18
 };
 
 void DetatchSpark(int number, SpriteEnumFlag type)
@@ -165,6 +165,7 @@ Particle* GetFreeParticle()
 	auto& part = Particles[partID];
 	part.SpriteSeqID = ID_DEFAULT_SPRITES;
 	part.SpriteID = 0;
+	part.fxObj = NO_VALUE;
 	part.blendMode = BlendMode::Additive;
 	part.extras = 0;
 	part.dynamic = NO_VALUE;
@@ -488,7 +489,12 @@ void UpdateSparks()
 						if (spark.z + ds > DeadlyBounds.Z1 && spark.z - ds < DeadlyBounds.Z2)
 						{
 							if (spark.flags & SP_FIRE)
-								ItemBurn(LaraItem);
+							{
+								if (spark.fxObj != NO_VALUE && g_Level.Items.size() > spark.fxObj && g_Level.Items[spark.fxObj].ObjectNumber == ID_FLAME_EMITTER)
+									ItemCustomBurn(LaraItem, (Vector3)g_Level.Items[spark.fxObj].Model.Color, (Vector3)g_Level.Items[spark.fxObj].Model.Color);
+								else
+									ItemBurn(LaraItem);
+							}
 
 							if (spark.flags & SP_DAMAGE)
 								DoDamage(LaraItem, spark.damage);
@@ -1087,12 +1093,33 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 		if (size < 512)
 			size = 512;
 
+		if (item->Model.Color == Vector4::One)
+		{
+			sptr->sR = sptr->sG = (GetRandomControl() & 0x1F) + 48;
+			sptr->sB = (GetRandomControl() & 0x3F) - 64;
+			sptr->dR = (GetRandomControl() & 0x3F) - 64;
+			sptr->dG = (GetRandomControl() & 0x3F) - 128;
+			sptr->dB = 32;
+		}
+		else
+		{
+			auto colorD = item->Model.Color / 2.0f * UCHAR_MAX;
+			auto luma = Luma((Vector3)item->Model.Color / 2.0f) * 0.85f * UCHAR_MAX;
+			auto colorS = Vector3(0.15f * colorD.x + luma,
+								  0.15f * colorD.y + luma,
+								  0.15f * colorD.z + luma);
+
+			sptr->sR = colorS.x;
+			sptr->sG = colorS.y;
+			sptr->sB = colorS.z;
+			sptr->dR = colorD.x;
+			sptr->dG = colorD.y;
+			sptr->dB = colorD.z;
+
+			sptr->fxObj = item->Index;
+		}
+
 		sptr->on = 1;
-		sptr->sR = sptr->sG = (GetRandomControl() & 0x1F) + 48;
-		sptr->sB = (GetRandomControl() & 0x3F) - 64;
-		sptr->dR = (GetRandomControl() & 0x3F) - 64;
-		sptr->dG = (GetRandomControl() & 0x3F) - 128;
-		sptr->dB = 32;
 		sptr->colFadeSpeed = 8;
 		sptr->fadeToBlack = 8;
 		sptr->blendMode = BlendMode::Additive;

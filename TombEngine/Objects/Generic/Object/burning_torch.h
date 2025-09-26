@@ -6,7 +6,6 @@ struct ItemInfo;
 
 namespace TEN::Entities::Generic
 {
-	void TriggerTorchFlame(int fxObject, unsigned char node);
 	void DoFlameTorch();
 	void GetFlameTorch();
 	void TorchControl(short itemNumber);
