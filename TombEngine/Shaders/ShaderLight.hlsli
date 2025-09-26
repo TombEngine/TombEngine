@@ -14,112 +14,107 @@ static float RoughnessToExpMul(float roughness)
 
 float3 DoSpecularPoint(float3 pos, float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
 {
-    if (strength <= 0.0)
-		return float3(0, 0, 0);
-	else
-	{
-		float3 lightPos = light.Position.xyz;
-		float radius = light.Out;
+    float m = saturate(sign(strength));
 
-		float dist = distance(lightPos, pos);
-		if (dist > radius)
-			return float3(0, 0, 0);
-		else
-		{
-			float3 lightDir = normalize(lightPos - pos);
-			float3 reflectDir = reflect(lightDir, n);
+    float3 lightPos = light.Position.xyz;
+    float radius = light.Out;
 
-            float3 color = light.Color.xyz;
-            float intenSpec = saturate(specularIntensity) * light.Intensity;
+    float dist = distance(lightPos, pos);
+    float attenuation = saturate((radius - dist) / max(radius, EPSILON));
+
+    float3 lightDir = normalize(lightPos - pos);
+    float3 reflectDir = reflect(lightDir, n);
+
+    float3 color = light.Color.xyz;
+    float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 			
-            float expMul = RoughnessToExpMul(roughness);
-            float expVal = (strength * SPEC_FACTOR) * expMul;
+    float expBase = RoughnessToExpMul(roughness);
+    float expMul = lerp(expBase, 1.0, m);
+	
+    float strengthUsed = lerp(1.0, strength, m);
+    float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
+	
+    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float spec = pow(vr, max(expVal, 1.0));
 
-            float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
-            float spec = pow(vr, max(expVal, 1.0)); 
-
-            float attenuation = (radius - dist) / radius;
-
-            return attenuation * spec * color * intenSpec;
-        }
-	}
+    return attenuation * spec * color * intenSpec;
 }
 
 float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
 {
-    if (strength <= 0.0)
-		return float3(0, 0, 0);
-	else
-	{
-		float3 lightDir = -normalize(light.Direction);
-		float3 reflectDir = reflect(lightDir, n);
+    float m = saturate(sign(strength));
+	
+    float3 lightDir = -normalize(light.Direction);
+    float3 reflectDir = reflect(lightDir, n);
 
-        float3 color = light.Color.xyz;
-        float intenSpec = saturate(specularIntensity) * light.Intensity;
+    float3 color = light.Color.xyz;
+    float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 
-        float expMul = RoughnessToExpMul(roughness);
-        float expVal = (strength * SPEC_FACTOR) * expMul;
+    float expBase = RoughnessToExpMul(roughness);
+    float expMul = lerp(expBase, 1.0, m);
+	
+    float strengthUsed = lerp(1.0, strength, m);
+    float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
+	
+    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float spec = pow(vr, max(expVal, 1.0));
 
-        float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
-        float spec = pow(vr, max(expVal, 1.0));
-
-        return spec * color * intenSpec;
-    }
+    return spec * color * intenSpec;
 }
 
 float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
 {
-	if (strength <= 0.0)
-		return float3(0, 0, 0);
-	else
-	{
-		float3 lightPos = light.Position.xyz;
-		float3 direction = light.Direction.xyz;
-		float innerRange = light.In;
-		float outerRange = light.Out;
-		float coneIn = light.InRange;
-		float coneOut = light.OutRange;
+    float m = saturate(sign(strength));
+	
+    float3 lightPos = light.Position.xyz;
+    float3 direction = light.Direction.xyz;
+    float innerRange = light.In;
+    float outerRange = light.Out;
+    float coneIn = light.InRange;
+    float coneOut = light.OutRange;
 
-		float3 lightVec = pos - lightPos;
-		float distance = length(lightVec);
-		lightVec = normalize(lightVec);
+    float3 lightVec = pos - lightPos;
+    float distance = length(lightVec);
+    lightVec = normalize(lightVec);
 
-		if (distance > outerRange)
-			return float3(0, 0, 0);
-		else
-		{
-			float cosine = dot(lightVec, direction);
+    if (distance > outerRange)
+        return float3(0, 0, 0);
+    else
+    {
+        float cosine = dot(lightVec, direction);
 
-			float minCosineIn = cos(coneIn * (PI / 180.0f));
-			float attenuationIn = max((cosine - minCosineIn), 0.0f) / (1.0f - minCosineIn);
+        float minCosineIn = cos(coneIn * (PI / 180.0f));
+        float attenuationIn = max((cosine - minCosineIn), 0.0f) / (1.0f - minCosineIn);
 
-			float minCosineOut = cos(coneOut * (PI / 180.0f));
-			float attenuationOut = max((cosine - minCosineOut), 0.0f) / (1.0f - minCosineOut);
+        float minCosineOut = cos(coneOut * (PI / 180.0f));
+        float attenuationOut = max((cosine - minCosineOut), 0.0f) / (1.0f - minCosineOut);
 
-			float attenuation = saturate(attenuationIn * 2.0f + attenuationOut);
+        float attenuation = saturate(attenuationIn * 2.0f + attenuationOut);
 
-			if (attenuation > 0.0f)
-			{
-				float3 lightDir = -lightVec;
-				float3 reflectDir = reflect(lightDir, n);
+        if (attenuation > 0.0f)
+        {
+            float3 lightDir = -lightVec;
+            float3 reflectDir = reflect(lightDir, n);
 
-                float3 color = light.Color.xyz;
-                float intenSpec = saturate(specularIntensity) * light.Intensity;
+            float3 color = light.Color.xyz;
+            float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 
-                float expMul = RoughnessToExpMul(roughness);
-                float expVal = (strength * SPEC_FACTOR) * expMul;
+            float expBase = RoughnessToExpMul(roughness);
+            float expMul = lerp(expBase, 1.0, m);
+	
+            float strengthUsed = lerp(1.0, strength, m);
+            float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
 
-                float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
-                float spec = pow(vr, max(expVal, 1.0));
+            float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+            float spec = pow(vr, max(expVal, 1.0));
 
-                float falloff = saturate((outerRange - distance) / (outerRange - innerRange + 1.0f));
+            float falloff = saturate((outerRange - distance) / (outerRange - innerRange + 1.0f));
 
-                return attenuation * spec * color * intenSpec * falloff;
-            }
-			else
-				return float3(0, 0, 0);
-		}
-	}
+            return attenuation * spec * color * intenSpec * falloff;
+        }
+        else
+            return float3(0, 0, 0);
+    }
 }
 
 float3 DoPointLight(float3 pos, float3 normal, ShaderLight light)
