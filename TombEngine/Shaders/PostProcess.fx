@@ -36,11 +36,8 @@ SamplerState GlowSampler : register(s3);
 Texture2D LegacyEnvironmentTexture : register(t4);
 SamplerState LegacyEnvironmentSampler : register(s4);
 
-Texture2D RoughnessTexture : register(t5);
-SamplerState RoughnessSampler : register(s5);
-
-Texture2D SkyBoxReflectionsTexture : register(t6);
-SamplerState SkyBoxReflectionsSampler : register(s6);
+Texture2D EmissiveAndSpecularTexture : register(t5);
+SamplerState EmissiveAndSpecularSampler : register(s5);
 
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
@@ -336,20 +333,6 @@ float2 ToCentralSquare(float2 uvEnv, float aspect)
     }
 }
 
-float3 ReconstructPositionFromDepth(float2 uv)
-{
-    float x = uv.x * 2.0f - 1.0f;
-    float y = (1.0f - uv.y) * 2.0f - 1.0f;
-    float z = DepthTexture.Sample(DepthSampler, uv).x;
-
-    float4 projectedPosition = float4(x, y, z, 1.0f);
-    float4 position = mul(projectedPosition, InverseProjection);
-
-    float3 viewPos = position.xyz / position.w;
-    
-    return mul(float4(viewPos, 1.0f), InverseView).xyz;
-}
-
 float4 PSReflections(PixelShaderInput input) : SV_Target
 {
     float3 baseColor = ColorTexture.Sample(ColorSampler, input.UV).rgb;
@@ -359,11 +342,9 @@ float4 PSReflections(PixelShaderInput input) : SV_Target
         
     if (materialIndex == MATERIAL_REFLECTIVE)
     {
-        // Framebuffer trick reflections like for TR2
-        
         float3 normal = DecodeNormal(normalAndMaterialIndex.xyz);
        
-        float roughness = RoughnessTexture.Sample(RoughnessSampler, input.UV).w;
+        float specular = EmissiveAndSpecularTexture.Sample(EmissiveAndSpecularSampler, input.UV).w;
     
         float2 reflectedUV = normal.xy * 0.5f + 0.5f;
         reflectedUV = float2(reflectedUV.x, 1.0f - reflectedUV.y);
@@ -371,7 +352,7 @@ float4 PSReflections(PixelShaderInput input) : SV_Target
         float2 reflectedUVSquare = ToCentralSquare(reflectedUV, ViewportSize.x / ViewportSize.y);
         float3 reflectedColor = LegacyEnvironmentTexture.Sample(LegacyEnvironmentSampler, reflectedUVSquare).rgb;
 
-        float strength = pow(saturate(1.0f - roughness), 1.0f);
+        float strength = saturate(specular);
     
         float w = saturate(0.5f * strength);
         float3 outCol = lerp(baseColor, reflectedColor, w);

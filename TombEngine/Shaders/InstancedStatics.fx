@@ -151,7 +151,7 @@ PixelShaderOutput PS(PixelShaderInput input)
         float2 reflectedUV = saturate(proj * 0.5f + 0.5f);
         reflectedUV.y = 1.0 - reflectedUV.y;
         float3 reflectedColor = SkyBoxReflectionsTexture.Sample(SkyBoxReflectionsSampler, reflectedUV).rgb;
-        float strength = pow(saturate(1.0f - roughness), 1.0f);
+        float strength = saturate(specular);
         output.Color.xyz = lerp(output.Color.xyz, reflectedColor, strength);
     }
 

@@ -143,7 +143,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	DoAlphaTest(color);
 	
     float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-    float roughness = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV).y;
+    float specular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
@@ -153,7 +153,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     output.Normals.w = MaterialType / 64.0f;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = emissive.xyz;
-    output.Emissive.w = roughness;
+    output.Emissive.w = specular;
 	
 	return output;
 }
