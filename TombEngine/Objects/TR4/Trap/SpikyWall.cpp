@@ -15,6 +15,8 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+
+
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
@@ -49,6 +51,12 @@ namespace TEN::Entities::Traps
 
 		int forwardVel = item.ItemFlags[0];
 		auto bounds = GameBoundingBox(&item);
+
+		auto box = item.GetObb();
+
+		SpawnElectricEffect(item.Pose.Position + Vector3i(1024,0,-1524), item.Pose.Orientation + EulerAngles(0,1250,-8250), -2020, 512, 512, 6);
+
+		//SpawnElectricEffect(item, 6);
 
 		auto pointColl0 = GetPointCollision(item, item.Pose.Orientation.y, (forwardVel >= 0) ? bounds.Z2 : bounds.Z1, bounds.Y2);
 		auto pointColl1 = GetPointCollision(item, item.Pose.Orientation.y, (forwardVel >= 0) ? bounds.Z2 : bounds.Z1, bounds.Y2, (bounds.X2 - bounds.X1) / 2);
@@ -109,7 +117,7 @@ namespace TEN::Entities::Traps
 		// Move.
 		else
 		{
-			item.Pose.Position = Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation.y, forwardVel);
+			item.Pose.Position = Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation.y, 0);
 			item.Status = ITEM_ACTIVE;
 
 			if (pointColl0.GetRoomNumber() != item.RoomNumber)

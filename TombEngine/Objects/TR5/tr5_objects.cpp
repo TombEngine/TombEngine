@@ -727,7 +727,6 @@ static void StartObject(ObjectInfo *obj)
 	{
 		obj->control = BlinkingLightControl;
 		obj->drawRoutine = nullptr;
-		
 	}
 
 	obj = &Objects[ID_BODY_PART];

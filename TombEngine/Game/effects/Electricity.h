@@ -108,8 +108,13 @@ namespace TEN::Effects::Electricity
 	extern std::array<Vector3, ELECTRICITY_BUFFER_SIZE> ElectricityBuffer;
 
 	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, byte r, byte g, byte b, float life, int flags, float width, unsigned int numSegments);
+
+	void SpawnElectricEffect(const ItemInfo& item, int frequency);
+	void SpawnElectricEffect(const BoundingOrientedBox& box, int frequency);
+	void SpawnElectricEffect(const Vector3i& pos, const EulerAngles& orientation, int height, int width, int depth, int frequency);
 	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, int frequency);
 	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, const float spawnRadius, float beamOriginRadius, float beamTargetRadius, int frequency, const Vector3& pos);
+	
 	void SpawnElectricityGlow(const Vector3& pos, float scale, byte r, byte g, byte b);
 	void SpawnHelicalLaser(const Vector3& origin, const Vector3& target);
 	void UpdateElectricityArcs();
@@ -119,4 +124,5 @@ namespace TEN::Effects::Electricity
 	void CalculateHelixSpline(const HelicalLaser& laser, std::array<Vector3, ELECTRICITY_KNOTS_SIZE>& knots, std::array<Vector3, ELECTRICITY_BUFFER_SIZE>& buffer);
 
 	BoundingSphere GetMeshSphere(const ItemInfo& item, const int meshNumber, const Vector3i& offset);
+	BoundingOrientedBox GameBoundingBoxFromAnchor(const Vector3& position, const Quaternion& orientation, int height, int depth, int width);
 }

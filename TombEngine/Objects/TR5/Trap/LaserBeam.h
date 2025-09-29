@@ -37,6 +37,7 @@ namespace TEN::Entities::Traps
 		LaserBeamEffect Effect;
 		Vector3     Pos;
 
+		int			ID = 0;
 		int         RoomNumber = 0;
 		EulerAngles Orientation;
 		Vector4     ModelColor = Vector4::Zero;
@@ -48,7 +49,7 @@ namespace TEN::Entities::Traps
 	};
 
 	const std::array<TransientBeam, MAX_TRANSIENT_LASERS>& GetTransientLaserPool();
-	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks);
+	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool IsHeavyActivator);
 	void UpdateTransientLaserBeams();
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams;

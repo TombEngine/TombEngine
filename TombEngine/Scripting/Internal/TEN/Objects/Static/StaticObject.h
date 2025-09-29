@@ -47,6 +47,8 @@ namespace TEN::Scripting
 		bool		GetActiveStatus() const;
 		bool		GetCollidable() const;
 		bool		GetSolidStatus() const;
+		GameBoundingBox GetSolidBounds() const;
+		GameBoundingBox GetVisibilityBounds() const;
 
 		// Setters
 

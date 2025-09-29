@@ -151,6 +151,83 @@ namespace TEN::Effects::Electricity
 		return BoundingSphere(pos, mesh->sphere.Radius);
 	}
 
+	BoundingOrientedBox GameBoundingBoxFromAnchor(const Vector3& position, const Quaternion& orientation, int height, int depth, int width)
+	{
+		// komplette Größe (Vorzeichen bestimmt Wachsrichtung)
+		const Vector3 size(
+			static_cast<float>(width),
+			static_cast<float>(height),
+			static_cast<float>(depth));
+
+		// Extents müssen positiv sein
+		const Vector3 extents(
+			std::abs(size.x) * 0.5f,
+			std::abs(size.y) * 0.5f,
+			std::abs(size.z) * 0.5f);
+
+		// Offset vom Anker zum Boxzentrum (Vorzeichen bleibt erhalten!)
+		const Vector3 localCenter = size * 0.5f;
+
+		// Anker + gedrehter Center-Offset = Weltzentrum
+		const Matrix  R = Matrix::CreateFromQuaternion(orientation);
+		const Vector3 worldCenter = position + Vector3::Transform(localCenter, R);
+
+		return BoundingOrientedBox(worldCenter, extents, orientation);
+	}
+
+	void SpawnElectricEffect(const Vector3i& pos, const EulerAngles& orientation, int height, int width, int depth, int frequency)
+	{
+		auto box = GameBoundingBoxFromAnchor(pos.ToVector3(), orientation.ToQuaternion(), height, depth, width);
+		DrawDebugSphere(pos.ToVector3(), 37, Vector4(1, 0, 0, 1), RendererDebugPage::None, true);
+		DrawDebugBox(box, Vector4(0, 1, 0, 1), RendererDebugPage::None, true);
+		SpawnElectricEffect(box, frequency);
+	}
+
+	void SpawnElectricEffect(const ItemInfo& item, int frequency)
+	{
+		auto box = item.GetObb();
+		SpawnElectricEffect(box, frequency);
+	}
+
+	void SpawnElectricEffect(const BoundingOrientedBox& box, int frequency)
+	{
+		int randomIndex = Random::GenerateInt(0, 100);
+		auto pos1 = Vector3::Zero;
+		auto pos2 = Vector3::Zero;
+
+		if (randomIndex < frequency)
+		{
+			
+
+			pos2 = Random::GeneratePointInBox(box);
+
+			SpawnCyborgSpark(pos2);
+			SpawnElectricityGlow(pos2, 28, 32, 32, 64);
+				
+			SpawnDynamicLight(pos2.x, pos2.y, pos2.z, Random::GenerateInt(4, 8), 31, 63, 127);
+		}
+
+		randomIndex = Random::GenerateInt(0, 200);
+		if (randomIndex < frequency)
+		{
+			pos1 = Random::GeneratePointInBox(box);
+
+			// pos2 innerhalb der Box und Abstand zu pos1 zwischen 256 und 512
+			const float minDist = 256.0f;
+			const float maxDist = 512.0f;
+			const int maxTries = 20;
+			int tries = 0;
+			do
+			{
+				pos2 = Random::GeneratePointInBox(box);
+				tries++;
+			} while (((pos2 - pos1).Length() < minDist || (pos2 - pos1).Length() > maxDist) && tries < maxTries);
+
+			SpawnElectricity(pos1, pos2, Random::GenerateInt(8, 16), 32, 64, 128, 24,
+				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::ThinIn, 6, 8);
+		}
+	}
+
 	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, int frequency)
 	{
 		// NOTE: Code makes electric effect correctly spawn randomly on any mesh bounds.
@@ -167,14 +244,9 @@ namespace TEN::Effects::Electricity
 
 			auto pos2 = Random::GeneratePointOnSphere(sphere);
 
-			SpawnElectricityGlow(pos2, 28, 32, 32, 64);
-
 			SpawnCyborgSpark(pos2);
-			SpawnDynamicLight(pos2.x, pos2.y, pos2.z, Random::GenerateInt(4, 8), 31, 63, 127);
-
-
-
-			
+			SpawnElectricityGlow(pos2, 28, 32, 32, 64);
+			SpawnDynamicLight(pos2.x, pos2.y, pos2.z, Random::GenerateInt(4, 8), 31, 63, 127);		
 		}
 		randomIndex = Random::GenerateInt(0, 200);
 		if (randomIndex < frequency)

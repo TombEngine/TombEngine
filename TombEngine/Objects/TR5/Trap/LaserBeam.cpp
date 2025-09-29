@@ -142,7 +142,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	void EmitTransientLaserBeam(const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks)
+	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool IsHeavyActivator)
 	{
 		//free slot
 		const int idx = AcquireTransientIndex();
@@ -150,6 +150,7 @@ namespace TEN::Entities::Traps
 
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
 
+		slot.ID = id;
 		slot.Pos = position.ToVector3();
 		slot.RoomNumber = position.RoomNumber;
 		slot.Orientation = orientation;
@@ -214,6 +215,12 @@ namespace TEN::Entities::Traps
 			{
 				ItemRedLaserBurn(LaraItem, FPS * 2);
 				DoDamage(LaraItem, MAXINT);
+			}
+
+			if (IsHeavyActivator &&
+				LaraItem->HitPoints > 0)
+			{
+				slot.Effect.IsHeavyActivator = true;
 			}
 
 			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);

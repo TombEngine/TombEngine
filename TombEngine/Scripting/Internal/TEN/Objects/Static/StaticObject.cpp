@@ -41,6 +41,8 @@ namespace TEN::Scripting
 			ScriptReserved_StaticGetActive, &Static::GetActiveStatus, // TODO: Deprecate. Rename Lua func to GetActiveStatus.
 			ScriptReserved_StaticGetCollidable, &Static::GetCollidable,
 			ScriptReserved_StaticGetSolid, &Static::GetSolidStatus, // TODO: Deprecate. Rename Lua func to GetSolidStatus.
+			ScriptReserved_StaticGetSolidBounds, & Static::GetSolidBounds,
+			ScriptReserved_StaticGetVisibilityBounds, & Static::GetVisibilityBounds,
 
 			// Setters
 			ScriptReserved_StaticSetName, &Static::SetName,
@@ -144,6 +146,22 @@ namespace TEN::Scripting
 	bool Static::GetSolidStatus() const
 	{
 		return ((_static.Flags & StaticMeshFlags::SM_SOLID) != 0);
+	}
+
+	/// Get this static's solid bounds.
+	// @function Static:GetSolidBounds
+	// @treturn GameBoundingBox Solid bounds.
+	GameBoundingBox Static::GetSolidBounds() const
+	{
+		return GameBoundingBox(_static.GetCollisionAabb());
+	}
+
+	/// Get this static's visibility bounds.
+	// @function Static:GetVisibilityBounds
+	// @treturn GameBoundingBox Visibility bounds.
+	GameBoundingBox Static::GetVisibilityBounds() const
+	{
+		return GameBoundingBox(_static.GetVisibilityAabb());
 	}
 
 	/// Set this static's unique identifier string.

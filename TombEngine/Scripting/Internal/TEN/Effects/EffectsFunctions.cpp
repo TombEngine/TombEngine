@@ -16,6 +16,7 @@
 #include "Game/effects/weather.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/Utils/object_helper.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -46,8 +47,10 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Streamer;
+using namespace TEN::Entities::Traps;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
+
 
 namespace TEN::Scripting::Effects 
 {
@@ -441,6 +444,24 @@ namespace TEN::Scripting::Effects
 			color.GetR(), color.GetG(), color.GetB(),
 			lifeInFrames, EulerAngles(ANGLE(ang), 0.0f, 0.0f),
 			(short)doDamage, true, false, false, (int)ShockwaveStyle::Normal);
+	}
+
+	/// Emit dynamic light that lasts for a single frame.
+// If you want a light that sticks around, you must call this each frame.
+// @function EmitLight
+// @tparam Vec3 pos World position of the light.
+// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color light color.
+// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
+// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
+// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
+	//(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool IsHeavyActivator);
+	static void EmitLaserBeam(TypeOrNil<int> id, Vec3 pos, const EulerAngles& rot, TypeOrNil<int> roomNumber, TypeOrNil<int>lenght, TypeOrNil<int> radius, TypeOrNil<ScriptColor> col,  TypeOrNil<bool> isLethal, TypeOrNil<bool> hasSparks, TypeOrNil<bool> IsHeavyActivator)
+	{
+		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
+		int rad = (float)(ValueOr<int>(radius, 200));
+		auto position = GameVector(pos, roomNumber);
+
+		EmitTransientLaserBeam(id, pos.ToVector3(), rot, lenght,  rad, color, ValueOr<bool>(isLethal, false), ValueOr<bool>(hasSparks, false), ValueOr<bool>(IsHeavyActivator, false));
 	}
 
 	/// Emit dynamic light that lasts for a single frame.
