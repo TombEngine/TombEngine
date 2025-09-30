@@ -469,6 +469,7 @@ namespace TEN::Renderer
 						vertex->UV = poly.textureCoordinates[k];
 						vertex->Color = VectorColorToRGBA(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
 						vertex->Tangent = PackVector3(poly.tangents[k]);
+						vertex->FaceNormal = PackVector3(poly.normal);
 
 						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
 						unsigned int hash = (unsigned int)std::hash<float>{}
@@ -1113,13 +1114,15 @@ namespace TEN::Renderer
 				{
 					Vertex vertex;
 					int v = poly->indices[k];
-
+					
 					vertex.Position.x = meshPtr->positions[v].x;
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
 					 
 					vertex.Normal = PackVector3(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
 					vertex.Tangent = PackVector3(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
+
+					vertex.FaceNormal = PackVector3(poly->normal);
 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;

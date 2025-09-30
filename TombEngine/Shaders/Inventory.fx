@@ -4,6 +4,7 @@
 #include "./ShaderLight.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./VertexEffects.hlsli"
+#include "./Materials.hlsli"
 
 cbuffer CBInventoryItem : register(b1)
 {

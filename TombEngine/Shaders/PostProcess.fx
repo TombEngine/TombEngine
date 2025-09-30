@@ -1,6 +1,6 @@
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
-#include "./CBMaterial.hlsli"
+#include "./Materials.hlsli"
 #include "./Math.hlsli"
 
 #define MAX_BLUR_RADIUS 100

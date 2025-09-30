@@ -342,6 +342,7 @@ void LoadObjects()
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
 				poly.shineStrength = ReadFloat();
+				poly.normal = ReadVector3();
 				int count = (poly.shape == 0 ? 4 : 3);
 				poly.indices.resize(count);
 				poly.textureCoordinates.resize(count);
@@ -907,6 +908,7 @@ void LoadStaticRoomData()
 				poly.shape = ReadInt32();
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
+				poly.normal = ReadVector3();
 
 				int count = (poly.shape == 0 ? 4 : 3);
 				poly.indices.resize(count);

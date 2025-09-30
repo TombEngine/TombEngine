@@ -2,7 +2,7 @@
 #include "./CBItem.hlsli"
 #include "./CBInstancedStatics.hlsli"
 #include "./CBRoom.hlsli"
-#include "./CBMaterial.hlsli"
+#include "./Materials.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"

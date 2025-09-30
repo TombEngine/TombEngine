@@ -1,6 +1,5 @@
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
-#include "./CBMaterial.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -8,6 +7,7 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./Materials.hlsli"
 
 #define ROOM_LIGHT_COEFF 0.7f
 
@@ -23,7 +23,8 @@ struct PixelShaderInput
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
 	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+    float3 Binormal : BINORMAL;
+    float3 FaceNormal : TEXCOORD3;
 };
 
 Texture2D Texture : register(t0);
@@ -86,7 +87,8 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.WorldPosition = pos;
     output.Tangent = input.Tangent.xyz;
     output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
-
+    output.FaceNormal = input.FaceNormal;
+	
 	output.FogBulbs = DoFogBulbsForVertex(output.WorldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(output.WorldPosition);
 
@@ -235,18 +237,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 	
-	// Skybox reflections
+	// Materials effects
     if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
     {
-        float3 viewDirection = normalize(input.WorldPosition - CamPositionWS);
-        float3 d = mul(float4(viewDirection, 0.0f), DualParaboloidView).xyz;
-        d.z = max(d.z, 0.0);
-        float2 proj = d.xy / (d.z + 1.0f);
-        float2 reflectedUV = saturate(proj * 0.5f + 0.5f);
-        reflectedUV.y = 1.0 - reflectedUV.y;
-        float3 reflectedColor = SkyBoxReflectionsTexture.Sample(SkyBoxReflectionsSampler, reflectedUV).rgb;
-        float strength = saturate(specular);
-        output.Color.xyz = lerp(output.Color.xyz, reflectedColor, strength);
+        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, SkyBoxReflectionsTexture, SkyBoxReflectionsSampler);
     }
 
 	return output;
