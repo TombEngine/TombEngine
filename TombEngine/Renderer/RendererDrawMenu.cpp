@@ -1072,14 +1072,6 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			if (g_Gui.GetInventoryMode() == InventoryMode::InGame ||
-				g_Gui.GetInventoryMode() == InventoryMode::Examine)
-			{
-				// Set texture.
-				//BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
-				//BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
-			}
-
 			switch (g_Gui.GetInventoryMode())
 			{
 			case InventoryMode::Load:
