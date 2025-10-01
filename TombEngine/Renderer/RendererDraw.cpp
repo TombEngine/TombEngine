@@ -3356,7 +3356,7 @@ namespace TEN::Renderer
 					if (IsWaterfall(itemToDraw->ObjectID) && animated == 1)
 						continue;
 
-					auto blendMode = BlendMode::Opaque;// GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
+					auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
 					if (rendererPass == RendererPass::ShadowMap)
 					{
