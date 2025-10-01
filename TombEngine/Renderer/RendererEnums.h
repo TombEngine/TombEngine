@@ -68,6 +68,7 @@ constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
+constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
@@ -188,15 +189,15 @@ enum class TextureRegister
 	NormalMap = 1,
 	CausticsMap = 2,
 	ShadowMap = 3,
-	ReflectionMap = 4,
+	GBufferNormalMap = 4,
 	Hud = 5,
-	DepthMap = 6,
+	GBufferDepthMap = 6,
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
 	SSAO = 9,
 	OcclusionRoughnessSpecularMap = 10,
 	EmissiveMap = 11,
-	SkyBoxReflections = 12
+	EnvironmentReflections = 12
 };
 
 enum class SamplerStateRegister
@@ -330,5 +331,6 @@ enum class PostProcessMode
 enum class MaterialShaderType
 {
 	Default = 0,
-	Reflective = 1
+	Reflective = 1,
+	SkyboxReflective = 2
 };

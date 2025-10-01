@@ -127,7 +127,7 @@ namespace TEN::Renderer
 		RenderTarget2D _tempRoomAmbientRenderTarget3;
 		RenderTarget2D _tempRoomAmbientRenderTarget4;
 		Texture2DArray _shadowMap;
-		RenderTarget2D _legacyReflectionsRenderTarget[2];
+		RenderTarget2D _legacyReflectionsRenderTarget;
 		RenderTarget2D _roomAmbientMapFront;
 		RenderTarget2D _roomAmbientMapBack;
 		RenderTarget2D _SSAORenderTarget;
@@ -374,6 +374,7 @@ namespace TEN::Renderer
 
 		void ApplySMAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyFXAA(RenderTarget2D* renderTarget, RenderView& view);
+		void ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, TextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
@@ -506,6 +507,7 @@ namespace TEN::Renderer
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 		void CopyRenderTarget(RenderTarget2D* source, RenderTarget2D* dest, RenderView& view);
+		void CopyRenderTargetAndDownscale(RenderTarget2D* source, RenderTarget2D* dest, float factor, RenderView& view);
 		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
 		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);

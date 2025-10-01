@@ -5,6 +5,24 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer
 {
+	void Renderer::ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view)
+	{
+		switch (g_Configuration.AntialiasingMode)
+		{
+		case AntialiasingMode::None:
+			break;
+
+		case AntialiasingMode::Low:
+			ApplyFXAA(&_renderTarget, _gameCamera);
+			break;
+
+		case AntialiasingMode::Medium:
+		case AntialiasingMode::High:
+			ApplySMAA(&_renderTarget, _gameCamera);
+			break;
+		}
+	}
+
 	void Renderer::ApplySMAA(RenderTarget2D* renderTarget, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);

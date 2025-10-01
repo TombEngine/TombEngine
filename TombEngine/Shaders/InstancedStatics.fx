@@ -46,8 +46,8 @@ SamplerState OcclusionRoughnessSpecularSampler : register(s10);
 Texture2D EmissiveTexture : register(t11);
 SamplerState EmissiveSampler : register(s11);
 
-Texture2D SkyBoxReflectionsTexture : register(t12);
-SamplerState SkyBoxReflectionsSampler : register(s12);
+Texture2D ReflectionsTexture : register(t12);
+SamplerState ReflectionsSampler : register(s12);
 
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
@@ -72,7 +72,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-
+   
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
 
@@ -104,13 +104,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
 
+    float2 samplePosition = GetSamplePosition(input.PositionCopy);
+	
     float occlusion = 1.0f;
     if (AmbientOcclusion == 1 && BlendModeSupportsSSAO())
     {
-        float2 samplePosition;
-        samplePosition = input.PositionCopy.xy / input.PositionCopy.w;
-        samplePosition = samplePosition * 0.5f + 0.5f;
-        samplePosition.y = 1.0f - samplePosition.y;
         occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
 		
         if (BlendMode == BLENDMODE_ALPHABLEND)
@@ -146,7 +144,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 	// Materials effects
     if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
     {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, SkyBoxReflectionsTexture, SkyBoxReflectionsSampler);
+        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
+    }
+    else if (MaterialType == MATERIAL_REFLECTIVE)
+    {
+        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
     }
 
 	return output;

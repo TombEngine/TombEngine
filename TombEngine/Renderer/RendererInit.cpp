@@ -490,7 +490,8 @@ namespace TEN::Renderer
 		_SSAOBlurredRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_glowRenderTarget[0] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_glowRenderTarget[1] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-
+		_legacyReflectionsRenderTarget = RenderTarget2D(_device.Get(), w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		
 		// Initialize sprite and primitive batches
 		_spriteBatch = std::make_unique<SpriteBatch>(_context.Get());
 		_primitiveBatch = std::make_unique<PrimitiveBatch<Vertex>>(_context.Get());

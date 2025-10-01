@@ -553,4 +553,13 @@ float3 SafeNormalize(float3 v)
     return v * invLen * mask;
 }
 
+float2 GetSamplePosition(float4 projectedPosition)
+{
+    float2 samplePosition;
+    samplePosition = projectedPosition.xy / projectedPosition.w;
+    samplePosition = samplePosition * 0.5f + 0.5f;
+    samplePosition.y = 1.0f - samplePosition.y;
+    return samplePosition;
+}
+
 #endif // MATH

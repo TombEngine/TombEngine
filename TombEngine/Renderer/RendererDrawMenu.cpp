@@ -1097,20 +1097,7 @@ namespace TEN::Renderer
 
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-		switch (g_Configuration.AntialiasingMode)
-		{
-		case AntialiasingMode::None:
-			break;
-
-		case AntialiasingMode::Low:
-			ApplyFXAA(&_renderTarget, _gameCamera);
-			break;
-
-		case AntialiasingMode::Medium:
-		case AntialiasingMode::High:
-			ApplySMAA(&_renderTarget, _gameCamera);
-			break;
-		}
+		ApplyAntialiasing(&_renderTarget, _gameCamera);
 
 		CopyRenderTarget(&_renderTarget, renderTarget, _gameCamera);
 	}

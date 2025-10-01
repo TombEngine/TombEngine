@@ -45,8 +45,8 @@ SamplerState OcclusionRoughnessSpecularSampler : register(s10);
 Texture2D EmissiveTexture : register(t11);
 SamplerState EmissiveSampler : register(s11);
 
-Texture2D SkyBoxReflectionsTexture : register(t12);
-SamplerState SkyBoxReflectionsSampler : register(s12);
+Texture2D ReflectionsTexture : register(t12);
+SamplerState ReflectionsSampler : register(s12);
 
 struct PixelShaderOutput
 {
@@ -120,14 +120,12 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 lighting = input.Color.xyz;
 	bool doLights = true;
 
+    float2 samplePosition = GetSamplePosition(input.PositionCopy);
+	
 	// Ambient occlusion
     float occlusion = 1.0f;
     if (AmbientOcclusion == 1 && BlendModeSupportsSSAO())
     {
-        float2 samplePosition;
-        samplePosition = input.PositionCopy.xy / input.PositionCopy.w; 
-        samplePosition = samplePosition * 0.5f + 0.5f;
-        samplePosition.y = 1.0f - samplePosition.y;
         occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
 		
         if (BlendMode == BLENDMODE_ALPHABLEND)
@@ -148,7 +146,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 		if (onlyPointLights)
 		{
             lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 1.0f, specular, roughness);
+            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
         }
 		else
 		{
@@ -240,8 +238,12 @@ PixelShaderOutput PS(PixelShaderInput input)
 	// Materials effects
     if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
     {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, SkyBoxReflectionsTexture, SkyBoxReflectionsSampler);
+        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
+    }
+    else if (MaterialType == MATERIAL_REFLECTIVE)
+    {
+        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
     }
 
-	return output;
+    return output;
 }

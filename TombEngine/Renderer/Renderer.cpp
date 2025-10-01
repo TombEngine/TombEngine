@@ -352,10 +352,12 @@ namespace TEN::Renderer
 			!force)
 			return;
 
+		MaterialShaderType type = g_Level.Materials[materialIndex].Type;
+
 		// TODO: in the future output from TE directly an optimized list
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
-			_stMaterial.MaterialType = (int)g_Level.Materials[materialIndex].Type;
+			_stMaterial.MaterialType = (int)type;
 			_stMaterial.MaterialParameters0 = g_Level.Materials[materialIndex].Parameters0;
 			_stMaterial.MaterialParameters1 = g_Level.Materials[materialIndex].Parameters1;
 			_stMaterial.MaterialParameters2 = g_Level.Materials[materialIndex].Parameters2;
@@ -367,6 +369,11 @@ namespace TEN::Renderer
 
 			_numExecutedMaterialsUpdates++;
 		}
+
+		if (type == MaterialShaderType::Reflective)
+			BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::AnisotropicClamp);
+		else if (type == MaterialShaderType::SkyboxReflective)
+			BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 	}
 
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)

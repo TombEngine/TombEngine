@@ -1984,6 +1984,10 @@ namespace TEN::Renderer
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
+		// Copy current scene to the reflections render target for the next frame
+		CopyRenderTargetAndDownscale(&_renderTarget, &_legacyReflectionsRenderTarget, LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
+		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
+
 		// Draw HUD.
 		ClearDrawPhaseDisplaySprites();
 
@@ -2409,8 +2413,6 @@ namespace TEN::Renderer
 			BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 		}
 
-		BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
-
 		for (auto room : view.RoomsToDraw)
 		{
 			if (IgnoreReflectionPassForRoom(room->RoomNumber))
@@ -2581,7 +2583,7 @@ namespace TEN::Renderer
 				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
 			
-			BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
+			BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
@@ -2666,8 +2668,6 @@ namespace TEN::Renderer
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
-
-			BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
@@ -2890,8 +2890,6 @@ namespace TEN::Renderer
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
-
-			BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
 			{
@@ -3358,7 +3356,7 @@ namespace TEN::Renderer
 					if (IsWaterfall(itemToDraw->ObjectID) && animated == 1)
 						continue;
 
-					auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
+					auto blendMode = BlendMode::Opaque;// GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
 					if (rendererPass == RendererPass::ShadowMap)
 					{
@@ -3378,8 +3376,17 @@ namespace TEN::Renderer
 							BindAtlasTextures(bucket, TextureSource::Moveables);
 						else
 							BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
-						BindMaterial(bucket.MaterialIndex, false);
+					
+#ifdef TEST_LEGACY_REFLECTIONS
+						if (itemToDraw->ObjectID == ID_LARA)
+						{
+							BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
+							_stMaterial.MaterialType = 1;
+							UpdateConstantBuffer(_stMaterial, _cbMaterial);
+						}
+						else
+#endif
+							BindMaterial(bucket.MaterialIndex, false);
 
 						for (int p = 0; p < passes; p++)
 						{
@@ -3736,7 +3743,6 @@ namespace TEN::Renderer
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-		BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3782,7 +3788,7 @@ namespace TEN::Renderer
 		{
 			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 		}
-
+		
 		UpdateConstantBuffer(_stItem, _cbItem);
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
@@ -3794,7 +3800,6 @@ namespace TEN::Renderer
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-		BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3831,7 +3836,6 @@ namespace TEN::Renderer
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-		BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3936,7 +3940,6 @@ namespace TEN::Renderer
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
-		BindRenderTargetAsTexture(TextureRegister::SkyBoxReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
 		_context->IASetIndexBuffer(_sortedPolygonsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);

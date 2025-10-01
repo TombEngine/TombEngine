@@ -172,8 +172,8 @@ void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float spe
     pointOutput = saturate(light.Color.xyz * light.Intensity * distanceAttenuation * d);
     spotOutput  = saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
 	
-    pointOutput += DoSpecularSpot(pos, normal, light, 1.0f, specularIntensity, roughness);
-    spotOutput += DoSpecularSpot(pos, normal, light, 1.0f, specularIntensity, roughness);
+    pointOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
+    spotOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
 }
 
 float3 DoDirectionalLight(float3 pos, float3 normal, ShaderLight light)
