@@ -899,7 +899,17 @@ namespace TEN::Renderer
 					SetDepthState(DepthState::Write);
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-					BindMaterial(bucket.MaterialIndex, false);
+							
+#ifdef TEST_LEGACY_REFLECTIONS
+					if (objectNumber == ID_PISTOLS_ITEM)
+					{
+						BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
+						_stMaterial.MaterialType = 1;
+						UpdateConstantBuffer(_stMaterial, _cbMaterial);
+					}
+					else
+#endif
+						BindMaterial(bucket.MaterialIndex, false);
 
 					if (bucket.BlendMode != BlendMode::Opaque)
 						SetBlendMode(bucket.BlendMode, true);
