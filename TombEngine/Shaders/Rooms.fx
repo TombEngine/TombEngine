@@ -107,6 +107,16 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = normalize(mul(normal, TBN));
+	
+    // Material effects
+    if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
+    {
+        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz);
+    }
+    else if (MaterialType == MATERIAL_REFLECTIVE)
+    {
+        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz);
+    }
 
 	float3 lighting = input.Color.xyz;
 	bool doLights = true;
@@ -225,16 +235,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
-	
-	// Materials effects
-    if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz);
-    }
-    else if (MaterialType == MATERIAL_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz);
-    }
 
     return output;
 }
