@@ -237,6 +237,9 @@ namespace TEN::Renderer
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
+
+		ResetScissor();
+		_context->RSSetViewports(1, &view.Viewport);
 	}
 
 	void Renderer::CalculateGlow(RenderView& view)
