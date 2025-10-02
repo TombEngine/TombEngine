@@ -238,7 +238,6 @@ namespace TEN::Renderer
 
 		_roomAmbientMapFront = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
 		_roomAmbientMapBack = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
-		_skyboxRenderTarget = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
 		
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
@@ -491,6 +490,7 @@ namespace TEN::Renderer
 		_glowRenderTarget[0] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_glowRenderTarget[1] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_legacyReflectionsRenderTarget = RenderTarget2D(_device.Get(), w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_skyboxRenderTarget = Texture2DArray(_device.Get(), ROOM_AMBIENT_MAP_SIZE, 2, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
 		
 		// Initialize sprite and primitive batches
 		_spriteBatch = std::make_unique<SpriteBatch>(_context.Get());

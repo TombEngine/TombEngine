@@ -903,7 +903,7 @@ namespace TEN::Renderer
 #ifdef TEST_LEGACY_REFLECTIONS
 					if (objectNumber == ID_PISTOLS_ITEM)
 					{
-						BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
+						BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
 						_stMaterial.MaterialType = 1;
 						UpdateConstantBuffer(_stMaterial, _cbMaterial);
 					}

@@ -1869,7 +1869,6 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::Sky, _cbSky.get());
 
-
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
@@ -1944,7 +1943,7 @@ namespace TEN::Renderer
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
 		// Draw horizon and sky.
-		DrawHorizonAndSky(&_renderTarget, false, view);
+		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), false, view);
 
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
@@ -2583,7 +2582,7 @@ namespace TEN::Renderer
 				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
 			
-			BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
+			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
@@ -2940,9 +2939,9 @@ namespace TEN::Renderer
 	
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
-		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView.Get(), Colors::Black);
-		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView.GetAddressOf(), _skyboxRenderTarget.DepthStencilView.Get());
+		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[0].Get(), Colors::Black);
+		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[0].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[0].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[0].Get());
 
 		D3D11_VIEWPORT viewport;
 		viewport.TopLeftX = 0;
@@ -2974,12 +2973,21 @@ namespace TEN::Renderer
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		view.FillConstantBuffer(cameraConstantBuffer);
-		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
+		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
-		DrawHorizonAndSky(&_skyboxRenderTarget, true, view);
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), true, view);
+
+		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[1].Get(), Colors::Black);
+		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[1].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[1].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[1].Get());
+
+		cameraConstantBuffer.Emisphere = 1;
+		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
+
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), true, view);
 	}
 
-	void Renderer::DrawHorizonAndSky(RenderTarget2D* renderTarget, bool forParaboloid, RenderView& renderView)
+	void Renderer::DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, bool forParaboloid, RenderView& renderView)
 	{
 		constexpr auto STAR_SIZE = 2;
 		constexpr auto SUN_SIZE	 = 64;
@@ -3043,7 +3051,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+		_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
 		if (Weather.GetStars().size() > 0 && !forParaboloid)
 		{
@@ -3293,7 +3301,7 @@ namespace TEN::Renderer
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.
-		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	void Renderer::Render(float interpFactor)
@@ -3380,7 +3388,7 @@ namespace TEN::Renderer
 #ifdef TEST_LEGACY_REFLECTIONS
 						if (itemToDraw->ObjectID == ID_LARA)
 						{
-							BindRenderTargetAsTexture(TextureRegister::EnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
+							BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
 							_stMaterial.MaterialType = 1;
 							UpdateConstantBuffer(_stMaterial, _cbMaterial);
 						}

@@ -40,15 +40,6 @@ SamplerState NormalTextureSampler : register(s1);
 Texture2D SSAOTexture : register(t9);
 SamplerState SSAOSampler : register(s9);
 
-Texture2D OcclusionRoughnessSpecularTexture : register(t10);
-SamplerState OcclusionRoughnessSpecularSampler : register(s10);
-
-Texture2D EmissiveTexture : register(t11);
-SamplerState EmissiveSampler : register(s11);
-
-Texture2D ReflectionsTexture : register(t12);
-SamplerState ReflectionsSampler : register(s12);
-
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -144,11 +135,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 	// Materials effects
     if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
     {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
+        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz);
     }
     else if (MaterialType == MATERIAL_REFLECTIVE)
     {
-        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz, ReflectionsTexture, ReflectionsSampler);
+        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz);
     }
 
 	return output;

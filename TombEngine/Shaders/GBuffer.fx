@@ -8,6 +8,7 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
+#include "./Materials.hlsli"
 
 struct PixelShaderInput
 {
@@ -24,12 +25,6 @@ SamplerState Sampler : register(s0);
 
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
-
-Texture2D EmissiveTexture : register(t11);
-SamplerState EmissiveSampler : register(s11);
-
-Texture2D AmbientOcclusionRoughnessSpecularTexture : register(t10);
-SamplerState AmbientOcclusionRoughnessSpecularSampler : register(s10);
 
 struct PixelShaderOutput
 {
@@ -143,7 +138,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	DoAlphaTest(color);
 	
     float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-    float specular = AmbientOcclusionRoughnessSpecularTexture.Sample(AmbientOcclusionRoughnessSpecularSampler, input.UV).z;
+    float specular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
