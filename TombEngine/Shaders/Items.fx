@@ -106,14 +106,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	normal = normalize(mul(normal, TBN));
 	
     // Material effects
-    if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz);
-    }
-    else if (MaterialType == MATERIAL_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateLegacyReflections(normal, specular, output.Color.xyz);
-    }
+    output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, input.FaceNormal, normal, specular);
 
     float2 samplePosition = GetSamplePosition(input.PositionCopy);
 	

@@ -2980,7 +2980,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 
-		auto view = RenderView(&Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
+		auto view = RenderView(_gameCamera.Camera.WorldPosition, Vector3::UnitX, Vector3::UnitY, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 32, DEFAULT_FAR_VIEW, PI / 2.0f);
 
 		CCameraMatrixBuffer cameraConstantBuffer;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
