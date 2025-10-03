@@ -24,6 +24,7 @@ namespace TEN::Hud
 
 		void Update(const ItemInfo& playerItem);
 		void Draw(const ItemInfo& playerItem) const;
+		void DrawPickupSummary();
 		void Clear();
 	};
 

@@ -1018,16 +1018,21 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 
 		// Bind and clear render target
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
+		ID3D11RenderTargetView* pRenderViewPtrs[2];
+		pRenderViewPtrs[0] = _renderTarget.RenderTargetView.Get();
+		pRenderViewPtrs[1] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
+
 		_context->RSSetViewports(1, &_viewport);
 		ResetScissor();
 
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
 		_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 
 		if (background != nullptr)
 			DrawFullScreenImage(background->ShaderResourceView.Get(), backgroundFade, _renderTarget.RenderTargetView.Get(), _renderTarget.DepthStencilView.Get());
 
+		_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		unsigned int stride = sizeof(Vertex);
@@ -1099,6 +1104,7 @@ namespace TEN::Renderer
 
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+		ApplyGlow(&_renderTarget, _gameCamera);
 		ApplyAntialiasing(&_renderTarget, _gameCamera);
 
 		CopyRenderTarget(&_renderTarget, renderTarget, _gameCamera);

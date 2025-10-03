@@ -8,9 +8,6 @@ namespace TEN::Renderer
 	{
 		_doingFullscreenPass = true;
 
-		// Apply antialiasing.
-		ApplyAntialiasing(&_renderTarget, view);
-
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::Write);
@@ -51,23 +48,6 @@ namespace TEN::Renderer
 		int currentRenderTarget = 0;
 		int destRenderTarget = 1;
 
-		// Glow combine ---------------------------------------------------------------------------------------------------------
-		_shaders.Bind(Shader::GlowCombine);
-
-		_stPostProcessBuffer.GlowSoftAdd = 1;
-		_stPostProcessBuffer.GlowIntensity = 1.0f;
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
-
-		_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
-
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
-		DrawTriangles(3, 0);
-
-		destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
-		currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
-		
 		// Lens flares ----------------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::PostProcess);
 		
@@ -242,7 +222,7 @@ namespace TEN::Renderer
 		_context->RSSetViewports(1, &view.Viewport);
 	}
 
-	void Renderer::CalculateGlow(RenderView& view)
+	void Renderer::ApplyGlow(RenderTarget2D* renderTarget, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
@@ -321,5 +301,22 @@ namespace TEN::Renderer
 		// Reset viewport
 		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
+
+		// Copy render target to temp render target
+		CopyRenderTarget(renderTarget, &_postProcessRenderTarget[0], view);
+
+		// Combine glow
+		_shaders.Bind(Shader::GlowCombine);
+
+		_stPostProcessBuffer.GlowSoftAdd = 1;
+		_stPostProcessBuffer.GlowIntensity = 1.0f;
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+
+		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), clearColor);
+		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
+
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[0], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
 	}
 }

@@ -121,7 +121,6 @@ namespace TEN::Renderer
 		RenderTarget2D _renderTarget;
 		RenderTarget2D _postProcessRenderTarget[2];
 		RenderTarget2D _glowRenderTarget[2];
-		RenderTarget2D _tempRenderTarget;
 		RenderTarget2D _tempRoomAmbientRenderTarget1;
 		RenderTarget2D _tempRoomAmbientRenderTarget2;
 		RenderTarget2D _tempRoomAmbientRenderTarget3;
@@ -511,7 +510,7 @@ namespace TEN::Renderer
 		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
 		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
-		void CalculateGlow(RenderView& view);
+		void ApplyGlow(RenderTarget2D* renderTarget, RenderView& view);
 
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);

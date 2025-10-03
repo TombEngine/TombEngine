@@ -25,8 +25,12 @@ namespace TEN::Hud
 		InteractionHighlighter.Draw();
 		TargetHighlighter.Draw();
 		Speedometer.Draw();
-		PickupSummary.Draw();
 		StatusBars.Draw(playerItem);
+	}
+
+	void HudController::DrawPickupSummary()
+	{
+		PickupSummary.Draw();
 	}
 
 	void HudController::Clear()

@@ -131,8 +131,8 @@ namespace TEN::Renderer
 
 		// Copy render target to temp render target.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_tempRenderTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _tempRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
+		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
+		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
@@ -146,7 +146,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 		
-		BindTexture(TextureRegister::ColorMap, &_tempRenderTarget, SamplerStateRegister::AnisotropicClamp);
+		BindTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[0], SamplerStateRegister::AnisotropicClamp);
 
 		DrawTriangles(3, 0);
 	}

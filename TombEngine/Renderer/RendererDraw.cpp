@@ -1843,7 +1843,7 @@ namespace TEN::Renderer
 		auto time2 = std::chrono::high_resolution_clock::now();
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
-		 
+
 		// Bind constant buffers.
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Material, _cbMaterial.get());
@@ -1875,7 +1875,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 
 		BindMaterial(0, true);
-		
+
 		_stAnimated.Animated = 0;
 		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 
@@ -1937,7 +1937,7 @@ namespace TEN::Renderer
 		}
 
 		cameraConstantBuffer.Emisphere = 0;
-		
+
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
@@ -1949,7 +1949,7 @@ namespace TEN::Renderer
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
 		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-
+		
 		pRenderViewPtrs[0] = _normalsAndMaterialIndexRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _depthRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[2] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
@@ -1978,31 +1978,47 @@ namespace TEN::Renderer
 
 		DoRenderPass(RendererPass::Transparent, view, true);
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
-	
+
 		// Draw 3D debug lines and triangles.
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
 		// Copy current scene to the reflections render target for the next frame
+		// RT -> LRRT
 		CopyRenderTargetAndDownscale(&_renderTarget, &_legacyReflectionsRenderTarget, LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
 		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
 
-		// Draw HUD.
-		ClearDrawPhaseDisplaySprites();
-
+		// Clear the depth buffer for drawing HUD on top
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		// HUD must be drawn before post-processing to be antialiased.
+		// Draw HUD pickup sommary here because objects could require glow
+		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
+			g_Hud.DrawPickupSummary();
+
+		_doingFullscreenPass = true;
+
+		// Calculates glow
+		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
+		ApplyGlow(&_renderTarget, view);
+
+		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
+		// FXAA: RT -> PPRT0, PPRT0 -> RT
+		// SMAA: RT -> ..., ... -> RT
+		ApplyAntialiasing(&_renderTarget, view);
+
+		// Draw text and 2D HUD
+		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw(*LaraItem);
-		
-		if (renderMode != SceneRenderMode::NoPostprocess)
-		{
-			CalculateGlow(view);
-			DrawPostprocess(renderTarget, view, renderMode);
-			DrawOverlays(view);
-			DrawLines2D();
-		}
+
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
+		_doingFullscreenPass = false;
+
+		DrawOverlays(view);
+		DrawLines2D();
 
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 		{

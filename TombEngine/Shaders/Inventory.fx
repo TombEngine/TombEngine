@@ -30,6 +30,7 @@ struct PixelShaderInput
 struct PixelShaderOutput
 {
     float4 Color : SV_Target0;
+    float4 Emissive : SV_Target1;
 };
     
 Texture2D Texture : register(t0);
@@ -84,8 +85,13 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
-    output.Color.xyz += DoDirectionalLight(pos, normal, l);
-    output.Color.xyz += DoSpecularSun(normal, l, input.Sheen, specular, roughness);
+    float3 lighting = DoDirectionalLight(pos, normal, l);
+    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);;
+    lighting += emissive;
+    
+     // Emissive material
+    output.Color.xyz += lighting;
+    output.Color.xyz = saturate(output.Color.xyz);
 
 	// Adding some pertubations to the lighting to add a cool effect
     float3 noise = SimplexNoise(output.Color.xyz);
@@ -100,6 +106,8 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     {
         output.Color.xyz = CalculateLegacyReflections(normal, 1, output.Color.xyz);
     }
+    
+    output.Emissive = float4(emissive, 1.0f);
 	
     return output;
 }

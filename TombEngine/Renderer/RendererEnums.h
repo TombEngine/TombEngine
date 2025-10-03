@@ -74,6 +74,8 @@ constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
 constexpr auto GLOW_BLUR_RADIUS = 24.0f;
+constexpr auto INVENTORY_GLOW_BLUR_SIGMA = 4.0f;
+constexpr auto INVENTORY_GLOW_BLUR_RADIUS = 8.0f;
 
 constexpr auto GLOW_VERTEX_SHIFT = 0;
 constexpr auto MOVE_VERTEX_SHIFT = 8;
