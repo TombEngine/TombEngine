@@ -417,7 +417,7 @@ namespace TEN::Renderer
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
-		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, int hemisphere, RenderView& renderView);
+		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, RenderView& renderView, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);

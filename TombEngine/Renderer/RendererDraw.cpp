@@ -1943,7 +1943,7 @@ namespace TEN::Renderer
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
 		// Draw horizon and sky.
-		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), 0, view);
+		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), view);
 
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
@@ -2993,7 +2993,7 @@ namespace TEN::Renderer
 
 		_skyboxParaboloidMatrix = cameraConstantBuffer.DualParaboloidView;
 
-		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), -1, view);
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), view, true);
 
 		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[1].Get(), Colors::Black);
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[1].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -3004,12 +3004,12 @@ namespace TEN::Renderer
 		cameraConstantBuffer.Hemisphere = 1;
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
-		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), 1, view);
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), view, true);
 
 		SetCullMode(CullMode::CounterClockwise);
 	}
 
-	void Renderer::DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, int hemisphere, RenderView& renderView)
+	void Renderer::DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, RenderView& renderView, bool reflectionPass)
 	{
 		constexpr auto STAR_SIZE = 2;
 		constexpr auto SUN_SIZE	 = 64;
@@ -3027,7 +3027,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && hemisphere == 0))
+		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && !reflectionPass))
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)
@@ -3039,7 +3039,7 @@ namespace TEN::Renderer
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
-		_shaders.Bind(hemisphere != 0 ? Shader::RoomAmbientSky : Shader::Sky);
+		_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 		BindTexture(TextureRegister::ColorMap, &_skyTexture, SamplerStateRegister::AnisotropicClamp);
 
 		_context->IASetVertexBuffers(0, 1, _skyVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
@@ -3075,7 +3075,7 @@ namespace TEN::Renderer
 
 		_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
-		if (Weather.GetStars().size() > 0 && hemisphere == 0)
+		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3223,7 +3223,7 @@ namespace TEN::Renderer
 			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
 				continue;
 			
-			_shaders.Bind(hemisphere != 0 ? Shader::RoomAmbientSky : Shader::Sky);
+			_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Opaque);
@@ -3272,7 +3272,7 @@ namespace TEN::Renderer
 		}
 
 		// Eventually draw the sun sprite.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && hemisphere == 0)
+		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
