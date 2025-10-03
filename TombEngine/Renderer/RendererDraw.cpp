@@ -1936,7 +1936,7 @@ namespace TEN::Renderer
 			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
 		}
 
-		cameraConstantBuffer.Emisphere = 0;
+		cameraConstantBuffer.Hemisphere = 0;
 
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
@@ -2039,7 +2039,7 @@ namespace TEN::Renderer
 		CalculateFrameRate();
 	}
 
-	void Renderer::RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int emisphere)
+	void Renderer::RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int hemisphere)
 	{
 		// TODO: Update the horizon draw code here once paraboloids are required. TrainWreck Feb 2, 2025.
 		
@@ -2076,7 +2076,7 @@ namespace TEN::Renderer
 		// Opaque geometry
 		SetBlendMode(BlendMode::Opaque);
 
-		if (emisphere == -1)
+		if (hemisphere == -1)
 		{
 			SetCullMode(CullMode::CounterClockwise);
 		}
@@ -2089,7 +2089,7 @@ namespace TEN::Renderer
 
 		CCameraMatrixBuffer cameraConstantBuffer;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(position, position + Vector3(0, 0, 1024), -Vector3::UnitY);
-		cameraConstantBuffer.Emisphere = emisphere;
+		cameraConstantBuffer.Hemisphere = hemisphere;
 		view.FillConstantBuffer(cameraConstantBuffer);
 		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
 
@@ -2984,7 +2984,7 @@ namespace TEN::Renderer
 
 		CCameraMatrixBuffer cameraConstantBuffer;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Emisphere = -1;
+		cameraConstantBuffer.Hemisphere = -1;
 		cameraConstantBuffer.Frame = GlobalCounter;
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
@@ -2997,7 +2997,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[1].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[1].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[1].Get());
 
-		cameraConstantBuffer.Emisphere = 1;
+		cameraConstantBuffer.Hemisphere = 1;
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
 		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), true, view);
