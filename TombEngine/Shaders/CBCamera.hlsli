@@ -27,7 +27,7 @@ cbuffer CBCamera : register(b0)
 	unsigned int Frame;
 	unsigned int RoomNumber;
 	unsigned int CameraUnderwater;
-	int Emisphere;
+	int Hemisphere;
 	//--
 	int AmbientOcclusion;
 	int AmbientOcclusionExponent;

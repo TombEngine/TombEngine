@@ -30,7 +30,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position /= output.Position.w;
 
 	// For the back-map z has to be inverted
-	output.Position.z *= Emisphere;
+	output.Position.z *= Hemisphere;
 
 	float L = length(output.Position.xyz);
 
@@ -59,7 +59,7 @@ PixelShaderInput VSSky(VertexShaderInput input)
 	output.Position /= output.Position.w;
 
 	// For the back-map z has to be inverted
-	output.Position.z *= Emisphere;
+	output.Position.z *= Hemisphere;
 
 	float L = length(output.Position.xyz);
 

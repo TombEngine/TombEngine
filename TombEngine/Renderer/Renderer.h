@@ -371,6 +371,10 @@ namespace TEN::Renderer
 
 		ShaderManager _shaders;
 
+		// Materials
+
+		Matrix _skyboxParaboloidMatrix;
+
 		void ApplySMAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyFXAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view);
@@ -413,7 +417,7 @@ namespace TEN::Renderer
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
-		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, bool forParaboloid, RenderView& renderView);
+		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, int hemisphere, RenderView& renderView);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
@@ -717,7 +721,7 @@ namespace TEN::Renderer
 		void Lock();
 		bool PrepareDataForTheRenderer();
 		void UpdateCameraMatrices(CAMERA_INFO* cam, float farView);
-		void RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int emisphere);
+		void RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int hemisphere);
 		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full);
 		void RenderInventory();
 		void RenderScene(RenderTarget2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);

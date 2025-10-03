@@ -1906,8 +1906,8 @@ namespace TEN::Renderer
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
-		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-
+		cameraConstantBuffer.DualParaboloidView = _skyboxParaboloidMatrix;
+		 
 		if (level.GetFogMaxDistance() > 0)
 		{
 			auto fogColor = level.GetFogColor();
@@ -1936,14 +1936,14 @@ namespace TEN::Renderer
 			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
 		}
 
-		cameraConstantBuffer.Emisphere = 0;
+		cameraConstantBuffer.Hemisphere = 0;
 
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
 		// Draw horizon and sky.
-		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), false, view);
+		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), 0, view);
 
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
@@ -2039,7 +2039,7 @@ namespace TEN::Renderer
 		CalculateFrameRate();
 	}
 
-	void Renderer::RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int emisphere)
+	void Renderer::RenderSimpleSceneToParaboloid(RenderTarget2D* renderTarget, Vector3 position, int hemisphere)
 	{
 		// TODO: Update the horizon draw code here once paraboloids are required. TrainWreck Feb 2, 2025.
 		
@@ -2076,7 +2076,7 @@ namespace TEN::Renderer
 		// Opaque geometry
 		SetBlendMode(BlendMode::Opaque);
 
-		if (emisphere == -1)
+		if (hemisphere == -1)
 		{
 			SetCullMode(CullMode::CounterClockwise);
 		}
@@ -2089,7 +2089,7 @@ namespace TEN::Renderer
 
 		CCameraMatrixBuffer cameraConstantBuffer;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(position, position + Vector3(0, 0, 1024), -Vector3::UnitY);
-		cameraConstantBuffer.Emisphere = emisphere;
+		cameraConstantBuffer.Hemisphere = hemisphere;
 		view.FillConstantBuffer(cameraConstantBuffer);
 		_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
 
@@ -2984,26 +2984,32 @@ namespace TEN::Renderer
 
 		CCameraMatrixBuffer cameraConstantBuffer;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Emisphere = -1;
+		cameraConstantBuffer.Hemisphere = -1;
 		cameraConstantBuffer.Frame = GlobalCounter;
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		view.FillConstantBuffer(cameraConstantBuffer);
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
-		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), true, view);
+		_skyboxParaboloidMatrix = cameraConstantBuffer.DualParaboloidView;
+
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), -1, view);
 
 		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[1].Get(), Colors::Black);
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[1].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[1].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[1].Get());
 
-		cameraConstantBuffer.Emisphere = 1;
+		SetCullMode(CullMode::Clockwise);
+
+		cameraConstantBuffer.Hemisphere = 1;
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
-		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), true, view);
+		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[1].Get(), 1, view);
+
+		SetCullMode(CullMode::CounterClockwise);
 	}
 
-	void Renderer::DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, bool forParaboloid, RenderView& renderView)
+	void Renderer::DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, int hemisphere, RenderView& renderView)
 	{
 		constexpr auto STAR_SIZE = 2;
 		constexpr auto SUN_SIZE	 = 64;
@@ -3021,7 +3027,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && !forParaboloid))
+		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && hemisphere == 0))
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)
@@ -3033,7 +3039,7 @@ namespace TEN::Renderer
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
-		_shaders.Bind(forParaboloid ? Shader::RoomAmbientSky : Shader::Sky);
+		_shaders.Bind(hemisphere != 0 ? Shader::RoomAmbientSky : Shader::Sky);
 		BindTexture(TextureRegister::ColorMap, &_skyTexture, SamplerStateRegister::AnisotropicClamp);
 
 		_context->IASetVertexBuffers(0, 1, _skyVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
@@ -3069,7 +3075,7 @@ namespace TEN::Renderer
 
 		_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
-		if (Weather.GetStars().size() > 0 && !forParaboloid)
+		if (Weather.GetStars().size() > 0 && hemisphere == 0)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3204,6 +3210,8 @@ namespace TEN::Renderer
 			}
 
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			SetCullMode(CullMode::CounterClockwise);
 		}
 
 		// Draw horizon.
@@ -3215,11 +3223,10 @@ namespace TEN::Renderer
 			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
 				continue;
 			
-			_shaders.Bind(forParaboloid ? Shader::RoomAmbientSky : Shader::Sky);
+			_shaders.Bind(hemisphere != 0 ? Shader::RoomAmbientSky : Shader::Sky);
 
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Opaque);
-			SetCullMode(CullMode::CounterClockwise);
 
 			_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 			_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -3265,7 +3272,7 @@ namespace TEN::Renderer
 		}
 
 		// Eventually draw the sun sprite.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !forParaboloid)
+		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && hemisphere == 0)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);

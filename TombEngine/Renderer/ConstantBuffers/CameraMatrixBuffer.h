@@ -30,7 +30,7 @@ namespace TEN::Renderer::ConstantBuffers
 		unsigned int Frame;
 		unsigned int RoomNumber;
 		unsigned int CameraUnderwater;
-		int Emisphere;
+		int Hemisphere;
 		//--
 		int AmbientOcclusion;
 		int AmbientOcclusionExponent;
