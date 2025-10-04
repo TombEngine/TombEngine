@@ -1991,9 +1991,9 @@ namespace TEN::Renderer
 		// Clear the depth buffer for drawing HUD on top
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		// Draw HUD pickup sommary here because objects could require glow
+		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-			g_Hud.DrawPickupSummary();
+			g_Hud.Draw3D();
 
 		_doingFullscreenPass = true;
 
@@ -2009,7 +2009,7 @@ namespace TEN::Renderer
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-			g_Hud.Draw(*LaraItem);
+			g_Hud.Draw2D(*LaraItem);
 
 		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
 		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT

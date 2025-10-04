@@ -23,8 +23,8 @@ namespace TEN::Hud
 		// Utilities
 
 		void Update(const ItemInfo& playerItem);
-		void Draw(const ItemInfo& playerItem) const;
-		void DrawPickupSummary();
+		void Draw2D(const ItemInfo& playerItem) const;
+		void Draw3D();
 		void Clear();
 	};
 
