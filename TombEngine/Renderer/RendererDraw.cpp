@@ -1906,8 +1906,8 @@ namespace TEN::Renderer
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
-		cameraConstantBuffer.DualParaboloidView = _skyboxParaboloidMatrix;
-		 
+		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
+
 		if (level.GetFogMaxDistance() > 0)
 		{
 			auto fogColor = level.GetFogColor();
@@ -2990,8 +2990,6 @@ namespace TEN::Renderer
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		view.FillConstantBuffer(cameraConstantBuffer);
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
-
-		_skyboxParaboloidMatrix = cameraConstantBuffer.DualParaboloidView;
 
 		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), view, true);
 

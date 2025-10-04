@@ -371,10 +371,6 @@ namespace TEN::Renderer
 
 		ShaderManager _shaders;
 
-		// Materials
-
-		Matrix _skyboxParaboloidMatrix;
-
 		void ApplySMAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyFXAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view);
