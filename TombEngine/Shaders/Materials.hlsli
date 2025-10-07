@@ -34,7 +34,6 @@ float3 CalculateSkyBoxReflections(float3 worldPosition, float3 faceNormal, float
     uv = clamp(uv, EPSILON, 1.0f - EPSILON);
 
     int slice = (d.z <= 0.0f) ? 0 : 1;
-    uv.x = 1.0f - uv.x;
 
     float3 reflectedColor = SkyboxReflectionsTexture.Sample(SkyboxReflectionsSampler, float3(uv, slice)).rgb;
     return lerp(pixelColor, reflectedColor, saturate(specular));
