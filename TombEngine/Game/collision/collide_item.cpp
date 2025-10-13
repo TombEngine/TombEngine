@@ -1133,7 +1133,7 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 	// Calculate shifts.
 
 	int attempts = 0;
-	while (attempts <= 4)
+	while (attempts < 4)
 	{
 		auto rawShift = Vector3i::Zero;
 		auto shiftLeft = inXMax - xMin;
@@ -1165,7 +1165,6 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 			case 3: // Try to invert Z axis only.
 				rawShift.z = -rawShift.z;
 				break;
-			case 4: // Fall back to default, if all attempts failed.
 			default:
 				break;
 		}
