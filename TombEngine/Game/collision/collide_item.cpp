@@ -1132,128 +1132,158 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 
 	// Calculate shifts.
 
-	auto rawShift = Vector3i::Zero;
-	auto shiftLeft = inXMax - xMin;
-	auto shiftRight = xMax - inXMin;
-
-	if (shiftLeft < shiftRight)
-		rawShift.x = -shiftLeft;
-	else
-		rawShift.x = shiftRight;
-
-	shiftLeft = inZMax - zMin;
-	shiftRight = zMax - inZMin;
-
-	if (shiftLeft < shiftRight)
-		rawShift.z = -shiftLeft;
-	else
-		rawShift.z = shiftRight;
-
-	// Rotate previous collision position to identity.
-	distance = (coll->Setup.PrevPosition - pose.Position).ToVector3();
-	auto ox = round((distance.x * cosY) - (distance.z * sinY)) + pose.Position.x;
-	auto oz = round((distance.x * sinY) + (distance.z * cosY)) + pose.Position.z;
-
-	// Calculate collisison type based on identity orientation.
-	switch (GetQuadrant(coll->Setup.ForwardAngle - pose.Orientation.y))
+	int attempts = 0;
+	while (attempts < 4)
 	{
-	case NORTH:
-		if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
+		auto rawShift = Vector3i::Zero;
+		auto shiftLeft = inXMax - xMin;
+		auto shiftRight = xMax - inXMin;
+
+		if (shiftLeft < shiftRight)
+			rawShift.x = -shiftLeft;
+		else
+			rawShift.x = shiftRight;
+
+		shiftLeft = inZMax - zMin;
+		shiftRight = zMax - inZMin;
+
+		if (shiftLeft < shiftRight)
+			rawShift.z = -shiftLeft;
+		else
+			rawShift.z = shiftRight;
+
+		// Try different sides if previous collision attempt failed and resulted in wall embed.
+		switch (attempts)
 		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = ox - x;
-			coll->CollisionType = CollisionType::Front;
-		}
-		else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = 0;
-			coll->CollisionType = CollisionType::Left;
-		}
-		else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = 0;
-			coll->CollisionType = CollisionType::Right;
+			case 1:
+				rawShift.x = -rawShift.x;
+				rawShift.z = -rawShift.z;
+				break;
+			case 2:
+				rawShift.x = -rawShift.x;
+				break;
+			case 3:
+				rawShift.z = -rawShift.z;
+				break;
+			default:
+				break;
 		}
 
-		break;
+		// Rotate previous collision position to identity.
+		distance = (coll->Setup.PrevPosition - pose.Position).ToVector3();
+		auto ox = round((distance.x * cosY) - (distance.z * sinY)) + pose.Position.x;
+		auto oz = round((distance.x * sinY) + (distance.z * cosY)) + pose.Position.z;
 
-	case SOUTH:
-		if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
+		// Calculate collisison type based on identity orientation.
+		switch (GetQuadrant(coll->Setup.ForwardAngle - pose.Orientation.y))
 		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = ox - x;
-			coll->CollisionType = CollisionType::Front;
-		}
-		else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = 0;
-			coll->CollisionType = CollisionType::Right;
-		}
-		else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = 0;
-			coll->CollisionType = CollisionType::Left;
+		case NORTH:
+			if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = ox - x;
+				coll->CollisionType = CollisionType::Front;
+			}
+			else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = 0;
+				coll->CollisionType = CollisionType::Left;
+			}
+			else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = 0;
+				coll->CollisionType = CollisionType::Right;
+			}
+
+			break;
+
+		case SOUTH:
+			if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = ox - x;
+				coll->CollisionType = CollisionType::Front;
+			}
+			else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = 0;
+				coll->CollisionType = CollisionType::Right;
+			}
+			else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = 0;
+				coll->CollisionType = CollisionType::Left;
+			}
+
+			break;
+
+		case EAST:
+			if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = oz - z;
+				coll->CollisionType = CollisionType::Front;
+			}
+			else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = 0;
+				coll->CollisionType = CollisionType::Right;
+			}
+			else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = 0;
+				coll->CollisionType = CollisionType::Left;
+			}
+
+			break;
+
+		case WEST:
+			if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
+			{
+				coll->Shift.Position.x = rawShift.x;
+				coll->Shift.Position.z = oz - z;
+				coll->CollisionType = CollisionType::Front;
+			}
+			else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = 0;
+				coll->CollisionType = CollisionType::Left;
+			}
+			else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
+			{
+				coll->Shift.Position.z = rawShift.z;
+				coll->Shift.Position.x = 0;
+				coll->CollisionType = CollisionType::Right;
+			}
+
+			break;
 		}
 
-		break;
+		// Determine final shifts orientation/distance.
+		distance = Vector3(x + coll->Shift.Position.x, y, z + coll->Shift.Position.z) - pose.Position.ToVector3();
+		sinY = phd_sin(-pose.Orientation.y);
+		cosY = phd_cos(-pose.Orientation.y);
 
-	case EAST:
-		if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = oz - z;
-			coll->CollisionType = CollisionType::Front;
-		}
-		else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
-		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = 0;
-			coll->CollisionType = CollisionType::Right;
-		}
-		else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
-		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = 0;
-			coll->CollisionType = CollisionType::Left;
-		}
+		// Calculate final shifts orientation/distance.
+		coll->Shift.Position.x = (round((distance.x * cosY) - (distance.z * sinY)) + pose.Position.x) - item->Pose.Position.x;
+		coll->Shift.Position.z = (round((distance.x * sinY) + (distance.z * cosY)) + pose.Position.z) - item->Pose.Position.z;
 
-		break;
+		// Check if final shift position embeds player into a wall, and if it does, retest with another direction.
+		auto testPoint = item->Pose.Position + coll->Shift.Position;
+		auto testPointColl = GetPointCollision(testPoint, item->RoomNumber);
 
-	case WEST:
-		if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
-		{
-			coll->Shift.Position.x = rawShift.x;
-			coll->Shift.Position.z = oz - z;
-			coll->CollisionType = CollisionType::Front;
-		}
-		else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
-		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = 0;
-			coll->CollisionType = CollisionType::Left;
-		}
-		else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
-		{
-			coll->Shift.Position.z = rawShift.z;
-			coll->Shift.Position.x = 0;
-			coll->CollisionType = CollisionType::Right;
-		}
-
-		break;
+		if (testPointColl.GetFloorHeight() < item->Pose.Position.y + coll->Setup.UpperFloorBound)
+			attempts++;
+		else
+			break;
 	}
-
-	// Determine final shifts orientation/distance.
-	distance = Vector3(x + coll->Shift.Position.x, y, z + coll->Shift.Position.z) - pose.Position.ToVector3();
-	sinY = phd_sin(-pose.Orientation.y);
-	cosY = phd_cos(-pose.Orientation.y);
-
-	// Calculate final shifts orientation/distance.
-	coll->Shift.Position.x = (round((distance.x * cosY) - (distance.z * sinY)) + pose.Position.x) - item->Pose.Position.x;
-	coll->Shift.Position.z = (round((distance.x * sinY) + (distance.z * cosY)) + pose.Position.z) - item->Pose.Position.z;
 
 	if (coll->Shift.Position.x == 0 && coll->Shift.Position.z == 0)
 		coll->CollisionType = CollisionType::None; // Paranoid.
