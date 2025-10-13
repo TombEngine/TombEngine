@@ -1133,7 +1133,7 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 	// Calculate shifts.
 
 	int attempts = 0;
-	while (attempts < 4)
+	while (attempts <= 4)
 	{
 		auto rawShift = Vector3i::Zero;
 		auto shiftLeft = inXMax - xMin;
@@ -1155,16 +1155,17 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		// Try different sides if previous collision attempt failed and resulted in wall embed.
 		switch (attempts)
 		{
-			case 1:
+			case 1:	// Full shift inversion.
 				rawShift.x = -rawShift.x;
 				rawShift.z = -rawShift.z;
 				break;
-			case 2:
+			case 2: // Try to invert X axis only.
 				rawShift.x = -rawShift.x;
 				break;
-			case 3:
+			case 3: // Try to invert Z axis only.
 				rawShift.z = -rawShift.z;
 				break;
+			case 4: // Fall back to default, if all attempts failed.
 			default:
 				break;
 		}
@@ -1279,8 +1280,13 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		auto testPoint = item->Pose.Position + coll->Shift.Position;
 		auto testPointColl = GetPointCollision(testPoint, item->RoomNumber);
 
-		if (testPointColl.GetFloorHeight() < item->Pose.Position.y + coll->Setup.UpperFloorBound)
+		if (testPointColl.GetFloorHeight() == NO_HEIGHT ||
+			testPointColl.GetFloorHeight() <= item->Pose.Position.y + coll->Setup.UpperFloorBound ||
+			testPointColl.GetFloorHeight() - testPointColl.GetCeilingHeight() <= coll->Setup.Height ||
+			testPointColl.GetCeilingHeight() >= item->Pose.Position.y)
+		{
 			attempts++;
+		}
 		else
 			break;
 	}

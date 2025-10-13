@@ -46,6 +46,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 * Added `Moveable:ShowInteractionHighlight` method.
+* Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
 
 ## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
