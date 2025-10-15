@@ -22,6 +22,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
 * Fixed GRENADE object not being activated by triggers and heavy triggers under shatters.
 * Fixed FISH_EMITTER fish escape direction when player is nearby.
+* Fixed EXPANDING_PLATFORM and RAISING_BLOCK rendering issues in flat state.
 * Fixed several collision issues for TRAIN object.
 * Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed wall embeddings after jumping on top of hard static meshes aligned to walls.
@@ -45,6 +46,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed vertex effects (glow and move) not being rendered at full framerate.
 
 ### Lua API changes
+* Added detection of infinite loops and deadlocks caused by mistakes in user scripts in debug mode.
 * Added `Moveable:ShowInteractionHighlight` method.
 * Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.

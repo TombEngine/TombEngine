@@ -28,8 +28,8 @@ using namespace TEN::Utils;
 using namespace TEN::Video;
 
 WINAPP App;
-unsigned int ThreadID, ConsoleThreadID, ThreadSuspendCount;
-uintptr_t ThreadHandle, ConsoleThreadHandle;
+unsigned int ThreadID, ConsoleThreadID, WatchdogThreadID, ThreadSuspendCount;
+uintptr_t ThreadHandle, ConsoleThreadHandle, WatchdogThreadHandle;
 HACCEL hAccTable;
 bool DebugMode = false;
 HWND WindowsHandle;
@@ -428,6 +428,39 @@ void WinProcMsg()
 	while (!ThreadEnded && msg.message != WM_QUIT);
 }
 
+unsigned CALLBACK DeadlockWatchdog(void*)
+{
+	unsigned int funcCount = 0;
+
+	while (!ThreadEnded)
+	{
+		// Check for deadlocks with one second interval to avoid high CPU usage.
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+
+		// Don't process if script engine was unitialized or not initialized yet.
+		if (g_GameScript == nullptr)
+			continue;
+
+		// If lua function call count isn't zero (which means we are outside of Lua call) and haven't changed,
+		// it means that no new lua function was called since the last check, therefore we are in a deadlock.
+		auto nextFuncCount = g_GameScript->GetFunctionCallCount();
+		if (nextFuncCount > 0 && nextFuncCount == funcCount)
+		{
+			auto errorMessage = "Script deadlock detected. Check if your script contains infinite loops.";
+			ShowExternalMessageBox(errorMessage);
+			TENLog(errorMessage, LogLevel::Error);
+
+			// Force game loop exit and thread termination.
+			DoTheGame = false;
+			ThreadEnded = true;
+		}
+
+		funcCount = g_GameScript->GetFunctionCallCount();
+	}
+
+	return true;
+}
+
 void CALLBACK HandleWmCommand(unsigned short wParam)
 {
 	if (wParam == WM_KILLFOCUS)
@@ -792,6 +825,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ThreadEnded = false;
 	ThreadSuspendCount = 0;
 	ThreadHandle = BeginThread(GameMain, ThreadID);
+
+	// Only watch for script deadlocks in debug mode.
+	if (DebugMode)
+		WatchdogThreadHandle = BeginThread(DeadlockWatchdog, WatchdogThreadID);
 
 	// The game window likes to steal input anyway, so let's put it at the
 	// foreground so the user at least expects it.

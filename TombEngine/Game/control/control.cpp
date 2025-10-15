@@ -384,8 +384,6 @@ unsigned CALLBACK GameMain(void *)
 
 	// Finish thread.
 	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	EndThread();
-
 	return true;
 }
 
