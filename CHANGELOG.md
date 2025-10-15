@@ -31,10 +31,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
 * Fixed original game issue with multiple burning torches not working correctly.
-* Fixed original game issue where enemies could be targeted through objects and static meshes.
-* Fixed enemies shooting through objects.
+* Fixed original game issue where enemies could shoot and be targeted through objects and static meshes.
+* Fixed original game issues with vehicle collision near crawlspaces and stacked rooms.
 * Fixed motorbike sound going silent while doing jumps.
-* Fixed several original game issues with vehicle collision near crawlspaces and stacked rooms.
 * Fixed ability to draw weapons on a tightrope.
 * Fixed incorrect ladder dismounts onto sloped floors and death sectors.
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
@@ -46,7 +45,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed vertex effects (glow and move) not being rendered at full framerate.
 
 ### Lua API changes
-* Added detection of infinite loops and deadlocks caused by mistakes in user scripts in debug mode.
+* Added detection and recovery of infinite loops and deadlocks caused by mistakes in user scripts.
 * Added `Moveable:ShowInteractionHighlight` method.
 * Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
