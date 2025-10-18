@@ -1112,9 +1112,9 @@ namespace TEN::Renderer
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
-						BindInstancedStaticLights(_rooms[locust.roomNumber].LightsToDraw, 0);
+						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
