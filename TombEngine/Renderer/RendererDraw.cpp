@@ -933,35 +933,35 @@ namespace TEN::Renderer
 			for (int i = 0; i < TEN::Entities::TR4::NUM_BEETLES; i++)
 			{
 				const auto& beetle = TEN::Entities::TR4::BeetleSwarm[i];
-				
-				if (!beetle.On)
-					continue;
 
 				if (IgnoreReflectionPassForRoom(beetle.RoomNumber))
 					continue;
-
-				auto& room = _rooms[beetle.RoomNumber];
-
-				auto transformMatrix = Matrix::Lerp(beetle.PrevTransform, beetle.Transform, GetInterpolationFactor());
-
-				auto world = transformMatrix;
-				ReflectMatrixOptionally(world);
-
-				_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].World = world;
-				_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Ambient = room.AmbientLight;
-				_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Color = Vector4::One;
-				_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].LightMode = (int)mesh.LightMode;
-
-				if (rendererPass != RendererPass::GBuffer)
+				
+				if (beetle.On)
 				{
-					auto lights = std::vector<RendererLight*>{};
-					for (int i = 0; i < std::min((int)room.LightsToDraw.size(), MAX_LIGHTS_PER_ITEM); i++)
-						lights.push_back(room.LightsToDraw[i]);
-						
-					BindInstancedStaticLights(lights, beetleCount);
-				}
+					auto& room = _rooms[beetle.RoomNumber];
 
-				beetleCount++;
+					auto transformMatrix = Matrix::Lerp(beetle.PrevTransform, beetle.Transform, GetInterpolationFactor());
+
+					auto world = transformMatrix;
+					ReflectMatrixOptionally(world);
+
+					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].World = world;
+					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Ambient = room.AmbientLight;
+					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].LightMode = (int)mesh.LightMode;
+
+					if (rendererPass != RendererPass::GBuffer)
+					{
+						auto lights = std::vector<RendererLight*>{};
+						for (int i = 0; i < std::min((int)room.LightsToDraw.size(), MAX_LIGHTS_PER_ITEM); i++)
+							lights.push_back(room.LightsToDraw[i]);
+
+						BindInstancedStaticLights(lights, beetleCount);
+					}
+
+					beetleCount++;
+				}
 
 				if (beetleCount == INSTANCED_STATIC_MESH_BUCKET_SIZE || 
 					(i == TEN::Entities::TR4::NUM_BEETLES - 1 && beetleCount > 0))
@@ -988,7 +988,7 @@ namespace TEN::Renderer
 					{
 						for (auto& bucket : mesh.Buckets)
 						{
-							if (bucket.NumVertices == 0)
+							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 								continue;
 
 							BindBucketTextures(bucket, TextureSource::Moveables, animated);
@@ -1002,7 +1002,7 @@ namespace TEN::Renderer
 
 								DrawIndexedInstancedTriangles(bucket.NumIndices, beetleCount, bucket.StartIndex, 0);
 
-								_numInstancedStaticsDrawCalls++;
+								_numMoveablesDrawCalls++;
 							}
 						}
 					}
