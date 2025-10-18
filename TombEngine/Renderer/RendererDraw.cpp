@@ -20,10 +20,10 @@
 #include "Game/Lara/lara.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
-#include "Objects/Effects/tr4_locusts.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Renderer/RenderView.h"
@@ -1025,13 +1025,13 @@ namespace TEN::Renderer
 
 			for (const auto& locust : TEN::Entities::TR4::Locusts)
 			{
-				if (!locust.on)
+				if (!locust.On)
 					continue;
 
-				if (IgnoreReflectionPassForRoom(locust.roomNumber))
+				if (IgnoreReflectionPassForRoom(locust.RoomNumber))
 					continue;
 
-				auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.counter & 3));
+				auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
 
 				for (auto& bucket : mesh.Buckets)
 				{
@@ -1053,7 +1053,7 @@ namespace TEN::Renderer
 						object.LightMode = mesh.LightMode;
 						object.Polygon = &bucket.Polygons[p];
 						object.World = transformMatrix;
-						object.Room = &_rooms[locust.roomNumber];
+						object.Room = &_rooms[locust.RoomNumber];
 
 						view.TransparentObjectsToDraw.push_back(object);
 					}
@@ -1065,10 +1065,10 @@ namespace TEN::Renderer
 			int activeLocustsExist = false;
 			for (const auto& locust : TEN::Entities::TR4::Locusts)
 			{
-				if (!locust.on)
+				if (!locust.On)
 					continue;
 
-				if (IgnoreReflectionPassForRoom(locust.roomNumber))
+				if (IgnoreReflectionPassForRoom(locust.RoomNumber))
 					continue;
 
 				activeLocustsExist = true;
@@ -1098,23 +1098,23 @@ namespace TEN::Renderer
 
 				for (const auto& locust : TEN::Entities::TR4::Locusts)
 				{
-					if (!locust.on)
+					if (!locust.On)
 						continue;
 
-					auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.counter & 3));
+					auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
 
 					auto world = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(world);
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[locust.roomNumber].AmbientLight;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[locust.RoomNumber].AmbientLight;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.roomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer
 
 					for (int animated = 0; animated < 2; animated++)
 					{

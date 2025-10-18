@@ -195,6 +195,10 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 	target2.z = vector.z - ((vector.z - origin->z) >> 5);
 	GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
 
+	// TODO: This is a shatter bug workaround, should be removed after proper conversion to newer LOS tests
+	// such as GetRoomLosCollision et al -- Lwmte, 15.10.25
+	int shatterRoomNumber = FindRoomNumber(target2.ToVector3i(), target2.RoomNumber, true);
+
 	if (itemNumber < 0)
 	{
 		if (Statics[mesh->Slot].shatterType != ShatterType::None)
@@ -203,7 +207,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			mesh->HitPoints -= weapon.Damage;
 			ShatterImpactData.impactDirection = dir;
 			ShatterImpactData.impactLocation = mesh->Pose.Position.ToVector3();
-			ShatterObject(nullptr, mesh, 128, target2.RoomNumber, 0);
+			ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
 			SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
 			hitProcessed = true;
 		}
@@ -222,7 +226,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 					item->MeshBits &= ~ShatterItem.bit;
 					ShatterImpactData.impactDirection = dir;
 					ShatterImpactData.impactLocation = ShatterItem.sphere.Center;
-					ShatterObject(&ShatterItem, 0, 128, target2.RoomNumber, 0);
+					ShatterObject(&ShatterItem, 0, 128, shatterRoomNumber, 0);
 					TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y, false);
 					hitProcessed = true;
 			}

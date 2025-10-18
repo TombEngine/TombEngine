@@ -19,6 +19,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_initialise.h"
 #include "Game/misc.h"
+#include "Game/Sink.h"
 #include "Game/spotcam.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
@@ -26,9 +27,9 @@
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
-#include "Objects/Sink.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
@@ -1320,6 +1321,23 @@ const std::vector<byte> SaveGame::Build()
 	auto particleOffset = fbb.CreateVector(particles);
 
 	// Swarm enemies
+	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> locusts;
+	for (int i = 0; i < MAX_LOCUSTS; i++)
+	{
+		auto* locust = &Locusts[i];
+
+		Save::SwarmObjectInfoBuilder locustInfo{ fbb };
+
+		locustInfo.add_flags(locust->Counter);
+		locustInfo.add_on(locust->On);
+		locustInfo.add_room_number(locust->RoomNumber);
+		locustInfo.add_pose(&FromPose(locust->Pose));
+		locustInfo.add_target(locust->Target);
+
+		locusts.push_back(locustInfo.Finish());
+	}
+	auto locustOffset = fbb.CreateVector(locusts);
+
 	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> bats;
 	for (int i = 0; i < NUM_BATS; i++)
 	{
@@ -1635,6 +1653,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_volumes(volumesOffset);
 	sgb.add_fixed_cameras(camerasOffset);
 	sgb.add_particles(particleOffset);
+	sgb.add_locusts(locustOffset);
 	sgb.add_bats(batsOffset);
 	sgb.add_rats(ratsOffset);
 	sgb.add_spiders(spidersOffset);
@@ -2476,7 +2495,18 @@ static void ParseEffects(const Save::SaveGame* s)
 		particle->lightFlicker = particleInfo->light_flicker();
 		particle->lightFlickerS = particleInfo->light_flicker_s();
 		particle->sound = particleInfo->sound();
+	}
 
+	for (int i = 0; i < s->locusts()->size(); i++)
+	{
+		auto* locustInfo = s->locusts()->Get(i);
+		auto* locust = &Locusts[i];
+
+		locust->On = locustInfo->on();
+		locust->Counter = locustInfo->flags();
+		locust->RoomNumber = locustInfo->room_number();
+		locust->Pose = ToPose(*locustInfo->pose());
+		locust->Target = locustInfo->target();
 	}
 
 	for (int i = 0; i < s->bats()->size(); i++)

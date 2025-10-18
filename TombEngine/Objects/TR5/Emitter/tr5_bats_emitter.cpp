@@ -2,6 +2,7 @@
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 
 #include "Game/animation.h"
+#include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
@@ -13,6 +14,8 @@
 #include "Specific/level.h"
 
 using namespace TEN::Math;
+
+constexpr auto BAT_LARA_DAMAGE = 2;
 
 int NextBat;
 BatData Bats[NUM_BATS];
@@ -109,19 +112,8 @@ void UpdateBats()
 	if (!Objects[ID_BATS_EMITTER].loaded)
 		return;
 
-	auto bounds = GameBoundingBox(LaraItem);
-
-	int x1 = LaraItem->Pose.Position.x + bounds.X1 - (bounds.X1 / 4);
-	int x2 = LaraItem->Pose.Position.x + bounds.X2 - (bounds.X2 / 4);
-
-	int y1 = LaraItem->Pose.Position.y + bounds.Y1 - (bounds.Y1 / 4);
-	int y2 = LaraItem->Pose.Position.y + bounds.Y1 - (bounds.Y1 / 4);
-
-	int z1 = LaraItem->Pose.Position.z + bounds.Z1 - (bounds.Z1 / 4);
-	int z2 = LaraItem->Pose.Position.z + bounds.Z1 - (bounds.Z1 / 4);
-
-	int minDistance = MAXINT;
-	int minIndex = -1;
+	int minDistance = INT_MAX;
+	int minIndex = NO_VALUE;
 
 	for (int i = 0; i < NUM_BATS; i++)
 	{
@@ -163,6 +155,7 @@ void UpdateBats()
 		int x = LaraItem->Pose.Position.x - bat->Pose.Position.x;
 		int z = LaraItem->Pose.Position.z - bat->Pose.Position.z;
 		int distance = pow(x, 2) + pow(z, 2);
+
 		if (distance < minDistance)
 		{
 			minDistance = distance;
@@ -182,23 +175,23 @@ void UpdateBats()
 
 		if (bat->Counter > 90)
 		{
-			short Velocity = bat->Velocity * 128;
+			short velocity = bat->Velocity * 128;
 
 			short xAngle = abs(angles.x - bat->Pose.Orientation.x) / 8;
 			short yAngle = abs(angles.y - bat->Pose.Orientation.y) / 8;
 
-			if (xAngle < -Velocity)
-				xAngle = -Velocity;
-			else if (xAngle > Velocity)
-				xAngle = Velocity;
+			if (xAngle < -velocity)
+				xAngle = -velocity;
+			else if (xAngle > velocity)
+				xAngle = velocity;
 
-			if (yAngle < -Velocity)
-				yAngle = -Velocity;
-			else if (yAngle > Velocity)
-				yAngle = Velocity;
+			if (yAngle < -velocity)
+				yAngle = -velocity;
+			else if (yAngle > velocity)
+				yAngle = velocity;
 
-			bat->Pose.Orientation.y += yAngle;
 			bat->Pose.Orientation.x += xAngle;
+			bat->Pose.Orientation.y += yAngle;
 		}
 
 		int sp = bat->Velocity * phd_cos(bat->Pose.Orientation.x);
@@ -207,16 +200,10 @@ void UpdateBats()
 		bat->Pose.Position.y += bat->Velocity * phd_sin(-bat->Pose.Orientation.x);
 		bat->Pose.Position.z += sp * phd_cos(bat->Pose.Orientation.y);
 
-		if ((i % 2) == 0 &&
-			bat->Pose.Position.x > x1 &&
-			bat->Pose.Position.x < x2 &&
-			bat->Pose.Position.y > y1 &&
-			bat->Pose.Position.y < y2 &&
-			bat->Pose.Position.z > z1 &&
-			bat->Pose.Position.z < z2)
+		if (!(i % 1) && ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)))
 		{
 			TriggerBlood(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z, 2 * GetRandomControl(), 2);
-			DoDamage(LaraItem, 2);
+			DoDamage(LaraItem, BAT_LARA_DAMAGE);
 		}
 
 		Matrix translation = Matrix::CreateTranslation(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z);
@@ -224,7 +211,7 @@ void UpdateBats()
 		bat->Transform = rotation * translation;
 	}
 
-	if (minIndex != -1)
+	if (minIndex != NO_VALUE)
 	{
 		auto* bat = &Bats[minIndex];
 

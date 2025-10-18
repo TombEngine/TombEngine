@@ -1074,11 +1074,11 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 				item->Pose.Position.y += distanceToVerticalPlane + 2;
 				coll->CollisionType = CollisionType::Top;
 			}
-			else
+			else if (TestEnvironment(ENV_FLAG_WATER, item->RoomNumber))
 			{
 				// Set collision type only if dry room (in water rooms the player can get stuck).
 				item->Pose.Position.y -= distanceToVerticalPlane;
-				coll->CollisionType = (g_Level.Rooms[item->RoomNumber].flags & 1) ? coll->CollisionType : CollisionType::Clamp;
+				coll->CollisionType = CollisionType::Clamp;
 			}
 
 			result = true;
@@ -1180,20 +1180,17 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		case NORTH:
 			if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = ox - x;
+				rawShift.x = ox - x;
 				coll->CollisionType = CollisionType::Front;
 			}
 			else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = 0;
+				rawShift.z = 0;
 				coll->CollisionType = CollisionType::Left;
 			}
 			else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = 0;
+				rawShift.z = 0;
 				coll->CollisionType = CollisionType::Right;
 			}
 
@@ -1202,20 +1199,17 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		case SOUTH:
 			if (rawShift.x > coll->Setup.Radius || rawShift.x < -coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = ox - x;
+				rawShift.x = ox - x;
 				coll->CollisionType = CollisionType::Front;
 			}
 			else if (rawShift.x > 0 && rawShift.x <= coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = 0;
+				rawShift.z = 0;
 				coll->CollisionType = CollisionType::Right;
 			}
 			else if (rawShift.x < 0 && rawShift.x >= -coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = 0;
+				rawShift.z = 0;
 				coll->CollisionType = CollisionType::Left;
 			}
 
@@ -1224,20 +1218,17 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		case EAST:
 			if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = oz - z;
+				rawShift.z = oz - z;
 				coll->CollisionType = CollisionType::Front;
 			}
 			else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = 0;
+				rawShift.x = 0;
 				coll->CollisionType = CollisionType::Right;
 			}
 			else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = 0;
+				rawShift.x = 0;
 				coll->CollisionType = CollisionType::Left;
 			}
 
@@ -1246,20 +1237,17 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		case WEST:
 			if (rawShift.z > coll->Setup.Radius || rawShift.z < -coll->Setup.Radius)
 			{
-				coll->Shift.Position.x = rawShift.x;
-				coll->Shift.Position.z = oz - z;
+				rawShift.z = oz - z;
 				coll->CollisionType = CollisionType::Front;
 			}
 			else if (rawShift.z > 0 && rawShift.z <= coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = 0;
+				rawShift.x = 0;
 				coll->CollisionType = CollisionType::Left;
 			}
 			else if (rawShift.z < 0 && rawShift.z >= -coll->Setup.Radius)
 			{
-				coll->Shift.Position.z = rawShift.z;
-				coll->Shift.Position.x = 0;
+				rawShift.x = 0;
 				coll->CollisionType = CollisionType::Right;
 			}
 
@@ -1267,7 +1255,7 @@ bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& 
 		}
 
 		// Determine final shifts orientation/distance.
-		distance = Vector3(x + coll->Shift.Position.x, y, z + coll->Shift.Position.z) - pose.Position.ToVector3();
+		distance = Vector3(x + rawShift.x, y, z + rawShift.z) - pose.Position.ToVector3();
 		sinY = phd_sin(-pose.Orientation.y);
 		cosY = phd_cos(-pose.Orientation.y);
 
