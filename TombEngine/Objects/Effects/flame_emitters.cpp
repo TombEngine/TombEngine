@@ -225,10 +225,10 @@ namespace TEN::Entities::Effects
 					}
 					else
 					{
+						auto color = GetFlameColor(item->Model.Color);
 						SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z,
 							10 - (GetRandomControl() & 1),
-							(GetRandomControl() & 0x3F) + 192,
-							(GetRandomControl() & 0x1F) + 96, 0);
+							color.x, color.y, color.z);
 					}
 				}
 
