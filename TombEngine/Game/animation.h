@@ -142,8 +142,7 @@ int	 GetNextAnimState(ItemInfo* item);
 int	 GetNextAnimState(int objectID, int animNumber);
 bool GetStateDispatch(ItemInfo* item, const AnimData& anim);
 
-void ClampRotation(Pose& outPose, short angle, short rotation); 
-void DrawAnimatingItem(ItemInfo* item);
+void ClampRotation(Pose& outPose, short angle, short rotation);
 
 Vector3i   GetJointPosition(const ItemInfo& item, int jointIndex, const Vector3i& relOffset = Vector3i::Zero);
 Vector3i   GetJointPosition(ItemInfo* item, int jointIndex, const Vector3i& relOffset = Vector3i::Zero);

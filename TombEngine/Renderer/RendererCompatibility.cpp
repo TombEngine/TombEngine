@@ -650,7 +650,7 @@ namespace TEN::Renderer
 				_moveableObjects[MoveablesIds[i]] = RendererObject();
 				RendererObject &moveable = *_moveableObjects[MoveablesIds[i]];
 				moveable.Id = MoveablesIds[i];
-				moveable.DoNotDraw = (obj->drawRoutine == nullptr);
+				moveable.DoNotDraw = obj->DoNotDraw;
 				moveable.ShadowType = obj->shadowType;
 													   
 				for (int j = 0; j < obj->nmeshes; j++)

@@ -1553,7 +1553,7 @@ namespace TEN::Renderer
 				const auto& room = _rooms[effectPtr->RoomNumber];
 				const auto& object = Objects[effectPtr->ObjectID];
 
-				if (object.drawRoutine && object.loaded)
+				if (!object.DoNotDraw && object.loaded)
 					DrawEffect(view, effectPtr, rendererPass);
 			}
 		}

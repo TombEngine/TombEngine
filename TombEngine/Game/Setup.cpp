@@ -224,7 +224,6 @@ void InitializeObjects()
 		obj->Initialize = nullptr;
 		obj->collision = nullptr;
 		obj->control = nullptr;
-		obj->drawRoutine = DrawAnimatingItem;
 		obj->HitRoutine = DefaultItemHit;
 		obj->pivotLength = 0;
 		obj->radius = DEFAULT_RADIUS;
@@ -236,7 +235,7 @@ void InitializeObjects()
 		obj->AlwaysActive = false;
 		obj->waterCreature = false;
 		obj->nonLot = false;
-		obj->usingDrawAnimatingItem = true;
+		obj->DoNotDraw = false;
 		obj->damageType = DamageMode::Any;
 		obj->LotType = LotType::Basic;
 		obj->meshSwapSlot = NO_VALUE;

@@ -152,7 +152,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 						continue;
 
 					// Ignore non-collidable non-player.
-					if (!item.IsLara() && (!item.Collidable || object.drawRoutine == nullptr || object.collision == nullptr))
+					if (!item.IsLara() && (!item.Collidable || object.DoNotDraw || object.collision == nullptr))
 						continue;
 
 					// HACK: Ignore UPV and big gun.
@@ -1877,7 +1877,7 @@ void DoObjectCollision(ItemInfo* item, CollisionInfo* coll)
 					continue;
 
 				// Infer object is nullmesh or invisible object by valid draw routine.
-				if (object.drawRoutine == nullptr)
+				if (object.DoNotDraw)
 					continue;
 
 				// Pickups are also not processed.
