@@ -22,7 +22,7 @@ namespace TEN::Hud
 
 	constexpr auto SPRITE_SCALE = 0.07f;
 
-	constexpr float INTERACTION_PADDING = CLICK(0.65f);
+	constexpr float INTERACTION_PADDING = CLICK(0.75f);
 	constexpr float INTERACTION_DISTANCE = BLOCK(2);
 	constexpr float INTERACTION_DISTANCE_TOLERANCE = CLICK(1);
 	constexpr float INTERACTION_ANGLE = TO_RAD(ANGLE(35.0f));
