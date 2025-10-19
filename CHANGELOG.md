@@ -41,6 +41,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
+* Fixed rendering issues with some static meshes if same level file is reused for the title.
 * Fixed intense GPU usage when engine window is minimized.
 * Fixed wrong highlights when sun lights were used in mirror setups.
 * Fixed SSAO applied multiple times when additive surfaces are present in scene.
