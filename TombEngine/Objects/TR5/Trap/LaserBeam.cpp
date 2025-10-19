@@ -142,7 +142,30 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool IsHeavyActivator)
+	 bool GetTransientLaserBeamLOS(int id)
+	{
+		for (const auto& s : GTransientPool)
+		{
+			if (s.On && s.ID == id && s.Effect.IsActive)
+			{
+				auto origin = GameVector(s.Pos, s.RoomNumber);
+				auto target = GameVector(s.TargetPos, s.TargetRoomNumber);
+
+				StaticMesh* mesh = nullptr;
+				bool los2 = LOS(&origin, &target);
+
+				auto hitPos = Vector3i::Zero;
+				if (ObjectOnLOS2(&origin, &target, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
+					return true;
+
+				continue;
+			}
+		}
+
+		return false;
+	}
+
+	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, int excludedItemNumber)
 	{
 		//free slot
 		const int idx = AcquireTransientIndex();
@@ -200,28 +223,37 @@ namespace TEN::Entities::Traps
 			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
 		}
 
-		//DrawDebugLine(position.ToVector3(), los.Position, Vector4(0, 1, 0, 1), RendererDebugPage::None);
-		bool los2 = LOS(&position, &GameVector(los.Position, los.RoomNumber));
+		DrawDebugLine(position.ToVector3(), slot.TargetPos, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+
 
 		auto hitPos = Vector3i::Zero;
 
 		GameVector tempOrigin = position;
-		GameVector tempTarget(los.Position, los.RoomNumber);
+		GameVector tempTarget(slot.TargetPos, los.RoomNumber);
 
-		if (ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
+		bool los2 = LOS(&tempOrigin, &tempTarget);
+
+		auto losObject = ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr);
+
+		if (isLethal && losObject != NO_LOS_ITEM && !los2)
 		{
-			if (isLethal &&
-				LaraItem->HitPoints > 0 && LaraItem->Effect.Type != EffectType::Smoke)
-			{
-				ItemRedLaserBurn(LaraItem, FPS * 2);
-				DoDamage(LaraItem, MAXINT);
-			}
+			auto& losItem = g_Level.Items[losObject];
 
-			if (IsHeavyActivator &&
-				LaraItem->HitPoints > 0)
-			{
-				slot.Effect.IsHeavyActivator = true;
-			}
+			if (losItem.IsCreature() && losObject != excludedItemNumber)
+				if (losItem.HitPoints > 0 && losItem.Effect.Type != EffectType::Smoke)
+				{
+					ItemRedLaserBurn(&losItem, FPS * 2);
+					losItem.HitPoints = 0;
+				}
+
+				if (losObject != excludedItemNumber && losItem.IsLara())
+				{
+					if (LaraItem->HitPoints > 0 && LaraItem->Effect.Type != EffectType::Smoke)
+					{
+						ItemRedLaserBurn(LaraItem, FPS * 2);
+						DoDamage(LaraItem, MAXINT);
+					}
+				}
 
 			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);
 			SpawnLaserBeamLight(position.ToVector3(), position.RoomNumber, color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);

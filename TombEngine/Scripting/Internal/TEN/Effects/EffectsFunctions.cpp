@@ -455,13 +455,16 @@ namespace TEN::Scripting::Effects
 // @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 // @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
 	//(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, bool IsHeavyActivator);
-	static void EmitLaserBeam(TypeOrNil<int> id, Vec3 pos, const EulerAngles& rot, TypeOrNil<int> roomNumber, TypeOrNil<int>lenght, TypeOrNil<int> radius, TypeOrNil<ScriptColor> col,  TypeOrNil<bool> isLethal, TypeOrNil<bool> hasSparks, TypeOrNil<bool> IsHeavyActivator)
+	static void EmitLaserBeam(TypeOrNil<int> id, Vec3 pos, const EulerAngles& rot, TypeOrNil<int>lenght, TypeOrNil<int> radius, TypeOrNil<ScriptColor> col,  TypeOrNil<bool> isLethal, TypeOrNil<bool> hasSparks, TypeOrNil<bool> IsHeavyActivator)
 	{
+		int laserID = ValueOr<int>(id, -1);
+		auto roomNumber = FindRoomNumber(Vector3i(pos.x, pos.y, pos.z));
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
 		int rad = (float)(ValueOr<int>(radius, 200));
-		auto position = GameVector(pos, roomNumber);
+		auto position = GameVector(Vector3(pos.x, pos.y, pos.z), roomNumber);
+		int lenght1 = ValueOr<int>(lenght, 1024);
 
-		EmitTransientLaserBeam(id, pos.ToVector3(), rot, lenght,  rad, color, ValueOr<bool>(isLethal, false), ValueOr<bool>(hasSparks, false), ValueOr<bool>(IsHeavyActivator, false));
+		EmitTransientLaserBeam(laserID, position, rot, lenght1,  rad, color, ValueOr<bool>(isLethal, false), ValueOr<bool>(hasSparks, false), ValueOr<bool>(IsHeavyActivator, false));
 	}
 
 	/// Emit dynamic light that lasts for a single frame.
@@ -766,6 +769,7 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitParticle, &EmitParticle);
 		tableEffects.set_function(ScriptReserved_EmitAdvancedParticle, &EmitAdvancedParticle);
 		tableEffects.set_function(ScriptReserved_EmitShockwave, &EmitShockwave);
+		tableEffects.set_function(ScriptReserved_EmitLaserBeam, &EmitLaserBeam);
 		tableEffects.set_function(ScriptReserved_EmitLight, &EmitLight);
 		tableEffects.set_function(ScriptReserved_EmitSpotLight, &EmitSpotLight);
 		tableEffects.set_function(ScriptReserved_EmitFogBulb, &EmitFogBulb);

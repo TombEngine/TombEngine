@@ -312,6 +312,8 @@ static constexpr char ScriptReserved_PercentToScreen[]				= "PercentToScreen";
 static constexpr char ScriptReserved_ScreenToPercent[]				= "ScreenToPercent";
 static constexpr char ScriptReserved_GetAspectRatio[]				= "GetAspectRatio";
 static constexpr char ScriptReserved_HasLineOfSight[]				= "HasLineOfSight";
+static constexpr char ScriptReserved_GetObjectOnLOS[]				= "GetObjectOnLOS";
+static constexpr char ScriptReserved_GetLaserBeamLOS[]				= "GetLaserBeamLOS";
 
 static constexpr char ScriptReserved_AddCallback[]					= "AddCallback";
 static constexpr char ScriptReserved_RemoveCallback[]				= "RemoveCallback";
@@ -323,6 +325,7 @@ static constexpr char ScriptReserved_EmitParticle[]					= "EmitParticle";
 static constexpr char ScriptReserved_EmitAdvancedParticle[]			= "EmitAdvancedParticle";
 static constexpr char ScriptReserved_EmitLightningArc[]				= "EmitLightningArc";
 static constexpr char ScriptReserved_EmitShockwave[]				= "EmitShockwave";
+static constexpr char ScriptReserved_EmitLaserBeam[]				= "EmitLaserBeam";
 static constexpr char ScriptReserved_EmitLight[]					= "EmitLight";
 static constexpr char ScriptReserved_EmitSpotLight[]				= "EmitSpotLight";
 static constexpr char ScriptReserved_EmitFogBulb[]					= "EmitFogBulb";

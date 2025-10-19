@@ -6,6 +6,7 @@
 #include "Game/control/los.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
+#include "Objects/TR5/Trap/LaserBeam.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -20,6 +21,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Los;
+using namespace TEN::Entities::Traps;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Scripting::Util
@@ -45,6 +47,24 @@ namespace TEN::Scripting::Util
 		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
 		return (LOS(&vector0, &vector1) && ObjectOnLOS2(&vector0, &vector1, &vector, &mesh) == NO_LOS_ITEM);
+	}
+
+	static int GetObjectOnLOS(const Vec3& posA, const Vec3& posB)
+	{
+		auto roomNumberOrigin = FindRoomNumber(Vector3i(posA.x, posA.y, posA.z));
+		auto roomNumberTarget = FindRoomNumber(Vector3i(posB.x, posB.y, posB.z));
+		auto vector0 = GameVector(posA.ToVector3(), roomNumberOrigin);
+		auto vector1 = GameVector(posB.ToVector3(), roomNumberTarget);
+
+		StaticMesh* mesh = nullptr;
+		auto vector = Vector3i::Zero;
+		// Not implemented yet.
+		return ObjectOnLOS2(&vector0, &vector1, &vector, &mesh);
+	}
+
+	static bool GetLaserBeamLOS(int id)
+	{
+			return GetTransientLaserBeamLOS(id);
 	}
 
 	/// Calculate the horizontal distance between two positions.
@@ -193,6 +213,8 @@ namespace TEN::Scripting::Util
 		parent.set(ScriptReserved_Util, tableUtil);
 
 		tableUtil.set_function(ScriptReserved_HasLineOfSight, &HasLineOfSight);
+		tableUtil.set_function(ScriptReserved_GetObjectOnLOS, &GetObjectOnLOS);
+		tableUtil.set_function(ScriptReserved_GetLaserBeamLOS, &GetLaserBeamLOS);
 		tableUtil.set_function(ScriptReserved_CalculateHorizontalDistance, &CalculateHorizontalDistance);
 		tableUtil.set_function(ScriptReserved_GetDisplayPosition, &GetDisplayPosition);
 		tableUtil.set_function(ScriptReserved_PickMoveable, &PickMoveable);

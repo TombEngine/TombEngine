@@ -160,7 +160,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 	auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 	//auto orient = Geometry::GetOrientToPoint(origin, target)
 
-	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 2048, 3, Vector4(1.0f, 0.0f, 0.0f, 1.0f),  false, true);
+	//TEN::Entities::Traps::EmitTransientLaserBeam(1, GameVector(pos1, item->RoomNumber), orient, 2048, 3, Vector4(1.0f, 0.0f, 0.0f, 1.0f), true, false, LaraItem->Index);
 
 
 	pos1 = GetJointPosition(item, LM_RHAND, Vector3i(0, 40, 0));
@@ -168,9 +168,9 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 	orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 
-	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 3, Vector4(0.0f, 0.7f, 1.0f, 1.0f), false, true);
-	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 1, Vector4(1.0f, 1.0f, 1.0f, 1.0f), false, true);
-	TEN::Entities::Traps::EmitTransientLaserBeam(GameVector(pos1, item->RoomNumber), orient, 512, 4, Vector4(0.0f, 0.7f, 1.0f, 0.3f), false, true);
+	TEN::Entities::Traps::EmitTransientLaserBeam(2, GameVector(pos1.ToVector3(), item->RoomNumber), orient, 512, 3, Vector4(0.0f, 0.7f, 1.0f, 1.0f), true, false, LaraItem->Index);
+	//TEN::Entities::Traps::EmitTransientLaserBeam(2,GameVector(pos1, item->RoomNumber), orient, 512, 1, Vector4(1.0f, 1.0f, 1.0f, 1.0f), true, false, LaraItem->Index);
+	//TEN::Entities::Traps::EmitTransientLaserBeam(2, GameVector(pos1, item->RoomNumber), orient, 512, 4, Vector4(0.0f, 0.7f, 1.0f, 0.3f), true, false, LaraItem->Index);
 
 
 	// Handle object interation adjustment parameters.
