@@ -223,15 +223,20 @@ namespace TEN::Entities::Traps
 			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
 		}
 
-		DrawDebugLine(position.ToVector3(), slot.TargetPos, Vector4(0, 1, 0, 1), RendererDebugPage::None);
+		//DrawDebugLine(position.ToVector3(), slot.TargetPos, Vector4(0, 1, 0, 1), RendererDebugPage::None);
 
 
 		auto hitPos = Vector3i::Zero;
 
+		auto targetr = position.ToVector3() + Vector3::Transform(position.ToVector3(), rotMatrix);//Geometry::TranslatePoint(position.ToVector3(), orientation, length), slot.TargetRoomNumber);
+		auto targetp = Geometry::TranslatePoint(position.ToVector3(), dir, length);
+
 		GameVector tempOrigin = position;
-		GameVector tempTarget(slot.TargetPos, los.RoomNumber);
+		GameVector tempTarget = GameVector(targetp, slot.RoomNumber);//GameVector(slot.TargetPos, los.RoomNumber);
 
 		bool los2 = LOS(&tempOrigin, &tempTarget);
+
+		DrawDebugLine(tempOrigin.ToVector3(), tempTarget.ToVector3(), Vector4(0, 1, 0, 1), RendererDebugPage::None);
 
 		auto losObject = ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr);
 

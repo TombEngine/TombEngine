@@ -164,6 +164,10 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 	pos1 = GetJointPosition(item, LM_RHAND, Vector3i(0, 40, 0));
 	pos2 = GetJointPosition(item, LM_RHAND, Vector3i(0, 40, 450));
+	
+
+	auto rotMatrix = EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(100.0f));
+	
 
 	orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 

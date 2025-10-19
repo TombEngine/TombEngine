@@ -464,7 +464,7 @@ namespace TEN::Scripting::Effects
 		auto position = GameVector(Vector3(pos.x, pos.y, pos.z), roomNumber);
 		int lenght1 = ValueOr<int>(lenght, 1024);
 
-		EmitTransientLaserBeam(laserID, position, rot, lenght1,  rad, color, ValueOr<bool>(isLethal, false), ValueOr<bool>(hasSparks, false), ValueOr<bool>(IsHeavyActivator, false));
+		//EmitTransientLaserBeam(laserID, position, rot, lenght1,  rad, color, ValueOr<bool>(isLethal, false), ValueOr<bool>(hasSparks, false), ValueOr<bool>(IsHeavyActivator, false));
 	}
 
 	/// Emit dynamic light that lasts for a single frame.
