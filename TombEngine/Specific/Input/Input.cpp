@@ -10,7 +10,6 @@
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Gui;
 using namespace TEN::Math;
@@ -228,7 +227,7 @@ namespace TEN::Input
 			for (int j = 0; j < (int)ActionID::Count; j++)
 			{
 				auto actionID = (ActionID)j;
-				if (g_Bindings.GetBoundKeyID(profileID, actionID) != OIS::KC_UNASSIGNED)
+				if (g_Bindings.GetBoundKeyID(profileID, actionID) == keyID)
 					return true;
 			}
 		}

@@ -16,7 +16,6 @@
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 #include "Version.h"
 
 using namespace TEN::Gui;

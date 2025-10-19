@@ -16,7 +16,6 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 TEN::Renderer::RendererHudBar* g_AirBar;
 TEN::Renderer::RendererHudBar* g_ExposureBar;

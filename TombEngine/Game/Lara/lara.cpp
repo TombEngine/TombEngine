@@ -41,7 +41,6 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
-#include "Specific/winmain.h"
 
 #include "Objects/TR5/Trap/LaserBeam.h"
 

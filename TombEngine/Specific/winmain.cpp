@@ -31,7 +31,6 @@ WINAPP App;
 unsigned int ThreadID, ConsoleThreadID, ThreadSuspendCount;
 uintptr_t ThreadHandle, ConsoleThreadHandle;
 HACCEL hAccTable;
-bool DebugMode = false;
 HWND WindowsHandle;
 
 // Indicates to hybrid graphics systems to prefer discrete part by default.

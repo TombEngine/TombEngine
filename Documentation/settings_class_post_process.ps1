@@ -5,7 +5,8 @@
 param(
     [string]$InputXmlFile = "API.xml",
     [string]$OutputXmlFile = "API.xml",
-    [string]$SettingsCppFile = "..\TombEngine\Scripting\Internal\TEN\Flow\Settings\Settings.cpp"
+    [string]$SettingsCppFile = "..\TombEngine\Scripting\Internal\TEN\Flow\Settings\Settings.cpp",
+    [switch]$Debug
 )
 
 # Constants
@@ -13,9 +14,12 @@ $FLOW_SETTINGS_CLASS = "Flow.Settings"
 $TEN_CLASS_TYPE = "tenclass"
 
 Write-Host "Starting Settings class generation from C++ source..."
-Write-Host "Input XML: $InputXmlFile"
-Write-Host "Output XML: $OutputXmlFile"
-Write-Host "Settings C++ file: $SettingsCppFile"
+
+if ($Debug) {
+    Write-Host "Input XML: $InputXmlFile"
+    Write-Host "Output XML: $OutputXmlFile"
+    Write-Host "Settings C++ file: $SettingsCppFile"
+}
 
 # Helper function to create XML elements with text content
 function New-XmlElementWithText {
@@ -184,7 +188,9 @@ function Get-MainClassDocumentation {
 function Parse-SettingsFromCpp {
     param([string]$CppFilePath)
 
-    Write-Host "Parsing Settings.cpp for complete class definitions..."
+    if ($Debug) {
+        Write-Host "Parsing Settings.cpp for complete class definitions..."
+    }
 
     $content = Get-Content $CppFilePath -Raw -Encoding UTF8
     $classes = @{}
@@ -193,7 +199,10 @@ function Parse-SettingsFromCpp {
 
     # Extract main class documentation
     $mainClassDoc = Get-MainClassDocumentation -Lines $lines
-    Write-Host "Found main class documentation: $($mainClassDoc.Summary)"
+
+    if ($Debug) {
+        Write-Host "Found main class documentation: $($mainClassDoc.Summary)"
+    }
 
     $currentSection = $null
     $currentSectionDescription = ""
@@ -209,14 +218,20 @@ function Parse-SettingsFromCpp {
         if ($line -match '//\s*@section\s+(\w+)') {
             $currentSection = $matches[1]
             $currentSectionDescription = Get-SectionDescription -Lines $lines -StartIndex $i
-            Write-Host "`tFound section: $currentSection - $currentSectionDescription"
+
+            if ($Debug) {
+                Write-Host "`tFound section: $currentSection - $currentSectionDescription"
+            }
 
             # Look for field type override for this section
             $fieldTypeOverride = Get-FieldTypeOverride -Lines $lines -FieldIndex $i
 
             if ($fieldTypeOverride) {
                 $sectionFieldTypes[$currentSection] = $fieldTypeOverride
-                Write-Host "`t`tFound field type override: $fieldTypeOverride"
+
+                if ($Debug) {
+                    Write-Host "`t`tFound field type override: $fieldTypeOverride"
+                }
             }
 
             continue
@@ -238,7 +253,9 @@ function Parse-SettingsFromCpp {
                     Fields = @()
                 }
 
-                Write-Host "`t`tProcessing class: $currentClassName"
+                if ($Debug) {
+                    Write-Host "`t`tProcessing class: $currentClassName"
+                }
             }
 
             continue
@@ -248,7 +265,10 @@ function Parse-SettingsFromCpp {
         if ($inRegisterMethod -and $line -eq "}") {
             if ($currentClassName -and $classes.ContainsKey("Flow.$currentClassName")) {
                 $classes["Flow.$currentClassName"].Fields = $fieldBuffer
-                Write-Host "`t`t`tAdded $($fieldBuffer.Count) fields to $currentClassName"
+
+                if ($Debug) {
+                    Write-Host "`t`t`tAdded $($fieldBuffer.Count) fields to $currentClassName"
+                }
             }
 
             # Reset state
@@ -272,12 +292,18 @@ function Parse-SettingsFromCpp {
             }
 
             $fieldBuffer += $fieldInfo
-            Write-Host "`t`t`t`tField: $fieldName - $($fieldDoc.Summary)"
+
+            if ($Debug) {
+                Write-Host "`t`t`t`tField: $fieldName - $($fieldDoc.Summary)"
+            }
         }
     }
 
     $totalFields = ($classes.Values | ForEach-Object { $_.Fields.Count } | Measure-Object -Sum).Sum
-    Write-Host "Parsed $totalFields fields across $($classes.Count) classes"
+
+    if ($Debug) {
+        Write-Host "Parsed $totalFields fields across $($classes.Count) classes"
+    }
 
     return @{
         Classes = $classes
@@ -347,17 +373,25 @@ function Remove-ExistingFlowSettingsClass {
     param([xml]$XmlDoc)
 
     $allClasses = $XmlDoc.GetElementsByTagName("class")
-    Write-Host "Found $($allClasses.Count) classes total in XML"
+
+    if ($Debug) {
+        Write-Host "Found $($allClasses.Count) classes total in XML"
+    }
 
     foreach ($class in $allClasses) {
         if ($class.name -eq $FLOW_SETTINGS_CLASS) {
-            Write-Host "Removing existing $FLOW_SETTINGS_CLASS class from XML"
+            if ($Debug) {
+                Write-Host "Removing existing $FLOW_SETTINGS_CLASS class from XML"
+            }
+
             $class.ParentNode.RemoveChild($class) | Out-Null
             return
         }
     }
 
-    Write-Host "No existing $FLOW_SETTINGS_CLASS class found in XML"
+    if ($Debug) {
+        Write-Host "No existing $FLOW_SETTINGS_CLASS class found in XML"
+    }
 }
 
 # Helper function to save XML with proper formatting
@@ -378,7 +412,9 @@ function Save-XmlWithFormatting {
         $XmlDoc.Save($xmlWriter)
         $xmlWriter.Close()
 
-        Write-Host "File saved successfully to: $OutputPath (with tab indentation)"
+        if ($Debug) {
+            Write-Host "File saved successfully to: $OutputPath (with tab indentation)"
+        }
     } catch {
         Write-Host "ERROR saving XML file: $($_.Exception.Message)"
         exit 1
@@ -408,7 +444,9 @@ try {
         $($mainClassDoc.Description)
     }
 
-    Write-Host "Using main class description: $mainDescription"
+    if ($Debug) {
+        Write-Host "Using main class description: $mainDescription"
+    }
 
     # Load and process XML
     [xml]$xmlDoc = Get-Content $InputXmlFile -Encoding UTF8
@@ -422,20 +460,30 @@ try {
         exit 1
     }
 
-    Write-Host "Found classes container with $($classesContainer.ChildNodes.Count) child nodes"
+    if ($Debug) {
+        Write-Host "Found classes container with $($classesContainer.ChildNodes.Count) child nodes"
+    }
 
     # Generate new settings classes from C++ source
     foreach ($className in $settingsClasses.Keys) {
         $classInfo = $settingsClasses[$className]
-        Write-Host "Creating class: $className with $($classInfo.Fields.Count) fields"
+
+        if ($Debug) {
+            Write-Host "Creating class: $className with $($classInfo.Fields.Count) fields"
+        }
 
         $newClassElement = New-XmlClassElement -XmlDoc $xmlDoc -ClassInfo $classInfo
         $classesContainer.AppendChild($newClassElement) | Out-Null
-        Write-Host "`tAdded $className to classes container successfully"
+
+        if ($Debug) {
+            Write-Host "`tAdded $className to classes container successfully"
+        }
     }
 
     # Generate the main Flow.Settings class with sub-class references
-    Write-Host "Creating main $FLOW_SETTINGS_CLASS class with sub-class references"
+    if ($Debug) {
+        Write-Host "Creating main $FLOW_SETTINGS_CLASS class with sub-class references"
+    }
 
     $mainClass = @{
         Name = $FLOW_SETTINGS_CLASS
@@ -461,10 +509,12 @@ try {
             Description = $classInfo.Description
         }
 
-        if ($fieldType -ne $className) {
-            Write-Host "`tAdded field: $($classInfo.Section) -> $fieldType (overridden from $className)"
-        } else {
-            Write-Host "`tAdded field: $($classInfo.Section) -> $className"
+        if ($Debug) {
+            if ($fieldType -ne $className) {
+                Write-Host "`tAdded field: $($classInfo.Section) -> $fieldType (overridden from $className)"
+            } else {
+                Write-Host "`tAdded field: $($classInfo.Section) -> $className"
+            }
         }
     }
 
@@ -507,23 +557,29 @@ try {
     $mainClassElement.AppendChild($mainMembersElement) | Out-Null
 
     $classesContainer.AppendChild($mainClassElement) | Out-Null
-    Write-Host "`tAdded $FLOW_SETTINGS_CLASS class with $($settingsClasses.Keys.Count) sub-class references"
+
+    if ($Debug) {
+        Write-Host "`tAdded $FLOW_SETTINGS_CLASS class with $($settingsClasses.Keys.Count) sub-class references"
+    }
 
     # Save the processed XML
     Save-XmlWithFormatting -XmlDoc $xmlDoc -OutputPath $OutputXmlFile
 
     # Display results
-    Write-Host ""
     Write-Host "Settings class generation completed successfully!"
-    Write-Host "Generated main $FLOW_SETTINGS_CLASS class plus $($settingsClasses.Keys.Count) settings sub-classes:"
-    Write-Host "`t$FLOW_SETTINGS_CLASS ($($settingsClasses.Keys.Count) sub-class references)"
 
-    foreach ($className in $settingsClasses.Keys) {
-        $fieldCount = $settingsClasses[$className].Fields.Count
-        Write-Host "`t$className ($fieldCount fields)"
+    if ($Debug) {
+        Write-Host "Generated main $FLOW_SETTINGS_CLASS class plus $($settingsClasses.Keys.Count) settings sub-classes:"
+        Write-Host "`t$FLOW_SETTINGS_CLASS ($($settingsClasses.Keys.Count) sub-class references)"
+
+        foreach ($className in $settingsClasses.Keys) {
+            $fieldCount = $settingsClasses[$className].Fields.Count
+            Write-Host "`t$className ($fieldCount fields)"
+        }
+
+        Write-Host ""
     }
 
-    Write-Host ""
     Write-Host "Output saved to: $OutputXmlFile"
 
 } catch {
