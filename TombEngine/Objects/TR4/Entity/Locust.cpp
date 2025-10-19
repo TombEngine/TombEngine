@@ -83,6 +83,11 @@ namespace TEN::Entities::TR4
 		if (!item->TriggerFlags)
 			item->TriggerFlags = MAX_LOCUSTS;
 
+		// We don't need to adjust position if locusts were placed 
+		// directly, and not via ID_LOCUST_EMITTER.
+		if (item->ObjectNumber == GAME_OBJECT_ID::ID_LOCUSTS)
+			return;
+
 		if (item->Pose.Orientation.y > 0)
 		{
 			if (item->Pose.Orientation.y == ANGLE(90.0f))
@@ -117,9 +122,6 @@ namespace TEN::Entities::TR4
 
 	void UpdateLocusts()
 	{
-		if (!Objects[ID_LOCUSTS_EMITTER].loaded)
-			return;
-
 		int closestDist = INT_MAX;
 		int closestNumber = NO_VALUE;
 

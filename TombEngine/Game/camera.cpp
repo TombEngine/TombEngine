@@ -24,7 +24,6 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Environment;

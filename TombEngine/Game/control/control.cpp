@@ -60,8 +60,8 @@
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Specific/winmain.h"
 #include "Specific/Video/Video.h"
+#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -105,6 +105,7 @@ bool InitializeGame	= false;
 bool DoTheGame		= false;
 bool JustLoaded		= false;
 bool ThreadEnded	= false;
+bool DebugMode		= false;
 
 int RequiredStartPos;
 int CurrentLevel;

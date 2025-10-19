@@ -583,6 +583,14 @@ namespace TEN::Entities
 			obj->drawRoutine = nullptr;
 		}
 
+		obj = &Objects[ID_LOCUSTS];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeLocustEmitter;
+			obj->control = LocustEmitterControl;
+			obj->drawRoutine = nullptr;
+		}
+
 		obj = &Objects[ID_WRAITH1];
 		if (obj->loaded)
 		{

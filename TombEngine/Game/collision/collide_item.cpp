@@ -21,7 +21,6 @@
 #include "Math/Math.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;

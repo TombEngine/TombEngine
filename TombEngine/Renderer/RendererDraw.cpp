@@ -32,7 +32,6 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Effects::Hair;
 using namespace TEN::Hud;
