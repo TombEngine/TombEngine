@@ -23,8 +23,6 @@ namespace TEN::Utils
 
 	int GetHash(const std::string& string);
 
-	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c);
-
 	// 2D space utilities
 
 	Vector2 GetAspectCorrect2DPosition(const Vector2& pos);

@@ -3,14 +3,14 @@
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Graphics/IndexBuffer.h"
 #include "Renderer/Graphics/VertexBuffer.h"
-#include "Specific/trutils.h"
+#include "Math/Utils.h"
 
 namespace TEN::Renderer::Structures
 {
 	using namespace DirectX::SimpleMath;
 	using namespace TEN::Renderer;
 	using namespace TEN::Renderer::Graphics;
-	using namespace TEN::Utils;
+	using namespace TEN::Math;
 
 	struct RendererHudBar
 	{
