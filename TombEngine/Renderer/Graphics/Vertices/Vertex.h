@@ -8,7 +8,7 @@ namespace TEN::Renderer::Graphics::Vertices
 		Vector3 Position	 = Vector3::Zero;
 		unsigned int Normal	 = 0;
 		Vector2 UV			 = Vector2::Zero;
-		unsigned int Color	 = 0;
+		Vector4 Color		 = Vector4::One;
 		unsigned int Tangent = 0;
 		unsigned int FaceNormal = 0;
 

@@ -1,7 +1,11 @@
 #pragma once
 
+#include <SimpleMath.h>
+
 namespace TEN::Utils
 {
+	using namespace DirectX::SimpleMath;
+
 	// String utilities
 
 	std::string ConstructAssetDirectory(std::string customDirectory);
@@ -19,7 +23,7 @@ namespace TEN::Utils
 
 	int GetHash(const std::string& string);
 
-	unsigned int VectorColorToRGBA(Vector4 c);
+	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c);
 
 	// 2D space utilities
 

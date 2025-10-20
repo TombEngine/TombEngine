@@ -415,13 +415,13 @@ namespace TEN::Renderer
 			vertex0.Position.x = line.Origin.x;
 			vertex0.Position.y = line.Origin.y;
 			vertex0.Position.z = 1.0f;
-			vertex0.Color = VectorColorToRGBA(line.Color);
+			vertex0.Color = VectorColorToRGBA_TempToVector4(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position.x = line.Target.x;
 			vertex1.Position.y = line.Target.y;
 			vertex1.Position.z = 1.0f;
-			vertex1.Color = VectorColorToRGBA(line.Color);
+			vertex1.Color = VectorColorToRGBA_TempToVector4(line.Color);
 
 			vertex0.Position = Vector3::Transform(vertex0.Position, worldMatrix);
 			vertex1.Position = Vector3::Transform(vertex1.Position, worldMatrix);
@@ -1157,11 +1157,11 @@ namespace TEN::Renderer
 		{
 			auto vertex0 = Vertex{};
 			vertex0.Position = line.Origin;
-			vertex0.Color = VectorColorToRGBA(line.Color);
+			vertex0.Color = VectorColorToRGBA_TempToVector4(line.Color);
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = line.Target;
-			vertex1.Color = VectorColorToRGBA(line.Color);
+			vertex1.Color = VectorColorToRGBA_TempToVector4(line.Color);
 
 			_primitiveBatch->DrawLine(vertex0, vertex1);
 
@@ -1196,7 +1196,7 @@ namespace TEN::Renderer
 			{
 				auto rVertex = Vertex{};
 				rVertex.Position = vertex;
-				rVertex.Color = VectorColorToRGBA(tri.Color);
+				rVertex.Color = VectorColorToRGBA_TempToVector4(tri.Color);
 
 				rVertices.push_back(rVertex);
 			}
@@ -3699,25 +3699,25 @@ namespace TEN::Renderer
 					Vertex v0;
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
-					v0.Color = VectorColorToRGBA(spr->c1);
+					v0.Color = VectorColorToRGBA_TempToVector4(spr->c1);
 					v0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					Vertex v1;
 					v1.Position = Vector3::Transform(p1t, world);
 					v1.UV = uv1;
-					v1.Color = VectorColorToRGBA(spr->c2);
+					v1.Color = VectorColorToRGBA_TempToVector4(spr->c2);
 					v1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					Vertex v2;
 					v2.Position = Vector3::Transform(p2t, world);
 					v2.UV = uv2;
-					v2.Color = VectorColorToRGBA(spr->c3);
+					v2.Color = VectorColorToRGBA_TempToVector4(spr->c3);
 					v2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 				    
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
-					v3.Color = VectorColorToRGBA(spr->c4);
+					v3.Color = VectorColorToRGBA_TempToVector4(spr->c4);
 					v3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 					_sortedPolygonsVertices.push_back(v0);
