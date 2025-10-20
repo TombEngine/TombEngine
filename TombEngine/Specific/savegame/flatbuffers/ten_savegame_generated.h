@@ -5022,6 +5022,7 @@ struct CameraT : public flatbuffers::NativeTable {
   typedef Camera TableType;
   std::unique_ptr<TEN::Save::GameVector> position{};
   std::unique_ptr<TEN::Save::GameVector> target{};
+  std::unique_ptr<TEN::Save::EulerAngles> extra_orientation{};
 };
 
 struct Camera FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -5030,7 +5031,8 @@ struct Camera FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_POSITION = 4,
-    VT_TARGET = 6
+    VT_TARGET = 6,
+    VT_EXTRA_ORIENTATION = 8
   };
   const TEN::Save::GameVector *position() const {
     return GetStruct<const TEN::Save::GameVector *>(VT_POSITION);
@@ -5038,10 +5040,14 @@ struct Camera FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const TEN::Save::GameVector *target() const {
     return GetStruct<const TEN::Save::GameVector *>(VT_TARGET);
   }
+  const TEN::Save::EulerAngles *extra_orientation() const {
+    return GetStruct<const TEN::Save::EulerAngles *>(VT_EXTRA_ORIENTATION);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<TEN::Save::GameVector>(verifier, VT_POSITION) &&
            VerifyField<TEN::Save::GameVector>(verifier, VT_TARGET) &&
+           VerifyField<TEN::Save::EulerAngles>(verifier, VT_EXTRA_ORIENTATION) &&
            verifier.EndTable();
   }
   CameraT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -5059,6 +5065,9 @@ struct CameraBuilder {
   void add_target(const TEN::Save::GameVector *target) {
     fbb_.AddStruct(Camera::VT_TARGET, target);
   }
+  void add_extra_orientation(const TEN::Save::EulerAngles *extra_orientation) {
+    fbb_.AddStruct(Camera::VT_EXTRA_ORIENTATION, extra_orientation);
+  }
   explicit CameraBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -5073,8 +5082,10 @@ struct CameraBuilder {
 inline flatbuffers::Offset<Camera> CreateCamera(
     flatbuffers::FlatBufferBuilder &_fbb,
     const TEN::Save::GameVector *position = 0,
-    const TEN::Save::GameVector *target = 0) {
+    const TEN::Save::GameVector *target = 0,
+    const TEN::Save::EulerAngles *extra_orientation = 0) {
   CameraBuilder builder_(_fbb);
+  builder_.add_extra_orientation(extra_orientation);
   builder_.add_target(target);
   builder_.add_position(position);
   return builder_.Finish();
@@ -10923,6 +10934,7 @@ inline void Camera::UnPackTo(CameraT *_o, const flatbuffers::resolver_function_t
   (void)_resolver;
   { auto _e = position(); if (_e) _o->position = std::unique_ptr<TEN::Save::GameVector>(new TEN::Save::GameVector(*_e)); }
   { auto _e = target(); if (_e) _o->target = std::unique_ptr<TEN::Save::GameVector>(new TEN::Save::GameVector(*_e)); }
+  { auto _e = extra_orientation(); if (_e) _o->extra_orientation = std::unique_ptr<TEN::Save::EulerAngles>(new TEN::Save::EulerAngles(*_e)); }
 }
 
 inline flatbuffers::Offset<Camera> Camera::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CameraT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -10935,10 +10947,12 @@ inline flatbuffers::Offset<Camera> CreateCamera(flatbuffers::FlatBufferBuilder &
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CameraT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _position = _o->position ? _o->position.get() : 0;
   auto _target = _o->target ? _o->target.get() : 0;
+  auto _extra_orientation = _o->extra_orientation ? _o->extra_orientation.get() : 0;
   return TEN::Save::CreateCamera(
       _fbb,
       _position,
-      _target);
+      _target,
+      _extra_orientation);
 }
 
 inline FixedCameraT *FixedCamera::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

@@ -38,6 +38,11 @@ constexpr auto COLL_CANCEL_THRESHOLD   = BLOCK(2);
 constexpr auto COLL_DISCARD_THRESHOLD  = CLICK(0.5f);
 constexpr auto CAMERA_RADIUS           = CLICK(1);
 
+constexpr auto MANUAL_ROTATION_THRESHOLD         = 0.01f;
+constexpr auto MANUAL_ROTATION_SPEED             = 6.0f;
+constexpr auto MANUAL_ROTATION_LOWER_ANGLE_LIMIT = ANGLE(-70.0f);
+constexpr auto MANUAL_ROTATION_UPPER_ANGLE_LIMIT = ANGLE(90.0f);
+
 struct OLD_CAMERA
 {
 	short ActiveState;
@@ -52,18 +57,21 @@ struct OLD_CAMERA
 };
 
 bool ItemCameraOn;
+bool UseForcedFixedCamera;
+
+GameVector LookCamPosition;
+GameVector LookCamTarget;
 GameVector LastPosition;
 GameVector LastTarget;
 GameVector LastIdeal;
 GameVector Ideals[5];
+GameVector ForcedFixedCamera;
+
+CAMERA_INFO Camera;
 OLD_CAMERA OldCam;
+
 int CameraSnaps = 0;
 int TargetSnaps = 0;
-GameVector LookCamPosition;
-GameVector LookCamTarget;
-CAMERA_INFO Camera;
-GameVector ForcedFixedCamera;
-bool UseForcedFixedCamera;
 
 CameraType BinocularOldCamera;
 
@@ -86,22 +94,35 @@ float CinematicBarsSpeed = 0;
 
 void DoThumbstickCamera()
 {
-	constexpr auto VERTICAL_CONSTRAINT_ANGLE   = ANGLE(120.0f);
-	constexpr auto HORIZONTAL_CONSTRAINT_ANGLE = ANGLE(80.0f);
+	// FIXME: IsHeld and IsClicked isn't working here for some reason.
+	if (IsReleased(In::Look))
+	{
+		Camera.extraAngle = 0;
+		Camera.extraElevation = 0;
+		return;
+	}
 
 	if (!g_Configuration.EnableThumbstickCamera)
 		return;
 
-	if (Camera.laraNode == NO_VALUE && Camera.target.ToVector3i() == OldCam.target)
-	{
-		const auto& axisCoeff = AxisMap[AxisID::Camera];
+	if (Camera.laraNode != NO_VALUE)
+		return;
 
-		if (abs(axisCoeff.x) > EPSILON && abs(Camera.targetAngle) == 0)
-			Camera.targetAngle = ANGLE(VERTICAL_CONSTRAINT_ANGLE * axisCoeff.x);
+	// Only read axis values if overall magnitude is above threshold.
+	auto axisCoeff = Vector2::Zero;
+	if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
+		axisCoeff = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+	
+	// Accumulate extra angles to gradually rotate camera around Lara over time.
+	Camera.extraAngle += ANGLE(axisCoeff.x);
+	Camera.extraElevation += ANGLE(axisCoeff.y);
 
-		if (abs(axisCoeff.y) > EPSILON)
-			Camera.targetElevation = ANGLE(-10.0f + (HORIZONTAL_CONSTRAINT_ANGLE * axisCoeff.y));
-	}
+	// Limit vertical camera movement to avoid clipping.
+	Camera.extraElevation = std::clamp(Camera.extraElevation, MANUAL_ROTATION_LOWER_ANGLE_LIMIT, MANUAL_ROTATION_UPPER_ANGLE_LIMIT);
+
+	// Apply extra angles to target angles instead of actual angles for smooth movement.
+	Camera.targetAngle += Camera.extraAngle;
+	Camera.targetElevation += Camera.extraElevation;
 }
 
 static int GetLookCameraVerticalOffset(const ItemInfo& item, const CollisionInfo& coll)

@@ -22,19 +22,28 @@ struct CAMERA_INFO
 {
 	GameVector pos;
 	GameVector target;
+	Vector3i   mikePos;
+
 	CameraType type;
 	CameraType oldType;
 	CameraType lastType;
-	int shift;
-	int flags;
+
 	bool fixedCamera;
 	bool underwater;
+	bool mikeAtLara;
+
+	int shift;
+	int flags;
 	int bounce;
 	int targetDistance;
+
 	short targetAngle;
 	short targetElevation;
-	short actualElevation;
 	short actualAngle;
+	short actualElevation;
+	short extraAngle;
+	short extraElevation;
+
 	short laraNode;
 	short box;
 	short number;
@@ -42,10 +51,9 @@ struct CAMERA_INFO
 	short timer;
 	short speed;
 	short targetspeed;
+
 	ItemInfo* item;
 	ItemInfo* lastItem;
-	int mikeAtLara;
-	Vector3i mikePos;
 
 	float Roll = 0.0f;
 	float Fov  = 0.0f;
@@ -66,8 +74,8 @@ constexpr auto DEFAULT_FOV = 80.0f;
 
 extern CAMERA_INFO Camera;
 extern GameVector ForcedFixedCamera;
-extern bool UseForcedFixedCamera;
 extern CameraType BinocularOldCamera;
+extern bool UseForcedFixedCamera;
 extern short CurrentFOV;
 extern short LastFOV;
 

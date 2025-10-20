@@ -553,6 +553,7 @@ const std::vector<byte> SaveGame::Build()
 	Save::CameraBuilder camera{ fbb };
 	camera.add_position(&FromGameVector(Camera.pos));
 	camera.add_target(&FromGameVector(Camera.target));
+	camera.add_extra_orientation(&FromEulerAngles(EulerAngles(Camera.extraElevation, Camera.extraAngle, 0)));
 	auto cameraOffset = camera.Finish();
 
 
@@ -2327,6 +2328,8 @@ static void ParsePlayer(const Save::SaveGame* s)
 	// Camera
 	Camera.pos = ToGameVector(s->camera()->position());
 	Camera.target = ToGameVector(s->camera()->target());
+	Camera.extraAngle = ToEulerAngles(s->camera()->extra_orientation()).y;
+	Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;
 
 	for (auto& item : g_Level.Items)
 	{

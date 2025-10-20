@@ -359,6 +359,7 @@ table Lara {
 table Camera {
 	position: GameVector;
 	target: GameVector;
+	extra_orientation: EulerAngles;
 }
 
 table FixedCamera {

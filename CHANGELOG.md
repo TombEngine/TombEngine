@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
 * Added ability to colorize ROPE objects.
 * Added ability to antitrigger FISH_EMITTER.
+* Reworked thumbstick camera to act like in FLEP patch.
 * Increased renderer performance and reduced GPU memory usage.
 * Increased level loading speed by switching to LZ4 compression format.
 

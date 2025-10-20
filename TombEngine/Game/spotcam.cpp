@@ -464,7 +464,7 @@ void CalculateSpotCameras()
 	else if (!SpotcamTimer)
 		CurrentSplinePosition += cspeed;
 
-	bool lookPressed = (IsHeld(In::Look)) != 0;
+	bool lookPressed = IsHeld(In::Look);
 
 	if (!lookPressed)
 		SpotCamFirstLook = false;
