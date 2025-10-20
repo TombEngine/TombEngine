@@ -234,11 +234,20 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 	default:
 		if (!lara->Weapons[(int)weaponType].Present)
 		{
-			TENLog("SetWeaponType error; no such weapon is present in the inventory.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetWeaponType: no such weapon is present in the inventory.", LogLevel::Warning, LogConfig::All);
 			break;
 		}
 
-		if (!activate.value_or(false))
+		bool weaponInHands = !activate.value_or(false) && (lara->Control.HandStatus == HandStatus::WeaponReady || lara->Control.HandStatus == HandStatus::WeaponDraw);
+
+		if (activate.value_or(false) || weaponInHands)
+		{
+			lara->Control.Weapon.RequestGunType = weaponType;
+
+			if (weaponInHands)
+				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+		}
+		else
 		{
 			lara->Control.Weapon.LastGunType = weaponType;
 
@@ -251,10 +260,6 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 			{
 				UndrawShotgunMeshes(*_moveable, lara->Control.Weapon.LastGunType);
 			}
-		}
-		else
-		{
-			lara->Control.Weapon.RequestGunType = weaponType;
 		}
 		break;
 	}
