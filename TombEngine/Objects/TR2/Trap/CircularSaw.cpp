@@ -19,6 +19,7 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto CIRCULAR_SAW_HARM_DAMAGE = 5000;
 	constexpr auto CIRCULAR_SAW_HARM_MESH = 0x4;
+	constexpr auto CIRCULAR_SAW_OVERDRIVE_SOUND_TIMER = 12;
 
 	enum CircularSawState
 	{
@@ -42,7 +43,6 @@ namespace TEN::Entities::Traps
 
 	void ControlCircularSaw(short itemNumber)
 	{
-
 		auto& item = g_Level.Items[itemNumber];
 
 		if (TriggerActive(&item))
@@ -101,9 +101,12 @@ namespace TEN::Entities::Traps
 	{
 		for (int i = 0; i < 2; i++)
 		{
+			auto sparkYAngle = item->Pose.Orientation.y + GenerateAngle(ANGLE(-30.0f), ANGLE(30.0f));
+			auto sparkColor = Vector4(2.0f, 1.0f, 0.2f, 1.0f);
 			auto pos = GetJointPosition(item, 2);
 			pos = Geometry::TranslatePoint(pos, item->Pose.Orientation.y, Vector3i(0, 270, 150));
-			TriggerSawSpark(pos, EulerAngles(Random::GenerateAngle(), item->Pose.Orientation.y + GenerateAngle(ANGLE(-30.0f), ANGLE(30.0f)), 0), 3, Vector4(2.0f, 1.0f, 0.2f, 1.0f));//TriggerFrictionSpark(GameVector(pos, item->RoomNumber), item->Pose.Orientation, 320, 1);
+
+			TriggerSawSpark(pos, EulerAngles(Random::GenerateAngle(), sparkYAngle, 0), 3, sparkColor);
 
 			if (i)
 			{
@@ -184,7 +187,7 @@ namespace TEN::Entities::Traps
 
 					if (TriggerActive(&item))
 					{
-						item.ItemFlags[5] = 12;
+						item.ItemFlags[5] = CIRCULAR_SAW_OVERDRIVE_SOUND_TIMER;
 						TriggerLaraBlood();
 						DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);
 					}

@@ -34,14 +34,14 @@ namespace TEN::Entities::Traps
 			if ((item.Animation.FrameNumber - GetAnimData(item).frameBase) >= HEAVY_STAMPER_IMPACT_FRAME)
 			{
 				Camera.bounce = -9;
-				*(int*)&item.ItemFlags[4] = HEAVY_STAMPER_DAMAGE;  // NOTE: Avoid the stamper pushing the player in GenericSphereBoxCollision().
+				item.ItemFlags[4] = HEAVY_STAMPER_DAMAGE;  // NOTE: Avoid the stamper pushing the player in GenericSphereBoxCollision().
 			}
 			else
 			{
-				*(int*)&item.ItemFlags[4] = 0;
+				item.ItemFlags[4] = 0;
 			}		
 			
-			*(int*)&item.ItemFlags[0] = 1;
+			item.ItemFlags[0] = 1;
 			item.ItemFlags[3] = HEAVY_STAMPER_DAMAGE;
 			
 			AnimateItem(&item);
@@ -65,7 +65,7 @@ namespace TEN::Entities::Traps
 		auto spheres = item.GetSpheres();
 		item.Pose.Orientation.y = prevYOrient;
 
-		int harmBits = *(int*)&item.ItemFlags[0]; // NOTE: Value spread across ItemFlags[0] and ItemFlags[1].
+		int harmBits = item.ItemFlags[0]; // NOTE: Value spread across ItemFlags[0] and ItemFlags[1].
 
 		auto collidedBits = item.TouchBits;
 		if (item.ItemFlags[2] != 0)

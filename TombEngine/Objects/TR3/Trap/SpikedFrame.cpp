@@ -24,7 +24,7 @@ namespace TEN::Entities::Traps
 
 		item.Animation.TargetState = SPIKED_FRAME_DAMAGE_STATE;
 
-			AnimateItem(&item);
+		AnimateItem(&item);
 	}
 
 	void CollideSpikedFrame(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
@@ -43,18 +43,18 @@ namespace TEN::Entities::Traps
 		auto playerBox = GameBoundingBox(playerItem).ToBoundingOrientedBox(playerItem->Pose);
 		auto itemBox = GameBoundingBox(item).ToBoundingOrientedBox(item->Pose);
 
-		if (itemBox.Intersects(playerBox))
+		if (!itemBox.Intersects(playerBox))
+			return;
+		
+		if (playerItem->HitPoints > 0)
 		{
-			if (playerItem->HitPoints > 0)
-			{
-				ItemPushItem(item, playerItem, coll, false, 1);
-			}
-
-			if (item->Animation.ActiveState != SPIKED_FRAME_DAMAGE_STATE)
-				return;
-
-			DoDamage(LaraItem, SPIKED_FRAME_DAMAGE);
-			DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item->Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);
+			ItemPushItem(item, playerItem, coll, false, 1);
 		}
+
+		if (item->Animation.ActiveState != SPIKED_FRAME_DAMAGE_STATE)
+			return;
+
+		DoDamage(LaraItem, SPIKED_FRAME_DAMAGE);
+		DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item->Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);		
 	}
 }

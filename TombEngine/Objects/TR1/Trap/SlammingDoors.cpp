@@ -64,16 +64,12 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		if (item.Animation.AnimNumber == GetAnimIndex(item, 1))
-		{
-			const auto frameBase = GetAnimData(item).frameBase;
-			const auto currentFrame = item.Animation.FrameNumber;
+		auto angle = GetBoneOrientation(item, 1);
 
-			if (currentFrame == frameBase + 8 || currentFrame == frameBase + 15)
-			{
+		if (angle.y == 0)
+		{
 				SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 				SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
-			}
 		}
 
 		AnimateItem(&item);

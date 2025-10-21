@@ -40,7 +40,7 @@
 
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
-#include "Objects/TR3/Trap/DrillPit.h"
+#include "Objects/TR3/Trap/DrillBit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/HeavyStamper.h"
 #include "Objects/TR3/Trap/SpikedFrame.h"
@@ -569,8 +569,8 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_DRILL_BIT];
 	if (obj->loaded)
 	{
-		obj->control = ControlDrillPit;
-		obj->collision = CollideDrillPit;
+		obj->control = ControlDrillBit;
+		obj->collision = CollideDrillBit;
 		obj->SetHitEffect(true);
 	}
 
