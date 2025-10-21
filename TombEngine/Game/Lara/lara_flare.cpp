@@ -399,6 +399,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	else
 	{
 		flareItem.ItemFlags[3] = lara.Torch.IsLit;
+		flareItem.Effect.PrimaryEffectColor = lara.Torch.CurrentColor;
 	}
 
 	AddActiveItem(itemNumber);

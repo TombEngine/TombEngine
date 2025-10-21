@@ -179,6 +179,9 @@ enum TorchState:int32 {
 table TorchData {
 	state: TorchState;
 	is_lit: bool;
+	fade: int32;
+	current_color: Vector3;
+	next_color: Vector3;
 }
 
 table LaraInventoryData {
@@ -444,6 +447,7 @@ table SwarmObjectInfo {
 	on: bool;
 	pose: Pose;
 	room_number: int32;
+	target: int32;
 	flags: int32;
 }
 
@@ -467,6 +471,17 @@ table Pendulum {
 	position: Vector3;
 	velocity: Vector3;
 	node: int32;
+}
+
+table Decal {
+	position: Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
 }
 
 table EventSet {
@@ -648,6 +663,8 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	locusts: [SwarmObjectInfo];
+	decals: [Decal];
 	flip_maps: [int32];
 	flip_stats: [int32];
 	flip_effect: int32;

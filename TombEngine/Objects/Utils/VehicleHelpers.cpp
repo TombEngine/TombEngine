@@ -27,6 +27,9 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Vehicles
 {
+	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
+	constexpr auto VEHICLE_FULL_HEIGHT = CLICK(3);
+
 	enum class VehicleWakeEffectTag
 	{
 		FrontLeft,
@@ -50,6 +53,9 @@ namespace TEN::Entities::Vehicles
 		// Assess vertical distance to vehicle.
 		if (abs(laraItem->Pose.Position.y - vehicleItem->Pose.Position.y) > maxVerticalDistance)
 			return VehicleMountType::None;
+
+		// Do interaction highlight before bounds testing to give player more visual tolerance.
+		g_Hud.InteractionHighlighter.Test(*laraItem, *vehicleItem);
 
 		// Assess 2D distance to vehicle.
 		float distance2D = Vector2::Distance(
@@ -159,13 +165,20 @@ namespace TEN::Entities::Vehicles
 		pos->z = vehicleItem->Pose.Position.z + (forward * cosY) - (right * sinY);
 
 		// Get collision a bit higher to be able to detect bridges.
-		auto probe = GetPointCollision(Vector3i(pos->x, pos->y - CLICK(2), pos->z), vehicleItem->RoomNumber);
+		auto probe = GetPointCollision(Vector3i(pos->x, pos->y - VEHICLE_BASE_HEIGHT, pos->z), vehicleItem->RoomNumber);
 
 		if (pos->y < probe.GetCeilingHeight() || probe.GetCeilingHeight() == NO_HEIGHT)
 			return NO_HEIGHT;
 
 		if (pos->y > probe.GetFloorHeight() && clamp)
 			pos->y = probe.GetFloorHeight();
+
+		// Prevent vehicle from glitching into crawlspaces. This may cause a deadlock on sloped crawlspaces leading
+		// to the room below, but this behaviour is still more correct than glitching the vehicle into it.
+
+		auto headroom = probe.GetFloorHeight() - probe.GetCeilingHeight();
+		if ((pos->y - VEHICLE_FULL_HEIGHT) < probe.GetCeilingHeight() && headroom <= VEHICLE_BASE_HEIGHT)
+			return probe.GetFloorHeight() - CLICK(1.5f); // Using NO_HEIGHT here may result in deadlocks.
 
 		return probe.GetFloorHeight();
 	}
@@ -218,53 +231,55 @@ namespace TEN::Entities::Vehicles
 
 	int DoVehicleWaterMovement(ItemInfo* vehicleItem, ItemInfo* laraItem, int currentVelocity, int radius, short* turnRate, const Vector3& wakeOffset)
 	{
-		if (TestEnvironment(ENV_FLAG_WATER, vehicleItem) ||
-			TestEnvironment(ENV_FLAG_SWAMP, vehicleItem))
+		auto point = GetPointCollision(*vehicleItem);
+
+		if (point.GetWaterSurfaceHeight() == NO_HEIGHT || point.GetWaterSurfaceHeight() > vehicleItem->Pose.Position.y)
+			return currentVelocity;
+
+		int waterDepth = point.GetWaterBottomHeight();
+
+		// HACK: Sometimes quadbike test position may end up under non-portal ceiling block.
+		// GetWaterDepth returns DEEP_WATER constant in that case, which is too large for our needs.
+		if (waterDepth == DEEP_WATER)
+			waterDepth = VEHICLE_WATER_HEIGHT_MAX;
+
+		if (waterDepth <= VEHICLE_WATER_HEIGHT_MAX)
 		{
-			int waterDepth = GetPointCollision(*vehicleItem).GetWaterBottomHeight();
+			int bottomRoomNumber = FindRoomNumber(vehicleItem->Pose.Position, vehicleItem->RoomNumber, true);
+			bool isWater = TestEnvironment(ENV_FLAG_WATER, bottomRoomNumber);
 
-			// HACK: Sometimes quadbike test position may end up under non-portal ceiling block.
-			// GetWaterDepth returns DEEP_WATER constant in that case, which is too large for our needs.
-			if (waterDepth == DEEP_WATER)
-				waterDepth = VEHICLE_WATER_HEIGHT_MAX;
-
-			if (waterDepth <= VEHICLE_WATER_HEIGHT_MAX)
+			if (currentVelocity != 0)
 			{
-				bool isWater = TestEnvironment(ENV_FLAG_WATER, vehicleItem);
+				auto coeff = isWater ? VEHICLE_WATER_VELOCITY_COEFF : VEHICLE_SWAMP_VELOCITY_COEFF;
+				currentVelocity -= std::copysign(currentVelocity * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff), currentVelocity);
 
-				if (currentVelocity != 0)
+				if (TEN::Math::Random::GenerateInt(0, 32) > 28)
+					SoundEffect(SFX_TR4_LARA_WADE, &Pose(vehicleItem->Pose.Position), SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
+
+				if (isWater)
 				{
-					auto coeff = isWater ? VEHICLE_WATER_VELOCITY_COEFF : VEHICLE_SWAMP_VELOCITY_COEFF;
-					currentVelocity -= std::copysign(currentVelocity * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff), currentVelocity);
-
-					if (TEN::Math::Random::GenerateInt(0, 32) > 28)
-						SoundEffect(SFX_TR4_LARA_WADE, &Pose(vehicleItem->Pose.Position), SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
-
-					if (isWater)
-					{
-						int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
-						SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
-					}
-				}
-
-				if (*turnRate)
-				{
-					auto coeff = isWater ? VEHICLE_WATER_TURN_RATE_COEFF : VEHICLE_SWAMP_TURN_RATE_COEFF;
-					*turnRate -= *turnRate * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff);
+					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
+					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
 				}
 			}
-			else
-			{
-				int waterHeight = vehicleItem->Pose.Position.y - GetPointCollision(*vehicleItem).GetWaterTopHeight();
 
-				if (waterDepth > VEHICLE_WATER_HEIGHT_MAX && waterHeight > VEHICLE_WATER_HEIGHT_MAX)
-				{
-					ExplodeVehicle(laraItem, vehicleItem);
-				}
-				else if (TEN::Math::Random::GenerateInt(0, 32) > 25)
-				{
-					Splash(vehicleItem);
-				}
+			if (*turnRate)
+			{
+				auto coeff = isWater ? VEHICLE_WATER_TURN_RATE_COEFF : VEHICLE_SWAMP_TURN_RATE_COEFF;
+				*turnRate -= *turnRate * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff);
+			}
+		}
+		else
+		{
+			int waterHeight = vehicleItem->Pose.Position.y - GetPointCollision(*vehicleItem).GetWaterTopHeight();
+
+			if (waterDepth > VEHICLE_WATER_HEIGHT_MAX && waterHeight > VEHICLE_WATER_HEIGHT_MAX)
+			{
+				ExplodeVehicle(laraItem, vehicleItem);
+			}
+			else if (TEN::Math::Random::GenerateInt(0, 32) > 25)
+			{
+				Splash(vehicleItem);
 			}
 		}
 
@@ -399,5 +414,29 @@ namespace TEN::Entities::Vehicles
 	{
 		float value = abs(vel / velMax);
 		g_Hud.Speedometer.UpdateValue(value);
+	}
+
+	void UpdateVehicleRoom(ItemInfo* vehicleItem, ItemInfo* laraItem, int currentRoomNumber)
+	{
+		if (vehicleItem == nullptr)
+			return;
+
+		if (currentRoomNumber == NO_VALUE)
+			currentRoomNumber = vehicleItem->RoomNumber;
+
+		auto finalPos = vehicleItem->Pose.Position;
+		finalPos.y -= VEHICLE_BASE_HEIGHT;
+
+		auto roomNumber = FindRoomNumber(finalPos, currentRoomNumber, true);
+		if (roomNumber != currentRoomNumber)
+			currentRoomNumber = roomNumber;
+
+		if (currentRoomNumber != vehicleItem->RoomNumber)
+		{
+			ItemNewRoom(vehicleItem->Index, currentRoomNumber);
+
+			if (laraItem != nullptr)
+				ItemNewRoom(laraItem->Index, currentRoomNumber);
+		}
 	}
 }

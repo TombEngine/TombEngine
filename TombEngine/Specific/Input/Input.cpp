@@ -10,7 +10,6 @@
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Gui;
 using namespace TEN::Math;
@@ -33,6 +32,8 @@ namespace TEN::Input
 	std::unordered_map<ActionID, Action>		   ActionMap;		// Key = action ID, value = action.
 	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
 	std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
+
+	bool InputLocked = false; // Disables control polling in case application is defocused.
 
 	// OIS interfaces
 
@@ -93,9 +94,9 @@ namespace TEN::Input
 			auto wnd = std::ostringstream{};
 			wnd << (size_t)handle;
 			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
-			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_FOREGROUND")));
+			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
-			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_FOREGROUND")));
+			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
 
 			OisInputManager = OIS::InputManager::createInputSystem(paramList);
@@ -179,6 +180,11 @@ namespace TEN::Input
 		OIS::InputManager::destroyInputSystem(OisInputManager);
 	}
 
+	void SetInputLockState(bool locked)
+	{
+		InputLocked = locked;
+	}
+
 	void ClearInputData()
 	{
 		for (auto& [keyID, value] : KeyMap)
@@ -221,7 +227,7 @@ namespace TEN::Input
 			for (int j = 0; j < (int)ActionID::Count; j++)
 			{
 				auto actionID = (ActionID)j;
-				if (g_Bindings.GetBoundKeyID(profileID, actionID) != OIS::KC_UNASSIGNED)
+				if (g_Bindings.GetBoundKeyID(profileID, actionID) == keyID)
 					return true;
 			}
 		}
@@ -294,7 +300,7 @@ namespace TEN::Input
 
 	static void ReadKeyboard()
 	{
-		if (OisKeyboard == nullptr)
+		if (InputLocked || OisKeyboard == nullptr)
 			return;
 
 		try
@@ -322,7 +328,7 @@ namespace TEN::Input
 
 	static void ReadMouse()
 	{
-		if (OisMouse == nullptr)
+		if (InputLocked || OisMouse == nullptr)
 			return;
 
 		try
@@ -409,7 +415,7 @@ namespace TEN::Input
 	
 	static void ReadGamepad()
 	{
-		if (OisGamepad == nullptr)
+		if (InputLocked || OisGamepad == nullptr)
 			return;
 
 		try

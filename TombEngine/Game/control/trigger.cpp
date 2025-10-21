@@ -413,10 +413,11 @@ void Trigger(short const value, short const flags)
 			AddActiveItem(value);
 		}
 
-		item->Status = ITEM_ACTIVE;
 		item->TouchBits = NO_JOINT_BITS;
 		item->DisableInterpolation = true;
 	}
+
+	item->Status = ITEM_ACTIVE;
 }
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
@@ -915,8 +916,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		{
 			const auto& player = GetLaraInfo(*item);
 
-			if (!IsJumpState((LaraState)item->Animation.ActiveState) || 
-				player.Control.WaterStatus != WaterStatus::Dry)
+			if (!IsJumpState((LaraState)item->Animation.ActiveState) || player.Control.WaterStatus != WaterStatus::Dry || item->HitPoints <= 0)
 			{
 				// Check floor material.
 				auto material = sector.GetSurfaceMaterial(pointColl.GetPosition().x, pointColl.GetPosition().z, true);

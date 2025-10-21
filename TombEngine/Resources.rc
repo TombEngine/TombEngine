@@ -65,9 +65,9 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "Resources\\Ten.ico"
-IDR_TITLELEVEL          BIN                     "Resources\\Title.bin"
-
+IDI_ICON1               ICON                    "Resources\\ten.ico"
+IDR_TITLELEVEL          BIN                     "Resources\\title.bin"
+IDR_CRASHMSG            EXE                     "Resources\\crashmsg.exe"
 
 /////////////////////////////////////////////////////////////////////////////
 //

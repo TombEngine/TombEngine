@@ -363,12 +363,7 @@ namespace TEN::Entities::Vehicles
 
 		if (skidooItem->Flags & IFLAG_INVISIBLE)
 		{
-			if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
-
+			UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 			AnimateItem(laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
@@ -378,12 +373,7 @@ namespace TEN::Entities::Vehicles
 		}
 
 		SkidooAnimation(skidooItem, laraItem, collide, dead);
-
-		if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-		{
-			ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-			ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-		}
+		UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 
 		if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALLOFF)
 		{
@@ -507,7 +497,7 @@ namespace TEN::Entities::Vehicles
 		else if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALL &&
 			collide && !dead)
 		{
-			if (laraItem->Animation.ActiveState != SKIDOO_STATE_HIT)
+			if (laraItem->Animation.TargetState != SKIDOO_STATE_HIT)
 			{
 				if (collide == SKIDOO_ANIM_HIT_FRONT)
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT1, &skidooItem->Pose);

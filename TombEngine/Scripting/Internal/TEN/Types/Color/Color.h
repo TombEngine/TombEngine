@@ -41,6 +41,10 @@ namespace TEN::Scripting::Types
 		void SetB(byte value);
 		void SetA(byte value);
 
+		// Methods
+
+		ScriptColor PremultiplyAlpha();
+
 		// Converters
 
 		std::string ToString() const;

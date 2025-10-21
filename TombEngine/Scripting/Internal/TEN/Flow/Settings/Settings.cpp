@@ -41,6 +41,7 @@ namespace TEN::Scripting
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
 		FlareSettings::Register(parent);
+		GameplaySettings::Register(parent);
 		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
@@ -55,6 +56,7 @@ namespace TEN::Scripting
 			ScriptReserved_AnimSettings, &Settings::Animations,
 			ScriptReserved_CameraSettings, &Settings::Camera,
 			ScriptReserved_FlareSettings, &Settings::Flare,
+			ScriptReserved_GameplaySettings, &Settings::Gameplay,
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
@@ -179,6 +181,21 @@ namespace TEN::Scripting
 		/// Toggle flicker effect.
 		// @tfield bool flicker Light and lensflare flickering. When turned off, flare light will be constant.
 		"flicker", &FlareSettings::Flicker);
+	}
+
+	/// Gameplay
+	// @section Gameplay
+	// These settings are used to enable or disable certain gameplay features.
+
+	void GameplaySettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<GameplaySettings>(ScriptReserved_GameplaySettings, sol::constructors<GameplaySettings()>(),
+			sol::call_constructor, sol::constructors<GameplaySettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
+
+			/// Enable target occlusion by moveables and static meshes.
+			// @tfield bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
+			"targetObjectOcclusion", & GameplaySettings::TargetObjectOcclusion);
 	}
 
 	/// Graphics

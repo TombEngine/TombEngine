@@ -5,6 +5,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -14,6 +15,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 const auto TightRopePos = Vector3i::Zero;
@@ -69,6 +71,8 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 {
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* tightropeItem = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *tightropeItem, InteractionMode::Custom);
 	
 	if ((!IsHeld(In::Action) ||
 		laraItem->Animation.ActiveState != LS_IDLE ||

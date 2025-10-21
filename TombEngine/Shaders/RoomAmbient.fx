@@ -1,4 +1,6 @@
 #include "./CBCamera.hlsli"
+#include "./CBRoom.hlsli"
+#include "./CBStatic.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -6,19 +8,6 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
-#include "./CBStatic.hlsli"
-
-cbuffer RoomBuffer : register(b5)
-{
-    int Water;
-    int Caustics;
-    int NumRoomLights;
-    int Padding;
-    float2 CausticsStartUV;
-    float2 CausticsScale;
-    float4 AmbientColor;
-    ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
-};
 
 struct PixelShaderInput
 {
@@ -55,8 +44,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	// Set z for z-buffering and neutralize w
 	output.Position.z = (L - NearPlane) / (FarPlane - NearPlane);
 	output.Position.w = 1.0f;
-
-	output.UV = input.UV;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 	output.Color = input.Color;
 
 	return output;
@@ -94,6 +82,9 @@ PixelShaderInput VSSky(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET0
 {
+    if (Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+	
 	float4 output = Texture.Sample(Sampler, input.UV);
 
 	clip(input.ClipDepth);

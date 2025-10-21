@@ -54,6 +54,7 @@ namespace TEN::Input
 
 	void InitializeInput(HWND handle);
 	void DeinitializeInput();
+	void SetInputLockState(bool locked);
 	void DefaultConflict();
 	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();

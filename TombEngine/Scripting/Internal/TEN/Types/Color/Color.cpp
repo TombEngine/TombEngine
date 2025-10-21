@@ -118,6 +118,12 @@ namespace TEN::Scripting::Types
 		return "{" + std::to_string(GetR()) + ", " + std::to_string(GetG()) + ", " + std::to_string(GetB()) + ", " + std::to_string(GetA()) + "}";
 	}
 
+	ScriptColor ScriptColor::PremultiplyAlpha()
+	{
+		_color = Vector3(_color) * ((float)_color.GetA() / (float)UCHAR_MAX);
+		return *this;
+	}
+
 	ScriptColor::operator Color() const
 	{
 		return _color;

@@ -21,17 +21,6 @@ namespace TEN::Entities::Traps
 	constexpr auto PENDULUM_DAMAGE_VALUE = 75;
 
 	const std::vector<unsigned int> FirePendulumHarmJoints = { 4, 5 };
-	const std::vector<Vector3i> PendulumBounds =
-	{
-		Vector3i(-CLICK(2), CLICK(2), -BLOCK(2)),
-		Vector3i(-896, -96, 96),
-		Vector3i(-CLICK(2), CLICK(2), -128),
-		Vector3i(0, -96, 96),
-		Vector3i(-CLICK(2), -384, -BLOCK(2)),
-		Vector3i(0, -96, 96),
-		Vector3i(384, CLICK(2), -BLOCK(2)),
-		Vector3i(0, -96, 96)
-	};
 
 	enum PendulumFlags
 	{
@@ -59,7 +48,6 @@ namespace TEN::Entities::Traps
 		spark->extras = 0;
 		spark->life = Random::GenerateInt(1,15);
 		spark->sLife = spark->life;
-		spark->dynamic = 1;
 
 		spark->xVel = (GetRandomControl() & 0x3F) - 32;
 		spark->yVel = -16 - (GetRandomControl() & 0xF);
@@ -148,8 +136,8 @@ namespace TEN::Entities::Traps
 		unsigned char g = item.ItemFlags[PendulumFlags::FireColorGreen];
 		unsigned char b = item.ItemFlags[PendulumFlags::FireColorBlue];
 
-		Vector3 flameColor1 = Vector3::Zero;
-		Vector3 flameColor2 = Vector3::Zero;
+		auto flameColor1 = Vector3::Zero;
+		auto flameColor2 = Vector3::Zero;
 
 		if (item.ItemFlags[PendulumFlags::FireColorRed] == 0 &&
 			item.ItemFlags[PendulumFlags::FireColorGreen] == 0 &&
@@ -232,7 +220,6 @@ namespace TEN::Entities::Traps
 					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3(r, g, b));
 				}
 			}
-
 		}
 	}
 }

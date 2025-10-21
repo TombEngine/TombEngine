@@ -416,6 +416,27 @@ namespace TEN::Renderer
 				auto* spark = &FireSparks[i];
 				if (spark->on)
 				{
+					// Calculate original flame color.
+					auto color = Vector4::Lerp(
+						Vector4(
+							spark->PrevColor.x / 255.0f * fade,
+							spark->PrevColor.y / 255.0f * fade,
+							spark->PrevColor.z / 255.0f * fade,
+							1.0f),
+						Vector4(
+							spark->color.x / 255.0f * fade,
+							spark->color.y / 255.0f * fade,
+							spark->color.z / 255.0f * fade,
+							1.0f),
+						GetInterpolationFactor());
+
+					// Influence flame color with object color via chroma modulation.
+					if (fire.color != Vector4::One)
+					{
+						auto color3 = Vector3(color.x, color.y, color.z);
+						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+					}
+
 					AddSpriteBillboard(
 						&_sprites[spark->def],
 						Vector3::Lerp(
@@ -428,18 +449,7 @@ namespace TEN::Renderer
 								fire.position.y + spark->position.y * fire.size / 2,
 								fire.position.z + spark->position.z * fire.size / 2),
 							GetInterpolationFactor()),
-						Vector4::Lerp(
-							Vector4(
-								spark->PrevColor.x / 255.0f * fade,
-								spark->PrevColor.y / 255.0f * fade,
-								spark->PrevColor.z / 255.0f * fade,
-								1.0f),
-							Vector4(
-								spark->color.x / 255.0f * fade,
-								spark->color.y / 255.0f * fade,
-								spark->color.z / 255.0f * fade,
-								1.0f),
-							GetInterpolationFactor()),
+						color,
 						TO_RAD(Lerp(spark->PrevRotAng << 4, spark->rotAng << 4, GetInterpolationFactor())),
 						Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor()),
 						Vector2::Lerp(
@@ -455,7 +465,7 @@ namespace TEN::Renderer
 	void Renderer::PrepareParticles(RenderView& view)
 	{
 		for (int i = 0; i < ParticleNodeOffsetIDs::NodeMax; i++)
-			NodeOffsets[i].gotIt = false;
+			NodeOffsets[i].itemNumber = NO_VALUE;
 
 		for (auto& particle : Particles)
 		{
@@ -521,7 +531,7 @@ namespace TEN::Renderer
 					auto nodePos = Vector3i::Zero;
 					if (particle.flags & SP_NODEATTACH)
 					{
-						if (NodeOffsets[particle.nodeNumber].gotIt)
+						if (NodeOffsets[particle.nodeNumber].itemNumber == particle.fxObj)
 						{
 							nodePos = NodeVectors[particle.nodeNumber];
 						}
@@ -541,7 +551,7 @@ namespace TEN::Renderer
 								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
 							}
 
-							NodeOffsets[particle.nodeNumber].gotIt = true;
+							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
 							NodeVectors[particle.nodeNumber] = nodePos;
 						}
 
@@ -1028,9 +1038,11 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareWeatherParticles(RenderView& view) 
 	{
-		constexpr auto RAIN_WIDTH = 4.0f;
 		constexpr auto SNOW_CLUSTER_SPREAD = BLOCK(1.0f);
-		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(0.35f);
+		constexpr auto RAIN_CLUSTER_SPREAD = BLOCK(1.0f);
+
+		constexpr auto RAIN_WIDTH_NEAR = 1.5f;
+		constexpr auto RAIN_WIDTH_FAR = 15.0f;
 
 		for (const auto& part : Weather.GetParticles())
 		{
@@ -1156,12 +1168,25 @@ namespace TEN::Renderer
 						Vector3 v;
 						part.Velocity.Normalize(v);
 
+						// Distance to camera
+						const Vector3 camPos = view.Camera.WorldPosition;
+						float dist = (finalPos - camPos).Length();
+
+						// Define interpolation range:
+						// near = ~1 block (no widening), far = expanded rain render range
+						float nearD = BLOCK(0.5f);
+						float farD = COLLISION_CHECK_DISTANCE * RAIN_RENDER_RANGE_MULT;
+						float t = std::clamp((dist - nearD) / std::max(1.0f, (farD - nearD)), 0.0f, 1.0f);
+
+						// Blend rain width based on distance
+						float width = Lerp(RAIN_WIDTH_NEAR, RAIN_WIDTH_FAR, t);
+
 						AddSpriteBillboardConstrained(
 							&_sprites[spriteIndex],
 							finalPos,
 							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
 							0.0f, 1.0f,
-							Vector2(RAIN_WIDTH, finalScale),
+							Vector2(width, finalScale),
 							BlendMode::Additive, -v, false, view);
 
 						break;
@@ -1533,6 +1558,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
 	{
+		TexturesAreNotAnimated();
+
 		bool activeDebrisExist = false;
 		for (auto& deb : DebrisFragments)
 		{
@@ -1554,6 +1581,10 @@ namespace TEN::Renderer
 
 			_primitiveBatch->Begin();
 
+			bool lastAnimated = false;
+			int lastTexture = NO_VALUE;
+			bool firstDebris = true;
+
 			for (auto& deb : DebrisFragments)
 			{
 				if (deb.active)
@@ -1564,7 +1595,17 @@ namespace TEN::Renderer
 					if (!SetupBlendModeAndAlphaTest(deb.mesh.blendMode, rendererPass, 0))
 						continue;
 
-					if (deb.isStatic)
+					if (!firstDebris && (lastTexture != deb.mesh.tex || lastAnimated != deb.mesh.Animated))
+					{
+						_primitiveBatch->End();
+						_primitiveBatch->Begin();
+					}
+
+					if (deb.mesh.Animated)
+					{
+						BindTexture(TextureRegister::ColorMap, &std::get<0>(_animatedTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
+					}
+					else if (deb.isStatic)
 					{
 						BindTexture(TextureRegister::ColorMap, &std::get<0>(_staticTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
 					}
@@ -1606,6 +1647,10 @@ namespace TEN::Renderer
 					_numDebrisDrawCalls++;
 					_numDrawCalls++;
 					_numTriangles++;
+
+					lastAnimated = deb.mesh.Animated;
+					lastTexture = deb.mesh.tex;
+					firstDebris = false;
 				}
 			}
 

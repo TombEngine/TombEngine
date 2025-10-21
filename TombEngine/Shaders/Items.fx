@@ -59,7 +59,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	float3 worldPosition = mul(float4(pos, 1.0f), world).xyz;
 
 	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
-	output.UV = input.UV;
+    output.UV = GetUVPossiblyAnimated(input.UV, input.PolyIndex, input.AnimationFrameOffset);
 	output.Color = float4(col, input.Color.w);
 	output.Color *= Color;
 	output.PositionCopy = output.Position;
@@ -88,9 +88,12 @@ PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
 
-	if (Type == 1)
-		input.UV = CalculateUVRotate(input.UV, 0);
-
+    if (Animated && Type == 1)
+        if (IsWaterfall == 1)
+            input.UV = CalculateUVRotateForLegacyWaterfalls(input.UV, 0);
+		else
+			input.UV = CalculateUVRotate(input.UV, 0);
+	
 	float4 tex = Texture.Sample(Sampler, input.UV);	
     DoAlphaTest(tex);
 

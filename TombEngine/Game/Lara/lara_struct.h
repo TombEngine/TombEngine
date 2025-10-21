@@ -1147,7 +1147,12 @@ struct FlareData
 
 struct TorchData
 {
+	static constexpr auto FADE_TIMEOUT = 0.5f;
+
 	bool	   IsLit = false;
+	int		   Fade = 0;
+	Vector3	   CurrentColor = Vector3::Zero;
+	Vector3    NextColor = Vector3::Zero;
 	TorchState State = TorchState::Holding;
 };
 
@@ -1350,4 +1355,23 @@ struct LaraInfo
 	signed char Location		= 0;
 	signed char HighestLocation = 0;
 	signed char LocationPad		= 0;
+};
+
+const auto CROUCH_STATES = std::vector<int>
+{
+	LS_CROUCH_IDLE,
+	LS_CROUCH_TURN_LEFT,
+	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180
+};
+
+const auto CRAWL_STATES = std::vector<int>
+{
+	LS_CRAWL_IDLE,
+	LS_CRAWL_FORWARD,
+	LS_CRAWL_BACK,
+	LS_CRAWL_TURN_LEFT,
+	LS_CRAWL_TURN_RIGHT,
+	LS_CRAWL_TURN_180,
+	LS_CRAWL_TO_HANG
 };

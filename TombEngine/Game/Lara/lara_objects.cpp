@@ -285,6 +285,7 @@ void lara_as_tightrope_idle(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	lara->Control.Look.Mode = LookMode::Free;
+	lara->Control.HandStatus = HandStatus::Busy;
 
 	DoLaraTightropeBalanceRegen(item);
 	DoLaraTightropeLean(item);
@@ -329,6 +330,8 @@ void lara_as_tightrope_dismount(ItemInfo* item, CollisionInfo* coll)
 void lara_as_tightrope_walk(ItemInfo* item, CollisionInfo* coll) 
 {
 	auto* lara = GetLaraInfo(item);
+
+	lara->Control.HandStatus = HandStatus::Busy;
 
 	if (CanDismountTightrope(*item, *coll))
 	{
@@ -617,7 +620,7 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	GetCollisionInfo(coll, item); // HACK: Lara may step off poles in mid-air upon reload without this.
-	if (coll->Middle.Floor <= 0 &&
+	if (coll->Middle.Floor <= CLICK(0.125f) &&
 		item->Animation.AnimNumber != LA_POLE_JUMP_BACK) // Hack.
 	{
 		item->Animation.TargetState = LS_IDLE;

@@ -3,12 +3,59 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.9.2]
+## [Version 1.10]
+
+## New features
+* Added animated textures support for all objects.
+* Added UVRotate support.
+* Added interaction highlighter.
+* Added bullet hole and explosion decals for room geometry.
+* Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
+* Added ability to colorize ROPE objects.
+* Added ability to antitrigger FISH_EMITTER.
+* Increased level loading speed by switching to LZ4 compression format.
+
+### Bug fixes
+* Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
+* Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
+* Fixed GRENADE object not being activated by triggers and heavy triggers under shatters.
+* Fixed FISH_EMITTER fish escape direction when player is nearby.
+* Fixed EXPANDING_PLATFORM and RAISING_BLOCK rendering issues in flat state.
+* Fixed LOCUST_EMITTER object.
+* Fixed several collision issues for TRAIN object.
+* Fixed OCB 4 not working for FLAME_EMITTER2.
+* Fixed wall embeddings after jumping on top of hard static meshes aligned to walls.
+* Fixed dying while landing into shallow water after freefall.
+* Fixed rapids drowning animation not triggering after freefall.
+* Fixed shotgun wideshot ammo having same accuracy as normal ammo.
+* Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed shatters not activating heavy triggers in rare occasions.
+* Fixed original game issue with multiple burning torches not working correctly.
+* Fixed original game issue where enemies could shoot and be targeted through objects and static meshes.
+* Fixed original game issues with vehicle collision near crawlspaces and stacked rooms.
+* Fixed motorbike sound going silent while doing jumps.
+* Fixed ability to draw weapons on a tightrope.
+* Fixed incorrect ladder dismounts onto sloped floors and death sectors.
+* Fixed dynamic lights disappearing for a single frame after exiting game menus.
+* Fixed controls being stuck when engine window is out of focus.
+* Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
+* Fixed intense GPU usage when engine window is minimized.
+
+### Lua API changes
+* Added detection and recovery of infinite loops and deadlocks caused by mistakes in user scripts.
+* Added `Moveable:ShowInteractionHighlight` method.
+* Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
+* Added holster mesh update for `Lara:SetWeaponType` method and make `activate` parameter false by default.
+* Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
+
+## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
 
 ## New features
 * Added FIRE_PENDULUM (ID 458) object from TR3.
 * Added TURNING_WALL_BLADE (ID 456) and TURNING_CEILING_BLADE (ID 457) objects from TR3.
 * Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
+* Added error message and log entry for critical engine errors instead of a silent crash.
+* Added logging to a separate file for every game launch.
 
 ### Bug fixes
 * Fixed inability to perform backjumps or grabs after climbing onto a triangular slope.
@@ -17,6 +64,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed undead enemies not killed in a proper way by vehicles.
 * Fixed smoke emitters crashing the game if placed underwater with OCB 0.
 * Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed occasional Lara rotation when grabbing pushable objects.
+* Fixed incorrect collision detection with fire particles.
 * Fixed incorrect distance checks on very large room coordinates which could have caused random Lara teleportations.
 * Fixed projectile weapon hits not registering in statistics and collision callbacks.
 * Fixed firearms bullet range limited to targeting range.
@@ -35,18 +84,18 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed overbright ambient light not applied correctly to moveables.
 
 ### Lua API changes
+* Added log warnings in case callbacks or level functions are being redefined.
 * Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
 * Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
 * Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
 * Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
 
-## [Version 1.9.1]
+## [Version 1.9.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.1) - 2025-06-25
 
 ### New features
 * Added ability to open doors with draw weapon key in dozy mode.
 * Added headlight for UPV.
 * Use spotlight with shadow casting for motorbike headlight.
-* Added turning wall blade: SLOT ID: 456, turning ceiling blade: SLOT ID: 457.
 
 ### Bug fixes
 * Fixed WATERFALL_EMITTER performance and occasional game freezes, and make it work with OCB 0.
@@ -69,7 +118,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `Camera:SetPosition` interfering with non-fixed camera position.
 * Renamed `Camera:PlayCamera` to `Camera:Play`.
 
-## [Version 1.9]
+## [Version 1.9](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9) - 2025-05-19
 
 ## New features
 * Added skinned meshes support for any object.

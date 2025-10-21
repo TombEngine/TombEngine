@@ -2,6 +2,7 @@
 #include "Game/people.h"
 
 #include "Game/animation.h"
+#include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
@@ -10,6 +11,8 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Sound/sound.h"
+
+using namespace TEN::Collision::Point;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
@@ -81,14 +84,16 @@ bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short ex
 
 short GunMiss(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	// TODO: Remove -128 and fix ricochet effect going on floor. -- TokyoSU 2023.04.28
 	auto pos = GameVector(
 		LaraItem->Pose.Position.x + ((GetRandomControl() - 0x4000) << 9) / 0x7FFF,
 		LaraItem->Floor - 128,
 		LaraItem->Pose.Position.z + ((GetRandomControl() - 0x4000) << 9) / 0x7FFF,
 		LaraItem->RoomNumber);
 
+	pos.y = GetPointCollision(pos.ToVector3i(), pos.RoomNumber).GetFloorHeight();
+
 	Ricochet(Pose(pos.ToVector3i()));
+	SpawnDecal(pos.ToVector3(), pos.RoomNumber, DecalType::BulletHole);
 	return GunShot(x, y, z, velocity, yRot, roomNumber);
 }
 
@@ -106,7 +111,7 @@ short GunShot(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 bool Targetable(ItemInfo* item, AI_INFO* ai)
 {
-	// Discard it entity is not a creature (only creatures can use Targetable()) or if the target is not visible.
+	// Discard if entity is not a creature (only creatures can use Targetable()) or if the target is not visible.
 	if (!item->IsCreature() || !ai->ahead || ai->distance >= SQUARE(MAX_VISIBILITY_DISTANCE))
 		return false;
 
@@ -134,11 +139,16 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 		enemy->Pose.Position.z,
 		enemy->RoomNumber); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
 
+	// Temporarily ignore self occlusion for LOS check.
+	bool collidable = item->Collidable;
+	item->Collidable = false;
+
 	StaticMesh* mesh = nullptr;
 	Vector3i vector = {};
-	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh);
-	if (losItemIndex == item->Index)
-		losItemIndex = NO_LOS_ITEM; // Don't find itself.
+	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT);
+
+	// Restore collidability.
+	item->Collidable = collidable;
 
 	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
 }

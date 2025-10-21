@@ -26,7 +26,7 @@ public:
 	std::unique_ptr<Moveable> GetPlayerInteractedMoveable() const;
 	HandStatus GetHandStatus() const;
 	LaraWeaponType GetWeaponType() const;
-	void SetWeaponType(LaraWeaponType weaponType, bool activate);
+	void SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> activate);
 	int GetAmmoType() const;
 	int GetAmmoCount() const;
 

@@ -7,6 +7,7 @@
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
 #include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -19,6 +20,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Doors
@@ -62,6 +64,8 @@ namespace TEN::Entities::Doors
 	{
 		auto* player = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem, InteractionMode::Activation);
 
 		bool isUnderwater = (player->Control.WaterStatus == WaterStatus::Underwater);
 

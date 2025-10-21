@@ -5,6 +5,7 @@
 #define IDD_SETUP                       103
 #define IDI_ICON1                       108
 #define IDR_TITLELEVEL                  109
+#define IDR_CRASHMSG                    110
 #define IDC_CHK_ENABLE_SOUND2           1012
 #define IDC_OUTSETTINGSTXT              1022
 #define IDC_OUTSETTINGS                 1023
@@ -14,7 +15,6 @@
 #define IDC_RESOLUTIONTXT               1029
 #define IDC_HARDACCEL                   1030
 #define IDC_SOFTWARE                    1031
-#define IDC_BILINEAR                    1032
 #define IDC_CAUSTICS                    1032
 #define IDC_TEXRESTXT                   1033
 #define IDC_ANTIALIASING                1034

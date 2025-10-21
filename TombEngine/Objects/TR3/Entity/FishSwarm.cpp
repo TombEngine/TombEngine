@@ -262,13 +262,28 @@ namespace TEN::Entities::Creatures::TR3
 			if (fish.Life <= 0.0f)
 				continue;
 
+			auto& leaderItem = *fish.LeaderItemPtr;
+
+			if (!TriggerActive(&leaderItem))
+			{
+				// Remove all fishes associated with this item.
+				RemoveFishSwarm(leaderItem);
+
+				// Reset ItemFlags.
+				if (leaderItem.HitPoints == NOT_TARGETABLE)
+					leaderItem.HitPoints = leaderItem.ItemFlags[5];
+
+				leaderItem.Pose.Position = leaderItem.StartPose.Position;
+				leaderItem.ItemFlags[5] = 0;
+				return;
+			}
+
 			fish.StoreInterpolationData();
 
 			// Increase separation distance for each fish.
 			float separationDist = FISH_BASE_SEPARATION_DISTANCE + (fishID * 3);
 			fishID += 1;
 
-			auto& leaderItem = *fish.LeaderItemPtr;
 			if (!leaderItem.ItemFlags[2] && fish.TargetItemPtr == fish.LeaderItemPtr)
 			{
 				if (!fish.IsPatrolling)
@@ -308,7 +323,7 @@ namespace TEN::Entities::Creatures::TR3
 			fish.Position += (moveDir * fish.Velocity) / enemyVel;
 			fish.Position += (moveDir * FISH_SPACING_FACTOR) / enemyVel;
 
-			auto orientTo = Geometry::GetOrientToPoint(fish.Position, desiredPos.ToVector3());
+			auto orientTo = Geometry::GetOrientToPoint(fish.Position.ToVector3(), desiredPos.ToVector3());
 			fish.Orientation.Lerp(orientTo, 0.1f);
 
 			for (const auto& otherFish : FishSwarm)
@@ -335,7 +350,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (distToOtherFish < separationDist)
 				{
-					auto separationDir = fish.Position - otherFish.Position;
+					auto separationDir = (fish.Position - otherFish.Position).ToVector3();
 					separationDir.Normalize();
 
 					fish.Position += separationDir * (separationDist - distToOtherFish);
@@ -351,20 +366,21 @@ namespace TEN::Entities::Creatures::TR3
 					(fish.TargetItemPtr == fish.LeaderItemPtr || fish.TargetItemPtr->ObjectNumber == ID_AI_FOLLOW))
 				{
 					separationDist--;
-					auto orientTo = Geometry::GetOrientToPoint(fish.Position, closestFishPtr->Position);
+					auto orientTo = Geometry::GetOrientToPoint(fish.Position.ToVector3(), closestFishPtr->Position.ToVector3());
 					fish.Velocity += FISH_CATCH_UP_FACTOR;
 				}
 
 				// If player is too close and fish are not lethal, flee.
 				if ((distToPlayer < separationDist * 3) && fish.IsLethal == false)
 				{
-					auto separationDir = fish.Position - playerItem.Pose.Position.ToVector3();
+					auto separationDir = (fish.Position - playerItem.Pose.Position).ToVector3();
 					separationDir.Normalize();
 
+					auto oldPosition = fish.Position.ToVector3();
 					fish.Position += separationDir * FLEE_VEL;
 
-					auto orientTo = Geometry::GetOrientToPoint(fish.Position, separationDir);
-					fish.Orientation.Lerp(orientTo, 0.05f);
+					auto orientTo = Geometry::GetOrientToPoint(oldPosition, fish.Position.ToVector3());
+					fish.Orientation.Lerp(orientTo, 0.15f);
 
 					fish.Velocity -= std::min(FLEE_VEL, fish.TargetItemPtr->Animation.Velocity.z - 1.0f);
 				}
@@ -420,8 +436,22 @@ namespace TEN::Entities::Creatures::TR3
 			if (fish.Undulation > PI_MUL_2)
 				fish.Undulation -= PI_MUL_2;
 
-			fish.Transform = fish.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(fish.Position);
+			fish.Transform = fish.Orientation.ToRotationMatrix() * Matrix::CreateTranslation(fish.Position.ToVector3());
 		}
+	}
+
+	void RemoveFishSwarm(ItemInfo& item)
+	{
+		FishSwarm.erase(std::remove_if(FishSwarm.begin(), FishSwarm.end(),
+			[&item](FishData& fish)
+			{
+				if (fish.LeaderItemPtr == &item)
+				{
+					fish.Life = 0.0f;
+					return true;
+				}
+				return false;
+			}), FishSwarm.end());
 	}
 
 	void ClearFishSwarm()

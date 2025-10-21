@@ -1370,11 +1370,7 @@ namespace TEN::Entities::Vehicles
 
 		if (!(jeep->Flags & JEEP_FLAG_DEAD))
 		{
-			if (roomNumber != jeepItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, roomNumber);
-				ItemNewRoom(laraItem->Index, roomNumber);
-			}
+			UpdateVehicleRoom(jeepItem, laraItem, roomNumber);
 
 			laraItem->Pose = jeepItem->Pose;
 

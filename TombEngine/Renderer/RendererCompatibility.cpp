@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include "Game/control/control.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/Hair.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
@@ -15,6 +16,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
 
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Renderer::Graphics;
 
@@ -69,12 +71,14 @@ namespace TEN::Renderer
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
-		{
+		{  
 			RendererAnimatedTextureSet set{};
 
 			set.NumTextures = sequence.NumFrames;
 			set.Type = (AnimatedTextureType)sequence.Type;
 			set.Fps = sequence.Fps;
+			set.UVRotateSpeed = sequence.UVRotateSpeed;
+			set.UVRotateDirection = sequence.UVRotateDirection;
 
 			std::transform(sequence.Frames.begin(), sequence.Frames.end(), std::back_inserter(set.Textures), [](ANIMATED_TEXTURES_FRAME& frm)
 			{
@@ -241,6 +245,7 @@ namespace TEN::Renderer
 			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
+			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
 			auto boxMax = Vector3(room.Position.x + (room.XSize - 1) * BLOCK(1), room.BottomHeight + CLICK(1), room.Position.z + (room.ZSize - 1) * BLOCK(1));
@@ -1010,7 +1015,7 @@ namespace TEN::Renderer
 					vertex.Binormal.x = poly->binormals[k].x;
 					vertex.Binormal.y = poly->binormals[k].y;
 					vertex.Binormal.z = poly->binormals[k].z;
-
+					 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 
@@ -1021,6 +1026,9 @@ namespace TEN::Renderer
 
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
+
+					vertex.AnimationFrameOffset = poly->animatedFrame;
+					vertex.IndexInPoly = k;
 
 					vertex.OriginalIndex = v;
 

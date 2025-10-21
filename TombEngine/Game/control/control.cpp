@@ -9,6 +9,7 @@
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
 #include "Game/effects/Bubble.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/effects.h"
@@ -38,13 +39,13 @@
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
-#include "Objects/Effects/tr4_locusts.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
@@ -59,13 +60,14 @@
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Specific/winmain.h"
 #include "Specific/Video/Video.h"
+#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
@@ -103,6 +105,7 @@ bool InitializeGame	= false;
 bool DoTheGame		= false;
 bool JustLoaded		= false;
 bool ThreadEnded	= false;
+bool DebugMode		= false;
 
 int RequiredStartPos;
 int CurrentLevel;
@@ -198,6 +201,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateDebris();
 	UpdateGunFlashes();
 	UpdateGunShells();
+	UpdateDecals();
 	UpdateFootprints();
 	UpdateSplashes();
 	UpdateElectricityArcs();
@@ -381,8 +385,6 @@ unsigned CALLBACK GameMain(void *)
 
 	// Finish thread.
 	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	EndThread();
-
 	return true;
 }
 
@@ -544,6 +546,7 @@ void CleanUp()
 	ClearUnderwaterBloodParticles();
 	ClearBubbles();
 	ClearAllDisplaySprites();
+	ClearDecals();
 	ClearFootprints();
 	ClearDrips();
 	ClearRipples();

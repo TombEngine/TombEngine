@@ -169,6 +169,7 @@ void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumb
 
 				fragment->mesh.blendMode = renderBucket.blendMode;
 				fragment->mesh.tex = renderBucket.texture;
+				fragment->mesh.Animated = renderBucket.animated;
 
 				fragment->isStatic = isStatic;
 				fragment->active = true;

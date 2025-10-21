@@ -212,7 +212,8 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
-		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject);
+		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
+		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -1314,4 +1315,11 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 	_moveable->Animation.ActiveState = stateID;
 	_moveable->Animation.FrameNumber = GetAnimData(*_moveable).frameBase;
 	AnimateItem(_moveable);
+}
+
+/// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
+// @function Moveable:ShowInteractionHighlight
+void Moveable::ShowInteractionHighlight()
+{
+	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable);
 }
