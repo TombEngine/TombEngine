@@ -66,7 +66,7 @@ namespace TEN::Entities::Traps
 
 		auto angle = GetBoneOrientation(item, 1);
 
-		if (angle.y == 0)
+		if (angle.y == 0 && item.TriggerFlags)
 		{
 				SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 				SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
