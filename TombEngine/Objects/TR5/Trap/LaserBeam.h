@@ -44,14 +44,18 @@ namespace TEN::Entities::Traps
 		float       Life = 1.0f;
 		bool        On = false;
 		uint64_t    LastSeenFrame = 0;
+		Vector3		Direction;
+		int			Length;
+
+		//NOTE: might not be neccessary:
 		Vector3		TargetPos;
 		int			TargetRoomNumber = 0;
 	};
 
 	const std::array<TransientBeam, MAX_TRANSIENT_LASERS>& GetTransientLaserPool();
-	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, int excludedItemNumber);
+	void EmitTransientLaserBeam(int id, const Vector3& position, int RoomNumber, const EulerAngles& orientation, int length, float radius, const Vector4& color, bool hasSparks);
 	void UpdateTransientLaserBeams();
-	bool GetTransientLaserBeamLOS(int id);
+	int GetTransientLaserBeamLOS(int id);
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams;
 

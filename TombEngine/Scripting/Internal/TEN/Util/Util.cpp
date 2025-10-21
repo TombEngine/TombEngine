@@ -62,9 +62,19 @@ namespace TEN::Scripting::Util
 		return ObjectOnLOS2(&vector0, &vector1, &vector, &mesh);
 	}
 
-	static bool GetLaserBeamLOS(int id)
+	static int GetItemIndexOnLOS(const Vec3& pos, const EulerAngles& orientation, int length)
 	{
-			return GetTransientLaserBeamLOS(id);
+		auto roomNumberOrigin = FindRoomNumber(Vector3i(pos.x, pos.y, pos.z));
+		auto direction = orientation.ToDirection();;
+		
+		auto moveableLos = GetItemLosCollision(pos, roomNumberOrigin, direction, length, false);
+
+				if (moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < length)
+				{
+					return moveableLos.value().Item->Index;
+				}
+
+		return NO_VALUE;
 	}
 
 	/// Calculate the horizontal distance between two positions.
@@ -214,7 +224,7 @@ namespace TEN::Scripting::Util
 
 		tableUtil.set_function(ScriptReserved_HasLineOfSight, &HasLineOfSight);
 		tableUtil.set_function(ScriptReserved_GetObjectOnLOS, &GetObjectOnLOS);
-		tableUtil.set_function(ScriptReserved_GetLaserBeamLOS, &GetLaserBeamLOS);
+		tableUtil.set_function(ScriptReserved_GetItemIndexOnLOS, &GetItemIndexOnLOS);
 		tableUtil.set_function(ScriptReserved_CalculateHorizontalDistance, &CalculateHorizontalDistance);
 		tableUtil.set_function(ScriptReserved_GetDisplayPosition, &GetDisplayPosition);
 		tableUtil.set_function(ScriptReserved_PickMoveable, &PickMoveable);

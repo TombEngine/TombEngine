@@ -313,7 +313,7 @@ static constexpr char ScriptReserved_ScreenToPercent[]				= "ScreenToPercent";
 static constexpr char ScriptReserved_GetAspectRatio[]				= "GetAspectRatio";
 static constexpr char ScriptReserved_HasLineOfSight[]				= "HasLineOfSight";
 static constexpr char ScriptReserved_GetObjectOnLOS[]				= "GetObjectOnLOS";
-static constexpr char ScriptReserved_GetLaserBeamLOS[]				= "GetLaserBeamLOS";
+static constexpr char ScriptReserved_GetItemIndexOnLOS[]			= "GetItemIndexOnLOS";
 
 static constexpr char ScriptReserved_AddCallback[]					= "AddCallback";
 static constexpr char ScriptReserved_RemoveCallback[]				= "RemoveCallback";

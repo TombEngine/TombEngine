@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara.h"
+#include "Scripting/Internal/TEN/Util/Util.h"
 
 #include "Game/animation.h"
 #include "Game/camera.h"
@@ -171,7 +172,8 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 	orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 
-	TEN::Entities::Traps::EmitTransientLaserBeam(2, GameVector(pos1.ToVector3(), item->RoomNumber), orient, 512, 3, Vector4(0.0f, 0.7f, 1.0f, 1.0f), true, false, LaraItem->Index);
+	//TEN::Entities::Traps::EmitTransientLaserBeam(2, GameVector(pos1.ToVector3(), item->RoomNumber), orient, 512, 3, Vector4(0.0f, 0.7f, 1.0f, 1.0f), false, false, LaraItem->Index);
+	//TEN::Scripting::Util::GetItemIndexOnLOS(pos1, orient, 512);
 	//TEN::Entities::Traps::EmitTransientLaserBeam(2,GameVector(pos1, item->RoomNumber), orient, 512, 1, Vector4(1.0f, 1.0f, 1.0f, 1.0f), true, false, LaraItem->Index);
 	//TEN::Entities::Traps::EmitTransientLaserBeam(2, GameVector(pos1, item->RoomNumber), orient, 512, 4, Vector4(0.0f, 0.7f, 1.0f, 0.3f), true, false, LaraItem->Index);
 

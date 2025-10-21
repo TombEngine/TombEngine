@@ -142,7 +142,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	 bool GetTransientLaserBeamLOS(int id)
+	 int GetTransientLaserBeamLOS(int id)
 	{
 		for (const auto& s : GTransientPool)
 		{
@@ -155,17 +155,25 @@ namespace TEN::Entities::Traps
 				bool los2 = LOS(&origin, &target);
 
 				auto hitPos = Vector3i::Zero;
-				if (ObjectOnLOS2(&origin, &target, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
-					return true;
 
-				continue;
+
+				auto moveableLos = GetItemLosCollision(s.Pos, s.RoomNumber, s.Direction, s.Length, false);
+
+				float laserLength = Vector3::Distance(s.Pos, s.TargetPos);
+
+				if ( moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < laserLength)
+				{
+						return moveableLos.value().Item->Index;
+
+					continue;
+				}
 			}
 		}
 
-		return false;
+		return NO_VALUE;
 	}
 
-	void EmitTransientLaserBeam(int id, const GameVector& position, const EulerAngles& orientation, int lenght, float radius, const Vector4& color, bool isLethal, bool hasSparks, int excludedItemNumber)
+	void EmitTransientLaserBeam(int id, const Vector3& position, int RoomNumber, const EulerAngles& orientation, int length, float radius, const Vector4& color, bool hasSparks)
 	{
 		//free slot
 		const int idx = AcquireTransientIndex();
@@ -174,21 +182,22 @@ namespace TEN::Entities::Traps
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
 
 		slot.ID = id;
-		slot.Pos = position.ToVector3();
-		slot.RoomNumber = position.RoomNumber;
+		slot.Pos = position;
+		slot.RoomNumber = RoomNumber;
 		slot.Orientation = orientation;
 		slot.ModelColor = color;
 		slot.Effect.Color = color;
 		slot.Life = 2.0f;
 		slot.On = true;
 		slot.Effect.Radius = radius * RADIUS_STEP;
+		
 
 		auto orient = orientation;
-		auto dir = orient.ToDirection();
+		slot.Direction = orient.ToDirection();
 		auto rotMatrix = orient.ToRotationMatrix();
 
 		// Hit wall; spawn sparks and light.
-		auto los = GetRoomLosCollision(position.ToVector3(), slot.RoomNumber, dir, lenght);
+		auto los = GetRoomLosCollision(position, slot.RoomNumber, slot.Direction, length);
 		if (los.IsIntersected)
 		{
 			if (hasSparks)
@@ -205,7 +214,9 @@ namespace TEN::Entities::Traps
 		slot.TargetPos = los.Position;
 		slot.TargetRoomNumber = los.RoomNumber;
 
-		float length = Vector3::Distance(position.ToVector3(), los.Position);
+		float laserLength = Vector3::Distance(position, slot.TargetPos);
+
+		slot.Length = laserLength;
 
 		// Calculate cylinder vertices.
 		float angle = 0.0f;
@@ -215,10 +226,10 @@ namespace TEN::Entities::Traps
 			float cosAngle = cos(angle);
 
 			auto relVertex = Vector3(slot.Effect.Radius * sinAngle, slot.Effect.Radius * cosAngle, 0.0f);
-			auto vertex = position.ToVector3() + Vector3::Transform(relVertex, rotMatrix);
+			auto vertex = position + Vector3::Transform(relVertex, rotMatrix);
 
 			slot.Effect.Vertices[i] = vertex;
-			slot.Effect.Vertices[slot.Effect.SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
+			slot.Effect.Vertices[slot.Effect.SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, slot.Direction, laserLength);
 
 			angle += PI_MUL_2 / slot.Effect.SUBDIVISION_COUNT;
 		}
@@ -228,30 +239,44 @@ namespace TEN::Entities::Traps
 
 		auto hitPos = Vector3i::Zero;
 
-		auto targetr = position.ToVector3() + Vector3::Transform(position.ToVector3(), rotMatrix);//Geometry::TranslatePoint(position.ToVector3(), orientation, length), slot.TargetRoomNumber);
-		auto targetp = Geometry::TranslatePoint(position.ToVector3(), dir, length);
+		//auto targetr = position.ToVector3() + Vector3::Transform(position.ToVector3(), rotMatrix);//Geometry::TranslatePoint(position.ToVector3(), orientation, length), slot.TargetRoomNumber);
+		//auto targetp = Geometry::TranslatePoint(targetr, dir, length);
 
 		GameVector tempOrigin = position;
-		GameVector tempTarget = GameVector(targetp, slot.RoomNumber);//GameVector(slot.TargetPos, los.RoomNumber);
+		GameVector tempTarget = GameVector(slot.TargetPos, slot.TargetRoomNumber);//GameVector(targetp, slot.RoomNumber);//GameVector(slot.TargetPos, los.RoomNumber);
 
 		bool los2 = LOS(&tempOrigin, &tempTarget);
 
 		DrawDebugLine(tempOrigin.ToVector3(), tempTarget.ToVector3(), Vector4(0, 1, 0, 1), RendererDebugPage::None);
 
-		auto losObject = ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr);
+		auto moveableLos = GetItemLosCollision(tempOrigin.ToVector3(), slot.RoomNumber, slot.Direction, slot.Length, false);
 
-		if (isLethal && losObject != NO_LOS_ITEM && !los2)
+		/*auto losObject = ObjectOnLOS2(&tempOrigin, &tempTarget, &hitPos, nullptr);
+
+		bool objectBetween = false;
+		if (losObject != NO_LOS_ITEM)
 		{
-			auto& losItem = g_Level.Items[losObject];
+			float objDist = Vector3::Distance(position.ToVector3(), hitPos.ToVector3());
+			float wallDist = Vector3::Distance(position.ToVector3(), slot.TargetPos);
+			constexpr float EPSILON = 0.01f; // tolerance for float errors
 
-			if (losItem.IsCreature() && losObject != excludedItemNumber)
+			// objectBetween == true if the hit object is closer than the wall hit (i.e. lies between start and wall)
+			objectBetween = (objDist + EPSILON) < wallDist;
+		}*/
+
+		/*if (isLethal && moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < laserLength)
+		{
+			//auto& losItem = g_Level.Items[losObject];
+			auto& losItem = g_Level.Items[moveableLos.value().Item->Index];
+
+			if (losItem.IsCreature() && losItem.Index != excludedItemNumber)
 				if (losItem.HitPoints > 0 && losItem.Effect.Type != EffectType::Smoke)
 				{
 					ItemRedLaserBurn(&losItem, FPS * 2);
 					losItem.HitPoints = 0;
 				}
 
-				if (losObject != excludedItemNumber && losItem.IsLara())
+				if (losItem.IsLara() && losItem.Index != excludedItemNumber )
 				{
 					if (LaraItem->HitPoints > 0 && LaraItem->Effect.Type != EffectType::Smoke)
 					{
@@ -262,7 +287,7 @@ namespace TEN::Entities::Traps
 
 			slot.Effect.Color.w = Random::GenerateFloat(0.6f, 1.0f);
 			SpawnLaserBeamLight(position.ToVector3(), position.RoomNumber, color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
-		}
+		}*/
 
 		std::copy(slot.Effect.Vertices.begin(), slot.Effect.Vertices.end(), slot.Effect.OldVertices.begin());
 		slot.Effect.OldColor = slot.Effect.Color;
