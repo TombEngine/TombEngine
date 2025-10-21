@@ -832,7 +832,7 @@ namespace TEN::Renderer
 		auto pos = _viewportToolkit.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
 
 		// Set vertex buffer.
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_inputLayout.Get());
 		
 		BindVertexBuffer(&_moveablesVertexBuffer);
@@ -1033,7 +1033,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// Set vertex buffer.
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_inputLayout.Get());
 		
 		BindVertexBuffer(&_moveablesVertexBuffer);

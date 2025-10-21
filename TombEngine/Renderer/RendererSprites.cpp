@@ -274,7 +274,7 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				SetPrimitiveTopology(PrimitiveTopology::TriangleStrip);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
 
@@ -330,7 +330,7 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
 
@@ -419,12 +419,12 @@ namespace TEN::Renderer
 		}
 
 		// Set up vertex parameters.
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 	}
 
 	void Renderer::DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view)
 	{
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleStrip);
 
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::LinearClamp);
 
@@ -496,7 +496,7 @@ namespace TEN::Renderer
 		_numSortedSpritesDrawCalls++;
 		_numSortedTriangles += 2;
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 	}
 
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
@@ -507,7 +507,7 @@ namespace TEN::Renderer
 
 		BindVertexBuffer(&_sortedPolygonsVertexBuffer);
 		
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;

@@ -35,7 +35,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
@@ -102,7 +102,7 @@ namespace TEN::Renderer
 
 		DrawTriangles(3, 0);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_inputLayout.Get());
 	}
 
@@ -118,7 +118,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);

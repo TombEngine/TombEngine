@@ -293,6 +293,7 @@ enum class TextureSource
 	Statics,
 	Animated
 };
+
 enum class SMAAMode
 {
 	MODE_SMAA_1X,
@@ -336,4 +337,11 @@ enum class MaterialShaderType
 	Default = 0,
 	Reflective = 1,
 	SkyboxReflective = 2
+};
+
+enum class PrimitiveTopology
+{
+	TriangleList,
+	TriangleStrip,
+	LineList
 };
