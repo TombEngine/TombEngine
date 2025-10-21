@@ -688,6 +688,19 @@ namespace TEN::Renderer
 			return ((v >> 8) & 0xFFFF);
 		}
 
+		template <typename TVertex>
+		inline void BindVertexBuffer(VertexBuffer<TVertex>* buffer)
+		{
+			unsigned int stride = sizeof(TVertex);
+			unsigned int offset = 0;
+			_context->IASetVertexBuffers(0, 1, buffer->Buffer.GetAddressOf(), &stride, &offset);
+		}
+
+		inline void BindIndexBuffer(IndexBuffer* buffer)
+		{
+			_context->IASetIndexBuffer(buffer->Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		}
+
 	public:
 		Renderer();
 		~Renderer();

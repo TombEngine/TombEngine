@@ -163,17 +163,15 @@ namespace TEN::Renderer
 			if (shadowLightPos == item->Position)
 				return;
 
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-
 			// Set shaders.
 			_shaders.Bind(Shader::ShadowMap);
 
-			_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			BindVertexBuffer(&_moveablesVertexBuffer);
+			BindIndexBuffer(&_moveablesIndexBuffer);
+			
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			_context->IASetInputLayout(_inputLayout.Get());
-			_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
+			
 			// Set texture.
 			BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
 			BindTexture(TextureRegister::NormalMap, &std::get<1>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
@@ -327,10 +325,8 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedStatics);
 
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-			_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+			BindVertexBuffer(&_moveablesVertexBuffer);
+			BindIndexBuffer(&_moveablesIndexBuffer);
 
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -582,11 +578,8 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				unsigned int stride = sizeof(Vertex);
-				unsigned int offset = 0;
-
-				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+				BindVertexBuffer(&_moveablesVertexBuffer);
+				BindIndexBuffer(&_moveablesIndexBuffer);
 
 				RendererObject& moveableObj = *_moveableObjects[ID_RATS_EMITTER];
 
@@ -705,11 +698,8 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				unsigned int stride = sizeof(Vertex);
-				unsigned int offset = 0;
-
-				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+				BindVertexBuffer(&_moveablesVertexBuffer);
+				BindIndexBuffer(&_moveablesIndexBuffer);
 
 				const auto& moveableObj = *_moveableObjects[ID_FISH_EMITTER];
 
@@ -844,11 +834,8 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
-					unsigned int stride = sizeof(Vertex);
-					unsigned int offset = 0;
-
-					_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-					_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+					BindVertexBuffer(&_moveablesVertexBuffer);
+					BindIndexBuffer(&_moveablesIndexBuffer);
 
 					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
@@ -975,11 +962,8 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
-					unsigned int stride = sizeof(Vertex);
-					unsigned int offset = 0;
-
-					_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-					_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+					BindVertexBuffer(&_moveablesVertexBuffer);
+					BindIndexBuffer(&_moveablesIndexBuffer);
 
 					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
 
@@ -1086,11 +1070,8 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				unsigned int stride = sizeof(Vertex);
-				unsigned int offset = 0;
-
-				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+				BindVertexBuffer(&_moveablesVertexBuffer);
+				BindIndexBuffer(&_moveablesIndexBuffer);
 
 				auto* obj = &Objects[ID_LOCUSTS];
 				auto& moveableObj = *_moveableObjects[ID_LOCUSTS];
@@ -2143,8 +2124,8 @@ namespace TEN::Renderer
 			// Draw horizon.
 			if (_moveableObjects[ID_HORIZON].has_value()) // FIXME: Replace with same function as in the main pipeline!
 			{
-				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+				BindVertexBuffer(&_moveablesVertexBuffer);
+				BindIndexBuffer(&_moveablesIndexBuffer);
 
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
 
@@ -2189,8 +2170,8 @@ namespace TEN::Renderer
 		unsigned int offset = 0;
 
 		// Bind vertex and index buffer.
-		_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_roomsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		BindVertexBuffer(&_roomsVertexBuffer);
+		BindIndexBuffer(&_roomsIndexBuffer);
 
 		for (int i = 0; i < _rooms.size(); i++)
 		{
@@ -2405,11 +2386,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer)
 	{
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		BindVertexBuffer(&_moveablesVertexBuffer);
+		BindIndexBuffer(&_moveablesIndexBuffer);
 
 		// Set shaders.
 		if (rendererPass == RendererPass::GBuffer)
@@ -2575,93 +2553,6 @@ namespace TEN::Renderer
 		 
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
-#ifdef DISABLE_INSTANCING
-			if (rendererPass == RendererPass::GBuffer)
-			{
-				_shaders.Bind(Shader::GBuffer);
-				_shaders.Bind(Shader::GBufferStatics);
-			}
-			else
-			{
-				_shaders.Bind(Shader::Statics);
-			}
-
-			// Bind vertex and index buffer
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-			_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-			if (g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
-			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
-			}
-			
-			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
-
-			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
-			{
-				std::vector<RendererStatic*> statics = it->second;
-
-				RendererStatic* refStatic = statics[0];
-				RendererObject& refStaticObj = GetStaticRendererObject(refStatic->ObjectNumber);
-				if (refStaticObj.ObjectMeshes.size() == 0)
-					continue;
-
-				RendererMesh* refMesh = refStaticObj.ObjectMeshes[0];
-
-				int staticsCount = (int)statics.size();
-
-				for (int s = 0; s < staticsCount; s++)
-				{
-					RendererStatic* current = statics[s];
-					RendererRoom* room = &_rooms[current->RoomNumber];
-
-					if (IgnoreReflectionPassForRoom(current->RoomNumber))
-						continue;
-
-					_stStatic.World = current->World;
-					_stStatic.Color = current->Color;
-					_stStatic.AmbientLight = room->AmbientLight;
-					_stStatic.LightMode = (int)refMesh->LightMode;
-
-					if (rendererPass != RendererPass::GBuffer)
-					{
-						BindStaticLights(current->LightsToDraw);
-					}
-
-					_cbStatic.UpdateData(_stStatic, _context.Get());
-
-					for (auto& bucket : refMesh->Buckets)
-					{
-						if (bucket.NumVertices == 0)
-						{
-							continue;
-						}
-
-						int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
-
-						for (int p = 0; p < passes; p++)
-						{
-							if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
-							{
-								continue;
-							}
-
-							BindTexture(TextureRegister::ColorMap,
-								&std::get<0>(_staticTextures[bucket.Texture]),
-								SamplerStateRegister::AnisotropicClamp);
-							BindTexture(TextureRegister::NormalMap,
-								&std::get<1>(_staticTextures[bucket.Texture]), SamplerStateRegister::AnisotropicClamp);
-
-							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-
-							_numInstancedStaticsDrawCalls++;
-						}
-					}
-				}
-			}
-#else
 			if (rendererPass == RendererPass::GBuffer)
 			{
 				_shaders.Bind(Shader::GBuffer);
@@ -2673,10 +2564,8 @@ namespace TEN::Renderer
 			}
 
 			// Bind vertex and index buffer
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-			_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+			BindVertexBuffer(&_staticsVertexBuffer);
+			BindIndexBuffer(&_staticsIndexBuffer);
 			
 			if (g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2761,7 +2650,6 @@ namespace TEN::Renderer
 					}
 				}
 			}
-#endif
 		}
 		else
 		{
@@ -2858,12 +2746,9 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::Rooms);
 			}
 
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-
 			// Bind vertex and index buffer.
-			_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetIndexBuffer(_roomsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+			BindVertexBuffer(&_roomsVertexBuffer);
+			BindIndexBuffer(&_roomsIndexBuffer);
 			   
 			if (rendererPass != RendererPass::GBuffer)
 			{
@@ -3030,17 +2915,14 @@ namespace TEN::Renderer
 		if (Lara.Control.Look.OpticRange != 0)
 			AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
 		_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 		BindTexture(TextureRegister::ColorMap, &_skyTexture, SamplerStateRegister::AnisotropicClamp);
 
-		_context->IASetVertexBuffers(0, 1, _skyVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_skyIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		BindVertexBuffer(&_skyVertexBuffer);
+		BindIndexBuffer(&_skyIndexBuffer);
 
 		SetBlendMode(BlendMode::Additive);
 
@@ -3083,9 +2965,7 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedSprites);
 
 			// Set up vertex buffer and parameters.
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			BindVertexBuffer(&_quadVertexBuffer);
 
 			BindTexture(TextureRegister::ColorMap, _sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3].Texture, SamplerStateRegister::LinearClamp);
 
@@ -3225,8 +3105,8 @@ namespace TEN::Renderer
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Opaque);
 
-			_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+			BindVertexBuffer(&_moveablesVertexBuffer);
+			BindIndexBuffer(&_moveablesIndexBuffer);
 
 			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
 			auto orient = EulerAngles::Lerp(levelPtr->GetHorizonPrevOrientation(layer), levelPtr->GetHorizonOrientation(layer), GetInterpolationFactor());
@@ -3280,9 +3160,7 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedSprites);
 
 			// Set up vertex buffer and parameters.
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			BindVertexBuffer(&_quadVertexBuffer);
 
 			auto rDrawSprite = RendererSpriteToDraw{};
 			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
@@ -3751,9 +3629,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Rooms);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_roomsVertexBuffer);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
@@ -3785,9 +3661,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_moveablesVertexBuffer);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
@@ -3840,9 +3714,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_staticsVertexBuffer);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
@@ -3876,9 +3748,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_moveablesVertexBuffer);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
@@ -3918,9 +3788,7 @@ namespace TEN::Renderer
 			return;
 		}
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_moveablesVertexBuffer);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
@@ -4017,10 +3885,7 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_depthRenderTarget, SamplerStateRegister::PointWrap);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::PointWrap);

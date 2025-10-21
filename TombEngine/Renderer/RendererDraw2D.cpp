@@ -121,16 +121,13 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		unsigned int strides = sizeof(Vertex);
-		unsigned int offset = 0;
-	
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, bar.VertexBufferBorder.Buffer.GetAddressOf(), &strides, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(bar.IndexBufferBorder.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-		
+		BindVertexBuffer((VertexBuffer<Vertex>*)&bar.VertexBufferBorder);
+		BindIndexBuffer((IndexBuffer*) &bar.IndexBufferBorder);
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
@@ -156,10 +153,11 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, bar.InnerVertexBuffer.Buffer.GetAddressOf(), &strides, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(bar.InnerIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 		
+		BindVertexBuffer((VertexBuffer<Vertex>*) &bar.InnerVertexBuffer);
+		BindIndexBuffer((IndexBuffer*)&bar.InnerIndexBuffer);
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
 
@@ -184,16 +182,14 @@ namespace TEN::Renderer
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
-		unsigned int strides = sizeof(Vertex);
-		unsigned int offset = 0;
-		
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 	
 		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, g_LoadingBar->VertexBufferBorder.Buffer.GetAddressOf(), &strides, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(g_LoadingBar->IndexBufferBorder.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	
+		
+		BindVertexBuffer((VertexBuffer<Vertex>*)&g_LoadingBar->VertexBufferBorder);
+		BindIndexBuffer((IndexBuffer*)&g_LoadingBar->IndexBufferBorder);
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
@@ -215,10 +211,11 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, g_LoadingBar->InnerVertexBuffer.Buffer.GetAddressOf(), &strides, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(g_LoadingBar->InnerIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	
+		BindVertexBuffer((VertexBuffer<Vertex>*) & g_LoadingBar->InnerVertexBuffer);
+		BindIndexBuffer((IndexBuffer*)&g_LoadingBar->InnerIndexBuffer);
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
 		

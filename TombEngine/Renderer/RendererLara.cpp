@@ -302,11 +302,8 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	if (nativeItem->Flags & IFLAG_INVISIBLE)
 		return;
 
-	unsigned int stride = sizeof(Vertex);
-	unsigned int offset = 0;
-
-	_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-	_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	BindVertexBuffer(&_moveablesVertexBuffer);
+	BindIndexBuffer(&_moveablesIndexBuffer);
 
 	auto& laraObj = *_moveableObjects[ID_LARA];
 	auto skinMode = GetSkinningMode(laraObj, item->SkinIndex);

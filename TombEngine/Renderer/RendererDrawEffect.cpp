@@ -1224,12 +1224,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		
+		BindVertexBuffer(&_moveablesVertexBuffer);
+		BindIndexBuffer(&_moveablesIndexBuffer);
 
 		const auto& room = _rooms[LaraItem->RoomNumber];
 		auto* itemPtr = &_items[LaraItem->Index];
@@ -1304,11 +1302,8 @@ namespace TEN::Renderer
 	{
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		BindVertexBuffer(&_moveablesVertexBuffer);
+		BindIndexBuffer(&_moveablesIndexBuffer);
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
 		{
@@ -1537,11 +1532,8 @@ namespace TEN::Renderer
 	{
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		BindVertexBuffer(&_moveablesVertexBuffer);
+		BindIndexBuffer(&_moveablesIndexBuffer);
 
 		for (auto* roomPtr : view.RoomsToDraw)
 		{
