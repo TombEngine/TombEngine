@@ -1019,7 +1019,7 @@ namespace TEN::Renderer
 		pRenderViewPtrs[0] = _renderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
 
-		_context->RSSetViewports(1, &_viewport);
+		SetViewport(_viewport);
 		ResetScissor();
 
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -1124,7 +1124,8 @@ namespace TEN::Renderer
 
 			// Bind back buffer.
 			_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
-			_context->RSSetViewports(1, &_viewport);
+			
+			SetViewport(_viewport);
 			ResetScissor();
 
 			// Draw full screen background.
@@ -1165,7 +1166,8 @@ namespace TEN::Renderer
 
 			// Bind back buffer.
 			_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
-			_context->RSSetViewports(1, &_viewport);
+			
+			SetViewport(_viewport);
 			ResetScissor();
 
 			// Draw fullscreen background. If unavailable, draw last dumped game scene.

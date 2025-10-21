@@ -6,8 +6,8 @@ namespace TEN::Renderer
 	RenderView::RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h) 
 	{
 		Viewport = {};
-		Viewport.TopLeftX = 0;
-		Viewport.TopLeftY = 0;
+		Viewport.X = 0;
+		Viewport.Y = 0;
 		Viewport.Width = w;
 		Viewport.Height = h;
 		Viewport.MinDepth = 0;
@@ -18,8 +18,8 @@ namespace TEN::Renderer
 	{
 
 		Viewport = {};
-		Viewport.TopLeftX = 0;
-		Viewport.TopLeftY = 0;
+		Viewport.X = 0;
+		Viewport.Y = 0;
 		Viewport.Width = w;
 		Viewport.Height = h;
 		Viewport.MinDepth = 0;

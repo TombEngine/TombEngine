@@ -324,7 +324,8 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::None);
 
 		_context->OMSetRenderTargets(1, &target, depthTarget);
-		_context->RSSetViewports(1, &_viewport);
+		
+		SetViewport(_viewport);
 		ResetScissor();
 
 		DrawFullScreenQuad(texture, Vector3(fade), true);

@@ -28,7 +28,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		_context->RSSetViewports(1, &view.Viewport);
+		SetViewport(view.Viewport);
 		ResetScissor();
 
 		// Common vertex shader to all fullscreen effects
@@ -111,7 +111,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		_context->RSSetViewports(1, &view.Viewport);
+		SetViewport(view.Viewport);
 		ResetScissor();
 
 		// Common vertex shader to all fullscreen effects
