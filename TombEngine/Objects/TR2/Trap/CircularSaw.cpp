@@ -27,7 +27,7 @@ namespace TEN::Entities::Traps
 		CIRCULAR_SAW_STATE_SART		
 	};
 
-	enum SwingingBladeAnim
+	enum CircularSawAnim
 	{
 		CIRCULAR_SAW_ANIM_DISABLED = 0,
 		CIRCULAR_SAW_ANIM_ACTIVATING = 1,
