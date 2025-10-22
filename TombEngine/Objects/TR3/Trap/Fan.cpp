@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Trap/TurningBlade.h"
+#include "Objects/TR3/Trap/Fan.h"
 
 #include "Game/animation.h"
 #include "Game/collision/collide_item.h"
@@ -21,30 +21,93 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto TURNING_BLADE_HARM_DAMAGE = 100;
 
-	const std::vector<unsigned int> TurningBladeHarmJoints = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-	const std::vector<Vector3i> TurningBladeBounds =
+	enum FanState
 	{
-		Vector3i(-CLICK(2), CLICK(2), -BLOCK(2)),
-		Vector3i(-896, -96, 96),
-		Vector3i(-CLICK(2), CLICK(2), -128),
-		Vector3i(0, -96, 96),
-		Vector3i(-CLICK(2), -384, -BLOCK(2)),
-		Vector3i(0, -96, 96),
-		Vector3i(384, CLICK(2), -BLOCK(2)),
-		Vector3i(0, -96, 96)
+		FAN_STATE_ROTATING = 0,
+		FAN_STATE_IDLE = 1,
+
 	};
 
-	void ControlTurningBlade(short itemNumber)
+	enum FanAnim
+	{
+		FAN_ANIM_ROTATING = 0,
+		FAN_ANIM_STOPPING = 1,
+		FAN_ANIM_IDLE = 2,
+		FAN_ANIM_STARTING = 3,
+	};
+
+	const std::vector<unsigned int> TurningBladeHarmJoints = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+
+	void ControlFan(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
 		if (!TriggerActive(&item))
+		{
+			if (item.Animation.ActiveState != FAN_STATE_IDLE)
+				{
+					item.Animation.TargetState = FAN_STATE_IDLE;
+				}
 			return;
+		}
 
-		AnimateItem(&item);	
+		AnimateItem(&item);
+
+
+		if (!TriggerActive(item) || item->flags & IFL_INVISIBLE)
+		{
+			if (item->goal_anim_state != 1)
+			{
+				if (item->object_number == FAN)
+					SoundEffect(SFX_UNDERWATER_FAN_STOP, &item->pos, SFX_WATER);
+
+				item->goal_anim_state = 1;
+			}
+		}
+		else
+		{
+			item->goal_anim_state = 0;
+
+			if (item->touch_bits & 6)
+			{
+				if (CurrentLevel == LV_ROOFTOPS)
+				{
+					lara_item->hit_points = -1;
+					DoLotsOfBlood(lara_item->pos.x_pos, lara_item->pos.y_pos - 512, lara_item->pos.z_pos,
+						short(GetRandomControl() >> 10), item->pos.y_rot + 0x4000, lara_item->room_number, 5);
+				}
+				else
+					lara_item->hit_points -= 200;
+
+				lara_item->hit_status = 1;
+				DoLotsOfBlood(lara_item->pos.x_pos, lara_item->pos.y_pos - 512, lara_item->pos.z_pos,
+					short(GetRandomControl() >> 10), item->pos.y_rot + 0x4000, lara_item->room_number, 3);
+
+				if (item->object_number == SAW)
+					SoundEffect(SFX_VERY_SMALL_WINCH, &item->pos, 0);
+			}
+			else if (item->object_number == SAW)
+				SoundEffect(SFX_DRILL_BIT_1, &item->pos, SFX_DEFAULT);
+			else if (item->object_number == FAN)
+				SoundEffect(SFX_UNDERWATER_FAN_ON, &item->pos, SFX_WATER);
+			else
+				SoundEffect(SFX_SMALL_FAN_ON, &item->pos, SFX_DEFAULT);
+		}
+
+		AnimateItem(item);
+
+		if (item->status == ITEM_DEACTIVATED)
+		{
+			RemoveActiveItem(item_number);
+
+			if (item->object_number != SAW)
+				item->collidable = 0;
+		}
+
 	}
 
-	void CollideTurningBlade(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
+	void CollideFan(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 

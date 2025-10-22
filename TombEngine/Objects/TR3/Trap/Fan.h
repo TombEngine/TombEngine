@@ -5,7 +5,7 @@ struct ItemInfo;
 
 namespace TEN::Entities::Traps
 {
-	void InitializeTurningBlade(short itemNumber);
-	void ControlTurningBlade(short itemNumber);
-	void CollideTurningBlade(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
+	void InitializeFan(short itemNumber);
+	void ControlFan(short itemNumber);
+	void CollideFan(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
 }
