@@ -284,7 +284,9 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				BindVertexBuffer(&_quadVertexBuffer);
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+				_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 				wasGpuSet = true;
 			}
@@ -340,7 +342,9 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				BindVertexBuffer(&_spriteVertexBuffer);
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+				_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 				wasGpuSet = true;
 			}
@@ -449,9 +453,12 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		
 		// Set up vertex buffer and parameters.
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
 		if (object->Sprite->Type != SpriteType::ThreeD)
 		{
-			BindVertexBuffer(&_quadVertexBuffer);
+			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		}
 		else
 		{
@@ -487,7 +494,7 @@ namespace TEN::Renderer
 
 			_spriteVertexBuffer.Update(_context.Get(), _spriteVertices.data(), 0, 4);
 
-			BindVertexBuffer(&_spriteVertexBuffer);
+			_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		}
 
 		// Draw sprites with instancing.
@@ -501,12 +508,14 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
 		_shaders.Bind(Shader::InstancedSprites);
 
 		_sortedPolygonsVertexBuffer.Update(_context.Get(), _sortedPolygonsVertices.data(), 0, (int)_sortedPolygonsVertices.size());
 
-		BindVertexBuffer(&_sortedPolygonsVertexBuffer);
-		
+		_context->IASetVertexBuffers(0, 1, _sortedPolygonsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 

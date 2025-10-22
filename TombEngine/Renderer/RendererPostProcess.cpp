@@ -27,7 +27,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		_shaders.Bind(Shader::PostProcess);
 
@@ -159,7 +162,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
@@ -200,7 +206,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
@@ -244,7 +253,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		// Downscale 
 		_shaders.Bind(Shader::Downscale);

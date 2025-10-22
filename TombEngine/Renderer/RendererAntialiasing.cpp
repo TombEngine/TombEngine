@@ -38,7 +38,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		// Copy render target to SMAA scene target.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -121,7 +124,10 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+
+		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		// Copy render target to temp render target.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };

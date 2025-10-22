@@ -793,6 +793,9 @@ namespace TEN::Renderer
 	{
 		constexpr auto AMBIENT_LIGHT_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
 
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
 		auto screenRes = GetScreenResolution();
 		auto factor = Vector2(
 			screenRes.x / DISPLAY_SPACE_RES.x,
@@ -832,11 +835,10 @@ namespace TEN::Renderer
 		auto pos = _viewportToolkit.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
 
 		// Set vertex buffer.
+		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
-		
-		BindVertexBuffer(&_moveablesVertexBuffer);
-		BindIndexBuffer(&_moveablesIndexBuffer);
+		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 		// Set matrices.
 		auto hudCamera = CCameraMatrixBuffer{};
@@ -1032,12 +1034,14 @@ namespace TEN::Renderer
 		_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
 		// Set vertex buffer.
+		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
-		
-		BindVertexBuffer(&_moveablesVertexBuffer);
-		BindIndexBuffer(&_moveablesIndexBuffer);
+		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);
