@@ -44,6 +44,7 @@
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
+#include "Objects/TR3/Trap/Fan.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -551,6 +552,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeFirePendulum;
 		obj->control = ControlFirePendulum;
 		obj->collision = CollideFirePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_FAN];
+	if (obj->loaded)
+	{
+		obj->control = ControlFan;
+		obj->collision = CollideFan;
 		obj->SetHitEffect(true);
 	}
 }

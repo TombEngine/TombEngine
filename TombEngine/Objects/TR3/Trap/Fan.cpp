@@ -19,13 +19,13 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto TURNING_BLADE_HARM_DAMAGE = 100;
+	constexpr auto FAN_HARM_DAMAGE = 5000;
+	constexpr auto FAN_HARM_MESH = 0x2;
 
 	enum FanState
 	{
 		FAN_STATE_ROTATING = 0,
 		FAN_STATE_IDLE = 1,
-
 	};
 
 	enum FanAnim
@@ -36,115 +36,94 @@ namespace TEN::Entities::Traps
 		FAN_ANIM_STARTING = 3,
 	};
 
-	const std::vector<unsigned int> TurningBladeHarmJoints = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
+	void InitializeFan(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+		item.ItemFlags[0] = FAN_HARM_MESH;
+	}
 
 	void ControlFan(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		if (!TriggerActive(&item))
+		if (TriggerActive(&item))
 		{
-			if (item.Animation.ActiveState != FAN_STATE_IDLE)
-				{
-					item.Animation.TargetState = FAN_STATE_IDLE;
-				}
-			return;
-		}
-
-		AnimateItem(&item);
-
-
-		if (!TriggerActive(item) || item->flags & IFL_INVISIBLE)
-		{
-			if (item->goal_anim_state != 1)
+			if (item.Animation.TargetState != FAN_STATE_ROTATING)
 			{
-				if (item->object_number == FAN)
-					SoundEffect(SFX_UNDERWATER_FAN_STOP, &item->pos, SFX_WATER);
-
-				item->goal_anim_state = 1;
+				item.Animation.TargetState = FAN_STATE_ROTATING;
+				item.Status = ITEM_ACTIVE;
 			}
+
+			item.ItemFlags[0] = FAN_HARM_MESH;
 		}
 		else
 		{
-			item->goal_anim_state = 0;
-
-			if (item->touch_bits & 6)
+			if (item.Animation.TargetState != FAN_STATE_IDLE)
 			{
-				if (CurrentLevel == LV_ROOFTOPS)
-				{
-					lara_item->hit_points = -1;
-					DoLotsOfBlood(lara_item->pos.x_pos, lara_item->pos.y_pos - 512, lara_item->pos.z_pos,
-						short(GetRandomControl() >> 10), item->pos.y_rot + 0x4000, lara_item->room_number, 5);
-				}
-				else
-					lara_item->hit_points -= 200;
-
-				lara_item->hit_status = 1;
-				DoLotsOfBlood(lara_item->pos.x_pos, lara_item->pos.y_pos - 512, lara_item->pos.z_pos,
-					short(GetRandomControl() >> 10), item->pos.y_rot + 0x4000, lara_item->room_number, 3);
-
-				if (item->object_number == SAW)
-					SoundEffect(SFX_VERY_SMALL_WINCH, &item->pos, 0);
+				item.Animation.TargetState = FAN_STATE_IDLE;
 			}
-			else if (item->object_number == SAW)
-				SoundEffect(SFX_DRILL_BIT_1, &item->pos, SFX_DEFAULT);
-			else if (item->object_number == FAN)
-				SoundEffect(SFX_UNDERWATER_FAN_ON, &item->pos, SFX_WATER);
 			else
-				SoundEffect(SFX_SMALL_FAN_ON, &item->pos, SFX_DEFAULT);
+			{
+				if (item.Animation.AnimNumber == GetAnimIndex(item, FAN_ANIM_IDLE) &&
+					item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				{
+					item.Status = ITEM_NOT_ACTIVE;
+				}
+			}
 		}
 
-		AnimateItem(item);
+		item.ItemFlags[3] = item.TriggerFlags;
 
-		if (item->status == ITEM_DEACTIVATED)
-		{
-			RemoveActiveItem(item_number);
-
-			if (item->object_number != SAW)
-				item->collidable = 0;
-		}
-
+		AnimateItem(&item);
 	}
 
-	void CollideFan(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
+	void CollideFan(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
-		auto* item = &g_Level.Items[itemNumber];
-
-		if (!TriggerActive(item))
+		auto& item = g_Level.Items[itemNumber];
+		if (item.Status == ITEM_INVISIBLE || item.Status == ITEM_NOT_ACTIVE)
 			return;
 
-		if (item->Status == ITEM_INVISIBLE)
+		if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
 			return;
 
-		if (!TestBoundsCollide(item, laraItem, coll->Setup.Radius))
+		HandleItemSphereCollision(item, *playerItem);
+		if (!item.TouchBits.TestAny())
 			return;
 
-		if (!HandleItemSphereCollision(*item, *laraItem))
-			return;
+		short prevYOrient = item.Pose.Orientation.y;
+		item.Pose.Orientation.y = 0;
+		auto spheres = item.GetSpheres();
+		item.Pose.Orientation.y = prevYOrient;
 
-		// Blades deal damage cumulatively.
-		auto spheres = item->GetSpheres();
-		for (int i = 0; i < TurningBladeHarmJoints.size(); i++)
+		int harmBits = *(int*)&item.ItemFlags[0]; // NOTE: Value spread across ItemFlags[0] and ItemFlags[1].
+
+		auto collidedBits = item.TouchBits;
+
+		coll->Setup.EnableObjectPush = (item.ItemFlags[4] == 0);
+
+		// Handle push and damage.
+		for (int i = 0; i < spheres.size(); i++)
 		{
-			if (item->TouchBits.Test(TurningBladeHarmJoints[i]))
+			if (collidedBits.Test(i))
 			{
-				DoDamage(laraItem, TURNING_BLADE_HARM_DAMAGE);
-				DoBloodSplat(
-					(GetRandomControl() & 0x3F) + laraItem->Pose.Position.x - 32,
-					(GetRandomControl() & 0x1F) + spheres[i].Center.y - 16,
-					(GetRandomControl() & 0x3F) + laraItem->Pose.Position.z - 32,
-					(GetRandomControl() & 3) + 2,
-					GetRandomControl() * 2,
-					laraItem->RoomNumber);
+				const auto& sphere = spheres[i];
 
-				TriggerLaraBlood();
+				GlobalCollisionBounds.X1 = sphere.Center.x - sphere.Radius - item.Pose.Position.x;
+				GlobalCollisionBounds.X2 = sphere.Center.x + sphere.Radius - item.Pose.Position.x;
+				GlobalCollisionBounds.Y1 = sphere.Center.y - sphere.Radius - item.Pose.Position.y;
+				GlobalCollisionBounds.Y2 = sphere.Center.y + sphere.Radius - item.Pose.Position.y;
+				GlobalCollisionBounds.Z1 = sphere.Center.z - sphere.Radius - item.Pose.Position.z;
+				GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
 
-				if (laraItem->HitPoints > 0)
+				if ( (harmBits & 1) && (item.ItemFlags[3] > 0))
 				{
-					ItemPushItem(item, laraItem, coll, false, 1);
+					DoDamage(playerItem, item.ItemFlags[3]);
+					TriggerLaraBlood();
+					DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);					
 				}
 			}
+
+			harmBits >>= 1;
 		}
 	}
 }
