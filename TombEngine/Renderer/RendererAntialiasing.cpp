@@ -36,20 +36,21 @@ namespace TEN::Renderer
 
 		// We draw a fullscreen triangle
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		SetInputLayout(InputLayout::FullScreenTriangleVertex);
+		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
 		// Copy render target to SMAA scene target.
-		ClearRenderTarget(&_SMAASceneRenderTarget, Colors::Transparent);
+		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		_context->ClearRenderTargetView(_SMAASceneRenderTarget.RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _SMAASceneRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 		
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
 		// 1) Edge detection using color method (also depth and luma available).
-		ClearRenderTarget(&_SMAAEdgesRenderTarget, Colors::Transparent);
-		ClearRenderTarget(&_SMAABlendRenderTarget, Colors::Transparent);
+		_context->ClearRenderTargetView(_SMAAEdgesRenderTarget.RenderTargetView.Get(), clearColor);
+		_context->ClearRenderTargetView(_SMAABlendRenderTarget.RenderTargetView.Get(), clearColor);
 
 		SetCullMode(CullMode::CounterClockwise);
 		_context->OMSetRenderTargets(1, _SMAAEdgesRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
@@ -102,7 +103,7 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		SetInputLayout(InputLayout::Vertex);
+		_context->IASetInputLayout(_inputLayout.Get());
 	}
 
 	void Renderer::ApplyFXAA(RenderTarget2D* renderTarget, RenderView& view)
@@ -118,19 +119,20 @@ namespace TEN::Renderer
 
 		// We draw a fullscreen triangle
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		SetInputLayout(InputLayout::FullScreenTriangleVertex);
+		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
 		// Copy render target to temp render target.
-		ClearRenderTarget(&_postProcessRenderTarget[0], Colors::Transparent);
+		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
 		// Apply FXAA
-		ClearRenderTarget(renderTarget, Colors::Black);
+		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
 
 		_shaders.Bind(Shader::Fxaa);

@@ -508,7 +508,7 @@ namespace TEN::Renderer
 		BindVertexBuffer(&_sortedPolygonsVertexBuffer);
 		
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		SetInputLayout(InputLayout::Vertex);
+		_context->IASetInputLayout(_inputLayout.Get());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
