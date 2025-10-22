@@ -119,7 +119,7 @@ namespace TEN::Renderer
 	{
 		for (int step = 0; step < _shadowMap.RenderTargetView.size(); step++)
 		{
-			_context->ClearRenderTargetView(_shadowMap.RenderTargetView[step].Get(), Colors::White);
+			ClearRenderTargetOfArray(&_shadowMap, step, Colors::White);
 			_context->ClearDepthStencilView(_shadowMap.DepthStencilView[step].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 				1.0f, 0);
 		}
@@ -170,7 +170,7 @@ namespace TEN::Renderer
 			BindIndexBuffer(&_moveablesIndexBuffer);
 			
 			SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			_context->IASetInputLayout(_inputLayout.Get());
+			SetInputLayout(InputLayout::Vertex);
 			
 			// Set texture.
 			BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
@@ -1164,7 +1164,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Solid);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		_primitiveBatch->Begin();
 
@@ -1860,7 +1860,7 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(_stAnimated, _cbAnimated);
 
 		// Set up vertex parameters.
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 		// Draw skybox to paraboloid
@@ -1872,7 +1872,7 @@ namespace TEN::Renderer
 		// Bind and clear render target.
 		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), _renderTarget.DepthStencilView.Get());
 
-		_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
+		ClearRenderTarget(&_renderTarget, _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// Reset viewport and scissor.
@@ -1926,10 +1926,10 @@ namespace TEN::Renderer
 		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), view);
 
 		// Build G-Buffer (normals + depth).
-		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
-		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-		
+		ClearRenderTarget(&_normalsAndMaterialIndexRenderTarget, Colors::Transparent);
+		ClearRenderTarget(&_depthRenderTarget, Colors::White);
+		ClearRenderTarget(&_emissiveAndRoughnessRenderTarget, Colors::Transparent);
+
 		pRenderViewPtrs[0] = _normalsAndMaterialIndexRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _depthRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[2] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
@@ -1943,7 +1943,7 @@ namespace TEN::Renderer
 			CalculateSSAO(view);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		SetViewport(view.Viewport);
 		ResetScissor();
@@ -2288,7 +2288,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 
 		// Clear screen
-		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+		ClearRenderTarget(&_backBuffer, Colors::Black);
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// Bind back buffer.
@@ -2840,7 +2840,7 @@ namespace TEN::Renderer
 	
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
-		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[0].Get(), Colors::Black);
+		ClearRenderTargetOfArray(&_skyboxRenderTarget, 0, Colors::Black);
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[0].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[0].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[0].Get());
 
@@ -2862,7 +2862,7 @@ namespace TEN::Renderer
 
 		DrawHorizonAndSky(_skyboxRenderTarget.DepthStencilView[0].Get(), view, true);
 
-		_context->ClearRenderTargetView(_skyboxRenderTarget.RenderTargetView[1].Get(), Colors::Black);
+		ClearRenderTargetOfArray(&_skyboxRenderTarget, 1, Colors::Black);
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[1].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[1].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[1].Get());
 
@@ -3616,7 +3616,7 @@ namespace TEN::Renderer
 
 		BindVertexBuffer(&_roomsVertexBuffer);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		_stRoom.Caustics = (int)(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER));
 		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
@@ -3648,7 +3648,7 @@ namespace TEN::Renderer
 	{
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3701,7 +3701,7 @@ namespace TEN::Renderer
 	{
 		BindVertexBuffer(&_staticsVertexBuffer);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		_shaders.Bind(Shader::InstancedStatics);
 		
@@ -3735,7 +3735,7 @@ namespace TEN::Renderer
 	{
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		_shaders.Bind(Shader::InstancedStatics);
 		
@@ -3775,7 +3775,7 @@ namespace TEN::Renderer
 
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3845,13 +3845,13 @@ namespace TEN::Renderer
 		// SSAO pixel shader.
 		_shaders.Bind(Shader::Ssao);
 
-		_context->ClearRenderTargetView(_SSAORenderTarget.RenderTargetView.Get(), Colors::White);
+		ClearRenderTarget(&_SSAORenderTarget, Colors::White);
 		_context->OMSetRenderTargets(1, _SSAORenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 
 		SetViewport(0, 0, _screenWidth, _screenHeight, 0.0f, 1.0f);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		SetInputLayout(InputLayout::FullScreenTriangleVertex);
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
@@ -3869,7 +3869,7 @@ namespace TEN::Renderer
 		// Blur step.
 		_shaders.Bind(Shader::SsaoBlur);
 
-		_context->ClearRenderTargetView(_SSAOBlurredRenderTarget.RenderTargetView.Get(), Colors::Black);
+		ClearRenderTarget(&_SSAOBlurredRenderTarget, Colors::Black);
 		_context->OMSetRenderTargets(1, _SSAOBlurredRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAORenderTarget, SamplerStateRegister::PointWrap);

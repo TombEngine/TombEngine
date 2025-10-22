@@ -345,3 +345,9 @@ enum class PrimitiveTopology
 	TriangleStrip,
 	LineList
 };
+
+enum class InputLayout
+{
+	Vertex,
+	FullScreenTriangleVertex
+};

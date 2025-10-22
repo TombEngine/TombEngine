@@ -744,6 +744,54 @@ namespace TEN::Renderer
 			_context->RSSetScissorRects(1, rects);
 		}
 
+		inline void SetInputLayout(InputLayout layout)
+		{
+			switch (layout)
+			{
+			case InputLayout::Vertex:
+				_context->IASetInputLayout(_inputLayout.Get());
+				break;
+
+			case InputLayout::FullScreenTriangleVertex:
+				_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+				break;
+			}
+		}
+
+		inline void ClearRenderTarget(RenderTarget2D* renderTarget, DirectX::XMVECTORF32 clearColor)
+		{
+			_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), clearColor);
+		}
+
+		inline void ClearRenderTarget(RenderTarget2D* renderTarget, Vector4 color)
+		{
+			float clearColor[4];
+
+			clearColor[0] = color.x;
+			clearColor[1] = color.y;
+			clearColor[2] = color.z;
+			clearColor[3] = color.w;
+
+			_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), clearColor);
+		}
+
+		inline void ClearRenderTargetOfArray(Texture2DArray* renderTargetArray, int index, DirectX::XMVECTORF32 clearColor)
+		{
+			_context->ClearRenderTargetView(renderTargetArray->RenderTargetView[index].Get(), clearColor);
+		}
+
+		inline void ClearRenderTargetOfArray(Texture2DArray* renderTargetArray, int index, Vector4 color)
+		{
+			float clearColor[4];
+
+			clearColor[0] = color.x;
+			clearColor[1] = color.y;
+			clearColor[2] = color.z;
+			clearColor[3] = color.w;
+
+			_context->ClearRenderTargetView(renderTargetArray->RenderTargetView[index].Get(), clearColor);
+		}
+
 	public:
 		Renderer();
 		~Renderer();

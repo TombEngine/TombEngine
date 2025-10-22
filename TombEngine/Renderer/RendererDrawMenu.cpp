@@ -833,7 +833,7 @@ namespace TEN::Renderer
 
 		// Set vertex buffer.
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 		
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		BindIndexBuffer(&_moveablesIndexBuffer);
@@ -1023,9 +1023,10 @@ namespace TEN::Renderer
 		ResetScissor();
 
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), Colors::Black);
-		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-
+		
+		ClearRenderTarget(&_renderTarget, Colors::Black);
+		ClearRenderTarget(&_emissiveAndRoughnessRenderTarget, Colors::Transparent);
+		
 		if (background != nullptr)
 			DrawFullScreenImage(background->ShaderResourceView.Get(), backgroundFade, _renderTarget.RenderTargetView.Get(), _renderTarget.DepthStencilView.Get());
 
@@ -1034,7 +1035,7 @@ namespace TEN::Renderer
 
 		// Set vertex buffer.
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_inputLayout.Get());
+		SetInputLayout(InputLayout::Vertex);
 		
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		BindIndexBuffer(&_moveablesIndexBuffer);
@@ -1119,7 +1120,7 @@ namespace TEN::Renderer
 			SetCullMode(CullMode::CounterClockwise);
 
 			// Clear screen
-			_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+			ClearRenderTarget(&_backBuffer, Colors::Black);
 			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 			// Bind back buffer.
@@ -1161,7 +1162,7 @@ namespace TEN::Renderer
 		do
 		{
 			// Clear screen.
-			_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+			ClearRenderTarget(&_backBuffer, Colors::Black);
 			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 			// Bind back buffer.
@@ -1202,9 +1203,9 @@ namespace TEN::Renderer
 			_graphicsSettingsChanged = false;
 		}
 
+		ClearRenderTarget(&_backBuffer, Colors::Black);
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
-
+		
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
@@ -1223,9 +1224,9 @@ namespace TEN::Renderer
 		InterpolateCamera(interpFactor);
 		DumpGameScene();
 
+		ClearRenderTarget(&_backBuffer, Colors::Black);
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
-
+		
 		RenderInventoryScene(&_backBuffer, &_dumpScreenRenderTarget, 1.0f);
 		
 		_swapChain->Present(1, 0);

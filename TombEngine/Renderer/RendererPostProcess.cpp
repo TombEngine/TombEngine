@@ -26,7 +26,7 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		SetInputLayout(InputLayout::FullScreenTriangleVertex);
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
@@ -35,8 +35,7 @@ namespace TEN::Renderer
 		// *** START OF POST-PROCESSING CHAIN ***
 		
 		// Copy render target to post process render target. --------------------------------------------------------------------
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(&_postProcessRenderTarget[0], Colors::Transparent);
 		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_renderTarget, SamplerStateRegister::PointWrap);
@@ -51,7 +50,7 @@ namespace TEN::Renderer
 		
 		if (!view.LensFlaresToDraw.empty())
 		{
-			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+			ClearRenderTarget(&_postProcessRenderTarget[destRenderTarget], Colors::Transparent);
 			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
 			_shaders.Bind(Shader::PostProcessLensFlare);
@@ -74,7 +73,7 @@ namespace TEN::Renderer
 		// Color scheme ----------------------------------------------------------------------------------------------------------
 		if (_postProcessMode != PostProcessMode::None && _postProcessStrength > EPSILON)
 		{
-			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
+			ClearRenderTarget(&_postProcessRenderTarget[destRenderTarget], Colors::Transparent);
 			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
 
 			switch (_postProcessMode)
@@ -105,7 +104,7 @@ namespace TEN::Renderer
 		// Final pass ----------------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::PostProcessFinalPass);
 
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
+		ClearRenderTarget(renderTarget, Colors::Black);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
 
 		BindTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
@@ -159,12 +158,11 @@ namespace TEN::Renderer
 
 		// We draw a fullscreen triangle
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		SetInputLayout(InputLayout::FullScreenTriangleVertex);
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(dest, Colors::Transparent);
 		_context->OMSetRenderTargets(1, dest->RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
@@ -184,12 +182,11 @@ namespace TEN::Renderer
 
 		// We draw a fullscreen triangle
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		SetInputLayout(InputLayout::FullScreenTriangleVertex);
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(dest, Colors::Transparent);
 		_context->OMSetRenderTargets(1, dest->RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
@@ -212,7 +209,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		SetInputLayout(InputLayout::FullScreenTriangleVertex);
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);
 
@@ -223,7 +220,7 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(&_glowRenderTarget[0], Colors::Transparent);
 		_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveAndRoughnessRenderTarget, SamplerStateRegister::LinearClamp);
@@ -237,7 +234,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.BlurRadius = GLOW_BLUR_RADIUS;
 
 		// Horizontal blur
-		_context->ClearRenderTargetView(_glowRenderTarget[1].RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(&_glowRenderTarget[1], Colors::Transparent);
 		_context->OMSetRenderTargets(1, _glowRenderTarget[1].RenderTargetView.GetAddressOf(), nullptr);
 
 		_stPostProcessBuffer.BlurDirection = Vector2(1.0f, 0.0f);
@@ -250,7 +247,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.BlurDirection = Vector2(0.0f, 1.0f);
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
-		_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(&_glowRenderTarget[0], Colors::Transparent);
 		_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[1], SamplerStateRegister::LinearClamp);
@@ -270,7 +267,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.GlowIntensity = 1.0f;
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), clearColor);
+		ClearRenderTarget(renderTarget, Colors::Transparent);
 		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[0], SamplerStateRegister::LinearClamp);
