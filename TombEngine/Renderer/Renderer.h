@@ -46,7 +46,6 @@
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
-#include "Renderer/Structures/RendererViewport.h"
 #include "Renderer/Graphics/Texture2D.h"
 #include "Renderer/Graphics/IndexBuffer.h"
 #include "Renderer/Graphics/RenderTarget2D.h"
@@ -108,8 +107,8 @@ namespace TEN::Renderer
 		ComPtr<ID3D11RasterizerState> _cullClockwiseRasterizerState = nullptr;
 		ComPtr<ID3D11RasterizerState> _cullNoneRasterizerState = nullptr;
 		ComPtr<ID3D11InputLayout> _inputLayout = nullptr;
-		RendererViewport _viewport;
-		RendererViewport _shadowMapViewport;
+		D3D11_VIEWPORT _viewport;
+		D3D11_VIEWPORT _shadowMapViewport;
 		Viewport _viewportToolkit;
 
 		// Render targets
@@ -716,32 +715,6 @@ namespace TEN::Renderer
 				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 				break;
 			}
-		}
-
-		inline void SetViewport(RendererViewport& viewport)
-		{
-			SetViewport(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
-		}
-
-		inline void SetViewport(int x, int y, int width, int height, float minDepth, float maxDepth)
-		{
-			D3D11_VIEWPORT viewport;
-			viewport.TopLeftX = x;
-			viewport.TopLeftY = y;
-			viewport.Width = width;
-			viewport.Height = height;
-			viewport.MinDepth = minDepth;
-			viewport.MaxDepth = maxDepth;
-
-			_context->RSSetViewports(1, &viewport);
-
-			D3D11_RECT rects[1];
-			rects[0].left = viewport.TopLeftX;
-			rects[0].right = viewport.Width;
-			rects[0].top = viewport.TopLeftY;
-			rects[0].bottom = viewport.Height;
-
-			_context->RSSetScissorRects(1, rects);
 		}
 
 	public:

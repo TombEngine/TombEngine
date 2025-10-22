@@ -16,6 +16,6 @@ namespace TEN::Renderer::Graphics::Vertices
 		std::array<unsigned char, 4> BoneWeight = { 255, 0, 0, 0 };
 		
 		unsigned int Effects						= 0;
-		unsigned int AnimationFrameOffsetIndexHash	= 0; 
+		unsigned int AnimationFrameOffsetIndexHash	= 0;
 	};
 }

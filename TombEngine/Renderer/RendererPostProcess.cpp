@@ -11,8 +11,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::Write);
-
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
 		float screenFadeFactor = renderMode == SceneRenderMode::Full ? ScreenFadeCurrent : 1.0f;
@@ -150,8 +149,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
 		// Common vertex shader to all fullscreen effects
@@ -173,7 +171,23 @@ namespace TEN::Renderer
 
 	void Renderer::CopyRenderTargetAndDownscale(RenderTarget2D* source, RenderTarget2D* dest, float factor, RenderView& view)
 	{
-		SetViewport(0, 0, _screenWidth / factor, _screenHeight / factor, 0.0f, 1.0f);
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = _screenWidth / factor;
+		viewport.Height = _screenHeight / factor;
+		viewport.MinDepth = 0;
+		viewport.MaxDepth = 1;
+
+		_context->RSSetViewports(1, &viewport);
+
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = viewport.Width;
+		rects[0].top = 0;
+		rects[0].bottom = viewport.Height;
+
+		_context->RSSetScissorRects(1, rects);
 
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
@@ -196,7 +210,7 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		ResetScissor();
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 	}
 
 	void Renderer::ApplyGlow(RenderTarget2D* renderTarget, RenderView& view)
@@ -205,7 +219,23 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		SetViewport(0, 0, _screenWidth / GLOW_DOWNSCALE_FACTOR, _screenHeight / GLOW_DOWNSCALE_FACTOR, 0.0f, 1.0f);
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = _screenWidth / GLOW_DOWNSCALE_FACTOR;
+		viewport.Height = _screenHeight / GLOW_DOWNSCALE_FACTOR;
+		viewport.MinDepth = 0;
+		viewport.MaxDepth = 1;
+
+		_context->RSSetViewports(1, &viewport);
+
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = _screenWidth / GLOW_DOWNSCALE_FACTOR;
+		rects[0].top = 0;
+		rects[0].bottom = _screenHeight / GLOW_DOWNSCALE_FACTOR;
+
+		_context->RSSetScissorRects(1, rects);
 
 		_shaders.Bind(Shader::PostProcess);
 
@@ -257,7 +287,7 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// Reset viewport
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
 		// Copy render target to temp render target

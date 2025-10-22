@@ -157,7 +157,7 @@ namespace TEN::Renderer
 			_context->OMSetRenderTargets(1, _shadowMap.RenderTargetView[step].GetAddressOf(),
 				_shadowMap.DepthStencilView[step].Get());
 
-			SetViewport(_shadowMapViewport); 
+			_context->RSSetViewports(1, &_shadowMapViewport);
 			ResetScissor();
 
 			if (shadowLightPos == item->Position)
@@ -1876,7 +1876,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// Reset viewport and scissor.
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
@@ -1945,7 +1945,7 @@ namespace TEN::Renderer
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_inputLayout.Get());
 
-		SetViewport(view.Viewport);
+		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
 
 		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
@@ -2293,8 +2293,7 @@ namespace TEN::Renderer
 
 		// Bind back buffer.
 		_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
-		
-		SetViewport(_viewport);
+		_context->RSSetViewports(1, &_viewport);
 		ResetScissor();
 
 		// Draw full screen background.
@@ -2844,7 +2843,23 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_skyboxRenderTarget.DepthStencilView[0].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		_context->OMSetRenderTargets(1, _skyboxRenderTarget.RenderTargetView[0].GetAddressOf(), _skyboxRenderTarget.DepthStencilView[0].Get());
 
-		SetViewport(0, 0, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0.0f, 1.0f);
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = ROOM_AMBIENT_MAP_SIZE;
+		viewport.Height = ROOM_AMBIENT_MAP_SIZE;
+		viewport.MinDepth = 0;
+		viewport.MaxDepth = 1;
+
+		_context->RSSetViewports(1, &viewport);
+
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = ROOM_AMBIENT_MAP_SIZE;
+		rects[0].top = 0;
+		rects[0].bottom = ROOM_AMBIENT_MAP_SIZE;
+
+		_context->RSSetScissorRects(1, rects);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -3848,7 +3863,24 @@ namespace TEN::Renderer
 		_context->ClearRenderTargetView(_SSAORenderTarget.RenderTargetView.Get(), Colors::White);
 		_context->OMSetRenderTargets(1, _SSAORenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 
-		SetViewport(0, 0, _screenWidth, _screenHeight, 0.0f, 1.0f);
+		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = _screenWidth;
+		viewport.Height = _screenHeight;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		_context->RSSetViewports(1, &viewport);
+	
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = viewport.Width;
+		rects[0].top = 0;
+		rects[0].bottom = viewport.Height;
+
+		_context->RSSetScissorRects(1, rects);
 
 		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());

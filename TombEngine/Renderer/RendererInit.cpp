@@ -496,21 +496,21 @@ namespace TEN::Renderer
 		_primitiveBatch = std::make_unique<PrimitiveBatch<Vertex>>(_context.Get());
 
 		// Initialize viewport
-		_viewport.X = 0;
-		_viewport.Y = 0;
+		_viewport.TopLeftX = 0;
+		_viewport.TopLeftY = 0;
 		_viewport.Width = w;
 		_viewport.Height = h;
 		_viewport.MinDepth = 0.0f;
 		_viewport.MaxDepth = 1.0f;
 
-		_shadowMapViewport.X = 0;
-		_shadowMapViewport.Y = 0;
+		_shadowMapViewport.TopLeftX = 0;
+		_shadowMapViewport.TopLeftY = 0;
 		_shadowMapViewport.Width = g_Configuration.ShadowMapSize;
 		_shadowMapViewport.Height = g_Configuration.ShadowMapSize;
 		_shadowMapViewport.MinDepth = 0.0f;
 		_shadowMapViewport.MaxDepth = 1.0f;
 
-		_viewportToolkit = Viewport(_viewport.X, _viewport.Y, _viewport.Width, _viewport.Height,
+		_viewportToolkit = Viewport(_viewport.TopLeftX, _viewport.TopLeftY, _viewport.Width, _viewport.Height,
 			_viewport.MinDepth, _viewport.MaxDepth);
 
 		// Low AA is done with FXAA, Medium - High AA are done with SMAA.
