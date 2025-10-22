@@ -124,7 +124,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		BindVertexBuffer((VertexBuffer<Vertex>*)&bar.VertexBufferBorder);
 		BindIndexBuffer((IndexBuffer*) &bar.IndexBufferBorder);
 
@@ -153,7 +153,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		BindVertexBuffer((VertexBuffer<Vertex>*) &bar.InnerVertexBuffer);
 		BindIndexBuffer((IndexBuffer*)&bar.InnerIndexBuffer);
@@ -185,7 +185,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 	
 		_context->IASetInputLayout(_inputLayout.Get());
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		BindVertexBuffer((VertexBuffer<Vertex>*)&g_LoadingBar->VertexBufferBorder);
 		BindIndexBuffer((IndexBuffer*)&g_LoadingBar->IndexBufferBorder);
@@ -211,7 +211,7 @@ namespace TEN::Renderer
 		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
 		
 		_context->IASetInputLayout(_inputLayout.Get());
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 		BindVertexBuffer((VertexBuffer<Vertex>*) & g_LoadingBar->InnerVertexBuffer);
 		BindIndexBuffer((IndexBuffer*)&g_LoadingBar->InnerIndexBuffer);
@@ -303,7 +303,7 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::FullScreenQuad);
 
-			SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			_context->IASetInputLayout(_inputLayout.Get());
 
 			_primitiveBatch->Begin();
@@ -347,7 +347,7 @@ namespace TEN::Renderer
 			{
 				_shaders.Bind(Shader::FullScreenQuad);
 
-				SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				_context->IASetInputLayout(_inputLayout.Get());
 
 				_primitiveBatch->Begin();
@@ -470,7 +470,7 @@ namespace TEN::Renderer
 		auto* sampler = _renderStates->AnisotropicClamp();
 		_context->PSSetSamplers(0, 1, &sampler);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_primitiveBatch->Begin();
@@ -546,7 +546,7 @@ namespace TEN::Renderer
 		auto* sampler = _renderStates->AnisotropicClamp();
 		_context->PSSetSamplers(0, 1, &sampler);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_primitiveBatch->Begin();

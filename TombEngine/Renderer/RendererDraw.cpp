@@ -169,7 +169,7 @@ namespace TEN::Renderer
 			BindVertexBuffer(&_moveablesVertexBuffer);
 			BindIndexBuffer(&_moveablesIndexBuffer);
 			
-			SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			_context->IASetInputLayout(_inputLayout.Get());
 			
 			// Set texture.
@@ -401,7 +401,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Solid);
 		auto worldMatrix = Matrix::CreateOrthographicOffCenter(0, _screenWidth, _screenHeight, 0, _viewport.MinDepth, _viewport.MaxDepth);
 
-		SetPrimitiveTopology(PrimitiveTopology::LineList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		_primitiveBatch->Begin();
 
@@ -1130,7 +1130,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Solid);
 
-		SetPrimitiveTopology(PrimitiveTopology::LineList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		_primitiveBatch->Begin();
 
@@ -1163,7 +1163,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Solid);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_primitiveBatch->Begin();
@@ -1861,7 +1861,7 @@ namespace TEN::Renderer
 
 		// Set up vertex parameters.
 		_context->IASetInputLayout(_inputLayout.Get());
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// Draw skybox to paraboloid
 		DrawHorizonAndSkyForReflections(view);
@@ -1942,7 +1942,7 @@ namespace TEN::Renderer
 		if (g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_context->RSSetViewports(1, &view.Viewport);
@@ -2960,7 +2960,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
 
-			SetPrimitiveTopology(PrimitiveTopology::TriangleStrip);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 			_shaders.Bind(Shader::InstancedSprites);
 
@@ -3086,7 +3086,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 			SetCullMode(CullMode::CounterClockwise);
 		}
@@ -3155,7 +3155,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
 
-			SetPrimitiveTopology(PrimitiveTopology::TriangleStrip);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 			_shaders.Bind(Shader::InstancedSprites);
 
@@ -3195,7 +3195,7 @@ namespace TEN::Renderer
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
 
-			SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.
@@ -3630,7 +3630,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Rooms);
 
 		BindVertexBuffer(&_roomsVertexBuffer);
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_stRoom.Caustics = (int)(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER));
@@ -3662,7 +3662,7 @@ namespace TEN::Renderer
 	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
 		BindVertexBuffer(&_moveablesVertexBuffer);
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		SetDepthState(DepthState::Read);
@@ -3715,7 +3715,7 @@ namespace TEN::Renderer
 	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
 		BindVertexBuffer(&_staticsVertexBuffer);
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_shaders.Bind(Shader::InstancedStatics);
@@ -3749,7 +3749,7 @@ namespace TEN::Renderer
 	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
 		BindVertexBuffer(&_moveablesVertexBuffer);
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		_shaders.Bind(Shader::InstancedStatics);
@@ -3789,7 +3789,7 @@ namespace TEN::Renderer
 		}
 
 		BindVertexBuffer(&_moveablesVertexBuffer);
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_inputLayout.Get());
 
 		SetDepthState(DepthState::Read);
@@ -3882,7 +3882,7 @@ namespace TEN::Renderer
 
 		_context->RSSetScissorRects(1, rects);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		BindVertexBuffer(&_fullscreenTriangleVertexBuffer);

@@ -1224,7 +1224,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		BindVertexBuffer(&_moveablesVertexBuffer);
 		BindIndexBuffer(&_moveablesIndexBuffer);

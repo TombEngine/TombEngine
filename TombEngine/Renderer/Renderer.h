@@ -701,22 +701,6 @@ namespace TEN::Renderer
 			_context->IASetIndexBuffer(buffer->Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 		}
 
-		inline void SetPrimitiveTopology(PrimitiveTopology topology)
-		{
-			switch (topology)
-			{
-			case PrimitiveTopology::TriangleList:
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				break;
-			case PrimitiveTopology::TriangleStrip:
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-				break;
-			case PrimitiveTopology::LineList:
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-				break;
-			}
-		}
-
 	public:
 		Renderer();
 		~Renderer();
