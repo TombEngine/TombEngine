@@ -450,7 +450,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 	player.Control.Look.Mode = LookMode::None;
 
-	if (!TestState(item->Animation.ActiveState, PlayerLegIKStates))
+	if (!TestState(item->Animation.ActiveState, IK_STATES))
 		ResetPlayerLegIK(*item);
 	
 	UpdateLaraRoom(item, -coll->Setup.Height / 2);

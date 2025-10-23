@@ -208,6 +208,10 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GraphicsSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
 
+			/// Enable inverse kinematics.
+			// @tfield bool inverseKinematics If enabled, Lara model will use inverse kinematics for legs and feet.
+			"inverseKinematics", &GraphicsSettings::InverseKinematics,
+
 			/// Enable skinning.
 			// @tfield bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
 			"skinning", &GraphicsSettings::Skinning);

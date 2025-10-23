@@ -317,8 +317,8 @@ void InitDefaultConfiguration()
 
 	auto currentScreenRes = GetScreenResolution();
 
-	g_Configuration.ScreenWidth = currentScreenResolution.x;
-	g_Configuration.ScreenHeight = currentScreenResolution.y;
+	g_Configuration.ScreenWidth = currentScreenRes.x;
+	g_Configuration.ScreenHeight = currentScreenRes.y;
 	g_Configuration.ShadowType = ShadowMode::Player;
 	g_Configuration.ShadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
@@ -453,7 +453,6 @@ bool LoadConfiguration()
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_TARGET_HIGHLIGHTER, &enableTargetHighlighter, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_INTERACTION_HIGHLIGHTER, &enableInteractionHighlighter, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_RUMBLE, &enableRumble, true) != ERROR_SUCCESS ||
-		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_IK, &enableIK, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_THUMBSTICK_CAMERA, &enableThumbstickCamera, true) != ERROR_SUCCESS)
 	{
 		RegCloseKey(rootKey);

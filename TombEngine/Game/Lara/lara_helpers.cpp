@@ -1050,7 +1050,7 @@ void HandlePlayerLegIK(ItemInfo& item)
 	constexpr auto UPRIGHT_COEFF	= 0.3f;
 	constexpr auto ALPHA			= 0.5f;
 
-	if (!g_Configuration.EnableIK)
+	if (!g_GameFlow->GetSettings()->Graphics.InverseKinematics)
 		return;
 
 	auto& player = GetLaraInfo(item);

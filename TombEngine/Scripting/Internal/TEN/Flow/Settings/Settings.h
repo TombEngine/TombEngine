@@ -60,6 +60,7 @@ namespace TEN::Scripting
 	struct GraphicsSettings
 	{
 		bool Skinning = true;
+		bool InverseKinematics = true;
 
 		static void Register(sol::table& parent);
 	};
