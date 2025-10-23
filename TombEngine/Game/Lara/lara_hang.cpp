@@ -146,10 +146,10 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 	if (item->Animation.AnimNumber == LA_REACH_TO_HANG ||
 		item->Animation.AnimNumber == LA_HANG_IDLE)
 	{
-		TestForObjectOnLedge(item, coll);
-
 		if (IsHeld(In::Forward))
 		{
+			TestForObjectOnLedge(item, coll);
+
 			if (coll->Front.Floor > -(CLICK(3.5f) - 46) &&
 				TestValidLedge(item, coll) && !coll->HitStatic)
 			{

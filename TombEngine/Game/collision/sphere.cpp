@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/collision/sphere.h"
+#include "Game/collision/Sphere.h"
 
 #include "Game/Lara/lara.h"
 #include "Game/items.h"
@@ -8,85 +8,54 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 
+using namespace TEN::Math;
 using namespace TEN::Renderer;
 
-SPHERE LaraSpheres[MAX_SPHERES];
-SPHERE CreatureSpheres[MAX_SPHERES];
-
-int GetSpheres(ItemInfo* item, SPHERE* ptr, int worldSpace, Matrix local)
+namespace TEN::Collision::Sphere
 {
-	if (item == nullptr)
-		return 0;
-
-	BoundingSphere spheres[MAX_SPHERES];
-	int num = g_Renderer.GetSpheres(item->Index, spheres, worldSpace, local);
-
-	for (int i = 0; i < MAX_SPHERES; i++)
+	bool HandleItemSphereCollision(ItemInfo& item0, ItemInfo& item1)
 	{
-		ptr[i].x = spheres[i].Center.x;
-		ptr[i].y = spheres[i].Center.y;
-		ptr[i].z = spheres[i].Center.z;
-		ptr[i].r = spheres[i].Radius;
-	}
+		auto spheres0 = item0.GetSpheres();
+		auto spheres1 = item1.GetSpheres();
 
-	return num;
-}
+		item1.TouchBits.ClearAll();
 
-int TestCollision(ItemInfo* item, ItemInfo* laraItem)
-{
-	int flags = 0;
-
-	int creatureSphereCount = GetSpheres(item, CreatureSpheres, SPHERES_SPACE_WORLD, Matrix::Identity);
-	int laraSphereCount = GetSpheres(laraItem, LaraSpheres, SPHERES_SPACE_WORLD, Matrix::Identity);
-
-	laraItem->TouchBits = NO_JOINT_BITS;
-
-	if (creatureSphereCount <= 0)
-	{
-		item->TouchBits = NO_JOINT_BITS;
-		return 0;
-	}
-	else
-	{
-		for (int i = 0; i < creatureSphereCount; i++)
+		if (spheres0.empty())
 		{
-			auto* ptr1 = &CreatureSpheres[i];
-			
-			int x1 = item->Pose.Position.x + ptr1->x;
-			int y1 = item->Pose.Position.y + ptr1->y;
-			int z1 = item->Pose.Position.z + ptr1->z;
-			int r1 = ptr1->r;
+			item0.TouchBits.ClearAll();
+			return false;
+		}
 
-			if (r1 > 0)
+		// Run through item 0 spheres.
+		bool isCollided = false;
+		for (int i = 0; i < spheres0.size(); i++)
+		{
+			// Get sphere 0.
+			const auto& sphere0 = spheres0[i];
+			if (sphere0.Radius <= 0.0f)
+				continue;
+
+			// Run through item 1 spheres.
+			for (int j = 0; j < spheres1.size(); j++)
 			{
-				for (int j = 0; j < laraSphereCount; j++)
-				{
-					auto* ptr2 = &LaraSpheres[j];
+				// Get sphere 1.
+				const auto& sphere1 = spheres1[j];
+				if (sphere1.Radius <= 0.0f)
+					continue;
 
-					int x2 = item->Pose.Position.x + ptr2->x;
-					int y2 = item->Pose.Position.y + ptr2->y;
-					int z2 = item->Pose.Position.z + ptr2->z;
-					int r2 = ptr2->r;
+				// Test sphere collision.
+				if (!sphere0.Intersects(sphere1))
+					continue;
 
-					if (r2 > 0)
-					{
-						int dx = x1 - x2;
-						int dy = y1 - y2;
-						int dz = z1 - z2;
-						int r = r1 + r2;
+				// Set touch bits.
+				item0.TouchBits.Set(i);
+				item1.TouchBits.Set(j);
 
-						if ((SQUARE(dx) + SQUARE(dy) + SQUARE(dz)) < SQUARE(r))
-						{
-							item->TouchBits.Set(i);
-							laraItem->TouchBits.Set(j);
-							flags |= 1 << i;
-							break;
-						}
-					}
-				}
+				isCollided = true;
+				break;
 			}
 		}
 
-		return flags;
+		return isCollided;
 	}
 }

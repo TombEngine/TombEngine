@@ -49,6 +49,8 @@ namespace TEN::Effects::Explosion
 			if (!e.active)
 				continue;
 
+			e.StoreInterpolationData();
+
 			e.age++;
 			if (e.age > e.life)
 			{

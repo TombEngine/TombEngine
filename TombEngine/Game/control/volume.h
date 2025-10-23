@@ -8,8 +8,6 @@ struct CollisionSetupData;
 
 namespace TEN::Control::Volumes
 {
-	constexpr auto NO_EVENT_SET = -1;
-
 	constexpr auto VOLUME_BUSY_TIMEOUT	= 10;
 	constexpr auto VOLUME_LEAVE_TIMEOUT = 5;
 
@@ -33,14 +31,14 @@ namespace TEN::Control::Volumes
 	struct VolumeState
 	{
 		VolumeStateStatus Status	= VolumeStateStatus::Outside;
-		Activator	  Activator = nullptr;
+		Activator		  Activator = nullptr;
 
 		int Timestamp = 0;
 	};
 
-	void TestVolumes(short roomNumber, const BoundingOrientedBox& box, ActivatorFlags activatorFlag, Activator activator);
-	void TestVolumes(short itemNumber, const CollisionSetupData* coll = nullptr);
-	void TestVolumes(short roomNumber, MESH_INFO* mesh);
+	void TestVolumes(int roomNumber, const BoundingOrientedBox& box, ActivatorFlags activatorFlag, Activator activator);
+	void TestVolumes(int itemNumber, const CollisionSetupData* coll = nullptr);
+	void TestVolumes(int roomNumber, StaticMesh* mesh);
 	void TestVolumes(CAMERA_INFO* camera);
 
 	bool HandleEvent(Event& event, Activator& activator);

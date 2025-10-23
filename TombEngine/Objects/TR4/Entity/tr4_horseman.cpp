@@ -4,7 +4,6 @@
 #include "Game/animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
@@ -354,7 +353,7 @@ namespace TEN::Entities::TR4
 								SoundEffect(SFX_TR4_HORSEMAN_TAKEHIT, &item->Pose);
 								SoundEffect(SFX_TR4_HORSE_RICOCHET, &item->Pose);
 
-								auto pos = GetJointPosition(item, SPHERES_SPACE_WORLD, Vector3i(0, -128, 80));
+								auto pos = GetJointPosition(item, 0, Vector3i(0, -128, 80));
 								HorsemanSparks(&pos, item->Pose.Orientation.y, 7);
 							}
 							else if (Random::TestProbability(1 / 8.0f))

@@ -39,6 +39,27 @@ namespace TEN::Effects::Electricity
 		int rotation;
 		int type;
 		int flags;
+
+		Vector3 PrevPos1 = Vector3::Zero;
+		Vector3 PrevPos2 = Vector3::Zero;
+		Vector3 PrevPos3 = Vector3::Zero;
+		Vector3 PrevPos4 = Vector3::Zero;
+		byte	PrevR	 = 0;
+		byte	PrevG	 = 0;
+		byte	PrevB	 = 0;
+		float	PrevLife = 0.0f;
+
+		void StoreInterpolationData()
+		{
+			PrevPos1 = pos1;
+			PrevPos2 = pos2;
+			PrevPos3 = pos3;
+			PrevPos4 = pos4;
+			PrevR = r;
+			PrevG = g;
+			PrevB = b;
+			PrevLife = life;
+		}
 	};
 
 	struct HelicalLaser
@@ -57,6 +78,27 @@ namespace TEN::Effects::Electricity
 		float LengthEnd = 0.0f;
 		float Opacity	= 0.0f;
 		short Rotation	= 0;
+
+		Vector3 PrevOrigin		  = Vector3::Zero;
+		Vector3 PrevTarget		  = Vector3::Zero;
+		short	PrevOrientation2D = 0;
+		Vector4 PrevColor		  = Vector4::Zero;
+		float	PrevLife		  = 0.0f;
+		float	PrevRadius		  = 0.0f;
+		float	PrevLength		  = 0.0f;
+		float	PrevOpacity		  = 0.0f;
+
+		void StoreInterpolationData()
+		{
+			PrevOrigin = Origin;
+			PrevTarget = Target;
+			PrevOrientation2D = Orientation2D;
+			PrevColor = Color;
+			PrevLife = Life;
+			PrevRadius = Radius;
+			PrevLength = Length;
+			PrevOpacity = Opacity;
+		}
 	};
 
 	extern std::vector<Electricity>	 ElectricityArcs;
@@ -66,9 +108,9 @@ namespace TEN::Effects::Electricity
 	extern std::array<Vector3, ELECTRICITY_BUFFER_SIZE> ElectricityBuffer;
 
 	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, byte r, byte g, byte b, float life, int flags, float width, unsigned int numSegments);
+	void SpawnElectricEffect(const ItemInfo& item, int jointNumber, const Vector3i& offset, const float spawnRadius, float beamOriginRadius, float beamTargetRadius, int frequency, const Vector3& pos);
 	void SpawnElectricityGlow(const Vector3& pos, float scale, byte r, byte g, byte b);
 	void SpawnHelicalLaser(const Vector3& origin, const Vector3& target);
-
 	void UpdateElectricityArcs();
 	void UpdateHelicalLasers();
 

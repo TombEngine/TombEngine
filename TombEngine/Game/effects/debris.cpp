@@ -2,19 +2,21 @@
 #include "Game/effects/debris.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Setup.h"
-#include "Specific/level.h"
-#include "Math/Random.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/level.h"
 
+using namespace TEN::Collision::Sphere;
+using namespace TEN::Math;
 using namespace TEN::Renderer;
-using namespace TEN::Math::Random;
 
 ShatterImpactInfo ShatterImpactData;
 SHATTER_ITEM ShatterItem;
 short SmashedMeshCount;
-MESH_INFO* SmashedMesh[32];
+StaticMesh* SmashedMesh[32];
 short SmashedMeshRoom[32];
 std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
@@ -26,17 +28,15 @@ bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits)
 		if (number == BODY_DO_EXPLOSION)
 			number = -64;
 
-		GetSpheres(item, CreatureSpheres, SPHERES_SPACE_WORLD | SPHERES_SPACE_BONE_ORIGIN, Matrix::Identity);
+		auto spheres = item->GetSpheres();
 		ShatterItem.yRot = item->Pose.Orientation.y;
 		ShatterItem.bit = 1 << node;
-		ShatterItem.meshIndex = Objects[item->ObjectNumber].meshIndex + node;
-		ShatterItem.sphere.x = CreatureSpheres[node].x;
-		ShatterItem.sphere.y = CreatureSpheres[node].y;
-		ShatterItem.sphere.z = CreatureSpheres[node].z;
+		ShatterItem.meshIndex = (node < item->Model.MeshIndex.size()) ? item->Model.MeshIndex[node] : item->Model.BaseMesh;
+		ShatterItem.sphere.Center = spheres[node].Center;
 		ShatterItem.color = item->Model.Color;
 		ShatterItem.flags = item->ObjectNumber == ID_CROSSBOW_BOLT ? 0x400 : 0;
 		ShatterImpactData.impactDirection = Vector3(0, -1, 0);
-		ShatterImpactData.impactLocation = { (float)ShatterItem.sphere.x, (float)ShatterItem.sphere.y, (float)ShatterItem.sphere.z };
+		ShatterImpactData.impactLocation = ShatterItem.sphere.Center;
 		ShatterObject(&ShatterItem, NULL, number, item->RoomNumber, noXZVel);
 		item->MeshBits &= ~ShatterItem.bit;
 
@@ -57,27 +57,27 @@ DebrisFragment* GetFreeDebrisFragment()
 	return nullptr;
 }
 
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel)
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel)
 {
 	int meshIndex = 0;
 	short yRot = 0;
-	float scale;
+	Vector3 scale;
 	Vector3 pos;
 	bool isStatic;
 
 	if (mesh)
 	{
-		if (!(mesh->flags & StaticMeshFlags::SM_VISIBLE))
+		if (!(mesh->Flags & StaticMeshFlags::SM_VISIBLE))
 			return;
 
 		isStatic = true;
-		meshIndex = StaticObjects[mesh->staticNumber].meshNumber;
-		yRot = mesh->pos.Orientation.y;
-		pos = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
-		scale = mesh->scale;
+		meshIndex = Statics[mesh->Slot].meshNumber;
+		yRot = mesh->Pose.Orientation.y;
+		pos = Vector3(mesh->Pose.Position.x, mesh->Pose.Position.y, mesh->Pose.Position.z);
+		scale = mesh->Pose.Scale;
 
 		if (mesh->HitPoints <= 0)
-			mesh->flags &= ~StaticMeshFlags::SM_VISIBLE;
+			mesh->Flags &= ~StaticMeshFlags::SM_VISIBLE;
 
 		SmashedMeshRoom[SmashedMeshCount] = roomNumber;
 		SmashedMesh[SmashedMeshCount] = mesh;
@@ -88,8 +88,8 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 		isStatic = false;
 		meshIndex = item->meshIndex;
 		yRot = item->yRot;
-		pos = Vector3(item->sphere.x, item->sphere.y, item->sphere.z);
-		scale = 1.0f;
+		pos = item->sphere.Center;
+		scale = Vector3::One;
 	}
 
 	auto fragmentsMesh = &g_Level.Meshes[meshIndex];
@@ -129,9 +129,9 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(TO_RAD(yRot), 0, 0);
 
-				Vector3 pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
-				Vector3 pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
-				Vector3 pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
+				auto pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
+				auto pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
+				auto pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
 
 				Vector2 uv1 = poly->textureCoordinates[indices[j * 3 + 0]];
 				Vector2 uv2 = poly->textureCoordinates[indices[j * 3 + 1]];
@@ -169,21 +169,25 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				fragment->mesh.blendMode = renderBucket.blendMode;
 				fragment->mesh.tex = renderBucket.texture;
+				fragment->mesh.Animated = renderBucket.animated;
 
 				fragment->isStatic = isStatic;
 				fragment->active = true;
 				fragment->terminalVelocity = 1024;
-				fragment->gravity = Vector3(0, 7, 0);
+				fragment->gravity = Vector3(0, g_GameFlow->GetSettings()->Physics.Gravity, 0);
 				fragment->restitution = 0.6f;
 				fragment->friction = 0.6f;
 				fragment->linearDrag = .99f;
-				fragment->angularVelocity = Vector3(GenerateFloat(-1, 1) * 0.39, GenerateFloat(-1, 1) * 0.39, GenerateFloat(-1, 1) * 0.39);
-				fragment->angularDrag = GenerateFloat(0.9f, 0.999f);
+				fragment->angularVelocity = Vector3(Random::GenerateFloat(-1, 1) * 0.39, Random::GenerateFloat(-1, 1) * 0.39, Random::GenerateFloat(-1, 1) * 0.39);
+				fragment->angularDrag = Random::GenerateFloat(0.9f, 0.999f);
 				fragment->velocity = CalculateFragmentImpactVelocity(fragment->worldPosition, ShatterImpactData.impactDirection, ShatterImpactData.impactLocation);
 				fragment->roomNumber = roomNumber;
 				fragment->numBounces = 0;
-				fragment->color = isStatic ? mesh->color : item->color;
+				fragment->color = isStatic ? mesh->Color : item->color;
 				fragment->lightMode = fragmentsMesh->lightMode;
+
+				fragment->UpdateTransform();
+				fragment->StoreInterpolationData();
 			}
 		}
 	}
@@ -196,10 +200,10 @@ Vector3 CalculateFragmentImpactVelocity(const Vector3& fragmentWorldPosition, co
 	radiusNormVec.Normalize();
 	float radiusStrenght =  1-((fragmentWorldPosition - impactLocation).Length() / 1024);
 	radiusStrenght = fmax(radiusStrenght, 0);
-	Vector3 radiusRandomVector = Vector3(GenerateFloat(-0.2f, 0.2f), GenerateFloat(-0.2f, 0.2f), GenerateFloat(-0.2f, 0.2f)) + radiusNormVec;
+	Vector3 radiusRandomVector = Vector3(Random::GenerateFloat(-0.2f, 0.2f), Random::GenerateFloat(-0.2f, 0.2f), Random::GenerateFloat(-0.2f, 0.2f)) + radiusNormVec;
 	radiusRandomVector.Normalize();
 	Vector3 radiusVelocity = radiusRandomVector * radiusStrenght*40;
-	Vector3 impactDirectionVelocity = (impactDirection + Vector3(GenerateFloat(-0.2f, 0.2f), GenerateFloat(-0.2f, 0.2f), GenerateFloat(-0.2f, 0.2f))) * 80 ;
+	Vector3 impactDirectionVelocity = (impactDirection + Vector3(Random::GenerateFloat(-0.2f, 0.2f), Random::GenerateFloat(-0.2f, 0.2f), Random::GenerateFloat(-0.2f, 0.2f))) * 80 ;
 	return radiusVelocity + impactDirectionVelocity;
 }
 
@@ -217,6 +221,8 @@ void UpdateDebris()
 	{
 		if (deb.active)
 		{
+			deb.StoreInterpolationData();
+
 			FloorInfo* floor;
 			short roomNumber;
 
@@ -258,9 +264,7 @@ void UpdateDebris()
 				deb.numBounces++;
 			}
 
-			auto translation = Matrix::CreateTranslation(deb.worldPosition.x, deb.worldPosition.y, deb.worldPosition.z);
-			auto rotation = Matrix::CreateFromQuaternion(deb.rotation);
-			deb.Transform = rotation * translation;
+			deb.UpdateTransform();
 		}
 	}
 }

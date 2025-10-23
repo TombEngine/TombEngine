@@ -2,7 +2,6 @@
 #include "Objects/TR4/Trap/tr4_hammer.h"
 
 #include "Game/animation.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"

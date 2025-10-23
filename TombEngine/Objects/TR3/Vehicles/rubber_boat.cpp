@@ -5,7 +5,6 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
@@ -16,6 +15,7 @@
 #include "Objects/TR3/Vehicles/upv.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -423,7 +423,7 @@ namespace TEN::Entities::Vehicles
 
 		short roomNumber = rBoatItem->RoomNumber;
 		auto floor = GetFloor(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y, rBoatItem->Pose.Position.z, &roomNumber);
-		int height = GetWaterHeight(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y, rBoatItem->Pose.Position.z, roomNumber);
+		int height = GetPointCollision(rBoatItem->Pose.Position, roomNumber).GetWaterTopHeight();
 
 		if (height == NO_HEIGHT)
 			height = GetFloorHeight(floor, rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y, rBoatItem->Pose.Position.z);
@@ -481,7 +481,9 @@ namespace TEN::Entities::Vehicles
 				verticalVelocity = 0;
 			}
 			else
-				verticalVelocity += 6;
+			{
+				verticalVelocity += g_GameFlow->GetSettings()->Physics.Gravity;
+			}
 		}
 		else
 		{
@@ -807,7 +809,7 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* rBoatItem = &g_Level.Items[itemNumber];
 		auto* rBoat = GetRubberBoatInfo(rBoatItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		bool noTurn = true;
@@ -827,7 +829,7 @@ namespace TEN::Entities::Vehicles
 		}
 
 		auto probe = GetPointCollision(*rBoatItem);
-		int water = GetWaterHeight(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y, rBoatItem->Pose.Position.z, probe.GetRoomNumber());
+		int water = GetPointCollision(rBoatItem->Pose.Position, probe.GetRoomNumber()).GetWaterTopHeight();
 		rBoat->Water = water;
 
 		if (lara->Context.Vehicle == itemNumber && laraItem->HitPoints > 0)
@@ -896,12 +898,7 @@ namespace TEN::Entities::Vehicles
 		if (lara->Context.Vehicle == itemNumber)
 		{
 			RubberBoatAnimation(rBoatItem, laraItem, collide);
-
-			if (probe.GetRoomNumber() != rBoatItem->RoomNumber)
-			{
-				ItemNewRoom(itemNumber, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(rBoatItem, laraItem, probe.GetRoomNumber());
 
 			rBoatItem->Pose.Orientation.z += rBoat->LeanAngle;
 			laraItem->Pose = rBoatItem->Pose;
@@ -936,7 +933,7 @@ namespace TEN::Entities::Vehicles
 		DoRubberBoatDismount(rBoatItem, laraItem);
 
 		short probedRoomNumber = GetPointCollision(Vector3i(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y + 128, rBoatItem->Pose.Position.z), rBoatItem->RoomNumber).GetRoomNumber();
-		height = GetWaterHeight(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y + 128, rBoatItem->Pose.Position.z, probedRoomNumber);
+		height = GetPointCollision(Vector3i(rBoatItem->Pose.Position.x, rBoatItem->Pose.Position.y + 128, rBoatItem->Pose.Position.z), probedRoomNumber).GetWaterTopHeight();
 		if (height > rBoatItem->Pose.Position.y + 32 || height == NO_HEIGHT)
 			height = 0;
 		else
@@ -951,7 +948,7 @@ namespace TEN::Entities::Vehicles
 		{
 			TriggerRubberBoatMist(prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
 			
-			int waterHeight = GetWaterHeight(rBoatItem);
+			int waterHeight = GetPointCollision(*rBoatItem).GetWaterTopHeight();
 			SpawnVehicleWake(*rBoatItem, RBOAT_WAKE_OFFSET, waterHeight);
 
 			if ((GetRandomControl() & 1) == 0)

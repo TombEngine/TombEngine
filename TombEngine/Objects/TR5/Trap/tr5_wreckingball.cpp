@@ -5,7 +5,6 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
-#include "Game/collision/sphere.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -13,6 +12,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
 #include "Objects/TR5/Light/tr5_light.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -283,7 +283,7 @@ namespace TEN::Entities::Traps
 			{
 				SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
 				++item.ItemFlags[1];
-				item.Animation.Velocity.y = 6;
+				item.Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.Gravity;
 				item.Pose.Position.y += item.Animation.Velocity.y;
 			}
 		}

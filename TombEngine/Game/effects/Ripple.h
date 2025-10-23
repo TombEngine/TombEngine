@@ -23,6 +23,17 @@ namespace TEN::Effects::Ripple
 		float Size		   = 0.0f;
 		float FadeDuration = 0.0f;
 		int	  Flags		   = 0;
+
+		Vector3 PrevPosition = Vector3::Zero;
+		Vector4 PrevColor	 = Vector4::Zero;
+		float	PrevSize	 = 0.0f;
+
+		void StoreInterpolationData()
+		{
+			PrevPosition = Position;
+			PrevColor = Color;
+			PrevSize = Size;
+		}
 	};
 
 	extern std::vector<Ripple> Ripples;

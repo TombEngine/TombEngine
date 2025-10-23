@@ -3,9 +3,9 @@
 
 #include "Game/animation.h"
 #include "Game/collision/collide_item.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -15,6 +15,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 const auto TightRopePos = Vector3i::Zero;
@@ -70,6 +71,8 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 {
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* tightropeItem = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *tightropeItem, InteractionMode::Custom);
 	
 	if ((!IsHeld(In::Action) ||
 		laraItem->Animation.ActiveState != LS_IDLE ||
@@ -151,7 +154,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 			laraItem->Animation.Velocity.y = false;
 			laraItem->Animation.IsAirborne = false;
 
-			ResetPlayerFlex(barItem);
+			ResetPlayerFlex(laraItem);
 
 			if (test1)
 				laraItem->Pose.Orientation.y = barItem->Pose.Orientation.y;
@@ -259,7 +262,7 @@ void AnimatingControl(short itemNumber)
 	else if (item.TriggerFlags == 2) //Make the animating dissapear when anti-triggered.
 	{
 		RemoveActiveItem(itemNumber);
-		item.Status |= ITEM_INVISIBLE;
+		item.Status = ITEM_INVISIBLE;
 	}
 
 	// TODO: ID_SHOOT_SWITCH2 is probably the bell in Trajan Markets, use Lua for that.

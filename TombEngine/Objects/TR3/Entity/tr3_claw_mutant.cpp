@@ -136,7 +136,8 @@ namespace TEN::Entities::Creatures::TR3
 		plasma.fxObj = itemNumber;
 		plasma.nodeNumber = ParticleNodeOffsetIDs::NodeClawMutantPlasma;
 
-		plasma.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		plasma.SpriteSeqID = ID_DEFAULT_SPRITES;
+		plasma.SpriteID = 0;
 		plasma.scalar = 1;
 		int size = (GetRandomControl() & 31) + 64;
 		plasma.size =
@@ -201,7 +202,7 @@ namespace TEN::Entities::Creatures::TR3
 			r = (r * bright) / 16;
 			g = (g * bright) / 16;
 			b = (b * bright) / 16;
-			TriggerDynamicLight(pos.x, pos.y, pos.z, bright, r, g, b);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, bright, r, g, b);
 		}
 	}
 
@@ -274,7 +275,8 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		plasma.fxObj = fxNumber;
-		plasma.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		plasma.SpriteSeqID = ID_DEFAULT_SPRITES;
+		plasma.SpriteID = 0;
 		plasma.scalar = 1;
 		plasma.gravity =
 		plasma.maxYvel = 0;

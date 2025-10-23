@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/items.h"
 #include "Math/Math.h"
+#include "Specific/Clock.h"
 
 struct CollisionInfo;
 
@@ -14,27 +15,35 @@ enum class CameraType
 	Fixed,
 	Look,
 	Combat,
-	Heavy,
-	Object
+	Heavy
 };
 
 struct CAMERA_INFO
 {
 	GameVector pos;
 	GameVector target;
+	Vector3i   mikePos;
+
 	CameraType type;
 	CameraType oldType;
-	int shift;
-	int flags;
+	CameraType lastType;
+
 	bool fixedCamera;
 	bool underwater;
-	int numberFrames;
+	bool mikeAtLara;
+
+	int shift;
+	int flags;
 	int bounce;
 	int targetDistance;
+
 	short targetAngle;
 	short targetElevation;
-	short actualElevation;
 	short actualAngle;
+	short actualElevation;
+	short extraAngle;
+	short extraElevation;
+
 	short laraNode;
 	short box;
 	short number;
@@ -42,16 +51,14 @@ struct CAMERA_INFO
 	short timer;
 	short speed;
 	short targetspeed;
+
 	ItemInfo* item;
 	ItemInfo* lastItem;
-	int mikeAtLara;
-	Vector3i mikePos;
-};
 
-struct ObjectCameraInfo
-{
-	GameVector LastAngle;
-	bool ItemCameraOn;
+	float Roll = 0.0f;
+	float Fov  = 0.0f;
+
+	bool DisableInterpolation = false;
 };
 
 enum CAMERA_FLAGS
@@ -62,13 +69,13 @@ enum CAMERA_FLAGS
 	CF_CHASE_OBJECT	 = 3,
 };
 
-constexpr auto FADE_SCREEN_SPEED = 16.0f / 255.0f;
+constexpr auto FADE_SCREEN_SPEED = 2.0f / FPS;
 constexpr auto DEFAULT_FOV = 80.0f;
 
 extern CAMERA_INFO Camera;
 extern GameVector ForcedFixedCamera;
-extern int UseForcedFixedCamera;
 extern CameraType BinocularOldCamera;
+extern bool UseForcedFixedCamera;
 extern short CurrentFOV;
 extern short LastFOV;
 
@@ -89,7 +96,7 @@ void LookAt(CAMERA_INFO* cam, short roll);
 void AlterFOV(short value, bool store = true);
 short GetCurrentFOV();
 void InitializeCamera();
-void MoveCamera(GameVector* ideal, int speed);
+void MoveCamera(GameVector* ideal, int speed, bool force = false);
 void ChaseCamera(ItemInfo* item);
 void UpdateCameraElevation();
 void CombatCamera(ItemInfo* item);
@@ -99,20 +106,25 @@ void BounceCamera(ItemInfo* item, short bounce, short maxDistance);
 void BinocularCamera(ItemInfo* item);
 void ConfirmCameraTargetPos();
 void CalculateCamera(const CollisionInfo& coll);
+void CalculateBounce(bool binocularMode);
 void RumbleScreen();
 bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, short radius);
+bool TestLockedCamera();
 void ItemPushCamera(GameBoundingBox* bounds, Pose* pos, short radius);
 void ItemsCollideCamera();
+void RefreshFixedCamera(short camNumber);
+
 void ObjCamera(ItemInfo* camSlotId, int camMeshID, ItemInfo* targetItem, int targetMeshID, bool cond);
 void MoveObjCamera(GameVector* ideal, ItemInfo* camSlotId, int camMeshID, ItemInfo* targetItem, int targetMeshID);
-void RefreshFixedCamera(short camNumber);
+void ClearObjCamera();
 
 void SetScreenFadeOut(float speed, bool force = false);
 void SetScreenFadeIn(float speed, bool force = false);
 void SetCinematicBars(float height, float speed);
 void ClearCinematicBars();
+void PrepareCamera();
+void UpdateCamera();
 void UpdateFadeScreenAndCinematicBars();
 void UpdateMikePos(const ItemInfo& item);
-void ClearObjCamera();
 
 float GetParticleDistanceFade(const Vector3i& pos);

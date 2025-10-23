@@ -2,8 +2,8 @@
 #include "Objects/TR4/Entity/tr4_mutant.h"
 
 #include "Game/animation.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
+#include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -11,8 +11,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
-#include "Objects/Effects/tr4_locusts.h"
 #include "Objects/objectslist.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Renderer/RendererEnums.h"
 
 using namespace TEN::Math;
@@ -287,7 +287,7 @@ namespace TEN::Entities::TR4
 		}
 		else
 		{
-			TargetNearestEntity(item, creature);
+			TargetNearestEntity(*item);
 		}
 
 		AI_INFO ai;

@@ -27,6 +27,19 @@ namespace TEN::Effects::Smoke
 		float terminalVelocity;
 		bool affectedByWind;
 		bool active;
+
+		Vector3 PrevPosition = Vector3::Zero;
+		float	PrevRotation = 0.0f;
+		Vector4 PrevColor	 = Vector4::Zero;
+		float	PrevSize	 = 0.0f;
+
+		void StoreInterpolationData()
+		{
+			PrevPosition = position;
+			PrevRotation = rotation;
+			PrevColor = color;
+			PrevSize = size;
+		}
 	};
 	extern std::array<SmokeParticle, 128> SmokeParticles;
 

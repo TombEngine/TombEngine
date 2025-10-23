@@ -10,13 +10,14 @@ class GameBoundingBox;
 struct AnimData;
 struct CollisionInfo;
 struct ItemInfo;
-struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
+struct StaticMesh;
 
 enum class GameStatus
 {
 	Normal,
 	NewGame,
+	HomeLevel,
 	LoadGame,
 	SaveGame,
 	ExitToTitle,
@@ -25,11 +26,12 @@ enum class GameStatus
 	LevelComplete
 };
 
-enum class LevelLoadType
+enum class FreezeMode
 {
-	New,
-	Hub,
-	Load
+	None,
+	Full,
+	Spectator,
+	Player
 };
 
 enum CardinalDirection
@@ -49,25 +51,20 @@ enum FadeStatus
 
 constexpr int MAX_ROOMS = 1024;
 
-constexpr int WIBBLE_SPEED = 4;
-constexpr int WIBBLE_MAX = UCHAR_MAX - WIBBLE_SPEED + 1;
+constexpr auto LOOP_FRAME_COUNT = 2;
 
-constexpr int LOOP_FRAME_COUNT = 2;
-
-extern int GameTimer;
 extern int RumbleTimer;
 extern int GlobalCounter;
-extern int Wibble;
 
 extern bool InitializeGame;
 extern bool DoTheGame;
 extern bool JustLoaded;
 extern bool ThreadEnded;
+extern bool DebugMode;
 
 extern int RequiredStartPos;
 extern int CurrentLevel;
 extern int NextLevel;
-extern int SystemNameHash;
 
 extern bool  InItemControlLoop;
 extern short ItemNewRoomNo;
@@ -81,9 +78,9 @@ extern int ControlPhaseTime;
 
 extern std::vector<short> OutsideRoomTable[OUTSIDE_SIZE][OUTSIDE_SIZE];
 
-int DrawPhase(bool isTitle);
+void DrawPhase(bool isTitle, float interpolationFactor);
 
-GameStatus ControlPhase(int numFrames);
+GameStatus ControlPhase(bool insideMenu);
 GameStatus DoLevel(int levelIndex, bool loadGame = false);
 GameStatus DoGameLoop(int levelIndex);
 void EndGameLoop(int levelIndex, GameStatus reason);
@@ -100,9 +97,12 @@ void KillMoveEffects();
 void UpdateShatters();
 
 void CleanUp();
+void DeInitialize();
 
 void InitializeOrLoadGame(bool loadGame);
-void InitializeScripting(int levelIndex, LevelLoadType type);
-void DeInitializeScripting(int levelIndex);
+void InitializeScripting(int levelIndex, bool loadGame);
+void DeInitializeScripting(int levelIndex, GameStatus reason);
+
+void SetupInterpolation();
 
 unsigned CALLBACK GameMain(void*);

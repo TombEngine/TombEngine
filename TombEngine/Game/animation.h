@@ -24,7 +24,8 @@ enum class AnimCommandType
 	AttackReady,
 	Deactivate,
 	SoundEffect,
-	Flipeffect
+	Flipeffect,
+	DisableInterpolation
 };
 
 struct AnimFrame
@@ -150,6 +151,6 @@ Vector3i   GetJointPosition(ItemInfo* item, int jointIndex, const Vector3i& relO
 Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
 
-Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex);
+Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSign = false);
 Quaternion GetBoneOrientation(const ItemInfo& item, int boneIndex);
 float	   GetBoneLength(GAME_OBJECT_ID objectID, int boneIndex);

@@ -76,10 +76,12 @@ namespace TEN::Effects::EmberEmitter
 					spark.scalar = 3.0f;
 					spark.gravity = Random::GenerateFloat(32.0f, 96.0f);
 					spark.flags = SP_DAMAGE | SP_ROTATE | SP_DEF | SP_SCALE | SP_EXPDEF;
+					spark.damage = 2;
 				}
 				else
 				{
-					spark.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+					spark.SpriteSeqID = ID_DEFAULT_SPRITES;
+					spark.SpriteID = SPR_UNDERWATERDUST;
 					spark.scalar = 1.0f;
 					spark.gravity = Random::GenerateFloat(64.0f, 80.0f);
 					spark.flags = SP_ROTATE | SP_DEF | SP_SCALE;
@@ -130,7 +132,8 @@ namespace TEN::Effects::EmberEmitter
 					spark.blendMode = BlendMode::Additive;
 				}
 
-				spark.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+				spark.SpriteSeqID = ID_DEFAULT_SPRITES;
+				spark.SpriteID = SPR_UNDERWATERDUST;
 				spark.life =
 				spark.sLife = Random::GenerateFloat(74.0f, 78.0f);
 				spark.x = item.Pose.Position.x + Random::GenerateFloat(0.0f, 22.0f);
@@ -148,6 +151,7 @@ namespace TEN::Effects::EmberEmitter
 				spark.size = Random::GenerateFloat(32.0f, 48.0f);
 				spark.dSize = spark.size;
 				spark.flags = SP_DAMAGE | SP_ROTATE | SP_DEF | SP_SCALE;
+				spark.damage = 2;
 			}
 		}
 	}

@@ -3,7 +3,6 @@
 #include "Game/items.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Specific/level.h"
@@ -210,9 +209,7 @@ void ExplodeFX(FX_INFO* fx, int noXZVel, int bits)
 	ShatterItem.yRot = fx->pos.Orientation.y;
 	ShatterItem.meshIndex = fx->frameNumber;
 	ShatterItem.color = Vector4::One;
-	ShatterItem.sphere.x = fx->pos.Position.x;
-	ShatterItem.sphere.y = fx->pos.Position.y;
-	ShatterItem.sphere.z = fx->pos.Position.z;
+	ShatterItem.sphere.Center = fx->pos.Position.ToVector3();
 	ShatterItem.bit = 0;
 	ShatterItem.flags = fx->flag2 & 0x1400;
 

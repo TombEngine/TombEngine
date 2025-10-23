@@ -20,7 +20,6 @@ namespace TEN::Gui
 		Pause,
 		Statistics,
 		Examine,
-		Diary,
 		Load,
 		Save
 	};
@@ -30,6 +29,7 @@ namespace TEN::Gui
 		None,
 		UseItem,
 		NewGame,
+		HomeLevel,
 		LoadGame,
 		SaveGame,
 		ExitGame,
@@ -50,7 +50,7 @@ namespace TEN::Gui
 		Use,
 		ChooseAmmo,
 		Combine,
-		Seperate,
+		Separate,
 		Equip,
 		Ammo1,
 		Ammo2,
@@ -58,8 +58,7 @@ namespace TEN::Gui
 		Load,
 		Save,
 		Examine,
-		Statistics,
-		Diary
+		Statistics
 	};
 
 	enum class RingTypes
@@ -112,9 +111,9 @@ namespace TEN::Gui
 
 		GameConfiguration Configuration = {};
 
-		int	  SelectedScreenResolution = 0;
-		bool  IgnoreInput			   = false; // Ignore input until all actions are inactive.
-		float NewKeyWaitTimer		   = 0.0f;
+		int	 SelectedScreenResolution = 0;
+		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
+		int	 NewKeyWaitTimer		  = 0;
 	};
 
 	class GuiController
@@ -133,14 +132,14 @@ namespace TEN::Gui
 		int OptionCount;
 		int SelectedSaveSlot;
 
-		float TimeInMenu = -1.0f;
+		int TimeInMenu = NO_VALUE;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
 		short CombineObject1;
 		short CombineObject2;
 		bool ItemUsed;
-		char SeperateTypeFlag;
+		char SeparateTypeFlag;
 		char CombineTypeFlag;
 		InventoryRing Rings[2];
 		int CurrentSelectedOption;
@@ -184,6 +183,7 @@ namespace TEN::Gui
 		void UseItem(ItemInfo& item, int objectNumber);
 
 		// Getters
+
 		const InventoryRing& GetRing(RingTypes ringType);
 		int GetSelectedOption();
 		Menu GetMenuToDisplay();
@@ -193,8 +193,10 @@ namespace TEN::Gui
 		int GetLastInventoryItem();
 		SettingsData& GetCurrentSettings();
 		int GetLoadSaveSelection();
+		int GetLoopedSelectedOption(int selectedOption, int optionCount, bool canLoop);
 
 		// Setters
+
 		void SetSelectedOption(int menu);
 		void SetMenuToDisplay(Menu menu);
 		void SetInventoryMode(InventoryMode mode);
@@ -226,7 +228,6 @@ namespace TEN::Gui
 		void UpdateWeaponStatus(ItemInfo* item);
 		void DoStatisticsMode();
 		void DoExamineMode();
-		void DoDiary(ItemInfo* item);
 		LoadResult DoLoad();
 		bool DoSave();
 		void DoInventory(ItemInfo* item);

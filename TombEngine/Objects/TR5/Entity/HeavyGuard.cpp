@@ -221,7 +221,7 @@ namespace TEN::Entities::Creatures::TR5
 						short green = blue >> 2;
 						short red = 0;
 
-						TriggerDynamicLight(pos1.x, pos1.y, pos1.z, item.ItemFlags[i] + 8, red, green, blue);
+						SpawnDynamicLight(pos1.x, pos1.y, pos1.z, item.ItemFlags[i] + 8, red, green, blue);
 						item.ItemFlags[i]--;
 					}
 					else
@@ -532,7 +532,7 @@ namespace TEN::Entities::Creatures::TR5
 			else
 			{
 				SoundEffect(SFX_TR4_BADDY_SWORD_RICOCHET, &target.Pose);
-				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 			}
 		}
 	}

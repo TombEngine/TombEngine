@@ -14,6 +14,7 @@ struct CollisionInfo;
 
 void lara_as_pickup(ItemInfo* item, CollisionInfo* coll);
 void lara_as_pickup_flare(ItemInfo* item, CollisionInfo* coll);
+void lara_col_pickup(ItemInfo* item, CollisionInfo* coll);
 
 // ------
 // SWITCH

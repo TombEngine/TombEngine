@@ -132,20 +132,20 @@ namespace TEN::Utils
 		return result;
 	}
 
-	std::vector<std::string> SplitString(const std::string& string)
+	std::vector<std::wstring> SplitString(const std::wstring& string)
 	{
-		auto strings = std::vector<std::string>{};
+		auto strings = std::vector<std::wstring>{};
 
 		// Exit early if string is single line.
-		if (string.find('\n') == std::string::npos)
+		if (string.find(L'\n') == std::wstring::npos)
 		{
 			strings.push_back(string);
 			return strings;
 		}
 
-		std::string::size_type pos = 0;
-		std::string::size_type prev = 0;
-		while ((pos = string.find('\n', prev)) != std::string::npos)
+		std::wstring::size_type pos = 0;
+		std::wstring::size_type prev = 0;
+		while ((pos = string.find(L'\n', prev)) != std::string::npos)
 		{
 			strings.push_back(string.substr(prev, pos - prev));
 			prev = pos + 1;
@@ -153,6 +153,33 @@ namespace TEN::Utils
 
 		strings.push_back(string.substr(prev));
 		return strings;
+	}
+	
+	std::vector<std::wstring> SplitWords(const std::wstring& input)
+	{
+		std::vector<std::wstring> words;
+		std::wstringstream stream(input);
+		std::wstring word;
+
+		while (stream >> word)
+			words.push_back(word);
+
+		return words;
+	}
+
+	int GetHash(const std::string& string)
+	{
+		if (string.empty())
+			return 0;
+
+		unsigned int hash = 2166136261u;
+		for (char c : string)
+		{
+			hash ^= static_cast<unsigned char>(c);
+			hash *= 16777619u;
+		}
+
+		return static_cast<int>(hash);
 	}
 
     Vector2 GetAspectCorrect2DPosition(const Vector2& pos)
@@ -190,44 +217,61 @@ namespace TEN::Utils
             ((1.0f - ndc.y) * DISPLAY_SPACE_RES.y) / 2);
     }
 
-    std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
-    {
-        char fileName[UCHAR_MAX] = {};
+	std::wstring GetBinaryPath(bool includeExeName)
+	{
+		static const int MAX_PATH_LENGTH = 1024;
+		wchar_t fileName[MAX_PATH_LENGTH] = {};
 
-		if (!GetModuleFileNameA(nullptr, fileName, UCHAR_MAX))
+		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
 		{
-			TENLog("Can't get current assembly filename", LogLevel::Error);
-			return {};
+			TENLog("Can't get current assembly path", LogLevel::Error);
+			return std::wstring();
 		}
 
-		int size = GetFileVersionInfoSizeA(fileName, NULL);
+		auto result = std::wstring(fileName);
+		std::replace(result.begin(), result.end(), '\\', '/');
+
+		if (includeExeName)
+			return result;
+
+		size_t pos = result.find_last_of(L"/");
+		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
+	}
+
+	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
+	{
+		auto fileName = GetBinaryPath(true);
+
+		DWORD dummy;
+		DWORD size = GetFileVersionInfoSizeW(fileName.data(), &dummy);
 
 		if (size == 0)
 		{
-			TENLog("GetFileVersionInfoSizeA failed", LogLevel::Error);
+			TENLog("GetFileVersionInfoSizeW failed", LogLevel::Error);
 			return {};
 		}
-		std::unique_ptr<unsigned char> buffer(new unsigned char[size]);
+
+		std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
 
 		// Load version info.
-		if (!GetFileVersionInfoA(fileName, 0, size, buffer.get()))
+		if (!GetFileVersionInfoW(fileName.data(), 0, size, buffer.get()))
 		{
-			TENLog("GetFileVersionInfoA failed", LogLevel::Error);
+			TENLog("GetFileVersionInfoW failed", LogLevel::Error);
 			return {};
 		}
 
 		VS_FIXEDFILEINFO* info;
 		unsigned int infoSize;
 
-		if (!VerQueryValueA(buffer.get(), "\\", (void**)&info, &infoSize))
+		if (!VerQueryValueW(buffer.get(), L"\\", (void**)&info, &infoSize))
 		{
-			TENLog("VerQueryValueA failed", LogLevel::Error);
+			TENLog("VerQueryValueW failed", LogLevel::Error);
 			return {};
 		}
 
 		if (infoSize != sizeof(VS_FIXEDFILEINFO))
 		{
-			TENLog("VerQueryValueA returned wrong size for VS_FIXEDFILEINFO", LogLevel::Error);
+			TENLog("VerQueryValueW returned wrong size for VS_FIXEDFILEINFO", LogLevel::Error);
 			return {};
 		}
 

@@ -6,6 +6,51 @@ struct RoomVector {
 	y_location: uint32;
 }
 
+table LevelData {
+	level_far_view: int32;
+
+	storm_enabled: bool;
+	rumble_enabled: bool;
+	weather_type: int32;
+	weather_strength: float;
+	weather_clustering: bool;
+
+	fog_color: int32;
+	fog_min_distance: float;
+	fog_max_distance: float;
+
+	sky_layer_1_enabled: bool;
+	sky_layer_1_color: int32;
+	sky_layer_1_speed: int32;
+
+	sky_layer_2_enabled: bool;
+	sky_layer_2_color: int32;
+	sky_layer_2_speed: int32;
+
+	horizon1_enabled: bool;
+	horizon1_object_id: int32;
+	horizon1_position: Vector3;
+	horizon1_orientation: EulerAngles;
+	horizon1_transparency: float;
+
+	horizon2_enabled: bool;
+	horizon2_object_id: int32;
+	horizon2_position: Vector3;
+	horizon2_orientation: EulerAngles;
+	horizon2_transparency: float;
+
+	lensflare_enabled: bool;
+	lensflare_sprite_id: int32;
+	lensflare_pitch: float;
+	lensflare_yaw: float;
+	lensflare_color: int32;
+
+	starfield_star_count: int32;
+	starfield_meteor_count: int32;
+	starfield_meteor_spawn_density: int32;
+	starfield_meteor_velocity: int32;
+}
+
 table Room {
 	index: int32;
 	name: string;
@@ -49,7 +94,8 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	mesh_pointers: [int32];
+	skin_index: int32;
+	mesh_index: [int32];
 
 	effect_type: int32;
 	effect_light_colour: Vector3;
@@ -133,6 +179,9 @@ enum TorchState:int32 {
 table TorchData {
 	state: TorchState;
 	is_lit: bool;
+	fade: int32;
+	current_color: Vector3;
+	next_color: Vector3;
 }
 
 table LaraInventoryData {
@@ -143,6 +192,11 @@ table LaraInventoryData {
 	small_waterskin: int32;
 	big_waterskin: int32;
 	has_binoculars: bool;
+	has_compass: bool;
+	has_stopwatch: bool;
+	has_diary: bool;
+	has_load: bool;
+	has_save: bool;
 	has_crowbar: bool;
 	has_torch: bool;
 	has_lasersight: bool;
@@ -216,7 +270,6 @@ table TightropeControlData {
 table WeaponControlData {
 	weapon_item: int32;
 	has_fired: bool;
-	fired: bool;
 	uzi_left: bool;
 	uzi_right: bool;
 	gun_type: int32;
@@ -274,10 +327,16 @@ table PlayerContextData {
 	water_surface_dist: int32;
 }
 
+table CollisionInfoData {
+	last_bridge_item_number: int32;
+	last_bridge_item_pose: Pose;
+}
+
 table Lara {
 	context: PlayerContextData;
 	control: LaraControlData;
 	effect: PlayerEffectData;
+	collision: CollisionInfoData;
 	extra_anim: int32;
 	extra_head_rot: EulerAngles;
 	extra_torso_rot: EulerAngles;
@@ -297,6 +356,12 @@ table Lara {
 	weapons: [CarriedWeaponInfo];
 }
 
+table Camera {
+	position: GameVector;
+	target: GameVector;
+	extra_orientation: EulerAngles;
+}
+
 table FixedCamera {
 	flags: int32;
 }
@@ -311,9 +376,8 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	room_number: int32;
 	pose: Pose;
-	scale: float;
+	room_number: int32;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
@@ -357,6 +421,15 @@ table ParticleInfo {
 	fx_obj: int32;
 	room_number: int32;
 	node_number: int32;
+	target_pos: Vector3;
+	sprite_id: int32;
+	damage: int32;
+	framerate: float;
+	animation_type: int32;
+	light_radius: int32;
+	light_flicker: int32;
+	light_flicker_s: int32;
+	sound: int32;
 }
 
 table Soundtrack {
@@ -364,20 +437,32 @@ table Soundtrack {
     position: uint64;
 }
 
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
+}
+
 table SwarmObjectInfo {
 	on: bool;
 	pose: Pose;
 	room_number: int32;
+	target: int32;
 	flags: int32;
 }
 
+table RopeSegment {
+	segment: Vector3;
+	velocity: Vector3;
+	normalised_segment: Vector3;
+	mesh_segment: Vector3;
+	coord: Vector3;
+}
+
 table Rope {
-	segments: [Vector3];
-	velocities: [Vector3];
-	normalised_segments: [Vector3];
-	mesh_segments: [Vector3];
+	segments: [RopeSegment];
 	position: Vector3;
-	coords: [Vector3];
 	segment_length: int32;
 	active: int32;
 	coiled: int32;
@@ -389,8 +474,20 @@ table Pendulum {
 	node: int32;
 }
 
+table Decal {
+	position: Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
+}
+
 table EventSet {
 	index: int32;
+	statuses: [bool];
 	call_counters: [int32];
 }
 
@@ -426,6 +523,31 @@ table FishData {
 	velocity: float;
 }
 
+table FireflyData {
+	sprite_index: int32;
+	sprite_id: int32;
+	blend_mode: int32;
+	scalar: int32;
+	position: Vector3;
+	room_number: int32;
+	position_target: Vector3;
+	orientation: EulerAngles;
+	velocity: float;
+	target_item_number: int32;
+	z_vel: float;
+	life: float;
+	number: int32;
+	d_r: int32;
+	d_g: int32;
+	d_b: int32;
+	r: int32;
+	g: int32;
+	b: int32;
+	on: bool;
+	size: float;
+	rot_ang: int32;
+}
+
 struct KeyValPair {
 	key: uint32;
 	val: uint32;
@@ -445,6 +567,10 @@ table doubleTable {
 
 table boolTable {
 	scalar: bool;
+}
+
+table timeTable {
+	scalar: int32;
 }
 
 table vec2Table {
@@ -472,6 +598,7 @@ union VarUnion {
 	tab: ScriptTable,
 	num: doubleTable,
 	boolean: boolTable,
+	time: timeTable,
 	vec2: vec2Table,
 	vec3: vec3Table,
 	rotation: rotationTable,
@@ -489,7 +616,7 @@ table UnionVec {
 
 table SaveGameHeader {
 	level_name: string;
-	days: int32;
+	level_hash: int32;
 	hours: int32;
 	minutes: int32;
 	seconds: int32;
@@ -502,8 +629,10 @@ table SaveGameStatistics {
 	ammo_hits: int32;
 	ammo_used: int32;
 	medipacks_used: int32;
+	damage_taken: int32;
 	distance: int32;
 	kills: int32;
+	pickups: int32;
 	secrets: int32;
 	timer: int32;
 }
@@ -512,6 +641,9 @@ table SaveGame {
 	header: SaveGameHeader;
 	game: SaveGameStatistics;
 	level: SaveGameStatistics;
+	level_data: LevelData;
+	secret_bits: int32;
+	camera: Camera;
 	lara: Lara;
 	rooms: [Room];
 	items: [Item];
@@ -519,6 +651,7 @@ table SaveGame {
 	next_item_active: int32;
 	room_items: [int32];
 	fish_swarm: [FishData];
+	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
 	next_fx_free: int32;
 	next_fx_active: int32;
@@ -531,6 +664,8 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	locusts: [SwarmObjectInfo];
+	decals: [Decal];
 	flip_maps: [int32];
 	flip_stats: [int32];
 	flip_effect: int32;
@@ -541,6 +676,8 @@ table SaveGame {
 	action_queue: [int32];
 	soundtracks: [Soundtrack];
 	cd_flags: [int32];
+	video: VideoInfo;
+
 	postprocess_mode: int32;
 	postprocess_strength: float;
 	postprocess_tint: Vector3;
@@ -566,6 +703,10 @@ table SaveGame {
 	callbacks_post_load: [string];
 	callbacks_pre_loop: [string];
 	callbacks_post_loop: [string];
+	callbacks_pre_useitem: [string];
+	callbacks_post_useitem: [string];
+	callbacks_pre_freeze: [string];
+	callbacks_post_freeze: [string];
 }
 
 root_type TEN.Save.SaveGame;

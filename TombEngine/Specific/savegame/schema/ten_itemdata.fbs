@@ -1,12 +1,56 @@
 namespace TEN.Save;
 
+table Short {
+    scalar: short;
+}
+
+table Int {
+    scalar: int32;
+}
+
+table Float {
+    scalar: double;
+}
+
+table ShortArray {
+	arr: [short];
+}
+
+struct EulerAngles {
+	x: short;
+	y: short;
+	z: short;
+}
+
+struct Vector2 {
+	x: float;
+	y: float;
+}
+
+struct Vector3 {
+	x: float;
+	y: float;
+	z: float;
+}
+
+struct Vector4 {
+	x: float;
+	y: float;
+	z: float;
+	w: float;
+}
+
+struct GameVector {
+	x: int32;
+	y: int32;
+	z: int32;
+	room_number: int32;
+}
+
 struct Pose {
-	x_pos: int32;
-	y_pos: int32;
-	z_pos: int32;
-	x_rot: int32;
-	y_rot: int32;
-	z_rot: int32;
+	position: Vector3;
+	orientation: EulerAngles;
+	scale: Vector3;
 }
 
 table CreatureTarget {
@@ -123,10 +167,6 @@ table Motorboat {
 
 }
 
-table GameVector {
-	
-}
-
 table Wraith {
 
 }
@@ -192,58 +232,7 @@ table ItemNumber {
     num: short;
 }
 
-table Short {
-    scalar: short;
-}
-
-table Int {
-    scalar: int32;
-}
-
-table Float {
-    scalar: double;
-}
-
-table ShortArray {
-	arr: [short];
-}
-
-struct EulerAngles {
-	x: short;
-	y: short;
-	z: short;
-}
-
-struct Vector2 {
-	x: float;
-	y: float;
-}
-
-struct Vector3 {
-	x: float;
-	y: float;
-	z: float;
-}
-
-struct Vector4 {
-	x: float;
-	y: float;
-	z: float;
-	w: float;
-}
-
 union ItemData {
-    /*byte,
-    ubyte,
-    bool,
-    short,
-    ushort,
-    int,
-    uint,
-    float,
-    long,
-    ulong,
-    double,*/
     Int,
     Short,
     Float,
@@ -261,7 +250,6 @@ union ItemData {
     Skidoo,
     UPV,
     Motorboat,
-    GameVector,
     Wraith,
     Rubberboat,
     Pushable,

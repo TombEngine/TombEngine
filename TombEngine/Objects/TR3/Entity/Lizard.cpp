@@ -72,14 +72,17 @@ namespace TEN::Entities::Creatures::TR3
 			(g_Level.PathfindingBoxes[creature.Enemy->BoxNumber].flags & BLOCKABLE));
 	}
 
-	static void SpawnLizardGas(int itemNumber, const CreatureBiteInfo& bite, int speed)
+	static void SpawnLizardGas(const ItemInfo& item, const CreatureBiteInfo& bite, float vel)
 	{
-		constexpr auto THROW_COUNT = 2;
+		constexpr auto THROW_COUNT = 3;
 
+		auto velVector = Vector3(0.0f, -100.0f, vel * 4);
 		for (int i = 0; i < THROW_COUNT; i++)
-			ThrowPoison(itemNumber, bite, Vector3i(0.0f, -100.0f, speed << 2), Vector3(0.0f, 1.0f, 0.0f));
-
-		ThrowPoison(itemNumber, bite, Vector3i(0.0f, -100.0f, speed << 1), Vector3(0.0f, 1.0f, 0.0f));
+		{
+			auto colorStart = Color(0.0f, Random::GenerateFloat(0.25f, 0.5f), 0.1f);
+			auto colorEnd = Color(0.0f, Random::GenerateFloat(0.1f, 0.2f), 0.1f);
+			ThrowPoison(item, bite, velVector, colorStart, colorEnd);
+		}
 	}
 
 	void LizardControl(short itemNumber)
@@ -319,9 +322,13 @@ namespace TEN::Entities::Creatures::TR3
 						creature.Flags += 2;
 
 					if (creature.Flags < 24)
-						SpawnLizardGas(itemNumber, LizardGasBite, creature.Flags);
+					{
+						SpawnLizardGas(item, LizardGasBite, creature.Flags);
+					}
 					else
-						SpawnLizardGas(itemNumber, LizardGasBite, (GetRandomControl() & 15) + 8);
+					{
+						SpawnLizardGas(item, LizardGasBite, (GetRandomControl() & 15) + 8);
+					}
 				}
 
 				if (TestAnimFrame(item, 28))

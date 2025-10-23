@@ -59,18 +59,17 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		// Initialize routines.
-		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
-		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
-		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
-		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
-
 		item.MeshBits = 1;
-		TEN::Collision::Floordata::UpdateBridgeItem(item);
 
 		// Set mutators to EulerAngles identity by default.
 		for (auto& mutator : item.Model.Mutators)
 			mutator.Rotation = EulerAngles::Identity;
+
+		bridge.GetFloorHeight = GetFallingBlockFloorHeight;
+		bridge.GetCeilingHeight = GetFallingBlockCeilingHeight;
+		bridge.GetFloorBorder = GetFallingBlockFloorBorder;
+		bridge.GetCeilingBorder = GetFallingBlockCeilingBorder;
+		bridge.Initialize(item);
 	}
 
 	void FallingBlockCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -95,6 +94,9 @@ namespace TEN::Entities::Generic
 	void FallingBlockControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*item);
+
+		bridge.Update(*item);
 
 		if (item->TriggerFlags)
 		{
@@ -152,12 +154,11 @@ namespace TEN::Entities::Generic
 						ShatterItem.yRot = item->Pose.Orientation.y;
 						ShatterItem.meshIndex = Objects[item->ObjectNumber].meshIndex;
 						ShatterItem.color = item->Model.Color;
-						ShatterItem.sphere.x = item->Pose.Position.x;
-						ShatterItem.sphere.y = item->Pose.Position.y - CLICK(1); // So debris won't spawn below floor
-						ShatterItem.sphere.z = item->Pose.Position.z;
+						ShatterItem.sphere.Center = item->Pose.Position.ToVector3();
+						ShatterItem.sphere.Center.y -= CLICK(1); // Prevent debris from spawning below floor.
 						ShatterItem.bit = 0;
 						ShatterImpactData.impactDirection = Vector3(0, -(float)item->ItemFlags[1] / (float)FALLINGBLOCK_MAX_SPEED, 0);
-						ShatterImpactData.impactLocation = { (float)ShatterItem.sphere.x, (float)ShatterItem.sphere.y, (float)ShatterItem.sphere.z };
+						ShatterImpactData.impactLocation = ShatterItem.sphere.Center;
 						ShatterObject(&ShatterItem, nullptr, 0, item->RoomNumber, false);
 
 						SoundEffect(SFX_TR4_ROCK_FALL_LAND, &item->Pose);

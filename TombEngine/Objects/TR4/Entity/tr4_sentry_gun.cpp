@@ -81,7 +81,7 @@ namespace TEN::Entities::TR4
 			if (flashDuration)
 			{
 				auto pos = GetJointPosition(item, SentryGunBite);
-				TriggerDynamicLight(pos.x, pos.y, pos.z, 4 * flashDuration + 12, 24, 16, 4);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, 4 * flashDuration + 12, 24, 16, 4);
 				flashDuration--;
 			}
 
@@ -103,7 +103,7 @@ namespace TEN::Entities::TR4
 
 				item.Pose.Position.y += CLICK(2);
 
-				int deltaAngle = ai.angle - creature->JointRotation[0];
+				short deltaAngle = ai.angle - creature->JointRotation[0];
 
 				ai.ahead = true;
 				if (deltaAngle <= ANGLE(-90.0f) || deltaAngle >= ANGLE(90.0f))

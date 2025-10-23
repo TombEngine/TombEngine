@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		bufferToFill.Projection = Camera.Projection;
 		bufferToFill.View = Camera.View;
 		bufferToFill.ViewProjection = Camera.ViewProjection;
+		bufferToFill.InverseView = Camera.View.Invert();
 		bufferToFill.InverseProjection = Camera.Projection.Invert();
 		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
 		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);
@@ -51,6 +52,9 @@ namespace TEN::Renderer
 		DisplaySpritesToDraw.clear();
 		SortedStaticsToDraw.clear();
 		FogBulbsToDraw.clear();
+		LensFlaresToDraw.clear();
+		TransparentObjectsToDraw.clear();
+		Mirrors.clear();
 	}
 
 	RenderViewCamera::RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h)

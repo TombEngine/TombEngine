@@ -19,5 +19,5 @@ template <typename T, size_t N> int GetArraySlot(std::array<T, N> const& arr, GA
 			return i;
 	}
 
-	return -1;
+	return NO_VALUE;
 }

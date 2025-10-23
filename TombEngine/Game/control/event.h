@@ -2,16 +2,14 @@
 #include <variant>
 
 struct CAMERA_INFO;
-struct MESH_INFO;
+struct StaticMesh;
 
 namespace TEN::Control::Volumes
 {
-	constexpr auto NO_CALL_COUNTER = -1;
-
 	using Activator = std::variant<
 		std::nullptr_t,
-		short,
-		MESH_INFO*,
+		int,
+		StaticMesh*,
 		CAMERA_INFO*>;
 
 	enum class ActivatorFlags
@@ -42,6 +40,7 @@ namespace TEN::Control::Volumes
 		Start,
 		End,
 		UseItem,
+		Freeze,
 
 		Count
 	};
@@ -52,7 +51,8 @@ namespace TEN::Control::Volumes
 		std::string		Function = {};
 		std::string		Data = {};
 
-		int CallCounter = NO_CALL_COUNTER;
+		bool Enabled = true;
+		int  CallCounter = NO_VALUE;
 	};
 
 	struct EventSet

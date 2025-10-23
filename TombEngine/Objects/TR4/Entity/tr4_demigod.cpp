@@ -290,12 +290,12 @@ namespace TEN::Entities::TR4
 				spark->fadeToBlack = 24 - (GetRandomControl() & 7);
 				spark->blendMode = BlendMode::Additive;
 				spark->life = spark->sLife = (GetRandomControl() & 7) + 48;
-				spark->x = (GetRandomControl() & 0x1F) + x - 16;
-				spark->y = (GetRandomControl() & 0x1F) + y - 16;
-				spark->z = (GetRandomControl() & 0x1F) + z - 16;
-				spark->xVel = (byte)(GetRandomControl() + 256) * phd_sin(angle);
-				spark->yVel = -32 - (GetRandomControl() & 0x3F);
-				spark->zVel = (byte)(GetRandomControl() + 256) * phd_cos(angle);
+				spark->position.x = (GetRandomControl() & 0x1F) + x - 16;
+				spark->position.y = (GetRandomControl() & 0x1F) + y - 16;
+				spark->position.z = (GetRandomControl() & 0x1F) + z - 16;
+				spark->velocity.x = (byte)(GetRandomControl() + 256) * phd_sin(angle);
+				spark->velocity.y = -32 - (GetRandomControl() & 0x3F);
+				spark->velocity.z = (byte)(GetRandomControl() + 256) * phd_cos(angle);
 				spark->friction = 9;
 
 				if (Random::TestProbability(1 / 2.0f))
@@ -713,7 +713,7 @@ namespace TEN::Entities::TR4
 					TriggerShockwave((Pose*)&pos, 24, 88, 200, 128, 128, 128, 32, EulerAngles::Identity, 8, true, false, true, (int)ShockwaveStyle::Normal);
 
 					auto lightColor = Color(1.0f, 0.4f, 0.2f);
-					TriggerDynamicLight(pos.ToVector3(), lightColor, 0.1f);
+					SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(6));
 
 					Camera.bounce = -128;
 

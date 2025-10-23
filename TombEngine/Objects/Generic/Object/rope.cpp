@@ -10,10 +10,10 @@
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Game/collision/collide_room.h"
-#include "Game/collision/sphere.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Sound/sound.h"
 #include "Game/camera.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Input;
 
@@ -45,6 +45,7 @@ namespace TEN::Entities::Generic
 
 	void PrepareRope(ROPE_STRUCT* rope, Vector3i* pos1, Vector3i* pos2, int length, ItemInfo* item)
 	{
+		rope->index = item->Index;
 		rope->room = item->RoomNumber;
 		rope->position = *pos1;
 		rope->segmentLength = length << 16;
@@ -155,6 +156,8 @@ namespace TEN::Entities::Generic
 		if (TriggerActive(item))
 		{
 			rope->active = 1;
+			rope->StoreInterpolationData();
+
 			RopeDynamics(rope);
 		}
 		else
@@ -277,9 +280,9 @@ namespace TEN::Entities::Generic
 
 			for (int i = pendulumPointer->node; i >= 0; --i)
 			{
-				rope->segment[i].x = rope->meshSegment[i - 1].x + ((int64_t)rope->segmentLength * vec.x >> FP_SHIFT);
-				rope->segment[i].y = rope->meshSegment[i - 1].y + ((int64_t)rope->segmentLength * vec.y >> FP_SHIFT);
-				rope->segment[i].z = rope->meshSegment[i - 1].z + ((int64_t)rope->segmentLength * vec.z >> FP_SHIFT);
+				rope->segment[i].x = rope->meshSegment[std::clamp(i - 1, 0, ROPE_SEGMENTS)].x + ((int64_t)rope->segmentLength * vec.x >> FP_SHIFT);
+				rope->segment[i].y = rope->meshSegment[std::clamp(i - 1, 0, ROPE_SEGMENTS)].y + ((int64_t)rope->segmentLength * vec.y >> FP_SHIFT);
+				rope->segment[i].z = rope->meshSegment[std::clamp(i - 1, 0, ROPE_SEGMENTS)].z + ((int64_t)rope->segmentLength * vec.z >> FP_SHIFT);
 
 				rope->velocity[i].x = 0;
 				rope->velocity[i].y = 0;
@@ -315,7 +318,7 @@ namespace TEN::Entities::Generic
 				&pendulumPointer->velocity,
 				rope->segmentLength * pendulumPointer->node);
 		
-			pendulumPointer->velocity.y += 6 << FP_SHIFT;
+			pendulumPointer->velocity.y += (int)g_GameFlow->GetSettings()->Physics.Gravity << FP_SHIFT;
 
 			pendulumPointer->position.x += pendulumPointer->velocity.x;
 			pendulumPointer->position.y += pendulumPointer->velocity.y;

@@ -13,8 +13,12 @@
 #include "Game/Lara/PlayerStateMachine.h"
 #include "Game/Setup.h"
 #include "Objects/TR2/Vehicles/skidoo.h"
+#include "Objects/TR2/Vehicles/speedboat.h"
 #include "Objects/TR3/Vehicles/kayak.h"
+#include "Objects/TR3/Vehicles/minecart.h"
 #include "Objects/TR3/Vehicles/quad_bike.h"
+#include "Objects/TR3/Vehicles/rubber_boat.h"
+#include "Objects/TR3/Vehicles/upv.h"
 #include "Objects/TR4/Vehicles/jeep.h"
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Specific/level.h"
@@ -101,7 +105,10 @@ void InitializeLaraMeshes(ItemInfo* item)
 	auto& player = GetLaraInfo(*item);
 
 	// Override base mesh and mesh indices to player skin if it exists.
-	item->Model.BaseMesh = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)].meshIndex;
+	auto& obj = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)];
+
+	item->Model.BaseMesh = obj.meshIndex;
+	item->Model.SkinIndex = obj.skinIndex;
 
 	for (int i = 0; i < NUM_LARA_MESHES; i++)
 		item->Model.MeshIndex[i] = item->Model.BaseMesh + i;
@@ -121,6 +128,9 @@ void InitializeLaraAnims(ItemInfo* item)
 	player.RightArm.FrameNumber = 0;
 	player.LeftArm.Locked = false;
 	player.RightArm.Locked = false;
+
+	if (PlayerVehicleObjectID != GAME_OBJECT_ID::ID_NO_OBJECT)
+		return;
 
 	if (TestEnvironment(ENV_FLAG_WATER, item))
 	{
@@ -175,7 +185,7 @@ void InitializeLaraStartPosition(ItemInfo& playerItem)
 	playerItem.Location.Height = playerItem.Pose.Position.y;
 }
 
-static void InitializePlayerVehicle(ItemInfo& playerItem)
+void InitializePlayerVehicle(ItemInfo& playerItem)
 {
 	if (PlayerVehicleObjectID == GAME_OBJECT_ID::ID_NO_OBJECT)
 		return;
@@ -187,7 +197,6 @@ static void InitializePlayerVehicle(ItemInfo& playerItem)
 	// Restore vehicle.
 	TENLog("Transferring vehicle " + GetObjectName(PlayerVehicleObjectID) + " from the previous level.");
 	vehicle->Pose = playerItem.Pose;
-	ItemNewRoom(vehicle->Index, playerItem.RoomNumber);
 	SetLaraVehicle(&playerItem, vehicle);
 	playerItem.Animation = PlayerAnim;
 
@@ -197,6 +206,7 @@ static void InitializePlayerVehicle(ItemInfo& playerItem)
 	{
 	case GAME_OBJECT_ID::ID_KAYAK:
 		InitializeKayak(vehicle->Index);
+		KayakPaddleTake(GetKayakInfo(&g_Level.Items[vehicle->Index]), &playerItem);
 		break;
 
 	case GAME_OBJECT_ID::ID_MOTORBIKE:
@@ -215,8 +225,37 @@ static void InitializePlayerVehicle(ItemInfo& playerItem)
 		InitializeSkidoo(vehicle->Index);
 		break;
 
+	case GAME_OBJECT_ID::ID_MINECART:
+		MinecartWrenchTake(GetMinecartInfo(&g_Level.Items[vehicle->Index]), &playerItem);
+		break;
+
+	case GAME_OBJECT_ID::ID_SPEEDBOAT:
+		InitializeSpeedboat(vehicle->Index);
+		DoSpeedboatMount(&g_Level.Items[vehicle->Index], &playerItem, VehicleMountType::LevelStart);
+		break;
+
+	case GAME_OBJECT_ID::ID_RUBBER_BOAT:
+		InitializeRubberBoat(vehicle->Index);
+		DoRubberBoatMount(&g_Level.Items[vehicle->Index], &playerItem, VehicleMountType::LevelStart);
+		break;
+
+	case GAME_OBJECT_ID::ID_UPV:
+		DoUPVMount(&g_Level.Items[vehicle->Index], &playerItem, VehicleMountType::LevelStart);
+		GetUPVInfo(&g_Level.Items[vehicle->Index])->Flags = UPVFlags::UPV_FLAG_CONTROL;
+		break;
+
 	default:
 		break;
+	}
+
+	// HACK: Reset activity status because boats need to be on active item linked list.
+
+	if (vehicle->ObjectNumber == GAME_OBJECT_ID::ID_RUBBER_BOAT ||
+		vehicle->ObjectNumber == GAME_OBJECT_ID::ID_SPEEDBOAT)
+	{
+		RemoveActiveItem(vehicle->Index, false);
+		AddActiveItem(vehicle->Index);
+		g_Level.Items[vehicle->Index].Status = ITEM_ACTIVE;
 	}
 }
 
@@ -260,9 +299,6 @@ void InitializeLaraLevelJump(ItemInfo* item, LaraInfo* playerBackup)
 
 	// Restore hit points.
 	item->HitPoints = PlayerHitPoints;
-
-	// Restore vehicle.
-	InitializePlayerVehicle(*item);
 }
 
 void InitializeLaraDefaultInventory(ItemInfo& item)
@@ -287,6 +323,18 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 
 	if (Objects[ID_BINOCULARS_ITEM].loaded)
 		player.Inventory.HasBinoculars = true;
+
+	if (Objects[ID_STOPWATCH_ITEM].loaded)
+		player.Inventory.HasStopwatch = true;
+		
+	if (Objects[ID_PC_LOAD_INV_ITEM].loaded)
+		player.Inventory.HasLoad = true;
+
+	if (Objects[ID_PC_SAVE_INV_ITEM].loaded)
+		player.Inventory.HasSave = true;
+
+	if (Objects[ID_COMPASS_ITEM].loaded)
+		player.Inventory.HasCompass = true;
 
 	player.Inventory.BeetleLife = DEFAULT_BEETLE_LIFE;
 

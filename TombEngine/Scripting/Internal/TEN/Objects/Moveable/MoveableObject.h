@@ -1,144 +1,144 @@
 #pragma once
+
+#include "Game/items.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
 
-class LevelFunc;
+namespace sol { class state; }
+namespace sol { template <typename T> struct as_table_t; }
 
-namespace sol 
-{
-	class state;
-	template <typename T> struct as_table_t;
-}
-
-enum ItemStatus;
 enum GAME_OBJECT_ID : short;
+enum ItemStatus;
 enum class EffectType;
-class Rotation;
-class ScriptColor;
+class LevelFunc;
 class Vec3;
 struct ItemInfo;
+namespace TEN::Scripting { class Rotation; };
+namespace TEN::Scripting::Types { class ScriptColor; }
+
+using namespace TEN::Scripting;
+using namespace TEN::Scripting::Types;
 
 using aiBitsArray = std::array<int, 6>;
-using aiBitsType = sol::as_table_t<aiBitsArray>;
+using aiBitsType  = sol::as_table_t<aiBitsArray>;
 
-class Moveable : public NamedBase<Moveable, short>
+class Moveable : public NamedBase<Moveable, int>
 {
 public:
-	using IdentifierType = short;
-
 	static void Register(sol::state& state, sol::table& parent);
 
-	Moveable(short num, bool alreadyInitialized = true);
+protected:
+	ItemHandler _moveable = {};
+
+private:
+	int	 _moveableID  = 0;
+	bool _initialized = false;
+
+public:
+	using IdentifierType = int;
+
+	// Constructors, destructors
+
+	Moveable(int movID, bool alreadyInitialized = true);
+	Moveable(const Moveable& mov) = delete;
+	Moveable(Moveable&& mov) noexcept;
 	~Moveable();
-	Moveable& operator =(const Moveable& other) = delete;
-	Moveable(const Moveable& other) = delete;
-	Moveable(Moveable&& other) noexcept;
 
-	[[nodiscard]] GAME_OBJECT_ID GetObjectID() const;
+	// Getters
+
+	int GetIndex() const;
+	GAME_OBJECT_ID GetObjectID() const;
+	std::string GetName() const;
+	bool GetValid() const;
+	Vec3 GetPosition() const;
+	Vec3 GetJointPos(int jointID, sol::optional<Vec3> offset) const;
+	Rotation GetJointRot(int index) const;
+	Rotation GetRotation() const;
+	Vec3 GetScale() const;
+	int GetStateNumber() const;
+	int GetTargetStateNumber() const;
+	int GetAnimNumber() const;
+	int GetAnimSlot() const;
+	int GetFrameNumber() const;
+	int GetEndFrame() const;
+	Vec3 GetVelocity() const;
+	ScriptColor GetColor() const;
+	short GetHP() const;
+	short GetSlotHP() const;
+	short GetOcb() const;
+	EffectType GetEffect() const;
+	aiBitsType GetAIBits() const;
+	short GetItemFlags(int index = 0) const;
+	short GetLocationAI() const;
+	short GetMeshCount() const;
+	bool GetMeshVisible(int meshId) const;
+	bool GetMeshSwapped(int meshId) const;
+	bool GetHitStatus() const;
+	bool GetActive() const;
+	short GetStatus() const;
+
+	// Setters
+
 	void SetObjectID(GAME_OBJECT_ID id);
-
-	[[nodiscard]] std::string GetName() const;
 	bool SetName(const std::string&);
-
-	[[nodiscard]] bool GetValid() const;
-	void Invalidate();
-
-	void Destroy();
-
-	[[nodiscard]] Vec3 GetPos() const;
-	[[nodiscard]] Vec3 GetJointPos(int index) const;
-	void SetPos(const Vec3& pos, sol::optional<bool> updateRoom);
-
-	[[nodiscard]] Rotation GetRot() const;
-	void SetRot(const Rotation& rot);
-
-	[[nodiscard]] int GetStateNumber() const;
+	void SetPosition(const Vec3& pos, sol::optional<bool> updateRoom);
+	std::unique_ptr<Room> GetRoom() const;
+	int GetRoomNumber() const;
+	void SetRotation(const Rotation& rot);
+	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
-
-	[[nodiscard]] int GetAnimNumber() const;
-	void SetAnimNumber(int animNumber);
-
-	[[nodiscard]] int GetFrameNumber() const;
-	[[nodiscard]] int GetEndFrame() const;
+	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex);
 	void SetFrameNumber(int frameNumber);
-
-	[[nodiscard]] Vec3 GetVelocity() const;
 	void SetVelocity(Vec3 velocity);
-
-	[[nodiscard]] ScriptColor GetColor() const;
 	void SetColor(const ScriptColor& color);
-
-	[[nodiscard]] short GetHP() const;
 	void SetHP(short hp);
-
-	[[nodiscard]] short GetSlotHP() const;
-
-	[[nodiscard]] short GetOCB() const;
-	void SetOCB(short ocb);
-
-	[[nodiscard]] EffectType GetEffect() const;
+	void SetOcb(short ocb);
 	void SetEffect(EffectType effectType, sol::optional<float> timeout);
 	void SetCustomEffect(const ScriptColor& col1, const ScriptColor& col2, sol::optional<float> timeout);
-
-	[[nodiscard]] aiBitsType GetAIBits() const;
-	void SetAIBits(aiBitsType const & bits);
-
-	[[nodiscard]] short GetItemFlags(int index = 0) const;
+	void SetAIBits(aiBitsType const& bits);
 	void SetItemFlags(short value, int index = 0);
-
-	[[nodiscard]] short GetLocationAI() const;
 	void SetLocationAI(short value);
-
-	[[nodiscard]] short GetMeshCount() const;
-	[[nodiscard]] bool GetMeshVisible(int meshId) const;
 	void SetMeshVisible(int meshId, bool isVisible);
-	void ShatterMesh(int meshId);
-
-	[[nodiscard]] bool GetMeshSwapped(int meshId) const;
-	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex);
-	void UnswapMesh(int meshId);
-
-	[[nodiscard]] bool GetHitStatus() const;
-
-	[[nodiscard]] bool GetActive() const;
 	void SetActive(bool isActive);
-
-	std::unique_ptr<Room> GetRoom() const;
-	[[nodiscard]] int GetRoomNumber() const;
 	void SetRoomNumber(int roomNumber);
-
-	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
-	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
-
-	void EnableItem(sol::optional<float> timer);
-	void DisableItem();
-	void MakeInvisible();
-	void SetVisible(bool isVisible);
-	void Explode();
-	void Shatter();
-
+	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
 	void SetOnKilled(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb);
 
-	[[nodiscard]] short GetStatus() const;
-	void SetStatus(ItemStatus value);
-
-	void Init();
-
-	friend bool operator ==(const Moveable&, const Moveable&);
 	friend void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify);
 
-	short GetIndex() const;
+	// Utilities
 
-protected:
-	ItemInfo* m_item;
+	void Initialize();
+	void Invalidate();
+	void Destroy();
+	void ShatterMesh(int meshId);
+	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapMesh(int meshId);
+	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapSkinnedMesh();
+	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
+	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
+	void EnableItem(sol::optional<float> timer);
+	void DisableItem();
+	void MakeInvisible();
+	void SetVisible(bool isVisible);
+	bool GetCollidable();
+	void SetCollidable(bool isCollidable);
+	void Explode();
+	void Shatter();
+	void ShowInteractionHighlight();
+
+	// Operators
+
+	Moveable& operator =(const Moveable& mov) = delete;
+	friend bool operator ==(const Moveable&, const Moveable&);
 
 private:
-	short m_num;
-	bool m_initialized;
+	// Helpers
 
 	bool MeshExists(int number) const;
 };

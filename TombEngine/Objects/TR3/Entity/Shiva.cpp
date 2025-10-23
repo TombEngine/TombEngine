@@ -254,7 +254,7 @@ namespace TEN::Entities::Creatures::TR3
 	void InitializeShiva(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		item.Status &= ~ITEM_INVISIBLE; // Draw the statue from the start.
+		item.Status = ITEM_NOT_ACTIVE; // Draw the statue from the start.
 
 		InitializeCreature(itemNumber);
 		SetAnimation(&item, SHIVA_ANIM_INACTIVE);
@@ -537,7 +537,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (target.ItemFlags[1] != 0)
 			{
 				SoundEffect(SFX_TR4_WEAPON_RICOCHET, &target.Pose);
-				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 				return;
 			}
 
@@ -546,7 +546,7 @@ namespace TEN::Entities::Creatures::TR3
 				target.Animation.ActiveState == SHIVA_STATE_GUARD_IDLE)
 			{
 				SoundEffect(SFX_TR4_BADDY_SWORD_RICOCHET, &target.Pose);
-				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 				return;
 			}
 		}

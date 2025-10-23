@@ -2,6 +2,7 @@
 #include "Objects/TR1/Entity/tr1_big_rat.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -13,6 +14,7 @@
 #include "Math/Math.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR1
@@ -83,8 +85,7 @@ namespace TEN::Entities::Creatures::TR1
 
 	bool RatOnWater(ItemInfo* item)
 	{
-		int waterDepth = GetWaterSurface(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber);
-		
+		int waterDepth = GetPointCollision(*item).GetWaterSurfaceHeight();
 		if (item->IsCreature())
 		{
 			auto& creature = *GetCreatureInfo(item);
@@ -240,7 +241,7 @@ namespace TEN::Entities::Creatures::TR1
 		if (RatOnWater(item))
 		{
 			CreatureUnderwater(item, 0);
-			item->Pose.Position.y = GetWaterHeight(item) - BIG_RAT_WATER_SURFACE_OFFSET;
+			item->Pose.Position.y = GetPointCollision(*item).GetWaterTopHeight() - BIG_RAT_WATER_SURFACE_OFFSET;
 		}
 		else
 		{

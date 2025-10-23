@@ -28,6 +28,7 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto FLAMETHROWER_WALK_TURN_RATE_MAX = ANGLE(5.0f);
 
 	const auto FlamethrowerBite = CreatureBiteInfo(Vector3(0, 340, 64), 7);
+	const auto FlamethrowerTargetIds = { ID_LARA, ID_SEAL_MUTANT };
 
 	// TODO
 	enum FlamethrowerState
@@ -69,12 +70,12 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (item->Animation.ActiveState != 6 && item->Animation.ActiveState != 11)
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
 			TriggerPilotFlame(itemNumber, 9);
 		}
 		else
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
 		}
 
 		if (item->HitPoints <= 0)
@@ -94,30 +95,7 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else
 			{
-				creature->Enemy = nullptr;
-
-				ItemInfo* target = nullptr;
-				int minDistance = INT_MAX;
-
-				for (auto& currentCreature : ActiveCreatures)
-				{
-					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
-						continue;
-
-					target = &g_Level.Items[currentCreature->ItemNumber];
-					if (target->ObjectNumber == ID_LARA || target->HitPoints <= 0 || target->ObjectNumber == ID_FLAMETHROWER_BADDY)
-						continue;
-
-					int x = target->Pose.Position.x - item->Pose.Position.x;
-					int z = target->Pose.Position.z - item->Pose.Position.z;
-
-					int distance = SQUARE(z) + SQUARE(x);
-					if (distance < minDistance)
-					{
-						creature->Enemy = target;
-						minDistance = distance;
-					}
-				}
+				TargetNearestEntity(*item, FlamethrowerTargetIds, false);
 			}
 
 			AI_INFO AI;
@@ -311,10 +289,8 @@ namespace TEN::Entities::Creatures::TR3
 				else
 				{
 					ThrowFire(itemNumber, FlamethrowerBite, Vector3i(0, (Random::GenerateInt() & 63) + 12, 0));
-					if (realEnemy)
-					{
-						/*code*/
-					}
+					if (realEnemy && realEnemy->ObjectNumber == ID_SEAL_MUTANT)
+						realEnemy->ItemFlags[0]++;
 				}
 
 				SoundEffect(SFX_TR4_FLAME_EMITTER, &item->Pose);
@@ -345,10 +321,8 @@ namespace TEN::Entities::Creatures::TR3
 				else
 				{
 					ThrowFire(itemNumber, FlamethrowerBite, Vector3i(0, (GetRandomControl() & 63) + 12, 0));
-					if (realEnemy)
-					{
-						/*code*/
-					}
+					if (realEnemy && realEnemy->ObjectNumber == ID_SEAL_MUTANT)
+						realEnemy->ItemFlags[0]++;
 				}
 
 				SoundEffect(SFX_TR4_FLAME_EMITTER, &item->Pose);

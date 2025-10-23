@@ -8,31 +8,23 @@ using namespace TEN::Effects::DisplaySprite;
 
 namespace TEN::Scripting::View
 {
-	/***
-	Constants for scale modes.
-	@enum View.ScaleMode
-	@pragma nostrip
-	*/
-
-	/*** View.ScaleMode constants.
-
-	The following constants are inside View.ScaleMode.
-
-	FIT
-	FILL
-	STRETCH
-
-	@section View.ScaleMode
-	*/
-
-	/*** Table of display sprite scale modes.
-	@table CONSTANT_STRING_HERE
-	*/
+	/// Constants for display sprite scale modes.
+	// To be used with @{View.DisplaySprite} class.
+	// @enum View.ScaleMode
+	// @pragma nostrip
 
 	static const std::unordered_map<std::string, DisplaySpriteScaleMode> SCALE_MODES
 	{
+		/// Image will proportionally fit the whole image into the sprite surface.
+		// @mem FIT
 		{ "FIT", DisplaySpriteScaleMode::Fit },
+
+		/// Image will scale up proportionally and crop to fill all sprite surface.
+		// @mem FILL
 		{ "FILL", DisplaySpriteScaleMode::Fill },
+
+		/// Image will stretch according to sprite dimensions, not taking aspect ratio into consideration.
+		// @mem STRETCH
 		{ "STRETCH", DisplaySpriteScaleMode::Stretch }
 	};
 }

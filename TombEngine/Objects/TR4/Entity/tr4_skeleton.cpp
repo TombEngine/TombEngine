@@ -136,7 +136,7 @@ namespace TEN::Entities::TR4
 
 		case 3:
 			SetAnimation(item, SKELETON_ANIM_STANDING_UP);
-			item->Status -= ITEM_INVISIBLE;
+			item->Status = ITEM_NOT_ACTIVE;
 			break;
 		}
 	}
@@ -650,9 +650,9 @@ namespace TEN::Entities::TR4
 						{
 							auto* staticMesh = &room->mesh[i];
 
-							if (abs(pos.x - staticMesh->pos.Position.x) < BLOCK(1) && 
-								abs(pos.z - staticMesh->pos.Position.z) < BLOCK(1) &&
-								StaticObjects[staticMesh->staticNumber].shatterType != ShatterType::None)
+							if (abs(pos.x - staticMesh->Pose.Position.x) < BLOCK(1) &&
+								abs(pos.z - staticMesh->Pose.Position.z) < BLOCK(1) &&
+								Statics[staticMesh->Slot].shatterType != ShatterType::None)
 							{
 								ShatterObject(0, staticMesh, -128, LaraItem->RoomNumber, 0);
 								SoundEffect(SFX_TR4_SMASH_ROCK, &item->Pose);

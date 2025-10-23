@@ -7,13 +7,12 @@ class Vector3i;
 	class GameVector
 	{
 	public:
-		// Members
+		// Fields
 
 		int	  x			 = 0;
 		int	  y			 = 0;
 		int	  z			 = 0;
 		short RoomNumber = 0;
-		int	  BoxNumber	 = 0; // Unused.
 
 		// Constants
 
@@ -21,7 +20,7 @@ class Vector3i;
 
 		// Constructors
 
-		GameVector();
+		GameVector() = default;
 		GameVector(const Vector3i& pos);
 		GameVector(const Vector3i& pos, short roomNumber);
 		GameVector(int xPos, int yPos, int zPos);

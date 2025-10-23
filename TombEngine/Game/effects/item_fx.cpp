@@ -10,7 +10,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
-#include "Scripting/Internal/TEN/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
 

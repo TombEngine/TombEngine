@@ -10,22 +10,24 @@
 #include "Specific/level.h"
 
 // Creatures
-#include "Objects/TR1/Entity/Cowboy.h" // OK
-#include "Objects/TR1/Entity/Kold.h" // OK
-#include "Objects/TR1/Entity/tr1_ape.h" // OK
-#include "Objects/TR1/Entity/tr1_bear.h" // OK
-#include "Objects/TR1/Entity/tr1_doppelganger.h" // OK
-#include "Objects/TR1/Entity/tr1_natla.h" // OK
-#include "Objects/TR1/Entity/tr1_giant_mutant.h" // OK
-#include "Objects/TR1/Entity/tr1_wolf.h" // OK
-#include "Objects/TR1/Entity/tr1_big_rat.h" // OK
-#include "Objects/TR1/Entity/tr1_centaur.h" // OK
-#include "Objects/TR1/Entity/tr1_winged_mutant.h" // OK
-#include "Objects/TR1/Entity/SkateboardKid.h" // OK
+#include "Objects/TR1/Entity/Centaur.h"
+#include "Objects/TR1/Entity/Cowboy.h"
+#include "Objects/TR1/Entity/Kold.h"
+#include "Objects/TR1/Entity/SkateboardKid.h"
+#include "Objects/TR1/Entity/WingedMutant.h"
+#include "Objects/TR1/Entity/tr1_ape.h"
+#include "Objects/TR1/Entity/tr1_bear.h"
+#include "Objects/TR1/Entity/tr1_doppelganger.h"
+#include "Objects/TR1/Entity/tr1_natla.h"
+#include "Objects/TR1/Entity/tr1_giant_mutant.h"
+#include "Objects/TR1/Entity/tr1_wolf.h"
+#include "Objects/TR1/Entity/tr1_big_rat.h"
 #include "Objects/Utils/object_helper.h"
 
 // Traps
 #include "Objects/TR1/Trap/DamoclesSword.h"
+#include "Objects/TR1/Trap/ElectricBall.h"
+#include "Objects/TR1/Trap/ThorHammer.h"
 #include "Objects/TR1/Trap/SlammingDoors.h"
 #include "Objects/TR1/Trap/SwingingBlade.h"
 
@@ -149,7 +151,7 @@ static void StartEntity(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeCreature;
-		obj->control = CentaurControl;
+		obj->control = ControlCentaur;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->HitPoints = 120;
@@ -157,7 +159,8 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = BLOCK(1 / 3.0f);
 		obj->intelligent = true;
 		obj->LotType = LotType::Blockable;
-		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y); // Torso
+		obj->SetBoneRotationFlags(17, ROT_X | ROT_Y); // Head
 		obj->SetHitEffect();
 	}
 
@@ -165,7 +168,7 @@ static void StartEntity(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeWingedMutant;
-		obj->control = WingedMutantControl;
+		obj->control = ControlWingedMutant;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->pivotLength = 150;
@@ -248,6 +251,26 @@ static void StartTrap(ObjectInfo* obj)
 		obj->shadowType = ShadowMode::All;
 		obj->SetHitEffect(true);
 	}
+	
+	obj = &Objects[ID_THOR_HAMMER_HANDLE];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HEAD, "Thor hammer");
+		obj->Initialize = InitializeThorHammer;
+		obj->collision = CollideThorHammerHandle;
+		obj->control = ControlThorHammer;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_THOR_HAMMER_HEAD];
+	if (obj->loaded)
+	{
+		CheckIfSlotExists(ID_THOR_HAMMER_HANDLE, "Thor hammer");
+		obj->collision = CollideThorHammer;
+		obj->shadowType = ShadowMode::All;
+		obj->SetHitEffect(true);
+	}
 
 	obj = &Objects[ID_SLAMMING_DOORS];
 	if (obj->loaded)
@@ -268,12 +291,32 @@ static void StartTrap(ObjectInfo* obj)
 		obj->shadowType = ShadowMode::All;
 		obj->SetHitEffect(true);
 	}
+
+	obj = &Objects[ID_ELECTRIC_BALL];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricBall;
+		obj->control = ControlElectricBall;
+		obj->collision = GenericSphereBoxCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = NOT_TARGETABLE;
+		obj->radius = 512;
+		obj->intelligent = true;
+		obj->SetHitEffect(true);	
+	}
+
+	obj = &Objects[ID_ELECTRIC_BALL_IMPACT_POINT];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricBallImpactPoint;
+		obj->drawRoutine = nullptr;
+		obj->usingDrawAnimatingItem = false;
+	}
 }
 
 static void StartProjectiles(ObjectInfo* obj)
 {
 	InitProjectile(obj, ControlMissile, ID_PROJ_SHARD);
-	InitProjectile(obj, ControlMissile, ID_PROJ_BOMB);
 	InitProjectile(obj, ControlMissile, ID_PROJ_BOMB);
 }
 

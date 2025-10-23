@@ -1,9 +1,8 @@
 #pragma once
-#include "Game/collision/sphere.h"
-#include "Specific/newtypes.h"
-#include "Specific/level.h"
-#include "Renderer/Renderer.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
+#include "Renderer/Renderer.h"
+#include "Specific/level.h"
+#include "Specific/newtypes.h"
 
 constexpr int MAX_DEBRIS = 2048;
 
@@ -26,7 +25,7 @@ struct ITEM_LIGHT
 
 struct SHATTER_ITEM
 {
-	SPHERE sphere;
+	BoundingSphere sphere;
 	ITEM_LIGHT* il;
 	int meshIndex;
 	Vector4 color;
@@ -49,6 +48,7 @@ struct DebrisMesh
 	std::array<Vector3, 3> Normals;
 	std::array<Vector4, 3> Colors;
 	int tex;
+	bool Animated;
 };
 
 struct DebrisFragment
@@ -71,17 +71,31 @@ struct DebrisFragment
 	bool active;
 	bool isStatic;
 	Matrix Transform;
+
+	Matrix PrevTransform = Matrix::Identity;
+
+	void UpdateTransform()
+	{
+		auto translation = Matrix::CreateTranslation(worldPosition.x, worldPosition.y, worldPosition.z);
+		auto rot = Matrix::CreateFromQuaternion(rotation);
+		Transform = rot * translation;
+	}
+
+	void StoreInterpolationData()
+	{
+		PrevTransform = Transform;
+	}
 };
 
 extern SHATTER_ITEM ShatterItem;
 extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 extern ShatterImpactInfo ShatterImpactData;
 extern short SmashedMeshCount;
-extern MESH_INFO* SmashedMesh[32];
+extern StaticMesh* SmashedMesh[32];
 extern short SmashedMeshRoom[32];
 
 bool ExplodeItemNode(ItemInfo* item, int node, int noXZVel, int bits);
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel);
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel);
 DebrisFragment* GetFreeDebrisFragment();
 Vector3 CalculateFragmentImpactVelocity(const Vector3& fragmentWorldPosition, const Vector3& impactDirection, const Vector3& impactLocation);
 void DisableDebris();

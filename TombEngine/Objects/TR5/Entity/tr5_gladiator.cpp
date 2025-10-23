@@ -337,18 +337,18 @@ namespace TEN::Entities::Creatures::TR5
 
 					auto pos = GetJointPosition(item, 16);
 
-					auto* floor = GetSector(room, pos.x - room->x, pos.z - room->z);
+					auto* floor = GetSector(room, pos.x - room->Position.x, pos.z - room->Position.z);
 					if (floor->Stopper)
 					{
 						for (int i = 0; i < room->mesh.size(); i++)
 						{
 							auto* mesh = &room->mesh[i];
 
-							if (!((pos.z ^ mesh->pos.Position.z) & 0xFFFFFC00))
+							if (!((pos.z ^ mesh->Pose.Position.z) & 0xFFFFFC00))
 							{
-								if (!((pos.x ^ mesh->pos.Position.x) & 0xFFFFFC00))
+								if (!((pos.x ^ mesh->Pose.Position.x) & 0xFFFFFC00))
 								{
-									if (StaticObjects[mesh->staticNumber].shatterType != ShatterType::None)
+									if (Statics[mesh->Slot].shatterType != ShatterType::None)
 									{
 										ShatterObject(0, mesh, -64, LaraItem->RoomNumber, 0);
 										//SoundEffect(ShatterSounds[gfCurrentLevel - 5][*(v28 + 18)], v28);

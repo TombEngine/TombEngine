@@ -10,35 +10,11 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Utils;
 
 CreatureInfo* GetCreatureInfo(ItemInfo* item)
 {
 	return (CreatureInfo*)item->Data;
-}
-
-void TargetNearestEntity(ItemInfo* item, CreatureInfo* creature)
-{
-	float nearestDistance = INFINITY;
-
-	for (int i = 0; i < g_Level.NumItems; i++)
-	{
-		auto* targetEntity = &g_Level.Items[i];
-
-		if (targetEntity == nullptr)
-			continue;
-
-		if (targetEntity != item &&
-			targetEntity->HitPoints > 0 &&
-			targetEntity->Status != ITEM_INVISIBLE)
-		{
-			float distance = Vector3i::Distance(item->Pose.Position, targetEntity->Pose.Position);
-			if (distance < nearestDistance)
-			{
-				creature->Enemy = targetEntity;
-				nearestDistance = distance;
-			}
-		}
-	}
 }
 
 bool IsNextSectorValid(const ItemInfo& item, const Vector3& dir, float dist, bool canFloat)

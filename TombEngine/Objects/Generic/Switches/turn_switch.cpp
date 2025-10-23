@@ -6,6 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -14,6 +15,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -56,6 +58,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
+		
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
 
 		int doSwitch = 0;
 
@@ -128,6 +132,7 @@ namespace TEN::Entities::Switches
 			UseForcedFixedCamera = true;
 			ForcedFixedCamera.y = switchItem->Pose.Position.y - 2048;
 			ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
+			Camera.DisableInterpolation = true;
 
 			AddActiveItem(itemNumber);
 
@@ -168,7 +173,7 @@ namespace TEN::Entities::Switches
 
 	void TurnSwitchControl(short itemNumber)
 	{
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		if (g_Level.Items[itemNumber].ItemFlags[0] == TURN_SWITCH_CLOCKWISE)
@@ -176,6 +181,8 @@ namespace TEN::Entities::Switches
 			if (switchItem->Animation.AnimNumber == Objects[switchItem->ObjectNumber].animIndex + 2)
 			{
 				switchItem->Pose.Orientation.y += ANGLE(90.0f);
+				switchItem->DisableInterpolation = true;
+
 				if (IsHeld(In::Action))
 				{
 					laraItem->Animation.AnimNumber = LA_TURNSWITCH_PUSH_CLOCKWISE_START;
@@ -187,9 +194,12 @@ namespace TEN::Entities::Switches
 			}
 
 			if (laraItem->Animation.AnimNumber == LA_TURNSWITCH_PUSH_CLOCKWISE_END &&
-				laraItem->Animation.FrameNumber == GetAnimData(laraItem).frameEnd && 
+				laraItem->Animation.FrameNumber == GetAnimData(laraItem).frameEnd &&
 				!switchItem->ItemFlags[1])
+			{
 				switchItem->ItemFlags[1] = 1;
+				switchItem->DisableInterpolation = true;
+			}
 
 			if ((laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_TURNSWITCH_PUSH_CLOCKWISE_START).frameBase &&
 				laraItem->Animation.FrameNumber <= GetAnimData(*laraItem, LA_TURNSWITCH_PUSH_CLOCKWISE_START).frameBase + 43) ||
@@ -204,6 +214,8 @@ namespace TEN::Entities::Switches
 			if (switchItem->Animation.AnimNumber == Objects[ID_TURN_SWITCH].animIndex + 6)
 			{
 				switchItem->Pose.Orientation.y -= ANGLE(90.0f);
+				switchItem->DisableInterpolation = true;
+
 				if (IsHeld(In::Action))
 				{
 					SetAnimation(*laraItem, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START);
@@ -216,6 +228,7 @@ namespace TEN::Entities::Switches
 				!switchItem->ItemFlags[1])
 			{
 				switchItem->ItemFlags[1] = 1;
+				switchItem->DisableInterpolation = true;
 			}
 
 			if ((laraItem->Animation.FrameNumber >= GetAnimData(*laraItem, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START).frameBase &&
@@ -241,7 +254,8 @@ namespace TEN::Entities::Switches
 			RemoveActiveItem(itemNumber);
 
 			Lara.Control.HandStatus = HandStatus::Free;
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
+			Camera.DisableInterpolation = true;
 			switchItem->ItemFlags[1] = 2;
 		}
 	}

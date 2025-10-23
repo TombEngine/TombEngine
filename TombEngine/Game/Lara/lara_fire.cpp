@@ -4,7 +4,8 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/animation.h"
 #include "Game/camera.h"
-#include "Game/collision/sphere.h"
+#include "Game/collision/Los.h"
+#include "Game/collision/Sphere.h"
 #include "Game/control/los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
@@ -25,18 +26,23 @@
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
+#include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
+using namespace TEN::Collision::Sphere;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
 int FlashGrenadeAftershockTimer = 0;
+
+constexpr auto WEAPON_MAX_DISTANCE_MULTIPLIER = 3.0f;
 
 // States in which Lara will hold an active flare out in front.
 const auto FlarePoseStates = std::vector<int>
@@ -146,7 +152,7 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 		std::pair(EulerAngles(ANGLE(-70.0f), ANGLE(-80.0f), 0), EulerAngles(ANGLE(65.0f), ANGLE(80.0f), 0)),
 		std::pair(EulerAngles(ANGLE(-70.0f), ANGLE(-80.0f), 0), EulerAngles(ANGLE(65.0f), ANGLE(80.0f), 0)),
 		ANGLE(10.0f),
-		0,
+		ANGLE(10.0f),
 		500,
 		BLOCK(8),
 		3,
@@ -301,6 +307,26 @@ const WeaponInfo& GetWeaponInfo(LaraWeaponType weaponType)
 		return Weapons[0];
 
 	return (Weapons[(int)weaponType]);
+}
+
+void InitializeWeaponInfo(const Settings& settings)
+{
+	for (const auto& [name, weaponType] : WEAPON_TYPES)
+	{
+		if ((int)weaponType <= 0 || (int)weaponType >= (int)LaraWeaponType::NumWeapons)
+			continue;
+
+		auto& weapon = Weapons[(int)weaponType];
+		const auto& weaponSettings = settings.Weapons[(int)weaponType - 1]; // Lua counts from 1.
+
+		weapon.Damage = weaponSettings.Damage;
+		weapon.AlternateDamage = weaponSettings.AlternateDamage;
+		weapon.FlashTime = weaponSettings.FlashDuration;
+		weapon.GunHeight = weaponSettings.WaterLevel;
+		weapon.ShotAccuracy = ANGLE(weaponSettings.Accuracy);
+		weapon.TargetDist = weaponSettings.Distance;
+		weapon.RecoilFrame = weaponSettings.Interval;
+	}
 }
 
 void InitializeNewWeapon(ItemInfo& laraItem)
@@ -538,7 +564,7 @@ void HandleWeapon(ItemInfo& laraItem)
 				player.Control.Weapon.RequestGunType = player.Control.Weapon.LastGunType;
 		}
 		// Draw flare.
-		else if (IsHeld(In::Flare) && (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() != LaraType::Young))
+		else if (IsHeld(In::Flare))
 		{
 			if (player.Control.Weapon.GunType == LaraWeaponType::Flare)
 			{
@@ -550,9 +576,9 @@ void HandleWeapon(ItemInfo& laraItem)
 					player.Control.HandStatus = HandStatus::WeaponUndraw;
 				}
 			}
-			else if (player.Inventory.TotalFlares)
+			else if (player.Inventory.TotalFlares && !player.Control.Look.IsUsingBinoculars)
 			{
-				if (player.Inventory.TotalFlares != -1)
+				if (player.Inventory.TotalFlares != NO_VALUE)
 					player.Inventory.TotalFlares--;
 
 				player.Control.Weapon.RequestGunType = LaraWeaponType::Flare;
@@ -626,7 +652,13 @@ void HandleWeapon(ItemInfo& laraItem)
 		laraItem.Animation.ActiveState == LS_CRAWL_IDLE &&
 		laraItem.Animation.AnimNumber == LA_CRAWL_IDLE)
 	{
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Flare;
+			if (player.Inventory.TotalFlares)
+			{
+				if (player.Inventory.TotalFlares != NO_VALUE)
+					player.Inventory.TotalFlares--;
+
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Flare;
+			}
 	}
 
 	switch (player.Control.HandStatus)
@@ -815,7 +847,7 @@ void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo)
 }
 
 // TODO: Include snowmobile gun in GetAmmo(), otherwise the player won't be able to shoot while controlling it. -- TokyoSU 2023.04.21
-FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo& targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient)
+FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 	auto& ammo = GetAmmo(player, weaponType);
@@ -839,53 +871,114 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo& targetEntity, Ite
 	// Calculate ray from wobbled orientation.
 	auto directionNorm = wobbledArmOrient.ToDirection();
 	auto origin = pos.ToVector3();
-	auto target = origin + (directionNorm * weapon.TargetDist);
+	auto target = origin + (directionNorm * weapon.TargetDist * WEAPON_MAX_DISTANCE_MULTIPLIER);
 	auto ray = Ray(origin, directionNorm);
 
-	int num = GetSpheres(&targetEntity, CreatureSpheres, SPHERES_SPACE_WORLD, Matrix::Identity);
-	int bestJointIndex = NO_VALUE;
-	float bestDistance = INFINITY;
-	for (int i = 0; i < num; i++)
-	{
-		auto sphere = BoundingSphere(Vector3(CreatureSpheres[i].x, CreatureSpheres[i].y, CreatureSpheres[i].z), CreatureSpheres[i].r);
-		float distance = 0.0f;
-		if (ray.Intersects(sphere, distance))
-		{
-			if (distance < bestDistance)
-			{
-				bestDistance = distance;
-				bestJointIndex = i;
-			}
-		}
-	}
-
 	player.Control.Weapon.HasFired = true;
-	player.Control.Weapon.Fired = true;
-	
+
 	auto vOrigin = GameVector(pos);
 	short roomNumber = laraItem.RoomNumber;
 	GetFloor(pos.x, pos.y, pos.z, &roomNumber);
 	vOrigin.RoomNumber = roomNumber;
 
-	if (bestJointIndex < 0)
+	if (targetEntity == nullptr)
 	{
 		auto vTarget = GameVector(target);
-		GetTargetOnLOS(&vOrigin, &vTarget, false, true);
+		GetTargetOnLOS(&vOrigin, &vTarget);
+		return FireWeaponType::Miss;
+	}
+
+	auto spheres = targetEntity->GetSpheres();
+	int closestJointIndex = NO_VALUE;
+	float closestDist = FLT_MAX;
+	for (int i = 0; i < spheres.size(); i++)
+	{
+		float dist = 0.0f;
+		constexpr auto SPHERE_SCALING_FACTOR = 0.065f;
+
+		// HACK: Compensate for ray-sphere intersection distance.
+		float distanceToSphere = (spheres[i].Center - origin).Length();
+		float factor = distanceToSphere / weapon.TargetDist;
+		float radiusExpansion = Smoothstep(factor) * (distanceToSphere * SPHERE_SCALING_FACTOR);
+
+		spheres[i].Radius = spheres[i].Radius + radiusExpansion;
+
+		if (ray.Intersects(spheres[i], dist))
+		{
+			if (dist < closestDist)
+			{
+				closestDist = dist;
+				closestJointIndex = i;
+			}
+		}
+	}
+	
+	if (closestJointIndex == NO_VALUE)
+	{
+		auto vTarget = GameVector(target);
+		GetTargetOnLOS(&vOrigin, &vTarget);
 		return FireWeaponType::Miss;
 	}
 	else
 	{
-		SaveGame::Statistics.Game.AmmoHits++;
-		target = origin + (directionNorm * bestDistance);
+		target = origin + (directionNorm * closestDist);
 		auto vTarget = GameVector(target);
 
 		// NOTE: It seems that entities hit by the player in the normal way must have GetTargetOnLOS return false.
 		// It's strange, but this replicates original behaviour until we fully understand what is happening.
-		if (!GetTargetOnLOS(&vOrigin, &vTarget, false, true))
-			HitTarget(&laraItem, &targetEntity, &vTarget, weapon.Damage, false, bestJointIndex);
+		if (!GetTargetOnLOS(&vOrigin, &vTarget))
+			HitTarget(&laraItem, targetEntity, &vTarget, weapon.Damage, false, closestJointIndex);
 
 		return FireWeaponType::PossibleHit;
 	}
+}
+
+bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 target, float distance)
+{
+	constexpr auto playerSize = LARA_RADIUS * 2.0f;
+
+	if (!g_GameFlow->GetSettings()->Gameplay.TargetObjectOcclusion)
+		return false;
+
+	auto dir = target - origin;
+	dir.Normalize();
+
+	// We need to subtract Lara's radius from distance to avoid near plane false negatives.
+	distance -= playerSize;
+
+	// Assess static mesh line of sight.
+	auto staticLos = GetStaticLosCollision(origin, playerItem.RoomNumber, dir, distance);
+	if (staticLos.has_value() && staticLos.value().Static != nullptr && staticLos.value().Distance < distance)
+	{
+		// Don't filter out shatterables.
+		if (Statics[staticLos.value().Static->Slot].shatterType == ShatterType::None)
+		{
+			// Filter out statics that are too small.
+			auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
+			auto radius = Vector2(extents.x, extents.z).Length();
+
+			if (radius > playerSize && extents.y > playerSize)
+				return true;
+		}
+	}
+
+	// Assess moveable line of sight.
+	auto moveableLos = GetItemLosCollision(origin, playerItem.RoomNumber, dir, distance);
+	if (moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < distance)
+	{
+		// Don't filter out creatures.
+		if (!Objects[moveableLos.value().Item->ObjectNumber].intelligent)
+		{
+			// Filter out moveables that are too small.
+			auto extents = moveableLos.value().Item->GetAabb().Extents;
+			auto radius = Vector2(extents.x, extents.z).Length();
+
+			if (radius > playerSize && extents.y > playerSize)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
@@ -901,21 +994,25 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 		return;
 	}
 
+	float muzzleOffset = GetJointPosition(&laraItem, LM_RHAND).y - laraItem.Pose.Position.y;
+
 	auto origin = GameVector(
 		laraItem.Pose.Position.x,
-		GetJointPosition(&laraItem, LM_RHAND).y, // Muzzle offset.
+		laraItem.Pose.Position.y + muzzleOffset,
 		laraItem.Pose.Position.z,
 		laraItem.RoomNumber);
 
 	ItemInfo* closestEntityPtr = nullptr;
 
-	float closestDistance = INFINITY;
-	short closestHeadingAngle = MAXSHORT;
+	float closestDistance = FLT_MAX;
+	short closestHeadingAngle = SHRT_MAX;
 	unsigned int targetCount = 0;
 	float maxDistance = weaponInfo.TargetDist;
 
-	for (auto* creaturePtr : ActiveCreatures)
+	for (auto creatureIndex : ActiveCreatures)
 	{
+		auto* creaturePtr = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 		// Continue loop if no item.
 		if (creaturePtr->ItemNumber == NO_VALUE)
 			continue;
@@ -926,14 +1023,22 @@ void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 		if (item.HitPoints <= 0)
 			continue;
 
+		// Offset target position to the same height as muzzle.
+		Vector3 pos = item.Pose.Position.ToVector3();
+		pos.y += muzzleOffset;
+
 		// Check distance.
-		float distance = Vector3::Distance(origin.ToVector3(), item.Pose.Position.ToVector3());
+		float distance = Vector3::Distance(origin.ToVector3(), pos);
 		if (distance > maxDistance)
 			continue;
 
-		// Assess line of sight.
+		// Assess room line of sight.
 		auto target = GetTargetPoint(item);
 		if (!LOS(&origin, &target))
+			continue;
+
+		// Assess occlusion by other moveables and static meshes.
+		if (IsTargetOccludedByObjects(laraItem, origin.ToVector3(), target.ToVector3(), distance))
 			continue;
 
 		// Assess whether relative orientation falls within weapon's lock constraints.
@@ -1101,6 +1206,9 @@ void HitTarget(ItemInfo* laraItem, ItemInfo* targetEntity, GameVector* hitPos, i
 	targetEntity->HitStatus = true;
 	if (targetEntity->IsCreature())
 		GetCreatureInfo(targetEntity)->HurtByLara = true;
+
+	if (object.HitRoutine == nullptr)
+		return;
 
 	if (hitPos != nullptr)
 	{

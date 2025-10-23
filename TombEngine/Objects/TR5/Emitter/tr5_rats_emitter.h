@@ -14,7 +14,13 @@ struct RatData
 
 	byte Flags;
 	
-	Matrix Transform;
+	Matrix Transform	 = Matrix::Identity;
+	Matrix PrevTransform = Matrix::Identity;
+
+	void StoreInterpolationData()
+	{
+		PrevTransform = Transform;
+	}
 };
 
 extern int NextRat;

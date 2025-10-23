@@ -50,7 +50,7 @@ namespace TEN::Gui
 		INV_OBJECT_SMALL_MEDIPACK,
 		INV_OBJECT_BINOCULARS,
 		INV_OBJECT_FLARES,
-		INV_OBJECT_TIMEX,
+		INV_OBJECT_STOPWATCH,
 		INV_OBJECT_LOAD_FLOPPY,
 		INV_OBJECT_SAVE_FLOPPY,
 		INV_OBJECT_BURNING_TORCH,
@@ -258,7 +258,7 @@ namespace TEN::Gui
 		OPT_EQUIP				   = (1 << 1),
 		OPT_USE					   = (1 << 2),
 		OPT_COMBINABLE			   = (1 << 3),
-		OPT_SEPERABLE			   = (1 << 4),
+		OPT_SEPARABLE			   = (1 << 4),
 		OPT_EXAMINABLE			   = (1 << 5),
 		OPT_CHOOSE_AMMO_SHOTGUN	   = (1 << 6),
 		OPT_CHOOSE_AMMO_CROSSBOW   = (1 << 7),
@@ -271,8 +271,7 @@ namespace TEN::Gui
 		OPT_CHOOSE_AMMO_HK		   = (1 << 14),
 		OPT_STATS				   = (1 << 15),
 		OPT_CHOOSE_AMMO_HARPOON	   = (1 << 16),
-		OPT_CHOOSE_AMMO_ROCKET	   = (1 << 17),
-		OPT_DIARY				   = (1 << 18)
+		OPT_CHOOSE_AMMO_ROCKET	   = (1 << 17)
 	};
 
 	enum RotationFlags

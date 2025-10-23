@@ -21,8 +21,8 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto TWIN_AUTO_GUN_SHOT_DAMAGE	= 5;
 	constexpr auto TWIN_AUTO_GUN_HIT_POINTS_MAX = 28;
 
-	const auto TwinAutoGunLeftBite	= CreatureBiteInfo(110, -30, 530, 2);
-	const auto TwinAutoGunRightBite = CreatureBiteInfo(-110, -30, 530, 2);
+	const auto TwinAutoGunLeftBite	= CreatureBiteInfo(Vector3(110.0f, -30.0f, 530.0f), 2);
+	const auto TwinAutoGunRightBite = CreatureBiteInfo(Vector3(-110.0f, -30.0f, 530.0f), 2);
 
 	enum TwinAutoGunAnim
 	{
@@ -116,7 +116,7 @@ namespace TEN::Entities::Creatures::TR3
 						Random::GenerateFloat(0.75f, 1.0f),
 						Random::GenerateFloat(0.5f, 0.6f),
 						Random::GenerateFloat(0.0f, 0.25f));
-					TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+					SpawnDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
 					autoGun.MuzzleFlash[0].Bite = TwinAutoGunLeftBite;
 					autoGun.MuzzleFlash[0].SwitchToMuzzle2 = true;
@@ -139,7 +139,7 @@ namespace TEN::Entities::Creatures::TR3
 						Random::GenerateFloat(0.75f, 1.0f),
 						Random::GenerateFloat(0.5f, 0.6f),
 						Random::GenerateFloat(0.0f, 0.25f));
-					TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+					SpawnDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
 					autoGun.MuzzleFlash[1].Bite = TwinAutoGunRightBite;
 					autoGun.MuzzleFlash[1].SwitchToMuzzle2 = true;

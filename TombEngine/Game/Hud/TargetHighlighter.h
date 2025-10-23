@@ -20,7 +20,7 @@ namespace TEN::Hud
 		static constexpr auto COLOR_GRAY	= Color(0.7f, 0.7f, 0.7f, 0.7f);
 		static constexpr auto SEGMENT_COUNT = 4;
 
-		// Members
+		// Fields
 
 		bool IsActive  = false;
 		bool IsPrimary = false;
@@ -35,6 +35,12 @@ namespace TEN::Hud
 		float PulseScale  = 0.0f;
 
 		std::array<SegmentData, SEGMENT_COUNT> Segments = {};
+
+		Vector2 PrevPosition	= Vector2::Zero;
+		short	PrevOrientation = 0;
+		float	PrevScale		= 0.0f;
+		Vector4 PrevColor		= Vector4::Zero;
+		std::array<SegmentData, SEGMENT_COUNT> PrevSegments = {};
 
 		// Getters
 
@@ -51,6 +57,15 @@ namespace TEN::Hud
 
 		void Update(const Vector3& targetPos, bool isActive, bool doPulse);
 		void Draw() const;
+
+		void StoreInterpolationData()
+		{
+			PrevPosition = *Position;
+			PrevOrientation = Orientation;
+			PrevScale = Scale;
+			PrevColor = Color;
+			PrevSegments = Segments;
+		}
 	};
 
 	class TargetHighlighterController

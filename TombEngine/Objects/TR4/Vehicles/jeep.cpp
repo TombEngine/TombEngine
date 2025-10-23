@@ -19,6 +19,7 @@
 #include "Objects/TR4/Vehicles/jeep_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -45,7 +46,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto JEEP_DISMOUNT_DISTANCE = 512;
 
 	constexpr auto JEEP_FRONT = 550;
-	constexpr auto JEEP_SIDE = 280;
+	constexpr auto JEEP_SIDE = 256;
 	constexpr auto JEEP_SLIP = 100;
 	constexpr auto JEEP_SLIP_SIDE = 128;
 
@@ -174,20 +175,6 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* jeep = GetJeepInfo(jeepItem);
 		auto* lara = GetLaraInfo(laraItem);
-
-		// HACK: Hardcoded jeep keys check.
-		/*if (g_Gui.GetInventoryItemChosen() == ID_PUZZLE_ITEM1)
-		{
-			g_Gui.SetInventoryItemChosen(NO_VALUE);
-			return true;
-		}
-		else
-		{
-			if (g_Gui.IsObjectInInventory(ID_PUZZLE_ITEM1))
-				g_Gui.SetEnterInventory(ID_PUZZLE_ITEM1);
-
-			return false;
-		}*/
 		
 		switch (mountType)
 		{
@@ -242,7 +229,7 @@ namespace TEN::Entities::Vehicles
 			}
 			else
 			{
-				jeepItem->Pose.Position.z += WALL_MASK - shiftZ;
+				jeepItem->Pose.Position.z += (BLOCK(1) + 1) - shiftZ;
 				return (jeepItem->Pose.Position.x - pos->x);
 			}
 		}
@@ -256,7 +243,7 @@ namespace TEN::Entities::Vehicles
 			}
 			else
 			{
-				jeepItem->Pose.Position.x += WALL_MASK - shiftX;
+				jeepItem->Pose.Position.x += (BLOCK(1) + 1) - shiftX;
 				return (pos->z - jeepItem->Pose.Position.z);
 			}
 		}
@@ -273,7 +260,7 @@ namespace TEN::Entities::Vehicles
 			if (pos->z > old->z)
 				z = -1 - shiftZ;
 			else
-				z = BLOCK(1) + 1 - shiftZ;
+				z = (BLOCK(1) + 1) - shiftZ;
 		}
 
 		roomNumber = jeepItem->RoomNumber;
@@ -285,7 +272,7 @@ namespace TEN::Entities::Vehicles
 			if (pos->x > old->x)
 				x = -1 - shiftX;
 			else
-				x = BLOCK(1) + 1 - shiftX;
+				x = (BLOCK(1) + 1) - shiftX;
 		}
 
 		if (x && z)
@@ -346,9 +333,13 @@ namespace TEN::Entities::Vehicles
 			if (*yPos <= height - 32)
 			{
 				if (flags)
+				{
 					verticalVelocity += flags + (flags / 2);
+				}
 				else
-					verticalVelocity += (int)((float)GRAVITY * 1.5f);
+				{
+					verticalVelocity += (int)(g_GameFlow->GetSettings()->Physics.Gravity * 1.5f);
+				}
 			}
 			else
 			{
@@ -514,6 +505,21 @@ namespace TEN::Entities::Vehicles
 
 		auto oldPos = jeepItem->Pose.Position;
 
+		if (f_old.y > hf_old)
+			f_old.y = hf_old;
+		
+		if (b_old.y > hb_old)
+			b_old.y = hb_old;
+		
+		if (mm_old.y > hmm_old)
+			mm_old.y = hmm_old;
+		
+		if (mt_old.y > hmt_old)
+			mt_old.y = hmt_old;
+		
+		if (mb_old.y > hmb_old)
+			mb_old.y = hmb_old;
+
 		short rot = 0;
 		JeepNoGetOff = 0;
 
@@ -615,13 +621,13 @@ namespace TEN::Entities::Vehicles
 
 				if (slip >= 0)
 				{
-					jeepItem->Pose.Position.x += (slip - 24) * phd_sin(jeepItem->Pose.Orientation.y + ANGLE(90));
-					jeepItem->Pose.Position.z += (slip - 24) * phd_cos(jeepItem->Pose.Orientation.y + ANGLE(90));
+					jeepItem->Pose.Position.x += (abs(slip) - 24) * phd_sin(jeepItem->Pose.Orientation.y + ANGLE(90));
+					jeepItem->Pose.Position.z += (abs(slip) - 24) * phd_cos(jeepItem->Pose.Orientation.y + ANGLE(90));
 				}
 				else
 				{
-					jeepItem->Pose.Position.x += (slip - 24) * phd_sin(jeepItem->Pose.Orientation.y - ANGLE(90));
-					jeepItem->Pose.Position.z += (slip - 24) * phd_cos(jeepItem->Pose.Orientation.y - ANGLE(90));
+					jeepItem->Pose.Position.x += (abs(slip) - 24) * phd_sin(jeepItem->Pose.Orientation.y - ANGLE(90));
+					jeepItem->Pose.Position.z += (abs(slip) - 24) * phd_cos(jeepItem->Pose.Orientation.y - ANGLE(90));
 				}
 			}
 		}
@@ -847,7 +853,7 @@ namespace TEN::Entities::Vehicles
 		if (IsHeld(In::Brake))
 		{
 			auto pos = GetJointPosition(jeepItem, 11, Vector3i(0, -144, -1024));
-			TriggerDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
 
 			jeepItem->MeshBits.Set(17);
 			jeepItem->MeshBits.Clear(JeepBrakeLightJoints);
@@ -952,35 +958,9 @@ namespace TEN::Entities::Vehicles
 							laraItem->Animation.TargetState = JS_FWD_LEFT;
 						else if (IsHeld(In::Right))
 							laraItem->Animation.TargetState = JS_FWD_RIGHT;
+						else
+							laraItem->Animation.TargetState = JS_IDLE;
 					}
-
-	/*				if (!(IsClicked(In::Walk)))
-					{
-						if (!(IsClicked(In::Sprint)))
-						{
-							if (IsHeld(In::Accelerate) && !IsHeld(In::Brake))
-							{
-								laraItem->TargetState = JS_DRIVE_FORWARD;
-								break;
-							}
-							else if (IsHeld(In::Left))
-								laraItem->TargetState = JS_FWD_LEFT;
-							else if (IsHeld(In::Right))
-								laraItem->TargetState = JS_FWD_RIGHT;
-						}
-						else if (jeep->Gear < 1)
-						{
-							jeep->Gear++;
-							if (jeep->Gear == 1)
-								laraItem->TargetState = JS_DRIVE_BACK;
-
-						}
-					}
-					else
-					{
-						if (jeep->Gear)
-							jeep->Gear--;
-					}*/
 				}
 
 				break;
@@ -1013,11 +993,11 @@ namespace TEN::Entities::Vehicles
 				}
 
 				break;
-
-			case 2:
-			case 3:
-			case 4:
-			case 5:
+				
+			case JS_CRASH_RIGHT:
+			case JS_CRASH_BACK:
+			case JS_CRASH_LEFT:
+			case JS_CRASH_FORWARD:
 				if (dead)
 					laraItem->Animation.TargetState = JS_IDLE;
 				else if (IsHeld(In::Accelerate) || IsHeld(In::Brake))
@@ -1390,11 +1370,7 @@ namespace TEN::Entities::Vehicles
 
 		if (!(jeep->Flags & JEEP_FLAG_DEAD))
 		{
-			if (roomNumber != jeepItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, roomNumber);
-				ItemNewRoom(laraItem->Index, roomNumber);
-			}
+			UpdateVehicleRoom(jeepItem, laraItem, roomNumber);
 
 			laraItem->Pose = jeepItem->Pose;
 

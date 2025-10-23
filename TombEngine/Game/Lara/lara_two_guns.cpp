@@ -45,24 +45,6 @@ static WeaponAnimData GetWeaponAnimData(LaraWeaponType weaponType)
 	return ((it != ANIM_DATA_MAP.end()) ? it->second : ANIM_DATA_MAP.at(LaraWeaponType::None));
 }
 
-static Vector3i GetWeaponSmokeRelOffset(LaraWeaponType weaponType, bool isRightWeapon)
-{
-	switch (weaponType)
-	{
-	case LaraWeaponType::Pistol:
-		return Vector3i(isRightWeapon ? -16 : 4, 128, 40);
-
-	case LaraWeaponType::Revolver:
-		return Vector3i(isRightWeapon ? -32 : 16, 160, 56);
-
-	case LaraWeaponType::Uzi:
-		return Vector3i(isRightWeapon ? -16 : 8, 140, 48);
-
-	default:
-		return Vector3i::Zero;
-	}
-}
-
 static void SetArmInfo(const ItemInfo& laraItem, ArmInfo& arm, int frame)
 {
 	const auto& player = GetLaraInfo(laraItem);
@@ -118,8 +100,12 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	// Spawn weapon smoke.
 	if (laraItem.MeshBits.TestAny() && arm.GunSmoke)
 	{
-		auto relOffset = GetWeaponSmokeRelOffset(weaponType, isRightWeapon);
+		auto relOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3();
+		if (!isRightWeapon)
+			relOffset.x = -relOffset.x;
+
 		auto pos = GetJointPosition(&laraItem, isRightWeapon ? LM_RHAND : LM_LHAND, relOffset);
+
 		TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, arm.GunSmoke);
 	}
 
@@ -154,7 +140,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 							arm.Orientation.y + laraItem.Pose.Orientation.y,
 							0);
 
-					if (FireWeapon(weaponType, *player.TargetEntity, laraItem, armOrient) != FireWeaponType::NoAmmo)
+					if (FireWeapon(weaponType, player.TargetEntity, laraItem, armOrient) != FireWeaponType::NoAmmo)
 					{
 						arm.GunSmoke = 28;
 						TriggerGunShell(isRightWeapon ? true : false, ID_GUNSHELL, weaponType);
@@ -171,6 +157,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 						}
 
 						SaveGame::Statistics.Game.AmmoUsed++;
+						SaveGame::Statistics.Level.AmmoUsed++;
 					}
 				}
 
@@ -205,12 +192,8 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	// Wind animation backward.
 	else
 	{
-		// Let SHOOT_CONTINUE (3) finish.
-		if (frame >= weaponAnimData.RecoilAnim && frame < (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
-			frame++;
-
 		// At SHOOT_CONTINUE (3) end frame; go to START_SHOOT (0) end frame.
-		if (frame == (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
+		if (frame >= weaponAnimData.RecoilAnim)
 		{
 			frame = weaponAnimData.Draw1Anim2;
 		}
@@ -310,14 +293,17 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 	if (lara.LeftArm.GunFlash || lara.RightArm.GunFlash)
 	{
+		const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1];
+
+		auto color = Color(settings.FlashColor);
+		color += Color(Random::GenerateFloat(-0.2f, 0.2f));
+
 		auto basePos = GetJointPosition(&laraItem, (lara.LeftArm.GunFlash != 0) ? LM_LHAND : LM_RHAND).ToVector3();
 		auto sphere = BoundingSphere(basePos, BLOCK(1 / 8.0f));
 		auto lightPos = Random::GeneratePointInSphere(sphere);
-
-		TriggerDynamicLight(
-			lightPos.x, lightPos.y, lightPos.z,
-			Random::GenerateFloat(8.0f, 11.0f),
-			(GetRandomControl() & 0x3F) + 192, (GetRandomControl() & 0x1F) + 128, GetRandomControl() & 0x3F);
+		
+		int range = abs(Random::GenerateInt(settings.FlashRange - 2, settings.FlashRange + 2));
+		SpawnDynamicPointLight(lightPos, color, CLICK(range));
 	}
 }
 

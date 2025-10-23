@@ -27,12 +27,8 @@ enum BodyPartFlags
 
 struct SMOKE_SPARKS
 {
-	int x;
-	int y;
-	int z;
-	int xVel;
-	int yVel;
-	int zVel;
+	Vector3i position;
+	Vector3i velocity;
 	int gravity;
 	short rotAng;
 	short flags;
@@ -55,7 +51,21 @@ struct SMOKE_SPARKS
 	BlendMode blendMode;
 	byte fxObj;
 	byte nodeNumber;
-	byte mirror;
+
+	Vector3i PrevPosition = Vector3i::Zero;
+	byte	 PrevShade	  = 0;
+	byte	 PrevSize	  = 0;
+	byte	 PrevScalar	  = 0;
+	short	 PrevRotAng	  = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevPosition = position;
+		PrevShade = shade;
+		PrevSize = size;
+		PrevScalar = scalar;
+		PrevRotAng = rotAng;
+	}
 };
 
 struct SHOCKWAVE_STRUCT
@@ -84,6 +94,21 @@ struct SHOCKWAVE_STRUCT
 
 	bool fadeIn = false;
 	bool HasLight = false;
+
+	short PrevInnerRad = 0;
+	short PrevOuterRad = 0;
+	byte  PrevR		   = 0;
+	byte  PrevG		   = 0;
+	byte  PrevB		   = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevInnerRad = innerRad;
+		PrevOuterRad = outerRad;
+		PrevR = r;
+		PrevG = g;
+		PrevB = b;
+	}
 };
 
 struct GUNSHELL_STRUCT
@@ -95,6 +120,13 @@ struct GUNSHELL_STRUCT
 	short counter;
 	short dirXrot;
 	short objectNumber;
+
+	Pose PrevPose = Pose::Zero;
+
+	void StoreInterpolationData()
+	{
+		PrevPose = pos;
+	}
 };
 
 struct DRIP_STRUCT
@@ -112,26 +144,50 @@ struct DRIP_STRUCT
 	short roomNumber;
 	byte outside;
 	byte pad;
+
+	int  PrevX = 0;
+	int  PrevY = 0;
+	int  PrevZ = 0;
+	byte PrevR = 0;
+	byte PrevG = 0;
+	byte PrevB = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevX = x;
+		PrevY = y;
+		PrevZ = z;
+		PrevR = r;
+		PrevG = g;
+		PrevB = b;
+	}
 };
 
 struct FIRE_LIST
 {
-	int x;
-	int y;
-	int z;
-	byte on;
+	Vector3i position;
+	Vector4 color;
+	unsigned char fade;
 	float size;
 	short roomNumber;
+	
+	Vector3i PrevPosition = Vector3i::Zero;
+	float	 PrevSize	  = 0.0f;
+	byte	 PrevFade	  = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevPosition = position;
+		PrevSize = size;
+		PrevFade = fade;
+	}
 };
 
 struct FIRE_SPARKS
 {
-	short x;
-	short y;
-	short z;
-	short xVel;
-	short yVel;
-	short zVel;
+	Vector3i position;
+	Vector3i velocity;
+	Vector3i color;
 	short gravity;
 	short rotAng;
 	short flags;
@@ -150,13 +206,25 @@ struct FIRE_SPARKS
 	unsigned char dR;
 	unsigned char dG;
 	unsigned char dB;
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
 	unsigned char colFadeSpeed;
 	unsigned char fadeToBlack;
 	unsigned char sLife;
 	unsigned char life;
+
+	Vector3i	  PrevPosition = Vector3i::Zero;
+	Vector3i	  PrevColor	   = Vector3i::Zero;
+	unsigned char PrevScalar   = 0;
+	unsigned char PrevSize	   = 0;
+	short		  PrevRotAng   = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevPosition = position;
+		PrevColor = color;
+		PrevScalar = scalar;
+		PrevSize = size;
+		PrevRotAng = rotAng;
+	}
 };
 
 struct BLOOD_STRUCT
@@ -183,6 +251,21 @@ struct BLOOD_STRUCT
 	byte sLife;
 	byte life;
 	byte pad;
+
+	Vector3i PrevPosition = Vector3i::Zero;
+	short	 PrevRotAng	  = 0;
+	byte	 PrevShade	  = 0;
+	byte	 PrevSize	  = 0;
+
+	void StoreInterpolationData()
+	{
+		PrevPosition.x = x;
+		PrevPosition.y = y;
+		PrevPosition.z = z;
+		PrevRotAng = rotAng;
+		PrevShade = shade;
+		PrevSize = size;
+	}
 };
 
 enum class ShockwaveStyle
@@ -190,17 +273,12 @@ enum class ShockwaveStyle
 	Normal = 0,
 	Sophia = 1,
 	Knockback = 2,
+	Invisible = 3,
 };
 
 #define ENERGY_ARC_STRAIGHT_LINE	0
 #define ENERGY_ARC_CIRCLE			1
 #define ENERGY_ARC_NO_RANDOMIZE		1
-
-extern int LaserSightX;
-extern int LaserSightY;
-extern int LaserSightZ;
-extern char LaserSightActive;
-extern char LaserSightCol;
 
 extern int NextFireSpark;
 extern int NextSmokeSpark;
@@ -209,7 +287,6 @@ extern int NextSpider;
 extern int NextGunShell;
 
 constexpr auto MAX_SPARKS_FIRE = 20;
-constexpr auto MAX_FIRE_LIST = 32;
 constexpr auto MAX_SPARKS_SMOKE = 32;
 constexpr auto MAX_SPARKS_BLOOD = 32;
 constexpr auto MAX_GUNFLASH = 4;
@@ -221,26 +298,26 @@ extern SMOKE_SPARKS SmokeSparks[MAX_SPARKS_SMOKE];
 extern GUNSHELL_STRUCT Gunshells[MAX_GUNSHELL];
 extern BLOOD_STRUCT Blood[MAX_SPARKS_BLOOD];
 extern SHOCKWAVE_STRUCT ShockWaves[MAX_SHOCKWAVE];
-extern FIRE_LIST Fires[MAX_FIRE_LIST];
+extern std::vector<FIRE_LIST> Fires;
 
 void TriggerBlood(int x, int y, int z, int unk, int num);
-void TriggerExplosionBubble(int x, int y, int z, short roomNumber);
+void TriggerExplosionBubble(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 int GetFreeFireSpark();
 void TriggerGlobalStaticFlame();
 void TriggerGlobalFireSmoke();
 void TriggerGlobalFireFlame();
 void TriggerPilotFlame(int itemNumber, int nodeIndex);
-void ThrowFire(int itemNumber, int meshIndex, const Vector3i& offset, const Vector3i& vel);
-void ThrowFire(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel);
-void ThrowPoison(int itemNumber, int meshIndex, const Vector3i& offset, const Vector3i& vel, const Vector3& color);
-void ThrowPoison(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel, const Vector3& color);
+void ThrowFire(int itemNumber, int meshID, const Vector3i& offset, const Vector3i& vel, int spriteID = 0);
+void ThrowFire(int itemNumber, const CreatureBiteInfo& bite, const Vector3i& vel, int spriteID = 0);
+void ThrowPoison(const ItemInfo& item, int boneID, const Vector3& offset, const Vector3& vel, const Color& colorStart, const Color& colorEnd, int spriteID = 0);
+void ThrowPoison(const ItemInfo& item, const CreatureBiteInfo& bite, const Vector3& vel, const Color& colorStart, const Color& colorEnd, int spriteID = 0);
 void UpdateFireProgress();
 void ClearFires();
-void AddFire(int x, int y, int z, short roomNum, float size, short fade);
+void AddFire(int x, int y, int z, short roomNum, float size, short fade = 1);
+void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
 void UpdateFireSparks();
 int GetFreeSmokeSpark();
 void UpdateSmoke();
-byte TriggerGunSmoke_SubFunction(LaraWeaponType weaponType);
 void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, byte initial, LaraWeaponType weaponType, byte count);
 void TriggerShatterSmoke(int x, int y, int z);
 int GetFreeBlood();
@@ -248,6 +325,7 @@ void TriggerBlood(int x, int y, int z, int unk, int num);
 void UpdateBlood();
 int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
+void UpdateGunFlashes();
 void UpdateGunShells();
 void AddWaterSparks(int x, int y, int z, int num);
 void ExplodingDeath(short itemNumber, short flags); // BODY_ flags
@@ -256,5 +334,6 @@ void TriggerShockwave(Pose* pos, short innerRad, short outerRad, int speed, unsi
 void TriggerShockwaveHitEffect(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b, short rot, int vel);
 void UpdateShockwaves();
 void TriggerSmallSplash(int x, int y, int z, int number);
-void TriggerUnderwaterExplosion(ItemInfo* item, int flag);
+void TriggerUnderwaterExplosion(ItemInfo* item, bool flag);
+void TriggerUnderwaterExplosion(Vector3 position, bool flag, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle);

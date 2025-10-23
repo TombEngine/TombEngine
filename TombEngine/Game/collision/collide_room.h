@@ -6,8 +6,8 @@
 enum RoomEnvFlags;
 class FloorInfo;
 struct ItemInfo;
-struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
+struct StaticMesh;
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;
@@ -80,8 +80,9 @@ struct CollisionSetupData
 	bool BlockMonkeySwingEdge = false;
 	
 	// Inquirers
-	bool EnableObjectPush = false;
-	bool EnableSpasm	  = false;
+	bool EnableObjectPush	= false;
+	bool EnableSpasm		= false;
+	bool ForceSolidStatics	= false;
 
 	// Previous parameters
 	Vector3i	   PrevPosition		= Vector3i::Zero;
@@ -137,13 +138,6 @@ int GetFloorHeight(FloorInfo* floor, int x, int y, int z);
 int GetCeiling(FloorInfo* floor, int x, int y, int z);
 int GetDistanceToFloor(int itemNumber, bool precise = true);
 
-int GetWaterSurface(int x, int y, int z, short roomNumber);
-int GetWaterSurface(ItemInfo* item);
-int GetWaterDepth(int x, int y, int z, short roomNumber);
-int GetWaterDepth(ItemInfo* item);
-int GetWaterHeight(int x, int y, int z, short roomNumber);
-int GetWaterHeight(ItemInfo* item);
-
 int  FindGridShift(int x, int z);
 void ShiftItem(ItemInfo* item, CollisionInfo* coll);
 void SnapItemToLedge(ItemInfo* item, CollisionInfo* coll, float offsetMultiplier = 0.0f, bool snapToAngle = true);
@@ -157,5 +151,5 @@ bool TestEnvironment(RoomEnvFlags environmentType, int x, int y, int z, int room
 bool TestEnvironment(RoomEnvFlags environmentType, const Vector3i& pos, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const ItemInfo* item);
 bool TestEnvironment(RoomEnvFlags environmentType, int roomNumber);
-bool TestEnvironment(RoomEnvFlags environmentType, ROOM_INFO* room);
+bool TestEnvironment(RoomEnvFlags environmentType, const RoomData* room);
 bool TestEnvironmentFlags(RoomEnvFlags environmentType, int flags);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Game/Hud/InteractionHighlighter.h"
 #include "Game/Hud/PickupSummary.h"
 #include "Game/Hud/Speedometer.h"
 #include "Game/Hud/StatusBars.h"
@@ -11,15 +12,19 @@ namespace TEN::Hud
 	class HudController
 	{
 	public:
-		// Members
-		StatusBarsController		StatusBars		  = {};
-		PickupSummaryController		PickupSummary	  = {};
-		SpeedometerController		Speedometer		  = {};
-		TargetHighlighterController TargetHighlighter = {};
+		// Fields
+
+		StatusBarsController				StatusBars				= {};
+		PickupSummaryController				PickupSummary			= {};
+		SpeedometerController				Speedometer				= {};
+		TargetHighlighterController			TargetHighlighter		= {};
+		InteractionHighlighterController	InteractionHighlighter	= {};
 
 		// Utilities
+
 		void Update(const ItemInfo& playerItem);
-		void Draw(const ItemInfo& playerItem) const;
+		void Draw2D(const ItemInfo& playerItem) const;
+		void Draw3D();
 		void Clear();
 	};
 

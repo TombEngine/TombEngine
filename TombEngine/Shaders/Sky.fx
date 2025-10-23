@@ -3,7 +3,9 @@
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
-#include "./CBStatic.hlsli"
+#include "./CBSky.hlsli"
+#include "./AnimatedTextures.hlsli"
+#include "./VertexEffects.hlsli"
 
 struct PixelShaderInput
 {
@@ -24,9 +26,9 @@ PixelShaderInput VS(VertexShaderInput input)
 	float4 worldPosition = mul(float4(input.Position, 1.0f), World);
 
 	output.Position = mul(worldPosition, ViewProjection);
-	output.Normal = input.Normal;
+    output.Normal = input.Normal.xyz;
 	output.Color = input.Color;
-	output.UV = input.UV;
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.FogBulbs = ApplyFogBulbs == 1 ? DoFogBulbsForSky(worldPosition) : 0;
 
 	return output;
@@ -34,6 +36,9 @@ PixelShaderInput VS(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+	
 	float4 output = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(output);
@@ -41,6 +46,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	float3 light = saturate(Color.xyz - float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w) * 1.4f);
 	output.xyz *= light;
 	output.xyz += saturate(input.FogBulbs.xyz);
+	output.w *= Color.w;
 
 	return output;
 }

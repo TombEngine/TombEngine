@@ -8,28 +8,29 @@
 #include "Specific/level.h"
 
 // Creatures
-#include "Objects/TR3/Entity/Compsognathus.h" // OK
-#include "Objects/TR3/Entity/Lizard.h" // OK
-#include "Objects/TR3/Entity/PunaBoss.h" // OK
-#include "Objects/TR3/Entity/Shiva.h" // OK
-#include "Objects/TR3/Entity/SophiaLeigh.h" // OK
+#include "Objects/TR3/Entity/Compsognathus.h"
+#include "Objects/TR3/Entity/Lizard.h"
+#include "Objects/TR3/Entity/PunaBoss.h"
+#include "Objects/TR3/Entity/SealMutant.h"
+#include "Objects/TR3/Entity/Shiva.h"
+#include "Objects/TR3/Entity/SophiaLeigh.h"
+#include "Objects/TR3/Entity/Raptor.h"
 #include "Objects/TR3/Entity/TwinAutoGun.h"
-#include "Objects/TR3/Entity/WaspMutant.h" // OK
-#include "Objects/TR3/Entity/Winston.h" // OK
-#include "Objects/TR3/Entity/tr3_tony.h" // OK
-#include "Objects/TR3/Entity/tr3_civvy.h" // OK
-#include "Objects/TR3/Entity/tr3_claw_mutant.h" // OK
-#include "Objects/TR3/Entity/tr3_cobra.h" // OK
-#include "Objects/TR3/Entity/FishSwarm.h" // OK
-#include "Objects/TR3/Entity/tr3_flamethrower.h" // OK
-#include "Objects/TR3/Entity/tr3_monkey.h" // OK
-#include "Objects/TR3/Entity/tr3_mp_gun.h" // OK
-#include "Objects/TR3/Entity/tr3_mp_stick.h" // OK
-#include "Objects/TR3/Entity/tr3_raptor.h" // OK
-#include "Objects/TR3/Entity/tr3_scuba_diver.h" // OK
-#include "Objects/TR3/Entity/tr3_tiger.h" // OK
-#include "Objects/TR3/Entity/tr3_trex.h" // OK
-#include "Objects/TR3/Entity/tr3_tribesman.h" // OK
+#include "Objects/TR3/Entity/WaspMutant.h"
+#include "Objects/TR3/Entity/Winston.h"
+#include "Objects/TR3/Entity/tr3_tony.h"
+#include "Objects/TR3/Entity/tr3_civvy.h"
+#include "Objects/TR3/Entity/tr3_claw_mutant.h"
+#include "Objects/TR3/Entity/tr3_cobra.h"
+#include "Objects/TR3/Entity/FishSwarm.h"
+#include "Objects/TR3/Entity/tr3_flamethrower.h"
+#include "Objects/TR3/Entity/tr3_monkey.h"
+#include "Objects/TR3/Entity/tr3_mp_gun.h"
+#include "Objects/TR3/Entity/tr3_mp_stick.h"
+#include "Objects/TR3/Entity/tr3_scuba_diver.h"
+#include "Objects/TR3/Entity/tr3_tiger.h"
+#include "Objects/TR3/Entity/tr3_trex.h"
+#include "Objects/TR3/Entity/tr3_tribesman.h"
 
 // Effects
 #include "Objects/Effects/Boss.h"
@@ -41,6 +42,8 @@
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TurningBlade.h"
+#include "Objects/TR3/Trap/FirePendulum.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -72,7 +75,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->nonLot = true; // NOTE: Doesn't move to reach the player, only throws projectiles.
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
 
 	obj = &Objects[ID_TIGER];
@@ -117,6 +120,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 341;
 		obj->pivotLength = 600;
 		obj->intelligent = true;
+		obj->LotType = LotType::HumanPlusJump;
 		obj->SetBoneRotationFlags(20, ROT_Y);
 		obj->SetBoneRotationFlags(21, ROT_Y);
 		obj->SetBoneRotationFlags(23, ROT_Y);
@@ -298,7 +302,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
 
 	obj = &Objects[ID_CIVVY];
@@ -363,9 +367,9 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 50;
 		obj->SetBoneRotationFlags(4, ROT_Y);		 // Puna quest object.
 		obj->SetBoneRotationFlags(7, ROT_X | ROT_Y); // Head.
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
-
+	
 	obj = &Objects[ID_WASP_MUTANT];
 	if (obj->loaded)
 	{
@@ -380,7 +384,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->LotType = LotType::Flyer;
 		obj->SetHitEffect();
 	}
-
+	
 	obj = &Objects[ID_COMPSOGNATHUS];
 	if (obj->loaded)
 	{
@@ -412,6 +416,22 @@ static void StartEntity(ObjectInfo* obj)
 		obj->SetHitEffect();
 	}
 
+	obj = &Objects[ID_SEAL_MUTANT];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSealMutant;
+		obj->collision = CreatureCollision;
+		obj->control = ControlSealMutant;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 50;
+		obj->radius = 204;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(8, ROT_X | ROT_Z); // Torso X/Z
+		obj->SetBoneRotationFlags(9, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
 	obj = &Objects[ID_WINSTON];
 	if (obj->loaded)
 	{
@@ -432,7 +452,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->Initialize = InitializeFishSwarm;
 		obj->control = ControlFishSwarm;
 		obj->intelligent = true;
-		obj->drawRoutine = NULL;
+		obj->drawRoutine = nullptr;
 	}
 }
 
@@ -508,6 +528,31 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = WallMountedBladeControl;
 		obj->collision = GenericSphereBoxCollision;
 	}
+
+	obj = &Objects[ID_TURNING_WALL_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TURNING_CEILING_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+	
+	obj = &Objects[ID_FIRE_PENDULUM];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFirePendulum;
+		obj->control = ControlFirePendulum;
+		obj->collision = CollideFirePendulum;
+		obj->SetHitEffect(true);
+	}
 }
 
 static void StartVehicles(ObjectInfo* obj)
@@ -517,7 +562,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeQuadBike;
 		obj->collision = QuadBikePlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 
@@ -528,7 +573,7 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->control = RubberBoatControl;
 		obj->collision = RubberBoatPlayerCollision;
 		obj->drawRoutine = DrawRubberBoat;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -538,7 +583,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeKayak;
 		obj->collision = KayakPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -548,7 +593,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeMinecart;
 		obj->collision = MinecartPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -558,17 +603,17 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = BigGunInitialize;
 		obj->collision = BigGunCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 
 	obj = &Objects[ID_UPV];
 	if (obj->loaded)
 	{
-		obj->Initialize = UPVInitialize;
+		obj->Initialize = InitializeUPV;
 		obj->control = UPVEffects;
 		obj->collision = UPVPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 }

@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_collide.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
 #include "Objects/Generic/Object/rope.h"
@@ -43,6 +44,12 @@ void lara_as_pickup(ItemInfo* item, CollisionInfo* coll)
 
 	if (TestLastFrame(item))
 		item->Animation.TargetState = GetNextAnimState(item);
+}
+
+void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
+{
+	LaraDefaultCollision(item, coll);
+	ShiftItem(item, coll);
 }
 
 // State:		LS_PICKUP_FLARE (67)
@@ -213,63 +220,6 @@ void lara_as_pushable_edge_slip(ItemInfo* item, CollisionInfo* coll)
 	Camera.flags = CF_FOLLOW_CENTER;
 }
 
-// ------
-// PULLEY
-// ------
-
-// State:		LS_PULLEY (104)
-// Collision:	lara_default_col()
-void lara_as_pulley(ItemInfo* item, CollisionInfo* coll)
-{
-	auto* lara = GetLaraInfo(item);
-	auto* pulleyItem = &g_Level.Items[lara->Context.InteractedItem];
-
-	lara->Control.Look.Mode = LookMode::None;
-	coll->Setup.EnableSpasm = false;
-	coll->Setup.EnableObjectPush = false;
-
-	if (IsHeld(In::Action) && pulleyItem->TriggerFlags)
-		item->Animation.TargetState = LS_PULLEY;
-	else
-		item->Animation.TargetState = LS_IDLE;
-
-	if (item->Animation.AnimNumber == LA_PULLEY_PULL &&
-		item->Animation.FrameNumber == GetAnimData(*item).frameBase + 44)
-	{
-		if (pulleyItem->TriggerFlags)
-		{
-			if (!pulleyItem->ItemFlags[1])
-			{
-				pulleyItem->TriggerFlags--;
-				if (pulleyItem->TriggerFlags)
-				{
-					if (pulleyItem->ItemFlags[2])
-					{
-						pulleyItem->ItemFlags[2] = 0;
-						pulleyItem->Status = ITEM_DEACTIVATED;
-					}
-				}
-				else
-				{
-					pulleyItem->Status = ITEM_DEACTIVATED;
-					pulleyItem->ItemFlags[2] = 1;
-
-					if (pulleyItem->ItemFlags[3] >= 0)
-						pulleyItem->TriggerFlags = abs(pulleyItem->ItemFlags[3]);
-					else
-						pulleyItem->ItemFlags[0] = 1;
-				}
-			}
-		}
-	}
-
-	if (item->Animation.AnimNumber == LA_PULLEY_RELEASE &&
-		item->Animation.FrameNumber == GetAnimData(*item).frameEnd - 1)
-	{
-		lara->Control.HandStatus = HandStatus::Free;
-	}
-}
-
 // --------------
 // HORIZONTAL BAR
 // --------------
@@ -335,6 +285,7 @@ void lara_as_tightrope_idle(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	lara->Control.Look.Mode = LookMode::Free;
+	lara->Control.HandStatus = HandStatus::Busy;
 
 	DoLaraTightropeBalanceRegen(item);
 	DoLaraTightropeLean(item);
@@ -379,6 +330,8 @@ void lara_as_tightrope_dismount(ItemInfo* item, CollisionInfo* coll)
 void lara_as_tightrope_walk(ItemInfo* item, CollisionInfo* coll) 
 {
 	auto* lara = GetLaraInfo(item);
+
+	lara->Control.HandStatus = HandStatus::Busy;
 
 	if (CanDismountTightrope(*item, *coll))
 	{
@@ -667,7 +620,7 @@ void lara_as_pole_idle(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	GetCollisionInfo(coll, item); // HACK: Lara may step off poles in mid-air upon reload without this.
-	if (coll->Middle.Floor <= 0 &&
+	if (coll->Middle.Floor <= CLICK(0.125f) &&
 		item->Animation.AnimNumber != LA_POLE_JUMP_BACK) // Hack.
 	{
 		item->Animation.TargetState = LS_IDLE;

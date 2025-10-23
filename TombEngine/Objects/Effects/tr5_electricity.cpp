@@ -5,7 +5,6 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
@@ -75,13 +74,15 @@ void TriggerElectricityWireSparks(int x, int z, byte objNum, byte node, bool glo
 	if (glow)
 	{
 		spark->scalar = 1;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENSFLARE_LIGHT;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = SPR_LENS_FLARE_LIGHT;
 		spark->size = spark->sSize = (GetRandomControl() & 0x1F) + 160;
 	}
 	else
 	{
 		spark->scalar = 0;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = SPR_UNDERWATERDUST;
 		spark->size = spark->sSize = (GetRandomControl() & 7) + 8;
 	}
 
@@ -160,7 +161,7 @@ void ElectricityWiresControl(short itemNumber)
 			continue;
 
 		if (((GetRandomControl() & 0x0F) < 8) && flashingNode == currentEndNode)
-			TriggerDynamicLight(pos.x, pos.y, pos.z, 10, 0, ((GetRandomControl() & 0x3F) + 96) / 2, (GetRandomControl() & 0x3F) + 128);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 0, ((GetRandomControl() & 0x3F) + 96) / 2, (GetRandomControl() & 0x3F) + 128);
 
 		for (int s = 0; s < 3; s++)
 		{
@@ -223,7 +224,7 @@ void ElectricityWiresControl(short itemNumber)
 					isWaterNearby = true;
 			}
 
-			bool instantKill = BoundingSphere(Vector3(pos.x, pos.y, pos.z), CLICK(0.25f)).Intersects(npcBox);
+			bool instantKill = BoundingSphere(Vector3(pos.x, pos.y, pos.z), BLOCK(0.25f)).Intersects(npcBox);
 
 			if (isWaterNearby || instantKill)
 			{
@@ -254,7 +255,7 @@ void ElectricityWiresControl(short itemNumber)
 						TriggerElectricitySparks(itemPtr, j, false);
 				}
 
-				TriggerDynamicLight(
+				SpawnDynamicLight(
 					itemPtr->Pose.Position.x,
 					itemPtr->Pose.Position.y,
 					itemPtr->Pose.Position.z,

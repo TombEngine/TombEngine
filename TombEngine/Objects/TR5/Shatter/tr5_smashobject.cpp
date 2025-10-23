@@ -14,10 +14,10 @@ void InitializeSmashObject(short itemNumber)
 	item->Flags = 0;
 	item->MeshBits = 1;
 
-	auto* room = &g_Level.Rooms[item->RoomNumber];
+	auto& room = g_Level.Rooms[item->RoomNumber];
 
 	// NOTE: Avoids crash when attempting to access Boxes[] array while box is equal to NO_VALUE. -- TokyoSU 2022.12.20
-	FloorInfo* floor = GetSector(room, item->Pose.Position.x - room->x, item->Pose.Position.z - room->z);
+	FloorInfo* floor = GetSector(&room, item->Pose.Position.x - room.Position.x, item->Pose.Position.z - room.Position.z);
 	if (floor->PathfindingBoxID == NO_VALUE)
 	{
 		TENLog("Smash object with ID " + std::to_string(itemNumber) + " may be inside a wall." , LogLevel::Warning);
@@ -34,11 +34,11 @@ void SmashObject(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	int sector = ((item->Pose.Position.z - room->z) / 1024) + room->zSize * ((item->Pose.Position.x - room->x) / 1024);
+	int sector = ((item->Pose.Position.z - room->Position.z) / 1024) + room->ZSize * ((item->Pose.Position.x - room->Position.z) / 1024);
 
-	auto* box = &g_Level.PathfindingBoxes[room->floor[sector].PathfindingBoxID];
+	auto* box = &g_Level.PathfindingBoxes[room->Sectors[sector].PathfindingBoxID];
 	if (box->flags & 0x8000)
-		box->flags &= ~BOX_BLOCKED;
+		box->flags &= ~BLOCKED;
 
 	SoundEffect(SFX_TR5_SMASH_GLASS, &item->Pose);
 

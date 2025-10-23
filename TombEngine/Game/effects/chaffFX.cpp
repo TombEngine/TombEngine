@@ -14,6 +14,7 @@
 #include "Math/Math.h"
 #include "Specific/level.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Effects::Bubble;
@@ -23,18 +24,20 @@ constexpr auto MAX_TRIGGER_RANGE = BLOCK(16);
 
 void TriggerChaffEffects(int flareLife)
 {
-	auto pos = GetJointPosition(LaraItem, LM_LHAND, Vector3i(8, 36, 32));
-	auto vect = GetJointPosition(LaraItem, LM_LHAND, Vector3i(8, 36, 1024 + Random::GenerateInt(0, 256)));
-	auto vel = vect - pos;
+	auto offset = g_GameFlow->GetSettings()->Flare.Offset.ToVector3i() + Vector3i(11, 32, -4);
+	auto pos = GetJointPosition(LaraItem, LM_LHAND,  offset);
+	auto vec = GetJointPosition(LaraItem, LM_LHAND, Vector3i(11, 32, BLOCK(1) + Random::GenerateInt(0, 256)));
+	auto vel = vec - pos;
 	TriggerChaffEffects(*LaraItem, pos, vel, LaraItem->Animation.Velocity.z, TestEnvironment(ENV_FLAG_WATER, LaraItem->RoomNumber), flareLife);
 }
 
 void TriggerChaffEffects(ItemInfo& item, int age)
 {
-	auto world = Matrix::CreateTranslation(-6, 6, 32) * item.Pose.Orientation.ToRotationMatrix();
+	auto offset = g_GameFlow->GetSettings()->Flare.Offset.ToVector3() + Vector3(0, 0, -4);
+	auto world = Matrix::CreateTranslation(offset) * item.Pose.Orientation.ToRotationMatrix();
 	auto pos = item.Pose.Position + Vector3i(world.Translation());
 
-	world = Matrix::CreateTranslation(-6, 6, 32) *
+	world = Matrix::CreateTranslation(offset) *
 		Matrix::CreateTranslation((GetRandomDraw() & 127) - 64, (GetRandomDraw() & 127) - 64, (GetRandomDraw() & 511) + 512) *
 		item.Pose.Orientation.ToRotationMatrix();
 
@@ -70,12 +73,13 @@ void TriggerChaffEffects(ItemInfo& item, const Vector3i& pos, const Vector3i& ve
 		if (dx < -MAX_TRIGGER_RANGE || dx > MAX_TRIGGER_RANGE || dz < -MAX_TRIGGER_RANGE || dz > MAX_TRIGGER_RANGE)
 			return;
 
-		auto color = Color();
-		color.x = 1.0f;
-		color.y = Random::GenerateFloat(0.25f, 0.75f);
-		color.z = 0.75f - color.G();
+		const auto& settings = g_GameFlow->GetSettings()->Flare;
 
-		TriggerChaffSparkles(pos, vel, color, age, item);
+		if (settings.Sparks)
+			TriggerChaffSparkles(pos, vel, settings.Color, age, item);
+
+		if (!settings.Smoke)
+			continue;
 
 		if (isUnderwater)
 		{
@@ -133,12 +137,12 @@ void TriggerChaffSmoke(const Vector3i& pos, const Vector3i& vel, int speed, bool
 
 	smoke->blendMode = BlendMode::Additive;
 	
-	smoke->x = pos.x + (GetRandomControl() & 7) - 3;
-	smoke->y = pos.y + (GetRandomControl() & 7) - 3;
-	smoke->z = pos.z + (GetRandomControl() & 7) - 3;
-	smoke->xVel = vel.x + ((GetRandomDraw() & 63) - 32);
-	smoke->yVel = vel.y;
-	smoke->zVel = vel.z + ((GetRandomDraw() & 63) - 32);
+	smoke->position.x = pos.x + (GetRandomControl() & 7) - 3;
+	smoke->position.y = pos.y + (GetRandomControl() & 7) - 3;
+	smoke->position.z = pos.z + (GetRandomControl() & 7) - 3;
+	smoke->velocity.x = vel.x + ((GetRandomDraw() & 63) - 32);
+	smoke->velocity.y = vel.y;
+	smoke->velocity.z = vel.z + ((GetRandomDraw() & 63) - 32);
 	smoke->friction = 4;
 
 	if (GetRandomControl() & 1)

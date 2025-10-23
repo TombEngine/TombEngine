@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 
-#include "Game/collision/sphere.h"
+#include "Game/collision/Sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
@@ -17,6 +17,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Math;
 
@@ -80,26 +81,21 @@ namespace TEN::Entities::TR4
 
 	static void TriggerAhmetDeathEffect(ItemInfo* item)
 	{
-		// HACK: Using CreatureSpheres here in release mode results in total mess-up
-		// of LaraSpheres, which in-game appears as a ghostly Lara fire silhouette.
-		// Later, both CreatureSpheres and LaraSpheres globals should be eradicated.
-
-		static SPHERE spheres[MAX_SPHERES] = {};
-
 		if (!(Wibble & 7))
 		{
-			int meshCount = GetSpheres(item, spheres, SPHERES_SPACE_WORLD, Matrix::Identity);
-			auto sphere = &spheres[(Wibble / 8) & 1];
-			for (int i = meshCount; i > 0; i--, sphere += 2)
-				TriggerFireFlame(sphere->x, sphere->y, sphere->z, FlameType::Medium);
+			auto spheres = item->GetSpheres();
+			const auto* spherePtr = &spheres[(Wibble / 8) & 1];
+
+			// TODO
+			for (int i = (int)spheres.size(); i > 0; i--, spherePtr += 2)
+				TriggerFireFlame(spherePtr->Center.x, spherePtr->Center.y, spherePtr->Center.z, FlameType::Medium);
 		}
 
-		TriggerDynamicLight(
+		SpawnDynamicLight(
 			item->Pose.Position.x,
 			item->Pose.Position.y - CLICK(1),
 			item->Pose.Position.z,
-			13, (GetRandomControl() & 0x3F) - 64, (GetRandomControl() & 0x1F) + 96, 0
-		);
+			13, (GetRandomControl() & 0x3F) - 64, (GetRandomControl() & 0x1F) + 96, 0);
 		SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 	}
 

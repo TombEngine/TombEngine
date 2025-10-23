@@ -30,18 +30,18 @@ namespace TEN::Gui
 		{ ID_SHOTGUN_AMMO2_ITEM, 0, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_SHOTGUN_AMMO_2, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_REVOLVER_ITEM, 0, 0.5f, EulerAngles(ANGLE(60.0f), ANGLE(-90.0f), ANGLE(85.0f)), OPT_EQUIP | OPT_COMBINABLE | OPT_CHOOSE_AMMO_REVOLVER, STRING_REVOLVER , 0x01, INV_ROT_Y },
 		{ ID_REVOLVER_AMMO_ITEM, 0, 0.5f, EulerAngles(ANGLE(-16.0f), ANGLE(180.0f), 0), OPT_USE, STRING_REVOLVER_AMMO, NO_JOINT_BITS, INV_ROT_Y },
-		{ ID_REVOLVER_ITEM, 0, 0.5f, EulerAngles(ANGLE(60.0f), ANGLE(90.0f), ANGLE(85.0f)), OPT_EQUIP | OPT_SEPERABLE | OPT_CHOOSE_AMMO_REVOLVER, STRING_REVOLVER_LASERSIGHT, 0x0B, INV_ROT_Y },
+		{ ID_REVOLVER_ITEM, 0, 0.5f, EulerAngles(ANGLE(60.0f), ANGLE(90.0f), ANGLE(85.0f)), OPT_EQUIP | OPT_SEPARABLE | OPT_CHOOSE_AMMO_REVOLVER, STRING_REVOLVER_LASERSIGHT, 0x0B, INV_ROT_Y },
 		{ ID_CROSSBOW_ITEM, 0, 0.5f, EulerAngles(ANGLE(33.0f), ANGLE(-90.0f), 0), OPT_EQUIP | OPT_COMBINABLE | OPT_CHOOSE_AMMO_CROSSBOW, STRING_CROSSBOW, 0x01, INV_ROT_Y },
-		{ ID_CROSSBOW_ITEM, 0, 0.5f, EulerAngles(ANGLE(33.0f), ANGLE(-90.0f), 0), OPT_EQUIP | OPT_SEPERABLE | OPT_CHOOSE_AMMO_CROSSBOW, STRING_CROSSBOW_LASERSIGHT, 0x03, INV_ROT_Y },
+		{ ID_CROSSBOW_ITEM, 0, 0.5f, EulerAngles(ANGLE(33.0f), ANGLE(-90.0f), 0), OPT_EQUIP | OPT_SEPARABLE | OPT_CHOOSE_AMMO_CROSSBOW, STRING_CROSSBOW_LASERSIGHT, 0x03, INV_ROT_Y },
 		{ ID_CROSSBOW_AMMO1_ITEM, 0, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_CROSSBOW_AMMO_1, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_CROSSBOW_AMMO2_ITEM, 0, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_CROSSBOW_AMMO_2, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_CROSSBOW_AMMO3_ITEM, 0, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_CROSSBOW_AMMO_3, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_HK_ITEM, 0, 0.5f, EulerAngles(ANGLE(280.0f), 0, 0), OPT_EQUIP | OPT_COMBINABLE | OPT_CHOOSE_AMMO_HK, STRING_HK, 0x01, INV_ROT_Y },
-		{ ID_HK_ITEM, 0, 0.5f, EulerAngles(ANGLE(280.0f), ANGLE(-45.0f), 0), OPT_EQUIP | OPT_SEPERABLE | OPT_CHOOSE_AMMO_HK, STRING_HK_LASERSIGHT, NO_JOINT_BITS, INV_ROT_Y },
-		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_AMMO, 0x02, INV_ROT_Y },
-		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_RAPID_MODE, 0x03, INV_ROT_Y },
-		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_BURST_MODE, 0x04, INV_ROT_Y },
-		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_SNIPER_MODE, 0x05, INV_ROT_Y },
+		{ ID_HK_ITEM, 0, 0.5f, EulerAngles(ANGLE(280.0f), ANGLE(-45.0f), 0), OPT_EQUIP | OPT_SEPARABLE | OPT_CHOOSE_AMMO_HK, STRING_HK_LASERSIGHT, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_AMMO, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_RAPID_MODE, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_BURST_MODE, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_HK_AMMO_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(90.0f), 0), OPT_USE, STRING_HK_SNIPER_MODE, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_GRENADE_GUN_ITEM, 0, 0.5f, EulerAngles(0, ANGLE(90.0f), ANGLE(65)), OPT_EQUIP | OPT_COMBINABLE | OPT_CHOOSE_AMMO_GRENADEGUN, STRING_GRENADE_LAUNCHER, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_GRENADE_AMMO1_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_GRENADE_LAUNCHER_AMMO_1, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_GRENADE_AMMO2_ITEM, 3, 0.5f, EulerAngles(0, ANGLE(-90.0f), 0), OPT_USE, STRING_GRENADE_LAUNCHER_AMMO_2, NO_JOINT_BITS, INV_ROT_Y },
@@ -58,12 +58,12 @@ namespace TEN::Gui
 		{ ID_SMALLMEDI_ITEM, 0, 0.7f, EulerAngles(ANGLE(112.0f), ANGLE(180.0f), 0), OPT_USE, STRING_SMALL_MEDIPACK, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_BINOCULARS_ITEM, -1, 0.5f, EulerAngles(ANGLE(10.0f), ANGLE(180.0f), 0), OPT_USE, STRING_BINOCULARS, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_FLARE_INV_ITEM, 52, 0.8f, EulerAngles::Identity, OPT_USE, STRING_FLARES, NO_JOINT_BITS, INV_ROT_Y },
-		{ ID_TIMEX_ITEM, 2, 0.4f, EulerAngles::Identity, OPT_STATS, STRING_STATISTICS, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_STOPWATCH_ITEM, 2, 0.8f,  EulerAngles::Identity, OPT_STATS, STRING_STATISTICS, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_PC_LOAD_INV_ITEM, 52, 0.3f, EulerAngles(0, ANGLE(180.0f), 0), OPT_LOAD, STRING_LOAD_GAME, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_PC_SAVE_INV_ITEM, 52, 0.3f, EulerAngles(0, ANGLE(180.0f), 0), OPT_SAVE, STRING_SAVE_GAME, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_BURNING_TORCH_ITEM, 14, 0.5f, EulerAngles(ANGLE(90.0f), 0, 0), OPT_USE, STRING_TORCH, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_CROWBAR_ITEM, 4, 0.5f, EulerAngles(ANGLE(90.0f), 0, 0), OPT_USE, STRING_CROWBAR, NO_JOINT_BITS, INV_ROT_Y },
-		{ ID_DIARY_ITEM, 0, 0.3f, EulerAngles(0, ANGLE(180.0f), 0), OPT_DIARY, STRING_DIARY, NO_JOINT_BITS, INV_ROT_Y },
+		{ ID_DIARY_ITEM, 0, 0.3f, EulerAngles(0, ANGLE(180.0f), 0), OPT_USE, STRING_DIARY, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_COMPASS_ITEM, -14, 0.5f, EulerAngles(ANGLE(90.0f), ANGLE(180.0f), 0), 0, STRING_LOAD_GAME, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_CLOCKWORK_BEETLE, 14, 0.5f, EulerAngles::Identity, OPT_USE, STRING_MECHANICAL_SCARAB, NO_JOINT_BITS, INV_ROT_Y },
 		{ ID_CLOCKWORK_BEETLE_COMBO1, 18, 0.5f, EulerAngles::Identity, OPT_COMBINABLE, STRING_MECHANICAL_SCARAB_1, NO_JOINT_BITS, INV_ROT_Y },
@@ -331,21 +331,21 @@ namespace TEN::Gui
 
 	void CombineRevolverLasersight(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
 		if (flag)
 		{
-			lara->Inventory.HasLasersight = true;
-			lara->Weapons[(int)LaraWeaponType::Revolver].HasLasersight = false;
+			player.Inventory.HasLasersight = true;
+			player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight = false;
 		}
 		else
 		{
-			lara->Inventory.HasLasersight = false;
-			lara->Weapons[(int)LaraWeaponType::Revolver].HasLasersight = true;
+			player.Inventory.HasLasersight = false;
+			player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight = true;
 		}
 
-		if (lara->Control.HandStatus != HandStatus::Free &&
-			lara->Control.Weapon.GunType == LaraWeaponType::Revolver)
+		if (player.Control.HandStatus != HandStatus::Free &&
+			player.Control.Weapon.GunType == LaraWeaponType::Revolver)
 		{
 			UndrawPistolMesh(*item, LaraWeaponType::Revolver, true);
 			DrawPistolMeshes(*item, LaraWeaponType::Revolver);
@@ -354,21 +354,21 @@ namespace TEN::Gui
 
 	void CombineCrossbowLasersight(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
 		if (flag)
 		{
-			lara->Inventory.HasLasersight = true;
-			lara->Weapons[(int)LaraWeaponType::Crossbow].HasLasersight = false;
+			player.Inventory.HasLasersight = true;
+			player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight = false;
 		}
 		else
 		{
-			lara->Inventory.HasLasersight = false;
-			lara->Weapons[(int)LaraWeaponType::Crossbow].HasLasersight = true;
+			player.Inventory.HasLasersight = false;
+			player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight = true;
 		}
 
-		if (lara->Control.HandStatus != HandStatus::Free &&
-			lara->Control.Weapon.GunType == LaraWeaponType::Crossbow)
+		if (player.Control.HandStatus != HandStatus::Free &&
+			player.Control.Weapon.GunType == LaraWeaponType::Crossbow)
 		{
 			UndrawShotgunMeshes(*item, LaraWeaponType::Crossbow);
 			DrawShotgunMeshes(*item, LaraWeaponType::Crossbow);
@@ -377,21 +377,21 @@ namespace TEN::Gui
 
 	void CombineHKLasersight(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
 		if (flag)
 		{
-			lara->Inventory.HasLasersight = true;
-			lara->Weapons[(int)LaraWeaponType::HK].HasLasersight = false;
+			player.Inventory.HasLasersight = true;
+			player.Weapons[(int)LaraWeaponType::HK].HasLasersight = false;
 		}
 		else
 		{
-			lara->Inventory.HasLasersight = false;
-			lara->Weapons[(int)LaraWeaponType::HK].HasLasersight = true;
+			player.Inventory.HasLasersight = false;
+			player.Weapons[(int)LaraWeaponType::HK].HasLasersight = true;
 		}
 
-		if (lara->Control.HandStatus != HandStatus::Free &&
-			lara->Control.Weapon.GunType == LaraWeaponType::HK)
+		if (player.Control.HandStatus != HandStatus::Free &&
+			player.Control.Weapon.GunType == LaraWeaponType::HK)
 		{
 			UndrawShotgunMeshes(*item, LaraWeaponType::HK);
 			DrawShotgunMeshes(*item, LaraWeaponType::HK);
@@ -400,514 +400,514 @@ namespace TEN::Gui
 
 	void CombinePuzzleItem1(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[0] = false;
-		lara->Inventory.PuzzlesCombo[1] = false;
-		lara->Inventory.Puzzles[0] = true;
+		player.Inventory.PuzzlesCombo[0] = false;
+		player.Inventory.PuzzlesCombo[1] = false;
+		player.Inventory.Puzzles[0] = true;
 	}
 
 	void CombinePuzzleItem2(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[2] = false;
-		lara->Inventory.PuzzlesCombo[3] = false;
-		lara->Inventory.Puzzles[1] = true;
+		player.Inventory.PuzzlesCombo[2] = false;
+		player.Inventory.PuzzlesCombo[3] = false;
+		player.Inventory.Puzzles[1] = true;
 	}
 
 	void CombinePuzzleItem3(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[4] = false;
-		lara->Inventory.PuzzlesCombo[5] = false;
-		lara->Inventory.Puzzles[2] = true;
+		player.Inventory.PuzzlesCombo[4] = false;
+		player.Inventory.PuzzlesCombo[5] = false;
+		player.Inventory.Puzzles[2] = true;
 	}
 
 	void CombinePuzzleItem4(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[6] = false;
-		lara->Inventory.PuzzlesCombo[7] = false;
-		lara->Inventory.Puzzles[3] = true;
+		player.Inventory.PuzzlesCombo[6] = false;
+		player.Inventory.PuzzlesCombo[7] = false;
+		player.Inventory.Puzzles[3] = true;
 	}
 
 	void CombinePuzzleItem5(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[8] = false;
-		lara->Inventory.PuzzlesCombo[9] = false;
-		lara->Inventory.Puzzles[4] = true;
+		player.Inventory.PuzzlesCombo[8] = false;
+		player.Inventory.PuzzlesCombo[9] = false;
+		player.Inventory.Puzzles[4] = true;
 	}
 
 	void CombinePuzzleItem6(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[10] = false;
-		lara->Inventory.PuzzlesCombo[11] = false;
-		lara->Inventory.Puzzles[5] = true;
+		player.Inventory.PuzzlesCombo[10] = false;
+		player.Inventory.PuzzlesCombo[11] = false;
+		player.Inventory.Puzzles[5] = true;
 	}
 
 	void CombinePuzzleItem7(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[12] = false;
-		lara->Inventory.PuzzlesCombo[13] = false;
-		lara->Inventory.Puzzles[6] = true;
+		player.Inventory.PuzzlesCombo[12] = false;
+		player.Inventory.PuzzlesCombo[13] = false;
+		player.Inventory.Puzzles[6] = true;
 	}
 
 	void CombinePuzzleItem8(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[14] = false;
-		lara->Inventory.PuzzlesCombo[15] = false;
-		lara->Inventory.Puzzles[7] = true;
+		player.Inventory.PuzzlesCombo[14] = false;
+		player.Inventory.PuzzlesCombo[15] = false;
+		player.Inventory.Puzzles[7] = true;
 	}
 
 	void CombinePuzzleItem9(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[16] = false;
-		lara->Inventory.PuzzlesCombo[17] = false;
-		lara->Inventory.Puzzles[8] = true;
+		player.Inventory.PuzzlesCombo[16] = false;
+		player.Inventory.PuzzlesCombo[17] = false;
+		player.Inventory.Puzzles[8] = true;
 	}
 
 	void CombinePuzzleItem10(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[18] = false;
-		lara->Inventory.PuzzlesCombo[19] = false;
-		lara->Inventory.Puzzles[9] = true;
+		player.Inventory.PuzzlesCombo[18] = false;
+		player.Inventory.PuzzlesCombo[19] = false;
+		player.Inventory.Puzzles[9] = true;
 	}
 
 	void CombinePuzzleItem11(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[20] = false;
-		lara->Inventory.PuzzlesCombo[21] = false;
-		lara->Inventory.Puzzles[10] = true;
+		player.Inventory.PuzzlesCombo[20] = false;
+		player.Inventory.PuzzlesCombo[21] = false;
+		player.Inventory.Puzzles[10] = true;
 	}
 
 	void CombinePuzzleItem12(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[22] = false;
-		lara->Inventory.PuzzlesCombo[23] = false;
-		lara->Inventory.Puzzles[11] = true;
+		player.Inventory.PuzzlesCombo[22] = false;
+		player.Inventory.PuzzlesCombo[23] = false;
+		player.Inventory.Puzzles[11] = true;
 	}
 
 	void CombinePuzzleItem13(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[24] = false;
-		lara->Inventory.PuzzlesCombo[25] = false;
-		lara->Inventory.Puzzles[12] = true;
+		player.Inventory.PuzzlesCombo[24] = false;
+		player.Inventory.PuzzlesCombo[25] = false;
+		player.Inventory.Puzzles[12] = true;
 	}
 
 	void CombinePuzzleItem14(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[26] = false;
-		lara->Inventory.PuzzlesCombo[27] = false;
-		lara->Inventory.Puzzles[13] = true;
+		player.Inventory.PuzzlesCombo[26] = false;
+		player.Inventory.PuzzlesCombo[27] = false;
+		player.Inventory.Puzzles[13] = true;
 	}
 
 	void CombinePuzzleItem15(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[28] = false;
-		lara->Inventory.PuzzlesCombo[29] = false;
-		lara->Inventory.Puzzles[14] = true;
+		player.Inventory.PuzzlesCombo[28] = false;
+		player.Inventory.PuzzlesCombo[29] = false;
+		player.Inventory.Puzzles[14] = true;
 	}
 
 	void CombinePuzzleItem16(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.PuzzlesCombo[30] = false;
-		lara->Inventory.PuzzlesCombo[31] = false;
-		lara->Inventory.Puzzles[15] = true;
+		player.Inventory.PuzzlesCombo[30] = false;
+		player.Inventory.PuzzlesCombo[31] = false;
+		player.Inventory.Puzzles[15] = true;
 	}
 
 	void CombineKeyItem1(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[0] = true;
-		lara->Inventory.KeysCombo[0] = false;
-		lara->Inventory.KeysCombo[1] = false;
+		player.Inventory.Keys[0] = true;
+		player.Inventory.KeysCombo[0] = false;
+		player.Inventory.KeysCombo[1] = false;
 	}
 
 	void CombineKeyItem2(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[1] = true;
-		lara->Inventory.KeysCombo[2] = false;
-		lara->Inventory.KeysCombo[3] = false;
+		player.Inventory.Keys[1] = true;
+		player.Inventory.KeysCombo[2] = false;
+		player.Inventory.KeysCombo[3] = false;
 	}
 
 	void CombineKeyItem3(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[2] = true;
-		lara->Inventory.KeysCombo[4] = false;
-		lara->Inventory.KeysCombo[5] = false;
+		player.Inventory.Keys[2] = true;
+		player.Inventory.KeysCombo[4] = false;
+		player.Inventory.KeysCombo[5] = false;
 	}
 
 	void CombineKeyItem4(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[3] = true;
-		lara->Inventory.KeysCombo[6] = false;
-		lara->Inventory.KeysCombo[7] = false;
+		player.Inventory.Keys[3] = true;
+		player.Inventory.KeysCombo[6] = false;
+		player.Inventory.KeysCombo[7] = false;
 	}
 
 	void CombineKeyItem5(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[4] = true;
-		lara->Inventory.KeysCombo[8] = false;
-		lara->Inventory.KeysCombo[9] = false;
+		player.Inventory.Keys[4] = true;
+		player.Inventory.KeysCombo[8] = false;
+		player.Inventory.KeysCombo[9] = false;
 	}
 
 	void CombineKeyItem6(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[5] = true;
-		lara->Inventory.KeysCombo[10] = false;
-		lara->Inventory.KeysCombo[11] = false;
+		player.Inventory.Keys[5] = true;
+		player.Inventory.KeysCombo[10] = false;
+		player.Inventory.KeysCombo[11] = false;
 	}
 
 	void CombineKeyItem7(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[6] = true;
-		lara->Inventory.KeysCombo[12] = false;
-		lara->Inventory.KeysCombo[13] = false;
+		player.Inventory.Keys[6] = true;
+		player.Inventory.KeysCombo[12] = false;
+		player.Inventory.KeysCombo[13] = false;
 	}
 
 	void CombineKeyItem8(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[7] = true;
-		lara->Inventory.KeysCombo[14] = false;
-		lara->Inventory.KeysCombo[15] = false;
+		player.Inventory.Keys[7] = true;
+		player.Inventory.KeysCombo[14] = false;
+		player.Inventory.KeysCombo[15] = false;
 	}
 
 	void CombineKeyItem9(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[8] = true;
-		lara->Inventory.KeysCombo[16] = false;
-		lara->Inventory.KeysCombo[17] = false;
+		player.Inventory.Keys[8] = true;
+		player.Inventory.KeysCombo[16] = false;
+		player.Inventory.KeysCombo[17] = false;
 	}
 
 	void CombineKeyItem10(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[9] = true;
-		lara->Inventory.KeysCombo[18] = false;
-		lara->Inventory.KeysCombo[19] = false;
+		player.Inventory.Keys[9] = true;
+		player.Inventory.KeysCombo[18] = false;
+		player.Inventory.KeysCombo[19] = false;
 	}
 
 	void CombineKeyItem11(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[10] = true;
-		lara->Inventory.KeysCombo[20] = false;
-		lara->Inventory.KeysCombo[21] = false;
+		player.Inventory.Keys[10] = true;
+		player.Inventory.KeysCombo[20] = false;
+		player.Inventory.KeysCombo[21] = false;
 	}
 
 	void CombineKeyItem12(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[11] = true;
-		lara->Inventory.KeysCombo[22] = false;
-		lara->Inventory.KeysCombo[23] = false;
+		player.Inventory.Keys[11] = true;
+		player.Inventory.KeysCombo[22] = false;
+		player.Inventory.KeysCombo[23] = false;
 	}
 
 	void CombineKeyItem13(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[12] = true;
-		lara->Inventory.KeysCombo[24] = false;
-		lara->Inventory.KeysCombo[25] = false;
+		player.Inventory.Keys[12] = true;
+		player.Inventory.KeysCombo[24] = false;
+		player.Inventory.KeysCombo[25] = false;
 	}
 
 	void CombineKeyItem14(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[13] = true;
-		lara->Inventory.KeysCombo[26] = false;
-		lara->Inventory.KeysCombo[27] = false;
+		player.Inventory.Keys[13] = true;
+		player.Inventory.KeysCombo[26] = false;
+		player.Inventory.KeysCombo[27] = false;
 	}
 
 	void CombineKeyItem15(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[14] = true;
-		lara->Inventory.KeysCombo[28] = false;
-		lara->Inventory.KeysCombo[29] = false;
+		player.Inventory.Keys[14] = true;
+		player.Inventory.KeysCombo[28] = false;
+		player.Inventory.KeysCombo[29] = false;
 	}
 
 	void CombineKeyItem16(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Keys[15] = true;
-		lara->Inventory.KeysCombo[30] = false;
-		lara->Inventory.KeysCombo[31] = false;
+		player.Inventory.Keys[15] = true;
+		player.Inventory.KeysCombo[30] = false;
+		player.Inventory.KeysCombo[31] = false;
 	}
 
 	void CombinePickupItem1(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[0] = true;
-		lara->Inventory.PickupsCombo[0] = false;
-		lara->Inventory.PickupsCombo[1] = false;
+		player.Inventory.Pickups[0] = true;
+		player.Inventory.PickupsCombo[0] = false;
+		player.Inventory.PickupsCombo[1] = false;
 	}
 
 	void CombinePickupItem2(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[1] = true;
-		lara->Inventory.PickupsCombo[2] = false;
-		lara->Inventory.PickupsCombo[3] = false;
+		player.Inventory.Pickups[1] = true;
+		player.Inventory.PickupsCombo[2] = false;
+		player.Inventory.PickupsCombo[3] = false;
 	}
 
 	void CombinePickupItem3(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[2] = true;
-		lara->Inventory.PickupsCombo[4] = false;
-		lara->Inventory.PickupsCombo[5] = false;
+		player.Inventory.Pickups[2] = true;
+		player.Inventory.PickupsCombo[4] = false;
+		player.Inventory.PickupsCombo[5] = false;
 	}
 
 	void CombinePickupItem4(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[3] = true;
-		lara->Inventory.PickupsCombo[6] = false;
-		lara->Inventory.PickupsCombo[7] = false;
+		player.Inventory.Pickups[3] = true;
+		player.Inventory.PickupsCombo[6] = false;
+		player.Inventory.PickupsCombo[7] = false;
 	}
 
 	void CombinePickupItem5(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[4] = true;
-		lara->Inventory.PickupsCombo[8] = false;
-		lara->Inventory.PickupsCombo[9] = false;
+		player.Inventory.Pickups[4] = true;
+		player.Inventory.PickupsCombo[8] = false;
+		player.Inventory.PickupsCombo[9] = false;
 	}
 
 	void CombinePickupItem6(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[5] = true;
-		lara->Inventory.PickupsCombo[10] = false;
-		lara->Inventory.PickupsCombo[11] = false;
+		player.Inventory.Pickups[5] = true;
+		player.Inventory.PickupsCombo[10] = false;
+		player.Inventory.PickupsCombo[11] = false;
 	}
 
 	void CombinePickupItem7(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[6] = true;
-		lara->Inventory.PickupsCombo[12] = false;
-		lara->Inventory.PickupsCombo[13] = false;
+		player.Inventory.Pickups[6] = true;
+		player.Inventory.PickupsCombo[12] = false;
+		player.Inventory.PickupsCombo[13] = false;
 	}
 
 	void CombinePickupItem8(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[7] = true;
-		lara->Inventory.PickupsCombo[14] = false;
-		lara->Inventory.PickupsCombo[15] = false;
+		player.Inventory.Pickups[7] = true;
+		player.Inventory.PickupsCombo[14] = false;
+		player.Inventory.PickupsCombo[15] = false;
 	}
 
 	void CombinePickupItem9(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[8] = true;
-		lara->Inventory.PickupsCombo[16] = false;
-		lara->Inventory.PickupsCombo[17] = false;
+		player.Inventory.Pickups[8] = true;
+		player.Inventory.PickupsCombo[16] = false;
+		player.Inventory.PickupsCombo[17] = false;
 	}
 
 	void CombinePickupItem10(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[9] = true;
-		lara->Inventory.PickupsCombo[18] = false;
-		lara->Inventory.PickupsCombo[19] = false;
+		player.Inventory.Pickups[9] = true;
+		player.Inventory.PickupsCombo[18] = false;
+		player.Inventory.PickupsCombo[19] = false;
 	}
 
 	void CombinePickupItem11(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[10] = true;
-		lara->Inventory.PickupsCombo[20] = false;
-		lara->Inventory.PickupsCombo[21] = false;
+		player.Inventory.Pickups[10] = true;
+		player.Inventory.PickupsCombo[20] = false;
+		player.Inventory.PickupsCombo[21] = false;
 	}
 
 	void CombinePickupItem12(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[11] = true;
-		lara->Inventory.PickupsCombo[22] = false;
-		lara->Inventory.PickupsCombo[23] = false;
+		player.Inventory.Pickups[11] = true;
+		player.Inventory.PickupsCombo[22] = false;
+		player.Inventory.PickupsCombo[23] = false;
 	}
 
 	void CombinePickupItem13(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[12] = true;
-		lara->Inventory.PickupsCombo[24] = false;
-		lara->Inventory.PickupsCombo[25] = false;
+		player.Inventory.Pickups[12] = true;
+		player.Inventory.PickupsCombo[24] = false;
+		player.Inventory.PickupsCombo[25] = false;
 	}
 
 	void CombinePickupItem14(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[13] = true;
-		lara->Inventory.PickupsCombo[26] = false;
-		lara->Inventory.PickupsCombo[27] = false;
+		player.Inventory.Pickups[13] = true;
+		player.Inventory.PickupsCombo[26] = false;
+		player.Inventory.PickupsCombo[27] = false;
 	}
 
 	void CombinePickupItem15(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[14] = true;
-		lara->Inventory.PickupsCombo[28] = false;
-		lara->Inventory.PickupsCombo[29] = false;
+		player.Inventory.Pickups[14] = true;
+		player.Inventory.PickupsCombo[28] = false;
+		player.Inventory.PickupsCombo[29] = false;
 	}
 
 	void CombinePickupItem16(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Pickups[15] = true;
-		lara->Inventory.PickupsCombo[30] = false;
-		lara->Inventory.PickupsCombo[31] = false;
+		player.Inventory.Pickups[15] = true;
+		player.Inventory.PickupsCombo[30] = false;
+		player.Inventory.PickupsCombo[31] = false;
 	}
 
 	void CombineExamine1(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[0] = true;
-		lara->Inventory.ExaminesCombo[0] = false;
-		lara->Inventory.ExaminesCombo[1] = false;
+		player.Inventory.Examines[0] = true;
+		player.Inventory.ExaminesCombo[0] = false;
+		player.Inventory.ExaminesCombo[1] = false;
 	}
 
 	void CombineExamine2(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[1] = true;
-		lara->Inventory.ExaminesCombo[2] = false;
-		lara->Inventory.ExaminesCombo[3] = false;
+		player.Inventory.Examines[1] = true;
+		player.Inventory.ExaminesCombo[2] = false;
+		player.Inventory.ExaminesCombo[3] = false;
 	}
 
 	void CombineExamine3(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[2] = true;
-		lara->Inventory.ExaminesCombo[4] = false;
-		lara->Inventory.ExaminesCombo[5] = false;
+		player.Inventory.Examines[2] = true;
+		player.Inventory.ExaminesCombo[4] = false;
+		player.Inventory.ExaminesCombo[5] = false;
 	}
 
 	void CombineExamine4(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[3] = true;
-		lara->Inventory.ExaminesCombo[6] = false;
-		lara->Inventory.ExaminesCombo[7] = false;
+		player.Inventory.Examines[3] = true;
+		player.Inventory.ExaminesCombo[6] = false;
+		player.Inventory.ExaminesCombo[7] = false;
 	}
 
 	void CombineExamine5(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[4] = true;
-		lara->Inventory.ExaminesCombo[8] = false;
-		lara->Inventory.ExaminesCombo[9] = false;
+		player.Inventory.Examines[4] = true;
+		player.Inventory.ExaminesCombo[8] = false;
+		player.Inventory.ExaminesCombo[9] = false;
 	}
 
 	void CombineExamine6(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[5] = true;
-		lara->Inventory.ExaminesCombo[10] = false;
-		lara->Inventory.ExaminesCombo[11] = false;
+		player.Inventory.Examines[5] = true;
+		player.Inventory.ExaminesCombo[10] = false;
+		player.Inventory.ExaminesCombo[11] = false;
 	}
 
 	void CombineExamine7(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[6] = true;
-		lara->Inventory.ExaminesCombo[12] = false;
-		lara->Inventory.ExaminesCombo[13] = false;
+		player.Inventory.Examines[6] = true;
+		player.Inventory.ExaminesCombo[12] = false;
+		player.Inventory.ExaminesCombo[13] = false;
 	}
 
 	void CombineExamine8(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.Examines[7] = true;
-		lara->Inventory.ExaminesCombo[14] = false;
-		lara->Inventory.ExaminesCombo[15] = false;
+		player.Inventory.Examines[7] = true;
+		player.Inventory.ExaminesCombo[14] = false;
+		player.Inventory.ExaminesCombo[15] = false;
 	}
 
 	void CombineClockWorkBeetle(ItemInfo* item, bool flag)
 	{
-		auto* lara = GetLaraInfo(item);
+		auto& player = GetLaraInfo(*item);
 
-		lara->Inventory.BeetleComponents |= BEETLECOMP_FLAG_BEETLE;  // Get beetle.
-		lara->Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_1; // Remove combo 1.
-		lara->Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_2; // Remove combo 2.
+		player.Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_1; // Remove combo 1.
+		player.Inventory.BeetleComponents &= BEETLECOMP_FLAG_COMBO_2; // Remove combo 2.
+		player.Inventory.BeetleComponents |= BEETLECOMP_FLAG_BEETLE;  // Get beetle.
 	}
 }

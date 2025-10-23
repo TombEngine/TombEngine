@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -47,7 +48,7 @@ void ClearSpiders()
 	{
 		ZeroMemory(Spiders, NUM_SPIDERS * sizeof(SpiderData));
 		NextSpider = 0;
-		FlipEffect = -1;
+		FlipEffect = NO_VALUE;
 	}
 }
 
@@ -134,6 +135,8 @@ void UpdateSpiders()
 
 			if (spider->On)
 			{
+				spider->StoreInterpolationData();
+
 				int x = spider->Pose.Position.x;
 				int y = spider->Pose.Position.y;
 				int z = spider->Pose.Position.z;
@@ -141,7 +144,7 @@ void UpdateSpiders()
 				spider->Pose.Position.x += spider->Velocity * phd_sin(spider->Pose.Orientation.y);
 				spider->Pose.Position.y += spider->VerticalVelocity;
 				spider->Pose.Position.z += spider->Velocity * phd_cos(spider->Pose.Orientation.y);
-				spider->VerticalVelocity += GRAVITY;
+				spider->VerticalVelocity += g_GameFlow->GetSettings()->Physics.Gravity;
 
 				int dx = LaraItem->Pose.Position.x - spider->Pose.Position.x;
 				int dy = LaraItem->Pose.Position.y - spider->Pose.Position.y;
@@ -232,15 +235,19 @@ void UpdateSpiders()
 					spider->VerticalVelocity = 0;
 				}
 
-				if (spider->Pose.Position.y < g_Level.Rooms[spider->RoomNumber].maxceiling + 50)
+				if (spider->Pose.Position.y < g_Level.Rooms[spider->RoomNumber].TopHeight + 50)
 				{
-					spider->Pose.Position.y = g_Level.Rooms[spider->RoomNumber].maxceiling + 50;
+					spider->Pose.Position.y = g_Level.Rooms[spider->RoomNumber].TopHeight + 50;
 					spider->Pose.Orientation.y += -ANGLE(180.0f);
 					spider->VerticalVelocity = 1;
 				}
 
 				if (!i && !(GetRandomControl() & 4))
 					SoundEffect(SFX_TR5_INSECTS,&spider->Pose);
+
+				auto tMatrix = Matrix::CreateTranslation(spider->Pose.Position.ToVector3());
+				auto rotMatrix = spider->Pose.Orientation.ToRotationMatrix();
+				spider->Transform = rotMatrix * tMatrix;
 			}
 		}
 	}

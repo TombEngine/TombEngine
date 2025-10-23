@@ -4,7 +4,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
+#include "Game/collision/Sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -16,6 +16,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
 
 // NOTES:
@@ -84,19 +85,19 @@ namespace TEN::Entities::Traps
 			pointColl1.GetSector().Stopper)
 		{
 			auto& room = g_Level.Rooms[item.RoomNumber];
-			for (auto& mesh : room.mesh)
+			for (auto& staticObj : room.mesh)
 			{
-				if ((abs(pointColl0.GetPosition().x - mesh.pos.Position.x) < BLOCK(1) &&
-					abs(pointColl0.GetPosition().z - mesh.pos.Position.z) < BLOCK(1)) ||
-					abs(pointColl1.GetPosition().x - mesh.pos.Position.x) < BLOCK(1) &&
-					abs(pointColl1.GetPosition().z - mesh.pos.Position.z) < BLOCK(1) &&
-					StaticObjects[mesh.staticNumber].shatterType != ShatterType::None)
+				if ((abs(pointColl0.GetPosition().x - staticObj.Pose.Position.x) < BLOCK(1) &&
+					abs(pointColl0.GetPosition().z - staticObj.Pose.Position.z) < BLOCK(1)) ||
+					abs(pointColl1.GetPosition().x - staticObj.Pose.Position.x) < BLOCK(1) &&
+					abs(pointColl1.GetPosition().z - staticObj.Pose.Position.z) < BLOCK(1) &&
+					Statics[staticObj.Slot].shatterType != ShatterType::None)
 				{					
-					if (mesh.HitPoints != 0)
+					if (staticObj.HitPoints != 0)
 						continue;
 
-					mesh.HitPoints -= 1;
-					ShatterObject(nullptr, &mesh, -64, LaraItem->RoomNumber, 0);
+					staticObj.HitPoints--;
+					ShatterObject(nullptr, &staticObj, -64, LaraItem->RoomNumber, 0);
 					SoundEffect(SFX_TR4_SMASH_ROCK, &item.Pose);
 					TestTriggers(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, item.RoomNumber, true);
 				}
@@ -131,7 +132,7 @@ namespace TEN::Entities::Traps
 			if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
 				return;
 
-			TestCollision(&item, playerItem);
+			HandleItemSphereCollision(item, *playerItem);
 		}
 		else if (item.Status != ITEM_INVISIBLE)
 		{

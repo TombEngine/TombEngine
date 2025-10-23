@@ -4,13 +4,15 @@
 
 //namespace TEN::Math
 //{
+	// TODO: Rename to "Transform".
 	class Pose
 	{
 	public:
-		// Members
+		// Fields
 
 		Vector3i	Position	= Vector3i::Zero;
 		EulerAngles Orientation = EulerAngles::Identity;
+		Vector3		Scale		= Vector3::One;
 
 		// Constants
 
@@ -18,21 +20,18 @@
 
 		// Constructors
 
-		Pose();
-		Pose(const Vector3i& pos);
-		Pose(int xPos, int yPos, int zPos);
-		Pose(const EulerAngles& orient);
-		Pose(short xOrient, short yOrient, short zOrient);
-		Pose(const Vector3i& pos, const EulerAngles& orient);
-		Pose(const Vector3i& pos, short xOrient, short yOrient, short zOrient);
-		Pose(int xPos, int yPos, int zPos, const EulerAngles& orient);
-		Pose(int xPos, int yPos, int zPos, short xOrient, short yOrient, short zOrient);
+		Pose() = default;
+		Pose(const Vector3i& pos, const EulerAngles& orient = EulerAngles::Identity, const Vector3& scale = Vector3::One);
 
 		// Utilities
 
 		void Translate(short headingAngle, float forward, float down = 0.0f, float right = 0.0f);
 		void Translate(const EulerAngles& orient, float dist);
 		void Translate(const Vector3& dir, float dist);
+
+		// Converters
+
+		Matrix ToMatrix() const;
 
 		// Operators
 

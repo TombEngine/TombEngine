@@ -68,10 +68,10 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_ONWATER_IDLE] = std::pair(lara_as_surface_idle, lara_col_surface_idle);
 		PlayerBehaviorStateRoutines[LS_ONWATER_FORWARD] = std::pair(lara_as_surface_swim_forward, lara_col_surface_swim_forward);
 		PlayerBehaviorStateRoutines[LS_ONWATER_DIVE] = std::pair(lara_as_surface_dive, lara_col_surface_dive);
-		PlayerBehaviorStateRoutines[LS_PUSHABLE_PUSH] = std::pair(lara_as_pushable_push, lara_default_col);
-		PlayerBehaviorStateRoutines[LS_PUSHABLE_PULL] = std::pair(lara_as_pushable_pull, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PUSHABLE_PUSH] = std::pair(lara_as_pushable_push, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_PUSHABLE_PULL] = std::pair(lara_as_pushable_pull, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_PUSHABLE_GRAB] = std::pair(lara_as_pushable_grab, lara_default_col);
-		PlayerBehaviorStateRoutines[LS_PICKUP] = std::pair(lara_as_pickup, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PICKUP] = std::pair(lara_as_pickup, lara_col_pickup);
 		PlayerBehaviorStateRoutines[LS_SWITCH_DOWN] = std::pair(lara_as_switch_on, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_SWITCH_UP] = std::pair(lara_as_switch_off, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_INSERT_KEY] = std::pair(lara_as_use_key, lara_default_col);
@@ -99,7 +99,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TEST_3] = std::pair(lara_void_func, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_WADE_FORWARD] = std::pair(lara_as_wade_forward, lara_col_wade_forward);
 		PlayerBehaviorStateRoutines[LS_UNDERWATER_ROLL] = std::pair(lara_as_underwater_roll_180, lara_col_underwater_roll_180);
-		PlayerBehaviorStateRoutines[LS_PICKUP_FLARE] = std::pair(lara_as_pickup_flare, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PICKUP_FLARE] = std::pair(lara_as_pickup_flare, lara_col_pickup);
 		PlayerBehaviorStateRoutines[LS_JUMP_ROLL_180] = std::pair(lara_void_func, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_KICK] = std::pair(lara_void_func, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_ZIP_LINE] = std::pair(lara_as_zip_line, lara_void_func);
@@ -136,7 +136,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_POLE_DOWN] = std::pair(lara_as_pole_down, lara_col_pole_down);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_CLOCKWISE] = std::pair(lara_as_pole_turn_clockwise, lara_col_pole_turn_clockwise);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_COUNTER_CLOCKWISE] = std::pair(lara_as_pole_turn_counter_clockwise, lara_col_pole_turn_counter_clockwise);
-		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_pulley, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_controlled_no_look, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_LEFT] = std::pair(lara_as_crouch_turn_left, lara_col_crouch_turn_left);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_RIGHT] = std::pair(lara_as_crouch_turn_right, lara_col_crouch_turn_right);
 		PlayerBehaviorStateRoutines[LS_SHIMMY_OUTER_LEFT] = std::pair(lara_as_shimmy_corner, lara_as_null);
@@ -233,6 +233,8 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_DOWN_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
+
+		PlayerBehaviorStateRoutines[LS_PULLEY_UNGRAB] = std::pair(lara_as_controlled_no_look, lara_void_func);
 	}
 
 	void HandlePlayerBehaviorState(ItemInfo& item, CollisionInfo& coll, PlayerBehaviorStateRoutineType routineType)

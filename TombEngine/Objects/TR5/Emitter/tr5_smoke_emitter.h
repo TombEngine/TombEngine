@@ -1,4 +1,7 @@
 #pragma once
 
-void InitializeSmokeEmitter(short itemNumber);
-void SmokeEmitterControl(short itemNumber);
+namespace TEN::Effects::SmokeEmitter
+{
+	void InitializeSmokeEmitter(short itemNumber);
+	void ControlSmokeEmitter(short itemNumber);
+}

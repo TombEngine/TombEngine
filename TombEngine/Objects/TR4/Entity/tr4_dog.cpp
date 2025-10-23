@@ -81,7 +81,7 @@ namespace TEN::Entities::TR4
 		if (item->TriggerFlags)
 		{
 			SetAnimation(item, DOG_ANIM_AWAKEN);
-			item->Status -= ITEM_INVISIBLE;
+			item->Status = ITEM_NOT_ACTIVE;
 		}
 		else
 			SetAnimation(item, DOG_ANIM_IDLE);

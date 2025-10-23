@@ -8,6 +8,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
+#include "Game/effects/Light.h"
 #include "Game/effects/Bubble.h"
 #include "Game/Lara/lara.h"
 #include "Game/items.h"
@@ -16,9 +17,10 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
-using namespace TEN::Collision::Point;;
+using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Explosion;
+using namespace TEN::Effects::Light;
 using namespace TEN::Math;
 
 constexpr auto MUTANT_SHARD_DAMAGE	= 30;
@@ -50,7 +52,7 @@ void ControlMissile(short fxNumber)
 	auto& fx = EffectList[fxNumber];
 
 	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.roomNumber);
-	auto soundFXType = isUnderwater ? SoundEnvironment::ShallowWater : SoundEnvironment::Land;
+	auto soundFXType = isUnderwater ? SoundEnvironment::Underwater : SoundEnvironment::Land;
 
 	if (fx.objectNumber == ID_SCUBA_HARPOON && isUnderwater &&
 		fx.pos.Orientation.x > ANGLE(-67.5f))
@@ -66,6 +68,7 @@ void ControlMissile(short fxNumber)
 	// Check whether something was hit.
 	if (fx.pos.Position.y >= pointColl.GetFloorHeight() ||
 		fx.pos.Position.y <= pointColl.GetCeilingHeight() ||
+		pointColl.IsWall() ||
 		hasHitPlayer)
 	{
 		if (fx.objectNumber == ID_KNIFETHROWER_KNIFE ||
@@ -111,6 +114,7 @@ void ControlMissile(short fxNumber)
 		}
 
 		KillEffect(fxNumber);
+		return;
 	}
 
 	if (pointColl.GetRoomNumber() != fx.roomNumber)
@@ -128,7 +132,7 @@ void ControlMissile(short fxNumber)
 		break;
 
 	case ID_PROJ_BOMB:
-		TriggerDynamicLight(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 14, 180, 100, 0);
+		SpawnDynamicLight(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 14, 180, 100, 0);
 		break;
 	}
 }

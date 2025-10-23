@@ -3,7 +3,6 @@
 
 #include "Game/animation.h"
 #include "Game/camera.h"
-#include "Game/collision/sphere.h"
 #include "Game/control/lot.h"
 #include "Game/effects/debris.h"
 #include "Game/items.h"

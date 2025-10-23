@@ -1,38 +1,60 @@
 #pragma once
+
 #include "Game/room.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 
 namespace sol { class state; }
+
 enum class ReverbType;
-class ScriptColor;
-class Vec3; 
+class Vec3;
+namespace TEN::Scripting::Types { class ScriptColor; }
 
-class Room : public NamedBase<Room, ROOM_INFO&>
-{
-public:
-	using IdentifierType = std::reference_wrapper<ROOM_INFO>;
-	Room(ROOM_INFO& room);
-	~Room() = default;
+using namespace TEN::Scripting::Types;
 
-	Room& operator =(const Room& other) = delete;
-	Room(const Room& other) = delete;
+//namespace TEN::Scripting
+//{
+	class Room : public NamedBase<Room, RoomData&>
+	{
+	private:
+		// Members
 
-	static void Register(sol::table& parent);
+		RoomData& _room;
 
-	[[nodiscard]] bool GetActive() const;
-	[[nodiscard]] ScriptColor GetColor() const;
+	public:
+		using IdentifierType = std::reference_wrapper<RoomData>;
 
-	[[nodiscard]] std::string GetName() const;
-	void SetName(const std::string& name);
+		static void Register(sol::table& parent);
 
-	[[nodiscard]] bool GetFlag(RoomEnvFlags flag) const;
-	void SetFlag(RoomEnvFlags flag, bool value);
+		// Constructors
 
-	[[nodiscard]] ReverbType GetReverbType() const;
-	void SetReverbType(ReverbType reverbType);
+		Room(RoomData& room);
+		Room(const Room& room) = delete;
 
-	[[nodiscard]] bool IsTagPresent(const std::string& tag) const;
+		// Destructors
 
-private:
-	ROOM_INFO& m_room;
-};
+		~Room() = default;
+
+		// Getters
+
+		int			GetRoomNumber() const;
+		std::string GetName() const;
+		ScriptColor GetColor() const;
+		ReverbType	GetReverbType() const;
+
+		// Setters
+
+		void SetName(const std::string& name);
+		void SetReverbType(ReverbType reverbType);
+		void SetFlag(RoomEnvFlags flag, bool value);
+
+		// Inquirers
+
+		bool IsTagPresent(const std::string& tag) const;
+		bool GetActive() const; // TODO: Rename to IsActive().
+		bool GetFlag(RoomEnvFlags flag) const; // TODO: Rename to HasFlag().
+
+		// Operators
+
+		Room& operator =(const Room& room) = delete;
+	};
+//}

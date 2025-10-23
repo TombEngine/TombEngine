@@ -14,7 +14,7 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Setup.h"
-#include "Objects/Sink.h"
+#include "Game/Sink.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -436,7 +436,7 @@ void LaraResetGravityStatus(ItemInfo* item, CollisionInfo* coll)
 void LaraSnapToHeight(ItemInfo* item, CollisionInfo* coll)
 {
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && coll->Middle.Floor > 0)
-		item->Pose.Position.y += SWAMP_GRAVITY;
+		item->Pose.Position.y += g_GameFlow->GetSettings()->Physics.Gravity / SWAMP_GRAVITY_COEFF;
 	else if (coll->Middle.Floor != NO_HEIGHT)
 		item->Pose.Position.y += coll->Middle.Floor;
 }
@@ -497,16 +497,29 @@ void LaraSurfaceCollision(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	auto pointColl = GetPointCollision(*item);
-	int waterHeight = GetWaterHeight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber);
-
 	if ((pointColl.GetFloorHeight() - item->Pose.Position.y) < SWIM_WATER_DEPTH)
 	{
 		TestPlayerWaterStepOut(item, coll);
 	}
-	else if ((waterHeight - item->Pose.Position.y) <= -LARA_HEADROOM)
+	else if ((pointColl.GetWaterTopHeight() - item->Pose.Position.y) <= -LARA_HEADROOM)
 	{
 		SetLaraSwimDiveAnimation(item);
 	}
+}
+
+void LaraDefaultCollision(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.MoveAngle = item->Pose.Orientation.y;
+	coll->Setup.LowerFloorBound = STEPUP_HEIGHT;
+	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = 0;
+	coll->Setup.BlockFloorSlopeDown = true;
+	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	GetCollisionInfo(coll, item);
+	LaraResetGravityStatus(item, coll);
 }
 
 void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
@@ -527,12 +540,8 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 		coll->Setup.ForwardAngle = item->Pose.Orientation.y;
 	}
 
-	int height = abs(LARA_HEIGHT * phd_sin(item->Pose.Orientation.x));
+	int height = std::max((int)abs(LARA_HEIGHT * phd_sin(item->Pose.Orientation.x)), LARA_HEIGHT_UNDERWATER);
 	auto offset = Vector3i(0, height / 2, 0);
-
-	auto level = g_GameFlow->GetLevel(CurrentLevel);
-	if (height < ((level->GetLaraType() == LaraType::Divesuit) << 6) + 200)
-		height = ((level->GetLaraType() == LaraType::Divesuit) << 6) + 200;
 
 	coll->Setup.UpperFloorBound = -CLICK(0.25f);
 	coll->Setup.Height = height;

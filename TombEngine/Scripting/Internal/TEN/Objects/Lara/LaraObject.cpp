@@ -2,63 +2,76 @@
 #include "LaraObject.h"
 
 #include "Game/camera.h"
+#include "Game/collision/collide_item.h"
+#include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/lara_two_guns.h"
 #include "Objects/Generic/Object/burning_torch.h"
-#include "Game/effects/item_fx.h"
-#include "Specific/level.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/Input/Input.h"
+#include "Specific/Input/InputAction.h"
+#include "Specific/level.h"
 
-/***
-Class for extra Lara-only functions.
-Do not try to create an object of this type; use the built-in *Lara* variable instead.
+using namespace TEN::Input;
 
-In addition, LaraObject inherits all the functions of @{Objects.Moveable|Moveable}.
-
-@tenclass Objects.LaraObject
-@pragma nostrip
-*/
+/// Class for player-only functions.
+// Do not try to create an object of this type. Use the built-in *Lara* variable instead.
+// LaraObject inherits all the functions of @{Objects.Moveable|Moveable}.
+//
+// @tenclass Objects.LaraObject
+// @inherits Objects.Moveable
+// @pragma nostrip
 
 constexpr auto LUA_CLASS_NAME{ ScriptReserved_LaraObject };
 using namespace TEN::Entities::Generic;
 
-/// Set Lara poison
+/// Set the player's poison value.
 // @function LaraObject:SetPoison
-// @tparam[opt] int Poison; maximum value is 128 (default 0)
+// @tparam[opt] int poison New poison value. __default: 0, max: 128__
 // @usage
 // Lara:SetPoison(10)
 void LaraObject::SetPoison(sol::optional<int> potency)
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	if (potency.has_value())
+	{
 		lara->Status.Poison = std::clamp(potency.value(), 0, (int)LARA_POISON_MAX);
+	}
 	else
+	{
 		lara->Status.Poison = 0;
+	}
 }
 
-/// Get poison potency of Lara
+/// Get the player's poison value.
 // @function LaraObject:GetPoison
-// @treturn int current poison potency
+// @treturn int Poison value.
 // @usage
 // local poisonPotency = Lara:GetPoison()
 int LaraObject::GetPoison() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return lara->Status.Poison;
 }
 
-/// Set air value of Lara
+/// Set the player's air value.
 // @function LaraObject:SetAir
-// @tparam int Air value to give Lara. Maximum value is 1800. 
+// @tparam int air New air value. __max: 1800__ 
 // @usage
 // Lara:SetAir(100)
 void LaraObject::SetAir(sol::optional<int> air)
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	if (air.has_value())
 		lara->Status.Air = std::clamp(air.value(), 0, (int)LARA_AIR_MAX);
@@ -66,91 +79,95 @@ void LaraObject::SetAir(sol::optional<int> air)
 		lara->Status.Air = LARA_AIR_MAX;
 }
 
-/// Get air value of Lara
+/// Get the player's air value.
 // @function LaraObject:GetAir
-// @treturn int current air value
+// @treturn int Air value.
 // @usage
 // local currentAir = Lara:GetAir()
 int LaraObject::GetAir() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return lara->Status.Air;
 }
 
-/// Set wetness value of Lara (causes dripping)
+/// Set the player's wetness value, causing drips.
 // @function LaraObject:SetWet
-// @tparam int Wetness value. Maximum 255 
+// @tparam int wetness New wetness value. __max: 255__
 // @usage
 // Lara:SetWet(100)
 void LaraObject::SetWet(sol::optional<int> wetness)
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	float value = wetness.has_value() ? (float)wetness.value() : PLAYER_DRIP_NODE_MAX;
 	for (float& i : lara->Effect.DripNodes)
 		i = value;
 }
 
-/// Get wetness value of Lara
+/// Get the player's wetness value.
 // @function LaraObject:GetWet
-// @treturn int current wetness value
+// @treturn int Wetness value.
 // @usage
 // local dripAmount = Lara:GetWet()
 int LaraObject::GetWet() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return lara->Effect.DripNodes[0];
 }
 
-/// Set sprint energy value of Lara
+/// Set the player's stamina value.
 // @function LaraObject:SetStamina
-// @tparam int stamina to give to Lara; maximum value is 120. 
+// @tparam int New stamina value. __max: 120__ 
 // @usage
 // Lara:SetStamina(120)
 void LaraObject::SetStamina(sol::optional<int> value)
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	if (value.has_value())
+	{
 		lara->Status.Stamina = std::clamp(value.value(), 0, (int)LARA_STAMINA_MAX);
+	}
 	else
+	{
 		lara->Status.Stamina = LARA_STAMINA_MAX;
+	}
 }
 
-/// Get stamina value of Lara
+/// Get the player's stamina value.
 // @function LaraObject:GetStamina
-// @treturn int current sprint value
+// @treturn int Stamina value.
 // @usage
 // local sprintEnergy = Lara:GetStamina()
 int LaraObject::GetStamina() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return lara->Status.Stamina;
 }
 
-/// Get the moveable's airborne status
-// @function Moveable:GetAirborne
-// @treturn (bool) true if Lara state must react to aerial forces.
+/// Get the player's airborne status (set when jumping and falling).
+// @function LaraObject:GetAirborne
+// @treturn bool True if airborne, otherwise false.
 bool LaraObject::GetAirborne() const
 {
-	return m_item->Animation.IsAirborne;
+	return _moveable->Animation.IsAirborne;
 }
 
-/// Set the moveable's airborne status
-// @function Moveable:SetAirborne
-// @tparam (bool) New airborn status for Lara.
+/// Set the player's airborne status.
+// @function LaraObject:SetAirborne
+// @tparam bool airborne New airborne status.
 void LaraObject::SetAirborne(bool newAirborne)
 {
-	m_item->Animation.IsAirborne = newAirborne;
+	_moveable->Animation.IsAirborne = newAirborne;
 }
 
-/// Lara will undraw her weapon if it is drawn and throw away a flare if she is currently holding one.
+/// Undraw a weapon if it is drawn and throw away a flare if currently holding one.
 // @function LaraObject:UndrawWeapon
 // @usage
 // Lara:UndrawWeapon()
 void LaraObject::UndrawWeapon()
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	if (lara->Control.HandStatus != HandStatus::Free ||
 		lara->Control.Weapon.GunType == LaraWeaponType::Flare)
@@ -159,68 +176,49 @@ void LaraObject::UndrawWeapon()
 	}
 }
 
-/// Lara will throw away the torch if she currently holds one in her hand.
-// @function LaraObject:ThrowAwayTorch
+/// Discard a held torch.
+// @function LaraObject:DiscardTorch
 // @usage
-// Lara:ThrowAwayTorch()
-void LaraObject::ThrowAwayTorch()
+// Lara:DiscardTorch()
+void LaraObject::DiscardTorch()
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto& player = GetLaraInfo(*_moveable);
 
-	if (lara->Control.Weapon.GunType == LaraWeaponType::Torch)
-	{
-		Lara.Torch.State = TorchState::Dropping;
-	}
+	if (player.Control.Weapon.GunType == LaraWeaponType::Torch)
+		player.Torch.State = TorchState::Dropping;
 }
 
-//todo make these into enums - Squidshire 18/11/2022
-
-/// Get actual hand status of Lara
+/// Get the player's hand status.
 // @function LaraObject:GetHandStatus
 // @usage
 // local handStatus = Lara:GetHandStatus()
-// @treturn int hand status 0=HandsFree, 1=Busy(climbing,etc), 2=WeaponDraw, 3=WeaponUndraw, 4=WeaponInHand.
+// @treturn Objects.HandStatus Hand status.
 HandStatus LaraObject::GetHandStatus() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return  HandStatus{ lara->Control.HandStatus };
 }
 
-//todo make these into enums - Squidshire 18/11/2022
-
-/// Get actual weapon type of Lara
+/// Get the player's weapon type.
 // @function LaraObject:GetWeaponType
 // @usage
 // local weaponType = Lara:GetWeaponType()
-// @treturn int weapon type 0=None, 1=Pistols, 2=Revolver, 3=Uzi, 4=Shotgun, 5=HK, 6=Crossbow, 7=Flare, 8=Torch, 9=GrenadeLauncher, 10=Harpoon, 11=RocketLauncher.
+// @treturn Objects.WeaponType Current weapon type.
 LaraWeaponType LaraObject::GetWeaponType() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	return LaraWeaponType{ lara->Control.Weapon.GunType };
 }
 
-/// Set Lara weapon type
+/// Set the player's weapon type.
 // @function LaraObject:SetWeaponType
 // @usage
-// Lara:SetWeaponType(LaraWeaponType.PISTOLS, false)
-// @tparam LaraWeaponType weaponType
-// Must be one of:
-//	NONE
-//	PISTOLS
-//	REVOLVER
-//	UZI
-//	SHOTGUN
-//	HK
-//	CROSSBOW
-//	FLARE
-//	TORCH
-//	GRENADELAUNCHER
-//	HARPOONGUN
-//	ROCKETLAUNCHER
-// @tparam bool activate true = let her also draw the weapons, set torch lit. false = let Laras new weapons remain holstered until she draws them, set torch unlit.
-void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
+// Lara:SetWeaponType(WeaponType.PISTOLS, false)
+// @tparam Objects.WeaponType weaponType New weapon type to set.
+// @tparam[opt=false] bool activate If `true`, also draw the weapons or set torch lit. If `false`, keep weapons holstered or leave torch unlit.
+void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> activate)
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	switch (weaponType)
 	{
@@ -230,26 +228,51 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
 
 	case LaraWeaponType::Torch:
 		GetFlameTorch();
-		lara->Torch.IsLit = activate;
+		lara->Torch.IsLit = activate.value_or(false);
 		break;
 
 	default:
-		if (activate == false)
-			lara->Control.Weapon.LastGunType = weaponType;
-		else
+		if (!lara->Weapons[(int)weaponType].Present)
+		{
+			TENLog("SetWeaponType: no such weapon is present in the inventory.", LogLevel::Warning, LogConfig::All);
+			break;
+		}
+
+		bool weaponInHands = !activate.value_or(false) && (lara->Control.HandStatus == HandStatus::WeaponReady || lara->Control.HandStatus == HandStatus::WeaponDraw);
+
+		if (activate.value_or(false) || weaponInHands)
+		{
 			lara->Control.Weapon.RequestGunType = weaponType;
+
+			if (weaponInHands)
+				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Control.Weapon.LastGunType = weaponType;
+
+			if (weaponType < LaraWeaponType::Shotgun)
+			{
+				UndrawPistolMesh(*_moveable, lara->Control.Weapon.LastGunType, true);
+				UndrawPistolMesh(*_moveable, lara->Control.Weapon.LastGunType, false);
+			}
+			else
+			{
+				UndrawShotgunMeshes(*_moveable, lara->Control.Weapon.LastGunType);
+			}
+		}
 		break;
 	}
 }
 
 /// Get player weapon ammo type.
 // @function LaraObject:GetAmmoType
-// @treturn int player weapon ammo type
+// @treturn Objects.AmmoType Player weapon ammo type.
 // @usage
 // local CurrentAmmoType = Lara:GetAmmoType()
 int LaraObject::GetAmmoType() const
 {
-	const auto& player = GetLaraInfo(*m_item);
+	const auto& player = GetLaraInfo(*_moveable);
 
 	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
 	switch (player.Control.Weapon.GunType)
@@ -328,33 +351,33 @@ int LaraObject::GetAmmoType() const
 
 	if (!ammoType.has_value())
 	{
-		TENLog("GetAmmoType() error; no ammo type.", LogLevel::Warning, LogConfig::All);
+		TENLog("GetAmmoType error; no ammo type.", LogLevel::Warning, LogConfig::All);
 		ammoType = PlayerAmmoType::None;
 	}
 
 	return (int)*ammoType;
 }
 
-/// Get current weapon's ammo count
+/// Get current weapon's ammo count.
 // @function LaraObject:GetAmmoCount
-// @treturn int current ammo count (-1 if infinite)
+// @treturn int Current ammo count (-1 if infinite).
 // @usage
 // local equippedWeaponAmmoLeft = Lara:GetAmmoCount()
 int LaraObject::GetAmmoCount() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 	auto& ammo = GetAmmo(Lara, Lara.Control.Weapon.GunType);
 	return (ammo.HasInfinite()) ? -1 : (int)ammo.GetCount();
 }
 
-/// Get current vehicle, if it exists
+/// Get current vehicle, if it exists.
 // @function LaraObject:GetVehicle
-// @treturn Objects.Moveable current vehicle (nil if no vehicle present)
+// @treturn Objects.Moveable Current vehicle (nil if no vehicle present).
 // @usage
 // local vehicle = Lara:GetVehicle()
 std::unique_ptr<Moveable> LaraObject::GetVehicle() const
 {
-	auto* lara = GetLaraInfo(m_item);
+	auto* lara = GetLaraInfo(_moveable);
 
 	if (lara->Context.Vehicle == NO_VALUE)
 		return nullptr;
@@ -369,7 +392,7 @@ std::unique_ptr<Moveable> LaraObject::GetVehicle() const
 // local target = Lara:GetTarget()
 std::unique_ptr<Moveable> LaraObject::GetTarget() const
 {
-	const auto& player = GetLaraInfo(*m_item);
+	const auto& player = GetLaraInfo(*_moveable);
 
 	if (player.TargetEntity == nullptr)
 		return nullptr;
@@ -384,7 +407,7 @@ std::unique_ptr<Moveable> LaraObject::GetTarget() const
 // local interactedMoveable = Lara:GetInteractedMoveable()
 std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 {
-	const auto& player = GetLaraInfo(*m_item);
+	const auto& player = GetLaraInfo(*_moveable);
 
 	if (player.Context.InteractedItem == NO_VALUE)
 		return nullptr;
@@ -392,41 +415,149 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 	return std::make_unique<Moveable>(player.Context.InteractedItem);
 }
 
-/// Get current light state of the torch, if it exists
-// @function LaraObject:TorchIsLit
-// @treturn bool is torch currently lit or not? (false if no torch exists)
+/// Check if a held torch is lit.
+// @function LaraObject:IsTorchLit
+// @treturn bool True if lit, otherwise false (also false if there is no torch in hand).
 // @usage
-// local torchIsLit = Lara:TorchIsLit()
-bool LaraObject::TorchIsLit() const
+// local isTorchLit = Lara:IsTorchLit()
+bool LaraObject::IsTorchLit() const
 {
-	auto* lara = GetLaraInfo(m_item);
-	return lara->Torch.IsLit;
+	const auto& player = GetLaraInfo(*_moveable);
+	return player.Torch.IsLit;
+}
+
+/// Align the player with a moveable object for interaction.
+// @function LaraObject:Interact
+// @tparam Objects.Moveable mov Moveable object to align the player with.
+// @tparam[opt=197 (BUTTON_PUSH)] int animNumber The animation to play after alignment is complete.
+// @tparam[opt=Vec3(0&#44; 0&#44; 312)] Vec3 offset Relative position offset from the moveable.
+// @tparam[opt=Vec3(-256&#44; -512&#44; 0)] Vec3 minOffsetConstraint Minimum relative offset constraint.
+// @tparam[opt=Vec3(256&#44; 0&#44; 512)] Vec3 maxOffsetConstraint Maximum relative offset constraint.
+// @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
+// @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
+// @tparam[opt=Input.ActionID.ACTION] Input.ActionID actionID Input action ID to trigger the alignment.
+// @usage
+// local Lara:Interact(
+//     moveable, 197,
+//     Vec3(0, 0, 312), Vec3(-256, -512, -256), Vec3(256, 0, 512),
+//	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
+void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
+						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID) const
+{
+	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
+	auto convertedOffsetConstraintMin = ValueOr<Vec3>(offsetConstraintMin, Vec3(-BLOCK(0.25f), -BLOCK(0.5f), 0.0f));
+	auto convertedOffsetConstraintMax = ValueOr<Vec3>(offsetConstraintMax, Vec3(BLOCK(0.25f), 0.0f, BLOCK(0.5f)));
+	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
+	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
+	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
+	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
+
+	auto interactionBasis = ObjectCollisionBounds
+	{
+		GameBoundingBox(
+			convertedOffsetConstraintMin.x, convertedOffsetConstraintMax.x,
+			convertedOffsetConstraintMin.y, convertedOffsetConstraintMax.y,
+			convertedOffsetConstraintMin.z, convertedOffsetConstraintMax.z),
+		std::pair(
+			convertedRotConstraintMin,
+			convertedRotConstraintMax)
+	};
+
+	auto& player = GetLaraInfo(*_moveable);
+	auto& interactedItem = g_Level.Items[mov.GetIndex()];
+
+	bool isUnderwater = (player.Control.WaterStatus == WaterStatus::Underwater);
+	bool isPlayerIdle = ((!isUnderwater && _moveable->Animation.ActiveState == LS_IDLE && _moveable->Animation.AnimNumber == LA_STAND_IDLE) ||
+						 (isUnderwater && _moveable->Animation.ActiveState == LS_UNDERWATER_IDLE && _moveable->Animation.AnimNumber == LA_UNDERWATER_IDLE));
+
+	if ((player.Control.IsMoving && player.Context.InteractedItem == interactedItem.Index) ||
+		(IsHeld(convertedActionID) && player.Control.HandStatus == HandStatus::Free && isPlayerIdle))
+	{
+		if (TestLaraPosition(interactionBasis, &interactedItem, _moveable))
+		{
+			if (MoveLaraPosition(convertedOffset, &interactedItem, _moveable))
+			{
+				ResetPlayerFlex(_moveable);
+				SetAnimation(_moveable, convertedAnimNumber);
+
+				_moveable->Animation.FrameNumber = GetAnimData(_moveable).frameBase;
+				player.Control.IsMoving = false;
+				player.Control.HandStatus = HandStatus::Busy;
+			}
+			else
+			{
+				player.Context.InteractedItem = interactedItem.Index;
+			}
+		}
+	}
+}
+
+/// Test the player against a moveable object for interaction.
+// @function LaraObject:TestInteraction
+// @tparam Objects.Moveable mov Moveable object to align the player with.
+// @tparam[opt=Vec3(-256&#44; -512&#44; 0)] Vec3 minOffsetConstraint Minimum relative offset constraint.
+// @tparam[opt=Vec3(256&#44; 0&#44; 512)] Vec3 maxOffsetConstraint Maximum relative offset constraint.
+// @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
+// @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
+// @treturn bool Returns true if the player is inside the specified bounds.
+bool LaraObject::TestInteraction(const Moveable& mov,
+								 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
+								 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const
+{
+	auto convertedOffsetConstraintMin = ValueOr<Vec3>(offsetConstraintMin, Vec3(-BLOCK(0.25f), -BLOCK(0.5f), 0));
+	auto convertedOffsetConstraintMax = ValueOr<Vec3>(offsetConstraintMax, Vec3(BLOCK(0.25f), 0, BLOCK(0.5f)));
+	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
+	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
+
+	auto interactionBasis = ObjectCollisionBounds
+	{
+		GameBoundingBox(
+			convertedOffsetConstraintMin.x, convertedOffsetConstraintMax.x,
+			convertedOffsetConstraintMin.y, convertedOffsetConstraintMax.y,
+			convertedOffsetConstraintMin.z, convertedOffsetConstraintMax.z),
+		std::pair(
+			convertedRotConstraintMin,
+			convertedRotConstraintMax)
+	};
+
+	auto& item = g_Level.Items[mov.GetIndex()];
+	return (TestLaraPosition(interactionBasis, &item, _moveable));
 }
 
 void LaraObject::Register(sol::table& parent)
 {
-	parent.new_usertype<LaraObject>(LUA_CLASS_NAME,
-			ScriptReserved_SetPoison, &LaraObject::SetPoison,
-			ScriptReserved_GetPoison, &LaraObject::GetPoison,
-			ScriptReserved_SetAir, &LaraObject::SetAir,
-			ScriptReserved_GetAir, &LaraObject::GetAir,
-			ScriptReserved_SetWet, &LaraObject::SetWet,
-			ScriptReserved_GetWet, &LaraObject::GetWet,
-			ScriptReserved_SetStamina, &LaraObject::SetStamina,
-			ScriptReserved_GetStamina, &LaraObject::GetStamina,
-			ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
-			ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
-			ScriptReserved_UndrawWeapon, &LaraObject::UndrawWeapon,
-			ScriptReserved_ThrowAwayTorch, &LaraObject::ThrowAwayTorch,
-			ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,
-			ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
-			ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
-			ScriptReserved_GetAmmoType, &LaraObject::GetAmmoType,
-			ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
-			ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
-			ScriptReserved_GetTarget, &LaraObject::GetTarget,
-			ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
-			ScriptReserved_TorchIsLit, &LaraObject::TorchIsLit,
-			sol::base_classes, sol::bases<Moveable>()
-		);
+	parent.new_usertype<LaraObject>(
+		LUA_CLASS_NAME,
+
+		ScriptReserved_SetPoison, &LaraObject::SetPoison,
+		ScriptReserved_GetPoison, &LaraObject::GetPoison,
+		ScriptReserved_SetAir, &LaraObject::SetAir,
+		ScriptReserved_GetAir, &LaraObject::GetAir,
+		ScriptReserved_SetWet, &LaraObject::SetWet,
+		ScriptReserved_GetWet, &LaraObject::GetWet,
+		ScriptReserved_SetStamina, &LaraObject::SetStamina,
+		ScriptReserved_GetStamina, &LaraObject::GetStamina,
+		ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
+		ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
+		ScriptReserved_UndrawWeapon, &LaraObject::UndrawWeapon,
+		ScriptReserved_PlayerDiscardTorch, &LaraObject::DiscardTorch,
+		ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,
+		ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
+		ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
+		ScriptReserved_GetAmmoType, &LaraObject::GetAmmoType,
+		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
+		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
+		ScriptReserved_GetTarget, &LaraObject::GetTarget,
+		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
+		ScriptReserved_PlayerIsTorchLit, &LaraObject::IsTorchLit,
+
+		ScriptReserved_PlayerInteract, &LaraObject::Interact,
+		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
+
+		// COMPATIBILITY
+		"TorchIsLit", &LaraObject::IsTorchLit,
+		"ThrowAwayTorch", &LaraObject::DiscardTorch,
+
+		sol::base_classes, sol::bases<Moveable>());
 }
