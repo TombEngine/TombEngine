@@ -56,6 +56,17 @@ local strings =
 	waterskin_small_3l = { "Small Waterskin (3L)" },
 	waterskin_small_empty = { "Small Waterskin (Empty)" },
 	
+	-- Examine strings
+	
+	examine1_text = { "Examine 1 Text" },
+	examine2_text = { "Examine 2 Text" },
+	examine3_text = { "Examine 3 Text" },
+	examine4_text = { "Examine 4 Text" },
+	examine5_text = { "Examine 5 Text" },
+	examine6_text = { "Examine 6 Text" },
+	examine7_text = { "Examine 7 Text" },
+	examine8_text = { "Examine 8 Text" },
+	
 	-- Level name strings
 	
 	home_level = { "Home Level" },

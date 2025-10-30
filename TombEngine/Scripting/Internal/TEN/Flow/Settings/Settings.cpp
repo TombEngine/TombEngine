@@ -41,6 +41,8 @@ namespace TEN::Scripting
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
 		FlareSettings::Register(parent);
+		GameplaySettings::Register(parent);
+		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
 		PhysicsSettings::Register(parent);
@@ -52,8 +54,10 @@ namespace TEN::Scripting
 			sol::constructors<Settings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(Settings, ScriptReserved_Settings),
 			ScriptReserved_AnimSettings, &Settings::Animations,
-			ScriptReserved_FlareSettings, &Settings::Flare,
 			ScriptReserved_CameraSettings, &Settings::Camera,
+			ScriptReserved_FlareSettings, &Settings::Flare,
+			ScriptReserved_GameplaySettings, &Settings::Gameplay,
+			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
@@ -84,11 +88,11 @@ namespace TEN::Scripting
 		// @tfield bool crawlspaceSwandive When enabled, player will be able to swandive into crawlspaces.
 		"crawlspaceSwandive", &AnimSettings::CrawlspaceDive,
 
-		// Overhang climbing.
+		/// Overhang climbing.
 		// @tfield bool overhangClimb Enables overhang climbing feature. Currently does not work.
 		"overhangClimb", &AnimSettings::OverhangClimb,
 
-		// Extended slide mechanics.
+		/// Extended slide mechanics.
 		// @tfield bool slideExtended If enabled, player will be able to change slide direction with controls. Currently does not work.
 		"slideExtended", &AnimSettings::SlideExtended,
 
@@ -170,11 +174,46 @@ namespace TEN::Scripting
 		// @tfield bool smoke Smoke effect. Determines whether flare generates smoke when burning.
 		"smoke", &FlareSettings::Smoke,
 
+		/// Toggle muzzle glow effect.
+		// @tfield bool muzzleGlow Glow effect. Determines whether flare generates glow when burning.
+		"muzzleGlow", &FlareSettings::MuzzleGlow,
+
 		/// Toggle flicker effect.
 		// @tfield bool flicker Light and lensflare flickering. When turned off, flare light will be constant.
 		"flicker", &FlareSettings::Flicker);
 	}
 
+	/// Gameplay
+	// @section Gameplay
+	// These settings are used to enable or disable certain gameplay features.
+
+	void GameplaySettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<GameplaySettings>(ScriptReserved_GameplaySettings, sol::constructors<GameplaySettings()>(),
+			sol::call_constructor, sol::constructors<GameplaySettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
+
+			/// Enable target occlusion by moveables and static meshes.
+			// @tfield bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
+			"targetObjectOcclusion", & GameplaySettings::TargetObjectOcclusion);
+	}
+
+	/// Graphics
+	// @section Graphics
+	// These settings are used to enable or disable certain graphics features.
+
+	void GraphicsSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<GraphicsSettings>(ScriptReserved_GraphicsSettings, sol::constructors<GraphicsSettings()>(),
+			sol::call_constructor, sol::constructors<GraphicsSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
+
+			/// Enable skinning.
+			// @tfield bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
+			"skinning", &GraphicsSettings::Skinning);
+	}
+
+	/* @fieldtype HairSettings[] */
 	/// Hair
 	// @section Hair
 	// This is a table of braid object settings. <br>
@@ -188,14 +227,14 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(HairSettings, ScriptReserved_HairSettings),
 
 		/// Root mesh to which hair object will attach to.
-		// @tfield int mesh Index of a root mesh to which hair will attach. Root mesh may be different for each hair object.
+		// @tfield int rootMesh Index of a root mesh to which hair will attach. Root mesh may be different for each hair object.
 		"rootMesh", &HairSettings::RootMesh,
 
-		/// Relative braid offset to a headmesh.
+		/// Relative braid offset to a headmesh. Not used with skinned hair mesh.
 		// @tfield Vec3 offset Specifies how braid is positioned in relation to a headmesh.
 		"offset", &HairSettings::Offset,
 	
-		/// Braid connection indices.
+		/// Braid connection indices. Not used with skinned hair mesh.
 		// @tfield table indices A list of headmesh's vertex connection indices. Each index corresponds to nearest braid rootmesh vertex. Amount of indices is unlimited.
 		"indices", &HairSettings::Indices);
 	}
@@ -246,6 +285,7 @@ namespace TEN::Scripting
 		"swimVelocity", &PhysicsSettings::SwimVelocity);
 	}
 
+	/* @fieldtype { [WeaponType]: WeaponSettings } */
 	/// Weapons
 	// @section Weapons
 	// This is a table of weapon settings, with several parameters available for every weapon.
@@ -274,7 +314,7 @@ namespace TEN::Scripting
 		"damage", &WeaponSettings::Damage,
 
 		/// Alternate damage.
-		// @tfield int alternateDamage For Revolver and HK, specifies damage in lasersight mode. For crossbow, specifies damage for explosive ammo.
+		// @tfield int alternateDamage For crossbow, specifies damage for explosive ammo.
 		"alternateDamage", &WeaponSettings::AlternateDamage,
 
 		/// Water level.
@@ -290,7 +330,7 @@ namespace TEN::Scripting
 		"flashColor", &WeaponSettings::FlashColor,
 
 		/// Gunflash range.
-		// @tfield Color flashRange specifies the range of the gunflash.
+		// @tfield int flashRange specifies the range of the gunflash.
 		"flashRange", &WeaponSettings::FlashRange,
 
 		/// Gunflash duration.

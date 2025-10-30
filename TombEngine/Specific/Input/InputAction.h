@@ -93,12 +93,16 @@ namespace TEN::Input
 		Vehicle,
 		Quick,
 		Menu,
+
 		Keyboard,
 		Mouse,
 		//Gamepad
 	};
 
 	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;
+	extern const std::vector<ActionGroupID>			USER_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupID>			RAW_ACTION_GROUP_IDS;
+
 
 	class Action
 	{
@@ -130,7 +134,7 @@ namespace TEN::Input
 		bool IsClicked() const;
 		bool IsHeld(float delaySec = 0.0f) const;
 		bool IsPulsed(float delaySec, float initialDelaySec = 0.0f) const;
-		bool IsReleased(float delaySecMax = INFINITY) const;
+		bool IsReleased(float delaySecMax = FLT_MAX) const;
 
 		// Utilities
 

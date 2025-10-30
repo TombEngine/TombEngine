@@ -811,7 +811,7 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* speedboatItem = &g_Level.Items[itemNumber];
 		auto* speedboat = GetSpeedboatInfo(speedboatItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		int collide = SpeedboatDynamics(itemNumber, laraItem);
@@ -907,12 +907,7 @@ namespace TEN::Entities::Vehicles
 		if (lara->Context.Vehicle == itemNumber)
 		{
 			SpeedboatAnimation(speedboatItem, laraItem, collide);
-
-			if (probe.GetRoomNumber() != speedboatItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(speedboatItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose = speedboatItem->Pose;
 			speedboatItem->Pose.Orientation.z += speedboat->LeanAngle;

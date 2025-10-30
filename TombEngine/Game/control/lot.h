@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/control/box.h"
 
-extern std::vector<CreatureInfo*> ActiveCreatures;
+extern std::vector<int> ActiveCreatures;
 
 void InitializeLOTarray(int allocMem);
 bool EnableEntityAI(short itemNum, bool always, bool makeTarget = true);

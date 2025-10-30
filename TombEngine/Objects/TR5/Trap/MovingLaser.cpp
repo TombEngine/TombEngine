@@ -107,7 +107,7 @@ namespace TEN::Entities::Traps
 
 		if (item.ItemFlags[(int)MovingLaserFlags::PauseTimer] == 0)
 		{
-			SoundEffect(SFX_TR5_MOVING_LASER_LOOP, &item.Pose, SoundEnvironment::Always);
+			SoundEffect(SFX_TEN_MOVING_LASER_LOOP, &item.Pose, SoundEnvironment::Always);
 		}
 
 		// Update room if necessary.

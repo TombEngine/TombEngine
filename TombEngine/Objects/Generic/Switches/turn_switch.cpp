@@ -6,6 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -15,6 +16,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 // TODO: Must now also check anim numbers.
@@ -59,6 +61,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
+		
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
 
 		int doSwitch = 0;
 
@@ -172,7 +176,7 @@ namespace TEN::Entities::Switches
 
 	void TurnSwitchControl(short itemNumber)
 	{
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		if (g_Level.Items[itemNumber].ItemFlags[0] == TURN_SWITCH_CLOCKWISE)
@@ -253,7 +257,7 @@ namespace TEN::Entities::Switches
 			RemoveActiveItem(itemNumber);
 
 			Lara.Control.HandStatus = HandStatus::Free;
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 			Camera.DisableInterpolation = true;
 			switchItem->ItemFlags[1] = 2;
 		}

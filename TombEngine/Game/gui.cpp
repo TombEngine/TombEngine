@@ -485,6 +485,7 @@ namespace TEN::Gui
 			Windowed,
 			ShadowType,
 			Caustics,
+			Decals,
 			Antialiasing,
 			AmbientOcclusion,
 			HighFramerate,
@@ -535,6 +536,11 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
 				break;
 
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
+				break;
+
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
@@ -575,6 +581,7 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+
 				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
 					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
 				else
@@ -585,6 +592,11 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Caustics:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
+				break;
+
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
 				break;
 
 			case DisplaySettingsOption::Antialiasing:
@@ -945,6 +957,7 @@ namespace TEN::Gui
 			AutoMonkeySwingJump,
 			AutoTargeting,
 			TargetHighlighter,
+			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
 
@@ -999,6 +1012,11 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
 				break;
 
+			case OtherSettingsOption::InteractionHighlighter:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				break;
+
 			case OtherSettingsOption::ToggleRumble:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableRumble = !CurrentSettings.Configuration.EnableRumble;
@@ -1011,9 +1029,10 @@ namespace TEN::Gui
 			}
 		}
 
+		bool isVolumeAdjusted = false;
+
 		if (IsPulsed(In::Left, 0.05f, 0.4f))
 		{
-			bool isVolumeAdjusted = false;
 			switch (SelectedOption)
 			{
 			case OtherSettingsOption::MusicVolume:
@@ -1024,7 +1043,6 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.MusicVolume = 0;
 
 					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
-					isVolumeAdjusted = true;
 				}
 
 				break;
@@ -1037,7 +1055,7 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.SfxVolume = 0;
 
 					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = true;
+					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
 				break;
@@ -1054,17 +1072,10 @@ namespace TEN::Gui
 
 				break;
 			}
-
-			if (isVolumeAdjusted)
-			{
-				if (IsClicked(In::Left))
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			}
 		}
 
 		if (IsPulsed(In::Right, 0.05f, 0.4f))
 		{
-			bool isVolumeAdjusted = false;
 			switch (SelectedOption)
 			{
 			case OtherSettingsOption::MusicVolume:
@@ -1075,7 +1086,6 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
 					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
-					isVolumeAdjusted = true;
 				}
 
 				break;
@@ -1088,7 +1098,7 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
 					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = true;
+					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
 				break;
@@ -1105,13 +1115,10 @@ namespace TEN::Gui
 
 				break;
 			}
-
-			if (isVolumeAdjusted)
-			{
-				if (IsClicked(In::Right))
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			}
 		}
+
+		if (isVolumeAdjusted)
+			SoundEffect(SFX_TR4_MENU_ROTATE, nullptr, SoundEnvironment::Always);
 
 		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
@@ -1844,10 +1851,10 @@ namespace TEN::Gui
 
 		if (player.Inventory.BeetleComponents)
 		{
-			if (player.Inventory.BeetleComponents & 2)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_1)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART1);
 
-			if (player.Inventory.BeetleComponents & 4)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_2)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART2);
 		}
 
@@ -1986,7 +1993,7 @@ namespace TEN::Gui
 		CombineRingFadeVal = 0;
 		CombineRingFadeDir = 0;
 		CombineTypeFlag = 0;
-		SeperateTypeFlag = 0;
+		SeparateTypeFlag = 0;
 		CombineObject1 = 0;
 		CombineObject2 = 0;
 		NormalRingFadeVal = 128;
@@ -2056,24 +2063,6 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
-		const auto CROUCH_STATES = std::vector<int>
-		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT,
-			LS_CROUCH_TURN_180
-		};
-		const auto CRAWL_STATES = std::vector<int>
-		{
-			LS_CRAWL_IDLE,
-			LS_CRAWL_FORWARD,
-			LS_CRAWL_BACK,
-			LS_CRAWL_TURN_LEFT,
-			LS_CRAWL_TURN_RIGHT,
-			LS_CRAWL_TURN_180,
-			LS_CRAWL_TO_HANG
-		};
-
 		auto& player = GetLaraInfo(item);
 
 		player.Inventory.OldBusy = false;
@@ -2449,9 +2438,9 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_SEPERABLE)
+				if (options & OPT_SEPARABLE)
 				{
-					CurrentOptions[n].Type = MenuType::Seperate;
+					CurrentOptions[n].Type = MenuType::Separate;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[3].c_str());
 					n++;
 				}
@@ -2575,8 +2564,8 @@ namespace TEN::Gui
 						CombineRingFadeDir = 1;
 						break;
 
-					case MenuType::Seperate:
-						SeperateTypeFlag = 1;
+					case MenuType::Separate:
+						SeparateTypeFlag = 1;
 						NormalRingFadeDir = 2;
 						break;
 
@@ -2815,7 +2804,7 @@ namespace TEN::Gui
 					ConstructObjectList(item);
 					SetupObjectListStartPosition(CombineObject1);
 				}
-				else if (SeperateTypeFlag)
+				else if (SeparateTypeFlag)
 				{
 					SeparateObject(item, Rings[(int)RingTypes::Inventory].CurrentObjectList[Rings[(int)RingTypes::Inventory].CurrentObjectInList].InventoryItem);
 				}
@@ -3059,7 +3048,7 @@ namespace TEN::Gui
 					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
-				if (!i && !ring.ObjectListMovement)
+				if (!i && !ring.ObjectListMovement) 
 				{
 					if (invObject.RotFlags & INV_ROT_X)
 						listObject.Orientation.x += ANGLE(5.0f / g_Renderer.GetFramerateMultiplier());

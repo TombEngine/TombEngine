@@ -19,11 +19,16 @@ local settings = Flow.Settings.new()
 	settings.Flare.offset = Vec3(0, 0, 41)
 	settings.Flare.range = 9
 	settings.Flare.timeout = 60
-	settings.Flare.lensflareBrightness = 1.0
+	settings.Flare.lensflareBrightness = 0.5
+	settings.Flare.muzzleGlow = false
 	settings.Flare.sparks = true
 	settings.Flare.smoke = true
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
+	
+	settings.Gameplay.targetObjectOcclusion = true
+	
+	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
 	settings.Hud.loadingBar = true
@@ -65,6 +70,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.PISTOLS].smoke = true
 	settings.Weapons[WeaponType.PISTOLS].shell = true
 	settings.Weapons[WeaponType.PISTOLS].muzzleFlash = true
+	settings.Weapons[WeaponType.PISTOLS].muzzleGlow = false
 	settings.Weapons[WeaponType.PISTOLS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.PISTOLS].pickupCount = 30
 	
@@ -80,6 +86,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.REVOLVER].smoke = true
 	settings.Weapons[WeaponType.REVOLVER].shell = false
 	settings.Weapons[WeaponType.REVOLVER].muzzleFlash = true
+	settings.Weapons[WeaponType.REVOLVER].muzzleGlow = false
 	settings.Weapons[WeaponType.REVOLVER].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.REVOLVER].pickupCount = 6
 	
@@ -94,6 +101,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.UZIS].smoke = true
 	settings.Weapons[WeaponType.UZIS].shell = true
 	settings.Weapons[WeaponType.UZIS].muzzleFlash = true
+	settings.Weapons[WeaponType.UZIS].muzzleGlow = false
 	settings.Weapons[WeaponType.UZIS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.UZIS].pickupCount = 30
 	
@@ -107,6 +115,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.SHOTGUN].smoke = true
 	settings.Weapons[WeaponType.SHOTGUN].shell = true
 	settings.Weapons[WeaponType.SHOTGUN].muzzleFlash = false
+	settings.Weapons[WeaponType.SHOTGUN].muzzleGlow = false
 	settings.Weapons[WeaponType.SHOTGUN].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.SHOTGUN].pickupCount = 6
 	
@@ -121,6 +130,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.HK].smoke = true
 	settings.Weapons[WeaponType.HK].shell = true
 	settings.Weapons[WeaponType.HK].muzzleFlash = true
+	settings.Weapons[WeaponType.HK].muzzleGlow = false
 	settings.Weapons[WeaponType.HK].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.HK].pickupCount = 30
 	

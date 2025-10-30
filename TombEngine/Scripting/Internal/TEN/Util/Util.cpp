@@ -42,7 +42,7 @@ namespace TEN::Scripting::Util
 		auto vector0 = posA.ToGameVector();
 		auto vector1 = posB.ToGameVector();
 
-		MESH_INFO* mesh = nullptr;
+		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
 		return (LOS(&vector0, &vector1) && ObjectOnLOS2(&vector0, &vector1, &vector, &mesh) == NO_LOS_ITEM);
 	}
@@ -148,7 +148,7 @@ namespace TEN::Scripting::Util
 		auto realScreenPos = PercentToScreen(screenPos.x, screenPos.y);
 		auto ray = GetRayFrom2DPosition(Vector2((int)std::get<0>(realScreenPos), (int)std::get<1>(realScreenPos)));
 
-		MESH_INFO* mesh = nullptr;
+		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
 		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, &mesh, GAME_OBJECT_ID::ID_LARA);
 

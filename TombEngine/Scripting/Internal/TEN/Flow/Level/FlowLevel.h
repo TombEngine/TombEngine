@@ -9,23 +9,6 @@
 
 using namespace TEN::Scripting;
 
-static const std::unordered_map<std::string, WeatherType> WEATHER_TYPES
-{
-	{ "None", WeatherType::None },
-	{ "Rain", WeatherType::Rain },
-	{ "Snow", WeatherType::Snow }
-};
-
-static const std::unordered_map<std::string, LaraType> PLAYER_TYPES
-{
-	{ "Normal", LaraType::Normal },
-	{ "Young", LaraType::Young },
-	{ "Bunhead", LaraType::Bunhead },
-	{ "Catsuit", LaraType::Catsuit },
-	{ "Divesuit", LaraType::Divesuit },
-	{ "Invisible", LaraType::Invisible }
-};
-
 struct Level : public ScriptInterfaceLevel
 {
 	Fog			Fog			 = {};
@@ -39,10 +22,11 @@ struct Level : public ScriptInterfaceLevel
 	TEN::Scripting::LensFlare LensFlare = {};
 	TEN::Scripting::Starfield Starfield = {};
 
-	WeatherType Weather			= WeatherType::None;
-	float		WeatherStrength = 1.0f;
-	bool		Storm			= false;
-	bool		Rumble			= false;
+	WeatherType Weather				= WeatherType::None;
+	float		WeatherStrength		= 1.0f;
+	bool		WeatherClustering	= true;
+	bool		Storm				= false;
+	bool		Rumble				= false;
 
 	LaraType Type = LaraType::Normal;
 	int LevelSecrets = 0;
@@ -63,6 +47,7 @@ struct Level : public ScriptInterfaceLevel
 	void SetWeatherStrength(float val);
 	static void Register(sol::table& parent);
 	WeatherType GetWeatherType() const override;
+	bool GetWeatherClustering() const override;
 	float GetFogMinDistance() const override;
 	float GetFogMaxDistance() const override;
 	float GetFarView() const override;

@@ -1,5 +1,5 @@
 -----
---- Type - This molule contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
+--- This molule contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
 --
 --
 -- To use the functions within the scripts, the module must be called:
@@ -36,8 +36,8 @@ LevelFuncs.TypeControlLevelFunc = function () end
 local Type = {}
 
 --- Check if the variable is a number.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a number, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a number, `false` otherwise.
 -- @usage
 -- --example of use
 --  local num = 255
@@ -49,8 +49,8 @@ Type.IsNumber = function (variable)
 end
 
 --- Check if the variable is a string.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a string, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a string, `false` otherwise.
 -- @usage
 -- --example of use
 --  local str = "Hi"
@@ -63,8 +63,8 @@ end
 
 
 --- Check if the variable is a boolean.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a boolean, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a boolean, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.test = function (test)
@@ -79,8 +79,8 @@ Type.IsBoolean = function (variable)
 end
 
 --- Check if the variable is a table.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a table, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a table, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.PairsTable = function (table)
@@ -95,8 +95,8 @@ Type.IsTable = function (variable)
 end
 
 --- Check if the variable has a null value.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a null, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a null, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.AddProp = function (prop)
@@ -111,8 +111,8 @@ Type.IsNull = function (variable)
 end
 
 --- Check if the variable is a function.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a function, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a function, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.RunFunc = function (func)
@@ -125,8 +125,8 @@ Type.IsFunction = function (variable)
 end
 
 --- Check if the variable is a @{Color}.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a Color, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a Color, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.SetColor = function(color)
@@ -139,8 +139,8 @@ Type.IsColor = function (variable)
 end
 
 --- Check if the variable is a @{Rotation}.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a Rotation, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a Rotation, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.SetRotation = function (rot)
@@ -153,8 +153,8 @@ Type.IsRotation = function (variable)
 end
 
 --- Check if the variable is a @{Vec2}.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a Vec2, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a Vec2, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.SetSpritePos = function (pos)
@@ -167,8 +167,8 @@ Type.IsVec2 = function (variable)
 end
 
 --- Check if the variable is a @{Vec3}.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a Vec3, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `rue` if the variable is a Vec3, `false` otherwise.
 -- @usage
 -- --example of use
 --	LevelFuncs.SetLaraPos = function (pos)
@@ -181,8 +181,8 @@ Type.IsVec3 = function (variable)
 end
 
 --- Check if the variable is a @{Time} object.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a Time object, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a Time object, `false` otherwise.
 -- @usage
 -- --example of use
 --	LevelFuncs.IncreaseTime = function (time)
@@ -195,8 +195,8 @@ Type.IsTime = function (variable)
 end
 
 --- Check if the variable is a LevelFunc.
--- @tparam variable variable to be check
--- @treturn boolean *true* if the variable is a LevelFunc, *false* otherwise
+-- @tparam variable variable Variable to be checked.
+-- @treturn bool `true` if the variable is a LevelFunc, `false` otherwise.
 -- @usage
 -- --example of use
 --  LevelFuncs.SetCallback = function (func)

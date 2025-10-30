@@ -2,6 +2,7 @@
 #include "Specific/winmain.h"
 
 #include <CommCtrl.h>
+#include <DbgHelp.h>
 #include <process.h>
 #include <iostream>
 #include <codecvt>
@@ -27,12 +28,10 @@ using namespace TEN::Utils;
 using namespace TEN::Video;
 
 WINAPP App;
-unsigned int ThreadID, ConsoleThreadID;
+unsigned int ThreadID, ConsoleThreadID, ThreadSuspendCount;
 uintptr_t ThreadHandle, ConsoleThreadHandle;
 HACCEL hAccTable;
-bool DebugMode = false;
 HWND WindowsHandle;
-DWORD MainThreadID;
 
 // Indicates to hybrid graphics systems to prefer discrete part by default.
 extern "C"
@@ -264,6 +263,154 @@ unsigned CALLBACK ConsoleInput(void*)
 	return true;
 }
 
+void ShowExternalMessageBox(const std::string& text)
+{
+	// Try to locate error message utility resource.
+	HRSRC res = FindResource(NULL, MAKEINTRESOURCE(IDR_CRASHMSG), "EXE");
+	if (!res)
+		return;
+
+	// Load executable, if found.
+	HGLOBAL resData = LoadResource(NULL, res);
+	if (!resData)
+		return;
+
+	// Lock executable resource to get pointer to data.
+	void* resPtr = LockResource(resData);
+	if (!resPtr)
+		return;
+
+	const auto exePath = std::string("crashmsg.exe");
+
+	// Write executable to a disk.
+	HANDLE hFile = CreateFileA(exePath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return;
+
+	DWORD written;
+	WriteFile(hFile, resPtr, SizeofResource(NULL, res), &written, NULL);
+	CloseHandle(hFile);
+
+	STARTUPINFOA si = { sizeof(si) };
+	PROCESS_INFORMATION pi;
+
+	// Execute the error message utility with the provided text.
+	std::string cmdLine = "\"" + exePath + "\" " + "\"" + text + "\"";
+	if (CreateProcessA(NULL, cmdLine.data(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+	{
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+
+	// Clean up error message utility afterwards.
+	DeleteFileA(exePath.c_str());
+}
+
+LONG WINAPI HandleException(EXCEPTION_POINTERS* exceptionInfo)
+{
+	DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
+	const char* codeName = "Unknown exception";
+
+	// Map exception codes to strings.
+	switch (code)
+	{
+		case EXCEPTION_ACCESS_VIOLATION:         codeName = "Access violation"; break;
+		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    codeName = "Array out of bounds"; break;
+		case EXCEPTION_BREAKPOINT:               codeName = "Breakpoint encountered"; break;
+		case EXCEPTION_DATATYPE_MISALIGNMENT:    codeName = "Data type misalignment"; break;
+		case EXCEPTION_FLT_DIVIDE_BY_ZERO:       codeName = "Floating-point division by zero"; break;
+		case EXCEPTION_FLT_OVERFLOW:             codeName = "Floating-point overflow"; break;
+		case EXCEPTION_ILLEGAL_INSTRUCTION:      codeName = "Illegal instruction"; break;
+		case EXCEPTION_IN_PAGE_ERROR:            codeName = "Exception in page error"; break;
+		case EXCEPTION_INT_DIVIDE_BY_ZERO:       codeName = "Integer division by zero"; break;
+		case EXCEPTION_INT_OVERFLOW:             codeName = "Integer overflow"; break;
+		case EXCEPTION_INVALID_DISPOSITION:      codeName = "Invalid disposition"; break;
+		case EXCEPTION_NONCONTINUABLE_EXCEPTION: codeName = "Non-continuable exception"; break;
+		case EXCEPTION_PRIV_INSTRUCTION:         codeName = "Private instruction exception"; break;
+		case EXCEPTION_SINGLE_STEP:              codeName = "Single-step exception"; break;
+		case EXCEPTION_STACK_OVERFLOW:           codeName = "Stack overflow"; break;
+	}
+
+	// Try to resolve symbol name from address.
+	HANDLE process = GetCurrentProcess();
+	SymInitialize(process, NULL, TRUE);
+
+	DWORD64 address = (DWORD64)exceptionInfo->ExceptionRecord->ExceptionAddress;
+	char symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME];
+	PSYMBOL_INFO symbol = (PSYMBOL_INFO)symbolBuffer;
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+
+	// Display function name, if debug symbols are available, otherwise display address only.
+	std::ostringstream oss;
+	if (SymFromAddr(process, address, 0, symbol))
+	{
+		oss << "address " << symbol->Name << " (0x" << std::hex << address << ")";
+	}
+	else
+	{
+		oss << "address 0x" << std::hex << address;
+	}
+
+	auto errorMessage = "Unhandled exception: " + std::string(codeName) + " at " + oss.str() + ".";
+
+	// Log the exception and show error message.
+	TENLog(errorMessage, LogLevel::Error);
+
+	// Optionally print stack trace, if engine is in debug mode.
+	if (DebugMode)
+	{
+		oss = std::ostringstream{};
+		oss << "Stack trace:\n";
+
+		CONTEXT ctx = *exceptionInfo->ContextRecord;
+		STACKFRAME64 stack = {};
+
+		stack.AddrPC.Mode =
+		stack.AddrFrame.Mode =
+		stack.AddrStack.Mode = AddrModeFlat;
+
+#ifdef _M_IX86
+		DWORD machineType = IMAGE_FILE_MACHINE_I386;
+		stack.AddrPC.Offset = ctx.Eip;
+		stack.AddrFrame.Offset = ctx.Ebp;
+		stack.AddrStack.Offset = ctx.Esp;
+#elif _M_X64
+		DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
+		stack.AddrPC.Offset = ctx.Rip;
+		stack.AddrFrame.Offset = ctx.Rsp;
+		stack.AddrStack.Offset = ctx.Rsp;
+#endif
+
+		HANDLE thread = GetCurrentThread();
+
+		constexpr int STACK_DEPTH = 32;
+		for (int frame = 0; frame < STACK_DEPTH; ++frame)
+		{
+			if (!StackWalk64(machineType, process, thread, &stack, &ctx, NULL,
+				SymFunctionTableAccess64, SymGetModuleBase64, NULL))
+				break;
+
+			if (stack.AddrPC.Offset == 0)
+				break;
+
+			if (SymFromAddr(process, stack.AddrPC.Offset, 0, symbol))
+				oss << "  [" << frame << "] " << symbol->Name << " (0x" << std::hex << stack.AddrPC.Offset << ")\n";
+			else
+				oss << "  [" << frame << "] " << "0x" << std::hex << stack.AddrPC.Offset << "\n";
+		}
+
+		TENLog(oss.str(), LogLevel::Error);
+	}
+
+	// Set engine to debug mode to prevent losing focus in fullscreen mode and show error message.
+	DebugMode = true;
+	ShowExternalMessageBox(errorMessage);
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 void WinProcMsg()
 {
 	MSG msg;
@@ -349,10 +496,12 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if ((signed int)(unsigned short)wParam > 0 && (signed int)(unsigned short)wParam <= 2)
 		{
+			SetInputLockState(false);
+
 			if (!g_Configuration.EnableWindowedMode)
 				g_Renderer.ToggleFullScreen(true);
 
-			if (!DebugMode && ThreadHandle > 0)
+			if (ThreadHandle > 0 && ThreadSuspendCount > 0)
 			{
 				TENLog("Resuming game thread", LogLevel::Info);
 
@@ -360,6 +509,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					ResumeAllSounds(SoundPauseMode::Global);
 
 				ResumeThread((HANDLE)ThreadHandle);
+				ThreadSuspendCount--;
 			}
 
 			return 0;
@@ -367,10 +517,12 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	else
 	{
+		SetInputLockState(true);
+
 		if (!g_Configuration.EnableWindowedMode)
 			ShowWindow(hWnd, SW_MINIMIZE);
 
-		if (!DebugMode)
+		if ((!DebugMode || IsIconic(hWnd)) && ThreadSuspendCount == 0)
 		{
 			TENLog("Suspending game thread", LogLevel::Info);
 
@@ -378,6 +530,7 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				PauseAllSounds(SoundPauseMode::Global);
 
 			SuspendThread((HANDLE)ThreadHandle);
+			ThreadSuspendCount++;
 		}
 	}
 
@@ -431,7 +584,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	gameDir = ConstructAssetDirectory(gameDir);
 
 	// Hide console window if mode isn't debug.
-#ifndef _DEBUG
+#if !_DEBUG
 	if (!DebugMode)
 	{
 		FreeConsole();
@@ -447,6 +600,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	
 	// Initialize logging.
 	InitTENLog(gameDir);
+	SetUnhandledExceptionFilter(HandleException);
 
 	auto windowName = std::string("Starting TombEngine");
 
@@ -499,8 +653,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	catch (TENScriptException const& e)
 	{
-		std::string msg = std::string{ "A Lua error occurred while setting up scripts; " } + __func__ + ": " + e.what();
-		TENLog(msg, LogLevel::Error, LogConfig::All);
+		auto errorMessage = std::string{ "A Lua error occurred while setting up scripts; " } + __func__ + ": " + e.what();
+		TENLog(errorMessage, LogLevel::Error, LogConfig::All);
+		ShowExternalMessageBox(errorMessage);
 		ShutdownTENLog();
 		return 0;
 	}
@@ -601,11 +756,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// Unlike CoInitialize(), this line prevents event spamming if a .dll fails.
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
+		// Initialize audio (should be called prior to initializing renderer, because video handler needs it).
+		Sound_Init(gameDir);
+
 		// Initialize renderer.
 		g_Renderer.Initialize(gameDir, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode, App.WindowHandle);
-
-		// Initialize audio.
-		Sound_Init(gameDir);
 
 		// Initialize input.
 		InitializeInput(App.WindowHandle);
@@ -623,7 +778,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error during game initialization: " + std::string(ex.what()), LogLevel::Error);
+		auto errorMessage = "Error during game initialization: " + std::string(ex.what());
+		TENLog(errorMessage, LogLevel::Error);
+		ShowExternalMessageBox(errorMessage);
 		WinClose();
 		exit(EXIT_FAILURE);
 	}
@@ -632,6 +789,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	g_Parallel.Initialize();
 	ThreadEnded = false;
+	ThreadSuspendCount = 0;
 	ThreadHandle = BeginThread(GameMain, ThreadID);
 
 	// The game window likes to steal input anyway, so let's put it at the

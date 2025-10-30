@@ -62,7 +62,8 @@ namespace TEN::Input
 		},
 		// Keyboard
 		{
-			In::A, In::B, In::C, In::D, In::E, In::F, In::G, In::H, In::I, In::J, In::K, In::L, In::M, In::N, In::O, In::P, In::Q, In::R, In::S, In::T, In::U, In::V, In::W, In::X, In::Y, In::Z,
+			In::A, In::B, In::C, In::D, In::E, In::F, In::G, In::H, In::I, In::J, In::K, In::L, In::M,
+			In::N, In::O, In::P, In::Q, In::R, In::S, In::T, In::U, In::V, In::W, In::X, In::Y, In::Z,
 			In::Num1, In::Num2, In::Num3, In::Num4, In::Num5, In::Num6, In::Num7, In::Num8, In::Num9, In::Num0,
 			In::Return, In::Escape, In::Backspace, In::Tab, In::Space, In::Home, In::End, In::Delete,
 			In::Minus, In::Equals, In::BracketLeft, In::BracketRight, In::Backslash, In::Semicolon, In::Apostrophe, In::Comma, In::Period, In::Slash,
@@ -77,6 +78,21 @@ namespace TEN::Input
 			In::MouseScrollUp,
 			In::MouseScrollDown
 		}
+	};
+
+	const std::vector<ActionGroupID> USER_ACTION_GROUP_IDS =
+	{
+		ActionGroupID::General,
+		ActionGroupID::Vehicle,
+		ActionGroupID::Quick,
+		ActionGroupID::Menu
+	};
+
+	const std::vector<ActionGroupID> RAW_ACTION_GROUP_IDS =
+	{
+		ActionGroupID::Keyboard,
+		ActionGroupID::Mouse,
+		//ActionGroupID::Gamepad
 	};
 
 	Action::Action(ActionID actionID)
@@ -129,14 +145,14 @@ namespace TEN::Input
 		float activeDelaySec = (_timeActive > SecToGameFrames(initialDelaySec)) ? delaySec : initialDelaySec;
 		unsigned int activeDelayGameFrames = SecToGameFrames(activeDelaySec);
 
-		unsigned int delayGameFrames = SecToGameFrames(_timeActive) * activeDelayGameFrames;
-		unsigned int prevDelayGameFrames = SecToGameFrames(_prevTimeActive) * activeDelayGameFrames;
+		unsigned int delayGameFrames = (unsigned int)floor(_timeActive / activeDelayGameFrames) * activeDelayGameFrames;
+		unsigned int prevDelayGameFrames = (unsigned int)floor(_prevTimeActive / activeDelayGameFrames) * activeDelayGameFrames;
 		return (delayGameFrames > prevDelayGameFrames);
 	}
 
 	bool Action::IsReleased(float delaySecMax) const
 	{
-		unsigned int delayGameFramesMax = (delaySecMax == INFINITY) ? UINT_MAX : SecToGameFrames(delaySecMax);
+		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
 		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
 	}
 

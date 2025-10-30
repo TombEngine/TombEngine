@@ -61,7 +61,6 @@
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/TR5/Trap/MovingLaser.h"
-#include "Objects/TR5/Trap/ZipLine.h"
 #include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
@@ -416,7 +415,7 @@ static void StartEntity(ObjectInfo *obj)
 		obj->intelligent = true;
 		obj->damageType = DamageMode::None;
 		obj->LotType = LotType::Human;
-		obj->meshSwapSlot = ID_MESHSWAP_HITMAN;
+		obj->meshSwapSlot = ID_MESHSWAP_CYBORG;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_X | ROT_Y);
 		obj->SetHitEffect(true);
@@ -802,7 +801,7 @@ static void StartObject(ObjectInfo *obj)
 	{
 		obj->Initialize = InitializeFireflySwarm;
 		obj->control = ControlFireflySwarm;
-		obj->drawRoutine = NULL;
+		obj->drawRoutine = nullptr;
 	}
 
 	obj = &Objects[ID_GEN_SLOT1];
@@ -855,15 +854,6 @@ static void StartObject(ObjectInfo *obj)
 
 static void StartTrap(ObjectInfo *obj)
 {
-	obj = &Objects[ID_ZIPLINE_HANDLE];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeZipLine;
-		obj->collision = CollideZipLine;
-		obj->control = ControlZipLine;
-		obj->SetHitEffect(true);
-	}
-
 	obj = &Objects[ID_PROPELLER_H];
 	if (obj->loaded)
 	{

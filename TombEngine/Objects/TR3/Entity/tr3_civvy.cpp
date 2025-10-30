@@ -117,12 +117,14 @@ namespace TEN::Entities::Creatures::TR3
 	// If this function works well, in the future it could be made generic for other other ally entities.
 	static ItemInfo& FindNearestCivvyTarget(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& excludedTargets, float rangeDetection)
 	{
-		float maxRange = (rangeDetection <= 0) ? INFINITY : rangeDetection;
+		float maxRange = (rangeDetection <= 0) ? FLT_MAX : rangeDetection;
 
-		float nearestDistance = INFINITY;
+		float nearestDistance = FLT_MAX;
 		ItemInfo* result = nullptr;
-		for (auto& targetCreature : ActiveCreatures)
+		for (auto creatureIndex : ActiveCreatures)
 		{
+			auto* targetCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 			// Ignore itself and invalid entities.
 			if (targetCreature->ItemNumber == NO_VALUE || targetCreature->ItemNumber == item.Index)
 				continue;

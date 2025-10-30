@@ -175,7 +175,7 @@ namespace TEN::Physics
 					// Find closest vertices between two loops.
 					int closestVertexId0 = NO_VALUE;
 					int closestVertexId1 = NO_VALUE;
-					float distSqrMin = INFINITY;
+					float distSqrMin = FLT_MAX;
 
 					for (const int& vertexId0 : rawLoop)
 					{

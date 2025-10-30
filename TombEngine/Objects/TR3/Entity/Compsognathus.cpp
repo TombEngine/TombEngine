@@ -117,7 +117,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			if (cadaverPos == INVALID_CADAVER_POSITION)
 			{
-				float shortestDist = INFINITY;
+				float shortestDist = FLT_MAX;
 				for (auto& targetItem : g_Level.Items)
 				{
 					if (!Objects.CheckID(targetItem.ObjectNumber) || targetItem.Index == itemNumber || targetItem.RoomNumber == NO_VALUE)
@@ -127,7 +127,7 @@ namespace TEN::Entities::Creatures::TR3
 					{
 						float dist = Vector3i::Distance(item->Pose.Position, targetItem.Pose.Position);
 						if (dist < shortestDist && targetItem.ObjectNumber == ID_CORPSE && targetItem.Active &&
-							TriggerActive(&targetItem) && targetItem.ItemFlags[1] == (int)CorpseFlag::Grounded)
+							TriggerActive(&targetItem) && targetItem.ItemFlags[7] == (int)CorpseFlag::Grounded)
 						{
 							cadaverPos = targetItem.Pose.Position.ToVector3();
 							shortestDist = dist;

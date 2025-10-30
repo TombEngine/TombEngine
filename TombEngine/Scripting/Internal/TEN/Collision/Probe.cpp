@@ -126,7 +126,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the world position of this Probe.
-	// @function GetPosition
+	// @function Probe:GetPosition
 	// @treturn Vec3 World position.
 	Vec3 Probe::GetPosition()
 	{
@@ -134,7 +134,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the Room object of this Probe.
-	// @function GetRoom
+	// @function Probe:GetRoom
 	// @treturn Room Room object.
 	std::unique_ptr<Room> Probe::GetRoom()
 	{
@@ -143,7 +143,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the room name of this Probe.
-	// @function GetRoomName
+	// @function Probe:GetRoomName
 	// @treturn string Room name.
 	std::string Probe::GetRoomName()
 	{
@@ -154,6 +154,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the room number of this Probe.
+	// @function Probe:GetRoomNumber
 	// @treturn int Room number.
 	int Probe::GetRoomNumber()
 	{
@@ -161,7 +162,7 @@ namespace TEN::Scripting::Collision
 	}
 	
 	/// Get the floor height at this Probe.
-	// @function GetFloorHeight
+	// @function Probe:GetFloorHeight
 	// @treturn int Floor height. __nil: no floor exists__
 	sol::optional<int> Probe::GetFloorHeight()
 	{
@@ -176,7 +177,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the ceiling height at this Probe.
-	// @function GetCeilingHeight
+	// @function Probe:GetCeilingHeight
 	// @treturn int Ceiling height. __nil: no ceiling exists__
 	sol::optional<int> Probe::GetCeilingHeight()
 	{
@@ -191,7 +192,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the water surface height at this Probe.
-	// @function GetWaterSurfaceHeight
+	// @function Probe:GetWaterSurfaceHeight
 	// @treturn int Water surface height. __nil: no water surface exists__
 	sol::optional<int> Probe::GetWaterSurfaceHeight()
 	{
@@ -206,7 +207,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the normal of the floor at this Probe.
-	// @function GetFloorNormal
+	// @function Probe:GetFloorNormal
 	// @treturn Vec3 Floor normal. __nil: no floor exists__
 	sol::optional<Vec3> Probe::GetFloorNormal()
 	{
@@ -217,7 +218,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the normal of the ceiling at this Probe.
-	// @function GetCeilingNormal
+	// @function Probe:GetCeilingNormal
 	// @treturn Vec3 Ceiling normal. __nil: no ceiling exists__
 	sol::optional<Vec3> Probe::GetCeilingNormal()
 	{
@@ -228,7 +229,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the material type of the floor at this Probe.
-	// @function GetFloorMaterialType
+	// @function Probe:GetFloorMaterialType
 	// @treturn Collision.MaterialType Floor material type. __nil: no floor exists__
 	sol::optional<MaterialType> Probe::GetFloorMaterialType()
 	{
@@ -241,7 +242,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Get the material type of the ceiling at this Probe.
-	// @function GetCeilingMaterialType
+	// @function Probe:GetCeilingMaterialType
 	// @treturn Collision.MaterialType Ceiling material type. __nil: no ceiling exists__
 	sol::optional<MaterialType> Probe::GetCeilingMaterialType()
 	{
@@ -254,7 +255,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if the floor at this Probe is steep.
-	// @function IsSteepFloor
+	// @function Probe:IsSteepFloor
 	// @treturn bool Steep floor status. __true: is a steep floor, false: isn't a steep floor, nil: no floor exists__
 	sol::optional<bool> Probe::IsSteepFloor()
 	{
@@ -265,7 +266,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if the ceiling at this Probe is steep.
-	// @function IsSteepCeiling
+	// @function Probe:IsSteepCeiling
 	// @treturn bool Steep ceiling status. __true: is a steep ceiling, false: isn't a steep ceiling, nil: no ceiling exists__
 	sol::optional<bool> Probe::IsSteepCeiling()
 	{
@@ -276,7 +277,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if the Probe is inside a wall. Can be used to determine if a wall and ceiling exist.
-	// @function IsWall
+	// @function Probe:IsWall
 	// @treturn bool Wall status. __true: is a wall, false: isn't a wall__
 	bool Probe::IsWall()
 	{
@@ -284,7 +285,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if this Probe is inside solid geometry (below a floor, above a ceiling, inside a bridge, or inside a wall).
-	// @function IsInsideSolidGeometry
+	// @function Probe:IsInsideSolidGeometry
 	// @treturn bool Inside geometry status. __true: is inside, false: is outside__
 	bool Probe::IsInsideSolidGeometry()
 	{
@@ -299,7 +300,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if there is a climbable wall in the given heading angle at this Probe.
-	// @function IsClimbableWall
+	// @function Probe:IsClimbableWall
 	// @tparam float headingAngle Heading angle at which to check for a climbable wall.
 	// @treturn bool Climbable wall status. __true: is climbable wall, false: isn't climbable__
 	bool Probe::IsClimbableWall(float headingAngle)
@@ -310,7 +311,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if there is a monkey swing sector at this Probe.
-	// @function IsMonkeySwing
+	// @function Probe:IsMonkeySwing
 	// @treturn bool Monkey swing sector status. __true: is a monkey swing, false: isn't a monkey swing__
 	bool Probe::IsMonkeySwing()
 	{
@@ -319,7 +320,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Check if there is a death sector at this Probe.
-	// @function IsDeath
+	// @function Probe:IsDeath
 	// @treturn bool Death sector status. __true: is a death sector, false: isn't a death sector__
 	bool Probe::IsDeath()
 	{
@@ -328,7 +329,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Preview this Probe in the Collision Stats debug page.
-	// @function Preview
+	// @function Probe:Preview
 	void Probe::Preview()
 	{
 		constexpr auto TARGET_RADIUS = BLOCK(0.08f);

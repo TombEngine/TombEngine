@@ -18,7 +18,7 @@ namespace TEN::Renderer::Structures
 		Vector4 Color		 = Vector4::Zero;
 		Vector4 AmbientLight = Vector4::Zero;
 
-		RendererMesh*				Mesh		 = nullptr;
+		RendererMesh* Mesh = nullptr;
 		std::vector<RendererLight*> LightsToDraw = {};
 
 		Vector3 InterpolatedPosition	= Vector3::Zero;

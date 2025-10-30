@@ -12,9 +12,13 @@
 void AssignObjectMeshSwap(ObjectInfo& object, int requiredMeshSwap, const std::string& baseName, const std::string& requiredName)
 {
 	if (Objects[requiredMeshSwap].loaded)
+	{
 		object.meshSwapSlot = requiredMeshSwap;
+	}
 	else
+	{
 		TENLog("Slot " + requiredName + " not loaded. Meshswap issues with " + baseName + " may result in incorrect behaviour.", LogLevel::Warning);
+	}
 }
 
 bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std::string& baseName, const std::string& requiredName)
@@ -49,15 +53,14 @@ bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std:
 
 bool CheckIfSlotExists(GAME_OBJECT_ID requiredObj, const std::string& baseName)
 {
-	bool result = Objects[requiredObj].loaded;
-
-	if (!result)
+	if (!Objects[requiredObj].loaded)
 	{
 		TENLog("Slot " + GetObjectName(requiredObj) + " (" + std::to_string(requiredObj) + ") not loaded. " + 
-				baseName + " may not work.", LogLevel::Warning);
+			   baseName + " may not work.", LogLevel::Warning);
+		return false;
 	}
 
-	return result;
+	return true;;
 }
 
 void InitSmashObject(ObjectInfo* object, int objectNumber)

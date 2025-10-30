@@ -186,8 +186,9 @@ void ItemInfo::ResetModelToDefault()
 
 	if (object.nmeshes > 0)
 	{
-		Model.MeshIndex.resize(object.nmeshes);
-		Model.BaseMesh = object.meshIndex;
+		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
+		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
+		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -249,6 +250,60 @@ bool ItemInfo::IsBridge() const
 	return Contains(BRIDGE_OBJECT_IDS, ObjectNumber);
 }
 
+std::vector<BoundingSphere> ItemInfo::GetSpheres() const
+{
+	return g_Renderer.GetSpheres(Index);
+}
+
+ItemInfo* ItemHandler::Get() const
+{
+	if (g_Level.Items.empty() || _index == NO_VALUE)
+		return nullptr;
+
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
+		return &g_Level.Items[0];
+	}
+
+	return &g_Level.Items[_index];
+}
+
+ItemHandler& ItemHandler::operator=(ItemInfo* ptr)
+{
+	if (ptr)
+		_index = ptr->Index;
+	else
+		_index = NO_VALUE;
+
+	return *this;
+}
+
+ItemHandler::operator ItemInfo* () const
+{
+	return Get();
+}
+
+ItemInfo* ItemHandler::operator->() const
+{
+	return static_cast<ItemInfo*>(*this);
+}
+
+ItemInfo& ItemHandler::operator*() const
+{
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+#endif
+		return g_Level.Items[0];
+	}
+
+	return g_Level.Items[_index];
+}
+
 bool TestState(int refState, const std::vector<int>& stateList)
 {
 	for (const auto& state : stateList)
@@ -286,6 +341,12 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 
 void KillItem(short const itemNumber)
 {
+	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
+	{
+		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		return;
+	}
+
 	if (InItemControlLoop)
 	{
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber | 0x8000;
@@ -529,16 +590,30 @@ short CreateNewEffect(short roomNumber)
 	if (NextFxFree != NO_VALUE)
 	{
 		auto* fx = &EffectList[NextFxFree];
+
+		// HACK: Overcome a self-referencing deadlock by checking if nextFx points to the same index.
+		if (fxNumber == fx->nextFx)
+			return NO_VALUE;
+
 		NextFxFree = fx->nextFx;
 
 		auto* room = &g_Level.Rooms[roomNumber];
 
 		fx->roomNumber = roomNumber;
 		fx->nextFx = room->fxNumber;
-		room->fxNumber = fxNumber;
 		fx->nextActive = NextFxActive;
+
 		NextFxActive = fxNumber;
+		room->fxNumber = fxNumber;
+
+		fx->speed = 0;
 		fx->color = Vector4::One;
+		fx->fallspeed = 0;
+		fx->frameNumber = 0;
+		fx->counter = 0;
+		fx->flag1 = 0;
+		fx->flag2 = 0;
+		fx->DisableInterpolation = true;
 	}
 
 	return fxNumber;
@@ -550,10 +625,7 @@ void InitializeFXArray()
 	NextFxFree = 0;
 
 	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-	{
-		auto* fx = &EffectList[i];
-		fx->nextFx = i + 1;
-	}
+		EffectList[i].nextFx = i + 1;
 
 	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
 }
@@ -623,6 +695,8 @@ void InitializeItem(short itemNumber)
 	item.LookedAt = false;
 	item.Timer = 0;
 	item.HitPoints = Objects[item.ObjectNumber].HitPoints;
+
+	item.Effect = {};
 
 	if (item.ObjectNumber == ID_HK_ITEM ||
 		item.ObjectNumber == ID_HK_AMMO_ITEM ||
@@ -759,10 +833,8 @@ const std::string& GetObjectName(GAME_OBJECT_ID objectID)
 {
 	static const auto UNKNOWN_OBJECT = std::string("Unknown Object");
 
-	for (auto it = GAME_OBJECT_IDS.begin(); it != GAME_OBJECT_IDS.end(); ++it)
+	for (const auto& [name, id] : GAME_OBJECT_IDS)
 	{
-		const auto [name, id] = *it;
-
 		if (id == objectID)
 			return name;
 	}
@@ -967,7 +1039,9 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (!target->Callbacks.OnHit.empty())
 	{
 		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-		g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+
+		if (index != NO_VALUE)
+			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
 	}
 }
 

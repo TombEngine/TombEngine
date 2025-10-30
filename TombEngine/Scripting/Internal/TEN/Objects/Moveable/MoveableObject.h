@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/items.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -28,7 +29,7 @@ public:
 	static void Register(sol::state& state, sol::table& parent);
 
 protected:
-	ItemInfo* _moveable = nullptr;
+	ItemHandler _moveable = {};
 
 private:
 	int	 _moveableID  = 0;
@@ -115,8 +116,10 @@ public:
 	void Invalidate();
 	void Destroy();
 	void ShatterMesh(int meshId);
-	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex);
+	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
+	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
@@ -127,6 +130,7 @@ public:
 	void SetCollidable(bool isCollidable);
 	void Explode();
 	void Shatter();
+	void ShowInteractionHighlight();
 
 	// Operators
 

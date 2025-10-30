@@ -39,13 +39,13 @@ namespace TEN::Entities::Generic
 		PrepareRope(&rope, &itemPos, &pos, CLICK(0.5f), item);
 
 		item->TriggerFlags = short(Ropes.size());
-		item->Collidable = false;
 
 		Ropes.push_back(rope);
 	}
 
 	void PrepareRope(ROPE_STRUCT* rope, Vector3i* pos1, Vector3i* pos2, int length, ItemInfo* item)
 	{
+		rope->index = item->Index;
 		rope->room = item->RoomNumber;
 		rope->position = *pos1;
 		rope->segmentLength = length << 16;

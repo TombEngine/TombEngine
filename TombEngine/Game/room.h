@@ -2,6 +2,7 @@
 
 #include "Math/Math.h"
 #include "Physics/Physics.h"
+#include "Game/StaticMesh.h"
 
 using namespace TEN::Math;
 using namespace TEN::Physics;
@@ -38,13 +39,6 @@ enum RoomEnvFlags
 	ENV_FLAG_COLD			 = 1 << 12
 };
 
-enum StaticMeshFlags : short
-{
-	SM_VISIBLE	 = 1 << 0,
-	SM_SOLID	 = 1 << 1,
-	SM_COLLISION = 1 << 2
-};
-
 struct ROOM_VERTEX
 {
 	Vector3 position;
@@ -53,21 +47,6 @@ struct ROOM_VERTEX
 	Vector3 color;
 	int		effects;
 	int		index;
-};
-
-struct MESH_INFO
-{
-	Pose pos;
-	int roomNumber;
-	short staticNumber;
-	short flags;
-	Vector4 color;
-	short HitPoints;
-	std::string Name;
-	bool Dirty;
-	
-	BoundingOrientedBox GetObb() const;
-	BoundingOrientedBox GetVisibilityObb() const;
 };
 
 struct RoomLightData
@@ -158,7 +137,8 @@ struct RoomData
 
 	//RoomObjectHandler Moveables = RoomObjectHandler(); // TODO: Refactor linked list of items in room to use a BVH instead.
 	//RoomObjectHandler Statics	= RoomObjectHandler(); // TODO: Refactor to use BVH.
-	std::vector<MESH_INFO> mesh = {}; // Statics
+
+	std::vector<StaticMesh> mesh = {}; // Statics
 
 	CollisionMesh			   CollisionMesh  = {};
 	RoomObjectHandler		   Bridges		  = RoomObjectHandler();
@@ -193,7 +173,6 @@ Vector3i GetRoomCenter(int roomNumber);
 int IsRoomOutside(int x, int y, int z);
 void InitializeNeighborRoomList();
 
-GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox);
 std::vector<int> GetNeighborRoomNumbers(int roomNumber, unsigned int searchDepth);
 
 namespace TEN::Collision::Room
