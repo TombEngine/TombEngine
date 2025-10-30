@@ -49,7 +49,7 @@ namespace TEN::Renderer::Graphics
 			viewDesc.Texture2DArray.ArraySize = 1;
 			viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < count; i++)
 			{
 				viewDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
 				res = device->CreateRenderTargetView(Texture.Get(), &viewDesc, RenderTargetView[i].GetAddressOf());

@@ -126,15 +126,15 @@ void RollingBallControl(short itemNumber)
 	auto rightFloor = GetPointCollision(Vector3i(rightX, item->Pose.Position.y, rightZ), item->RoomNumber);
 	auto leftFloor  = GetPointCollision(Vector3i(leftX,  item->Pose.Position.y, leftZ),  item->RoomNumber);
 
-	int frontHeight = frontFloor.GetFloorHeight() - bigRadius;
-	int backHeight  = backFloor.GetFloorHeight()  - bigRadius;
-	int rightHeight = rightFloor.GetFloorHeight() - bigRadius;
-	int leftHeight  = leftFloor.GetFloorHeight()  - bigRadius;
+	int frontHeight = frontFloor.GetFloorHeight() - (frontFloor.IsWall() ? 0 : bigRadius);
+	int backHeight  = backFloor.GetFloorHeight()  - (backFloor.IsWall()  ? 0 : bigRadius);
+	int rightHeight = rightFloor.GetFloorHeight() - (rightFloor.IsWall() ? 0 : bigRadius);
+	int leftHeight  = leftFloor.GetFloorHeight()  - (leftFloor.IsWall()  ? 0 : bigRadius);
 
-	int frontCeiling = frontFloor.GetCeilingHeight() + bigRadius;
-	int backCeiling  = backFloor.GetCeilingHeight()  + bigRadius;
-	int rightCeiling = rightFloor.GetCeilingHeight() + bigRadius;
-	int leftCeiling  = leftFloor.GetCeilingHeight()  + bigRadius;
+	int frontCeiling = frontFloor.GetCeilingHeight() + (frontFloor.IsWall() ? 0 : bigRadius);
+	int backCeiling  = backFloor.GetCeilingHeight()  + (backFloor.IsWall()  ? 0 : bigRadius);
+	int rightCeiling = rightFloor.GetCeilingHeight() + (rightFloor.IsWall() ? 0 : bigRadius);
+	int leftCeiling  = leftFloor.GetCeilingHeight()  + (leftFloor.IsWall()  ? 0 : bigRadius);
 
 	frontX = item->Pose.Position.x;
 	frontZ = item->Pose.Position.z + bigRadius;
@@ -150,15 +150,15 @@ void RollingBallControl(short itemNumber)
 	auto rightFarFloor = GetPointCollision(Vector3i(rightX, item->Pose.Position.y, rightZ), item->RoomNumber);
 	auto leftFarFloor  = GetPointCollision(Vector3i(leftX,  item->Pose.Position.y, leftZ),  item->RoomNumber);
 
-	int frontFarHeight = fronFarFloor.GetFloorHeight()  - bigRadius;
-	int backFarHeight  = backFarFloor.GetFloorHeight()  - bigRadius;
-	int rightFarHeight = rightFarFloor.GetFloorHeight() - bigRadius;
-	int leftFarHeight  = leftFarFloor.GetFloorHeight()  - bigRadius;
+	int frontFarHeight = fronFarFloor.GetFloorHeight()  - (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int backFarHeight  = backFarFloor.GetFloorHeight()  - (backFarFloor.IsWall()  ? 0 : bigRadius);
+	int rightFarHeight = rightFarFloor.GetFloorHeight() - (rightFarFloor.IsWall() ? 0 : bigRadius);
+	int leftFarHeight  = leftFarFloor.GetFloorHeight()  - (leftFarFloor.IsWall()  ? 0 : bigRadius);
 
-	int frontFarCeiling = fronFarFloor.GetCeilingHeight()  + bigRadius;
-	int backFarCeiling  = backFarFloor.GetCeilingHeight()  + bigRadius;
-	int rightFarCeiling = rightFarFloor.GetCeilingHeight() + bigRadius;
-	int leftFarCeiling  = leftFarFloor.GetCeilingHeight()  + bigRadius;
+	int frontFarCeiling = fronFarFloor.GetCeilingHeight()  + (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int backFarCeiling  = backFarFloor.GetCeilingHeight()  + (backFarFloor.IsWall()  ? 0 : bigRadius);
+	int rightFarCeiling = rightFarFloor.GetCeilingHeight() + (rightFarFloor.IsWall() ? 0 : bigRadius);
+	int leftFarCeiling  = leftFarFloor.GetCeilingHeight()  + (leftFarFloor.IsWall()  ? 0 : bigRadius);
 
 	if (item->Pose.Position.y - dh > -CLICK(1) ||
 		item->Pose.Position.y - frontFarHeight >= CLICK(2) ||
@@ -168,9 +168,10 @@ void RollingBallControl(short itemNumber)
 	{
 		int counterZ = 0;
 
-		if ((frontFarHeight - dh) <= CLICK(1))
+		if ((frontHeight - dh) <= CLICK(1) || (frontCeiling - dh) > -CLICK(1))
 		{
-			if (frontFarHeight - dh < -CLICK(4) || frontHeight - dh < -CLICK(1))
+			if ((frontFarHeight - dh) <  -CLICK(4) || (frontHeight - dh) <  -CLICK(1) ||
+				(frontFarCeiling - dh) >  CLICK(4) || (frontCeiling - dh) >  CLICK(1))
 			{
 				if (item->ItemFlags[1] <= 0)
 				{
@@ -189,9 +190,10 @@ void RollingBallControl(short itemNumber)
 				item->ItemFlags[1] += (frontHeight - dh) / 2;
 		}
 
-		if (backHeight - dh <= CLICK(1))
+		if ((backHeight - dh) <= CLICK(1) || (backCeiling - dh) > -CLICK(1))
 		{
-			if (backFarHeight - dh < -CLICK(4) || backHeight - dh < -CLICK(1))
+			if ((backFarHeight - dh) <  -CLICK(4) || (backHeight - dh) <  -CLICK(1) ||
+				(backFarCeiling - dh) >  CLICK(4) || (backCeiling - dh) >  CLICK(1))
 			{
 				if (item->ItemFlags[1] >= 0)
 				{
@@ -220,9 +222,10 @@ void RollingBallControl(short itemNumber)
 
 		int counterX = 0;
 
-		if ((leftHeight - dh) <= CLICK(1))
+		if ((leftHeight - dh) <= CLICK(1) || (leftCeiling - dh) > -CLICK(1))
 		{
-			if ((leftFarHeight - dh) < -CLICK(4) || leftHeight - dh < -CLICK(1))
+			if ((leftFarHeight - dh) < -CLICK(4) || (leftHeight - dh) < -CLICK(1)||
+				(leftFarCeiling - dh) > CLICK(4) || (leftCeiling - dh) > CLICK(1))
 			{
 				if (item->ItemFlags[0] >= 0)
 				{
@@ -241,9 +244,10 @@ void RollingBallControl(short itemNumber)
 				item->ItemFlags[0] -= (leftHeight - dh) / 2;
 		}
 
-		if ((rightHeight - dh) <= CLICK(1))
+		if ((rightHeight - dh) <= CLICK(1) || (rightCeiling - dh) > -CLICK(1))
 		{
-			if ((rightFarHeight - dh) < -CLICK(4) || rightHeight - dh < -CLICK(1))
+			if ((rightFarHeight - dh) < -CLICK(4) || (rightHeight - dh) < -CLICK(1) ||
+				(rightFarCeiling - dh) > CLICK(4) || (rightCeiling - dh) > CLICK(1))
 			{
 				if (item->ItemFlags[0] <= 0)
 				{
@@ -309,17 +313,22 @@ void RollingBallControl(short itemNumber)
 		if (((angle - item->Pose.Orientation.y) & 0x7fff) >= 512)
 		{
 			if (angle <= item->Pose.Orientation.y || angle - item->Pose.Orientation.y >= 0x8000)
-				item->Pose.Orientation.y -= CLICK(2);
+				item->Pose.Orientation.y -= ANGLE(2.8f);
 			else
-				item->Pose.Orientation.y += CLICK(2);
+				item->Pose.Orientation.y += ANGLE(2.8f);
 		}
 		else
 			item->Pose.Orientation.y = angle;
-
-		item->DisableInterpolation = true;
 	}
 
 	item->Pose.Orientation.x -= ((abs(item->ItemFlags[0]) + abs(item->ItemFlags[1])) / 2) / vDivider;
+
+	// If position or rotation of a rollingball changed significantly, disable interpolation.
+	if (Vector3::Distance(oldPos.Position.ToVector3(), item->Pose.Position.ToVector3()) > CLICK(2) || 
+		!EulerAngles::Compare(oldPos.Orientation, item->Pose.Orientation, ANGLE(10.0f)))
+	{
+		item->DisableInterpolation = true;
+	}
 
 	TestTriggers(item, true);
 	DoVehicleCollision(item, bigRadius * 0.9f);
@@ -393,7 +402,7 @@ void ClassicRollingBallControl(short itemNum)
 {
 	int ydist, dist;
 	GameVector* old;
-	ROOM_INFO* r;
+	RoomData* r;
 
 	auto* item = &g_Level.Items[itemNum];
 

@@ -113,6 +113,16 @@ bool TestLaraWeaponType(LaraWeaponType refWeaponType, const std::vector<LaraWeap
 	return Contains(weaponTypeList, refWeaponType);
 }
 
+bool TestLaraTorchFlame(ItemInfo* item, ItemInfo* flameItem)
+{
+	auto* lara = GetLaraInfo(item);
+
+	bool bothIgnited = (lara->Torch.IsLit == (flameItem->Status == ITEM_ACTIVE));
+	bool colorsEqual = (lara->Torch.CurrentColor == (Vector3)flameItem->Model.Color);
+
+	return !bothIgnited || (lara->Torch.IsLit && !colorsEqual);
+}
+
 static std::vector<LaraWeaponType> StandingWeaponTypes
 {
 	LaraWeaponType::Shotgun,
@@ -126,7 +136,32 @@ static std::vector<LaraWeaponType> StandingWeaponTypes
 
 bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 {
-	return (TestLaraWeaponType(weaponType, StandingWeaponTypes) || GetLaraInfo(*item).Weapons[(int)weaponType].HasLasersight);
+	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
+}
+
+bool IsCrouching(const ItemInfo* item)
+{
+	bool crouching =
+		item->Animation.ActiveState == LS_CROUCH_IDLE ||
+		item->Animation.ActiveState == LS_CROUCH_ROLL ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_LEFT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_RIGHT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_180 ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
+
+	// HACK: Unless we have a better way to detect the phase of animation,
+	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
+	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
+	{
+		int frameCount = g_Level.Anims[item->Animation.AnimNumber].frameEnd - g_Level.Anims[item->Animation.AnimNumber].frameBase;
+		int midpoint = frameCount * 0.75f;
+
+		if (item->Animation.FrameNumber <= g_Level.Anims[item->Animation.AnimNumber].frameBase + midpoint)
+			crouching = true;
+	}
+
+	return crouching;
 }
 
 bool IsVaultState(int state)

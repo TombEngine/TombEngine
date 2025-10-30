@@ -25,12 +25,12 @@
 #include "Game/Lara/PlayerStateMachine.h"
 #include "Game/misc.h"
 #include "Game/savegame.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Collision::Attractor;
 using namespace TEN::Collision::Floordata;
@@ -38,21 +38,102 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
-using namespace TEN::Player;
+using namespace TEN::Entities::Doors;
+using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Gui;
+using namespace TEN::Player;
 
 using TEN::Renderer::g_Renderer;
 
 LaraInfo	  Lara			= {};
-ItemInfo*	  LaraItem		= nullptr;
+ItemHandler	  LaraItem		= {};
 CollisionInfo LaraCollision = {};
 
 //---------debug
 #include <OISKeyboard.h>
 #include "Specific/Input/Input.h"
 //----------
+
+static void HandlePlayerDebug(const ItemInfo& item)
+{
+	// Collision stats.
+	if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionStats)
+	{
+		DrawNearbySectorFlags(item);
+	}
+	// Pathfinding stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
+	{
+		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
+	}
+	// Collision mesh stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
+	{
+		auto bridgeItemNumbers = std::set<int>{};
+		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+
+		PrintDebugMessage("Room number: %d", room.RoomNumber);
+		PrintDebugMessage("Sectors: %d", room.Sectors.size());
+		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
+		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
+
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+
+			neighborRoom.CollisionMesh.DrawDebug();
+
+			// Draw door collision meshes.
+			for (int doorItemNumber : neighborRoom.Doors.GetIds())
+			{
+				const auto& doorItem = g_Level.Items[doorItemNumber];
+				const auto& door = GetDoorObject(doorItem);
+
+				door.CollisionMesh.DrawDebug();
+			}
+
+			// Collect bridge item numbers.
+			for (int bridgeItemNumber : neighborRoom.Bridges.GetIds())
+				bridgeItemNumbers.insert(bridgeItemNumber);
+
+			// Draw bridge tree.
+			neighborRoom.Bridges.DrawDebug();
+		}
+
+		// Draw bridge collision meshes.
+		for (int bridgeItemNumber : bridgeItemNumbers)
+		{
+			auto& bridgeItem = g_Level.Items[bridgeItemNumber];
+			auto& bridge = GetBridgeObject(bridgeItem);
+
+			bridge.GetCollisionMesh().DrawDebug();
+		}
+
+		// Print bridge item numbers in sector.
+		auto pointColl = GetPointCollision(item);
+		PrintDebugMessage("Bridge moveable IDs in room %d, sector %d:", pointColl.GetRoomNumber(), pointColl.GetSector().ID);
+		if (!pointColl.GetSector().BridgeItemNumbers.empty())
+		{
+			for (int bridgeItemNumber : pointColl.GetSector().BridgeItemNumbers)
+				PrintDebugMessage("%d", bridgeItemNumber);
+		}
+	}
+	// Portal stats.
+	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
+	{
+		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+		PrintDebugMessage("Portals in room %d: %d", room.RoomNumber, room.Portals.size());
+
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			const auto& neighborRoom = g_Level.Rooms[neighborRoomNumber];
+			for (const auto& portal : neighborRoom.Portals)
+				portal.CollisionMesh.DrawDebug();
+		}
+	}
+}
 
 void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
@@ -122,7 +203,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			player.Control.HandStatus = HandStatus::Free;
 		}
 
-		++player.Control.Count.PositionAdjust;
+		player.Control.Count.PositionAdjust++;
 	}
 	else
 	{
@@ -385,6 +466,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			item->Pose.Position.ToVector3() - Vector3::UnitY, EulerAngles(ANGLE(90.0f), 0, 0).ToQuaternion(), coll->Setup.Radius, coll->Setup.Height,
 			Color(1.0f, 1.0f, 0.0f, 0.15f), RendererDebugPage::CollisionStats, false);
 	}
+	HandlePlayerDebug(*item);
 }
 
 void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
@@ -424,11 +506,14 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 	player.Control.Look.Mode = LookMode::None;
 
-	UpdateLaraRoom(item, -LARA_HEIGHT / 2);
+	UpdateLaraRoom(item, -coll->Setup.Height / 2);
 
 	// Process vehicles.
 	if (HandleLaraVehicle(item, coll))
+	{
+		DoObjectCollision(item, coll);
 		return;
+	}
 
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
@@ -518,7 +603,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.Vehicle == NO_VALUE)
 		HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Collision);
 
-	UpdateLaraRoom(item, LARA_RADIUS);
+	UpdateLaraRoom(item, coll->Setup.Radius);
 	HandleWeapon(*item);
 
 	ProcessSectorFlags(item);
@@ -645,7 +730,7 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Walk) && !IsHeld(In::Look))
 	{
 		if (TestEnvironment(ENV_FLAG_WATER, item) ||
-			(player.Context.WaterSurfaceDist > 0 && player.Context.WaterSurfaceDist != NO_HEIGHT))
+			(player.Context.WaterSurfaceDist > 0 && player.Context.WaterSurfaceDist != -NO_HEIGHT))
 		{
 			SetAnimation(item, LA_UNDERWATER_IDLE);
 			player.Control.WaterStatus = WaterStatus::Underwater;
@@ -663,6 +748,33 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.IsAirborne = false;
 		item->HitPoints = LARA_HEALTH_MAX;
 		player.Control.HandStatus = HandStatus::Free;
+		player.ExtraAnim = NO_VALUE;
+	}
+
+	// Open doors in front by pressing the Draw button.
+	if (IsClicked(In::Draw))
+	{
+		auto origin = item->Pose.Position;
+		auto target = Geometry::TranslatePoint(item->Pose.Position, item->Pose.Orientation, BLOCK(2));
+		auto gameOrigin = GameVector(origin, item->RoomNumber);
+		auto gameTarget = GameVector(target, FindRoomNumber(target, item->RoomNumber, true));
+
+		Vector3i vector = {};
+		bool inSight = !LOS(&gameOrigin, &gameTarget);
+		int itemNumber = ObjectOnLOS2(&gameOrigin, &gameTarget, &vector, nullptr);
+
+		if (inSight && itemNumber != NO_LOS_ITEM)
+		{
+			auto distance = Vector3i::Distance(origin, vector);
+			auto objectName = GetObjectName(g_Level.Items[itemNumber].ObjectNumber);
+
+			if (distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			{
+				g_Level.Items[itemNumber].Flags |= CODE_BITS;
+				Trigger(itemNumber);
+			}
+		}
+
 	}
 }
 

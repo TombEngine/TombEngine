@@ -15,6 +15,7 @@ namespace TEN::Scripting
 		unsigned int HealthUsed	 = 0;
 		unsigned int DamageTaken = 0;
 		unsigned int Kills		 = 0;
+		unsigned int Pickups	 = 0;
 		unsigned int Secrets	 = 0;
 
 		static void Register(sol::table&);

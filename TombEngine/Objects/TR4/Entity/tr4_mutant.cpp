@@ -11,8 +11,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
-#include "Objects/Effects/tr4_locusts.h"
 #include "Objects/objectslist.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Renderer/RendererEnums.h"
 
 using namespace TEN::Math;

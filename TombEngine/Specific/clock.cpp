@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include "Specific/clock.h"
-#include "winmain.h"
+#include "Specific/winmain.h"
 
 constexpr auto CONTROL_FRAME_TIME = 1000.0f / 30.0f;
 constexpr auto DEBUG_SKIP_FRAME_TIME = 10 * CONTROL_FRAME_TIME;
@@ -118,11 +118,8 @@ bool TimeInit()
 	return true;
 }
 
-bool TestGlobalTimeInterval(float intervalSecs, float offsetSecs)
+bool TestGlobalTimeInterval(unsigned int intervalGameFrames, unsigned int offsetGameFrames)
 {
-	int intervalGameFrames = (int)round(intervalSecs * FPS);
-	int offsetGameFrames = (int)round(offsetSecs * FPS);
-
 	if (offsetGameFrames >= intervalGameFrames)
 	{
 		TENLog("TestGlobalTimeInterval(): interval must be greater than offset.", LogLevel::Warning);
@@ -130,4 +127,14 @@ bool TestGlobalTimeInterval(float intervalSecs, float offsetSecs)
 	}
 
 	return ((GlobalCounter % intervalGameFrames) == offsetGameFrames);
+}
+
+unsigned int SecToGameFrames(float sec)
+{
+	return ((unsigned int)round(sec * (float)FPS));
+}
+
+float GameFramesToSec(unsigned int gameFrames)
+{
+	return ((float)gameFrames / (float)FPS);
 }

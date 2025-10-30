@@ -42,6 +42,18 @@ enum SpriteEnumFlag
 	SP_PLASMAEXP  = (1 << 13),
 	SP_POISON	  = (1 << 14),
 	SP_COLOR	  = (1 << 15),
+	SP_ANIMATED	  = (1 << 16),
+	SP_LIGHT	  = (1 << 17),
+	SP_SOUND	  = (1 << 18),
+};
+
+enum ParticleAnimType
+{
+	None,
+	OneShot,
+	Loop,
+	BackAndForth,
+	LifetimeSpread
 };
 
 // Used by Particle.nodeNumber.
@@ -104,16 +116,18 @@ struct NODEOFFSET_INFO
 	short y;
 	short z;
 	char meshNum;
-	unsigned char gotIt;
+	int itemNumber;
 };
 
+// TODO: Refactor this entire struct.
 struct Particle
 {
 	bool on;
+	bool DisableInterpolation;
 
 	GAME_OBJECT_ID SpriteSeqID = GAME_OBJECT_ID::ID_DEFAULT_SPRITES;
 	int	SpriteID = 0;
-	int	fxObj;
+	int	fxObj = NO_VALUE;
 
 	int x;
 	int y;
@@ -125,12 +139,12 @@ struct Particle
 	short yVel;
 	short zVel;
 
-	short rotAng;
-	short rotAdd;
+	short rotAng; // TODO: Due to legacy conventions, assigned values must be shifted >> 4.
+	short rotAdd; // TODO: Due to legacy conventions, assigned values must be shifted >> 4.
 
 	short gravity;
-	unsigned short flags; // SP_enum
-
+	unsigned int flags; // SP_enum
+  
 	float sSize;
 	float dSize;
 	float size;
@@ -159,6 +173,16 @@ struct Particle
 	unsigned char extras;
 	signed char dynamic;
 	unsigned char nodeNumber; // ParticleNodeOffsetIDs enum.
+  
+	int damage;
+	float framerate;
+	ParticleAnimType animationType;
+
+	int lightRadius;
+	int lightFlicker;
+	int lightFlickerS;
+
+	int sound;
 
 	int PrevX;
 	int PrevY;
@@ -214,7 +238,7 @@ TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
 		return effects.emplace_back();
 
 	TEffect* effectPtr = nullptr;
-	float shortestLife = INFINITY;
+	float shortestLife = FLT_MAX;
 
 	// Find effect with shortest remaining life.
 	for (auto& effect : effects)
@@ -244,11 +268,13 @@ void ClearInactiveEffects(std::vector<TEffect>& effects)
 Particle* GetFreeParticle();
 
 void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID);
+void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate);
 
 void DetatchSpark(int num, SpriteEnumFlag type);
 void UpdateSparks();
 void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true);
 void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv);
+void TriggerGlow(const GameVector& pos, const Vector3& color, int scale);
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void TriggerExplosionSmokeEnd(int x, int y, int z, int uw);
 void TriggerExplosionSmoke(int x, int y, int z, int uw);
@@ -259,6 +285,7 @@ short DoBloodSplat(int x, int y, int z, short speed, short yRot, short roomNumbe
 void DoLotsOfBlood(int x, int y, int z, int speed, short direction, short roomNumber, int count);
 void ControlWaterfallMist(short itemNumber);
 void TriggerWaterfallMist(const ItemInfo& item);
+void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color);
 void KillAllCurrentItems(short itemNumber);
 void TriggerRocketFlame(int x, int y, int z, int xv, int yv, int zv, int itemNumber);
 void TriggerRocketSmoke(int x, int y, int z);
@@ -267,9 +294,10 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 void SpawnCorpseEffect(const Vector3& pos);
 void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale);
 void TriggerRocketFire(int x, int y, int z);
-void TriggerExplosionBubbles(int x, int y, int z, short roomNumber);
+void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void Ricochet(Pose& pos);
 void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth);
+std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);

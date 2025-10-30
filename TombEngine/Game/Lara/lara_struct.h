@@ -231,6 +231,8 @@ enum LaraState
 	LS_EDGE_HANG_SHIMMY_UP = 204,
 	LS_EDGE_HANG_SHIMMY_DOWN = 205,
 
+	LS_PULLEY_UNGRAB = 198,
+
 	NUM_LARA_STATES
 
 	// Can be reused:
@@ -699,7 +701,7 @@ enum LaraAnim
 	LA_PICKUP_SARCOPHAGUS = 439,							// Pickup from sarcophagus
 	LA_DRAG_BODY = 440,										// Drag dead body
 	LA_BINOCULARS_IDLE = 441,								// Stand, looking through binoculars
-	LA_UNUSED_442 = 442,									// Formelly, LA_BIG_SCORPION_DEATH, but that animation is now in LARA EXTRA ANIMS so this slot is unused.
+	LA_UNDERWATER_FLOOR_TRAPDOOR = 442,						// Underwater floor trapdoor
 	LA_ELEVATOR_RECOVER = 443,								// Recover from elevator crash
 	LA_MECHANICAL_BEETLE_USE = 444,							// Wind mechanical beetle, place on floor
 	LA_FLY_CHEAT = 445,										// Fly cheat
@@ -833,8 +835,15 @@ enum LaraAnim
 	LA_LEDGE_JUMP_UP_END = 566,
 	LA_LEDGE_JUMP_BACK_START = 567,
 	LA_LEDGE_JUMP_BACK_END = 568,
+	LA_UNDERWATER_WALL_KICK = 569,			// Lara kick wall underwater.
+	LA_WALL_PUSH = 570,						// Lara Push Wall above ground.
+	LA_WALL_LEVER_SWITCH = 571,				// Use lever above ground
+	LA_UNDERWATER_PULLEY_GRAB = 572,		// Grab underwater pulley
+	LA_UNDERWATER_PULLEY_PULL = 573,		// Pull underwater pulley		
+	LA_UNDERWATER_PULLEY_UNGRAB = 574,		// Release underwater pulley
+	LA_CEILING_LEVER_SWITCH = 575,			// Use ceiling switch above ground
 
-	// 569-598 reserved for ladder object. -- Sezz 2023.04.16
+	//ADD NEW ANIMATIONS HERE
 
 	LA_STAND_TO_EDGE_HANG_FRONT = 599,
 	LA_STAND_TO_EDGE_HANG_BACK = 600,
@@ -1161,7 +1170,12 @@ struct FlareData
 
 struct TorchData
 {
+	static constexpr auto FADE_TIMEOUT = 0.5f;
+
 	bool	   IsLit = false;
+	int		   Fade = 0;
+	Vector3	   CurrentColor = Vector3::Zero;
+	Vector3    NextColor = Vector3::Zero;
 	TorchState State = TorchState::Holding;
 };
 
@@ -1238,7 +1252,6 @@ struct WeaponControlData
 
 	short WeaponItem = -1;
 	bool  HasFired	 = false;
-	bool  Fired		 = false;
 
 	bool UziLeft  = false;
 	bool UziRight = false;
@@ -1373,4 +1386,23 @@ struct LaraInfo
 		/*if (Context.HandsAttractor.AttracPtr != nullptr)
 			Context.HandsAttractor.AttracPtr->DetachPlayer(g_Level.Items[LaraItem->Index]);*/
 	}
+};
+
+const auto CROUCH_STATES = std::vector<int>
+{
+	LS_CROUCH_IDLE,
+	LS_CROUCH_TURN_LEFT,
+	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180
+};
+
+const auto CRAWL_STATES = std::vector<int>
+{
+	LS_CRAWL_IDLE,
+	LS_CRAWL_FORWARD,
+	LS_CRAWL_BACK,
+	LS_CRAWL_TURN_LEFT,
+	LS_CRAWL_TURN_RIGHT,
+	LS_CRAWL_TURN_180,
+	LS_CRAWL_TO_HANG
 };

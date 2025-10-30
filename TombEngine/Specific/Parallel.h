@@ -2,8 +2,8 @@
 
 namespace TEN::Utils
 {
-	using ParallelTask		= std::function<void()>;
-	using ParallelTaskGroup = std::vector<ParallelTask>;
+	using ParallelTask	= std::function<void()>;
+	using ParallelTasks = std::vector<ParallelTask>;
 
 	class ParallelTaskManager
 	{
@@ -35,7 +35,7 @@ namespace TEN::Utils
 		void Initialize();
 
 		std::future<void> AddTask(const ParallelTask& task);
-		std::future<void> AddTasks(const ParallelTaskGroup& tasks);
+		std::future<void> AddTasks(const ParallelTasks& tasks);
 		std::future<void> AddTasks(int elementCount, const std::function<void(int, int)>& splitTask);
 
 	private:

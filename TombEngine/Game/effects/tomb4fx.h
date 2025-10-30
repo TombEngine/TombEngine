@@ -166,6 +166,7 @@ struct DRIP_STRUCT
 struct FIRE_LIST
 {
 	Vector3i position;
+	Vector4 color;
 	unsigned char fade;
 	float size;
 	short roomNumber;
@@ -300,7 +301,7 @@ extern SHOCKWAVE_STRUCT ShockWaves[MAX_SHOCKWAVE];
 extern std::vector<FIRE_LIST> Fires;
 
 void TriggerBlood(int x, int y, int z, int unk, int num);
-void TriggerExplosionBubble(int x, int y, int z, short roomNumber);
+void TriggerExplosionBubble(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 int GetFreeFireSpark();
 void TriggerGlobalStaticFlame();
 void TriggerGlobalFireSmoke();
@@ -313,6 +314,7 @@ void ThrowPoison(const ItemInfo& item, const CreatureBiteInfo& bite, const Vecto
 void UpdateFireProgress();
 void ClearFires();
 void AddFire(int x, int y, int z, short roomNum, float size, short fade = 1);
+void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
 void UpdateFireSparks();
 int GetFreeSmokeSpark();
 void UpdateSmoke();
@@ -323,6 +325,7 @@ void TriggerBlood(int x, int y, int z, int unk, int num);
 void UpdateBlood();
 int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
+void UpdateGunFlashes();
 void UpdateGunShells();
 void AddWaterSparks(int x, int y, int z, int num);
 void ExplodingDeath(short itemNumber, short flags); // BODY_ flags
@@ -331,5 +334,6 @@ void TriggerShockwave(Pose* pos, short innerRad, short outerRad, int speed, unsi
 void TriggerShockwaveHitEffect(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b, short rot, int vel);
 void UpdateShockwaves();
 void TriggerSmallSplash(int x, int y, int z, int number);
-void TriggerUnderwaterExplosion(ItemInfo* item, int flag);
+void TriggerUnderwaterExplosion(ItemInfo* item, bool flag);
+void TriggerUnderwaterExplosion(Vector3 position, bool flag, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle);

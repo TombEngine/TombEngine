@@ -8,11 +8,13 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Specific/Input/Input.h"
+#include "Specific/trutils.h"
 #include "Specific/winmain.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::Utils;
 
 GameConfiguration g_Configuration;
 
@@ -67,18 +69,17 @@ BOOL CALLBACK DialogProc(HWND handle, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		//DB_Log(6, "WM_INITDIALOG");
 
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_GFXADAPTER), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_DISPLAY_ADAPTER));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OUTPUT_SETTINGS));
-		SendMessageA(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_OK));
-		SendMessageA(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CANCEL));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SCREEN_RESOLUTION));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ENABLE_SOUND));
-		SendMessageA(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_WINDOWED));
-		SendMessageA(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_RENDER_OPTIONS));
-		SendMessageA(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_SHADOWS));
-		SendMessageA(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_CAUSTICS));
-		SendMessageA(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)g_GameFlow->GetString(STRING_ANTIALIASING));
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_OUTPUT_SETTINGS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OUTPUT_SETTINGS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDOK), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_OK))).c_str());
+		SendMessageW(GetDlgItem(handle, IDCANCEL), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CANCEL))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RESOLUTION), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SCREEN_RESOLUTION))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_SOUND), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ENABLE_SOUNDS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ENABLE_SOUND))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_WINDOWED), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_WINDOWED))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_GROUP_RENDER_OPTIONS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_RENDER_OPTIONS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_SHADOWS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_SHADOWS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_CAUSTICS), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_CAUSTICS))).c_str());
+		SendMessageW(GetDlgItem(handle, IDC_ANTIALIASING), WM_SETTEXT, 0, (LPARAM)ToWString(std::string(g_GameFlow->GetString(STRING_ANTIALIASING))).c_str());
 
 		LoadResolutionsInCombobox(handle);
 		LoadSoundDevicesInCombobox(handle);
@@ -186,6 +187,7 @@ bool SaveConfiguration()
 		SetDWORDRegKey(graphicsKey, REGKEY_SHADOW_MAP_SIZE, g_Configuration.ShadowMapSize) != ERROR_SUCCESS ||
 		SetDWORDRegKey(graphicsKey, REGKEY_SHADOW_BLOBS_MAX, g_Configuration.ShadowBlobsMax) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_ENABLE_CAUSTICS, g_Configuration.EnableCaustics) != ERROR_SUCCESS ||
+		SetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, g_Configuration.EnableDecals) != ERROR_SUCCESS ||
 		SetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, (DWORD)g_Configuration.AntialiasingMode) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, g_Configuration.EnableAmbientOcclusion) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, g_Configuration.EnableHighFramerate) != ERROR_SUCCESS)
@@ -234,6 +236,7 @@ bool SaveConfiguration()
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_MONKEY_JUMP, g_Configuration.EnableAutoMonkeySwingJump) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_TARGETING, g_Configuration.EnableAutoTargeting) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_TARGET_HIGHLIGHTER, g_Configuration.EnableTargetHighlighter) != ERROR_SUCCESS ||
+		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_INTERACTION_HIGHLIGHTER, g_Configuration.EnableInteractionHighlighter) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_RUMBLE, g_Configuration.EnableRumble) != ERROR_SUCCESS ||
 		SetBoolRegKey(gameplayKey, REGKEY_ENABLE_THUMBSTICK_CAMERA, g_Configuration.EnableThumbstickCamera) != ERROR_SUCCESS)
 	{
@@ -268,21 +271,27 @@ bool SaveConfiguration()
 		return false;
 	}
 
-	// Set Input binding keys.
-	g_Configuration.Bindings.resize((int)In::Count);
-	for (int i = 0; i < (int)In::Count; i++)
-	{
-		char buffer[9];
-		sprintf(buffer, "Action%d", i);
+	if (g_Configuration.Bindings.empty())
+		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
-		if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings[i]) != ERROR_SUCCESS)
+	// Set Input binding keys.
+	for (auto actionGroupID : USER_ACTION_GROUP_IDS)
+	{
+		const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+		for (auto actionID : actionIDGroup)
 		{
-			RegCloseKey(rootKey);
-			RegCloseKey(graphicsKey);
-			RegCloseKey(soundKey);
-			RegCloseKey(gameplayKey);
-			RegCloseKey(inputKey);
-			return false;
+			char buffer[9];
+			sprintf(buffer, "Action%d", (int)actionID);
+
+			if (SetDWORDRegKey(inputKey, buffer, g_Configuration.Bindings.at(actionID)) != ERROR_SUCCESS)
+			{
+				RegCloseKey(rootKey);
+				RegCloseKey(graphicsKey);
+				RegCloseKey(soundKey);
+				RegCloseKey(gameplayKey);
+				RegCloseKey(inputKey);
+				return false;
+			}
 		}
 	}
 
@@ -314,6 +323,7 @@ void InitDefaultConfiguration()
 	g_Configuration.ShadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
 	g_Configuration.EnableCaustics = true;
+	g_Configuration.EnableDecals = true;
 	g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
@@ -328,6 +338,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableAutoMonkeySwingJump = false;
 	g_Configuration.EnableAutoTargeting = true;
 	g_Configuration.EnableTargetHighlighter = true;
+	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
 
@@ -364,6 +375,7 @@ bool LoadConfiguration()
 	DWORD shadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	DWORD shadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
 	bool enableCaustics = false;
+	bool enableDecals = false;
 	DWORD antialiasingMode = 1;
 	bool enableAmbientOcclusion = false;
 	bool enableHighFramerate = false;
@@ -376,6 +388,7 @@ bool LoadConfiguration()
 		GetDWORDRegKey(graphicsKey, REGKEY_SHADOW_MAP_SIZE, &shadowMapSize, GameConfiguration::DEFAULT_SHADOW_MAP_SIZE) != ERROR_SUCCESS ||
 		GetDWORDRegKey(graphicsKey, REGKEY_SHADOW_BLOBS_MAX, &shadowBlobsMax, GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_ENABLE_CAUSTICS, &enableCaustics, true) != ERROR_SUCCESS ||
+		GetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, &enableDecals, true) != ERROR_SUCCESS ||
 		GetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, &antialiasingMode, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, &enableAmbientOcclusion, false) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, &enableHighFramerate, false) != ERROR_SUCCESS)
@@ -429,6 +442,7 @@ bool LoadConfiguration()
 	bool enableSubtitles = true;
 	bool enableAutoTargeting = true;
 	bool enableTargetHighlighter = true;
+	bool enableInteractionHighlighter = true;
 	bool enableRumble = true;
 	bool enableThumbstickCamera = true;
 
@@ -437,6 +451,7 @@ bool LoadConfiguration()
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_SUBTITLES, &enableSubtitles, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_AUTO_TARGETING, &enableAutoTargeting, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_TARGET_HIGHLIGHTER, &enableTargetHighlighter, true) != ERROR_SUCCESS ||
+		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_INTERACTION_HIGHLIGHTER, &enableInteractionHighlighter, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_RUMBLE, &enableRumble, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(gameplayKey, REGKEY_ENABLE_THUMBSTICK_CAMERA, &enableThumbstickCamera, true) != ERROR_SUCCESS)
 	{
@@ -465,32 +480,38 @@ bool LoadConfiguration()
 			return false;
 		}
 
-		for (int i = 0; i < (int)In::Count; i++)
+		for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 		{
-			DWORD tempAction = 0;
-			char buffer[9];
-			sprintf(buffer, "Action%d", i);
-
-			if (GetDWORDRegKey(inputKey, buffer, &tempAction, Bindings[0][i]) != ERROR_SUCCESS)
+			const auto& actionIDGroup = ACTION_ID_GROUPS[(int)actionGroupID];
+			for (auto actionID : actionIDGroup)
 			{
-				RegCloseKey(rootKey);
-				RegCloseKey(graphicsKey);
-				RegCloseKey(soundKey);
-				RegCloseKey(gameplayKey);
-				RegCloseKey(inputKey);
-				return false;
-			}
+				DWORD tempKeyID = 0;
+				char buffer[9];
+				sprintf(buffer, "Action%d", (int)actionID);
 
-			g_Configuration.Bindings.push_back(tempAction);
-			Bindings[1][i] = tempAction;
+				int boundKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+
+				if (GetDWORDRegKey(inputKey, buffer, &tempKeyID, boundKeyID) != ERROR_SUCCESS)
+				{
+					RegCloseKey(rootKey);
+					RegCloseKey(graphicsKey);
+					RegCloseKey(soundKey);
+					RegCloseKey(gameplayKey);
+					RegCloseKey(inputKey);
+					return false;
+				}
+
+				g_Configuration.Bindings.insert({ actionID, tempKeyID });
+				g_Bindings.SetKeyBinding(BindingProfileID::Custom, actionID, tempKeyID);
+			}
 		}
 
 		RegCloseKey(inputKey);
 	}
+	// Input key doesn't exist; use default bindings.
 	else
 	{
-		// "Input" key does not exist; use default bindings.
-		g_Configuration.Bindings = Bindings[0];
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 	}
 
 	RegCloseKey(rootKey);
@@ -502,10 +523,11 @@ bool LoadConfiguration()
 	g_Configuration.ScreenWidth = screenWidth;
 	g_Configuration.ScreenHeight = screenHeight;
 	g_Configuration.EnableWindowedMode = enableWindowedMode;
-	g_Configuration.ShadowType = ShadowMode(shadowMode);
+	g_Configuration.ShadowType = (ShadowMode)shadowMode;
 	g_Configuration.ShadowBlobsMax = shadowBlobsMax;
 	g_Configuration.EnableCaustics = enableCaustics;
-	g_Configuration.AntialiasingMode = AntialiasingMode(antialiasingMode);
+	g_Configuration.EnableDecals = enableDecals;
+	g_Configuration.AntialiasingMode = (AntialiasingMode)antialiasingMode;
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;
 	g_Configuration.EnableHighFramerate = enableHighFramerate;
@@ -520,6 +542,7 @@ bool LoadConfiguration()
 	g_Configuration.EnableAutoMonkeySwingJump = enableAutoMonkeySwingJump;
 	g_Configuration.EnableAutoTargeting = enableAutoTargeting;
 	g_Configuration.EnableTargetHighlighter = enableTargetHighlighter;
+	g_Configuration.EnableInteractionHighlighter = enableInteractionHighlighter;
 	g_Configuration.EnableRumble = enableRumble;
 	g_Configuration.EnableThumbstickCamera = enableThumbstickCamera;
 
@@ -581,7 +604,6 @@ LONG GetBoolRegKey(HKEY hKey, LPCSTR strValueName, bool* bValue, bool bDefaultVa
 
 	return nError;
 }
-
 
 LONG GetStringRegKey(HKEY hKey, LPCSTR strValueName, char** strValue, char* strDefaultValue)
 {

@@ -70,7 +70,7 @@ void lara_as_controlled(ItemInfo* item, CollisionInfo* coll)
 		player.Control.HandStatus = HandStatus::Free;
 
 		if (UseForcedFixedCamera)
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 	}
 }
 
@@ -675,6 +675,10 @@ void lara_col_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if (CanSlide(*item, *coll))
 	{
+		// HACK: Prevent ejections on triangular slopes.
+		if (coll->TriangleAtLeft() || coll->TriangleAtRight())
+			coll->Shift.Position = Vector3i::Zero;
+
 		SetLaraSlideAnimation(item, coll);
 		return;
 	}

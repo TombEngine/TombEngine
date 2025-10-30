@@ -9,7 +9,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
-#include "Math.h"
+#include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -19,7 +19,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Math;
 
-namespace TEN::Effects::Environment 
+namespace TEN::Effects::Environment
 {
 	EnvironmentController Weather;
 
@@ -35,7 +35,7 @@ namespace TEN::Effects::Environment
 			result *= (StartLife - Life) / fade;
 
 		if (Type != WeatherType::Snow)
-			result *= 0.45f;
+			result *= 0.35f;
 
 		return result;
 	}
@@ -232,52 +232,65 @@ namespace TEN::Effects::Environment
 
 	void EnvironmentController::UpdateStarfield(const ScriptInterfaceLevel& level)
 	{
-		if (!level.GetStarfieldStarsEnabled())
+		int starCount = level.GetStarfieldStarCount();
+		if (starCount == 0)
 			return;
 
 		if (ResetStarField)
 		{
-			int starCount = level.GetStarfieldStarCount();
-
 			Stars.clear();
-			Stars.reserve(starCount);
+			ResetStarField = false;
+		}
 
-			for (int i = 0; i < starCount; i++)
+		if (starCount != Stars.size())
+		{
+			// If starCount increased, add new stars to existing list.
+			if (starCount > Stars.size())
 			{
-				auto starDir = Random::GenerateDirectionInCone(-Vector3::UnitY, 70.0f);
-				starDir.Normalize();
+				// Reserve space for new stars if necessary.
+				Stars.reserve(starCount);
 
-				auto star = StarParticle{};
-				star.Direction = starDir;
-				star.Color = Vector3(
-					Random::GenerateFloat(0.6f, 1.0f),
-					Random::GenerateFloat(0.6f, 1.0f),
-					Random::GenerateFloat(0.6f, 1.0f));
-				star.Scale = Random::GenerateFloat(0.5f, 1.5f);
-
-				float cosine = Vector3::UnitY.Dot(starDir);
-				float maxCosine = cos(DEG_TO_RAD(50.0f));
-				float minCosine = cos(DEG_TO_RAD(70.0f));
-
-				if (cosine >= minCosine && cosine <= maxCosine)
+				for (int i = (int)Stars.size(); i < starCount; i++)
 				{
-					star.Extinction = (cosine - minCosine) / (maxCosine - minCosine);
-				}
-				else
-				{
-					star.Extinction = 1.0f;
-				}
+					auto starDir = Random::GenerateDirectionInCone(-Vector3::UnitY, 70.0f);
+					starDir.Normalize();
 
-				Stars.push_back(star);
+					auto star = StarParticle{};
+					star.Direction = starDir;
+					star.Color = Vector3(
+						Random::GenerateFloat(0.6f, 1.0f),
+						Random::GenerateFloat(0.6f, 1.0f),
+						Random::GenerateFloat(0.6f, 1.0f));
+					star.Scale = Random::GenerateFloat(0.5f, 1.5f);
+
+					float cosine = Vector3::UnitY.Dot(starDir);
+					float maxCosine = cos(DEG_TO_RAD(50.0f));
+					float minCosine = cos(DEG_TO_RAD(70.0f));
+
+					if (cosine >= minCosine && cosine <= maxCosine)
+					{
+						star.Extinction = (cosine - minCosine) / (maxCosine - minCosine);
+					}
+					else
+					{
+						star.Extinction = 1.0f;
+					}
+
+					Stars.push_back(star);
+				}
+			}
+			// If starCount decreased, resize vector without reinitializing.
+			else
+			{
+				Stars.resize(starCount);
 			}
 
-			ResetStarField = false;
 		}
 
 		for (auto& star : Stars)
 			star.Blinking = Random::GenerateFloat(0.5f, 1.0f);
 
-		if (level.GetStarfieldMeteorsEnabled())
+		if (level.GetStarfieldMeteorCount() > 0)
 		{
 			for (auto& meteor : Meteors)
 			{
@@ -404,6 +417,15 @@ namespace TEN::Effects::Environment
 				}
 			}
 
+			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
+
+			if (part.Type == WeatherType::Rain &&				
+				(abs(Camera.pos.x - part.Position.x) > range ||
+				abs(Camera.pos.z - part.Position.z) > range))
+			{
+				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
+			}
+
 			// If collision was updated, process with position checks.
 			if (collisionCalculated)
 			{
@@ -420,13 +442,17 @@ namespace TEN::Effects::Environment
 
 					// Produce ripples if particle got into substance (water or swamp).
 					if (inSubstance)
-						SpawnRipple(part.Position, part.RoomNumber, Random::GenerateFloat(16.0f, 24.0f), (int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
+					{
+						auto ripplePos = part.Position;
+						ripplePos.y = pointColl.GetWaterSurfaceHeight();
+						SpawnRipple(ripplePos, part.RoomNumber, Random::GenerateFloat(16.0f, 24.0f), (int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
+					}
 
 					// Immediately disable rain particle because it doesn't need fading out.
 					if (part.Type == WeatherType::Rain)
 					{
 						part.Enabled = false;
-						AddWaterSparks(prevPos.x, prevPos.y, prevPos.z, 6);
+						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);
 					}
 
 					continue;
@@ -513,7 +539,7 @@ namespace TEN::Effects::Environment
 			if (!IsPointInRoom(pos, roomNumber))
 				roomNumber = FindRoomNumber(pos, Camera.pos.RoomNumber, true);
 
-			if (roomNumber == NO_VALUE)
+			if (!IsPointInRoom(pos, roomNumber) || roomNumber == NO_VALUE)
 				continue;
 
 			// Check if water room.
@@ -552,6 +578,8 @@ namespace TEN::Effects::Environment
 		if (level.GetWeatherType() == WeatherType::None || level.GetWeatherStrength() == 0.0f)
 			return;
 
+		bool clustering = level.GetWeatherClustering();
+
 		int newParticlesCount = 0;
 		int density = WEATHER_PARTICLE_SPAWN_DENSITY * level.GetWeatherStrength();
 
@@ -568,13 +596,26 @@ namespace TEN::Effects::Environment
 
 				newParticlesCount++;
 
-				float dist = (level.GetWeatherType() == WeatherType::Snow) ? COLLISION_CHECK_DISTANCE : (COLLISION_CHECK_DISTANCE / 2);
+				float dist = 0;
+				if (level.GetWeatherType() == WeatherType::Snow)
+				{
+					dist = WEATHER_SPAWN_DIST_SNOW;
+				}
+				else if (level.GetWeatherType() == WeatherType::Rain)
+				{
+					dist = WEATHER_SPAWN_DIST_RAIN;
+				}
+				else
+				{
+					dist = WEATHER_SPAWN_DIST_OTHER;
+				}
+				
 				float radius = Random::GenerateInt(0, dist);
-				short angle = Random::GenerateInt(ANGLE(0), ANGLE(180));
+				short angle = Random::GenerateAngle(ANGLE(-180), ANGLE(179));
 
 				auto xPos = Camera.pos.x + ((int)(phd_cos(angle) * radius));
 				auto zPos = Camera.pos.z + ((int)(phd_sin(angle) * radius));
-				auto yPos = Camera.pos.y - (BLOCK(4) + Random::GenerateInt() & (BLOCK(4) - 1));
+				auto yPos = Camera.pos.y - (BLOCK(3) + Random::GenerateInt() & (BLOCK(4) - 1));
 				
 				auto outsideRoom = IsRoomOutside(xPos, yPos, zPos);
 				
@@ -594,21 +635,24 @@ namespace TEN::Effects::Environment
 				switch (level.GetWeatherType())
 				{
 				case WeatherType::Snow:
+					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT / 2) : 1;
 					part.Size = Random::GenerateFloat(SNOW_SIZE_MAX / 3, SNOW_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(SNOW_VELOCITY_MAX / 4, SNOW_VELOCITY_MAX) * (part.Size / SNOW_SIZE_MAX);
 					part.Life = (SNOW_VELOCITY_MAX / 3) + ((SNOW_VELOCITY_MAX / 2) - ((int)part.Velocity.y >> 2));
 					break;
 
 				case WeatherType::Rain:
+					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT) : 1;
 					part.Size = Random::GenerateFloat(RAIN_SIZE_MAX / 2, RAIN_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(RAIN_VELOCITY_MAX / 2, RAIN_VELOCITY_MAX) * (part.Size / RAIN_SIZE_MAX) * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f);
-					part.Life = (RAIN_VELOCITY_MAX * 2) - part.Velocity.y;
+					part.Life = (RAIN_VELOCITY_MAX) - part.Velocity.y;
 					break;
 				}
 
 				part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
 				part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
 
+				part.UniqueID = (int)Particles.size();
 				part.Type = level.GetWeatherType();
 				part.RoomNumber = outsideRoom;
 				part.Position.x = xPos;
@@ -639,7 +683,7 @@ namespace TEN::Effects::Environment
 				Meteors.end());
 		}
 
-		if (!level.GetStarfieldMeteorsEnabled())
+		if (level.GetStarfieldMeteorCount() == 0)
 			return;
 
 		int density = level.GetStarfieldMeteorSpawnDensity();

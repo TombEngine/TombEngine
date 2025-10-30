@@ -6,8 +6,7 @@
 
 using namespace TEN::Effects::Environment;
 
-/// Represents a starfield in the sky.
-//
+/// Represents a star field in the sky. To be used with @{Flow.Level.starfield} property.
 // @tenprimitive Flow.Starfield
 // @pragma nostrip
 
@@ -24,12 +23,27 @@ namespace TEN::Scripting
 			"Starfield",
 			ctors(), sol::call_constructor, ctors(),
 
+			/// (int) Amount of visible stars.
+			// @mem starCount
+			"starCount", sol::property(&Starfield::GetStarCount, &Starfield::SetStarCount),
+
+			/// (int) Amount of visible meteors.
+			// @mem meteorCount
+			"meteorCount", sol::property(&Starfield::GetMeteorCount, &Starfield::SetMeteorCount),
+
+			/// (int) Meteor spawn density.
+			// @mem meteorSpawnDensity
+			"meteorSpawnDensity", sol::property(&Starfield::GetMeteorSpawnDensity, &Starfield::SetMeteorSpawnDensity),
+
+			/// (int) Meteor velocity.
+			// @mem meteorVelocity
+			"meteorVelocity", sol::property(&Starfield::GetMeteorVelocity, &Starfield::SetMeteorVelocity),
+
+			// Compatibility.
 			"GetStarCount", &Starfield::GetStarCount,
 			"GetMeteorCount", &Starfield::GetMeteorCount,
 			"GetMeteorSpawnDensity", &Starfield::GetMeteorSpawnDensity,
 			"GetMeteorVelocity", &Starfield::GetMeteorVelocity,
-			"GetStarsEnabled", &Starfield::GetStarsEnabledStatus,
-			"GetMeteorsEnabled", &Starfield::GetMeteorsEnabledStatus,
 
 			"SetStarCount", &Starfield::SetStarCount,
 			"SetMeteorCount", &Starfield::SetMeteorCount,
@@ -50,6 +64,8 @@ namespace TEN::Scripting
 	// @function Starfield
 	// @tparam int starCount Star count. __Max: 6000__
 	// @tparam int meteorCount Meteor count. __Max: 100__
+	// @tparam int meteorSpawnDensity Meteor spawn density.
+	// @tparam int meteorVel Meteor velocity.
 	// @treturn Starfield A new Starfield object.
 	Starfield::Starfield(int starCount, int meteorCount, int meteorSpawnDensity, float meteorVel)
 	{
@@ -65,57 +81,26 @@ namespace TEN::Scripting
 		_meteorVelocity = meteorVel;
 	}
 
-	/// Get this starfield's number of stars.
-	// @function Starfield:GetStarCount
-	// @treturn int Count.
 	int Starfield::GetStarCount() const
 	{
 		return _starCount;
 	}
 
-	/// Get this starfield's number of meteors.
-	// @function Starfield:GetMeteorCount
-	// @treturn int Count.
 	int Starfield::GetMeteorCount() const
 	{
 		return _meteorCount;
 	}
 
-	/// Get this starfield's meteor spawn density.
-	// @function Starfield:GetMeteorSpawnDensity
-	// @treturn int Spawn density.
 	int Starfield::GetMeteorSpawnDensity() const
 	{
 		return _meteorSpawnDensity;
 	}
 
-	/// Get this starfield's meteor velocity.
-	// @function Starfield:GetMeteorVelocity
-	// @treturn float Velocity.
 	float Starfield::GetMeteorVelocity() const
 	{
 		return _meteorVelocity;
 	}
 
-	/// Get this starfield's stars enabled status.
-	// @function Starfield:GetStarsEnabled
-	// @treturn bool Stars enabled status. __true: enabled__, __false: disabled__
-	bool Starfield::GetStarsEnabledStatus() const
-	{
-		return (_starCount > 0);
-	}
-
-	/// Get this starfield's meteors enabled status.
-	// @function Starfield:GetMeteorsEnabled
-	// @treturn bool Meteors enabled status. __true: enabled__, __false: disabled__
-	bool Starfield::GetMeteorsEnabledStatus() const
-	{
-		return (_meteorCount > 0);
-	}
-
-	/// Set this starfield's number of stars.
-	// @function Starfield:SetStarCount
-	// @tparam int New star count.
 	void Starfield::SetStarCount(int count)
 	{
 		if (count < 0 || count > STAR_COUNT_MAX)
@@ -124,9 +109,6 @@ namespace TEN::Scripting
 		_starCount = std::clamp(count, 0, STAR_COUNT_MAX);
 	}
 
-	/// Set this starfield's number of meteors.
-	// @function Starfield:SetMeteorCount
-	// @tparam int New meteor count.
 	void Starfield::SetMeteorCount(int count)
 	{
 		if (count < 0 || count > METEOR_COUNT_MAX)
@@ -135,17 +117,11 @@ namespace TEN::Scripting
 		_meteorCount = std::clamp(count, 0, METEOR_COUNT_MAX);
 	}
 
-	/// Set this starfield's meteor spawn density.
-	// @function Starfield:SetMeteorSpawnDensity
-	// @tparam int New meteor spawn density.
 	void Starfield::SetMeteorSpawnDensity(int spawnDensity)
 	{
 		_meteorSpawnDensity = spawnDensity;
 	}
 
-	/// Set this starfield's meteor velocity.
-	// @function Starfield:SetMeteorVelocity
-	// @tparam float New meteor velocity.
 	void Starfield::SetMeteorVelocity(float vel)
 	{
 		_meteorVelocity = vel;

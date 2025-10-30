@@ -1112,8 +1112,10 @@ namespace TEN::Entities::TR4
 				// Cancel enemy pointer for other active baddys
 				for (int i = 0; i < ActiveCreatures.size(); i++)
 				{
-					if (ActiveCreatures[i]->ItemNumber != NO_VALUE && ActiveCreatures[i]->ItemNumber != itemNumber && ActiveCreatures[i]->Enemy == creature->Enemy)
-						ActiveCreatures[i]->Enemy = nullptr;
+					auto* currentCreature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
+
+					if (currentCreature->ItemNumber != NO_VALUE && currentCreature->ItemNumber != itemNumber && currentCreature->Enemy == creature->Enemy)
+						currentCreature->Enemy = nullptr;
 				}
 
 				creature->Enemy = nullptr;

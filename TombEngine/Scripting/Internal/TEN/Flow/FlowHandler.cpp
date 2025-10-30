@@ -11,9 +11,14 @@
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
+#include "Scripting/Internal/TEN/Collision/Probe.h"
 #include "Scripting/Internal/TEN/Flow/Enums/ErrorModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/FreezeModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
+#include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
+#include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
@@ -25,6 +30,7 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Scripting;
+using namespace TEN::Scripting::Collision;
 
 /***
 Functions that (mostly) don't directly impact in-game mechanics. Used for setup
@@ -53,47 +59,50 @@ ambient tracks.
 /***
 Add a level to the Flow.
 @function AddLevel
-@tparam Flow.Level level a level object
+@tparam Flow.Level level A level object.
 */
 	tableFlow.set_function(ScriptReserved_AddLevel, &FlowHandler::AddLevel, this);
 
-/*** Image to show when loading the game.
-Must be a .jpg or .png image.
+/*** Image to show when loading the game. Must be a .jpg or .png image.
 @function SetIntroImagePath
-@tparam string path the path to the image, relative to the TombEngine exe
+@tparam string path The path to the image, relative to the TombEngine executable.
 */
 	tableFlow.set_function(ScriptReserved_SetIntroImagePath, &FlowHandler::SetIntroImagePath, this);
 
-/*** Image to show in the background of the title screen.
-Must be a .jpg or .png image.
-__(not yet implemented)__
+/*** Video to show when loading the game. Must be a common video format, such as mp4, mkv, mov or avi.
+@function SetIntroVideoPath
+@tparam string path the path to the video, relative to the TombEngine exe
+*/
+	tableFlow.set_function(ScriptReserved_SetIntroVideoPath, &FlowHandler::SetIntroVideoPath, this);
+
+/*** Image to show in the background of the title screen. Must be a .jpg or .png image. _Not yet implemented._
 @function SetTitleScreenImagePath
-@tparam string path the path to the image, relative to the TombEngine exe
+@tparam string path The path to the image, relative to the TombEngine executable.
 */
 	tableFlow.set_function(ScriptReserved_SetTitleScreenImagePath, &FlowHandler::SetTitleScreenImagePath, this);
 
 /*** Enable or disable Lara drawing in title flyby.
 Must be true or false
 @function EnableLaraInTitle
-@tparam bool enabled true or false
+@tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableLaraInTitle, &FlowHandler::EnableLaraInTitle, this);
 
 /*** Enable or disable level selection in title flyby.
 Must be true or false
 @function EnableLevelSelect
-@tparam bool enabled true or false
+@tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableLevelSelect, &FlowHandler::EnableLevelSelect, this);
 
 /*** Enable or disable Home Level entry in the main menu.
-@function EnableHomeLevel()
+@function EnableHomeLevel
 @tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableHomeLevel, &FlowHandler::EnableHomeLevel, this);
 
 /*** Enable or disable saving and loading of savegames.
-@function EnableLoadSave()
+@function EnableLoadSave
 @tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableLoadSave, &FlowHandler::EnableLoadSave, this);
@@ -103,7 +112,7 @@ Must be true or false
 */
 
 /*** Enable or disable the fly cheat.
-@function EnableFlyCheat()
+@function EnableFlyCheat
 @tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableFlyCheat, &FlowHandler::EnableFlyCheat, this);
@@ -111,29 +120,29 @@ Must be true or false
 /*** Enable or disable point texture filter.
 Must be true or false
 @function EnablePointFilter
-@tparam bool enabled true or false
+@tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnablePointFilter, &FlowHandler::EnablePointFilter, this);
 
 /*** Enable or disable mass pickup.
 Must be true or false
 @function EnableMassPickup
-@tparam bool enabled true or false
+@tparam bool enabled True or false.
 */
 	tableFlow.set_function(ScriptReserved_EnableMassPickup, &FlowHandler::EnableMassPickup, this);
 
 /*** Returns the level by index.
 Indices depend on the order in which AddLevel was called; the first added will
-have an ID of 0, the second an ID of 1, and so on.
+have an index of 0, the second an index of 1, and so on.
 @function GetLevel
-@tparam int index of the level
-@treturn Flow.Level the level indicated by the id
+@tparam int index Index of the level.
+@treturn Flow.Level The level indicated by the index.
 */
 	tableFlow.set_function(ScriptReserved_GetLevel, &FlowHandler::GetLevel, this);
 
 /*** Returns the level that the game control is running in that moment.
 @function GetCurrentLevel
-@treturn Flow.Level the current level
+@treturn Flow.Level The current level.
 */
 	tableFlow.set_function(ScriptReserved_GetCurrentLevel, &FlowHandler::GetCurrentLevel, this);
 
@@ -142,38 +151,38 @@ If level index is not provided or is zero, jumps to next level. If level index i
 level count, jumps to title. If LARA\_START\_POS objects are present in level, player will be
 teleported to such object with OCB similar to provided second argument.
 @function EndLevel
-@int[opt] index level index (default 0)
-@int[opt] startPos player start position (default 0)
+@int[opt=0] index Level index.
+@int[opt=0] startPos Player start position in the next level. Should correspond to OCB of `Objects.ObjID.LARA_START_POS` object in the next level.
 */
 	tableFlow.set_function(ScriptReserved_EndLevel, &FlowHandler::EndLevel, this);
 
 /***
 Get game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
 @function GetStatistics
-@tparam bool game if true, returns overall game statistics, otherwise returns current level statistics (default: false)
-@treturn Flow.Statistics statistics structure representing game or level statistics
+@tparam[opt=false] bool game If true, returns overall game statistics, otherwise returns current level statistics.
+@treturn Flow.Statistics Statistics structure representing game or level statistics.
 */
 	tableFlow.set_function(ScriptReserved_GetStatistics, &FlowHandler::GetStatistics, this);
 
 /***
 Set game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
 @function SetStatistics
-@tparam Flow.Statistics statistics statistic object to set
-@tparam bool game if true, sets overall game statistics, otherwise sets current level statistics (default: false)
+@tparam Flow.Statistics statistics Statistic object to set.
+@tparam[opt=false] bool game If true, sets overall game statistics, otherwise sets current level statistics.
 */
 	tableFlow.set_function(ScriptReserved_SetStatistics, &FlowHandler::SetStatistics, this);
 
 /***
 Get current game status, such as normal game loop, exiting to title, etc.
 @function GetGameStatus
-@treturn Flow.GameStatus the current game status
+@treturn Flow.GameStatus The current game status.
 */
 	tableFlow.set_function(ScriptReserved_GetGameStatus, &FlowHandler::GetGameStatus, this);
 
 /***
 Get current freeze mode, such as none, full, spectator or player.
 @function GetFreezeMode
-@treturn Flow.FreezeMode the current freeze mode
+@treturn Flow.FreezeMode The current freeze mode.
 */
 	tableFlow.set_function(ScriptReserved_GetFreezeMode, &FlowHandler::GetFreezeMode, this);
 
@@ -182,7 +191,7 @@ Set current freeze mode, such as none, full, spectator or player.
 Freeze mode specifies whether game is in normal mode or paused in a particular way to allow
 custom menu creation, photo mode or time freeze.
 @function SetFreezeMode
-@tparam Flow.FreezeMode freezeMode new freeze mode to set.
+@tparam Flow.FreezeMode freezeMode New freeze mode to set.
 */
 	tableFlow.set_function(ScriptReserved_SetFreezeMode, &FlowHandler::SetFreezeMode, this);
 
@@ -225,7 +234,7 @@ Returns the player's current per-game secret count.
 /*** 
 Sets the player's current per-game secret count.
 @function SetSecretCount
-@tparam int count new secret count.
+@tparam int count New secret count.
 */
 	tableFlow.set_function(ScriptReserved_SetSecretCount, &FlowHandler::SetSecretCount, this);
 
@@ -233,20 +242,26 @@ Sets the player's current per-game secret count.
 Adds one secret to current level secret count and also plays secret music track.
 The index argument corresponds to the secret's unique ID, the same that would go in a secret trigger's Param.
 @function AddSecret
-@tparam int index an index of current level's secret (must be from 0 to 31).
+@tparam int index An index of current level's secret (must be from 0 to 31).
 */
 	tableFlow.set_function(ScriptReserved_AddSecret, &FlowHandler::AddSecret, this);
 
-/*** Total number of secrets in game.
+/*** Get total number of secrets in the game.
+@function GetTotalSecretCount
+@treturn int Total number of secrets in the game.
+*/
+	tableFlow.set_function(ScriptReserved_GetTotalSecretCount, &FlowHandler::GetTotalSecretCount, this);
+
+/*** Set total number of secrets in the game.
 Must be an integer value (0 means no secrets).
 @function SetTotalSecretCount
-@tparam int total number of secrets
+@tparam int count Total number of secrets in the game.
 */
 	tableFlow.set_function(ScriptReserved_SetTotalSecretCount, &FlowHandler::SetTotalSecretCount, this);
 	
 /*** Do FlipMap with specific group ID.
 @function FlipMap
-@tparam int flipmap (ID of flipmap group to actuvate / deactivate)
+@tparam int flipmap ID of flipmap group to actuvate / deactivate.
 */
 	tableFlow.set_function(ScriptReserved_FlipMap, &FlowHandler::FlipMap, this);
 	
@@ -261,48 +276,49 @@ Must be an integer value (0 means no secrets).
 These functions are called in settings.lua, a file which holds global settings, such as system settings, flare color or animation movesets.
 @section settingslua
 */
+
 /*** Set provided settings table to an engine.
 @function SetSettings
-@tparam Flow.Settings settings a settings table 
+@tparam Flow.Settings settings A settings table.
 */
 	tableFlow.set_function(ScriptReserved_SetSettings, &FlowHandler::SetSettings, this);
+
 /*** Get settings table from an engine.
 @function GetSettings
-@treturn Flow.Settings current settings table 
+@treturn Flow.Settings Current settings table.
 */
 	tableFlow.set_function(ScriptReserved_GetSettings, &FlowHandler::GetSettings, this);
 
 /*** strings.lua. 
-These functions used in strings.lua, which is generated by TombIDE.
-You will not need to call them manually.
+These functions used in strings.lua, which is generated by TombIDE. You will not need to call them manually.
 @section stringslua
 */
 
 /*** Set string variable keys and their translations.
 @function SetStrings
-@tparam tab table array-style table with strings
+@tparam table table Array-style table with strings.
 */
 	tableFlow.set_function(ScriptReserved_SetStrings, &FlowHandler::SetStrings, this);
 
 /*** Get translated string.
 @function GetString
-@tparam key string key for translated string 
+@tparam string key Key for translated string.
 */
 	tableFlow.set_function(ScriptReserved_GetString, &FlowHandler::GetString, this);
 
 /*** Check if translated string is present.
 @function IsStringPresent
-@tparam key string key for translated string
+@tparam string key Key for translated string.
 */
 	tableFlow.set_function(ScriptReserved_IsStringPresent, &FlowHandler::IsStringPresent, this);
 
 /*** Set language names for translations.
 Specify which translations in the strings table correspond to which languages.
 @function SetLanguageNames
-@tparam tab table array-style table with language names
+@tparam table table Array-style table with language names.
 */
 	tableFlow.set_function(ScriptReserved_SetLanguageNames, &FlowHandler::SetLanguageNames, this);
-
+	
 	ScriptColor::Register(parent);
 	Rotation::Register(parent);
 	Statistics::Register(parent);
@@ -314,6 +330,7 @@ Specify which translations in the strings table correspond to which languages.
 	InventoryItem::Register(tableFlow);
 	Settings::Register(tableFlow);
 	Fog::Register(tableFlow);
+	Horizon::Register(tableFlow);
 	LensFlare::Register(tableFlow);
 	Starfield::Register(tableFlow);
 
@@ -397,9 +414,20 @@ void FlowHandler::SetIntroImagePath(const std::string& path)
 	IntroImagePath = path;
 }
 
+void FlowHandler::SetIntroVideoPath(const std::string& path)
+{
+	IntroVideoPath = path;
+}
+
 void FlowHandler::SetTitleScreenImagePath(const std::string& path)
 {
 	TitleScreenImagePath = path;
+}
+
+
+int FlowHandler::GetTotalSecretCount()
+{
+	return TotalNumberOfSecrets;
 }
 
 void FlowHandler::SetTotalSecretCount(int secretsNumber)
@@ -410,6 +438,8 @@ void FlowHandler::SetTotalSecretCount(int secretsNumber)
 void FlowHandler::LoadFlowScript()
 {
 	TENLog("Loading gameflow script, strings, and settings...", LogLevel::Info);
+
+	Levels.clear();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
@@ -429,8 +459,14 @@ void FlowHandler::LoadFlowScript()
 	}
 }
 
-char const * FlowHandler::GetString(const char* id) const
+ const char* FlowHandler::GetString(const char* id) const
 {
+	if (id == nullptr || *id == '\0')
+	{
+		TENLog("Provided string ID is empty.", LogLevel::Warning);
+		return _translationMap.begin()->second[0].c_str();
+	}
+
 	if (!ScriptAssert(_translationMap.find(id) != _translationMap.end(), std::string{ "Couldn't find string " } + id))
 	{
 		return id;
@@ -469,7 +505,7 @@ int	FlowHandler::GetNumLevels() const
 int FlowHandler::GetLevelNumber(const std::string& fileName)
 {
 	if (fileName.empty())
-		return -1;
+		return NO_VALUE;
 
 	auto fileNameWithForwardSlashes = fileName;
 	std::replace(fileNameWithForwardSlashes.begin(), fileNameWithForwardSlashes.end(), '\\', '/');

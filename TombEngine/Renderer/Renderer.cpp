@@ -6,16 +6,17 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/RenderTargetCube.h"
 #include "Renderer/Graphics/VertexBuffer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
-#include "Graphics/RenderTargetCube.h"
 
 namespace TEN::Renderer
 {
 	using namespace TEN::Renderer::Structures;
 	using namespace Utils;
+
 	Renderer g_Renderer;
 
 	Renderer::Renderer() :
@@ -59,6 +60,18 @@ namespace TEN::Renderer
 	void Renderer::Lock()
 	{
 		_isLocked = true;
+	}
+
+	void Renderer::UpdateVideoTexture(Texture2D* texture)
+	{
+		_videoSprite.X = _videoSprite.Y = 0;
+		_videoSprite.Width = texture->Width;
+		_videoSprite.Height = texture->Height;
+		_videoSprite.UV[0] = Vector2(0,0);
+		_videoSprite.UV[1] = Vector2(1,0);
+		_videoSprite.UV[2] = Vector2(1,1);
+		_videoSprite.UV[3] = Vector2(0,1);
+		_videoSprite.Texture = texture;
 	}
 
 	void Renderer::ReloadShaders(bool recompileAAShaders)
@@ -161,7 +174,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -199,7 +212,7 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::PointWrap:
-			samplerState = _renderStates->PointWrap();
+			samplerState = _pointWrapSamplerState.Get();
 			break;
 
 		case SamplerStateRegister::ShadowMap:
@@ -234,6 +247,8 @@ namespace TEN::Renderer
 		ReflectVectorOptionally(lights[index].Position);
 		ReflectVectorOptionally(lights[index].Direction);
 
+		lights[index].Direction.Normalize();
+
 		// Bitmask light type to filter it in the shader later.
 		return (1 << (31 - (int)light.Type));
 	}
@@ -246,16 +261,6 @@ namespace TEN::Renderer
 			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stRoom.RoomLights, i);
 		
 		_stRoom.NumRoomLights = (int)lights.size() | lightTypeMask;
-	}
-
-	void Renderer::BindStaticLights(std::vector<RendererLight*>& lights)
-	{
-		int lightTypeMask = 0;
-
-		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stStatic.Lights, i);
-		
-		_stStatic.NumLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID)
@@ -301,6 +306,30 @@ namespace TEN::Renderer
 		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
+	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
+	{
+		memset(_stRoom.RoomDecals, 0, Decal::COUNT_MAX * sizeof(ShaderDecal));
+
+		if (!g_Configuration.EnableDecals)
+		{
+			_stRoom.NumRoomDecals = 0;
+			return;
+		}
+
+		for (int i = 0; i < decals.size(); i++)
+		{
+			if (i >= Decal::COUNT_MAX)
+				break;
+
+			_stRoom.RoomDecals[i].Position = decals[i].Position;
+			_stRoom.RoomDecals[i].Radius = decals[i].Radius;
+			_stRoom.RoomDecals[i].Opacity = decals[i].Opacity;
+			_stRoom.RoomDecals[i].Pattern = decals[i].Pattern;
+		}
+
+		_stRoom.NumRoomDecals = (int)decals.size();
+	}
+
 	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
 	{
 		_context->VSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);
@@ -309,6 +338,50 @@ namespace TEN::Renderer
 	void Renderer::BindConstantBufferPS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
 	{
 		_context->PSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);
+	}
+
+	void Renderer::BindMaterial(int materialIndex, bool force)
+	{
+		_numRequestedMaterialsUpdates++;
+
+		auto type = g_Level.Materials[materialIndex].Type;
+
+		int materialTypeAndFlags = (int)type;
+		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
+		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
+		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
+
+		if (materialTypeAndFlags == _stMaterial.MaterialTypeAndFlags &&
+			g_Level.Materials[materialIndex].Parameters0 == _stMaterial.MaterialParameters0 &&
+			g_Level.Materials[materialIndex].Parameters1 == _stMaterial.MaterialParameters1 &&
+			g_Level.Materials[materialIndex].Parameters2 == _stMaterial.MaterialParameters2 &&
+			g_Level.Materials[materialIndex].Parameters3 == _stMaterial.MaterialParameters3 &&
+			!force)
+		{
+			return;
+		}
+
+
+		// TODO: in the future output from TE directly an optimized list
+		//if (materialIndex != _lastMaterialIndex || force)
+		{
+			_stMaterial.MaterialTypeAndFlags = materialTypeAndFlags;
+			_stMaterial.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
+			_stMaterial.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
+			_stMaterial.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
+			_stMaterial.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+
+			UpdateConstantBuffer(_stMaterial, _cbMaterial);
+
+			_lastMaterialIndex = materialIndex;
+
+			_numExecutedMaterialsUpdates++;
+		}
+
+		if (type == MaterialShaderType::Reflective)
+			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::AnisotropicClamp);
+		else if (type == MaterialShaderType::SkyboxReflective)
+			BindTexture(TextureRegister::SkyboxEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 	}
 
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
@@ -351,7 +424,7 @@ namespace TEN::Renderer
 			}
 
 			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
-			_cbBlending.UpdateData(_stBlending, _context.Get());
+			UpdateConstantBuffer(_stBlending, _cbBlending);
 			
 			_lastBlendMode = blendMode;
 		}
@@ -437,7 +510,7 @@ namespace TEN::Renderer
 		{
 			_stBlending.AlphaTest = (int)mode;
 			_stBlending.AlphaThreshold = threshold;
-			_cbBlending.UpdateData(_stBlending, _context.Get());
+			UpdateConstantBuffer(_stBlending, _cbBlending);
 			BindConstantBufferPS(ConstantBufferRegister::Blending, _cbBlending.get());
 		}
 	}
@@ -467,5 +540,10 @@ namespace TEN::Renderer
 	void Renderer::SetGraphicsSettingsChanged()
 	{
 		_graphicsSettingsChanged = true;
+	}
+
+	RendererDebugPage Renderer::GetDebugPage() const
+	{
+		return _debugPage;
 	}
 }

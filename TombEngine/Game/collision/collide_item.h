@@ -9,7 +9,7 @@ class FloorInfo;
 struct CollisionInfo;
 struct CollisionResult;
 struct ItemInfo;
-struct MESH_INFO;
+struct StaticMesh;
 
 using namespace TEN::Collision::Attractor;
 
@@ -34,7 +34,7 @@ struct ObjectCollisionBounds
 struct CollidedObjectData
 {
 	std::vector<ItemInfo*>	Items	= {};
-	std::vector<MESH_INFO*> Statics = {};
+	std::vector<StaticMesh*> Statics = {};
 
 	bool IsEmpty() const { return (Items.empty() && Statics.empty()); };
 };
@@ -54,10 +54,10 @@ bool ItemNearTarget(const Vector3i& origin, ItemInfo* targetEntity, int radius);
 bool Move3DPosTo3DPos(ItemInfo* item, Pose& fromPose, const Pose& toPose, int velocity, short turnRate);
 
 bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius);
-bool TestBoundsCollideStatic(ItemInfo* item, const MESH_INFO& mesh, int radius);
+bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius);
 bool ItemPushItem(ItemInfo* item0, ItemInfo* item1, CollisionInfo* coll, bool enableSpasm, char bigPushFlags);
 bool ItemPushItem(ItemInfo* item, ItemInfo* item2);
-bool ItemPushStatic(ItemInfo* laraItem, const MESH_INFO& mesh, CollisionInfo* coll);
+bool ItemPushStatic(ItemInfo* laraItem, const StaticMesh& mesh, CollisionInfo* coll);
 void ItemPushBridge(ItemInfo& item, CollisionInfo& coll);
 
 bool CollideSolidBounds(ItemInfo* item, const GameBoundingBox& box, const Pose& pose, CollisionInfo* coll);

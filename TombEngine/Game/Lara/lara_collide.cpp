@@ -14,7 +14,7 @@
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/Context/Context.h"
 #include "Game/Setup.h"
-#include "Objects/Sink.h"
+#include "Game/Sink.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"

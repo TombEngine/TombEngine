@@ -42,6 +42,7 @@
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
 #include "Objects/TR5/Emitter/tr5_smoke_emitter.h"
 #include "Objects/TR5/Emitter/Waterfall.h"
+#include "Objects/Effects/Fireflies.h"
 
 // Objects
 #include "Objects/TR5/Light/tr5_light.h"
@@ -57,10 +58,10 @@
 
 // Traps
 #include "Objects/Effects/EmberEmitter.h"
-#include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
-#include "Objects/TR5/Trap/ZipLine.h"
+#include "Objects/TR5/Trap/MovingLaser.h"
+#include "Objects/Effects/tr5_electricity.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
 #include "Objects/TR5/Trap/tr5_romehammer.h"
@@ -80,6 +81,7 @@ using namespace TEN::Effects::WaterfallEmitter;
 using namespace TEN::Entities::Creatures::TR5;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
+using namespace TEN::Effects::Fireflies;
 
 static void StartEntity(ObjectInfo *obj)
 {
@@ -413,7 +415,7 @@ static void StartEntity(ObjectInfo *obj)
 		obj->intelligent = true;
 		obj->damageType = DamageMode::None;
 		obj->LotType = LotType::Human;
-		obj->meshSwapSlot = ID_MESHSWAP_HITMAN;
+		obj->meshSwapSlot = ID_MESHSWAP_CYBORG;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_X | ROT_Y);
 		obj->SetHitEffect(true);
@@ -771,7 +773,6 @@ static void StartObject(ObjectInfo *obj)
 	obj = &Objects[ID_TELEPORTER];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeTeleporter;
 		obj->control = ControlTeleporter;
 		obj->drawRoutine = nullptr;
 	}
@@ -793,6 +794,14 @@ static void StartObject(ObjectInfo *obj)
 	{
 		obj->drawRoutine = nullptr;
 		obj->control = ControlEmberEmitter;
+	}
+
+	obj = &Objects[ID_FIREFLY_EMITTER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFireflySwarm;
+		obj->control = ControlFireflySwarm;
+		obj->drawRoutine = nullptr;
 	}
 
 	obj = &Objects[ID_GEN_SLOT1];
@@ -845,15 +854,6 @@ static void StartObject(ObjectInfo *obj)
 
 static void StartTrap(ObjectInfo *obj)
 {
-	obj = &Objects[ID_ZIPLINE_HANDLE];
-	if (obj->loaded)
-	{
-		obj->Initialize = InitializeZipLine;
-		obj->collision = CollideZipLine;
-		obj->control = ControlZipLine;
-		obj->SetHitEffect(true);
-	}
-
 	obj = &Objects[ID_PROPELLER_H];
 	if (obj->loaded)
 	{
@@ -962,6 +962,15 @@ static void StartTrap(ObjectInfo *obj)
 		obj->collision = CollideLaserBeam;
 		obj->drawRoutine = nullptr;
 		obj->usingDrawAnimatingItem = false;
+	}
+
+	obj = &Objects[ID_MOVING_LASER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeMovingLaser;
+		obj->control = ControlMovingLaser;
+		obj->collision = CollideMovingLaser;
+		obj->SetHitEffect(true);
 	}
 }
 

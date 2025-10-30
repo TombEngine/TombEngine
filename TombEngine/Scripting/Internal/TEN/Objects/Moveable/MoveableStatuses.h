@@ -3,24 +3,25 @@
 #include "Game/items.h"
 
 /// Constants for moveable statuses.
+// To be used with @{Objects.Moveable.GetStatus} and @{Objects.Moveable.SetStatus} functions.
 // @enum Objects.MoveableStatus
 // @pragma nostrip
 
-/// Table of Objects.MoveableStatus constants.
-//
-// To be used with @{Objects.Moveable.GetStatus} and @{Objects.Moveable.SetStatus} functions.
-//
-// - `INACTIVE` - moveable is inactive (was never activated).
-// - `ACTIVE` - moveable is active.
-// - `DEACTIVATED` - moveable is deactivated (was previously active and later deactivated).
-// - `INVISIBLE` - moveable is invisible.
-//
-// @table Objects.MoveableStatus
-
-static const std::unordered_map<std::string, ItemStatus> MOVEABLE_STATUSES
+static const auto MOVEABLE_STATUSES = std::unordered_map<std::string, ItemStatus>
 {
+	/// Moveable is inactive (was never activated).
+	// @mem INACTIVE
 	{ "INACTIVE", ItemStatus::ITEM_NOT_ACTIVE },
+
+	/// Moveable is active.
+	// @mem ACTIVE
 	{ "ACTIVE", ItemStatus::ITEM_ACTIVE },
+
+	/// Moveable is deactivated (was previously active and later deactivated).
+	// @mem DEACTIVATED
 	{ "DEACTIVATED", ItemStatus::ITEM_DEACTIVATED },
+
+	/// Moveable is invisible.
+	// @mem INVISIBLE
 	{ "INVISIBLE", ItemStatus::ITEM_INVISIBLE }
 };

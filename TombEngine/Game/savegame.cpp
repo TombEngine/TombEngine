@@ -10,26 +10,31 @@
 #include "Game/control/flipeffect.h"
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_initialise.h"
 #include "Game/misc.h"
+#include "Game/Sink.h"
 #include "Game/spotcam.h"
 #include "Game/room.h"
 #include "Game/Setup.h"
+#include "Game/StaticMesh.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
-#include "Objects/Sink.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
@@ -37,10 +42,13 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Video/Video.h"
 
 using namespace flatbuffers;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Effects::Environment;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
@@ -48,6 +56,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Video;
 
 namespace Save = TEN::Save;
 
@@ -271,6 +280,7 @@ const std::vector<byte> SaveGame::Build()
 	sgLevelStatisticsBuilder.add_medipacks_used(Statistics.Level.HealthUsed);
 	sgLevelStatisticsBuilder.add_damage_taken(Statistics.Level.DamageTaken);
 	sgLevelStatisticsBuilder.add_distance(Statistics.Level.Distance);
+	sgLevelStatisticsBuilder.add_pickups(Statistics.Level.Pickups);
 	sgLevelStatisticsBuilder.add_secrets(Statistics.Level.Secrets);
 	sgLevelStatisticsBuilder.add_timer(SaveGame::Statistics.Level.TimeTaken);
 	auto levelStatisticsOffset = sgLevelStatisticsBuilder.Finish();
@@ -282,9 +292,19 @@ const std::vector<byte> SaveGame::Build()
 	sgGameStatisticsBuilder.add_medipacks_used(Statistics.Game.HealthUsed);
 	sgGameStatisticsBuilder.add_damage_taken(Statistics.Game.DamageTaken);
 	sgGameStatisticsBuilder.add_distance(Statistics.Game.Distance);
+	sgGameStatisticsBuilder.add_pickups(Statistics.Game.Pickups);
 	sgGameStatisticsBuilder.add_secrets(Statistics.Game.Secrets);
 	sgGameStatisticsBuilder.add_timer(SaveGame::Statistics.Game.TimeTaken);
 	auto gameStatisticsOffset = sgGameStatisticsBuilder.Finish();
+
+	// Background video playback
+	auto videoNameOffset = fbb.CreateString(g_VideoPlayer.GetFileName());
+	Save::VideoInfoBuilder sgVideoInfoBuilder{ fbb };
+	sgVideoInfoBuilder.add_name(videoNameOffset);
+	sgVideoInfoBuilder.add_position(g_VideoPlayer.GetNormalizedPosition());
+	sgVideoInfoBuilder.add_silent(g_VideoPlayer.GetSilent());
+	sgVideoInfoBuilder.add_looped(g_VideoPlayer.GetLooped());
+	auto videoInfoOffset = sgVideoInfoBuilder.Finish();
 
 	// Lara
 	std::vector<int> puzzles;
@@ -436,6 +456,9 @@ const std::vector<byte> SaveGame::Build()
 	Save::TorchDataBuilder torch{ fbb };
 	torch.add_state(currentTorchState);
 	torch.add_is_lit(Lara.Torch.IsLit);
+	torch.add_fade(Lara.Torch.Fade);
+	torch.add_current_color(&FromVector3(Lara.Torch.CurrentColor));
+	torch.add_next_color(&FromVector3(Lara.Torch.NextColor));
 	auto torchOffset = torch.Finish();
 
 	Save::LaraInventoryDataBuilder inventory{ fbb };
@@ -522,7 +545,6 @@ const std::vector<byte> SaveGame::Build()
 	Save::WeaponControlDataBuilder weaponControl{ fbb };
 	weaponControl.add_weapon_item(Lara.Control.Weapon.WeaponItem);
 	weaponControl.add_has_fired(Lara.Control.Weapon.HasFired);
-	weaponControl.add_fired(Lara.Control.Weapon.Fired);
 	weaponControl.add_uzi_left(Lara.Control.Weapon.UziLeft);
 	weaponControl.add_uzi_right(Lara.Control.Weapon.UziRight);
 	weaponControl.add_gun_type((int)Lara.Control.Weapon.GunType);
@@ -587,6 +609,7 @@ const std::vector<byte> SaveGame::Build()
 	Save::CameraBuilder camera{ fbb };
 	camera.add_position(&FromGameVector(Camera.pos));
 	camera.add_target(&FromGameVector(Camera.target));
+	camera.add_extra_orientation(&FromEulerAngles(EulerAngles(Camera.extraElevation, Camera.extraAngle, 0)));
 	auto cameraOffset = camera.Finish();
 
 
@@ -874,8 +897,9 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_hit_points(itemToSerialize.HitPoints);
 		serializedItem.add_item_flags(itemFlagsOffset);
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
-		serializedItem.add_mesh_pointers(meshPointerOffset);
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
+		serializedItem.add_mesh_index(meshPointerOffset);
+		serializedItem.add_skin_index(itemToSerialize.Model.SkinIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
 		serializedItem.add_pose(&FromPose(itemToSerialize.Pose));
 		serializedItem.add_required_state(itemToSerialize.Animation.RequiredState);
@@ -963,8 +987,8 @@ const std::vector<byte> SaveGame::Build()
 		fishSave.add_life(fish.Life);
 		fishSave.add_mesh_index(fish.MeshIndex);
 		fishSave.add_orientation(&FromEulerAngles(fish.Orientation));
-		fishSave.add_position(&FromVector3(fish.Position));
-		fishSave.add_position_target(&FromVector3(fish.PositionTarget));
+		fishSave.add_position(&FromVector3i(fish.Position));
+		fishSave.add_position_target(&FromVector3i(fish.PositionTarget));
 		fishSave.add_room_number(fish.RoomNumber);
 		fishSave.add_target_item_number((fish.TargetItemPtr == nullptr) ? -1 : fish.TargetItemPtr->Index);
 		fishSave.add_undulation(fish.Undulation);
@@ -974,6 +998,56 @@ const std::vector<byte> SaveGame::Build()
 		fishSwarm.push_back(fishSaveOffset);
 	}
 	auto fishSwarmOffset = fbb.CreateVector(fishSwarm);
+
+	std::vector<flatbuffers::Offset<Save::FireflyData>> fireflySwarm;
+	for (const auto& firefly : FireflySwarm)
+	{
+		Save::FireflyDataBuilder fireflySave{ fbb };
+		fireflySave.add_sprite_index(firefly.SpriteSeqID);
+		fireflySave.add_sprite_id(firefly.SpriteID);
+		fireflySave.add_blend_mode((int)firefly.blendMode);
+		fireflySave.add_scalar(firefly.scalar);
+		fireflySave.add_position(&FromVector3(firefly.Position));
+		fireflySave.add_room_number(firefly.RoomNumber);
+		fireflySave.add_position_target(&FromVector3(firefly.PositionTarget));
+		fireflySave.add_orientation(&FromEulerAngles(firefly.Orientation));
+		fireflySave.add_velocity(firefly.Velocity);
+		fireflySave.add_target_item_number((firefly.TargetItemPtr == nullptr) ? -1 : firefly.TargetItemPtr->Index);
+		fireflySave.add_z_vel(firefly.zVel);
+		fireflySave.add_life(firefly.Life);
+		fireflySave.add_number(firefly.Number);
+		fireflySave.add_d_r(firefly.rB);
+		fireflySave.add_d_g(firefly.gB);
+		fireflySave.add_d_b(firefly.bB);
+		fireflySave.add_r(firefly.r);
+		fireflySave.add_g(firefly.g);
+		fireflySave.add_b(firefly.b);
+		fireflySave.add_on(firefly.on);
+		fireflySave.add_size(firefly.size);
+		fireflySave.add_rot_ang(firefly.rotAng);
+
+		auto fireflySaveOffset = fireflySave.Finish();
+		fireflySwarm.push_back(fireflySaveOffset);
+	}
+	auto fireflySwarmOffset = fbb.CreateVector(fireflySwarm);
+
+	std::vector<flatbuffers::Offset<Save::Decal>> decals;
+	for (const auto& decal : Decals)
+	{
+		Save::DecalBuilder decalSave{ fbb };
+		decalSave.add_position(&FromVector3(decal.Sphere.Center));
+		decalSave.add_radius(decal.Sphere.Radius);
+		decalSave.add_room_number(decal.RoomNumber);
+		decalSave.add_type((int)decal.Type);
+		decalSave.add_life(decal.Life);
+		decalSave.add_life_start_fading(decal.LifeStartFading);
+		decalSave.add_opacity(decal.Opacity);
+		decalSave.add_start_opacity(decal.StartOpacity);
+
+		auto decalSaveOffset = decalSave.Finish();
+		decals.push_back(decalSaveOffset);
+	}
+	auto decalOffset = fbb.CreateVector(decals);
 
 	// TODO: In future, we should save only active FX, not whole array.
 	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
@@ -1026,8 +1100,8 @@ const std::vector<byte> SaveGame::Build()
 
 	// Action queue
 	std::vector<int> actionQueue;
-	for (int i = 0; i < ActionQueue.size(); i++)
-		actionQueue.push_back((int)ActionQueue[i]);
+	for (int i = 0; i < ActionQueueMap.size(); i++)
+		actionQueue.push_back((int)ActionQueueMap[(ActionID)i]);
 	auto actionQueueOffset = fbb.CreateVector(actionQueue);
 
 	// Flipmaps
@@ -1077,25 +1151,23 @@ const std::vector<byte> SaveGame::Build()
 	auto flybyCamerasOffset = fbb.CreateVector(flybyCameras);
 
 	// Static meshes and volumes
-	std::vector<flatbuffers::Offset<Save::StaticMeshInfo>> staticMeshes;
-	std::vector<flatbuffers::Offset<Save::Volume>> volumes;
+	auto staticMeshes = std::vector<flatbuffers::Offset<Save::StaticMeshInfo>>{};
+	auto volumes = std::vector<flatbuffers::Offset<Save::Volume>>{};
 	for (int i = 0; i < g_Level.Rooms.size(); i++)
 	{
 		auto* room = &g_Level.Rooms[i];
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
-			Save::StaticMeshInfoBuilder staticMesh{ fbb };
+			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
-			staticMesh.add_pose(&FromPose(room->mesh[j].pos));
-			staticMesh.add_scale(room->mesh[j].scale);
-			staticMesh.add_color(&FromVector4(room->mesh[j].color));
-
-			staticMesh.add_flags(room->mesh[j].flags);
-			staticMesh.add_hit_points(room->mesh[j].HitPoints);
-			staticMesh.add_room_number(room->RoomNumber);
-			staticMesh.add_number(j);
-			staticMeshes.push_back(staticMesh.Finish());
+			staticObjBuilder.add_number(j);
+			staticObjBuilder.add_pose(&FromPose(room->mesh[j].Pose));
+			staticObjBuilder.add_room_number(room->RoomNumber);
+			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
+			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
+			staticObjBuilder.add_flags(room->mesh[j].Flags);
+			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
 		for (int j = 0; j < room->TriggerVolumes.size(); j++)
@@ -1141,6 +1213,55 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
+
+	// Level state
+	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
+	Save::LevelDataBuilder levelData { fbb };
+
+	levelData.add_level_far_view(level->LevelFarView);
+
+	levelData.add_fog_color(level->Fog.GetColor());
+	levelData.add_fog_min_distance(level->Fog.MinDistance);
+	levelData.add_fog_max_distance(level->Fog.MaxDistance);
+
+	levelData.add_sky_layer_1_enabled(level->GetSkyLayerEnabled(0));
+	levelData.add_sky_layer_1_color(level->GetSkyLayerColor(0));
+	levelData.add_sky_layer_1_speed(level->GetSkyLayerSpeed(0));
+
+	levelData.add_sky_layer_2_enabled(level->GetSkyLayerEnabled(1));
+	levelData.add_sky_layer_2_color(level->GetSkyLayerColor(1));
+	levelData.add_sky_layer_2_speed(level->GetSkyLayerSpeed(1));
+
+	levelData.add_lensflare_enabled(level->LensFlare.GetEnabled());
+	levelData.add_lensflare_color(level->LensFlare.GetColor());
+	levelData.add_lensflare_pitch(level->LensFlare.GetPitch());
+	levelData.add_lensflare_yaw(level->LensFlare.GetYaw());
+	levelData.add_lensflare_sprite_id(level->LensFlare.GetSunSpriteID());
+
+	levelData.add_starfield_meteor_count(level->Starfield.GetMeteorCount());
+	levelData.add_starfield_meteor_spawn_density(level->Starfield.GetMeteorSpawnDensity());
+	levelData.add_starfield_meteor_velocity(level->Starfield.GetMeteorVelocity());
+	levelData.add_starfield_star_count(level->Starfield.GetStarCount());
+
+	levelData.add_horizon1_enabled(level->Horizon1.GetEnabled());
+	levelData.add_horizon1_object_id(level->Horizon1.GetObjectID());
+	levelData.add_horizon1_position(&FromVector3(level->GetHorizonPosition(0)));
+	levelData.add_horizon1_orientation(&FromEulerAngles(level->GetHorizonOrientation(0)));
+	levelData.add_horizon1_transparency(level->Horizon1.GetTransparency());
+
+	levelData.add_horizon2_enabled(level->Horizon2.GetEnabled());
+	levelData.add_horizon2_object_id(level->Horizon2.GetObjectID());
+	levelData.add_horizon2_position(&FromVector3(level->GetHorizonPosition(1)));
+	levelData.add_horizon2_orientation(&FromEulerAngles(level->GetHorizonOrientation(1)));
+	levelData.add_horizon2_transparency(level->Horizon2.GetTransparency());
+
+	levelData.add_storm_enabled(level->Storm);
+	levelData.add_rumble_enabled(level->Rumble);
+	levelData.add_weather_type((int)level->Weather);
+	levelData.add_weather_strength(level->WeatherStrength);
+	levelData.add_weather_clustering(level->WeatherClustering);
+
+	auto levelDataOffset = levelData.Finish();
 
 	// Global event sets
 	std::vector<flatbuffers::Offset<Save::EventSet>> globalEventSets{};
@@ -1205,11 +1326,13 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ParticleInfoBuilder particleInfo{ fbb };
 
+		particleInfo.add_animation_type(particle->animationType);
 		particleInfo.add_b(particle->b);
 		particleInfo.add_col_fade_speed(particle->colFadeSpeed);
 		particleInfo.add_d_b(particle->dB);
 		particleInfo.add_sprite_index(particle->SpriteSeqID);
 		particleInfo.add_sprite_id(particle->SpriteID);
+		particleInfo.add_damage(particle->damage);
 		particleInfo.add_d_g(particle->dG);
 		particleInfo.add_d_r(particle->dR);
 		particleInfo.add_d_size(particle->dSize);
@@ -1217,11 +1340,15 @@ const std::vector<byte> SaveGame::Build()
 		particleInfo.add_extras(particle->extras);
 		particleInfo.add_fade_to_black(particle->fadeToBlack);
 		particleInfo.add_flags(particle->flags);
+		particleInfo.add_framerate(particle->framerate);
 		particleInfo.add_friction(particle->friction);
 		particleInfo.add_fx_obj(particle->fxObj);
 		particleInfo.add_g(particle->g);
 		particleInfo.add_gravity(particle->gravity);
 		particleInfo.add_life(particle->life);
+		particleInfo.add_light_radius(particle->lightRadius);
+		particleInfo.add_light_flicker(particle->lightFlicker);
+		particleInfo.add_light_flicker_s(particle->lightFlickerS);
 		particleInfo.add_max_y_vel(particle->maxYvel);
 		particleInfo.add_node_number(particle->nodeNumber);
 		particleInfo.add_on(particle->on);
@@ -1236,9 +1363,10 @@ const std::vector<byte> SaveGame::Build()
 		particleInfo.add_s_life(particle->sLife);
 		particleInfo.add_s_r(particle->sR);
 		particleInfo.add_s_size(particle->sSize);
+		particleInfo.add_sound(particle->sound);
 		particleInfo.add_blend_mode((int)particle->blendMode);
 		particleInfo.add_x(particle->x);
-		particleInfo.add_x_vel(particle->sSize);
+		particleInfo.add_x_vel(particle->xVel);
 		particleInfo.add_y(particle->y);
 		particleInfo.add_y_vel(particle->yVel);
 		particleInfo.add_z(particle->z);
@@ -1250,6 +1378,23 @@ const std::vector<byte> SaveGame::Build()
 	auto particleOffset = fbb.CreateVector(particles);
 
 	// Swarm enemies
+	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> locusts;
+	for (int i = 0; i < MAX_LOCUSTS; i++)
+	{
+		auto* locust = &Locusts[i];
+
+		Save::SwarmObjectInfoBuilder locustInfo{ fbb };
+
+		locustInfo.add_flags(locust->Counter);
+		locustInfo.add_on(locust->On);
+		locustInfo.add_room_number(locust->RoomNumber);
+		locustInfo.add_pose(&FromPose(locust->Pose));
+		locustInfo.add_target(locust->Target);
+
+		locusts.push_back(locustInfo.Finish());
+	}
+	auto locustOffset = fbb.CreateVector(locusts);
+
 	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> bats;
 	for (int i = 0; i < NUM_BATS; i++)
 	{
@@ -1533,6 +1678,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_header(headerOffset);
 	sgb.add_level(levelStatisticsOffset);
 	sgb.add_game(gameStatisticsOffset);
+	sgb.add_level_data(levelDataOffset);
 	sgb.add_secret_bits(SaveGame::Statistics.SecretBits);
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
@@ -1541,6 +1687,8 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
+	sgb.add_firefly_swarm(fireflySwarmOffset);
+	sgb.add_decals(decalOffset);
 	sgb.add_fxinfos(serializedEffectsOffset);
 	sgb.add_next_fx_free(NextFxFree);
 	sgb.add_next_fx_active(NextFxActive);
@@ -1549,6 +1697,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
 	sgb.add_soundtracks(soundtrackOffset);
 	sgb.add_cd_flags(soundtrackMapOffset);
+	sgb.add_video(videoInfoOffset);
 	sgb.add_action_queue(actionQueueOffset);
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
@@ -1561,6 +1710,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_volumes(volumesOffset);
 	sgb.add_fixed_cameras(camerasOffset);
 	sgb.add_particles(particleOffset);
+	sgb.add_locusts(locustOffset);
 	sgb.add_bats(batsOffset);
 	sgb.add_rats(ratsOffset);
 	sgb.add_spiders(spidersOffset);
@@ -1767,6 +1917,7 @@ static void ParseStatistics(const Save::SaveGame* s, bool isHub)
 	SaveGame::Statistics.Level.HealthUsed = s->level()->medipacks_used();
 	SaveGame::Statistics.Level.DamageTaken = s->level()->damage_taken();
 	SaveGame::Statistics.Level.Kills = s->level()->kills();
+	SaveGame::Statistics.Level.Pickups = s->level()->pickups();
 	SaveGame::Statistics.Level.Secrets = s->level()->secrets();
 	SaveGame::Statistics.Level.TimeTaken = s->level()->timer();
 
@@ -1780,12 +1931,60 @@ static void ParseStatistics(const Save::SaveGame* s, bool isHub)
 	SaveGame::Statistics.Game.HealthUsed = s->game()->medipacks_used();
 	SaveGame::Statistics.Game.DamageTaken = s->game()->damage_taken();
 	SaveGame::Statistics.Game.Kills = s->game()->kills();
+	SaveGame::Statistics.Game.Pickups = s->game()->pickups();
 	SaveGame::Statistics.Game.Secrets = s->game()->secrets();
 	SaveGame::Statistics.Game.TimeTaken = s->game()->timer();
 }
 
 static void ParseLua(const Save::SaveGame* s, bool hubMode)
 {
+	// Global level data
+
+	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
+
+	level->LevelFarView = s->level_data()->level_far_view();
+
+	level->Fog.MaxDistance = s->level_data()->fog_max_distance();
+	level->Fog.MinDistance = s->level_data()->fog_min_distance();
+	level->Fog.SetColor(s->level_data()->fog_color());
+
+	level->Layer1.Enabled = s->level_data()->sky_layer_1_enabled();
+	level->Layer1.CloudSpeed = s->level_data()->sky_layer_1_speed();
+	level->Layer1.SetColor(s->level_data()->sky_layer_1_color());
+
+	level->Layer2.Enabled = s->level_data()->sky_layer_2_enabled();
+	level->Layer2.CloudSpeed = s->level_data()->sky_layer_2_speed();
+	level->Layer2.SetColor(s->level_data()->sky_layer_2_color());
+
+	level->LensFlare.SetEnabled(s->level_data()->lensflare_enabled());
+	level->LensFlare.SetSunSpriteID(s->level_data()->lensflare_sprite_id());
+	level->LensFlare.SetPitch(s->level_data()->lensflare_pitch());
+	level->LensFlare.SetYaw(s->level_data()->lensflare_yaw());
+	level->LensFlare.SetColor(s->level_data()->lensflare_color());
+
+	level->Starfield.SetStarCount(s->level_data()->starfield_star_count());
+	level->Starfield.SetMeteorCount(s->level_data()->starfield_meteor_count());
+	level->Starfield.SetMeteorSpawnDensity(s->level_data()->starfield_meteor_spawn_density());
+	level->Starfield.SetMeteorVelocity(s->level_data()->starfield_meteor_velocity());
+
+	level->Horizon1.SetEnabled(s->level_data()->horizon1_enabled());
+	level->Horizon1.SetObjectID((GAME_OBJECT_ID)s->level_data()->horizon1_object_id());
+	level->Horizon1.SetPosition(ToVector3(s->level_data()->horizon1_position()), true);
+	level->Horizon1.SetRotation(ToEulerAngles(s->level_data()->horizon1_orientation()), true);
+	level->Horizon1.SetTransparency(s->level_data()->horizon1_transparency());
+
+	level->Horizon2.SetEnabled(s->level_data()->horizon2_enabled());
+	level->Horizon2.SetObjectID((GAME_OBJECT_ID)s->level_data()->horizon2_object_id());
+	level->Horizon2.SetPosition(ToVector3(s->level_data()->horizon2_position()), true);
+	level->Horizon2.SetRotation(ToEulerAngles(s->level_data()->horizon2_orientation()), true);
+	level->Horizon2.SetTransparency(s->level_data()->horizon2_transparency());
+
+	level->Storm = s->level_data()->storm_enabled();
+	level->Rumble = s->level_data()->rumble_enabled();
+	level->Weather = (WeatherType)s->level_data()->weather_type();
+	level->WeatherStrength = s->level_data()->weather_strength();
+	level->WeatherClustering = s->level_data()->weather_clustering();
+
 	// Event sets
 
 	if (g_Level.VolumeEventSets.size() == s->volume_event_sets()->size())
@@ -1813,6 +2012,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 			}
 		}
 	}
+
+	// Variables
 
 	auto loadedVars = std::vector<SavedVar>{};
 
@@ -1898,6 +2099,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	}
 
 	g_GameScript->SetVariables(loadedVars, hubMode);
+
+	// Callbacks
 
 	auto populateCallbackVecs = [&s](auto callbackFunc)
 	{
@@ -2059,7 +2262,6 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Control.Weapon.GunType = (LaraWeaponType)s->lara()->control()->weapon()->gun_type();
 	Lara.Control.Weapon.HasFired = s->lara()->control()->weapon()->has_fired();
 	Lara.Control.Weapon.Interval = s->lara()->control()->weapon()->interval();
-	Lara.Control.Weapon.Fired = s->lara()->control()->weapon()->fired();
 	Lara.Control.Weapon.LastGunType = (LaraWeaponType)s->lara()->control()->weapon()->last_gun_type();
 	Lara.Control.Weapon.RequestGunType = (LaraWeaponType)s->lara()->control()->weapon()->request_gun_type();
 	Lara.Control.Weapon.HolsterInfo.BackHolster = (HolsterSlot)s->lara()->control()->weapon()->holster_info()->back_holster();
@@ -2115,6 +2317,9 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
 	Lara.RightArm.Orientation = ToEulerAngles(s->lara()->right_arm()->rotation());
 	Lara.Torch.IsLit = s->lara()->torch()->is_lit();
+	Lara.Torch.Fade = s->lara()->torch()->fade();
+	Lara.Torch.CurrentColor = ToVector3(s->lara()->torch()->current_color());
+	Lara.Torch.NextColor = ToVector3(s->lara()->torch()->next_color());
 	Lara.Torch.State = (TorchState)s->lara()->torch()->state();
 	Lara.Control.Rope.Segment = s->lara()->control()->rope()->segment();
 	Lara.Control.Rope.Direction = s->lara()->control()->rope()->direction();
@@ -2207,6 +2412,8 @@ static void ParsePlayer(const Save::SaveGame* s)
 	// Camera
 	Camera.pos = ToGameVector(s->camera()->position());
 	Camera.target = ToGameVector(s->camera()->target());
+	Camera.extraAngle = ToEulerAngles(s->camera()->extra_orientation()).y;
+	Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;
 
 	for (auto& item : g_Level.Items)
 	{
@@ -2241,6 +2448,14 @@ static void ParseEffects(const Save::SaveGame* s)
 		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
 	}
 
+	// Restore video playback.
+	std::string videoName = s->video()->name()->str();
+	if (!videoName.empty())
+	{
+		g_VideoPlayer.Play(videoName, VideoPlaybackMode::Background, s->video()->silent(), s->video()->looped());
+		g_VideoPlayer.SetNormalizedPosition(s->video()->position());
+	}
+
 	// Load fish swarm.
 	for (int i = 0; i < s->fish_swarm()->size(); i++)
 	{
@@ -2253,14 +2468,66 @@ static void ParseEffects(const Save::SaveGame* s)
 		fish.Life = fishSave->life();
 		fish.MeshIndex = fishSave->mesh_index();
 		fish.Orientation = ToEulerAngles(fishSave->orientation());
-		fish.Position = ToVector3(fishSave->position());
-		fish.PositionTarget = ToVector3(fishSave->position_target());
+		fish.Position = ToVector3i(fishSave->position());
+		fish.PositionTarget = ToVector3i(fishSave->position_target());
 		fish.RoomNumber = fishSave->room_number();
 		fish.TargetItemPtr = (fishSave->target_item_number() == -1) ? nullptr : &g_Level.Items[fishSave->target_item_number()];
 		fish.Undulation = fishSave->undulation();
 		fish.Velocity = fishSave->velocity();
 
 		FishSwarm.push_back(fish);
+	}
+
+	// Load firefly swarm.
+	for (int i = 0; i < s->firefly_swarm()->size(); i++)
+	{
+		const auto& fireflySave = s->firefly_swarm()->Get(i);
+		auto firefly = FireflyData{};
+
+		firefly.SpriteSeqID = fireflySave->sprite_index();
+		firefly.SpriteID = fireflySave->sprite_id();
+		firefly.blendMode = (BlendMode)fireflySave->blend_mode();
+		firefly.scalar = fireflySave->scalar();
+		firefly.Position = ToVector3(fireflySave->position());
+		firefly.RoomNumber = fireflySave->room_number();
+		firefly.PositionTarget = ToVector3(fireflySave->position_target());
+		firefly.Orientation = ToEulerAngles(fireflySave->orientation());
+		firefly.Velocity = fireflySave->velocity();
+		firefly.TargetItemPtr = (fireflySave->target_item_number() == -1) ? nullptr : &g_Level.Items[fireflySave->target_item_number()];
+		firefly.zVel = fireflySave->z_vel();
+		firefly.Life = fireflySave->life();
+		firefly.Number = fireflySave->number();
+		firefly.rB = fireflySave->d_r();
+		firefly.gB = fireflySave->d_g();
+		firefly.bB = fireflySave->d_b();
+		firefly.r = fireflySave->r();
+		firefly.g = fireflySave->g();
+		firefly.b = fireflySave->b();
+		firefly.on = fireflySave->on();
+		firefly.size = fireflySave->size();
+		firefly.rotAng = fireflySave->rot_ang();
+
+		FireflySwarm.push_back(firefly);
+	}
+
+	// Load decals.
+	for (int i = 0; i < s->decals()->size(); i++)
+	{
+		const auto& decalSave = s->decals()->Get(i);
+		auto decal = Decal{};
+
+		decal.Sphere.Center = ToVector3(decalSave->position());
+		decal.Sphere.Radius = decalSave->radius();
+		decal.RoomNumber = decalSave->room_number();
+		decal.Type = (DecalType)decalSave->type();
+		decal.Life = decalSave->life();
+		decal.LifeStartFading = decalSave->life_start_fading();
+		decal.Opacity = decalSave->opacity();
+		decal.StartOpacity = decalSave->start_opacity();
+
+		decal.UpdateNeighbors();
+
+		Decals.push_back(decal);
 	}
 
 	// Load particles.
@@ -2308,6 +2575,25 @@ static void ParseEffects(const Save::SaveGame* s)
 		particle->roomNumber = particleInfo->room_number();
 		particle->nodeNumber = particleInfo->node_number();
 		particle->targetPos = ToVector3(particleInfo->target_pos());
+		particle->animationType = (ParticleAnimType)particleInfo->animation_type();
+		particle->damage = particleInfo->damage();
+		particle->framerate = particleInfo->framerate();
+		particle->lightRadius = particleInfo->light_radius();
+		particle->lightFlicker = particleInfo->light_flicker();
+		particle->lightFlickerS = particleInfo->light_flicker_s();
+		particle->sound = particleInfo->sound();
+	}
+
+	for (int i = 0; i < s->locusts()->size(); i++)
+	{
+		auto* locustInfo = s->locusts()->Get(i);
+		auto* locust = &Locusts[i];
+
+		locust->On = locustInfo->on();
+		locust->Counter = locustInfo->flags();
+		locust->RoomNumber = locustInfo->room_number();
+		locust->Pose = ToPose(*locustInfo->pose());
+		locust->Target = locustInfo->target();
 	}
 
 	for (int i = 0; i < s->bats()->size(); i++)
@@ -2387,29 +2673,29 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		g_Level.Rooms[room->index()].reverbType = (ReverbType)room->reverb_type();
 	}
 
-	// Static objects.
+	// Static objects
 	for (int i = 0; i < s->static_meshes()->size(); i++)
 	{
-		auto staticMesh = s->static_meshes()->Get(i);
-		auto room = &g_Level.Rooms[staticMesh->room_number()];
-		int number = staticMesh->number();
+		const auto& savedStaticObj = *s->static_meshes()->Get(i);
+		auto& room = g_Level.Rooms[savedStaticObj.room_number()];
 
-		room->mesh[number].pos = ToPose(*staticMesh->pose());
-		room->mesh[number].roomNumber = staticMesh->room_number();
-		room->mesh[number].scale = staticMesh->scale();
-		room->mesh[number].color = ToVector4(staticMesh->color());
+		int number = savedStaticObj.number();
+		auto& staticObj = room.mesh[number];
 
-		room->mesh[number].flags = staticMesh->flags();
-		room->mesh[number].HitPoints = staticMesh->hit_points();
-
-		room->mesh[number].Dirty = true;
+		staticObj.Pose = ToPose(*savedStaticObj.pose());
+		staticObj.RoomNumber = savedStaticObj.room_number();
+		staticObj.Color = ToVector4(savedStaticObj.color());
+		staticObj.HitPoints = savedStaticObj.hit_points();
+		staticObj.Flags = savedStaticObj.flags();
+		staticObj.Dirty = true;
 		
-		if (!room->mesh[number].flags)
+		if (!staticObj.Flags)
 		{
-			short roomNumber = staticMesh->room_number();
-			FloorInfo* floor = GetFloor(room->mesh[number].pos.Position.x, room->mesh[number].pos.Position.y, room->mesh[number].pos.Position.z, &roomNumber);
-			TestTriggers(room->mesh[number].pos.Position.x, room->mesh[number].pos.Position.y, room->mesh[number].pos.Position.z, staticMesh->room_number(), true, 0);
-			floor->Stopper = false;
+			int roomNumber = savedStaticObj.room_number();
+			auto& sector = *GetFloor(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, (short*)&roomNumber);
+
+			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
+			sector.Stopper = false;
 		}
 	}
 
@@ -2457,8 +2743,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Restore action queue.
 	for (int i = 0; i < s->action_queue()->size(); i++)
 	{
-		TENAssert(i < ActionQueue.size(), "Action queue size was changed");
-		ActionQueue[i] = (QueueState)s->action_queue()->Get(i);
+		TENAssert(i < ActionQueueMap.size(), "Action queue size was changed.");
+		ActionQueueMap[(ActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
 	}
 
 	// Legacy soundtrack map.
@@ -2502,9 +2788,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	{
 		const Save::Item* savedItem = s->items()->Get(i);
 
-		bool dynamicItem = i >= g_Level.NumItems;
+		bool isDynamicItem = (i >= g_Level.NumItems);
 
-		ItemInfo* item = &g_Level.Items[i];
+		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
 
 		item->NextItem = savedItem->next_item();
@@ -2513,7 +2799,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
 
-		ObjectInfo* obj = &Objects[item->ObjectNumber];
+		const auto* object = &Objects[item->ObjectNumber];
 		
 		item->Name = savedItem->lua_name()->str();
 		if (!item->Name.empty())
@@ -2544,9 +2830,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			continue;
 		}
 
-		// If object is bridge - remove it from existing sectors.
+		// Remove bridge from sectors.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Remove);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Disable(*item);
+		}
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
@@ -2559,7 +2848,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Animation.ActiveState = savedItem->active_state();
 		item->Animation.RequiredState = savedItem->required_state();
 		item->Animation.TargetState = savedItem->target_state();
-		item->Animation.AnimNumber = obj->animIndex + savedItem->anim_number();
+		item->Animation.AnimNumber = object->animIndex + savedItem->anim_number();
 		item->Animation.FrameNumber = savedItem->frame_number();
 		item->Animation.Velocity = ToVector3(savedItem->velocity());
 
@@ -2569,9 +2858,11 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Mesh stuff
 		item->MeshBits = savedItem->mesh_bits();
 		item->Model.BaseMesh = savedItem->base_mesh();
-		item->Model.MeshIndex.resize(savedItem->mesh_pointers()->size());
-		for (int j = 0; j < savedItem->mesh_pointers()->size(); j++)
-			item->Model.MeshIndex[j] = savedItem->mesh_pointers()->Get(j);
+		item->Model.SkinIndex = savedItem->skin_index();
+
+		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
+		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
+			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
 
 		// Flags and timers
 		for (int j = 0; j < 7; j++)
@@ -2622,12 +2913,15 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + savedItem->anim_number();
 		}
 
-		// Re-add bridges at new position.
+		// Initialize bridges.
 		if (item->IsBridge())
-			UpdateBridgeItem(g_Level.Items[i], BridgeUpdateType::Initialize);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Initialize(*item);
+		}
 
 		// Creature data for intelligent items.
-		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && obj->intelligent)
+		if (item->ObjectNumber != ID_LARA && item->Status == ITEM_ACTIVE && object->intelligent)
 		{
 			EnableEntityAI(i, true, false);
 
@@ -2745,7 +3039,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
 
-			pushable->BehaviorState = (PushableBehaviourState)savedPushable->pushable_behaviour_state();
+			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();
 			pushable->Oscillation = savedPushable->pushable_water_force();
 

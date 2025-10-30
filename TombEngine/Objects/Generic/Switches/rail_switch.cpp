@@ -1,14 +1,17 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/rail_switch.h"
-#include "Specific/Input/Input.h"
+
+#include "Game/animation.h"
+#include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/animation.h"
-#include "Game/items.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -33,6 +36,8 @@ namespace TEN::Entities::Switches
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		int flag = 0;
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
 		if ((!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||

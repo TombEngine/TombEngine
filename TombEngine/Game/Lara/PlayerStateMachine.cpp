@@ -136,7 +136,7 @@ namespace TEN::Player
 		PlayerBehaviorStateRoutines[LS_POLE_DOWN] = std::pair(lara_as_pole_down, lara_col_pole_down);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_CLOCKWISE] = std::pair(lara_as_pole_turn_clockwise, lara_col_pole_turn_clockwise);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_COUNTER_CLOCKWISE] = std::pair(lara_as_pole_turn_counter_clockwise, lara_col_pole_turn_counter_clockwise);
-		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_pulley, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_controlled_no_look, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_LEFT] = std::pair(lara_as_crouch_turn_left, lara_col_crouch_turn_left);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_RIGHT] = std::pair(lara_as_crouch_turn_right, lara_col_crouch_turn_right);
 		PlayerBehaviorStateRoutines[LS_EDGE_HANG_SHIMMY_90_OUTER_LEFT] = std::pair(PlayerStateEdgeHangShimmyCorner, lara_as_null);
@@ -233,6 +233,9 @@ namespace TEN::Player
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_DOWN_TO_CROUCH] = std::pair(lara_as_water_tread_vault, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH] = std::pair(lara_as_water_tread_vault, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH] = std::pair(lara_as_water_tread_vault, lara_void_func);
+
+		PlayerBehaviorStateRoutines[LS_PULLEY_UNGRAB] = std::pair(lara_as_controlled_no_look, lara_void_func);
+
 		PlayerBehaviorStateRoutines[LS_STAND_EDGE_HANG_DESCENT] = std::pair(lara_as_stand_edge_descent, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_STAND_EDGE_HANG_DESCENT_FRONT] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_STAND_EDGE_HANG_DESCENT_BACK] = std::pair(lara_as_null, lara_void_func);

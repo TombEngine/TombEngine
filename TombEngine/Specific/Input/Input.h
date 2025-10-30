@@ -1,6 +1,9 @@
 #pragma once
+
 #include "Math/Math.h"
+#include "Specific/Input/Bindings.h"
 #include "Specific/Input/InputAction.h"
+#include "Specific/Input/Keys.h"
 
 using namespace TEN::Math;
 
@@ -8,64 +11,23 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
-	constexpr auto MAX_KEYBOARD_KEYS	= 256;
-	constexpr auto MAX_GAMEPAD_KEYS		= 16;
-	constexpr auto MAX_GAMEPAD_AXES		= 6;
-	constexpr auto MAX_GAMEPAD_POV_AXES = 4;
-	constexpr auto MAX_MOUSE_KEYS		= 8;
-	constexpr auto MAX_MOUSE_AXES		= 6;
-
-	constexpr auto ACTION_OFFSET_GAMEPAD = MAX_KEYBOARD_KEYS;
-	constexpr auto ACTION_OFFSET_MOUSE	 = ACTION_OFFSET_GAMEPAD + MAX_GAMEPAD_KEYS + (MAX_GAMEPAD_AXES * 2) + MAX_GAMEPAD_POV_AXES;
-
-	constexpr auto MAX_INPUT_SLOTS = ACTION_OFFSET_MOUSE + MAX_MOUSE_KEYS + MAX_MOUSE_AXES;
-
-	enum XInputButton
-	{
-		XB_START = ACTION_OFFSET_GAMEPAD,
-		XB_SELECT,
-		XB_LSTICK,
-		XB_RSTICK,
-		XB_LSHIFT,
-		XB_RSHIFT,
-		XB_UNUSED1,
-		XB_UNUSED2,
-		XB_A,
-		XB_B,
-		XB_X,
-		XB_Y,
-		XB_LOGO,
-		XB_AXIS_X_POS = ACTION_OFFSET_GAMEPAD + MAX_GAMEPAD_KEYS,
-		XB_AXIS_X_NEG,
-		XB_AXIS_Y_POS,
-		XB_AXIS_Y_NEG,
-		XB_AXIS_Z_POS,
-		XB_AXIS_Z_NEG,
-		XB_AXIS_W_POS,
-		XB_AXIS_W_NEG,
-		XB_AXIS_LTRIGGER_NEG,
-		XB_AXIS_LTRIGGER_POS,
-		XB_AXIS_RTRIGGER_NEG,
-		XB_AXIS_RTRIGGER_POS,
-		XB_DPAD_UP,
-		XB_DPAD_DOWN,
-		XB_DPAD_LEFT,
-		XB_DPAD_RIGHT
-	};
-
-	enum class InputAxis
+	enum class AxisID
 	{
 		Move,
 		Camera,
+
 		Mouse,
+		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
+		/*StickLeft,
+		StickRight,*/
 
 		Count
 	};
 
-	enum class QueueState
+	enum class ActionQueueState
 	{
 		None,
-		Push,
+		Update,
 		Clear
 	};
 
@@ -85,39 +47,40 @@ namespace TEN::Input
 		float	   FadeSpeed = 0.0f;
 	};
 
-	extern std::vector<InputAction> ActionMap;
-	extern std::vector<QueueState>	ActionQueue;
-	extern std::vector<bool>		KeyMap;
-	extern std::vector<Vector2>		AxisMap;
-
-	extern const std::vector<std::string>	   g_KeyNames;
-	extern		 std::vector<std::vector<int>> Bindings;
+	extern std::unordered_map<int, float>				  KeyMap;
+	extern std::unordered_map<ActionID, Action>			  ActionMap;
+	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
+	extern std::unordered_map<AxisID, Vector2>			  AxisMap;
 
 	void InitializeInput(HWND handle);
 	void DeinitializeInput();
+	void SetInputLockState(bool locked);
 	void DefaultConflict();
-	void UpdateInputActions(ItemInfo* item, bool applyQueue = false);
+	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();
 	void ClearAllActions();
-	void Rumble(float power, float delayInSec = 0.3f, RumbleMode mode = RumbleMode::Both);
+	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
     void ApplyDefaultBindings();
     bool ApplyDefaultXInputBindings();
 
 	Vector2 GetMouse2DPosition();
 
-	// TODO: Move global query functions to player input object (not happening soon). -- Sezz 2023.08.07
-	void  ClearAction(ActionID actionID);
-	bool  NoAction();
-	bool  IsClicked(ActionID actionID);
-	bool  IsHeld(ActionID actionID, float delayInSec = 0.0f);
-	bool  IsPulsed(ActionID actionID, float delayInSec, float initialDelayInSec = 0.0f);
-	bool  IsReleased(ActionID actionID, float maxDelayInSec = INFINITY);
-	float GetActionValue(ActionID actionID);
-	float GetActionTimeActive(ActionID actionID);
-	float GetActionTimeInactive(ActionID actionID);
+	void		 ClearAction(ActionID actionID);
+	bool		 NoAction();
+	bool		 IsClicked(ActionID actionID);
+	bool		 IsHeld(ActionID actionID, float delaySec = 0.0f);
+	bool		 IsPulsed(ActionID actionID, float delaySec, float initialDelaySec = 0.0f);
+	bool		 IsReleased(ActionID actionID, float maxDelaySec = FLT_MAX);
+	float		 GetActionValue(ActionID actionID);
+	unsigned int GetActionTimeActive(ActionID actionID);
+	unsigned int GetActionTimeInactive(ActionID actionID);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();
 	bool IsOpticActionHeld();
+
+	const Vector2& GetMoveAxis();
+	const Vector2& GetCameraAxis();
+	const Vector2& GetMouseAxis();
 }

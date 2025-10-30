@@ -58,7 +58,7 @@ namespace TEN::Effects::SmokeEmitter
 		constexpr auto PART_SIZE_MIN		= 128.0f;
 		constexpr auto FADE_SPEED_MAX		= 9;
 		constexpr auto FADE_SPEED_MIN		= 6;
-		constexpr auto DAMAGE_TIME_INTERVAL = 0.02f;
+		constexpr auto DAMAGE_TIME_INTERVAL = 1;
 
 		static const auto SPHERE = BoundingSphere(Vector3::Zero, 32.0f);
 
@@ -140,8 +140,11 @@ namespace TEN::Effects::SmokeEmitter
 
 		bool ignoreDamage = item.ItemFlags[3] & SmokeEmitterFlags::NoDamage;
 		if (!ignoreDamage && TestGlobalTimeInterval(DAMAGE_TIME_INTERVAL))
+		{
 			part.flags |= SP_DAMAGE;
-
+			part.damage = 2;
+		}
+			
 		part.rotAng = Random::GenerateAngle(ANGLE(0.0f), ANGLE(22.5f));
 		part.rotAdd = Random::GenerateAngle(ANGLE(0.04f), ANGLE(0.08f)) * (Random::TestProbability(1 / 2.0f) ? 1 : -1);
 

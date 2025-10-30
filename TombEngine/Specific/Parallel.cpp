@@ -70,10 +70,10 @@ namespace TEN::Utils
 
 	std::future<void> ParallelTaskManager::AddTask(const ParallelTask& task)
 	{
-		return AddTasks(ParallelTaskGroup{ task });
+		return AddTasks(ParallelTasks{ task });
 	}
 
-	std::future<void> ParallelTaskManager::AddTasks(const ParallelTaskGroup& tasks)
+	std::future<void> ParallelTaskManager::AddTasks(const ParallelTasks& tasks)
 	{
 		// HEAP ALLOC: Create counter and promise.
 		auto counter = std::make_shared<std::atomic<int>>();
@@ -97,7 +97,7 @@ namespace TEN::Utils
 		// TODO: Make this a configuration option?
 		constexpr auto SERIAL_UNIT_COUNT_MAX = 32;
 
-		auto tasks = ParallelTaskGroup{};
+		auto tasks = ParallelTasks{};
 
 		// Process in parallel.
 		if (g_GameFlow->GetSettings()->System.Multithreaded &&
@@ -156,8 +156,13 @@ namespace TEN::Utils
 		// Increment counter for task group.
 		counter->fetch_add(1, std::memory_order_relaxed);
 
-		// Add task with promise and counter handling.
-		_tasks.push([this, task, counter, promise]() { HandleTask(task, *counter, *promise); });
+		// LOCK: Restrict task queue access.
+		{
+			auto taskLock = std::unique_lock(_taskMutex);
+
+			// Add task with promise and counter handling.
+			_tasks.push([this, task, counter, promise]() { HandleTask(task, *counter, *promise); });
+		}
 	}
 
 	void ParallelTaskManager::HandleTask(const ParallelTask& task, std::atomic<int>& counter, std::promise<void>& promise)

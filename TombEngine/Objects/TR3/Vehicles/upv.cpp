@@ -20,7 +20,7 @@
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
-#include "Objects/Sink.h"
+#include "Game/Sink.h"
 #include "Objects/TR3/Vehicles/upv_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Sound/sound.h"
@@ -55,6 +55,8 @@ namespace TEN::Entities::Vehicles
 	constexpr int UPV_HARPOON_RELOAD_TIME = 15;
 	constexpr int UPV_HARPOON_VELOCITY = CLICK(1);
 	constexpr int UPV_SHIFT = 128;
+
+	constexpr int UPV_LIGHT_HASH = 0x1F4C;
 
 	// TODO: These should probably be done in the wad. @Sezz 2022.06.24
 	constexpr auto UPV_DEATH_FRAME_1 = 16;
@@ -217,6 +219,20 @@ namespace TEN::Entities::Vehicles
 		AnimateItem(laraItem);
 	}
 
+	static void DrawUPVLight(ItemInfo* upvItem)
+	{
+		auto* upv = GetUPVInfo(upvItem);
+
+		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
+		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
+
+		target = target - origin;
+		target.Normalize();
+
+		float lightIntensity = 0.5f + Random::GenerateFloat(0.0f, 0.1f);
+		SpawnDynamicSpotLight(origin, target, Vector4(lightIntensity, lightIntensity, lightIntensity, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, UPV_LIGHT_HASH);
+	}
+
 	static void FireUPVHarpoon(ItemInfo* UPVItem, ItemInfo* laraItem)
 	{
 		auto& upv = *GetUPVInfo(UPVItem);
@@ -288,7 +304,7 @@ namespace TEN::Entities::Vehicles
 
 		auto* UPVItem = &g_Level.Items[itemNumber];
 		auto* UPV = GetUPVInfo(UPVItem);
-		auto* laraItem = LaraItem;
+		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 
 		if (lara->Context.Vehicle == itemNumber)
@@ -519,6 +535,7 @@ namespace TEN::Entities::Vehicles
 		auto* UPV = GetUPVInfo(UPVItem);
 		auto* lara = GetLaraInfo(laraItem);
 
+		DrawUPVLight(UPVItem);
 		TestUPVDismount(UPVItem, laraItem);
 
 		int frame = laraItem->Animation.FrameNumber - GetAnimData(laraItem).frameBase;
@@ -960,11 +977,7 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 
-			if (probe.GetRoomNumber() != UPVItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(UPVItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose = UPVItem->Pose;
 

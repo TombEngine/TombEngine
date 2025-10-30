@@ -37,22 +37,18 @@ namespace TEN::Scripting::Types
 			"a", sol::property(&ScriptColor::GetA, &ScriptColor::SetA));
 	}
 
-	/// @int R red component
-	// @int G green component
-	// @int B blue component
-	// @treturn Color A new Color object.
+	/// Create a Color object.
 	// @function Color
+	// @int R Red component.
+	// @int G Green component.
+	// @int B Blue component.
+	// @int[opt=255] A Alpha (transparency) component.
+	// @treturn Color A new Color object.
 	ScriptColor::ScriptColor(byte r, byte g, byte b) :
 		_color(r, g, b)
 	{
 	}
 
-	// @function Color()
-	// @int R Red component.
-	// @int G Green component.
-	// @int B Blue component.
-	// @int A Alpha component (0 = invisible, 255 = opaque).
-	// @treturn Color A new Color object.
 	ScriptColor::ScriptColor(byte r, byte g, byte b, byte a) :
 		ScriptColor(r, g, b)
 	{
@@ -120,6 +116,12 @@ namespace TEN::Scripting::Types
 	std::string ScriptColor::ToString() const
 	{
 		return "{" + std::to_string(GetR()) + ", " + std::to_string(GetG()) + ", " + std::to_string(GetB()) + ", " + std::to_string(GetA()) + "}";
+	}
+
+	ScriptColor ScriptColor::PremultiplyAlpha()
+	{
+		_color = Vector3(_color) * ((float)_color.GetA() / (float)UCHAR_MAX);
+		return *this;
 	}
 
 	ScriptColor::operator Color() const

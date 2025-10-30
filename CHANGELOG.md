@@ -3,9 +3,241 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.7.X] (link to release) - yyyy-mm-dd
+## [Version 1.10]
+
+### New features
+* Added material system with support for normal, specular, roughness, emissive, parallax and ambient occlusion maps.
+* Added animated textures support for moveables and static meshes.
+* Added UVRotate support with arbitrary texture rotation direction.
+* Added interaction highlighter.
+* Added bullet hole and explosion decals for room geometry.
+* Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
+* Added ability to colorize ROPE objects.
+* Added ability to antitrigger FISH_EMITTER.
+* Reworked thumbstick camera to act like in FLEP patch.
+* Increased renderer performance and reduced GPU memory usage.
+* Increased level loading speed by switching to LZ4 compression format.
 
 ### Bug fixes
+* Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
+* Fixed POLEROPE object occasionally not being grabbable when placed on bridges.
+* Fixed GRENADE object not being activated by triggers and heavy triggers under shatters.
+* Fixed FISH_EMITTER fish escape direction when player is nearby.
+* Fixed EXPANDING_PLATFORM and RAISING_BLOCK rendering issues in flat state.
+* Fixed LOCUST_EMITTER object.
+* Fixed SNOWMOBILE not displaying moving tracks (SNOWMOBILE_TRACKS object required).
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Vehicles/TEN_Skidoo.wad2).
+* Fixed several collision issues for TRAIN object.
+* Fixed OCB 4 not working for FLAME_EMITTER2.
+* Fixed wall embeddings after jumping on top of hard static meshes aligned to walls.
+* Fixed dying while landing into shallow water after freefall.
+* Fixed rapids drowning animation not triggering after freefall.
+* Fixed firearm targeting alignment biased to the left side.
+* Fixed shotgun wideshot ammo having same accuracy as normal ammo.
+* Fixed projectiles sometimes flying through narrow room geometry corners.
+* Fixed shatters not activating heavy triggers in rare occasions.
+* Fixed original game issue with multiple burning torches not working correctly.
+* Fixed original game issue where enemies could shoot and be targeted through objects and static meshes.
+* Fixed original game issues with vehicle collision near crawlspaces and stacked rooms.
+* Fixed motorbike sound going silent while doing jumps.
+* Fixed ability to draw weapons on a tightrope.
+* Fixed incorrect ladder dismounts onto sloped floors and death sectors.
+* Fixed dynamic lights disappearing for a single frame after exiting game menus.
+* Fixed controls being stuck when engine window is out of focus.
+* Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
+* Fixed rendering issues with some static meshes if same level file is reused for the title.
+* Fixed intense GPU usage when engine window is minimized.
+* Fixed wrong highlights when sun lights were used in mirror setups.
+* Fixed SSAO applied multiple times when additive surfaces are present in scene.
+* Fixed vertex effects (glow and move) not being rendered at full framerate.
+* Fixed HUD elements being drawn during cinematic flybys or in title level.
+
+### Lua API changes
+* Added detection and recovery of infinite loops and deadlocks caused by mistakes in user scripts.
+* Added `Moveable:ShowInteractionHighlight` method.
+* Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
+* Added holster mesh update for `Lara:SetWeaponType` method and make `activate` parameter false by default.
+* Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
+
+## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
+
+## New features
+* Added FIRE_PENDULUM (ID 458) object from TR3.
+* Added TURNING_WALL_BLADE (ID 456) and TURNING_CEILING_BLADE (ID 457) objects from TR3.
+* Added final shot before death for TROOPS and SAS slots, if Lara is in sight.
+* Added error message and log entry for critical engine errors instead of a silent crash.
+* Added logging to a separate file for every game launch.
+
+### Bug fixes
+* Fixed inability to perform backjumps or grabs after climbing onto a triangular slope.
+* Fixed ROLLINGBALL not stopped by full walls.
+* Fixed several JEEP and MOTORBIKE vehicle collision bugs.
+* Fixed undead enemies not killed in a proper way by vehicles.
+* Fixed smoke emitters crashing the game if placed underwater with OCB 0.
+* Fixed puzzle holes losing collision after inserting puzzle items.
+* Fixed occasional Lara rotation when grabbing pushable objects.
+* Fixed incorrect collision detection with fire particles.
+* Fixed incorrect distance checks on very large room coordinates which could have caused random Lara teleportations.
+* Fixed projectile weapon hits not registering in statistics and collision callbacks.
+* Fixed firearms bullet range limited to targeting range.
+* Fixed significantly worse firearm accuracy compared to the original engines.
+* Fixed pistols not allowing to spam fire in untargeted mode.
+* Fixed two-handed weapon targeting when locked on enemy.
+* Fixed random crashes and visual issues with exploding body part effects.
+* Fixed random crashes when spawning or killing enemies.
+* Fixed shatterable static meshes not producing shatter sound when hit by projectile weapons.
+* Fixed mechanical beetle and waterskin inventory items not appearing in the inventory.
+* Fixed HUD bars displaying incorrect update animation after loading savegame.
+* Fixed slowdowns and freezes when too many sounds are playing.
+* Fixed Doppler effect not applied to sounds.
+* Fixed incorrect cropping for video textures.
+* Fixed snapping while transitioning between two gliding fixed cameras.
+* Fixed overbright ambient light not applied correctly to moveables.
+
+### Lua API changes
+* Added log warnings in case callbacks or level functions are being redefined.
+* Added `Effects.EmitFogBulb` function to emit a dynamic fog bulb for a single frame.
+* Fixed `Moveable:SetOnCollidedWithObject` not working for Lara and invisible or inactive objects.
+* Fixed `Input.ActionID.MOUSE_SCROLL_UP` and `Input.ActionID.MOUSE_SCROLL_DOWN` polling mouse movement instead of scrolling.
+* Fixed `Strings.ShowString` called without last two arguments not showing strings indefinitely.
+
+## [Version 1.9.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.1) - 2025-06-25
+
+### New features
+* Added ability to open doors with draw weapon key in dozy mode.
+* Added headlight for UPV.
+* Use spotlight with shadow casting for motorbike headlight.
+
+### Bug fixes
+* Fixed WATERFALL_EMITTER performance and occasional game freezes, and make it work with OCB 0.
+* Fixed SENTRY_GUN object not tracking Lara at some angles.
+* Fixed ENEMY_JEEP object lifting all other objects in a level one block up.
+* Fixed ELECTRIC_CLEANER not following correct directions.
+* Fixed ROLLINGBALL interpolation and collision detection.
+* Fixed underwater drifting when using PULLEY object.
+* Fixed incorrect hardcoded sounds for the ZIPLINE_HANDLE.
+* Fixed JEEP vehicle locking incorrect Lara animation after using reverse.
+* Fixed inability to use revolver with lasersight in crouched state.
+* Fixed incorrect room collision for negative room coordinates.
+* Fixed exclusive video playback not working when triggered at the end of a level.
+* Fixed garbage particle positions in high FPS mode.
+* Fixed issues with garbage camera movement when switching between fixed cameras.
+* Fixed issues with sound initialization if sound device list has changed.
+
+### Lua API changes
+* Added `weatherClustering` setting to `Flow.Level`.
+* Fixed `Camera:SetPosition` interfering with non-fixed camera position.
+* Renamed `Camera:PlayCamera` to `Camera:Play`.
+
+## [Version 1.9](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9) - 2025-05-19
+
+## New features
+* Added skinned meshes support for any object.
+* Added video playback and video texture streaming support.
+* Added muzzle glow effect for firearms and flares.
+* Added weather particle clustering and increase weather particle density and performance.
+* Added examine mode text rendering (string key should be in the format like `examine1_text`, `examine2_text`, and so on).
+* Added breakable wall object with land and underwater modes.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_BreakableWall.wad2).
+* Added land mode for underwater switches. Asset change required for both types of underwater switches.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_WallSwitch.wad2).
+* Added ability to use big push switch (OCB 3) underwater.
+
+### Bug fixes
+* Fixed LASER_BEAM object going through walls.
+* Fixed WRAITH objects not working correctly in flipped rooms.
+* Fixed SPIKY_CEILING object not having default speed assigned.
+* Fixed FISH_EMITTER object missing random targets due to distance.
+* Fixed FISH_EMITTER and COMPSOGNATHUS objects not attacking corpses.
+* Fixed TELEPORTER object.
+* Fixed AI_PATROL and AI_AMBUSH objects to work with suitable enemies.
+* Fixed multiple trap objects not emitting blood on collision.
+* Fixed locked camera flag and glide timer not working for fixed cameras.
+* Fixed weapon hotkeys not unholstering already selected weapon.
+* Fixed weapons not hitting non-intelligent objects.
+* Fixed collision issues for subsector bridges and bridges moving between rooms.
+* Fixed missing step up animation when switching from tread to wade.
+* Fixed ledge grabbing on platforms made from lowered ceilings.
+* Fixed dozy mode switching to a swim state after special death animation has played.
+* Fixed lensflare enabled status and far view not saved in a savegame.
+* Fixed HK sound effects.
+* Fixed HK and crossbow shots not being registered in statistics.
+* Fixed incorrect arm rotation for revolver animations in crouched state.
+* Fixed incorrect flare effects position in crouched state.
+* Fixed distorted knee and elbow joint vertices.
+* Fixed multi-mesh objects not shattering correctly.
+* Fixed splash effects remaining in the level after reloading from the savegame.
+* Fixed pickup notifier displaying wrong meshes for crossbow and lasersight.
+* Fixed caustics not rendered correctly if texture compression was enabled.
+* Fixed exclusion blend mode not working correctly.
+* Fixed SSAO incorrectly applied through alpha blended textures.
+* Fixed hair not rendered correctly if alpha blended textures are present.
+* Fixed disappearing Lara when climbing through specific L-shaped portal setups.
+* Fixed flickering Lara color when running into static meshes submerged in water.
+* Fixed clipping of overlapped rooms during flyby sequences.
+* Fixed static meshes not interpolating when dynamically changing their positional data.
+* Fixed crashes when shooting, if gunflash or gunshell objects are not present in a level.
+* Fixed crashes when activating objects without animations.
+* Fixed crashes when Lara is on a vehicle unreachable by friendly NPCs.
+* Fixed incorrect conversion of non-Latin characters in the setup dialog.
+* Fixed menu option scrolling when input keys are held.
+* Fixed PUZZLE_HOLE Poseidon statue animation (ID 423). You must use updated Lara object from base wad.
+* Refactored PULLEY object. There is no need to use OCB 1 for a single pull.
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Puzzles_Switches/TEN_Pulley.wad2).
+* Removed legacy TR5 code for SEARCH_OBJECT1 which caused issues with meshswaps.
+* Removed excessive HK nerfing in running state.
+* Removed mipmapping for point filter rendering mode.
+
+### Lua API changes
+* Added `Effects.EmitFlow` and `Effects.EmitWaterfallMist` functions.
+* Added `Flow.ItemAction` enum to reconfigure inventory item actions.
+* Added `Flow.SetIntroVideoPath` function to specify intro video.
+* Added `Input.IsKeyPulsed`, `Input.IsKeyReleased`, `Input.GetAnalogKeyValue`, and `Input.GetAnalogAxisValue` functions.
+* Added `Objects.IsNameInUse` function to check if script name is already in use.
+* Added `View.PlayVideo`, `View.StopVideo`, and other helper functions for the video playback.
+* Added `Moveable:SwapSkinnedMesh` and `Moveable:UnswapSkinnedMesh` for skinned mesh management.
+* Added `Lara:Interact` function to allow alignment with moveables.
+* Added `muzzleGlow` and `muzzleOffset` parameters to weapon settings.
+* Added `muzzleGlow` parameter to flare settings.
+* Added ability to use gunflash parameters for all weapons in weapon settings.
+* Added ability to specify negative priority values for `View.DisplaySprite` to draw it above strings.
+* Added raw mouse and keyboard input action IDs to `Input.ActionID` enumeration.
+* Added area parameter for `Strings.DisplayString` for automatic word wrapping.
+* Added `Strings.DisplayStringOption.VERTICAL_CENTER` flag for vertically centering multiline strings.
+* Renamed `Input.KeyIsHit` and `Input.KeyIsHeld` to `Input.IsKeyHit` and `Input.IsKeyHeld`.
+* Updated `Input.IsKeyHeld` with additional parameter indicating key hold delay.
+* Updated `Effects.MakeExplosion` and `Effects.EmitBlood` to spawn correct effects when used underwater.
+* Fixed `DisplayString` class prematurely deleting timed strings in rare occasions.
+* Fixed `Rotation` class to use unsigned 0-360 degree range, and provide `Rotation:Signed` method to get legacy -180-180 range.
+* Fixed `Inventory.GiveItem` screen position to start from the side of the screen.
+* Fixed `Moveable.GetJointPosition` not returning correct results if moveable is invisible or not rendered.
+* Fixed `Moveable.GetMeshSwapped` function not working correctly.
+* Fixed `Util.PickMoveableByDisplayPosition`.
+
+## [Version 1.8.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8.1) - 2025-03-29
+
+### Bug fixes
+* Fixed pathfinding for friendly NPCs such as monkeys.
+* Fixed particles remaining in the level after reloading from the savegame.
+* Fixed particles being canceled by fog bulbs.
+* Fixed crash in case hair object is the last object in a level.
+* Fixed crash with incorrectly applied animated textures on static meshes.
+* Fixed console window not hiding in non-debug mode on Windows 11.
+* Fixed key binding settings saving for the current play session after hitting Esc to cancel.
+* Fixed lensflare blending formula to avoid screen overbright.
+
+### New features
+* Added Firefly Emitter object (ID 1099) with corresponding sprite slot (ID 1379).
+* Added live console input to perform Lua commands in realtime.
+
+### Lua API changes
+* Added missing constructor for `Collision.Probe` without room number.
+* Added optional looping argument for `View.GetFlybyPosition` and `View.GetFlybyRotation` functions.
+
+## [Version 1.8](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.8) - 2025-03-16
+
+### Bug fixes
+* Improved engine performance up to 20%.
 * Fixed bridges moving the player when the player is underwater.
 * Fixed trigger triggerer not working.
 * Fixed display pickup numeric string not being interpolated in high framerate mode.
@@ -13,27 +245,50 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect handling of dynamic light shadows.
 * Fixed ricochet flashes after using explosive weapons.
 * Fixed incorrect flare draw in crawl state.
-* Fixed starfield remaining active in the next level if next level does not have a starfield specified.
+* Fixed starfield remaining active in the next level if it does not have a starfield specified.
+* Fixed underwater dust particles overflowing when camera is underwater.
 * Fixed wetness player attribute not being preserved in savegames.
 * Fixed invisible HK ammo in the inventory.
 * Fixed flickering rat emitter.
+* Fixed camera glitch when going into quicksand rooms with weapons drawn.
 * Fixed player model submerging into the floor while swimming underwater.
 * Fixed custom shatter sounds with custom sound IDs not playing correctly.
+* Fixed crashes with sound samples larger than 2 megabytes.
 
-### New Features
+### New features
 * Added multithreading and an option for it to flow system settings.
-* Added ability to use keys and puzzle items underwater.
- - You must update your Lara object: https://github.com/TombEngine/Resources/raw/main/Wad2%20Objects/Lara/TEN_Lara.wad2
+* Added ability to use floor trapdoors, keys and puzzle items underwater.
+  - You must update your Lara object: https://github.com/TombEngine/Resources/raw/main/Wad2%20Objects/Lara/TEN_Lara.wad2
 * Added a particle based waterfall emitter object and associated sprite slots.
- - You must use this version: https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_Waterfall_Emitter.wad2
+  - You must use this version: https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Interactables/TEN_Waterfall_Emitter.wad2
+* Added TR1 Hammer.
+  - You must use this version: <https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Traps/TR1_Thor%20Hammer.wad2>
+* Added TR3 Moving Laser.
+* Added TR4 Statue Plinth.
 
 ### Lua API changes
 * Added diary module.
-* Added Effects.EmitAirBubble() function to spawn air bubbles.
-* Added additional arguments for Sprite object slot and starting rotation value for EmitParticle function.
-* Added various Translate() methods to Vec2 and Vec3 script objects.
-  
-## [Version 1.7.1] (https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.7.4) - 2025-04-01
+* Added custom bar module.
+* Added `Collision.Probe` class for basic room collision detection.
+* Added `Flow.Horizon` class and two layers of horizons in a `Flow.Level` class.
+* Added `Effects.EmitAdvancedParticle` function, allowing animations and other effects.
+* Added `Effects.EmitAirBubble` function to spawn air bubbles.
+* Added `Effects.EmitStreamer` function to emit streamers.
+* Added `Flow.GetTotalSecretCount` function to get total amount of secrets in the game.
+* Added `View.GetFlyByPosition` and `View.GetFlyByRotation` functions to get flyby sequence parameters at a specified time point.
+* Added `Moveable:GetScale` and `Movebale:SetScale` methods to get or set visible scale of moveables.
+* Added `Static:GetCollidable` and `Static:SetCollidable` methods to get or set collision status of static meshes.
+* Added `Rotation:Lerp` function to allow linear interpolation between rotations.
+* Added ability to perform additive and subtractive operations on `Rotation` class and compare one `Rotation` to another.
+* Added various `Translate` methods to `Vec2` and `Vec3` script objects.
+* Added alpha transparency functionality for statics and moveables to be used with `SetColor` method.
+* Added extra arguments for sprite object slots and starting rotation value for `EmitParticle` function.
+* Added ability to dynamically change `Flow.Level` weather and environment parameters and save them to a savegame.
+* Added pickup count to `Flow.Statistics` class.
+* Changed `Flow.Starfield` and `Flow.LensFlare` primitive types to use parameters instead of getters and setters.
+* Fixed medipack level count in `Flow.Statistics` class.
+
+## [Version 1.7.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.7.4) - 2025-04-01
 
 ### Bug fixes
 * Fixed static meshes with dynamic light mode not accepting room lights.
@@ -49,7 +304,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed gravity being applied underwater when exiting the fly cheat.
 * Fixed gravity being applied when vaulting on the same frame as the player lands.
 
-### New Features
+### New features
 * Added realtime shader reloading in debug mode by pressing F9 key.
 * Added load, save, stopwatch and compass as a functional pick-up items with ability to add or remove them from inventory.
 * Increased particle limit from 1024 to 4096.
@@ -99,7 +354,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed spotlight shadows.
 * Fixed Skeleton and Mummy not reacting to shotgun hits.
 
-### New Features
+### New features
 * Added classic mirror effect with ability to reflect moveables and static meshes.
 * Added ability to customize many hardcoded parameters, such as flare, weapon, and hair settings.
 * Added dynamic shadow casting on objects and static meshes.
@@ -175,7 +430,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed display sprites and display strings rendering in the inventory background.
 * Fixed young Lara hair drawing. https://tombengine.com/docs/level-settings/#young_lara
 
-### New Features
+### New features
 * Added high framerate mode (also known as 60 FPS mode).
 * Added a customisable global lensflare effect. https://tombengine.com/docs/level-settings/#lensflare
 * Added a customisable starry sky and meteor effect. https://tombengine.com/docs/level-settings/#stars
@@ -235,7 +490,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed bottom collision for solid static meshes.
 * Fixed T-Rex's head rotation.
 
-### New Features
+### New features
 * Auto-switch to a crawl state if player start position is in a crawlspace.
 * Allow directional flame emitter (negative OCBs) to be rotated at any angle.
 * Revise wall spikes:
@@ -282,7 +537,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect light collection in some cases.
 * Fixed normal mapping for rooms, items, and statics.'
 
-### New Features
+### New features
 * Added ambient occlusion (SSAO).
 * Added new post-process workflow (monochrome, negative, exclusion) with tinting.
 * Added SMAA antialiasing instead of MSAA.
@@ -341,7 +596,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix camera snap when disengaging the look-around mode.
 * Fix TR4 mapper not being visible.
 
-### New Features
+### New features
 * Improve head-on wall collision.
 * Overhaul pushables:
   - Separate climbable and non-climbable pushable object slots.
@@ -424,7 +679,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix incorrect culling for scaled static meshes.
 * Fix normal mapping.
 
-### New Features
+### New features
 * Add ability to save screenshot in the "Screenshots" subfolder by pressing the "Print screen" key.
 * Implement separate audio track channel for playing voiceovers with subtitles in .srt format.
 * Don't stop ambience when Lara dies.
@@ -472,7 +727,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix rendering for static meshes with custom blending modes and alpha transparency.
 * Fix inconsistent multiline string spacing on different display modes.
 
-### New Features
+### New features
 * Remove search object 4 hardcoded meshswap activated with a flipmap.
 * Add TR1 cowboy.
 * Add TR3 wall mounted blade.
@@ -530,7 +785,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 	- Please note you must use the patched version found here: https://github.com/TombEngine/Resources/blob/main/Wad2%20Objects/tr5_Imp.wad2
 * Fix and improve wraith tails.
 
-### New Features/Amedments
+### New features/Amedments
 * Add dedicated WRAITH_TRAP object with enhanced effects.
 	- OCB 0: Effect disabled.
 	- OCB 1: Effect enabled.
@@ -579,7 +834,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix TR3 big gun spawning rocket with 0 life which caused an immediate explosion.
 * Fix TR3 Tony and add boss effect for him.
 
-### New Features
+### New features
 * Add TR3 civvy.
 * Add TR3 electric cleaner.
 * Add TR3 Sophia Leigh with following OCBs:	
@@ -631,7 +886,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix grenade and rocket launcher lighting.
 * Fix ceiling trapdoor and floor trapdoor that Lara couldn't open manually.
 
-### New Features
+### New features
 * Make enemies drop pickups at first available bounding box corner point, not centerpoint.
 * Restore original volumetric explosion effects.
 * Add TR3 lizard and Puna.
@@ -683,7 +938,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fix bone rotations of some entities.
 * Fix Lara's animation for cog switch release.
 
-### New Features
+### New features
 * Added new OCB to cog switch object: 
 	- Use OCB 0 to have the traditional behaviour.
 	- Use any other OCB to can use the Cog Switch without need of any door linked.
@@ -697,7 +952,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.0.4](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.6.2) - 2022-12-16
 
-### New Features
+### New features
 * Add generic assignable effects for moveables - fire, sparks, smoke and laser / electric ignite.
 * Add ability to burn enemies with FLAME_EMITTER_1 and death blocks.
 * Add wireframe mode and other visual debug information (switch by F10/F11 debug page scroll hotkeys).
@@ -769,7 +1024,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.0.3](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.6.1) - 2022-11-18
 
-### New Features
+### New features
 * Add ledge jumps (Lara object must be updated with new animations to make it work).
 * Allow any object slot to be used as a meshswap.
 * Add OCB 1 for rollingball to make it silent.
@@ -837,7 +1092,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.0.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.6) - 2022-09-16
 
-### New Features
+### New features
 * Fix removing Pistols with TakeItem and SetItemCount.
 * Allow saving and loading of Vec3s in LevelVars and GameVars.
 * Support volume triggers made with node editor.
@@ -892,7 +1147,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.0.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.5.2) - 2022-08-16
 
-### New Features
+### New features
 * Added antialiasing support.
 * Added static mesh scaling support.
 * Added free rotation for teeth spikes instead of using OCB codes.

@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		bufferToFill.Projection = Camera.Projection;
 		bufferToFill.View = Camera.View;
 		bufferToFill.ViewProjection = Camera.ViewProjection;
+		bufferToFill.InverseView = Camera.View.Invert();
 		bufferToFill.InverseProjection = Camera.Projection.Invert();
 		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
 		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);

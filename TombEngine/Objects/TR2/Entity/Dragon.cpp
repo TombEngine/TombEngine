@@ -7,6 +7,7 @@
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
@@ -17,6 +18,7 @@
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -626,6 +628,8 @@ namespace TEN::Entities::Creatures::TR2
 	static void HandleDaggerPickup(ItemInfo& item, ItemInfo& playerItem)
 	{
 		auto& player = GetLaraInfo(playerItem);
+		
+		g_Hud.InteractionHighlighter.Test(playerItem, item);
 
 		if ((IsHeld(In::Action) &&
 			(item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_DEFEATED) ||

@@ -552,6 +552,11 @@ namespace TEN::Entities::TR4
 			if (item.Animation.ActiveState != SAS_STATE_DEATH)
 			{
 				SetAnimation(&item, SAS_ANIM_DEATH);
+				item.ItemFlags[FINAL_SHOT_FLAG_INDEX] = Random::GenerateInt(1, FINAL_SHOT_COUNT);
+			}
+			else
+			{
+				PerformFinalAttack(item, SasGunBite, 8, SAS_ANIM_DEATH, SAS_SHOT_DAMAGE, SFX_TR4_SAS_MACHINE_GUN_FIRE);
 			}
 		}
 
@@ -595,6 +600,8 @@ namespace TEN::Entities::TR4
 	{
 		auto& item = g_Level.Items[itemNumber];
 		auto& player = *GetLaraInfo(laraItem);
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, item);
 
 		if ((IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&

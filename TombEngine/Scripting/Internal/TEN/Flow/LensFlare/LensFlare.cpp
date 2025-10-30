@@ -8,7 +8,7 @@
 
 using namespace TEN::Scripting::Types;
 
-/// Represents a global lens flare (not to be confused with the lens flare object).
+/// Represents a global lens flare (not to be confused with the lens flare object). To be used with @{Flow.Level.lensFlare} property.
 //
 // @tenprimitive Flow.LensFlare
 // @pragma nostrip
@@ -25,23 +25,46 @@ namespace TEN::Scripting
 			"LensFlare",
 			ctors(), sol::call_constructor, ctors(),
 
+			/// (bool) Lens flare enabled state.
+			// If set to true, lens flare will be visible.
+			// @mem enabled
+			"enabled", sol::property(&LensFlare::GetEnabled, &LensFlare::SetEnabled),
+
+			/// (int) Lens flare's sun sprite ID in DEFAULT_SPRITES sequence.
+			// @mem spriteID
+			"spriteID", sol::property(&LensFlare::GetSunSpriteID, &LensFlare::SetSunSpriteID),
+
+			/// (float) Lens flare's pitch (vertical) angle in degrees.
+			// @mem pitch
+			"pitch", sol::property(&LensFlare::GetPitch, &LensFlare::SetPitch),
+
+			/// (float) Lens flare's yaw (horizontal) angle in degrees.
+			// @mem yaw
+			"yaw", sol::property(&LensFlare::GetYaw, &LensFlare::SetYaw),
+
+			/// (@{Color}) Lens flare's color.
+			// @mem color
+			"color", sol::property(&LensFlare::GetColor, &LensFlare::SetColor),
+
+			// Compatibility.
 			"GetSunSpriteID", &LensFlare::GetSunSpriteID,
 			"GetPitch", &LensFlare::GetPitch,
 			"GetYaw", &LensFlare::GetYaw,
 			"GetColor", &LensFlare::GetColor,
-			"GetEnabled", &LensFlare::GetEnabledStatus,
+			"GetEnabled", &LensFlare::GetEnabled,
 
 			"SetSunSpriteID", &LensFlare::SetSunSpriteID,
 			"SetPitch", &LensFlare::SetPitch,
 			"SetYaw", &LensFlare::SetYaw,
-			"SetColor", &LensFlare::SetColor);
+			"SetColor", &LensFlare::SetColor,
+			"SetEnabled", &LensFlare::SetEnabled);
 	}
 
 	/// Create a LensFlare object.
 	// @function LensFlare
-	// @tparam float Pitch angle in degrees.
-	// @tparam float Yaw angle in degrees.
-	// @tparam Color Color.
+	// @tparam float pitch Pitch angle in degrees.
+	// @tparam float yaw Yaw angle in degrees.
+	// @tparam @{Color} color Color of the lensflare.
 	// @treturn LensFlare A new LensFlare object.
 	LensFlare::LensFlare(float pitch, float yaw, const ScriptColor& color)
 	{
@@ -50,48 +73,31 @@ namespace TEN::Scripting
 		_rotation = Rotation(pitch, yaw, 0.0f);
 	}
 
-	/// Get this lens flare's sun sprite ID.
-	// @function LensFlare:GetSunSpriteID
-	// @treturn int Sprite ID.
 	int LensFlare::GetSunSpriteID() const
 	{
 		return _sunSpriteID;
 	}
 
-	/// Get this lens flare's pitch angle in degrees.
-	// @function LensFlare:GetPitch
-	// @treturn float Pitch angle in degrees.
 	float LensFlare::GetPitch() const
 	{
 		return _rotation.x;
 	}
 	
-	/// Get this lens flare's yaw angle in degrees.
-	// @function LensFlare:GetYaw
-	// @treturn float Yaw angle in degrees.
 	float LensFlare::GetYaw() const
 	{
 		return _rotation.y;
 	}
 
-	/// Get the lens flare's color.
-	// @function LensFlare:GetColor
 	ScriptColor LensFlare::GetColor() const
 	{
 		return _color;
 	}
 
-	/// Get this lens flare's enabled status.
-	// @function LensFlare:GetEnabled
-	// @treturn bool Enabled status. __true: enabled__, __false: disabled__
-	bool LensFlare::GetEnabledStatus() const
+	bool LensFlare::GetEnabled() const
 	{
 		return _isEnabled;
 	}
 
-	/// Set this lens flare's sun sprite ID.
-	// @function LensFlare:SetSunSpriteID
-	// @tparam int New sun sprite ID.
 	void LensFlare::SetSunSpriteID(int spriteID)
 	{
 		// Sprite ID out of range; return early.
@@ -104,27 +110,23 @@ namespace TEN::Scripting
 		_sunSpriteID = spriteID;
 	}
 
-	/// Set this lens flare's pitch angle.
-	// @function LensFlare:SetPitch
-	// @tparam float New pitch angle in degrees.
 	void LensFlare::SetPitch(float pitch)
 	{
 		_rotation.x = pitch;
 	}
 
-	/// Set this lens flare's yaw angle.
-	// @function LensFlare:SetYaw
-	// @tparam float New yaw angle in degrees.
 	void LensFlare::SetYaw(float yaw)
 	{
 		_rotation.y = yaw;
 	}
-	
-	/// Set this lens flare's color.
-	// @function LensFlare:SetColor
-	// @tparam Color New color.
+
 	void LensFlare::SetColor(const ScriptColor& color)
 	{
 		_color = color;
+	}
+	
+	void LensFlare::SetEnabled(bool value)
+	{
+		_isEnabled = value;
 	}
 }
