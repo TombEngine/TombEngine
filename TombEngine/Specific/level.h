@@ -5,6 +5,7 @@
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
 #include "Specific/IO/ChunkReader.h"
@@ -29,6 +30,8 @@ struct TEXTURE
 	int height;
 	std::vector<byte> colorMapData;
 	std::vector<byte> normalMapData;
+	std::vector<byte> ORSHMapData;
+	std::vector<byte> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME
@@ -49,6 +52,8 @@ struct ANIMATED_TEXTURES_SEQUENCE
 	int Atlas;
 	int Fps;
 	int NumFrames;
+	float UVRotateDirection;
+	float UVRotateSpeed;
 	std::vector<ANIMATED_TEXTURES_FRAME> Frames;
 };
 
@@ -76,15 +81,33 @@ struct SPRITE
 	float y4;
 };
 
+struct MaterialData
+{
+	std::string Name;
+	MaterialShaderType Type;
+	Vector4 Parameters0;
+	Vector4 Parameters1;
+	Vector4 Parameters2;
+	Vector4 Parameters3;
+	bool HasNormalMap;
+	bool HasHeightMap;
+	bool HasAmbientOcclusionMap;
+	bool HasRoughnessMap;
+	bool HasSpecularMap;
+	bool HasEmissiveMap;
+};
+
 struct MESH
 {
+	bool hidden;
 	LightMode lightMode;
 	BoundingSphere sphere;
 	std::vector<Vector3> positions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> colors;
 	std::vector<Vector3> effects; // X = glow, Y = move, Z = refract
-	std::vector<int> bones;
+	std::vector<std::array<unsigned char, 4>> boneIndices;
+	std::vector<std::array<unsigned char, 4>> boneWeights;
 	std::vector<BUCKET> buckets;
 };
 
@@ -139,7 +162,7 @@ struct LevelData
 	std::vector<SPRITE>			 Sprites   = {};
 	std::vector<MirrorData>		 Mirrors = {};
 
-	// Texture
+	// Texture and materials
 
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
@@ -148,6 +171,7 @@ struct LevelData
 	std::vector<TEXTURE> AnimatedTextures  = {};
 	std::vector<TEXTURE> SpritesTextures   = {};
 	std::vector<ANIMATED_TEXTURES_SEQUENCE> AnimatedTexturesSequences = {};
+	std::vector<MaterialData> Materials    = {};
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;
@@ -181,6 +205,7 @@ void LoadAnimatedTextures();
 void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
+void LoadMaterials();
 
 void GetCarriedItems();
 void GetAIPickups();

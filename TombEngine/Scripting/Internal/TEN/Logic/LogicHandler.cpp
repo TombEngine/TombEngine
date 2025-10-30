@@ -409,6 +409,12 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 		auto partName = tab.raw_get<std::string>(strKey);
 		auto fullName = partName + "." + name;
 		auto& parentNameTab = _levelFuncs_tablesOfNames[partName];
+
+		// Check if function is already defined.
+		if (auto it = _levelFuncs_luaFunctions.find(fullName); it != _levelFuncs_luaFunctions.end())
+			TENLog("Lua function " + fullName + " is being redefined. Check your level script.", LogLevel::Warning);
+
+		// Define function.
 		parentNameTab.insert_or_assign(name, fullName);
 
 		// Create LevelFunc userdata and add that too.
@@ -497,6 +503,7 @@ void LogicHandler::FreeLevelScripts()
 	_levelFuncs_tablesOfNames.emplace(std::make_pair(ScriptReserved_LevelFuncs, std::unordered_map<std::string, std::string>{}));
 
 	ResetLevelTables();
+
 	_onStart = sol::nil;
 	_onLoad = sol::nil;
 	_onLoop = sol::nil;
@@ -504,6 +511,10 @@ void LogicHandler::FreeLevelScripts()
 	_onEnd = sol::nil;
 	_onUseItem = sol::nil;
 	_onFreeze = sol::nil;
+
+	_functionCallCount = 0;
+	_insideFunction = false;
+
 	_handler.GetState()->collect_garbage();
 }
 
@@ -947,13 +958,6 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 	return std::make_unique<R>(map.at(name), false);
 }
 
-/*** Special objects
-@section specialobjects
-*/
-
-/*** An @{Objects.Moveable} entry representing Lara herself.
-@table Lara
-*/
 void LogicHandler::ResetVariables()
 {
 	(*_handler.GetState())["Lara"] = nullptr;
@@ -1016,6 +1020,12 @@ void LogicHandler::ExecuteFunction(const std::string& name, TEN::Control::Volume
 	{
 		func(nullptr, arguments);
 	}
+}
+
+unsigned int LogicHandler::GetFunctionCallCount()
+{
+	// Only return the count if we're inside a lua function call.
+	return _insideFunction ? _functionCallCount : 0;
 }
 
 void LogicHandler::OnStart()
@@ -1265,10 +1275,29 @@ void LogicHandler::InitCallbacks()
 
 		LevelFunc fnh = (*state)[ScriptReserved_LevelFuncs][luaFunc];
 
+		if (func.valid())
+		{
+			auto it = std::find_if(_levelFuncs_luaFunctions.begin(), _levelFuncs_luaFunctions.end(),
+						[&](const auto& pair) { return pair.second == func; });
+
+			if (it != _levelFuncs_luaFunctions.end())
+			{
+				auto message = std::string("Lua callback ") + it->first + " is being redefined";
+				if (it->first != fullName)
+					message += " to " + fullName;
+				message += ". Check your level script.";
+				TENLog(message, LogLevel::Warning);
+			}
+			else
+			{
+				TENLog("Unknown redefinition of the callback " + fullName + ".", LogLevel::Warning);
+			}
+		}
+
 		func = _levelFuncs_luaFunctions[fnh.m_funcName];
 
 		if (!func.valid())
-			TENLog("Level's script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.");
+			TENLog("Level script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.", LogLevel::Info, LogConfig::Debug);
 	};
 
 	assignCB(_onStart, ScriptReserved_OnStart);

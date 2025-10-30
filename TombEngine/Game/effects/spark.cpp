@@ -14,7 +14,7 @@ using namespace TEN::Math::Random;
 
 namespace TEN::Effects::Spark
 {
-	std::array<SparkParticle, 128> SparkParticles;
+	std::array<SparkParticle, 256> SparkParticles;
 
 	void UpdateSparkParticles()
 	{

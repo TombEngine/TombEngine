@@ -73,6 +73,7 @@ struct ObjectInfo
 	bool loaded = false; // IsLoaded
 
 	int nmeshes; // BoneCount
+	int skinIndex; // Base index in g_Level.Meshes.
 	int meshIndex; // Base index in g_Level.Meshes.
 	int boneIndex; // Base index in g_Level.Bones.
 

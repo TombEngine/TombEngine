@@ -105,8 +105,10 @@ namespace TEN::Entities::Creatures::TR3
 				laraAI.distance = pow(dx, 2) + pow(dx, 2);
 
 				int bestDistance = INT_MAX;
-				for (auto& currentCreature : ActiveCreatures)
+				for (auto creatureIndex : ActiveCreatures)
 				{
+					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 						continue;
 

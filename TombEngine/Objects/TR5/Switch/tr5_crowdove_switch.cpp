@@ -42,6 +42,8 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Custom);
+
 		if (switchItem->Flags & IFLAG_INVISIBLE ||
 			!(switchItem->MeshBits & 4) ||
 			(!IsHeld(In::Action) ||

@@ -19,6 +19,7 @@
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/Generic/Switches/pulley_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
 #include "Objects/objectslist.h"
 #include "Objects/TR3/Vehicles/kayak.h"
@@ -175,6 +176,10 @@ bool SwitchTrigger(short itemNumber, short timer)
 	if (item.ObjectNumber >= ID_KEY_HOLE1 && item.ObjectNumber <= ID_KEY_HOLE16)
 		return false;
 
+	// Handle pulley.
+	if (item.ObjectNumber == ID_PULLEY)
+		return TriggerPulley(itemNumber, timer);
+
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
 	{
@@ -282,9 +287,9 @@ void RefreshCamera(short type, short* data)
 			{
 				Camera.number = value;
 
-				if ((Camera.timer < 0) || (Camera.type == CameraType::Look) || (Camera.type == CameraType::Combat))
+				if (Camera.timer < 0 || !TestLockedCamera())
 				{
-					Camera.timer = -1;
+					Camera.timer = NO_VALUE;
 					targetOk = 0;
 					break;
 				}
@@ -297,7 +302,7 @@ void RefreshCamera(short type, short* data)
 			break;
 
 		case TO_TARGET:
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat)
+			if (!TestLockedCamera())
 				break;
 
 			Camera.item = &g_Level.Items[value];
@@ -306,8 +311,10 @@ void RefreshCamera(short type, short* data)
 	} while (!(trigger & END_BIT));
 
 	if (Camera.item)
+	{
 		if (!targetOk || (targetOk == 2 && Camera.item->LookedAt && Camera.item != Camera.lastItem))
 			Camera.item = nullptr;
+	}
 
 	if (Camera.number == NO_VALUE && Camera.timer > 0)
 		Camera.timer = NO_VALUE;
@@ -406,10 +413,11 @@ void Trigger(short const value, short const flags)
 			AddActiveItem(value);
 		}
 
-		item->Status = ITEM_ACTIVE;
 		item->TouchBits = NO_JOINT_BITS;
 		item->DisableInterpolation = true;
 	}
+
+	item->Status = ITEM_ACTIVE;
 }
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
@@ -651,7 +659,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			Camera.number = value;
 
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat && !(g_Level.Cameras[value].Flags & 3))
+			if (!TestLockedCamera())
 				break;
 
 			if (triggerType == TRIGGER_TYPES::COMBAT)
@@ -662,8 +670,14 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			if (Camera.number != Camera.last || triggerType == TRIGGER_TYPES::SWITCH)
 			{
+				// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
+				Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
 				Camera.timer = (trigger & TIMER_BITS) * FPS;
 				Camera.type = heavy ? CameraType::Heavy : CameraType::Fixed;
+
+				// If camera is not gliding, disable interpolation.
+				Camera.DisableInterpolation = (Camera.speed == 1);
+
 				if (trigger & ONESHOT)
 					g_Level.Cameras[Camera.number].Flags |= ONESHOT;
 			}
@@ -902,8 +916,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		{
 			const auto& player = GetLaraInfo(*item);
 
-			if (!IsJumpState((LaraState)item->Animation.ActiveState) || 
-				player.Control.WaterStatus != WaterStatus::Dry)
+			if (!IsJumpState((LaraState)item->Animation.ActiveState) || player.Control.WaterStatus != WaterStatus::Dry || item->HitPoints <= 0)
 			{
 				// Check floor material.
 				auto material = sector.GetSurfaceMaterial(pointColl.GetPosition().x, pointColl.GetPosition().z, true);

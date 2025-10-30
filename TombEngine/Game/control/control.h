@@ -13,8 +13,8 @@ class FloorInfo;
 class GameBoundingBox;
 struct CollisionInfo;
 struct ItemInfo;
-struct MESH_INFO;
 struct RoomData;
+struct StaticMesh;
 
 enum class GameStatus
 {
@@ -63,6 +63,7 @@ extern bool InitializeGame;
 extern bool DoTheGame;
 extern bool JustLoaded;
 extern bool ThreadEnded;
+extern bool DebugMode;
 
 extern int RequiredStartPos;
 extern int CurrentLevel;

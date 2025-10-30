@@ -128,6 +128,9 @@ namespace TEN::Entities::Generic
 		bool result2 = TestLaraPosition(CeilingTrapDoorBounds, trapDoorItem, laraItem);
 		laraItem->Pose.Orientation.y += ANGLE(180.0f);
 
+		if (result || result2)
+			g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
+
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_JUMP_UP &&
 			laraItem->Animation.IsAirborne &&
@@ -151,7 +154,7 @@ namespace TEN::Entities::Generic
 			trapDoorItem->Status = ITEM_ACTIVE;
 			trapDoorItem->Animation.TargetState = 1;
 
-			UseForcedFixedCamera = 1;
+			UseForcedFixedCamera = true;
 			ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 1024;
 			ForcedFixedCamera.y = trapDoorItem->Pose.Position.y + 1024;
 			ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 1024;
@@ -160,7 +163,7 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
@@ -171,6 +174,8 @@ namespace TEN::Entities::Generic
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 
@@ -200,7 +205,7 @@ namespace TEN::Entities::Generic
 					trapDoorItem->Status = ITEM_ACTIVE;
 					trapDoorItem->Animation.TargetState = 1;
 
-					UseForcedFixedCamera = 1;
+					UseForcedFixedCamera = true;
 					ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 2048;
 					ForcedFixedCamera.y = trapDoorItem->Pose.Position.y - 2048;
 
@@ -219,7 +224,7 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))

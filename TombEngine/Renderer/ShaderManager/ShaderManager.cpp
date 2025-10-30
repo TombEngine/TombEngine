@@ -44,6 +44,10 @@ namespace TEN::Renderer::Utils
 
 		Load(Shader::Ssao, "SSAO", "", ShaderType::Pixel);
 		Load(Shader::SsaoBlur, "SSAO", "Blur", ShaderType::Pixel);
+
+		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel);
+		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel);
+		Load(Shader::GlowCombine, "PostProcess", "GlowCombine", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)
@@ -87,24 +91,21 @@ namespace TEN::Renderer::Utils
 
 	void ShaderManager::LoadCommonShaders()
 	{
-		D3D_SHADER_MACRO roomAnimated[] = { "ANIMATED", "", nullptr, nullptr };
+		D3D_SHADER_MACRO animated[] = { "ANIMATED", "", nullptr, nullptr };
 		D3D_SHADER_MACRO roomTransparent[] = { "TRANSPARENT", "", nullptr, nullptr };
 		D3D_SHADER_MACRO shadowMap[] = { "SHADOW_MAP", "", nullptr, nullptr };
-
+		
 		Load(Shader::Rooms, "Rooms", "", ShaderType::PixelAndVertex);
-		Load(Shader::RoomsAnimated, "Rooms", "", ShaderType::Vertex, roomAnimated);
 		Load(Shader::RoomsTransparent, "Rooms", "", ShaderType::Pixel, roomTransparent);
-
 		Load(Shader::RoomAmbient, "RoomAmbient", "", ShaderType::PixelAndVertex);
-		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::Vertex);
-
+		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex);
 		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex);
-		Load(Shader::Statics, "Statics", "", ShaderType::PixelAndVertex);
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex);
-		Load(Shader::Sprites, "Sprites", "", ShaderType::PixelAndVertex);
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex);
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex);
+
 		Load(Shader::FullScreenQuad, "FullScreenQuad", "", ShaderType::PixelAndVertex);
+
 		Load(Shader::ShadowMap, "ShadowMap", "", ShaderType::PixelAndVertex, shadowMap);
 
 		Load(Shader::Hud, "HUD", "", ShaderType::Vertex);
@@ -117,9 +118,7 @@ namespace TEN::Renderer::Utils
 
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel);
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex);
-		Load(Shader::GBufferRoomsAnimated, "GBuffer", "Rooms", ShaderType::Vertex, roomAnimated);
 		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex);
-		Load(Shader::GBufferStatics, "GBuffer", "Statics", ShaderType::Vertex);
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex);
 	}
 

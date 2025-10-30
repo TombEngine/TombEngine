@@ -16,6 +16,9 @@
 #include "Scripting/Internal/TEN/Flow/Enums/ErrorModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/FreezeModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
+#include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
+#include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
@@ -456,8 +459,14 @@ void FlowHandler::LoadFlowScript()
 	}
 }
 
-char const * FlowHandler::GetString(const char* id) const
+ const char* FlowHandler::GetString(const char* id) const
 {
+	if (id == nullptr || *id == '\0')
+	{
+		TENLog("Provided string ID is empty.", LogLevel::Warning);
+		return _translationMap.begin()->second[0].c_str();
+	}
+
 	if (!ScriptAssert(_translationMap.find(id) != _translationMap.end(), std::string{ "Couldn't find string " } + id))
 	{
 		return id;
@@ -496,7 +505,7 @@ int	FlowHandler::GetNumLevels() const
 int FlowHandler::GetLevelNumber(const std::string& fileName)
 {
 	if (fileName.empty())
-		return -1;
+		return NO_VALUE;
 
 	auto fileNameWithForwardSlashes = fileName;
 	std::replace(fileNameWithForwardSlashes.begin(), fileNameWithForwardSlashes.end(), '\\', '/');

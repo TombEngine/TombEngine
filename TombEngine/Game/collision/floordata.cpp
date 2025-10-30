@@ -402,10 +402,12 @@ namespace TEN::Collision::Floordata
 	{
 		constexpr auto HALF_BLOCK = (int)BLOCK(0.5f);
 
-		// Return relative 2D point in range [0, BLOCK(1)).
-		return Vector2i(
-			(x % BLOCK(1)) - HALF_BLOCK,
-			(z % BLOCK(1)) - HALF_BLOCK);
+		// Normalize x and z to [0, BLOCK_SIZE] before subtracting HALF_BLOCK.
+		int localX = ((x % BLOCK(1)) + BLOCK(1)) % BLOCK(1) - HALF_BLOCK;
+		int localZ = ((z % BLOCK(1)) + BLOCK(1)) % BLOCK(1) - HALF_BLOCK;
+
+		// Return relative 2D point in range [0, BLOCK(1)].
+		return Vector2i(localX, localZ);
 	}
 
 	Vector2i GetRoomGridCoord(int roomNumber, int x, int z, bool clampToBounds)

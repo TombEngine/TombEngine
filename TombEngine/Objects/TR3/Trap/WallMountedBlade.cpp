@@ -34,7 +34,7 @@ namespace TEN::Entities::Traps
 		// Used for GenericSphereBoxCollision.
 		item.ItemFlags[0] = WALL_MOUNTED_BLADE_JOINT; // Damaging mesh joint.
 		item.ItemFlags[3] = 0; // Set the Damage initially to 0 to avoid player being damaged when the blade is disabled.
-		item.ItemFlags[4] = 1; // NOTE: avoid the blade pushing lara in GenericSphereBoxCollision() !
+		item.ItemFlags[4] = 0; 
 	}
 
 	void WallMountedBladeControl(short itemNumber)
@@ -42,9 +42,15 @@ namespace TEN::Entities::Traps
 		auto& item = g_Level.Items[itemNumber];
 
 		if (item.Animation.ActiveState == WALL_MOUNTED_BLADE_STATE_ENABLED)
+		{
 			item.ItemFlags[3] = WALL_MOUNTED_BLADE_HARM_DAMAGE;
+			item.ItemFlags[4] = 1; // Avoid the blade pushing lara in GenericSphereBoxCollision().
+		}
 		else
-			item.ItemFlags[3] = 0; // NOTE: Reset damage to avoid GenericSphereBoxCollision() damaging player when disabled.
+		{
+			item.ItemFlags[3] = 0; // Reset damage to avoid GenericSphereBoxCollision() damaging player when disabled.
+			item.ItemFlags[4] = 0;
+		}
 
 		if (TriggerActive(&item) && item.Animation.ActiveState == WALL_MOUNTED_BLADE_STATE_DISABLED)
 			item.Animation.TargetState = WALL_MOUNTED_BLADE_STATE_ENABLED;

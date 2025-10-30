@@ -24,6 +24,8 @@ namespace TEN::Renderer::Structures
 		BlendMode BlendMode = BlendMode::Opaque;
 		LightMode LightMode = LightMode::Dynamic;
 
+		bool Skinned = false;
+
 		RendererRoom*	 Room	 = nullptr;
 		RendererBucket*	 Bucket	 = nullptr;
 		RendererPolygon* Polygon = nullptr;

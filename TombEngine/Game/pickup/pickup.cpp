@@ -133,7 +133,6 @@ const ObjectCollisionBounds MSBounds =
 
 int NumRPickups;
 short RPickups[16];
-Vector3i OldPickupPos;
 
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count)
 {
@@ -297,6 +296,8 @@ void DoPickup(ItemInfo* laraItem)
 
 		GetFlameTorch();
 		lara->Torch.IsLit = (pickupItem->ItemFlags[3] & 1);
+		lara->Torch.Fade = 0;
+		lara->Torch.CurrentColor = lara->Torch.NextColor = pickupItem->Effect.PrimaryEffectColor;
 
 		KillItem(pickupItemNumber);
 		pickupItem->Pose.Orientation = prevOrient;
@@ -400,6 +401,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 	if (item->ObjectNumber == ID_FLARE_ITEM && item->Active && lara->Control.Weapon.GunType == LaraWeaponType::Flare)
 		return;
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
 	item->Pose.Orientation.y = laraItem->Pose.Orientation.y;
 	item->Pose.Orientation.z = 0.0f;
@@ -545,12 +548,15 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			item->Pose.Orientation = prevOrient;
 			return;
 		}
+
 		if (!lara->Control.IsMoving)
 		{
 			if (g_Gui.GetInventoryItemChosen() == NO_VALUE)
 			{
 				if (g_Gui.IsObjectInInventory(ID_CROWBAR_ITEM))
 					g_Gui.SetEnterInventory(ID_CROWBAR_ITEM);
+				else if (IsClicked(In::Action))
+					SayNo();
 
 				item->Pose.Orientation = prevOrient;
 				return;
@@ -910,9 +916,9 @@ void DropPickups(ItemInfo* item)
 
 		for (auto* staticPtr : collObjects.Statics)
 		{
-			auto& object = Statics[staticPtr->staticNumber];
+			auto& object = Statics[staticPtr->Slot];
 
-			auto box = object.collisionBox.ToBoundingOrientedBox(staticPtr->pos);
+			auto box = object.collisionBox.ToBoundingOrientedBox(staticPtr->Pose);
 			if (box.Intersects(sphere))
 			{
 				collidedWithObject = true;
@@ -1010,16 +1016,16 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 	
 	for (int i = 0; i < room->mesh.size(); i++)
 	{
-		auto* mesh = &room->mesh[i];
+		const auto& staticObj = room->mesh[i];
 
-		if (!(mesh->flags & StaticMeshFlags::SM_VISIBLE))
+		if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 			continue;
 
-		if (item->Pose.Position.x != mesh->pos.Position.x || item->Pose.Position.z != mesh->pos.Position.z)
+		if (item->Pose.Position.x != staticObj.Pose.Position.x || item->Pose.Position.z != staticObj.Pose.Position.z)
 			continue;
 
 		const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
-		auto& bBox = GetBoundsAccurate(*mesh, false);
+		auto& bBox = GetBoundsAccurate(staticObj, false);
 
 		if (bounds.X1 <= bBox.X2 && bounds.X2 >= bBox.X1 &&
 			bounds.Z1 <= bBox.Z2 && bounds.Z2 >= bBox.Z1 &&

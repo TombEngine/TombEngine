@@ -18,7 +18,7 @@ SamplerState Sampler : register(s0);
 
 float4 ApplyFXAA(PixelShaderInput input)
 {
-	float2 add = float2(1.0f, 1.0f) / float2(ViewportWidth, ViewportHeight);
+    float2 add = 1.0f / ViewportSize;
 
 	float3 rgbNW = Texture.Sample(Sampler, input.UV + float2(-add.x, -add.y));
 	float3 rgbNE = Texture.Sample(Sampler, input.UV + float2(add.x, -add.y));

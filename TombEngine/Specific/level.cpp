@@ -2,7 +2,7 @@
 #include "Specific/level.h"
 
 #include <process.h>
-#include <zlib.h>
+#include <lz4.h>
 
 #include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
@@ -16,9 +16,9 @@
 #include "Game/pickup/pickup.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
+#include "Game/Sink.h"
 #include "Game/spotcam.h"
 #include "Objects/Generic/Doors/generic_doors.h"
-#include "Objects/Sink.h"
 #include "Physics/Physics.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -36,6 +36,8 @@ using TEN::Renderer::g_Renderer;
 using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
 using namespace TEN::Utils;
+
+constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";
 
 const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS =
 {
@@ -291,6 +293,7 @@ void LoadObjects()
 	{
 		auto mesh = MESH{};
 
+		mesh.hidden = ReadBool();
 		mesh.lightMode = (LightMode)ReadUInt8();
 
 		mesh.sphere.Center.x = ReadFloat();
@@ -309,8 +312,10 @@ void LoadObjects()
 		mesh.effects.resize(vertexCount);
 		ReadBytes(mesh.effects.data(), 12 * vertexCount);
 
-		mesh.bones.resize(vertexCount);
-		ReadBytes(mesh.bones.data(), 4 * vertexCount);
+		mesh.boneIndices.resize(vertexCount);
+		mesh.boneWeights.resize(vertexCount);
+		ReadBytes(mesh.boneIndices.data(), sizeof(unsigned char) * 4 * vertexCount);
+		ReadBytes(mesh.boneWeights.data(), sizeof(unsigned char) * 4 * vertexCount);
 		
 		int bucketCount = ReadCount();
 		mesh.buckets.reserve(bucketCount);
@@ -320,7 +325,9 @@ void LoadObjects()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
+			bucket.materialIndex = ReadInt32();
 			bucket.animated = ReadBool();
+
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
 
@@ -334,6 +341,7 @@ void LoadObjects()
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
 				poly.shineStrength = ReadFloat();
+				poly.normal = ReadVector3();
 				int count = (poly.shape == 0 ? 4 : 3);
 				poly.indices.resize(count);
 				poly.textureCoordinates.resize(count);
@@ -647,6 +655,22 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
+		{
+			size = ReadInt32();
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
+		}
+
 		g_Level.RoomTextures.push_back(texture);
 	}
 
@@ -671,6 +695,22 @@ void LoadTextures()
 			size = ReadInt32();
 			texture.normalMapData.resize(size);
 			ReadBytes(texture.normalMapData.data(), size);
+		}
+
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
+		{
+			size = ReadInt32();
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.MoveablesTextures.push_back(texture);
@@ -699,6 +739,22 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
+		{
+			size = ReadInt32();
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
+		}
+
 		g_Level.StaticsTextures.push_back(texture);
 	}
 
@@ -723,6 +779,22 @@ void LoadTextures()
 			size = ReadInt32();
 			texture.normalMapData.resize(size);
 			ReadBytes(texture.normalMapData.data(), size);
+		}
+
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
+		{
+			size = ReadInt32();
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
+		}
+
+		bool hasEmissiveMap = ReadBool();
+		if (hasEmissiveMap)
+		{
+			size = ReadInt32();
+			texture.emissiveMapData.resize(size);
+			ReadBytes(texture.emissiveMapData.data(), size);
 		}
 
 		g_Level.AnimatedTextures.push_back(texture);
@@ -809,17 +881,17 @@ void LoadDynamicRoomData()
 		{
 			auto& mesh = room.mesh.emplace_back();
 
-			mesh.roomNumber = i;
-			mesh.pos.Position.x = ReadInt32();
-			mesh.pos.Position.y = ReadInt32();
-			mesh.pos.Position.z = ReadInt32();
-			mesh.pos.Orientation.y = ReadUInt16();
-			mesh.pos.Orientation.x = ReadUInt16();
-			mesh.pos.Orientation.z = ReadUInt16();
-			mesh.pos.Scale = Vector3(ReadFloat());
-			mesh.flags = ReadUInt16();
-			mesh.color = ReadVector4();
-			mesh.staticNumber = ReadUInt16();
+			mesh.RoomNumber = i;
+			mesh.Pose.Position.x = ReadInt32();
+			mesh.Pose.Position.y = ReadInt32();
+			mesh.Pose.Position.z = ReadInt32();
+			mesh.Pose.Orientation.y = ReadUInt16();
+			mesh.Pose.Orientation.x = ReadUInt16();
+			mesh.Pose.Orientation.z = ReadUInt16();
+			mesh.Pose.Scale = Vector3(ReadFloat()); // TODO: Write Vector3 scale to level.
+			mesh.Flags = ReadUInt16();
+			mesh.Color = ReadVector4();
+			mesh.Slot = ReadUInt16();
 			mesh.HitPoints = ReadInt16();
 			mesh.Name = ReadString();
 
@@ -902,7 +974,9 @@ void LoadStaticRoomData()
 
 			bucket.texture = ReadInt32();
 			bucket.blendMode = (BlendMode)ReadUInt8();
+			bucket.materialIndex = ReadInt32();
 			bucket.animated = ReadBool();
+
 			bucket.numQuads = 0;
 			bucket.numTriangles = 0;
 
@@ -915,6 +989,7 @@ void LoadStaticRoomData()
 				poly.shape = ReadInt32();
 				poly.animatedSequence = ReadInt32();
 				poly.animatedFrame = ReadInt32();
+				poly.normal = ReadVector3();
 
 				int count = (poly.shape == 0 ? 4 : 3);
 				poly.indices.resize(count);
@@ -1147,6 +1222,7 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
+	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1197,7 +1273,8 @@ void LoadAnimatedTextures()
 		sequence.Atlas = ReadInt32();
 		sequence.Fps   = ReadUInt8();
 		sequence.Type  = ReadUInt8();
-		ReadUInt16(); // Unused.
+		sequence.UVRotateDirection = ReadFloat();
+		sequence.UVRotateSpeed = ReadFloat();
 		sequence.NumFrames = ReadCount();
 
 		for (int j = 0; j < sequence.NumFrames; j++)
@@ -1320,23 +1397,14 @@ void FileClose(FILE* ptr)
 
 bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned long uncompressedSize)
 {
-	z_stream strm;
-	ZeroMemory(&strm, sizeof(z_stream));
-	strm.avail_in = compressedSize;
-	strm.avail_out = uncompressedSize;
-	strm.next_out = (BYTE*)dest;
-	strm.next_in = (BYTE*)src;
+	int decompressedSize = LZ4_decompress_safe(
+		reinterpret_cast<const char*>(src),
+		reinterpret_cast<char*>(dest),
+		static_cast<int>(compressedSize),
+		static_cast<int>(uncompressedSize)
+	);
 
-	inflateInit(&strm);
-	inflate(&strm, Z_FULL_FLUSH);
-
-	if (strm.total_out == uncompressedSize)
-	{
-		inflateEnd(&strm);
-		return true;
-	}
-
-	return false;
+	return decompressedSize == static_cast<int>(uncompressedSize);
 }
 
 long GetRemainingSize(FILE* filePtr)
@@ -1441,17 +1509,24 @@ bool LoadLevel(const std::string& path, bool partial)
 		LastLevelFilePath = path;
 		LastLevelHash = levelHash;
 		LastLevelTimestamp = std::filesystem::last_write_time(path);
-		
-		TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
-		// Check if level version is higher than engine version
-		auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
-		for (int i = 0; i < assemblyVersion.size(); i++)
+		// Only check version if this is not a dummy level, because dummy level is rarely updated.
+		if (path.find(DUMMY_LEVEL_NAME) == std::string_view::npos)
 		{
-			if (assemblyVersion[i] != version[i])
+			TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
+
+			// Check if level version is higher than engine version
+			auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
+			for (int i = 0; i < assemblyVersion.size(); i++)
 			{
-				TENLog("Level version is different from TEN version.", LogLevel::Warning);
-				break;
+				if (i >= 3)
+					break; // Don't compare revision number.
+
+				if (assemblyVersion[i] != version[i])
+				{
+					TENLog("Level version is different from TEN version.", LogLevel::Warning);
+					break;
+				}
 			}
 		}
 
@@ -1502,6 +1577,8 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
+			LoadMaterials();
+
 			UpdateProgress(70);
 
 			FinalizeBlock();
@@ -1681,6 +1758,31 @@ void LoadMirrors()
 	}
 }
 
+void LoadMaterials()
+{
+	int materialCount = ReadCount();
+	TENLog("Materials count: " + std::to_string(materialCount), LogLevel::Info);
+	g_Level.Materials.reserve(materialCount);
+
+	for (int i = 0; i < materialCount; i++)
+	{
+		auto& material = g_Level.Materials.emplace_back();
+
+		material.Name = ReadString();
+		material.Type = (MaterialShaderType)ReadInt32();
+		material.Parameters0 = ReadVector4();
+		material.Parameters1 = ReadVector4();
+		material.Parameters2 = ReadVector4();
+		material.Parameters3 = ReadVector4();
+		material.HasNormalMap = ReadBool();
+		material.HasHeightMap = ReadBool();
+		material.HasAmbientOcclusionMap = ReadBool();
+		material.HasRoughnessMap = ReadBool();
+		material.HasSpecularMap = ReadBool();
+		material.HasEmissiveMap = ReadBool();
+	}
+}
+
 bool LoadLevelFile(int levelIndex)
 {
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
@@ -1694,7 +1796,7 @@ bool LoadLevelFile(int levelIndex)
 	{
 		if (levelIndex == 0)
 		{
-			levelPath = assetDir + "dummy.ten";
+			levelPath = assetDir + DUMMY_LEVEL_NAME;
 			GenerateDummyLevel(levelPath);
 			TENLog("Title level file not found, using dummy level.", LogLevel::Info);
 			isDummyLevel = true;
@@ -1827,10 +1929,10 @@ void GetAIPickups()
 					object->roomNumber == item->RoomNumber &&
 					object->objectNumber < ID_AI_PATROL2)
 				{
-					item->AIBits = (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
+					item->AIBits |= (1 << (object->objectNumber - ID_AI_GUARD)) & 0x1F;
 					item->ItemFlags[3] = object->triggerFlags;
 
-					if (object->objectNumber != ID_AI_GUARD)
+					if (object->objectNumber != ID_AI_PATROL1)
 						object->roomNumber = NO_VALUE;
 				}
 			}

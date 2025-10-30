@@ -92,7 +92,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it != _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to insert leaf with existing object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -115,7 +117,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to move missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -149,7 +153,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to remove missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -258,7 +264,7 @@ namespace TEN::Structures
 			float cost = mergedArea * 2;
 
 			// Calculate cost of descending into left child.
-			float leftCost = INFINITY;
+			float leftCost = FLT_MAX;
 			if (leftChildId != NO_VALUE)
 			{
 				const auto& leftChild = _nodes[leftChildId];
@@ -272,7 +278,7 @@ namespace TEN::Structures
 			}
 
 			// Calculate cost of descending into right child.
-			float rightCost = INFINITY;
+			float rightCost = FLT_MAX;
 			if (rightChildId != NO_VALUE)
 			{
 				const auto& rightChild = _nodes[rightChildId];
@@ -293,7 +299,9 @@ namespace TEN::Structures
 			siblingId = (leftCost < rightCost) ? leftChildId : rightChildId;
 			if (siblingId == NO_VALUE)
 			{
+#if _DEBUG
 				TENLog("BVH: Sibling leaf search failed.", LogLevel::Warning);
+#endif
 				break;
 			}
 		}
@@ -679,7 +687,7 @@ namespace TEN::Structures
 				if (strategy == BvhBuildStrategy::Fast)
 					return bestSplit;
 
-				float bestCost = INFINITY;
+				float bestCost = FLT_MAX;
 				int range = (strategy == BvhBuildStrategy::Balanced) ? BALANCED_STRAT_SPLIT_RANGE_MAX : (end - start);
 
 				// Balanced or accurate strategy: surface area heuristic.

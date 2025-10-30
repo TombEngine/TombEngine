@@ -9,6 +9,7 @@
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_flare.h"
@@ -23,6 +24,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Vehicles
@@ -103,12 +105,8 @@ namespace TEN::Entities::Vehicles
 			return false;
 		}
 
-		int x = laraItem->Pose.Position.x - bigGunItem->Pose.Position.x;
-		int y = laraItem->Pose.Position.y - bigGunItem->Pose.Position.y;
-		int z = laraItem->Pose.Position.z - bigGunItem->Pose.Position.z;
-
-		int distance = SQUARE(x) + SQUARE(y) + SQUARE(z);
-		if (distance > BLOCK(30))
+		auto distance = Vector3i::Distance(laraItem->Pose.Position, bigGunItem->Pose.Position);
+		if (distance > CLICK(0.5f))
 			return false;
 
 		short deltaAngle = abs(laraItem->Pose.Orientation.y - bigGunItem->Pose.Orientation.y);
@@ -159,6 +157,8 @@ namespace TEN::Entities::Vehicles
 
 		if (laraItem->HitPoints <= 0 || lara->Context.Vehicle != NO_VALUE)
 			return;
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *bigGunItem);
 
 		if (BigGunTestMount(laraItem, bigGunItem))
 		{

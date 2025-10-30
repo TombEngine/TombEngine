@@ -6,8 +6,8 @@
 enum RoomEnvFlags;
 class FloorInfo;
 struct ItemInfo;
-struct MESH_INFO;
 struct RoomData;
+struct StaticMesh;
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;

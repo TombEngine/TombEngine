@@ -99,6 +99,20 @@ namespace TEN::Math
 		return float((color.x * RED_COEFF) + (color.y * GREEN_COEFF) + (color.z * BLUE_COEFF));
 	}
 
+	float Chroma(const Vector3& color)
+	{
+		float r = color.x;
+		float g = color.y;
+		float b = color.z;
+
+		float maxVal = std::max({ r, g, b });
+		float minVal = std::min({ r, g, b });
+		float chroma = maxVal - minVal;
+
+		float normalizedChroma = (maxVal == 0.0f) ? 0.0f : (chroma / maxVal);
+		return normalizedChroma;
+	}
+
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint)
 	{
 		float luma = Luma(tint);
@@ -115,5 +129,23 @@ namespace TEN::Math
 	{
 		auto result = Screen(Vector3(ambient), Vector3(tint));
 		return Vector4(result.x, result.y, result.z, ambient.w * tint.w);
+	}
+
+	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c)
+	{
+		return c;
+
+		/*
+		auto to8 = [](float v) -> unsigned int {
+			float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
+			return static_cast<unsigned int>(std::lround(x));
+			};
+
+		unsigned int R = to8(c.x);
+		unsigned int G = to8(c.y);
+		unsigned int B = to8(c.z);
+		unsigned int A = to8(c.w);
+
+		return (R) | (G << 8) | (B << 16) | (A << 24);*/
 	}
 }

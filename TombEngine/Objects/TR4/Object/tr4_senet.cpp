@@ -1,20 +1,22 @@
 #include "framework.h"
 #include "Objects/TR4/Object/tr4_senet.h"
 
-#include "Sound/sound.h"
-#include "Game/items.h"
-#include "Game/control/control.h"
-#include "Game/Setup.h"
-#include "Game/effects/tomb4fx.h"
-#include "Game/Lara/lara.h"
-#include "Game/Lara/lara_struct.h"
-#include "Specific/Input/Input.h"
-#include "Specific/level.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
+#include "Game/control/control.h"
+#include "Game/effects/tomb4fx.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
+#include "Game/Lara/lara.h"
+#include "Game/Lara/lara_struct.h"
+#include "Game/Setup.h"
+#include "Sound/sound.h"
+#include "Specific/Input/Input.h"
+#include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 int SenetPiecesNumber[6];
@@ -431,6 +433,8 @@ void MakeMove(int piece, int displacement)
 void GameSticksCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
 	ItemInfo* item = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
 	if (IsHeld(In::Action) &&
 		laraItem->Animation.ActiveState == LS_IDLE &&

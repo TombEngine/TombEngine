@@ -10,7 +10,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Utils;
 
-constexpr auto MAX_SPAWNED_ITEM_COUNT = 256;
+constexpr auto MAX_SPAWNED_ITEM_COUNT = 1024;
 constexpr auto ITEM_FLAG_COUNT = 8;
 
 constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
@@ -99,6 +99,7 @@ struct EntityModelData
 {
 	int BaseMesh = 0;
 
+	int SkinIndex = NO_VALUE;
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators  = {};
 
@@ -185,6 +186,22 @@ struct ItemInfo
 	bool IsLara() const;
 	bool IsCreature() const;
 	bool IsBridge() const;
+};
+
+class ItemHandler
+{
+private:
+	int _index = NO_VALUE;
+
+public:
+	ItemHandler() = default;
+	ItemHandler& operator=(ItemInfo* ptr);
+
+	ItemInfo* Get() const;
+
+	operator ItemInfo* () const;
+	ItemInfo* operator->() const;
+	ItemInfo& operator*() const;
 };
 
 bool TestState(int refState, const std::vector<int>& stateList);

@@ -64,7 +64,6 @@ namespace TEN::Entities::Generic
 		bridgeItem.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(bridgeItem);
 
-		bridgeItem.Status = ItemStatus::ITEM_ACTIVE;
 		AddActiveItem(itemNumber);
 
 		switch (bridgeItem.ObjectNumber)

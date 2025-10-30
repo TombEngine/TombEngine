@@ -1,14 +1,17 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/jump_switch.h"
+
+#include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
-#include "Specific/Input/Input.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/items.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -31,6 +34,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
 
 		if (IsHeld(In::Action) &&
 			(laraItem->Animation.ActiveState == LS_REACH || laraItem->Animation.ActiveState == LS_JUMP_UP) &&

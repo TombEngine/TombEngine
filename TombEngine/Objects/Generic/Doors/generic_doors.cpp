@@ -9,6 +9,7 @@
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/itemdata/door_data.h"
 #include "Game/itemdata/itemdata.h"
 #include "Game/items.h"
@@ -28,6 +29,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Physics;
 
@@ -213,12 +215,12 @@ namespace TEN::Entities::Doors
 			{
 				case CardinalDirection::NORTH:
 				case CardinalDirection::EAST:
-					bound = INFINITY;
+					bound = FLT_MAX;
 					break;
 
 				case CardinalDirection::SOUTH:
 				case CardinalDirection::WEST:
-					bound = -INFINITY;
+					bound = -FLT_MAX;
 					break;
 			}
 
@@ -291,8 +293,11 @@ namespace TEN::Entities::Doors
 		auto& doorItem = g_Level.Items[itemNumber];
 		auto& player = GetLaraInfo(*playerItem);
 
-		if (doorItem.TriggerFlags == 2 &&
-			doorItem.Status == ITEM_NOT_ACTIVE && !doorItem.Animation.IsAirborne && // CHECK
+		bool canBeOpenedWithCrowbar = doorItem.TriggerFlags == 2;
+		if (canBeOpenedWithCrowbar)
+			g_Hud.InteractionHighlighter.Test(*playerItem, doorItem, InteractionMode::Activation);
+
+		if (canBeOpenedWithCrowbar && doorItem.Status == ITEM_NOT_ACTIVE &&
 			((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
 				playerItem->Animation.ActiveState == LS_IDLE &&
 				playerItem->Animation.AnimNumber == LA_STAND_IDLE &&
@@ -314,14 +319,7 @@ namespace TEN::Entities::Doors
 						}
 						else
 						{
-							if (OldPickupPos.x != playerItem->Pose.Position.x || OldPickupPos.y != playerItem->Pose.Position.y || OldPickupPos.z != playerItem->Pose.Position.z)
-							{
-								OldPickupPos.x = playerItem->Pose.Position.x;
-								OldPickupPos.y = playerItem->Pose.Position.y;
-								OldPickupPos.z = playerItem->Pose.Position.z;
-								SayNo();
-							}
-
+							SayNo(playerItem->Pose.Position);
 							doorItem.Pose.Orientation.y ^= ANGLE(180.0f);
 						}
 
@@ -481,8 +479,8 @@ namespace TEN::Entities::Doors
 		if (pathfindingBoxID != NO_VALUE)
 		{
 			g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 
@@ -515,8 +513,8 @@ namespace TEN::Entities::Doors
 		{
 			g_Level.PathfindingBoxes[pathfindingBoxID].flags |= BLOCKED;
 
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 
