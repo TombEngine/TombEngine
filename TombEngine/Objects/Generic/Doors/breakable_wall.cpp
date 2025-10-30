@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/breakable_wall.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -20,6 +20,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -88,7 +89,7 @@ namespace TEN::Entities::Doors
 				if (MoveLaraPosition(position, doorItem, laraItem))
 				{
 					int animNumber = isUnderwater ? LA_UNDERWATER_WALL_KICK : LA_WALL_PUSH;
-					SetAnimation(laraItem, animNumber);
+					SetAnimation(*laraItem, animNumber);
 					laraItem->Animation.Velocity.y = 0;
 					doorItem->Status = ITEM_ACTIVE;
 
@@ -96,7 +97,7 @@ namespace TEN::Entities::Doors
 					WallStates state = isUnderwater ? BreakUnderwater : BreakAboveGround;
 					doorItem->Animation.TargetState = state;
 
-					AnimateItem(doorItem);
+					AnimateItem(*doorItem);
 
 					player->Control.IsMoving = false;
 					player->Control.HandStatus = HandStatus::Busy;
