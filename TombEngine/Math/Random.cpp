@@ -6,7 +6,18 @@
 
 namespace TEN::Math::Random
 {
-	static unsigned int Seed = 0x12345678;
+	constexpr unsigned int DEFAULT_SEED = 0x12345678;
+	static unsigned int Seed = DEFAULT_SEED;
+
+	unsigned int GetSeed()
+	{
+		return Seed;
+	}
+
+	void SetSeed(unsigned int seed)
+	{
+		Seed = (seed == 0) ? DEFAULT_SEED : seed;
+	}
 
 	static inline unsigned int Xorshift32()
 	{

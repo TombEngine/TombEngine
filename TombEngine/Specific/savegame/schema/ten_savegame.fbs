@@ -7,6 +7,7 @@ struct RoomVector {
 }
 
 table LevelData {
+	random_seed: uint32;
 	level_far_view: int32;
 
 	storm_enabled: bool;

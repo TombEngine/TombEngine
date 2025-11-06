@@ -555,6 +555,7 @@ struct KeyValPair::Traits {
 
 struct LevelDataT : public flatbuffers::NativeTable {
   typedef LevelData TableType;
+  uint32_t random_seed = 0;
   int32_t level_far_view = 0;
   bool storm_enabled = false;
   bool rumble_enabled = false;
@@ -596,41 +597,45 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef LevelDataBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_LEVEL_FAR_VIEW = 4,
-    VT_STORM_ENABLED = 6,
-    VT_RUMBLE_ENABLED = 8,
-    VT_WEATHER_TYPE = 10,
-    VT_WEATHER_STRENGTH = 12,
-    VT_WEATHER_CLUSTERING = 14,
-    VT_FOG_COLOR = 16,
-    VT_FOG_MIN_DISTANCE = 18,
-    VT_FOG_MAX_DISTANCE = 20,
-    VT_SKY_LAYER_1_ENABLED = 22,
-    VT_SKY_LAYER_1_COLOR = 24,
-    VT_SKY_LAYER_1_SPEED = 26,
-    VT_SKY_LAYER_2_ENABLED = 28,
-    VT_SKY_LAYER_2_COLOR = 30,
-    VT_SKY_LAYER_2_SPEED = 32,
-    VT_HORIZON1_ENABLED = 34,
-    VT_HORIZON1_OBJECT_ID = 36,
-    VT_HORIZON1_POSITION = 38,
-    VT_HORIZON1_ORIENTATION = 40,
-    VT_HORIZON1_TRANSPARENCY = 42,
-    VT_HORIZON2_ENABLED = 44,
-    VT_HORIZON2_OBJECT_ID = 46,
-    VT_HORIZON2_POSITION = 48,
-    VT_HORIZON2_ORIENTATION = 50,
-    VT_HORIZON2_TRANSPARENCY = 52,
-    VT_LENSFLARE_ENABLED = 54,
-    VT_LENSFLARE_SPRITE_ID = 56,
-    VT_LENSFLARE_PITCH = 58,
-    VT_LENSFLARE_YAW = 60,
-    VT_LENSFLARE_COLOR = 62,
-    VT_STARFIELD_STAR_COUNT = 64,
-    VT_STARFIELD_METEOR_COUNT = 66,
-    VT_STARFIELD_METEOR_SPAWN_DENSITY = 68,
-    VT_STARFIELD_METEOR_VELOCITY = 70
+    VT_RANDOM_SEED = 4,
+    VT_LEVEL_FAR_VIEW = 6,
+    VT_STORM_ENABLED = 8,
+    VT_RUMBLE_ENABLED = 10,
+    VT_WEATHER_TYPE = 12,
+    VT_WEATHER_STRENGTH = 14,
+    VT_WEATHER_CLUSTERING = 16,
+    VT_FOG_COLOR = 18,
+    VT_FOG_MIN_DISTANCE = 20,
+    VT_FOG_MAX_DISTANCE = 22,
+    VT_SKY_LAYER_1_ENABLED = 24,
+    VT_SKY_LAYER_1_COLOR = 26,
+    VT_SKY_LAYER_1_SPEED = 28,
+    VT_SKY_LAYER_2_ENABLED = 30,
+    VT_SKY_LAYER_2_COLOR = 32,
+    VT_SKY_LAYER_2_SPEED = 34,
+    VT_HORIZON1_ENABLED = 36,
+    VT_HORIZON1_OBJECT_ID = 38,
+    VT_HORIZON1_POSITION = 40,
+    VT_HORIZON1_ORIENTATION = 42,
+    VT_HORIZON1_TRANSPARENCY = 44,
+    VT_HORIZON2_ENABLED = 46,
+    VT_HORIZON2_OBJECT_ID = 48,
+    VT_HORIZON2_POSITION = 50,
+    VT_HORIZON2_ORIENTATION = 52,
+    VT_HORIZON2_TRANSPARENCY = 54,
+    VT_LENSFLARE_ENABLED = 56,
+    VT_LENSFLARE_SPRITE_ID = 58,
+    VT_LENSFLARE_PITCH = 60,
+    VT_LENSFLARE_YAW = 62,
+    VT_LENSFLARE_COLOR = 64,
+    VT_STARFIELD_STAR_COUNT = 66,
+    VT_STARFIELD_METEOR_COUNT = 68,
+    VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
+    VT_STARFIELD_METEOR_VELOCITY = 72
   };
+  uint32_t random_seed() const {
+    return GetField<uint32_t>(VT_RANDOM_SEED, 0);
+  }
   int32_t level_far_view() const {
     return GetField<int32_t>(VT_LEVEL_FAR_VIEW, 0);
   }
@@ -735,6 +740,7 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_RANDOM_SEED) &&
            VerifyField<int32_t>(verifier, VT_LEVEL_FAR_VIEW) &&
            VerifyField<uint8_t>(verifier, VT_STORM_ENABLED) &&
            VerifyField<uint8_t>(verifier, VT_RUMBLE_ENABLED) &&
@@ -780,6 +786,9 @@ struct LevelDataBuilder {
   typedef LevelData Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_random_seed(uint32_t random_seed) {
+    fbb_.AddElement<uint32_t>(LevelData::VT_RANDOM_SEED, random_seed, 0);
+  }
   void add_level_far_view(int32_t level_far_view) {
     fbb_.AddElement<int32_t>(LevelData::VT_LEVEL_FAR_VIEW, level_far_view, 0);
   }
@@ -895,6 +904,7 @@ struct LevelDataBuilder {
 
 inline flatbuffers::Offset<LevelData> CreateLevelData(
     flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t random_seed = 0,
     int32_t level_far_view = 0,
     bool storm_enabled = false,
     bool rumble_enabled = false,
@@ -956,6 +966,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
   builder_.add_weather_strength(weather_strength);
   builder_.add_weather_type(weather_type);
   builder_.add_level_far_view(level_far_view);
+  builder_.add_random_seed(random_seed);
   builder_.add_lensflare_enabled(lensflare_enabled);
   builder_.add_horizon2_enabled(horizon2_enabled);
   builder_.add_horizon1_enabled(horizon1_enabled);
@@ -9600,6 +9611,7 @@ inline LevelDataT *LevelData::UnPack(const flatbuffers::resolver_function_t *_re
 inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = random_seed(); _o->random_seed = _e; }
   { auto _e = level_far_view(); _o->level_far_view = _e; }
   { auto _e = storm_enabled(); _o->storm_enabled = _e; }
   { auto _e = rumble_enabled(); _o->rumble_enabled = _e; }
@@ -9644,6 +9656,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LevelDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _random_seed = _o->random_seed;
   auto _level_far_view = _o->level_far_view;
   auto _storm_enabled = _o->storm_enabled;
   auto _rumble_enabled = _o->rumble_enabled;
@@ -9680,6 +9693,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _starfield_meteor_velocity = _o->starfield_meteor_velocity;
   return TEN::Save::CreateLevelData(
       _fbb,
+      _random_seed,
       _level_far_view,
       _storm_enabled,
       _rumble_enabled,

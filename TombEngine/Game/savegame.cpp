@@ -1162,6 +1162,8 @@ const std::vector<byte> SaveGame::Build()
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 	Save::LevelDataBuilder levelData { fbb };
 
+	levelData.add_random_seed(Random::GetSeed());
+
 	levelData.add_level_far_view(level->LevelFarView);
 
 	levelData.add_fog_color(level->Fog.GetColor());
@@ -1885,6 +1887,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	// Global level data
 
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
+
+	Random::SetSeed(s->level_data()->random_seed());
 
 	level->LevelFarView = s->level_data()->level_far_view();
 
