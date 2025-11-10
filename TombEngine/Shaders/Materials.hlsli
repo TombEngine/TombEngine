@@ -14,7 +14,7 @@
 #define MATERIAL_FLAG_OCCLUSION 1 << 9
 #define MATERIAL_FLAG_EMISSIVE  1 << 10
 
-#define POM_MIN_STEPS 2
+#define POM_MIN_STEPS 1
 #define POM_MAX_STEPS 16
 #define POM_FADE_START 5000
 #define POM_FADE_END 7000
@@ -93,7 +93,7 @@ float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float spe
 }
 
 
-float3 CalculateReflections(float3 position, float3 color, float3 normal, float3 specular)
+float3 CalculateReflections(float3 position, float3 color, float3 normal, float specular)
 {
     int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
 	

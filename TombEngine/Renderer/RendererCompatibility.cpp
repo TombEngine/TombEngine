@@ -444,6 +444,8 @@ namespace TEN::Renderer
 						room.positions[poly.indices[1]] +
 						room.positions[poly.indices[2]]) / 3.0f;
 
+					newPoly.Centre += room.Position.ToVector3();
+
 					Vector3 p1 = room.positions[poly.indices[0]];
 					Vector3 p2 = room.positions[poly.indices[1]];
 					Vector3 p3 = room.positions[poly.indices[2]];
@@ -650,7 +652,7 @@ namespace TEN::Renderer
 				_moveableObjects[MoveablesIds[i]] = RendererObject();
 				RendererObject &moveable = *_moveableObjects[MoveablesIds[i]];
 				moveable.Id = MoveablesIds[i];
-				moveable.DoNotDraw = (obj->drawRoutine == nullptr);
+				moveable.Hidden = obj->Hidden;
 				moveable.ShadowType = obj->shadowType;
 													   
 				for (int j = 0; j < obj->nmeshes; j++)

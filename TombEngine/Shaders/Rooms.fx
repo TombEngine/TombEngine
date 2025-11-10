@@ -87,14 +87,13 @@ PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
 	
-    if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);       
+    input.UV = ConvertAnimUV(input.UV);
    
     // Apply parallax mapping
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
-    float4 ORSH = ORSHTexture.Sample(ORSHSampler, input.UV);
+    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
     float specular = ORSH.z;
@@ -102,7 +101,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-    float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
+    float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
     normal = normalize(mul(normal, TBN));
 
 	output.Color = Texture.Sample(Sampler, input.UV);

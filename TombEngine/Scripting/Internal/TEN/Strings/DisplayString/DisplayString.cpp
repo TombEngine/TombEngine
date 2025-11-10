@@ -190,7 +190,7 @@ void DisplayString::Register(sol::table& parent)
 
 		/// Set the display string's flags.
 		// @function DisplayString:SetFlags
-		// @tparam table table The new table with display flags options.
+		// @tparam table table The table with @{Strings.DisplayStringOption} flags.
 		// @usage
 		// local varDisplayString = DisplayString('example string', 0, 0, Color(255, 255, 255), false)
 		// possible values:
@@ -201,6 +201,12 @@ void DisplayString::Register(sol::table& parent)
 		// -- When passing a table to a function, you can omit the parentheses
 		// varDisplayString:SetFlags{ TEN.Strings.DisplayStringOption.CENTER }
 		ScriptReserved_SetFlags, &DisplayString::SetFlags,
+
+		/// Get the display string's flags.
+		// @function DisplayString:GetFlags
+		// @treturn table A table of booleans representing @{Strings.DisplayStringOption} flags, indexed from 1:<br>1: TEN.Strings.DisplayStringOption.CENTER<br>2: TEN.Strings.DisplayStringOption.SHADOW<br>3: TEN.Strings.DisplayStringOption.RIGHT<br>4: TEN.Strings.DisplayStringOption.BLINK<br>5: TEN.Strings.DisplayStringOption.VERTICAL_CENTER<br>
+		// If a boolean value is true, the corresponding flag is assigned to the DisplayString, otherwise it is not assigned.
+		ScriptReserved_GetFlags, &DisplayString::GetFlags,
 
 		// DEPRECATED
 		ScriptReserved_SetTranslated, &DisplayString::SetTranslated);
@@ -307,6 +313,19 @@ void DisplayString::SetFlags(const sol::table& flags)
 	}
 
 	displayString._flags = flagArray;
+}
+
+sol::table DisplayString::GetFlags(sol::this_state state) const
+{
+	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
+	auto table = sol::state_view(state).create_table();
+
+	for (const auto& flag : displayString._flags)
+	{
+		table.add(flag);
+	}
+
+	return table;
 }
 
 void DisplayString::SetTranslated(bool isTranslated)
