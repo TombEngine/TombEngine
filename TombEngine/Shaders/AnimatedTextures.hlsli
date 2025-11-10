@@ -3,6 +3,10 @@
 
 #include "./CBAnimatedTexture.hlsli"
 
+#define ANIM_TYPE_NORMAL   0
+#define ANIM_TYPE_UVROTATE 1
+#define ANIM_TYPE_VIDEO    2
+
 float2 CalculateUVRotate(float2 uv, unsigned int frame)
 {
     if (UVRotateSpeed <= 0.0f)
@@ -79,12 +83,47 @@ float2 GetFrame(unsigned int index, unsigned int offset)
 	return result;
 }
 
-float2 GetUVPossiblyAnimated(float2 uv, int index, int frame)
+float2 GetUVPossiblyAnimated(float2 input, int index, int frame)
 {
-    float2 output = uv;
-	
-	if (Animated == 1 && Type == 0)
+    float2 output = input;
+
+    if (Animated && Type != ANIM_TYPE_UVROTATE)
         output = GetFrame(index, frame);
+		
+    return output;
+}
+
+float2 ConvertAnimUV(float2 input)
+{
+    float2 output = input;
+
+    if (Animated && Type == ANIM_TYPE_UVROTATE)
+    {
+        if (IsWaterfall)
+            output = CalculateUVRotateForLegacyWaterfalls(input, 0);
+        else
+            output = CalculateUVRotate(input, 0);
+    }
+
+    return output;
+}
+
+float3 ConvertAnimNormal(float3 input)
+{
+    float3 output = input;
+	
+    if (Animated && Type == ANIM_TYPE_VIDEO)
+        output = float3(0.5f, 0.5f, 1.0f);
+	
+    return output;
+}
+
+float4 ConvertAnimOSRH(float4 input)
+{
+    float4 output = input;
+
+    if (Animated && Type == ANIM_TYPE_VIDEO)
+        output = float4(1.0f, 0.0f, 0.0f, 1.0f);
 	
     return output;
 }

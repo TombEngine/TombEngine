@@ -93,16 +93,14 @@ struct ObjectInfo
 	bool nonLot					= false;
 	bool isPickup				= false;
 	bool isPuzzleHole			= false;
-	bool usingDrawAnimatingItem = false;
+	bool Hidden				= false;
 
 	DWORD explodableMeshbits;
 
 	std::function<void(short itemNumber)> Initialize = nullptr;
 	std::function<void(short itemNumber)> control = nullptr;
 	std::function<void(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)> collision = nullptr;
-
 	std::function<void(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)> HitRoutine = nullptr;
-	std::function<void(ItemInfo* item)> drawRoutine = nullptr;
 
 	void SetBoneRotationFlags(int boneID, int flags);
 	void SetHitEffect(HitEffect hitEffect);

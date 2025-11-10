@@ -155,7 +155,6 @@ void InitFlare(ObjectInfo* object, int objectNumber)
 		object->collision = PickupCollision;
 		object->control = FlareControl;
 		object->pivotLength = 256;
-		object->usingDrawAnimatingItem = false;
 		object->isPickup = true;
 	}
 }

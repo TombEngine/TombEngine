@@ -72,7 +72,7 @@ bool TestItemRoomCollisionAABB(ItemInfo* item)
 	short maxY = std::min(box.Y1, box.Y2);
 	short minY = std::max(box.Y1, box.Y2);
 
-	auto test = [item](short x, short y, short z, bool floor)
+	auto test = [item](int x, int y, int z, bool floor)
 	{
 		auto pointColl = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
 		

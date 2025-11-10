@@ -1411,7 +1411,7 @@ bool CheckItemCollideCamera(ItemInfo* item)
 {
 	bool isCloseEnough = Vector3i::Distance(item->Pose.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
 
-	if (!isCloseEnough || !item->Collidable || !Objects[item->ObjectNumber].usingDrawAnimatingItem)
+	if (!isCloseEnough || !item->Collidable || item->IsLara() || Objects[item->ObjectNumber].Hidden)
 		return false;
 
 	// TODO: Find a better way to define objects which are collidable with camera.

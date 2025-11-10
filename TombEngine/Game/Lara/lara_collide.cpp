@@ -95,15 +95,8 @@ bool LaraDeflectEdgeJump(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (coll->Middle.Floor <= CLICK(1))
 			{
-				if (CanSlide(*item, *coll))
-				{
-					SetLaraSlideAnimation(item, coll);
-				}
-				else
-				{
-					SetAnimation(item, LA_LAND);
-					LaraSnapToHeight(item, coll);
-				}
+				SetAnimation(item, LA_LAND);
+				LaraSnapToHeight(item, coll);
 			}
 			// TODO: Demagic. This is Lara's running velocity. Jumps have a minimum of 50.
 			else if (abs(item->Animation.Velocity.z) > 47.0f)

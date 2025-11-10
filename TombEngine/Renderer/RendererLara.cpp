@@ -385,6 +385,10 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 		for (int j = 0; j < unit.Segments.size(); j++)
 		{
 			auto& segment = unit.Segments[j];
+
+			if ((segment.Position - segment.PrevPosition).Length() > CLICK(2))
+				segment.StoreInterpolationData();
+
 			auto worldMatrix = 
 				Matrix::CreateFromQuaternion(
 					Quaternion::Lerp(segment.PrevOrientation, segment.Orientation, GetInterpolationFactor(forceValue))) *

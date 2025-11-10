@@ -149,7 +149,7 @@ namespace TEN::Renderer
 	{
 		_context->PSSetShaderResources((UINT)registerType, 1, texture->ShaderResourceView.GetAddressOf());
 
-		if (g_GameFlow->IsPointFilterEnabled() && samplerType != SamplerStateRegister::ShadowMap)
+		if (g_GameFlow->IsPointFilterEnabled() && registerType == TextureRegister::ColorMap)
 		{
 			samplerType = SamplerStateRegister::PointWrap;
 		}

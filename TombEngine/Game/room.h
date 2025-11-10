@@ -148,7 +148,6 @@ public:
 // TODO: Make class?
 struct RoomData
 {
-	int						 RoomNumber = 0;
 	std::string				 Name		= {};
 	std::vector<std::string> Tags		= {};
 
@@ -159,17 +158,19 @@ struct RoomData
 	int			XSize		 = 0;
 	int			ZSize		 = 0;
 
+	std::vector<int> NeighborRoomNumbers = {};
+
 	Vector3 ambient;
 	int flags;
 	int meshEffect;
 	ReverbType reverbType;
+
+	int originalRoom;
 	int flippedRoom;
 	int flipNumber;
+
 	short itemNumber;
 	short fxNumber;
-	bool boundActive;
-
-	std::vector<int> NeighborRoomNumbers = {};
 
 
 	// Object fields

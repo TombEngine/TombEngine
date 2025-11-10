@@ -2764,7 +2764,7 @@ namespace TEN::Renderer
 									_numInstancedStaticsDrawCalls++;
 								}
 
-								bindTextureAndMaterialsRequired = false;
+								bindTextureAndMaterialsRequired = true; 
 							}
 						}
 					}
@@ -3438,16 +3438,7 @@ namespace TEN::Renderer
 								else
 									BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
-#ifdef TEST_LEGACY_REFLECTIONS
-								if (itemToDraw->ObjectID == ID_LARA)
-								{
-									BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::LinearClamp);
-									_stMaterial.MaterialType = 1;
-									UpdateConstantBuffer(_stMaterial, _cbMaterial);
-								}
-								else
-#endif
-									BindMaterial(bucket.MaterialIndex, false);
+								BindMaterial(bucket.MaterialIndex, false);
 
 								bindTextureAndMaterialsRequired = false;
 							}
@@ -4113,15 +4104,15 @@ namespace TEN::Renderer
 
 	void Renderer::SetupAnimatedTextures(const RendererBucket& bucket)
 	{
+		const auto& set = _animatedTextureSets[bucket.Texture];
+
 		_stAnimated.Animated = 1;
 		_stAnimated.IsWaterfall = 0;
-
-		const auto& set = _animatedTextureSets[bucket.Texture];
+		_stAnimated.Type = (int)set.Type;
 
 		// Stream video texture, if video playback is active, otherwise show original texture.
 		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->Texture)
 		{
-			_stAnimated.Type = 0; // Dummy type, should be set to 0 to avoid incorrect UV mapping.
 			_stAnimated.Fps = 1;
 			_stAnimated.NumFrames = 1;
 
@@ -4133,7 +4124,6 @@ namespace TEN::Renderer
 		} 
 		else if (set.Type == AnimatedTextureType::UVRotate)
 		{
-			_stAnimated.Type = (int)set.Type;
 			_stAnimated.Fps = set.Fps;
 			_stAnimated.UVRotateDirection = set.UVRotateDirection;
 			_stAnimated.UvRotateSpeed = set.UVRotateSpeed; 
@@ -4146,7 +4136,6 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			_stAnimated.Type = (int)set.Type;
 			_stAnimated.Fps = set.Fps;
 			_stAnimated.NumFrames = set.NumTextures;
 			
