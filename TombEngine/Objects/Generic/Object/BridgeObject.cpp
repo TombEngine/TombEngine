@@ -10,7 +10,7 @@
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Physics/Physics.h"
 
-using namespace TEN::Colllision::Attractor;
+using namespace TEN::Collision::Attractor;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
 using namespace TEN::Physics;
@@ -22,7 +22,7 @@ namespace TEN::Entities::Generic
 		return _collisionMesh;
 	}
 
-	const AttractorObject& BridgeObject::GetAttractor() const
+	AttractorObject& BridgeObject::GetAttractor()
 	{
 		return _attractor;
 	}

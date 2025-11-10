@@ -51,18 +51,11 @@ namespace TEN::Utils
 		return newVector;
 	}
 
-	template <typename T>
-	bool Contains(const std::vector<T>& vector, const T& element)
+	template <typename TContainer, typename TElement>
+	bool Contains(const TContainer& cont, const TElement& element)
 	{
-		auto it = std::find(vector.begin(), vector.end(), element);
-		return (it != vector.end());
-	}
-
-	template <typename T>
-	bool Contains(const std::set<T>& set, const T& element)
-	{
-		auto it = std::find(set.begin(), set.end(), element);
-		return (it != set.end());
+		auto it = std::find(cont.begin(), cont.end(), element);
+		return (it != cont.end());
 	}
 
 	template <typename T>

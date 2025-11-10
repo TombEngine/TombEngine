@@ -46,7 +46,7 @@ void OffsetBlendData::SetLinear(const Vector3& posOffset, const EulerAngles& ori
 {
 	Mode = OffsetBlendMode::Linear;
 	IsActive = true;
-	DelayTime = std::round(delayInSec / DELTA_TIME);
+	DelayTime = (int)round(delayInSec / DELTA_TIME);
 	PosOffset = posOffset / vel;
 	OrientOffset = orientOffset / turnRate;
 }
@@ -57,7 +57,7 @@ void OffsetBlendData::SetLogarithmic(const Vector3& posOffset, const EulerAngles
 
 	Mode = OffsetBlendMode::Logarithmic;
 	IsActive = true;
-	DelayTime = std::round(delayInSec / DELTA_TIME);
+	DelayTime = (int)round(delayInSec / DELTA_TIME);
 	PosOffset = posOffset;
 	OrientOffset = orientOffset;
 	Alpha = alpha;
@@ -94,17 +94,17 @@ void ItemInfo::HandleOffsetBlend()
 		return;
 
 	// Update delay.
-	if (OffsetBlend.DelayTime > 0.0f)
+	if (OffsetBlend.DelayTime > 0)
 	{
-		OffsetBlend.DelayTime -= 1.0f;// DELTA_TIME;
-		if (OffsetBlend.DelayTime < 0.0f)
-			OffsetBlend.DelayTime = 0.0f;
+		OffsetBlend.DelayTime--;
+		if (OffsetBlend.DelayTime < 0)
+			OffsetBlend.DelayTime = 0;
 
 		return;
 	}
 
 	// Update time active.
-	OffsetBlend.TimeActive += 1.0f;// DELTA_TIME;
+	OffsetBlend.TimeActive++;
 
 	// Handle offset blend.
 	switch (OffsetBlend.Mode)

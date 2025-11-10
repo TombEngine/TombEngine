@@ -69,9 +69,9 @@ struct OffsetBlendData
 {
 	OffsetBlendMode Mode = OffsetBlendMode::Linear;
 
-	bool  IsActive	 = false;
-	float TimeActive = 0.0f;
-	float DelayTime	 = 0.0f;
+	bool IsActive	= false;
+	int  TimeActive = 0; // Time in game frames.
+	int  DelayTime  = 0; // Time in game frames.
 
 	Vector3		PosOffset	 = Vector3::Zero;
 	EulerAngles OrientOffset = EulerAngles::Identity;

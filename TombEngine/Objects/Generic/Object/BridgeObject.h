@@ -37,8 +37,8 @@ namespace TEN::Entities::Generic
 
 		// Getters
 
-		const CollisionMesh&   GetCollisionMesh() const;
-		const AttractorObject& GetAttractor() const;
+		const CollisionMesh& GetCollisionMesh() const;
+		AttractorObject&	 GetAttractor();
 
 		// Inquirers
 

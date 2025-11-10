@@ -505,7 +505,7 @@ namespace TEN::Collision::Attractor
 		auto sectors = GetNeighborSectors((Vector3)sphere.Center, roomNumber, sectorSearchDepth);
 		for (const auto* sector : sectors)
 		{
-			// TODO: Check not working.
+			// TODO: Check, not working. Would optimise this check a little.
 			// Test if sphere intersects sector.
 			//if (!sphere.Intersects(sector->Box))
 			//	continue;
