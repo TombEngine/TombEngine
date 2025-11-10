@@ -161,11 +161,11 @@ namespace TEN::Entities::Switches
 	void ControlPulleySwitch(short itemNumber)
 	{
 		auto* switchItem = &g_Level.Items[itemNumber];
-		AnimateItem(switchItem);
+		AnimateItem(*switchItem);
 
 		bool isPulling = (LaraItem->Animation.AnimNumber == LA_PULLEY_PULL || LaraItem->Animation.AnimNumber == LA_UNDERWATER_PULLEY_PULL);
 		bool isReleasing = (LaraItem->Animation.AnimNumber == LA_PULLEY_RELEASE || LaraItem->Animation.AnimNumber == LA_UNDERWATER_PULLEY_UNGRAB);
-		bool isBaseFrame = (LaraItem->Animation.FrameNumber == GetAnimData(*LaraItem).frameBase);
+		bool isBaseFrame = (LaraItem->Animation.FrameNumber == 0);
 
 		switch (switchItem->Animation.ActiveState)
 		{

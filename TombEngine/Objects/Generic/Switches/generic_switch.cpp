@@ -1,4 +1,5 @@
 #include "framework.h"
+#include "Objects/Generic/Switches/generic_switch.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
