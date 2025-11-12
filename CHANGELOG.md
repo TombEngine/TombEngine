@@ -3,7 +3,12 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.10]
+## [Version 1.10.1]
+
+### Bug fixes
+* Fixed FIRE_PENDULUM crashing the game.
+
+## [Version 1.10](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.10) - 2025-11-09
 
 ### New features
 * Added material system with support for normal, specular, roughness, emissive, parallax and ambient occlusion maps.
