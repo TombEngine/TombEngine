@@ -35,6 +35,7 @@
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
+#include "Objects/TR2/Trap/FallingSpikes.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -551,6 +552,15 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeKillerStatue;
 		obj->control = ControlKillerStatue;
 		obj->collision = ObjectCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_FALLING_SPIKES];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFallingSpikes;
+		obj->control = ControlFallingSpikes;
+		obj->collision = CollideFallingSpikes;
 		obj->SetHitEffect(true);
 	}
 }
