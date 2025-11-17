@@ -77,6 +77,8 @@ public:
 	bool GetHitStatus() const;
 	bool GetActive() const;
 	short GetStatus() const;
+	bool GetVisible() const;
+	bool GetCollidable() const;
 
 	// Setters
 
@@ -101,6 +103,8 @@ public:
 	void SetLocationAI(short value);
 	void SetMeshVisible(int meshId, bool isVisible);
 	void SetActive(bool isActive);
+	void SetVisible(bool isVisible);
+	void SetCollidable(bool isCollidable);
 	void SetRoomNumber(int roomNumber);
 	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
@@ -124,10 +128,7 @@ public:
 	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
 	void DisableItem();
-	void MakeInvisible();
-	void SetVisible(bool isVisible);
-	bool GetCollidable();
-	void SetCollidable(bool isCollidable);
+	void MakeInvisible(); // Compatibility.
 	void Explode();
 	void Shatter();
 	void ShowInteractionHighlight();

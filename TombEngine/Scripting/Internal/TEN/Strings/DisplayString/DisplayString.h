@@ -110,6 +110,7 @@ public:
 	Vec2			GetArea() const;
 	float			GetScale() const;
 	ScriptColor		GetColor() const;
+	sol::table		GetFlags(sol::this_state state) const;
 
 	// Setters
 	void SetKey(const std::string& key);

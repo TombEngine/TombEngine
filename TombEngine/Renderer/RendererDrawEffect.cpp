@@ -343,13 +343,8 @@ namespace TEN::Renderer
 			if (!firefly.on)
 				continue;
 
-
-			if (!CheckIfSlotExists(ID_SPARK_SPRITE, "Particle rendering"))
+			if (!CheckIfSlotExists(ID_FIREFLY_SPRITES, "Firefly rendering"))
 				continue;
-
-			auto axis = Vector3(0,0,0);
-			axis.Normalize();
-
 
 			firefly.scalar = 3;
 			firefly.size = 3;
@@ -358,8 +353,6 @@ namespace TEN::Renderer
 				Vector3(firefly.PrevX, firefly.PrevY, firefly.PrevZ),
 				Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z),
 				GetInterpolationFactor());
-
-			pos = Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z);
 
 			// Disallow sprites out of bounds.
 			int spriteIndex = Objects[firefly.SpriteSeqID].meshIndex + firefly.SpriteID;
@@ -526,7 +519,11 @@ namespace TEN::Renderer
 				}
 				else
 				{
-					auto* item = &g_Level.Items[particle.fxObj];
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
 
 					auto nodePos = Vector3i::Zero;
 					if (particle.flags & SP_NODEATTACH)
@@ -537,6 +534,8 @@ namespace TEN::Renderer
 						}
 						else
 						{
+							auto* item = &g_Level.Items[particle.fxObj];
+
 							nodePos.x = NodeOffsets[particle.nodeNumber].x;
 							nodePos.y = NodeOffsets[particle.nodeNumber].y;
 							nodePos.z = NodeOffsets[particle.nodeNumber].z;
@@ -1554,7 +1553,7 @@ namespace TEN::Renderer
 				const auto& room = _rooms[effectPtr->RoomNumber];
 				const auto& object = Objects[effectPtr->ObjectID];
 
-				if (object.drawRoutine && object.loaded)
+				if (!object.Hidden && object.loaded)
 					DrawEffect(view, effectPtr, rendererPass);
 			}
 		}

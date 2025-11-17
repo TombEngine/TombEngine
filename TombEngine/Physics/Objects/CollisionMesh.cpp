@@ -141,9 +141,12 @@ namespace TEN::Physics
 		for (int i = 0; i < desc.GetIds().size(); i += LocalCollisionTriangle::VERTEX_COUNT)
 			_triangles.push_back(LocalCollisionTriangle(desc.GetIds()[i], desc.GetIds()[i + 1], desc.GetIds()[i + 2]));
 
+		auto triIds = std::vector<int>{};
+		triIds.reserve(_triangles.size());
+		auto triAabbs = std::vector<BoundingBox>{};
+		triAabbs.reserve(_triangles.size());
+
 		// Collect triangle IDs and AABBs.
-		auto triIds = std::vector<int>(_triangles.size());
-		auto triAabbs = std::vector<BoundingBox>(_triangles.size());
 		for (int i = 0; i < _triangles.size(); i++)
 		{
 			const auto& tri = _triangles[i];

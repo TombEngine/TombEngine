@@ -1,5 +1,5 @@
 -----<style>table.function_list td.name {min-width: 395px;} .section-header.has-description {border-top: 1px solid #ccc; padding-top: 1em;}</style>
---- Basic timer that performs countdown. When it expires, you can set a specific *LevelFuncs* function to be activated.<br>Timers are updated automatically at every frame before OnLoop event.<br>To use Timer inside scripts you need to call the module:
+--- Basic timer that performs countdown. When it expires, you can set a specific *LevelFuncs* function to be activated. Timers are updated automatically at every frame before OnLoop event. To use Timer inside scripts you need to call the module:
 --	local Timer = require("Engine.Timer")
 --
 -- Example usage:
@@ -14,7 +14,7 @@
 --	end
 --	
 --	-- This function triggers the timer
---	LevelFuncs.TriggerTimer = function(obj) 
+--	LevelFuncs.TriggerTimer = function(obj)
 --		Timer.Create("my_timer",
 --			5.0,
 --			false,
@@ -72,7 +72,7 @@ LevelVars.Engine.Timer = {timers = {}}
 -- Timer.Create("my_timer", 6.1)
 --
 -- -- Example 2 Timer that executes a function when it expires:
--- local TimeFormat = {minutes = true, seconds = true, deciseconds = true}
+-- local TimerFormat = {minutes = true, seconds = true, deciseconds = true}
 -- LevelFuncs.FinishTimer = function()
 --    TEN.Util.PrintLog("Timer expired", TEN.Util.LogLevel.INFO)
 -- end
@@ -87,8 +87,7 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 		return
 	end
 
-
-	local self = {name = name}
+	local self = { name = name }
 	if LevelVars.Engine.Timer.timers[name] then
 		TEN.Util.PrintLog("Warning in Timer.Create(): a timer with name '" .. name .. "' already exists; overwriting it with a new one...", TEN.Util.LogLevel.WARNING)
 	end
@@ -114,7 +113,7 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 		TEN.Util.PrintLog("Warning in Timer.Create(): wrong value for func, func for '".. name .."' timer will be set to nil", TEN.Util.LogLevel.WARNING)
 		thisTimer.func = nil
 	end
-	thisTimer.funcArgs = {...}
+	thisTimer.funcArgs = { ... }
 	thisTimer.active = false
 	thisTimer.paused = true
 	thisTimer.skipFirstTick = true
@@ -123,7 +122,7 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 	thisTimer.scale = 1
 	thisTimer.unpausedColor = TEN.Color(255, 255, 255)
 	thisTimer.pausedColor = TEN.Color(255, 255, 0)
-	thisTimer.stringOption = {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW}
+	thisTimer.stringOption = {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.VERTICAL_CENTER}
 	return setmetatable(self, Timer)
 end
 
@@ -132,7 +131,7 @@ end
 -- @usage
 -- -- Example:
 -- Timer.Delete("my_timer")
-Timer.Delete = function (name)
+Timer.Delete = function(name)
 	if not Type.IsString(name) then
 		TEN.Util.PrintLog("Error in Timer.Delete(): invalid name", TEN.Util.LogLevel.ERROR)
 	elseif LevelVars.Engine.Timer.timers[name] then
@@ -170,7 +169,7 @@ end
 --       Timer.Get("my_timer"):Start()
 --    end
 -- end
-Timer.IfExists = function (name)
+Timer.IfExists = function(name)
 	if not Type.IsString(name) then
 		TEN.Util.PrintLog("Error in Timer.IfExists(): invalid name", TEN.Util.LogLevel.ERROR)
 		return false
@@ -179,7 +178,7 @@ Timer.IfExists = function (name)
 end
 
 
-Timer.UpdateAll = function (dt)
+Timer.UpdateAll = function(dt)
 	print("Timer.UpdateAll is deprecated; timers and event sequences now get updated automatically pre-control phase.")
 end
 
@@ -297,10 +296,10 @@ function Timer:GetRemainingTimeInSeconds()
 end
 
 --- Get the formatted remaining time of a timer.
--- @tparam ?table|bool timerFormat Sets the remaining time display. See <a href="#timerFormat">Timer format</a>.
+-- @tparam[opt={minutes = true&#44; seconds = true&#44; deciseconds = true}] table|bool timerFormat Sets the remaining time display. See <a href="#timerFormat">Timer format</a>.<br>
 -- @treturn string The formatted remaining time.
 -- @usage
--- -- Example:
+-- -- Example 1: Display remaining time in secs.decisecs
 -- local TimerFormat = {seconds = true, deciseconds = true}
 -- if Timer.IfExists("my_timer") then
 --    local pos = TEN.Vec2(TEN.Util.PercentToScreen(50, 10))
@@ -308,7 +307,16 @@ end
 --    local str = TEN.Strings.DisplayString("Timer: " .. timer, pos)
 --    TEN.Strings.ShowString(str, 1)
 -- end
+--
+-- -- Example 2: Display remaining with default format (mins:secs.decisecs)
+-- if Timer.IfExists("my_timer") then
+--    local pos = TEN.Vec2(TEN.Util.PercentToScreen(50, 10))
+--    local timer = Timer.Get("my_timer"):GetRemainingTimeFormatted()
+--    local str = TEN.Strings.DisplayString("Timer: " .. timer, pos)
+--    TEN.Strings.ShowString(str, 1)
+-- end
 function Timer:GetRemainingTimeFormatted(timerFormat)
+	timerFormat = timerFormat or {minutes = true, seconds = true, deciseconds = true}
 	local thisTimer = LevelVars.Engine.Timer.timers[self.name]
 	local errorFormat = "Error in Timer:GetRemainingTimeFormatted(): wrong value for timerFormat in '" .. self.name .. "' timer"
 	return Utility.GenerateTimeFormattedString(thisTimer.remainingTime, timerFormat, errorFormat)
@@ -333,7 +341,7 @@ function Timer:SetRemainingTime(remainingTime)
     end
 end
 
---- Compares the remaining time with a value (in seconds). 
+--- Compares the remaining time with a value (in seconds).
 --
 -- It's recommended to use the *IfRemainingTimeIs()* method to have error-free comparisons
 -- @tparam int operator The type of comparison.<br>
@@ -345,7 +353,7 @@ end
 -- 5 : If the remaining time is greater or equal to the value
 -- @tparam float seconds The value in seconds to compare.<br>
 -- Values with only 1 tenth of a second (0.1) are accepted, example: 1.5 - 6.0 - 9.9 - 123.6. No negative values allowed!<br>
--- Please note: to have continuous control, the remaining time must be controlled within the *OnLoop* event and only when the Timer is active @{Timer.IsActive}. 
+-- Please note: to have continuous control, the remaining time must be controlled within the *OnLoop* event and only when the Timer is active @{Timer.IsActive}.
 -- @treturn bool true if comparison is true, false if comparison is false or timer does not exist
 -- @usage
 -- -- Example: Alternative method to create a sequence of events by checking if the remaining time has specific value.
@@ -416,17 +424,25 @@ function Timer:GetTotalTimeInSeconds()
 end
 
 --- Get the formatted total time of a timer. This is the amount of time the timer will start with, as well as when starting a new loop
--- @tparam ?table|bool timerFormat Sets the remaining time display. See <a href="#timerFormat">Timer format</a>.
+-- @tparam[opt={minutes = true&#44; seconds = true&#44; deciseconds = true}] table|bool timerFormat Sets the remaining time display. See <a href="#timerFormat">Timer format</a>.<br>
 -- @treturn string The formatted total time.
 -- @usage
--- -- Example:
+-- -- Example 1: Display total time in secs.decisecs
 -- local TimerFormat = {minutes = false, seconds = true, deciseconds = true}
 -- if Timer.IfExists("my_timer") then
 --    local pos = TEN.Vec2(TEN.Util.PercentToScreen(50, 10))
 --    local totalTime = Timer.Get("my_timer"):GetTotalTimeFormatted(TimerFormat)
 --    local str = TEN.Strings.DisplayString("Total time is: " .. totalTime, pos)
 -- end
+--
+-- -- Example 2: Display total time with default format (mins:secs.decisecs)
+-- if Timer.IfExists("my_timer") then
+--    local pos = TEN.Vec2(TEN.Util.PercentToScreen(50, 10))
+--    local totalTime = Timer.Get("my_timer"):GetTotalTimeFormatted()
+--    local str = TEN.Strings.DisplayString("Total time is: " .. totalTime, pos)
+-- end
 function Timer:GetTotalTimeFormatted(timerFormat)
+	timerFormat = timerFormat or {minutes = true, seconds = true, deciseconds = true}
 	local thisTimer = LevelVars.Engine.Timer.timers[self.name]
 	local errorFormat = "Error in Timer:GetTotalTimeFormatted(): wrong value for timerFormat in '" .. self.name .. "' timer"
 	return Utility.GenerateTimeFormattedString(thisTimer.totalTime, timerFormat, errorFormat)
@@ -478,7 +494,7 @@ function Timer:IfTotalTimeIs(operator, seconds)
 	end
 	local totalTime = LevelVars.Engine.Timer.timers[self.name].totalTime
 	local seconds_ = math.floor(seconds * 10) / 10
-	local time = TEN.Time(seconds_*30)
+	local time = TEN.Time(seconds_ * 30)
 	return Utility.CompareValue(totalTime, time, operator)
 end
 
@@ -535,7 +551,7 @@ function Timer:SetFunction(func, ...)
 		return
 	end
 	LevelVars.Engine.Timer.timers[self.name].func = func
-	LevelVars.Engine.Timer.timers[self.name].funcArgs = {...}
+	LevelVars.Engine.Timer.timers[self.name].funcArgs = { ... }
 end
 
 --- Set the on-screen position in percent of the displayed timer when active.
@@ -548,12 +564,12 @@ end
 -- if Timer.IfExists("my_timer") then
 --    Timer.Get("my_timer"):SetPosition(10.0,10.0)
 -- end
--- 
+--
 -- -- Example 2: Set defaults values
 -- if Timer.IfExists("my_timer") then
 --    Timer.Get("my_timer"):SetPosition()
 -- end
-function Timer:SetPosition(x,y)
+function Timer:SetPosition(x, y)
 	x = x or 50.0
 	y = y or 90.0
 	if not Type.IsNumber(x) then
@@ -575,7 +591,7 @@ end
 -- end
 function Timer:GetPosition()
 	local pos = LevelVars.Engine.Timer.timers[self.name].pos
-	return TEN.Vec2( TEN.Util.ScreenToPercent(pos.x, pos.y) )
+	return TEN.Vec2(TEN.Util.ScreenToPercent(pos.x, pos.y))
 end
 
 --- Set the scale of the displayed timer when it is active.
@@ -611,7 +627,7 @@ function Timer:GetScale()
 	return LevelVars.Engine.Timer.timers[self.name].scale
 end
 
---- Set the paused color of the displayed timer when it is active.
+--- Set the paused color of the displayed timer when it is in pause.
 -- @tparam[opt=TEN.Color(255&#44; 255&#44; 0&#44; 255)] Color color Timer's new paused color.
 -- @usage
 -- -- Example:
@@ -653,8 +669,8 @@ function Timer:SetUnpausedColor(color)
 	end
 end
 
---- Set text options for a timer.
--- @tparam[opt={TEN.Strings.DisplayStringOption.CENTER&#44; TEN.Strings.DisplayStringOption.SHADOW}] table optionsTable Table containing timer's new text options. See @{Strings.DisplayStringOption}<br>
+--- Set text options for a timer. Note: the <em>VERTICAL_CENTER</em> option is always added.
+-- @tparam[opt=<br>{<br>TEN.Strings.DisplayStringOption.CENTER&#44;<br> TEN.Strings.DisplayStringOption.SHADOW&#44;<br> TEN.Strings.DisplayStringOption.VERTICAL_CENTER<br>}] table optionsTable Table containing timer's new text options. See @{Strings.DisplayStringOption}<br>
 -- @usage
 -- -- Example 1
 -- -- right alignment
@@ -663,11 +679,11 @@ end
 -- end
 --
 -- -- Example 2: Set default value + BLINK effect
--- newOptins = {TEN.Strings.DisplayStringOption.CENTER,
+-- newOptions = {TEN.Strings.DisplayStringOption.CENTER,
 --             TEN.Strings.DisplayStringOption.SHADOW,
 --             TEN.Strings.DisplayStringOption.BLINK}
 -- if Timer.IfExists("my_timer") then
---    Timer.Get("my_timer"):SetTextOption(newOptins)
+--    Timer.Get("my_timer"):SetTextOption(newOptions)
 -- end
 --
 -- -- Example 3: Set text option to left alignment
@@ -680,15 +696,18 @@ end
 --    Timer.Get("my_timer"):SetTextOption()
 -- end
 function Timer:SetTextOption(optionsTable)
-	optionsTable = optionsTable or {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW}
+	optionsTable = optionsTable or {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.VERTICAL_CENTER}
 	if type(optionsTable) ~= "table" then
 		TEN.Util.PrintLog("Error in Timer:SetTextOption(): options is not a table for '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 	else
-		for _, v in pairs(optionsTable) do
-			if not Type.IsNumber(v) or v < 0 or v > 3 then
+		for _, option in pairs(optionsTable) do
+			if not Type.IsEnumValue(option, TEN.Strings.DisplayStringOption, false) then
 				TEN.Util.PrintLog("Error in Timer:SetTextOption(): invalid value in options for '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 				return
 			end
+		end
+		if not Utility.TableHasValue(optionsTable, TEN.Strings.DisplayStringOption.VERTICAL_CENTER) then
+			table.insert(optionsTable, TEN.Strings.DisplayStringOption.VERTICAL_CENTER)
 		end
 		LevelVars.Engine.Timer.timers[self.name].stringOption = optionsTable
 	end

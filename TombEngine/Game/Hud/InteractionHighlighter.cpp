@@ -2,6 +2,7 @@
 #include "Game/Hud/InteractionHighlighter.h"
 
 #include "Game/collision/collide_item.h"
+#include "Game/collision/Los.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_helpers.h"
@@ -10,7 +11,9 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Specific/configuration.h"
+#include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Math;
 using namespace TEN::Effects::DisplaySprite;
 using TEN::Renderer::g_Renderer;
@@ -25,6 +28,7 @@ namespace TEN::Hud
 	constexpr float INTERACTION_PADDING = CLICK(0.75f);
 	constexpr float INTERACTION_DISTANCE = BLOCK(2);
 	constexpr float INTERACTION_DISTANCE_TOLERANCE = CLICK(1);
+	constexpr float INTERACTION_INTERSECTION_TOLERANCE = CLICK(0.2f);
 	constexpr float INTERACTION_ANGLE = TO_RAD(ANGLE(35.0f));
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
@@ -126,6 +130,10 @@ namespace TEN::Hud
 		if (distance > INTERACTION_DISTANCE)
 			return;
 
+		// Rough room adjacency test.
+		if (!TEN::Utils::Contains(g_Level.Rooms[player.RoomNumber].NeighborRoomNumbers, (int)item.RoomNumber))
+			return;
+
 		// Discard invisible objects.
 		if (item.Status == ITEM_INVISIBLE)
 			return;
@@ -134,26 +142,37 @@ namespace TEN::Hud
 		if (!TestInteractionConditions(player, item, mode))
 			return;
 
+		const auto playerBoundingBox = player.GetObb();
+
 		// Inflate object bounding box a little to increase highlight tolerance.
 		auto itemBoundingBox = item.GetObb();
 		auto inflatedBoundingBox = itemBoundingBox;
 		inflatedBoundingBox.Extents = itemBoundingBox.Extents + Vector3::One * INTERACTION_PADDING;
 
-		const auto playerBoundingBox = player.GetObb();
+		auto dir = itemBoundingBox.Center - playerBoundingBox.Center;
+		auto dist = dir.Length() - INTERACTION_INTERSECTION_TOLERANCE;
+		dir.Normalize();
+
+		// Check if there's a line of sight between objects.
+		auto losColl = GetRoomLosCollision(playerBoundingBox.Center, player.RoomNumber, dir, dist, true);
+		if (losColl.IsIntersected)
+			return;
 
 		// Only check bounding box intersection if not in custom mode.
-		if (Objects[item.ObjectNumber].drawRoutine != nullptr && !playerBoundingBox.Intersects(inflatedBoundingBox))
+		if (!Objects[item.ObjectNumber].Hidden && !playerBoundingBox.Intersects(inflatedBoundingBox))
 			return;
 
 		auto position = itemBoundingBox.Center;
 		auto type = InteractionType::Undefined;
-		bool checkDirection = false;
+		
+		int checkDirectionDir = 0;
+		bool checkFacing = false;
 
 		// Decide on interaction highlight parameters based on object type.
 		if (Objects[item.ObjectNumber].isPickup)
 		{
 			type = InteractionType::Pickup;
-			checkDirection = false;
+			checkFacing = false;
 
 			if (!item.TriggerFlags)
 				position.y = GetPointCollision(item).GetFloorHeight() - PICKUP_OFFSET;
@@ -164,7 +183,12 @@ namespace TEN::Hud
 		{
 			type = InteractionType::Talk;
 			position.y -= itemBoundingBox.Extents.y * 1.5f;
-			checkDirection = true;
+			checkFacing = true;
+		}
+		else if (item.Data.is<DOOR_DATA>())
+		{
+			checkFacing = true;
+			checkDirectionDir = (item.ObjectNumber >= ID_PUSHPULL_DOOR1 && item.ObjectNumber <= ID_KICK_DOOR4) ? 0 : 1;
 		}
 		else
 		{
@@ -177,13 +201,31 @@ namespace TEN::Hud
 				position.y -= itemBoundingBox.Extents.y;
 
 			// HACK: Extend for other direction-agnostic objects if necessary.
-			checkDirection = item.ObjectNumber != ID_TIGHT_ROPE;
+			checkFacing = item.ObjectNumber != ID_TIGHT_ROPE;
+			checkDirectionDir = (item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ? -1 : 0;
 		}
 
-		// Don't check facing direction for pickups, because they are too small to check it.
-		if (checkDirection)
+		// Direction check to make sure objects are oriented towards each other (1) or in the same direction (-1).
+		if (checkDirectionDir)
 		{
-			auto dir = itemBoundingBox.Center - player.Pose.Position.ToVector3();
+			auto playerYaw = TO_RAD(player.Pose.Orientation.y);
+			auto itemYaw = TO_RAD(item.Pose.Orientation.y);
+
+			// Forward direction vectors in XZ plane.
+			auto playerForward = Vector3(sin(playerYaw), 0.0f, cos(playerYaw));
+			auto itemForward = Vector3(sin(itemYaw), 0.0f, cos(itemYaw));
+
+			// The objects face each other if their facing vectors are roughly opposite.
+			float facingDot = playerForward.Dot(-itemForward * checkDirectionDir);
+
+			if (facingDot < INTERACTION_ANGLE)
+				return;
+		}
+
+		// Facing test to make sure objects are within interaction cone.
+		if (checkFacing)
+		{
+			dir = itemBoundingBox.Center - player.Pose.Position.ToVector3();
 			dir.y = 0.0f;
 			dir.Normalize();
 

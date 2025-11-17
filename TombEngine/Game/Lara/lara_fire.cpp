@@ -861,8 +861,8 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	const auto& weapon = GetWeaponInfo(weaponType);
 
 	auto wobbledArmOrient = EulerAngles(
-		armOrient.x + (Random::GenerateAngle(0, ANGLE(180.0f)) - ANGLE(90.0f)) * weapon.ShotAccuracy / 65536,
-		armOrient.y + (Random::GenerateAngle(0, ANGLE(180.0f)) - ANGLE(90.0f)) * weapon.ShotAccuracy / 65536,
+		armOrient.x + (Random::GenerateAngle(0, ANGLE(179.0f)) - ANGLE(90.0f)) * weapon.ShotAccuracy / USHRT_MAX,
+		armOrient.y + (Random::GenerateAngle(0, ANGLE(179.0f)) - ANGLE(90.0f)) * weapon.ShotAccuracy / USHRT_MAX,
 		0);
 
 	auto muzzleOffset = GetJointPosition(&laraItem, LM_RHAND);

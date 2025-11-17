@@ -18,6 +18,7 @@ struct PixelShaderInput
 	float3 Binormal: BINORMAL;
 	float2 UV: TEXCOORD0;
 	float4 PositionCopy : TEXCOORD1;
+	float  DistanceFog : FOG;
 };
 
 Texture2D Texture : register(t0);
@@ -77,6 +78,7 @@ PixelShaderInput VSRooms(VertexShaderInput input)
     output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
     output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
+    output.DistanceFog = DoDistanceFogForVertex(pos);
 	
 	return output;
 }
@@ -99,6 +101,7 @@ PixelShaderInput VSItems(VertexShaderInput input)
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
     output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
+    output.DistanceFog = DoDistanceFogForVertex(pos);
 	
 	return output;
 }
@@ -119,6 +122,7 @@ PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : S
     output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
     output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
+    output.DistanceFog = DoDistanceFogForVertex(pos);
 	
 	return output;
 }
@@ -138,16 +142,15 @@ PixelShaderOutput PS(PixelShaderInput input)
 	DoAlphaTest(color);
 	
     float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-    float specular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV).z;
+    float specular = ORSHTexture.Sample(ORSHSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;
-    output.Normals.w = MaterialType / 64.0f;
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
-    output.Emissive.xyz = emissive.xyz;
+    output.Emissive.xyz = DoDistanceFogForPixel(emissive, 0.0f, pow(input.DistanceFog, 2)).xyz;
     output.Emissive.w = specular;
 	
 	return output;

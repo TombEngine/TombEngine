@@ -176,18 +176,6 @@ namespace TEN::Entities::Vehicles
 		AnimateItem(laraItem);
 	}
 
-	void DrawRubberBoat(ItemInfo* rBoatItem)
-	{
-		/* TODO: WTF?
-		RUBBER_BOAT_INFO *b;
-
-		b = item->data;
-		item->data = &b->propRot;
-		DrawAnimatingItem(item);
-		item->data = b;
-		*/
-	}
-
 	static void DoRubberBoatShift(int itemNumber, ItemInfo* laraItem)
 	{
 		auto* boatItem = &g_Level.Items[itemNumber];

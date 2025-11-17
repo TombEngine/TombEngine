@@ -74,8 +74,8 @@ bool RoomData::Active() const
 	// Since engine swaps whole room memory block but substitutes flippedRoom,
 	// both original room number and flippedRoom must be chekhed for equality,
 	// as well as NO_VALUE if checking non-flipped rooms.
-	return (!FlipStats[flipNumber] && flippedRoom != RoomNumber && flippedRoom != NO_VALUE) ||
-		   ( FlipStats[flipNumber] && flippedRoom == RoomNumber);
+	return (!FlipStats[flipNumber] && flippedRoom != originalRoom && flippedRoom != NO_VALUE) ||
+		   ( FlipStats[flipNumber] && flippedRoom == originalRoom);
 }
 
 void RoomData::GenerateCollisionMesh()

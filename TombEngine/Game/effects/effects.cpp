@@ -1989,8 +1989,9 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 {
 	const auto& player = GetLaraInfo(item);
 
-	// Player underwater; return early.
-	if (player.Control.WaterStatus == WaterStatus::Underwater)
+	// Player underwater or in fly mode; return early.
+	if (player.Control.WaterStatus == WaterStatus::Underwater ||
+		player.Control.WaterStatus == WaterStatus::FlyCheat)
 		return;
 
 	// Get point collision.

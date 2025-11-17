@@ -68,16 +68,19 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
 
     DoAlphaTest(output.Color);
     
-    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
-    float ambientOcclusion = occlusionRoughnessSpecular.x;
-    float roughness = occlusionRoughnessSpecular.y;
-    float specular = occlusionRoughnessSpecular.z;
+    float4 ORSH = ORSHTexture.Sample(ORSHSampler, input.UV);
+    float ambientOcclusion = ORSH.x;
+    float roughness = ORSH.y;
+    float specular = ORSH.z;
 	
     float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
     float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
     normal = normalize(mul(normal, TBN));
+    
+    // Material effects
+    output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, normal, specular);
 	
     ShaderLight l;
     l.Color = float3(1.0f, 1.0f, 0.5f);
@@ -96,16 +99,6 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
 	// Adding some pertubations to the lighting to add a cool effect
     float3 noise = SimplexNoise(output.Color.xyz);
     output.Color.xyz = NormalNoise(output.Color, noise, normal);
-    
-    // Materials effects
-    if (MaterialType == MATERIAL_SKYBOX_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateSkyBoxReflections(input.WorldPosition, input.FaceNormal, specular, output.Color.xyz);
-    }
-    else if (MaterialType == MATERIAL_REFLECTIVE)
-    {
-        output.Color.xyz = CalculateLegacyReflections(normal, 1, output.Color.xyz);
-    }
     
     output.Emissive = float4(emissive, 1.0f);
 	

@@ -1,6 +1,6 @@
 -- ldignore
 local Util = {}
-local Type= require("Engine.Type")
+local Type = require("Engine.Type")
 
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
@@ -62,6 +62,19 @@ Util.GenerateTimeFormattedString = function (time, timerFormat, errorFormat)
     	end
     	return formattedString
 	end
+end
+
+-- Check if table has particular value.
+Util.TableHasValue = function (tbl, val)
+    if not Type.IsTable(tbl) then
+        return false
+    end
+    for _, value in pairs(tbl) do
+        if value == val then
+            return true
+        end
+    end
+    return false
 end
 
 -- Compare two values.

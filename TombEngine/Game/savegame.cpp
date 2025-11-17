@@ -617,7 +617,7 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
-		serializedInfo.add_index(room.RoomNumber);
+		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
 		auto serializedInfoOffset = serializedInfo.Finish();
@@ -1107,7 +1107,7 @@ const std::vector<byte> SaveGame::Build()
 
 			staticObjBuilder.add_number(j);
 			staticObjBuilder.add_pose(&FromPose(room->mesh[j].Pose));
-			staticObjBuilder.add_room_number(room->RoomNumber);
+			staticObjBuilder.add_room_number(room->originalRoom);
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
 			staticObjBuilder.add_flags(room->mesh[j].Flags);
@@ -1144,7 +1144,7 @@ const std::vector<byte> SaveGame::Build()
 			auto nameOffset = fbb.CreateString(currVolume.Name);
 
 			Save::VolumeBuilder volume{ fbb };
-			volume.add_room_number(room->RoomNumber);
+			volume.add_room_number(room->originalRoom);
 			volume.add_number(j);
 			volume.add_name(nameOffset);
 			volume.add_enabled(currVolume.Enabled);

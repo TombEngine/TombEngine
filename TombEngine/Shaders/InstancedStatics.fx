@@ -37,9 +37,6 @@ SamplerState Sampler : register(s0);
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
 
-Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
-
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -74,41 +71,34 @@ PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
 	
-    if (Animated && Type == 1)
-        input.UV = CalculateUVRotate(input.UV, 0);
+    input.UV = ConvertAnimUV(input.UV);
 
-	float4 tex = Texture.Sample(Sampler, input.UV);
-	
-	DoAlphaTest(tex);
+    // Apply parallax mapping
+    float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
+    input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
-    float4 occlusionRoughnessSpecular = OcclusionRoughnessSpecularTexture.Sample(OcclusionRoughnessSpecularSampler, input.UV);
-    float ambientOcclusion = occlusionRoughnessSpecular.x;
-    float roughness = occlusionRoughnessSpecular.y;
-    float specular = occlusionRoughnessSpecular.z;
+    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+    float ambientOcclusion = ORSH.x;
+    float roughness = ORSH.y;
+    float specular = ORSH.z;
 	
     float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+
+	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
+
+	float4 tex = Texture.Sample(Sampler, input.UV);
+	DoAlphaTest(tex);
 	
 	uint mode = StaticMeshes[input.InstanceID].LightInfo.y;
 	uint numLights = StaticMeshes[input.InstanceID].LightInfo.x;
-
-	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
-	normal = normalize(mul(normal, TBN));
 	
     // Material effects
-    output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, input.FaceNormal, normal, specular);
-
-    float2 samplePosition = GetSamplePosition(input.PositionCopy);
+    tex.xyz = CalculateReflections(input.WorldPosition, tex.xyz, normal, specular);
 	
-    float occlusion = 1.0f;
-    if (AmbientOcclusion == 1 && BlendModeSupportsSSAO())
-    {
-        occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
-		
-        if (BlendMode == BLENDMODE_ALPHABLEND)
-            occlusion = lerp(occlusion, 1.0f, tex.w);
-    }
-	
+    // Ambient occlusion
+    float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), tex.w);
     occlusion *= ambientOcclusion;
 
 	float3 color = (mode == 0) ?

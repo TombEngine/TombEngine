@@ -1174,7 +1174,7 @@ void SearchObjectCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* 
 	auto* item = &g_Level.Items[itemNumber];
 	auto* lara = GetLaraInfo(laraItem);
 
-	int objectNumber = (item->ObjectNumber - ID_SEARCH_OBJECT1);
+	g_Hud.InteractionHighlighter.Test(*laraItem, *item, InteractionMode::Always);
 
 	if ((IsHeld(In::Action) &&
 		laraItem->Animation.ActiveState == LS_IDLE &&
@@ -1183,6 +1183,8 @@ void SearchObjectCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* 
 		((item->Status == ITEM_NOT_ACTIVE && item->ObjectNumber != ID_SEARCH_OBJECT4) || !item->ItemFlags[0])) ||
 		(lara->Control.IsMoving && lara->Context.InteractedItem == itemNumber))
 	{
+		int objectNumber = (item->ObjectNumber - ID_SEARCH_OBJECT1);
+
 		auto bounds = GameBoundingBox(item);
 		if (item->ObjectNumber != ID_SEARCH_OBJECT1)
 		{

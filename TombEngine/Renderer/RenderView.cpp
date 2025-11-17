@@ -70,7 +70,7 @@ namespace TEN::Renderer
 		WorldDirection.Normalize();
 		
 		Vector3 up = -Vector3::UnitY;
-		Matrix upRotation = Matrix::CreateFromYawPitchRoll(0.0f, 0.0f, roll);
+		Matrix upRotation = Matrix::CreateFromAxisAngle(WorldDirection, roll);
 		up = Vector3::Transform(up, upRotation);
 		up.Normalize();
 

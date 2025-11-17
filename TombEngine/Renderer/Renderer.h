@@ -647,31 +647,36 @@ namespace TEN::Renderer
 
 		static inline unsigned int PackEffectsAndIndexInPoly(Vector3 effects, float sheen, int indexInPoly)
 		{
+			// Clamp values to 254 (UCHAR_MAX - 1) to avoid overflow during back conversion in shaders.
+
 			int packed =
-				((int)(effects.x * 255.0f) << GLOW_VERTEX_SHIFT) |
-				((int)(effects.y * 255.0f) << MOVE_VERTEX_SHIFT) |
-				((int)(sheen * 255.0f) << SHININESS_VERTEX_SHIFT) |
+				((int)floor(effects.x * (UCHAR_MAX - 1)) << GLOW_VERTEX_SHIFT) |
+				((int)floor(effects.y * (UCHAR_MAX - 1)) << MOVE_VERTEX_SHIFT) |
+				((int)floor(sheen     * (UCHAR_MAX - 1)) << SHININESS_VERTEX_SHIFT) |
 				((int)effects.z << LOCKED_VERTEX_SHIFT) |
 				(indexInPoly << INDEX_IN_POLY_VERTEX_SHIFT);
+
 			return packed;
 		}
 
 		static inline unsigned int PackVector3(Vector3 n)
 		{
-			n.Normalize();
+			if (n.Length() > EPSILON)
+				n.Normalize();
 
-			auto ToS8 = [](float v) -> unsigned int {
-				float x = std::clamp(v, -1.0f, 1.0f) * 127.0f; // [-127..127]
-				return static_cast<int8_t>(std::lround(x));
-				};
+			auto ToS8 = [](float v) -> unsigned int
+			{
+				float x = std::clamp(v, -1.0f, 1.0f) * CHAR_MAX;
+				return (char)(std::lround(x));
+			};
 
-			const unsigned char R = static_cast<unsigned char>(ToS8(n.x));
-			const unsigned char G = static_cast<unsigned char>(ToS8(n.y));
-			const unsigned char B = static_cast<unsigned char>(ToS8(n.z));
-			const unsigned char A = static_cast<unsigned char>(ToS8(0.0f));
+			const unsigned char X = (unsigned char)(ToS8(n.x));
+			const unsigned char Y = (unsigned char)(ToS8(n.y));
+			const unsigned char Z = (unsigned char)(ToS8(n.z));
+			const unsigned char W = (unsigned char)(ToS8(0.0f));
 
 			// Little-endian: memoria [R][G][B][A], come DXGI_FORMAT_R8G8B8A8_SNORM
-			return (unsigned int)R | ((unsigned int)G << 8) | ((unsigned int)B << 16) | ((unsigned int)A << 24);
+			return (unsigned int)X | ((unsigned int)Y << 8) | ((unsigned int)Z << 16) | ((unsigned int)W << 24);
 		}
 
 		static inline unsigned int PackAnimationFrameOffsetIndexHash(int frameOffset, int meshIndex, int hash)

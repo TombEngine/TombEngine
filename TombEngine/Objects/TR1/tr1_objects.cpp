@@ -236,7 +236,7 @@ static void StartObject(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->collision = AIPickupCollision;
-		obj->drawRoutine = nullptr;
+		obj->Hidden = true;
 	}
 }
 
@@ -309,8 +309,7 @@ static void StartTrap(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeElectricBallImpactPoint;
-		obj->drawRoutine = nullptr;
-		obj->usingDrawAnimatingItem = false;
+		obj->Hidden = true;
 	}
 }
 

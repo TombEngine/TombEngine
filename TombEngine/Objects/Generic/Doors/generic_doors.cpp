@@ -70,12 +70,8 @@ namespace TEN::Entities::Doors
 		auto& door = GetDoorObject(doorItem);
 
 		door.opened = false;
-		door.dptr1 = nullptr;
-		door.dptr2 = nullptr;
-		door.dptr3 = nullptr;
-		door.dptr4 = nullptr;
 
-		short boxNumber, twoRoom;
+		int boxNumber, twoRoom;
 
 		int xOffset = 0;
 		int zOffset = 0;
@@ -111,7 +107,7 @@ namespace TEN::Entities::Doors
 			boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x + xOffset, doorItem.Pose.Position.z - b->Position.z + zOffset)->PathfindingBoxID;
 		}
 
-		door.d1.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE; 
+		door.d1.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 		door.d1.data = *door.d1.floor;
 
 		if (room->flippedRoom != NO_VALUE)
@@ -130,7 +126,7 @@ namespace TEN::Entities::Doors
 				boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x + xOffset, doorItem.Pose.Position.z - b->Position.z + zOffset)->PathfindingBoxID;
 			}
 
-			door.d1flip.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
+			door.d1flip.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 			door.d1flip.data = *door.d1flip.floor;
 		}
 		else
@@ -164,10 +160,10 @@ namespace TEN::Entities::Doors
 				boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x, doorItem.Pose.Position.z - b->Position.z)->PathfindingBoxID;
 			}
 
-			door.d2.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
+			door.d2.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 			door.d2.data = *door.d2.floor;
 
-			if (room->flippedRoom != -1)
+			if (room->flippedRoom != NO_VALUE)
 			{
 				room = &g_Level.Rooms[room->flippedRoom];
 				door.d2flip.floor = GetSector(room, doorItem.Pose.Position.x - room->Position.x, doorItem.Pose.Position.z - room->Position.z);
@@ -183,7 +179,7 @@ namespace TEN::Entities::Doors
 					boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x, doorItem.Pose.Position.z - b->Position.z)->PathfindingBoxID;
 				}
 
-				door.d2flip.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE; 
+				door.d2flip.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 				door.d2flip.data = *door.d2flip.floor;
 			}
 			else
@@ -472,12 +468,14 @@ namespace TEN::Entities::Doors
 		if (sector == nullptr)
 			return;
 
+		// Room number should be preserved because it may conflict with flipmap workflow.
+		int roomNumber = sector->RoomNumber;
 		*doorPos->floor = doorPos->data;
+		doorPos->floor->RoomNumber = roomNumber;
 
-		int pathfindingBoxID = doorPos->block;
-		if (pathfindingBoxID != NO_VALUE)
+		if (doorPos->box != NO_VALUE)
 		{
-			g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
+			g_Level.PathfindingBoxes[doorPos->box].flags &= ~BLOCKED;
 			for (auto creatureIndex : ActiveCreatures)
 				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
@@ -507,10 +505,9 @@ namespace TEN::Entities::Doors
 		sector->CeilingSurface.Triangles[0].Plane =
 		sector->CeilingSurface.Triangles[1].Plane = WALL_PLANE;
 
-		int pathfindingBoxID = doorPos->block;
-		if (pathfindingBoxID != NO_VALUE)
+		if (doorPos->box != NO_VALUE)
 		{
-			g_Level.PathfindingBoxes[pathfindingBoxID].flags |= BLOCKED;
+			g_Level.PathfindingBoxes[doorPos->box].flags |= BLOCKED;
 
 			for (auto creatureIndex : ActiveCreatures)
 				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;

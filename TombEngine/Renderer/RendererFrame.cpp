@@ -455,7 +455,7 @@ namespace TEN::Renderer
 
 			auto& obj = _moveableObjects[item.ObjectNumber].value();
 
-			if (obj.DoNotDraw)
+			if (obj.Hidden)
 				continue;
 
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,

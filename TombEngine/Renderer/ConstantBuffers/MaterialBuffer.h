@@ -15,6 +15,6 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Vector4 MaterialParameters3;
 		//--
-		unsigned int MaterialType;
+		unsigned int MaterialTypeAndFlags;
 	};
 }

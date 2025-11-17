@@ -65,56 +65,33 @@ float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specular
 float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
 {
     float m = saturate(sign(strength));
-	
+
     float3 lightPos = light.Position.xyz;
-    float3 direction = light.Direction.xyz;
-    float innerRange = light.In;
-    float outerRange = light.Out;
-    float coneIn = light.InRange;
-    float coneOut = light.OutRange;
+    float radius = light.Out;
 
-    float3 lightVec = pos - lightPos;
-    float distance = length(lightVec);
-    lightVec = normalize(lightVec);
+    float dist = distance(lightPos, pos);
+    float attenuation = saturate((radius - dist) / max(radius, EPSILON));
 
-    if (distance > outerRange)
-        return float3(0, 0, 0);
-    else
-    {
-        float cosine = dot(lightVec, direction);
+    float3 lightDir = normalize(lightPos - pos);
+    float3 reflectDir = reflect(lightDir, n);
 
-        float minCosineIn = cos(coneIn * (PI / 180.0f));
-        float attenuationIn = max((cosine - minCosineIn), 0.0f) / (1.0f - minCosineIn);
-
-        float minCosineOut = cos(coneOut * (PI / 180.0f));
-        float attenuationOut = max((cosine - minCosineOut), 0.0f) / (1.0f - minCosineOut);
-
-        float attenuation = saturate(attenuationIn * 2.0f + attenuationOut);
-
-        if (attenuation > 0.0f)
-        {
-            float3 lightDir = -lightVec;
-            float3 reflectDir = reflect(lightDir, n);
-
-            float3 color = light.Color.xyz;
-            float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
-
-            float expBase = RoughnessToExpMul(roughness);
-            float expMul = lerp(expBase, 1.0, m);
+    float3 color = light.Color.xyz;
+    float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
+			
+    float expBase = RoughnessToExpMul(roughness);
+    float expMul = lerp(expBase, 1.0, m);
 	
-            float strengthUsed = lerp(1.0, strength, m);
-            float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
+    float strengthUsed = lerp(1.0, strength, m);
+    float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
+	
+    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float spec = pow(vr, max(expVal, 1.0));
+	
+    float cosine = dot(-lightDir, light.Direction.xyz);
+    float angleAttenuation = saturate((cosine - light.OutRange) / (light.InRange - light.OutRange));
+    float distanceAttenuation = saturate((light.Out - dist) / (light.Out - light.In));
 
-            float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
-            float spec = pow(vr, max(expVal, 1.0));
-
-            float falloff = saturate((outerRange - distance) / (outerRange - innerRange + 1.0f));
-
-            return attenuation * spec * color * intenSpec * falloff;
-        }
-        else
-            return float3(0, 0, 0);
-    }
+    return angleAttenuation * distanceAttenuation * spec * color * intenSpec;
 }
 
 float3 DoPointLight(float3 pos, float3 normal, ShaderLight light)

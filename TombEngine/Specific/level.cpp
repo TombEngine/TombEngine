@@ -574,12 +574,12 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasOcclusionRoughnessSpecularMap)
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
 		{
 			size = ReadInt32();
-			texture.occlusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
 		}
 
 		bool hasEmissiveMap = ReadBool();
@@ -616,12 +616,12 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasOcclusionRoughnessSpecularMap)
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
 		{
 			size = ReadInt32();
-			texture.occlusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
 		}
 
 		bool hasEmissiveMap = ReadBool();
@@ -658,12 +658,12 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasOcclusionRoughnessSpecularMap)
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
 		{
 			size = ReadInt32();
-			texture.occlusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
 		}
 
 		bool hasEmissiveMap = ReadBool();
@@ -700,12 +700,12 @@ void LoadTextures()
 			ReadBytes(texture.normalMapData.data(), size);
 		}
 
-		bool hasOcclusionRoughnessSpecularMap = ReadBool();
-		if (hasOcclusionRoughnessSpecularMap)
+		bool hasORSHMap = ReadBool();
+		if (hasORSHMap)
 		{
 			size = ReadInt32();
-			texture.occlusionRoughnessSpecularMapData.resize(size);
-			ReadBytes(texture.occlusionRoughnessSpecularMapData.data(), size);
+			texture.ORSHMapData.resize(size);
+			ReadBytes(texture.ORSHMapData.data(), size);
 		}
 
 		bool hasEmissiveMap = ReadBool();
@@ -1069,7 +1069,7 @@ void LoadStaticRoomData()
 			room.lights.push_back(light);
 		}
 
-		room.RoomNumber = i;
+		room.originalRoom = i;
 	}
 
 	// Generate room collision meshes.
@@ -1699,6 +1699,7 @@ void LoadMaterials()
 		material.Parameters2 = ReadVector4();
 		material.Parameters3 = ReadVector4();
 		material.HasNormalMap = ReadBool();
+		material.HasHeightMap = ReadBool();
 		material.HasAmbientOcclusionMap = ReadBool();
 		material.HasRoughnessMap = ReadBool();
 		material.HasSpecularMap = ReadBool();

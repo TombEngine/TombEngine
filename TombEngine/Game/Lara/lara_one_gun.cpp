@@ -4,6 +4,7 @@
 #include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -34,6 +35,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
@@ -1480,7 +1482,6 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& prevPos, ProjectileType type, int damage)
 {
 	auto pointColl  = GetPointCollision(projectile);
-	auto pointColl2 = GetPointCollision((projectile.Pose.Position + prevPos) / 2, projectile.RoomNumber);
 
 	bool hasHit = false;
 	bool hasHitNotByEmitter = false;
@@ -1490,11 +1491,13 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 	// For non-grenade projectiles, check for room collision.
 	if (type < ProjectileType::Grenade)
 	{
-		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y || pointColl2.GetFloorHeight() < projectile.Pose.Position.y ||
-			pointColl.GetCeilingHeight() > projectile.Pose.Position.y || pointColl2.GetCeilingHeight() > projectile.Pose.Position.y)
-		{
+		auto moveVec = (projectile.Pose.Position - prevPos).ToVector3();
+		auto dist = moveVec.Length();
+		moveVec.Normalize();
+		auto losColl = GetRoomLosCollision(prevPos.ToVector3(), projectile.RoomNumber, moveVec, dist);
+
+		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y || pointColl.GetCeilingHeight() > projectile.Pose.Position.y || losColl.IsIntersected)
 			hasHit = hasHitNotByEmitter = true;
-		}
 	}
 	// If projectile is timed grenade, try to emit from it according to flags.
 	else if (EmitFromProjectile(projectile, type))

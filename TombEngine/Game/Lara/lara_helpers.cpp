@@ -1072,7 +1072,7 @@ void HandlePlayerLegIK(ItemInfo& item)
 
 	// Determine enquiries.
 	bool isUpright			   = ((vPosVisual - hipsPos.y) >= (LARA_HEIGHT * UPRIGHT_COEFF));
-	bool isLeftFloorSteppable  = (!lPointColl.IsSteepFloor()  && !lPointColl.GetBottomSector().Flags.Death);
+	bool isLeftFloorSteppable  = (!lPointColl.IsSteepFloor() && !lPointColl.GetBottomSector().Flags.Death);
 	bool isRightFloorSteppable = (!rPointColl.IsSteepFloor() && !rPointColl.GetBottomSector().Flags.Death);
 
 	// Solve foot roll.

@@ -197,7 +197,7 @@ enum class TextureRegister
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
 	SSAO = 9,
-	OcclusionRoughnessSpecularMap = 10,
+	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
 	SkyboxEnvironmentReflections = 13
@@ -293,6 +293,7 @@ enum class TextureSource
 	Statics,
 	Animated
 };
+
 enum class SMAAMode
 {
 	MODE_SMAA_1X,

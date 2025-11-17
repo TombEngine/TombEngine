@@ -77,7 +77,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		auto bridgeItemNumbers = std::set<int>{};
 		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
 
-		PrintDebugMessage("Room number: %d", room.RoomNumber);
+		PrintDebugMessage("Room number: %d", Camera.pos.RoomNumber);
 		PrintDebugMessage("Sectors: %d", room.Sectors.size());
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
 		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
@@ -127,7 +127,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
 	{
 		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
-		PrintDebugMessage("Portals in room %d: %d", room.RoomNumber, room.Portals.size());
+		PrintDebugMessage("Portals in room %d: %d", Camera.pos.RoomNumber, room.Portals.size());
 
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
