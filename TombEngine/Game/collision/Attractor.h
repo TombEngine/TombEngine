@@ -16,7 +16,7 @@ namespace TEN::Collision::Attractor
 	{
 		Edge,
 		WallEdge,
-		/*VerticalPole, // """""""""Polerope"""""""""
+		/*VerticalPole,
 		HorizontalPole, // TODO: AOD pipe shimmy + pipe crawl.
 		SwingPole,
 		ZipLine,
@@ -28,16 +28,16 @@ namespace TEN::Collision::Attractor
 	{
 		AttractorObject* Attractor = nullptr;
 
-		Vector3		 Intersection = Vector3::Zero;
-		int			 RoomNumber	  = 0;
-		float		 Distance2D	  = 0.0f;
-		float		 Distance3D	  = 0.0f;
-		float		 PathDistance = 0.0f;
-		unsigned int SegmentID	  = 0;
+		Vector3      Intersection = Vector3::Zero;
+		int          RoomNumber   = 0;
+		float        Distance2D   = 0.0f;
+		float        Distance3D   = 0.0f;
+		float        PathDistance = 0.0f;
+		unsigned int SegmentID    = 0;
 
-		short HeadingAngle	= 0;
-		short SlopeAngle	= 0;
-		bool  IsInFront		= false;
+		short HeadingAngle  = 0;
+		short SlopeAngle    = 0;
+		bool  IsInFront     = false;
 		bool  IsFacingFront = false;
 	};
 
@@ -46,22 +46,22 @@ namespace TEN::Collision::Attractor
 	private:
 		// Fields
 
-		AttractorType _type		   = AttractorType::Edge;
-		Vector3		  _position	   = Vector3::Zero;
-		int			  _roomNumber  = 0;
-		Quaternion	  _orientation = Quaternion::Identity;
+		AttractorType _type        = AttractorType::Edge;
+		Vector3       _position    = Vector3::Zero;
+		int           _roomNumber  = 0;
+		Quaternion    _orientation = Quaternion::Identity;
 
-		std::vector<Vector3> _points		 = {};
-		std::vector<float>	 _segmentLengths = {};
-		float				 _length		 = 0.0f;
-		BoundingBox			 _aabb			 = BoundingBox();
+		std::vector<Vector3> _points         = {};
+		std::vector<float>   _segmentLengths = {};
+		float                _length         = 0.0f;
+		BoundingBox          _aabb           = BoundingBox();
 
 		std::set<int> _playerItemNumbers = {};
 
 	public:
 		// Constructors
 
-		AttractorObject() { _points.push_back(Vector3::Zero); }; // TEMP
+		AttractorObject() { _points.push_back(Vector3::Zero); }; // TODO: Temporary.
 		AttractorObject(AttractorType type, const Vector3& pos, int roomNumber, const Quaternion& orient, const std::vector<Vector3>& points);
 
 		// Destructors
@@ -70,16 +70,16 @@ namespace TEN::Collision::Attractor
 
 		// Getters
 		
-		AttractorType	   GetType() const;
-		int				   GetRoomNumber() const;
-		float			   GetLength() const;
+		AttractorType      GetType() const;
+		int                GetRoomNumber() const;
+		float              GetLength() const;
 		const BoundingBox& GetAabb() const;
 
 		unsigned int GetSegmentCount() const;
 		unsigned int GetSegmentIDAtPathDistance(float pathDist) const;
-		Vector3		 GetIntersectionAtPathDistance(float pathDist) const;
+		Vector3      GetIntersectionAtPathDistance(float pathDist) const;
 
-		AttractorCollisionData				  GetCollision(float pathDist, short headingAngle,
+		AttractorCollisionData                GetCollision(float pathDist, short headingAngle,
 														   const Vector3& axis = Vector3::UnitY);
 		std::optional<AttractorCollisionData> GetCollision(const Vector3& pos, float radius, short headingAngle, unsigned int segmentID,
 														   const Vector3& axis = Vector3::UnitY);

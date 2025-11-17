@@ -16,13 +16,13 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 using namespace TEN::Utils;
-using TEN::Renderer::g_Renderer;
+using           TEN::Renderer::g_Renderer;
 
 namespace TEN::Collision::Attractor
 {
 	AttractorObject::AttractorObject(AttractorType type, const Vector3& pos, int roomNumber, const Quaternion& orient, const std::vector<Vector3>& points)
 	{
-		TENAssert(!points.empty(), "Attempted to initialize invalid attractor with 0 points.");
+		TENAssert(!points.empty(), "Attempted to initialize invalid attractor with no points.");
 
 		_type = type;
 		_position = pos;
@@ -85,14 +85,14 @@ namespace TEN::Collision::Attractor
 
 	unsigned int AttractorObject::GetSegmentIDAtPathDistance(float pathDist) const
 	{
-		// Single segment exists; return segment ID 0.
+		// Check if single segment exists.
 		if (GetSegmentCount() == 1)
 			return 0;
 
 		// Normalize distance along path.
 		pathDist = NormalizePathDistance(pathDist);
 
-		// Path distance is on attractor edge; return clamped segment ID.
+		// Check if path distance is on attractor edge.
 		if (pathDist <= 0.0f)
 		{
 			return 0;
@@ -109,12 +109,12 @@ namespace TEN::Collision::Attractor
 			// Accumulate distance traveled along path.
 			pathDistTraveled += _segmentLengths[i];
 
-			// Segment found; return segment ID.
+			// Check for found segment.
 			if (pathDistTraveled >= pathDist)
 				return i;
 		}
 
-		// FAILSAFE: Return end segment ID.
+		// Use end segment ID as fallback.
 		return (GetSegmentCount() - 1);
 	}
 
@@ -122,14 +122,14 @@ namespace TEN::Collision::Attractor
 	{
 		auto transformMatrix = GetTransformMatrix();
 
-		// Single point exists; return simple intersection.
+		// Check if single point exists.
 		if (_points.size() == 1)
 			return Vector3::Transform(_points.front(), transformMatrix);
 
 		// Normalize distance along path.
 		pathDist = NormalizePathDistance(pathDist);
 
-		// Line distance is outside attractor; return clamped intersection.
+		// Check if line distance is outside attractor.
 		if (pathDist <= 0.0f)
 		{
 			return Vector3::Transform(_points.front(), transformMatrix);
@@ -161,7 +161,7 @@ namespace TEN::Collision::Attractor
 			pathDistTraveled += segmentLength;
 		}
 
-		// FAILSAFE: Return end point.
+		// Return end point.
 		return Vector3::Transform(_points.back(), transformMatrix);
 	}
 
@@ -183,31 +183,28 @@ namespace TEN::Collision::Attractor
 	{
 		constexpr auto HEADING_ANGLE_OFFSET = ANGLE(-90.0);
 
-		// FAILSAFE: Handle out-of-bounds segment ID.
+		// Handle out-of-bounds segment ID.
 		if (segmentID >= GetSegmentCount())
 		{
-			TENLog("Attempted to get attractor collision for invalid segment ID " + std::to_string(segmentID) + ".", LogLevel::Warning);
+			TENLog(fmt::format("Attempted to get attractor collision for invalid segment ID {}.", segmentID), LogLevel::Warning);
 			segmentID = 0;
 		}
 
 		auto transformMatrix = GetTransformMatrix();
-
 		auto localSphere = BoundingSphere(Vector3::Transform(pos, transformMatrix.Invert()), radius);
 		bool isPath = (_points.size() > 1);
 
 		// Test sphere-segment intersection.
-		float intersectDist = isPath ?
-			Geometry::GetDistanceToLine(localSphere.Center, _points[segmentID], _points[segmentID + 1]) :
-			Vector3::Distance(localSphere.Center, _points[segmentID]);
+		float intersectDist = isPath ? Geometry::GetDistanceToLine(localSphere.Center, _points[segmentID], _points[segmentID + 1]) :
+									   Vector3::Distance(localSphere.Center, _points[segmentID]);
 		if (intersectDist > localSphere.Radius)
 			return std::nullopt;
 
 		// Calculate intersection.
-		auto intersect = isPath ?
-			Geometry::GetClosestPointOnLinePerp(localSphere.Center, _points[segmentID], _points[segmentID + 1], axis) :
-			_points[segmentID];
+		auto intersect = isPath ? Geometry::GetClosestPointOnLinePerp(localSphere.Center, _points[segmentID], _points[segmentID + 1], axis) :
+								  _points[segmentID];
 
-		// Determine intersection room number.
+		// Define intersection room number.
 		auto dir = intersect - _position;
 		dir.Normalize();
 		float dist = Vector3::Distance(_position, intersect);
@@ -225,7 +222,7 @@ namespace TEN::Collision::Attractor
 			pathDist += Vector3::Distance(_points[segmentID], intersect);
 		}
 
-		// TODO: Consider axis here and for 2D distance. Hardcoded to Y+.
+		// TODO: Hardcoded to Y+, which is the expected case. Could also consider gravity axis in the future.
 		auto refOrient = EulerAngles(0, headingAngle - EulerAngles(_orientation).y, 0);
 		auto segmentOrient = isPath ?
 			Geometry::GetOrientToPoint(_points[segmentID], _points[segmentID + 1]) + EulerAngles(0, EulerAngles(_orientation).y, 0) :
@@ -276,7 +273,7 @@ namespace TEN::Collision::Attractor
 	{
 		constexpr auto DIST_THRESHOLD = 1.0f;
 
-		// Single segment exists; loop not possible.
+		// Loop not possible if ingle segment exists;.
 		if (GetSegmentCount() == 1)
 			return false;
 
@@ -325,27 +322,27 @@ namespace TEN::Collision::Attractor
 	void AttractorObject::DrawDebug(unsigned int segmentID) const
 	{
 		constexpr auto LABEL_OFFSET				= Vector3(0.0f, -CLICK(0.5f), 0.0f);
-		constexpr auto INDICATOR_LINE_LENGTH	= BLOCK(1 / 20.0f);
-		constexpr auto SPHERE_RADIUS			= BLOCK(1 / 52.0f);
+		constexpr auto INDICATOR_LINE_LENGTH	= BLOCK(1.0f / 20.0f);
+		constexpr auto SPHERE_RADIUS			= BLOCK(1.0f / 52.0f);
 		constexpr auto COLOR_YELLOW_OPAQUE		= Color(1.0f, 1.0f, 0.4f);
 		constexpr auto COLOR_YELLOW_TRANSLUCENT = Color(1.0f, 1.0f, 0.4f, 0.3f);
 		constexpr auto COLOR_GREEN				= Color(0.4f, 1.0f, 0.4f);
 		constexpr auto BOX_COLOR				= Color(1.0f, 1.0f, 1.0f, 0.1f);
 
-		auto getLabelScale = [](const Vector3& cameraPos, const Vector3& labelPos)
+		auto getLabelScale = [](const Vector3& camPos, const Vector3& labelPos)
 		{
 			constexpr auto RANGE		   = BLOCK(5);
 			constexpr auto LABEL_SCALE_MAX = 0.8f;
 			constexpr auto LABEL_SCALE_MIN = 0.4f;
 
-			float cameraDist = Vector3::Distance(cameraPos, labelPos);
-			float alpha = cameraDist / RANGE;
+			float camDist = Vector3::Distance(camPos, labelPos);
+			float alpha = camDist / RANGE;
 			return Lerp(LABEL_SCALE_MAX, LABEL_SCALE_MIN, alpha);
 		};
 
 		auto transformMatrix = GetTransformMatrix();
 
-		// Determine label string.
+		// Define label string.
 		auto labelString = std::string();
 		switch (_type)
 		{
@@ -371,7 +368,7 @@ namespace TEN::Collision::Attractor
 			// Draw sphere.
 			DrawDebugSphere(pos, SPHERE_RADIUS, COLOR_YELLOW_TRANSLUCENT, RendererDebugPage::AttractorStats, false);
 
-			// Determine label parameters.
+			// Define label parameters.
 			auto labelPos2D = Get2DPosition(pos);
 			float labelScale = getLabelScale(Camera.pos.ToVector3(), pos);
 
@@ -397,7 +394,7 @@ namespace TEN::Collision::Attractor
 			DrawDebugLine(origin, Geometry::TranslatePoint(origin, dir, INDICATOR_LINE_LENGTH), COLOR_GREEN, RendererDebugPage::AttractorStats);
 			DrawDebugLine(target, Geometry::TranslatePoint(target, dir, INDICATOR_LINE_LENGTH), COLOR_GREEN, RendererDebugPage::AttractorStats);
 
-			// Determine label parameters.
+			// Define label parameters.
 			auto labelPos = ((origin + target) / 2) + LABEL_OFFSET;
 			auto labelPos2D = Get2DPosition(labelPos);
 			float labelScale = getLabelScale(Camera.pos.ToVector3(), labelPos);
@@ -435,7 +432,7 @@ namespace TEN::Collision::Attractor
 
 	float AttractorObject::NormalizePathDistance(float pathDist) const
 	{
-		// Distance along path within bounds; return it.
+		// Check if distance along path is within length bounds.
 		if (pathDist >= 0.0f && pathDist <= _length)
 			return pathDist;
 
@@ -452,7 +449,7 @@ namespace TEN::Collision::Attractor
 
 	static std::vector<AttractorObject*> GetBoundedAttractors(const BoundingSphere& sphere, int roomNumber)
 	{
-		// Debug
+		// Debug.
 		auto getDebugAttractors = []()
 		{
 			auto& player = GetLaraInfo(*LaraItem);
