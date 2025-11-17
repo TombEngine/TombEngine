@@ -30,6 +30,7 @@ namespace TEN::Scripting
 		// Utilities
 
 		Rotation Lerp(const Rotation& rot, float alpha) const;
+		Rotation Signed() const;
 		Vec3	 Direction() const;
 
 		// Converters
@@ -50,6 +51,7 @@ namespace TEN::Scripting
 	private:
 		// Helpers
 
-		float WrapAngle(float angle) const;
+		float WrapToUnsignedAngle(float angle) const;
+		float WrapToSignedAngle(float angle) const;
 	};
 }

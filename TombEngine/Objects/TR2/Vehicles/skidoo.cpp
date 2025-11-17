@@ -334,7 +334,7 @@ namespace TEN::Entities::Vehicles
 		bool banditSkidoo = skidoo->Armed;
 		if (drive > 0)
 		{
-			skidoo->TrackMesh = ((skidoo->TrackMesh & 3) == 1) ? 2 : 1;
+			skidoo->TrackMesh = skidoo->TrackMesh ? 0 : 1;
 			skidoo->Pitch += (pitch - skidoo->Pitch) / 4;
 
 			auto pitch = std::clamp(0.5f + (float)abs(skidoo->Pitch) / (float)SKIDOO_NORMAL_VELOCITY_MAX, 0.6f, 1.4f);
@@ -342,11 +342,22 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			skidoo->TrackMesh = 0;
+			skidoo->TrackMesh = NO_VALUE;
 			if (!drive)
 				SoundEffect(SFX_TR2_VEHICLE_SNOWMOBILE_IDLE, &skidooItem->Pose);
 			skidoo->Pitch = 0;
 		}
+
+		if (skidoo->TrackMesh == NO_VALUE)
+		{
+			skidooItem->Model.MeshIndex[1] = skidooItem->Model.BaseMesh + 1;
+		}
+		else if (Objects[GAME_OBJECT_ID::ID_SNOWMOBILE_TRACKS].loaded &&
+				 Objects[GAME_OBJECT_ID::ID_SNOWMOBILE_TRACKS].nmeshes > skidoo->TrackMesh)
+		{
+			skidooItem->Model.MeshIndex[1] = Objects[GAME_OBJECT_ID::ID_SNOWMOBILE_TRACKS].meshIndex + skidoo->TrackMesh;
+		}
+
 		skidooItem->Floor = height;
 
 		skidoo->LeftVerticalVelocity = DoSkidooDynamics(heightFrontLeft, skidoo->LeftVerticalVelocity, (int*)&frontLeft.y);
@@ -363,12 +374,7 @@ namespace TEN::Entities::Vehicles
 
 		if (skidooItem->Flags & IFLAG_INVISIBLE)
 		{
-			if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
-
+			UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 			AnimateItem(laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
@@ -378,12 +384,7 @@ namespace TEN::Entities::Vehicles
 		}
 
 		SkidooAnimation(skidooItem, laraItem, collide, dead);
-
-		if (probe.GetRoomNumber() != skidooItem->RoomNumber)
-		{
-			ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-			ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-		}
+		UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
 
 		if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALLOFF)
 		{
@@ -467,7 +468,7 @@ namespace TEN::Entities::Vehicles
 
 				drive = true;
 			}
-			else if (IsHeld(In::Left) || IsHeld(In::Right) &&
+			else if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 				skidooItem->Animation.Velocity.z >= 0 &&
 				skidooItem->Animation.Velocity.z < SKIDOO_TURN_VELOCITY_MAX)
 			{
@@ -507,7 +508,7 @@ namespace TEN::Entities::Vehicles
 		else if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALL &&
 			collide && !dead)
 		{
-			if (laraItem->Animation.ActiveState != SKIDOO_STATE_HIT)
+			if (laraItem->Animation.TargetState != SKIDOO_STATE_HIT)
 			{
 				if (collide == SKIDOO_ANIM_HIT_FRONT)
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT1, &skidooItem->Pose);

@@ -15,8 +15,6 @@ namespace TEN::Entities::Vehicles
 	void KayakPaddleTake(KayakInfo* kayak, ItemInfo* laraItem);
 	void KayakPaddlePut(KayakInfo* kayak, ItemInfo* laraItem);
 
-	void KayakDraw(ItemInfo* kayakItem);
-
 	void KayakDoRipple(ItemInfo* kayakItem, int xOffset, int zOffset);
 
 	int  KayakGetCollisionAnim(ItemInfo* kayakItem, int xDiff, int zDiff);

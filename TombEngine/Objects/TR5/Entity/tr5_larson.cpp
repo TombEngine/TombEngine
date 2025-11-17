@@ -2,8 +2,11 @@
 #include "Objects/TR5/Entity/tr5_larson.h"
 
 #include "Game/animation.h"
+#include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
+#include "Game/control/los.h"
+#include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -32,6 +35,7 @@ namespace TEN::Entities::Creatures::TR5
 	#define ANIMATION_TR5_LARSON_DIE 15
 
 	#define TR5_LARSON_MIN_HP 40
+	#define TR5_LARSON_DISAPPEAR_FRAME_COUNT 15
 
 	const auto LarsonGun	  = CreatureBiteInfo(Vector3(-55, 200, 5), 14);
 	const auto PierreGunLeft  = CreatureBiteInfo(Vector3(45, 200, 0), 11);
@@ -44,24 +48,9 @@ namespace TEN::Entities::Creatures::TR5
 		InitializeCreature(itemNumber);
 		SetAnimation(item, 0);
 
-		if (!item->TriggerFlags)
-			return;
-
 		item->ItemFlags[3] = item->TriggerFlags;
-		short rotY = item->Pose.Orientation.y;
-
-		if (rotY > ANGLE(22.5f) && rotY < ANGLE(157.5f))
-			item->Pose.Position.x += STEPUP_HEIGHT;
-		else if (rotY < ANGLE(-22.5f) && rotY > ANGLE(-157.5f))
-			item->Pose.Position.x -= STEPUP_HEIGHT;
-		else if (rotY < ANGLE(-112.5f) || rotY > ANGLE(112.5f))
-			item->Pose.Position.z -= STEPUP_HEIGHT;
-		else if (rotY > ANGLE(-45.0f) || rotY < ANGLE(45.0f))
-			item->Pose.Position.z += STEPUP_HEIGHT;
 	}
 
-	// TODO: Make larson 1:1 from TOMB5 code. TokyoSU: 10/27/2024
-	// This code is a mess...
 	void LarsonControl(short itemNumber)
 	{
 		if (!CreatureActive(itemNumber))
@@ -76,8 +65,8 @@ namespace TEN::Entities::Creatures::TR5
 		short joint1 = 0;
 		short joint2 = 0;
 
-		// TODO: When Larson's HP is below 40, he runs away in Streets of Rome. Keeping block commented for reference.
-		if (item->HitPoints <= TR5_LARSON_MIN_HP && !(item->Flags & IFLAG_INVISIBLE))
+		// When Larson's HP is below 40 and his OCB is not 0, he runs away and disappears.
+		if (item->HitPoints <= TR5_LARSON_MIN_HP && item->TriggerFlags)
 		{
 			item->HitPoints = TR5_LARSON_MIN_HP;
 			creature->Flags++;
@@ -88,52 +77,47 @@ namespace TEN::Entities::Creatures::TR5
 		if (creature->MuzzleFlash[1].Delay != 0)
 			creature->MuzzleFlash[1].Delay--;
 
-		if (item->TriggerFlags)
-		{
-			if (CurrentLevel == 2)
-			{
-				item->AIBits = AMBUSH;
-				item->ItemFlags[3] = 1;
-			}
-			else
-			{
-				item->AIBits = GUARD;
-			}
-			item->TriggerFlags = 0;
-		}
-
 		if (item->HitPoints > 0)
 		{
-			if (item->AIBits)
-				GetAITarget(creature);
-			else
-				creature->Enemy = LaraItem;
+			// If Larson is in the process of escaping, force ambush AI flag on him.
+			if (creature->Flags)
+				item->AIBits |= AMBUSH;
+
+			// HACK: Reset enemy if AI bits were unset, otherwise Larson will run around last used AI object.
+			if (!item->AIBits)
+				creature->Enemy = nullptr;
 
 			AI_INFO AI;
+			GetAITarget(creature);
 			CreatureAIInfo(item, &AI);
+
+			// HACK: Reset Lara enemy in case no AI_AMBUSH object is present.
+			// Technically it's illegal, but TEN code forces enemy to Lara after calling GetAITarget, resulting
+			// in Larson never running away.
+			if (item->AIBits & AMBUSH && creature->Enemy->ObjectNumber != GAME_OBJECT_ID::ID_AI_AMBUSH)
+				creature->Enemy = nullptr;
 
 			if (AI.ahead)
 				joint2 = AI.angle;
 
-			// FIXME: This should make Larson run away, but it doesn't work.
-			// FIXME: 10/27/2024 - TokyoSU: Implemented TOMB5 way, should work now but need test.
-			if (creature->Flags)
-			{
-				item->HitPoints = 60;
-				item->AIBits = AMBUSH;
-				creature->Flags = 0;
-			}
-
 			GetCreatureMood(item, &AI, true);
 			CreatureMood(item, &AI, true);
 
-			if (AI.distance < LARSON_ALERT_RANGE &&
-				LaraItem->Animation.Velocity.z > 20.0f ||
-				item->HitStatus ||
-				TargetVisible(item, &AI) != 0)
+			if (!(item->AIBits & AMBUSH))
 			{
-				item->AIBits &= ~GUARD;
-				creature->Alerted = true;
+				// Set Larson to attack if player is moving fast enough and close enough, or if Larson was hit,
+				// or if player is directly visible.
+				if ((AI.distance < LARSON_ALERT_RANGE && creature->Enemy->Animation.Velocity.z > 20.0f) ||
+					(TargetVisible(item, &AI) != 0) ||
+					item->HitStatus)
+				{
+					item->AIBits &= ~GUARD;
+					creature->Alerted = true;
+
+					// creature->Enemy will contain AI object when Larson is patrolling or guarding, so we reset it.
+					if (!creature->Enemy->IsLara())
+						creature->Enemy = nullptr;
+				}
 			}
 
 			angle = CreatureTurn(item, creature->MaxTurn);
@@ -155,7 +139,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Animation.TargetState = STATE_TR5_LARSON_AIM;
 				else
 				{
-					if (item->AIBits & GUARD || CurrentLevel == 2 || item->ItemFlags[3])
+					if (item->AIBits & GUARD)
 					{
 						item->Animation.TargetState = STATE_TR5_LARSON_STOP;
 						creature->MaxTurn = 0;
@@ -384,25 +368,27 @@ namespace TEN::Entities::Creatures::TR5
 		CreatureJoint(item, 2, joint2);
 		CreatureAnimation(itemNumber, angle, 0);
 
-		/*if (creature->reachedGoal)
+		if (creature->Flags != 0)
 		{
-			if (CurrentLevel == 2)
-			{
-				item->TargetState = STATE_TR5_LARSON_STOP;
-				item->RequiredState = STATE_TR5_LARSON_STOP;
-				creature->ReachedGoal = false;
-				item->IsAirborne = false;
-				item->HitStatus = false;
-				item->Collidable = false;
-				item->Status = ITEM_NOT_ACTIVE;
-				item->TriggerFlags = 0;
-			}
-			else
+			auto start = Camera.pos;
+			auto target = GameVector(item->Pose.Position, item->RoomNumber);
+			target.y -= BLOCK(1);
+
+			bool shouldReachGoal = creature->AITarget->ObjectNumber == GAME_OBJECT_ID::ID_AI_AMBUSH &&
+								   creature->AITarget->TriggerFlags == item->TriggerFlags;
+
+			if (LOS(&start, &target))
+				creature->Flags = 1;
+
+			// If Larson/Pierre are in the process of escaping, disable them if they are out of sight
+			// for more than 10 frames if no AI_AMBUSH object was set, or when they reach set AI_AMBUSH object.
+			if ((shouldReachGoal && creature->ReachedGoal) ||
+				(!shouldReachGoal && creature->Flags > TR5_LARSON_DISAPPEAR_FRAME_COUNT))
 			{
 				item->HitPoints = NOT_TARGETABLE;
 				DisableEntityAI(itemNumber);
 				KillItem(itemNumber);
 			}
-		}*/
+		}
 	}
 }

@@ -2,9 +2,11 @@
 #include "Objects/Generic/Object/objects.h"
 
 #include "Game/animation.h"
+#include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -14,6 +16,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 const auto TightRopePos = Vector3i::Zero;
@@ -69,6 +72,8 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 {
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* tightropeItem = &g_Level.Items[itemNumber];
+
+	g_Hud.InteractionHighlighter.Test(*laraItem, *tightropeItem, InteractionMode::Custom);
 	
 	if ((!IsHeld(In::Action) ||
 		laraItem->Animation.ActiveState != LS_IDLE ||
@@ -150,7 +155,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 			laraItem->Animation.Velocity.y = false;
 			laraItem->Animation.IsAirborne = false;
 
-			ResetPlayerFlex(barItem);
+			ResetPlayerFlex(laraItem);
 
 			if (test1)
 				laraItem->Pose.Orientation.y = barItem->Pose.Orientation.y;
@@ -269,6 +274,71 @@ void AnimatingControl(short itemNumber)
 		item->aiBits = 0;
 		item->status = ITEM_NOT_ACTIVE;
 	}*/
+}
+
+void EarthquakeControl(short itemNumber)
+{
+	auto& item = g_Level.Items[itemNumber];
+
+	if (!TriggerActive(&item))
+		return;
+
+	if (item.TriggerFlags)
+	{
+		// OCB 333 and 888 are legacy modes for TR4 compatibility.
+		// Any other positive OCB value triggers an earthquake for specified amount of seconds.
+		// Any negative OCB value triggers a rumble sound effect for specified amount of seconds.
+
+		bool legacyMode888 = (item.TriggerFlags == 888);
+		bool legacyMode333 = (item.TriggerFlags == 333);
+
+		int timeout = (legacyMode888 ? 5 : (legacyMode333 ? 16 : abs(item.TriggerFlags))) * FPS;
+		float volume = std::clamp((float)(timeout - item.ItemFlags[0]) / (float)FPS, 0.01f, 1.0f); // Fadeout for the last second.
+
+		if (!legacyMode333 && item.TriggerFlags > 0)
+			Camera.bounce = -64 - (GetRandomControl() & 0x1F);
+
+		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f, volume);
+
+		item.ItemFlags[0]++;
+
+		if (item.ItemFlags[0] >= timeout)
+			KillItem(itemNumber);
+	}
+	else
+	{
+		if (!item.ItemFlags[1])
+			item.ItemFlags[1] = 100;
+
+		if (!item.ItemFlags[2])
+		{
+			if (abs(item.ItemFlags[0] - item.ItemFlags[1]) < 16)
+			{
+				if (item.ItemFlags[1] == 20)
+				{
+					item.ItemFlags[1] = 100;
+					item.ItemFlags[2] = (GetRandomControl() & 0x7F) + 90;
+				}
+				else
+				{
+					item.ItemFlags[1] = 20;
+					item.ItemFlags[2] = (GetRandomControl() & 0x7F) + 30;
+				}
+			}
+		}
+
+		if (item.ItemFlags[2])
+			item.ItemFlags[2]--;
+
+		if (item.ItemFlags[0] <= item.ItemFlags[1])
+			item.ItemFlags[0] += (GetRandomControl() & 7) + 2;
+		else
+			item.ItemFlags[0] -= (GetRandomControl() & 7) + 2;
+
+		float pitch = (item.ItemFlags[0] / 100.0f) / 2.0f;
+		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f + pitch);
+		Camera.bounce = -item.ItemFlags[0];
+	}
 }
 
 

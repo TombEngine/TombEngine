@@ -1,5 +1,9 @@
 #pragma once
 
+// TODO: Refactor this entire system. Valid input "events" should be collected and
+// boilerplated to make hardware input to game input translation library-agnostic.
+// I already did this for another project using SDL, will be easy to adapt. -- Sezz 2025.05.03
+
 namespace TEN::Input
 {
 	constexpr auto KEYBOARD_KEY_COUNT	  = 256;
@@ -39,6 +43,7 @@ namespace TEN::Input
 		MK_AXIS_Z_POS
 	};
 
+	// TODO: Don't need this one at all. -- Sezz 2025.03.05
 	// Gamepad
 	// 16 buttons + (6 * 2) axes + 4 POV axes.
 	enum GamepadKey

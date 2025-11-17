@@ -24,7 +24,7 @@ using namespace TEN::Scripting::Types;
 	static auto IndexError = IndexErrorMaker(Room, ScriptReserved_Volume);
 	static auto NewIndexError = NewIndexErrorMaker(Room, ScriptReserved_Volume);
 
-	Room::Room(ROOM_INFO& room) :
+	Room::Room(RoomData& room) :
 		_room(room)
 	{
 	};
@@ -50,12 +50,12 @@ using namespace TEN::Scripting::Types;
 			ScriptReserved_RoomGetFlag, &Room::GetFlag);
 	}
 
-	/// Get the room's number.
+	/// Get the room's number. If room is in flipped state, it will indicate the flipped room number.
 	// @function Room:GetRoomNumber
 	// @treturn int Room number.
 	int Room::GetRoomNumber() const
 	{
-		return _room.RoomNumber;
+		return _room.originalRoom;
 	}
 
 	/// Get the room's unique string identifier.

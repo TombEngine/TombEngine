@@ -101,6 +101,9 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	if (laraItem.MeshBits.TestAny() && arm.GunSmoke)
 	{
 		auto relOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3();
+		if (!isRightWeapon)
+			relOffset.x = -relOffset.x;
+
 		auto pos = GetJointPosition(&laraItem, isRightWeapon ? LM_RHAND : LM_LHAND, relOffset);
 
 		TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, arm.GunSmoke);
@@ -189,12 +192,8 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 	// Wind animation backward.
 	else
 	{
-		// Let SHOOT_CONTINUE (3) finish.
-		if (frame >= weaponAnimData.RecoilAnim && frame < (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
-			frame++;
-
 		// At SHOOT_CONTINUE (3) end frame; go to START_SHOOT (0) end frame.
-		if (frame == (weaponAnimData.RecoilAnim + weapon.RecoilFrame))
+		if (frame >= weaponAnimData.RecoilAnim)
 		{
 			frame = weaponAnimData.Draw1Anim2;
 		}

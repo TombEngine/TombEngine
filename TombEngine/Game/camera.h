@@ -22,19 +22,28 @@ struct CAMERA_INFO
 {
 	GameVector pos;
 	GameVector target;
+	Vector3i   mikePos;
+
 	CameraType type;
 	CameraType oldType;
 	CameraType lastType;
-	int shift;
-	int flags;
+
 	bool fixedCamera;
 	bool underwater;
+	bool mikeAtLara;
+
+	int shift;
+	int flags;
 	int bounce;
 	int targetDistance;
+
 	short targetAngle;
 	short targetElevation;
-	short actualElevation;
 	short actualAngle;
+	short actualElevation;
+	short extraAngle;
+	short extraElevation;
+
 	short laraNode;
 	short box;
 	short number;
@@ -42,10 +51,9 @@ struct CAMERA_INFO
 	short timer;
 	short speed;
 	short targetspeed;
+
 	ItemInfo* item;
 	ItemInfo* lastItem;
-	int mikeAtLara;
-	Vector3i mikePos;
 
 	float Roll = 0.0f;
 	float Fov  = 0.0f;
@@ -66,8 +74,8 @@ constexpr auto DEFAULT_FOV = 80.0f;
 
 extern CAMERA_INFO Camera;
 extern GameVector ForcedFixedCamera;
-extern int UseForcedFixedCamera;
 extern CameraType BinocularOldCamera;
+extern bool UseForcedFixedCamera;
 extern short CurrentFOV;
 extern short LastFOV;
 
@@ -88,7 +96,7 @@ void LookAt(CAMERA_INFO* cam, short roll);
 void AlterFOV(short value, bool store = true);
 short GetCurrentFOV();
 void InitializeCamera();
-void MoveCamera(GameVector* ideal, int speed);
+void MoveCamera(GameVector* ideal, int speed, bool force = false);
 void ChaseCamera(ItemInfo* item);
 void UpdateCameraElevation();
 void CombatCamera(ItemInfo* item);
@@ -101,6 +109,7 @@ void CalculateCamera(const CollisionInfo& coll);
 void CalculateBounce(bool binocularMode);
 void RumbleScreen();
 bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, short radius);
+bool TestLockedCamera();
 void ItemPushCamera(GameBoundingBox* bounds, Pose* pos, short radius);
 void ItemsCollideCamera();
 void RefreshFixedCamera(short camNumber);
@@ -115,7 +124,6 @@ void SetCinematicBars(float height, float speed);
 void ClearCinematicBars();
 void PrepareCamera();
 void UpdateCamera();
-void DrawPortals();
 void UpdateFadeScreenAndCinematicBars();
 void UpdateMikePos(const ItemInfo& item);
 

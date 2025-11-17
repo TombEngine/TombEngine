@@ -4,6 +4,7 @@
 #include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -34,6 +35,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
@@ -380,13 +382,13 @@ bool FireShotgun(ItemInfo& laraItem)
 
 	bool hasFired = false;
 	int scatter = Weapons[(int)LaraWeaponType::Shotgun].ShotAccuracy * 
-		(player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo1) ? 1 : 3;
+		(player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo1) ? 1 : 25;
 
 	for (int i = 0; i < SHOTGUN_PELLET_COUNT; i++)
 	{
 		auto wobbledArmOrient = EulerAngles(
-			armOrient.x + scatter * (GetRandomControl() - ANGLE(90.0f)) / 65536,
-			armOrient.y + scatter * (GetRandomControl() - ANGLE(90.0f)) / 65536,
+			armOrient.x + (GetRandomControl() - ANGLE(90.0f)) / (USHRT_MAX / ANGLE(scatter)),
+			armOrient.y + (GetRandomControl() - ANGLE(90.0f)) / (USHRT_MAX / ANGLE(scatter)),
 			0);
 
 		if (FireWeapon(LaraWeaponType::Shotgun, player.TargetEntity, laraItem, wobbledArmOrient) != FireWeaponType::NoAmmo)
@@ -402,7 +404,7 @@ bool FireShotgun(ItemInfo& laraItem)
 		if (!ammo.HasInfinite())
 			ammo--;
 
-		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Shotgun].MuzzleOffset.ToVector3i();
+		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Shotgun - 1].MuzzleOffset.ToVector3i();
 
 		auto pos = GetJointPosition(&laraItem, LM_RHAND, offset + Vector3::UnitY * CLICK(2));
 		auto pos2 = GetJointPosition(&laraItem, LM_RHAND, offset);
@@ -436,6 +438,13 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	if (player.Control.Weapon.WeaponItem == NO_VALUE)
 	{
 		player.Control.Weapon.WeaponItem = CreateItem();
+
+		if (player.Control.Weapon.WeaponItem == NO_VALUE)
+		{
+			TENLog("Failed to create weapon item, no free moveable slots available.", LogLevel::Error);
+			return;
+		}
+
 		weaponItemPtr = &g_Level.Items[player.Control.Weapon.WeaponItem];
 		weaponItemPtr->ObjectNumber = GetWeaponObjectID(weaponType);
 
@@ -587,7 +596,8 @@ bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose)
 	}
 	else
 	{
-		auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(-2, 373, 77));
+		auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::HarpoonGun - 1].MuzzleOffset.ToVector3i();
+		auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 		harpoonItem.RoomNumber = laraItem.RoomNumber;
 
 		int floorHeight = GetPointCollision(jointPos, harpoonItem.RoomNumber).GetFloorHeight();
@@ -673,7 +683,8 @@ bool FireGrenade(ItemInfo& laraItem)
 	grenadeItem.ObjectNumber = ID_GRENADE;
 	grenadeItem.RoomNumber = laraItem.RoomNumber;
 
-	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 276, 80));
+	auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::GrenadeLauncher - 1].MuzzleOffset.ToVector3i();
+	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 	grenadeItem.Pose.Position = jointPos;
 	auto smokePos = jointPos;
 
@@ -753,6 +764,13 @@ void GrenadeControl(short itemNumber)
 
 	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
 
+	// Force grenade to explode if it was activated externally.
+	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
+	{
+		grenadeItem.HitPoints = 0;
+		grenadeItem.ItemFlags[0] = (int)ProjectileType::Explosive;
+	}
+	
 	// Check if above water and update Y and Z velocities.
 	bool aboveWater = false;
 	if (TestEnvironment(ENV_FLAG_WATER, grenadeItem.RoomNumber) ||
@@ -854,12 +872,14 @@ bool FireRocket(ItemInfo& laraItem)
 	if (!ammo.HasInfinite())
 		ammo--;
 
-	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 180, 72));
+	auto offset = g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::RocketLauncher - 1].MuzzleOffset.ToVector3i();
+	auto jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 
 	auto pos =
 	rocketItem.Pose.Position = jointPos;
 
-	jointPos = GetJointPosition(&laraItem, LM_RHAND, Vector3i(0, 2004, 72));
+	offset.y += BLOCK(1);
+	jointPos = GetJointPosition(&laraItem, LM_RHAND, offset);
 
 	player.LeftArm.GunSmoke = 32;
 
@@ -1120,13 +1140,9 @@ bool FireHK(ItemInfo& laraItem, bool inaccurateMode)
 	
 	// HACK: Backup unmodified accuracy/damage values.
 	short accuracy = Weapons[(int)LaraWeaponType::HK].ShotAccuracy;
-	int damage = Weapons[(int)LaraWeaponType::HK].Damage;
 
 	if (inaccurateMode)
-	{
 		Weapons[(int)LaraWeaponType::HK].ShotAccuracy = accuracy * 3;
-		Weapons[(int)LaraWeaponType::HK].Damage = damage / 3;
-	}
 
 	bool hasFired = FireWeapon(LaraWeaponType::HK, player.TargetEntity, laraItem, angles) != FireWeaponType::NoAmmo;
 
@@ -1138,7 +1154,6 @@ bool FireHK(ItemInfo& laraItem, bool inaccurateMode)
 
 	// HACK: Restore accuracy/damage values.
 	Weapons[(int)LaraWeaponType::HK].ShotAccuracy = accuracy;
-	Weapons[(int)LaraWeaponType::HK].Damage = damage;
 
 	return hasFired;
 }
@@ -1173,8 +1188,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		if (player.Control.Weapon.GunType == LaraWeaponType::Revolver)
 		{
 			player.Control.Weapon.Interval = 16.0f;
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
 			isFiring = true;
 
 			if (!ammo.HasInfinite())
@@ -1189,9 +1202,6 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		}
 		else if (player.Control.Weapon.GunType == LaraWeaponType::HK)
 		{
-			SaveGame::Statistics.Level.AmmoUsed++;
-			SaveGame::Statistics.Game.AmmoUsed++;
-
 			bool playSound = false;
 
 			if (weapon.WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
@@ -1235,9 +1245,14 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 			if (!ammo.HasInfinite() && isFiring)
 				ammo--;
 		}
-	}
 
-	GetTargetOnLOS(&Camera.pos, &Camera.target, true, isFiring);
+		if (isFiring)
+		{
+			SaveGame::Statistics.Level.AmmoUsed++;
+			SaveGame::Statistics.Game.AmmoUsed++;
+			GetTargetOnLOS(&Camera.pos, &Camera.target);
+		}
+	}
 }
 
 void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
@@ -1443,7 +1458,7 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 {
 	if (TestEnvironment(ENV_FLAG_WATER, item.RoomNumber))
 	{
-		TriggerUnderwaterExplosion(&item, 0);
+		TriggerUnderwaterExplosion(&item, true);
 	}
 	else
 	{
@@ -1459,11 +1474,14 @@ void ExplodeProjectile(ItemInfo& item, const Vector3i& prevPos)
 
 	SoundEffect(SFX_TR4_EXPLOSION1, &item.Pose, SoundEnvironment::Land, 0.7f, 0.5f);
 	SoundEffect(SFX_TR4_EXPLOSION2, &item.Pose);
+
+	auto decalPos = Vector3i::Lerp(prevPos, item.Pose.Position, 0.5f);
+	SpawnDecal(decalPos.ToVector3(), item.RoomNumber, DecalType::Explosion);
 }
 
 void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& prevPos, ProjectileType type, int damage)
 {
-	auto pointColl = GetPointCollision(projectile);
+	auto pointColl  = GetPointCollision(projectile);
 
 	bool hasHit = false;
 	bool hasHitNotByEmitter = false;
@@ -1473,11 +1491,13 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 	// For non-grenade projectiles, check for room collision.
 	if (type < ProjectileType::Grenade)
 	{
-		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y ||
-			pointColl.GetCeilingHeight() > projectile.Pose.Position.y)
-		{
+		auto moveVec = (projectile.Pose.Position - prevPos).ToVector3();
+		auto dist = moveVec.Length();
+		moveVec.Normalize();
+		auto losColl = GetRoomLosCollision(prevPos.ToVector3(), projectile.RoomNumber, moveVec, dist);
+
+		if (pointColl.GetFloorHeight() < projectile.Pose.Position.y || pointColl.GetCeilingHeight() > projectile.Pose.Position.y || losColl.IsIntersected)
 			hasHit = hasHitNotByEmitter = true;
-		}
 	}
 	// If projectile is timed grenade, try to emit from it according to flags.
 	else if (EmitFromProjectile(projectile, type))
@@ -1552,18 +1572,21 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 			hasHit = hasHitNotByEmitter = doShatter = true;
 			doExplosion = isExplosive;
 
-			if (Statics[staticPtr->staticNumber].shatterType == ShatterType::None)
+			if (Statics[staticPtr->Slot].shatterType == ShatterType::None)
 				continue;
 
 			staticPtr->HitPoints -= damage;
 			if (staticPtr->HitPoints <= 0)
+			{
+				SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Pose);
 				ShatterObject(nullptr, staticPtr, -128, projectile.RoomNumber, 0);
+			}
 
 			if (!isExplosive)
 				continue;
 
-			TriggerExplosionSparks(staticPtr->pos.Position.x, staticPtr->pos.Position.y, staticPtr->pos.Position.z, 3, -2, 0, projectile.RoomNumber);
-			auto pose = Pose(Vector3i(staticPtr->pos.Position.x, staticPtr->pos.Position.y - 128, staticPtr->pos.Position.z), EulerAngles(0, staticPtr->pos.Orientation.y, 0));
+			TriggerExplosionSparks(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y, staticPtr->Pose.Position.z, 3, -2, 0, projectile.RoomNumber);
+			auto pose = Pose(Vector3i(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y - 128, staticPtr->Pose.Position.z), EulerAngles(0, staticPtr->Pose.Orientation.y, 0));
 			TriggerShockwave(&pose, 40, 176, 64, 0, 96, 128, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 		}
 
@@ -1607,6 +1630,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 				}
 				else if (currentObject.damageType == DamageMode::Any)
 				{
+					auto hitPoint = GameVector(GameBoundingBox(itemPtr).GetCenter() + itemPtr->Pose.Position.ToVector3(), itemPtr->RoomNumber);
+
 					if (type == ProjectileType::Poison)
 					{
 						if (itemPtr->IsCreature())
@@ -1614,10 +1639,12 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 						if (itemPtr->IsLara())
 							GetLaraInfo(itemPtr)->Status.Poison += 5;
+
+						HitTarget(&emitter, itemPtr, &hitPoint, 0, false);
 					}
 					else
 					{
-						DoDamage(itemPtr, damage);
+						HitTarget(&emitter, itemPtr, &hitPoint, damage, false);
 					}
 				}
 			}

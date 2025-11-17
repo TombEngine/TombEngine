@@ -1,4 +1,5 @@
 #include "./CBCamera.hlsli"
+#include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Blending.hlsli"
@@ -6,20 +7,9 @@
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./Materials.hlsli"
 
 #define ROOM_LIGHT_COEFF 0.7f
-
-cbuffer RoomBuffer : register(b5)
-{
-	int Water;
-	int Caustics;
-	int NumRoomLights;
-	int Padding;
-	float2 CausticsStartUV;
-    float2 CausticsSize;
-	float4 AmbientColor;
-	ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
-};
 
 struct PixelShaderInput
 {
@@ -33,7 +23,8 @@ struct PixelShaderInput
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
 	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+    float3 Binormal : BINORMAL;
+    float3 FaceNormal : TEXCOORD3;
 };
 
 Texture2D Texture : register(t0);
@@ -44,9 +35,6 @@ SamplerState NormalTextureSampler : register(s1);
 
 Texture2D CausticsTexture : register(t2);
 SamplerState CausticsTextureSampler : register(s2);
-
-Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
 
 struct PixelShaderOutput
 {
@@ -59,12 +47,12 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Setting effect weight on TE side prevents portal vertices from moving.
 	// Here we just read weight and decide if we should apply refraction or movement effect.
-	float weight = input.Effects.z;
+    float weight = DecodeWeight(input.Effects);
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz * weight, wibble);
-	float3 col = Glow(input.Color.xyz, input.Effects.xyz, wibble);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
+	float3 pos = Move(input.Position, input.Effects * weight, wibble);
+	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
@@ -80,72 +68,56 @@ PixelShaderInput VS(VertexShaderInput input)
 	}
 	
 	output.Position = screenPos;
-	output.Normal = input.Normal;
+    output.Normal = input.Normal.xyz;
 	output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
-
-#ifdef ANIMATED
-
-	if (Type == 0)
-		output.UV = GetFrame(input.PolyIndex, input.AnimationFrameOffset);
-	else
-		output.UV = input.UV; // TODO: true UVRotate in future?
-#else
-	output.UV = input.UV;
-#endif
-	
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
-	output.Tangent = input.Tangent;
-	output.Binormal = input.Binormal;
-
+    output.Tangent = input.Tangent.xyz;
+    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
+    output.FaceNormal = input.FaceNormal;
+	
 	output.FogBulbs = DoFogBulbsForVertex(output.WorldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(output.WorldPosition);
 
 	return output;
 }
 
-float3 UnpackNormalMap(float4 n)
-{
-	n = n * 2.0f - 1.0f;
-	n.z = saturate(1.0f - dot(n.xy, n.xy));
-	return n.xyz;
-}
-
-float3 PackNormal(float3 n)
-{
-	n = (n + 1.0f) * 0.5f;
-	n.z = 0;
-	return n.xyz;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
+	
+    input.UV = ConvertAnimUV(input.UV);
+   
+    // Apply parallax mapping
+    float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
+    input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
+
+    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+    float ambientOcclusion = ORSH.x;
+    float roughness = ORSH.y;
+    float specular = ORSH.z;
+
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	
+    float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+    float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+    normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
 	output.Color = Texture.Sample(Sampler, input.UV);
-
 	DoAlphaTest(output.Color);
 
-	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
-	normal = normalize(mul(normal, TBN));
+    // Material effects
+	float3 blendedNormal = normalize(lerp(input.FaceNormal, normal, 0.1f)); // TODO: Make alpha customizable
+    output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, blendedNormal, specular);
+
+	// Ambient occlusion
+    float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
+    occlusion *= ambientOcclusion;
 
 	float3 lighting = input.Color.xyz;
-	bool doLights = true;
-
-	float occlusion = 1.0f;
-	if (AmbientOcclusion == 1)
-	{
-		float2 samplePosition;
-		samplePosition = input.PositionCopy.xy / input.PositionCopy.w; // Perspective divide
-		samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
-		samplePosition.y = 1.0f - samplePosition.y;
-		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
-		
-		if (BlendMode == BLENDMODE_ALPHABLEND)
-			occlusion = lerp(occlusion, 1.0f, output.Color.w);
-	}
-
+	
+	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
 	lighting = DoBlobShadows(input.WorldPosition, lighting);
 
@@ -156,8 +128,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		if (onlyPointLights)
 		{
-			lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-		}
+            lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
+            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
+        }
 		else
 		{
 			// Room dynamic lights can only be spot or point, so we use simplified function for that.
@@ -167,12 +140,45 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
-			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], pointLight, spotLight);
+			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
 			
 			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight  * isSpot * ROOM_LIGHT_COEFF;
 		}
 	}
 
+	// Decals
+	if (!Animated && NumRoomDecals > 0 && !(MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+	{
+		float decalMask = 0.0f;
+
+		for (int i = 0; i < NumRoomDecals; i++)
+		{
+			float radius   = RoomDecals[i].Radius;
+			float3 pos     = input.WorldPosition - RoomDecals[i].Position;
+			float distance = length(pos);
+
+			if (distance > radius * 1.3f)
+				continue;
+				
+			float2 uv = float2(dot(pos, input.Tangent), dot(pos, input.Binormal));
+			uv *= (8.0f / (RoomDecals[i].Pattern + 1) * 2.0f / radius);
+
+			float noiseVal = NebularNoise(uv, 1, 0.5f, 0.3f);
+
+			float noisyRadius = radius * (1.0f + 0.25f * (noiseVal * 2.0f - 1.0f));
+			float holeRadius = radius / 4.0f;
+
+			float edge = saturate((noisyRadius - distance) / noisyRadius);
+			float fade = saturate((radius - distance) / radius);
+			float hole = saturate((holeRadius - distance) / (holeRadius * 1.3f)) * (1 - RoomDecals[i].Pattern);
+
+			decalMask = max(decalMask, (edge * fade + hole) * RoomDecals[i].Opacity);
+		}
+
+		lighting *= (1.0 - decalMask);
+	}
+
+	// Caustics
     if (Caustics)
     {
         float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
@@ -201,6 +207,10 @@ PixelShaderOutput PS(PixelShaderInput input)
         lighting += (caustics * attenuation * 2.0f);
     }
 
+	// Emissive materials
+    lighting += emissive;
+		
+	// Fog bulbs and final color and light mixing
 	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
 	output.Color.xyz = output.Color.xyz * lighting * occlusion;
 	output.Color.xyz = saturate(output.Color.xyz);
@@ -208,5 +218,5 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 
-	return output;
+    return output;
 }

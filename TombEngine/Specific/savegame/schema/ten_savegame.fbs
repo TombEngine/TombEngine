@@ -13,7 +13,8 @@ table LevelData {
 	rumble_enabled: bool;
 	weather_type: int32;
 	weather_strength: float;
-	
+	weather_clustering: bool;
+
 	fog_color: int32;
 	fog_min_distance: float;
 	fog_max_distance: float;
@@ -93,7 +94,8 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	mesh_pointers: [int32];
+	skin_index: int32;
+	mesh_index: [int32];
 
 	effect_type: int32;
 	effect_light_colour: Vector3;
@@ -177,6 +179,9 @@ enum TorchState:int32 {
 table TorchData {
 	state: TorchState;
 	is_lit: bool;
+	fade: int32;
+	current_color: Vector3;
+	next_color: Vector3;
 }
 
 table LaraInventoryData {
@@ -354,6 +359,7 @@ table Lara {
 table Camera {
 	position: GameVector;
 	target: GameVector;
+	extra_orientation: EulerAngles;
 }
 
 table FixedCamera {
@@ -370,9 +376,8 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	room_number: int32;
 	pose: Pose;
-	scale: float;
+	room_number: int32;
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
@@ -443,6 +448,7 @@ table SwarmObjectInfo {
 	on: bool;
 	pose: Pose;
 	room_number: int32;
+	target: int32;
 	flags: int32;
 }
 
@@ -466,6 +472,17 @@ table Pendulum {
 	position: Vector3;
 	velocity: Vector3;
 	node: int32;
+}
+
+table Decal {
+	position: Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
 }
 
 table EventSet {
@@ -647,6 +664,8 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	locusts: [SwarmObjectInfo];
+	decals: [Decal];
 	flip_maps: [int32];
 	flip_stats: [int32];
 	flip_effect: int32;

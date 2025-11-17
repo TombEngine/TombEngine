@@ -1,6 +1,10 @@
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
+#include "./Materials.hlsli"
 #include "./Math.hlsli"
+
+#define MAX_BLUR_RADIUS 100
+#define USE_FAST_BILINEAR_BLUR 1
 
 struct PostProcessVertexShaderInput
 {
@@ -19,6 +23,21 @@ struct PixelShaderInput
 
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
+
+Texture2D DepthTexture : register(t1);
+SamplerState DepthSampler : register(s1);
+
+Texture2D NormalsTexture : register(t2);
+SamplerState NormalsSampler : register(s2);
+
+Texture2D GlowTexture : register(t3);
+SamplerState GlowSampler : register(s3);
+
+Texture2D LegacyEnvironmentTexture : register(t4);
+SamplerState LegacyEnvironmentSampler : register(s4);
+
+Texture2D EmissiveAndSpecularTexture : register(t5);
+SamplerState EmissiveAndSpecularSampler : register(s5);
 
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
@@ -73,7 +92,7 @@ float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
 
     float3 colorMul = min(input.Color.xyz, 1.0f);
 
-    float y = input.Position.y / ViewportHeight;
+    float y = input.Position.y / ViewportSize.y;
 
     if (y > 1.0f - CinematicBarsHeight ||
         y < 0.0f + CinematicBarsHeight)
@@ -188,4 +207,109 @@ float4 PSLensFlare(PixelShaderInput input) : SV_Target
 	color.xyz = lerp(color.xyz, color.xyz + totalLensFlareColor, saturate(dot(totalLensFlareColor, float3(0.5f, 0.5f, 0.5f))));
 
 	return color;
+}
+
+float4 PSBlurBilinear(PixelShaderInput input) : SV_Target
+{
+    int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);
+    
+    float w0 = Gaussian(0.0, BlurSigma);
+    float4 color = ColorTexture.Sample(ColorSampler, input.UV) * w0;
+    float weightSum = w0;
+
+    [unroll]
+    for (int k = 1; k <= MAX_BLUR_RADIUS; ++k)
+    {
+        if (k > r)
+            break;
+
+        float wk = Gaussian((float) k, BlurSigma);
+
+        float2 off = BlurDirection * TexelSize * k;
+        float4 c1 = ColorTexture.Sample(ColorSampler, input.UV + off);
+        float4 c2 = ColorTexture.Sample(ColorSampler, input.UV - off);
+
+        color += (c1 + c2) * wk;
+        weightSum += 2.0 * wk;
+    }
+
+    return color / weightSum;
+}
+
+float4 PSBlurFull(PixelShaderInput input) : SV_Target
+{
+    int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);
+
+    float4 color = 0;
+    float weightSum = 0;
+
+    [unroll]
+    for (int k = -MAX_BLUR_RADIUS; k <= MAX_BLUR_RADIUS; ++k)
+    {
+        if (abs(k) > r)
+            continue;
+
+        float w = Gaussian((float) k, BlurSigma);
+        float2 off = BlurDirection * TexelSize * k;
+        color += ColorTexture.Sample(ColorSampler, input.UV + off) * w;
+        weightSum += w;
+    }
+
+    return color / weightSum;
+}
+
+float4 PSBlur(PixelShaderInput input) : SV_Target
+{
+#if USE_FAST_BILINEAR_BLUR
+    return PSBlurBilinear(input);
+#else
+    return PSBlurFull(input);
+#endif
+}
+
+float4 PSDownscale(PixelShaderInput input) : SV_Target
+{
+    float2 halfDstUV = 0.5f / (ViewportSize / DownscaleFactor);
+
+    const float wc = 0.5;
+    const float w1 = 0.125;
+    const float wd = 0.03125;
+
+    float2 dx = float2(halfDstUV.x, 0);
+    float2 dy = float2(0, halfDstUV.y);
+
+    float3 c = 0;
+
+    // center
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV, 0).rgb * wc;
+
+    // N/S/E/W
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dy, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dy, 0).rgb * w1;
+
+    // diagonals
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx + dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx - dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx + dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx - dy, 0).rgb * wd;
+
+    return float4(c, 1);
+}
+
+float3 SoftAddBlend(float3 base, float3 add)
+{
+    return 1.0 - (1.0 - base) * (1.0 - add);
+}
+
+float4 PSGlowCombine(PixelShaderInput input) : SV_Target
+{
+    float3 base = ColorTexture.Sample(ColorSampler, input.UV).rgb;
+    float3 glow = GlowTexture.Sample(GlowSampler, input.UV).rgb * GlowIntensity;
+
+    float3 outc = (GlowSoftAdd != 0) ? SoftAddBlend(base, glow)
+                                 : saturate(base + glow);
+
+    return float4(outc, 1);
 }

@@ -13,10 +13,7 @@ enum class LaraType
 {
 	Normal = 1,
 	Young = 2,
-	Bunhead = 3,
-	Catsuit = 4,
-	Divesuit = 5,
-	Invisible = 7
+	Divesuit = 3
 };
 
 class ScriptInterfaceLevel
@@ -35,12 +32,13 @@ public:
 	virtual bool GetStormEnabled() const = 0;
 	virtual bool GetRumbleEnabled() const = 0;
 	virtual float GetWeatherStrength() const = 0;
+	virtual bool GetWeatherClustering() const = 0;
 	virtual WeatherType GetWeatherType() const = 0;
 	virtual RGBAColor8Byte GetSkyLayerColor(int index) const = 0;
 	virtual RGBAColor8Byte GetFogColor() const = 0;
 	virtual float GetFogMinDistance() const = 0;
 	virtual float GetFogMaxDistance() const = 0;
-	virtual short GetFarView() const = 0;
+	virtual float GetFarView() const = 0;
 	virtual int GetSecrets() const = 0;
 	virtual std::string GetAmbientTrack() const = 0;
 	virtual bool GetResetHubEnabled() const = 0;

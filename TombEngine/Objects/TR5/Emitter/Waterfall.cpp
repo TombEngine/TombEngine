@@ -3,6 +3,7 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
@@ -11,10 +12,14 @@
 #include "Objects/Utils/object_helper.h"
 #include "Specific/clock.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
 constexpr int WATERFALL_SPRITE_SIZE = 62;
+constexpr int WATERFALL_MAX_HEIGHT = BLOCK(16);
+constexpr auto WATERFALL_DEFAULT_WIDTH = CLICK(0.1f);
+constexpr auto WATERFALL_WIDTH_TOLERANCE = WATERFALL_DEFAULT_WIDTH * 2;
 
 // NOTES
 // item.TriggetFlags: Waterfall width. 1 unit = BLOCK(1 / 8.0f).
@@ -73,14 +78,17 @@ namespace TEN::Effects::WaterfallEmitter
         if (!item.ItemFlags[WaterfallItemFlags::Sound])
             SoundEffect(SFX_TR4_WATERFALL_LOOP, &item.Pose);
 
-        float waterfallWidth = std::max(CLICK(float(item.TriggerFlags)), CLICK(0.1f));
+        float waterfallWidth = std::max(CLICK(float(item.TriggerFlags)), WATERFALL_DEFAULT_WIDTH);
         auto vel = item.Pose.Orientation.ToDirection() * BLOCK(customVel);
 
         auto startColor = (item.Model.Color / 4) * SCHAR_MAX;
         auto endColor = (item.Model.Color / 8) * UCHAR_MAX;
 
+        auto lastOffset = Vector3(FLT_MAX);
+        auto lastTargetPos = Vector3::Zero;
+
         // Spawn particles.
-        unsigned int partCount = (int)round(waterfallWidth / BLOCK(density));
+        unsigned int partCount = (int)ceil(waterfallWidth / BLOCK(density));
         for (int i = 0; i < partCount; i++)
         {
             auto& part = *GetFreeParticle();
@@ -88,7 +96,7 @@ namespace TEN::Effects::WaterfallEmitter
             auto rotMatrix = item.Pose.Orientation.ToRotationMatrix();
             auto relOffset = Vector3(Random::GenerateFloat(-waterfallWidth / 2.0f, waterfallWidth / 2.0f), 0.0f, 0.0f);
             auto offset = Vector3::Transform(relOffset, rotMatrix);
-            auto pos = item.Pose.Position.ToVector3() + offset;
+            auto pos = item.Pose.Position.ToVector3() + Vector3(0, -CLICK(0.25f), 0) + offset;
 
             vel.y = Random::GenerateFloat(0.0f, 16.0f);
 
@@ -107,61 +115,76 @@ namespace TEN::Effects::WaterfallEmitter
             part.gravity = 120;
 
             // Calculate target position.
+            constexpr int gravity = 240;
+            constexpr int stepSize = 20;
+
             Vector3 targetPos = pos;
             Vector3 velocity = vel;
-            int gravity = 240;
-            int maxYvel = 0;
-            int friction = part.friction;
             int yVel = velocity.y;
-            const int stepSize = 20;
 
-            while (true)
+            auto floorHeight = GetPointCollision(pos, item.RoomNumber).GetFloorHeight();
+
+            if (floorHeight <= pos.y)
             {
-                yVel += gravity;
-                if (maxYvel && yVel > maxYvel)
-                    yVel = maxYvel;
-
-                if (friction & 0xF)
+                targetPos.y = floorHeight;
+                part.y = floorHeight - gravity;
+            }
+            else
+            {
+                while (true)
                 {
-                    velocity.x -= static_cast<int>(velocity.x) >> (friction & 0xF);
-                    velocity.z -= static_cast<int>(velocity.z) >> (friction & 0xF);
-                }
-
-                if (friction & 0xF0)
-                    yVel -= yVel >> (friction >> 4);
-
-                targetPos.x += velocity.x / (84 / stepSize);
-                targetPos.y += yVel;
-                targetPos.z += velocity.z / (84 / stepSize);
-
-                auto pointColl = GetPointCollision(targetPos, item.RoomNumber);
-
-                auto originPoint = GameVector(pos, item.RoomNumber);
-                auto target = GameVector(targetPos, pointColl.GetRoomNumber());
-
-                if (TestEnvironment(ENV_FLAG_WATER, Vector3i(targetPos.x, targetPos.y, targetPos.z), part.roomNumber) ||
-                    TestEnvironment(ENV_FLAG_SWAMP, Vector3i(targetPos.x, targetPos.y, targetPos.z), part.roomNumber))
-                {
-                    targetPos.y = GetPointCollision(Vector3i(targetPos.x, targetPos.y, targetPos.z), part.roomNumber).GetWaterSurfaceHeight();
-                    break;
-                }
-
-                else if (!LOS(&originPoint, &target))
-                {
-                    if (pointColl.GetRoomNumber() == NO_VALUE || pointColl.GetSector().IsWall(targetPos.x, targetPos.z))
+                    // If last offset is not far from current one, don't do LOS test and use
+                    // previous target distance.
+                    if (Vector3::Distance(offset, lastOffset) <= WATERFALL_WIDTH_TOLERANCE)
                     {
-                        targetPos.y -= (yVel / 2.7f);
+                        targetPos = lastTargetPos;
                         break;
                     }
-                    else
+
+                    yVel += gravity;
+
+                    if (part.friction & 0x0F)
                     {
-                        targetPos.y = pointColl.GetFloorHeight();
+                        velocity.x -= static_cast<int>(velocity.x) >> (part.friction & 0x0F);
+                        velocity.z -= static_cast<int>(velocity.z) >> (part.friction & 0x0F);
+                    }
+
+                    targetPos.x += velocity.x / (84 / stepSize);
+                    targetPos.y += yVel;
+                    targetPos.z += velocity.z / (84 / stepSize);
+
+                    if (targetPos.y - pos.y >= WATERFALL_MAX_HEIGHT)
+                    {
+                        auto dir = targetPos - pos;
+                        dir.Normalize();
+                        float dist = Vector3::Distance(pos, targetPos);
+
+                        auto roomLosColl = GetRoomLosCollision(pos, item.RoomNumber, dir, dist);
+
+                        if (roomLosColl.IsIntersected)
+                        {
+                            if (TestEnvironment(ENV_FLAG_WATER, roomLosColl.Position, roomLosColl.RoomNumber) ||
+                                TestEnvironment(ENV_FLAG_SWAMP, roomLosColl.Position, roomLosColl.RoomNumber))
+                            {
+                                targetPos.y = GetPointCollision(roomLosColl.Position, roomLosColl.RoomNumber).GetWaterSurfaceHeight();
+                            }
+                            else
+                            {
+                                targetPos.y = roomLosColl.Position.y;
+                            }
+                        }
+                        else
+                        {
+                            targetPos.y = pos.y;
+                        }
+
                         break;
                     }
                 }
             }
 
-            part.targetPos = targetPos;
+            part.targetPos = lastTargetPos = targetPos;
+            lastOffset = offset;
 
             char colorOffset = Random::GenerateInt(-8, 8);
 
@@ -268,7 +291,7 @@ namespace TEN::Effects::WaterfallEmitter
         {
             auto& item = g_Level.Items[particle.fxObj];
             if (Random::TestProbability(1.0f / 2.0f))
-                SpawnWaterfallMist(particle.targetPos, particle.roomNumber, item.ItemFlags[3], WATERFALL_SPRITE_SIZE, Color(particle.sR, particle.sG, particle.sB));
+                SpawnWaterfallMist(particle.targetPos, particle.roomNumber, item.ItemFlags[3], WATERFALL_SPRITE_SIZE * (particle.size / 16.0f), Color(particle.sR, particle.sG, particle.sB));
         }
 
         particle.life = 0;

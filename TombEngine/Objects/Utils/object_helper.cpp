@@ -155,7 +155,6 @@ void InitFlare(ObjectInfo* object, int objectNumber)
 		object->collision = PickupCollision;
 		object->control = FlareControl;
 		object->pivotLength = 256;
-		object->usingDrawAnimatingItem = false;
 		object->isPickup = true;
 	}
 }
@@ -188,8 +187,8 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePushableBlock;
-		object->control = PushableBlockControl;
-		object->collision = PushableBlockCollision;
+		object->control = ControlPushableBlock;
+		object->collision = CollidePushableBlock;
 		object->SetHitEffect(true);
 	}
 }

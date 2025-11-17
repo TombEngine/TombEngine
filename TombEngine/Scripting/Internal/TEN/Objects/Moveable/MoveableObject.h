@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/items.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -28,7 +29,7 @@ public:
 	static void Register(sol::state& state, sol::table& parent);
 
 protected:
-	ItemInfo* _moveable = nullptr;
+	ItemHandler _moveable = {};
 
 private:
 	int	 _moveableID  = 0;
@@ -76,6 +77,8 @@ public:
 	bool GetHitStatus() const;
 	bool GetActive() const;
 	short GetStatus() const;
+	bool GetVisible() const;
+	bool GetCollidable() const;
 
 	// Setters
 
@@ -100,6 +103,8 @@ public:
 	void SetLocationAI(short value);
 	void SetMeshVisible(int meshId, bool isVisible);
 	void SetActive(bool isActive);
+	void SetVisible(bool isVisible);
+	void SetCollidable(bool isCollidable);
 	void SetRoomNumber(int roomNumber);
 	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
@@ -115,18 +120,18 @@ public:
 	void Invalidate();
 	void Destroy();
 	void ShatterMesh(int meshId);
-	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex);
+	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
+	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
+	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
 	void DisableItem();
-	void MakeInvisible();
-	void SetVisible(bool isVisible);
-	bool GetCollidable();
-	void SetCollidable(bool isCollidable);
+	void MakeInvisible(); // Compatibility.
 	void Explode();
 	void Shatter();
+	void ShowInteractionHighlight();
 
 	// Operators
 

@@ -538,30 +538,17 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		return;
 	}
 
-	if (IsHeld(In::Left))
+	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
-		short troomnumber = item->RoomNumber;
-		int dx = int(sin(TO_RAD(item->Pose.Orientation.y - ANGLE(90.0f))) * 10);
-		int dz = int(cos(TO_RAD(item->Pose.Orientation.y - ANGLE(90.0f))) * 10);
-		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
-			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
-		{
-			item->Animation.TargetState = LS_LADDER_DISMOUNT_LEFT;
-			item->Animation.ActiveState = LS_MISC_CONTROL;
-		}
-	}
-	else if (IsHeld(In::Right))
-	{
-		short troomnumber = item->RoomNumber;
-		int dx = int(sin(TO_RAD(item->Pose.Orientation.y + ANGLE(90.0f))) * 10);
-		int dz = int(cos(TO_RAD(item->Pose.Orientation.y + ANGLE(90.0f))) * 10);
-		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
-			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
+		int sign = IsHeld(In::Left) ? -1 : 1;
+		int dx = int(sin(TO_RAD(item->Pose.Orientation.y + (ANGLE(90.0f) * sign)) * 10));
+		int dz = int(cos(TO_RAD(item->Pose.Orientation.y + (ANGLE(90.0f) * sign)) * 10));
+		auto point = GetPointCollision(Vector3i(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz), item->RoomNumber);
+		int height = point.GetFloorHeight() - item->Pose.Position.y;
 
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
+		if (!point.IsSteepFloor() && !point.GetBottomSector().Flags.Death && height < CLICK(1.5f))
 		{
-			item->Animation.TargetState = LS_LADDER_DISMOUNT_RIGHT;
+			item->Animation.TargetState = IsHeld(In::Left) ? LS_LADDER_DISMOUNT_LEFT : LS_LADDER_DISMOUNT_RIGHT;
 			item->Animation.ActiveState = LS_MISC_CONTROL;
 		}
 	}

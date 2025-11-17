@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		bufferToFill.Projection = Camera.Projection;
 		bufferToFill.View = Camera.View;
 		bufferToFill.ViewProjection = Camera.ViewProjection;
+		bufferToFill.InverseView = Camera.View.Invert();
 		bufferToFill.InverseProjection = Camera.Projection.Invert();
 		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
 		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);
@@ -69,7 +70,7 @@ namespace TEN::Renderer
 		WorldDirection.Normalize();
 		
 		Vector3 up = -Vector3::UnitY;
-		Matrix upRotation = Matrix::CreateFromYawPitchRoll(0.0f, 0.0f, roll);
+		Matrix upRotation = Matrix::CreateFromAxisAngle(WorldDirection, roll);
 		up = Vector3::Transform(up, upRotation);
 		up.Normalize();
 

@@ -103,7 +103,7 @@ namespace TEN::Entities::TR4
 
 				item.Pose.Position.y += CLICK(2);
 
-				int deltaAngle = ai.angle - creature->JointRotation[0];
+				short deltaAngle = ai.angle - creature->JointRotation[0];
 
 				ai.ahead = true;
 				if (deltaAngle <= ANGLE(-90.0f) || deltaAngle >= ANGLE(90.0f))

@@ -1,37 +1,48 @@
 #pragma once
-#include <vector>
-#include <SimpleMath.h>
+
 #include "Math/Objects/GameBoundingBox.h"
 #include "Math/Objects/Pose.h"
 #include "Renderer/Structures/RendererLight.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX;
-	using namespace DirectX::SimpleMath;
-
 	struct RendererStatic
 	{
 		int ObjectNumber;
 		int RoomNumber;
 		int IndexInRoom;
-		Pose Pose;
-		Matrix World;
+
+		Pose 	PrevPose;
+		Pose	Pose;
+		Matrix	World;
 		Vector4 Color;
 		Vector4 AmbientLight;
-		std::vector<RendererLight*> LightsToDraw;
+
+		std::vector<RendererLight*>	   LightsToDraw;
 		std::vector<RendererLightNode> CachedRoomLights;
 		bool CacheLights;
+
 		BoundingSphere OriginalSphere;
 		BoundingSphere Sphere;
-		float Scale;
 
-		void Update()
+		void Update(float interpolationFactor)
 		{
-			World = (Pose.Orientation.ToRotationMatrix() *
-				Matrix::CreateScale(Scale) *
-				Matrix::CreateTranslation(Pose.Position.x, Pose.Position.y, Pose.Position.z));
-			Sphere = BoundingSphere(Vector3::Transform(OriginalSphere.Center, World), OriginalSphere.Radius * Scale);
+			auto pos = Vector3::Lerp(PrevPose.Position.ToVector3(), Pose.Position.ToVector3(), interpolationFactor);
+			auto scale = Vector3::Lerp(PrevPose.Scale, Pose.Scale, interpolationFactor);
+			
+			auto translationMatrix = Matrix::CreateTranslation(pos);
+			auto scaleMatrix = Matrix::CreateScale(scale);
+			auto rotMatrix = Matrix::Lerp(PrevPose.Orientation.ToRotationMatrix(), Pose.Orientation.ToRotationMatrix(), interpolationFactor);
+			
+			auto worldMatrix = rotMatrix * scaleMatrix * translationMatrix;
+
+			auto sphereCenter = Vector3::Transform(OriginalSphere.Center, worldMatrix);
+			float sphereScale = std::max({ Pose.Scale.x, Pose.Scale.y, Pose.Scale.z });
+			float sphereRadius = OriginalSphere.Radius * sphereScale;
+
+			World = worldMatrix;
+			Sphere = BoundingSphere(sphereCenter, sphereRadius);
+			
 			CacheLights = true;
 		}
 	};

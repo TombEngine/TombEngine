@@ -23,6 +23,7 @@ This is the credit list of **all** the people who contributed to TombEngine in a
 - Troye (general coding, refactoring)
 - Nickelony (general coding)
 - JesseG, aka WolfCheese (general coding)
+- DaviDMRR (general coding, bug fixing)
 
 ## Testers
 - Adngel

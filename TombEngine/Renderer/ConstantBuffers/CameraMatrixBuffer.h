@@ -14,6 +14,8 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Matrix Projection;
 		//--
+		Matrix InverseView;
+		//--
 		Matrix InverseProjection;
 		//--
 		Matrix DualParaboloidView;
@@ -28,7 +30,7 @@ namespace TEN::Renderer::ConstantBuffers
 		unsigned int Frame;
 		unsigned int RoomNumber;
 		unsigned int CameraUnderwater;
-		int Emisphere;
+		int Hemisphere;
 		//--
 		int AmbientOcclusion;
 		int AmbientOcclusionExponent;
@@ -44,7 +46,8 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int RefreshRate;
 		int NumFogBulbs;
-		Vector2 Padding2;
+		float InterpolatedFrame;
+		float Padding2;
 		//--
 		ShaderFogBulb FogBulbs[MAX_FOG_BULBS_DRAW];
 	};

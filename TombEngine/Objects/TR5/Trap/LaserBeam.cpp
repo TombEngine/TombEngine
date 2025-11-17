@@ -3,8 +3,9 @@
 
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/spark.h"
@@ -15,6 +16,7 @@
 #include "Renderer/Renderer.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Spark;
@@ -94,24 +96,21 @@ namespace TEN::Entities::Traps
 		auto dir = orient.ToDirection();
 		auto rotMatrix = orient.ToRotationMatrix();
 
-		auto origin = GameVector(item.Pose.Position, item.RoomNumber);
-		auto target = GameVector(
-			Geometry::TranslatePoint(origin.ToVector3(), dir, MAX_VISIBILITY_DISTANCE),
-			GetPointCollision(origin.ToVector3i(), origin.RoomNumber, dir, MAX_VISIBILITY_DISTANCE).GetRoomNumber());
-
 		// Hit wall; spawn sparks and light.
-		if (!LOS(&origin, &target))
+		auto los = GetRoomLosCollision(item.Pose.Position.ToVector3(), item.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
+		if (los.IsIntersected)
 		{
 			if (item.TriggerFlags > 0)
 			{
-				SpawnLaserSpark(target, Random::GenerateAngle(), 3, Color);
-				SpawnLaserSpark(target, Random::GenerateAngle(), 3, Color);
+				auto targetGameVector = GameVector(los.Position, los.RoomNumber);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, Color);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, Color);
 			}
 
-			SpawnLaserBeamLight(target.ToVector3(), target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+			SpawnLaserBeamLight(los.Position, los.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
-		float length = Vector3::Distance(origin.ToVector3(), target.ToVector3());
+		float length = Vector3::Distance(item.Pose.Position.ToVector3(), los.Position);
 
 		// Calculate cylinder vertices.
 		float angle = 0.0f;
@@ -131,14 +130,14 @@ namespace TEN::Entities::Traps
 
 		// Calculate bounding box.
 		float boxApothem = (Radius - ((Radius * SQRT_2) - Radius) + Radius) / 2;
-		auto center = (origin.ToVector3() + target.ToVector3()) / 2;
+		auto center = (item.Pose.Position.ToVector3() + los.Position) / 2;
 		auto extents = Vector3(boxApothem, boxApothem, length / 2);
 		BoundingBox = BoundingOrientedBox(center, extents, orient.ToQuaternion());
 	}
 
 	void InitializeLaserBeam(short itemNumber)
 	{
-		const auto& item = g_Level.Items[itemNumber];
+		auto& item = g_Level.Items[itemNumber];
 
 		auto beam = LaserBeamEffect{};
 		beam.Initialize(item);
@@ -177,7 +176,7 @@ namespace TEN::Entities::Traps
 			beam.Color.w = 0.8f;
 			item.Model.Color.w = 0.8f;
 		}
-			
+
 		beam.IsActive = true;
 		beam.Update(item);
 
@@ -226,7 +225,7 @@ namespace TEN::Entities::Traps
 
 			beam.Color.w = Random::GenerateFloat(0.6f, 1.0f);
 			SpawnLaserBeamLight(item.Pose.Position.ToVector3(), item.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
-		}		
+		}
 	}
 
 	void ClearLaserBeamEffects()

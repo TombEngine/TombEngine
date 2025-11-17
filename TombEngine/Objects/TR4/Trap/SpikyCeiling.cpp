@@ -21,12 +21,12 @@ namespace TEN::Entities::Traps
 	// ItemFlags[0] = Vertical velocity. Positive value moves down, negative value moves up.
 
 	constexpr auto SPIKY_CEILING_HARM_DAMAGE = 15;
+	constexpr auto SPIKY_CEILING_DEFAULT_SPEED = 5;
 
 	void InitializeSpikyCeiling(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-
-		item.ItemFlags[0] = item.TriggerFlags;
+		item.ItemFlags[0] = item.TriggerFlags ? item.TriggerFlags : SPIKY_CEILING_DEFAULT_SPEED;
 	}
 
 	void ControlSpikyCeiling(short itemNumber)

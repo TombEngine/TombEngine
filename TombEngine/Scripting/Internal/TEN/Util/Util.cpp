@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Util/Util.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/control/los.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
@@ -18,6 +19,7 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 
+using namespace TEN::Collision::Los;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Scripting::Util
@@ -40,7 +42,7 @@ namespace TEN::Scripting::Util
 		auto vector0 = posA.ToGameVector();
 		auto vector1 = posB.ToGameVector();
 
-		MESH_INFO* mesh = nullptr;
+		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
 		return (LOS(&vector0, &vector1) && ObjectOnLOS2(&vector0, &vector1, &vector, &mesh) == NO_LOS_ITEM);
 	}
@@ -129,7 +131,7 @@ namespace TEN::Scripting::Util
 		auto ray = GetRayFrom2DPosition(Vector2(int(std::get<0>(realScreenPos)), int(std::get<1>(realScreenPos))));
 
 		auto vector = Vector3i::Zero;
-		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr, GAME_OBJECT_ID::ID_LARA);
+		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr);
 
 		if (itemNumber == NO_LOS_ITEM || itemNumber < 0)
 			return sol::nullopt;
@@ -146,7 +148,7 @@ namespace TEN::Scripting::Util
 		auto realScreenPos = PercentToScreen(screenPos.x, screenPos.y);
 		auto ray = GetRayFrom2DPosition(Vector2((int)std::get<0>(realScreenPos), (int)std::get<1>(realScreenPos)));
 
-		MESH_INFO* mesh = nullptr;
+		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
 		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, &mesh, GAME_OBJECT_ID::ID_LARA);
 

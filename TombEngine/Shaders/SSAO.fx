@@ -1,3 +1,4 @@
+#include "./Math.hlsli"
 #include "./VertexInput.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBPostProcess.hlsli"
@@ -45,7 +46,7 @@ float PS(PixelShaderInput input) : SV_Target
 {
     float4 output;
 
-    float2 noiseScale = float2(ViewportWidth / 4.0f, ViewportHeight / 4.0f);
+    float2 noiseScale = ViewportSize / 4.0f;
 
     float3 position = ReconstructPositionFromDepth(input.UV);
     float3 encodedNormal = NormalsTexture.Sample(NormalsSampler, input.UV).xyz;
@@ -61,7 +62,7 @@ float PS(PixelShaderInput input) : SV_Target
     float3 randomVec = NoiseTexture.Sample(NoiseSampler, input.UV * noiseScale).xyz;
 
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-    float3 bitangent = cross(normal, tangent);
+    float3 bitangent = SafeNormalize(cross(normal, tangent));
     float3x3 TBN = float3x3(tangent, bitangent, normal);
 
     float occlusion = 0.0f;
@@ -99,7 +100,7 @@ float normpdf(float x, float sigma)
 
 float PSBlur(PixelShaderInput input) : SV_Target
 {
-    float2 texelSize = 1.0f / float2(ViewportWidth, ViewportHeight);
+    float2 texelSize = TexelSize;
     float result = 0.0f;
 
     const int kernelSize = (MSIZE - 1) / 2;

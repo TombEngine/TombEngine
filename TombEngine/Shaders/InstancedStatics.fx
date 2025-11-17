@@ -1,26 +1,13 @@
 #include "./Math.hlsli"
 #include "./CBCamera.hlsli"
+#include "./CBInstancedStatics.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./VertexInput.hlsli"
 #include "./Blending.hlsli"
 #include "./Shadows.hlsli"
-
-#define INSTANCED_STATIC_MESH_BUCKET_SIZE 100
-
-struct InstancedStaticMesh
-{
-	float4x4 World;
-	float4 Color;
-	float4 AmbientLight;
-	ShaderLight InstancedStaticLights[MAX_LIGHTS_PER_ITEM];
-	uint4 LightInfo;
-};
-
-cbuffer InstancedStaticMeshBuffer : register(b3)
-{
-	InstancedStaticMesh StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
-};
+#include "./AnimatedTextures.hlsli"
+#include "./Materials.hlsli"
 
 struct PixelShaderInput
 {
@@ -34,7 +21,8 @@ struct PixelShaderInput
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
 	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+    float3 Binormal : BINORMAL;
+    float3 FaceNormal : TEXCOORD3;
 	uint InstanceID : SV_InstanceID;
 };
 
@@ -49,71 +37,69 @@ SamplerState Sampler : register(s0);
 Texture2D NormalTexture : register(t1);
 SamplerState NormalTextureSampler : register(s1);
 
-Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
-
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
 
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
-	float3 col = Glow(input.Color.xyz, input.Effects.xyz, wibble);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
+	float3 pos = Move(input.Position, input.Effects, wibble);
+	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
 
-	output.Position = mul(worldPosition, ViewProjection);
-	output.UV = input.UV;
-	output.WorldPosition = worldPosition;
+    output.Position = mul(worldPosition, ViewProjection);
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
+    output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
 	output.Color *= StaticMeshes[InstanceID].Color;
 	output.PositionCopy = output.Position;
-	output.Sheen = input.Effects.w;
+    output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;
 
-	output.Normal = normalize(mul(input.Normal, (float3x3)StaticMeshes[InstanceID].World).xyz);
-	output.Tangent = normalize(mul(input.Tangent, (float3x3)StaticMeshes[InstanceID].World).xyz);
-	output.Binormal = normalize(mul(input.Binormal, (float3x3)StaticMeshes[InstanceID].World).xyz);
-
+    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
+    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
+   
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
 
 	return output;
 }
 
-float3 UnpackNormalMap(float4 n)
-{
-	n = n * 2.0f - 1.0f;
-	n.z = saturate(1.0f - dot(n.xy, n.xy));
-	return n.xyz;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
+	
+    input.UV = ConvertAnimUV(input.UV);
+
+    // Apply parallax mapping
+    float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
+    input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
+
+    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+    float ambientOcclusion = ORSH.x;
+    float roughness = ORSH.y;
+    float specular = ORSH.z;
+	
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+
+	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
 	float4 tex = Texture.Sample(Sampler, input.UV);
 	DoAlphaTest(tex);
-
+	
 	uint mode = StaticMeshes[input.InstanceID].LightInfo.y;
 	uint numLights = StaticMeshes[input.InstanceID].LightInfo.x;
-
-	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
-	normal = normalize(mul(normal, TBN));
-
-	float occlusion = 1.0f;
-	if (AmbientOcclusion == 1)
-	{
-		float2 samplePosition;
-		samplePosition = input.PositionCopy.xy / input.PositionCopy.w;
-		samplePosition = samplePosition * 0.5f + 0.5f;
-		samplePosition.y = 1.0f - samplePosition.y;
-		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
-		
-		if (BlendMode == BLENDMODE_ALPHABLEND)
-			occlusion = lerp(occlusion, 1.0f, tex.w);
-	}
+	
+    // Material effects
+    tex.xyz = CalculateReflections(input.WorldPosition, tex.xyz, normal, specular);
+	
+    // Ambient occlusion
+    float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), tex.w);
+    occlusion *= ambientOcclusion;
 
 	float3 color = (mode == 0) ?
 		CombineLights(
@@ -125,8 +111,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen,
 			StaticMeshes[input.InstanceID].InstancedStaticLights,
 			numLights,
-			input.FogBulbs.w) :
-		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
+			input.FogBulbs.w, 
+			emissive, 
+			specular, 
+			roughness) :
+		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);

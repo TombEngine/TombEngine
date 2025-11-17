@@ -142,14 +142,13 @@ int	 GetNextAnimState(ItemInfo* item);
 int	 GetNextAnimState(int objectID, int animNumber);
 bool GetStateDispatch(ItemInfo* item, const AnimData& anim);
 
-void ClampRotation(Pose& outPose, short angle, short rotation); 
-void DrawAnimatingItem(ItemInfo* item);
+void ClampRotation(Pose& outPose, short angle, short rotation);
 
 Vector3i   GetJointPosition(const ItemInfo& item, int jointIndex, const Vector3i& relOffset = Vector3i::Zero);
 Vector3i   GetJointPosition(ItemInfo* item, int jointIndex, const Vector3i& relOffset = Vector3i::Zero);
 Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
 
-Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex);
+Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int jointIndex, bool discardZSign = false);
 Quaternion GetBoneOrientation(const ItemInfo& item, int boneIndex);
 float	   GetBoneLength(GAME_OBJECT_ID objectID, int boneIndex);

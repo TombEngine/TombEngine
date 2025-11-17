@@ -81,16 +81,16 @@ CustomBar.Create = function (barData)
 -- @tfield float startValue Initial value of the bar.
 -- @tfield float maxValue Maximum value of the bar.
 -- @tfield Objects.ObjID objectIdBg Object ID for the bar's background sprite.
--- @tfield number spriteIdBg SpriteID from the specified object for the bar's background.
+-- @tfield int spriteIdBg Sprite ID from the specified object for the bar's background.
 -- @tfield Color colorBg Color of bar's background.
 -- @tfield Vec2 posBg X,Y position of the bar's background in screen percent (0-100).
--- @tfield float rotBg rotation of the bar's background. sprite (0-360).
+-- @tfield float rotBg Rotation of the bar's background sprite (0-360).
 -- @tfield Vec2 scaleBg X,Y Scaling factor for the bar's background sprite.
 -- @tfield View.AlignMode alignModeBg Alignment for the bar's background.
 -- @tfield View.ScaleMode scaleModeBg Scaling for the bar's background.
 -- @tfield Effects.BlendID blendModeBg Blending modes for the bar's background.
 -- @tfield Objects.ObjID objectIdBar Object ID for the bar sprite.
--- @tfield number spriteIdBar SpriteID from the specified object for the bar.
+-- @tfield int spriteIdBar Sprite ID from the specified object for the bar.
 -- @tfield Color colorBar Color of the bar.
 -- @tfield Vec2 posBar X,Y position of the bar in screen percent (0-100).
 -- @tfield float rot rotation of the bar's sprite (0-360).
@@ -100,13 +100,13 @@ CustomBar.Create = function (barData)
 -- @tfield Effects.BlendID blendMode Blending modes for the bar.
 -- @tfield string text Text to display on the bar.
 -- @tfield Vec2 textPos X,Y position of the text.
--- @tfield Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
--- @tfield number textScale Scale factor for the text.
+-- @tfield Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
+-- @tfield float textScale Scale factor for the text.
 -- @tfield Color textColor Color of the text.
 -- @tfield bool hideText Whether to hide the text.
--- @tfield number alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
+-- @tfield int alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
 -- @tfield bool blink Whether the bar blinks.
--- @tfield number blinkLimit % Limit below which bar starts blinking (0-1).
+-- @tfield float blinkLimit Limit below which bar starts blinking (0-1).
 
 	LevelVars.Engine.CustomBars.bars[dataName]			        = {}
 	LevelVars.Engine.CustomBars.bars[dataName].name				= dataName
@@ -172,29 +172,29 @@ CustomBar.CreatePlayerBar = function (playerBarData)
 ---
 -- Table setup for creating custom player attribute bar.
 -- @table playerBarData
--- @tfield number getActionType Determines the bar type: 1: Health, 2: Air, 3: Stamina.
+-- @tfield int getActionType Determines the bar type: 1: Health, 2: Air, 3: Stamina.
 -- @tfield Objects.ObjID objectIdBg Object ID for the bar's background sprite.
--- @tfield number spriteIdBg SpriteID from the specified object for the bar's background.
+-- @tfield int spriteIdBg Sprite ID from the specified object for the bar's background.
 -- @tfield Color colorBg Color of bar's background.
 -- @tfield Vec2 posBg X,Y position of the bar's background in screen percent (0-100).
--- @tfield number rotBg rotation of the bar's background. sprite (0-360).
+-- @tfield float rotBg Rotation of the bar's background. sprite (0-360).
 -- @tfield Vec2 scaleBg X,Y Scaling factor for the bar's background sprite.
 -- @tfield View.AlignMode alignModeBg Alignment for the bar's background.
 -- @tfield View.ScaleMode scaleModeBg Scaling for the bar's background.
 -- @tfield Effects.BlendID blendModeBg Blending modes for the bar's background.
 -- @tfield Objects.ObjID objectIdBar Object ID for the bar sprite.
--- @tfield number spriteIdBar SpriteID from the specified object for the bar.
+-- @tfield int spriteIdBar Sprite ID from the specified object for the bar.
 -- @tfield Color colorBar Color of the bar.
 -- @tfield Vec2 posBar X,Y position of the bar in screen percent (0-100).
--- @tfield number rot rotation of the bar's sprite (0-360).
+-- @tfield float rot Rotation of the bar's sprite (0-360).
 -- @tfield Vec2 scaleBar X,Y Scaling factor for the bar's sprite.
 -- @tfield View.AlignMode alignMode Alignment for the bar.
 -- @tfield View.ScaleMode scaleMode Scaling for the bar.
 -- @tfield Effects.BlendID blendMode Blending modes for the bar.
--- @tfield number alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
+-- @tfield int alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
 -- @tfield bool showBar Option to always show the bar. If set to false, the bars will automatically hide when they stop updating.
 -- @tfield bool blink Whether the bar blinks.
--- @tfield number blinkLimit % Limit below which bar starts blinking (0-1).
+-- @tfield float blinkLimit Limit below which bar starts blinking (0-1).
 
 		local playerBar = {
 			barName			= barName,
@@ -255,34 +255,34 @@ CustomBar.CreateEnemyHpBar = function (enemyBarData)
 -- @table enemyBarData
 -- @tfield string barName Unique identifier for the bar.
 -- @tfield Objects.ObjID objectIdBg Object ID for the bar's background sprite.
--- @tfield number spriteIdBg SpriteID from the specified object for the bar's background.
+-- @tfield int spriteIdBg Sprite ID from the specified object for the bar's background.
 -- @tfield Color colorBg Color of bar's background.
 -- @tfield Vec2 posBg X,Y position of the bar's background in screen percent (0-100).
--- @tfield number rotBg rotation of the bar's background. sprite (0-360).
+-- @tfield float rotBg Rotation of the bar's background sprite (0-360).
 -- @tfield Vec2 scaleBg X,Y Scaling factor for the bar's background sprite.
 -- @tfield View.AlignMode alignModeBg Alignment for the bar's background.
 -- @tfield View.ScaleMode scaleModeBg Scaling for the bar's background.
 -- @tfield Effects.BlendID blendModeBg Blending modes for the bar's background.
 -- @tfield Objects.ObjID objectIdBar Object ID for the bar sprite.
--- @tfield number spriteIdBar SpriteID from the specified object for the bar.
+-- @tfield int spriteIdBar Sprite ID from the specified object for the bar.
 -- @tfield Color colorBar Color of the bar.
 -- @tfield Vec2 posBar X,Y position of the bar in screen percent (0-100).
--- @tfield number rot rotation of the bar's sprite (0-360).
+-- @tfield float rot Rotation of the bar's sprite (0-360).
 -- @tfield Vec2 scaleBar X,Y Scaling factor for the bar's sprite.
 -- @tfield View.AlignMode alignMode Alignment for the bar.
 -- @tfield View.ScaleMode scaleMode Scaling for the bar.
 -- @tfield Effects.BlendID blendMode Blending modes for the bar.
 -- @tfield string text Text to display for the enemy.
 -- @tfield Vec2 textPos X,Y position of the text.
--- @tfield Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
--- @tfield number textScale Scale factor for the text.
+-- @tfield Strings.DisplayStringOption textOptions Alignment and effects for the text. Note text is automatically aligned to the left.
+-- @tfield float textScale Scale factor for the text.
 -- @tfield Color textColor Color of the text.
 -- @tfield bool hideText Whether to hide the text.
--- @tfield number alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
+-- @tfield int alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
 -- @tfield string object Enemy name set in Editor for which to create HP for.
 -- @tfield bool showBar Option to always show the bar whether the enemy is current target or not. Useful for boss health bars.
 -- @tfield bool blink Whether the bar blinks.
--- @tfield number blinkLimit %Limit below which bar starts blinking (0-1).
+-- @tfield float blinkLimit Limit below which bar starts blinking (0-1).
 	
 	local enemyBar = {
 		barName			= enemyBarData.barName,
@@ -346,31 +346,31 @@ CustomBar.SetEnemiesHpGenericBar = function (enemiesBarData)
 -- Table setup for creating health bars for all enemies.
 -- @table enemiesBarData
 -- @tfield Objects.ObjID objectIdBg Object ID for the bar's background sprite.
--- @tfield number spriteIdBg SpriteID from the specified object for the bar's background.
+-- @tfield int spriteIdBg Sprite ID from the specified object for the bar's background.
 -- @tfield Color colorBg Color of bar's background.
 -- @tfield Vec2 posBg X,Y position of the bar's background in screen percent (0-100).
--- @tfield number rotBg rotation of the bar's background. sprite (0-360).
+-- @tfield float rotBg Rotation of the bar's background sprite (0-360).
 -- @tfield Vec2 scaleBg X,Y Scaling factor for the bar's background sprite.
 -- @tfield View.AlignMode alignModeBg Alignment for the bar's background.
 -- @tfield View.ScaleMode scaleModeBg Scaling for the bar's background.
 -- @tfield Effects.BlendID blendModeBg Blending modes for the bar's background.
 -- @tfield Objects.ObjID objectIdBar Object ID for the bar sprite.
--- @tfield number spriteIdBar SpriteID from the specified object for the bar.
+-- @tfield int spriteIdBar Sprite ID from the specified object for the bar.
 -- @tfield Color colorBar Color of the bar.
 -- @tfield Vec2 posBar X,Y position of the bar in screen percent (0-100).
--- @tfield number rot rotation of the bar's sprite (0-360).
+-- @tfield float rot Rotation of the bar's sprite (0-360).
 -- @tfield Vec2 scaleBar X,Y Scaling factor for the bar's sprite.
 -- @tfield View.AlignMode alignMode Alignment for the bar.
 -- @tfield View.ScaleMode scaleMode Scaling for the bar.
 -- @tfield Effects.BlendID blendMode Blending modes for the bar.
--- @tfield number textPos X position of the text.
--- @tfield Strings.DisplayStringOption textOptions alignment and effects for the text. Default: None. Please note text is automatically aligned to the LEFT
--- @tfield number textScale Scale factor for the text.
+-- @tfield int textPos X position of the text.
+-- @tfield Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
+-- @tfield float textScale Scale factor for the text.
 -- @tfield Color textColor Color of the text.
 -- @tfield bool hideText Whether to hide the enemy name text.
--- @tfield number alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
+-- @tfield int alphaBlendSpeed Speed of alpha blending for bar visibility (0-255).
 -- @tfield bool blink Whether the bar blinks.
--- @tfield number blinkLimit %Limit below which bar starts blinking (0-1).
+-- @tfield float blinkLimit Limit below which bar starts blinking (0-1).
 
 	LevelVars.Engine.CustomBars.enemiesHpBar.objectIdBg			= enemiesBarData.objectIdBg
 	LevelVars.Engine.CustomBars.enemiesHpBar.spriteIdBg			= enemiesBarData.spriteIdBg
@@ -465,7 +465,7 @@ function CustomBar:ChangeBarValueOverTimespan(value, time)
 end
 
 --- The function controls the visibility of a custom bar.
--- @bool visible true: Makes the bar visible.; false: Hides the bar.
+-- @bool visible `true` makes the bar visible, `false` hides the bar.
 function CustomBar:SetVisibility(visible)
     --the visible variable is a boolean
 	if LevelVars.Engine.CustomBars.bars[self.name] then
@@ -479,7 +479,7 @@ function CustomBar:SetVisibility(visible)
 end
 
 --- The function checks whether a custom bar is currently visible.
--- @treturn bool true if the bar is visible and false if it is not.
+-- @treturn bool `true` if the bar is visible and `false` if it is not.
 function CustomBar:IsVisible()
     
 	if LevelVars.Engine.CustomBars.bars[self.name] then
@@ -492,7 +492,7 @@ function CustomBar:IsVisible()
 end
 
 --- The function retrieves the current value of a custom bar.
--- @treturn float returns the current value of a custom bar.
+-- @treturn float Returns the current value of a custom bar.
 function CustomBar:GetValue()
 	
     if LevelVars.Engine.CustomBars.bars[self.name] then
@@ -534,7 +534,7 @@ function CustomBar:SetBackgroundPosition(pos)
 end
 
 --- Sets the custom bar background sprite rotation.
--- @tparam number rot rotation of the bar's background. sprite (0-360).
+-- @tparam float rot Rotation of the bar's background sprite (0-360).
 --
 function CustomBar:SetBackgroundRotation(rot)
 	if rot and  LevelVars.Engine.CustomBars.bars[self.name] then
@@ -564,7 +564,7 @@ end
 ---
 -- Sets the custom bar background sprite slot and sprite ID.
 -- @tparam Objects.ObjID slot Object ID for the bar's background sprite.
--- @tparam number id SpriteID from the specified object for the bar's background.
+-- @tparam int id Sprite ID from the specified object for the bar's background.
 --
 function CustomBar:SetBackgroundSpriteSlot(slot, id)
 	if slot and id and LevelVars.Engine.CustomBars.bars[self.name] then
@@ -612,7 +612,7 @@ function CustomBar:SetBarPosition(pos)
 end
 ---
 -- Sets the custom bar sprite rotation.
--- @tparam number rot rotation of the bar's sprite (0-360).
+-- @tparam float rot Rotation of the bar's sprite (0-360).
 --
 function CustomBar:SetBarRotation(rot)
 	if rot and  LevelVars.Engine.CustomBars.bars[self.name] then
@@ -640,7 +640,7 @@ end
 ---
 -- Sets the custom bar sprite slot and sprite ID.
 -- @tparam Objects.ObjID slot Object ID for the bar sprite.
--- @tparam number id SpriteID from the specified object for the bar.
+-- @tparam int id Sprite ID from the specified object for the bar.
 --
 function CustomBar:SetBarSpriteSlot(slot, id)
 	if slot and id and LevelVars.Engine.CustomBars.bars[self.name] then

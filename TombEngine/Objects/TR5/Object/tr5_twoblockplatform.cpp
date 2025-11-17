@@ -51,20 +51,20 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		// Initialize routines.
+		item.ItemFlags[0] = item.Pose.Position.y;
+		item.ItemFlags[1] = 1;
+
 		bridge.GetFloorHeight = GetTwoBlockPlatformFloorHeight;
 		bridge.GetCeilingHeight = GetTwoBlockPlatformCeilingHeight;
 		bridge.GetFloorBorder = GetTwoBlockPlatformFloorBorder;
 		bridge.GetCeilingBorder = GetTwoBlockPlatformCeilingBorder;
-
-		item.ItemFlags[0] = item.Pose.Position.y;
-		item.ItemFlags[1] = 1;
-		UpdateBridgeItem(item);
+		bridge.Initialize(item);
 	}
 
 	void TwoBlockPlatformControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*item);
 
 		if (TriggerActive(item))
 		{
@@ -82,21 +82,23 @@ namespace TEN::Entities::Generic
 					return;
 				}
 
-				int distToPortal = g_Level.Rooms[item->RoomNumber].TopHeight - item->Pose.Position.y;
+				// @BRIDGEME
+				int distToPortal = *&g_Level.Rooms[item->RoomNumber].TopHeight - item->Pose.Position.y;
 				if (distToPortal <= vel)
-					UpdateBridgeItem(*item);
+					bridge.Update(*item);
 
 				// HACK: Must probe slightly higher to avoid strange bug where the room number sometimes isn't
 				// updated when the platform crosses room boundaries. -- Sezz 2025.01.18
+				// TODO: Maybe not necessary anymore after bridge refactors.
 				auto pointColl = GetPointCollision(*item, 0, 0, -CLICK(0.5f));
 
 				item->Floor = pointColl.GetFloorHeight();
 
 				if (pointColl.GetRoomNumber() != item->RoomNumber)
 				{
-					UpdateBridgeItem(*item, BridgeUpdateType::Remove);
+					bridge.Disable(*item);
 					ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
-					UpdateBridgeItem(*item);
+					bridge.Enable(*item);
 				}
 			}
 			else
@@ -148,5 +150,7 @@ namespace TEN::Entities::Generic
 				}
 			}
 		}
+
+		bridge.Update(*item);
 	}
 }

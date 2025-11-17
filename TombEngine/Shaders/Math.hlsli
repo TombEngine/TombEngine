@@ -5,7 +5,7 @@
 
 #define PI		3.1415926535897932384626433832795028841971693993751058209749445923
 #define PI2		6.2831853071795864769252867665590057683943387987502116419498891846
-#define EPSILON 1e-38
+#define EPSILON 1e-6f
 #define OCTAVES 6
 
 #define LT_SUN			0
@@ -21,12 +21,14 @@
 
 #define SHADOWABLE_MASK (1 << 16)
 
+#define MAX_DECALS_PER_ROOM 48
 #define MAX_LIGHTS_PER_ROOM	48
 #define MAX_LIGHTS_PER_ITEM	8
 #define MAX_FOG_BULBS	32
 #define SPEC_FACTOR 64
 
 #define MAX_BONES 32
+#define MAX_BONE_WEIGHTS 4
 
 struct ShaderLight
 {
@@ -51,6 +53,14 @@ struct ShaderFogBulb
 	float3 FogBulbToCameraVector;
 	float SquaredCameraToFogBulbDistance;
 	float4 Padding2;
+};
+
+struct ShaderDecal
+{
+	float3 Position;
+	unsigned int Pattern;
+	float Radius;
+	float Opacity;
 };
 
 float Luma(float3 color)
@@ -437,7 +447,7 @@ float4 RotationMatrixToQuaternion(float3x3 m)
 	);
 
 	q = tracePositive ? q0 : (cond1 ? q1 : (cond2 ? q2 : q3));
-	return q;
+	return normalize(q);
 }
 
 // Quaternion to Matrix (3x3)
@@ -455,45 +465,100 @@ float3x3 QuaternionToRotationMatrix(float4 q)
 	return m;
 }
 
-// Blend bone matrices using quaternion-based rotation and linear translation
 float4x4 BlendBoneMatrices(VertexShaderInput input, float4x4 bones[MAX_BONES], bool onlyRotation)
 {
-	float4 blendedQuat = float4(0, 0, 0, 0);
-	float3 blendedTranslation = float3(0, 0, 0);
-
-	[unroll]
-	for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+	if (onlyRotation)
 	{
-		float w = input.BoneWeight[i];
-		int index = input.BoneIndex[i];
-		float4x4 bone = bones[index];
+		float4 blendedQuat = float4(0, 0, 0, 0);
+		float3 blendedTranslation = float3(0, 0, 0);
 
-		float3x3 rot = (float3x3)bone;
-		float4 q = RotationMatrixToQuaternion(rot);
-
-		// Ensure shortest path for interpolation (flip if dot < 0)
-		float dotPrev = dot(blendedQuat, q);
-		q *= sign(dotPrev + 1e-5f); // Avoid zero dot product flip
-
-		blendedQuat += q * w;
-
-		if (!onlyRotation)
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
 		{
-			blendedTranslation += bone[3].xyz * w;
+			float w = float(input.BoneWeight[i]) / 255.0f;
+			int index = input.BoneIndex[i];
+			float4x4 bone = bones[index];
+
+			float3x3 rot = (float3x3)bone;
+			float4 q = RotationMatrixToQuaternion(rot);
+
+			// Ensure shortest path for interpolation (flip if dot < 0)
+			float dotPrev = dot(blendedQuat, q);
+			q *= sign(dotPrev + 1e-5f); // Avoid zero dot product flip
+
+			blendedQuat += q * w;
 		}
+
+		blendedQuat = normalize(blendedQuat);
+		float3x3 finalRot = QuaternionToRotationMatrix(blendedQuat);
+
+		float4x4 result = float4x4(
+			float4(finalRot[0], 0.0f),
+			float4(finalRot[1], 0.0f),
+			float4(finalRot[2], 0.0f),
+			float4(bones[input.BoneIndex[0]][3].xyz, 1.0f)
+		);
+
+		return result;
 	}
+	else
+	{
+		float totalWeight = 0.0f;
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+			totalWeight += float(input.BoneWeight[i]) / 255.0f;
 
-	blendedQuat = normalize(blendedQuat);
-	float3x3 finalRot = QuaternionToRotationMatrix(blendedQuat);
+		// Avoid divide-by-zero and excessive weights
+		if (totalWeight < EPSILON)
+			return bones[input.BoneIndex[0]];
 
-	float4x4 result = float4x4(
-		float4(finalRot[0], 0.0f),
-		float4(finalRot[1], 0.0f),
-		float4(finalRot[2], 0.0f),
-		float4(onlyRotation ? bones[input.BoneIndex[0]][3].xyz : blendedTranslation, 1.0f)
-	);
+		float4x4 blendedMatrix = (float4x4)0;
 
-	return result;
+		[unroll]
+		for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+		{
+			float w = (float(input.BoneWeight[i]) / 255.0f) / totalWeight; // Normalize weights
+			blendedMatrix += bones[input.BoneIndex[i]] * w;
+		}
+
+		// Remove artifacts
+		blendedMatrix[0].w = 0.0f;
+		blendedMatrix[1].w = 0.0f;
+		blendedMatrix[2].w = 0.0f;
+		blendedMatrix[3].w = 1.0f;
+
+		return blendedMatrix;
+	}
+}
+
+float3 UnpackNormalMap(float4 n)
+{
+    n = n * 2.0f - 1.0f;
+    n.z = saturate(1.0f - dot(n.xy, n.xy));
+    return n.xyz;
+}
+
+inline float Gaussian(float x, float sigma)
+{
+    // exp( -x^2 / (2*sigma^2) )
+    return exp(-(x * x) / (2.0 * sigma * sigma));
+}
+
+inline float3 SafeNormalize(float3 v)
+{
+    float l2 = dot(v, v);
+    float invLen = rsqrt(max(l2, EPSILON));
+    float mask = saturate(l2 / (l2 + EPSILON));
+    return v * invLen * mask;
+}
+
+float2 GetSamplePosition(float4 projectedPosition)
+{
+    float2 samplePosition;
+    samplePosition = projectedPosition.xy / projectedPosition.w;
+    samplePosition = samplePosition * 0.5f + 0.5f;
+    samplePosition.y = 1.0f - samplePosition.y;
+    return samplePosition;
 }
 
 #endif // MATH

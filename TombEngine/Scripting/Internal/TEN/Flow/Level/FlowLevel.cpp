@@ -93,6 +93,11 @@ void Level::Register(sol::table& parent)
 //@mem weatherStrength
 		"weatherStrength", &Level::WeatherStrength,
 
+/// (bool) Choose if weather should be clustered or not.
+// You can set it to `false` globally or in specific regions of your level where clusters can slip through paper-thin walls.
+//@mem weatherClustering
+		"weatherClustering", &Level::WeatherClustering,
+
 /*** (LaraType) Appearance of Lara. Must be either `LaraType.Normal` or `LaraType.Young`.
 E.g. `myLevel.laraType = LaraType.Young` will make Lara appear as young (with two ponytails rendered).
 This setting does not affect ability to use weapons or flares.
@@ -115,7 +120,7 @@ This setting does not affect ability to use weapons or flares.
 //@mem resetHub
 		"resetHub", &Level::ResetHub,
 
-/// (table of @{Flow.InventoryItem}s) A table of inventory object layout overrides.
+/// (@{Flow.InventoryItem}[]) A table of inventory object layout overrides.
 //@mem objects
 		"objects", &Level::InventoryObjects,
 
@@ -137,24 +142,6 @@ void Level::SetWeatherStrength(float val)
 	else
 	{
 		WeatherStrength = val;
-	}
-}
-
-void Level::SetLevelFarView(short val)
-{
-	static_assert(MIN_FAR_VIEW == 3200.0f, "Please update the comment, docs, and warning message if this number changes.");
-	const short min = std::ceil(MIN_FAR_VIEW / BLOCK(1));
-	bool cond = val >= min;
-
-	std::string msg{ "farView value must be 4 or greater." };
-	if (!ScriptAssert(cond, msg))
-	{
-		// Will be set to default by the renderer
-		LevelFarView = 0;
-	}
-	else
-	{
-		LevelFarView = val;
 	}
 }
 
@@ -199,6 +186,11 @@ bool Level::GetRumbleEnabled() const
 	return Rumble;
 }
 
+bool Level::GetWeatherClustering() const
+{
+	return WeatherClustering;
+}
+
 float Level::GetWeatherStrength() const
 {
 	return WeatherStrength;	
@@ -224,7 +216,7 @@ float Level::GetFogMaxDistance() const
 	return Fog.MaxDistance;
 }
 
-short Level::GetFarView() const
+float Level::GetFarView() const
 {
 	return float(LevelFarView);
 }

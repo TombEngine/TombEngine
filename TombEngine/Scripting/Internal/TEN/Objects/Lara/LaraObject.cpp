@@ -8,6 +8,8 @@
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/lara_two_guns.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
@@ -26,6 +28,7 @@ using namespace TEN::Input;
 // LaraObject inherits all the functions of @{Objects.Moveable|Moveable}.
 //
 // @tenclass Objects.LaraObject
+// @inherits Objects.Moveable
 // @pragma nostrip
 
 constexpr auto LUA_CLASS_NAME{ ScriptReserved_LaraObject };
@@ -143,7 +146,7 @@ int LaraObject::GetStamina() const
 }
 
 /// Get the player's airborne status (set when jumping and falling).
-// @function Moveable:GetAirborne
+// @function LaraObject:GetAirborne
 // @treturn bool True if airborne, otherwise false.
 bool LaraObject::GetAirborne() const
 {
@@ -151,7 +154,7 @@ bool LaraObject::GetAirborne() const
 }
 
 /// Set the player's airborne status.
-// @function Moveable:SetAirborne
+// @function LaraObject:SetAirborne
 // @tparam bool airborne New airborne status.
 void LaraObject::SetAirborne(bool newAirborne)
 {
@@ -212,8 +215,8 @@ LaraWeaponType LaraObject::GetWeaponType() const
 // @usage
 // Lara:SetWeaponType(WeaponType.PISTOLS, false)
 // @tparam Objects.WeaponType weaponType New weapon type to set.
-// @tparam bool activate If `true`, also draw the weapons or set torch lit. If `false`, keep weapons holstered or leave torch unlit.
-void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
+// @tparam[opt=false] bool activate If `true`, also draw the weapons or set torch lit. If `false`, keep weapons holstered or leave torch unlit.
+void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> activate)
 {
 	auto* lara = GetLaraInfo(_moveable);
 
@@ -225,18 +228,42 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, bool activate)
 
 	case LaraWeaponType::Torch:
 		GetFlameTorch();
-		lara->Torch.IsLit = activate;
+		lara->Torch.IsLit = activate.value_or(false);
 		break;
 
 	default:
-		if (activate == false)
-			lara->Control.Weapon.LastGunType = weaponType;
-		else
+		if (!lara->Weapons[(int)weaponType].Present)
+		{
+			TENLog("SetWeaponType: no such weapon is present in the inventory.", LogLevel::Warning, LogConfig::All);
+			break;
+		}
+
+		bool weaponInHands = !activate.value_or(false) && (lara->Control.HandStatus == HandStatus::WeaponReady || lara->Control.HandStatus == HandStatus::WeaponDraw);
+
+		if (activate.value_or(false) || weaponInHands)
+		{
 			lara->Control.Weapon.RequestGunType = weaponType;
+
+			if (weaponInHands)
+				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Control.Weapon.LastGunType = weaponType;
+
+			if (weaponType < LaraWeaponType::Shotgun)
+			{
+				UndrawPistolMesh(*_moveable, lara->Control.Weapon.LastGunType, true);
+				UndrawPistolMesh(*_moveable, lara->Control.Weapon.LastGunType, false);
+			}
+			else
+			{
+				UndrawShotgunMeshes(*_moveable, lara->Control.Weapon.LastGunType);
+			}
+		}
 		break;
 	}
 }
-
 
 /// Get player weapon ammo type.
 // @function LaraObject:GetAmmoType
@@ -324,7 +351,7 @@ int LaraObject::GetAmmoType() const
 
 	if (!ammoType.has_value())
 	{
-		TENLog("GetAmmoType() error; no ammo type.", LogLevel::Warning, LogConfig::All);
+		TENLog("GetAmmoType error; no ammo type.", LogLevel::Warning, LogConfig::All);
 		ammoType = PlayerAmmoType::None;
 	}
 
@@ -416,7 +443,7 @@ bool LaraObject::IsTorchLit() const
 //	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
 void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<InputActionID> actionID) const
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID) const
 {
 	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
 	auto convertedOffsetConstraintMin = ValueOr<Vec3>(offsetConstraintMin, Vec3(-BLOCK(0.25f), -BLOCK(0.5f), 0.0f));
@@ -424,7 +451,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
 	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
 	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
-	auto convertedActionID = ValueOr<InputActionID>(actionID, In::Action);
+	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
 
 	auto interactionBasis = ObjectCollisionBounds
 	{
@@ -473,6 +500,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 // @tparam[opt=Vec3(256&#44; 0&#44; 512)] Vec3 maxOffsetConstraint Maximum relative offset constraint.
 // @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
 // @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
+// @treturn bool Returns true if the player is inside the specified bounds.
 bool LaraObject::TestInteraction(const Moveable& mov,
 								 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 								 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const

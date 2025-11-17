@@ -125,8 +125,10 @@ namespace TEN::Entities::Creatures::TR3
 				creature->Enemy = nullptr;
 				int minDistance = INT_MAX;
 
-				for (auto& currentCreature : ActiveCreatures)
+				for (auto creatureIndex : ActiveCreatures)
 				{
+					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 						continue;
 
@@ -362,8 +364,10 @@ namespace TEN::Entities::Creatures::TR3
 						creature->Enemy->RoomNumber = NO_VALUE;
 						creature->Enemy->CarriedItem = NO_VALUE;
 
-						for (auto& currentCreature : ActiveCreatures)
+						for (auto creatureIndex : ActiveCreatures)
 						{
+							auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 							if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 								continue;
 
