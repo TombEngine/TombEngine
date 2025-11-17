@@ -69,7 +69,7 @@ namespace TEN::Effects::Hair
 				auto& nextSegment = Segments[i + 1];
 
 				// NOTE: Joint offset determines segment length.
-				auto jointOffset = GetJointOffset(ObjectID, i, true);
+				auto jointOffset = GetJointOffset(ObjectID, i);
 
 				worldMatrix = Matrix::CreateTranslation(segment.Position);
 				worldMatrix = Matrix::CreateFromQuaternion(segment.Orientation) * worldMatrix;
@@ -113,8 +113,8 @@ namespace TEN::Effects::Hair
 				worldMatrix = Matrix::CreateFromQuaternion(prevSegment.Orientation) * worldMatrix;
 
 				auto jointOffset = (i == (Segments.size() - 1)) ?
-					GetJointOffset(ObjectID, (i - 1) - 1, true) :
-					GetJointOffset(ObjectID, (i - 1), true);
+					GetJointOffset(ObjectID, (i - 1) - 1) :
+					GetJointOffset(ObjectID, (i - 1));
 
 				worldMatrix = Matrix::CreateTranslation(jointOffset) * worldMatrix;
 
@@ -354,7 +354,7 @@ namespace TEN::Effects::Hair
 			// Initialize segments.
 			for (auto& segment : unit.Segments)
 			{
-				segment.Position = GetJointOffset(objectID, 0, true);
+				segment.Position = GetJointOffset(objectID, 0);
 				segment.Velocity = Vector3::Zero;
 				segment.Orientation = DEFAULT_ORIENT.ToQuaternion();
 			}

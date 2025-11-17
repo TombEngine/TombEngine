@@ -3,7 +3,25 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.10]
+## [Version 1.10.1]
+
+### New features
+* Added silent mode for CLASSIC_ROLLINGBALL (OCB 1).
+
+### Bug fixes
+* Fixed EARTHQUAKE object not working.
+* Fixed FIRE_PENDULUM crashing the game.
+* Fixed CLASSIC_ROLLINGBALL continuing to animate when Lara is standing on a trigger for it.
+* Fixed interaction highlighter not appearing for SEARCH_OBJECT objects.
+* Fixed fireflies not interpolating in high framerate mode and not emitting dynamic lights.
+* Fixed emissive materials not fading into distance fog.
+* Fixed subtractive sprites not rendering correctly.
+* Fixed dynamic lighting for flat surfaces with miscalculated normals.
+
+### Lua API changes
+* Added optional type argument for `Sound.IsAudioTrackPlaying` function.
+
+## [Version 1.10](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.10) - 2025-11-09
 
 ### New features
 * Added material system with support for normal, specular, roughness, emissive, parallax and ambient occlusion maps.
@@ -30,12 +48,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed several collision issues for TRAIN object.
 * Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed wall embeddings after jumping on top of hard static meshes aligned to walls.
+* Fixed occasional problems with grabbing ledges after doing backjump onto slopes.
 * Fixed dying while landing into shallow water after freefall.
 * Fixed rapids drowning animation not triggering after freefall.
 * Fixed firearm targeting alignment biased to the left side.
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
 * Fixed shatters not activating heavy triggers in rare occasions.
+* Fixed room flickering after activating a flipmap in specific portal setups.
 * Fixed original game issue with multiple burning torches not working correctly.
 * Fixed original game issue where enemies could shoot and be targeted through objects and static meshes.
 * Fixed original game issues with vehicle collision near crawlspaces and stacked rooms.
@@ -45,18 +65,27 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
+* Fixed incorrect draw order of alpha-blended room geometry.
 * Fixed rendering issues with some static meshes if same level file is reused for the title.
 * Fixed intense GPU usage when engine window is minimized.
 * Fixed wrong highlights when sun lights were used in mirror setups.
+* Fixed incorrect specular highlight for spotlights.
 * Fixed SSAO applied multiple times when additive surfaces are present in scene.
 * Fixed vertex effects (glow and move) not being rendered at full framerate.
+* Fixed incorrect roll values in flyby cameras.
 * Fixed HUD elements being drawn during cinematic flybys or in title level.
 
 ### Lua API changes
 * Added detection and recovery of infinite loops and deadlocks caused by mistakes in user scripts.
-* Added `Moveable:ShowInteractionHighlight` method.
+* Added `Moveable:GetVisible` and `Moveable:ShowInteractionHighlight` methods.
+* Added `DisplaySprite:GetFlags` method.
 * Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
 * Added holster mesh update for `Lara:SetWeaponType` method and make `activate` parameter false by default.
+* Added `Type.IsEnumValue` helper function to determine if particular value belongs to an enumeration.
+* Added `DisplayStringOption.VERTICAL_CENTER` flag for timer labels.
+* Fixed `Moveable:GetMeshVisible` method returning true even if whole moveable is invisible.
+* Fixed `Moveable:SetOnCollidedWithRoom` callback failing beyond the distance of 32 sectors.
+* Fixed errors while spawning climbable `Moveable` objects.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
 
 ## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17
