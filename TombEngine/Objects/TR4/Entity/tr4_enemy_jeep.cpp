@@ -71,8 +71,8 @@ namespace TEN::Entities::TR4
 
 		InitializeCreature(itemNumber);
 
-		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 9;
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.AnimNumber = 9;
+		item->Animation.FrameNumber = 0;
 		item->Animation.ActiveState = 0;
 		item->Animation.TargetState = 0;
 		item->MeshBits = 0xFFFDBFFF;

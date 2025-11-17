@@ -555,12 +555,12 @@ namespace TEN::Entities::Vehicles
 			minecartItem->Pose.Translate(minecartItem->Pose.Orientation.y, minecartItem->Animation.Velocity.z);
 		}
 
-		minecart->FloorHeightMiddle = GetVehicleHeight(minecartItem, 0, 0, true, &Vector3i::Zero);
+		minecart->FloorHeightMiddle = GetVehicleHeight(minecartItem, 0, 0, true, &Vector3i());
 
 		if (!minecart->VerticalVelocity)
 		{
 			minecartItem->Pose.Position.y = minecart->FloorHeightMiddle;
-			minecart->FloorHeightFront = GetVehicleHeight(minecartItem, CLICK(1), 0, false, &Vector3i::Zero);
+			minecart->FloorHeightFront = GetVehicleHeight(minecartItem, CLICK(1), 0, false, &Vector3i());
 			minecart->Gradient = minecart->FloorHeightMiddle - minecart->FloorHeightFront;
 			
 			if (minecart->FallTime > MINECART_FALL_DAMAGE_DELAY_TIME)

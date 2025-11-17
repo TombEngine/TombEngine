@@ -376,7 +376,7 @@ namespace TEN::Entities::Vehicles
 		if (skidooItem->Flags & IFLAG_INVISIBLE)
 		{
 			UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
-			AnimateItem(laraItem);
+			AnimateItem(*laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
 				ExplodeVehicle(laraItem, skidooItem);

@@ -1167,10 +1167,9 @@ bool IsCrouching(const ItemInfo* item)
 	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
 	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
 	{
-		int frameCount = g_Level.Anims[item->Animation.AnimNumber].frameEnd - g_Level.Anims[item->Animation.AnimNumber].frameBase;
-		int midpoint = frameCount * 0.75f;
-
-		if (item->Animation.FrameNumber <= g_Level.Anims[item->Animation.AnimNumber].frameBase + midpoint)
+		const auto& anim = GetAnimData(*item);
+		int midpoint = anim.EndFrameNumber * 0.75f;
+		if (item->Animation.FrameNumber <= midpoint)
 			crouching = true;
 	}
 

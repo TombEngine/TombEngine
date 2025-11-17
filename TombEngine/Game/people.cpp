@@ -191,8 +191,7 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 
 void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBoneNumber, int deathAnimNumber, int damage, SOUND_EFFECTS soundID)
 {
-	auto animNumber = item.Animation.AnimNumber - Objects[item.Animation.AnimObjectID].animIndex;
-	if (animNumber != deathAnimNumber)
+	if (item.Animation.AnimNumber != deathAnimNumber)
 		return;
 
 	// No more shots left.
@@ -201,8 +200,8 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 
 	const auto& anim = GetAnimData(item);
 
-	int frameCount = anim.frameEnd - anim.frameBase;
-	int frameNumber = item.Animation.FrameNumber - anim.frameBase;
+	int frameCount = anim.EndFrameNumber;
+	int frameNumber = item.Animation.FrameNumber;
 
 	// Calculate frame range when final attack may occur. It is limited to last third of the animation.
 	int frameBase = frameCount - (frameCount / 3);

@@ -57,6 +57,11 @@ BoundingOrientedBox ItemInfo::GetObb() const
 		Pose.Orientation.ToQuaternion());
 }
 
+std::vector<BoundingSphere> ItemInfo::GetSpheres() const
+{
+	return g_Renderer.GetSpheres(Index);
+}
+
 bool ItemInfo::TestOcb(short ocbFlags) const
 {
 	return ((TriggerFlags & ocbFlags) == ocbFlags);
@@ -206,11 +211,6 @@ bool ItemInfo::IsBridge() const
 	return Contains(BRIDGE_OBJECT_IDS, ObjectNumber);
 }
 
-std::vector<BoundingSphere> ItemInfo::GetSpheres() const
-{
-	return g_Renderer.GetSpheres(Index);
-}
-
 ItemInfo* ItemHandler::Get() const
 {
 	if (g_Level.Items.empty() || _index == NO_VALUE)
@@ -269,11 +269,6 @@ bool TestState(int refState, const std::vector<int>& stateList)
 	}
 
 	return false;
-}
-
-std::vector<BoundingSphere> ItemInfo::GetSpheres() const
-{
-	return g_Renderer.GetSpheres(Index);
 }
 
 static void GameScriptHandleKilled(short itemNumber, bool destroyed)

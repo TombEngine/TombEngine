@@ -881,7 +881,7 @@ namespace TEN::Renderer
 										auto offset = Vector3::Zero;
 
 										for (int b = 1; b < vertex.BoneIndex[w]; b++)
-											offset += GetJointOffset((GAME_OBJECT_ID)MoveablesIds[i], b, true);
+											offset += GetJointOffset((GAME_OBJECT_ID)MoveablesIds[i], b);
 
 										vertex.Position += offset * (vertex.BoneWeight[w] / (float)UCHAR_MAX);
 									}
