@@ -473,7 +473,10 @@ void StartServiceObjects(ObjectInfo* object)
 
 	object = &Objects[ID_EARTHQUAKE];
 	if (object->loaded)
+	{
+		object->control = EarthquakeControl;
 		object->Hidden = true;
+	}
 
 	object = &Objects[ID_KILL_ALL_TRIGGERS];
 	if (object->loaded)

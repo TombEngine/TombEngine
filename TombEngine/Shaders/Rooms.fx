@@ -102,7 +102,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
     float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
-    normal = normalize(mul(normal, TBN));
+    normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
 	output.Color = Texture.Sample(Sampler, input.UV);
 	DoAlphaTest(output.Color);

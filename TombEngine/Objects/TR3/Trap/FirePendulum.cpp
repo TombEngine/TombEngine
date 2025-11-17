@@ -15,9 +15,12 @@ using namespace TEN::Effects::Items;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto PENDULUM_FIRE_FOG_DENSITY = 15;
-	constexpr auto PENDULUM_FIRE_FOG_RADIUS = 4;
-	constexpr auto PENDULUM_FLAME_SPARK_LENGHT = 190;
+	constexpr auto PENDULUM_FIRE_FOG_DENSITY   = 15;
+	constexpr auto PENDULUM_FIRE_FOG_RADIUS    = 4;
+	constexpr auto PENDULUM_FLAME_SPARK_LENGTH = 80;
+	constexpr auto PENDULUM_FLAME_SPARK_COUNT  = 3;
+	constexpr auto PENDULUM_FLAME_SPARK_SPREAD = 48;
+	constexpr auto PENDULUM_DAMAGE_VALUE       = 75;
 
 	const std::vector<unsigned int> FirePendulumHarmJoints = { 4, 5 };
 
@@ -45,14 +48,14 @@ namespace TEN::Entities::Traps
 		spark->fadeToBlack = 8;
 
 		spark->extras = 0;
-		spark->life = Random::GenerateInt(1,15);
+		spark->life = Random::GenerateInt(1, 15);
 		spark->sLife = spark->life;
 
 		spark->xVel = (GetRandomControl() & 0x3F) - 32;
 		spark->yVel = -16 - (GetRandomControl() & 0xF);
 		spark->zVel = (GetRandomControl() & 0x3F) - 32;
 		spark->friction = 4;
-		spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_ITEM;
+		spark->flags = SP_SCALE | SP_DEF | SP_ROTATE;
 
 		if (GetRandomControl() & 1)
 		{
@@ -84,17 +87,19 @@ namespace TEN::Entities::Traps
 			s = {};
 			s.age = 1;
 			s.life = Random::GenerateFloat(5, 8);
-			s.friction = 0.05f;
-			s.gravity = 0.1f;
-			s.height = length + Random::GenerateFloat(16.0f, 22.0f);
-			s.width = length;
+			s.friction = 0.5f;
+			s.gravity = 0;
+			s.height = length;
+			s.width = Random::GenerateFloat(16.0f, 22.0f);
 			s.room = pos.RoomNumber;
-			s.pos = Vector3(pos.x + Random::GenerateFloat(-16, 16), pos.y + Random::GenerateFloat(6, 60), pos.z + Random::GenerateFloat(-16, 16));
+			s.pos = Vector3(pos.x + Random::GenerateFloat(-PENDULUM_FLAME_SPARK_SPREAD, PENDULUM_FLAME_SPARK_SPREAD),
+							pos.y + Random::GenerateFloat(-PENDULUM_FLAME_SPARK_SPREAD, PENDULUM_FLAME_SPARK_SPREAD),
+							pos.z + Random::GenerateFloat(-PENDULUM_FLAME_SPARK_SPREAD, PENDULUM_FLAME_SPARK_SPREAD));
 			float ang = TO_RAD(angle.y);
-			float vAng = -TO_RAD(angle.x);
-			Vector3 v = Vector3(sin(ang), vAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
+			float vAng = TO_RAD(angle.x);
+			auto v = Vector3(sin(ang), vAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
 			v.Normalize(v);
-			s.velocity = v * Random::GenerateFloat(32, 64);
+			s.velocity = v * Random::GenerateFloat(64, 128);
 
 			auto sourceColorR = std::clamp(color.x - 0.2f, 0.0f, 1.0f);
 			auto sourceColorG = std::clamp(color.y - 0.2f, 0.0f, 1.0f);
@@ -104,7 +109,7 @@ namespace TEN::Entities::Traps
 			s.destinationColor = Vector4(color.x, color.y, color.z, 0.5f);
 			s.active = true;
 		}
-	}    
+	}
 
 	void InitializeFirePendulum(short itemNumber)
 	{
@@ -142,9 +147,9 @@ namespace TEN::Entities::Traps
 			item.ItemFlags[PendulumFlags::FireColorGreen] == 0 &&
 			item.ItemFlags[PendulumFlags::FireColorBlue] == 0)
 		{
-				r = 51 - ((GetRandomControl() / 16) & 6);
-				g = 44 - ((GetRandomControl() / 64) & 6);
-				b = GetRandomControl() & 10;	
+			r = 51 - ((GetRandomControl() / 16) & 6);
+			g = 44 - ((GetRandomControl() / 64) & 6);
+			b = GetRandomControl() & 10;
 		}
 		else
 		{
@@ -163,9 +168,11 @@ namespace TEN::Entities::Traps
 
 		auto color = Color(r / (float)CHAR_MAX, g / (float)CHAR_MAX, b / (float)CHAR_MAX);
 
-		SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
+		if (item.TriggerFlags)
+			SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
+
 		TriggerPendulumFlame(itemNumber, pos, color);
-		TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGHT, 1, color);
+		TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGTH, PENDULUM_FLAME_SPARK_COUNT, color);
 		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, flameColor1, flameColor2);
 	}
 
@@ -189,7 +196,7 @@ namespace TEN::Entities::Traps
 		{
 			if (item->TouchBits.Test(FirePendulumHarmJoints[i]))
 			{
-				DoDamage(playerItem, abs(item->TriggerFlags));
+				DoDamage(playerItem, PENDULUM_DAMAGE_VALUE);
 
 				TriggerLaraBlood();
 

@@ -165,7 +165,7 @@ namespace TEN::Hud
 		auto position = itemBoundingBox.Center;
 		auto type = InteractionType::Undefined;
 		
-		bool checkDirection = false;
+		int checkDirectionDir = 0;
 		bool checkFacing = false;
 
 		// Decide on interaction highlight parameters based on object type.
@@ -187,7 +187,8 @@ namespace TEN::Hud
 		}
 		else if (item.Data.is<DOOR_DATA>())
 		{
-			checkDirection = item.ObjectNumber < ID_PUSHPULL_DOOR1 || item.ObjectNumber > ID_PUSHPULL_DOOR4;
+			checkFacing = true;
+			checkDirectionDir = (item.ObjectNumber >= ID_PUSHPULL_DOOR1 && item.ObjectNumber <= ID_KICK_DOOR4) ? 0 : 1;
 		}
 		else
 		{
@@ -201,10 +202,11 @@ namespace TEN::Hud
 
 			// HACK: Extend for other direction-agnostic objects if necessary.
 			checkFacing = item.ObjectNumber != ID_TIGHT_ROPE;
+			checkDirectionDir = (item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ? -1 : 0;
 		}
 
-		// Direction check to make sure objects are oriented towards each other.
-		if (checkDirection)
+		// Direction check to make sure objects are oriented towards each other (1) or in the same direction (-1).
+		if (checkDirectionDir)
 		{
 			auto playerYaw = TO_RAD(player.Pose.Orientation.y);
 			auto itemYaw = TO_RAD(item.Pose.Orientation.y);
@@ -214,7 +216,7 @@ namespace TEN::Hud
 			auto itemForward = Vector3(sin(itemYaw), 0.0f, cos(itemYaw));
 
 			// The objects face each other if their facing vectors are roughly opposite.
-			float facingDot = playerForward.Dot(-itemForward);
+			float facingDot = playerForward.Dot(-itemForward * checkDirectionDir);
 
 			if (facingDot < INTERACTION_ANGLE)
 				return;
