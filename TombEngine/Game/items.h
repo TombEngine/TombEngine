@@ -95,7 +95,8 @@ struct MoveableAnimData
 
 struct MoveableModelData
 {
-	int BaseMesh = 0;
+	int BaseMesh  = 0;
+	int SkinIndex = 0;
 
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators = {};
@@ -114,13 +115,10 @@ struct MoveableEffectData
 
 struct MoveableCallbackData
 {
-	int BaseMesh = 0;
-
-	int SkinIndex = NO_VALUE;
-	std::vector<int>		 MeshIndex = {};
-	std::vector<BoneMutator> Mutators  = {};
-
-	Vector4 Color = Vector4::Zero;
+	std::string OnKilled         = {};
+	std::string OnHit            = {};
+	std::string OnObjectCollided = {};
+	std::string OnRoomCollided   = {};
 };
 
 struct ItemInfo

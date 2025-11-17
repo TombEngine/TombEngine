@@ -48,6 +48,9 @@ using namespace DirectX::SimpleMath;
 // sol
 #include <sol.hpp>
 
+// spdlog
+#include <spdlog/fmt/fmt.h>
+
 // VLC
 #include <vlc/vlc.h>
 

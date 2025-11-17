@@ -28,10 +28,10 @@ namespace TEN::Animation
 
 	FixedMotionData AnimData::GetFixedMotion(int frameNumber) const
 	{
-		// NOTE: Must use non-zero frame count in this edge case.
+		// Ensure non-zero frame count. Animations with zero frames are considered valid.
 		unsigned int frameCount = std::max(1, EndFrameNumber);
 
-		// Calculate relative translation and curve alpha.
+		// Compute relative translation and curve alpha.
 		float alpha = (float)frameNumber / (float)frameCount;
 		auto translation = Vector3(FixedMotionCurveX.GetY(alpha), FixedMotionCurveY.GetY(alpha), FixedMotionCurveZ.GetY(alpha));
 
@@ -73,7 +73,7 @@ namespace TEN::Animation
 			}
 		}
 
-		// Calculate relative translation.
+		// Compute relative translation.
 		auto translation = Vector3::Zero;
 		if (hasTranslation)
 		{
@@ -89,7 +89,7 @@ namespace TEN::Animation
 				translation.z = rootTranslation.z;
 		}
 
-		// Calculate relative rotation.
+		// Compute relative rotation.
 		auto rot = EulerAngles::Identity;
 		if (hasRot)
 		{
@@ -322,7 +322,7 @@ namespace TEN::Animation
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
 
-		// Debug
+		// Debug.
 		if (item.IsLara())
 		{
 			PrintDebugMessage(std::string(std::string("Fixed motion: ") + ((fixedMotion.Translation != Vector3::Zero) ? "Yes" : "No")).c_str());
@@ -344,11 +344,11 @@ namespace TEN::Animation
 		if (animNumber == NO_VALUE)
 			animNumber = item.Animation.AnimNumber;
 
-		// Animation number mismatch; return early.
+		// Check for animation number mismatch; return early.
 		if (item.Animation.AnimNumber != animNumber)
 			return false;
 
-		// FAILSAFE: Frames beyond real end frame also count.
+		// FAILSAFE: Account for frames past real end frame.
 		const auto& anim = GetAnimData(item.Animation.AnimObjectID, animNumber);
 		return (item.Animation.FrameNumber >= anim.EndFrameNumber);
 	}
@@ -417,11 +417,11 @@ namespace TEN::Animation
 		// Run through state dispatches.
 		for (const auto& dispatch : anim.Dispatches)
 		{
-			// State ID mismatch; continue.
+			// Check for state ID mismatch.
 			if (dispatch.StateID != ((targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID))
 				continue;
 
-			// Test if current frame is within dispatch range.
+			// Check if current frame is within dispatch range.
 			if (TestAnimFrameRange(item, dispatch.FrameNumberLow, dispatch.FrameNumberHigh))
 				return &dispatch;
 		}
@@ -481,8 +481,8 @@ namespace TEN::Animation
 
 	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID)
 	{
-		const auto& object = Objects[objectID];
-		const int* bonePtr = &g_Level.Bones[object.boneIndex + (boneID * 4)];
+		const auto& object  = Objects[objectID];
+		const int*  bonePtr = &g_Level.Bones[object.boneIndex + (boneID * 4)];
 
 		return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
 	}
@@ -494,23 +494,22 @@ namespace TEN::Animation
 
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2D& blendCurve)
 	{
-		// Animation already set; return early.
+		// Check if animation is already set.
 		if (item.Animation.AnimObjectID == animObjectID &&
 			item.Animation.AnimNumber == animNumber &&
-			item.Animation.FrameNumber == frameNumber)
+			item.Animation.FrameNumber  == frameNumber)
 		{
 			return;
 		}
 
 		const auto& animObject = Objects[animObjectID];
 
-		// Animation missing; return early.
+		// Check if animation is missing.
 		if (animNumber < 0 || animNumber >= animObject.Animations.size())
 		{
-			TENLog(
-				"Attempted to set missing animation " + std::to_string(animNumber) +
-				((animObjectID == item.ObjectNumber) ? "" : (" from moveable " + GetObjectName(animObjectID))) +
-				" for object " + GetObjectName(item.ObjectNumber),
+			TENLog(fmt::format(
+				"Attempted to set missing animation {} {}{} for object {}.",
+				animNumber, (animObjectID == item.ObjectNumber) ? "" : (" from moveable " + GetObjectName(animObjectID)), GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
 
 			return;
@@ -518,14 +517,13 @@ namespace TEN::Animation
 
 		const auto& anim = GetAnimData(animObject, animNumber);
 
-		// Frame missing; return early.
+		
+		// Check if frame is missing.
 		if (frameNumber < 0 || frameNumber > anim.EndFrameNumber)
 		{
-			TENLog(
-				"Attempted to set missing frame " + std::to_string(frameNumber) +
-				" from animation " + std::to_string(animNumber) +
-				((animObjectID == item.ObjectNumber) ? "" : (" from moveable " + GetObjectName(animObjectID))) +
-				" for object " + GetObjectName(item.ObjectNumber),
+			TENLog(fmt::format(
+				"Attempted to set missing frame {} from animation {}{} for object {}.",
+				frameNumber, animNumber, (animObjectID == item.ObjectNumber) ? "" : (" from moveable " + GetObjectName(animObjectID)), GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
 
 			return;

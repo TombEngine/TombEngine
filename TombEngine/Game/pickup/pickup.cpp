@@ -1024,7 +1024,7 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 		if (item->Pose.Position.x != staticObj.Pose.Position.x || item->Pose.Position.z != staticObj.Pose.Position.z)
 			continue;
 
-		const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
+		const auto& bounds = GetAnimData(*item).Frames[item->Animation.FrameNumber].BoundingBox;
 		auto& bBox = GetBoundsAccurate(staticObj, false);
 
 		if (bounds.X1 <= bBox.X2 && bounds.X2 >= bBox.X1 &&

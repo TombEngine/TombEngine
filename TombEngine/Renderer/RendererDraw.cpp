@@ -206,12 +206,12 @@ namespace TEN::Renderer
 			_stItem.AmbientLight = item->AmbientLight;
 			_stItem.Skinned = (int)skinMode;
 
-			for (int k = 0; k < MAX_BONES; k++)
+			for (int k = 0; k < BONE_COUNT_MAX; k++)
 				_stItem.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
-				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
+				for (int m = 0; m < obj.AnimTransforms.size(); m++)
 					_stItem.BonesMatrices[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
 				UpdateConstantBuffer(_stItem, _cbItem);
 
@@ -232,7 +232,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimTransforms.size());
 			UpdateConstantBuffer(_stItem, _cbItem);
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
@@ -2553,14 +2553,14 @@ namespace TEN::Renderer
 
 			if (skinMode == SkinningMode::Full)
 			{
-				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
+				for (int m = 0; m < moveableObj.AnimTransforms.size(); m++)
 					_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
 				UpdateConstantBuffer(_stItem, _cbItem);
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(_stItem, _cbItem);
 		}
 
@@ -3855,7 +3855,7 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 		
 		UpdateConstantBuffer(_stItem, _cbItem);

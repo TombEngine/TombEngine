@@ -588,14 +588,18 @@ bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
-	if (!(bounds.Z2 != 0 || bounds.Z1 != 0 || bounds.X1 != 0 || bounds.X2 != 0 || bounds.Y1 != 0 || bounds.Y2 != 0))
+	if (!(bounds.Z2 != 0 || bounds.Z1 != 0 ||
+		  bounds.X1 != 0 || bounds.X2 != 0 ||
+		  bounds.Y1 != 0 || bounds.Y2 != 0))
+	{
+		return false;
+	}
+
+	const auto& itemBounds = GetAnimData(*item).Frames[item->Animation.FrameNumber].BoundingBox;
+	if ((mesh.Pose.Position.y + bounds.Y2) <= (item->Pose.Position.y + itemBounds.Y1))
 		return false;
 
-	const auto& itemBounds = GetClosestKeyframe(*item).BoundingBox;
-	if (mesh.Pose.Position.y + bounds.Y2 <= item->Pose.Position.y + itemBounds.Y1)
-		return false;
-
-	if (mesh.Pose.Position.y + bounds.Y1 >= item->Pose.Position.y + itemBounds.Y2)
+	if ((mesh.Pose.Position.y + bounds.Y1) >= (item->Pose.Position.y + itemBounds.Y2))
 		return false;
 
 	float sinY = phd_sin(mesh.Pose.Orientation.y);

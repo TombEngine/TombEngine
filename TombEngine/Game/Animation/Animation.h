@@ -5,10 +5,10 @@
 
 using namespace TEN::Math;
 
-enum GAME_OBJECT_ID : short;
-class EulerAngles;
-class Pose;
-class Vector3i;
+enum   GAME_OBJECT_ID : short;
+class  EulerAngles;
+class  Pose;
+class  Vector3i;
 struct CreatureBiteInfo;
 struct ItemInfo;
 struct ObjectInfo;
@@ -17,22 +17,21 @@ namespace TEN::Animation
 {
 	enum class AnimFlags
 	{
-		None = 0,
-
+		None                   = 0,
 		RootMotionTranslationX = 1 << 0,
 		RootMotionTranslationY = 1 << 1,
 		RootMotionTranslationZ = 1 << 2,
-		RootMotionRotationX	   = 1 << 3,
-		RootMotionRotationY	   = 1 << 4,
-		RootMotionRotationZ	   = 1 << 5,
-		RootMotionCycle		   = 1 << 6
+		RootMotionRotationX    = 1 << 3,
+		RootMotionRotationY    = 1 << 4,
+		RootMotionRotationZ    = 1 << 5,
+		RootMotionCycle        = 1 << 6
 	};
 
 	struct FrameData
 	{
-		Vector3					RootPosition	 = Vector3::Zero;
+		Vector3                 RootPosition     = Vector3::Zero;
 		std::vector<Quaternion> BoneOrientations = {};
-		BoundingBox				Aabb			 = DirectX::BoundingBox();
+		BoundingBox             Aabb             = DirectX::BoundingBox();
 
 		// Deprecated.
 		GameBoundingBox BoundingBox = GameBoundingBox::Zero;
@@ -40,61 +39,60 @@ namespace TEN::Animation
 
 	struct StateDispatchData
 	{
-		int StateID				= 0;
-		int FrameNumberLow		= 0;
-		int FrameNumberHigh		= 0;
-		int NextAnimNumber		= 0;
+		int StateID             = 0;
+		int FrameNumberLow      = 0;
+		int FrameNumberHigh     = 0;
+		int NextAnimNumber      = 0;
 		int NextFrameNumberLow  = 0;
 		int NextFrameNumberHigh = 0;
 
-		int			  BlendFrameCount = 0;
-		BezierCurve2D BlendCurve	  = BezierCurve2D::Zero;
+		int           BlendFrameCount = 0;
+		BezierCurve2D BlendCurve      = BezierCurve2D::Zero;
 	};
 
 	struct FixedMotionData
 	{
 		Vector3 Translation = Vector3::Zero;
-		float	CurveAlpha	= 0.0f;
+		float   CurveAlpha  = 0.0f;
 	};
 
 	struct RootMotionData
 	{
-		Vector3		Translation = Vector3::Zero;
-		EulerAngles Rotation	= EulerAngles::Identity;
+		Vector3     Translation = Vector3::Zero;
+		EulerAngles Rotation    = EulerAngles::Identity;
 	};
 
 	struct AnimData
 	{
 		using AnimCommandPtr = std::unique_ptr<AnimCommand>;
 
-		int StateID			= 0;
-		int EndFrameNumber	= 0;
-		int NextAnimNumber	= 0;
+		int StateID         = 0;
+		int EndFrameNumber  = 0;
+		int NextAnimNumber  = 0;
 		int NextFrameNumber = 0;
 
-		int			  BlendFrameCount = 0;
-		BezierCurve2D BlendCurve	  = BezierCurve2D::Zero;
+		int           BlendFrameCount = 0;
+		BezierCurve2D BlendCurve      = BezierCurve2D::Zero;
 
 		BezierCurve2D FixedMotionCurveX = BezierCurve2D::Zero;
 		BezierCurve2D FixedMotionCurveY = BezierCurve2D::Zero;
 		BezierCurve2D FixedMotionCurveZ = BezierCurve2D::Zero;
 
-		std::vector<FrameData>		   Frames	  = {};
+		std::vector<FrameData>         Frames     = {};
 		std::vector<StateDispatchData> Dispatches = {};
-		std::vector<AnimCommandPtr>	   Commands	  = {};
-
-		int Flags = (int)AnimFlags::None;
+		std::vector<AnimCommandPtr>    Commands   = {};
+		int                            Flags      = (int)AnimFlags::None;
 
 		FixedMotionData GetFixedMotion(int frameNumber) const;
-		RootMotionData	GetRootMotion(int frameNumber) const;
-		RootMotionData	GetRootMotionCounteraction(int frameNumber) const;
+		RootMotionData  GetRootMotion(int frameNumber) const;
+		RootMotionData  GetRootMotionCounteraction(int frameNumber) const;
 	};
 
 	struct BoneMutator
 	{
-		Vector3		Offset	 = Vector3::Zero;
+		Vector3     Offset   = Vector3::Zero;
 		EulerAngles Rotation = EulerAngles::Identity;
-		Vector3		Scale	 = Vector3::One;
+		Vector3     Scale    = Vector3::One;
 
 		bool IsEmpty() const;
 	};
@@ -123,17 +121,17 @@ namespace TEN::Animation
 
 	const StateDispatchData* GetStateDispatch(const ItemInfo& item, int targetStateID = NO_VALUE);
 
-	int	  GetNextAnimState(const ItemInfo& item);
-	int	  GetNextAnimState(GAME_OBJECT_ID objectID, int animNumber);
-	int	  GetFrameCount(GAME_OBJECT_ID objectID, int animNumber); // TODO: Not needed? Not the "real" frame count anyway since 0 isn't counted.
-	int	  GetFrameCount(const ItemInfo& item);
+	int   GetNextAnimState(const ItemInfo& item);
+	int   GetNextAnimState(GAME_OBJECT_ID objectID, int animNumber);
+	int   GetFrameCount(GAME_OBJECT_ID objectID, int animNumber); // TODO: Not needed? Not the "real" frame count anyway since 0 isn't counted.
+	int   GetFrameCount(const ItemInfo& item);
 	float GetEffectiveGravity(float verticalVel);
 
 	Vector3i   GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 	Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
-	Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int boneID);
+	Vector3    GetJointOffset(GAME_OBJECT_ID objectID, int boneID);
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID);
 
 	// Setters
