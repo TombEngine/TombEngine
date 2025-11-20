@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 * Added no shake mode for CLASSIC_ROLLINGBALL (OCB 1).
+* Remove hardcoded camera when using the turn switch.
 
 ### Bug fixes
 * Fixed FIREROPE and EARTHQUAKE objects not working.
