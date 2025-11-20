@@ -114,8 +114,8 @@ namespace TEN::Entities::Generic
 	{
 		_isEnabled = false;
 
-		// TODO: Also destroy attractor here when they're ready. Maybe contain in std::optional?
 		DeassignSectors(item);
+		_attractor.DetachAllPlayers();
 
 		// Remove from previous room bridge tree.
 		auto& prevRoom = g_Level.Rooms[_prevRoomNumber];
@@ -179,7 +179,48 @@ namespace TEN::Entities::Generic
 
 	void BridgeObject::InitializeAttractor(const ItemInfo& item)
 	{
-		// TODO: Implement when attractors are complete.
+		constexpr auto TILT_STEP = CLICK(1);
+
+		// Determine tilt offset.
+		auto offset = Vector3::Zero;
+		switch (item.ObjectNumber)
+		{
+		default:
+		case ID_BRIDGE_TILT1:
+			offset = Vector3(0.0f, CLICK(1), 0.0f);
+			break;
+
+		case ID_BRIDGE_TILT2:
+			offset = Vector3(0.0f, CLICK(2), 0.0f);
+			break;
+
+		case ID_BRIDGE_TILT3:
+			offset = Vector3(0.0f, CLICK(3), 0.0f);
+			break;
+
+		case ID_BRIDGE_TILT4:
+			offset = Vector3(0.0f, CLICK(4), 0.0f);
+			break;
+		}
+
+		// Get AABB corners.
+		auto bounds = GameBoundingBox(&item);
+		auto aabb = BoundingBox(bounds.GetCenter() - (bounds.GetExtents() * (item.Pose.Scale - Vector3::One)), bounds.GetExtents() * item.Pose.Scale);
+		auto corners = std::array<Vector3, BoundingBox::CORNER_COUNT>{};
+		aabb.GetCorners(corners.data());
+
+		// Collect attractor points. Traces only top plane of bridge.
+		auto points = std::vector<Vector3>
+		{
+			corners[0],
+			corners[4],
+			corners[5] + offset,
+			corners[1] + offset,
+			corners[0]
+		};
+
+		// Set attractor.
+		_attractor = AttractorObject(AttractorType::Edge, item.Pose.Position.ToVector3(), item.RoomNumber, item.Pose.Orientation.ToQuaternion(), points);
 	}
 
 	void BridgeObject::UpdateCollisionMesh(const ItemInfo& item)
@@ -197,9 +238,15 @@ namespace TEN::Entities::Generic
 
 	void BridgeObject::UpdateAttractor(const ItemInfo& item)
 	{
-		// TODO: Uncomment when attractors are complete.
-		_attractor.SetPosition(item.Pose.Position.ToVector3());
-		_attractor.SetOrientation(item.Pose.Orientation.ToQuaternion());
+		if (item.Pose.Scale != _prevTransform.Scale)
+		{
+			InitializeAttractor(item);
+		}
+		else
+		{
+			_attractor.SetPosition(item.Pose.Position.ToVector3());
+			_attractor.SetOrientation(item.Pose.Orientation.ToQuaternion());
+		}
 	}
 
 	void BridgeObject::UpdateSectorAssignments(const ItemInfo& item)

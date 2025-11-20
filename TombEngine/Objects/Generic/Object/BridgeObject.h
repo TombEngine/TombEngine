@@ -19,26 +19,26 @@ namespace TEN::Entities::Generic
 
 		bool _isEnabled = false;
 
-		CollisionMesh	_collisionMesh = CollisionMesh();
-		AttractorObject _attractor	   = AttractorObject();
+		CollisionMesh   _collisionMesh = CollisionMesh();
+		AttractorObject _attractor     = AttractorObject();
 
-		Pose				_prevTransform	= Pose::Zero;
-		int					_prevRoomNumber = 0;
-		BoundingBox			_prevAabb		= BoundingBox();
-		BoundingOrientedBox _prevObb		= BoundingOrientedBox();
+		Pose                _prevTransform  = Pose::Zero;
+		int                 _prevRoomNumber = 0;
+		BoundingBox         _prevAabb       = BoundingBox();
+		BoundingOrientedBox _prevObb        = BoundingOrientedBox();
 
 	public:
 		// Routines
 
-		std::function<std::optional<int>(const ItemInfo& item, const Vector3i& pos)> GetFloorHeight	  = nullptr;
+		std::function<std::optional<int>(const ItemInfo& item, const Vector3i& pos)> GetFloorHeight   = nullptr;
 		std::function<std::optional<int>(const ItemInfo& item, const Vector3i& pos)> GetCeilingHeight = nullptr;
-		std::function<int(const ItemInfo& item)>									 GetFloorBorder	  = nullptr;
-		std::function<int(const ItemInfo& item)>									 GetCeilingBorder = nullptr;
+		std::function<int(const ItemInfo& item)>                                     GetFloorBorder   = nullptr;
+		std::function<int(const ItemInfo& item)>                                     GetCeilingBorder = nullptr;
 
 		// Getters
 
 		const CollisionMesh& GetCollisionMesh() const;
-		AttractorObject&	 GetAttractor();
+		AttractorObject&     GetAttractor();
 
 		// Inquirers
 
@@ -66,5 +66,5 @@ namespace TEN::Entities::Generic
 	};
 
 	const BridgeObject& GetBridgeObject(const ItemInfo& item);
-	BridgeObject&		GetBridgeObject(ItemInfo& item);
+	BridgeObject&       GetBridgeObject(ItemInfo& item);
 }
