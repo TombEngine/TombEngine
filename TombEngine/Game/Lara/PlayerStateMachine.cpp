@@ -162,12 +162,12 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TIGHTROPE_RECOVER_BALANCE] = std::pair(lara_as_null, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_HORIZONTAL_BAR_SWING] = std::pair(lara_as_horizontal_bar_swing, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_HORIZONTAL_BAR_LEAP] = std::pair(lara_as_horizontal_bar_leap, lara_default_col);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_1] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_RADIO_START] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_RADIO_LISTENING] = std::pair(lara_as_controlled_no_look, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_RADIO_OFF] = std::pair(lara_as_controlled_no_look, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_2] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_USE_KEYCARD] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_UNKNOWN_3] = std::pair(lara_as_null, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_4] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_VALVE_TURN] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_UNKNOWN_5] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_PICKUP_FROM_CHEST] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_LADDER_TO_CROUCH] = std::pair(lara_as_null, lara_void_func);

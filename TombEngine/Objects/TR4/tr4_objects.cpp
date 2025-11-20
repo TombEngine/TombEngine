@@ -44,6 +44,7 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
+#include "Objects/TR4/Object/FireRope.h"
 #include "Objects/TR4/Object/StatuePlinth.h"
 #include "Objects/TR4/Object/WraithTrap.h"
 #include "Objects/TR4/Object/tr4_element_puzzle.h"
@@ -573,6 +574,14 @@ namespace TEN::Entities
 			obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 			obj->SetBoneRotationFlags(7, ROT_X | ROT_Y);
 			obj->SetHitEffect();
+		}
+
+		obj = &Objects[ID_FIREROPE];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFireRope;
+			obj->control = FireRopeControl;
+			obj->collision = FireRopeCollision;
 		}
 
 		obj = &Objects[ID_LOCUSTS_EMITTER];

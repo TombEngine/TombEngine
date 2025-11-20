@@ -348,7 +348,7 @@ namespace TEN::Scripting::View
 		// @treturn Rotation Rotation at the given progress point.
 		tableView.set_function(ScriptReserved_GetFlybyRotation, &GetFlybyRotation);
 
-		/// Reset object camera back to Lara and deactivate object camera.
+		/// Reset object camera back to Lara and deactivate object camera. Can be used after @{Objects.Moveable.AttachObjCamera}.
 		//@function ResetObjCamera
 		tableView.set_function(ScriptReserved_ResetObjCamera, &ResetObjCamera);
 

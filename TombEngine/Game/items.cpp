@@ -402,6 +402,7 @@ void KillItem(short const itemNumber)
 			
 			auto& room = g_Level.Rooms[item->RoomNumber];
 			room.Bridges.Remove(item->Index);
+			bridge.Disable(*item);
 		}
 
 		GameScriptHandleKilled(itemNumber, true);

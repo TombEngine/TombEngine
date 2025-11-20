@@ -1495,7 +1495,9 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 	auto* lara = GetLaraInfo(item);
 	auto& settings = g_GameFlow->GetSettings()->Animations;
 
-	if (lara->Control.HandStatus != HandStatus::Free)
+	bool torchInHand = lara->Control.Weapon.GunType == LaraWeaponType::Torch;
+
+	if (lara->Control.HandStatus != HandStatus::Free && !torchInHand)
 		return std::nullopt;
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && lara->Context.WaterSurfaceDist < -CLICK(3))
@@ -1506,17 +1508,6 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 	// Attempt ledge vault.
 	if (TestValidLedge(item, coll))
 	{
-		// Vault to crouch up one step.
-		vaultResult = TestLaraVault1StepToCrouch(item, coll);
-		if (vaultResult.has_value())
-		{
-			vaultResult->TargetState = LS_VAULT_1_STEP_CROUCH;
-			if (!TestStateDispatch(*item, vaultResult->TargetState))
-				return std::nullopt;
-
-			return vaultResult;
-		}
-
 		// Vault to stand up two steps.
 		vaultResult = TestLaraVault2Steps(item, coll);
 		if (vaultResult.has_value())
@@ -1528,22 +1519,37 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 			return vaultResult;
 		}
 
-		// Vault to crouch up two steps.
-		vaultResult = TestLaraVault2StepsToCrouch(item, coll);
-		if (vaultResult.has_value() && settings.CrawlExtended)
+		// Vault to stand up three steps.
+		vaultResult = TestLaraVault3Steps(item, coll);
+		if (vaultResult.has_value())
 		{
-			vaultResult->TargetState = LS_VAULT_2_STEPS_CROUCH;
+			vaultResult->TargetState = LS_VAULT_3_STEPS;
 			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
 		}
 
-		// Vault to stand up three steps.
-		vaultResult = TestLaraVault3Steps(item, coll);
+		// All other vault tests are invalid with torch in hand.
+		if (torchInHand)
+			return std::nullopt;
+
+		// Vault to crouch up one step.
+		vaultResult = TestLaraVault1StepToCrouch(item, coll);
 		if (vaultResult.has_value())
 		{
-			vaultResult->TargetState = LS_VAULT_3_STEPS;
+			vaultResult->TargetState = LS_VAULT_1_STEP_CROUCH;
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
+				return std::nullopt;
+
+			return vaultResult;
+		}
+
+		// Vault to crouch up two steps.
+		vaultResult = TestLaraVault2StepsToCrouch(item, coll);
+		if (vaultResult.has_value() && settings.CrawlExtended)
+		{
+			vaultResult->TargetState = LS_VAULT_2_STEPS_CROUCH;
 			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
@@ -1578,7 +1584,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 
 	// Auto jump to monkey swing.
 	vaultResult = TestLaraAutoMonkeySwingJump(item, coll);
-	if (vaultResult.has_value() && g_Configuration.EnableAutoMonkeySwingJump)
+	if (vaultResult.has_value() && !torchInHand && g_Configuration.EnableAutoMonkeySwingJump)
 	{
 		vaultResult->TargetState = LS_AUTO_JUMP;
 		if (!TestStateDispatch(*item, vaultResult->TargetState))

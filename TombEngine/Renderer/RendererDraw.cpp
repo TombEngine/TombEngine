@@ -3687,9 +3687,10 @@ namespace TEN::Renderer
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Sprite->Type == object->Sprite->Type &&
 					view.TransparentObjectsToDraw[i].Sprite->SoftParticle == object->Sprite->SoftParticle &&
+					view.TransparentObjectsToDraw[i].Sprite->Sprite == object->Sprite->Sprite &&
 					view.TransparentObjectsToDraw[i].Sprite->Sprite->Texture == object->Sprite->Sprite->Texture &&
 					view.TransparentObjectsToDraw[i].Sprite->BlendMode == object->Sprite->BlendMode &&
-					_sortedPolygonsIndices.size() + 6 < MAX_TRANSPARENT_VERTICES)
+					_sortedPolygonsVertices.size() + 6 < MAX_TRANSPARENT_VERTICES)
 				{
 					RendererSortableObject* currentObject = &view.TransparentObjectsToDraw[i];
 					RendererSpriteToDraw* spr = currentObject->Sprite;
