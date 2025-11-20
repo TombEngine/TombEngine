@@ -26,13 +26,13 @@ namespace TEN::Animation
 		Underwater
 	};
 
-	class AnimCommand abstract
+	class IAnimCommand abstract
 	{
 	public:
 		virtual void Execute(ItemInfo& item, bool isFrameBased) const = 0;
 	};
 
-	class MoveRootCommand : public AnimCommand
+	class MoveRootCommand : public IAnimCommand
 	{
 	private:
 		const Vector3 _translation = Vector3::Zero;
@@ -42,7 +42,7 @@ namespace TEN::Animation
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 	
-	class JumpVelocityCommand : public AnimCommand
+	class JumpVelocityCommand : public IAnimCommand
 	{
 	private:
 		const Vector3 _jumpVelocity = Vector3::Zero;
@@ -52,21 +52,21 @@ namespace TEN::Animation
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 
-	class AttackReadyCommand : public AnimCommand
+	class AttackReadyCommand : public IAnimCommand
 	{
 	public:
 		AttackReadyCommand() {};
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 	
-	class DeactivateCommand : public AnimCommand
+	class DeactivateCommand : public IAnimCommand
 	{
 	public:
 		DeactivateCommand() {};
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 
-	class SoundEffectCommand : public AnimCommand
+	class SoundEffectCommand : public IAnimCommand
 	{
 	private:
 		const int					  _soundID		= 0;
@@ -78,7 +78,7 @@ namespace TEN::Animation
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 
-	class FlipEffectCommand : public AnimCommand
+	class FlipEffectCommand : public IAnimCommand
 	{
 	private:
 		const int _flipEffectID = 0;
@@ -89,7 +89,7 @@ namespace TEN::Animation
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
 	};
 
-	class DisableInterpolationCommand : public AnimCommand
+	class DisableInterpolationCommand : public IAnimCommand
 	{
 	private:
 		const int _frameNumber = 0;

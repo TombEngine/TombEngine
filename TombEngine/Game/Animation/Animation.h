@@ -64,7 +64,7 @@ namespace TEN::Animation
 
 	struct AnimData
 	{
-		using AnimCommandPtr = std::unique_ptr<AnimCommand>;
+		using AnimCommandPtr = std::unique_ptr<IAnimCommand>;
 
 		int StateID         = 0;
 		int EndFrameNumber  = 0;
