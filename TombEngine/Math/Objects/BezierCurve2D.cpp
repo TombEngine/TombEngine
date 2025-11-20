@@ -76,7 +76,6 @@ namespace TEN::Math
 
 			float delta = (point.x - x) / derivative.x;
 			alpha -= delta;
-
 			if (abs(delta) <= TOLERANCE)
 				break;
 		}
@@ -109,7 +108,7 @@ namespace TEN::Math
 		alpha = std::clamp(alpha, 0.0f, 1.0f);
 
 		auto points = _controlPoints;
-		unsigned int count = (int)_controlPoints.size() - 1;
+		int count = (int)_controlPoints.size() - 1;
 
 		// Calculate derivative control points.
 		for (int i = 0; i < count; i++)

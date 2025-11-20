@@ -66,14 +66,12 @@ namespace TEN::Animation
 	{
 		using AnimCommandPtr = std::unique_ptr<IAnimCommand>;
 
-		int StateID         = 0;
-		int EndFrameNumber  = 0;
-		int NextAnimNumber  = 0;
-		int NextFrameNumber = 0;
-
-		int           BlendFrameCount = 0;
-		BezierCurve2D BlendCurve      = BezierCurve2D::Zero;
-
+		int           StateID           = 0;
+		int           EndFrameNumber    = 0;
+		int           NextAnimNumber    = 0;
+		int           NextFrameNumber   = 0;
+		int           BlendFrameCount   = 0;
+		BezierCurve2D BlendCurve        = BezierCurve2D::Zero;
 		BezierCurve2D FixedMotionCurveX = BezierCurve2D::Zero;
 		BezierCurve2D FixedMotionCurveY = BezierCurve2D::Zero;
 		BezierCurve2D FixedMotionCurveZ = BezierCurve2D::Zero;
