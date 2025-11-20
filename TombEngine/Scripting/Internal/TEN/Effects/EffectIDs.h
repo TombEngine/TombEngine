@@ -5,7 +5,7 @@
 namespace TEN::Scripting::Effects
 {
 	/// Constants for effect IDs.
-	// To be used with @{Objects.Moveable.SetEffect} and @{Objects.Moveable.GetEffect} functions.
+	// To be used with @{Objects.Moveable.SetEffect}, @{Objects.Moveable.SetCustomEffect} and @{Objects.Moveable.GetEffect} functions.
 	// @enum Effects.EffectID
 	// @pragma nostrip
 
@@ -35,7 +35,7 @@ namespace TEN::Scripting::Effects
 		// @mem RED_IGNITE
 		{ "RED_IGNITE", EffectType::RedIgnite },
 
-		/// Custom effect.
+		/// Custom effect. Used when @{Objects.Moveable.SetCustomEffect} is called.
 		// @mem CUSTOM
 		{ "CUSTOM", EffectType::Custom },
 

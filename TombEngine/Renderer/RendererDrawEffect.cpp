@@ -1619,11 +1619,19 @@ namespace TEN::Renderer
 					}
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Identity;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
 
-					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					// Update only if parameters are actually changed to reduce overhead.
+					if (firstDebris ||
+						(_stInstancedStaticMeshBuffer.StaticMeshes[0].Color != deb.color ||
+						 _stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient != _rooms[deb.roomNumber].AmbientLight ||
+						 _stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode != (int)deb.lightMode))
+					{
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
+
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(matrix);

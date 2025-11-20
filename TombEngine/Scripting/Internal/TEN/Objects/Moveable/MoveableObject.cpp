@@ -1059,7 +1059,7 @@ bool Moveable::GetMeshSwapped(int meshId) const
 // @function Moveable:SwapMesh
 // @tparam int index Index of a mesh.
 // @tparam int objectID ID of a slot to get meshswap from.
-// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use.
+// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use. In WadTool, you have to set vertex weights for this mesh according to original mesh index to avoid rendering issues.
 void Moveable::SwapMesh(int meshId, int objectID, sol::optional<int> swapIndex)
 {
 	if (!MeshExists(meshId))
@@ -1314,11 +1314,13 @@ bool Moveable::MeshExists(int index) const
 	return true;
 }
 
-/// Attach camera to a moveable.
+/// Attach camera to the moveable's current position, and target another moveable.
+// The camera's position and target position will be maintained until this function is called again.
+// Use @{View.ResetObjCamera} to restore the regular camera.
 // @function Moveable:AttachObjCamera
-// @tparam int mesh Mesh of a moveable to use as a camera position.
-// @tparam Objects.Moveable target Target moveable to attach camera to.
-// @tparam int targetMesh Mesh of a target moveable to use as a camera target.
+// @tparam int mesh Mesh of the moveable to which the camera will be attached.
+// @tparam Objects.Moveable target Moveable to target.
+// @tparam int targetMesh Mesh of the moveable to target.
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);

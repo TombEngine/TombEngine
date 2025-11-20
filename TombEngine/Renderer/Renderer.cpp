@@ -361,7 +361,6 @@ namespace TEN::Renderer
 			return;
 		}
 
-
 		// TODO: in the future output from TE directly an optimized list
 		//if (materialIndex != _lastMaterialIndex || force)
 		{

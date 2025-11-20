@@ -449,7 +449,7 @@ void ObjCamera(ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int tar
 	UpdateCameraElevation();
 
 	//get mesh 0 coordinates.	
-	auto pos = GetJointPosition(camSlotId, 0, Vector3i::Zero);
+	auto pos = GetJointPosition(camSlotId, camMeshId, Vector3i::Zero);
 	auto dest = Vector3(pos.x, pos.y, pos.z);
 
 	GameVector from = GameVector(dest, camSlotId->RoomNumber);
