@@ -157,7 +157,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 		// Force detachment.
 		if (KeyMap[OIS::KeyCode::KC_V])
-			bridge.GetAttractor().DetachAllPlayers();
+			bridge.GetAttractor().DetachAllItems();
 
 		// Move bridge.
 		if (KeyMap[OIS::KeyCode::KC_K])

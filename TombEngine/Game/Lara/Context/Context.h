@@ -66,7 +66,6 @@ namespace TEN::Player
 		const CollisionInfo* Collision = nullptr;*/
 
 	public:
-		// Members
 		PlayerAttractorData Attractor	 = {};
 		DebugAttractorData	DebugAttracs = {};
 

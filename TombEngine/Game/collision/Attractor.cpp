@@ -54,7 +54,7 @@ namespace TEN::Collision::Attractor
 
 	AttractorObject::~AttractorObject()
 	{
-		DetachAllPlayers();
+		DetachAllItems();
 	}
 
 	AttractorType AttractorObject::GetType() const
@@ -289,34 +289,33 @@ namespace TEN::Collision::Attractor
 		return localSphere.Intersects(_aabb);
 	}
 
-	void AttractorObject::AttachPlayer(ItemInfo& playerItem)
+	void AttractorObject::AttachItem(ItemInfo& item)
 	{
-		if (!playerItem.IsLara())
-		{
-			TENLog("Attempted to attach non-player moveable to attractor.", LogLevel::Warning);
-			return;
-		}
-
-		_playerItemNumbers.insert(playerItem.Index);
+		_itemNumbers.insert(item.Index);
 	}
 
-	void AttractorObject::DetachPlayer(ItemInfo& playerItem)
+	void AttractorObject::DetachItem(ItemInfo& item)
 	{
-		_playerItemNumbers.erase(playerItem.Index);
+		_itemNumbers.erase(item.Index);
 	}
 
-	void AttractorObject::DetachAllPlayers()
+	void AttractorObject::DetachAllItems()
 	{
 		// TODO: Crashes trying to loop?
 
-		for (int itemNumber : _playerItemNumbers)
+		for (int itemNumber : _itemNumbers)
 		{
-			auto& playerItem = g_Level.Items[itemNumber];
-			auto& player = GetLaraInfo(playerItem);
+			auto& item = g_Level.Items[itemNumber];
+			if (item.IsLara())
+			{
+				auto& player = GetLaraInfo(item);
 
-			if (player.Context.Attractor.Attractor != nullptr)
-				player.Context.Attractor.Detach(playerItem);
+				if (player.Context.Attractor.Attractor != nullptr)
+					player.Context.Attractor.Detach(item);
+			}
 		}
+
+		_itemNumbers.clear();
 	}
 
 	void AttractorObject::DrawDebug(unsigned int segmentID) const

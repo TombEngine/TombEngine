@@ -115,7 +115,7 @@ namespace TEN::Entities::Generic
 		_isEnabled = false;
 
 		DeassignSectors(item);
-		_attractor.DetachAllPlayers();
+		_attractor.DetachAllItems();
 
 		// Remove from previous room bridge tree.
 		auto& prevRoom = g_Level.Rooms[_prevRoomNumber];

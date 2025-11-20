@@ -56,7 +56,7 @@ namespace TEN::Collision::Attractor
 		float                _length         = 0.0f;
 		BoundingBox          _aabb           = BoundingBox();
 
-		std::set<int> _playerItemNumbers = {};
+		std::set<int> _itemNumbers = {};
 
 	public:
 		// Constructors
@@ -99,9 +99,9 @@ namespace TEN::Collision::Attractor
 
 		// Utilities
 
-		void AttachPlayer(ItemInfo& playerItem);
-		void DetachPlayer(ItemInfo& playerItem);
-		void DetachAllPlayers();
+		void AttachItem(ItemInfo& item);
+		void DetachItem(ItemInfo& item);
+		void DetachAllItems();
 
 		void DrawDebug(unsigned int segmentID) const;
 		void DrawDebug() const;

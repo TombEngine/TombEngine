@@ -619,7 +619,7 @@ static void RemoveRoomFlipItems(const RoomData& room)
 		if (item.IsBridge())
 		{
 			auto& bridge = GetBridgeObject(item);
-			bridge.GetAttractor().DetachAllPlayers();
+			bridge.GetAttractor().DetachAllItems();
 			bridge.Disable(item);
 		}
 	}
@@ -716,7 +716,7 @@ void DoFlipMap(int group)
 
 			// Detach players from attractors.
 			for (auto& attrac : room.Attractors)
-				attrac.DetachAllPlayers();
+				attrac.DetachAllItems();
 
 			// Swap rooms.
 			std::swap(room, flippedRoom);

@@ -44,7 +44,7 @@ namespace TEN::Player
 		RelDeltaPos = relDeltaPos;
 		RelDeltaOrient = relDeltaOrient;
 
-		Attractor->AttachPlayer(playerItem);
+		Attractor->AttachItem(playerItem);
 	}
 
 	void PlayerAttractorData::Detach(ItemInfo& playerItem)
@@ -52,7 +52,7 @@ namespace TEN::Player
 		if (Attractor == nullptr)
 			return;
 
-		Attractor->DetachPlayer(playerItem);
+		Attractor->DetachItem(playerItem);
 		*this = {};
 	};
 
