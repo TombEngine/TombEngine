@@ -8,7 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added DisplayStringOption.VERTICAL_BOTTOM flag
 
-## [Version 1.10.1]
+## [Version 1.10.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.10.1) - 2025-11-22
 
 ### New features
 * Added no shake mode for CLASSIC_ROLLINGBALL (OCB 1).
