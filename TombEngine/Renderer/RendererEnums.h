@@ -26,7 +26,7 @@ constexpr auto MAX_LIGHTS = 100;
 constexpr auto AMBIENT_LIGHT_INTERPOLATION_STEP = 1.0f / 10.0f;
 constexpr auto MAX_DYNAMIC_SHADOWS = 1;
 constexpr auto MAX_DYNAMIC_LIGHTS = 1024;
-constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(1);
+constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(2);
 constexpr auto CAMERA_LIGHT_COLLECTION_RADIUS = BLOCK(4);
 
 constexpr auto MAX_TRANSPARENT_FACES		  = 16384;

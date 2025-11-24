@@ -274,11 +274,17 @@ namespace TEN::Entities::Vehicles
 				bigGun->Flags = BGUN_FLAG_DISMOUNT;
 			}
 			else if (bigGun->Rotation.x > 0)
+			{
 				bigGun->Rotation.x -= BGUN_X_ORIENT_STEP;
+				bigGun->Rotation.x = std::min(bigGun->Rotation.x, (short)0);
+			}
 			else if (bigGun->Rotation.x < 0)
+			{
 				bigGun->Rotation.x += BGUN_X_ORIENT_STEP;
+				bigGun->Rotation.x = std::max(bigGun->Rotation.x, (short)0);
+			}
 
-			bigGun->XOrientFrame = (int)round((bigGun->Rotation.x + BGUN_X_ORIENT_MAX) / BGUN_X_ORIENT_STEP);
+			bigGun->XOrientFrame = (int)round((bigGun->Rotation.x + BGUN_X_ORIENT_MAX) / (float)BGUN_X_ORIENT_STEP);
 		}
 
 		switch (laraItem->Animation.ActiveState)

@@ -594,14 +594,14 @@ namespace TEN::Renderer
 				if (rendererStatic.CacheLights || _invalidateCache)
 				{
 					// Collect all lights and return cached light for next frames.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
 					rendererStatic.CacheLights = false;
 					rendererStatic.CachedRoomLights = cachedRoomLights;
 				}
 				else
 				{
 					// Collect only dynamic lights and use cached lights from rooms.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
 				}
 			}
 			rendererStatic.LightsToDraw = lights;

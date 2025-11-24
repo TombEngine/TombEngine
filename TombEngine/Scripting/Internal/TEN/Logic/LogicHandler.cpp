@@ -286,16 +286,22 @@ Any returned value will be discarded.
 */
 void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
+	if (point == _lastCallbackPoint)
+	{
+		TENLog("Attempt to add callback function " + levelFunc.m_funcName + " within the same callback type.", LogLevel::Error, LogConfig::All);
+		return;
+	}
+
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end()) 
 	{
-		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
+		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
 	}
 	
 	if (it->second->find(levelFunc.m_funcName) != it->second->end())
 	{
-		TENLog("Warning: function " + levelFunc.m_funcName + " already registered in callbacks list.", LogLevel::Warning, LogConfig::All, true);
+		TENLog("Function " + levelFunc.m_funcName + " already registered in callbacks list.", LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
@@ -314,10 +320,16 @@ Will have no effect if the function was not registered as a callback
 */
 void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
+	if (point == _lastCallbackPoint)
+	{
+		TENLog("Attempt to remove callback function " + levelFunc.m_funcName + " within the same callback type.", LogLevel::Error, LogConfig::All);
+		return;
+	}
+
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end())
 	{
-		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
+		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
 	}
 
@@ -1028,36 +1040,49 @@ unsigned int LogicHandler::GetFunctionCallCount()
 	return _insideFunction ? _functionCallCount : 0;
 }
 
+void LogicHandler::PerformCallbacks(CallbackPoint point)
+{
+	auto it = _callbacks.find(point);
+	if (it == _callbacks.end())
+		return;
+
+	if (it->second->empty())
+		return;
+
+	_lastCallbackPoint = point;
+
+	for (const auto& name : *it->second)
+		CallLevelFuncByName(name);
+
+	_lastCallbackPoint = std::nullopt;
+}
+
+
 void LogicHandler::OnStart()
 {
-	for (const auto& name : _callbacksPreStart)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreStart);
 
 	if (_onStart.valid())
 		CallLevelFunc(_onStart);
 
-	for (const auto& name : _callbacksPostStart)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostStart);
 }
 
 void LogicHandler::OnLoad()
 {
-	for (const auto& name : _callbacksPreLoad)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreLoad);
 
 	if (_onLoad.valid())
 		CallLevelFunc(_onLoad);
 
-	for (const auto& name : _callbacksPostLoad)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostLoad);
 }
 
 void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 {
 	if (!postLoop)
 	{
-		for (const auto& name : _callbacksPreLoop)
-			CallLevelFuncByName(name, deltaTime);
+		PerformCallbacks(CallbackPoint::PreLoop);
 
 		PerformConsoleInput();
 
@@ -1067,21 +1092,18 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 	}
 	else
 	{
-		for (const auto& name : _callbacksPostLoop)
-			CallLevelFuncByName(name, deltaTime);
+		PerformCallbacks(CallbackPoint::PostLoop);
 	}
 }
 
 void LogicHandler::OnSave()
 {
-	for (const auto& name : _callbacksPreSave)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreSave);
 
 	if (_onSave.valid())
 		CallLevelFunc(_onSave);
 
-	for (const auto& name : _callbacksPostSave)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostSave);
 }
 
 void LogicHandler::OnEnd(GameStatus reason)
@@ -1106,40 +1128,34 @@ void LogicHandler::OnEnd(GameStatus reason)
 		break;
 	}
 
-	for (const auto& name : _callbacksPreEnd)
-		CallLevelFuncByName(name, endReason);
+	PerformCallbacks(CallbackPoint::PreEnd);
 
 	if (_onEnd.valid())
 		CallLevelFunc(_onEnd, endReason);
 
-	for (const auto& name : _callbacksPostEnd)
-		CallLevelFuncByName(name, endReason);
+	PerformCallbacks(CallbackPoint::PostEnd);
 }
 
 void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
 {
-	for (const auto& name : _callbacksPreUseItem)
-		CallLevelFuncByName(name, objectNumber);
+	PerformCallbacks(CallbackPoint::PreUseItem);
 
 	if (_onUseItem.valid())
 		CallLevelFunc(_onUseItem, objectNumber);
 
-	for (const auto& name : _callbacksPostUseItem)
-		CallLevelFuncByName(name, objectNumber);
+	PerformCallbacks(CallbackPoint::PostUseItem);
 }
 
 void LogicHandler::OnFreeze()
 {
-	for (const auto& name : _callbacksPreFreeze)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreFreeze);
 
 	PerformConsoleInput();
 
 	if (_onFreeze.valid())
 		CallLevelFunc(_onFreeze);
-		
-	for (const auto& name : _callbacksPostFreeze)
-		CallLevelFuncByName(name);
+
+	PerformCallbacks(CallbackPoint::PostFreeze);
 }
 
 /*** Special tables

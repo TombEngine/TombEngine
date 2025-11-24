@@ -74,7 +74,9 @@ private:
 	sol::protected_function	_onUseItem = {};
 	sol::protected_function	_onFreeze  = {};
 
+	std::optional<CallbackPoint> _lastCallbackPoint = std::nullopt;
 	std::unordered_map<CallbackPoint, std::unordered_set<std::string>*> _callbacks;
+
 	std::vector<std::variant<std::string, unsigned int>> _savedVarPath;
 
 	LuaHandler _handler;
@@ -84,6 +86,7 @@ private:
 	unsigned int _functionCallCount = 0;
 
 	void PerformConsoleInput();
+	void PerformCallbacks(CallbackPoint point);
 
 	std::string GetRequestedPath() const;
 

@@ -3778,16 +3778,16 @@ namespace TEN::Renderer
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Rooms);
-
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			_context->IASetInputLayout(_inputLayout.Get());	
+			_context->IASetInputLayout(_inputLayout.Get());
+
+			SetDepthState(DepthState::Read);
+			SetCullMode(CullMode::CounterClockwise);
+
+			_shaders.Bind(Shader::Rooms);
 		}
 		
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
@@ -3830,8 +3830,6 @@ namespace TEN::Renderer
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
-			SetBlendMode(objectInfo->BlendMode);
-			SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 			_shaders.Bind(Shader::Items);
 		}
@@ -3867,6 +3865,9 @@ namespace TEN::Renderer
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
 		UpdateConstantBuffer(_stItem, _cbItem);
 
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
@@ -3888,8 +3889,6 @@ namespace TEN::Renderer
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
-			SetBlendMode(objectInfo->BlendMode);
-			SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 			_shaders.Bind(Shader::InstancedStatics);
 		}
@@ -3905,6 +3904,9 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
 		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
@@ -3925,12 +3927,10 @@ namespace TEN::Renderer
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			_context->IASetInputLayout(_inputLayout.Get());
 
-			_shaders.Bind(Shader::InstancedStatics);
-		
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
-			SetBlendMode(objectInfo->BlendMode);
-			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);		
+
+			_shaders.Bind(Shader::InstancedStatics);
 		}
 
 		_sortedPolygonsIndexBuffer.Update(_context.Get(), _sortedPolygonsIndices, 0, (int)_sortedPolygonsIndices.size());
@@ -3944,6 +3944,9 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
 		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
@@ -3972,8 +3975,6 @@ namespace TEN::Renderer
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
-			SetBlendMode(objectInfo->BlendMode);
-			SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 			_shaders.Bind(Shader::Items);
 		}
@@ -4015,6 +4016,9 @@ namespace TEN::Renderer
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
 		UpdateConstantBuffer(_stItem, _cbItem);
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
