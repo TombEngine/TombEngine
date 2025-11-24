@@ -392,6 +392,7 @@ void LoadObjects()
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
+		object.skinIndex = ReadInt32();
 		object.nmeshes = ReadInt32();
 		object.meshIndex = ReadInt32();
 		object.boneIndex = ReadInt32();
