@@ -10,6 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 * Added a safeguard for adding or removing callback functions within the same callback type.
+* Added DisplayStringOption.VERTICAL_BOTTOM flag
 
 ## [Version 1.10.1]
 
