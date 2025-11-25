@@ -1897,7 +1897,7 @@ namespace TEN::Renderer
 		// Reset viewport and scissor.
 		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
-
+		
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		CCameraMatrixBuffer cameraConstantBuffer;
 		view.FillConstantBuffer(cameraConstantBuffer);
@@ -1906,6 +1906,7 @@ namespace TEN::Renderer
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
+		cameraConstantBuffer.Brightness = 1.0f; // TODO: make this configurable and maybe also for HDR in the future
 
 		if (level.GetFogMaxDistance() > 0)
 		{

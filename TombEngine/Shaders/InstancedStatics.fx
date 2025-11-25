@@ -52,6 +52,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
 	output.Color *= StaticMeshes[InstanceID].Color;
+    //output.Color = float4(ModulateColor(output.Color.xyz, Brightness), output.Color.w);
 	output.PositionCopy = output.Position;
     output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;
@@ -103,8 +104,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	float3 color = (mode == 0) ?
 		CombineLights(
-			StaticMeshes[input.InstanceID].AmbientLight.xyz,
-			input.Color.xyz,
+			ModulateColor(StaticMeshes[input.InstanceID].AmbientLight.xyz, Brightness),
+			ModulateColor(input.Color.xyz, Brightness),
 			tex.xyz, 
 			input.WorldPosition, 
 			normal, 
@@ -115,7 +116,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 			emissive, 
 			specular, 
 			roughness) :
-		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
+		StaticLight(ModulateColor(input.Color.xyz, Brightness), tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);

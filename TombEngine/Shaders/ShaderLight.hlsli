@@ -25,7 +25,7 @@ float3 DoSpecularPoint(float3 pos, float3 n, ShaderLight light, float strength, 
     float3 lightDir = normalize(lightPos - pos);
     float3 reflectDir = reflect(lightDir, n);
 
-    float3 color = light.Color.xyz;
+    float3 color = ModulateColor(light.Color.xyz, Brightness);
     float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 			
     float expBase = RoughnessToExpMul(roughness);
@@ -47,7 +47,7 @@ float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specular
     float3 lightDir = -normalize(light.Direction);
     float3 reflectDir = reflect(lightDir, n);
 
-    float3 color = light.Color.xyz;
+    float3 color = ModulateColor(light.Color.xyz, Brightness);
     float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 
     float expBase = RoughnessToExpMul(roughness);
@@ -75,7 +75,7 @@ float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, f
     float3 lightDir = normalize(lightPos - pos);
     float3 reflectDir = reflect(lightDir, n);
 
-    float3 color = light.Color.xyz;
+    float3 color = ModulateColor(light.Color.xyz, Brightness);
     float intenSpec = lerp(saturate(specularIntensity), 1.0, m) * light.Intensity;
 			
     float expBase = RoughnessToExpMul(roughness);
@@ -103,7 +103,7 @@ float3 DoPointLight(float3 pos, float3 normal, ShaderLight light)
     float attenuation = saturate((light.Out - distance) / (light.Out - light.In));
     float d = saturate(dot(normal, lightDir));
     
-    return saturate(light.Color.xyz * light.Intensity * attenuation * d);
+    return saturate(ModulateColor(light.Color.xyz, Brightness) * light.Intensity * attenuation * d);
 }
 
 float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
@@ -115,7 +115,7 @@ float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
     float attenuation = saturate((light.Out - distance) / (light.Out - light.In));
     float d = saturate(dot(normal, lightDir));
 
-    float absolute = light.Color.xyz * light.Intensity * attenuation;
+    float absolute = ModulateColor(light.Color.xyz, Brightness) * light.Intensity * attenuation;
     float directional = absolute * d;
 
     return saturate((absolute * 0.33f) + (directional * 0.66f)) * 2.0f;
@@ -132,7 +132,7 @@ float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light)
     float distanceAttenuation = saturate((light.Out - distance) / (light.Out - light.In));
 
     float d = saturate(dot(normal, -lightDir));
-    return saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
+    return saturate(ModulateColor(light.Color.xyz, Brightness) * light.Intensity * angleAttenuation * distanceAttenuation * d);
 }
 
 void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float specularIntensity, float roughness, out float3 pointOutput, out float3 spotOutput)
@@ -146,8 +146,9 @@ void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float spe
     float angleAttenuation = saturate((cosine - light.OutRange) / (light.InRange - light.OutRange));
 
     float d = saturate(dot(normal, lightDir));
-    pointOutput = saturate(light.Color.xyz * light.Intensity * distanceAttenuation * d);
-    spotOutput  = saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
+    float3 color = ModulateColor(light.Color.xyz, Brightness);
+    pointOutput = saturate(color * light.Intensity * distanceAttenuation * d);
+    spotOutput  = saturate(color * light.Intensity * angleAttenuation * distanceAttenuation * d);
 	
     pointOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
     spotOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
@@ -156,7 +157,7 @@ void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float spe
 float3 DoDirectionalLight(float3 pos, float3 normal, ShaderLight light)
 {
     float d = saturate(dot(-light.Direction.xyz, normal));
-    return light.Color.xyz * light.Intensity * d;
+    return ModulateColor(light.Color.xyz, Brightness) * light.Intensity * d;
 }
 
 float DoFogBulb(float3 pos, ShaderFogBulb bulb)
