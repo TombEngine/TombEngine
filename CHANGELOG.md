@@ -3,6 +3,15 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.10.2]
+
+### Bug fixes
+* Fixed interaction highlighter not working for pushable climbable blocks.
+
+### Lua API changes
+* Added a safeguard for adding or removing callback functions within the same callback type.
+* Added DisplayStringOption.VERTICAL_BOTTOM flag
+
 ## [Version 1.10.1]
 
 ### New features
@@ -13,13 +22,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed FIRE_PENDULUM crashing the game.
 * Fixed CLASSIC_ROLLINGBALL continuing to animate when Lara is standing on a trigger for it.
 * Fixed BRIDGE objects not clearing collision after disabling them.
-* Fixed original bug that prevented performing vault animations while holding a torch.
+* Fixed SMASH_OBJECT objects with very big coordinates sometimes crashing the game.
+* Fixed BIG_GUN being stuck while unarming it.
+* Fixed original issue that prevented performing vault animations while holding a torch.
 * Fixed interaction highlighter not appearing for SEARCH_OBJECT objects.
 * Fixed fireflies not interpolating in high framerate mode and not emitting dynamic lights.
 * Fixed performance issues with shatterable static meshes.
 * Fixed emissive materials not fading into distance fog.
 * Fixed subtractive sprites not rendering correctly.
 * Fixed dynamic lighting for flat surfaces with miscalculated normals.
+* Fixed black screen when camera direction is exactly 90 degrees up or down.
 
 ### Lua API changes
 * Added optional type argument for `Sound.IsAudioTrackPlaying` function.

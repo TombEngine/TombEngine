@@ -154,7 +154,7 @@ namespace TEN::Hud
 		dir.Normalize();
 
 		// Check if there's a line of sight between objects.
-		auto losColl = GetRoomLosCollision(playerBoundingBox.Center, player.RoomNumber, dir, dist, true);
+		auto losColl = GetRoomLosCollision(playerBoundingBox.Center, player.RoomNumber, dir, dist, false);
 		if (losColl.IsIntersected)
 			return;
 
