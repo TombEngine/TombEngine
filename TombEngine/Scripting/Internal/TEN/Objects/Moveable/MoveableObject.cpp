@@ -1337,7 +1337,7 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
 	_moveable->Animation.FrameNumber = 0;
-	AnimateItem(*_moveable);
+	AnimateItem(_moveable);
 }
 
 /// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.

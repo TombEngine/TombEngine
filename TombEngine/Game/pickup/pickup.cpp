@@ -577,7 +577,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			laraItem->Animation.ActiveState = LS_PICKUP;
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
-			AnimateItem(*item);
+			AnimateItem(item);
 			flag = true;
 		}
 
@@ -1001,7 +1001,7 @@ void PickupControl(short itemNumber)
 	case 7:
 	case 8:
 	case 9:
-		AnimateItem(*item);
+		AnimateItem(item);
 		break;
 
 	case 11:
@@ -1223,7 +1223,7 @@ void SearchObjectCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* 
 
 				item->Animation.AnimNumber = 1;
 				item->Animation.FrameNumber = 0;
-				AnimateItem(*item);
+				AnimateItem(item);
 			}
 			else
 			{
@@ -1249,7 +1249,7 @@ void SearchObjectControl(short itemNumber)
 	int objectNumber = (item->ObjectNumber - ID_SEARCH_OBJECT1);
 
 	if (item->ObjectNumber != ID_SEARCH_OBJECT4 || item->ItemFlags[0] == 1)
-		AnimateItem(*item);
+		AnimateItem(item);
 
 	int frameNumber = item->Animation.FrameNumber;
 

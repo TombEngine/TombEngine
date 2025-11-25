@@ -136,7 +136,7 @@ namespace TEN::Entities::Traps
 
 		DoDamage(playerItem, INT_MAX);
 
-		AnimateItem(*playerItem);
+		AnimateItem(playerItem);
 
 		player.ExtraAnim = 1;
 		player.Control.HandStatus = HandStatus::Busy;

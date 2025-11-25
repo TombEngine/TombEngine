@@ -143,7 +143,8 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					item->Pose.Orientation.y += ANGLE(2.0f);
 				}
-				if (TestLastFrame(*item))
+
+				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
 				{
 					item->Pose.Orientation.y += -ANGLE(180.0f);
 				}

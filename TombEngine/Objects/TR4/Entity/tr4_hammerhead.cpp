@@ -150,7 +150,7 @@ namespace TEN::Entities::TR4
 			// NOTE: in TR2 shark there was a call to CreatureKill with special kill anim
 			// Hammerhead seems to not have it in original code but this check is still there as a leftover
 			if (item->Animation.ActiveState == HAMMERHEAD_STATE_KILL)
-				AnimateItem(*item);
+				AnimateItem(item);
 			else
 			{
 				CreatureAnimation(itemNumber, angle, 0);

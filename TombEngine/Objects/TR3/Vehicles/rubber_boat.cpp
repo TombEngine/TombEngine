@@ -174,7 +174,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.Velocity.y = 0;
 		lara->Control.WaterStatus = WaterStatus::Dry;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	static void DoRubberBoatShift(int itemNumber, ItemInfo* laraItem)
@@ -302,7 +302,7 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
-	static int GetRubberBoatCollisionAnim(ItemInfo* rBoatItem, Vector3i* moved)
+	static int GetRubberBoatCollisionAnimation(ItemInfo* rBoatItem, Vector3i* moved)
 	{
 		moved->x = rBoatItem->Pose.Position.x - moved->x;
 		moved->z = rBoatItem->Pose.Position.z - moved->z;
@@ -423,7 +423,7 @@ namespace TEN::Entities::Vehicles
 		DoVehicleCollision(rBoatItem, RBOAT_RADIUS);
 
 		rBoat->ExtraRotation = rotation;
-		int collide = GetRubberBoatCollisionAnim(rBoatItem, &moved);
+		int collide = GetRubberBoatCollisionAnimation(rBoatItem, &moved);
 
 		if (slip || collide)
 		{
@@ -892,10 +892,10 @@ namespace TEN::Entities::Vehicles
 			rBoatItem->Pose.Orientation.z += rBoat->LeanAngle;
 			laraItem->Pose = rBoatItem->Pose;
 
-			AnimateItem(*laraItem);
+			AnimateItem(laraItem);
 
 			if (laraItem->HitPoints > 0)
-				SyncVehicleAnim(*rBoatItem, *laraItem);
+				SyncVehicleAnimation(*rBoatItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(20.0f);
 			Camera.targetDistance = BLOCK(2);

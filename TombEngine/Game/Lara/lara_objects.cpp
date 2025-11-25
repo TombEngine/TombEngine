@@ -900,7 +900,7 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 	if (!IsHeld(In::Action))
 	{
 		item->Animation.TargetState = LS_JUMP_FORWARD;
-		AnimateItem(*item);
+		AnimateItem(item);
 
 		item->Animation.Velocity.z = 100;
 		item->Animation.Velocity.y = 40;

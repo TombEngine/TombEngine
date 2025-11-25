@@ -57,7 +57,7 @@ namespace TEN::Entities::TR4
 				state = 3 * (GetRandomControl() & 1);
 
 			item->Animation.TargetState = (((byte)(item->Animation.ActiveState) - 1) & 0xC) + state + 1;
-			AnimateItem(*item);
+			AnimateItem(item);
 		}
 		else
 		{
@@ -74,7 +74,7 @@ namespace TEN::Entities::TR4
 			item->Animation.TargetState = state;
 			item->TriggerFlags = Lara.HighestLocation;
 
-			AnimateItem(*item);
+			AnimateItem(item);
 		}
 	}
 }

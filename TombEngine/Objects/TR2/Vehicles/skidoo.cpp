@@ -376,7 +376,7 @@ namespace TEN::Entities::Vehicles
 		if (skidooItem->Flags & IFLAG_INVISIBLE)
 		{
 			UpdateVehicleRoom(skidooItem, laraItem, probe.GetRoomNumber());
-			AnimateItem(*laraItem);
+			AnimateItem(laraItem);
 
 			if (skidooItem->Pose.Position.y == skidooItem->Floor)
 				ExplodeVehicle(laraItem, skidooItem);
@@ -403,13 +403,13 @@ namespace TEN::Entities::Vehicles
 		else
 			laraItem->Pose.Orientation.x = laraItem->Pose.Orientation.z = 0;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 
 		if (!dead && drive >= 0 && banditSkidoo)
 			SkidooGuns(skidooItem, laraItem);
 
 		if (!dead)
-			SyncVehicleAnim(*skidooItem, *laraItem);
+			SyncVehicleAnimation(*skidooItem, *laraItem);
 		else
 			SetAnimation(*skidooItem, SKIDOO_ANIM_IDLE);
 
@@ -634,7 +634,7 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	int GetSkidooCollisionAnim(ItemInfo* skidooItem, Vector3i* moved)
+	int GetSkidooCollisionAnimation(ItemInfo* skidooItem, Vector3i* moved)
 	{
 		moved->x = skidooItem->Pose.Position.x - moved->x;
 		moved->z = skidooItem->Pose.Position.z - moved->z;
@@ -932,7 +932,7 @@ namespace TEN::Entities::Vehicles
 
 		skidoo->ExtraRotation = rotation;
 
-		auto collide = GetSkidooCollisionAnim(skidooItem, &moved);
+		auto collide = GetSkidooCollisionAnimation(skidooItem, &moved);
 		if (collide)
 		{
 			int newVelocity = (skidooItem->Pose.Position.z - oldPos.z) * phd_cos(skidoo->MomentumAngle) + (skidooItem->Pose.Position.x - oldPos.x) * phd_sin(skidoo->MomentumAngle);

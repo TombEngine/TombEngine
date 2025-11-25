@@ -196,7 +196,7 @@ namespace TEN::Entities::Vehicles
 		kayak->WaterHeight = kayakItem->Pose.Position.y;
 		kayak->Flags = 0;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	void KayakDoRipple(ItemInfo* kayakItem, int xOffset, int zOffset)
@@ -228,7 +228,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->MeshBits.Set(KayakLaraLegJoints);
 	}
 
-	int KayakGetCollisionAnim(ItemInfo* kayakItem, int xDiff, int zDiff)
+	int KayakGetCollisionAnimation(ItemInfo* kayakItem, int xDiff, int zDiff)
 	{
 		xDiff = kayakItem->Pose.Position.x - xDiff;
 		zDiff = kayakItem->Pose.Position.z - zDiff;
@@ -578,7 +578,7 @@ namespace TEN::Entities::Vehicles
 
 		DoVehicleCollision(kayakItem, KAYAK_Z); // FIXME: kayak is thin, what should we do about it?
 
-		int collide = KayakGetCollisionAnim(kayakItem, xOld, zOld);
+		int collide = KayakGetCollisionAnimation(kayakItem, xOld, zOld);
 
 		int slip = 0; // Remnant?
 		if (slip || collide)
@@ -1055,7 +1055,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.Velocity.y = 0;
 		laraItem->HitPoints = -1;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 
 		lara->Control.HandStatus = HandStatus::Busy;
 		lara->Control.Weapon.GunType = LaraWeaponType::None;
@@ -1111,8 +1111,8 @@ namespace TEN::Entities::Vehicles
 			laraItem->Pose.Orientation.y = kayakItem->Pose.Orientation.y;
 			laraItem->Pose.Orientation.z = kayakItem->Pose.Orientation.z / 2;
 
-			AnimateItem(*laraItem);
-			SyncVehicleAnim(*kayakItem, *laraItem);
+			AnimateItem(laraItem);
+			SyncVehicleAnimation(*kayakItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 			Camera.targetDistance = CLICK(8);

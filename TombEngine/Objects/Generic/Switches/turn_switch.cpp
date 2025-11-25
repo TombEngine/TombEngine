@@ -243,7 +243,7 @@ namespace TEN::Entities::Switches
 			}
 		}
 
-		AnimateItem(*switchItem);
+		AnimateItem(switchItem);
 
 		if (switchItem->ItemFlags[1] == 1)
 		{

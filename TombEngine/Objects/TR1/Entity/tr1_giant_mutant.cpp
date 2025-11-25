@@ -252,7 +252,7 @@ namespace TEN::Entities::Creatures::TR1
 
 		if (item->Animation.ActiveState == MUTANT_STATE_FALL)
 		{
-			AnimateItem(*item);
+			AnimateItem(item);
 
 			if (item->Pose.Position.y > item->Floor)
 			{

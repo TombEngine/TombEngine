@@ -217,7 +217,7 @@ namespace TEN::Entities::Vehicles
 		motorbike->Revs = 0;
 		motorbike->LightPower = 0;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	static int DoMotorbikeShift(ItemInfo* motorbikeItem, Vector3i* pos, Vector3i* old)
@@ -521,7 +521,7 @@ namespace TEN::Entities::Vehicles
 		return verticalVelocity;
 	}
 
-	static int GetMotorbikeCollisionAnim(ItemInfo* motorbikeItem, Vector3i* pos)
+	static int GetMotorbikeCollisionAnimation(ItemInfo* motorbikeItem, Vector3i* pos)
 	{
 		pos->x = motorbikeItem->Pose.Position.x - pos->x;
 		pos->z = motorbikeItem->Pose.Position.z - pos->z;
@@ -747,7 +747,7 @@ namespace TEN::Entities::Vehicles
 		else
 			motorbike->ExtraRotation = motorbike->WallShiftRotation;
 
-		collide = GetMotorbikeCollisionAnim(motorbikeItem, &moved);
+		collide = GetMotorbikeCollisionAnimation(motorbikeItem, &moved);
 		if (collide)
 		{
 			newSpeed = ((motorbikeItem->Pose.Position.z - oldPos.z) * phd_cos(motorbike->MomentumAngle) + (motorbikeItem->Pose.Position.x - oldPos.x) * phd_sin(motorbike->MomentumAngle)) * 256;
@@ -1168,7 +1168,7 @@ namespace TEN::Entities::Vehicles
 		lara->HitDirection = -1;
 
 		// Sync vehicle with player animation.
-		SyncVehicleAnim(*motorbikeItem, *laraItem);
+		SyncVehicleAnimation(*motorbikeItem, *laraItem);
 
 		motorbikeItem->HitPoints = 1;
 		motorbikeItem->Flags = IFLAG_KILLED; // hmm... maybe wrong name (it can be IFLAG_CODEBITS)?
@@ -1299,8 +1299,8 @@ namespace TEN::Entities::Vehicles
 		laraItem->Pose = motorbikeItem->Pose;
 
 		AnimateMotorbike(motorbikeItem, laraItem, collide, isDead);
-		AnimateItem(*laraItem);
-		SyncVehicleAnim(*motorbikeItem, *laraItem);
+		AnimateItem(laraItem);
+		SyncVehicleAnimation(*motorbikeItem, *laraItem);
 
 		Camera.targetElevation = -ANGLE(30.0f);
 

@@ -225,7 +225,7 @@ namespace TEN::Entities::Vehicles
 		quadBikeItem->HitPoints = 1;
 		quadBike->Revs = 0;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	static int CanQuadbikeGetOff(ItemInfo* laraItem, int direction)
@@ -314,7 +314,7 @@ namespace TEN::Entities::Vehicles
 			return true;
 	}
 
-	static int GetQuadCollisionAnim(ItemInfo* quadBikeItem, Vector3i* pos)
+	static int GetQuadCollisionAnimation(ItemInfo* quadBikeItem, Vector3i* pos)
 	{
 		pos->x = quadBikeItem->Pose.Position.x - pos->x;
 		pos->z = quadBikeItem->Pose.Position.z - pos->z;
@@ -646,7 +646,7 @@ namespace TEN::Entities::Vehicles
 
 		quadBike->ExtraRotation = rot;
 
-		int collide = GetQuadCollisionAnim(quadBikeItem, &moved);
+		int collide = GetQuadCollisionAnimation(quadBikeItem, &moved);
 
 		int newVelocity = 0;
 		if (collide)
@@ -1185,8 +1185,8 @@ namespace TEN::Entities::Vehicles
 			laraItem->Pose = quadBikeItem->Pose;
 				
 			AnimateQuadBike(quadBikeItem, laraItem, collide, dead);
-			AnimateItem(*laraItem);
-			SyncVehicleAnim(*quadBikeItem, *laraItem);
+			AnimateItem(laraItem);
+			SyncVehicleAnimation(*quadBikeItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 

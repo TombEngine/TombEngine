@@ -42,6 +42,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
@@ -52,8 +53,6 @@ using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Gui;
-
-using namespace TEN::Animation;
 using TEN::Renderer::g_Renderer;
 
 LaraInfo	  Lara			= {};
@@ -462,7 +461,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
-	AnimateItem(*item);
+	AnimateItem(item);
 
 	if (player.ExtraAnim == NO_VALUE)
 	{
@@ -540,7 +539,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.WaterCurrentActive && player.Control.WaterStatus != WaterStatus::FlyCheat)
 		LaraWaterCurrent(item, coll);
 
-	AnimateItem(*item);
+	AnimateItem(item);
 	item->Pose.Translate(player.Control.MoveAngle, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
@@ -644,7 +643,7 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.WaterCurrentActive && player.Control.WaterStatus != WaterStatus::FlyCheat)
 		LaraWaterCurrent(item, coll);
 
-	AnimateItem(*item);
+	AnimateItem(item);
 	item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);

@@ -46,7 +46,7 @@ void RaisingCogControl(short itemNumber)
 	if (TriggerActive(item))
 	{
 		if (item->ItemFlags[0] >= 3)
-			AnimateItem(*item);
+			AnimateItem(item);
 		else
 		{
 			if (item->ItemFlags[2] >= 256)

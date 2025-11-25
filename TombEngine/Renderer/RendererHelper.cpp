@@ -43,7 +43,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
 {
-	void Renderer::UpdateAnimation(RendererItem* rItem, RendererObject& rObject, const KeyframeInterpData& interpData, int mask, bool useObjectWorldRotation)
+	void Renderer::UpdateAnimation(RendererItem* rItem, RendererObject& rObject, const KeyframeInterpolationData& interpData, int mask, bool useObjectWorldRotation)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();

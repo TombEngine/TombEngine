@@ -141,7 +141,7 @@ namespace TEN::Entities::Switches
 
 					AddActiveItem(itemNumber);
 					switchItem->Status = ITEM_ACTIVE;
-					AnimateItem(*switchItem);
+					AnimateItem(switchItem);
 				}
 				else
 					player->Context.InteractedItem = itemNumber;

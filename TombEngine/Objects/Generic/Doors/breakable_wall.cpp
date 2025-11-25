@@ -97,7 +97,7 @@ namespace TEN::Entities::Doors
 					WallStates state = isUnderwater ? BreakUnderwater : BreakAboveGround;
 					doorItem->Animation.TargetState = state;
 
-					AnimateItem(*doorItem);
+					AnimateItem(doorItem);
 
 					player->Control.IsMoving = false;
 					player->Control.HandStatus = HandStatus::Busy;

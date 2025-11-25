@@ -217,7 +217,7 @@ namespace TEN::Entities::Vehicles
 		lara->Control.WaterStatus = WaterStatus::Dry;
 		UPVItem->HitPoints = 1;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	static void DrawUPVLight(ItemInfo* upvItem)
@@ -982,14 +982,14 @@ namespace TEN::Entities::Vehicles
 
 			laraItem->Pose = UPVItem->Pose;
 
-			AnimateItem(*laraItem);
+			AnimateItem(laraItem);
 			BackgroundCollision(UPVItem, laraItem);
 			DoVehicleCollision(UPVItem, UPV_RADIUS);
 
 			if (UPV->Flags & UPV_FLAG_CONTROL)
 				SoundEffect(SFX_TR3_VEHICLE_UPV_LOOP, (Pose*)&UPVItem->Pose.Position.x, SoundEnvironment::Always, 1.0f + (float)UPVItem->Animation.Velocity.z / 96.0f);
 
-			SyncVehicleAnim(*UPVItem, *laraItem);
+			SyncVehicleAnimation(*UPVItem, *laraItem);
 
 			if (UPV->Flags & UPV_FLAG_SURFACE)
 				Camera.targetElevation = -ANGLE(60.0f);
@@ -1000,7 +1000,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else if (UPV->Flags & UPV_FLAG_DEAD)
 		{
-			AnimateItem(*laraItem);
+			AnimateItem(laraItem);
 
 			if (probe.GetRoomNumber() != UPVItem->RoomNumber)
 				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
@@ -1013,7 +1013,7 @@ namespace TEN::Entities::Vehicles
 			UPVItem->Animation.Velocity.y = 0;
 			UPVItem->Animation.Velocity.z = 0;
 			UPVItem->Animation.IsAirborne = true;
-			AnimateItem(*UPVItem);
+			AnimateItem(UPVItem);
 
 			return true;
 		}

@@ -290,7 +290,7 @@ namespace TEN::Entities::TR4
 				item->HitPoints = 100;
 				item->AIBits = 0;
 				item->ItemFlags[1] = 0;
-				item->Animation.AnimNumber =HORSEMAN_ANIM_FALL_OFF_HORSE_START;
+				item->Animation.AnimNumber = HORSEMAN_ANIM_FALL_OFF_HORSE_START;
 				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = HORSEMAN_STATE_FALL_OFF_HORSE;
 				creature->Enemy = nullptr;
@@ -757,7 +757,7 @@ namespace TEN::Entities::TR4
 				if (horseItem->RoomNumber != item->RoomNumber)
 					ItemNewRoom(item->ItemFlags[0], item->RoomNumber);
 				
-				AnimateItem(*horseItem);
+				AnimateItem(horseItem);
 			}
 		}
 

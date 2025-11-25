@@ -52,7 +52,7 @@ void ControlAnimatingSlots(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 
 	if (TriggerActive(item))
-		AnimateItem(*item);
+		AnimateItem(item);
 }
 
 void ControlTriggerTriggerer(short itemNumber)

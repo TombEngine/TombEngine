@@ -73,7 +73,7 @@ namespace TEN::Entities::Switches
 				switchItem->Status = ITEM_ACTIVE;
 
 				AddActiveItem(itemNumber);
-				AnimateItem(*switchItem);
+				AnimateItem(switchItem);
 
 				ResetPlayerFlex(laraItem);
 				laraInfo->Control.IsMoving = false;
@@ -113,6 +113,6 @@ namespace TEN::Entities::Switches
 			Sequences[CurrentSequence++] = switchItem->TriggerFlags;
 		}
 
-		AnimateItem(*switchItem);
+		AnimateItem(switchItem);
 	}
 }

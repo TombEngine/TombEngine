@@ -883,8 +883,8 @@ namespace TEN::Entities::Vehicles
 		if (lara->Context.Vehicle != NO_VALUE &&
 			!(minecart->Flags & MINECART_FLAG_NO_VALUE))
 		{
-			AnimateItem(*laraItem);
-			SyncVehicleAnim(*minecartItem, *laraItem);
+			AnimateItem(laraItem);
+			SyncVehicleAnimation(*minecartItem, *laraItem);
 		}
 
 		if (laraItem->Animation.ActiveState != MINECART_STATE_TURN_DEATH &&

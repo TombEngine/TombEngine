@@ -1060,7 +1060,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 	auto probeNow = GetPointCollision(now, item->RoomNumber);
 	auto probeDown = GetPointCollision(down, item->RoomNumber);
 
-	if (item->Animation.AnimNumber == LA_REACH_TO_MONKEY/* && !GetFrameIndex(item, 0)*/) // Manage proper grabbing of monkey slope on forward jump.
+	if (item->Animation.AnimNumber == LA_REACH_TO_MONKEY) // Manage proper grabbing of monkey slope on forward jump.
 	{
 		int ceilDist = item->Pose.Position.y - probeNow.GetCeilingHeight();
 

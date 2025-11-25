@@ -114,6 +114,6 @@ namespace TEN::Entities::Creatures::TR2
 			CreatureUnderwater(item, 340);
 		}
 		else
-			AnimateItem(*item);
+			AnimateItem(item);
 	}
 }

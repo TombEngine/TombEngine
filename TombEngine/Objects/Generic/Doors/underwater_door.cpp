@@ -69,7 +69,7 @@ namespace TEN::Entities::Doors
 
 					doorItem->Animation.TargetState = LS_RUN_FORWARD;
 
-					AnimateItem(*doorItem);
+					AnimateItem(doorItem);
 
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;

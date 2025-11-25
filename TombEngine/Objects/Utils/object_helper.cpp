@@ -60,7 +60,7 @@ bool CheckIfSlotExists(GAME_OBJECT_ID requiredObj, const std::string& baseName)
 		return false;
 	}
 
-	return true;;
+	return true;
 }
 
 void InitSmashObject(ObjectInfo* object, int objectNumber)

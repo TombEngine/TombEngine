@@ -119,7 +119,7 @@ namespace TEN::Entities::Switches
 			if (item->Animation.ActiveState == SWITCH_OFF)
 				item->Animation.TargetState = SWITCH_ON;
 
-			AnimateItem(*item);
+			AnimateItem(item);
 
 			if (item->Animation.ActiveState == SWITCH_OFF)
 				item->Pose.Orientation.y += ANGLE(90.0f);

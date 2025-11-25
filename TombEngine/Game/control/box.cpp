@@ -660,7 +660,7 @@ void CreatureFloat(short itemNumber)
 	if (item->Pose.Position.y < waterLevel)
 		item->Pose.Position.y = waterLevel;
 
-	AnimateItem(*item);
+	AnimateItem(item);
 
 	item->Floor = pointColl.GetFloorHeight();
 	if (pointColl.GetRoomNumber() != item->RoomNumber)

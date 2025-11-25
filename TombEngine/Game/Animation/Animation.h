@@ -33,13 +33,13 @@ namespace TEN::Animation
 		GameBoundingBox BoundingBox = GameBoundingBox::Zero;
 	};
 
-	struct KeyframeInterpData
+	struct KeyframeInterpolationData
 	{
 		const KeyframeData& Keyframe0;
 		const KeyframeData& Keyframe1;
 		float Alpha = 0.0f;
 
-		KeyframeInterpData(const KeyframeData& keyframe0, const KeyframeData& keyframe1, float alpha);
+		KeyframeInterpolationData(const KeyframeData& keyframe0, const KeyframeData& keyframe1, float alpha);
 	};
 
 	struct StateDispatchData
@@ -74,7 +74,7 @@ namespace TEN::Animation
 
 		int Flags = 0;
 
-		KeyframeInterpData	GetKeyframeInterpData(int frameNumber) const;
+		KeyframeInterpolationData	GetKeyframeInterpolationData(int frameNumber) const;
 		const KeyframeData& GetClosestKeyframe(int frameNumber) const;
 	};
 
@@ -90,6 +90,7 @@ namespace TEN::Animation
 	// Animation controller
 
 	void AnimateItem(ItemInfo& item);
+	void AnimateItem(ItemInfo* item); // TODO: Deprecated. References should be universal.
 
 	// Inquirers
 
@@ -103,7 +104,7 @@ namespace TEN::Animation
 	const AnimData& GetAnimData(GAME_OBJECT_ID objectID, int animNumber);
 	const AnimData& GetAnimData(const ItemInfo& item, int animNumber = NO_VALUE);
 
-	KeyframeInterpData	GetFrameInterpData(const ItemInfo& item);
+	KeyframeInterpolationData	GetFrameInterpData(const ItemInfo& item);
 	const KeyframeData& GetKeyframe(GAME_OBJECT_ID objectID, int animNumber, int frameNumber = 0);
 	const KeyframeData& GetKeyframe(const ItemInfo& item, int animNumber, int frameNumber = 0);
 	const KeyframeData& GetFirstKeyframe(GAME_OBJECT_ID objectID, int animNumber);
@@ -122,7 +123,7 @@ namespace TEN::Animation
 	Vector3i   GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 	Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
-	Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int boneID);
+	Vector3	   GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign);
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID);
 
 	// Setters
@@ -134,5 +135,4 @@ namespace TEN::Animation
 	// Utilities
 
 	void ClampRotation(Pose& outPose, short angle, short rot);
-	void DrawAnimatingItem(ItemInfo* item);
 }

@@ -204,7 +204,7 @@ namespace TEN::Entities::Vehicles
 		jeep->Revs = 0;
 		jeep->Gear = 0;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	static int DoJeepShift(ItemInfo* jeepItem, Vector3i* pos, Vector3i* old)
@@ -464,7 +464,7 @@ namespace TEN::Entities::Vehicles
 		return true;
 	}
 
-	static int GetJeepCollisionAnim(ItemInfo* jeepItem, Vector3i* pos)
+	static int GetJeepCollisionAnimation(ItemInfo* jeepItem, Vector3i* pos)
 	{
 		auto* jeep = GetJeepInfo(jeepItem);
 
@@ -701,7 +701,7 @@ namespace TEN::Entities::Vehicles
 		else
 			jeep->ExtraRotation += ((jeep->ExtraRotationDrift - jeep->ExtraRotation) / 4);
 
-		int anim = GetJeepCollisionAnim(jeepItem, &movedPos);
+		int anim = GetJeepCollisionAnimation(jeepItem, &movedPos);
 	
 		if (anim)
 		{
@@ -1376,8 +1376,8 @@ namespace TEN::Entities::Vehicles
 			laraItem->Pose = jeepItem->Pose;
 
 			AnimateJeep(jeepItem, laraItem, collide, dead);
-			AnimateItem(*laraItem);
-			SyncVehicleAnim(*jeepItem, *laraItem);
+			AnimateItem(laraItem);
+			SyncVehicleAnimation(*jeepItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 			Camera.targetDistance = BLOCK(2);

@@ -38,19 +38,19 @@ void ScalesControl(short itemNumber)
 
 	if (TestLastFrame(*item))
 	{
-		AnimateItem(*item);
+		AnimateItem(item);
 		return;
 	}
 
 	if (item->Animation.ActiveState == 1 || item->ItemFlags[1])
 	{
-		if (true/*Objects[item->ObjectNumber].animIndex*/) // TODO: Check. Not clear what the intent is.
+		if (item->Animation.AnimNumber == 0)
 		{
 			RemoveActiveItem(itemNumber);
 			item->Status = ITEM_NOT_ACTIVE;
 			item->ItemFlags[1] = 0;
 
-			AnimateItem(*item);
+			AnimateItem(item);
 			return;
 		}
 
@@ -73,7 +73,7 @@ void ScalesControl(short itemNumber)
 			item->Animation.TargetState = 1;
 		}
 
-		AnimateItem(*item);
+		AnimateItem(item);
 	}
 
 	int flags = 0;
@@ -91,7 +91,7 @@ void ScalesControl(short itemNumber)
 	}
 
 	TestTriggers(item, true, flags);
-	AnimateItem(*item);
+	AnimateItem(item);
 }
 
 void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

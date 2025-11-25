@@ -226,7 +226,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.Velocity.y = 0;
 		lara->Control.WaterStatus = WaterStatus::Dry;
 
-		AnimateItem(*laraItem);
+		AnimateItem(laraItem);
 	}
 
 	bool TestSpeedboatDismount(ItemInfo* speedboatItem, int direction)
@@ -425,7 +425,7 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
-	int GetSpeedboatHitAnim(ItemInfo* speedboatItem, Vector3i* moved)
+	int GetSpeedboatHitAnimation(ItemInfo* speedboatItem, Vector3i* moved)
 	{
 		moved->x = speedboatItem->Pose.Position.x - moved->x;
 		moved->z = speedboatItem->Pose.Position.z - moved->z;
@@ -565,7 +565,7 @@ namespace TEN::Entities::Vehicles
 
 		DoVehicleCollision(speedboatItem, SPEEDBOAT_RADIUS);
 
-		auto collide = GetSpeedboatHitAnim(speedboatItem, &moved);
+		auto collide = GetSpeedboatHitAnimation(speedboatItem, &moved);
 
 		int newVelocity = 0;
 		if (slip || collide)
@@ -912,10 +912,10 @@ namespace TEN::Entities::Vehicles
 			laraItem->Pose = speedboatItem->Pose;
 			speedboatItem->Pose.Orientation.z += speedboat->LeanAngle;
 
-			AnimateItem(*laraItem);
+			AnimateItem(laraItem);
 
 			if (laraItem->HitPoints > 0)
-				SyncVehicleAnim(*speedboatItem, *laraItem);
+				SyncVehicleAnimation(*speedboatItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(20.0f);
 			Camera.targetDistance = BLOCK(2);
