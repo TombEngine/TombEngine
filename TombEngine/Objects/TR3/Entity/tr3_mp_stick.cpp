@@ -61,7 +61,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, MPSTICK_ANIM_IDLE);
+		SetAnimation(item, MPSTICK_ANIM_IDLE);
 	}
 
 	void MPStickControl(short itemNumber)
@@ -88,7 +88,7 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (item->Animation.ActiveState != MPSTICK_STATE_DEATH)
 			{
-				SetAnimation(*item, 26);
+				SetAnimation(item, 26);
 				creature->LOT.Step = 256;
 			}
 		}
@@ -489,22 +489,22 @@ namespace TEN::Entities::Creatures::TR3
 			{
 			case 2:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, MPSTICK_ANIM_VAULT_1_STEPS_UP);
+				SetAnimation(item, MPSTICK_ANIM_VAULT_1_STEPS_UP);
 				break;
 
 			case 3:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, MPSTICK_ANIM_VAULT_2_STEPS_UP);
+				SetAnimation(item, MPSTICK_ANIM_VAULT_2_STEPS_UP);
 				break;
 
 			case 4:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, MPSTICK_ANIM_VAULT_3_STEPS_UP);
+				SetAnimation(item, MPSTICK_ANIM_VAULT_3_STEPS_UP);
 				break;
 
 			case -4:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, MPSTICK_ANIM_VAULT_4_STEPS_DOWN);
+				SetAnimation(item, MPSTICK_ANIM_VAULT_4_STEPS_DOWN);
 				break;
 			}
 		}

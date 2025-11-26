@@ -42,7 +42,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, CHEF_ANIM_IDLE);
+		SetAnimation(item, CHEF_ANIM_IDLE);
 		item->Pose.Position.x += 192 * phd_sin(item->Pose.Orientation.y);
 		item->Pose.Position.z += 192 * phd_cos(item->Pose.Orientation.y);
 	}
@@ -64,7 +64,7 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (item->Animation.ActiveState != CHEF_STATE_DEATH)
 			{
-				SetAnimation(*item, CHEF_ANIM_DEATH);
+				SetAnimation(item, CHEF_ANIM_DEATH);
 				item->HitPoints = 0;
 			}
 		}

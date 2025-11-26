@@ -74,7 +74,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, LION_ANIM_IDLE);
+		SetAnimation(item, LION_ANIM_IDLE);
 	}
 
 	void LionControl(short itemNumber)
@@ -98,7 +98,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->HitPoints = 0;
 
 			if (item->Animation.ActiveState != LION_STATE_DEATH)
-				SetAnimation(*item, LionDeathAnims[Random::GenerateInt(0, (int)LionDeathAnims.size() - 1)]);
+				SetAnimation(item, LionDeathAnims[Random::GenerateInt(0, (int)LionDeathAnims.size() - 1)]);
 		}
 		else
 		{

@@ -47,13 +47,13 @@ namespace TEN::Entities::Generic
 					int pushAnimNumber = (pushable.IsOnEdge) ? 
 						PushableAnimSets[pushable.AnimSetID].EdgeAnimNumber :
 						PushableAnimSets[pushable.AnimSetID].PushAnimNumber;
-					SetAnimation(*LaraItem, pushAnimNumber);
+					SetAnimation(LaraItem, pushAnimNumber);
 				}
 				// Pulling.
 				else if (IsHeld(In::Back))
 				{
 					int pullAnimNumber = PushableAnimSets[pushable.AnimSetID].PullAnimNumber;
-					SetAnimation(*LaraItem, pullAnimNumber);
+					SetAnimation(LaraItem, pullAnimNumber);
 				}
 
 				pushable.StartPos = pushableItem.Pose.Position;

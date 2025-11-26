@@ -22,7 +22,7 @@ namespace TEN::Entities::Traps
 	void InitializeSpinningBlade(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
-		SetAnimation(*item, 3);
+		SetAnimation(item, 3);
 	}
 
 	void ControlSpinningBlade(short itemNumber)

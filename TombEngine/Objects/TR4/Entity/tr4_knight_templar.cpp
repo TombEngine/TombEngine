@@ -63,7 +63,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, KTEMPLAR_ANIM_IDLE);
+		SetAnimation(item, KTEMPLAR_ANIM_IDLE);
 		item->MeshBits &= 0xF7FF;
 	}
 

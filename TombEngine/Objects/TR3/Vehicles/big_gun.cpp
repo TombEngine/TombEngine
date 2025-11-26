@@ -165,7 +165,7 @@ namespace TEN::Entities::Vehicles
 			SetLaraVehicle(laraItem, bigGunItem);
 
 			DoVehicleFlareDiscard(laraItem);
-			SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_MOUNT);
+			SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_MOUNT);
 			laraItem->Animation.IsAirborne = false;
 			laraItem->Pose = bigGunItem->Pose;
 			lara->Control.HandStatus = HandStatus::Busy;
@@ -269,7 +269,7 @@ namespace TEN::Entities::Vehicles
 		{
 			if (bigGun->XOrientFrame == BGUN_X_ORIENT_MIDDLE_FRAME)
 			{
-				SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_DISMOUNT);
+				SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_DISMOUNT);
 				bigGun->TurnRate.y = 0;
 				bigGun->IsBarrelRotating = false;
 				bigGun->Flags = BGUN_FLAG_DISMOUNT;
@@ -291,7 +291,7 @@ namespace TEN::Entities::Vehicles
 
 			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(*laraItem))
 			{
-				SetAnimation(*laraItem, LA_STAND_IDLE);
+				SetAnimation(laraItem, LA_STAND_IDLE);
 				SetLaraVehicle(laraItem, nullptr);
 				lara->Control.HandStatus = HandStatus::Free;
 				bigGunItem->HitPoints = 0;
@@ -309,7 +309,7 @@ namespace TEN::Entities::Vehicles
 
 			bigGun->Flags = BGUN_FLAG_UP_DOWN;
 
-			SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_ROTATE_VERTICALLY, bigGun->XOrientFrame);
+			SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_ROTATE_VERTICALLY, bigGun->XOrientFrame);
 			break;
 		}
 

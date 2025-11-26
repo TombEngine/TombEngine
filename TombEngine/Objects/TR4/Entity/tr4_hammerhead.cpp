@@ -61,7 +61,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, HAMMERHEAD_ANIM_IDLE);
+		SetAnimation(item, HAMMERHEAD_ANIM_IDLE);
 	}
 
 	void HammerheadControl(short itemNumber)
@@ -75,7 +75,7 @@ namespace TEN::Entities::TR4
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != HAMMERHEAD_STATE_DEATH)
-				SetAnimation(*item, HAMMERHEAD_ANIM_DEATH_START);
+				SetAnimation(item, HAMMERHEAD_ANIM_DEATH_START);
 
 			item->HitPoints = 0;
 			CreatureFloat(itemNumber);

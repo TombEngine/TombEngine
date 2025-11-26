@@ -91,7 +91,7 @@ namespace TEN::Entities::Creatures::TR1
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != MUTANT_STATE_DEATH)
-				SetAnimation(*item, MUTANT_ANIM_DEATH);
+				SetAnimation(item, MUTANT_ANIM_DEATH);
 		}
 		else
 		{

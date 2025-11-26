@@ -396,6 +396,16 @@ namespace TEN::Animation
 		return g_Renderer.GetMoveableBoneOrientation(item.Index, boneID);
 	}
 
+	void SetAnimation(ItemInfo* item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber)
+	{
+		SetAnimation(*item, animObjectID, animNumber, frameNumber);
+	}
+
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber)
+	{
+		SetAnimation(*item, animNumber, frameNumber);
+	}
+
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber)
 	{
 		// Animation already set; return early.

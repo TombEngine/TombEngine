@@ -57,7 +57,7 @@ namespace TEN::Entities::Switches
 				{
 					if (switchItem.Animation.ActiveState == 0)
 					{
-						SetAnimation(*laraItem, LaraAnim::LA_VALVE_TURN);
+						SetAnimation(laraItem, LaraAnim::LA_VALVE_TURN);
 						switchItem.Animation.TargetState = 1;
 					}
 

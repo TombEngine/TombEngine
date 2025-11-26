@@ -128,6 +128,8 @@ namespace TEN::Animation
 
 	// Setters
 
+	void SetAnimation(ItemInfo* item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0); // TODO: Deprecated. References should be universal.
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber = 0); // TODO: Deprecated. References should be universal.
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0);
 	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber = 0);
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch);

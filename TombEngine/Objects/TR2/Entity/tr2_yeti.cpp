@@ -52,7 +52,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 19);
+		SetAnimation(item, 19);
 	}
 
 	void YetiControl(short itemNumber)
@@ -73,7 +73,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != YETI_STATE_DEATH)
-				SetAnimation(*item, YETI_ANIM_DEATH);
+				SetAnimation(item, YETI_ANIM_DEATH);
 		}
 		else
 		{

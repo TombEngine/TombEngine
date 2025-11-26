@@ -75,7 +75,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, GLADIATOR_ANIM_IDLE);
+		SetAnimation(item, GLADIATOR_ANIM_IDLE);
 
 		if (item->TriggerFlags == 1)
 			item->SetMeshSwapFlags(ALL_JOINT_BITS);
@@ -100,7 +100,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->HitPoints = 0;
 
 			if (item->Animation.ActiveState != GLADIATOR_STATE_DEATH)
-				SetAnimation(*item, GLADIATOR_ANIM_DEATH);
+				SetAnimation(item, GLADIATOR_ANIM_DEATH);
 		}
 		else
 		{

@@ -49,7 +49,12 @@ BoundingOrientedBox ItemInfo::GetObb() const
 {
 	auto frameData = GetFrameInterpData(*this);
 	if (frameData.Alpha == 0.0f)
-		return BoundingOrientedBox(frameData.Keyframe0.Aabb.Center, frameData.Keyframe0.Aabb.Extents, Pose.Orientation.ToQuaternion());
+	{
+		return BoundingOrientedBox(
+			Pose.Position.ToVector3() + frameData.Keyframe0.Aabb.Center,
+			frameData.Keyframe0.Aabb.Extents,
+			Pose.Orientation.ToQuaternion());
+	}
 
 	return BoundingOrientedBox(
 		Pose.Position.ToVector3() + Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
@@ -632,7 +637,7 @@ void InitializeItem(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	SetAnimation(*item, 0);
+	SetAnimation(item, 0);
 	item->Animation.RequiredState = NO_VALUE;
 	item->Animation.Velocity = Vector3::Zero;
 

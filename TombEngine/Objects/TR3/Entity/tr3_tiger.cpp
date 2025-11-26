@@ -84,7 +84,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != TIGER_STATE_DEATH)
-				SetAnimation(*item, TIGER_ANIM_DEATH);
+				SetAnimation(item, TIGER_ANIM_DEATH);
 		}
 		else
 		{

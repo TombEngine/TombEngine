@@ -333,7 +333,7 @@ namespace TEN::Entities::Doors
 
 				if (MoveLaraPosition(CrowbarDoorPos, &doorItem, playerItem))
 				{
-					SetAnimation(*playerItem, LA_DOOR_OPEN_CROWBAR);
+					SetAnimation(playerItem, LA_DOOR_OPEN_CROWBAR);
 					doorItem.Pose.Orientation.y ^= ANGLE(180.0f);
 
 					AddActiveItem(itemNumber);

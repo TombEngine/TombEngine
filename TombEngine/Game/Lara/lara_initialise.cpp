@@ -134,7 +134,7 @@ void InitializeLaraAnims(ItemInfo* item)
 
 	if (TestEnvironment(ENV_FLAG_WATER, item))
 	{
-		SetAnimation(*item, LA_UNDERWATER_IDLE);
+		SetAnimation(item, LA_UNDERWATER_IDLE);
 		item->Animation.Velocity.y = 0.0f;
 		player.Control.WaterStatus = WaterStatus::Underwater;
 	}
@@ -146,13 +146,13 @@ void InitializeLaraAnims(ItemInfo* item)
 		auto pointColl = GetPointCollision(*item);
 		if (abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight()) < LARA_HEIGHT)
 		{
-			SetAnimation(*item, LA_CRAWL_IDLE);
+			SetAnimation(item, LA_CRAWL_IDLE);
 			player.Control.IsLow =
 			player.Control.KeepLow = true;
 		}
 		else
 		{
-			SetAnimation(*item, LA_STAND_SOLID);
+			SetAnimation(item, LA_STAND_SOLID);
 		}
 	}
 }

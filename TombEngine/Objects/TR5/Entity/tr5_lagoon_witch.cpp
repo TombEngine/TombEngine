@@ -40,7 +40,7 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto* item = &g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 1);
+		SetAnimation(item, 1);
 		item->Pose.Position.y += CLICK(2);
 	}
 
@@ -62,7 +62,7 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			if (item->Animation.ActiveState != WITCH_STATE_DEATH)
 			{
-				SetAnimation(*item, WITCH_ANIM_DEATH);
+				SetAnimation(item, WITCH_ANIM_DEATH);
 				item->HitPoints = 0;
 			}
 		}

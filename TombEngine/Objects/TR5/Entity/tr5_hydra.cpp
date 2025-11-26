@@ -46,7 +46,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 0);
+		SetAnimation(item, 0);
 
 		if (item->TriggerFlags == 1)
 			item->Pose.Position.z += CLICK(1.5f);

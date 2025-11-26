@@ -141,7 +141,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, VON_CROY_ANIM_KNIFE_EQUIP_UNEQUIP);
+		SetAnimation(item, VON_CROY_ANIM_KNIFE_EQUIP_UNEQUIP);
 		item->SetMeshSwapFlags(VonCroyKnifeSwapJoints);
 
 		ZeroMemory(VonCroyPassedWaypoints, sizeof(VonCroyPassedWaypoints));

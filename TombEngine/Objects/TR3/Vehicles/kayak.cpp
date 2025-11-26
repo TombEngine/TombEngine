@@ -170,16 +170,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
+			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
+			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
+			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -615,7 +615,7 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0 &&
 			laraItem->Animation.ActiveState != KAYAK_STATE_IDLE_DEATH)
 		{
-			SetAnimation(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
+			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
 		}
 
 		int frame = laraItem->Animation.FrameNumber;
@@ -921,7 +921,7 @@ namespace TEN::Entities::Vehicles
 			{
 				auto vec = GetJointPosition(laraItem, LM_HIPS, Vector3i(0, 350, 500));
 
-				SetAnimation(*laraItem, LA_JUMP_FORWARD);
+				SetAnimation(laraItem, LA_JUMP_FORWARD);
 				laraItem->Pose.Position = vec;
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.y = kayakItem->Pose.Orientation.y - ANGLE(90.0f);
@@ -942,7 +942,7 @@ namespace TEN::Entities::Vehicles
 			{
 				auto vec = GetJointPosition(laraItem, LM_HIPS, Vector3i(0, 350, 500));
 
-				SetAnimation(*laraItem, LA_JUMP_FORWARD);
+				SetAnimation(laraItem, LA_JUMP_FORWARD);
 				laraItem->Pose.Position = vec;
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.y = kayakItem->Pose.Orientation.y + ANGLE(90.0f);
@@ -1049,7 +1049,7 @@ namespace TEN::Entities::Vehicles
 		if (lara->Control.WaterStatus == WaterStatus::FlyCheat)
 			return;
 
-		SetAnimation(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
+		SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
 		laraItem->Animation.IsAirborne = false;
 		laraItem->Animation.Velocity.z = 0;
 		laraItem->Animation.Velocity.y = 0;

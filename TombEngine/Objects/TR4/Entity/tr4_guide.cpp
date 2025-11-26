@@ -99,7 +99,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, GUIDE_ANIM_IDLE);
+		SetAnimation(item, GUIDE_ANIM_IDLE);
 		item->SetMeshSwapFlags(GuideRightHandSwapJoints);
 	}
 

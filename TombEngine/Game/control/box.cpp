@@ -568,7 +568,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
-	SetAnimation(*creatureItem, creatureAnimNumber);
+	SetAnimation(creatureItem, creatureAnimNumber);
 	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
 
 	playerItem.Pose = creatureItem->Pose;

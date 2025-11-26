@@ -98,7 +98,7 @@ void lara_col_climb_down(ItemInfo* item, CollisionInfo* coll)
 
 		if (resultRight == -1 || resultLeft == -1)
 		{
-			SetAnimation(*item, LA_LADDER_IDLE);
+			SetAnimation(item, LA_LADDER_IDLE);
 			item->Animation.TargetState = LS_HANG;
 
 			AnimateItem(item);
@@ -535,7 +535,7 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 
 	if (coll->Setup.PrevState != LS_LADDER_IDLE)
 	{	
-		SetAnimation(*item, LA_LADDER_IDLE);
+		SetAnimation(item, LA_LADDER_IDLE);
 		return;
 	}
 
@@ -561,9 +561,9 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		if (flag)
 		{
 			if (flag <= 0)
-				SetAnimation(*item, LA_LADDER_LEFT_CORNER_INNER_START);
+				SetAnimation(item, LA_LADDER_LEFT_CORNER_INNER_START);
 			else
-				SetAnimation(*item, LA_LADDER_LEFT_CORNER_OUTER_START);
+				SetAnimation(item, LA_LADDER_LEFT_CORNER_OUTER_START);
 
 			return;
 		}
@@ -575,9 +575,9 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		if (flag)
 		{
 			if (flag <= 0)
-				SetAnimation(*item, LA_LADDER_RIGHT_CORNER_INNER_START);
+				SetAnimation(item, LA_LADDER_RIGHT_CORNER_INNER_START);
 			else
-				SetAnimation(*item, LA_LADDER_RIGHT_CORNER_OUTER_START);
+				SetAnimation(item, LA_LADDER_RIGHT_CORNER_OUTER_START);
 
 			return;
 		}
@@ -975,7 +975,7 @@ bool LaraCheckForLetGo(ItemInfo* item, CollisionInfo* coll)
 
 	ResetPlayerFlex(item);
 
-	SetAnimation(*item, LA_FALL_START);
+	SetAnimation(item, LA_FALL_START);
 
 	item->Animation.Velocity.z = 2;
 	item->Animation.Velocity.y = 1;

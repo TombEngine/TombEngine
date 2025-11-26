@@ -80,12 +80,12 @@ namespace TEN::Entities::TR4
 
 		if (item->TriggerFlags == 2)
 		{
-			SetAnimation(*item, MUMMY_ANIM_COLLAPSE_END);
+			SetAnimation(item, MUMMY_ANIM_COLLAPSE_END);
 			item->Status = ITEM_NOT_ACTIVE;
 		}
 		else
 		{
-			SetAnimation(*item, MUMMY_ANIM_ARMS_CROSSED);
+			SetAnimation(item, MUMMY_ANIM_ARMS_CROSSED);
 		}
 	}
 
@@ -146,7 +146,7 @@ namespace TEN::Entities::TR4
 					}
 					else
 					{
-						SetAnimation(*item, MUMMY_ANIM_COLLAPSE_START);
+						SetAnimation(item, MUMMY_ANIM_COLLAPSE_START);
 						item->Pose.Orientation.y += AI.angle;
 						creature->MaxTurn = 0;
 					}

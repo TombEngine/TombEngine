@@ -286,7 +286,7 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (item->Animation.ActiveState != SHIVA_STATE_DEATH)
 			{
-				SetAnimation(*item, SHIVA_ANIM_DEATH);
+				SetAnimation(item, SHIVA_ANIM_DEATH);
 				item->ItemFlags[0] = object.nmeshes - 1;
 				item->ItemFlags[2] = 1; // Do mesh swap to stone.
 				item->ItemFlags[3] = 1;

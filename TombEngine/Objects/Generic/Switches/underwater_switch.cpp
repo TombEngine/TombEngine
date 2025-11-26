@@ -123,12 +123,12 @@ namespace TEN::Entities::Switches
 				{	
 					if (switchItem->Animation.ActiveState == SWITCH_OFF)
 					{
-						SetAnimation(*laraItem, isUnderwater ? LA_WATERLEVER_PULL : LA_WALL_LEVER_SWITCH);
+						SetAnimation(laraItem, isUnderwater ? LA_WATERLEVER_PULL : LA_WALL_LEVER_SWITCH);
 						switchItem->Animation.TargetState = SWITCH_ON;
 					}
 					else
 					{
-						SetAnimation(*laraItem, isUnderwater ? LA_WATERLEVER_PULL : LA_WALL_LEVER_SWITCH);
+						SetAnimation(laraItem, isUnderwater ? LA_WATERLEVER_PULL : LA_WALL_LEVER_SWITCH);
 						switchItem->Animation.TargetState = SWITCH_OFF;
 					}
 
@@ -202,7 +202,7 @@ namespace TEN::Entities::Switches
 
 				if (doInteraction)
 				{
-					SetAnimation(*laraItem, LA_UNDERWATER_CEILING_SWITCH_PULL);
+					SetAnimation(laraItem, LA_UNDERWATER_CEILING_SWITCH_PULL);
 					laraItem->Animation.TargetState = LS_UNDERWATER_IDLE;
 					laraItem->Animation.Velocity.y = 0;
 					lara->Control.IsMoving = false;

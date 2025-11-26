@@ -185,7 +185,7 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_IDLE);
+			SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_IDLE);
 			break;
 
 		default:
@@ -193,16 +193,16 @@ namespace TEN::Entities::Vehicles
 			// HACK: Hardcoded Nitro item check.
 			/*if (g_Gui.GetInventoryItemChosen() == ID_PUZZLE_ITEM1)
 			{
-				SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_UNLOCK);
+				SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_UNLOCK);
 				g_Gui.SetInventoryItemChosen(NO_VALUE);
 				motorbike->Flags |= MOTORBIKE_FLAG_NITRO;
 			}
 			else
 			{
-				SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_MOUNT);
+				SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_MOUNT);
 			}*/
 
-			SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_MOUNT);
+			SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_MOUNT);
 			break;
 		}
 
@@ -446,7 +446,7 @@ namespace TEN::Entities::Vehicles
 			if (laraItem->Animation.ActiveState == MOTORBIKE_STATE_DISMOUNT &&
 				TestLastFrame(*laraItem))
 			{
-				SetAnimation(*laraItem, LA_STAND_SOLID);
+				SetAnimation(laraItem, LA_STAND_SOLID);
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.y -= ANGLE(90.0f);
 				laraItem->Pose.Orientation.z = 0;
@@ -950,20 +950,20 @@ namespace TEN::Entities::Vehicles
 				switch (collide)
 				{
 				case 13:
-					SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_BACK_HIT);
+					SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_BACK_HIT);
 					break;
 
 				case 14:
-					SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_FRONT_HIT);
+					SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_FRONT_HIT);
 					break;
 
 				case 11:
-					SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_RIGHT_HIT);
+					SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_RIGHT_HIT);
 					break;
 
 				case 12:
 				default:
-					SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_LEFT_HIT);
+					SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_LEFT_HIT);
 					break;
 				}
 			}
@@ -971,9 +971,9 @@ namespace TEN::Entities::Vehicles
 		else
 		{
 			if (motorbike->Velocity >= 0)
-				SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_START_JUMP);
+				SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_START_JUMP);
 			else
-				SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_START_FALL);
+				SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_START_FALL);
 		}
 	}
 
@@ -1162,7 +1162,7 @@ namespace TEN::Entities::Vehicles
 		auto* motorbike = GetMotorbikeInfo(motorbikeItem);
 		auto* lara = GetLaraInfo(laraItem);
 
-		SetAnimation(*laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_IDLE);
+		SetAnimation(laraItem, ID_MOTORBIKE_LARA_ANIMS, MOTORBIKE_ANIM_IDLE);
 		laraItem->Animation.IsAirborne = false;
 		lara->Control.HandStatus = HandStatus::Busy;
 		lara->HitDirection = -1;

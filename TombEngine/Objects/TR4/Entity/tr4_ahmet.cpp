@@ -104,7 +104,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, AHMET_ANIM_IDLE);
+		SetAnimation(item, AHMET_ANIM_IDLE);
 		item->ItemFlags[0] = item->Pose.Position.x / BLOCK(1);
 		item->ItemFlags[1] = (item->Pose.Position.y * 4) / BLOCK(1);
 		item->ItemFlags[2] = item->Pose.Position.z / BLOCK(1);
@@ -141,7 +141,7 @@ namespace TEN::Entities::TR4
 			}
 			else
 			{
-				SetAnimation(*item, AHMET_ANIM_DEATH);
+				SetAnimation(item, AHMET_ANIM_DEATH);
 				Lara.Context.InteractedItem = itemNumber; // TODO: Check if it's really required! -- TokyoSU 3/8/2022
 			}
 			
@@ -394,7 +394,7 @@ namespace TEN::Entities::TR4
 		if (item->RoomNumber != outsideRoom)
 			ItemNewRoom(itemNumber, outsideRoom);
 
-		SetAnimation(*item, AHMET_ANIM_IDLE);
+		SetAnimation(item, AHMET_ANIM_IDLE);
 		item->HitPoints = Objects[item->ObjectNumber].HitPoints;
 		AddActiveItem(itemNumber);
 

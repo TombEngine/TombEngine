@@ -96,7 +96,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != WORKER_SHOTGUN_STATE_DEATH)
-				SetAnimation(*item, WORKER_SHOTGUN_ANIM_DEATH);
+				SetAnimation(item, WORKER_SHOTGUN_ANIM_DEATH);
 		}
 		else
 		{

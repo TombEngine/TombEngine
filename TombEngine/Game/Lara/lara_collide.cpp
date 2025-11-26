@@ -74,7 +74,7 @@ bool LaraDeflectTopSide(ItemInfo* item, CollisionInfo* coll)
 	if (coll->CollisionType == CollisionType::Clamp &&
 		coll->HitStatic && item->Animation.Velocity.y > 0.0f)
 	{
-		SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1);
+		SetAnimation(item, LA_JUMP_WALL_SMASH_START, 1);
 		Rumble(0.5f, 0.15f);
 
 		return true;
@@ -96,13 +96,13 @@ bool LaraDeflectEdgeJump(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (coll->Middle.Floor <= CLICK(1))
 			{
-				SetAnimation(*item, LA_LAND);
+				SetAnimation(item, LA_LAND);
 				LaraSnapToHeight(item, coll);
 			}
 			// TODO: Demagic. This is Lara's running velocity. Jumps have a minimum of 50.
 			else if (abs(item->Animation.Velocity.z) > 47.0f)
 			{
-				SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1);
+				SetAnimation(item, LA_JUMP_WALL_SMASH_START, 1);
 				Rumble(0.5f, 0.15f);
 			}
 
@@ -285,7 +285,7 @@ void LaraCollideStop(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_IDLE;
 
 		if (item->Animation.AnimNumber != LA_STAND_SOLID)
-			SetAnimation(*item, LA_STAND_SOLID);
+			SetAnimation(item, LA_STAND_SOLID);
 
 		break;
 	}
