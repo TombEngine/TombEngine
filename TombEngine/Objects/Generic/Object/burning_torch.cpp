@@ -95,10 +95,6 @@ namespace TEN::Entities::Generic
 
 	void DoFlameTorch()
 	{
-		constexpr auto HOLD_ANIM_NUMBER	 = 0;
-		constexpr auto THROW_ANIM_NUMBER = 1;
-		constexpr auto DROP_ANIM_NUMBER	 = 2;
-
 		auto* laraItem = LaraItem.Get();
 		auto* lara = GetLaraInfo(laraItem);
 		auto& animObject = Objects[ID_LARA_TORCH_ANIM];
@@ -109,7 +105,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = true;
 				lara->LeftArm.FrameNumber = 31;
-				lara->LeftArm.AnimNumber = DROP_ANIM_NUMBER;
+				lara->LeftArm.AnimNumber = PLAYER_TORCH_ANIM_DROP;
 				lara->Torch.State = TorchState::Dropping;
 			}
 			else if (IsHeld(In::Draw) &&
@@ -126,7 +122,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = true;
 				lara->LeftArm.FrameNumber = 1;
-				lara->LeftArm.AnimNumber = THROW_ANIM_NUMBER;
+				lara->LeftArm.AnimNumber = PLAYER_TORCH_ANIM_THROW;
 				lara->Torch.State = TorchState::Throwing;
 
 				if (lara->Control.WaterStatus == WaterStatus::Underwater)
@@ -139,7 +135,7 @@ namespace TEN::Entities::Generic
 			{
 				lara->LeftArm.Locked = false;
 				lara->LeftArm.FrameNumber = 0;
-				lara->LeftArm.AnimNumber = HOLD_ANIM_NUMBER;
+				lara->LeftArm.AnimNumber = PLAYER_TORCH_ANIM_HOLD;
 				lara->Torch.State = TorchState::Holding;
 			}
 			else
@@ -190,7 +186,7 @@ namespace TEN::Entities::Generic
 				lara->LeftArm.FrameNumber = 0;
 				lara->Flare.ControlLeft = true;
 				lara->Torch.IsLit = laraItem->ItemFlags[3] & 1;
-				lara->LeftArm.AnimNumber = HOLD_ANIM_NUMBER;
+				lara->LeftArm.AnimNumber = PLAYER_TORCH_ANIM_HOLD;
 			}
 		}
 
