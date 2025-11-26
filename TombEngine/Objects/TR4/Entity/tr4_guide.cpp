@@ -635,7 +635,7 @@ namespace TEN::Entities::TR4
 			else
 			{
 				if (item->Animation.AnimNumber != GUIDE_ANIM_IDLE_CROUCH &&
-					item->Animation.FrameNumber == 20)
+					item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 20))
 				{
 					TestTriggers(item, true);
 
