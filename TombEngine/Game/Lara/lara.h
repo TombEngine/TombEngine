@@ -93,13 +93,6 @@ constexpr auto SWIM_WATER_DEPTH		= CLICK(2.75f);
 constexpr auto SLOPE_DIFFERENCE		= 60;
 constexpr auto SWAMP_GRAVITY_COEFF	= 3.0f;
 
-enum PlayerTorchAnim
-{
-	PLAYER_TORCH_ANIM_HOLD  = 0,
-	PLAYER_TORCH_ANIM_THROW = 1,
-	PLAYER_TORCH_ANIM_DROP  = 2
-};
-
 extern LaraInfo		 Lara;
 extern ItemHandler	 LaraItem;
 extern CollisionInfo LaraCollision;
