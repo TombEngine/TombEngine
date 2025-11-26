@@ -22,8 +22,6 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Animation
 {
-	constexpr auto VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
-
 	// TODO: Arm anim object in savegame.
 
 	KeyframeInterpolationData::KeyframeInterpolationData(const KeyframeData& keyframe0, const KeyframeData& keyframe1, float alpha) :

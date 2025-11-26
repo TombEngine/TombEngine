@@ -10,13 +10,15 @@
 using namespace TEN::Animation;
 using namespace TEN::Utils;
 
-constexpr auto MAX_SPAWNED_ITEM_COUNT = 1024;
-constexpr auto ITEM_FLAG_COUNT = 8;
+constexpr float VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
 
-constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
+constexpr int MAX_SPAWNED_ITEM_COUNT = 1024;
+constexpr int ITEM_FLAG_COUNT        = 8;
 
-constexpr auto ALL_JOINT_BITS = UINT_MAX;
-constexpr auto NO_JOINT_BITS  = 0u;
+constexpr int NOT_TARGETABLE = SHRT_MIN / 2;
+
+constexpr unsigned int ALL_JOINT_BITS = UINT_MAX;
+constexpr unsigned int NO_JOINT_BITS  = 0u;
 
 enum class EffectType
 {
