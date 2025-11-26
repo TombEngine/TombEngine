@@ -287,7 +287,7 @@ namespace TEN::Entities::Vehicles
 		case BGUN_STATE_MOUNT:
 		case BGUN_STATE_DISMOUNT:
 			AnimateItem(laraItem);
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			SyncItemAnimation(*bigGunItem, *laraItem);
 
 			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(*laraItem))
 			{
@@ -300,7 +300,7 @@ namespace TEN::Entities::Vehicles
 			break;
 
 		case BGUN_STATE_ROTATE_VERTICALLY:
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			SyncItemAnimation(*bigGunItem, *laraItem);
 
 			if (bigGun->FireCount > 0)
 				bigGun->FireCount--;

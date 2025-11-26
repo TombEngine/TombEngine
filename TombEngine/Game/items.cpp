@@ -1045,3 +1045,8 @@ Vector3i GetNearestSectorCenter(const Vector3i& pos)
 
 	return Vector3i(x, y, z);
 }
+
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
+{
+	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
+}

@@ -234,3 +234,5 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
 
 Vector3i GetNearestSectorCenter(const Vector3i& pos);
+
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);

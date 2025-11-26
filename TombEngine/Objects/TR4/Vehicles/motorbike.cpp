@@ -1168,7 +1168,7 @@ namespace TEN::Entities::Vehicles
 		lara->HitDirection = -1;
 
 		// Sync vehicle with player animation.
-		SyncVehicleAnimation(*motorbikeItem, *laraItem);
+		SyncItemAnimation(*motorbikeItem, *laraItem);
 
 		motorbikeItem->HitPoints = 1;
 		motorbikeItem->Flags = IFLAG_KILLED; // hmm... maybe wrong name (it can be IFLAG_CODEBITS)?
@@ -1300,7 +1300,7 @@ namespace TEN::Entities::Vehicles
 
 		AnimateMotorbike(motorbikeItem, laraItem, collide, isDead);
 		AnimateItem(laraItem);
-		SyncVehicleAnimation(*motorbikeItem, *laraItem);
+		SyncItemAnimation(*motorbikeItem, *laraItem);
 
 		Camera.targetElevation = -ANGLE(30.0f);
 

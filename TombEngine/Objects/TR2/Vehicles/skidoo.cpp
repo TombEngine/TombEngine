@@ -409,7 +409,7 @@ namespace TEN::Entities::Vehicles
 			SkidooGuns(skidooItem, laraItem);
 
 		if (!dead)
-			SyncVehicleAnimation(*skidooItem, *laraItem);
+			SyncItemAnimation(*skidooItem, *laraItem);
 		else
 			SetAnimation(skidooItem, SKIDOO_ANIM_IDLE);
 
