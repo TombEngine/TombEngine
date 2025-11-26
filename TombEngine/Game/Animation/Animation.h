@@ -27,10 +27,10 @@ namespace TEN::Animation
 	{
 		Vector3					RootOffset		 = Vector3::Zero;
 		std::vector<Quaternion> BoneOrientations = {};
-		BoundingBox				Aabb			 = DirectX::BoundingBox();
+		BoundingBox				Aabb			 = DirectX::BoundingBox(); // Local AABB.
 
 		// Deprecated.
-		GameBoundingBox BoundingBox = GameBoundingBox::Zero;
+		GameBoundingBox BoundingBox = GameBoundingBox::Zero; // Local AABB.
 	};
 
 	struct KeyframeInterpolationData
@@ -55,7 +55,7 @@ namespace TEN::Animation
 
 	struct AnimData
 	{
-		using AnimCommandPtr = std::unique_ptr<AnimCommand>;
+		using AnimCommandPtr = std::shared_ptr<AnimCommand>;
 		
 		int			  StateID			 = 0;
 		int			  Interpolation		 = 0;

@@ -636,6 +636,7 @@ void RemoveActiveItem(short itemNumber, bool killed)
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
+	const auto& object = Objects[item->ObjectNumber];
 
 	SetAnimation(item, 0);
 	item->Animation.RequiredState = NO_VALUE;
@@ -651,7 +652,7 @@ void InitializeItem(short itemNumber)
 	item->Collidable = true;
 	item->LookedAt = false;
 	item->Timer = 0;
-	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
+	item->HitPoints = object.HitPoints;
 
 	item->Effect = {};
 
@@ -675,7 +676,7 @@ void InitializeItem(short itemNumber)
 		item->Flags &= ~IFLAG_INVISIBLE;
 		item->Status = ITEM_INVISIBLE;
 	}
-	else if (Objects[item->ObjectNumber].intelligent)
+	else if (object.intelligent)
 	{
 		item->Status = ITEM_INVISIBLE;
 	}
@@ -698,8 +699,8 @@ void InitializeItem(short itemNumber)
 
 	item->ResetModelToDefault();
 
-	if (Objects[item->ObjectNumber].Initialize != nullptr)
-		Objects[item->ObjectNumber].Initialize(itemNumber);
+	if (object.Initialize != nullptr)
+		object.Initialize(itemNumber);
 }
 
 short CreateItem()

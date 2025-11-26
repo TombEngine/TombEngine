@@ -853,7 +853,7 @@ namespace TEN::Entities::Vehicles
 
 			break;
 
-		// TODO: Ckech frames.
+		// TODO: Check frames.
 		case MINECART_STATE_HIT:
 			if (laraItem->HitPoints <= 0 &&
 				laraItem->Animation.FrameNumber == 62)
@@ -866,7 +866,7 @@ namespace TEN::Entities::Vehicles
 
 			break;
 
-		// TODO: Ckech frames.
+		// TODO: Check frames.
 		case MINECART_STATE_DEATH:
 			if (laraItem->HitPoints <= 0 &&
 				laraItem->Animation.FrameNumber == 62)
