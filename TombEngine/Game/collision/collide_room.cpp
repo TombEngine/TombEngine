@@ -11,11 +11,13 @@
 #include "Game/room.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 void ShiftItem(ItemInfo* item, CollisionInfo* coll)
 {
@@ -731,6 +733,12 @@ void AlignEntityToSurface(ItemInfo* item, const Vector2& ellipse, float alpha, s
 		if (abs(extraRot.z) <= constraintAngle)
 			item->Pose.Orientation.z += extraRot.z * alpha;
 	}
+}
+
+bool TestNeighborRooms(int roomNumber0, int roomNumber1)
+{
+	const auto& room0 = g_Level.Rooms[roomNumber0];
+	return Contains(room0.NeighborRoomNumbers, roomNumber1);
 }
 
 int GetQuadrant(short angle)
