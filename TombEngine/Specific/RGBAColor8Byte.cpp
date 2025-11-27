@@ -4,14 +4,14 @@
 static byte FloatComponentToByte(float value)
 {
 	// TODO: Look into what these actually do and test them to see if they are actually not undefined.
-	long byteValue = std::lroundf((value / 2.0f) * 255.0f);
+	long byteValue = std::lroundf(value * 255.0f);
 	return (byte)byteValue;
 }
 
 static float ByteComponentToFloat(byte b)
 {
 	// TODO: Look into what these actually do and test them to see if they are actually not undefined.
-	float value = (b / 255.0f) * 2;
+	float value = (b / 255.0f);
 	return value;
 }
 
@@ -51,7 +51,7 @@ RGBAColor8Byte::RGBAColor8Byte(const Vector4& color)
 	r = FloatComponentToByte(color.x);
 	g = FloatComponentToByte(color.y);
 	b = FloatComponentToByte(color.z);
-	a = FloatComponentToByte(color.w * 2);
+	a = FloatComponentToByte(color.w);
 }
 
 byte RGBAColor8Byte::GetR() const
@@ -96,8 +96,7 @@ void RGBAColor8Byte::SetA(byte v)
 
 RGBAColor8Byte::operator Color() const
 {
-	// Alpha exists on normalized range [0.0f, 1.0f], unlike color components which exist on range [0.0f, 2.0f].
-	return Color(ByteComponentToFloat(r), ByteComponentToFloat(g), ByteComponentToFloat(b), ByteComponentToFloat(a) / 2.0f);
+	return Color(ByteComponentToFloat(r), ByteComponentToFloat(g), ByteComponentToFloat(b), ByteComponentToFloat(a));
 }
 
 RGBAColor8Byte::operator Vector3() const
@@ -107,8 +106,7 @@ RGBAColor8Byte::operator Vector3() const
 
 RGBAColor8Byte::operator Vector4() const
 {
-	// Alpha exists on normalized range [0.0f, 1.0f], unlike color components which exist on range [0.0f, 2.0f].
-	return Vector4(ByteComponentToFloat(r), ByteComponentToFloat(g), ByteComponentToFloat(b), ByteComponentToFloat(a) / 2.0f);
+	return Vector4(ByteComponentToFloat(r), ByteComponentToFloat(g), ByteComponentToFloat(b), ByteComponentToFloat(a));
 }
 
 RGBAColor8Byte::operator D3DCOLOR() const

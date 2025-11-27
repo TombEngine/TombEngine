@@ -94,7 +94,8 @@ float Contrast(float Input, float ContrastPower)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+    float4 color = float4(ModulateColor(input.Color.xyz, Brightness), input.Color.w);
+    float4 output = Texture.Sample(Sampler, input.UV) * color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
