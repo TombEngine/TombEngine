@@ -288,7 +288,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
 	if (point == _lastCallbackPoint)
 	{
-		TENLog("Attempt to add callback function " + levelFunc.m_funcName + " within the same callback type.", LogLevel::Error, LogConfig::All);
+		TENLog(Fmt("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error, LogConfig::All);
 		return;
 	}
 
@@ -301,7 +301,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 	
 	if (it->second->find(levelFunc.m_funcName) != it->second->end())
 	{
-		TENLog("Function " + levelFunc.m_funcName + " already registered in callbacks list.", LogLevel::Warning, LogConfig::All, true);
+		TENLog(Fmt("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
