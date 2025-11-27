@@ -129,7 +129,7 @@ namespace TEN::Entities::Effects
 		if (sourceColor == Vector4::One)
 			return Vector4(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f, 1.0f) * UCHAR_MAX;
 
-		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+		return sourceColor * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
 	}
 
 	void FlameEmitterControl(short itemNumber)

@@ -76,9 +76,9 @@ namespace TEN::Effects::Fireflies
         if (triggerFlags >= 0)
         {
             float brightnessShift = Random::GenerateFloat(-0.1f, 0.1f);
-            r = std::clamp(item.Model.Color.x / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
-            g = std::clamp(item.Model.Color.y / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
-            b = std::clamp(item.Model.Color.z / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            r = std::clamp(item.Model.Color.x + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            g = std::clamp(item.Model.Color.y + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            b = std::clamp(item.Model.Color.z + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
 
             firefly.SpriteSeqID = ID_FIREFLY_SPRITES;
             firefly.SpriteID = 0;

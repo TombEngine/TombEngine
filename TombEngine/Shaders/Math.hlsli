@@ -563,7 +563,7 @@ float2 GetSamplePosition(float4 projectedPosition)
 
 float3 ModulateColor(float3 color, float brightness)
 {
-    return saturate(color * brightness * 2.0f);
+    return (color * brightness * 2.0f);
 }
 
 #endif // MATH
