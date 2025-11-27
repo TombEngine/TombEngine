@@ -146,6 +146,8 @@ void SnapItemToGrid(ItemInfo* item, CollisionInfo* coll);
 
 void AlignEntityToSurface(ItemInfo* item, const Vector2& ellipse, float alpha = 0.75f, short constraintAngle = ANGLE(70.0f));
 
+bool TestNeighborRooms(int roomNumber0, int roomNumber1);
+
 // TODO: Deprecated.
 bool TestEnvironment(RoomEnvFlags environmentType, int x, int y, int z, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const Vector3i& pos, int roomNumber);

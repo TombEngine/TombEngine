@@ -11,11 +11,13 @@
 #include "Game/room.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 void ShiftItem(ItemInfo* item, CollisionInfo* coll)
 {
@@ -736,6 +738,12 @@ void AlignEntityToSurface(ItemInfo* item, const Vector2& ellipse, float alpha, s
 int GetQuadrant(short angle)
 {
 	return (unsigned short(angle + ANGLE(45.0f)) / ANGLE(90.0f));
+}
+
+bool TestNeighborRooms(int roomNumber0, int roomNumber1)
+{
+	const auto& room0 = g_Level.Rooms[roomNumber0];
+	return Contains(room0.NeighborRoomNumbers, roomNumber1);
 }
 
 // Determines vertical surfaces and gets nearest ledge angle.
