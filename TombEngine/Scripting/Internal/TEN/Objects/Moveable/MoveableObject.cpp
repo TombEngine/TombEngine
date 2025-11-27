@@ -825,7 +825,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(*_moveable, animNumber);
+	SetAnimation(_moveable, animNumber);
 }
 
 /// Retrieve frame number.
@@ -1337,7 +1337,7 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
 	_moveable->Animation.FrameNumber = 0;
-	AnimateItem(*_moveable);
+	AnimateItem(_moveable);
 }
 
 /// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.

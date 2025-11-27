@@ -79,7 +79,7 @@ bool ShouldAnimateUpperBody(const LaraWeaponType& weapon)
 	}
 }
 
-// MEGA HACK: Arm frames for pistols, uzis, and revolver currently remain absolute.
+// HACK: Arm frames for pistols, uzis, and revolver currently remain absolute.
 // Until the weapon system is rewritten from scratch, this will ensure correct behaviour. -- Sezz 2023.11.13
 int GetNormalizedArmAnimFrame(GAME_OBJECT_ID animObjectID, int frameNumber)
 {
@@ -376,7 +376,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			continue;
 
 		bool skinned = object.skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning;
-		bool flipped = skinned || (GetJointOffset(unit.ObjectID, 1).z < 0);
+		bool flipped = skinned || (GetJointOffset(unit.ObjectID, 1, false).z < 0);
 		auto objectType = i ? RendererObjectType::HairSecondary : RendererObjectType::HairPrimary;
 
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];

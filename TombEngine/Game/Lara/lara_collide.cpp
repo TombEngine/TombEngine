@@ -74,7 +74,7 @@ bool LaraDeflectTopSide(ItemInfo* item, CollisionInfo* coll)
 	if (coll->CollisionType == CollisionType::Clamp &&
 		coll->HitStatic && item->Animation.Velocity.y > 0.0f)
 	{
-		SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1);
+		SetAnimation(item, LA_JUMP_WALL_SMASH_START, 1);
 		Rumble(0.5f, 0.15f);
 
 		return true;
@@ -277,7 +277,7 @@ void LaraCollideStop(ItemInfo* item, CollisionInfo* coll)
 		else
 			item->Animation.TargetState = LS_IDLE;
 
-		AnimateItem(*item);
+		AnimateItem(item);
 
 		break;
 
@@ -310,7 +310,7 @@ void LaraCollideStopCrawl(ItemInfo* item, CollisionInfo* coll)
 		else
 			item->Animation.TargetState = LS_CRAWL_IDLE;
 
-		AnimateItem(*item);
+		AnimateItem(item);
 		break;
 
 	default:
@@ -343,7 +343,7 @@ void LaraCollideStopMonkey(ItemInfo* item, CollisionInfo* coll)
 		else
 			item->Animation.TargetState = LS_MONKEY_IDLE;
 
-		AnimateItem(*item);
+		AnimateItem(item);
 		break;
 
 	default:

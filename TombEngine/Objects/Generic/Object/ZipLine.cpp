@@ -63,7 +63,7 @@ namespace TEN::Entities::Traps
 			{
 				if (MoveLaraPosition(ZipLineInteractOffset, &zipLineItem, laraItem))
 				{
-					SetAnimation(*laraItem, LaraAnim::LA_ZIPLINE_MOUNT);
+					SetAnimation(laraItem, LaraAnim::LA_ZIPLINE_MOUNT);
 					ResetPlayerFlex(laraItem);
 					player.Control.IsMoving = false;
 					player.Control.HandStatus = HandStatus::Busy;

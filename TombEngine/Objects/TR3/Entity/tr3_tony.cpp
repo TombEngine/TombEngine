@@ -504,7 +504,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != TONY_STATE_DEATH)
-				SetAnimation(*item, TONY_ANIM_DEATH);
+				SetAnimation(item, TONY_ANIM_DEATH);
 
 			int endFrameNumber = GetAnimData(*object, TONY_ANIM_DEATH).EndFrameNumber;
 			if (item->Animation.FrameNumber >= endFrameNumber)

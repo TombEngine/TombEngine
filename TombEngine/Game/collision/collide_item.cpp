@@ -502,19 +502,19 @@ bool Move3DPosTo3DPos(ItemInfo* item, Pose& fromPose, const Pose& toPose, int ve
 			{
 			default:
 			case NORTH:
-				SetAnimation(*item, LA_WALK);
+				SetAnimation(item, LA_WALK);
 				break;
 
 			case SOUTH:
-				SetAnimation(*item, LA_WALK_BACK);
+				SetAnimation(item, LA_WALK_BACK);
 				break;
 
 			case EAST:
-				SetAnimation(*item, LA_SIDESTEP_RIGHT);
+				SetAnimation(item, LA_SIDESTEP_RIGHT);
 				break;
 
 			case WEST:
-				SetAnimation(*item, LA_SIDESTEP_LEFT);
+				SetAnimation(item, LA_SIDESTEP_LEFT);
 				break;
 			}
 

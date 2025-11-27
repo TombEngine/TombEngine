@@ -9,7 +9,7 @@ namespace TEN::Math
 
 		static constexpr auto CONTROL_POINT_COUNT = 4;
 
-		// Members
+		// Fields
 
 		std::array<Vector2, CONTROL_POINT_COUNT> _controlPoints = {};
 

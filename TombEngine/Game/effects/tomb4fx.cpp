@@ -1211,7 +1211,7 @@ void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle)
 	SoundEffect(SFX_TR4_EXPLOSION2, &laraItem->Pose);
 
 	SetLaraVehicle(laraItem, nullptr);
-	SetAnimation(*laraItem, LA_FALL_START);
+	SetAnimation(laraItem, LA_FALL_START);
 	laraItem->Animation.IsAirborne = true;
 	DoDamage(laraItem, INT_MAX);
 }

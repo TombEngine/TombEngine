@@ -64,11 +64,11 @@ namespace TEN::Entities::TR4
 
 		if (item->TriggerFlags == 1)
 		{
-			SetAnimation(*item, BSCORPION_ANIM_KILL_TROOP);
+			SetAnimation(item, BSCORPION_ANIM_KILL_TROOP);
 		}
 		else
 		{
-			SetAnimation(*item, BSCORPION_ANIM_IDLE);
+			SetAnimation(item, BSCORPION_ANIM_IDLE);
 		}
 	}
 
@@ -90,7 +90,7 @@ namespace TEN::Entities::TR4
 			{
 				if (item->TriggerFlags > 0 && item->TriggerFlags < 7)
 				{
-					SetAnimation(*item, BSCORPION_ANIM_DEATH);
+					SetAnimation(item, BSCORPION_ANIM_DEATH);
 					item->Status = ITEM_INVISIBLE;
 					creature->MaxTurn = 0;
 
@@ -113,7 +113,7 @@ namespace TEN::Entities::TR4
 				}
 				else if (item->Animation.ActiveState != BSCORPION_STATE_DEATH && item->Animation.ActiveState != BSCORPION_STATE_KILL)
 				{
-					SetAnimation(*item, BSCORPION_ANIM_DEATH);
+					SetAnimation(item, BSCORPION_ANIM_DEATH);
 				}
 			}
 			else if (item->Animation.ActiveState == BSCORPION_STATE_DEATH && item->Status == ITEM_INVISIBLE)

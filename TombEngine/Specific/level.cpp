@@ -392,6 +392,7 @@ void LoadObjects()
 
 		auto& movSlot = Objects[movSlotID];
 		movSlot.loaded = true;
+		movSlot.skinIndex = ReadInt32();
 		movSlot.nmeshes = ReadInt32();
 		movSlot.meshIndex = ReadInt32();
 		movSlot.boneIndex = ReadInt32();
@@ -441,8 +442,8 @@ void LoadObjects()
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
-				keyFrame.Aabb = BoundingBox(center, extents);
-				keyFrame.BoundingBox = GameBoundingBox(keyFrame.Aabb);
+				keyFrame.LocalAabb = BoundingBox(center, extents);
+				keyFrame.BoundingBox = GameBoundingBox(keyFrame.LocalAabb);
 
 				keyFrame.RootPosition = ReadVector3();
 
@@ -476,8 +477,8 @@ void LoadObjects()
 						boneOrients[m] = Quaternion::Slerp(currentKeyFrame.BoneOrientations[m], nextKeyFrame.BoneOrientations[m], alpha);
 						
 					auto aabb = BoundingBox(
-						Vector3::Lerp(currentKeyFrame.Aabb.Center, nextKeyFrame.Aabb.Center, alpha),
-						Vector3::Lerp(currentKeyFrame.Aabb.Extents, nextKeyFrame.Aabb.Extents, alpha));
+						Vector3::Lerp(currentKeyFrame.LocalAabb.Center, nextKeyFrame.LocalAabb.Center, alpha),
+						Vector3::Lerp(currentKeyFrame.LocalAabb.Extents, nextKeyFrame.LocalAabb.Extents, alpha));
 					auto legacyAabb = GameBoundingBox(aabb);
 
 					auto frame = FrameData{ rootPos, boneOrients, aabb, legacyAabb };
@@ -526,23 +527,23 @@ void LoadObjects()
 						case AnimCommandType::MoveRoot:
 						{
 							auto translation = ReadVector3();
-							command = std::make_unique<MoveRootCommand>(translation);
+							command = std::make_shared<MoveRootCommand>(translation);
 						}
 							break;
 
 						case AnimCommandType::JumpVelocity:
 						{
 							auto jumpVel = ReadVector3();
-							command = std::make_unique<JumpVelocityCommand>(jumpVel);
+							command = std::make_shared<JumpVelocityCommand>(jumpVel);
 						}
 							break;
 
 						case AnimCommandType::AttackReady:
-							command = std::make_unique<AttackReadyCommand>();
+							command = std::make_shared<AttackReadyCommand>();
 							break;
 
 						case AnimCommandType::Deactivate:
-							command = std::make_unique<DeactivateCommand>();
+							command = std::make_shared<DeactivateCommand>();
 							break;
 
 						case AnimCommandType::SoundEffect:
@@ -550,7 +551,7 @@ void LoadObjects()
 							int soundID = ReadInt32();
 							int frameNumber = ReadInt32();
 							auto envCond = (SoundEffectEnvCondition)ReadInt32();
-							command = std::make_unique<SoundEffectCommand>(soundID, frameNumber, envCond);
+							command = std::make_shared<SoundEffectCommand>(soundID, frameNumber, envCond);
 						}
 							break;
 
@@ -558,14 +559,14 @@ void LoadObjects()
 						{
 							int flipEffectID = ReadInt32();
 							int frameNumber = ReadInt32();
-							command = std::make_unique<FlipEffectCommand>(flipEffectID, frameNumber);
+							command = std::make_shared<FlipEffectCommand>(flipEffectID, frameNumber);
 						}
 							break;
 
 						case AnimCommandType::DisableInterpolation:
 						{
 							int frameNumber = ReadInt32();
-							command = std::make_unique<DisableInterpolationCommand>(frameNumber);
+							command = std::make_shared<DisableInterpolationCommand>(frameNumber);
 						}
 							break;
 					}

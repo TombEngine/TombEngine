@@ -221,8 +221,7 @@ namespace TEN::Entities::Creatures::TR1
 			}
 		}
 
-		skateItem.Animation.AnimNumber = item.Animation.AnimNumber;
-		skateItem.Animation.FrameNumber = item.Animation.FrameNumber;
+		SyncItemAnimation(skateItem, item);
 		skateItem.Pose.Position = item.Pose.Position;
 		skateItem.Pose.Orientation = item.Pose.Orientation;
 		UpdateItemRoom(item.ItemFlags[0]);

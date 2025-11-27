@@ -58,13 +58,13 @@ BoundingOrientedBox ItemInfo::GetObb() const
 	const auto& anim = GetAnimData(*this);
 	auto rootMotionCounter = anim.GetRootMotionCounteraction(Animation.FrameNumber);
 
-	// Calculate offset.
-	const auto& relOffset = anim.Frames[Animation.FrameNumber].Aabb.Center;
+	// Compute offset.
+	const auto& relOffset = anim.Frames[Animation.FrameNumber].LocalAabb.Center;
 	auto rotMatrix = (Pose.Orientation + rootMotionCounter.Rotation).ToRotationMatrix();
 	auto offset = Vector3::Transform(relOffset + rootMotionCounter.Translation, rotMatrix);
 
 	// Get extents.
-	const auto& extents = anim.Frames[Animation.FrameNumber].Aabb.Extents;
+	const auto& extents = anim.Frames[Animation.FrameNumber].LocalAabb.Extents;
 
 	// Create and return OBB.
 	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, Pose.Orientation.ToQuaternion());
@@ -672,6 +672,7 @@ void RemoveActiveItem(short itemNumber, bool killed)
 void InitializeItem(short itemNumber) 
 {
 	auto& item = g_Level.Items[itemNumber];
+	const auto& object = Objects[item->ObjectNumber];
 
 	SetAnimation(item, 0);
 	item.Animation.RequiredState = NO_VALUE;
@@ -687,7 +688,7 @@ void InitializeItem(short itemNumber)
 	item.Collidable = true;
 	item.LookedAt = false;
 	item.Timer = 0;
-	item.HitPoints = Objects[item.ObjectNumber].HitPoints;
+	item.HitPoints = object.HitPoints;
 
 	item.Effect = {};
 
@@ -711,7 +712,7 @@ void InitializeItem(short itemNumber)
 		item.Flags &= ~IFLAG_INVISIBLE;
 		item.Status = ITEM_INVISIBLE;
 	}
-	else if (Objects[item.ObjectNumber].intelligent)
+	else if (object.intelligent)
 	{
 		item.Status = ITEM_INVISIBLE;
 	}
@@ -734,8 +735,8 @@ void InitializeItem(short itemNumber)
 
 	item.ResetModelToDefault();
 
-	if (Objects[item.ObjectNumber].Initialize != nullptr)
-		Objects[item.ObjectNumber].Initialize(itemNumber);
+	if (object.Initialize != nullptr)
+		object.Initialize(itemNumber);
 }
 
 short CreateItem()
@@ -1079,4 +1080,9 @@ Vector3i GetNearestSectorCenter(const Vector3i& pos)
 	int y = pos.y;
 
 	return Vector3i(x, y, z);
+}
+
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
+{
+	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
 }

@@ -110,7 +110,7 @@ namespace TEN::Math
 		auto points = _controlPoints;
 		int count = (int)_controlPoints.size() - 1;
 
-		// Calculate derivative control points.
+		// Compute derivative control points.
 		for (int i = 0; i < count; i++)
 			points[i] = (_controlPoints[i + 1] - _controlPoints[i]) * count;
 

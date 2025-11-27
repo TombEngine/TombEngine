@@ -269,7 +269,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, STATUE_ANIM_START_JUMP_DOWN);
+		SetAnimation(item, STATUE_ANIM_START_JUMP_DOWN);
 		item->Status = ITEM_NOT_ACTIVE;
 		item->Pose.Position.x += 486 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.z += 486 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
@@ -320,7 +320,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		// Set recoil animation.
 		if (prevMeshSwapBits != item->Model.MeshIndex)
-			SetAnimation(*item, STATUE_ANIM_RECOIL);
+			SetAnimation(item, STATUE_ANIM_RECOIL);
 
 		if (item->HitPoints > 0)
 		{
@@ -837,7 +837,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 			else
 			{
-				SetAnimation(*item, STATUE_ANIM_DEATH);
+				SetAnimation(item, STATUE_ANIM_DEATH);
 			}
 		}
 

@@ -253,9 +253,6 @@ void DrawFlare(ItemInfo& laraItem)
 		int armFrame = player.LeftArm.FrameNumber + 1;
 		player.Flare.ControlLeft = true;
 
-		// HACK: Solve problems with incorrect particle orientation. -- Lwmte, 08.06.2025
-		g_Renderer.UpdateLaraAnimations(true);
-
 		if (armFrame < 33 || armFrame > 94)
 		{
 			armFrame = 33;
@@ -289,6 +286,9 @@ void DrawFlare(ItemInfo& laraItem)
 
 		player.LeftArm.FrameNumber = armFrame;
 		SetFlareArm(laraItem, armFrame);
+
+		// HACK: Solve problems with incorrect particle orientation. -- Lwmte, 08.06.2025
+		g_Renderer.UpdateLaraAnimations(true);
 	}
 }
 

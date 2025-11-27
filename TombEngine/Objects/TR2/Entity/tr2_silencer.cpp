@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR2
 			if (item->Animation.ActiveState != SILENCER_STATE_DEATH_1 &&
 				item->Animation.ActiveState != SILENCER_STATE_DEATH_2)
 			{
-				SetAnimation(*item, SILENCER_ANIM_DEATH_1);
+				SetAnimation(item, SILENCER_ANIM_DEATH_1);
 			}
 		}
 		else

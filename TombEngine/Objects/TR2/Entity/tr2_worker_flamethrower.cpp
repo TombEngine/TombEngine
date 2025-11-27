@@ -56,7 +56,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, WORKER_FLAME_ANIM_IDLE);
+		SetAnimation(item, WORKER_FLAME_ANIM_IDLE);
 	}
 
 	void WorkerFlamethrower(short itemNumber)
@@ -77,7 +77,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != WORKER_FLAME_STATE_DEATH)
-				SetAnimation(*item, WORKER_FLAME_ANIM_DEATH);
+				SetAnimation(item, WORKER_FLAME_ANIM_DEATH);
 		}
 		else
 		{

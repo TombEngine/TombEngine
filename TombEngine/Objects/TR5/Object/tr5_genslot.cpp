@@ -60,7 +60,7 @@ void GenSlot1Control(short itemNumber)
 			}
 		}
 
-		AnimateItem(*item);
+		AnimateItem(item);
 	}
 }
 

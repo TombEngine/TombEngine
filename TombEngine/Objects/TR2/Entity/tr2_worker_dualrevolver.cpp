@@ -49,7 +49,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != 11)
-				SetAnimation(*item, 32);
+				SetAnimation(item, 32);
 		}
 		else if (LaraItem->HitPoints <= 0)
 		{

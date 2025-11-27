@@ -351,7 +351,7 @@ namespace TEN::Entities::TR4
 				ClampRotation(item->Pose, AI.angle, item->ItemFlags[0] / 16);
 
 			creature->MaxTurn = 0;
-			AnimateItem(*item);
+			AnimateItem(item);
 
 			auto probe = GetPointCollision(*item);
 			item->Floor = probe.GetFloorHeight();

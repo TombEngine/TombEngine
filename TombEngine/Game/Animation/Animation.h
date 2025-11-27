@@ -31,10 +31,10 @@ namespace TEN::Animation
 	{
 		Vector3                 RootPosition     = Vector3::Zero;
 		std::vector<Quaternion> BoneOrientations = {};
-		BoundingBox             Aabb             = DirectX::BoundingBox();
+		BoundingBox             LocalAabb        = DirectX::BoundingBox();
 
 		// Deprecated.
-		GameBoundingBox BoundingBox = GameBoundingBox::Zero;
+		GameBoundingBox BoundingBox = GameBoundingBox::Zero; // Local AABB.
 	};
 
 	struct StateDispatchData
@@ -64,7 +64,7 @@ namespace TEN::Animation
 
 	struct AnimData
 	{
-		using AnimCommandPtr = std::unique_ptr<IAnimCommand>;
+		using AnimCommandPtr = std::shared_ptr<IAnimCommand>;
 
 		int           StateID           = 0;
 		int           EndFrameNumber    = 0;
@@ -98,6 +98,7 @@ namespace TEN::Animation
 	// Animation controller
 
 	void AnimateItem(ItemInfo& item);
+	void AnimateItem(ItemInfo* item); // TODO: Deprecated. References should be universal.
 
 	// Inquirers
 
@@ -141,5 +142,4 @@ namespace TEN::Animation
 	// Utilities
 
 	void ClampRotation(Pose& outPose, short angle, short rot);
-	void DrawAnimatingItem(ItemInfo* item);
 }

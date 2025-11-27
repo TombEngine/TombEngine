@@ -213,7 +213,7 @@ namespace TEN::Entities::Generic
 				// Align player.
 				if (MoveLaraPosition(PushableBlockPos, &pushableItem, playerItem))
 				{
-					SetAnimation(*playerItem, LA_PUSHABLE_GRAB);
+					SetAnimation(playerItem, LA_PUSHABLE_GRAB);
 					playerItem->Pose.Orientation = pushableItem.Pose.Orientation;
 					ResetPlayerFlex(playerItem);
 					player.Control.IsMoving = false;

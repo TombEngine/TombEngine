@@ -43,7 +43,7 @@ void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 		if (!laraItem->Animation.IsAirborne && 
 			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, laraItem))
 		{
-			SetAnimation(*laraItem, LA_BOULDER_DEATH);
+			SetAnimation(laraItem, LA_BOULDER_DEATH);
 
 			Camera.flags = CF_FOLLOW_CENTER;
 			Camera.targetAngle = ANGLE(170.0f);
@@ -376,7 +376,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 				lara->Pose.Orientation.y = item->Pose.Orientation.y;
 				lara->Pose.Orientation.x = lara->Pose.Orientation.z = 0;
 
-				SetAnimation(*lara, LA_BOULDER_DEATH);
+				SetAnimation(lara, LA_BOULDER_DEATH);
 						
 				Camera.flags = CF_FOLLOW_CENTER;
 				Camera.targetAngle = ANGLE(170.0f);
@@ -411,7 +411,7 @@ void ClassicRollingBallControl(short itemNum)
 	{
 		if (item->Animation.TargetState == 2)
 		{
-			AnimateItem(*item);
+			AnimateItem(item);
 			return;
 		}
 
@@ -429,7 +429,7 @@ void ClassicRollingBallControl(short itemNum)
 		int oldx = item->Pose.Position.x;
 		int oldz = item->Pose.Position.z;
 
-		AnimateItem(*item);
+		AnimateItem(item);
 
 		auto pointColl = GetPointCollision(*item);
 

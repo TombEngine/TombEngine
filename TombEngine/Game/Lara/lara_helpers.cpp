@@ -1600,7 +1600,7 @@ void SetLaraCornerAnimation(ItemInfo* item, CollisionInfo* coll, bool flip)
 
 	if (item->HitPoints <= 0)
 	{
-		SetAnimation(*item, LA_FALL_START);
+		SetAnimation(item, LA_FALL_START);
 		item->Animation.IsAirborne = true;
 		item->Animation.Velocity.z = 2;
 		item->Animation.Velocity.y = 1;
@@ -1613,9 +1613,9 @@ void SetLaraCornerAnimation(ItemInfo* item, CollisionInfo* coll, bool flip)
 	if (flip)
 	{
 		if (lara->Control.IsClimbingLadder)
-			SetAnimation(*item, LA_LADDER_IDLE);
+			SetAnimation(item, LA_LADDER_IDLE);
 		else
-			SetAnimation(*item, LA_HANG_IDLE);
+			SetAnimation(item, LA_HANG_IDLE);
 
 		item->Pose.Position = lara->Context.NextCornerPos.Position;
 		item->Pose.Orientation.y = lara->Context.NextCornerPos.Orientation.y;

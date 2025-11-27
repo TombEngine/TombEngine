@@ -822,9 +822,6 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		if (Objects.CheckID(itemToSerialize.ObjectNumber, true))
-			serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
-
 		serializedItem.add_next_item(itemToSerialize.NextItem);
 		serializedItem.add_next_item_active(itemToSerialize.NextActive);
 		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
@@ -2816,7 +2813,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			(item->Status == ITEM_ACTIVE || item->Status == ITEM_DEACTIVATED))
 		{
 			item->ObjectNumber = (GAME_OBJECT_ID)((int)item->ObjectNumber + ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1);
-			item->Animation.AnimNumber = savedItem->anim_number();
 		}
 
 		// Initialize bridges.

@@ -212,21 +212,21 @@ namespace TEN::Entities::Creatures::TR5
 		{
 		default:
 		case GuardOcb::Idle:
-			SetAnimation(*item, GUARD_ANIM_IDLE);
+			SetAnimation(item, GUARD_ANIM_IDLE);
 			break;
 
 		case GuardOcb::Reload:
-			SetAnimation(*item, GUARD_ANIM_RELOAD);
+			SetAnimation(item, GUARD_ANIM_RELOAD);
 			break;
 
 		case GuardOcb::DoorKick:
-			SetAnimation(*item, GUARD_ANIM_OPEN_DOOR_KICK);
+			SetAnimation(item, GUARD_ANIM_OPEN_DOOR_KICK);
 			item->Animation.TargetState = GUARD_STATE_CROUCH;
 			// TODO: item->flags2 ^= (item->flags2 ^ ((item->flags2 & 0xFE) + 2)) & 6;
 			break;
 
 		case GuardOcb::RopeDown:
-			SetAnimation(*item, GUARD_ANIM_ROPE_DOWN);
+			SetAnimation(item, GUARD_ANIM_ROPE_DOWN);
 			item->SetMeshSwapFlags(9216);
 
 			roomItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
@@ -259,32 +259,32 @@ namespace TEN::Entities::Creatures::TR5
 			break;
 
 		case GuardOcb::Sleeping:
-			SetAnimation(*item, GUARD_ANIM_SLEEPING);
+			SetAnimation(item, GUARD_ANIM_SLEEPING);
 			item->SetMeshSwapFlags(GUARD_NO_WEAPON_ON_HAND_SWAPFLAG);
 			break;
 
 		case GuardOcb::RopeDownFast:
-			SetAnimation(*item, GUARD_ANIM_ROPE_DOWN_FAST);
+			SetAnimation(item, GUARD_ANIM_ROPE_DOWN_FAST);
 			item->Pose.Position.y = GetPointCollision(*item).GetCeilingHeight() - BLOCK(2);
 			break;
 
 		case GuardOcb::WaitOnWall:
-			SetAnimation(*item, GUARD_ANIM_WAITING_ON_WALL);
+			SetAnimation(item, GUARD_ANIM_WAITING_ON_WALL);
 			break;
 
 		case GuardOcb::UseComputer:
 		case GuardOcb::UseComputerScientist:
-			SetAnimation(*item, GUARD_ANIM_USE_COMPUTER);
+			SetAnimation(item, GUARD_ANIM_USE_COMPUTER);
 			item->Pose.Position.x -= CLICK(2) * phd_sin(item->Pose.Orientation.y);
 			item->Pose.Position.z -= CLICK(2) * phd_cos(item->Pose.Orientation.y);
 			break;
 
 		case GuardOcb::StartHuntStop:
-			SetAnimation(*item, GUARD_ANIM_HUNT_TO_IDLE);
+			SetAnimation(item, GUARD_ANIM_HUNT_TO_IDLE);
 			break;
 
 		case GuardOcb::Run:
-			SetAnimation(*item, GUARD_ANIM_RUN_FORWARD);
+			SetAnimation(item, GUARD_ANIM_RUN_FORWARD);
 			break;
 		}
 	}
@@ -294,7 +294,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 0);
+		SetAnimation(item, 0);
 		item->Pose.Position.x += BLOCK(1) * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.y += CLICK(2);
 		item->Pose.Position.z += BLOCK(1) * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
@@ -305,7 +305,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 6);
+		SetAnimation(item, 6);
 	}
 
 	void ControlGuardLaser(short itemNumber)
@@ -362,12 +362,12 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				if (laraAI.angle >= GUARD_LARA_ANGLE_FOR_DEATH2 || laraAI.angle <= -GUARD_LARA_ANGLE_FOR_DEATH2)
 				{
-					SetAnimation(*item, GUARD_ANIM_DEATH_2);
+					SetAnimation(item, GUARD_ANIM_DEATH_2);
 					item->Pose.Orientation.y += laraAI.angle + ANGLE(-180.0f);
 				}
 				else
 				{
-					SetAnimation(*item, GUARD_ANIM_DEATH_1);
+					SetAnimation(item, GUARD_ANIM_DEATH_1);
 					item->Pose.Orientation.y += laraAI.angle;
 				}
 
@@ -407,7 +407,7 @@ namespace TEN::Entities::Creatures::TR5
 						item->HitPoints--;
 
 					if (item->HitPoints <= 0)
-						SetAnimation(*item, GUARD_ANIM_DEATH_2);
+						SetAnimation(item, GUARD_ANIM_DEATH_2);
 				}
 			}
 
@@ -507,7 +507,7 @@ namespace TEN::Entities::Creatures::TR5
 				else if (canJump1block || canJump2blocks)
 				{
 					creature->MaxTurn = 0;
-					SetAnimation(*item, GUARD_ANIM_JUMP_START);
+					SetAnimation(item, GUARD_ANIM_JUMP_START);
 
 					if (canJump1block)
 						item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -655,7 +655,7 @@ namespace TEN::Entities::Creatures::TR5
 					if (canJump1block || canJump2blocks)
 					{
 						creature->MaxTurn = 0;
-						SetAnimation(*item, GUARD_ANIM_JUMP_START);
+						SetAnimation(item, GUARD_ANIM_JUMP_START);
 
 						if (canJump1block)
 							item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -696,7 +696,7 @@ namespace TEN::Entities::Creatures::TR5
 				else if (canJump1block || canJump2blocks)
 				{
 					creature->MaxTurn = 0;
-					SetAnimation(*item, GUARD_ANIM_JUMP_START);
+					SetAnimation(item, GUARD_ANIM_JUMP_START);
 
 					if (canJump1block)
 						item->Animation.TargetState = GUARD_STATE_JUMP_1_BLOCK;
@@ -1001,32 +1001,32 @@ namespace TEN::Entities::Creatures::TR5
 			switch (CreatureVault(itemNumber, angle, 2, BLOCK(0.25f)))
 			{
 			case 2:
-				SetAnimation(*item, GUARD_ANIM_VAULT_2_STEPS_UP);
+				SetAnimation(item, GUARD_ANIM_VAULT_2_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case 3:
-				SetAnimation(*item, GUARD_ANIM_VAULT_3_STEPS_UP);
+				SetAnimation(item, GUARD_ANIM_VAULT_3_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case 4:
-				SetAnimation(*item, GUARD_ANIM_VAULT_4_STEPS_UP);
+				SetAnimation(item, GUARD_ANIM_VAULT_4_STEPS_UP);
 				creature->MaxTurn = 0;
 				break;
 
 			case -2:
-				SetAnimation(*item, GUARD_ANIM_VAULT_2_STEPS_DOWN);
+				SetAnimation(item, GUARD_ANIM_VAULT_2_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 
 			case -3:
-				SetAnimation(*item, GUARD_ANIM_VAULT_3_STEPS_DOWN);
+				SetAnimation(item, GUARD_ANIM_VAULT_3_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 
 			case -4:
-				SetAnimation(*item, GUARD_ANIM_VAULT_4_STEPS_DOWN);
+				SetAnimation(item, GUARD_ANIM_VAULT_4_STEPS_DOWN);
 				creature->MaxTurn = 0;
 				break;
 			}
@@ -1135,7 +1135,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 0);
+		SetAnimation(item, 0);
 		item->SetMeshSwapFlags(9216);
 	}
 

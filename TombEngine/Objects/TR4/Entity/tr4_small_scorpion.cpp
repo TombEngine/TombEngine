@@ -57,7 +57,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, SSCORPION_ANIM_IDLE);
+		SetAnimation(item, SSCORPION_ANIM_IDLE);
 	}
 
 	void SmallScorpionControl(short itemNumber)
@@ -81,7 +81,7 @@ namespace TEN::Entities::TR4
 			if (item->Animation.ActiveState != SSCORPION_STATE_DEATH_1 &&
 				item->Animation.ActiveState != SSCORPION_STATE_DEATH_2)
 			{
-				SetAnimation(*item, SSCORPION_ANIM_DEATH);
+				SetAnimation(item, SSCORPION_ANIM_DEATH);
 			}
 		}
 		else

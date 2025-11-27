@@ -82,7 +82,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != FLAMETHROWER_STATE_DEATH)
-				SetAnimation(*item, FLAME_ANIM_DEATH);
+				SetAnimation(item, FLAME_ANIM_DEATH);
 		}
 		else
 		{
@@ -208,7 +208,7 @@ namespace TEN::Entities::Creatures::TR3
 				extraHeadRot.y = laraAI.angle;
 
 				if (item->AIBits & GUARD)
-					SetAnimation(*item, FLAME_ANIM_IDLE);
+					SetAnimation(item, FLAME_ANIM_IDLE);
 				else if (item->AIBits & PATROL1)
 					item->Animation.TargetState = FLAMETHROWER_STATE_WALK_FORWARD;
 				else if (creature->Mood == MoodType::Escape)

@@ -286,7 +286,7 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (item->Animation.ActiveState != SHIVA_STATE_DEATH)
 			{
-				SetAnimation(*item, SHIVA_ANIM_DEATH);
+				SetAnimation(item, SHIVA_ANIM_DEATH);
 				item->ItemFlags[0] = object.nmeshes - 1;
 				item->ItemFlags[2] = 1; // Do mesh swap to stone.
 				item->ItemFlags[3] = 1;
@@ -295,7 +295,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (TestLastFrame(*item))
 			{
 				// Block last frame until mesh is swapped.
-				item->Animation.FrameNumber -= 1;
+				item->Animation.FrameNumber = GetAnimData(*item).EndFrameNumber - 1;
 
 				if (DoShivaMeshSwap(*item, true))
 					CreatureDie(itemNumber, false);

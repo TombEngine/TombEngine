@@ -84,9 +84,9 @@ namespace TEN::Entities::TR4
 		InitializeCreature(itemNumber);
 
 		if (TestEnvironment(ENV_FLAG_WATER, item))
-			SetAnimation(*item, CROC_ANIM_SWIM_FORWARD);
+			SetAnimation(item, CROC_ANIM_SWIM_FORWARD);
 		else
-			SetAnimation(*item, CROC_ANIM_IDLE);
+			SetAnimation(item, CROC_ANIM_IDLE);
 	}
 
 	bool IsCrocodileInWater(ItemInfo* item)
@@ -134,12 +134,12 @@ namespace TEN::Entities::TR4
 			{
 				if (isInWater)
 				{
-					SetAnimation(*item, CROC_ANIM_WATER_DEATH);
+					SetAnimation(item, CROC_ANIM_WATER_DEATH);
 					item->HitPoints = NOT_TARGETABLE;
 				}
 				else
 				{
-					SetAnimation(*item, CROC_ANIM_LAND_DEATH);
+					SetAnimation(item, CROC_ANIM_LAND_DEATH);
 				}
 			}
 
@@ -276,7 +276,7 @@ namespace TEN::Entities::TR4
 				// Water to land transition.
 				if (!IsCrocodileInWater(item))
 				{
-					SetAnimation(*item, CROC_ANIM_WATER_TO_LAND);
+					SetAnimation(item, CROC_ANIM_WATER_TO_LAND);
 					break;
 				}
 

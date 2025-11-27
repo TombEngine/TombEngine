@@ -664,7 +664,7 @@ namespace TEN::Entities::Generic
 		item->Pose.Orientation.x = 0;
 		item->Pose.Position.y += 320;
 
-		SetAnimation(*item, stumble ? LA_JUMP_WALL_SMASH_START : LA_FALL_START);
+		SetAnimation(item, stumble ? LA_JUMP_WALL_SMASH_START : LA_FALL_START);
 
 		item->Animation.Velocity.y = 0;
 		item->Animation.IsAirborne = true;

@@ -63,7 +63,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, KTEMPLAR_ANIM_IDLE);
+		SetAnimation(item, KTEMPLAR_ANIM_IDLE);
 		item->MeshBits &= 0xF7FF;
 	}
 
@@ -82,7 +82,7 @@ namespace TEN::Entities::TR4
 		short joint1 = 0;
 		short joint2 = 0;
 
-		if (item->Animation.AnimNumber == 0 ||
+		if (item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_LEFT_1 ||
 			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_1 ||
 			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_LEFT_2 ||
 			item->Animation.AnimNumber == KTEMPLAR_ANIM_WALK_FORWARD_RIGHT_2)

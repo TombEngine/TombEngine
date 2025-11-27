@@ -22,8 +22,6 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Animation
 {
-	constexpr auto VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
-
 	// TODO: Arm anim object in savegame.
 
 	FixedMotionData AnimData::GetFixedMotion(int frameNumber) const
@@ -271,8 +269,11 @@ namespace TEN::Animation
 				}
 				else
 				{
-					item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
-					item.Pose.Position.y += item.Animation.Velocity.y;
+					if (item.Animation.ActiveState != LS_FLY_CHEAT)
+					{
+						item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
+						item.Pose.Position.y += item.Animation.Velocity.y;
+					}
 				}
 			}
 			else
@@ -331,6 +332,11 @@ namespace TEN::Animation
 			PrintDebugMessage("Frame number: %d", item.Animation.Blend.FrameNumber);
 			PrintDebugMessage("Frame count: %d", item.Animation.Blend.FrameCount);
 		}
+	}
+
+	void AnimateItem(ItemInfo* item)
+	{
+		AnimateItem(*item);
 	}
 
 	bool TestStateDispatch(const ItemInfo& item, int targetStateID)
@@ -460,6 +466,17 @@ namespace TEN::Animation
 
 	Vector3i GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset)
 	{
+		bool incorrectBone = false;
+		if (boneID < 0 || boneID >= Objects[item.ObjectNumber].nmeshes)
+		{
+			TENLog("Unknown bone ID specified for object " + GetObjectName(item.ObjectNumber), LogLevel::Warning, LogConfig::All);
+			incorrectBone = true;
+		}
+
+		// Always return object's root position if it's invisible. Joint position can't be predicted otherwise since it's not animated.
+		if (incorrectBone || Objects[item.ObjectNumber].Hidden || item.Status == ITEM_INVISIBLE)
+			return Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation, relOffset);
+
 		// Use matrices done in renderer to transform relative offset.
 		return Vector3i(g_Renderer.GetMoveableBonePosition(item.Index, boneID, relOffset.ToVector3()));
 	}
@@ -479,12 +496,12 @@ namespace TEN::Animation
 		return GetJointPosition(item, bite.BoneID, bite.Position);
 	}
 
-	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID)
+	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign)
 	{
 		const auto& object  = Objects[objectID];
 		const int*  bonePtr = &g_Level.Bones[object.boneIndex + (boneID * 4)];
 
-		return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+		return offset;
 	}
 
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)
@@ -564,10 +581,5 @@ namespace TEN::Animation
 		{
 			outPose.Orientation.y += rot;
 		}
-	}
-
-	// TODO: Refactor. Empty stub because moveable drawing is disabled when DrawRoutine pointer is nullptr in ObjectInfo.
-	void DrawAnimatingItem(ItemInfo* item)
-	{
 	}
 }

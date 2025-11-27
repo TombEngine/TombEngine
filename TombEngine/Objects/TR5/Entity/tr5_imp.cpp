@@ -207,9 +207,9 @@ namespace TEN::Entities::Creatures::TR5
 				CreatureAIInfo(item, &ai);
 
 				if (ai.angle > -ANGLE(67.5f) && ai.angle < ANGLE(67.5f))
-					SetAnimation(*item, IMP_ANIM_BACKWARD_DEATH);
+					SetAnimation(item, IMP_ANIM_BACKWARD_DEATH);
 				else
-					SetAnimation(*item, IMP_ANIM_FORWARD_DEATH);
+					SetAnimation(item, IMP_ANIM_FORWARD_DEATH);
 			}
 		}
 		else
