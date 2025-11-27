@@ -48,18 +48,12 @@ BoundingBox ItemInfo::GetAabb() const
 BoundingOrientedBox ItemInfo::GetObb() const
 {
 	auto frameData = GetFrameInterpData(*this);
-	if (frameData.Alpha == 0.0f)
-	{
-		return BoundingOrientedBox(
-			Pose.Position.ToVector3() + frameData.Keyframe0.Aabb.Center,
-			frameData.Keyframe0.Aabb.Extents,
-			Pose.Orientation.ToQuaternion());
-	}
-
-	return BoundingOrientedBox(
-		Pose.Position.ToVector3() + Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
+	auto obb = BoundingOrientedBox();
+	BoundingOrientedBox(
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
 		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
-		Pose.Orientation.ToQuaternion());
+		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
+	return obb;
 }
 
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
