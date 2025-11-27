@@ -153,10 +153,13 @@ namespace TEN::Animation
 				}
 				else
 				{
-					item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
-					item.Animation.Velocity.z += animAccel.z;
+					if (item.Animation.ActiveState != LS_FLY_CHEAT)
+					{
+						item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
+						item.Animation.Velocity.z += animAccel.z;
 
-					item.Pose.Position.y += item.Animation.Velocity.y;
+						item.Pose.Position.y += item.Animation.Velocity.y;
+					}
 				}
 			}
 			else
