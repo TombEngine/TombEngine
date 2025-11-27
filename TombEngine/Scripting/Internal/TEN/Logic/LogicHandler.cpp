@@ -288,7 +288,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
 	if (point == _lastCallbackPoint)
 	{
-		TENLog(Fmt("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error, LogConfig::All);
+		TENLog(Fmt("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error);
 		return;
 	}
 
