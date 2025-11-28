@@ -120,15 +120,8 @@ namespace TEN::Animation
 			}
 		}
 
-		// NOTE: Must use non-zero frame count in this edge case.
-		unsigned int frameCount = anim->EndFrameNumber;
-		if (frameCount == 0)
-			frameCount = 1;
-
-		int currentFrameNumber = item.Animation.FrameNumber;
-
-		auto animAccel = (anim->VelocityEnd - anim->VelocityStart) / frameCount;
-		auto animVel = anim->VelocityStart + (animAccel * currentFrameNumber);
+		auto animAccel = (anim->VelocityEnd - anim->VelocityStart) / std::max(anim->EndFrameNumber, 1);
+		auto animVel = anim->VelocityStart + (animAccel * item.Animation.FrameNumber);
 
 		if (item.Animation.IsAirborne)
 		{
