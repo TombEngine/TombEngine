@@ -15,6 +15,8 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
+constexpr int DOPPELGANGER_BURN_TIMEOUT = 5 * FPS;
+
 enum class DoppelgangerFallState
 {
 	None,
@@ -157,9 +159,17 @@ namespace TEN::Entities::Creatures::TR1
 		}
 
 		case (short)DoppelgangerFallState::Death:
-			DisableEntityAI(itemNumber);
-			RemoveActiveItem(itemNumber);
-			item.Collidable = false;
+
+			item.HitPoints = 0;
+			item.ItemFlags[6]++;
+
+			if (item.ItemFlags[6] > DOPPELGANGER_BURN_TIMEOUT)
+			{
+				DisableEntityAI(itemNumber);
+				RemoveActiveItem(itemNumber);
+				item.Collidable = false;
+			}
+
 			break;
 		}
 
