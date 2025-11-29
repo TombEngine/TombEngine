@@ -638,7 +638,7 @@ const std::vector<byte> SaveGame::Build()
 		auto luaOnCollidedRoomNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnRoomCollided);
 
 		std::vector<int> itemFlags;
-		for (int i = 0; i < 7; i++)
+		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
 		auto itemFlagsOffset = fbb.CreateVector(itemFlags);
 
@@ -2785,7 +2785,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
 
 		// Flags and timers
-		for (int j = 0; j < 7; j++)
+		for (int j = 0; j < ITEM_FLAG_COUNT; j++)
 			item->ItemFlags[j] = savedItem->item_flags()->Get(j);
 
 		item->Timer = savedItem->timer();
