@@ -296,9 +296,8 @@ namespace TEN::Animation
 		if (item.Animation.ActiveState == targetStateID)
 			return nullptr;
 
-		const auto& anim = GetAnimData(item);
-
 		// Run through state dispatches.
+		const auto& anim = GetAnimData(item);
 		for (const auto& dispatch : anim.Dispatches)
 		{
 			// State ID mismatch; continue.
