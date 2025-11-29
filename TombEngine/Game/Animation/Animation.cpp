@@ -290,13 +290,22 @@ namespace TEN::Animation
 
 	const StateDispatchData* GetStateDispatch(const ItemInfo& item, int targetStateID)
 	{
+		targetStateID = (targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID;
+
+		// If animation already has the same state ID, don't try to get it.
+		if (item.Animation.ActiveState == targetStateID)
+			return nullptr;
+
 		const auto& anim = GetAnimData(item);
+
+		if (anim.Dispatches.empty())
+			return nullptr;
 
 		// Run through state dispatches.
 		for (const auto& dispatch : anim.Dispatches)
 		{
 			// State ID mismatch; continue.
-			if (dispatch.StateID != ((targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID))
+			if (dispatch.StateID != targetStateID)
 				continue;
 
 			// Test if current frame is within dispatch range.
