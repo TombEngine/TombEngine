@@ -123,7 +123,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 	playerObject.LinearizedBones[LM_HEAD]->ExtraRotation = Lara.ExtraHeadRot.ToQuaternion();
 
 	// First calculate matrices for legs, hips, head, and torso.
-	int mask = MESH_BITS(LM_HIPS) | MESH_BITS(LM_LTHIGH) | MESH_BITS(LM_LSHIN) | MESH_BITS(LM_LFOOT) | MESH_BITS(LM_RTHIGH) | MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
+	int mask = MESH_BITS(LM_HIPS) | MESH_BITS(LM_LTHIGH) | MESH_BITS(LM_LSHIN) | MESH_BITS(LM_LFOOT) | MESH_BITS(LM_RTHIGH) |
+			   MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 	
 	auto frameData = GetFrameInterpData(*LaraItem);
 	UpdateAnimation(&rItem, playerObject, frameData, mask);
@@ -155,18 +156,16 @@ void Renderer::UpdateLaraAnimations(bool force)
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
+		else if (gunType == LaraWeaponType::Revolver)
+		{
+			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
+			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
+		}
 		else
 		{
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
-
-		ArmInfo* leftArm = &Lara.LeftArm;
-		ArmInfo* rightArm = &Lara.RightArm;
-
-		// HACK: Treat revolver as pistols in crouched state.
-		if (IsCrouching(LaraItem) && gunType == LaraWeaponType::Revolver)
-			gunType = LaraWeaponType::Pistol;
 
 		// HACK: Back guns are handled differently.
 		switch (gunType)
@@ -199,34 +198,11 @@ void Renderer::UpdateLaraAnimations(bool force)
 			auto interpDataRight = KeyframeInterpolationData(frameRight, frameRight, 0.0f);
 			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
 		}
-
-		break;
-
-		case LaraWeaponType::Revolver:
-		{
-			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
-			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
-			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftAnimData).Keyframe0;
-
-			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
-			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
-
-			// Left arm
-			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
-			auto frameDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
-			UpdateAnimation(&rItem, playerObject, frameDataLeft, mask);
-
-			// Right arm
-			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			auto frameDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
-			UpdateAnimation(&rItem, playerObject, frameDataRight, mask);
-		}
-
 		break;
 
 		case LaraWeaponType::Pistol:
 		case LaraWeaponType::Uzi:
+		case LaraWeaponType::Revolver:
 		default:
 		{
 			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
@@ -253,11 +229,11 @@ void Renderer::UpdateLaraAnimations(bool force)
 			UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
 			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
 		}
-
 		break;
 
 		case LaraWeaponType::Flare:
 		case LaraWeaponType::Torch:
+		{
 			// Left arm
 			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
@@ -280,7 +256,9 @@ void Renderer::UpdateLaraAnimations(bool force)
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			auto frameDataRight = GetFrameInterpData(*LaraItem);
 			UpdateAnimation(&rItem, playerObject, frameDataRight, mask);
-			break;
+
+		}
+		break;
 		}
 	}
 
