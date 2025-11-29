@@ -292,14 +292,11 @@ namespace TEN::Animation
 	{
 		targetStateID = (targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID;
 
-		// If animation already has the same state ID, don't try to get it.
+		// Prevent dispatch to same state ID.
 		if (item.Animation.ActiveState == targetStateID)
 			return nullptr;
 
 		const auto& anim = GetAnimData(item);
-
-		if (anim.Dispatches.empty())
-			return nullptr;
 
 		// Run through state dispatches.
 		for (const auto& dispatch : anim.Dispatches)
