@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed interaction highlighter not working for pushable climbable blocks.
+* Fixed SEARCH_OBJECT4 not always collecting pickup items.
 
 ### Lua API changes
 * Added a safeguard for adding or removing callback functions within the same callback type.
