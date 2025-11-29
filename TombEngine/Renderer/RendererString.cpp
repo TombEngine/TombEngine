@@ -111,8 +111,13 @@ namespace TEN::Renderer
 			if (maxHeight > 0.0f && totalHeight > maxHeight)
 				totalHeight = maxHeight;
 
-			// Compute vertical offset if vertical centering is requested.
-			float yBase = (flags & (int)PrintStringFlags::VerticalCenter) ? (pos.y * uiScale) - (totalHeight / 2.0f) : (pos.y * uiScale);
+			// Compute vertical offset based on alignment flags.
+			float yBase = pos.y * uiScale;
+
+			if (flags & (int)PrintStringFlags::VerticalBottom)
+				yBase -= totalHeight;
+			else if (flags & (int)PrintStringFlags::VerticalCenter)
+				yBase -= totalHeight / 2.0f;
 
 			float yOffset = 0.0f;
 			for (const auto& line : stringLines)

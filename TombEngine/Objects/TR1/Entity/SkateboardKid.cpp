@@ -8,9 +8,11 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Creatures::TR1
 {
@@ -118,7 +120,7 @@ namespace TEN::Entities::Creatures::TR1
 
 		if (item.ItemFlags[0] == NO_VALUE)
 		{
-			TENLog("Failed to do the skateboard kid control (itemNumber: " + std::to_string(itemNumber) + "), the skateboard itemNumber is missing, probably failed to be created !");
+			TENLog(fmt::format("Failed to handle skateboard kid control (moveable {}). The kateboard is missing.", itemNumber));
 			return;
 		}
 

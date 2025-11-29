@@ -22,10 +22,12 @@
 #include "Objects/TR4/Vehicles/jeep.h"
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Player;
 using namespace TEN::Hud;
+using namespace TEN::Utils;
 
 // Globals
 int					PlayerHitPoints		  = 0;
@@ -177,7 +179,7 @@ void InitializeLaraStartPosition(ItemInfo& playerItem)
 		if (playerItem.RoomNumber != item.RoomNumber)
 			ItemNewRoom(playerItem.Index, item.RoomNumber);
 
-		TENLog("Player start position has been set according to start position of object with ID " + std::to_string(item.TriggerFlags) + ".", LogLevel::Info);
+		TENLog(fmt::format("Player start position has been set according to start position of object with ID {}.", item.TriggerFlags), LogLevel::Info);
 		break;
 	}
 
@@ -195,7 +197,7 @@ void InitializePlayerVehicle(ItemInfo& playerItem)
 		return;
 
 	// Restore vehicle.
-	TENLog("Transferring vehicle " + GetObjectName(PlayerVehicleObjectID) + " from the previous level.");
+	TENLog(fmt::format("Transferring vehicle {} from the previous level.", GetObjectName(PlayerVehicleObjectID)));
 	vehicle->Pose = playerItem.Pose;
 	SetLaraVehicle(&playerItem, vehicle);
 	playerItem.Animation = PlayerAnim;

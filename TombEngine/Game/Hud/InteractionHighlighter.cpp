@@ -154,7 +154,7 @@ namespace TEN::Hud
 		dir.Normalize();
 
 		// Check if there's a line of sight between objects.
-		auto losColl = GetRoomLosCollision(playerBoundingBox.Center, player.RoomNumber, dir, dist, true);
+		auto losColl = GetRoomLosCollision(playerBoundingBox.Center, player.RoomNumber, dir, dist, false);
 		if (losColl.IsIntersected)
 			return;
 
@@ -273,7 +273,7 @@ namespace TEN::Hud
 
 		if (!Objects[ID_INTERACTION_SPRITES].loaded || Objects[ID_INTERACTION_SPRITES].nmeshes == 0)
 		{
-			TENLog("Missing sprite sequence " + GetObjectName(ID_INTERACTION_SPRITES) + " for drawing interaction highlighter", LogLevel::Warning);
+			TENLog(fmt::format("Missing sprite sequence {} for drawing interaction highlighter.", GetObjectName(ID_INTERACTION_SPRITES)), LogLevel::Warning);
 			return;
 		}
 

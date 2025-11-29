@@ -12,9 +12,11 @@
 #include "Objects/Generic/Object/Pushable/PushableStack.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Generic
 {
@@ -161,7 +163,7 @@ namespace TEN::Entities::Generic
 			break;
 
 		default:
-			TENLog("Error handling pushable collision in idle state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All);
+			TENLog(fmt::format("Error handling pushable collision in idle state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All);
 			break;
 		}
 	}
@@ -363,7 +365,7 @@ namespace TEN::Entities::Generic
 				break;
 
 			default:
-				TENLog("Error handling pushable collision state in move state for pushable item number " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+				TENLog(fmt::format("Error handling pushable collision state in move state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 				break;
 			}
 		}
@@ -499,7 +501,7 @@ namespace TEN::Entities::Generic
 				break;
 
 			default:
-				TENLog("Error handling pushable collision in edge slip state for pushable item number " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All);
+				TENLog(fmt::format("Error handling pushable collision in edge slip state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All);
 				break;
 			}			
 		}
@@ -564,7 +566,7 @@ namespace TEN::Entities::Generic
 			break;
 
 		default:
-			TENLog("Error handling pushable collision in fall state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+			TENLog(fmt::format("Error handling pushable collision in fall state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 			break;
 		}
 	}
@@ -651,7 +653,7 @@ namespace TEN::Entities::Generic
 			break;
 
 		default:
-			TENLog("Error handling pushable collision in sink state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+			TENLog(fmt::format("Error handling pushable collision in sink state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 			break;
 		}
 	}
@@ -724,7 +726,7 @@ namespace TEN::Entities::Generic
 			break;
 
 		default:
-			TENLog("Error handling pushable collision in float state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+			TENLog(fmt::format("Error handling pushable collision in float state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 			break;
 		}
 	}
@@ -807,7 +809,7 @@ namespace TEN::Entities::Generic
 			break;
 		
 		default:
-			TENLog("Error handling pushable collision in underwater state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+			TENLog(fmt::format("Error handling pushable collision in underwater state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 			break;
 		}
 	}
@@ -859,7 +861,7 @@ namespace TEN::Entities::Generic
 			break;
 
 		default:
-			TENLog("Error handling pushable collision in water surface state for pushable item " + std::to_string(pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
+			TENLog(fmt::format("Error handling pushable collision in water surface state for pushable moveable {}.", pushableItem.Index), LogLevel::Warning, LogConfig::All, false);
 			break;
 		}
 	}
@@ -925,7 +927,7 @@ namespace TEN::Entities::Generic
 		auto it = BEHAVIOR_STATE_MAP.find(pushable.BehaviorState);
 		if (it == BEHAVIOR_STATE_MAP.end())
 		{
-			TENLog("Attempted to handle missing pushable state " + std::to_string((int)pushable.BehaviorState), LogLevel::Error, LogConfig::All);
+			TENLog(fmt::format("Attempted to handle missing pushable state {}.", (int)pushable.BehaviorState), LogLevel::Error, LogConfig::All);
 			return;
 		}
 
