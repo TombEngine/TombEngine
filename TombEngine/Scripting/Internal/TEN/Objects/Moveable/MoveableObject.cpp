@@ -825,7 +825,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(_moveable, animNumber);
+	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
 }
 
 /// Retrieve frame number.
@@ -873,13 +873,11 @@ void Moveable::SetVelocity(Vec3 velocity)
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
-
-	unsigned int endFrameNumber = anim.EndFrameNumber;
 	
-	bool cond = (frameNumber < endFrameNumber);
+	bool cond = (frameNumber < anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
 
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, endFrameNumber - 1))
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
 	{
 		_moveable->Animation.FrameNumber = frameNumber;
 	}
