@@ -1156,7 +1156,9 @@ void InitializeSearchObject(short itemNumber)
 				}
 			}
 			else if (Objects[item2->ObjectNumber].isPickup &&
-				item->Pose.Position == item2->Pose.Position)
+				abs(item2->Pose.Position.x - item->Pose.Position.x) < CLICK(2) &&
+				abs(item2->Pose.Position.z - item->Pose.Position.z) < CLICK(2) &&
+				abs(item2->Pose.Position.y - item->Pose.Position.y) < CLICK(1))
 			{
 				item->ItemFlags[1] = itemNumber2;
 				break;
