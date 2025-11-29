@@ -32,9 +32,8 @@ bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std:
 	const auto& requiredObject = Objects[requiredObjectID];
 	if (requiredObject.loaded)
 	{
-		// Check if required object has at least 1 animation with more than 1 frame.
-		const auto& anim = GetAnimData(requiredObject, 0);
-		if (anim.Keyframes.size() > 1)
+		// Check if required object has more than 1 animations.
+		if (requiredObject.Animations.size() > 1)
 		{
 			object.Animations = requiredObject.Animations;
 			return true;
