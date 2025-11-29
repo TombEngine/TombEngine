@@ -36,7 +36,7 @@ void ScalesControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	if (TestLastFrame(*item))
+	if (!TestLastFrame(*item))
 	{
 		AnimateItem(item);
 		return;
