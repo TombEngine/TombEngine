@@ -212,7 +212,7 @@ ItemInfo* ItemHandler::Get() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to access invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return &g_Level.Items[0];
 	}
@@ -245,7 +245,7 @@ ItemInfo& ItemHandler::operator*() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return g_Level.Items[0];
 	}
@@ -287,7 +287,7 @@ void KillItem(short const itemNumber)
 {
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 	{
-		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		TENLog(fmt::format("Attempted to moveable item with invalid index {}.", itemNumber), LogLevel::Error);
 		return;
 	}
 

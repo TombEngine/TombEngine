@@ -42,6 +42,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 
 using namespace flatbuffers;
@@ -56,6 +57,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Utils;
 using namespace TEN::Video;
 
 namespace Save = TEN::Save;
@@ -187,7 +189,7 @@ bool SaveGame::IsSaveGameSlotValid(int slot)
 {
 	if (slot < 0 || slot > SAVEGAME_MAX_SLOT)
 	{
-		TENLog("Attempted to access invalid savegame slot " + std::to_string(slot), LogLevel::Warning);
+		TENLog(fmt::format("Attempted to access invalid savegame slot {}.", slot), LogLevel::Warning);
 		return false;
 	}
 
@@ -199,7 +201,7 @@ bool SaveGame::DoesSaveGameExist(int slot, bool silent)
 	if (!std::filesystem::is_regular_file(GetSavegameFilename(slot)))
 	{
 		if (!silent)
-			TENLog("Attempted to access missing savegame slot " + std::to_string(slot), LogLevel::Warning);
+			TENLog(fmt::format("Attempted to access missing savegame slot {}.", slot), LogLevel::Warning);
 
 		return false;
 	}
@@ -1711,7 +1713,7 @@ void SaveGame::SaveHub(int index)
 		return;
 
 	// Build hub data.
-	TENLog("Saving hub data for level #" + std::to_string(index) + (IsOnHub(index) ? " (overwrite)" : " (new)"), LogLevel::Info);
+	TENLog(fmt::format("Saving hub data for level #{} {}.", index, IsOnHub(index) ? "(overwrite)" : "(new)"), LogLevel::Info);
 	Hub[index] = Build();
 }
 
@@ -1724,7 +1726,7 @@ void SaveGame::LoadHub(int index)
 	if (IsOnHub(index))
 	{
 		// Load hub data.
-		TENLog("Loading hub data for level #" + std::to_string(index), LogLevel::Info);
+		TENLog(fmt::format("Loading hub data for level #{}.", index), LogLevel::Info);
 		Parse(Hub[index], true);
 	}
 
@@ -1757,14 +1759,14 @@ bool SaveGame::Save(int slot)
 	// Savegame infos need to be reloaded so that last savegame counter properly increases.
 	LoadHeaders();
 
-	auto fileName = GetSavegameFilename(slot);
-	TENLog("Saving to savegame: " + fileName, LogLevel::Info);
+	auto filename = GetSavegameFilename(slot);
+	TENLog(fmt::format("Saving to savegame {}.", filename), LogLevel::Info);
 
 	if (!std::filesystem::is_directory(FullSaveDirectory))
 		std::filesystem::create_directory(FullSaveDirectory);
 
 	std::ofstream fileOut{};
-	fileOut.open(fileName, std::ios_base::binary | std::ios_base::out);
+	fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
 
 	// Write current level save data.
 	auto currentLevelState = SaveGame::Build();
@@ -1794,12 +1796,12 @@ bool SaveGame::Load(int slot)
 {
 	if (!IsSaveGameValid(slot))
 	{
-		TENLog("Loading from savegame in slot " + std::to_string(slot) + " is impossible, data is missing or level has changed.", LogLevel::Error);
+		TENLog(fmt::format("Loading from savegame in slot {} is not possible. Data is missing or the level has changed.", slot), LogLevel::Error);
 		return false;
 	}
 
 	auto fileName = GetSavegameFilename(slot);
-	TENLog("Loading from savegame: " + fileName, LogLevel::Info);
+	TENLog(fmt::format("Loading from savegame {}.", fileName), LogLevel::Info);
 
 	auto file = std::ifstream();
 	try
@@ -1820,7 +1822,7 @@ bool SaveGame::Load(int slot)
 		int hubCount = 0;
 		file.read(reinterpret_cast<char*>(&hubCount), sizeof(hubCount));
 
-		TENLog("Hub count: " + std::to_string(hubCount), LogLevel::Info);
+		TENLog(fmt::format("Hub count: {}", hubCount), LogLevel::Info);
 
 		for (int i = 0; i < hubCount; i++)
 		{
@@ -1842,7 +1844,7 @@ bool SaveGame::Load(int slot)
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error while loading savegame: " + std::string(ex.what()), LogLevel::Error);
+		TENLog(fmt::format("Error while loading savegame: {}", ex.what()), LogLevel::Error);
 
 		if (file.is_open())
 			file.close();
@@ -3038,7 +3040,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 
 	if (length == 0)
 	{
-		TENLog("Savegame #" + std::to_string(slot) + " has no data!", LogLevel::Warning);
+		TENLog(fmt::format("Savegame #{} has no data.", slot), LogLevel::Warning);
 		return false;
 	}
 
@@ -3055,7 +3057,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 
 		if (size <= 0 || size >= length || !bufferIsValid)
 		{
-			TENLog("Incorrect data in savegame #" + std::to_string(slot) + ". Old format?", LogLevel::Warning);
+			TENLog(fmt::format("Incorrect data in savegame #{}. The level format may be outdated.", slot), LogLevel::Warning);
 			return false;
 		}
 
@@ -3075,7 +3077,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error reading savegame #" + std::to_string(slot) + ", Exception: " + ex.what(), LogLevel::Error);
+		TENLog(fmt::format("Error reading savegame #{}. Exception: {}", slot, ex.what()), LogLevel::Error);
 		return false;
 	}
 }

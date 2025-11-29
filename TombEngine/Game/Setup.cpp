@@ -28,10 +28,12 @@
 #include "Objects/Utils/object_helper.h"
 #include "Specific/level.h"
 #include "Objects/Effects/Fireflies.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Effects::Hair;
 using namespace TEN::Entities;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Utils;
 
 ObjectHandler Objects;
 StaticHandler Statics;
@@ -48,8 +50,8 @@ bool ObjectHandler::CheckID(GAME_OBJECT_ID objectID, bool isSilent)
 		if (!isSilent)
 		{
 			TENLog(
-				"Attempted to access unavailable slot ID (" + std::to_string(objectID) + "). " +
-				"Check if last accessed item exists in level.", LogLevel::Warning, LogConfig::Debug);
+				fmt::format("Attempted to access unavailable slot ID {}. Check if the last accessed moveable exists in the level.", objectID),
+				LogLevel::Warning, LogConfig::Debug);
 		}
 
 		return false;
@@ -88,7 +90,7 @@ int StaticHandler::GetIndex(int staticID)
 {
 	if (staticID < 0 || staticID >= _lut.size())
 	{
-		TENLog("Attempted to get index of missing static object " + std::to_string(staticID) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Attempted to get index of invalid static object {}.", staticID), LogLevel::Warning);
 		return _lut.front();
 	}
 
@@ -99,7 +101,7 @@ StaticInfo& StaticHandler::operator [](int staticID)
 {
 	if (staticID < 0)
 	{
-		TENLog("Attempted to access missing static object " + std::to_string(staticID) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Attempted to access invalid static object {}.", staticID), LogLevel::Warning);
 		return _statics.front();
 	}
 
@@ -121,7 +123,7 @@ void ObjectInfo::SetBoneRotationFlags(int boneID, int flags)
 	int index = boneIndex + (boneID * 4);
 	if (index < 0 || index >= g_Level.Bones.size())
 	{
-		TENLog("Failed to set rotation flag for bone ID " + std::to_string(boneID), LogLevel::Warning);
+		TENLog(fmt::format("Failed to set rotation flag for bone ID {}.", boneID), LogLevel::Warning);
 		return;
 	}
 

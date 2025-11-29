@@ -658,7 +658,7 @@ void DoFlipMap(int group)
 {
 	if (group >= MAX_FLIPMAP)
 	{
-		TENLog("Maximum flipmap group number is " + std::to_string(MAX_FLIPMAP) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Maximum flipmap group number is {}.", MAX_FLIPMAP), LogLevel::Warning);
 		return;
 	}
 

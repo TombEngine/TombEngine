@@ -56,8 +56,6 @@ using namespace DirectX::SimpleMath;
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#define Fmt fmt::format
-
 // VLC
 #include <vlc/vlc.h>
 

@@ -26,6 +26,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 #include "Objects/TR2/Vehicles/skidoo.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -45,6 +46,7 @@ using namespace TEN::Entities::Player;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 // -----------------------------
 // HELPER FUNCTIONS
@@ -1111,7 +1113,7 @@ LaraInfo& GetLaraInfo(ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	auto& firstLaraItem = *FindItem(ID_LARA);
 	auto* player = (LaraInfo*&)firstLaraItem.Data;
@@ -1126,7 +1128,7 @@ const LaraInfo& GetLaraInfo(const ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable..", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	const auto& firstPlayerItem = *FindItem(ID_LARA);
 	const auto* player = (LaraInfo*&)firstPlayerItem.Data;
@@ -1138,7 +1140,7 @@ LaraInfo*& GetLaraInfo(ItemInfo* item)
 	if (item->ObjectNumber == ID_LARA)
 		return (LaraInfo*&)item->Data;
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item->ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item->ObjectNumber)), LogLevel::Warning);
 
 	auto& firstPlayerItem = *FindItem(ID_LARA);
 	return (LaraInfo*&)firstPlayerItem.Data;

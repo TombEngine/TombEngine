@@ -441,7 +441,7 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 		if (player.Control.Weapon.WeaponItem == NO_VALUE)
 		{
-			TENLog("Failed to create weapon item, no free moveable slots available.", LogLevel::Error);
+			TENLog("Failed to create weapon moveable. No free moveable slots available.", LogLevel::Error);
 			return;
 		}
 

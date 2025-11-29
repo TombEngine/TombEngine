@@ -11,6 +11,9 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Control::Volumes
 {
@@ -40,7 +43,7 @@ namespace TEN::Control::Volumes
 			return volume.Sphere.Intersects(box);
 
 		default:
-			TENLog("Unsupported volume type encountered in room " + std::to_string(roomNumber), LogLevel::Error);
+			TENLog(fmt::format("Unsupported volume type encountered in room {}.", roomNumber), LogLevel::Error);
 			return false;
 		}
 	}
@@ -79,8 +82,7 @@ namespace TEN::Control::Volumes
 			if (eventSet.Name == name)
 				return &eventSet;
 
-		TENLog("Error: event " + name + " could not be found. Check if event with such name exists in project.",
-			LogLevel::Error, LogConfig::All, false);
+		TENLog(fmt::format("Error: event {} could not be found. Check if event with such name exists in project.", name), LogLevel::Error, LogConfig::All, false);
 
 		return nullptr;
 	}
@@ -306,7 +308,7 @@ namespace TEN::Control::Volumes
             for (const auto& file : nodeCatalogs)
                 g_GameScript->ExecuteScriptFile(nodeScriptPath + file);
 
-            TENLog(std::to_string(nodeCatalogs.size()) + " node catalogs were found and loaded.", LogLevel::Info);
+            TENLog(fmt::format("{} node catalog{} found and loaded.", nodeCatalogs.size(), (nodeCatalogs.size() > 1) ? "s were" : " was"), LogLevel::Info);
         }
         else
         {
@@ -315,10 +317,10 @@ namespace TEN::Control::Volumes
 
 		int count = InitializeEventList(g_Level.VolumeEventSets);
 		if (count != 0)
-			TENLog(std::to_string(count) + " volume events were found and loaded.", LogLevel::Info);
+			TENLog(fmt::format("{} volume event{} found and loaded.", count, (count > 1) ? "s were" : " was"), LogLevel::Info);
 
 		count = InitializeEventList(g_Level.GlobalEventSets);
 		if (count != 0)
-			TENLog(std::to_string(count) + " global events were found and loaded.", LogLevel::Info);
+			TENLog(fmt::format("{} global event{} found and loaded.", count, (count > 1) ? "s were" : " was"), LogLevel::Info);
 	}
 }

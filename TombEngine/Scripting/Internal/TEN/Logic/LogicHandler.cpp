@@ -15,9 +15,11 @@
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Scripting::Types;
+using namespace TEN::Utils;
 
 /***
 Saving data, triggering functions, and callbacks for level-specific scripts.
@@ -288,7 +290,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
 	if (point == _lastCallbackPoint)
 	{
-		TENLog(Fmt("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error);
+		TENLog(fmt::format("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error);
 		return;
 	}
 
@@ -301,7 +303,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 	
 	if (it->second->find(levelFunc.m_funcName) != it->second->end())
 	{
-		TENLog(Fmt("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
+		TENLog(fmt::format("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
