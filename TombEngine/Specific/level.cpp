@@ -1813,7 +1813,7 @@ void GetCarriedItems()
 		const auto& object = Objects[item.ObjectNumber];
 
 		if (object.intelligent ||
-			(item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT3) ||
+			(item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ||
 			(item.ObjectNumber == ID_SARCOPHAGUS))
 		{
 			for (short linkNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
@@ -1822,13 +1822,18 @@ void GetCarriedItems()
 
 				if (abs(item2.Pose.Position.x - item.Pose.Position.x) < CLICK(2) &&
 					abs(item2.Pose.Position.z - item.Pose.Position.z) < CLICK(2) &&
-					abs(item2.Pose.Position.y - item.Pose.Position.y) < CLICK(1) &&
-					Objects[item2.ObjectNumber].isPickup)
+					abs(item2.Pose.Position.y - item.Pose.Position.y) < CLICK(1))
 				{
-					item2.CarriedItem = item.CarriedItem;
-					item.CarriedItem = linkNumber;
-					RemoveDrawnItem(linkNumber);
-					item2.RoomNumber = NO_VALUE;
+					if (Objects[item2.ObjectNumber].isPickup ||
+						(item.ObjectNumber == ID_SEARCH_OBJECT4 && item2.ObjectNumber == ID_EXPLOSION))
+					{
+						item2.CarriedItem = item.CarriedItem;
+						item.CarriedItem = linkNumber;
+						RemoveDrawnItem(linkNumber);
+						if (item2.ObjectNumber != ID_EXPLOSION) {
+							item2.RoomNumber = NO_VALUE;
+						}
+					}
 				}
 			}
 		}

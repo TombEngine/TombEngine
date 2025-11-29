@@ -1142,28 +1142,6 @@ void InitializeSearchObject(short itemNumber)
 	{
 		item->ItemFlags[1] = -1;
 		item->MeshBits = 9;
-		
-		for (short itemNumber2 = 0; itemNumber2 < g_Level.NumItems; ++itemNumber2)
-		{
-			auto* item2 = &g_Level.Items[itemNumber2];
-
-			if (item2->ObjectNumber == ID_EXPLOSION)
-			{
-				if (item->Pose.Position == item2->Pose.Position)
-				{
-					item->ItemFlags[1] = itemNumber2;
-					break;
-				}
-			}
-			else if (Objects[item2->ObjectNumber].isPickup &&
-				abs(item2->Pose.Position.x - item->Pose.Position.x) < CLICK(2) &&
-				abs(item2->Pose.Position.z - item->Pose.Position.z) < CLICK(2) &&
-				abs(item2->Pose.Position.y - item->Pose.Position.y) < CLICK(1))
-			{
-				item->ItemFlags[1] = itemNumber2;
-				break;
-			}
-		}
 
 		AddActiveItem(itemNumber);
 		item->Status = ITEM_ACTIVE;
@@ -1252,32 +1230,23 @@ void SearchObjectControl(short itemNumber)
 
 	if (frameNumber == SearchCollectFrames[objectNumber])
 	{
-		if (item->ObjectNumber == ID_SEARCH_OBJECT4)
+		if (item->CarriedItem != NO_VALUE)
 		{
-			if (item->ItemFlags[1] != -1)
+			auto* carriedItem = &g_Level.Items[item->CarriedItem];
+
+			if (carriedItem->ObjectNumber == ID_EXPLOSION)
 			{
-				auto* item2 = &g_Level.Items[item->ItemFlags[1]];
+				AddActiveItem(item->CarriedItem);
+				carriedItem->Flags |= IFLAG_ACTIVATION_MASK;
+				carriedItem->Status = ITEM_ACTIVE;
+				LaraItem->HitPoints = 640;
 
-				if (Objects[item2->ObjectNumber].isPickup)
-				{
-					PickedUpObject(*item2);
-					g_Hud.PickupSummary.AddDisplayPickup(*item2);
-					HideOrDisablePickup(*item2);
-				}
-				else
-				{
-					AddActiveItem(item->ItemFlags[1]);
-					item2->Flags |= IFLAG_ACTIVATION_MASK;
-					item2->Status = ITEM_ACTIVE;
-					LaraItem->HitPoints = 640;
-				}
-
-				item->ItemFlags[1] = -1;
+				item->CarriedItem = NO_VALUE;
 			}
-		}
-		else
-		{
-			CollectCarriedItems(item);
+			else
+			{
+				CollectCarriedItems(item);
+			}
 		}
 	}
 	
