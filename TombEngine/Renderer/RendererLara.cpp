@@ -210,7 +210,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			auto rightFrame = leftAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
+			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
 
 			// Left arm
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
@@ -235,7 +235,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			auto rightFrame = leftAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
+			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
 
 			// Left arm
 			int upperArmMask = MESH_BITS(LM_LINARM);
