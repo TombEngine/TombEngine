@@ -809,7 +809,7 @@ namespace TEN::Renderer
 		{
 			const auto& invObject = InventoryObjectTable[invObjectID];
 
-			pos2D.y += invObject.YOffset;
+			pos2D.y += invObject.YOffset * factor.y;
 			orient += invObject.Orientation;
 		}
 
