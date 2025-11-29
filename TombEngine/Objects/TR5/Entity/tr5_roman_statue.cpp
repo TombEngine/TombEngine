@@ -605,9 +605,8 @@ namespace TEN::Entities::Creatures::TR5
 						}
 
 						deltaFrame = item->Animation.FrameNumber;
-						int deltaFrame2 = item->Animation.FrameNumber;
 
-						if (deltaFrame2 >= 16)
+						if (deltaFrame >= 16)
 						{
 							if (deltaFrame > 16)
 								deltaFrame = 16;
@@ -625,7 +624,7 @@ namespace TEN::Entities::Creatures::TR5
 						}
 						else
 						{
-							TriggerRomanStatueAttackEffect1(itemNumber, deltaFrame2);
+							TriggerRomanStatueAttackEffect1(itemNumber, deltaFrame);
 
 							if (item->ItemFlags[3])
 							{
