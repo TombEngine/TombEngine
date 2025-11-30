@@ -59,7 +59,7 @@ namespace TEN::Entities::Creatures::TR3
 		SDIVER_ANIM_DEATH_END = 17
 	};
 
-	static void ShootHarpoon(ItemInfo* item, Vector3i pos, short velocity, short yRot, short roomNumber)
+	static void ShootHarpoon(ItemInfo* item, Vector3i pos, short velocity, EulerAngles orientation, short roomNumber)
 	{
 		short harpoonItemNumber = CreateItem();
 		if (harpoonItemNumber == NO_VALUE)
@@ -75,8 +75,7 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeItem(harpoonItemNumber);
 
 		harpoonItem->Animation.Velocity.z = 150.0f;
-		harpoonItem->Pose.Orientation.x = 0;
-		harpoonItem->Pose.Orientation.y = yRot;
+		harpoonItem->Pose.Orientation = orientation;
 
 		AddActiveItem(harpoonItemNumber);
 		harpoonItem->Status = ITEM_ACTIVE;
@@ -222,7 +221,17 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (!creature->Flags)
 				{
-					ShootHarpoon(item, item->Pose.Position, item->Animation.Velocity.z, item->Pose.Orientation.y, item->RoomNumber);
+					auto pos = item->Pose.Position.ToVector3();
+					auto targetPos = GameBoundingBox(LaraItem).ToBoundingOrientedBox(LaraItem->Pose).Center;
+					auto orientation = Geometry::GetOrientToPoint(pos, targetPos);
+
+					// Apply slight random scatter.
+					orientation += EulerAngles(
+						Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
+						Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
+						0);
+
+					ShootHarpoon(item, pos, item->Animation.Velocity.z, orientation, item->RoomNumber);
 					creature->Flags = 1;
 				}
 
