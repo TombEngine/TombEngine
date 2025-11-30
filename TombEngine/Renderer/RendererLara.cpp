@@ -205,28 +205,36 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Revolver:
 		default:
 		{
+			// Left arm
 			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
 			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftAnimData).Keyframe0;
+
+			int upperArmMask = MESH_BITS(LM_LINARM);
+			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
+			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
+
+			if (Lara.LeftArm.Locked)
+				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
+			else
+				mask |= MESH_BITS(LM_LINARM);
+
+			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
 			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
 			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
 
-			// Left arm
-			int upperArmMask = MESH_BITS(LM_LINARM);
-			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
-			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
-
-			UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
-			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
-
 			// Right arm
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			auto interpDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
-			
-			UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+
+			if (Lara.RightArm.Locked)
+				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+			else
+				mask |= MESH_BITS(LM_RINARM);
+
 			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
 		}
 		break;
