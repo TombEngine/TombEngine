@@ -378,31 +378,31 @@ void LoadObjects()
 	g_Level.Bones.resize(boneCount);
 	ReadBytes(g_Level.Bones.data(), 4 * boneCount);
 
-	int movSlotCount = ReadCount();
-	TENLog("Moveable slot count: " + std::to_string(movSlotCount), LogLevel::Info);
+	int modelCount = ReadCount();
+	TENLog("Moveable slot count: " + std::to_string(modelCount), LogLevel::Info);
 
 	// Load moveable slots.
-	for (int i = 0; i < movSlotCount; i++)
+	for (int i = 0; i < modelCount; i++)
 	{
-		int movSlotID = ReadInt32();
-		MoveablesIds.push_back(movSlotID);
+		int objectID = ReadInt32();
+		MoveablesIds.push_back(objectID);
 
-		if (movSlotID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported moveable slot " + std::to_string(movSlotID) + " detected in a level. Make sure to delete unsupported moveable slots from wads.").c_str());
+		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
+			throw std::exception(("Unsupported moveable slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported moveable slots from wads.").c_str());
 
-		auto& movSlot = Objects[movSlotID];
-		movSlot.loaded = true;
-		movSlot.skinIndex = ReadInt32();
-		movSlot.nmeshes = ReadInt32();
-		movSlot.meshIndex = ReadInt32();
-		movSlot.boneIndex = ReadInt32();
+		auto& object = Objects[objectID];
+		object.loaded = true;
+		object.skinIndex = ReadInt32();
+		object.nmeshes = ReadInt32();
+		object.meshIndex = ReadInt32();
+		object.boneIndex = ReadInt32();
 
 		// Load animations.
 		int animCount = ReadCount();
-		movSlot.Animations.resize(animCount);
-		for (int j = 0; j < movSlot.Animations.size(); j++)
+		object.Animations.resize(animCount);
+		for (int j = 0; j < object.Animations.size(); j++)
 		{
-			auto& anim = movSlot.Animations[j];
+			auto& anim = object.Animations[j];
 
 			anim.StateID = ReadInt32();
 			int interpolation = ReadInt32();
@@ -436,35 +436,35 @@ void LoadObjects()
 			anim.FixedMotionCurveZ = BezierCurve2D(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
 			// Load key frames.
-			int keyFrameCount = ReadInt32();
-			auto keyFrames = std::vector<FrameData>(keyFrameCount);
-			for (auto& keyFrame : keyFrames)
+			int keyframeCount = ReadInt32();
+			auto keyframes = std::vector<FrameData>(keyframeCount);
+			for (auto& keyframe : keyframes)
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
-				keyFrame.LocalAabb = BoundingBox(center, extents);
-				keyFrame.BoundingBox = GameBoundingBox(keyFrame.LocalAabb);
+				keyframe.LocalAabb = BoundingBox(center, extents);
+				keyframe.BoundingBox = GameBoundingBox(keyframe.LocalAabb);
 
-				keyFrame.RootPosition = ReadVector3();
+				keyframe.RootPosition = ReadVector3();
 
 				int boneCount = ReadCount();
-				keyFrame.BoneOrientations.resize(boneCount);
-				for (auto& orient : keyFrame.BoneOrientations)
+				keyframe.BoneOrientations.resize(boneCount);
+				for (auto& orient : keyframe.BoneOrientations)
 					orient = ReadVector4();
 			}
 
 			// TODO: Write interpolated data to level for faster load.
 			// Interpoate frames.
 			float alphaStep = 1.0f / (float)interpolation;
-			for (int k = 0; k < keyFrames.size(); k++)
+			for (int k = 0; k < keyframes.size(); k++)
 			{
-				const auto& currentKeyFrame = keyFrames[k];
+				const auto& currentKeyFrame = keyframes[k];
 				anim.Frames.push_back(currentKeyFrame);
 				
-				if (k == (keyFrames.size() - 1))
+				if (k == (keyframes.size() - 1))
 					continue;
 
-				const auto& nextKeyFrame = keyFrames[k + 1];
+				const auto& nextKeyFrame = keyframes[k + 1];
 
 				for (int l = 1; l < interpolation; l++)
 				{
