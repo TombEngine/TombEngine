@@ -65,11 +65,11 @@ enum AIObjectType
 
 struct MoveableAnimationBlendData
 {
-	int			 FrameNumber = 0;
-	int			 FrameCount  = 0;
-	BezierCurve2 Curve		 = {};
+	int          FrameNumber = 0;
+	int          FrameCount  = 0;
+	BezierCurve2 Curve       = {};
 
-	Vector3								   RootPosition		= Vector3::Zero;
+	Vector3                                RootPosition     = Vector3::Zero;
 	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
 
 	bool IsEnabled() const;
@@ -88,9 +88,8 @@ struct MoveableAnimationData
 	// ControlVelocity:		 relative velocity derived from animation.
 	// ExtraControlVelocity: relative velocity set by code (used to control swimming, falling).
 	// ExternalVelocity:	 absolute velocity set by environment (slippery ice, offset blending).
-	Vector3 Velocity = Vector3::Zero; // CONVENTION: +X = Right, +Y = Down, +Z = Forward.
-
-	bool IsAirborne = false;
+	Vector3 Velocity   = Vector3::Zero; // CONVENTION: +X = Right, +Y = Down, +Z = Forward.
+	bool    IsAirborne = false;
 
 	MoveableAnimationBlendData Blend = {};
 };

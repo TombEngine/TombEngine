@@ -244,7 +244,7 @@ namespace TEN::Animation
 		auto fixedMotion = anim->GetFixedMotion(item.Animation.FrameNumber);
 		auto rootMotion = anim->GetRootMotion(item.Animation.FrameNumber);
 
-		// TODO: Better handling.
+		// TODO: Better handling of player airborne status.
 		// Apply motion translation and gravity.
 		if (item.Animation.IsAirborne)
 		{
@@ -284,7 +284,7 @@ namespace TEN::Animation
 		}
 		else
 		{
-			// TODO: Y velocity.
+			// TODO: Y velocity from animation.
 			if (item.IsLara())
 			{
 				const auto& player = GetLaraInfo(item);
@@ -350,11 +350,11 @@ namespace TEN::Animation
 		if (animNumber == NO_VALUE)
 			animNumber = item.Animation.AnimNumber;
 
-		// Check for animation number mismatch; return early.
+		// Check for animation number mismatch.
 		if (item.Animation.AnimNumber != animNumber)
 			return false;
 
-		// FAILSAFE: Account for frames past real end frame.
+		// Clamp to real end frame.
 		const auto& anim = GetAnimData(item.Animation.AnimObjectID, animNumber);
 		return (item.Animation.FrameNumber >= anim.EndFrameNumber);
 	}
@@ -548,7 +548,6 @@ namespace TEN::Animation
 
 		const auto& anim = GetAnimData(animObject, animNumber);
 
-		
 		// Check if frame is missing.
 		if (frameNumber < 0 || frameNumber > anim.EndFrameNumber)
 		{
