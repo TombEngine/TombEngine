@@ -209,7 +209,7 @@ void ItemInfo::ResetModelToDefault()
 	}
 }
 
-void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2D& curve)
+void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 {
 	// No new blend; return early.
 	if (frameCount <= 0)

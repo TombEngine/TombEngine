@@ -65,9 +65,9 @@ enum AIObjectType
 
 struct MoveableAnimBlendData
 {
-	int			  FrameNumber = 0;
-	int			  FrameCount  = 0;
-	BezierCurve2D Curve		  = {};
+	int			 FrameNumber = 0;
+	int			 FrameCount  = 0;
+	BezierCurve2 Curve		  = {};
 
 	Vector3								   RootPosition		= Vector3::Zero;
 	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
@@ -200,7 +200,7 @@ struct ItemInfo
 
 	// Animation blending utilities
 
-	void SetAnimBlend(int frameCount, const BezierCurve2D& curve);
+	void SetAnimBlend(int frameCount, const BezierCurve2& curve);
 	void DisableAnimBlend();
 
 	// Inquirers
