@@ -231,8 +231,8 @@ namespace TEN::Entities::Creatures::TR3
 					auto targetPos = targetBBox.ToBoundingOrientedBox(LaraItem->Pose).Center;
 					if (item->Animation.ActiveState == SDIVER_STATE_TREAD_WATER_SHOOT)
 					{
-						// Harpoons arc downwards while in the air, so compensate by aiming at Lara's head
-						targetPos.y = targetBBox.Y1;
+						// Harpoons arc downwards while in the air, so compensate by aiming at enemy's head
+						targetPos.y -= LARA_HEIGHT / 2; // TODO: Get the top bound of the bounding box so it works for any enemy -- JoeyQuint 30.11.2025
 					}
 					auto orientation = Geometry::GetOrientToPoint(pos, targetPos);
 
