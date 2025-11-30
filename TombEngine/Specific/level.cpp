@@ -379,16 +379,16 @@ void LoadObjects()
 	ReadBytes(g_Level.Bones.data(), 4 * boneCount);
 
 	int modelCount = ReadCount();
-	TENLog("Moveable slot count: " + std::to_string(modelCount), LogLevel::Info);
+	TENLog("Object count: " + std::to_string(modelCount), LogLevel::Info);
 
-	// Load moveable slots.
+	// Load object slots.
 	for (int i = 0; i < modelCount; i++)
 	{
 		int objectID = ReadInt32();
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported moveable slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported moveable slots from wads.").c_str());
+			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported objects from WADs.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -435,9 +435,8 @@ void LoadObjects()
 			auto fixedMotionCurveZEndHandle = ReadVector2();
 			anim.FixedMotionCurveZ = BezierCurve2D(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
-			// Load key frames.
-			int keyframeCount = ReadInt32();
-			auto keyframes = std::vector<FrameData>(keyframeCount);
+			// Load keyframes.
+			auto keyframes = std::vector<FrameData>(ReadInt32());
 			for (auto& keyframe : keyframes)
 			{
 				auto center = ReadVector3();
@@ -458,30 +457,30 @@ void LoadObjects()
 			float alphaStep = 1.0f / (float)interpolation;
 			for (int k = 0; k < keyframes.size(); k++)
 			{
-				const auto& currentKeyFrame = keyframes[k];
-				anim.Frames.push_back(currentKeyFrame);
+				const auto& currentKeyframe = keyframes[k];
+				anim.Frames.push_back(currentKeyframe);
 				
 				if (k == (keyframes.size() - 1))
 					continue;
 
-				const auto& nextKeyFrame = keyframes[k + 1];
+				const auto& nextKeyframe = keyframes[k + 1];
 
 				for (int l = 1; l < interpolation; l++)
 				{
 					float alpha = alphaStep * l;
 
-					auto rootPos = Vector3::Lerp(currentKeyFrame.RootPosition, nextKeyFrame.RootPosition, alpha);
+					auto rootPos = Vector3::Lerp(currentKeyframe.RootPosition, nextKeyframe.RootPosition, alpha);
 
-					auto boneOrients = std::vector<Quaternion>(currentKeyFrame.BoneOrientations.size());
+					auto boneOrients = std::vector<Quaternion>(currentKeyframe.BoneOrientations.size());
 					for (int m = 0; m < boneOrients.size(); m++)
-						boneOrients[m] = Quaternion::Slerp(currentKeyFrame.BoneOrientations[m], nextKeyFrame.BoneOrientations[m], alpha);
+						boneOrients[m] = Quaternion::Slerp(currentKeyframe.BoneOrientations[m], nextKeyframe.BoneOrientations[m], alpha);
 						
-					auto aabb = BoundingBox(
-						Vector3::Lerp(currentKeyFrame.LocalAabb.Center, nextKeyFrame.LocalAabb.Center, alpha),
-						Vector3::Lerp(currentKeyFrame.LocalAabb.Extents, nextKeyFrame.LocalAabb.Extents, alpha));
-					auto legacyAabb = GameBoundingBox(aabb);
+					auto localAabb = BoundingBox(
+						Vector3::Lerp(currentKeyframe.LocalAabb.Center, nextKeyframe.LocalAabb.Center, alpha),
+						Vector3::Lerp(currentKeyframe.LocalAabb.Extents, nextKeyframe.LocalAabb.Extents, alpha));
+					auto legacyLocalAabb = GameBoundingBox(localAabb);
 
-					auto frame = FrameData{ rootPos, boneOrients, aabb, legacyAabb };
+					auto frame = FrameData{ rootPos, boneOrients, localAabb, legacyLocalAabb };
 					anim.Frames.push_back(frame);
 				}
 			}

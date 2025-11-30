@@ -260,8 +260,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			const auto& rightFrame = GetFrame(*LaraItem);
 			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
-			break;
 		}
+		break;
 		}
 	}
 
