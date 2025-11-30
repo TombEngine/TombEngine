@@ -221,7 +221,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (!creature->Flags)
 				{
-					auto pos = item->Pose.Position.ToVector3();
+					auto pos = GetJointPosition(item, ScubaGunBite).ToVector3();
 					auto targetPos = GameBoundingBox(LaraItem).ToBoundingOrientedBox(LaraItem->Pose).Center;
 					auto orientation = Geometry::GetOrientToPoint(pos, targetPos);
 
