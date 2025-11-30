@@ -32,7 +32,7 @@ bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std:
 	const auto& requiredObject = Objects[requiredObjectID];
 	if (requiredObject.loaded)
 	{
-		// Check if required object has more than 1 animations.
+		// Check if required object has more than 1 animation.
 		if (requiredObject.Animations.size() > 1)
 		{
 			object.Animations = requiredObject.Animations;

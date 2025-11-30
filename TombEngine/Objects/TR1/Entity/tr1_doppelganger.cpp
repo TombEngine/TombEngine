@@ -15,17 +15,17 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
-constexpr int DOPPELGANGER_BURN_TIMEOUT = 5 * FPS;
-
-enum class DoppelgangerFallState
-{
-	None,
-	Falling,
-	Death
-};
-
 namespace TEN::Entities::Creatures::TR1
 {
+	constexpr int DOPPELGANGER_BURN_TIMEOUT = 5 * FPS;
+
+	enum class DoppelgangerFallState
+	{
+		None,
+		Fall,
+		Death
+	};
+
 	const ItemInfo* FindDoppelgangerReferenceItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 	{
 		for (int i = 0; i < g_Level.NumItems; i++)
@@ -57,9 +57,9 @@ namespace TEN::Entities::Creatures::TR1
 			return;
 		}
 
-		switch (item.ItemFlags[7])
+		switch ((DoppelgangerFallState)item.ItemFlags[7])
 		{
-		case (short)DoppelgangerFallState::None:
+		case DoppelgangerFallState::None:
 		{
 			if (item.HitPoints < LARA_HEALTH_MAX)
 			{
@@ -92,13 +92,13 @@ namespace TEN::Entities::Creatures::TR1
 				SetAnimation(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL);
 				item.Animation.IsAirborne = true;
 				item.Animation.Velocity = Vector3::Zero;
-				item.ItemFlags[7] = (short)DoppelgangerFallState::Falling;
+				item.ItemFlags[7] = (short)DoppelgangerFallState::Fall;
 			}
 
 			break;
 		}
 
-		case (short)DoppelgangerFallState::Falling:
+		case DoppelgangerFallState::Fall:
 		{
 			if (item.Animation.Velocity.x > 0.0f)
 			{
@@ -158,7 +158,7 @@ namespace TEN::Entities::Creatures::TR1
 			break;
 		}
 
-		case (short)DoppelgangerFallState::Death:
+		case DoppelgangerFallState::Death:
 
 			item.HitPoints = 0;
 			item.ItemFlags[6]++;
