@@ -191,9 +191,9 @@ void ItemInfo::ResetModelToDefault()
 
 	if (object.nmeshes > 0)
 	{
-		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
-		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
-		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
+		Model.MeshIndex.resize(object.nmeshes);
+		Model.BaseMesh = object.meshIndex;
+		Model.SkinIndex = object.skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -263,7 +263,7 @@ ItemInfo* ItemHandler::Get() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to access invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return &g_Level.Items[0];
 	}
@@ -296,7 +296,7 @@ ItemInfo& ItemHandler::operator*() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return g_Level.Items[0];
 	}
@@ -338,7 +338,7 @@ void KillItem(short const itemNumber)
 {
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 	{
-		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		TENLog(fmt::format("Attempted to moveable item with invalid index {}.", itemNumber), LogLevel::Error);
 		return;
 	}
 
@@ -672,7 +672,7 @@ void RemoveActiveItem(short itemNumber, bool killed)
 void InitializeItem(short itemNumber) 
 {
 	auto& item = g_Level.Items[itemNumber];
-	const auto& object = Objects[item->ObjectNumber];
+	const auto& object = Objects[item.ObjectNumber];
 
 	SetAnimation(item, 0);
 	item.Animation.RequiredState = NO_VALUE;

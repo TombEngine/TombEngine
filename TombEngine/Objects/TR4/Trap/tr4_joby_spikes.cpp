@@ -27,10 +27,10 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		auto& angleRotationSpeed    = item.ItemFlags[0];
-		auto& spikeLength           = item.ItemFlags[1];
-		auto& clockworkDirection    = item.ItemFlags[2]; // ??
-		auto& maxExtensionLength    = item.ItemFlags[3];
+		auto& angleRotationSpeed = item.ItemFlags[0];
+		auto& spikeLength        = item.ItemFlags[1];
+		auto& clockworkDirection = item.ItemFlags[2]; // ??
+		auto& maxExtensionLength = item.ItemFlags[3];
 
 		// Set bone mutators to EulerAngles identity by default.
 		for (auto& mutator : item.Model.Mutators)
@@ -50,9 +50,9 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		auto& angleRotationSpeed = item.ItemFlags[0];
-		auto& spikeLength = item.ItemFlags[1];
-		auto& clockworkDirection = item.ItemFlags[2];
+		auto& angleRotSpeed = item.ItemFlags[0];
+		auto& spikeLength        = item.ItemFlags[1];
+		auto& clockworkDir = item.ItemFlags[2];
 		auto& maxExtensionLength = item.ItemFlags[3];
 
 		SoundEffect(SFX_TR4_METAL_SCRAPE_LOOP1, &item.Pose);
@@ -84,21 +84,21 @@ namespace TEN::Entities::Traps
 		}
 
 		// Rotate.
-		if (clockworkDirection == 1)
+		if (clockworkDir == 1)
 		{
-			if (angleRotationSpeed < 4096)
-				angleRotationSpeed = (spikeLength / 64) + spikeLength + JOBY_SPIKES_EXTRA_ROTATION_SPEED;
+			if (angleRotSpeed < 4096)
+				angleRotSpeed = ((spikeLength / 64) + spikeLength) + JOBY_SPIKES_EXTRA_ROTATION_SPEED;
 		}
 		else
 		{
-			if (angleRotationSpeed > -4096)
-				angleRotationSpeed = spikeLength + (spikeLength / 64) - JOBY_SPIKES_EXTRA_ROTATION_SPEED;
+			if (angleRotSpeed > -4096)
+				angleRotSpeed = (spikeLength + (spikeLength / 64)) - JOBY_SPIKES_EXTRA_ROTATION_SPEED;
 		}
 
 		if (spikeLength < maxExtensionLength)
 			spikeLength += JOBY_SPIKES_SCALE_INCREMENT;
 
-		item.Pose.Orientation.y += angleRotationSpeed;
+		item.Pose.Orientation.y += angleRotSpeed;
 
 		// Scale.
 		if (spikeLength)

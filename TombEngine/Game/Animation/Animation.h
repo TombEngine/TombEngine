@@ -130,13 +130,14 @@ namespace TEN::Animation
 	Vector3i   GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, const CreatureBiteInfo& bite);
 	Vector3i   GetJointPosition(const ItemInfo& item, const CreatureBiteInfo& bite);
-	Vector3    GetJointOffset(GAME_OBJECT_ID objectID, int boneID);
+	Vector3    GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign);
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID);
 
 	// Setters
 
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear);
 	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear);
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear); // TODO: Deprecated. Must switch to references.
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch);
 
 	// Utilities

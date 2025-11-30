@@ -418,13 +418,18 @@ namespace TEN::Animation
 
 	const StateDispatchData* GetStateDispatch(const ItemInfo& item, int targetStateID)
 	{
-		const auto& anim = GetAnimData(item);
+		targetStateID = (targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID;
+
+		// Prevent dispatch to same state ID.
+		if (item.Animation.ActiveState == targetStateID)
+			return nullptr;
 
 		// Run through state dispatches.
+		const auto& anim = GetAnimData(item);
 		for (const auto& dispatch : anim.Dispatches)
 		{
 			// Check for state ID mismatch.
-			if (dispatch.StateID != ((targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID))
+			if (dispatch.StateID != targetStateID)
 				continue;
 
 			// Check if current frame is within dispatch range.
@@ -469,7 +474,7 @@ namespace TEN::Animation
 		bool incorrectBone = false;
 		if (boneID < 0 || boneID >= Objects[item.ObjectNumber].nmeshes)
 		{
-			TENLog("Unknown bone ID specified for object " + GetObjectName(item.ObjectNumber), LogLevel::Warning, LogConfig::All);
+			TENLog("Unknown bone ID specified for object " + GetObjectName(item.ObjectNumber) + ".", LogLevel::Warning, LogConfig::All);
 			incorrectBone = true;
 		}
 
@@ -498,8 +503,17 @@ namespace TEN::Animation
 
 	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign)
 	{
-		const auto& object  = Objects[objectID];
-		const int*  bonePtr = &g_Level.Bones[object.boneIndex + (boneID * 4)];
+		const auto& object = Objects[objectID];
+		int boneIndex = object.boneIndex + (boneID * 4);
+
+		if (g_Level.Bones.size() <= boneIndex)
+			return Vector3::Zero;
+
+		int* bone = &g_Level.Bones[boneIndex];
+		auto offset = Vector3(*(bone + 1), *(bone + 2), *(bone + 3));
+
+		if (discardZSign)
+			offset.z = abs(offset.z);
 
 		return offset;
 	}
@@ -557,6 +571,11 @@ namespace TEN::Animation
 	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2D& blendCurve)
 	{
 		SetAnimation(item, item.ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
+	}
+
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2D& blendCurve)
+	{
+		SetAnimation(*item, item->ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
 	}
 
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch)

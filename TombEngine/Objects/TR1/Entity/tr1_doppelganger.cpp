@@ -17,6 +17,15 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Creatures::TR1
 {
+	constexpr int DOPPELGANGER_BURN_TIMEOUT = 5 * FPS;
+
+	enum class DoppelgangerFallState
+	{
+		None,
+		Fall,
+		Death
+	};
+
 	const ItemInfo* FindDoppelgangerReferenceItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 	{
 		for (int i = 0; i < g_Level.NumItems; i++)
@@ -40,11 +49,6 @@ namespace TEN::Entities::Creatures::TR1
 			return;
 
 		auto& item = g_Level.Items[itemNumber];
-		if (item.HitPoints < LARA_HEALTH_MAX)
-		{
-			item.HitPoints = LARA_HEALTH_MAX;
-			DoDamage(LaraItem, GetWeaponDamage(Lara.Control.Weapon.GunType));
-		}
 
 		const auto* referenceItem = FindDoppelgangerReferenceItem(item, ID_DOPPELGANGER_ORIGIN);
 		if (referenceItem == nullptr)
@@ -53,10 +57,16 @@ namespace TEN::Entities::Creatures::TR1
 			return;
 		}
 
-		switch (item.ItemFlags[7])
+		switch ((DoppelgangerFallState)item.ItemFlags[7])
 		{
-		case 0:
+		case DoppelgangerFallState::None:
 		{
+			if (item.HitPoints < LARA_HEALTH_MAX)
+			{
+				item.HitPoints = LARA_HEALTH_MAX;
+				DoDamage(LaraItem, GetWeaponDamage(Lara.Control.Weapon.GunType));
+			}
+
 			int playerFloorHeight = GetPointCollision(*LaraItem).GetFloorHeight();
 
 			// Get floor heights for comparison.
@@ -77,16 +87,19 @@ namespace TEN::Entities::Creatures::TR1
 			// Compare floor heights.
 			if (item.Floor >= (playerFloorHeight + (BLOCK(1) + 1)) && !LaraItem->Animation.IsAirborne)
 			{
+				item.Pose.Position.y += CLICK(0.5f);
+
 				SetAnimation(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL);
 				item.Animation.IsAirborne = true;
-				item.Pose.Position.y += BLOCK(1 / 16.0f);
-				item.ItemFlags[7] = 1;
+				item.Animation.Velocity = Vector3::Zero;
+				item.ItemFlags[7] = (short)DoppelgangerFallState::Fall;
 			}
 
 			break;
 		}
 
-		case 1:
+		case DoppelgangerFallState::Fall:
+		{
 			if (item.Animation.Velocity.x > 0.0f)
 			{
 				item.Animation.Velocity.x -= 2;
@@ -113,33 +126,50 @@ namespace TEN::Entities::Creatures::TR1
 				item.Animation.Velocity.z = 0.0f;
 			}
 
-			TestTriggers(&item, true);
-			item.Floor = GetPointCollision(item).GetFloorHeight();
+			auto pointColl = GetPointCollision(item);
+			item.Floor = pointColl.GetFloorHeight();
 
 			if (item.Pose.Position.y >= item.Floor)
 			{
-				item.Pose.Position.y = item.Floor;
-				TestTriggers(&item, true);
+				if (item.Animation.AnimNumber != LA_FREEFALL_DEATH)
+				{
+					item.Pose.Position.x = pointColl.GetSector().Position.x + BLOCK(0.5f);
+					item.Pose.Position.y = item.Floor;
+					item.Pose.Position.z = pointColl.GetSector().Position.y + BLOCK(0.5f);
 
-				SetAnimation(item, LA_FREEFALL_DEATH);
-				item.Animation.IsAirborne = false;
-				item.Animation.Velocity.y = 0.0f;
+					TestTriggers(&item, true);
 
-				// TODO: Check.
+					if (pointColl.GetBottomSector().Flags.Death)
+						item.Effect.Type = EffectType::Fire;
+
+					SetAnimation(item, LaraItem->Animation.AnimObjectID, LA_FREEFALL_DEATH);
+					item.Animation.IsAirborne = false;
+					item.Animation.Velocity.y = 0.0f;
+				}
+
 				const auto& anim = GetAnimData(item);
 				if (item.Animation.AnimNumber == LA_FREEFALL_DEATH &&
 					item.Animation.FrameNumber >= (anim.EndFrameNumber - 1))
 				{
-					item.ItemFlags[7] = 2;
+					item.ItemFlags[7] = (short)DoppelgangerFallState::Death;
 				}
 			}
 
 			break;
+		}
 
-		case 2:
-			DisableEntityAI(itemNumber);
-			RemoveActiveItem(itemNumber);
-			item.Collidable = false;
+		case DoppelgangerFallState::Death:
+
+			item.HitPoints = 0;
+			item.ItemFlags[6]++;
+
+			if (item.ItemFlags[6] > DOPPELGANGER_BURN_TIMEOUT)
+			{
+				DisableEntityAI(itemNumber);
+				RemoveActiveItem(itemNumber);
+				item.Collidable = false;
+			}
+
 			break;
 		}
 

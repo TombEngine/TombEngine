@@ -204,12 +204,13 @@ namespace TEN::Entities::Switches
 				switchItem->DisableInterpolation = true;
 			}
 
-			if ((laraItem->Animation.FrameNumber >= 0 &&
-				laraItem->Animation.FrameNumber <= 43) ||
-				(laraItem->Animation.FrameNumber >= 58 &&
-				laraItem->Animation.FrameNumber <= 115))
+			if (laraItem->Animation.AnimNumber == LA_TURNSWITCH_PUSH_CLOCKWISE_START)
 			{
-				SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				if ((laraItem->Animation.FrameNumber >= 0 && laraItem->Animation.FrameNumber <= 43) ||
+					(laraItem->Animation.FrameNumber >= 58 && laraItem->Animation.FrameNumber <= 115))
+				{
+					SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				}
 			}
 		}
 		else
@@ -234,12 +235,13 @@ namespace TEN::Entities::Switches
 				switchItem->DisableInterpolation = true;
 			}
 
-			if ((laraItem->Animation.FrameNumber >= 0 &&
-				laraItem->Animation.FrameNumber <= 43) ||
-				(laraItem->Animation.FrameNumber >= 58 &&
-				laraItem->Animation.FrameNumber <= 115))
+			if (laraItem->Animation.AnimNumber == LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START)
 			{
-				SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				if ((laraItem->Animation.FrameNumber >= 0 && laraItem->Animation.FrameNumber <= 43) ||
+					(laraItem->Animation.FrameNumber >= 58 && laraItem->Animation.FrameNumber <= 115))
+				{
+					SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				}
 			}
 		}
 

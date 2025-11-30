@@ -268,7 +268,7 @@ void AnimatingControl(short itemNumber)
 	}
 
 	// TODO: ID_SHOOT_SWITCH2 is probably the bell in Trajan Markets, use Lua for that.
-	/*if (TestLastFrame(**item))
+	/*if (TestLastFrame(item))
 	{
 		item->frameNumber = 0;
 		RemoveActiveItem(itemNumber);

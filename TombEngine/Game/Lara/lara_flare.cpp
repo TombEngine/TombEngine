@@ -124,6 +124,8 @@ void DrawFlareMeshes(ItemInfo& laraItem)
 
 void UndrawFlare(ItemInfo& laraItem)
 {
+	constexpr int DISCARD_FLARE_FRAME = 31;
+
 	auto& player = *GetLaraInfo(&laraItem);
 
 	int flareFrame = player.Flare.Frame;
@@ -146,7 +148,7 @@ void UndrawFlare(ItemInfo& laraItem)
 		{
 			player.Flare.ControlLeft = false;
 
-			if (flareFrame >= 31) // 31 = Last frame.
+			if (flareFrame >= DISCARD_FLARE_FRAME)
 			{
 				player.Control.Weapon.RequestGunType = player.Control.Weapon.LastGunType;
 				player.Control.Weapon.GunType = player.Control.Weapon.LastGunType;

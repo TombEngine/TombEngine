@@ -273,7 +273,7 @@ namespace TEN::Hud
 
 		if (!Objects[ID_INTERACTION_SPRITES].loaded || Objects[ID_INTERACTION_SPRITES].nmeshes == 0)
 		{
-			TENLog("Missing sprite sequence " + GetObjectName(ID_INTERACTION_SPRITES) + " for drawing interaction highlighter", LogLevel::Warning);
+			TENLog(fmt::format("Missing sprite sequence {} for drawing interaction highlighter.", GetObjectName(ID_INTERACTION_SPRITES)), LogLevel::Warning);
 			return;
 		}
 

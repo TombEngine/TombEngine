@@ -853,12 +853,10 @@ namespace TEN::Entities::Vehicles
 
 			break;
 
-		// TODO: Check frames.
 		case MINECART_STATE_HIT:
-			if (laraItem->HitPoints <= 0 &&
-				laraItem->Animation.FrameNumber == 62)
+			if (laraItem->HitPoints <= 0 && laraItem->Animation.AnimNumber == MINECART_ANIM_BONK_HEAD && laraItem->Animation.FrameNumber == 28)
 			{
-				laraItem->Animation.FrameNumber = 62;
+				laraItem->Animation.FrameNumber = 28;
 				minecartItem->Animation.Velocity.z = 0.0f;
 				minecart->Velocity = 0;
 				minecart->Flags = (minecart->Flags & ~MINECART_FLAG_CONTROL) | MINECART_FLAG_NO_VALUE;
@@ -866,12 +864,10 @@ namespace TEN::Entities::Vehicles
 
 			break;
 
-		// TODO: Check frames.
 		case MINECART_STATE_DEATH:
-			if (laraItem->HitPoints <= 0 &&
-				laraItem->Animation.FrameNumber == 62)
+			if (laraItem->HitPoints <= 0 && laraItem->Animation.AnimNumber == MINECART_ANIM_BONK_HEAD && laraItem->Animation.FrameNumber == 28)
 			{
-				laraItem->Animation.FrameNumber = 62;
+				laraItem->Animation.FrameNumber = 28;
 				minecartItem->Animation.Velocity.z = 0.0f;
 				minecart->Velocity = 0;
 				minecart->Flags = (minecart->Flags & ~MINECART_FLAG_CONTROL) | MINECART_FLAG_STOPPED | MINECART_FLAG_DEAD;
@@ -961,8 +957,6 @@ namespace TEN::Entities::Vehicles
 			minecartItem->Animation.Velocity.z = 0;
 			minecart->Flags = (minecart->Flags & ~MINECART_FLAG_CONTROL) | (MINECART_FLAG_STOPPED | MINECART_FLAG_DEAD);
 			minecart->Velocity = 0;
-
-			return;
 		}
 	}
 

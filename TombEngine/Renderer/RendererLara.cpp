@@ -138,7 +138,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 	playerObject.LinearizedBones[LM_HEAD]->ExtraRotation = Lara.ExtraHeadRot.ToQuaternion();
 
 	// First calculate matrices for legs, hips, head, and torso.
-	int mask = MESH_BITS(LM_HIPS) | MESH_BITS(LM_LTHIGH) | MESH_BITS(LM_LSHIN) | MESH_BITS(LM_LFOOT) | MESH_BITS(LM_RTHIGH) | MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
+	int mask = MESH_BITS(LM_HIPS) | MESH_BITS(LM_LTHIGH) | MESH_BITS(LM_LSHIN) | MESH_BITS(LM_LFOOT) | MESH_BITS(LM_RTHIGH) |
+			   MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 	
 	const auto& frame = GetFrame(*LaraItem);
 	UpdateAnimation(&rItem, playerObject, frame, mask, false, LaraItem->Animation.Blend.IsEnabled() ? &LaraItem->Animation.Blend : nullptr);
@@ -153,7 +154,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		handStatus = HandStatus::WeaponReady;
 	}
 
-	// Then the arms, based on current weapon status.
+	// Arms based on current weapon status.
 	if (gunType != LaraWeaponType::Flare && (handStatus == HandStatus::Free || handStatus == HandStatus::Busy) ||
 		gunType == LaraWeaponType::Flare && !Lara.Flare.ControlLeft)
 	{
@@ -169,18 +170,16 @@ void Renderer::UpdateLaraAnimations(bool force)
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
+		else if (gunType == LaraWeaponType::Revolver)
+		{
+			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
+			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
+		}
 		else
 		{
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
-
-		ArmInfo* leftArm = &Lara.LeftArm;
-		ArmInfo* rightArm = &Lara.RightArm;
-
-		// HACK: Treat revolver as pistols in crouched state.
-		if (IsCrouching(LaraItem) && gunType == LaraWeaponType::Revolver)
-			gunType = LaraWeaponType::Pistol;
 
 		// HACK: Back guns are handled differently.
 		switch (gunType)
@@ -209,30 +208,11 @@ void Renderer::UpdateLaraAnimations(bool force)
 			const auto& rightArmFrame = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[Lara.RightArm.FrameNumber];
 			UpdateAnimation(&rItem, playerObject, rightArmFrame, mask);
 		}
-
-		break;
-
-		case LaraWeaponType::Revolver:
-		{
-			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
-			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftFrameNumber];
-
-			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
-			const auto& rightFrame = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[rightFrameNumber];
-
-			// Left arm
-			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
-			UpdateAnimation(&rItem, playerObject, leftFrame, mask);
-
-			// Right arm
-			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
-		}
-
 		break;
 
 		case LaraWeaponType::Pistol:
 		case LaraWeaponType::Uzi:
+		case LaraWeaponType::Revolver:
 		default:
 		{
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
@@ -251,15 +231,15 @@ void Renderer::UpdateLaraAnimations(bool force)
 			// Right arm
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			
+
 			UpdateAnimation(&rItem, playerObject, rightFrame, upperArmMask, true);
 			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
 		}
-
 		break;
 
 		case LaraWeaponType::Flare:
 		case LaraWeaponType::Torch:
+		{
 			// Left arm
 			auto leftAnimFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftAnimFrameNumber];
@@ -281,6 +261,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			const auto& rightFrame = GetFrame(*LaraItem);
 			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
 			break;
+		}
 		}
 	}
 
@@ -376,7 +357,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			continue;
 
 		bool skinned = object.skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning;
-		bool flipped = skinned || (GetJointOffset(unit.ObjectID, 1, false).z < 0);
+		bool flipped = skinned || GetJointOffset(unit.ObjectID, 1, false).z < 0.0f;
 		auto objectType = i ? RendererObjectType::HairSecondary : RendererObjectType::HairPrimary;
 
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];
