@@ -46,8 +46,8 @@ namespace TEN::Animation
 		int NextFrameNumberLow  = 0;
 		int NextFrameNumberHigh = 0;
 
-		int           BlendFrameCount = 0;
-		BezierCurve2D BlendCurve      = BezierCurve2D::Zero;
+		int          BlendFrameCount = 0;
+		BezierCurve2 BlendCurve      = BezierCurve2::Zero;
 	};
 
 	struct FixedMotionData
@@ -66,15 +66,15 @@ namespace TEN::Animation
 	{
 		using AnimCommandPtr = std::shared_ptr<IAnimCommand>;
 
-		int           StateID           = 0;
-		int           EndFrameNumber    = 0;
-		int           NextAnimNumber    = 0;
-		int           NextFrameNumber   = 0;
-		int           BlendFrameCount   = 0;
-		BezierCurve2D BlendCurve        = BezierCurve2D::Zero;
-		BezierCurve2D FixedMotionCurveX = BezierCurve2D::Zero;
-		BezierCurve2D FixedMotionCurveY = BezierCurve2D::Zero;
-		BezierCurve2D FixedMotionCurveZ = BezierCurve2D::Zero;
+		int          StateID           = 0;
+		int          EndFrameNumber    = 0;
+		int          NextAnimNumber    = 0;
+		int          NextFrameNumber   = 0;
+		int          BlendFrameCount   = 0;
+		BezierCurve2 BlendCurve        = BezierCurve2::Zero;
+		BezierCurve2 FixedMotionCurveX = BezierCurve2::Zero;
+		BezierCurve2 FixedMotionCurveY = BezierCurve2::Zero;
+		BezierCurve2 FixedMotionCurveZ = BezierCurve2::Zero;
 
 		std::vector<FrameData>         Frames     = {};
 		std::vector<StateDispatchData> Dispatches = {};
@@ -135,9 +135,9 @@ namespace TEN::Animation
 
 	// Setters
 
-	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear);
-	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear);
-	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2D& blendCurve = BezierCurve2D::Linear); // TODO: Deprecated. Must switch to references.
+	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear);
+	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear);
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear); // TODO: Deprecated. Must switch to references.
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch);
 
 	// Utilities

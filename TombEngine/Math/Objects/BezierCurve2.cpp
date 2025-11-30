@@ -1,15 +1,15 @@
 #include "framework.h"
-#include "Math/Objects/BezierCurve2D.h"
+#include "Math/Objects/BezierCurve2.h"
 
 namespace TEN::Math
 {
-	const BezierCurve2D BezierCurve2D::Zero		 = BezierCurve2D(Vector2::Zero, Vector2::Zero, Vector2::Zero, Vector2::Zero);
-	const BezierCurve2D BezierCurve2D::Linear	 = BezierCurve2D(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2::One);
-	const BezierCurve2D BezierCurve2D::EaseIn	 = BezierCurve2D(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2::One);
-	const BezierCurve2D BezierCurve2D::EaseOut	 = BezierCurve2D(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2(0.75f, 1.0f));
-	const BezierCurve2D BezierCurve2D::EaseInOut = BezierCurve2D(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2(0.75f, 1.0f));
+	const BezierCurve2 BezierCurve2::Zero      = BezierCurve2(Vector2::Zero, Vector2::Zero, Vector2::Zero, Vector2::Zero);
+	const BezierCurve2 BezierCurve2::Linear    = BezierCurve2(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2::One);
+	const BezierCurve2 BezierCurve2::EaseIn    = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2::One);
+	const BezierCurve2 BezierCurve2::EaseOut   = BezierCurve2(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2(0.75f, 1.0f));
+	const BezierCurve2 BezierCurve2::EaseInOut = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2(0.75f, 1.0f));
 
-	BezierCurve2D::BezierCurve2D(const Vector2& start, const Vector2& end, const Vector2& startHandle, const Vector2& endHandle)
+	BezierCurve2::BezierCurve2(const Vector2& start, const Vector2& end, const Vector2& startHandle, const Vector2& endHandle)
 	{
 		SetStart(start);
 		SetEnd(end);
@@ -17,27 +17,27 @@ namespace TEN::Math
 		SetEndHandle(endHandle);
 	}
 
-	const Vector2& BezierCurve2D::GetStart() const
+	const Vector2& BezierCurve2::GetStart() const
 	{
 		return _controlPoints[0];
 	}
 
-	const Vector2& BezierCurve2D::GetEnd() const
+	const Vector2& BezierCurve2::GetEnd() const
 	{
 		return _controlPoints[3];
 	}
 
-	const Vector2& BezierCurve2D::GetStartHandle() const
+	const Vector2& BezierCurve2::GetStartHandle() const
 	{
 		return _controlPoints[1];
 	}
 
-	const Vector2& BezierCurve2D::GetEndHandle() const
+	const Vector2& BezierCurve2::GetEndHandle() const
 	{
 		return _controlPoints[2];
 	}
 
-	Vector2 BezierCurve2D::GetPoint(float alpha) const
+	Vector2 BezierCurve2::GetPoint(float alpha) const
 	{
 		alpha = std::clamp(alpha, 0.0f, 1.0f);
 
@@ -52,7 +52,7 @@ namespace TEN::Math
 		return points.front();
 	}
 
-	float BezierCurve2D::GetY(float x) const
+	float BezierCurve2::GetY(float x) const
 	{
 		constexpr auto TOLERANCE		   = 0.001f;
 		constexpr auto ITERATION_COUNT_MAX = 100;
@@ -83,27 +83,27 @@ namespace TEN::Math
 		return GetPoint(alpha).y;
 	}
 
-	void BezierCurve2D::SetStart(const Vector2& point)
+	void BezierCurve2::SetStart(const Vector2& point)
 	{
 		_controlPoints[0] = point;
 	}
 
-	void BezierCurve2D::SetEnd(const Vector2& point)
+	void BezierCurve2::SetEnd(const Vector2& point)
 	{
 		_controlPoints[3] = point;
 	}
 
-	void BezierCurve2D::SetStartHandle(const Vector2& point)
+	void BezierCurve2::SetStartHandle(const Vector2& point)
 	{
 		_controlPoints[1] = point;
 	}
 
-	void BezierCurve2D::SetEndHandle(const Vector2& point)
+	void BezierCurve2::SetEndHandle(const Vector2& point)
 	{
 		_controlPoints[2] = point;
 	}
 
-	Vector2 BezierCurve2D::GetDerivative(float alpha) const
+	Vector2 BezierCurve2::GetDerivative(float alpha) const
 	{
 		alpha = std::clamp(alpha, 0.0f, 1.0f);
 
@@ -124,7 +124,7 @@ namespace TEN::Math
 		return points.front();
 	}
 
-	bool BezierCurve2D::operator ==(const BezierCurve2D& curve) const
+	bool BezierCurve2::operator ==(const BezierCurve2& curve) const
 	{
 		return (GetStart() == curve.GetStart() &&
 				GetEnd() == curve.GetEnd() &&
@@ -132,7 +132,7 @@ namespace TEN::Math
 				GetEndHandle() == curve.GetEndHandle());
 	}
 
-	bool BezierCurve2D::operator !=(const BezierCurve2D& curve) const
+	bool BezierCurve2::operator !=(const BezierCurve2& curve) const
 	{
 		return !(*this == curve);
 	}

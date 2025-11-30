@@ -379,9 +379,9 @@ void LoadObjects()
 	ReadBytes(g_Level.Bones.data(), 4 * boneCount);
 
 	int modelCount = ReadCount();
-	TENLog("Object count: " + std::to_string(modelCount), LogLevel::Info);
+	TENLog("Model count: " + std::to_string(modelCount), LogLevel::Info);
 
-	// Load object slots.
+	// Load moveables.
 	for (int i = 0; i < modelCount; i++)
 	{
 		int objectID = ReadInt32();
@@ -415,25 +415,25 @@ void LoadObjects()
 			auto blendCurveEnd = ReadVector2();
 			auto blendCurveStartHandle = ReadVector2();
 			auto blendCurveEndHandle = ReadVector2();
-			anim.BlendCurve = BezierCurve2D(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
+			anim.BlendCurve = BezierCurve2(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
 
 			auto fixedMotionCurveXStart = ReadVector2();
 			auto fixedMotionCurveXEnd = ReadVector2();
 			auto fixedMotionCurveXStartHandle = ReadVector2();
 			auto fixedMotionCurveXEndHandle = ReadVector2();
-			anim.FixedMotionCurveX = BezierCurve2D(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
+			anim.FixedMotionCurveX = BezierCurve2(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
 
 			auto fixedMotionCurveYStart = ReadVector2();
 			auto fixedMotionCurveYEnd = ReadVector2();
 			auto fixedMotionCurveYStartHandle = ReadVector2();
 			auto fixedMotionCurveYEndHandle = ReadVector2();
-			anim.FixedMotionCurveY = BezierCurve2D(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
+			anim.FixedMotionCurveY = BezierCurve2(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
 
 			auto fixedMotionCurveZStart = ReadVector2();
 			auto fixedMotionCurveZEnd = ReadVector2();
 			auto fixedMotionCurveZStartHandle = ReadVector2();
 			auto fixedMotionCurveZEndHandle = ReadVector2();
-			anim.FixedMotionCurveZ = BezierCurve2D(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
+			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
 			// Load keyframes.
 			auto keyframes = std::vector<FrameData>(ReadInt32());
@@ -502,7 +502,7 @@ void LoadObjects()
 				auto end = ReadVector2();
 				auto startHandle = ReadVector2();
 				auto endHandle = ReadVector2();
-				dispatch.BlendCurve = BezierCurve2D(start, end, startHandle, endHandle);
+				dispatch.BlendCurve = BezierCurve2(start, end, startHandle, endHandle);
 			}
 
 			// Load animation commands.

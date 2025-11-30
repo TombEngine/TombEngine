@@ -2,7 +2,7 @@
 
 namespace TEN::Math
 {
-	class BezierCurve2D
+	class BezierCurve2
 	{
 	private:
 		// Constants
@@ -16,16 +16,16 @@ namespace TEN::Math
 	public:
 		// Presets
 
-		static const BezierCurve2D Zero;
-		static const BezierCurve2D Linear;
-		static const BezierCurve2D EaseIn;
-		static const BezierCurve2D EaseOut;
-		static const BezierCurve2D EaseInOut;
+		static const BezierCurve2 Zero;
+		static const BezierCurve2 Linear;
+		static const BezierCurve2 EaseIn;
+		static const BezierCurve2 EaseOut;
+		static const BezierCurve2 EaseInOut;
 
 		// Constructors
 
-		BezierCurve2D() = default;
-		BezierCurve2D(const Vector2& start, const Vector2& end, const Vector2& startHandle, const Vector2& endHandle);
+		BezierCurve2() = default;
+		BezierCurve2(const Vector2& start, const Vector2& end, const Vector2& startHandle, const Vector2& endHandle);
 
 		// Getters
 
@@ -46,8 +46,8 @@ namespace TEN::Math
 
 		// Operators
 
-		bool operator ==(const BezierCurve2D& curve) const;
-		bool operator !=(const BezierCurve2D& curve) const;
+		bool operator ==(const BezierCurve2& curve) const;
+		bool operator !=(const BezierCurve2& curve) const;
 
 	private:
 		// Helpers
