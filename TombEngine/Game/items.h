@@ -63,7 +63,7 @@ enum AIObjectType
 	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2
 };
 
-struct MoveableAnimationBlendData
+struct MoveableAnimBlendData
 {
 	int          FrameNumber = 0;
 	int          FrameCount  = 0;
@@ -75,7 +75,7 @@ struct MoveableAnimationBlendData
 	bool IsEnabled() const;
 };
 
-struct MoveableAnimationData
+struct MoveableAnimData
 {
 	GAME_OBJECT_ID AnimObjectID	 = GAME_OBJECT_ID::ID_NO_OBJECT;
 	int			   AnimNumber	 = 0;
@@ -91,7 +91,7 @@ struct MoveableAnimationData
 	Vector3 Velocity   = Vector3::Zero; // CONVENTION: +X = Right, +Y = Down, +Z = Forward.
 	bool    IsAirborne = false;
 
-	MoveableAnimationBlendData Blend = {};
+	MoveableAnimBlendData Blend = {};
 };
 
 struct MoveableModelData
@@ -135,11 +135,11 @@ struct ItemInfo
 	int NextItem   = 0;
 	int NextActive = 0;
 
-	ItemData              Data      = {};
-	MoveableAnimationData Animation = {};
-	MoveableModelData     Model     = {};
-	MoveableEffectData    Effect    = {};
-	MoveableCallbackData  Callbacks = {};
+	ItemData             Data      = {};
+	MoveableAnimData     Animation = {};
+	MoveableModelData    Model     = {};
+	MoveableEffectData   Effect    = {};
+	MoveableCallbackData Callbacks = {};
 
 	Pose       StartPose  = Pose::Zero;
 	Pose       Pose       = Pose::Zero;

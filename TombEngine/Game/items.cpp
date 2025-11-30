@@ -42,7 +42,7 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
-bool MoveableAnimationBlendData::IsEnabled() const
+bool MoveableAnimBlendData::IsEnabled() const
 {
 	return (FrameCount != 0);
 }

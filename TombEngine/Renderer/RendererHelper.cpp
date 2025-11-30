@@ -44,7 +44,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 namespace TEN::Renderer
 {
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
-								   const MoveableAnimationBlendData* blend)
+								   const MoveableAnimBlendData* blend)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
