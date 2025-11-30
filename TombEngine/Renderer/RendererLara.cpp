@@ -214,7 +214,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
 
-			if (Lara.LeftArm.Locked)
+			if (Lara.LeftArm.Locked || Lara.LeftArm.FrameNumber)
 				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
 			else
 				mask |= MESH_BITS(LM_LINARM);
@@ -230,7 +230,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			auto interpDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
 
-			if (Lara.RightArm.Locked)
+			if (Lara.RightArm.Locked || Lara.LeftArm.FrameNumber)
 				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
 			else
 				mask |= MESH_BITS(LM_RINARM);
