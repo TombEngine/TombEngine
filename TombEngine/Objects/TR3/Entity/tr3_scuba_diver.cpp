@@ -93,6 +93,11 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
+			if (!TestEnvironment(ENV_FLAG_WATER, item->RoomNumber) && item->Pose.Orientation.x > -ANGLE(67.5f))
+			{
+				item->Pose.Orientation.x -= ANGLE(1.0f);
+			}
+
 			TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
 
 			auto probe = GetPointCollision(*item);
@@ -222,7 +227,13 @@ namespace TEN::Entities::Creatures::TR3
 				if (!creature->Flags)
 				{
 					auto pos = GetJointPosition(item, ScubaGunBite).ToVector3();
-					auto targetPos = GameBoundingBox(LaraItem).ToBoundingOrientedBox(LaraItem->Pose).Center;
+					auto targetBBox = GameBoundingBox(LaraItem);
+					auto targetPos = targetBBox.ToBoundingOrientedBox(LaraItem->Pose).Center;
+					if (item->Animation.ActiveState == SDIVER_STATE_TREAD_WATER_SHOOT)
+					{
+						// Harpoons arc downwards while in the air, so compensate by aiming at Lara's head
+						targetPos.y = targetBBox.Y1;
+					}
 					auto orientation = Geometry::GetOrientToPoint(pos, targetPos);
 
 					// Apply slight random scatter.

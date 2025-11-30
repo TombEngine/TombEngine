@@ -44,6 +44,7 @@ void ShootAtLara(FX_INFO& fx)
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
+// TODO: ID_SCUBA_HARPOON is an regular item in TEN, so it doesn't use ControlMissile at all -- JoeyQuint 30.11.2025
 void ControlMissile(short fxNumber)
 {
 	static const int hitRadius = 200;
