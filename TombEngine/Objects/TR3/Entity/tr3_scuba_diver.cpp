@@ -67,6 +67,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		auto* harpoonItem = &g_Level.Items[harpoonItemNumber];
 
+		harpoonItem->Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
 		harpoonItem->ObjectNumber = ID_SCUBA_HARPOON;
 		harpoonItem->RoomNumber = item->RoomNumber;
 		harpoonItem->Pose.Position = pos;
