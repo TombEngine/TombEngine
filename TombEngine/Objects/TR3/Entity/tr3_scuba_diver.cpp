@@ -207,8 +207,18 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case SDIVER_STATE_SWIM_SHOOT:
+			case SDIVER_STATE_TREAD_WATER_SHOOT:
 				if (shoot)
-					neck = -ai.angle;
+				{
+					if (item->Animation.ActiveState == SDIVER_STATE_SWIM_SHOOT)
+					{
+						neck = -ai.angle;
+					}
+					else
+					{
+						head = ai.angle;
+					}
+				}
 
 				if (!creature->Flags)
 				{
@@ -247,17 +257,6 @@ namespace TEN::Entities::Creatures::TR3
 
 				break;
 
-			case SDIVER_STATE_TREAD_WATER_SHOOT:
-				if (shoot)
-					head = ai.angle;
-
-				if (!creature->Flags)
-				{
-					ShootHarpoon(item, item->Pose.Position, item->Animation.Velocity.z, item->Pose.Orientation.y, item->RoomNumber);
-					creature->Flags = 1;
-				}
-
-				break;
 			}
 		}
 
