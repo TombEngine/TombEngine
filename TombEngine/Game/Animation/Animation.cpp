@@ -79,12 +79,10 @@ namespace TEN::Animation
 			const auto& prevRootPos = Frames[frameNumber - 1].RootPosition;
 			auto rootTranslation = rootPos - prevRootPos;
 
-			if (Flags & (int)AnimFlags::RootMotionTranslationX)
-				translation.x = rootTranslation.x;
-			if (Flags & (int)AnimFlags::RootMotionTranslationY)
-				translation.y = rootTranslation.y;
-			if (Flags & (int)AnimFlags::RootMotionTranslationZ)
-				translation.z = rootTranslation.z;
+			translation = Vector3(
+				(Flags & (int)AnimFlags::RootMotionTranslationX) ? rootTranslation.x : 0.0f,
+				(Flags & (int)AnimFlags::RootMotionTranslationY) ? rootTranslation.y : 0.0f,
+				(Flags & (int)AnimFlags::RootMotionTranslationZ) ? rootTranslation.z : 0.0f);
 		}
 
 		// Compute relative rotation.
@@ -95,12 +93,10 @@ namespace TEN::Animation
 			const auto& prevRootOrient = Frames[frameNumber - 1].BoneOrientations.front();
 			auto rootRot = rootOrient - prevRootOrient;
 
-			if (Flags & (int)AnimFlags::RootMotionRotationX)
-				rot.x = rootRot.x;
-			if (Flags & (int)AnimFlags::RootMotionRotationY)
-				rot.y = rootRot.y;
-			if (Flags & (int)AnimFlags::RootMotionRotationZ)
-				rot.z = rootRot.z;
+			rot = EulerAngles(
+				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : 0,
+				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : 0,
+				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : 0);
 		}
 
 		// Return root motion.
@@ -131,12 +127,10 @@ namespace TEN::Animation
 			const auto& baseRootPos = Frames.front().RootPosition;
 			auto rootTranslation = baseRootPos - rootPos;
 
-			if (Flags & (int)AnimFlags::RootMotionTranslationX)
-				translation.x = rootTranslation.x;
-			if (Flags & (int)AnimFlags::RootMotionTranslationY)
-				translation.y = rootTranslation.y;
-			if (Flags & (int)AnimFlags::RootMotionTranslationZ)
-				translation.z = rootTranslation.z;
+			translation = Vector3(
+				(Flags & (int)AnimFlags::RootMotionTranslationX) ? rootTranslation.x : 0.0f,
+				(Flags & (int)AnimFlags::RootMotionTranslationY) ? rootTranslation.y : 0.0f,
+				(Flags & (int)AnimFlags::RootMotionTranslationZ) ? rootTranslation.z : 0.0f);
 		}
 
 		// Get relative rotation counteraction.
@@ -147,12 +141,10 @@ namespace TEN::Animation
 			auto baseRootOrient = EulerAngles(Frames.front().BoneOrientations.front());
 			auto rootRot = baseRootOrient - rootOrient;
 
-			if (Flags & (int)AnimFlags::RootMotionRotationX)
-				rot.x = rootRot.x;
-			if (Flags & (int)AnimFlags::RootMotionRotationY)
-				rot.y = rootRot.y;
-			if (Flags & (int)AnimFlags::RootMotionRotationZ)
-				rot.z = rootRot.z;
+			rot = EulerAngles(
+				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : 0,
+				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : 0,
+				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : 0);
 		}
 
 		// Return root motion counteraction.
