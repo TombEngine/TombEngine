@@ -42,7 +42,7 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
-bool MoveableAnimBlendData::IsEnabled() const
+bool MoveableAnimationBlendData::IsEnabled() const
 {
 	return (FrameCount != 0);
 }
@@ -211,7 +211,7 @@ void ItemInfo::ResetModelToDefault()
 
 void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 {
-	// No new blend; return early.
+	// Return early if no new blend.
 	if (frameCount <= 0)
 		return;
 
@@ -725,11 +725,11 @@ void InitializeItem(short itemNumber)
 		item.Status = ITEM_ACTIVE;
 	}
 
-	auto* room = &g_Level.Rooms[item.RoomNumber];
-	item.NextItem = room->itemNumber;
-	room->itemNumber = itemNumber;
+	auto& room = g_Level.Rooms[item.RoomNumber];
+	item.NextItem = room.itemNumber;
+	room.itemNumber = itemNumber;
 
-	FloorInfo* floor = GetSector(room, item.Pose.Position.x - room->Position.x, item.Pose.Position.z - room->Position.z);
+	FloorInfo* floor = GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
 	item.Floor = floor->GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
 	item.BoxNumber = floor->PathfindingBoxID;
 

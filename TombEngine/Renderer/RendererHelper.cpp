@@ -44,7 +44,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 namespace TEN::Renderer
 {
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
-								   const MoveableAnimBlendData* blendData)
+								   const MoveableAnimationBlendData* blend)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
@@ -57,12 +57,12 @@ namespace TEN::Renderer
 
 		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimTransforms.data() : &rendererItem->AnimTransforms[0];
 
-		// Calculate blend alpha.
+		// Compute blend alpha.
 		float blendAlpha = 0.0f;
-		if (blendData != nullptr)
+		if (blend != nullptr)
 		{
-			float curveX = (blendData->FrameCount != 0) ? ((float)blendData->FrameNumber / (float)blendData->FrameCount) : 0.0f;
-			blendAlpha = blendData->Curve.GetY(curveX);
+			float curveX = (blend->FrameCount != 0) ? ((float)blend->FrameNumber / (float)blend->FrameCount) : 0.0f;
+			blendAlpha = blend->Curve.GetY(curveX);
 		}
 
 		// Run through bone hierarchy.
@@ -94,11 +94,11 @@ namespace TEN::Renderer
 				auto rotMatrix = Matrix::CreateFromQuaternion(frame.BoneOrientations[bone->Index]);
 
 				// Apply blending.
-				if (blendData != nullptr)
+				if (blend != nullptr)
 				{
-					rootPos = Vector3::Lerp(blendData->RootPosition, rootPos, blendAlpha);
+					rootPos = Vector3::Lerp(blend->RootPosition, rootPos, blendAlpha);
 
-					auto quat = Quaternion::Slerp(blendData->BoneOrientations[bone->Index], Quaternion::CreateFromRotationMatrix(rotMatrix), blendAlpha);
+					auto quat = Quaternion::Slerp(blend->BoneOrientations[bone->Index], Quaternion::CreateFromRotationMatrix(rotMatrix), blendAlpha);
 					rotMatrix = Matrix::CreateFromQuaternion(quat);
 				}
 

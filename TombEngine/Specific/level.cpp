@@ -409,7 +409,7 @@ void LoadObjects()
 			anim.EndFrameNumber = ReadInt32();
 			anim.NextAnimNumber = ReadInt32();
 			anim.NextFrameNumber = ReadInt32();
-			anim.BlendFrameCount = ReadInt32();
+			anim.BlendFrameCount = ReadCount();
 
 			auto blendCurveStart = ReadVector2();
 			auto blendCurveEnd = ReadVector2();

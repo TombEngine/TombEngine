@@ -63,11 +63,11 @@ enum AIObjectType
 	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2
 };
 
-struct MoveableAnimBlendData
+struct MoveableAnimationBlendData
 {
 	int			 FrameNumber = 0;
 	int			 FrameCount  = 0;
-	BezierCurve2 Curve		  = {};
+	BezierCurve2 Curve		 = {};
 
 	Vector3								   RootPosition		= Vector3::Zero;
 	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
@@ -75,7 +75,7 @@ struct MoveableAnimBlendData
 	bool IsEnabled() const;
 };
 
-struct MoveableAnimData
+struct MoveableAnimationData
 {
 	GAME_OBJECT_ID AnimObjectID	 = GAME_OBJECT_ID::ID_NO_OBJECT;
 	int			   AnimNumber	 = 0;
@@ -92,7 +92,7 @@ struct MoveableAnimData
 
 	bool IsAirborne = false;
 
-	MoveableAnimBlendData Blend = {};
+	MoveableAnimationBlendData Blend = {};
 };
 
 struct MoveableModelData
@@ -125,8 +125,8 @@ struct MoveableCallbackData
 
 struct ItemInfo
 {
-	std::string	   Name			= {};
-	int			   Index		= 0;			// ID
+	std::string	   Name         = {};
+	int            Index        = 0;			// ID
 	GAME_OBJECT_ID ObjectNumber = ID_NO_OBJECT; // SlotID
 
 	ItemStatus Status = ITEM_NOT_ACTIVE;
@@ -136,44 +136,44 @@ struct ItemInfo
 	int NextItem   = 0;
 	int NextActive = 0;
 
-	ItemData			 Data	   = {};
-	MoveableAnimData	 Animation = {};
-	MoveableModelData	 Model	   = {};
-	MoveableEffectData	 Effect	   = {};
-	MoveableCallbackData Callbacks = {};
+	ItemData              Data      = {};
+	MoveableAnimationData Animation = {};
+	MoveableModelData     Model     = {};
+	MoveableEffectData    Effect    = {};
+	MoveableCallbackData  Callbacks = {};
 
-	Pose	   StartPose  = Pose::Zero;
-	Pose	   Pose		  = Pose::Zero;
-	RoomVector Location	  = {}; // NOTE: Describes vertical position in room.
+	Pose       StartPose  = Pose::Zero;
+	Pose       Pose       = Pose::Zero;
+	RoomVector Location   = {}; // NOTE: Describes vertical position in room.
 	short	   RoomNumber = 0; // TODO: Make int.
-	int		   Floor	  = 0;
+	int        Floor      = 0;
 
-	int	 HitPoints			  = 0;
-	bool HitStatus			  = false;
-	bool LookedAt			  = false;
-	bool Collidable			  = false;
-	bool InDrawRoom			  = false;
+	int	 HitPoints            = 0;
+	bool HitStatus            = false;
+	bool LookedAt             = false;
+	bool Collidable           = false;
+	bool InDrawRoom           = false;
 	bool DisableInterpolation = false;
 
 	int BoxNumber = 0;
-	int Timer	  = 0;
+	int Timer     = 0;
 
 	BitField TouchBits = BitField::Default; // TouchFlags
 	BitField MeshBits  = BitField::Default; // MeshFlags
 
 	std::array<short, ITEM_FLAG_COUNT> ItemFlags = {};
-	unsigned short Flags		= 0; // ItemFlags enum
-	short		   TriggerFlags = 0;
+	unsigned short Flags        = 0; // ItemFlags enum
+	short          TriggerFlags = 0;
 
 	// TODO: Move to CreatureInfo?
-	unsigned char AIBits	  = 0; // AIObjectFlags enum.
-	short		  AfterDeath  = 0;
-	short		  CarriedItem = 0;
+	unsigned char AIBits      = 0; // AIObjectFlags enum.
+	short         AfterDeath  = 0;
+	short         CarriedItem = 0;
 
 	// Getters
 
-	BoundingBox					GetAabb() const;
-	BoundingOrientedBox			GetObb() const;
+	BoundingBox                 GetAabb() const;
+	BoundingOrientedBox         GetObb() const;
 	std::vector<BoundingSphere> GetSpheres() const;
 
 	// OCB utilities

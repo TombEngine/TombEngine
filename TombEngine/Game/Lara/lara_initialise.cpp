@@ -30,10 +30,10 @@ using namespace TEN::Hud;
 using namespace TEN::Utils;
 
 // Globals
-int				 PlayerHitPoints	   = 0;
-LaraInfo		 PlayerBackup		   = {};
-MoveableAnimData PlayerAnim			   = {};
-GAME_OBJECT_ID	 PlayerVehicleObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+int                   PlayerHitPoints       = 0;
+LaraInfo              PlayerBackup          = {};
+MoveableAnimationData PlayerAnimation       = {};
+GAME_OBJECT_ID        PlayerVehicleObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 
 void BackupLara()
 {
@@ -42,7 +42,7 @@ void BackupLara()
 
 	PlayerHitPoints = LaraItem->HitPoints;
 	memcpy(&PlayerBackup, &Lara, sizeof(LaraInfo));
-	memcpy(&PlayerAnim, &LaraItem->Animation, sizeof(MoveableAnimData));
+	memcpy(&PlayerAnimation, &LaraItem->Animation, sizeof(MoveableAnimationData));
 
 	if (Lara.Context.Vehicle != NO_VALUE)
 	{
@@ -200,7 +200,7 @@ void InitializePlayerVehicle(ItemInfo& playerItem)
 	TENLog(fmt::format("Transferring vehicle {} from the previous level.", GetObjectName(PlayerVehicleObjectID)));
 	vehicle->Pose = playerItem.Pose;
 	SetLaraVehicle(&playerItem, vehicle);
-	playerItem.Animation = PlayerAnim;
+	playerItem.Animation = PlayerAnimation;
 
 	// HACK: Reinitialize vehicles which require specific parameters to be reset according to Lara pose.
 
