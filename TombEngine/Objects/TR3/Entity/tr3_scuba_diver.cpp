@@ -59,7 +59,7 @@ namespace TEN::Entities::Creatures::TR3
 		SDIVER_ANIM_DEATH_END = 17
 	};
 
-	static void ShootHarpoon(ItemInfo* item, Vector3i pos, short velocity, EulerAngles orientation, short roomNumber)
+	static void ShootHarpoon(ItemInfo* item, Vector3i pos, EulerAngles orientation, short roomNumber)
 	{
 		short harpoonItemNumber = CreateItem();
 		if (harpoonItemNumber == NO_VALUE)
@@ -231,7 +231,7 @@ namespace TEN::Entities::Creatures::TR3
 						Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
 						0);
 
-					ShootHarpoon(item, pos, item->Animation.Velocity.z, orientation, item->RoomNumber);
+					ShootHarpoon(item, pos, orientation, item->RoomNumber);
 					creature->Flags = 1;
 				}
 
