@@ -186,7 +186,7 @@ bool LoadConfiguration()
 				if (actionId >= 0 && keyId >= 0)
 				{
 					g_Configuration.Bindings.insert({ (ActionId)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileId::Custom, (ActionId)actionId, keyId);
+					g_Bindings.SetEventBinding(BindingProfileId::Custom, (ActionId)actionId, keyId);
 				}
 			}
 		}
@@ -199,8 +199,6 @@ bool LoadConfiguration()
 
 	SetVolumeTracks(g_Configuration.MusicVolume);
 	SetVolumeFX(g_Configuration.SfxVolume);
-
-	DefaultConflict();
 
 	return true;
 }

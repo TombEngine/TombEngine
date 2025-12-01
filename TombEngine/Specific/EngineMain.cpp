@@ -405,7 +405,7 @@ int main(int argc, char* argv[])
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
 		// Initialize input.
-		InitializeInput();
+		g_Input.Initialize();
 
 		// Load level if specified in command line.
 		CurrentLevel = g_GameFlow->GetLevelNumber(levelFile);

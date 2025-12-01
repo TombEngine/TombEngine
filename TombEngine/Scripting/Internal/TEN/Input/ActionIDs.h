@@ -7,7 +7,7 @@ using namespace TEN::Input;
 namespace TEN::Scripting::Input
 {
 	/// Constants for action key IDs.
-	// Contains mapped action IDs, raw keyboard input IDs, and raw mouse input IDs.
+	// Contains mapped game key IDs, raw keyboard key IDs, raw mouse key IDs, and raw gamepad key IDs.
 	// To be used with @{Input.IsKeyHit}, @{Input.IsKeyHeld}, and other similar functions.
 	// @enum Input.ActionID
 	// @pragma nostrip
@@ -283,44 +283,44 @@ namespace TEN::Scripting::Input
 		{ "Z", In::Z },
 
 		/// Keyboard 1 key.
-		// @mem NUM1
-		{ "NUM1", In::Num1 },
+		// @mem 1
+		{ "1", In::Num1 },
 
 		/// Keyboard 2 key.
-		// @mem NUM2
-		{ "NUM2", In::Num2 },
+		// @mem 2
+		{ "2", In::Num2 },
 
 		/// Keyboard 3 key.
-		// @mem NUM3
-		{ "NUM3", In::Num3 },
+		// @mem 3
+		{ "3", In::Num3 },
 
 		/// Keyboard 4 key.
-		// @mem NUM4
-		{ "NUM4", In::Num4 },
+		// @mem 4
+		{ "4", In::Num4 },
 
 		/// Keyboard 5 key.
-		// @mem NUM5
-		{ "NUM5", In::Num5 },
+		// @mem 5
+		{ "5", In::Num5 },
 
 		/// Keyboard 6 key.
-		// @mem NUM6
-		{ "NUM6", In::Num6 },
+		// @mem 6
+		{ "6", In::Num6 },
 
 		/// Keyboard 7 key.
-		// @mem NUM7
-		{ "NUM7", In::Num7 },
+		// @mem 7
+		{ "7", In::Num7 },
 
 		/// Keyboard 8 key.
-		// @mem NUM8
-		{ "NUM8", In::Num8 },
+		// @mem 8
+		{ "8", In::Num8 },
 
 		/// Keyboard 9 key.
-		// @mem NUM9
-		{ "NUM9", In::Num9 },
+		// @mem 9
+		{ "9", In::Num9 },
 
 		/// Keyboard 0 key.
-		// @mem NUM0
-		{ "NUM0", In::Num0 },
+		// @mem 0
+		{ "0", In::Num0 },
 
 		/// Return/Enter key.
 		// @mem RETURN
@@ -440,6 +440,35 @@ namespace TEN::Scripting::Input
 
 		/// Mouse scroll down.
 		// @mem MOUSE_SCROLL_DOWN
-		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown }
+		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
+
+		/// Mouse move up.
+		// @mem MOUSE_UP
+		{ "MOUSE_UP", In::MouseUp },
+
+		/// Mouse move down.
+		// @mem MOUSE_DOWN
+		{ "MOUSE_DOWN", In::MouseDown },
+
+		/// Mouse move left.
+		// @mem MOUSE_LEFT
+		{ "MOUSE_LEFT", In::MouseLeft },
+
+		/// Mouse move right.
+		// @mem MOUSE_RIGHT
+		{ "MOUSE_RIGHT", In::MouseRight },
+
+		// TODO: Add gamepad keys.
+
+		// DEPRECATED.
+		{ "NUM2", In::Num2 },
+		{ "NUM3", In::Num3 },
+		{ "NUM4", In::Num4 },
+		{ "NUM5", In::Num5 },
+		{ "NUM6", In::Num6 },
+		{ "NUM7", In::Num7 },
+		{ "NUM8", In::Num8 },
+		{ "NUM9", In::Num9 },
+		{ "NUM0", In::Num0 },
 	};
 }

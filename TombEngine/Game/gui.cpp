@@ -785,8 +785,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileId::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
-							DefaultConflict();
+							g_Bindings.SetEventBinding(BindingProfileId::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;

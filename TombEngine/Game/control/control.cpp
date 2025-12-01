@@ -507,7 +507,7 @@ void DeInitialize()
 {
 	g_VideoPlayer.DeInitialize();
 	Sound_DeInit();
-	DeinitializeInput();
+	g_Input.Deinitialize();
 
 	delete g_GameScript;
 	g_GameScript = nullptr;

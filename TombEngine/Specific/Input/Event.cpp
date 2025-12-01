@@ -300,24 +300,24 @@ namespace TEN::Input
 	{
 		static const auto DEFAULT_NAME = std::string("None");
 
-		auto names = EVENT_NAMES.find(eventId);
-		if (names == EVENT_NAMES.end())
+		auto namesIt = EVENT_NAMES.find(eventId);
+		if (namesIt == EVENT_NAMES.end())
 		{
 			return DEFAULT_NAME;
 		}
-		const auto& [keyEventId, eventNames] = *names;
+		const auto& [keyEventId, names] = *namesIt;
 
 		// Pick vendor-appropriate name.
-		if (eventNames.size() == 1)
+		if (names.size() == 1)
 		{
-			return eventNames.front();
+			return names.front();
 		}
-		else if (eventNames.size() > 1)
+		else if (names.size() > 1)
 		{
 			int nameIdx = (int)g_Input.GetGamepadVendorId();
-			if (nameIdx < eventNames.size())
+			if (nameIdx < names.size())
 			{
-				return eventNames[nameIdx];
+				return names[nameIdx];
 			}
 		}
 

@@ -1367,15 +1367,13 @@ namespace TEN::Renderer
 			{
 				for (auto actionId : ACTION_ID_GROUPS[(int)actionGroupID])
 				{
-					const auto& action = ActionMap.at(actionId);
-
-					if (action.IsClicked())
+					if (IsClicked(actionId))
 						clickedActions.Set((int)action.GetID());
 
-					if (action.IsHeld())
+					if (IsHeld(actionId))
 						heldActions.Set((int)action.GetID());
 
-					if (action.IsReleased())
+					if (IsReleased(actionId))
 						releasedActions.Set((int)action.GetID());
 				}
 			}

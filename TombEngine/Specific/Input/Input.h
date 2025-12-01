@@ -50,21 +50,15 @@ namespace TEN::Input
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionId, Action>			  ActionMap;
 	extern std::unordered_map<ActionId, ActionQueueState> ActionQueueMap;
-	extern std::unordered_map<AnalogAxisId, Vector2>      AxisMap;
 
 	void InitializeInput();
-	void DeinitializeInput();
 	void SetInputLockState(bool locked);
-	void DefaultConflict();
 	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
 	void ApplyActionQueue();
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
 	void ApplyDefaultBindings();
-	bool ApplyDefaultXInputBindings();
-
-	Vector2 GetMouse2DPosition();
 
 	void		 ClearAction(ActionId actionId);
 	bool		 NoAction();
@@ -83,6 +77,8 @@ namespace TEN::Input
 	const Vector2& GetMoveAxis();
 	const Vector2& GetCameraAxis();
 	const Vector2& GetMouseAxis();
+
+	Vector2 GetMouse2DPosition();
 
 	// ====================================================================================================================
 
@@ -142,7 +138,7 @@ namespace TEN::Input
 		float        IntensityFrom = 0.0f;
 		float        IntensityTo   = 0.0f;
 		unsigned int DurationTicks = 0;
-		unsigned int GameFrames         = 0;
+		unsigned int GameFrames    = 0;
 	};
 
 	class InputManager
@@ -150,12 +146,13 @@ namespace TEN::Input
 	private:
 		// Fields
 
-		GamepadData          _gamepad    = {};
-		BindingManager       _bindings   = BindingManager();
-		StateData            _states     = {};
-		RumbleData2          _rumble     = {};
-		std::vector<Action>  _actions    = {}; // Index = `ActionId`.
-		std::vector<Vector2> _analogAxes = {}; // Index = `AnalogAxisId2`.
+		GamepadData                   _gamepad      = {};
+		BindingManager                _bindings     = BindingManager();
+		StateData                     _states       = {};
+		RumbleData2                   _rumble       = {};
+		std::vector<Action>           _actions      = {}; // Index = `ActionId`.
+		std::vector<ActionQueueState> _actionQueues = {}; // Index = `ActionId`.
+		std::vector<Vector2>          _analogAxes   = {}; // Index = `AnalogAxisId2`.
 
 	public:
 		// Constructors
@@ -186,6 +183,8 @@ namespace TEN::Input
 
 		void ConnectGamepad(int deviceId);
 		void DisconnectGamepad(int deviceId);
+		void ClearAction(ActionId actionId);
+		void StopRumble();
 
 	private:
 		// Helpers

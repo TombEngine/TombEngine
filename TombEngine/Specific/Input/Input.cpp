@@ -21,206 +21,20 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Input
 {
-	constexpr auto AXIS_SCALE			 = 1.5f;
-	constexpr auto AXIS_DEADZONE		 = 8000;
-	constexpr auto AXIS_OFFSET			 = 0.2f;
-	constexpr auto MOUSE_AXIS_CONSTRAINT = 100.0f;
+	constexpr auto AXIS_SCALE  = 1.5f;
+	constexpr auto AXIS_OFFSET = 0.2f;
 
 	// Globals
 
-	RumbleData									   RumbleInfo = {};
 	std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
 	std::unordered_map<ActionId, Action>		   ActionMap;		// Key = action ID, value = action.
 	std::unordered_map<ActionId, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
-	std::unordered_map<AnalogAxisId, Vector2>      AxisMap;			// Key = axis ID, value = axis.
 
-	bool InputLocked = false; // Disables control polling in case application is defocused.
-
-	// OIS interfaces
-
-	static OIS::InputManager*  OisInputManager = nullptr;
-	static OIS::Keyboard*	   OisKeyboard	   = nullptr;
-	static OIS::Mouse*		   OisMouse		   = nullptr;
-	static OIS::JoyStick*	   OisGamepad	   = nullptr;
-	static OIS::ForceFeedback* OisRumble	   = nullptr;
-	static OIS::Effect*		   OisEffect	   = nullptr;
-
-	void InitializeEffect()
-	{
-		OisEffect = new OIS::Effect(OIS::Effect::ConstantForce, OIS::Effect::Constant);
-		OisEffect->direction = OIS::Effect::North;
-		OisEffect->trigger_button = 0;
-		OisEffect->trigger_interval = 0;
-		OisEffect->replay_length = OIS::Effect::OIS_INFINITE;
-		OisEffect->replay_delay = 0;
-		OisEffect->setNumAxes(1);
-
-		auto& pConstForce = *dynamic_cast<OIS::ConstantEffect*>(OisEffect->getForceEffect());
-		pConstForce.level = 0;
-		pConstForce.envelope.attackLength = 0;
-		pConstForce.envelope.attackLevel = 0;
-		pConstForce.envelope.fadeLength = 0;
-		pConstForce.envelope.fadeLevel = 0;
-	}
-
-	void InitializeInput()
-	{
-		TENLog("Initializing input system...", LogLevel::Info);
-
-		RumbleInfo = {};
-
-		// Initialize key map.
-		for (int i = 0; i < KEY_COUNT; i++)
-			KeyMap[i] = 0.0f;
-
-		// Initialize action and action queue maps.
-		for (int i = 0; i < (int)ActionId::Count; i++)
-		{
-			auto actionId = (ActionId)i;
-			ActionMap[actionId] = Action(actionId);
-			ActionQueueMap[actionId] = ActionQueueState::None;
-		}
-
-		// Initialize axis map.
-		for (int i = 0; i < (int)AnalogAxisId::Count; i++)
-		{
-			auto axisID = (AnalogAxisId)i;
-			AxisMap[axisID] = Vector2::Zero;
-		}
-
-		SDL_PropertiesID props = SDL_GetWindowProperties(g_Platform->GetSDL3Window());
-		HWND handle = (HWND)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-
-		try
-		{
-			// Use OIS::ParamList since default behaviour blocks WIN key and steals mouse.
-			auto paramList = OIS::ParamList{};
-			auto wnd = std::ostringstream{};
-			wnd << (size_t)handle;
-			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
-			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_BACKGROUND")));
-			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
-			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_BACKGROUND")));
-			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
-
-			OisInputManager = OIS::InputManager::createInputSystem(paramList);
-			OisInputManager->enableAddOnFactory(OIS::InputManager::AddOn_All);
-
-			if (OisInputManager->getNumberOfDevices(OIS::OISKeyboard) == 0)
-			{
-				TENLog("Keyboard not found.", LogLevel::Warning);
-			}
-			else
-			{
-				OisKeyboard = (OIS::Keyboard*)OisInputManager->createInputObject(OIS::OISKeyboard, true);
-			}
-
-			if (OisInputManager->getNumberOfDevices(OIS::OISMouse) == 0)
-			{
-				TENLog("Mouse not found.", LogLevel::Warning);
-			}
-			else
-			{
-				OisMouse = (OIS::Mouse*)OisInputManager->createInputObject(OIS::OISMouse, true);
-			}
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Exception occured during input system initialization: " + std::string(ex.eText), LogLevel::Error);
-		}
-
-		int deviceCount = OisInputManager->getNumberOfDevices(OIS::OISJoyStick);
-		if (deviceCount > 0)
-		{
-			TENLog("Found " + std::to_string(deviceCount) + " connected game controller" + ((deviceCount > 1) ? "s." : "."), LogLevel::Info);
-
-			try
-			{
-				OisGamepad = (OIS::JoyStick*)OisInputManager->createInputObject(OIS::OISJoyStick, true);
-				TENLog("Using '" + OisGamepad->vendor() + "' device for input.", LogLevel::Info);
-
-				// Try to initialize vibration interface.
-				OisRumble = (OIS::ForceFeedback*)OisGamepad->queryInterface(OIS::Interface::ForceFeedback);
-				if (OisRumble != nullptr)
-				{
-					TENLog("Controller supports vibration.", LogLevel::Info);
-					InitializeEffect();
-				}
-
-				// If controller is XInput and default bindings were successfully assigned, save configuration.
-				if (ApplyDefaultXInputBindings())
-				{
-					g_Configuration.EnableRumble = (OisRumble != nullptr);
-					g_Configuration.EnableThumbstickCamera = true;
-					SaveConfiguration();
-				}
-			}
-			catch (OIS::Exception& ex)
-			{
-				TENLog("Exception occured during game controller initialization: " + std::string(ex.eText), LogLevel::Error);
-			}
-		}
-	}
-
-	void DeinitializeInput()
-	{
-		TENLog("Shutting down OIS...", LogLevel::Info);
-
-		if (OisKeyboard != nullptr)
-			OisInputManager->destroyInputObject(OisKeyboard);
-
-		if (OisMouse != nullptr)
-			OisInputManager->destroyInputObject(OisMouse);
-
-		if (OisGamepad != nullptr)
-			OisInputManager->destroyInputObject(OisGamepad);
-
-		if (OisEffect != nullptr)
-		{
-			delete OisEffect;
-			OisEffect = nullptr;
-		}
-
-		OIS::InputManager::destroyInputSystem(OisInputManager);
-	}
+	bool InputLocked = false; // Disables control polling when application is defocused.
 
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
-	}
-
-	void ClearInputData()
-	{
-		for (auto& [keyID, value] : KeyMap)
-			value = 0.0f;
-
-		for (auto& [axisID, axis] : AxisMap)
-			axis = Vector2::Zero;
-	}
-
-	void ApplyActionQueue()
-	{
-		for (int i = 0; i < (int)ActionId::Count; i++)
-		{
-			auto actionId = (ActionId)i;
-			switch (ActionQueueMap[actionId])
-			{
-			default:
-			case ActionQueueState::None:
-				break;
-
-			case ActionQueueState::Update:
-				ActionMap[actionId].Update(true);
-				break;
-
-			case ActionQueueState::Clear:
-				ActionMap[actionId].Clear();
-				break;
-			}
-		}
-
-		for (auto& [actionId, queue] : ActionQueueMap)
-			queue = ActionQueueState::None;
 	}
 
 	static bool TestBoundKey(int keyID)
@@ -239,45 +53,7 @@ namespace TEN::Input
 		return false;
 	}
 
-	// Merge right and left Ctrl, Shift, and Alt keys.
-	static int WrapSimilarKeys(int source)
-	{
-		switch (source)
-		{
-		case OIS::KC_LCONTROL:
-			return OIS::KC_RCONTROL;
-
-		case OIS::KC_LSHIFT:
-			return OIS::KC_RSHIFT;
-
-		case OIS::KC_LMENU:
-			return OIS::KC_RMENU;
-		}
-
-		return source;
-	}
-
-	void DefaultConflict()
-	{
-		for (const auto& actionIdGroup : ACTION_ID_GROUPS)
-		{
-			for (auto actionId : actionIdGroup)
-			{
-				g_Bindings.SetConflict(actionId, false);
-
-				int key = g_Bindings.GetBoundEventIds(BindingProfileId::Default, actionId);
-				for (auto conflictActionID : actionIdGroup)
-				{
-					if (key != g_Bindings.GetBoundEventIds(BindingProfileId::Custom, conflictActionID))
-						continue;
-
-					g_Bindings.SetConflict(actionId, true);
-					break;
-				}
-			}
-		}
-	}
-
+	// TODO
 	static void SetDiscreteAxisValues(unsigned int keyID)
 	{
 		for (int i = 0; i < (int)BindingProfileId::Count; i++)
@@ -302,131 +78,14 @@ namespace TEN::Input
 		}
 	}
 
-	static void ReadKeyboard()
-	{
-		if (InputLocked || OisKeyboard == nullptr)
-			return;
-
-		try
-		{
-			OisKeyboard->capture();
-
-			// Poll keyboard keys.
-			for (int i = 0; i < KEYBOARD_KEY_COUNT; i++)
-			{
-				if (!OisKeyboard->isKeyDown((OIS::KeyCode)i))
-					continue;
-
-				int key = WrapSimilarKeys(i);
-				KeyMap[key] = 1.0f;
-
-				// Interpret discrete directional keypresses as analog axis values.
-				SetDiscreteAxisValues(key);
-			}
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Unable to poll keyboard input: " + std::string(ex.eText), LogLevel::Warning);
-		}
-	}
-
-	static void ReadMouse()
-	{
-		if (InputLocked || OisMouse == nullptr)
-			return;
-
-		try
-		{
-			OisMouse->capture();
-			auto& state = OisMouse->getMouseState();
-
-			// Update active area resolution.
-			auto screenRes = g_Renderer.GetScreenResolution();
-			state.width = screenRes.x;
-			state.height = screenRes.y;
-
-			// Poll mouse buttons.
-			for (int i = 0; i < MOUSE_BUTTON_COUNT; i++)
-				KeyMap[KEY_OFFSET_MOUSE + i] = state.buttonDown((OIS::MouseButtonID)i) ? 1.0f : 0.0f;
-
-			// Register multiple directional keypresses mapped to mouse axes.
-			int baseIndex = KEY_OFFSET_MOUSE + MOUSE_BUTTON_COUNT;
-			for (int pass = 0; pass < (MOUSE_AXIS_COUNT * 2); pass++)
-			{
-				switch (pass)
-				{
-				// Mouse X-
-				case 0:
-					if (state.X.rel >= 0)
-						continue;
-					break;
-
-				// Mouse X+
-				case 1:
-					if (state.X.rel <= 0)
-						continue;
-					break;
-
-				// Mouse Y-
-				case 2:
-					if (state.Y.rel >= 0)
-						continue;
-					break;
-
-				// Mouse Y+
-				case 3:
-					if (state.Y.rel <= 0)
-						continue;
-					break;
-
-				// Mouse Z-
-				case 4:
-					if (state.Z.rel >= 0)
-						continue;
-					break;
-
-				// Mouse Z+
-				case 5:
-					if (state.Z.rel <= 0)
-						continue;
-					break;
-				}
-
-				KeyMap[baseIndex + pass] = 1.0f;
-
-				// Interpret discrete directional keypresses as mouse axis values.
-				SetDiscreteAxisValues(baseIndex + pass);
-			}
-
-			// Normalize raw mouse axis values to range [-1.0f, 1.0f].
-			auto rawAxes = Vector2(state.X.rel, state.Y.rel);
-			auto normAxes = Vector2(
-				(((rawAxes.x - -DISPLAY_SPACE_RES.x) * 2.0f) / float(DISPLAY_SPACE_RES.x - -DISPLAY_SPACE_RES.x)) - 1.0f,
-				(((rawAxes.y - -DISPLAY_SPACE_RES.y) * 2.0f) / float(DISPLAY_SPACE_RES.y - -DISPLAY_SPACE_RES.y)) - 1.0f);
-
-			// Apply sensitivity.
-			float sensitivity = (g_Configuration.MouseSensitivity * 0.1f) + 0.4f;
-			normAxes *= sensitivity;
-
-			// Set mouse axis values.
-			AxisMap[AnalogAxisId::Mouse] = normAxes;
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Unable to poll mouse input: " + std::string(ex.eText), LogLevel::Warning);
-		}
-	}
-	
+	// TODO
 	static void ReadGamepad()
 	{
-		if (InputLocked || OisGamepad == nullptr)
+		if (InputLocked)
 			return;
 
 		try
 		{
-			OisGamepad->capture();
-			const auto& state = OisGamepad->getJoyStickState();
-
 			// Poll buttons.
 			for (int keyID = 0; keyID < state.mButtons.size(); keyID++)
 				KeyMap[KEY_OFFSET_GAMEPAD + keyID] = state.mButtons[keyID] ? 1.0f : 0.0f;
@@ -575,40 +234,7 @@ namespace TEN::Input
 		}
 	}
 
-	static void HandleHotkeyActions()
-	{
-		// Save screenshot.
-		static bool dbScreenshot = true;
-		if ((KeyMap[OIS::KC_SYSRQ] || KeyMap[OIS::KC_F12]) && dbScreenshot)
-			g_Renderer.SaveScreenshot();
-		dbScreenshot = !(KeyMap[OIS::KC_SYSRQ] || KeyMap[OIS::KC_F12]);
-
-		// Toggle fullscreen.
-		static bool dbFullscreen = true;
-		if ((KeyMap[OIS::KC_LMENU] || KeyMap[OIS::KC_RMENU]) && KeyMap[OIS::KC_RETURN] && dbFullscreen)
-		{
-			g_Configuration.EnableWindowedMode = !g_Configuration.EnableWindowedMode;
-			SaveConfiguration();
-			g_Renderer.ToggleFullScreen();
-		}
-		dbFullscreen = !((KeyMap[OIS::KC_LMENU] || KeyMap[OIS::KC_RMENU]) && KeyMap[OIS::KC_RETURN]);
-
-		if (!DebugMode)
-			return;
-
-		// Switch debug page.
-		static bool dbDebugPage = true;
-		if ((KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]) && dbDebugPage)
-			g_Renderer.SwitchDebugPage(KeyMap[OIS::KC_F10]);
-		dbDebugPage = !(KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]);
-
-		// Reload shaders.
-		static bool dbReloadShaders = true;
-		if (KeyMap[OIS::KC_F9] && dbReloadShaders)
-			g_Renderer.ReloadShaders();
-		dbReloadShaders = !KeyMap[OIS::KC_F9];
-	}
-
+	// TODO
 	static void UpdateRumble()
 	{
 		if (!OisRumble || !OisEffect || !RumbleInfo.Power)
@@ -656,12 +282,12 @@ namespace TEN::Input
 		RumbleInfo.LastPower = RumbleInfo.Power;
 	}
 
+	// TODO
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
 		// Don't update input data during frameskip.
 		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
-			ClearInputData();
 			UpdateRumble();
 			ReadKeyboard();
 			ReadMouse();
@@ -682,6 +308,7 @@ namespace TEN::Input
 		SolveActionCollisions();
 	}
 
+	// TODO
 	void ClearAllActions()
 	{
 		for (auto& [actionId, action] : ActionMap)
@@ -693,7 +320,8 @@ namespace TEN::Input
 
 	void Rumble(float power, float delaySec, RumbleMode mode)
 	{
-		if (!g_Configuration.EnableRumble)
+		// TODO
+		/*if (!g_Configuration.EnableRumble)
 			return;
 
 		power = std::clamp(power, 0.0f, 1.0f);
@@ -703,94 +331,35 @@ namespace TEN::Input
 
 		RumbleInfo.FadeSpeed = power / (delaySec * FPS);
 		RumbleInfo.Power = power + RumbleInfo.FadeSpeed;
-		RumbleInfo.LastPower = RumbleInfo.Power;
+		RumbleInfo.LastPower = RumbleInfo.Power;*/
 	}
 
 	void StopRumble()
 	{
-		if (!OisRumble || !OisEffect)
-			return;
-
-		try
-		{
-			OisRumble->remove(OisEffect);
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Error when stopping vibration effect: " + std::string(ex.eText), LogLevel::Error);
-		}
-
-		RumbleInfo = {};
+		g_Input.StopRumble();
 	}
 
-	static void ApplyBindings(const BindingProfile& set)
-	{
-		g_Bindings.SetBindingProfile(BindingProfileId::Custom, set);
-	}
-
+	// TODO
 	void ApplyDefaultBindings()
 	{
-		ApplyBindings(DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
-		ApplyDefaultXInputBindings();
-	}
-
-	bool ApplyDefaultXInputBindings()
-	{
-		if (!OisGamepad)
-			return false;
-
-		for (int i = 0; i < (int)ActionId::Count; i++)
-		{
-			auto actionId = (ActionId)i;
-
-			int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, actionId);
-			int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, actionId);
-
-			if (userKeyID != OIS::KC_UNASSIGNED &&
-				userKeyID != defaultKeyID)
-			{
-				return false;
-			}
-		}
-
-		auto vendor = ToLower(OisGamepad->vendor());
-		if (vendor.find("xbox") != std::string::npos || vendor.find("xinput") != std::string::npos)
-		{
-			ApplyBindings(DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
-			g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
-
-			// Additionally enable rumble and thumbstick camera.
-			g_Configuration.EnableRumble = true;
-			g_Configuration.EnableThumbstickCamera = true;
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	Vector2 GetMouse2DPosition()
-	{
-		const auto& state = OisMouse->getMouseState();
-
-		auto areaRes = Vector2(state.width, state.height);
-		auto areaPos = Vector2(state.X.abs, state.Y.abs);
-		return (DISPLAY_SPACE_RES * (areaPos / areaRes));
+		g_Bindings.SetBindingProfile(BindingProfileId::Custom, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
 	}
 
 	void ClearAction(ActionId actionId)
 	{
-		ActionMap[actionId].Clear();
+		g_Input.ClearAction(actionId);
 	}
 
 	bool NoAction()
 	{
-		for (const auto& [actionId, action] : ActionMap)
+		for (auto actionGroupId : RAW_ACTION_GROUP_IDS)
 		{
-			if (action.IsHeld())
-				return false;
+			const auto& actionGroup = ACTION_ID_GROUPS[(int)actionGroupId];
+			for (auto actionId : actionGroup)
+			{
+				if (IsHeld(actionId))
+					return false;
+			}
 		}
 
 		return true;
@@ -798,39 +367,39 @@ namespace TEN::Input
 
 	bool IsClicked(ActionId actionId)
 	{
-		return ActionMap[actionId].IsClicked();
+		return g_Input.GetAction(actionId).IsClicked();
 	}
 
 	bool IsHeld(ActionId actionId, float delaySec)
 	{
-		return ActionMap[actionId].IsHeld(delaySec);
+		return g_Input.GetAction(actionId).IsHeld(delaySec);
 	}
 
 	bool IsPulsed(ActionId actionId, float delaySec, float initialDelaySec)
 	{
-		return ActionMap[actionId].IsPulsed(delaySec, initialDelaySec);
+		return g_Input.GetAction(actionId).IsPulsed(delaySec, initialDelaySec);
 	}
 
 	bool IsReleased(ActionId actionId, float maxDelaySec)
 	{
-		return ActionMap[actionId].IsReleased(maxDelaySec);
+		return g_Input.GetAction(actionId).IsReleased(maxDelaySec);
 	}
 
 	float GetActionValue(ActionId actionId)
 	{
-		return ActionMap[actionId].GetValue();
+		return g_Input.GetAction(actionId).GetValue();
 	}
 
 	// Time in game frames.
 	unsigned int GetActionTimeActive(ActionId actionId)
 	{
-		return ActionMap[actionId].GetTimeActive();
+		return g_Input.GetAction(actionId).GetTimeActive();
 	}
 
 	// Time in game frames.
 	unsigned int GetActionTimeInactive(ActionId actionId)
 	{
-		return ActionMap[actionId].GetTimeInactive();
+		return g_Input.GetAction(actionId).GetTimeInactive();
 	}
 
 	bool IsDirectionalActionHeld()
@@ -857,17 +426,22 @@ namespace TEN::Input
 
 	const Vector2& GetMoveAxis()
 	{
-		return AxisMap[AnalogAxisId::Move];
+		return g_Input.GetAnalogAxis(AnalogAxisId2::Move);
 	}
 
 	const Vector2& GetCameraAxis()
 	{
-		return AxisMap[AnalogAxisId::Camera];
+		return g_Input.GetAnalogAxis(AnalogAxisId2::Camera);
 	}
 
 	const Vector2& GetMouseAxis()
 	{
-		return AxisMap[AnalogAxisId::Mouse];
+		return g_Input.GetAnalogAxis(AnalogAxisId2::Mouse);
+	}
+
+	Vector2 GetMouse2DPosition()
+	{
+		return g_Input.GetCursorPosition();
 	}
 
 	// ====================================================================================================================
@@ -920,7 +494,25 @@ namespace TEN::Input
 			TENLog(fmt::format("Failed to initialize gamepad subsystem: {}", SDL_GetError()), Debug::LogLevel::Error);
 		}
 
-		// TODO
+		// Initialize actions.
+		_actions.reserve((int)ActionId::Count);
+		for (int i = 0; i < (int)ActionId::Count; i++)
+		{
+			auto actionId = (ActionId)i;
+			_actions.push_back(Action(actionId));
+			_actionQueues.push_back(ActionQueueState::None);
+		}
+
+		// Initialize bindings.
+		_bindings.Initialize(options->KeyboardMouseBindings, options->GamepadBindings);
+
+		// TODO: Connect it first.
+		if (IsUsingGamepad())
+		{
+			g_Configuration.EnableRumble           =
+			g_Configuration.EnableThumbstickCamera = true;
+			SaveConfiguration();
+		}
 	}
 
 	void InputManager::Deinitialize()
@@ -1018,6 +610,16 @@ namespace TEN::Input
 		TENLog("Gamepad disconnected.");
 	}
 
+	void InputManager::ClearAction(ActionId actionId)
+	{
+		_actions[(int)actionId].Clear();
+	}
+
+	void InputManager::StopRumble()
+	{
+		_rumble = {};
+	}
+
 	std::string InputManager::GetGamepadVendorName(GamepadVendorId vendorId) const
 	{
 		constexpr char GENERIC_VENDOR_NAME[]  = "Generic";
@@ -1045,7 +647,89 @@ namespace TEN::Input
 
 	void InputManager::UpdateActions()
 	{
-		// TODO
+		// 1) Update user action states.
+		auto updateUserActions = [&]()
+		{
+			// Get binding profiles.
+			const auto& userProfile = _bindings.GetBindingProfile(IsGamepadConnected() ? BindingProfileId::CustomGamepad: BindingProfileId::CustomKeyboardMouse);
+			const auto& defaultProfile = _bindings.GetBindingProfile(IsGamepadConnected() ? BindingProfileId::DefaultGamepad : BindingProfileId::DefaultKeyboardMouse);
+
+			for (auto actionGroupId : USER_ACTION_GROUP_IDS)
+			{
+				const auto& actionIds = ACTION_ID_GROUPS[(int)actionGroupId];
+				for (auto actionId : actionIds)
+				{
+					auto& action = _actions[(int)actionId];
+					float state = 0.0f;
+
+					// Apply user-defined bound event state to action.
+					const auto& userEventIds = userProfile.at(actionId);
+					for (const auto& eventId : userEventIds)
+					{
+						state = std::max(state, _states.Events[(int)eventId]);
+					}
+
+					// TODO: Handle conflicts between user and default.
+					const auto& defaultEventIds = defaultProfile.at(actionId);
+
+					action.Update(state);
+				}
+			}
+		};
+
+		// 2) Update raw action states.
+		auto updateRawActions = [&]()
+		{
+			for (auto profileId : RAW_EVENT_BINDING_PROFILE_IDS)
+			{
+				const auto& profile = _bindings.GetBindingProfile(profileId);
+				for (auto& [keyActionId, eventIds] : profile)
+				{
+					auto& action = _actions[(int)keyActionId];
+					float state = 0.0f;
+
+					for (auto eventId : eventIds)
+					{
+						state = std::max(state, _states.Events[(int)eventId]);
+					}
+
+					// Use max bound event state.
+					action.Update(state);
+				}
+			}
+		};
+
+		// Apply action queues.
+		for (int i = 0; i < (int)ActionId::Count; i++)
+		{
+			auto actionId = (ActionId)i;
+			switch (ActionQueueMap[actionId])
+			{
+				default:
+				case ActionQueueState::None:
+					break;
+
+				case ActionQueueState::Update:
+					_actions[(int)actionId].Update(true);
+					break;
+
+				case ActionQueueState::Clear:
+					_actions[(int)actionId].Clear();
+					break;
+			}
+		}
+
+		// Clear action queues.
+		for (auto& queue : _actionQueues)
+			queue = ActionQueueState::None;
+
+		// Update action states asynchronously.
+		auto tasks = ParallelTasks
+		{
+			TASK(updateUserActions()),
+			TASK(updateRawActions())
+		};
+		g_Parallel.AddTasks(tasks).wait();
 	}
 
 	void InputManager::UpdateRumble()
@@ -1112,6 +796,9 @@ namespace TEN::Input
 			_states.Events[eventIdx] = state ? 1.0f : 0.0f;
 			eventIdx++;
 		}
+
+		// TODO
+		SetDiscreteAxisValues();
 	}
 
 	void InputManager::ReadMouse(SDL_Window& window, const Vector2& wheelAxis)
@@ -1122,7 +809,7 @@ namespace TEN::Input
 
 		// Compute cursor position.
 		auto pos = Vector2::Zero;
-		auto butState = SDL_GetMouseState(&pos.x, &pos.y); // NOTE: Not a thread-safe call, but still works correctly.
+		auto butState = SDL_GetMouseState(&pos.x, &pos.y);
 		pos = (pos / g_Renderer.GetScreenResolution().ToVector2()) * DISPLAY_SPACE_RES;
 		pos.y = DISPLAY_SPACE_RES.y - pos.y;
 
@@ -1144,7 +831,7 @@ namespace TEN::Input
 			_states.HasMouseInput = true;
 		}
 
-		// TODO: Must investigate. Unclear how SDL3 mouse wheel values work.
+		// TODO: Investigate. Unclear how SDL3 mouse wheel values work.
 		// Set mouse scroll event states.
 		_states.Events[eventIdx] = (wheelAxis.x < 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
 		_states.Events[eventIdx + 1] = (wheelAxis.x > 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
@@ -1228,7 +915,7 @@ namespace TEN::Input
 			{
 				axis.y = state;
 
-				// TODO: Adapt TEN-specific axis scaling.
+				// TODO: Adapt for TEN-specific axis scaling.
 				// Remap axis to active range.
 				if (axis.Length() >= AXIS_DEADZONE)
 				{

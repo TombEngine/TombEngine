@@ -77,6 +77,33 @@ namespace TEN::Input
 			In::MouseClickRight,
 			In::MouseScrollUp,
 			In::MouseScrollDown
+		},
+		// Gamepad
+		{
+			In::GamepadNorth,
+			In::GamepadSouth,
+			In::GamepadEast,
+			In::GamepadWest,
+			In::GamepadStart,
+			In::GamepadSelect,
+			In::GamepadShoulderLeft,
+			In::GamepadTriggerLeft,
+			In::GamepadShoulderRight,
+			In::GamepadTriggerRight,
+			In::GamepadDpadUp,
+			In::GamepadDpadDown,
+			In::GamepadDpadLeft,
+			In::GamepadDpadRight,
+			In::GamepadStickLeftIn,
+			In::GamepadStickLeftUp,
+			In::GamepadStickLeftDown,
+			In::GamepadStickLeftLeft,
+			In::GamepadStickLeftRight,
+			In::GamepadStickRightIn,
+			In::GamepadStickRightUp,
+			In::GamepadStickRightDown,
+			In::GamepadStickRightLeft,
+			In::GamepadStickRightRight
 		}
 	};
 
@@ -92,7 +119,7 @@ namespace TEN::Input
 	{
 		ActionGroupId::Keyboard,
 		ActionGroupId::Mouse,
-		//ActionGroupID::Gamepad
+		ActionGroupId::Gamepad
 	};
 
 	Action::Action(ActionId actionId)
