@@ -185,7 +185,7 @@ bool LoadConfiguration()
 				int keyId = ToInt(val, NO_VALUE);
 				if (actionId >= 0 && keyId >= 0)
 				{
-					g_Configuration.Bindings.insert({ (ActionId)actionId, keyId });
+					g_Configuration.KeyboardMouseBindings.insert({ (ActionId)actionId, keyId });
 					g_Bindings.SetEventBinding(BindingProfileId::Custom, (ActionId)actionId, keyId);
 				}
 			}
@@ -193,7 +193,7 @@ bool LoadConfiguration()
 	}
 
 	if (!foundInput)
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Default);
+		g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::Default);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
@@ -241,10 +241,10 @@ bool SaveConfiguration()
 	ss << "MouseSensitivity=" << g_Configuration.MouseSensitivity << "\n";
 	ss << "MenuOptionLoopingMode=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 
-	if (g_Configuration.Bindings.empty())
-		g_Configuration.Bindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+	if (g_Configuration.KeyboardMouseBindings.empty())
+		g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 
-	for (const auto& kv : g_Configuration.Bindings)
+	for (const auto& kv : g_Configuration.KeyboardMouseBindings)
 	{
 		ss << "bind." << (int)kv.first << "=" << (int)kv.second << "\n";
 	}

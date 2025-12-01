@@ -23,6 +23,7 @@ namespace TEN::Input
 {
 	bool InputLocked = false; // Disables control polling when application is defocused.
 
+	// TODO
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
@@ -31,29 +32,16 @@ namespace TEN::Input
 	// TODO
 	void ClearAllActions()
 	{
-		for (auto& [actionId, action] : ActionMap)
-			action.Clear();
+		//for (auto& [actionId, action] : ActionMap)
+		//	action.Clear();
 
-		for (auto& [actionId, queue] : ActionQueueMap)
-			queue = ActionQueueState::None;
+		//for (auto& [actionId, queue] : ActionQueueMap)
+		//	queue = ActionQueueState::None;
 	}
 
 	void Rumble(float power, float durationSec, RumbleMode mode)
 	{
 		g_Input.SetRumble(mode, power, power, durationSec);
-
-		// TODO
-		/*if (!g_Configuration.EnableRumble)
-			return;
-
-		power = std::clamp(power, 0.0f, 1.0f);
-
-		if (power == 0.0f || RumbleInfo.Power)
-			return;
-
-		RumbleInfo.FadeSpeed = power / (delaySec * FPS);
-		RumbleInfo.Power = power + RumbleInfo.FadeSpeed;
-		RumbleInfo.LastPower = RumbleInfo.Power;*/
 	}
 
 	void StopRumble()
@@ -245,7 +233,7 @@ namespace TEN::Input
 
 	void InputManager::Update(SDL_Window& window, const Vector2& mouseWheelAxis)
 	{
-		if (allowAsyncUpdate || !g_Synchronizer.Locked())
+		if (/*allowAsyncUpdate ||*/ !g_Synchronizer.Locked())
 		{
 			// Capture event states asynchronously.
 			auto tasks = ParallelTasks
@@ -444,7 +432,7 @@ namespace TEN::Input
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
 			auto actionId = (ActionId)i;
-			switch (ActionQueueMap[actionId])
+			switch (_actionQueues[(int)actionId])
 			{
 				default:
 				case ActionQueueState::None:
@@ -730,10 +718,6 @@ namespace TEN::Input
 			eventIdx += AXIS_COUNT * 2;
 		}
 
-		// Set raw gamepad stick axes.
-		_analogAxes[(int)AnalogAxisId::StickLeft] = stickAxes.front();
-		_analogAxes[(int)AnalogAxisId::StickRight] = stickAxes.back();
-
 		// Set gamepad trigger axis event states.
 		for (auto axisCode : VALID_GAMEPAD_TRIGGER_AXIS_CODES)
 		{
@@ -755,6 +739,10 @@ namespace TEN::Input
 			_states.Events[eventIdx] = state;
 			eventIdx++;
 		}
+
+		// Set raw stick axes.
+		_analogAxes[(int)AnalogAxisId::StickLeft] = stickAxes.front();
+		_analogAxes[(int)AnalogAxisId::StickRight] = stickAxes.back();
 	}
 
 	void InputManager::HandleHotkeyActions()

@@ -887,8 +887,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
+					CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
+					g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
 					SaveConfiguration();
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
@@ -901,7 +901,7 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.Bindings);
+					g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
@@ -913,7 +913,7 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.Bindings);
+				g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
