@@ -315,14 +315,19 @@ namespace TEN::Animation
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
 
-		// Debug.
-		if (item.IsLara())
+		// Draw debug.
+		if (item.IsLara() && g_Renderer.GetDebugPage() == RendererDebugPage::PlayerStats)
 		{
-			PrintDebugMessage(std::string(std::string("Fixed motion: ") + ((fixedMotion.Translation != Vector3::Zero) ? "Yes" : "No")).c_str());
-			PrintDebugMessage(std::string(std::string("Root motion: ") + ((rootMotion.Translation != Vector3::Zero && rootMotion.Rotation != EulerAngles::Identity) ? "Yes" : "No")).c_str());
-			PrintDebugMessage(std::string(std::string("Blend enabled: ") + (item.Animation.Blend.IsEnabled() ? "Yes" : "No")).c_str());
-			PrintDebugMessage("Frame number: %d", item.Animation.Blend.FrameNumber);
-			PrintDebugMessage("Frame count: %d", item.Animation.Blend.FrameCount);
+			PrintDebugMessage("Fixed motion: %s", (fixedMotion.Translation != Vector3::Zero) ? "Enabled" : "Disabled");
+			PrintDebugMessage("Root motion: %s", (rootMotion.Translation != Vector3::Zero && rootMotion.Rotation != EulerAngles::Identity) ? "Enabled" : "Disabled");
+			PrintDebugMessage("Blend: %s", item.Animation.Blend.IsEnabled() ? "Enabled" : "Disabled");
+			PrintDebugMessage("Blend frame number: %d", item.Animation.Blend.FrameNumber);
+			PrintDebugMessage("Blend frame count: %d", item.Animation.Blend.FrameCount);
+			PrintDebugMessage("Blend curve:");
+			PrintDebugMessage("    Start: %.3f, %.3f", item.Animation.Blend.Curve.GetStart().x, item.Animation.Blend.Curve.GetStart().y);
+			PrintDebugMessage("    End: %.3f, %.3f", item.Animation.Blend.Curve.GetEnd().x, item.Animation.Blend.Curve.GetEnd().y);
+			PrintDebugMessage("    Start handle: %.3f, %.3f", item.Animation.Blend.Curve.GetStartHandle().x, item.Animation.Blend.Curve.GetStartHandle().y);
+			PrintDebugMessage("    End handle: %.3f, %.3f", item.Animation.Blend.Curve.GetEndHandle().x, item.Animation.Blend.Curve.GetEndHandle().y);
 		}
 	}
 
