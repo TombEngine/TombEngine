@@ -21,291 +21,11 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Input
 {
-	constexpr auto AXIS_SCALE  = 1.5f;
-	constexpr auto AXIS_OFFSET = 0.2f;
-
-	// Globals
-
-	std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
-	std::unordered_map<ActionId, Action>		   ActionMap;		// Key = action ID, value = action.
-	std::unordered_map<ActionId, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
-
 	bool InputLocked = false; // Disables control polling when application is defocused.
 
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
-	}
-
-	static bool TestBoundKey(int keyID)
-	{
-		for (int i = 1; i >= 0; i--)
-		{
-			auto profileId = (BindingProfileId)i;
-			for (int j = 0; j < (int)ActionId::Count; j++)
-			{
-				auto actionId = (ActionId)j;
-				if (g_Bindings.GetBoundEventIds(profileId, actionId) == keyID)
-					return true;
-			}
-		}
-
-		return false;
-	}
-
-	// TODO
-	static void SetDiscreteAxisValues(unsigned int keyID)
-	{
-		for (int i = 0; i < (int)BindingProfileId::Count; i++)
-		{
-			auto profileId = (BindingProfileId)i;
-			if (g_Bindings.GetBoundEventIds(profileId, In::Forward) == keyID)
-			{
-				AxisMap[AnalogAxisId::Move].y = 1.0f;
-			}
-			else if (g_Bindings.GetBoundEventIds(profileId, In::Back) == keyID)
-			{
-				AxisMap[AnalogAxisId::Move].y = -1.0f;
-			}
-			else if (g_Bindings.GetBoundEventIds(profileId, In::Left) == keyID)
-			{
-				AxisMap[AnalogAxisId::Move].x = -1.0f;
-			}
-			else if (g_Bindings.GetBoundEventIds(profileId, In::Right) == keyID)
-			{
-				AxisMap[AnalogAxisId::Move].x = 1.0f;
-			}
-		}
-	}
-
-	// TODO
-	static void ReadGamepad()
-	{
-		if (InputLocked)
-			return;
-
-		try
-		{
-			// Poll buttons.
-			for (int keyID = 0; keyID < state.mButtons.size(); keyID++)
-				KeyMap[KEY_OFFSET_GAMEPAD + keyID] = state.mButtons[keyID] ? 1.0f : 0.0f;
-
-			// Poll axes.
-			for (int axis = 0; axis < state.mAxes.size(); axis++)
-			{
-				// NOTE: Anything above 6 existing XBOX/PS controller axes not supported (2 sticks + 2 triggers).
-				if (axis >= GAMEPAD_AXIS_COUNT)
-					break;
-
-				// Filter out deadzone.
-				if (abs(state.mAxes[axis].abs) < AXIS_DEADZONE)
-					continue;
-
-				// Calculate raw normalized analog value (for camera).
-				float normalizedValue = float(state.mAxes[axis].abs + (state.mAxes[axis].abs > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) /
-					float(SHRT_MAX - AXIS_DEADZONE);
-
-				// Calculate scaled analog value for movement.
-				// NOTE: [0.2f, 1.7f] range gives most organic rates.
-				float scaledValue = (abs(normalizedValue) * AXIS_SCALE) + AXIS_OFFSET;
-
-				// Calculate and reset discrete input slots.
-				int negKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (axis * 2);
-				int posKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (axis * 2) + 1;
-				KeyMap[negKeyID] = (normalizedValue > 0) ? abs(normalizedValue) : 0.0f;
-				KeyMap[posKeyID] = (normalizedValue < 0) ? abs(normalizedValue) : 0.0f;
-
-				// Determine discrete input registering based on analog value.
-				int usedKeyID = (normalizedValue > 0) ? negKeyID : posKeyID;
-
-				// Register analog input in certain direction.
-				// If axis is bound as directional controls, register axis as directional input.
-				// Otherwise, register as camera movement input (for future).
-				// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
-
-				if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Forward) == usedKeyID)
-				{
-					AxisMap[AnalogAxisId::Move].y = abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Back) == usedKeyID)
-				{
-					AxisMap[AnalogAxisId::Move].y = -abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Left)  == usedKeyID)
-				{
-					AxisMap[AnalogAxisId::Move].x = -abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Right) == usedKeyID)
-				{
-					AxisMap[AnalogAxisId::Move].x = abs(scaledValue);
-				}
-				else if (!TestBoundKey(usedKeyID))
-				{
-					if ((axis % 2) == 0)
-					{
-						AxisMap[AnalogAxisId::Camera].y = normalizedValue;
-					}
-					else
-					{
-						AxisMap[AnalogAxisId::Camera].x = normalizedValue;
-					}
-				}
-			}
-
-			// Poll POVs.
-			// NOTE: Controllers usually have one, but scan all just in case.
-			for (int pov = 0; pov < GAMEPAD_POV_AXIS_COUNT; pov++)
-			{
-				if (state.mPOV[pov].direction == OIS::Pov::Centered)
-					continue;
-
-				// Register multiple directional keypresses mapped to analog axes.
-				int baseKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (GAMEPAD_AXIS_COUNT * 2);
-				for (int pass = 0; pass < GAMEPAD_POV_AXIS_COUNT; pass++)
-				{
-					int keyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (GAMEPAD_AXIS_COUNT * 2);
-
-					switch (pass)
-					{
-					// D-Pad Up
-					case 0:
-						if ((state.mPOV[pov].direction & OIS::Pov::North) == 0)
-							continue;
-						break;
-
-					// D-Pad Down
-					case 1:
-						if ((state.mPOV[pov].direction & OIS::Pov::South) == 0)
-							continue;
-						break;
-
-					// D-Pad Left
-					case 2:
-						if ((state.mPOV[pov].direction & OIS::Pov::West) == 0)
-							continue;
-						break;
-
-					// D-Pad Right
-					case 3:
-						if ((state.mPOV[pov].direction & OIS::Pov::East) == 0)
-							continue;
-						break;
-					}
-
-					keyID += pass;
-					KeyMap[keyID] = 1.0f;
-					SetDiscreteAxisValues(keyID);
-				}
-			}
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Unable to poll game controller input: " + std::string(ex.eText), LogLevel::Warning);
-		}
-	}
-
-	static float Key(ActionId actionId)
-	{
-		int keyID = OIS::KC_UNASSIGNED;
-		for (int i = (int)BindingProfileId::Count - 1; i >= 0; i--)
-		{
-			auto profileId = (BindingProfileId)i;
-			if (profileId == BindingProfileId::Default && g_Bindings.TestConflict(actionId))
-				continue;
-
-			int newKeyID = g_Bindings.GetBoundEventIds(profileId, actionId);
-			if (KeyMap[newKeyID] != 0.0f)
-			{
-				keyID = newKeyID;
-				break;
-			}
-		}
-
-		return KeyMap[keyID];
-	}
-
-	void SolveActionCollisions()
-	{
-		// Block simultaneous Left+Right actions.
-		if (IsHeld(In::Left) && IsHeld(In::Right))
-		{
-			ClearAction(In::Left);
-			ClearAction(In::Right);
-		}
-	}
-
-	// TODO
-	static void UpdateRumble()
-	{
-		if (!OisRumble || !OisEffect || !RumbleInfo.Power)
-			return;
-
-		RumbleInfo.Power -= RumbleInfo.FadeSpeed;
-
-		// Don't update effect too frequently if its value hasn't changed much.
-		if (RumbleInfo.Power >= 0.2f && (RumbleInfo.LastPower - RumbleInfo.Power) < 0.1f)
-			return;
-
-		if (RumbleInfo.Power <= 0.0f)
-		{
-			StopRumble();
-			return;
-		}
-
-		try
-		{
-			auto& force = *dynamic_cast<OIS::ConstantEffect*>(OisEffect->getForceEffect());
-			force.level = RumbleInfo.Power * 10000;
-
-			switch (RumbleInfo.Mode)
-			{
-			case RumbleMode::Left:
-				OisEffect->direction = OIS::Effect::EDirection::West;
-				break;
-
-			case RumbleMode::Right:
-				OisEffect->direction = OIS::Effect::EDirection::East;
-				break;
-
-			case RumbleMode::Both:
-				OisEffect->direction = OIS::Effect::EDirection::North;
-				break;
-			}
-
-			OisRumble->upload(OisEffect);
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Error updating vibration effect: " + std::string(ex.eText), LogLevel::Error);
-		}
-
-		RumbleInfo.LastPower = RumbleInfo.Power;
-	}
-
-	// TODO
-	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
-	{
-		// Don't update input data during frameskip.
-		if (allowAsyncUpdate || !g_Synchronizer.Locked())
-		{
-			UpdateRumble();
-			ReadKeyboard();
-			ReadMouse();
-			ReadGamepad();
-		}
-
-		DefaultConflict();
-
-		// Update action map.
-		for (auto& [actionId, action] : ActionMap)
-			action.Update(Key(action.GetID()));
-
-		if (applyQueue)
-			ApplyActionQueue();
-
-		// Additional handling.
-		HandleHotkeyActions();
-		SolveActionCollisions();
 	}
 
 	// TODO
@@ -318,8 +38,10 @@ namespace TEN::Input
 			queue = ActionQueueState::None;
 	}
 
-	void Rumble(float power, float delaySec, RumbleMode mode)
+	void Rumble(float power, float durationSec, RumbleMode mode)
 	{
+		g_Input.SetRumble(mode, power, power, durationSec);
+
 		// TODO
 		/*if (!g_Configuration.EnableRumble)
 			return;
@@ -342,7 +64,8 @@ namespace TEN::Input
 	// TODO
 	void ApplyDefaultBindings()
 	{
-		g_Bindings.SetBindingProfile(BindingProfileId::Custom, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
+		g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
+		g_Bindings.SetBindingProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
 	}
 
 	void ClearAction(ActionId actionId)
@@ -380,9 +103,9 @@ namespace TEN::Input
 		return g_Input.GetAction(actionId).IsPulsed(delaySec, initialDelaySec);
 	}
 
-	bool IsReleased(ActionId actionId, float maxDelaySec)
+	bool IsReleased(ActionId actionId, float delaySecMax)
 	{
-		return g_Input.GetAction(actionId).IsReleased(maxDelaySec);
+		return g_Input.GetAction(actionId).IsReleased(delaySecMax);
 	}
 
 	float GetActionValue(ActionId actionId)
@@ -426,17 +149,17 @@ namespace TEN::Input
 
 	const Vector2& GetMoveAxis()
 	{
-		return g_Input.GetAnalogAxis(AnalogAxisId2::Move);
+		return g_Input.GetAnalogAxis(AnalogAxisId::Move);
 	}
 
 	const Vector2& GetCameraAxis()
 	{
-		return g_Input.GetAnalogAxis(AnalogAxisId2::Camera);
+		return g_Input.GetAnalogAxis(AnalogAxisId::Camera);
 	}
 
 	const Vector2& GetMouseAxis()
 	{
-		return g_Input.GetAnalogAxis(AnalogAxisId2::Mouse);
+		return g_Input.GetAnalogAxis(AnalogAxisId::Mouse);
 	}
 
 	Vector2 GetMouse2DPosition()
@@ -453,7 +176,7 @@ namespace TEN::Input
 		return _actions[(int)actionId];
 	}
 
-	const Vector2& InputManager::GetAnalogAxis(AnalogAxisId2 axisId) const
+	const Vector2& InputManager::GetAnalogAxis(AnalogAxisId axisId) const
 	{
 		return _analogAxes[(int)axisId];
 	}
@@ -468,12 +191,12 @@ namespace TEN::Input
 		return _gamepad.VendorId;
 	}
 
-	void InputManager::SetRumble(RumbleMode2 mode, float intensityFrom, float intensityTo, float durationSec)
+	void InputManager::SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec)
 	{
 		_rumble.Mode = mode;
-		_rumble.IntensityFrom = intensityFrom;
-		_rumble.IntensityTo = intensityTo;
-		_rumble.DurationTicks =
+		_rumble.IntensityFrom = std::clamp(intensityFrom, 0.0f,  1.0f);
+		_rumble.IntensityTo = std::clamp(intensityTo, 0.0f, 1.0f);
+		_rumble.DurationGameFrames =
 		_rumble.GameFrames = SecToGameFrames(durationSec);
 	}
 
@@ -504,7 +227,7 @@ namespace TEN::Input
 		}
 
 		// Initialize bindings.
-		_bindings.Initialize(options->KeyboardMouseBindings, options->GamepadBindings);
+		_bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
 		// TODO: Connect it first.
 		if (IsUsingGamepad())
@@ -522,14 +245,17 @@ namespace TEN::Input
 
 	void InputManager::Update(SDL_Window& window, const Vector2& mouseWheelAxis)
 	{
-		// Capture event states asynchronously.
-		auto tasks = ParallelTasks
+		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
-			TASK(ReadKeyboard()),
-			TASK(ReadMouse(window, mouseWheelAxis)),
-			TASK(ReadGamepad())
-		};
-		g_Parallel.AddTasks(tasks).wait();
+			// Capture event states asynchronously.
+			auto tasks = ParallelTasks
+			{
+				TASK(ReadKeyboard()),
+				TASK(ReadMouse(window, mouseWheelAxis)),
+				TASK(ReadGamepad())
+			};
+			g_Parallel.AddTasks(tasks).wait();
+		}
 
 		// Update "using gamepad" state.
 		if (_states.HasKeyboardInput || _states.HasMouseInput)
@@ -542,9 +268,17 @@ namespace TEN::Input
 		}
 
 		// Update components.
-		UpdateRumble();
 		UpdateActions();
+		UpdateAnalogAxes();
+		UpdateRumble();
 		HandleHotkeyActions();
+
+		// Block simultaneous Left and Right actions.
+		if (IsHeld(In::Left) && IsHeld(In::Right))
+		{
+			ClearAction(In::Left);
+			ClearAction(In::Right);
+		}
 
 		// Clear data.
 		_states.HasKeyboardInput = false;
@@ -589,7 +323,7 @@ namespace TEN::Input
 					break;
 			}
 
-			SetRumble(RumbleMode2::Low, 0.0f, 1.0f, 0.1f);
+			SetRumble(RumbleMode::Low, 0.0f, 1.0f, 0.1f);
 
 			TENLog(fmt::format("{} gamepad connected.", GetGamepadVendorName(_gamepad.VendorId)));
 		}
@@ -603,7 +337,6 @@ namespace TEN::Input
 			return;
 		}
 
-		// Disconnect with toast.
 		_gamepad = {};
 		SDL_CloseGamepad(_gamepad.Device);
 
@@ -699,6 +432,14 @@ namespace TEN::Input
 			}
 		};
 
+		// Update action states asynchronously.
+		auto tasks = ParallelTasks
+		{
+			TASK(updateUserActions()),
+			TASK(updateRawActions())
+		};
+		g_Parallel.AddTasks(tasks).wait();
+
 		// Apply action queues.
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
@@ -722,14 +463,62 @@ namespace TEN::Input
 		// Clear action queues.
 		for (auto& queue : _actionQueues)
 			queue = ActionQueueState::None;
+	}
 
-		// Update action states asynchronously.
-		auto tasks = ParallelTasks
+	void InputManager::UpdateAnalogAxes()
+	{
+		constexpr float AXIS_MIN = 0.2f;
+		constexpr float AXIS_MAX = 1.7f;
+
+		auto& moveAxis = _analogAxes[(int)AnalogAxisId::Move];
+		auto& camAxis = _analogAxes[(int)AnalogAxisId::Camera];
+		const auto& mouseAxis = _analogAxes[(int)AnalogAxisId::Mouse];
+		const auto& stickLeftAxis = _analogAxes[(int)AnalogAxisId::StickLeft];
+		const auto& stickRightAxis = _analogAxes[(int)AnalogAxisId::StickRight];
+
+		// Set move axis.
+		if (stickLeftAxis != Vector2::Zero)
 		{
-			TASK(updateUserActions()),
-			TASK(updateRawActions())
-		};
-		g_Parallel.AddTasks(tasks).wait();
+			auto remappedLength = Remap(stickLeftAxis.Length(), 0.0f, 1.0f, AXIS_MIN, AXIS_MAX);
+			moveAxis = stickLeftAxis;
+			moveAxis.Normalize();
+			moveAxis *= remappedLength;
+		}
+		else
+		{
+			if (IsHeld(In::Forward))
+			{
+				moveAxis.y = 1.0f;
+			}
+			else if (IsHeld(In::Back))
+			{
+				moveAxis.y = -1.0f;
+			}
+			else
+			{
+				moveAxis.y = 0.0f;
+			}
+
+			if (IsHeld(In::Left))
+			{
+				moveAxis.x = -1.0f;
+			}
+			else if (IsHeld(In::Right))
+			{
+				moveAxis.x = -1.0f;
+			}
+			else
+			{
+				moveAxis.x = 0.0f;
+			}
+		}
+
+		// Set camera axis.
+		camAxis = mouseAxis;
+		if (stickRightAxis != Vector2::Zero)
+		{
+			camAxis = stickRightAxis;
+		}
 	}
 
 	void InputManager::UpdateRumble()
@@ -741,15 +530,15 @@ namespace TEN::Input
 		}
 
 		// Compute intensity.
-		float alpha = (float)_rumble.GameFrames / (float)_rumble.DurationTicks;
+		float alpha = (float)_rumble.GameFrames / (float)_rumble.DurationGameFrames;
 		float intensity = Lerp(_rumble.IntensityFrom, _rumble.IntensityTo, alpha);
 
 		// Compute frequencies.
-		unsigned short freqLow = (_rumble.Mode == RumbleMode2::Low || _rumble.Mode == RumbleMode2::LowAndHigh) ? (unsigned short)(intensity * USHRT_MAX) : 0;
-		unsigned short freqHigh = (_rumble.Mode == RumbleMode2::High || _rumble.Mode == RumbleMode2::LowAndHigh) ? (unsigned short)(intensity * USHRT_MAX) : 0;
+		unsigned short freqLow = (_rumble.Mode == RumbleMode::Low || _rumble.Mode == RumbleMode::LowAndHigh) ? (unsigned short)(intensity * USHRT_MAX) : 0;
+		unsigned short freqHigh = (_rumble.Mode == RumbleMode::High || _rumble.Mode == RumbleMode::LowAndHigh) ? (unsigned short)(intensity * USHRT_MAX) : 0;
 
 		// Compute duration.
-		unsigned int durationMs = (unsigned int)round(GameFramesToSec(_rumble.DurationTicks) * 1000);
+		unsigned int durationMs = (unsigned int)round(GameFramesToSec(_rumble.DurationGameFrames) * 1000);
 
 		// Rumble gamepad.
 		if (!SDL_RumbleGamepad(_gamepad.Device, freqLow, freqHigh, durationMs))
@@ -796,9 +585,6 @@ namespace TEN::Input
 			_states.Events[eventIdx] = state ? 1.0f : 0.0f;
 			eventIdx++;
 		}
-
-		// TODO
-		SetDiscreteAxisValues();
 	}
 
 	void InputManager::ReadMouse(SDL_Window& window, const Vector2& wheelAxis)
@@ -863,9 +649,6 @@ namespace TEN::Input
 		_states.Events[eventIdx + 3] = (moveAxis.y > 0.0f) ? abs(moveAxis.y) : 0.0f;
 		eventIdx += SQUARE(AXIS_COUNT);
 
-		// Set camera axis. Right gamepad stick takes priority over mouse.
-		_analogAxes[(int)AnalogAxisId::Camera] = moveAxis;
-
 		// Set raw mouse axis.
 		_analogAxes[(int)AnalogAxisId::Mouse] = moveAxis;
 	}
@@ -915,13 +698,10 @@ namespace TEN::Input
 			{
 				axis.y = state;
 
-				// TODO: Adapt for TEN-specific axis scaling.
 				// Remap axis to active range.
 				if (axis.Length() >= AXIS_DEADZONE)
 				{
 					float remappedLength = Remap(axis.Length(), AXIS_DEADZONE, 1.0f, 0.0f, 1.0f);
-
-					axis = axis;
 					axis.Normalize();
 					axis *= remappedLength;
 				}
@@ -947,19 +727,12 @@ namespace TEN::Input
 			_states.Events[eventIdx + (i + 1)] = (axis.x > 0.0f) ? abs(axis.x) : 0.0f;
 			_states.Events[eventIdx + (i + 2)] = (axis.y < 0.0f) ? abs(axis.y) : 0.0f;
 			_states.Events[eventIdx + (i + 3)] = (axis.y > 0.0f) ? abs(axis.y) : 0.0f;
-			_analogAxes[i] = axis;
 			eventIdx += AXIS_COUNT * 2;
 		}
 
-		// Set camera axis. Right gamepad stick takes priority over mouse.
-		if (stickAxes.back() != Vector2::Zero)
-		{
-			_analogAxes[(int)AnalogAxisId::Camera] = stickAxes.back();
-		}
-
 		// Set raw gamepad stick axes.
-		_analogAxes[(int)AnalogAxisId2::StickLeft] = stickAxes.front();
-		_analogAxes[(int)AnalogAxisId2::StickRight] = stickAxes.back();
+		_analogAxes[(int)AnalogAxisId::StickLeft] = stickAxes.front();
+		_analogAxes[(int)AnalogAxisId::StickRight] = stickAxes.back();
 
 		// Set gamepad trigger axis event states.
 		for (auto axisCode : VALID_GAMEPAD_TRIGGER_AXIS_CODES)
@@ -1007,9 +780,9 @@ namespace TEN::Input
 
 		// Switch debug page.
 		static bool dbDebugPage = true;
-		if ((_states.Events[(int)EventId::F10] || KeyMap[OIS::KC_F11]) && dbDebugPage)
+		if ((_states.Events[(int)EventId::F10] || _states.Events[(int)EventId::F11]) && dbDebugPage)
 			g_Renderer.SwitchDebugPage(_states.Events[(int)EventId::F10]);
-		dbDebugPage = !(_states.Events[(int)EventId::F10] || KeyMap[OIS::KC_F11]);
+		dbDebugPage = !(_states.Events[(int)EventId::F10] || _states.Events[(int)EventId::F11]);
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;
