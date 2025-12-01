@@ -334,8 +334,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, (ActionId)k);
-						int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, (ActionId)k);
+						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)k);
+						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)k);
 
 						int key = userKeyID ? userKeyID : defaultKeyID;
 						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
@@ -387,8 +387,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, (ActionId)(baseIndex + k));
+						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
 
 						int key = userKeyID ? userKeyID : defaultKeyID;
 						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
@@ -446,8 +446,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, (ActionId)(baseIndex + k));
+						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
 
 						int key = userKeyID ? userKeyID : defaultKeyID;
 						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
@@ -498,8 +498,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, (ActionId)(baseIndex + k));
+						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
 
 						int key = userKeyID ? userKeyID : defaultKeyID;
 						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
@@ -1365,9 +1365,9 @@ namespace TEN::Renderer
 
 			for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 			{
-				for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+				for (auto actionId : ACTION_ID_GROUPS[(int)actionGroupID])
 				{
-					const auto& action = ActionMap.at(actionID);
+					const auto& action = ActionMap.at(actionId);
 
 					if (action.IsClicked())
 						clickedActions.Set((int)action.GetID());

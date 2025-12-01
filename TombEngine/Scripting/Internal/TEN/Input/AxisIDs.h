@@ -11,18 +11,18 @@ namespace TEN::Scripting::Input
 	// @enum Input.AxisID
 	// @pragma nostrip
 
-	static const auto AXIS_IDS = std::unordered_map<std::string, AnalogAxisID>
+	static const auto AXIS_IDS = std::unordered_map<std::string, AnalogAxisId>
 	{
 		/// Analog axis configured for player's movement.
 		// @mem MOVE
-		{ "MOVE", AnalogAxisID::Move },
+		{ "MOVE", AnalogAxisId::Move },
 
 		/// Analog axis configured for camera movement.
 		// @mem CAMERA
-		{ "CAMERA", AnalogAxisID::Camera },
+		{ "CAMERA", AnalogAxisId::Camera },
 
 		/// Raw mouse input analog axis.
 		// @mem MOUSE
-		{ "MOUSE", AnalogAxisID::Mouse }
+		{ "MOUSE", AnalogAxisId::Mouse }
 	};
 }

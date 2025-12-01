@@ -186,14 +186,14 @@ bool LoadConfiguration()
 				if (actionId >= 0 && keyId >= 0)
 				{
 					g_Configuration.Bindings.insert({ (ActionId)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionId)actionId, keyId);
+					g_Bindings.SetKeyBinding(BindingProfileId::Custom, (ActionId)actionId, keyId);
 				}
 			}
 		}
 	}
 
 	if (!foundInput)
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Default);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 

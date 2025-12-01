@@ -123,18 +123,18 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
-	bool GuiController::GuiIsPulsed(ActionId actionID) const
+	bool GuiController::GuiIsPulsed(ActionId actionId) const
 	{
 		constexpr auto DELAY		 = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
 
 		// Action already held prior to entering menu; lock input.
-		if (GetActionTimeActive(actionID) >= TimeInMenu)
+		if (GetActionTimeActive(actionId) >= TimeInMenu)
 			return false;
 
 		// Pulse only directional inputs.
 		auto oppositeAction = std::optional<ActionId>(std::nullopt);
-		switch (actionID)
+		switch (actionId)
 		{
 		case In::Forward:
 			oppositeAction = In::Back;
@@ -161,7 +161,7 @@ namespace TEN::Gui
 		if (isActionLocked)
 			return false;
 
-		return IsPulsed(actionID, DELAY, INITIAL_DELAY);
+		return IsPulsed(actionId, DELAY, INITIAL_DELAY);
 	}
 
 	bool GuiController::GuiIsSelected(bool onClicked) const
@@ -785,7 +785,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetKeyBinding(BindingProfileId::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;
@@ -888,8 +888,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
+					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
 					SaveConfiguration();
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
@@ -902,7 +902,7 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.Bindings);
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
@@ -914,7 +914,7 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+				g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.Bindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;

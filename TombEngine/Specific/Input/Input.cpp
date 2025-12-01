@@ -76,9 +76,9 @@ namespace TEN::Input
 		// Initialize action and action queue maps.
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionId)i;
-			ActionMap[actionID] = Action(actionID);
-			ActionQueueMap[actionID] = ActionQueueState::None;
+			auto actionId = (ActionId)i;
+			ActionMap[actionId] = Action(actionId);
+			ActionQueueMap[actionId] = ActionQueueState::None;
 		}
 
 		// Initialize axis map.
@@ -202,24 +202,24 @@ namespace TEN::Input
 	{
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionId)i;
-			switch (ActionQueueMap[actionID])
+			auto actionId = (ActionId)i;
+			switch (ActionQueueMap[actionId])
 			{
 			default:
 			case ActionQueueState::None:
 				break;
 
 			case ActionQueueState::Update:
-				ActionMap[actionID].Update(true);
+				ActionMap[actionId].Update(true);
 				break;
 
 			case ActionQueueState::Clear:
-				ActionMap[actionID].Clear();
+				ActionMap[actionId].Clear();
 				break;
 			}
 		}
 
-		for (auto& [actionID, queue] : ActionQueueMap)
+		for (auto& [actionId, queue] : ActionQueueMap)
 			queue = ActionQueueState::None;
 	}
 
@@ -227,11 +227,11 @@ namespace TEN::Input
 	{
 		for (int i = 1; i >= 0; i--)
 		{
-			auto profileID = (BindingProfileID)i;
+			auto profileId = (BindingProfileId)i;
 			for (int j = 0; j < (int)ActionId::Count; j++)
 			{
-				auto actionID = (ActionId)j;
-				if (g_Bindings.GetBoundEventID(profileID, actionID) == keyID)
+				auto actionId = (ActionId)j;
+				if (g_Bindings.GetBoundEventIds(profileId, actionId) == keyID)
 					return true;
 			}
 		}
@@ -259,19 +259,19 @@ namespace TEN::Input
 
 	void DefaultConflict()
 	{
-		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
+		for (const auto& actionIdGroup : ACTION_ID_GROUPS)
 		{
-			for (auto actionID : actionIDGroup)
+			for (auto actionId : actionIdGroup)
 			{
-				g_Bindings.SetConflict(actionID, false);
+				g_Bindings.SetConflict(actionId, false);
 
-				int key = g_Bindings.GetBoundEventID(BindingProfileID::Default, actionID);
-				for (auto conflictActionID : actionIDGroup)
+				int key = g_Bindings.GetBoundEventIds(BindingProfileId::Default, actionId);
+				for (auto conflictActionID : actionIdGroup)
 				{
-					if (key != g_Bindings.GetBoundEventID(BindingProfileID::Custom, conflictActionID))
+					if (key != g_Bindings.GetBoundEventIds(BindingProfileId::Custom, conflictActionID))
 						continue;
 
-					g_Bindings.SetConflict(actionID, true);
+					g_Bindings.SetConflict(actionId, true);
 					break;
 				}
 			}
@@ -280,22 +280,22 @@ namespace TEN::Input
 
 	static void SetDiscreteAxisValues(unsigned int keyID)
 	{
-		for (int i = 0; i < (int)BindingProfileID::Count; i++)
+		for (int i = 0; i < (int)BindingProfileId::Count; i++)
 		{
-			auto profileID = (BindingProfileID)i;
-			if (g_Bindings.GetBoundEventID(profileID, In::Forward) == keyID)
+			auto profileId = (BindingProfileId)i;
+			if (g_Bindings.GetBoundEventIds(profileId, In::Forward) == keyID)
 			{
 				AxisMap[AnalogAxisId::Move].y = 1.0f;
 			}
-			else if (g_Bindings.GetBoundEventID(profileID, In::Back) == keyID)
+			else if (g_Bindings.GetBoundEventIds(profileId, In::Back) == keyID)
 			{
 				AxisMap[AnalogAxisId::Move].y = -1.0f;
 			}
-			else if (g_Bindings.GetBoundEventID(profileID, In::Left) == keyID)
+			else if (g_Bindings.GetBoundEventIds(profileId, In::Left) == keyID)
 			{
 				AxisMap[AnalogAxisId::Move].x = -1.0f;
 			}
-			else if (g_Bindings.GetBoundEventID(profileID, In::Right) == keyID)
+			else if (g_Bindings.GetBoundEventIds(profileId, In::Right) == keyID)
 			{
 				AxisMap[AnalogAxisId::Move].x = 1.0f;
 			}
@@ -464,19 +464,19 @@ namespace TEN::Input
 				// Otherwise, register as camera movement input (for future).
 				// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
 
-				if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Forward) == usedKeyID)
+				if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Forward) == usedKeyID)
 				{
 					AxisMap[AnalogAxisId::Move].y = abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Back) == usedKeyID)
+				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Back) == usedKeyID)
 				{
 					AxisMap[AnalogAxisId::Move].y = -abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Left)  == usedKeyID)
+				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Left)  == usedKeyID)
 				{
 					AxisMap[AnalogAxisId::Move].x = -abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Right) == usedKeyID)
+				else if (g_Bindings.GetBoundEventIds(BindingProfileId::Custom, In::Right) == usedKeyID)
 				{
 					AxisMap[AnalogAxisId::Move].x = abs(scaledValue);
 				}
@@ -545,16 +545,16 @@ namespace TEN::Input
 		}
 	}
 
-	static float Key(ActionId actionID)
+	static float Key(ActionId actionId)
 	{
 		int keyID = OIS::KC_UNASSIGNED;
-		for (int i = (int)BindingProfileID::Count - 1; i >= 0; i--)
+		for (int i = (int)BindingProfileId::Count - 1; i >= 0; i--)
 		{
-			auto profileID = (BindingProfileID)i;
-			if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
+			auto profileId = (BindingProfileId)i;
+			if (profileId == BindingProfileId::Default && g_Bindings.TestConflict(actionId))
 				continue;
 
-			int newKeyID = g_Bindings.GetBoundEventID(profileID, actionID);
+			int newKeyID = g_Bindings.GetBoundEventIds(profileId, actionId);
 			if (KeyMap[newKeyID] != 0.0f)
 			{
 				keyID = newKeyID;
@@ -671,7 +671,7 @@ namespace TEN::Input
 		DefaultConflict();
 
 		// Update action map.
-		for (auto& [actionID, action] : ActionMap)
+		for (auto& [actionId, action] : ActionMap)
 			action.Update(Key(action.GetID()));
 
 		if (applyQueue)
@@ -684,10 +684,10 @@ namespace TEN::Input
 
 	void ClearAllActions()
 	{
-		for (auto& [actionID, action] : ActionMap)
+		for (auto& [actionId, action] : ActionMap)
 			action.Clear();
 
-		for (auto& [actionID, queue] : ActionQueueMap)
+		for (auto& [actionId, queue] : ActionQueueMap)
 			queue = ActionQueueState::None;
 	}
 
@@ -725,7 +725,7 @@ namespace TEN::Input
 
 	static void ApplyBindings(const BindingProfile& set)
 	{
-		g_Bindings.SetBindingProfile(BindingProfileID::Custom, set);
+		g_Bindings.SetBindingProfile(BindingProfileId::Custom, set);
 	}
 
 	void ApplyDefaultBindings()
@@ -741,10 +741,10 @@ namespace TEN::Input
 
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionId)i;
+			auto actionId = (ActionId)i;
 
-			int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, actionID);
-			int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, actionID);
+			int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, actionId);
+			int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, actionId);
 
 			if (userKeyID != OIS::KC_UNASSIGNED &&
 				userKeyID != defaultKeyID)
@@ -757,7 +757,7 @@ namespace TEN::Input
 		if (vendor.find("xbox") != std::string::npos || vendor.find("xinput") != std::string::npos)
 		{
 			ApplyBindings(DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
-			g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+			g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
 
 			// Additionally enable rumble and thumbstick camera.
 			g_Configuration.EnableRumble = true;
@@ -780,14 +780,14 @@ namespace TEN::Input
 		return (DISPLAY_SPACE_RES * (areaPos / areaRes));
 	}
 
-	void ClearAction(ActionId actionID)
+	void ClearAction(ActionId actionId)
 	{
-		ActionMap[actionID].Clear();
+		ActionMap[actionId].Clear();
 	}
 
 	bool NoAction()
 	{
-		for (const auto& [actionID, action] : ActionMap)
+		for (const auto& [actionId, action] : ActionMap)
 		{
 			if (action.IsHeld())
 				return false;
@@ -796,41 +796,41 @@ namespace TEN::Input
 		return true;
 	}
 
-	bool IsClicked(ActionId actionID)
+	bool IsClicked(ActionId actionId)
 	{
-		return ActionMap[actionID].IsClicked();
+		return ActionMap[actionId].IsClicked();
 	}
 
-	bool IsHeld(ActionId actionID, float delaySec)
+	bool IsHeld(ActionId actionId, float delaySec)
 	{
-		return ActionMap[actionID].IsHeld(delaySec);
+		return ActionMap[actionId].IsHeld(delaySec);
 	}
 
-	bool IsPulsed(ActionId actionID, float delaySec, float initialDelaySec)
+	bool IsPulsed(ActionId actionId, float delaySec, float initialDelaySec)
 	{
-		return ActionMap[actionID].IsPulsed(delaySec, initialDelaySec);
+		return ActionMap[actionId].IsPulsed(delaySec, initialDelaySec);
 	}
 
-	bool IsReleased(ActionId actionID, float maxDelaySec)
+	bool IsReleased(ActionId actionId, float maxDelaySec)
 	{
-		return ActionMap[actionID].IsReleased(maxDelaySec);
+		return ActionMap[actionId].IsReleased(maxDelaySec);
 	}
 
-	float GetActionValue(ActionId actionID)
+	float GetActionValue(ActionId actionId)
 	{
-		return ActionMap[actionID].GetValue();
-	}
-
-	// Time in game frames.
-	unsigned int GetActionTimeActive(ActionId actionID)
-	{
-		return ActionMap[actionID].GetTimeActive();
+		return ActionMap[actionId].GetValue();
 	}
 
 	// Time in game frames.
-	unsigned int GetActionTimeInactive(ActionId actionID)
+	unsigned int GetActionTimeActive(ActionId actionId)
 	{
-		return ActionMap[actionID].GetTimeInactive();
+		return ActionMap[actionId].GetTimeActive();
+	}
+
+	// Time in game frames.
+	unsigned int GetActionTimeInactive(ActionId actionId)
+	{
+		return ActionMap[actionId].GetTimeInactive();
 	}
 
 	bool IsDirectionalActionHeld()

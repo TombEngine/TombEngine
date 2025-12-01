@@ -95,9 +95,9 @@ namespace TEN::Input
 		//ActionGroupID::Gamepad
 	};
 
-	Action::Action(ActionId actionID)
+	Action::Action(ActionId actionId)
 	{
-		_id = actionID;
+		_id = actionId;
 	}
 
 	ActionId Action::GetID() const

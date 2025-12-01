@@ -120,7 +120,7 @@ namespace TEN::Input
 		// Constructors
 
 		Action() = default;
-		Action(ActionId actionID);
+		Action(ActionId actionId);
 
 		// Getters
 

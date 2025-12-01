@@ -66,15 +66,15 @@ namespace TEN::Input
 
 	Vector2 GetMouse2DPosition();
 
-	void		 ClearAction(ActionId actionID);
+	void		 ClearAction(ActionId actionId);
 	bool		 NoAction();
-	bool		 IsClicked(ActionId actionID);
-	bool		 IsHeld(ActionId actionID, float delaySec = 0.0f);
-	bool		 IsPulsed(ActionId actionID, float delaySec, float initialDelaySec = 0.0f);
-	bool		 IsReleased(ActionId actionID, float maxDelaySec = FLT_MAX);
-	float		 GetActionValue(ActionId actionID);
-	unsigned int GetActionTimeActive(ActionId actionID);
-	unsigned int GetActionTimeInactive(ActionId actionID);
+	bool		 IsClicked(ActionId actionId);
+	bool		 IsHeld(ActionId actionId, float delaySec = 0.0f);
+	bool		 IsPulsed(ActionId actionId, float delaySec, float initialDelaySec = 0.0f);
+	bool		 IsReleased(ActionId actionId, float maxDelaySec = FLT_MAX);
+	float		 GetActionValue(ActionId actionId);
+	unsigned int GetActionTimeActive(ActionId actionId);
+	unsigned int GetActionTimeInactive(ActionId actionId);
 
 	bool IsDirectionalActionHeld();
 	bool IsWakeActionHeld();

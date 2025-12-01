@@ -175,10 +175,10 @@ namespace TEN::Input
 		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
 	};
 
-	int BindingManager::GetBoundEventID(BindingProfileID profileID, ActionId actionID) const
+	int BindingManager::GetBoundEventIds(BindingProfileId profileId, ActionId actionId) const
 	{
 		// Find binding profile.
-		auto profileIt = _bindings.find(profileID);
+		auto profileIt = _bindings.find(profileId);
 		if (profileIt == _bindings.end())
 			return OIS::KC_UNASSIGNED;
 
@@ -186,7 +186,7 @@ namespace TEN::Input
 		const auto& [inputDeviceID, profile] = *profileIt;
 
 		// Find key-action binding.
-		auto keyIt = profile.find(actionID);
+		auto keyIt = profile.find(actionId);
 		if (keyIt == profile.end())
 			return OIS::KC_UNASSIGNED;
 
@@ -195,56 +195,56 @@ namespace TEN::Input
 		return keyID;
 	}
 
-	const BindingProfile& BindingManager::GetBindingProfile(BindingProfileID profileID) const
+	const BindingProfile& BindingManager::GetBindingProfile(BindingProfileId profileId) const
 	{
 		// Find binding profile.
-		auto profileIt = _bindings.find(profileID);
-		TENAssert(profileIt != _bindings.end(), "Attempted to get missing binding profile " + std::to_string((int)profileID) + ".");
+		auto profileIt = _bindings.find(profileId);
+		TENAssert(profileIt != _bindings.end(), "Attempted to get missing binding profile " + std::to_string((int)profileId) + ".");
 
 		// Return binding profile.
 		const auto& [keyProfileID, profile] = *profileIt;
 		return profile;
 	}
 
-	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionId actionID, int keyID)
+	void BindingManager::SetKeyBinding(BindingProfileId profileId, ActionId actionId, int keyID)
 	{
 		// Overwrite or add key-action binding.
-		_bindings[profileID][actionID] = keyID;
+		_bindings[profileId][actionId] = keyID;
 	}
 
-	void BindingManager::SetBindingProfile(BindingProfileID profileID, const BindingProfile& bindingProfile)
+	void BindingManager::SetBindingProfile(BindingProfileId profileId, const BindingProfile& bindingProfile)
 	{
 		// Overwrite or create binding profile.
-		_bindings[profileID] = bindingProfile;
+		_bindings[profileId] = bindingProfile;
 	}
 
-	void BindingManager::SetDefaultBindingProfile(BindingProfileID profileID)
+	void BindingManager::SetDefaultBindingProfile(BindingProfileId profileId)
 	{
 		// Reset binding profile defaults.
-		switch (profileID)
+		switch (profileId)
 		{
-			case BindingProfileID::Default:
-				_bindings[profileID] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+			case BindingProfileId::Default:
+				_bindings[profileId] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 				break;
 
-			case BindingProfileID::Custom:
-				_bindings[profileID] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+			case BindingProfileId::Custom:
+				_bindings[profileId] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 				break;
 
 			default:
-				TENLog("Failed to reset defaults for binding profile " + std::to_string((int)profileID) + ".", LogLevel::Warning);
+				TENLog("Failed to reset defaults for binding profile " + std::to_string((int)profileId) + ".", LogLevel::Warning);
 				return;
 		}
 	}
 
-	void BindingManager::SetConflict(ActionId actionID, bool value)
+	void BindingManager::SetConflict(ActionId actionId, bool value)
 	{
-		_conflicts[actionID] = value;
+		_conflicts[actionId] = value;
 	}
 
-	bool BindingManager::TestConflict(ActionId actionID)
+	bool BindingManager::TestConflict(ActionId actionId)
 	{
-		return _conflicts.at(actionID);
+		return _conflicts.at(actionId);
 	}
 
 	void BindingManager::Initialize()
@@ -252,17 +252,17 @@ namespace TEN::Input
 		// Initialize bindings.
 		_bindings =
 		{
-			{ BindingProfileID::Default, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
-			{ BindingProfileID::Custom,	 DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
-			{ BindingProfileID::Raw,	 RAW_EVENT_BINDING_PROFILE }
+			{ BindingProfileId::Default, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
+			{ BindingProfileId::Custom,	 DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
+			{ BindingProfileId::Raw,	 RAW_EVENT_BINDING_PROFILE }
 		};
 
 		// Initialize conflicts.
 		_conflicts.reserve((int)ActionId::Count);
 		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionId)i;
-			_conflicts.insert({ actionID, false });
+			auto actionId = (ActionId)i;
+			_conflicts.insert({ actionId, false });
 		}
 	}
 }

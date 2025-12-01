@@ -17,7 +17,7 @@ namespace TEN::Input
 	//	GamepadCustom
 	//	Raw
 	// And update the GUI accordingly to be capable of toggling between a keyboard/mouse bindings view and a gamepad bindings view.
-	enum class BindingProfileID
+	enum class BindingProfileId
 	{
 		Default,
 		Custom,
@@ -32,7 +32,7 @@ namespace TEN::Input
 	private:
 		// Fields
 
-		std::unordered_map<BindingProfileID, BindingProfile> _bindings	= {}; // Key = binding profile ID, value = binding profile.
+		std::unordered_map<BindingProfileId, BindingProfile> _bindings	= {}; // Key = binding profile ID, value = binding profile.
 		std::unordered_map<ActionId, bool>					 _conflicts = {}; // Key = action ID, value = has conflict.
 
 	public:
@@ -42,19 +42,19 @@ namespace TEN::Input
 
 		// Getters
 
-		int					  GetBoundEventID(BindingProfileID profileID, ActionId actionID) const;
-		const BindingProfile& GetBindingProfile(BindingProfileID profileID) const;
+		int					  GetBoundEventIds(BindingProfileId profileId, ActionId actionId) const;
+		const BindingProfile& GetBindingProfile(BindingProfileId profileId) const;
 
 		// Setters
 
-		void SetKeyBinding(BindingProfileID profileID, ActionId actionID, int keyID);
-		void SetBindingProfile(BindingProfileID profileID, const BindingProfile& profile);
-		void SetDefaultBindingProfile(BindingProfileID profileID);
-		void SetConflict(ActionId actionID, bool value);
+		void SetKeyBinding(BindingProfileId profileId, ActionId actionId, int keyID);
+		void SetBindingProfile(BindingProfileId profileId, const BindingProfile& profile);
+		void SetDefaultBindingProfile(BindingProfileId profileId);
+		void SetConflict(ActionId actionId, bool value);
 
 		// Inquirers
 
-		bool TestConflict(ActionId actionID);
+		bool TestConflict(ActionId actionId);
 
 		// Utilities
 
