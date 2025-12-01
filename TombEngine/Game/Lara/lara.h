@@ -83,7 +83,7 @@ constexpr auto LARA_STAMINA_CRITICAL  = LARA_STAMINA_MAX / 2;
 constexpr auto PLAYER_DRIP_NODE_MAX	  = 64.0f;
 constexpr auto PLAYER_BUBBLE_NODE_MAX = 8.0f;
 
-constexpr auto PLAYER_DEFAULT_ANIM_BLEND_FRAME_COUNT = 4;
+constexpr auto DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT = 4;
 
 constexpr auto STEPUP_HEIGHT		= (int)CLICK(1.5f);
 constexpr auto CRAWL_STEPUP_HEIGHT	= CLICK(1) - 1;

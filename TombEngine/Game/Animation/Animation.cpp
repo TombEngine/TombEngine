@@ -530,8 +530,11 @@ namespace TEN::Animation
 		// Check if animation is missing.
 		if (animNumber < 0 || animNumber >= animObject.Animations.size())
 		{
+			bool isBorrowedAnim = animObjectID != item.ObjectNumber;
 			TENLog(
-				fmt::format("Attempted to set missing animation {}, object {} for moveable of object type {}.", animNumber, GetObjectName(animObjectID), GetObjectName(item.ObjectNumber)),
+				fmt::format(
+					"Attempted to set missing animation {}{} for moveable of object type {}.",
+					animNumber, isBorrowedAnim ? fmt::format(" (borrowed from object {})", GetObjectName(animObjectID)) : "", GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
 			return;
 		}
@@ -541,10 +544,11 @@ namespace TEN::Animation
 		// Check if frame is missing.
 		if (frameNumber < 0 || frameNumber > anim.EndFrameNumber)
 		{
+			bool isBorrowedAnim = animObjectID != item.ObjectNumber;
 			TENLog(
 				fmt::format(
-					"Attempted to set missing frame {} from animation, {} object {}, for moveable of object type {}.",
-					frameNumber, animNumber, GetObjectName(animObjectID), GetObjectName(item.ObjectNumber)),
+					"Attempted to set missing frame {} from animation {}{} for moveable of object type {}.",
+					frameNumber, animNumber, isBorrowedAnim ? fmt::format(" (borrowed from object {})", GetObjectName(animObjectID)) : "", GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
 			return;
 		}
