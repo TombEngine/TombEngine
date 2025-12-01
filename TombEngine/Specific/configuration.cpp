@@ -244,7 +244,7 @@ bool SaveConfiguration()
 	ss << "MenuOptionLoopingMode=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 
 	if (g_Configuration.Bindings.empty())
-		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+		g_Configuration.Bindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 
 	for (const auto& kv : g_Configuration.Bindings)
 	{

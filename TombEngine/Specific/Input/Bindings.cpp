@@ -8,7 +8,7 @@ namespace TEN::Input
 {
 	BindingManager g_Bindings;
 
-	const BindingProfile DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE =
+	const BindingProfile DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE =
 	{
 		{ In::Forward,		  OIS::KC_UP },
 		{ In::Back,			  OIS::KC_DOWN },
@@ -56,7 +56,7 @@ namespace TEN::Input
 		{ In::Load,			  OIS::KC_F6 }
 	};
 
-	const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE =
+	const BindingProfile DEFAULT_USER_GAMEPAD_BINDING_PROFILE =
 	{
 		{ In::Forward,		  XK_AXIS_X_NEG },
 		{ In::Back,			  XK_AXIS_X_POS },
@@ -175,7 +175,7 @@ namespace TEN::Input
 		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
 	};
 
-	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const
+	int BindingManager::GetBoundEventID(BindingProfileID profileID, ActionID actionID) const
 	{
 		// Find binding profile.
 		auto profileIt = _bindings.find(profileID);
@@ -224,11 +224,11 @@ namespace TEN::Input
 		switch (profileID)
 		{
 			case BindingProfileID::Default:
-				_bindings[profileID] = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+				_bindings[profileID] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 				break;
 
 			case BindingProfileID::Custom:
-				_bindings[profileID] = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+				_bindings[profileID] = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 				break;
 
 			default:
@@ -252,8 +252,8 @@ namespace TEN::Input
 		// Initialize bindings.
 		_bindings =
 		{
-			{ BindingProfileID::Default, DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE },
-			{ BindingProfileID::Custom,	 DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE },
+			{ BindingProfileID::Default, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
+			{ BindingProfileID::Custom,	 DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE },
 			{ BindingProfileID::Raw,	 RAW_EVENT_BINDING_PROFILE }
 		};
 

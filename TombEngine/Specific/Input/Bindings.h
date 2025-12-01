@@ -6,8 +6,8 @@ namespace TEN::Input
 
 	using BindingProfile = std::unordered_map<ActionID, int>; // Key = action ID, value = key ID.
 
-	extern const BindingProfile DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-	extern const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE;
+	extern const BindingProfile DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+	extern const BindingProfile DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
 	extern const BindingProfile RAW_EVENT_BINDING_PROFILE;
 
 	// TODO: The true ideal solution will be to have the following:
@@ -42,7 +42,7 @@ namespace TEN::Input
 
 		// Getters
 
-		int					  GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const;
+		int					  GetBoundEventID(BindingProfileID profileID, ActionID actionID) const;
 		const BindingProfile& GetBindingProfile(BindingProfileID profileID) const;
 
 		// Setters

@@ -231,7 +231,7 @@ namespace TEN::Input
 			for (int j = 0; j < (int)ActionID::Count; j++)
 			{
 				auto actionID = (ActionID)j;
-				if (g_Bindings.GetBoundKeyID(profileID, actionID) == keyID)
+				if (g_Bindings.GetBoundEventID(profileID, actionID) == keyID)
 					return true;
 			}
 		}
@@ -265,10 +265,10 @@ namespace TEN::Input
 			{
 				g_Bindings.SetConflict(actionID, false);
 
-				int key = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+				int key = g_Bindings.GetBoundEventID(BindingProfileID::Default, actionID);
 				for (auto conflictActionID : actionIDGroup)
 				{
-					if (key != g_Bindings.GetBoundKeyID(BindingProfileID::Custom, conflictActionID))
+					if (key != g_Bindings.GetBoundEventID(BindingProfileID::Custom, conflictActionID))
 						continue;
 
 					g_Bindings.SetConflict(actionID, true);
@@ -283,19 +283,19 @@ namespace TEN::Input
 		for (int i = 0; i < (int)BindingProfileID::Count; i++)
 		{
 			auto profileID = (BindingProfileID)i;
-			if (g_Bindings.GetBoundKeyID(profileID, In::Forward) == keyID)
+			if (g_Bindings.GetBoundEventID(profileID, In::Forward) == keyID)
 			{
 				AxisMap[AxisID::Move].y = 1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Back) == keyID)
+			else if (g_Bindings.GetBoundEventID(profileID, In::Back) == keyID)
 			{
 				AxisMap[AxisID::Move].y = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Left) == keyID)
+			else if (g_Bindings.GetBoundEventID(profileID, In::Left) == keyID)
 			{
 				AxisMap[AxisID::Move].x = -1.0f;
 			}
-			else if (g_Bindings.GetBoundKeyID(profileID, In::Right) == keyID)
+			else if (g_Bindings.GetBoundEventID(profileID, In::Right) == keyID)
 			{
 				AxisMap[AxisID::Move].x = 1.0f;
 			}
@@ -464,19 +464,19 @@ namespace TEN::Input
 				// Otherwise, register as camera movement input (for future).
 				// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
 
-				if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
+				if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Forward) == usedKeyID)
 				{
 					AxisMap[AxisID::Move].y = abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
+				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Back) == usedKeyID)
 				{
 					AxisMap[AxisID::Move].y = -abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left)  == usedKeyID)
+				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Left)  == usedKeyID)
 				{
 					AxisMap[AxisID::Move].x = -abs(scaledValue);
 				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
+				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Right) == usedKeyID)
 				{
 					AxisMap[AxisID::Move].x = abs(scaledValue);
 				}
@@ -554,7 +554,7 @@ namespace TEN::Input
 			if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
 				continue;
 
-			int newKeyID = g_Bindings.GetBoundKeyID(profileID, actionID);
+			int newKeyID = g_Bindings.GetBoundEventID(profileID, actionID);
 			if (KeyMap[newKeyID] != 0.0f)
 			{
 				keyID = newKeyID;
@@ -730,7 +730,7 @@ namespace TEN::Input
 
 	void ApplyDefaultBindings()
 	{
-		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
+		ApplyBindings(DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
 		ApplyDefaultXInputBindings();
 	}
 
@@ -743,8 +743,8 @@ namespace TEN::Input
 		{
 			auto actionID = (ActionID)i;
 
-			int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
-			int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+			int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, actionID);
+			int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, actionID);
 
 			if (userKeyID != OIS::KC_UNASSIGNED &&
 				userKeyID != defaultKeyID)
@@ -756,7 +756,7 @@ namespace TEN::Input
 		auto vendor = ToLower(OisGamepad->vendor());
 		if (vendor.find("xbox") != std::string::npos || vendor.find("xinput") != std::string::npos)
 		{
-			ApplyBindings(DEFAULT_GAMEPAD_BINDING_PROFILE);
+			ApplyBindings(DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
 			g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 
 			// Additionally enable rumble and thumbstick camera.
