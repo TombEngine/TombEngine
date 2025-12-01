@@ -205,11 +205,12 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Revolver:
 		default:
 		{
-			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
-			bool transformUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked || 
-				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber);
-
 			// Left arm
+
+			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
+			bool transformLeftUpperArm = IsCrouching(LaraItem) || Lara.LeftArm.Locked ||
+				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber);
+
 			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
 			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftAnimData).Keyframe0;
@@ -218,23 +219,28 @@ void Renderer::UpdateLaraAnimations(bool force)
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
 
-			if (transformUpperArm)
+			if (transformLeftUpperArm)
 				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
 			else
 				mask |= MESH_BITS(LM_LINARM);
 
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
+			// Right arm
+
+			// HACK: Same as above, but for right arm.
+			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked ||
+				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber);
+
 			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
 			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightAnimData).Keyframe0;
 
-			// Right arm
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			auto interpDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
 
-			if (transformUpperArm)
+			if (transformRightUpperArm)
 				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
 			else
 				mask |= MESH_BITS(LM_RINARM);
