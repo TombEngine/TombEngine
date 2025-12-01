@@ -142,7 +142,7 @@ namespace TEN::Input
 		float        IntensityFrom = 0.0f;
 		float        IntensityTo   = 0.0f;
 		unsigned int DurationTicks = 0;
-		unsigned int Ticks         = 0;
+		unsigned int GameFrames         = 0;
 	};
 
 	class InputManager
@@ -192,12 +192,12 @@ namespace TEN::Input
 
 		std::string GetGamepadVendorName(GamepadVendorId vendorId) const;
 
+		void UpdateActions();
+		void UpdateRumble();
+
 		void ReadKeyboard();
 		void ReadMouse(SDL_Window& window, const Vector2& wheelAxis);
 		void ReadGamepad();
-
-		void UpdateRumble();
-		void UpdateActions();
 
 		void HandleHotkeyActions();
 	};
