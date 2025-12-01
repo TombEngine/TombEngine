@@ -185,8 +185,8 @@ bool LoadConfiguration()
 				int keyId = ToInt(val, NO_VALUE);
 				if (actionId >= 0 && keyId >= 0)
 				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
+					g_Configuration.Bindings.insert({ (ActionId)actionId, keyId });
+					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionId)actionId, keyId);
 				}
 			}
 		}

@@ -17,8 +17,6 @@ using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
-// Big TODO: Make an Input class and handle everything inside it.
-
 namespace TEN::Input
 {
 	constexpr auto AXIS_SCALE			 = 1.5f;
@@ -30,9 +28,9 @@ namespace TEN::Input
 
 	RumbleData									   RumbleInfo = {};
 	std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
-	std::unordered_map<ActionID, Action>		   ActionMap;		// Key = action ID, value = action.
-	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
-	std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
+	std::unordered_map<ActionId, Action>		   ActionMap;		// Key = action ID, value = action.
+	std::unordered_map<ActionId, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
+	std::unordered_map<AnalogAxisId, Vector2>      AxisMap;			// Key = axis ID, value = axis.
 
 	bool InputLocked = false; // Disables control polling in case application is defocused.
 
@@ -74,17 +72,17 @@ namespace TEN::Input
 			KeyMap[i] = 0.0f;
 
 		// Initialize action and action queue maps.
-		for (int i = 0; i < (int)ActionID::Count; i++)
+		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionID)i;
+			auto actionID = (ActionId)i;
 			ActionMap[actionID] = Action(actionID);
 			ActionQueueMap[actionID] = ActionQueueState::None;
 		}
 
 		// Initialize axis map.
-		for (int i = 0; i < (int)AxisID::Count; i++)
+		for (int i = 0; i < (int)AnalogAxisId::Count; i++)
 		{
-			auto axisID = (AxisID)i;
+			auto axisID = (AnalogAxisId)i;
 			AxisMap[axisID] = Vector2::Zero;
 		}
 
@@ -200,9 +198,9 @@ namespace TEN::Input
 
 	void ApplyActionQueue()
 	{
-		for (int i = 0; i < (int)ActionID::Count; i++)
+		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionID)i;
+			auto actionID = (ActionId)i;
 			switch (ActionQueueMap[actionID])
 			{
 			default:
@@ -228,9 +226,9 @@ namespace TEN::Input
 		for (int i = 1; i >= 0; i--)
 		{
 			auto profileID = (BindingProfileID)i;
-			for (int j = 0; j < (int)ActionID::Count; j++)
+			for (int j = 0; j < (int)ActionId::Count; j++)
 			{
-				auto actionID = (ActionID)j;
+				auto actionID = (ActionId)j;
 				if (g_Bindings.GetBoundEventID(profileID, actionID) == keyID)
 					return true;
 			}
@@ -285,19 +283,19 @@ namespace TEN::Input
 			auto profileID = (BindingProfileID)i;
 			if (g_Bindings.GetBoundEventID(profileID, In::Forward) == keyID)
 			{
-				AxisMap[AxisID::Move].y = 1.0f;
+				AxisMap[AnalogAxisId::Move].y = 1.0f;
 			}
 			else if (g_Bindings.GetBoundEventID(profileID, In::Back) == keyID)
 			{
-				AxisMap[AxisID::Move].y = -1.0f;
+				AxisMap[AnalogAxisId::Move].y = -1.0f;
 			}
 			else if (g_Bindings.GetBoundEventID(profileID, In::Left) == keyID)
 			{
-				AxisMap[AxisID::Move].x = -1.0f;
+				AxisMap[AnalogAxisId::Move].x = -1.0f;
 			}
 			else if (g_Bindings.GetBoundEventID(profileID, In::Right) == keyID)
 			{
-				AxisMap[AxisID::Move].x = 1.0f;
+				AxisMap[AnalogAxisId::Move].x = 1.0f;
 			}
 		}
 	}
@@ -409,7 +407,7 @@ namespace TEN::Input
 			normAxes *= sensitivity;
 
 			// Set mouse axis values.
-			AxisMap[AxisID::Mouse] = normAxes;
+			AxisMap[AnalogAxisId::Mouse] = normAxes;
 		}
 		catch (OIS::Exception& ex)
 		{
@@ -466,29 +464,29 @@ namespace TEN::Input
 
 				if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Forward) == usedKeyID)
 				{
-					AxisMap[AxisID::Move].y = abs(scaledValue);
+					AxisMap[AnalogAxisId::Move].y = abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Back) == usedKeyID)
 				{
-					AxisMap[AxisID::Move].y = -abs(scaledValue);
+					AxisMap[AnalogAxisId::Move].y = -abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Left)  == usedKeyID)
 				{
-					AxisMap[AxisID::Move].x = -abs(scaledValue);
+					AxisMap[AnalogAxisId::Move].x = -abs(scaledValue);
 				}
 				else if (g_Bindings.GetBoundEventID(BindingProfileID::Custom, In::Right) == usedKeyID)
 				{
-					AxisMap[AxisID::Move].x = abs(scaledValue);
+					AxisMap[AnalogAxisId::Move].x = abs(scaledValue);
 				}
 				else if (!TestBoundKey(usedKeyID))
 				{
 					if ((axis % 2) == 0)
 					{
-						AxisMap[AxisID::Camera].y = normalizedValue;
+						AxisMap[AnalogAxisId::Camera].y = normalizedValue;
 					}
 					else
 					{
-						AxisMap[AxisID::Camera].x = normalizedValue;
+						AxisMap[AnalogAxisId::Camera].x = normalizedValue;
 					}
 				}
 			}
@@ -545,7 +543,7 @@ namespace TEN::Input
 		}
 	}
 
-	static float Key(ActionID actionID)
+	static float Key(ActionId actionID)
 	{
 		int keyID = OIS::KC_UNASSIGNED;
 		for (int i = (int)BindingProfileID::Count - 1; i >= 0; i--)
@@ -739,9 +737,9 @@ namespace TEN::Input
 		if (!OisGamepad)
 			return false;
 
-		for (int i = 0; i < (int)ActionID::Count; i++)
+		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionID)i;
+			auto actionID = (ActionId)i;
 
 			int defaultKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Default, actionID);
 			int userKeyID = g_Bindings.GetBoundEventID(BindingProfileID::Custom, actionID);
@@ -780,7 +778,7 @@ namespace TEN::Input
 		return (DISPLAY_SPACE_RES * (areaPos / areaRes));
 	}
 
-	void ClearAction(ActionID actionID)
+	void ClearAction(ActionId actionID)
 	{
 		ActionMap[actionID].Clear();
 	}
@@ -796,39 +794,39 @@ namespace TEN::Input
 		return true;
 	}
 
-	bool IsClicked(ActionID actionID)
+	bool IsClicked(ActionId actionID)
 	{
 		return ActionMap[actionID].IsClicked();
 	}
 
-	bool IsHeld(ActionID actionID, float delaySec)
+	bool IsHeld(ActionId actionID, float delaySec)
 	{
 		return ActionMap[actionID].IsHeld(delaySec);
 	}
 
-	bool IsPulsed(ActionID actionID, float delaySec, float initialDelaySec)
+	bool IsPulsed(ActionId actionID, float delaySec, float initialDelaySec)
 	{
 		return ActionMap[actionID].IsPulsed(delaySec, initialDelaySec);
 	}
 
-	bool IsReleased(ActionID actionID, float maxDelaySec)
+	bool IsReleased(ActionId actionID, float maxDelaySec)
 	{
 		return ActionMap[actionID].IsReleased(maxDelaySec);
 	}
 
-	float GetActionValue(ActionID actionID)
+	float GetActionValue(ActionId actionID)
 	{
 		return ActionMap[actionID].GetValue();
 	}
 
 	// Time in game frames.
-	unsigned int GetActionTimeActive(ActionID actionID)
+	unsigned int GetActionTimeActive(ActionId actionID)
 	{
 		return ActionMap[actionID].GetTimeActive();
 	}
 
 	// Time in game frames.
-	unsigned int GetActionTimeInactive(ActionID actionID)
+	unsigned int GetActionTimeInactive(ActionId actionID)
 	{
 		return ActionMap[actionID].GetTimeInactive();
 	}
@@ -857,16 +855,115 @@ namespace TEN::Input
 
 	const Vector2& GetMoveAxis()
 	{
-		return AxisMap[AxisID::Move];
+		return AxisMap[AnalogAxisId::Move];
 	}
 
 	const Vector2& GetCameraAxis()
 	{
-		return AxisMap[AxisID::Camera];
+		return AxisMap[AnalogAxisId::Camera];
 	}
 
 	const Vector2& GetMouseAxis()
 	{
-		return AxisMap[AxisID::Mouse];
+		return AxisMap[AnalogAxisId::Mouse];
+	}
+
+	// ====================================================================================================================
+
+	InputManager g_Input = InputManager();
+
+	GamepadVendorId InputManager::GetGamepadVendorId() const
+	{
+		return _gamepad.VendorId;
+	}
+
+	const Action& InputManager::GetAction(ActionId actionId) const
+	{
+		// TODO
+	}
+
+	const Vector2& InputManager::GetAnalogAxis(AnalogAxisId2 axisId) const
+	{
+		// TODO
+	}
+
+	const Vector2& InputManager::GetCursorPosition() const
+	{
+		// TODO
+	}
+
+	void InputManager::SetRumble(RumbleMode2 mode, float intensityFrom, float intensityTo, float durationSec)
+	{
+		// TODO
+	}
+
+	bool InputManager::IsGamepadConnected() const
+	{
+		// TODO
+	}
+
+	bool InputManager::IsUsingGamepad() const
+	{
+		// TODO
+	}
+
+	void InputManager::Initialize()
+	{
+		// TODO
+	}
+
+	void InputManager::Deinitialize()
+	{
+		// TODO
+	}
+
+	void InputManager::Update(SDL_Window& window, const Vector2& mouseWheelAxis)
+	{
+		// TODO
+	}
+
+	void InputManager::ConnectGamepad(int deviceId)
+	{
+		// TODO
+	}
+
+	void InputManager::DisconnectGamepad(int deviceId)
+	{
+		// TODO
+	}
+
+	std::string InputManager::GetGamepadVendorName(GamepadVendorId vendorId) const
+	{
+		// TODO
+	}
+
+	void InputManager::ReadKeyboard()
+	{
+		// TODO
+	}
+
+	void InputManager::ReadMouse(SDL_Window& window, const Vector2& wheelAxis)
+	{
+		// TODO
+	}
+
+	void InputManager::ReadGamepad()
+	{
+		// TODO
+	}
+
+	void InputManager::UpdateRumble()
+	{
+		// TODO
+	}
+
+	void InputManager::UpdateActions()
+	{
+		// TODO
+	}
+
+	void InputManager::HandleHotkeyActions()
+	{
+		// TODO
 	}
 }

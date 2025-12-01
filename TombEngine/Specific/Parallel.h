@@ -5,6 +5,9 @@ namespace TEN::Utils
 	using ParallelTask	= std::function<void()>;
 	using ParallelTasks = std::vector<ParallelTask>;
 
+	#define TASK(task) \
+        [&]() { task; }
+
 	class ParallelTaskManager
 	{
 	private:

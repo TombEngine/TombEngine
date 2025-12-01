@@ -2,7 +2,7 @@
 
 namespace TEN::Input
 {
-	typedef enum class ActionID
+	typedef enum class ActionId
 	{
 		// General
 
@@ -87,7 +87,7 @@ namespace TEN::Input
 		Count
 	} In;
 
-	enum class ActionGroupID
+	enum class ActionGroupId
 	{
 		General,
 		Vehicle,
@@ -99,9 +99,9 @@ namespace TEN::Input
 		//Gamepad
 	};
 
-	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;
-	extern const std::vector<ActionGroupID>			USER_ACTION_GROUP_IDS;
-	extern const std::vector<ActionGroupID>			RAW_ACTION_GROUP_IDS;
+	extern const std::vector<std::vector<ActionId>> ACTION_ID_GROUPS;
+	extern const std::vector<ActionGroupId>			USER_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupId>			RAW_ACTION_GROUP_IDS;
 
 
 	class Action
@@ -109,7 +109,7 @@ namespace TEN::Input
 	private:
 		// Fields
 
-		ActionID	 _id 			 = In::Forward;
+		ActionId	 _id 			 = In::Forward;
 		float		 _value			 = 0.0f;
 		float		 _prevValue		 = 0.0f;
 		unsigned int _timeActive	 = 0;			// Time in game frames.
@@ -120,11 +120,11 @@ namespace TEN::Input
 		// Constructors
 
 		Action() = default;
-		Action(ActionID actionID);
+		Action(ActionId actionID);
 
 		// Getters
 
-		ActionID	 GetID() const;
+		ActionId	 GetID() const;
 		float		 GetValue() const;
 		unsigned int GetTimeActive() const;
 		unsigned int GetTimeInactive() const;

@@ -2,9 +2,9 @@
 
 namespace TEN::Input
 {
-	enum class ActionID;
+	enum class ActionId;
 
-	using BindingProfile = std::unordered_map<ActionID, int>; // Key = action ID, value = key ID.
+	using BindingProfile = std::unordered_map<ActionId, int>; // Key = action ID, value = key ID.
 
 	extern const BindingProfile DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 	extern const BindingProfile DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
@@ -33,7 +33,7 @@ namespace TEN::Input
 		// Fields
 
 		std::unordered_map<BindingProfileID, BindingProfile> _bindings	= {}; // Key = binding profile ID, value = binding profile.
-		std::unordered_map<ActionID, bool>					 _conflicts = {}; // Key = action ID, value = has conflict.
+		std::unordered_map<ActionId, bool>					 _conflicts = {}; // Key = action ID, value = has conflict.
 
 	public:
 		// Constructors
@@ -42,19 +42,19 @@ namespace TEN::Input
 
 		// Getters
 
-		int					  GetBoundEventID(BindingProfileID profileID, ActionID actionID) const;
+		int					  GetBoundEventID(BindingProfileID profileID, ActionId actionID) const;
 		const BindingProfile& GetBindingProfile(BindingProfileID profileID) const;
 
 		// Setters
 
-		void SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID);
+		void SetKeyBinding(BindingProfileID profileID, ActionId actionID, int keyID);
 		void SetBindingProfile(BindingProfileID profileID, const BindingProfile& profile);
 		void SetDefaultBindingProfile(BindingProfileID profileID);
-		void SetConflict(ActionID actionID, bool value);
+		void SetConflict(ActionId actionID, bool value);
 
 		// Inquirers
 
-		bool TestConflict(ActionID actionID);
+		bool TestConflict(ActionId actionID);
 
 		// Utilities
 

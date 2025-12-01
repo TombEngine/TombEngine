@@ -123,7 +123,7 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
-	bool GuiController::GuiIsPulsed(ActionID actionID) const
+	bool GuiController::GuiIsPulsed(ActionId actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
@@ -133,7 +133,7 @@ namespace TEN::Gui
 			return false;
 
 		// Pulse only directional inputs.
-		auto oppositeAction = std::optional<ActionID>(std::nullopt);
+		auto oppositeAction = std::optional<ActionId>(std::nullopt);
 		switch (actionID)
 		{
 		case In::Forward:
@@ -785,7 +785,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;

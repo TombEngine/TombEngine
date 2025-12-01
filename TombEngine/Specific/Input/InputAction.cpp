@@ -5,7 +5,7 @@
 
 namespace TEN::Input
 {
-	const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS =
+	const std::vector<std::vector<ActionId>> ACTION_ID_GROUPS =
 	{
 		// General
 		{
@@ -80,27 +80,27 @@ namespace TEN::Input
 		}
 	};
 
-	const std::vector<ActionGroupID> USER_ACTION_GROUP_IDS =
+	const std::vector<ActionGroupId> USER_ACTION_GROUP_IDS =
 	{
-		ActionGroupID::General,
-		ActionGroupID::Vehicle,
-		ActionGroupID::Quick,
-		ActionGroupID::Menu
+		ActionGroupId::General,
+		ActionGroupId::Vehicle,
+		ActionGroupId::Quick,
+		ActionGroupId::Menu
 	};
 
-	const std::vector<ActionGroupID> RAW_ACTION_GROUP_IDS =
+	const std::vector<ActionGroupId> RAW_ACTION_GROUP_IDS =
 	{
-		ActionGroupID::Keyboard,
-		ActionGroupID::Mouse,
+		ActionGroupId::Keyboard,
+		ActionGroupId::Mouse,
 		//ActionGroupID::Gamepad
 	};
 
-	Action::Action(ActionID actionID)
+	Action::Action(ActionId actionID)
 	{
 		_id = actionID;
 	}
 
-	ActionID Action::GetID() const
+	ActionId Action::GetID() const
 	{
 		return _id;
 	}

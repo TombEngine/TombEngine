@@ -12,7 +12,7 @@ namespace TEN::Scripting::Input
 	// @enum Input.ActionID
 	// @pragma nostrip
 
-	static const auto ACTION_IDS = std::unordered_map<std::string, ActionID>
+	static const auto ACTION_IDS = std::unordered_map<std::string, ActionId>
 	{
 		/// Forward action.
 		// @mem FORWARD

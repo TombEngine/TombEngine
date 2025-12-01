@@ -175,7 +175,7 @@ namespace TEN::Input
 		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
 	};
 
-	int BindingManager::GetBoundEventID(BindingProfileID profileID, ActionID actionID) const
+	int BindingManager::GetBoundEventID(BindingProfileID profileID, ActionId actionID) const
 	{
 		// Find binding profile.
 		auto profileIt = _bindings.find(profileID);
@@ -206,7 +206,7 @@ namespace TEN::Input
 		return profile;
 	}
 
-	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)
+	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionId actionID, int keyID)
 	{
 		// Overwrite or add key-action binding.
 		_bindings[profileID][actionID] = keyID;
@@ -237,12 +237,12 @@ namespace TEN::Input
 		}
 	}
 
-	void BindingManager::SetConflict(ActionID actionID, bool value)
+	void BindingManager::SetConflict(ActionId actionID, bool value)
 	{
 		_conflicts[actionID] = value;
 	}
 
-	bool BindingManager::TestConflict(ActionID actionID)
+	bool BindingManager::TestConflict(ActionId actionID)
 	{
 		return _conflicts.at(actionID);
 	}
@@ -258,10 +258,10 @@ namespace TEN::Input
 		};
 
 		// Initialize conflicts.
-		_conflicts.reserve((int)ActionID::Count);
-		for (int i = 0; i < (int)ActionID::Count; i++)
+		_conflicts.reserve((int)ActionId::Count);
+		for (int i = 0; i < (int)ActionId::Count; i++)
 		{
-			auto actionID = (ActionID)i;
+			auto actionID = (ActionId)i;
 			_conflicts.insert({ actionID, false });
 		}
 	}

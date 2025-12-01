@@ -20,7 +20,7 @@ namespace TEN::Scripting::Input
 
 	static bool IsValidAction(int actionID)
 	{
-		if (actionID > (int)ActionID::Count)
+		if (actionID > (int)ActionId::Count)
 		{
 			ScriptAssertF(false, "Input action {} does not exist.", actionID);
 			return false;
@@ -41,14 +41,14 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return 0.0f;
 
-		return GetActionValue((ActionID)actionID);
+		return GetActionValue((ActionId)actionID);
 	}
 
 	/// Get the analog value of an axis.
 	// @function GetAnalogAxisValue
 	// @tparam Input.AxisID axis Axis ID to fetch.
 	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
-	static Vec2 GetAnalogAxisValue(AxisID axisID)
+	static Vec2 GetAnalogAxisValue(AnalogAxisID axisID)
 	{
 		return Vec2(AxisMap[axisID]);
 	}
@@ -74,7 +74,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsClicked((ActionID)actionID);
+		return IsClicked((ActionId)actionID);
 	}
 
 	/// Check if an action key is being held.
@@ -86,7 +86,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsHeld((ActionID)actionID, ValueOr<float>(delaySec, 0.0f));
+		return IsHeld((ActionId)actionID, ValueOr<float>(delaySec, 0.0f));
 	}
 
 	/// Check if an action key is being pulsed.
@@ -100,7 +100,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsPulsed((ActionID)actionID, delaySec, ValueOr<float>(initialDelaySec, 0.0f));
+		return IsPulsed((ActionId)actionID, delaySec, ValueOr<float>(initialDelaySec, 0.0f));
 	}
 
 	/// Check if an action key is being released.
@@ -112,7 +112,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return IsReleased((ActionID)actionID, ValueOr<float>(maxDelaySec, FLT_MAX));
+		return IsReleased((ActionId)actionID, ValueOr<float>(maxDelaySec, FLT_MAX));
 	}
 
 	/// Simulate an action key push.
@@ -123,7 +123,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return;
 
-		ActionQueueMap[(ActionID)actionID] = ActionQueueState::Update;
+		ActionQueueMap[(ActionId)actionID] = ActionQueueState::Update;
 	}
 
 	/// Clear an action key.
@@ -134,7 +134,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return;
 
-		ActionQueueMap[(ActionID)actionID] = ActionQueueState::Clear;
+		ActionQueueMap[(ActionId)actionID] = ActionQueueState::Clear;
 	}
 
 	/// Clear all action keys.
