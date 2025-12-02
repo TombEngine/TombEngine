@@ -182,6 +182,6 @@ namespace TEN::Scripting::Input
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(table, ScriptReserved_InputActionID, ACTION_IDS);
-		handler.MakeReadOnlyTable(table, ScriptReserved_InputAxisID, AXIS_IDS);
+		handler.MakeReadOnlyTable(table, ScriptReserved_InputAxisID, ANALOG_AXIS_IDS);
 	}
 }
