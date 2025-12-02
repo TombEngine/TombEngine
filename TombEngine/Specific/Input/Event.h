@@ -153,9 +153,7 @@ namespace TEN::Input
 		Count
 	};
 
-	extern const std::vector<EventId> BINDABLE_KEYBOARD_EVENT_IDS;
-	extern const std::vector<EventId> BINDABLE_MOUSE_EVENT_IDS;
-	extern const std::vector<EventId> BINDABLE_GAMEPAD_EVENT_IDS;
+	extern const std::vector<EventId> BINDABLE_EVENT_IDS;
 
 	extern const std::vector<SDL_Scancode>      VALID_KEYBOARD_SCAN_CODES;
 	extern const std::vector<int>               VALID_KEYBOARD_MODIFIER_CODES;

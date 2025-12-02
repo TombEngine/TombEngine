@@ -50,7 +50,7 @@ namespace TEN::Scripting::Input
 	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
 	static Vec2 GetAnalogAxisValue(AnalogAxisId axisID)
 	{
-		return Vec2(AxisMap[axisID]);
+		return Vec2(g_Input.GetAnalogAxis(axisID));
 	}
 
 	/// Get the display position of the cursor in percent.
@@ -123,7 +123,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionId))
 			return;
 
-		ActionQueueMap[(ActionId)actionId] = ActionQueueState::Update;
+		g_Input.SetActionQueue((ActionId)actionId, ActionQueueState::Update);
 	}
 
 	/// Clear an action key.
@@ -134,15 +134,16 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionId))
 			return;
 
-		ActionQueueMap[(ActionId)actionId] = ActionQueueState::Clear;
+		g_Input.SetActionQueue((ActionId)actionId, ActionQueueState::Clear);
 	}
 
 	/// Clear all action keys.
 	// @function ClearAllKeys
 	static void ClearAllKeys()
 	{
-		for (auto& [keyActionID, queue] : ActionQueueMap)
-			queue = ActionQueueState::Clear;
+		// @inputme
+		//for (auto& [keyActionID, queue] : ActionQueueMap)
+		//	queue = ActionQueueState::Clear;
 	}
 
 	/// Vibrate the game controller if the function is available and the setting is on.
@@ -151,7 +152,7 @@ namespace TEN::Scripting::Input
 	// @tparam[opt=0.3] float time Vibration time in seconds.
 	static void Vibrate(float strength, sol::optional<float> time)
 	{
-		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
+		Rumble(strength, time.value_or(0.3f), RumbleMode::LowAndHigh);
 	}
 
 	void Register(sol::state* state, sol::table& parent)

@@ -3,7 +3,7 @@
 #include "Math/Math.h"
 #include "Specific/Input/Action.h"
 #include "Specific/Input/Bindings.h"
-#include "Specific/Input/Events.h"
+#include "Specific/Input/Event.h"
 
 using namespace TEN::Math;
 
@@ -101,6 +101,7 @@ namespace TEN::Input
 		const Action&   GetAction(ActionId actionId) const;
 		const Vector2&  GetAnalogAxis(AnalogAxisId axisId) const;
 		const Vector2&  GetCursorPosition() const;
+		float           GetRawEventState(EventId eventId) const;
 		GamepadVendorId GetGamepadVendorId() const;
 
 		// Setters

@@ -743,8 +743,10 @@ namespace TEN::Gui
 					}
 					else
 					{
-						g_Renderer.PrepareScene(); // Just for updating blink time.
-						g_Input.Update();
+						// Just to update blink time.
+						g_Renderer.PrepareScene();
+
+						g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 					}
 
 					if (CurrentSettings.IgnoreInput)
@@ -754,17 +756,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedEventId = 0;
-						for (selectedEventId = 0; selectedEventId < KEY_COUNT; selectedEventId++)
+						auto selectedEventId = std::optional<EventId>(std::nullopt);
+						for (auto eventId : BINDABLE_EVENT_IDS)
 						{
-							//if (KeyMap[selectedEventId])
-							//	break;
+							if (g_Input.GetRawEventState(eventId))
+							{
+								selectedEventId = eventId;
+								break;
+							}
 						}
 
-						if (selectedEventId == KEY_COUNT)
-							selectedEventId = 0;
-
-						if (selectedEventId != OIS::KC_UNASSIGNED && !GetEventName(selectedEventId).empty())
+						if (selectedEventId.has_value() && !GetEventName(*selectedEventId).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -785,7 +787,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), selectedEventId);
+							g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -1205,7 +1207,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		g_Input.Update(*g_Platform->GetSDL3Window(), );
+		g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 
 		switch (MenuToDisplay)
 		{
@@ -3329,7 +3331,7 @@ namespace TEN::Gui
 				SaveGame::Statistics.Game.TimeTaken++;
 				SaveGame::Statistics.Level.TimeTaken++;
 
-				g_Input.Update(*g_Platform->GetSDL3Window(), );
+				g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 				{

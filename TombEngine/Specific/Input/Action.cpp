@@ -127,7 +127,7 @@ namespace TEN::Input
 		_id = actionId;
 	}
 
-	ActionId Action::GetID() const
+	ActionId Action::GetId() const
 	{
 		return _id;
 	}

@@ -334,11 +334,10 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)k);
-						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::DefaultKeyboardMouse, (ActionId)k);
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -387,11 +386,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -446,11 +446,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -498,11 +499,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -1368,13 +1370,13 @@ namespace TEN::Renderer
 				for (auto actionId : ACTION_ID_GROUPS[(int)actionGroupID])
 				{
 					if (IsClicked(actionId))
-						clickedActions.Set((int)action.GetID());
+						clickedActions.Set((int)actionId);
 
 					if (IsHeld(actionId))
-						heldActions.Set((int)action.GetID());
+						heldActions.Set((int)actionId);
 
 					if (IsReleased(actionId))
-						releasedActions.Set((int)action.GetID());
+						releasedActions.Set((int)actionId);
 				}
 			}
 

@@ -771,8 +771,7 @@ void HandleControls(bool isTitle)
 {
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
-	g_Input.Update(*g_Platform->GetSDL3Window(), mouseWheelAxis, false, true);
-	//UpdateInputActions(false, true);
+	g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero, false, true); // @inputme
 
 	if (isTitle)
 		ClearAction(In::Look);

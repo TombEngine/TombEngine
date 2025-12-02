@@ -145,7 +145,7 @@ namespace TEN::Input
 
 		// Getters
 
-		ActionId     GetID() const;
+		ActionId     GetId() const;
 		float        GetValue() const;
 		unsigned int GetTimeActive() const;
 		unsigned int GetTimeInactive() const;

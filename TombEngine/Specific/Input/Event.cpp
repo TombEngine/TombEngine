@@ -5,7 +5,7 @@
 
 namespace TEN::Input
 {
-	const std::vector<EventId> BINDABLE_KEYBOARD_EVENT_IDS =
+	const std::vector<EventId> BINDABLE_EVENT_IDS =
 	{
 		EventId::A,
 		EventId::B,
@@ -99,22 +99,16 @@ namespace TEN::Input
 		EventId::PadPeriod,
 		EventId::Ctrl,
 		EventId::Shift,
-		EventId::Alt
-	};
+		EventId::Alt,
 
-	const std::vector<EventId> BINDABLE_MOUSE_EVENT_IDS =
-	{
 		EventId::MouseClickLeft,
 		EventId::MouseClickMiddle,
 		EventId::MouseClickRight,
 		EventId::MouseScrollUp,
 		EventId::MouseScrollDown,
 		EventId::MouseScrollLeft,
-		EventId::MouseScrollRight
-	};
+		EventId::MouseScrollRight,
 
-	const std::vector<EventId> BINDABLE_GAMEPAD_EVENT_IDS =
-	{
 		EventId::GamepadSouth,
 		EventId::GamepadEast,
 		EventId::GamepadWest,

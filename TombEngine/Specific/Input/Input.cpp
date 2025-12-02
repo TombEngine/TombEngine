@@ -38,6 +38,11 @@ namespace TEN::Input
 		return _states.CursorPosition;
 	}
 
+	float InputManager::GetRawEventState(EventId eventId) const
+	{
+		return _states.Events[(int)eventId];
+	}
+
 	GamepadVendorId InputManager::GetGamepadVendorId() const
 	{
 		return _gamepad.VendorId;
