@@ -19,8 +19,10 @@ GameConfiguration g_Configuration;
 static std::string GetConfigFilePath()
 {
 	char* base = SDL_GetPrefPath("TEN", "TombEngine");
-	if (!base) return "ten.conf";
-	std::string path = std::string(base) + "ten.conf";
+	if (base == nullptr)
+		return "ten.conf";
+
+	auto path = std::string(base) + "ten.conf";
 	SDL_free(base);
 	return path;
 }
@@ -69,7 +71,7 @@ void SaveAudioConfig()
 
 void InitDefaultConfiguration()
 {
-	// Include default device into the list
+	// Include default device in list.
 	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, true);
 
 	auto currentScreenResolution = GetScreenResolution();
@@ -110,13 +112,15 @@ void InitDefaultConfiguration()
 
 bool LoadConfiguration()
 {
-	const std::string path = GetConfigFilePath();
-	std::string text;
+	auto path = GetConfigFilePath();
+
+	auto text = std::string();
 	if (!ReadAllText(path, text))
 		return false; 
 
-	std::istringstream in(text);
-	std::string line, section;
+	auto in = std::istringstream(text);
+	auto line = std::string();
+	auto section = std::string();
 
 	InitDefaultConfiguration();
 
@@ -138,45 +142,120 @@ bool LoadConfiguration()
 		if (eq == std::string::npos)
 			continue;
 
-		std::string key = Trim(line.substr(0, eq));
-		std::string val = Trim(line.substr(eq + 1));
+		auto key = Trim(line.substr(0, eq));
+		auto val = Trim(line.substr(eq + 1));
 
 		if (section == "Graphics")
 		{
-			if (key == "ScreenWidth")             g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
-			else if (key == "ScreenHeight")       g_Configuration.ScreenHeight = ToInt(val, g_Configuration.ScreenHeight);
-			else if (key == "EnableWindowedMode") g_Configuration.EnableWindowedMode = ToBool(val, g_Configuration.EnableWindowedMode);
-			else if (key == "ShadowsMode")        g_Configuration.ShadowType = (ShadowMode)ToInt(val, (int)g_Configuration.ShadowType);
-			else if (key == "ShadowMapSize")      g_Configuration.ShadowMapSize = ToInt(val, g_Configuration.ShadowMapSize);
-			else if (key == "ShadowBlobsMax")     g_Configuration.ShadowBlobsMax = ToInt(val, g_Configuration.ShadowBlobsMax);
-			else if (key == "EnableCaustics")     g_Configuration.EnableCaustics = ToBool(val, g_Configuration.EnableCaustics);
-			else if (key == "EnableDecals")       g_Configuration.EnableDecals = ToBool(val, g_Configuration.EnableDecals);
-			else if (key == "AntialiasingMode")   g_Configuration.AntialiasingMode = (AntialiasingMode)ToInt(val, (int)g_Configuration.AntialiasingMode);
-			else if (key == "AmbientOcclusion")   g_Configuration.EnableAmbientOcclusion = ToBool(val, g_Configuration.EnableAmbientOcclusion);
-			else if (key == "EnableHighFramerate")g_Configuration.EnableHighFramerate = ToBool(val, g_Configuration.EnableHighFramerate);
-			else if (key == "AdapterName")        g_Configuration.AdapterName = val;
+			if (key == "ScreenWidth")             
+			{
+				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
+			}
+			else if (key == "ScreenHeight")
+			{
+				g_Configuration.ScreenHeight = ToInt(val, g_Configuration.ScreenHeight);
+			}
+			else if (key == "EnableWindowedMode")
+			{
+				g_Configuration.EnableWindowedMode = ToBool(val, g_Configuration.EnableWindowedMode);
+			}
+			else if (key == "ShadowsMode")
+			{
+				g_Configuration.ShadowType = (ShadowMode)ToInt(val, (int)g_Configuration.ShadowType);
+			}
+			else if (key == "ShadowMapSize")
+			{
+				g_Configuration.ShadowMapSize = ToInt(val, g_Configuration.ShadowMapSize);
+			}
+			else if (key == "ShadowBlobsMax")
+			{
+				g_Configuration.ShadowBlobsMax = ToInt(val, g_Configuration.ShadowBlobsMax);
+			}
+			else if (key == "EnableCaustics")
+			{
+				g_Configuration.EnableCaustics = ToBool(val, g_Configuration.EnableCaustics);
+			}
+			else if (key == "EnableDecals")
+			{
+				g_Configuration.EnableDecals = ToBool(val, g_Configuration.EnableDecals);
+			}
+			else if (key == "AntialiasingMode")
+			{
+				g_Configuration.AntialiasingMode = (AntialiasingMode)ToInt(val, (int)g_Configuration.AntialiasingMode);
+			}
+			else if (key == "AmbientOcclusion")
+			{
+				g_Configuration.EnableAmbientOcclusion = ToBool(val, g_Configuration.EnableAmbientOcclusion);
+			}
+			else if (key == "EnableHighFramerate")
+			{
+				g_Configuration.EnableHighFramerate = ToBool(val, g_Configuration.EnableHighFramerate);
+			}
+			else if (key == "AdapterName")
+			{
+				g_Configuration.AdapterName = val;
+			}
 		}
 		else if (section == "Sound")
 		{
-			if (key == "SoundDevice")      g_Configuration.SoundDevice = ToInt(val, g_Configuration.SoundDevice);
-			else if (key == "EnableReverb")g_Configuration.EnableReverb = ToBool(val, g_Configuration.EnableReverb);
-			else if (key == "MusicVolume") g_Configuration.MusicVolume = ToInt(val, g_Configuration.MusicVolume);
-			else if (key == "SfxVolume")   g_Configuration.SfxVolume = ToInt(val, g_Configuration.SfxVolume);
+			if (key == "SoundDevice")      
+			{
+				g_Configuration.SoundDevice = ToInt(val, g_Configuration.SoundDevice);
+			}
+			else if (key == "EnableReverb")
+			{
+				g_Configuration.EnableReverb = ToBool(val, g_Configuration.EnableReverb);
+			}
+			else if (key == "MusicVolume")
+			{
+				g_Configuration.MusicVolume = ToInt(val, g_Configuration.MusicVolume);
+			}
+			else if (key == "SfxVolume")
+			{
+				g_Configuration.SfxVolume = ToInt(val, g_Configuration.SfxVolume);
+			}
 		}
 		else if (section == "Gameplay")
 		{
-			if (key == "EnableSubtitles")              g_Configuration.EnableSubtitles = ToBool(val, g_Configuration.EnableSubtitles);
-			else if (key == "EnableAutoMonkeySwingJump") g_Configuration.EnableAutoMonkeySwingJump = ToBool(val, g_Configuration.EnableAutoMonkeySwingJump);
-			else if (key == "EnableAutoTargeting")     g_Configuration.EnableAutoTargeting = ToBool(val, g_Configuration.EnableAutoTargeting);
-			else if (key == "EnableTargetHighlighter") g_Configuration.EnableTargetHighlighter = ToBool(val, g_Configuration.EnableTargetHighlighter);
-			else if (key == "EnableInteractionHighlighter") g_Configuration.EnableInteractionHighlighter = ToBool(val, g_Configuration.EnableInteractionHighlighter);
-			else if (key == "EnableRumble")            g_Configuration.EnableRumble = ToBool(val, g_Configuration.EnableRumble);
-			else if (key == "EnableThumbstickCamera")  g_Configuration.EnableThumbstickCamera = ToBool(val, g_Configuration.EnableThumbstickCamera);
+			if (key == "EnableSubtitles")
+			{
+				g_Configuration.EnableSubtitles = ToBool(val, g_Configuration.EnableSubtitles);
+			}
+			else if (key == "EnableAutoMonkeySwingJump")
+			{
+				g_Configuration.EnableAutoMonkeySwingJump = ToBool(val, g_Configuration.EnableAutoMonkeySwingJump);
+			}
+			else if (key == "EnableAutoTargeting")
+			{
+				g_Configuration.EnableAutoTargeting = ToBool(val, g_Configuration.EnableAutoTargeting);
+			}
+			else if (key == "EnableTargetHighlighter")
+			{
+				g_Configuration.EnableTargetHighlighter = ToBool(val, g_Configuration.EnableTargetHighlighter);
+			}
+			else if (key == "EnableInteractionHighlighter")
+			{
+				g_Configuration.EnableInteractionHighlighter = ToBool(val, g_Configuration.EnableInteractionHighlighter);
+			}
+			else if (key == "EnableRumble")
+			{
+				g_Configuration.EnableRumble = ToBool(val, g_Configuration.EnableRumble);
+			}
+			else if (key == "EnableThumbstickCamera")
+			{
+				g_Configuration.EnableThumbstickCamera = ToBool(val, g_Configuration.EnableThumbstickCamera);
+			}
 		}
 		else if (section == "Input")
 		{
-			if (key == "MouseSensitivity")      g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
-			else if (key == "MenuOptionLoopingMode") g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
+			if (key == "MouseSensitivity")
+			{
+				g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
+			}
+			else if (key == "MenuOptionLoopingMode")
+			{
+				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
+			}
 			else if (StartsWith(key, "bind."))
 			{
 				foundInput = true;
@@ -253,6 +332,6 @@ bool SaveConfiguration()
 	//}
 	//ss << "\n";
 
-	const std::string path = GetConfigFilePath();
+	auto path = GetConfigFilePath();
 	return WriteAllText(path, ss.str());
 }
