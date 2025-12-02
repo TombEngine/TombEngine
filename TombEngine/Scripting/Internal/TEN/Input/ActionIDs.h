@@ -283,44 +283,44 @@ namespace TEN::Scripting::Input
 		{ "Z", In::Z },
 
 		/// Keyboard 1 key.
-		// @mem 1
-		{ "1", In::Num1 },
+		// @mem NUM1
+		{ "NUM1", In::Num1 },
 
 		/// Keyboard 2 key.
-		// @mem 2
-		{ "2", In::Num2 },
+		// @mem NUM2
+		{ "NUM2", In::Num2 },
 
 		/// Keyboard 3 key.
-		// @mem 3
-		{ "3", In::Num3 },
+		// @mem NUM3
+		{ "NUM3", In::Num3 },
 
 		/// Keyboard 4 key.
-		// @mem 4
-		{ "4", In::Num4 },
+		// @mem NUM4
+		{ "NUM4", In::Num4 },
 
 		/// Keyboard 5 key.
-		// @mem 5
-		{ "5", In::Num5 },
+		// @mem NUM5
+		{ "NUM5", In::Num5 },
 
 		/// Keyboard 6 key.
-		// @mem 6
-		{ "6", In::Num6 },
+		// @mem NUM6
+		{ "NUM6", In::Num6 },
 
 		/// Keyboard 7 key.
-		// @mem 7
-		{ "7", In::Num7 },
+		// @mem NUM7
+		{ "NUM7", In::Num7 },
 
 		/// Keyboard 8 key.
-		// @mem 8
-		{ "8", In::Num8 },
+		// @mem NUM8
+		{ "NUM8", In::Num8 },
 
 		/// Keyboard 9 key.
-		// @mem 9
-		{ "9", In::Num9 },
+		// @mem NUM9
+		{ "NUM9", In::Num9 },
 
 		/// Keyboard 0 key.
-		// @mem 0
-		{ "0", In::Num0 },
+		// @mem NUM0
+		{ "NUM0", In::Num0 },
 
 		/// Return/Enter key.
 		// @mem RETURN
@@ -553,16 +553,5 @@ namespace TEN::Scripting::Input
 		/// Gamepad right analog stick tilt right.
 		// @mem GAMEPAD_STICK_RIGHT_RIGHT
 		{ "GAMEPAD_STICK_RIGHT_RIGHT", In::GamepadStickRightRight },
-
-		// DEPRECATED.
-		{ "NUM2", In::Num2 },
-		{ "NUM3", In::Num3 },
-		{ "NUM4", In::Num4 },
-		{ "NUM5", In::Num5 },
-		{ "NUM6", In::Num6 },
-		{ "NUM7", In::Num7 },
-		{ "NUM8", In::Num8 },
-		{ "NUM9", In::Num9 },
-		{ "NUM0", In::Num0 },
 	};
 }
