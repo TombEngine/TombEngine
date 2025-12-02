@@ -439,16 +439,16 @@ namespace TEN::Input
 		const auto& [keyEventId, names] = *namesIt;
 
 		// Pick vendor-appropriate name.
-		if (names.size() == 1)
-		{
-			return names.front();
-		}
-		else if (names.size() > 1)
+		if (!names.empty())
 		{
 			int nameIdx = (int)g_Input.GetGamepadVendorId();
 			if (nameIdx < names.size())
 			{
 				return names[nameIdx];
+			}
+			else
+			{
+				return names.front();
 			}
 		}
 
