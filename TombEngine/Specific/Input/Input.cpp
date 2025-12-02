@@ -136,7 +136,7 @@ namespace TEN::Input
 		HandleHotkeyActions();
 
 		// Block simultaneous Left and Right actions.
-		if (IsHeld(In::Left) && IsHeld(In::Right))
+		if (GetAction(In::Left).IsHeld() && GetAction(In::Right).IsHeld())
 		{
 			ClearAction(In::Left);
 			ClearAction(In::Right);

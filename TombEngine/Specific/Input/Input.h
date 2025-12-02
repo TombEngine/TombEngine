@@ -11,6 +11,21 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
+	enum class GamepadVendorId
+	{
+		Generic,
+		Xbox,
+		Nintendo,
+		Sony
+	};
+
+	enum class RumbleMode
+	{
+		Low,
+		High,
+		LowAndHigh
+	};
+
 	enum class AnalogAxisId
 	{
 		// Gameplay
@@ -27,40 +42,13 @@ namespace TEN::Input
 		Count
 	};
 
-	enum class GamepadVendorId
-	{
-		Generic,
-		Xbox,
-		Nintendo,
-		Sony
-	};
-
-	enum class RumbleMode
-	{
-		Low,
-		High,
-		LowAndHigh
-	};
-
 	enum class ActionQueueState
 	{
 		None,
 		Update,
 		Clear
 	};
-
-	struct StateData
-	{
-		std::vector<float> Events             = {}; // Index = `EventId`.
-		Vector2            CursorPosition     = {};
-		Vector2            PrevCursorPosition = {};
-
-		bool IsUsingGamepad   = false;
-		bool HasKeyboardInput = false;
-		bool HasMouseInput    = false;
-		bool HasGamepadInput  = false;
-	};
-
+	
 	struct GamepadData
 	{
 		int             Id       = NO_VALUE;
@@ -77,19 +65,33 @@ namespace TEN::Input
 		unsigned int GameFrames         = 0;
 	};
 
+	struct DeviceStateData
+	{
+		std::vector<float> Events             = {}; // Index = `EventId`.
+		Vector2            CursorPosition     = {};
+		Vector2            PrevCursorPosition = {};
+
+		bool IsUsingGamepad   = false;
+		bool HasKeyboardInput = false;
+		bool HasMouseInput    = false;
+		bool HasGamepadInput  = false;
+	};
+
 	class InputManager
 	{
 	private:
 		// Fields
 
-		bool                          _isLocked     = false; // TODO: Not used yet.
-		GamepadData                   _gamepad      = {};
+		GamepadData     _gamepad      = {};
+		RumbleData      _rumble       = {};
+		DeviceStateData _deviceStates = {};
+
 		BindingManager                _bindings     = BindingManager();
-		StateData                     _states       = {};
-		RumbleData                    _rumble       = {};
 		std::vector<Action>           _actions      = {}; // Index = `ActionId`.
 		std::vector<ActionQueueState> _actionQueues = {}; // Index = `ActionId`.
 		std::vector<Vector2>          _analogAxes   = {}; // Index = `AnalogAxisId`.
+
+		bool _isLocked = false;
 
 	public:
 		// Constructors
