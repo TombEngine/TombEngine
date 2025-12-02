@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
 using namespace TEN::Input;
 

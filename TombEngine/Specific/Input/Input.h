@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Math/Math.h"
+#include "Specific/Input/Action.h"
 #include "Specific/Input/Bindings.h"
-#include "Specific/Input/InputAction.h"
-#include "Specific/Input/Keys.h"
+#include "Specific/Input/Events.h"
 
 using namespace TEN::Math;
 
@@ -51,7 +51,7 @@ namespace TEN::Input
 
 	struct StateData
 	{
-		std::vector<float> Events             = {}; // Index = `EventId`, value = event state.
+		std::vector<float> Events             = {}; // Index = `EventId`.
 		Vector2            CursorPosition     = {};
 		Vector2            PrevCursorPosition = {};
 
@@ -82,6 +82,7 @@ namespace TEN::Input
 	private:
 		// Fields
 
+		bool                          _isLocked     = false; // TODO: Not used yet.
 		GamepadData                   _gamepad      = {};
 		BindingManager                _bindings     = BindingManager();
 		StateData                     _states       = {};
@@ -104,6 +105,7 @@ namespace TEN::Input
 
 		// Setters
 
+		void SetActionQueue(ActionId actionId, ActionQueueState queueState);
 		void SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec);
 
 		// Inquirers
@@ -115,19 +117,22 @@ namespace TEN::Input
 
 		void Initialize();
 		void Deinitialize();
-		void Update(SDL_Window& window, const Vector2& mouseWheelAxis);
+		void Update(SDL_Window& window, const Vector2& mouseWheelAxis, bool allowAsyncUpdate = false, bool applyQueues = false);
 
+		void Lock();
+		void Unlock();
 		void ConnectGamepad(int deviceId);
 		void DisconnectGamepad(int deviceId);
-		void ClearAction(ActionId actionId);
 		void StopRumble();
+		void ApplyActionQueues();
+		void ClearAction(ActionId actionId);
 
 	private:
 		// Helpers
 
 		std::string GetGamepadVendorName(GamepadVendorId vendorId) const;
 
-		void UpdateActions();
+		void UpdateActions(bool applyQueues);
 		void UpdateAnalogAxes();
 		void UpdateRumble();
 
@@ -150,10 +155,6 @@ namespace TEN::Input
 	const Vector2& GetMouseAxis();
 	Vector2        GetMouse2DPosition();
 
-	// Setters
-
-	void SetInputLockState(bool locked);
-
 	// Inquirers
 
 	bool IsClicked(ActionId actionId);
@@ -167,10 +168,10 @@ namespace TEN::Input
 
 	// Utilities
 
-	void ClearAllActions();
+	void ApplyDefaultBindings();
 	void Rumble(float power, float durationSec = 0.3f, RumbleMode mode = RumbleMode::LowAndHigh);
 	void StopRumble();
-	void ApplyDefaultBindings();
 
+	void ClearAllActions();
 	void ClearAction(ActionId actionId);
 }

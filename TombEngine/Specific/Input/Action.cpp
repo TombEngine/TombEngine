@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
 #include "Specific/clock.h"
 
@@ -160,7 +160,7 @@ namespace TEN::Input
 		return (_value != 0.0f && _timeActive >= delayGameFrames);
 	}
 
-	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is multiple of `delaySec`.
+	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is a multiple of `delaySec`.
 	bool Action::IsPulsed(float delaySec, float initialDelaySec) const
 	{
 		if (IsClicked())

@@ -153,9 +153,9 @@ namespace TEN::Input
 		Count
 	};
 
-	constexpr auto START_KEYBOARD_EVENT_ID = EventId::A;
-	constexpr auto START_MOUSE_EVENT_ID    = EventId::MouseClickLeft;
-	constexpr auto START_GAMEPAD_EVENT_ID  = EventId::GamepadSouth;
+	extern const std::vector<EventId> BINDABLE_KEYBOARD_EVENT_IDS;
+	extern const std::vector<EventId> BINDABLE_MOUSE_EVENT_IDS;
+	extern const std::vector<EventId> BINDABLE_GAMEPAD_EVENT_IDS;
 
 	extern const std::vector<SDL_Scancode>      VALID_KEYBOARD_SCAN_CODES;
 	extern const std::vector<int>               VALID_KEYBOARD_MODIFIER_CODES;

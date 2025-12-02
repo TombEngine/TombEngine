@@ -956,6 +956,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
+    <ClInclude Include="Specific\Input\Action.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
     <ClInclude Include="Specific\Input\Event.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
@@ -965,7 +966,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Specific\IO\LEB128.h" />
     <ClInclude Include="Specific\IO\Streams.h" />
     <ClInclude Include="Specific\Input\Input.h" />
-    <ClInclude Include="Specific\Input\InputAction.h" />
     <ClInclude Include="Specific\LevelCameraInfo.h" />
     <ClInclude Include="Specific\Parallel.h" />
     <ClInclude Include="Specific\Platform\ISubsystem.h" />
@@ -1406,10 +1406,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Sound\sound.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
+    <ClCompile Include="Specific\Input\Action.cpp" />
     <ClCompile Include="Specific\Input\Bindings.cpp" />
     <ClCompile Include="Specific\Input\Event.cpp" />
     <ClCompile Include="Specific\Input\Input.cpp" />
-    <ClCompile Include="Specific\Input\InputAction.cpp" />
     <ClCompile Include="Specific\Input\Keys.cpp" />
     <ClCompile Include="Specific\IO\ChunkId.cpp" />
     <ClCompile Include="Specific\IO\ChunkReader.cpp" />

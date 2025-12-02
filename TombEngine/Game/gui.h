@@ -4,7 +4,7 @@
 #include "Math/Math.h"
 #include "Specific/clock.h"
 #include "Specific/configuration.h"
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
 struct ItemInfo;
 

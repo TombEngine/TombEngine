@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Specific/Input/Bindings.h"
 
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 #include "Specific/Input/Event.h"
 #include "Specific/Input/Keys.h"
 

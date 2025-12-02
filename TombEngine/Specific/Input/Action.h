@@ -121,8 +121,8 @@ namespace TEN::Input
 	};
 
 	extern const std::vector<std::vector<ActionId>> ACTION_ID_GROUPS;
-	extern const std::vector<ActionGroupId>			USER_ACTION_GROUP_IDS;
-	extern const std::vector<ActionGroupId>			RAW_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupId>         USER_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupId>         RAW_ACTION_GROUP_IDS;
 
 
 	class Action
@@ -130,12 +130,12 @@ namespace TEN::Input
 	private:
 		// Fields
 
-		ActionId	 _id 			 = In::Forward;
-		float		 _value			 = 0.0f;
-		float		 _prevValue		 = 0.0f;
-		unsigned int _timeActive	 = 0;			// Time in game frames.
-		unsigned int _prevTimeActive = 0;			// Time in game frames.
-		unsigned int _timeInactive	 = 0;			// Time in game frames.
+		ActionId     _id             = In::Forward;
+		float        _value          = 0.0f;
+		float        _prevValue      = 0.0f;
+		unsigned int _timeActive     = 0; // Time in game frames.
+		unsigned int _prevTimeActive = 0; // Time in game frames.
+		unsigned int _timeInactive   = 0; // Time in game frames.
 
 	public:
 		// Constructors
@@ -145,8 +145,8 @@ namespace TEN::Input
 
 		// Getters
 
-		ActionId	 GetID() const;
-		float		 GetValue() const;
+		ActionId     GetID() const;
+		float        GetValue() const;
 		unsigned int GetTimeActive() const;
 		unsigned int GetTimeInactive() const;
 		

@@ -167,7 +167,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Queued input actions are read again after OnLoop, so that remaining control loop can immediately register
 	// emulated keypresses from the script.
-	ApplyActionQueue();
+	g_Input.ApplyActionQueues();
 
 	// Control lock is processed after handling scripts because builder may want to process input externally
 	// while locking player from input.
@@ -771,7 +771,8 @@ void HandleControls(bool isTitle)
 {
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
-	UpdateInputActions(false, true);
+	g_Input.Update(*g_Platform->GetSDL3Window(), mouseWheelAxis, false, true);
+	//UpdateInputActions(false, true);
 
 	if (isTitle)
 		ClearAction(In::Look);

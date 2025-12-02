@@ -744,7 +744,7 @@ namespace TEN::Gui
 					else
 					{
 						g_Renderer.PrepareScene(); // Just for updating blink time.
-						UpdateInputActions();
+						g_Input.Update();
 					}
 
 					if (CurrentSettings.IgnoreInput)
@@ -754,17 +754,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedKeyID = 0;
-						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
+						int selectedEventId = 0;
+						for (selectedEventId = 0; selectedEventId < KEY_COUNT; selectedEventId++)
 						{
-							if (KeyMap[selectedKeyID])
-								break;
+							//if (KeyMap[selectedEventId])
+							//	break;
 						}
 
-						if (selectedKeyID == KEY_COUNT)
-							selectedKeyID = 0;
+						if (selectedEventId == KEY_COUNT)
+							selectedEventId = 0;
 
-						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						if (selectedEventId != OIS::KC_UNASSIGNED && !GetEventName(selectedEventId).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -785,7 +785,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetEventBinding(BindingProfileId::Custom, ActionId(baseIndex + SelectedOption), selectedKeyID);
+							g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -887,8 +887,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
-					g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::Custom);
+					CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
+					g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
 					SaveConfiguration();
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
@@ -901,7 +901,7 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.KeyboardMouseBindings);
+					g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
@@ -913,7 +913,7 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				g_Bindings.SetBindingProfile(BindingProfileId::Custom, CurrentSettings.Configuration.KeyboardMouseBindings);
+				g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
@@ -1205,7 +1205,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		UpdateInputActions();
+		g_Input.Update(*g_Platform->GetSDL3Window(), );
 
 		switch (MenuToDisplay)
 		{
@@ -3329,7 +3329,7 @@ namespace TEN::Gui
 				SaveGame::Statistics.Game.TimeTaken++;
 				SaveGame::Statistics.Level.TimeTaken++;
 
-				UpdateInputActions();
+				g_Input.Update(*g_Platform->GetSDL3Window(), );
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 				{

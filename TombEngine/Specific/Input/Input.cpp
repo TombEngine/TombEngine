@@ -21,142 +21,6 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Input
 {
-	bool InputLocked = false; // Disables control polling when application is defocused.
-
-	// TODO
-	void SetInputLockState(bool locked)
-	{
-		InputLocked = locked;
-	}
-
-	// TODO
-	void ClearAllActions()
-	{
-		//for (auto& [actionId, action] : ActionMap)
-		//	action.Clear();
-
-		//for (auto& [actionId, queue] : ActionQueueMap)
-		//	queue = ActionQueueState::None;
-	}
-
-	void Rumble(float power, float durationSec, RumbleMode mode)
-	{
-		g_Input.SetRumble(mode, power, power, durationSec);
-	}
-
-	void StopRumble()
-	{
-		g_Input.StopRumble();
-	}
-
-	// TODO
-	void ApplyDefaultBindings()
-	{
-		g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
-		g_Bindings.SetBindingProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
-	}
-
-	void ClearAction(ActionId actionId)
-	{
-		g_Input.ClearAction(actionId);
-	}
-
-	bool NoAction()
-	{
-		for (auto actionGroupId : RAW_ACTION_GROUP_IDS)
-		{
-			const auto& actionGroup = ACTION_ID_GROUPS[(int)actionGroupId];
-			for (auto actionId : actionGroup)
-			{
-				if (IsHeld(actionId))
-					return false;
-			}
-		}
-
-		return true;
-	}
-
-	bool IsClicked(ActionId actionId)
-	{
-		return g_Input.GetAction(actionId).IsClicked();
-	}
-
-	bool IsHeld(ActionId actionId, float delaySec)
-	{
-		return g_Input.GetAction(actionId).IsHeld(delaySec);
-	}
-
-	bool IsPulsed(ActionId actionId, float delaySec, float initialDelaySec)
-	{
-		return g_Input.GetAction(actionId).IsPulsed(delaySec, initialDelaySec);
-	}
-
-	bool IsReleased(ActionId actionId, float delaySecMax)
-	{
-		return g_Input.GetAction(actionId).IsReleased(delaySecMax);
-	}
-
-	float GetActionValue(ActionId actionId)
-	{
-		return g_Input.GetAction(actionId).GetValue();
-	}
-
-	// Time in game frames.
-	unsigned int GetActionTimeActive(ActionId actionId)
-	{
-		return g_Input.GetAction(actionId).GetTimeActive();
-	}
-
-	// Time in game frames.
-	unsigned int GetActionTimeInactive(ActionId actionId)
-	{
-		return g_Input.GetAction(actionId).GetTimeInactive();
-	}
-
-	bool IsDirectionalActionHeld()
-	{
-		return (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right));
-	}
-
-	bool IsWakeActionHeld()
-	{
-		if (IsDirectionalActionHeld() || IsHeld(In::StepLeft) || IsHeld(In::StepRight) ||
-			IsHeld(In::Walk) || IsHeld(In::Jump) || IsHeld(In::Sprint) || IsHeld(In::Roll) || IsHeld(In::Crouch) ||
-			IsHeld(In::Draw) || IsHeld(In::Flare) || IsHeld(In::Action))
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	bool IsOpticActionHeld()
-	{
-		return (IsDirectionalActionHeld() || IsHeld(In::Action) || IsHeld(In::Crouch) || IsHeld(In::Sprint));
-	}
-
-	const Vector2& GetMoveAxis()
-	{
-		return g_Input.GetAnalogAxis(AnalogAxisId::Move);
-	}
-
-	const Vector2& GetCameraAxis()
-	{
-		return g_Input.GetAnalogAxis(AnalogAxisId::Camera);
-	}
-
-	const Vector2& GetMouseAxis()
-	{
-		return g_Input.GetAnalogAxis(AnalogAxisId::Mouse);
-	}
-
-	Vector2 GetMouse2DPosition()
-	{
-		return g_Input.GetCursorPosition();
-	}
-
-	// ====================================================================================================================
-
 	InputManager g_Input = InputManager();
 
 	const Action& InputManager::GetAction(ActionId actionId) const
@@ -177,6 +41,11 @@ namespace TEN::Input
 	GamepadVendorId InputManager::GetGamepadVendorId() const
 	{
 		return _gamepad.VendorId;
+	}
+
+	void InputManager::SetActionQueue(ActionId actionId, ActionQueueState queueState)
+	{
+		_actionQueues[(int)actionId] = queueState;
 	}
 
 	void InputManager::SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec)
@@ -231,11 +100,11 @@ namespace TEN::Input
 		DisconnectGamepad(_gamepad.Id);
 	}
 
-	void InputManager::Update(SDL_Window& window, const Vector2& mouseWheelAxis)
+	void InputManager::Update(SDL_Window& window, const Vector2& mouseWheelAxis, bool allowAsyncUpdate, bool applyQueues)
 	{
-		if (/*allowAsyncUpdate ||*/ !g_Synchronizer.Locked())
+		// Capture event states asynchronously if unlocked and not in a frameskip.
+		if (!_isLocked && (allowAsyncUpdate || !g_Synchronizer.Locked()))
 		{
-			// Capture event states asynchronously.
 			auto tasks = ParallelTasks
 			{
 				TASK(ReadKeyboard()),
@@ -256,7 +125,7 @@ namespace TEN::Input
 		}
 
 		// Update components.
-		UpdateActions();
+		UpdateActions(applyQueues);
 		UpdateAnalogAxes();
 		UpdateRumble();
 		HandleHotkeyActions();
@@ -272,6 +141,16 @@ namespace TEN::Input
 		_states.HasKeyboardInput = false;
 		_states.HasMouseInput = false;
 		_states.HasGamepadInput = false;
+	}
+
+	void InputManager::Lock()
+	{
+		_isLocked = true;
+	}
+
+	void InputManager::Unlock()
+	{
+		_isLocked = false;
 	}
 
 	void InputManager::ConnectGamepad(int deviceId)
@@ -331,6 +210,31 @@ namespace TEN::Input
 		TENLog("Gamepad disconnected.");
 	}
 
+	void InputManager::ApplyActionQueues()
+	{
+		for (int i = 0; i < (int)ActionId::Count; i++)
+		{
+			auto actionId = (ActionId)i;
+			switch (_actionQueues[(int)actionId])
+			{
+				default:
+				case ActionQueueState::None:
+					break;
+
+				case ActionQueueState::Update:
+					_actions[(int)actionId].Update(true);
+					break;
+
+				case ActionQueueState::Clear:
+					_actions[(int)actionId].Clear();
+					break;
+			}
+		}
+
+		for (auto& queue : _actionQueues)
+			queue = ActionQueueState::None;
+	}
+
 	void InputManager::ClearAction(ActionId actionId)
 	{
 		_actions[(int)actionId].Clear();
@@ -366,7 +270,7 @@ namespace TEN::Input
 		return GENERIC_VENDOR_NAME;
 	}
 
-	void InputManager::UpdateActions()
+	void InputManager::UpdateActions(bool applyQueues)
 	{
 		// 1) Update user action states.
 		auto updateUserActions = [&]()
@@ -429,28 +333,8 @@ namespace TEN::Input
 		g_Parallel.AddTasks(tasks).wait();
 
 		// Apply action queues.
-		for (int i = 0; i < (int)ActionId::Count; i++)
-		{
-			auto actionId = (ActionId)i;
-			switch (_actionQueues[(int)actionId])
-			{
-				default:
-				case ActionQueueState::None:
-					break;
-
-				case ActionQueueState::Update:
-					_actions[(int)actionId].Update(true);
-					break;
-
-				case ActionQueueState::Clear:
-					_actions[(int)actionId].Clear();
-					break;
-			}
-		}
-
-		// Clear action queues.
-		for (auto& queue : _actionQueues)
-			queue = ActionQueueState::None;
+		if (applyQueues)
+			ApplyActionQueues();
 	}
 
 	void InputManager::UpdateAnalogAxes()
@@ -460,9 +344,9 @@ namespace TEN::Input
 
 		auto& moveAxis = _analogAxes[(int)AnalogAxisId::Move];
 		auto& camAxis = _analogAxes[(int)AnalogAxisId::Camera];
-		const auto& mouseAxis = _analogAxes[(int)AnalogAxisId::Mouse];
-		const auto& stickLeftAxis = _analogAxes[(int)AnalogAxisId::StickLeft];
-		const auto& stickRightAxis = _analogAxes[(int)AnalogAxisId::StickRight];
+		const auto& mouseAxis = GetAnalogAxis(AnalogAxisId::Mouse);
+		const auto& stickLeftAxis = GetAnalogAxis(AnalogAxisId::StickLeft);
+		const auto& stickRightAxis = GetAnalogAxis(AnalogAxisId::StickRight);
 
 		// Set move axis.
 		if (stickLeftAxis != Vector2::Zero)
@@ -502,10 +386,13 @@ namespace TEN::Input
 		}
 
 		// Set camera axis.
-		camAxis = mouseAxis;
 		if (stickRightAxis != Vector2::Zero)
 		{
 			camAxis = stickRightAxis;
+		}
+		else
+		{
+			camAxis = mouseAxis;
 		}
 	}
 
@@ -539,7 +426,9 @@ namespace TEN::Input
 
 	void InputManager::ReadKeyboard()
 	{
-		int eventIdx = (int)START_KEYBOARD_EVENT_ID;
+		constexpr auto START_EVENT_ID = EventId::A;
+
+		int eventIdx = (int)START_EVENT_ID;
 
 		// Set keyboard key event states.
 		int keyboardStateCount = 0;
@@ -577,9 +466,10 @@ namespace TEN::Input
 
 	void InputManager::ReadMouse(SDL_Window& window, const Vector2& wheelAxis)
 	{
-		constexpr int AXIS_COUNT = 2;
+		constexpr auto START_EVENT_ID = EventId::MouseClickLeft;
+		constexpr int  AXIS_COUNT     = 2;
 
-		int eventIdx = (int)START_MOUSE_EVENT_ID;
+		int eventIdx = (int)START_EVENT_ID;
 
 		// Compute cursor position.
 		auto pos = Vector2::Zero;
@@ -643,10 +533,11 @@ namespace TEN::Input
 
 	void InputManager::ReadGamepad()
 	{
-		constexpr int   AXIS_COUNT    = 2;
-		constexpr float AXIS_DEADZONE = ((float)SHRT_MAX / 8.0f) / (float)SHRT_MAX;
+		constexpr auto  START_EVENT_ID = EventId::GamepadSouth;
+		constexpr int   AXIS_COUNT     = 2;
+		constexpr float AXIS_DEADZONE  = ((float)SHRT_MAX / 8.0f) / (float)SHRT_MAX;
 
-		int eventIdx = (int)START_GAMEPAD_EVENT_ID;
+		int eventIdx = (int)START_EVENT_ID;
 
 		// Set gamepad button event states.
 		for (auto butCode : VALID_GAMEPAD_BUTTON_CODES)
@@ -777,5 +668,133 @@ namespace TEN::Input
 		if (_states.Events[(int)EventId::F9] && dbReloadShaders)
 			g_Renderer.ReloadShaders();
 		dbReloadShaders = !_states.Events[(int)EventId::F9];
+	}
+
+	float GetActionValue(ActionId actionId)
+	{
+		return g_Input.GetAction(actionId).GetValue();
+	}
+
+	// Time in game frames.
+	unsigned int GetActionTimeActive(ActionId actionId)
+	{
+		return g_Input.GetAction(actionId).GetTimeActive();
+	}
+
+	// Time in game frames.
+	unsigned int GetActionTimeInactive(ActionId actionId)
+	{
+		return g_Input.GetAction(actionId).GetTimeInactive();
+	}
+
+	const Vector2& GetMoveAxis()
+	{
+		return g_Input.GetAnalogAxis(AnalogAxisId::Move);
+	}
+
+	const Vector2& GetCameraAxis()
+	{
+		return g_Input.GetAnalogAxis(AnalogAxisId::Camera);
+	}
+
+	const Vector2& GetMouseAxis()
+	{
+		return g_Input.GetAnalogAxis(AnalogAxisId::Mouse);
+	}
+
+	Vector2 GetMouse2DPosition()
+	{
+		return g_Input.GetCursorPosition();
+	}
+
+	bool IsClicked(ActionId actionId)
+	{
+		return g_Input.GetAction(actionId).IsClicked();
+	}
+
+	bool IsHeld(ActionId actionId, float delaySec)
+	{
+		return g_Input.GetAction(actionId).IsHeld(delaySec);
+	}
+
+	bool IsPulsed(ActionId actionId, float delaySec, float initialDelaySec)
+	{
+		return g_Input.GetAction(actionId).IsPulsed(delaySec, initialDelaySec);
+	}
+
+	bool IsReleased(ActionId actionId, float delaySecMax)
+	{
+		return g_Input.GetAction(actionId).IsReleased(delaySecMax);
+	}
+
+	bool IsDirectionalActionHeld()
+	{
+		return (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right));
+	}
+
+	bool IsWakeActionHeld()
+	{
+		if (IsDirectionalActionHeld() || IsHeld(In::StepLeft) || IsHeld(In::StepRight) ||
+			IsHeld(In::Walk) || IsHeld(In::Jump) || IsHeld(In::Sprint) || IsHeld(In::Roll) || IsHeld(In::Crouch) ||
+			IsHeld(In::Draw) || IsHeld(In::Flare) || IsHeld(In::Action))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool IsOpticActionHeld()
+	{
+		return (IsDirectionalActionHeld() || IsHeld(In::Action) || IsHeld(In::Crouch) || IsHeld(In::Sprint));
+	}
+
+	bool NoAction()
+	{
+		for (auto actionGroupId : RAW_ACTION_GROUP_IDS)
+		{
+			const auto& actionGroup = ACTION_ID_GROUPS[(int)actionGroupId];
+			for (auto actionId : actionGroup)
+			{
+				if (IsHeld(actionId))
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	// TODO
+	void ApplyDefaultBindings()
+	{
+		g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
+		g_Bindings.SetBindingProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
+	}
+
+	void Rumble(float power, float durationSec, RumbleMode mode)
+	{
+		g_Input.SetRumble(mode, power, power, durationSec);
+	}
+
+	void StopRumble()
+	{
+		g_Input.StopRumble();
+	}
+
+	void ClearAllActions()
+	{
+		for (auto actionIds : ACTION_ID_GROUPS)
+		{
+			for (auto actionId : actionIds)
+			{
+				g_Input.ClearAction(actionId);
+				g_Input.SetActionQueue(actionId, ActionQueueState::None);
+			}
+		}
+	}
+
+	void ClearAction(ActionId actionId)
+	{
+		g_Input.ClearAction(actionId);
 	}
 }
