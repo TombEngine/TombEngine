@@ -46,14 +46,13 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 0);
+		SetAnimation(item, 0);
 
 		if (item->TriggerFlags == 1)
 			item->Pose.Position.z += CLICK(1.5f);
 		else if (item->TriggerFlags == 2)
 			item->Pose.Position.z -= CLICK(1.5f);
 
-		item->Pose.Orientation.y = ANGLE(90.0f);
 		item->Pose.Position.x -= CLICK(1);
 	}
 
@@ -399,6 +398,10 @@ namespace TEN::Entities::Creatures::TR5
 					ExplodeItemNode(item, 11 - item->ItemFlags[3], 0, 64);
 					SoundEffect(SFX_TR5_SMASH_ROCK2, &item->Pose);
 					item->ItemFlags[3]++;
+				}
+				else
+				{
+					KillItem(itemNumber);
 				}
 			}
 		}

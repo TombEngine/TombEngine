@@ -66,7 +66,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, SPHINX_ANIM_REST);
+		SetAnimation(item, SPHINX_ANIM_REST);
 	}
 
 	void SphinxControl(short itemNumber)

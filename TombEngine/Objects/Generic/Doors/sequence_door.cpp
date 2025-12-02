@@ -75,6 +75,6 @@ namespace TEN::Entities::Doors
 			}
 		}
 
-		AnimateItem(*doorItem);
+		AnimateItem(doorItem);
 	}
 }

@@ -26,6 +26,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 #include "Objects/TR2/Vehicles/skidoo.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -45,6 +46,7 @@ using namespace TEN::Entities::Player;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 // -----------------------------
 // HELPER FUNCTIONS
@@ -546,7 +548,7 @@ bool HandleLaraVehicle(ItemInfo* item, CollisionInfo* coll)
 	{
 		lara->Context.Vehicle = NO_VALUE;
 		item->Animation.IsAirborne = true;
-		SetAnimation(*item, LA_FALL_START);
+		SetAnimation(item, LA_FALL_START);
 		return false;
 	}
 
@@ -1113,7 +1115,7 @@ LaraInfo& GetLaraInfo(ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	auto& firstLaraItem = *FindItem(ID_LARA);
 	auto* player = (LaraInfo*&)firstLaraItem.Data;
@@ -1128,7 +1130,7 @@ const LaraInfo& GetLaraInfo(const ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable..", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	const auto& firstPlayerItem = *FindItem(ID_LARA);
 	const auto* player = (LaraInfo*&)firstPlayerItem.Data;
@@ -1140,7 +1142,7 @@ LaraInfo*& GetLaraInfo(ItemInfo* item)
 	if (item->ObjectNumber == ID_LARA)
 		return (LaraInfo*&)item->Data;
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item->ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item->ObjectNumber)), LogLevel::Warning);
 
 	auto& firstPlayerItem = *FindItem(ID_LARA);
 	return (LaraInfo*&)firstPlayerItem.Data;
@@ -1487,14 +1489,14 @@ void SetLaraLand(ItemInfo* item, CollisionInfo* coll)
 
 void SetLaraFallAnimation(ItemInfo* item)
 {
-	SetAnimation(*item, LA_FALL_START);
+	SetAnimation(item, LA_FALL_START);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
 
 void SetLaraFallBackAnimation(ItemInfo* item)
 {
-	SetAnimation(*item, LA_FALL_BACK);
+	SetAnimation(item, LA_FALL_BACK);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
@@ -1505,7 +1507,7 @@ void SetLaraMonkeyFallAnimation(ItemInfo* item)
 	if (item->Animation.ActiveState == LS_MONKEY_TURN_180)
 		return;
 
-	SetAnimation(*item, LA_MONKEY_TO_FREEFALL);
+	SetAnimation(item, LA_MONKEY_TO_FREEFALL);
 	SetLaraMonkeyRelease(item);
 }
 
@@ -1542,7 +1544,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && oldAngle == angle)
 			return;
 
-		SetAnimation(*item, LA_SLIDE_BACK_START);
+		SetAnimation(item, LA_SLIDE_BACK_START);
 		item->Pose.Orientation.y = angle + ANGLE(180.0f);
 	}
 	else
@@ -1550,7 +1552,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && oldAngle == angle)
 			return;
 
-		SetAnimation(*item, LA_SLIDE_FORWARD);
+		SetAnimation(item, LA_SLIDE_FORWARD);
 		item->Pose.Orientation.y = angle;
 	}
 
@@ -1582,7 +1584,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && abs(deltaAngle) <= ANGLE(180.0f))
 			return;
 
-		SetAnimation(*item, LA_SLIDE_FORWARD);
+		SetAnimation(item, LA_SLIDE_FORWARD);
 	}
 	// Slide backward.
 	else
@@ -1590,7 +1592,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && abs((short)(deltaAngle - ANGLE(180.0f))) <= -ANGLE(180.0f))
 			return;
 
-		SetAnimation(*item, LA_SLIDE_BACK_START);
+		SetAnimation(item, LA_SLIDE_BACK_START);
 	}
 }
 
@@ -1600,7 +1602,7 @@ void SetLaraCornerAnimation(ItemInfo* item, CollisionInfo* coll, bool flip)
 
 	if (item->HitPoints <= 0)
 	{
-		SetAnimation(*item, LA_FALL_START);
+		SetAnimation(item, LA_FALL_START);
 		item->Animation.IsAirborne = true;
 		item->Animation.Velocity.z = 2;
 		item->Animation.Velocity.y = 1;
@@ -1613,9 +1615,9 @@ void SetLaraCornerAnimation(ItemInfo* item, CollisionInfo* coll, bool flip)
 	if (flip)
 	{
 		if (lara->Control.IsClimbingLadder)
-			SetAnimation(*item, LA_LADDER_IDLE);
+			SetAnimation(item, LA_LADDER_IDLE);
 		else
-			SetAnimation(*item, LA_HANG_IDLE);
+			SetAnimation(item, LA_HANG_IDLE);
 
 		item->Pose.Position = lara->Context.NextCornerPos.Position;
 		item->Pose.Orientation.y = lara->Context.NextCornerPos.Orientation.y;
@@ -1627,7 +1629,7 @@ void SetLaraSwimDiveAnimation(ItemInfo* item)
 {
 	auto* lara = GetLaraInfo(item);
 
-	SetAnimation(*item, LA_ONWATER_DIVE);
+	SetAnimation(item, LA_ONWATER_DIVE);
 	item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 	item->Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.SwimVelocity * 0.4f;
 	item->Pose.Orientation.x = -ANGLE(45.0f);

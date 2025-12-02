@@ -65,7 +65,7 @@ namespace TEN::Entities::Switches
 			{
 				switchItem->Animation.TargetState = SWITCH_OFF;
 				switchItem->Timer = 0;
-				AnimateItem(*switchItem);
+				AnimateItem(switchItem);
 			}
 			else
 			{
@@ -74,7 +74,7 @@ namespace TEN::Entities::Switches
 			}
 		}
 
-		AnimateItem(*switchItem);
+		AnimateItem(switchItem);
 	}
 
 	void SwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -224,12 +224,12 @@ namespace TEN::Entities::Switches
 
 					if (switchItem->Animation.ActiveState == SWITCH_OFF)
 					{
-						SetAnimation(*laraItem, offAnim);
+						SetAnimation(laraItem, offAnim);
 						switchItem->Animation.TargetState = SWITCH_ON;
 					}
 					else
 					{
-						SetAnimation(*laraItem, onAnim);
+						SetAnimation(laraItem, onAnim);
 						switchItem->Animation.TargetState = SWITCH_OFF;
 					}
 
@@ -240,7 +240,7 @@ namespace TEN::Entities::Switches
 
 					AddActiveItem(itemNumber);
 					switchItem->Status = ITEM_ACTIVE;
-					AnimateItem(*switchItem);
+					AnimateItem(switchItem);
 				}
 				else
 					laraInfo->Context.InteractedItem = itemNumber;

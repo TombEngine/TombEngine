@@ -141,7 +141,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, VON_CROY_ANIM_KNIFE_EQUIP_UNEQUIP);
+		SetAnimation(item, VON_CROY_ANIM_KNIFE_EQUIP_UNEQUIP);
 		item->SetMeshSwapFlags(VonCroyKnifeSwapJoints);
 
 		ZeroMemory(VonCroyPassedWaypoints, sizeof(VonCroyPassedWaypoints));
@@ -281,7 +281,7 @@ namespace TEN::Entities::TR4
 
 			GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
 
-			if (item->Animation.FrameNumber ==  VON_CROY_ANIM_RUN_FORWARD)
+			if (item->Animation.FrameNumber == VON_CROY_ANIM_RUN_FORWARD)
 				CreateZone(item);
 
 			CreatureAIInfo(item, &AI);
@@ -703,7 +703,7 @@ namespace TEN::Entities::TR4
 			if (!creature->Flags && enemy != nullptr)
 			{
 				if (item->Animation.FrameNumber > 20 &&
-					item->Animation.FrameNumber > 45)
+					item->Animation.FrameNumber < 45)
 				{
 					if (abs(item->Pose.Position.x - enemy->Pose.Position.x) < CLICK(2) &&
 						abs(item->Pose.Position.y - enemy->Pose.Position.y) < CLICK(2) &&

@@ -128,7 +128,7 @@ namespace TEN::Entities::TR4
 			if (g_Gui.GetInventoryItemChosen() == keyItem)
 			{
 				ResetPlayerFlex(playerItem);
-				SetAnimation(*playerItem, LA_PICKUP_PEDESTAL_HIGH);
+				SetAnimation(playerItem, LA_PICKUP_PEDESTAL_HIGH);
 				playerItem->Animation.ActiveState = LS_INSERT_KEY;
 
 				player->Control.HandStatus = HandStatus::Busy;

@@ -810,7 +810,7 @@ namespace TEN::Renderer
 		{
 			const auto& invObject = InventoryObjectTable[invObjectID];
 
-			pos2D.y += invObject.YOffset;
+			pos2D.y += invObject.YOffset * factor.y;
 			orient += invObject.Orientation;
 		}
 
@@ -824,7 +824,7 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectNumber];
 		if (!object.Animations.empty())
 		{
-			auto interpData = KeyframeInterpData(
+			auto interpData = KeyframeInterpolationData(
 				GetAnimData(object, 0).Keyframes[0],
 				GetAnimData(object, 0).Keyframes[0],
 				0.0f);

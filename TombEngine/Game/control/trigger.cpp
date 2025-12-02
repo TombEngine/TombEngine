@@ -25,10 +25,12 @@
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Utils;
 
 int TriggerTimer;
 int KeyTriggerActive;
@@ -830,7 +832,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				int eventType = trigger & TIMER_BITS;
 				if (eventType >= (int)EventType::Count)
 				{
-					TENLog("Unknown volume event type encountered for legacy trigger " + std::to_string(eventType), LogLevel::Warning);
+					TENLog(fmt::format("Unknown volume event type encountered for legacy trigger {}.", eventType), LogLevel::Warning);
 					continue;
 				}
 

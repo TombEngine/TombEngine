@@ -189,7 +189,7 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 				if (TestLaraClimbIdle(item, coll))
 					item->Animation.TargetState = LS_LADDER_IDLE;
 				else if (TestLastFrame(*item))
-					SetAnimation(*item, LA_LADDER_SHIMMY_UP);
+					SetAnimation(item, LA_LADDER_SHIMMY_UP);
 			}
 
 			return;
@@ -203,7 +203,7 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 			if (TestLaraClimbIdle(item, coll))
 				item->Animation.TargetState = LS_LADDER_IDLE;
 			else if (TestLastFrame(*item))
-				SetAnimation(*item, LA_LADDER_SHIMMY_DOWN);
+				SetAnimation(item, LA_LADDER_SHIMMY_DOWN);
 		}
 	}
 }

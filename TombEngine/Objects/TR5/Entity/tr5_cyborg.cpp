@@ -573,7 +573,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (item.Animation.FrameNumber > 6 &&
 					item.Animation.FrameNumber < 16 &&
-					((byte)item.Animation.FrameNumber & 1))
+					((unsigned char)item.Animation.FrameNumber & 1))
 				{
 					ShotLara(&item, &AI, CyborgGunBite, joint0, CYBORG_GUN_ATTACK_DAMAGE);
 					creature.MuzzleFlash[0].Bite = CyborgGunBite;

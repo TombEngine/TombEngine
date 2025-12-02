@@ -17,7 +17,7 @@ namespace TEN::Entities::Vehicles
 	bool SkidooUserControl(ItemInfo* skidooItem, ItemInfo* laraItem, int height, int* pitch);
 	void SkidooAnimation(ItemInfo* skidooItem, ItemInfo* laraItem, int collide, bool dead);
 
-	int GetSkidooCollisionAnim(ItemInfo* skidooItem, Vector3i* moved);
+	int GetSkidooCollisionAnimation(ItemInfo* skidooItem, Vector3i* moved);
 
 	void SkidooGuns(ItemInfo* skidooItem, ItemInfo* laraItem);
 	void DoSnowEffect(ItemInfo* skidooItem);

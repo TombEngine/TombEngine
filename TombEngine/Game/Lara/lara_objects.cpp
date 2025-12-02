@@ -112,13 +112,13 @@ void lara_col_turn_switch(ItemInfo* item, CollisionInfo* coll)
 	{
 		if (item->Animation.AnimNumber == LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_CONTINUE)
 		{
-			SetAnimation(*item, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_END);
+			SetAnimation(item, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_END);
 			item->Pose.Orientation.y -= ANGLE(90.0f);
 		}
 
 		if (item->Animation.AnimNumber == LA_TURNSWITCH_PUSH_CLOCKWISE_CONTINUE)
 		{
-			SetAnimation(*item, LA_TURNSWITCH_PUSH_CLOCKWISE_END);
+			SetAnimation(item, LA_TURNSWITCH_PUSH_CLOCKWISE_END);
 			item->Pose.Orientation.y += ANGLE(90.0f);
 		}
 	}
@@ -269,7 +269,7 @@ void lara_as_horizontal_bar_leap(ItemInfo* item, CollisionInfo* coll)
 
 	if (TestLastFrame(*item))
 	{
-		SetAnimation(*item, LA_REACH);
+		SetAnimation(item, LA_REACH);
 		item->Pose.Translate(item->Pose.Orientation, 700);
 		item->Pose.Position.y -= 361;
 	}
@@ -900,7 +900,7 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 	if (!IsHeld(In::Action))
 	{
 		item->Animation.TargetState = LS_JUMP_FORWARD;
-		AnimateItem(*item);
+		AnimateItem(item);
 
 		item->Animation.Velocity.z = 100;
 		item->Animation.Velocity.y = 40;

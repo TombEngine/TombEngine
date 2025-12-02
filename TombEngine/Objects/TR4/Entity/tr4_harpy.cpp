@@ -170,7 +170,7 @@ namespace TEN::Entities::TR4
 	{
 		auto* item = &g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, HARPY_ANIM_IDLE);
+		SetAnimation(item, HARPY_ANIM_IDLE);
 	}
 
 	void HarpyControl(short itemNumber)
@@ -203,7 +203,7 @@ namespace TEN::Entities::TR4
 					}
 					else
 					{
-						SetAnimation(*item, HARPY_ANIM_DEATH_START);
+						SetAnimation(item, HARPY_ANIM_DEATH_START);
 						item->Animation.IsAirborne = true;
 						item->Animation.Velocity.z = 0;
 						item->Pose.Orientation.x = 0;

@@ -24,18 +24,18 @@ void AssignObjectMeshSwap(ObjectInfo& object, int requiredMeshSwap, const std::s
 bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std::string& baseName, const std::string& requiredName)
 {
 	// Check if object has at least 1 animation with more than 1 frame.
-	const auto& anim = GetAnimData(object, 0); // TODO: Check.
-	if (!anim.Keyframes.empty())
+	const auto& anim = GetAnimData(object, 0);
+	if (anim.Keyframes.size() > 1)
 		return true;
 
 	// Use slot if loaded.
 	const auto& requiredObject = Objects[requiredObjectID];
 	if (requiredObject.loaded)
 	{
-		// Check if the required object has at least 1 animation with more than 1 frame.
-		const auto& anim = GetAnimData(requiredObject, 0); // TODO: Check.
-		if (!anim.Keyframes.empty())
+		// Check if required object has more than 1 animation.
+		if (requiredObject.Animations.size() > 1)
 		{
+			object.Animations = requiredObject.Animations;
 			return true;
 		}
 		else
@@ -60,7 +60,7 @@ bool CheckIfSlotExists(GAME_OBJECT_ID requiredObj, const std::string& baseName)
 		return false;
 	}
 
-	return true;;
+	return true;
 }
 
 void InitSmashObject(ObjectInfo* object, int objectNumber)

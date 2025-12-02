@@ -139,7 +139,7 @@ void ElectricityWiresControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	AnimateItem(*item);
+	AnimateItem(item);
 
 	if (!TriggerActive(item))
 		return;

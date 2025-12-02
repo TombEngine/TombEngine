@@ -151,7 +151,7 @@ void ObeliskControl(short itemNumber)
 	}
 	else
 	{	
-		AnimateItem(*item);
+		AnimateItem(item);
 
 		auto* obj = &Objects[item->ObjectNumber];
 		bool flag = false;

@@ -495,23 +495,23 @@ void LoadObjects()
 						case AnimCommandType::MoveOrigin:
 						{
 							auto relOffset = ReadVector3();
-							command = std::make_unique<MoveOriginCommand>(relOffset);
+							command = std::make_shared<MoveOriginCommand>(relOffset);
 						}
 							break;
 
 						case AnimCommandType::JumpVelocity:
 						{
 							auto jumpVel = ReadVector3();
-							command = std::make_unique<JumpVelocityCommand>(jumpVel);
+							command = std::make_shared<JumpVelocityCommand>(jumpVel);
 						}
 							break;
 
 						case AnimCommandType::AttackReady:
-							command = std::make_unique<AttackReadyCommand>();
+							command = std::make_shared<AttackReadyCommand>();
 							break;
 
 						case AnimCommandType::Deactivate:
-							command = std::make_unique<DeactivateCommand>();
+							command = std::make_shared<DeactivateCommand>();
 							break;
 
 						case AnimCommandType::SoundEffect:
@@ -519,7 +519,7 @@ void LoadObjects()
 							int soundID = ReadInt32();
 							int frameNumber = ReadInt32();
 							auto envCond = (SoundEffectEnvCondition)ReadInt32();
-							command = std::make_unique<SoundEffectCommand>(soundID, frameNumber, envCond);
+							command = std::make_shared<SoundEffectCommand>(soundID, frameNumber, envCond);
 						}
 							break;
 
@@ -527,14 +527,14 @@ void LoadObjects()
 						{
 							int flipEffectID = ReadInt32();
 							int frameNumber = ReadInt32();
-							command = std::make_unique<FlipEffectCommand>(flipEffectID, frameNumber);
+							command = std::make_shared<FlipEffectCommand>(flipEffectID, frameNumber);
 						}
 							break;
 
 						case AnimCommandType::DisableInterpolation:
 						{
 							int frameNumber = ReadInt32();
-							command = std::make_unique<DisableInterpolationCommand>(frameNumber);
+							command = std::make_shared<DisableInterpolationCommand>(frameNumber);
 						}
 							break;
 					}

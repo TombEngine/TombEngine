@@ -78,8 +78,8 @@ namespace TEN::Entities::Switches
 			{
 				if (MoveLaraPosition(TurnSwitchPosA, switchItem, laraItem))
 				{
-					SetAnimation(*laraItem, LA_TURNSWITCH_GRAB_COUNTER_CLOCKWISE);
-					SetAnimation(*switchItem, 4);
+					SetAnimation(laraItem, LA_TURNSWITCH_GRAB_COUNTER_CLOCKWISE);
+					SetAnimation(switchItem, 4);
 					switchItem->ItemFlags[0] = TURN_SWITCH_ANTICLOCKWISE;
 
 					ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y);
@@ -99,7 +99,7 @@ namespace TEN::Entities::Switches
 				{
 					if (MoveLaraPosition(TurnSwitchPos, switchItem, laraItem))
 					{
-						SetAnimation(*laraItem, LA_TURNSWITCH_GRAB_CLOCKWISE);
+						SetAnimation(laraItem, LA_TURNSWITCH_GRAB_CLOCKWISE);
 
 						switchItem->ItemFlags[0] = TURN_SWITCH_CLOCKWISE;
 
@@ -204,12 +204,13 @@ namespace TEN::Entities::Switches
 				switchItem->DisableInterpolation = true;
 			}
 
-			if ((laraItem->Animation.FrameNumber >= 0 &&
-				laraItem->Animation.FrameNumber <= 43) ||
-				(laraItem->Animation.FrameNumber >= 58 &&
-				laraItem->Animation.FrameNumber <= 115))
+			if (laraItem->Animation.AnimNumber == LA_TURNSWITCH_PUSH_CLOCKWISE_START)
 			{
-				SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				if ((laraItem->Animation.FrameNumber >= 0 && laraItem->Animation.FrameNumber <= 43) ||
+					(laraItem->Animation.FrameNumber >= 58 && laraItem->Animation.FrameNumber <= 115))
+				{
+					SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				}
 			}
 		}
 		else
@@ -221,8 +222,8 @@ namespace TEN::Entities::Switches
 
 				if (IsHeld(In::Action))
 				{
-					SetAnimation(*laraItem, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START);
-					SetAnimation(*switchItem, 5);
+					SetAnimation(laraItem, LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START);
+					SetAnimation(switchItem, 5);
 				}
 			}
 
@@ -234,16 +235,17 @@ namespace TEN::Entities::Switches
 				switchItem->DisableInterpolation = true;
 			}
 
-			if ((laraItem->Animation.FrameNumber >= 0 &&
-				laraItem->Animation.FrameNumber <= 43) ||
-				(laraItem->Animation.FrameNumber >= 58 &&
-				laraItem->Animation.FrameNumber <= 115))
+			if (laraItem->Animation.AnimNumber == LA_TURNSWITCH_PUSH_COUNTER_CLOCKWISE_START)
 			{
-				SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				if ((laraItem->Animation.FrameNumber >= 0 && laraItem->Animation.FrameNumber <= 43) ||
+					(laraItem->Animation.FrameNumber >= 58 && laraItem->Animation.FrameNumber <= 115))
+				{
+					SoundEffect(SFX_TR4_PUSHABLE_SOUND, &switchItem->Pose, SoundEnvironment::Always);
+				}
 			}
 		}
 
-		AnimateItem(*switchItem);
+		AnimateItem(switchItem);
 
 		if (switchItem->ItemFlags[1] == 1)
 		{

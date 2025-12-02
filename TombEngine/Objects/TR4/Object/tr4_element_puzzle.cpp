@@ -252,7 +252,7 @@ namespace TEN::Entities::TR4
 				laraItem->Animation.IsAirborne)
 			{
 				if (laraItem->Animation.AnimNumber != LA_TORCH_LIGHT_3 ||
-					16 || // TODO: Typo?
+					laraItem->Animation.FrameNumber == 16 ||
 					puzzleItem->ItemFlags[0] != 2)
 				{
 					ElementPuzzleDoCollision(itemNumber, laraItem, coll);

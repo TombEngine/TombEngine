@@ -124,19 +124,19 @@ namespace TEN::Entities::TR4
 		switch (item->TriggerFlags)
 		{
 		case 0:
-			SetAnimation(*item, SKELETON_ANIM_EMERGE);
+			SetAnimation(item, SKELETON_ANIM_EMERGE);
 			break;
 
 		case 1:
-			SetAnimation(*item, SKELETON_ANIM_JUMP_RIGHT_START);
+			SetAnimation(item, SKELETON_ANIM_JUMP_RIGHT_START);
 			break;
 
 		case 2:
-			SetAnimation(*item, SKELETON_ANIM_JUMP_LEFT_START);
+			SetAnimation(item, SKELETON_ANIM_JUMP_LEFT_START);
 			break;
 
 		case 3:
-			SetAnimation(*item, SKELETON_ANIM_STANDING_UP);
+			SetAnimation(item, SKELETON_ANIM_STANDING_UP);
 			item->Status = ITEM_NOT_ACTIVE;
 			break;
 		}
@@ -432,9 +432,9 @@ namespace TEN::Entities::TR4
 						}
 					}
 					else if (jumpLeft)
-						SetAnimation(*item, SKELETON_ANIM_JUMP_LEFT_START);
+						SetAnimation(item, SKELETON_ANIM_JUMP_LEFT_START);
 					else if (jumpRight)
-						SetAnimation(*item, SKELETON_ANIM_JUMP_RIGHT_START);
+						SetAnimation(item, SKELETON_ANIM_JUMP_RIGHT_START);
 					else
 					{
 						if (creature->Mood == MoodType::Escape)

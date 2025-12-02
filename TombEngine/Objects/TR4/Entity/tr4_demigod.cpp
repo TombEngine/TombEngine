@@ -102,7 +102,7 @@ namespace TEN::Entities::TR4
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(*item, 0);
+		SetAnimation(item, 0);
 
 		/*if (g_Level.NumItems > 0)
 		{
@@ -724,7 +724,7 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.ActiveState <= LS_LADDER_DOWN &&
 						!Lara.Location)
 					{
-						SetAnimation(*LaraItem, LA_FALL_START);
+						SetAnimation(LaraItem, LA_FALL_START);
 						LaraItem->Animation.Velocity.z = 2;
 						LaraItem->Animation.Velocity.y = 1;
 

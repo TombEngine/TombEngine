@@ -251,7 +251,7 @@ namespace TEN::Entities::Generic
 				trapDoorItem->Animation.TargetState = 0;
 		}
 
-		AnimateItem(*trapDoorItem);
+		AnimateItem(trapDoorItem);
 
 		if (trapDoorItem->Animation.ActiveState == 1 && (trapDoorItem->ItemFlags[2] || JustLoaded))
 		{

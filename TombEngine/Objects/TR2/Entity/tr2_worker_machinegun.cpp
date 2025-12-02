@@ -65,7 +65,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (item->HitPoints <= 0)
 		{
 			if (item->Animation.ActiveState != 7)
-				SetAnimation(*item, 19);
+				SetAnimation(item, 19);
 		}
 		else
 		{

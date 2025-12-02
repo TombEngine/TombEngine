@@ -61,7 +61,7 @@ namespace TEN::Entities::Doors
 			{
 				if (MoveLaraPosition(UnderwaterDoorPos, doorItem, laraItem))
 				{
-					SetAnimation(*laraItem, LA_UNDERWATER_DOOR_OPEN);
+					SetAnimation(laraItem, LA_UNDERWATER_DOOR_OPEN);
 					laraItem->Animation.Velocity.y = 0;
 					doorItem->Status = ITEM_ACTIVE;
 
@@ -69,7 +69,7 @@ namespace TEN::Entities::Doors
 
 					doorItem->Animation.TargetState = LS_RUN_FORWARD;
 
-					AnimateItem(*doorItem);
+					AnimateItem(doorItem);
 
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;

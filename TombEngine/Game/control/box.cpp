@@ -568,7 +568,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
-	SetAnimation(*creatureItem, creatureAnimNumber);
+	SetAnimation(creatureItem, creatureAnimNumber);
 	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
 
 	playerItem.Pose = creatureItem->Pose;
@@ -660,7 +660,7 @@ void CreatureFloat(short itemNumber)
 	if (item->Pose.Position.y < waterLevel)
 		item->Pose.Position.y = waterLevel;
 
-	AnimateItem(*item);
+	AnimateItem(item);
 
 	item->Floor = pointColl.GetFloorHeight();
 	if (pointColl.GetRoomNumber() != item->RoomNumber)

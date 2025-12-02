@@ -118,10 +118,10 @@ namespace TEN::Entities::Creatures::TR3
 				if (item->Animation.ActiveState == TRIBESMAN_STATE_CROUCH_IDLE ||
 					item->Animation.ActiveState == TRIBESMAN_ANIM_AXE_ATTACK_LOW)
 				{
-					SetAnimation(*item, TRIBESMAN_ANIM_CROUCH_DEATH);
+					SetAnimation(item, TRIBESMAN_ANIM_CROUCH_DEATH);
 				}
 				else
-					SetAnimation(*item, TRIBESMAN_ANIM_IDLE_DEATH);
+					SetAnimation(item, TRIBESMAN_ANIM_IDLE_DEATH);
 			}
 		}
 		else
@@ -414,11 +414,11 @@ namespace TEN::Entities::Creatures::TR3
 				if (item->Animation.ActiveState == TRIBESMAN_STATE_CROUCH_IDLE ||
 					item->Animation.ActiveState == TRIBESMAN_STATE_DART_ATTACK)
 				{
-					SetAnimation(*item, TRIBESMAN_ANIM_CROUCH_DEATH);
+					SetAnimation(item, TRIBESMAN_ANIM_CROUCH_DEATH);
 				}
 				else
 				{
-					SetAnimation(*item, TRIBESMAN_ANIM_IDLE_DEATH);
+					SetAnimation(item, TRIBESMAN_ANIM_IDLE_DEATH);
 				}
 			}
 		}

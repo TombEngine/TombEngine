@@ -204,7 +204,7 @@ void DisplayString::Register(sol::table& parent)
 
 		/// Get the display string's flags.
 		// @function DisplayString:GetFlags
-		// @treturn table A table of booleans representing @{Strings.DisplayStringOption} flags, indexed from 1:<br>1: TEN.Strings.DisplayStringOption.CENTER<br>2: TEN.Strings.DisplayStringOption.SHADOW<br>3: TEN.Strings.DisplayStringOption.RIGHT<br>4: TEN.Strings.DisplayStringOption.BLINK<br>5: TEN.Strings.DisplayStringOption.VERTICAL_CENTER<br>
+		// @treturn table A table of booleans representing @{Strings.DisplayStringOption} flags, indexed from 1:<br>1: TEN.Strings.DisplayStringOption.CENTER<br>2: TEN.Strings.DisplayStringOption.SHADOW<br>3: TEN.Strings.DisplayStringOption.RIGHT<br>4: TEN.Strings.DisplayStringOption.BLINK<br>5: TEN.Strings.DisplayStringOption.VERTICAL_CENTER<br>6: TEN.Strings.DisplayStringOption.VERTICAL_BOTTOM<br>
 		// If a boolean value is true, the corresponding flag is assigned to the DisplayString, otherwise it is not assigned.
 		ScriptReserved_GetFlags, &DisplayString::GetFlags,
 

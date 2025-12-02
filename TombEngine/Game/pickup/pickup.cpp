@@ -577,7 +577,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			laraItem->Animation.ActiveState = LS_PICKUP;
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
-			AnimateItem(*item);
+			AnimateItem(item);
 			flag = true;
 		}
 
@@ -623,11 +623,11 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			{
 				if (triggerFlags == 3 || triggerFlags == 7)
 				{
-					SetAnimation(*laraItem, LA_PICKUP_PEDESTAL_HIGH);
+					SetAnimation(laraItem, LA_PICKUP_PEDESTAL_HIGH);
 				}
 				else
 				{
-					SetAnimation(*laraItem, LA_PICKUP_PEDESTAL_LOW);
+					SetAnimation(laraItem, LA_PICKUP_PEDESTAL_LOW);
 				}
 
 				flag = true;
@@ -664,7 +664,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 		if (MoveLaraPosition(JobyCrowPickUpPosition, item, laraItem))
 		{
-			SetAnimation(*laraItem, LA_CROWBAR_PRY_WALL_SLOW);
+			SetAnimation(laraItem, LA_CROWBAR_PRY_WALL_SLOW);
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
 			flag = true;
@@ -1001,7 +1001,7 @@ void PickupControl(short itemNumber)
 	case 7:
 	case 8:
 	case 9:
-		AnimateItem(*item);
+		AnimateItem(item);
 		break;
 
 	case 11:
@@ -1223,7 +1223,7 @@ void SearchObjectCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* 
 
 				item->Animation.AnimNumber = 1;
 				item->Animation.FrameNumber = 0;
-				AnimateItem(*item);
+				AnimateItem(item);
 			}
 			else
 			{
@@ -1249,7 +1249,7 @@ void SearchObjectControl(short itemNumber)
 	int objectNumber = (item->ObjectNumber - ID_SEARCH_OBJECT1);
 
 	if (item->ObjectNumber != ID_SEARCH_OBJECT4 || item->ItemFlags[0] == 1)
-		AnimateItem(*item);
+		AnimateItem(item);
 
 	int frameNumber = item->Animation.FrameNumber;
 
@@ -1318,7 +1318,7 @@ bool UseSpecialItem(ItemInfo* laraItem)
 		else if (itemIDToUse == ID_CLOCKWORK_BEETLE)
 		{
 			flag = 4;
-			SetAnimation(*laraItem, LA_MECHANICAL_BEETLE_USE);
+			SetAnimation(laraItem, LA_MECHANICAL_BEETLE_USE);
 			UseClockworkBeetle(1);
 		}
 
@@ -1355,9 +1355,9 @@ bool UseSpecialItem(ItemInfo* laraItem)
 		if (flag)
 		{
 			if (flag == 1)
-				SetAnimation(*laraItem, LA_WATERSKIN_FILL);
+				SetAnimation(laraItem, LA_WATERSKIN_FILL);
 			else if (flag == 2)
-				SetAnimation(*laraItem, LA_WATERSKIN_POUR_LOW);
+				SetAnimation(laraItem, LA_WATERSKIN_POUR_LOW);
 
 			lara->Control.HandStatus = HandStatus::Busy;
 			g_Gui.SetInventoryItemChosen(NO_VALUE);

@@ -449,7 +449,7 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 		if (player.Control.Weapon.WeaponItem == NO_VALUE)
 		{
-			TENLog("Failed to create weapon item, no free moveable slots available.", LogLevel::Error);
+			TENLog("Failed to create weapon moveable. No free moveable slots available.", LogLevel::Error);
 			return;
 		}
 
@@ -486,7 +486,7 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		weaponItemPtr = &g_Level.Items[player.Control.Weapon.WeaponItem];
 	}
 
-	AnimateItem(*weaponItemPtr);
+	AnimateItem(weaponItemPtr);
 
 	if (weaponItemPtr->Animation.ActiveState != WEAPON_STATE_AIM &&
 		weaponItemPtr->Animation.ActiveState != WEAPON_STATE_UNDERWATER_AIM)
@@ -519,8 +519,22 @@ void UndrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	auto& item = g_Level.Items[player.Control.Weapon.WeaponItem];
 
 	// HACK
+	int animNumber = 0;
 	if (item.Animation.TargetState != WEAPON_STATE_UNDRAW && item.Animation.ActiveState != WEAPON_STATE_UNDRAW)
-		SetAnimation(item, (weaponType == LaraWeaponType::GrenadeLauncher) ? 5 : 3);
+	{
+		switch (weaponType)
+		{
+		case LaraWeaponType::GrenadeLauncher:
+			animNumber = 5;
+			break;
+
+		default:
+			animNumber = 3;
+			break;
+		}
+
+		SetAnimation(item, animNumber);
+	}
 
 	item.Animation.TargetState = WEAPON_STATE_UNDRAW;
 	item.Pose = laraItem.Pose;
@@ -547,7 +561,7 @@ void UndrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 	}
 
 	// HACK: Get reholstering animation number.
-	int animNumber = 0;
+	animNumber = 0;
 	switch (weaponType)
 	{
 	case LaraWeaponType::GrenadeLauncher:

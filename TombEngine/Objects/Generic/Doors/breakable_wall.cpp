@@ -89,7 +89,7 @@ namespace TEN::Entities::Doors
 				if (MoveLaraPosition(position, doorItem, laraItem))
 				{
 					int animNumber = isUnderwater ? LA_UNDERWATER_WALL_KICK : LA_WALL_PUSH;
-					SetAnimation(*laraItem, animNumber);
+					SetAnimation(laraItem, animNumber);
 					laraItem->Animation.Velocity.y = 0;
 					doorItem->Status = ITEM_ACTIVE;
 
@@ -97,7 +97,7 @@ namespace TEN::Entities::Doors
 					WallStates state = isUnderwater ? BreakUnderwater : BreakAboveGround;
 					doorItem->Animation.TargetState = state;
 
-					AnimateItem(*doorItem);
+					AnimateItem(doorItem);
 
 					player->Control.IsMoving = false;
 					player->Control.HandStatus = HandStatus::Busy;

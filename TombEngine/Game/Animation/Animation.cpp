@@ -22,18 +22,16 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Animation
 {
-	constexpr auto VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
-
 	// TODO: Arm anim object in savegame.
 
-	KeyframeInterpData::KeyframeInterpData(const KeyframeData& keyframe0, const KeyframeData& keyframe1, float alpha) :
+	KeyframeInterpolationData::KeyframeInterpolationData(const KeyframeData& keyframe0, const KeyframeData& keyframe1, float alpha) :
 		Keyframe0(keyframe0),
 		Keyframe1(keyframe1)
 	{
 		Alpha = alpha;
 	}
 
-	KeyframeInterpData AnimData::GetKeyframeInterpData(int frameNumber) const
+	KeyframeInterpolationData AnimData::GetKeyframeInterpolationData(int frameNumber) const
 	{
 		// FAILSAFE: Clamp frame number.
 		frameNumber = std::clamp(frameNumber, 0, EndFrameNumber);
@@ -47,12 +45,12 @@ namespace TEN::Animation
 		float alpha = (1.0f / Interpolation) * (frameNumber % Interpolation);
 
 		// Return keyframe interpolation data.
-		return KeyframeInterpData(keyframe0, keyframe1, alpha);
+		return KeyframeInterpolationData(keyframe0, keyframe1, alpha);
 	}
 
 	const KeyframeData& AnimData::GetClosestKeyframe(int frameNumber) const
 	{
-		auto interpData = GetKeyframeInterpData(frameNumber);
+		auto interpData = GetKeyframeInterpolationData(frameNumber);
 		return ((interpData.Alpha <= 0.5f) ? interpData.Keyframe0 : interpData.Keyframe1);
 	}
 
@@ -122,15 +120,8 @@ namespace TEN::Animation
 			}
 		}
 
-		// NOTE: Must use non-zero frame count in this edge case.
-		unsigned int frameCount = anim->EndFrameNumber;
-		if (frameCount == 0)
-			frameCount = 1;
-
-		int currentFrameNumber = item.Animation.FrameNumber;
-
-		auto animAccel = (anim->VelocityEnd - anim->VelocityStart) / frameCount;
-		auto animVel = anim->VelocityStart + (animAccel * currentFrameNumber);
+		auto animAccel = (anim->VelocityEnd - anim->VelocityStart) / std::max(anim->EndFrameNumber, 1);
+		auto animVel = anim->VelocityStart + (animAccel * item.Animation.FrameNumber);
 
 		if (item.Animation.IsAirborne)
 		{
@@ -155,10 +146,13 @@ namespace TEN::Animation
 				}
 				else
 				{
-					item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
-					item.Animation.Velocity.z += animAccel.z;
+					if (item.Animation.ActiveState != LS_FLY_CHEAT)
+					{
+						item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
+						item.Animation.Velocity.z += animAccel.z;
 
-					item.Pose.Position.y += item.Animation.Velocity.y;
+						item.Pose.Position.y += item.Animation.Velocity.y;
+					}
 				}
 			}
 			else
@@ -203,6 +197,11 @@ namespace TEN::Animation
 			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
+	}
+
+	void AnimateItem(ItemInfo* item)
+	{
+		AnimateItem(*item);
 	}
 
 	bool TestStateDispatch(const ItemInfo& item, int targetStateID)
@@ -256,10 +255,10 @@ namespace TEN::Animation
 		return GetAnimData(item.Animation.AnimObjectID, animNumber);
 	}
 
-	KeyframeInterpData GetFrameInterpData(const ItemInfo& item)
+	KeyframeInterpolationData GetFrameInterpData(const ItemInfo& item)
 	{
 		const auto& anim = GetAnimData(item);
-		return anim.GetKeyframeInterpData(item.Animation.FrameNumber);
+		return anim.GetKeyframeInterpolationData(item.Animation.FrameNumber);
 	}
 
 	const KeyframeData& GetKeyframe(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
@@ -291,13 +290,18 @@ namespace TEN::Animation
 
 	const StateDispatchData* GetStateDispatch(const ItemInfo& item, int targetStateID)
 	{
-		const auto& anim = GetAnimData(item);
+		targetStateID = (targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID;
+
+		// Prevent dispatch to same state ID.
+		if (item.Animation.ActiveState == targetStateID)
+			return nullptr;
 
 		// Run through state dispatches.
+		const auto& anim = GetAnimData(item);
 		for (const auto& dispatch : anim.Dispatches)
 		{
 			// State ID mismatch; continue.
-			if (dispatch.StateID != ((targetStateID == NO_VALUE) ? item.Animation.TargetState : targetStateID))
+			if (dispatch.StateID != targetStateID)
 				continue;
 
 			// Test if current frame is within dispatch range.
@@ -339,6 +343,17 @@ namespace TEN::Animation
 
 	Vector3i GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset)
 	{
+		bool incorrectBone = false;
+		if (boneID < 0 || boneID >= Objects[item.ObjectNumber].nmeshes)
+		{
+			TENLog("Unknown bone ID specified for object " + GetObjectName(item.ObjectNumber), LogLevel::Warning, LogConfig::All);
+			incorrectBone = true;
+		}
+
+		// Always return object's root position if it's invisible. Joint position can't be predicted otherwise since it's not animated.
+		if (incorrectBone || Objects[item.ObjectNumber].Hidden || item.Status == ITEM_INVISIBLE)
+			return Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation, relOffset);
+
 		// Use matrices done in renderer to transform relative offset.
 		return Vector3i(g_Renderer.GetMoveableBonePosition(item.Index, boneID, relOffset.ToVector3()));
 	}
@@ -358,17 +373,36 @@ namespace TEN::Animation
 		return GetJointPosition(item, bite.BoneID, bite.Position);
 	}
 
-	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID)
+	Vector3 GetJointOffset(GAME_OBJECT_ID objectID, int boneID, bool discardZSign)
 	{
 		const auto& object = Objects[objectID];
-		const int* bonePtr = &g_Level.Bones[object.boneIndex + (boneID * 4)];
+		int boneIndex = object.boneIndex + (boneID * 4);
 
-		return Vector3(*(bonePtr + 1), *(bonePtr + 2), *(bonePtr + 3));
+		if (g_Level.Bones.size() <= boneIndex)
+			return Vector3::Zero;
+
+		int* bone = &g_Level.Bones[boneIndex];
+		auto offset = Vector3(*(bone + 1), *(bone + 2), *(bone + 3));
+
+		if (discardZSign)
+			offset.z = abs(offset.z);
+
+		return offset;
 	}
 
 	Quaternion GetBoneOrientation(const ItemInfo& item, int boneID)
 	{
 		return g_Renderer.GetMoveableBoneOrientation(item.Index, boneID);
+	}
+
+	void SetAnimation(ItemInfo* item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber)
+	{
+		SetAnimation(*item, animObjectID, animNumber, frameNumber);
+	}
+
+	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber)
+	{
+		SetAnimation(*item, animNumber, frameNumber);
 	}
 
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber)
@@ -398,7 +432,8 @@ namespace TEN::Animation
 		const auto& anim = GetAnimData(animObject, animNumber);
 
 		// Frame missing; return early.
-		if (frameNumber < 0 || frameNumber > anim.EndFrameNumber)
+		int frameCount = (int)anim.Keyframes.size() - 1 * anim.Interpolation;
+		if (frameNumber < 0 || frameNumber > frameCount)
 		{
 			TENLog(
 				"Attempted to set missing frame " + std::to_string(frameNumber) +
@@ -438,10 +473,5 @@ namespace TEN::Animation
 		{
 			outPose.Orientation.y += rot;
 		}
-	}
-
-	// TODO: Refactor. Empty stub because moveable drawing is disabled when DrawRoutine pointer is nullptr in ObjectInfo.
-	void DrawAnimatingItem(ItemInfo* item)
-	{
 	}
 }

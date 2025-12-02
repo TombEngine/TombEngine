@@ -339,7 +339,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 	// Drop down if action not pressed.
 	if (!IsHeld(In::Action))
 	{
-		SetAnimation(*item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
+		SetAnimation(item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
 		return;
 	}
 
@@ -347,7 +347,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
 		lara->Context.NextCornerPos.Orientation.z = (item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT) ? true : false; // HACK.
-		SetAnimation(*item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_IDLE_2_HANG_LEFT : LA_OVERHANG_IDLE_2_HANG_RIGHT);
+		SetAnimation(item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_IDLE_2_HANG_LEFT : LA_OVERHANG_IDLE_2_HANG_RIGHT);
 		return;
 	}
 
@@ -363,7 +363,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 				abs((item->Pose.Position.y - (CLICK(2.5f) + 48)) - probeLedge.GetFloorHeight()) < 64)
 			{
 				AlignToEdge(item, FORWARD_ALIGNMENT);
-				SetAnimation(*item, LA_OVERHANG_LEDGE_VAULT_START); // Ledge climb-up from slope.
+				SetAnimation(item, LA_OVERHANG_LEDGE_VAULT_START); // Ledge climb-up from slope.
 			}
 		}
 
@@ -374,7 +374,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 			//if (GetPointCollision(probeUp.Block, up.x, up.y, up.z).GetCeilingHeight() - item->Pose.Position.y <= (BLOCK(1.5f) - 80))  // Check if a wall is actually there.
 			//{
 			//	AlignToEdge(item, FORWARD_ALIGNMENT);
-			//	SetAnimation(*item, LA_OVERHANG_SLOPE_LADDER_CONVEX_START);
+			//	SetAnimation(item, LA_OVERHANG_SLOPE_LADDER_CONVEX_START);
 			//}
 		}
 
@@ -396,7 +396,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 					(probeNow.GetCeilingHeight() - probeWall.GetCeilingHeight()) > CLICK(0.5f)) // No wall or downward ceiling step.
 				{
 					item->Pose.Translate(0, -CLICK(1), -CLICK(1));
-					SetAnimation(*item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_CLIMB_UP_LEFT : LA_OVERHANG_CLIMB_UP_RIGHT);
+					SetAnimation(item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_CLIMB_UP_LEFT : LA_OVERHANG_CLIMB_UP_RIGHT);
 					//item->TargetState = 62;
 				}
 			}
@@ -410,7 +410,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 			if (yDelta > -CLICK(0.9f) && yDelta <= -CLICK(0.5f) &&
 				((abs(GetSurfaceTilt(probeUp.GetCeilingNormal(), false).ToVector2().x) <= 2 && abs(GetSurfaceTilt(probeUp.GetCeilingNormal(), false).ToVector2().y) <= 2) || bridge >= 0))
 			{
-				SetAnimation(*item, LA_OVERHANG_SLOPE_MONKEY_CONCAVE); // Slope to overhead monkey transition (concave).
+				SetAnimation(item, LA_OVERHANG_SLOPE_MONKEY_CONCAVE); // Slope to overhead monkey transition (concave).
 			}
 		}
 	}
@@ -420,7 +420,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 		//	InStrip(item->Pose.Position.x, item->Pose.Position.z, item->Pose.Orientation.y, 0, CLICK(1)))
 		//{
 		//	AlignToEdge(item, BACKWARD_ALIGNMENT);
-		//	SetAnimation(*item, LA_OVERHANG_SLOPE_LADDER_CONCAVE); // Slope to underlying ladder transition (concave).
+		//	SetAnimation(item, LA_OVERHANG_SLOPE_LADDER_CONCAVE); // Slope to underlying ladder transition (concave).
 		//	return;
 		//}
 
@@ -435,13 +435,13 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 				bridge = FindBridge(1, slopeData.GoalOrient, down, &height, -CLICK(3), -CLICK(2));
 
 			if ((abs(yDiff) < CLICK(1) && abs(GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2().x) <= 2 && abs(GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2().y) <= 2) || bridge >= 0)
-				SetAnimation(*item, LA_OVERHANG_SLOPE_MONKEY_CONVEX); // Force slope to underlying monkey transition (convex)
+				SetAnimation(item, LA_OVERHANG_SLOPE_MONKEY_CONVEX); // Force slope to underlying monkey transition (convex)
 
 			// Test for downward slope to climb.
 			bridge = FindBridge(4, slopeData.GoalOrient, down, &height, -CLICK(2.5f), -CLICK(1.5f));
 			if (yDiff >= CLICK(0.75f) && yDiff <= CLICK(1.25f) && (SlopeCheck(GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2(), slopeData.Goal) || bridge >= 0))
 			{
-				SetAnimation(*item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_CLIMB_DOWN_LEFT : LA_OVERHANG_CLIMB_DOWN_RIGHT);
+				SetAnimation(item, item->Animation.AnimNumber == LA_OVERHANG_IDLE_LEFT ? LA_OVERHANG_CLIMB_DOWN_LEFT : LA_OVERHANG_CLIMB_DOWN_RIGHT);
 				return;
 			}
 		}
@@ -501,7 +501,7 @@ void lara_col_slopehang(ItemInfo* item, CollisionInfo* coll)
 	// Drop down if action not pressed.
 	if (!IsHeld(In::Action))
 	{
-		SetAnimation(*item, LA_OVERHANG_HANG_DROP);
+		SetAnimation(item, LA_OVERHANG_HANG_DROP);
 		item->Animation.IsAirborne = true;
 		return;
 	}
@@ -510,7 +510,7 @@ void lara_col_slopehang(ItemInfo* item, CollisionInfo* coll)
 	{
 		// Return to climbing mode.
 		if (IsHeld(In::Forward) || IsHeld(In::Back))
-			SetAnimation(*item, lara->Context.NextCornerPos.Orientation.z ? LA_OVERHANG_HANG_2_IDLE_LEFT : LA_OVERHANG_HANG_2_IDLE_RIGHT); // HACK.
+			SetAnimation(item, lara->Context.NextCornerPos.Orientation.z ? LA_OVERHANG_HANG_2_IDLE_LEFT : LA_OVERHANG_HANG_2_IDLE_RIGHT); // HACK.
 
 		// Shimmy control.
 		if (IsHeld(In::Left) || IsHeld(In::Right))
@@ -541,7 +541,7 @@ void lara_col_slopehang(ItemInfo* item, CollisionInfo* coll)
 				short bridge = FindBridge(4, slopeData.GoalOrient, shimmy, &height, -CLICK(2.5f), -CLICK(1.5f));
 
 				if ((SlopeCheck(GetSurfaceTilt(probeShimmy.GetCeilingNormal(), false).ToVector2(), slopeData.Goal) && abs(yDiff) < 64) || bridge >= 0)
-					SetAnimation(*item, direction < 0 ? LA_OVERHANG_SHIMMY_LEFT : LA_OVERHANG_SHIMMY_RIGHT);
+					SetAnimation(item, direction < 0 ? LA_OVERHANG_SHIMMY_LEFT : LA_OVERHANG_SHIMMY_RIGHT);
 			}
 		}
 	}
@@ -601,7 +601,7 @@ void lara_col_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	if (cancelShimmy)
-		SetAnimation(*item, (item->Animation.AnimNumber == LA_OVERHANG_SHIMMY_LEFT) ? LA_OVERHANG_SHIMMY_LEFT_STOP : LA_OVERHANG_SHIMMY_RIGHT_STOP);
+		SetAnimation(item, (item->Animation.AnimNumber == LA_OVERHANG_SHIMMY_LEFT) ? LA_OVERHANG_SHIMMY_LEFT_STOP : LA_OVERHANG_SHIMMY_RIGHT_STOP);
 }
 
 void lara_as_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
@@ -657,9 +657,9 @@ void lara_as_slopeclimbup(ItemInfo* item, CollisionInfo* coll)
 
 		item->Pose.Translate(0, dPos, dPos);
 		if (item->Animation.AnimNumber == LA_OVERHANG_CLIMB_UP_LEFT)
-			SetAnimation(*item, frame <= 2 * length / 3 ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
+			SetAnimation(item, frame <= 2 * length / 3 ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
 		else
-			SetAnimation(*item, frame <= 2 * length / 3 ? LA_OVERHANG_DROP_RIGHT : LA_OVERHANG_DROP_LEFT);
+			SetAnimation(item, frame <= 2 * length / 3 ? LA_OVERHANG_DROP_RIGHT : LA_OVERHANG_DROP_LEFT);
 	}
 }
 
@@ -687,9 +687,9 @@ void lara_as_slopeclimbdown(ItemInfo* item, CollisionInfo* coll)
 
 		item->Pose.Translate(0, dPos, dPos);
 		if (item->Animation.AnimNumber == LA_OVERHANG_CLIMB_DOWN_LEFT)
-			SetAnimation(*item, frame <= length / 2 ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
+			SetAnimation(item, frame <= length / 2 ? LA_OVERHANG_DROP_LEFT : LA_OVERHANG_DROP_RIGHT);
 		else
-			SetAnimation(*item, frame <= length / 2 ? LA_OVERHANG_DROP_RIGHT : LA_OVERHANG_DROP_LEFT);
+			SetAnimation(item, frame <= length / 2 ? LA_OVERHANG_DROP_RIGHT : LA_OVERHANG_DROP_LEFT);
 	}
 }
 
@@ -796,27 +796,27 @@ void lara_as_sclimbend(ItemInfo* item, CollisionInfo* coll)
 	switch (item->Animation.AnimNumber)
 	{
 	case LA_OVERHANG_EXIT_MONKEY_FORWARD:
-		SetAnimation(*item, LA_MONKEY_FORWARD);
+		SetAnimation(item, LA_MONKEY_FORWARD);
 		break;
 
 	case LA_OVERHANG_EXIT_MONKEY_IDLE:
-		SetAnimation(*item, LA_MONKEY_IDLE);
+		SetAnimation(item, LA_MONKEY_IDLE);
 		break;
 
 	case LA_OVERHANG_EXIT_LADDER:
-		SetAnimation(*item, LA_LADDER_IDLE);
+		SetAnimation(item, LA_LADDER_IDLE);
 		break;
 
 	case LA_OVERHANG_EXIT_VAULT:
-		SetAnimation(*item, LA_HANG_TO_STAND_END);
+		SetAnimation(item, LA_HANG_TO_STAND_END);
 		break;
 
 	case LA_OVERHANG_EXIT_DROP:
-		SetAnimation(*item, LA_FALL);
+		SetAnimation(item, LA_FALL);
 		break;
 
 	case LA_OVERHANG_EXIT_HANG:
-		SetAnimation(*item, LA_JUMP_UP);
+		SetAnimation(item, LA_JUMP_UP);
 		break;
 	}
 
@@ -852,9 +852,9 @@ void SlopeHangExtra(ItemInfo* item, CollisionInfo* coll)
 			{
 				item->Animation.TargetState = LS_HANG;
 				if (IsHeld(In::Forward))
-					SetAnimation(*item, LA_LADDER_SHIMMY_UP);
+					SetAnimation(item, LA_LADDER_SHIMMY_UP);
 				/*else if (IsHeld(In::Back))
-					SetAnimation(*item, LA_LADDER_SHIMMY_DOWN);*/
+					SetAnimation(item, LA_LADDER_SHIMMY_DOWN);*/
 			}
 		}
 	}
@@ -867,7 +867,7 @@ void SlopeHangExtra(ItemInfo* item, CollisionInfo* coll)
 				if ((GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2().x / 3) == (goal.x / 3) ||
 					(GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2().z / 3) == (goal.y / 3))
 				{
-					SetAnimation(*item, LA_REACH_TO_HANG, 21);
+					SetAnimation(item, LA_REACH_TO_HANG, 21);
 				}
 			}
 		}
@@ -940,7 +940,7 @@ void SlopeClimbExtra(ItemInfo* item, CollisionInfo* coll)
 				if (SlopeCheck(GetSurfaceTilt(probeNow.GetCeilingNormal(), false).ToVector2(), slopeData.Goal) || bridge >= 0)
 				{
 					item->Pose.Position.y = probeNow.GetCeilingHeight() + 900;
-					SetAnimation(*item, LA_OVERHANG_LADDER_SLOPE_CONCAVE); // Ladder to overhead slope transition (concave).
+					SetAnimation(item, LA_OVERHANG_LADDER_SLOPE_CONCAVE); // Ladder to overhead slope transition (concave).
 				}
 			}
 		}
@@ -960,7 +960,7 @@ void SlopeClimbExtra(ItemInfo* item, CollisionInfo* coll)
 				if (SlopeCheck(GetSurfaceTilt(probeDown.GetCeilingNormal(), false).ToVector2(), slopeData.Goal) || bridge >= 0)
 				{
 					item->Pose.Position.y = probeDown.GetCeilingHeight() - 156;
-					SetAnimation(*item, LA_OVERHANG_LADDER_SLOPE_CONVEX); // Ladder to underlying slope transition (convex).
+					SetAnimation(item, LA_OVERHANG_LADDER_SLOPE_CONVEX); // Ladder to underlying slope transition (convex).
 				}
 			}
 		}
@@ -1060,7 +1060,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 	auto probeNow = GetPointCollision(now, item->RoomNumber);
 	auto probeDown = GetPointCollision(down, item->RoomNumber);
 
-	if (item->Animation.AnimNumber == LA_REACH_TO_MONKEY/* && !GetFrameIndex(item, 0)*/) // Manage proper grabbing of monkey slope on forward jump.
+	if (item->Animation.AnimNumber == LA_REACH_TO_MONKEY) // Manage proper grabbing of monkey slope on forward jump.
 	{
 		int ceilDist = item->Pose.Position.y - probeNow.GetCeilingHeight();
 
@@ -1079,7 +1079,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 				/*int ceiling = GetPointCollision(probeNow.Block, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z).GetCeilingHeight();
 				item->Pose.Position.y = ceiling + HEIGHT_ADJUST;*/
 
-				SetAnimation(*item, LA_OVERHANG_HANG_SWING);
+				SetAnimation(item, LA_OVERHANG_HANG_SWING);
 			}
 		}
 	}
@@ -1102,7 +1102,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 					if ((SlopeCheck(probeDown.CeilingTilt, slopeData.Goal) && yDiff > 0 && yDiff < CLICK(1)) || bridge >= 0)
 					{
 						AlignToEdge(item, SLOPE_ALIGNMENT);
-						SetAnimation(*item, LA_OVERHANG_MONKEY_SLOPE_CONCAVE); // Transition from monkey to underlying slope (concave).
+						SetAnimation(item, LA_OVERHANG_MONKEY_SLOPE_CONCAVE); // Transition from monkey to underlying slope (concave).
 						return;
 						//item->Pose.Position.y = ceiling + 496;
 						//PerformFlipeffect(NULL, 51, 1, 2); // Disable the UP key command for 2 sec // HACK!!!
@@ -1112,7 +1112,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 					if ((SlopeInvCheck(probeDown.CeilingTilt, slopeData.Goal) && yDiff > -CLICK(1) && yDiff < 0) || bridge >= 0)
 					{
 						AlignToEdge(item, SLOPE_ALIGNMENT);
-						SetAnimation(*item, LA_OVERHANG_MONKEY_SLOPE_CONVEX); // Transition from monkey to overhanging slope (convex).
+						SetAnimation(item, LA_OVERHANG_MONKEY_SLOPE_CONVEX); // Transition from monkey to overhanging slope (convex).
 						return;
 						//item->Pose.Position.y = ceiling + 914;
 					}

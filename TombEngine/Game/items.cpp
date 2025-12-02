@@ -48,13 +48,12 @@ BoundingBox ItemInfo::GetAabb() const
 BoundingOrientedBox ItemInfo::GetObb() const
 {
 	auto frameData = GetFrameInterpData(*this);
-	if (frameData.Alpha == 0.0f)
-		return BoundingOrientedBox(frameData.Keyframe0.Aabb.Center, frameData.Keyframe0.Aabb.Extents, Pose.Orientation.ToQuaternion());
-
-	return BoundingOrientedBox(
-		Pose.Position.ToVector3() + Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
+	auto obb = BoundingOrientedBox();
+	BoundingOrientedBox(
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
 		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
-		Pose.Orientation.ToQuaternion());
+		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
+	return obb;
 }
 
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
@@ -178,9 +177,9 @@ void ItemInfo::ResetModelToDefault()
 
 	if (object.nmeshes > 0)
 	{
-		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
-		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
-		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
+		Model.MeshIndex.resize(object.nmeshes);
+		Model.BaseMesh = object.meshIndex;
+		Model.SkinIndex = object.skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -219,7 +218,7 @@ ItemInfo* ItemHandler::Get() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to access invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to access invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return &g_Level.Items[0];
 	}
@@ -252,7 +251,7 @@ ItemInfo& ItemHandler::operator*() const
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
 #if _DEBUG
-		TENLog("Attempt to dereference invalid item index: " + std::to_string(_index), LogLevel::Warning);
+		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning);
 #endif
 		return g_Level.Items[0];
 	}
@@ -294,7 +293,7 @@ void KillItem(short const itemNumber)
 {
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 	{
-		TENLog("Tried to kill an item with invalid index: " + std::to_string(itemNumber) + ".", LogLevel::Error);
+		TENLog(fmt::format("Attempted to moveable item with invalid index {}.", itemNumber), LogLevel::Error);
 		return;
 	}
 
@@ -628,8 +627,9 @@ void RemoveActiveItem(short itemNumber, bool killed)
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
+	const auto& object = Objects[item->ObjectNumber];
 
-	SetAnimation(*item, 0);
+	SetAnimation(item, 0);
 	item->Animation.RequiredState = NO_VALUE;
 	item->Animation.Velocity = Vector3::Zero;
 
@@ -643,7 +643,7 @@ void InitializeItem(short itemNumber)
 	item->Collidable = true;
 	item->LookedAt = false;
 	item->Timer = 0;
-	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
+	item->HitPoints = object.HitPoints;
 
 	item->Effect = {};
 
@@ -667,7 +667,7 @@ void InitializeItem(short itemNumber)
 		item->Flags &= ~IFLAG_INVISIBLE;
 		item->Status = ITEM_INVISIBLE;
 	}
-	else if (Objects[item->ObjectNumber].intelligent)
+	else if (object.intelligent)
 	{
 		item->Status = ITEM_INVISIBLE;
 	}
@@ -690,8 +690,8 @@ void InitializeItem(short itemNumber)
 
 	item->ResetModelToDefault();
 
-	if (Objects[item->ObjectNumber].Initialize != nullptr)
-		Objects[item->ObjectNumber].Initialize(itemNumber);
+	if (object.Initialize != nullptr)
+		object.Initialize(itemNumber);
 }
 
 short CreateItem()
@@ -1035,4 +1035,9 @@ Vector3i GetNearestSectorCenter(const Vector3i& pos)
 	int y = pos.y;
 
 	return Vector3i(x, y, z);
+}
+
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
+{
+	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
 }

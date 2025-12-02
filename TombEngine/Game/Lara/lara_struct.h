@@ -861,6 +861,13 @@ enum LaraExtraAnim
 };
 #pragma endregion
 
+enum PlayerTorchAnim
+{
+	PLAYER_TORCH_ANIM_HOLD  = 0,
+	PLAYER_TORCH_ANIM_THROW = 1,
+	PLAYER_TORCH_ANIM_DROP  = 2
+};
+
 enum LARA_MESHES
 {
 	LM_HIPS,

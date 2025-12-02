@@ -39,7 +39,7 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(item))
 		{
 			SoundEffect(SFX_TR4_STARGATE_SWIRL, &item->Pose);
-			AnimateItem(*item);
+			AnimateItem(item);
 		}
 	}
 

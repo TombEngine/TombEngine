@@ -311,8 +311,7 @@ namespace TEN::Entities::Creatures::TR2
 			if (skidooItem->RoomNumber != riderItem.RoomNumber)
 				ItemNewRoom(riderItemNumber, skidooItem->RoomNumber);
 
-			riderItem.Animation.AnimNumber = skidooItem->Animation.AnimNumber;
-			riderItem.Animation.FrameNumber = skidooItem->Animation.FrameNumber;
+			SyncItemAnimation(riderItem, *skidooItem);
 		}
 		else if (riderItem.Status == ITEM_DEACTIVATED &&
 			skidooItem->Animation.Velocity.z == 0 &&
