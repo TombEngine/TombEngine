@@ -1163,11 +1163,12 @@ bool IsCrouching(const ItemInfo* item)
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
 
-	// HACK: Unless we have a better way to detect the phase of animation,
-	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
+	// HACK: Unless there's better way to detect animation phase,
+	// assume player is crouching if animation is in first 75% of crouch-to-stand animation.
 	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
 	{
 		const auto& anim = GetAnimData(*item);
+
 		int midpoint = anim.EndFrameNumber * 0.75f;
 		if (item->Animation.FrameNumber <= midpoint)
 			crouching = true;

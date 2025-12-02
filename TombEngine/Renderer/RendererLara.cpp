@@ -177,7 +177,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::RocketLauncher:
 		case LaraWeaponType::HarpoonGun:
 		{
-			// Left arm
+			// Left arm.
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 
 			if (ShouldAnimateUpperBody(gunType))
@@ -188,7 +188,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			auto interpDataLeft = KeyframeInterpolationData(frameLeft, frameLeft, 0.0f);
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
-			// Right arm
+			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			if (ShouldAnimateUpperBody(Lara.Control.Weapon.GunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
@@ -205,7 +205,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Revolver:
 		default:
 		{
-			// Left arm
+			// Left arm.
 
 			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
 			bool transformLeftUpperArm = IsCrouching(LaraItem) || Lara.LeftArm.Locked ||
@@ -220,13 +220,17 @@ void Renderer::UpdateLaraAnimations(bool force)
 			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
 
 			if (transformLeftUpperArm)
+			{
 				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
+			}
 			else
+			{
 				mask |= MESH_BITS(LM_LINARM);
+			}
 
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
-			// Right arm
+			// Right arm.
 
 			// HACK: Same as above, but for right arm.
 			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked ||
@@ -241,9 +245,13 @@ void Renderer::UpdateLaraAnimations(bool force)
 			auto interpDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
 
 			if (transformRightUpperArm)
+			{
 				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+			}
 			else
+			{
 				mask |= MESH_BITS(LM_RINARM);
+			}
 
 			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
 		}
@@ -252,7 +260,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Flare:
 		case LaraWeaponType::Torch:
 		{
-			// Left arm
+			// Left arm.
 			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
 			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftAnimData).Keyframe0;
@@ -270,7 +278,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
-			// Right arm
+			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			auto frameDataRight = GetFrameInterpData(*LaraItem);
 			UpdateAnimation(&rItem, playerObject, frameDataRight, mask);
