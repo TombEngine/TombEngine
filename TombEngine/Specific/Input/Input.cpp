@@ -35,12 +35,12 @@ namespace TEN::Input
 
 	const Vector2& InputManager::GetCursorPosition() const
 	{
-		return _states.CursorPosition;
+		return _deviceStates.CursorPosition;
 	}
 
 	float InputManager::GetRawEventState(EventId eventId) const
 	{
-		return _states.Events[(int)eventId];
+		return  _deviceStates.Events[(int)eventId];
 	}
 
 	GamepadVendorId InputManager::GetGamepadVendorId() const
@@ -69,7 +69,7 @@ namespace TEN::Input
 
 	bool InputManager::IsUsingGamepad() const
 	{
-		return _states.IsUsingGamepad;
+		return _deviceStates.IsUsingGamepad;
 	}
 
 	void InputManager::Initialize()
@@ -120,13 +120,13 @@ namespace TEN::Input
 		}
 
 		// Update "using gamepad" state.
-		if (_states.HasKeyboardInput || _states.HasMouseInput)
+		if (_deviceStates.HasKeyboardInput || _deviceStates.HasMouseInput)
 		{
-			_states.IsUsingGamepad = false;
+			_deviceStates.IsUsingGamepad = false;
 		}
-		else if (_states.HasGamepadInput)
+		else if (_deviceStates.HasGamepadInput)
 		{
-			_states.IsUsingGamepad = true;
+			_deviceStates.IsUsingGamepad = true;
 		}
 
 		// Update components.
@@ -143,9 +143,9 @@ namespace TEN::Input
 		}
 
 		// Clear data.
-		_states.HasKeyboardInput = false;
-		_states.HasMouseInput = false;
-		_states.HasGamepadInput = false;
+		_deviceStates.HasKeyboardInput = false;
+		_deviceStates.HasMouseInput = false;
+		_deviceStates.HasGamepadInput = false;
 	}
 
 	void InputManager::Lock()
@@ -296,7 +296,7 @@ namespace TEN::Input
 					const auto& userEventIds = userProfile.at(actionId);
 					for (const auto& eventId : userEventIds)
 					{
-						state = std::max(state, _states.Events[(int)eventId]);
+						state = std::max(state, GetRawEventState(eventId));
 					}
 
 					// TODO: Handle conflicts between user and default.
@@ -320,7 +320,7 @@ namespace TEN::Input
 
 					for (auto eventId : eventIds)
 					{
-						state = std::max(state, _states.Events[(int)eventId]);
+						state = std::max(state, GetRawEventState(eventId));
 					}
 
 					// Use max bound event state.
@@ -445,10 +445,10 @@ namespace TEN::Input
 				bool state = keyboardState[scanCode];
 				if (state)
 				{
-					_states.HasKeyboardInput = true;
+					_deviceStates.HasKeyboardInput = true;
 				}
 
-				_states.Events[eventIdx] = state ? 1.0f : 0.0f;
+				_deviceStates.Events[eventIdx] = state ? 1.0f : 0.0f;
 			}
 
 			eventIdx++;
@@ -461,10 +461,10 @@ namespace TEN::Input
 			bool state = modState & modCode;
 			if (state)
 			{
-				_states.HasKeyboardInput = true;
+				_deviceStates.HasKeyboardInput = true;
 			}
 
-			_states.Events[eventIdx] = state ? 1.0f : 0.0f;
+			_deviceStates.Events[eventIdx] = state ? 1.0f : 0.0f;
 			eventIdx++;
 		}
 	}
@@ -488,29 +488,29 @@ namespace TEN::Input
 			bool state = butState & SDL_BUTTON_MASK(butCode);
 			if (state)
 			{
-				_states.HasMouseInput = true;
+				_deviceStates.HasMouseInput = true;
 			}
 
-			_states.Events[eventIdx] = state ? 1.0f : 0.0f;
+			_deviceStates.Events[eventIdx] = state ? 1.0f : 0.0f;
 			eventIdx++;
 		}
 
 		if (wheelAxis != Vector2::Zero)
 		{
-			_states.HasMouseInput = true;
+			_deviceStates.HasMouseInput = true;
 		}
 
 		// TODO: Investigate. Unclear how SDL3 mouse wheel values work.
 		// Set mouse scroll event states.
-		_states.Events[eventIdx] = (wheelAxis.x < 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
-		_states.Events[eventIdx + 1] = (wheelAxis.x > 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
-		_states.Events[eventIdx + 2] = (wheelAxis.y < 0.0f) ? std::clamp(abs(wheelAxis.y), 0.0f, 1.0f) : 0.0f;
-		_states.Events[eventIdx + 3] = (wheelAxis.y > 0.0f) ? std::clamp(abs(wheelAxis.y), 0.0f, 1.0f) : 0.0f;
+		_deviceStates.Events[eventIdx] = (wheelAxis.x < 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
+		_deviceStates.Events[eventIdx + 1] = (wheelAxis.x > 0.0f) ? std::clamp(abs(wheelAxis.x), 0.0f, 1.0f) : 0.0f;
+		_deviceStates.Events[eventIdx + 2] = (wheelAxis.y < 0.0f) ? std::clamp(abs(wheelAxis.y), 0.0f, 1.0f) : 0.0f;
+		_deviceStates.Events[eventIdx + 3] = (wheelAxis.y > 0.0f) ? std::clamp(abs(wheelAxis.y), 0.0f, 1.0f) : 0.0f;
 		eventIdx += SQUARE(AXIS_COUNT);
 
 		// Set cursor position state.
-		_states.PrevCursorPosition = _states.CursorPosition;
-		_states.CursorPosition = pos;
+		auto prevCursorPos = _deviceStates.CursorPosition;
+		_deviceStates.CursorPosition = pos;
 
 		auto res = Vector2i::Zero;
 		if (!SDL_GetWindowSize(&window, &res.x, &res.y))
@@ -519,17 +519,17 @@ namespace TEN::Input
 		}
 
 		float sensitivity = (g_Configuration.MouseSensitivity * 0.1f) + 0.4f;
-		auto moveAxis = (((_states.CursorPosition - _states.PrevCursorPosition) / DISPLAY_SPACE_RES) * (res.ToVector2() / DISPLAY_SPACE_RES)) * sensitivity;
+		auto moveAxis = (((_deviceStates.CursorPosition - prevCursorPos) / DISPLAY_SPACE_RES) * (res.ToVector2() / DISPLAY_SPACE_RES)) * sensitivity;
 		if (moveAxis != Vector2::Zero)
 		{
-			_states.HasMouseInput = true;
+			_deviceStates.HasMouseInput = true;
 		}
 
 		// Set mouse movement event states.
-		_states.Events[eventIdx] = (moveAxis.x < 0.0f) ? abs(moveAxis.x) : 0.0f;
-		_states.Events[eventIdx + 1] = (moveAxis.x > 0.0f) ? abs(moveAxis.x) : 0.0f;
-		_states.Events[eventIdx + 2] = (moveAxis.y < 0.0f) ? abs(moveAxis.y) : 0.0f;
-		_states.Events[eventIdx + 3] = (moveAxis.y > 0.0f) ? abs(moveAxis.y) : 0.0f;
+		_deviceStates.Events[eventIdx] = (moveAxis.x < 0.0f) ? abs(moveAxis.x) : 0.0f;
+		_deviceStates.Events[eventIdx + 1] = (moveAxis.x > 0.0f) ? abs(moveAxis.x) : 0.0f;
+		_deviceStates.Events[eventIdx + 2] = (moveAxis.y < 0.0f) ? abs(moveAxis.y) : 0.0f;
+		_deviceStates.Events[eventIdx + 3] = (moveAxis.y > 0.0f) ? abs(moveAxis.y) : 0.0f;
 		eventIdx += SQUARE(AXIS_COUNT);
 
 		// Set raw mouse axis.
@@ -554,10 +554,10 @@ namespace TEN::Input
 			}
 			if (state)
 			{
-				_states.HasGamepadInput = true;
+				_deviceStates.HasGamepadInput = true;
 			}
 
-			_states.Events[eventIdx] = state ? 1.0f : 0.0f;
+			_deviceStates.Events[eventIdx] = state ? 1.0f : 0.0f;
 			eventIdx++;
 		}
 
@@ -598,19 +598,19 @@ namespace TEN::Input
 			}
 		}
 
-		// Set gamepad stick axis event states and control axes.
+		// Set gamepad stick axis event states.
 		for (int i = 0; i < stickAxes.size(); i++)
 		{
 			const auto& axis = stickAxes[i];
 			if (axis != Vector2::Zero)
 			{
-				_states.HasGamepadInput = true;
+				_deviceStates.HasGamepadInput = true;
 			}
 
-			_states.Events[eventIdx + i] = (axis.x < 0.0f) ? abs(axis.x) : 0.0f;
-			_states.Events[eventIdx + (i + 1)] = (axis.x > 0.0f) ? abs(axis.x) : 0.0f;
-			_states.Events[eventIdx + (i + 2)] = (axis.y < 0.0f) ? abs(axis.y) : 0.0f;
-			_states.Events[eventIdx + (i + 3)] = (axis.y > 0.0f) ? abs(axis.y) : 0.0f;
+			_deviceStates.Events[eventIdx + i] = (axis.x < 0.0f) ? abs(axis.x) : 0.0f;
+			_deviceStates.Events[eventIdx + (i + 1)] = (axis.x > 0.0f) ? abs(axis.x) : 0.0f;
+			_deviceStates.Events[eventIdx + (i + 2)] = (axis.y < 0.0f) ? abs(axis.y) : 0.0f;
+			_deviceStates.Events[eventIdx + (i + 3)] = (axis.y > 0.0f) ? abs(axis.y) : 0.0f;
 			eventIdx += AXIS_COUNT * 2;
 		}
 
@@ -629,10 +629,10 @@ namespace TEN::Input
 			}
 			if (state > 0.0f)
 			{
-				_states.HasGamepadInput = true;
+				_deviceStates.HasGamepadInput = true;
 			}
 
-			_states.Events[eventIdx] = state;
+			_deviceStates.Events[eventIdx] = state;
 			eventIdx++;
 		}
 
@@ -645,34 +645,34 @@ namespace TEN::Input
 	{
 		// Save screenshot.
 		static bool dbScreenshot = true;
-		if ((_states.Events[(int)EventId::PrintScreen] || _states.Events[(int)EventId::F12]) && dbScreenshot)
+		if ((GetRawEventState(EventId::PrintScreen) || GetRawEventState(EventId::F12)) && dbScreenshot)
 			g_Renderer.SaveScreenshot();
-		dbScreenshot = !(_states.Events[(int)EventId::PrintScreen] || _states.Events[(int)EventId::F12]);
+		dbScreenshot = !(GetRawEventState(EventId::PrintScreen) || GetRawEventState(EventId::F12));
 
 		// Toggle fullscreen.
 		static bool dbFullscreen = true;
-		if ((_states.Events[(int)EventId::Alt] && _states.Events[(int)EventId::Return]) && dbFullscreen)
+		if ((GetRawEventState(EventId::Alt) && GetRawEventState(EventId::Return)) && dbFullscreen)
 		{
 			g_Configuration.EnableWindowedMode = !g_Configuration.EnableWindowedMode;
 			SaveConfiguration();
 			g_Renderer.ToggleFullScreen();
 		}
-		dbFullscreen = !(_states.Events[(int)EventId::Alt] && _states.Events[(int)EventId::Return]);
+		dbFullscreen = !(GetRawEventState(EventId::Alt) && GetRawEventState(EventId::Return));
 
 		if (!DebugMode)
 			return;
 
 		// Switch debug page.
 		static bool dbDebugPage = true;
-		if ((_states.Events[(int)EventId::F10] || _states.Events[(int)EventId::F11]) && dbDebugPage)
-			g_Renderer.SwitchDebugPage(_states.Events[(int)EventId::F10]);
-		dbDebugPage = !(_states.Events[(int)EventId::F10] || _states.Events[(int)EventId::F11]);
+		if ((GetRawEventState(EventId::F10) || GetRawEventState(EventId::F11)) && dbDebugPage)
+			g_Renderer.SwitchDebugPage(GetRawEventState(EventId::F10));
+		dbDebugPage = !(GetRawEventState(EventId::F10) || GetRawEventState(EventId::F11));
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;
-		if (_states.Events[(int)EventId::F9] && dbReloadShaders)
+		if (GetRawEventState(EventId::F9) && dbReloadShaders)
 			g_Renderer.ReloadShaders();
-		dbReloadShaders = !_states.Events[(int)EventId::F9];
+		dbReloadShaders = !GetRawEventState(EventId::F9);
 	}
 
 	float GetActionValue(ActionId actionId)

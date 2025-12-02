@@ -67,9 +67,8 @@ namespace TEN::Input
 
 	struct DeviceStateData
 	{
-		std::vector<float> Events             = {}; // Index = `EventId`.
-		Vector2            CursorPosition     = {};
-		Vector2            PrevCursorPosition = {};
+		std::vector<float> Events         = {}; // Index = `EventId`.
+		Vector2            CursorPosition = {};
 
 		bool IsUsingGamepad   = false;
 		bool HasKeyboardInput = false;
