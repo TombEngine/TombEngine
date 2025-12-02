@@ -431,6 +431,7 @@ namespace TEN::Input
 	{
 		static const auto DEFAULT_NAME = std::string("None");
 
+		// Find vendor-appropriate event names.
 		auto namesIt = EVENT_NAMES.find(eventId);
 		if (namesIt == EVENT_NAMES.end())
 		{
@@ -438,7 +439,7 @@ namespace TEN::Input
 		}
 		const auto& [keyEventId, names] = *namesIt;
 
-		// Pick vendor-appropriate name.
+		// Pick vendor-appropriate event name.
 		if (!names.empty())
 		{
 			int nameIdx = (int)g_Input.GetGamepadVendorId();
