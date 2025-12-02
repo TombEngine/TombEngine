@@ -144,7 +144,7 @@ namespace TEN::Input
 		void HandleHotkeyActions();
 	};
 
-	extern InputManager g_Input = InputManager();
+	extern InputManager g_Input;
 
 	// Getters
 

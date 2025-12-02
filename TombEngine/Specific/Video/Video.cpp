@@ -434,7 +434,7 @@ namespace TEN::Video
 		if (_updateInput)
 		{
 			ResetClock = true;
-			UpdateInputActions(true);
+			g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero, true); // @inputme
 			interruptPlayback = IsHeld(In::Deselect) || IsHeld(In::Look);
 			_updateInput = _starting = false;
 		}

@@ -253,7 +253,7 @@ namespace TEN::Input
 	{
 		// Find binding profile.
 		auto profileIt = _bindings.find(profileId);
-		TENAssert(profileIt != _bindings.end(), fmt::format("Attempted to get missing binding profile {}.", (int)profileId));
+		//TENAssert(profileIt != _bindings.end(), fmt::format("Attempted to get missing binding profile {}.", (int)profileId));
 
 		// Return binding profile.
 		const auto& [keyProfileId, profile] = *profileIt;
@@ -285,7 +285,7 @@ namespace TEN::Input
 				break;
 
 			default:
-				TENLog(fmt::format("Failed to reset defaults for binding profile {}.", (int)profileId), LogLevel::Warning);
+				//TENLog(fmt::format("Failed to reset defaults for binding profile {}.", (int)profileId), LogLevel::Warning);
 				return;
 		}
 	}
