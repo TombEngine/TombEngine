@@ -326,9 +326,9 @@ void UseClockworkBeetle(bool flag)
 		item->Animation.Velocity.z = 0;
 		AddActiveItem(itemNumber);
 
-		if (item->ItemFlags[0])
+		if (item->ItemFlags[0] && g_Level.Rooms[item->RoomNumber].itemNumber != NO_VALUE)
 		{
-			ItemInfo* item2;
+			ItemInfo* item2 = nullptr;
 			for (short itemRoom = g_Level.Rooms[item->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item2->NextItem)
 			{
 				item2 = &g_Level.Items[itemRoom];
