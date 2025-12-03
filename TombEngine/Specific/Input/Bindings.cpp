@@ -287,7 +287,7 @@ namespace TEN::Input
 				auto& eventIds = profile.at(otherActionId);
 				if (Contains(eventIds, eventId))
 				{
-					std::swap(eventIds, _bindings[profileId][actionId]);
+					std::swap(eventIds, profile[actionId]);
 					hasSwap = true;
 					break;
 				}
@@ -299,7 +299,7 @@ namespace TEN::Input
 
 		// Add action-event binding.
 		if (!hasSwap)
-			_bindings[profileId][actionId] = { eventId };
+			profile[actionId] = { eventId };
 	}
 
 	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseBinds, const BindingProfile& customGamepadBinds)
