@@ -400,7 +400,7 @@ namespace TEN::Renderer
 
 	void Renderer::SetFullScreen()
 	{
-		auto window = g_Platform->GetSDL3Window();
+		auto* window = g_Platform->GetSDL3Window();
 
 		if (!_isWindowed)
 		{

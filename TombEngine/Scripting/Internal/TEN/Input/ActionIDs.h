@@ -552,6 +552,6 @@ namespace TEN::Scripting::Input
 
 		/// Gamepad right analog stick tilt right.
 		// @mem GAMEPAD_STICK_RIGHT_RIGHT
-		{ "GAMEPAD_STICK_RIGHT_RIGHT", In::GamepadStickRightRight },
+		{ "GAMEPAD_STICK_RIGHT_RIGHT", In::GamepadStickRightRight }
 	};
 }
