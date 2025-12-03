@@ -245,7 +245,7 @@ namespace TEN::Input
 			return NO_EVENT_IDS;
 
 		// Get binding profile.
-		const auto& [inputDeviceId, profile] = *profileIt;
+		const auto& [keyProfileId, profile] = *profileIt;
 
 		// Find action-event binding.
 		auto keyIt = profile.find(actionId);
