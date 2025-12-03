@@ -265,6 +265,19 @@ namespace TEN::Input
 
 	void BindingManager::SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
 	{
+		static const auto CUSTOM_PROFILE_IDS = std::vector<BindingProfileId>
+		{
+			BindingProfileId::CustomKeyboardMouse,
+			BindingProfileId::CustomGamepad
+		};
+
+		if (!Contains(CUSTOM_PROFILE_IDS, profileId))
+		{
+			//TENLog(fmt::format("Attempted to bind event {} to action {} in non-customizable binding profile {}.", (int)eventId, (int)actionId, (int)profileId),
+			//	Debug::LogLevel::Warning);
+			return;
+		}
+
 		auto& profile = _bindings[profileId];
 
 		// Swap action-event binding if event is already bound to another action in same group.
