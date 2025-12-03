@@ -9,6 +9,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added faster Xorshift32 random number generation method.
 
 ### Bug fixes
+* Fixed CLOCKWORK_BEETLE object.
 * Fixed interaction highlighter not working for pushable climbable blocks.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
