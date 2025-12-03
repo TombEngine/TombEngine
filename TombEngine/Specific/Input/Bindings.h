@@ -51,8 +51,8 @@ namespace TEN::Input
 
 		// Setters
 
-		void SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId);
 		void SetProfile(BindingProfileId profileId, const BindingProfile& profile);
+		void SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId);
 
 		// Utilities
 

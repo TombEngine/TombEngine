@@ -254,16 +254,16 @@ namespace TEN::Input
 		return eventIds;
 	}
 
-	void BindingManager::SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
-	{
-		// Overwrite or add action-event binding.
-		_bindings[profileId][actionId] = { eventId };
-	}
-
 	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& bindingProfile)
 	{
 		// Overwrite or create binding profile.
 		_bindings[profileId] = bindingProfile;
+	}
+
+	void BindingManager::SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
+	{
+		// Overwrite or add action-event binding.
+		_bindings[profileId][actionId] = { eventId };
 	}
 
 	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseBinds, const BindingProfile& customGamepadBinds)

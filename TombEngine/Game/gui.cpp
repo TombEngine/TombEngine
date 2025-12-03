@@ -787,7 +787,8 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
+							// @inputme
+							//g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -880,7 +881,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					ApplyDefaultBindings();
+					// @inputme
+					//ApplyDefaultBindings();
 					return;
 				}
 
@@ -889,8 +891,9 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
-					g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
+					// @inputme
+					//CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
+					//g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
 					SaveConfiguration();
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
@@ -903,7 +906,8 @@ namespace TEN::Gui
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-					g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
+					// @inputme
+					//g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
@@ -915,7 +919,8 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
+				// @inputme
+				//g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;

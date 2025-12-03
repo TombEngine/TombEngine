@@ -282,11 +282,34 @@ namespace TEN::Input
 
 	void InputManager::UpdateActions(bool applyQueues)
 	{
+		auto testDefaultConflict = [&](const std::vector<EventId>& defaultEventIds, const std::vector<ActionId>& actionIds, const BindingProfile& customProfile)
+		{
+			// Check for conflict between custom and default event binding.
+			bool hasConflict = false;
+			for (auto actionId : actionIds)
+			{
+				const auto& customEventIds = customProfile.at(actionId);
+				for (auto defaultEventId : defaultEventIds)
+				{
+					if (Contains(customEventIds, defaultEventId))
+					{
+						hasConflict = true;
+						break;
+					}
+				}
+
+				if (hasConflict)
+					break;
+			}
+
+			return hasConflict;
+		};
+
 		// 1) Update user action states.
 		auto updateUserActions = [&]()
 		{
 			// Get binding profiles.
-			const auto& customProfile = _bindings.GetBindingProfile(_activeBindingProfileId);
+			const auto& customProfile = _bindings.GetProfile(_activeBindingProfileId);
 			const auto& defaultProfile = (_activeBindingProfileId == BindingProfileId::CustomKeyboardMouse) ?
 				DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE :
 				DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
@@ -299,13 +322,22 @@ namespace TEN::Input
 					auto& action = _actions[(int)actionId];
 					float state = 0.0f;
 
-					// Apply user-defined bound event state to action.
+					// Apply custom-bound event state to action.
 					const auto& customEventIds = customProfile.at(actionId);
 					for (const auto& eventId : customEventIds)
 						state = std::max(state, GetRawEventState(eventId));
 
-					// TODO: Handle conflicts between user and default.
-					const auto& defaultEventIds = defaultProfile.at(actionId);
+					// Apply default-bound event state to action.
+					if (state == 0.0f)
+					{
+						bool hasDefaultConflict = testDefaultConflict(defaultProfile.at(actionId), actionIds, customProfile);
+						if (!hasDefaultConflict)
+						{
+							const auto& defaultEventIds = defaultProfile.at(actionId);
+							for (const auto& eventId : defaultEventIds)
+								state = std::max(state, GetRawEventState(eventId));
+						}
+					}
 
 					action.Update(state);
 				}
@@ -317,7 +349,7 @@ namespace TEN::Input
 		{
 			for (auto profileId : RAW_BINDING_PROFILE_IDS)
 			{
-				const auto& profile = _bindings.GetBindingProfile(profileId);
+				const auto& profile = _bindings.GetProfile(profileId);
 				for (auto& [keyActionId, eventIds] : profile)
 				{
 					auto& action = _actions[(int)keyActionId];
@@ -772,11 +804,11 @@ namespace TEN::Input
 		return true;
 	}
 
-	// TODO
 	void ApplyDefaultBindings()
 	{
-		g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
-		g_Bindings.SetBindingProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
+		// @inputme
+		//_bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
+		//_bindings.SetProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
 	}
 
 	void Rumble(float power, float durationSec, RumbleMode mode)
