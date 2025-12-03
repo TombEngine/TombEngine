@@ -1319,7 +1319,7 @@ bool UseSpecialItem(ItemInfo* laraItem)
 		{
 			flag = 4;
 			SetAnimation(laraItem, LA_MECHANICAL_BEETLE_USE);
-			UseClockworkBeetle(1);
+			UseClockworkBeetle(true);
 		}
 
 		if (flag == 1)
