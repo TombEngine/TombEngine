@@ -23,12 +23,8 @@ namespace TEN::Input
 		Count
 	};
 
-	extern const BindingProfile DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
-	extern const BindingProfile DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
-	extern const BindingProfile RAW_KEYBOARD_BINDING_PROFILE;
-	extern const BindingProfile RAW_MOUSE_BINDING_PROFILE;
-	extern const BindingProfile RAW_GAMEPAD_BINDING_PROFILE;
-
+	extern const BindingProfile                DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+	extern const BindingProfile                DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
 	extern const std::vector<BindingProfileId> CUSTOM_BINDING_PROFILE_IDS;
 	extern const std::vector<BindingProfileId> RAW_BINDING_PROFILE_IDS;
 
