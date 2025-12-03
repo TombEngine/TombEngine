@@ -159,39 +159,22 @@ void ClockworkBeetleControl(short itemNumber)
 				{
 					Lara.Inventory.BeetleLife--;
 					beetle->ItemFlags[2] = 5;
-					short itemRoom = g_Level.Rooms[beetle->RoomNumber].itemNumber;
 
-					if (itemRoom != NO_VALUE)
+					if (g_Level.Rooms[beetle->RoomNumber].itemNumber != NO_VALUE)
 					{
-						ItemInfo* item;
-						short nextItem;
-
-						while (true)
+						ItemInfo* item = nullptr;
+						for (short itemRoom = g_Level.Rooms[beetle->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item->NextItem)
 						{
 							item = &g_Level.Items[itemRoom];
-							nextItem = item->NextItem;
 
-							if (item->ObjectNumber == ID_MAPPER)
-							{
-								int dx = beetle->Pose.Position.x - item->Pose.Position.x;
-								int dy = beetle->Pose.Position.y - item->Pose.Position.y;
-								int dz = beetle->Pose.Position.z - item->Pose.Position.z;
+							if (item->ObjectNumber != ID_MAPPER)
+								continue;
 
-								if (dx > -BLOCK(1) && dx < BLOCK(1) &&
-									dz > -BLOCK(1) && dz < BLOCK(1) &&
-									dy > -BLOCK(1) && dy < BLOCK(1))
-								{
-									break;
-								}
-							}
+							if (Vector3i::Distance(beetle->Pose.Position, item->Pose.Position) > BLOCK(1))
+								continue;
 
-							itemRoom = nextItem;
-
-							if (itemRoom == NO_VALUE)
-								return;
+							item->ItemFlags[0] = 1;
 						}
-
-						item->ItemFlags[0] = 1;
 					}
 				}
 			}
@@ -305,50 +288,50 @@ void UseClockworkBeetle(bool flag)
 		if (itemNumber == NO_VALUE)
 			return;
 
-		auto* item = &g_Level.Items[itemNumber];
+		auto* beetle = &g_Level.Items[itemNumber];
 
 		Lara.Inventory.BeetleComponents &= 0xFE;
-		item->Model.Color = Vector4(0.5f, 0.5f, 0.5f, 0.0f);
-		item->ObjectNumber = ID_CLOCKWORK_BEETLE;
-		item->RoomNumber = LaraItem->RoomNumber;
-		item->Pose.Position = LaraItem->Pose.Position;
+		beetle->Model.Color = Vector4(0.5f, 0.5f, 0.5f, 0.0f);
+		beetle->ObjectNumber = ID_CLOCKWORK_BEETLE;
+		beetle->RoomNumber = LaraItem->RoomNumber;
+		beetle->Pose.Position = LaraItem->Pose.Position;
 
 		InitializeItem(itemNumber);
-		item->Pose.Orientation.x = 0;
-		item->Pose.Orientation.y = LaraItem->Pose.Orientation.y;
-		item->Pose.Orientation.z = 0;
+		beetle->Pose.Orientation.x = 0;
+		beetle->Pose.Orientation.y = LaraItem->Pose.Orientation.y;
+		beetle->Pose.Orientation.z = 0;
 
 		if (Lara.Inventory.BeetleLife)
-			item->ItemFlags[0] = GetPointCollision(*item).GetSector().Flags.MarkBeetle;
+			beetle->ItemFlags[0] = GetPointCollision(*beetle).GetSector().Flags.MarkBeetle;
 		else
-			item->ItemFlags[0] = 0;
+			beetle->ItemFlags[0] = 0;
 
-		item->Animation.Velocity.z = 0;
+		beetle->Animation.Velocity.z = 0;
 		AddActiveItem(itemNumber);
 
-		if (item->ItemFlags[0] && g_Level.Rooms[item->RoomNumber].itemNumber != NO_VALUE)
+		if (beetle->ItemFlags[0] && g_Level.Rooms[beetle->RoomNumber].itemNumber != NO_VALUE)
 		{
-			ItemInfo* item2 = nullptr;
-			for (short itemRoom = g_Level.Rooms[item->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item2->NextItem)
+			ItemInfo* item = nullptr;
+			for (short itemRoom = g_Level.Rooms[beetle->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item->NextItem)
 			{
-				item2 = &g_Level.Items[itemRoom];
+				item = &g_Level.Items[itemRoom];
 
-				if (item2->ObjectNumber != ID_MAPPER)
+				if (item->ObjectNumber != ID_MAPPER)
 					continue;
 
-				if (Vector3i::Distance(item->Pose.Position, item2->Pose.Position) > BLOCK(1))
+				if (Vector3i::Distance(beetle->Pose.Position, item->Pose.Position) > BLOCK(1))
 					continue;
 
-				item->ItemFlags[1] = item2->Pose.Orientation.y + ANGLE(180.0f);
+				beetle->ItemFlags[1] = item->Pose.Orientation.y + ANGLE(180.0f);
 
-				if (item2->ItemFlags[0])
-					item->ItemFlags[0] = 0;
+				if (item->ItemFlags[0])
+					beetle->ItemFlags[0] = 0;
 				else
-					item2->ItemFlags[0] = 1;
+					item->ItemFlags[0] = 1;
 			}
 		}
 
-		if (!item->ItemFlags[0])
-			item->ItemFlags[3] = 150;
+		if (!beetle->ItemFlags[0])
+			beetle->ItemFlags[3] = 150;
 	}
 }
