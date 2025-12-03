@@ -3,6 +3,9 @@
 
 #include "Specific/Input/Action.h"
 #include "Specific/Input/Event.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Input
 {
@@ -262,8 +265,41 @@ namespace TEN::Input
 
 	void BindingManager::SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
 	{
-		// Overwrite or add action-event binding.
-		_bindings[profileId][actionId] = { eventId };
+		auto& profile = _bindings[profileId];
+
+		// Swap action-event binding if event is already bound to another action in same group.
+		bool hasSwap = false;
+		for (auto actionGroupId : USER_ACTION_GROUP_IDS)
+		{
+			// Check if action ID exists in current group.
+			const auto& actionIds = ACTION_ID_GROUPS[(int)actionGroupId];
+			if (!Contains(actionIds, actionId))
+				continue;
+
+			// Run through action IDs in group.
+			for (auto otherActionId : actionIds)
+			{
+				// Skip action to bind.
+				if (actionId == otherActionId)
+					continue;
+
+				// Swap if event is already bound.
+				auto& eventIds = profile.at(otherActionId);
+				if (Contains(eventIds, eventId))
+				{
+					std::swap(eventIds, _bindings[profileId][actionId]);
+					hasSwap = true;
+					break;
+				}
+			}
+
+			if (hasSwap)
+				break;
+		}
+
+		// Add action-event binding.
+		if (!hasSwap)
+			_bindings[profileId][actionId] = { eventId };
 	}
 
 	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseBinds, const BindingProfile& customGamepadBinds)
