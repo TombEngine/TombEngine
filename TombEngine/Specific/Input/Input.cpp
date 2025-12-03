@@ -53,6 +53,11 @@ namespace TEN::Input
 		_actionQueues[(int)actionId] = queueState;
 	}
 
+	void InputManager::SetActiveBindingProfileId(BindingProfileId profileId)
+	{
+		_activeBindingProfileId = profileId;
+	}
+
 	void InputManager::SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec)
 	{
 		_rumble.Mode = mode;
@@ -281,8 +286,10 @@ namespace TEN::Input
 		auto updateUserActions = [&]()
 		{
 			// Get binding profiles.
-			const auto& userProfile = _bindings.GetBindingProfile(IsGamepadConnected() ? BindingProfileId::CustomGamepad: BindingProfileId::CustomKeyboardMouse);
-			const auto& defaultProfile = _bindings.GetBindingProfile(IsGamepadConnected() ? BindingProfileId::DefaultGamepad : BindingProfileId::DefaultKeyboardMouse);
+			const auto& customProfile = _bindings.GetBindingProfile(_activeBindingProfileId);
+			const auto& defaultProfile = (_activeBindingProfileId == BindingProfileId::CustomKeyboardMouse) ?
+				DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE :
+				DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
 
 			for (auto actionGroupId : USER_ACTION_GROUP_IDS)
 			{
@@ -293,11 +300,9 @@ namespace TEN::Input
 					float state = 0.0f;
 
 					// Apply user-defined bound event state to action.
-					const auto& userEventIds = userProfile.at(actionId);
-					for (const auto& eventId : userEventIds)
-					{
+					const auto& customEventIds = customProfile.at(actionId);
+					for (const auto& eventId : customEventIds)
 						state = std::max(state, GetRawEventState(eventId));
-					}
 
 					// TODO: Handle conflicts between user and default.
 					const auto& defaultEventIds = defaultProfile.at(actionId);
@@ -310,7 +315,7 @@ namespace TEN::Input
 		// 2) Update raw action states.
 		auto updateRawActions = [&]()
 		{
-			for (auto profileId : RAW_EVENT_BINDING_PROFILE_IDS)
+			for (auto profileId : RAW_BINDING_PROFILE_IDS)
 			{
 				const auto& profile = _bindings.GetBindingProfile(profileId);
 				for (auto& [keyActionId, eventIds] : profile)
@@ -319,9 +324,7 @@ namespace TEN::Input
 					float state = 0.0f;
 
 					for (auto eventId : eventIds)
-					{
 						state = std::max(state, GetRawEventState(eventId));
-					}
 
 					// Use max bound event state.
 					action.Update(state);

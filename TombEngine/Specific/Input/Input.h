@@ -85,10 +85,11 @@ namespace TEN::Input
 		RumbleData      _rumble       = {};
 		DeviceStateData _deviceStates = {};
 
-		BindingManager                _bindings     = BindingManager();
-		std::vector<Action>           _actions      = {}; // Index = `ActionId`.
-		std::vector<ActionQueueState> _actionQueues = {}; // Index = `ActionId`.
-		std::vector<Vector2>          _analogAxes   = {}; // Index = `AnalogAxisId`.
+		BindingProfileId			  _activeBindingProfileId = BindingProfileId::CustomKeyboardMouse;
+		BindingManager                _bindings               = BindingManager();
+		std::vector<Action>           _actions                = {}; // Index = `ActionId`.
+		std::vector<ActionQueueState> _actionQueues           = {}; // Index = `ActionId`.
+		std::vector<Vector2>          _analogAxes             = {}; // Index = `AnalogAxisId`.
 
 		bool _isLocked = false;
 
@@ -107,6 +108,7 @@ namespace TEN::Input
 
 		// Setters
 
+		void SetActiveBindingProfileId(BindingProfileId profileId);
 		void SetActionQueue(ActionId actionId, ActionQueueState queueState);
 		void SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec);
 
