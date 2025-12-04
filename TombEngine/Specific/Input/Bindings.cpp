@@ -9,12 +9,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Input
 {
-	static const auto CUSTOM_BINDING_PROFILE_IDS = std::vector<BindingProfileId>
-	{
-		BindingProfileId::CustomKeyboardMouse,
-		BindingProfileId::CustomGamepad
-	};
-
 	static const auto RAW_KEYBOARD_BINDING_PROFILE = BindingProfile
 	{
 		{ In::A,            { EventId::A } },
