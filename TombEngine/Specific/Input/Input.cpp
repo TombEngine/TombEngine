@@ -10,6 +10,7 @@
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
+#include "Specific/Input/Bindings.h"
 #include "Specific/Input/Event.h"
 #include "Specific/Parallel.h"
 #include "Specific/trutils.h"
@@ -21,7 +22,8 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Input
 {
-	InputManager g_Input = InputManager();
+	InputManager   g_Input    = InputManager();
+	BindingManager g_Bindings = BindingManager();
 
 	const Action& InputManager::GetAction(ActionId actionId) const
 	{
@@ -48,14 +50,14 @@ namespace TEN::Input
 		return _gamepad.VendorId;
 	}
 
-	void InputManager::SetActionQueue(ActionId actionId, ActionQueueState queueState)
-	{
-		_actionQueues[(int)actionId] = queueState;
-	}
-
 	void InputManager::SetActiveBindingProfileId(BindingProfileId profileId)
 	{
 		_activeBindingProfileId = profileId;
+	}
+
+	void InputManager::SetActionQueue(ActionId actionId, ActionQueueState queueState)
+	{
+		_actionQueues[(int)actionId] = queueState;
 	}
 
 	void InputManager::SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec)

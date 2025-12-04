@@ -9,6 +9,12 @@ using namespace TEN::Utils;
 
 namespace TEN::Input
 {
+	static const auto CUSTOM_PROFILE_IDS = std::vector<BindingProfileId>
+	{
+		BindingProfileId::CustomKeyboardMouse,
+		BindingProfileId::CustomGamepad
+	};
+
 	static const auto RAW_KEYBOARD_BINDING_PROFILE = BindingProfile
 	{
 		{ In::A,            { EventId::A } },
@@ -257,28 +263,46 @@ namespace TEN::Input
 		return eventIds;
 	}
 
-	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& bindingProfile)
+	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& newProfile)
 	{
-		// Overwrite or create binding profile.
-		_bindings[profileId] = bindingProfile;
-	}
-
-	void BindingManager::SetEventBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
-	{
-		static const auto CUSTOM_PROFILE_IDS = std::vector<BindingProfileId>
-		{
-			BindingProfileId::CustomKeyboardMouse,
-			BindingProfileId::CustomGamepad
-		};
-
+		// Check if profile is customizable.
 		if (!Contains(CUSTOM_PROFILE_IDS, profileId))
 		{
-			//TENLog(fmt::format("Attempted to bind event {} to action {} in non-customizable binding profile {}.", (int)eventId, (int)actionId, (int)profileId),
-			//	Debug::LogLevel::Warning);
+			TENLog(fmt::format("Attempted to set all bindings for non-customizable binding profile {}.", (int)profileId), Debug::LogLevel::Warning);
 			return;
 		}
 
-		auto& profile = _bindings[profileId];
+		// Get profile.
+		auto profileIt = _bindings.find(profileId);
+		if (profileIt == _bindings.end())
+		{
+			TENLog(fmt::format("Attempted to get missing binding profile {}.", (int)profileId), LogLevel::Warning);
+			return;
+		}
+		auto& [keyProfileId, profile] = *profileIt;
+
+		// Set new bindings for profile.
+		profile = newProfile;
+	}
+
+	void BindingManager::SetBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
+	{
+		// Check if profile is customizable.
+		if (!Contains(CUSTOM_PROFILE_IDS, profileId))
+		{
+			TENLog(fmt::format("Attempted to bind event {} to action {} in non-customizable binding profile {}.", (int)eventId, (int)actionId, (int)profileId),
+				LogLevel::Warning);
+			return;
+		}
+
+		// Get profile.
+		auto profileIt = _bindings.find(profileId);
+		if (profileIt == _bindings.end())
+		{
+			TENLog(fmt::format("Attempted to get missing binding profile {}.", (int)profileId), Debug::LogLevel::Warning);
+			return;
+		}
+		auto& [keyProfileId, profile] = *profileIt;
 
 		// Swap action-event binding if event is already bound to another action in same group.
 		bool hasSwap = false;
@@ -306,8 +330,7 @@ namespace TEN::Input
 				}
 			}
 
-			if (hasSwap)
-				break;
+			break;
 		}
 
 		// Add action-event binding.
