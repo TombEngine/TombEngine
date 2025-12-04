@@ -432,7 +432,7 @@ namespace TEN::Animation
 		const auto& anim = GetAnimData(animObject, animNumber);
 
 		// Frame missing; return early.
-		int frameCount = (int)anim.Keyframes.size() - 1 * anim.Interpolation;
+		int frameCount = (int)(anim.Keyframes.size() - 1) * anim.Interpolation;
 		if (frameNumber < 0 || frameNumber > frameCount)
 		{
 			TENLog(
