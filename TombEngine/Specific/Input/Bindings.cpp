@@ -241,28 +241,6 @@ namespace TEN::Input
 		return profile;
 	}
 
-	const std::vector<EventId>& BindingManager::GetBoundEventIds(BindingProfileId profileId, ActionId actionId) const
-	{
-		static const auto NO_EVENT_IDS = std::vector<EventId>{};
-
-		// Find binding profile.
-		auto profileIt = _bindings.find(profileId);
-		if (profileIt == _bindings.end())
-			return NO_EVENT_IDS;
-
-		// Get binding profile.
-		const auto& [keyProfileId, profile] = *profileIt;
-
-		// Find action-event binding.
-		auto keyIt = profile.find(actionId);
-		if (keyIt == profile.end())
-			return NO_EVENT_IDS;
-
-		// Return bound event IDs.
-		const auto& [keyActionId, eventIds] = *keyIt;
-		return eventIds;
-	}
-
 	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& newProfile)
 	{
 		// Check if profile is customizable.

@@ -42,8 +42,7 @@ namespace TEN::Input
 
 		// Getters
 
-		const BindingProfile&       GetProfile(BindingProfileId profileId) const;
-		const std::vector<EventId>& GetBoundEventIds(BindingProfileId profileId, ActionId actionId) const;
+		const BindingProfile& GetProfile(BindingProfileId profileId) const;
 
 		// Setters
 
