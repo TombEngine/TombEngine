@@ -51,6 +51,6 @@ namespace TEN::Input
 
 		// Utilities
 
-		void Initialize(const BindingProfile& customKeyboardMouseBinds, const BindingProfile& customGamepadBinds);
+		void Initialize(const BindingProfile& customKeyboardMouseProfile, const BindingProfile& customGamepadProfile);
 	};
 }

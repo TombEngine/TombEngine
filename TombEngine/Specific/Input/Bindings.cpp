@@ -9,7 +9,7 @@ using namespace TEN::Utils;
 
 namespace TEN::Input
 {
-	static const auto CUSTOM_PROFILE_IDS = std::vector<BindingProfileId>
+	static const auto CUSTOM_BINDING_PROFILE_IDS = std::vector<BindingProfileId>
 	{
 		BindingProfileId::CustomKeyboardMouse,
 		BindingProfileId::CustomGamepad
@@ -244,7 +244,7 @@ namespace TEN::Input
 	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& newProfile)
 	{
 		// Check if profile is customizable.
-		if (!Contains(CUSTOM_PROFILE_IDS, profileId))
+		if (!Contains(CUSTOM_BINDING_PROFILE_IDS, profileId))
 		{
 			TENLog(fmt::format("Attempted to set all bindings for non-customizable binding profile {}.", (int)profileId), Debug::LogLevel::Warning);
 			return;
@@ -266,7 +266,7 @@ namespace TEN::Input
 	void BindingManager::SetBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
 	{
 		// Check if profile is customizable.
-		if (!Contains(CUSTOM_PROFILE_IDS, profileId))
+		if (!Contains(CUSTOM_BINDING_PROFILE_IDS, profileId))
 		{
 			TENLog(fmt::format("Attempted to bind event {} to action {} in non-customizable binding profile {}.", (int)eventId, (int)actionId, (int)profileId),
 				LogLevel::Warning);
@@ -316,13 +316,13 @@ namespace TEN::Input
 			profile[actionId] = { eventId };
 	}
 
-	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseBinds, const BindingProfile& customGamepadBinds)
+	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseProfile, const BindingProfile& customGamepadProfile)
 	{
 		// Initialize bindings.
 		_bindings =
 		{
-			{ BindingProfileId::CustomKeyboardMouse, customKeyboardMouseBinds },
-			{ BindingProfileId::CustomGamepad,       customGamepadBinds },
+			{ BindingProfileId::CustomKeyboardMouse, customKeyboardMouseProfile },
+			{ BindingProfileId::CustomGamepad,       customGamepadProfile },
 			{ BindingProfileId::RawKeyboard,         RAW_KEYBOARD_BINDING_PROFILE },
 			{ BindingProfileId::RawMouse,            RAW_KEYBOARD_BINDING_PROFILE },
 			{ BindingProfileId::RawGamepad,          RAW_KEYBOARD_BINDING_PROFILE }

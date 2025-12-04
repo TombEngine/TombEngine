@@ -274,7 +274,7 @@ bool LoadConfiguration()
 
 	// @inputme
 	//if (!foundInput)
-		g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::DefaultKeyboardMouse);
+	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;// g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
