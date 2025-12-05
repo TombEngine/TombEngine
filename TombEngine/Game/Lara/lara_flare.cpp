@@ -18,6 +18,7 @@
 #include "Objects/Effects/LensFlare.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
@@ -403,6 +404,9 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	}
 
 	AddActiveItem(itemNumber);
+	std::string stringResult = fmt::format("ID_BURNING_TORCH{}", itemNumber);
+	flareItem.Name = stringResult;
+	g_GameScriptEntities->AddName(stringResult, itemNumber);
 	flareItem.Status = ITEM_ACTIVE;
 }
 
