@@ -5,7 +5,7 @@
 
 void InitializeBurningFloor(short itemNumber)
 {
-	g_Level.Items[itemNumber].Animation.RequiredState = 127;
+	auto item = &g_Level.Items[itemNumber];
 }
 
 void BurningFloorControl(short itemNumber)

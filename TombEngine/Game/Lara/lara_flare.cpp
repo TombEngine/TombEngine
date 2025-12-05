@@ -383,6 +383,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	if (hasLanded)
 		flareItem.Animation.Velocity.z /= 2;
 
+	std::string stringResult = fmt::format("FLARE_ITEM_{}", itemNumber);
 	if (objectID == ID_FLARE_ITEM)
 	{
 		flareItem.Data = (int)0;
@@ -399,12 +400,12 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	}
 	else
 	{
+		stringResult = fmt::format("BURNING_TORCH_{}", itemNumber);
 		flareItem.ItemFlags[3] = lara.Torch.IsLit;
 		flareItem.Effect.PrimaryEffectColor = lara.Torch.CurrentColor;
 	}
 
 	AddActiveItem(itemNumber);
-	std::string stringResult = fmt::format("ID_BURNING_TORCH{}", itemNumber);
 	flareItem.Name = stringResult;
 	g_GameScriptEntities->AddName(stringResult, itemNumber);
 	flareItem.Status = ITEM_ACTIVE;
