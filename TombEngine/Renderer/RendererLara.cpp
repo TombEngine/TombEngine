@@ -191,7 +191,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::RocketLauncher:
 		case LaraWeaponType::HarpoonGun:
 		{
-			// Left arm
+			// Left arm.
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 
 			if (ShouldAnimateUpperBody(gunType))
@@ -200,7 +200,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			const auto& leftArmFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[Lara.LeftArm.FrameNumber];
 			UpdateAnimation(&rItem, playerObject, leftArmFrame, mask);
 
-			// Right arm
+			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			if (ShouldAnimateUpperBody(Lara.Control.Weapon.GunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
@@ -215,24 +215,48 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Revolver:
 		default:
 		{
-			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
+			// Left arm.
+
+			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
+			bool transformLeftUpperArm = IsCrouching(LaraItem) || Lara.LeftArm.Locked ||
+				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber);
+
+			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftFrameNumber];
 
-			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
-			const auto& rightFrame = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[rightFrameNumber];
-
-			// Left arm
 			int upperArmMask = MESH_BITS(LM_LINARM);
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
+			if (transformLeftUpperArm)
+			{
+				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
+			}
+			else
+			{
+				mask |= MESH_BITS(LM_LINARM);
+			}
 
-			UpdateAnimation(&rItem, playerObject, leftFrame, upperArmMask, true);
 			UpdateAnimation(&rItem, playerObject, leftFrame, mask);
 
-			// Right arm
+			// Right arm.
+
+			// HACK: Same as above, but for right arm.
+			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked ||
+				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber);
+
+			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
+			const auto& rightFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[rightFrameNumber];
+
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
+			if (transformRightUpperArm)
+			{
+				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+			}
+			else
+			{
+				mask |= MESH_BITS(LM_RINARM);
+			}
 
-			UpdateAnimation(&rItem, playerObject, rightFrame, upperArmMask, true);
 			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
 		}
 		break;
@@ -256,7 +280,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			UpdateAnimation(&rItem, playerObject, leftFrame, mask);
 
-			// Right arm
+			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			const auto& rightFrame = GetFrame(*LaraItem);
 			UpdateAnimation(&rItem, playerObject, rightFrame, mask);

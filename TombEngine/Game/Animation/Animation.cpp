@@ -547,7 +547,7 @@ namespace TEN::Animation
 		const auto& anim = GetAnimData(animObject, animNumber);
 
 		// Check if frame is missing.
-		if (frameNumber < 0 || frameNumber > anim.EndFrameNumber)
+		if (frameNumber < 0 || frameNumber >= anim.Frames.size())
 		{
 			bool isBorrowedAnim = animObjectID != item.ObjectNumber;
 			TENLog(
