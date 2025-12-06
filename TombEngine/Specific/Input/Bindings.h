@@ -33,7 +33,7 @@ namespace TEN::Input
 	private:
 		// Fields
 
-		std::unordered_map<BindingProfileId, BindingProfile> _bindings = {}; // Key = binding profile ID, value = binding profile.
+		std::vector<BindingProfile> _bindings = {}; // Index = binding profile ID.
 
 	public:
 		// Constructors

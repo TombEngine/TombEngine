@@ -226,13 +226,7 @@ namespace TEN::Input
 
 	const BindingProfile& BindingManager::GetProfile(BindingProfileId profileId) const
 	{
-		// Find binding profile.
-		auto profileIt = _bindings.find(profileId);
-		//TENAssert(profileIt != _bindings.end(), fmt::format("Attempted to get missing binding profile {}.", (int)profileId));
-
-		// Return binding profile.
-		const auto& [keyProfileId, profile] = *profileIt;
-		return profile;
+		return _bindings[(int)profileId];
 	}
 
 	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& newProfile)
@@ -244,17 +238,8 @@ namespace TEN::Input
 			return;
 		}
 
-		// Get profile.
-		auto profileIt = _bindings.find(profileId);
-		if (profileIt == _bindings.end())
-		{
-			TENLog(fmt::format("Attempted to get missing binding profile {}.", (int)profileId), LogLevel::Warning);
-			return;
-		}
-		auto& [keyProfileId, profile] = *profileIt;
-
 		// Set new bindings for profile.
-		profile = newProfile;
+		_bindings[(int)profileId] = newProfile;
 	}
 
 	void BindingManager::SetBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
@@ -268,15 +253,9 @@ namespace TEN::Input
 		}
 
 		// Get profile.
-		auto profileIt = _bindings.find(profileId);
-		if (profileIt == _bindings.end())
-		{
-			TENLog(fmt::format("Attempted to get missing binding profile {}.", (int)profileId), Debug::LogLevel::Warning);
-			return;
-		}
-		auto& [keyProfileId, profile] = *profileIt;
+		auto& profile = _bindings[(int)profileId];
 
-		// Swap action-event binding if event is already bound to another action in same group.
+		// Swap binding if event is already bound to another action in same group.
 		bool hasSwap = false;
 		for (auto actionGroupId : USER_ACTION_GROUP_IDS)
 		{
@@ -305,21 +284,20 @@ namespace TEN::Input
 			break;
 		}
 
-		// Add action-event binding.
+		// Add binding.
 		if (!hasSwap)
 			profile[actionId] = { eventId };
 	}
 
 	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseProfile, const BindingProfile& customGamepadProfile)
 	{
-		// Initialize bindings.
 		_bindings =
 		{
-			{ BindingProfileId::CustomKeyboardMouse, customKeyboardMouseProfile },
-			{ BindingProfileId::CustomGamepad,       customGamepadProfile },
-			{ BindingProfileId::RawKeyboard,         RAW_KEYBOARD_BINDING_PROFILE },
-			{ BindingProfileId::RawMouse,            RAW_KEYBOARD_BINDING_PROFILE },
-			{ BindingProfileId::RawGamepad,          RAW_KEYBOARD_BINDING_PROFILE }
+			customKeyboardMouseProfile,   // BindingProfileId::CustomKeyboardMouse
+			customGamepadProfile,         // BindingProfileId::CustomGamepad
+			RAW_KEYBOARD_BINDING_PROFILE, // BindingProfileId::RawKeyboard
+			RAW_KEYBOARD_BINDING_PROFILE, // BindingProfileId::RawMouse
+			RAW_KEYBOARD_BINDING_PROFILE  // BindingProfileId::RawGamepad
 		};
 	}
 }

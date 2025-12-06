@@ -55,6 +55,12 @@ using namespace DirectX::SimpleMath;
 // sol
 #include <sol.hpp>
 
+// spdlog
+#include <spdlog.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 // srtparser.h
 #include <srtparser.h>
 
