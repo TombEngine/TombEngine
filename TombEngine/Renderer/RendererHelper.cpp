@@ -267,7 +267,7 @@ namespace TEN::Renderer
 				[&j, &currentBone](RubberBoatInfo& boat)
 				{
 					if (j == 2)
-						currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
+					currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
 				},
 				[&j, &currentBone](UPVInfo& upv)
 				{
@@ -699,7 +699,7 @@ namespace TEN::Renderer
 		float scale = item.GetInterpolatedScale(t);
 		auto objectNumber = item.GetObjectID();
 
-		// find largest visible mesh sphere (as you already do)
+		// find largest visible mesh sphere
 		auto& moveable = _moveableObjects[item.GetObjectID()];
 
 		float maxRadius = 0.0f;
@@ -733,14 +733,11 @@ namespace TEN::Renderer
 			}
 		}
 
-		if (maxRadius <= 0.0f) return std::nullopt;
+		// Use a default minimal radius if none found
+		if (maxRadius <= 0.0f)
+			maxRadius = 10.0f;
 
-		// Project center to screen
-		auto center2Dopt = ProjectDisplayItemPointToScreen(worldCenter);
-		if (!center2Dopt) return std::nullopt;
-		Vector2 center2D = *center2Dopt;
-
-		// --- compute camera basis (world-space right & up) ---
+		// Build camera matrices
 		Vector3 camPos = g_DrawItems.GetInterpolatedCameraPosition(t);
 		Vector3 camTarget = g_DrawItems.GetInterpolatedCameraTargetPosition(t);
 		Vector3 camForward = (camTarget - camPos);
@@ -751,23 +748,84 @@ namespace TEN::Renderer
 		Vector3 camUp = camRight.Cross(camForward);
 		camUp.Normalize();
 
+		// Calculate distance from camera
+		float distance = (worldCenter - camPos).Length();
+
+		// Build view-projection matrix
+		float aspectRatio = (float)_screenWidth / _screenHeight;
+		Matrix viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
+		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, 0.1f, BLOCK(100));
+		Matrix viewProj = viewMatrix * projMatrix;
+
+		// Helper lambda to project point and clamp to extended screen bounds
+		auto projectPointClamped = [&](const Vector3& worldPos) -> Vector2
+		{
+			Vector4 p(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+			p = Vector4::Transform(p, viewProj);
+
+			// Handle behind camera or w near zero
+			if (p.w <= 0.01f)
+			{
+				// Use estimated position based on direction
+				Vector3 dir = worldPos - camPos;
+				dir.Normalize();
+				
+				// Project direction onto screen plane
+				float rightDot = dir.Dot(camRight);
+				float upDot = dir.Dot(camUp);
+				
+				// Convert to screen coordinates with large offset for off-screen
+				float screenX = rightDot * _screenWidth * 2.0f + (_screenWidth * 0.5f);
+				float screenY = -upDot * _screenHeight * 2.0f + (_screenHeight * 0.5f);
+				
+				return Vector2(screenX, screenY);
+			}
+
+			p /= p.w;
+
+			// Clamp NDC with extended margin for better size estimation
+			p.x = std::clamp(p.x, -3.0f, 3.0f);
+			p.y = std::clamp(p.y, -3.0f, 3.0f);
+
+			float screenX = (p.x + 1.0f) * _screenWidth * 0.5f;
+			float screenY = (1.0f - p.y) * _screenHeight * 0.5f;
+
+			return Vector2(screenX, screenY);
+		};
+
+		// Project center
+		Vector2 center2D = projectPointClamped(worldCenter);
+
 		// Sample points along camera right/up directions
 		Vector3 rightWorld = worldCenter + camRight * maxRadius;
 		Vector3 leftWorld = worldCenter - camRight * maxRadius;
 		Vector3 upWorld = worldCenter + camUp * maxRadius;
 		Vector3 downWorld = worldCenter - camUp * maxRadius;
 
-		auto pr = ProjectDisplayItemPointToScreen(rightWorld);
-		auto pl = ProjectDisplayItemPointToScreen(leftWorld);
-		auto pu = ProjectDisplayItemPointToScreen(upWorld);
-		auto pd = ProjectDisplayItemPointToScreen(downWorld);
+		Vector2 rightProj = projectPointClamped(rightWorld);
+		Vector2 leftProj = projectPointClamped(leftWorld);
+		Vector2 upProj = projectPointClamped(upWorld);
+		Vector2 downProj = projectPointClamped(downWorld);
 
-		if (!pr || !pl || !pu || !pd) return std::nullopt;
+		// Calculate half extents from projected points
+		float halfWidth = std::max(std::abs(rightProj.x - center2D.x), std::abs(leftProj.x - center2D.x));
+		float halfHeight = std::max(std::abs(upProj.y - center2D.y), std::abs(downProj.y - center2D.y));
 
-		float halfWidth = std::max(std::abs(pr->x - center2D.x), std::abs(pl->x - center2D.x));
-		float halfHeight = std::max(std::abs(pu->y - center2D.y), std::abs(pd->y - center2D.y));
+		// Ensure reasonable minimum size based on screen-space estimation
+		// Calculate expected pixel size based on FOV and distance
+		float angularSize = 2.0f * atan(maxRadius / std::max(distance, 1.0f));
+		float expectedPixelHeight = (angularSize / CurrentFOV) * _screenHeight;
+		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
 
-		Vector2 halfExtents(halfWidth * 2.0f, halfHeight * 2.0f); // width/height in pixels
+		// Use the larger of projected size or estimated size
+		halfWidth = std::max(halfWidth, expectedPixelWidth * 0.5f);
+		halfHeight = std::max(halfHeight, expectedPixelHeight * 0.5f);
+
+		// Ensure absolute minimum size
+		halfWidth = std::max(halfWidth, 1.0f);
+		halfHeight = std::max(halfHeight, 1.0f);
+
+		Vector2 halfExtents(halfWidth * 2.0f, halfHeight * 2.0f);
 		return std::make_pair(center2D, halfExtents);
 	}
 }
