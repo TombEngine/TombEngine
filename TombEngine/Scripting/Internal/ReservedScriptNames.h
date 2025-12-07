@@ -556,6 +556,12 @@ constexpr char ScriptReserved_DrawItemSetTarget[]	= "SetTargetPosition";
 constexpr char ScriptReserved_DrawItemGetAmbientLight[] = "GetAmbientLight";
 constexpr char ScriptReserved_DrawItemSetAmbientLight[] = "SetAmbientLight";
 
+// 2D Context
+constexpr auto ScriptReserved_SetScreenPosition = "SetScreenPosition";
+constexpr auto ScriptReserved_GetScreenPosition = "GetScreenPosition";
+constexpr auto ScriptReserved_SetAlignMode = "SetAlignMode";
+constexpr auto ScriptReserved_GetAlignMode = "GetAlignMode";
+
 // =====
 // TYPES
 // =====

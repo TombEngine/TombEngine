@@ -30,7 +30,12 @@ namespace TEN::Scripting::DisplayItem
 		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position);
 		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID);
 		ScriptDisplayItem(const std::string& itemName);
-		
+
+		// Constructor for 2D positioning
+		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos, float scale, DisplaySpriteAlignMode alignMode);
+		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos, float scale);
+		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos);
+
 		// Methods
 		void Remove();
 		bool Exists() const;
@@ -47,6 +52,12 @@ namespace TEN::Scripting::DisplayItem
 		void SetVisibility(bool visible);
 		void SetFrame(int animation, int frame);
 
+		// New 2D positioning methods
+		void SetScreenPosition(const Vec2& screenPos, TypeOrNil<DisplaySpriteAlignMode> alignMode);
+		sol::optional<Vec2> GetScreenPosition() const;
+		void SetAlignMode(DisplaySpriteAlignMode alignMode);
+		sol::optional<DisplaySpriteAlignMode> GetAlignMode() const;
+
 		// Getters
 		GAME_OBJECT_ID GetObjectID() const;
 		sol::optional <Vec3> GetPosition() const;
@@ -60,6 +71,7 @@ namespace TEN::Scripting::DisplayItem
 		sol::optional <int> GetFrameNumber() const;
 		sol::optional <int> GetEndFrame() const;
 		sol::optional<std::pair<Vec2, Vec2>> GetBounds() const;
+		sol::optional<sol::table> GetAnchors() const;
 
 		//functions
 		static ScriptDisplayItem GetItemByName(const std::string& itemName);

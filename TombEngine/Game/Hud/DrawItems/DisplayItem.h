@@ -3,6 +3,8 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
+#include "Game/effects/DisplaySprite.h"
+using namespace TEN::Effects::DisplaySprite;
 
 using namespace TEN::Math;
 using namespace TEN::Utils;
@@ -38,6 +40,12 @@ namespace TEN::Hud
 		int AnimNumber = 0;
 		int FrameNumber = 0;
 		int PrevFrameNumber = 0;
+
+		// 2D Mode Properties
+		bool Use2DMode = false;
+		Vector2 ScreenPosition = Vector2::Zero;
+		DisplaySpriteAlignMode AlignMode = DisplaySpriteAlignMode::Center;
+		float DepthDistance = 3800.0f; // Fixed distance from the camera in 2D mode
 
 	public:
 		void SetName(std::string itemName);
@@ -80,6 +88,17 @@ namespace TEN::Hud
 
 		//Utilities
 		bool MeshExists(int index) const;
+
+		// 2D Mode Methods
+		void SetScreenPosition(const Vector2& screenPos, DisplaySpriteAlignMode align = DisplaySpriteAlignMode::Center);
+		Vector2 GetScreenPosition() const;
+		void SetAlignMode(DisplaySpriteAlignMode align);
+		DisplaySpriteAlignMode GetAlignMode() const;
+
+	private:
+		// 2D Mode Helpers
+		Vector3 CalculateAlignmentOffset(DisplaySpriteAlignMode alignMode) const;
+		void UpdatePositionFrom2D();
 	};
 
 }
