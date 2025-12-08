@@ -357,6 +357,8 @@ void KillItem(short const itemNumber)
 			bridge.Disable(*item);
 		}
 
+		GameScriptHandleKilled(itemNumber, true);
+
 		if (itemNumber >= g_Level.NumItems)
 		{
 			item->NextItem = NextItemFree;
@@ -366,8 +368,6 @@ void KillItem(short const itemNumber)
 		{
 			item->Flags |= IFLAG_KILLED;
 		}
-
-		GameScriptHandleKilled(itemNumber, true);
 	}
 }
 
