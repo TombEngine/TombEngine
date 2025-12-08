@@ -1145,6 +1145,12 @@ void Moveable::EnableItem(sol::optional<float> timer)
 	if (_moveableID == NO_VALUE)
 		return;
 
+	if (_moveable->Flags & IFLAG_KILLED)
+	{
+		TENLog("Attempt to re-enable a moveable " + _moveable->Name + " which was already destroyed or in the process of destroying.", LogLevel::Warning);
+		return;
+	}
+
 	bool wasInvisible = false;
 	if (_moveable->Status == ITEM_INVISIBLE)
 		wasInvisible = true;

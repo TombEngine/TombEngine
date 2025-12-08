@@ -1144,6 +1144,7 @@ struct ArmInfo
 
 	int GunFlash = 0;
 	int GunSmoke = 0;
+	int AimDelay = 0;
 };
 
 struct FlareData

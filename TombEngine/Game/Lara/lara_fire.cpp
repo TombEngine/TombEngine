@@ -1126,22 +1126,26 @@ void LaraTargetInfo(ItemInfo& laraItem, const WeaponInfo& weaponInfo)
 
 	if (player.TargetEntity == nullptr)
 	{
-		player.RightArm.Locked = false;
-		player.LeftArm.Locked = false;
+		player.RightArm.AimDelay = player.LeftArm.AimDelay = 0;
+		player.RightArm.Locked = player.LeftArm.Locked = false;
 		player.TargetArmOrient = EulerAngles::Identity;
 		return;
 	}
 
-	auto origin = GameVector(
-		laraItem.Pose.Position.x,
-		GetJointPosition(&laraItem, LM_RHAND).y, // Muzzle offset.
-		laraItem.Pose.Position.z,
-		laraItem.RoomNumber);
+	auto origin1 = GameVector(laraItem.Pose.Position.x, GetJointPosition(&laraItem, LM_RHAND).y, laraItem.Pose.Position.z, laraItem.RoomNumber);
+	auto origin2 = GameVector(laraItem.Pose.Position.x, GetJointPosition(&laraItem, LM_HEAD).y - LARA_HEADROOM, laraItem.Pose.Position.z, laraItem.RoomNumber);
 	auto target = GetTargetPoint(*player.TargetEntity);
 
-	auto orient = Geometry::GetOrientToPoint(origin.ToVector3(), target.ToVector3()) - laraItem.Pose.Orientation;
+	auto orient = Geometry::GetOrientToPoint(origin1.ToVector3(), target.ToVector3()) - laraItem.Pose.Orientation;
 
-	if (LOS(&origin, &target))
+	// Do two-pass LOS test to make sure enemy is visible from both gun and head positions.
+	if (LOS(&origin1, &target) && LOS(&origin2, &target))
+		player.RightArm.AimDelay = player.LeftArm.AimDelay++;
+	else
+		player.RightArm.AimDelay = player.LeftArm.AimDelay = 0;
+
+	// Filter out targets that have been in sight for less than 3 frames to avoid stuttering.
+	if (player.RightArm.AimDelay > 3 || player.LeftArm.AimDelay > 3)
 	{
 		if (orient.x >= weaponInfo.LockOrientConstraint.first.x &&
 			orient.y >= weaponInfo.LockOrientConstraint.first.y &&
