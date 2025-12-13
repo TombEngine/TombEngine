@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/box.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -21,6 +21,7 @@
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
@@ -567,7 +568,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
-	SetAnimation(*creatureItem, creatureAnimNumber);
+	SetAnimation(creatureItem, creatureAnimNumber);
 	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
 
 	playerItem.Pose = creatureItem->Pose;
@@ -577,7 +578,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	if (creatureItem->RoomNumber != playerItem.RoomNumber)
 		ItemNewRoom(playerItem.Index, creatureItem->RoomNumber);
 
-	AnimateItem(&playerItem);
+	AnimateItem(playerItem);
 	playerItem.HitPoints = -1;
 	player.Control.HandStatus = HandStatus::Busy;
 	player.Control.Weapon.GunType = LaraWeaponType::None;
@@ -667,7 +668,7 @@ void CreatureFloat(short itemNumber)
 
 	if (item->Pose.Position.y <= waterLevel)
 	{
-		if (item->Animation.FrameNumber == GetAnimData(*item).frameBase)
+		if (item->Animation.FrameNumber == 0)
 		{
 			item->Pose.Position.y = waterLevel;
 			item->Collidable = false;
@@ -772,7 +773,7 @@ bool CreatureAnimation(short itemNumber, short headingAngle, short tiltAngle)
 
 	auto prevPos = item.Pose.Position;
 
-	AnimateItem(&item);
+	AnimateItem(item);
 	ProcessSectorFlags(&item);
 	CreatureHealth(&item);
 
@@ -1647,7 +1648,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 		if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
 		{
-			auto& bounds = GetBestFrame(*enemy).BoundingBox;
+			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 			LOT->Target.y += bounds.Y1;
 		}
 

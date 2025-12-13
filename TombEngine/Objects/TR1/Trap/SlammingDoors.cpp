@@ -30,7 +30,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		SetAnimation(&item, SLAMMING_DOORS_ANIM_OPENED);
+		SetAnimation(item, SLAMMING_DOORS_ANIM_OPENED);
 
 		// Used by GenericSphereBoxCollision. Bits correspond to joint damage index.
 		// 3 = 000000000 000000011, so damage joints are 1 and 2 (both doors).
@@ -61,6 +61,6 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 }

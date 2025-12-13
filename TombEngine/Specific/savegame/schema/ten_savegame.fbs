@@ -157,7 +157,7 @@ table WeaponInfo {
 table ArmInfo {
 	anim_number: int32;
 	frame_number: int32;
-	frame_base: int32;
+	anim_object_id: int32;
 	locked: bool;
 	rotation: EulerAngles;
 	gun_flash: int32;

@@ -21,16 +21,16 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 8;
+		item->Animation.AnimNumber = 8;
 		item->Animation.ActiveState = 1;
 
 		if (!item->TriggerFlags)
 		{
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 1;
+			item->Animation.AnimNumber = 1;
 			// TODO: item->flags2 ^= (item->flags2 ^ ((item->flags2 & 0xFE) + 2)) & 6;
 		}
 
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
+		item->Animation.FrameNumber = 0;
 	}
 
 	void Tr5DogControl(short itemNumber)
@@ -49,12 +49,12 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (item->HitPoints <= 0)
 		{
-			if (item->Animation.AnimNumber == object->animIndex + 1)
+			if (item->Animation.AnimNumber == 1)
 				item->HitPoints = object->HitPoints;
 			else if (item->Animation.ActiveState != 11)
 			{
-				item->Animation.AnimNumber = object->animIndex + DogAnims[GetRandomControl() & 3];
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = DogAnims[GetRandomControl() & 3];
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 11;
 			}
 		}
@@ -101,7 +101,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			short random = GetRandomControl();
-			int frame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+			int frame = item->Animation.FrameNumber;
 
 			switch (item->Animation.ActiveState)
 			{

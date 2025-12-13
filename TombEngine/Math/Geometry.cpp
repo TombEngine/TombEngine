@@ -156,7 +156,7 @@ namespace TEN::Math::Geometry
 		return FROM_RAD(atan2(normal.x, normal.z));
 	}
 
-	BoundingBox GetBoundingBox(const BoundingOrientedBox& box)
+	BoundingBox GetAabb(const BoundingOrientedBox& box)
 	{
 		// Get corners.
 		auto corners = std::array<Vector3, BoundingOrientedBox::CORNER_COUNT>{};
@@ -167,10 +167,10 @@ namespace TEN::Math::Geometry
 		cornersVector.insert(cornersVector.end(), corners.begin(), corners.end());
 
 		// Return bounding box.
-		return Geometry::GetBoundingBox(cornersVector);
+		return Geometry::GetAabb(cornersVector);
 	}
 
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points)
+	BoundingBox GetAabb(const std::vector<Vector3>& points)
 	{
 		auto minPoint = Vector3(FLT_MAX);
 		auto maxPoint = Vector3(-FLT_MAX);
@@ -195,7 +195,7 @@ namespace TEN::Math::Geometry
 		return BoundingBox(center, extents);
 	}
 
-	float GetBoundingBoxArea(const BoundingBox& box)
+	float GetAabbArea(const BoundingBox& box)
 	{
 		float width = box.Extents.x * 2;
 		float height = box.Extents.y * 2;

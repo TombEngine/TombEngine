@@ -125,7 +125,7 @@ public:
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
-	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
+	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
 	void DisableItem();
 	void MakeInvisible(); // Compatibility.
