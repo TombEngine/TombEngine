@@ -591,7 +591,7 @@ void HandleWeapon(ItemInfo& laraItem)
 			{
 				if (player.Control.Weapon.GunType == LaraWeaponType::Flare)
 				{
-					CreateFlare(laraItem, ID_FLARE_ITEM, 0);
+					CreateFlare(laraItem, ID_FLARE_ITEM, false);
 					UndrawFlareMeshes(laraItem);
 					player.Flare.ControlLeft = false;
 					player.Flare.Life = 0;

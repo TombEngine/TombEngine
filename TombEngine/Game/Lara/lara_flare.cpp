@@ -331,8 +331,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 
 	auto& flareItem = g_Level.Items[itemNumber];
 
-	flareItem.Animation.AnimObjectID = flareItem.ObjectNumber;
-	flareItem.ObjectNumber = objectID;
+	flareItem.Animation.AnimObjectID = flareItem.ObjectNumber = objectID;
 	flareItem.RoomNumber = laraItem.RoomNumber;
 
 	auto pos = GetJointPosition(&laraItem, LM_LHAND, Vector3i(-16, 32, 42));
@@ -340,6 +339,8 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 		pos.y -= CLICK(0.5f);
 
 	flareItem.Pose.Position = pos;
+
+	InitializeItem(itemNumber);
 
 	int floorHeight = GetPointCollision(pos, laraItem.RoomNumber).GetFloorHeight();
 	auto isCollided = !GetCollidedObjects(flareItem, true, true).IsEmpty();
@@ -366,8 +367,6 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 
 		flareItem.RoomNumber = laraItem.RoomNumber;
 	}
-
-	InitializeItem(itemNumber);
 
 	flareItem.Pose.Orientation.x = 0;
 	flareItem.Pose.Orientation.z = 0;
