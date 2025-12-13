@@ -22,9 +22,10 @@ void ClockworkBeetleControl(short itemNumber)
 	if (LaraItem->Animation.AnimNumber == LA_MECHANICAL_BEETLE_USE)
 	{
 		if (LaraItem->Animation.FrameNumber < 14)
-		{
-			beetle->Status = ITEM_INVISIBLE;
 			return;
+
+		if (LaraItem->Animation.FrameNumber == 14)
+			beetle->Model.Color.w = 1.0f;
 
 		if (LaraItem->Animation.FrameNumber < 104)
 		{

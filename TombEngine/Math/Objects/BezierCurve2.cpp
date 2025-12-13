@@ -54,8 +54,8 @@ namespace TEN::Math
 
 	float BezierCurve2::GetY(float x) const
 	{
-		constexpr auto TOLERANCE		   = 0.001f;
-		constexpr auto ITERATION_COUNT_MAX = 100;
+		constexpr float TOLERANCE           = 0.001f;
+		constexpr int   ITERATION_COUNT_MAX = 100;
 
 		// Directly return Y for exact endpoint.
 		if (x <= (GetStart().x + TOLERANCE))

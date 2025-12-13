@@ -33,19 +33,19 @@ namespace TEN::Renderer::Structures
 		bool DoneAnimations		  = false;
 		bool DisableInterpolation = true;
 
-		Vector3 InterpolatedPosition	= Vector3::Zero;
-		Matrix	InterpolatedWorld		= Matrix::Identity;
-		Matrix	InterpolatedTranslation = Matrix::Identity;
-		Matrix	InterpolatedRotation	= Matrix::Identity;
-		Matrix	InterpolatedScale		= Matrix::Identity;
-		Matrix	InterpolatedAnimTransforms[BONE_COUNT_MAX];
+		Vector3 InterpolatedPosition                       = Vector3::Zero;
+		Matrix  InterpolatedWorld                          = Matrix::Identity;
+		Matrix  InterpolatedTranslation                    = Matrix::Identity;
+		Matrix  InterpolatedRotation                       = Matrix::Identity;
+		Matrix  InterpolatedScale                          = Matrix::Identity;
+		Matrix  InterpolatedAnimTransforms[BONE_COUNT_MAX] = {};
 
-		Vector3 PrevPosition	= Vector3::Zero;
-		int		PrevRoomNumber	= NO_VALUE;
-		Matrix	PrevWorld		= Matrix::Identity;
-		Matrix	PrevTranslation = Matrix::Identity;
-		Matrix	PrevRotation	= Matrix::Identity;
-		Matrix	PrevScale		= Matrix::Identity;
-		Matrix	PrevAnimTransforms[BONE_COUNT_MAX] = {};
+		Vector3 PrevPosition                       = Vector3::Zero;
+		int     PrevRoomNumber                     = NO_VALUE;
+		Matrix  PrevWorld                          = Matrix::Identity;
+		Matrix  PrevTranslation                    = Matrix::Identity;
+		Matrix  PrevRotation                       = Matrix::Identity;
+		Matrix  PrevScale                          = Matrix::Identity;
+		Matrix  PrevAnimTransforms[BONE_COUNT_MAX] = {};
 	};
 }
