@@ -187,6 +187,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.Vehicle == NO_VALUE)
 		SpawnPlayerWaterSurfaceEffects(*item, water.WaterHeight, water.WaterDepth);
 
+	int headOffset = 0;
 	bool isWaterOnHeadspace = false;
 
 	// TODO: Move unrelated handling elsewhere.
@@ -282,9 +283,12 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 			// Determine if player's head is above water surface. Needed to prevent
 			// pre-TR5 bug where player would keep submerged until root mesh was above water level.
+			// Account for pitch: when angled upward, head position is higher than root position.
+			// LARA_HEADROOM / 2 - Allow half of the head to be above water before resurfacing.
+			headOffset = (LARA_HEADROOM / 2) + (int)(CLICK(1) * phd_sin(item->Pose.Orientation.x));
 			isWaterOnHeadspace = TestEnvironment(
-				ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - CLICK(1), item->Pose.Position.z,
-				GetPointCollision(*item, 0, 0, -CLICK(1)).GetRoomNumber());
+				ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - headOffset, item->Pose.Position.z,
+				GetPointCollision(*item, 0, 0, -headOffset).GetRoomNumber());
 
 			if (water.WaterDepth == NO_HEIGHT || abs(water.HeightFromWater) >= CLICK(1) || isWaterOnHeadspace ||
 				item->Animation.AnimNumber == LA_UNDERWATER_RESURFACE || item->Animation.AnimNumber == LA_ONWATER_DIVE)
