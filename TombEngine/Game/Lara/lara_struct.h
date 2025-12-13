@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/Lara/PlayerContext.h"
 #include "Math/Math.h"
+#include "Objects/game_object_ids.h"
 #include "Objects/objectslist.h"
 
 using namespace TEN::Math;
@@ -860,6 +861,13 @@ enum LaraExtraAnim
 };
 #pragma endregion
 
+enum PlayerTorchAnim
+{
+	PLAYER_TORCH_ANIM_HOLD  = 0,
+	PLAYER_TORCH_ANIM_THROW = 1,
+	PLAYER_TORCH_ANIM_DROP  = 2
+};
+
 enum LARA_MESHES
 {
 	LM_HIPS,
@@ -1127,9 +1135,9 @@ struct CarriedWeaponInfo
 
 struct ArmInfo
 {
-	int AnimNumber	= 0;
-	int FrameNumber = 0;
-	int FrameBase	= 0;
+	GAME_OBJECT_ID AnimObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+	int			   AnimNumber	= 0;
+	int			   FrameNumber	= 0;
 
 	EulerAngles Orientation = EulerAngles::Identity;
 	bool		Locked		= false;

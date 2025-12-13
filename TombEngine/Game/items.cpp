@@ -42,16 +42,23 @@ constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
 BoundingBox ItemInfo::GetAabb() const
 {
-	return Geometry::GetBoundingBox(GetObb());
+	return Geometry::GetAabb(GetObb());
 }
 
 BoundingOrientedBox ItemInfo::GetObb() const
 {
 	auto frameData = GetFrameInterpData(*this);
-	if (frameData.Alpha == 0.0f)
-		return frameData.FramePtr0->BoundingBox.ToBoundingOrientedBox(Pose);
+	auto obb = BoundingOrientedBox();
+	BoundingOrientedBox(
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
+		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
+	return obb;
+}
 
-	return (frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha))).ToBoundingOrientedBox(Pose);
+std::vector<BoundingSphere> ItemInfo::GetSpheres() const
+{
+	return g_Renderer.GetSpheres(Index);
 }
 
 bool ItemInfo::TestOcb(short ocbFlags) const
@@ -132,8 +139,9 @@ bool ItemInfo::TestMeshSwapFlags(const std::vector<unsigned int>& flags)
 
 void ItemInfo::SetMeshSwapFlags(unsigned int flags, bool clear)
 {
-	bool isMeshSwapPresent = (Objects[ObjectNumber].meshSwapSlot != -1 && 
-							  Objects[Objects[ObjectNumber].meshSwapSlot].loaded);
+	const auto& object = Objects[ObjectNumber];
+
+	bool isMeshSwapPresent = (object.meshSwapSlot != NO_VALUE && Objects[object.meshSwapSlot].loaded);
 
 	for (int i = 0; i < Model.MeshIndex.size(); i++)
 	{
@@ -145,7 +153,8 @@ void ItemInfo::SetMeshSwapFlags(unsigned int flags, bool clear)
 			}
 			else
 			{
-				Model.MeshIndex[i] = Objects[Objects[ObjectNumber].meshSwapSlot].meshIndex + i;
+				const auto& meshSwapObject = Objects[object.meshSwapSlot];
+				Model.MeshIndex[i] = meshSwapObject.meshIndex + i;
 			}
 		}
 		else
@@ -164,16 +173,18 @@ void ItemInfo::SetMeshSwapFlags(const std::vector<unsigned int>& flags, bool cle
 
 void ItemInfo::ResetModelToDefault()
 {
-	if (Objects[ObjectNumber].nmeshes > 0)
+	const auto& object = Objects[ObjectNumber];
+
+	if (object.nmeshes > 0)
 	{
-		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
-		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
-		Model.SkinIndex = Objects[ObjectNumber].skinIndex;
+		Model.MeshIndex.resize(object.nmeshes);
+		Model.BaseMesh = object.meshIndex;
+		Model.SkinIndex = object.skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
 
-		Model.Mutators.resize(Objects[ObjectNumber].nmeshes);
+		Model.Mutators.resize(object.nmeshes);
 		for (auto& mutator : Model.Mutators)
 			mutator = {};
 	}
@@ -197,11 +208,6 @@ bool ItemInfo::IsCreature() const
 bool ItemInfo::IsBridge() const
 {
 	return Contains(BRIDGE_OBJECT_IDS, ObjectNumber);
-}
-
-std::vector<BoundingSphere> ItemInfo::GetSpheres() const
-{
-	return g_Renderer.GetSpheres(Index);
 }
 
 ItemInfo* ItemHandler::Get() const
@@ -621,10 +627,12 @@ void RemoveActiveItem(short itemNumber, bool killed)
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
+	const auto& object = Objects[item->ObjectNumber];
 
 	SetAnimation(item, 0);
 	item->Animation.RequiredState = NO_VALUE;
 	item->Animation.Velocity = Vector3::Zero;
+	item->Animation.AnimObjectID = item->ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 		item->ItemFlags[i] = 0;
@@ -636,7 +644,7 @@ void InitializeItem(short itemNumber)
 	item->Collidable = true;
 	item->LookedAt = false;
 	item->Timer = 0;
-	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
+	item->HitPoints = object.HitPoints;
 
 	item->Effect = {};
 
@@ -660,7 +668,7 @@ void InitializeItem(short itemNumber)
 		item->Flags &= ~IFLAG_INVISIBLE;
 		item->Status = ITEM_INVISIBLE;
 	}
-	else if (Objects[item->ObjectNumber].intelligent)
+	else if (object.intelligent)
 	{
 		item->Status = ITEM_INVISIBLE;
 	}
@@ -683,8 +691,8 @@ void InitializeItem(short itemNumber)
 
 	item->ResetModelToDefault();
 
-	if (Objects[item->ObjectNumber].Initialize != nullptr)
-		Objects[item->ObjectNumber].Initialize(itemNumber);
+	if (object.Initialize != nullptr)
+		object.Initialize(itemNumber);
 }
 
 short CreateItem()
@@ -773,14 +781,15 @@ int GlobalItemReplace(short search, GAME_OBJECT_ID replace)
 
 const std::string& GetObjectName(GAME_OBJECT_ID objectID)
 {
-	for (auto it = GAME_OBJECT_IDS.begin(); it != GAME_OBJECT_IDS.end(); ++it)
+	static const auto UNKNOWN_OBJECT = std::string("Unknown Object");
+
+	for (const auto& [name, id] : GAME_OBJECT_IDS)
 	{
-		if (it->second == objectID)
-			return it->first;
+		if (id == objectID)
+			return name;
 	}
 
-	static const std::string unknownSlot = "UNKNOWN_SLOT";
-	return unknownSlot;
+	return UNKNOWN_OBJECT;
 }
 
 std::vector<int> FindAllItems(GAME_OBJECT_ID objectID)
@@ -1027,4 +1036,9 @@ Vector3i GetNearestSectorCenter(const Vector3i& pos)
 	int y = pos.y;
 
 	return Vector3i(x, y, z);
+}
+
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
+{
+	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
 }

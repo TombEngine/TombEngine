@@ -508,7 +508,7 @@ namespace TEN::Entities::TR4
 					SpawnWraithExplosion(item, Vector3(48.0f), 48.0f);
 
 					if (target->TriggerFlags > 0)
-						target->Animation.FrameNumber = GetAnimData(target).frameBase;
+						target->Animation.FrameNumber = 0;
 
 					target->ItemFlags[6] = 0;
 					DoDamage(target, INT_MAX);

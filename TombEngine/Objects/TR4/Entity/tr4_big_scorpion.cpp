@@ -295,7 +295,7 @@ namespace TEN::Entities::TR4
 			case BSCORPION_STATE_KILL_TROOP:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					item->TriggerFlags++;
 
 				if ((creature->Enemy != nullptr && creature->Enemy->HitPoints <= 0) ||

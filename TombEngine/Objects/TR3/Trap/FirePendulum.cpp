@@ -129,7 +129,7 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		auto flameMesh = item.ItemFlags[PendulumFlags::FlameMesh];
 

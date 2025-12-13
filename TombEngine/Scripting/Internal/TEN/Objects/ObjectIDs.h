@@ -3,8 +3,6 @@
 // This file is generated automatically, do not edit it.
 // Last generated on 23/10/2025.
 
-#include <unordered_map>
-#include <string>
 #include "Objects/game_object_ids.h"
 
 /// Constants for object IDs.
