@@ -83,12 +83,12 @@ namespace TEN::Animation
 				(Flags & (int)AnimFlags::RootMotionTranslationX) ? rootTranslation.x : 0.0f,
 				(Flags & (int)AnimFlags::RootMotionTranslationY) ? rootTranslation.y : 0.0f,
 				(Flags & (int)AnimFlags::RootMotionTranslationZ) ? rootTranslation.z : 0.0f);
-		}
+	}
 
 		// Compute relative rotation.
 		auto rot = EulerAngles::Identity;
 		if (hasRot)
-		{
+	{
 			const auto& rootOrient = Frames[frameNumber].BoneOrientations.front();
 			const auto& prevRootOrient = Frames[frameNumber - 1].BoneOrientations.front();
 			auto rootRot = rootOrient - prevRootOrient;
@@ -97,7 +97,7 @@ namespace TEN::Animation
 				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : 0,
 				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : 0,
 				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : 0);
-		}
+	}
 
 		// Return root motion.
 		return RootMotionData
@@ -223,7 +223,7 @@ namespace TEN::Animation
 					item.Animation.RequiredState = NO_VALUE;
 			}
 		}
-		
+
 		// Update blend.
 		if (item.Animation.Blend.IsEnabled())
 		{
@@ -264,6 +264,8 @@ namespace TEN::Animation
 					if (item.Animation.ActiveState != LS_FLY_CHEAT)
 					{
 						item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
+						item.Animation.Velocity.z += animAccel.z;
+
 						item.Pose.Position.y += item.Animation.Velocity.y;
 					}
 				}
@@ -296,6 +298,8 @@ namespace TEN::Animation
 		if (item.IsLara())
 		{
 			const auto& player = GetLaraInfo(item);
+
+			item.Animation.Velocity.x = animVel.x;
 
 			if (player.Control.Rope.Ptr != NO_VALUE)
 				DelAlignLaraToRope(&item);
@@ -370,7 +374,10 @@ namespace TEN::Animation
 			return Objects[0].Animations[0];
 		}
 
-		return object.Animations[animNumber];
+			return object.Animations[animNumber];
+
+		TENLog("Attempted to access invalid animation.", LogLevel::Error);
+		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
 	}
 
 	const AnimData& GetAnimData(GAME_OBJECT_ID objectID, int animNumber)
@@ -541,6 +548,7 @@ namespace TEN::Animation
 					"Attempted to set missing animation {}{} for moveable of object type {}.",
 					animNumber, isBorrowedAnim ? fmt::format(" (borrowed from object {})", GetObjectName(animObjectID)) : "", GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
+
 			return;
 		}
 
@@ -555,6 +563,7 @@ namespace TEN::Animation
 					"Attempted to set missing frame {} from animation {}{} for moveable of object type {}.",
 					frameNumber, animNumber, isBorrowedAnim ? fmt::format(" (borrowed from object {})", GetObjectName(animObjectID)) : "", GetObjectName(item.ObjectNumber)),
 				LogLevel::Warning);
+
 			return;
 		}
 

@@ -444,7 +444,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 	short triggerType = (*(data++) >> 8) & TRIGGER_BITS;
 	short flags = *(data++);
-	short timer = flags & TIMER_BITS;
+	short timer = (char)(flags & TIMER_BITS);
 
 	if (Camera.type != CameraType::Heavy)
 		RefreshCamera(triggerType, data);
