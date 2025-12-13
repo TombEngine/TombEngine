@@ -364,11 +364,8 @@ namespace TEN::Animation
 
 	const AnimData& GetAnimData(const ObjectInfo& object, int animNumber)
 	{
-		if (object.Animations.empty())
-		{
-			TENLog("Attempted to access invalid animation.", LogLevel::Error);
-			return Objects[0].Animations[0];
-		}
+		if (object.Animations.size() > animNumber)
+			return object.Animations[animNumber];
 
 		TENLog("Attempted to access invalid animation.", LogLevel::Error);
 		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
