@@ -14,6 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
+* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 
 ### Lua API changes
 * Added a safeguard for adding or removing callback functions within the same callback type.
