@@ -221,14 +221,14 @@ void Renderer::UpdateLaraAnimations(bool force)
 			bool transformLeftUpperArm = IsCrouching(LaraItem) || Lara.LeftArm.Locked ||
 				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber);
 
-			auto leftAnimData = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
+			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftFrameNumber];
 
 			int upperArmMask = MESH_BITS(LM_LINARM);
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 			if (transformLeftUpperArm)
 			{
-				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
+				UpdateAnimation(&rItem, playerObject, leftFrame, upperArmMask, true);
 			}
 			else
 			{
@@ -243,14 +243,14 @@ void Renderer::UpdateLaraAnimations(bool force)
 			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked ||
 				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber);
 
-			auto rightAnimData = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
+			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[rightFrameNumber];
 
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			if (transformRightUpperArm)
 			{
-				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+				UpdateAnimation(&rItem, playerObject, rightFrame, upperArmMask, true);
 			}
 			else
 			{

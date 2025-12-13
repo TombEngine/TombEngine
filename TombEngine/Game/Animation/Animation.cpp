@@ -264,8 +264,6 @@ namespace TEN::Animation
 					if (item.Animation.ActiveState != LS_FLY_CHEAT)
 					{
 						item.Animation.Velocity.y += GetEffectiveGravity(item.Animation.Velocity.y);
-						item.Animation.Velocity.z += animAccel.z;
-
 						item.Pose.Position.y += item.Animation.Velocity.y;
 					}
 				}
@@ -298,8 +296,6 @@ namespace TEN::Animation
 		if (item.IsLara())
 		{
 			const auto& player = GetLaraInfo(item);
-
-			item.Animation.Velocity.x = animVel.x;
 
 			if (player.Control.Rope.Ptr != NO_VALUE)
 				DelAlignLaraToRope(&item);
@@ -373,8 +369,6 @@ namespace TEN::Animation
 			TENLog("Attempted to access invalid animation.", LogLevel::Error);
 			return Objects[0].Animations[0];
 		}
-
-			return object.Animations[animNumber];
 
 		TENLog("Attempted to access invalid animation.", LogLevel::Error);
 		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
