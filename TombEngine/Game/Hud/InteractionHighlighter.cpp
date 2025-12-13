@@ -115,7 +115,7 @@ namespace TEN::Hud
 		return !armsBusy && conditionsMet;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType override)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
 		if (!g_Configuration.EnableInteractionHighlighter)
@@ -256,6 +256,10 @@ namespace TEN::Hud
 			_previous = _current;
 			_current.Fade = 0.0f;
 		}
+
+		//Override interaction action if defined
+		if (override != InteractionType::Undefined)
+			type = override;
 
 		// Show the highlight.
 		_current.Position = position;
