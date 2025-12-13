@@ -26,11 +26,8 @@ namespace TEN::Animation
 
 	FixedMotionData AnimData::GetFixedMotion(int frameNumber) const
 	{
-		// Ensure non-zero frame count. Animations with zero frames are considered valid.
-		unsigned int frameCount = std::max(1, EndFrameNumber);
-
 		// Compute relative translation and curve alpha.
-		float alpha = (float)frameNumber / (float)frameCount;
+		float alpha = (float)frameNumber / (float)std::max(EndFrameNumber, 1);
 		auto translation = Vector3(FixedMotionCurveX.GetY(alpha), FixedMotionCurveY.GetY(alpha), FixedMotionCurveZ.GetY(alpha));
 
 		// Return fixed motion.
@@ -94,9 +91,9 @@ namespace TEN::Animation
 			auto rootRot = rootOrient - prevRootOrient;
 
 			rot = EulerAngles(
-				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : 0,
-				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : 0,
-				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : 0);
+				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
 	}
 
 		// Return root motion.
@@ -142,9 +139,9 @@ namespace TEN::Animation
 			auto rootRot = baseRootOrient - rootOrient;
 
 			rot = EulerAngles(
-				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : 0,
-				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : 0,
-				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : 0);
+				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
 		}
 
 		// Return root motion counteraction.
@@ -469,7 +466,7 @@ namespace TEN::Animation
 		bool incorrectBone = false;
 		if (boneID < 0 || boneID >= Objects[item.ObjectNumber].nmeshes)
 		{
-			TENLog("Unknown bone ID specified for object " + GetObjectName(item.ObjectNumber) + ".", LogLevel::Warning, LogConfig::All);
+			TENLog(fmt::format("Unknown bone ID specified for object {}.", item.ObjectNumber), LogLevel::Warning, LogConfig::All);
 			incorrectBone = true;
 		}
 
