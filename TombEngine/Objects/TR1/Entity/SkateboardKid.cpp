@@ -120,7 +120,7 @@ namespace TEN::Entities::Creatures::TR1
 
 		if (item.ItemFlags[0] == NO_VALUE)
 		{
-			TENLog(fmt::format("Failed to handle skateboard kid control (moveable {}). The kateboard is missing.", itemNumber));
+			TENLog(fmt::format("Failed to handle skateboard kid control (moveable {}). The skateboard is missing.", itemNumber));
 			return;
 		}
 
