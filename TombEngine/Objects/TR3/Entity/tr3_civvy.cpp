@@ -496,7 +496,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
@@ -533,7 +533,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
@@ -573,7 +573,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
