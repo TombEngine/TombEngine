@@ -232,13 +232,11 @@ namespace TEN::Animation
 
 	const AnimData& GetAnimData(const ObjectInfo& object, int animNumber)
 	{
-		if (object.Animations.empty() || object.Animations.size() <= animNumber)
-		{
-			TENLog("Attempted to access invalid animation.", LogLevel::Error);
-			return Objects[0].Animations[0];
-		}
+		if (object.Animations.size() > animNumber)
+			return object.Animations[animNumber];
 
-		return object.Animations[animNumber];
+		TENLog("Attempted to access invalid animation.", LogLevel::Error);
+		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
 	}
 
 	const AnimData& GetAnimData(GAME_OBJECT_ID objectID, int animNumber)
