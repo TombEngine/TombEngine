@@ -250,16 +250,16 @@ namespace TEN::Hud
 				return;
 		}
 
+		//Override interaction action if defined
+		if (override != InteractionType::Undefined)
+			type = override;
+
 		// If interaction target changes significantly, start crossfade.
 		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != type)
 		{
 			_previous = _current;
 			_current.Fade = 0.0f;
 		}
-
-		//Override interaction action if defined
-		if (override != InteractionType::Undefined)
-			type = override;
 
 		// Show the highlight.
 		_current.Position = position;
