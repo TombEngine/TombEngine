@@ -158,6 +158,13 @@ Vector4 ReadVector4()
 	return value;
 }
 
+Plane ReadPlane()
+{
+	auto normal = ReadVector3();
+	float dist = ReadFloat();
+	return Plane(normal, dist);
+}
+
 bool ReadBool()
 {
 	return bool(ReadUInt8());
@@ -435,54 +442,21 @@ void LoadObjects()
 			auto fixedMotionCurveZEndHandle = ReadVector2();
 			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
-			// Load keyframes.
-			auto keyframes = std::vector<FrameData>(ReadInt32());
-			for (auto& keyframe : keyframes)
+			// Load frames.
+			anim.Frames.resize(ReadInt32());
+			for (auto& frame : anim.Frames)
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
-				keyframe.LocalAabb = BoundingBox(center, extents);
-				keyframe.BoundingBox = GameBoundingBox(keyframe.LocalAabb);
+				frame.LocalAabb = BoundingBox(center, extents);
+				frame.BoundingBox = GameBoundingBox(frame.LocalAabb);
 
-				keyframe.RootPosition = ReadVector3();
+				frame.RootPosition = ReadVector3();
 
 				int boneCount = ReadCount();
-				keyframe.BoneOrientations.resize(boneCount);
-				for (auto& orient : keyframe.BoneOrientations)
+				frame.BoneOrientations.resize(boneCount);
+				for (auto& orient : frame.BoneOrientations)
 					orient = ReadVector4();
-			}
-
-			// TODO: Write interpolated data to level for faster load.
-			// Interpoate frames.
-			float alphaStep = 1.0f / (float)interpolation;
-			for (int k = 0; k < keyframes.size(); k++)
-			{
-				const auto& currentKeyframe = keyframes[k];
-				anim.Frames.push_back(currentKeyframe);
-				
-				if (k == (keyframes.size() - 1))
-					continue;
-
-				const auto& nextKeyframe = keyframes[k + 1];
-
-				for (int l = 1; l < interpolation; l++)
-				{
-					float alpha = alphaStep * l;
-
-					auto rootPos = Vector3::Lerp(currentKeyframe.RootPosition, nextKeyframe.RootPosition, alpha);
-
-					auto boneOrients = std::vector<Quaternion>(currentKeyframe.BoneOrientations.size());
-					for (int m = 0; m < boneOrients.size(); m++)
-						boneOrients[m] = Quaternion::Slerp(currentKeyframe.BoneOrientations[m], nextKeyframe.BoneOrientations[m], alpha);
-						
-					auto localAabb = BoundingBox(
-						Vector3::Lerp(currentKeyframe.LocalAabb.Center, nextKeyframe.LocalAabb.Center, alpha),
-						Vector3::Lerp(currentKeyframe.LocalAabb.Extents, nextKeyframe.LocalAabb.Extents, alpha));
-					auto legacyLocalAabb = GameBoundingBox(localAabb);
-
-					auto frame = FrameData{ rootPos, boneOrients, localAabb, legacyLocalAabb };
-					anim.Frames.push_back(frame);
-				}
 			}
 
 			// Load state dispatches.
@@ -861,26 +835,6 @@ void LoadTextures()
 	ReadBytes(g_Level.SkyTexture.colorMapData.data(), size);
 }
 
-// The way floordata "planes" were previously stored was non-standard.
-// Instead of a Plane object with a normal + distance,
-// they used a Vector3 object with data laid out as follows:
-// x: X tilt grade (0.25f = 1/4 block).
-// y: Z tilt grade (0.25f = 1/4 block).
-// z: Plane's absolute height at the sector's center (i.e. distance in regular plane terms).
-static Plane ConvertFakePlaneToPlane(const Vector3& fakePlane, bool isFloor)
-{
-	// Calculate normal from tilt grades.
-	int sign = isFloor ? -1 : 1;
-	auto normal = Vector3(-fakePlane.x, 1.0f, -fakePlane.y) * sign;
-	normal.Normalize();
-
-	// Determine distance.
-	float dist = fakePlane.z;
-
-	// Return plane.
-	return Plane(normal, dist);
-}
-
 void LoadDynamicRoomData()
 {
 	int roomCount = ReadCount();
@@ -1134,16 +1088,16 @@ void LoadStaticRoomData()
 				sector.FloorSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_FLOOR_SLOPE_ANGLE;
 				sector.FloorSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.FloorSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.FloorSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
-				sector.FloorSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
+				sector.FloorSurface.Triangles[0].Plane = ReadPlane();
+				sector.FloorSurface.Triangles[1].Plane = ReadPlane();
 
 				sector.CeilingSurface.SplitAngle = FROM_RAD(ReadFloat());
 				sector.CeilingSurface.Triangles[0].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.CeilingSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.CeilingSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
-				sector.CeilingSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
+				sector.CeilingSurface.Triangles[0].Plane = ReadPlane();
+				sector.CeilingSurface.Triangles[1].Plane = ReadPlane();
 
 				sector.SidePortalRoomNumber = ReadInt32();
 				sector.Flags.Death = ReadBool();
