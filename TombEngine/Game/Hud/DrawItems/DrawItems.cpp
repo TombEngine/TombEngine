@@ -151,6 +151,18 @@ namespace TEN::Hud
 		_targetPosition = target;
 	}
 
+	void DrawItemsController::ResetCamera(bool disableInterpolation)
+	{
+		if (disableInterpolation)
+		{
+			_cameraPreviousPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
+			_targetPreviousPosition = Vector3::Zero;
+		}
+	
+		_cameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
+		_targetPosition = Vector3::Zero;
+	}
+
 	void DrawItemsController::SetAmbientLight(const Vector4& lightColor)
 	{
 		_ambientLight = lightColor;

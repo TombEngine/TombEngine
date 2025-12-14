@@ -44,6 +44,7 @@ namespace TEN::Hud
 		// Camera settings.
 		void SetCameraPosition(const Vector3& pos, bool disableInterpolation);
 		void SetCameraTargetPosition(const Vector3& target, bool disableInterpolation);
+		void ResetCamera(bool disableInterpolation);
 
 		void SetAmbientLight(const Vector4& lightColor);
 		Vector4 GetAmbientLight() const;

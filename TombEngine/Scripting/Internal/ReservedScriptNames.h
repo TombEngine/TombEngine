@@ -554,6 +554,7 @@ constexpr char ScriptReserved_DrawItemGetCamera[]	= "GetCameraPosition";
 constexpr char ScriptReserved_DrawItemSetCamera[]	= "SetCameraPosition";
 constexpr char ScriptReserved_DrawItemGetTarget[]	= "GetTargetPosition";
 constexpr char ScriptReserved_DrawItemSetTarget[]	= "SetTargetPosition";
+constexpr char ScriptReserved_DrawItemResetCamera[] = "ResetCamera";
 constexpr char ScriptReserved_DrawItemGetAmbientLight[] = "GetAmbientLight";
 constexpr char ScriptReserved_DrawItemSetAmbientLight[] = "SetAmbientLight";
 

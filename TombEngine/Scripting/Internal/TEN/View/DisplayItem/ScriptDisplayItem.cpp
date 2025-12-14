@@ -75,6 +75,7 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_DrawItemSetAmbientLight, &ScriptDisplayItem::SetAmbientLight,
 			ScriptReserved_DrawItemSetCamera, &ScriptDisplayItem::SetCameraPosition,
 			ScriptReserved_DrawItemSetTarget, &ScriptDisplayItem::SetCameraTargetPosition,
+			ScriptReserved_DrawItemResetCamera, &ScriptDisplayItem::ResetCamera,
 			ScriptReserved_DrawItemGetAmbientLight, &ScriptDisplayItem::GetAmbientLight,
 			ScriptReserved_DrawItemGetCamera, &ScriptDisplayItem::GetCameraPosition,
 			ScriptReserved_DrawItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition,
@@ -261,6 +262,16 @@ namespace TEN::Scripting::DisplayItem
 	Vec3 ScriptDisplayItem::GetCameraTargetPosition()
 	{
 		return g_DrawItems.GetCameraTargetPosition();
+	}
+
+	/// Resets the position of the camera and camera target.
+	// @function ResetCamera
+	// @usage
+	// local targetPosition = TEN.View.DisplayItem.ResetCamera()
+	void ScriptDisplayItem::ResetCamera(TypeOrNil<bool> disableInterpolation)
+	{
+		bool convertedBool = ValueOr<bool>(disableInterpolation, false);
+		g_DrawItems.ResetCamera(convertedBool);
 	}
 
 	/// Class
