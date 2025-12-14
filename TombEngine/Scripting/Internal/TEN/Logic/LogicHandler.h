@@ -86,7 +86,7 @@ private:
 	unsigned int _functionCallCount = 0;
 
 	void PerformConsoleInput();
-	void PerformCallbacks(CallbackPoint point);
+	void PerformCallbacks(CallbackPoint point, int argument = NO_VALUE);
 
 	std::string GetRequestedPath() const;
 

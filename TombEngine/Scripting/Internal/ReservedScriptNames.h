@@ -40,6 +40,7 @@ static constexpr char ScriptReserved_WeaponSettings[]	= "Weapons";
 // Moveable object
 static constexpr char ScriptReserved_Moveable[]			= "Moveable";
 static constexpr char ScriptReserved_MoveableStatus[]	= "MoveableStatus";
+static constexpr char ScriptReserved_InteractionType[]	= "InteractionType";
 
 // Player object
 static constexpr char ScriptReserved_Lara[]							= "Lara";
