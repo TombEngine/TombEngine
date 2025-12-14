@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/items.h"
+#include "Game/Hud/InteractionHighlighter.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -17,6 +18,7 @@ struct ItemInfo;
 namespace TEN::Scripting { class Rotation; };
 namespace TEN::Scripting::Types { class ScriptColor; }
 
+using namespace TEN::Hud;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Types;
 
@@ -131,7 +133,7 @@ public:
 	void MakeInvisible(); // Compatibility.
 	void Explode();
 	void Shatter();
-	void ShowInteractionHighlight();
+	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
 
 	// Operators
 

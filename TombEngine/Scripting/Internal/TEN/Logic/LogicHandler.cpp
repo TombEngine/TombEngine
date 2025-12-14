@@ -1045,7 +1045,7 @@ unsigned int LogicHandler::GetFunctionCallCount()
 	return _insideFunction ? _functionCallCount : 0;
 }
 
-void LogicHandler::PerformCallbacks(CallbackPoint point)
+void LogicHandler::PerformCallbacks(CallbackPoint point, int argument)
 {
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end())
@@ -1057,8 +1057,12 @@ void LogicHandler::PerformCallbacks(CallbackPoint point)
 	_lastCallbackPoint = point;
 
 	for (const auto& name : *it->second)
-		CallLevelFuncByName(name);
-
+	{
+		if (argument == NO_VALUE)
+			CallLevelFuncByName(name);
+		else
+			CallLevelFuncByName(name, argument);
+	}
 	_lastCallbackPoint = std::nullopt;
 }
 
@@ -1133,22 +1137,22 @@ void LogicHandler::OnEnd(GameStatus reason)
 		break;
 	}
 
-	PerformCallbacks(CallbackPoint::PreEnd);
+	PerformCallbacks(CallbackPoint::PreEnd, int(endReason));
 
 	if (_onEnd.valid())
 		CallLevelFunc(_onEnd, endReason);
 
-	PerformCallbacks(CallbackPoint::PostEnd);
+	PerformCallbacks(CallbackPoint::PostEnd, int(endReason));
 }
 
 void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
 {
-	PerformCallbacks(CallbackPoint::PreUseItem);
+	PerformCallbacks(CallbackPoint::PreUseItem, objectNumber);
 
 	if (_onUseItem.valid())
 		CallLevelFunc(_onUseItem, objectNumber);
 
-	PerformCallbacks(CallbackPoint::PostUseItem);
+	PerformCallbacks(CallbackPoint::PostUseItem, objectNumber);
 }
 
 void LogicHandler::OnFreeze()

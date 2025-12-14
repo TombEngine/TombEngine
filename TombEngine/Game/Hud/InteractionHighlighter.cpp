@@ -115,7 +115,7 @@ namespace TEN::Hud
 		return !armsBusy && conditionsMet;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType override)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
 		if (!g_Configuration.EnableInteractionHighlighter)
@@ -249,6 +249,10 @@ namespace TEN::Hud
 			if (!directionTest && !intersectionTest)
 				return;
 		}
+
+		//Override interaction action if defined
+		if (override != InteractionType::Undefined)
+			type = override;
 
 		// If interaction target changes significantly, start crossfade.
 		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != type)
