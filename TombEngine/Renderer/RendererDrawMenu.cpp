@@ -939,18 +939,17 @@ namespace TEN::Renderer
 				return;
 
 			const auto& object = Objects[objectNumber];
-			if (object.animIndex != NO_VALUE)
+			if (!object.Animations.empty())
 			{
 				int anim = item.GetAnimation();
 				int frame = item.GetFrame();
 				int prevFrame = item.GetPreviousFrame();
-				auto frameData = AnimFrameInterpData
-				{
-					GetFrame(objectNumber, anim, prevFrame),
-					GetFrame(objectNumber, anim, frame),
-					t
-				};
-				UpdateAnimation(nullptr, *moveableObject, frameData, UINT_MAX);
+
+				auto interpData = KeyframeInterpolationData(
+					GetAnimData(object, anim).Keyframes[prevFrame],
+					GetAnimData(object, anim).Keyframes[frame],
+					t);
+				UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
 			}
 
 			SetBlendMode(BlendMode::Opaque);
@@ -987,7 +986,7 @@ namespace TEN::Renderer
 				auto scaleMatrix = Matrix::CreateScale(scale);
 				auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
-				if (object.animIndex != NO_VALUE)
+				if (!object.Animations.empty())
 				{
 					_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
 				}

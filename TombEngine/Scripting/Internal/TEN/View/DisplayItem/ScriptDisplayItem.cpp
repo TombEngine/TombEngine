@@ -1,6 +1,6 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.h"
-#include "Game/animation.h"
+#include "Game/Animation/animation.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -13,6 +13,7 @@
 #include "Game/effects/DisplaySprite.h"
 using namespace TEN::Effects::DisplaySprite;
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Scripting::Types;
 
@@ -824,7 +825,7 @@ namespace TEN::Scripting::DisplayItem
 			return sol::nullopt;
 		
 		const auto& anim = GetAnimData(item->GetObjectID(), item->GetAnimation());
-		return (anim.frameEnd - anim.frameBase);
+		return (anim.EndFrameNumber);
 	}
 
 	///Get the 2D projected bounding box of this DisplayItem.

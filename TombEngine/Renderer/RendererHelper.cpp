@@ -717,7 +717,7 @@ namespace TEN::Renderer
 
 			// World matrix per mesh (animation or bind-pose)
 			Matrix meshWorld;
-			if (object.animIndex != NO_VALUE)
+			if (!object.Animations.empty())
 				meshWorld = moveable->AnimationTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
 			else
 				meshWorld = moveable->BindPoseTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
