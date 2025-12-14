@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Object/Pushable/PushableStates.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/flipeffect.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -14,6 +14,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 
@@ -185,7 +186,7 @@ namespace TEN::Entities::Generic
 		if (pushable.SoundState == PushableSoundState::Move)
 			pushable.SoundState = PushableSoundState::Stop;
 
-		displaceDepth = GetLastFrame(GAME_OBJECT_ID::ID_LARA, playerItem.Animation.AnimNumber)->BoundingBox.Z2;
+		displaceDepth = GetLastKeyframe(GAME_OBJECT_ID::ID_LARA, playerItem.Animation.AnimNumber).BoundingBox.Z2;
 		
 		if (isPlayerPulling)
 		{
@@ -197,7 +198,7 @@ namespace TEN::Entities::Generic
 		}
 
 		// Player is pushing or pulling.
-		if (playerItem.Animation.FrameNumber != (g_Level.Anims[playerItem.Animation.AnimNumber].frameEnd - 1))
+		if (playerItem.Animation.FrameNumber != (GetAnimData(playerItem).EndFrameNumber - 1))
 		{
 			// 1) Determine displacement.
 			switch (quadrant)

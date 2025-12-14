@@ -255,12 +255,12 @@ namespace TEN::Structures
 			int leftChildId = sibling.LeftChildId;
 			int rightChildId = sibling.RightChildId;
 
-			float inheritCost = Geometry::GetBoundingBoxArea(leaf.Aabb) * 2;
+			float inheritCost = Geometry::GetAabbArea(leaf.Aabb) * 2;
 
 			// Calculate cost of creating new parent for sibling and new leaf.
 			auto mergedAabb = BoundingBox();
 			BoundingBox::CreateMerged(mergedAabb, sibling.Aabb, leaf.Aabb);
-			float mergedArea = Geometry::GetBoundingBoxArea(mergedAabb);
+			float mergedArea = Geometry::GetAabbArea(mergedAabb);
 			float cost = mergedArea * 2;
 
 			// Calculate cost of descending into left child.
@@ -270,11 +270,11 @@ namespace TEN::Structures
 				const auto& leftChild = _nodes[leftChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, leftChild.Aabb, leaf.Aabb);
-				float newArea = Geometry::GetBoundingBoxArea(aabb);
+				float newArea = Geometry::GetAabbArea(aabb);
 
 				leftCost = leftChild.IsLeaf() ?
 					newArea + inheritCost :
-					(newArea - Geometry::GetBoundingBoxArea(leftChild.Aabb)) + inheritCost;
+					(newArea - Geometry::GetAabbArea(leftChild.Aabb)) + inheritCost;
 			}
 
 			// Calculate cost of descending into right child.
@@ -284,11 +284,11 @@ namespace TEN::Structures
 				const auto& rightChild = _nodes[rightChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, rightChild.Aabb, leaf.Aabb);
-				float newArea = Geometry::GetBoundingBoxArea(aabb);
+				float newArea = Geometry::GetAabbArea(aabb);
 
 				rightCost = rightChild.IsLeaf() ?
 					newArea + inheritCost :
-					(newArea - Geometry::GetBoundingBoxArea(rightChild.Aabb)) + inheritCost;
+					(newArea - Geometry::GetAabbArea(rightChild.Aabb)) + inheritCost;
 			}
 
 			// Test if descent is worthwhile according to minimum cost.
@@ -704,8 +704,8 @@ namespace TEN::Structures
 						BoundingBox::CreateMerged(aabb1, aabb1, aabbs[i]);
 
 					// Calculate cost.
-					float surfaceArea0 = Geometry::GetBoundingBoxArea(aabb0);
-					float surfaceArea1 = Geometry::GetBoundingBoxArea(aabb1);
+					float surfaceArea0 = Geometry::GetAabbArea(aabb0);
+					float surfaceArea1 = Geometry::GetAabbArea(aabb1);
 					float cost = (surfaceArea0 * (split - start)) + (surfaceArea1 * (end - split));
 
 					// Track best split.

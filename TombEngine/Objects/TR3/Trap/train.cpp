@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/train.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/collision/collide_room.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
 
@@ -127,7 +128,7 @@ namespace TEN::Entities::Traps
 		SoundEffect(SFX_TR4_LARA_GENERAL_DEATH, &playerItem->Pose, SoundEnvironment::Always);
 		SoundEffect(SFX_TR4_LARA_HIGH_FALL_DEATH, &playerItem->Pose, SoundEnvironment::Always);
 
-		SetAnimation(*playerItem, ID_LARA_EXTRA_ANIMS, LEA_TRAIN_DEATH_START);
+		SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_TRAIN_DEATH_START);
 		playerItem->Animation.IsAirborne = false;
 		playerItem->Animation.Velocity.y = 0.0f;
 		playerItem->Animation.Velocity.z = 0.0f;

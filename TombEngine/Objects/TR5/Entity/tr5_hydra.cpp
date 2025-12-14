@@ -2,7 +2,7 @@
 #include "Objects/TR5/Entity/tr5_hydra.h"
 
 #include "Game/Lara/lara.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
 #include "Game/effects/debris.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
@@ -323,7 +324,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (!(GlobalCounter & 3))
 				{
-					frame = ((GetAnimData(item).frameBase - item->Animation.FrameNumber) / 8) + 1;
+					frame = (item->Animation.FrameNumber / 8) + 1;
 					if (frame > 16)
 						frame = 16;
 
@@ -333,7 +334,7 @@ namespace TEN::Entities::Creatures::TR5
 				break;
 
 			case HYDRA_STATE_SHOOT:
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+				if (item->Animation.FrameNumber == 0)
 				{
 					auto pos1 = GetJointPosition(item, 10, Vector3i(0, 1024, 40));
 					auto pos2 = GetJointPosition(item, 10, Vector3i(0, 144, 40));
@@ -385,12 +386,12 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (item->Animation.ActiveState != HYDRA_STATE_DEATH)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 15;
+				item->Animation.AnimNumber = 15;
 				item->Animation.ActiveState = HYDRA_STATE_DEATH;
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.FrameNumber = 0;
 			}
 
-			if (!((item->Animation.FrameNumber - GetAnimData(item).frameBase) & 7))
+			if (!(item->Animation.FrameNumber & 7))
 			{
 				if (item->ItemFlags[3] < 12)
 				{

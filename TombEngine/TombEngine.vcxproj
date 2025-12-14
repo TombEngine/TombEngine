@@ -403,6 +403,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Game\Animation\Animation.h" />
+    <ClInclude Include="Game\Animation\Commands.h" />
     <ClInclude Include="Game\collision\Los.h" />
     <ClInclude Include="Game\collision\Point.h" />
     <ClInclude Include="Game\collision\Sphere.h" />
@@ -442,7 +444,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\Lara\lara_test_structs.h" />
     <ClInclude Include="Game\Lara\lara_tests.h" />
     <ClInclude Include="Game\Lara\lara_two_guns.h" />
-    <ClInclude Include="Game\animation.h" />
     <ClInclude Include="Game\camera.h" />
     <ClInclude Include="Game\collision\collide_item.h" />
     <ClInclude Include="Game\collision\collide_room.h" />
@@ -972,7 +973,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Game\animation.cpp" />
+    <ClCompile Include="Game\Animation\Animation.cpp" />
+    <ClCompile Include="Game\Animation\Commands.cpp" />
     <ClCompile Include="Game\camera.cpp" />
     <ClCompile Include="Game\collision\collide_item.cpp" />
     <ClCompile Include="Game\collision\collide_room.cpp" />

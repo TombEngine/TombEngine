@@ -174,7 +174,7 @@ namespace TEN::Entities::Creatures::TR2
 		}
 
 		// Sync animation.
-		SetAnimation(backItem, GetAnimNumber(frontItem), GetFrameNumber(frontItem));
+		SetAnimation(backItem, frontItem.Animation.AnimNumber, frontItem.Animation.FrameNumber);
 
 		// Sync position.
 		backItem.Pose = frontItem.Pose;
@@ -333,10 +333,10 @@ namespace TEN::Entities::Creatures::TR2
 	{
 		auto pos = GetJointPosition(item, jointIndex, Vector3i(0, -8, 0));
 
-		if (item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_ATTACK_LEFT_2) ||
-			item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_ATTACK_RIGHT_2))
+		if (item.Animation.AnimNumber == DRAGON_ANIM_ATTACK_LEFT_2 ||
+			item.Animation.AnimNumber == DRAGON_ANIM_ATTACK_RIGHT_2)
 		{
-			if (GetFrameNumber(item) == GetFrameCount(item.Animation.AnimNumber))
+			if (item.Animation.FrameNumber == GetAnimData(item).EndFrameNumber)
 			{
 				auto pointColl = GetPointCollision(pos, item.RoomNumber);
 
@@ -397,8 +397,8 @@ namespace TEN::Entities::Creatures::TR2
 
 					if (!flagDaggerDeath)
 					{
-						if (item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_DEFEATED))
-							timer = -1;
+						if (item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED)
+							timer = NO_VALUE;
 					}
 				}
 				// Death.
@@ -632,8 +632,8 @@ namespace TEN::Entities::Creatures::TR2
 		g_Hud.InteractionHighlighter.Test(playerItem, item);
 
 		if ((IsHeld(In::Action) &&
-			(item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_DEFEATED) ||
-				(item.Animation.AnimNumber == GetAnimIndex(item, DRAGON_ANIM_RECOVER) && GetFrameNumber(item) <= DRAGON_ALMOST_LIVE)) &&
+			(item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED ||
+				(item.Animation.AnimNumber == DRAGON_ANIM_RECOVER && item.Animation.FrameNumber <= DRAGON_ALMOST_LIVE)) &&
 			playerItem.Animation.ActiveState == LS_IDLE &&
 			playerItem.Animation.AnimNumber == LA_STAND_IDLE &&
 			player.Control.HandStatus == HandStatus::Free) ||
@@ -660,21 +660,21 @@ namespace TEN::Entities::Creatures::TR2
 					// TODO: Reimplement dagger pickup animation when state transitions
 					// from ID_LARA_EXTRA_ANIMS to ID_LARA are possible. -- Adngel 2023.10.03
 
-					//SetAnimation(*playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
+					//SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
 					//playerItem.Pose = item.Pose;
 
 					// HACK: Temporarily use small button push animation.
 					SetAnimation(playerItem, LA_PICKUP_PEDESTAL_LOW);
 
 					ResetPlayerFlex(&playerItem);
-					playerItem.Animation.FrameNumber = GetAnimData(playerItem).frameBase;
+					playerItem.Animation.FrameNumber = 0;
 					player.Control.IsMoving = false;
 					player.Control.HandStatus = HandStatus::Busy;
 
-					AnimateItem(&playerItem);
+					AnimateItem(playerItem);
 
 					// Setting ItemFlags[1] to negative value sets defeat status and triggers death.
-					item.ItemFlags[1] = -1 * (100 - GetFrameCount(playerItem.Animation.AnimNumber));
+					item.ItemFlags[1] = -1 * (100 - GetAnimData(playerItem).EndFrameNumber);
 				}
 				else
 				{
@@ -704,7 +704,7 @@ namespace TEN::Entities::Creatures::TR2
 
 			if (player.Control.IsMoving &&
 				player.Context.InteractedItem == item.Index ||
-				playerItem->Animation.AnimNumber == GetAnimIndex(item, LA_BUTTON_SMALL_PUSH))
+				playerItem->Animation.AnimNumber == LA_BUTTON_SMALL_PUSH)
 			{
 				return;
 			}

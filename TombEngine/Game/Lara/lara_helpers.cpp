@@ -968,20 +968,22 @@ void HandlePlayerElevationChange(ItemInfo* item, CollisionInfo* coll)
 	{
 		if (CanStepUp(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_UP;
 			item->DisableInterpolation = true;
 
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_UP);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
 		}
 		else if (CanStepDown(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_DOWN;
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_DOWN);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
@@ -1007,7 +1009,7 @@ void DoLaraCrawlToHangSnap(ItemInfo* item, CollisionInfo* coll)
 	// Bridges behave differently.
 	if (coll->Middle.Bridge < 0)
 	{
-		TranslateItem(item, item->Pose.Orientation.y, -LARA_RADIUS_CRAWL);
+		item->Pose.Translate(item->Pose.Orientation.y, -LARA_RADIUS_CRAWL);
 		item->Pose.Orientation.y += ANGLE(180.0f);
 	}
 }

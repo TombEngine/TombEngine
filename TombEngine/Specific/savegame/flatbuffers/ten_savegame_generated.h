@@ -2473,7 +2473,7 @@ struct ArmInfoT : public flatbuffers::NativeTable {
   typedef ArmInfo TableType;
   int32_t anim_number = 0;
   int32_t frame_number = 0;
-  int32_t frame_base = 0;
+  int32_t anim_object_id = 0;
   bool locked = false;
   std::unique_ptr<TEN::Save::EulerAngles> rotation{};
   int32_t gun_flash = 0;
@@ -2487,7 +2487,7 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ANIM_NUMBER = 4,
     VT_FRAME_NUMBER = 6,
-    VT_FRAME_BASE = 8,
+    VT_ANIM_OBJECT_ID = 8,
     VT_LOCKED = 10,
     VT_ROTATION = 12,
     VT_GUN_FLASH = 14,
@@ -2499,8 +2499,8 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t frame_number() const {
     return GetField<int32_t>(VT_FRAME_NUMBER, 0);
   }
-  int32_t frame_base() const {
-    return GetField<int32_t>(VT_FRAME_BASE, 0);
+  int32_t anim_object_id() const {
+    return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
   }
   bool locked() const {
     return GetField<uint8_t>(VT_LOCKED, 0) != 0;
@@ -2518,7 +2518,7 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ANIM_NUMBER) &&
            VerifyField<int32_t>(verifier, VT_FRAME_NUMBER) &&
-           VerifyField<int32_t>(verifier, VT_FRAME_BASE) &&
+           VerifyField<int32_t>(verifier, VT_ANIM_OBJECT_ID) &&
            VerifyField<uint8_t>(verifier, VT_LOCKED) &&
            VerifyField<TEN::Save::EulerAngles>(verifier, VT_ROTATION) &&
            VerifyField<int32_t>(verifier, VT_GUN_FLASH) &&
@@ -2540,8 +2540,8 @@ struct ArmInfoBuilder {
   void add_frame_number(int32_t frame_number) {
     fbb_.AddElement<int32_t>(ArmInfo::VT_FRAME_NUMBER, frame_number, 0);
   }
-  void add_frame_base(int32_t frame_base) {
-    fbb_.AddElement<int32_t>(ArmInfo::VT_FRAME_BASE, frame_base, 0);
+  void add_anim_object_id(int32_t anim_object_id) {
+    fbb_.AddElement<int32_t>(ArmInfo::VT_ANIM_OBJECT_ID, anim_object_id, 0);
   }
   void add_locked(bool locked) {
     fbb_.AddElement<uint8_t>(ArmInfo::VT_LOCKED, static_cast<uint8_t>(locked), 0);
@@ -2570,7 +2570,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t anim_number = 0,
     int32_t frame_number = 0,
-    int32_t frame_base = 0,
+    int32_t anim_object_id = 0,
     bool locked = false,
     const TEN::Save::EulerAngles *rotation = 0,
     int32_t gun_flash = 0,
@@ -2579,7 +2579,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(
   builder_.add_gun_smoke(gun_smoke);
   builder_.add_gun_flash(gun_flash);
   builder_.add_rotation(rotation);
-  builder_.add_frame_base(frame_base);
+  builder_.add_anim_object_id(anim_object_id);
   builder_.add_frame_number(frame_number);
   builder_.add_anim_number(anim_number);
   builder_.add_locked(locked);
@@ -10136,7 +10136,7 @@ inline void ArmInfo::UnPackTo(ArmInfoT *_o, const flatbuffers::resolver_function
   (void)_resolver;
   { auto _e = anim_number(); _o->anim_number = _e; }
   { auto _e = frame_number(); _o->frame_number = _e; }
-  { auto _e = frame_base(); _o->frame_base = _e; }
+  { auto _e = anim_object_id(); _o->anim_object_id = _e; }
   { auto _e = locked(); _o->locked = _e; }
   { auto _e = rotation(); if (_e) _o->rotation = std::unique_ptr<TEN::Save::EulerAngles>(new TEN::Save::EulerAngles(*_e)); }
   { auto _e = gun_flash(); _o->gun_flash = _e; }
@@ -10153,7 +10153,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ArmInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _anim_number = _o->anim_number;
   auto _frame_number = _o->frame_number;
-  auto _frame_base = _o->frame_base;
+  auto _anim_object_id = _o->anim_object_id;
   auto _locked = _o->locked;
   auto _rotation = _o->rotation ? _o->rotation.get() : 0;
   auto _gun_flash = _o->gun_flash;
@@ -10162,7 +10162,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
       _fbb,
       _anim_number,
       _frame_number,
-      _frame_base,
+      _anim_object_id,
       _locked,
       _rotation,
       _gun_flash,

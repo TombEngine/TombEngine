@@ -9,7 +9,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/pickup/pickup.h"
 #include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/Sphere.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara.h"
@@ -19,6 +19,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Doors
