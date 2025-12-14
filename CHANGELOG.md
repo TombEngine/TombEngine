@@ -19,6 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
 * Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
+* Fixed incorrect super grenade projectile orientation.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
 
 ### Lua API changes
