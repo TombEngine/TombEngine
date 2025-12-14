@@ -260,6 +260,12 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 
 			if (weaponInHands)
 				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+
+			if (lara->Control.HandStatus == HandStatus::Free &&
+				lara->Control.Weapon.GunType == lara->Control.Weapon.RequestGunType)
+			{
+				lara->Control.HandStatus = HandStatus::WeaponDraw;
+			}
 		}
 		else
 		{
