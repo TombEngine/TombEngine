@@ -222,7 +222,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber);
 
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
-			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftFrameNumber];
+			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
+			const auto& leftFrame = leftAnim.Frames[std::min(leftFrameNumber, (int)leftAnim.Frames.size() - 1)];
 
 			int upperArmMask = MESH_BITS(LM_LINARM);
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
@@ -244,7 +245,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 				(!(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber);
 
 			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
-			const auto& rightFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[rightFrameNumber];
+			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
+			const auto& rightFrame = rightAnim.Frames[std::min(rightFrameNumber, (int)rightAnim.Frames.size() - 1)];
 
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
