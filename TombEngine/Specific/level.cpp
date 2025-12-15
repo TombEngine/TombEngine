@@ -405,7 +405,7 @@ void LoadObjects()
 			auto& anim = object.Animations[j];
 
 			anim.StateID = ReadInt32();
-			int interpolation = ReadInt32();
+			int interpolation = ReadInt32(); // TODO: Remember to remove when testing corresponding TE branch.
 			anim.EndFrameNumber = ReadInt32();
 			anim.NextAnimNumber = ReadInt32();
 			anim.NextFrameNumber = ReadInt32();
@@ -435,9 +435,27 @@ void LoadObjects()
 			auto fixedMotionCurveZEndHandle = ReadVector2();
 			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
+			// Load frames.
+			/*int frameCount = ReadCount();
+			anim.Frames.resize(frameCount);
+			for (auto& frame : anim.Frames)
+			{
+				auto center = ReadVector3();
+				auto extents = ReadVector3();
+				frame.LocalAabb = BoundingBox(center, extents);
+				frame.BoundingBox = GameBoundingBox(frame.LocalAabb);
+
+				frame.RootPosition = ReadVector3();
+
+				int boneCount = ReadCount();
+				frame.BoneOrientations.resize(boneCount);
+				for (auto& orient : frame.BoneOrientations)
+					orient = ReadVector4();
+			}*/
 			// Load keyframes.
 			auto keyframes = std::vector<FrameData>(ReadInt32());
 			for (auto& keyframe : keyframes)
+
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
@@ -459,7 +477,7 @@ void LoadObjects()
 			{
 				const auto& currentKeyframe = keyframes[k];
 				anim.Frames.push_back(currentKeyframe);
-				
+
 				if (k == (keyframes.size() - 1))
 					continue;
 
@@ -474,7 +492,7 @@ void LoadObjects()
 					auto boneOrients = std::vector<Quaternion>(currentKeyframe.BoneOrientations.size());
 					for (int m = 0; m < boneOrients.size(); m++)
 						boneOrients[m] = Quaternion::Slerp(currentKeyframe.BoneOrientations[m], nextKeyframe.BoneOrientations[m], alpha);
-						
+
 					auto localAabb = BoundingBox(
 						Vector3::Lerp(currentKeyframe.LocalAabb.Center, nextKeyframe.LocalAabb.Center, alpha),
 						Vector3::Lerp(currentKeyframe.LocalAabb.Extents, nextKeyframe.LocalAabb.Extents, alpha));
