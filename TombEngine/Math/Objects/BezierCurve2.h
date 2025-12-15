@@ -7,7 +7,7 @@ namespace TEN::Math
 	private:
 		// Constants
 
-		static constexpr auto CONTROL_POINT_COUNT = 4;
+		static constexpr int CONTROL_POINT_COUNT = 4;
 
 		// Fields
 
