@@ -66,12 +66,18 @@ namespace TEN::Scripting::Collision
 
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
 	{
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
 		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
 	}
 
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
 		bool collideMoveables)
 	{
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
 		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
 	}
 
@@ -80,7 +86,9 @@ namespace TEN::Scripting::Collision
 	{
 		/*auto convertedPos = pos.ToVector3i();
 		_LosCollisionData = GetPointCollision(convertedPos, FindRoomNumber(convertedPos));*/
-
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
 		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
 	}
 
@@ -98,7 +106,7 @@ namespace TEN::Scripting::Collision
 
 	sol::optional<Vec3> Ray::GetPosition()
 	{
-		return sol::optional<Vec3>();
+		return _RayCollisionData.Room.Position;
 	}
 
 	/// Get the room name of thisRay.
@@ -193,12 +201,12 @@ namespace TEN::Scripting::Collision
 
 	bool Ray::HitMoveable(TypeOrNil<std::string> moveableName)
 	{
-		if (_RayCollisionData.Statics.empty())
+		if (_RayCollisionData.Items.empty())
 			return false;
 
 		std::string convertedString = ValueOr<std::string>(moveableName, "");
 
-		if (convertedString.empty())
+		if (convertedString == "")
 			return true;
 
 		const auto& hit = _RayCollisionData.Items.front();
@@ -212,7 +220,7 @@ namespace TEN::Scripting::Collision
 
 		std::string convertedString = ValueOr<std::string>(staticName, "");
 
-		if (convertedString.empty())
+		if (convertedString == "")
 			return true;
 
 		const auto& hit = _RayCollisionData.Statics.front();
