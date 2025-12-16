@@ -36,22 +36,22 @@ namespace TEN::Scripting::Collision
 			ctors(), sol::call_constructor, ctors(),
 
 			// Getters
-			ScriptReserved_RayGetHitRoom, &Ray::GetHitRoom,
-			ScriptReserved_RayGetHitPosition, &Ray::GetHitPosition,
-			ScriptReserved_RayGetHitRoomName, &Ray::GetHitRoomName,
-			ScriptReserved_RayGetHitRoomNumber, &Ray::GetHitRoomNumber,
-			ScriptReserved_RayGetHitRoomDistance, &Ray::GetHitRoomDistance,
-			ScriptReserved_RayGetHitMoveable, &Ray::GetHitMoveable,
-			ScriptReserved_RayGetHitMoveablePosition, & Ray::GetHitMoveablePosition,
-			ScriptReserved_RayGetHitMoveableDistance, &Ray::GetHitMoveableDistance,
-			ScriptReserved_RayGetHitStatic, &Ray::GetHitStatic,
-			ScriptReserved_RayGetHitStaticPosition, & Ray::GetHitStaticPosition,
-			ScriptReserved_RayGetHitStaticDistance, & Ray::GetHitStaticDistance,
+			ScriptReserved_RayGetRoom, &Ray::GetRoom,
+			ScriptReserved_RayGetPosition, &Ray::GetPosition,
+			ScriptReserved_RayGetRoomName, &Ray::GetRoomName,
+			ScriptReserved_RayGetRoomNumber, &Ray::GetRoomNumber,
+			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
+			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
+			ScriptReserved_RayGetMoveablePosition, & Ray::GetMoveablePosition,
+			ScriptReserved_RayGetMoveableDistance, &Ray::GetMoveableDistance,
+			ScriptReserved_RayGetStatic, &Ray::GetStatic,
+			ScriptReserved_RayGetStaticPosition, & Ray::GetStaticPosition,
+			ScriptReserved_RayGetStaticDistance, & Ray::GetStaticDistance,
 
 			// Inquirers
-			ScriptReserved_RayHitMoveable, &Ray::HitMoveable,
-			ScriptReserved_RayHitStatic, &Ray::HitStatic,
-			ScriptReserved_RayHitRoom, &Ray::HitRoom,
+			ScriptReserved_RayMoveable, &Ray::Moveable,
+			ScriptReserved_RayStatic, &Ray::Static,
+			ScriptReserved_RayRoom, &Ray::Room,
 			
 			// Utilities
 			ScriptReserved_ProbePreview, &Ray::Preview);
@@ -86,13 +86,13 @@ namespace TEN::Scripting::Collision
 	/// Get the Room object of this Ray.
 	// @functionRay:GetRoom
 	// @treturn Room Room object.
-	std::unique_ptr<Room> Ray::GetHitRoom()
+	std::unique_ptr<Room> Ray::GetRoom()
 	{
 		int roomNumber = _RayCollisionData.Room.RoomNumber;
 		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
 	}
 
-	sol::optional<Vec3> Ray::GetHitPosition()
+	sol::optional<Vec3> Ray::GetPosition()
 	{
 		return sol::optional<Vec3>();
 	}
@@ -100,7 +100,7 @@ namespace TEN::Scripting::Collision
 	/// Get the room name of thisRay.
 	// @functionRay:GetRoomName
 	// @treturn string Room name.
-	sol::optional<std::string> Ray::GetHitRoomName()
+	sol::optional<std::string> Ray::GetRoomName()
 	{
 		int roomNumber = _RayCollisionData.Room.RoomNumber;
 		const auto& room = g_Level.Rooms[roomNumber];
@@ -108,17 +108,17 @@ namespace TEN::Scripting::Collision
 		return room.Name;
 	}
 
-	sol::optional<int> Ray::GetHitRoomNumber()
+	sol::optional<int> Ray::GetRoomNumber()
 	{
 		return _RayCollisionData.Room.RoomNumber;
 	}
 
-	sol::optional<float> Ray::GetHitRoomDistance()
+	sol::optional<float> Ray::GetRoomDistance()
 	{
 		return _RayCollisionData.Room.Distance;
 	}
 
-	sol::optional <std::unique_ptr<Moveable>> Ray::GetHitMoveable()
+	sol::optional <std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
 		if (_RayCollisionData.Items.empty())
 			return sol::nullopt;
@@ -127,7 +127,7 @@ namespace TEN::Scripting::Collision
 		return std::make_unique<Moveable>(item->Index);;
 	}
 
-	sol::optional<Vec3> Ray::GetHitMoveablePosition()
+	sol::optional<Vec3> Ray::GetMoveablePosition()
 	{
 		if (_RayCollisionData.Items.empty())
 			return sol::nullopt;
@@ -135,7 +135,7 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Items.front().Position;
 	}
 
-	sol::optional<float> Ray::GetHitMoveableDistance()
+	sol::optional<float> Ray::GetMoveableDistance()
 	{
 		if (_RayCollisionData.Items.empty())
 			return sol::nullopt;
@@ -143,19 +143,19 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Items.front().Distance;
 	}
 
-	sol::optional<std::unique_ptr<Static>> Ray::GetHitStatic()
+	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
 	{	
-		//if (_RayCollisionData.Statics.empty())
-		//	return sol::nullopt;
+		if (_RayCollisionData.Statics.empty())
+			return sol::nullopt;
 
-		//const auto* mesh = _RayCollisionData.Statics.front().Static;
-		//if (!mesh)
+		auto* mesh = _RayCollisionData.Statics.front().Static;
+		if (!mesh)
 		return sol::nullopt;
 
-		//return std::make_unique<Static>(*mesh);
+		return std::make_unique<Static>(*mesh);
 	}
 
-	sol::optional<Vec3> Ray::GetHitStaticPosition()
+	sol::optional<Vec3> Ray::GetStaticPosition()
 	{
 		if (_RayCollisionData.Statics.empty())
 			return sol::nullopt;
@@ -163,7 +163,7 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Statics.front().Position;
 	}
 
-	sol::optional<float> Ray::GetHitStaticDistance()
+	sol::optional<float> Ray::GetStaticDistance()
 	{
 		if (_RayCollisionData.Statics.empty())
 			return sol::nullopt;
@@ -171,12 +171,12 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Statics.front().Distance;
 	}
 
-	sol::optional<bool> Ray::HitRoom()
+	sol::optional<bool> Ray::Room()
 	{
 		return _RayCollisionData.Room.IsIntersected;
 	}
 
-	sol::optional<bool> Ray::HitMoveable()
+	sol::optional<bool> Ray::Moveable()
 	{
 		if (!_RayCollisionData.Items.empty())
 			return true;
@@ -184,7 +184,7 @@ namespace TEN::Scripting::Collision
 		return sol::nullopt;
 	}
 
-	sol::optional<bool> Ray::HitStatic()
+	sol::optional<bool> Ray::Static()
 	{
 		if (!_RayCollisionData.Statics.empty())
 			return true;
