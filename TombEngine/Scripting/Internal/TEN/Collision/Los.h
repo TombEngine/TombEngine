@@ -30,21 +30,21 @@ namespace TEN::Scripting::Collision
 
         // Getters
 
-		std::unique_ptr<Room>		GetHitRoom();
-		sol::optional<Vec3>			GetHitPosition();
-		sol::optional<std::string>	GetHitRoomName();
-		sol::optional<int>			GetHitRoomNumber();
-		sol::optional<float>		GetHitRoomDistance();
-		std::unique_ptr<Moveable>	GetHitMoveable();
-		sol::optional<Vec3>			GetHitMoveablePosition();
-		sol::optional<std::string>	GetHitMoveableRoomName();
-		sol::optional<int>			GetHitMoveableRoomNumber();
-		sol::optional<float>		GetHitMoveableDistance();
-		std::unique_ptr<Static>		GetHitStatic();
-		sol::optional<Vec3>			GetHitStaticPosition();
-		sol::optional<std::string>	GetHitStaticRoomName();
-		sol::optional<int>			GetHitStaticRoomNumber();
-		sol::optional<float>		GetHitStaticDistance();
+		std::unique_ptr<Room> GetHitRoom();
+		sol::optional<Vec3> GetHitPosition();
+		sol::optional<std::string> GetHitRoomName();
+		sol::optional<int> GetHitRoomNumber();
+		sol::optional<float> GetHitRoomDistance();
+		sol::optional<std::unique_ptr<Moveable>> GetHitMoveable();
+		sol::optional<Vec3> GetHitMoveablePosition();
+		sol::optional<std::string> GetHitMoveableRoomName();
+		sol::optional<int> GetHitMoveableRoomNumber();
+		sol::optional<float> GetHitMoveableDistance();
+		sol::optional<std::unique_ptr<Static>> GetHitStatic();
+		sol::optional<Vec3> GetHitStaticPosition();
+		sol::optional<std::string> GetHitStaticRoomName();
+		sol::optional<int> GetHitStaticRoomNumber();
+		sol::optional<float> GetHitStaticDistance();
 
 		// Inquirers
 

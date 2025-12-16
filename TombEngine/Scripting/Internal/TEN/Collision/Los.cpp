@@ -109,9 +109,13 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Room.Distance;
 	}
 
-	std::unique_ptr<Moveable> Ray::GetHitMoveable()
+	sol::optional <std::unique_ptr<Moveable>> Ray::GetHitMoveable()
 	{
-		return _RayCollisionData.Items.front().Item;
+		if (_RayCollisionData.Items.empty())
+			return sol::nullopt;
+
+		auto item = _RayCollisionData.Items.front().Item;
+		return std::make_unique<Moveable>(item->Index);;
 	}
 
 	sol::optional<Vec3> Ray::GetHitMoveablePosition()
@@ -149,9 +153,16 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Items.front().Distance;
 	}
 
-	std::unique_ptr<Static> Ray::GetHitStatic()
-	{
-		return _RayCollisionData.Statics.front().Static;
+	sol::optional<std::unique_ptr<Static>> Ray::GetHitStatic()
+	{	
+		if (_RayCollisionData.Statics.empty())
+			return sol::nullopt;
+
+		const auto* mesh = _RayCollisionData.Statics.front().Static;
+		if (!mesh)
+			return sol::nullopt;
+
+		return std::make_unique<Static>(*mesh);
 	}
 
 	sol::optional<Vec3> Ray::GetHitStaticPosition()
