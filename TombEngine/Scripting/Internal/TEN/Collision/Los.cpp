@@ -18,10 +18,10 @@ using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Collision
 {
-	/// Represents a collisionRay in the game world.
+	/// Represents a collision Ray in the game world.
 	// Provides collision information from a reference world position.
 	//
-	// @tenclass Collision.Los
+	// @tenclass Collision.Ray
 	// @pragma nostrip
 
 	void Ray::Register(sol::table& parent)
@@ -29,7 +29,13 @@ namespace TEN::Scripting::Collision
 		using ctors = sol::constructors<
 			Ray(const Vec3&, int, const Vec3&, float),
 			Ray(const Vec3&, int, const Vec3&, float, bool),
-			Ray(const Vec3&, int, const Vec3&, float, bool, bool)>;
+			Ray(const Vec3&, int, const Vec3&, float, bool, bool),
+			Ray(const Vec3&, int, const Rotation&, float),
+			Ray(const Vec3&, int, const Rotation&, float, bool),
+			Ray(const Vec3&, int, const Rotation&, float, bool, bool),
+			Ray(const Vec3&, int, const Rotation&, const Vec3&),
+			Ray(const Vec3&, int, const Rotation&, const Vec3&, bool),
+			Ray(const Vec3&, int, const Rotation&, const Vec3&, bool)>;
 
 		// Register type.
 		parent.new_usertype<Ray>(
@@ -38,7 +44,7 @@ namespace TEN::Scripting::Collision
 
 			// Getters
 			ScriptReserved_RayGetRoom, &Ray::GetRoom,
-			ScriptReserved_RayGetPosition, &Ray::GetPosition,
+			ScriptReserved_RayGetRoomPosition, &Ray::GetRoomPosition,
 			ScriptReserved_RayGetRoomName, &Ray::GetRoomName,
 			ScriptReserved_RayGetRoomNumber, &Ray::GetRoomNumber,
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
@@ -84,8 +90,91 @@ namespace TEN::Scripting::Collision
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
 		bool collideMoveables, bool collideStatics)
 	{
-		/*auto convertedPos = pos.ToVector3i();
-		_LosCollisionData = GetPointCollision(convertedPos, FindRoomNumber(convertedPos));*/
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
+	}
+
+	/// Create a Probe that casts from an origin world position in a room in the direction of a given rotation for a specified distance.
+	// Required to correctly traverse between rooms.
+	// @function Probe
+	// @tparam Vec3 pos Origin world position to cast from.
+	// @tparam int roomNumber Origin room number.
+	// @tparam Rotation rot Rotation defining the direction in which to cast.
+	// @tparam float dist Distance to cast.
+	// @treturn Probe A new Probe.
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist)
+	{
+		auto dir = rot.ToEulerAngles().ToDirection();
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables)
+	{
+		auto dir = rot.ToEulerAngles().ToDirection();
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables, bool collideStatics)
+	{
+		auto dir = rot.ToEulerAngles().ToDirection();
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
+	}
+	
+	/// Create a Probe that casts from an origin world position, where a given relative offset is rotated according to a given rotation.
+	// Required to correctly traverse between rooms.
+	// @function Probe
+	// @tparam Vec3 pos Origin world position to cast from.
+	// @tparam int roomNumber Origin room number.
+	// @tparam Rotation rot Rotation according to which the input relative offset is rotated.
+	// @tparam Vec3 relOffset Relative offset to cast.
+	// @treturn Probe A new Probe.
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset)
+	{
+		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
+		float dist = Vector3::Distance(origin.ToVector3(), target);
+
+		auto dir = target - origin.ToVector3();
+		dir.Normalize();
+
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables)
+	{
+		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
+		float dist = Vector3::Distance(origin.ToVector3(), target);
+
+		auto dir = target - origin.ToVector3();
+		dir.Normalize();
+
+		_origin = origin;
+		_direction = dir;
+		_distance = dist;
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables, bool collideStatics)
+	{
+		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
+		float dist = Vector3::Distance(origin.ToVector3(), target);
+
+		auto dir = target - origin.ToVector3();
+		dir.Normalize();
+
 		_origin = origin;
 		_direction = dir;
 		_distance = dist;
@@ -104,7 +193,10 @@ namespace TEN::Scripting::Collision
 		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
 	}
 
-	sol::optional<Vec3> Ray::GetPosition()
+	/// Get the world position of this Probe.
+	// @function Probe:GetPosition
+	// @treturn Vec3 World position.
+	sol::optional<Vec3> Ray::GetRoomPosition()
 	{
 		return _RayCollisionData.Room.Position;
 	}
@@ -120,11 +212,17 @@ namespace TEN::Scripting::Collision
 		return room.Name;
 	}
 
+	/// Get the room number of this Probe.
+	// @function Probe:GetRoomNumber
+	// @treturn int Room number.
 	sol::optional<int> Ray::GetRoomNumber()
 	{
 		return _RayCollisionData.Room.RoomNumber;
 	}
 
+	/// Get the room number of this Probe.
+	// @function Probe:GetRoomNumber
+	// @treturn int Room number.
 	sol::optional<float> Ray::GetRoomDistance()
 	{
 		return _RayCollisionData.Room.Distance;
@@ -183,6 +281,9 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Statics.front().Distance;
 	}
 
+	/// Get the water surface height at this Probe.
+	// @function Probe:GetWaterSurfaceHeight
+	// @treturn int Water surface height. __nil: no water surface exists__
 	bool Ray::HitRoom(TypeOrNil<std::string> roomName)
 	{
 		if (!_RayCollisionData.Room.IsIntersected)
@@ -206,7 +307,7 @@ namespace TEN::Scripting::Collision
 
 		std::string convertedString = ValueOr<std::string>(moveableName, "");
 
-		if (convertedString == "")
+		if (convertedString.empty())
 			return true;
 
 		const auto& hit = _RayCollisionData.Items.front();
@@ -220,7 +321,7 @@ namespace TEN::Scripting::Collision
 
 		std::string convertedString = ValueOr<std::string>(staticName, "");
 
-		if (convertedString == "")
+		if (convertedString.empty())
 			return true;
 
 		const auto& hit = _RayCollisionData.Statics.front();

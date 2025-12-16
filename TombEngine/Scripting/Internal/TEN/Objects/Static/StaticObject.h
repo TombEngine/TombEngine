@@ -2,7 +2,6 @@
 
 #include "Game/room.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
-#include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 
 namespace sol { class state; }
 

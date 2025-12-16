@@ -31,11 +31,16 @@ namespace TEN::Scripting::Collision
 		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist);
 		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool collideMoveables);
 		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool collideMoveables, bool collideStatics);
-
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist);
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables);
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables, bool collideStatics);
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset);
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables);
+		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables, bool collideStatics);
         // Getters
 
 		sol::optional <std::unique_ptr<Room>> GetRoom();
-		sol::optional<Vec3> GetPosition();
+		sol::optional<Vec3> GetRoomPosition();
 		sol::optional<std::string> GetRoomName();
 		sol::optional<int> GetRoomNumber();
 		sol::optional<float> GetRoomDistance();

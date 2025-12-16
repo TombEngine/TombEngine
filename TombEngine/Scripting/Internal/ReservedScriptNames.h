@@ -462,7 +462,7 @@ constexpr char ScriptReserved_ProbePreview[]				= "Preview";
 
 constexpr char ScriptReserved_Ray[]							= "Ray";
 constexpr char ScriptReserved_RayGetRoom[]					= "GetRoom";
-constexpr char ScriptReserved_RayGetPosition[]				= "GetPosition";
+constexpr char ScriptReserved_RayGetRoomPosition[]			= "GetRoomPosition";
 constexpr char ScriptReserved_RayGetRoomName[]				= "GetRoomName";
 constexpr char ScriptReserved_RayGetRoomNumber[]			= "GetRoomNumber";
 constexpr char ScriptReserved_RayGetRoomDistance[]			= "GetRoomDistance";
