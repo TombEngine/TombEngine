@@ -3,6 +3,7 @@
 
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Collision/Probe.h"
+#include "Scripting/Internal/TEN/Collision/Los.h"
 #include "Scripting/Internal/TEN/Effects/EffectsFunctions.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 #include "Scripting/Internal/TEN/Input/InputHandler.h"

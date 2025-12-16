@@ -26,8 +26,9 @@ namespace TEN::Scripting::Collision
 	void Ray::Register(sol::table& parent)
 	{
 		using ctors = sol::constructors<
-			Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
-				bool collideItems, bool collideSpheres, bool collideStatics)>;
+			Ray(const Vec3&, int, const Vec3&, float),
+			Ray(const Vec3&, int, const Vec3&, float, bool),
+			Ray(const Vec3&, int, const Vec3&, float, bool, bool)>;
 
 		// Register type.
 		parent.new_usertype<Ray>(
@@ -42,13 +43,9 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetHitRoomDistance, &Ray::GetHitRoomDistance,
 			ScriptReserved_RayGetHitMoveable, &Ray::GetHitMoveable,
 			ScriptReserved_RayGetHitMoveablePosition, & Ray::GetHitMoveablePosition,
-			ScriptReserved_RayGetHitMoveableRoomName, & Ray::GetHitMoveableRoomName,
-			ScriptReserved_RayGetHitMoveableRoomNumber, &Ray::GetHitMoveableRoomNumber,
 			ScriptReserved_RayGetHitMoveableDistance, &Ray::GetHitMoveableDistance,
 			ScriptReserved_RayGetHitStatic, &Ray::GetHitStatic,
 			ScriptReserved_RayGetHitStaticPosition, & Ray::GetHitStaticPosition,
-			ScriptReserved_RayGetHitStaticRoomName, & Ray::GetHitStaticRoomName,
-			ScriptReserved_RayGetHitStaticRoomNumber, &Ray::GetHitStaticRoomNumber,
 			ScriptReserved_RayGetHitStaticDistance, & Ray::GetHitStaticDistance,
 
 			// Inquirers
@@ -65,13 +62,25 @@ namespace TEN::Scripting::Collision
 	// @tparam Vec3 pos World position.
 	// @tparam[opt] int roomNumber Room number. Must be used if probing a position in an overlapping room.
 	// @treturnRay A newRay.
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
+	{
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
+	}
+
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
-		bool collideItems, bool collideSpheres, bool collideStatics)
+		bool collideMoveables)
+	{
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
+		bool collideMoveables, bool collideStatics)
 	{
 		/*auto convertedPos = pos.ToVector3i();
 		_LosCollisionData = GetPointCollision(convertedPos, FindRoomNumber(convertedPos));*/
 
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideItems, collideSpheres, collideStatics);
+		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
 	}
 
 	/// Get the Room object of this Ray.
@@ -126,25 +135,6 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Items.front().Position;
 	}
 
-	sol::optional<std::string> Ray::GetHitMoveableRoomName()
-	{
-		if (_RayCollisionData.Items.empty())
-			return sol::nullopt;
-
-		int roomNumber = _RayCollisionData.Items.front().RoomNumber;
-		const auto& room = g_Level.Rooms[roomNumber];
-
-		return room.Name;
-	}
-
-	sol::optional<int> Ray::GetHitMoveableRoomNumber()
-	{
-		if (_RayCollisionData.Items.empty())
-			return sol::nullopt;
-
-		return _RayCollisionData.Items.front().RoomNumber;
-	}
-
 	sol::optional<float> Ray::GetHitMoveableDistance()
 	{
 		if (_RayCollisionData.Items.empty())
@@ -155,14 +145,14 @@ namespace TEN::Scripting::Collision
 
 	sol::optional<std::unique_ptr<Static>> Ray::GetHitStatic()
 	{	
-		if (_RayCollisionData.Statics.empty())
-			return sol::nullopt;
+		//if (_RayCollisionData.Statics.empty())
+		//	return sol::nullopt;
 
-		const auto* mesh = _RayCollisionData.Statics.front().Static;
-		if (!mesh)
-			return sol::nullopt;
+		//const auto* mesh = _RayCollisionData.Statics.front().Static;
+		//if (!mesh)
+		return sol::nullopt;
 
-		return std::make_unique<Static>(*mesh);
+		//return std::make_unique<Static>(*mesh);
 	}
 
 	sol::optional<Vec3> Ray::GetHitStaticPosition()
@@ -171,25 +161,6 @@ namespace TEN::Scripting::Collision
 			return sol::nullopt;
 
 		return _RayCollisionData.Statics.front().Position;
-	}
-
-	sol::optional<std::string> Ray::GetHitStaticRoomName()
-	{
-		if (_RayCollisionData.Statics.empty())
-			return sol::nullopt;
-
-		int roomNumber = _RayCollisionData.Statics.front().RoomNumber;
-		const auto& room = g_Level.Rooms[roomNumber];
-
-		return room.Name;
-	}
-
-	sol::optional<int> Ray::GetHitStaticRoomNumber()
-	{
-		if (_RayCollisionData.Statics.empty())
-			return sol::nullopt;
-
-		return _RayCollisionData.Statics.front().RoomNumber;
 	}
 
 	sol::optional<float> Ray::GetHitStaticDistance()
@@ -225,14 +196,9 @@ namespace TEN::Scripting::Collision
 	// @functionRay:Preview
 	void Ray::Preview()
 	{
+		constexpr auto TARGET_RADIUS = BLOCK(0.08f);
+		constexpr auto COLOR = Color(1.0f, 1.0f, 0.8f, 0.2f);
+		constexpr auto DEBUG_PAGE = RendererDebugPage::CollisionStats;
 	
-	}
-
-	void Register(sol::state* state, sol::table& parent)
-	{
-		auto collTable = sol::table(state->lua_state(), sol::create);
-		parent.set(ScriptReserved_Ray, collTable);
-
-		Ray::Register(collTable);
 	}
 }

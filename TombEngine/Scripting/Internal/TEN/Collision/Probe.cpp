@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Collision/Probe.h"
 #include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
-
+#include "Scripting/Internal/TEN/Collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/Lara/lara_climb.h"
 #include "Scripting/Internal/LuaHandler.h"
@@ -375,6 +375,7 @@ namespace TEN::Scripting::Collision
 		parent.set(ScriptReserved_Collision, collTable);
 
 		Probe::Register(collTable);
+		Ray::Register(collTable);
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(collTable, ScriptReserved_MaterialType, MATERIAL_TYPES);

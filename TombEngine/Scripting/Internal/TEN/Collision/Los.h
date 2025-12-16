@@ -25,8 +25,9 @@ namespace TEN::Scripting::Collision
         // Constructors
 
 		Ray() = default;
-		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
-			bool collideItems, bool collideSpheres, bool collideStatics);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool collideMoveables);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool collideMoveables, bool collideStatics);
 
         // Getters
 
@@ -37,13 +38,9 @@ namespace TEN::Scripting::Collision
 		sol::optional<float> GetHitRoomDistance();
 		sol::optional<std::unique_ptr<Moveable>> GetHitMoveable();
 		sol::optional<Vec3> GetHitMoveablePosition();
-		sol::optional<std::string> GetHitMoveableRoomName();
-		sol::optional<int> GetHitMoveableRoomNumber();
 		sol::optional<float> GetHitMoveableDistance();
 		sol::optional<std::unique_ptr<Static>> GetHitStatic();
 		sol::optional<Vec3> GetHitStaticPosition();
-		sol::optional<std::string> GetHitStaticRoomName();
-		sol::optional<int> GetHitStaticRoomNumber();
 		sol::optional<float> GetHitStaticDistance();
 
 		// Inquirers
@@ -56,6 +53,4 @@ namespace TEN::Scripting::Collision
 
 		void Preview();
     };
-
-	void Register(sol::state* lua, sol::table& parent);
 }
