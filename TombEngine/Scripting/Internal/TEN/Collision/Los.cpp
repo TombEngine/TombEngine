@@ -175,25 +175,48 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Statics.front().Distance;
 	}
 
-	sol::optional<bool> Ray::HitRoom()
+	bool Ray::HitRoom(TypeOrNil<std::string> roomName)
 	{
-		return _RayCollisionData.Room.IsIntersected;
-	}
+		if (!_RayCollisionData.Room.IsIntersected)
+			return false;
 
-	sol::optional<bool> Ray::HitMoveable()
-	{
-		if (!_RayCollisionData.Items.empty())
+		std::string convertedString = ValueOr<std::string>(roomName, "");
+
+		if (convertedString.empty())
 			return true;
 
-		return sol::nullopt;
+		int roomNumber = _RayCollisionData.Room.RoomNumber;
+		const auto& room = g_Level.Rooms[roomNumber];
+
+		return room.Name == convertedString;
 	}
 
-	sol::optional<bool> Ray::HitStatic()
+	bool Ray::HitMoveable(TypeOrNil<std::string> moveableName)
 	{
-		if (!_RayCollisionData.Statics.empty())
+		if (_RayCollisionData.Statics.empty())
+			return false;
+
+		std::string convertedString = ValueOr<std::string>(moveableName, "");
+
+		if (convertedString.empty())
 			return true;
 
-		return sol::nullopt;
+		const auto& hit = _RayCollisionData.Items.front();
+		return hit.Item && hit.Item->Name == convertedString;
+	}
+
+	bool Ray::HitStatic(TypeOrNil<std::string> staticName)
+	{
+		if (_RayCollisionData.Statics.empty())
+			return false;
+
+		std::string convertedString = ValueOr<std::string>(staticName, "");
+
+		if (convertedString.empty())
+			return true;
+
+		const auto& hit = _RayCollisionData.Statics.front();
+		return hit.Static && hit.Static->Name == convertedString;
 	}
 
 	/// Preview thisRay in the Collision Stats debug page.
@@ -203,6 +226,44 @@ namespace TEN::Scripting::Collision
 		constexpr auto TARGET_RADIUS = BLOCK(0.08f);
 		constexpr auto COLOR = Color(1.0f, 1.0f, 0.8f, 0.2f);
 		constexpr auto DEBUG_PAGE = RendererDebugPage::CollisionStats;
-	
+		
+		auto dir = _direction;
+		float dist = _distance;
+
+		auto convertedPos = Vector3i(_origin);
+		short roomNumber = FindRoomNumber(convertedPos);
+
+		auto origin = _origin;
+		auto target = Geometry::TranslatePoint(origin, dir, dist);
+		auto los = GetLosCollision(origin, roomNumber, dir, dist, true, true, true);
+		float closestDist = los.Room.Distance;
+		target = los.Room.Position;
+
+		for (const auto& movLos : los.Items)
+		{
+			if (movLos.Item->ObjectNumber == ID_LARA)
+				continue;
+
+			if (movLos.Distance < closestDist)
+			{
+				closestDist = movLos.Distance;
+				target = movLos.Position;
+				break;
+			}
+		}
+
+		for (const auto& staticLos : los.Statics)
+		{
+			if (staticLos.Distance < closestDist)
+			{
+				closestDist = staticLos.Distance;
+				target = staticLos.Position;
+				break;
+			}
+		}
+
+		DrawDebugLine(origin, target, COLOR, DEBUG_PAGE);
+		DrawDebugTarget(target, Quaternion::Identity, TARGET_RADIUS, COLOR, DEBUG_PAGE);
+
 	}
 }

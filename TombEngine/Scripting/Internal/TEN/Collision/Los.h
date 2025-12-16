@@ -20,6 +20,9 @@ namespace TEN::Scripting::Collision
     private:
         // Fields
 		LosCollisionData _RayCollisionData;
+		Vector3 _origin;
+		Vector3 _direction;
+		float _distance;
 
     public:
         // Constructors
@@ -45,10 +48,10 @@ namespace TEN::Scripting::Collision
 
 		// Inquirers
 
-		sol::optional<bool> HitMoveable();
-		sol::optional<bool> HitStatic();
-		sol::optional<bool>	HitRoom();
-		
+		bool HitMoveable(TypeOrNil<std::string> moveableName);
+		bool HitStatic(TypeOrNil<std::string> staticName);
+		bool HitRoom(TypeOrNil<std::string> roomName);
+
 		// Utilities
 
 		void Preview();
