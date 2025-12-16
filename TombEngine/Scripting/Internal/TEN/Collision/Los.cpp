@@ -14,6 +14,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Los;
+using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Collision
 {
@@ -49,9 +50,9 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetStaticDistance, & Ray::GetStaticDistance,
 
 			// Inquirers
-			ScriptReserved_RayMoveable, &Ray::Moveable,
-			ScriptReserved_RayStatic, &Ray::Static,
-			ScriptReserved_RayRoom, &Ray::Room,
+			ScriptReserved_RayHitMoveable, &Ray::HitMoveable,
+			ScriptReserved_RayHitStatic, &Ray::HitStatic,
+			ScriptReserved_RayHitRoom, &Ray::HitRoom,
 			
 			// Utilities
 			ScriptReserved_ProbePreview, &Ray::Preview);
@@ -86,8 +87,11 @@ namespace TEN::Scripting::Collision
 	/// Get the Room object of this Ray.
 	// @functionRay:GetRoom
 	// @treturn Room Room object.
-	std::unique_ptr<Room> Ray::GetRoom()
+	sol::optional<std::unique_ptr<Room>> Ray::GetRoom()
 	{
+		if (!_RayCollisionData.Room.IsIntersected)
+			return sol::nullopt;
+
 		int roomNumber = _RayCollisionData.Room.RoomNumber;
 		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
 	}
@@ -171,12 +175,12 @@ namespace TEN::Scripting::Collision
 		return _RayCollisionData.Statics.front().Distance;
 	}
 
-	sol::optional<bool> Ray::Room()
+	sol::optional<bool> Ray::HitRoom()
 	{
 		return _RayCollisionData.Room.IsIntersected;
 	}
 
-	sol::optional<bool> Ray::Moveable()
+	sol::optional<bool> Ray::HitMoveable()
 	{
 		if (!_RayCollisionData.Items.empty())
 			return true;
@@ -184,7 +188,7 @@ namespace TEN::Scripting::Collision
 		return sol::nullopt;
 	}
 
-	sol::optional<bool> Ray::Static()
+	sol::optional<bool> Ray::HitStatic()
 	{
 		if (!_RayCollisionData.Statics.empty())
 			return true;

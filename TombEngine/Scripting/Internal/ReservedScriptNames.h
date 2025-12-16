@@ -310,6 +310,7 @@ static constexpr char ScriptReserved_GetSoundSourceByName[]			= "GetSoundSourceB
 static constexpr char ScriptReserved_GetVolumeByName[]				= "GetVolumeByName";
 static constexpr char ScriptReserved_GetRoomsByTag[]				= "GetRoomsByTag";
 static constexpr char ScriptReserved_GetRoomByName[]				= "GetRoomByName";
+static constexpr char ScriptReserved_GetRoomByNumber[]				= "GetRoomByNumber";
 static constexpr char ScriptReserved_CalculateHorizontalDistance[]	= "CalculateHorizontalDistance";
 static constexpr char ScriptReserved_PercentToScreen[]				= "PercentToScreen";
 static constexpr char ScriptReserved_ScreenToPercent[]				= "ScreenToPercent";
@@ -471,9 +472,9 @@ constexpr char ScriptReserved_RayGetMoveableDistance[]		= "GetMoveableDistance";
 constexpr char ScriptReserved_RayGetStatic[]				= "GetStatic";
 constexpr char ScriptReserved_RayGetStaticPosition[]		= "GetStaticPosition";
 constexpr char ScriptReserved_RayGetStaticDistance[]		= "GetStaticDistance";
-constexpr char ScriptReserved_RayMoveable[]					= "Moveable";
-constexpr char ScriptReserved_RayStatic[]					= "Static";
-constexpr char ScriptReserved_RayRoom[]						= "Room";
+constexpr char ScriptReserved_RayHitMoveable[]				= "HitMoveable";
+constexpr char ScriptReserved_RayHitStatic[]				= "HitStatic";
+constexpr char ScriptReserved_RayHitRoom[]					= "HitRoom";
 
 constexpr char ScriptReserved_MaterialType[]				= "MaterialType";
 

@@ -31,7 +31,7 @@ namespace TEN::Scripting::Collision
 
         // Getters
 
-		std::unique_ptr<Room> GetRoom();
+		sol::optional <std::unique_ptr<Room>> GetRoom();
 		sol::optional<Vec3> GetPosition();
 		sol::optional<std::string> GetRoomName();
 		sol::optional<int> GetRoomNumber();
@@ -45,9 +45,9 @@ namespace TEN::Scripting::Collision
 
 		// Inquirers
 
-		sol::optional<bool> Moveable();
-		sol::optional<bool> Static();
-		sol::optional<bool>	Room();
+		sol::optional<bool> HitMoveable();
+		sol::optional<bool> HitStatic();
+		sol::optional<bool>	HitRoom();
 		
 		// Utilities
 
