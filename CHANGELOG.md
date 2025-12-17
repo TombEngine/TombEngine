@@ -22,6 +22,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
 
 ### Lua API changes
+* Added `Collision.Ray` class for raycasting to detect room, items and static meshes.
 * Added a safeguard against adding or removing callback functions within the same callback type.
 * Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
 * Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
