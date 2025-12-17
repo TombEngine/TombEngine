@@ -9,6 +9,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/debris.h"
+#include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -308,6 +309,10 @@ void UseClockworkBeetle(bool flag)
 
 		beetle->Animation.Velocity.z = 0;
 		AddActiveItem(itemNumber);
+
+		std::string stringResult = fmt::format("ID_CLOCKWORK_BEETLE{}", itemNumber);
+		beetle->Name = stringResult;
+		g_GameScriptEntities->AddName(stringResult, itemNumber);
 
 		if (beetle->ItemFlags[0] && g_Level.Rooms[beetle->RoomNumber].itemNumber != NO_VALUE)
 		{
