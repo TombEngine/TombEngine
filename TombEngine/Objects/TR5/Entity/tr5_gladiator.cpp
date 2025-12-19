@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_gladiator.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
 
@@ -329,9 +330,11 @@ namespace TEN::Entities::Creatures::TR5
 						item->Pose.Orientation.y -= ANGLE(7.0f);
 				}
 				else
+				{
 					item->Pose.Orientation.y += AI.angle;
+				}
 
-				if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 10)
+				if (item->Animation.FrameNumber > 10)
 				{
 					auto* room = &g_Level.Rooms[item->RoomNumber];
 

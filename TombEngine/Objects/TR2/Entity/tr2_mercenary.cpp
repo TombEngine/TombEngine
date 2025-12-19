@@ -48,8 +48,8 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 13)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 14;
-				item->Animation.FrameNumber = g_Level.Anims[item->Animation.AnimNumber].frameBase;
+				item->Animation.AnimNumber = 14;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 13;
 			}
 		}
@@ -83,21 +83,14 @@ namespace TEN::Entities::Creatures::TR2
 					if (ai.distance > pow(BLOCK(2), 2))
 						item->Animation.TargetState = 2;
 
-					if (GetRandomControl() >= 0x2000)
-					{
-						if (GetRandomControl() >= 0x4000)
-						{
-							item->Animation.TargetState = 11;
-						}
-						else
-						{
-							item->Animation.TargetState = 7;
-						}
-					}
-					else
-					{
+					auto random = GetRandomControl();
+
+					if (random < 0x2000)
 						item->Animation.TargetState = 5;
-					}
+					else if (random < 0x4000)
+						item->Animation.TargetState = 7;
+					else
+						item->Animation.TargetState = 11;
 				}
 				else
 				{
@@ -105,13 +98,12 @@ namespace TEN::Entities::Creatures::TR2
 					{
 						item->Animation.TargetState = 3;
 					}
-					else if (!ai.ahead)
+					else if (creature->Mood == MoodType::Bored)
 					{
-						item->Animation.TargetState = 2;
-					}
-					else
-					{
-						item->Animation.TargetState = 1;
+						if (ai.ahead)
+							item->Animation.TargetState = 1;
+						else
+							item->Animation.TargetState = 2;
 					}
 				}
 
@@ -188,25 +180,20 @@ namespace TEN::Entities::Creatures::TR2
 			case 7:
 			case 8:
 			case 9:
-				creature->MaxTurn = 0;
-
 				if (ai.ahead)
 				{
 					extraTorsoRot.x = ai.xAngle;
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if ((GlobalCounter & 1) == (item->Index & 1)) // Reduce shooting rate deterministically.
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;
 
 					creature->MuzzleFlash[0].Bite = MercenaryUziBite;
-					creature->MuzzleFlash[0].Delay = 2;
+					creature->MuzzleFlash[0].Delay = Random::GenerateInt(0, 2);
 				}
-
-				if (ai.distance < pow(BLOCK(2), 2))
-					item->Animation.TargetState = 1;
 
 				break;
 
@@ -218,13 +205,13 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item->Animation.FrameNumber == GetFrameIndex(item, 0))
+				if ((GlobalCounter & 1) == (item->Index & 1)) // Reduce shooting rate deterministically.
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;
 
 					creature->MuzzleFlash[0].Bite = MercenaryUziBite;
-					creature->MuzzleFlash[0].Delay = 2;
+					creature->MuzzleFlash[0].Delay = Random::GenerateInt(0, 2);
 				}
 
 				if (ai.distance < pow(BLOCK(2), 2))
@@ -262,8 +249,8 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 11)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 9;
-				item->Animation.FrameNumber = GetAnimData(*item).frameBase;
+				item->Animation.AnimNumber = 9;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 11;
 			}
 		}

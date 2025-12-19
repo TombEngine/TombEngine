@@ -15,9 +15,11 @@
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Scripting::Types;
+using namespace TEN::Utils;
 
 /***
 Saving data, triggering functions, and callbacks for level-specific scripts.
@@ -288,7 +290,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
 	if (point == _lastCallbackPoint)
 	{
-		TENLog("Attempt to add callback function " + levelFunc.m_funcName + " within the same callback type.", LogLevel::Error, LogConfig::All);
+		TENLog(fmt::format("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error);
 		return;
 	}
 
@@ -301,7 +303,7 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 	
 	if (it->second->find(levelFunc.m_funcName) != it->second->end())
 	{
-		TENLog("Function " + levelFunc.m_funcName + " already registered in callbacks list.", LogLevel::Warning, LogConfig::All, true);
+		TENLog(fmt::format("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
@@ -978,10 +980,13 @@ void LogicHandler::ResetVariables()
 void LogicHandler::ShortenTENCalls()
 {
 	auto str = R"(local ShortenInner 
+	local exceptions = {
+		DisplaySprite = true,
+	}
 
 	ShortenInner = function(tab)
 		for k, v in pairs(tab) do
-			if _G[k] then
+			if _G[k] and not exceptions[k] then
 				print("WARNING! Key " .. k .. " already exists in global environment!")
 			else
 				_G[k] = v
@@ -1040,7 +1045,7 @@ unsigned int LogicHandler::GetFunctionCallCount()
 	return _insideFunction ? _functionCallCount : 0;
 }
 
-void LogicHandler::PerformCallbacks(CallbackPoint point)
+void LogicHandler::PerformCallbacks(CallbackPoint point, int argument)
 {
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end())
@@ -1052,8 +1057,12 @@ void LogicHandler::PerformCallbacks(CallbackPoint point)
 	_lastCallbackPoint = point;
 
 	for (const auto& name : *it->second)
-		CallLevelFuncByName(name);
-
+	{
+		if (argument == NO_VALUE)
+			CallLevelFuncByName(name);
+		else
+			CallLevelFuncByName(name, argument);
+	}
 	_lastCallbackPoint = std::nullopt;
 }
 
@@ -1128,22 +1137,22 @@ void LogicHandler::OnEnd(GameStatus reason)
 		break;
 	}
 
-	PerformCallbacks(CallbackPoint::PreEnd);
+	PerformCallbacks(CallbackPoint::PreEnd, int(endReason));
 
 	if (_onEnd.valid())
 		CallLevelFunc(_onEnd, endReason);
 
-	PerformCallbacks(CallbackPoint::PostEnd);
+	PerformCallbacks(CallbackPoint::PostEnd, int(endReason));
 }
 
 void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
 {
-	PerformCallbacks(CallbackPoint::PreUseItem);
+	PerformCallbacks(CallbackPoint::PreUseItem, objectNumber);
 
 	if (_onUseItem.valid())
 		CallLevelFunc(_onUseItem, objectNumber);
 
-	PerformCallbacks(CallbackPoint::PostUseItem);
+	PerformCallbacks(CallbackPoint::PostUseItem, objectNumber);
 }
 
 void LogicHandler::OnFreeze()

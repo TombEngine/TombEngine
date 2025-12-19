@@ -611,7 +611,7 @@ namespace TEN::Effects::Environment
 				}
 				
 				float radius = Random::GenerateInt(0, dist);
-				short angle = Random::GenerateAngle(ANGLE(-180), ANGLE(179));
+				short angle = Random::GenerateAngle();
 
 				auto xPos = Camera.pos.x + ((int)(phd_cos(angle) * radius));
 				auto zPos = Camera.pos.z + ((int)(phd_sin(angle) * radius));

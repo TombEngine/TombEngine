@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/Wraith.h"
 
+#include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
@@ -322,8 +323,8 @@ namespace TEN::Entities::TR4
 			hasHitWall = true;
 		}
 
-		if (pointColl.GetRoomNumber() != item.RoomNumber)
-			ItemNewRoom(itemNumber, FindRoomNumber(item.Pose.Position, item.RoomNumber));
+		//Always update room based on camera position. Otherwise object sometimes does not show up in rooms.
+		ItemNewRoom(itemNumber, FindRoomNumber(Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z), item.RoomNumber));
 
 		for (int linkItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkItemNumber != NO_VALUE; linkItemNumber = g_Level.Items[linkItemNumber].NextItem)
 		{
@@ -508,7 +509,7 @@ namespace TEN::Entities::TR4
 					SpawnWraithExplosion(item, Vector3(48.0f), 48.0f);
 
 					if (target->TriggerFlags > 0)
-						target->Animation.FrameNumber = GetAnimData(target).frameBase;
+						target->Animation.FrameNumber = 0;
 
 					target->ItemFlags[6] = 0;
 					DoDamage(target, INT_MAX);

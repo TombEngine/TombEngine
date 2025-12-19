@@ -25,10 +25,12 @@
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Utils;
 
 int TriggerTimer;
 int KeyTriggerActive;
@@ -215,8 +217,8 @@ bool SwitchTrigger(short itemNumber, short timer)
 	else if (item.Status != ITEM_NOT_ACTIVE)
 	{
 		if (item.ObjectNumber == ID_AIRLOCK_SWITCH &&
-			item.Animation.AnimNumber == GetAnimIndex(item, 2) &&
-			item.Animation.FrameNumber == GetFrameIndex(&item, 0))
+			item.Animation.AnimNumber == 2 &&
+			item.Animation.FrameNumber == 0)
 		{
 			return true;
 		}
@@ -442,7 +444,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 	short triggerType = (*(data++) >> 8) & TRIGGER_BITS;
 	short flags = *(data++);
-	short timer = flags & TIMER_BITS;
+	short timer = (char)(flags & TIMER_BITS);
 
 	if (Camera.type != CameraType::Heavy)
 		RefreshCamera(triggerType, data);
@@ -830,7 +832,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				int eventType = trigger & TIMER_BITS;
 				if (eventType >= (int)EventType::Count)
 				{
-					TENLog("Unknown volume event type encountered for legacy trigger " + std::to_string(eventType), LogLevel::Warning);
+					TENLog(fmt::format("Unknown volume event type encountered for legacy trigger {}.", eventType), LogLevel::Warning);
 					continue;
 				}
 

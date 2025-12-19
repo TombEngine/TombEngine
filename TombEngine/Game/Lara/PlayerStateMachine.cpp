@@ -22,6 +22,9 @@
 #include "Game/Lara/lara_surface.h"
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Player
 {
@@ -243,7 +246,7 @@ namespace TEN::Entities::Player
 		if (item.Animation.ActiveState < 0 ||
 			item.Animation.ActiveState >= NUM_LARA_STATES)
 		{
-			TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+			TENLog(fmt::format("Error handling unregistered player animation state {}.", item.Animation.ActiveState), LogLevel::Warning);
 			return;
 		}
 
@@ -270,6 +273,6 @@ namespace TEN::Entities::Player
 			return;
 		}
 
-		TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Error handling unregistered player animation state {}", item.Animation.ActiveState), LogLevel::Warning);
 	}
 }

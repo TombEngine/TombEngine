@@ -367,6 +367,9 @@ namespace TEN::Scripting::View
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
+		ScriptDisplaySprite::Register(*state, tableView);
+
+		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
 
 		// Register enums.

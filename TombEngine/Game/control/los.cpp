@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/los.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
@@ -23,6 +23,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;

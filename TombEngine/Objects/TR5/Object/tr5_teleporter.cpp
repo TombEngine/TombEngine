@@ -30,7 +30,7 @@ void ControlTeleporter(short itemNumber)
 			SoundEffect(SFX_TR5_LIFT_HIT_FLOOR2, nullptr);
 		}
 
-		SetAnimation(*LaraItem, LA_ELEVATOR_RECOVER);
+		SetAnimation(LaraItem, LA_ELEVATOR_RECOVER);
 
 		item->ItemFlags[0]++;
 		if (item->ItemFlags[0] >= 150)
