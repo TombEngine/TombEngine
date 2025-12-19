@@ -846,22 +846,77 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(hudCamera, _cbCameraMatrices);
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
+		_shaders.Bind(Shader::Inventory);
+
+		// Construct world matrix.
+		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto scaleMatrix = Matrix::CreateScale(scale);
+		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
+
+		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
+
+		_stItem.Color = Vector4::One;
+		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();;
+		_stItem.Skinned = (int)skinMode;
+
+		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
+		{
+			_stItem.World = worldMatrix;
+
+			// Calculate bones matrices for skinning
+			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
+				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+
+			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+
+			UpdateConstantBuffer(_stItem, _cbItem);
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+			// Disegna the skin mesh
+			const auto skinMesh = GetMesh(object.skinIndex);
+
+			for (int animated = 0; animated < 2; animated++)
+			{
+				for (const auto& bucket : skinMesh->Buckets)
+				{
+					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+						continue;
+
+					SetBlendMode(BlendMode::Opaque);
+					SetCullMode(CullMode::CounterClockwise);
+					SetDepthState(DepthState::Write);
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					if (bucket.BlendMode != BlendMode::Opaque)
+						SetBlendMode(bucket.BlendMode, true);
+
+					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					_numMoveablesDrawCalls++;
+				}
+			}
+		}
+
+		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+			_stItem.BonesMatrices[i] = Matrix::Identity;
+
+
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
 			if (meshBits && !(meshBits & (1 << i)))
 				continue;
 
+			if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
+				continue;
+
 			// HACK: Rotate compass needle.
 			if (objectNumber == ID_COMPASS_ITEM && i == 1)
 				moveableObject->LinearizedBones[i]->ExtraRotation = EulerAngles(0, g_Gui.CompassNeedleAngle - ANGLE(180.0f), 0).ToQuaternion();
-
-			_shaders.Bind(Shader::Inventory);
-
-			// Construct world matrix.
-			auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
-			auto rotMatrix = orient.ToRotationMatrix();
-			auto scaleMatrix = Matrix::CreateScale(scale);
-			auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
 			if (!object.Animations.empty())
 			{
@@ -873,8 +928,6 @@ namespace TEN::Renderer
 			}
 
 			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
-			_stItem.Color = Vector4::One;
-			_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
 
 			UpdateConstantBuffer(_stItem, _cbItem);
 
@@ -884,7 +937,7 @@ namespace TEN::Renderer
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
 			for (int animated = 0; animated < 2; animated++)
-			{				
+			{		
 				for (const auto& bucket : mesh.Buckets)
 				{
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
@@ -972,19 +1025,75 @@ namespace TEN::Renderer
 			_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
 			BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
+			_shaders.Bind(Shader::Inventory);
+
+			// Construct world matrix. // pos.x, pos.y, pos.z
+			auto translationMatrix = Matrix::CreateTranslation(pos3D.x, pos3D.y, pos3D.z);
+			auto rotMatrix = orient.ToRotationMatrix();
+			auto scaleMatrix = Matrix::CreateScale(scale);
+			auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
+
+			auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
+
+			_stItem.Color = color;
+			_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
+			_stItem.Skinned = (int)skinMode;
+
+			if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
+			{
+				_stItem.World = worldMatrix;
+
+				// Calculate bones matrices for skinning
+				for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
+					_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+
+				_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+
+				UpdateConstantBuffer(_stItem, _cbItem);
+				BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+				BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+				// Disegna the skin mesh
+				const auto skinMesh = GetMesh(object.skinIndex);
+
+				for (int animated = 0; animated < 2; animated++)
+				{
+					for (const auto& bucket : skinMesh->Buckets)
+					{
+						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+							continue;
+
+						SetBlendMode(BlendMode::Opaque);
+						SetCullMode(CullMode::CounterClockwise);
+						SetDepthState(DepthState::Write);
+
+						BindBucketTextures(bucket, TextureSource::Moveables, animated);
+						BindMaterial(bucket.MaterialIndex, false);
+
+						if (bucket.BlendMode != BlendMode::Opaque)
+							SetBlendMode(bucket.BlendMode, true);
+
+						SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+						_numMoveablesDrawCalls++;
+					}
+				}
+			}
+
+			for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+				_stItem.BonesMatrices[i] = Matrix::Identity;
+
 			for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 			{
 				if (meshBits && !item.GetMeshVisibility(i))
 					continue;
 
+				if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
+					continue;
+
 				auto rotOverride = item.GetInterpolatedMeshRotation(i, t);
 				moveableObject->LinearizedBones[i]->ExtraRotation = rotOverride.ToQuaternion();
-
-				// Construct world matrix. // pos.x, pos.y, pos.z
-				auto translationMatrix = Matrix::CreateTranslation(pos3D.x, pos3D.y, pos3D.z);
-				auto rotMatrix = orient.ToRotationMatrix();
-				auto scaleMatrix = Matrix::CreateScale(scale);
-				auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 
 				if (!object.Animations.empty())
 				{
@@ -996,8 +1105,6 @@ namespace TEN::Renderer
 				}
 
 				_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
-				_stItem.Color = color;
-				_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
 
 				_cbItem.UpdateData(_stItem, _context.Get());
 				BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
