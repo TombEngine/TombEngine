@@ -216,7 +216,7 @@ end
 -- @usage
 -- -- Example: set flags for DisplayString in a module script
 -- local string = TEN.Strings.DisplayString("Example", TEN.Vec2(50, 50))
--- LevelFuncs.SetDisplayStringFlags = function (flag)
+-- LevelFuncs.SetDisplayStringFlags = function (flags)
 --     for _, flag in ipairs(flags) do
 --         if not Type.IsEnumValue(flag, TEN.Strings.DisplayStringOption) then
 --             TEN.Util.PrintLog("Invalid flag for DisplayStringOption enum.", TEN.Util.LogLevel.ERROR)

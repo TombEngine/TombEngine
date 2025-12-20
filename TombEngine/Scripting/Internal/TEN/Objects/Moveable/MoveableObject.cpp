@@ -814,7 +814,7 @@ int Moveable::GetAnimSlot() const
 // @treturn int The index of the active animation.
 int Moveable::GetAnimNumber() const
 {
-	return _moveable->Animation.AnimNumber - Objects[_moveable->Animation.AnimObjectID].animIndex;
+	return _moveable->Animation.AnimNumber;
 }
 
 /// Set the moveable's animation to the one specified by the given index.
@@ -825,7 +825,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
 }
 
 /// Retrieve frame number.
@@ -834,7 +834,7 @@ void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 // @treturn int The current frame of the active animation.
 int Moveable::GetFrameNumber() const
 {
-	return (_moveable->Animation.FrameNumber - GetAnimData(*_moveable).frameBase);
+	return _moveable->Animation.FrameNumber;
 }
 
 /// Get the moveable's velocity.
@@ -873,14 +873,13 @@ void Moveable::SetVelocity(Vec3 velocity)
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
-
-	unsigned int frameCount = anim.frameEnd - anim.frameBase;
 	
-	bool cond = frameNumber < frameCount;
+	bool cond = (frameNumber < anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, frameCount-1))
+
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
 	{
-		_moveable->Animation.FrameNumber = frameNumber + anim.frameBase;
+		_moveable->Animation.FrameNumber = frameNumber;
 	}
 	else
 	{
@@ -895,7 +894,7 @@ void Moveable::SetFrameNumber(int frameNumber)
 int Moveable::GetEndFrame() const
 {
 	const auto& anim = GetAnimData(*_moveable);
-	return (anim.frameEnd - anim.frameBase);
+	return anim.EndFrameNumber;
 }
 
 /// Determine whether the moveable is active or not.
@@ -1146,6 +1145,12 @@ void Moveable::EnableItem(sol::optional<float> timer)
 	if (_moveableID == NO_VALUE)
 		return;
 
+	if (_moveable->Flags & IFLAG_KILLED)
+	{
+		TENLog("Attempt to re-enable a moveable " + _moveable->Name + " which was already destroyed or in the process of destroying.", LogLevel::Warning);
+		return;
+	}
+
 	bool wasInvisible = false;
 	if (_moveable->Status == ITEM_INVISIBLE)
 		wasInvisible = true;
@@ -1333,15 +1338,17 @@ void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshI
 void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID)
 {
 	_moveable->Animation.AnimObjectID = objectID;
-	_moveable->Animation.AnimNumber = Objects[objectID].animIndex + animNumber;
+	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
-	_moveable->Animation.FrameNumber = GetAnimData(*_moveable).frameBase;
+	_moveable->Animation.FrameNumber = 0;
 	AnimateItem(_moveable);
 }
 
 /// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
 // @function Moveable:ShowInteractionHighlight
-void Moveable::ShowInteractionHighlight()
+// @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
+void Moveable::ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType)
 {
-	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable);
+	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
+	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable, InteractionMode::Always, convertedIcon);
 }

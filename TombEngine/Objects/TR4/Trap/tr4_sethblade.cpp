@@ -1,11 +1,13 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_sethblade.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -28,7 +30,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		SetAnimation(&item, SETHBLADE_ANIM_IDLE);
+		SetAnimation(item, SETHBLADE_ANIM_IDLE);
 		
 		item.ItemFlags[2] = item.TriggerFlags >= 0 ? 1 : abs(item.TriggerFlags);		//ItemFlags[2] stores blade timer.
 		item.ItemFlags[3] = SETH_BLADE_HARM_DAMAGE;										//ItemFlags[3] stored blade harm damage.
@@ -62,7 +64,7 @@ namespace TEN::Entities::Traps
 			}
 			else if (item.Animation.ActiveState == SETHBLADE_STATE_ACTIVE)
 			{
-				int frame = item.Animation.FrameNumber - GetAnimData(item).frameBase;
+				int frame = item.Animation.FrameNumber;
 
 				if (frame >= 0 && frame <= 6)
 				{
@@ -78,7 +80,7 @@ namespace TEN::Entities::Traps
 				}
 			}
 
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 	}
 }

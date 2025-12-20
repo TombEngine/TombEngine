@@ -1,18 +1,11 @@
 #include "./CBCamera.hlsli"
+#include "./CBItem.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Materials.hlsli"
-
-cbuffer CBInventoryItem : register(b1)
-{
-	float4x4 World;
-	float4x4 Bones[32];
-	float4 ItemPosition;
-	float4 AmbientLight;
-};
 
 struct PixelShaderInput
 {
@@ -43,15 +36,18 @@ PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
 
-	output.Position = mul(mul(float4(input.Position, 1.0f), World), ViewProjection);
-    output.Normal = (mul(input.Normal.xyz, (float3x3) World).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) World).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) World).xyz);
+    float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
+    float4x4 world = mul(blended, World);
+    
+	output.Position = mul(mul(float4(input.Position, 1.0f), world), ViewProjection);
+    output.Normal = (mul(input.Normal.xyz, (float3x3) world).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
     output.Color = input.Color;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
+    output.WorldPosition = (mul(float4(input.Position, 1.0f), world).xyz);
     output.Sheen = DecodeSheen(input.Effects);
-    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) World).xyz);
+    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) world).xyz);
     
 	return output;
 }

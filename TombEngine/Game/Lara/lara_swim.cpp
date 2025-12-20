@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_swim.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -15,6 +15,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 

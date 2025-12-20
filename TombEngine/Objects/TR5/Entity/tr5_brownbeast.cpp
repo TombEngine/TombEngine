@@ -159,7 +159,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (item->TouchBits.Test(BrownBeastAttackJoints1))
 				{
-					if (TestAnimNumber(*item, BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE))
+					if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE)
 					{
 						if (TestAnimFrameRange(*item, 20, 24))
 						{
@@ -170,7 +170,7 @@ namespace TEN::Entities::Creatures::TR5
 						}
 					}
 
-					if (TestAnimNumber(*item, BROWN_BEAST_ANIM_SWIPE_ATTACK))
+					if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_SWIPE_ATTACK)
 					{
 						if (TestAnimFrameRange(*item, 7, 15))
 						{
@@ -185,7 +185,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (!item->TouchBits.Test(BrownBeastAttackJoints2))
 					break;
 
-				if (TestAnimNumber(*item, BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE))
+				if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE)
 				{
 					if (TestAnimFrameRange(*item, 14, 19))
 					{
@@ -196,7 +196,7 @@ namespace TEN::Entities::Creatures::TR5
 					}
 				}
 
-				if (TestAnimNumber(*item, BROWN_BEAST_ANIM_SWIPE_ATTACK))
+				if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_SWIPE_ATTACK)
 				{
 					if (TestAnimFrameRange(*item, 34, 42))
 					{
