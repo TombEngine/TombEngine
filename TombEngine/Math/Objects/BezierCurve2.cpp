@@ -5,9 +5,9 @@ namespace TEN::Math
 {
 	const BezierCurve2 BezierCurve2::Zero      = BezierCurve2(Vector2::Zero, Vector2::Zero, Vector2::Zero, Vector2::Zero);
 	const BezierCurve2 BezierCurve2::Linear    = BezierCurve2(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2::One);
-	const BezierCurve2 BezierCurve2::EaseIn    = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2::One);
-	const BezierCurve2 BezierCurve2::EaseOut   = BezierCurve2(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2(0.75f, 1.0f));
-	const BezierCurve2 BezierCurve2::EaseInOut = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.25f, 0.0f), Vector2(0.75f, 1.0f));
+	const BezierCurve2 BezierCurve2::EaseIn    = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.5f, 0.0f), Vector2::One);
+	const BezierCurve2 BezierCurve2::EaseOut   = BezierCurve2(Vector2::Zero, Vector2::One, Vector2::Zero, Vector2(0.5f, 1.0f));
+	const BezierCurve2 BezierCurve2::EaseInOut = BezierCurve2(Vector2::Zero, Vector2::One, Vector2(0.5f, 0.0f), Vector2(0.5f, 1.0f));
 
 	BezierCurve2::BezierCurve2(const Vector2& start, const Vector2& end, const Vector2& startHandle, const Vector2& endHandle)
 	{
