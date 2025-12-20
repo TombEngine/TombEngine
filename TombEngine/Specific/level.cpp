@@ -1901,15 +1901,16 @@ void GetCarriedItems()
 					abs(item2.Pose.Position.z - item.Pose.Position.z) < CLICK(2) &&
 					abs(item2.Pose.Position.y - item.Pose.Position.y) < CLICK(1))
 				{
-					if (Objects[item2.ObjectNumber].isPickup ||
-						(item.ObjectNumber == ID_SEARCH_OBJECT4 && item2.ObjectNumber == ID_EXPLOSION))
+					bool isSearchObjectWithExplosion = (item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) && item2.ObjectNumber == ID_EXPLOSION;
+
+					if (Objects[item2.ObjectNumber].isPickup || isSearchObjectWithExplosion)
 					{
 						item2.CarriedItem = item.CarriedItem;
 						item.CarriedItem = linkNumber;
 						RemoveDrawnItem(linkNumber);
-						if (item2.ObjectNumber != ID_EXPLOSION) {
+
+						if (item2.ObjectNumber != ID_EXPLOSION)
 							item2.RoomNumber = NO_VALUE;
-						}
 					}
 				}
 			}

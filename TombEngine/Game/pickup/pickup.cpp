@@ -1244,9 +1244,8 @@ void SearchObjectControl(short itemNumber)
 				AddActiveItem(item->CarriedItem);
 				carriedItem->Flags |= IFLAG_ACTIVATION_MASK;
 				carriedItem->Status = ITEM_ACTIVE;
-				LaraItem->HitPoints = 640;
-
 				item->CarriedItem = NO_VALUE;
+				DoDamage(LaraItem, 360);
 			}
 			else
 			{
