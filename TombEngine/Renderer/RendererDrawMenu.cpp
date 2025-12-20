@@ -905,7 +905,6 @@ namespace TEN::Renderer
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 			_stItem.BonesMatrices[i] = Matrix::Identity;
 
-
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
 			if (meshBits && !(meshBits & (1 << i)))

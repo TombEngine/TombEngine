@@ -1851,7 +1851,7 @@ void ProcessEffects(ItemInfo* item)
 			{
 				TriggerElectricSpark(
 					GameVector(pos, item->RoomNumber),
-					EulerAngles(0, Random::GenerateAngle(0, ANGLE(359.0f)), 0), 2);
+					EulerAngles(0, Random::GenerateAngle(), 0), 2);
 			}
 
 			if (TestProbability(1 / 64.0f))
@@ -1864,7 +1864,7 @@ void ProcessEffects(ItemInfo* item)
 			{
 				TriggerElectricSpark(
 					GameVector(pos, item->RoomNumber),
-					EulerAngles(0, Random::GenerateAngle(0, ANGLE(359.0f)), 0), 2);
+					EulerAngles(0, Random::GenerateAngle(), 0), 2);
 			}
 
 			if (TestProbability(1 / 1.0f))

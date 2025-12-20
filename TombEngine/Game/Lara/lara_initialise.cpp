@@ -5,6 +5,7 @@
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
@@ -354,6 +355,8 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 
 	if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
 	{
+		InitializeNewWeapon(item);
+		player.LeftArm.AnimNumber = player.RightArm.AnimNumber = 1;
 		player.Control.Weapon.HolsterInfo.LeftHolster =
 		player.Control.Weapon.HolsterInfo.RightHolster = HolsterSlot::Pistols;
 	}

@@ -205,10 +205,9 @@ void Renderer::UpdateLaraAnimations(bool force)
 		case LaraWeaponType::Revolver:
 		default:
 		{
+			// Left arm.
 			bool movingModifier = !(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber;
 			bool sideJumpModifier = !(gunType == LaraWeaponType::Revolver && IsSideJumpState(LaraItem->Animation.ActiveState));
-
-			// Left arm.
 
 			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
 			bool transformLeftUpperArm = (IsCrouching(LaraItem) || Lara.LeftArm.Locked || movingModifier) && sideJumpModifier;
@@ -233,6 +232,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
 			// Right arm.
+			movingModifier = !(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
 
 			// HACK: Same as above, but for right arm.
 			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked || movingModifier;
