@@ -161,7 +161,6 @@ namespace TEN::Gui
 		int EnterInventory;
 		int LastInvItem;
 		AmmoData Ammo;
-		bool InventoryOverride = false;
 
 	public:
 		int CompassNeedleAngle;
@@ -195,7 +194,6 @@ namespace TEN::Gui
 		SettingsData& GetCurrentSettings();
 		int GetLoadSaveSelection();
 		int GetLoopedSelectedOption(int selectedOption, int optionCount, bool canLoop);
-		bool GetInventoryOverride();
 
 		// Setters
 
@@ -205,7 +203,6 @@ namespace TEN::Gui
 		void SetEnterInventory(int number);
 		void SetInventoryItemChosen(int number);
 		void SetLastInventoryItem(int itemNumber);
-		void SetInventoryOverride(bool value);
 
 	private:
 		void HandleDisplaySettingsInput(bool fromPauseMenu);

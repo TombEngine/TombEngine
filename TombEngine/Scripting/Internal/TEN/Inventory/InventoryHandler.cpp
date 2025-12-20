@@ -112,22 +112,6 @@ namespace TEN::Scripting::InventoryHandler
 		g_Gui.SetEnterInventory(objectID);
 	}
 
-	///Gets if the default inventory is disabled. Used by Custom Inventory module.
-	// @function GetInventoryOverride
-	// @treturn bool Returns true is default inventory is disabled. false if not.
-	static bool GetInventoryOverride()
-	{
-		return g_Gui.GetInventoryOverride();
-	}
-
-	///Disables the default inventory. Used by Custom Inventory module.
-	// @function SetInventoryOverride
-	// @tparam bool value Enables or disables the default inventory.
-	static void SetInventoryOverride(bool value)
-	{
-		g_Gui.SetInventoryOverride(value);
-	}
-
 	///Converts ObjectID to InventoryItem. Used by Custom Inventory module.
 	// @function ConvertObjectToInventoryItem
 	// @tparam Objects.ObjID objectID Object ID of the item to convert.
@@ -160,8 +144,6 @@ namespace TEN::Scripting::InventoryHandler
 		tableInventory.set_function(ScriptReserved_ClearUsedItem, &ClearUsedItem);
 		tableInventory.set_function(ScriptReserved_ConvertObjectToInvItem, &ConvertObjectToInventoryItem);
 		tableInventory.set_function(ScriptReserved_ConvertInvItemToObject, &ConvertInventoryItemToObject);
-		tableInventory.set_function(ScriptReserved_GetInvOverride, &GetInventoryOverride);
-		tableInventory.set_function(ScriptReserved_SetInvOverride, &SetInventoryOverride);
 		tableInventory.set_function(ScriptReserved_GetOpenInv, &GetEnterInventory);
 		tableInventory.set_function(ScriptReserved_SetOpenInv, &SetEnterInventory);
 	}

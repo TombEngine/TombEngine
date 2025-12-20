@@ -83,6 +83,13 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct InventorySettings
+	{
+		bool Enabled = true;
+
+		static void Register(sol::table& parent);
+	};
+
 	struct PhysicsSettings
 	{
 		float Gravity	   = 6.0f;
@@ -133,6 +140,7 @@ namespace TEN::Scripting
 		GameplaySettings			Gameplay   = {};
 		GraphicsSettings			Graphics   = {};
 		std::array<HairSettings, 3> Hair	   = {};
+		InventorySettings			Inventory  = {};
 		HudSettings					Hud		   = {};
 		PhysicsSettings				Physics	   = {};
 		SystemSettings				System	   = {};

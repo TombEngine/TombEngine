@@ -34,6 +34,7 @@ static constexpr char ScriptReserved_AnimSettings[]		= "Animations";
 static constexpr char ScriptReserved_GraphicsSettings[]	= "Graphics";
 static constexpr char ScriptReserved_HairSettings[]		= "Hair";
 static constexpr char ScriptReserved_HudSettings[]		= "Hud";
+static constexpr char ScriptReserved_InventorySettings[]= "Inventory";
 static constexpr char ScriptReserved_PhysicsSettings[]	= "Physics";
 static constexpr char ScriptReserved_WeaponSettings[]	= "Weapons";
 
@@ -309,8 +310,6 @@ static constexpr char ScriptReserved_SetInvItemCount[]				= "SetItemCount";
 static constexpr char ScriptReserved_GetUsedItem[]					= "GetUsedItem";
 static constexpr char ScriptReserved_SetUsedItem[]					= "SetUsedItem";
 static constexpr char ScriptReserved_ClearUsedItem[]				= "ClearUsedItem";
-static constexpr char ScriptReserved_SetInvOverride[]				= "SetInventoryOverride";
-static constexpr char ScriptReserved_GetInvOverride[]				= "GetInventoryOverride";
 static constexpr char ScriptReserved_SetOpenInv[]					= "SetEnterInventory";
 static constexpr char ScriptReserved_GetOpenInv[]					= "GetEnterInventory";
 static constexpr char ScriptReserved_ConvertObjectToInvItem[]		= "ConvertObjectToInventoryItem";

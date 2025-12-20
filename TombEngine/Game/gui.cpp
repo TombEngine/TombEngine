@@ -276,11 +276,6 @@ namespace TEN::Gui
 		LastInvItem = itemNumber;
 	}
 
-	void GuiController::SetInventoryOverride(bool value)
-	{
-		InventoryOverride = value;
-	}
-
 	void GuiController::DrawInventory()
 	{
 		g_Renderer.RenderInventory();
@@ -3489,11 +3484,6 @@ namespace TEN::Gui
 		}
 
 		return selectedOption;
-	}
-
-	bool GuiController::GetInventoryOverride()
-	{
-		return InventoryOverride;
 	}
 
 	LoadResult GuiController::DoLoad()
