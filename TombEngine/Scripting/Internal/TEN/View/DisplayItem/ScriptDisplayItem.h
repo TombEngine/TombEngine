@@ -71,7 +71,7 @@ namespace TEN::Scripting::DisplayItem
 		sol::optional <int> GetFrameNumber() const;
 		sol::optional <int> GetEndFrame() const;
 		sol::optional<std::pair<Vec2, Vec2>> GetBounds() const;
-		sol::optional<sol::table> GetAnchors() const;
+		//sol::optional<sol::table> GetAnchors(sol::this_state state) const;
 
 		//functions
 		static ScriptDisplayItem GetItemByName(const std::string& itemName);

@@ -896,39 +896,38 @@ namespace TEN::Scripting::DisplayItem
 	//     print("Top-Left: ", anchors.TopLeft.x, anchors.TopLeft.y)
 	//     print("Center: ", anchors.Center.x, anchors.Center.y)
 	// end
-	sol::optional<sol::table> ScriptDisplayItem::GetAnchors() const
-	{
-		auto bounds = GetBounds();
+	//sol::optional<sol::table> ScriptDisplayItem::GetAnchors(sol::this_state state) const
+	//{
+	//	auto bounds = GetBounds();
 
-		const Vec2& centerPercent = bounds->first;
-		const Vec2& sizePercent = bounds->second;
+	//	const Vec2& centerPercent = bounds->first;
+	//	const Vec2& sizePercent = bounds->second;
 
-		// Calculate half dimensions
-		float halfWidth = sizePercent.x / 2.0f;
-		float halfHeight = sizePercent.y / 2.0f;
+	//	// Calculate half dimensions
+	//	float halfWidth = sizePercent.x / 2.0f;
+	//	float halfHeight = sizePercent.y / 2.0f;
 
-		// Calculate the 9 anchor points
-		float left = centerPercent.x - halfWidth;
-		float right = centerPercent.x + halfWidth;
-		float top = centerPercent.y - halfHeight;
-		float bottom = centerPercent.y + halfHeight;
+	//	// Calculate the 9 anchor points
+	//	float left = centerPercent.x - halfWidth;
+	//	float right = centerPercent.x + halfWidth;
+	//	float top = centerPercent.y - halfHeight;
+	//	float bottom = centerPercent.y + halfHeight;
 
-		// Create a Lua table with the anchor points
-		//auto state = sol::state_view(g_LuaHandler->GetState());
-		//sol::table anchors = state.create_table();
+	//	// Create a Lua table with the anchor points
+	//	auto anchors = sol::state_view(state).create_table();
 
-		//anchors["TopLeft"] = Vec2(left, top);
-		//anchors["TopCenter"] = Vec2(centerPercent.x, top);
-		//anchors["TopRight"] = Vec2(right, top);
-		//anchors["MiddleLeft"] = Vec2(left, centerPercent.y);
-		//anchors["Center"] = Vec2(centerPercent.x, centerPercent.y);
-		//anchors["MiddleRight"] = Vec2(right, centerPercent.y);
-		//anchors["BottomLeft"] = Vec2(left, bottom);
-		//anchors["BottomCenter"] = Vec2(centerPercent.x, bottom);
-		//anchors["BottomRight"] = Vec2(right, bottom);
+	//	//anchors["TopLeft"] = Vec2(left, top);
+	//	//anchors["TopCenter"] = Vec2(centerPercent.x, top);
+	//	//anchors["TopRight"] = Vec2(right, top);
+	//	//anchors["MiddleLeft"] = Vec2(left, centerPercent.y);
+	//	//anchors["Center"] = Vec2(centerPercent.x, centerPercent.y);
+	//	//anchors["MiddleRight"] = Vec2(right, centerPercent.y);
+	//	//anchors["BottomLeft"] = Vec2(left, bottom);
+	//	//anchors["BottomCenter"] = Vec2(centerPercent.x, bottom);
+	//	//anchors["BottomRight"] = Vec2(right, bottom);
 
-		//return anchors;
-	}
+	//	return anchors;
+	//}
 
 	/// 2D Mode
 	// @section 2DMode
