@@ -45,7 +45,6 @@ namespace TEN::Scripting
 		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
-		InventorySettings::Register(parent);
 		PhysicsSettings::Register(parent);
 		SystemSettings::Register(parent);
 		WeaponSettings::Register(parent);
@@ -61,7 +60,6 @@ namespace TEN::Scripting
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
-			ScriptReserved_InventorySettings, &Settings::Inventory,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
 			ScriptReserved_SystemSettings, &Settings::System,
 			ScriptReserved_WeaponSettings, &Settings::Weapons);
@@ -195,6 +193,10 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GameplaySettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
 
+			// This setting enables or disables the inventory.
+			// @tfield bool status If false, inventory will not open.
+			"inventoryEnabled", &GameplaySettings::InventoryEnabled,
+
 			/// Enable target occlusion by moveables and static meshes.
 			// @tfield bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
 			"targetObjectOcclusion", & GameplaySettings::TargetObjectOcclusion);
@@ -266,21 +268,6 @@ namespace TEN::Scripting
 		/// Toggle pickup notifier visibility.
 		// @tfield bool pickupNotifier If disabled, pickup notifier will be invisible in game.
 		"pickupNotifier", &HudSettings::PickupNotifier);
-	}
-
-	/// Inventory
-	// @section Inventory
-	// This setting enables or disables the inventory.
-
-	void InventorySettings::Register(sol::table& parent)
-	{
-		parent.create().new_usertype<InventorySettings>(ScriptReserved_InventorySettings, sol::constructors<InventorySettings()>(),
-			sol::call_constructor, sol::constructors<InventorySettings()>(),
-			sol::meta_function::new_index, NewIndexErrorMaker(InventorySettings, ScriptReserved_InventorySettings),
-
-			/// Toggle in-game inventory.
-			// @tfield bool status If false, inventory will not open.
-			"enabled", & InventorySettings::Enabled);
 	}
 
 	/// Physics

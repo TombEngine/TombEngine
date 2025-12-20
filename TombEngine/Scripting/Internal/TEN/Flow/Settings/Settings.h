@@ -53,6 +53,7 @@ namespace TEN::Scripting
 	struct GameplaySettings
 	{
 		bool TargetObjectOcclusion = true;
+		bool InventoryEnabled = true;
 
 		static void Register(sol::table& parent);
 	};
@@ -79,13 +80,6 @@ namespace TEN::Scripting
 		bool LoadingBar		= true;
 		bool Speedometer	= true;
 		bool PickupNotifier = true;
-
-		static void Register(sol::table& parent);
-	};
-
-	struct InventorySettings
-	{
-		bool Enabled = true;
 
 		static void Register(sol::table& parent);
 	};
@@ -140,7 +134,6 @@ namespace TEN::Scripting
 		GameplaySettings			Gameplay   = {};
 		GraphicsSettings			Graphics   = {};
 		std::array<HairSettings, 3> Hair	   = {};
-		InventorySettings			Inventory  = {};
 		HudSettings					Hud		   = {};
 		PhysicsSettings				Physics	   = {};
 		SystemSettings				System	   = {};
