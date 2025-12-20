@@ -107,9 +107,9 @@ namespace TEN::Scripting::InventoryHandler
 	///Sets the item to open custom inventory at. Used by Custom Inventory module.
 	// @function SetEnterInventory
 	// @tparam Objects.ObjID objectID Object ID of the item to set.
-	static void SetEnterInventory(int value)
+	static void SetEnterInventory(GAME_OBJECT_ID objectID)
 	{
-		g_Gui.SetEnterInventory(value);
+		g_Gui.SetEnterInventory(objectID);
 	}
 
 	///Gets if the default inventory is disabled. Used by Custom Inventory module.

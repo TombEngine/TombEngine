@@ -13,62 +13,62 @@ namespace TEN::Hud
 {
 	void DisplayItem::SetName(std::string itemName)
 	{
-		ItemName = itemName;
+		_itemName = itemName;
 	}
 
 	void DisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
-		ObjectID = objectID;
+		_objectID = objectID;
 	}
 
 	void DisplayItem::SetPosition(const Vector3& newPos, bool disableInterpolation)
 	{
 		// Disable 2D mode when setting 3D position explicitly
-		if (Use2DMode)
+		if (_use2DMode)
 		{
-			TENLog("DisplayItem '" + ItemName + "' switched from 2D to 3D mode via SetPosition().",
+			TENLog("DisplayItem '" + _itemName + "' switched from 2D to 3D mode via SetPosition().",
 				LogLevel::Info);
-			Use2DMode = false;
+			_use2DMode = false;
 		}
 
 		if (disableInterpolation)
-			PrevPosition = newPos;
+			_prevPosition = newPos;
 
-		Position = newPos;
+		_position = newPos;
 	}
 
 	void DisplayItem::SetRotation(const EulerAngles& newRot, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			PrevOrientation = newRot;
+			_prevOrientation = newRot;
 
-		Orientation = newRot;
+		_orientation = newRot;
 	}
 
 	void DisplayItem::SetScale(float newScale, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			PrevScale = newScale;
+			_prevScale = newScale;
 
-		Scale = newScale;
+		_scale = newScale;
 	}
 
 	void DisplayItem::SetColor(Color& newColor, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			PrevColor = newColor;
+			_prevColor = newColor;
 
-		ItemColor = newColor;
+		_itemColor = newColor;
 	}
 
 	void DisplayItem::SetVisibility(bool visible)
 	{
-		Visible = visible;
+		_visible = visible;
 	}
 
 	void DisplayItem::SetMeshBits(int meshbits)
 	{
-		MeshBits = meshbits;
+		_meshBits = meshbits;
 	}
 
 	void DisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
@@ -78,47 +78,47 @@ namespace TEN::Hud
 
 		if (isVisible)
 		{
-			MeshBits.Set(meshIndex);
+			_meshBits.Set(meshIndex);
 		}
 		else
 		{
-			MeshBits.Clear(meshIndex);
+			_meshBits.Clear(meshIndex);
 		}
 	}
 
 	void DisplayItem::SetMeshRotation(int meshIndex, const EulerAngles& newRot, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			PrevMeshRotations[meshIndex] = newRot;
+			_prevMeshRotations[meshIndex] = newRot;
 
-		MeshRotations[meshIndex] = newRot;
+		_meshRotations[meshIndex] = newRot;
 	}
 
 	void DisplayItem::SetAnimation(int animation)
 	{
 		//add checks for bounds of animation and frame
-		AnimNumber = animation;
+		_animNumber = animation;
 	}
 
 	void DisplayItem::SetFrame(int frame)
 	{
 		//add checks for bounds of animation and frame
-		FrameNumber = frame;
+		_frameNumber = frame;
 	}
 
 	std::string DisplayItem::GetName() const
 	{
-		return ItemName;
+		return _itemName;
 	}
 
 	GAME_OBJECT_ID DisplayItem::GetObjectID() const
 	{
-		return ObjectID;
+		return _objectID;
 	}
 
 	Vector3 DisplayItem::GetPosition() const
 	{
-		return Position;
+		return _position;
 	}
 
 	std::optional<std::pair<Vector2, Vector2>> DisplayItem::GetBounds() const
@@ -134,38 +134,38 @@ namespace TEN::Hud
 
 	EulerAngles DisplayItem::GetRotation() const
 	{
-		return Orientation;
+		return _orientation;
 	}
 
 	float DisplayItem::GetScale() const
 	{
-		return Scale;
+		return _scale;
 	}
 
 	Color DisplayItem::GetColor() const
 	{
-		return ItemColor;
+		return _itemColor;
 	}
 
 	bool DisplayItem::GetVisibility() const
 	{
-		return Visible;
+		return _visible;
 	}
 
 	int DisplayItem::GetMeshBits() const
 	{
-		return MeshBits.ToPackedBits();
+		return _meshBits.ToPackedBits();
 	}
 
 	bool DisplayItem::GetMeshVisibility(int meshIndex) const
 	{
-		return MeshBits.Test(meshIndex);
+		return _meshBits.Test(meshIndex);
 	}
 
 	EulerAngles DisplayItem::GetMeshRotation(int meshIndex) const
 	{
-		auto it = MeshRotations.find(meshIndex);
-		if (it != MeshRotations.end())
+		auto it = _meshRotations.find(meshIndex);
+		if (it != _meshRotations.end())
 			return it->second;
 		else
 			return EulerAngles::Identity;
@@ -174,59 +174,59 @@ namespace TEN::Hud
 
 	int DisplayItem::GetAnimation() const
 	{
-		return AnimNumber;
+		return _animNumber;
 	}
 
 	int DisplayItem::GetFrame() const
 	{
-		return FrameNumber;
+		return _frameNumber;
 	}
 
 	int DisplayItem::GetPreviousFrame() const
 	{
-		return PrevFrameNumber;
+		return _prevFrameNumber;
 	}
 
 	// Interpolation Helpers
 	void DisplayItem::StoreInterpolationData()
 	{
-		PrevPosition = Position;
-		PrevOrientation = Orientation;
-		PrevScale = Scale;
-		PrevColor = ItemColor;
-		PrevMeshRotations = MeshRotations;
-		PrevFrameNumber = FrameNumber;
+		_prevPosition = _position;
+		_prevOrientation = _orientation;
+		_prevScale = _scale;
+		_prevColor = _itemColor;
+		_prevMeshRotations = _meshRotations;
+		_prevFrameNumber = _frameNumber;
 	}
 
 	Vector3 DisplayItem::GetInterpolatedPosition(float t) const
 	{
-		return Vector3::Lerp(PrevPosition, Position, t);
+		return Vector3::Lerp(_prevPosition, _position, t);
 	}
 
 	EulerAngles DisplayItem::GetInterpolatedOrientation(float t) const
 	{
-		return EulerAngles::Lerp(PrevOrientation, Orientation, t);
+		return EulerAngles::Lerp(_prevOrientation, _orientation, t);
 	}
 
 	float DisplayItem::GetInterpolatedScale(float t) const
 	{
-		return Lerp(PrevScale, Scale, t);
+		return Lerp(_prevScale, _scale, t);
 	}
 
 	Color DisplayItem::GetInterpolatedColor(float t) const
 	{
-		return Color::Lerp(PrevColor, ItemColor, t);
+		return Color::Lerp(_prevColor, _itemColor, t);
 	}
 
 	EulerAngles DisplayItem::GetInterpolatedMeshRotation(int meshIndex, float t) const
 	{
-		auto itNow = MeshRotations.find(meshIndex);
-		auto itPrev = PrevMeshRotations.find(meshIndex);
+		auto itNow = _meshRotations.find(meshIndex);
+		auto itPrev = _prevMeshRotations.find(meshIndex);
 
 		// If only current rotation exists, or no interpolation available, return it
-		if (itNow == MeshRotations.end())
+		if (itNow == _meshRotations.end())
 			return EulerAngles::Identity;
-		if (itPrev == PrevMeshRotations.end())
+		if (itPrev == _prevMeshRotations.end())
 			return itNow->second;
 
 		return EulerAngles::Lerp(itPrev->second, itNow->second, t);
@@ -234,7 +234,7 @@ namespace TEN::Hud
 
 	bool DisplayItem::MeshExists(int index) const
 	{
-		if (index < 0 || index >= Objects[ObjectID].nmeshes)
+		if (index < 0 || index >= Objects[_objectID].nmeshes)
 		{
 			return false;
 		}
@@ -247,9 +247,9 @@ namespace TEN::Hud
 	// Set the position of the display item in screen space.
 	void DisplayItem::SetScreenPosition(const Vector2& screenPos, DisplaySpriteAlignMode align)
 	{
-	    Use2DMode = true;
-	    ScreenPosition = screenPos;
-	    AlignMode = align;
+	    _use2DMode = true;
+	    _screenPosition = screenPos;
+	    _alignMode = align;
 	    
 	    // Convert screen coordinates to 3D position
 	    UpdatePositionFrom2D();
@@ -258,7 +258,7 @@ namespace TEN::Hud
 	// Update the screen position of the display item in 2D mode.
 	void DisplayItem::UpdatePositionFrom2D()
 	{
-	    if (!Use2DMode)
+	    if (!_use2DMode)
 	        return;
 
 	    float t = g_Renderer.GetInterpolationFactor();
@@ -278,46 +278,46 @@ namespace TEN::Hud
 	    camUp.Normalize();
 	    
 	    // Convert screen percentage to normalized coordinates [-1, 1]
-	    float ndcX = (ScreenPosition.x / 50.0f) - 1.0f;
-	    float ndcY = 1.0f - (ScreenPosition.y / 50.0f);
+	    float ndcX = (_screenPosition.x / 50.0f) - 1.0f;
+	    float ndcY = 1.0f - (_screenPosition.y / 50.0f);
 	    
 	    // Calculate aspect ratio
 	    float aspectRatio = (float)g_Configuration.ScreenWidth / g_Configuration.ScreenHeight;
 	    float fovTan = tan(CurrentFOV * 0.5f);
 	    
 	    // Calculate offset from screen center
-	    float offsetX = ndcX * DepthDistance * fovTan * aspectRatio;
-	    float offsetY = ndcY * DepthDistance * fovTan;
+	    float offsetX = ndcX * _depthDistance * fovTan * aspectRatio;
+	    float offsetY = ndcY * _depthDistance * fovTan;
 	    
 	    // Calculate base 3D position
-	    Vector3 basePos = camPos + (camForward * DepthDistance);
+	    Vector3 basePos = camPos + (camForward * _depthDistance);
 	    basePos += camRight * offsetX;
 	    basePos += camUp * offsetY;
 	    
 	    // Apply alignment offset
-	    Vector3 alignOffset = CalculateAlignmentOffset(AlignMode);
+	    Vector3 alignOffset = CalculateAlignmentOffset(_alignMode);
 	    basePos += camRight * alignOffset.x;
 	    basePos += camUp * alignOffset.y;
 	    
 	    // Update position
-	    Position = basePos;
+		_position = basePos;
 	}
 
 	// Calculate the alignment offset in world space based on the current AlignMode.
 	Vector3 DisplayItem::CalculateAlignmentOffset(DisplaySpriteAlignMode alignMode) const
 	{
-		if (!Use2DMode)
+		if (!_use2DMode)
 			return Vector3::Zero;
 
 		// Temporarily set AlignMode to Center to avoid recursion
-		DisplaySpriteAlignMode savedAlign = AlignMode;
-		const_cast<DisplayItem*>(this)->AlignMode = DisplaySpriteAlignMode::Center;
+		DisplaySpriteAlignMode savedAlign = _alignMode;
+		const_cast<DisplayItem*>(this)->_alignMode = DisplaySpriteAlignMode::Center;
 
 		// Get projected object dimensions
 		auto bounds = GetBounds();
 
 		// Restore AlignMode
-		const_cast<DisplayItem*>(this)->AlignMode = savedAlign;
+		const_cast<DisplayItem*>(this)->_alignMode = savedAlign;
 
 		if (!bounds.has_value())
 			return Vector3::Zero;
@@ -388,8 +388,8 @@ namespace TEN::Hud
 		float ndcOffsetY = (offsetPercent.y / 50.0f);
 
 		// Convert NDC to world units
-		float worldOffsetX = ndcOffsetX * DepthDistance * fovTan * aspectRatio;
-		float worldOffsetY = ndcOffsetY * DepthDistance * fovTan;
+		float worldOffsetX = ndcOffsetX * _depthDistance * fovTan * aspectRatio;
+		float worldOffsetY = ndcOffsetY * _depthDistance * fovTan;
 
 		return Vector3(worldOffsetX, worldOffsetY, 0.0f);
 	}
@@ -397,43 +397,43 @@ namespace TEN::Hud
 	// Get the screen position of the display item in 2D mode.
 	Vector2 DisplayItem::GetScreenPosition() const
 	{
-		if (!Use2DMode)
+		if (!_use2DMode)
 		{
-			TENLog("GetScreenPosition() called on '" + ItemName + "' while not in 2D mode.",
+			TENLog("GetScreenPosition() called on '" + _itemName + "' while not in 2D mode.",
 				LogLevel::Warning);
 			return Vector2::Zero;
 		}
-	    return ScreenPosition;
+	    return _screenPosition;
 	}
 
 	// Set the alignment mode for the display item in 2D mode.
 	void DisplayItem::SetAlignMode(DisplaySpriteAlignMode align)
 	{
-		if (!Use2DMode)
+		if (!_use2DMode)
 		{
-			TENLog("SetAlignMode() called on '" + ItemName + "' while not in 2D mode. Ignored.",
+			TENLog("SetAlignMode() called on '" + _itemName + "' while not in 2D mode. Ignored.",
 				LogLevel::Warning);
 			return;
 		}
 
-		if (align == AlignMode)
+		if (align == _alignMode)
 			return;  // Nothing to change
 
-		AlignMode = align;
+		_alignMode = align;
 
-		if (Use2DMode)
+		if (_use2DMode)
 	        UpdatePositionFrom2D();
 	}
 
 	// Get the alignment mode for the display item in 2D mode.
 	DisplaySpriteAlignMode DisplayItem::GetAlignMode() const
 	{
-		if (!Use2DMode)
+		if (!_use2DMode)
 		{
-			TENLog("GetAlignMode() called on '" + ItemName + "' while not in 2D mode.",
+			TENLog("GetAlignMode() called on '" + _itemName + "' while not in 2D mode.",
 				LogLevel::Warning);
 			return DisplaySpriteAlignMode::Center;
 		}
-	    return AlignMode;
+	    return _alignMode;
 	}
 }

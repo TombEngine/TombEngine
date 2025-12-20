@@ -4,8 +4,8 @@
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
 #include "Game/effects/DisplaySprite.h"
-using namespace TEN::Effects::DisplaySprite;
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
@@ -15,37 +15,37 @@ namespace TEN::Hud
 	struct DisplayItem
 	{
 	private:
-		std::string ItemName;
-		GAME_OBJECT_ID ObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+		std::string _itemName;
+		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 
-		Vector3		Position = Vector3::Zero;
-		EulerAngles Orientation = EulerAngles::Identity;
+		Vector3		_position = Vector3::Zero;
+		EulerAngles _orientation = EulerAngles::Identity;
 
-		float Scale = 0.0f;
+		float _scale = 0.0f;
 
-		Color ItemColor = Vector4::One;
+		Color _itemColor = Vector4::One;
 
-		BitField MeshBits = BitField::Default;
+		BitField _meshBits = BitField::Default;
 
-		Vector3		PrevPosition = Vector3::Zero;
-		EulerAngles PrevOrientation = EulerAngles::Identity;
-		float		PrevScale = 0.0f;
-		Color		PrevColor = Vector4::One;
+		Vector3		_prevPosition = Vector3::Zero;
+		EulerAngles _prevOrientation = EulerAngles::Identity;
+		float		_prevScale = 0.0f;
+		Color		_prevColor = Vector4::One;
 
-		bool Visible = true;
+		bool _visible = true;
 
-		std::unordered_map<int, EulerAngles> MeshRotations;
-		std::unordered_map<int, EulerAngles> PrevMeshRotations;
+		std::unordered_map<int, EulerAngles> _meshRotations;
+		std::unordered_map<int, EulerAngles> _prevMeshRotations;
 
-		int AnimNumber = 0;
-		int FrameNumber = 0;
-		int PrevFrameNumber = 0;
+		int _animNumber = 0;
+		int _frameNumber = 0;
+		int _prevFrameNumber = 0;
 
 		// 2D Mode Properties
-		bool Use2DMode = false;
-		Vector2 ScreenPosition = Vector2::Zero;
-		DisplaySpriteAlignMode AlignMode = DisplaySpriteAlignMode::Center;
-		float DepthDistance = 3800.0f; // Fixed distance from the camera in 2D mode
+		bool _use2DMode = false;
+		Vector2 _screenPosition = Vector2::Zero;
+		DisplaySpriteAlignMode _alignMode = DisplaySpriteAlignMode::Center;
+		float _depthDistance = 3800.0f; // Fixed distance from the camera in 2D mode
 
 	public:
 		void SetName(std::string itemName);
@@ -86,7 +86,7 @@ namespace TEN::Hud
 		Color GetInterpolatedColor(float t) const;
 		EulerAngles GetInterpolatedMeshRotation(int meshIndex, float t) const;
 
-		//Utilities
+		// Utilities
 		bool MeshExists(int index) const;
 
 		// 2D Mode Methods
