@@ -18,18 +18,13 @@ namespace TEN::Hud
 		std::string _itemName;
 		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 
-		Vector3		_position = Vector3::Zero;
-		EulerAngles _orientation = EulerAngles::Identity;
+		Pose _pose;
 
-		float _scale = 0.0f;
-
-		Color _itemColor = Vector4::One;
+		Color _color = Vector4::One;
 
 		BitField _meshBits = BitField::Default;
 
-		Vector3		_prevPosition = Vector3::Zero;
-		EulerAngles _prevOrientation = EulerAngles::Identity;
-		float		_prevScale = 0.0f;
+		Pose _prevPose;
 		Color		_prevColor = Vector4::One;
 
 		bool _visible = true;
@@ -52,7 +47,7 @@ namespace TEN::Hud
 		void SetObjectID(GAME_OBJECT_ID objectID);
 		void SetPosition(const Vector3& newPos, bool disableInterpolation);
 		void SetRotation(const EulerAngles& newRot, bool disableInterpolation);
-		void SetScale(float newScale, bool disableInterpolation);
+		void SetScale(const Vector3& newScale, bool disableInterpolation);
 		void SetColor(Color& newColor, bool disableInterpolation);
 		void SetVisibility(bool visible);
 		void SetMeshBits(int meshbits);
@@ -67,7 +62,7 @@ namespace TEN::Hud
 		Vector3 GetPosition() const;
 		std::optional<std::pair<Vector2, Vector2>> GetBounds() const;
 		EulerAngles GetRotation() const;
-		float GetScale() const;
+		Vector3 GetScale() const;
 		Color GetColor() const;
 		bool GetVisibility() const;
 		int GetMeshBits() const;
@@ -82,7 +77,7 @@ namespace TEN::Hud
 		void StoreInterpolationData();
 		Vector3 GetInterpolatedPosition(float t) const;
 		EulerAngles GetInterpolatedOrientation(float t) const;
-		float GetInterpolatedScale(float t) const;
+		Vector3 GetInterpolatedScale(float t) const;
 		Color GetInterpolatedColor(float t) const;
 		EulerAngles GetInterpolatedMeshRotation(int meshIndex, float t) const;
 

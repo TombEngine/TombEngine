@@ -26,7 +26,7 @@ namespace TEN::Hud
 
 	public:
 
-		void AddItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vector3& origin, const EulerAngles& newRot, float scale, int meshBits);
+		void AddItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vector3& origin, const EulerAngles& newRot, const Vector3& scale, int meshBits);
 		void RemoveItem(const std::string& itemName);
 
 		void Update();

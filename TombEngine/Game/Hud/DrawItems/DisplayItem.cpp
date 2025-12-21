@@ -32,25 +32,25 @@ namespace TEN::Hud
 		}
 
 		if (disableInterpolation)
-			_prevPosition = newPos;
+			_prevPose.Position = newPos;
 
-		_position = newPos;
+		_pose.Position = newPos;
 	}
 
 	void DisplayItem::SetRotation(const EulerAngles& newRot, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			_prevOrientation = newRot;
+			_prevPose.Orientation = newRot;
 
-		_orientation = newRot;
+		_pose.Orientation = newRot;
 	}
 
-	void DisplayItem::SetScale(float newScale, bool disableInterpolation)
+	void DisplayItem::SetScale(const Vector3& newScale, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			_prevScale = newScale;
+			_prevPose.Scale = newScale;
 
-		_scale = newScale;
+		_pose.Scale = newScale;
 	}
 
 	void DisplayItem::SetColor(Color& newColor, bool disableInterpolation)
@@ -58,7 +58,7 @@ namespace TEN::Hud
 		if (disableInterpolation)
 			_prevColor = newColor;
 
-		_itemColor = newColor;
+		_color = newColor;
 	}
 
 	void DisplayItem::SetVisibility(bool visible)
@@ -118,7 +118,7 @@ namespace TEN::Hud
 
 	Vector3 DisplayItem::GetPosition() const
 	{
-		return _position;
+		return _pose.Position.ToVector3();
 	}
 
 	std::optional<std::pair<Vector2, Vector2>> DisplayItem::GetBounds() const
@@ -134,17 +134,17 @@ namespace TEN::Hud
 
 	EulerAngles DisplayItem::GetRotation() const
 	{
-		return _orientation;
+		return _pose.Orientation;
 	}
 
-	float DisplayItem::GetScale() const
+	Vector3 DisplayItem::GetScale() const
 	{
-		return _scale;
+		return _pose.Scale;
 	}
 
 	Color DisplayItem::GetColor() const
 	{
-		return _itemColor;
+		return _color;
 	}
 
 	bool DisplayItem::GetVisibility() const
@@ -190,32 +190,30 @@ namespace TEN::Hud
 	// Interpolation Helpers
 	void DisplayItem::StoreInterpolationData()
 	{
-		_prevPosition = _position;
-		_prevOrientation = _orientation;
-		_prevScale = _scale;
-		_prevColor = _itemColor;
+		_prevPose = _pose;
+		_prevColor = _color;
 		_prevMeshRotations = _meshRotations;
 		_prevFrameNumber = _frameNumber;
 	}
 
 	Vector3 DisplayItem::GetInterpolatedPosition(float t) const
 	{
-		return Vector3::Lerp(_prevPosition, _position, t);
+		return Vector3::Lerp(_prevPose.Position.ToVector3(), _pose.Position.ToVector3(), t);
 	}
 
 	EulerAngles DisplayItem::GetInterpolatedOrientation(float t) const
 	{
-		return EulerAngles::Lerp(_prevOrientation, _orientation, t);
+		return EulerAngles::Lerp(_prevPose.Orientation, _pose.Orientation, t);
 	}
 
-	float DisplayItem::GetInterpolatedScale(float t) const
+	Vector3 DisplayItem::GetInterpolatedScale(float t) const
 	{
-		return Lerp(_prevScale, _scale, t);
+		return Vector3::Lerp(_prevPose.Scale, _pose.Scale, t);
 	}
 
 	Color DisplayItem::GetInterpolatedColor(float t) const
 	{
-		return Color::Lerp(_prevColor, _itemColor, t);
+		return Color::Lerp(_prevColor, _color, t);
 	}
 
 	EulerAngles DisplayItem::GetInterpolatedMeshRotation(int meshIndex, float t) const
@@ -300,7 +298,7 @@ namespace TEN::Hud
 	    basePos += camUp * alignOffset.y;
 	    
 	    // Update position
-		_position = basePos;
+		_pose.Position = basePos;
 	}
 
 	// Calculate the alignment offset in world space based on the current AlignMode.

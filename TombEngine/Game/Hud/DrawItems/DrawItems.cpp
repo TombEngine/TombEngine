@@ -13,7 +13,7 @@ namespace TEN::Hud
 {
 	DrawItemsController g_DrawItems = {};
 
-	void DrawItemsController::AddItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vector3& position, const EulerAngles& rotation, float scale, int meshBits)
+	void DrawItemsController::AddItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vector3& position, const EulerAngles& rotation, const Vector3& scale, int meshBits)
 	{
 		// Check if item already exists
 		for (auto& item : _displayItems)

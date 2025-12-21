@@ -105,28 +105,28 @@ namespace TEN::Scripting::DisplayItem
 	{
 		auto rot = rotation.ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, position, rot, scale, meshBits);
+		g_DrawItems.AddItem(itemName, objectID, position, rot, Vector3(scale), meshBits);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale)
 	{
 		auto rot = rotation.ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, position, rot, scale, ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, position, rot, Vector3(scale), ALL_JOINT_BITS);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position)
 	{
 		auto rot = Rotation().ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, position, rot, 1.0f, ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, position, rot, Vector3::One, ALL_JOINT_BITS);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID)
 	{
 		auto rot = Rotation().ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, Vec3(), rot, 1.0f, ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, Vec3(), rot, Vector3::One, ALL_JOINT_BITS);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName)
@@ -475,7 +475,7 @@ namespace TEN::Scripting::DisplayItem
 		auto* item = g_DrawItems.GetItemByName(_itemName);
 
 		if (item)
-			item->SetScale(newScale, ValueOr<bool>(disableInterpolation, false));
+			item->SetScale(Vector3(newScale), ValueOr<bool>(disableInterpolation, false));
 	}
 
 	/// Set the DisplayItem's color.
@@ -680,7 +680,7 @@ namespace TEN::Scripting::DisplayItem
 		if (!item)
 			return sol::nullopt;
 
-		return item->GetScale();
+		return item->GetScale().x;
 	}
 
 	/// Get the DisplayItem's color.
@@ -908,7 +908,7 @@ namespace TEN::Scripting::DisplayItem
 		_itemName = itemName;
 
 		// Create item with temporary position
-		g_DrawItems.AddItem(itemName, objectID, Vector3::Zero, EulerAngles::Identity, scale, ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, Vector3::Zero, EulerAngles::Identity, Vector3(scale), ALL_JOINT_BITS);
 
 		// Set 2D mode
 		auto* item = g_DrawItems.GetItemByName(itemName);
