@@ -883,38 +883,6 @@ namespace TEN::Scripting::DisplayItem
 		return std::pair<Vec2, Vec2>(centerPercent, sizePercent);
 	}
 
-	/// Get the 9 anchor points of the DisplayItem's bounding box.
-	// This function returns 9 anchor points (corners, edges, and center) of the projected bounding box
-	// in screen space as percentages (0-100 for both x and y).
-	// @ function GetAnchors
-	// @ treturn DisplayAnchors An object containing 9 Vec2 anchor points: TopLeft, TopCenter, TopRight, 
-	//                MiddleLeft, Center, MiddleRight, BottomLeft, BottomCenter, BottomRight.
-	// @ usage
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// local anchors = item:GetAnchors()
-	// if anchors then
-	//     print("Top-Left: ", anchors.TopLeft.x, anchors.TopLeft.y)
-	//     print("Center: ", anchors.Center.x, anchors.Center.y)
-	// end
-	//sol::optional<sol::table> ScriptDisplayItem::GetAnchors(sol::this_state state) const
-	//{
-	//	auto bounds = GetBounds();
-
-	//	const Vec2& centerPercent = bounds->first;
-	//	const Vec2& sizePercent = bounds->second;
-
-	//	// Calculate half dimensions
-	//	float halfWidth = sizePercent.x / 2.0f;
-	//	float halfHeight = sizePercent.y / 2.0f;
-
-	//	// Calculate the 9 anchor points
-	//	float left = centerPercent.x - halfWidth;
-	//	float right = centerPercent.x + halfWidth;
-	//	float top = centerPercent.y - halfHeight;
-	//	float bottom = centerPercent.y + halfHeight;
-
-	//}
-
 	/// 2D Mode
 	// @section 2DMode
 	// DisplayItem also has a 2D context. This is useful if you want to create an interface by combining DisplayItem with DisplaySprite and DisplayString.
