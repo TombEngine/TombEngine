@@ -223,16 +223,7 @@ namespace TEN::Scripting::View
 	static void UseBinoculars()
 	{
 		auto& item = *LaraItem;
-		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
-			(Lara.Control.IsLow && !IsHeld(In::Crouch))) &&
-			!UseSpotCam && !TrackCameraInit)
-		{
-			SetScreenFadeIn(OPTICS_FADE_SPEED);
-			BinocularOldCamera = Camera.oldType;
-			Lara.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
-			Lara.Control.Look.IsUsingBinoculars = true;
-			Lara.Inventory.OldBusy = true;
-		}
+		g_Gui.UseBinoculars(item);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -381,12 +372,12 @@ namespace TEN::Scripting::View
 		// @treturn float Display resolution's aspect ratio.
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
 
-		// COMPATIBILITY
-		tableView.set_function("PlayFlyBy", &PlayFlyby);
-
 		/// Sets the view to binoculars mode.
 		// @function UseBinoculars
 		tableView.set_function(ScriptReserved_UseBinoculars, &UseBinoculars);
+
+		// COMPATIBILITY
+		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
 		ScriptDisplaySprite::Register(*state, tableView);
