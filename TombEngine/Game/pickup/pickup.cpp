@@ -230,9 +230,17 @@ void CollectCarriedItems(ItemInfo* item)
 	{
 		auto& pickupItem = g_Level.Items[pickupNumber];
 
-		PickedUpObject(pickupItem);
-		g_Hud.PickupSummary.AddDisplayPickup(pickupItem);
-		HideOrDisablePickup(pickupItem);
+		if (pickupItem.ObjectNumber == ID_EXPLOSION || pickupItem.ObjectNumber == ID_GRENADE)
+		{
+			pickupItem.Flags |= CODE_BITS;
+			Trigger(pickupNumber);
+		}
+		else
+		{
+			PickedUpObject(pickupItem);
+			g_Hud.PickupSummary.AddDisplayPickup(pickupItem);
+			HideOrDisablePickup(pickupItem);
+		}
 
 		pickupNumber = pickupItem.CarriedItem;
 	}
@@ -1236,22 +1244,7 @@ void SearchObjectControl(short itemNumber)
 	if (frameNumber == SearchCollectFrames[objectNumber])
 	{
 		if (item->CarriedItem != NO_VALUE)
-		{
-			auto* carriedItem = &g_Level.Items[item->CarriedItem];
-
-			if (carriedItem->ObjectNumber == ID_EXPLOSION)
-			{
-				AddActiveItem(item->CarriedItem);
-				carriedItem->Flags |= IFLAG_ACTIVATION_MASK;
-				carriedItem->Status = ITEM_ACTIVE;
-				item->CarriedItem = NO_VALUE;
-				DoDamage(LaraItem, 360);
-			}
-			else
-			{
-				CollectCarriedItems(item);
-			}
-		}
+			CollectCarriedItems(item);
 	}
 	
 	if (item->Status == ITEM_DEACTIVATED)
