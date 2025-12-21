@@ -3,6 +3,38 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.11]
+
+### New features
+* Added faster Xorshift32 random number generation method.
+
+### Bug fixes
+* Fixed incorrect handling of negative timer values in classic triggers.
+* Fixed interaction highlighter not working for pushable climbable blocks.
+* Fixed incorrect CLOCKWORK_BEETLE and MERCENARY_UZI behaviour.
+* Fixed CIVVY crashing the game.
+* Fixed SEARCH_OBJECT4 not always collecting pickup items.
+* Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
+* Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
+* Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
+* Fixed original issue with incorrect arm orientation with unholstered weapons.
+* Fixed original issue with aiming stutter with targets nearly out of sight.
+* Fixed incorrect super grenade projectile orientation.
+* Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
+* Fixed random textures appearing on enemy gunflashes.
+
+### Lua API changes
+* Added a safeguard against adding or removing callback functions within the same callback type.
+* Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
+* Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
+* Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
+* Added `Direction` function to `Vec3`.
+* Added direction vector constructor to `Rotation`.
+* Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
+
 ## [Version 1.10.1]
 
 ### New features
@@ -14,13 +46,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed FIRE_PENDULUM crashing the game.
 * Fixed CLASSIC_ROLLINGBALL continuing to animate when Lara is standing on a trigger for it.
 * Fixed BRIDGE objects not clearing collision after disabling them.
-* Fixed original bug that prevented performing vault animations while holding a torch.
+* Fixed SMASH_OBJECT objects with very big coordinates sometimes crashing the game.
+* Fixed BIG_GUN being stuck while unarming it.
+* Fixed original issue that prevented performing vault animations while holding a torch.
 * Fixed interaction highlighter not appearing for SEARCH_OBJECT objects.
 * Fixed fireflies not interpolating in high framerate mode and not emitting dynamic lights.
 * Fixed performance issues with shatterable static meshes.
 * Fixed emissive materials not fading into distance fog.
 * Fixed subtractive sprites not rendering correctly.
 * Fixed dynamic lighting for flat surfaces with miscalculated normals.
+* Fixed black screen when camera direction is exactly 90 degrees up or down.
 
 ### Lua API changes
 * Added optional type argument for `Sound.IsAudioTrackPlaying` function.

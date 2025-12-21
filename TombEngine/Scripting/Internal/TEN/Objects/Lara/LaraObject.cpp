@@ -3,6 +3,8 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
@@ -21,6 +23,8 @@
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 
+using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 /// Class for player-only functions.
@@ -436,6 +440,8 @@ bool LaraObject::IsTorchLit() const
 // @tparam[opt=Rotation(-10&#44; -40&#44; -10)] Rotation minRotConstraint Minimum relative rotation constraint.
 // @tparam[opt=Rotation(10&#44; 40&#44; 10)] Rotation maxRotConstraint Maximum relative rotation constraint.
 // @tparam[opt=Input.ActionID.ACTION] Input.ActionID actionID Input action ID to trigger the alignment.
+// @tparam[opt] Objects.ObjID objectID Object ID required in inventory for interaction.
+// @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
 // @usage
 // local Lara:Interact(
 //     moveable, 197,
@@ -443,7 +449,8 @@ bool LaraObject::IsTorchLit() const
 //	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
 void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID) const
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,
+							TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const
 {
 	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
 	auto convertedOffsetConstraintMin = ValueOr<Vec3>(offsetConstraintMin, Vec3(-BLOCK(0.25f), -BLOCK(0.5f), 0.0f));
@@ -452,6 +459,8 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
 	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
 	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
+	auto convertedObjectID = ValueOr<GAME_OBJECT_ID>(objectID, ID_NO_OBJECT);
+	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
 
 	auto interactionBasis = ObjectCollisionBounds
 	{
@@ -471,26 +480,67 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	bool isPlayerIdle = ((!isUnderwater && _moveable->Animation.ActiveState == LS_IDLE && _moveable->Animation.AnimNumber == LA_STAND_IDLE) ||
 						 (isUnderwater && _moveable->Animation.ActiveState == LS_UNDERWATER_IDLE && _moveable->Animation.AnimNumber == LA_UNDERWATER_IDLE));
 
-	if ((player.Control.IsMoving && player.Context.InteractedItem == interactedItem.Index) ||
-		(IsHeld(convertedActionID) && player.Control.HandStatus == HandStatus::Free && isPlayerIdle))
-	{
-		if (TestLaraPosition(interactionBasis, &interactedItem, _moveable))
-		{
-			if (MoveLaraPosition(convertedOffset, &interactedItem, _moveable))
-			{
-				ResetPlayerFlex(_moveable);
-				SetAnimation(_moveable, convertedAnimNumber);
+	g_Hud.InteractionHighlighter.Test(*LaraItem, interactedItem, InteractionMode::Always, convertedIcon);
 
-				_moveable->Animation.FrameNumber = GetAnimData(_moveable).frameBase;
-				player.Control.IsMoving = false;
-				player.Control.HandStatus = HandStatus::Busy;
-			}
-			else
-			{
-				player.Context.InteractedItem = interactedItem.Index;
-			}
+	bool movingWithSameItem =
+		player.Control.IsMoving &&
+		player.Context.InteractedItem == interactedItem.Index;
+
+	bool canIdleInteract =
+		player.Control.HandStatus == HandStatus::Free &&
+		isPlayerIdle;
+
+	bool wantsInteraction =
+		IsHeld(convertedActionID) ||
+		(convertedObjectID != ID_NO_OBJECT &&
+			g_Gui.GetInventoryItemChosen() != NO_VALUE);
+
+	if (!movingWithSameItem && !canIdleInteract)
+		return;
+
+	if (!movingWithSameItem && !wantsInteraction)
+		return;
+
+	if (!TestLaraPosition(interactionBasis, &interactedItem, _moveable))
+		return;
+
+	if (convertedObjectID != ID_NO_OBJECT && !player.Control.IsMoving)
+	{
+		if (g_Gui.GetInventoryItemChosen() == NO_VALUE)
+		{
+			if (g_Gui.IsObjectInInventory(convertedObjectID))
+				g_Gui.SetEnterInventory(convertedObjectID);
+			else if (IsClicked(convertedActionID))
+				SayNo();
+
+			return;
 		}
+
+		if (g_Gui.GetInventoryItemChosen() != convertedObjectID)
+			return;
+
+		player.Context.InteractedItem = interactedItem.Index;
 	}
+
+	if (player.Context.InteractedItem != interactedItem.Index &&
+		convertedObjectID != ID_NO_OBJECT)
+		return;
+
+	if (MoveLaraPosition(convertedOffset, &interactedItem, _moveable))
+	{
+		ResetPlayerFlex(_moveable);
+		SetAnimation(_moveable, convertedAnimNumber);
+
+		player.Control.IsMoving = false;
+		player.Control.HandStatus = HandStatus::Busy;
+	}
+	else
+	{
+		player.Context.InteractedItem = interactedItem.Index;
+	}
+
+	if (convertedObjectID != ID_NO_OBJECT)
+		g_Gui.SetInventoryItemChosen(NO_VALUE);
 }
 
 /// Test the player against a moveable object for interaction.

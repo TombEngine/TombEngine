@@ -37,6 +37,7 @@ public:
 	Vec3  Rotate(const Rotation& rot) const;
 	Vec3  Lerp(const Vec3& vector, float alpha) const;
 	Vec3  Cross(const Vec3& vector) const;
+	Vec3  Direction(const Vec3& vector) const;
 	float Dot(const Vec3& vector) const;
 	float Distance(const Vec3& vector) const;
 	float Length() const;

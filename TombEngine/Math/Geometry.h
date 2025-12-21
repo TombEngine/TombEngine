@@ -50,9 +50,9 @@ namespace TEN::Math::Geometry
 
 	// Box getters
 
-	BoundingBox GetBoundingBox(const BoundingOrientedBox& box);
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points);
-	float		GetBoundingBoxArea(const BoundingBox& box);
+	BoundingBox GetAabb(const BoundingOrientedBox& obb);
+	BoundingBox GetAabb(const std::vector<Vector3>& points);
+	float		GetAabbArea(const BoundingBox& box);
 
 	// Misc. getters
 

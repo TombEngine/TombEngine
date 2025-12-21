@@ -39,6 +39,7 @@ void Vec3::Register(sol::table& parent)
 		ScriptReserved_Vec3Rotate, &Vec3::Rotate,
 		ScriptReserved_Vec3Lerp, &Vec3::Lerp,
 		ScriptReserved_Vec3Cross, &Vec3::Cross,
+		ScriptReserved_Vec3Direction, &Vec3::Direction,
 		ScriptReserved_Vec3Dot, &Vec3::Dot,
 		ScriptReserved_Vec3Distance, &Vec3::Distance,
 		ScriptReserved_Vec3Length, &Vec3::Length,
@@ -171,6 +172,20 @@ Vec3 Vec3::Cross(const Vec3& vector) const
 	auto vector1 = vector.ToVector3();
 
 	return vector0.Cross(vector1);
+}
+
+/// Get the normalized direction vector from this Vec3 to the input Vec3.
+// @function Vec3:Cross
+// @tparam Vec3 vector Input vector.
+// @treturn Vec3 Direction vector.
+Vec3 Vec3::Direction(const Vec3& vector) const
+{
+	auto vector0 = ToVector3();
+	auto vector1 = vector.ToVector3();
+	
+	auto dir = vector1 - vector0;
+	dir.Normalize();
+	return Vec3(dir);
 }
 
 /// Get the dot product of this Vec3 and the input Vec3.
