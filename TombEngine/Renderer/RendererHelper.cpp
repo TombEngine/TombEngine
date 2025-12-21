@@ -694,10 +694,10 @@ namespace TEN::Renderer
 	{
 		float t = GetInterpolationFactor();
 
-		// world transforms
+		// World transforms
 		Vector3 pos = item.GetInterpolatedPosition(t);
 		auto orient = item.GetInterpolatedOrientation(t);
-		float scale = item.GetInterpolatedScale(t);
+		float scale = item.GetInterpolatedScale(t).x;
 		auto objectNumber = item.GetObjectID();
 
 		// find largest visible mesh sphere
