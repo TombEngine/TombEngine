@@ -11,6 +11,7 @@ using namespace TEN::Utils;
 
 namespace TEN::Hud
 {
+	constexpr float DEPTH_DISTANCE_2D = 3800.0f; // Fixed distance from the camera in 2D mode
 
 	struct DisplayItem
 	{
@@ -40,7 +41,6 @@ namespace TEN::Hud
 		bool _use2DMode = false;
 		Vector2 _screenPosition = Vector2::Zero;
 		DisplaySpriteAlignMode _alignMode = DisplaySpriteAlignMode::Center;
-		float _depthDistance = 3800.0f; // Fixed distance from the camera in 2D mode
 
 	public:
 		void SetName(std::string itemName);

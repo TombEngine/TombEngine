@@ -284,11 +284,11 @@ namespace TEN::Hud
 	    float fovTan = tan(CurrentFOV * 0.5f);
 	    
 	    // Calculate offset from screen center
-	    float offsetX = ndcX * _depthDistance * fovTan * aspectRatio;
-	    float offsetY = ndcY * _depthDistance * fovTan;
+	    float offsetX = ndcX * DEPTH_DISTANCE_2D * fovTan * aspectRatio;
+	    float offsetY = ndcY * DEPTH_DISTANCE_2D * fovTan;
 	    
 	    // Calculate base 3D position
-	    Vector3 basePos = camPos + (camForward * _depthDistance);
+	    Vector3 basePos = camPos + (camForward * DEPTH_DISTANCE_2D);
 	    basePos += camRight * offsetX;
 	    basePos += camUp * offsetY;
 	    
@@ -386,8 +386,8 @@ namespace TEN::Hud
 		float ndcOffsetY = (offsetPercent.y / 50.0f);
 
 		// Convert NDC to world units
-		float worldOffsetX = ndcOffsetX * _depthDistance * fovTan * aspectRatio;
-		float worldOffsetY = ndcOffsetY * _depthDistance * fovTan;
+		float worldOffsetX = ndcOffsetX * DEPTH_DISTANCE_2D * fovTan * aspectRatio;
+		float worldOffsetY = ndcOffsetY * DEPTH_DISTANCE_2D * fovTan;
 
 		return Vector3(worldOffsetX, worldOffsetY, 0.0f);
 	}
