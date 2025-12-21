@@ -887,7 +887,7 @@ namespace TEN::Scripting::DisplayItem
 	// This function returns 9 anchor points (corners, edges, and center) of the projected bounding box
 	// in screen space as percentages (0-100 for both x and y).
 	// @ function GetAnchors
-	// @ treturn table A table containing 9 Vec2 anchor points: TopLeft, TopCenter, TopRight, 
+	// @ treturn DisplayAnchors An object containing 9 Vec2 anchor points: TopLeft, TopCenter, TopRight, 
 	//                MiddleLeft, Center, MiddleRight, BottomLeft, BottomCenter, BottomRight.
 	// @ usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
@@ -913,20 +913,6 @@ namespace TEN::Scripting::DisplayItem
 	//	float top = centerPercent.y - halfHeight;
 	//	float bottom = centerPercent.y + halfHeight;
 
-	//	// Create a Lua table with the anchor points
-	//	auto anchors = sol::state_view(state).create_table();
-
-	//	//anchors["TopLeft"] = Vec2(left, top);
-	//	//anchors["TopCenter"] = Vec2(centerPercent.x, top);
-	//	//anchors["TopRight"] = Vec2(right, top);
-	//	//anchors["MiddleLeft"] = Vec2(left, centerPercent.y);
-	//	//anchors["Center"] = Vec2(centerPercent.x, centerPercent.y);
-	//	//anchors["MiddleRight"] = Vec2(right, centerPercent.y);
-	//	//anchors["BottomLeft"] = Vec2(left, bottom);
-	//	//anchors["BottomCenter"] = Vec2(centerPercent.x, bottom);
-	//	//anchors["BottomRight"] = Vec2(right, bottom);
-
-	//	return anchors;
 	//}
 
 	/// 2D Mode
