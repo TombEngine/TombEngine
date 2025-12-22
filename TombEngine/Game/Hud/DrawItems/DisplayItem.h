@@ -37,11 +37,6 @@ namespace TEN::Hud
 		int _frameNumber = 0;
 		int _prevFrameNumber = 0;
 
-		// 2D Mode Properties
-		bool _use2DMode = false;
-		Vector2 _screenPosition = Vector2::Zero;
-		DisplaySpriteAlignMode _alignMode = DisplaySpriteAlignMode::Center;
-
 	public:
 		void SetName(std::string itemName);
 		void SetObjectID(GAME_OBJECT_ID objectID);
@@ -83,17 +78,6 @@ namespace TEN::Hud
 
 		// Utilities
 		bool MeshExists(int index) const;
-
-		// 2D Mode Methods
-		void SetScreenPosition(const Vector2& screenPos, DisplaySpriteAlignMode align = DisplaySpriteAlignMode::Center);
-		Vector2 GetScreenPosition() const;
-		void SetAlignMode(DisplaySpriteAlignMode align);
-		DisplaySpriteAlignMode GetAlignMode() const;
-
-	private:
-		// 2D Mode Helpers
-		Vector3 CalculateAlignmentOffset(DisplaySpriteAlignMode alignMode) const;
-		void UpdatePositionFrom2D();
 	};
 
 }

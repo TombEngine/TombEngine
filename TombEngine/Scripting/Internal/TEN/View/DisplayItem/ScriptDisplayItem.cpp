@@ -30,13 +30,7 @@ namespace TEN::Scripting::DisplayItem
 			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale, int meshBits),
 			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale),
 			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position),
-			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID),
-			
-			// 2D positioning constructor
-			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec2&, float, DisplaySpriteAlignMode),
-			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec2&, float),
-			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec2&),
-			ScriptDisplayItem(std::string)>;
+			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID)>;
 
 		// Register type.
 		parent.new_usertype<ScriptDisplayItem>(
@@ -78,13 +72,7 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_DrawItemResetCamera, &ScriptDisplayItem::ResetCamera,
 			ScriptReserved_DrawItemGetAmbientLight, &ScriptDisplayItem::GetAmbientLight,
 			ScriptReserved_DrawItemGetCamera, &ScriptDisplayItem::GetCameraPosition,
-			ScriptReserved_DrawItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition,
-
-			// 2D Methods
-			ScriptReserved_SetScreenPosition, &ScriptDisplayItem::SetScreenPosition,
-			ScriptReserved_GetScreenPosition, &ScriptDisplayItem::GetScreenPosition,
-			ScriptReserved_SetAlignMode, &ScriptDisplayItem::SetAlignMode,
-			ScriptReserved_GetAlignMode, &ScriptDisplayItem::GetAlignMode
+			ScriptReserved_DrawItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition
 			);
 	}
 
@@ -296,8 +284,6 @@ namespace TEN::Scripting::DisplayItem
 	// <tr><td><a href="#DisplayItem:GetFrame">GetFrame</a></td><td>number</td><td>nil</td></tr>
 	// <tr><td><a href="#DisplayItem:GetEndFrame">GetEndFrame</a></td><td>number</td><td>nil</td></tr>
 	// <tr><td><a href="#DisplayItem:GetBounds">GetBounds</a></td><td>{`Vec2`, `Vec2`}</td><td>nil</td></tr>
-	// <tr><td><a href="#DisplayItem:GetScreenPosition">GetScreenPosition</a></td><td>`Vec2`</td><td>nil + warning</td></tr>
-	// <tr><td><a href="#DisplayItem:GetAlignMode">GetAlignMode</a></td><td>`View.AlignMode`</td><td>nil + warning</td></tr>
 	// </table>
 	//
 	// <h3>Best Practices</h3>
@@ -344,33 +330,7 @@ namespace TEN::Scripting::DisplayItem
 	//	    item:SetPosition(pos + TEN.Vec3(0, 10, 0))
 	//	end
 	//
-	// <br><b>3. 2D/3D Mode Transitions</b>
-	//
-	// DisplayItem can operate in two modes: 3D (world coordinates) or 2D (screen coordinates).
-	// The mode switches automatically based on which setter you call:
-	// 
-	//	local item = TEN.View.DisplayItem.GetItemByName("icon")
-	//	if item:Exists() then
-	//	    -- Switch to 2D mode (enables screen-space positioning)
-	//	    item:SetScreenPosition(TEN.Vec2(50, 50), TEN.View.AlignMode.CENTER)
-	//
-	//	    -- These methods now work (2D mode active):
-	//	    local screenPos = item:GetScreenPosition()  -- Returns Vec2
-	//	    local align = item:GetAlignMode()           -- Returns AlignMode
-	//
-	//	    -- Switch back to 3D mode (enables world-space positioning)
-	//	    item:SetPosition(TEN.Vec3(0, 0, 1024))
-	//
-	//	    -- These methods now return nil and log warnings (3D mode active):
-	//	    local screenPos2 = item:GetScreenPosition()  -- Returns nil + warning in log
-	//	    local align2 = item:GetAlignMode()           -- Returns nil + warning in log
-	//	end
-	//
-	// <b>Note:</b> Calling SetPosition() while in 2D mode will automatically switch to 3D mode,
-	// and calling SetScreenPosition() while in 3D mode will switch to 2D mode.
-	// An informational message will be logged when this happens.
-	//
-	// <br><b>4. Common Mistakes</b>
+	// <br><b>3. Common Mistakes</b>
 	// Not checking if item exists:
 	//	local pos = item:GetPosition()
 	//	print(pos.x)  -- ERROR if item doesn't exist!
@@ -841,7 +801,7 @@ namespace TEN::Scripting::DisplayItem
 
 	///Get the 2D projected bounding box of this DisplayItem.
 	// This function projects the DisplayItem into screen space and returns two Vec2 values:
-	// @function GetBounds
+	// @function DisplayItem:GetBounds
 	// @treturn[1] Vec2 center The projected center position(percent of screen space).
 	// @treturn[1] Vec2 size The projected width / height (percent of screen space).
 	// @treturn[2] nil If the DisplayItem does not exist or has no bounds.
@@ -881,140 +841,5 @@ namespace TEN::Scripting::DisplayItem
 			size.y / fHeight * 100.0f);
 
 		return std::pair<Vec2, Vec2>(centerPercent, sizePercent);
-	}
-
-	/// 2D Mode
-	// @section 2DMode
-	// DisplayItem also has a 2D context. This is useful if you want to create an interface by combining DisplayItem with DisplaySprite and DisplayString.
-
-	/// Create a DisplayItem object in 2D mode context.
-	// @function DisplayItem
-	// @tparam string itemName Lua name of the display item.
-	// @tparam Objects.ObjID objectID ID of the object.
-	// @tparam Vec2 screenPos 2D position on the screen.
-	// @tparam[opt=1] float scale Visual scale.
-	// @tparam[opt=View.AlignMode.CENTER] View.AlignMode alignMode Sprite alignment mode.
-	// @treturn DisplayItem A new DisplayItem object.
-	// @usage
-	// -- Create a DisplayItem in 2D mode
-	// local item = TEN.View.DisplayItem("item1", TEN.Objects.ObjID.PISTOLS_ITEM, Vec2(50, 50))
-	//
-	// -- Create a DisplayItem in 2D mode with custom position, scale, and alignment
-	// local pos = Vec2(50, 50)
-	// local objID = TEN.Objects.ObjID.PISTOLS_ITEM
-	// local item = TEN.View.DisplayItem("item2", objID , pos, 1.5, TEN.View.AlignMode.CenterTop)
-	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos, float scale, DisplaySpriteAlignMode alignMode)
-	{
-		_itemName = itemName;
-
-		// Create item with temporary position
-		g_DrawItems.AddItem(itemName, objectID, Vector3::Zero, EulerAngles::Identity, Vector3(scale), ALL_JOINT_BITS);
-
-		// Set 2D mode
-		auto* item = g_DrawItems.GetItemByName(itemName);
-		if (item)
-		{
-			item->SetScreenPosition(screenPos.ToVector2(), alignMode);
-		}
-	}
-
-	// Constructor with scale (delegation to the main constructor)
-	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos, float scale)
-		: ScriptDisplayItem(itemName, objectID, screenPos, scale, DisplaySpriteAlignMode::Center)
-	{
-	}
-
-	// Constructor with only position (delegation to the main constructor)
-	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec2& screenPos)
-		: ScriptDisplayItem(itemName, objectID, screenPos, 1.0f, DisplaySpriteAlignMode::Center)
-	{
-	}
-
-	/// Set the DisplayItem's position with screen coordinates.
-	// @function DisplayItem:SetScreenPosition
-	// @tparam Vec2 position 2D position on the screen in percent.
-	// @tparam[opt] View.AlignMode alignMode Alignment mode. If omitted, the current mode will be used.
-	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// item:SetScreenPosition(Vec2(512,384))
-	//
-	// -- Set position with custom alignment
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// item:SetScreenPosition(Vec2(512,384), TEN.View.AlignMode.TOP_LEFT)
-	void ScriptDisplayItem::SetScreenPosition(const Vec2& screenPos, TypeOrNil<DisplaySpriteAlignMode> alignMode)
-	{
-		if (_itemName.empty())
-			return;
-
-		auto* item = g_DrawItems.GetItemByName(_itemName);
-		if (item)
-		{
-			auto actualAlign = ValueOr<DisplaySpriteAlignMode>(alignMode, item->GetAlignMode());
-			item->SetScreenPosition(screenPos.ToVector2(), actualAlign);
-		}
-	}
-
-	/// Get the DisplayItem's screen position.
-	// @function DisplayItem:GetScreenPosition
-	// @treturn[1] Vec2 2D position on the screen (only if in 2D mode).
-	// @treturn[2] nil If the DisplayItem doesn't exist or is not in 2D mode. A warning will be logged if called while not in 2D mode.
-	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// local screenPos = item:GetScreenPosition()
-	// if screenPos then
-	//     print("Screen position:", screenPos.x, screenPos.y)
-	// else
-	//     print("Item not in 2D mode or doesn't exist")
-	// end
-	sol::optional<Vec2> ScriptDisplayItem::GetScreenPosition() const
-	{
-		if (_itemName.empty())
-			return sol::nullopt;
-
-		auto* item = g_DrawItems.GetItemByName(_itemName);
-		if (!item)
-			return sol::nullopt;
-
-		return Vec2(item->GetScreenPosition());
-	}
-
-	/// Set the DisplayItem's alignment mode in 2D mode.
-	// @function DisplayItem:SetAlignMode
-	// @tparam View.AlignMode alignMode The new alignment mode.
-	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// item:SetAlignMode(TEN.View.AlignMode.BottomRight)
-	void ScriptDisplayItem::SetAlignMode(DisplaySpriteAlignMode alignMode)
-	{
-		if (_itemName.empty())
-			return;
-
-		auto* item = g_DrawItems.GetItemByName(_itemName);
-		if (item)
-			item->SetAlignMode(alignMode);
-	}
-
-	/// Get the DisplayItem's alignment mode.
-	// @function DisplayItem:GetAlignMode
-	// @treturn[1] View.AlignMode The current alignment mode (only if in 2D mode).
-	// @treturn[2] nil If the DisplayItem doesn't exist or is not in 2D mode. A warning will be logged if called while not in 2D mode.
-	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("item1")
-	// local alignMode = item:GetAlignMode()
-	// if alignMode then
-	//     print("Align mode:", alignMode)
-	// else
-	//     print("Item not in 2D mode or doesn't exist")
-	// end
-	sol::optional<DisplaySpriteAlignMode> ScriptDisplayItem::GetAlignMode() const
-	{
-		if (_itemName.empty())
-			return sol::nullopt;
-
-		auto* item = g_DrawItems.GetItemByName(_itemName);
-		if (!item)
-			return sol::nullopt;
-
-		return item->GetAlignMode();
 	}
 }
