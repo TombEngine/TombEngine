@@ -974,18 +974,15 @@ namespace TEN::Renderer
 		auto scale = item.GetInterpolatedScale(t);
 		auto color = item.GetInterpolatedColor(t);
 		int meshBits = item.GetMeshBits();
-			
-		constexpr float NearPlane = 0.1f; // Near clipping plane
-		constexpr float FarPlane = BLOCK(100); // Far clipping plane
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
 
-		float aspectRatio = static_cast<float>(_screenWidth) / _screenHeight;
+		float aspectRatio = (float)(_screenWidth) / _screenHeight;
 
 		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(t), g_DrawItems.GetInterpolatedCameraTargetPosition(t), Vector3::Up);
 		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(
-			CurrentFOV, aspectRatio, NearPlane, FarPlane);
+			CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 
 		auto& moveableObject = _moveableObjects[objectNumber];
 		if (!moveableObject.has_value())
