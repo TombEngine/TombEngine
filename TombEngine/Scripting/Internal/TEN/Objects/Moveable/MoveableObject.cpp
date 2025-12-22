@@ -285,6 +285,7 @@ GAME_OBJECT_ID Moveable::GetObjectID() const
 void Moveable::SetObjectID(GAME_OBJECT_ID id) 
 {
 	_moveable->ObjectNumber = id;
+	SetAnimation(_moveable, 0);
 	_moveable->ResetModelToDefault();
 }
 
