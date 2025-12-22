@@ -3,7 +3,7 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.10.2]
+## [Version 1.11]
 
 ### New features
 * Added faster Xorshift32 random number generation method.
@@ -13,15 +13,27 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed interaction highlighter not working for pushable climbable blocks.
 * Fixed incorrect CLOCKWORK_BEETLE and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
+* Fixed SEARCH_OBJECT4 not always collecting pickup items.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
+* Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
+* Fixed incorrect super grenade projectile orientation.
+* Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
+* Fixed random textures appearing on enemy gunflashes.
 
 ### Lua API changes
 * Added a safeguard against adding or removing callback functions within the same callback type.
 * Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
 * Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
+* Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
+* Added `Direction` function to `Vec3`.
+* Added direction vector constructor to `Rotation`.
+* Added new `Vec3:Translate` overload.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 
 ## [Version 1.10.1]

@@ -230,9 +230,17 @@ void CollectCarriedItems(ItemInfo* item)
 	{
 		auto& pickupItem = g_Level.Items[pickupNumber];
 
-		PickedUpObject(pickupItem);
-		g_Hud.PickupSummary.AddDisplayPickup(pickupItem);
-		HideOrDisablePickup(pickupItem);
+		if (pickupItem.ObjectNumber == ID_EXPLOSION || pickupItem.ObjectNumber == ID_GRENADE)
+		{
+			pickupItem.Flags |= CODE_BITS;
+			Trigger(pickupNumber);
+		}
+		else
+		{
+			PickedUpObject(pickupItem);
+			g_Hud.PickupSummary.AddDisplayPickup(pickupItem);
+			HideOrDisablePickup(pickupItem);
+		}
 
 		pickupNumber = pickupItem.CarriedItem;
 	}
@@ -1143,26 +1151,6 @@ void InitializeSearchObject(short itemNumber)
 	{
 		item->ItemFlags[1] = -1;
 		item->MeshBits = 9;
-		
-		for (short itemNumber2 = 0; itemNumber2 < g_Level.NumItems; ++itemNumber2)
-		{
-			auto* item2 = &g_Level.Items[itemNumber2];
-
-			if (item2->ObjectNumber == ID_EXPLOSION)
-			{
-				if (item->Pose.Position == item2->Pose.Position)
-				{
-					item->ItemFlags[1] = itemNumber2;
-					break;
-				}
-			}
-			else if (Objects[item2->ObjectNumber].isPickup &&
-				item->Pose.Position == item2->Pose.Position)
-			{
-				item->ItemFlags[1] = itemNumber2;
-				break;
-			}
-		}
 
 		AddActiveItem(itemNumber);
 		item->Status = ITEM_ACTIVE;
@@ -1255,33 +1243,8 @@ void SearchObjectControl(short itemNumber)
 
 	if (frameNumber == SearchCollectFrames[objectNumber])
 	{
-		if (item->ObjectNumber == ID_SEARCH_OBJECT4)
-		{
-			if (item->ItemFlags[1] != -1)
-			{
-				auto* item2 = &g_Level.Items[item->ItemFlags[1]];
-
-				if (Objects[item2->ObjectNumber].isPickup)
-				{
-					PickedUpObject(*item2);
-					g_Hud.PickupSummary.AddDisplayPickup(*item2);
-					HideOrDisablePickup(*item2);
-				}
-				else
-				{
-					AddActiveItem(item->ItemFlags[1]);
-					item2->Flags |= IFLAG_ACTIVATION_MASK;
-					item2->Status = ITEM_ACTIVE;
-					LaraItem->HitPoints = 640;
-				}
-
-				item->ItemFlags[1] = -1;
-			}
-		}
-		else
-		{
+		if (item->CarriedItem != NO_VALUE)
 			CollectCarriedItems(item);
-		}
 	}
 	
 	if (item->Status == ITEM_DEACTIVATED)

@@ -64,6 +64,7 @@ const auto FlarePoseStates = std::vector<int>
 	LS_CROUCH_IDLE,
 	LS_CROUCH_TURN_LEFT,
 	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180,
 	LS_SOFT_SPLAT
 };
 
@@ -337,6 +338,8 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	player.TargetEntity = nullptr;
 	player.LeftArm.AnimObjectID =
 	player.RightArm.AnimObjectID = GetWeaponObjectID(player.Control.Weapon.GunType);
+	player.LeftArm.AnimNumber =
+	player.RightArm.AnimNumber = 0;
 	player.LeftArm.FrameNumber =
 	player.RightArm.FrameNumber = 0;
 	player.LeftArm.Orientation =
@@ -599,8 +602,6 @@ void HandleWeapon(ItemInfo& laraItem)
 
 				player.Control.Weapon.GunType = player.Control.Weapon.RequestGunType;
 				InitializeNewWeapon(laraItem);
-				player.LeftArm.FrameNumber = 0;
-				player.RightArm.FrameNumber = 0;
 				player.Control.HandStatus = HandStatus::WeaponDraw;
 			}
 			else

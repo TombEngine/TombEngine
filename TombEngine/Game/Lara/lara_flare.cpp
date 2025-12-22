@@ -28,7 +28,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
 
-constexpr auto FLARE_DEATH_DELAY = 1.0f  * FPS;
+constexpr auto FLARE_DEATH_DELAY = 1.0f * FPS;
 
 void FlareControl(short itemNumber)
 {
@@ -124,7 +124,7 @@ void DrawFlareMeshes(ItemInfo& laraItem)
 
 void UndrawFlare(ItemInfo& laraItem)
 {
-	constexpr int DISCARD_FLARE_FRAME = 31;
+	constexpr int DISCARD_FLARE_FRAME = 31; // Anim 1, end frame.
 
 	auto& player = *GetLaraInfo(&laraItem);
 
@@ -155,12 +155,8 @@ void UndrawFlare(ItemInfo& laraItem)
 				player.Control.HandStatus = HandStatus::Free;
 
 				InitializeNewWeapon(laraItem);
-
-				player.TargetEntity = nullptr;
-				player.LeftArm.Locked =
-				player.RightArm.Locked = false;
 				SetAnimation(laraItem, LA_STAND_IDLE);
-				player.Flare.Frame = 0;
+				player.Flare.Frame = 0; // Anim 0 still frame.
 				return;
 			}
 
@@ -172,39 +168,39 @@ void UndrawFlare(ItemInfo& laraItem)
 		SetAnimation(laraItem, LA_STAND_IDLE);
 	}
 
-	if (armFrame >= 33 && armFrame < 72)
+	if (armFrame >= 33 && armFrame < 72) // Anim 2 frames.
 	{
-		armFrame = 2;
+		armFrame = 2; // Anim 1, start + 1 frame.
 		DoFlareInHand(laraItem, player.Flare.Life);
 	}
-	else if (!armFrame)
+	else if (armFrame == 0) // Anim 0 still frame.
 	{
-		armFrame = 1;
+		armFrame = 1; // Anim 1, start frame.
 		DoFlareInHand(laraItem, player.Flare.Life);
 	}
-	else if (armFrame >= 72 && armFrame < 95)
+	else if (armFrame >= 72 && armFrame < 95) // Anim 3.
 	{
-		armFrame++;
+		armFrame++; // Animate.
 
-		if (armFrame == 94)
+		if (armFrame == 94) // Anim 3, end frame.
 		{
-			armFrame = 1;
+			armFrame = 1; // Anim 1, start frame.
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 	}
-	else if (armFrame >= 1 && armFrame < 33)
+	else if (armFrame >= 1 && armFrame < 33) // Anim 1 frames.
 	{
-		armFrame++;
+		armFrame++; // Animate.
 
-		if (armFrame == 21)
+		if (armFrame == 21) // Anim 1, throw frame.
 		{
 			CreateFlare(laraItem, ID_FLARE_ITEM, true);
 			UndrawFlareMeshes(laraItem);
 			player.Flare.Life = 0;
 		}
-		else if (armFrame == 33)
+		else if (armFrame == 33) // Anim 1, end frame.
 		{
-			armFrame = 0;
+			armFrame = 0; // Anim 0 still frame.
 
 			player.Control.Weapon.RequestGunType = player.Control.Weapon.LastGunType;
 			player.Control.Weapon.GunType = player.Control.Weapon.LastGunType;
@@ -212,24 +208,21 @@ void UndrawFlare(ItemInfo& laraItem)
 
 			InitializeNewWeapon(laraItem);
 
-			player.TargetEntity = nullptr;
-			player.LeftArm.Locked =
-			player.RightArm.Locked = false;
 			player.Flare.ControlLeft = false;
-			player.Flare.Frame = 0;
+			player.Flare.Frame = 0; // Anim 0 still frame.
 		}
-		else if (armFrame < 21)
+		else if (armFrame < 21) // Anim 1, throw frame.
 		{
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 	}
-	else if (armFrame >= 95 && armFrame < 110)
+	else if (armFrame >= 95 && armFrame < 110) // Anim 4 frames.
 	{
 		armFrame++;
 
-		if (armFrame == 110)
+		if (armFrame == 110) // Anim 4, end frame.
 		{
-			armFrame = 1;
+			armFrame = 1; // Anim 1, start frame.
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 	}
@@ -247,25 +240,25 @@ void DrawFlare(ItemInfo& laraItem)
 	{
 		DoFlareInHand(laraItem, player.Flare.Life);
 		player.Flare.ControlLeft = false;
-		player.LeftArm.FrameNumber = 93;
+		player.LeftArm.FrameNumber = 93; // Anim 3, end frame.
 		SetFlareArm(laraItem, 93);
 	}
 	else
 	{
-		int armFrame = player.LeftArm.FrameNumber + 1;
+		int armFrame = player.LeftArm.FrameNumber + 1; // Animate.
 		player.Flare.ControlLeft = true;
 
-		if (armFrame < 33 || armFrame > 94)
+		if (armFrame < 33 || armFrame > 94) // Anim 1 or anim 4.
 		{
-			armFrame = 33;
+			armFrame = 33; // Anim 1, end frame.
 		}
-		else if (armFrame == 46)
+		else if (armFrame == 46) // Anim 2, draw flare frame.
 		{
 			DrawFlareMeshes(laraItem);
 		}
-		else if (armFrame >= 72 && armFrame <= 93)
+		else if (armFrame >= 72 && armFrame <= 93) // Anim 3 frames.
 		{
-			if (armFrame == 72)
+			if (armFrame == 72) // Anim 3 start frame.
 			{
 				player.Flare.Life = 1;
 				SoundEffect(
@@ -274,23 +267,22 @@ void DrawFlare(ItemInfo& laraItem)
 					TestEnvironment(ENV_FLAG_WATER, &laraItem) ? SoundEnvironment::Underwater : SoundEnvironment::Land);
 			}
 
+			g_Renderer.UpdateLaraAnimations(true);
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 		else
 		{
-			if (armFrame == 94)
+			if (armFrame == 94) // Anim 3, end frame.
 			{
 				ReadyFlare(laraItem);
 				armFrame = 0;
+				g_Renderer.UpdateLaraAnimations(true);
 				DoFlareInHand(laraItem, player.Flare.Life);
 			}
 		}
 
 		player.LeftArm.FrameNumber = armFrame;
 		SetFlareArm(laraItem, armFrame);
-
-		// HACK: Solve problems with incorrect particle orientation. -- Lwmte, 08.06.2025
-		g_Renderer.UpdateLaraAnimations(true);
 	}
 }
 
@@ -299,20 +291,21 @@ void SetFlareArm(ItemInfo& laraItem, int armFrame)
 	auto& player = *GetLaraInfo(&laraItem);
 	auto animObjectID = GetWeaponObjectID(player.Control.Weapon.GunType);
 
+	// HACK: Derive anim number from absolute frame.
 	int flareAnimNumber = 0;
-	if (armFrame >= 95)
+	if (armFrame >= 95) // Anim 4 frames.
 	{
 		flareAnimNumber = 4;
 	}
-	else if (armFrame >= 72)
+	else if (armFrame >= 72) // Anim 34 frames.
 	{
 		flareAnimNumber = 3;
 	}
-	else if (armFrame >= 33)
+	else if (armFrame >= 33) // Anim 2 frames.
 	{
 		flareAnimNumber = 2;
 	}
-	else if (armFrame >= 1)
+	else if (armFrame >= 1) // Anim 1 frames.
 	{
 		flareAnimNumber = 1;
 	}

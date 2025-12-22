@@ -40,6 +40,7 @@ static constexpr char ScriptReserved_WeaponSettings[]	= "Weapons";
 // Moveable object
 static constexpr char ScriptReserved_Moveable[]			= "Moveable";
 static constexpr char ScriptReserved_MoveableStatus[]	= "MoveableStatus";
+static constexpr char ScriptReserved_InteractionType[]	= "InteractionType";
 
 // Player object
 static constexpr char ScriptReserved_Lara[]							= "Lara";
@@ -543,6 +544,7 @@ constexpr char ScriptReserved_Vec2Translate[]		= "Translate";
 constexpr char ScriptReserved_Vec3[]				= "Vec3";
 constexpr char ScriptReserved_Vec3Cross[]			= "Cross";
 constexpr char ScriptReserved_Vec3Distance[]		= "Distance";
+constexpr char ScriptReserved_Vec3Direction[]		= "Direction";
 constexpr char ScriptReserved_Vec3Dot[]				= "Dot";
 constexpr char ScriptReserved_Vec3Length[]			= "Length";
 constexpr char ScriptReserved_Vec3Lerp[]			= "Lerp";

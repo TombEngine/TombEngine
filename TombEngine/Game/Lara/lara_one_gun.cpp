@@ -811,7 +811,8 @@ void GrenadeControl(short itemNumber)
 	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
 	{
 		grenadeItem.HitPoints = 0;
-		grenadeItem.ItemFlags[0] = (int)ProjectileType::Explosive;
+		if (grenadeItem.ItemFlags[0] < (int)ProjectileType::Grenade)
+			grenadeItem.ItemFlags[0] = (int)ProjectileType::Grenade;
 	}
 	
 	// Check if above water and update Y and Z velocities.
@@ -1442,7 +1443,7 @@ bool EmitFromProjectile(ItemInfo& projectile, ProjectileType type)
 
 		grenadeItem.Pose.Orientation = EulerAngles(
 			Random::GenerateAngle(0, ANGLE(90.0f)) + ANGLE(45.0f),
-			Random::GenerateAngle(0, ANGLE(359.0f)),
+			Random::GenerateAngle(),
 			0);
 		grenadeItem.Animation.Velocity.y = -64.0f * phd_sin(grenadeItem.Pose.Orientation.x);
 		grenadeItem.Animation.Velocity.z = 64.0f;

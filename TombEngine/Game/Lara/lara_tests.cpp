@@ -1152,6 +1152,16 @@ bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
 }
 
+bool IsSideJumpState(int state)
+{
+	static const std::vector<int> jumpStates
+	{
+		LS_JUMP_LEFT,
+		LS_JUMP_RIGHT,
+	};
+	return TestState(state, jumpStates);
+}
+
 bool IsCrouching(const ItemInfo* item)
 {
 	bool crouching =

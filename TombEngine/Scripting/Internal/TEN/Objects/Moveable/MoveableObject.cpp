@@ -1346,7 +1346,9 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 
 /// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
 // @function Moveable:ShowInteractionHighlight
-void Moveable::ShowInteractionHighlight()
+// @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
+void Moveable::ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType)
 {
-	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable);
+	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
+	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable, InteractionMode::Always, convertedIcon);
 }
