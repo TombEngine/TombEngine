@@ -27,10 +27,10 @@ namespace TEN::Scripting::DisplayItem
 	void ScriptDisplayItem::Register(sol::state& state, sol::table& parent)
 	{
 		using ctors = sol::constructors<
-			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale, int meshBits),
-			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale),
-			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID, const Vec3& position),
-			ScriptDisplayItem(std::string itemName, GAME_OBJECT_ID objectID)>;
+			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&, const Rotation&, const Vec3&, int),
+			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&, const Rotation&, const Vec3&),
+			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&),
+			ScriptDisplayItem(std::string, GAME_OBJECT_ID)>;
 
 		// Register type.
 		parent.new_usertype<ScriptDisplayItem>(
@@ -82,25 +82,25 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam Objects.ObjID objectID ID of the object.
 	// @tparam[opt=Vec3(0&#44; 0&#44; 0)] Vec3 position Position in 3d screen sapce.
 	// @tparam[opt=Rotation(0&#44; 0&#44; 0)] Rotation rotation Rotation about x, y, and z axes.
-	// @tparam[opt=1] float scale Set the visual scale.
+	// @tparam[opt=Vec3(1&#44; 1&#44; 1)] Vec3 scale Set the visual scale.
 	// @tparam[opt] int meshBits Packed meshbits.
 	// @treturn DisplayItem A new DisplayItem object.
 	// @usage
 	// local item = TEN.View.DisplayItem("item1", -- name
 	//	TEN.Objects.ObjID.PISTOLS_ITEM, -- object id) 
 
-	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale, int meshBits)
+	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, const Vec3& scale, int meshBits)
 	{
 		auto rot = rotation.ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, position, rot, Vector3(scale), meshBits);
+		g_DrawItems.AddItem(itemName, objectID, position, rot, scale, meshBits);
 	}
 
-	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale)
+	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, const Vec3& scale)
 	{
 		auto rot = rotation.ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, position, rot, Vector3(scale), ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, position, rot, scale, ALL_JOINT_BITS);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position)
@@ -201,7 +201,7 @@ namespace TEN::Scripting::DisplayItem
 	/// Set the camera location. This single camera is used for all DisplayItems.
 	// @function SetCameraPosition
 	// @tparam Vec3 newPos The new position for the camera.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// TEN.View.DisplayItem.SetCameraPosition(TEN.Vec3(0,0,1024))
 	void ScriptDisplayItem::SetCameraPosition(const Vec3& newPos, TypeOrNil<bool> disableInterpolation)
@@ -213,7 +213,7 @@ namespace TEN::Scripting::DisplayItem
 	/// Set the camera target location.
 	// @function SetTargetPosition
 	// @tparam Vec3 newPos The new position for the camera target.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// TEN.View.DisplayItem.SetTargetPosition(TEN.Vec3(0,0,1024))
 	void ScriptDisplayItem::SetCameraTargetPosition(const Vec3& newPos, TypeOrNil<bool> disableInterpolation)
@@ -387,7 +387,7 @@ namespace TEN::Scripting::DisplayItem
 	/// Set the DisplayItem's position.
 	// @function DisplayItem:SetPosition
 	// @tparam Vec3 position The new position of the Display Item.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
 	// item:SetPosition(TEN.Vec3(0,200,1024))
@@ -405,7 +405,7 @@ namespace TEN::Scripting::DisplayItem
 	/// Set the DisplayItem's rotation.
 	// @function DisplayItem:SetRotation
 	// @tparam Rotation rotation The DisplayItem's new rotation.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
 	// item:SetRotation(TEN.Rotation(0,200,1024))
@@ -423,11 +423,11 @@ namespace TEN::Scripting::DisplayItem
 	/// Set the DisplayItem's scale.
 	// @function DisplayItem:SetScale
 	// @tparam float scale New scale.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
 	// item:SetScale(2))
-	void ScriptDisplayItem::SetScale(float newScale, TypeOrNil<bool> disableInterpolation)
+	void ScriptDisplayItem::SetScale(const Vec3& newScale, TypeOrNil<bool> disableInterpolation)
 	{
 		if (_itemName.empty())
 			return;
@@ -435,13 +435,13 @@ namespace TEN::Scripting::DisplayItem
 		auto* item = g_DrawItems.GetItemByName(_itemName);
 
 		if (item)
-			item->SetScale(Vector3(newScale), ValueOr<bool>(disableInterpolation, false));
+			item->SetScale(newScale, ValueOr<bool>(disableInterpolation, false));
 	}
 
 	/// Set the DisplayItem's color.
 	// @function DisplayItem:SetColor
 	// @tparam Color color The new color of the DisplayItem.
-	// @bool[opt=false] disableInterPolation Disables interpoaltion to allow for snap color changes.
+	// @bool[opt=false] disableInterpolation Disables interpoaltion to allow for snap color changes.
 	// @usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
 	// item:SetColor(TEN.Color(128,200,255))
@@ -496,7 +496,7 @@ namespace TEN::Scripting::DisplayItem
 	// @function DisplayItem:SetJointRotation
 	// @tparam int meshIndex Index of a joint to set rotation.
 	// @tparam Rotation rotation The DisplayItem's new rotation.
-	// @bool[opt=false] disableInterPolation Disables interpolation to allow for snap movements.
+	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
 	// local item = TEN.View.DisplayItem.GetItemByName("item1")
 	// item:SetJointRotation(1, TEN.Rotation(0,200,0))
@@ -529,7 +529,8 @@ namespace TEN::Scripting::DisplayItem
 	}
 
 	/// Set frame number from an animation.
-	// This will set the specified animation to the given frame.
+	// This will set the specified animation to the given frame.Performs no bounds checking. *Ensure the number given is correct, else
+	// DisplayItem may end up in corrupted animation state.*
 	// The number of frames in an animation can be seen under the heading "End frame" in
 	// the WadTool animation editor.
 	// @function DisplayItem:SetFrame

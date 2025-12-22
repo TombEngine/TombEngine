@@ -25,8 +25,8 @@ namespace TEN::Scripting::DisplayItem
 
 	public:
 		// Constructors
-		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation,	float scale, int meshBits);
-		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, float scale);
+		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, const Vec3& scale, int meshBits);
+		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position, const Rotation& rotation, const Vec3& scale);
 		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID, const Vec3& position);
 		ScriptDisplayItem(const std::string& itemName, GAME_OBJECT_ID objectID);
 		ScriptDisplayItem(const std::string& itemName);
@@ -39,7 +39,7 @@ namespace TEN::Scripting::DisplayItem
 		void SetObjectID(GAME_OBJECT_ID objectID);
 		void SetPosition(const Vec3& newPos, TypeOrNil<bool> disableInterpolation);
 		void SetRotation(const Rotation& newRot, TypeOrNil<bool> disableInterpolation);
-		void SetScale(float newScale, TypeOrNil<bool> disableInterpolation);
+		void SetScale(const Vec3& newScale, TypeOrNil<bool> disableInterpolation);
 		void SetColor(const ScriptColor& newColor, TypeOrNil<bool> disableInterpolation);
 		void SetMeshBits(int meshbits);
 		void SetMeshVisibility(int meshIndex, bool visible);

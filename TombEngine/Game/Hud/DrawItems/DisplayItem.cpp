@@ -88,13 +88,11 @@ namespace TEN::Hud
 
 	void DisplayItem::SetAnimation(int animation)
 	{
-		//add checks for bounds of animation and frame
 		_animNumber = animation;
 	}
 
 	void DisplayItem::SetFrame(int frame)
 	{
-		//add checks for bounds of animation and frame
 		_frameNumber = frame;
 	}
 
@@ -119,8 +117,6 @@ namespace TEN::Hud
 		if (!bounds.has_value())
 			return std::nullopt;
 
-		// bounds->first  = center  (Vector2)
-		// bounds->second = size    (Vector2)
 		return bounds;
 	}
 
