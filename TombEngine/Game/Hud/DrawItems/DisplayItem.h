@@ -19,13 +19,17 @@ namespace TEN::Hud
 		std::string _itemName;
 		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 
-		Pose _pose;
+		Vector3		_position = Vector3::Zero;
+		EulerAngles _orientation = EulerAngles::Identity;
+		Vector3		_scale = Vector3::Zero;
 
 		Color _color = Vector4::One;
 
 		BitField _meshBits = BitField::Default;
 
-		Pose _prevPose;
+		Vector3		_prevPosition = Vector3::Zero;
+		EulerAngles _prevOrientation = EulerAngles::Identity;
+		Vector3		_prevScale = Vector3::Zero;
 		Color		_prevColor = Vector4::One;
 
 		bool _visible = true;

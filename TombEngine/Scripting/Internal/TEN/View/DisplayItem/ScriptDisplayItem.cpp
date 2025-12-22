@@ -114,7 +114,7 @@ namespace TEN::Scripting::DisplayItem
 	{
 		auto rot = Rotation().ToEulerAngles();
 		_itemName = itemName;
-		g_DrawItems.AddItem(itemName, objectID, Vec3(), rot, Vector3::One, ALL_JOINT_BITS);
+		g_DrawItems.AddItem(itemName, objectID, Vector3(), rot, Vector3::One, ALL_JOINT_BITS);
 	}
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& itemName)
@@ -631,7 +631,7 @@ namespace TEN::Scripting::DisplayItem
 	// if item:Exists() then
 	//    local objectScale = item:GetScale()
 	// end
-	sol::optional <float> ScriptDisplayItem::GetScale() const
+	sol::optional <Vec3> ScriptDisplayItem::GetScale() const
 	{
 		if (_itemName.empty())
 			return sol::nullopt;
@@ -640,7 +640,7 @@ namespace TEN::Scripting::DisplayItem
 		if (!item)
 			return sol::nullopt;
 
-		return item->GetScale().x;
+		return item->GetScale();
 	}
 
 	/// Get the DisplayItem's color.

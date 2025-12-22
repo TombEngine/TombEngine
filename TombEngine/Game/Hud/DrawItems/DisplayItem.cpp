@@ -24,25 +24,25 @@ namespace TEN::Hud
 	void DisplayItem::SetPosition(const Vector3& newPos, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			_prevPose.Position = newPos;
+			_prevPosition = newPos;
 
-		_pose.Position = newPos;
+		_position = newPos;
 	}
 
 	void DisplayItem::SetRotation(const EulerAngles& newRot, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			_prevPose.Orientation = newRot;
+			_prevOrientation = newRot;
 
-		_pose.Orientation = newRot;
+		_orientation = newRot;
 	}
 
 	void DisplayItem::SetScale(const Vector3& newScale, bool disableInterpolation)
 	{
 		if (disableInterpolation)
-			_prevPose.Scale = newScale;
+			_prevScale = newScale;
 
-		_pose.Scale = newScale;
+		_scale = newScale;
 	}
 
 	void DisplayItem::SetColor(Color& newColor, bool disableInterpolation)
@@ -110,7 +110,7 @@ namespace TEN::Hud
 
 	Vector3 DisplayItem::GetPosition() const
 	{
-		return _pose.Position.ToVector3();
+		return _position;
 	}
 
 	std::optional<std::pair<Vector2, Vector2>> DisplayItem::GetBounds() const
@@ -126,12 +126,12 @@ namespace TEN::Hud
 
 	EulerAngles DisplayItem::GetRotation() const
 	{
-		return _pose.Orientation;
+		return _orientation;
 	}
 
 	Vector3 DisplayItem::GetScale() const
 	{
-		return _pose.Scale;
+		return _scale;
 	}
 
 	Color DisplayItem::GetColor() const
@@ -182,7 +182,9 @@ namespace TEN::Hud
 	// Interpolation Helpers
 	void DisplayItem::StoreInterpolationData()
 	{
-		_prevPose = _pose;
+		_prevPosition = _position;
+		_prevOrientation = _orientation;
+		_prevScale = _scale;
 		_prevColor = _color;
 		_prevMeshRotations = _meshRotations;
 		_prevFrameNumber = _frameNumber;
@@ -190,17 +192,17 @@ namespace TEN::Hud
 
 	Vector3 DisplayItem::GetInterpolatedPosition(float t) const
 	{
-		return Vector3::Lerp(_prevPose.Position.ToVector3(), _pose.Position.ToVector3(), t);
+		return Vector3::Lerp(_prevPosition, _position, t);
 	}
 
 	EulerAngles DisplayItem::GetInterpolatedOrientation(float t) const
 	{
-		return EulerAngles::Lerp(_prevPose.Orientation, _pose.Orientation, t);
+		return EulerAngles::Lerp(_prevOrientation, _orientation, t);
 	}
 
 	Vector3 DisplayItem::GetInterpolatedScale(float t) const
 	{
-		return Vector3::Lerp(_prevPose.Scale, _pose.Scale, t);
+		return Vector3::Lerp(_prevScale, _scale, t);
 	}
 
 	Color DisplayItem::GetInterpolatedColor(float t) const

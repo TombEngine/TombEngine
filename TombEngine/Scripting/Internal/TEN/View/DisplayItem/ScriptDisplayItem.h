@@ -51,7 +51,7 @@ namespace TEN::Scripting::DisplayItem
 		GAME_OBJECT_ID GetObjectID() const;
 		sol::optional <Vec3> GetPosition() const;
 		sol::optional <Rotation> GetRotation() const;
-		sol::optional <float> GetScale() const;
+		sol::optional <Vec3> GetScale() const;
 		sol::optional <ScriptColor> GetColor() const;
 		bool GetMeshVisibility(int meshIndex) const;
 		sol::optional <Rotation> GetMeshRotation(int meshIndex) const;
