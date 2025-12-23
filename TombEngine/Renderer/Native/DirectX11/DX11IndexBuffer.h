@@ -4,7 +4,6 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
-#include <vector>
 #include "Specific/fast_vector.h"
 #include "Renderer/RendererUtils.h"
 #include "Game/Debug/Debug.h"

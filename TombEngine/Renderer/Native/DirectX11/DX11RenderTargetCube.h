@@ -3,7 +3,6 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
-#include <array>
 #include <wrl/client.h>
 #include <SimpleMath.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"

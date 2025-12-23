@@ -7,9 +7,7 @@
 #include "Renderer/Graphics/IShader.h"
 #include "Game/debug/debug.h"
 #include <wrl/client.h>
-#include <vector>
 #include <d3dcompiler.h>
-#include <map>
 
 namespace TEN::Renderer::Native::DirectX11
 {

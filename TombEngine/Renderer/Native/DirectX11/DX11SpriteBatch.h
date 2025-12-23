@@ -20,10 +20,12 @@ namespace TEN::Renderer::Native::DirectX11
 
 	using Microsoft::WRL::ComPtr;
 
+	// TODO: Rewrite it in the future after migrating to the new font system using native DX11 classes.
 	class DX11SpriteBatch final : public ISpriteBatch
 	{
+
 	private:
-		std::unique_ptr<SpriteBatch> _spriteBatch = nullptr;
+		std::unique_ptr<SpriteBatch>  _spriteBatch  = nullptr;
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
 
 	public:
@@ -61,18 +63,23 @@ namespace TEN::Renderer::Native::DirectX11
 			case SpriteSortingMode::BackToFront:
 				mode = SpriteSortMode_BackToFront;
 				break;
+
 			case SpriteSortingMode::FrontToBack:
 				mode = SpriteSortMode_FrontToBack;
 				break;
+
 			case SpriteSortingMode::Deferred:
 				mode = SpriteSortMode_Deferred;
 				break;
+
 			case SpriteSortingMode::Texture:
 				mode = SpriteSortMode_Texture;
 				break;
+
 			case SpriteSortingMode::Immediate:
 				mode = SpriteSortMode_Immediate;
 				break;
+
 			default:
 				mode = SpriteSortMode_BackToFront;
 				break;
@@ -84,12 +91,15 @@ namespace TEN::Renderer::Native::DirectX11
 			case BlendMode::Opaque:
 				blendState = _renderStates->Opaque();
 				break;
+
 			case BlendMode::Additive:
 				blendState = _renderStates->Additive();
 				break;
+
 			case BlendMode::AlphaBlend:
 				blendState = _renderStates->NonPremultiplied();
 				break;
+
 			default:
 				blendState = _renderStates->Opaque();
 				break;
@@ -107,7 +117,7 @@ namespace TEN::Renderer::Native::DirectX11
 		{
 			auto dxTexture = GetD3D11ShaderResourceView(texture);
 
-			RECT rect;
+			auto rect = RECT{};
 			rect.left = area.Left;
 			rect.top = area.Top;
 			rect.bottom = area.Bottom;

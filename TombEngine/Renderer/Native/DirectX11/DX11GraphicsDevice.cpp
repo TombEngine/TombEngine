@@ -8,9 +8,7 @@
 #include "Specific/trutils.h"
 #include <wincodec.h>
 #include <ScreenGrab.h>
-#include <algorithm>
 #include <ctime>
-#include <filesystem>
 
 extern GameConfiguration g_Configuration;
 

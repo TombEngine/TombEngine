@@ -3,6 +3,7 @@
 
 #include "Math/Math.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 
 using namespace TEN::Math;
@@ -35,10 +36,12 @@ void Vec3::Register(sol::table& parent)
 		ScriptReserved_Vec3Translate, sol::overload(
 			(Vec3(Vec3::*)(const Vec3&, float))(&Vec3::Translate),
 			(Vec3(Vec3::*)(const Rotation&, float))(&Vec3::Translate),
-			(Vec3(Vec3::*)(const Rotation&, const Vec3&))(&Vec3::Translate)),
+			(Vec3(Vec3::*)(const Rotation&, const Vec3&))(&Vec3::Translate),
+			(Vec3(Vec3::*)(float, const Vec3&, TypeOrNil<Vec3>))(&Vec3::Translate)),
 		ScriptReserved_Vec3Rotate, &Vec3::Rotate,
 		ScriptReserved_Vec3Lerp, &Vec3::Lerp,
 		ScriptReserved_Vec3Cross, &Vec3::Cross,
+		ScriptReserved_Vec3Direction, &Vec3::Direction,
 		ScriptReserved_Vec3Dot, &Vec3::Dot,
 		ScriptReserved_Vec3Distance, &Vec3::Distance,
 		ScriptReserved_Vec3Length, &Vec3::Length,
@@ -125,14 +128,26 @@ Vec3 Vec3::Translate(const Rotation& rot, float dist)
 	return Geometry::TranslatePoint(ToVector3(), rot.ToEulerAngles(), dist);
 }
 
-/// Get a copy of this Vec3 translated by an offset, where the input relative offset Vec3 is rotated according to the input Rotation object.
+/// Get a copy of this Vec3 translated by a relative offset rotated according to the input Rotation object.
 // @function Vec3:Translate
-// @tparam Rotation rot Rotation object rotating the input relative offset vector.
+// @tparam Rotation rot Rotation object rotating the relative input offset vector.
 // @tparam Vec3 relOffset Relative offset vector before rotation.
 // @treturn Vec3 Translated vector.
 Vec3 Vec3::Translate(const Rotation& rot, const Vec3& relOffset)
 {
 	return Geometry::TranslatePoint(ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
+}
+
+/// Get a copy of this Vec3 translated by a relative offset in the direction of a heading angle, relative to a down axis.
+// @function Vec3:Translate
+// @tparam headingAngle Angle of translation along the 2D plane defined by the down axis.
+// @tparam relOffset Relative offset vector.
+// @tparam axis[opt=Vec3(0, 1, 0)] Normalized direction vector representing the down axis.
+// @treturn Vec3 Translated vector.
+Vec3 Vec3::Translate(float headingAngle, const Vec3& relOffset, TypeOrNil<Vec3> axis)
+{
+	auto convertexAxis = ValueOr<Vec3>(axis, Vec3(0.0f, 1.0f, 0.0f)).ToVector3();
+	return Geometry::TranslatePoint(ToVector3(), ANGLE(headingAngle), relOffset, convertexAxis);
 }
 
 /// Get a copy of this Vec3 rotated by the input Rotation object.
@@ -171,6 +186,20 @@ Vec3 Vec3::Cross(const Vec3& vector) const
 	auto vector1 = vector.ToVector3();
 
 	return vector0.Cross(vector1);
+}
+
+/// Get the normalized direction vector from this Vec3 to the input Vec3.
+// @function Vec3:Direction
+// @tparam Vec3 vector Input vector.
+// @treturn Vec3 Direction vector.
+Vec3 Vec3::Direction(const Vec3& vector) const
+{
+	auto vector0 = ToVector3();
+	auto vector1 = vector.ToVector3();
+	
+	auto dir = vector1 - vector0;
+	dir.Normalize();
+	return Vec3(dir);
 }
 
 /// Get the dot product of this Vec3 and the input Vec3.

@@ -3,8 +3,6 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
-#include <string>
-#include <vector>
 #include <wrl/client.h>
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/IDepthTarget.h"
@@ -16,13 +14,15 @@ namespace TEN::Renderer::Native::DirectX11
 
 	using Microsoft::WRL::ComPtr;
 
+	// NOTE: Texture array is supported and so it's possible to have multiple views.
+	// In most situations, however, the vector of the views is just one element.
 	class DX11DepthTarget : public IDepthTarget
 	{
 	private:
-		int _width;
-		int _height;
-		std::vector<ComPtr<ID3D11DepthStencilView>> _depthStencilViews;
-		ComPtr<ID3D11Texture2D>	_depthStencilTexture;
+		int                                         _width               = 0;
+		int                                         _height              = 0;
+		std::vector<ComPtr<ID3D11DepthStencilView>> _depthStencilViews   = {};
+		ComPtr<ID3D11Texture2D>	                    _depthStencilTexture = {};
 
 	public:
 		DX11DepthTarget() = default;
@@ -41,7 +41,7 @@ namespace TEN::Renderer::Native::DirectX11
 			_width = width;
 			_height = height;
 
-			// Texture
+			// Texture.
 			auto depthTexDesc = D3D11_TEXTURE2D_DESC{};
 			depthTexDesc.Width = width;
 			depthTexDesc.Height = height;
@@ -58,17 +58,17 @@ namespace TEN::Renderer::Native::DirectX11
 			res = device->CreateTexture2D(&depthTexDesc, nullptr, &_depthStencilTexture);
 			throwIfFailed(res);
 
-			// DSV
-			auto dsvDesc = D3D11_DEPTH_STENCIL_VIEW_DESC{};
-			dsvDesc.Format = depthTexDesc.Format;
-			dsvDesc.Flags = 0;
-			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-			dsvDesc.Texture2D.MipSlice = 0;
+			// Depth stencil view.
+			auto depthStencilViewDesc = D3D11_DEPTH_STENCIL_VIEW_DESC{};
+			depthStencilViewDesc.Format = depthTexDesc.Format;
+			depthStencilViewDesc.Flags = 0;
+			depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+			depthStencilViewDesc.Texture2D.MipSlice = 0;
 
-			ComPtr<ID3D11DepthStencilView> dsv;
-			res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &dsvDesc, &dsv);
+			auto depthStencilView = ComPtr<ID3D11DepthStencilView>{};
+			res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &depthStencilViewDesc, &depthStencilView);
 			throwIfFailed(res);
-			_depthStencilViews.push_back(dsv);
+			_depthStencilViews.push_back(depthStencilView);
 		}
 
 		DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT depthFormat)
@@ -78,8 +78,8 @@ namespace TEN::Renderer::Native::DirectX11
 			_width = width;
 			_height = height;
 
-			// Texture
-			D3D11_TEXTURE2D_DESC depthTexDesc = {};
+			// Texture.
+			auto depthTexDesc = D3D11_TEXTURE2D_DESC{};
 			depthTexDesc.Width = width;
 			depthTexDesc.Height = height;
 			depthTexDesc.MipLevels = 1;
@@ -95,20 +95,20 @@ namespace TEN::Renderer::Native::DirectX11
 			res = device->CreateTexture2D(&depthTexDesc, nullptr, _depthStencilTexture.GetAddressOf());
 			throwIfFailed(res);
 
-			// DSV
-			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-			dsvDesc.Format = depthTexDesc.Format;
-			dsvDesc.Flags = 0;
-			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-			dsvDesc.Texture2DArray.ArraySize = 1;
+			// Depth stencil view.
+			auto depthStencilViewDesc = D3D11_DEPTH_STENCIL_VIEW_DESC{};
+			depthStencilViewDesc.Format = depthTexDesc.Format;
+			depthStencilViewDesc.Flags = 0;
+			depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			depthStencilViewDesc.Texture2DArray.ArraySize = 1;
 
 			for (int i = 0; i < count; i++)
 			{
-				ComPtr<ID3D11DepthStencilView> dsv;
-				dsvDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
-				res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &dsvDesc, dsv.GetAddressOf());
+				auto depthStencilView = ComPtr<ID3D11DepthStencilView>{};
+				depthStencilViewDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
+				res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &depthStencilViewDesc, depthStencilView.GetAddressOf());
 				throwIfFailed(res);
-				_depthStencilViews.push_back(dsv);
+				_depthStencilViews.push_back(depthStencilView);
 			}
 		}
 	};

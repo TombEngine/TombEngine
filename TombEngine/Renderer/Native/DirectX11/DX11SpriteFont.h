@@ -18,6 +18,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 	class DX11SpriteFont final : public ISpriteFont
 	{
+		// TODO: in the future, use cross platform font libraries for handling fonts also with support of true type fonts and extended characters.
+
 	private:
 		std::unique_ptr<SpriteFont> _gameFont;
 

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/AirlockSwitch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/Hud/Hud.h"
@@ -12,6 +12,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -61,13 +62,13 @@ namespace TEN::Entities::Switches
 					}
 
 					ResetPlayerFlex(laraItem);
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					player.Control.IsMoving = false;
 					player.Control.HandStatus = HandStatus::Busy;
 
 					AddActiveItem(itemNumber);
 					switchItem.Status = ITEM_ACTIVE;
-					AnimateItem(&switchItem);
+					AnimateItem(switchItem);
 				}
 				else
 				{

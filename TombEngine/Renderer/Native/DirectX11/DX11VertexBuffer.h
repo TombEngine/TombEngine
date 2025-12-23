@@ -7,7 +7,6 @@
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Graphics/IVertexBuffer.h"
 #include <wrl/client.h>
-#include <vector>
 #include "Specific/fast_vector.h"
 
 using namespace TEN::Renderer::Graphics::Vertices;
@@ -22,9 +21,9 @@ namespace TEN::Renderer::Native::DirectX11
 	class DX11VertexBuffer final : public IVertexBuffer
 	{
 	private:
-		int _numVertices;
+		int                  _numVertices;
 		ComPtr<ID3D11Buffer> _buffer;
-		int _stride;
+		int                  _stride;
 
 	public:
 		DX11VertexBuffer() = default;

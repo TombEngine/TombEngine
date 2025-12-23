@@ -58,7 +58,7 @@ namespace TEN::Physics
 		const auto& vertex1 = GetVertex1(vertices);
 		const auto& vertex2 = GetVertex2(vertices);
 
-		return Geometry::GetBoundingBox({ vertex0, vertex1, vertex2 });
+		return Geometry::GetAabb({ vertex0, vertex1, vertex2 });
 	}
 
 	bool LocalCollisionTriangle::Intersects(const Ray& ray, float& dist, const std::vector<Vector3>& vertices) const

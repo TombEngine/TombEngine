@@ -20,45 +20,55 @@ using namespace TEN::Utils;
 
 namespace TEN::Platform
 {
-	/// <summary>
-	/// Windows-specific implementation of the platform subsystem.
-	/// Encapsulates all remaining Win32 calls (registry access, crash handler,
-	/// message boxes, etc.) behind a clean interface.
-	/// </summary>
+	// Windows-specific implementation of the platform subsystem.
+	// Encapsulates all remaining Win32 calls (registry access, crash handler,
+	// message boxes, etc.) behind a clean interface.
 	class WindowsSubsystem final : public ISubsystem
 	{
 	private:
-		SDL_Window* _window;
+		// Fields
+
+		SDL_Window* _window    = nullptr;
+		HINSTANCE   _hInstance = nullptr;
 
 	public:
+		// Constructors
+
 		WindowsSubsystem();
 		~WindowsSubsystem() override;
 
+		// Getters
+
+		SDL_Window*                 GetSDL3Window();
+		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
+
+		// Setters
+
+		void SetSDL3Window(SDL_Window* window);
+
+		// Enquirers
+
+		bool Is64Bit() override;
+
+		// Utilities
+
 		void Initialize() override;
-		void CheckPrerequisites() override;
-		void InstallCrashHandler() override;
-		void ShowErrorMessage(const std::string& text) override;
 		void Tick() override;
 		void Shutdown() override;
-		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
-		bool Is64Bit() override;
-		void SetSDL3Window(SDL_Window* window);
-		SDL_Window* GetSDL3Window();
-		void HideConsole() override;
+
+		void InstallCrashHandler() override;
 		bool CreateDummyTitleLevel(const std::string& levelPath) override;
+		void CheckPrerequisites() override;
+		void HideConsole() override;
+		void ShowErrorMessage(const std::string& msg) override;
 
 	private:
-		HINSTANCE _hInstance = nullptr;
+		// Helpers
 
-		/// <summary>
-		/// Internal helper that checks for the Microsoft Visual C++ Redistributable
-		/// in the registry and prompts the user to install it if needed.
-		/// </summary>
+		// Checks for the Microsoft Visual C++ Redistributable in the registry and prompts the user to install it if needed.
 		void CheckVcRedist();
 
-		/// <summary>
-		/// Internal helper that actually installs the unhandled exception filter.
-		/// </summary>
+		// Installs the unhandled exception filter.
 		void InstallExceptionFilter();
 	};
 }

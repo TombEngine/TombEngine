@@ -12,6 +12,7 @@
 #include <codecvt>
 #include <cstdint>
 #include <ctime>
+#include <chrono>
 #include <deque>
 #include <execution>
 #include <filesystem>
@@ -29,6 +30,7 @@
 #include <set>
 #include <sstream>
 #include <stack>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +65,12 @@ using namespace DirectX::SimpleMath;
 
 // srtparser.h
 #include <srtparser.h>
+
+// spdlog
+#include <spdlog.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 // VLC
 #include <vlc/vlc.h>

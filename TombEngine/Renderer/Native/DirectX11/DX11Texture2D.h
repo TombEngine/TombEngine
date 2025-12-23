@@ -3,7 +3,6 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
-#include <string>
 #include <wrl/client.h>
 #include <WICTextureLoader.h>
 #include <DDSTextureLoader.h>

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -37,6 +37,7 @@
 #include "Structures/RendererSpriteBucket.h"
 #include "Objects/Effects/Fireflies.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
@@ -1250,7 +1251,7 @@ namespace TEN::Renderer
 			BindBucketTextures(flashBucket, TextureSource::Moveables, false);
 			BindMaterial(flashBucket.MaterialIndex, false);
 
-			auto meshOffset = g_Level.Frames[GetAnimData(gunflash, 0).FramePtr].Offset;
+			auto meshOffset = Objects[gunflash].Animations.front().Keyframes.front().RootOffset;
 			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
 
 			offset.x = -offset.x;
@@ -1344,7 +1345,8 @@ namespace TEN::Renderer
 						if (flashBucket.Polygons.size() == 0)
 							continue;
 
-						BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[flashBucket.Texture]).get(), SamplerStateRegister::AnisotropicClamp);
+						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+						BindMaterial(flashBucket.MaterialIndex, false);
 
 						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[0].Bite.Position);
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
@@ -1386,7 +1388,8 @@ namespace TEN::Renderer
 						if (flashBucket.Polygons.size() == 0)
 							continue;
 
-						BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[flashBucket.Texture]).get(), SamplerStateRegister::AnisotropicClamp);
+						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+						BindMaterial(flashBucket.MaterialIndex, false);
 
 						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[1].Bite.Position);
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));

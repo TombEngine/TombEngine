@@ -18,8 +18,8 @@ namespace TEN::Renderer::Native::DirectX11
 	class DX11ConstantBuffer : public IConstantBuffer
 	{
 	private:
-		ComPtr<ID3D11Buffer> _buffer;
-		int _size;
+		ComPtr<ID3D11Buffer> _buffer = {};
+		int                  _size   = 0;
 
 	public:
 		DX11ConstantBuffer() = default;

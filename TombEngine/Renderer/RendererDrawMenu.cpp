@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/Gui.h"
@@ -18,6 +18,7 @@
 #include "Specific/trutils.h"
 #include "Version.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -816,7 +817,7 @@ namespace TEN::Renderer
 		{
 			const auto& invObject = InventoryObjectTable[invObjectID];
 
-			pos2D.y += invObject.YOffset;
+			pos2D.y += invObject.YOffset * factor.y;
 			orient += invObject.Orientation;
 		}
 
@@ -828,15 +829,13 @@ namespace TEN::Renderer
 			return;
 
 		const auto& object = Objects[objectNumber];
-		if (object.animIndex != -1)
+		if (!object.Animations.empty())
 		{
-			auto frameData = AnimFrameInterpData
-			{
-				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
-				&g_Level.Frames[GetAnimData(object.animIndex).FramePtr],
-				0.0f
-			};
-			UpdateAnimation(nullptr, *moveableObject, frameData, UINT_MAX);
+			auto interpData = KeyframeInterpolationData(
+				GetAnimData(object, 0).Keyframes[0],
+				GetAnimData(object, 0).Keyframes[0],
+				0.0f);
+			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
 		}
 
 		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -856,24 +855,78 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
+		_shaders.Bind(Shader::Inventory);
+
+		// Construct world matrix.
+		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto scaleMatrix = Matrix::CreateScale(scale);
+		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
+
+		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
+
+		_stItem.Color = Vector4::One;
+		_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
+		_stItem.Skinned = (int)skinMode;
+
+		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
+		{
+			_stItem.World = worldMatrix;
+
+			// Calculate bones matrices for skinning
+			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
+				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+			
+			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+
+			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+			// Disegna the skin mesh
+			const auto skinMesh = GetMesh(object.skinIndex);
+		
+			for (int animated = 0; animated < 2; animated++)
+			{
+				for (const auto& bucket : skinMesh->Buckets)
+				{
+					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+						continue;
+
+					SetBlendMode(BlendMode::Opaque);
+					SetCullMode(CullMode::CounterClockwise);
+					SetDepthState(DepthState::Write);
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					if (bucket.BlendMode != BlendMode::Opaque)
+						SetBlendMode(bucket.BlendMode, true);
+
+					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					_numMoveablesDrawCalls++;
+				}
+			}
+		}
+
+		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+			_stItem.BonesMatrices[i] = Matrix::Identity;
+
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
 			if (meshBits && !(meshBits & (1 << i)))
+				continue;
+
+			if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
 				continue;
 
 			// HACK: Rotate compass needle.
 			if (objectNumber == ID_COMPASS_ITEM && i == 1)
 				moveableObject->LinearizedBones[i]->ExtraRotation = EulerAngles(0, g_Gui.CompassNeedleAngle - ANGLE(180.0f), 0).ToQuaternion();
 
-			_shaders.Bind(Shader::Inventory);
-
-			// Construct world matrix.
-			auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
-			auto rotMatrix = orient.ToRotationMatrix();
-			auto scaleMatrix = Matrix::CreateScale(scale);
-			auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
-
-			if (object.animIndex != NO_VALUE)
+			if (!object.Animations.empty())
 			{
 				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
@@ -883,8 +936,6 @@ namespace TEN::Renderer
 			}
 
 			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
-			_stItem.Color = Vector4::One;
-			_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
 
@@ -894,7 +945,7 @@ namespace TEN::Renderer
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
 			for (int animated = 0; animated < 2; animated++)
-			{				
+			{
 				for (const auto& bucket : mesh.Buckets)
 				{
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
@@ -1345,8 +1396,8 @@ namespace TEN::Renderer
 		case RendererDebugPage::PlayerStats:
 			PrintDebugMessage("PLAYER STATS");
 			PrintDebugMessage("AnimObjectID: %d", playerItem.Animation.AnimObjectID);
-			PrintDebugMessage("AnimNumber: %d", playerItem.Animation.AnimNumber - Objects[playerItem.Animation.AnimObjectID].animIndex);
-			PrintDebugMessage("FrameNumber: %d", playerItem.Animation.FrameNumber - GetAnimData(LaraItem).frameBase);
+			PrintDebugMessage("AnimNumber: %d", playerItem.Animation.AnimNumber);
+			PrintDebugMessage("FrameNumber: %d", playerItem.Animation.FrameNumber);
 			PrintDebugMessage("ActiveState: %d", playerItem.Animation.ActiveState);
 			PrintDebugMessage("TargetState: %d", playerItem.Animation.TargetState);
 			PrintDebugMessage("Velocity: %.3f, %.3f, %.3f", playerItem.Animation.Velocity.z, playerItem.Animation.Velocity.y, playerItem.Animation.Velocity.x);

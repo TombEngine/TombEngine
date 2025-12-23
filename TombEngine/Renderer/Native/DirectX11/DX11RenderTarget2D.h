@@ -2,7 +2,6 @@
 
 #ifdef SDL_PLATFORM_WIN32
 
-#include <vector>
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
@@ -15,29 +14,31 @@ namespace TEN::Renderer::Native::DirectX11
 	using namespace TEN::Renderer::Utils;
 	using Microsoft::WRL::ComPtr;
 
+	// NOTE: Texture array is supported and so it's possible to have multiple views.
+	// In most situations, however, the vector of the views is just one element.
 	class DX11RenderTarget2D : public IRenderTarget2D
 	{
 	private:
-		int _width;
-		int _height;
-		ComPtr<ID3D11Texture2D> _texture;
-		ComPtr<ID3D11ShaderResourceView> _shaderResourceView;
-		std::vector<ComPtr<ID3D11RenderTargetView>> _renderTargetViews;
+		int                                         _width              = 0;
+		int                                         _height             = 0;
+		ComPtr<ID3D11Texture2D>                     _texture            = {};
+		ComPtr<ID3D11ShaderResourceView>            _shaderResourceView = {};
+		std::vector<ComPtr<ID3D11RenderTargetView>> _renderTargetViews  = {};
 
 	public:
 		DX11RenderTarget2D() = default;
 		~DX11RenderTarget2D() = default;
 		
-		int GetWidth() override { return _width; }
-		int GetHeight() override { return _height; }
-		int GetArraySize() override { return (int)_renderTargetViews.size(); }
-		ID3D11RenderTargetView* GetD3D11RenderTargetView(int arrayIndex) const noexcept { return _renderTargetViews[arrayIndex].Get(); }
-		ID3D11RenderTargetView* GetD3D11RenderTargetView() const noexcept { return GetD3D11RenderTargetView(0); }
+		int                       GetWidth() override { return _width; }
+		int                       GetHeight() override { return _height; }
+		int                       GetArraySize() override { return (int)_renderTargetViews.size(); }
+		ID3D11RenderTargetView*   GetD3D11RenderTargetView(int arrayIndex) const noexcept { return _renderTargetViews[arrayIndex].Get(); }
+		ID3D11RenderTargetView*   GetD3D11RenderTargetView() const noexcept { return GetD3D11RenderTargetView(0); }
 		ID3D11ShaderResourceView* GetD3D11ShaderResourceView() const noexcept { return _shaderResourceView.Get(); }
-		ID3D11Texture2D* GetD3D11Texture() const noexcept { return _texture.Get(); }
-		bool IsValid() override { return _texture != nullptr; }
+		ID3D11Texture2D*          GetD3D11Texture() const noexcept { return _texture.Get(); }
+		bool                      IsValid() override { return _texture != nullptr; }
 
-		// Default constructor
+		// Default constructor.
 		DX11RenderTarget2D(ID3D11Device* device, int width, int height, DXGI_FORMAT colorFormat, bool isTypeless)
 		{
 			HRESULT res;
@@ -45,8 +46,8 @@ namespace TEN::Renderer::Native::DirectX11
 			_width = width;
 			_height = height;
 			
-			// Texture
-			D3D11_TEXTURE2D_DESC desc = {};
+			// Texture.
+			auto desc = D3D11_TEXTURE2D_DESC{};
 			desc.Width = width;
 			desc.Height = height;
 			desc.MipLevels = 1;
@@ -62,103 +63,103 @@ namespace TEN::Renderer::Native::DirectX11
 			res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
 			throwIfFailed(res);
 			
-			// RTV
-			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-			rtvDesc.Format = colorFormat;
-			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			rtvDesc.Texture2D.MipSlice = 0;
+			// Render target view.
+			auto renderTargetViewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
+			renderTargetViewDesc.Format = colorFormat;
+			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-			ComPtr<ID3D11RenderTargetView> rtv;
-			res = device->CreateRenderTargetView(_texture.Get(), &rtvDesc, rtv.GetAddressOf());
+			auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
+			res = device->CreateRenderTargetView(_texture.Get(), &renderTargetViewDesc, renderTargetView.GetAddressOf());
 			throwIfFailed(res);
-			_renderTargetViews.push_back(rtv); // copy -> AddRef (ok)
+			_renderTargetViews.push_back(renderTargetView); // copy -> AddRef (ok)
 
-			// SRV
-			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = colorFormat;
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			srvDesc.Texture2D.MostDetailedMip = 0;
-			srvDesc.Texture2D.MipLevels = 1;
+			// Shader resource view.
+			auto shaderResourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
+			shaderResourceViewDesc.Format = colorFormat;
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+			shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 			_shaderResourceView.Reset();
-			res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
+			res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
 			throwIfFailed(res);
 		}
 
-		// Used by SMAA because it needs to have two render targets with same texture
+		// Used by SMAA because it needs to have two render targets with the same texture.
 		DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, DXGI_FORMAT colorFormat)
 		{
 			HRESULT res;
 
-			// Copy ComPtr from parent
+			// Copy ComPtr from parent.
 			texture->AddRef();
 			_texture.Attach(texture);
 
-			// RTV with different format
-			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-			rtvDesc.Format = colorFormat;
-			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			rtvDesc.Texture2D.MipSlice = 0;
+			// RTV with different format.
+			auto renderTargetViewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
+			renderTargetViewDesc.Format = colorFormat;
+			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-			ComPtr<ID3D11RenderTargetView> rtv;
-			res = device->CreateRenderTargetView(_texture.Get(), &rtvDesc, rtv.GetAddressOf());
+			auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
+			res = device->CreateRenderTargetView(_texture.Get(), &renderTargetViewDesc, renderTargetView.GetAddressOf());
 			throwIfFailed(res);
-			_renderTargetViews.push_back(rtv);
+			_renderTargetViews.push_back(renderTargetView);
 
-			// SRV
-			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = colorFormat;
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			srvDesc.Texture2D.MostDetailedMip = 0;
-			srvDesc.Texture2D.MipLevels = 1;
+			// Shader resource view.
+			auto shaderResourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
+			shaderResourceViewDesc.Format = colorFormat;
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+			shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 			_shaderResourceView.Reset();
-			res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
+			res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
 			throwIfFailed(res);
 		}
 
-		// Constructor for the backbuffer only
+		// Constructor for the backbuffer only.
 		DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* textureRaw)
 		{
 			HRESULT res;
 
-			// Copy ComPtr from parent
+			// Copy ComPtr from parent.
 			textureRaw->AddRef();
 			_texture.Attach(textureRaw);
 
-			// RTV
-			D3D11_TEXTURE2D_DESC tdesc = {};
-			_texture->GetDesc(&tdesc);
+			// Render target view.
+			auto texDesc = D3D11_TEXTURE2D_DESC{};
+			_texture->GetDesc(&texDesc);
 
-			_width = tdesc.Width;
-			_height = tdesc.Height;
+			_width = texDesc.Width;
+			_height = texDesc.Height;
 
 			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-			rtvDesc.Format = tdesc.Format;
+			rtvDesc.Format = texDesc.Format;
 			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 			rtvDesc.Texture2D.MipSlice = 0;
 
-			ComPtr<ID3D11RenderTargetView> rtv;
-			res = device->CreateRenderTargetView(_texture.Get(), &rtvDesc, rtv.GetAddressOf());
+			auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
+			res = device->CreateRenderTargetView(_texture.Get(), &rtvDesc, renderTargetView.GetAddressOf());
 			throwIfFailed(res);
-			_renderTargetViews.push_back(rtv);
+			_renderTargetViews.push_back(renderTargetView);
 
-			// SRV
-			if (tdesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+			// Shader resource view.
+			if (texDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
 			{
-				D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Format = tdesc.Format;
-				srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.Texture2D.MipLevels = 1;
+				auto shaderResourceViewDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
+				shaderResourceViewDesc.Format = texDesc.Format;
+				shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+				shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+				shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 				_shaderResourceView.Reset();
-				res = device->CreateShaderResourceView(_texture.Get(), &srvDesc, _shaderResourceView.GetAddressOf());
+				res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
 				throwIfFailed(res);
 			}
 		}
 
-		// Texture array
+		// Texture array.
 		DX11RenderTarget2D(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT colorFormat)
 		{
 			HRESULT res;
@@ -166,7 +167,7 @@ namespace TEN::Renderer::Native::DirectX11
 			_width = width;
 			_height = height;
 
-			D3D11_TEXTURE2D_DESC desc = {};
+			auto desc = D3D11_TEXTURE2D_DESC{};
 			desc.Width = width;
 			desc.Height = height;
 			desc.MipLevels = 1;
@@ -182,23 +183,23 @@ namespace TEN::Renderer::Native::DirectX11
 			res = device->CreateTexture2D(&desc, NULL, _texture.GetAddressOf());
 			throwIfFailed(res);
 
-			// RTV
-			D3D11_RENDER_TARGET_VIEW_DESC viewDesc = {};
+			// Render target view.
+			auto viewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
 			viewDesc.Format = desc.Format;
 			viewDesc.Texture2DArray.ArraySize = 1;
 			viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 
 			for (int i = 0; i < count; i++)
 			{
-				ComPtr<ID3D11RenderTargetView> rtv;
+				auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
 				viewDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
-				res = device->CreateRenderTargetView(_texture.Get(), &viewDesc, rtv.GetAddressOf());
+				res = device->CreateRenderTargetView(_texture.Get(), &viewDesc, renderTargetView.GetAddressOf());
 				throwIfFailed(res);
-				_renderTargetViews.push_back(rtv);
+				_renderTargetViews.push_back(renderTargetView);
 			}
 
-			// SRV
-			D3D11_SHADER_RESOURCE_VIEW_DESC shaderDesc = {};
+			// Shader resource view.
+			auto shaderDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
 			shaderDesc.Format = desc.Format;
 			shaderDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 			shaderDesc.Texture2DArray.MostDetailedMip = 0;

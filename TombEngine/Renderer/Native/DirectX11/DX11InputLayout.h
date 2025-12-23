@@ -8,7 +8,6 @@
 #include "Renderer/Structures/RendererInputLayout.h"
 #include "Renderer/Native/DirectX11/DX11Shader.h"
 #include <wrl/client.h>
-#include <vector>
 
 namespace TEN::Renderer::Native::DirectX11
 {
