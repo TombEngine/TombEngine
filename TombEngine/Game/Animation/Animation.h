@@ -39,15 +39,14 @@ namespace TEN::Animation
 
 	struct StateDispatchData
 	{
-		int StateID             = 0;
-		int FrameNumberLow      = 0;
-		int FrameNumberHigh     = 0;
-		int NextAnimNumber      = 0;
-		int NextFrameNumberLow  = 0;
-		int NextFrameNumberHigh = 0;
-
-		int          BlendFrameCount = 0;
-		BezierCurve2 BlendCurve      = BezierCurve2::Zero;
+		int          StateID             = 0;
+		int          FrameNumberLow      = 0;
+		int          FrameNumberHigh     = 0;
+		int          NextAnimNumber      = 0;
+		int          NextFrameNumberLow  = 0;
+		int          NextFrameNumberHigh = 0;
+		int          BlendFrameCount     = 0;
+		BezierCurve2 BlendCurve          = BezierCurve2::Zero;
 	};
 
 	struct FixedMotionData
