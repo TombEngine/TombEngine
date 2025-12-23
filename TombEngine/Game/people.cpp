@@ -151,7 +151,7 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	// Restore collidability.
 	item->Collidable = collidable;
 
-	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
+	return (LOS(&origin, &target) && (losItemIndex == NO_LOS_ITEM || losItemIndex == enemy->Index) && mesh == nullptr);
 }
 
 bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)

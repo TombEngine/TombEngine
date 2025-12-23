@@ -206,6 +206,7 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyObjectIds, bool ignoreKeyObjectIds)
 {
 	auto& creature = *GetCreatureInfo(&item);
+	creature.Enemy = nullptr;
 
 	float closestDistSqr = FLT_MAX;
 	for (auto creatureIndex : ActiveCreatures)
@@ -217,6 +218,10 @@ void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyO
 
 		// Ignore or specifically target key object IDs.
 		if (!keyObjectIds.empty() && (ignoreKeyObjectIds ? Contains(keyObjectIds, targetItem.ObjectNumber) : !Contains(keyObjectIds, targetItem.ObjectNumber)))
+			continue;
+
+		// Ignore undead enemies.
+		if (Objects[targetItem.ObjectNumber].damageType != DamageMode::Any)
 			continue;
 
 		if (&targetItem != &item && targetItem.HitPoints > 0 && targetItem.Status != ITEM_INVISIBLE)
