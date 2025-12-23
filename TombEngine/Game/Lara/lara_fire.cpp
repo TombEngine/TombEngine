@@ -64,6 +64,7 @@ const auto FlarePoseStates = std::vector<int>
 	LS_CROUCH_IDLE,
 	LS_CROUCH_TURN_LEFT,
 	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180,
 	LS_SOFT_SPLAT
 };
 

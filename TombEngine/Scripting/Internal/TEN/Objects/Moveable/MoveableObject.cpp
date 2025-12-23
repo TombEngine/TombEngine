@@ -286,6 +286,7 @@ void Moveable::SetObjectID(GAME_OBJECT_ID id)
 {
 	_moveable->ObjectNumber = id;
 	_moveable->ResetModelToDefault();
+	SetAnimation(_moveable, 0);
 }
 
 void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify)

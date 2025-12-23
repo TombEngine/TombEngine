@@ -267,23 +267,22 @@ void DrawFlare(ItemInfo& laraItem)
 					TestEnvironment(ENV_FLAG_WATER, &laraItem) ? SoundEnvironment::Underwater : SoundEnvironment::Land);
 			}
 
+			g_Renderer.UpdateLaraAnimations(true);
 			DoFlareInHand(laraItem, player.Flare.Life);
 		}
 		else
 		{
-			if (armFrame == 94) // Anim 4, start frame.
+			if (armFrame == 94) // Anim 3, end frame.
 			{
 				ReadyFlare(laraItem);
 				armFrame = 0;
+				g_Renderer.UpdateLaraAnimations(true);
 				DoFlareInHand(laraItem, player.Flare.Life);
 			}
 		}
 
 		player.LeftArm.FrameNumber = armFrame;
 		SetFlareArm(laraItem, armFrame);
-
-		// HACK: Solve problems with incorrect particle orientation. -- Lwmte, 08.06.2025
-		g_Renderer.UpdateLaraAnimations(true);
 	}
 }
 

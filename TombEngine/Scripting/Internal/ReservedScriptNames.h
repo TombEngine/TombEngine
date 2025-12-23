@@ -591,6 +591,7 @@ constexpr char ScriptReserved_Vec2Translate[]		= "Translate";
 constexpr char ScriptReserved_Vec3[]				= "Vec3";
 constexpr char ScriptReserved_Vec3Cross[]			= "Cross";
 constexpr char ScriptReserved_Vec3Distance[]		= "Distance";
+constexpr char ScriptReserved_Vec3Direction[]		= "Direction";
 constexpr char ScriptReserved_Vec3Dot[]				= "Dot";
 constexpr char ScriptReserved_Vec3Length[]			= "Length";
 constexpr char ScriptReserved_Vec3Lerp[]			= "Lerp";

@@ -127,6 +127,7 @@ static void HandlePlayerOpticAnimations(ItemInfo& item)
 		item.Model.MeshIndex[LM_RHAND] = Objects[objNumber].meshIndex + LM_RHAND;
 
 		player.Control.HandStatus = HandStatus::Free;
+		player.LeftArm.AnimObjectID = player.RightArm.AnimObjectID = ID_LARA;
 	}
 	
 	player.LeftArm.Locked =
