@@ -88,12 +88,22 @@ namespace TEN::Hud
 
 	void DisplayItem::SetAnimation(int animation)
 	{
-		_animNumber = animation;
+		const auto& object = Objects[_objectID];
+		
+		if (animation >= 0 && animation < object.Animations.size())
+			_animNumber = animation;
+		else
+			_animNumber = 0;
 	}
 
 	void DisplayItem::SetFrame(int frame)
-	{
-		_frameNumber = frame;
+	{	
+		auto endFrame = GetEndFrame();
+
+		if (frame <= endFrame)
+			_frameNumber = frame;
+		else
+			_frameNumber = endFrame;
 	}
 
 	std::string DisplayItem::GetName() const
@@ -168,6 +178,12 @@ namespace TEN::Hud
 	int DisplayItem::GetFrame() const
 	{
 		return _frameNumber;
+	}
+
+	int DisplayItem::GetEndFrame() const
+	{
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		return (anim.EndFrameNumber);
 	}
 
 	int DisplayItem::GetPreviousFrame() const

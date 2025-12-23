@@ -70,6 +70,7 @@ namespace TEN::Hud
 
 		int GetAnimation() const;
 		int GetFrame() const;
+		int GetEndFrame() const;
 		int GetPreviousFrame() const;
 
 		// Interpolation Helpers

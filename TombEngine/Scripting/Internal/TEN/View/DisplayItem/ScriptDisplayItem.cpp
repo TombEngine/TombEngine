@@ -529,8 +529,7 @@ namespace TEN::Scripting::DisplayItem
 	}
 
 	/// Set frame number from an animation.
-	// This will set the specified animation to the given frame.Performs no bounds checking. *Ensure the number given is correct, else
-	// DisplayItem may end up in corrupted animation state.*
+	// This will set the specified animation to the given frame.
 	// The number of frames in an animation can be seen under the heading "End frame" in
 	// the WadTool animation editor.
 	// @function DisplayItem:SetFrame
@@ -548,18 +547,8 @@ namespace TEN::Scripting::DisplayItem
 
 		if (item)
 		{
-			auto endFrameOpt = GetEndFrame();
-
-			if (!endFrameOpt.has_value())
-				return;
-
-			int endFrame = endFrameOpt.value();
-
 			item->SetAnimation(animIndex);
-			if (frame <= endFrame)
-				item->SetFrame(frame);
-			else
-				item->SetFrame(endFrame);
+			item->SetFrame(frame);
 		}
 	}
 
@@ -796,8 +785,7 @@ namespace TEN::Scripting::DisplayItem
 		if (!item)
 			return sol::nullopt;
 		
-		const auto& anim = GetAnimData(item->GetObjectID(), item->GetAnimation());
-		return (anim.EndFrameNumber);
+		return item->GetEndFrame();
 	}
 
 	///Get the 2D projected bounding box of this DisplayItem.
