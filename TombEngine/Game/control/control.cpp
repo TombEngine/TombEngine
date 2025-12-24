@@ -812,6 +812,7 @@ GameStatus HandleMenuCalls(bool isTitle)
 	}
 
 	bool playerAlive = LaraItem->HitPoints > 0;
+	bool inventoryEnabled = g_GameFlow->GetSettings()->Gameplay.EnableInventory;
 	
 	bool doLoad      = IsClicked(In::Load) || 
 					   (!IsClicked(In::Inventory) && !NoAction() && SaveGame::IsLoadGamePossible() && Lara.Control.Count.Death > DEATH_INPUT_TIMEOUT);
@@ -820,13 +821,13 @@ GameStatus HandleMenuCalls(bool isTitle)
 	bool doInventory = (IsClicked(In::Inventory) || g_Gui.GetEnterInventory() != NO_VALUE) && playerAlive;
 
 	// Handle inventory.
-	if (doSave && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasSave && g_Gui.GetInventoryMode() != InventoryMode::Save && g_GameFlow->GetSettings()->Gameplay.InventoryEnabled)
+	if (doSave && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasSave && g_Gui.GetInventoryMode() != InventoryMode::Save && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Save);
 		g_Gui.CallInventory(LaraItem, false);
 	}
-	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && g_GameFlow->GetSettings()->Gameplay.InventoryEnabled)
+	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Load);
@@ -838,7 +839,7 @@ GameStatus HandleMenuCalls(bool isTitle)
 		if (g_Gui.CallPause())
 			gameStatus = GameStatus::ExitToTitle;
 	}
-	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars && g_GameFlow->GetSettings()->Gameplay.InventoryEnabled)
+	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars && inventoryEnabled)
 	{
 
 		if (g_Gui.CallInventory(LaraItem, true))

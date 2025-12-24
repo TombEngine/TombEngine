@@ -27,7 +27,7 @@ local settings = Flow.Settings.new()
 	settings.Flare.pickupCount = 12
 	
 	settings.Gameplay.targetObjectOcclusion = true
-	settings.Gameplay.inventoryEnabled = true
+	settings.Gameplay.enableInventory = true
 
 	settings.Graphics.skinning = true
 	

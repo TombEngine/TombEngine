@@ -42,6 +42,9 @@ namespace TEN::Hud
 		int _prevFrameNumber = 0;
 
 	public:
+		DisplayItem() = default;
+		DisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& rot, const Vector3& scale);
+
 		void SetName(std::string itemName);
 		void SetObjectID(GAME_OBJECT_ID objectID);
 		void SetPosition(const Vector3& newPos, bool disableInterpolation);

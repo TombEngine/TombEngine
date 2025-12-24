@@ -34,13 +34,9 @@ namespace TEN::Hud
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
 			return;
 
-		DisplayItem newItem;
-			newItem.SetName(itemName);
-			newItem.SetObjectID(objectID);
-			newItem.SetPosition(position, true);
-			newItem.SetRotation(rotation, true);
-			newItem.SetScale(scale, true);
-			newItem.SetMeshBits(meshBits);
+		auto newItem = DisplayItem(itemName, objectID, position, rotation, scale);
+		newItem.SetMeshBits(meshBits);
+
 		_displayItems.push_back(newItem);
 	}
 

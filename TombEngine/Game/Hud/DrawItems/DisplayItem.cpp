@@ -11,6 +11,10 @@ using namespace TEN::Math;
 
 namespace TEN::Hud
 {
+	DisplayItem::DisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& rot, const Vector3& scale)
+		: _itemName(name), _objectID(objectID), _position(pos), _orientation(rot), _scale(scale), _prevPosition(pos), _prevOrientation(rot), _prevScale(scale)
+	{ }
+
 	void DisplayItem::SetName(std::string itemName)
 	{
 		_itemName = itemName;
