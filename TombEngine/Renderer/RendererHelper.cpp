@@ -694,7 +694,7 @@ namespace TEN::Renderer
 		float t = GetInterpolationFactor();
 
 		// World transforms
-		Vector3 pos = item.GetInterpolatedPosition(t);
+		auto pos    = item.GetInterpolatedPosition(t);
 		auto orient = item.GetInterpolatedOrientation(t);
 		float scale = item.GetInterpolatedScale(t).x;
 		auto objectNumber = item.GetObjectID();
@@ -703,16 +703,17 @@ namespace TEN::Renderer
 		auto& moveable = _moveableObjects[item.GetObjectID()];
 
 		float maxRadius = 0.0f;
-		Vector3 worldCenter = Vector3::Zero;
+		auto worldCenter = Vector3::Zero;
 
 		const auto& object = Objects[objectNumber];
 
 		// Loop through meshes
 		for (int i = 0; i < moveable->ObjectMeshes.size(); ++i)
 		{
-			if (item.GetMeshBits() && !item.GetMeshVisibility(i)) continue;
+			if (item.GetMeshBits() && !item.GetMeshVisibility(i))
+				continue;
 
-			const BoundingSphere& s = moveable->ObjectMeshes[i]->Sphere;
+			const auto& s = moveable->ObjectMeshes[i]->Sphere;
 
 			// World matrix per mesh (animation or bind-pose)
 			Matrix meshWorld;
@@ -722,7 +723,7 @@ namespace TEN::Renderer
 				meshWorld = moveable->BindPoseTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
 
 			// Transform center
-			Vector3 meshWorldCenter = Vector3::Transform(s.Center, meshWorld);
+			auto meshWorldCenter = Vector3::Transform(s.Center, meshWorld);
 			float meshWorldRadius = s.Radius * scale;
 
 			// Keep largest for bounding approximation
@@ -738,14 +739,14 @@ namespace TEN::Renderer
 			maxRadius = 10.0f;
 
 		// Build camera matrices
-		Vector3 camPos = g_DrawItems.GetInterpolatedCameraPosition(t);
-		Vector3 camTarget = g_DrawItems.GetInterpolatedCameraTargetPosition(t);
-		Vector3 camForward = (camTarget - camPos);
+		auto camPos = g_DrawItems.GetInterpolatedCameraPosition(t);
+		auto camTarget = g_DrawItems.GetInterpolatedCameraTargetPosition(t);
+		auto camForward = (camTarget - camPos);
 		camForward.Normalize();
-		Vector3 worldUp = Vector3::Up;
-		Vector3 camRight = camForward.Cross(worldUp);
+		auto worldUp = Vector3::Up;
+		auto camRight = camForward.Cross(worldUp);
 		camRight.Normalize();
-		Vector3 camUp = camRight.Cross(camForward);
+		auto camUp = camRight.Cross(camForward);
 		camUp.Normalize();
 
 		// Calculate distance from camera
@@ -753,21 +754,21 @@ namespace TEN::Renderer
 
 		// Build view-projection matrix
 		float aspectRatio = (float)_screenWidth / _screenHeight;
-		Matrix viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
-		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
-		Matrix viewProj = viewMatrix * projMatrix;
+		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto viewProj = viewMatrix * projMatrix;
 
 		// Helper lambda to project point and clamp to extended screen bounds
 		auto projectPointClamped = [&](const Vector3& worldPos) -> Vector2
 		{
-			Vector4 p(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+			auto p = Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
 			p = Vector4::Transform(p, viewProj);
 
 			// Handle behind camera or w near zero
 			if (p.w <= 0.01f)
 			{
 				// Use estimated position based on direction
-				Vector3 dir = worldPos - camPos;
+				auto dir = worldPos - camPos;
 				dir.Normalize();
 				
 				// Project direction onto screen plane
@@ -794,18 +795,18 @@ namespace TEN::Renderer
 		};
 
 		// Project center
-		Vector2 center2D = projectPointClamped(worldCenter);
+		auto center2D = projectPointClamped(worldCenter);
 
 		// Sample points along camera right/up directions
-		Vector3 rightWorld = worldCenter + camRight * maxRadius;
-		Vector3 leftWorld = worldCenter - camRight * maxRadius;
-		Vector3 upWorld = worldCenter + camUp * maxRadius;
-		Vector3 downWorld = worldCenter - camUp * maxRadius;
+		auto rightWorld = worldCenter + camRight * maxRadius;
+		auto leftWorld = worldCenter - camRight * maxRadius;
+		auto upWorld = worldCenter + camUp * maxRadius;
+		auto downWorld = worldCenter - camUp * maxRadius;
 
-		Vector2 rightProj = projectPointClamped(rightWorld);
-		Vector2 leftProj = projectPointClamped(leftWorld);
-		Vector2 upProj = projectPointClamped(upWorld);
-		Vector2 downProj = projectPointClamped(downWorld);
+		auto rightProj = projectPointClamped(rightWorld);
+		auto leftProj = projectPointClamped(leftWorld);
+		auto upProj = projectPointClamped(upWorld);
+		auto downProj = projectPointClamped(downWorld);
 
 		// Calculate half extents from projected points
 		float halfWidth = std::max(std::abs(rightProj.x - center2D.x), std::abs(leftProj.x - center2D.x));
@@ -825,7 +826,7 @@ namespace TEN::Renderer
 		halfWidth = std::max(halfWidth, 1.0f);
 		halfHeight = std::max(halfHeight, 1.0f);
 
-		Vector2 halfExtents(halfWidth * 2.0f, halfHeight * 2.0f);
+		auto halfExtents = Vector2(halfWidth * 2.0f, halfHeight * 2.0f);
 		return std::make_pair(center2D, halfExtents);
 	}
 }
