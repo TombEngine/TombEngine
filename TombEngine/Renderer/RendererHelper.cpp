@@ -666,8 +666,8 @@ namespace TEN::Renderer
 		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(
 			CurrentFOV,
 			aspectRatio,
-			0.1f,
-			BLOCK(100)
+			DISPLAY_ITEM_NEAR_PLANE,
+			DISPLAY_ITEM_FAR_PLANE
 		);
 
 		Matrix viewProj = viewMatrix * projMatrix;
@@ -689,8 +689,7 @@ namespace TEN::Renderer
 		return Vector2(screenX, screenY);
 	}
 
-	std::optional<std::pair<Vector2, Vector2>>
-		Renderer::GetDisplayItemBounds(const DisplayItem& item) const
+	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
 	{
 		float t = GetInterpolationFactor();
 
@@ -755,7 +754,7 @@ namespace TEN::Renderer
 		// Build view-projection matrix
 		float aspectRatio = (float)_screenWidth / _screenHeight;
 		Matrix viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
-		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, 0.1f, BLOCK(100));
+		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 		Matrix viewProj = viewMatrix * projMatrix;
 
 		// Helper lambda to project point and clamp to extended screen bounds
