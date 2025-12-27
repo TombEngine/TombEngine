@@ -67,13 +67,7 @@ namespace TEN::Entities::Traps
 			// Impale floor.
 			if ((pointColl.GetFloorHeight() - vPos) <= DAMOCLES_SWORD_IMPALE_DEPTH && item.Animation.TargetState != 3)
 			{
-				item.Animation.TargetState = 3;
-
-			}
-
-			if (item.Animation.AnimNumber == GetAnimIndex(item, 2) &&
-				item.Animation.FrameNumber == GetAnimData(item).frameEnd)
-			{
+				//item.Animation.TargetState = 3;
 				SoundEffect(SFX_TR1_DAMOCLES_ROOM_SWORD, &item.Pose);
 				float distance = Vector3::Distance(item.Pose.Position.ToVector3(), Camera.pos.ToVector3());
 				Camera.bounce = -((BLOCK(7.0f / 2) - distance) * abs(item.Animation.Velocity.y)) / BLOCK(7.0f / 2);
@@ -83,6 +77,12 @@ namespace TEN::Entities::Traps
 				item.ItemFlags[0] = 0;
 
 				RemoveActiveItem(itemNumber);
+			}
+
+			if (item.Animation.AnimNumber == GetAnimIndex(item, 2) &&
+				item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+			{
+
 			}
 			
 			return;
