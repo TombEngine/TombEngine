@@ -21,7 +21,7 @@ namespace TEN::Entities::Traps
 	// ItemFlags[0] = random turn rate when active.
 	// ItemFlags[1] = calculated forward velocity.
 
-	constexpr auto DAMOCLES_SWORD_DAMAGE = 100;
+	constexpr auto DAMOCLES_SWORD_DAMAGE = 100;//200
 
 	constexpr auto DAMOCLES_SWORD_VELOCITY_MIN = BLOCK(1 / 20.0f);
 	constexpr auto DAMOCLES_SWORD_VELOCITY_MAX = BLOCK(1 / 8.0f);
@@ -37,7 +37,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		int sign = Random::TestProbability(0.5f) ? 1 : -1;
+		int sign = Random::TestProbability(0.5f) ? 1 : -1; 
 
 		item.Pose.Orientation.y = Random::GenerateAngle();
 		item.Animation.Velocity.y = DAMOCLES_SWORD_VELOCITY_MIN;
