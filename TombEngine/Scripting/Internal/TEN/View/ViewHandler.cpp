@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/effects/weather.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/Optics.h"
 #include "Game/spotcam.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Internal/LuaHandler.h"
@@ -16,6 +17,7 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/View/AlignModes.h"
 #include "Scripting/Internal/TEN/View/CameraTypes.h"
+#include "Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.h"
 #include "Scripting/Internal/TEN/View/DisplaySprite/ScriptDisplaySprite.h"
 #include "Scripting/Internal/TEN/View/ScaleModes.h"
 #include "Scripting/Internal/TEN/View/PostProcessEffects.h"
@@ -25,6 +27,7 @@
 
 using namespace TEN::Effects::Environment;
 using namespace TEN::Scripting::DisplaySprite;
+using namespace TEN::Scripting::DisplayItem;
 using namespace TEN::Scripting::View;
 using namespace TEN::Utils;
 using namespace TEN::Video;
@@ -217,6 +220,12 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
+	static void UseBinoculars()
+	{
+		auto& item = *LaraItem;
+		g_Gui.UseBinoculars(item);
+	}
+
 	void Register(sol::state* state, sol::table& parent)
 	{
 		auto tableView = sol::table(state->lua_state(), sol::create);
@@ -363,6 +372,10 @@ namespace TEN::Scripting::View
 		// @treturn float Display resolution's aspect ratio.
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
 
+		/// Sets the view to binoculars mode.
+		// @function UseBinoculars
+		tableView.set_function(ScriptReserved_UseBinoculars, &UseBinoculars);
+
 		// COMPATIBILITY
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
@@ -371,6 +384,7 @@ namespace TEN::Scripting::View
 
 		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
+		ScriptDisplayItem::Register(*state, tableView);
 
 		// Register enums.
 		auto handler = LuaHandler(state);
