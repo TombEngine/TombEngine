@@ -130,4 +130,22 @@ namespace TEN::Math
 		auto result = Screen(Vector3(ambient), Vector3(tint));
 		return Vector4(result.x, result.y, result.z, ambient.w * tint.w);
 	}
+
+	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c)
+	{
+		return c;
+
+		/*
+		auto to8 = [](float v) -> unsigned int {
+			float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
+			return static_cast<unsigned int>(std::lround(x));
+			};
+
+		unsigned int R = to8(c.x);
+		unsigned int G = to8(c.y);
+		unsigned int B = to8(c.z);
+		unsigned int A = to8(c.w);
+
+		return (R) | (G << 8) | (B << 16) | (A << 24);*/
+	}
 }

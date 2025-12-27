@@ -453,7 +453,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->Initialize = InitializeFishSwarm;
 		obj->control = ControlFishSwarm;
 		obj->intelligent = true;
-		obj->drawRoutine = nullptr;
+		obj->Hidden = true;
 	}
 }
 
@@ -589,7 +589,6 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->Initialize = InitializeRubberBoat;
 		obj->control = RubberBoatControl;
 		obj->collision = RubberBoatPlayerCollision;
-		obj->drawRoutine = DrawRubberBoat;
 		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
@@ -639,7 +638,7 @@ static void StartProjectiles(ObjectInfo* obj)
 {
 	obj = &Objects[ID_TONY_BOSS_FLAME];
 	obj->control = ControlTonyFireBall;
-	obj->drawRoutine = nullptr;
+	obj->Hidden = true;
 }
 
 void InitializeTR3Objects()

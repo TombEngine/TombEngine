@@ -7,18 +7,14 @@ namespace TEN::Renderer::ConstantBuffers
 {
 	using namespace DirectX::SimpleMath;
 
-	struct alignas(16) CStaticBuffer
+	struct alignas(16) CSkyBuffer
 	{
 		Matrix World;
 		//--
 		Vector4 Color;
 		//--
-		Vector4 AmbientLight;
+		Vector4 Ambient;
 		//--
-		ShaderLight Lights[MAX_LIGHTS_PER_ITEM];
-		//--
-		int NumLights;
-		int LightMode;
-		int ApplyFogBulbs; // Used only by sky
+		int ApplyFogBulbs;
 	};
 }

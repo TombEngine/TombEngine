@@ -1,21 +1,24 @@
 #include "framework.h"
 #include "Game/collision/collide_room.h"
 
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/los.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/animation.h"
 #include "Game/Lara/lara.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
+#include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 void ShiftItem(ItemInfo* item, CollisionInfo* coll)
 {
@@ -26,7 +29,7 @@ void ShiftItem(ItemInfo* item, CollisionInfo* coll)
 
 void SnapItemToLedge(ItemInfo* item, CollisionInfo* coll, float offsetMultiplier, bool snapToAngle)
 {
-	TranslateItem(item, coll->NearestLedgeAngle, coll->NearestLedgeDistance + (coll->Setup.Radius * offsetMultiplier));
+	item->Pose.Translate(coll->NearestLedgeAngle, coll->NearestLedgeDistance + (coll->Setup.Radius * offsetMultiplier));
 	item->Pose.Orientation = EulerAngles(
 		0,
 		snapToAngle ? coll->NearestLedgeAngle : item->Pose.Orientation.y,
@@ -43,7 +46,7 @@ void SnapItemToLedge(ItemInfo* item, CollisionInfo* coll, short angle, float off
 
 	coll->Setup.ForwardAngle = backup;
 
-	TranslateItem(item, ledgeAngle, distance + (coll->Setup.Radius * offsetMultiplier));
+	item->Pose.Translate(ledgeAngle, distance + (coll->Setup.Radius * offsetMultiplier));
 	item->Pose.Orientation = EulerAngles(0, ledgeAngle, 0);
 }
 
@@ -91,12 +94,12 @@ int FindGridShift(int x, int z)
 // Test if the axis-aligned bounding box collides with geometry at all.
 bool TestItemRoomCollisionAABB(ItemInfo* item)
 {
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
 	auto box = bounds + item->Pose;
 	short maxY = std::min(box.Y1, box.Y2);
 	short minY = std::max(box.Y1, box.Y2);
 
-	auto test = [item](short x, short y, short z, bool floor)
+	auto test = [item](int x, int y, int z, bool floor)
 	{
 		auto pointColl = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
 		
@@ -187,7 +190,7 @@ static void HandleDiagonalShift(ItemInfo& item, CollisionInfo& coll, const Vecto
 	// HACK: Force slight push left to avoid getting stuck.
 	float alpha = 1.0f - ((float)deltaAngle / (float)ANGLE(90.0f));
 	if (alpha >= 0.5f)
-		TranslateItem(&item, perpSplitAngle, item.Animation.Velocity.z * alpha);
+		item.Pose.Translate(perpSplitAngle, item.Animation.Velocity.z * alpha);
 
 	// Set shift.
 	coll.Shift.Position.x += coll.Setup.PrevPosition.x - pos.x;
@@ -738,6 +741,12 @@ int GetQuadrant(short angle)
 	return (unsigned short(angle + ANGLE(45.0f)) / ANGLE(90.0f));
 }
 
+bool TestNeighborRooms(int roomNumber0, int roomNumber1)
+{
+	const auto& room0 = g_Level.Rooms[roomNumber0];
+	return Contains(room0.NeighborRoomNumbers, roomNumber1);
+}
+
 // Determines vertical surfaces and gets nearest ledge angle.
 // Allows to eventually use unconstrained vaults and shimmying.
 short GetNearestLedgeAngle(ItemInfo* item, CollisionInfo* coll, float& distance)
@@ -1036,8 +1045,8 @@ short GetNearestLedgeAngle(ItemInfo* item, CollisionInfo* coll, float& distance)
 	{
 		if (floor(finalDistance[0]) == floor(finalDistance[1]))
 		{
-			auto itr = std::find(finalDistance, finalDistance + 2, coll->Setup.ForwardAngle);
-			usedProbe = (itr != std::end(finalDistance)) ? std::distance(finalDistance, itr) : 0;
+			auto itr = std::find(finalResult, finalResult + 2, coll->Setup.ForwardAngle);
+			usedProbe = (itr != std::end(finalResult)) ? std::distance(finalResult, itr) : 0;
 		}
 		else if (finalDistance[1] < finalDistance[0])
 			usedProbe = 1;

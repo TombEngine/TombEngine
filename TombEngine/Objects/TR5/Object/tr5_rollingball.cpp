@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_rollingball.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Splash;
@@ -442,10 +443,15 @@ void ClassicRollingBallControl(short itemNum)
 			item->Animation.IsAirborne = false;
 			item->Animation.Velocity.y = 0;
 			item->Pose.Position.y = item->Floor;
+		}
+
+		if (!item->Animation.IsAirborne && (item->TriggerFlags & 1) != 1) // Flag 1 = silent.
+		{
 			SoundEffect(SFX_TR4_ROLLING_BALL, &item->Pose);
-			dist = sqrt((SQUARE(Camera.mikePos.x - item->Pose.Position.x)) + (SQUARE(Camera.mikePos.z - item->Pose.Position.z)));
-			if (dist < BLOCK(10))
-				Camera.bounce = -40 * (BLOCK(10) - dist) / BLOCK(10);
+
+			float distance = Vector3i::Distance(Camera.pos.ToVector3i(), item->Pose.Position);
+			if (distance < BLOCK(10))
+				Camera.bounce = -40 * (BLOCK(10) - distance) / BLOCK(10);
 		}
 
 		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL)
@@ -491,6 +497,7 @@ void ClassicRollingBallControl(short itemNum)
 			item->Pose.Position.x = old->x;
 			item->Pose.Position.y = old->y;
 			item->Pose.Position.z = old->z;
+
 			if (item->RoomNumber != old->RoomNumber)
 			{
 				RemoveDrawnItem(itemNum);
@@ -499,12 +506,11 @@ void ClassicRollingBallControl(short itemNum)
 				r->itemNumber = itemNum;
 				item->RoomNumber = old->RoomNumber;
 			}
-			item->Animation.ActiveState = 0;
-			item->Animation.TargetState = 0;
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
-			item->Animation.ActiveState = GetAnimData(item).ActiveState; 
-			item->Animation.TargetState = GetAnimData(item).ActiveState;
+
+			item->Animation.AnimNumber = 0;
+			item->Animation.FrameNumber = 0;
+			item->Animation.ActiveState =
+			item->Animation.TargetState = GetAnimData(*item).StateID;
 			item->Animation.RequiredState = NO_VALUE;
 			RemoveActiveItem(itemNum);
 		}

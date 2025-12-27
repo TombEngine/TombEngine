@@ -46,6 +46,7 @@ bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType);
 bool IsCrouching(const ItemInfo* item);
 bool IsVaultState(int state);
 bool IsJumpState(int state);
+bool IsSideJumpState(int state);
 bool IsRunJumpQueueableState(int state);
 bool IsRunJumpCountableState(int state);
 

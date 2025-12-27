@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/rail_switch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -11,6 +11,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -76,7 +77,7 @@ namespace TEN::Entities::Switches
 				{
 					ResetPlayerFlex(laraItem);
 					laraItem->Animation.AnimNumber = LA_LEVER_PUSH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.TargetState = LS_LEVERSWITCH_PUSH;
 					laraItem->Animation.ActiveState = LS_LEVERSWITCH_PUSH;
 					lara->Control.IsMoving = false;
@@ -99,7 +100,7 @@ namespace TEN::Entities::Switches
 				{
 					ResetPlayerFlex(laraItem);
 					laraItem->Animation.AnimNumber = LA_LEVER_PUSH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.TargetState = LS_LEVERSWITCH_PUSH;
 					laraItem->Animation.ActiveState = LS_LEVERSWITCH_PUSH;
 					lara->Control.IsMoving = false;

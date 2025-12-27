@@ -193,9 +193,14 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GameplaySettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
 
+			/// Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling
+			// or to replace it with custom module, such as ring inventory.
+			// @tfield bool enableInventory If false, inventory will not open.
+			"enableInventory", &GameplaySettings::EnableInventory,
+
 			/// Enable target occlusion by moveables and static meshes.
 			// @tfield bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-			"targetObjectOcclusion", & GameplaySettings::TargetObjectOcclusion);
+			"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
 	}
 
 	/// Graphics

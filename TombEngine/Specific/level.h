@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
@@ -14,6 +14,7 @@
 #include "Specific/LevelCameraInfo.h"
 #include "Specific/newtypes.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
 
 struct ChunkId;
@@ -29,6 +30,8 @@ struct TEXTURE
 	int height;
 	std::vector<byte> colorMapData;
 	std::vector<byte> normalMapData;
+	std::vector<byte> ORSHMapData;
+	std::vector<byte> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME
@@ -78,6 +81,22 @@ struct SPRITE
 	float y4;
 };
 
+struct MaterialData
+{
+	std::string Name;
+	MaterialShaderType Type;
+	Vector4 Parameters0;
+	Vector4 Parameters1;
+	Vector4 Parameters2;
+	Vector4 Parameters3;
+	bool HasNormalMap;
+	bool HasHeightMap;
+	bool HasAmbientOcclusionMap;
+	bool HasRoughnessMap;
+	bool HasSpecularMap;
+	bool HasEmissiveMap;
+};
+
 struct MESH
 {
 	bool hidden;
@@ -106,8 +125,7 @@ struct MirrorData
 	bool ReflectSprites	  = false;
 };
 
-// LevelData
-struct LEVEL
+struct LevelData
 {
 	// Object
 
@@ -115,14 +133,6 @@ struct LEVEL
 	std::vector<ItemInfo> Items	   = {};
 	std::vector<MESH>	  Meshes   = {};
 	std::vector<int>	  Bones	   = {};
-
-	// Animation
-
-	std::vector<AnimData>				Anims	 = {};
-	std::vector<AnimFrame>				Frames	 = {};
-	std::vector<StateDispatchData>		Changes	 = {};
-	std::vector<StateDispatchRangeData> Ranges	 = {};
-	std::vector<int>					Commands = {};
 
 	// Collision
 
@@ -152,7 +162,7 @@ struct LEVEL
 	std::vector<SPRITE>			 Sprites   = {};
 	std::vector<MirrorData>		 Mirrors = {};
 
-	// Texture
+	// Texture and materials
 
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
@@ -161,13 +171,14 @@ struct LEVEL
 	std::vector<TEXTURE> AnimatedTextures  = {};
 	std::vector<TEXTURE> SpritesTextures   = {};
 	std::vector<ANIMATED_TEXTURES_SEQUENCE> AnimatedTexturesSequences = {};
+	std::vector<MaterialData> Materials    = {};
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;
 
 extern std::vector<int> MoveablesIds;
 extern std::vector<int> SpriteSequencesIds;
-extern LEVEL g_Level;
+extern LevelData g_Level;
 extern int SystemNameHash;
 extern int LastLevelHash;
 
@@ -194,6 +205,7 @@ void LoadAnimatedTextures();
 void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
+void LoadMaterials();
 
 void GetCarriedItems();
 void GetAIPickups();

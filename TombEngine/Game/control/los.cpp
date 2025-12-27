@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/los.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
@@ -23,6 +23,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
@@ -234,7 +235,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			{
 				auto* object = &Objects[item->ObjectNumber];
 
-				if ((object->intelligent || object->HitRoutine) && object->drawRoutine)
+				if ((object->intelligent || object->HitRoutine) && !object->Hidden)
 				{
 					const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 
@@ -466,7 +467,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 			if (priorityObjectID != GAME_OBJECT_ID::ID_NO_OBJECT && item.ObjectNumber != priorityObjectID)
 				continue;
 
-			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].drawRoutine == nullptr || !item.Collidable))
+			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].Hidden || !item.Collidable))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && priorityObjectID != ID_LARA)

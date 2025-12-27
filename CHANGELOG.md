@@ -3,17 +3,78 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.10]
+## [Version 1.11]
 
-## New features
-* Added animated textures support for all objects.
-* Added UVRotate support.
+### New features
+* Added faster Xorshift32 random number generation method.
+
+### Bug fixes
+* Fixed incorrect handling of negative timer values in classic triggers.
+* Fixed interaction highlighter not working for pushable climbable blocks.
+* Fixed several enemy AI issues.
+* Fixed incorrect CLOCKWORK_BEETLE, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed CIVVY crashing the game.
+* Fixed SEARCH_OBJECT4 not always collecting pickup items.
+* Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
+* Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
+* Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
+* Fixed original issue with incorrect arm orientation with unholstered weapons.
+* Fixed original issue with aiming stutter with targets nearly out of sight.
+* Fixed incorrect super grenade projectile orientation.
+* Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
+* Fixed random textures appearing on enemy gunflashes.
+
+### Lua API changes
+* Added new `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added a safeguard against adding or removing callback functions within the same callback type.
+* Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
+* Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
+* Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
+* Added `Vec3:Direction` function and `Vec3:Translate` overload.
+* Added direction vector constructor to `Rotation`.
+* Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
+
+## [Version 1.10.1]
+
+### New features
+* Added no shake mode for CLASSIC_ROLLINGBALL (OCB 1).
+
+### Bug fixes
+* Fixed FIREROPE and EARTHQUAKE objects not working.
+* Fixed FIRE_PENDULUM crashing the game.
+* Fixed CLASSIC_ROLLINGBALL continuing to animate when Lara is standing on a trigger for it.
+* Fixed BRIDGE objects not clearing collision after disabling them.
+* Fixed SMASH_OBJECT objects with very big coordinates sometimes crashing the game.
+* Fixed BIG_GUN being stuck while unarming it.
+* Fixed original issue that prevented performing vault animations while holding a torch.
+* Fixed interaction highlighter not appearing for SEARCH_OBJECT objects.
+* Fixed fireflies not interpolating in high framerate mode and not emitting dynamic lights.
+* Fixed performance issues with shatterable static meshes.
+* Fixed emissive materials not fading into distance fog.
+* Fixed subtractive sprites not rendering correctly.
+* Fixed dynamic lighting for flat surfaces with miscalculated normals.
+* Fixed black screen when camera direction is exactly 90 degrees up or down.
+
+### Lua API changes
+* Added optional type argument for `Sound.IsAudioTrackPlaying` function.
+* Fixed `Moveable.AttachObjCamera` ignoring mesh index argument.
+
+## [Version 1.10](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.10) - 2025-11-09
+
+### New features
+* Added material system with support for normal, specular, roughness, emissive, parallax and ambient occlusion maps.
+* Added animated textures support for moveables and static meshes.
+* Added UVRotate support with arbitrary texture rotation direction.
 * Added interaction highlighter.
 * Added bullet hole and explosion decals for room geometry.
 * Added ability to colorize FLAME_EMITTER and FLAME_EMITTER2 objects and fade them on activation or deactivation.
 * Added ability to colorize ROPE objects.
 * Added ability to antitrigger FISH_EMITTER.
 * Reworked thumbstick camera to act like in FLEP patch.
+* Increased renderer performance and reduced GPU memory usage.
 * Increased level loading speed by switching to LZ4 compression format.
 
 ### Bug fixes
@@ -23,14 +84,19 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed FISH_EMITTER fish escape direction when player is nearby.
 * Fixed EXPANDING_PLATFORM and RAISING_BLOCK rendering issues in flat state.
 * Fixed LOCUST_EMITTER object.
+* Fixed SNOWMOBILE not displaying moving tracks (SNOWMOBILE_TRACKS object required).
+  [Use this asset version](https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Vehicles/TEN_Skidoo.wad2).
 * Fixed several collision issues for TRAIN object.
 * Fixed OCB 4 not working for FLAME_EMITTER2.
 * Fixed wall embeddings after jumping on top of hard static meshes aligned to walls.
+* Fixed occasional problems with grabbing ledges after doing backjump onto slopes.
 * Fixed dying while landing into shallow water after freefall.
 * Fixed rapids drowning animation not triggering after freefall.
+* Fixed firearm targeting alignment biased to the left side.
 * Fixed shotgun wideshot ammo having same accuracy as normal ammo.
 * Fixed projectiles sometimes flying through narrow room geometry corners.
 * Fixed shatters not activating heavy triggers in rare occasions.
+* Fixed room flickering after activating a flipmap in specific portal setups.
 * Fixed original game issue with multiple burning torches not working correctly.
 * Fixed original game issue where enemies could shoot and be targeted through objects and static meshes.
 * Fixed original game issues with vehicle collision near crawlspaces and stacked rooms.
@@ -40,13 +106,27 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed dynamic lights disappearing for a single frame after exiting game menus.
 * Fixed controls being stuck when engine window is out of focus.
 * Fixed missing "No" sound when player attempts to interact without particular items in the inventory.
+* Fixed incorrect draw order of alpha-blended room geometry.
+* Fixed rendering issues with some static meshes if same level file is reused for the title.
 * Fixed intense GPU usage when engine window is minimized.
+* Fixed wrong highlights when sun lights were used in mirror setups.
+* Fixed incorrect specular highlight for spotlights.
+* Fixed SSAO applied multiple times when additive surfaces are present in scene.
+* Fixed vertex effects (glow and move) not being rendered at full framerate.
+* Fixed incorrect roll values in flyby cameras.
+* Fixed HUD elements being drawn during cinematic flybys or in title level.
 
 ### Lua API changes
 * Added detection and recovery of infinite loops and deadlocks caused by mistakes in user scripts.
-* Added `Moveable:ShowInteractionHighlight` method.
+* Added `Moveable:GetVisible` and `Moveable:ShowInteractionHighlight` methods.
+* Added `DisplaySprite:GetFlags` method.
 * Added alpha value premultiplication for color argument in effect functions, such as `Effects.EmitLight` and others.
 * Added holster mesh update for `Lara:SetWeaponType` method and make `activate` parameter false by default.
+* Added `Type.IsEnumValue` helper function to determine if particular value belongs to an enumeration.
+* Added `DisplayStringOption.VERTICAL_CENTER` flag for timer labels.
+* Fixed `Moveable:GetMeshVisible` method returning true even if whole moveable is invisible.
+* Fixed `Moveable:SetOnCollidedWithRoom` callback failing beyond the distance of 32 sectors.
+* Fixed errors while spawning climbable `Moveable` objects.
 * Renamed `ObjID.MESHSWAP_HITMAN` to `ObjID.MESHSWAP_CYBORG`.
 
 ## [Version 1.9.2](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.9.2) - 2025-08-17

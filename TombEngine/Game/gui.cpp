@@ -3,7 +3,7 @@
 
 #include <OISKeyboard.h>
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
@@ -30,6 +30,7 @@
 #include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
@@ -2202,18 +2203,7 @@ namespace TEN::Gui
 			return;
 
 		case ID_BINOCULARS_ITEM:
-			if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
-				(player.Control.IsLow && !IsHeld(In::Crouch))) &&
-				!UseSpotCam && !TrackCameraInit)
-			{
-				SetScreenFadeIn(OPTICS_FADE_SPEED);
-				BinocularOldCamera = Camera.oldType;
-				player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
-				player.Control.Look.IsUsingBinoculars = true;
-				player.Inventory.OldBusy = true;
-			}
-
-			InventoryItemChosen = NO_VALUE;
+			UseBinoculars(item);
 			return;
 
 		case ID_SMALLMEDI_ITEM:
@@ -3597,5 +3587,23 @@ namespace TEN::Gui
 		}
 
 		return false;
+	}
+
+	void GuiController::UseBinoculars(ItemInfo& item)
+	{	
+		auto& player = GetLaraInfo(item);
+
+		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
+			(player.Control.IsLow && !IsHeld(In::Crouch))) &&
+			!UseSpotCam && !TrackCameraInit)
+		{
+			SetScreenFadeIn(OPTICS_FADE_SPEED);
+			BinocularOldCamera = Camera.oldType;
+			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
+			player.Control.Look.IsUsingBinoculars = true;
+			player.Inventory.OldBusy = true;
+		}
+
+		InventoryItemChosen = NO_VALUE;
 	}
 }

@@ -24,16 +24,35 @@ namespace TEN::Entities::Creatures::TR5
 	const auto BrownBeastAttackJoints1 = std::vector<unsigned int>{ 14, 15, 16, 17 };
 	const auto BrownBeastAttackJoints2 = std::vector<unsigned int>{ 20, 21, 22, 23 };
 
-	// TODO
 	enum BrownBeastState
 	{
-
+		// No state 0.
+		BROWN_BEAST_STATE_IDLE = 1,
+		BROWN_BEAST_STATE_WALK_FORWARD = 2,
+		BROWN_BEAST_STATE_RUN_FORWARD = 3,
+		BROWN_BEAST_STATE_SWIPE_ATTACK = 4,
+		BROWN_BEAST_STATE_JUMP_BITE_ATTACK = 5,
+		BROWN_BEAST_STATE_JUMP_SWIPE_ATTACK = 6,
+		BROWN_BEAST_STATE_DEATH = 7
 	};
 
-	// TODO
 	enum BrownBeastAnim
 	{
-
+		BROWN_BEAST_ANIM_IDLE = 0,
+		BROWN_BEAST_ANIM_RUN_FORWARD = 1,
+		BROWN_BEAST_ANIM_SWIPE_ATTACK = 2,
+		BROWN_BEAST_ANIM_JUMP_BITE_ATTACK_START = 3,
+		BROWN_BEAST_ANIM_JUMP_BITE_ATTACK_CONTINUE = 4,
+		BROWN_BEAST_ANIM_JUMP_BITE_ATTACK_END = 5,
+		BROWN_BEAST_ANIM_WALK_FORWARD = 6,
+		BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_START = 7,
+		BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE = 8,
+		BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_END = 9,
+		BROWN_BEAST_ANIM_DEATH = 10,
+		BROWN_BEAST_ANIM_IDLE_TO_WALK_FORWARD = 11,
+		BROWN_BEAST_ANIM_WALK_FORWARD_TO_IDLE = 12,
+		BROWN_BEAST_ANIM_IDLE_TO_RUN_FORWARD = 13,
+		BROWN_BEAST_ANIM_RUN_FORWARD_TO_IDLE = 14,
 	};
 
 	void InitializeBrownBeast(short itemNumber)
@@ -41,7 +60,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, 0);
+		SetAnimation(item, BROWN_BEAST_ANIM_IDLE);
 	}
 
 	void ControlBrowsBeast(short itemNumber)
@@ -57,8 +76,8 @@ namespace TEN::Entities::Creatures::TR5
 		if (item->HitPoints <= 0)
 		{
 			item->HitPoints = 0;
-			if (item->Animation.ActiveState != 7)
-				SetAnimation(item, 10);
+			if (item->Animation.ActiveState != BROWN_BEAST_STATE_DEATH)
+				SetAnimation(item, BROWN_BEAST_ANIM_DEATH);
 		}
 		else
 		{
@@ -91,7 +110,7 @@ namespace TEN::Entities::Creatures::TR5
 
 			switch (item->Animation.ActiveState)
 			{
-			case 1:
+			case BROWN_BEAST_STATE_IDLE:
 				creature->Flags = 0;
 
 				if (creature->Mood == MoodType::Attack)
@@ -99,30 +118,30 @@ namespace TEN::Entities::Creatures::TR5
 					if (distance <= pow(BLOCK(1), 2))
 					{
 						if (Random::TestProbability(1 / 2.0f))
-							item->Animation.TargetState = 4;
+							item->Animation.TargetState = BROWN_BEAST_STATE_SWIPE_ATTACK;
 						else
-							item->Animation.TargetState = 6;
+							item->Animation.TargetState = BROWN_BEAST_STATE_JUMP_SWIPE_ATTACK;
 					}
 					else if (Random::TestProbability(1 / 2.0f))
-						item->Animation.TargetState = 2;
+						item->Animation.TargetState = BROWN_BEAST_STATE_WALK_FORWARD;
 					else
-						item->Animation.TargetState = 3;
+						item->Animation.TargetState = BROWN_BEAST_STATE_RUN_FORWARD;
 				}
 				else
-					item->Animation.TargetState = 1;
+					item->Animation.TargetState = BROWN_BEAST_STATE_IDLE;
 
 				break;
 
-			case 2:
-			case 3:
+			case BROWN_BEAST_STATE_WALK_FORWARD:
+			case BROWN_BEAST_STATE_RUN_FORWARD:
 				if (distance < pow(BLOCK(1), 2) || creature->Mood != MoodType::Attack)
-					item->Animation.TargetState = 1;
+					item->Animation.TargetState = BROWN_BEAST_STATE_IDLE;
 
 				SoundEffect(SFX_TR5_IMP_BARREL_ROLL, &item->Pose);
 				break;
 
-			case 4:
-			case 6:
+			case BROWN_BEAST_STATE_SWIPE_ATTACK:
+			case BROWN_BEAST_STATE_JUMP_SWIPE_ATTACK:
 				creature->MaxTurn = 0;
 
 				if (abs(ai.angle) >= ANGLE(2.0f))
@@ -140,7 +159,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (item->TouchBits.Test(BrownBeastAttackJoints1))
 				{
-					if (TestAnimNumber(*item, 8))
+					if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE)
 					{
 						if (TestAnimFrameRange(*item, 20, 24))
 						{
@@ -151,7 +170,7 @@ namespace TEN::Entities::Creatures::TR5
 						}
 					}
 
-					if (TestAnimNumber(*item, 2))
+					if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_SWIPE_ATTACK)
 					{
 						if (TestAnimFrameRange(*item, 7, 15))
 						{
@@ -166,7 +185,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (!item->TouchBits.Test(BrownBeastAttackJoints2))
 					break;
 
-				if (TestAnimNumber(*item, 8))
+				if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_JUMP_SWIPE_ATTACK_CONTINUE)
 				{
 					if (TestAnimFrameRange(*item, 14, 19))
 					{
@@ -177,7 +196,7 @@ namespace TEN::Entities::Creatures::TR5
 					}
 				}
 
-				if (TestAnimNumber(*item, 2))
+				if (item->Animation.AnimNumber == BROWN_BEAST_ANIM_SWIPE_ATTACK)
 				{
 					if (TestAnimFrameRange(*item, 34, 42))
 					{

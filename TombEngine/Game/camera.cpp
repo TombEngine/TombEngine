@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/camera.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/los.h"
@@ -25,6 +25,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Generic;
@@ -448,7 +449,7 @@ void ObjCamera(ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int tar
 	UpdateCameraElevation();
 
 	//get mesh 0 coordinates.	
-	auto pos = GetJointPosition(camSlotId, 0, Vector3i::Zero);
+	auto pos = GetJointPosition(camSlotId, camMeshId, Vector3i::Zero);
 	auto dest = Vector3(pos.x, pos.y, pos.z);
 
 	GameVector from = GameVector(dest, camSlotId->RoomNumber);
@@ -1411,7 +1412,7 @@ bool CheckItemCollideCamera(ItemInfo* item)
 {
 	bool isCloseEnough = Vector3i::Distance(item->Pose.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
 
-	if (!isCloseEnough || !item->Collidable || !Objects[item->ObjectNumber].usingDrawAnimatingItem)
+	if (!isCloseEnough || !item->Collidable || item->IsLara() || Objects[item->ObjectNumber].Hidden)
 		return false;
 
 	// TODO: Find a better way to define objects which are collidable with camera.

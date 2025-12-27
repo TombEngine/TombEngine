@@ -62,7 +62,7 @@ namespace TEN::Collision::Los
 				// 2) Check collidability.
 				const auto& object = Objects[item.ObjectNumber];
 				if (!item.Collidable || item.Flags & IFLAG_KILLED ||
-					object.collision == nullptr || object.drawRoutine == nullptr)
+					object.collision == nullptr || object.Hidden)
 				{
 					continue;
 				}

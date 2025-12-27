@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/box.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -21,6 +21,7 @@
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
@@ -36,15 +37,6 @@ constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);
 constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-constexpr int HIGH_PRIO_RANGE = 8;
-constexpr int MEDIUM_PRIO_RANGE = HIGH_PRIO_RANGE + HIGH_PRIO_RANGE * (HIGH_PRIO_RANGE / 6.0f);
-constexpr int LOW_PRIO_RANGE = MEDIUM_PRIO_RANGE + MEDIUM_PRIO_RANGE * (MEDIUM_PRIO_RANGE / 24.0f);
-constexpr int NONE_PRIO_RANGE = LOW_PRIO_RANGE + LOW_PRIO_RANGE * (LOW_PRIO_RANGE / 32.0f);
-constexpr auto FRAME_PRIO_BASE = 4;
-constexpr auto FRAME_PRIO_EXP = 1.5;
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
 
 void DrawBox(int boxIndex, Vector3 color)
 {
@@ -567,7 +559,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
-	SetAnimation(*creatureItem, creatureAnimNumber);
+	SetAnimation(creatureItem, creatureAnimNumber);
 	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
 
 	playerItem.Pose = creatureItem->Pose;
@@ -577,7 +569,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	if (creatureItem->RoomNumber != playerItem.RoomNumber)
 		ItemNewRoom(playerItem.Index, creatureItem->RoomNumber);
 
-	AnimateItem(&playerItem);
+	AnimateItem(playerItem);
 	playerItem.HitPoints = -1;
 	player.Control.HandStatus = HandStatus::Busy;
 	player.Control.Weapon.GunType = LaraWeaponType::None;
@@ -667,7 +659,7 @@ void CreatureFloat(short itemNumber)
 
 	if (item->Pose.Position.y <= waterLevel)
 	{
-		if (item->Animation.FrameNumber == GetAnimData(*item).frameBase)
+		if (item->Animation.FrameNumber == 0)
 		{
 			item->Pose.Position.y = waterLevel;
 			item->Collidable = false;
@@ -772,7 +764,7 @@ bool CreatureAnimation(short itemNumber, short headingAngle, short tiltAngle)
 
 	auto prevPos = item.Pose.Position;
 
-	AnimateItem(&item);
+	AnimateItem(item);
 	ProcessSectorFlags(&item);
 	CreatureHealth(&item);
 
@@ -1090,26 +1082,6 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 	return true;
 }
 
-#if CREATURE_AI_PRIORITY_OPTIMIZATION
-CreatureAIPriority GetCreatureLOTPriority(ItemInfo* item)
-{
-	auto itemPos = item->Pose.Position.ToVector3();
-	auto cameraPos = Camera.pos.ToVector3();
-
-	float distance = Vector3::Distance(itemPos, cameraPos) / BLOCK(1);
-	if (distance <= HIGH_PRIO_RANGE)
-		return CreatureAIPriority::High;
-
-	if (distance <= MEDIUM_PRIO_RANGE)
-		return CreatureAIPriority::Medium;
-
-	if (distance <= LOW_PRIO_RANGE)
-		return CreatureAIPriority::Low;
-
-	return CreatureAIPriority::None;
-}
-#endif
-
 bool CreatureActive(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
@@ -1130,11 +1102,6 @@ bool CreatureActive(short itemNumber)
 
 		item->Status = ITEM_ACTIVE;
 	}
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	auto* creature = GetCreatureInfo(item);
-	creature->Priority = GetCreatureLOTPriority(item);
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
 
 	return true;
 }
@@ -1647,7 +1614,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 		if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
 		{
-			auto& bounds = GetBestFrame(*enemy).BoundingBox;
+			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 			LOT->Target.y += bounds.Y1;
 		}
 
@@ -1696,43 +1663,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	if (LOT->TargetBox == NO_VALUE)
 		TargetBox(LOT, item->BoxNumber);
 
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	bool shouldUpdateTarget = false;
-
-	switch(creature->Priority)
-	{
-		case CreatureAIPriority::High:
-			shouldUpdateTarget = true;
-			break;
-
-		case CreatureAIPriority::Medium:
-			if (creature->FramesSinceLOTUpdate > std::pow(FRAME_PRIO_BASE, FRAME_PRIO_EXP))
-				shouldUpdateTarget = true;
-
-			break;
-
-		case CreatureAIPriority::Low:
-			if (creature->FramesSinceLOTUpdate > std::pow(FRAME_PRIO_BASE, FRAME_PRIO_EXP * 2))
-				shouldUpdateTarget = true;
-
-			break;
-
-		default:
-			break;
-	}
-
-	if (shouldUpdateTarget)
-	{
-		CalculateTarget(&creature->Target, item, &creature->LOT);
-		creature->FramesSinceLOTUpdate = 0;
-	}
-	else
-	{
-		creature->FramesSinceLOTUpdate++;
-	}
-#else
 	CalculateTarget(&creature->Target, item, &creature->LOT);
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
 
 	creature->JumpAhead = false;
 	creature->MonkeySwingAhead = false;

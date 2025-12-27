@@ -7,6 +7,7 @@ struct RoomVector {
 }
 
 table LevelData {
+	random_seed: uint32;
 	level_far_view: int32;
 
 	storm_enabled: bool;
@@ -156,7 +157,7 @@ table WeaponInfo {
 table ArmInfo {
 	anim_number: int32;
 	frame_number: int32;
-	frame_base: int32;
+	anim_object_id: int32;
 	locked: bool;
 	rotation: EulerAngles;
 	gun_flash: int32;

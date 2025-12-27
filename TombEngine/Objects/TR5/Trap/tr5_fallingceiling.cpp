@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Trap/tr5_fallingceiling.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -9,6 +9,7 @@
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
@@ -30,7 +31,7 @@ namespace TEN::Entities::Traps
 			item.Animation.IsAirborne = true;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		if (item.Status == ITEM_DEACTIVATED)
 		{
