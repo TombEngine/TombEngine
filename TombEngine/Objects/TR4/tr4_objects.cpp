@@ -977,6 +977,15 @@ namespace TEN::Entities
 			obj->collision = CollideFallingSquishyBlock;
 			obj->SetHitEffect(true);
 		}
+
+		obj = &Objects[ID_TUNNEL_BORER];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeSpikyCeiling;
+			obj->control = ControlSpikyCeiling;
+			obj->collision = CollideSpikyCeiling;
+			obj->SetHitEffect(true);
+		}
 	}
 
 	static void StartVehicles(ObjectInfo* obj)

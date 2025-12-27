@@ -570,6 +570,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = CollideFan;
 		obj->SetHitEffect(true);
 	}
+
+	obj = &Objects[ID_AIRPLANE_PROPELLER];
+	if (obj->loaded)
+	{
+		obj->control = ControlFan;
+		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
 }
 
 static void StartVehicles(ObjectInfo* obj)
