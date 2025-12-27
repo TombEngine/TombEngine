@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/Fan.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Sphere.h"
@@ -64,8 +64,8 @@ namespace TEN::Entities::Traps
 			}
 			else
 			{
-				if (item.Animation.AnimNumber == GetAnimIndex(item, FAN_ANIM_IDLE) &&
-					item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (item.Animation.AnimNumber == FAN_ANIM_IDLE &&
+					item.Animation.FrameNumber == GetAnimData(item).EndFrameNumber)
 				{
 					item.Status = ITEM_NOT_ACTIVE;
 				}
