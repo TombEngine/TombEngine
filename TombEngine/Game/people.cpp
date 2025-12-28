@@ -2,8 +2,8 @@
 #include "Game/people.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
 #include "Game/itemdata/creature_info.h"
@@ -13,6 +13,7 @@
 #include "Sound/sound.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
@@ -129,29 +130,33 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
 	const auto& boundsTarget = GetClosestKeyframe(*enemy).BoundingBox;
 
-	auto origin = GameVector(
+	auto origin = Vector3(
 		item->Pose.Position.x,
 		(item->ObjectNumber == ID_SNIPER) ? (item->Pose.Position.y - CLICK(3)) : (item->Pose.Position.y + ((bounds.Y2 + 3 * bounds.Y1) / 4)),
-		item->Pose.Position.z,
-		item->RoomNumber);
-	auto target = GameVector(
+		item->Pose.Position.z);
+
+	auto target = Vector3(
 		enemy->Pose.Position.x,
 		enemy->Pose.Position.y + ((boundsTarget.Y2 + 3 * boundsTarget.Y1) / 4),
-		enemy->Pose.Position.z,
-		enemy->RoomNumber); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
+		enemy->Pose.Position.z); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
+
+	auto dist = Vector3::Distance(origin, target);
+	auto dir = (target - origin);
+	dir.Normalize();
 
 	// Temporarily ignore self occlusion for LOS check.
 	bool collidable = item->Collidable;
 	item->Collidable = false;
 
-	StaticMesh* mesh = nullptr;
-	Vector3i vector = {};
-	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT);
+	auto roomLos = GetRoomLosCollision(origin, item->RoomNumber, dir, dist, true);
+	auto itemLos = GetItemLosCollision(origin, item->RoomNumber, dir, dist, true);
+	auto staticLos = GetStaticLosCollision(origin, item->RoomNumber, dir, dist);
 
 	// Restore collidability.
 	item->Collidable = collidable;
 
-	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
+	bool collidedWithItems = itemLos.has_value() && itemLos.value().Item != enemy;
+	return (!roomLos.IsIntersected && !collidedWithItems && !staticLos.has_value());
 }
 
 bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
@@ -173,17 +178,22 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 	{
 		const auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 
-		auto origin = GameVector(
+		auto origin = Vector3(
 			item->Pose.Position.x,
 			item->Pose.Position.y - CLICK(3),
-			item->Pose.Position.z,
-			item->RoomNumber);
-		auto target = GameVector(
+			item->Pose.Position.z);
+
+		auto target = Vector3(
 			enemy->Pose.Position.x,
 			enemy->Pose.Position.y + ((((bounds.Y1 * 2) + bounds.Y1) + bounds.Y2) / 4),
 			enemy->Pose.Position.z);
 
-		return LOS(&origin, &target);
+		auto dist = Vector3::Distance(origin, target);
+		auto dir = (target - origin);
+		dir.Normalize();
+
+		auto roomLos = GetRoomLosCollision(origin, item->RoomNumber, dir, dist, true);
+		return !roomLos.IsIntersected;
 	}
 
 	return false;

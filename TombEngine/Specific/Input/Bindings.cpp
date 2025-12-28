@@ -224,6 +224,16 @@ namespace TEN::Input
 		BindingProfileId::RawGamepad
 	};
 
+	const std::string& BindingManager::GetBoundKeyName(ActionId actionId)
+	{
+		return {}; // TODO
+		//int defaultKeyID = GetBoundKeyId(BindingProfileId::Default, (ActionId)(actionId));
+		//int userKeyID = GetBoundKeyID(BindingProfileID::Custom, (ActionId)(actionId));
+		//int boundKey = userKeyID ? userKeyID : defaultKeyID;
+		//
+		//return GetKeyName(boundKey);
+	}
+
 	const BindingProfile& BindingManager::GetProfile(BindingProfileId profileId) const
 	{
 		return _bindings[(int)profileId];

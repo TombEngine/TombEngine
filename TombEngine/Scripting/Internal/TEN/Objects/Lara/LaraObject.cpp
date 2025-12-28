@@ -16,6 +16,7 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
+#include "Scripting/Internal/TEN/Objects/Lara/WeaponModes.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -203,6 +204,15 @@ HandStatus LaraObject::GetHandStatus() const
 	return  HandStatus{ lara->Control.HandStatus };
 }
 
+/// Set the player's hand status.
+// @function LaraObject:SetHandStatus
+// @tparam Objects.HandStatus status Status type to set.
+void LaraObject::SetHandStatus(HandStatus status)
+{
+	auto* lara = GetLaraInfo(_moveable);
+	lara->Control.HandStatus = status;
+}
+
 /// Get the player's weapon type.
 // @function LaraObject:GetWeaponType
 // @usage
@@ -250,6 +260,12 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 
 			if (weaponInHands)
 				TENLog("SetWeaponType: can't switch weapon without activation because another weapon is drawn.", LogLevel::Warning, LogConfig::All);
+
+			if (lara->Control.HandStatus == HandStatus::Free &&
+				lara->Control.Weapon.GunType == lara->Control.Weapon.RequestGunType)
+			{
+				lara->Control.HandStatus = HandStatus::WeaponDraw;
+			}
 		}
 		else
 		{
@@ -269,17 +285,89 @@ void LaraObject::SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> ac
 	}
 }
 
+/// Get player lasersight status.
+// @function LaraObject:GetLaserSight
+// @tparam Objects.WeaponType weaponType Player weapon type. Only works for HK, Revolver and Crossbow.
+// @treturn bool Returns true if lasersight is connected to specified weapon.
+// @usage
+// local test = Lara:GetLaserSight(WeaponType.CROSSBOW)
+bool LaraObject::GetLaserSight(LaraWeaponType weaponType) const
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	switch (weaponType)
+	{
+	case LaraWeaponType::Revolver:
+	case LaraWeaponType::Crossbow:
+	case LaraWeaponType::HK:
+		return lara->Weapons[static_cast<int>(weaponType)].HasLasersight;
+
+	default:
+		return false;
+	}
+}
+
+/// Set player lasersight status.
+// @function LaraObject:SetLaserSight
+// @tparam Objects.WeaponType weaponType Player weapon type to attach lasersight to. Only works for HK, Revolver and Crossbow.
+// @tparam[opt=false] bool activate If `true`, also draw the weapons. If `false`, keep weapons holstered.
+// @usage
+// local test = Lara:SetLaserSight(WeaponType.CROSSBOW)
+void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activate)
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	auto convertedActivate = ValueOr<bool>(activate, false);
+
+	//Check for inventory to have lasersight
+	if (!lara->Inventory.HasLasersight && convertedActivate)
+		return;
+
+	switch (weaponType)
+	{
+	case LaraWeaponType::Revolver:
+	case LaraWeaponType::Crossbow:
+	case LaraWeaponType::HK:
+
+		// Check if laser sight is already attached to any other weapon
+		for (LaraWeaponType type : { LaraWeaponType::Revolver, LaraWeaponType::Crossbow, LaraWeaponType::HK })
+		{
+			if (type != weaponType && lara->Weapons[static_cast<int>(type)].HasLasersight)
+			{
+				// Laser sight is already in use, do nothing
+				return;
+			}
+		}
+
+		// Attach laser sight
+		lara->Weapons[static_cast<int>(weaponType)].HasLasersight = convertedActivate;
+
+		// Activate weapon if required
+		if (convertedActivate == false)
+			lara->Control.Weapon.LastGunType = weaponType;
+		else
+			lara->Control.Weapon.RequestGunType = weaponType;
+		break;
+
+	default:
+		break;
+	}
+}
+
 /// Get player weapon ammo type.
 // @function LaraObject:GetAmmoType
+// @tparam[opt] Objects.WeaponType weaponType Weapon to retrieve ammo type for. If omitted, the ammo type of the currently equipped weapon is returned.
 // @treturn Objects.AmmoType Player weapon ammo type.
 // @usage
 // local CurrentAmmoType = Lara:GetAmmoType()
-int LaraObject::GetAmmoType() const
+int LaraObject::GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 
+	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
+
 	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
-	switch (player.Control.Weapon.GunType)
+	switch (weapon)
 	{
 		case::LaraWeaponType::Pistol:
 			ammoType = PlayerAmmoType::Pistol;
@@ -362,6 +450,54 @@ int LaraObject::GetAmmoType() const
 	return (int)*ammoType;
 }
 
+/// Set player weapon ammo type.
+// @function LaraObject:SetAmmoType
+// @tparam Objects.AmmoType Player weapon ammo type.
+// @usage
+// Lara:SetAmmoType(TEN.Objects.AmmoType.CROSSBOW_BOLT_NORMAL)
+void LaraObject::SetAmmoType(PlayerAmmoType ammoType)
+{
+	auto& player = GetLaraInfo(*_moveable);
+
+	switch (ammoType)
+	{
+	case PlayerAmmoType::ShotgunNormal:
+		player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo = WeaponAmmoType::Ammo1;
+		break;
+
+	case PlayerAmmoType::ShotgunWide:
+		player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo = WeaponAmmoType::Ammo2;
+		break;
+
+	case PlayerAmmoType::CrossbowBoltNormal:
+		player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo = WeaponAmmoType::Ammo1;
+		break;
+
+	case PlayerAmmoType::CrossbowBoltPoison:
+		player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo = WeaponAmmoType::Ammo2;
+		break;
+
+	case PlayerAmmoType::CrossbowBoltExplosive:
+		player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo = WeaponAmmoType::Ammo3;
+		break;
+
+	case PlayerAmmoType::GrenadeNormal:
+		player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo = WeaponAmmoType::Ammo1;
+		break;
+
+	case PlayerAmmoType::GrenadeFrag:
+		player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo = WeaponAmmoType::Ammo2;
+		break;
+
+	case PlayerAmmoType::GrenadeFlash:
+		player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo = WeaponAmmoType::Ammo3;
+		break;
+
+	default:
+		break;
+	}
+}
+
 /// Get current weapon's ammo count.
 // @function LaraObject:GetAmmoCount
 // @treturn int Current ammo count (-1 if infinite).
@@ -372,6 +508,73 @@ int LaraObject::GetAmmoCount() const
 	auto* lara = GetLaraInfo(_moveable);
 	auto& ammo = GetAmmo(Lara, Lara.Control.Weapon.GunType);
 	return (ammo.HasInfinite()) ? -1 : (int)ammo.GetCount();
+}
+
+/// Get player HK weapon mode type.
+// @function LaraObject:GetWeaponMode
+// @treturn Objects.WeaponMode Player HK weapon mode type.
+int LaraObject::GetWeaponMode() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+
+	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
+	
+	switch (player.Control.Weapon.GunType)
+	{
+
+	case::LaraWeaponType::HK:
+		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
+		{
+			weaponMode = PlayerWeaponMode::Rapid;
+		}
+		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
+		{
+			weaponMode = PlayerWeaponMode::Burst;
+		}
+		else
+		{
+			weaponMode = PlayerWeaponMode::Sniper;
+		}
+
+		break;
+
+	default:
+		break;
+	}
+
+	if (!weaponMode.has_value())
+	{
+		TENLog("GetWeaponMode() error; no weapon mode type.", LogLevel::Warning, LogConfig::All);
+		weaponMode = PlayerWeaponMode::None;
+	}
+
+	return static_cast<int>(weaponMode.value());
+}
+
+/// Set player HK weapon mode type.
+// @function LaraObject:SetWeaponMode
+// @tparam Objects.WeaponMode weaponMode Player HK weapon mode type.
+void LaraObject::SetWeaponMode(PlayerWeaponMode weaponMode)
+{
+	auto& player = GetLaraInfo(*_moveable);
+
+	switch (weaponMode)
+	{
+	case PlayerWeaponMode::Rapid:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
+		break;
+
+	case PlayerWeaponMode::Burst:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
+		break;
+
+	case PlayerWeaponMode::Sniper:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
+		break;
+
+	default:
+		break;
+	}
 }
 
 /// Get current vehicle, if it exists.
@@ -428,6 +631,57 @@ bool LaraObject::IsTorchLit() const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 	return player.Torch.IsLit;
+}
+
+/// Get player water status.
+// @function LaraObject:GetWaterStatus
+// @treturn Objects.WaterStatus Current water status of player.
+// @usage
+// local waterStatus = Lara:GetWaterStatus()
+WaterStatus LaraObject::GetWaterStatus() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return  WaterStatus{ lara->Control.WaterStatus };
+}
+
+/// Get player water skin amount.
+// @function LaraObject:GetWaterSkinStatus
+// @tparam bool flag use True get the amount for Big Waterskin. False for Small Waterskin.
+// @treturn int Current capacity of specified water skin. For Smallwater skin (0 = Waterskin not present; 1 = Waterskin Empty; 2 = Waterskin 1L; 3 = WaterSkin 2L; 4 = Waterskin 3L).
+// For Largewater skin (0 = Waterskin not present; 1 = Waterskin Empty; 2 = Waterskin 1L; 3 = WaterSkin 2L; 4 = Waterskin 3L; 5 = Waterskin 4L; 6 = Waterskin 5L)
+// @usage
+// local bigWaterSkinCapacity = Lara:GetWaterSkinStatus(true)
+// local smallWaterSkinCapacity = Lara:GetWaterSkinStatus(false)
+int LaraObject::GetWaterSkinStatus(TypeOrNil<bool> flag) const
+{
+	auto convertedFlag = ValueOr<bool>(flag, false);
+
+	const auto& inventory = GetLaraInfo(*_moveable).Inventory;
+	const auto value = convertedFlag ? inventory.BigWaterskin : inventory.SmallWaterskin;
+	return value;
+}
+
+/// Set player water skin amount.
+// @function LaraObject:SetWaterSkinStatus
+// @tparam int amount Current capacity of specified water skin. For Smallwater skin (0 = Waterskin not present; 1 = Waterskin Empty; 2 = Waterskin 1L; 3 = WaterSkin 2L; 4 = Waterskin 3L).
+// For Largewater skin (0 = Waterskin not present; 1 = Waterskin Empty; 2 = Waterskin 1L; 3 = WaterSkin 2L; 4 = Waterskin 3L; 5 = Waterskin 4L; 6 = Waterskin 5L)
+// @tparam bool flag use True get the amount for Big Waterskin. False for Small Waterskin.
+// @usage
+// local bigWaterSkinCapacity = Lara:SetWaterSkinStatus(2)
+// local smallWaterSkinCapacity = Lara:SetWaterSkinStatus(3)
+void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
+{
+	auto convertedFlag = ValueOr<bool>(flag, false);
+	auto& inventory = GetLaraInfo(*_moveable).Inventory;
+
+	const int maxValue = convertedFlag ? 6 : 4; // small = 4 (1 base + 3 liters), big = 6 (1 base + 5 liters)
+
+	amount = std::clamp(amount, 0, maxValue);
+
+	if (convertedFlag)
+		inventory.BigWaterskin = amount;
+	else
+		inventory.SmallWaterskin = amount;
 }
 
 /// Align the player with a moveable object for interaction.
@@ -593,15 +847,23 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_UndrawWeapon, &LaraObject::UndrawWeapon,
 		ScriptReserved_PlayerDiscardTorch, &LaraObject::DiscardTorch,
 		ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,
+		ScriptReserved_SetHandStatus, & LaraObject::SetHandStatus,
 		ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
 		ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
+		ScriptReserved_GetLaserSight, & LaraObject::GetLaserSight,
+		ScriptReserved_SetLaserSight, & LaraObject::SetLaserSight,
 		ScriptReserved_GetAmmoType, &LaraObject::GetAmmoType,
+		ScriptReserved_SetAmmoType, & LaraObject::SetAmmoType,
 		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
+		ScriptReserved_GetWeaponMode, & LaraObject::GetWeaponMode,
+		ScriptReserved_SetWeaponMode, & LaraObject::SetWeaponMode,
 		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
 		ScriptReserved_GetTarget, &LaraObject::GetTarget,
 		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
 		ScriptReserved_PlayerIsTorchLit, &LaraObject::IsTorchLit,
-
+		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
+		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
+		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
 

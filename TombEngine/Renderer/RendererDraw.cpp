@@ -1810,8 +1810,8 @@ namespace TEN::Renderer
 		UpdateLaraAnimations(false);
 		UpdateItemAnimations(view);
 
-		_stBlending.AlphaTest = -1;
-		_stBlending.AlphaThreshold = -1;
+		_stBlending.AlphaTest = NO_VALUE;
+		_stBlending.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
 		RenderItemShadows(view);
@@ -1997,7 +1997,10 @@ namespace TEN::Renderer
 
 		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-			g_Hud.Draw3D();
+			{
+				g_Hud.Draw3D();
+				g_DrawItems.Draw();
+			}
 
 		_doingFullscreenPass = true;
 
@@ -2031,7 +2034,6 @@ namespace TEN::Renderer
 
 			DrawDebugInfo(view);
 			DrawAllStrings();
-
 			DrawDisplaySprites(view, true);
 		}
 

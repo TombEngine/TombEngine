@@ -140,9 +140,9 @@ Vec3 Vec3::Translate(const Rotation& rot, const Vec3& relOffset)
 
 /// Get a copy of this Vec3 translated by a relative offset in the direction of a heading angle, relative to a down axis.
 // @function Vec3:Translate
-// @tparam headingAngle Angle of translation along the 2D plane defined by the down axis.
-// @tparam relOffset Relative offset vector.
-// @tparam axis[opt=Vec3(0, 1, 0)] Normalized direction vector representing the down axis.
+// @tparam float headingAngle Angle of translation along the 2D plane defined by the down axis.
+// @tparam Vec3 relOffset Relative offset vector.
+// @tparam[opt=Vec3(0&#44; 1&#44; 0)] Vec3 axis Normalized direction vector representing the down axis.
 // @treturn Vec3 Translated vector.
 Vec3 Vec3::Translate(float headingAngle, const Vec3& relOffset, TypeOrNil<Vec3> axis)
 {

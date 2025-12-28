@@ -27,7 +27,8 @@ local settings = Flow.Settings.new()
 	settings.Flare.pickupCount = 12
 	
 	settings.Gameplay.targetObjectOcclusion = true
-	
+	settings.Gameplay.enableInventory = true
+
 	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
@@ -55,7 +56,7 @@ local settings = Flow.Settings.new()
 	settings.Hair[3].rootMesh = 14
 	settings.Hair[3].offset = Vec3(48, -48, -50)
 	settings.Hair[3].indices = { 68, 69, 70, 71 }
-	
+
 	-- Not all weapon settings are applicable to every weapon. Those which are not applicable
 	-- for a particular weapon type are omitted. See documentation for more details.
 	

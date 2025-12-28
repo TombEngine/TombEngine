@@ -42,6 +42,9 @@ constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
+constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.1f;
+constexpr float DISPLAY_ITEM_FAR_PLANE = BLOCK(100);
+
 constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
 constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;
 constexpr auto MAX_ROOM_BOUNDS = 256;

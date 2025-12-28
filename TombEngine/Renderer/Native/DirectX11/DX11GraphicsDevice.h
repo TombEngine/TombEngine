@@ -12,7 +12,6 @@
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
-#include "Renderer/Native/DirectX11/DX11RenderTargetCube.h"
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
 #include "Renderer/Native/DirectX11/DX11DepthTarget.h"
 #include "Renderer/Native/DirectX11/DX11ConstantBuffer.h"

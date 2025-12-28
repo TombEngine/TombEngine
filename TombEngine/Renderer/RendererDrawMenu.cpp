@@ -866,7 +866,7 @@ namespace TEN::Renderer
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
 		_stItem.Color = Vector4::One;
-		_stItem.AmbientLight = AMBIENT_LIGHT_COLOR;
+		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();;
 		_stItem.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
@@ -876,7 +876,7 @@ namespace TEN::Renderer
 			// Calculate bones matrices for skinning
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
 				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
-			
+
 			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
@@ -885,7 +885,7 @@ namespace TEN::Renderer
 
 			// Disegna the skin mesh
 			const auto skinMesh = GetMesh(object.skinIndex);
-		
+
 			for (int animated = 0; animated < 2; animated++)
 			{
 				for (const auto& bucket : skinMesh->Buckets)
@@ -945,7 +945,7 @@ namespace TEN::Renderer
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
 			for (int animated = 0; animated < 2; animated++)
-			{
+			{		
 				for (const auto& bucket : mesh.Buckets)
 				{
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
@@ -962,6 +962,174 @@ namespace TEN::Renderer
 						SetBlendMode(bucket.BlendMode, true);
 
 					SetAlphaTest((bucket.BlendMode == BlendMode::AlphaTest) ? AlphaTestMode::GreatherThan : AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					_numMoveablesDrawCalls++;
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawObjectIn3DSpace(const DisplayItem& item)
+	{
+		if (!item.IsVisible())
+			return;
+
+		float t = GetInterpolationFactor();
+
+		auto objectNumber = item.GetObjectID();
+		auto pos3D = item.GetInterpolatedPosition(t);
+		auto orient = item.GetInterpolatedOrientation(t);
+		auto scale = item.GetInterpolatedScale(t);
+		auto color = item.GetInterpolatedColor(t);
+		int meshBits = item.GetMeshBits();
+
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+
+		float aspectRatio = (float)(_graphicsDevice->GetScreenWidth()) / _graphicsDevice->GetScreenHeight();
+
+		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(t), g_DrawItems.GetInterpolatedCameraTargetPosition(t), Vector3::Up);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(
+			CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+
+		auto& moveableObject = _moveableObjects[objectNumber];
+		if (!moveableObject.has_value())
+			return;
+
+		const auto& object = Objects[objectNumber];
+		if (!object.Animations.empty())
+		{
+			int anim = item.GetAnimNumber();
+			int frame = item.GetFrameNumber();
+			int prevFrame = item.GetPrevFrameNumber();
+
+			auto interpData = KeyframeInterpolationData(
+				GetAnimData(object, anim).Keyframes[prevFrame],
+				GetAnimData(object, anim).Keyframes[frame],
+				t);
+			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+		}
+
+		SetBlendMode(BlendMode::Opaque);
+		SetCullMode(CullMode::CounterClockwise); //CounterClockwise
+		SetDepthState(DepthState::Write);
+
+		// Set vertex buffer.
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		// Set shaders.
+		_shaders.Bind(Shader::Inventory);
+
+		// Set matrices.
+		auto hudCamera = CCameraMatrixBuffer{};
+		hudCamera.CamDirectionWS = -Vector4::UnitZ;
+		hudCamera.ViewProjection = viewMatrix * projMatrix;
+		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
+		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+
+		_shaders.Bind(Shader::Inventory);
+
+		// Construct world matrix. // pos.x, pos.y, pos.z
+		auto translationMatrix = Matrix::CreateTranslation(pos3D.x, pos3D.y, pos3D.z);
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto scaleMatrix = Matrix::CreateScale(scale);
+		auto worldMatrix = scaleMatrix * rotMatrix * translationMatrix;
+
+		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
+
+		_stItem.Color = color;
+		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
+		_stItem.Skinned = (int)skinMode;
+
+		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
+		{
+			_stItem.World = worldMatrix;
+
+			// Calculate bones matrices for skinning
+			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
+				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+
+			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+
+			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+			// Disegna the skin mesh
+			const auto skinMesh = GetMesh(object.skinIndex);
+
+			for (int animated = 0; animated < 2; animated++)
+			{
+				for (const auto& bucket : skinMesh->Buckets)
+				{
+					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+						continue;
+
+					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
+					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					SetCullMode(CullMode::CounterClockwise);
+					SetDepthState(DepthState::Write);
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					_numMoveablesDrawCalls++;
+				}
+			}
+		}
+
+		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+			_stItem.BonesMatrices[i] = Matrix::Identity;
+
+		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
+		{
+			if (meshBits && !item.IsMeshVisible(i))
+				continue;
+
+			if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
+				continue;
+
+			auto rotOverride = item.GetInterpolatedMeshRotation(i, t);
+			moveableObject->LinearizedBones[i]->ExtraRotation = rotOverride.ToQuaternion();
+
+			if (!object.Animations.empty())
+			{
+				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+			}
+			else
+			{
+				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+			}
+
+			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+
+			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+
+			const auto& mesh = *moveableObject->ObjectMeshes[i];
+
+			for (int animated = 0; animated < 2; animated++)
+			{
+				for (const auto& bucket : mesh.Buckets)
+				{
+					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+						continue;
+
+					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
+					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+					SetCullMode(CullMode::CounterClockwise);
+					SetDepthState(DepthState::Write);
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
 
 					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
 					_numMoveablesDrawCalls++;
@@ -999,6 +1167,15 @@ namespace TEN::Renderer
 
 			_graphicsDevice->Present();
 			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		}
+	}
+
+	void Renderer::DrawDisplayItems()
+	{
+		if (!g_DrawItems.IsEmpty())
+		{
+			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			g_DrawItems.Draw();
 		}
 	}
 
@@ -1185,15 +1362,13 @@ namespace TEN::Renderer
 			RenderScene(_backBuffer.get(), _gameCamera, SceneRenderMode::NoHud);
 		}
 
-		// TODO: Put 3D object drawing management here (don't forget about interpolation!)
-		// Draw3DObjectsIn2DSpace(_gameCamera);
-
 		// Draw display sprites sorted by priority.
 		CollectDisplaySprites(_gameCamera);
 		DrawDisplaySprites(_gameCamera, false);
-		DrawAllStrings();
+		DrawDisplayItems();
 		DrawDisplaySprites(_gameCamera, true);
-
+		DrawAllStrings();
+		
 		ClearScene();
 
 		_graphicsDevice->ClearState();

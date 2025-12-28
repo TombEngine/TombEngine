@@ -104,7 +104,8 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcessFinalPass);
 
 		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		_graphicsDevice->ClearDepthStencil(renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), renderTarget->GetDepthTarget());
 
 		BindTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
