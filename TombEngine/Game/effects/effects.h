@@ -97,8 +97,6 @@ struct FX_INFO
 	Pose pos;
 	short roomNumber;
 	short objectNumber;
-	short nextFx;
-	short nextActive;
 	short speed;
 	short fallspeed;
 	int frameNumber;

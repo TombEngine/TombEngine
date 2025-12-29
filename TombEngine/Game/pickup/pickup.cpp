@@ -1021,11 +1021,10 @@ void PickupControl(short itemNumber)
 const GameBoundingBox* FindPlinth(ItemInfo* item)
 {
 	auto* room = &g_Level.Rooms[item->RoomNumber];
-	
-	for (int i = 0; i < room->mesh.size(); i++)
-	{
-		const auto& staticObj = room->mesh[i];
 
+	// Check statics.
+	for (const auto& staticObj : room->mesh)
+	{
 		if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 			continue;
 
@@ -1043,11 +1042,8 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 		}
 	}
 
-	if (room->itemNumber == NO_VALUE)
-		return nullptr;
-
-	short itemNumber = room->itemNumber;
-	for (itemNumber = room->itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+	// Check items.
+	for (int itemNumber : room->itemNumbers)
 	{
 		auto* currentItem = &g_Level.Items[itemNumber];
 		auto* object = &Objects[currentItem->ObjectNumber];
@@ -1058,18 +1054,11 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 			item->Pose.Position.z == currentItem->Pose.Position.z &&
 			(currentItem->ObjectNumber != ID_HIGH_OBJECT1 || currentItem->ItemFlags[0] == 5))
 		{
-			break;
+			return &GetClosestKeyframe(*currentItem).BoundingBox;
 		}
 	}
 
-	if (itemNumber == NO_VALUE)
-	{
-		return nullptr;
-	}
-	else
-	{
-		return &GetClosestKeyframe(g_Level.Items[itemNumber]).BoundingBox;
-	}
+	return nullptr;
 }
 
 void InitializePickup(short itemNumber)

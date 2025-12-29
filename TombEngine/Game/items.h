@@ -117,10 +117,6 @@ struct ItemInfo
 	ItemStatus Status = ITEM_NOT_ACTIVE;
 	bool	   Active = false;
 
-	// TODO: Refactor linked list.
-	int NextItem   = 0;
-	int NextActive = 0;
-
 	ItemData			Data	  = {};
 	EntityAnimationData Animation = {};
 	EntityCallbackData	Callbacks = {};
@@ -236,3 +232,5 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
 Vector3i GetNearestSectorCenter(const Vector3i& pos);
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);
+
+void RemoveFromVector(std::vector<int>& vec, int value);

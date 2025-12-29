@@ -57,6 +57,7 @@ table Room {
 	name: string;
 	flags: int32;
 	reverb_type: int32;
+	item_numbers: [int32];
 }
 
 table Item {
@@ -84,8 +85,8 @@ table Item {
 	after_death: int32;
 	item_flags: [int32];
 	pose: Pose;
-	next_item: int32;
-	next_item_active: int32;
+	next_item: int32; // for compatibility
+	next_item_active: int32; // for compatibility
 	active: bool;
 	status: int32;
 	hit_stauts: bool;
@@ -115,8 +116,8 @@ table FXInfo {
 	pose : Pose;
 	room_number: int32;
 	object_number: int32;
-	next_fx: int32;
-	next_active: int32;
+	next_fx: int32; // for compatibility
+	next_active: int32; // for compatibility
 	speed: int32;
 	fall_speed: int32;
 	frame_number: int32;
@@ -648,14 +649,14 @@ table SaveGame {
 	lara: Lara;
 	rooms: [Room];
 	items: [Item];
-	next_item_free: int32;
-	next_item_active: int32;
+	next_item_free: int32;  // for compatibility
+	next_item_active: int32;  // for compatibility
 	room_items: [int32];
 	fish_swarm: [FishData];
 	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
-	next_fx_free: int32;
-	next_fx_active: int32;
+	next_fx_free: int32; // for compatibility
+	next_fx_active: int32; // for compatibility
 	fixed_cameras: [FixedCamera];
 	sinks: [Sink];
 	static_meshes: [StaticMeshInfo];
@@ -708,6 +709,15 @@ table SaveGame {
 	callbacks_post_useitem: [string];
 	callbacks_pre_freeze: [string];
 	callbacks_post_freeze: [string];
+
+	// New items and effects system that doesn't use linked lists
+	new_items_system: int32;
+	active_items: [int32];
+	free_item_slots: [int32];
+
+	new_effects_system: int32;
+	active_effects: [int32];
+	free_effect_slots: [int32];
 }
 
 root_type TEN.Save.SaveGame;

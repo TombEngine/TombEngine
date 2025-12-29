@@ -628,6 +628,20 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto roomOffset = fbb.CreateVector(rooms);
 
+	std::vector<int> activeItems;
+	for (int itemId : ActiveItems)
+	{
+		activeItems.push_back(itemId);
+	}
+	auto activeItemsOffset = fbb.CreateVector(activeItems);
+
+	std::vector<int> freeItemSlots;
+	for (int itemId : FreeItemSlots)
+	{
+		freeItemSlots.push_back(itemId);
+	}
+	auto freeItemSlotsOffset = fbb.CreateVector(freeItemSlots);
+
 	int currentItemIndex = 0;
 	for (auto& itemToSerialize : g_Level.Items) 
 	{
@@ -826,8 +840,8 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		serializedItem.add_next_item(itemToSerialize.NextItem);
-		serializedItem.add_next_item_active(itemToSerialize.NextActive);
+		serializedItem.add_next_item(NO_VALUE);
+		serializedItem.add_next_item_active(NO_VALUE);
 		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
@@ -996,6 +1010,20 @@ const std::vector<byte> SaveGame::Build()
 	// TODO: In future, we should save only active FX, not whole array.
 	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
 
+	std::vector<int> activeEffects;
+	for (int fxId : ActiveEffects)
+	{
+		activeEffects.push_back(fxId);
+	}
+	auto activeEffectsOffset = fbb.CreateVector(activeEffects);
+
+	std::vector<int> freeEffectSlots;
+	for (int fxId : FreeEffectSlots)
+	{
+		freeEffectSlots.push_back(fxId);
+	}
+	auto freeEffectSlotsOffset = fbb.CreateVector(freeEffectSlots);
+
 	std::vector<flatbuffers::Offset<Save::FXInfo>> serializedEffects{};
 	for (auto& effectToSerialize : EffectList)
 	{
@@ -1004,8 +1032,8 @@ const std::vector<byte> SaveGame::Build()
 		serializedEffect.add_pose(&FromPose(effectToSerialize.pos));
 		serializedEffect.add_room_number(effectToSerialize.roomNumber);
 		serializedEffect.add_object_number(effectToSerialize.objectNumber);
-		serializedEffect.add_next_fx(effectToSerialize.nextFx);
-		serializedEffect.add_next_active(effectToSerialize.nextActive);
+		serializedEffect.add_next_fx(NO_VALUE);
+		serializedEffect.add_next_active(NO_VALUE);
 		serializedEffect.add_speed(effectToSerialize.speed);
 		serializedEffect.add_fall_speed(effectToSerialize.fallspeed);
 		serializedEffect.add_frame_number(effectToSerialize.frameNumber);
@@ -1060,8 +1088,8 @@ const std::vector<byte> SaveGame::Build()
 	auto flipStatsOffset = fbb.CreateVector(flipStats);
 
 	std::vector<int> roomItems;
-	for (auto const& r : g_Level.Rooms)
-		roomItems.push_back(r.itemNumber);
+	//for (auto const& r : g_Level.Rooms)
+	//	roomItems.push_back(r.itemNumber);
 	auto roomItemsOffset = fbb.CreateVector(roomItems);
 
 	// Cameras
@@ -1629,15 +1657,21 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
-	sgb.add_next_item_free(NextItemFree);
-	sgb.add_next_item_active(NextItemActive);
+	sgb.add_new_items_system(1);
+	sgb.add_active_items(activeItemsOffset);
+	sgb.add_free_item_slots(freeItemSlotsOffset);
+	sgb.add_next_item_free(NO_VALUE);
+	sgb.add_next_item_active(NO_VALUE);
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_decals(decalOffset);
 	sgb.add_fxinfos(serializedEffectsOffset);
-	sgb.add_next_fx_free(NextFxFree);
-	sgb.add_next_fx_active(NextFxActive);
+	sgb.add_new_effects_system(1);
+	sgb.add_active_effects(activeEffectsOffset);
+	sgb.add_free_effect_slots(freeEffectSlotsOffset);
+	sgb.add_next_fx_free(NO_VALUE);
+	sgb.add_next_fx_active(NO_VALUE);
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
@@ -2560,18 +2594,51 @@ static void ParseEffects(const Save::SaveGame* s)
 		beetle->Pose = ToPose(*beetleInfo->pose());
 	}
 
-	NextFxFree = s->next_fx_free();
-	NextFxActive = s->next_fx_active();
+	// Effects
+	ActiveEffects.clear();
+	FreeEffectSlots.clear();
+	for (auto& room : g_Level.Rooms)
+		room.fxNumbers.clear();
+
+	if (s->new_effects_system() == 1)
+	{
+		for (int i = 0; i < s->active_effects()->size(); i++)
+			ActiveEffects.push_back(s->active_effects()->Get(i));
+
+		for (int i = 0; i < s->free_effect_slots()->size(); i++)
+			FreeEffectSlots.push_back(s->free_effect_slots()->Get(i));
+	}
+	else
+	{
+		// Reconstruct ActiveEffects from NextFxActive chain
+		for (int i = s->next_fx_active(); i != NO_VALUE && i < s->fxinfos()->size(); )
+		{
+			ActiveEffects.push_back(i);
+			int next = s->fxinfos()->Get(i)->next_active();
+			if (next == i || ActiveEffects.size() > s->fxinfos()->size())
+				break;
+			i = next;
+		}
+
+		// Reconstruct FreeEffectSlots from NextFxFree chain
+		for (int i = s->next_fx_free(); i != NO_VALUE && i < s->fxinfos()->size(); )
+		{
+			FreeEffectSlots.push_back(i);
+			int next = s->fxinfos()->Get(i)->next_fx();
+			if (next == i || FreeEffectSlots.size() > s->fxinfos()->size())
+				break;
+			i = next;
+		}
+	}
 
 	for (int i = 0; i < s->fxinfos()->size(); ++i)
 	{
 		auto& fx = EffectList[i];
 		auto fx_saved = s->fxinfos()->Get(i);
+
 		fx.pos = ToPose(*fx_saved->pose());
 		fx.roomNumber = fx_saved->room_number();
 		fx.objectNumber = fx_saved->object_number();
-		fx.nextFx = fx_saved->next_fx();
-		fx.nextActive = fx_saved->next_active();
 		fx.speed = fx_saved->speed();
 		fx.fallspeed = fx_saved->fall_speed();
 		fx.frameNumber = fx_saved->frame_number();
@@ -2579,6 +2646,14 @@ static void ParseEffects(const Save::SaveGame* s)
 		fx.color = ToVector4(fx_saved->color());
 		fx.flag1 = fx_saved->flag1();
 		fx.flag2 = fx_saved->flag2();
+
+		if (fx.roomNumber >= 0 && fx.roomNumber < g_Level.Rooms.size())
+		{
+			// Only add if effect is active
+			bool isActive = std::find(ActiveEffects.begin(), ActiveEffects.end(), i) != ActiveEffects.end();
+			if (isActive)
+				g_Level.Rooms[fx.roomNumber].fxNumbers.push_back(i);
+		}
 	}
 }
 
@@ -2697,12 +2772,46 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 
 	// Items
+	ActiveItems.clear();
+	FreeItemSlots.clear();
+	for (auto& room : g_Level.Rooms)
+		room.itemNumbers.clear();
 
-	NextItemFree = s->next_item_free();
-	NextItemActive = s->next_item_active();
+	if (s->new_items_system() == 1)
+	{
+		for (int i = 0; i < s->active_items()->size(); i++)
+			ActiveItems.push_back(s->active_items()->Get(i));
 
-	for(int i = 0; i < s->room_items()->size(); ++i)
-		g_Level.Rooms[i].itemNumber = s->room_items()->Get(i);
+		for (int i = 0; i < s->free_item_slots()->size(); i++)
+			FreeItemSlots.push_back(s->free_item_slots()->Get(i));
+	}
+	else
+	{
+		for (int i = s->next_item_active(); i != NO_VALUE && i < s->items()->size(); )
+		{
+			ActiveItems.push_back(i);
+			int next = s->items()->Get(i)->next_item_active();
+
+			// Safety: prevent infinite loop
+			if (next == i || ActiveItems.size() > s->items()->size())
+				break;
+
+			i = next;
+		}
+
+		// Reconstruct FreeItemSlots from NextItemFree chain
+		for (int i = s->next_item_free(); i != NO_VALUE && i < s->items()->size(); )
+		{
+			FreeItemSlots.push_back(i);
+			int next = s->items()->Get(i)->next_item();
+
+			// Safety: prevent infinite loop
+			if (next == i || FreeItemSlots.size() > s->items()->size())
+				break;
+
+			i = next;
+		}
+	}
 
 	for (int i = 0; i < s->items()->size(); i++)
 	{
@@ -2712,9 +2821,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
-
-		item->NextItem = savedItem->next_item();
-		item->NextActive = savedItem->next_item_active();
 
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
@@ -2736,6 +2842,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (item->ObjectNumber == ID_LARA && hubMode)
 		{
 			item->RoomNumber = savedItem->room_number();
+			g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
+
 			item->Floor = savedItem->floor();
 			item->BoxNumber = savedItem->box_number();
 			continue;
@@ -2745,6 +2853,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		{
 			//item->Pose = ToPose(*savedItem->pose());
 			item->RoomNumber = savedItem->room_number();
+			g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
+
 			item->Floor = savedItem->floor();
 			item->BoxNumber = savedItem->box_number();
 			continue;
@@ -2759,7 +2869,10 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
+
 		item->RoomNumber = savedItem->room_number();
+		g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
+
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
 

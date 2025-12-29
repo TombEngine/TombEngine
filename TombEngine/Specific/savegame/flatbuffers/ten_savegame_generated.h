@@ -991,6 +991,7 @@ struct RoomT : public flatbuffers::NativeTable {
   std::string name{};
   int32_t flags = 0;
   int32_t reverb_type = 0;
+  std::vector<int32_t> item_numbers{};
 };
 
 struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1001,7 +1002,8 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_INDEX = 4,
     VT_NAME = 6,
     VT_FLAGS = 8,
-    VT_REVERB_TYPE = 10
+    VT_REVERB_TYPE = 10,
+    VT_ITEM_NUMBERS = 12
   };
   int32_t index() const {
     return GetField<int32_t>(VT_INDEX, 0);
@@ -1015,6 +1017,9 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t reverb_type() const {
     return GetField<int32_t>(VT_REVERB_TYPE, 0);
   }
+  const flatbuffers::Vector<int32_t> *item_numbers() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ITEM_NUMBERS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_INDEX) &&
@@ -1022,6 +1027,8 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            VerifyField<int32_t>(verifier, VT_REVERB_TYPE) &&
+           VerifyOffset(verifier, VT_ITEM_NUMBERS) &&
+           verifier.VerifyVector(item_numbers()) &&
            verifier.EndTable();
   }
   RoomT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1045,6 +1052,9 @@ struct RoomBuilder {
   void add_reverb_type(int32_t reverb_type) {
     fbb_.AddElement<int32_t>(Room::VT_REVERB_TYPE, reverb_type, 0);
   }
+  void add_item_numbers(flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_numbers) {
+    fbb_.AddOffset(Room::VT_ITEM_NUMBERS, item_numbers);
+  }
   explicit RoomBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1061,8 +1071,10 @@ inline flatbuffers::Offset<Room> CreateRoom(
     int32_t index = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     int32_t flags = 0,
-    int32_t reverb_type = 0) {
+    int32_t reverb_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_numbers = 0) {
   RoomBuilder builder_(_fbb);
+  builder_.add_item_numbers(item_numbers);
   builder_.add_reverb_type(reverb_type);
   builder_.add_flags(flags);
   builder_.add_name(name);
@@ -1080,14 +1092,17 @@ inline flatbuffers::Offset<Room> CreateRoomDirect(
     int32_t index = 0,
     const char *name = nullptr,
     int32_t flags = 0,
-    int32_t reverb_type = 0) {
+    int32_t reverb_type = 0,
+    const std::vector<int32_t> *item_numbers = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto item_numbers__ = item_numbers ? _fbb.CreateVector<int32_t>(*item_numbers) : 0;
   return TEN::Save::CreateRoom(
       _fbb,
       index,
       name__,
       flags,
-      reverb_type);
+      reverb_type,
+      item_numbers__);
 }
 
 flatbuffers::Offset<Room> CreateRoom(flatbuffers::FlatBufferBuilder &_fbb, const RoomT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -8672,6 +8687,12 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::string> callbacks_post_useitem{};
   std::vector<std::string> callbacks_pre_freeze{};
   std::vector<std::string> callbacks_post_freeze{};
+  int32_t new_items_system = 0;
+  std::vector<int32_t> active_items{};
+  std::vector<int32_t> free_item_slots{};
+  int32_t new_effects_system = 0;
+  std::vector<int32_t> active_effects{};
+  std::vector<int32_t> free_effect_slots{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -8741,7 +8762,13 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CALLBACKS_PRE_USEITEM = 122,
     VT_CALLBACKS_POST_USEITEM = 124,
     VT_CALLBACKS_PRE_FREEZE = 126,
-    VT_CALLBACKS_POST_FREEZE = 128
+    VT_CALLBACKS_POST_FREEZE = 128,
+    VT_NEW_ITEMS_SYSTEM = 130,
+    VT_ACTIVE_ITEMS = 132,
+    VT_FREE_ITEM_SLOTS = 134,
+    VT_NEW_EFFECTS_SYSTEM = 136,
+    VT_ACTIVE_EFFECTS = 138,
+    VT_FREE_EFFECT_SLOTS = 140
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -8932,6 +8959,24 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_FREEZE);
   }
+  int32_t new_items_system() const {
+    return GetField<int32_t>(VT_NEW_ITEMS_SYSTEM, 0);
+  }
+  const flatbuffers::Vector<int32_t> *active_items() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_ITEMS);
+  }
+  const flatbuffers::Vector<int32_t> *free_item_slots() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_ITEM_SLOTS);
+  }
+  int32_t new_effects_system() const {
+    return GetField<int32_t>(VT_NEW_EFFECTS_SYSTEM, 0);
+  }
+  const flatbuffers::Vector<int32_t> *active_effects() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_EFFECTS);
+  }
+  const flatbuffers::Vector<int32_t> *free_effect_slots() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_EFFECT_SLOTS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -9081,6 +9126,16 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS_POST_FREEZE) &&
            verifier.VerifyVector(callbacks_post_freeze()) &&
            verifier.VerifyVectorOfStrings(callbacks_post_freeze()) &&
+           VerifyField<int32_t>(verifier, VT_NEW_ITEMS_SYSTEM) &&
+           VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
+           verifier.VerifyVector(active_items()) &&
+           VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
+           verifier.VerifyVector(free_item_slots()) &&
+           VerifyField<int32_t>(verifier, VT_NEW_EFFECTS_SYSTEM) &&
+           VerifyOffset(verifier, VT_ACTIVE_EFFECTS) &&
+           verifier.VerifyVector(active_effects()) &&
+           VerifyOffset(verifier, VT_FREE_EFFECT_SLOTS) &&
+           verifier.VerifyVector(free_effect_slots()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -9281,6 +9336,24 @@ struct SaveGameBuilder {
   void add_callbacks_post_freeze(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_FREEZE, callbacks_post_freeze);
   }
+  void add_new_items_system(int32_t new_items_system) {
+    fbb_.AddElement<int32_t>(SaveGame::VT_NEW_ITEMS_SYSTEM, new_items_system, 0);
+  }
+  void add_active_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items) {
+    fbb_.AddOffset(SaveGame::VT_ACTIVE_ITEMS, active_items);
+  }
+  void add_free_item_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots) {
+    fbb_.AddOffset(SaveGame::VT_FREE_ITEM_SLOTS, free_item_slots);
+  }
+  void add_new_effects_system(int32_t new_effects_system) {
+    fbb_.AddElement<int32_t>(SaveGame::VT_NEW_EFFECTS_SYSTEM, new_effects_system, 0);
+  }
+  void add_active_effects(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects) {
+    fbb_.AddOffset(SaveGame::VT_ACTIVE_EFFECTS, active_effects);
+  }
+  void add_free_effect_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_effect_slots) {
+    fbb_.AddOffset(SaveGame::VT_FREE_EFFECT_SLOTS, free_effect_slots);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -9356,8 +9429,20 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_useitem = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_useitem = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_freeze = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze = 0,
+    int32_t new_items_system = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
+    int32_t new_effects_system = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_effect_slots = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_free_effect_slots(free_effect_slots);
+  builder_.add_active_effects(active_effects);
+  builder_.add_new_effects_system(new_effects_system);
+  builder_.add_free_item_slots(free_item_slots);
+  builder_.add_active_items(active_items);
+  builder_.add_new_items_system(new_items_system);
   builder_.add_callbacks_post_freeze(callbacks_post_freeze);
   builder_.add_callbacks_pre_freeze(callbacks_pre_freeze);
   builder_.add_callbacks_post_useitem(callbacks_post_useitem);
@@ -9493,7 +9578,13 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_useitem = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_useitem = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_freeze = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze = nullptr) {
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze = nullptr,
+    int32_t new_items_system = 0,
+    const std::vector<int32_t> *active_items = nullptr,
+    const std::vector<int32_t> *free_item_slots = nullptr,
+    int32_t new_effects_system = 0,
+    const std::vector<int32_t> *active_effects = nullptr,
+    const std::vector<int32_t> *free_effect_slots = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Item>>(*items) : 0;
   auto room_items__ = room_items ? _fbb.CreateVector<int32_t>(*room_items) : 0;
@@ -9533,6 +9624,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto callbacks_post_useitem__ = callbacks_post_useitem ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_useitem) : 0;
   auto callbacks_pre_freeze__ = callbacks_pre_freeze ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_freeze) : 0;
   auto callbacks_post_freeze__ = callbacks_post_freeze ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_freeze) : 0;
+  auto active_items__ = active_items ? _fbb.CreateVector<int32_t>(*active_items) : 0;
+  auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
+  auto active_effects__ = active_effects ? _fbb.CreateVector<int32_t>(*active_effects) : 0;
+  auto free_effect_slots__ = free_effect_slots ? _fbb.CreateVector<int32_t>(*free_effect_slots) : 0;
   return TEN::Save::CreateSaveGame(
       _fbb,
       header,
@@ -9597,7 +9692,13 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       callbacks_pre_useitem__,
       callbacks_post_useitem__,
       callbacks_pre_freeze__,
-      callbacks_post_freeze__);
+      callbacks_post_freeze__,
+      new_items_system,
+      active_items__,
+      free_item_slots__,
+      new_effects_system,
+      active_effects__,
+      free_effect_slots__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -9743,6 +9844,7 @@ inline void Room::UnPackTo(RoomT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = flags(); _o->flags = _e; }
   { auto _e = reverb_type(); _o->reverb_type = _e; }
+  { auto _e = item_numbers(); if (_e) { _o->item_numbers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->item_numbers[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<Room> Room::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RoomT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -9757,12 +9859,14 @@ inline flatbuffers::Offset<Room> CreateRoom(flatbuffers::FlatBufferBuilder &_fbb
   auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
   auto _flags = _o->flags;
   auto _reverb_type = _o->reverb_type;
+  auto _item_numbers = _fbb.CreateVector(_o->item_numbers);
   return TEN::Save::CreateRoom(
       _fbb,
       _index,
       _name,
       _flags,
-      _reverb_type);
+      _reverb_type,
+      _item_numbers);
 }
 
 inline ItemT *Item::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -12249,6 +12353,12 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = callbacks_post_useitem(); if (_e) { _o->callbacks_post_useitem.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_useitem[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_pre_freeze(); if (_e) { _o->callbacks_pre_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_freeze[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_post_freeze(); if (_e) { _o->callbacks_post_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_freeze[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = new_items_system(); _o->new_items_system = _e; }
+  { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
+  { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
+  { auto _e = new_effects_system(); _o->new_effects_system = _e; }
+  { auto _e = active_effects(); if (_e) { _o->active_effects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_effects[_i] = _e->Get(_i); } } }
+  { auto _e = free_effect_slots(); if (_e) { _o->free_effect_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_effect_slots[_i] = _e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -12322,6 +12432,12 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _callbacks_post_useitem = _fbb.CreateVectorOfStrings(_o->callbacks_post_useitem);
   auto _callbacks_pre_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_pre_freeze);
   auto _callbacks_post_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_post_freeze);
+  auto _new_items_system = _o->new_items_system;
+  auto _active_items = _fbb.CreateVector(_o->active_items);
+  auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
+  auto _new_effects_system = _o->new_effects_system;
+  auto _active_effects = _fbb.CreateVector(_o->active_effects);
+  auto _free_effect_slots = _fbb.CreateVector(_o->free_effect_slots);
   return TEN::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -12386,7 +12502,13 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _callbacks_pre_useitem,
       _callbacks_post_useitem,
       _callbacks_pre_freeze,
-      _callbacks_post_freeze);
+      _callbacks_post_freeze,
+      _new_items_system,
+      _active_items,
+      _free_item_slots,
+      _new_effects_system,
+      _active_effects,
+      _free_effect_slots);
 }
 
 inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, VarUnion type) {

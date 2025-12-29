@@ -45,15 +45,9 @@ namespace TEN::Collision::Los
 				continue;
 
 			// Run through items in room.
-			int itemNumber = neighborRoom.itemNumber;
-			while (itemNumber != NO_VALUE)
+			for (int itemNumber : neighborRoom.itemNumbers)
 			{
 				auto& item = g_Level.Items[itemNumber];
-
-				// HACK: For some reason, infinite loop may sometimes occur.
-				if (itemNumber == item.NextItem)
-					break;
-				itemNumber = item.NextItem;
 
 				// 1) Ignore bridges (handled as part of room collision).
 				if (item.IsBridge())

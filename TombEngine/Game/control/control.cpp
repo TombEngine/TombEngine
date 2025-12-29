@@ -115,10 +115,12 @@ int NextLevel;
 bool  InItemControlLoop;
 short ItemNewRoomNo;
 short ItemNewRooms[MAX_ROOMS];
-short NextItemActive;
-short NextItemFree;
-short NextFxActive;
-short NextFxFree;
+
+std::vector<int> ActiveItems;
+std::vector<int> FreeItemSlots;
+
+std::vector<int> ActiveEffects;
+std::vector<int> FreeEffectSlots;
 
 int ControlPhaseTime;
 

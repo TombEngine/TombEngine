@@ -878,7 +878,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	return false;
 }
 
-int CreatureCreature(short itemNumber)  
+int CreatureCreature(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 	auto* object = &Objects[item->ObjectNumber];
@@ -889,28 +889,26 @@ int CreatureCreature(short itemNumber)
 
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	short link = room->itemNumber;
-	int distance = 0;
-	do
+	for (int linkNumber : room->itemNumbers)
 	{
-		auto* linked = &g_Level.Items[link];
-		
-		if (link != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0) // TODO: deal with LaraItem global.
+		auto* linked = &g_Level.Items[linkNumber];
+
+		// TODO: Deal with LaraItem global.
+		if (linkNumber != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0)
 		{
 			int xDistance = abs(linked->Pose.Position.x - x);
 			int zDistance = abs(linked->Pose.Position.z - z);
-			
+
+			int distance;
 			if (xDistance > zDistance)
 				distance = xDistance + (zDistance >> 1);
 			else
-				distance = xDistance + (zDistance >> 1);
+				distance = zDistance + (xDistance >> 1);  
 
 			if (distance < radius + Objects[linked->ObjectNumber].radius)
 				return phd_atan(linked->Pose.Position.z - z, linked->Pose.Position.x - x) - item->Pose.Orientation.y;
 		}
-
-		link = linked->NextItem;
-	} while (link != NO_VALUE);
+	}
 
 	return 0;
 }

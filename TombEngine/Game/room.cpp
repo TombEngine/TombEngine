@@ -543,12 +543,10 @@ void RoomData::CollectSectorCollisionMeshTriangles(CollisionMeshDesc& desc,
 
 static void AddRoomFlipItems(const RoomData& room)
 {
-	// Run through linked items.
-	for (int itemNumber = room.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+	for (int itemNumber : room.itemNumbers)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		const auto& object = Objects[item.ObjectNumber];
-
+		
 		// Initialize bridges.
 		// TODO: If all bridges can be initialized on level load, even ones in not yet loaded rooms, this can call `bridge.Update()` instead. -- Sezz 2025.03.27
 		if (item.IsBridge())
@@ -561,13 +559,11 @@ static void AddRoomFlipItems(const RoomData& room)
 
 static void RemoveRoomFlipItems(const RoomData& room)
 {
-	// Run through linked items.
-	for (int itemNumber = room.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+	for (int itemNumber : room.itemNumbers)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		const auto& object = Objects[item.ObjectNumber];
 
-		// Kill item.
 		if (item.Flags & ONESHOT &&
 			item.HitPoints != NOT_TARGETABLE &&
 			item.HitPoints <= 0 &&
@@ -589,12 +585,18 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 {
 	RemoveRoomFlipItems(activeRoom);
 
+	// Save item and effect lists before swap
+	auto itemNumbers = std::move(flippedRoom.itemNumbers);
+	auto fxNumbers = std::move(flippedRoom.fxNumbers);
+
 	// Swap rooms.
 	std::swap(activeRoom, flippedRoom);
 	activeRoom.flippedRoom = flippedRoom.flippedRoom;
 	flippedRoom.flippedRoom = NO_VALUE;
-	activeRoom.itemNumber = flippedRoom.itemNumber;
-	activeRoom.fxNumber = flippedRoom.fxNumber;
+
+	// Restore item and effect lists to active room
+	activeRoom.itemNumbers = std::move(itemNumbers);
+	activeRoom.fxNumbers = std::move(fxNumbers);
 
 	AddRoomFlipItems(activeRoom);
 
@@ -684,23 +686,15 @@ void DoFlipMap(int group)
 
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)
 {
-	int itemNumber = g_Level.Rooms[roomNumber].itemNumber;
-	if (itemNumber == NO_VALUE)
-		return false;
-
-	while (true)
+	for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 	{
 		const auto& item = g_Level.Items[itemNumber];
 
 		if (item.ObjectNumber == objectID)
-			break;
-
-		itemNumber = item.NextItem;
-		if (itemNumber == NO_VALUE)
-			return false;
+			return true;
 	}
 
-	return true;
+	return false;
 }
 
 int IsRoomOutside(int x, int y, int z)

@@ -206,28 +206,21 @@ void LaraHandsFree(ItemInfo* item)
 
 void KillActiveBaddys(ItemInfo* item)
 {
-	if (NextItemActive != NO_VALUE)
+	for (int itemNumber : ActiveItems)
 	{
-		short itemNumber = NextItemActive;
+		auto* targetItem = &g_Level.Items[itemNumber];
 
-		do
+		if (Objects[targetItem->ObjectNumber].intelligent)
 		{
-			auto* targetItem = &g_Level.Items[itemNumber];
+			targetItem->Status = ITEM_INVISIBLE;
 
-			if (Objects[targetItem->ObjectNumber].intelligent)
+			if (*(int*)&item != 0xABCDEF)
 			{
-				targetItem->Status = ITEM_INVISIBLE;
-
-				if (*(int*)&item != 0xABCDEF)
-				{
-					RemoveActiveItem(itemNumber);
-					DisableEntityAI(itemNumber);
-					targetItem->Flags |= IFLAG_INVISIBLE;
-				}
+				RemoveActiveItem(itemNumber);
+				DisableEntityAI(itemNumber);
+				targetItem->Flags |= IFLAG_INVISIBLE;
 			}
-
-			itemNumber = targetItem->NextActive;
-		} while (itemNumber != NO_VALUE);
+		}
 	}
 
 	FlipEffect = NO_VALUE;

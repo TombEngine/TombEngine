@@ -396,7 +396,7 @@ namespace TEN::Entities::TR4
 		auto* currentCreature = creature;
 
 		if (item->ItemFlags[1] == item->RoomNumber ||
-			g_Level.Rooms[item->RoomNumber].itemNumber == NO_VALUE)
+			g_Level.Rooms[item->RoomNumber].itemNumbers.empty())
 		{
 			currentCreature = creature;
 		}
@@ -404,13 +404,14 @@ namespace TEN::Entities::TR4
 		{
 			currentCreature = creature;
 			creature->Enemy = LaraItem;
-			ItemInfo* currentItem = nullptr;
-			for (short itemNum = g_Level.Rooms[item->RoomNumber].itemNumber; itemNum != NO_VALUE; itemNum = currentItem->NextItem)
+
+			for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 			{
-				currentItem = &g_Level.Items[itemNum];
+				auto* currentItem = &g_Level.Items[itemNumber];
+
 				if ((currentItem->ObjectNumber == ID_SMALLMEDI_ITEM ||
-					 currentItem->ObjectNumber == ID_BIGMEDI_ITEM ||
-					 currentItem->ObjectNumber == ID_UZI_AMMO_ITEM) &&
+					currentItem->ObjectNumber == ID_BIGMEDI_ITEM ||
+					currentItem->ObjectNumber == ID_UZI_AMMO_ITEM) &&
 					SameZone(creature, currentItem))
 				{
 					if (currentItem->Status != ITEM_INVISIBLE)

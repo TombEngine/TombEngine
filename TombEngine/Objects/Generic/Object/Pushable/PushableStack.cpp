@@ -168,45 +168,41 @@ namespace TEN::Entities::Generic
 		auto& pushableItem = g_Level.Items[itemNumber];
 		auto& pushable = GetPushableInfo(pushableItem);
 
-		if (roomNumber != NO_VALUE)
+		if (roomNumber == NO_VALUE)
+			return NO_VALUE;
+
+		for (int currentItemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 		{
-			short currentItemNumber = g_Level.Rooms[roomNumber].itemNumber;
-			while (currentItemNumber != NO_VALUE)
+			auto& currentItem = g_Level.Items[currentItemNumber];
+
+			// If climbable, is in same XZ position, and at lower height.
+			if ((currentItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && currentItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10) &&
+				(currentItem.Pose.Position.x == pushableItem.Pose.Position.x) && (currentItem.Pose.Position.z == pushableItem.Pose.Position.z) &&
+				(currentItem.Pose.Position.y > pushableItem.Pose.Position.y))
 			{
-				auto& currentItem = g_Level.Items[currentItemNumber];
-
-				// If climbable, is in same XZ position, and at lower height.
-				if ((currentItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 && currentItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10) &&
-					(currentItem.Pose.Position.x == pushableItem.Pose.Position.x) && (currentItem.Pose.Position.z == pushableItem.Pose.Position.z) &&
-					(currentItem.Pose.Position.y > pushableItem.Pose.Position.y))
+				// Find top item.
+				if (pushable.Stack.ItemNumberAbove == NO_VALUE)
 				{
-					// Find top item.
-					if (pushable.Stack.ItemNumberAbove == NO_VALUE)
-					{
-						return currentItemNumber;
-					}
-					else
-					{
-						int topItemNumber = pushable.Stack.ItemNumberAbove;
-						while (topItemNumber != NO_VALUE)
-						{
-							auto& topItem = g_Level.Items[topItemNumber];
-							auto& topPushable = GetPushableInfo(topItem);
-
-							if (topPushable.Stack.ItemNumberAbove == NO_VALUE)
-							{
-								return topItemNumber;
-							}
-							else
-							{
-								topItemNumber = topPushable.Stack.ItemNumberAbove;
-							}
-						}
-					}
+					return currentItemNumber;
 				}
 				else
 				{
-					currentItemNumber = currentItem.NextItem;
+					int topItemNumber = pushable.Stack.ItemNumberAbove;
+
+					while (topItemNumber != NO_VALUE)
+					{
+						auto& topItem = g_Level.Items[topItemNumber];
+						auto& topPushable = GetPushableInfo(topItem);
+
+						if (topPushable.Stack.ItemNumberAbove == NO_VALUE)
+						{
+							return topItemNumber;
+						}
+						else
+						{
+							topItemNumber = topPushable.Stack.ItemNumberAbove;
+						}
+					}
 				}
 			}
 		}

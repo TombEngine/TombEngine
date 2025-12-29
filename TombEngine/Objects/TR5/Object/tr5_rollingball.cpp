@@ -403,8 +403,7 @@ void ClassicRollingBallControl(short itemNum)
 {
 	int ydist, dist;
 	GameVector* old;
-	RoomData* r;
-
+	
 	auto* item = &g_Level.Items[itemNum];
 
 	if (item->Status == ITEM_ACTIVE)
@@ -493,6 +492,7 @@ void ClassicRollingBallControl(short itemNum)
 		if (!TriggerActive(item))
 		{
 			item->Status = ITEM_NOT_ACTIVE;
+
 			old = (GameVector*)item->Data;
 			item->Pose.Position.x = old->x;
 			item->Pose.Position.y = old->y;
@@ -501,17 +501,18 @@ void ClassicRollingBallControl(short itemNum)
 			if (item->RoomNumber != old->RoomNumber)
 			{
 				RemoveDrawnItem(itemNum);
-				r = &g_Level.Rooms[old->RoomNumber];
-				item->NextItem = r->itemNumber;
-				r->itemNumber = itemNum;
+
+				auto& room = g_Level.Rooms[old->RoomNumber];
+				room.itemNumbers.push_back(itemNum);
 				item->RoomNumber = old->RoomNumber;
 			}
 
 			item->Animation.AnimNumber = 0;
 			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState =
-			item->Animation.TargetState = GetAnimData(*item).StateID;
+				item->Animation.TargetState = GetAnimData(*item).StateID;
 			item->Animation.RequiredState = NO_VALUE;
+
 			RemoveActiveItem(itemNum);
 		}
 	}

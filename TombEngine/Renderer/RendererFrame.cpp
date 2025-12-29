@@ -431,13 +431,9 @@ namespace TEN::Renderer
 
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
-		short itemNumber = NO_VALUE;
-		for (itemNumber = room.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+		for (int itemNumber : room.itemNumbers)
 		{
 			const auto& item = g_Level.Items[itemNumber];
-
-			if (item.ObjectNumber == ID_LARA && itemNumber == g_Level.Items[itemNumber].NextItem)
-				break;
 
 			if (item.Status == ITEM_INVISIBLE)
 				continue;
@@ -462,7 +458,7 @@ namespace TEN::Renderer
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
 			bool inFrustum = true;
-			
+
 			if (!isRoomReflected && obj.ShadowType == ShadowMode::None)
 			{
 				inFrustum = false;
@@ -511,7 +507,7 @@ namespace TEN::Renderer
 
 				// Otherwise all frames until next ControlPhase will not be interpolated.
 				newItem.DisableInterpolation = false;
-				
+
 				for (int j = 0; j < MAX_BONES; j++)
 					newItem.PrevAnimTransforms[j] = newItem.AnimTransforms[j];
 			}
@@ -525,7 +521,7 @@ namespace TEN::Renderer
 			newItem.InterpolatedRotation = Matrix::Lerp(newItem.InterpolatedRotation, newItem.Rotation, interpFactor);
 			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, interpFactor);
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
-			
+
 			for (int j = 0; j < MAX_BONES; j++)
 				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
 
@@ -940,10 +936,10 @@ namespace TEN::Renderer
 		RendererRoom& room = _rooms[roomNumber];
 		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
-		short fxNum = NO_VALUE;
-		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
+		for (short fxNum : r->fxNumbers)
 		{
-			FX_INFO *fx = &EffectList[fxNum];
+			FX_INFO* fx = &EffectList[fxNum];
+
 			if (fx->objectNumber < 0 || fx->color.w <= 0)
 				continue;
 

@@ -72,10 +72,12 @@ extern int NextLevel;
 extern bool  InItemControlLoop;
 extern short ItemNewRoomNo;
 extern short ItemNewRooms[MAX_ROOMS];
-extern short NextItemActive;
-extern short NextItemFree;
-extern short NextFxActive;
-extern short NextFxFree;
+
+extern std::vector<int> ActiveItems;
+extern std::vector<int> FreeItemSlots;
+
+extern std::vector<int> ActiveEffects;
+extern std::vector<int> FreeEffectSlots;
 
 extern int ControlPhaseTime;
 

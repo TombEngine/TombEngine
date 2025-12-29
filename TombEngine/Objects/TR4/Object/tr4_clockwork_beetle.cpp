@@ -161,21 +161,17 @@ void ClockworkBeetleControl(short itemNumber)
 					Lara.Inventory.BeetleLife--;
 					beetle->ItemFlags[2] = 5;
 
-					if (g_Level.Rooms[beetle->RoomNumber].itemNumber != NO_VALUE)
+					for (int itemNumber : g_Level.Rooms[beetle->RoomNumber].itemNumbers)
 					{
-						ItemInfo* item = nullptr;
-						for (short itemRoom = g_Level.Rooms[beetle->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item->NextItem)
-						{
-							item = &g_Level.Items[itemRoom];
+						auto* item = &g_Level.Items[itemNumber];
 
-							if (item->ObjectNumber != ID_MAPPER)
-								continue;
+						if (item->ObjectNumber != ID_MAPPER)
+							continue;
 
-							if (Vector3i::Distance(beetle->Pose.Position, item->Pose.Position) > BLOCK(1))
-								continue;
+						if (Vector3i::Distance(beetle->Pose.Position, item->Pose.Position) > BLOCK(1))
+							continue;
 
-							item->ItemFlags[0] = 1;
-						}
+						item->ItemFlags[0] = 1;
 					}
 				}
 			}
@@ -314,12 +310,11 @@ void UseClockworkBeetle(bool flag)
 		beetle->Name = stringResult;
 		g_GameScriptEntities->AddName(stringResult, itemNumber);
 
-		if (beetle->ItemFlags[0] && g_Level.Rooms[beetle->RoomNumber].itemNumber != NO_VALUE)
+		if (beetle->ItemFlags[0])
 		{
-			ItemInfo* item = nullptr;
-			for (short itemRoom = g_Level.Rooms[beetle->RoomNumber].itemNumber; itemRoom != NO_VALUE; itemRoom = item->NextItem)
+			for (int itemNumber : g_Level.Rooms[beetle->RoomNumber].itemNumbers)
 			{
-				item = &g_Level.Items[itemRoom];
+				auto* item = &g_Level.Items[itemNumber];
 
 				if (item->ObjectNumber != ID_MAPPER)
 					continue;
