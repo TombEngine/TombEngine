@@ -260,7 +260,6 @@ namespace TEN::Renderer
 		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
 
 		std::vector<RendererItem> _items;
-		std::vector<RendererEffect> _effects;
 
 		// Debug variables
 
@@ -403,7 +402,6 @@ namespace TEN::Renderer
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
-		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
@@ -437,8 +435,6 @@ namespace TEN::Renderer
 		void PrepareBubbles(RenderView& view);
 		void DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors);
 		void DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites);
-		void DrawEffects(RenderView& view, RendererPass rendererPass);
-		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);

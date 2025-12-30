@@ -119,9 +119,6 @@ short ItemNewRooms[MAX_ROOMS];
 std::vector<int> ActiveItems;
 std::vector<int> FreeItemSlots;
 
-std::vector<int> ActiveEffects;
-std::vector<int> FreeEffectSlots;
-
 int ControlPhaseTime;
 
 void DrawPhase(bool isTitle, float interpolationFactor)
@@ -180,7 +177,6 @@ GameStatus GamePhase(bool insideMenu)
 	// Item update should happen before camera update, so potential flyby/track camera triggers
 	// are processed correctly.
 	UpdateAllItems();
-	UpdateAllEffects();
 	UpdateLara(LaraItem, isTitle);
 	g_GameScriptEntities->TestCollidingObjects();
 
@@ -406,7 +402,6 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize items, effects, lots, and cameras.
 	HairEffect.Initialize();
-	InitializeFXArray();
 	InitializeCamera();
 	InitializeSpotCamSequences(isTitle);
 	InitializeItemBoxData();
@@ -468,27 +463,6 @@ void KillMoveItems()
 			else
 			{
 				KillItem(itemNumber & 0x7FFF);
-			}
-		}
-	}
-
-	ItemNewRoomNo = 0;
-}
-
-void KillMoveEffects()
-{
-	if (ItemNewRoomNo > 0)
-	{
-		for (int i = 0; i < ItemNewRoomNo; i++)
-		{
-			int itemNumber = ItemNewRooms[i * 2];
-			if (itemNumber >= 0)
-			{
-				EffectNewRoom(itemNumber, ItemNewRooms[(i * 2) + 1]);
-			}
-			else
-			{
-				KillEffect(itemNumber & 0x7FFF);
 			}
 		}
 	}

@@ -385,107 +385,24 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 	g_Level.Rooms[roomNumber].itemNumbers.push_back(itemNumber);
 }
 
-void EffectNewRoom(short fxNumber, short roomNumber)
+short CreateNewEffect(short roomNumber, GAME_OBJECT_ID objectID, const Pose& pose)
 {
-	if (InItemControlLoop)
+	int fxNumber = CreateItem();
+
+	if (fxNumber != NO_VALUE)
 	{
-		ItemNewRooms[2 * ItemNewRoomNo] = fxNumber;
-		ItemNewRooms[2 * ItemNewRoomNo + 1] = roomNumber;
-		ItemNewRoomNo++;
+		auto& fx = g_Level.Items[fxNumber];
+
+		fx.Data = FXInfo();
+		fx.RoomNumber = roomNumber;
+		fx.Pose = pose;
+		fx.ObjectNumber = objectID;
+
+		InitializeItem(fxNumber);
+		AddActiveItem(fxNumber);
 	}
-	else
-	{
-		auto* fx = &EffectList[fxNumber];
-
-		// Remove from old room
-		auto& oldRoomFx = g_Level.Rooms[fx->roomNumber].fxNumbers;
-		auto it = std::find(oldRoomFx.begin(), oldRoomFx.end(), fxNumber);
-		if (it != oldRoomFx.end())
-		{
-			*it = oldRoomFx.back();
-			oldRoomFx.pop_back();
-		}
-
-		// Add to new room
-		fx->roomNumber = roomNumber;
-		g_Level.Rooms[roomNumber].fxNumbers.push_back(fxNumber);
-	}
-}
-
-void KillEffect(short fxNumber)
-{
-	if (InItemControlLoop)
-	{
-		ItemNewRooms[2 * ItemNewRoomNo] = fxNumber | 0x8000;
-		ItemNewRoomNo++;
-	}
-	else
-	{
-		auto* fx = &EffectList[fxNumber];
-
-		DetatchSpark(fxNumber, SP_FX);
-
-		// Remove from ActiveEffects
-		auto it = std::find(ActiveEffects.begin(), ActiveEffects.end(), fxNumber);
-		if (it != ActiveEffects.end())
-		{
-			*it = ActiveEffects.back();
-			ActiveEffects.pop_back();
-		}
-
-		// Remove from room's effect list
-		auto& roomFx = g_Level.Rooms[fx->roomNumber].fxNumbers;
-		auto roomIt = std::find(roomFx.begin(), roomFx.end(), fxNumber);
-		if (roomIt != roomFx.end())
-		{
-			*roomIt = roomFx.back();
-			roomFx.pop_back();
-		}
-
-		// Add to free slots
-		FreeEffectSlots.push_back(fxNumber);
-	}
-}
-
-short CreateNewEffect(short roomNumber)
-{
-	if (FreeEffectSlots.empty())
-		return NO_VALUE;
-
-	short fxNumber = FreeEffectSlots.back();
-	FreeEffectSlots.pop_back();
-
-	auto* fx = &EffectList[fxNumber];
-	auto& room = g_Level.Rooms[roomNumber];
-
-	fx->roomNumber = roomNumber;
-	fx->speed = 0;
-	fx->color = Vector4::One;
-	fx->fallspeed = 0;
-	fx->frameNumber = 0;
-	fx->counter = 0;
-	fx->flag1 = 0;
-	fx->flag2 = 0;
-	fx->DisableInterpolation = true;
-
-	// Add to ActiveEffects
-	ActiveEffects.push_back(fxNumber);
-
-	// Add to room's effect list
-	room.fxNumbers.push_back(fxNumber);
 
 	return fxNumber;
-}
-
-void InitializeFXArray()
-{
-	ActiveEffects.clear();
-	FreeEffectSlots.clear();
-
-	// All slots are free initially
-	FreeEffectSlots.reserve(MAX_SPAWNED_ITEM_COUNT);
-	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-		FreeEffectSlots.push_back(i);
 }
 
 void RemoveDrawnItem(short itemNumber)
@@ -757,25 +674,6 @@ void UpdateAllItems()
 
 	InItemControlLoop = false;
 	KillMoveItems();
-}
-
-void UpdateAllEffects()
-{
-	InItemControlLoop = true;
-
-	// Copy vector in case effects are killed during iteration
-	auto activeEffectsCopy = ActiveEffects;
-
-	for (short fxNumber : activeEffectsCopy)
-	{
-		auto* fx = &EffectList[fxNumber];
-
-		if (Objects[fx->objectNumber].control)
-			Objects[fx->objectNumber].control(fxNumber);
-	}
-
-	InItemControlLoop = false;
-	KillMoveEffects();
 }
 
 bool UpdateItemRoom(short itemNumber)

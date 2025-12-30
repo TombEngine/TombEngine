@@ -34,7 +34,6 @@ namespace TEN::Renderer
 	void Renderer::FreeRendererData()
 	{
 		_items.resize(0);
-		_effects.resize(0);
 		_moveableObjects.resize(0);
 		_staticObjects.clear();
 		_sprites.resize(0);

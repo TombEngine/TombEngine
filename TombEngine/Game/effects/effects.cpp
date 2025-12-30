@@ -58,8 +58,6 @@ constexpr int WIBBLE_MAX = UCHAR_MAX - WIBBLE_SPEED + 1;
 Particle Particles[MAX_PARTICLES];
 ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 
-FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
-
 GameBoundingBox DeadlyBounds;
 
 int Wibble = 0;
@@ -103,11 +101,11 @@ void DetatchSpark(int number, SpriteEnumFlag type)
 						sptr->on = false;
 					else
 					{
-						auto* fx = &EffectList[number];
+						auto* fx = &g_Level.Items[number];
 
-						sptr->x += fx->pos.Position.x;
-						sptr->y += fx->pos.Position.y;
-						sptr->z += fx->pos.Position.z;
+						sptr->x += fx->Pose.Position.x;
+						sptr->y += fx->Pose.Position.y;
+						sptr->z += fx->Pose.Position.z;
 						sptr->flags &= ~SP_FX;
 					}
 
@@ -2075,4 +2073,14 @@ std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mai
 	}
 
 	return { colorS, colorD };
+}
+
+FXInfo& GetFXInfo(ItemInfo& fx)
+{
+	return (FXInfo&)(fx.Data);
+}
+
+const FXInfo& GetFXInfo(const ItemInfo& fx)
+{
+	return (FXInfo&)(fx.Data);
 }

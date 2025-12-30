@@ -1010,7 +1010,7 @@ const std::vector<byte> SaveGame::Build()
 	// TODO: In future, we should save only active FX, not whole array.
 	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
 
-	std::vector<int> activeEffects;
+	/*std::vector<int> activeEffects;
 	for (int fxId : ActiveEffects)
 	{
 		activeEffects.push_back(fxId);
@@ -1045,7 +1045,7 @@ const std::vector<byte> SaveGame::Build()
 		auto serializedEffectOffset = serializedEffect.Finish();
 		serializedEffects.push_back(serializedEffectOffset);
 	}
-	auto serializedEffectsOffset = fbb.CreateVector(serializedEffects);
+	auto serializedEffectsOffset = fbb.CreateVector(serializedEffects);*/
 
 	// Soundtrack playheads
 	std::vector<flatbuffers::Offset<Save::Soundtrack>> soundtracks;
@@ -1666,10 +1666,10 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_decals(decalOffset);
-	sgb.add_fxinfos(serializedEffectsOffset);
+	//sgb.add_fxinfos(serializedEffectsOffset);
 	sgb.add_new_effects_system(1);
-	sgb.add_active_effects(activeEffectsOffset);
-	sgb.add_free_effect_slots(freeEffectSlotsOffset);
+	//sgb.add_active_effects(activeEffectsOffset);
+	//sgb.add_free_effect_slots(freeEffectSlotsOffset);
 	sgb.add_next_fx_free(NO_VALUE);
 	sgb.add_next_fx_active(NO_VALUE);
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
@@ -2595,7 +2595,7 @@ static void ParseEffects(const Save::SaveGame* s)
 	}
 
 	// Effects
-	ActiveEffects.clear();
+	/*ActiveEffects.clear();
 	FreeEffectSlots.clear();
 	for (auto& room : g_Level.Rooms)
 		room.fxNumbers.clear();
@@ -2654,7 +2654,7 @@ static void ParseEffects(const Save::SaveGame* s)
 			if (isActive)
 				g_Level.Rooms[fx.roomNumber].fxNumbers.push_back(i);
 		}
-	}
+	}*/
 }
 
 static void ParseLevel(const Save::SaveGame* s, bool hubMode)

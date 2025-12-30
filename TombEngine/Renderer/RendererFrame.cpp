@@ -41,7 +41,6 @@ namespace TEN::Renderer
 			auto& room = _rooms[i];
 
 			room.ItemsToDraw.clear();
-			room.EffectsToDraw.clear();
 			room.StaticsToDraw.clear();
 			room.LightsToDraw.clear();
 			room.Decals.clear();
@@ -347,7 +346,6 @@ namespace TEN::Renderer
 			{
 				CollectItems(to, renderView);
 				CollectStatics(to, renderView);
-				CollectEffects(to);
 			}
 		}
 
@@ -928,60 +926,6 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::CollectEffects(short roomNumber)
-	{
-		if (_rooms.size() <= roomNumber)
-			return;
-
-		RendererRoom& room = _rooms[roomNumber];
-		RoomData* r = &g_Level.Rooms[room.RoomNumber];
-
-		for (short fxNum : r->fxNumbers)
-		{
-			FX_INFO* fx = &EffectList[fxNum];
-
-			if (fx->objectNumber < 0 || fx->color.w <= 0)
-				continue;
-
-			ObjectInfo *obj = &Objects[fx->objectNumber];
-
-			RendererEffect *newEffect = &_effects[fxNum];
-
-			newEffect->Translation = Matrix::CreateTranslation(fx->pos.Position.x, fx->pos.Position.y, fx->pos.Position.z);
-			newEffect->Rotation = fx->pos.Orientation.ToRotationMatrix();
-			newEffect->Scale = Matrix::CreateScale(1.0f);
-			newEffect->World = newEffect->Rotation * newEffect->Translation;
-			newEffect->ObjectID = fx->objectNumber;
-			newEffect->RoomNumber = fx->roomNumber;
-			newEffect->Position = fx->pos.Position.ToVector3();
-			newEffect->AmbientLight = room.AmbientLight;
-			newEffect->Color = fx->color;
-			newEffect->Mesh = GetMesh(obj->nmeshes ? obj->meshIndex : fx->frameNumber);
-
-			if (fx->DisableInterpolation)
-			{
-				// In this way the interpolation will return always the same result
-				newEffect->PrevPosition = newEffect->Position;
-				newEffect->PrevTranslation = newEffect->Translation;
-				newEffect->PrevRotation = newEffect->Rotation;
-				newEffect->PrevWorld = newEffect->World;
-				newEffect->PrevScale = newEffect->Scale;
-
-				fx->DisableInterpolation = false;
-			}
-
-			newEffect->InterpolatedPosition = Vector3::Lerp(newEffect->PrevPosition, newEffect->Position, GetInterpolationFactor());
-			newEffect->InterpolatedTranslation = Matrix::Lerp(newEffect->PrevTranslation, newEffect->Translation, GetInterpolationFactor());
-			newEffect->InterpolatedRotation = Matrix::Lerp(newEffect->InterpolatedRotation, newEffect->Rotation, GetInterpolationFactor());
-			newEffect->InterpolatedWorld = Matrix::Lerp(newEffect->PrevWorld, newEffect->World, GetInterpolationFactor());
-			newEffect->InterpolatedScale = Matrix::Lerp(newEffect->PrevScale, newEffect->Scale, GetInterpolationFactor());
-
-			CollectLightsForEffect(fx->roomNumber, newEffect);
-
-			room.EffectsToDraw.push_back(newEffect);
-		}
-	}
-
 	void Renderer::ResetItems()
 	{
 		for (auto& item : _items)
@@ -1000,15 +944,6 @@ namespace TEN::Renderer
 
 			for (int j = 0; j < MAX_BONES; j++)
 				item.PrevAnimTransforms[j] = item.AnimTransforms[j];
-		}
-
-		for (auto& effect : _effects)
-		{
-			effect.PrevPosition = effect.Position;
-			effect.PrevWorld = effect.World;
-			effect.PrevTranslation = effect.Translation;
-			effect.PrevRotation = effect.Rotation;
-			effect.PrevScale = effect.Scale;
 		}
 
 		for (auto& room : _rooms)

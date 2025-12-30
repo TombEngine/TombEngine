@@ -481,17 +481,18 @@ namespace TEN::Renderer
 
 				if (particle.flags & SP_FX)
 				{
-					const auto& fx = EffectList[particle.fxObj];
+					auto& fx = g_Level.Items[particle.fxObj];
+					auto& fxInfo = GetFXInfo(fx);
 
-					auto& newEffect = _effects[particle.fxObj];
+					auto& newEffect = _items[particle.fxObj];
 
-					newEffect.Translation = Matrix::CreateTranslation(fx.pos.Position.ToVector3());
-					newEffect.Rotation = fx.pos.Orientation.ToRotationMatrix();
+					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
+					newEffect.Rotation = fx.Pose.Orientation.ToRotationMatrix();
 					newEffect.Scale = Matrix::CreateScale(1.0f);
 					newEffect.World = newEffect.Rotation * newEffect.Translation;
-					newEffect.ObjectID = fx.objectNumber;
-					newEffect.RoomNumber = fx.roomNumber;
-					newEffect.Position = fx.pos.Position.ToVector3();
+					newEffect.ObjectID = fx.ObjectNumber;
+					newEffect.RoomNumber = fx.RoomNumber;
+					newEffect.Position = fx.Pose.Position.ToVector3();
 					
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
@@ -1489,77 +1490,6 @@ namespace TEN::Renderer
 		}
 
 		return spriteMatrix;
-	}
-
-	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
-	{
-		const auto& room = _rooms[effect->RoomNumber];
-
-		auto world = effect->InterpolatedWorld;
-		ReflectMatrixOptionally(world);
-
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = effect->Color;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = effect->AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Dynamic;
-		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
-
-		auto& mesh = *effect->Mesh;
-		
-		for (int animated = 0; animated < 2; animated++)
-		{
-			for (auto& bucket : mesh.Buckets)
-			{
-				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-				{
-					continue;
-				}
-
-				if (bucket.NumVertices == 0)
-					continue;
-
-				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-
-				for (int p = 0; p < passes; p++)
-				{
-					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
-						continue;
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
-					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
-
-					_numEffectsDrawCalls++;
-				}
-			}
-		}
-	}
-
-	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
-	{
-		_shaders.Bind(Shader::InstancedStatics);
-
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-		for (auto* roomPtr : view.RoomsToDraw)
-		{
-			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
-				continue;
-
-			for (auto* effectPtr : roomPtr->EffectsToDraw)
-			{
-				const auto& room = _rooms[effectPtr->RoomNumber];
-				const auto& object = Objects[effectPtr->ObjectID];
-
-				if (!object.Hidden && object.loaded)
-					DrawEffect(view, effectPtr, rendererPass);
-			}
-		}
 	}
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)

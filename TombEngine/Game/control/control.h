@@ -76,9 +76,6 @@ extern short ItemNewRooms[MAX_ROOMS];
 extern std::vector<int> ActiveItems;
 extern std::vector<int> FreeItemSlots;
 
-extern std::vector<int> ActiveEffects;
-extern std::vector<int> FreeEffectSlots;
-
 extern int ControlPhaseTime;
 
 extern std::vector<short> OutsideRoomTable[OUTSIDE_SIZE][OUTSIDE_SIZE];
@@ -98,7 +95,6 @@ int GetRandomControl();
 int GetRandomDraw();
 
 void KillMoveItems();
-void KillMoveEffects();
 void UpdateShatters();
 
 void CleanUp();

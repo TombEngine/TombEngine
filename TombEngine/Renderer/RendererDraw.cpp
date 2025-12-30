@@ -2377,7 +2377,6 @@ namespace TEN::Renderer
 			if (moveables)
 			{
 				DrawItems(view, pass);
-				DrawEffects(view, pass);
 				DrawGunShells(view, pass);
 				DrawSpiders(view, pass);
 				DrawScarabs(view, pass);

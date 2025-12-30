@@ -91,9 +91,6 @@ namespace TEN::Renderer
 		for (auto& item : _items)
 			item.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
 
-		for (auto& effect : _effects)
-			effect.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
-
 		D3D11_BLEND_DESC blendStateDesc{};
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;

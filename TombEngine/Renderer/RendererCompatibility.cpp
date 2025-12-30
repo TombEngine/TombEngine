@@ -47,9 +47,6 @@ namespace TEN::Renderer
 
 		auto item = RendererItem();
 		_items = std::vector<RendererItem>(allocatedItemSize, item);
-
-		auto effect = RendererEffect();
-		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
 		
 		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
 		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
@@ -353,7 +350,6 @@ namespace TEN::Renderer
 			rendererRoom.RoomNumber = i;
 			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
-			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));

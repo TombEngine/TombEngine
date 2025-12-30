@@ -2,6 +2,7 @@
 
 #include "Game/Items.h"
 #include "Game/effects/Light.h"
+#include "Game/effects/fx_info.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
 
@@ -90,22 +91,6 @@ enum class FlameType
 	Pulse,
 	SmallFast,
 	Trail
-};
-
-struct FX_INFO
-{
-	Pose pos;
-	short roomNumber;
-	short objectNumber;
-	short speed;
-	short fallspeed;
-	int frameNumber;
-	short counter;
-	Vector4 color;
-	short flag1;
-	short flag2;
-
-	bool DisableInterpolation;
 };
 
 struct NODEOFFSET_INFO
@@ -224,8 +209,6 @@ extern ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 extern Vector3i NodeVectors[ParticleNodeOffsetIDs::NodeMax];
 extern NODEOFFSET_INFO NodeOffsets[ParticleNodeOffsetIDs::NodeMax];
 
-extern FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
-
 template <typename TEffect>
 TEffect& GetNewEffect(std::vector<TEffect>& effects, unsigned int countMax)
 {
@@ -264,6 +247,9 @@ void ClearInactiveEffects(std::vector<TEffect>& effects)
 }
 
 Particle* GetFreeParticle();
+
+FXInfo& GetFXInfo(ItemInfo& fx);
+const FXInfo& GetFXInfo(const ItemInfo& fx);
 
 void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID);
 void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate);
