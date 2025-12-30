@@ -397,6 +397,7 @@ short CreateNewEffect(short roomNumber, GAME_OBJECT_ID objectID, const Pose& pos
 		fx.RoomNumber = roomNumber;
 		fx.Pose = pose;
 		fx.ObjectNumber = objectID;
+		fx.Model.Color = Vector4::One;
 
 		InitializeItem(fxNumber);
 		AddActiveItem(fxNumber);

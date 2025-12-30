@@ -172,7 +172,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		fx.Pose.Position = jointPos;
 		fx.Pose.Orientation = orient;
-		fx.Model.Color = Vector4::Zero;
+		fx.Model.Color = Vector4::One;
 		fx.Animation.Velocity.z = CLAW_MUTANT_PLASMA_VELOCITY;
 		fxInfo.Flag2 = CLAW_MUTANT_PLASMA_ATTACK_DAMAGE;
 		fxInfo.Flag1 = (int)MissileType::ClawMutantPlasma;

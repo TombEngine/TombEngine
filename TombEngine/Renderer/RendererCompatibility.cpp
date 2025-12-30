@@ -671,13 +671,6 @@ namespace TEN::Renderer
 					auto* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
 					_meshes.push_back(mesh);
 				}
-
-				if (objNum == ID_IMP_ROCK || objNum == ID_ENERGY_BUBBLES || objNum == ID_BUBBLES || objNum == ID_BODY_PART)
-				{
-					// HACK: these objects must have nmeshes = 0 because engine will use them in a different way while drawing Effects.
-					// In Core's code this was done in SETUP.C but we must do it here because we need to create renderer's meshes.
-					obj->nmeshes = 0;
-				}
 				else
 				{
 					for (int j = 0; j < obj->nmeshes; j++)

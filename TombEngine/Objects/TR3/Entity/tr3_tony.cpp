@@ -98,7 +98,7 @@ namespace TEN::Entities::Creatures::TR3
 		fx.Pose.Orientation = EulerAngles(0, flame.yRot, 0);
 		fxInfo.Flag1 = (short)flame.Type;
 		fx.Animation.Velocity.z = flame.speed;
-		fx.Model.Color = Vector4::Zero;
+		fx.Model.Color = Vector4::One;
 
 		switch (flame.Type)
 		{
