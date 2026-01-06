@@ -76,6 +76,7 @@ namespace TEN::Entities::Creatures::TR3
 		harpoonItem->Animation.Velocity.z = 150.0f;
 		harpoonItem->Pose.Orientation.x = 0;
 		harpoonItem->Pose.Orientation.y = yRot;
+		harpoonItem->Model.Color = Vector4::One;
 
 		AddActiveItem(harpoonItemNumber);
 		harpoonItem->Status = ITEM_ACTIVE;
