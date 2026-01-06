@@ -62,7 +62,33 @@ most can just be ignored (see usage).
 static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string& name, const Vec3& pos, const TypeOrNil<Rotation>& rot, TypeOrNil<int> room,
 										TypeOrNil<int> animNumber, TypeOrNil<int> frameNumber, TypeOrNil<int> hp, TypeOrNil<int> ocb, const TypeOrNil<aiBitsType>& aiBits)
 {
+	if (objID < 0 || objID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS || !Objects[objID].loaded)
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": object not loaded or ID is invalid.", LogLevel::Error);
+		return nullptr;
+	}
+
+	int roomNumber = ValueOr<int>(room, FindRoomNumber(pos.ToVector3i()));
+	if (roomNumber == NO_VALUE || !IsPointInRoom(pos.ToVector3i(), roomNumber))
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": position is not in a valid room.", LogLevel::Error);
+		return nullptr;
+	}
+
+	if (g_GameScriptEntities->GetIndexByName(name) != NO_VALUE)
+	{
+		TENLog("Can't create moveable with name '" + name + "': name is already in use.", LogLevel::Error);
+		return nullptr;
+	}
+
 	int movID = CreateItem();
+
+	if (movID == NO_VALUE)
+	{
+		TENLog("Can't create moveable " + GetObjectName(objID) + ": unable to get free moveable slot. Too many moveables created?", LogLevel::Error);
+		return nullptr;
+	}
+
 	auto scriptMov = std::make_unique<Moveable>(movID, false);
 
 	if (ScriptAssert(scriptMov->SetName(name), "Could not set name for Moveable. Returning an invalid object."))
@@ -70,16 +96,8 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		auto& mov = g_Level.Items[movID];
 
 		scriptMov->SetObjectID(objID);
-
-		if (std::holds_alternative<int>(room))
-		{
-			scriptMov->SetPosition(pos, false);
-			scriptMov->SetRoomNumber(std::get<int>(room));
-		}
-		else
-		{
-			scriptMov->SetPosition(pos, true);
-		}
+		scriptMov->SetPosition(pos, false);
+		scriptMov->SetRoomNumber(roomNumber);
 
 		scriptMov->SetRotation(ValueOr<Rotation>(rot, Rotation()));
 		scriptMov->Initialize();
@@ -134,6 +152,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_GetScale, &Moveable::GetScale,
 		ScriptReserved_GetVelocity, &Moveable::GetVelocity,
 		ScriptReserved_GetColor, &Moveable::GetColor,
+		ScriptReserved_GetVisible, &Moveable::GetVisible,
 		ScriptReserved_GetCollidable, &Moveable::GetCollidable,
 		ScriptReserved_GetEffect, &Moveable::GetEffect,
 		ScriptReserved_GetStateNumber, &Moveable::GetStateNumber,
@@ -190,9 +209,12 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_ShatterMesh, &Moveable::ShatterMesh,
 		ScriptReserved_SwapMesh, &Moveable::SwapMesh,
 		ScriptReserved_UnswapMesh, &Moveable::UnswapMesh,
+		ScriptReserved_SwapSkinnedMesh, &Moveable::SwapSkinnedMesh,
+		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
-		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject);
+		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
+		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -246,15 +268,15 @@ void Moveable::Initialize()
 	_initialized = true;
 }
 
-/// Retrieve the object ID.
+/// Retrieve the object ID from a moveable.
 // @function Moveable:GetObjectID
-// @treturn Objects.ObjID A number representing the ID of the object.
+// @treturn Objects.ObjID A number representing the object ID of the moveable.
 GAME_OBJECT_ID Moveable::GetObjectID() const
 {
 	return _moveable->ObjectNumber;
 }
 
-/// Change the object's ID. This will literally change the object.
+/// Change the moveable's object ID. This will literally change the moveable.
 // @function Moveable:SetObjectID
 // @tparam Objects.ObjID objectID The new ID.
 // @usage
@@ -264,6 +286,7 @@ void Moveable::SetObjectID(GAME_OBJECT_ID id)
 {
 	_moveable->ObjectNumber = id;
 	_moveable->ResetModelToDefault();
+	SetAnimation(_moveable, 0);
 }
 
 void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify)
@@ -343,7 +366,7 @@ void Moveable::SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb)
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, *this, _moveable->Callbacks.OnRoomCollided);
 }
 
-/// Get the moveable's name (its unique string identifier). This corresponds with the "Lua Name" field in an object's properties in Tomb Editor.
+/// Get the moveable's name (its unique string identifier). This corresponds with the "Lua Name" field in a moveable's properties in Tomb Editor.
 // @function Moveable:GetName
 // @treturn string The moveable's name.
 std::string Moveable::GetName() const
@@ -351,7 +374,7 @@ std::string Moveable::GetName() const
 	return _moveable->Name;
 }
 
-/// Set the moveable's name (its unique string identifier). It cannot be blank and cannot share a name with any existing object.
+/// Set the moveable's name (its unique string identifier). It cannot be blank and cannot share a name with any other existing moveable.
 // @function Moveable:SetName
 // @tparam string name The new moveable's name.
 // @treturn bool true if name was successfully set, false otherwise (e.g. if another moveable has the name already).
@@ -418,8 +441,11 @@ void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 		}
 	}
 
-	if (_moveable->IsBridge())
-		UpdateBridgeItem(*_moveable);
+	if (_initialized && _moveable->IsBridge())
+	{
+		auto& bridge = GetBridgeObject(*_moveable);
+		bridge.Update(*_moveable);
+	}
 
 	if (bigDistance)
 		_moveable->DisableInterpolation = true;
@@ -436,7 +462,7 @@ Vec3 Moveable::GetJointPos(int jointIndex, sol::optional<Vec3> offset) const
 	return Vec3(GetJointPosition(_moveable, jointIndex, convertedOffset));
 }
 
-/// Get the object's joint rotation.
+/// Get the moveable's joint rotation.
 // @function Moveable:GetJointRotation
 // @tparam int index Index of a joint to get rotation.
 // @treturn Rotation Moveable's joint rotation.
@@ -496,8 +522,11 @@ void Moveable::SetRotation(const Rotation& rot)
 
 	_moveable->Pose.Orientation = newRot;
 
-	if (_moveable->IsBridge())
-		UpdateBridgeItem(*_moveable);
+	if (_initialized && _moveable->IsBridge())
+	{
+		auto& bridge = GetBridgeObject(*_moveable);
+		bridge.Update(*_moveable);
+	}
 
 	if (bigRotation)
 		_moveable->DisableInterpolation = true;
@@ -538,7 +567,7 @@ void Moveable::SetHP(short hp)
 	_moveable->HitPoints = hp;
 }
 
-/// Get HP definded for that object type (hit points / health points).
+/// Get HP (hit points / health points) definded for that object ID.
 // @function Moveable:GetSlotHP
 // @treturn int The moveable's slot default hit points.
 short Moveable::GetSlotHP() const
@@ -640,7 +669,11 @@ void Moveable::SetItemFlags(short value, int index)
 	_moveable->ItemFlags[index] = value;
 }
 
-/// Get the location value stored in the Enemy AI.
+/// Get the OCB of the AI object that the enemy is currently trying to reach.
+// Used exclusively by:
+// - SOPHIA_LEIGH
+// - VON_CROY
+// - The GUIDE, only if he has ItemFlags[2] bit 1 set
 // @function Moveable:GetLocationAI
 // @treturn short The value contained in the LocationAI of the creature.
 short Moveable::GetLocationAI() const
@@ -651,11 +684,15 @@ short Moveable::GetLocationAI() const
 		return creature->LocationAI;
 	}
 
-	TENLog("Trying to get LocationAI value from non-creature moveable. Value does not exist so it's returning 0.", LogLevel::Error);
+	TENLog("Trying to get LocationAI value from a non-creature moveable but the value does not exist. Returning 0.", LogLevel::Error);
 	return 0;
 }
 
-/// Updates the location in the enemy AI with the given value.
+/// Updates the AI object OCB that the enemy should try to reach.
+// Used exclusively by:
+// - SOPHIA_LEIGH
+// - VON_CROY
+// - The GUIDE, only if he has ItemFlags[2] bit 1 set (otherwise, he ignore it and simply look for the next AI object OCB until he reaches the one set by the last call to flipeffect 30)
 // @function Moveable:SetLocationAI
 // @tparam short value Value to store.
 void Moveable::SetLocationAI(short value)
@@ -667,7 +704,7 @@ void Moveable::SetLocationAI(short value)
 	}
 	else
 	{
-		TENLog("Trying to set a value in nonexisting variable. Non creature moveable hasn't got LocationAI.", LogLevel::Error);
+		TENLog("Trying to set a value in non-existing variable but Non-creature moveable does not have LocationAI!", LogLevel::Error);
 	}
 }
 
@@ -687,9 +724,9 @@ void Moveable::SetColor(const ScriptColor& color)
 	_moveable->Model.Color = color;
 }
 
-/// Get AIBits of object.
+/// Get AIBits of a moveable.
 // This will return a table with six values, each corresponding to
-// an active behaviour. If the object is in a certain AI mode, the table will
+// an active behaviour. If the moveable is in a certain AI mode, the table will
 // have a *1* in the corresponding cell. Otherwise, the cell will hold
 // a *0*.
 //
@@ -716,7 +753,7 @@ aiBitsType Moveable::GetAIBits() const
 	return ret;
 }
 
-/// Set AIBits of object.
+/// Set AIBits of a moveable.
 // Use this to force a moveable into a certain AI mode or modes, as if a certain nullmesh
 // (or more than one) had suddenly spawned beneath their feet.
 // @function Moveable:SetAIBits
@@ -744,7 +781,7 @@ int Moveable::GetStateNumber() const
 }
 
 /// Retrieve the index of the target state.
-// This corresponds to the state the object is trying to get into, which is sometimes different from the active state.
+// This corresponds to the state the moveable is trying to get into, which is sometimes different from the active state.
 // @function Moveable:GetTargetState
 // @treturn int The index of the target state.
 int Moveable::GetTargetStateNumber() const
@@ -752,9 +789,9 @@ int Moveable::GetTargetStateNumber() const
 	return _moveable->Animation.TargetState;
 }
 
-/// Set the object's state to the one specified by the given index.
+/// Set the moveable's state to the one specified by the given index.
 // Performs no bounds checking. *Ensure the number given is correct, else
-// object may end up in corrupted animation state.*
+// moveable may end up in corrupted animation state.*
 // @function Moveable:SetState
 // @tparam int index The index of the desired state.
 void Moveable::SetStateNumber(int stateNumber)
@@ -778,34 +815,34 @@ int Moveable::GetAnimSlot() const
 // @treturn int The index of the active animation.
 int Moveable::GetAnimNumber() const
 {
-	return _moveable->Animation.AnimNumber - Objects[_moveable->Animation.AnimObjectID].animIndex;
+	return _moveable->Animation.AnimNumber;
 }
 
-/// Set the object's animation to the one specified by the given index.
+/// Set the moveable's animation to the one specified by the given index.
 // Performs no bounds checking. *Ensure the number given is correct, else
-// object may end up in corrupted animation state.*
+// moveable may end up in corrupted animation state.*
 // @function Moveable:SetAnim
 // @tparam int index The index of the desired animation.
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
 }
 
 /// Retrieve frame number.
-// This is the current frame of the object's active animation.
+// This is the current frame of the moveable's active animation.
 // @function Moveable:GetFrame
 // @treturn int The current frame of the active animation.
 int Moveable::GetFrameNumber() const
 {
-	return (_moveable->Animation.FrameNumber - GetAnimData(*_moveable).frameBase);
+	return _moveable->Animation.FrameNumber;
 }
 
-/// Get the object's velocity.
+/// Get the moveable's velocity.
 // In most cases, only Z and Y components are used as forward and vertical velocity.
 // In some cases, primarily NPCs, X component is used as side velocity.
 // @function Moveable:GetVelocity
-// @treturn Vec3 Current object velocity.
+// @treturn Vec3 Current moveable velocity.
 Vec3 Moveable::GetVelocity() const
 {
 	return Vec3(
@@ -814,7 +851,7 @@ Vec3 Moveable::GetVelocity() const
 		(int)round(_moveable->Animation.Velocity.z));
 }
 
-/// Set the object's velocity to specified value.
+/// Set the moveable's velocity to specified value.
 // In most cases, only Z and Y components are used as forward and vertical velocity.
 // In some cases, primarily NPCs, X component is used as side velocity.
 // @function Moveable:SetVelocity
@@ -822,7 +859,7 @@ Vec3 Moveable::GetVelocity() const
 void Moveable::SetVelocity(Vec3 velocity)
 {
 	if (_moveable->IsCreature())
-		ScriptWarn("Attempt to set velocity to a creature. In may not work, as velocity is overridden by AI.");
+		ScriptWarn("Attempt to set velocity to a creature. It may not work, as velocity is overridden by AI.");
 
 	_moveable->Animation.Velocity = Vector3(velocity.x, velocity.y, velocity.z);
 }
@@ -837,14 +874,13 @@ void Moveable::SetVelocity(Vec3 velocity)
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
-
-	unsigned int frameCount = anim.frameEnd - anim.frameBase;
 	
-	bool cond = frameNumber < frameCount;
+	bool cond = (frameNumber < anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, frameCount-1))
+
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
 	{
-		_moveable->Animation.FrameNumber = frameNumber + anim.frameBase;
+		_moveable->Animation.FrameNumber = frameNumber;
 	}
 	else
 	{
@@ -859,7 +895,7 @@ void Moveable::SetFrameNumber(int frameNumber)
 int Moveable::GetEndFrame() const
 {
 	const auto& anim = GetAnimData(*_moveable);
-	return (anim.frameEnd - anim.frameBase);
+	return anim.EndFrameNumber;
 }
 
 /// Determine whether the moveable is active or not.
@@ -947,8 +983,8 @@ void Moveable::SetStatus(ItemStatus status)
 	_moveable->Status = status;
 }
 
-/// Get number of meshes for a particular object.
-// Returns number of meshes in an object
+/// Get number of meshes for a particular moveable.
+// Returns number of meshes in an object.
 // @function Moveable:GetMeshCount
 // @treturn int Number of meshes.
 short Moveable::GetMeshCount() const
@@ -956,8 +992,8 @@ short Moveable::GetMeshCount() const
 	return Objects[_moveable->ObjectNumber].nmeshes;
 }
 
-/// Get state of specified mesh visibility of object.
-// Returns true if specified mesh is visible on an object, and false
+/// Get visibility state of a specified mesh of a moveable.
+// Returns true if specified mesh is visible on a moveable, and false
 // if it is not visible.
 // @function Moveable:GetMeshVisible
 // @tparam int index Index of a mesh.
@@ -967,11 +1003,14 @@ bool Moveable::GetMeshVisible(int meshId) const
 	if (!MeshExists(meshId))
 		return false;
 
+	if (!GetVisible())
+		return false;
+
 	return _moveable->MeshBits.Test(meshId);
 }
 
 /// Makes specified mesh visible or invisible.
-// Use this to show or hide a specified mesh of an object.
+// Use this to show or hide a specified mesh of a moveable.
 // @function Moveable:SetMeshVisible
 // @tparam int index Index of a mesh.
 // @tparam bool isVisible true if you want the mesh to be visible, false otherwise.
@@ -1002,8 +1041,8 @@ void Moveable::ShatterMesh(int meshId)
 	ExplodeItemNode(_moveable, meshId, 0, 128);
 }
 
-/// Get state of specified mesh swap of object.
-// Returns true if specified mesh is swapped on an object, and false if it is not swapped.
+/// Get state of specified mesh swap of a moveable.
+// Returns true if specified mesh is swapped on a moveable, and false if it is not swapped.
 // @function Moveable:GetMeshSwapped
 // @tparam int index Index of a mesh.
 // @treturn bool Mesh swap status.
@@ -1012,46 +1051,44 @@ bool Moveable::GetMeshSwapped(int meshId) const
 	if (!MeshExists(meshId))
 		return false;
 
-	return _moveable->Model.MeshIndex[meshId] == _moveable->Model.BaseMesh + meshId;
+	return _moveable->Model.MeshIndex[meshId] != _moveable->Model.BaseMesh + meshId;
 }
 
-/// Set state of specified mesh swap of object.
-// Use this to swap specified mesh of an object.
+/// Set state of specified mesh swap of a moveable. Use this to swap specified mesh of a moveable.
 // @function Moveable:SwapMesh
 // @tparam int index Index of a mesh.
-// @tparam int slotIndex Index of a slot to get meshswap from.
-// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use.
-void Moveable::SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapMeshIndex)
+// @tparam int objectID ID of a slot to get meshswap from.
+// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use. In WadTool, you have to set vertex weights for this mesh according to original mesh index to avoid rendering issues.
+void Moveable::SwapMesh(int meshId, int objectID, sol::optional<int> swapIndex)
 {
 	if (!MeshExists(meshId))
 		return;
 
-	if (!swapMeshIndex.has_value())
-		 swapMeshIndex = meshId;
+	if (!swapIndex.has_value())
+		swapIndex = meshId;
 
-	if (swapSlotId <= -1 || swapSlotId >= ID_NUMBER_OBJECTS)
+	if (objectID <= NO_VALUE || objectID >= ID_NUMBER_OBJECTS || !Objects[objectID].loaded)
 	{
-		TENLog("Specified meshswap slot ID is incorrect!", LogLevel::Error);
+		TENLog("Specified object slot ID is incorrect!", LogLevel::Error);
 		return;
 	}
 
-	if (!Objects[swapSlotId].loaded)
+	if (meshId >= Objects[_moveable->ObjectNumber].nmeshes || meshId < 0)
 	{
-		TENLog("Object in specified meshswap slot doesn't exist in level!", LogLevel::Error);
+		TENLog("Specified mesh index does not exist in a " + GetObjectName(_moveable->ObjectNumber) + " slot !", LogLevel::Error);
 		return;
 	}
 
-	if (swapMeshIndex.value() >= Objects[swapSlotId].nmeshes)
+	if (swapIndex.value() >= Objects[objectID].nmeshes || swapIndex.value() < 0)
 	{
-		TENLog("Specified meshswap index does not exist in meshswap slot!", LogLevel::Error);
+		TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
 		return;
 	}
 
-	_moveable->Model.MeshIndex[meshId] = Objects[swapSlotId].meshIndex + swapMeshIndex.value();
+	_moveable->Model.MeshIndex[meshId] = Objects[objectID].meshIndex + swapIndex.value();
 }
 
-/// Set state of specified mesh swap of object.
-// Use this to bring back original unswapped mesh
+/// Unset specified mesh swap of a moveable. Use this to bring back original unswapped mesh.
 // @function Moveable:UnswapMesh
 // @tparam int index Index of a mesh to unswap.
 void Moveable::UnswapMesh(int meshId)
@@ -1062,6 +1099,45 @@ void Moveable::UnswapMesh(int meshId)
 	_moveable->Model.MeshIndex[meshId] = _moveable->Model.BaseMesh + meshId;
 }
 
+/// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.
+// @function Moveable:SwapSkinnedMesh
+// @tparam int objectID ID of a slot to get skinned meshswap from.
+// @tparam[opt] int swapIndex If set, swaps skinned mesh with bone mesh with a specified index.
+// Use if you have several skinned meshes (e.g. outfits) in a single slot.
+void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
+{
+	if (objectID <= NO_VALUE || objectID >= ID_NUMBER_OBJECTS || !Objects[objectID].loaded)
+	{
+		TENLog("Specified object slot ID is incorrect!", LogLevel::Error);
+		return;
+	}
+
+	if (swapIndex.has_value())
+	{
+		if (swapIndex.value() >= Objects[objectID].nmeshes || swapIndex.value() < 0)
+		{
+			TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
+			return;
+		}
+
+		_moveable->Model.SkinIndex = Objects[objectID].meshIndex + swapIndex.value();
+		return;
+	}
+
+	if (Objects[objectID].skinIndex == NO_VALUE)
+		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
+
+	_moveable->Model.SkinIndex = Objects[objectID].skinIndex;
+}
+
+/// Unset skinned mesh swap of a moveable. Use this to bring back original unswapped skinned mesh.
+// @function Moveable:UnswapSkinnedMesh
+void Moveable::UnswapSkinnedMesh()
+{
+	int realID = _moveable->ObjectNumber == GAME_OBJECT_ID::ID_LARA ? GAME_OBJECT_ID::ID_LARA_SKIN : _moveable->ObjectNumber;
+	_moveable->Model.SkinIndex = Objects[realID].skinIndex;
+}
+
 /// Enable the item, as if a trigger for it had been stepped on.
 // @function Moveable:Enable
 // @tparam[opt] float timeout Time (in seconds) after which moveable automatically disables.
@@ -1069,6 +1145,12 @@ void Moveable::EnableItem(sol::optional<float> timer)
 {
 	if (_moveableID == NO_VALUE)
 		return;
+
+	if (_moveable->Flags & IFLAG_KILLED)
+	{
+		TENLog("Attempt to re-enable a moveable " + _moveable->Name + " which was already destroyed or in the process of destroying.", LogLevel::Warning);
+		return;
+	}
 
 	bool wasInvisible = false;
 	if (_moveable->Status == ITEM_INVISIBLE)
@@ -1125,7 +1207,7 @@ void Moveable::Shatter()
 /// Get the item's collision state.
 // @function Moveable:GetCollidable
 // @treturn bool Item's collision state.
-bool Moveable::GetCollidable()
+bool Moveable::GetCollidable() const
 {
 	return _moveable->Collidable;
 }
@@ -1136,6 +1218,17 @@ bool Moveable::GetCollidable()
 void Moveable::SetCollidable(bool isCollidable)
 {
 	_moveable->Collidable = isCollidable;
+}
+
+/// Get the item's visibility state.
+// @function Moveable:GetVisible
+// @treturn bool Item's visibility state.
+bool Moveable::GetVisible() const
+{
+	if (_moveable->Status == ITEM_INVISIBLE || _moveable->Model.Color.w <= EPSILON)
+		return false;
+
+	return IsItemInRoom(_moveable->Index, _moveable->RoomNumber);
 }
 
 // Make the item invisible. Alias for `Moveable:SetVisible(false)`.
@@ -1196,15 +1289,15 @@ void Moveable::Invalidate()
 	_initialized = false;
 }
 
-/// Test if the object is in a valid state. Indicates that it has not been destroyed through Lua or killed by Lara.
+/// Test if the moveable is in a valid state. Indicates that it has not been destroyed through Lua or killed by Lara.
 // @function Moveable:GetValid
-// @treturn bool true if the object is still not destroyed.
+// @treturn bool true if the moveable is still not destroyed.
 bool Moveable::GetValid() const
 {
 	return _moveableID > NO_VALUE;
 }
 
-/// Destroy the moveable. This will mean it can no longer be used, except to re-initialize it with another object.
+/// Destroy the moveable. This will mean it can no longer be used, except to re-initialize it with another moveable.
 // @function Moveable:Destroy
 void Moveable::Destroy()
 {
@@ -1229,11 +1322,13 @@ bool Moveable::MeshExists(int index) const
 	return true;
 }
 
-/// Attach camera to an object.
+/// Attach camera to the moveable's current position, and target another moveable.
+// The camera's position and target position will be maintained until this function is called again.
+// Use @{View.ResetObjCamera} to restore the regular camera.
 // @function Moveable:AttachObjCamera
-// @tparam int mesh Mesh of a moveable to use as a camera position.
-// @tparam Objects.Moveable target Target moveable to attach camera to.
-// @tparam int mesh Mesh of a target moveable to use as a camera target.
+// @tparam int mesh Mesh of the moveable to which the camera will be attached.
+// @tparam Objects.Moveable target Moveable to target.
+// @tparam int targetMesh Mesh of the moveable to target.
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
@@ -1247,8 +1342,17 @@ void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshI
 void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID)
 {
 	_moveable->Animation.AnimObjectID = objectID;
-	_moveable->Animation.AnimNumber = Objects[objectID].animIndex + animNumber;
+	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
-	_moveable->Animation.FrameNumber = GetAnimData(*_moveable).frameBase;
+	_moveable->Animation.FrameNumber = 0;
 	AnimateItem(_moveable);
+}
+
+/// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
+// @function Moveable:ShowInteractionHighlight
+// @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
+void Moveable::ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType)
+{
+	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
+	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable, InteractionMode::Always, convertedIcon);
 }

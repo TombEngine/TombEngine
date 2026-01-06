@@ -1,9 +1,10 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
@@ -17,7 +18,9 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
@@ -41,6 +44,7 @@ namespace TEN::Renderer
 			room.EffectsToDraw.clear();
 			room.StaticsToDraw.clear();
 			room.LightsToDraw.clear();
+			room.Decals.clear();
 			room.Visited = false;
 			room.ViewPort = VIEW_PORT;
 
@@ -56,18 +60,52 @@ namespace TEN::Renderer
 
 		_invalidateCache = false;
 
-		// Prepare real DX scissor test rectangle.
+		bool laraFound = false;
+
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
+			// Prepare real DX scissor test rectangle.
 			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
 			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
 			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
+
+			// Indicate that Lara object is found.
+			if (roomPtr->RoomNumber == LaraItem->RoomNumber)
+				laraFound = true;
+		}
+
+		// HACK: Force adding Lara's room to room list, in case she is in one of camera's neighbor rooms.
+		if (!laraFound && Contains(_rooms[renderView.Camera.RoomNumber].Neighbors, (int)LaraItem->RoomNumber))
+		{
+			renderView.RoomsToDraw.push_back(&_rooms[LaraItem->RoomNumber]);
+			CollectItems(LaraItem->RoomNumber, renderView);
 		}
 
 		// Collect fog bulbs.
 		std::vector<RendererFogBulb> tempFogBulbs;
 		tempFogBulbs.reserve(MAX_FOG_BULBS_DRAW);
+
+		for (auto& light : _dynamicLights[_dynamicLightList])
+		{
+			if (light.Type != LightType::FogBulb)
+				continue;
+
+			// Test bigger radius to avoid bad clipping.
+			if (renderView.Camera.Frustum.SphereInFrustum(light.Position, light.Out * 1.2f))
+			{
+				RendererFogBulb bulb;
+
+				bulb.Position = light.Position;
+				bulb.Density = light.Intensity;
+				bulb.Color = light.Color;
+				bulb.Radius = light.Out;
+				bulb.FogBulbToCameraVector = bulb.Position - renderView.Camera.WorldPosition;
+				bulb.Distance = bulb.FogBulbToCameraVector.Length();
+
+				tempFogBulbs.push_back(bulb);
+			}
+		}
 
 		for (auto& room : _rooms)
 		{
@@ -303,6 +341,7 @@ namespace TEN::Renderer
 			renderView.RoomsToDraw.push_back(room);
 
 			CollectLightsForRoom(to, renderView);
+			CollectDecalsForRoom(to, renderView);
 
 			if (!onlyRooms)
 			{
@@ -417,7 +456,7 @@ namespace TEN::Renderer
 
 			auto& obj = _moveableObjects[item.ObjectNumber].value();
 
-			if (obj.DoNotDraw)
+			if (obj.Hidden)
 				continue;
 
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
@@ -508,76 +547,74 @@ namespace TEN::Renderer
 		if (_rooms.size() <= roomNumber)
 			return;
 
-		auto& room = _rooms[roomNumber];
-		auto* r = &g_Level.Rooms[room.RoomNumber];
+		auto& rendererRoom = _rooms[roomNumber];
+		auto& nativeRoom = g_Level.Rooms[rendererRoom.RoomNumber];
 
-		if (r->mesh.empty())
+		if (nativeRoom.mesh.empty())
 			return;
 
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
-		for (int i = 0; i < room.Statics.size(); i++)
+		for (int i = 0; i < rendererRoom.Statics.size(); i++)
 		{
-			auto* mesh = &room.Statics[i];
-			auto* nativeMesh = &r->mesh[i];
+			auto& rendererStatic = rendererRoom.Statics[i];
+			auto& nativeStatic = nativeRoom.mesh[i];
 
-			if (nativeMesh->Dirty || _invalidateCache)
+			if (nativeStatic.Dirty || _invalidateCache)
 			{
-				mesh->ObjectNumber = nativeMesh->staticNumber;
-				mesh->Color = nativeMesh->color;
-				mesh->OriginalSphere = Statics[mesh->ObjectNumber].visibilityBox.ToLocalBoundingSphere();
-				mesh->Pose = nativeMesh->pos;
-				mesh->Update(GetInterpolationFactor());
+				rendererStatic.ObjectNumber = nativeStatic.Slot;
+				rendererStatic.Color = nativeStatic.Color;
+				rendererStatic.OriginalSphere = Statics[rendererStatic.ObjectNumber].visibilityBox.ToLocalBoundingSphere();
+				rendererStatic.Pose = nativeStatic.Pose;
+				rendererStatic.Update(GetInterpolationFactor());
 
-				nativeMesh->Dirty = (mesh->PrevPose != mesh->Pose);
+				nativeStatic.Dirty = (rendererStatic.PrevPose != rendererStatic.Pose);
 			}
 
-			if (!(nativeMesh->flags & StaticMeshFlags::SM_VISIBLE))
+			if (!(nativeStatic.Flags & StaticMeshFlags::SM_VISIBLE))
 				continue;
 
-			if (nativeMesh->color.w < EPSILON)
+			if (nativeStatic.Color.w < EPSILON)
 				continue;
 
-			if (!_staticObjects[Statics.GetIndex(mesh->ObjectNumber)].has_value())
+			if (!_staticObjects[Statics.GetIndex(rendererStatic.ObjectNumber)].has_value())
 				continue;
 
-			auto& obj = GetStaticRendererObject(mesh->ObjectNumber);
-
-			if (obj.ObjectMeshes.empty())
+			const auto& rendererObj = GetStaticRendererObject(rendererStatic.ObjectNumber);
+			if (rendererObj.ObjectMeshes.empty())
 				continue;
 
-			if (!isRoomReflected && !renderView.Camera.Frustum.SphereInFrustum(mesh->Sphere.Center, mesh->Sphere.Radius))
+			if (!isRoomReflected && !renderView.Camera.Frustum.SphereInFrustum(rendererStatic.Sphere.Center, rendererStatic.Sphere.Radius))
 				continue;
 
-			// Collect the lights
-			std::vector<RendererLight*> lights;
-			std::vector<RendererLightNode> cachedRoomLights;
-			if (obj.ObjectMeshes.front()->LightMode != LightMode::Static)
+			// Collect lights.
+			auto lights = std::vector<RendererLight*>{};
+			auto cachedRoomLights = std::vector<RendererLightNode>{};
+			if (rendererObj.ObjectMeshes.front()->LightMode != LightMode::Static)
 			{
-				if (mesh->CacheLights || _invalidateCache)
+				if (rendererStatic.CacheLights || _invalidateCache)
 				{
-					// Collect all lights and return also cached light for the next frames
-					CollectLights(mesh->Pose.Position.ToVector3(),1024, room.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
-					mesh->CacheLights = false;
-					mesh->CachedRoomLights = cachedRoomLights;
+					// Collect all lights and return cached light for next frames.
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
+					rendererStatic.CacheLights = false;
+					rendererStatic.CachedRoomLights = cachedRoomLights;
 				}
 				else
 				{
-					// Collect only dynamic lights and use cached lights from rooms
-					CollectLights(mesh->Pose.Position.ToVector3(), 1024, room.RoomNumber, NO_VALUE, false, true, &mesh->CachedRoomLights, &lights);
+					// Collect only dynamic lights and use cached lights from rooms.
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
 				}
 			}
-			mesh->LightsToDraw = lights;
+			rendererStatic.LightsToDraw = lights;
 
-			// At this point, we are sure that we must draw the static mesh
-			room.StaticsToDraw.push_back(mesh);
+			rendererRoom.StaticsToDraw.push_back(&rendererStatic);
 
-			if (renderView.SortedStaticsToDraw.find(mesh->ObjectNumber) == renderView.SortedStaticsToDraw.end())
+			if (renderView.SortedStaticsToDraw.find(rendererStatic.ObjectNumber) == renderView.SortedStaticsToDraw.end())
 			{
-				std::vector<RendererStatic*> vec;
-				renderView.SortedStaticsToDraw.insert(std::pair<int, std::vector<RendererStatic*>>(mesh->ObjectNumber, std::vector<RendererStatic*>()));
+				auto rendererStatics = std::vector<RendererStatic*>{};
+				renderView.SortedStaticsToDraw.insert(std::pair<int, std::vector<RendererStatic*>>(rendererStatic.ObjectNumber, std::vector<RendererStatic*>()));
 			}
-			renderView.SortedStaticsToDraw[mesh->ObjectNumber].push_back(mesh);
+			renderView.SortedStaticsToDraw[rendererStatic.ObjectNumber].push_back(&rendererStatic);
 		}
 	}
 
@@ -808,14 +845,59 @@ namespace TEN::Renderer
 		item->AmbientLight *= nativeItem->Model.Color;
 	}
 
+	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)
+	{
+		if (_rooms.size() <= roomNumber)
+			return;
+
+		RendererRoom& room = _rooms[roomNumber];
+
+		room.Decals.clear();
+
+		if (Decals.empty())
+			return;
+
+		for (auto& decal : Decals)
+		{
+			if (!renderView.Camera.Frustum.SphereInFrustum(decal.Sphere.Center, decal.Sphere.Radius))
+				continue;
+
+			bool decalInRoom = (decal.RoomNumber == room.RoomNumber);
+
+			if (!decalInRoom)
+			{
+				for (auto j : decal.Neighbors)
+				{
+					if (j == roomNumber)
+					{
+						decalInRoom = true;
+						break;
+					}
+				}
+			}
+
+			if (decalInRoom)
+			{
+				RendererDecal newDecal;
+
+				newDecal.Position = decal.Sphere.Center;
+				newDecal.Radius = decal.Sphere.Radius;
+				newDecal.Opacity = decal.Opacity;
+				newDecal.Pattern = (int)decal.Type;
+
+				room.Decals.push_back(newDecal);
+			}
+		}
+	}
+
 	void Renderer::CollectLightsForRoom(short roomNumber, RenderView &renderView)
 	{
 		if (_rooms.size() <= roomNumber)
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[roomNumber];
-
+		RoomData* r = &g_Level.Rooms[roomNumber];
+		
 		// Collect dynamic lights for rooms
 		for (int i = 0; i < _dynamicLights[_dynamicLightList].size(); i++)
 		{
@@ -856,7 +938,7 @@ namespace TEN::Renderer
 			return;
 
 		RendererRoom& room = _rooms[roomNumber];
-		ROOM_INFO* r = &g_Level.Rooms[room.RoomNumber];
+		RoomData* r = &g_Level.Rooms[room.RoomNumber];
 
 		short fxNum = NO_VALUE;
 		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
@@ -888,6 +970,8 @@ namespace TEN::Renderer
 				newEffect->PrevRotation = newEffect->Rotation;
 				newEffect->PrevWorld = newEffect->World;
 				newEffect->PrevScale = newEffect->Scale;
+
+				fx->DisableInterpolation = false;
 			}
 
 			newEffect->InterpolatedPosition = Vector3::Lerp(newEffect->PrevPosition, newEffect->Position, GetInterpolationFactor());

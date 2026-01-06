@@ -1,17 +1,20 @@
 #pragma once
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/control/trigger.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Math/Math.h"
 
+using namespace TEN::Animation;
+
+namespace TEN::Animation { struct AnimData; }
 class FloorInfo;
 class GameBoundingBox;
-struct AnimData;
 struct CollisionInfo;
 struct ItemInfo;
-struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
+struct StaticMesh;
 
 enum class GameStatus
 {
@@ -60,6 +63,7 @@ extern bool InitializeGame;
 extern bool DoTheGame;
 extern bool JustLoaded;
 extern bool ThreadEnded;
+extern bool DebugMode;
 
 extern int RequiredStartPos;
 extern int CurrentLevel;

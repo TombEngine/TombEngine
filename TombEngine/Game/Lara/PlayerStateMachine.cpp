@@ -22,6 +22,9 @@
 #include "Game/Lara/lara_surface.h"
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Player
 {
@@ -127,7 +130,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_GIANT_BUTTON_PUSH] = std::pair(lara_as_controlled, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_TRAPDOOR_FLOOR_OPEN] = std::pair(lara_as_controlled, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_FREEFALL_BIS] = std::pair(lara_as_controlled, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_ROUND_HANDLE] = std::pair(lara_as_controlled_no_look, lara_col_turn_switch);
+		PlayerBehaviorStateRoutines[LS_ROUND_HANDLE] = std::pair(lara_as_controlled_no_look_follow, lara_col_turn_switch);
 		PlayerBehaviorStateRoutines[LS_COGWHEEL] = std::pair(lara_as_controlled_no_look, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_LEVERSWITCH_PUSH] = std::pair(lara_as_controlled, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_HOLE] = std::pair(lara_as_pickup, lara_default_col);
@@ -136,7 +139,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_POLE_DOWN] = std::pair(lara_as_pole_down, lara_col_pole_down);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_CLOCKWISE] = std::pair(lara_as_pole_turn_clockwise, lara_col_pole_turn_clockwise);
 		PlayerBehaviorStateRoutines[LS_POLE_TURN_COUNTER_CLOCKWISE] = std::pair(lara_as_pole_turn_counter_clockwise, lara_col_pole_turn_counter_clockwise);
-		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_pulley, lara_default_col);
+		PlayerBehaviorStateRoutines[LS_PULLEY] = std::pair(lara_as_controlled_no_look, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_LEFT] = std::pair(lara_as_crouch_turn_left, lara_col_crouch_turn_left);
 		PlayerBehaviorStateRoutines[LS_CROUCH_TURN_RIGHT] = std::pair(lara_as_crouch_turn_right, lara_col_crouch_turn_right);
 		PlayerBehaviorStateRoutines[LS_SHIMMY_OUTER_LEFT] = std::pair(lara_as_shimmy_corner, lara_as_null);
@@ -162,12 +165,12 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TIGHTROPE_RECOVER_BALANCE] = std::pair(lara_as_null, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_HORIZONTAL_BAR_SWING] = std::pair(lara_as_horizontal_bar_swing, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_HORIZONTAL_BAR_LEAP] = std::pair(lara_as_horizontal_bar_leap, lara_default_col);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_1] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_RADIO_START] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_RADIO_LISTENING] = std::pair(lara_as_controlled_no_look, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_RADIO_OFF] = std::pair(lara_as_controlled_no_look, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_2] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_USE_KEYCARD] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_UNKNOWN_3] = std::pair(lara_as_null, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_UNKNOWN_4] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_VALVE_TURN] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_UNKNOWN_5] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_PICKUP_FROM_CHEST] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_LADDER_TO_CROUCH] = std::pair(lara_as_null, lara_void_func);
@@ -233,6 +236,8 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_DOWN_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
+
+		PlayerBehaviorStateRoutines[LS_PULLEY_UNGRAB] = std::pair(lara_as_controlled_no_look, lara_void_func);
 	}
 
 	void HandlePlayerBehaviorState(ItemInfo& item, CollisionInfo& coll, PlayerBehaviorStateRoutineType routineType)
@@ -241,7 +246,7 @@ namespace TEN::Entities::Player
 		if (item.Animation.ActiveState < 0 ||
 			item.Animation.ActiveState >= NUM_LARA_STATES)
 		{
-			TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+			TENLog(fmt::format("Error handling unregistered player animation state {}.", item.Animation.ActiveState), LogLevel::Warning);
 			return;
 		}
 
@@ -268,6 +273,6 @@ namespace TEN::Entities::Player
 			return;
 		}
 
-		TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Error handling unregistered player animation state {}", item.Animation.ActiveState), LogLevel::Warning);
 	}
 }

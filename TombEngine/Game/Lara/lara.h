@@ -94,7 +94,7 @@ constexpr auto SLOPE_DIFFERENCE		= 60;
 constexpr auto SWAMP_GRAVITY_COEFF	= 3.0f;
 
 extern LaraInfo		 Lara;
-extern ItemInfo*	 LaraItem;
+extern ItemHandler	 LaraItem;
 extern CollisionInfo LaraCollision;
 
 void LaraControl(ItemInfo* item, CollisionInfo* coll);
@@ -102,6 +102,5 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll);
 void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll);
 void LaraUnderwater(ItemInfo* item, CollisionInfo* coll);
 void LaraCheat(ItemInfo* item, CollisionInfo* coll);
-void AnimateItem(ItemInfo* item);
 void UpdateLara(ItemInfo* item, bool isTitle);
 bool UpdateLaraRoom(ItemInfo* item, int height, int xOffset = 0, int zOffset = 0);

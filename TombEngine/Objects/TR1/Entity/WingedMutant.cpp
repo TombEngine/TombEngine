@@ -11,6 +11,7 @@
 #include "Game/misc.h"
 #include "Game/missile.h"
 #include "Game/people.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -117,7 +118,7 @@ namespace TEN::Entities::Creatures::TR1
 	enum WingedMutantProjectileType
 	{
 		WMUTANT_PROJ_NONE,
-		WMUTANT_PROJ_DART,
+		WMUTANT_PROJ_SHARD,
 		WMUTANT_PROJ_BOMB
 	};
 
@@ -159,12 +160,12 @@ namespace TEN::Entities::Creatures::TR1
 			(ai.zoneNumber != ai.enemyZone || ai.distance > WINGED_MUTANT_PROJECTILE_ATTACK_RANGE))
 		{
 			if ((ai.angle > 0 && ai.angle < ANGLE(45.0f)) &&
-				item.TestFlagField(WMUTANT_CONF_DISABLE_DART_WEAPON, false))
+				item.TestFlagField(WMUTANT_CONF_DISABLE_DART_WEAPON, false) && Objects[GAME_OBJECT_ID::ID_PROJ_SHARD].loaded)
 			{
-				return WMUTANT_PROJ_DART;
+				return WMUTANT_PROJ_SHARD;
 			}
 			else if ((ai.angle < 0 && ai.angle > ANGLE(-45.0f)) &&
-				item.TestFlagField(WMUTANT_CONF_DISABLE_BOMB_WEAPON, false))
+				item.TestFlagField(WMUTANT_CONF_DISABLE_BOMB_WEAPON, false), Objects[GAME_OBJECT_ID::ID_PROJ_BOMB].loaded)
 			{
 				return WMUTANT_PROJ_BOMB;
 			}
@@ -333,7 +334,7 @@ namespace TEN::Entities::Creatures::TR1
 				{
 					item.Animation.TargetState = WMUTANT_STATE_SWIPE_ATTACK;
 				}
-				else if (projectileType == WMUTANT_PROJ_DART)
+				else if (projectileType == WMUTANT_PROJ_SHARD)
 				{
 					item.Animation.TargetState = WMUTANT_STATE_AIM_DART;
 				}
@@ -500,12 +501,12 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case WMUTANT_STATE_AIM_DART:
-				item.SetFlagField(WMUTANT_CONF_PROJECTILE_MODE, WMUTANT_PROJ_DART);
+				item.SetFlagField(WMUTANT_CONF_PROJECTILE_MODE, WMUTANT_PROJ_SHARD);
 				creature.MaxTurn = 0;
 				creature.Flags = 0;
 				torsoYOrient = ai.angle / 2;
 
-				if (projectileType == WMUTANT_PROJ_DART)
+				if (projectileType == WMUTANT_PROJ_SHARD)
 				{
 					item.Animation.TargetState = WMUTANT_STATE_SHOOT;
 				}
@@ -539,7 +540,7 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (creature.Flags == 0)
 				{
-					if (projectileType == WMUTANT_PROJ_DART)
+					if (projectileType == WMUTANT_PROJ_SHARD)
 					{
 						CreatureEffect2(&item, WingedMutantShardBite, WINGED_MUTANT_SHARD_VELOCITY, torsoYOrient, ShardGun);
 					}

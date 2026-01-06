@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_worker_shotgun.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -13,6 +13,7 @@
 #include "Math/Math.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR2
@@ -73,7 +74,7 @@ namespace TEN::Entities::Creatures::TR2
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, 5);
+		SetAnimation(item, 5);
 	}
 
 	void WorkerShotgunControl(short itemNumber)

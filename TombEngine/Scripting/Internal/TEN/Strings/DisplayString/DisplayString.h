@@ -10,17 +10,11 @@ using namespace TEN::Scripting::Types;
 
 /***
 Constants for Display String Options.
+
+To be used with @{Strings.DisplayString} class.
+
 @enum Strings.DisplayStringOption
 @pragma nostrip
-*/
-
-/*** Strings.DisplayStringOption constants. To be used with @{Strings.DisplayString} class.
-@table Strings.DisplayStringOption
-
- - `CENTER` - Set the horizontal origin point to the center of the string.
- - `RIGHT` - Set the horizontal origin point to right of the string.
- - `SHADOW` - Gives the string a small drop shadow.
- - `BLINK` - Blinks the string.
 */
 
 enum class DisplayStringOptions
@@ -29,6 +23,8 @@ enum class DisplayStringOptions
 	Outline,
 	Right,
 	Blink,
+	VerticalCenter,
+	VerticalBottom,
 
 	Count
 };
@@ -38,10 +34,29 @@ using FlagArray = std::array<bool, (int)DisplayStringOptions::Count>;
 
 static const std::unordered_map<std::string, DisplayStringOptions> DISPLAY_STRING_OPTION_NAMES
 {
+	/// Sets the horizontal origin point to the center of the string.
+	// @mem CENTER
 	{ "CENTER", DisplayStringOptions::Center },
+
+	/// Gives the string a drop shadow effect.
+	// @mem SHADOW
 	{ "SHADOW", DisplayStringOptions::Outline },
+
+	/// Sets the horizontal origin point to the right side of the string.
+	// @mem RIGHT
 	{ "RIGHT", DisplayStringOptions::Right },
-	{ "BLINK", DisplayStringOptions::Blink }
+
+	/// Blinks the string.
+	// @mem BLINK
+	{ "BLINK", DisplayStringOptions::Blink },
+
+	/// Sets the vertical origin point of the multiline string to the center.
+	// @mem VERTICAL_CENTER
+	{ "VERTICAL_CENTER", DisplayStringOptions::VerticalCenter }
+
+	/// Sets the vertical origin point of the multiline string to the bottom.
+	// @mem VERTICAL_BOTTOM
+	,{ "VERTICAL_BOTTOM", DisplayStringOptions::VerticalBottom }
 };
 
 class UserDisplayString
@@ -53,6 +68,7 @@ private:
 	// Members
 	std::string _key	  = {};
 	Vec2		_position = Vec2(0, 0);
+	Vec2		_area	  = Vec2(0, 0);
 	float		_scale	  = 1.0f;
 	D3DCOLOR	_color	  = 0xFFFFFFFF;
 	FlagArray	_flags	  = {};
@@ -69,10 +85,10 @@ private:
 	UserDisplayString() = default;
 
 public:
-	UserDisplayString(const std::string& key, const Vec2& pos, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
+	UserDisplayString(const std::string& key, const Vec2& pos, const Vec2& area, float scale, D3DCOLOR color, const FlagArray& flags, bool isTranslated, FreezeMode owner);
 };
 
-using DisplayStringID	 = uintptr_t;
+using DisplayStringID	 = unsigned int;
 using SetItemCallback	 = std::function<bool(DisplayStringID, const UserDisplayString&)>;
 using RemoveItemCallback = std::function<bool(DisplayStringID)>;
 using GetItemCallback	 = std::function<std::optional<std::reference_wrapper<UserDisplayString>>(DisplayStringID)>;
@@ -96,12 +112,15 @@ public:
 	DisplayStringID GetID() const;
 	std::string		GetKey() const;
 	Vec2			GetPosition() const;
+	Vec2			GetArea() const;
 	float			GetScale() const;
 	ScriptColor		GetColor() const;
+	sol::table		GetFlags(sol::this_state state) const;
 
 	// Setters
 	void SetKey(const std::string& key);
 	void SetPosition(const sol::variadic_args& args);
+	void SetArea(Vec2 area);
 	void SetScale(float scale);
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);

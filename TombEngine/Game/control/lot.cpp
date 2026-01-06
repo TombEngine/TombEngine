@@ -16,8 +16,7 @@ using namespace TEN::Collision::Room;
 #define DEFAULT_FLY_UPDOWN_SPEED 16
 #define DEFAULT_SWIM_UPDOWN_SPEED 32
 
-int SlotsUsed;
-std::vector<CreatureInfo*> ActiveCreatures;
+std::vector<int> ActiveCreatures;
 
 void InitializeLOTarray(int itemNumber)
 {
@@ -39,7 +38,7 @@ bool EnableEntityAI(short itemNum, bool always, bool makeTarget)
 		return true;
 
 	InitializeSlot(itemNum, makeTarget);
-	ActiveCreatures.push_back(item->Data);
+	ActiveCreatures.push_back(item->Index);
 
 	return item->IsCreature();
 }
@@ -54,7 +53,7 @@ void DisableEntityAI(short itemNumber)
 	auto* creature = GetCreatureInfo(item);
 	creature->ItemNumber = NO_VALUE;
 	KillItem(creature->AITargetNumber);
-	ActiveCreatures.erase(std::find(ActiveCreatures.begin(), ActiveCreatures.end(), creature));
+	ActiveCreatures.erase(std::find(ActiveCreatures.begin(), ActiveCreatures.end(), item->Index));
 	item->Data = nullptr;
 }
 
@@ -202,23 +201,32 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 	ClearLOT(&creature->LOT);
 	if (itemNumber != LaraItem->Index)
 		CreateZone(item);
-
-	SlotsUsed++;
 }
 
 void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyObjectIds, bool ignoreKeyObjectIds)
 {
 	auto& creature = *GetCreatureInfo(&item);
+	creature.Enemy = nullptr;
 
-	float closestDistSqr = INFINITY;
-	for (auto& target : ActiveCreatures)
+	float closestDistSqr = FLT_MAX;
+	for (auto creatureIndex : ActiveCreatures)
 	{
-		auto& targetItem = g_Level.Items[target->ItemNumber];
-		if (targetItem.Index == item.Index)
+		// Don't target itself.
+		if (creatureIndex == item.Index)
+			continue;
+
+		auto& targetItem = g_Level.Items[creatureIndex];
+
+		// Don't target same object type.
+		if (item.ObjectNumber == targetItem.ObjectNumber)
 			continue;
 
 		// Ignore or specifically target key object IDs.
 		if (!keyObjectIds.empty() && (ignoreKeyObjectIds ? Contains(keyObjectIds, targetItem.ObjectNumber) : !Contains(keyObjectIds, targetItem.ObjectNumber)))
+			continue;
+
+		// Ignore undead enemies.
+		if (Objects[targetItem.ObjectNumber].damageType != DamageMode::Any)
 			continue;
 
 		if (&targetItem != &item && targetItem.HitPoints > 0 && targetItem.Status != ITEM_INVISIBLE)

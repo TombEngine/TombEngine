@@ -16,6 +16,9 @@
 #include "Scripting/Internal/TEN/Flow/Enums/ErrorModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/FreezeModes.h"
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
+#include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
+#include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
@@ -222,6 +225,34 @@ Check if a savegame exists.
 	tableFlow.set_function(ScriptReserved_DoesSaveGameExist, &FlowHandler::DoesSaveGameExist, this);
 
 /***
+Get the header of all savegames
+@function GetSaveHeaders
+@treturn SaveData A table with save data headers.
+@usage
+local headers = TEN.Flow.GetSaveHeaders()
+for i, header in ipairs(headers) do
+	if header.Present then
+		print("Slot", i, ":", header.LevelName,
+		string.format("Time %02d:%02d:%02d", header.Hours, header.Minutes, header.Seconds))
+	else
+		print("Slot", i, ": <empty>")
+	end
+end
+*/
+
+/// Structure for SaveData header table.
+// @table SaveData
+// @tfield string LevelName The display name of the level stored in the save slot.
+// @tfield int Hours Hours component of the total play time recorded in the save.
+// @tfield int Minutes Minutes component of the total play time.
+// @tfield int Seconds Seconds component of the total play time.
+// @tfield int Level Numeric level index associated with this save.
+// @tfield int Timer Raw timer value saved internally by the engine.
+// @tfield int Count Save slot index or internal counter value.
+// @tfield bool Present True if the save slot contains valid savegame data; false if the slot is empty.
+	tableFlow.set_function(ScriptReserved_GetSaveHeaders, &FlowHandler::GetSaveHeaders, this);
+
+/***
 Returns the player's current per-game secret count.
 @function GetSecretCount
 @treturn int Current game secret count.
@@ -265,7 +296,7 @@ Must be an integer value (0 means no secrets).
 /*** Get current FlipMap status for specific group ID.
 @function GetFlipMapStatus
 @int[opt] index Flipmap group ID to check. If no group specified or group is -1, function returns overall flipmap status (on or off).
-@treturn int Status of the flipmap group (true means on, false means off).
+@treturn bool Status of the flipmap group (true means on, false means off).
 */
 	tableFlow.set_function(ScriptReserved_GetFlipMapStatus, &FlowHandler::GetFlipMapStatus, this);
 	
@@ -456,8 +487,14 @@ void FlowHandler::LoadFlowScript()
 	}
 }
 
-char const * FlowHandler::GetString(const char* id) const
+ const char* FlowHandler::GetString(const char* id) const
 {
+	if (id == nullptr || *id == '\0')
+	{
+		TENLog("Provided string ID is empty.", LogLevel::Warning);
+		return _translationMap.begin()->second[0].c_str();
+	}
+
 	if (!ScriptAssert(_translationMap.find(id) != _translationMap.end(), std::string{ "Couldn't find string " } + id))
 	{
 		return id;
@@ -496,7 +533,7 @@ int	FlowHandler::GetNumLevels() const
 int FlowHandler::GetLevelNumber(const std::string& fileName)
 {
 	if (fileName.empty())
-		return -1;
+		return NO_VALUE;
 
 	auto fileNameWithForwardSlashes = fileName;
 	std::replace(fileNameWithForwardSlashes.begin(), fileNameWithForwardSlashes.end(), '\\', '/');
@@ -645,6 +682,33 @@ void FlowHandler::AddSecret(int levelSecretIndex)
 	SaveGame::Statistics.SecretBits |= 1 << levelSecretIndex;
 	SaveGame::Statistics.Level.Secrets++;
 	SaveGame::Statistics.Game.Secrets++;
+}
+
+sol::table FlowHandler::GetSaveHeaders(sol::this_state state)
+{	
+	sol::state_view lua(state);
+
+	SaveGame::LoadHeaders();
+	auto headersTable = lua.create_table();
+
+	for (int i = 0; i < SAVEGAME_MAX; ++i)
+	{	
+		const SaveGameHeader& header = SaveGame::Infos[i];
+
+		sol::table headerTable = lua.create_table();
+		headerTable["LevelName"] = header.LevelName;
+		headerTable["Hours"] = header.Hours;
+		headerTable["Minutes"] = header.Minutes;
+		headerTable["Seconds"] = header.Seconds;
+		headerTable["Level"] = header.Level;
+		headerTable["Timer"] = header.Timer;
+		headerTable["Count"] = header.Count;
+		headerTable["Present"] = header.Present;
+
+		headersTable[i + 1] = headerTable;
+	}
+
+	return headersTable;
 }
 
 bool FlowHandler::IsFlyCheatEnabled() const

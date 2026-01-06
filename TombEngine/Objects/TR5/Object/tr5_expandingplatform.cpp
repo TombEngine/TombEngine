@@ -1,10 +1,11 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_expandingplatform.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
+#include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
@@ -15,7 +16,9 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
+using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Generic
@@ -45,8 +48,9 @@ namespace TEN::Entities::Generic
 
 		for (auto& mutator : item.Model.Mutators)
 		{
+			// Make sure that scale is set to epsilon as a minimum to avoid rendering issues.
+			mutator.Scale = Vector3(1.0f, 1.0f, std::max(EPSILON, item.ItemFlags[1] / BLOCK(4.0f)));
 			mutator.Offset = Vector3(0.0f, 0.0f, zTranslate);
-			mutator.Scale = Vector3(1.0f, 1.0f, item.ItemFlags[1] / BLOCK(4.0f));
 		}
 	}
 
@@ -123,17 +127,9 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		// Initialize routines.
-		bridge.GetFloorHeight = GetExpandingPlatformFloorHeight;
-		bridge.GetCeilingHeight = GetExpandingPlatformCeilingHeight;
-		bridge.GetFloorBorder = ExpandingPlatformFloorBorder;
-		bridge.GetCeilingBorder = ExpandingPlatformCeilingBorder;
+		g_Level.PathfindingBoxes[GetPointCollision(item).GetSector().PathfindingBoxID].flags &= ~BLOCKED;
 
-		short roomNumber = item.RoomNumber;
-		FloorInfo* floor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber);
-		g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags &= ~BLOCKED;
-
-		// Set mutators to default.
+		// Set scale to default.
 		UpdateExpandingPlatformMutators(itemNumber);
 
 		if (item.TriggerFlags < 0)
@@ -143,7 +139,11 @@ namespace TEN::Entities::Generic
 			item.Status = ITEM_ACTIVE;
 		}
 
-		UpdateBridgeItem(item);
+		bridge.GetFloorHeight = GetExpandingPlatformFloorHeight;
+		bridge.GetCeilingHeight = GetExpandingPlatformCeilingHeight;
+		bridge.GetFloorBorder = ExpandingPlatformFloorBorder;
+		bridge.GetCeilingBorder = ExpandingPlatformCeilingBorder;
+		bridge.Initialize(item);
 	}
 
 	bool IsInFrontOfExpandingPlatform(const ItemInfo& item, const Vector3i& pos, int margin)
@@ -211,7 +211,7 @@ namespace TEN::Entities::Generic
 		if (IsOnExpandingPlatform(item, LaraItem->Pose.Position))
 		{
 			// Slide player if on top of platform.
-			if (LaraItem->Pose.Position.y < (height - 32) || LaraItem->Pose.Position.y >(height + 32))
+			if (LaraItem->Pose.Position.y < (height - CLICK(1 / 8.0f)) || LaraItem->Pose.Position.y > (height + CLICK(1 / 8.0f)))
 				return;
 
 			if (angle == 0)
@@ -231,8 +231,7 @@ namespace TEN::Entities::Generic
 				xShift = isExpanding ? 16 : -16;
 			}
 		}
-		else if (isExpanding &&
-			IsInFrontOfExpandingPlatform(item, LaraItem->Pose.Position, LaraCollision.Setup.Radius))
+		else if (isExpanding && IsInFrontOfExpandingPlatform(item, LaraItem->Pose.Position, LaraCollision.Setup.Radius))
 		{
 			// Push player if in front of expanding platform.
 			if (angle == 0)
@@ -268,6 +267,9 @@ namespace TEN::Entities::Generic
 	void ControlExpandingPlatform(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(item);
+
+		bridge.Update(item);
 
 		if (TriggerActive(&item))
 		{
@@ -292,9 +294,13 @@ namespace TEN::Entities::Generic
 						abs(item.Pose.Position.x - Camera.pos.x) < 10240)
 					{
 						if (item.ItemFlags[1] == 64 || item.ItemFlags[1] == 4096)
+						{
 							Camera.bounce = -32;
+						}
 						else
+						{
 							Camera.bounce = -16;
+						}
 					}
 				}
 			}

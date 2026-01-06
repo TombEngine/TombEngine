@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_raisingblock.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;
 
@@ -65,21 +66,14 @@ namespace TEN::Entities::Generic
 		item->Data = BridgeObject();
 		auto& bridge = GetBridgeObject(*item);
 
-		// Initialize routines.
-		bridge.GetFloorHeight = GetRaisingBlockFloorHeight;
-		bridge.GetCeilingHeight = GetRaisingBlockCeilingHeight;
-		bridge.GetFloorBorder = GetRaisingBlockFloorBorder;
-		bridge.GetCeilingBorder = GetRaisingBlockCeilingBorder;
-
 		short roomNumber = item->RoomNumber;
 		auto* floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 
 		if (floor->PathfindingBoxID != NO_VALUE)
 			g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags &= ~BLOCKED;
 
-		// Set mutators to EulerAngles identity by default.
-		for (auto& mutator : item->Model.Mutators)
-			mutator.Scale.y = 0;
+		// Set Y scale to epsilon by default (not 0 because it may cause rendering issues).
+		item->Pose.Scale.y = EPSILON;
 
 		if (item->TriggerFlags < 0)
 		{
@@ -88,7 +82,11 @@ namespace TEN::Entities::Generic
 			item->Status = ITEM_ACTIVE;
 		}
 
-		TEN::Collision::Floordata::UpdateBridgeItem(*item);
+		bridge.GetFloorHeight = GetRaisingBlockFloorHeight;
+		bridge.GetCeilingHeight = GetRaisingBlockCeilingHeight;
+		bridge.GetFloorBorder = GetRaisingBlockFloorBorder;
+		bridge.GetCeilingBorder = GetRaisingBlockCeilingBorder;
+		bridge.Initialize(*item);
 	}
 
 	void ShakeRaisingBlock(ItemInfo* item)
@@ -101,22 +99,25 @@ namespace TEN::Entities::Generic
 		if ((item->Pose.Position.ToVector3() - Camera.pos.ToVector3()).Length() < BLOCK(10))
 		{
 			if (item->ItemFlags[1] == 64 || item->ItemFlags[1] == 4096)
+			{
 				Camera.bounce = -32;
+			}
 			else
+			{
 				Camera.bounce = -16;
+			}
 		}
 	}
 
 	void ControlRaisingBlock(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*item);
 
 		if (TriggerActive(item))
 		{
 			if (!item->ItemFlags[2])
-			{
 				item->ItemFlags[2] = 1;
-			}
 
 			if (item->TriggerFlags < 0)
 			{
@@ -155,11 +156,10 @@ namespace TEN::Entities::Generic
 			item->ItemFlags[1] -= 64;
 		}
 
-		// Update bone mutators.
+		// Update scale.
 		if (item->TriggerFlags > -1)
-		{
-			for (auto& mutator : item->Model.Mutators)
-				mutator.Scale = Vector3(1.0f, item->ItemFlags[1] / BLOCK(4.0f), 1.0f);
-		}
+			item->Pose.Scale.y = std::max(EPSILON, (float)item->ItemFlags[1] / (float)BLOCK(4));
+
+		bridge.Update(*item);
 	}
 }

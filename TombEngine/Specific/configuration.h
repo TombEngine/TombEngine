@@ -23,6 +23,7 @@ constexpr auto REGKEY_SHADOWS			   = "ShadowsMode";
 constexpr auto REGKEY_SHADOW_MAP_SIZE	   = "ShadowMapSize";
 constexpr auto REGKEY_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
 constexpr auto REGKEY_ENABLE_CAUSTICS	   = "EnableCaustics";
+constexpr auto REGKEY_ENABLE_DECALS		   = "EnableDecals";
 constexpr auto REGKEY_ANTIALIASING_MODE	   = "AntialiasingMode";
 constexpr auto REGKEY_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
 constexpr auto REGKEY_HIGH_FRAMERATE       = "EnableHighFramerate";
@@ -37,12 +38,13 @@ constexpr auto REGKEY_SFX_VOLUME	= "SfxVolume";
 
 // Gameplay keys
 
-constexpr auto REGKEY_ENABLE_SUBTITLES			= "EnableSubtitles";
-constexpr auto REGKEY_ENABLE_AUTO_MONKEY_JUMP	= "EnableAutoMonkeySwingJump";
-constexpr auto REGKEY_ENABLE_AUTO_TARGETING		= "EnableAutoTargeting";
-constexpr auto REGKEY_ENABLE_TARGET_HIGHLIGHTER = "EnableTargetHighlighter";
-constexpr auto REGKEY_ENABLE_RUMBLE				= "EnableRumble";
-constexpr auto REGKEY_ENABLE_THUMBSTICK_CAMERA	= "EnableThumbstickCamera";
+constexpr auto REGKEY_ENABLE_SUBTITLES					= "EnableSubtitles";
+constexpr auto REGKEY_ENABLE_AUTO_MONKEY_JUMP			= "EnableAutoMonkeySwingJump";
+constexpr auto REGKEY_ENABLE_AUTO_TARGETING				= "EnableAutoTargeting";
+constexpr auto REGKEY_ENABLE_TARGET_HIGHLIGHTER			= "EnableTargetHighlighter";
+constexpr auto REGKEY_ENABLE_INTERACTION_HIGHLIGHTER	= "EnableInteractionHighlighter";
+constexpr auto REGKEY_ENABLE_RUMBLE						= "EnableRumble";
+constexpr auto REGKEY_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
 
 // Input keys
 
@@ -71,6 +73,7 @@ struct GameConfiguration
 	int		   ShadowMapSize	  = DEFAULT_SHADOW_MAP_SIZE;
 	int		   ShadowBlobsMax	  = DEFAULT_SHADOW_BLOBS_MAX;
 	bool	   EnableCaustics	  = false;
+	bool	   EnableDecals		  = true;
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
@@ -85,12 +88,13 @@ struct GameConfiguration
 
 	// Gameplay
 
-	bool EnableSubtitles		   = false;
-	bool EnableAutoMonkeySwingJump = false;
-	bool EnableAutoTargeting	   = false;
-	bool EnableTargetHighlighter   = false;
-	bool EnableRumble			   = false;
-	bool EnableThumbstickCamera	   = false;
+	bool EnableSubtitles				= false;
+	bool EnableAutoMonkeySwingJump		= false;
+	bool EnableAutoTargeting			= false;
+	bool EnableTargetHighlighter		= false;
+	bool EnableInteractionHighlighter	= false;
+	bool EnableRumble					= false;
+	bool EnableThumbstickCamera			= false;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;

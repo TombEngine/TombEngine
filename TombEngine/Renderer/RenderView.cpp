@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		bufferToFill.Projection = Camera.Projection;
 		bufferToFill.View = Camera.View;
 		bufferToFill.ViewProjection = Camera.ViewProjection;
+		bufferToFill.InverseView = Camera.View.Invert();
 		bufferToFill.InverseProjection = Camera.Projection.Invert();
 		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
 		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);
@@ -61,15 +62,22 @@ namespace TEN::Renderer
 		RoomNumber = cam->pos.RoomNumber;
 		WorldPosition = Vector3(cam->pos.x, cam->pos.y, cam->pos.z);
 
-		Vector3 target = Vector3(cam->target.x, cam->target.y, cam->target.z);
-		if ((target - WorldPosition) == Vector3::Zero)
+		auto target = Vector3(cam->target.x, cam->target.y, cam->target.z);
+		
+		// Safety clamps to avoid NaNs in view direction calculation.
+		auto rawDirection = target - WorldPosition;
+
+		if (rawDirection == Vector3::Zero)
 			target.y -= 10;
+
+		if (std::abs(rawDirection.x) < EPSILON && std::abs(rawDirection.z) < EPSILON)
+			target.x -= 1;
 
 		WorldDirection = target - WorldPosition;
 		WorldDirection.Normalize();
 		
 		Vector3 up = -Vector3::UnitY;
-		Matrix upRotation = Matrix::CreateFromYawPitchRoll(0.0f, 0.0f, roll);
+		Matrix upRotation = Matrix::CreateFromAxisAngle(WorldDirection, roll);
 		up = Vector3::Transform(up, upRotation);
 		up.Normalize();
 

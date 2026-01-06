@@ -9,12 +9,13 @@ using namespace TEN::Entities::Effects;
 namespace TEN::Effects::Environment 
 {
 	constexpr auto WEATHER_PARTICLE_SPAWN_DENSITY		 = 32;
-	constexpr auto WEATHER_PARTICLE_COUNT_MAX			 = 4096;
+	constexpr auto WEATHER_PARTICLE_CLUSTER_MULT		 = 16.0f;
+	constexpr auto WEATHER_PARTICLE_COUNT_MAX			 = 2048;
 	constexpr auto WEATHER_PARTICLE_COLL_CHECK_DELAY_MAX = 5.0f;
 
 	constexpr auto DUST_SIZE_MAX = 25.0f;
 	constexpr auto SNOW_SIZE_MAX = 32.0f;
-	constexpr auto RAIN_SIZE_MAX = 128.0f;
+	constexpr auto RAIN_SIZE_MAX = 256.0f;
 
 	constexpr auto WEATHER_PARTICLE_HORIZONTAL_VELOCITY = 8.0f;
 	constexpr auto SNOW_VELOCITY_MAX					= 128.0f;
@@ -34,6 +35,12 @@ namespace TEN::Effects::Environment
 	constexpr auto METEOR_PARTICLE_VELOCITY		 = 32.0f;
 	constexpr auto METEOR_PARTICLE_SPAWN_DENSITY = 4;
 	constexpr auto METEOR_PARTICLE_FADE_TIME	 = 30.0f;
+
+	constexpr float RAIN_RENDER_RANGE_MULT = 0.70f;
+	constexpr float RAIN_SPAWN_RANGE_MULT  = 0.70f;
+	constexpr float WEATHER_SPAWN_DIST_SNOW  = BLOCK(8);
+	constexpr float WEATHER_SPAWN_DIST_RAIN  = BLOCK(5.5f);
+	constexpr float WEATHER_SPAWN_DIST_OTHER = BLOCK(4);
 
 	struct StarParticle
 	{
@@ -70,6 +77,7 @@ namespace TEN::Effects::Environment
 	struct WeatherParticle
 	{
 		WeatherType Type = WeatherType::None;
+		int UniqueID = 0;
 
 		Vector3 Position   = Vector3::Zero;
 		int		RoomNumber = NO_VALUE;
@@ -79,6 +87,7 @@ namespace TEN::Effects::Environment
 		float Life				  = 0.0f;
 		float CollisionCheckDelay = 0.0f;
 		float Size				  = 0.0f;
+		int   ClusterSize		  = 1;
 
 		bool Enabled = false;
 		bool Stopped = false;

@@ -48,11 +48,17 @@ namespace TEN::Math::Geometry
 	Vector3 GetClosestPointOnLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1);
 	Vector3 GetClosestPointOnLinePerp(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1, const Vector3& axis = Vector3::UnitY);
 
+	// Box getters
+
+	BoundingBox GetAabb(const BoundingOrientedBox& obb);
+	BoundingBox GetAabb(const std::vector<Vector3>& points);
+	float		GetAabbArea(const BoundingBox& box);
+
 	// Misc. getters
 
 	EulerAngles GetOrientToPoint(const Vector3& origin, const Vector3& target);
 	EulerAngles GetRelOrientToNormal(short orient, const Vector3& normal, const Vector3& axis = Vector3::UnitY);
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points);
+	Vector3i GetNearestSectorCenter(const Vector3i& pos);
 
 	// Converters
 

@@ -22,7 +22,7 @@ public:
 		const auto& item = g_Level.Items[id];
 
 		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
-		if (hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
+		if (hasName && (item.IsLara() || item.Collidable))
 			return _collidingItems.insert(id).second;
 
 		return false;
@@ -33,7 +33,7 @@ public:
 		const auto& item = g_Level.Items[id];
 
 		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
-		if (!force && hasName && item.Collidable && item.Status != ITEM_INVISIBLE)
+		if (!force && hasName && (item.IsLara() || item.Collidable))
 			return false;
 
 		return _collidingItemsToRemove.insert(id).second;
@@ -77,6 +77,9 @@ private:
 			if (!std::holds_alternative<int>(val))
 				continue;
 
+			if (GetIndexByName(key) == NO_VALUE)
+				continue;
+
 			const auto& item = g_Level.Items[GetIndexByName(key)];
 			if (objectID == item.ObjectNumber)
 				movs.push_back(GetByName<Moveable, ScriptReserved_Moveable>(key));
@@ -91,12 +94,12 @@ private:
 		auto items = std::vector<std::unique_ptr<R>>{};
 		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<MESH_INFO>>(value))
+			if (!std::holds_alternative<std::reference_wrapper<StaticMesh>>(value))
 				continue;
 			
-			auto staticObj = std::get<std::reference_wrapper<MESH_INFO>>(value).get();
+			auto staticObj = std::get<std::reference_wrapper<StaticMesh>>(value).get();
 
-			if (staticObj.staticNumber == slot)
+			if (staticObj.Slot == slot)
 				items.push_back(GetByName<Static, ScriptReserved_Static>(key));
 		}
 
@@ -109,10 +112,10 @@ private:
 		auto rooms = std::vector<std::unique_ptr<R>>{};
 		for (const auto& [key, value] : _nameMap)
 		{
-			if (!std::holds_alternative<std::reference_wrapper<ROOM_INFO>>(value))
+			if (!std::holds_alternative<std::reference_wrapper<RoomData>>(value))
 				continue;
 
-			auto room = std::get<std::reference_wrapper<ROOM_INFO>>(value).get();
+			auto room = std::get<std::reference_wrapper<RoomData>>(value).get();
 			
 			if (std::any_of(room.Tags.begin(), room.Tags.end(), [&tag](const std::string& value) { return value == tag; }))
 			{
@@ -125,7 +128,15 @@ private:
 
 	int GetIndexByName(std::string const& name) const override
 	{
+		if (_nameMap.find(name) == _nameMap.end())
+			return NO_VALUE;
+
 		return std::get<int>(_nameMap.at(name));
+	}
+
+	bool IsNameInUse(const std::string& key) const
+	{
+		return _nameMap.find(key) != _nameMap.end();
 	}
 
 	bool AddName(const std::string& key, VarMapVal val) override

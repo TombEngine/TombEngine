@@ -311,7 +311,7 @@ namespace TEN::Entities::Creatures::TR2
 
 		CreatureTilt(item, tiltAngle);
 		CreatureJoint(item, 0, extraTorsoRot);
-		CreatureJoint(item, 1, extraHeadRot);
+		CreatureJoint(item, 9, extraHeadRot);
 		CreatureAnimation(itemNumber, headingAngle, tiltAngle);
 	}
 }

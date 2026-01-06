@@ -16,7 +16,6 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 TEN::Renderer::RendererHudBar* g_AirBar;
 TEN::Renderer::RendererHudBar* g_ExposureBar;
@@ -144,7 +143,7 @@ namespace TEN::Renderer
 		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->Width, borderSprite->Height / (float)borderSprite->Texture->Height);
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		 
@@ -170,7 +169,7 @@ namespace TEN::Renderer
 		RendererSprite* innerSprite = &_sprites[Objects[textureSlot].meshIndex];
 		_stHUDBar.BarStartUV = innerSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->Width, innerSprite->Height / (float)innerSprite->Texture->Height);
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
@@ -207,7 +206,7 @@ namespace TEN::Renderer
 
 		_stHUDBar.BarStartUV = Vector2::Zero;
 		_stHUDBar.BarScale = Vector2::One;
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
@@ -226,7 +225,7 @@ namespace TEN::Renderer
 		_stHUDBar.Percent = percentage / 100.0f;
 		_stHUDBar.Poisoned = false;
 		_stHUDBar.Frame = 0; 
-		_cbHUDBar.UpdateData(_stHUDBar, _context.Get());
+		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
 		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
@@ -282,28 +281,28 @@ namespace TEN::Renderer
 			vertices[0].Position.z = 0.0f;
 			vertices[0].UV.x = 0.0f;
 			vertices[0].UV.y = 0.0f;
-			vertices[0].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+			vertices[0].Color = VectorColorToRGBA_TempToVector4(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
 			vertices[1].Position.x = 4.0f / _screenWidth;
 			vertices[1].Position.y = 4.0f / _screenHeight;
 			vertices[1].Position.z = 0.0f;
 			vertices[1].UV.x = 1.0f;
 			vertices[1].UV.y = 0.0f;
-			vertices[1].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+			vertices[1].Color = VectorColorToRGBA_TempToVector4(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
 			vertices[2].Position.x = 4.0f / _screenWidth;
 			vertices[2].Position.y = -4.0f / _screenHeight;
 			vertices[2].Position.z = 0.0f;
 			vertices[2].UV.x = 1.0f;
 			vertices[2].UV.y = 1.0f;
-			vertices[2].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+			vertices[2].Color = VectorColorToRGBA_TempToVector4(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
 			vertices[3].Position.x = -4.0f / _screenWidth;
 			vertices[3].Position.y = -4.0f / _screenHeight;
 			vertices[3].Position.z = 0.0f;
 			vertices[3].UV.x = 0.0f;
 			vertices[3].UV.y = 1.0f;
-			vertices[3].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+			vertices[3].Color = VectorColorToRGBA_TempToVector4(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
 			_shaders.Bind(Shader::FullScreenQuad);
 
@@ -334,23 +333,26 @@ namespace TEN::Renderer
 		DrawFullScreenQuad(texture, Vector3(fade), true);
 	}
 
-	void Renderer::DrawDisplaySprites(RenderView& renderView)
+	void Renderer::DrawDisplaySprites(RenderView& renderView, bool negativePriority)
 	{
 		constexpr auto VERTEX_COUNT = 4;
 
 		if (renderView.DisplaySpritesToDraw.empty())
 			return;
 
-		_shaders.Bind(Shader::FullScreenQuad);
-
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
-
 		Texture2D* texture2DPtr = nullptr;
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
+			if ((spriteToDraw.Priority >= 0) == negativePriority)
+				continue;
+
 			if (texture2DPtr == nullptr)
 			{
+				_shaders.Bind(Shader::FullScreenQuad);
+
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				_context->IASetInputLayout(_inputLayout.Get());
+
 				_primitiveBatch->Begin();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
@@ -396,7 +398,7 @@ namespace TEN::Renderer
 			{
 				rVertices[i].Position = Vector3(vertices[i]);
 				rVertices[i].UV = spriteToDraw.SpritePtr->UV[i];
-				rVertices[i].Color = Vector4(spriteToDraw.Color.x, spriteToDraw.Color.y, spriteToDraw.Color.z, spriteToDraw.Color.w);
+				rVertices[i].Color = VectorColorToRGBA_TempToVector4(Vector4(spriteToDraw.Color.x, spriteToDraw.Color.y, spriteToDraw.Color.z, spriteToDraw.Color.w));
 			}
 			
 			_primitiveBatch->DrawQuad(rVertices[0], rVertices[1], rVertices[2], rVertices[3]);
@@ -404,7 +406,8 @@ namespace TEN::Renderer
 			texture2DPtr = spriteToDraw.SpritePtr->Texture;
 		}
 		
-		_primitiveBatch->End();
+		if (texture2DPtr != nullptr)
+			_primitiveBatch->End();
 	}
 
 	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit, float customAspect)
@@ -446,22 +449,22 @@ namespace TEN::Renderer
 		vertices[0].Position = Vector3(-1.0f, 1.0f, 0.0f);
 		vertices[0].UV.x = uvStart.x;
 		vertices[0].UV.y = uvStart.y;
-		vertices[0].Color = colorVec4;
+		vertices[0].Color = VectorColorToRGBA_TempToVector4(colorVec4);
 
 		vertices[1].Position = Vector3(1.0f, 1.0f, 0.0f);
 		vertices[1].UV.x = uvEnd.x;
 		vertices[1].UV.y = uvStart.y;
-		vertices[1].Color = colorVec4;
+		vertices[1].Color = VectorColorToRGBA_TempToVector4(colorVec4);
 
 		vertices[2].Position = Vector3(1.0f, -1.0f, 0.0f);
 		vertices[2].UV.x = uvEnd.x;
 		vertices[2].UV.y = uvEnd.y;
-		vertices[2].Color = colorVec4;
+		vertices[2].Color = VectorColorToRGBA_TempToVector4(colorVec4);
 
 		vertices[3].Position = Vector3(-1.0f, -1.0f, 0.0f);
 		vertices[3].UV.x = uvStart.x;
 		vertices[3].UV.y = uvEnd.y;
-		vertices[3].Color = colorVec4;
+		vertices[3].Color = VectorColorToRGBA_TempToVector4(colorVec4);
 
 		_shaders.Bind(Shader::FullScreenQuad);
 
@@ -517,28 +520,28 @@ namespace TEN::Renderer
 		vertices[0].Position.z = 0.0f;
 		vertices[0].UV.x = uvStart.x;
 		vertices[0].UV.y = uvStart.y;
-		vertices[0].Color = Vector4(color.x, color.y, color.z, 1.0f);
+		vertices[0].Color = VectorColorToRGBA_TempToVector4(Vector4(color.x, color.y, color.z, 1.0f));
 
 		vertices[1].Position.x = 1.0f;
 		vertices[1].Position.y = 1.0f;
 		vertices[1].Position.z = 0.0f;
 		vertices[1].UV.x = uvEnd.x;
 		vertices[1].UV.y = uvStart.y;
-		vertices[1].Color = Vector4(color.x, color.y, color.z, 1.0f);
+		vertices[1].Color = VectorColorToRGBA_TempToVector4(Vector4(color.x, color.y, color.z, 1.0f));
 
 		vertices[2].Position.x = 1.0f;
 		vertices[2].Position.y = -1.0f;
 		vertices[2].Position.z = 0.0f;
 		vertices[2].UV.x = uvEnd.x;
 		vertices[2].UV.y = uvEnd.y;
-		vertices[2].Color = Vector4(color.x, color.y, color.z, 1.0f);
+		vertices[2].Color = VectorColorToRGBA_TempToVector4(Vector4(color.x, color.y, color.z, 1.0f));
 
 		vertices[3].Position.x = -1.0f;
 		vertices[3].Position.y = -1.0f;
 		vertices[3].Position.z = 0.0f;
 		vertices[3].UV.x = uvStart.x;
 		vertices[3].UV.y = uvEnd.y;
-		vertices[3].Color = Vector4(color.x, color.y, color.z, 1.0f);
+		vertices[3].Color = VectorColorToRGBA_TempToVector4(Vector4(color.x, color.y, color.z, 1.0f));
 
 		_shaders.Bind(Shader::FullScreenQuad);
 

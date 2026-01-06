@@ -23,6 +23,10 @@ namespace TEN::Renderer::ConstantBuffers
 		uint32_t NumFrames;
 		uint32_t Fps;
 		uint32_t Type;
-		uint32_t Padding;
+		uint32_t Animated;
+		//--
+		float UVRotateDirection;
+		float UvRotateSpeed;
+		int IsWaterfall;
 	};
 }

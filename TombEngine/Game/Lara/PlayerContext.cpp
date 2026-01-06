@@ -3,6 +3,7 @@
 
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/collision/floordata.h"
 #include "Game/control/los.h"
@@ -15,6 +16,7 @@
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Collision::Floordata;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -224,10 +226,10 @@ namespace TEN::Entities::Player
 		auto target = target1.ToVector3();
 		auto dir = target - origin;
 		dir.Normalize();
-
+		
 		// 4) Assess static LOS.
-		auto staticLos = GetStaticObjectLos(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
-		if (staticLos.has_value())
+		auto losIntersect = GetStaticLosCollision(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
+		if (losIntersect.has_value())
 			return false;
 
 		// 5) Assess room LOS.
@@ -422,13 +424,6 @@ namespace TEN::Entities::Player
 
 	bool IsInLowSpace(const ItemInfo& item, const CollisionInfo& coll)
 	{
-		static const auto CROUCH_STATES = std::vector<int>
-		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT
-		};
-
 		// HACK: coll.Setup.Radius is only set to LARA_RADIUS_CRAWL in lara_col functions, then reset by LaraAboveWater(),
 		// meaning that for tests called in lara_as functions it will store the wrong radius. -- Sezz 2021.11.05
 		float radius = TestState(item.Animation.ActiveState, CROUCH_STATES) ? LARA_RADIUS_CRAWL : LARA_RADIUS;
@@ -702,9 +697,9 @@ namespace TEN::Entities::Player
 		auto target = target1.ToVector3();
 		auto dir = target - origin;
 		dir.Normalize();
-
-		// 3) Assess ray-static collision.
-		auto staticLos = GetStaticObjectLos(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
+		
+		// 3) Assess static LOS.
+		auto staticLos = GetStaticLosCollision(origin, item.RoomNumber, dir, Vector3::Distance(origin, target), false);
 		if (staticLos.has_value())
 			return false;
 
@@ -967,7 +962,7 @@ namespace TEN::Entities::Player
 			return false;
 
 		// 2) Check for jump state dispatch.
-		if (!HasStateDispatch(&item, LS_JUMP_FORWARD))
+		if (!TestStateDispatch(item, LS_JUMP_FORWARD))
 			return false;
 
 		// 3) Check running jump timer.

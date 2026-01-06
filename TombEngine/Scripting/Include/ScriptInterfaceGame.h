@@ -71,6 +71,8 @@ public:
 	virtual void ExecuteFunction(const std::string& luaFuncName, TEN::Control::Volumes::Activator, const std::string& arguments) = 0;
 	virtual void ExecuteFunction(const std::string& luaFuncName, short idOne, short idTwo = 0) = 0;
 
+	virtual unsigned int GetFunctionCallCount() = 0;
+
 	virtual void GetVariables(std::vector<SavedVar>& vars) = 0;
 	virtual void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) = 0;
 

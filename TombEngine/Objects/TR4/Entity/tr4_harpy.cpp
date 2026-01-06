@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_harpy.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -19,6 +19,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Math::Random;
 using namespace TEN::Effects::Spark;
@@ -241,8 +242,10 @@ namespace TEN::Entities::TR4
 
 			creature->Enemy = nullptr;
 
-			for (auto& currentCreature : ActiveCreatures)
+			for (auto creatureIndex : ActiveCreatures)
 			{
+				auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 				if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 					continue;
 
@@ -445,8 +448,8 @@ namespace TEN::Entities::TR4
 						creature->Enemy != nullptr &&
 						abs(creature->Enemy->Pose.Position.y - item->Pose.Position.y) <= BLOCK(1) &&
 						AI.distance < SQUARE(BLOCK(2)) &&
-						item->Animation.AnimNumber == GetAnimIndex(*item, HARPY_ANIM_STINGER_ATTACK) &&
-						item->Animation.FrameNumber > GetFrameIndex(item, 17))
+						item->Animation.AnimNumber == HARPY_ANIM_STINGER_ATTACK &&
+						item->Animation.FrameNumber > 17)
 					)
 				{
 					if (creature->Enemy->IsLara())

@@ -13,6 +13,6 @@ void CutsceneRopeControl(short itemNumber);
 void HybridCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
 void InitializeSmashObject(short itemNumber);
 void InitializeTightrope(short itemNumber);
-void HighObject2Control(short itemNumber);
 void InitializeAnimating(short itemNumber);
 void AnimatingControl(short itemNumber);
+void EarthquakeControl(short itemNumber);

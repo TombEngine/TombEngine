@@ -15,9 +15,11 @@
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Scripting::Types;
+using namespace TEN::Utils;
 
 /***
 Saving data, triggering functions, and callbacks for level-specific scripts.
@@ -286,16 +288,22 @@ Any returned value will be discarded.
 */
 void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
+	if (point == _lastCallbackPoint)
+	{
+		TENLog(fmt::format("Attempt to add callback function {} within the same callback type.", levelFunc.m_funcName), LogLevel::Error);
+		return;
+	}
+
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end()) 
 	{
-		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
+		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
 	}
 	
 	if (it->second->find(levelFunc.m_funcName) != it->second->end())
 	{
-		TENLog("Warning: function " + levelFunc.m_funcName + " already registered in callbacks list.", LogLevel::Warning, LogConfig::All, true);
+		TENLog(fmt::format("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
@@ -314,10 +322,16 @@ Will have no effect if the function was not registered as a callback
 */
 void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
+	if (point == _lastCallbackPoint)
+	{
+		TENLog("Attempt to remove callback function " + levelFunc.m_funcName + " within the same callback type.", LogLevel::Error, LogConfig::All);
+		return;
+	}
+
 	auto it = _callbacks.find(point);
 	if (it == _callbacks.end())
 	{
-		TENLog("Error: callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
+		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
 		return;
 	}
 
@@ -409,6 +423,12 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 		auto partName = tab.raw_get<std::string>(strKey);
 		auto fullName = partName + "." + name;
 		auto& parentNameTab = _levelFuncs_tablesOfNames[partName];
+
+		// Check if function is already defined.
+		if (auto it = _levelFuncs_luaFunctions.find(fullName); it != _levelFuncs_luaFunctions.end())
+			TENLog("Lua function " + fullName + " is being redefined. Check your level script.", LogLevel::Warning);
+
+		// Define function.
 		parentNameTab.insert_or_assign(name, fullName);
 
 		// Create LevelFunc userdata and add that too.
@@ -497,6 +517,7 @@ void LogicHandler::FreeLevelScripts()
 	_levelFuncs_tablesOfNames.emplace(std::make_pair(ScriptReserved_LevelFuncs, std::unordered_map<std::string, std::string>{}));
 
 	ResetLevelTables();
+
 	_onStart = sol::nil;
 	_onLoad = sol::nil;
 	_onLoop = sol::nil;
@@ -504,6 +525,10 @@ void LogicHandler::FreeLevelScripts()
 	_onEnd = sol::nil;
 	_onUseItem = sol::nil;
 	_onFreeze = sol::nil;
+
+	_functionCallCount = 0;
+	_insideFunction = false;
+
 	_handler.GetState()->collect_garbage();
 }
 
@@ -947,13 +972,6 @@ std::unique_ptr<R> GetByName(const std::string& type, const std::string& name, c
 	return std::make_unique<R>(map.at(name), false);
 }
 
-/*** Special objects
-@section specialobjects
-*/
-
-/*** An @{Objects.Moveable} entry representing Lara herself.
-@table Lara
-*/
 void LogicHandler::ResetVariables()
 {
 	(*_handler.GetState())["Lara"] = nullptr;
@@ -962,10 +980,13 @@ void LogicHandler::ResetVariables()
 void LogicHandler::ShortenTENCalls()
 {
 	auto str = R"(local ShortenInner 
+	local exceptions = {
+		DisplaySprite = true,
+	}
 
 	ShortenInner = function(tab)
 		for k, v in pairs(tab) do
-			if _G[k] then
+			if _G[k] and not exceptions[k] then
 				print("WARNING! Key " .. k .. " already exists in global environment!")
 			else
 				_G[k] = v
@@ -1018,36 +1039,59 @@ void LogicHandler::ExecuteFunction(const std::string& name, TEN::Control::Volume
 	}
 }
 
+unsigned int LogicHandler::GetFunctionCallCount()
+{
+	// Only return the count if we're inside a lua function call.
+	return _insideFunction ? _functionCallCount : 0;
+}
+
+void LogicHandler::PerformCallbacks(CallbackPoint point, int argument)
+{
+	auto it = _callbacks.find(point);
+	if (it == _callbacks.end())
+		return;
+
+	if (it->second->empty())
+		return;
+
+	_lastCallbackPoint = point;
+
+	for (const auto& name : *it->second)
+	{
+		if (argument == NO_VALUE)
+			CallLevelFuncByName(name);
+		else
+			CallLevelFuncByName(name, argument);
+	}
+	_lastCallbackPoint = std::nullopt;
+}
+
+
 void LogicHandler::OnStart()
 {
-	for (const auto& name : _callbacksPreStart)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreStart);
 
 	if (_onStart.valid())
 		CallLevelFunc(_onStart);
 
-	for (const auto& name : _callbacksPostStart)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostStart);
 }
 
 void LogicHandler::OnLoad()
 {
-	for (const auto& name : _callbacksPreLoad)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreLoad);
 
 	if (_onLoad.valid())
 		CallLevelFunc(_onLoad);
 
-	for (const auto& name : _callbacksPostLoad)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostLoad);
 }
 
 void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 {
 	if (!postLoop)
 	{
-		for (const auto& name : _callbacksPreLoop)
-			CallLevelFuncByName(name, deltaTime);
+		PerformCallbacks(CallbackPoint::PreLoop);
 
 		PerformConsoleInput();
 
@@ -1057,21 +1101,18 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 	}
 	else
 	{
-		for (const auto& name : _callbacksPostLoop)
-			CallLevelFuncByName(name, deltaTime);
+		PerformCallbacks(CallbackPoint::PostLoop);
 	}
 }
 
 void LogicHandler::OnSave()
 {
-	for (const auto& name : _callbacksPreSave)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreSave);
 
 	if (_onSave.valid())
 		CallLevelFunc(_onSave);
 
-	for (const auto& name : _callbacksPostSave)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PostSave);
 }
 
 void LogicHandler::OnEnd(GameStatus reason)
@@ -1096,40 +1137,34 @@ void LogicHandler::OnEnd(GameStatus reason)
 		break;
 	}
 
-	for (const auto& name : _callbacksPreEnd)
-		CallLevelFuncByName(name, endReason);
+	PerformCallbacks(CallbackPoint::PreEnd, int(endReason));
 
 	if (_onEnd.valid())
 		CallLevelFunc(_onEnd, endReason);
 
-	for (const auto& name : _callbacksPostEnd)
-		CallLevelFuncByName(name, endReason);
+	PerformCallbacks(CallbackPoint::PostEnd, int(endReason));
 }
 
 void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
 {
-	for (const auto& name : _callbacksPreUseItem)
-		CallLevelFuncByName(name, objectNumber);
+	PerformCallbacks(CallbackPoint::PreUseItem, objectNumber);
 
 	if (_onUseItem.valid())
 		CallLevelFunc(_onUseItem, objectNumber);
 
-	for (const auto& name : _callbacksPostUseItem)
-		CallLevelFuncByName(name, objectNumber);
+	PerformCallbacks(CallbackPoint::PostUseItem, objectNumber);
 }
 
 void LogicHandler::OnFreeze()
 {
-	for (const auto& name : _callbacksPreFreeze)
-		CallLevelFuncByName(name);
+	PerformCallbacks(CallbackPoint::PreFreeze);
 
 	PerformConsoleInput();
 
 	if (_onFreeze.valid())
 		CallLevelFunc(_onFreeze);
-		
-	for (const auto& name : _callbacksPostFreeze)
-		CallLevelFuncByName(name);
+
+	PerformCallbacks(CallbackPoint::PostFreeze);
 }
 
 /*** Special tables
@@ -1265,10 +1300,29 @@ void LogicHandler::InitCallbacks()
 
 		LevelFunc fnh = (*state)[ScriptReserved_LevelFuncs][luaFunc];
 
+		if (func.valid())
+		{
+			auto it = std::find_if(_levelFuncs_luaFunctions.begin(), _levelFuncs_luaFunctions.end(),
+						[&](const auto& pair) { return pair.second == func; });
+
+			if (it != _levelFuncs_luaFunctions.end())
+			{
+				auto message = std::string("Lua callback ") + it->first + " is being redefined";
+				if (it->first != fullName)
+					message += " to " + fullName;
+				message += ". Check your level script.";
+				TENLog(message, LogLevel::Warning);
+			}
+			else
+			{
+				TENLog("Unknown redefinition of the callback " + fullName + ".", LogLevel::Warning);
+			}
+		}
+
 		func = _levelFuncs_luaFunctions[fnh.m_funcName];
 
 		if (!func.valid())
-			TENLog("Level's script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.");
+			TENLog("Level script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.", LogLevel::Info, LogConfig::Debug);
 	};
 
 	assignCB(_onStart, ScriptReserved_OnStart);

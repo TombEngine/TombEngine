@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_gunship.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/los.h"
 #include "Game/effects/debris.h"
@@ -12,6 +12,8 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR5
 {
@@ -32,9 +34,7 @@ namespace TEN::Entities::Creatures::TR5
 					Vector3i(
 						(GetRandomControl() & 0x1FF) - 255,
 						(GetRandomControl() & 0x1FF) - 255,
-						(GetRandomControl() & 0x1FF) - 255
-					))
-			);
+						(GetRandomControl() & 0x1FF) - 255)));
 
 			auto target = pos;
 
@@ -88,7 +88,7 @@ namespace TEN::Entities::Creatures::TR5
 				return AnimateItem(item);
 
 			Vector3i hitPos;
-			MESH_INFO* hitMesh = nullptr;
+			StaticMesh* hitMesh = nullptr;
 			int objOnLos = ObjectOnLOS2(&origin, &target, &hitPos, &hitMesh, GAME_OBJECT_ID::ID_LARA);
 
 			if (objOnLos == NO_LOS_ITEM || objOnLos < 0)
@@ -109,11 +109,11 @@ namespace TEN::Entities::Creatures::TR5
 
 				if (objOnLos < 0 && GetRandomControl() & 1)
 				{
-					if (Statics[hitMesh->staticNumber].shatterType != ShatterType::None)
+					if (Statics[hitMesh->Slot].shatterType != ShatterType::None)
 					{
 						ShatterObject(0, hitMesh, 64, target.RoomNumber, 0);
-						TestTriggers(hitMesh->pos.Position.x, hitMesh->pos.Position.y, hitMesh->pos.Position.z, target.RoomNumber, true);
-						SoundEffect(GetShatterSound(hitMesh->staticNumber), &hitMesh->pos);
+						TestTriggers(hitMesh->Pose.Position.x, hitMesh->Pose.Position.y, hitMesh->Pose.Position.z, target.RoomNumber, true);
+						SoundEffect(GetShatterSound(hitMesh->Slot), &hitMesh->Pose);
 					}
 
 					TriggerRicochetSpark(GameVector(hitPos), 2 * GetRandomControl());

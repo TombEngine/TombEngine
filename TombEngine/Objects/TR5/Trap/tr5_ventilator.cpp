@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Trap/tr5_ventilator.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -9,10 +9,14 @@
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
+
 namespace TEN::Entities::Traps
 {
 	void VentilatorEffect(GameBoundingBox* bounds, int intensity, short rot, int speed)
 	{
+		constexpr auto DUST_SIZE_MAX = 64.0f;
+
 		int x, y, z;
 
 		if (abs(intensity) == 1)
@@ -51,14 +55,16 @@ namespace TEN::Entities::Traps
 
 		auto& part = *GetFreeParticle();
 
-		part.on = 1;
+		part.on = true;
+		part.SpriteSeqID = ID_DEFAULT_SPRITES;
+		part.SpriteID = SPRITE_TYPES::SPR_UNDERWATERDUST;
 		part.sR = 0;
 		part.sG = 0;
 		part.sB = 0;
-		part.dR = part.dG = (48 * speed) / 128;
+		part.dR = part.dG = (48 * speed) / 64;
+		part.dB = (speed * ((GetRandomControl() & 8) + 48)) / 64;
 		part.colFadeSpeed = 4;
 		part.fadeToBlack = 8;
-		part.dB = (speed * ((GetRandomControl() & 8) + 48)) / 128;
 		part.blendMode = BlendMode::Additive;
 		part.life = part.sLife = (GetRandomControl() & 3) + 20;
 
@@ -125,14 +131,18 @@ namespace TEN::Entities::Traps
 
 			part.yVel = 0;
 		}
-
+		part.roomNumber = FindRoomNumber(Vector3i(part.x, part.y, part.z));
 		part.friction = 85;
 		part.xVel = (speed * part.xVel) / 128;
 		part.yVel = (speed * part.yVel) / 128;
 		part.zVel = (speed * part.zVel) / 128;
 		part.maxYvel = 0;
 		part.gravity = 0;
-		part.flags = SP_NONE;
+		part.flags = SP_SCALE | SP_ROTATE | SP_DEF | SP_EXPDEF;
+		part.rotAng = ANGLE(0.0f) >> 4;
+		part.rotAdd = ANGLE(0.0f) >> 4;
+		part.scalar = 0.5;
+		part.sSize = part.size = part.dSize = Random::GenerateFloat(DUST_SIZE_MAX / 2, DUST_SIZE_MAX);
 	}
 
 	void InitializeVentilator(short itemNumber)
@@ -148,7 +158,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		int xChange = 0;
 		int zChange = 0;
@@ -164,7 +174,7 @@ namespace TEN::Entities::Traps
 			if (item.Animation.ActiveState == 1)
 			{
 				// result = 5 * item.animNumber;
-				if (item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(item))
 					return;
 			}
 			else
@@ -176,7 +186,7 @@ namespace TEN::Entities::Traps
 		int speed = 0;
 		if (item.Animation.ActiveState == 1)
 		{
-			speed = GetAnimData(item).frameEnd - item.Animation.FrameNumber;
+			speed = GetAnimData(item).EndFrameNumber - item.Animation.FrameNumber;
 		}
 		else
 		{

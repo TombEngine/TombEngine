@@ -7,6 +7,7 @@
 #include "./Blending.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Shadows.hlsli"
+#include "./Materials.hlsli"
 
 struct PixelShaderInput
 {
@@ -20,7 +21,8 @@ struct PixelShaderInput
 	float4 FogBulbs : TEXCOORD2;
 	float DistanceFog : FOG;
 	float3 Tangent: TANGENT;
-	float3 Binormal: BINORMAL;
+    float3 Binormal : BINORMAL;
+    float3 FaceNormal : TEXCOORD3;
 	unsigned int Bone : BONE;
 };
 
@@ -41,102 +43,74 @@ SamplerState AmbientMapFrontSampler : register(s7);
 Texture2D AmbientMapBackTexture : register(t8);
 SamplerState AmbientMapBackSampler : register(s8);
 
-Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
-
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
 
 	// Blend and apply world matrix
-	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, true) : Bones[input.BoneIndex[0]];
+	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
 	float4x4 world = mul(blended, World);
 
 	// Calculate vertex effects
-	float wibble = Wibble(input.Effects.xyz, input.Hash);
-	float3 pos = Move(input.Position, input.Effects.xyz, wibble);
-	float3 col = Glow(input.Color.xyz, input.Effects.xyz, wibble);
+	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
+	float3 pos = Move(input.Position, input.Effects, wibble);
+	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 	float3 worldPosition = mul(float4(pos, 1.0f), world).xyz;
 
 	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
-	output.UV = input.UV;
+    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = float4(col, input.Color.w);
 	output.Color *= Color;
 	output.PositionCopy = output.Position;
-	output.Sheen = input.Effects.w;
+    output.Sheen = DecodeSheen(input.Effects);
 	output.Bone = input.BoneIndex[0];
 	output.WorldPosition = worldPosition;
 
-	output.Normal = normalize(mul(input.Normal, (float3x3)world).xyz);
-	output.Tangent = normalize(mul(input.Tangent, (float3x3)world).xyz);
-	output.Binormal = normalize(mul(input.Binormal, (float3x3)world).xyz);
-
+    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
+    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) world).xyz);
+   
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
 	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
 
 	return output;
 }
 
-float3 UnpackNormalMap(float4 n)
-{
-	n = n * 2.0f - 1.0f;
-	n.z = saturate(1.0f - dot(n.xy, n.xy));
-	return n.xyz;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
 
-	if (Type == 1)
-		input.UV = CalculateUVRotate(input.UV, 0);
+    input.UV = ConvertAnimUV(input.UV);
+	
+    // Apply parallax mapping
+    float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
+    input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);  
 
-	float4 tex = Texture.Sample(Sampler, input.UV);	
-    DoAlphaTest(tex);
-
+    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+    float ambientOcclusion = ORSH.x;
+    float roughness = ORSH.y;
+    float specular = ORSH.z;
+	
+    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
-	normal = normalize(mul(normal, TBN));
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
+	
+	float4 tex = Texture.Sample(Sampler, input.UV);
+	DoAlphaTest(tex);
+	
+    // Material effects
+    tex.xyz = CalculateReflections(input.WorldPosition, tex.xyz, normal , specular);
 
-	float3 positionInParaboloidSpace = mul(float4(input.WorldPosition, 1.0f), DualParaboloidView);
-	float L = length(positionInParaboloidSpace);
-	positionInParaboloidSpace /= L;
-
-	float3 ambientLight = AmbientLight.xyz;
-
-	/*if (positionInParaboloidSpace.z >= 0.0f)
-	{
-		float2 paraboloidUV;
-		paraboloidUV.x = (positionInParaboloidSpace.x / (1.0f + positionInParaboloidSpace.z)) * 0.5f + 0.5f;
-		paraboloidUV.y = 1.0f - ((positionInParaboloidSpace.y / (1.0f + positionInParaboloidSpace.z)) * 0.5f + 0.5f);
-
-		ambientLight = AmbientMapFrontTexture.Sample(AmbientMapFrontSampler, paraboloidUV).xyz;
-	}
-	else
-	{	
-		float2 paraboloidUV;
-		paraboloidUV.x = (positionInParaboloidSpace.x / (1.0f - positionInParaboloidSpace.z)) * 0.5f + 0.5f;
-		paraboloidUV.y = 1.0f - ((positionInParaboloidSpace.y / (1.0f - positionInParaboloidSpace.z)) * 0.5f + 0.5f);
-
-		ambientLight = AmbientMapBackTexture.Sample(AmbientMapBackSampler, paraboloidUV).xyz;
-	}*/
-
-	float occlusion = 1.0f;
-	if (AmbientOcclusion == 1)
-	{
-		float2 samplePosition;
-		samplePosition = input.PositionCopy.xy / input.PositionCopy.w;               // perspective divide
-		samplePosition = samplePosition * 0.5f + 0.5f; // transform to range 0.0 - 1.0  
-		samplePosition.y = 1.0f - samplePosition.y;
-		occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
-		
-		if (BlendMode == BLENDMODE_ALPHABLEND)
-			occlusion = lerp(occlusion, 1.0f, tex.w);
-	}
+    // Ambient occlusion
+    float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), tex.w);
+    occlusion *= ambientOcclusion;
 
 	float3 color = (BoneLightModes[input.Bone / 4][input.Bone % 4] == 0) ?
 		CombineLights(
-			ambientLight,
+			AmbientLight.xyz,
 			input.Color.xyz,
 			tex.xyz, 
 			input.WorldPosition,
@@ -144,8 +118,11 @@ PixelShaderOutput PS(PixelShaderInput input)
 			input.Sheen,
 			ItemLights, 
 			NumItemLights,
-			input.FogBulbs.w) :
-		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w);
+			input.FogBulbs.w,
+			emissive, 
+			specular,
+			roughness) :
+		StaticLight(input.Color.xyz, tex.xyz, input.FogBulbs.w, emissive);
 
 	float shadowable = step(0.5f, float((NumItemLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
 	float3 shadow = DoShadow(input.WorldPosition, normal, color, -0.5f);

@@ -27,14 +27,6 @@ enum class MoodType
 	Stalk
 };
 
-enum class CreatureAIPriority
-{
-	None,
-	Low,
-	Medium,
-	High
-};
-
 struct BoxNode
 {
 	int exitBox		  = 0;
@@ -123,13 +115,13 @@ struct CreatureMuzzleFlashInfo
 
 struct CreatureInfo 
 {
-	int ItemNumber = -1;
+	int ItemNumber = NO_VALUE;
 
 	LOTInfo	  LOT			 = {};
 	MoodType  Mood			 = MoodType::Bored;
 	ItemInfo* Enemy			 = nullptr;
 	ItemInfo* AITarget		 = nullptr;
-	int		  AITargetNumber = -1;
+	int		  AITargetNumber = NO_VALUE;
 	Vector3i  Target		 = Vector3i::Zero;
 
 	short MaxTurn		   = 0;
@@ -152,9 +144,4 @@ struct CreatureInfo
 	short Flags		  = 0;
 
 	bool IsTargetAlive();
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	CreatureAIPriority Priority = CreatureAIPriority::None;
-	size_t FramesSinceLOTUpdate = 0;
-#endif
 };

@@ -5,6 +5,7 @@
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
@@ -22,10 +23,12 @@
 #include "Objects/TR4/Vehicles/jeep.h"
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Player;
 using namespace TEN::Hud;
+using namespace TEN::Utils;
 
 // Globals
 int					PlayerHitPoints		  = 0;
@@ -105,7 +108,10 @@ void InitializeLaraMeshes(ItemInfo* item)
 	auto& player = GetLaraInfo(*item);
 
 	// Override base mesh and mesh indices to player skin if it exists.
-	item->Model.BaseMesh = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)].meshIndex;
+	auto& obj = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)];
+
+	item->Model.BaseMesh = obj.meshIndex;
+	item->Model.SkinIndex = obj.skinIndex;
 
 	for (int i = 0; i < NUM_LARA_MESHES; i++)
 		item->Model.MeshIndex[i] = item->Model.BaseMesh + i;
@@ -174,7 +180,7 @@ void InitializeLaraStartPosition(ItemInfo& playerItem)
 		if (playerItem.RoomNumber != item.RoomNumber)
 			ItemNewRoom(playerItem.Index, item.RoomNumber);
 
-		TENLog("Player start position has been set according to start position of object with ID " + std::to_string(item.TriggerFlags) + ".", LogLevel::Info);
+		TENLog(fmt::format("Player start position has been set according to start position of object with ID {}.", item.TriggerFlags), LogLevel::Info);
 		break;
 	}
 
@@ -192,7 +198,7 @@ void InitializePlayerVehicle(ItemInfo& playerItem)
 		return;
 
 	// Restore vehicle.
-	TENLog("Transferring vehicle " + GetObjectName(PlayerVehicleObjectID) + " from the previous level.");
+	TENLog(fmt::format("Transferring vehicle {} from the previous level.", GetObjectName(PlayerVehicleObjectID)));
 	vehicle->Pose = playerItem.Pose;
 	SetLaraVehicle(&playerItem, vehicle);
 	playerItem.Animation = PlayerAnim;
@@ -349,6 +355,8 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 
 	if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
 	{
+		InitializeNewWeapon(item);
+		player.LeftArm.AnimNumber = player.RightArm.AnimNumber = 1;
 		player.Control.Weapon.HolsterInfo.LeftHolster =
 		player.Control.Weapon.HolsterInfo.RightHolster = HolsterSlot::Pistols;
 	}

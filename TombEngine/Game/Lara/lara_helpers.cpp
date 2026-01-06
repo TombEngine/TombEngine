@@ -26,6 +26,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 #include "Objects/TR2/Vehicles/skidoo.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -45,6 +46,7 @@ using namespace TEN::Entities::Player;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 // -----------------------------
 // HELPER FUNCTIONS
@@ -353,37 +355,51 @@ void HandlePlayerQuickActions(ItemInfo& item)
 			player.Control.Weapon.RequestGunType = weaponType;
 	}
 
+	auto requestedGunType = LaraWeaponType::None;
+
 	// Handle weapon requests.
 	if (IsClicked(In::Weapon1) && player.Weapons[(int)LaraWeaponType::Pistol].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Pistol;
+		requestedGunType = LaraWeaponType::Pistol;
 
 	if (IsClicked(In::Weapon2) && player.Weapons[(int)LaraWeaponType::Shotgun].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Shotgun;
+		requestedGunType = LaraWeaponType::Shotgun;
 
 	if (IsClicked(In::Weapon3) && player.Weapons[(int)LaraWeaponType::Uzi].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Uzi;
+		requestedGunType = LaraWeaponType::Uzi;
 
 	if (IsClicked(In::Weapon4) && player.Weapons[(int)LaraWeaponType::Revolver].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
+		requestedGunType = LaraWeaponType::Revolver;
 
 	if (IsClicked(In::Weapon5) && player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::GrenadeLauncher;
+		requestedGunType = LaraWeaponType::GrenadeLauncher;
 
 	if (IsClicked(In::Weapon6) && player.Weapons[(int)LaraWeaponType::Crossbow].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::Crossbow;
+		requestedGunType = LaraWeaponType::Crossbow;
 
 	if (IsClicked(In::Weapon7) && player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::HarpoonGun;
+		requestedGunType = LaraWeaponType::HarpoonGun;
 
 	if (IsClicked(In::Weapon8) && player.Weapons[(int)LaraWeaponType::HK].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::HK;
+		requestedGunType = LaraWeaponType::HK;
 
 	if (IsClicked(In::Weapon9) && player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::RocketLauncher;
+		requestedGunType = LaraWeaponType::RocketLauncher;
 
 	// TODO: 10th possible weapon, probably grapple gun.
 	/*if (IsClicked(In::Weapon10) && player.Weapons[(int)LaraWeaponType::].Present)
-		player.Control.Weapon.RequestGunType = LaraWeaponType::;*/
+		requestedGunType = LaraWeaponType::;*/
+
+	if (requestedGunType != LaraWeaponType::None)
+	{
+		player.Control.Weapon.RequestGunType = requestedGunType;
+
+		// Reset current weapon if it matches the requested type, so that player can re-unholster it.
+		if (player.Control.HandStatus == HandStatus::Free &&
+			player.Control.Weapon.RequestGunType == player.Control.Weapon.GunType)
+		{
+			player.Control.Weapon.GunType = LaraWeaponType::None;
+		}
+	}
 }
 
 bool CanPlayerLookAround(const ItemInfo& item)
@@ -476,14 +492,14 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	if ((IsHeld(In::Forward) || IsHeld(In::Back)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Vertical))
 	{
-		axisCoeff.x = AxisMap[InputAxisID::Move].y;
+		axisCoeff.x = AxisMap[AxisID::Move].y;
 	}
 
 	// Determine Y axis coefficient.
 	if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Horizontal))
 	{
-		axisCoeff.y = AxisMap[InputAxisID::Move].x;
+		axisCoeff.y = AxisMap[AxisID::Move].x;
 	}
 
 	// Determine turn rate base values.
@@ -509,7 +525,9 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 
 	// Visually adapt head and torso orientations.
 	player.ExtraHeadRot = player.Control.Look.Orientation / 2;
+
 	if (player.Control.HandStatus != HandStatus::Busy &&
+		!player.Control.IsLow &&
 		!player.LeftArm.Locked && !player.RightArm.Locked &&
 		player.Context.Vehicle == NO_VALUE)
 	{
@@ -583,7 +601,7 @@ void HandlePlayerLean(ItemInfo* item, CollisionInfo* coll, short baseRate, short
 	if (!item->Animation.Velocity.z)
 		return;
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = maxAngle * axisCoeff;
 
@@ -604,7 +622,7 @@ void HandlePlayerCrawlFlex(ItemInfo& item)
 	if (item.Animation.Velocity.z == 0.0f)
 		return;
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = FLEX_ANGLE_MAX * axisCoeff;
 
@@ -950,20 +968,22 @@ void HandlePlayerElevationChange(ItemInfo* item, CollisionInfo* coll)
 	{
 		if (CanStepUp(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_UP;
 			item->DisableInterpolation = true;
 
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_UP);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
 		}
 		else if (CanStepDown(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_DOWN;
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_DOWN);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
@@ -989,7 +1009,7 @@ void DoLaraCrawlToHangSnap(ItemInfo* item, CollisionInfo* coll)
 	// Bridges behave differently.
 	if (coll->Middle.Bridge < 0)
 	{
-		TranslateItem(item, item->Pose.Orientation.y, -LARA_RADIUS_CRAWL);
+		item->Pose.Translate(item->Pose.Orientation.y, -LARA_RADIUS_CRAWL);
 		item->Pose.Orientation.y += ANGLE(180.0f);
 	}
 }
@@ -1060,21 +1080,31 @@ void DoLaraFallDamage(ItemInfo* item)
 	constexpr auto RUMBLE_POWER_COEFF = 0.7f;
 	constexpr auto RUMBLE_DELAY		  = 0.3f;
 
-	if (item->Animation.Velocity.y >= LARA_DAMAGE_VELOCITY)
-	{
-		if (item->Animation.Velocity.y >= LARA_DEATH_VELOCITY)
-		{
-			item->HitPoints = 0;
-		}
-		else
-		{
-			float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
-			DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f));
-		}
+	if (item->Animation.Velocity.y < LARA_DAMAGE_VELOCITY)
+		return;
 
-		float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;
-		Rumble(rumblePower, RUMBLE_DELAY);
+	auto pointColl = GetPointCollision(*item);
+
+	if ((pointColl.TestEnvironmentFlag(RoomEnvFlags::ENV_FLAG_WATER) || pointColl.TestEnvironmentFlag(RoomEnvFlags::ENV_FLAG_SWAMP)) &&
+		pointColl.GetWaterBottomHeight() >= CLICK(2))
+		return;
+
+	if (item->Animation.Velocity.y >= LARA_DEATH_VELOCITY)
+	{
+		item->HitPoints = 0;
+
+		// HACK: Process floor death flag here to drown player in rapids after freefall.
+		item->Pose.Position.y = item->Floor;
+		ProcessSectorFlags(item);
 	}
+	else
+	{
+		float base = item->Animation.Velocity.y - (LARA_DAMAGE_VELOCITY - 1.0f);
+		DoDamage(item, LARA_HEALTH_MAX * (SQUARE(base) / 196.0f), true);
+	}
+
+	float rumblePower = (item->Animation.Velocity.y / LARA_DEATH_VELOCITY) * RUMBLE_POWER_COEFF;
+	Rumble(rumblePower, RUMBLE_DELAY);
 }
 
 LaraInfo& GetLaraInfo(ItemInfo& item)
@@ -1085,7 +1115,7 @@ LaraInfo& GetLaraInfo(ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	auto& firstLaraItem = *FindItem(ID_LARA);
 	auto* player = (LaraInfo*&)firstLaraItem.Data;
@@ -1100,7 +1130,7 @@ const LaraInfo& GetLaraInfo(const ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable..", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	const auto& firstPlayerItem = *FindItem(ID_LARA);
 	const auto* player = (LaraInfo*&)firstPlayerItem.Data;
@@ -1112,7 +1142,7 @@ LaraInfo*& GetLaraInfo(ItemInfo* item)
 	if (item->ObjectNumber == ID_LARA)
 		return (LaraInfo*&)item->Data;
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item->ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item->ObjectNumber)), LogLevel::Warning);
 
 	auto& firstPlayerItem = *FindItem(ID_LARA);
 	return (LaraInfo*&)firstPlayerItem.Data;
@@ -1231,7 +1261,7 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 {
 	auto* lara = GetLaraInfo(item);
 
-	float axisCoeff = AxisMap[InputAxisID::Move].x;
+	float axisCoeff = AxisMap[AxisID::Move].x;
 	if (item->Animation.IsAirborne)
 	{
 		int sign = std::copysign(1, axisCoeff);

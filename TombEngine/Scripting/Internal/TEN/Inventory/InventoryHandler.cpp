@@ -3,9 +3,11 @@
 
 #include "Game/gui.h"
 #include "Game/Hud/Hud.h"
+#include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Lara/lara.h"
 #include "Game/pickup/pickup.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/ScriptUtil.h"
 
 using namespace TEN::Hud;
 using namespace TEN::Gui;
@@ -21,26 +23,29 @@ namespace TEN::Scripting::InventoryHandler
 	/// Add an item to the player's inventory.
 	//@function GiveItem
 	//@tparam Objects.ObjID objectID Object ID of the item to add.
-	//@int[opt] count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	//@bool[opt] addToPickupSummary If true, display the item in the pickup summary. Default is false.
-	static void GiveItem(GAME_OBJECT_ID objectID, sol::optional<int> count, sol::optional<bool> addToPickupSummary)
+	//@tparam[opt=1] int count The amount of items to add. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	//@tparam[opt=false] bool addToPickupSummary If true, display the item in the pickup summary. Default is false.
+	static void GiveItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count, TypeOrNil<bool> addToPickupSummary)
 	{
-		PickedUpObject(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+
+		PickedUpObject(objectID, convertedCount);
 		
-		if (addToPickupSummary.value_or(false))
+		if (ValueOr<bool>(addToPickupSummary, false))
 		{
-			auto pos = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
-			g_Hud.PickupSummary.AddDisplayPickup(objectID, pos, count.value_or(1));
+			constexpr auto START_POS_MULT = Vector2(1.1f, 0.85f);
+			g_Hud.PickupSummary.AddDisplayPickup(objectID, DISPLAY_SPACE_RES * START_POS_MULT, convertedCount);
 		}
 	}
 
 	/// Remove an item from the player's inventory.
 	//@function TakeItem
 	//@tparam Objects.ObjID Object ID of the item to remove.
-	//@int[opt] count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
-	static void TakeItem(GAME_OBJECT_ID objectID, sol::optional<int> count)
+	//@tparam[opt=1] int count The amount of items to remove. Default is the yield from a single pickup, e.g. 1 from a medipack, 12 from a flare pack.
+	static void TakeItem(GAME_OBJECT_ID objectID, TypeOrNil<int> count)
 	{
-		RemoveObjectFromInventory(objectID, count.has_value() ? std::optional<int>(*count) : std::nullopt);
+		auto convertedCount = ValueOr<int>(count, 1);
+		RemoveObjectFromInventory(objectID, convertedCount);
 	}
 
 	/// Get the amount of an item held in the player's inventory.
@@ -82,13 +87,47 @@ namespace TEN::Scripting::InventoryHandler
 			g_Gui.SetInventoryItemChosen(objectID);
 	}
 
-	/// Clear last item used in the player's inventory.
+	///Clear last item used in the player's inventory.
 	// When this function is used in OnUseItem level function, it allows to override existing item functionality.
 	// For items without existing functionality, this function is needed to avoid Lara saying "No" after using it.
-	//@function ClearUsedItem
+	// @function ClearUsedItem
 	static void ClearUsedItem()
 	{
 		g_Gui.SetInventoryItemChosen(GAME_OBJECT_ID::ID_NO_OBJECT);
+	}
+
+	///Gets the item set to open custom inventory at. Used by Custom Inventory module.
+	// @function GetEnterInventory
+	// @treturn Objects.ObjID objectID Object ID of the item set.
+	static int GetEnterInventory()
+	{
+		return g_Gui.GetEnterInventory();
+	}
+
+	///Sets the item to open custom inventory at. Used by Custom Inventory module.
+	// @function SetEnterInventory
+	// @tparam Objects.ObjID objectID Object ID of the item to set.
+	static void SetEnterInventory(GAME_OBJECT_ID objectID)
+	{
+		g_Gui.SetEnterInventory(objectID);
+	}
+
+	///Converts ObjectID to InventoryItem. Used by Custom Inventory module.
+	// @function ConvertObjectToInventoryItem
+	// @tparam Objects.ObjID objectID Object ID of the item to convert.
+	// @treturn int InventoryID of the object.
+	static int ConvertObjectToInventoryItem(int objectID)
+	{
+		return g_Gui.ConvertObjectToInventoryItem(objectID);
+	}
+
+	///Converts InventoryItem to ObjectID. Used by Custom Inventory module.
+	// @function ConvertInventoryItemToObject
+	// @tparam int inventoryID inventoryID to convert.
+	// @treturn Objects.ObjID objectID of the object.
+	static int ConvertInventoryItemToObject(int objectNumber)
+	{
+		return g_Gui.ConvertInventoryItemToObject(objectNumber);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -103,5 +142,9 @@ namespace TEN::Scripting::InventoryHandler
 		tableInventory.set_function(ScriptReserved_SetUsedItem, &SetUsedItem);
 		tableInventory.set_function(ScriptReserved_GetUsedItem, &GetUsedItem);
 		tableInventory.set_function(ScriptReserved_ClearUsedItem, &ClearUsedItem);
+		tableInventory.set_function(ScriptReserved_ConvertObjectToInvItem, &ConvertObjectToInventoryItem);
+		tableInventory.set_function(ScriptReserved_ConvertInvItemToObject, &ConvertInventoryItemToObject);
+		tableInventory.set_function(ScriptReserved_GetOpenInv, &GetEnterInventory);
+		tableInventory.set_function(ScriptReserved_SetOpenInv, &SetEnterInventory);
 	}
 }

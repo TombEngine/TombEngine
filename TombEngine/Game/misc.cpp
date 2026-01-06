@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/misc.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/Point.h"
 #include "Game/Lara/lara.h"
 #include "Game/itemdata/creature_info.h"
@@ -9,6 +9,7 @@
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Utils;
 

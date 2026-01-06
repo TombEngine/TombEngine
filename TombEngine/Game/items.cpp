@@ -40,6 +40,27 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
+BoundingBox ItemInfo::GetAabb() const
+{
+	return Geometry::GetAabb(GetObb());
+}
+
+BoundingOrientedBox ItemInfo::GetObb() const
+{
+	auto frameData = GetFrameInterpData(*this);
+	auto obb = BoundingOrientedBox();
+	BoundingOrientedBox(
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
+		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
+		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
+	return obb;
+}
+
+std::vector<BoundingSphere> ItemInfo::GetSpheres() const
+{
+	return g_Renderer.GetSpheres(Index);
+}
+
 bool ItemInfo::TestOcb(short ocbFlags) const
 {
 	return ((TriggerFlags & ocbFlags) == ocbFlags);
@@ -118,8 +139,9 @@ bool ItemInfo::TestMeshSwapFlags(const std::vector<unsigned int>& flags)
 
 void ItemInfo::SetMeshSwapFlags(unsigned int flags, bool clear)
 {
-	bool isMeshSwapPresent = (Objects[ObjectNumber].meshSwapSlot != -1 && 
-							  Objects[Objects[ObjectNumber].meshSwapSlot].loaded);
+	const auto& object = Objects[ObjectNumber];
+
+	bool isMeshSwapPresent = (object.meshSwapSlot != NO_VALUE && Objects[object.meshSwapSlot].loaded);
 
 	for (int i = 0; i < Model.MeshIndex.size(); i++)
 	{
@@ -131,7 +153,8 @@ void ItemInfo::SetMeshSwapFlags(unsigned int flags, bool clear)
 			}
 			else
 			{
-				Model.MeshIndex[i] = Objects[Objects[ObjectNumber].meshSwapSlot].meshIndex + i;
+				const auto& meshSwapObject = Objects[object.meshSwapSlot];
+				Model.MeshIndex[i] = meshSwapObject.meshIndex + i;
 			}
 		}
 		else
@@ -150,15 +173,18 @@ void ItemInfo::SetMeshSwapFlags(const std::vector<unsigned int>& flags, bool cle
 
 void ItemInfo::ResetModelToDefault()
 {
-	if (Objects[ObjectNumber].nmeshes > 0)
+	const auto& object = Objects[ObjectNumber];
+
+	if (object.nmeshes > 0)
 	{
-		Model.MeshIndex.resize(Objects[ObjectNumber].nmeshes);
-		Model.BaseMesh = Objects[ObjectNumber].meshIndex;
+		Model.MeshIndex.resize(object.nmeshes);
+		Model.BaseMesh = object.meshIndex;
+		Model.SkinIndex = object.skinIndex;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
 
-		Model.Mutators.resize(Objects[ObjectNumber].nmeshes);
+		Model.Mutators.resize(object.nmeshes);
 		for (auto& mutator : Model.Mutators)
 			mutator = {};
 	}
@@ -184,9 +210,53 @@ bool ItemInfo::IsBridge() const
 	return Contains(BRIDGE_OBJECT_IDS, ObjectNumber);
 }
 
-std::vector<BoundingSphere> ItemInfo::GetSpheres() const
+ItemInfo* ItemHandler::Get() const
 {
-	return g_Renderer.GetSpheres(Index);
+	if (g_Level.Items.empty() || _index == NO_VALUE)
+		return nullptr;
+
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog(fmt::format("Attempt to access invalid item index {}.", _index), LogLevel::Warning);
+#endif
+		return &g_Level.Items[0];
+	}
+
+	return &g_Level.Items[_index];
+}
+
+ItemHandler& ItemHandler::operator=(ItemInfo* ptr)
+{
+	if (ptr)
+		_index = ptr->Index;
+	else
+		_index = NO_VALUE;
+
+	return *this;
+}
+
+ItemHandler::operator ItemInfo* () const
+{
+	return Get();
+}
+
+ItemInfo* ItemHandler::operator->() const
+{
+	return static_cast<ItemInfo*>(*this);
+}
+
+ItemInfo& ItemHandler::operator*() const
+{
+	if (_index < 0 || _index >= g_Level.Items.size())
+	{
+#if _DEBUG
+		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning);
+#endif
+		return g_Level.Items[0];
+	}
+
+	return g_Level.Items[_index];
 }
 
 bool TestState(int refState, const std::vector<int>& stateList)
@@ -221,6 +291,12 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 
 void KillItem(short const itemNumber)
 {
+	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
+	{
+		TENLog(fmt::format("Attempted to moveable item with invalid index {}.", itemNumber), LogLevel::Error);
+		return;
+	}
+
 	if (InItemControlLoop)
 	{
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber | 0x8000;
@@ -276,7 +352,10 @@ void KillItem(short const itemNumber)
 		// AI target generation uses a hack with making a dummy item without ObjectNumber.
 		// Therefore, a check should be done here to prevent access violation.
 		if (item->ObjectNumber != GAME_OBJECT_ID::ID_NO_OBJECT && item->IsBridge())
-			UpdateBridgeItem(*item, BridgeUpdateType::Remove);
+		{
+			auto& bridge = GetBridgeObject(*item);
+			bridge.Disable(*item);
+		}
 
 		GameScriptHandleKilled(itemNumber, true);
 
@@ -317,7 +396,7 @@ void AddActiveItem(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	item->Flags |= IFLAG_TRIGGERED;
 
-	if (Objects[item->ObjectNumber].control == NULL)
+	if (Objects[item->ObjectNumber].control == nullptr)
 	{
 		item->Status = ITEM_NOT_ACTIVE;
 		return;
@@ -351,7 +430,7 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 				room->itemNumber = item->NextItem;
 			else
 			{
-				for (short linkNumber = room->itemNumber; linkNumber != -1; linkNumber = g_Level.Items[linkNumber].NextItem)
+				for (short linkNumber = room->itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
 				{
 					if (g_Level.Items[linkNumber].NextItem == itemNumber)
 					{
@@ -385,7 +464,7 @@ void EffectNewRoom(short fxNumber, short roomNumber)
 			room->fxNumber = fx->nextFx;
 		else
 		{
-			for (short linkNumber = room->fxNumber; linkNumber != -1; linkNumber = EffectList[linkNumber].nextFx)
+			for (short linkNumber = room->fxNumber; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextFx)
 			{
 				if (EffectList[linkNumber].nextFx == fxNumber)
 				{
@@ -459,16 +538,30 @@ short CreateNewEffect(short roomNumber)
 	if (NextFxFree != NO_VALUE)
 	{
 		auto* fx = &EffectList[NextFxFree];
+
+		// HACK: Overcome a self-referencing deadlock by checking if nextFx points to the same index.
+		if (fxNumber == fx->nextFx)
+			return NO_VALUE;
+
 		NextFxFree = fx->nextFx;
 
 		auto* room = &g_Level.Rooms[roomNumber];
 
 		fx->roomNumber = roomNumber;
 		fx->nextFx = room->fxNumber;
-		room->fxNumber = fxNumber;
 		fx->nextActive = NextFxActive;
+
 		NextFxActive = fxNumber;
+		room->fxNumber = fxNumber;
+
+		fx->speed = 0;
 		fx->color = Vector4::One;
+		fx->fallspeed = 0;
+		fx->frameNumber = 0;
+		fx->counter = 0;
+		fx->flag1 = 0;
+		fx->flag2 = 0;
+		fx->DisableInterpolation = true;
 	}
 
 	return fxNumber;
@@ -480,10 +573,7 @@ void InitializeFXArray()
 	NextFxFree = 0;
 
 	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-	{
-		auto* fx = &EffectList[i];
-		fx->nextFx = i + 1;
-	}
+		EffectList[i].nextFx = i + 1;
 
 	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
 }
@@ -534,13 +624,38 @@ void RemoveActiveItem(short itemNumber, bool killed)
 	}
 }
 
+bool IsItemInRoom(short itemNumber, short roomNumber)
+{
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	// Run through items in room.
+	int currentItemNumber = room.itemNumber;
+	while (currentItemNumber != NO_VALUE)
+	{
+		auto& item = g_Level.Items[currentItemNumber];
+
+		if (currentItemNumber == itemNumber)
+			return true;
+
+		// HACK: Prevent possible deadlocks.
+		if (currentItemNumber == item.NextItem)
+			break;
+
+		currentItemNumber = item.NextItem;
+	}
+
+	return false;
+}
+
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
+	const auto& object = Objects[item->ObjectNumber];
 
 	SetAnimation(item, 0);
 	item->Animation.RequiredState = NO_VALUE;
 	item->Animation.Velocity = Vector3::Zero;
+	item->Animation.AnimObjectID = item->ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 		item->ItemFlags[i] = 0;
@@ -552,14 +667,16 @@ void InitializeItem(short itemNumber)
 	item->Collidable = true;
 	item->LookedAt = false;
 	item->Timer = 0;
-	item->HitPoints = Objects[item->ObjectNumber].HitPoints;
+	item->HitPoints = object.HitPoints;
+
+	item->Effect = {};
 
 	if (item->ObjectNumber == ID_HK_ITEM ||
 		item->ObjectNumber == ID_HK_AMMO_ITEM ||
 		item->ObjectNumber == ID_CROSSBOW_ITEM ||
 		item->ObjectNumber == ID_REVOLVER_ITEM)
 	{
-		item->MeshBits = 1;
+		item->MeshBits = 1 << 0;
 	}
 	else
 	{
@@ -574,7 +691,7 @@ void InitializeItem(short itemNumber)
 		item->Flags &= ~IFLAG_INVISIBLE;
 		item->Status = ITEM_INVISIBLE;
 	}
-	else if (Objects[item->ObjectNumber].intelligent)
+	else if (object.intelligent)
 	{
 		item->Status = ITEM_INVISIBLE;
 	}
@@ -597,8 +714,8 @@ void InitializeItem(short itemNumber)
 
 	item->ResetModelToDefault();
 
-	if (Objects[item->ObjectNumber].Initialize != nullptr)
-		Objects[item->ObjectNumber].Initialize(itemNumber);
+	if (object.Initialize != nullptr)
+		object.Initialize(itemNumber);
 }
 
 short CreateItem()
@@ -687,14 +804,15 @@ int GlobalItemReplace(short search, GAME_OBJECT_ID replace)
 
 const std::string& GetObjectName(GAME_OBJECT_ID objectID)
 {
-	for (auto it = GAME_OBJECT_IDS.begin(); it != GAME_OBJECT_IDS.end(); ++it)
+	static const auto UNKNOWN_OBJECT = std::string("Unknown Object");
+
+	for (const auto& [name, id] : GAME_OBJECT_IDS)
 	{
-		if (it->second == objectID)
-			return it->first;
+		if (id == objectID)
+			return name;
 	}
 
-	static const std::string unknownSlot = "UNKNOWN_SLOT";
-	return unknownSlot;
+	return UNKNOWN_OBJECT;
 }
 
 std::vector<int> FindAllItems(GAME_OBJECT_ID objectID)
@@ -752,41 +870,42 @@ int FindItem(ItemInfo* item)
 		if (item == &g_Level.Items[i])
 			return i;
 
-	return -1;
+	return NO_VALUE;
 }
 
 void UpdateAllItems()
 {
 	InItemControlLoop = true;
 
-	short itemNumber = NextItemActive;
+	int itemNumber = NextItemActive;
 	while (itemNumber != NO_VALUE)
 	{
-		auto* item = &g_Level.Items[itemNumber];
-		itemNumber = item->NextActive;
+		auto& item = g_Level.Items[itemNumber];
+		itemNumber = item.NextActive;
 
-		if (!Objects.CheckID(item->ObjectNumber))
+		if (!Objects.CheckID(item.ObjectNumber))
 			continue;
 
-		if (g_GameFlow->LastFreezeMode != FreezeMode::None && !Objects[item->ObjectNumber].AlwaysActive)
+		if (g_GameFlow->LastFreezeMode != FreezeMode::None && !Objects[item.ObjectNumber].AlwaysActive)
 			continue;
 
-		if (item->AfterDeath <= ITEM_DEATH_TIMEOUT)
+		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
-			if (Objects[item->ObjectNumber].control)
-				Objects[item->ObjectNumber].control(item->Index);
+			if (Objects[item.ObjectNumber].control)
+				Objects[item.ObjectNumber].control(item.Index);
 
-			TestVolumes(item->Index);
-			ProcessEffects(item);
+			TestVolumes(item.Index);
+			ProcessEffects(&item);
 
-			if (item->AfterDeath > 0 && item->AfterDeath < ITEM_DEATH_TIMEOUT && !(Wibble & 3))
-				item->AfterDeath++;
-			if (item->AfterDeath == ITEM_DEATH_TIMEOUT)
-				KillItem(item->Index);
+			if (item.AfterDeath > 0 && item.AfterDeath < ITEM_DEATH_TIMEOUT && !(Wibble & 3))
+				item.AfterDeath++;
+			if (item.AfterDeath == ITEM_DEATH_TIMEOUT)
+				KillItem(item.Index);
 		}
 		else
-			KillItem(item->Index);
-
+		{
+			KillItem(item.Index);
+		}
 	}
 
 	InItemControlLoop = false;
@@ -893,7 +1012,9 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (!target->Callbacks.OnHit.empty())
 	{
 		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-		g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+
+		if (index != NO_VALUE)
+			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
 	}
 }
 
@@ -926,16 +1047,7 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 	DoItemHit(&target, damage, isExplosive);
 }
 
-Vector3i GetNearestSectorCenter(const Vector3i& pos)
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
 {
-	constexpr int SECTOR_SIZE = 1024;
-
-	// Calculate the sector-aligned coordinates.
-	int x = (pos.x / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-	int z = (pos.z / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-
-	// Keep the y-coordinate unchanged.
-	int y = pos.y;
-
-	return Vector3i(x, y, z);
+	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
 }

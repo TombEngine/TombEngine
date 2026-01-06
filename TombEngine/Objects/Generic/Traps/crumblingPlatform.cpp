@@ -10,10 +10,12 @@
 #include "Objects/Generic/Object/BridgeObject.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Generic;
+using namespace TEN::Utils;
 
 // NOTES:
 // ItemFlags[0]: Delay in frame time.
@@ -87,15 +89,15 @@ namespace TEN::Entities::Traps
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
+		int delayInFrameTime = (item.TriggerFlags != 0) ? std::abs(item.TriggerFlags) : (int)round(CRUMBLING_PLATFORM_DELAY * FPS);
+		item.ItemFlags[0] = delayInFrameTime;
+
 		// Initialize routines.
 		bridge.GetFloorHeight = GetCrumblingPlatformFloorHeight;
 		bridge.GetCeilingHeight = GetCrumblingPlatformCeilingHeight;
 		bridge.GetFloorBorder = GetCrumblingPlatformFloorBorder;
 		bridge.GetCeilingBorder = GetCrumblingPlatformCeilingBorder;
-
-		int delayInFrameTime = (item.TriggerFlags != 0) ? std::abs(item.TriggerFlags) : (int)round(CRUMBLING_PLATFORM_DELAY * FPS);
-		item.ItemFlags[0] = delayInFrameTime;
-		UpdateBridgeItem(item);
+		bridge.Initialize(item);
 	}
 
 	static void ActivateCrumblingPlatform(short itemNumber)
@@ -112,6 +114,9 @@ namespace TEN::Entities::Traps
 	void ControlCrumblingPlatform(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(item);
+
+		bridge.Update(item);
 
 		// OCB < 0; must be activated by trigger.
 		if (item.TriggerFlags < 0)
@@ -141,8 +146,8 @@ namespace TEN::Entities::Traps
 				item.Animation.TargetState = CRUMBLING_PLATFORM_STATE_FALL;
 				item.ItemFlags[1] = CRUMBLING_PLATFORM_VELOCITY_MIN;
 
-				auto pointColl = GetPointCollision(item);
-				pointColl.GetSector().RemoveBridge(itemNumber);
+				auto& room = g_Level.Rooms[item.RoomNumber];
+				bridge.Disable(item);
 			}
 		}
 
@@ -188,7 +193,7 @@ namespace TEN::Entities::Traps
 			AlignEntityToSurface(&item, radius);
 
 			// Deactivate.
-			if (TestLastFrame(&item))
+			if (TestLastFrame(*&item))
 			{
 				RemoveActiveItem(itemNumber);
 				item.Status = ITEM_NOT_ACTIVE;
@@ -199,13 +204,12 @@ namespace TEN::Entities::Traps
 
 		default:
 			TENLog(
-				"Error with crumbling platform item " + std::to_string(itemNumber) +
-				": attempted to handle missing state " + std::to_string(item.Animation.ActiveState),
+				fmt::format("Error with crumbling platform moveable {}: attempted to handle missing state {}.", itemNumber, item.Animation.ActiveState),
 				LogLevel::Error, LogConfig::All);
 			break;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void CollideCrumblingPlatform(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

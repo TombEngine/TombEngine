@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Vehicles/jeep.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -24,6 +24,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -46,7 +47,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto JEEP_DISMOUNT_DISTANCE = 512;
 
 	constexpr auto JEEP_FRONT = 550;
-	constexpr auto JEEP_SIDE = 280;
+	constexpr auto JEEP_SIDE = 256;
 	constexpr auto JEEP_SLIP = 100;
 	constexpr auto JEEP_SLIP_SIDE = 128;
 
@@ -175,34 +176,20 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* jeep = GetJeepInfo(jeepItem);
 		auto* lara = GetLaraInfo(laraItem);
-
-		// HACK: Hardcoded jeep keys check.
-		/*if (g_Gui.GetInventoryItemChosen() == ID_PUZZLE_ITEM1)
-		{
-			g_Gui.SetInventoryItemChosen(NO_VALUE);
-			return true;
-		}
-		else
-		{
-			if (g_Gui.IsObjectInInventory(ID_PUZZLE_ITEM1))
-				g_Gui.SetEnterInventory(ID_PUZZLE_ITEM1);
-
-			return false;
-		}*/
 		
 		switch (mountType)
 		{
 		default:
 		case VehicleMountType::LevelStart:
-			SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE);
+			SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_GETIN_LEFT);
+			SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_GETIN_LEFT);
 			break;
 
 		case VehicleMountType::Right:
-			SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_GETIN_RIGHT);
+			SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_GETIN_RIGHT);
 			break;
 		}
 
@@ -243,7 +230,7 @@ namespace TEN::Entities::Vehicles
 			}
 			else
 			{
-				jeepItem->Pose.Position.z += WALL_MASK - shiftZ;
+				jeepItem->Pose.Position.z += (BLOCK(1) + 1) - shiftZ;
 				return (jeepItem->Pose.Position.x - pos->x);
 			}
 		}
@@ -257,7 +244,7 @@ namespace TEN::Entities::Vehicles
 			}
 			else
 			{
-				jeepItem->Pose.Position.x += WALL_MASK - shiftX;
+				jeepItem->Pose.Position.x += (BLOCK(1) + 1) - shiftX;
 				return (pos->z - jeepItem->Pose.Position.z);
 			}
 		}
@@ -274,7 +261,7 @@ namespace TEN::Entities::Vehicles
 			if (pos->z > old->z)
 				z = -1 - shiftZ;
 			else
-				z = BLOCK(1) + 1 - shiftZ;
+				z = (BLOCK(1) + 1) - shiftZ;
 		}
 
 		roomNumber = jeepItem->RoomNumber;
@@ -286,7 +273,7 @@ namespace TEN::Entities::Vehicles
 			if (pos->x > old->x)
 				x = -1 - shiftX;
 			else
-				x = BLOCK(1) + 1 - shiftX;
+				x = (BLOCK(1) + 1) - shiftX;
 		}
 
 		if (x && z)
@@ -461,10 +448,10 @@ namespace TEN::Entities::Vehicles
 
 		if (laraItem->Animation.ActiveState == JS_DISMOUNT)
 		{
-			if (TestLastFrame(laraItem))
+			if (TestLastFrame(*laraItem))
 			{
 				laraItem->Pose.Orientation.y += ANGLE(90.0f);
-				TranslateItem(laraItem, laraItem->Pose.Orientation.y, -JEEP_DISMOUNT_DISTANCE);
+				laraItem->Pose.Translate(laraItem->Pose.Orientation.y, -JEEP_DISMOUNT_DISTANCE);
 				SetAnimation(laraItem, LA_STAND_SOLID);
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.z = 0;
@@ -477,7 +464,7 @@ namespace TEN::Entities::Vehicles
 		return true;
 	}
 
-	static int GetJeepCollisionAnim(ItemInfo* jeepItem, Vector3i* pos)
+	static int GetJeepCollisionAnimation(ItemInfo* jeepItem, Vector3i* pos)
 	{
 		auto* jeep = GetJeepInfo(jeepItem);
 
@@ -518,6 +505,21 @@ namespace TEN::Entities::Vehicles
 		int hmb_old = GetVehicleHeight(jeepItem, -(JEEP_FRONT + 50), 0, true, &mb_old);
 
 		auto oldPos = jeepItem->Pose.Position;
+
+		if (f_old.y > hf_old)
+			f_old.y = hf_old;
+		
+		if (b_old.y > hb_old)
+			b_old.y = hb_old;
+		
+		if (mm_old.y > hmm_old)
+			mm_old.y = hmm_old;
+		
+		if (mt_old.y > hmt_old)
+			mt_old.y = hmt_old;
+		
+		if (mb_old.y > hmb_old)
+			mb_old.y = hmb_old;
 
 		short rot = 0;
 		JeepNoGetOff = 0;
@@ -620,13 +622,13 @@ namespace TEN::Entities::Vehicles
 
 				if (slip >= 0)
 				{
-					jeepItem->Pose.Position.x += (slip - 24) * phd_sin(jeepItem->Pose.Orientation.y + ANGLE(90));
-					jeepItem->Pose.Position.z += (slip - 24) * phd_cos(jeepItem->Pose.Orientation.y + ANGLE(90));
+					jeepItem->Pose.Position.x += (abs(slip) - 24) * phd_sin(jeepItem->Pose.Orientation.y + ANGLE(90));
+					jeepItem->Pose.Position.z += (abs(slip) - 24) * phd_cos(jeepItem->Pose.Orientation.y + ANGLE(90));
 				}
 				else
 				{
-					jeepItem->Pose.Position.x += (slip - 24) * phd_sin(jeepItem->Pose.Orientation.y - ANGLE(90));
-					jeepItem->Pose.Position.z += (slip - 24) * phd_cos(jeepItem->Pose.Orientation.y - ANGLE(90));
+					jeepItem->Pose.Position.x += (abs(slip) - 24) * phd_sin(jeepItem->Pose.Orientation.y - ANGLE(90));
+					jeepItem->Pose.Position.z += (abs(slip) - 24) * phd_cos(jeepItem->Pose.Orientation.y - ANGLE(90));
 				}
 			}
 		}
@@ -699,7 +701,7 @@ namespace TEN::Entities::Vehicles
 		else
 			jeep->ExtraRotation += ((jeep->ExtraRotationDrift - jeep->ExtraRotation) / 4);
 
-		int anim = GetJeepCollisionAnim(jeepItem, &movedPos);
+		int anim = GetJeepCollisionAnimation(jeepItem, &movedPos);
 	
 		if (anim)
 		{
@@ -879,9 +881,9 @@ namespace TEN::Entities::Vehicles
 			laraItem->Animation.ActiveState != JS_LAND)
 		{
 			if (jeep->Gear == 1)
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_JUMP_START);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_JUMP_START);
 			else
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_JUMP_START);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_JUMP_START);
 		}
 		else if (collide && !dead &&
 				 laraItem->Animation.ActiveState != 4 && 
@@ -894,19 +896,19 @@ namespace TEN::Entities::Vehicles
 			switch (collide)
 			{
 			case 13:
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_LEFT);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_LEFT);
 				break;
 
 			case 14:
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_FORWARD);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_FORWARD);
 				break;
 
 			case 11:
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_RIGHT);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_RIGHT);
 				break;
 
 			case 12:
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_BACK);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_BACK);
 				break;
 			}
 		}
@@ -957,35 +959,9 @@ namespace TEN::Entities::Vehicles
 							laraItem->Animation.TargetState = JS_FWD_LEFT;
 						else if (IsHeld(In::Right))
 							laraItem->Animation.TargetState = JS_FWD_RIGHT;
+						else
+							laraItem->Animation.TargetState = JS_IDLE;
 					}
-
-	/*				if (!(IsClicked(In::Walk)))
-					{
-						if (!(IsClicked(In::Sprint)))
-						{
-							if (IsHeld(In::Accelerate) && !IsHeld(In::Brake))
-							{
-								laraItem->TargetState = JS_DRIVE_FORWARD;
-								break;
-							}
-							else if (IsHeld(In::Left))
-								laraItem->TargetState = JS_FWD_LEFT;
-							else if (IsHeld(In::Right))
-								laraItem->TargetState = JS_FWD_RIGHT;
-						}
-						else if (jeep->Gear < 1)
-						{
-							jeep->Gear++;
-							if (jeep->Gear == 1)
-								laraItem->TargetState = JS_DRIVE_BACK;
-
-						}
-					}
-					else
-					{
-						if (jeep->Gear)
-							jeep->Gear--;
-					}*/
 				}
 
 				break;
@@ -1018,11 +994,11 @@ namespace TEN::Entities::Vehicles
 				}
 
 				break;
-
-			case 2:
-			case 3:
-			case 4:
-			case 5:
+				
+			case JS_CRASH_RIGHT:
+			case JS_CRASH_BACK:
+			case JS_CRASH_LEFT:
+			case JS_CRASH_FORWARD:
 				if (dead)
 					laraItem->Animation.TargetState = JS_IDLE;
 				else if (IsHeld(In::Accelerate) || IsHeld(In::Brake))
@@ -1057,7 +1033,7 @@ namespace TEN::Entities::Vehicles
 							jeep->Gear++;
 							if (jeep->Gear == 1)
 							{
-								SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_REVERSE_RIGHT);
+								SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_REVERSE_RIGHT);
 								break;
 							}
 						}
@@ -1077,15 +1053,15 @@ namespace TEN::Entities::Vehicles
 						jeep->Gear--;
 				}
 
-				if (TestAnimNumber(*laraItem, JA_FWD_LEFT) &&
+				if (laraItem->Animation.AnimNumber == JA_FWD_LEFT &&
 					!jeep->Velocity)
 				{
-					SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_START);
+					SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_START);
 				}
-				if (TestAnimNumber(*laraItem, JA_IDLE_RIGHT_START))
+				if (laraItem->Animation.AnimNumber == JA_IDLE_RIGHT_START)
 				{
 					if (jeep->Velocity)
-						SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_LEFT);
+						SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_LEFT);
 				}
 
 				break;
@@ -1103,7 +1079,7 @@ namespace TEN::Entities::Vehicles
 							jeep->Gear++;
 							if (jeep->Gear == 1)
 							{
-								SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_REVERSE_LEFT);
+								SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_REVERSE_LEFT);
 								break;
 							}
 						}
@@ -1123,14 +1099,14 @@ namespace TEN::Entities::Vehicles
 						jeep->Gear--;
 				}
 
-				if (TestAnimNumber(*laraItem, JA_FWD_RIGHT) && !jeep->Velocity)
+				if (laraItem->Animation.AnimNumber == JA_FWD_RIGHT && !jeep->Velocity)
 				{
-					SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_LEFT_START, 14);
+					SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_LEFT_START, 14);
 				}
-				if (TestAnimNumber(*laraItem, JA_IDLE_LEFT_START))
+				if (laraItem->Animation.AnimNumber == JA_IDLE_LEFT_START)
 				{
 					if (jeep->Velocity)
-						SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_RIGHT);
+						SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_FWD_RIGHT);
 				}
 
 				break;
@@ -1180,19 +1156,19 @@ namespace TEN::Entities::Vehicles
 						jeep->Gear--;
 						if (!jeep->Gear)
 						{
-							SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_FWD_RIGHT);
+							SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_FWD_RIGHT);
 							break;
 						}
 					}
 				}
 
-				if (TestAnimNumber(*laraItem, JA_BACK_LEFT) && !jeep->Velocity)
-					SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_LEFT_BACK_START, 14);
+				if (laraItem->Animation.AnimNumber == JA_BACK_LEFT && !jeep->Velocity)
+					SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_LEFT_BACK_START, 14);
 
-				if (TestAnimNumber(*laraItem, JA_IDLE_LEFT_BACK_START))
+				if (laraItem->Animation.AnimNumber == JA_IDLE_LEFT_BACK_START)
 				{
 					if (jeep->Velocity)
-						SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_LEFT);
+						SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_LEFT);
 				}
 
 				break;
@@ -1214,32 +1190,32 @@ namespace TEN::Entities::Vehicles
 					else
 						laraItem->Animation.TargetState = JS_BACK;
 
-					if (TestAnimNumber(*laraItem, JA_BACK_RIGHT) && !jeep->Velocity)
-						SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_BACK_START, 14);
+					if (laraItem->Animation.AnimNumber == JA_BACK_RIGHT && !jeep->Velocity)
+						SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_BACK_START, 14);
 
-					if (TestAnimNumber(*laraItem, JA_IDLE_RIGHT_BACK_START))
+					if (laraItem->Animation.AnimNumber == JA_IDLE_RIGHT_BACK_START)
 					{
 						if (jeep->Velocity)
-							SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_RIGHT);
+							SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_RIGHT);
 					}
 
 					break;
 				}
 				else if (!jeep->Gear || (--jeep->Gear != 0))
 				{
-					if (TestAnimNumber(*laraItem, JA_BACK_RIGHT) && !jeep->Velocity)
-						SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_BACK_START, 14);
+					if (laraItem->Animation.AnimNumber == JA_BACK_RIGHT && !jeep->Velocity)
+						SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_RIGHT_BACK_START, 14);
 
-					if (TestAnimNumber(*laraItem, JA_IDLE_RIGHT_BACK_START))
+					if (laraItem->Animation.AnimNumber == JA_IDLE_RIGHT_BACK_START)
 					{
 						if (jeep->Velocity)
-							SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_RIGHT);
+							SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_BACK_RIGHT);
 					}
 
 					break;
 				}
 
-				SetAnimation(*laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_FWD_RIGHT);
+				SetAnimation(laraItem, ID_JEEP_LARA_ANIMS, JA_IDLE_FWD_RIGHT);
 				break;
 
 			case JS_DRIVE_BACK:
@@ -1395,17 +1371,13 @@ namespace TEN::Entities::Vehicles
 
 		if (!(jeep->Flags & JEEP_FLAG_DEAD))
 		{
-			if (roomNumber != jeepItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, roomNumber);
-				ItemNewRoom(laraItem->Index, roomNumber);
-			}
+			UpdateVehicleRoom(jeepItem, laraItem, roomNumber);
 
 			laraItem->Pose = jeepItem->Pose;
 
 			AnimateJeep(jeepItem, laraItem, collide, dead);
 			AnimateItem(laraItem);
-			SyncVehicleAnimation(*jeepItem, *laraItem);
+			SyncItemAnimation(*jeepItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 			Camera.targetDistance = BLOCK(2);

@@ -24,7 +24,9 @@ namespace TEN::Renderer::Structures
 		Vector4 Color = Vector4::One;
 		Vector4 AmbientLight = Vector4::One;
 
-		std::vector<int>			MeshIds		 = {};
+		int				 SkinIndex	 = NO_VALUE;	
+		std::vector<int> MeshIndex	 = {};
+
 		std::vector<RendererLight*> LightsToDraw = {};
 		float LightFade = 0.0f;
 

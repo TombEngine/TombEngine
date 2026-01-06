@@ -12,28 +12,30 @@
 void AssignObjectMeshSwap(ObjectInfo& object, int requiredMeshSwap, const std::string& baseName, const std::string& requiredName)
 {
 	if (Objects[requiredMeshSwap].loaded)
+	{
 		object.meshSwapSlot = requiredMeshSwap;
+	}
 	else
+	{
 		TENLog("Slot " + requiredName + " not loaded. Meshswap issues with " + baseName + " may result in incorrect behaviour.", LogLevel::Warning);
+	}
 }
 
 bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std::string& baseName, const std::string& requiredName)
 {
 	// Check if object has at least 1 animation with more than 1 frame.
-	const auto& anim = GetAnimData(object.animIndex);
-	if ((anim.frameEnd - anim.frameBase) > 1)
+	const auto& anim = GetAnimData(object, 0);
+	if (anim.Keyframes.size() > 1)
 		return true;
 
 	// Use slot if loaded.
 	const auto& requiredObject = Objects[requiredObjectID];
 	if (requiredObject.loaded)
 	{
-		// Check if the required object has at least 1 animation with more than 1 frame.
-		const auto& newAnim = GetAnimData(requiredObject.animIndex);
-		if ((newAnim.frameEnd - newAnim.frameBase) > 1)
+		// Check if required object has more than 1 animation.
+		if (requiredObject.Animations.size() > 1)
 		{
-			object.animIndex = requiredObject.animIndex;
-			object.frameBase = requiredObject.frameBase;
+			object.Animations = requiredObject.Animations;
 			return true;
 		}
 		else
@@ -51,15 +53,14 @@ bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std:
 
 bool CheckIfSlotExists(GAME_OBJECT_ID requiredObj, const std::string& baseName)
 {
-	bool result = Objects[requiredObj].loaded;
-
-	if (!result)
+	if (!Objects[requiredObj].loaded)
 	{
 		TENLog("Slot " + GetObjectName(requiredObj) + " (" + std::to_string(requiredObj) + ") not loaded. " + 
-				baseName + " may not work.", LogLevel::Warning);
+			   baseName + " may not work.", LogLevel::Warning);
+		return false;
 	}
 
-	return result;
+	return true;
 }
 
 void InitSmashObject(ObjectInfo* object, int objectNumber)
@@ -155,7 +156,6 @@ void InitFlare(ObjectInfo* object, int objectNumber)
 		object->collision = PickupCollision;
 		object->control = FlareControl;
 		object->pivotLength = 256;
-		object->usingDrawAnimatingItem = false;
 		object->isPickup = true;
 	}
 }
@@ -188,8 +188,8 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePushableBlock;
-		object->control = PushableBlockControl;
-		object->collision = PushableBlockCollision;
+		object->control = ControlPushableBlock;
+		object->collision = CollidePushableBlock;
 		object->SetHitEffect(true);
 	}
 }
