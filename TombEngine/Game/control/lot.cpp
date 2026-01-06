@@ -86,6 +86,7 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 	creature->LOT.CanJump = false;
 	creature->LOT.CanMonkey = false;
 	creature->LOT.IsAmphibious = false; // True for crocodile by default as only the crocodile can move in water and on land.
+	creature->LOT.IsWaterCreature = object->waterCreature;
 	creature->LOT.IsJumping = false;
 	creature->LOT.IsMonkeying = false;
 	creature->LOT.Fly = NO_FLYING;
@@ -130,6 +131,15 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 			creature->LOT.Step = BLOCK(20);
 			creature->LOT.Drop = -BLOCK(20);
 			creature->LOT.Zone = ZoneType::Water;
+			creature->LOT.Fly = DEFAULT_SWIM_UPDOWN_SPEED;
+
+			break;
+
+			// Can swim and go to land.
+		case LotType::WaterAndLand:
+			creature->LOT.Step = BLOCK(20);
+			creature->LOT.Drop = -BLOCK(20);
+			creature->LOT.Zone = ZoneType::Amphibious;
 
 			if (item->ObjectNumber == ID_CROCODILE)
 			{
@@ -286,8 +296,13 @@ void CreateZone(ItemInfo* item)
 
 	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 
-	if (creature->LOT.Fly)
+	// Flyers and amphibious can reach any box (they navigate freely in 3D).
+	// Water creatures use their zone data (should only include water boxes).
+	bool bypassZoneCheck = (creature->LOT.Zone == ZoneType::Flyer ||
+							creature->LOT.Zone == ZoneType::Amphibious);
+	if (bypassZoneCheck)
 	{
+		// Flying/amphibious creatures can reach any box.
 		auto* node = creature->LOT.Node.data();
 		creature->LOT.ZoneCount = 0;
 

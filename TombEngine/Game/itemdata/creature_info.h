@@ -9,9 +9,8 @@ enum class ZoneType
 	Skeleton, // Enables jump, also 1 block vault and fall.
 	Basic,	  // Enables 1 step vault, 2 step fall (default).
 
-	// TODO: Underwater creatures can go on land like the crocodile, which is wrong since the flag IsAmphibious is not set for them.
 	Water, // Enables movement exclusively underwater (exception: crocodile can go on land)
-	// Amphibious, // TODO: For later since it's not on level file now.
+	Amphibious, // For crocodile like enemies
 
 	Human, // Enables 1 block vault and fall.
 	Flyer, // Enables flying anywhere except water rooms.
@@ -55,12 +54,13 @@ struct LOTInfo
 	short Drop		   = 0;
 	short Fly		   = 0;
 
-	bool IsAmphibious = false;
-	bool IsJumping	  = false;
-	bool IsMonkeying  = false;
+	bool IsAmphibious	 = false;
+	bool IsWaterCreature = false;
+	bool IsJumping		 = false;
+	bool IsMonkeying	 = false;
 
-	bool CanJump	  = false;
-	bool CanMonkey	  = false;
+	bool CanJump   = false;
+	bool CanMonkey = false;
 };
 
 struct CreatureBiteInfo

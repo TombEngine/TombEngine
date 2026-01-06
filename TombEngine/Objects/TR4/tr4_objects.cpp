@@ -469,7 +469,7 @@ namespace TEN::Entities
 			obj->radius = 409;
 			obj->intelligent = true;
 			obj->waterCreature = true;
-			obj->LotType = LotType::Water; // TODO: later, change it to WaterAndLand.
+			obj->LotType = LotType::WaterAndLand;
 			obj->SetBoneRotationFlags(0, ROT_Y);
 			obj->SetBoneRotationFlags(7, ROT_Y);
 			obj->SetBoneRotationFlags(9, ROT_Y);

@@ -137,8 +137,10 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureMood(item, &ai, false);
 
 			bool shoot = false;
+
 			if (Lara.Control.WaterStatus == WaterStatus::Dry)
 			{
+				// Lara is on dry land; diver may surface to target her.
 				auto origin = GameVector(
 					item->Pose.Position.x,
 					item->Pose.Position.y - CLICK(1),
@@ -151,17 +153,20 @@ namespace TEN::Entities::Creatures::TR3
 
 				shoot = LOS(&origin, &target);
 
+				// Only set target to Lara if diver can see her.
 				if (shoot)
 					creature->Target = LaraItem->Pose.Position;
 
+				// Cancel shoot if not facing towards Lara.
 				if (ai.angle < -ANGLE(45.0f) || ai.angle > ANGLE(45.0f))
 					shoot = false;
 			}
 			else if (ai.angle > -ANGLE(45.0f) && ai.angle < ANGLE(45.0f))
 			{
+				// Lara is in water; normal targeting.
 				auto origin = GameVector(item->Pose.Position, item->RoomNumber);
 				auto target = GameVector(LaraItem->Pose.Position);
-				
+
 				shoot = LOS(&origin, &target);
 			}
 

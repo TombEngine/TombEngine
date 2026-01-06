@@ -923,7 +923,12 @@ bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 	const auto& creature = *GetCreatureInfo(item);
 	const auto& zone = g_Level.Zones[(int)creature.LOT.Zone][(int)FlipStatus].data();
 
-	if (creature.LOT.Fly == NO_FLYING && zone[boxNumber] != zoneNumber)
+	// Flyers, water creatures, and amphibious bypass zone check in ValidBox.
+	// (Amphibious uses zone filtering in CreateZone, but ValidBox should not reject boxes in its zone.)
+	bool bypassZoneCheck = (creature.LOT.Zone == ZoneType::Flyer ||
+							creature.LOT.Zone == ZoneType::Water ||
+							creature.LOT.Zone == ZoneType::Amphibious);
+	if (!bypassZoneCheck && zone[boxNumber] != zoneNumber)
 		return false;
 
 	const auto& box = g_Level.PathfindingBoxes[boxNumber];
@@ -1030,7 +1035,11 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (flags & BOX_END_BIT)
 					done = true;
 				
-				if (LOT->Fly == NO_FLYING && searchZone != zone[boxNumber])
+				// Flyers, water creatures, and amphibious bypass zone check.
+				bool bypassZoneCheck = (LOT->Zone == ZoneType::Flyer ||
+										LOT->Zone == ZoneType::Water ||
+										LOT->Zone == ZoneType::Amphibious);
+				if (!bypassZoneCheck && searchZone != zone[boxNumber])
 					continue;
 				
 				int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
@@ -1462,15 +1471,47 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 	// NEW: Only update enemy box number if it is actually reachable by the enemy.
 	// This prevents enemies from running to the player and attacking nothing when they are hanging or shimmying. -- Lwmte, 27.06.22
 
-	bool isReachable = false;
-	if (creature.LOT.Zone == ZoneType::Flyer ||
-	   (creature.LOT.Zone == ZoneType::Water && TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item->RoomNumber)))
+	// Check if enemy is actually in water (swimming), not just in a room with water.
+	bool isEnemyInWater = false;
+	if (enemy->IsLara())
 	{
-		// If NPC is flying or swimming in water, player is always reachable.
-		isReachable = true;
+		auto& player = *GetLaraInfo(enemy);
+		isEnemyInWater = player.Control.WaterStatus == WaterStatus::Underwater ||
+						 player.Control.WaterStatus == WaterStatus::TreadWater;
 	}
 	else
 	{
+		isEnemyInWater = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber);
+	}
+
+	bool isReachable = false;
+	if (creature.LOT.Zone == ZoneType::Flyer)
+	{
+		// Flying creatures can reach any target.
+		isReachable = true;
+	}
+	else if (creature.LOT.Zone == ZoneType::Water)
+	{
+		// Water creatures can only reach targets that are in water.
+		isReachable = isEnemyInWater;
+	}
+	else if (creature.LOT.Zone == ZoneType::Amphibious)
+	{
+		// Amphibious creatures can reach targets in water, or on land with height check.
+		if (isEnemyInWater)
+		{
+			isReachable = true;
+		}
+		else
+		{
+			auto pointColl = GetPointCollision(enemy->Pose.Position, floor->RoomNumber);
+			auto bounds = GameBoundingBox(item);
+			isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
+		}
+	}
+	else
+	{
+		// Land creatures use floor height check.
 		auto pointColl = GetPointCollision(enemy->Pose.Position, floor->RoomNumber);
 		auto bounds = GameBoundingBox(item);
 		isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
@@ -1595,7 +1636,9 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 		if (ValidBox(item, AI->zoneNumber, boxNumber))
 		{
-			if (StalkBox(item, enemy, boxNumber) && creature->Enemy && enemy->HitPoints > 0)
+			// Only use StalkBox if enemy is reachable (has valid box number).
+			if (enemy != nullptr && enemy->BoxNumber != NO_VALUE &&
+				StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
 			{
 				TargetBox(LOT, boxNumber);
 				creature->Mood = MoodType::Bored;
@@ -1604,23 +1647,40 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 			{
 				TargetBox(LOT, boxNumber);
 			}
+			// If enemy is unreachable, current target is near enemy, and new box is NOT near enemy, switch target.
+			else if (enemy != nullptr && enemy->BoxNumber == NO_VALUE &&
+					 StalkBox(item, enemy, LOT->RequiredBox) && !StalkBox(item, enemy, boxNumber))
+			{
+				TargetBox(LOT, boxNumber);
+			}
 		}
 
 		break;
 
 	case MoodType::Attack:
-		LOT->Target = enemy->Pose.Position;
-		LOT->RequiredBox = enemy->BoxNumber;
-
-		if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
+		// Only target enemy if reachable (valid box number).
+		if (enemy->BoxNumber != NO_VALUE)
 		{
-			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
-			LOT->Target.y += bounds.Y1;
+			LOT->Target = enemy->Pose.Position;
+			LOT->RequiredBox = enemy->BoxNumber;
+
+			if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
+			{
+				auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
+				LOT->Target.y += bounds.Y1;
+			}
 		}
 
 		break;
 
 	case MoodType::Escape:
+		// If enemy is unreachable, switch to bored mode.
+		if (enemy == nullptr || enemy->BoxNumber == NO_VALUE)
+		{
+			creature->Mood = MoodType::Bored;
+			break;
+		}
+
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 
 		if (ValidBox(item, AI->zoneNumber, boxNumber) && LOT->RequiredBox == NO_VALUE)
@@ -1639,6 +1699,13 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Stalk:
+		// If enemy is unreachable, switch to bored mode.
+		if (enemy == nullptr || enemy->BoxNumber == NO_VALUE)
+		{
+			creature->Mood = MoodType::Bored;
+			break;
+		}
+
 		if (LOT->RequiredBox == NO_VALUE || !StalkBox(item, enemy, LOT->RequiredBox))
 		{
 			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
@@ -1723,6 +1790,11 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	{
 		if (enemy->HitPoints <= 0 && enemy == LaraItem) // TODO: deal with LaraItem global !
 		{
+			creature->Mood = MoodType::Bored;
+		}
+		else if (enemy->BoxNumber == NO_VALUE)
+		{
+			// Enemy is unreachable (e.g., water creature can't reach target on land).
 			creature->Mood = MoodType::Bored;
 		}
 		else if (isViolent)
