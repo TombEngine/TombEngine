@@ -915,7 +915,7 @@ int CreatureCreature(short itemNumber)
 	return 0;
 }
 
-bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber) 
+bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return false;
@@ -923,12 +923,8 @@ bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 	const auto& creature = *GetCreatureInfo(item);
 	const auto& zone = g_Level.Zones[(int)creature.LOT.Zone][(int)FlipStatus].data();
 
-	// Flyers, water creatures, and amphibious bypass zone check in ValidBox.
-	// (Amphibious uses zone filtering in CreateZone, but ValidBox should not reject boxes in its zone.)
-	bool bypassZoneCheck = (creature.LOT.Zone == ZoneType::Flyer ||
-							creature.LOT.Zone == ZoneType::Water ||
-							creature.LOT.Zone == ZoneType::Amphibious);
-	if (!bypassZoneCheck && zone[boxNumber] != zoneNumber)
+	// Creatures that can move in 3D (fly/swim) bypass zone check.
+	if (creature.LOT.Fly == NO_FLYING && zone[boxNumber] != zoneNumber)
 		return false;
 
 	const auto& box = g_Level.PathfindingBoxes[boxNumber];
@@ -1035,11 +1031,8 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (flags & BOX_END_BIT)
 					done = true;
 				
-				// Flyers, water creatures, and amphibious bypass zone check.
-				bool bypassZoneCheck = (LOT->Zone == ZoneType::Flyer ||
-										LOT->Zone == ZoneType::Water ||
-										LOT->Zone == ZoneType::Amphibious);
-				if (!bypassZoneCheck && searchZone != zone[boxNumber])
+				// Creatures that can move in 3D (fly/swim) bypass zone check.
+				if (LOT->Fly == NO_FLYING && searchZone != zone[boxNumber])
 					continue;
 				
 				int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
@@ -1674,13 +1667,6 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Escape:
-		// If enemy is unreachable, switch to bored mode.
-		if (enemy == nullptr || enemy->BoxNumber == NO_VALUE)
-		{
-			creature->Mood = MoodType::Bored;
-			break;
-		}
-
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 
 		if (ValidBox(item, AI->zoneNumber, boxNumber) && LOT->RequiredBox == NO_VALUE)
@@ -1699,13 +1685,6 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Stalk:
-		// If enemy is unreachable, switch to bored mode.
-		if (enemy == nullptr || enemy->BoxNumber == NO_VALUE)
-		{
-			creature->Mood = MoodType::Bored;
-			break;
-		}
-
 		if (LOT->RequiredBox == NO_VALUE || !StalkBox(item, enemy, LOT->RequiredBox))
 		{
 			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
@@ -1790,11 +1769,6 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	{
 		if (enemy->HitPoints <= 0 && enemy == LaraItem) // TODO: deal with LaraItem global !
 		{
-			creature->Mood = MoodType::Bored;
-		}
-		else if (enemy->BoxNumber == NO_VALUE)
-		{
-			// Enemy is unreachable (e.g., water creature can't reach target on land).
 			creature->Mood = MoodType::Bored;
 		}
 		else if (isViolent)

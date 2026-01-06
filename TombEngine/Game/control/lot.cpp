@@ -296,13 +296,9 @@ void CreateZone(ItemInfo* item)
 
 	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 
-	// Flyers and amphibious can reach any box (they navigate freely in 3D).
-	// Water creatures use their zone data (should only include water boxes).
-	bool bypassZoneCheck = (creature->LOT.Zone == ZoneType::Flyer ||
-							creature->LOT.Zone == ZoneType::Amphibious);
-	if (bypassZoneCheck)
+	// Flying creatures can reach any box. Water creatures use zone filtering.
+	if (creature->LOT.Fly != NO_FLYING && !creature->LOT.IsWaterCreature)
 	{
-		// Flying/amphibious creatures can reach any box.
 		auto* node = creature->LOT.Node.data();
 		creature->LOT.ZoneCount = 0;
 
