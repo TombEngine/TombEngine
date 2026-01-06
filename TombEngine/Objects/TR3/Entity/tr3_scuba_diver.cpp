@@ -74,9 +74,15 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeItem(harpoonItemNumber);
 
 		harpoonItem->Animation.Velocity.z = 150.0f;
-		harpoonItem->Pose.Orientation.x = 0;
 		harpoonItem->Pose.Orientation.y = yRot;
 		harpoonItem->Model.Color = Vector4::One;
+
+		// Calculate pitch angle to aim at Lara.
+		int dx = LaraItem->Pose.Position.x - pos.x;
+		int dy = LaraItem->Pose.Position.y - pos.y;
+		int dz = LaraItem->Pose.Position.z - pos.z;
+		int distXZ = (int)sqrt(SQUARE(dx) + SQUARE(dz));
+		harpoonItem->Pose.Orientation.x = -phd_atan(distXZ, dy);
 
 		AddActiveItem(harpoonItemNumber);
 		harpoonItem->Status = ITEM_ACTIVE;
