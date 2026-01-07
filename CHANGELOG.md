@@ -41,6 +41,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
+* Added `EmitSnow` and `EmitRain` to spawn weather at specific position.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 
 ## [Version 1.10.1]
