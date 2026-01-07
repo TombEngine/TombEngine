@@ -322,6 +322,95 @@ namespace TEN::Effects::Environment
 		}		
 	}
 
+	void EnvironmentController::SpawnWeatherParticles(WeatherType type, int x, int y, int z, float initialYVelocity, float life, float strength, bool ignoreWindRoomFlag)
+	{
+		int newParticlesCount = 0;
+		int density = WEATHER_PARTICLE_SPAWN_DENSITY * strength;
+
+		// Snow is falling twice as fast and must be spawned accordingly fast.
+		if (type == WeatherType::Snow)
+			density *= 2;
+
+		if (density > 0.0f && type != WeatherType::None)
+		{
+			while (Particles.size() < WEATHER_PARTICLE_COUNT_MAX)
+			{
+				if (newParticlesCount > density)
+					break;
+
+				newParticlesCount++;
+
+				float dist = 0.0f;
+				switch (type)
+				{
+				case WeatherType::Snow:
+					dist = WEATHER_SPAWN_DIST_SNOW;
+					break;
+				case WeatherType::Rain:
+					dist = WEATHER_SPAWN_DIST_RAIN;
+					break;
+				default:
+					dist = WEATHER_SPAWN_DIST_OTHER;
+					break;
+				}
+
+				float radius = Random::GenerateInt(0, dist);
+				short angle = Random::GenerateAngle(ANGLE(-180), ANGLE(179));
+
+				auto xPos = x + ((int)(phd_cos(angle) * radius));
+				auto zPos = z + ((int)(phd_sin(angle) * radius));
+				auto yPos = y - (Random::GenerateInt() & (BLOCK(1) - 1));
+
+				auto outsideRoom = IsRoomOutside(xPos, yPos, zPos, ignoreWindRoomFlag);
+				if (outsideRoom == NO_VALUE)
+					continue;
+
+				if (g_Level.Rooms[outsideRoom].flags & (ENV_FLAG_WATER | ENV_FLAG_SWAMP))
+					continue;
+
+				auto pointColl = GetPointCollision(Vector3i(xPos, yPos, zPos), outsideRoom);
+
+				if (!(pointColl.GetCeilingHeight() < yPos || pointColl.GetSector().GetNextRoomNumber(Vector3i(xPos, yPos, zPos), false).has_value()))
+					continue;
+
+				auto part = WeatherParticle();
+
+				switch (type)
+				{
+				case WeatherType::Snow:
+					part.ClusterSize = 1;
+					part.Size = Random::GenerateFloat(SNOW_SIZE_MAX / 3, SNOW_SIZE_MAX);
+					part.Velocity.y = initialYVelocity + Random::GenerateFloat(SNOW_VELOCITY_MAX / 4, SNOW_VELOCITY_MAX) * (part.Size / SNOW_SIZE_MAX);
+					part.Life = life + (SNOW_VELOCITY_MAX / 3) + ((SNOW_VELOCITY_MAX / 2));
+					break;
+
+				case WeatherType::Rain:
+					part.ClusterSize = 1;
+					part.Size = Random::GenerateFloat(RAIN_SIZE_MAX / 2, RAIN_SIZE_MAX);
+					part.Velocity.y = initialYVelocity + Random::GenerateFloat(RAIN_VELOCITY_MAX / 2, RAIN_VELOCITY_MAX) * (part.Size / RAIN_SIZE_MAX) * std::clamp(strength, 0.6f, 1.0f);
+					part.Life = life + (RAIN_VELOCITY_MAX)-part.Velocity.y;
+					break;
+				}
+
+				part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+
+				part.UniqueID = (int)Particles.size();
+				part.Type = type;
+				part.RoomNumber = outsideRoom;
+				part.Position.x = xPos;
+				part.Position.y = yPos;
+				part.Position.z = zPos;
+				part.Stopped = false;
+				part.Enabled = true;
+				part.CollisionCheckDelay = 0;
+				part.StartLife = part.Life;
+
+				Particles.push_back(part);
+			}
+		}
+	}
+
 	void EnvironmentController::UpdateWeather(const ScriptInterfaceLevel& level)
 	{
 		for (auto& part : Particles)

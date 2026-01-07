@@ -679,6 +679,30 @@ namespace TEN::Scripting::Effects
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
 	}
 
+	/// Emit snow particles.
+	// @function EmitSnow
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=0] float initialYVelocity Initial vertical velocity.
+	// @tparam[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
+	// @tparam[opt=1] float strength Strength of the snow effect.
+	// @tparam[opt=false] bool ignoreWind Whether to ignore wind room flag.
+	static void EmitSnow(const Vec3& pos, TypeOrNil<float> initialYVelocity, TypeOrNil<float> life, TypeOrNil<float> strength, TypeOrNil<bool> ignoreWindRoomFlag)
+	{
+		Weather.SpawnWeatherParticles(WeatherType::Snow, pos.x, pos.y, pos.z, ValueOr<float>(initialYVelocity, 0), ValueOr<float>(life, 1), ValueOr<float>(strength, 1), ValueOr<bool>(ignoreWindRoomFlag, false));
+	}
+
+	/// Emit rain particles.
+	// @function EmitRain
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=0] float initialYVelocity Initial vertical velocity.
+	// @tparam[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
+	// @tparam[opt=1] float strength Strength of the rain effect.
+	// @tparam[opt=false] bool ignoreWind Whether to ignore wind room flag.
+	static void EmitRain(const Vec3& pos, TypeOrNil<float> initialYVelocity, TypeOrNil<float> life, TypeOrNil<float> strength, TypeOrNil<bool> ignoreWindRoomFlag)
+	{
+		Weather.SpawnWeatherParticles(WeatherType::Rain, pos.x, pos.y, pos.z, ValueOr<float>(initialYVelocity, 0), ValueOr<float>(life, 1), ValueOr<float>(strength, 1), ValueOr<bool>(ignoreWindRoomFlag, false));
+	}
+
 	/// Make an explosion. Does not hurt Lara
 	// @function MakeExplosion 
 	// @tparam Vec3 pos World position.
@@ -752,6 +776,8 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
+		tableEffects.set_function(ScriptReserved_EmitSnow, &EmitSnow);
+		tableEffects.set_function(ScriptReserved_EmitRain, &EmitRain);
 		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
 		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
