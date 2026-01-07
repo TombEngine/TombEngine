@@ -628,16 +628,17 @@ namespace TEN::Entities::Creatures::TR2
 	static void HandleDaggerPickup(ItemInfo& item, ItemInfo& playerItem)
 	{
 		auto& player = GetLaraInfo(playerItem);
-		
+
 		g_Hud.InteractionHighlighter.Test(playerItem, item);
 
 		if ((IsHeld(In::Action) &&
 			(item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED ||
-				(item.Animation.AnimNumber == DRAGON_ANIM_RECOVER && item.Animation.FrameNumber <= DRAGON_ALMOST_LIVE)) &&
+				(item.Animation.AnimNumber == DRAGON_ANIM_RECOVER &&
+					item.Animation.FrameNumber <= DRAGON_ALMOST_LIVE)) &&
 			playerItem.Animation.ActiveState == LS_IDLE &&
 			playerItem.Animation.AnimNumber == LA_STAND_IDLE &&
 			player.Control.HandStatus == HandStatus::Free) ||
-			player.Control.IsMoving && player.Context.InteractedItem == item.Index)
+			(player.Control.IsMoving && player.Context.InteractedItem == item.Index))
 		{
 			auto bounds = GameBoundingBox(&item);
 
@@ -651,20 +652,14 @@ namespace TEN::Entities::Creatures::TR2
 
 			if (TestLaraPosition(DragonDaggerBounds, &item, &playerItem))
 			{
-				// HACK: Temporarily change orientation.
+				// Temporarily rotate dragon so Lara aligns correctly.
 				short yOrient = item.Pose.Orientation.y;
 				item.Pose.Orientation.y += ANGLE(90.0f);
 
 				if (MoveLaraPosition(DragonDaggerPos, &item, &playerItem))
 				{
-					// TODO: Reimplement dagger pickup animation when state transitions
-					// from ID_LARA_EXTRA_ANIMS to ID_LARA are possible. -- Adngel 2023.10.03
-
-					//SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
-					//playerItem.Pose = item.Pose;
-
-					// HACK: Temporarily use small button push animation.
-					SetAnimation(playerItem, LA_PICKUP_PEDESTAL_LOW);
+					SetAnimation(playerItem, ID_LARA, LA_PULL_DAGGER_FROM_DRAGON);
+					playerItem.Animation.IsAirborne = false;
 
 					ResetPlayerFlex(&playerItem);
 					playerItem.Animation.FrameNumber = 0;
@@ -673,15 +668,15 @@ namespace TEN::Entities::Creatures::TR2
 
 					AnimateItem(playerItem);
 
-					// Setting ItemFlags[1] to negative value sets defeat status and triggers death.
-					item.ItemFlags[1] = -1 * (100 - GetAnimData(playerItem).EndFrameNumber);
+					// Trigger dragon defeat.
+					item.ItemFlags[1] = -1;
 				}
 				else
 				{
 					player.Context.InteractedItem = item.Index;
 				}
 
-				// Restore orientation.
+				// Restore dragon orientation.
 				item.Pose.Orientation.y = yOrient;
 			}
 			else if (player.Control.IsMoving && player.Context.InteractedItem == item.Index)
