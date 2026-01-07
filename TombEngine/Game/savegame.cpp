@@ -692,7 +692,6 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_head_left(creature->HeadLeft);
 			creatureBuilder.add_head_right(creature->HeadRight);
 			creatureBuilder.add_hurt_by_lara(creature->HurtByLara);
-			creatureBuilder.add_is_amphibious(creature->LOT.IsAmphibious);
 			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
 			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
 			creatureBuilder.add_joint_rotation(jointRotationsOffset);
@@ -2885,7 +2884,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LocationAI = savedCreature->location_ai();
 			creature->MuzzleFlash[0].Delay = savedCreature->weapon_delay1();
 			creature->MuzzleFlash[1].Delay = savedCreature->weapon_delay2();
-			creature->LOT.IsAmphibious = savedCreature->is_amphibious();
 			creature->LOT.IsJumping = savedCreature->is_jumping();
 			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 

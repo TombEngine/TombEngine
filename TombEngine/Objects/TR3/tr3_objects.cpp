@@ -187,7 +187,6 @@ static void StartEntity(ObjectInfo* obj)
 		obj->HitPoints = 20;
 		obj->radius = 340;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->pivotLength = 50;
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);

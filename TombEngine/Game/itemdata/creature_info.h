@@ -54,8 +54,6 @@ struct LOTInfo
 	short Drop		   = 0;
 	short Fly		   = 0;
 
-	bool IsAmphibious	 = false;
-	bool IsWaterCreature = false;
 	bool IsJumping		 = false;
 	bool IsMonkeying	 = false;
 

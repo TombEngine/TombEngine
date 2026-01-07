@@ -442,7 +442,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 		if (item->Pose.Position.y + dy <= height)
 		{
-			if (Objects[item->ObjectNumber].waterCreature)
+			if (Objects[item->ObjectNumber].LotType == LotType::Water || 
+				Objects[item->ObjectNumber].LotType == LotType::Amphibious)
 			{
 				ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
@@ -784,7 +785,8 @@ void CreatureHealth(ItemInfo* item)
 	if (creature->Poisoned && item->HitPoints > 1 && (GlobalCounter & 0x1F) == 0x1F)
 		item->HitPoints--;
 
-	if (!Objects[item->ObjectNumber].waterCreature &&
+	if (!(Objects[item->ObjectNumber].LotType == LotType::Water ||
+		  Objects[item->ObjectNumber].LotType == LotType::Amphibious) &&
 		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &g_Level.Rooms[item->RoomNumber]))
 	{
 		auto bounds = GameBoundingBox(item);

@@ -85,8 +85,6 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 
 	creature->LOT.CanJump = false;
 	creature->LOT.CanMonkey = false;
-	creature->LOT.IsAmphibious = false; // True for crocodile by default as only the crocodile can move in water and on land.
-	creature->LOT.IsWaterCreature = object->waterCreature;
 	creature->LOT.IsJumping = false;
 	creature->LOT.IsMonkeying = false;
 	creature->LOT.Fly = NO_FLYING;
@@ -136,7 +134,7 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 			break;
 
 			// Can swim and go to land.
-		case LotType::WaterAndLand:
+		case LotType::Amphibious:
 			creature->LOT.Step = BLOCK(20);
 			creature->LOT.Drop = -BLOCK(20);
 			creature->LOT.Zone = ZoneType::Amphibious;
@@ -144,12 +142,10 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 			if (item->ObjectNumber == ID_CROCODILE)
 			{
 				creature->LOT.Fly = DEFAULT_SWIM_UPDOWN_SPEED / 2; // Slower than the other underwater creatures.
-				creature->LOT.IsAmphibious = true;				   // Can walk and swim.
 			}
 			else if (item->ObjectNumber == ID_BIG_RAT)
 			{
 				creature->LOT.Fly = NO_FLYING;	   // Can't swim underwater, only on the surface.
-				creature->LOT.IsAmphibious = true; // Can walk and swim.
 			}
 			else
 			{
@@ -293,11 +289,12 @@ void CreateZone(ItemInfo* item)
 {
 	auto* creature = GetCreatureInfo(item);
 	auto* room = &g_Level.Rooms[item->RoomNumber];
+	auto& object = Objects[item->ObjectNumber];
 
 	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 
-	// Flying creatures can reach any box. Water creatures use zone filtering.
-	if (creature->LOT.Fly != NO_FLYING && !creature->LOT.IsWaterCreature)
+	// Flying creatures can reach any box. All other creatures use zone filtering.
+	if (object.LotType == LotType::Flyer)
 	{
 		auto* node = creature->LOT.Node.data();
 		creature->LOT.ZoneCount = 0;
