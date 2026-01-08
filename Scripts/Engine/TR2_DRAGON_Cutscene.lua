@@ -2,7 +2,7 @@
 -- Code Version 1
 
 -- Setup instructions:
--- Place a CAMERA named "DAGGER_CAM" and a CAMERA_TARGET named "DAGGER_CAM_HELPER".
+-- Place a CAMERA named "DAGGER_CAM" anywhere in your level (no trigger required)
 
 local TR2_DRAGON_Cutscene = {}
 
@@ -94,7 +94,7 @@ end
 ----------------------------------------------------------------------
 
 function TR2_DRAGON_Cutscene.Init()
-    camHelper = GetMoveableByName("DAGGER_CAM_HELPER")
+    camHelper = Moveable( TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", Vec3(0,0,0) )
     cam       = GetCameraByName("DAGGER_CAM")
     marco     = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
 end
