@@ -13,6 +13,9 @@ local TR2_DRAGON_Cutscene = {}
 -- Animation ID for Lara pulling the dagger
 local DAGGER_ANIM_ID = 578
 
+-- Frame where Lara's mesh should unswap
+local MESH_SWAP_ENDING_FRAME = 197
+
 -- Camera FOV settings
 local DEFAULT_FOV   = 80
 local CINEMATIC_FOV = 55
@@ -23,9 +26,6 @@ local ORBIT_HEIGHT       = -150
 local ORBIT_DURATION     = 240
 local ORBIT_START_ANGLE  = math.rad(200) -- side profile start
 local ORBIT_END_ANGLE    = math.rad(340)
-
--- Frame where Lara's mesh should unswap
-local MESH_SWAP_ENDING_FRAME = 197
 
 -- Marco transformation particle settings
 local MARCO_PARTICLE_MIN_RADIUS = 5120
@@ -42,15 +42,16 @@ local DRAGON_STUN_PARTICLE_COUNT      = 60
 ----------------------------------------------------------------------
 
 -- Marco transformation core glow colour (the bright pulse at the centre)
-local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0)
-local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 128, 0)
+local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(255, 0, 0)
+local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(64, 0, 0)
 
 -- Marco transformation spark particle colour range (each spark picks a random colour)
 local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0)
 local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
 
--- Dragon stunned particle colours (the green energy swirl during animation 22)
-local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(0, 128, 0)
+-- Dragon stunned particle colours (the energy swirl during animation 22)
+-- Default color matches light effect in the source code
+local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(0, 128, 0)
 
 -- Transformation flare colour (the large expanding glow)
@@ -94,7 +95,11 @@ end
 ----------------------------------------------------------------------
 
 function TR2_DRAGON_Cutscene.Init()
-    camHelper = Moveable( TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", Vec3(0,0,0) )
+
+    local pos = Lara:GetPosition() 
+    local room = Lara:GetRoom()
+    
+    camHelper = Moveable( TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", pos, Rotation(0,0,0), room )
     cam       = GetCameraByName("DAGGER_CAM")
     marco     = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
 end
