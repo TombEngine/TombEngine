@@ -1,3 +1,34 @@
+/**
+ * @file box.cpp
+ * @brief Core AI pathfinding and behavior system for creatures.
+ *
+ * This file implements the "box" pathfinding system used by all AI creatures in TEN.
+ * The system works as follows:
+ *
+ * BOX SYSTEM OVERVIEW:
+ * - The level is divided into rectangular "boxes" (PathfindingBoxes) representing walkable areas.
+ * - Each box has a height (floor level) and boundaries (left, right, top, bottom in blocks).
+ * - Boxes are connected via "overlaps" which define which boxes can be traversed to from each other.
+ * - Overlaps have flags (BOX_JUMP, BOX_MONKEY) indicating special traversal requirements.
+ *
+ * ZONE SYSTEM:
+ * - Zones group boxes by reachability for different creature types.
+ * - Two boxes in the same zone are considered connected for that creature type.
+ * - Zone types: Basic, Skeleton, Water, Amphibious, Human, Flyer.
+ *
+ * PATHFINDING (SearchLOT):
+ * - Uses breadth-first search through connected boxes.
+ * - Starts from target box and expands outward.
+ * - Each node stores exitBox (which direction to go to reach target).
+ * - Step/Drop limits determine which height differences are traversable.
+ *
+ * MOOD SYSTEM:
+ * - Creatures have moods: Bored, Attack, Escape, Stalk.
+ * - Mood determines target selection and movement behavior.
+ * - GetCreatureMood() determines mood based on situation.
+ * - CreatureMood() acts on the mood to select targets.
+ */
+
 #include "framework.h"
 #include "Game/control/box.h"
 
@@ -26,15 +57,20 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
 
-constexpr auto ESCAPE_DIST = BLOCK(5);
-constexpr auto STALK_DIST = BLOCK(3);
-constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625);
-constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3));
-constexpr auto ESCAPE_CHANCE = 0x800;
-constexpr auto RECOVER_CHANCE = 0x100;
-constexpr auto BIFF_AVOID_TURN = ANGLE(11.25f);
-constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);
-constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);
+// AI behavior distance thresholds.
+constexpr auto ESCAPE_DIST = BLOCK(5);          // Minimum distance for a box to be considered "escape" worthy.
+constexpr auto STALK_DIST = BLOCK(3);           // Maximum distance to maintain stalking behavior.
+constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625); // Distance at which AI considers goal reached.
+constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3)); // Squared distance for attack mode (avoids sqrt).
+
+// Random chance thresholds for mood transitions (out of 0x7FFF).
+constexpr auto ESCAPE_CHANCE = 0x800;   // ~6% chance to escape when hit.
+constexpr auto RECOVER_CHANCE = 0x100;  // ~0.8% chance to recover from escape.
+
+// Creature movement constants.
+constexpr auto BIFF_AVOID_TURN = ANGLE(11.25f);           // Turn angle to avoid other creatures.
+constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);   // Maximum head rotation for guards.
+constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f); // Maximum joint rotation per frame.
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 
@@ -235,6 +271,23 @@ void AlertAllGuards(short itemNumber)
 	}
 }
 
+/**
+ * @brief Handles creature movement, collision, and positioning after animation.
+ *
+ * This function is the core of creature physical movement. After animation updates
+ * the creature's logical position, this function:
+ * 1. Validates the move against pathfinding constraints (zone, step, drop).
+ * 2. Handles collision with box boundaries and walls.
+ * 3. Handles creature-creature collision avoidance.
+ * 4. Handles vertical movement (flying/swimming or ground following).
+ * 5. Updates room number and floor height.
+ *
+ * @param item The creature item to move.
+ * @param prevPos The creature's position before animation (for rollback).
+ * @param angle Heading angle change from CreatureTurn.
+ * @param tilt Tilt angle for banking during turns.
+ * @return true if movement succeeded, false if creature is stuck.
+ */
 bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 {
 	int xPos, zPos, ceiling, shiftX, shiftZ;
@@ -244,16 +297,19 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	auto* LOT = &creature->LOT;
 	int* zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus].data();
 
+	// Get height of creature's current box (for step/drop checks).
 	int boxHeight;
 	if (item->BoxNumber != NO_VALUE)
 		boxHeight = g_Level.PathfindingBoxes[item->BoxNumber].height;
 	else
 		boxHeight = item->Floor;
 
+	// Use creature's top (Y1) for ceiling collision checks.
 	auto bounds = GameBoundingBox(item);
 	int y = item->Pose.Position.y + bounds.Y1;
 	short roomNumber = item->RoomNumber;
 
+	// Get floor info at new position.
 	GetFloor(prevPos.x, y, prevPos.z, &roomNumber);
 	auto* floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 	if (floor->PathfindingBoxID == NO_VALUE)
@@ -262,6 +318,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	int height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
 	int nextHeight = 0;
 
+	// Get the next box on the path (for nonLot creatures, just use current box).
 	int nextBox;
 	if (!Objects[item->ObjectNumber].nonLot)
 	{
@@ -269,6 +326,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	}
 	else
 	{
+		// NonLot creatures don't use pathfinding, just collision.
 		floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 		height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
 		nextBox = floor->PathfindingBoxID;
@@ -279,16 +337,20 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	else
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
+	// ZONE/STEP/DROP VALIDATION:
+	// If creature moved to invalid floor, push back to sector boundary.
 	if (floor->PathfindingBoxID == NO_VALUE || !LOT->IsJumping &&
 		(LOT->Fly == NO_FLYING && item->BoxNumber != NO_VALUE && zone[item->BoxNumber] != zone[floor->PathfindingBoxID] ||
 			boxHeight - height > LOT->Step ||
 			boxHeight - height < LOT->Drop))
 	{
+		// Calculate which sector boundary to push creature to.
 		xPos = item->Pose.Position.x / BLOCK(1);
 		zPos = item->Pose.Position.z / BLOCK(1);
 		shiftX = prevPos.x / BLOCK(1);
 		shiftZ = prevPos.z / BLOCK(1);
 
+		// Push to sector edge based on movement direction.
 		if (xPos < shiftX)
 			item->Pose.Position.x = prevPos.x & (~WALL_MASK);
 		else if (xPos > shiftX)
@@ -299,6 +361,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		else if (zPos > shiftZ)
 			item->Pose.Position.z = prevPos.z | WALL_MASK;
 
+		// Re-get floor info at corrected position.
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 
 		if (floor->PathfindingBoxID != NO_VALUE)
@@ -322,14 +385,18 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 	}
 
+	// RADIUS COLLISION:
+	// Check if creature's radius would overlap with bad floor at sector edges.
+	// This prevents creatures from walking off edges or into walls.
 	int x = item->Pose.Position.x;
 	int z = item->Pose.Position.z;
-	xPos = x & WALL_MASK;
+	xPos = x & WALL_MASK; // Position within sector (0-1023).
 	zPos = z & WALL_MASK;
 	short radius = Objects[item->ObjectNumber].radius;
 	shiftX = 0;
 	shiftZ = 0;
 
+	// Check each sector edge based on creature's position + radius.
 	if (zPos < radius)
 	{
 		if (BadFloor(x, y, z - radius, height, nextHeight, roomNumber, LOT))
@@ -401,9 +468,11 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			shiftX = BLOCK(1) - radius - xPos;
 	}
 
+	// Apply the collision shift.
 	item->Pose.Position.x += shiftX;
 	item->Pose.Position.z += shiftZ;
 
+	// If we shifted, update floor and apply turn/tilt.
 	if (shiftX || shiftZ)
 	{
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
@@ -413,12 +482,15 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			CreatureTilt(item, (tilt * 2));
 	}
 
+	// CREATURE-CREATURE COLLISION:
+	// Check for collision with other creatures and turn to avoid.
 	short biffAngle;
 	if (item->ObjectNumber != ID_TYRANNOSAUR && item->Animation.Velocity.z && item->HitPoints > 0)
 		biffAngle = CreatureCreature(item->Index);
 	else
 		biffAngle = 0;
 
+	// If colliding with another creature, turn away.
 	if (biffAngle)
 	{
 		if (abs(biffAngle) < BIFF_AVOID_TURN)
@@ -431,8 +503,12 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		return true;
 	}
 
+	// VERTICAL MOVEMENT:
+	// Three modes: Flying/Swimming, Jumping, or Ground.
+
 	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
 	{
+		// FLYING/SWIMMING: Move toward target Y at Fly speed.
 		int dy = creature->Target.y - item->Pose.Position.y;
 		if (dy > LOT->Fly)
 			dy = LOT->Fly;
@@ -442,20 +518,24 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 		if (item->Pose.Position.y + dy <= height)
 		{
-			if (Objects[item->ObjectNumber].LotType == LotType::Water || 
+			// Water creatures check ceiling collision.
+			if (Objects[item->ObjectNumber].LotType == LotType::Water ||
 				Objects[item->ObjectNumber].LotType == LotType::Amphibious)
 			{
 				ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
+				// Whale has special smaller collision height.
 				if (item->ObjectNumber == ID_WHALE)
 					top = CLICK(0.5f);
 				else
 					top = bounds.Y1;
 
+				// Check ceiling collision when swimming up.
 				if (item->Pose.Position.y + top + dy < ceiling)
 				{
 					if (item->Pose.Position.y + top < ceiling)
 					{
+						// Already stuck in ceiling - push back and swim down.
 						item->Pose.Position.x = prevPos.x;
 						item->Pose.Position.z = prevPos.z;
 						dy = LOT->Fly;
@@ -466,6 +546,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			}
 			else
 			{
+				// Flying creatures avoid water/swamp by going up.
 				floor = GetFloor(item->Pose.Position.x, y + CLICK(1), item->Pose.Position.z, &roomNumber);
 				if (TestEnvironment(ENV_FLAG_WATER, roomNumber) ||
 					TestEnvironment(ENV_FLAG_SWAMP, roomNumber))
@@ -476,11 +557,13 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		}
 		else if (item->Pose.Position.y <= height)
 		{
+			// At floor level - stop vertical movement.
 			item->Pose.Position.y = height;
 			dy = 0;
 		}
 		else
 		{
+			// Below floor - push back and go up.
 			item->Pose.Position.x = prevPos.x;
 			item->Pose.Position.z = prevPos.z;
 			dy = -LOT->Fly;
@@ -490,12 +573,14 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		item->Floor = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
+		// Pitch creature based on vertical movement (nose up/down when climbing/diving).
 		angle = (item->Animation.Velocity.z) ? phd_atan(item->Animation.Velocity.z, -dy) : 0;
 		if (angle < -ANGLE(20.0f))
 			angle = -ANGLE(20.0f);
 		else if (angle > ANGLE(20.0f))
 			angle = ANGLE(20.0f);
 
+		// Smooth pitch transition.
 		if (angle < item->Pose.Orientation.x - ANGLE(1.0f))
 			item->Pose.Orientation.x -= ANGLE(1.0f);
 		else if (angle > item->Pose.Orientation.x + ANGLE(1.0f))
@@ -505,17 +590,20 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	}
 	else if (LOT->IsJumping)
 	{
+		// JUMPING/MONKEYSWING: Special traversal in progress.
 		floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 		int height2 = GetFloorHeight(floor, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 		item->Floor = height2;
 
 		if (LOT->IsMonkeying)
 		{
+			// Monkeyswing: stick to ceiling.
 			ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 			item->Pose.Position.y = ceiling - bounds.Y1;
 		}
 		else
 		{
+			// Jumping: land on floor or rollback if too far below.
 			if (item->Pose.Position.y > item->Floor)
 			{
 				if (item->Pose.Position.y > (item->Floor + CLICK(1)))
@@ -527,20 +615,24 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	}
 	else
 	{
+		// GROUND MOVEMENT: Follow floor height.
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
+		// Large creatures need special collision height.
 		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_MUTANT2)
 			top = CLICK(3);
 		else
 			top = bounds.Y1; // TODO: check if Y1 or Y2
 
+		// Ceiling collision - push back if head would hit ceiling.
 		if (item->Pose.Position.y + top < ceiling)
 			item->Pose.Position = prevPos;
 
 		floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 		item->Floor = GetFloorHeight(floor, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 
+		// Snap to floor or smoothly descend.
 		if (item->Pose.Position.y > item->Floor)
 			item->Pose.Position.y = item->Floor;
 		else if (item->Floor - item->Pose.Position.y > CLICK(0.25f))
@@ -548,9 +640,11 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		else if (item->Pose.Position.y < item->Floor)
 			item->Pose.Position.y = item->Floor;
 
+		// Ground creatures don't pitch.
 		item->Pose.Orientation.x = 0;
 	}
 
+	// Update room number if creature moved to different room.
 	UpdateItemRoom(item->Index);
 	return true;
 }
@@ -917,6 +1011,22 @@ int CreatureCreature(short itemNumber)
 	return 0;
 }
 
+/**
+ * @brief Checks if a box is a valid pathfinding target for a creature.
+ *
+ * A box is valid if:
+ * 1. It exists (not NO_VALUE).
+ * 2. It's in the same zone as the creature (unless creature can fly/swim).
+ * 3. It's not blocked by the creature's BlockMask.
+ * 4. The creature is NOT currently standing inside it (prevents targeting current box).
+ *
+ * Used when selecting random boxes for Bored/Escape/Stalk moods.
+ *
+ * @param item Pointer to the creature item.
+ * @param zoneNumber The zone number to check against.
+ * @param boxNumber The box index to validate.
+ * @return true if the box is a valid target.
+ */
 bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 {
 	if (boxNumber == NO_VALUE)
@@ -933,6 +1043,7 @@ bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 	if (creature.LOT.BlockMask & box.flags)
 		return false;
 
+	// Don't target the box we're currently standing in.
 	if (item->Pose.Position.z > (box.left * BLOCK(1)) &&
 		item->Pose.Position.z < (box.right * BLOCK(1)) &&
 		item->Pose.Position.x > (box.top * BLOCK(1)) &&
@@ -944,25 +1055,56 @@ bool ValidBox(ItemInfo* item, short zoneNumber, short boxNumber)
 	return true;
 }
 
-bool EscapeBox(ItemInfo* item, ItemInfo* enemy, int boxNumber) 
+/**
+ * @brief Checks if a box is suitable for escaping from an enemy.
+ *
+ * A box is good for escape if:
+ * 1. It's far enough from the enemy (> ESCAPE_DIST).
+ * 2. Moving to it would take the creature AWAY from the enemy.
+ *
+ * The direction check ensures the creature flees in a sensible direction
+ * rather than running past the enemy.
+ *
+ * @param item Pointer to the fleeing creature.
+ * @param enemy Pointer to the enemy being escaped from.
+ * @param boxNumber The potential escape box to evaluate.
+ * @return true if the box is a good escape target.
+ */
+bool EscapeBox(ItemInfo* item, ItemInfo* enemy, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return false;
 
 	const auto& box = g_Level.PathfindingBoxes[boxNumber];
+
+	// Calculate vector from enemy to box center.
 	int x = ((box.top + box.bottom) * BLOCK(0.5f)) - enemy->Pose.Position.x;
 	int z = ((box.left + box.right) * BLOCK(0.5f)) - enemy->Pose.Position.z;
 
+	// Box is too close to enemy.
 	if (x > -ESCAPE_DIST && x < ESCAPE_DIST &&
 		z > -ESCAPE_DIST && z < ESCAPE_DIST)
 	{
 		return false;
 	}
 
+	// Check if moving to box takes creature away from enemy.
 	return ((z > 0) == (item->Pose.Position.z > enemy->Pose.Position.z)) ||
 		   ((x > 0) == (item->Pose.Position.x > enemy->Pose.Position.x));
 }
 
+/**
+ * @brief Sets a box as the creature's navigation target.
+ *
+ * Generates a random position within the box boundaries as the target point.
+ * This randomization prevents creatures from always going to the exact same
+ * spot, making movement look more natural.
+ *
+ * Sets LOT->RequiredBox which triggers UpdateLOT to recalculate the path.
+ *
+ * @param LOT Pointer to the creature's LOTInfo.
+ * @param boxNumber The box to target.
+ */
 void TargetBox(LOTInfo* LOT, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
@@ -970,24 +1112,45 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
 
 	const auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
+	// Generate random position within box bounds.
 	// Maximize target precision. DO NOT change bracket precedence!
 	LOT->Target.x = (int)((box->top  * BLOCK(1)) + (float)GetRandomControl() * (((float)(box->bottom - box->top) - 1.0f) / 32.0f) + CLICK(2.0f));
 	LOT->Target.z = (int)((box->left * BLOCK(1)) + (float)GetRandomControl() * (((float)(box->right - box->left) - 1.0f) / 32.0f) + CLICK(2.0f));
 	LOT->RequiredBox = boxNumber;
 
+	// Flying creatures target slightly above the floor.
 	if (LOT->Fly == NO_FLYING)
 		LOT->Target.y = box->height;
 	else
 		LOT->Target.y = box->height - STEPUP_HEIGHT;
 }
 
+/**
+ * @brief Updates the pathfinding data when the target changes.
+ *
+ * When RequiredBox changes (new target selected), this function:
+ * 1. Sets it as the new TargetBox.
+ * 2. Adds it to the front of the search queue (Head).
+ * 3. Increments SearchNumber to invalidate old search data.
+ * 4. Calls SearchLOT to expand the search.
+ *
+ * The search works BACKWARDS from target to creature - each node's exitBox
+ * points toward the target, so the creature follows exitBox links to reach it.
+ *
+ * @param LOT Pointer to the creature's LOTInfo.
+ * @param depth Number of expansions to perform (higher = more thorough but slower).
+ * @return true if search queue still has nodes to expand, false if exhausted.
+ */
 bool UpdateLOT(LOTInfo* LOT, int depth)
 {
 	if (LOT->RequiredBox != NO_VALUE && LOT->RequiredBox != LOT->TargetBox)
 	{
+		// New target - reset search from this box.
 		LOT->TargetBox = LOT->RequiredBox;
 
 		auto* node = &LOT->Node[LOT->RequiredBox];
+
+		// Add target box to front of search queue.
 		if (node->nextExpansion == NO_VALUE && LOT->Tail != LOT->RequiredBox)
 		{
 			node->nextExpansion = LOT->Head;
@@ -998,13 +1161,39 @@ bool UpdateLOT(LOTInfo* LOT, int depth)
 			LOT->Head = LOT->TargetBox;
 		}
 
+		// New search number invalidates all previous search data.
 		node->searchNumber = ++LOT->SearchNumber;
-		node->exitBox = NO_VALUE;
+		node->exitBox = NO_VALUE; // Target has no exit (it IS the destination).
 	}
 
 	return SearchLOT(LOT, depth);
 }
 
+/**
+ * @brief Core breadth-first search for pathfinding through boxes.
+ *
+ * This function expands the search from the current Head box to all connected boxes.
+ * It builds a "flow field" where each box's exitBox points toward the target.
+ *
+ * ALGORITHM:
+ * 1. Take the box at Head of the queue.
+ * 2. For each overlapping (connected) box:
+ *    a. Check zone compatibility (skip if different zone, unless flying/swimming).
+ *    b. Check height difference against Step/Drop limits.
+ *    c. Check special traversal flags (BOX_JUMP, BOX_MONKEY).
+ *    d. If reachable, set its exitBox to current box and add to queue.
+ * 3. Move to next box in queue, repeat.
+ *
+ * SEARCH NUMBER SYSTEM:
+ * - Each search increments LOT->SearchNumber.
+ * - Nodes with matching searchNumber have been visited this search.
+ * - SEARCH_BLOCKED flag marks boxes that are blocked (creature can't stop there).
+ * - Blocked paths can still be traversed but creature won't select as target.
+ *
+ * @param LOT Pointer to the creature's LOTInfo.
+ * @param depth Maximum number of box expansions this call.
+ * @return true if more boxes remain to expand, false if search exhausted.
+ */
 bool SearchLOT(LOTInfo* LOT, int depth)
 {
 	auto* zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus].data();
@@ -1012,15 +1201,17 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 
 	for (int i = 0; i < depth; i++)
 	{
+		// Search exhausted - no more boxes to expand.
 		if (LOT->Head == NO_VALUE)
 		{
-			LOT->Tail = NO_VALUE; 
+			LOT->Tail = NO_VALUE;
 			return false;
 		}
 
 		auto* box = &g_Level.PathfindingBoxes[LOT->Head];
 		auto* node = &LOT->Node[LOT->Head];
 
+		// Iterate through all boxes that overlap with current box.
 		int index = box->overlapIndex;
 		bool done = false;
 		if (index >= 0)
@@ -1032,22 +1223,26 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 
 				if (flags & BOX_END_BIT)
 					done = true;
-				
-				// Creatures that can move in 3D (fly/swim) bypass zone check.
+
+				// ZONE CHECK: Creatures that can move in 3D (fly/swim) bypass zone check.
 				if (LOT->Fly == NO_FLYING && searchZone != zone[boxNumber])
 					continue;
-				
+
+				// HEIGHT CHECK: Can creature traverse the height difference?
 				int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
 				if ((delta > LOT->Step || delta < LOT->Drop) && (!(flags & BOX_MONKEY) || !LOT->CanMonkey))
 					continue;
 
+				// JUMP CHECK: Does this overlap require jumping?
 				if ((flags & BOX_JUMP) && !LOT->CanJump)
 					continue;
 
+				// SEARCH STATE: Check if we've already visited this box.
 				auto* expand = &LOT->Node[boxNumber];
 				if ((node->searchNumber & SEARCH_NUMBER) < (expand->searchNumber & SEARCH_NUMBER))
 					continue;
 
+				// Handle blocked path propagation.
 				if (node->searchNumber & SEARCH_BLOCKED)
 				{
 					if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER))
@@ -1060,6 +1255,7 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 					if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER) && !(expand->searchNumber & SEARCH_BLOCKED))
 						continue;
 
+					// Mark blocked boxes but still allow traversal through them.
 					if (g_Level.PathfindingBoxes[boxNumber].flags & LOT->BlockMask)
 					{
 						expand->searchNumber = node->searchNumber | SEARCH_BLOCKED;
@@ -1067,10 +1263,11 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 					else
 					{
 						expand->searchNumber = node->searchNumber;
-						expand->exitBox = LOT->Head;
+						expand->exitBox = LOT->Head; // Point back toward target.
 					}
 				}
 
+				// Add to expansion queue if not already there.
 				if (expand->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
 				{
 					LOT->Node[LOT->Tail].nextExpansion = boxNumber;
@@ -1079,6 +1276,7 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 			} while (!done);
 		}
 
+		// Move to next box in queue.
 		LOT->Head = node->nextExpansion;
 		node->nextExpansion = NO_VALUE;
 	}
@@ -1515,6 +1713,25 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 	return (isReachable ? floor->PathfindingBoxID : NO_VALUE);
 }
 
+/**
+ * @brief Gathers AI information about the creature's situation relative to its enemy.
+ *
+ * Populates the AI_INFO structure with:
+ * - zoneNumber: The zone the creature is in.
+ * - enemyZone: The zone the enemy is in (if reachable).
+ * - distance: Squared 2D distance to enemy (for speed, avoids sqrt).
+ * - verticalDistance: Y difference to enemy.
+ * - angle: Horizontal angle to enemy relative to creature's facing.
+ * - xAngle: Vertical angle to enemy (for flying/swimming creatures).
+ * - ahead: True if enemy is within front arc.
+ * - bite: True if enemy is close enough and in front for melee attack.
+ *
+ * This information is used by GetCreatureMood() and individual creature AI
+ * to make behavioral decisions.
+ *
+ * @param item Pointer to the creature item.
+ * @param AI Pointer to AI_INFO structure to populate.
+ */
 void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 {
 	if (!item->IsCreature())
@@ -1524,6 +1741,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	auto* creature = GetCreatureInfo(item);
 	auto* enemy = creature->Enemy;
 
+	// Default to player if no enemy set.
 	// TODO: Deal with LaraItem global.
 	if (enemy == nullptr)
 	{
@@ -1534,9 +1752,11 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	auto* zone = g_Level.Zones[(int)creature->LOT.Zone][(int)FlipStatus].data();
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
+	// Update creature's current box and zone.
 	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 	AI->zoneNumber = zone[item->BoxNumber];
 
+	// Get enemy's box (if reachable) and zone.
 	enemy->BoxNumber = TargetReachable(item, enemy);
 	AI->enemyZone = enemy->BoxNumber == NO_VALUE ? NO_VALUE : zone[enemy->BoxNumber];
 
@@ -1609,6 +1829,24 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	AI->bite = (AI->ahead && enemy->HitPoints > 0 && abs(enemy->Pose.Position.y - item->Pose.Position.y) <= CLICK(2));
 }
 
+/**
+ * @brief Acts on the creature's mood to select movement targets.
+ *
+ * Based on the mood set by GetCreatureMood(), this function selects appropriate
+ * target boxes for the creature to pathfind toward:
+ *
+ * - Bored: Pick random valid boxes, prefer ones that allow stalking.
+ * - Attack: Target enemy's position directly.
+ * - Escape: Pick random boxes that are far from and away from enemy.
+ * - Stalk: Pick boxes that maintain distance but keep line of sight.
+ *
+ * Also updates JumpAhead and MonkeySwingAhead flags by checking the overlap
+ * flags of the path to the next box.
+ *
+ * @param item Pointer to the creature item.
+ * @param AI Pointer to AI_INFO with zone and distance data.
+ * @param isViolent If true, creature is aggressive (affects target selection).
+ */
 void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 {
 	if (!item->IsCreature())
@@ -1624,25 +1862,31 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	if (enemy == nullptr && (creature->Mood == MoodType::Attack || creature->Mood == MoodType::Escape))
 		creature->Mood = MoodType::Bored;
 
+	// TARGET SELECTION based on mood.
+	// Each mood picks targets differently to create varied behavior.
 	int boxNumber;
 	switch (creature->Mood)
 	{
 	case MoodType::Bored:
+		// BORED: Wander randomly, but prefer boxes that allow stalking enemy.
+		// Pick a random box from the creature's navigable zone.
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 		if (ValidBox(item, AI->zoneNumber, boxNumber))
 		{
-			// Only use StalkBox if enemy is reachable (has valid box number).
+			// If enemy is reachable and box allows stalking, use it (keeps creature near enemy).
 			if (enemy != nullptr && enemy->BoxNumber != NO_VALUE &&
 				StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
 			{
 				TargetBox(LOT, boxNumber);
 				creature->Mood = MoodType::Bored;
 			}
+			// No current target - just use this random box.
 			else if (LOT->RequiredBox == NO_VALUE)
 			{
 				TargetBox(LOT, boxNumber);
 			}
 			// If enemy is unreachable, current target is near enemy, and new box is NOT near enemy, switch target.
+			// This prevents creature from hovering near unreachable enemy.
 			else if (enemy != nullptr && enemy->BoxNumber == NO_VALUE &&
 					 StalkBox(item, enemy, LOT->RequiredBox) && !StalkBox(item, enemy, boxNumber))
 			{
@@ -1653,12 +1897,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Attack:
+		// ATTACK: Go directly to enemy's position.
 		// Only target enemy if reachable (valid box number).
 		if (enemy->BoxNumber != NO_VALUE)
 		{
 			LOT->Target = enemy->Pose.Position;
 			LOT->RequiredBox = enemy->BoxNumber;
 
+			// Flying/swimming creatures target enemy's upper body when on land.
 			if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
 			{
 				auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
@@ -1669,14 +1915,19 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Escape:
+		// ESCAPE: Find boxes far from and away from enemy.
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 
+		// Only select new target if we don't have one yet.
 		if (ValidBox(item, AI->zoneNumber, boxNumber) && LOT->RequiredBox == NO_VALUE)
 		{
+			// Good escape box - far from enemy and in retreat direction.
 			if (EscapeBox(item, enemy, boxNumber))
 			{
 				TargetBox(LOT, boxNumber);
 			}
+			// Not a good escape, but if in same zone as enemy and can stalk, switch to stalking.
+			// Non-violent creatures might recover courage and re-engage.
 			else if (AI->zoneNumber == AI->enemyZone && StalkBox(item, enemy, boxNumber) && !isViolent)
 			{
 				TargetBox(LOT, boxNumber);
@@ -1687,18 +1938,23 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Stalk:
+		// STALK: Maintain distance while staying in enemy's line of sight.
+		// Re-evaluate if no target or current target no longer allows stalking.
 		if (LOT->RequiredBox == NO_VALUE || !StalkBox(item, enemy, LOT->RequiredBox))
 		{
 			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 			if (ValidBox(item, AI->zoneNumber, boxNumber))
 			{
+				// Found a good stalking position.
 				if (StalkBox(item, enemy, boxNumber))
 				{
 					TargetBox(LOT, boxNumber);
 				}
+				// No good stalk box - just wander, maybe go back to bored.
 				else if (LOT->RequiredBox == NO_VALUE)
 				{
 					TargetBox(LOT, boxNumber);
+					// Lost access to enemy's zone - give up stalking.
 					if (AI->zoneNumber != AI->enemyZone)
 						creature->Mood = MoodType::Bored;
 				}
@@ -1708,23 +1964,30 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 	}
 
+	// Fallback: if no target box, use creature's current box.
 	if (LOT->TargetBox == NO_VALUE)
 		TargetBox(LOT, item->BoxNumber);
 
+	// Calculate the actual world position to move toward.
 	CalculateTarget(&creature->Target, item, &creature->LOT);
 
+	// CHECK FOR SPECIAL TRAVERSAL on path to next box.
+	// These flags tell the creature AI if it needs to jump or monkeyswing.
 	creature->JumpAhead = false;
 	creature->MonkeySwingAhead = false;
 
 	if (item->BoxNumber != NO_VALUE)
 	{
+		// Get the next box on the path to target.
 		int endBox = LOT->Node[item->BoxNumber].exitBox;
 		if (endBox != NO_VALUE)
 		{
+			// Find the overlap that connects current box to exit box.
 			int overlapIndex = g_Level.PathfindingBoxes[item->BoxNumber].overlapIndex;
 			int nextBox = 0;
 			int flags = 0;
 
+			// Search through overlaps until we find the one leading to exitBox.
 			if (overlapIndex >= 0)
 			{
 				do
@@ -1734,6 +1997,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 				} while (nextBox != NO_VALUE && ((flags & BOX_END_BIT) == false) && (nextBox != endBox));
 			}
 
+			// If we found the exit overlap, check its traversal flags.
 			if (nextBox == endBox)
 			{
 				if (flags & BOX_JUMP)
@@ -1746,6 +2010,27 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	}
 }
 
+/**
+ * @brief Determines the creature's mood based on its situation.
+ *
+ * MOOD TYPES:
+ * - Bored: Wandering randomly, not actively engaged.
+ * - Attack: Directly pursuing and attacking the enemy.
+ * - Escape: Fleeing from the enemy.
+ * - Stalk: Following the enemy at a distance, waiting to attack.
+ *
+ * MOOD TRANSITIONS:
+ * - Bored/Stalk -> Attack: When in same zone as enemy and close enough.
+ * - Attack -> Escape: When hit and random chance triggers.
+ * - Attack -> Bored: When enemy is too far or in different zone.
+ * - Escape -> Stalk: Random recovery chance when in same zone.
+ *
+ * isViolent creatures skip stalking and go straight to attack/escape.
+ *
+ * @param item Pointer to the creature item.
+ * @param AI Pointer to AI_INFO with zone and distance data.
+ * @param isViolent If true, creature is aggressive (no stalking behavior).
+ */
 void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 {
 	if (!item->IsCreature())
@@ -1755,9 +2040,11 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	auto* enemy = creature->Enemy;
 	auto* LOT = &creature->LOT;
 
+	// Clear target if creature is in a blocked box.
 	if (item->BoxNumber == NO_VALUE || creature->LOT.Node[item->BoxNumber].searchNumber == (creature->LOT.SearchNumber | SEARCH_BLOCKED))
 		creature->LOT.RequiredBox = NO_VALUE;
 
+	// Clear target if it's no longer valid (different zone, blocked, etc.)
 	if (creature->Mood != MoodType::Attack && creature->LOT.RequiredBox != NO_VALUE && !ValidBox(item, AI->zoneNumber, creature->LOT.TargetBox))
 	{
 		if (AI->zoneNumber == AI->enemyZone)
@@ -1766,33 +2053,44 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		creature->LOT.RequiredBox = NO_VALUE;
 	}
 
+	// Store current mood to detect changes later.
 	auto mood = creature->Mood;
+
+	// MOOD DECISION LOGIC
+	// Based on enemy state, creature state, and zone relationships.
 	if (enemy)
 	{
+		// Enemy is dead - go back to idle wandering.
 		if (enemy->HitPoints <= 0 && enemy == LaraItem) // TODO: deal with LaraItem global !
 		{
 			creature->Mood = MoodType::Bored;
 		}
 		else if (isViolent)
 		{
+			// VIOLENT CREATURE BEHAVIOR
+			// These creatures are highly aggressive - they don't stalk, only attack or flee.
 			switch (creature->Mood)
 			{
 			case MoodType::Bored:
 			case MoodType::Stalk:
+				// Same zone = can reach enemy, so attack immediately.
 				if (AI->zoneNumber == AI->enemyZone)
 					creature->Mood = MoodType::Attack;
+				// Got hit but can't reach enemy - flee instead.
 				else if (item->HitStatus)
 					creature->Mood = MoodType::Escape;
 
 				break;
 
 			case MoodType::Attack:
+				// Lost access to enemy's zone - give up and wander.
 				if (AI->zoneNumber != AI->enemyZone)
 					creature->Mood = MoodType::Bored;
 
 				break;
 
 			case MoodType::Escape:
+				// Regained access to enemy - attack again (no stalking for violent).
 				if (AI->zoneNumber == AI->enemyZone)
 					creature->Mood = MoodType::Attack;
 
@@ -1858,10 +2156,34 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	}
 }
 
+/**
+ * @brief Calculates the world position for creature movement along its path.
+ *
+ * This function walks the path from creature's current box to the target box,
+ * finding the best position to move toward. It handles box boundary clipping
+ * to ensure the creature moves along valid paths through connected boxes.
+ *
+ * CLIPPING SYSTEM:
+ * - Uses directional flags (CLIP_LEFT/RIGHT/TOP/BOTTOM) to track valid movement directions.
+ * - Shrinks the valid corridor as it traverses boxes to find the optimal path.
+ * - CLIP_SECONDARY indicates a complex path requiring intermediate target.
+ *
+ * RETURN VALUES:
+ * - PRIME_TARGET: Reached the target box, use LOT->Target position.
+ * - SECONDARY_TARGET: Path turns, use intermediate position.
+ * - NO_TARGET: Couldn't reach target, use current box position.
+ *
+ * @param target Output world position to move toward.
+ * @param item The creature item.
+ * @param LOT The creature's pathfinding data.
+ * @return TARGET_TYPE indicating the quality of target found.
+ */
 TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 {
+	// Expand the pathfinding search if needed.
 	UpdateLOT(LOT, 5);
 
+	// Start with creature's current position as default target.
 	*target = item->Pose.Position;
 
 	int boxNumber = item->BoxNumber;
@@ -1870,20 +2192,27 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 
 	auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
+	// Convert box boundaries to world coordinates.
+	// Note: box coordinates are in blocks, multiply by BLOCK(1) for world units.
 	int boxLeft = ((int)box->left * BLOCK(1));
 	int boxRight = ((int)box->right * BLOCK(1)) - 1;
 	int boxTop = ((int)box->top * BLOCK(1));
 	int boxBottom = ((int)box->bottom * BLOCK(1)) - 1;
+
+	// Track the valid corridor as we traverse boxes.
 	int left = boxLeft;
 	int right = boxRight;
 	int top = boxTop;
 	int bottom = boxBottom;
-	int direction = CLIP_ALL;
+	int direction = CLIP_ALL; // Can move in all directions initially.
 
+	// MAIN LOOP: Walk along the path from current box to target box.
 	do
 	{
 		box = &g_Level.PathfindingBoxes[boxNumber];
 
+		// Clamp target Y to box height.
+		// Flying creatures stay above the floor.
 		if (LOT->Fly != NO_FLYING)
 		{
 			if (target->y > box->height - BLOCK(1))
@@ -1892,16 +2221,19 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 		else if(target->y > box->height)
 			target->y = box->height;
 
+		// Get current box boundaries.
 		boxLeft = ((int)box->left * BLOCK(1));
 		boxRight = ((int)box->right * BLOCK(1)) - 1;
 		boxTop = ((int)box->top * BLOCK(1));
 		boxBottom = ((int)box->bottom * BLOCK(1)) - 1;
 
+		// Check if creature is inside this box.
 		if (item->Pose.Position.z >= boxLeft &&
 			item->Pose.Position.z <= boxRight &&
 			item->Pose.Position.x >= boxTop &&
 			item->Pose.Position.x <= boxBottom)
 		{
+			// Inside box - reset corridor bounds to this box.
 			left = ((int)box->left * BLOCK(1));
 			right = ((int)box->right * BLOCK(1)) - 1;
 			top = ((int)box->top * BLOCK(1));
@@ -1909,6 +2241,11 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 		}
 		else
 		{
+			// DIRECTION CLIPPING: Creature outside box - narrow corridor.
+			// This calculates movement direction by checking which edge of each box
+			// the creature needs to cross to stay on the path.
+
+			// Z-AXIS CLIPPING (LEFT/RIGHT)
 			if (item->Pose.Position.z < boxLeft && direction != CLIP_RIGHT)
 			{
 				if ((direction & CLIP_LEFT) &&
@@ -2032,12 +2369,15 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			}
 		}
 
+		// REACHED TARGET BOX: Calculate final target position.
 		if (boxNumber == LOT->TargetBox)
 		{
+			// Use LOT target Z if path was moving left/right.
 			if (direction & (CLIP_LEFT | CLIP_RIGHT))
 			{
 				target->z = LOT->Target.z;
 			}
+			// Otherwise clamp to box boundaries.
 			else if (!(direction & CLIP_SECONDARY))
 			{
 				if (target->z < (boxLeft + CLICK(2)))
@@ -2046,10 +2386,12 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 					target->z = boxRight - CLICK(2);
 			}
 
+			// Use LOT target X if path was moving top/bottom.
 			if (direction & (CLIP_TOP | CLIP_BOTTOM))
 			{
 				target->x = LOT->Target.x;
 			}
+			// Otherwise clamp to box boundaries.
 			else if (!(direction & CLIP_SECONDARY))
 			{
 				if (target->x < (boxTop + CLICK(2)))
@@ -2062,11 +2404,14 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			return TARGET_TYPE::PRIME_TARGET;
 		}
 
+		// Move to next box on path, stop if next box is blocked.
 		boxNumber = LOT->Node[boxNumber].exitBox;
 		if (boxNumber != NO_VALUE && (g_Level.PathfindingBoxes[boxNumber].flags & LOT->BlockMask))
 			break;
 	} while (boxNumber != NO_VALUE);
 
+	// FALLBACK: Couldn't reach target box.
+	// Clamp position to last valid box boundaries.
 	if (!(direction & CLIP_SECONDARY))
 	{
 		if (target->z < (boxLeft + CLICK(2)))
@@ -2083,6 +2428,7 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			target->x = boxBottom - CLICK(2);
 	}
 
+	// Set Y to floor height, flying creatures slightly above.
 	if (LOT->Fly == NO_FLYING)
 		target->y = box->height;
 	else
