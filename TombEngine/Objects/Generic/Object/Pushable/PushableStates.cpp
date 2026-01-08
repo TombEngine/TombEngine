@@ -15,6 +15,7 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Floordata;
 using namespace TEN::Input;
 using namespace TEN::Utils;
 

@@ -84,6 +84,18 @@ void lara_as_controlled_no_look(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 }
 
+void lara_as_controlled_no_look_follow(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::None;
+	coll->Setup.EnableObjectPush = false;
+	coll->Setup.EnableSpasm = false;
+	Camera.flags = CF_FOLLOW_CENTER;
+	Camera.laraNode = LM_HEAD;
+	Camera.targetElevation = -ANGLE(25.0f);
+}
+
 // State:	  LS_VAULT (164)
 // Collision: lara_void_func()
 void lara_as_vault(ItemInfo* item, CollisionInfo* coll)

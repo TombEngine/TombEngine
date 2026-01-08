@@ -552,8 +552,14 @@ namespace TEN::Gui
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
 				break;
 
 			case DisplaySettingsOption::HighFramerate:
@@ -610,8 +616,14 @@ namespace TEN::Gui
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
 				break;
 
 			case DisplaySettingsOption::HighFramerate:
@@ -2203,18 +2215,7 @@ namespace TEN::Gui
 			return;
 
 		case ID_BINOCULARS_ITEM:
-			if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
-				(player.Control.IsLow && !IsHeld(In::Crouch))) &&
-				!UseSpotCam && !TrackCameraInit)
-			{
-				SetScreenFadeIn(OPTICS_FADE_SPEED);
-				BinocularOldCamera = Camera.oldType;
-				player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
-				player.Control.Look.IsUsingBinoculars = true;
-				player.Inventory.OldBusy = true;
-			}
-
-			InventoryItemChosen = NO_VALUE;
+			UseBinoculars(item);
 			return;
 
 		case ID_SMALLMEDI_ITEM:
@@ -2284,11 +2285,12 @@ namespace TEN::Gui
 		auto& player = GetLaraInfo(*item);
 		auto& invRing = Rings[(int)RingTypes::Inventory];
 		auto& ammoRing = Rings[(int)RingTypes::Ammo];
+		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
 
 		if (ammoRing.RingActive)
 		{
 			auto optionString = g_GameFlow->GetString(OptionStrings[5].c_str());
-			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 
 			if (invRing.ObjectListMovement)
 				return;
@@ -2484,12 +2486,12 @@ namespace TEN::Gui
 
 					if (i == CurrentSelectedOption)
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 					else
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 				}
@@ -2704,7 +2706,7 @@ namespace TEN::Gui
 
 					// CHECK: AmmoSelectorFadeVal is never true and therefore the string is never printed.
 					//if (AmmoSelectorFadeVal)
-						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], g_GameFlow->GetSettings()->UI.HeaderTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 
 					if (n == *CurrentAmmoType)
 						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
@@ -3045,7 +3047,7 @@ namespace TEN::Gui
 						objectNumber = int(PHD_CENTER_Y + (DISPLAY_SPACE_RES.y + 1) * 0.0625 * 2.0);
 					}
 
-					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.HeaderTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
 				if (!i && !ring.ObjectListMovement) 
@@ -3598,5 +3600,23 @@ namespace TEN::Gui
 		}
 
 		return false;
+	}
+
+	void GuiController::UseBinoculars(ItemInfo& item)
+	{	
+		auto& player = GetLaraInfo(item);
+
+		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
+			(player.Control.IsLow && !IsHeld(In::Crouch))) &&
+			!UseSpotCam && !TrackCameraInit)
+		{
+			SetScreenFadeIn(OPTICS_FADE_SPEED);
+			BinocularOldCamera = Camera.oldType;
+			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
+			player.Control.Look.IsUsingBinoculars = true;
+			player.Inventory.OldBusy = true;
+		}
+
+		InventoryItemChosen = NO_VALUE;
 	}
 }
