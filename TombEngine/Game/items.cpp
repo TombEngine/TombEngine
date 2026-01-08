@@ -426,6 +426,13 @@ void RemoveActiveItem(short itemNumber, bool killed)
 	}
 }
 
+bool IsItemInRoom(short itemNumber, short roomNumber)
+{
+	const auto& room = g_Level.Rooms[roomNumber];
+	auto it = std::find(room.itemNumbers.begin(), room.itemNumbers.end(), itemNumber);
+	return (it != room.itemNumbers.end());
+}
+
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
@@ -632,7 +639,7 @@ int FindItem(ItemInfo* item)
 		if (item == &g_Level.Items[i])
 			return i;
 
-	return -1;
+	return NO_VALUE;
 }
 
 void UpdateAllItems()
@@ -791,20 +798,6 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 	}
 
 	DoItemHit(&target, damage, isExplosive);
-}
-
-Vector3i GetNearestSectorCenter(const Vector3i& pos)
-{
-	constexpr int SECTOR_SIZE = 1024;
-
-	// Calculate the sector-aligned coordinates.
-	int x = (pos.x / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-	int z = (pos.z / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-
-	// Keep the y-coordinate unchanged.
-	int y = pos.y;
-
-	return Vector3i(x, y, z);
 }
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)

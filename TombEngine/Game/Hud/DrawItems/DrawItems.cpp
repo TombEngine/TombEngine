@@ -209,6 +209,7 @@ namespace TEN::Hud
 		_cameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
 		_targetPosition = Vector3::Zero;
 		_fov = ANGLE(80.0f);
+		_ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
 	}
 
 	void DrawItemsController::StoreCameraInterpolationData()

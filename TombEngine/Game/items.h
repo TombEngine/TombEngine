@@ -204,6 +204,7 @@ public:
 
 bool TestState(int refState, const std::vector<int>& stateList);
 void ItemNewRoom(short itemNumber, short roomNumber);
+bool IsItemInRoom(short itemNumber, short roomNumber);
 void AddActiveItem(short itemNumber);
 short CreateItem();
 void RemoveAllItemsInRoom(short roomNumber, short objectNumber);
@@ -224,8 +225,6 @@ void DoDamage(ItemInfo* item, int damage, bool silent = false);
 void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn = true);
 void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
-
-Vector3i GetNearestSectorCenter(const Vector3i& pos);
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);
 

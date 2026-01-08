@@ -193,6 +193,7 @@ namespace TEN::Collision::Floordata
 
 	Vector2i GetSurfaceTilt(const Vector3& normal, bool isFloor);
 
+	Vector3i                GetNearestSectorCenter(const Vector3i& pos);
 	Vector2i				GetSectorPoint(int x, int z);
 	Vector2i				GetRoomGridCoord(int roomNumber, int x, int z, bool clampToBounds = true);
 	std::vector<Vector2i>	GetNeighborRoomGridCoords(const Vector3i& pos, int roomNumber, unsigned int searchDepth);

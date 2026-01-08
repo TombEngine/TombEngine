@@ -45,7 +45,7 @@ namespace TEN::Hud
 	public:
 		// Utilities
 
-		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always, InteractionType override = InteractionType::Undefined);
+		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always, InteractionType overriddenType = InteractionType::Undefined);
 		void Draw() const;
 		void Update();
 		void Clear();

@@ -29,6 +29,7 @@ local settings = Flow.Settings.new()
 	settings.Gameplay.targetObjectOcclusion = true
 	settings.Gameplay.enableInventory = true
 
+	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
@@ -42,6 +43,15 @@ local settings = Flow.Settings.new()
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
+	
+	settings.UI.headerTextColor = Color(216, 117, 49)
+	settings.UI.optionTextColor = Color(240, 220, 32)
+	settings.UI.plainTextColor = Color(255, 255, 255)
+	settings.UI.disabledTextColor = Color(128, 128, 128)
+	settings.UI.shadowTextColor = Color(0, 0, 0)	
+	settings.UI.titleMenuPosition = Vec2(50, 66)
+	settings.UI.titleMenuScale = 1.0
+	settings.UI.titleMenuAlignment = Strings.DisplayStringOption.CENTER
 	
 	-- Hair[1] is normal player hair. Types [2] and [3] are for left and right young Lara hair.
 	

@@ -58,6 +58,7 @@ table Room {
 	flags: int32;
 	reverb_type: int32;
 	item_numbers: [int32];
+	block_stopper_flags: [bool];
 }
 
 table Item {
@@ -648,6 +649,7 @@ table SaveGame {
 	camera: Camera;
 	lara: Lara;
 	rooms: [Room];
+	box_flags: [int32];
 	items: [Item];
 	next_item_free: int32;  // for compatibility
 	next_item_active: int32;  // for compatibility

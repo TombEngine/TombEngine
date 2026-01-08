@@ -115,7 +115,7 @@ namespace TEN::Hud
 		return !armsBusy && conditionsMet;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType override)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
 		if (!g_Configuration.EnableInteractionHighlighter)
@@ -163,7 +163,7 @@ namespace TEN::Hud
 			return;
 
 		auto position = itemBoundingBox.Center;
-		auto type = InteractionType::Undefined;
+		auto interactionType = InteractionType::Undefined;
 		
 		int checkDirectionDir = 0;
 		bool checkFacing = false;
@@ -171,7 +171,7 @@ namespace TEN::Hud
 		// Decide on interaction highlight parameters based on object type.
 		if (Objects[item.ObjectNumber].isPickup)
 		{
-			type = InteractionType::Pickup;
+			interactionType = InteractionType::Pickup;
 			checkFacing = false;
 
 			if (!item.TriggerFlags)
@@ -181,7 +181,7 @@ namespace TEN::Hud
 		}
 		else if (item.IsCreature())
 		{
-			type = InteractionType::Talk;
+			interactionType = InteractionType::Talk;
 			position.y -= itemBoundingBox.Extents.y * 1.5f;
 			checkFacing = true;
 		}
@@ -192,7 +192,7 @@ namespace TEN::Hud
 		}
 		else
 		{
-			type = InteractionType::Use;
+			interactionType = InteractionType::Use;
 
 			// If object bounds are too narrow, show highlighter above the object.
 			if (abs(itemBoundingBox.Extents.y) > CLICK(1))
@@ -251,11 +251,11 @@ namespace TEN::Hud
 		}
 
 		//Override interaction action if defined
-		if (override != InteractionType::Undefined)
-			type = override;
+		if (type != InteractionType::Undefined)
+			interactionType = type;
 
 		// If interaction target changes significantly, start crossfade.
-		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != type)
+		if (Vector3::Distance(_current.Position, position) > INTERACTION_DISTANCE_TOLERANCE || _current.Type != interactionType)
 		{
 			_previous = _current;
 			_current.Fade = 0.0f;
@@ -263,7 +263,7 @@ namespace TEN::Hud
 
 		// Show the highlight.
 		_current.Position = position;
-		_current.Type = type;
+		_current.Type = interactionType;
 		_isActive = true;
 	}
 
