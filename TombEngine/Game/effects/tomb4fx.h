@@ -327,7 +327,7 @@ int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
 void UpdateGunFlashes();
 void UpdateGunShells();
-void AddWaterSparks(int x, int y, int z, int num);
+void AddWaterSparks(int x, int y, int z, int num, unsigned char r = 227, unsigned char g = 227, unsigned char b = 227);
 void ExplodingDeath(short itemNumber, short flags); // BODY_ flags
 int GetFreeShockwave();
 void TriggerShockwave(Pose* pos, short innerRad, short outerRad, int speed, unsigned char r, unsigned char g, unsigned char b, unsigned char life, EulerAngles rotation, short damage, bool sound, bool fadein, bool light, int style);

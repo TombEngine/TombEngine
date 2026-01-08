@@ -176,6 +176,13 @@ namespace TEN::Math::Random
 		return (center + relPoint);
 	}
 
+	Vector3 GeneratePointInCylinder(const Vector3& pos, float radius, float max_height)
+	{
+		auto posXZ = GeneratePoint2DInCircle(Vector2(pos.x, pos.z), radius);
+		auto posY = pos.y + GenerateFloat(-max_height / 2, max_height / 2);
+		return Vector3(posXZ.x, posY, posXZ.y);
+	}
+
 	bool TestProbability(float prob)
 	{
 		if (prob <= 0.0f)

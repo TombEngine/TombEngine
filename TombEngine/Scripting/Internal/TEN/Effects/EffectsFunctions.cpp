@@ -681,26 +681,64 @@ namespace TEN::Scripting::Effects
 
 	/// Emit snow particles.
 	// @function EmitSnow
-	// @tparam Vec3 pos World position.
-	// @tparam[opt=0] float initialYVelocity Initial vertical velocity.
+	// @tparam[opt=Vec3(0, 0, 0)] position World position.
+	// @tparam[opt=Vec3(0, 0, 0)] Vec3 initialVelocity Initial velocity of the snow particles.
+	// @tparam[opt=8192] float randomRange XZ Range in blocks around the position where snow particles will be spawned. (1 block = 1024 world units, 8 block by default)
+	// @tparam[opt=1024] float randomHeight Y range in blocks around the randomRange where snow particles will be spawned. (1 block = 1024 world units, 1 block by default)
 	// @tparam[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
 	// @tparam[opt=1] float strength Strength of the snow effect.
-	// @tparam[opt=false] bool ignoreWind Whether to ignore wind room flag.
-	static void EmitSnow(const Vec3& pos, TypeOrNil<float> initialYVelocity, TypeOrNil<float> life, TypeOrNil<float> strength, TypeOrNil<bool> ignoreWindRoomFlag)
+	// @tparam[opt=false] bool enableClustering Whether to enable clustering of snow particles.
+	// @tparam[opt=true] bool checkWindFlag Whether to ignore wind room flag.
+	// @tparam[opt=ScriptColor(255, 255, 255, 255)] ScriptColor color Color of the snow particles.
+	static void EmitSnow(const sol::table& table)
 	{
-		Weather.SpawnWeatherParticles(WeatherType::Snow, pos.x, pos.y, pos.z, ValueOr<float>(initialYVelocity, 0), ValueOr<float>(life, 1), ValueOr<float>(strength, 1), ValueOr<bool>(ignoreWindRoomFlag, false));
+		auto pos = table.get_or("position", Vec3(0, 0, 0));
+		if (pos.x == 0 && pos.y == 0 && pos.z == 0) {
+			TENLog("EmitSnow() 'position' not specified, aborting.", LogLevel::Error);
+			return;
+		}
+		WeatherParameters params;
+		params.Type = WeatherType::Snow;
+		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
+		params.Life = table.get_or("life", 1.0f);
+		params.Strength = table.get_or("strength", 1.0f);
+		params.RandomRange = table.get_or("randomRange", BLOCK(8));
+		params.RandomHeight = table.get_or("randomHeight", BLOCK(1));
+		params.Clustering = table.get_or("enableClustering", false);
+		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
+		params.BaseColor = table.get_or("color", ScriptColor(Vector4(1.0f, 1.0f, 1.0f, 1.0f)));
+		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
 	}
 
 	/// Emit rain particles.
 	// @function EmitRain
-	// @tparam Vec3 pos World position.
-	// @tparam[opt=0] float initialYVelocity Initial vertical velocity.
+	// @tparam Vec3 position World position.
+	// @tparam[opt=Vec3(0, 0, 0)] Vec3 initialVelocity Initial velocity of the rain particles.
+	// @tparam[opt=8192] float randomRange XZ Range in blocks around the position where rain particles will be spawned. (1 block = 1024 world units, 8 block by default)
+	// @tparam[opt=1024] float randomHeight Y range in blocks around the randomRange where rain particles will be spawned. (1 block = 1024 world units, 1 block by default)
 	// @tparam[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
 	// @tparam[opt=1] float strength Strength of the rain effect.
-	// @tparam[opt=false] bool ignoreWind Whether to ignore wind room flag.
-	static void EmitRain(const Vec3& pos, TypeOrNil<float> initialYVelocity, TypeOrNil<float> life, TypeOrNil<float> strength, TypeOrNil<bool> ignoreWindRoomFlag)
+	// @tparam[opt=false] bool enableClustering Whether to enable clustering of rain particles.
+	// @tparam[opt=true] bool checkWindFlag Whether to ignore wind room flag.
+	// @tparam[opt=ScriptColor(204, 255, 255, 255)] ScriptColor color Color of the rain particles.
+	static void EmitRain(const sol::table& table)
 	{
-		Weather.SpawnWeatherParticles(WeatherType::Rain, pos.x, pos.y, pos.z, ValueOr<float>(initialYVelocity, 0), ValueOr<float>(life, 1), ValueOr<float>(strength, 1), ValueOr<bool>(ignoreWindRoomFlag, false));
+		auto pos = table.get_or("position", Vec3(0, 0, 0));
+		if (pos.x == 0 && pos.y == 0 && pos.z == 0) {
+			TENLog("EmitRain() 'position' not specified, aborting.", LogLevel::Error);
+			return;
+		}
+		WeatherParameters params;
+		params.Type = WeatherType::Rain;
+		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
+		params.Life = table.get_or("life", 1.0f);
+		params.Strength = table.get_or("strength", 1.0f);
+		params.RandomRange = table.get_or("randomRange", BLOCK(8));
+		params.RandomHeight = table.get_or("randomHeight", BLOCK(1));
+		params.Clustering = table.get_or("enableClustering", false);
+		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
+		params.BaseColor = table.get_or("color", ScriptColor(Vector4(0.8f, 1.0f, 1.0f, 1.0f)));
+		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
 	}
 
 	/// Make an explosion. Does not hurt Lara
