@@ -680,7 +680,6 @@ namespace TEN::Scripting::Effects
 	}
 
 	/// Emit weather particles.
-	// @function EmitWeather
 	// @table WeatherParameters
 	// @tparam Vec3 position World position.
 	// @tparam Vec3 initialVelocity Initial velocity of the particles.
