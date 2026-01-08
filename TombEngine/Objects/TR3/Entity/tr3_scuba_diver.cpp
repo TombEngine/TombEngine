@@ -70,6 +70,7 @@ namespace TEN::Entities::Creatures::TR3
 		harpoonItem->ObjectNumber = ID_SCUBA_HARPOON;
 		harpoonItem->RoomNumber = item->RoomNumber;
 		harpoonItem->Pose.Position = pos;
+		harpoonItem->Model.Color = Vector4::One;
 
 		InitializeItem(harpoonItemNumber);
 
