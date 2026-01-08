@@ -56,9 +56,7 @@ local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
 local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
 
--- Transformation flare colour (the large expanding glow)
-local COLOR_TRANSFORMATION_FLARE_COLOR = Color(0, 128, 0)
-
+----------------------------------------------------------------------
 -- INTERNAL STATE (DO NOT EDIT)
 ----------------------------------------------------------------------
 
