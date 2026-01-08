@@ -21,29 +21,31 @@ local DEFAULT_FOV   = 80
 local CINEMATIC_FOV = 55
 
 -- Orbit camera settings
-local ORBIT_RADIUS       = 768
+
+-- Radius, Height (from head), Duration (in frames), Start Angle, End Angle
+local ORBIT_RADIUS       = 512
 local ORBIT_HEIGHT       = -150
 local ORBIT_DURATION     = 240
-local ORBIT_START_ANGLE  = math.rad(200) -- side profile start
+local ORBIT_START_ANGLE  = math.rad(200)
 local ORBIT_END_ANGLE    = math.rad(340)
 
--- Marco transformation particle settings
-local MARCO_PARTICLE_MIN_RADIUS = 5120
-local MARCO_PARTICLE_MAX_RADIUS = 6144
-local MARCO_PARTICLE_COUNT      = 40
+-- Marco transformation particle settings (in Tomb Editor Square Size)
+local MARCO_PARTICLE_MIN_RADIUS = 5
+local MARCO_PARTICLE_MAX_RADIUS = 7
+local MARCO_PARTICLE_COUNT      = 400
 
--- Dragon stunned particle settings
-local DRAGON_STUN_PARTICLE_MIN_RADIUS = 5120
-local DRAGON_STUN_PARTICLE_MAX_RADIUS = 6144
-local DRAGON_STUN_PARTICLE_COUNT      = 60
+-- Dragon stunned particle settings (in Tomb Editor Square Size)
+local DRAGON_STUN_PARTICLE_MIN_RADIUS = 2
+local DRAGON_STUN_PARTICLE_MAX_RADIUS = 4
+local DRAGON_STUN_PARTICLE_COUNT      = 800
 
 ----------------------------------------------------------------------
 -- COLOUR CONFIGURATION (SAFE TO EDIT)
 ----------------------------------------------------------------------
 
 -- Marco transformation core glow colour (the bright pulse at the centre)
-local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(255, 0, 0)
-local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(64, 0, 0)
+local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0)
+local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0)
 
 -- Marco transformation spark particle colour range (each spark picks a random colour)
 local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0)
@@ -52,12 +54,11 @@ local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
 -- Dragon stunned particle colours (the energy swirl during animation 22)
 -- Default color matches light effect in the source code
 local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
-local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(0, 128, 0)
+local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
 
 -- Transformation flare colour (the large expanding glow)
 local COLOR_TRANSFORMATION_FLARE_COLOR = Color(0, 128, 0)
 
-----------------------------------------------------------------------
 -- INTERNAL STATE (DO NOT EDIT)
 ----------------------------------------------------------------------
 
@@ -98,7 +99,7 @@ function TR2_DRAGON_Cutscene.Init()
 
     local pos = Lara:GetPosition() 
     local room = Lara:GetRoom()
-    
+
     camHelper = Moveable( TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", pos, Rotation(0,0,0), room )
     cam       = GetCameraByName("DAGGER_CAM")
     marco     = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
@@ -135,7 +136,7 @@ function TR2_DRAGON_Cutscene.Update()
             local startOffset = randomPointOnSphere(radius)
             local startPos    = targetPos + startOffset
             local dir         = Normalize(targetPos - startPos)
-            local speed       = 10000 + math.random() * 2000
+            local speed       = 2500 + math.random() * 500
             local particleLife = ComputeLife(radius, speed)
 
             EmitAdvancedParticle({
@@ -152,6 +153,8 @@ function TR2_DRAGON_Cutscene.Update()
                 spriteSeqID = Objects.ObjID.SPARK_SPRITE,
                 rotVel     = 0,
                 animated   = false,
+                light      = true,
+                lightRadius = 8
             })
         end
     end
@@ -169,22 +172,8 @@ function TR2_DRAGON_Cutscene.Update()
             spriteSeqID = Objects.ObjID.DEFAULT_SPRITES,
             spriteID   = 14,
             animated   = false,
-        })
-    end
-
-    local function emitTransformationFlare(pos)
-        EmitAdvancedParticle({
-            pos        = pos,
-            vel        = Vec3(0,0,0),
-            life       = 4,
-            startSize  = 0,
-            endSize    = 512,
-            startColor = COLOR_TRANSFORMATION_FLARE_COLOR,
-            endColor   = COLOR_TRANSFORMATION_FLARE_COLOR,
-            blendMode  = TEN.Effects.BlendID.ADDITIVE,
-            spriteSeqID = Objects.ObjID.DEFAULT_SPRITES,
-            spriteID   = 14,
-            animated   = false,
+            light      = true,
+            lightRadius = 8,
         })
     end
 
@@ -196,7 +185,7 @@ function TR2_DRAGON_Cutscene.Update()
         local target = marco[1]:GetJointPosition(18)
         emitInwardSphereParticles(
             target,
-            math.random(MARCO_PARTICLE_MIN_RADIUS, MARCO_PARTICLE_MAX_RADIUS),
+            math.random((MARCO_PARTICLE_MIN_RADIUS*1024), (MARCO_PARTICLE_MAX_RADIUS*1024)),
             MARCO_PARTICLE_COUNT,
             COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR,
             COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
@@ -208,34 +197,43 @@ function TR2_DRAGON_Cutscene.Update()
         )
     end
 
-    ------------------------------------------------------------------
-    -- DRAGON STUNNED EFFECT (Animation 22)
-    ------------------------------------------------------------------
+------------------------------------------------------------------
+-- DRAGON STUNNED EFFECT (Animation 22 + stun timer)
+------------------------------------------------------------------
 
-    local dragonList = GetMoveablesBySlot(TEN.Objects.ObjID.DRAGON_FRONT)
-    local dragon     = dragonList[1]
+local dragonList = GetMoveablesBySlot(TEN.Objects.ObjID.DRAGON_FRONT)
+local dragon     = dragonList[1]
 
-    if dragon and dragon:GetActive() and dragon:GetAnim() == 22 then
-        local dragonTarget = dragon:GetJointPosition(0) + Vec3(750, 256, 128)
+if dragon and dragon:GetActive() and dragon:GetAnim() == 22 then
 
-        emitInwardSphereParticles(
-            dragonTarget,
-            math.random(DRAGON_STUN_PARTICLE_MIN_RADIUS, DRAGON_STUN_PARTICLE_MAX_RADIUS),
-            DRAGON_STUN_PARTICLE_COUNT,
-            COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-            COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
-        )
+    -- Read the stun timer from ItemFlags[1]
+    local stunTimer = dragon:GetItemFlags(1)
 
-        emitCoreGlow(
-            dragonTarget,
-            COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-            COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
-        )
+    -- Only emit particles while the stun timer is active (> 0)
+    if stunTimer and stunTimer > 0 then
 
-        if dragon:GetFrame() == 0 then
-            emitTransformationFlare(dragonTarget)
+        -- Prevent dragon particles during dagger pull cutscene
+        if Lara:GetAnim() ~= DAGGER_ANIM_ID then
+
+            local dragonTarget = dragon:GetJointPosition(0) + Vec3(750, 256, 128)
+
+            emitInwardSphereParticles(
+                dragonTarget,
+                math.random((DRAGON_STUN_PARTICLE_MIN_RADIUS * 1024),
+                            (DRAGON_STUN_PARTICLE_MAX_RADIUS * 1024)),
+                DRAGON_STUN_PARTICLE_COUNT,
+                COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
+                COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+            )
+
+            emitCoreGlow(
+                dragonTarget,
+                COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
+                COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+            )
         end
     end
+end
 
     ------------------------------------------------------------------
     -- DAGGER PULL CUTSCENE
