@@ -2605,67 +2605,60 @@ static void ParseEffects(const Save::SaveGame* s)
 		beetle->Pose = ToPose(*beetleInfo->pose());
 	}
 
-	// Effects
-	/*ActiveEffects.clear();
-	FreeEffectSlots.clear();
-	for (auto& room : g_Level.Rooms)
-		room.fxNumbers.clear();
-
-	if (s->new_effects_system() == 1)
+	// BACKWARD COMPATIBILITY: Convert old effects (fxinfos) to new item system.
+	// Old savegames stored effects in EffectList with linked lists via next_fx_active.
+	// New system uses regular Items with FXInfo as their Data variant.
+	if (s->fxinfos() != nullptr && s->fxinfos()->size() > 0)
 	{
-		for (int i = 0; i < s->active_effects()->size(); i++)
-			ActiveEffects.push_back(s->active_effects()->Get(i));
-
-		for (int i = 0; i < s->free_effect_slots()->size(); i++)
-			FreeEffectSlots.push_back(s->free_effect_slots()->Get(i));
-	}
-	else
-	{
-		// Reconstruct ActiveEffects from NextFxActive chain
-		for (int i = s->next_fx_active(); i != NO_VALUE && i < s->fxinfos()->size(); )
+		// Reconstruct active effect indices from next_fx_active chain.
+		std::vector<int> activeEffectIndices;
+		for (int i = s->next_fx_active(); i != NO_VALUE && i < (int)s->fxinfos()->size(); )
 		{
-			ActiveEffects.push_back(i);
+			activeEffectIndices.push_back(i);
 			int next = s->fxinfos()->Get(i)->next_active();
-			if (next == i || ActiveEffects.size() > s->fxinfos()->size())
+			if (next == i || activeEffectIndices.size() > s->fxinfos()->size())
 				break;
 			i = next;
 		}
 
-		// Reconstruct FreeEffectSlots from NextFxFree chain
-		for (int i = s->next_fx_free(); i != NO_VALUE && i < s->fxinfos()->size(); )
+		// Create new items for each active effect.
+		for (int oldIndex : activeEffectIndices)
 		{
-			FreeEffectSlots.push_back(i);
-			int next = s->fxinfos()->Get(i)->next_fx();
-			if (next == i || FreeEffectSlots.size() > s->fxinfos()->size())
-				break;
-			i = next;
+			auto fx_saved = s->fxinfos()->Get(oldIndex);
+
+			int itemNumber = CreateItem();
+			if (itemNumber == NO_VALUE)
+				continue;
+
+			auto& item = g_Level.Items[itemNumber];
+
+			// Set up FXInfo data.
+			item.Data = FXInfo();
+			auto& fxInfo = GetFXInfo(item);
+			fxInfo.Counter = fx_saved->counter();
+			fxInfo.Flag1 = fx_saved->flag1();
+			fxInfo.Flag2 = fx_saved->flag2();
+
+			// Restore pose and room.
+			item.Pose = ToPose(*fx_saved->pose());
+			item.RoomNumber = fx_saved->room_number();
+			item.ObjectNumber = (GAME_OBJECT_ID)fx_saved->object_number();
+			item.Model.Color = ToVector4(fx_saved->color());
+
+			// Restore velocity from old speed/fallspeed.
+			item.Animation.Velocity.z = fx_saved->speed();
+			item.Animation.Velocity.y = fx_saved->fall_speed();
+			item.Animation.FrameNumber = fx_saved->frame_number();
+
+			// Add to room and activate.
+			if (item.RoomNumber >= 0 && item.RoomNumber < (int)g_Level.Rooms.size())
+			{
+				g_Level.Rooms[item.RoomNumber].itemNumbers.push_back(itemNumber);
+				AddActiveItem(itemNumber);
+				item.Status = ITEM_ACTIVE;
+			}
 		}
 	}
-
-	for (int i = 0; i < s->fxinfos()->size(); ++i)
-	{
-		auto& fx = EffectList[i];
-		auto fx_saved = s->fxinfos()->Get(i);
-
-		fx.pos = ToPose(*fx_saved->pose());
-		fx.roomNumber = fx_saved->room_number();
-		fx.objectNumber = fx_saved->object_number();
-		fx.speed = fx_saved->speed();
-		fx.fallspeed = fx_saved->fall_speed();
-		fx.frameNumber = fx_saved->frame_number();
-		fx.counter = fx_saved->counter();
-		fx.color = ToVector4(fx_saved->color());
-		fx.flag1 = fx_saved->flag1();
-		fx.flag2 = fx_saved->flag2();
-
-		if (fx.roomNumber >= 0 && fx.roomNumber < g_Level.Rooms.size())
-		{
-			// Only add if effect is active
-			bool isActive = std::find(ActiveEffects.begin(), ActiveEffects.end(), i) != ActiveEffects.end();
-			if (isActive)
-				g_Level.Rooms[fx.roomNumber].fxNumbers.push_back(i);
-		}
-	}*/
 }
 
 static void ParseLevel(const Save::SaveGame* s, bool hubMode)
