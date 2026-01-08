@@ -417,9 +417,13 @@ namespace TEN::Effects::Environment
 				continue;
 			}
 
-			// Check if particle got out of collision check radius and fade out if it did.
-			if (abs(Camera.pos.x - part.Position.x) > COLLISION_CHECK_DISTANCE ||
-				abs(Camera.pos.z - part.Position.z) > COLLISION_CHECK_DISTANCE)
+			// Determine despawn range based on weather type.
+			// Check if particle got out of radius and fade out if it did.
+			// Multiply by 2 to account for recovery.
+			float range = (part.Type == WeatherType::Rain) ? (WEATHER_SPAWN_DIST_RAIN * 2) :
+						  (part.Type == WeatherType::Snow  ? (WEATHER_SPAWN_DIST_SNOW * 2) : (WEATHER_SPAWN_DIST_OTHER * 2));
+			if (abs(Camera.pos.x - part.Position.x) > range ||
+				abs(Camera.pos.z - part.Position.z) > range)
 			{
 				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
@@ -495,15 +499,6 @@ namespace TEN::Effects::Environment
 				{
 					part.RoomNumber = pointColl.GetRoomNumber();
 				}
-			}
-
-			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
-
-			if (part.Type == WeatherType::Rain &&				
-				(abs(Camera.pos.x - part.Position.x) > range ||
-				abs(Camera.pos.z - part.Position.z) > range))
-			{
-				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
 
 			// If collision was updated, process with position checks.
