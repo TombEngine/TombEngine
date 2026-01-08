@@ -15,7 +15,7 @@ namespace TEN::Renderer::Structures
 		int Type;
 		std::vector<RendererMesh*> ObjectMeshes;
 		RendererBone* Skeleton;
-		std::vector<Matrix> AnimTransforms;
+		std::vector<Matrix> AnimationTransforms;
 		std::vector<Matrix> BindPoseTransforms;
 		std::vector<RendererBone*> LinearizedBones;
 		bool Hidden;

@@ -55,7 +55,7 @@ namespace TEN::Renderer
 		// Push skeleton.
 		bones[nextBoneID++] = rendererObject.Skeleton;
 
-		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimTransforms.data() : &rendererItem->AnimTransforms[0];
+		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimationTransforms.data() : &rendererItem->AnimationTransforms[0];
 
 		// Compute blend alpha.
 		float blendAlpha = 0.0f;
@@ -451,7 +451,7 @@ namespace TEN::Renderer
 		{
 			const auto& mesh = *moveable.ObjectMeshes[i];
 
-			const auto& translationMatrix = itemToDraw.InterpolatedAnimTransforms[i];
+			const auto& translationMatrix = itemToDraw.InterpolatedAnimationTransforms[i];
 			auto pos = Vector3::Transform(mesh.Sphere.Center, translationMatrix * worldMatrix);
 
 			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
@@ -466,7 +466,7 @@ namespace TEN::Renderer
 		if (itemNumber == LaraItem->Index)
 		{
 			auto& object = *_moveableObjects[ID_LARA];
-			*outMatrix = object.AnimTransforms[jointIndex] * _playerWorldMatrix;
+			*outMatrix = object.AnimationTransforms[jointIndex] * _playerWorldMatrix;
 		}
 		else
 		{
@@ -476,7 +476,7 @@ namespace TEN::Renderer
 			auto* nativeItem = &g_Level.Items[itemNumber];
 
 			auto& obj = *_moveableObjects[nativeItem->ObjectNumber];
-			*outMatrix = obj.AnimTransforms[jointIndex] * rendererItem->World;
+			*outMatrix = obj.AnimationTransforms[jointIndex] * rendererItem->World;
 		}
 	}
 
@@ -598,7 +598,7 @@ namespace TEN::Renderer
 		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
-		auto world = rendererItem->InterpolatedAnimTransforms[boneID] * rendererItem->World;
+		auto world = rendererItem->InterpolatedAnimationTransforms[boneID] * rendererItem->World;
 
 		return Vector3::Transform(relOffset, world);
 	}
@@ -707,12 +707,12 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectID];
 
 		// Loop through meshes.
-		for (int i = 0; i < moveable->ObjectMeshes.size(); ++i)
+		for (int i = 0; i < moveable->ObjectMeshes.size(); i++)
 		{
 			if (item.GetMeshBits() && !item.IsMeshVisible(i))
 				continue;
 
-			const auto& s = moveable->ObjectMeshes[i]->Sphere;
+			const auto& sphere = moveable->ObjectMeshes[i]->Sphere;
 
 			// World matrix per mesh (animation or bind-pose).
 			auto meshWorldMatrix = Matrix::Identity;
@@ -726,8 +726,8 @@ namespace TEN::Renderer
 			}
 
 			// Transform center.
-			auto meshWorldCenter = Vector3::Transform(s.Center, meshWorldMatrix);
-			float meshWorldRadius = s.Radius * scale;
+			auto meshWorldCenter = Vector3::Transform(sphere.Center, meshWorldMatrix);
+			float meshWorldRadius = sphere.Radius * scale;
 
 			// Keep largest for bounding approximation.
 			if (meshWorldRadius > radiusMax)

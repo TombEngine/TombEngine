@@ -90,7 +90,7 @@ static int GetNormalizedArmAnimFrame(GAME_OBJECT_ID animObjectID, int frameNumbe
 	{
 		const auto& anim = GetAnimData(animObjectID, i);
 		
-		int currentAnimFrameCount = (int)anim.Keyframes.size();
+		int currentAnimFrameCount = (int)anim.Frames.size();
 		int nextFrameCount = (frameCount + currentAnimFrameCount);
 
 		if (frameNumber < nextFrameCount)
@@ -232,7 +232,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
-			const auto& leftFrame = leftAnim.Frames[std::min(leftFrameNumber, (int)leftAnim.Frames.size() - 1)];
+			const auto& leftFrame = leftAnim.Frames[leftFrameNumber];
 
 			int upperArmMask = MESH_BITS(LM_LINARM);
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
@@ -255,7 +255,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			const auto& rightFrame = rightAnim.Frames[std::min(rightFrameNumber, (int)rightAnim.Frames.size() - 1)];
+			const auto& rightFrame = rightAnim.Frames[rightFrameNumber];
 
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
@@ -303,7 +303,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 	// Copy matrices in player object.
 	for (int m = 0; m < NUM_LARA_MESHES; m++)
-		playerObject.AnimTransforms[m] = rItem.InterpolatedAnimTransforms[m];
+		playerObject.AnimationTransforms[m] = rItem.InterpolatedAnimationTransforms[m];
 
 	// Copy meshswap indices.
 	rItem.SkinIndex = LaraItem->Model.SkinIndex;
@@ -350,14 +350,14 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 
 	if (skinMode == SkinningMode::Full)
 	{
-		for (int m = 0; m < laraObj.AnimTransforms.size(); m++)
-			_stItem.BonesMatrices[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
+			_stItem.BonesMatrices[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 		UpdateConstantBuffer(_stItem, _cbItem);
 
 		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 	}
 
-	memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, laraObj.AnimTransforms.size() * sizeof(Matrix));
+	memcpy(_stItem.BonesMatrices, item->InterpolatedAnimationTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
 	UpdateConstantBuffer(_stItem, _cbItem);
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -399,7 +399,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];
 
 		_stItem.World = Matrix::Identity;
-		_stItem.BonesMatrices[0] = itemToDraw->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
+		_stItem.BonesMatrices[0] = itemToDraw->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
 		_stItem.Skinned = (int)skinned;
 
 		ReflectMatrixOptionally(_stItem.BonesMatrices[0]);

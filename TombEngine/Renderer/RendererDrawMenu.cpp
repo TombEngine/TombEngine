@@ -934,7 +934,7 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimTransforms[i] * worldMatrix;
+				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
@@ -1005,13 +1005,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			int prevFrameNumber = item.GetPrevFrameNumber();
-
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, animNumber).Keyframes[prevFrameNumber],
-				GetAnimData(object, animNumber).Keyframes[frameNumber],
-				alpha);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
 		SetBlendMode(BlendMode::Opaque);

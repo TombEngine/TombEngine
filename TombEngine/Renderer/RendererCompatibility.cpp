@@ -687,7 +687,7 @@ namespace TEN::Renderer
 					for (int j = 0; j < obj->nmeshes; j++)
 					{
 						moveable.LinearizedBones.push_back(new RendererBone(j));
-						moveable.AnimTransforms.push_back(Matrix::Identity);
+						moveable.AnimationTransforms.push_back(Matrix::Identity);
 						moveable.BindPoseTransforms.push_back(Matrix::Identity);
 					}
 

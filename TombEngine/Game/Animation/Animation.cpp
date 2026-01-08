@@ -385,6 +385,8 @@ namespace TEN::Animation
 	const FrameData& GetFrame(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
 	{
 		const auto& anim = GetAnimData(objectID, animNumber);
+
+		frameNumber = std::clamp(frameNumber, 0, (int)anim.Frames.size() - 1);
 		return anim.Frames[frameNumber];
 	}
 

@@ -520,7 +520,7 @@ namespace TEN::Renderer
 				newItem.DisableInterpolation = false;
 				
 				for (int j = 0; j < BONE_COUNT_MAX; j++)
-					newItem.PrevAnimTransforms[j] = newItem.AnimTransforms[j];
+					newItem.PrevAnimationTransforms[j] = newItem.AnimationTransforms[j];
 			}
 
 			// Force interpolation only for player in player freeze mode.
@@ -534,7 +534,7 @@ namespace TEN::Renderer
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
-				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
+				newItem.InterpolatedAnimationTransforms[j] = Matrix::Lerp(newItem.PrevAnimationTransforms[j], newItem.AnimationTransforms[j], GetInterpolationFactor(forceValue));
 
 			// NOTE: now at least positions and animations are updated,
 			// because even off-screen the correct position is required 
@@ -1010,7 +1010,7 @@ namespace TEN::Renderer
 			item.PrevScale = item.Scale;
 
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
-				item.PrevAnimTransforms[j] = item.AnimTransforms[j];
+				item.PrevAnimationTransforms[j] = item.AnimationTransforms[j];
 		}
 
 		for (auto& effect : _effects)
