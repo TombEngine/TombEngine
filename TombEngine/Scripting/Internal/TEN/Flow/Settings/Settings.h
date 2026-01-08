@@ -106,8 +106,8 @@ namespace TEN::Scripting
 
 	struct UISettings
 	{
-		ScriptColor HeaderTextColor		= ScriptColor(240, 220, 32);	// Yellow
-		ScriptColor OptionTextColor		= ScriptColor(216, 117, 49);	// Orange
+		ScriptColor HeaderTextColor		= ScriptColor(216, 117, 49);	// Orange
+		ScriptColor OptionTextColor		= ScriptColor(240, 220, 32);	// Yellow
 		ScriptColor PlainTextColor		= ScriptColor(255, 255, 255);	// White
 		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
 		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black

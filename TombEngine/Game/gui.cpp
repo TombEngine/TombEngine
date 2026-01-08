@@ -2045,7 +2045,7 @@ namespace TEN::Gui
 
 	void GuiController::FadeAmmoSelector()
 	{
-		if (Rings[(int)RingTypes::Inventory].RingActive)
+		if (!Rings[(int)RingTypes::Inventory].RingActive)
 		{
 			AmmoSelectorFadeVal = 0;
 		}
@@ -2705,8 +2705,12 @@ namespace TEN::Gui
 					}
 
 					// CHECK: AmmoSelectorFadeVal is never true and therefore the string is never printed.
-					//if (AmmoSelectorFadeVal)
-						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], g_GameFlow->GetSettings()->UI.HeaderTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					if (AmmoSelectorFadeVal > 0)
+					{
+						auto color = g_GameFlow->GetSettings()->UI.OptionTextColor;
+						color.SetA(std::clamp(AmmoSelectorFadeVal * 2, 0, UCHAR_MAX));
+						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], color, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					}
 
 					if (n == *CurrentAmmoType)
 						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
@@ -3047,7 +3051,7 @@ namespace TEN::Gui
 						objectNumber = int(PHD_CENTER_Y + (DISPLAY_SPACE_RES.y + 1) * 0.0625 * 2.0);
 					}
 
-					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.HeaderTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.OptionTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
 				if (!i && !ring.ObjectListMovement) 
