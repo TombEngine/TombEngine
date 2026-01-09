@@ -93,7 +93,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
-			TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
+			item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 
 			auto probe = GetPointCollision(*item);
 

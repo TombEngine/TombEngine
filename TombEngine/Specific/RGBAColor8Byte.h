@@ -13,6 +13,7 @@ private:
 
 public:
 	// Constructors
+	RGBAColor8Byte() = default;
 	RGBAColor8Byte(D3DCOLOR color);
 	RGBAColor8Byte(byte r, byte g, byte b);
 	RGBAColor8Byte(byte r, byte g, byte b, byte a);

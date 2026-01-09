@@ -7,6 +7,7 @@ struct RoomVector {
 }
 
 table LevelData {
+	random_seed: uint32;
 	level_far_view: int32;
 
 	storm_enabled: bool;
@@ -56,6 +57,7 @@ table Room {
 	name: string;
 	flags: int32;
 	reverb_type: int32;
+	block_stopper_flags: [bool];
 }
 
 table Item {
@@ -156,7 +158,7 @@ table WeaponInfo {
 table ArmInfo {
 	anim_number: int32;
 	frame_number: int32;
-	frame_base: int32;
+	anim_object_id: int32;
 	locked: bool;
 	rotation: EulerAngles;
 	gun_flash: int32;
@@ -646,6 +648,7 @@ table SaveGame {
 	camera: Camera;
 	lara: Lara;
 	rooms: [Room];
+	box_flags: [int32];
 	items: [Item];
 	next_item_free: int32;
 	next_item_active: int32;

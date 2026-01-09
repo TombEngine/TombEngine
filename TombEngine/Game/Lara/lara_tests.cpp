@@ -2,7 +2,7 @@
 #include "Game/Lara/lara_tests.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -22,6 +22,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Player;
@@ -182,7 +183,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 			}
 			else
 			{
-				if (((item->Animation.AnimNumber == LA_REACH_TO_HANG && item->Animation.FrameNumber == GetFrameIndex(item, 21)) || item->Animation.AnimNumber == LA_HANG_IDLE)  &&
+				if (((item->Animation.AnimNumber == LA_REACH_TO_HANG && item->Animation.FrameNumber == 21) || item->Animation.AnimNumber == LA_HANG_IDLE)  &&
 					TestLaraClimbIdle(item, coll))
 				{
 					item->Animation.TargetState = LS_LADDER_IDLE;
@@ -1151,6 +1152,16 @@ bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
 }
 
+bool IsSideJumpState(int state)
+{
+	static const std::vector<int> jumpStates
+	{
+		LS_JUMP_LEFT,
+		LS_JUMP_RIGHT,
+	};
+	return TestState(state, jumpStates);
+}
+
 bool IsCrouching(const ItemInfo* item)
 {
 	bool crouching =
@@ -1162,14 +1173,14 @@ bool IsCrouching(const ItemInfo* item)
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
 
-	// HACK: Unless we have a better way to detect the phase of animation,
-	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
+	// HACK: Unless there's better way to detect animation phase,
+	// assume player is crouching if animation is in first 75% of crouch-to-stand animation.
 	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
 	{
-		int frameCount = g_Level.Anims[item->Animation.AnimNumber].frameEnd - g_Level.Anims[item->Animation.AnimNumber].frameBase;
-		int midpoint = frameCount * 0.75f;
+		const auto& anim = GetAnimData(*item);
 
-		if (item->Animation.FrameNumber <= g_Level.Anims[item->Animation.AnimNumber].frameBase + midpoint)
+		int midpoint = anim.EndFrameNumber * 0.75f;
+		if (item->Animation.FrameNumber <= midpoint)
 			crouching = true;
 	}
 
@@ -1513,7 +1524,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_VAULT_2_STEPS;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1524,7 +1535,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_VAULT_3_STEPS;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1539,7 +1550,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_VAULT_1_STEP_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1550,7 +1561,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value() && settings.CrawlExtended)
 		{
 			vaultResult->TargetState = LS_VAULT_2_STEPS_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1561,7 +1572,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value() && settings.CrawlExtended)
 		{
 			vaultResult->TargetState = LS_VAULT_3_STEPS_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1572,7 +1583,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_AUTO_JUMP;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1587,7 +1598,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 	if (vaultResult.has_value() && !torchInHand && g_Configuration.EnableAutoMonkeySwingJump)
 	{
 		vaultResult->TargetState = LS_AUTO_JUMP;
-		if (!HasStateDispatch(item, vaultResult->TargetState))
+		if (!TestStateDispatch(*item, vaultResult->TargetState))
 			return std::nullopt;
 
 		return vaultResult;
@@ -1614,7 +1625,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 		// TODO: Somehow harmonise Context.CalcJumpVelocity to work for both ledge and ladder auto jumps, because otherwise there will be a need for an odd workaround in the future.
 		lara->Context.CalcJumpVelocity = -3 - sqrt(-9600 - 12 * std::max((vaultResult->Height - item->Pose.Position.y + CLICK(0.2f)), -CLICK(7.1f)));
 		item->Animation.AnimNumber = LA_STAND_SOLID;
-		item->Animation.FrameNumber = GetFrameIndex(item, 0);
+		item->Animation.FrameNumber = 0;
 		item->Animation.TargetState = LS_JUMP_UP;
 		item->Animation.ActiveState = LS_IDLE;
 		lara->Control.TurnRate = 0;
@@ -1632,7 +1643,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 	if (vaultResult.has_value() && TestLaraClimbIdle(item, coll))
 	{
 		item->Animation.AnimNumber = LA_STAND_SOLID;
-		item->Animation.FrameNumber = GetFrameIndex(item, 0);
+		item->Animation.FrameNumber = 0;
 		item->Animation.TargetState = LS_LADDER_IDLE;
 		item->Animation.ActiveState = LS_IDLE;
 		lara->Control.HandStatus = HandStatus::Busy;
@@ -1766,7 +1777,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 		else
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_STEP_DOWN;
 
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1779,7 +1790,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 		else
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_JUMP;
 
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1788,7 +1799,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	if (crawlVaultResult.Success)
 	{
 		crawlVaultResult.TargetState = LS_CRAWL_STEP_UP;
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1797,7 +1808,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	if (crawlVaultResult.Success)
 	{
 		crawlVaultResult.TargetState = LS_CRAWL_STEP_DOWN;
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 

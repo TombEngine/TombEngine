@@ -22,6 +22,9 @@
 #include "Game/Lara/lara_surface.h"
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Player
 {
@@ -127,7 +130,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_GIANT_BUTTON_PUSH] = std::pair(lara_as_controlled, lara_default_col);
 		PlayerBehaviorStateRoutines[LS_TRAPDOOR_FLOOR_OPEN] = std::pair(lara_as_controlled, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_FREEFALL_BIS] = std::pair(lara_as_controlled, lara_void_func);
-		PlayerBehaviorStateRoutines[LS_ROUND_HANDLE] = std::pair(lara_as_controlled_no_look, lara_col_turn_switch);
+		PlayerBehaviorStateRoutines[LS_ROUND_HANDLE] = std::pair(lara_as_controlled_no_look_follow, lara_col_turn_switch);
 		PlayerBehaviorStateRoutines[LS_COGWHEEL] = std::pair(lara_as_controlled_no_look, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_LEVERSWITCH_PUSH] = std::pair(lara_as_controlled, lara_void_func);
 		PlayerBehaviorStateRoutines[LS_HOLE] = std::pair(lara_as_pickup, lara_default_col);
@@ -243,7 +246,7 @@ namespace TEN::Entities::Player
 		if (item.Animation.ActiveState < 0 ||
 			item.Animation.ActiveState >= NUM_LARA_STATES)
 		{
-			TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+			TENLog(fmt::format("Error handling unregistered player animation state {}.", item.Animation.ActiveState), LogLevel::Warning);
 			return;
 		}
 
@@ -270,6 +273,6 @@ namespace TEN::Entities::Player
 			return;
 		}
 
-		TENLog("Error handling unregistered player behavior state " + std::to_string(item.Animation.ActiveState) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Error handling unregistered player animation state {}", item.Animation.ActiveState), LogLevel::Warning);
 	}
 }

@@ -398,6 +398,15 @@ namespace TEN::Collision::Floordata
 			(round(scaledNormal.z) * 4)) * sign;
 	}
 
+	Vector3i GetNearestSectorCenter(const Vector3i& pos)
+	{
+		// Calculate sector-aligned position.
+		return Vector3i(
+			((pos.x / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2),
+			pos.y,
+			((pos.z / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2));
+	}
+
 	Vector2i GetSectorPoint(int x, int z)
 	{
 		constexpr auto HALF_BLOCK = (int)BLOCK(0.5f);
