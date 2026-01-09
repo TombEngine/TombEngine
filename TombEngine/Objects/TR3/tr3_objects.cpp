@@ -12,6 +12,8 @@
 #include "Objects/TR3/Entity/Compsognathus.h"
 #include "Objects/TR3/Entity/HybridMutant.h"
 #include "Objects/TR3/Entity/Lizard.h"
+#include "Objects/TR3/Entity/Mercenary.h"
+#include "Objects/TR3/Entity/OilRed.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 #include "Objects/TR3/Entity/SealMutant.h"
 #include "Objects/TR3/Entity/Shiva.h"
@@ -19,7 +21,11 @@
 #include "Objects/TR3/Entity/Raptor.h"
 #include "Objects/TR3/Entity/TwinAutoGun.h"
 #include "Objects/TR3/Entity/WaspMutant.h"
+#include "Objects/TR3/Entity/WhiteSoldier.h"
 #include "Objects/TR3/Entity/Winston.h"
+#include "Objects/TR3/Entity/Punk.h"
+#include "Objects/TR3/Entity/SwatGun.h"
+#include "Objects/TR3/Entity/Bob.h"
 #include "Objects/TR3/Entity/tr3_tony.h"
 #include "Objects/TR3/Entity/tr3_civvy.h"
 #include "Objects/TR3/Entity/tr3_claw_mutant.h"
@@ -487,6 +493,120 @@ static void StartEntity(ObjectInfo* obj)
 		obj->intelligent = true;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z); // Torso
 		obj->SetBoneRotationFlags(7, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_MERCENARY];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeMercenary;
+		obj->control = ControlMercenary;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 40;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_OILRED];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = ControlOilRed;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 25;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_WHITE_SOLDIER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWhiteSoldier;
+		obj->control = ControlWhiteSoldier;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 30;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_PUNK];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePunk;
+		obj->control = ControlPunk;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 20;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_SWAT_GUN];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwatGun;
+		obj->control = ControlSwatGun;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 26;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_LONDON_MERCENARY];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwatGun;
+		obj->control = ControlSwatGun;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 26;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_BOB];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeBob;
+		obj->control = ControlBob;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 34;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
 	}
 
