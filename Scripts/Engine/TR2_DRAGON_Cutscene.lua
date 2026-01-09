@@ -41,8 +41,6 @@ local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), ma
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
 
 local SHOW_DRAGON_BAR = false
-
-
 ----------------------------------------------------------------------
 -- INTERNAL STATE (DO NOT EDIT)
 ----------------------------------------------------------------------
