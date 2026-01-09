@@ -935,7 +935,6 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 
 	// Get raw LOS data.
 	auto los = GetLosCollision(origin, playerItem.RoomNumber, dir, distance, true, true, true);
-	float nearestOccluderDist = distance;
 	
 	// Assess static mesh line of sight.
 	if (!los.Statics.empty() && los.Statics.front().Distance < distance)
