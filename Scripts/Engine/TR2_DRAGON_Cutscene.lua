@@ -40,6 +40,9 @@ local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
 local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
 
+local SHOW_DRAGON_BAR = false
+
+
 ----------------------------------------------------------------------
 -- INTERNAL STATE (DO NOT EDIT)
 ----------------------------------------------------------------------
@@ -133,7 +136,9 @@ function TR2_DRAGON_Cutscene.Init()
     dragonHealthBar.object     = dragon:GetName()
     dragonHealthBar.startValue = dragon:GetHP()
 
+    if SHOW_DRAGON_BAR then
     CustomBar.CreateEnemyHpBar(dragonHealthBar)
+    end
 end
 
 ----------------------------------------------------------------------
@@ -145,28 +150,30 @@ function TR2_DRAGON_Cutscene.Update()
     ------------------------------------------------------------------
     -- MINIMAL, CLEAN BOSS BAR LOGIC
     ------------------------------------------------------------------
+    if SHOW_DRAGON_BAR then
 
-    local bar = CustomBar.Get("DragonHealthBar")
+        local bar = CustomBar.Get("DragonHealthBar")
 
-    -- If the bar was deleted (HP hit 0), recreate it
-    if not bar then
-        CustomBar.CreateEnemyHpBar(dragonHealthBar)
-        bar = CustomBar.Get("DragonHealthBar")
+        -- If the bar was deleted (HP hit 0), recreate it
+        if not bar then
+            CustomBar.CreateEnemyHpBar(dragonHealthBar)
+            bar = CustomBar.Get("DragonHealthBar")
 
-        -- Restore correct max HP
-        local dataName = "DragonHealthBar_bar_data"
-        LevelVars.Engine.CustomBars.bars[dataName].maxValue = 300
+            -- Restore correct max HP
+            local dataName = "DragonHealthBar_bar_data"
+            LevelVars.Engine.CustomBars.bars[dataName].maxValue = 300
 
-        -- Set correct current HP (e.g., 150 when dragon wakes)
-        if dragon then
-            bar:SetBarValue(dragon:GetHP(), 0)
+            -- Set correct current HP (e.g., 150 when dragon wakes)
+            if dragon then
+                bar:SetBarValue(dragon:GetHP(), 0)
+            end
         end
-    end
 
-    -- Normal update
-    if dragon and bar then
-        bar:SetBarValue(dragon:GetHP(), 0)
-        bar:SetVisibility(true)
+        -- Normal update
+        if dragon and bar then
+            bar:SetBarValue(dragon:GetHP(), 0)
+            bar:SetVisibility(true)
+        end
     end
 
     ------------------------------------------------------------------
