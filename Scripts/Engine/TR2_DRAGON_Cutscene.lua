@@ -3,6 +3,7 @@
 
 -- Setup instructions:
 -- Place a CAMERA named "DAGGER_CAM" anywhere in your level (no trigger required)
+local CustomBar = require("Engine.CustomBar")
 
 local TR2_DRAGON_Cutscene = {}
 
@@ -10,49 +11,32 @@ local TR2_DRAGON_Cutscene = {}
 -- USER CONFIGURATION (SAFE TO EDIT)
 ----------------------------------------------------------------------
 
--- Animation ID for Lara pulling the dagger
 local DAGGER_ANIM_ID = 578
-
--- Frame where Lara's mesh should unswap
 local MESH_SWAP_ENDING_FRAME = 197
 
--- Camera FOV settings
 local DEFAULT_FOV   = 80
 local CINEMATIC_FOV = 55
 
--- Orbit camera settings
-
--- Radius, Height (from head), Duration (in frames), Start Angle, End Angle
 local ORBIT_RADIUS       = 512
 local ORBIT_HEIGHT       = -150
 local ORBIT_DURATION     = 240
 local ORBIT_START_ANGLE  = math.rad(200)
 local ORBIT_END_ANGLE    = math.rad(340)
 
--- Marco transformation particle settings (in Tomb Editor Square Size)
 local MARCO_PARTICLE_MIN_RADIUS = 5
 local MARCO_PARTICLE_MAX_RADIUS = 7
 local MARCO_PARTICLE_COUNT      = 400
 
--- Dragon stunned particle settings (in Tomb Editor Square Size)
 local DRAGON_STUN_PARTICLE_MIN_RADIUS = 2
 local DRAGON_STUN_PARTICLE_MAX_RADIUS = 4
 local DRAGON_STUN_PARTICLE_COUNT      = 800
 
-----------------------------------------------------------------------
--- COLOUR CONFIGURATION (SAFE TO EDIT)
-----------------------------------------------------------------------
-
--- Marco transformation core glow colour (the bright pulse at the centre)
 local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0)
 local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0)
 
--- Marco transformation spark particle colour range (each spark picks a random colour)
 local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0)
 local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
 
--- Dragon stunned particle colours (the energy swirl during animation 22)
--- Default color matches light effect in the source code
 local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
 
@@ -63,6 +47,8 @@ local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math
 local marco      = nil
 local camHelper  = nil
 local cam        = nil
+local dragon     = nil
+local dragonList = nil
 
 local camMovedOnce        = false
 local headAnchor          = nil
@@ -79,9 +65,7 @@ local angle = ORBIT_START_ANGLE
 
 local function Normalize(v)
     local len = v:Length()
-    if len == 0 then
-        return Vec3(0, 1, 0)
-    end
+    if len == 0 then return Vec3(0, 1, 0) end
     return Vec3(v.x / len, v.y / len, v.z / len)
 end
 
@@ -90,17 +74,72 @@ local function easeInOut(x)
 end
 
 ----------------------------------------------------------------------
+-- DRAGON HEALTH BAR
+----------------------------------------------------------------------
+
+local dragonHealthBar = {
+
+    barName         = "DragonHealthBar",
+
+    objectIdBg      = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
+    spriteIdBg      = 0,
+    colorBg         = TEN.Color(255,255,255),
+    posBg           = TEN.Vec2(50, 50),
+    rotBg           = 0,
+    scaleBg         = TEN.Vec2(19.05, 19.1),
+    alignModeBg     = TEN.View.AlignMode.CENTER_LEFT,
+    scaleModeBg     = TEN.View.ScaleMode.FIT,
+    blendModeBg     = TEN.Effects.BlendID.ALPHABLEND,
+
+    objectIdBar     = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
+    spriteIdBar     = 1,
+    colorBar        = TEN.Color(255,0,0),
+    posBar          = TEN.Vec2(50, 50),
+    rot             = 0,
+    scaleBar        = TEN.Vec2(20, 20),
+    alignMode       = TEN.View.AlignMode.CENTER_LEFT,
+    scaleMode       = TEN.View.ScaleMode.FIT,
+    blendMode       = TEN.Effects.BlendID.ALPHABLEND,
+
+    text            = "DRAGON",
+    textPos         = TEN.Vec2(20, 16),
+    textScale       = 1.0,
+    textColor       = TEN.Color(255,255,255),
+    hideText        = true,
+
+    alphaBlendSpeed = 50,
+    showBar         = true,
+    blink           = true,
+    blinkLimit      = 0.25,
+
+    object          = nil,
+    startValue      = nil,
+    maxValue        = 300
+}
+
+----------------------------------------------------------------------
 -- INITIALISE CAMERA OBJECTS
 ----------------------------------------------------------------------
 
 function TR2_DRAGON_Cutscene.Init()
 
-    local pos = Lara:GetPosition() 
+    -- Disable generic enemy HP bars so they don't override our custom dragon bar
+    CustomBar.ShowEnemiesHpGenericBar(false)
+
+    local pos = Lara:GetPosition()
     local room = Lara:GetRoom()
 
-    camHelper = Moveable( TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", pos, Rotation(0,0,0), room )
+    camHelper = Moveable(TEN.Objects.ObjID.CAMERA_TARGET, "DAGGER_CAM_HELPER", pos, Rotation(0,0,0), room)
     cam       = GetCameraByName("DAGGER_CAM")
     marco     = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
+
+    dragonList = GetMoveablesBySlot(TEN.Objects.ObjID.DRAGON_FRONT)
+    dragon     = dragonList[1]
+
+    dragonHealthBar.object     = dragon:GetName()
+    dragonHealthBar.startValue = dragon:GetHP()
+
+    CustomBar.CreateEnemyHpBar(dragonHealthBar)
 end
 
 ----------------------------------------------------------------------
@@ -108,6 +147,33 @@ end
 ----------------------------------------------------------------------
 
 function TR2_DRAGON_Cutscene.Update()
+
+    ------------------------------------------------------------------
+    -- MINIMAL, CLEAN BOSS BAR LOGIC
+    ------------------------------------------------------------------
+
+    local bar = CustomBar.Get("DragonHealthBar")
+
+    -- If the bar was deleted (HP hit 0), recreate it
+    if not bar then
+        CustomBar.CreateEnemyHpBar(dragonHealthBar)
+        bar = CustomBar.Get("DragonHealthBar")
+
+        -- Restore correct max HP
+        local dataName = "DragonHealthBar_bar_data"
+        LevelVars.Engine.CustomBars.bars[dataName].maxValue = 300
+
+        -- Set correct current HP (e.g., 150 when dragon wakes)
+        if dragon then
+            bar:SetBarValue(dragon:GetHP(), 0)
+        end
+    end
+
+    -- Normal update
+    if dragon and bar then
+        bar:SetBarValue(dragon:GetHP(), 0)
+        bar:SetVisibility(true)
+    end
 
     ------------------------------------------------------------------
     -- PARTICLE HELPERS
@@ -195,43 +261,36 @@ function TR2_DRAGON_Cutscene.Update()
         )
     end
 
-------------------------------------------------------------------
--- DRAGON STUNNED EFFECT (Animation 22 + stun timer)
-------------------------------------------------------------------
+    ------------------------------------------------------------------
+    -- DRAGON STUNNED EFFECT
+    ------------------------------------------------------------------
 
-local dragonList = GetMoveablesBySlot(TEN.Objects.ObjID.DRAGON_FRONT)
-local dragon     = dragonList[1]
+    if dragon and dragon:GetActive() and dragon:GetAnim() == 22 then
 
-if dragon and dragon:GetActive() and dragon:GetAnim() == 22 then
+        local stunTimer = dragon:GetItemFlags(1)
 
-    -- Read the stun timer from ItemFlags[1]
-    local stunTimer = dragon:GetItemFlags(1)
+        if stunTimer and stunTimer > 0 then
+            if Lara:GetAnim() ~= DAGGER_ANIM_ID then
 
-    -- Only emit particles while the stun timer is active (> 0)
-    if stunTimer and stunTimer > 0 then
+                local dragonTarget = dragon:GetJointPosition(0) + Vec3(750, 256, 128)
 
-        -- Prevent dragon particles during dagger pull cutscene
-        if Lara:GetAnim() ~= DAGGER_ANIM_ID then
+                emitInwardSphereParticles(
+                    dragonTarget,
+                    math.random((DRAGON_STUN_PARTICLE_MIN_RADIUS * 1024),
+                                (DRAGON_STUN_PARTICLE_MAX_RADIUS * 1024)),
+                    DRAGON_STUN_PARTICLE_COUNT,
+                    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
+                    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+                )
 
-            local dragonTarget = dragon:GetJointPosition(0) + Vec3(750, 256, 128)
-
-            emitInwardSphereParticles(
-                dragonTarget,
-                math.random((DRAGON_STUN_PARTICLE_MIN_RADIUS * 1024),
-                            (DRAGON_STUN_PARTICLE_MAX_RADIUS * 1024)),
-                DRAGON_STUN_PARTICLE_COUNT,
-                COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-                COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
-            )
-
-            emitCoreGlow(
-                dragonTarget,
-                COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-                COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
-            )
+                emitCoreGlow(
+                    dragonTarget,
+                    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
+                    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+                )
+            end
         end
     end
-end
 
     ------------------------------------------------------------------
     -- DAGGER PULL CUTSCENE
@@ -257,9 +316,7 @@ end
         return
     end
 
-    if not camHelper or not cam then
-        return
-    end
+    if not camHelper or not cam then return end
 
     TEN.Input.ClearAllKeys()
 
