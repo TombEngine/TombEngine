@@ -160,14 +160,14 @@ namespace TEN::Collision::Los
 										auto offset = pos - item->Pose.Position.ToVector3();
 										int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
 
-										auto sphereLos = SphereLosCollisionData{};
-										sphereLos.Item = item;
-										sphereLos.SphereID = i;
-										sphereLos.Position = pos;
-										sphereLos.RoomNumber = roomNumber;
-										sphereLos.Distance = sphereIntersectDist;
-										sphereLos.IsOriginContained = (bool)sphere.Contains(origin);
-										los.Spheres.push_back(std::move(sphereLos));
+										auto itemSphereLos = ItemSphereLosCollisionData{};
+										itemSphereLos.Item = item;
+										itemSphereLos.SphereID = i;
+										itemSphereLos.Position = pos;
+										itemSphereLos.RoomNumber = roomNumber;
+										itemSphereLos.Distance = sphereIntersectDist;
+										itemSphereLos.IsOriginContained = (bool)sphere.Contains(origin);
+										los.Spheres.push_back(std::move(itemSphereLos));
 									}
 								}
 							}
@@ -178,13 +178,13 @@ namespace TEN::Collision::Los
 								auto offset = boxIntersect - item->Pose.Position.ToVector3();
 								int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
 
-								auto itemLos = ItemLosCollisionData{};
-								itemLos.Item = item;
-								itemLos.Position = boxIntersect;
-								itemLos.RoomNumber = roomNumber;
-								itemLos.Distance = boxIntersectDist;
-								itemLos.IsOriginContained = (bool)obb.Contains(origin);
-								los.Items.push_back(std::move(itemLos));
+								auto itemBoxLos = ItemBoxLosCollisionData{};
+								itemBoxLos.Item = item;
+								itemBoxLos.Position = boxIntersect;
+								itemBoxLos.RoomNumber = roomNumber;
+								itemBoxLos.Distance = boxIntersectDist;
+								itemBoxLos.IsOriginContained = (bool)obb.Contains(origin);
+								los.Items.push_back(std::move(itemBoxLos));
 							}
 						}
 					}
@@ -196,7 +196,7 @@ namespace TEN::Collision::Los
 						auto offset = pos - item->Pose.Position.ToVector3();
 						int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
 
-						auto itemLos = ItemLosCollisionData{};
+						auto itemLos = ItemBoxLosCollisionData{};
 						itemLos.Item = item;
 						itemLos.Position = pos;
 						itemLos.RoomNumber = roomNumber;
@@ -220,7 +220,7 @@ namespace TEN::Collision::Los
 							auto offset = pos - item->Pose.Position.ToVector3();
 							int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
 
-							auto sphereLos = SphereLosCollisionData{};
+							auto sphereLos = ItemSphereLosCollisionData{};
 							sphereLos.Item = item;
 							sphereLos.SphereID = i;
 							sphereLos.Position = pos;
@@ -437,33 +437,33 @@ namespace TEN::Collision::Los
 		return roomLos;
 	}
 
-	std::optional<ItemLosCollisionData> GetItemLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist, bool collidePlayer)
+	std::optional<ItemBoxLosCollisionData> GetItemLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist, bool collidePlayer)
 	{
-		// Run through item LOS collisions.
+		// Run through item box LOS collisions.
 		auto los = GetLosCollision(origin, roomNumber, dir, dist, true, false, false);
-		for (auto& itemLos : los.Items)
+		for (auto& itemBoxLos : los.Items)
 		{
 			// Check if item isn't player (if applicable).
-			if (!collidePlayer && itemLos.Item->IsLara())
+			if (!collidePlayer && itemBoxLos.Item->IsLara())
 				continue;
 
-			return itemLos;
+			return itemBoxLos;
 		}
 
 		return std::nullopt;
 	}
 
-	std::optional<SphereLosCollisionData> GetSphereLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist, bool collidePlayer)
+	std::optional<ItemSphereLosCollisionData> GetSphereLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist, bool collidePlayer)
 	{
-		// Run through sphere LOS collisions.
+		// Run through item sphere LOS collisions.
 		auto los = GetLosCollision(origin, roomNumber, dir, dist, false, true, false);
-		for (auto& sphereLos : los.Spheres)
+		for (auto& itemSphereLos : los.Spheres)
 		{
 			// Check if item isn't player (if applicable).
-			if (!collidePlayer && sphereLos.Item->IsLara())
+			if (!collidePlayer && itemSphereLos.Item->IsLara())
 				continue;
 
-			return sphereLos;
+			return itemSphereLos;
 		}
 
 		return std::nullopt;
