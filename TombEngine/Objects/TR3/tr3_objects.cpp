@@ -31,6 +31,7 @@
 #include "Objects/TR3/Entity/tr3_tiger.h"
 #include "Objects/TR3/Entity/tr3_trex.h"
 #include "Objects/TR3/Entity/tr3_tribesman.h"
+#include "Objects/TR3/Entity/Whale.h"
 
 // Effects
 #include "Objects/Effects/Boss.h"
@@ -193,6 +194,21 @@ static void StartEntity(ObjectInfo* obj)
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(14, ROT_Y);
 		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_WHALE];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = WhaleControl;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = NOT_TARGETABLE;
+		obj->pivotLength = 200;
+		obj->radius = 341;
+		obj->intelligent = true;
+		obj->waterCreature = true;
+		obj->LotType = LotType::Water;
 	}
 
 	obj = &Objects[ID_SCUBA_HARPOON];
