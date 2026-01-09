@@ -2,7 +2,9 @@
 
 #include "Game/Lara/lara_struct.h"
 #include "Scripting/Internal/ScriptAssert.h"
+#include "Scripting/Internal/TEN/Strings/DisplayString/DisplayString.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/clock.h"
 
@@ -53,12 +55,14 @@ namespace TEN::Scripting
 	struct GameplaySettings
 	{
 		bool TargetObjectOcclusion = true;
+		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
 	};
 
 	struct GraphicsSettings
 	{
+		bool AmbientOcclusion = true;
 		bool Skinning = true;
 
 		static void Register(sol::table& parent);
@@ -100,6 +104,21 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct UISettings
+	{
+		ScriptColor HeaderTextColor		= ScriptColor(216, 117, 49);	// Orange
+		ScriptColor OptionTextColor		= ScriptColor(240, 220, 32);	// Yellow
+		ScriptColor PlainTextColor		= ScriptColor(255, 255, 255);	// White
+		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
+		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
+
+		Vec2 TitleMenuPosition = Vec2(50, 66);
+		float TitleMenuScale = 1.0f;
+		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
+
+		static void Register(sol::table& parent);
+	};
+
 	struct WeaponSettings
 	{
 		float Accuracy = 0.0f;
@@ -136,6 +155,7 @@ namespace TEN::Scripting
 		HudSettings					Hud		   = {};
 		PhysicsSettings				Physics	   = {};
 		SystemSettings				System	   = {};
+		UISettings					UI		   = {};
 		std::array<WeaponSettings, (int)LaraWeaponType::NumWeapons - 1> Weapons = {};
 
 		Settings();

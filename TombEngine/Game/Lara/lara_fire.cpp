@@ -64,6 +64,7 @@ const auto FlarePoseStates = std::vector<int>
 	LS_CROUCH_IDLE,
 	LS_CROUCH_TURN_LEFT,
 	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180,
 	LS_SOFT_SPLAT
 };
 
@@ -953,7 +954,8 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 	if (moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < distance)
 	{
 		// Don't filter out creatures.
-		if (!Objects[moveableLos.value().Item->ObjectNumber].intelligent)
+		if (!Objects[moveableLos.value().Item->ObjectNumber].intelligent &&
+			!Objects[moveableLos.value().Item->ObjectNumber].IgnoreInLOSCheck)
 		{
 			// Filter out moveables that are too small.
 			auto extents = moveableLos.value().Item->GetAabb().Extents;

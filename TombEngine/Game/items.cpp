@@ -430,7 +430,7 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 				room->itemNumber = item->NextItem;
 			else
 			{
-				for (short linkNumber = room->itemNumber; linkNumber != -1; linkNumber = g_Level.Items[linkNumber].NextItem)
+				for (short linkNumber = room->itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
 				{
 					if (g_Level.Items[linkNumber].NextItem == itemNumber)
 					{
@@ -464,7 +464,7 @@ void EffectNewRoom(short fxNumber, short roomNumber)
 			room->fxNumber = fx->nextFx;
 		else
 		{
-			for (short linkNumber = room->fxNumber; linkNumber != -1; linkNumber = EffectList[linkNumber].nextFx)
+			for (short linkNumber = room->fxNumber; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextFx)
 			{
 				if (EffectList[linkNumber].nextFx == fxNumber)
 				{
@@ -622,6 +622,29 @@ void RemoveActiveItem(short itemNumber, bool killed)
 		if (killed)
 			GameScriptHandleKilled(itemNumber, false);
 	}
+}
+
+bool IsItemInRoom(short itemNumber, short roomNumber)
+{
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	// Run through items in room.
+	int currentItemNumber = room.itemNumber;
+	while (currentItemNumber != NO_VALUE)
+	{
+		auto& item = g_Level.Items[currentItemNumber];
+
+		if (currentItemNumber == itemNumber)
+			return true;
+
+		// HACK: Prevent possible deadlocks.
+		if (currentItemNumber == item.NextItem)
+			break;
+
+		currentItemNumber = item.NextItem;
+	}
+
+	return false;
 }
 
 void InitializeItem(short itemNumber) 
@@ -847,7 +870,7 @@ int FindItem(ItemInfo* item)
 		if (item == &g_Level.Items[i])
 			return i;
 
-	return -1;
+	return NO_VALUE;
 }
 
 void UpdateAllItems()
@@ -1022,20 +1045,6 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 	}
 
 	DoItemHit(&target, damage, isExplosive);
-}
-
-Vector3i GetNearestSectorCenter(const Vector3i& pos)
-{
-	constexpr int SECTOR_SIZE = 1024;
-
-	// Calculate the sector-aligned coordinates.
-	int x = (pos.x / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-	int z = (pos.z / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-
-	// Keep the y-coordinate unchanged.
-	int y = pos.y;
-
-	return Vector3i(x, y, z);
 }
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)

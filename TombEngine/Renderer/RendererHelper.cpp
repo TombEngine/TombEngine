@@ -47,7 +47,7 @@ namespace TEN::Renderer
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
-		
+
 		RendererBone* bones[MAX_BONES] = {};
 		int nextBone = 0;
 
@@ -135,7 +135,7 @@ namespace TEN::Renderer
 		}
 
 		// Apply mutators on top.
-		if (rItem != nullptr) 
+		if (rItem != nullptr)
 		{
 			const auto& nativeItem = g_Level.Items[rItem->ItemNumber];
 
@@ -201,7 +201,7 @@ namespace TEN::Renderer
 
 			auto prevRotation = currentBone->ExtraRotation;
 			currentBone->ExtraRotation = Quaternion::Identity;
-				
+
 			nativeItem->Data.apply(
 				[&j, &currentBone](QuadBikeInfo& quadBike)
 				{
@@ -268,7 +268,7 @@ namespace TEN::Renderer
 				[&j, &currentBone](RubberBoatInfo& boat)
 				{
 					if (j == 2)
-						currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
+					currentBone->ExtraRotation = EulerAngles(0, 0, boat.PropellerRotation).ToQuaternion();
 				},
 				[&j, &currentBone](UPVInfo& upv)
 				{
@@ -292,7 +292,7 @@ namespace TEN::Renderer
 					if (j == 2)
 						currentBone->ExtraRotation = EulerAngles(0, 0, FROM_RAD(bigGun.BarrelRotation)).ToQuaternion();
 				},
-					[&j, &currentBone, &lastJoint](CreatureInfo& creature)
+				[&j, &currentBone, &lastJoint](CreatureInfo& creature)
 				{
 					auto xRot = Quaternion::Identity;
 					auto yRot = Quaternion::Identity;
@@ -362,7 +362,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
 	}
 
-	bool Renderer::IsFullsScreen() 
+	bool Renderer::IsFullsScreen()
 	{
 		return (!_isWindowed);
 	}
@@ -458,7 +458,7 @@ namespace TEN::Renderer
 			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
 			spheres.push_back(sphere);
 		}
-		
+
 		return spheres;
 	}
 
@@ -472,7 +472,7 @@ namespace TEN::Renderer
 		else
 		{
 			UpdateItemAnimations(itemNumber, true);
-			
+
 			auto* rendererItem = &_items[itemNumber];
 			auto* nativeItem = &g_Level.Items[itemNumber];
 
@@ -492,10 +492,10 @@ namespace TEN::Renderer
 			return SkinningMode::None;
 	}
 
-	Vector4 Renderer::GetPortalRect(Vector4 v, Vector4 vp) 
+	Vector4 Renderer::GetPortalRect(Vector4 v, Vector4 vp)
 	{
 		auto sp = (v * Vector4(0.5f, 0.5f, 0.5f, 0.5f)
-			+ Vector4(0.5f, 0.5f, 0.5f, 0.5f)) 
+			+ Vector4(0.5f, 0.5f, 0.5f, 0.5f))
 			* Vector4(vp.z, vp.w, vp.z, vp.w);
 
 		Vector4 s(sp.x + vp.x, sp.y + vp.y, sp.z + vp.x, sp.w + vp.y);
@@ -519,7 +519,7 @@ namespace TEN::Renderer
 		// Use the viewport rect if one of the dimensions is the same size
 		// as the viewport. This may fix clipping bugs while still allowing
 		// impossible geometry tricks.
-		if (s.z - s.x >= vp.z - vp.x || s.w - s.y >= vp.w - vp.y) 
+		if (s.z - s.x >= vp.z - vp.x || s.w - s.y >= vp.w - vp.y)
 			return vp;
 
 		return s;
@@ -558,7 +558,7 @@ namespace TEN::Renderer
 			_gameCamera.Camera.WorldDirection.y,
 			_gameCamera.Camera.WorldDirection.z,
 			1.0f);
-		
+
 		// Point is behind camera; return nullopt.
 		if ((point - cameraPos).Dot(cameraDir) < 0.0f)
 			return std::nullopt;
@@ -649,5 +649,187 @@ namespace TEN::Renderer
 		screenPath += buffer;
 		SaveWICTextureToFile(_context.Get(), _backBuffer.Texture.Get(), GUID_ContainerFormatPng, TEN::Utils::ToWString(screenPath).c_str(),
 			&GUID_WICPixelFormat24bppBGR, nullptr, true);
+	}
+
+	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
+	{
+		float t = GetInterpolationFactor();
+
+		Matrix viewMatrix = Matrix::CreateLookAt(
+			g_DrawItems.GetInterpolatedCameraPosition(t),
+			g_DrawItems.GetInterpolatedCameraTargetPosition(t),
+			Vector3::Up
+		);
+
+		float aspectRatio = (float)_screenWidth / _screenHeight;
+
+		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(
+			CurrentFOV,
+			aspectRatio,
+			DISPLAY_ITEM_NEAR_PLANE,
+			DISPLAY_ITEM_FAR_PLANE
+		);
+
+		Matrix viewProj = viewMatrix * projMatrix;
+
+		Vector4 p(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+		p = Vector4::Transform(p, viewProj);
+
+		if (fabs(p.w) <= EPSILON)
+			return std::nullopt;
+
+		p /= p.w;
+
+		if (p.x < -1.0f || p.x > 1.0f || p.y < -1.0f || p.y > 1.0f)
+			return std::nullopt;
+
+		float screenX = (p.x + 1.0f) * _screenWidth * 0.5f;
+		float screenY = (1.0f - p.y) * _screenHeight * 0.5f;
+
+		return Vector2(screenX, screenY);
+	}
+
+	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
+	{
+		float alpha = GetInterpolationFactor();
+
+		// World transforms.
+		auto pos    = item.GetInterpolatedPosition(alpha);
+		auto orient = item.GetInterpolatedOrientation(alpha);
+		float scale = item.GetInterpolatedScale(alpha).x;
+		auto objectID = item.GetObjectID();
+
+		// Find largest visible mesh sphere.
+		auto& moveable = _moveableObjects[item.GetObjectID()];
+
+		float radiusMax = 0.0f;
+		auto worldCenter = Vector3::Zero;
+
+		const auto& object = Objects[objectID];
+
+		// Loop through meshes.
+		for (int i = 0; i < moveable->ObjectMeshes.size(); ++i)
+		{
+			if (item.GetMeshBits() && !item.IsMeshVisible(i))
+				continue;
+
+			const auto& s = moveable->ObjectMeshes[i]->Sphere;
+
+			// World matrix per mesh (animation or bind-pose).
+			auto meshWorldMatrix = Matrix::Identity;
+			if (!object.Animations.empty())
+			{
+				meshWorldMatrix = moveable->AnimationTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
+			}
+			else
+			{
+				meshWorldMatrix = moveable->BindPoseTransforms[i] * Matrix::CreateScale(scale) * orient.ToRotationMatrix() * Matrix::CreateTranslation(pos);
+			}
+
+			// Transform center.
+			auto meshWorldCenter = Vector3::Transform(s.Center, meshWorldMatrix);
+			float meshWorldRadius = s.Radius * scale;
+
+			// Keep largest for bounding approximation.
+			if (meshWorldRadius > radiusMax)
+			{
+				radiusMax = meshWorldRadius;
+				worldCenter = meshWorldCenter;
+			}
+		}
+
+		// Use default minimum radius if none found.
+		if (radiusMax <= 0.0f)
+			radiusMax = 10.0f;
+
+		// Build camera matrices.
+		auto camPos = g_DrawItems.GetInterpolatedCameraPosition(alpha);
+		auto camTarget = g_DrawItems.GetInterpolatedCameraTargetPosition(alpha);
+		auto camForward = (camTarget - camPos);
+		camForward.Normalize();
+		auto worldUp = Vector3::Up;
+		auto camRight = camForward.Cross(worldUp);
+		camRight.Normalize();
+		auto camUp = camRight.Cross(camForward);
+		camUp.Normalize();
+
+		// Calculate distance from camera.
+		float dist = (worldCenter - camPos).Length();
+
+		// Build view-projection matrix.
+		float aspectRatio = (float)_screenWidth / _screenHeight;
+		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto viewProj = viewMatrix * projMatrix;
+
+		// Helper lambda to project point and clamp to extended screen bounds.
+		auto projectPointClamped = [&](const Vector3& worldPos) -> Vector2
+		{
+			auto pos = Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+			pos = Vector4::Transform(pos, viewProj);
+
+			// Handle behind camera or w near zero.
+			if (pos.w <= 0.01f)
+			{
+				// Use estimated position based on direction.
+				auto dir = worldPos - camPos;
+				dir.Normalize();
+				
+				// Project direction onto screen plane.
+				float rightDot = dir.Dot(camRight);
+				float upDot = dir.Dot(camUp);
+				
+				// Convert to screen coordinates with large offset for off-screen.
+				float screenX = rightDot * _screenWidth * 2.0f + (_screenWidth * 0.5f);
+				float screenY = -upDot * _screenHeight * 2.0f + (_screenHeight * 0.5f);
+				
+				return Vector2(screenX, screenY);
+			}
+
+			pos /= pos.w;
+
+			// Clamp NDC with extended margin for better size estimation.
+			pos.x = std::clamp(pos.x, -3.0f, 3.0f);
+			pos.y = std::clamp(pos.y, -3.0f, 3.0f);
+
+			float screenX = (pos.x + 1.0f) * _screenWidth * 0.5f;
+			float screenY = (1.0f - pos.y) * _screenHeight * 0.5f;
+			return Vector2(screenX, screenY);
+		};
+
+		// Project center.
+		auto center2D = projectPointClamped(worldCenter);
+
+		// Sample points along camera right/up directions.
+		auto rightWorld = worldCenter + camRight * radiusMax;
+		auto leftWorld = worldCenter - camRight * radiusMax;
+		auto upWorld = worldCenter + camUp * radiusMax;
+		auto downWorld = worldCenter - camUp * radiusMax;
+
+		auto rightProj = projectPointClamped(rightWorld);
+		auto leftProj = projectPointClamped(leftWorld);
+		auto upProj = projectPointClamped(upWorld);
+		auto downProj = projectPointClamped(downWorld);
+
+		// Calculate half extents from projected points.
+		float halfWidth = std::max(std::abs(rightProj.x - center2D.x), std::abs(leftProj.x - center2D.x));
+		float halfHeight = std::max(std::abs(upProj.y - center2D.y), std::abs(downProj.y - center2D.y));
+
+		// Ensure reasonable minimum size based on screen-space estimation.
+		// Calculate expected pixel size based on FOV and distance.
+		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
+		float expectedPixelHeight = (angularSize / CurrentFOV) * _screenHeight;
+		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
+
+		// Use the larger of projected size or estimated size.
+		halfWidth = std::max(halfWidth, expectedPixelWidth * 0.5f);
+		halfHeight = std::max(halfHeight, expectedPixelHeight * 0.5f);
+
+		// Ensure absolute minimum size.
+		halfWidth = std::max(halfWidth, 1.0f);
+		halfHeight = std::max(halfHeight, 1.0f);
+
+		auto halfExtents = Vector2(halfWidth * 2.0f, halfHeight * 2.0f);
+		return std::make_pair(center2D, halfExtents);
 	}
 }

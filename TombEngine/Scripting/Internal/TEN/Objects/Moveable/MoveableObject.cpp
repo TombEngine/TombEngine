@@ -286,6 +286,7 @@ void Moveable::SetObjectID(GAME_OBJECT_ID id)
 {
 	_moveable->ObjectNumber = id;
 	_moveable->ResetModelToDefault();
+	SetAnimation(_moveable, 0);
 }
 
 void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify)
@@ -1224,7 +1225,10 @@ void Moveable::SetCollidable(bool isCollidable)
 // @treturn bool Item's visibility state.
 bool Moveable::GetVisible() const
 {
-	return (_moveable->Status != ITEM_INVISIBLE && _moveable->Model.Color.w > EPSILON);
+	if (_moveable->Status == ITEM_INVISIBLE || _moveable->Model.Color.w <= EPSILON)
+		return false;
+
+	return IsItemInRoom(_moveable->Index, _moveable->RoomNumber);
 }
 
 // Make the item invisible. Alias for `Moveable:SetVisible(false)`.

@@ -139,7 +139,13 @@ namespace TEN::Entities::TR4
 		item->ItemFlags[0] = NO_VALUE; // No horse yet.
 	}
 
-	void HorsemanSparks(Vector3i* pos, int param1, int maxSparks)
+	void HorsemanHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)
+	{
+		// No automatic damage - HorsemanControl handles damage with TR4 shield logic.
+		// HitStatus is already set by HitTarget() before this is called.
+	}
+
+	void TriggerHorsemanRicochets(Vector3i* pos, int param1, int maxSparks)
 	{
 		for (int i = 0; i < maxSparks; i++)
 		{
@@ -231,14 +237,14 @@ namespace TEN::Entities::TR4
 					item->TriggerFlags == currentItem->TriggerFlags)
 				{
 					item->ItemFlags[0] = i;
-					currentItem->Flags |= 0x20;
+					currentItem->Flags |= IFLAG_TRIGGERED;
 				}
 			}
-		}
 
-		// If no horse was found, set ItemFlags[0] to 0 so it isn't searched for again.
-		if (item->ItemFlags[0] == NO_VALUE)
-			item->ItemFlags[0] = 0;
+			// If no horse was found, set ItemFlags[0] to 0 so it isn't searched for again.
+			if (item->ItemFlags[0] == NO_VALUE)
+				item->ItemFlags[0] = 0;
+		}
 
 		// Get horse.
 		ItemInfo* horseItem = nullptr;
@@ -270,6 +276,7 @@ namespace TEN::Entities::TR4
 		if (item->HitPoints <= 0)
 		{
 			item->HitPoints = 0;
+
 			if (item->ItemFlags[1] == 0)
 			{
 				if (item->Animation.ActiveState != HORSEMAN_STATE_DEATH)
@@ -320,52 +327,58 @@ namespace TEN::Entities::TR4
 				int deltaZ = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
 				laraAI.angle = phd_atan(deltaZ, deltaX) - item->Pose.Orientation.y;
-				laraAI.distance = pow(deltaX, 2) + pow(deltaZ, 2);
+				laraAI.distance = SQUARE(deltaX) + SQUARE(deltaZ);
 			}
 
-			if (item->HitStatus &&
-				laraAI.angle < ANGLE(67.5f) &&
-				laraAI.angle > -ANGLE(67.5f) &&
-				laraAI.distance < pow(BLOCK(2), 2))
+			// Shield/damage logic based on TR4 original.
+			// Protection: When mounted with shield, shots from left side are blocked.
+			// Shots from right side (laraAI.angle > 0) always hit.
+			// When not mounted, horseman can raise shield to block.
+			if (item->HitStatus)
 			{
-				if (item->Animation.ActiveState != HORSEMAN_STATE_SHIELD)
+				item->HitStatus = false; // Clear immediately as in TR4.
+
+				if (laraAI.angle < ANGLE(67.5f) &&
+					laraAI.angle > -ANGLE(67.5f) &&
+					laraAI.distance < SQUARE(BLOCK(2)))
 				{
-					if (laraAI.angle <= 0)
+					// Process hit if: in shield state OR Lara on right side OR not mounted.
+					bool isShieldState = item->Animation.ActiveState == HORSEMAN_STATE_SHIELD;
+					bool isLaraOnRight = laraAI.angle > 0;
+					bool isMounted = item->ItemFlags[1] != 0;
+					bool hasShield = (item->MeshBits & 0x400) != 0;
+
+					if (isShieldState || isLaraOnRight || !isMounted)
 					{
-						if (item->ItemFlags[1])
+						// Apply damage if: NOT in shield state AND (Lara on right OR has shield mesh).
+						if (!isShieldState && (isLaraOnRight || hasShield))
 						{
-							if (!item->ItemFlags[1])
-							{
-								if (item->MeshBits & 0x400)
-									item->Animation.RequiredState = HORSEMAN_STATE_SHIELD;
-							}
+							if (Lara.Control.Weapon.GunType == LaraWeaponType::Shotgun)
+								DoDamage(item, 10);
+							else if (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver)
+								DoDamage(item, 20);
+							else
+								DoDamage(item, 1);
+
+							SoundEffect(SFX_TR4_HORSEMAN_TAKEHIT, &item->Pose);
+							SoundEffect(SFX_TR4_HORSE_RICOCHET, &item->Pose);
+
+							auto pos = GetJointPosition(item, 0, Vector3i(0, -128, 80));
+							TriggerHorsemanRicochets(&pos, item->Pose.Orientation.y, 7);
 						}
-						else
+						else if (Random::TestProbability(1 / 8.0f))
 						{
-							if (laraAI.angle > 0 || !(item->MeshBits & 0x400))
-							{
-								if (Lara.Control.Weapon.GunType == LaraWeaponType::Shotgun)
-									DoDamage(item, 10);
-								else if (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver)
-									DoDamage(item, 20);
-								else
-									item->HitPoints--;
+							// Chance to break shield when blocking.
+							if (isShieldState)
+								item->Animation.TargetState = HORSEMAN_STATE_IDLE;
 
-								SoundEffect(SFX_TR4_HORSEMAN_TAKEHIT, &item->Pose);
-								SoundEffect(SFX_TR4_HORSE_RICOCHET, &item->Pose);
-
-								auto pos = GetJointPosition(item, 0, Vector3i(0, -128, 80));
-								HorsemanSparks(&pos, item->Pose.Orientation.y, 7);
-							}
-							else if (Random::TestProbability(1 / 8.0f))
-							{
-								if (item->Animation.ActiveState == HORSEMAN_STATE_SHIELD)
-									item->Animation.TargetState = HORSEMAN_STATE_IDLE;
-								
-								ExplodeItemNode(item, 10, 1, -24);
-							}
+							ExplodeItemNode(item, 10, 1, -24);
 						}
 					}
+
+					// If not mounted and has shield, go to shield state.
+					if (!isMounted && hasShield)
+						item->Animation.RequiredState = HORSEMAN_STATE_SHIELD;
 				}
 			}
 
@@ -386,11 +399,12 @@ namespace TEN::Entities::TR4
 					item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_SPRINT;
 					horseItem->Animation.TargetState = HORSEMAN_STATE_MOUNT_HORSE;
 				}
-				else if ((item->HitStatus && !GetRandomControl()) ||
-					creature->Flags ||
-					creature->ReachedGoal)
+				// NOTE: TR4 had "item->hit_status && !GetRandomControl" but !GetRandomControl
+				// (without parentheses) compared function pointer, always false. So effectively
+				// the condition was just "flags || reached_goal".
+				else if (creature->Flags || creature->ReachedGoal)
 				{
-					if (laraAI.distance > pow(BLOCK(4), 2) ||
+					if (laraAI.distance > SQUARE(BLOCK(4)) ||
 						creature->ReachedGoal)
 					{
 						creature->Enemy = LaraItem;
@@ -406,59 +420,40 @@ namespace TEN::Entities::TR4
 					else
 					{
 						item->AIBits = FOLLOW;
-						item->ItemFlags[3] = (-(item->ItemFlags[3] != 1)) + 2;
+						
+						if (item->ItemFlags[3] == 1)
+							item->ItemFlags[3] = 2;
+						else
+							item->ItemFlags[3] = 1;
 					}
 				}
 
-				if (AI.distance >= pow(BLOCK(1), 2))
+				// Attack selection based on TR4 original logic.
+				if (AI.bite)
 				{
-					if (AI.bite)
+					// Close range and directly in front: go to idle for rear attack.
+					if (AI.distance < SQUARE(BLOCK(1)) &&
+						AI.angle > -ANGLE(10.0f) &&
+						AI.angle < ANGLE(10.0f))
 					{
-						if (AI.angle >= -ANGLE(10.0f) ||
-							(AI.distance >= pow(BLOCK(1), 2) &&
-							(AI.distance >= pow(1365, 2) || AI.angle <= -ANGLE(20.0f))))
-						{
-							if (AI.angle > ANGLE(10.0f) &&
-								(AI.distance < pow(BLOCK(1), 2) ||
-									(AI.distance < pow(1365, 2) && AI.angle < ANGLE(20.0f))))
-							{
-								item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_RIGHT;
-								creature->MaxTurn = 0;
-							}
-						}
-						else
-						{
-							item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_LEFT;
-							creature->MaxTurn = 0;
-						}
+						item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_IDLE;
+						horseItem->Animation.TargetState = HORSE_STATE_IDLE;
 					}
-				}
-				else if (AI.bite)
-				{
-					if (AI.angle >= -ANGLE(10.0f) ||
-						AI.angle <= ANGLE(10.0f))
+					// Lara on left side: attack left.
+					else if (AI.angle < -ANGLE(10.0f) &&
+						(AI.distance < SQUARE(BLOCK(1)) ||
+							(AI.distance < SQUARE(1365) && AI.angle > -ANGLE(20.0f))))
 					{
-						if (AI.bite)
-						{
-							if (AI.angle >= -ANGLE(10.0f) ||
-								(AI.distance >= pow(BLOCK(1), 2) &&
-								(AI.distance >= pow(1365, 2) || AI.angle <= -ANGLE(20.0f))))
-							{
-								if (AI.angle > ANGLE(10.0f) &&
-									(AI.distance < pow(BLOCK(1), 2) ||
-										AI.distance < pow(1365, 2) &&
-										AI.angle < ANGLE(20.0f)))
-								{
-									item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_RIGHT;
-									creature->MaxTurn = 0;
-								}
-							}
-							else
-							{
-								item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_LEFT;
-								creature->MaxTurn = 0;
-							}
-						}
+						item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_LEFT;
+						creature->MaxTurn = 0;
+					}
+					// Lara on right side: attack right.
+					else if (AI.angle > ANGLE(10.0f) &&
+						(AI.distance < SQUARE(BLOCK(1)) ||
+							(AI.distance < SQUARE(1365) && AI.angle < ANGLE(20.0f))))
+					{
+						item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_ATTACK_RIGHT;
+						creature->MaxTurn = 0;
 					}
 				}
 
@@ -467,7 +462,7 @@ namespace TEN::Entities::TR4
 			case HORSEMAN_STATE_MOUNTED_WALK_FORWARD:
 				creature->MaxTurn = ANGLE(1.5f);
 
-				if (laraAI.distance > pow(BLOCK(4), 2) || creature->ReachedGoal || creature->Enemy->IsLara())
+				if (laraAI.distance > SQUARE(BLOCK(4)) || creature->ReachedGoal || creature->Enemy->IsLara())
 				{
 					item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_RUN_FORWARD;
 					creature->ReachedGoal = false;
@@ -486,7 +481,11 @@ namespace TEN::Entities::TR4
 				if (creature->Flags)
 				{
 					item->AIBits = FOLLOW;
-					item->ItemFlags[3] = -(item->ItemFlags[3] != 1) + 2;
+					
+					if (item->ItemFlags[3] == 1)
+						item->ItemFlags[3] = 2;
+					else
+						item->ItemFlags[3] = 1;
 				}
 				else
 					creature->Flags = 0;
@@ -499,7 +498,7 @@ namespace TEN::Entities::TR4
 				}
 				else if (creature->ReachedGoal ||
 					!horseItem->Flags &&
-					AI.distance < pow(BLOCK(1), 2) &&
+					AI.distance < SQUARE(BLOCK(1)) &&
 					AI.bite &&
 					AI.angle < ANGLE(10.0f) &&
 					AI.angle > -ANGLE(10.0f))
@@ -584,9 +583,9 @@ namespace TEN::Entities::TR4
 				{
 					if (item->Animation.RequiredState != NO_VALUE)
 						item->Animation.TargetState = item->Animation.RequiredState;
-					else if (AI.bite && AI.distance < pow(682,2))
+					else if (AI.bite && AI.distance < SQUARE(682))
 						item->Animation.TargetState = HORSEMAN_STATE_IDLE_ATTACK;
-					else if (AI.distance < pow(BLOCK(6), 2) && AI.distance > pow(682, 2))
+					else if (AI.distance < SQUARE(BLOCK(6)) && AI.distance > SQUARE(682))
 						item->Animation.TargetState = HORSEMAN_STATE_WALK_FORWARD;
 				}
 				else
@@ -613,12 +612,10 @@ namespace TEN::Entities::TR4
 					item->Animation.ActiveState = HORSEMAN_STATE_MOUNT_HORSE;
 
 					creature->MaxTurn = 0;
-					break;
 				}
-
-				if (item->HitStatus)
+				else if (item->HitStatus)
 					item->Animation.TargetState = HORSEMAN_STATE_IDLE;
-				else if (AI.bite && AI.distance < pow(682, 2))
+				else if (AI.bite && AI.distance < SQUARE(682))
 				{
 					if (GetRandomControl() & 1)
 						item->Animation.TargetState = HORSEMAN_STATE_WALK_FORWARD_ATTACK_RIGHT;
@@ -627,13 +624,13 @@ namespace TEN::Entities::TR4
 					else
 						item->Animation.TargetState = HORSEMAN_STATE_IDLE;
 				}
-				else if (AI.distance < pow(BLOCK(5), 2) && AI.distance > pow(1365, 2))
+				else if (AI.distance < SQUARE(BLOCK(5)) && AI.distance > SQUARE(1365))
 					item->Animation.TargetState = HORSEMAN_STATE_RUN_FORWARD;
 
 				break;
 
 			case HORSEMAN_STATE_RUN_FORWARD:
-				if (AI.distance < pow(1365, 2))
+				if (AI.distance < SQUARE(1365))
 					item->Animation.TargetState = HORSEMAN_STATE_WALK_FORWARD;
 
 				break;
@@ -666,7 +663,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case HORSEMAN_STATE_SHIELD:
-				if (Lara.TargetEntity != item || AI.bite && AI.distance < pow(682, 2))
+				if (Lara.TargetEntity != item || AI.bite && AI.distance < SQUARE(682))
 					item->Animation.TargetState = HORSEMAN_STATE_IDLE;
 
 				break;
@@ -722,7 +719,7 @@ namespace TEN::Entities::TR4
 					horseItem->Animation.FrameNumber = 0;
 				}
 
-				if (laraAI.distance > pow(BLOCK(4), 2) || creature->ReachedGoal)
+				if (laraAI.distance > SQUARE(BLOCK(4)) || creature->ReachedGoal)
 				{
 					creature->ReachedGoal = false;
 					creature->Enemy = LaraItem;
@@ -762,6 +759,7 @@ namespace TEN::Entities::TR4
 		}
 
 		Objects[ID_HORSEMAN].radius = item->ItemFlags[1] != 0 ? 409 : 170;
+
 		CreatureAnimation(itemNumber, angle, 0);
 	}
 }

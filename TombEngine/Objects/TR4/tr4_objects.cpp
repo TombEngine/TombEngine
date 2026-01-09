@@ -499,6 +499,8 @@ namespace TEN::Entities
 			obj->collision = ObjectCollision;
 			obj->control = nullptr;
 			obj->SetHitEffect(true);
+			obj->IgnoreInLOSCheck = true;
+
 		}
 
 		obj = &Objects[ID_HORSEMAN];
@@ -507,9 +509,10 @@ namespace TEN::Entities
 			obj->Initialize = InitializeHorseman;
 			obj->control = HorsemanControl;
 			obj->collision = CreatureCollision;
+			obj->HitRoutine = HorsemanHit;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 25;
-			obj->pivotLength = 500;
+			obj->pivotLength = 50;
 			obj->radius = 409;
 			obj->intelligent = true;
 			obj->SetHitEffect(true);

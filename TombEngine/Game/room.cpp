@@ -606,6 +606,10 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 	for (auto& sector : flippedRoom.Sectors)
 		sector.RoomNumber = activeRoom.flippedRoom;
 
+	// Swap stopper flags.
+	for (int i = 0; i < activeRoom.Sectors.size(); i++)
+		std::swap(activeRoom.Sectors[i].Stopper, flippedRoom.Sectors[i].Stopper);
+
 	// Update renderer data.
 	g_Renderer.FlipRooms(roomNumber, activeRoom.flippedRoom);
 }
