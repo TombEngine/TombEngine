@@ -4,6 +4,7 @@
 -- Setup instructions:
 -- Place a CAMERA named "DAGGER_CAM" anywhere in your level (no trigger required)
 local CustomBar = require("Engine.CustomBar")
+PrintLog("TR2 Dragon module detected", LogLevel.INFO)
 
 local TR2_DRAGON_Cutscene = {}
 
@@ -117,6 +118,8 @@ local dragonHealthBar = {
 ----------------------------------------------------------------------
 
 function TR2_DRAGON_Cutscene.Init()
+
+    PrintLog("TR2 Dragon module loaded successfully", LogLevel.INFO)
 
     -- Disable generic enemy HP bars so they don't override our custom dragon bar
     CustomBar.ShowEnemiesHpGenericBar(false)
@@ -401,5 +404,23 @@ function TR2_DRAGON_Cutscene.Update()
         Lara:UnswapMesh(10)
     end
 end
+
+----------------------------------------------------------------------
+-- AUTO‑REGISTRATION USING TEN CALLBACKS
+----------------------------------------------------------------------
+
+-- Wrap your Init() inside LevelFuncs
+LevelFuncs.DragonCutscene_Init = function()
+    TR2_DRAGON_Cutscene.Init()
+end
+
+-- Wrap your Update() inside LevelFuncs
+LevelFuncs.DragonCutscene_Update = function(dt)
+    TR2_DRAGON_Cutscene.Update()
+end
+
+-- Register callbacks
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_START, LevelFuncs.DragonCutscene_Init)
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP,  LevelFuncs.DragonCutscene_Update)
 
 return TR2_DRAGON_Cutscene
