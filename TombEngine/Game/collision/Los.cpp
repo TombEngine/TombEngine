@@ -112,7 +112,7 @@ namespace TEN::Collision::Los
 	}
 
 	LosCollisionData GetLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist,
-									 bool collideItems, bool collideSpheres, bool collideStatics)
+									 bool collideItemBoxes, bool collideItemSpheres, bool collideStatics)
 	{
 		// FAILSAFE.
 		if (dir == Vector3::Zero)
@@ -127,20 +127,71 @@ namespace TEN::Collision::Los
 		los.Room = GetRoomLosCollision(origin, roomNumber, dir, dist);
 
 		// 2) Collect item and sphere LOS collisions (if applicable).
-		if (collideItems || collideSpheres)
+		if (collideItemBoxes || collideItemSpheres)
 		{
 			// Run through nearby items.
 			auto items = GetNearbyItems(los.Room.RoomNumbers);
 			for (auto* item : items)
 			{
-				// 2.1) Collect item LOS collisions.
-				if (collideItems)
+				// 2.1) Collect item box LOS collisions.
+				if (collideItemBoxes)
 				{
 					auto obb = item->GetObb();
 
-					float intersectDist = 0.0f;
-					if (obb.Intersects(origin, dir, intersectDist) && intersectDist <= los.Room.Distance)
+					// Collide clipped spheres.
+					if (collideItemSpheres)
 					{
+						float boxIntersectDist = 0.0f;
+						if (obb.Intersects(origin, dir, boxIntersectDist) && boxIntersectDist <= los.Room.Distance)
+						{
+							auto boxIntersect = Geometry::TranslatePoint(origin, dir, boxIntersectDist);
+
+							if (collideItemSpheres)
+							{
+								auto spheres = item->GetSpheres();
+								for (int i = 0; i < spheres.size(); i++)
+								{
+									const auto& sphere = spheres[i];
+
+									float sphereIntersectDist = 0.0f;
+									if (sphere.Intersects(boxIntersect, dir, sphereIntersectDist) && sphereIntersectDist <= los.Room.Distance)
+									{
+										auto pos = Geometry::TranslatePoint(origin, dir, sphereIntersectDist);
+										auto offset = pos - item->Pose.Position.ToVector3();
+										int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
+
+										auto sphereLos = SphereLosCollisionData{};
+										sphereLos.Item = item;
+										sphereLos.SphereID = i;
+										sphereLos.Position = pos;
+										sphereLos.RoomNumber = roomNumber;
+										sphereLos.Distance = sphereIntersectDist;
+										sphereLos.IsOriginContained = (bool)sphere.Contains(origin);
+										los.Spheres.push_back(std::move(sphereLos));
+									}
+								}
+							}
+
+							// Additionally collide box if spheres collided.
+							if (!los.Spheres.empty())
+							{
+								auto offset = boxIntersect - item->Pose.Position.ToVector3();
+								int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
+
+								auto itemLos = ItemLosCollisionData{};
+								itemLos.Item = item;
+								itemLos.Position = boxIntersect;
+								itemLos.RoomNumber = roomNumber;
+								itemLos.Distance = boxIntersectDist;
+								itemLos.IsOriginContained = (bool)obb.Contains(origin);
+								los.Items.push_back(std::move(itemLos));
+							}
+						}
+					}
+					// Collide box only.
+					else
+					{
+						float intersectDist = 0.0f;
 						auto pos = Geometry::TranslatePoint(origin, dir, intersectDist);
 						auto offset = pos - item->Pose.Position.ToVector3();
 						int roomNumber = GetPointCollision(item->Pose.Position, item->RoomNumber, offset).GetRoomNumber();
@@ -154,9 +205,8 @@ namespace TEN::Collision::Los
 						los.Items.push_back(std::move(itemLos));
 					}
 				}
-
 				// 2.2) Collect item sphere LOS collisions.
-				if (collideSpheres)
+				else if (!collideItemBoxes && collideItemSpheres)
 				{
 					auto spheres = item->GetSpheres();
 					for (int i = 0; i < spheres.size(); i++)
