@@ -612,6 +612,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR3\Entity\Compsognathus.h" />
     <ClInclude Include="Objects\TR3\Entity\FishSwarm.h" />
     <ClInclude Include="Objects\TR3\Entity\Lizard.h" />
+    <ClInclude Include="Objects\TR3\Entity\BooMutant.h" />
+    <ClInclude Include="Objects\TR3\Entity\HybridMutant.h" />
     <ClInclude Include="Objects\TR3\Entity\SealMutant.h" />
     <ClInclude Include="Objects\TR3\Entity\PunaBoss.h" />
     <ClInclude Include="Objects\TR3\Entity\Raptor.h" />
@@ -1180,6 +1182,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR3\Entity\Compsognathus.cpp" />
     <ClCompile Include="Objects\TR3\Entity\FishSwarm.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Lizard.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\BooMutant.cpp" />
+    <ClCompile Include="Objects\TR3\Entity\HybridMutant.cpp" />
     <ClCompile Include="Objects\TR3\Entity\SealMutant.cpp" />
     <ClCompile Include="Objects\TR3\Entity\PunaBoss.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Raptor.cpp" />

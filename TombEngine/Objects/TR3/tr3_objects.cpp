@@ -8,7 +8,9 @@
 #include "Specific/level.h"
 
 // Creatures
+#include "Objects/TR3/Entity/BooMutant.h"
 #include "Objects/TR3/Entity/Compsognathus.h"
+#include "Objects/TR3/Entity/HybridMutant.h"
 #include "Objects/TR3/Entity/Lizard.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 #include "Objects/TR3/Entity/SealMutant.h"
@@ -462,6 +464,29 @@ static void StartEntity(ObjectInfo* obj)
 		obj->intelligent = true;
 		obj->SetBoneRotationFlags(8, ROT_X | ROT_Z); // Torso X/Z
 		obj->SetBoneRotationFlags(9, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_BOO_MUTANT];
+	if (obj->loaded)
+	{
+		obj->control = ControlBooMutant;
+		obj->shadowType = ShadowMode::All;
+	}
+
+	obj = &Objects[ID_HYBRID_MUTANT];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = ControlHybridMutant;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 90;
+		obj->radius = 204;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z); // Torso
+		obj->SetBoneRotationFlags(7, ROT_Y);		 // Head
 		obj->SetHitEffect();
 	}
 
