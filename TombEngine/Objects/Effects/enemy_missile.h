@@ -13,8 +13,10 @@ namespace TEN::Entities::Effects
 		CrocgodMutant = 6,
 		SophiaLeighNormal = 7,
 		SophiaLeighLarge = 8,
-		ClawMutantPlasma = 9
+		ClawMutantPlasma = 9,
+		WillardPlasmaBall = 10
 	};
 
 	void ControlEnemyMissile(short fxNumber);
+	void TriggerWillardPlasmaBallFlame(short fxNumber, short xVel, short yVel, short zVel);
 }

@@ -282,6 +282,11 @@ namespace TEN::Entities::Effects
 
 				break;
 
+			case MissileType::WillardPlasmaBall:
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.roomNumber);
+				TriggerShockwave(&fx.pos, 32, 160, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				break;
+
 			default:
 				TriggerShockwave(&fx.pos, 32, 160, 64, 0, 128, 64, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 				BubblesShatterFunction(&fx, 0, -32);
@@ -352,6 +357,13 @@ namespace TEN::Entities::Effects
 				ItemBurn(LaraItem);
 				break;
 
+			case MissileType::WillardPlasmaBall:
+				DoDamage(LaraItem, 100);
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.roomNumber);
+				TriggerShockwave(&fx.pos, 48, 240, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				ItemCustomBurn(LaraItem, Vector3(0.0f, 0.8f, 0.1f), Vector3(0.0f, 0.9f, 0.8f));
+				break;
+
 			default:
 				TriggerShockwave(&fx.pos, 24, 88, 48, 0, 128, 64, 16, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
 				break;
@@ -391,6 +403,11 @@ namespace TEN::Entities::Effects
 
 					break;
 
+				case MissileType::WillardPlasmaBall:
+					TriggerWillardPlasmaBallFlame(fxNumber, deltaPos.x * 16, deltaPos.y * 16, deltaPos.z * 16);
+					break;
+
+
 				case MissileType::CrocgodMutant:
 					TriggerCrocgodMissileFlame(fxNumber, deltaPos.x * 16, deltaPos.y * 16, deltaPos.z * 16);
 					break;
@@ -398,7 +415,46 @@ namespace TEN::Entities::Effects
 			}
 		}
 
-		if (fx.flag1 == (int)MissileType::ClawMutantPlasma)
+		if (fx.flag1 == (int)MissileType::ClawMutantPlasma || fx.flag1 == (int)MissileType::WillardPlasmaBall)
 			SpawnDynamicLight(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 8, 0, 64, 128);
+	}
+
+	void TriggerWillardPlasmaBallFlame(short fxNumber, short xVel, short yVel, short zVel)
+	{
+		const auto& fx = EffectList[fxNumber];
+		auto& flame = *GetFreeParticle();
+
+		flame.on = true;
+		flame.sR = 48;
+		flame.sG = 255;
+		flame.sB = 48 + (GetRandomControl() & 31);
+		flame.dR = 32;
+		flame.dG = 192 + (GetRandomControl() & 63);
+		flame.dB = 128 + (GetRandomControl() & 63);
+		flame.fadeToBlack = 8;
+		flame.colFadeSpeed = (GetRandomControl() & 3) + 12;
+		flame.blendMode = BlendMode::Additive;
+		flame.life = flame.sLife = (GetRandomControl() & 7) + 24;
+		flame.y = 0;
+		flame.x = (GetRandomControl() & 0xF) - 8;
+		flame.xVel = xVel;
+		flame.yVel = yVel;
+		flame.z = (GetRandomControl() & 0xF) - 8;
+		flame.zVel = zVel;
+		flame.friction = 68;
+		flame.flags = 602;
+		flame.rotAng = GetRandomControl() & 0xFFF;
+
+		if (GetRandomControl() & 1)
+			flame.rotAdd = -32 - (GetRandomControl() & 0x1F);
+		else
+			flame.rotAdd = (GetRandomControl() & 0x1F) + 32;
+
+		flame.gravity = 0;
+		flame.maxYvel = 0;
+		flame.fxObj = fxNumber;
+		flame.scalar = 2;
+		flame.sSize = flame.size = (GetRandomControl() & 7) + 64;
+		flame.dSize = flame.size / 32;
 	}
 }

@@ -32,6 +32,7 @@
 #include "Objects/TR3/Entity/tr3_trex.h"
 #include "Objects/TR3/Entity/tr3_tribesman.h"
 #include "Objects/TR3/Entity/Whale.h"
+#include "Objects/TR3/Entity/Willard.h"
 
 // Effects
 #include "Objects/Effects/Boss.h"
@@ -209,6 +210,22 @@ static void StartEntity(ObjectInfo* obj)
 		obj->intelligent = true;
 		obj->waterCreature = true;
 		obj->LotType = LotType::Water;
+	}
+
+	obj = &Objects[ID_WILLARD];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWillard;
+		obj->control = WillardControl;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 200;
+		obj->pivotLength = 50;
+		obj->radius = 128;
+		obj->intelligent = true;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
 	}
 
 	obj = &Objects[ID_SCUBA_HARPOON];
