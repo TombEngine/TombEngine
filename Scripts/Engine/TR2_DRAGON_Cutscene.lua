@@ -101,12 +101,6 @@ local dragonHealthBar = {
     scaleMode       = TEN.View.ScaleMode.FIT,
     blendMode       = TEN.Effects.BlendID.ALPHABLEND,
 
-    text            = "DRAGON",
-    textPos         = TEN.Vec2(20, 16),
-    textScale       = 1.0,
-    textColor       = TEN.Color(255,255,255),
-    hideText        = true,
-
     alphaBlendSpeed = 50,
     showBar         = true,
     blink           = true,
