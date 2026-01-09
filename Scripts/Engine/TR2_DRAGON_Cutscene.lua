@@ -1,8 +1,6 @@
 -- MODULE: TR2_DRAGON_Cutscene.lua
 -- Code Version 1
 
--- Setup instructions:
--- Place a CAMERA named "DAGGER_CAM" anywhere in your level (no trigger required)
 local CustomBar = require("Engine.CustomBar")
 PrintLog("TR2 Dragon module detected", LogLevel.INFO)
 
