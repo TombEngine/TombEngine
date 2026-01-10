@@ -290,6 +290,8 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Check the previous and next position of AI object to
 		// allow Sophia to go up or down based on enemy's vertical position.
+		if (creature->LocationAI < 0)
+			creature->LocationAI = 0; // Avoid invalid AI index.
 		FindAITargetObject(creature, ID_AI_X1, creature->LocationAI, false);
 
 		if (Vector3i::Distance(item.Pose.Position, creature->Enemy->Pose.Position) < SOPHIALEIGH_REACHED_GOAL_RANGE)
@@ -300,11 +302,11 @@ namespace TEN::Entities::Creatures::TR3
 			if (item.TriggerFlags == (int)SophiaOCB::Tower)
 			{
 				// If enemy is above, get to next AI_X1.
-				if (ai.verticalDistance >= SOPHIALEIGH_Y_DISTANCE_RANGE)
+				if (ai.verticalDistance > SOPHIALEIGH_Y_DISTANCE_RANGE)
 					creature->LocationAI++;
 
 				// If enemy is below, get to previous AI_X1.
-				else if (ai.verticalDistance <= -SOPHIALEIGH_Y_DISTANCE_RANGE)
+				else if (ai.verticalDistance < -SOPHIALEIGH_Y_DISTANCE_RANGE)
 					creature->LocationAI--;
 			}
 		}
