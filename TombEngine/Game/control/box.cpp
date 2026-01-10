@@ -60,7 +60,7 @@ using namespace TEN::Effects::Smoke;
 // AI behavior distance thresholds.
 constexpr auto ESCAPE_DIST = BLOCK(5);          // Minimum distance for a box to be considered "escape" worthy.
 constexpr auto STALK_DIST = BLOCK(3);           // Maximum distance to maintain stalking behavior.
-constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625); // Distance at which AI considers goal reached.
+constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625f); // Distance at which AI considers goal reached.
 constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3)); // Squared distance for attack mode (avoids sqrt).
 
 // Random chance thresholds for mood transitions (out of 0x7FFF).
@@ -1664,18 +1664,8 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 	// NEW: Only update enemy box number if it is actually reachable by the enemy.
 	// This prevents enemies from running to the player and attacking nothing when they are hanging or shimmying. -- Lwmte, 27.06.22
 
-	// Check if enemy is actually in water (swimming), not just in a room with water.
-	bool isEnemyInWater = false;
-	if (enemy->IsLara())
-	{
-		auto& player = *GetLaraInfo(enemy);
-		isEnemyInWater = player.Control.WaterStatus == WaterStatus::Underwater ||
-						 player.Control.WaterStatus == WaterStatus::TreadWater;
-	}
-	else
-	{
-		isEnemyInWater = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber);
-	}
+	// Check if enemy is actually in water 
+	bool isEnemyInWater = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber);
 
 	bool isReachable = false;
 	if (creature.LOT.Zone == ZoneType::Flyer)
