@@ -1708,6 +1708,10 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 		auto pointColl = GetPointCollision(enemy->Pose.Position, floor->RoomNumber);
 		auto bounds = GameBoundingBox(item);
 		isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
+
+		// HACK: Allow player to be always reachable when jumping.
+		if (enemy->IsLara() && TestState(enemy->Animation.ActiveState, JUMP_STATES))
+			isReachable = true;
 	}
 
 	return (isReachable ? floor->PathfindingBoxID : NO_VALUE);
