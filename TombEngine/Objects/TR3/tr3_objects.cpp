@@ -578,6 +578,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = CollideFan;
 		obj->SetHitEffect(true);
 	}
+
+	obj = &Objects[ID_ROTATING_KNIFE_DISK];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWallMountedBlade;
+		obj->control = WallMountedBladeControl;
+		obj->collision = GenericSphereBoxCollision;
+	}
 }
 
 static void StartVehicles(ObjectInfo* obj)

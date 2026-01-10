@@ -71,9 +71,14 @@ namespace TEN::Entities::Traps
 			item.ItemFlags[1] = item.TriggerFlags ? item.ItemFlags[1] : 0;
 			item.Pose.Translate(headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
 
+			int roomNumber = item.RoomNumber;
+
 			int vPos = item.Pose.Position.y;
 			auto pointColl = GetPointCollision(item);
 			auto floorY = pointColl.GetFloorHeight();
+
+			if (item.RoomNumber != roomNumber)
+				ItemNewRoom(itemNumber, roomNumber);
 
 			// Impale floor.
 			if (vPos > floorY && item.Animation.TargetState != FALLINGSPIKES_STATE_FLOOR)
