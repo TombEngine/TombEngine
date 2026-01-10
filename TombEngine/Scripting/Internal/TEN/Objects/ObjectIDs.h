@@ -1167,6 +1167,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem UNDERWATER_MINES
 	{ "UNDERWATER_MINES", ID_UNDERWATER_MINES },
+	/// Object ID.
+	// @mem FALLING_SANDBAG
+	{ "FALLING_SANDBAG", ID_FALLING_SANDBAG },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },

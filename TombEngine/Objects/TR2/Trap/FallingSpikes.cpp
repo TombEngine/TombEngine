@@ -26,7 +26,7 @@ namespace TEN::Entities::Traps
 	constexpr auto FALLING_SPIKES_VELOCITY_MIN = BLOCK(1 / 20.0f);
 	constexpr auto FALLING_SPIKES_VELOCITY_MAX = BLOCK(1 / 8.0f);
 	constexpr auto FALLING_SPIKES_ACTIVATE_RANGE_2D		  = BLOCK(1.5f);
-	constexpr auto FALLING_SPIKES_ACTIVATE_RANGE_VERTICAL = BLOCK(3);
+	constexpr auto FALLING_SPIKES_ACTIVATE_RANGE_VERTICAL = BLOCK(8);
 
 	enum FallingSpikesState
 	{
@@ -71,14 +71,13 @@ namespace TEN::Entities::Traps
 			item.ItemFlags[1] = item.TriggerFlags ? item.ItemFlags[1] : 0;
 			item.Pose.Translate(headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
 
-			int roomNumber = item.RoomNumber;
-
 			int vPos = item.Pose.Position.y;
 			auto pointColl = GetPointCollision(item);
 			auto floorY = pointColl.GetFloorHeight();
 
-			if (item.RoomNumber != roomNumber)
-				ItemNewRoom(itemNumber, roomNumber);
+			int probedRoomNumber = GetPointCollision(item).GetRoomNumber();
+			if (item.RoomNumber != probedRoomNumber)
+				ItemNewRoom(itemNumber, probedRoomNumber);
 
 			// Impale floor.
 			if (vPos > floorY && item.Animation.TargetState != FALLINGSPIKES_STATE_FLOOR)
