@@ -1688,30 +1688,24 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 		// Water creatures can only reach targets that are in water.
 		isReachable = isEnemyInWater;
 	}
-	else if (creature.LOT.Zone == ZoneType::Amphibious)
-	{
-		// Amphibious creatures can reach targets in water, or on land with height check.
-		if (isEnemyInWater)
-		{
-			isReachable = true;
-		}
-		else
-		{
-			auto pointColl = GetPointCollision(enemy->Pose.Position, floor->RoomNumber);
-			auto bounds = GameBoundingBox(item);
-			isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
-		}
-	}
 	else
 	{
-		// Land creatures use floor height check.
 		auto pointColl = GetPointCollision(enemy->Pose.Position, floor->RoomNumber);
 		auto bounds = GameBoundingBox(item);
 		isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
 
-		// HACK: Allow player to be always reachable when jumping.
-		if (enemy->IsLara() && TestState(enemy->Animation.ActiveState, JUMP_STATES))
-			isReachable = true;
+		if (creature.LOT.Zone == ZoneType::Amphibious)
+		{
+			// Amphibious creatures can reach targets in water, or on land with height check.
+			if (isEnemyInWater)
+				isReachable = true;
+		}
+		else
+		{
+			// HACK: Allow player to be always reachable when jumping.
+			if (enemy->IsLara() && TestState(enemy->Animation.ActiveState, JUMP_STATES))
+				isReachable = true;
+		}
 	}
 
 	return (isReachable ? floor->PathfindingBoxID : NO_VALUE);
