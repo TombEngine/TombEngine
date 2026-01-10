@@ -293,6 +293,7 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeSophiaLeigh;
 		obj->control = SophiaLeighControl;
+		obj->HitRoutine = SophiaLeighHit;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->pivotLength = 50;

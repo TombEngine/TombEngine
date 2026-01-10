@@ -296,6 +296,8 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (Vector3i::Distance(item.Pose.Position, creature->Enemy->Pose.Position) < SOPHIALEIGH_REACHED_GOAL_RANGE)
 		{
+			item.ItemFlags[3] = (short)ai.verticalDistance; // Store vertical distance to goal.
+			item.ItemFlags[6] = 1; // Reached goal.
 			creature->ReachedGoal = true;
 			creature->Enemy = LaraItem; // TODO: Deal with LaraItem global.
 
@@ -312,6 +314,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
+			item.ItemFlags[6] = 0; // Not reached goal.
 			creature->ReachedGoal = false;
 		}
 
@@ -702,8 +705,10 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeCreature(itemNumber);
 		CheckForRequiredObjects(item);						// ItemFlags[0] is used.
 		item.ItemFlags[1] = 0;								// Light timer (for smoothing).
+		item.ItemFlags[3] = 0;								// Target vertical distance.
 		item.ItemFlags[4] = 0;								// Charged state (true or false).
 		item.ItemFlags[5] = 0;								// Death count.
+		item.ItemFlags[6] = 0;								// Reached goal (true or false).
 		item.ItemFlags[7] = 0;								// Explode count.
 		SetAnimation(item, SOPHIALEIGH_ANIM_SUMMON_START); // Always starts with projectile attack.
 	}
@@ -787,6 +792,19 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			CreatureAnimation(itemNumber, data.angle, 0);
 		}
+	}
+
+	void SophiaLeighHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)
+	{
+		// In tower mode, except from trigger, Sophia is immune to damage and any effects (like fire) (if not dead).
+		if ((target.TriggerFlags == (int)SophiaOCB::Tower || target.TriggerFlags == (int)SophiaOCB::TowerWithVolume) && target.HitPoints > 0)
+		{
+			target.Effect.Count = 0;
+			target.Effect.Type = EffectType::None;
+			return;
+		}
+
+		DefaultItemHit(target, source, pos, damage, isExplosive, jointIndex);
 	}
 
 	void SpawnSophiaSparks(const Vector3& pos, const Vector3& color, unsigned int count, int multiplier)
