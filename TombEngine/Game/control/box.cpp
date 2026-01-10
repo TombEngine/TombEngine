@@ -1862,8 +1862,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		if (ValidBox(item, AI->zoneNumber, boxNumber))
 		{
 			// If enemy is reachable and box allows stalking, use it (keeps creature near enemy).
-			if (enemy != nullptr && enemy->BoxNumber != NO_VALUE &&
-				StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
+			if (StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
 			{
 				TargetBox(LOT, boxNumber);
 				creature->Mood = MoodType::Bored;
@@ -1875,8 +1874,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 			}
 			// If enemy is unreachable, current target is near enemy, and new box is NOT near enemy, switch target.
 			// This prevents creature from hovering near unreachable enemy.
-			else if (enemy != nullptr && enemy->BoxNumber == NO_VALUE &&
-					 StalkBox(item, enemy, LOT->RequiredBox) && !StalkBox(item, enemy, boxNumber))
+			else if (StalkBox(item, enemy, LOT->RequiredBox) && !StalkBox(item, enemy, boxNumber))
 			{
 				TargetBox(LOT, boxNumber);
 			}
