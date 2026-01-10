@@ -1884,18 +1884,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Attack:
 		// ATTACK: Go directly to enemy's position.
-		// Only target enemy if reachable (valid box number).
-		if (enemy->BoxNumber != NO_VALUE)
-		{
-			LOT->Target = enemy->Pose.Position;
-			LOT->RequiredBox = enemy->BoxNumber;
+		LOT->Target = enemy->Pose.Position;
+		LOT->RequiredBox = enemy->BoxNumber;
 
-			// Flying/swimming creatures target enemy's upper body when on land.
-			if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
-			{
-				auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
-				LOT->Target.y += bounds.Y1;
-			}
+		// Flying creatures target enemy's upper body when on land.
+		if (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
+		{
+			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
+			LOT->Target.y += bounds.Y1;
 		}
 
 		break;
