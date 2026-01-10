@@ -450,7 +450,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->shadowType = ShadowMode::All;
 		obj->HitPoints = 130;
 		obj->intelligent = true;
-		obj->radius = 204;
+		obj->radius = 256;
 		obj->pivotLength = 0;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z);
 		obj->SetBoneRotationFlags(7, ROT_Y);
@@ -593,7 +593,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->SetHitEffect();
 	}
 
-	obj = &Objects[ID_BOB];
+	obj = &Objects[ID_PRISONER];
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeBob;

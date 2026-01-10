@@ -718,8 +718,8 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem SWAT_GUN
 	{ "SWAT_GUN", ID_SWAT_GUN },
 	/// Object ID.
-	// @mem BOB
-	{ "BOB", ID_BOB },
+	// @mem ID_PRISONER
+	{ "PRISONER", ID_PRISONER },
 	/// Object ID.
 	// @mem SPRINGBOARD
 	{ "SPRINGBOARD", ID_SPRINGBOARD },

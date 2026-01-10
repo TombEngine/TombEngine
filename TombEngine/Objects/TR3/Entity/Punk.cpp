@@ -5,6 +5,7 @@
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/item_fx.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -16,6 +17,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Math;
+using namespace TEN::Effects::Items;
 
 namespace TEN::Entities::Creatures::TR3
 {
@@ -44,6 +46,86 @@ namespace TEN::Entities::Creatures::TR3
 	const auto PunkHitBite = CreatureBiteInfo(Vector3(16, 48, 320), 13);
 	const auto PunkAttackJoints = std::vector<unsigned int>{ 13 };
 
+	// ItemFlags[2]: Flame counter (0 = no flame, 1 = permanent flame that sets Lara on fire, >1 = temporary flame)
+	static void TriggerPunkFlame(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		// Distance check.
+		int dx = LaraItem->Pose.Position.x - item.Pose.Position.x;
+		int dz = LaraItem->Pose.Position.z - item.Pose.Position.z;
+		if (dx < -BLOCK(16) || dx > BLOCK(16) || dz < -BLOCK(16) || dz > BLOCK(16))
+			return;
+
+		auto& spark = *GetFreeParticle();
+
+		spark.on = true;
+		spark.sR = 255;
+		spark.sG = 48 + (GetRandomControl() & 31);
+		spark.sB = 48;
+
+		spark.dR = 192 + (GetRandomControl() & 63);
+		spark.dG = 128 + (GetRandomControl() & 63);
+		spark.dB = 32;
+
+		spark.colFadeSpeed = 12 + (GetRandomControl() & 3);
+		spark.fadeToBlack = 8;
+		spark.sLife = spark.life = (GetRandomControl() & 7) + 24;
+
+		spark.blendMode = BlendMode::Additive;
+		spark.extras = 0;
+		spark.dynamic = -1;
+
+		spark.x = (GetRandomControl() & 15) - 8;
+		spark.y = 0;
+		spark.z = (GetRandomControl() & 15) - 8;
+
+		spark.xVel = (GetRandomControl() & 255) - 128;
+		spark.yVel = -(GetRandomControl() & 15) - 16;
+		spark.zVel = (GetRandomControl() & 255) - 128;
+		spark.friction = 5;
+
+		if (GetRandomControl() & 1)
+		{
+			spark.gravity = -(GetRandomControl() & 31) - 16;
+			spark.maxYvel = -(GetRandomControl() & 7) - 16;
+			spark.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_ITEM | SP_NODEATTACH;
+			spark.rotAng = GetRandomControl() & 4095;
+			spark.rotAdd = (GetRandomControl() & 1) ? -((GetRandomControl() & 15) + 16) : ((GetRandomControl() & 15) + 16);
+		}
+		else
+		{
+			spark.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_ITEM | SP_NODEATTACH;
+			spark.gravity = -(GetRandomControl() & 31) - 16;
+			spark.maxYvel = -(GetRandomControl() & 7) - 16;
+		}
+
+		spark.fxObj = itemNumber;
+		spark.nodeNumber = NodePunkFlame;
+
+		spark.SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark.SpriteID = 0;
+		spark.scalar = 1;
+
+		int size = (GetRandomControl() & 31) + 64;
+		spark.size = spark.sSize = size;
+		spark.dSize = size / 4;
+	}
+
+	static void SpawnPunkFlameLight(ItemInfo& item)
+	{
+		int rnd = GetRandomControl();
+		auto pos = GetJointPosition(item, PunkHitBite.BoneID, Vector3i(
+			PunkHitBite.Position.x + (rnd & 15) - 8,
+			PunkHitBite.Position.y + ((rnd >> 4) & 15) - 8,
+			PunkHitBite.Position.z + ((rnd >> 8) & 15) - 8));
+
+		SpawnDynamicLight(pos.x, pos.y, pos.z, 13,
+			31 - ((rnd >> 4) & 3),
+			24 - ((rnd >> 6) & 3),
+			rnd & 7);
+	}
+
 	enum PunkState
 	{
 		PUNK_STATE_EMPTY = 0,
@@ -70,6 +152,8 @@ namespace TEN::Entities::Creatures::TR3
 
 		InitializeCreature(itemNumber);
 		SetAnimation(item, PUNK_STOP_ANIM);
+
+		item.ItemFlags[2] = item.TriggerFlags;
 	}
 
 	void ControlPunk(short itemNumber)
@@ -84,6 +168,13 @@ namespace TEN::Entities::Creatures::TR3
 		short tilt = 0;
 		short head = 0;
 		auto extraTorsoRot = EulerAngles::Identity;
+
+		// Spawn flame effect if punk has flaming torch.
+		if (item->ItemFlags[2])
+		{
+			TriggerPunkFlame(itemNumber);
+			SpawnPunkFlameLight(*item);
+		}
 
 		if (item->HitPoints <= 0)
 		{
@@ -128,6 +219,8 @@ namespace TEN::Entities::Creatures::TR3
 			auto* realEnemy = creature->Enemy;
 			creature->Enemy = LaraItem;
 
+			// Alert only if hit, OR (can see Lara AND not following).
+			// Friendly punk with FOLLOW bit won't alert unless attacked.
 			if (item->HitStatus ||
 				((laraAI.distance < PUNK_AWARE_DISTANCE || TargetVisible(item, &laraAI)) &&
 				 abs(LaraItem->Pose.Position.y - item->Pose.Position.y) < CLICK(5) &&
@@ -340,6 +433,13 @@ namespace TEN::Entities::Creatures::TR3
 					DoDamage(creature->Enemy, PUNK_HIT_DAMAGE);
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
+
+					// Flaming torch logic.
+					if (item->ItemFlags[2] == 1)
+						ItemBurn(creature->Enemy);
+					else if (item->ItemFlags[2] > 1)
+						item->ItemFlags[2]--;
+
 					creature->Flags = 1;
 				}
 
@@ -359,6 +459,13 @@ namespace TEN::Entities::Creatures::TR3
 					DoDamage(creature->Enemy, PUNK_HIT_DAMAGE);
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
+
+					// Flaming torch logic.
+					if (item->ItemFlags[2] == 1)
+						ItemBurn(creature->Enemy);
+					else if (item->ItemFlags[2] > 1)
+						item->ItemFlags[2]--;
+
 					creature->Flags = 1;
 				}
 
@@ -381,6 +488,13 @@ namespace TEN::Entities::Creatures::TR3
 					DoDamage(creature->Enemy, PUNK_SWIPE_DAMAGE);
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
+
+					// Flaming torch logic.
+					if (item->ItemFlags[2] == 1)
+						ItemBurn(creature->Enemy);
+					else if (item->ItemFlags[2] > 1)
+						item->ItemFlags[2]--;
+
 					creature->Flags = 2;
 				}
 
