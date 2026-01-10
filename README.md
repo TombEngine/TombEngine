@@ -6,7 +6,6 @@
 - *Lua* as the native scripting language.
 - Many objects from the original series (1-5).
 - Support for high framerate, antialiasing, mipmapping, and SSAO.
-- Full skinning support for all objects.
 - Full diagonal geometry support.
 - Uncapped map size.
 - A streamlined player control scheme.
