@@ -2375,6 +2375,7 @@ flatbuffers::Offset<Rubberboat> CreateRubberboat(flatbuffers::FlatBufferBuilder 
 
 struct PushableT : public flatbuffers::NativeTable {
   typedef Pushable TableType;
+  int32_t previous_trigger_flags = 0;
   int32_t pushable_behaviour_state = 0;
   float pushable_gravity = 0.0f;
   float pushable_water_force = 0.0f;
@@ -2404,29 +2405,33 @@ struct Pushable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef PushableBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_PUSHABLE_BEHAVIOUR_STATE = 4,
-    VT_PUSHABLE_GRAVITY = 6,
-    VT_PUSHABLE_WATER_FORCE = 8,
-    VT_PUSHABLE_STACK_LIMIT = 10,
-    VT_PUSHABLE_STACK_UPPER = 12,
-    VT_PUSHABLE_STACK_LOWER = 14,
-    VT_PUSHABLE_START_X = 16,
-    VT_PUSHABLE_START_Z = 18,
-    VT_PUSHABLE_ROOM_NUMBER = 20,
-    VT_PUSHABLE_COLLIDER_FLAG = 22,
-    VT_PUSHABLE_NORTH_PULLABLE = 24,
-    VT_PUSHABLE_NORTH_PUSHABLE = 26,
-    VT_PUSHABLE_NORTH_CLIMBABLE = 28,
-    VT_PUSHABLE_EAST_PULLABLE = 30,
-    VT_PUSHABLE_EAST_PUSHABLE = 32,
-    VT_PUSHABLE_EAST_CLIMBABLE = 34,
-    VT_PUSHABLE_SOUTH_PULLABLE = 36,
-    VT_PUSHABLE_SOUTH_PUSHABLE = 38,
-    VT_PUSHABLE_SOUTH_CLIMBABLE = 40,
-    VT_PUSHABLE_WEST_PULLABLE = 42,
-    VT_PUSHABLE_WEST_PUSHABLE = 44,
-    VT_PUSHABLE_WEST_CLIMBABLE = 46
+    VT_PREVIOUS_TRIGGER_FLAGS = 4,
+    VT_PUSHABLE_BEHAVIOUR_STATE = 6,
+    VT_PUSHABLE_GRAVITY = 8,
+    VT_PUSHABLE_WATER_FORCE = 10,
+    VT_PUSHABLE_STACK_LIMIT = 12,
+    VT_PUSHABLE_STACK_UPPER = 14,
+    VT_PUSHABLE_STACK_LOWER = 16,
+    VT_PUSHABLE_START_X = 18,
+    VT_PUSHABLE_START_Z = 20,
+    VT_PUSHABLE_ROOM_NUMBER = 22,
+    VT_PUSHABLE_COLLIDER_FLAG = 24,
+    VT_PUSHABLE_NORTH_PULLABLE = 26,
+    VT_PUSHABLE_NORTH_PUSHABLE = 28,
+    VT_PUSHABLE_NORTH_CLIMBABLE = 30,
+    VT_PUSHABLE_EAST_PULLABLE = 32,
+    VT_PUSHABLE_EAST_PUSHABLE = 34,
+    VT_PUSHABLE_EAST_CLIMBABLE = 36,
+    VT_PUSHABLE_SOUTH_PULLABLE = 38,
+    VT_PUSHABLE_SOUTH_PUSHABLE = 40,
+    VT_PUSHABLE_SOUTH_CLIMBABLE = 42,
+    VT_PUSHABLE_WEST_PULLABLE = 44,
+    VT_PUSHABLE_WEST_PUSHABLE = 46,
+    VT_PUSHABLE_WEST_CLIMBABLE = 48
   };
+  int32_t previous_trigger_flags() const {
+    return GetField<int32_t>(VT_PREVIOUS_TRIGGER_FLAGS, 0);
+  }
   int32_t pushable_behaviour_state() const {
     return GetField<int32_t>(VT_PUSHABLE_BEHAVIOUR_STATE, 0);
   }
@@ -2495,6 +2500,7 @@ struct Pushable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_PREVIOUS_TRIGGER_FLAGS) &&
            VerifyField<int32_t>(verifier, VT_PUSHABLE_BEHAVIOUR_STATE) &&
            VerifyField<float>(verifier, VT_PUSHABLE_GRAVITY) &&
            VerifyField<float>(verifier, VT_PUSHABLE_WATER_FORCE) &&
@@ -2528,6 +2534,9 @@ struct PushableBuilder {
   typedef Pushable Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_previous_trigger_flags(int32_t previous_trigger_flags) {
+    fbb_.AddElement<int32_t>(Pushable::VT_PREVIOUS_TRIGGER_FLAGS, previous_trigger_flags, 0);
+  }
   void add_pushable_behaviour_state(int32_t pushable_behaviour_state) {
     fbb_.AddElement<int32_t>(Pushable::VT_PUSHABLE_BEHAVIOUR_STATE, pushable_behaviour_state, 0);
   }
@@ -2607,6 +2616,7 @@ struct PushableBuilder {
 
 inline flatbuffers::Offset<Pushable> CreatePushable(
     flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t previous_trigger_flags = 0,
     int32_t pushable_behaviour_state = 0,
     float pushable_gravity = 0.0f,
     float pushable_water_force = 0.0f,
@@ -2639,6 +2649,7 @@ inline flatbuffers::Offset<Pushable> CreatePushable(
   builder_.add_pushable_water_force(pushable_water_force);
   builder_.add_pushable_gravity(pushable_gravity);
   builder_.add_pushable_behaviour_state(pushable_behaviour_state);
+  builder_.add_previous_trigger_flags(previous_trigger_flags);
   builder_.add_pushable_west_climbable(pushable_west_climbable);
   builder_.add_pushable_west_pushable(pushable_west_pushable);
   builder_.add_pushable_west_pullable(pushable_west_pullable);
@@ -3566,6 +3577,7 @@ inline PushableT *Pushable::UnPack(const flatbuffers::resolver_function_t *_reso
 inline void Pushable::UnPackTo(PushableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = previous_trigger_flags(); _o->previous_trigger_flags = _e; }
   { auto _e = pushable_behaviour_state(); _o->pushable_behaviour_state = _e; }
   { auto _e = pushable_gravity(); _o->pushable_gravity = _e; }
   { auto _e = pushable_water_force(); _o->pushable_water_force = _e; }
@@ -3598,6 +3610,7 @@ inline flatbuffers::Offset<Pushable> CreatePushable(flatbuffers::FlatBufferBuild
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PushableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _previous_trigger_flags = _o->previous_trigger_flags;
   auto _pushable_behaviour_state = _o->pushable_behaviour_state;
   auto _pushable_gravity = _o->pushable_gravity;
   auto _pushable_water_force = _o->pushable_water_force;
@@ -3622,6 +3635,7 @@ inline flatbuffers::Offset<Pushable> CreatePushable(flatbuffers::FlatBufferBuild
   auto _pushable_west_climbable = _o->pushable_west_climbable;
   return TEN::Save::CreatePushable(
       _fbb,
+      _previous_trigger_flags,
       _pushable_behaviour_state,
       _pushable_gravity,
       _pushable_water_force,
