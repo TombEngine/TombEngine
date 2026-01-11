@@ -49,7 +49,14 @@ namespace TEN::Entities::Creatures::TR3
 	const auto BobExcludedTargets = std::vector<GAME_OBJECT_ID>
 	{
 		ID_LARA,
-		ID_PRISONER
+		ID_CIVVY,
+		ID_VON_CROY,
+		ID_GUIDE,
+		ID_MONK1,
+		ID_MONK2,
+		ID_TROOPS,
+		ID_PRISONER,
+		ID_PUNK
 	};
 
 	enum BobState
