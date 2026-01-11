@@ -683,19 +683,45 @@ namespace TEN::Scripting::Effects
 	// @function EmitWeather
 	// @tparam WeatherParameters weatherParameters table with weather parameters.
 	// @usage
+	// -- Example 1: Simple use to emit rain (Use wind room flag to spawn)
+	// local delay = 0
+	// local delay_count = 1
+	// local weatherParams = {
+	//     position = Vec3(4608, -1408, 11776),
+	//     initialVelocity = Vec3(0, 10, 0),
+	// }
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    TEN.Effects.EmitWeather(weatherParams)
+	// end
+	// 
+	// -- Example 2: Emit snow at camera target position
+	// local delay = 0
+	// local delay_count = 1
 	// local weatherParams = {
 	//     position = Vec3(0, 0, 0),
-	//     initialVelocity = Vec3(0, 10, 0),
+	//     initialVelocity = Vec3(0, 15, 0),
 	//     type = TEN.Flow.WeatherType.Snow,
-	//     randomRange = 8192,
-	//     randomHeight = 1024,
-	//     life = 1,
-	//     strength = 1,
+	//     randomRange = 4096,
 	//     enableClustering = true,
-	//     checkWindFlag = true, -- Use wind room flag to spawn.
+	//     checkWindFlag = false,
 	//     baseColor = TEN.Color(255, 100, 255),
 	// }
-	// TEN.Effects.EmitWeather(weatherParams)
+	// 
+	// function SpawnSnow()
+	//    if (delay <= 0) then
+	//        local pos = TEN.Objects.GetMoveableByName("camera_target_7"):GetPosition()
+	//        weatherParams.position = pos
+	//        TEN.Effects.EmitWeather(weatherParams)
+	//        delay = delay_count
+	//    else
+	//        delay = delay - 1
+	//    end
+	// end
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    SpawnSnow()
+	// end
 
 	/// Structure for `EmitWeather` table.
 	// @table WeatherParameters
