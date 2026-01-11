@@ -699,7 +699,7 @@ namespace TEN::Scripting::Effects
 	/// Structure for EmitWeather table.
 	// @table WeatherParameters
 	// @tfield Vec3 position World position.
-	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a very low value, otherwise the particle could be too fast.
+	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
 	// @tfield[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 block by default)
 	// @tfield[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
 	// @tfield[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
