@@ -684,8 +684,6 @@ namespace TEN::Scripting::Effects
 	// @tparam WeatherParameters weatherParameters table with weather parameters.
 	// @usage
 	// -- Example 1: Simple use to emit rain (Use wind room flag to spawn)
-	// local delay = 0
-	// local delay_count = 1
 	// local weatherParams = {
 	//     position = Vec3(4608, -1408, 11776),
 	//     initialVelocity = Vec3(0, 10, 0),
