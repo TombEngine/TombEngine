@@ -28,10 +28,6 @@ using namespace TEN::Entities::Effects;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	// Packed layout in `item.ItemFlags[2]`:
-	// bits 0..7   = shockwave timer   (0..255)
-	// bits 8..15  = shockwave count   (0..255)
-
 	constexpr auto SOPHIALEIGH_WALK_RANGE		   = SQUARE(BLOCK(1));
 	constexpr auto SOPHIALEIGH_NORMAL_ATTACK_RANGE = SQUARE(BLOCK(5));
 	constexpr auto SOPHIALEIGH_NORMAL_WALK_RANGE   = SQUARE(BLOCK(5));
@@ -68,39 +64,9 @@ namespace TEN::Entities::Creatures::TR3
 
 	constexpr auto SOPHIALEIGH_VAULT_SHIFT = 96;
 
-	constexpr unsigned short SOPHIALEIGH_SHOCKWAVE_TIMER_MASK = 0x00FF;
-	constexpr unsigned short SOPHIALEIGH_SHOCKWAVE_COUNT_MASK = 0xFF00;
-	constexpr unsigned short SOPHIALEIGH_SHOCKWAVE_COUNT_SHIFT = 8;
-
 	const auto SophiaLeighStaffBite = CreatureBiteInfo(Vector3(-28, 56, 356), 10);
 	const auto SophiaLeighLeftBite	= CreatureBiteInfo(Vector3(-72, 48, 356), 10);
 	const auto SophiaLeighRightBite = CreatureBiteInfo(Vector3(16, 48, 304), 10);
-
-	[[nodiscard]] static unsigned short GetSophiaShockwaveTimer(const ItemInfo& item)
-	{
-		return ((unsigned short)item.ItemFlags[2]) & SOPHIALEIGH_SHOCKWAVE_TIMER_MASK;
-	}
-
-	[[nodiscard]] static unsigned short GetSophiaShockwaveCount(const ItemInfo& item)
-	{
-		return (((unsigned short)item.ItemFlags[2]) & SOPHIALEIGH_SHOCKWAVE_COUNT_MASK) >> SOPHIALEIGH_SHOCKWAVE_COUNT_SHIFT;
-	}
-
-	static void SetSophiaShockwaveTimer(ItemInfo& item, unsigned short timer)
-	{
-		timer &= 0xFF;
-		auto packed = (unsigned short)item.ItemFlags[2];
-		packed = (packed & SOPHIALEIGH_SHOCKWAVE_COUNT_MASK) | timer;
-		item.ItemFlags[2] = (short)packed;
-	}
-
-	static void SetSophiaShockwaveCount(ItemInfo& item, unsigned short count)
-	{
-		count &= 0xFF;
-		auto packed = (unsigned short)item.ItemFlags[2];
-		packed = (packed & SOPHIALEIGH_SHOCKWAVE_TIMER_MASK) | (count << SOPHIALEIGH_SHOCKWAVE_COUNT_SHIFT);
-		item.ItemFlags[2] = (short)packed;
-	}
 
 	struct SophiaData
 	{
@@ -109,6 +75,8 @@ namespace TEN::Entities::Creatures::TR3
 		short headAngle;
 		short torsoXAngle;
 		short torsoYAngle;
+		short shockwaveCount;
+		short shockwaveTimer;
 	};
 
 	enum SophiaLeighState
@@ -162,7 +130,7 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		Normal = 0,			 // Move, climb, attack, and chase player.
 		Tower = 1,			 // TR3 one, with climbing only.
-		TowerWithVolume = 2, // TR3 one, but uses lua to move her. Must increase/decrease creature->LocationAI to go up/down.
+		TowerWithVolume = 2, // TR3 one, but uses volume to move instead of height check. Must increase/decrease creature->LocationAI to go up/down.
 	};
 
 	static void RotateTowardTarget(ItemInfo& item, const AI_INFO& ai, short turnRate)
@@ -451,8 +419,8 @@ namespace TEN::Entities::Creatures::TR3
 				if (item.Animation.FrameNumber == 0)
 				{
 					item.Timer = SOPHIALEIGH_CHARGE_TIMER_DURATION;
-					SetSophiaShockwaveTimer(item, 0);
-					SetSophiaShockwaveCount(item, 0);
+					data->shockwaveTimer = 0;
+					data->shockwaveCount = 0;
 				}
 				else if (item.HitStatus && item.Animation.TargetState != SOPHIALEIGH_STATE_STAND)
 				{
@@ -470,7 +438,7 @@ namespace TEN::Entities::Creatures::TR3
 				item.ItemFlags[4] = 1;
 			}
 
-			if (GetSophiaShockwaveTimer(item) && GetSophiaShockwaveCount(item) < 4)
+			if (!data->shockwaveTimer && data->shockwaveCount < 4)
 			{
 				sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 				shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
@@ -481,19 +449,19 @@ namespace TEN::Entities::Creatures::TR3
 					SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX,
 					36, EulerAngles(Random::GenerateInt(0, 180), 30, Random::GenerateInt(0, 180)), 0, false, true, false, (int)ShockwaveStyle::Sophia);
 
-				SetSophiaShockwaveTimer(item, 2);
-				SetSophiaShockwaveCount(item, GetSophiaShockwaveCount(item) + 1);
+				data->shockwaveTimer = 2;
+				data->shockwaveCount++;
 				break;
 			}
 
-			if (GetSophiaShockwaveCount(item) == 4)
+			if (data->shockwaveCount == 4)
 			{
-				SetSophiaShockwaveCount(item, 0);
-				SetSophiaShockwaveTimer(item, 15);
+				data->shockwaveCount = 0;
+				data->shockwaveTimer = 15;
 				break;
 			}
 
-			SetSophiaShockwaveTimer(item, GetSophiaShockwaveTimer(item) - 1);
+			data->shockwaveTimer--;
 			break;
 
 		case SOPHIALEIGH_STATE_BIG_SHOOT:
@@ -643,8 +611,8 @@ namespace TEN::Entities::Creatures::TR3
 				if (item.Animation.FrameNumber == 0)
 				{
 					item.Timer = SOPHIALEIGH_CHARGE_TIMER_DURATION;
-					SetSophiaShockwaveTimer(item, 0);
-					SetSophiaShockwaveCount(item, 0);
+					data->shockwaveTimer = 0;
+					data->shockwaveCount = 0;
 				}
 				else if (item.HitStatus &&
 					item.Animation.TargetState != SOPHIALEIGH_STATE_STAND &&
@@ -664,7 +632,7 @@ namespace TEN::Entities::Creatures::TR3
 				item.ItemFlags[4] = 1;
 			}
 
-			if (!GetSophiaShockwaveTimer(item) && GetSophiaShockwaveCount(item) < 4)
+			if (!data->shockwaveTimer && data->shockwaveCount < 4)
 			{
 				sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 				shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
@@ -676,19 +644,19 @@ namespace TEN::Entities::Creatures::TR3
 					SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX, SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX,
 					36, EulerAngles(Random::GenerateInt(0, 180), 30, Random::GenerateInt(0, 180)), 0, false, true, false, (int)ShockwaveStyle::Sophia);
 
-				SetSophiaShockwaveTimer(item, 2);
-				SetSophiaShockwaveCount(item, GetSophiaShockwaveCount(item) + 1);
+				data->shockwaveTimer = 2;
+				data->shockwaveCount++;
 				break;
 			}
 
-			if (GetSophiaShockwaveCount(item) == 4)
+			if (data->shockwaveCount == 4)
 			{
-				SetSophiaShockwaveCount(item, 0);
-				SetSophiaShockwaveTimer(item, 15);
+				data->shockwaveCount = 0;
+				data->shockwaveTimer = 15;
 				break;
 			}
 
-			SetSophiaShockwaveTimer(item, GetSophiaShockwaveTimer(item) - 1);
+			data->shockwaveTimer--;
 			break;
 
 		case SOPHIALEIGH_STATE_BIG_SHOOT:
@@ -737,7 +705,6 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeCreature(itemNumber);
 		CheckForRequiredObjects(item);						// ItemFlags[0] is used.
 		item.ItemFlags[1] = 0;								// Light timer (for smoothing).
-		item.ItemFlags[2] = 0;								// Shockwave timer and count.
 		item.ItemFlags[3] = 0;								// Target vertical distance.
 		item.ItemFlags[4] = 0;								// Charged state (true or false).
 		item.ItemFlags[5] = 0;								// Death count.
