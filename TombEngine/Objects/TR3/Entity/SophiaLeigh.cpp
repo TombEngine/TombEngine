@@ -134,9 +134,9 @@ namespace TEN::Entities::Creatures::TR3
 
 	enum class SophiaOCB
 	{
-		Normal = 0,			 // Move, climb, attack, and chase player.
-		Tower = 1,			 // TR3 one, with climbing only.
-		TowerWithVolume = 2, // TR3 one, but uses volume to move instead of height check. Must increase/decrease creature->LocationAI to go up/down.
+		Normal = 0,				// Move, climb, attack, and chase player.
+		Tower = 1,				// TR3 one, with climbing only.
+		TowerLua = 2,			// TR3 one, but uses lua to move. Must increase/decrease creature->LocationAI to go up/down.
 	};
 
 	[[nodiscard]] static unsigned short GetSophiaShockwaveTimer(const ItemInfo& item)
@@ -782,7 +782,7 @@ namespace TEN::Entities::Creatures::TR3
 		else
 		{
 			if (item.TriggerFlags == (int)SophiaOCB::Tower ||
-				item.TriggerFlags == (int)SophiaOCB::TowerWithVolume)
+				item.TriggerFlags == (int)SophiaOCB::TowerLua)
 			{
 				SophiaLeighTowerControl(item, &creature, &data);
 			}
@@ -832,7 +832,7 @@ namespace TEN::Entities::Creatures::TR3
 	void SophiaLeighHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)
 	{
 		// In tower mode, except from trigger, Sophia is immune to damage and any effects (like fire) (if not dead).
-		if ((target.TriggerFlags == (int)SophiaOCB::Tower || target.TriggerFlags == (int)SophiaOCB::TowerWithVolume) && target.HitPoints > 0)
+		if ((target.TriggerFlags == (int)SophiaOCB::Tower || target.TriggerFlags == (int)SophiaOCB::TowerLua) && target.HitPoints > 0)
 		{
 			target.Effect.Count = 0;
 			target.Effect.Type = EffectType::None;
