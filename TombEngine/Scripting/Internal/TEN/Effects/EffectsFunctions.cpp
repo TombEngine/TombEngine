@@ -696,7 +696,7 @@ namespace TEN::Scripting::Effects
 	// }
 	// TEN.Effects.EmitWeather(weatherParams)
 
-	/// Structure for EmitWeather table.
+	/// Structure for `EmitWeather` table.
 	// @table WeatherParameters
 	// @tfield Vec3 position World position.
 	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
