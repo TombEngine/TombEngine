@@ -50,7 +50,7 @@ namespace TEN::Hud
 		static constexpr auto DISPLAY_PICKUP_COUNT_MAX		   = 64;
 		static constexpr auto DISPLAY_PICKUP_COUNT_ARG_DEFAULT = 1;
 
-		// Members
+		// Fields
 
 		std::vector<DisplayPickup> _displayPickups = {};
 
@@ -59,7 +59,7 @@ namespace TEN::Hud
 
 		void AddDisplayPickup(GAME_OBJECT_ID objectID, const Vector2& origin, unsigned int count = DISPLAY_PICKUP_COUNT_ARG_DEFAULT);
 		void AddDisplayPickup(GAME_OBJECT_ID objectID, const Vector3& pos, unsigned int count = DISPLAY_PICKUP_COUNT_ARG_DEFAULT);
-		void AddDisplayPickup(ItemInfo& item);
+		void AddDisplayPickup(const ItemInfo& item);
 
 		void Update();
 		void Draw() const;

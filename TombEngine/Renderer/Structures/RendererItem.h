@@ -8,8 +8,8 @@ namespace TEN::Renderer::Structures
 {
 	struct RendererItem
 	{
-		int ItemNumber = 0;
-		int ObjectID   = 0;
+		int ItemNumber = NO_VALUE;
+		int ObjectID   = NO_VALUE;
 
 		Vector3 Position	= Vector3::Zero;
 		int		RoomNumber	= NO_VALUE;
@@ -24,11 +24,14 @@ namespace TEN::Renderer::Structures
 		Vector4 Color = Vector4::One;
 		Vector4 AmbientLight = Vector4::One;
 
-		std::vector<int>			MeshIds		 = {};
+		int				 SkinIndex	 = NO_VALUE;	
+		std::vector<int> MeshIndex	 = {};
+
 		std::vector<RendererLight*> LightsToDraw = {};
 		float LightFade = 0.0f;
 
 		bool DoneAnimations = false;
+		bool DisableInterpolation = true;
 
 		Vector3 InterpolatedPosition	= Vector3::Zero;
 		Matrix	InterpolatedWorld		= Matrix::Identity;

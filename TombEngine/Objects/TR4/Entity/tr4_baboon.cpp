@@ -132,7 +132,7 @@ namespace TEN::Entities::TR4
 
 	void BaboonDieEffect(ItemInfo* item)
 	{
-		auto pose = Pose(item->Pose.Position.x, item->Pose.Position.y - CLICK(0.5f), item->Pose.Position.z);
+		auto pose = Pose(Vector3i(item->Pose.Position.x, item->Pose.Position.y - CLICK(0.5f), item->Pose.Position.z));
 
 		// Trigger shockwave effect.
 		TriggerBaboonShockwave(pose, ANGLE(0.0f));
@@ -265,11 +265,13 @@ namespace TEN::Entities::TR4
 		{
 			if (item->Animation.ActiveState == BABOON_STATE_WALK)
 			{
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					BaboonRespawnFunction(itemNumber);
 			}
 			else if (item->Animation.ActiveState != BABOON_ACTIVATE_SWITCH)
+			{
 				SetAnimation(item, BABOON_STATE_WALK_ANIM);
+			}
 		}
 		else
 		{
@@ -488,7 +490,7 @@ namespace TEN::Entities::TR4
 				creature->MaxTurn = 0;
 				item->HitPoints = NOT_TARGETABLE;
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 212)
+				if (item->Animation.FrameNumber == 212)
 				{
 					auto pos = Vector3i::Zero;
 					if (item->Pose.Orientation.y == ANGLE(270.0f))

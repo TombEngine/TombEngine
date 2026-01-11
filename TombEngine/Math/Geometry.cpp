@@ -10,6 +10,35 @@
 
 namespace TEN::Math::Geometry
 {
+	Vector2 TranslatePoint(const Vector2& point, short orient, const Vector2& relOffset)
+	{
+		float sinOrient = sin(TO_RAD(orient));
+		float cosOrient = cos(TO_RAD(orient));
+
+		auto offset = Vector2(
+			(cosOrient * relOffset.x) - (sinOrient * relOffset.y),
+			(sinOrient * relOffset.x) + (cosOrient * relOffset.y));
+
+		return (point + offset);
+	}
+
+	Vector2 TranslatePoint(const Vector2& point, short orient, float dist)
+	{
+		auto dir = Vector2(
+			cos(TO_RAD(orient)),
+			sin(TO_RAD(orient)));
+
+		return TranslatePoint(point, dir, dist);
+	}
+
+	Vector2 TranslatePoint(const Vector2& point, const Vector2& dir, float dist)
+	{
+		auto dirNorm = dir;
+		dirNorm.Normalize();
+
+		return (point + (dirNorm * dist));
+	}
+
 	Vector3i TranslatePoint(const Vector3i& point, short headingAngle, float forward, float down, float right, const Vector3& axis)
 	{
 		return Vector3i(TranslatePoint(point.ToVector3(), headingAngle, forward, down, right, axis));
@@ -126,6 +155,55 @@ namespace TEN::Math::Geometry
 		// TODO: Consider axis.
 		return FROM_RAD(atan2(normal.x, normal.z));
 	}
+
+	BoundingBox GetAabb(const BoundingOrientedBox& box)
+	{
+		// Get corners.
+		auto corners = std::array<Vector3, BoundingOrientedBox::CORNER_COUNT>{};
+		box.GetCorners(corners.data());
+
+		// Transfer corners to vector.
+		auto cornersVector = std::vector<Vector3>{};
+		cornersVector.insert(cornersVector.end(), corners.begin(), corners.end());
+
+		// Return bounding box.
+		return Geometry::GetAabb(cornersVector);
+	}
+
+	BoundingBox GetAabb(const std::vector<Vector3>& points)
+	{
+		auto minPoint = Vector3(FLT_MAX);
+		auto maxPoint = Vector3(-FLT_MAX);
+
+		// Determine max and min AABB points.
+		for (const auto& point : points)
+		{
+			minPoint = Vector3(
+				std::min(minPoint.x, point.x),
+				std::min(minPoint.y, point.y),
+				std::min(minPoint.z, point.z));
+
+			maxPoint = Vector3(
+				std::max(maxPoint.x, point.x),
+				std::max(maxPoint.y, point.y),
+				std::max(maxPoint.z, point.z));
+		}
+
+		// Construct and return AABB.
+		auto center = (minPoint + maxPoint) / 2;
+		auto extents = (maxPoint - minPoint) / 2;
+		return BoundingBox(center, extents);
+	}
+
+	float GetAabbArea(const BoundingBox& box)
+	{
+		float width = box.Extents.x * 2;
+		float height = box.Extents.y * 2;
+		float depth = box.Extents.z * 2;
+
+		return (((width * height) + (width * depth) + (height * depth)) * 2);
+	}
+
 	float GetDistanceToLine(const Vector3& origin, const Vector3& linePoint0, const Vector3& linePoint1)
 	{
 		auto target = GetClosestPointOnLine(origin, linePoint0, linePoint1);
@@ -212,31 +290,6 @@ namespace TEN::Math::Geometry
 			-slopeAngle * cosDeltaAngle,
 			orient,
 			slopeAngle * sinDeltaAngle);
-	}
-
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points)
-	{
-		auto maxPoint = Vector3(-INFINITY);
-		auto minPoint = Vector3(INFINITY);
-
-		// Determine max and min AABB points.
-		for (const auto& point : points)
-		{
-			maxPoint = Vector3(
-				std::max(maxPoint.x, point.x),
-				std::max(maxPoint.y, point.y),
-				std::max(maxPoint.z, point.z));
-
-			minPoint = Vector3(
-				std::min(minPoint.x, point.x),
-				std::min(minPoint.y, point.y),
-				std::min(minPoint.z, point.z));
-		}
-
-		// Construct and return AABB.
-		auto center = (minPoint + maxPoint) / 2;
-		auto extents = (maxPoint - minPoint) / 2;
-		return BoundingBox(center, extents);
 	}
 
 	Quaternion ConvertDirectionToQuat(const Vector3& dir)

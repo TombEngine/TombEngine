@@ -1,12 +1,14 @@
 #include "framework.h"
 #include "Math/Objects/GameBoundingBox.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/Setup.h"
 #include "Math/Objects/EulerAngles.h"
 #include "Math/Objects/Pose.h"
 #include "Objects/game_object_ids.h"
+
+using namespace TEN::Animation;
 
 //namespace TEN::Math
 //{
@@ -22,9 +24,19 @@
 		Z2 = (int)round(z2);
 	}
 
+	GameBoundingBox::GameBoundingBox(const BoundingBox& aabb)
+	{
+		X1 = aabb.Center.x - aabb.Extents.x;
+		X2 = aabb.Center.x + aabb.Extents.x;
+		Y1 = aabb.Center.y - aabb.Extents.y;
+		Y2 = aabb.Center.y + aabb.Extents.y;
+		Z1 = aabb.Center.z - aabb.Extents.z;
+		Z2 = aabb.Center.z + aabb.Extents.z;
+	}
+
 	GameBoundingBox::GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
 	{
-		*this = GetFrame(objectID, animNumber, frameNumber)->BoundingBox;
+		*this = GetKeyframe(objectID, animNumber, frameNumber).BoundingBox;
 	}
 
 	// TODO: Use reference, not pointer.
@@ -33,11 +45,11 @@
 		auto frameData = GetFrameInterpData(*item);
 		if (frameData.Alpha == 0.0f)
 		{
-			*this = frameData.FramePtr0->BoundingBox;
+			*this = frameData.Keyframe0.BoundingBox;
 		}
 		else
 		{
-			*this = frameData.FramePtr0->BoundingBox + (((frameData.FramePtr1->BoundingBox - frameData.FramePtr0->BoundingBox) * frameData.Alpha));
+			*this = frameData.Keyframe0.BoundingBox + (((frameData.Keyframe1.BoundingBox - frameData.Keyframe0.BoundingBox) * frameData.Alpha));
 		}
 	}
 
@@ -68,21 +80,79 @@
 
 	void GameBoundingBox::Rotate(const EulerAngles& rot)
 	{
-		// Get box min and max values.
-		auto boxMax = Vector3(X2, Y2, Z2);
-		auto boxMin = Vector3(X1, Y1, Z1);
+		// Original min/max.
+		auto min = Vector3(X1, Y1, Z1);
+		auto max = Vector3(X2, Y2, Z2);
 
-		// Rotate min and max values.
+		// All 8 corners of the box.
+		Vector3 corners[8] =
+		{
+			{min.x, min.y, min.z},
+			{max.x, min.y, min.z},
+			{min.x, max.y, min.z},
+			{max.x, max.y, min.z},
+			{min.x, min.y, max.z},
+			{max.x, min.y, max.z},
+			{min.x, max.y, max.z},
+			{max.x, max.y, max.z}
+		};
+
+		// Rotation matrix.
 		auto rotMatrix = rot.ToRotationMatrix();
-		boxMax = Vector3::Transform(boxMax, rotMatrix);
-		boxMin = Vector3::Transform(boxMin, rotMatrix);
 
-		X1 = (int)round(boxMin.x);
-		X2 = (int)round(boxMax.x);
-		Y1 = (int)round(boxMin.y);
-		Y2 = (int)round(boxMax.y);
-		Z1 = (int)round(boxMin.z);
-		Z2 = (int)round(boxMax.z);
+		// Rotate and track new min/max.
+		auto newMin = Vector3( FLT_MAX,  FLT_MAX,  FLT_MAX);
+		auto newMax = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		for (auto& c : corners)
+		{
+			auto rotCorner = Vector3::Transform(c, rotMatrix);
+			newMin.x = std::min(newMin.x, rotCorner.x);
+			newMin.y = std::min(newMin.y, rotCorner.y);
+			newMin.z = std::min(newMin.z, rotCorner.z);
+
+			newMax.x = std::max(newMax.x, rotCorner.x);
+			newMax.y = std::max(newMax.y, rotCorner.y);
+			newMax.z = std::max(newMax.z, rotCorner.z);
+		}
+
+		// Assign integer-rounded bounds.
+		X1 = (int)std::floor(newMin.x);
+		Y1 = (int)std::floor(newMin.y);
+		Z1 = (int)std::floor(newMin.z);
+		X2 = (int)std::ceil(newMax.x);
+		Y2 = (int)std::ceil(newMax.y);
+		Z2 = (int)std::ceil(newMax.z);
+	}
+
+	BoundingSphere GameBoundingBox::ToLocalBoundingSphere() const
+	{
+		return BoundingSphere(GetCenter(), GetExtents().Length());
+	}
+
+	BoundingBox GameBoundingBox::ToConservativeBoundingBox(const Pose& pose) const
+	{
+		// Calculate conservative radius in XZ plane for Y-axis rotation.
+		auto extents = GetExtents();
+		float xzRadius = sqrt(extents.x * extents.x + extents.z * extents.z);
+
+		// Extents remain unchanged along Y-axis.
+		auto conservativeExtents = Vector3(xzRadius, extents.y, xzRadius);
+
+		// Manual 2D rotation for Y-axis only.
+		auto center = GetCenter();
+		float cos = phd_cos(pose.Orientation.y);
+		float sin = phd_sin(pose.Orientation.y);
+
+		// Rotate centerOffset in XZ plane (ignore Y rotation for height).
+		float rotatedX =  (cos * center.x) + (sin * center.z);
+		float rotatedZ = -(sin * center.x) + (cos * center.z);
+
+		// Box center is now position plus rotated offset.
+		auto rotatedCenter = pose.Position.ToVector3() + Vector3(rotatedX, center.y, rotatedZ);
+
+		// Build and return conservative AABB.
+		return BoundingBox(rotatedCenter, conservativeExtents);
 	}
 
 	BoundingOrientedBox GameBoundingBox::ToBoundingOrientedBox(const Pose& pose) const
@@ -137,11 +207,27 @@
 			Z1 * scalar, Z2 * scalar);
 	}
 
+	GameBoundingBox GameBoundingBox::operator *(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 * scalar.x, X2 * scalar.x,
+			Y1 * scalar.y, Y2 * scalar.y,
+			Z1 * scalar.z, Z2 * scalar.z);
+	}
+
 	GameBoundingBox GameBoundingBox::operator /(float scalar) const
 	{
 		return GameBoundingBox(
 			X1 / scalar, X2 / scalar,
 			Y1 / scalar, Y2 / scalar,
 			Z1 / scalar, Z2 / scalar);
+	}
+
+	GameBoundingBox GameBoundingBox::operator /(Vector3 scalar) const
+	{
+		return GameBoundingBox(
+			X1 / scalar.x, X2 / scalar.x,
+			Y1 / scalar.y, Y2 / scalar.y,
+			Z1 / scalar.z, Z2 / scalar.z);
 	}
 //}

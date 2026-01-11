@@ -8,6 +8,7 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Input;
@@ -16,6 +17,8 @@ namespace TEN::Entities::Player
 {
 	void lara_as_fly_cheat(ItemInfo* item, CollisionInfo* coll)
 	{
+		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
 		if (IsHeld(In::Forward))
 		{
 			item->Pose.Orientation.x -= ANGLE(3.0f);
@@ -35,19 +38,19 @@ namespace TEN::Entities::Player
 		}
 
 		if (IsHeld(In::Action))
-			TriggerDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 31, 150, 150, 150);
+			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 31, 150, 150, 150);
 
 		if (IsHeld(In::Jump))
 		{
 			float velCoeff = IsHeld(In::Sprint) ? 2.5f : 1.0f;
 
-			item->Animation.Velocity.y += (LARA_SWIM_VELOCITY_ACCEL * 4) * velCoeff;
-			if (item->Animation.Velocity.y > (LARA_SWIM_VELOCITY_MAX * 2) * velCoeff)
-				item->Animation.Velocity.y = (LARA_SWIM_VELOCITY_MAX * 2) * velCoeff;
+			item->Animation.Velocity.y += ((baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF) * 4) * velCoeff;
+			if (item->Animation.Velocity.y > (baseVel * 2) * velCoeff)
+				item->Animation.Velocity.y = (baseVel * 2) * velCoeff;
 		}
 		else
 		{
-			if (item->Animation.Velocity.y >= LARA_SWIM_VELOCITY_ACCEL)
+			if (item->Animation.Velocity.y >= (baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF))
 			{
 				item->Animation.Velocity.y -= item->Animation.Velocity.y / 8;
 			}

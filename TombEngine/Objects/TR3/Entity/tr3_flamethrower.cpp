@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/tr3_flamethrower.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
@@ -17,6 +17,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
@@ -70,12 +71,12 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (item->Animation.ActiveState != 6 && item->Animation.ActiveState != 11)
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 6, 24 - ((randomInt / 16) & 3), 16 - ((randomInt / 64) & 3), randomInt & 3);
 			TriggerPilotFlame(itemNumber, 9);
 		}
 		else
 		{
-			TriggerDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, (randomInt & 3) + 10, 31 - ((randomInt / 16) & 3), 24 - ((randomInt / 64) & 3), randomInt & 7);
 		}
 
 		if (item->HitPoints <= 0)

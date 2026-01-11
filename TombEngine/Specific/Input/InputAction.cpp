@@ -5,124 +5,205 @@
 
 namespace TEN::Input
 {
-	InputAction::InputAction(ActionID actionID)
+	const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS =
+	{
+		// General
+		{
+			In::Forward,
+			In::Back,
+			In::Left,
+			In::Right,
+			In::StepLeft,
+			In::StepRight,
+			In::Walk,
+			In::Sprint,
+			In::Crouch,
+			In::Jump,
+			In::Roll,
+			In::Action,
+			In::Draw,
+			In::Look
+		},
+		// Vehicle
+		{
+			In::Accelerate,
+			In::Reverse,
+			In::Faster,
+			In::Slower,
+			In::Brake,
+			In::Fire
+		},
+		// Quick
+		{
+			In::Flare,
+			In::SmallMedipack,
+			In::LargeMedipack,
+			In::PreviousWeapon,
+			In::NextWeapon,
+			In::Weapon1,
+			In::Weapon2,
+			In::Weapon3,
+			In::Weapon4,
+			In::Weapon5,
+			In::Weapon6,
+			In::Weapon7,
+			In::Weapon8,
+			In::Weapon9,
+			In::Weapon10
+		},
+		// Menu
+		{
+			In::Select,
+			In::Deselect,
+			In::Pause,
+			In::Inventory,
+			In::Save,
+			In::Load
+		},
+		// Keyboard
+		{
+			In::A, In::B, In::C, In::D, In::E, In::F, In::G, In::H, In::I, In::J, In::K, In::L, In::M,
+			In::N, In::O, In::P, In::Q, In::R, In::S, In::T, In::U, In::V, In::W, In::X, In::Y, In::Z,
+			In::Num1, In::Num2, In::Num3, In::Num4, In::Num5, In::Num6, In::Num7, In::Num8, In::Num9, In::Num0,
+			In::Return, In::Escape, In::Backspace, In::Tab, In::Space, In::Home, In::End, In::Delete,
+			In::Minus, In::Equals, In::BracketLeft, In::BracketRight, In::Backslash, In::Semicolon, In::Apostrophe, In::Comma, In::Period, In::Slash,
+			In::ArrowUp, In::ArrowDown, In::ArrowLeft, In::ArrowRight,
+			In::Ctrl, In::Shift, In::Alt
+		},
+		// Mouse
+		{
+			In::MouseClickLeft,
+			In::MouseClickMiddle,
+			In::MouseClickRight,
+			In::MouseScrollUp,
+			In::MouseScrollDown
+		}
+	};
+
+	const std::vector<ActionGroupID> USER_ACTION_GROUP_IDS =
+	{
+		ActionGroupID::General,
+		ActionGroupID::Vehicle,
+		ActionGroupID::Quick,
+		ActionGroupID::Menu
+	};
+
+	const std::vector<ActionGroupID> RAW_ACTION_GROUP_IDS =
+	{
+		ActionGroupID::Keyboard,
+		ActionGroupID::Mouse,
+		//ActionGroupID::Gamepad
+	};
+
+	Action::Action(ActionID actionID)
 	{
 		_id = actionID;
 	}
 
-	ActionID InputAction::GetID() const
+	ActionID Action::GetID() const
 	{
 		return _id;
 	}
 
-	float InputAction::GetValue() const
+	float Action::GetValue() const
 	{
 		return _value;
 	}
 
-	float InputAction::GetTimeActive() const
+	// Time in game frames.
+	unsigned int Action::GetTimeActive() const
 	{
 		return _timeActive;
 	}
 
-	float InputAction::GetTimeInactive() const
+	// Time in game frames.
+	unsigned int Action::GetTimeInactive() const
 	{
 		return _timeInactive;
 	}
 
-	bool InputAction::IsClicked() const
+	bool Action::IsClicked() const
 	{
-		return ((_value != 0.0f) && (_prevValue == 0.0f));
+		return (_value != 0.0f && _prevValue == 0.0f);
 	}
 
-	bool InputAction::IsHeld(float delayInSec) const
+	bool Action::IsHeld(float delaySec) const
 	{
-		float delayInFrameTime = (delayInSec == 0.0f) ? 0.0f : round(delayInSec / DELTA_TIME);
-		return ((_value != 0.0f) && (_timeActive >= delayInFrameTime));
+		unsigned int delayGameFrames = (delaySec == 0.0f) ? 0 : SecToGameFrames(delaySec);
+		return (_value != 0.0f && _timeActive >= delayGameFrames);
 	}
 
-	// NOTE: To avoid stutter on second pulse, ensure initialDelayInSec is multiple of delayInSec.
-	bool InputAction::IsPulsed(float delayInSec, float initialDelayInSec) const
+	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is multiple of `delaySec`.
+	bool Action::IsPulsed(float delaySec, float initialDelaySec) const
 	{
 		if (IsClicked())
 			return true;
 
-		if (!IsHeld() || _prevTimeActive == 0.0f || _timeActive == _prevTimeActive)
+		if (!IsHeld() || _prevTimeActive == 0 || _timeActive == _prevTimeActive)
 			return false;
 
-		float activeDelayInFrameTime = (_timeActive > round(initialDelayInSec / DELTA_TIME)) ? round(delayInSec / DELTA_TIME) : round(initialDelayInSec / DELTA_TIME);
-		float delayInFrameTime = std::floor(_timeActive / activeDelayInFrameTime) * activeDelayInFrameTime;
-		if (delayInFrameTime > (std::floor(_prevTimeActive / activeDelayInFrameTime) * activeDelayInFrameTime))
-			return true;
+		float activeDelaySec = (_timeActive > SecToGameFrames(initialDelaySec)) ? delaySec : initialDelaySec;
+		unsigned int activeDelayGameFrames = SecToGameFrames(activeDelaySec);
 
-		// Keeping version counting real time for future reference. -- Sezz 2022.10.01
-		/*float syncedTimeActive = TimeActive - std::fmod(TimeActive, DELTA_TIME);
-		float activeDelay = (TimeActive > initialDelayInSec) ? delayInSeconds : initialDelayInSec;
-
-		float delayTime = std::floor(syncedTimeActive / activeDelay) * activeDelay;
-		if (delayTime >= PrevTimeActive)
-			return true;*/
-
-		return false;
+		unsigned int delayGameFrames = (unsigned int)floor(_timeActive / activeDelayGameFrames) * activeDelayGameFrames;
+		unsigned int prevDelayGameFrames = (unsigned int)floor(_prevTimeActive / activeDelayGameFrames) * activeDelayGameFrames;
+		return (delayGameFrames > prevDelayGameFrames);
 	}
 
-	bool InputAction::IsReleased(float maxDelayInSec) const
+	bool Action::IsReleased(float delaySecMax) const
 	{
-		float maxDelayInFrameTime = (maxDelayInSec == INFINITY) ? INFINITY : round(maxDelayInSec / DELTA_TIME);
-		return ((_value == 0.0f) && (_prevValue != 0.0f) && (_timeActive <= maxDelayInFrameTime));
+		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
+		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
 	}
 
-	void InputAction::Update(bool value)
+	void Action::Update(bool value)
 	{
 		Update(value ? 1.0f : 0.0f);
 	}
 
-	void InputAction::Update(float value)
+	void Action::Update(float value)
 	{
-		UpdateValue(value);
-
-		// TODO: Because our delta time is a placeholder constant and we cannot properly account for time drift,
-		// count whole frames instead of actual time passed for now to avoid occasional stutter.
-		// Inquiry methods take this into account. -- Sezz 2022.10.01
-		constexpr auto FRAME_TIME = 1.0f;
+		_prevValue = _value;
+		_value	   = value;
 
 		if (IsClicked())
 		{
-			_prevTimeActive = 0.0f;
-			_timeActive = 0.0f;
-			_timeInactive += FRAME_TIME;// DELTA_TIME;
+			_prevTimeActive = 0;
+			_timeActive		= 0;
+			_timeInactive++;
 		}
 		else if (IsReleased())
 		{
 			_prevTimeActive = _timeActive;
-			_timeActive += FRAME_TIME;// DELTA_TIME;
-			_timeInactive = 0.0f;
+			_timeInactive	= 0;
+			_timeActive++;
 		}
 		else if (IsHeld())
 		{
 			_prevTimeActive = _timeActive;
-			_timeActive += FRAME_TIME;// DELTA_TIME;
-			_timeInactive = 0.0f;
+			_timeInactive	= 0;
+			_timeActive++;
 		}
 		else
 		{
-			_prevTimeActive = 0.0f;
-			_timeActive = 0.0f;
-			_timeInactive += FRAME_TIME;// DELTA_TIME;
+			_prevTimeActive = 0;
+			_timeActive		= 0;
+			_timeInactive++;
 		}
 	}
 
-	void InputAction::Clear()
+	void Action::Clear()
 	{
-		_value = 0.0f;
-		_prevValue = 0.0f;
-		_timeActive = 0.0f;
-		_prevTimeActive = 0.0f;
-		_timeInactive = 0.0f;
+		_value			= 0.0f;
+		_prevValue		= 0.0f;
+		_timeActive		= 0;
+		_prevTimeActive = 0;
+		_timeInactive	= 0;
 	}
 
-	void InputAction::DrawDebug() const
+	void Action::DrawDebug() const
 	{
+		PrintDebugMessage("INPUT ACTION DEBUG");
 		PrintDebugMessage("ID: %d", (int)_id);
 		PrintDebugMessage("IsClicked: %d", IsClicked());
 		PrintDebugMessage("IsHeld: %d", IsHeld());
@@ -131,14 +212,8 @@ namespace TEN::Input
 		PrintDebugMessage("");
 		PrintDebugMessage("Value: %.3f", _value);
 		PrintDebugMessage("PrevValue: %.3f", _prevValue);
-		PrintDebugMessage("TimeActive: %.3f", _timeActive);
-		PrintDebugMessage("PrevTimeActive: %.3f", _prevTimeActive);
-		PrintDebugMessage("TimeInactive: %.3f", _timeInactive);
-	}
-
-	void InputAction::UpdateValue(float value)
-	{
-		_prevValue = _value;
-		_value = value;
+		PrintDebugMessage("TimeActive: %d", _timeActive);
+		PrintDebugMessage("PrevTimeActive: %d", _prevTimeActive);
+		PrintDebugMessage("TimeInactive: %d", _timeInactive);
 	}
 }

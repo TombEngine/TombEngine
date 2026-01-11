@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "tr5_crowdove_switch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/debris.h"
@@ -13,6 +13,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -41,6 +42,8 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Custom);
+
 		if (switchItem->Flags & IFLAG_INVISIBLE ||
 			!(switchItem->MeshBits & 4) ||
 			(!IsHeld(In::Action) ||
@@ -63,7 +66,7 @@ namespace TEN::Entities::Switches
 				{
 					laraItem->Animation.AnimNumber = LA_DOVESWITCH_TURN;
 					laraItem->Animation.ActiveState = LS_DOVE_SWITCH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 
 					AddActiveItem(itemNumber);
 

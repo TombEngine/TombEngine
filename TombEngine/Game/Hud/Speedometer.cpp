@@ -3,8 +3,9 @@
 
 #include "Game/effects/DisplaySprite.h"
 #include "Math/Math.h"
-#include "Specific/clock.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/clock.h"
 
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
@@ -58,6 +59,9 @@ namespace TEN::Hud
 
 		//DrawDebug();
 
+		if (!g_GameFlow->GetSettings()->Hud.Speedometer)
+			return;
+
 		if (_life <= 0.0f)
 			return;
 
@@ -66,14 +70,14 @@ namespace TEN::Hud
 
 		// Draw dial.
 		AddDisplaySprite(
-			ID_SPEEDOMETER, DIAL_ELEMENT_SPRITE_ID,
+			ID_SPEEDOMETER_GRAPHICS, DIAL_ELEMENT_SPRITE_ID,
 			POS, 0, SCALE, color,
 			DIAL_PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend,
 			DisplaySpritePhase::Draw);
 
 		// Draw pointer.
 		AddDisplaySprite(
-			ID_SPEEDOMETER, POINTER_ELEMENT_SPRITE_ID,
+			ID_SPEEDOMETER_GRAPHICS, POINTER_ELEMENT_SPRITE_ID,
 			POS, pointerAngle + POINTER_ANGLE_OFFSET, SCALE, color,
 			POINTER_PRIORITY, DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend,
 			DisplaySpritePhase::Draw);

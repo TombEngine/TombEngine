@@ -1,17 +1,20 @@
 #pragma once
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/control/trigger.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Math/Math.h"
 
+using namespace TEN::Animation;
+
+namespace TEN::Animation { struct AnimData; }
 class FloorInfo;
 class GameBoundingBox;
-struct AnimData;
 struct CollisionInfo;
 struct ItemInfo;
-struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
+struct StaticMesh;
 
 enum class GameStatus
 {
@@ -26,11 +29,12 @@ enum class GameStatus
 	LevelComplete
 };
 
-enum class LevelLoadType
+enum class FreezeMode
 {
-	New,
-	Hub,
-	Load
+	None,
+	Full,
+	Spectator,
+	Player
 };
 
 enum CardinalDirection
@@ -52,7 +56,6 @@ constexpr int MAX_ROOMS = 1024;
 
 constexpr auto LOOP_FRAME_COUNT = 2;
 
-extern int GameTimer;
 extern int RumbleTimer;
 extern int GlobalCounter;
 
@@ -60,11 +63,11 @@ extern bool InitializeGame;
 extern bool DoTheGame;
 extern bool JustLoaded;
 extern bool ThreadEnded;
+extern bool DebugMode;
 
 extern int RequiredStartPos;
 extern int CurrentLevel;
 extern int NextLevel;
-extern int SystemNameHash;
 
 extern bool  InItemControlLoop;
 extern short ItemNewRoomNo;
@@ -80,7 +83,7 @@ extern std::vector<short> OutsideRoomTable[OUTSIDE_SIZE][OUTSIDE_SIZE];
 
 void DrawPhase(bool isTitle, float interpolationFactor);
 
-GameStatus ControlPhase();
+GameStatus ControlPhase(bool insideMenu);
 GameStatus DoLevel(int levelIndex, bool loadGame = false);
 GameStatus DoGameLoop(int levelIndex);
 void EndGameLoop(int levelIndex, GameStatus reason);
@@ -97,10 +100,11 @@ void KillMoveEffects();
 void UpdateShatters();
 
 void CleanUp();
+void DeInitialize();
 
 void InitializeOrLoadGame(bool loadGame);
-void InitializeScripting(int levelIndex, LevelLoadType type);
-void DeInitializeScripting(int levelIndex);
+void InitializeScripting(int levelIndex, bool loadGame);
+void DeInitializeScripting(int levelIndex, GameStatus reason);
 
 void SetupInterpolation();
 

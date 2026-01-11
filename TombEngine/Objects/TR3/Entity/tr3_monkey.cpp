@@ -125,8 +125,10 @@ namespace TEN::Entities::Creatures::TR3
 				creature->Enemy = nullptr;
 				int minDistance = INT_MAX;
 
-				for (auto& currentCreature : ActiveCreatures)
+				for (auto creatureIndex : ActiveCreatures)
 				{
+					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 						continue;
 
@@ -347,7 +349,7 @@ namespace TEN::Entities::Creatures::TR3
 					break;
 				else if ((creature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM ||
 					creature->Enemy->ObjectNumber == ID_KEY_ITEM4) &&
-					item->Animation.FrameNumber == (GetAnimData(item).frameBase + 12))
+					item->Animation.FrameNumber == 12)
 				{
 					if (creature->Enemy->RoomNumber == NO_VALUE ||
 						creature->Enemy->Status == ITEM_INVISIBLE ||
@@ -362,8 +364,10 @@ namespace TEN::Entities::Creatures::TR3
 						creature->Enemy->RoomNumber = NO_VALUE;
 						creature->Enemy->CarriedItem = NO_VALUE;
 
-						for (auto& currentCreature : ActiveCreatures)
+						for (auto creatureIndex : ActiveCreatures)
 						{
+							auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 							if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
 								continue;
 
@@ -382,7 +386,7 @@ namespace TEN::Entities::Creatures::TR3
 					}
 				}
 				else if (creature->Enemy->ObjectNumber == ID_AI_AMBUSH &&
-					item->Animation.FrameNumber == (GetAnimData(item).frameBase + 12))
+					item->Animation.FrameNumber == 12)
 				{
 					item->AIBits = 0;
 

@@ -146,10 +146,10 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 	if (item->Animation.AnimNumber == LA_REACH_TO_HANG ||
 		item->Animation.AnimNumber == LA_HANG_IDLE)
 	{
-		TestForObjectOnLedge(item, coll);
-
 		if (IsHeld(In::Forward))
 		{
+			TestForObjectOnLedge(item, coll);
+
 			if (coll->Front.Floor > -(CLICK(3.5f) - 46) &&
 				TestValidLedge(item, coll) && !coll->HitStatic)
 			{
@@ -188,7 +188,7 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 			{
 				if (TestLaraClimbIdle(item, coll))
 					item->Animation.TargetState = LS_LADDER_IDLE;
-				else if (TestLastFrame(item))
+				else if (TestLastFrame(*item))
 					SetAnimation(item, LA_LADDER_SHIMMY_UP);
 			}
 
@@ -202,7 +202,7 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (TestLaraClimbIdle(item, coll))
 				item->Animation.TargetState = LS_LADDER_IDLE;
-			else if (TestLastFrame(item))
+			else if (TestLastFrame(*item))
 				SetAnimation(item, LA_LADDER_SHIMMY_DOWN);
 		}
 	}
@@ -275,7 +275,7 @@ void lara_as_shimmy_corner(ItemInfo* item, CollisionInfo* coll)
 	Camera.targetElevation = -ANGLE(33.0f);
 	Camera.laraNode = LM_TORSO;
 
-	SetLaraCornerAnimation(item, coll, TestLastFrame(item));
+	SetLaraCornerAnimation(item, coll, TestLastFrame(*item));
 }
 
 // State:		LS_HANDSTAND (54)

@@ -51,50 +51,54 @@ namespace TEN::Entities::Generic
 		item.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(item);
 
-		// Initialize routines.
+		item.ItemFlags[0] = item.Pose.Position.y;
+		item.ItemFlags[1] = 1;
+
 		bridge.GetFloorHeight = GetTwoBlockPlatformFloorHeight;
 		bridge.GetCeilingHeight = GetTwoBlockPlatformCeilingHeight;
 		bridge.GetFloorBorder = GetTwoBlockPlatformFloorBorder;
 		bridge.GetCeilingBorder = GetTwoBlockPlatformCeilingBorder;
-
-		item.ItemFlags[0] = item.Pose.Position.y;
-		item.ItemFlags[1] = 1;
-		UpdateBridgeItem(item);
+		bridge.Initialize(item);
 	}
 
 	void TwoBlockPlatformControl(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*item);
 
 		if (TriggerActive(item))
 		{
 			if (item->TriggerFlags)
 			{
-				int goalHeight = (item->ItemFlags[0] - 16 * (int)(item->TriggerFlags & 0xFFFFFFF0));
-				int speed = item->TriggerFlags & 0xF;
+				int targetHeight = (item->ItemFlags[0] - 16 * int(item->TriggerFlags & 0xFFFFFFF0));
+				int vel = item->TriggerFlags & 0xF;
 
-				if (item->Pose.Position.y > goalHeight)
+				if (item->Pose.Position.y > targetHeight)
 				{
-					item->Pose.Position.y -= speed;
+					item->Pose.Position.y -= vel;
 				}
 				else
 				{
 					return;
 				}
 
+				// @BRIDGEME
 				int distToPortal = *&g_Level.Rooms[item->RoomNumber].TopHeight - item->Pose.Position.y;
-				if (distToPortal <= speed)
-					UpdateBridgeItem(*item);
+				if (distToPortal <= vel)
+					bridge.Update(*item);
 
-				auto probe = GetPointCollision(*item);
+				// HACK: Must probe slightly higher to avoid strange bug where the room number sometimes isn't
+				// updated when the platform crosses room boundaries. -- Sezz 2025.01.18
+				// TODO: Maybe not necessary anymore after bridge refactors.
+				auto pointColl = GetPointCollision(*item, 0, 0, -CLICK(0.5f));
 
-				item->Floor = probe.GetFloorHeight();
+				item->Floor = pointColl.GetFloorHeight();
 
-				if (probe.GetRoomNumber() != item->RoomNumber)
+				if (pointColl.GetRoomNumber() != item->RoomNumber)
 				{
-					UpdateBridgeItem(*item, true);
-					ItemNewRoom(itemNumber, probe.GetRoomNumber());
-					UpdateBridgeItem(*item);
+					bridge.Disable(*item);
+					ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
+					bridge.Enable(*item);
 				}
 			}
 			else
@@ -146,5 +150,7 @@ namespace TEN::Entities::Generic
 				}
 			}
 		}
+
+		bridge.Update(*item);
 	}
 }

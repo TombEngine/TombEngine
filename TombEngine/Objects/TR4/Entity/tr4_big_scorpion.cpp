@@ -136,10 +136,12 @@ namespace TEN::Entities::TR4
 				else
 				{
 					creature->Enemy = nullptr;
-					float minDistance = INFINITY;
+					float minDistance = FLT_MAX;
 
-					for (auto& currentCreature : ActiveCreatures)
+					for (auto creatureIndex : ActiveCreatures)
 					{
+						auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 						if (currentCreature->ItemNumber != NO_VALUE && currentCreature->ItemNumber != itemNumber)
 						{
 							auto* currentItem = &g_Level.Items[currentCreature->ItemNumber];
@@ -293,7 +295,7 @@ namespace TEN::Entities::TR4
 			case BSCORPION_STATE_KILL_TROOP:
 				creature->MaxTurn = 0;
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					item->TriggerFlags++;
 
 				if ((creature->Enemy != nullptr && creature->Enemy->HitPoints <= 0) ||

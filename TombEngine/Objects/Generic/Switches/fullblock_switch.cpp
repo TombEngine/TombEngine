@@ -1,8 +1,9 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -11,6 +12,8 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -39,6 +42,8 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
+
 		if ((!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
 			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
@@ -64,7 +69,7 @@ namespace TEN::Entities::Switches
 				}
 
 				laraItem->Animation.TargetState = LS_IDLE;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				switchItem->Status = ITEM_ACTIVE;
 
 				AddActiveItem(itemNumber);
@@ -88,7 +93,7 @@ namespace TEN::Entities::Switches
 	{
 		ItemInfo* switchItem = &g_Level.Items[itemNumber];
 
-		if (switchItem->Animation.AnimNumber != Objects[switchItem->ObjectNumber].animIndex + 2 ||
+		if (switchItem->Animation.AnimNumber != 2 ||
 			CurrentSequence >= 3 ||
 			switchItem->ItemFlags[0])
 		{

@@ -42,6 +42,8 @@
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TurningBlade.h"
+#include "Objects/TR3/Trap/FirePendulum.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -73,7 +75,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->nonLot = true; // NOTE: Doesn't move to reach the player, only throws projectiles.
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
 
 	obj = &Objects[ID_TIGER];
@@ -300,7 +302,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
 
 	obj = &Objects[ID_CIVVY];
@@ -365,7 +367,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 50;
 		obj->SetBoneRotationFlags(4, ROT_Y);		 // Puna quest object.
 		obj->SetBoneRotationFlags(7, ROT_X | ROT_Y); // Head.
-		obj->SetHitEffect();
+		obj->SetHitEffect(HitEffect::NonExplosive);
 	}
 	
 	obj = &Objects[ID_WASP_MUTANT];
@@ -450,7 +452,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->Initialize = InitializeFishSwarm;
 		obj->control = ControlFishSwarm;
 		obj->intelligent = true;
-		obj->drawRoutine = NULL;
+		obj->Hidden = true;
 	}
 }
 
@@ -526,6 +528,31 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = WallMountedBladeControl;
 		obj->collision = GenericSphereBoxCollision;
 	}
+
+	obj = &Objects[ID_TURNING_WALL_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TURNING_CEILING_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+	
+	obj = &Objects[ID_FIRE_PENDULUM];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFirePendulum;
+		obj->control = ControlFirePendulum;
+		obj->collision = CollideFirePendulum;
+		obj->SetHitEffect(true);
+	}
 }
 
 static void StartVehicles(ObjectInfo* obj)
@@ -535,7 +562,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeQuadBike;
 		obj->collision = QuadBikePlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 
@@ -545,8 +572,7 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->Initialize = InitializeRubberBoat;
 		obj->control = RubberBoatControl;
 		obj->collision = RubberBoatPlayerCollision;
-		obj->drawRoutine = DrawRubberBoat;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -556,7 +582,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeKayak;
 		obj->collision = KayakPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -566,7 +592,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeMinecart;
 		obj->collision = MinecartPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
 	}
@@ -576,7 +602,7 @@ static void StartVehicles(ObjectInfo* obj)
 	{
 		obj->Initialize = BigGunInitialize;
 		obj->collision = BigGunCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 
@@ -586,7 +612,7 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->Initialize = InitializeUPV;
 		obj->control = UPVEffects;
 		obj->collision = UPVPlayerCollision;
-		obj->shadowType = ShadowMode::Lara;
+		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 	}
 }
@@ -595,7 +621,7 @@ static void StartProjectiles(ObjectInfo* obj)
 {
 	obj = &Objects[ID_TONY_BOSS_FLAME];
 	obj->control = ControlTonyFireBall;
-	obj->drawRoutine = nullptr;
+	obj->Hidden = true;
 }
 
 void InitializeTR3Objects()

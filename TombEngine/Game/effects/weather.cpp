@@ -9,7 +9,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
-#include "Math.h"
+#include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -19,7 +19,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Math;
 
-namespace TEN::Effects::Environment 
+namespace TEN::Effects::Environment
 {
 	EnvironmentController Weather;
 
@@ -35,7 +35,7 @@ namespace TEN::Effects::Environment
 			result *= (StartLife - Life) / fade;
 
 		if (Type != WeatherType::Snow)
-			result *= 0.45f;
+			result *= 0.35f;
 
 		return result;
 	}
@@ -84,6 +84,7 @@ namespace TEN::Effects::Environment
 
 		// Clear starfield.
 		ResetStarField = true;
+		Stars.clear();
 		Meteors.clear();
 	}
 
@@ -231,52 +232,65 @@ namespace TEN::Effects::Environment
 
 	void EnvironmentController::UpdateStarfield(const ScriptInterfaceLevel& level)
 	{
-		if (!level.GetStarfieldStarsEnabled())
+		int starCount = level.GetStarfieldStarCount();
+		if (starCount == 0)
 			return;
 
 		if (ResetStarField)
 		{
-			int starCount = level.GetStarfieldStarCount();
-
 			Stars.clear();
-			Stars.reserve(starCount);
+			ResetStarField = false;
+		}
 
-			for (int i = 0; i < starCount; i++)
+		if (starCount != Stars.size())
+		{
+			// If starCount increased, add new stars to existing list.
+			if (starCount > Stars.size())
 			{
-				auto starDir = Random::GenerateDirectionInCone(-Vector3::UnitY, 70.0f);
-				starDir.Normalize();
+				// Reserve space for new stars if necessary.
+				Stars.reserve(starCount);
 
-				auto star = StarParticle{};
-				star.Direction = starDir;
-				star.Color = Vector3(
-					Random::GenerateFloat(0.6f, 1.0f),
-					Random::GenerateFloat(0.6f, 1.0f),
-					Random::GenerateFloat(0.6f, 1.0f));
-				star.Scale = Random::GenerateFloat(0.5f, 1.5f);
-
-				float cosine = Vector3::UnitY.Dot(starDir);
-				float maxCosine = cos(DEG_TO_RAD(50.0f));
-				float minCosine = cos(DEG_TO_RAD(70.0f));
-
-				if (cosine >= minCosine && cosine <= maxCosine)
+				for (int i = (int)Stars.size(); i < starCount; i++)
 				{
-					star.Extinction = (cosine - minCosine) / (maxCosine - minCosine);
-				}
-				else
-				{
-					star.Extinction = 1.0f;
-				}
+					auto starDir = Random::GenerateDirectionInCone(-Vector3::UnitY, 70.0f);
+					starDir.Normalize();
 
-				Stars.push_back(star);
+					auto star = StarParticle{};
+					star.Direction = starDir;
+					star.Color = Vector3(
+						Random::GenerateFloat(0.6f, 1.0f),
+						Random::GenerateFloat(0.6f, 1.0f),
+						Random::GenerateFloat(0.6f, 1.0f));
+					star.Scale = Random::GenerateFloat(0.5f, 1.5f);
+
+					float cosine = Vector3::UnitY.Dot(starDir);
+					float maxCosine = cos(DEG_TO_RAD(50.0f));
+					float minCosine = cos(DEG_TO_RAD(70.0f));
+
+					if (cosine >= minCosine && cosine <= maxCosine)
+					{
+						star.Extinction = (cosine - minCosine) / (maxCosine - minCosine);
+					}
+					else
+					{
+						star.Extinction = 1.0f;
+					}
+
+					Stars.push_back(star);
+				}
+			}
+			// If starCount decreased, resize vector without reinitializing.
+			else
+			{
+				Stars.resize(starCount);
 			}
 
-			ResetStarField = false;
 		}
 
 		for (auto& star : Stars)
 			star.Blinking = Random::GenerateFloat(0.5f, 1.0f);
 
-		if (level.GetStarfieldMeteorsEnabled())
+		if (level.GetStarfieldMeteorCount() > 0)
 		{
 			for (auto& meteor : Meteors)
 			{
@@ -361,8 +375,9 @@ namespace TEN::Effects::Environment
 			if (part.Type == WeatherType::None)
 				continue;
 
-			auto pointColl = GetPointCollision(part.Position, part.RoomNumber);
+			PointCollisionData pointColl;
 			bool collisionCalculated = false;
+			bool landed = false;
 
 			if (part.CollisionCheckDelay <= 0)
 			{
@@ -393,14 +408,22 @@ namespace TEN::Effects::Environment
 
 				if (pointColl.GetRoomNumber() == part.RoomNumber)
 				{
-					// Not landed on door, so out of room bounds - delete.
-					part.Enabled = false;
-					continue;
+					// Not landed on door, so out of room bounds - land.
+					landed = true;
 				}
 				else
 				{
 					part.RoomNumber = pointColl.GetRoomNumber();
 				}
+			}
+
+			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
+
+			if (part.Type == WeatherType::Rain &&				
+				(abs(Camera.pos.x - part.Position.x) > range ||
+				abs(Camera.pos.z - part.Position.z) > range))
+			{
+				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
 
 			// If collision was updated, process with position checks.
@@ -409,7 +432,7 @@ namespace TEN::Effects::Environment
 				// If particle is inside water or swamp, count it as "inSubstance".
 				// If particle got below floor or above ceiling, count it as "landed".
 				bool inSubstance = g_Level.Rooms[pointColl.GetRoomNumber()].flags & (ENV_FLAG_WATER | ENV_FLAG_SWAMP);
-				bool landed = (pointColl.GetFloorHeight() <= part.Position.y) || (pointColl.GetCeilingHeight() >= part.Position.y);
+				landed = landed || (pointColl.GetFloorHeight() <= part.Position.y) || (pointColl.GetCeilingHeight() >= part.Position.y);
 
 				if (inSubstance || landed)
 				{
@@ -419,14 +442,20 @@ namespace TEN::Effects::Environment
 
 					// Produce ripples if particle got into substance (water or swamp).
 					if (inSubstance)
-						SpawnRipple(part.Position, part.RoomNumber, Random::GenerateFloat(16.0f, 24.0f), (int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
+					{
+						auto ripplePos = part.Position;
+						ripplePos.y = pointColl.GetWaterSurfaceHeight();
+						SpawnRipple(ripplePos, part.RoomNumber, Random::GenerateFloat(16.0f, 24.0f), (int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
+					}
 
 					// Immediately disable rain particle because it doesn't need fading out.
 					if (part.Type == WeatherType::Rain)
 					{
 						part.Enabled = false;
-						AddWaterSparks(prevPos.x, prevPos.y, prevPos.z, 6);
+						AddWaterSparks(prevPos.x, inSubstance ? pointColl.GetWaterSurfaceHeight() : pointColl.GetFloorHeight() - 32, prevPos.z, 6);
 					}
+
+					continue;
 				}
 			}
 
@@ -500,37 +529,33 @@ namespace TEN::Effects::Environment
 	{
 		for (int i = 0; i < DUST_SPAWN_DENSITY; i++)
 		{
-			int xPos = Camera.pos.x + rand() % DUST_SPAWN_RADIUS - DUST_SPAWN_RADIUS / 2.0f;
-			int yPos = Camera.pos.y + rand() % DUST_SPAWN_RADIUS - DUST_SPAWN_RADIUS / 2.0f;
-			int zPos = Camera.pos.z + rand() % DUST_SPAWN_RADIUS - DUST_SPAWN_RADIUS / 2.0f;
+			// TODO: Use functions in Math::Random namespace.
+			auto pos = Camera.pos.ToVector3i() + Vector3i(
+				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2),
+				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2),
+				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2));
 
-			// Use more memory-efficient GetFloor() instead of GetPointCollision() as a lot of dust may spawn at a time.
-			short roomNumber = Camera.pos.RoomNumber;
-			auto* floor = GetFloor(xPos, yPos, zPos, &roomNumber);
+			int roomNumber = Camera.pos.RoomNumber;
+			if (!IsPointInRoom(pos, roomNumber))
+				roomNumber = FindRoomNumber(pos, Camera.pos.RoomNumber, true);
+
+			if (!IsPointInRoom(pos, roomNumber) || roomNumber == NO_VALUE)
+				continue;
 
 			// Check if water room.
 			if (!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, roomNumber))
 				continue;
 
-			if (!IsPointInRoom(Vector3i(xPos, yPos, zPos), roomNumber))
-				continue;
-
 			auto part = WeatherParticle();
-
 			part.Velocity = Random::GenerateDirection() * DUST_VELOCITY_MAX;
-
 			part.Size = Random::GenerateFloat(DUST_SIZE_MAX / 2, DUST_SIZE_MAX);
-
 			part.Type = WeatherType::None;
 			part.Life = DUST_LIFE + Random::GenerateInt(-10, 10);
 			part.RoomNumber = roomNumber;
-			part.Position.x = xPos;
-			part.Position.y = yPos;
-			part.Position.z = zPos;
+			part.Position = pos.ToVector3();
 			part.Stopped = false;
 			part.Enabled = true;
 			part.StartLife = part.Life;
-
 			Particles.push_back(part);
 		}
 	}
@@ -553,6 +578,8 @@ namespace TEN::Effects::Environment
 		if (level.GetWeatherType() == WeatherType::None || level.GetWeatherStrength() == 0.0f)
 			return;
 
+		bool clustering = level.GetWeatherClustering();
+
 		int newParticlesCount = 0;
 		int density = WEATHER_PARTICLE_SPAWN_DENSITY * level.GetWeatherStrength();
 
@@ -569,13 +596,26 @@ namespace TEN::Effects::Environment
 
 				newParticlesCount++;
 
-				float dist = (level.GetWeatherType() == WeatherType::Snow) ? COLLISION_CHECK_DISTANCE : (COLLISION_CHECK_DISTANCE / 2);
+				float dist = 0;
+				if (level.GetWeatherType() == WeatherType::Snow)
+				{
+					dist = WEATHER_SPAWN_DIST_SNOW;
+				}
+				else if (level.GetWeatherType() == WeatherType::Rain)
+				{
+					dist = WEATHER_SPAWN_DIST_RAIN;
+				}
+				else
+				{
+					dist = WEATHER_SPAWN_DIST_OTHER;
+				}
+				
 				float radius = Random::GenerateInt(0, dist);
-				short angle = Random::GenerateInt(ANGLE(0), ANGLE(180));
+				short angle = Random::GenerateAngle();
 
 				auto xPos = Camera.pos.x + ((int)(phd_cos(angle) * radius));
 				auto zPos = Camera.pos.z + ((int)(phd_sin(angle) * radius));
-				auto yPos = Camera.pos.y - (BLOCK(4) + Random::GenerateInt() & (BLOCK(4) - 1));
+				auto yPos = Camera.pos.y - (BLOCK(3) + Random::GenerateInt() & (BLOCK(4) - 1));
 				
 				auto outsideRoom = IsRoomOutside(xPos, yPos, zPos);
 				
@@ -595,21 +635,24 @@ namespace TEN::Effects::Environment
 				switch (level.GetWeatherType())
 				{
 				case WeatherType::Snow:
+					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT / 2) : 1;
 					part.Size = Random::GenerateFloat(SNOW_SIZE_MAX / 3, SNOW_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(SNOW_VELOCITY_MAX / 4, SNOW_VELOCITY_MAX) * (part.Size / SNOW_SIZE_MAX);
 					part.Life = (SNOW_VELOCITY_MAX / 3) + ((SNOW_VELOCITY_MAX / 2) - ((int)part.Velocity.y >> 2));
 					break;
 
 				case WeatherType::Rain:
+					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT) : 1;
 					part.Size = Random::GenerateFloat(RAIN_SIZE_MAX / 2, RAIN_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(RAIN_VELOCITY_MAX / 2, RAIN_VELOCITY_MAX) * (part.Size / RAIN_SIZE_MAX) * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f);
-					part.Life = (RAIN_VELOCITY_MAX * 2) - part.Velocity.y;
+					part.Life = (RAIN_VELOCITY_MAX) - part.Velocity.y;
 					break;
 				}
 
 				part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
 				part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
 
+				part.UniqueID = (int)Particles.size();
 				part.Type = level.GetWeatherType();
 				part.RoomNumber = outsideRoom;
 				part.Position.x = xPos;
@@ -640,7 +683,7 @@ namespace TEN::Effects::Environment
 				Meteors.end());
 		}
 
-		if (!level.GetStarfieldMeteorsEnabled())
+		if (level.GetStarfieldMeteorCount() == 0)
 			return;
 
 		int density = level.GetStarfieldMeteorSpawnDensity();

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_worker_flamethrower.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -14,6 +14,8 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -81,12 +83,12 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != WORKER_FLAME_STATE_ATTACK && item->Animation.ActiveState != WORKER_FLAME_STATE_WALK_FORWARD_ATTACK)
 			{
-				TriggerDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 10, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 10, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
 				TriggerPilotFlame(itemNumber, WorkerFlamethrowerBite.BoneID);
 			}
 			else
 			{
-				TriggerDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 14, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
+				SpawnDynamicLight(pos.x, pos.y, pos.z, (GetRandomControl() & 4) + 14, (GetRandomControl() & 7) + 128, (GetRandomControl() & 7) + 64, GetRandomControl() & 7);
 				ThrowFire(itemNumber, WorkerFlamethrowerBite.BoneID, WorkerFlamethrowerOffset, WorkerFlamethrowerOffset);
 			}
 

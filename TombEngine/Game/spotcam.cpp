@@ -1,19 +1,22 @@
 #include "framework.h"
 #include "Game/spotcam.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
+#include "Game/collision/Point.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Control::Volumes;
+using namespace TEN::Collision::Point;
 
 constexpr auto MAX_CAMERA = 18;
 
@@ -54,6 +57,7 @@ int NumberSpotcams;
 
 bool CheckTrigger = false;
 bool UseSpotCam = false;
+bool SpotcamSwitched = false;
 bool SpotcamDontDrawLara = false;
 bool SpotcamOverlay = false;
 
@@ -389,7 +393,6 @@ void CalculateSpotCameras()
 	{
 		SetScreenFadeIn(FADE_SCREEN_SPEED);
 		CameraFade = CurrentSplineCamera;
-		Camera.DisableInterpolation = true;
 	}
 
 	if ((SpotCam[CurrentSplineCamera].flags & SCF_SCREEN_FADE_OUT) &&
@@ -397,7 +400,6 @@ void CalculateSpotCameras()
 	{
 		SetScreenFadeOut(FADE_SCREEN_SPEED);
 		CameraFade = CurrentSplineCamera;
-		Camera.DisableInterpolation = true;
 	}
 
 	sp = 0;
@@ -463,13 +465,21 @@ void CalculateSpotCameras()
 	else if (!SpotcamTimer)
 		CurrentSplinePosition += cspeed;
 
-	bool lookPressed = (IsHeld(In::Look)) != 0;
+	bool lookPressed = IsHeld(In::Look);
 
 	if (!lookPressed)
 		SpotCamFirstLook = false;
 
 	if ((s->flags & SCF_DISABLE_BREAKOUT) || !lookPressed)
 	{
+		// Disable interpolation if camera traveled too far.
+		auto origin = Vector3(Camera.pos.x, Camera.pos.y, Camera.pos.z);
+		auto target = Vector3(cpx, cpy, cpz);
+		float dist = Vector3::Distance(origin, target);
+
+		if (dist > BLOCK(0.25f))
+			Camera.DisableInterpolation = true;
+
 		Camera.pos.x = cpx;
 		Camera.pos.y = cpy;
 		Camera.pos.z = cpz;
@@ -485,22 +495,26 @@ void CalculateSpotCameras()
 			Camera.target.x = ctx;
 			Camera.target.y = cty;
 			Camera.target.z = ctz;
+			CalculateBounce(false);
 		}
 
-		auto outsideRoom = IsRoomOutside(cpx, cpy, cpz);
+		int outsideRoom = IsRoomOutside(cpx, cpy, cpz);
 		if (outsideRoom == NO_VALUE)
 		{
-			if (Camera.pos.RoomNumber != SpotCam[CurrentSplineCamera].roomNumber)
-				Camera.DisableInterpolation = true;
+			// HACK: Sometimes actual camera room number desyncs from room number derived using floordata functions.
+			// If such case is identified, we do a brute-force search for coherrent room number.
+			// This issue is only present in sub-click floor height setups after TE 1.7.0. -- Lwmte, 02.11.2024
 		
-			Camera.pos.RoomNumber = SpotCam[CurrentSplineCamera].roomNumber;
-			GetFloor(Camera.pos.x, Camera.pos.y, Camera.pos.z, &Camera.pos.RoomNumber);
+			auto pos = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
+			int collRoomNumber = GetPointCollision(pos, SpotCam[CurrentSplineCamera].roomNumber).GetRoomNumber();
+
+			if (collRoomNumber != Camera.pos.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
+				collRoomNumber = FindRoomNumber(pos, SpotCam[CurrentSplineCamera].roomNumber);
+
+			Camera.pos.RoomNumber = collRoomNumber;
 		}
 		else
 		{
-			if (Camera.pos.RoomNumber != outsideRoom)
-				Camera.DisableInterpolation = true;
-
 			Camera.pos.RoomNumber = outsideRoom;
 		}
 
@@ -647,10 +661,7 @@ void CalculateSpotCameras()
 				SpotcamPaused = 0;
 
 				if (LastCamera >= CurrentSplineCamera)
-				{
-					Camera.DisableInterpolation = true;
 					return;
-				}
 
 				if (s->flags & SCF_LOOP_SEQUENCE)
 				{
@@ -681,23 +692,24 @@ void CalculateSpotCameras()
 
 					SetCinematicBars(0.0f, SPOTCAM_CINEMATIC_BARS_SPEED);
 
-					Camera.DisableInterpolation = true;
 					UseSpotCam = false;
-					Lara.Control.IsLocked = false;
 					CheckTrigger = false;
+					Lara.Control.IsLocked = false;
+					Lara.Control.Look.IsUsingBinoculars = false;
 					Camera.oldType = CameraType::Fixed;
 					Camera.type = CameraType::Chase;
 					Camera.speed = 1;
+					Camera.DisableInterpolation = true;
 
 					if (s->flags & SCF_CUT_TO_LARA_CAM)
 					{
 						Camera.pos.x = InitialCameraPosition.x;
 						Camera.pos.y = InitialCameraPosition.y;
 						Camera.pos.z = InitialCameraPosition.z;
+						Camera.pos.RoomNumber = InitialCameraRoom;
 						Camera.target.x = InitialCameraTarget.x;
 						Camera.target.y = InitialCameraTarget.y;
 						Camera.target.z = InitialCameraTarget.z;
-						Camera.pos.RoomNumber = InitialCameraRoom;
 					}
 
 					SpotcamOverlay = false;
@@ -812,6 +824,7 @@ void CalculateSpotCameras()
 }
 
 // Core's version. Proper decompilation by ChocolateFan
+// TODO: Replace with float-based version.
 int Spline(int x, int* knots, int nk)
 {
 	int span = x * (nk - 3) >> 16;
@@ -825,4 +838,90 @@ int Spline(int x, int* knots, int nk)
 	int c2 = 2 * k[2] - 2 * k[1] - (k[1] >> 1) - (k[3] >> 1) + k[0];
 
 	return ((__int64)x * (((__int64)x * (((__int64)x * c1 >> 16) + c2) >> 16) + (k[2] >> 1) + ((-k[0] - 1) >> 1)) >> 16) + k[1];
+}
+
+Pose GetCameraTransform(int sequence, float alpha, bool loop)
+{
+	constexpr auto BLEND_RANGE = 0.1f;
+	constexpr auto BLEND_START = BLEND_RANGE;
+	constexpr auto BLEND_END   = 1.0f - BLEND_RANGE;
+
+	alpha = std::clamp(alpha, 0.0f, 1.0f);
+
+	if (sequence < 0 || sequence >= MAX_SPOTCAMS)
+	{
+		TENLog("Wrong flyby sequence number provided for getting camera coordinates.", LogLevel::Warning);
+		return Pose::Zero;
+	}
+
+	// Retrieve camera count in sequence.
+	int cameraCount = CameraCnt[SpotCamRemap[sequence]];
+	if (cameraCount < 2)
+	{
+		TENLog("Not enough cameras in flyby sequence to calculate the coordinates.", LogLevel::Warning);
+		return Pose::Zero;
+	}
+
+	// Find first ID for sequence.
+	int firstSeqID = 0;
+	for (int i = 0; i < SpotCamRemap[sequence]; i++)
+		firstSeqID += CameraCnt[i];
+
+	// Determine number of spline points and spline position.
+	int splinePoints = cameraCount + 2;
+	int splineAlpha = int(alpha * (float)USHRT_MAX);
+
+	// Extract camera properties into separate vectors for interpolation.
+	std::vector<int> xOrigins, yOrigins, zOrigins, xTargets, yTargets, zTargets, rolls;
+	for (int i = -1; i < (cameraCount + 1); i++)
+	{
+		int seqID = std::clamp(firstSeqID + i, firstSeqID, (firstSeqID + cameraCount) - 1);
+
+		xOrigins.push_back(SpotCam[seqID].x);
+		yOrigins.push_back(SpotCam[seqID].y);
+		zOrigins.push_back(SpotCam[seqID].z);
+		xTargets.push_back(SpotCam[seqID].tx);
+		yTargets.push_back(SpotCam[seqID].ty);
+		zTargets.push_back(SpotCam[seqID].tz);
+		rolls.push_back(SpotCam[seqID].roll);
+	}
+
+	// Compute spline interpolation of main flyby camera parameters.
+	auto getInterpolatedPoint = [&](float t, std::vector<int>& x, std::vector<int>& y, std::vector<int>& z) 
+	{
+		int tAlpha = int(t * (float)USHRT_MAX);
+		return Vector3(Spline(tAlpha, x.data(), splinePoints),
+					   Spline(tAlpha, y.data(), splinePoints),
+					   Spline(tAlpha, z.data(), splinePoints));
+	};
+
+	auto getInterpolatedRoll = [&](float t)
+	{
+		int tAlpha = int(t * (float)USHRT_MAX);
+		return Spline(tAlpha, rolls.data(), splinePoints);
+	};
+
+	auto origin = Vector3::Zero;
+	auto target = Vector3::Zero;
+	short orientZ = 0;
+
+	// If loop is enabled and alpha is at sequence start or end, blend between last and first cameras.
+	if (loop && (alpha < BLEND_START || alpha >= BLEND_END))
+	{
+		float blendFactor = (alpha < BLEND_START) ? (0.5f + ((alpha / BLEND_RANGE) * 0.5f)) : (((alpha - BLEND_END) / BLEND_START) * 0.5f);
+
+		origin = Vector3::Lerp(getInterpolatedPoint(BLEND_END, xOrigins, yOrigins, zOrigins), getInterpolatedPoint(BLEND_START, xOrigins, yOrigins, zOrigins), blendFactor);
+		target = Vector3::Lerp(getInterpolatedPoint(BLEND_END, xTargets, yTargets, zTargets), getInterpolatedPoint(BLEND_START, xTargets, yTargets, zTargets), blendFactor);
+		orientZ = Lerp(getInterpolatedRoll(BLEND_END), getInterpolatedRoll(BLEND_START), blendFactor);
+	}
+	else
+	{
+		origin  = getInterpolatedPoint(alpha, xOrigins, yOrigins, zOrigins);
+		target  = getInterpolatedPoint(alpha, xTargets, yTargets, zTargets);
+		orientZ = getInterpolatedRoll(alpha);
+	}
+
+	auto pose = Pose(origin, EulerAngles(target - origin));
+	pose.Orientation.z = orientZ;
+	return pose;
 }

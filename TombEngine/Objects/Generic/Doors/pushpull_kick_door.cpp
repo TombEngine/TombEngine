@@ -1,24 +1,28 @@
 #include "framework.h"
-#include "Objects/Generic/Doors/generic_doors.h"
-#include "Specific/level.h"
+
+#include "Game/Animation/Animation.h"
+#include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/control/box.h"
-#include "Game/items.h"
 #include "Game/control/lot.h"
 #include "Game/Gui.h"
-#include "Specific/Input/Input.h"
-#include "Game/pickup/pickup.h"
-#include "Sound/sound.h"
-#include "Game/animation.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
+#include "Game/itemdata/door_data.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara.h"
-#include "Math/Math.h"
 #include "Game/misc.h"
+#include "Game/pickup/pickup.h"
+#include "Math/Math.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/pushpull_kick_door.h"
-#include "Game/collision/collide_item.h"
-#include "Game/itemdata/door_data.h"
+#include "Sound/sound.h"
+#include "Specific/Input/Input.h"
+#include "Specific/level.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Doors
@@ -52,6 +56,8 @@ namespace TEN::Entities::Doors
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* doorItem = &g_Level.Items[itemNumber];
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *doorItem, InteractionMode::Activation);
 
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_IDLE &&
@@ -132,21 +138,24 @@ namespace TEN::Entities::Doors
 				doorItem->Pose.Orientation.y ^= ANGLE(180.0f);
 		}
 		else if (doorItem->Animation.ActiveState <= STATE_PUSHPULL_KICK_DOOR_CLOSED)
+		{
 			DoorCollision(itemNumber, laraItem, coll);
+		}
 	}
 
 	void PushPullKickDoorControl(short itemNumber)
 	{
-		auto* doorItem = &g_Level.Items[itemNumber];
-		auto* doorData = (DOOR_DATA*)doorItem->Data;
+		auto& doorItem = g_Level.Items[itemNumber];
+		auto& door = GetDoorObject(doorItem);
 
-		if (!doorData->opened)
+		if (!door.opened)
 		{
-			OpenThatDoor(&doorData->d1, doorData);
-			OpenThatDoor(&doorData->d2, doorData);
-			OpenThatDoor(&doorData->d1flip, doorData);
-			OpenThatDoor(&doorData->d2flip, doorData);
-			doorData->opened = true;
+			OpenThatDoor(&door.d1, &door);
+			OpenThatDoor(&door.d2, &door);
+			OpenThatDoor(&door.d1flip, &door);
+			OpenThatDoor(&door.d2flip, &door);
+			DisableDoorCollisionMesh(doorItem);
+			door.opened = true;
 		}
 
 		AnimateItem(doorItem);

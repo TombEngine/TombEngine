@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_laser_head.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/los.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -21,6 +21,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Items;
 using namespace TEN::Math;
@@ -369,12 +370,12 @@ namespace TEN::Entities::Creatures::TR5
 								{
 									SpawnGuardianSparks(origin1.ToVector3(), colorSparks, 3);
 									SpawnElectricityGlow(origin1.ToVector3(), (GetRandomControl() & 3) + 32, color.x, color.y, color.z);
-									TriggerDynamicLight(origin1.x, origin1.y, origin1.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
+									SpawnDynamicLight(origin1.x, origin1.y, origin1.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
 
 									if (!guardian->LOS[i] && guardian->fireArcs[i] != nullptr)
 									{
 										SpawnElectricityGlow(guardian->fireArcs[i]->pos4, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
-										TriggerDynamicLight(guardian->fireArcs[i]->pos4.x, guardian->fireArcs[i]->pos4.y, guardian->fireArcs[i]->pos4.z, (GetRandomControl() & 3) + 6, color.x, color.y, color.z);
+										SpawnDynamicLight(guardian->fireArcs[i]->pos4.x, guardian->fireArcs[i]->pos4.y, guardian->fireArcs[i]->pos4.z, (GetRandomControl() & 3) + 6, color.x, color.y, color.z);
 										SpawnGuardianSparks(guardian->fireArcs[i]->pos4, colorSparks, 3);
 									}
 								}
@@ -455,8 +456,8 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					auto& tentacleItem = g_Level.Items[guardian->Tentacles[i]];
 
-					if (tentacleItem.Animation.AnimNumber == (Objects[tentacleItem.ObjectNumber].animIndex + 1) &&
-						TestLastFrame(&tentacleItem) && tentacleItem.MeshBits.Test(1))
+					if (tentacleItem.Animation.AnimNumber == 1 &&
+						TestLastFrame(*&tentacleItem) && tentacleItem.MeshBits.Test(1))
 					{
 						SoundEffect(SFX_TR5_SMASH_ROCK2, &item->Pose);
 						ExplodeItemNode(&tentacleItem, 0, 0, 128);
@@ -492,8 +493,7 @@ namespace TEN::Entities::Creatures::TR5
 				short tentacleItemNumber = guardian->Tentacles[i];
 				auto& tentacleItem = g_Level.Items[tentacleItemNumber];
 
-				if (tentacleItem.Animation.AnimNumber == Objects[tentacleItem.ObjectNumber].animIndex &&
-					!TestLastFrame(&tentacleItem))
+				if (tentacleItem.Animation.AnimNumber == 0 && !TestLastFrame(*&tentacleItem))
 				{
 					break;
 				}
@@ -579,7 +579,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			SpawnElectricityGlow(target, (GetRandomControl() & 3) + size + 8, color.x, color.y, color.z);
-			TriggerDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
+			SpawnDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 3) + 16, color.x, color.y, color.z);
 		}
 
 		if (!(GlobalCounter & 3))

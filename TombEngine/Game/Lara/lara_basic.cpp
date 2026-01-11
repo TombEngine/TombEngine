@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_basic.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/Hud/Hud.h"
@@ -20,6 +20,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -65,12 +66,12 @@ void lara_as_controlled(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 	Camera.flags = CF_FOLLOW_CENTER;
 
-	if (item->Animation.FrameNumber == GetAnimData(*item).frameEnd - 1)
+	if (item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 1))
 	{
 		player.Control.HandStatus = HandStatus::Free;
 
 		if (UseForcedFixedCamera)
-			UseForcedFixedCamera = 0;
+			UseForcedFixedCamera = false;
 	}
 }
 
@@ -81,6 +82,18 @@ void lara_as_controlled_no_look(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
+}
+
+void lara_as_controlled_no_look_follow(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::None;
+	coll->Setup.EnableObjectPush = false;
+	coll->Setup.EnableSpasm = false;
+	Camera.flags = CF_FOLLOW_CENTER;
+	Camera.laraNode = LM_HEAD;
+	Camera.targetElevation = -ANGLE(25.0f);
 }
 
 // State:	  LS_VAULT (164)
@@ -219,9 +232,10 @@ void lara_col_walk_forward(ItemInfo* item, CollisionInfo* coll)
 
 	if (LaraDeflectEdge(item, coll))
 	{
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -328,10 +342,12 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 	player.Control.MoveAngle = item->Pose.Orientation.y;
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
-	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
+	coll->Setup.LowerFloorBound = IsHeld(In::Walk) ? STEPUP_HEIGHT : NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.BlockFloorSlopeDown = IsHeld(In::Walk);
+	coll->Setup.BlockDeathFloorDown = IsHeld(In::Walk);
 	coll->Setup.ForwardAngle = player.Control.MoveAngle;
 	GetCollisionInfo(coll, item);
 	LaraResetGravityStatus(item, coll);
@@ -364,9 +380,10 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 		if (TestLaraWall(item, OFFSET_RADIUS(coll->Setup.Radius), -CLICK(2.5f)) ||
 			coll->HitTallObject)
 		{
-			item->Animation.TargetState = LS_SPLAT;
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_SPLAT);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				Rumble(0.4f, 0.15f);
 
 				item->Animation.ActiveState = LS_SPLAT;
@@ -374,9 +391,10 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 			}
 		}
 
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -594,7 +612,7 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// TODO: Without animation blending, the AFK state's movement lock interferes with responsiveness. -- Sezz 2021.10.31
-	if (CanStrikeAfkPose(*item, *coll) && player.Control.Count.Pose >= PLAYER_POSE_TIME)
+	if (CanStrikeAfkPose(*item, *coll) && player.Control.Count.Pose >= (g_GameFlow->GetSettings()->Animations.PoseTimeout * FPS))
 	{
 		item->Animation.TargetState = LS_POSE;
 		return;
@@ -637,6 +655,10 @@ void lara_col_idle(ItemInfo* item, CollisionInfo* coll)
 
 	if (CanSlide(*item, *coll))
 	{
+		// HACK: Prevent ejections on triangular slopes.
+		if (coll->TriangleAtLeft() || coll->TriangleAtRight())
+			coll->Shift.Position = Vector3i::Zero;
+
 		SetLaraSlideAnimation(item, coll);
 		return;
 	}
@@ -1319,9 +1341,10 @@ void lara_col_step_right(ItemInfo* item, CollisionInfo* coll)
 
 	if (LaraDeflectEdge(item, coll))
 	{
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -1415,9 +1438,10 @@ void lara_col_step_left(ItemInfo* item, CollisionInfo* coll)
 
 	if (LaraDeflectEdge(item, coll))
 	{
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -1651,9 +1675,10 @@ void lara_col_wade_forward(ItemInfo* item, CollisionInfo* coll)
 	{
 		ResetPlayerLean(item);
 
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -1694,7 +1719,7 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)
 	{
 		// TODO: CanSprintJumpForward() should handle HasSprintJump() check.
-		if (IsHeld(In::Walk) || !g_GameFlow->HasSprintJump())
+		if (IsHeld(In::Walk) || !g_GameFlow->GetSettings()->Animations.SprintJump)
 		{
 			item->Animation.TargetState = LS_SPRINT_DIVE;
 			return;
@@ -1790,9 +1815,10 @@ void lara_col_sprint(ItemInfo* item, CollisionInfo* coll)
 		if (TestLaraWall(item, OFFSET_RADIUS(coll->Setup.Radius), -BLOCK(5 / 8.0f)) ||
 			coll->HitTallObject)
 		{
-			item->Animation.TargetState = LS_SPLAT;
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_SPLAT);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				Rumble(0.5f, 0.15f);
 
 				item->Animation.ActiveState = LS_SPLAT;
@@ -1800,9 +1826,10 @@ void lara_col_sprint(ItemInfo* item, CollisionInfo* coll)
 			}
 		}
 
-		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		const auto* dispatch = GetStateDispatch(*item, LS_SOFT_SPLAT);
+		if (dispatch != nullptr)
 		{
+			SetStateDispatch(*item, *dispatch);
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
 		}
@@ -1891,11 +1918,14 @@ void lara_as_sprint_slide(ItemInfo* item, CollisionInfo* coll)
 		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX * 0.6f);
 	}
 
-	if ((player.Control.KeepLow || IsHeld(In::Crouch)) && HasStateDispatch(item, LS_CROUCH_IDLE) &&
-		CanCrouch(*item, *coll))
+	if ((player.Control.KeepLow || IsHeld(In::Crouch)) && CanCrouch(*item, *coll))
 	{
-		item->Animation.TargetState = LS_CROUCH_IDLE;
-		return;
+		const auto* dispatch = GetStateDispatch(*item, LS_CROUCH_IDLE);
+		if (dispatch != nullptr)
+		{
+			item->Animation.TargetState = LS_CROUCH_IDLE;
+			return;
+		}
 	}
 
 	item->Animation.TargetState = LS_RUN_FORWARD;

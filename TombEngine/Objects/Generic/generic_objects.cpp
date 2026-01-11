@@ -16,6 +16,7 @@
 #include "Objects/Generic/Object/polerope.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Objects/Generic/Object/rope.h"
+#include "Objects/Generic/Object/ZipLine.h"
 
 // Switches
 #include "Objects/Generic/Switches/cog_switch.h"
@@ -31,6 +32,7 @@
 #include "Objects/Generic/Switches/switch.h"
 
 // Doors
+#include "Objects/Generic/Doors/breakable_wall.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Objects/Generic/Doors/pushpull_kick_door.h"
@@ -94,23 +96,47 @@ static void StartObject(ObjectInfo* object)
 
 	object = &Objects[ID_BRIDGE_FLAT];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT1];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT2];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT3];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
 
 	object = &Objects[ID_BRIDGE_TILT4];
 	if (object->loaded)
+	{
 		object->Initialize = InitializeBridge;
+		object->control = ControlBridge;
+	}
+
+	object = &Objects[ID_ZIPLINE_HANDLE];
+	if (object->loaded)
+	{
+		object->Initialize = InitializeZipLine;
+		object->collision = CollideZipLine;
+		object->control = ControlZipLine;
+		object->SetHitEffect(true);
+	}
 }
 
 void StartSwitches(ObjectInfo* object)
@@ -176,7 +202,7 @@ void StartSwitches(ObjectInfo* object)
 		object->shadowType = ShadowMode::All;
 	}
 
-	for (int objectID = ID_UNDERWATER_WALL_SWITCH_1; objectID <= ID_UNDERWATER_WALL_SWITCH_2; objectID++)
+	for (int objectID = ID_UNDERWATER_WALL_SWITCH1; objectID <= ID_UNDERWATER_WALL_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)
@@ -186,7 +212,7 @@ void StartSwitches(ObjectInfo* object)
 		}
 	}
 
-	for (int objectID = ID_UNDERWATER_CEILING_SWITCH_1; objectID <= ID_UNDERWATER_CEILING_SWITCH_2; objectID++)
+	for (int objectID = ID_UNDERWATER_CEILING_SWITCH1; objectID <= ID_UNDERWATER_CEILING_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)
@@ -200,8 +226,8 @@ void StartSwitches(ObjectInfo* object)
 	if (object->loaded)
 	{
 		object->Initialize = InitializePulleySwitch;
-		object->control = SwitchControl;
-		object->collision = PulleySwitchCollision;
+		object->control = ControlPulleySwitch;
+		object->collision = CollisionPulleySwitch;
 	}
 
 	object = &Objects[ID_TURN_SWITCH];
@@ -320,6 +346,15 @@ void StartDoors(ObjectInfo* object)
 		}
 	}
 
+	object = &Objects[ID_BREAKABLE_WALL];
+	if (object->loaded)
+	{
+		object->Initialize = InitializeDoor;
+		object->collision = BreakableWallCollision;
+		object->control = PushPullKickDoorControl;
+		object->SetHitEffect(true);
+	}
+
 	for (int objectID = ID_PUSHPULL_DOOR1; objectID <= ID_KICK_DOOR4; objectID++)
 	{
 		object = &Objects[objectID];
@@ -356,8 +391,7 @@ void StartTraps(ObjectInfo* object)
 	{
 		object->Initialize = InitializeDartEmitter;
 		object->control = ControlDartEmitter;
-		object->drawRoutine = nullptr;
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_HOMING_DART_EMITTER];
@@ -365,8 +399,7 @@ void StartTraps(ObjectInfo* object)
 	{
 		object->Initialize = InitializeDartEmitter;
 		object->control = ControlDartEmitter;
-		object->drawRoutine = nullptr;
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_ROPE];
@@ -375,8 +408,7 @@ void StartTraps(ObjectInfo* object)
 		object->Initialize = InitializeRope;
 		object->control = RopeControl;
 		object->collision = RopeCollision;
-		object->drawRoutine = nullptr;
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_POLEROPE];
@@ -391,7 +423,6 @@ void StartTraps(ObjectInfo* object)
 	{
 		object->control = TorchControl;
 		object->collision = PickupCollision;
-		object->usingDrawAnimatingItem = true;
 		object->isPickup = true;
 	}
 
@@ -429,8 +460,7 @@ void StartServiceObjects(ObjectInfo* object)
 	object = &Objects[ID_CAMERA_TARGET];
 	if (object->loaded)
 	{
-		object->drawRoutine = nullptr;
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_TIGHT_ROPE];
@@ -438,38 +468,36 @@ void StartServiceObjects(ObjectInfo* object)
 	{
 		object->Initialize = InitializeTightrope;
 		object->collision = TightropeCollision;
-		object->drawRoutine = nullptr;
-
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_EARTHQUAKE];
 	if (object->loaded)
-		object->drawRoutine = nullptr;
+	{
+		object->control = EarthquakeControl;
+		object->Hidden = true;
+	}
 
 	object = &Objects[ID_KILL_ALL_TRIGGERS];
 	if (object->loaded)
 	{
 		object->control = KillAllCurrentItems;
-		object->drawRoutine = nullptr;
+		object->Hidden = true;
 		object->HitPoints = 0;
-		object->usingDrawAnimatingItem = false;
 	}
 
 	object = &Objects[ID_TRIGGER_TRIGGERER];
 	if (object->loaded)
 	{
 		object->control = ControlTriggerTriggerer;
-		object->drawRoutine = nullptr;
-
-		object->usingDrawAnimatingItem = false;
+		object->Hidden = true;
 	}
 
 	object = &Objects[ID_WATERFALLMIST];
 	if (object->loaded)
 	{
 		object->control = ControlWaterfallMist;
-		object->drawRoutine = nullptr;
+		object->Hidden = true;
 	}
 
 	for (int objectID = ID_ANIMATING1; objectID <= ID_ANIMATING128; objectID++)

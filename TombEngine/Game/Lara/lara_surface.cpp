@@ -10,6 +10,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
@@ -43,7 +44,7 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 
 	lara->Control.Look.Mode = LookMode::Free;
 
-	item->Animation.Velocity.y -= LARA_SWIM_VELOCITY_DECEL;
+	item->Animation.Velocity.y -= g_GameFlow->GetSettings()->Physics.SwimVelocity * LARA_SWIM_VELOCITY_DECEL_COEFF;
 	if (item->Animation.Velocity.y < 0)
 		item->Animation.Velocity.y = 0;
 
@@ -126,9 +127,11 @@ void lara_as_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 	if (IsClicked(In::Jump))
 		SetLaraSwimDiveAnimation(item);
 
-	item->Animation.Velocity.y += LARA_SWIM_VELOCITY_ACCEL;
-	if (item->Animation.Velocity.y > LARA_TREAD_VELOCITY_MAX)
-		item->Animation.Velocity.y = LARA_TREAD_VELOCITY_MAX;
+	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
+	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+	if (item->Animation.Velocity.y > baseVel * LARA_TREAD_VELOCITY_MAX_COEFF)
+		item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
 }
 
 // State:		LS_ONWATER_FORWARD (34)
@@ -170,9 +173,11 @@ void lara_as_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 	if (IsClicked(In::Jump))
 		SetLaraSwimDiveAnimation(item);
 
-	item->Animation.Velocity.y += LARA_SWIM_VELOCITY_ACCEL;
-	if (item->Animation.Velocity.y > LARA_TREAD_VELOCITY_MAX)
-		item->Animation.Velocity.y = LARA_TREAD_VELOCITY_MAX;
+	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
+	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+	if (item->Animation.Velocity.y > baseVel * LARA_TREAD_VELOCITY_MAX_COEFF)
+		item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
 }
 
 // State:		LS_ONWATER_LEFT (48)
@@ -211,9 +216,11 @@ void lara_as_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 	if (IsClicked(In::Jump))
 		SetLaraSwimDiveAnimation(item);
 
-	item->Animation.Velocity.y += LARA_SWIM_VELOCITY_ACCEL;
-	if (item->Animation.Velocity.y > LARA_TREAD_VELOCITY_MAX)
-		item->Animation.Velocity.y = LARA_TREAD_VELOCITY_MAX;
+	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
+	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+	if (item->Animation.Velocity.y > baseVel * LARA_TREAD_VELOCITY_MAX_COEFF)
+		item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
 }
 
 // State:		LS_ONWATER_RIGHT (49)
@@ -249,9 +256,11 @@ void lara_as_surface_swim_back(ItemInfo* item, CollisionInfo* coll)
 	if (!IsHeld(In::Back))
 		item->Animation.TargetState = LS_ONWATER_IDLE;
 
-	item->Animation.Velocity.y += LARA_SWIM_VELOCITY_ACCEL;
-	if (item->Animation.Velocity.y > LARA_TREAD_VELOCITY_MAX)
-		item->Animation.Velocity.y = LARA_TREAD_VELOCITY_MAX;
+	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
+
+	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+	if (item->Animation.Velocity.y > baseVel * LARA_TREAD_VELOCITY_MAX_COEFF)
+		item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
 }
 
 // State:		LS_ONWATER_BACK (47)

@@ -1,14 +1,18 @@
 #include "framework.h"
 #include "Objects/Generic/Switches/rail_switch.h"
-#include "Specific/Input/Input.h"
+
+#include "Game/Animation/Animation.h"
+#include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/animation.h"
-#include "Game/items.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -33,6 +37,8 @@ namespace TEN::Entities::Switches
 		auto* switchItem = &g_Level.Items[itemNumber];
 
 		int flag = 0;
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
 		if ((!IsHeld(In::Action) ||
 			laraItem->Animation.ActiveState != LS_IDLE ||
@@ -71,7 +77,7 @@ namespace TEN::Entities::Switches
 				{
 					ResetPlayerFlex(laraItem);
 					laraItem->Animation.AnimNumber = LA_LEVER_PUSH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.TargetState = LS_LEVERSWITCH_PUSH;
 					laraItem->Animation.ActiveState = LS_LEVERSWITCH_PUSH;
 					lara->Control.IsMoving = false;
@@ -94,7 +100,7 @@ namespace TEN::Entities::Switches
 				{
 					ResetPlayerFlex(laraItem);
 					laraItem->Animation.AnimNumber = LA_LEVER_PUSH;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.TargetState = LS_LEVERSWITCH_PUSH;
 					laraItem->Animation.ActiveState = LS_LEVERSWITCH_PUSH;
 					lara->Control.IsMoving = false;

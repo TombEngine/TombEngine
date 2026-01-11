@@ -99,7 +99,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				item.Animation.TargetState = TWIN_AUTO_GUN_STATE_IDLE;
 			}
-			else if (item.Animation.FrameNumber == GetAnimData(item).frameBase)
+			else if (item.Animation.FrameNumber == 0)
 			{
 				item.ItemFlags[0] = 1;
 
@@ -116,7 +116,7 @@ namespace TEN::Entities::Creatures::TR3
 						Random::GenerateFloat(0.75f, 1.0f),
 						Random::GenerateFloat(0.5f, 0.6f),
 						Random::GenerateFloat(0.0f, 0.25f));
-					TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+					SpawnDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
 					autoGun.MuzzleFlash[0].Bite = TwinAutoGunLeftBite;
 					autoGun.MuzzleFlash[0].SwitchToMuzzle2 = true;
@@ -139,7 +139,7 @@ namespace TEN::Entities::Creatures::TR3
 						Random::GenerateFloat(0.75f, 1.0f),
 						Random::GenerateFloat(0.5f, 0.6f),
 						Random::GenerateFloat(0.0f, 0.25f));
-					TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
+					SpawnDynamicLight(lightPos.x, lightPos.y, lightPos.z, 2 * item.ItemFlags[0] + 8, lightColor.R() * UCHAR_MAX, lightColor.G() * UCHAR_MAX, lightColor.B() * UCHAR_MAX);
 
 					autoGun.MuzzleFlash[1].Bite = TwinAutoGunRightBite;
 					autoGun.MuzzleFlash[1].SwitchToMuzzle2 = true;
@@ -188,7 +188,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		autoGun.JointRotation[0] += deltaAngle;
 		CreatureJoint(&item, 1, tiltAngle);
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void HitTwinAutoGun(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)

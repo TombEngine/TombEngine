@@ -83,23 +83,10 @@ constexpr auto CLIP_ALL    = (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
 
 constexpr auto CLIP_SECONDARY = 0x10;
 
-struct AITargetData
-{
-	ItemInfo	   FoundItem   = {};
-	GAME_OBJECT_ID ObjectID	   = GAME_OBJECT_ID::ID_NO_OBJECT;
-	float		   DistanceMax = 0.0f;
-	int			   Ocb		   = NO_VALUE;
-
-	bool CheckDistance = false;
-	bool CheckSameZone = true;
-	bool CheckOcb	   = false;
-};
-
 void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
 void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
-void FindAITargetObject(ItemInfo& item, GAME_OBJECT_ID objectID, std::optional<int> ocb = std::nullopt, std::optional<bool> checkSameZone = std::nullopt);
-bool FindAITargetObject(ItemInfo& item, AITargetData& data);
-
+void FindAITargetObject(CreatureInfo* creature, int objectNumber);
+void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone = true);
 void GetAITarget(CreatureInfo* creature);
 int CreatureVault(short itemNumber, short angle, int vault, int shift);
 bool MoveCreature3DPos(Pose* fromPose, Pose* toPose, int velocity, short angleDif, int angleAdd);
@@ -116,7 +103,7 @@ void CreatureFloat(short itemNumber);
 void CreatureJoint(ItemInfo* item, short joint, short required, short maxAngle = ANGLE(70.0f));
 void CreatureTilt(ItemInfo* item, short angle);
 short CreatureTurn(ItemInfo* item, short maxTurn);
-void CreatureDie(int itemNumber, bool doExplosion);
+void CreatureDie(int itemNumber, bool doExplosion, bool forceExplosion = false);
 void CreatureDie(int itemNumber, bool doExplosion, int flags);
 bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumber, LOTInfo* LOT);
 int CreatureCreature(short itemNumber);

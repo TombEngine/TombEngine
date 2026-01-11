@@ -7,10 +7,6 @@
 //{
 	const GameVector GameVector::Zero = GameVector(0, 0, 0, 0);
 
-	GameVector::GameVector()
-	{
-	}
-
 	GameVector::GameVector(const Vector3i& pos)
 	{
 		x = pos.x;

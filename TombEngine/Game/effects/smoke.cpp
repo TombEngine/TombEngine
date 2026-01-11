@@ -10,6 +10,7 @@
 #include "Game/room.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Effects::Environment;
@@ -100,7 +101,7 @@ namespace TEN::Effects::Smoke
 		s.velocity = direction2 * Random::GenerateFloat(7, 9);
 		s.gravity = -0.2f;
 		s.friction = Random::GenerateFloat(0.7f, 0.85f);
-		s.sourceColor = Vector4(1, 131 / 255.0f, 100 / 255.0f, 1);
+		s.sourceColor = g_GameFlow->GetSettings()->Flare.Color * Vector4(0.5f);
 		s.destinationColor = Vector4(1, 1, 1, 0);
 		s.life = Random::GenerateFloat(25, 35);
 		s.angularVelocity = Random::GenerateFloat(-0.3f, 0.3f);
@@ -121,6 +122,9 @@ namespace TEN::Effects::Smoke
 
 	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, byte initial, LaraWeaponType weaponType, int count)
 	{
+		if (!g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].Smoke)
+			return;
+
 		auto& s = GetFreeSmokeParticle();
 		s = {};
 		s.active = true;
@@ -178,7 +182,7 @@ namespace TEN::Effects::Smoke
 		}
 		else
 		{
-			float size = (float)((GetRandomControl() & 0x0F) + 48); // -TriggerGunSmoke_SubFunction(weaponType);
+			float size = (float)((GetRandomControl() & 0x0F) + 48);
 
 			if (weaponType == LaraWeaponType::RocketLauncher)
 				s.sourceColor = { 0.75, 0.75, 1, 1 };

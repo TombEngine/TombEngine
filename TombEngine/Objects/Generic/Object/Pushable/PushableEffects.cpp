@@ -4,11 +4,13 @@
 #include "Game/effects/Bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Ripple.h"
+#include "Game/effects/Splash.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Ripple;
+using namespace TEN::Effects::Splash;
 
 namespace TEN::Entities::Generic
 {
@@ -23,14 +25,14 @@ namespace TEN::Entities::Generic
 		// TODO: Enhace the effect to make the ripples increase their size through the time.
 		if (pushable.WaterSurfaceHeight != NO_HEIGHT)
 		{
-			if (fmod(GameTimer, FRAMES_BETWEEN_RIPPLES) <= 0.0f)
+			if (fmod(GlobalCounter, FRAMES_BETWEEN_RIPPLES) <= 0.0f)
 				SpawnRipple(
 					Vector3(pushableItem.Pose.Position.x, pushable.WaterSurfaceHeight, pushableItem.Pose.Position.z),
 					pushableItem.RoomNumber,
 					GameBoundingBox(&pushableItem).GetWidth() + (GetRandomControl() & 15),
 					(int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
 			
-			if (fmod(GameTimer, FRAMES_BETWEEN_RIPPLES_SOUNDS) <= 0.0f)
+			if (fmod(GlobalCounter, FRAMES_BETWEEN_RIPPLES_SOUNDS) <= 0.0f)
 				pushable.SoundState = PushableSoundState::Wade;
 		}
 	}
@@ -39,11 +41,9 @@ namespace TEN::Entities::Generic
 	{
 		auto& pushable = GetPushableInfo(pushableItem);
 
-		SplashSetup.y = pushable.WaterSurfaceHeight - 1;
-		SplashSetup.x = pushableItem.Pose.Position.x;
-		SplashSetup.z = pushableItem.Pose.Position.z;
-		SplashSetup.splashPower = pushableItem.Animation.Velocity.y * 2;
-		SplashSetup.innerRadius = 250;
+		SplashSetup.Position = Vector3(pushableItem.Pose.Position.x, pushable.WaterSurfaceHeight - 1, pushableItem.Pose.Position.z);
+		SplashSetup.SplashPower = pushableItem.Animation.Velocity.y * 2;
+		SplashSetup.InnerRadius = 250;
 
 		SetupSplash(&SplashSetup, pushableItem.RoomNumber);
 	}
@@ -52,7 +52,7 @@ namespace TEN::Entities::Generic
 	{
 		constexpr auto FRAMES_BETWEEN_BUBBLES = 8.0f;
 
-		if (fmod(GameTimer, FRAMES_BETWEEN_BUBBLES) <= 0.0f)
+		if (fmod(GlobalCounter, FRAMES_BETWEEN_BUBBLES) <= 0.0f)
 		{
 			for (int i = 0; i < 32; i++)
 			{
@@ -71,7 +71,7 @@ namespace TEN::Entities::Generic
 
 		const auto& pushable = GetPushableInfo(pushableItem);
 
-		auto time = GameTimer + pushableItem.Animation.Velocity.y;
+		auto time = GlobalCounter + pushableItem.Animation.Velocity.y;
 
 		// Calculate bounding box volume scaling factor.
 		auto bounds = GameBoundingBox(&pushableItem);
@@ -92,7 +92,7 @@ namespace TEN::Entities::Generic
 		constexpr auto BOX_VOLUME_MIN = BLOCK(0.5f);
 
 		const auto& pushable = GetPushableInfo(pushableItem);
-		auto time = GameTimer + pushableItem.Animation.Velocity.y;
+		auto time = GlobalCounter + pushableItem.Animation.Velocity.y;
 
 		// Calculate bounding box volume scaling factor.
 		auto bounds = GameBoundingBox(&pushableItem);

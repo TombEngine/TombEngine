@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/box.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -21,6 +21,7 @@
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
@@ -36,15 +37,6 @@ constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);
 constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-constexpr int HIGH_PRIO_RANGE = 8;
-constexpr int MEDIUM_PRIO_RANGE = HIGH_PRIO_RANGE + HIGH_PRIO_RANGE * (HIGH_PRIO_RANGE / 6.0f);
-constexpr int LOW_PRIO_RANGE = MEDIUM_PRIO_RANGE + MEDIUM_PRIO_RANGE * (MEDIUM_PRIO_RANGE / 24.0f);
-constexpr int NONE_PRIO_RANGE = LOW_PRIO_RANGE + LOW_PRIO_RANGE * (LOW_PRIO_RANGE / 32.0f);
-constexpr auto FRAME_PRIO_BASE = 4;
-constexpr auto FRAME_PRIO_EXP = 1.5;
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
 
 void DrawBox(int boxIndex, Vector3 color)
 {
@@ -203,7 +195,7 @@ void AlertNearbyGuards(ItemInfo* item)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* currentCreature = ActiveCreatures[i];
+		auto* currentCreature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
 		if (currentCreature->ItemNumber == NO_VALUE)
 			continue;
 
@@ -228,7 +220,8 @@ void AlertAllGuards(short itemNumber)
 {
 	for (int i = 0; i < ActiveCreatures.size(); i++)
 	{
-		auto* creature = ActiveCreatures[i];
+		auto* creature = GetCreatureInfo(&g_Level.Items[ActiveCreatures[i]]);
+
 		if (creature->ItemNumber == NO_VALUE)
 			continue;
 
@@ -307,16 +300,20 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			item->Pose.Position.z = prevPos.z | WALL_MASK;
 
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
-		height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
-		if (!Objects[item->ObjectNumber].nonLot)
+
+		if (floor->PathfindingBoxID != NO_VALUE)
 		{
-			nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
-		}
-		else
-		{
-			floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 			height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
-			nextBox = floor->PathfindingBoxID;
+			if (!Objects[item->ObjectNumber].nonLot)
+			{
+				nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
+			}
+			else
+			{
+				floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
+				height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
+				nextBox = floor->PathfindingBoxID;
+			}
 		}
 
 		if (nextBox == NO_VALUE)
@@ -562,7 +559,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
-	SetAnimation(*creatureItem, creatureAnimNumber);
+	SetAnimation(creatureItem, creatureAnimNumber);
 	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
 
 	playerItem.Pose = creatureItem->Pose;
@@ -572,7 +569,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnim
 	if (creatureItem->RoomNumber != playerItem.RoomNumber)
 		ItemNewRoom(playerItem.Index, creatureItem->RoomNumber);
 
-	AnimateItem(&playerItem);
+	AnimateItem(playerItem);
 	playerItem.HitPoints = -1;
 	player.Control.HandStatus = HandStatus::Busy;
 	player.Control.Weapon.GunType = LaraWeaponType::None;
@@ -662,7 +659,7 @@ void CreatureFloat(short itemNumber)
 
 	if (item->Pose.Position.y <= waterLevel)
 	{
-		if (item->Animation.FrameNumber == GetAnimData(*item).frameBase)
+		if (item->Animation.FrameNumber == 0)
 		{
 			item->Pose.Position.y = waterLevel;
 			item->Collidable = false;
@@ -744,7 +741,7 @@ static void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFla
 
 	auto muzzlePos = muzzleFlash.Bite;
 	auto pos = GetJointPosition(item, muzzlePos);
-	TriggerDynamicLight(pos.x, pos.y, pos.z, 15, 128, 64, 16);
+	SpawnDynamicLight(pos.x, pos.y, pos.z, 15, 128, 64, 16);
 
 	if (muzzleFlash.UseSmoke)
 	{
@@ -767,7 +764,7 @@ bool CreatureAnimation(short itemNumber, short headingAngle, short tiltAngle)
 
 	auto prevPos = item.Pose.Position;
 
-	AnimateItem(&item);
+	AnimateItem(item);
 	ProcessSectorFlags(&item);
 	CreatureHealth(&item);
 
@@ -798,7 +795,7 @@ void CreatureHealth(ItemInfo* item)
 	}
 }
 
-void CreatureDie(int itemNumber, bool doExplosion)
+void CreatureDie(int itemNumber, bool doExplosion, bool forceExplosion)
 {
 	int flags = 0;
 	if (doExplosion)
@@ -817,6 +814,11 @@ void CreatureDie(int itemNumber, bool doExplosion)
 			break;
 
 		case HitEffect::NonExplosive:
+			if (forceExplosion)
+			{
+				flags |= BODY_DO_EXPLOSION;
+				break;
+			}
 			return;
 
 		default:
@@ -962,7 +964,8 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return;
-	auto* box = &g_Level.PathfindingBoxes[boxNumber];
+
+	const auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
 	// Maximize target precision. DO NOT change bracket precedence!
 	LOT->Target.x = (int)((box->top  * BLOCK(1)) + (float)GetRandomControl() * (((float)(box->bottom - box->top) - 1.0f) / 32.0f) + CLICK(2.0f));
@@ -1079,26 +1082,6 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 	return true;
 }
 
-#if CREATURE_AI_PRIORITY_OPTIMIZATION
-CreatureAIPriority GetCreatureLOTPriority(ItemInfo* item)
-{
-	auto itemPos = item->Pose.Position.ToVector3();
-	auto cameraPos = Camera.pos.ToVector3();
-
-	float distance = Vector3::Distance(itemPos, cameraPos) / BLOCK(1);
-	if (distance <= HIGH_PRIO_RANGE)
-		return CreatureAIPriority::High;
-
-	if (distance <= MEDIUM_PRIO_RANGE)
-		return CreatureAIPriority::Medium;
-
-	if (distance <= LOW_PRIO_RANGE)
-		return CreatureAIPriority::Low;
-
-	return CreatureAIPriority::None;
-}
-#endif
-
 bool CreatureActive(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
@@ -1120,11 +1103,6 @@ bool CreatureActive(short itemNumber)
 		item->Status = ITEM_ACTIVE;
 	}
 
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	auto* creature = GetCreatureInfo(item);
-	creature->Priority = GetCreatureLOTPriority(item);
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
-
 	return true;
 }
 
@@ -1141,6 +1119,7 @@ bool StalkBox(ItemInfo* item, ItemInfo* enemy, int boxNumber)
 {
 	if (enemy == nullptr || boxNumber == NO_VALUE)
 		return false;
+
 	auto* box = &g_Level.PathfindingBoxes[boxNumber];
 
 	int xRange = STALK_DIST + ((box->bottom - box->top) * BLOCK(1));
@@ -1297,15 +1276,11 @@ void GetAITarget(CreatureInfo* creature)
 {
 	auto* enemy = creature->Enemy;
 
-	int enemyObjectID = 0;
+	short enemyObjectNumber;
 	if (enemy)
-	{
-		enemyObjectID = enemy->ObjectNumber;
-	}
+		enemyObjectNumber = enemy->ObjectNumber;
 	else
-	{
-		enemyObjectID = NO_VALUE;
-	}
+		enemyObjectNumber = NO_VALUE;
 
 	auto* item = &g_Level.Items[creature->ItemNumber];
 
@@ -1314,7 +1289,7 @@ void GetAITarget(CreatureInfo* creature)
 		creature->Enemy = LaraItem;
 		if (creature->Alerted)
 		{
-			item->AIBits = ~GUARD;
+			item->AIBits &= ~GUARD;
 			if (item->AIBits & AMBUSH)
 				item->AIBits |= MODIFY;
 		}
@@ -1325,25 +1300,21 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			item->AIBits &= ~PATROL1;
 			if (item->AIBits & AMBUSH)
-			{
 				item->AIBits |= MODIFY;
-				// NOTE: added in TR5
-				//item->itemFlags[3] = (creature->Tosspad & 0xFF);
-			}
 		}
 		else if (!creature->Patrol)
 		{
-			if (enemyObjectID != ID_AI_PATROL1)
-				FindAITargetObject(*item, ID_AI_PATROL1);
+			if (enemyObjectNumber != ID_AI_PATROL1)
+				FindAITargetObject(creature, ID_AI_PATROL1);
 		}
-		else if (enemyObjectID != ID_AI_PATROL2)
+		else
 		{
-			FindAITargetObject(*item, ID_AI_PATROL2);
+			if (enemyObjectNumber != ID_AI_PATROL2)
+				FindAITargetObject(creature, ID_AI_PATROL2);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS ||
-			Objects[item->ObjectNumber].waterCreature)
+		
+		if ((enemyObjectNumber == ID_AI_PATROL1 || enemyObjectNumber == ID_AI_PATROL2) &&
+			Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			TestTriggers(enemy, true);
 			creature->Patrol = !creature->Patrol;
@@ -1351,21 +1322,16 @@ void GetAITarget(CreatureInfo* creature)
 	}
 	else if (item->AIBits & AMBUSH)
 	{
-		// First if was removed probably after TR3 and was it used by monkeys?
-		/*if (!(item->aiBits & MODIFY) && !creature->hurtByLara)
-			creature->enemy = LaraItem;
-		else*/ if (enemyObjectID != ID_AI_AMBUSH)
-			FindAITargetObject(*item, ID_AI_AMBUSH);
-		/*else if (item->objectNumber == ID_MONKEY)
-			return;*/
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		if (enemyObjectNumber != ID_AI_AMBUSH)
 		{
-			TestTriggers(enemy, true);		
+			FindAITargetObject(creature, ID_AI_AMBUSH);
+		}
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
+		{
+			TestTriggers(enemy, true);
 			creature->ReachedGoal = true;
 			creature->Enemy = LaraItem;
-			item->AIBits &= ~(AMBUSH /* | MODIFY*/);
+			item->AIBits &= ~AMBUSH;
 
 			if (item->AIBits != MODIFY)
 			{
@@ -1380,38 +1346,22 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			creature->Enemy = LaraItem;
 			creature->Alerted = true;
-			//item->aiBits &= ~FOLLOW;
+			item->AIBits &= ~FOLLOW;
 		}
 		else if (item->HitStatus)
 		{
 			item->AIBits &= ~FOLLOW;
 		}
-		else if (enemyObjectID != ID_AI_FOLLOW)
+		else if (enemyObjectNumber != ID_AI_FOLLOW)
 		{
-			FindAITargetObject(*item, ID_AI_FOLLOW);
+			FindAITargetObject(creature, ID_AI_FOLLOW);
 		}
-		else if (abs(enemy->Pose.Position.x - item->Pose.Position.x) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.y - item->Pose.Position.y) < REACHED_GOAL_RADIUS &&
-			abs(enemy->Pose.Position.z - item->Pose.Position.z) < REACHED_GOAL_RADIUS)
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			creature->ReachedGoal = true;
 			item->AIBits &= ~FOLLOW;
 		}
 	}
-
-	/*else if (item->ObjectNumber == ID_MONKEY && item->CarriedItem == NO_VALUE)
-	{
-		if (item->AIBits != MODIFY)
-		{
-			if (enemyObjectID != ID_SMALLMEDI_ITEM)
-				FindAITargetObject(*item, ID_SMALLMEDI_ITEM);
-		}
-		else
-		{
-			if (enemyObjectID != ID_KEY_ITEM4)
-				FindAITargetObject(*item, ID_KEY_ITEM4);
-		}
-	}*/
 }
 
 // Old TR3 way.
@@ -1438,101 +1388,69 @@ void FindAITarget(CreatureInfo* creature, short objectNumber)
 	}
 }
 
-void FindAITargetObject(ItemInfo& item, GAME_OBJECT_ID objectID, std::optional<int> ocb, std::optional<bool> checkSameZone)
+void FindAITargetObject(CreatureInfo* creature, int objectNumber)
 {
-	auto& creature = *GetCreatureInfo(&item);
+	const auto& item = g_Level.Items[creature->ItemNumber];
 
-	auto data = AITargetData{};
-	data.CheckDistance = false;
-	data.CheckOcb = ocb.has_value();
-	data.ObjectID = objectID;
-	data.Ocb = ocb.value_or(item.ItemFlags[3]);
-	data.CheckSameZone = checkSameZone.value_or(true);
-
-	if (FindAITargetObject(item, data))
-	{
-		*creature.AITarget = data.FoundItem;
-		creature.Enemy = creature.AITarget;
-	}
+	FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
 }
 
-bool FindAITargetObject(ItemInfo& item, AITargetData& data)
+void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
+	auto& item = g_Level.Items[creature->ItemNumber];
+
 	if (g_Level.AIObjects.empty())
-		return false;
+		return;
 
-	auto& creature = *GetCreatureInfo(&item);
+	AI_OBJECT* foundObject = nullptr;
 
-	const AI_OBJECT* foundAIObject = nullptr;
-
-	for (const auto& aiObject : g_Level.AIObjects)
+	for (auto& aiObject : g_Level.AIObjects)
 	{
-		// Check if object IDs match.
-		if (aiObject.objectNumber != data.ObjectID)
-			continue;
-
-		// Check if room is valid.
-		if (aiObject.roomNumber == NO_VALUE)
-			continue;
-
-		// Check if distance is valid.
-		if (data.CheckDistance)
+		if (aiObject.objectNumber == objectNumber &&
+			aiObject.triggerFlags == ocb &&
+			aiObject.roomNumber != NO_VALUE)
 		{
-			if (Vector3i::Distance(item.Pose.Position, aiObject.pos.Position) > data.DistanceMax)
-				continue;
-		}
-
-		// Check if OCBs match (useful for pathfinding).
-		if (data.CheckOcb)
-		{
-			if (aiObject.triggerFlags != data.Ocb)
-				continue;
-		}
-
-		// Check if zone IDs match.
-		if (data.CheckSameZone)
-		{
-			int* zone = g_Level.Zones[(int)creature.LOT.Zone][(int)FlipStatus].data();
+			int* zone = g_Level.Zones[(int)creature->LOT.Zone][(int)FlipStatus].data();
 			auto* room = &g_Level.Rooms[item.RoomNumber];
 
-			// NOTE: Avoid changing box ID of item or AI item so a local variable isn't required when searching for AI object near it.
-			int boxID = GetSector(room, item.Pose.Position.x - room->Position.x, item.Pose.Position.z - room->Position.z)->PathfindingBoxID;
+			item.BoxNumber = GetSector(room, item.Pose.Position.x - room->Position.x, item.Pose.Position.z - room->Position.z)->PathfindingBoxID;
 			room = &g_Level.Rooms[aiObject.roomNumber];
-			int aiBoxID = GetSector(room, aiObject.pos.Position.x - room->Position.x, aiObject.pos.Position.z - room->Position.z)->PathfindingBoxID;
+			aiObject.boxNumber = GetSector(room, aiObject.pos.Position.x - room->Position.x, aiObject.pos.Position.z - room->Position.z)->PathfindingBoxID;
 
-			// Box is invalid or zones don't match; continue.
-			if (boxID == NO_VALUE || aiBoxID == NO_VALUE)
+			if (item.BoxNumber == NO_VALUE || aiObject.boxNumber == NO_VALUE)
 				continue;
 
-			// Zone is invalid; continue.
-			if (zone[boxID] != zone[aiBoxID])
+			if (checkSameZone && (zone[item.BoxNumber] != zone[aiObject.boxNumber]))
 				continue;
+
+			// Don't check for same zone. Needed for Sophia Leigh.
+			foundObject = &aiObject;
 		}
-
-		// HACK: Don't check for matching zone. Needed for Sophia Leigh.
-		foundAIObject = &aiObject;
 	}
 
-	if (foundAIObject == nullptr)
-		return false;
+	if (foundObject == nullptr)
+		return;
 
-	auto aiItem = ItemInfo{};
-	aiItem.ObjectNumber = foundAIObject->objectNumber;
-	aiItem.RoomNumber = foundAIObject->roomNumber;
-	aiItem.Pose.Position = foundAIObject->pos.Position;
-	aiItem.Pose.Orientation.y = foundAIObject->pos.Orientation.y;
-	aiItem.Flags = foundAIObject->flags;
-	aiItem.TriggerFlags = foundAIObject->triggerFlags;
-	aiItem.BoxNumber = foundAIObject->boxNumber;
+	auto& aiItem = *creature->AITarget;
 
-	if (!(aiItem.Flags & IFLAG_TRIGGERED))
+	creature->Enemy = &aiItem;
+
+	aiItem.ObjectNumber = foundObject->objectNumber;
+	aiItem.RoomNumber = foundObject->roomNumber;
+	aiItem.Pose.Position = foundObject->pos.Position;
+	aiItem.Pose.Orientation.y = foundObject->pos.Orientation.y;
+	aiItem.Flags = foundObject->flags;
+	aiItem.TriggerFlags = foundObject->triggerFlags;
+	aiItem.BoxNumber = foundObject->boxNumber;
+
+	if (!(creature->AITarget->Flags & ItemFlags::IFLAG_TRIGGERED))
 	{
-		aiItem.Pose.Position.x += CLICK(1) * phd_sin(aiItem.Pose.Orientation.y);
-		aiItem.Pose.Position.z += CLICK(1) * phd_cos(aiItem.Pose.Orientation.y);
-	}
+		float sinY = phd_sin(creature->AITarget->Pose.Orientation.y);
+		float cosY = phd_cos(creature->AITarget->Pose.Orientation.y);
 
-	data.FoundItem = aiItem;
-	return true;
+		creature->AITarget->Pose.Position.x += CLICK(1) * sinY;
+		creature->AITarget->Pose.Position.z += CLICK(1) * cosY;
+	}
 }
 
 int TargetReachable(ItemInfo* item, ItemInfo* enemy)
@@ -1664,8 +1582,11 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	auto* LOT = &creature->LOT;
 
 	auto* enemy = creature->Enemy;
-	if (enemy == nullptr)
-		return;
+
+	// HACK: Fallback to bored mood from attack or escape mood if enemy was cleared.
+	// Replaces previous "fix" with early exit, because it was breaking friendly NPC pathfinding. -- Lwmte, 24.03.25
+	if (enemy == nullptr && (creature->Mood == MoodType::Attack || creature->Mood == MoodType::Escape))
+		creature->Mood = MoodType::Bored;
 
 	int boxNumber;
 	switch (creature->Mood)
@@ -1674,7 +1595,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
 		if (ValidBox(item, AI->zoneNumber, boxNumber))
 		{
-			if (StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0 && creature->Enemy)
+			if (StalkBox(item, enemy, boxNumber) && creature->Enemy && enemy->HitPoints > 0)
 			{
 				TargetBox(LOT, boxNumber);
 				creature->Mood = MoodType::Bored;
@@ -1693,7 +1614,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 		if (LOT->Fly != NO_FLYING && Lara.Control.WaterStatus == WaterStatus::Dry)
 		{
-			auto& bounds = GetBestFrame(*enemy).BoundingBox;
+			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 			LOT->Target.y += bounds.Y1;
 		}
 
@@ -1742,43 +1663,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	if (LOT->TargetBox == NO_VALUE)
 		TargetBox(LOT, item->BoxNumber);
 
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	bool shouldUpdateTarget = false;
-
-	switch(creature->Priority)
-	{
-		case CreatureAIPriority::High:
-			shouldUpdateTarget = true;
-			break;
-
-		case CreatureAIPriority::Medium:
-			if (creature->FramesSinceLOTUpdate > std::pow(FRAME_PRIO_BASE, FRAME_PRIO_EXP))
-				shouldUpdateTarget = true;
-
-			break;
-
-		case CreatureAIPriority::Low:
-			if (creature->FramesSinceLOTUpdate > std::pow(FRAME_PRIO_BASE, FRAME_PRIO_EXP * 2))
-				shouldUpdateTarget = true;
-
-			break;
-
-		default:
-			break;
-	}
-
-	if (shouldUpdateTarget)
-	{
-		CalculateTarget(&creature->Target, item, &creature->LOT);
-		creature->FramesSinceLOTUpdate = 0;
-	}
-	else
-	{
-		creature->FramesSinceLOTUpdate++;
-	}
-#else
 	CalculateTarget(&creature->Target, item, &creature->LOT);
-#endif // CREATURE_AI_PRIORITY_OPTIMIZATION
 
 	creature->JumpAhead = false;
 	creature->MonkeySwingAhead = false;
@@ -2186,8 +2071,8 @@ void InitializeItemBoxData()
 	{
 		for (const auto& mesh : room.mesh)
 		{
-			long index = ((mesh.pos.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.pos.Position.x - room.Position.x) / BLOCK(1));
-			if (index > room.Sectors.size())
+			long index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
+			if (index >= room.Sectors.size())
 				continue;
 
 			auto* floor = &room.Sectors[index];
@@ -2196,11 +2081,11 @@ void InitializeItemBoxData()
 
 			if (!(g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags & BLOCKED))
 			{
-				int floorHeight = floor->GetSurfaceHeight(mesh.pos.Position.x, mesh.pos.Position.z, true);
+				int floorHeight = floor->GetSurfaceHeight(mesh.Pose.Position.x, mesh.Pose.Position.z, true);
 				const auto& bBox = GetBoundsAccurate(mesh, false);
 
-				if (floorHeight <= mesh.pos.Position.y - bBox.Y2 + CLICK(2) &&
-					floorHeight < mesh.pos.Position.y - bBox.Y1)
+				if (floorHeight <= mesh.Pose.Position.y - bBox.Y2 + CLICK(2) &&
+					floorHeight < mesh.Pose.Position.y - bBox.Y1)
 				{
 					if (bBox.X1 == 0 || bBox.X2 == 0 || bBox.Z1 == 0 || bBox.Z2 == 0 ||
 					  ((bBox.X1 < 0) ^ (bBox.X2 < 0)) && ((bBox.Z1 < 0) ^ (bBox.Z2 < 0)))

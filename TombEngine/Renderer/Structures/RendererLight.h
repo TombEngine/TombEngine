@@ -25,6 +25,11 @@ namespace TEN::Renderer::Structures
 		bool AffectNeighbourRooms;
 		bool CastShadows;
 		float Luma;
+
+		Vector3 PrevPosition;
+		Vector3 PrevDirection;
+
+		int Hash = 0;
 	};
 
 	struct RendererLightNode

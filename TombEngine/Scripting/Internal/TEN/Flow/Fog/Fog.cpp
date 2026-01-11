@@ -1,10 +1,14 @@
 #include "framework.h"
 #include "Fog.h"
 
-/***
-Fog
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
 
-@tenclass Flow.Fog
+using namespace TEN::Scripting::Types;
+
+/***
+Represesnts distance fog. To be used with @{Flow.Level.fog} property.
+
+@tenprimitive Flow.Fog
 @pragma nostrip
 */
  
@@ -15,39 +19,34 @@ void Fog::Register(sol::table& parent)
 		ctors(),
 		sol::call_constructor, ctors(), 
 
-		/// (@{Color}) RGB fog color
-		//@mem color
+		/// (@{Color}) RGB fog color.
+		// @mem color
 		"color", sol::property(&Fog::GetColor, &Fog::SetColor),
 
-		/*** (int) min distance.
-
-		This is the distance at which the fog starts 
-
-		@mem minDistance*/
+		/// (float) Minimum distance.
+		// This is the distance at which the fog starts (in sectors).
+		// @mem minDistance
 		"minDistance", &Fog::MinDistance,
 
-		/*** (int) max distance.
-
-		This is the distance at which the fog reaches the maximum strength
-
-		@mem maxDistance*/
+		/// (float) Maximum distance.
+		// This is the distance at which the fog reaches the maximum strength (in sectors).
+		// @mem maxDistance
 		"maxDistance", &Fog::MaxDistance
 		);
 }
 
 /***
 @tparam Color color RGB color
-@tparam int Min Distance fog starts (in Sectors)
-@tparam int Max Distance fog ends (in Sectors)
+@tparam int min Distance at which fog starts (in sectors).
+@tparam int max Distance at which fog reaches the maximum strength (in sectors).
 @treturn Fog A fog object.
 @function Fog
 */
-Fog::Fog(ScriptColor const& col, short minDistance, short maxDistance)
+Fog::Fog(ScriptColor const& col, float minDistance, float maxDistance)
 {
 	SetColor(col);
 	MinDistance = minDistance;
 	MaxDistance = maxDistance;
-	Enabled = true;
 }
 
 void Fog::SetColor(ScriptColor const& col)

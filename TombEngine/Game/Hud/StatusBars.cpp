@@ -8,6 +8,7 @@
 #include "Game/Lara/lara_helpers.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
 
 using namespace TEN::Renderer;
@@ -63,7 +64,7 @@ namespace TEN::Hud
 		constexpr auto FLASH_INTERVAL = 0.2f;
 
 		// Update flash.
-		if ((GameTimer % (int)round(FLASH_INTERVAL * FPS)) == 0)
+		if ((GlobalCounter % (int)round(FLASH_INTERVAL * FPS)) == 0)
 			_doFlash = !_doFlash;
 
 		// Update bars.
@@ -73,10 +74,20 @@ namespace TEN::Hud
 		UpdateStaminaBar(item);
 	}
 
+	void StatusBarsController::Clamp(const ItemInfo& item)
+	{
+		const auto& player = GetLaraInfo(item);
+
+		_airBar.Value = _airBar.TargetValue = player.Status.Air / LARA_AIR_MAX;
+		_exposureBar.Value = _exposureBar.TargetValue = player.Status.Exposure / LARA_EXPOSURE_MAX;
+		_healthBar.Value = _healthBar.TargetValue = item.HitPoints / LARA_HEALTH_MAX;
+		_staminaBar.Value = _staminaBar.TargetValue = player.Status.Stamina / LARA_STAMINA_MAX;
+	}
+
 	void StatusBarsController::Draw(const ItemInfo& item) const
 	{
-		// Avoid drawing in title level and during cutscenes.
-		if (CurrentLevel == 0 || CinematicBarsHeight > 0)
+		// Avoid drawing if HUD is disabled.
+		if (!g_GameFlow->GetSettings()->Hud.StatusBars)
 			return;
 
 		const auto& player = GetLaraInfo(item);

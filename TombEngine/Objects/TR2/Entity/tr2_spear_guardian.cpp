@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_spear_guardian.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR2
@@ -194,8 +195,8 @@ namespace TEN::Entities::Creatures::TR2
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, SPEAR_GUARDIAN_ANIM_AWAKE);
-		item.Status &= ~ITEM_INVISIBLE;
+		SetAnimation(item, SPEAR_GUARDIAN_ANIM_AWAKE);
+		item.Status = ITEM_NOT_ACTIVE;
 
 		item.ItemFlags[0] = 0; // Joint index for mesh swap.
 		item.ItemFlags[1] = 1; // Immune state (bool).
@@ -540,7 +541,7 @@ namespace TEN::Entities::Creatures::TR2
 		if (target.ItemFlags[1] == 1)
 		{
 			if (pos.has_value())
-				TriggerRicochetSpark(pos.value(), source.Pose.Orientation.y, 3, 0);
+				TriggerRicochetSpark(pos.value(), source.Pose.Orientation.y);
 
 			return;
 		}

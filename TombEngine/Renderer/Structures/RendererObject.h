@@ -18,7 +18,7 @@ namespace TEN::Renderer::Structures
 		std::vector<Matrix> AnimationTransforms;
 		std::vector<Matrix> BindPoseTransforms;
 		std::vector<RendererBone*> LinearizedBones;
-		bool DoNotDraw;
+		bool Hidden;
 		ShadowMode ShadowType;
 
 		~RendererObject()

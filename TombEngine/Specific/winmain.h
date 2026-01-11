@@ -25,7 +25,6 @@ struct WINAPP
     bool ResetClock;
 };
 
-extern bool DebugMode;
 extern HWND WindowsHandle;
 extern WINAPP App;
 
@@ -38,6 +37,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 void WinClose();
 LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void CALLBACK HandleWmCommand(unsigned short wParam);
+
 Vector2i GetScreenResolution();
 std::vector<Vector2i> GetAllSupportedScreenResolutions();
 int GetCurrentScreenRefreshRate();
+
+bool GenerateDummyLevel(const std::string& levelPath);

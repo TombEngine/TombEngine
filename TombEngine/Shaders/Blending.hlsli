@@ -1,13 +1,14 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
+#include "./CBBlending.hlsli"
 #include "./Math.hlsli"
 
 #define ALPHATEST_NONE			0
 #define ALPHATEST_GREATER_THAN	1
 #define ALPHATEST_LESS_THAN		2
 
-#define BLENDMODE_OPAQUE	  0,
+#define BLENDMODE_OPAQUE	  0
 #define BLENDMODE_ALPHATEST	  1
 #define BLENDMODE_ADDITIVE	  2
 #define BLENDMODE_NOZTEST	  4
@@ -22,12 +23,10 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
-cbuffer BlendingBuffer : register(b12)
+inline bool BlendModeSupportsSSAO()
 {
-	uint BlendMode;
-	int AlphaTest;
-	float AlphaThreshold;
-};
+    return (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND);
+}
 
 void DoAlphaTest(float4 inputColor)
 {

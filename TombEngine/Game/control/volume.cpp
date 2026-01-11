@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -11,13 +11,18 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
+
+using namespace TEN::Animation;
 
 namespace TEN::Control::Volumes
 {
 	constexpr auto CAM_SIZE = 32;
 	constexpr auto EVENT_STATE_MASK = SHRT_MAX;
 
-	bool TestVolumeContainment(const TriggerVolume& volume, const BoundingOrientedBox& box, short roomNumber)
+	bool TestVolumeContainment(const TriggerVolume& volume, const BoundingOrientedBox& box, int roomNumber)
 	{
 		float color = !volume.StateQueue.empty() ? 1.0f : 0.4f;
 
@@ -40,7 +45,7 @@ namespace TEN::Control::Volumes
 			return volume.Sphere.Intersects(box);
 
 		default:
-			TENLog("Unsupported volume type encountered in room " + std::to_string(roomNumber), LogLevel::Error);
+			TENLog(fmt::format("Unsupported volume type encountered in room {}.", roomNumber), LogLevel::Error);
 			return false;
 		}
 	}
@@ -79,19 +84,18 @@ namespace TEN::Control::Volumes
 			if (eventSet.Name == name)
 				return &eventSet;
 
-		TENLog("Error: event " + name + " could not be found. Check if event with such name exists in project.",
-			LogLevel::Error, LogConfig::All, false);
+		TENLog(fmt::format("Error: event {} could not be found. Check if event with such name exists in project.", name), LogLevel::Error, LogConfig::All, false);
 
 		return nullptr;
 	}
 
 	bool HandleEvent(Event& event, Activator& activator)
 	{
-		if (event.Function.empty() || event.CallCounter == 0 || event.CallCounter < NO_CALL_COUNTER)
+		if (!event.Enabled || event.CallCounter == 0 || event.Function.empty())
 			return false;
 
 		g_GameScript->ExecuteFunction(event.Function, activator, event.Data);
-		if (event.CallCounter != NO_CALL_COUNTER)
+		if (event.CallCounter != NO_VALUE)
 			event.CallCounter--;
 
 		return true;
@@ -124,18 +128,16 @@ namespace TEN::Control::Volumes
 		if (eventSet == nullptr)
 			return false;
 
-		auto& event = eventSet->Events[(int)eventType];
-		bool disabled = eventSet->Events[(int)eventType].CallCounter < NO_CALL_COUNTER;
-
-		// Flip the call counter to indicate that it is currently disabled.
-		if ((enabled && disabled) || (!enabled && !disabled))
-			eventSet->Events[(int)eventType].CallCounter += enabled ? EVENT_STATE_MASK : -EVENT_STATE_MASK;
+		eventSet->Events[(int)eventType].Enabled = enabled;
 
 		return true;
 	}
 
-	void TestVolumes(short roomNumber, const BoundingOrientedBox& box, ActivatorFlags activatorFlag, Activator activator)
+	void TestVolumes(int roomNumber, const BoundingOrientedBox& box, ActivatorFlags activatorFlag, Activator activator)
 	{
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+			return;
+	
 		if (roomNumber == NO_VALUE)
 			return;
 
@@ -154,7 +156,7 @@ namespace TEN::Control::Volumes
 				if (!volume.DetectInAdjacentRooms && currentRoomIndex != roomNumber)
 					continue;
 
-				if (volume.EventSetIndex == NO_EVENT_SET)
+				if (volume.EventSetIndex == NO_VALUE)
 					continue;
 
 				auto& set = g_Level.VolumeEventSets[volume.EventSetIndex];
@@ -170,7 +172,7 @@ namespace TEN::Control::Volumes
 
 					if (candidate.Status == VolumeStateStatus::Leaving)
 					{
-						if ((GameTimer - candidate.Timestamp) > VOLUME_BUSY_TIMEOUT)
+						if ((SaveGame::Statistics.Level.TimeTaken - candidate.Timestamp) > VOLUME_BUSY_TIMEOUT)
 							candidate.Status = VolumeStateStatus::Outside;
 					}
 					else if (candidate.Status != VolumeStateStatus::Outside)
@@ -193,7 +195,7 @@ namespace TEN::Control::Volumes
 							{
 								VolumeStateStatus::Entering,
 								activator,
-								GameTimer
+								SaveGame::Statistics.Level.TimeTaken
 							});
 
 						HandleEvent(set.Events[(int)EventType::Enter], activator);
@@ -201,7 +203,7 @@ namespace TEN::Control::Volumes
 					else
 					{
 						entryPtr->Status = VolumeStateStatus::Inside;
-						entryPtr->Timestamp = GameTimer;
+						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
 						HandleEvent(set.Events[(int)EventType::Inside], activator);
 					}
@@ -211,10 +213,10 @@ namespace TEN::Control::Volumes
 					// Only fire leave event when a certain timeout has passed.
 					// This helps to filter out borderline cases when moving around volumes.
 
-					if ((GameTimer - entryPtr->Timestamp) > VOLUME_LEAVE_TIMEOUT)
+					if ((SaveGame::Statistics.Level.TimeTaken - entryPtr->Timestamp) > VOLUME_LEAVE_TIMEOUT)
 					{
 						entryPtr->Status = VolumeStateStatus::Leaving;
-						entryPtr->Timestamp = GameTimer;
+						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
 						HandleEvent(set.Events[(int)EventType::Leave], activator);
 					}
@@ -235,18 +237,17 @@ namespace TEN::Control::Volumes
 		TestVolumes(camera->pos.RoomNumber, box, ActivatorFlags::Flyby, camera);
 	}
 
-	void TestVolumes(short roomNumber, MESH_INFO* mesh)
+	void TestVolumes(int roomNumber, StaticMesh* mesh)
 	{
-		auto box = GetBoundsAccurate(*mesh, false).ToBoundingOrientedBox(mesh->pos);
+		auto box = GetBoundsAccurate(*mesh, false).ToBoundingOrientedBox(mesh->Pose);
 		
 		TestVolumes(roomNumber, box, ActivatorFlags::Static, mesh);
 	}
 
-	void TestVolumes(short itemNumber, const CollisionSetupData* coll)
+	void TestVolumes(int itemNumber, const CollisionSetupData* coll)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		auto box = (coll != nullptr) ?
-			ConstructRoughBox(item, *coll) : GameBoundingBox(&item).ToBoundingOrientedBox(item.Pose);
+		auto box = (coll != nullptr) ? ConstructRoughBox(item, *coll) : GameBoundingBox(&item).ToBoundingOrientedBox(item.Pose);
 
 		DrawDebugBox(box, Vector4(1.0f, 1.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 
@@ -309,7 +310,7 @@ namespace TEN::Control::Volumes
             for (const auto& file : nodeCatalogs)
                 g_GameScript->ExecuteScriptFile(nodeScriptPath + file);
 
-            TENLog(std::to_string(nodeCatalogs.size()) + " node catalogs were found and loaded.", LogLevel::Info);
+            TENLog(fmt::format("{} node catalog{} found and loaded.", nodeCatalogs.size(), (nodeCatalogs.size() > 1) ? "s were" : " was"), LogLevel::Info);
         }
         else
         {
@@ -318,10 +319,10 @@ namespace TEN::Control::Volumes
 
 		int count = InitializeEventList(g_Level.VolumeEventSets);
 		if (count != 0)
-			TENLog(std::to_string(count) + " volume events were found and loaded.", LogLevel::Info);
+			TENLog(fmt::format("{} volume event{} found and loaded.", count, (count > 1) ? "s were" : " was"), LogLevel::Info);
 
 		count = InitializeEventList(g_Level.GlobalEventSets);
 		if (count != 0)
-			TENLog(std::to_string(count) + " global events were found and loaded.", LogLevel::Info);
+			TENLog(fmt::format("{} global event{} found and loaded.", count, (count > 1) ? "s were" : " was"), LogLevel::Info);
 	}
 }

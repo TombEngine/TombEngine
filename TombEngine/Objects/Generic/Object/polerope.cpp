@@ -6,6 +6,7 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -16,6 +17,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -53,7 +55,7 @@ namespace TEN::Entities::Generic
 	{
 		GameBoundingBox(
 			-BLOCK(0.25f), BLOCK(0.25f),
-			0, 0, 
+			-10, 10, 
 			-BLOCK(0.5f), BLOCK(0.5f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
@@ -66,6 +68,8 @@ namespace TEN::Entities::Generic
 		auto& player = GetLaraInfo(*laraItem);
 
 		bool isFacingPole = Geometry::IsPointInFront(laraItem->Pose, poleItem.Pose.Position.ToVector3());
+
+		g_Hud.InteractionHighlighter.Test(*laraItem, poleItem);
 
 		// Mount while grounded.
 		if (IsHeld(In::Action) && isFacingPole &&

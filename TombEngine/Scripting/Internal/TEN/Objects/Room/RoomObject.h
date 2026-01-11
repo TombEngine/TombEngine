@@ -4,27 +4,30 @@
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 
 namespace sol { class state; }
+
 enum class ReverbType;
-class ScriptColor;
-class Vec3; 
+class Vec3;
+namespace TEN::Scripting::Types { class ScriptColor; }
+
+using namespace TEN::Scripting::Types;
 
 //namespace TEN::Scripting
 //{
-	class Room : public NamedBase<Room, ROOM_INFO&>
+	class Room : public NamedBase<Room, RoomData&>
 	{
 	private:
 		// Members
 
-		ROOM_INFO& _room;
+		RoomData& _room;
 
 	public:
-		using IdentifierType = std::reference_wrapper<ROOM_INFO>;
+		using IdentifierType = std::reference_wrapper<RoomData>;
 
 		static void Register(sol::table& parent);
 
 		// Constructors
 
-		Room(ROOM_INFO& room);
+		Room(RoomData& room);
 		Room(const Room& room) = delete;
 
 		// Destructors

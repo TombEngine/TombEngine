@@ -11,7 +11,7 @@
 #include "Specific/level.h"
 
 // Creatures
-#include "Objects/TR4/Entity/Wraith.h"
+#include "Objects/TR4/Entity/Wraith.h" // OFF
 #include "Objects/TR4/Entity/tr4_enemy_jeep.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h" // OK
 #include "Objects/TR4/Entity/tr4_baddy.h" // OK
@@ -26,6 +26,7 @@
 #include "Objects/TR4/Entity/tr4_knight_templar.h" // OK
 #include "Objects/TR4/Entity/tr4_lara_double.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR4/Entity/tr4_mummy.h" // OK
 #include "Objects/TR4/Entity/tr4_sas.h" // OK
 #include "Objects/TR4/Entity/tr4_sentry_gun.h" // OK
@@ -43,6 +44,8 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
+#include "Objects/TR4/Object/FireRope.h"
+#include "Objects/TR4/Object/StatuePlinth.h"
 #include "Objects/TR4/Object/WraithTrap.h"
 #include "Objects/TR4/Object/tr4_element_puzzle.h"
 #include "Objects/TR4/Object/tr4_mapper.h"
@@ -79,9 +82,6 @@
 // Vehicles
 #include "Objects/TR4/Vehicles/jeep.h"
 #include "Objects/TR4/Vehicles/motorbike.h"
-
-// Effects
-#include "Objects/Effects/tr4_locusts.h" // OK
 
 using namespace TEN::Entities::TR4;
 using namespace TEN::Entities::Traps;
@@ -507,9 +507,10 @@ namespace TEN::Entities
 			obj->Initialize = InitializeHorseman;
 			obj->control = HorsemanControl;
 			obj->collision = CreatureCollision;
+			obj->HitRoutine = HorsemanHit;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 25;
-			obj->pivotLength = 500;
+			obj->pivotLength = 50;
 			obj->radius = 409;
 			obj->intelligent = true;
 			obj->SetHitEffect(true);
@@ -576,12 +577,28 @@ namespace TEN::Entities
 			obj->SetHitEffect();
 		}
 
+		obj = &Objects[ID_FIREROPE];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFireRope;
+			obj->control = FireRopeControl;
+			obj->collision = FireRopeCollision;
+		}
+
 		obj = &Objects[ID_LOCUSTS_EMITTER];
 		if (obj->loaded)
 		{
-			obj->Initialize = InitializeLocust;
-			obj->control = LocustControl;
-			obj->drawRoutine = NULL;
+			obj->Initialize = InitializeLocustEmitter;
+			obj->control = LocustEmitterControl;
+			obj->Hidden = true;
+		}
+
+		obj = &Objects[ID_LOCUSTS];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeLocustEmitter;
+			obj->control = LocustEmitterControl;
+			obj->Hidden = true;
 		}
 
 		obj = &Objects[ID_WRAITH1];
@@ -610,7 +627,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeBeetleSwarm;
 			obj->control = BeetleSwarmControl;
-			obj->drawRoutine = NULL;
+			obj->Hidden = true;
 		}
 
 		obj = &Objects[ID_SAS_DYING];
@@ -626,7 +643,7 @@ namespace TEN::Entities
 		if (obj->loaded)
 		{
 			obj->Initialize = InitializeEnemyJeep;
-			obj->control = ControlEnemyJeep;
+			obj->control = EnemyJeepControl;
 			obj->collision = CreatureCollision;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 40;
@@ -634,8 +651,8 @@ namespace TEN::Entities
 			obj->radius = 512;
 			obj->intelligent = true;
 			obj->damageType = DamageMode::None; // NOTE: Prevents enemy jeep from being killed with skidoo gun or something like that.
-			obj->LotType = LotType::EnemyJeep;
-			obj->SetBoneRotationFlags(8, ROT_X); // Wheel rotation.
+			obj->LotType = LotType::HumanPlusJumpAndMonkey;
+			obj->SetBoneRotationFlags(8, ROT_X);
 			obj->SetBoneRotationFlags(9, ROT_X);
 			obj->SetBoneRotationFlags(11, ROT_X);
 			obj->SetBoneRotationFlags(12, ROT_X);
@@ -695,6 +712,14 @@ namespace TEN::Entities
 			obj->Initialize = InitializeElementPuzzle;
 			obj->control = ElementPuzzleControl;
 			obj->collision = ElementPuzzleCollision;
+			obj->SetHitEffect(true);
+		}
+
+		obj = &Objects[ID_STATUE_PLINTH];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeStatuePlinth;
+			obj->collision = CollideStatuePlinth;
 			obj->SetHitEffect(true);
 		}
 
@@ -965,7 +990,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeJeep;
 			obj->collision = JeepPlayerCollision;
-			obj->shadowType = ShadowMode::Lara;
+			obj->shadowType = ShadowMode::Player;
 			obj->SetHitEffect(true);
 		}
 
@@ -974,7 +999,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeMotorbike;
 			obj->collision = MotorbikePlayerCollision;
-			obj->shadowType = ShadowMode::Lara;
+			obj->shadowType = ShadowMode::Player;
 			obj->SetHitEffect(true);
 		}
 	}

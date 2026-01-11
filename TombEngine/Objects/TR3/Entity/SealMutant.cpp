@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/SealMutant.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
@@ -127,12 +127,12 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else if (TestAnimFrameRange(item, 1, 124))
 			{
-				const auto& anim = GetAnimData(item.Animation.AnimNumber);
+				const auto& anim = GetAnimData(item);
 
-				gasVel = item.Animation.FrameNumber - (anim.frameBase + 1);
+				gasVel = item.Animation.FrameNumber - 1;
 				if (gasVel > 24.0f)
 				{
-					gasVel = item.Animation.FrameNumber - (anim.frameEnd - 8);
+					gasVel = item.Animation.FrameNumber - (anim.EndFrameNumber - 8);
 					if (gasVel <= 0.0f)
 						gasVel = 1.0f;
 
@@ -152,7 +152,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (item.HitPoints <= 0)
 		{
-			const auto& anim = GetAnimData(item.Animation.AnimNumber);
+			const auto& anim = GetAnimData(item);
 
 			if (item.Animation.ActiveState != SEAL_MUTANT_STATE_DEATH)
 			{
@@ -166,10 +166,10 @@ namespace TEN::Entities::Creatures::TR3
 					TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Medium);
 				}
 
-				int burnTimer = item.Animation.FrameNumber - anim.frameBase;
+				int burnTimer = item.Animation.FrameNumber;
 				if (burnTimer > SEAL_MUTANT_BURN_END_TIME)
 				{
-					burnTimer = item.Animation.FrameNumber - anim.frameEnd;
+					burnTimer = item.Animation.FrameNumber - anim.EndFrameNumber;
 					if (burnTimer > SEAL_MUTANT_BURN_END_TIME)
 						burnTimer = SEAL_MUTANT_BURN_END_TIME;
 				}
@@ -178,16 +178,16 @@ namespace TEN::Entities::Creatures::TR3
 				{
 					auto pos = GetJointPosition(item, SealMutantGasBite.BoneID, Vector3(0.0f, -SEAL_MUTANT_FLAME_LIGHT_Y_OFFSET, 0.0f));
 					auto color = Color(Random::GenerateFloat(0.75f, 1.0f), Random::GenerateFloat(0.4f, 0.5f), Random::GenerateFloat(0.0f, 0.25f));
-					float falloff = Random::GenerateFloat(0.03f, 0.04f);
-					TriggerDynamicLight(pos.ToVector3(), color, falloff);
+					float falloff = Random::GenerateFloat(BLOCK(1.5f), BLOCK(2.5f));
+					SpawnDynamicPointLight(pos.ToVector3(), color, falloff);
 				}
 			}
 			else if (TestAnimFrameRange(item, 1, 124))
 			{
-				gasVel = item.Animation.FrameNumber - (anim.frameBase + 1);
+				gasVel = item.Animation.FrameNumber - 1;
 				if (gasVel > 24.0f)
 				{
-					gasVel = item.Animation.FrameNumber - (anim.frameEnd - 8);
+					gasVel = item.Animation.FrameNumber - (anim.EndFrameNumber - 8);
 					if (gasVel <= 0.0f)
 						gasVel = 1.0f;
 

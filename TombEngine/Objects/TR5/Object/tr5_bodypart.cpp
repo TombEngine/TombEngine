@@ -10,10 +10,13 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/items.h"
+#include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Random.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Math::Random;
 
 constexpr int BODY_PART_LIFE = 64;
@@ -26,7 +29,12 @@ static void BodyPartExplode(FX_INFO& fx)
 {
 	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -2, 0, fx.roomNumber);
 	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -1, 0, fx.roomNumber);
-	TriggerShockwave(&fx.pos, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles(ANGLE(12.0f), 0, 0), 0, true, false, false, (int)ShockwaveStyle::Normal);
+
+	// Lift explosion effect a little to make shockwave visible on flat floors.
+	auto pose = fx.pos;
+	pose.Position.y -= CLICK(0.5f);
+
+	TriggerShockwave(&pose, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 	
 	if (ItemNearLara(fx.pos.Position, BODY_PART_EXPLODE_DAMAGE_RANGE))
 		DoDamage(LaraItem, BODY_PART_EXPLODE_DAMAGE);
@@ -44,7 +52,7 @@ void ControlBodyPart(short fxNumber)
 		if (fx->speed)
 			fx->pos.Orientation.x += 4 * fx->fallspeed;
 
-		fx->fallspeed += 6;
+		fx->fallspeed += g_GameFlow->GetSettings()->Physics.Gravity;
 	}
 	else
 	{
@@ -165,6 +173,11 @@ void ControlBodyPart(short fxNumber)
 
 			fx->pos.Position.y = y;
 		}
+		else
+		{
+			fx->pos.Orientation.x += ANGLE(5);
+			fx->pos.Orientation.z += ANGLE(10);
+		}
 
 		if (!fx->speed && ++fx->flag1 > BODY_PART_LIFE)
 		{
@@ -211,11 +224,9 @@ void ControlBodyPart(short fxNumber)
 		{
 			int waterHeight = GetPointCollision(fx->pos.Position, pointColl.GetRoomNumber()).GetWaterTopHeight();
 
-			SplashSetup.y = waterHeight - 1;
-			SplashSetup.x = fx->pos.Position.x;
-			SplashSetup.z = fx->pos.Position.z;
-			SplashSetup.splashPower = fx->fallspeed;
-			SplashSetup.innerRadius = 48;
+			SplashSetup.Position = Vector3(fx->pos.Position.x, waterHeight - 1, fx->pos.Position.z);
+			SplashSetup.SplashPower = fx->fallspeed;
+			SplashSetup.InnerRadius = 48;
 			SetupSplash(&SplashSetup, pointColl.GetRoomNumber());
 
 			// Remove if touched water.

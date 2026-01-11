@@ -11,7 +11,7 @@ struct ObjectInfo;
 	class GameBoundingBox
 	{
 	public:
-		// Members
+		// Fields
 
 		int X1 = 0;
 		int X2 = 0;
@@ -26,8 +26,9 @@ struct ObjectInfo;
 
 		// Constructors
 
-		GameBoundingBox() {};
+		GameBoundingBox() = default;
 		GameBoundingBox(float x1, float x2, float y1, float y2, float z1, float z2);
+		GameBoundingBox(const BoundingBox& aabb);
 		GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber = 0, int frameNumber = 0);
 		GameBoundingBox(const ItemInfo* item);
 
@@ -45,8 +46,10 @@ struct ObjectInfo;
 
 		// Converters
 
+		BoundingSphere		ToLocalBoundingSphere() const;
+		BoundingBox			ToConservativeBoundingBox(const Pose& pose) const; // TODO: item.GetAabb() method.
 		BoundingOrientedBox ToBoundingOrientedBox(const Pose& pose) const;
-		BoundingOrientedBox ToBoundingOrientedBox(const Vector3& pos, const Quaternion& orient) const;
+		BoundingOrientedBox ToBoundingOrientedBox(const Vector3& pos, const Quaternion& orient) const; // TODO: item.GetObb() method.
 
 		// Operators
 
@@ -55,6 +58,8 @@ struct ObjectInfo;
 		GameBoundingBox operator -(const GameBoundingBox& bounds) const;
 		GameBoundingBox operator -(const Pose& pose) const;
 		GameBoundingBox operator *(float scalar) const;
+		GameBoundingBox operator *(Vector3 scalar) const;
 		GameBoundingBox operator /(float scalar) const;
+		GameBoundingBox operator /(Vector3 scalar) const;
 	};
 //}

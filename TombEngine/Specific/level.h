@@ -1,9 +1,11 @@
 #pragma once
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
 #include "Specific/IO/ChunkReader.h"
@@ -12,6 +14,7 @@
 #include "Specific/LevelCameraInfo.h"
 #include "Specific/newtypes.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
 
 struct ChunkId;
@@ -27,6 +30,8 @@ struct TEXTURE
 	int height;
 	std::vector<byte> colorMapData;
 	std::vector<byte> normalMapData;
+	std::vector<byte> ORSHMapData;
+	std::vector<byte> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME
@@ -43,10 +48,13 @@ struct ANIMATED_TEXTURES_FRAME
 
 struct ANIMATED_TEXTURES_SEQUENCE
 {
-	int atlas;
+	int Type;
+	int Atlas;
 	int Fps;
-	int numFrames;
-	std::vector<ANIMATED_TEXTURES_FRAME> frames;
+	int NumFrames;
+	float UVRotateDirection;
+	float UVRotateSpeed;
+	std::vector<ANIMATED_TEXTURES_FRAME> Frames;
 };
 
 struct AI_OBJECT
@@ -73,58 +81,89 @@ struct SPRITE
 	float y4;
 };
 
+struct MaterialData
+{
+	std::string Name;
+	MaterialShaderType Type;
+	Vector4 Parameters0;
+	Vector4 Parameters1;
+	Vector4 Parameters2;
+	Vector4 Parameters3;
+	bool HasNormalMap;
+	bool HasHeightMap;
+	bool HasAmbientOcclusionMap;
+	bool HasRoughnessMap;
+	bool HasSpecularMap;
+	bool HasEmissiveMap;
+};
+
 struct MESH
 {
+	bool hidden;
 	LightMode lightMode;
 	BoundingSphere sphere;
 	std::vector<Vector3> positions;
 	std::vector<Vector3> normals;
 	std::vector<Vector3> colors;
 	std::vector<Vector3> effects; // X = glow, Y = move, Z = refract
-	std::vector<int> bones;
+	std::vector<std::array<unsigned char, 4>> boneIndices;
+	std::vector<std::array<unsigned char, 4>> boneWeights;
 	std::vector<BUCKET> buckets;
 };
 
-// LevelData
-struct LEVEL
+struct MirrorData
 {
-	// Object data
+	int	   RoomNumber		= 0;
+	Plane  Plane			= SimpleMath::Plane();
+	Matrix ReflectionMatrix = Matrix::Identity;
+	
+	bool Enabled		  = false;
+	bool ReflectPlayer	  = false;
+	bool ReflectMoveables = false;
+	bool ReflectStatics	  = false;
+	bool ReflectLights	  = false;
+	bool ReflectSprites	  = false;
+};
+
+struct LevelData
+{
+	// Object
+
 	int					  NumItems = 0;
 	std::vector<ItemInfo> Items	   = {};
 	std::vector<MESH>	  Meshes   = {};
 	std::vector<int>	  Bones	   = {};
 
-	// Animation data
-	std::vector<AnimData>				Anims	 = {};
-	std::vector<AnimFrame>				Frames	 = {};
-	std::vector<StateDispatchData>		Changes	 = {};
-	std::vector<StateDispatchRangeData> Ranges	 = {};
-	std::vector<short>					Commands = {};
+	// Collision
 
-	// Collision data
-	std::vector<ROOM_INFO> Rooms	 = {};
-	std::vector<short>	   FloorData = {};
-	std::vector<SinkInfo>  Sinks	 = {};
+	std::vector<RoomData> Rooms		= {};
+	std::vector<short>	  FloorData = {};
+	std::vector<SinkInfo> Sinks		= {};
 
-	// Pathfinding data
+	// Pathfinding
+
 	std::vector<BOX_INFO> PathfindingBoxes				   = {};
 	std::vector<OVERLAP>  Overlaps						   = {};
 	std::vector<int>	  Zones[(int)ZoneType::MaxZone][2] = {};
 
-	// Sound data
+	// Sound
+
 	std::vector<short>			 SoundMap	  = {};
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc. data
+	// Misc.
+
 	std::vector<LevelCameraInfo> Cameras   = {};
 	std::vector<EventSet>		 GlobalEventSets = {};
 	std::vector<EventSet>		 VolumeEventSets = {};
 	std::vector<int>			 LoopedEventSetIndices = {};
 	std::vector<AI_OBJECT>		 AIObjects = {};
 	std::vector<SPRITE>			 Sprites   = {};
+	std::vector<MirrorData>		 Mirrors = {};
 
-	// Texture data
+	// Texture and materials
+
 	TEXTURE				 SkyTexture		   = {};
 	std::vector<TEXTURE> RoomTextures	   = {};
 	std::vector<TEXTURE> MoveablesTextures = {};
@@ -132,14 +171,16 @@ struct LEVEL
 	std::vector<TEXTURE> AnimatedTextures  = {};
 	std::vector<TEXTURE> SpritesTextures   = {};
 	std::vector<ANIMATED_TEXTURES_SEQUENCE> AnimatedTexturesSequences = {};
+	std::vector<MaterialData> Materials    = {};
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;
 
 extern std::vector<int> MoveablesIds;
-extern std::vector<int> StaticObjectsIds;
 extern std::vector<int> SpriteSequencesIds;
-extern LEVEL g_Level;
+extern LevelData g_Level;
+extern int SystemNameHash;
+extern int LastLevelHash;
 
 inline std::future<bool> LevelLoadTask;
 
@@ -149,7 +190,7 @@ void FileClose(FILE* ptr);
 bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned long uncompressedSize);
 
 bool LoadLevelFile(int levelIndex);
-void FreeLevel();
+void FreeLevel(bool partial);
 
 void LoadTextures();
 void LoadRooms();
@@ -163,8 +204,8 @@ void LoadSoundSources();
 void LoadAnimatedTextures();
 void LoadEventSets();
 void LoadAIObjects();
-
-void LoadPortal(ROOM_INFO& room);
+void LoadMirrors();
+void LoadMaterials();
 
 void GetCarriedItems();
 void GetAIPickups();

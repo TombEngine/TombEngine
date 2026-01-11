@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_submarine.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -17,9 +17,11 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 using namespace TEN::Math;
@@ -65,7 +67,8 @@ namespace TEN::Entities::Creatures::TR5
 		spark->maxYvel = 0;
 		spark->gravity = 0;
 		spark->scalar = 1;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_LIGHT;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = SPR_LENS_FLARE_LIGHT;
 		spark->dSize = spark->sSize = spark->size = (GetRandomControl() & 7) + 192;
 	}
 
@@ -91,7 +94,8 @@ namespace TEN::Entities::Creatures::TR5
 		spark->yVel = pos2->y + (GetRandomControl() & 0x7F) - pos1->y - 64;
 		spark->zVel = pos2->z + (GetRandomControl() & 0x7F) - pos1->z - 64;
 		spark->friction = 0;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_BUBBLE_CLUSTER;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = SPR_BUBBLE_CLUSTER;
 		spark->maxYvel = 0;
 		spark->gravity = -4 - (GetRandomControl() & 3);
 		spark->scalar = 1;
@@ -323,7 +327,7 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				distance = BLOCK(16) - distance;
 				byte color = (GetRandomControl() & 0xF) + (distance / 128) + 64;
-				TriggerDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 1) + (distance / 2048) + 12, color / 2, color, color / 2);
+				SpawnDynamicLight(target.x, target.y, target.z, (GetRandomControl() & 1) + (distance / 2048) + 12, color / 2, color, color / 2);
 			}
 		}
 
@@ -366,7 +370,9 @@ namespace TEN::Entities::Creatures::TR5
 			item->Animation.Velocity.z += (5.0f - item->Animation.Velocity.z) / 2.0f;
 		}
 		else
-			item->Animation.Velocity.y += GRAVITY;
+		{
+			item->Animation.Velocity.y += g_GameFlow->GetSettings()->Physics.Gravity;
+		}
 
 		item->Pose.Position.y += item->Animation.Velocity.y;
 
@@ -487,7 +493,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		item->Pose.Orientation.z += 16 * item->Animation.Velocity.z;
 
-		TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
+		item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 		
 		auto probe = GetPointCollision(*item);
 
@@ -499,7 +505,7 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				LaraItem->HitStatus = true;
 				KillItem(itemNumber);
-				TriggerUnderwaterExplosion(item, 1);
+				TriggerUnderwaterExplosion(item, false);
 				SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 				SoundEffect(SFX_TR5_VEHICLE_DIVESUIT_HIT, &LaraItem->Pose, SoundEnvironment::Always);
 				DoDamage(LaraItem, 200);
@@ -522,7 +528,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->Pose.Position.x = x;
 			item->Pose.Position.y = y;
 			item->Pose.Position.z = z;
-			TriggerUnderwaterExplosion(item, 1);
+			TriggerUnderwaterExplosion(item, false);
 			SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 			KillItem(itemNumber);
 		}

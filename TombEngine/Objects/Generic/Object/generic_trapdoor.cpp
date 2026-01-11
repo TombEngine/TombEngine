@@ -1,11 +1,10 @@
 #include "framework.h"
 #include "Objects/Generic/Object/generic_trapdoor.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Specific/level.h"
-#include "Game/animation.h"
 #include "Game/items.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -19,6 +18,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -29,9 +29,9 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds CeilingTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 900,
-			-BLOCK(0.75f), -CLICK(1)),
+			-BLOCK(0.75f), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
@@ -41,14 +41,27 @@ namespace TEN::Entities::Generic
 	const ObjectCollisionBounds FloorTrapDoorBounds =
 	{
 		GameBoundingBox(
-			-CLICK(1), CLICK(1),
+			-BLOCK(0.25f), BLOCK(0.25f),
 			0, 0,
-			-BLOCK(1), -CLICK(1)),
+			-BLOCK(1), -BLOCK(0.25f)),
 		std::pair(
 			EulerAngles(ANGLE(-10.0f), ANGLE(-30.0f), ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f)))
 	};
+
 	static auto FloorTrapDoorPos = Vector3i(0, 0, -655);
+
+	static auto WaterFloorTrapDoorPos = Vector3i(0, -CLICK(1), -655);
+	const ObjectCollisionBounds WaterFloorTrapDoorBounds =
+	{
+		GameBoundingBox(
+				-BLOCK(3 / 8.0f), BLOCK(3 / 8.0f),
+				-BLOCK(0.5f), 0,
+				-BLOCK(0.75f), BLOCK(0.25f)),
+		std::pair(
+			EulerAngles(ANGLE(-80.0f), ANGLE(-80.0f), ANGLE(-80.0f)),
+			EulerAngles(ANGLE(80.0f), ANGLE(80.0f), ANGLE(80.0f)))
+	};
 
 	static std::optional<int> GetTrapDoorFloorHeight(const ItemInfo& item, const Vector3i& pos)
 	{
@@ -87,8 +100,8 @@ namespace TEN::Entities::Generic
 		bridge.GetCeilingHeight = GetTrapDoorCeilingHeight;
 		bridge.GetFloorBorder = GetTrapDoorFloorBorder;
 		bridge.GetCeilingBorder = GetTrapDoorCeilingBorder;
+		bridge.Initialize(trapDoorItem);
 
-		UpdateBridgeItem(trapDoorItem);
 		CloseTrapDoor(itemNumber);
 	}
 
@@ -97,7 +110,7 @@ namespace TEN::Entities::Generic
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
 
 		if (trapDoorItem->Animation.ActiveState == 1 &&
-			trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
+			TestLastFrame(*trapDoorItem))
 		{
 			ObjectCollision(itemNumber, laraItem, coll);
 		}
@@ -115,6 +128,9 @@ namespace TEN::Entities::Generic
 		bool result2 = TestLaraPosition(CeilingTrapDoorBounds, trapDoorItem, laraItem);
 		laraItem->Pose.Orientation.y += ANGLE(180.0f);
 
+		if (result || result2)
+			g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
+
 		if (IsHeld(In::Action) &&
 			laraItem->Animation.ActiveState == LS_JUMP_UP &&
 			laraItem->Animation.IsAirborne &&
@@ -131,14 +147,14 @@ namespace TEN::Entities::Generic
 			laraItem->Animation.Velocity.y = 0;
 			laraItem->Animation.IsAirborne = false;
 			laraItem->Animation.AnimNumber = LA_TRAPDOOR_CEILING_OPEN;
-			laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			laraItem->Animation.ActiveState = LS_FREEFALL_BIS;
 			laraInfo->Control.HandStatus = HandStatus::Busy;
 			AddActiveItem(itemNumber);
 			trapDoorItem->Status = ITEM_ACTIVE;
 			trapDoorItem->Animation.TargetState = 1;
 
-			UseForcedFixedCamera = 1;
+			UseForcedFixedCamera = true;
 			ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 1024;
 			ForcedFixedCamera.y = trapDoorItem->Pose.Position.y + 1024;
 			ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 1024;
@@ -147,14 +163,11 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
-		if (trapDoorItem->Animation.ActiveState == 1 &&
-			trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
-		{
+		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
 			ObjectCollision(itemNumber, laraItem, coll);
-		}
 	}
 
 	void FloorTrapDoorCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -162,20 +175,29 @@ namespace TEN::Entities::Generic
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
 
-		if ((IsHeld(In::Action) &&
-			laraItem->Animation.ActiveState == LS_IDLE &&
-			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
-			laraInfo->Control.HandStatus == HandStatus::Free &&
-			trapDoorItem->Status != ITEM_ACTIVE) ||
-			(laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber))
+		g_Hud.InteractionHighlighter.Test(*laraItem, *trapDoorItem, InteractionMode::Activation);
+
+		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
+
+		const auto& bounds = isUnderwater ? WaterFloorTrapDoorBounds : FloorTrapDoorBounds;
+		const auto& position = isUnderwater ? WaterFloorTrapDoorPos : FloorTrapDoorPos;
+
+		bool isActionActive = laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber;
+		bool isActionReady = IsHeld(In::Action);
+		bool isPlayerAvailable = laraInfo->Control.HandStatus == HandStatus::Free && trapDoorItem->Status != ITEM_ACTIVE;
+
+		bool isPlayerIdle = (!isUnderwater && laraItem->Animation.ActiveState == LS_IDLE && laraItem->Animation.AnimNumber == LA_STAND_IDLE) ||
+							( isUnderwater && laraItem->Animation.ActiveState == LS_UNDERWATER_IDLE && laraItem->Animation.AnimNumber == LA_UNDERWATER_IDLE);
+		
+		if (isActionActive || (isActionReady && isPlayerAvailable && isPlayerIdle))
 		{
-			if (TestLaraPosition(FloorTrapDoorBounds, trapDoorItem, laraItem))
+			if (TestLaraPosition(bounds, trapDoorItem, laraItem))
 			{
-				if (MoveLaraPosition(FloorTrapDoorPos, trapDoorItem, laraItem))
+				if (MoveLaraPosition(position, trapDoorItem, laraItem))
 				{
 					ResetPlayerFlex(laraItem);
-					laraItem->Animation.AnimNumber = LA_TRAPDOOR_FLOOR_OPEN;
-					laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+					laraItem->Animation.AnimNumber = isUnderwater ? LA_UNDERWATER_FLOOR_TRAPDOOR : LA_TRAPDOOR_FLOOR_OPEN;
+					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.ActiveState = LS_TRAPDOOR_FLOOR_OPEN;
 					laraInfo->Control.IsMoving = false;
 					laraInfo->Control.HandStatus = HandStatus::Busy;
@@ -183,7 +205,7 @@ namespace TEN::Entities::Generic
 					trapDoorItem->Status = ITEM_ACTIVE;
 					trapDoorItem->Animation.TargetState = 1;
 
-					UseForcedFixedCamera = 1;
+					UseForcedFixedCamera = true;
 					ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 2048;
 					ForcedFixedCamera.y = trapDoorItem->Pose.Position.y - 2048;
 
@@ -202,25 +224,28 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = 0;
+				UseForcedFixedCamera = false;
 		}
 
-		if (trapDoorItem->Animation.ActiveState == 1 && trapDoorItem->Animation.FrameNumber == GetAnimData(trapDoorItem).frameEnd)
+		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
 			ObjectCollision(itemNumber, laraItem, coll);
 	}
 
 	void TrapDoorControl(short itemNumber)
 	{
 		auto* trapDoorItem = &g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(*trapDoorItem);
 
-	if (TriggerActive(trapDoorItem))
-	{
-		if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
-			trapDoorItem->Animation.TargetState = 1;
-	}
-	else
-	{
-		trapDoorItem->Status = ITEM_ACTIVE;
+		bridge.Update(*trapDoorItem);
+
+		if (TriggerActive(trapDoorItem))
+		{
+			if (!trapDoorItem->Animation.ActiveState && trapDoorItem->TriggerFlags >= 0)
+				trapDoorItem->Animation.TargetState = 1;
+		}
+		else
+		{
+			trapDoorItem->Status = ITEM_ACTIVE;
 
 			if (trapDoorItem->Animation.ActiveState == 1)
 				trapDoorItem->Animation.TargetState = 0;
@@ -240,13 +265,19 @@ namespace TEN::Entities::Generic
 
 	void CloseTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 1;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 1;
+		bridge.Enable(trapDoorItem);
 	}
 
 	void OpenTrapDoor(short itemNumber)
 	{
-		auto* trapDoorItem = &g_Level.Items[itemNumber];
-		trapDoorItem->ItemFlags[2] = 0;
+		auto& trapDoorItem = g_Level.Items[itemNumber];
+		auto& bridge = GetBridgeObject(trapDoorItem);
+
+		trapDoorItem.ItemFlags[2] = 0;
+		bridge.Disable(trapDoorItem);
 	}
 }

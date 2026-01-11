@@ -1,49 +1,77 @@
 #pragma once
 
-#include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Game/room.h"
+#include "Scripting/Internal/TEN/Objects/NamedBase.h"
 
-namespace sol {
-	class state;
-}
+namespace sol { class state; }
 
 class Vec3;
-class Rotation;
-class ScriptColor;
+namespace TEN::Scripting::Types { class ScriptColor; }
 
-class Static : public NamedBase<Static, MESH_INFO&>
+using namespace TEN::Scripting::Types;
+
+namespace TEN::Scripting
 {
-public:
-	using IdentifierType = std::reference_wrapper<MESH_INFO>;
-	Static(MESH_INFO& id);
-	~Static() = default;
+	class Rotation;
 
-	Static& operator=(Static const& other) = delete;
-	Static(Static const& other) = delete;
+	class Static : public NamedBase<Static, StaticMesh&>
+	{
+	public:
+		static void Register(sol::table& parent);
 
-	static void Register(sol::table & parent);
+	private:
+		// Fields
 
-	void Enable();
-	void Disable();
-	bool GetActive();
-	bool GetSolid();
-	void SetSolid(bool yes);
-	Rotation GetRot() const;
-	void SetRot(Rotation const& rot);
-	Vec3 GetPos() const;
-	void SetPos(Vec3 const& pos);
-	float GetScale() const;
-	void SetScale(float const& scale);
-	int GetHP() const;
-	void SetHP(short hitPoints);
-	std::string GetName() const;
-	void SetName(std::string const& name);
-	int GetSlot() const;
-	void SetSlot(int slot);
-	ScriptColor GetColor() const;
-	void SetColor(ScriptColor const& col);
-	void Shatter();
+		StaticMesh& _static;
 
-private:
-	MESH_INFO & m_mesh;
-};
+	public:
+		// Aliases
+
+		using IdentifierType = std::reference_wrapper<StaticMesh>;
+
+		// Constructors, destructors
+
+		Static(StaticMesh& staticObj);
+		Static(const Static& staticObj) = delete;
+		~Static() = default;
+
+		// Getters
+
+		std::string	GetName() const;
+		int			GetSlot() const;
+		Vec3		GetPosition() const;
+		Rotation	GetRotation() const;
+		Vec3		GetScale() const;
+		ScriptColor	GetColor() const;
+		int			GetHP() const;
+		bool		GetActiveStatus() const;
+		bool		GetCollidable() const;
+		bool		GetSolidStatus() const;
+
+		// Setters
+
+		void SetName(const std::string& name);
+		void SetSlot(int slotID);
+		void SetPosition(const Vec3& pos);
+		void SetRotation(const Rotation& rot);
+		void SetScale(const Vec3& scale);
+		void SetColor(const ScriptColor& color);
+		void SetHP(int hitPoints);
+		void SetCollidable(bool status);
+		void SetSolidStatus(bool status);
+
+		// Utilities
+
+		void Enable();
+		void Disable();
+		void Shatter();
+
+		// Operators
+
+		Static& operator =(const Static& staticObj) = delete;
+
+		// COMPATIBILITY
+
+		void SetScale(float scale);
+	};
+}

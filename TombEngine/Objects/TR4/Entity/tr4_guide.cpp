@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_guide.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
@@ -13,6 +13,8 @@
 #include "Game/Setup.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::TR4
 {
@@ -124,17 +126,17 @@ namespace TEN::Entities::TR4
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
 			short random = GetRandomControl();
-			TriggerDynamicLight(
+			SpawnDynamicLight(
 				pos.x, pos.y, pos.z,
 				15,
 				255 - ((random >> 4) & 0x1F),
 				192 - ((random >> 6) & 0x1F),
 				random & 0x3F);
 
-			if (item->Animation.AnimNumber == (object->animIndex + GUIDE_ANIM_LIGHTING_TORCH))
+			if (item->Animation.AnimNumber == GUIDE_ANIM_LIGHTING_TORCH)
 			{
-				if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 32 &&
-					item->Animation.FrameNumber < GetAnimData(item).frameBase + 42)
+				if (item->Animation.FrameNumber > 32 &&
+					item->Animation.FrameNumber < 42)
 				{
 					TriggerFireFlame(
 						(random & 0x3F) + pos.x - 32,
@@ -189,8 +191,10 @@ namespace TEN::Entities::TR4
 		{
 			int minDistance = INT_MAX;
 
-			for (auto& currentCreature : ActiveCreatures)
+			for (auto creatureIndex : ActiveCreatures)
 			{
+				auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 				if (currentCreature->ItemNumber == NO_VALUE ||
 					currentCreature->ItemNumber == itemNumber)
 				{
@@ -480,7 +484,7 @@ namespace TEN::Entities::TR4
 
 		case GUIDE_STATE_IGNITE_TORCH:
 			pos1 = GetJointPosition(item, GuideBite2);
-			frameNumber = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+			frameNumber = item->Animation.FrameNumber;
 			random = GetRandomControl();
 
 			if (frameNumber == 32)
@@ -501,7 +505,7 @@ namespace TEN::Entities::TR4
 								((random >> 10) & 0x3F) + pos1.z - 64,
 								FlameType::Trail);
 
-							TriggerDynamicLight(
+							SpawnDynamicLight(
 								pos1.x - 32,
 								pos1.y - 64,
 								pos1.z - 32,
@@ -516,7 +520,7 @@ namespace TEN::Entities::TR4
 					else
 					{
 						TriggerMetalSparks(pos1.x, pos1.y, pos1.z, -1, -1, 0, Vector3(1.0f, 1.0f, 0.3f), 1);
-						TriggerDynamicLight(
+						SpawnDynamicLight(
 							pos1.x, pos1.y, pos1.z,
 							10,
 							random & 0x1F,
@@ -526,7 +530,7 @@ namespace TEN::Entities::TR4
 				}
 				else
 				{
-					TriggerDynamicLight(
+					SpawnDynamicLight(
 						pos1.x - 32,
 						pos1.y - 64,
 						pos1.z - 32,
@@ -544,7 +548,7 @@ namespace TEN::Entities::TR4
 			}
 			else
 			{
-				TriggerDynamicLight(
+				SpawnDynamicLight(
 					pos1.x, pos1.y, pos1.z,
 					10,
 					random & 0x1F,
@@ -588,8 +592,8 @@ namespace TEN::Entities::TR4
 			{
 				if (enemy)
 				{
-					if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 15 &&
-						item->Animation.FrameNumber < GetAnimData(item).frameBase + 26)
+					if (item->Animation.FrameNumber > 15 &&
+						item->Animation.FrameNumber < 26)
 					{
 						float distance = Vector3i::Distance(item->Pose.Position, enemy->Pose.Position);
 						if (distance <= CLICK(2))
@@ -630,8 +634,8 @@ namespace TEN::Entities::TR4
 				item->Animation.TargetState = GUIDE_STATE_ACTIVATE_TRAP_CROUCHING;
 			else
 			{
-				if (item->Animation.AnimNumber != (object->animIndex + GUIDE_ANIM_IDLE_CROUCH) &&
-					item->Animation.FrameNumber == (GetAnimData(item).frameEnd - 20))
+				if (item->Animation.AnimNumber != GUIDE_ANIM_IDLE_CROUCH &&
+					item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 20))
 				{
 					TestTriggers(item, true);
 
@@ -647,12 +651,12 @@ namespace TEN::Entities::TR4
 			break;
 
 		case GUIDE_STATE_PICK_UP_TORCH:
-			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+			if (item->Animation.FrameNumber == 0)
 			{
 				someFlag = true;
 				item->Pose = enemy->Pose;
 			}
-			else if (item->Animation.FrameNumber == (GetAnimData(item).frameBase + 35))
+			else if (item->Animation.FrameNumber == 35)
 			{
 				item->SetMeshSwapFlags(GuideRightHandSwapJoints, true);
 
@@ -692,11 +696,13 @@ namespace TEN::Entities::TR4
 			break;
 
 		case GUIDE_STATE_LIGHT_TORCHES:
-			if (item->Animation.FrameNumber == GetAnimData(item).frameBase)
+			if (item->Animation.FrameNumber == 0)
+			{
 				item->Pose.Position = enemy->Pose.Position;
+			}
 			else
 			{
-				if (item->Animation.FrameNumber == (GetAnimData(item).frameBase + 42))
+				if (item->Animation.FrameNumber == 42)
 				{
 					TestTriggers(item, true);
 
@@ -707,7 +713,7 @@ namespace TEN::Entities::TR4
 					creature->Enemy = nullptr;
 					break;
 				}
-				else if (item->Animation.FrameNumber < (GetAnimData(item).frameBase + 42))
+				else if (item->Animation.FrameNumber < 42)
 				{
 					if ((enemy->Pose.Orientation.y - item->Pose.Orientation.y) <= ANGLE(2.0f))
 					{
@@ -715,16 +721,18 @@ namespace TEN::Entities::TR4
 							item->Pose.Orientation.y -= ANGLE(2.0f);
 					}
 					else
+					{
 						item->Pose.Orientation.y += ANGLE(2.0f);
+					}
 				}
 			}
 
 			break;
 
 		case GUIDE_STATE_READ_INSCRIPTION:
-			if (item->Animation.FrameNumber >= GetAnimData(item).frameBase + 20)
+			if (item->Animation.FrameNumber >= 20)
 			{
-				if (item->Animation.FrameNumber == (GetAnimData(item).frameBase + 20))
+				if (item->Animation.FrameNumber == 20)
 				{
 					item->Animation.TargetState = GUIDE_STATE_IDLE;
 
@@ -737,14 +745,14 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (item->Animation.FrameNumber == (GetAnimData(item).frameBase + 70) &&
+				if (item->Animation.FrameNumber == 70 &&
 					flagScaryInscription)
 				{
 					item->Animation.RequiredState = GUIDE_STATE_RUN_FORWARD;
 					item->SetMeshSwapFlags(GuideHeadSwapJoints);
 					SoundEffect(SFX_TR4_GUIDE_SCARE, &item->Pose);
 				}
-				if (item->Animation.FrameNumber == (GetAnimData(item).frameBase + 185) &&
+				if (item->Animation.FrameNumber == 185 &&
 					flagScaryInscription)
 				{
 					item->ItemFlags[2] &= ~(1 << 4); // Turn off 4th bit for flagScaryInscription.

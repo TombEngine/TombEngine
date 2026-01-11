@@ -3,14 +3,16 @@
 
 #include <OISKeyboard.h>
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
+#include "Game/effects/DisplaySprite.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/Optics.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
 #include "Game/pickup/pickup.h"
@@ -21,16 +23,19 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
-#include "Specific/Input/InputAction.h"
 #include "Specific/clock.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Utils;
+using namespace TEN::Video;
 
 namespace TEN::Gui
 {
@@ -62,7 +67,6 @@ namespace TEN::Gui
 		STRING_VIEW,
 		STRING_CHOOSE_WEAPON,
 		""
-	//	STRING_READ_DIARY
 	};
 
 	std::vector<std::string> GeneralActionStrings =
@@ -237,7 +241,7 @@ namespace TEN::Gui
 	{
 		if (mode != InvMode)
 		{
-			TimeInMenu = 0.0f;
+			TimeInMenu = 0;
 			InvMode = mode;
 		}
 	}
@@ -481,6 +485,7 @@ namespace TEN::Gui
 			Windowed,
 			ShadowType,
 			Caustics,
+			Decals,
 			Antialiasing,
 			AmbientOcclusion,
 			HighFramerate,
@@ -531,6 +536,11 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
 				break;
 
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
+				break;
+
 			case DisplaySettingsOption::Antialiasing:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
@@ -542,8 +552,14 @@ namespace TEN::Gui
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
 				break;
 
 			case DisplaySettingsOption::HighFramerate:
@@ -571,6 +587,7 @@ namespace TEN::Gui
 
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+
 				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
 					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
 				else
@@ -581,6 +598,11 @@ namespace TEN::Gui
 			case DisplaySettingsOption::Caustics:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableCaustics = !CurrentSettings.Configuration.EnableCaustics;
+				break;
+
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
 				break;
 
 			case DisplaySettingsOption::Antialiasing:
@@ -594,8 +616,14 @@ namespace TEN::Gui
 				break;
 
 			case DisplaySettingsOption::AmbientOcclusion:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
 				break;
 
 			case DisplaySettingsOption::HighFramerate:
@@ -615,8 +643,16 @@ namespace TEN::Gui
 			{
 				// Save the configuration.
 				auto screenResolution = g_Configuration.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
+
+				bool screenResolutionChanged = CurrentSettings.Configuration.ScreenWidth != screenResolution.x ||
+											   CurrentSettings.Configuration.ScreenHeight != screenResolution.y;
+
 				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
 				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;
+
+				// Determine whether we should update AA shaders.
+				bool shouldRecompileAAShaders = CurrentSettings.Configuration.AntialiasingMode != AntialiasingMode::Low &&
+												(screenResolutionChanged || g_Configuration.AntialiasingMode != CurrentSettings.Configuration.AntialiasingMode);
 
 				g_Configuration = CurrentSettings.Configuration;
 				SaveConfiguration();
@@ -624,6 +660,9 @@ namespace TEN::Gui
 				// Reset screen and go back.
 				g_Renderer.ChangeScreenResolution(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight,
 					CurrentSettings.Configuration.EnableWindowedMode);
+
+				g_Renderer.ReloadShaders(shouldRecompileAAShaders);
+				g_Renderer.SetGraphicsSettingsChanged();
 
 				MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 				SelectedOption = fromPauseMenu ? 1 : 0;
@@ -678,81 +717,116 @@ namespace TEN::Gui
 			CurrentSettings.IgnoreInput = true;
 		}
 
-		if (CurrentSettings.NewKeyWaitTimer > 0.0f)
+		if (CurrentSettings.NewKeyWaitTimer > 0)
 		{
 			ClearAllActions();
 
-			while (CurrentSettings.NewKeyWaitTimer > 0.0f)
+			g_Synchronizer.Init();
+
+			bool legacy30FpsDoneDraw = false;
+			bool decreaseCounter = false;
+			
+			while (CurrentSettings.NewKeyWaitTimer > 0)
 			{
-				CurrentSettings.NewKeyWaitTimer -= 1.0f;
-				if (CurrentSettings.NewKeyWaitTimer <= 0.0f)
-					CurrentSettings.NewKeyWaitTimer = 0.0f;
+				g_Synchronizer.Sync();
 
-				UpdateInputActions(item);
+				while (g_Synchronizer.Synced())
+				{
+					CurrentSettings.NewKeyWaitTimer--;
+					if (CurrentSettings.NewKeyWaitTimer <= 0)
+						CurrentSettings.NewKeyWaitTimer = 0;
 
-				if (CurrentSettings.IgnoreInput)
-				{
-					if (NoAction())
-						CurrentSettings.IgnoreInput = false;
-				}
-				else
-				{
-					int selectedKey = 0;
-					for (selectedKey = 0; selectedKey < MAX_INPUT_SLOTS; selectedKey++)
+					if (!fromPauseMenu)
 					{
-						if (KeyMap[selectedKey])
-							break;
+						ControlPhase(true);
+					}
+					else
+					{
+						g_Renderer.PrepareScene(); // Just for updating blink time.
+						UpdateInputActions();
 					}
 
-					if (selectedKey == MAX_INPUT_SLOTS)
-						selectedKey = 0;
-
-					if (selectedKey && !g_KeyNames[selectedKey].empty())
+					if (CurrentSettings.IgnoreInput)
 					{
-						unsigned int baseIndex = 0;
-						switch (MenuToDisplay)
+						if (NoAction())
+							CurrentSettings.IgnoreInput = false;
+					}
+					else
+					{
+						int selectedKeyID = 0;
+						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
 						{
-						case Menu::VehicleActions:
-							baseIndex = (unsigned int)GeneralActionStrings.size();
-							break;
-
-						case Menu::QuickActions:
-							baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
-							break;
-
-						case Menu::MenuActions:
-							baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
-							break;
-
-						default:
-							break;
+							if (KeyMap[selectedKeyID])
+								break;
 						}
 
-						Bindings[1][baseIndex + SelectedOption] = selectedKey;
-						DefaultConflict();
+						if (selectedKeyID == KEY_COUNT)
+							selectedKeyID = 0;
 
-						CurrentSettings.NewKeyWaitTimer = 0.0f;
-						CurrentSettings.IgnoreInput = true;
-						return;
+						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						{
+							unsigned int baseIndex = 0;
+							switch (MenuToDisplay)
+							{
+							case Menu::VehicleActions:
+								baseIndex = (unsigned int)GeneralActionStrings.size();
+								break;
+
+							case Menu::QuickActions:
+								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
+								break;
+
+							case Menu::MenuActions:
+								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
+								break;
+
+							default:
+								break;
+							}
+
+							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
+							DefaultConflict();
+
+							CurrentSettings.NewKeyWaitTimer = 0;
+							CurrentSettings.IgnoreInput = true;
+							return;
+						}
 					}
+
+					g_Synchronizer.Step();
+
+					legacy30FpsDoneDraw = false;
 				}
 
-				if (fromPauseMenu)
+				if (!g_Configuration.EnableHighFramerate)
 				{
-					g_Renderer.RenderInventory();
-					if (!g_Configuration.EnableHighFramerate)
+					if (!legacy30FpsDoneDraw)
 					{
-						g_Renderer.Synchronize();
+						if (fromPauseMenu)
+						{
+							g_Renderer.RenderInventory();
+						}
+						else
+						{
+							g_Renderer.RenderTitle(0);
+						}
+						g_Renderer.Lock();
+						legacy30FpsDoneDraw = true;
 					}
 				}
 				else
 				{
-					g_Renderer.RenderTitle(0);
-					if (!g_Configuration.EnableHighFramerate)
+					//g_Renderer.PrepareScene();
+
+					if (fromPauseMenu)
 					{
-						g_Renderer.Synchronize();
+						g_Renderer.RenderInventory();
 					}
-					ControlPhase();
+					else
+					{
+						g_Renderer.RenderTitle(0);
+					}
+					g_Renderer.Lock();
 				}
 			}
 		}
@@ -803,6 +877,7 @@ namespace TEN::Gui
 				if (SelectedOption == (OptionCount - 2))
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
 					ApplyDefaultBindings();
 					return;
 				}
@@ -811,9 +886,11 @@ namespace TEN::Gui
 				if (SelectedOption == (OptionCount - 1))
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-					CurrentSettings.Configuration.Bindings = Bindings[1];
-					g_Configuration.Bindings = Bindings[1];
+
+					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 					SaveConfiguration();
+
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
 					return;
@@ -823,7 +900,9 @@ namespace TEN::Gui
 				if (SelectedOption == OptionCount)
 				{
 					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-					Bindings[1] = CurrentSettings.Configuration.Bindings;
+
+					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+
 					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 					SelectedOption = 2;
 					return;
@@ -833,6 +912,8 @@ namespace TEN::Gui
 			if (GuiIsDeselected())
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
+				g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
@@ -888,6 +969,7 @@ namespace TEN::Gui
 			AutoMonkeySwingJump,
 			AutoTargeting,
 			TargetHighlighter,
+			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
 
@@ -942,6 +1024,11 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
 				break;
 
+			case OtherSettingsOption::InteractionHighlighter:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				break;
+
 			case OtherSettingsOption::ToggleRumble:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableRumble = !CurrentSettings.Configuration.EnableRumble;
@@ -954,9 +1041,10 @@ namespace TEN::Gui
 			}
 		}
 
+		bool isVolumeAdjusted = false;
+
 		if (IsPulsed(In::Left, 0.05f, 0.4f))
 		{
-			bool isVolumeAdjusted = false;
 			switch (SelectedOption)
 			{
 			case OtherSettingsOption::MusicVolume:
@@ -967,7 +1055,6 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.MusicVolume = 0;
 
 					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
-					isVolumeAdjusted = true;
 				}
 
 				break;
@@ -980,7 +1067,7 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.SfxVolume = 0;
 
 					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = true;
+					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
 				break;
@@ -997,17 +1084,10 @@ namespace TEN::Gui
 
 				break;
 			}
-
-			if (isVolumeAdjusted)
-			{
-				if (IsClicked(In::Left))
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			}
 		}
 
 		if (IsPulsed(In::Right, 0.05f, 0.4f))
 		{
-			bool isVolumeAdjusted = false;
 			switch (SelectedOption)
 			{
 			case OtherSettingsOption::MusicVolume:
@@ -1018,7 +1098,6 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
 					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
-					isVolumeAdjusted = true;
 				}
 
 				break;
@@ -1031,7 +1110,7 @@ namespace TEN::Gui
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
 					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = true;
+					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
 				break;
@@ -1048,13 +1127,10 @@ namespace TEN::Gui
 
 				break;
 			}
-
-			if (isVolumeAdjusted)
-			{
-				if (IsClicked(In::Right))
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			}
 		}
+
+		if (isVolumeAdjusted)
+			SoundEffect(SFX_TR4_MENU_ROTATE, nullptr, SoundEnvironment::Always);
 
 		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
@@ -1103,7 +1179,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		UpdateInputActions(item);
+		UpdateInputActions();
 
 		switch (MenuToDisplay)
 		{
@@ -1494,131 +1570,161 @@ namespace TEN::Gui
 		Ammo.CurrentGrenadeGunAmmoType = 0;
 		Ammo.CurrentCrossBowAmmoType = 0;
 
-		if (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() != LaraType::Young)
+		if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
 		{
-			if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
-				InsertObjectIntoList(INV_OBJECT_PISTOLS);
-			else if (Ammo.AmountPistolsAmmo)
-				InsertObjectIntoList(INV_OBJECT_PISTOLS_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Uzi].Present)
-				InsertObjectIntoList(INV_OBJECT_UZIS);
-			else if (Ammo.AmountUziAmmo)
-				InsertObjectIntoList(INV_OBJECT_UZI_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_REVOLVER_LASER);
-				else
-					InsertObjectIntoList(INV_OBJECT_REVOLVER);
-			}
-			else if (Ammo.AmountRevolverAmmo)
-				InsertObjectIntoList(INV_OBJECT_REVOLVER_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Shotgun].Present)
-			{
-				InsertObjectIntoList(INV_OBJECT_SHOTGUN);
-
-				if (player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentShotGunAmmoType = 1;
-			}
-			else
-			{
-				if (Ammo.AmountShotGunAmmo1)
-					InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_1);
-
-				if (Ammo.AmountShotGunAmmo2)
-					InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_2);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::HK].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_HK_LASERSIGHT);
-				else
-					InsertObjectIntoList(INV_OBJECT_HK);
-
-				if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
-					Ammo.CurrentHKAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
-					Ammo.CurrentHKAmmoType = 2;
-			}
-			else if (Ammo.AmountHKAmmo1)
-				InsertObjectIntoList(INV_OBJECT_HK_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_LASER);
-				else
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW);
-
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentCrossBowAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo3)
-					Ammo.CurrentCrossBowAmmoType = 2;
-			}
-			else
-			{
-				if (Ammo.AmountCrossBowAmmo1)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_1);
-
-				if (Ammo.AmountCrossBowAmmo2)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_2);
-
-				if (Ammo.AmountCrossBowAmmo3)
-					InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_3);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
-			{
-				InsertObjectIntoList(INV_OBJECT_GRENADE_LAUNCHER);
-
-				if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo2)
-					Ammo.CurrentGrenadeGunAmmoType = 1;
-
-				if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo3)
-					Ammo.CurrentGrenadeGunAmmoType = 2;
-			}
-			else
-			{
-				if (Ammo.AmountGrenadeAmmo1)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_1);
-
-				if (Ammo.AmountGrenadeAmmo2)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_2);
-
-				if (Ammo.AmountGrenadeAmmo3)
-					InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_3);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
-				InsertObjectIntoList(INV_OBJECT_ROCKET_LAUNCHER);
-			else if (Ammo.AmountRocketsAmmo)
-				InsertObjectIntoList(INV_OBJECT_ROCKET_AMMO);
-
-			if (player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
-				InsertObjectIntoList(INV_OBJECT_HARPOON_GUN);
-			else if (Ammo.AmountHarpoonAmmo)
-				InsertObjectIntoList(INV_OBJECT_HARPOON_AMMO);
-
-			if (player.Inventory.HasLasersight)
-				InsertObjectIntoList(INV_OBJECT_LASERSIGHT);
-
-			if (player.Inventory.HasSilencer)
-				InsertObjectIntoList(INV_OBJECT_SILENCER);
-
-			if (player.Inventory.HasBinoculars)
-				InsertObjectIntoList(INV_OBJECT_BINOCULARS);
-
-			if (player.Inventory.TotalFlares)
-				InsertObjectIntoList(INV_OBJECT_FLARES);
+			InsertObjectIntoList(INV_OBJECT_PISTOLS);
+		}
+		else if (Ammo.AmountPistolsAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_PISTOLS_AMMO);
 		}
 
-		InsertObjectIntoList(INV_OBJECT_TIMEX);//every level has the timex? what's a good way to check?!
+		if (player.Weapons[(int)LaraWeaponType::Uzi].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_UZIS);
+		}
+		else if (Ammo.AmountUziAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_UZI_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_REVOLVER_LASER);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_REVOLVER);
+			}
+		}
+		else if (Ammo.AmountRevolverAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_REVOLVER_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Shotgun].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_SHOTGUN);
+
+			if (player.Weapons[(int)LaraWeaponType::Shotgun].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentShotGunAmmoType = 1;
+		}
+		else
+		{
+			if (Ammo.AmountShotGunAmmo1)
+				InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_1);
+
+			if (Ammo.AmountShotGunAmmo2)
+				InsertObjectIntoList(INV_OBJECT_SHOTGUN_AMMO_2);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::HK].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_HK_LASERSIGHT);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_HK);
+			}
+
+			if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
+				Ammo.CurrentHKAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
+				Ammo.CurrentHKAmmoType = 2;
+		}
+		else if (Ammo.AmountHKAmmo1)
+		{
+			InsertObjectIntoList(INV_OBJECT_HK_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
+			{
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_LASER);
+			}
+			else
+			{
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW);
+			}
+
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentCrossBowAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo == WeaponAmmoType::Ammo3)
+				Ammo.CurrentCrossBowAmmoType = 2;
+		}
+		else
+		{
+			if (Ammo.AmountCrossBowAmmo1)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_1);
+
+			if (Ammo.AmountCrossBowAmmo2)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_2);
+
+			if (Ammo.AmountCrossBowAmmo3)
+				InsertObjectIntoList(INV_OBJECT_CROSSBOW_AMMO_3);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_GRENADE_LAUNCHER);
+
+			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo2)
+				Ammo.CurrentGrenadeGunAmmoType = 1;
+
+			if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo3)
+				Ammo.CurrentGrenadeGunAmmoType = 2;
+		}
+		else
+		{
+			if (Ammo.AmountGrenadeAmmo1)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_1);
+
+			if (Ammo.AmountGrenadeAmmo2)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_2);
+
+			if (Ammo.AmountGrenadeAmmo3)
+				InsertObjectIntoList(INV_OBJECT_GRENADE_AMMO_3);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::RocketLauncher].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_ROCKET_LAUNCHER);
+		}
+		else if (Ammo.AmountRocketsAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_ROCKET_AMMO);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::HarpoonGun].Present)
+		{
+			InsertObjectIntoList(INV_OBJECT_HARPOON_GUN);
+		}
+		else if (Ammo.AmountHarpoonAmmo)
+		{
+			InsertObjectIntoList(INV_OBJECT_HARPOON_AMMO);
+		}
+
+		if (player.Inventory.HasLasersight)
+			InsertObjectIntoList(INV_OBJECT_LASERSIGHT);
+
+		if (player.Inventory.HasSilencer)
+			InsertObjectIntoList(INV_OBJECT_SILENCER);
+
+		if (player.Inventory.HasBinoculars)
+			InsertObjectIntoList(INV_OBJECT_BINOCULARS);
+
+		if (player.Inventory.TotalFlares)
+			InsertObjectIntoList(INV_OBJECT_FLARES);
+
+		if (player.Inventory.HasStopwatch)
+			InsertObjectIntoList(INV_OBJECT_STOPWATCH);
 
 		if (player.Inventory.TotalSmallMedipacks)
 			InsertObjectIntoList(INV_OBJECT_SMALL_MEDIPACK);
@@ -1695,13 +1801,15 @@ namespace TEN::Gui
 				InsertObjectIntoList(INV_OBJECT_EXAMINE1_COMBO1 + i);
 		}
 
-		if (player.Inventory.Diary.Present)
+		if (player.Inventory.HasDiary)
 			InsertObjectIntoList(INV_OBJECT_DIARY);
 
 		if (g_GameFlow->IsLoadSaveEnabled())
 		{
-			InsertObjectIntoList(INV_OBJECT_LOAD_FLOPPY);
-			InsertObjectIntoList(INV_OBJECT_SAVE_FLOPPY);
+			if (player.Inventory.HasLoad)
+				InsertObjectIntoList(INV_OBJECT_LOAD_FLOPPY);
+			if (player.Inventory.HasSave)
+				InsertObjectIntoList(INV_OBJECT_SAVE_FLOPPY);
 		}
 
 		Rings[(int)RingTypes::Inventory].ObjectListMovement = 0;
@@ -1723,45 +1831,42 @@ namespace TEN::Gui
 		for (int i = 0; i < INVENTORY_TABLE_SIZE; i++)
 			Rings[(int)RingTypes::Ammo].CurrentObjectList[i].InventoryItem = NO_VALUE;
 
-		if (!(g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young))
+		if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
 		{
-			if (player.Weapons[(int)LaraWeaponType::Revolver].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
-					InsertObjectIntoList_v2(INV_OBJECT_REVOLVER_LASER);
-				else
-					InsertObjectIntoList_v2(INV_OBJECT_REVOLVER);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::HK].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
-					InsertObjectIntoList_v2(INV_OBJECT_HK_LASERSIGHT);
-				else
-					InsertObjectIntoList_v2(INV_OBJECT_HK);
-			}
-
-			if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
-			{
-				if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
-					InsertObjectIntoList_v2(INV_OBJECT_CROSSBOW_LASER);
-				else
-					InsertObjectIntoList_v2(INV_OBJECT_CROSSBOW);
-			}
-
-			if (player.Inventory.HasLasersight)
-				InsertObjectIntoList_v2(INV_OBJECT_LASERSIGHT);
-
-			if (player.Inventory.HasSilencer)
-				InsertObjectIntoList_v2(INV_OBJECT_SILENCER);
+			if (player.Weapons[(int)LaraWeaponType::Revolver].HasLasersight)
+				InsertObjectIntoList_v2(INV_OBJECT_REVOLVER_LASER);
+			else
+				InsertObjectIntoList_v2(INV_OBJECT_REVOLVER);
 		}
+
+		if (player.Weapons[(int)LaraWeaponType::HK].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::HK].HasLasersight)
+				InsertObjectIntoList_v2(INV_OBJECT_HK_LASERSIGHT);
+			else
+				InsertObjectIntoList_v2(INV_OBJECT_HK);
+		}
+
+		if (player.Weapons[(int)LaraWeaponType::Crossbow].Present)
+		{
+			if (player.Weapons[(int)LaraWeaponType::Crossbow].HasLasersight)
+				InsertObjectIntoList_v2(INV_OBJECT_CROSSBOW_LASER);
+			else
+				InsertObjectIntoList_v2(INV_OBJECT_CROSSBOW);
+		}
+
+		if (player.Inventory.HasLasersight)
+			InsertObjectIntoList_v2(INV_OBJECT_LASERSIGHT);
+
+		if (player.Inventory.HasSilencer)
+			InsertObjectIntoList_v2(INV_OBJECT_SILENCER);
 
 		if (player.Inventory.BeetleComponents)
 		{
-			if (player.Inventory.BeetleComponents & 2)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_1)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART1);
 
-			if (player.Inventory.BeetleComponents & 4)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_2)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART2);
 		}
 
@@ -1900,7 +2005,7 @@ namespace TEN::Gui
 		CombineRingFadeVal = 0;
 		CombineRingFadeDir = 0;
 		CombineTypeFlag = 0;
-		SeperateTypeFlag = 0;
+		SeparateTypeFlag = 0;
 		CombineObject1 = 0;
 		CombineObject2 = 0;
 		NormalRingFadeVal = 128;
@@ -1940,7 +2045,7 @@ namespace TEN::Gui
 
 	void GuiController::FadeAmmoSelector()
 	{
-		if (Rings[(int)RingTypes::Inventory].RingActive)
+		if (!Rings[(int)RingTypes::Inventory].RingActive)
 		{
 			AmmoSelectorFadeVal = 0;
 		}
@@ -1970,28 +2075,8 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
-		const auto CROUCH_STATES = std::vector<int>
-		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT,
-			LS_CROUCH_TURN_180
-		};
-		const auto CRAWL_STATES = std::vector<int>
-		{
-			LS_CRAWL_IDLE,
-			LS_CRAWL_FORWARD,
-			LS_CRAWL_BACK,
-			LS_CRAWL_TURN_LEFT,
-			LS_CRAWL_TURN_RIGHT,
-			LS_CRAWL_TURN_180,
-			LS_CRAWL_TO_HANG
-		};
-
 		auto& player = GetLaraInfo(item);
 
-		short prevOpticRange = player.Control.Look.OpticRange;
-		player.Control.Look.OpticRange = 0;
 		player.Inventory.OldBusy = false;
 		item.MeshBits = ALL_JOINT_BITS;
 
@@ -1999,7 +2084,7 @@ namespace TEN::Gui
 
 		// Use item event handling.
 		g_GameScript->OnUseItem((GAME_OBJECT_ID)InventoryItemChosen);
-		HandleAllGlobalEvents(EventType::UseItem, (Activator)item.Index);
+		HandleAllGlobalEvents(EventType::UseItem, (Activator)short(item.Index));
 
 		// Quickly discard further processing if chosen item was reset in script.
 		if (InventoryItemChosen == NO_VALUE)
@@ -2119,7 +2204,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[(int)In::Flare].Update(1.0f);
+					ActionMap[In::Flare].Update(1.0f);
 
 					HandleWeapon(item);
 					ClearAllActions();
@@ -2130,32 +2215,7 @@ namespace TEN::Gui
 			return;
 
 		case ID_BINOCULARS_ITEM:
-			if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
-				(player.Control.IsLow && !IsHeld(In::Crouch))) &&
-				!UseSpotCam && !TrackCameraInit)
-			{
-				player.Control.Look.OpticRange = ANGLE(0.7f);
-				player.Control.Look.IsUsingBinoculars = true;
-				player.Inventory.OldBusy = true;
-
-				// TODO: To prevent Lara from crouching or performing other actions, the inherent state of
-				// LA_BINOCULARS_IDLE must be changed to LS_IDLE. @Sezz 2022.05.19
-				//SetAnimation(item, LA_BINOCULARS_IDLE);
-
-				if (player.Control.HandStatus != HandStatus::Free)
-					player.Control.HandStatus = HandStatus::WeaponUndraw;
-			}
-
-			if (prevOpticRange != ANGLE(0.0f))
-			{
-				player.Control.Look.OpticRange = prevOpticRange;
-			}
-			else
-			{
-				BinocularOldCamera = Camera.oldType;
-			}
-
-			InventoryItemChosen = NO_VALUE;
+			UseBinoculars(item);
 			return;
 
 		case ID_SMALLMEDI_ITEM:
@@ -2177,6 +2237,7 @@ namespace TEN::Gui
 					item.HitPoints = LARA_HEALTH_MAX;
 
 				SoundEffect(SFX_TR4_MENU_MEDI, nullptr, SoundEnvironment::Always);
+				SaveGame::Statistics.Level.HealthUsed++;
 				SaveGame::Statistics.Game.HealthUsed++;
 			}
 			else
@@ -2203,6 +2264,7 @@ namespace TEN::Gui
 				item.HitPoints = LARA_HEALTH_MAX;
 
 				SoundEffect(SFX_TR4_MENU_MEDI, nullptr, SoundEnvironment::Always);
+				SaveGame::Statistics.Level.HealthUsed++;
 				SaveGame::Statistics.Game.HealthUsed++;
 			}
 			else
@@ -2223,11 +2285,12 @@ namespace TEN::Gui
 		auto& player = GetLaraInfo(*item);
 		auto& invRing = Rings[(int)RingTypes::Inventory];
 		auto& ammoRing = Rings[(int)RingTypes::Ammo];
+		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
 
 		if (ammoRing.RingActive)
 		{
 			auto optionString = g_GameFlow->GetString(OptionStrings[5].c_str());
-			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 
 			if (invRing.ObjectListMovement)
 				return;
@@ -2377,17 +2440,10 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_SEPERABLE)
+				if (options & OPT_SEPARABLE)
 				{
-					CurrentOptions[n].Type = MenuType::Seperate;
+					CurrentOptions[n].Type = MenuType::Separate;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[3].c_str());
-					n++;
-				}
-
-				if (options & OPT_DIARY)
-				{
-					CurrentOptions[n].Type = MenuType::Diary;
-					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[11].c_str());
 					n++;
 				}
 			}
@@ -2430,12 +2486,12 @@ namespace TEN::Gui
 
 					if (i == CurrentSelectedOption)
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 					else
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 				}
@@ -2510,8 +2566,8 @@ namespace TEN::Gui
 						CombineRingFadeDir = 1;
 						break;
 
-					case MenuType::Seperate:
-						SeperateTypeFlag = 1;
+					case MenuType::Separate:
+						SeparateTypeFlag = 1;
 						NormalRingFadeDir = 2;
 						break;
 
@@ -2519,11 +2575,6 @@ namespace TEN::Gui
 					case MenuType::Use:
 						MenuActive = false;
 						ItemUsed = true;
-						break;
-
-					case MenuType::Diary:
-						SetInventoryMode(InventoryMode::Diary);
-						player.Inventory.Diary.CurrentPage = 1;
 						break;
 					}
 				}
@@ -2609,6 +2660,12 @@ namespace TEN::Gui
 		if (!AmmoSelectorFlag)
 			return;
 
+		float opacity = AmmoSelectorFadeVal / 128.0f;
+
+		// Don't draw fading UI elements if opacity is lower than minimal threshold.
+		if (opacity <= 0.1f)
+			return;
+
 		int xPos = (2 * PHD_CENTER_X - OBJLIST_SPACING) / 2;
 		if (NumAmmoSlots == 2)
 			xPos -= OBJLIST_SPACING / 2;
@@ -2637,14 +2694,14 @@ namespace TEN::Gui
 
 				int x = PHD_CENTER_X - 300 + xPos;
 				int y = 480;
-				short objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
-				float scaler = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
+				int objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
+				float scale = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
 
 				if (n == *CurrentAmmoType)
 				{
 					char invTextBuffer[256];
 
-					if (AmmoObjectList[n].Amount == -1)
+					if (AmmoObjectList[n].Amount == NO_VALUE)
 					{
 						sprintf(&invTextBuffer[0], g_GameFlow->GetString(STRING_UNLIMITED), g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName));
 					}
@@ -2653,18 +2710,14 @@ namespace TEN::Gui
 						sprintf(&invTextBuffer[0], "%d x %s", AmmoObjectList[n].Amount, g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName));
 					}
 
-					// CHECK: AmmoSelectorFadeVal is never true and therefore the string is never printed.
-					//if (AmmoSelectorFadeVal)
-						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
-
-					if (n == *CurrentAmmoType)
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
-					else
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					auto color = g_GameFlow->GetSettings()->UI.OptionTextColor;
+					color.SetA(opacity * UCHAR_MAX);
+					g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], color, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 				else
 				{
-					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 
 				xPos += OBJLIST_SPACING;
@@ -2688,7 +2741,7 @@ namespace TEN::Gui
 			if (CombineRingFadeDir == 1)
 			{
 				if (CombineRingFadeVal < 128)
-					CombineRingFadeVal += 32;
+					CombineRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal > 128)
 				{
@@ -2698,7 +2751,7 @@ namespace TEN::Gui
 			}
 			else if (CombineRingFadeDir == 2)
 			{
-				CombineRingFadeVal -= 32;
+				CombineRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal <= 0)
 				{
@@ -2724,7 +2777,7 @@ namespace TEN::Gui
 		else if (NormalRingFadeDir == 1)
 		{
 			if (NormalRingFadeVal < 128)
-				NormalRingFadeVal += 32;
+				NormalRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal > 128)
 			{
@@ -2737,7 +2790,7 @@ namespace TEN::Gui
 		}
 		else if (NormalRingFadeDir == 2)
 		{
-			NormalRingFadeVal -= 32;
+			NormalRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal <= 0)
 			{
@@ -2755,7 +2808,7 @@ namespace TEN::Gui
 					ConstructObjectList(item);
 					SetupObjectListStartPosition(CombineObject1);
 				}
-				else if (SeperateTypeFlag)
+				else if (SeparateTypeFlag)
 				{
 					SeparateObject(item, Rings[(int)RingTypes::Inventory].CurrentObjectList[Rings[(int)RingTypes::Inventory].CurrentObjectInList].InventoryItem);
 				}
@@ -2849,20 +2902,20 @@ namespace TEN::Gui
 				if (!minObj && !maxObj)
 					shade = 128;
 
-				if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
-				{
-					shade = CombineRingFadeVal;
-				}
-				else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
-				{
-					shade = NormalRingFadeVal;
-				}
-
 				auto& listObject = ring.CurrentObjectList[n];
 				const auto& invObject = InventoryObjectTable[listObject.InventoryItem];
 
 				if (!i)
 				{
+					if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
+					{
+						shade = CombineRingFadeVal;
+					}
+					else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
+					{
+						shade = NormalRingFadeVal;
+					}
+
 					int numItems = 0;
 					int count = 0;
 					char textBuffer[128];
@@ -2996,10 +3049,10 @@ namespace TEN::Gui
 						objectNumber = int(PHD_CENTER_Y + (DISPLAY_SPACE_RES.y + 1) * 0.0625 * 2.0);
 					}
 
-					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.OptionTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
-				if (!i && !ring.ObjectListMovement)
+				if (!i && !ring.ObjectListMovement) 
 				{
 					if (invObject.RotFlags & INV_ROT_X)
 						listObject.Orientation.x += ANGLE(5.0f / g_Renderer.GetFramerateMultiplier());
@@ -3050,10 +3103,11 @@ namespace TEN::Gui
 				int y2 = 480; // Combine.
 				short objectNumber = ConvertInventoryItemToObject(listObject.InventoryItem);
 				float scaler = invObject.Scale1;
+				float opacity = shade / 128.0f;
 				auto& orient = listObject.Orientation;
 				int bits = invObject.MeshBits;
 
-				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, 1.0f, bits);
+				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, opacity, bits);
 
 				if (++n >= ring.NumObjectsInList)
 					n = 0;
@@ -3127,7 +3181,8 @@ namespace TEN::Gui
 
 	bool GuiController::CallPause()
 	{
-		g_Renderer.DumpGameScene();
+		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Pause);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
@@ -3192,6 +3247,7 @@ namespace TEN::Gui
 		}
 		else
 		{
+			g_VideoPlayer.Resume();
 			ResumeAllSounds(SoundPauseMode::Pause);
 		}
 
@@ -3208,7 +3264,8 @@ namespace TEN::Gui
 
 		player.Inventory.OldBusy = player.Inventory.IsBusy;
 
-		g_Renderer.DumpGameScene();
+		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Inventory);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
@@ -3235,9 +3292,11 @@ namespace TEN::Gui
 			while (g_Synchronizer.Synced())
 			{
 				TimeInMenu++;
-				GameTimer++;
+				GlobalCounter++;
+				SaveGame::Statistics.Game.TimeTaken++;
+				SaveGame::Statistics.Level.TimeTaken++;
 
-				UpdateInputActions(item);
+				UpdateInputActions();
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 				{
@@ -3259,10 +3318,6 @@ namespace TEN::Gui
 
 				case InventoryMode::Examine:
 					DoExamineMode();
-					break;
-
-				case InventoryMode::Diary:
-					DoDiary(item);
 					break;
 
 				case InventoryMode::Load:
@@ -3332,6 +3387,7 @@ namespace TEN::Gui
 
 		AlterFOV(LastFOV);
 		g_Renderer.PrepareScene();
+		g_VideoPlayer.Resume();
 		ResumeAllSounds(SoundPauseMode::Inventory);
 
 		player.Inventory.IsBusy = player.Inventory.OldBusy;
@@ -3375,45 +3431,21 @@ namespace TEN::Gui
 
 	void GuiController::DrawCompass(ItemInfo* item)
 	{
+		if (!Lara.Inventory.HasCompass)
+			return;
+
 		constexpr auto POS_2D	  = Vector2(130.0f, 450.0f);
 		constexpr auto LERP_ALPHA = 0.1f;
 
 		auto needleOrient = EulerAngles(0, CompassNeedleAngle, 0);
 		needleOrient.Lerp(EulerAngles(0, item->Pose.Orientation.y, 0), LERP_ALPHA);
 
-		float wibble = std::sin((float(GameTimer & 0x3F) / (float)0x3F) * PI_MUL_2);
-		CompassNeedleAngle = needleOrient.y + ANGLE(wibble / 2);
+		float wibble = std::sin((float(GlobalCounter & 0x3F) / (float)0x3F) * PI_MUL_2);
+		CompassNeedleAngle = needleOrient.y + ANGLE(wibble);
 
 		// HACK: Needle is rotated in the draw function.
 		const auto& invObject = InventoryObjectTable[INV_OBJECT_COMPASS];
 		g_Renderer.DrawObjectIn2DSpace(ID_COMPASS_ITEM, POS_2D, EulerAngles::Identity, invObject.Scale1 * 1.5f);
-	}
-
-	void GuiController::DoDiary(ItemInfo* item)
-	{
-		auto& player = GetLaraInfo(*item);
-
-		SetInventoryMode(InventoryMode::Diary);
-
-		if (GuiIsPulsed(In::Right) &&
-			player.Inventory.Diary.CurrentPage < player.Inventory.Diary.NumPages)
-		{
-			player.Inventory.Diary.CurrentPage++;
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-		}
-
-		if (GuiIsPulsed(In::Left) &&
-			player.Inventory.Diary.CurrentPage > 1)
-		{
-			player.Inventory.Diary.CurrentPage--;
-			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-		}
-
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			SetInventoryMode(InventoryMode::None);
-		}
 	}
 
 	int GuiController::GetLoadSaveSelection()
@@ -3461,8 +3493,15 @@ namespace TEN::Gui
 
 	LoadResult GuiController::DoLoad()
 	{
+		constexpr auto DEATH_NO_INPUT_LOAD_TIMEOUT = FPS / 2;
+
 		bool canLoop = g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
 					   g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
+
+		// If load menu is accessed after death, delay input polling to allow player to stop spamming input.
+		if (GetLaraInfo(*LaraItem).Control.Count.Death > 0 && TimeInMenu < DEATH_NO_INPUT_LOAD_TIMEOUT)
+			return LoadResult::None;
+
 		SelectedSaveSlot = GetLoopedSelectedOption(SelectedSaveSlot, SAVEGAME_MAX - 1, canLoop);
 
 		if (GuiIsSelected())
@@ -3564,5 +3603,23 @@ namespace TEN::Gui
 		}
 
 		return false;
+	}
+
+	void GuiController::UseBinoculars(ItemInfo& item)
+	{	
+		auto& player = GetLaraInfo(item);
+
+		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
+			(player.Control.IsLow && !IsHeld(In::Crouch))) &&
+			!UseSpotCam && !TrackCameraInit)
+		{
+			SetScreenFadeIn(OPTICS_FADE_SPEED);
+			BinocularOldCamera = Camera.oldType;
+			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
+			player.Control.Look.IsUsingBinoculars = true;
+			player.Inventory.OldBusy = true;
+		}
+
+		InventoryItemChosen = NO_VALUE;
 	}
 }

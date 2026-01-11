@@ -15,10 +15,12 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
 
 using namespace TEN::Gui;
 using namespace TEN::Math;
+using namespace TEN::Video;
 
 enum SoundSourceFlags
 {
@@ -29,6 +31,7 @@ enum SoundSourceFlags
 
 HSAMPLE BASS_SamplePointer[SOUND_MAX_SAMPLES];
 HSTREAM BASS_3D_Mixdown;
+HSTREAM BASS_Video;
 HFX     BASS_FXHandler[(int)SoundFilter::Count];
 
 HMODULE ADPCMLibrary = NULL; // Temporary hack for unexpected ADPCM codec unload on Win11 systems.
@@ -46,7 +49,7 @@ const BASS_BFX_FREEVERB BASS_ReverbTypes[(int)ReverbType::Count] =    // Reverb 
   {  1.0f,     0.25f,     0.90f,    1.00f,    1.0f,     0,      -1     }	// 4 = Pipe
 };
 
-const  std::string TRACKS_EXTENSIONS[] = {".wav", ".mp3", ".ogg"};
+const  std::string TRACKS_EXTENSIONS[] = {".wav", ".ogg", ".mp3" };
 const  std::string TRACKS_PATH = "Audio/";
 static std::string FullAudioDirectory;
 
@@ -60,6 +63,8 @@ constexpr int LegacyLoopingTrackMax = 111;
 static int SecretSoundIndex = 5;
 static int GlobalMusicVolume;
 static int GlobalFXVolume;
+
+static Vector3 oldMikePos = Vector3::Zero;
 
 void SetVolumeTracks(int vol) 
 {
@@ -294,7 +299,7 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 	}
 
 	// Create sample's stream and reset buffer back to normal value.
-	HSTREAM channel = BASS_SampleGetChannel(BASS_SamplePointer[sampleToPlay], true);
+	HSTREAM channel = BASS_SampleGetChannel(BASS_SamplePointer[sampleToPlay], 0);
 
 	if (Sound_CheckBASSError("Trying to create channel for sample %d", false, sampleToPlay))
 		return false;
@@ -410,22 +415,21 @@ void FreeSamples()
 void EnumerateLegacyTracks()
 {
 	auto dir = std::filesystem::path{ FullAudioDirectory };
-
-    if (!std::filesystem::is_directory(dir))
-    {
-        TENLog("Folder \"" + dir.string() + "\" does not exist. ", LogLevel::Warning, LogConfig::All);
-        return;
-    }
+	if (!std::filesystem::is_directory(dir))
+	{
+		TENLog("Folder \"" + dir.string() + "\" does not exist. ", LogLevel::Warning, LogConfig::All);
+		return;
+	}
 
 	try 
 	{
 		// Capture three-digit filenames, or those which start with three digits.
-
 		std::regex upToThreeDigits("((\\d{1,3})[^\\.]*)");
 		std::smatch result;
+
 		for (const auto& file : std::filesystem::directory_iterator{ dir })
 		{
-			std::string fileName = file.path().filename().string();
+			auto fileName = file.path().filename().u8string();
 			auto bResult = std::regex_search(fileName, result, upToThreeDigits);
 			if (!result.empty())
 			{
@@ -449,20 +453,19 @@ void EnumerateLegacyTracks()
 	{
 		TENLog(e.what(), LogLevel::Error, LogConfig::All);
 	}
-
 }
 
-float GetSoundTrackLoudness(SoundTrackType mode)
+float GetSoundTrackLoudness(SoundTrackType type)
 {
 	float result = 0.0f;
 
 	if (!g_Configuration.EnableSound)
 		return result;
 
-	if (!BASS_ChannelIsActive(SoundtrackSlot[(int)mode].Channel))
+	if (!BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel))
 		return result;
 
-	BASS_ChannelGetLevelEx(SoundtrackSlot[(int)mode].Channel, &result, 0.1f, BASS_LEVEL_MONO | BASS_LEVEL_RMS);
+	BASS_ChannelGetLevelEx(SoundtrackSlot[(int)type].Channel, &result, 0.1f, BASS_LEVEL_MONO | BASS_LEVEL_RMS);
 	return std::clamp(result * 2.0f, 0.0f, 1.0f);
 }
 
@@ -490,7 +493,7 @@ std::optional<std::string> GetCurrentSubtitle()
 	return std::nullopt;
 }
 
-void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD position)
+void PlaySoundTrack(const std::string& track, SoundTrackType type, std::optional<QWORD> pos, int forceFadeInTime)
 {
 	if (!g_Configuration.EnableSound)
 		return;
@@ -502,17 +505,18 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 	DWORD crossfadeTime = 0;
 	DWORD flags = BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
 
-	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)mode].Channel);
-	if (channelActive && SoundtrackSlot[(int)mode].Track.compare(track) == 0)
+	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel);
+	if (channelActive && SoundtrackSlot[(int)type].Track.compare(track) == 0)
 	{
-		// Same track is incoming with different playhead, set it to a new position.
-		auto stream = SoundtrackSlot[(int)mode].Channel;
-		if (position && (BASS_ChannelGetLength(stream, BASS_POS_BYTE) > position))
-			BASS_ChannelSetPosition(stream, position, BASS_POS_BYTE);
+		// Same track is incoming with different playhead; set it to new position.
+		auto stream = SoundtrackSlot[(int)type].Channel;
+		if (pos.has_value() && BASS_ChannelGetLength(stream, BASS_POS_BYTE) > pos.value())
+			BASS_ChannelSetPosition(stream, pos.value(), BASS_POS_BYTE);
+
 		return;
 	}
 
-	switch (mode)
+	switch (type)
 	{
 	case SoundTrackType::OneShot:
 	case SoundTrackType::Voice:
@@ -544,7 +548,7 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 	}
 
 	if (channelActive)
-		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)mode].Channel, BASS_ATTRIB_VOL, -1.0f, crossfadeTime);
+		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)type].Channel, BASS_ATTRIB_VOL, -1.0f, crossfadeTime);
 
 	auto stream = BASS_StreamCreateFile(false, fullTrackName.c_str(), 0, 0, flags);
 
@@ -555,7 +559,7 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 
 	// Damp BGM track in case one-shot track is about to play.
 
-	if (mode == SoundTrackType::OneShot)
+	if (type == SoundTrackType::OneShot)
 	{
 		if (BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
 			BASS_ChannelSlideAttribute(SoundtrackSlot[(int)SoundTrackType::BGM].Channel, BASS_ATTRIB_VOL, masterVolume * SOUND_BGM_DAMP_COEFFICIENT, SOUND_XFADETIME_BGM_START);
@@ -565,37 +569,39 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, QWORD positio
 	// BGM tracks are crossfaded, and additionally shuffled a bit to make things more natural.
 	// Think everybody are fed up with same start-up sounds of Caves ambience...
 
-	if (crossfade && BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
+	if (forceFadeInTime > 0 || (crossfade && BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel)))
 	{		
 		// Crossfade...
 		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, 0.0f);
-		BASS_ChannelSlideAttribute(stream, BASS_ATTRIB_VOL, masterVolume, crossfadeTime);
+		BASS_ChannelSlideAttribute(stream, BASS_ATTRIB_VOL, masterVolume, (forceFadeInTime > 0) ? forceFadeInTime : crossfadeTime);
 
 		// Shuffle...
 		// Only activates if no custom position is passed as argument.
-		if (!position)
+		if (!pos.has_value())
 		{
 			QWORD newPos = BASS_ChannelGetLength(stream, BASS_POS_BYTE) * (static_cast<float>(GetRandomControl()) / static_cast<float>(RAND_MAX));
 			BASS_ChannelSetPosition(stream, newPos, BASS_POS_BYTE);
 		}
 	}
 	else
+	{
 		BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, masterVolume);
+	}
 
 	BASS_ChannelPlay(stream, false);
 
 	// Try to restore position, if specified.
-	if (position && (BASS_ChannelGetLength(stream, BASS_POS_BYTE) > position))
-		BASS_ChannelSetPosition(stream, position, BASS_POS_BYTE);
+	if (pos.has_value() && BASS_ChannelGetLength(stream, BASS_POS_BYTE) > pos.value())
+		BASS_ChannelSetPosition(stream, pos.value(), BASS_POS_BYTE);
 
 	if (Sound_CheckBASSError("Playing soundtrack '%s'", true, fullTrackName.filename().string().c_str()))
 		return;
 
-	SoundtrackSlot[(int)mode].Channel = stream;
-	SoundtrackSlot[(int)mode].Track = track;
+	SoundtrackSlot[(int)type].Channel = stream;
+	SoundtrackSlot[(int)type].Track = track;
 
 	// Additionally attempt to load subtitle file, if exists.
-	if (mode == SoundTrackType::Voice)
+	if (type == SoundTrackType::Voice)
 		LoadSubtitles(track);
 }
 
@@ -659,7 +665,7 @@ void PlaySoundTrack(int index, short mask)
 	PlaySoundTrack(SoundTracks[index].Name, SoundTracks[index].Mode);
 }
 
-void StopSoundTracks(bool excludeAmbience)
+void StopSoundTracks(int fadeoutTime, bool excludeAmbience)
 {
 	for (int i = 0; i < (int)SoundTrackType::Count; i++)
 	{
@@ -667,12 +673,15 @@ void StopSoundTracks(bool excludeAmbience)
 		if (excludeAmbience && type == SoundTrackType::BGM)
 			continue;
 
-		StopSoundTrack(type, SOUND_XFADETIME_ONESHOT);
+		StopSoundTrack(type, fadeoutTime);
 	}
 }
 
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime)
 {
+	if (SoundtrackSlot[(int)mode].Channel == NULL)
+		return;
+	
 	// Do fadeout.
 	BASS_ChannelSlideAttribute(SoundtrackSlot[(int)mode].Channel, BASS_ATTRIB_VOL | BASS_SLIDE_LOG, -1.0f, fadeoutTime);
 
@@ -695,13 +704,33 @@ std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type)
 		return std::pair<std::string, QWORD>();
 
 	std::filesystem::path path = track.Track;
-	return std::pair<std::string, QWORD>(path.stem().string(), BASS_ChannelGetPosition(track.Channel, BASS_POS_BYTE));
+	return std::pair<std::string, QWORD>(path.string(), BASS_ChannelGetPosition(track.Channel, BASS_POS_BYTE));
 }
 
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData)
 {
 	if (BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
 		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)SoundTrackType::BGM].Channel, BASS_ATTRIB_VOL, (float)GlobalMusicVolume / 100.0f, SOUND_XFADETIME_BGM_START);
+}
+
+void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, int64_t pts)
+{
+	if (!BASS_ChannelIsActive(BASS_Video))
+	{
+		BASS_ChannelPlay(BASS_Video, false);
+		BASS_ChannelSetAttribute(BASS_Video, BASS_ATTRIB_VOL, GlobalFXVolume / 100.0f);
+		Sound_CheckBASSError("Starting audio stream routing for video playback", false);
+	}
+
+	int bytes = count * SOUND_CHANNEL_COUNT * sizeof(float);
+	BASS_StreamPutData(BASS_Video, samples, bytes);
+	Sound_CheckBASSError("Video playback audio stream buffering", false);
+}
+
+void Sound_VideoFlushCallback(void* data, int64_t pts)
+{
+	BASS_ChannelStop(BASS_Video);
+	Sound_CheckBASSError("Stopping audio stream routing for video playback", false);
 }
 
 void Sound_FreeSample(int index)
@@ -743,7 +772,7 @@ int Sound_GetFreeSlot()
 	return farSlot;
 }
 
-int Sound_TrackIsPlaying(const std::string& fileName)
+int Sound_TrackIsPlaying(const std::string& fileName, std::optional<SoundTrackType> type)
 {
 	for (int i = 0; i < (int)SoundTrackType::Count; i++)
 	{
@@ -755,7 +784,7 @@ int Sound_TrackIsPlaying(const std::string& fileName)
 		auto name1 = TEN::Utils::ToLower(slot.Track);
 		auto name2 = TEN::Utils::ToLower(fileName);
 
-		if (name1.compare(name2) == 0)
+		if (name1.compare(name2) == 0 && (!type.has_value() || (SoundTrackType)i == type.value()))
 			return true;
 	}
 
@@ -893,10 +922,10 @@ void Sound_UpdateScene()
 
 	// Apply environmental effects
 
-	static int currentReverb = -1;
+	static int currentReverb = NO_VALUE;
 	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[Camera.pos.RoomNumber].reverbType : (int)ReverbType::Small;
 
-	if (currentReverb == -1 || roomReverb != currentReverb)
+	if (currentReverb == NO_VALUE || roomReverb != currentReverb)
 	{
 		currentReverb = roomReverb;
 		if (currentReverb < (int)ReverbType::Count)
@@ -941,6 +970,9 @@ void Sound_UpdateScene()
 
 	// Apply current listener position.
 
+	auto velocity = (oldMikePos - Camera.mikePos.ToVector3()) * (float)FPS;
+	oldMikePos = Camera.mikePos.ToVector3();
+
 	Vector3 at = Vector3(Camera.target.x, Camera.target.y, Camera.target.z) -
 		Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z);
 	at.Normalize();
@@ -948,14 +980,14 @@ void Sound_UpdateScene()
 		Camera.mikePos.x,
 		Camera.mikePos.y,
 		Camera.mikePos.z);
-	auto laraVel = BASS_3DVECTOR(					// Vel
-		Lara.Context.WaterCurrentPull.x,
-		Lara.Context.WaterCurrentPull.y,
-		Lara.Context.WaterCurrentPull.z);
+	auto mikeVel = BASS_3DVECTOR(					// Vel
+		velocity.x,
+		velocity.y,
+		velocity.z);
 	auto atVec = BASS_3DVECTOR(at.x, at.y, at.z);	// At
 	auto upVec = BASS_3DVECTOR(0.0f, 1.0f, 0.0f);	// Up
 	BASS_Set3DPosition(&mikePos,
-					   &laraVel,
+					   &mikeVel,
 					   &atVec,
 					   &upVec);
 	BASS_Apply3D();
@@ -975,7 +1007,16 @@ void Sound_Init(const std::string& gameDirectory)
 	// HACK: Manually force-load ADPCM codec, because on Win11 systems it may suddenly unload otherwise.
 	ADPCMLibrary = LoadLibrary("msadp32.acm");
 
-	BASS_Init(g_Configuration.SoundDevice, 44100, BASS_DEVICE_3D, WindowsHandle, NULL);
+	int soundDevice = g_Configuration.SoundDevice;
+
+	BASS_DEVICEINFO info;
+	if (!BASS_GetDeviceInfo(soundDevice, &info))
+	{
+		TENLog("Selected sound device is not available, using default", LogLevel::Warning);
+		soundDevice = NO_VALUE;
+	}
+
+	BASS_Init(soundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, WindowsHandle, NULL);
 	if (Sound_CheckBASSError("Initializing BASS sound device", true))
 		return;
 
@@ -986,7 +1027,7 @@ void Sound_Init(const std::string& gameDirectory)
 
 	// Set 3D world parameters.
 	// Rolloff is lessened since we have own attenuation implementation.
-	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 0.5f);	
+	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 1.0f);	
 	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL);
 
 	// Set minimum latency and 2 threads for updating.
@@ -997,8 +1038,11 @@ void Sound_Init(const std::string& gameDirectory)
 	// Create 3D mixdown channel and make it play forever.
 	// For realtime mixer channels, we need minimum buffer latency. It shouldn't affect reliability.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 40);
-	BASS_3D_Mixdown = BASS_StreamCreate(44100, 2, BASS_SAMPLE_FLOAT, STREAMPROC_DEVICE_3D, NULL);
+	BASS_3D_Mixdown = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_DEVICE_3D, NULL);
 	BASS_ChannelPlay(BASS_3D_Mixdown, false);
+
+	// Create video channel for video playback.
+	BASS_Video = BASS_StreamCreate(SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT, BASS_SAMPLE_FLOAT, STREAMPROC_PUSH, NULL);
 
 	// Reset buffer back to normal value.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 300);
@@ -1042,6 +1086,50 @@ void Sound_DeInit()
 		FreeLibrary(ADPCMLibrary);
 }
 
+const char* Sound_GetBassErrorString(int errorCode)
+{
+	switch (errorCode)
+	{
+	case BASS_OK:               return "Success";
+	case BASS_ERROR_MEM:        return "Memory error";
+	case BASS_ERROR_FILEOPEN:   return "Can't open the file";
+	case BASS_ERROR_DRIVER:     return "Sound device driver is not available";
+	case BASS_ERROR_BUFLOST:    return "The sample buffer was lost";
+	case BASS_ERROR_HANDLE:     return "Invalid handle";
+	case BASS_ERROR_FORMAT:     return "Unsupported sample format";
+	case BASS_ERROR_POSITION:   return "Invalid position";
+	case BASS_ERROR_INIT:       return "BASS_Init has not been successfully called";
+	case BASS_ERROR_START:      return "BASS_Start has not been successfully called";
+	case BASS_ERROR_ALREADY:    return "Target state is already set";
+	case BASS_ERROR_NOCHAN:     return "Can't get a free channel";
+	case BASS_ERROR_ILLTYPE:    return "Illegal type";
+	case BASS_ERROR_ILLPARAM:   return "Illegal parameter";
+	case BASS_ERROR_NO3D:       return "No 3D support";
+	case BASS_ERROR_NOEAX:      return "No EAX support";
+	case BASS_ERROR_DEVICE:     return "Incorrect device ID or device error";
+	case BASS_ERROR_NOPLAY:     return "Not playing";
+	case BASS_ERROR_FREQ:       return "Illegal sample rate";
+	case BASS_ERROR_NOTFILE:    return "The stream is not a file stream";
+	case BASS_ERROR_NOHW:       return "No hardware voices available";
+	case BASS_ERROR_EMPTY:      return "The MOD music has no sequence data";
+	case BASS_ERROR_NONET:      return "No internet connection could be opened";
+	case BASS_ERROR_CREATE:     return "Couldn't create the file";
+	case BASS_ERROR_NOFX:       return "Effects are not enabled";
+	case BASS_ERROR_NOTAVAIL:   return "Requested data is not available";
+	case BASS_ERROR_DECODE:     return "The channel is a decoding channel";
+	case BASS_ERROR_DX:         return "A sufficient DirectX version is not installed";
+	case BASS_ERROR_TIMEOUT:    return "Connection timed out";
+	case BASS_ERROR_FILEFORM:   return "Unsupported file format";
+	case BASS_ERROR_SPEAKER:    return "Unavailable speaker";
+	case BASS_ERROR_VERSION:    return "Invalid BASS version requested by a plugin";
+	case BASS_ERROR_CODEC:      return "Codec is not available or supported";
+	case BASS_ERROR_ENDED:      return "The channel or file has ended";
+	case BASS_ERROR_BUSY:       return "The device is busy";
+	case BASS_ERROR_UNKNOWN:    return "Unknown error";
+	default:                    return "Unknown error code";
+	}
+}
+
 bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 {
 	va_list argptr;
@@ -1053,15 +1141,30 @@ bool Sound_CheckBASSError(const char* message, bool verbose, ...)
 		va_start(argptr, verbose);
 		int written = vsprintf(data, (char*)message, argptr);	// @TODO: replace with debug/console/message output later...
 		va_end(argptr);
-		snprintf(data + written, sizeof(data) - written, bassError ? ": error #%d" : ": success", bassError);
+		snprintf(data + written, sizeof(data) - written, ": %s", Sound_GetBassErrorString(bassError));
 		TENLog(data, bassError ? LogLevel::Error : LogLevel::Info);
 	}
 	return bassError != 0;
 }
 
-void SayNo()
+void SayNo(std::optional<Vector3i> referencePosition)
 {
-	SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+	static int lastNoTimestamp = NO_VALUE;
+	static Vector3i lastReferencePosition = Vector3i::Zero;
+
+	if (referencePosition.has_value())
+	{
+		if (referencePosition.value() == lastReferencePosition)
+			return;
+
+		lastReferencePosition = referencePosition.value();
+	}
+
+	if ((GlobalCounter - lastNoTimestamp) > FPS)
+	{
+		lastNoTimestamp = GlobalCounter;
+		SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+	}
 }
 
 void PlaySecretTrack()
@@ -1078,14 +1181,11 @@ void PlaySecretTrack()
 
 int GetShatterSound(int shatterID)
 {
-	auto fxID = StaticObjects[shatterID].shatterSound;
-	if (fxID != -1 && fxID < NUM_SFX)
+	auto fxID = Statics[shatterID].shatterSound;
+	if (fxID != NO_VALUE && fxID < g_Level.SoundMap.size())
 		return fxID;
 
-	if (shatterID < 3)
-		return SFX_TR5_SMASH_WOOD;
-	else
-		return SFX_TR4_SMASH_ROCK;
+	return SFX_TR4_SMASH_ROCK;
 }
 
 void PlaySoundSources()

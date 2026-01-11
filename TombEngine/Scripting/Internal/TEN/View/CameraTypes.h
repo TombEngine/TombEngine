@@ -1,36 +1,53 @@
 #pragma once
 #include "Game/camera.h"
 
-/***
-Constants for the type of the Camera.
-@enum View.CameraType
-@pragma nostrip
-*/
+/// Constants for the type of the Camera.
+// To be used with @{View.GetCameraType} function.
+// @enum View.CameraType
+// @pragma nostrip
 
-/*** View.CameraType constants.
-
-The following constants are inside CameraType.
-
-	CHASE
-	FIXED
-	LOOK
-	COMBAT
-	HEAVY
-	OBJECT
-
-@section View.CameraType
-*/
-
-/*** Table of camera type constants (for use with GetCameraType() function).
-@table CONSTANT_STRING_HERE
-*/
-
-static const std::unordered_map<std::string, CameraType> CAMERA_TYPE
+enum class ScriptCameraType
 {
-	{ "CHASE", CameraType::Chase },
-	{ "FIXED", CameraType::Fixed },
-	{ "LOOK", CameraType::Look },
-	{ "COMBAT", CameraType::Combat },
-	{ "HEAVY", CameraType::Heavy },
-	{ "OBJECT", CameraType::Object }
+	Normal,
+	Fixed,
+	Look,
+	Combat,
+	Flyby,
+	Binoculars,
+	Lasersight
+};
+
+static const std::unordered_map<std::string, ScriptCameraType> CAMERA_TYPE
+{
+	/// Standard in-game camera when weapons are holstered.
+	// @mem NORMAL
+	{ "NORMAL", ScriptCameraType::Normal },
+
+	/// In-game camera when weapons are unholstered.
+	// @mem COMBAT
+	{ "COMBAT", ScriptCameraType::Combat },
+
+	/// Classic fixed camera.
+	// @mem FIXED
+	{ "FIXED", ScriptCameraType::Fixed },
+
+	/// Look camera.
+	// @mem LOOK
+	{ "LOOK", ScriptCameraType::Look },
+
+	/// Flyby or tracking camera.
+	// @mem FLYBY
+	{ "FLYBY", ScriptCameraType::Flyby },
+
+	/// Binocular camera.
+	// @mem BINOCULARS
+	{ "BINOCULARS", ScriptCameraType::Binoculars },
+
+	/// Lasersight camera.
+	// @mem LASERSIGHT
+	{ "LASERSIGHT", ScriptCameraType::Lasersight },
+
+	// Deprecated aliases
+	{ "CHASE", ScriptCameraType::Normal }, // DEPRECATED
+	{ "HEAVY", ScriptCameraType::Fixed }   // DEPRECATED
 };

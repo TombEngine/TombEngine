@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/tr3_claw_mutant.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
 #include "Game/Lara/lara_helpers.h"
@@ -11,6 +11,7 @@
 #include "Math/Math.h"
 #include "Objects/Effects/enemy_missile.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
 
@@ -136,7 +137,8 @@ namespace TEN::Entities::Creatures::TR3
 		plasma.fxObj = itemNumber;
 		plasma.nodeNumber = ParticleNodeOffsetIDs::NodeClawMutantPlasma;
 
-		plasma.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		plasma.SpriteSeqID = ID_DEFAULT_SPRITES;
+		plasma.SpriteID = 0;
 		plasma.scalar = 1;
 		int size = (GetRandomControl() & 31) + 64;
 		plasma.size =
@@ -180,10 +182,10 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void SpawnMutantPlasmaLight(ItemInfo& item)
 	{
-		int bright = item.Animation.FrameNumber - GetAnimData(item).frameBase;
+		int bright = item.Animation.FrameNumber;
 		if (bright > 16)
 		{
-			bright = GetAnimData(item).frameBase + 28 + 16 - item.Animation.FrameNumber;
+			bright = 44 - item.Animation.FrameNumber;
 			if (bright > 16)
 				bright = 16;
 		}
@@ -192,16 +194,16 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			auto pos = GetJointPosition(item, 13, Vector3i(-32, -16, -192));
 			int rnd = GetRandomControl();
-			byte r, g, b;
 
-			b = 31 - ((rnd / 16) & 3);
-			g = 24 - ((rnd / 64) & 3);
-			r = rnd & 7;
+			int b = 31 - ((rnd / 16) & 3);
+			int g = 24 - ((rnd / 64) & 3);
+			int r = rnd & 7;
 
 			r = (r * bright) / 16;
 			g = (g * bright) / 16;
 			b = (b * bright) / 16;
-			TriggerDynamicLight(pos.x, pos.y, pos.z, bright, r, g, b);
+
+			SpawnDynamicLight(pos.x, pos.y, pos.z, bright, r, g, b);
 		}
 	}
 
@@ -274,7 +276,8 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		plasma.fxObj = fxNumber;
-		plasma.spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		plasma.SpriteSeqID = ID_DEFAULT_SPRITES;
+		plasma.SpriteID = 0;
 		plasma.scalar = 1;
 		plasma.gravity =
 		plasma.maxYvel = 0;
@@ -307,10 +310,10 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != CLAW_MUTANT_STATE_DEATH)
-				SetAnimation(&item, CLAW_MUTANT_ANIM_DEATH);
+				SetAnimation(item, CLAW_MUTANT_ANIM_DEATH);
 
-			int frameEnd = GetAnimData(item, CLAW_MUTANT_ANIM_DEATH).frameEnd;
-			if (item.Animation.FrameNumber >= frameEnd)
+			int endFrameNumber = GetAnimData(item, CLAW_MUTANT_ANIM_DEATH).EndFrameNumber;
+			if (item.Animation.FrameNumber >= endFrameNumber)
 				CreatureDie(itemNumber, true);
 		}
 		else
@@ -484,14 +487,14 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if (item.Animation.FrameNumber == GetFrameIndex(&item, 0) && Random::TestProbability(1 / 4.0f) == 0)
+				if (item.Animation.FrameNumber == 0 && Random::TestProbability(1 / 4.0f) == 0)
 					item.ItemFlags[0] = 1;
 
-				if (item.Animation.FrameNumber < GetFrameIndex(&item, 28))
+				if (item.Animation.FrameNumber < 28)
 				{
 					SpawnClawMutantPlasma(itemNumber);
 				}
-				else if (item.Animation.FrameNumber == GetFrameIndex(&item, 28))
+				else if (item.Animation.FrameNumber == 28)
 				{
 					SpawnClawMutantPlasmaBall(item);
 				}

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Vehicles/quad_bike.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -19,10 +19,12 @@
 #include "Math/Math.h"
 #include "Objects/TR3/Vehicles/quad_bike_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -201,16 +203,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_IDLE);
+			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_LEFT);
+			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_RIGHT);
+			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -267,7 +269,7 @@ namespace TEN::Entities::Vehicles
 			return true;
 
 		if ((laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_RIGHT || laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_LEFT) &&
-			TestLastFrame(laraItem))
+			TestLastFrame(*laraItem))
 		{
 			if (laraItem->Animation.ActiveState == QBIKE_STATE_DISMOUNT_LEFT)
 				laraItem->Pose.Orientation.y += ANGLE(90.0f);
@@ -275,7 +277,7 @@ namespace TEN::Entities::Vehicles
 				laraItem->Pose.Orientation.y -= ANGLE(90.0f);
 
 			SetAnimation(laraItem, LA_STAND_IDLE);
-			TranslateItem(laraItem, laraItem->Pose.Orientation.y, -QBIKE_DISMOUNT_DISTANCE);
+			laraItem->Pose.Translate(laraItem->Pose.Orientation.y, -QBIKE_DISMOUNT_DISTANCE);
 			laraItem->Pose.Orientation.x = 0;
 			laraItem->Pose.Orientation.z = 0;
 			SetLaraVehicle(laraItem, nullptr);
@@ -312,7 +314,7 @@ namespace TEN::Entities::Vehicles
 			return true;
 	}
 
-	static int GetQuadCollisionAnim(ItemInfo* quadBikeItem, Vector3i* pos)
+	static int GetQuadCollisionAnimation(ItemInfo* quadBikeItem, Vector3i* pos)
 	{
 		pos->x = quadBikeItem->Pose.Position.x - pos->x;
 		pos->z = quadBikeItem->Pose.Position.z - pos->z;
@@ -450,7 +452,9 @@ namespace TEN::Entities::Vehicles
 				verticalVelocity = 0;
 			}
 			else
-				verticalVelocity += 6;
+			{
+				verticalVelocity += g_GameFlow->GetSettings()->Physics.Gravity;
+			}
 		}
 		else
 		{
@@ -544,7 +548,7 @@ namespace TEN::Entities::Vehicles
 		else
 			speed = quadBikeItem->Animation.Velocity.z;
 
-		TranslateItem(quadBikeItem, quadBike->MomentumAngle, speed);
+		quadBikeItem->Pose.Translate(quadBike->MomentumAngle, speed);
 
 		int slip = QBIKE_SLIP * phd_sin(quadBikeItem->Pose.Orientation.x);
 		if (abs(slip) > QBIKE_SLIP / 2)
@@ -642,7 +646,7 @@ namespace TEN::Entities::Vehicles
 
 		quadBike->ExtraRotation = rot;
 
-		int collide = GetQuadCollisionAnim(quadBikeItem, &moved);
+		int collide = GetQuadCollisionAnimation(quadBikeItem, &moved);
 
 		int newVelocity = 0;
 		if (collide)
@@ -681,9 +685,9 @@ namespace TEN::Entities::Vehicles
 			!dead)
 		{
 			if (quadBike->Velocity < 0)
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START);
 			else
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START2);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START2);
 		}
 		else if (collide &&
 			laraItem->Animation.ActiveState != QBIKE_STATE_HIT_FRONT &&
@@ -696,19 +700,19 @@ namespace TEN::Entities::Vehicles
 		{
 			if (collide == QBIKE_HIT_FRONT)
 			{
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_BACK);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_BACK);
 			}
 			else if (collide == QBIKE_HIT_BACK)
 			{
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_FRONT);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_FRONT);
 			}
 			else if (collide == QBIKE_HIT_LEFT)
 			{
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_RIGHT);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_RIGHT);
 			}
 			else
 			{
-				SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_LEFT);
+				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_LEFT);
 			}
 
 			SoundEffect(SFX_TR3_VEHICLE_QUADBIKE_FRONT_IMPACT, &quadBikeItem->Pose);
@@ -784,7 +788,7 @@ namespace TEN::Entities::Vehicles
 					laraItem->Animation.TargetState = QBIKE_STATE_IDLE;
 				else if (IsHeld(In::Right))
 				{
-					SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_RIGHT_START);
+					SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_RIGHT_START);
 				}
 				else if (!IsHeld(In::Left))
 					laraItem->Animation.TargetState = QBIKE_STATE_DRIVE;
@@ -796,7 +800,7 @@ namespace TEN::Entities::Vehicles
 					laraItem->Animation.TargetState = QBIKE_STATE_IDLE;
 				else if (IsHeld(In::Left))
 				{
-					SetAnimation(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_LEFT_START);
+					SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_LEFT_START);
 				}
 				else if (!IsHeld(In::Right))
 					laraItem->Animation.TargetState = QBIKE_STATE_DRIVE;
@@ -1072,7 +1076,8 @@ namespace TEN::Entities::Vehicles
 		else
 			spark->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
 
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = 0;
 		spark->scalar = 2;
 		spark->gravity = -(GetRandomControl() & 3) - 4;
 		spark->maxYvel = -(GetRandomControl() & 7) - 8;
@@ -1175,17 +1180,13 @@ namespace TEN::Entities::Vehicles
 
 		if (!(quadBike->Flags & QBIKE_FLAG_DEAD))
 		{
-			if (probe.GetRoomNumber() != quadBikeItem->RoomNumber)
-			{
-				ItemNewRoom(lara->Context.Vehicle, probe.GetRoomNumber());
-				ItemNewRoom(laraItem->Index, probe.GetRoomNumber());
-			}
+			UpdateVehicleRoom(quadBikeItem, laraItem, probe.GetRoomNumber());
 
 			laraItem->Pose = quadBikeItem->Pose;
 				
 			AnimateQuadBike(quadBikeItem, laraItem, collide, dead);
 			AnimateItem(laraItem);
-			SyncVehicleAnimation(*quadBikeItem, *laraItem);
+			SyncItemAnimation(*quadBikeItem, *laraItem);
 
 			Camera.targetElevation = -ANGLE(30.0f);
 

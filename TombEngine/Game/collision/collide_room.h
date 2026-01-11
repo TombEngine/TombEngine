@@ -6,8 +6,8 @@
 enum RoomEnvFlags;
 class FloorInfo;
 struct ItemInfo;
-struct MESH_INFO;
-struct ROOM_INFO;
+struct RoomData;
+struct StaticMesh;
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;
@@ -80,8 +80,9 @@ struct CollisionSetupData
 	bool BlockMonkeySwingEdge = false;
 	
 	// Inquirers
-	bool EnableObjectPush = false;
-	bool EnableSpasm	  = false;
+	bool EnableObjectPush	= false;
+	bool EnableSpasm		= false;
+	bool ForceSolidStatics	= false;
 
 	// Previous parameters
 	Vector3i	   PrevPosition		= Vector3i::Zero;
@@ -145,10 +146,12 @@ void SnapItemToGrid(ItemInfo* item, CollisionInfo* coll);
 
 void AlignEntityToSurface(ItemInfo* item, const Vector2& ellipse, float alpha = 0.75f, short constraintAngle = ANGLE(70.0f));
 
+bool TestNeighborRooms(int roomNumber0, int roomNumber1);
+
 // TODO: Deprecated.
 bool TestEnvironment(RoomEnvFlags environmentType, int x, int y, int z, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const Vector3i& pos, int roomNumber);
 bool TestEnvironment(RoomEnvFlags environmentType, const ItemInfo* item);
 bool TestEnvironment(RoomEnvFlags environmentType, int roomNumber);
-bool TestEnvironment(RoomEnvFlags environmentType, const ROOM_INFO* room);
+bool TestEnvironment(RoomEnvFlags environmentType, const RoomData* room);
 bool TestEnvironmentFlags(RoomEnvFlags environmentType, int flags);

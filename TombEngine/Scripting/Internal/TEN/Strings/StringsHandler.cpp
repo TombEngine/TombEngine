@@ -21,31 +21,26 @@ StringsHandler::StringsHandler(sol::state* lua, sol::table& parent) :
 
 /***
 Show some text on-screen.
-@tparam DisplayString str the string object to draw
 @function ShowString
-@tparam float time the time in seconds for which to show the string.
-If not given, the string will have an "infinite" life, and will show
+@tparam Strings.DisplayString string The string object to draw.
+@tparam[opt] float time The time in seconds for which to show the string. If not given, the string will have an "infinite" life, and will show
 until @{HideString} is called or until the level is finished.
-Default: nil (i.e. infinite)
-@tparam bool autoDelete should be string automatically deleted after timeout is reached.
-If not given, the string will remain allocated even after timeout is reached, and can be
-shown again without re-initialization.
-Default: false
+@tparam[opt=true] bool autoDelete Should be string automatically deleted after timeout is reached. If not given, the string will remain
+allocated even after timeout is reached, and can be shown again without re-initialization.
 */
 	table.set_function(ScriptReserved_ShowString, &StringsHandler::ShowString, this);
 
 /***
 Hide some on-screen text.
 @function HideString
-@tparam DisplayString str the string object to hide. Must previously have been shown
-with a call to @{ShowString}, or this function will have no effect.
+@tparam Strings.DisplayString string The string object to hide. Must previously have been shown with a call to @{ShowString}, or this function will have no effect.
 */
 	table.set_function(ScriptReserved_HideString, [this](const DisplayString& string) { ShowString(string, 0.0f, false); });
 
 /***
 Checks if the string is shown
 @function IsStringDisplaying
-@tparam DisplayString str the string object to be checked
+@tparam Strings.DisplayString string The string object to be checked.
 @treturn bool true if it is shown, false if it is hidden
 */
 	table.set_function(ScriptReserved_IsStringDisplaying, &StringsHandler::IsStringDisplaying, this);
@@ -93,7 +88,7 @@ void StringsHandler::ShowString(const DisplayString& str, sol::optional<float> n
 	auto it = m_userDisplayStrings.find(str.GetID());
 	it->second._timeRemaining = numSeconds.value_or(0.0f);
 	it->second._isInfinite = !numSeconds.has_value();
-	it->second._deleteWhenZero = autoDelete.value_or(false);
+	it->second._deleteWhenZero = numSeconds.has_value() && autoDelete.value_or(true);
 }
 
 bool StringsHandler::IsStringDisplaying(const DisplayString& displayString)
@@ -110,16 +105,16 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 	{
 		auto& str = it->second;
 		bool endOfLife = 0.0f >= str._timeRemaining;
-		if (str._deleteWhenZero && endOfLife)
+		if (!str._isInfinite && str._deleteWhenZero && endOfLife)
 		{
 			ScriptAssertF(!str._isInfinite, "The infinite string {} (key \"{}\") went out of scope without being hidden.", it->first, str._key);
 			it = m_userDisplayStrings.erase(it);
 		}
 		else
 		{
-			if (!endOfLife || str._isInfinite)
+			if ((!endOfLife || str._isInfinite) && str._owner == g_GameFlow->CurrentFreezeMode)
 			{
-				auto cstr = str._isTranslated ? g_GameFlow->GetString(str._key.c_str()) : str._key.c_str();
+				auto cstr = str._isTranslated ? g_GameFlow->GetString(str._key.c_str()) : str._key;
 				int flags = 0;
 
 				if (str._flags[(size_t)DisplayStringOptions::Center])
@@ -134,7 +129,13 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 				if (str._flags[(size_t)DisplayStringOptions::Blink])
 					flags |= (int)PrintStringFlags::Blink;
 
-				m_callbackDrawSring(cstr, str._color, str._position, str._scale, flags);
+				if (str._flags[(size_t)DisplayStringOptions::VerticalCenter])
+					flags |= (int)PrintStringFlags::VerticalCenter;
+
+				if (str._flags[(size_t)DisplayStringOptions::VerticalBottom])
+					flags |= (int)PrintStringFlags::VerticalBottom;
+
+				m_callbackDrawSring(cstr, str._color, str._position, str._area, str._scale, flags);
 
 				str._timeRemaining -= deltaTime;
 			}

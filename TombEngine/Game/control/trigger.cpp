@@ -19,15 +19,18 @@
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/Generic/Switches/pulley_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
 #include "Objects/objectslist.h"
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Utils;
 
 int TriggerTimer;
 int KeyTriggerActive;
@@ -47,16 +50,16 @@ int TriggerActive(ItemInfo* item)
 			{
 				--item->Timer;
 				if (!item->Timer)
-					item->Timer = -1;
+					item->Timer = NO_VALUE;
 			}
-			else if (item->Timer < -1)
+			else if (item->Timer < NO_VALUE)
 			{
 				++item->Timer;
-				if (item->Timer == -1)
+				if (item->Timer == NO_VALUE)
 					item->Timer = 0;
 			}
 
-			if (item->Timer <= -1)
+			if (item->Timer <= NO_VALUE)
 				flag = !flag;
 		}
 	}
@@ -175,6 +178,10 @@ bool SwitchTrigger(short itemNumber, short timer)
 	if (item.ObjectNumber >= ID_KEY_HOLE1 && item.ObjectNumber <= ID_KEY_HOLE16)
 		return false;
 
+	// Handle pulley.
+	if (item.ObjectNumber == ID_PULLEY)
+		return TriggerPulley(itemNumber, timer);
+
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
 	{
@@ -210,8 +217,8 @@ bool SwitchTrigger(short itemNumber, short timer)
 	else if (item.Status != ITEM_NOT_ACTIVE)
 	{
 		if (item.ObjectNumber == ID_AIRLOCK_SWITCH &&
-			item.Animation.AnimNumber == GetAnimIndex(item, 2) &&
-			item.Animation.FrameNumber == GetFrameIndex(&item, 0))
+			item.Animation.AnimNumber == 2 &&
+			item.Animation.FrameNumber == 0)
 		{
 			return true;
 		}
@@ -282,9 +289,9 @@ void RefreshCamera(short type, short* data)
 			{
 				Camera.number = value;
 
-				if ((Camera.timer < 0) || (Camera.type == CameraType::Look) || (Camera.type == CameraType::Combat))
+				if (Camera.timer < 0 || !TestLockedCamera())
 				{
-					Camera.timer = -1;
+					Camera.timer = NO_VALUE;
 					targetOk = 0;
 					break;
 				}
@@ -297,7 +304,7 @@ void RefreshCamera(short type, short* data)
 			break;
 
 		case TO_TARGET:
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat)
+			if (!TestLockedCamera())
 				break;
 
 			Camera.item = &g_Level.Items[value];
@@ -306,8 +313,10 @@ void RefreshCamera(short type, short* data)
 	} while (!(trigger & END_BIT));
 
 	if (Camera.item)
+	{
 		if (!targetOk || (targetOk == 2 && Camera.item->LookedAt && Camera.item != Camera.lastItem))
 			Camera.item = nullptr;
+	}
 
 	if (Camera.number == NO_VALUE && Camera.timer > 0)
 		Camera.timer = NO_VALUE;
@@ -333,7 +342,11 @@ short* GetTriggerIndex(ItemInfo* item)
 void Antitrigger(short const value, short const flags)
 {
 	ItemInfo* item = &g_Level.Items[value];
-	if (item->ObjectNumber == ID_EARTHQUAKE)
+
+	if (item->Flags & IFLAG_KILLED)
+		return;
+
+	if (item->ObjectNumber == ID_EARTHQUAKE) // HACK: move to earthquake control function!
 	{
 		item->ItemFlags[0] = 0;
 		item->ItemFlags[1] = 100;
@@ -344,25 +357,34 @@ void Antitrigger(short const value, short const flags)
 	if (flags & ONESHOT)
 		item->Flags |= ATONESHOT;
 
-	item->Status = ITEM_DEACTIVATED;
-
-	if (item->Active && Objects[item->ObjectNumber].intelligent)
+	if (Objects[item->ObjectNumber].intelligent)
 	{
-		DisableEntityAI(value);
-		RemoveActiveItem(value, false);
-		item->Status = ITEM_INVISIBLE;
+		if (item->Active)
+		{
+			DisableEntityAI(value);
+			RemoveActiveItem(value, false);
+			item->Status = ITEM_INVISIBLE;
+		}
+	}
+	else
+	{
+		item->Status = ITEM_DEACTIVATED;
 	}
 }
 
 void Trigger(short const value, short const flags)
 {
 	ItemInfo* item = &g_Level.Items[value];
+
+	if (item->Flags & IFLAG_KILLED)
+		return;
+
 	item->Flags |= TRIGGERED;
 
 	if (flags & ONESHOT)
 		item->Flags |= ONESHOT;
 
-	if (!(item->Active) && !(item->Flags & IFLAG_KILLED))
+	if (!item->Active)
 	{
 		if (Objects[item->ObjectNumber].intelligent)
 		{
@@ -370,38 +392,40 @@ void Trigger(short const value, short const flags)
 			{
 				if (item->Status == ITEM_INVISIBLE)
 				{
-					item->TouchBits = NO_JOINT_BITS;
 					if (EnableEntityAI(value, false))
 					{
-						item->Status = ITEM_ACTIVE;
 						AddActiveItem(value);
 					}
 					else
 					{
 						item->Status = ITEM_INVISIBLE;
 						AddActiveItem(value);
+						return;
 					}
 				}
 			}
 			else
 			{
-				item->TouchBits = NO_JOINT_BITS;
-				item->Status = ITEM_ACTIVE;
 				AddActiveItem(value);
 				EnableEntityAI(value, true);
 			}
 		}
 		else
 		{
-			item->TouchBits = NO_JOINT_BITS;
 			AddActiveItem(value);
-			item->Status = ITEM_ACTIVE;
 		}
+
+		item->Status = ITEM_ACTIVE;
+		item->TouchBits = NO_JOINT_BITS;
+		item->DisableInterpolation = true;
 	}
 }
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
 {
+	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+		return;
+
 	bool switchOff = false;
 	bool flipAvailable = false;
 	int flip = NO_VALUE;
@@ -414,9 +438,13 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 	if (!data)
 		return;
 
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
+	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
+		return;
+
 	short triggerType = (*(data++) >> 8) & TRIGGER_BITS;
 	short flags = *(data++);
-	short timer = flags & TIMER_BITS;
+	short timer = (char)(flags & TIMER_BITS);
 
 	if (Camera.type != CameraType::Heavy)
 		RefreshCamera(triggerType, data);
@@ -580,14 +608,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				&& (item->Flags & ONESHOT))
 				break;
 
-			if (triggerType != TRIGGER_TYPES::ANTIPAD 
-				&& triggerType != TRIGGER_TYPES::ANTITRIGGER 
-				&& triggerType != TRIGGER_TYPES::HEAVYANTITRIGGER)
-			{
-				if (item->ObjectNumber == ID_DART_EMITTER && item->Active)
-					break;
-			}
-
 			item->Timer = timer;
 			if (timer != 1)
 				item->Timer = FPS * timer;
@@ -597,10 +617,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			{
 				if (heavyFlags >= 0)
 				{
-					//if (switchFlag)
-						//item->Flags |= (flags & CODE_BITS);
-					//else
-
 					item->Flags ^= (flags & CODE_BITS);
 
 					if (flags & ONESHOT)
@@ -644,7 +660,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			Camera.number = value;
 
-			if (Camera.type == CameraType::Look || Camera.type == CameraType::Combat && !(g_Level.Cameras[value].Flags & 3))
+			if (!TestLockedCamera())
 				break;
 
 			if (triggerType == TRIGGER_TYPES::COMBAT)
@@ -655,8 +671,14 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			if (Camera.number != Camera.last || triggerType == TRIGGER_TYPES::SWITCH)
 			{
+				// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
+				Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
 				Camera.timer = (trigger & TIMER_BITS) * FPS;
 				Camera.type = heavy ? CameraType::Heavy : CameraType::Fixed;
+
+				// If camera is not gliding, disable interpolation.
+				Camera.DisableInterpolation = (Camera.speed == 1);
+
 				if (trigger & ONESHOT)
 					g_Level.Cameras[Camera.number].Flags |= ONESHOT;
 			}
@@ -775,10 +797,11 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (switchOff)
 				break;
 
-			if (!(SaveGame::Statistics.Level.Secrets & (1 << value)))
+			if (!(SaveGame::Statistics.SecretBits & (1 << value)))
 			{
 				PlaySecretTrack();
-				SaveGame::Statistics.Level.Secrets |= (1 << value);
+				SaveGame::Statistics.SecretBits |= (1 << value);
+				SaveGame::Statistics.Level.Secrets++;
 				SaveGame::Statistics.Game.Secrets++;
 			}
 			break;
@@ -809,7 +832,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				int eventType = trigger & TIMER_BITS;
 				if (eventType >= (int)EventType::Count)
 				{
-					TENLog("Unknown volume event type encountered for legacy trigger " + std::to_string(eventType), LogLevel::Warning);
+					TENLog(fmt::format("Unknown volume event type encountered for legacy trigger {}.", eventType), LogLevel::Warning);
 					continue;
 				}
 
@@ -838,7 +861,11 @@ void TestTriggers(ItemInfo* item, bool isHeavy, int heavyFlags)
 	short roomNumber = item->RoomNumber;
 	auto floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 
-	TestTriggers(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, floor, item->Index, isHeavy, heavyFlags);
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
+	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
+		return;
+
+	TestTriggers(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, floor, (Activator)short(item->Index), isHeavy, heavyFlags);
 }
 
 void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFlags)
@@ -846,7 +873,7 @@ void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFl
 	auto roomNum = roomNumber;
 	auto floor = GetFloor(x, y, z, &roomNum);
 
-	// Don't process legacy triggers if trigger triggerer wasn't used
+	// Don't process legacy triggers if triggerer flag was used in editor and trigger triggerer wasn't activated or used.
 	if (floor->Flags.MarkTriggerer && !floor->Flags.MarkTriggererActive)
 		return;
 
@@ -855,10 +882,14 @@ void TestTriggers(int x, int y, int z, short roomNumber, bool heavy, int heavyFl
 
 void ProcessSectorFlags(ItemInfo* item)
 {
-	auto pointColl = GetPointCollision(*item);
-	auto& sector = GetPointCollision(*item).GetBottomSector();
+	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+		return;
 
 	bool isPlayer = item->IsLara();
+
+	// HACK: because of L-shaped portal configurations, we need to fetch room number from Location struct for player.
+	auto pointColl = isPlayer ? GetPointCollision(item->Pose.Position, item->Location.RoomNumber) : GetPointCollision(*item);
+	auto& sector = pointColl.GetBottomSector();
 
 	// Set monkeyswing and wall climb statuses for player.
 	if (isPlayer)
@@ -886,8 +917,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		{
 			const auto& player = GetLaraInfo(*item);
 
-			if (!IsJumpState((LaraState)item->Animation.ActiveState) || 
-				player.Control.WaterStatus != WaterStatus::Dry)
+			if (!IsJumpState((LaraState)item->Animation.ActiveState) || player.Control.WaterStatus != WaterStatus::Dry || item->HitPoints <= 0)
 			{
 				// Check floor material.
 				auto material = sector.GetSurfaceMaterial(pointColl.GetPosition().x, pointColl.GetPosition().z, true);

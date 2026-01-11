@@ -370,6 +370,30 @@ Leave them as is. This is good: `auto x = std::vector<int>();`
 Use `//`-styled comments where possible. 
 Only use `/* */` style in case you are about to temporarily comment certain block for testing purposes or when writing a comment that will serve as the source for generated documentation.
 
+Use a `NOTE: ` prefix in your comment if you want to highlight something particularly noteworthy:
+```c
+// NOTE: Will not work for bones at ends of hierarchies.
+float GetBoneLength(GAME_OBJECT_ID objectID, int boneIndex)
+{
+    const auto& object = Objects[objectID];
+    
+    if (object.nmeshes == boneIndex)
+        return 0.0f;
+    
+    auto nextBoneOffset = GetJointOffset(objectID, boneIndex + 1);
+    return nextBoneOffset.Length();
+}
+```
+
+Use a `FAILSAFE: ` prefix in your comment if you want to highlight a particularly quirky solution without an obvious and clear purpose:
+```c
+if (portalRoomNumber != NO_VALUE &&
+    rayRoomNumber != portalRoomNumber) // FAILSAFE: Prevent infinite loop if room portal leads back to itself.
+{
+    player.Explode();
+}
+```
+
 ## Branches and pull requests
 
 Make sure that epic branches (tens or hundreds of files changed due to renames, namespace wrappings, etc) **are focused on a single feature or task**. Don't jump in to others epic branches with another round of your epic changes. It masks bugs and makes review process very cumbersome.

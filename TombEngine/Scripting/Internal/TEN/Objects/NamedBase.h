@@ -1,41 +1,41 @@
 #pragma once
-#include <functional>
-#include <string>
 
 #include "Scripting/Internal/ScriptAssert.h"
 
-template <typename S> using callbackSetName = std::function<bool(std::string const&, S identifier)>;
-using callbackRemoveName = std::function<bool(std::string const&)>;
+template <typename S> using callbackSetName = std::function<bool(const std::string&, S identifier)>;
+using callbackRemoveName = std::function<bool(const std::string&)>;
 
 // Use the "curiously recurring template pattern" to allow classes to inherit static members and functions.
-// T is the class that will both derive and instantiate this base class. S is the type used inside GameScriptWhateverInfo
-// to actually reference the underlying TombEngine struct.
-template <typename T, class S> class NamedBase
+// TLuaObj: Lua object that derives and instantiates this base class.
+// TEngineObj: Engine object referenced by the Lua object.
+template <typename TLuaObj, class TEngineObj> class NamedBase
 {
-public:
-	static void SetNameCallbacks(callbackSetName<S> cbs, callbackRemoveName cbr)
-	{
-		s_callbackSetName = cbs;
-		s_callbackRemoveName = cbr;
-	}
-
 protected:
-	static callbackSetName<S> s_callbackSetName;
-	static callbackRemoveName s_callbackRemoveName;
+	static callbackSetName<TEngineObj> _callbackSetName;
+	static callbackRemoveName		   _callbackRemoveName;
+
+public:
+	static void SetNameCallbacks(callbackSetName<TEngineObj> cbSetName, callbackRemoveName cbRemoveName)
+	{
+		_callbackSetName = cbSetName;
+		_callbackRemoveName = cbRemoveName;
+	}
 };
 
+// Default callbacks.
+template <typename TLuaObj, typename TEngineObj> callbackSetName<TEngineObj>
+NamedBase<TLuaObj, TEngineObj>::_callbackSetName = [](const std::string& name, TEngineObj identifier)
+{
+	auto err = std::string("\"Set Name\" callback is not set.");
+	throw TENScriptException(err);
+	return false;
+};
 
-// default callbacks
-template <typename T, typename S> callbackSetName<S> NamedBase<T, S>::s_callbackSetName = [](std::string const& n, S identifier) {
-		std::string err = "\"Set Name\" callback is not set.";
-		throw TENScriptException(err);
-		return false;
-	};
-
-// this could potentially be called by the GameScriptItemInfo destructor, and thus cannot throw
-template <typename T, typename S> callbackRemoveName NamedBase<T, S>::s_callbackRemoveName = [](std::string const& n) {
-		TENLog("\"Remove Name\" callback is not set.", LogLevel::Error);
-		std::terminate();
-		return false;
-	};
-
+// NOTE: Could potentially be called by GameScriptItemInfo destructor and thus cannot throw.
+template <typename TLuaObj, typename TEngineObj> callbackRemoveName
+NamedBase<TLuaObj, TEngineObj>::_callbackRemoveName = [](const std::string& name)
+{
+	TENLog("\"Remove Name\" callback is not set.", LogLevel::Error);
+	std::terminate();
+	return false;
+};

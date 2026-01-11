@@ -1,20 +1,19 @@
 #pragma once
+
 #include "Game/control/control.h"
+#include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 
 class ScriptInterfaceLevel;
-
-enum class TitleType
-{
-	Flyby,
-	Background
-};
 
 class ScriptInterfaceFlowHandler
 {
 public:
-	GameStatus	LastGameStatus		 = GameStatus::Normal;
-	TitleType	TitleType			 = TitleType::Flyby;
+	GameStatus	LastGameStatus		= GameStatus::Normal;
+	FreezeMode	LastFreezeMode		= FreezeMode::None;
+	FreezeMode	CurrentFreezeMode	= FreezeMode::None;
+
 	std::string	IntroImagePath		 = {};
+	std::string	IntroVideoPath		 = {};
 	std::string	TitleScreenImagePath = {};
 
 	int	 SelectedLevelForNewGame = 0;
@@ -25,6 +24,7 @@ public:
 	virtual ~ScriptInterfaceFlowHandler() = default;
 
 	virtual void LoadFlowScript() = 0;
+	virtual Settings* GetSettings() = 0;
 
 	virtual void SetGameDir(const std::string& assetDir) = 0;
 	virtual std::string GetGameDir() = 0;
@@ -37,15 +37,6 @@ public:
 	virtual bool IsLaraInTitleEnabled() const = 0;
 	virtual bool IsHomeLevelEnabled() const = 0;
 	virtual bool IsLoadSaveEnabled() const = 0;
-	virtual bool HasCrawlExtended() const = 0;
-	virtual bool HasCrouchRoll() const = 0;
-	virtual bool HasCrawlspaceDive() const = 0;
-	virtual bool HasAutoMonkeySwingJump() const = 0;
-	virtual bool HasSprintJump() const = 0;
-	virtual bool HasAFKPose() const = 0;
-	virtual bool HasOverhangClimb() const = 0;
-	virtual bool HasSlideExtended() const = 0;
-	virtual bool HasLedgeJumps() const = 0;
 
 	virtual ScriptInterfaceLevel * GetLevel(int level) = 0;
 	virtual int	GetLevelNumber(std::string const& fileName) = 0;

@@ -1,111 +1,66 @@
 #include "framework.h"
-#include <string>
-#include <memory>
-#include <filesystem>
+
+// TODO: To framework.
+#include <random>
+#include <d3dcompiler.h>
+
 #include "Renderer/Renderer.h"
+#include "Renderer/RendererUtils.h"
+#include "Renderer/SMAA/AreaTex.h"
+#include "Renderer/SMAA/SearchTex.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/configuration.h"
 #include "Specific/memory/Vector.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 #include "Specific/winmain.h"
-#include "Renderer/SMAA/AreaTex.h"
-#include "Renderer/SMAA/SearchTex.h"
-#include <random>
 
 extern GameConfiguration g_Configuration;
 
-static std::wstring GetAssetPath(const wchar_t* fileName)
-{
-	return TEN::Utils::ToWString(g_GameFlow->GetGameDir()) + fileName;
-}
+using namespace TEN::Renderer::Utils;
+using namespace TEN::Video;
 
 namespace TEN::Renderer
 {
-	void Renderer::Initialize(int w, int h, bool windowed, HWND handle)
+	void Renderer::Initialize(const std::string& gameDir, int w, int h, bool windowed, HWND handle)
 	{
 		TENLog("Initializing DX11...", LogLevel::Info);
 
 		_screenWidth = w;
 		_screenHeight = h;
 		_isWindowed = windowed;
+
 		InitializeScreen(w, h, handle, false);
 		InitializeCommonTextures();
 
-		// Initialize render states
+		// Load shaders.
+		_shaders.LoadShaders(w, h);
+
+		// Initialize render states.
 		_renderStates = std::make_unique<CommonStates>(_device.Get());
-
-		// Load shaders
-		ComPtr<ID3D10Blob> blob;
-		const D3D_SHADER_MACRO roomDefinesAnimated[] = { "ANIMATED", "", nullptr, nullptr };
-		const D3D_SHADER_MACRO roomDefinesShadowMap[] = { "SHADOW_MAP", "", nullptr, nullptr };
-
-		_vsRooms = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Rooms.fx"), "VS", "vs_5_0", nullptr, blob);
-
+	    
 		// Initialize input layout using first vertex shader.
 		D3D11_INPUT_ELEMENT_DESC inputLayoutItems[] =
 		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "EFFECTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "BLENDINDICES", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "POLYINDEX", 0, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "DRAWINDEX", 0, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "HASH", 0, DXGI_FORMAT_R32_SINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+			{ "POSITION",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",               0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD",             0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR",                0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TANGENT",              0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",               1, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "EFFECTS",              0, DXGI_FORMAT_R32_UINT,		     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "EFFECTS",			  1, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 12, blob->GetBufferPointer(), blob->GetBufferSize(), &_inputLayout));
 
-		_vsRoomsAnimatedTextures = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Rooms.fx"), "VS", "vs_5_0", &roomDefinesAnimated[0], blob);
-		_psRooms = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Rooms.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsItems = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Items.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psItems = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Items.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsStatics = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Statics.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psStatics = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Statics.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsSky = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Sky.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psSky = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Sky.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsSprites = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Sprites.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psSprites = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Sprites.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsSolid = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Solid.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psSolid = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Solid.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsInventory = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\Inventory.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psInventory = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Inventory.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsFullScreenQuad = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\FullScreenQuad.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psFullScreenQuad = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\FullScreenQuad.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsShadowMap = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\ShadowMap.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psShadowMap = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\ShadowMap.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsHUD = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\HUD.hlsl"), "VS", "vs_5_0", nullptr, blob);
-		_psHUDColor = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\HUD.hlsl"), "PSColoredHUD", "ps_5_0", nullptr, blob);
-		_psHUDTexture = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\HUD.hlsl"), "PSTexturedHUD", "ps_5_0", nullptr, blob);
-		_psHUDBarColor = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\HUD.hlsl"), "PSTexturedHUDBar", "ps_5_0", nullptr, blob);
-		_vsInstancedStaticMeshes = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\InstancedStatics.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psInstancedStaticMeshes = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\InstancedStatics.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsInstancedSprites = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\InstancedSprites.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psInstancedSprites = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\InstancedSprites.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsGBufferRooms = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "VSRooms", "vs_5_0", nullptr, blob);
-		_vsGBufferRoomsAnimated = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "VSRooms", "vs_5_0", &roomDefinesAnimated[0], blob);
-		_vsGBufferItems = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "VSItems", "vs_5_0", nullptr, blob);
-		_vsGBufferStatics = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "VSStatics", "vs_5_0", nullptr, blob);
-		_vsGBufferInstancedStatics = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "VSInstancedStatics", "vs_5_0", nullptr, blob);
-		_psGBuffer = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\GBuffer.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsRoomAmbient = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\RoomAmbient.fx"), "VS", "vs_5_0", nullptr, blob);
-		_vsRoomAmbientSky = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\RoomAmbient.fx"), "VSSky", "vs_5_0", nullptr, blob);
-		_psRoomAmbient = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\RoomAmbient.fx"), "PS", "ps_5_0", nullptr, blob);
-		_vsFXAA = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\FXAA.fx"), "VS", "vs_5_0", nullptr, blob);
-		_psFXAA = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\FXAA.fx"), "PS", "ps_5_0", nullptr, blob);
-		_psSSAO = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SSAO.fx"), "PS", "ps_5_0", nullptr, blob);
-		_psSSAOBlur = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SSAO.fx"), "PSBlur", "ps_5_0", nullptr, blob);
+		const auto& roomShader = _shaders.Get(Shader::Rooms);
+		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 10, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
 
-		const D3D_SHADER_MACRO transparentDefines[] = { "TRANSPARENT", "", nullptr, nullptr };
-		_psRoomsTransparent = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\Rooms.fx"), "PS", "ps_5_0", &transparentDefines[0], blob);
-
-		// Initialize constant buffers
+		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
 		_cbItem = CreateConstantBuffer<CItemBuffer>();
-		_cbStatic = CreateConstantBuffer<CStaticBuffer>();
+		_cbSky = CreateConstantBuffer<CSkyBuffer>();
 		_cbLights = CreateConstantBuffer<CLightBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
@@ -115,27 +70,29 @@ namespace TEN::Renderer
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
 		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
+		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
-		// Prepare HUD Constant buffer  
+		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
 		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
-		_cbSprite = CreateConstantBuffer<CSpriteBuffer>();
 		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
 		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
-		_cbHUD.UpdateData(_stHUD, _context.Get());
+		UpdateConstantBuffer(_stHUD, _cbHUD);
 		_currentCausticsFrame = 0;
 
-		// Preallocate lists
-		_dynamicLights = createVector<RendererLight>(MAX_DYNAMIC_LIGHTS);
+		// Preallocate lists.
 		_lines2DToDraw = createVector<RendererLine2D>(MAX_LINES_2D);
 		_lines3DToDraw = createVector<RendererLine3D>(MAX_LINES_3D);
 		_triangles3DToDraw = createVector<RendererTriangle3D>(MAX_TRIANGLES_3D);
 
-		for (int i = 0; i < ITEM_COUNT_MAX; i++)
-		{
-			_items[i].LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
-			_effects[i].LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
-		}
+		for (auto& dynamicLightList : _dynamicLights)
+			dynamicLightList = createVector<RendererLight>(MAX_DYNAMIC_LIGHTS);
+
+		for (auto& item : _items)
+			item.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
+
+		for (auto& effect : _effects)
+			effect.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
 
 		D3D11_BLEND_DESC blendStateDesc{};
 		blendStateDesc.AlphaToCoverageEnable = false;
@@ -153,11 +110,11 @@ namespace TEN::Renderer
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;
 		blendStateDesc.RenderTarget[0].BlendEnable = true;
-		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_INV_DEST_COLOR;
-		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
 		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		Utils::throwIfFailed(_device->CreateBlendState(&blendStateDesc, _screenBlendState.GetAddressOf()));
@@ -177,11 +134,11 @@ namespace TEN::Renderer
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;
 		blendStateDesc.RenderTarget[0].BlendEnable = true;
-		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
-		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_INV_DEST_COLOR;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_SUBTRACT;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		Utils::throwIfFailed(_device->CreateBlendState(&blendStateDesc, _excludeBlendState.GetAddressOf()));
@@ -225,7 +182,7 @@ namespace TEN::Renderer
 		shadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 		shadowSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 		Utils::throwIfFailed(_device->CreateSamplerState(&shadowSamplerDesc, _shadowSampler.GetAddressOf()));
-		_shadowSampler->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("ShadowSampler") + 1, "ShadowSampler");
+		_shadowSampler->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("ShadowSampler") - 1, "ShadowSampler");
 
 		D3D11_RASTERIZER_DESC rasterizerStateDesc = {};
 
@@ -253,11 +210,23 @@ namespace TEN::Renderer
 		rasterizerStateDesc.ScissorEnable = true;
 		Utils::throwIfFailed(_device->CreateRasterizerState(&rasterizerStateDesc, _cullNoneRasterizerState.GetAddressOf()));
 
+		D3D11_SAMPLER_DESC samplerStateDesc = {};
+		samplerStateDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		samplerStateDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerStateDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerStateDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerStateDesc.MinLOD = 0;
+		samplerStateDesc.MaxLOD = 0;
+		samplerStateDesc.MipLODBias = 0;
+		samplerStateDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		samplerStateDesc.MaxAnisotropy = 1;
+		Utils::throwIfFailed(_device->CreateSamplerState(&samplerStateDesc, _pointWrapSamplerState.GetAddressOf()));
+
 		//_tempRoomAmbientRenderTarget1 = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		//_tempRoomAmbientRenderTarget2 = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		//_tempRoomAmbientRenderTarget3 = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		//_tempRoomAmbientRenderTarget4 = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
+		 
 		_SMAAAreaTexture = Texture2D(_device.Get(), AREATEX_WIDTH, AREATEX_HEIGHT, DXGI_FORMAT_R8G8_UNORM, AREATEX_PITCH, areaTexBytes);
 		_SMAASearchTexture = Texture2D(_device.Get(), SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, DXGI_FORMAT_R8_UNORM, SEARCHTEX_PITCH, searchTexBytes);
 
@@ -267,10 +236,19 @@ namespace TEN::Renderer
 		InitializeSpriteQuad();
 		InitializeSky();
 
+		_roomAmbientMapFront = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
+		_roomAmbientMapBack = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
+		
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
+
+		_spriteVertices.reserve(MAX_SPRITE_VERTICES );
+		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITE_VERTICES , _spriteVertices);
+
+		// Initialize video player.
+		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
 	}
 
 	void Renderer::InitializePostProcess()
@@ -287,24 +265,16 @@ namespace TEN::Renderer
 
 		_fullscreenTriangleVertexBuffer = VertexBuffer<PostProcessVertex>(_device.Get(), 3, &vertices[0]);
 
-		ComPtr<ID3D10Blob> blob;
-
-		_vsPostProcess = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "VS", "vs_5_0", nullptr, blob);
-
 		D3D11_INPUT_ELEMENT_DESC postProcessInputLayoutItems[] =
 		{
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
-		Utils::throwIfFailed(_device->CreateInputLayout(postProcessInputLayoutItems, 3, blob->GetBufferPointer(), blob->GetBufferSize(), &_fullscreenTriangleInputLayout));
-		        
-		_psPostProcessCopy = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSCopy", "ps_5_0", nullptr, blob);
-		_psPostProcessMonochrome = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSMonochrome", "ps_5_0", nullptr, blob);
-		_psPostProcessNegative = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSNegative", "ps_5_0", nullptr, blob);
-		_psPostProcessExclusion = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSExclusion", "ps_5_0", nullptr, blob);
-		_psPostProcessFinalPass = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSFinalPass", "ps_5_0", nullptr, blob);
-		_psPostProcessLensFlare = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\PostProcess.fx"), "PSLensFlare", "ps_5_0", nullptr, blob);
+
+		const auto& ppShader = _shaders.Get(Shader::PostProcess);
+		Utils::throwIfFailed(_device->CreateInputLayout(postProcessInputLayoutItems, 3, 
+							 ppShader.Vertex.Blob->GetBufferPointer(), ppShader.Vertex.Blob->GetBufferSize(), &_fullscreenTriangleInputLayout));
 	}
 
 	void Renderer::CreateSSAONoiseTexture()
@@ -350,43 +320,48 @@ namespace TEN::Renderer
 
 		//Bottom Left
 		quadVertices[0].Position = Vector3(-0.5, -0.5, 0);
-		quadVertices[0].Normal = Vector3(-1, -1, 1);
-		quadVertices[0].Normal.Normalize();
+		auto normal = Vector3(-1, -1, 1);
+		normal.Normalize();
+		quadVertices[0].Normal = PackVector3(normal);
 		quadVertices[0].UV = Vector2(0, 1);
-		quadVertices[0].Color = Vector4(1, 1, 1, 1);
-		quadVertices[0].IndexInPoly = 3;
+		quadVertices[0].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[0].Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
-		quadVertices[1].Normal = Vector3(-1, 1, 1);
-		quadVertices[1].Normal.Normalize();
+		normal = Vector3(-1, 1, 1);
+		normal.Normalize();
+		quadVertices[1].Normal = PackVector3(normal);
 		quadVertices[1].UV = Vector2(0, 0);
-		quadVertices[1].Color = Vector4(1, 1, 1, 1);
-		quadVertices[1].IndexInPoly = 0;
+		quadVertices[1].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[1].Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
-		quadVertices[3].Normal = Vector3(1, 1, 1);
-		quadVertices[3].Normal.Normalize();
+		normal = Vector3(1, 1, 1);
+		normal.Normalize();
+		quadVertices[3].Normal = PackVector3(normal);
 		quadVertices[3].UV = Vector2(1, 0);
-		quadVertices[3].Color = Vector4(1, 1, 1, 1);
-		quadVertices[3].IndexInPoly = 1;
+		quadVertices[3].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[3].Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
-		quadVertices[2].Normal = Vector3(1, -1, 1);
-		quadVertices[2].Normal.Normalize();
+		normal = Vector3(1, -1, 1);
+		normal.Normalize();
+		quadVertices[2].Normal = PackVector3(normal);
 		quadVertices[2].UV = Vector2(1, 1);
-		quadVertices[2].Color = Vector4(1, 1, 1, 1);
-		quadVertices[2].IndexInPoly = 2;
+		quadVertices[2].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[2].Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		_quadVertexBuffer = VertexBuffer<Vertex>(_device.Get(), 4, quadVertices.data());
 	}
 
 	void Renderer::InitializeSky()
 	{
-		Vertex vertices[SKY_VERTICES_COUNT];
-		int indices[SKY_INDICES_COUNT];
+		auto vertices = std::vector<Vertex>(SKY_VERTICES_COUNT);
+		auto indices = std::vector<int>(SKY_INDICES_COUNT);
+
 		int size = SKY_SIZE;
 
 		int lastVertex = 0;
@@ -410,10 +385,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -422,10 +394,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -434,10 +403,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -446,17 +412,14 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 			}
 		}
 
-		_skyVertexBuffer = VertexBuffer<Vertex>(_device.Get(), SKY_VERTICES_COUNT, vertices);
-		_skyIndexBuffer = IndexBuffer(_device.Get(), SKY_INDICES_COUNT, indices);
+		_skyVertexBuffer = VertexBuffer<Vertex>(_device.Get(), SKY_VERTICES_COUNT, vertices.data());
+		_skyIndexBuffer = IndexBuffer(_device.Get(), SKY_INDICES_COUNT, indices.data());
 	}
 
 	void Renderer::InitializeScreen(int w, int h, HWND handle, bool reset)
@@ -516,14 +479,18 @@ namespace TEN::Renderer
 		_renderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_postProcessRenderTarget[0] = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_postProcessRenderTarget[1] = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-		_tempRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_dumpScreenRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_shadowMap = Texture2DArray(_device.Get(), g_Configuration.ShadowMapSize, 6, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_depthRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R32_FLOAT, false, DXGI_FORMAT_UNKNOWN);
-		_normalsRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_normalsAndMaterialIndexRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_emissiveAndRoughnessRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAORenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAOBlurredRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-
+		_glowRenderTarget[0] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_glowRenderTarget[1] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_legacyReflectionsRenderTarget = RenderTarget2D(_device.Get(), w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_skyboxRenderTarget = Texture2DArray(_device.Get(), ROOM_AMBIENT_MAP_SIZE, 2, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
+		
 		// Initialize sprite and primitive batches
 		_spriteBatch = std::make_unique<SpriteBatch>(_context.Get());
 		_primitiveBatch = std::make_unique<PrimitiveBatch<Vertex>>(_context.Get());
@@ -564,44 +531,6 @@ namespace TEN::Renderer
 		_SMAASceneSRGBRenderTarget = RenderTarget2D(_device.Get(), &_SMAASceneRenderTarget, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 		_SMAAEdgesRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SMAABlendRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-
-		auto string = std::stringstream{};
-		auto defines = std::vector<D3D10_SHADER_MACRO>{};
-
-		// Set up pixel size macro.
-		string << "float4(1.0 / " << w << ", 1.0 / " << h << ", " << w << ", " << h << ")";
-		auto pixelSizeText = string.str();
-		auto renderTargetMetricsMacro = D3D10_SHADER_MACRO{ "SMAA_RT_METRICS", pixelSizeText.c_str() };
-		defines.push_back(renderTargetMetricsMacro);
-
-		if (g_Configuration.AntialiasingMode == AntialiasingMode::Medium)
-		{
-			defines.push_back({ "SMAA_PRESET_HIGH", nullptr });
-		}
-		else
-		{
-			defines.push_back({ "SMAA_PRESET_ULTRA", nullptr });
-		}
-
-		// defines.push_back({ "SMAA_PREDICATION", "1" });
-
-		// Set up target macro.
-		auto dx101Macro = D3D10_SHADER_MACRO{ "SMAA_HLSL_4_1", "1" };
-		defines.push_back(dx101Macro);
-
-		auto null = D3D10_SHADER_MACRO{ nullptr, nullptr };
-		defines.push_back(null);
-
-		auto blob = ComPtr<ID3D10Blob>{};
-		_SMAALumaEdgeDetectionPS = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAALumaEdgeDetectionPS", "ps_5_0", defines.data(), blob);
-		_SMAAColorEdgeDetectionPS = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAAColorEdgeDetectionPS", "ps_5_0", defines.data(), blob);
-		_SMAADepthEdgeDetectionPS = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAADepthEdgeDetectionPS", "ps_5_0", defines.data(), blob);
-		_SMAABlendingWeightCalculationPS = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAABlendingWeightCalculationPS", "ps_5_0", defines.data(), blob);
-		_SMAANeighborhoodBlendingPS = Utils::compilePixelShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAANeighborhoodBlendingPS", "ps_5_0", defines.data(), blob);
-		_SMAAEdgeDetectionVS = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAAEdgeDetectionVS", "vs_5_0", defines.data(), blob);
-		_SMAABlendingWeightCalculationVS = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAABlendingWeightCalculationVS", "vs_5_0", defines.data(), blob);
-		_SMAANeighborhoodBlendingVS = Utils::compileVertexShader(_device.Get(), GetAssetPath(L"Shaders\\SMAA.fx"), "DX11_SMAANeighborhoodBlendingVS", "vs_5_0", defines.data(), blob);
-
 	}
 
 	void Renderer::InitializeCommonTextures()
@@ -636,18 +565,21 @@ namespace TEN::Renderer
 		D3D_FEATURE_LEVEL featureLevel;
 		HRESULT res; 
 
-		if constexpr (DebugBuild)
+		if constexpr (DEBUG_BUILD)
 		{
 			res = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG,
-				levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
+									levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
 		}
 		else
 		{
 			res = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL,
-				levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
+									levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
 		}
 
 		Utils::throwIfFailed(res);
+
+		// Initialize shader manager.
+		_shaders.Initialize(_device, _context);
 	}
 
 	void Renderer::ToggleFullScreen(bool force)

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_collide.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
@@ -14,12 +14,13 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Setup.h"
-#include "Objects/Sink.h"
+#include "Game/Sink.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
@@ -95,15 +96,8 @@ bool LaraDeflectEdgeJump(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (coll->Middle.Floor <= CLICK(1))
 			{
-				if (CanSlide(*item, *coll))
-				{
-					SetLaraSlideAnimation(item, coll);
-				}
-				else
-				{
-					SetAnimation(item, LA_LAND);
-					LaraSnapToHeight(item, coll);
-				}
+				SetAnimation(item, LA_LAND);
+				LaraSnapToHeight(item, coll);
 			}
 			// TODO: Demagic. This is Lara's running velocity. Jumps have a minimum of 50.
 			else if (abs(item->Animation.Velocity.z) > 47.0f)
@@ -326,7 +320,7 @@ void LaraCollideStopCrawl(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.AnimNumber != LA_CRAWL_IDLE)
 		{
 			item->Animation.AnimNumber = LA_CRAWL_IDLE;
-			item->Animation.FrameNumber = GetFrameIndex(item, 0);
+			item->Animation.FrameNumber = 0;
 		}
 
 		break;
@@ -362,7 +356,7 @@ void LaraCollideStopMonkey(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.AnimNumber != LA_MONKEY_IDLE)
 		{
 			item->Animation.AnimNumber = LA_MONKEY_IDLE;
-			item->Animation.FrameNumber = GetFrameIndex(item, 0);
+			item->Animation.FrameNumber = 0;
 		}
 
 		break;
@@ -436,7 +430,7 @@ void LaraResetGravityStatus(ItemInfo* item, CollisionInfo* coll)
 void LaraSnapToHeight(ItemInfo* item, CollisionInfo* coll)
 {
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && coll->Middle.Floor > 0)
-		item->Pose.Position.y += SWAMP_GRAVITY;
+		item->Pose.Position.y += g_GameFlow->GetSettings()->Physics.Gravity / SWAMP_GRAVITY_COEFF;
 	else if (coll->Middle.Floor != NO_HEIGHT)
 		item->Pose.Position.y += coll->Middle.Floor;
 }
@@ -507,7 +501,6 @@ void LaraSurfaceCollision(ItemInfo* item, CollisionInfo* coll)
 	}
 }
 
-
 void LaraDefaultCollision(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
@@ -541,12 +534,8 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 		coll->Setup.ForwardAngle = item->Pose.Orientation.y;
 	}
 
-	int height = abs(LARA_HEIGHT * phd_sin(item->Pose.Orientation.x));
+	int height = std::max((int)abs(LARA_HEIGHT * phd_sin(item->Pose.Orientation.x)), LARA_HEIGHT_UNDERWATER);
 	auto offset = Vector3i(0, height / 2, 0);
-
-	auto level = g_GameFlow->GetLevel(CurrentLevel);
-	if (height < ((level->GetLaraType() == LaraType::Divesuit) << 6) + 200)
-		height = ((level->GetLaraType() == LaraType::Divesuit) << 6) + 200;
 
 	coll->Setup.UpperFloorBound = -CLICK(0.25f);
 	coll->Setup.Height = height;

@@ -57,7 +57,7 @@ namespace TEN::Entities::Creatures::TR2
 		short& timeExplosion1 = item.ItemFlags[1];
 		short& timeExplosion2 = item.ItemFlags[2];
 		short& timeExplosion3 = item.ItemFlags[3];
-		int animationFrameEnd = GetAnimData(item.ObjectNumber, 0).frameEnd;
+		int endFrameNumber = GetAnimData(item.ObjectNumber, 0).EndFrameNumber;
 
 		if (item.Animation.FrameNumber == 0)
 		{
@@ -65,7 +65,7 @@ namespace TEN::Entities::Creatures::TR2
 				return;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		effectTimer++;
 		if ((effectTimer & 7) == 0)
@@ -74,34 +74,32 @@ namespace TEN::Entities::Creatures::TR2
 		// Spawn light.
 		auto lightPos = item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(1), 0.0f);
 		auto lightColor = Color(0.0f,Random::GenerateFloat(0.7f, 1.0f),	Random::GenerateFloat(0.2f, 0.3f));
-		float lightFalloff = Random::GenerateFloat(0.1f, 0.2f);
-		float transformationLightFalloff = (0.5, 1.0);
-		TriggerDynamicLight(lightPos, lightColor, lightFalloff);
+		SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(6), BLOCK(12)));
 
 		// Handle transformation.
 		if (effectTimer == timeExplosion1)
 		{
-			TriggerDynamicLight(lightPos, lightColor, transformationLightFalloff); 
+			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
 		}
 
 		if (effectTimer == timeExplosion2)
 		{
-			TriggerDynamicLight(lightPos, lightColor, transformationLightFalloff);
+			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM2);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
 		}
 
 		if (effectTimer == timeExplosion3)
 		{
-			TriggerDynamicLight(lightPos, lightColor, transformationLightFalloff);
+			SpawnDynamicPointLight(lightPos, lightColor, Random::GenerateFloat(BLOCK(12), BLOCK(24)));
 			SpawnBartoliTransformEffect(item, ID_SPHERE_OF_DOOM3);
-			SoundEffect(SFX_TR2_MARCO_BARTOLLI_TRANSFORM, &item.Pose);
-			item.Animation.FrameNumber = animationFrameEnd;
+			SoundEffect(SFX_TR2_MARCO_BARTOLI_TRANSFORM, &item.Pose);
+			item.Animation.FrameNumber = endFrameNumber;
 		}
 
-		if (item.Animation.FrameNumber >= animationFrameEnd)
+		if (item.Animation.FrameNumber >= endFrameNumber)
 		{
 			KillItem(itemNumber);
 			TestTriggers(&item, true);

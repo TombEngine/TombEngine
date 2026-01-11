@@ -5,7 +5,8 @@
 #include "Sound/sound.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/TEN/Vec3/Vec3.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+
 /***
 Sound source
 
@@ -13,8 +14,8 @@ Sound source
 @pragma nostrip
 */
 
-static auto IndexError = index_error_maker(SoundSource, ScriptReserved_SoundSource);
-static auto NewIndexError = newindex_error_maker(SoundSource, ScriptReserved_SoundSource);
+static auto IndexError = IndexErrorMaker(SoundSource, ScriptReserved_SoundSource);
+static auto NewIndexError = NewIndexErrorMaker(SoundSource, ScriptReserved_SoundSource);
 
 SoundSource::SoundSource(SoundSourceInfo& ref) : m_soundSource{ref}
 {};
@@ -26,35 +27,34 @@ void SoundSource::Register(sol::table& parent)
 		sol::meta_function::index, IndexError,
 		sol::meta_function::new_index, NewIndexError,
 		
-		/// Get the sound source's position
+		/// Get the sound source's position.
 		// @function SoundSource:GetPosition
-		// @treturn Vec3 a copy of the sound source's position
+		// @treturn Vec3 Sound source's position.
 		ScriptReserved_GetPosition, &SoundSource::GetPos,
 
-		/// Set the sound source's position
+		/// Set the sound source's position.
 		// @function SoundSource:SetPosition
-		// @tparam Vec3 position the new position of the sound source 
+		// @tparam Vec3 position The new position of the sound source.
 		ScriptReserved_SetPosition, &SoundSource::SetPos,
 
-		/// Get the sound source's unique string identifier
+		/// Get the sound source's unique string identifier.
 		// @function SoundSource:GetName
-		// @treturn string the sound source's name
+		// @treturn string The sound source's name.
 		ScriptReserved_GetName, &SoundSource::GetName,
 
-		/// Set the sound source's name (its unique string identifier)
+		/// Set the sound source's unique string identifier.
 		// @function SoundSource:SetName
-		// @tparam string name The sound source's new name
+		// @tparam string name The sound source's new name.
 		ScriptReserved_SetName, &SoundSource::SetName,
 
-		/// Get the sound source's unique int identifier
+		/// Get the sound source's sound ID.
 		// @function SoundSource:GetSoundID
-		// @treturn int the ID of the sound
+		// @treturn int The ID of the sound.
 		ScriptReserved_GetSoundID, &SoundSource::GetSoundID,
 
-		/// Set the sound source's ID 
-		// __TODO__ this and getSoundID should use enums
+		/// Set the sound source's ID.
 		// @function SoundSource:SetSoundID
-		// @tparam int name The sound source's new name
+		// @tparam int name The sound source's new sound ID.
 		ScriptReserved_SetSoundID, &SoundSource::SetSoundID
 	);
 }
@@ -81,10 +81,10 @@ void SoundSource::SetName(std::string const& id)
 		return;
 	}
 
-	if (s_callbackSetName(id, m_soundSource))
+	if (_callbackSetName(id, m_soundSource))
 	{
 		// remove the old name if we have one
-		s_callbackRemoveName(m_soundSource.Name);
+		_callbackRemoveName(m_soundSource.Name);
 		m_soundSource.Name = id;
 	}
 	else

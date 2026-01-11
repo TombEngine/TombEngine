@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_roman_statue.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
 #include "Game/effects/debris.h"
@@ -20,6 +20,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Spark;
@@ -129,7 +130,6 @@ namespace TEN::Entities::Creatures::TR5
 			spark->rotAdd = (GetRandomControl() & 0x1F) - 16;
 			spark->maxYvel = 0;
 			spark->gravity = (GetRandomControl() & 7) + 8;
-			spark->mirror = 0;
 			spark->sSize = spark->size = (GetRandomControl() & 7) + 8;
 			spark->dSize = spark->size * 2;
 		}
@@ -160,7 +160,8 @@ namespace TEN::Entities::Creatures::TR5
 		spark->flags = SP_SCALE | SP_DEF;
 		spark->scalar = 3;
 		spark->maxYvel = 0;
-		spark->spriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_LIGHT;
+		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
+		spark->SpriteID = SPR_LENS_FLARE_LIGHT;
 		spark->gravity = 0;
 		spark->dSize = spark->sSize = spark->size = size + (GetRandomControl() & 3);
 	}
@@ -422,7 +423,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				pos = Vector3i((pos1.x + pos2.x) / 2, (pos1.y + pos2.y) / 2, (pos1.z + pos2.z) / 2);
 
-				deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+				deltaFrame = item->Animation.FrameNumber;
 
 				if (deltaFrame > 68 && deltaFrame < 130)
 				{
@@ -440,9 +441,9 @@ namespace TEN::Entities::Creatures::TR5
 					color = (deltaFrame2 * ((GetRandomControl() & 0x3F) + 128)) / 16;
 
 					if (item->TriggerFlags)
-						TriggerDynamicLight(pos2.x, pos2.y, pos2.z, 16, 0, color, color / 2);
+						SpawnDynamicLight(pos2.x, pos2.y, pos2.z, 16, 0, color, color / 2);
 					else
-						TriggerDynamicLight(pos2.x, pos2.y, pos2.z, 16, 0, color / 2, color);
+						SpawnDynamicLight(pos2.x, pos2.y, pos2.z, 16, 0, color / 2, color);
 
 					for (int i = 0; i < 2; i++)
 					{
@@ -542,7 +543,7 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Orientation.y += ai.angle;
 				}
 
-				if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 10)
+				if (item->Animation.FrameNumber > 10)
 				{
 					pos = GetJointPosition(item, 16);
 
@@ -556,12 +557,12 @@ namespace TEN::Entities::Creatures::TR5
 						{
 							auto* mesh = &room->mesh[i];
 
-							if (!((mesh->pos.Position.z ^ pos.z) & 0xFFFFFC00) && !((mesh->pos.Position.x ^ pos.x) & 0xFFFFFC00))
+							if (!((mesh->Pose.Position.z ^ pos.z) & 0xFFFFFC00) && !((mesh->Pose.Position.x ^ pos.x) & 0xFFFFFC00))
 							{
-								if (StaticObjects[mesh->staticNumber].shatterType != ShatterType::None)
+								if (Statics[mesh->Slot].shatterType != ShatterType::None)
 								{
 									ShatterObject(0, mesh, -64, LaraItem->RoomNumber, 0);
-									SoundEffect(GetShatterSound(mesh->staticNumber), (Pose*)mesh);
+									SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
 
 									floor->Stopper = false;
 
@@ -587,7 +588,7 @@ namespace TEN::Entities::Creatures::TR5
 						pos1 = GetJointPosition(item, 14, Vector3i(-40, 64, 360));
 						pos1.y = item->Pose.Position.y - 64;
 
-						if (item->Animation.FrameNumber == GetAnimData(item).frameBase + 34 && item->Animation.ActiveState == 3)
+						if (item->Animation.FrameNumber == 34 && item->Animation.ActiveState == 3)
 						{
 							if (item->ItemFlags[0])
 								item->ItemFlags[0]--;
@@ -600,13 +601,12 @@ namespace TEN::Entities::Creatures::TR5
 							TriggerShockwave(&Pose(pos1), 16, 160, 64, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
 							
 							auto lightColor = Color(0.4f, 0.3f, 0.0f);
-							TriggerDynamicLight(pos.ToVector3(), lightColor, 0.04f);
+							SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(2.5f));
 						}
 
-						deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
-						int deltaFrame2 = GetAnimData(item).frameEnd - item->Animation.FrameNumber;
+						deltaFrame = item->Animation.FrameNumber;
 
-						if (deltaFrame2 >= 16)
+						if (deltaFrame >= 16)
 						{
 							if (deltaFrame > 16)
 								deltaFrame = 16;
@@ -615,21 +615,21 @@ namespace TEN::Entities::Creatures::TR5
 
 							if (item->ItemFlags[3])
 							{
-								TriggerDynamicLight(pos1.x, pos1.y, pos1.z, 8, 0, color / 4, color / 2);
+								SpawnDynamicLight(pos1.x, pos1.y, pos1.z, 8, 0, color / 4, color / 2);
 							}
 							else
 							{
-								TriggerDynamicLight(pos1.x, pos1.y - 64, pos1.z, 18, 0, color / 4, color / 2);
+								SpawnDynamicLight(pos1.x, pos1.y - 64, pos1.z, 18, 0, color / 4, color / 2);
 							}
 						}
 						else
 						{
-							TriggerRomanStatueAttackEffect1(itemNumber, deltaFrame2);
+							TriggerRomanStatueAttackEffect1(itemNumber, deltaFrame);
 
 							if (item->ItemFlags[3])
 							{
 								auto lightColor = Color(0.0f, 0.4f, 1.0f);
-								TriggerDynamicLight(pos.ToVector3(), lightColor, 0.06f);
+								SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(4));
 							}
 						}
 					}
@@ -698,7 +698,7 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					item->Pose.Orientation.y += ANGLE(2.0f);
 
-				if (item->Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(*item))
 					item->Pose.Orientation.y += -ANGLE(180.0f);
 
 				break;
@@ -711,10 +711,10 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					RomanStatueData.Count--;
 					color = (RomanStatueData.Count * ((GetRandomControl() & 0x3F) + 128)) / 16;
-					TriggerDynamicLight(RomanStatueData.Position.x, RomanStatueData.Position.y, RomanStatueData.Position.z, 16, 0, color, color / 2);
+					SpawnDynamicLight(RomanStatueData.Position.x, RomanStatueData.Position.y, RomanStatueData.Position.z, 16, 0, color, color / 2);
 				}
 
-				deltaFrame = item->Animation.FrameNumber - GetAnimData(item).frameBase;
+				deltaFrame = item->Animation.FrameNumber;
 
 				if (deltaFrame == 34)
 				{
@@ -763,7 +763,7 @@ namespace TEN::Entities::Creatures::TR5
 
 						if (i == 0)
 						{
-							TriggerDynamicLight(
+							SpawnDynamicLight(
 								pos2.x, pos2.y, pos2.z,
 								8,
 								0,
@@ -820,7 +820,7 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					DoDamage(creature->Enemy, 40);
 				}
-				else if (TestLastFrame(item))
+				else if (TestLastFrame(*item))
 				{
 					// Activate trigger on death
 					short roomNumber = item->ItemFlags[2] & 0xFF;
@@ -882,7 +882,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (object.hitEffect == HitEffect::Richochet && pos.has_value())
 		{
-			TriggerRicochetSpark(*pos, source.Pose.Orientation.y, 3, 0);
+			TriggerRicochetSpark(*pos, source.Pose.Orientation.y, false);
 			SoundEffect(SFX_TR5_SWORD_GOD_HIT_METAL, &target.Pose);
 		}
 
