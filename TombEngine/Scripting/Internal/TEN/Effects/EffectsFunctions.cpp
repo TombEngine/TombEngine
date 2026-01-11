@@ -680,16 +680,33 @@ namespace TEN::Scripting::Effects
 	}
 
 	/// Emit weather particles.
+	// @function EmitWeather
+	// @tparam WeatherParameters weatherParameters table with weather parameters.
+	// @usage
+	// local weatherParams = {
+	//     position = Vec3(0, 0, 0),
+	//     initialVelocity = Vec3(0, 10, 0),
+	//     randomRange = 8192,
+	//     randomHeight = 1024,
+	//     life = 1,
+	//     strength = 1,
+	//     enableClustering = true,
+	//     checkWindFlag = true,
+	//     baseColor = TEN.Color(255, 100, 255),
+	// }
+	// TEN.Effects.EmitWeather(weatherParams)
+
+	/// Structure for EmitWeather table.
 	// @table WeatherParameters
-	// @tparam Vec3 position World position.
-	// @tparam Vec3 initialVelocity Initial velocity of the particles.
-	// @tparam[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 block by default)
-	// @tparam[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
-	// @tparam[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
-	// @tparam[opt=1] float strength Strength of the effect.
-	// @tparam[opt=false] bool enableClustering Whether to enable clustering of particles.
-	// @tparam[opt=true] bool checkWindFlag Whether to ignore wind room flag when trying to spawn.
-	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
+	// @tfield Vec3 position World position.
+	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a very low value, otherwise the particle could be too fast.
+	// @tfield[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 block by default)
+	// @tfield[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
+	// @tfield[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
+	// @tfield[opt=1] float strength Strength of the effect.
+	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
+	// @tfield[opt=true] bool checkWindFlag Whether to ignore wind room flag when trying to spawn.
+	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
 	static void EmitWeather(const sol::table& table)
 	{
 		auto pos = table.get_or("position", Vec3(0, 0, 0));
