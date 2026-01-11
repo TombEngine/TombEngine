@@ -692,7 +692,7 @@ namespace TEN::Scripting::Effects
 	//     life = 1,
 	//     strength = 1,
 	//     enableClustering = true,
-	//     checkWindFlag = true,
+	//     checkWindFlag = true, -- Use wind room flag to spawn.
 	//     baseColor = TEN.Color(255, 100, 255),
 	// }
 	// TEN.Effects.EmitWeather(weatherParams)
