@@ -194,12 +194,3 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 	}
 }
 
-void InitAIObject(ObjectInfo* object, int objectNumber)
-{
-	object = &Objects[objectNumber];
-	if (object->loaded)
-	{
-		object->drawRoutine = nullptr;
-		object->collision = AIPickupCollision;
-	}
-}

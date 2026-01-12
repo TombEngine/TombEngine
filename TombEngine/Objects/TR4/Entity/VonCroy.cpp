@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/VonCroy.h"
 
-#include "Game/animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -168,7 +167,7 @@ namespace TEN::Entities::TR4
 	static void DoNodePath(ItemInfo& item, CreatureInfo& creature)
 	{
 		// Use it to setup the path
-		FindAITargetObject(&creature, ID_AI_PATH, creature.LocationAI, false);
+		FindAITargetObject(&creature, ID_AI_FOLLOW, creature.LocationAI, false);
 		creature.ReachedGoal = Vector3i::Distance(item.Pose.Position, creature.Enemy->Pose.Position) <= VON_CROY_AI_PATH_DETECTION_RADIUS;
 	}
 
@@ -242,9 +241,9 @@ namespace TEN::Entities::TR4
 		AI_INFO ai = {};
 
 		// Check whether Von Croy can jump 1, 2 or 3 blocks.
-		bool canJump1block  = CanCreatureJump(item, VON_CROY_JUMP_RANGE, JumpDistance::Block1);
-		bool canJump2blocks = CanCreatureJump(item, VON_CROY_JUMP_RANGE, JumpDistance::Block2);
-		bool canJump3blocks = CanCreatureJump(item, VON_CROY_JUMP_RANGE, JumpDistance::Block3);
+		bool canJump1block  = CanCreatureJump(item, JumpDistance::Block1, VON_CROY_JUMP_RANGE);
+		bool canJump2blocks = CanCreatureJump(item, JumpDistance::Block2, VON_CROY_JUMP_RANGE);
+		bool canJump3blocks = CanCreatureJump(item, JumpDistance::Block3, VON_CROY_JUMP_RANGE);
 
 		GetAITarget(&creature);
 		CreatureAIInfo(&item, &ai);
@@ -287,11 +286,11 @@ namespace TEN::Entities::TR4
 					break;
 				case 5:
 					// Now talk, equip book then when finished, unequip it !
-					if (TestAnimFrame(item, VON_CROY_BOOK_EQUIP_FRAME))
+					if (item.Animation.FrameNumber == VON_CROY_BOOK_EQUIP_FRAME)
 					{
 						DoBookMeshSwap(item);
 					}
-					else if (TestAnimFrame(item, VON_CROY_BOOK_UNEQUIP_FRAME))
+					else if (item.Animation.FrameNumber == VON_CROY_BOOK_UNEQUIP_FRAME)
 					{
 						DoBookMeshSwap(item);
 						item.SetFlagField(2, 3); // Do the normal talk after the book talk is finished.
@@ -332,7 +331,7 @@ namespace TEN::Entities::TR4
 			}
 			else if (Vector3i::Distance(item.Pose.Position, enemy->Pose.Position) <= VON_CROY_ATTACK_RANGE)
 			{
-				if (creature.ReachedGoal && enemy->ObjectNumber == ID_AI_PATH)
+				if (creature.ReachedGoal && enemy->ObjectNumber == ID_AI_FOLLOW)
 				{
 					if (ai.ahead)
 						item.Animation.TargetState = VON_CROY_STATE_POSITION_ADJUST_FRONT;
@@ -389,7 +388,7 @@ namespace TEN::Entities::TR4
 			break;
 
 		case VON_CROY_STATE_EQUIP_UNEQUIP_KNIFE:
-			if (TestAnimFrame(item, VON_CROY_EQUIP_UNEQUIP_FRAME))
+			if (item.Animation.FrameNumber == VON_CROY_EQUIP_UNEQUIP_FRAME)
 			{
 				DoKnifeMeshSwap(item);
 			}

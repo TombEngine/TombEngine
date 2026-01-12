@@ -61,8 +61,7 @@ enum AIObjectType
 	PATROL2	  = 1 << 5,
 	X1        = 1 << 6,
 	X2        = 1 << 7,
-	PATH      = 1 << 8,
-	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2 | X1 | X2 | PATH
+	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2 | X1 | X2
 };
 
 struct EntityAnimationData

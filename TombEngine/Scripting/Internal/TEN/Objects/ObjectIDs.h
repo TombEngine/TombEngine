@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 24/12/2025.
+// Last generated on 12/01/2026.
 
 #include <unordered_map>
 #include <string>
@@ -2484,6 +2484,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem MESHSWAP_WINSTON_ARMY_OUTFIT
 	{ "MESHSWAP_WINSTON_ARMY_OUTFIT", ID_MESHSWAP_WINSTON_ARMY_OUTFIT },
+	/// Object ID.
+	// @mem MESHSWAP_VON_CROY
+	{ "MESHSWAP_VON_CROY", ID_MESHSWAP_VON_CROY },
 	/// Object ID.
 	// @mem ANIMATING1
 	{ "ANIMATING1", ID_ANIMATING1 },

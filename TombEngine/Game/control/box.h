@@ -11,7 +11,8 @@ struct LOTInfo;
 enum class JumpDistance
 {
 	Block1,
-	Block2
+	Block2,
+	Block3
 };
 
 enum TARGET_TYPE
@@ -122,7 +123,7 @@ void CreatureHealth(ItemInfo* item);
 void AdjustStopperFlag(ItemInfo* item, int direction);
 void InitializeItemBoxData();
 
-bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType);
+bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType, float stepDistance = BLOCK(0.92f));
 
 void DrawBox(int boxIndex, Vector3 color);
 void DrawNearbyPathfinding(int boxIndex);

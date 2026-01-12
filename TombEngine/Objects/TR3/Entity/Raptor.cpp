@@ -112,8 +112,8 @@ namespace TEN::Entities::Creatures::TR3
 			creature.LOT.CanJump = false;
 		}
 
-		bool canJump1block  = (canJump &&                   CanCreatureJump(item, RAPTOR_JUMP_RANGE, JumpDistance::Block1));
-		bool canJump2blocks = (canJump && !canJump1block && CanCreatureJump(item, RAPTOR_JUMP_RANGE, JumpDistance::Block2));
+		bool canJump1block  = (canJump &&                   CanCreatureJump(item, JumpDistance::Block1, RAPTOR_JUMP_RANGE));
+		bool canJump2blocks = (canJump && !canJump1block && CanCreatureJump(item, JumpDistance::Block2, RAPTOR_JUMP_RANGE));
 
 		// Require Idle state.
 		if (item.HitPoints <= 0 && item.Animation.ActiveState == RAPTOR_STATE_IDLE)

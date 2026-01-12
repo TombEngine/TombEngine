@@ -328,8 +328,8 @@ namespace TEN::Entities::Creatures::TR5
 		short torsoY = 0;
 		short headY = 0;
 
-		bool canJump1block  =                   CanCreatureJump(*item, GUARD_JUMP_RANGE, JumpDistance::Block1);
-		bool canJump2blocks = !canJump1block && CanCreatureJump(*item, GUARD_JUMP_RANGE, JumpDistance::Block2);
+		bool canJump1block  =                   CanCreatureJump(*item, JumpDistance::Block1, GUARD_JUMP_RANGE);
+		bool canJump2blocks = !canJump1block && CanCreatureJump(*item, JumpDistance::Block2, GUARD_JUMP_RANGE);
 
 		if (item->AIBits)
 			GetAITarget(creature);
