@@ -205,8 +205,10 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
+		LOS(&beam.Origin, &beam.Target); // Update LOS room caches.
+
 		auto hitPos = Vector3i::Zero;
-		if (!LOS(&beam.Origin, &beam.Target) && ObjectOnLOS2(&beam.Origin, &beam.Target, &hitPos, nullptr, ID_LARA) == LaraItem->Index)
+		if (ObjectOnLOS2(&beam.Origin, &beam.Target, &hitPos, nullptr, ID_LARA) == LaraItem->Index)
 		{
 			if (beam.IsLethal && playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
 			{
