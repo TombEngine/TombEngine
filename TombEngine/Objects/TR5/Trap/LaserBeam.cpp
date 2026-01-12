@@ -205,7 +205,7 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		LOS(&beam.Origin, &beam.Target); // Update LOS room caches.
+		LOS(&beam.Origin, &beam.Target); // Update LOS rooms.
 
 		auto hitPos = Vector3i::Zero;
 		if (ObjectOnLOS2(&beam.Origin, &beam.Target, &hitPos, nullptr, ID_LARA) == LaraItem->Index)
