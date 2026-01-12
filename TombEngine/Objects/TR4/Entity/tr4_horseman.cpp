@@ -145,7 +145,7 @@ namespace TEN::Entities::TR4
 		// HitStatus is already set by HitTarget() before this is called.
 	}
 
-	void TriggerHorsemanRicochets(Vector3i* pos, int param1, int maxSparks)
+	void TriggerHorsemanRicochets(Vector3i* pos, int angle, int maxSparks)
 	{
 		for (int i = 0; i < maxSparks; i++)
 		{
@@ -173,8 +173,8 @@ namespace TEN::Entities::TR4
 			spark->flags = SP_NONE;
 			spark->gravity = (random / 128) & 0x1F;
 			spark->maxYvel = 0;
-			spark->zVel = phd_cos((random & 0x7FF) + param1 - 1024) * 4096;
-			spark->xVel = -phd_sin((random & 0x7FF) + param1 - 1024) * 4096;
+			spark->zVel = phd_cos((random & 0x7FF) + angle - 1024) * 4096;
+			spark->xVel = -phd_sin((random & 0x7FF) + angle - 1024) * 4096;
 		}
 
 		for (int i = 0; i < maxSparks; i++)
@@ -213,8 +213,8 @@ namespace TEN::Entities::TR4
 			spark->dSize = spark->sSize / 2;
 			spark->flags = SP_DEF | SP_ROTATE | SP_SCALE;
 			spark->maxYvel = 0;
-			spark->xVel = -phd_sin((random & 0x7FF) + param1 - 1024) * 4096;
-			spark->zVel = phd_cos((random & 0x7FF) + param1 - 1024) * 4096;
+			spark->xVel = phd_sin((random & 0x7FF) + angle - 1024) * 4096;
+			spark->zVel = -phd_cos((random & 0x7FF) + angle - 1024) * 4096;
 		}
 	}
 
