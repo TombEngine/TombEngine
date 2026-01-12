@@ -105,6 +105,7 @@ namespace TEN::Entities::Traps
 
 		if (IsDirty)
 		{
+			StoreInterpolationData();
 			auto pos = Origin.ToVector3();
 			auto dir = Rotation.ToDirection();
 			auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
@@ -163,13 +164,16 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		beam.StoreInterpolationData();
-
 		// Brightness fade-in and distortion.
 		if (item.Model.Color.w < 1.0f)
 			item.Model.Color.w += 0.02f;
 		if (beam.Color.w < 1.0f)
 			beam.Color.w += 0.02f;
+		if (item.Model.Color.w > 8.0f) // TODO: Alpha is 0 to 1 !
+		{
+			beam.Color.w = 0.8f;
+			item.Model.Color.w = 0.8f;
+		}
 
 		beam.IsActive = true;
 		beam.Update(item);
