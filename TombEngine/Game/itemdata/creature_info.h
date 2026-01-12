@@ -27,14 +27,6 @@ enum class MoodType
 	Stalk
 };
 
-enum class CreatureAIPriority
-{
-	None,
-	Low,
-	Medium,
-	High
-};
-
 struct BoxNode
 {
 	int exitBox		  = 0;
@@ -152,9 +144,4 @@ struct CreatureInfo
 	short Flags		  = 0;
 
 	bool IsTargetAlive();
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	CreatureAIPriority Priority = CreatureAIPriority::None;
-	size_t FramesSinceLOTUpdate = 0;
-#endif
 };

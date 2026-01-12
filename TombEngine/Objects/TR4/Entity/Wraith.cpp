@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/Wraith.h"
 
+#include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
@@ -308,12 +309,12 @@ namespace TEN::Entities::TR4
 			item.Pose.Orientation.x += angleV;
 		}
 
+		auto pointColl = GetPointCollision(item);
+
 		// Translate wraith.
 		item.Pose.Position.x += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.y);
 		item.Pose.Position.y += item.Animation.Velocity.z * phd_sin(item.Pose.Orientation.x);
 		item.Pose.Position.z += item.Animation.Velocity.z * phd_cos(item.Pose.Orientation.y);
-
-		auto pointColl = GetPointCollision(item);
 
 		bool hasHitWall = false;
 		if (pointColl.GetFloorHeight() < item.Pose.Position.y ||
@@ -322,8 +323,9 @@ namespace TEN::Entities::TR4
 			hasHitWall = true;
 		}
 
-		if (pointColl.GetRoomNumber() != item.RoomNumber)
-			ItemNewRoom(itemNumber, FindRoomNumber(item.Pose.Position, item.RoomNumber));
+		// Always update room based on camera position. Otherwise object sometimes does not show up in rooms.
+		if (pointColl.GetRoomNumber() != Camera.pos.RoomNumber || item.RoomNumber != Camera.pos.RoomNumber)
+			ItemNewRoom(itemNumber, Camera.pos.RoomNumber);
 
 		for (int linkItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkItemNumber != NO_VALUE; linkItemNumber = g_Level.Items[linkItemNumber].NextItem)
 		{

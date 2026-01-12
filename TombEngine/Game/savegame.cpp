@@ -617,16 +617,31 @@ const std::vector<byte> SaveGame::Build()
 	{
 		auto nameOffset = fbb.CreateString(room.Name);
 
+		std::vector<bool> blockStopperFlags;
+		for (auto& sector : room.Sectors)
+		{
+			blockStopperFlags.push_back(sector.Stopper);
+		}
+		auto blockStopperFlagsOffset = fbb.CreateVector(blockStopperFlags);
+
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
 		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
+		serializedInfo.add_block_stopper_flags(blockStopperFlagsOffset);
 		auto serializedInfoOffset = serializedInfo.Finish();
 
 		rooms.push_back(serializedInfoOffset);
 	}
 	auto roomOffset = fbb.CreateVector(rooms);
+
+	std::vector<int> boxFlags;
+	for (auto& box : g_Level.PathfindingBoxes)
+	{
+		boxFlags.push_back(box.flags);
+	}
+	auto boxFlagsOffset = fbb.CreateVector(boxFlags);
 
 	int currentItemIndex = 0;
 	for (auto& itemToSerialize : g_Level.Items) 
@@ -778,6 +793,8 @@ const std::vector<byte> SaveGame::Build()
 			auto pushable = (PushableInfo*)itemToSerialize.Data;
 
 			Save::PushableBuilder pushableBuilder{ fbb };
+
+			pushableBuilder.add_previous_trigger_flags((int)pushable->PreviousTriggerFlags);
 
 			pushableBuilder.add_pushable_behaviour_state((int)pushable->BehaviorState);
 			pushableBuilder.add_pushable_gravity(pushable->Gravity);
@@ -1629,6 +1646,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
+	sgb.add_box_flags(boxFlagsOffset);
 	sgb.add_next_item_free(NextItemFree);
 	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
@@ -2593,6 +2611,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		g_Level.Rooms[room->index()].reverbType = (ReverbType)room->reverb_type();
 	}
 
+	// Box flags
+	for (int i = 0; i < s->box_flags()->size(); i++)
+	{
+		g_Level.PathfindingBoxes[i].flags = s->box_flags()->Get(i);
+	}
+
 	// Static objects
 	for (int i = 0; i < s->static_meshes()->size(); i++)
 	{
@@ -2610,13 +2634,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.Dirty = true;
 		
 		if (!staticObj.Flags)
-		{
-			int roomNumber = savedStaticObj.room_number();
-			auto& sector = *GetFloor(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, (short*)&roomNumber);
-
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
-			sector.Stopper = false;
-		}
 	}
 
 	// Volumes
@@ -2654,6 +2672,16 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			DoFlipMap(i);
 
 		FlipMap[i] = s->flip_maps()->Get(i) << 8;
+	}
+
+	// Room sector stopper flags (should be applied after flipmaps)
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto room = s->rooms()->Get(i);
+		for (int j = 0; j < room->block_stopper_flags()->size(); j++)
+		{
+			g_Level.Rooms[room->index()].Sectors[j].Stopper = room->block_stopper_flags()->Get(j);
+		}
 	}
 
 	// Flipeffects
@@ -2950,6 +2978,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		{
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
+
+			pushable->PreviousTriggerFlags = (short)savedPushable->previous_trigger_flags();
 
 			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();

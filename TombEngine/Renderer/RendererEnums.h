@@ -8,11 +8,6 @@ using namespace DirectX::SimpleMath;
 #define SHAPE_RECTANGLE 0
 #define SHAPE_TRIANGLE	1
 
-#define PRINTSTRING_COLOR_ORANGE D3DCOLOR_ARGB(255, 216, 117, 49)
-#define PRINTSTRING_COLOR_WHITE D3DCOLOR_ARGB(255, 255, 255, 255)
-#define PRINTSTRING_COLOR_BLACK D3DCOLOR_ARGB(255, 0, 0, 0)
-#define PRINTSTRING_COLOR_YELLOW D3DCOLOR_ARGB(255, 240, 220, 32)
-
 constexpr auto MAX_LINES_2D		= 256;
 constexpr auto MAX_LINES_3D		= 16384;
 constexpr auto MAX_TRIANGLES_3D = 16384;
@@ -43,6 +38,9 @@ constexpr auto MAX_BONE_WEIGHTS = 4;
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
+
+constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.1f;
+constexpr float DISPLAY_ITEM_FAR_PLANE = BLOCK(100);
 
 constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
 constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;

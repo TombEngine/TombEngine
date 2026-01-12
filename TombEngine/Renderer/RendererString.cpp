@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer
@@ -25,10 +26,15 @@ namespace TEN::Renderer
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
 	{
-		AddString(string, pos, Vector2::Zero, Color(color), 1.0f, flags);
+		AddString(string, pos, Vector2::Zero, Color(color), scale, flags);
 	}
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags)
+	{
+		AddString(string, pos, pos, area, color, scale, flags);
+	}
+
+	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags)
 	{
 		if (_isLocked)
 			return;
@@ -113,11 +119,18 @@ namespace TEN::Renderer
 
 			// Compute vertical offset based on alignment flags.
 			float yBase = pos.y * uiScale;
+			float yBasePrev = prevPos.y * uiScale;
 
 			if (flags & (int)PrintStringFlags::VerticalBottom)
+			{
 				yBase -= totalHeight;
+				yBasePrev -= totalHeight;
+			}
 			else if (flags & (int)PrintStringFlags::VerticalCenter)
+			{
 				yBase -= totalHeight / 2.0f;
+				yBasePrev -= totalHeight / 2.0f;
+			}
 
 			float yOffset = 0.0f;
 			for (const auto& line : stringLines)
@@ -126,8 +139,7 @@ namespace TEN::Renderer
 				RendererStringToDraw rString;
 				rString.String = line;
 				rString.Flags = flags;
-				rString.X = 0;
-				rString.Y = 0;
+				rString.Position = Vector2::Zero;
 				rString.Color = color;
 				rString.Scale = stringScale;
 
@@ -138,28 +150,35 @@ namespace TEN::Renderer
 				if (maxHeight > 0.0f && (yOffset + stringSize.y) > maxHeight)
 					break;
 
+				// X position.
 				if (flags & (int)PrintStringFlags::Center)
 				{
-					rString.X = (pos.x * factor.x) - (stringSize.x / 2.0f);
+					rString.Position.x = (pos.x * factor.x) - (stringSize.x / 2.0f);
+					rString.PrevPosition.x = (prevPos.x * factor.x) - (stringSize.x / 2.0f);
 				}
 				else if (flags & (int)PrintStringFlags::Right)
 				{
-					rString.X = (pos.x * factor.x) - stringSize.x;
+					rString.Position.x = (pos.x * factor.x) - stringSize.x;
+					rString.PrevPosition.x = (prevPos.x * factor.x) - stringSize.x;
 				}
 				else
 				{
 					// Calculate indentation to account for string scaling.
 					auto indent = line.empty() ? 0 : _gameFont->FindGlyph(line.at(0))->XAdvance * rString.Scale;
-					rString.X = pos.x * factor.x + indent;
+
+					rString.Position.x = pos.x * factor.x + indent;
+					rString.PrevPosition.x = prevPos.x * factor.x + indent;
 				}
 
-				rString.Y = yBase + yOffset;
+				// Y position.
+				rString.Position.y = yBase + yOffset;
+				rString.PrevPosition.y = yBasePrev + yOffset;
 
+				// Blink the string, if flag is set.
 				if (flags & (int)PrintStringFlags::Blink)
-				{
 					rString.Color *= _blinkColorValue;
-				}
 
+				// Advance vertical offset and add current substring.
 				yOffset += stringSize.y;
 				_stringsToDraw.push_back(rString);
 			}
@@ -178,24 +197,28 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
+		auto shadowColor = (Vector3)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+
 		_spriteBatch->Begin();
 
 		for (const auto& rString : _stringsToDraw)
 		{
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
+
 			// Draw shadow.
 			if (rString.Flags & (int)PrintStringFlags::Outline)
 			{
 				_gameFont->DrawString(
 					_spriteBatch.get(), rString.String.c_str(),
-					Vector2(rString.X + shadowOffset * rString.Scale, rString.Y + shadowOffset * rString.Scale),
-					Vector4(0.0f, 0.0f, 0.0f, rString.Color.w) * ScreenFadeCurrent,
+					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
+					Vector4(shadowColor.x, shadowColor.y, shadowColor.z, rString.Color.w) * ScreenFadeCurrent,
 					0.0f, Vector4::Zero, rString.Scale);
 			}
 
 			// Draw string.
 			_gameFont->DrawString(
 				_spriteBatch.get(), rString.String.c_str(),
-				Vector2(rString.X, rString.Y),
+				Vector2(drawPos.x, drawPos.y),
 				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
 				0.0f, Vector4::Zero, rString.Scale);
 		}

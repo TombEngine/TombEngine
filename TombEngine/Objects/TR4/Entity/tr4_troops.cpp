@@ -145,44 +145,16 @@ namespace TEN::Entities::TR4
 			if (item->AIBits)
 				GetAITarget(creature);
 			else
-			{
-				// Search for active troops.
-				creature->Enemy = nullptr;
-
-				float minDistance = FLT_MAX;
-
-				for (auto creatureIndex : ActiveCreatures)
-				{
-					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
-
-					if (currentCreature->ItemNumber != NO_VALUE && currentCreature->ItemNumber != itemNumber)
-					{
-						auto* currentItem = &g_Level.Items[currentCreature->ItemNumber];
-						if (currentItem->ObjectNumber != ID_LARA)
-						{
-							if (currentItem->ObjectNumber != ID_TROOPS &&
-								(!currentItem->IsLara() || creature->HurtByLara))
-							{
-								float distance = Vector3i::Distance(item->Pose.Position, currentItem->Pose.Position);
-								if (distance < minDistance)
-								{
-									minDistance = distance;
-									creature->Enemy = currentItem;
-								}
-							}
-						}
-					}
-				}
-			}
-
-			if (creature->HurtByLara && item->Animation.ActiveState != TROOP_STATE_ATTACKED_BY_SCORPION)
-				creature->Enemy = LaraItem;
+				TargetNearestEntity(*item, FriendlyCreatures);
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
+			if (creature->Enemy->IsLara() && !creature->HurtByLara && item->Animation.ActiveState != TROOP_STATE_ATTACKED_BY_SCORPION)
+				creature->Enemy = nullptr;
+
 			int distance = 0;
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy && creature->Enemy->IsLara())
 			{
 				distance = AI.distance;
 				rot = AI.angle;
@@ -194,9 +166,6 @@ namespace TEN::Entities::TR4
 				distance = pow(dx, 2) + pow(dz, 2);
 				rot = phd_atan(dz, dx) - item->Pose.Orientation.y;
 			}
-
-			if (!creature->HurtByLara && creature->Enemy->IsLara())
-				creature->Enemy = nullptr;
 
 			GetCreatureMood(item, &AI, false);
 			CreatureMood(item, &AI, false);

@@ -176,6 +176,8 @@ table Rubberboat {
 }
 
 table Pushable {
+	previous_trigger_flags: int32;
+
 	pushable_behaviour_state: int32;
 	pushable_gravity: float;
 	pushable_water_force: float;
