@@ -1,11 +1,11 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Collision/Los.h"
-#include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
 
 #include "Game/collision/Los.h"
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
@@ -18,8 +18,8 @@ using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Collision
 {
-	///Casts a collision Ray in the game world.
-	// Provides collision information from collided room, item or static mesh.
+	/// Casts a collision Ray in the game world.
+	// Provides collision information for collided rooms, moveables, and statics.
 	//
 	// @tenclass Collision.Ray
 	// @pragma nostrip
@@ -32,10 +32,7 @@ namespace TEN::Scripting::Collision
 			Ray(const Vec3&, int, const Vec3&, float, bool, bool),
 			Ray(const Vec3&, int, const Rotation&, float),
 			Ray(const Vec3&, int, const Rotation&, float, bool),
-			Ray(const Vec3&, int, const Rotation&, float, bool, bool),
-			Ray(const Vec3&, int, const Rotation&, const Vec3&),
-			Ray(const Vec3&, int, const Rotation&, const Vec3&, bool),
-			Ray(const Vec3&, int, const Rotation&, const Vec3&, bool)>;
+			Ray(const Vec3&, int, const Rotation&, float, bool, bool)>;
 
 		// Register type.
 		parent.new_usertype<Ray>(
@@ -45,15 +42,13 @@ namespace TEN::Scripting::Collision
 			// Getters
 			ScriptReserved_RayGetRoom, &Ray::GetRoom,
 			ScriptReserved_RayGetRoomPosition, &Ray::GetRoomPosition,
-			ScriptReserved_RayGetRoomName, &Ray::GetRoomName,
-			ScriptReserved_RayGetRoomNumber, &Ray::GetRoomNumber,
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
 			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
 			ScriptReserved_RayGetMoveablePosition, & Ray::GetMoveablePosition,
 			ScriptReserved_RayGetMoveableDistance, &Ray::GetMoveableDistance,
 			ScriptReserved_RayGetStatic, &Ray::GetStatic,
-			ScriptReserved_RayGetStaticPosition, & Ray::GetStaticPosition,
-			ScriptReserved_RayGetStaticDistance, & Ray::GetStaticDistance,
+			ScriptReserved_RayGetStaticPosition, &Ray::GetStaticPosition,
+			ScriptReserved_RayGetStaticDistance, &Ray::GetStaticDistance,
 
 			// Inquirers
 			ScriptReserved_RayHitMoveable, &Ray::HitMoveable,
@@ -64,40 +59,31 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_ProbePreview, &Ray::Preview);
 	}
 
-	/// Create a Ray at a specified world position, direction and distance in a room.
+	/// Create a Ray at a specified world position, direction, and distance in a room.
 	// @function Ray
 	// @tparam Vec3 pos World position.
-	// @tparam int roomNumber Room number.
-	// @tparam Vec3 direction Normal which indicates light direction
+	// @tparam int roomNumber Origin room number.
+	// @tparam Vec3 direction Direction vector.
 	// @tparam float dist Maximum distance the ray can travel.
-	// @tparam[opt=false] bool collideMoveables Specfies if Ray should collide with moveables. Enabling this option is computationally expensive. Use only when necessary.
-	// @tparam[opt=false] bool collideStatics Specfies if Ray should collide with statics. Enabling this option is computationally expensive. Use only when necessary.
+	// @tparam[opt=false] bool hitMoveables Collide with moveables. Use only when required to optimize performance.
+	// @tparam[opt=false] bool hitStatics Collide with statics. Use only when required to optimize performance.
 	// @treturn Ray A new Ray.
-
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
 	{
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
+		*this = Ray(origin, roomNumber, dir, dist, false, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
-		bool collideMoveables)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables)
 	{
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
+		*this = Ray(origin, roomNumber, dir, dist, false, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist,
-		bool collideMoveables, bool collideStatics)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables, bool hitStatics)
 	{
+		_los = GetLosCollision(origin, roomNumber, dir, dist, hitMoveables, false, hitStatics);
 		_origin = origin;
 		_direction = dir;
 		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
 	}
 
 	/// Create a Ray at a specified world position, in a room in the direction of a given rotation for a specified distance.
@@ -106,309 +92,227 @@ namespace TEN::Scripting::Collision
 	// @tparam int roomNumber Room number.
 	// @tparam Rotation rot Rotation defining the direction in which to cast.
 	// @tparam float dist Maximum distance the ray can travel.
-	// @tparam[opt=false] bool collideMoveables Specfies if Ray should collide with moveables. Enabling this option is computationally expensive. Use only when necessary.
-	// @tparam[opt=false] bool collideStatics Specfies if Ray should collide with statics. Enabling this option is computationally expensive. Use only when necessary.
+	// @tparam[opt=false] bool hitMoveables Collide with moveables. Use only when required to optimize performance.
+	// @tparam[opt=false] bool hitStatics Collide with statics. Use only when required to optimize performance.
 	// @treturn Ray A new Ray.
 	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist)
 	{
-		auto dir = rot.ToEulerAngles().ToDirection();
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
+		*this = Ray(origin, roomNumber, rot, dist, false, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables)
 	{
-		auto dir = rot.ToEulerAngles().ToDirection();
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
+		*this = Ray(origin, roomNumber, rot, dist, hitMoveables, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool collideMoveables, bool collideStatics)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables, bool hitStatics)
 	{
-		auto dir = rot.ToEulerAngles().ToDirection();
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
+		auto dir = Vec3(rot.ToEulerAngles().ToDirection());
+		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics);
 	}
 	
-	/// Create a Ray at a specified world position, where a given relative offset is rotated according to a given rotation.
-	// @function Ray
-	// @tparam Vec3 pos World position.
-	// @tparam int roomNumber Room number.
-	// @tparam Rotation rot Rotation according to which the input relative offset is rotated.
-	// @tparam Vec3 relOffset Relative offset to cast.
-	// @tparam[opt=false] bool collideMoveables Specfies if Ray should collide with moveables. Enabling this option is computationally expensive. Use only when necessary.
-	// @tparam[opt=false] bool collideStatics Specfies if Ray should collide with statics. Enabling this option is computationally expensive. Use only when necessary.
-	// @treturn Ray A new Ray.
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset)
-	{
-		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
-		float dist = Vector3::Distance(origin.ToVector3(), target);
-
-		auto dir = target - origin.ToVector3();
-		dir.Normalize();
-
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, false, false, false);
-	}
-
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables)
-	{
-		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
-		float dist = Vector3::Distance(origin.ToVector3(), target);
-
-		auto dir = target - origin.ToVector3();
-		dir.Normalize();
-
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, false);
-	}
-
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, const Vec3& relOffset, bool collideMoveables, bool collideStatics)
-	{
-		auto target = Geometry::TranslatePoint(origin.ToVector3(), rot.ToEulerAngles(), relOffset.ToVector3());
-		float dist = Vector3::Distance(origin.ToVector3(), target);
-
-		auto dir = target - origin.ToVector3();
-		dir.Normalize();
-
-		_origin = origin;
-		_direction = dir;
-		_distance = dist;
-		_RayCollisionData = GetLosCollision(origin, roomNumber, dir, dist, collideMoveables, false, collideStatics);
-	}
-
-	/// Get the Room hit by the Ray, if it intersects room geometry.
+	/// Get the Room hit by the Ray.
 	// @function Ray:GetRoom
-	// @treturn Room Room object.
+	// @treturn Room Room object. __nil: no Room was hit.__
 	sol::optional<std::unique_ptr<Room>> Ray::GetRoom()
 	{
-		if (!_RayCollisionData.Room.IsIntersected)
+		if (!_los.Room.IsIntersected)
 			return sol::nullopt;
 
-		int roomNumber = _RayCollisionData.Room.RoomNumber;
+		int roomNumber = _los.Room.RoomNumber;
 		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
 	}
 
-	/// Get the position at which the Ray intersects room geometry, if any.
+	/// Get the position of the Room hit by the Ray.
 	// @function Ray:GetRoomPosition
-	// @treturn Vec3 World position.
+	// @treturn Vec3 Hit position. __nil: no Room was hit.__
 	sol::optional<Vec3> Ray::GetRoomPosition()
 	{
-		return _RayCollisionData.Room.Position;
+		return _los.Room.Position;
 	}
 
-	///Get the name of the room hit by the Ray, if any.
-	// @functionRay:GetRoomName
-	// @treturn string Room name.
-	sol::optional<std::string> Ray::GetRoomName()
-	{
-		int roomNumber = _RayCollisionData.Room.RoomNumber;
-		const auto& room = g_Level.Rooms[roomNumber];
-
-		return room.Name;
-	}
-
-	///Get the number of the room hit by the Ray, if any.
+	/// Get the distance from the Ray origin to the Room hit position.
 	// @function Ray:GetRoomNumber
-	// @treturn int Room number.
-	sol::optional<int> Ray::GetRoomNumber()
-	{
-		return _RayCollisionData.Room.RoomNumber;
-	}
-
-	///Get the distance from the Ray origin to the point where it intersects room geometry, if any.
-	// @function Ray:GetRoomNumber
-	// @treturn int Room distance.
+	// @treturn Vec3 Hit distance. __nil: no Room was hit.__
 	sol::optional<float> Ray::GetRoomDistance()
 	{
-		return _RayCollisionData.Room.Distance;
+		return _los.Room.Distance;
 	}
 
-	///Get the Moveable hit by the Ray, if moveable collision is enabled and a hit occurred.
+	/// Get the Moveable hit by the Ray.
+	// Note: Valid Moveables are only possible if Moveable hits were enabled.
 	// @function Ray:GetMoveable
-	// @treturn Moveable Hit Moveable object.
-	sol::optional <std::unique_ptr<Moveable>> Ray::GetMoveable()
+	// @treturn float Moveable Moveable object. __nil: no Moveable was hit.__
+	sol::optional<std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
-		if (_RayCollisionData.Items.empty())
+		if (_los.Items.empty())
 			return sol::nullopt;
 
-		auto item = _RayCollisionData.Items.front().Item;
-		return std::make_unique<Moveable>(item->Index);;
+		auto mov = _los.Items.front().Item;
+		return std::make_unique<Moveable>(mov->Index);;
 	}
 
-	/// Get the position at which the Ray intersects a moveable, if moveable testing is enabled and a hit occurred.
+	/// Get the position of the first Moveable hit by the Ray.
+	// Note: Valid positions are only possible if Moveable hits were enabled.
 	// @function Ray:GetMoveablePosition
-	// @treturn Vec3 World position.
+	// @treturn Vec3 Hit position. __nil: no Moveable was hit.__
 	sol::optional<Vec3> Ray::GetMoveablePosition()
 	{
-		if (_RayCollisionData.Items.empty())
+		if (_los.Items.empty())
 			return sol::nullopt;
 
-		return _RayCollisionData.Items.front().Position;
+		return _los.Items.front().Position;
 	}
-
-	///Get the distance from the Ray origin to the hit moveable, if moveable testing is enabled and a hit occurred.
+	
+	/// Get the distance from the Ray origin to the first Moveable hit position.
+	// Note: Valid distances are only possible if Moveable hits were enabled.
 	// @function Ray:GetMoveableDistance
-	// @treturn int Distance from origin to hit moveable.
+	// @treturn float Hit distance. __nil: no Moveable was hit.__
 	sol::optional<float> Ray::GetMoveableDistance()
 	{
-		if (_RayCollisionData.Items.empty())
+		if (_los.Items.empty())
 			return sol::nullopt;
 
-		return _RayCollisionData.Items.front().Distance;
+		return _los.Items.front().Distance;
 	}
 
-	///Get the Static hit by the Ray, if static testing is enabled and a hit occurred.
+	/// Get the Static hit by the Ray.
+	// Note: Valid Statics are only possible if Moveable hits were enabled.
 	// @function Ray:GetStatic
-	// @treturn Static Hit Static object.
+	// @treturn Static Static object. __nil: no Static was hit.__
 	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
 	{	
-		if (_RayCollisionData.Statics.empty())
+		if (_los.Statics.empty())
 			return sol::nullopt;
 
-		auto* mesh = _RayCollisionData.Statics.front().Static;
-		if (!mesh)
-		return sol::nullopt;
+		auto* staticObj = _los.Statics.front().Static;
+		if (staticObj == nullptr)
+			return sol::nullopt;
 
-		return std::make_unique<Static>(*mesh);
+		return std::make_unique<Static>(*staticObj);
 	}
 
-	///Get the position at which the Ray intersects a static, if static testing is enabled and a hit occurred.
+	/// Get the position of the first Static hit by the Ray.
+	// Note: Valid positions are only possible if Static hits were enabled.
 	// @function Ray:GetStaticPosition
-	// @treturn Vec3 World position.
+	// @treturn Vec3 Hit position. __nil: no Static was hit.__
 	sol::optional<Vec3> Ray::GetStaticPosition()
 	{
-		if (_RayCollisionData.Statics.empty())
+		if (_los.Statics.empty())
 			return sol::nullopt;
 
-		return _RayCollisionData.Statics.front().Position;
+		return _los.Statics.front().Position;
 	}
 
-	///Get the distance from the Ray origin to the hit static, if static testing is enabled and a hit occurred.
+	/// Get the distance from the Ray origin to the first Static hit position.
+	// Note: Valid distances are only possible if Static hits were enabled.
 	// @function Ray:GetStaticDistance
-	// @treturn int Distance from origin to hit static.
+	// @treturn float Hit distance. __nil: no Static was hit.__
 	sol::optional<float> Ray::GetStaticDistance()
 	{
-		if (_RayCollisionData.Statics.empty())
+		if (_los.Statics.empty())
 			return sol::nullopt;
 
-		return _RayCollisionData.Statics.front().Distance;
+		return _los.Statics.front().Distance;
 	}
 
-	///Returns true if the Ray intersects room geometry.
-	// If a room name is provided, returns true only when the intersection occurs with that room.
+	/// Check if the Ray hit a Room.
+	// If a Room name is provided, returns true only when the hit occurs with the relevant Room.
 	// @function Ray:HitRoom
-	// @tparam[opt] string roomName Name of the room to test.
-	// @treturn bool True if a matching room was hit; false otherwise.
-	bool Ray::HitRoom(TypeOrNil<std::string> roomName)
+	// @tparam[opt] string name Name of the room to check for.
+	// @treturn bool True if a Room was hit, false otherwise.
+	bool Ray::HitRoom(const TypeOrNil<std::string>& name)
 	{
-		if (!_RayCollisionData.Room.IsIntersected)
+		if (!_los.Room.IsIntersected)
 			return false;
 
-		std::string convertedString = ValueOr<std::string>(roomName, "");
-
+		auto convertedString = ValueOr<std::string>(name, {});
 		if (convertedString.empty())
 			return true;
 
-		int roomNumber = _RayCollisionData.Room.RoomNumber;
-		const auto& room = g_Level.Rooms[roomNumber];
-
+		const auto& room = g_Level.Rooms[_los.Room.RoomNumber];
 		return room.Name == convertedString;
 	}
 
-	///Returns true if the Ray intersects a Moveable object, if Moveable testing is enabled.
-	// If a Moveable name is provided, returns true only when the intersection occurs with that Moveable.
+	/// Check if the Ray hit a Moveable.
+	// Note: Valid checks are only possible if Moveable hits were enabled.
+	// If a Moveable name is provided, returns true only when the hit occurs with the relevant Moveable.
 	// @function Ray:HitMoveable
-	// @tparam[opt] string moveableName Name of the Moveable to test.
-	// @treturn bool True if a matching Moveable was hit; false otherwise.
-	bool Ray::HitMoveable(TypeOrNil<std::string> moveableName)
+	// @tparam[opt] string name Name of the Moveable to check for.
+	// @treturn bool True if a Moveable was hit, false otherwise.
+	bool Ray::HitMoveable(const TypeOrNil<std::string>& name)
 	{
-		if (_RayCollisionData.Items.empty())
+		if (_los.Items.empty())
 			return false;
 
-		std::string convertedString = ValueOr<std::string>(moveableName, "");
-
+		auto convertedString = ValueOr<std::string>(name, {});
 		if (convertedString.empty())
 			return true;
 
-		const auto& hit = _RayCollisionData.Items.front();
-		return hit.Item && hit.Item->Name == convertedString;
+		const auto& movLos = _los.Items.front();
+		return movLos.Item != nullptr && movLos.Item->Name == convertedString;
 	}
 
-	///Returns true if the Ray intersects a Static object, if Static testing is enabled.
-	// If a Static name is provided, returns true only when the intersection occurs with that Static.
+	/// Check if the Ray hit a Static.
+	// Note: Valid checks are only possible if Static hits were enabled.
+	// If a Static name is provided, returns true only when the hit occurs with the relevant Static.
 	// @function Ray:HitStatic
-	// @tparam[opt] string staticName Name of the Static to test.
-	// @treturn bool True if a matching Static was hit; false otherwise.
-	bool Ray::HitStatic(TypeOrNil<std::string> staticName)
+	// @tparam[opt] string name Name of the Static to check for.
+	// @treturn bool True if a Static was hit, false otherwise.
+	bool Ray::HitStatic(const TypeOrNil<std::string>& name)
 	{
-		if (_RayCollisionData.Statics.empty())
+		if (_los.Statics.empty())
 			return false;
 
-		std::string convertedString = ValueOr<std::string>(staticName, "");
-
+		auto convertedString = ValueOr<std::string>(name, {});
 		if (convertedString.empty())
 			return true;
 
-		const auto& hit = _RayCollisionData.Statics.front();
-		return hit.Static && hit.Static->Name == convertedString;
+		const auto& staticLos = _los.Statics.front();
+		return staticLos.Static != nullptr && staticLos.Static->Name == convertedString;
 	}
 
-	/// Preview thisRay in the Collision Stats debug page.
+	/// Preview this Ray in the Collision Stats debug page.
 	// @functionRay:Preview
 	void Ray::Preview()
 	{
-		constexpr auto TARGET_RADIUS = BLOCK(0.08f);
-		constexpr auto COLOR = Color(1.0f, 1.0f, 0.8f, 0.2f);
-		constexpr auto DEBUG_PAGE = RendererDebugPage::CollisionStats;
+		constexpr int  TARGET_RADIUS = BLOCK(0.08f);
+		constexpr auto COLOR         = Color(1.0f, 1.0f, 0.8f, 0.2f);
 		
-		auto dir = _direction;
-		float dist = _distance;
-
-		auto convertedPos = Vector3i(_origin);
-		short roomNumber = FindRoomNumber(convertedPos);
-
-		auto origin = _origin;
-		auto target = Geometry::TranslatePoint(origin, dir, dist);
-		auto los = GetLosCollision(origin, roomNumber, dir, dist, true, true, true);
+		short roomNumber = FindRoomNumber(Vector3i(_origin));
+		auto los = GetLosCollision(_origin, roomNumber, _direction, _distance, true, true, true);
 		float closestDist = los.Room.Distance;
-		target = los.Room.Position;
+		auto target = los.Room.Position;
 
+		// Clip moveable.
 		for (const auto& movLos : los.Items)
 		{
+			// Skip player.
 			if (movLos.Item->ObjectNumber == ID_LARA)
 				continue;
 
+			// Clip non-player moveable if it exists.
 			if (movLos.Distance < closestDist)
 			{
 				closestDist = movLos.Distance;
 				target = movLos.Position;
-				break;
 			}
+
+			break;
 		}
 
-		for (const auto& staticLos : los.Statics)
+		// Clip static.
+		if (!los.Statics.empty())
 		{
+			const auto& staticLos = los.Statics.front();
 			if (staticLos.Distance < closestDist)
 			{
 				closestDist = staticLos.Distance;
 				target = staticLos.Position;
-				break;
 			}
 		}
 
-		DrawDebugLine(origin, target, COLOR, DEBUG_PAGE);
-		DrawDebugTarget(target, Quaternion::Identity, TARGET_RADIUS, COLOR, DEBUG_PAGE);
-
+		DrawDebugLine(_origin, target, COLOR, RendererDebugPage::CollisionStats);
+		DrawDebugTarget(target, Quaternion::Identity, TARGET_RADIUS, COLOR, RendererDebugPage::CollisionStats);
 	}
 }

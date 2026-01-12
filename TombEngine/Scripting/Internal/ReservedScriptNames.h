@@ -484,21 +484,21 @@ constexpr char ScriptReserved_ProbeIsSteepFloor[]			= "IsSteepFloor";
 constexpr char ScriptReserved_ProbeIsWall[]					= "IsWall";
 constexpr char ScriptReserved_ProbePreview[]				= "Preview";
 
+// Ray
+
 constexpr char ScriptReserved_Ray[]							= "Ray";
-constexpr char ScriptReserved_RayGetRoom[]					= "GetRoom";
-constexpr char ScriptReserved_RayGetRoomPosition[]			= "GetRoomPosition";
-constexpr char ScriptReserved_RayGetRoomName[]				= "GetRoomName";
-constexpr char ScriptReserved_RayGetRoomNumber[]			= "GetRoomNumber";
-constexpr char ScriptReserved_RayGetRoomDistance[]			= "GetRoomDistance";
 constexpr char ScriptReserved_RayGetMoveable[]				= "GetMoveable";
 constexpr char ScriptReserved_RayGetMoveablePosition[]		= "GetMoveablePosition";
 constexpr char ScriptReserved_RayGetMoveableDistance[]		= "GetMoveableDistance";
+constexpr char ScriptReserved_RayGetRoom[]					= "GetRoom";
+constexpr char ScriptReserved_RayGetRoomDistance[]			= "GetRoomDistance";
+constexpr char ScriptReserved_RayGetRoomPosition[]			= "GetRoomPosition";
 constexpr char ScriptReserved_RayGetStatic[]				= "GetStatic";
-constexpr char ScriptReserved_RayGetStaticPosition[]		= "GetStaticPosition";
 constexpr char ScriptReserved_RayGetStaticDistance[]		= "GetStaticDistance";
+constexpr char ScriptReserved_RayGetStaticPosition[]		= "GetStaticPosition";
 constexpr char ScriptReserved_RayHitMoveable[]				= "HitMoveable";
-constexpr char ScriptReserved_RayHitStatic[]				= "HitStatic";
 constexpr char ScriptReserved_RayHitRoom[]					= "HitRoom";
+constexpr char ScriptReserved_RayHitStatic[]				= "HitStatic";
 
 constexpr char ScriptReserved_MaterialType[]				= "MaterialType";
 
