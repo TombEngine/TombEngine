@@ -11,12 +11,7 @@
 #include "Game/misc.h"
 #include "Game/people.h"
 #include "Game/Setup.h"
-#include "Game/misc.h"
-#include "Game/setup.h"
-#include "Game/Lara/lara_helpers.h"
-#include "Game/effects/tomb4fx.h"
-#include "Game/people.h"
-#include "Game/effects/spark.h"
+#include "Game/pickup/pickup.h"
 #include "Objects/Effects/Boss.h"
 #include "Objects/Effects/enemy_missile.h"
 #include "Sound/sound.h"
@@ -340,7 +335,6 @@ namespace TEN::Entities::Creatures::TR3
 				// If enemy is above, get to next AI_X1.
 				if (ai.verticalDistance > SOPHIALEIGH_Y_DISTANCE_RANGE)
 					creature->LocationAI++;
-
 				// If enemy is below, get to previous AI_X1.
 				else if (ai.verticalDistance < -SOPHIALEIGH_Y_DISTANCE_RANGE)
 					creature->LocationAI--;
@@ -356,15 +350,8 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.Timer > 0)
 			item.Timer--;
 
-		if (ai.ahead)
-		{
+		if (creature->Enemy->IsLara() && ai.ahead)
 			data->headAngle = ai.angle;
-		}
-		else
-		{
-			data->torsoXAngle = 0;
-			data->torsoYAngle = 0;
-		}
 
 		GetCreatureMood(&item, &ai, true);
 		CreatureMood(&item, &ai, true);
@@ -503,7 +490,7 @@ namespace TEN::Entities::Creatures::TR3
 			creature->MaxTurn = 0;
 			RotateTowardTarget(item, ai, SOPHIALEIGH_WALK_TURN_RATE_MAX);
 
-			if (ai.ahead)
+			if (creature->Enemy->IsLara() && ai.ahead)
 			{
 				data->torsoYAngle = ai.angle;
 				data->torsoXAngle = ai.xAngle;
@@ -552,15 +539,8 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.Timer > 0)
 			item.Timer--;
 
-		if (ai.ahead)
-		{
+		if (creature->Enemy->IsLara() && ai.ahead)
 			data->headAngle = ai.angle;
-		}
-		else
-		{
-			data->torsoXAngle = 0;
-			data->torsoYAngle = 0;
-		}
 
 		GetCreatureMood(&item, &ai, true);
 		CreatureMood(&item, &ai, true);
@@ -696,7 +676,7 @@ namespace TEN::Entities::Creatures::TR3
 			item.ItemFlags[4] = 0; // Bolt have been shoot, reset the flag.
 			creature->MaxTurn = 0;
 
-			if (ai.ahead)
+			if (creature->Enemy->IsLara() && ai.ahead)
 			{
 				data->torsoYAngle = ai.angle;
 				data->torsoXAngle = ai.xAngle;
@@ -715,7 +695,7 @@ namespace TEN::Entities::Creatures::TR3
 			creature->MaxTurn = 0;
 			RotateTowardTarget(item, ai, SOPHIALEIGH_WALK_TURN_RATE_MAX);
 
-			if (ai.ahead)
+			if (creature->Enemy->IsLara() && ai.ahead)
 			{
 				data->torsoYAngle = ai.angle;
 				data->torsoXAngle = ai.xAngle;
@@ -744,7 +724,7 @@ namespace TEN::Entities::Creatures::TR3
 		item.ItemFlags[5] = 0;								// Death count.
 		item.ItemFlags[6] = 0;								// Reached goal (true or false).
 		item.ItemFlags[7] = 0;								// Explode count.
-		SetAnimation(item, SOPHIALEIGH_ANIM_SUMMON_START); // Always starts with projectile attack.
+		SetAnimation(item, SOPHIALEIGH_ANIM_SUMMON_START);  // Always starts with projectile attack.
 	}
 
 	void SophiaLeighControl(short itemNumber)
@@ -774,6 +754,7 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Do explosion effect.
+				DropPickups(&item);
 				ExplodeBoss(itemNumber, item, SOPHIALEIGH_EXPLOSION_NUM_MAX, SOPHIALEIGH_SHOCKWAVE_COLOR, SOPHIALEIGH_EXPLOSION_MAIN_COLOR, SOPHIALEIGH_EXPLOSION_SECOND_COLOR, false);
 				return;
 			}
