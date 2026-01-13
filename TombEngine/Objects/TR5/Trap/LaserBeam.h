@@ -22,7 +22,6 @@ namespace TEN::Entities::Traps
 		std::array<Vector3, SUBDIVISION_COUNT * 2> Vertices = {};
 
 		float Radius = 0.0f;
-		int LastCollisionTimer = 0;
 
 		bool IsDirty		  = true;
 		bool IsActive		  = false;

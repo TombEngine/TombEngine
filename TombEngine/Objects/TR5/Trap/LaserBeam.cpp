@@ -27,7 +27,6 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto LASER_BEAM_LIGHT_INTENSITY		= 0.2f;
 	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX	= 0.1f;
-	constexpr auto LASER_BEAM_COLLISION_DELAY		= 5; // Check for collisions each 5 frames.
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
 
@@ -83,6 +82,7 @@ namespace TEN::Entities::Traps
 
 	void LaserBeamEffect::StoreInterpolationData()
 	{
+		// Store old data for interpolation.
 		if (IsDirty)
 		{
 			OldVertices = Vertices;
@@ -92,6 +92,7 @@ namespace TEN::Entities::Traps
 
 	void LaserBeamEffect::Update(const ItemInfo& item)
 	{
+		// Check for origin/rotation changes.
 		auto newOrigin = GameVector(item.Pose.Position, item.RoomNumber);
 		auto newRotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
 		if (PrevRotation != newRotation || PrevOrigin != newOrigin)
@@ -103,6 +104,7 @@ namespace TEN::Entities::Traps
 			IsDirty = true;
 		}
 
+		// Recalculate laser beam geometry.
 		if (IsDirty)
 		{
 			StoreInterpolationData();
@@ -142,6 +144,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
+		// Create and initialize laser beam effect.
 		auto beam = LaserBeamEffect{};
 		beam.Initialize(item);
 
@@ -150,12 +153,14 @@ namespace TEN::Entities::Traps
 
 	void ControlLaserBeam(short itemNumber)
 	{
+		// Skip if no laser beam effect exists for this item.
 		if (LaserBeams.find(itemNumber) == LaserBeams.end())
 			return;
 
 		auto& item = g_Level.Items[itemNumber];
 		auto& beam = LaserBeams.at(itemNumber);
 
+		// Check if trigger is active:
 		if (!TriggerActive(&item))
 		{
 			beam.IsActive = false;
@@ -191,6 +196,7 @@ namespace TEN::Entities::Traps
 
 	void CollideLaserBeam(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
+		// Skip if no laser beam effect exists for this item.
 		if (LaserBeams.find(itemNumber) == LaserBeams.end())
 			return;
 
@@ -199,14 +205,14 @@ namespace TEN::Entities::Traps
 		if (!beam.IsActive)
 			return;
 
-		if (beam.LastCollisionTimer > 0)
-		{
-			beam.LastCollisionTimer--;
+		// Avoid calling the collision check every frame.
+		if (!(GlobalCounter & FPS))
 			return;
-		}
 
-		LOS(&beam.Origin, &beam.Target); // Update LOS rooms.
+		// Populate the LosRoomNumbers for ObjectOnLOS2.
+		LOS(&beam.Origin, &beam.Target);
 
+		// Check collision with Lara.
 		auto hitPos = Vector3i::Zero;
 		if (ObjectOnLOS2(&beam.Origin, &beam.Target, &hitPos, nullptr, ID_LARA) == LaraItem->Index)
 		{
@@ -221,8 +227,6 @@ namespace TEN::Entities::Traps
 			}
 			beam.Color.w = Random::GenerateFloat(0.6f, 1.0f);
 		}
-
-		beam.LastCollisionTimer = LASER_BEAM_COLLISION_DELAY;
 	}
 
 	void ClearLaserBeamEffects()
