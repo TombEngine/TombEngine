@@ -143,7 +143,7 @@ namespace TEN::Entities::Traps
 	void InitializeLaserBeam(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		item.ItemFlags[1] = MAX_VISIBILITY_DISTANCE; // Set max laser beam length.
+		item.ItemFlags[1] = (short)MAX_VISIBILITY_DISTANCE; // Set max laser beam length.
 
 		// Create and initialize laser beam effect.
 		auto beam = LaserBeamEffect{};
