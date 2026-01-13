@@ -202,9 +202,11 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		auto& creature = *GetCreatureInfo(&item);
 		auto& enemy = *creature.Enemy;
+		// Fly cheat active, ignore knockback.
+		if (enemy.IsLara() && Lara.Control.WaterStatus == WaterStatus::FlyCheat)
+			return;
 
 		auto orient = Geometry::GetOrientToPoint(enemy.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
-
 		float distance = Vector3::Distance(item.Pose.Position.ToVector3(), enemy.Pose.Position.ToVector3());
 		if (distance <= SOPHIALEIGH_KNOCKBACK_RANGE)
 		{
