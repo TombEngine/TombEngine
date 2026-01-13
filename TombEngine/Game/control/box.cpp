@@ -97,21 +97,27 @@ void DrawBox(int boxIndex, Vector3 color)
 	}
 }
 
-void DrawNearbyPathfinding(int boxIndex)
+// Pathfinding debug display state:
+// -1 = show Lara's nearby boxes
+// >= 0 = index into active creatures list
+static int PathfindingDisplayIndex = -1;
+
+void DrawLaraPathfinding(int boxIndex)
 {
-	/*if (boxIndex == NO_VALUE)
+	if (boxIndex == NO_VALUE)
 		return;
 
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
 	auto index = currBox.overlapIndex;
 
-	// Grey flag box.
+	// Current box color based on flags.
 	auto currentBoxColor = Vector3(0.0f, 1.0f, 1.0f);
 	if (currBox.flags & BLOCKABLE)
 		currentBoxColor = (currBox.flags & BLOCKED) ? Vector3(1.0f, 0.0f, 0.0f) : Vector3(0.0f, 1.0f, 0.0f);
 
 	DrawBox(boxIndex, currentBoxColor);
 
+	// Draw overlapping boxes.
 	while (true)
 	{
 		if (index >= g_Level.Overlaps.size())
@@ -125,51 +131,106 @@ void DrawNearbyPathfinding(int boxIndex)
 			break;
 		else
 			index++;
-	}*/
+	}
+}
 
-	// Draw shark pathfinding
-	for (auto& item : g_Level.Items)
+void DrawItemPathfinding(int itemNumber)
+{
+	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
+		return;
+
+	auto& item = g_Level.Items[itemNumber];
+	if (!item.IsCreature())
+		return;
+
+	auto* creature = GetCreatureInfo(&item);
+	const auto& LOT = creature->LOT;
+
+	// Green: current box (where creature is).
+	if (item.BoxNumber != NO_VALUE)
+		DrawBox(item.BoxNumber, Vector3(0, 1, 0));
+
+	// Blue: TargetBox (pathfinding destination).
+	if (LOT.TargetBox != NO_VALUE)
+		DrawBox(LOT.TargetBox, Vector3(0, 0, 1));
+
+	// Cyan: RequiredBox (if different from TargetBox).
+	if (LOT.RequiredBox != NO_VALUE && LOT.RequiredBox != LOT.TargetBox)
+		DrawBox(LOT.RequiredBox, Vector3(0, 1, 1));
+
+	// Red: trace path from current box to target following exitBox.
+	if (item.BoxNumber != NO_VALUE && LOT.TargetBox != NO_VALUE)
 	{
-		if (item.ObjectNumber == ID_SHARK && item.IsCreature())
+		int currentBox = item.BoxNumber;
+		int maxSteps = 100; // Prevent infinite loops.
+
+		while (currentBox != NO_VALUE &&
+		       currentBox != LOT.TargetBox &&
+		       maxSteps-- > 0)
 		{
-			auto* creature = GetCreatureInfo(&item);
-			const auto& LOT = creature->LOT;
+			// Skip drawing current box again (already green).
+			if (currentBox != item.BoxNumber)
+				DrawBox(currentBox, Vector3(1, 0, 0));
 
-			// Green: current box (where shark is)
-			if (item.BoxNumber != NO_VALUE)
-				DrawBox(item.BoxNumber, Vector3(0, 1, 0));
+			int nextBox = LOT.Node[currentBox].exitBox;
 
-			// Blue: TargetBox (pathfinding destination)
-			if (LOT.TargetBox != NO_VALUE)
-				DrawBox(LOT.TargetBox, Vector3(0, 0, 1));
+			if (nextBox == NO_VALUE || nextBox == currentBox)
+				break;
 
-			// Cyan: RequiredBox (if different from TargetBox)
-			if (LOT.RequiredBox != NO_VALUE && LOT.RequiredBox != LOT.TargetBox)
-				DrawBox(LOT.RequiredBox, Vector3(0, 1, 1));
-
-			// Red: trace path from current box to target following exitBox
-			if (item.BoxNumber != NO_VALUE && LOT.TargetBox != NO_VALUE)
-			{
-				int currentBox = item.BoxNumber;
-				int maxSteps = 100; // Prevent infinite loops
-
-				while (currentBox != NO_VALUE &&
-				       currentBox != LOT.TargetBox &&
-				       maxSteps-- > 0)
-				{
-					// Skip drawing current box again (already green)
-					if (currentBox != item.BoxNumber)
-						DrawBox(currentBox, Vector3(1, 0, 0));
-
-					int nextBox = LOT.Node[currentBox].exitBox;
-
-					if (nextBox == NO_VALUE || nextBox == currentBox)
-						break;
-
-					currentBox = nextBox;
-				}
-			}
+			currentBox = nextBox;
 		}
+	}
+}
+
+// Collect all active creature item numbers.
+static std::vector<int> GetActiveCreatures()
+{
+	auto creatures = std::vector<int>{};
+
+	for (int i = 0; i < g_Level.Items.size(); i++)
+	{
+		auto& item = g_Level.Items[i];
+		if (item.IsCreature())
+			creatures.push_back(i);
+	}
+
+	return creatures;
+}
+
+void CyclePathfindingDisplay()
+{
+	auto creatures = GetActiveCreatures();
+
+	if (creatures.empty())
+	{
+		// No creatures, stay on Lara view.
+		PathfindingDisplayIndex = -1;
+		return;
+	}
+
+	// Cycle: -1 (Lara) -> 0 -> 1 -> ... -> N-1 -> -1 (Lara).
+	PathfindingDisplayIndex++;
+	if (PathfindingDisplayIndex >= (int)creatures.size())
+		PathfindingDisplayIndex = -1;
+}
+
+void DrawPathfindingDebug(int laraBoxIndex)
+{
+	auto creatures = GetActiveCreatures();
+
+	if (PathfindingDisplayIndex < 0 || creatures.empty())
+	{
+		// Show Lara's nearby boxes.
+		DrawLaraPathfinding(laraBoxIndex);
+	}
+	else
+	{
+		// Show selected creature's pathfinding.
+		int creatureIndex = PathfindingDisplayIndex;
+		if (creatureIndex >= (int)creatures.size())
+			creatureIndex = 0;
+
+		DrawItemPathfinding(creatures[creatureIndex]);
 	}
 }
 

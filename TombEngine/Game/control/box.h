@@ -125,4 +125,7 @@ void InitializeItemBoxData();
 bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType);
 
 void DrawBox(int boxIndex, Vector3 color);
-void DrawNearbyPathfinding(int boxIndex);
+void DrawLaraPathfinding(int boxIndex);
+void DrawItemPathfinding(int itemNumber);
+void DrawPathfindingDebug(int laraBoxIndex);
+void CyclePathfindingDisplay();
