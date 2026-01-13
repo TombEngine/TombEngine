@@ -99,7 +99,7 @@ void DrawBox(int boxIndex, Vector3 color)
 
 void DrawNearbyPathfinding(int boxIndex)
 {
-	if (boxIndex == NO_VALUE)
+	/*if (boxIndex == NO_VALUE)
 		return;
 
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
@@ -125,6 +125,51 @@ void DrawNearbyPathfinding(int boxIndex)
 			break;
 		else
 			index++;
+	}*/
+
+	// Draw shark pathfinding
+	for (auto& item : g_Level.Items)
+	{
+		if (item.ObjectNumber == ID_SHARK && item.IsCreature())
+		{
+			auto* creature = GetCreatureInfo(&item);
+			const auto& LOT = creature->LOT;
+
+			// Green: current box (where shark is)
+			if (item.BoxNumber != NO_VALUE)
+				DrawBox(item.BoxNumber, Vector3(0, 1, 0));
+
+			// Blue: TargetBox (pathfinding destination)
+			if (LOT.TargetBox != NO_VALUE)
+				DrawBox(LOT.TargetBox, Vector3(0, 0, 1));
+
+			// Cyan: RequiredBox (if different from TargetBox)
+			if (LOT.RequiredBox != NO_VALUE && LOT.RequiredBox != LOT.TargetBox)
+				DrawBox(LOT.RequiredBox, Vector3(0, 1, 1));
+
+			// Red: trace path from current box to target following exitBox
+			if (item.BoxNumber != NO_VALUE && LOT.TargetBox != NO_VALUE)
+			{
+				int currentBox = item.BoxNumber;
+				int maxSteps = 100; // Prevent infinite loops
+
+				while (currentBox != NO_VALUE &&
+				       currentBox != LOT.TargetBox &&
+				       maxSteps-- > 0)
+				{
+					// Skip drawing current box again (already green)
+					if (currentBox != item.BoxNumber)
+						DrawBox(currentBox, Vector3(1, 0, 0));
+
+					int nextBox = LOT.Node[currentBox].exitBox;
+
+					if (nextBox == NO_VALUE || nextBox == currentBox)
+						break;
+
+					currentBox = nextBox;
+				}
+			}
+		}
 	}
 }
 
@@ -1224,8 +1269,8 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (flags & BOX_END_BIT)
 					done = true;
 
-				// ZONE CHECK: Creatures that can move in 3D (fly/swim) bypass zone check.
-				if (LOT->Fly == NO_FLYING && searchZone != zone[boxNumber])
+				// ZONE CHECK: Only flyers and amphibious creatures bypass zone check.
+				if (LOT->Zone != ZoneType::Flyer && LOT->Zone != ZoneType::Amphibious && searchZone != zone[boxNumber])
 					continue;
 
 				// HEIGHT CHECK: Can creature traverse the height difference?
