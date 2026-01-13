@@ -1902,24 +1902,28 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	{
 	case MoodType::Bored:
 		// BORED: Wander randomly, but prefer boxes that allow stalking enemy.
-		// Pick a random box from the creature's navigable zone.
-		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
-		if (ValidBox(item, AI->zoneNumber, boxNumber))
+		// Only pick new target if we don't have one or reached current target.
+		if (LOT->RequiredBox == NO_VALUE || item->BoxNumber == LOT->TargetBox)
 		{
-			// If enemy is reachable and box allows stalking, use it (keeps creature near enemy).
-			if (StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
+			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+			if (ValidBox(item, AI->zoneNumber, boxNumber))
 			{
-				TargetBox(LOT, boxNumber);
-				creature->Mood = MoodType::Bored;
+				// If enemy is reachable and box allows stalking, use it (keeps creature near enemy).
+				if (StalkBox(item, enemy, boxNumber) && enemy->HitPoints > 0)
+				{
+					TargetBox(LOT, boxNumber);
+				}
+				else
+				{
+					TargetBox(LOT, boxNumber);
+				}
 			}
-			// No current target - just use this random box.
-			else if (LOT->RequiredBox == NO_VALUE)
-			{
-				TargetBox(LOT, boxNumber);
-			}
-			// If enemy is unreachable, current target is near enemy, and new box is NOT near enemy, switch target.
-			// This prevents creature from hovering near unreachable enemy.
-			else if (StalkBox(item, enemy, LOT->RequiredBox) && !StalkBox(item, enemy, boxNumber))
+		}
+		// If enemy is unreachable, current target is near enemy, and we should move away.
+		else if (StalkBox(item, enemy, LOT->RequiredBox))
+		{
+			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+			if (ValidBox(item, AI->zoneNumber, boxNumber) && !StalkBox(item, enemy, boxNumber))
 			{
 				TargetBox(LOT, boxNumber);
 			}
