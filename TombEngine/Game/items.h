@@ -41,7 +41,8 @@ enum ItemStatus
 
 enum ItemFlags
 {
-	IFLAG_TRIGGERED       = 1 << 5,
+	IFLAG_TRIGGERED		  = 1 << 5,
+	IFLAG_SWITCH_ONESHOT  = 1 << 6,
 	IFLAG_CLEAR_BODY	  = 1 << 7,
 	IFLAG_INVISIBLE		  = 1 << 8,
 	IFLAG_ACTIVATION_MASK = 0x1F << 9, // Bits 9-13 (IFLAG_CODEBITS)
