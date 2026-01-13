@@ -426,9 +426,9 @@ namespace TEN::Entities::Creatures::TR3
 			creature->MaxTurn = SOPHIALEIGH_RUN_TURN_RATE_MAX;
 			data->tilt = data->angle / 2;
 
-			if (creature->ReachedGoal)
+			if (creature->ReachedGoal || ai.distance <= SOPHIALEIGH_WALK_RANGE)
 			{
-				item.Animation.TargetState = SOPHIALEIGH_STATE_STAND;
+				item.Animation.TargetState = SOPHIALEIGH_STATE_WALK;
 				break;
 			}
 			break;

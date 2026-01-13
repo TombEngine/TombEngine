@@ -1388,21 +1388,19 @@ void FindAITarget(CreatureInfo* creature, short objectNumber)
 	}
 }
 
-void FindAITargetObject(CreatureInfo* creature, int objectNumber)
+bool FindAITargetObject(CreatureInfo* creature, int objectNumber)
 {
 	const auto& item = g_Level.Items[creature->ItemNumber];
-
-	FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
+	return FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
 }
 
-void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
+bool FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
-	auto& item = g_Level.Items[creature->ItemNumber];
-
-	if (g_Level.AIObjects.empty())
-		return;
-
 	AI_OBJECT* foundObject = nullptr;
+	if (g_Level.AIObjects.empty())
+		return false;
+
+	auto& item = g_Level.Items[creature->ItemNumber];
 
 	for (auto& aiObject : g_Level.AIObjects)
 	{
@@ -1429,7 +1427,7 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool 
 	}
 
 	if (foundObject == nullptr)
-		return;
+		return false;
 
 	auto& aiItem = *creature->AITarget;
 
@@ -1451,6 +1449,8 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool 
 		creature->AITarget->Pose.Position.x += CLICK(1) * sinY;
 		creature->AITarget->Pose.Position.z += CLICK(1) * cosY;
 	}
+
+	return true;
 }
 
 int TargetReachable(ItemInfo* item, ItemInfo* enemy)
