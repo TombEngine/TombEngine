@@ -110,7 +110,7 @@ namespace TEN::Entities::Traps
 			StoreInterpolationData();
 			auto pos = Origin.ToVector3();
 			auto dir = Rotation.ToDirection();
-			auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
+			auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, (float)item.ItemFlags[1]);
 			if (los.IsIntersected) // Only calculate if we have a valid target.
 			{
 				Target = GameVector(los.Position, los.RoomNumber);
@@ -143,6 +143,7 @@ namespace TEN::Entities::Traps
 	void InitializeLaserBeam(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
+		item.ItemFlags[1] = MAX_VISIBILITY_DISTANCE; // Set max laser beam length.
 
 		// Create and initialize laser beam effect.
 		auto beam = LaserBeamEffect{};
