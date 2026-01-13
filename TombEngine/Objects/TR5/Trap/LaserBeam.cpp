@@ -206,7 +206,7 @@ namespace TEN::Entities::Traps
 			return;
 
 		// Avoid calling the collision check every frame.
-		if (!(GlobalCounter & FPS))
+		if ((item.Index % 3) != (GlobalCounter % 3))
 			return;
 
 		// Populate the LosRoomNumbers for ObjectOnLOS2.
