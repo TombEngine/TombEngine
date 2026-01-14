@@ -410,9 +410,14 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	else
 		boxHeight = item->Floor;
 
-	// Use creature's top (Y1) for ceiling collision checks.
 	auto bounds = GameBoundingBox(item);
-	int y = item->Pose.Position.y + bounds.Y1;
+	int y = item->Pose.Position.y;
+
+	// Use land creature's top (Y1) for ceiling collision checks.
+	// For water creatures, it is ignored because water surface clamp may freeze them.
+	if (LOT->Zone != ZoneType::Water)
+		y+= bounds.Y1;
+
 	short roomNumber = item->RoomNumber;
 
 	// Get floor info at new position.
@@ -443,12 +448,12 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	else
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
+	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop;
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
-	if (floor->PathfindingBoxID == NO_VALUE || !LOT->IsJumping &&
-		(LOT->Fly == NO_FLYING && item->BoxNumber != NO_VALUE && zone[item->BoxNumber] != zone[floor->PathfindingBoxID] ||
-			boxHeight - height > LOT->Step ||
-			boxHeight - height < LOT->Drop))
+	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
 	{
 		// Calculate which sector boundary to push creature to.
 		xPos = item->Pose.Position.x / BLOCK(1);
@@ -636,10 +641,12 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 				else
 					top = bounds.Y1;
 
+				int topPos = item->Pose.Position.y + top;
+
 				// Check ceiling collision when swimming up.
-				if (item->Pose.Position.y + top + dy < ceiling)
+				if (topPos + dy < ceiling)
 				{
-					if (item->Pose.Position.y + top < ceiling)
+					if (topPos < ceiling)
 					{
 						// Already stuck in ceiling - push back and swim down.
 						item->Pose.Position.x = prevPos.x;
@@ -648,6 +655,17 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					}
 					else
 						dy = 0;
+				}
+
+				// Additionally check water level for water creatures.
+				if (Objects[item->ObjectNumber].LotType == LotType::Water)
+				{
+					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+					if (topPos + dy < waterHeight)
+					{
+						item->Pose.Position.y = prevPos.y;
+						dy = 0;
+					}
 				}
 			}
 			else
@@ -1847,7 +1865,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
 	// Update creature's current box and zone.
-	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
+	item->BoxNumber = GetPointCollision(item->Pose.Position, item->RoomNumber).GetSector().PathfindingBoxID;
 	AI->zoneNumber = zone[item->BoxNumber];
 
 	// Get enemy's box (if reachable) and zone.
