@@ -416,7 +416,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	// Use land creature's top (Y1) for ceiling collision checks.
 	// For water creatures, it is ignored because water surface clamp may freeze them.
 	if (LOT->Zone != ZoneType::Water)
-		y+= bounds.Y1;
+		y += bounds.Y1;
 
 	short roomNumber = item->RoomNumber;
 
@@ -621,10 +621,24 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	{
 		// FLYING/SWIMMING: Move toward target Y at Fly speed.
 		int dy = creature->Target.y - item->Pose.Position.y;
-		if (dy > LOT->Fly)
-			dy = LOT->Fly;
-		else if (dy < -LOT->Fly)
-			dy = -LOT->Fly;
+
+		// New TEN behaviour: if next passable box's height is higher than current
+		// creature Y position, force upward movement to overcome it. Original pathfinder
+		// would just stuck in such cases.
+
+		if (item->BoxNumber != NO_VALUE)
+		{
+			int nextBox = creature->LOT.Node[item->BoxNumber].exitBox;
+
+			if (nextBox != NO_VALUE && nextBox != item->BoxNumber)
+			{
+				if (g_Level.PathfindingBoxes[nextBox].height < item->Pose.Position.y)
+					dy = -LOT->Fly;
+			}
+		}
+
+		// Clamp vertical movement to min/max fly speed.
+		dy = std::clamp(dy, -LOT->Fly, (int)LOT->Fly);
 
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 		if (item->Pose.Position.y + dy <= height)
@@ -635,11 +649,9 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			{
 				ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
-				// Whale has special smaller collision height.
-				if (item->ObjectNumber == ID_WHALE)
-					top = CLICK(0.5f);
-				else
-					top = bounds.Y1;
+				// Was hardcoded to CLICK(0.5f) for whale/shark enemies, but now it's redundant
+				// because we do water surface height check down the line.
+				top = bounds.Y1;
 
 				int topPos = item->Pose.Position.y + top;
 
@@ -656,14 +668,14 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 						dy = 0;
 				}
 
-				// Additionally check water level for water creatures.
+				// New TEN behaviour: additionally check water level for water creatures.
 				if (Objects[item->ObjectNumber].LotType == LotType::Water)
 				{
 					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
 					if (topPos + dy < waterHeight)
 					{
 						item->Pose.Position.y = prevPos.y;
-						dy = 0;
+						dy = std::max(0, dy);
 					}
 				}
 			}
@@ -2327,8 +2339,10 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			if (target->y > box->height - BLOCK(1))
 				target->y = box->height - BLOCK(1);
 		}
-		else if(target->y > box->height)
+		else if (target->y > box->height)
+		{
 			target->y = box->height;
+		}
 
 		// Get current box boundaries.
 		boxLeft = ((int)box->left * BLOCK(1));
