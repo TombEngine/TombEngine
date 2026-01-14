@@ -448,7 +448,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	else
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
-	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop;
+	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
 	bool zoneIncorrect = item->BoxNumber != NO_VALUE && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
 
 	// ZONE/STEP/DROP VALIDATION:
