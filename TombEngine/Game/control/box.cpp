@@ -649,8 +649,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					if (topPos < ceiling)
 					{
 						// Already stuck in ceiling - push back and swim down.
-						item->Pose.Position.x = prevPos.x;
-						item->Pose.Position.z = prevPos.z;
+						item->Pose.Position = prevPos;
 						dy = LOT->Fly;
 					}
 					else
