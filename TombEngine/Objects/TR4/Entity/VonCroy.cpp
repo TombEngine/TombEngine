@@ -88,8 +88,6 @@ namespace TEN::Entities::TR4
 		VON_CROY_STATE_POSITION_ADJUST_BACK = 37
 	};
 
-	const auto VonCroyTalkStateList = std::vector<int>{ VON_CROY_STATE_TALK_1, VON_CROY_STATE_TALK_2, VON_CROY_STATE_TALK_3 };
-
 	enum VonCroyAnim
 	{
 		VON_CROY_ANIM_WALK_FORWARD = 0,
@@ -153,6 +151,8 @@ namespace TEN::Entities::TR4
 		VON_CROY_ANIM_ALIGN_BACK = 58,
 		VON_CROY_ANIM_LAND_TO_RUN = 59
 	};
+
+	const auto VonCroyTalkStateList = std::vector<int>{ VON_CROY_STATE_TALK_1, VON_CROY_STATE_TALK_2, VON_CROY_STATE_TALK_3 };
 
 	static void DoKnifeMeshSwap(ItemInfo& item, bool forceEquip = false)
 	{
@@ -256,6 +256,8 @@ namespace TEN::Entities::TR4
 				switch (item.ItemFlags[2])
 				{
 				case 1: // Call lara.
+					GetRotationTowardPlayer(item, *LaraItem, torso.y, torso.x);
+					RotateTowardTarget(item, ai.angle, VON_CROY_ADJUST_POSITION_TURN_RATE);
 					if (item.Timer == 0)
 					{
 						if (IsPlayerNear(item, *LaraItem, VON_CROY_CALL_LARA_RANGE))
@@ -293,7 +295,7 @@ namespace TEN::Entities::TR4
 					else if (item.Animation.FrameNumber == VON_CROY_BOOK_UNEQUIP_FRAME)
 					{
 						DoBookMeshSwap(item);
-						item.SetFlagField(2, 3); // Do the normal talk after the book talk is finished.
+						item.ItemFlags[2] = 3; // Do the normal talk after the book talk is finished.
 					}
 					break;
 				}
@@ -356,11 +358,6 @@ namespace TEN::Entities::TR4
 				item.Animation.TargetState = VON_CROY_STATE_WALK;
 			}
 
-			break;
-
-		case VON_CROY_STATE_CALL_LARA_1:
-		case VON_CROY_STATE_CALL_LARA_2:
-			GetRotationTowardPlayer(item, *LaraItem, torso.y, torso.x);
 			break;
 
 		case VON_CROY_STATE_WALK:
