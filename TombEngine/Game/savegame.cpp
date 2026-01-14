@@ -794,6 +794,8 @@ const std::vector<byte> SaveGame::Build()
 
 			Save::PushableBuilder pushableBuilder{ fbb };
 
+			pushableBuilder.add_previous_trigger_flags((int)pushable->PreviousTriggerFlags);
+
 			pushableBuilder.add_pushable_behaviour_state((int)pushable->BehaviorState);
 			pushableBuilder.add_pushable_gravity(pushable->Gravity);
 			pushableBuilder.add_pushable_water_force(pushable->Oscillation);
@@ -2976,6 +2978,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		{
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
+
+			pushable->PreviousTriggerFlags = (short)savedPushable->previous_trigger_flags();
 
 			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();

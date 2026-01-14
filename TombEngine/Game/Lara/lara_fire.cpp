@@ -933,15 +933,19 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 	// We need to subtract Lara's radius from distance to avoid near plane false negatives.
 	distance -= playerSize;
 
+	// Get raw LOS data.
+	auto los = GetLosCollision(origin, playerItem.RoomNumber, dir, distance, true, true, true);
+	
 	// Assess static mesh line of sight.
-	auto staticLos = GetStaticLosCollision(origin, playerItem.RoomNumber, dir, distance);
-	if (staticLos.has_value() && staticLos.value().Static != nullptr && staticLos.value().Distance < distance)
+	if (!los.Statics.empty() && los.Statics.front().Distance < distance)
 	{
+		auto& staticLos = los.Statics.front();
+
 		// Don't filter out shatterables.
-		if (Statics[staticLos.value().Static->Slot].shatterType == ShatterType::None)
+		if (Statics[staticLos.Static->Slot].shatterType == ShatterType::None)
 		{
 			// Filter out statics that are too small.
-			auto extents = staticLos.value().Static->GetCollisionAabb().GetExtents();
+			auto extents = staticLos.Static->GetCollisionAabb().GetExtents();
 			auto radius = Vector2(extents.x, extents.z).Length();
 
 			if (radius > playerSize && extents.y > playerSize)
@@ -950,15 +954,15 @@ bool IsTargetOccludedByObjects(ItemInfo& playerItem, Vector3 origin, Vector3 tar
 	}
 
 	// Assess moveable line of sight.
-	auto moveableLos = GetItemLosCollision(origin, playerItem.RoomNumber, dir, distance);
-	if (moveableLos.has_value() && moveableLos.value().Item != nullptr && moveableLos.value().Distance < distance)
+	if (!los.Items.empty() && los.Items.front().Distance < distance)
 	{
+		auto& moveableLos = los.Items.front();
+
 		// Don't filter out creatures.
-		if (!Objects[moveableLos.value().Item->ObjectNumber].intelligent &&
-			!Objects[moveableLos.value().Item->ObjectNumber].IgnoreInLOSCheck)
+		if (!Objects[moveableLos.Item->ObjectNumber].intelligent)
 		{
 			// Filter out moveables that are too small.
-			auto extents = moveableLos.value().Item->GetAabb().Extents;
+			auto extents = moveableLos.Item->GetAabb().Extents;
 			auto radius = Vector2(extents.x, extents.z).Length();
 
 			if (radius > playerSize && extents.y > playerSize)

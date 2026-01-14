@@ -499,8 +499,6 @@ namespace TEN::Entities
 			obj->collision = ObjectCollision;
 			obj->control = nullptr;
 			obj->SetHitEffect(true);
-			obj->IgnoreInLOSCheck = true;
-
 		}
 
 		obj = &Objects[ID_HORSEMAN];
