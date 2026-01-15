@@ -114,7 +114,7 @@ namespace TEN::Scripting::Collision
 	
 	/// Get the Room hit by the Ray.
 	// @function Ray:GetRoom
-	// @treturn Room Room object. __nil: no Room was hit.__
+	// @treturn Objects.Room Room object. __nil: no Room was hit.__
 	sol::optional<std::unique_ptr<Room>> Ray::GetRoom()
 	{
 		if (!_los.Room.IsIntersected)
@@ -134,7 +134,7 @@ namespace TEN::Scripting::Collision
 
 	/// Get the distance from the Ray origin to the Room hit position.
 	// @function Ray:GetRoomNumber
-	// @treturn Vec3 Hit distance. __nil: no Room was hit.__
+	// @treturn float Hit distance. __nil: no Room was hit.__
 	sol::optional<float> Ray::GetRoomDistance()
 	{
 		return _los.Room.Distance;
@@ -143,7 +143,7 @@ namespace TEN::Scripting::Collision
 	/// Get the first Moveable hit by the Ray.
 	// Note: Valid Moveables are only possible if Moveable hits were enabled.
 	// @function Ray:GetMoveable
-	// @treturn Moveable Moveable object. __nil: no Moveable was hit.__
+	// @treturn Objects.Moveable Moveable object. __nil: no Moveable was hit.__
 	sol::optional<std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
 		if (_los.Items.empty())
@@ -200,7 +200,7 @@ namespace TEN::Scripting::Collision
 	/// Get the Static hit by the Ray.
 	// Note: Valid Statics are only possible if Moveable hits were enabled.
 	// @function Ray:GetStatic
-	// @treturn Static Static object. __nil: no Static was hit.__
+	// @treturn Objects.Static Static object. __nil: no Static was hit.__
 	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
 	{	
 		if (_los.Statics.empty())
