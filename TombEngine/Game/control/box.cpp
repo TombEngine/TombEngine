@@ -672,7 +672,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 				if (Objects[item->ObjectNumber].LotType == LotType::Water)
 				{
 					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
-					if (topPos + dy < waterHeight)
+					if (topPos + dy <= waterHeight)
 					{
 						item->Pose.Position.y = prevPos.y;
 						dy = std::max(0, dy);
@@ -1876,7 +1876,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
 	// Update creature's current box and zone.
-	item->BoxNumber = GetPointCollision(item->Pose.Position, item->RoomNumber).GetSector().PathfindingBoxID;
+	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 	AI->zoneNumber = zone[item->BoxNumber];
 
 	// Get enemy's box (if reachable) and zone.
