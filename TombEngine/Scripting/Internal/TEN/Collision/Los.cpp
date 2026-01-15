@@ -44,6 +44,7 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetRoomPosition, &Ray::GetRoomPosition,
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
 			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
+			ScriptReserved_RayGetMoveables, & Ray::GetMoveables,
 			ScriptReserved_RayGetMoveablePosition, & Ray::GetMoveablePosition,
 			ScriptReserved_RayGetMoveableDistance, &Ray::GetMoveableDistance,
 			ScriptReserved_RayGetStatic, &Ray::GetStatic,
@@ -139,10 +140,10 @@ namespace TEN::Scripting::Collision
 		return _los.Room.Distance;
 	}
 
-	/// Get the Moveable hit by the Ray.
+	/// Get the first Moveable hit by the Ray.
 	// Note: Valid Moveables are only possible if Moveable hits were enabled.
 	// @function Ray:GetMoveable
-	// @treturn float Moveable Moveable object. __nil: no Moveable was hit.__
+	// @treturn Moveable Moveable object. __nil: no Moveable was hit.__
 	sol::optional<std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
 		if (_los.Items.empty())
@@ -150,6 +151,26 @@ namespace TEN::Scripting::Collision
 
 		auto mov = _los.Items.front().Item;
 		return std::make_unique<Moveable>(mov->Index);;
+	}
+
+	/// Gets all the Moveables hit by the Ray.
+	// Note: Valid Moveables are only possible if Moveable hits were enabled.
+	// @function Ray:GetMoveables
+	// @treturn table Table of moveables hit by the Ray. __nil: no Moveable was hit.__
+	sol::optional<std::vector<std::unique_ptr<Moveable>>> Ray::GetMoveables()
+	{
+		if (_los.Items.empty())
+			return sol::nullopt;
+
+		std::vector<std::unique_ptr<Moveable>> moveables;
+		moveables.reserve(_los.Items.size());
+
+		for (const auto& item : _los.Items)
+		{
+			moveables.push_back(std::make_unique<Moveable>(item.Item->Index));
+		}
+
+		return moveables;
 	}
 
 	/// Get the position of the first Moveable hit by the Ray.
