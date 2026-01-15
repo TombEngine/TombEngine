@@ -453,6 +453,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
+
 	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
 	{
 		// Calculate which sector boundary to push creature to.
@@ -499,6 +500,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	// RADIUS COLLISION:
 	// Check if creature's radius would overlap with bad floor at sector edges.
 	// This prevents creatures from walking off edges or into walls.
+
 	int x = item->Pose.Position.x;
 	int z = item->Pose.Position.z;
 	xPos = x & WALL_MASK; // Position within sector (0-1023).
@@ -595,6 +597,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 
 	// CREATURE-CREATURE COLLISION:
 	// Check for collision with other creatures and turn to avoid.
+
 	short biffAngle;
 	if (item->ObjectNumber != ID_TYRANNOSAUR && item->Animation.Velocity.z && item->HitPoints > 0)
 		biffAngle = CreatureCreature(item->Index);
