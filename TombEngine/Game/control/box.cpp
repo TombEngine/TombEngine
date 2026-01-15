@@ -449,7 +449,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
-	bool zoneIncorrect = item->BoxNumber != NO_VALUE && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
@@ -682,14 +682,21 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					}
 				}
 			}
-			else
+			else if (LOT->Zone == ZoneType::Flyer)
 			{
-				// Flying creatures avoid water/swamp by going up.
-				floor = GetFloor(item->Pose.Position.x, y + CLICK(1), item->Pose.Position.z, &roomNumber);
-				if (TestEnvironment(ENV_FLAG_WATER, roomNumber) ||
-					TestEnvironment(ENV_FLAG_SWAMP, roomNumber))
+				// Flying creatures cannot enter water - check water surface height.
+				int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+				if (waterHeight != NO_HEIGHT)
 				{
-					dy = -LOT->Fly;
+					int bottomPos = item->Pose.Position.y + bounds.Y2;
+
+					// If creature's bottom would enter water, prevent it.
+					if (bottomPos + dy >= waterHeight)
+					{
+						item->Pose.Position.x = prevPos.x;
+						item->Pose.Position.z = prevPos.z;
+						dy = std::min(-LOT->Fly, waterHeight - bottomPos - 1);
+					}
 				}
 			}
 		}
@@ -708,6 +715,17 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		}
 
 		item->Pose.Position.y += dy;
+
+		// Final safety check: if flying creature ended up in water, restore previous position.
+		if (LOT->Zone == ZoneType::Flyer)
+		{
+			int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+			if (waterHeight != NO_HEIGHT && item->Pose.Position.y + bounds.Y2 >= waterHeight)
+			{
+				item->Pose.Position = prevPos;
+			}
+		}
+
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		item->Floor = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
@@ -2006,7 +2024,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 				{
 					TargetBox(LOT, boxNumber);
 				}
-				else
+				else if (LOT->RequiredBox == NO_VALUE)
 				{
 					TargetBox(LOT, boxNumber);
 				}
@@ -2094,6 +2112,15 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	// Calculate the actual world position to move toward.
 	CalculateTarget(&creature->Target, item, &creature->LOT);
+
+	// Flying creatures hover above water surface when enemy is submerged.
+	if (LOT->Zone == ZoneType::Flyer && enemy != nullptr &&
+		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber))
+	{
+		int waterSurfaceHeight = GetPointCollision(enemy->Pose.Position, enemy->RoomNumber).GetWaterSurfaceHeight();
+		if (waterSurfaceHeight != NO_HEIGHT)
+			creature->Target.y = waterSurfaceHeight - CLICK(1);
+	}
 
 	// CHECK FOR SPECIAL TRAVERSAL on path to next box.
 	// These flags tell the creature AI if it needs to jump or monkeyswing.
