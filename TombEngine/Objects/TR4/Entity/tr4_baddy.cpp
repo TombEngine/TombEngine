@@ -716,9 +716,10 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->MonkeySwingAhead)
+				probe = GetPointCollision(*item);
+
+				if (currentCreature->MonkeySwingAhead && probe.GetBottomSector().Flags.Monkeyswing)
 				{
-					probe = GetPointCollision(*item);
 					if (probe.GetCeilingHeight() == probe.GetFloorHeight() - CLICK(6))
 					{
 						if (item->TestMeshSwapFlags(MESHSWAPFLAGS_BADDY_EMPTY))
@@ -734,6 +735,11 @@ namespace TEN::Entities::TR4
 						}
 
 						item->Animation.TargetState = BADDY_STATE_HOLSTER_SWORD;
+						break;
+					}
+					else
+					{
+						currentCreature->Mood = MoodType::Bored;
 						break;
 					}
 				}
