@@ -810,7 +810,7 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->ReachedGoal && currentCreature->MonkeySwingAhead)
+				if (currentCreature->ReachedGoal && currentCreature->MonkeySwingAhead && probe.GetBottomSector().Flags.Monkeyswing)
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
