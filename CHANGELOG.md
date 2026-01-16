@@ -12,14 +12,17 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect handling of negative timer values in classic triggers.
 * Fixed interaction highlighter not working for pushable climbable blocks.
 * Fixed pushables being ignored by other collidable objects after savegame reload.
+* Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
 * Fixed several enemy AI issues.
-* Fixed incorrect CLOCKWORK_BEETLE, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect CLOCKWORK_BEETLE, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
+* Fixed SHOOT_SWITCH objects not activated with projectile weapons.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
@@ -29,6 +32,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
 * Fixed flickering pickup highlighter item count in high FPS mode.
+* Fixed linear inventory not fading ammo and combine selectors.
 
 ### Lua API changes
 * Added new `View.DisplayItem` class that can be used to render 3D items on top of the viewport.

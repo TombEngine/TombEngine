@@ -275,49 +275,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		{
 			if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
 			{
-				if (!(item->Flags & 0x40))
-				{
-					if (item->ObjectNumber == ID_SHOOT_SWITCH1)
-						ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
-
-					if (item->TriggerFlags == 444 && item->ObjectNumber == ID_SHOOT_SWITCH2)
-					{
-						// TR5 ID_SWITCH_TYPE_8/ID_SHOOT_SWITCH2
-						ProcessExplodingSwitchType8(item);
-					}
-					else
-					{
-						/*if (item->objectNumber == ID_SHOOT_SWITCH3)
-						{
-						// TR4 ID_SWITCH_TYPE7
-						ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
-						}*/
-
-						if (item->Flags & IFLAG_ACTIVATION_MASK &&
-							(item->Flags & IFLAG_ACTIVATION_MASK) != IFLAG_ACTIVATION_MASK)
-						{
-							TestTriggers(item->Pose.Position.x, item->Pose.Position.y - 256, item->Pose.Position.z, item->RoomNumber, true, item->Flags & IFLAG_ACTIVATION_MASK);
-						}
-						else
-						{
-							short triggerItems[8];
-							for (int count = GetSwitchTrigger(item, triggerItems, 1); count > 0; --count)
-							{
-								AddActiveItem(triggerItems[count - 1]);
-								g_Level.Items[triggerItems[count - 1]].Status = ITEM_ACTIVE;
-								g_Level.Items[triggerItems[count - 1]].Flags |= IFLAG_ACTIVATION_MASK;
-							}
-						}
-					}
-				}
-
-				if (item->Status != ITEM_DEACTIVATED)
-				{
-					AddActiveItem(itemNumber);
-					item->Status = ITEM_ACTIVE;
-					item->Flags |= IFLAG_ACTIVATION_MASK | 0x40;
-				}
-
+				ProcessShootSwitch(item);
 				hitProcessed = true;
 			}
 

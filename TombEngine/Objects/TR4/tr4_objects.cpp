@@ -499,10 +499,6 @@ namespace TEN::Entities
 			obj->collision = ObjectCollision;
 			obj->control = nullptr;
 			obj->SetHitEffect(true);
-			// NOTE: Set intelligent to prevent horse from blocking LOS to horseman.
-			// Set NOT_TARGETABLE to ensure horse is never a valid target.
-			obj->intelligent = true;
-			obj->HitPoints = NOT_TARGETABLE;
 		}
 
 		obj = &Objects[ID_HORSEMAN];
@@ -514,7 +510,7 @@ namespace TEN::Entities
 			obj->HitRoutine = HorsemanHit;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 25;
-			obj->pivotLength = 500;
+			obj->pivotLength = 50;
 			obj->radius = 409;
 			obj->intelligent = true;
 			obj->SetHitEffect(true);

@@ -739,9 +739,16 @@ static void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFla
 	if (muzzleFlash.Delay == 0)
 		return;
 
+	auto intensity = Random::GenerateFloat(0.75f, 1.0f);
+
+	auto r = (unsigned char)(128.0f * intensity);
+	auto g = (unsigned char)(64.0f  * intensity);
+	auto b = (unsigned char)(16.0f  * intensity);
+	auto falloff = (unsigned char)(15.0f * intensity);
+
 	auto muzzlePos = muzzleFlash.Bite;
 	auto pos = GetJointPosition(item, muzzlePos);
-	SpawnDynamicLight(pos.x, pos.y, pos.z, 15, 128, 64, 16);
+	SpawnDynamicLight(pos.x, pos.y, pos.z, falloff, r, g, b);
 
 	if (muzzleFlash.UseSmoke)
 	{

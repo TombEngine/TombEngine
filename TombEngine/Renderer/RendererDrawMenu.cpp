@@ -769,6 +769,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderNewInventory()
 	{
+		g_Gui.DrawCompass(LaraItem);
+
 		g_Gui.DrawCurrentObjectList(LaraItem, RingTypes::Inventory);
 
 		if (g_Gui.GetRing(RingTypes::Ammo).RingActive)
@@ -776,7 +778,6 @@ namespace TEN::Renderer
 
 		g_Gui.DrawAmmoSelector();
 		g_Gui.FadeAmmoSelector();
-		g_Gui.DrawCompass(LaraItem);
 
 		DrawAllStrings();
 	}

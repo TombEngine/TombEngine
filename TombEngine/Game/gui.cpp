@@ -2660,6 +2660,12 @@ namespace TEN::Gui
 		if (!AmmoSelectorFlag)
 			return;
 
+		float opacity = AmmoSelectorFadeVal / 128.0f;
+
+		// Don't draw fading UI elements if opacity is lower than minimal threshold.
+		if (opacity <= 0.1f)
+			return;
+
 		int xPos = (2 * PHD_CENTER_X - OBJLIST_SPACING) / 2;
 		if (NumAmmoSlots == 2)
 			xPos -= OBJLIST_SPACING / 2;
@@ -2688,14 +2694,14 @@ namespace TEN::Gui
 
 				int x = PHD_CENTER_X - 300 + xPos;
 				int y = 480;
-				short objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
-				float scaler = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
+				int objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
+				float scale = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
 
 				if (n == *CurrentAmmoType)
 				{
 					char invTextBuffer[256];
 
-					if (AmmoObjectList[n].Amount == -1)
+					if (AmmoObjectList[n].Amount == NO_VALUE)
 					{
 						sprintf(&invTextBuffer[0], g_GameFlow->GetString(STRING_UNLIMITED), g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName));
 					}
@@ -2704,22 +2710,14 @@ namespace TEN::Gui
 						sprintf(&invTextBuffer[0], "%d x %s", AmmoObjectList[n].Amount, g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName));
 					}
 
-					// CHECK: AmmoSelectorFadeVal is never true and therefore the string is never printed.
-					if (AmmoSelectorFadeVal > 0)
-					{
-						auto color = g_GameFlow->GetSettings()->UI.OptionTextColor;
-						color.SetA(std::clamp(AmmoSelectorFadeVal * 2, 0, UCHAR_MAX));
-						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], color, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
-					}
-
-					if (n == *CurrentAmmoType)
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
-					else
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					auto color = g_GameFlow->GetSettings()->UI.OptionTextColor;
+					color.SetA(opacity * UCHAR_MAX);
+					g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], color, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 				else
 				{
-					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 
 				xPos += OBJLIST_SPACING;
@@ -2743,7 +2741,7 @@ namespace TEN::Gui
 			if (CombineRingFadeDir == 1)
 			{
 				if (CombineRingFadeVal < 128)
-					CombineRingFadeVal += 32;
+					CombineRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal > 128)
 				{
@@ -2753,7 +2751,7 @@ namespace TEN::Gui
 			}
 			else if (CombineRingFadeDir == 2)
 			{
-				CombineRingFadeVal -= 32;
+				CombineRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal <= 0)
 				{
@@ -2779,7 +2777,7 @@ namespace TEN::Gui
 		else if (NormalRingFadeDir == 1)
 		{
 			if (NormalRingFadeVal < 128)
-				NormalRingFadeVal += 32;
+				NormalRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal > 128)
 			{
@@ -2792,7 +2790,7 @@ namespace TEN::Gui
 		}
 		else if (NormalRingFadeDir == 2)
 		{
-			NormalRingFadeVal -= 32;
+			NormalRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal <= 0)
 			{
@@ -2904,20 +2902,20 @@ namespace TEN::Gui
 				if (!minObj && !maxObj)
 					shade = 128;
 
-				if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
-				{
-					shade = CombineRingFadeVal;
-				}
-				else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
-				{
-					shade = NormalRingFadeVal;
-				}
-
 				auto& listObject = ring.CurrentObjectList[n];
 				const auto& invObject = InventoryObjectTable[listObject.InventoryItem];
 
 				if (!i)
 				{
+					if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
+					{
+						shade = CombineRingFadeVal;
+					}
+					else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
+					{
+						shade = NormalRingFadeVal;
+					}
+
 					int numItems = 0;
 					int count = 0;
 					char textBuffer[128];
@@ -3105,10 +3103,11 @@ namespace TEN::Gui
 				int y2 = 480; // Combine.
 				short objectNumber = ConvertInventoryItemToObject(listObject.InventoryItem);
 				float scaler = invObject.Scale1;
+				float opacity = shade / 128.0f;
 				auto& orient = listObject.Orientation;
 				int bits = invObject.MeshBits;
 
-				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, 1.0f, bits);
+				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, opacity, bits);
 
 				if (++n >= ring.NumObjectsInList)
 					n = 0;
