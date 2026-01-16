@@ -92,22 +92,23 @@ namespace TEN::Entities::TR4
 	bool IsCrocodileInWater(ItemInfo* item)
 	{
 		auto* creature = GetCreatureInfo(item);
+		auto bounds = GameBoundingBox(item);
 
-		int waterDepth = GetPointCollision(*item).GetWaterSurfaceHeight();
-		if (waterDepth != NO_HEIGHT)
+		int waterDepth = GetPointCollision(*item).GetWaterTopHeight();
+		if (waterDepth != NO_HEIGHT && waterDepth <= (item->Pose.Position.y + bounds.Y2))
 		{
 			creature->LOT.Step = BLOCK(20);
 			creature->LOT.Drop = -BLOCK(20);
 			creature->LOT.Fly = CROC_SWIM_SPEED;
+			return true;
 		}
 		else
 		{
 			creature->LOT.Step = CLICK(1);
 			creature->LOT.Drop = -CLICK(1);
 			creature->LOT.Fly = NO_FLYING;
+			return false;
 		}
-
-		return waterDepth != NO_HEIGHT;
 	}
 
 	void CrocodileControl(short itemNumber)
