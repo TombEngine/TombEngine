@@ -106,6 +106,8 @@ struct ObjectInfo
 	void SetBoneRotationFlags(int boneID, int flags);
 	void SetHitEffect(HitEffect hitEffect);
 	void SetHitEffect(bool isSolid = false, bool isAlive = false);
+
+	bool WaterCreature() const { return LotType == LotType::Water || LotType == LotType::Amphibious; }
 };
 
 class ObjectHandler

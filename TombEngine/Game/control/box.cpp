@@ -1019,8 +1019,7 @@ void CreatureHealth(ItemInfo* item)
 	if (creature->Poisoned && item->HitPoints > 1 && (GlobalCounter & 0x1F) == 0x1F)
 		item->HitPoints--;
 
-	if (!(Objects[item->ObjectNumber].LotType == LotType::Water ||
-		  Objects[item->ObjectNumber].LotType == LotType::Amphibious) &&
+	if (!Objects[item->ObjectNumber].WaterCreature() &&
 		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &g_Level.Rooms[item->RoomNumber]))
 	{
 		auto bounds = GameBoundingBox(item);
