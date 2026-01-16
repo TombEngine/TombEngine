@@ -681,6 +681,8 @@ short Moveable::GetLocationAI() const
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
+		if (creature->LocationAI < 0) // Avoid invalid AI index.
+			creature->LocationAI = 0;
 		return creature->LocationAI;
 	}
 
@@ -700,6 +702,8 @@ void Moveable::SetLocationAI(short value)
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
+		if (value < 0) // Avoid invalid AI index.
+			value = 0;
 		creature->LocationAI = value;
 	}
 	else
