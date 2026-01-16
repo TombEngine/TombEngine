@@ -74,6 +74,11 @@ constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f); // Maximum joint rota
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 
+// Pathfinding debug display state:
+// -1 = show Lara's nearby boxes
+// >= 0 = index into active creatures list
+static int PathfindingDisplayIndex = NO_VALUE;
+
 void DrawBox(int boxIndex, Vector3 color)
 {
 	if (boxIndex == NO_VALUE)
@@ -96,11 +101,6 @@ void DrawBox(int boxIndex, Vector3 color)
 		DrawDebugBox(dBox, Vector4(color.x, color.y, color.z, 1), RendererDebugPage::PathfindingStats);
 	}
 }
-
-// Pathfinding debug display state:
-// -1 = show Lara's nearby boxes
-// >= 0 = index into active creatures list
-static int PathfindingDisplayIndex = -1;
 
 void DrawLaraPathfinding(int boxIndex)
 {
