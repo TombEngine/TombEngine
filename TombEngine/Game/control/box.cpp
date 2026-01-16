@@ -952,18 +952,16 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 
 	int x = creature->Target.x - item->Pose.Position.x;
 	int z = creature->Target.z - item->Pose.Position.z;
-	angle = phd_atan(z, x) - item->Pose.Orientation.y;
-	int range = (item->Animation.Velocity.z * 16384) / maxTurn;
-	int distance = SQUARE(z) + SQUARE(x);
 
-	if (angle > FRONT_ARC || angle < -FRONT_ARC && distance < SQUARE(range))
+	angle = phd_atan(z, x) - item->Pose.Orientation.y;
+
+	int range = (item->Animation.Velocity.z * BLOCK(16)) / maxTurn;
+	int distance = Vector2(x, z).Length();
+
+	if ((angle > FRONT_ARC || angle < -FRONT_ARC) && distance < range)
 		maxTurn /= 2;
 
-	if (angle > maxTurn)
-		angle = maxTurn;
-	else if (angle < -maxTurn)
-		angle = -maxTurn;
-
+	angle = std::clamp(angle, (short)(-maxTurn), maxTurn);
 	item->Pose.Orientation.y += angle;
 
 	return angle;
