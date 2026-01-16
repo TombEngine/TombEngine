@@ -646,45 +646,40 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 		if (item->Pose.Position.y + dy <= height)
 		{
-			// Water creatures check ceiling collision.
-			if (Objects[item->ObjectNumber].LotType == LotType::Water ||
-				Objects[item->ObjectNumber].LotType == LotType::Amphibious)
+			ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
+
+			// Was hardcoded to CLICK(0.5f) for whale/shark enemies, but now it's redundant
+			// because we do water surface height check down the line.
+			top = bounds.Y1;
+
+			int topPos = item->Pose.Position.y + top;
+
+			// Check ceiling collision when swimming up.
+			if (topPos + dy < ceiling)
 			{
-				ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
-
-				// Was hardcoded to CLICK(0.5f) for whale/shark enemies, but now it's redundant
-				// because we do water surface height check down the line.
-				top = bounds.Y1;
-
-				int topPos = item->Pose.Position.y + top;
-
-				// Check ceiling collision when swimming up.
-				if (topPos + dy < ceiling)
+				if (topPos < ceiling)
 				{
-					if (topPos < ceiling)
-					{
-						// Already stuck in ceiling - push back and swim down.
-						item->Pose.Position = prevPos;
-						dy = LOT->Fly;
-					}
-					else
-						dy = 0;
+					// Already stuck in ceiling - push back and swim down.
+					item->Pose.Position = prevPos;
+					dy = LOT->Fly;
 				}
+				else
+					dy = 0;
+			}
 
-				// New TEN behaviour: additionally check water level for water creatures.
-				if (Objects[item->ObjectNumber].LotType == LotType::Water)
+			if (LOT->Zone == ZoneType::Water)
+			{
+				// New TEN behaviour: clamp water creatures below water level.
+				int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+				if (topPos + dy <= waterHeight)
 				{
-					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
-					if (topPos + dy <= waterHeight)
-					{
-						item->Pose.Position.y = prevPos.y;
-						dy = std::max(0, dy);
-					}
+					item->Pose.Position.y = prevPos.y;
+					dy = std::max(0, dy);
 				}
 			}
 			else if (LOT->Zone == ZoneType::Flyer)
 			{
-				// Flying creatures cannot enter water - check water surface height.
+				// New TEN behaviour: clamp flying creatures above water level.
 				int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
 				if (waterHeight != NO_HEIGHT)
 				{
