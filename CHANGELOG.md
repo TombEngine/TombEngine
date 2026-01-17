@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 * Added faster Xorshift32 random number generation method.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
