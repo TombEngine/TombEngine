@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/DrillBit.h"
 
-#include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/effects/effects.h"
@@ -31,8 +30,8 @@ namespace TEN::Entities::Traps
 		auto pos = Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation.y, 510);
 		auto targetGameVector = GameVector(pos + Vector3(0, -510, 0), item.RoomNumber);
 
-			if ((item.Animation.FrameNumber - GetAnimData(item).frameBase) > DRILL_BIT_EFFECT_START_FRAME &&
-				(item.Animation.FrameNumber - GetAnimData(item).frameBase) < DRILL_BIT_EFFECT_END_FRAME &&
+			if (item.Animation.FrameNumber > DRILL_BIT_EFFECT_START_FRAME &&
+				item.Animation.FrameNumber < DRILL_BIT_EFFECT_END_FRAME &&
 				item.TriggerFlags)
 			{				
 				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 2, Vector4(2.0f, 1.8f, 0.2f, 1.0f));

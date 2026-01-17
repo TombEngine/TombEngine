@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR2/Trap/OverheadPulleyHook.h"
 
-#include "Game/animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/effects.h"
@@ -20,9 +19,8 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		if ((item.Animation.FrameNumber > GetAnimData(item).frameBase + 54 &&
-			item.Animation.FrameNumber < GetAnimData(item).frameBase + 66) ||
-			(item.Animation.FrameNumber > GetAnimData(item).frameBase + 114))
+		if ((item.Animation.FrameNumber > 54 && item.Animation.FrameNumber < 66) ||
+			(item.Animation.FrameNumber > 114))
 		{
 			item.ItemFlags[3] = 0;
 		}
