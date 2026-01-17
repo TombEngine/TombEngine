@@ -852,9 +852,8 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->Mood == MoodType::Attack &&
-					!(currentCreature->JumpAhead) &&
-					AI.distance > pow(BLOCK(1), 2))
+				if ((currentCreature->Mood == MoodType::Attack && !(currentCreature->JumpAhead) && AI.distance > pow(BLOCK(1), 2)) ||
+					 currentCreature->Mood == MoodType::Escape)
 				{
 					item->Animation.TargetState = BADDY_STATE_RUN;
 				}
