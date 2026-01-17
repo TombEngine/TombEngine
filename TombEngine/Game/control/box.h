@@ -95,7 +95,7 @@ bool SameZone(CreatureInfo* creature, ItemInfo* target);
 short AIGuard(CreatureInfo* creature);
 void AlertNearbyGuards(ItemInfo* item);
 void AlertAllGuards(short itemNumber);
-void CreatureKill(ItemInfo* item, int entityKillAnim, int laraExtraKillAnim, int entityKillState, int laraKillState);
+void CreatureKill(ItemInfo* item, int creatureAnimNumber, int playerExtraAnimNumber, int creatureState = NO_VALUE, int playerKillState = NO_VALUE);
 short CreatureEffect2(ItemInfo* item, const CreatureBiteInfo& bite, short velocity, short angle, std::function<CreatureEffectFunction> func);
 short CreatureEffect(ItemInfo* item, const CreatureBiteInfo& bite, std::function<CreatureEffectFunction> func);
 void CreatureUnderwater(ItemInfo* item, int depth);
