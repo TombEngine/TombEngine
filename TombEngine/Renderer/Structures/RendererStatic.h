@@ -36,7 +36,7 @@ namespace TEN::Renderer::Structures
 			
 			auto worldMatrix = rotMatrix * scaleMatrix * translationMatrix;
 
-			auto sphereCenter = Vector3::Transform(OriginalSphere.Center, World);
+			auto sphereCenter = Vector3::Transform(OriginalSphere.Center, worldMatrix);
 			float sphereScale = std::max({ Pose.Scale.x, Pose.Scale.y, Pose.Scale.z });
 			float sphereRadius = OriginalSphere.Radius * sphereScale;
 

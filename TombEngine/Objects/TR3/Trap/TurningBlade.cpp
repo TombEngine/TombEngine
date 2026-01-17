@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Sphere.h"
@@ -14,6 +14,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Collision::Point;
 
@@ -41,7 +42,7 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		AnimateItem(&item);	
+		AnimateItem(item);	
 	}
 
 	void CollideTurningBlade(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

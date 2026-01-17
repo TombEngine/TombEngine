@@ -2,6 +2,7 @@
 #include "Objects/TR2/Entity/tr2_monk.h"
 
 #include "Game/control/box.h"
+#include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -14,8 +15,6 @@
 namespace TEN::Entities::Creatures::TR2
 {
 	const auto MonkBite = CreatureBiteInfo(Vector3(-23, 16, 265), 14);
-
-	bool MonksAttackLara;
 
 	// TODO
 	enum MonkState
@@ -45,20 +44,19 @@ namespace TEN::Entities::Creatures::TR2
 		{
 			if (item->Animation.ActiveState != 9)
 			{
-				item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 20 + (GetRandomControl() / 0x4000);
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.AnimNumber = 20 + (GetRandomControl() / 0x4000);
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 9;
 			}
 		}
 		else
 		{
-			if (MonksAttackLara)
-				creature->Enemy = LaraItem;
+			TargetNearestEntity(*item, FriendlyCreatures);
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (!MonksAttackLara && creature->Enemy == LaraItem)
+			if (creature->Enemy->IsLara() && !creature->HurtByLara)
 				creature->Enemy = nullptr;
 
 			GetCreatureMood(item, &AI, true);
@@ -73,7 +71,7 @@ namespace TEN::Entities::Creatures::TR2
 			case 1:
 				creature->Flags &= 0x0FFF;
 
-				if (!MonksAttackLara && AI.ahead && Lara.TargetEntity == item)
+				if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
 					break;
 				else if (creature->Mood == MoodType::Bored)
 					item->Animation.TargetState = 2;
@@ -98,7 +96,7 @@ namespace TEN::Entities::Creatures::TR2
 			case 11:
 				creature->Flags &= 0x0FFF;
 
-				if (!MonksAttackLara && AI.ahead && Lara.TargetEntity == item)
+				if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
 					break;
 				else if (creature->Mood == MoodType::Bored)
 					item->Animation.TargetState = 2;
@@ -126,7 +124,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (creature->Mood == MoodType::Bored)
 				{
-					if (!MonksAttackLara && AI.ahead && Lara.TargetEntity == item)
+					if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
 					{
 						if (GetRandomControl() < 0x4000)
 							item->Animation.TargetState = 1;
@@ -153,7 +151,7 @@ namespace TEN::Entities::Creatures::TR2
 				creature->MaxTurn = ANGLE(4.0f);
 				creature->Flags &= 0x0FFF;
 
-				if (MonksAttackLara)
+				if (creature->HurtByLara)
 					creature->MaxTurn += ANGLE(1.0f);
 
 				if (creature->Mood == MoodType::Bored)

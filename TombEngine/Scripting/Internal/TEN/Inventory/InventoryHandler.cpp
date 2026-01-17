@@ -3,6 +3,7 @@
 
 #include "Game/gui.h"
 #include "Game/Hud/Hud.h"
+#include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Lara/lara.h"
 #include "Game/pickup/pickup.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -86,13 +87,47 @@ namespace TEN::Scripting::InventoryHandler
 			g_Gui.SetInventoryItemChosen(objectID);
 	}
 
-	/// Clear last item used in the player's inventory.
+	///Clear last item used in the player's inventory.
 	// When this function is used in OnUseItem level function, it allows to override existing item functionality.
 	// For items without existing functionality, this function is needed to avoid Lara saying "No" after using it.
-	//@function ClearUsedItem
+	// @function ClearUsedItem
 	static void ClearUsedItem()
 	{
 		g_Gui.SetInventoryItemChosen(GAME_OBJECT_ID::ID_NO_OBJECT);
+	}
+
+	///Gets the item set to open custom inventory at. Used by Custom Inventory module.
+	// @function GetEnterInventory
+	// @treturn Objects.ObjID objectID Object ID of the item set.
+	static int GetEnterInventory()
+	{
+		return g_Gui.GetEnterInventory();
+	}
+
+	///Sets the item to open custom inventory at. Used by Custom Inventory module.
+	// @function SetEnterInventory
+	// @tparam Objects.ObjID objectID Object ID of the item to set.
+	static void SetEnterInventory(GAME_OBJECT_ID objectID)
+	{
+		g_Gui.SetEnterInventory(objectID);
+	}
+
+	///Converts ObjectID to InventoryItem. Used by Custom Inventory module.
+	// @function ConvertObjectToInventoryItem
+	// @tparam Objects.ObjID objectID Object ID of the item to convert.
+	// @treturn int InventoryID of the object.
+	static int ConvertObjectToInventoryItem(int objectID)
+	{
+		return g_Gui.ConvertObjectToInventoryItem(objectID);
+	}
+
+	///Converts InventoryItem to ObjectID. Used by Custom Inventory module.
+	// @function ConvertInventoryItemToObject
+	// @tparam int inventoryID inventoryID to convert.
+	// @treturn Objects.ObjID objectID of the object.
+	static int ConvertInventoryItemToObject(int objectNumber)
+	{
+		return g_Gui.ConvertInventoryItemToObject(objectNumber);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -107,5 +142,9 @@ namespace TEN::Scripting::InventoryHandler
 		tableInventory.set_function(ScriptReserved_SetUsedItem, &SetUsedItem);
 		tableInventory.set_function(ScriptReserved_GetUsedItem, &GetUsedItem);
 		tableInventory.set_function(ScriptReserved_ClearUsedItem, &ClearUsedItem);
+		tableInventory.set_function(ScriptReserved_ConvertObjectToInvItem, &ConvertObjectToInventoryItem);
+		tableInventory.set_function(ScriptReserved_ConvertInvItemToObject, &ConvertInventoryItemToObject);
+		tableInventory.set_function(ScriptReserved_GetOpenInv, &GetEnterInventory);
+		tableInventory.set_function(ScriptReserved_SetOpenInv, &SetEnterInventory);
 	}
 }

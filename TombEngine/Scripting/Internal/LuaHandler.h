@@ -31,6 +31,11 @@ public:
 		auto metatable = tableName + "Meta";
 		_lua->set(metatable, sol::as_table(container));
 
+		// Create a clean copy of the data for iteration (before adding metamethods)
+		// Store it in a special field in the metatable
+		auto dataField = "__data";
+		_lua->safe_script(metatable + "." + dataField + " = {} for k, v in pairs(" + metatable + ") do if type(k) == 'string' and k:sub(1,2) ~= '__' then " + metatable + "." + dataField + "[k] = v end end");
+
 		auto mtmt = tableName + "MetaMeta";
 		auto mtmtTable = _lua->create_named_table(mtmt);
 
@@ -51,6 +56,11 @@ public:
 
 		// Don't allow table to have new elements put into it.
 		_lua->safe_script(metatable + ".__newindex = function() error('" + tableName + " is read-only') end");
+
+		// Add __pairs metamethod to enable iteration with pairs()
+		// Use the clean data copy stored in __data field
+		// We use debug.getmetatable to bypass the __metatable protection
+		_lua->safe_script(metatable + ".__pairs = function(t) return pairs(debug.getmetatable(t).__data) end");
 
 		// Protect metatable.
 		_lua->safe_script(metatable + ".__metatable = 'metatable is protected'");

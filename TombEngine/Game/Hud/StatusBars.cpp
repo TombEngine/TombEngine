@@ -90,10 +90,6 @@ namespace TEN::Hud
 		if (!g_GameFlow->GetSettings()->Hud.StatusBars)
 			return;
 
-		// Avoid drawing in title level and during cutscenes.
-		if (CurrentLevel == 0 || CinematicBarsHeight > 0)
-			return;
-
 		const auto& player = GetLaraInfo(item);
 		bool isPoisoned = (player.Status.Poison != 0);
 

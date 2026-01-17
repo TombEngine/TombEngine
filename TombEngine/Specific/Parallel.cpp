@@ -79,9 +79,8 @@ namespace TEN::Utils
 		auto counter = std::make_shared<std::atomic<int>>();
 		auto promise = std::make_shared<std::promise<void>>();
 
-		counter->store((int)tasks.size(), std::memory_order_release);
-
 		// Add group tasks.
+		counter->store((int)tasks.size(), std::memory_order_release);
 		for (const auto& task : tasks)
 			AddTask(task, counter, promise);
 
@@ -153,9 +152,6 @@ namespace TEN::Utils
 
 	void ParallelTaskManager::AddTask(const ParallelTask& task, std::shared_ptr<std::atomic<int>> counter, std::shared_ptr<std::promise<void>> promise)
 	{
-		// Increment counter for task group.
-		counter->fetch_add(1, std::memory_order_relaxed);
-
 		// LOCK: Restrict task queue access.
 		{
 			auto taskLock = std::unique_lock(_taskMutex);

@@ -88,9 +88,10 @@ namespace TEN::Scripting::Sound
 	/// Check if the audio track is playing.
 	// @function IsAudioTrackPlaying
 	// @tparam string track Filename to check. Should be without extension and without full directory path.
-	static bool IsAudioTrackPlaying(const std::string& trackName)
+	// @tparam[opt] Sound.SoundTrackType type Type of the audio track to check. If omitted, all types will be checked.
+	static bool IsAudioTrackPlaying(const std::string& trackName, sol::optional<SoundTrackType> type)
 	{
-		return Sound_TrackIsPlaying(trackName);
+		return Sound_TrackIsPlaying(trackName, type ? std::optional<SoundTrackType>(*type) : std::nullopt);
 	}
 
 	/// Get current subtitle string for a voice track currently playing.

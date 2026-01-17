@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/underwater_door.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -20,6 +20,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 

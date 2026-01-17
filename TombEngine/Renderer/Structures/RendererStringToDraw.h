@@ -7,8 +7,8 @@ namespace TEN::Renderer::Structures
 
 	struct RendererStringToDraw
 	{
-		float X;
-		float Y;
+		Vector2 Position;
+		Vector2 PrevPosition;
 		int Flags;
 		std::wstring String;
 		Vector4 Color;

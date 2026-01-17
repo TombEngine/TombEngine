@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/control/los.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
@@ -23,6 +23,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
@@ -234,7 +235,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 			{
 				auto* object = &Objects[item->ObjectNumber];
 
-				if ((object->intelligent || object->HitRoutine) && object->drawRoutine)
+				if ((object->intelligent || object->HitRoutine) && !object->Hidden)
 				{
 					const auto& weapon = Weapons[(int)Lara.Control.Weapon.GunType];
 
@@ -274,49 +275,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		{
 			if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
 			{
-				if (!(item->Flags & 0x40))
-				{
-					if (item->ObjectNumber == ID_SHOOT_SWITCH1)
-						ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
-
-					if (item->TriggerFlags == 444 && item->ObjectNumber == ID_SHOOT_SWITCH2)
-					{
-						// TR5 ID_SWITCH_TYPE_8/ID_SHOOT_SWITCH2
-						ProcessExplodingSwitchType8(item);
-					}
-					else
-					{
-						/*if (item->objectNumber == ID_SHOOT_SWITCH3)
-						{
-						// TR4 ID_SWITCH_TYPE7
-						ExplodeItemNode(item, Objects[item->objectNumber].nmeshes - 1, 0, 64);
-						}*/
-
-						if (item->Flags & IFLAG_ACTIVATION_MASK &&
-							(item->Flags & IFLAG_ACTIVATION_MASK) != IFLAG_ACTIVATION_MASK)
-						{
-							TestTriggers(item->Pose.Position.x, item->Pose.Position.y - 256, item->Pose.Position.z, item->RoomNumber, true, item->Flags & IFLAG_ACTIVATION_MASK);
-						}
-						else
-						{
-							short triggerItems[8];
-							for (int count = GetSwitchTrigger(item, triggerItems, 1); count > 0; --count)
-							{
-								AddActiveItem(triggerItems[count - 1]);
-								g_Level.Items[triggerItems[count - 1]].Status = ITEM_ACTIVE;
-								g_Level.Items[triggerItems[count - 1]].Flags |= IFLAG_ACTIVATION_MASK;
-							}
-						}
-					}
-				}
-
-				if (item->Status != ITEM_DEACTIVATED)
-				{
-					AddActiveItem(itemNumber);
-					item->Status = ITEM_ACTIVE;
-					item->Flags |= IFLAG_ACTIVATION_MASK | 0x40;
-				}
-
+				ProcessShootSwitch(item);
 				hitProcessed = true;
 			}
 
@@ -466,7 +425,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 			if (priorityObjectID != GAME_OBJECT_ID::ID_NO_OBJECT && item.ObjectNumber != priorityObjectID)
 				continue;
 
-			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].drawRoutine == nullptr || !item.Collidable))
+			if (item.ObjectNumber != ID_LARA && (Objects[item.ObjectNumber].collision == nullptr || Objects[item.ObjectNumber].Hidden || !item.Collidable))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && priorityObjectID != ID_LARA)
