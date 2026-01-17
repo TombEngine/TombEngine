@@ -40,6 +40,6 @@ static const std::unordered_map<std::string, RoomEnvFlags> ROOM_FLAG_IDS
 	{ "NOLENSFLARE", RoomEnvFlags::ENV_FLAG_NO_LENSFLARE },
 	
 	/// No caustics room flag (valid only for water rooms).
-	// @mem NOLENSFLARE
+	// @mem NOCAUSTICS
 	{ "NOCAUSTICS", RoomEnvFlags::ENV_FLAG_NOCAUSTICS }
 };
