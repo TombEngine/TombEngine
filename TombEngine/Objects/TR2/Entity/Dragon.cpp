@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR2/Entity/Dragon.h"
 
 #include "Game/camera.h"
@@ -7,6 +7,7 @@
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/effects/smoke.h" 
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -21,6 +22,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Effects::Smoke;
 
 // NOTES:
 // OCB 0: Dragon dies when hitpoints reach 0.
@@ -63,7 +65,7 @@ namespace TEN::Entities::Creatures::TR2
 		Yellow,
 		Red
 	};
-
+	
 	enum DragonState
 	{
 		// No state 0.
@@ -149,13 +151,18 @@ namespace TEN::Entities::Creatures::TR2
 
 	void InitializeDragon(short itemNumber)
 	{
+		static bool smokeCleared = false;
+
+		if (!smokeCleared)
+		{
+			DisableSmokeParticles();
+			smokeCleared = true;
+		}
+
 		auto& item = g_Level.Items[itemNumber];
 
-		// Initialize front body segment.
 		InitializeCreature(item.Index);
 		SetAnimation(item, DRAGON_ANIM_IDLE);
-
-		// Initialize back body segment.
 		InitializeDragonBack(item);
 	}
 
@@ -219,9 +226,9 @@ namespace TEN::Entities::Creatures::TR2
 	// TODO: Animate flame sprite sequence.
 	static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
 	{
-		constexpr auto FIRE_COUNT	 = 3;
+		constexpr auto FIRE_COUNT = 3;
 		constexpr auto SPHERE_RADIUS = BLOCK(0.2f);
-		constexpr auto VEL			 = 300.0f;
+		constexpr auto VEL = 300.0f;
 
 		for (int i = 0; i < FIRE_COUNT; i++)
 		{
@@ -237,6 +244,8 @@ namespace TEN::Entities::Creatures::TR2
 			dir.Normalize();
 			dir *= VEL;
 
+			fire.animationType = ParticleAnimType::Loop;
+			fire.framerate = Random::GenerateFloat(0.5f, 1.5f);
 			fire.SpriteSeqID = ID_FIRE_SPRITES;
 			fire.SpriteID = Random::GenerateInt(0, 35);
 
@@ -257,7 +266,7 @@ namespace TEN::Entities::Creatures::TR2
 
 			int v = Random::GenerateFloat(0.75f, 1.0f) * UCHAR_MAX;
 			fire.life =
-			fire.sLife = v / 6;
+				fire.sLife = v / 6;
 
 			fire.xVel = v * (dir.x) / 10;
 			fire.yVel = v * (dir.y) / 10;
@@ -272,60 +281,73 @@ namespace TEN::Entities::Creatures::TR2
 			fire.dSize = (v * Random::GenerateFloat(60.0f, 67.0f)) / BLOCK(0.25f);
 			fire.sSize = fire.dSize / 4;
 			fire.size = fire.dSize;
+
+			fire.x += Random::GenerateFloat(-1.0f, 1.0f);
+			fire.z += Random::GenerateFloat(-1.0f, 1.0f);
 		}
 	}
 
 	static void SpawnDragonSmokeBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
 	{
-		constexpr auto SMOKE_COUNT	 = 2;
+		constexpr auto SMOKE_COUNT = 6;
 		constexpr auto SPHERE_RADIUS = BLOCK(0.25f);
+
+		auto mouthPos = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
 
 		for (int i = 0; i < SMOKE_COUNT; i++)
 		{
-			auto origin = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
-			auto target = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
-
-			auto sphere = BoundingSphere(origin, SPHERE_RADIUS);
+			auto sphere = BoundingSphere(mouthPos, SPHERE_RADIUS);
 			auto pos = Random::GeneratePointInSphere(sphere);
-			auto vel = Random::GenerateDirection() * Random::GenerateFloat(0.0f, 1.0f);
 
-			auto dir = target - origin;
-			dir.Normalize();
+			Vector3 vel(
+				Random::GenerateFloat(-0.15f, 0.15f),
+				Random::GenerateFloat(1.0f, 2.0f),
+				Random::GenerateFloat(-0.15f, 0.15f)
+			);
 
-			int spriteID = Random::GenerateInt(0, 10);
+			Vector3 suction = (mouthPos - pos);
+			suction.Normalize();
+			vel += suction * Random::GenerateFloat(0.2f, 0.5f);
 
-			auto& smoke = *GetFreeParticle();
+			vel.x += Random::GenerateFloat(-0.1f, 0.1f);
+			vel.z += Random::GenerateFloat(-0.1f, 0.1f);
 
-			smoke.SpriteSeqID = ID_SMOKE_SPRITES;
-			smoke.SpriteID = Random::GenerateInt(0, 10);
-			smoke.on = true;
-			smoke.x = pos.x;
-			smoke.y = pos.y;
-			smoke.z = pos.z;
-			smoke.yVel = vel.x;
-			smoke.xVel = vel.y;
-			smoke.zVel = vel.z;
-			smoke.sR = 0.5f * UCHAR_MAX;
-			smoke.sG = 0.5f * UCHAR_MAX;
-			smoke.sB = 0.5f * UCHAR_MAX;
-			smoke.dR = 0.5f * UCHAR_MAX;
-			smoke.dG = 0.25f * UCHAR_MAX;
-			smoke.dB = 0;
-			smoke.colFadeSpeed = 128;
-			smoke.fadeToBlack = 64;
-			smoke.blendMode = BlendMode::Additive;
-			smoke.life = smoke.sLife = Random::GenerateInt(10, 60);
+			for (auto& s : SmokeParticles)
+			{
+				if (!s.active)
+				{
+					s.active = true;
+					s.position = pos;
+					s.velocity = vel;
+					s.room = item.RoomNumber;
 
-			smoke.friction = 0;
-			smoke.gravity = -30;
-			smoke.maxYvel = 5;
-			smoke.flags = SP_DEF | SP_ROTATE | SP_FIRE;
+					float shadeStart = Random::GenerateFloat(0.65f, 0.85f);
+					float shadeEnd = Random::GenerateFloat(0.25f, 0.45f);
 
-			smoke.scalar = 0.1f;  
-			smoke.dSize = BLOCK(0.1f);  
-			smoke.sSize = BLOCK(0.5f);  
-			smoke.size = smoke.dSize/8;
-			smoke.flags = SP_WIND | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+					s.sourceColor = Vector4(shadeStart, shadeStart, shadeStart, 1.0f);
+					s.destinationColor = Vector4(shadeEnd, shadeEnd, shadeEnd, 0.0f);
+
+					s.sourceSize = BLOCK(Random::GenerateFloat(0.15f, 0.25f));
+					s.destinationSize = BLOCK(Random::GenerateFloat(0.6f, 0.9f));
+
+					s.age = 0.0f;
+					s.life = Random::GenerateFloat(25.0f, 45.0f);
+
+					s.gravity = -2.0f;
+					s.friction = 0.06f;
+					s.terminalVelocity = 2.5f;
+					s.affectedByWind = true;
+
+					s.rotation = Random::GenerateFloat(0.0f, PI * 2.0f);
+					s.angularVelocity = Random::GenerateFloat(-1.0f, 1.0f);
+					s.angularDrag = 0.92f;
+
+					s.sprite = Random::GenerateInt(0, 3);
+
+					s.StoreInterpolationData();
+					break;
+				}
+			}
 		}
 	}
 
@@ -572,7 +594,8 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (ai.ahead)
 					headOrient = -ai.angle;
-					SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
+
+				SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
 
 				if (isTargetAhead)
 				{
@@ -587,23 +610,18 @@ namespace TEN::Entities::Creatures::TR2
 
 				break;
 
+
 			case DRAGON_STATE_FIRE_1:
 				item.Pose.Orientation.y -= headingAngle;
 				SoundEffect(SFX_TR2_DRAGON_FIRE, &item.Pose);
 
 				if (ai.ahead)
-				{
 					headOrient = -ai.angle;
-					SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
-				}
 
 				if (creature.Flags)
 				{
 					if (ai.ahead)
-					{
 						SpawnDragonFireBreathEffect(item, DragonMouthBite);
-						SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
-					}
 
 					creature.Flags--;
 				}
