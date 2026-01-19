@@ -7,7 +7,10 @@
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
-#include "Game/effects/smoke.h" 
+#include "Game/effects/smoke.h"
+#include "Game/effects/spark.h" 
+#include "Game/effects/Decal.h" 
+#include "Game/collision/Los.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -23,6 +26,9 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Effects::Smoke;
+using namespace TEN::Effects::Spark;
+using namespace TEN::Collision::Los;
+using namespace TEN::Effects::Decal;
 
 // NOTES:
 // OCB 0: Dragon dies when hitpoints reach 0.
@@ -41,6 +47,26 @@ namespace TEN::Entities::Creatures::TR2
 			EulerAngles(ANGLE(10.0f), LARA_GRAB_THRESHOLD + ANGLE(90.0f), ANGLE(10.0f)))
 	};
 
+	// Logical flame projectile used for LOS-based flame stopping and scorch decals.
+    struct DragonFlameProjectile
+    {
+		Vector3 pos;
+		Vector3 vel;
+		short roomNumber = 0;
+		int life = 0;
+		bool blocked = false;
+    };
+
+	// Ember particle logic (physics-only). Visual spark is spawned separately.
+	struct DragonEmber
+	{
+		Vector3 pos;
+		Vector3 vel;
+		short roomNumber;
+		int life;
+	};
+
+	// Position where Lara grabs the dagger from the dragon.
 	auto DragonDaggerPos = Vector3i::Zero;
 
 	constexpr auto DRAGON_SWIPE_ATTACK_DAMAGE = 250;
@@ -59,6 +85,10 @@ namespace TEN::Entities::Creatures::TR2
 	const auto DragonBackSpineJoints		= std::vector<unsigned int>{ 21, 22, 23 };
 	const auto DragonSwipeAttackJointsLeft	= std::vector<unsigned int>{ 24, 25, 26, 27, 28, 29, 30 };
 	const auto DragonSwipeAttackJointsRight = std::vector<unsigned int>{ 1, 2, 3, 4, 5, 6, 7 };
+
+	// Containers for flame projectiles and ember physics.
+	static std::vector<DragonFlameProjectile> FlameProjectiles;
+	static std::vector<DragonEmber> DragonEmbers;
 
 	enum class DragonLightEffectType
 	{
@@ -166,6 +196,17 @@ namespace TEN::Entities::Creatures::TR2
 		InitializeDragonBack(item);
 	}
 
+	// Simple distance check to see if a flame particle is close enough to damage Lara.
+	bool DragonFlameHitLara(const Particle& fire)
+	{
+		auto laraPos = LaraItem->Pose.Position.ToVector3();
+		auto firePos = Vector3(fire.x, fire.y, fire.z);
+
+		float dist = Vector3::Distance(firePos, laraPos);
+
+		return dist < CLICK(1.0f);
+	}
+
 	static void SyncDragonBackSegment(ItemInfo& frontItem)
 	{
 		short& backItemNumber = frontItem.ItemFlags[0];
@@ -221,72 +262,349 @@ namespace TEN::Entities::Creatures::TR2
 		break;
 		}
 	}
+	
+	// Creates a visual spark particle AND a logical ember physics object. 
+	// The logical ember is updated separately in UpdateDragonEmbers().
+	static void SpawnDragonFlameEmber(const Particle& fire, const Vector3& dir, short roomNumber)
+	{
+		auto& ember = *GetFreeParticle();
+		ember.on = true;
 
-	// TODO: Smoke and sparks.
-	// TODO: Animate flame sprite sequence.
+		ember.SpriteSeqID = ID_SPARK_SPRITE;
+		ember.SpriteID = 0;
+
+		ember.x = fire.x + Random::GenerateFloat(-12.0f, 12.0f);
+		ember.y = fire.y + Random::GenerateFloat(-12.0f, 12.0f);
+		ember.z = fire.z + Random::GenerateFloat(-12.0f, 12.0f);
+
+		ember.sR = Random::GenerateFloat(0.9f, 1.0f) * UCHAR_MAX;
+		ember.sG = Random::GenerateFloat(0.4f, 0.6f) * UCHAR_MAX;
+		ember.sB = Random::GenerateFloat(0.1f, 0.2f) * UCHAR_MAX;
+
+		ember.dR = 0.8f * UCHAR_MAX;
+		ember.dG = 0.6f * UCHAR_MAX;
+		ember.dB = 0.3f * UCHAR_MAX;
+
+		ember.colFadeSpeed = 10;
+		ember.fadeToBlack = 6;
+		ember.blendMode = BlendMode::Additive;
+
+		ember.life = ember.sLife = Random::GenerateInt(10, 18);
+
+		// Follow flame velocity, but not perfectly
+		float emberSpeed = Random::GenerateFloat(0.8f, 1.2f);
+		ember.xVel = fire.xVel * emberSpeed;
+		ember.yVel = fire.yVel * emberSpeed;
+		ember.zVel = fire.zVel * emberSpeed;
+
+		// Add turbulence
+		ember.xVel += Random::GenerateFloat(-40.0f, 40.0f);
+		ember.yVel += Random::GenerateFloat(-20.0f, 20.0f);
+		ember.zVel += Random::GenerateFloat(-40.0f, 40.0f);
+
+		ember.friction = 90;
+		ember.gravity = fire.gravity;
+		ember.maxYvel = 0;
+
+		ember.flags = SP_SCALE | SP_DEF | SP_ROTATE;
+
+		ember.sSize = Random::GenerateFloat(6.0f, 10.0f);
+		ember.dSize = ember.sSize * Random::GenerateFloat(0.4f, 0.7f);
+		ember.size = ember.sSize;
+
+		ember.rotAng = Random::GenerateFloat(0.0f, PI * 2.0f);
+		ember.rotAdd = Random::GenerateFloat(-0.2f, 0.2f);
+
+		DragonEmber e;
+		e.pos = Vector3(ember.x, ember.y, ember.z);
+		e.vel = Vector3(ember.xVel, ember.yVel, ember.zVel);
+		e.roomNumber = roomNumber;
+		e.life = ember.life;
+
+		DragonEmbers.push_back(e);
+	}
+
+	// Main flame attack logic.
+	// Performs LOS to determine flame length, spawns flame particles,
+	// spawns logical flame projectiles (for scorch decals), // and spawns ember sparks.
 	static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
 	{
-		constexpr auto FIRE_COUNT = 3;
+		constexpr auto FIRE_COUNT = 6;
 		constexpr auto SPHERE_RADIUS = BLOCK(0.2f);
-		constexpr auto VEL = 300.0f;
+		constexpr auto FLAME_SPEED = BLOCK(10.0f);
+		constexpr auto MAX_RANGE = BLOCK(16.0f);
+
+		Vector3 origin = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
+		Vector3 target = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
+
+		Vector3 dir = target - origin;
+		if (dir.LengthSquared() < 1.0f)
+			dir = Vector3(0.0f, 0.0f, 1.0f);
+
+		dir.Normalize();
+
+		float maxDist = MAX_RANGE;
+		Vector3 hitPos = origin + dir * maxDist;
+		short hitRoom = item.RoomNumber;
+
+		{
+			auto roomLos = GetRoomLosCollision(origin, item.RoomNumber, dir, maxDist);
+			auto staticLos = GetStaticLosCollision(origin, item.RoomNumber, dir, maxDist, true);
+
+			float roomDist = roomLos.IsIntersected ? roomLos.Distance : FLT_MAX;
+			float staticDist = staticLos ? staticLos->Distance : FLT_MAX;
+
+			if (roomDist < staticDist)
+			{
+				maxDist = roomDist;
+				hitPos = roomLos.Position;
+				hitRoom = roomLos.RoomNumber;
+			}
+			else if (staticLos)
+			{
+				maxDist = staticDist;
+				hitPos = staticLos->Position;
+				hitRoom = staticLos->RoomNumber;
+			}
+		}
+
+		float travelTimeSeconds = maxDist / FLAME_SPEED;
+		int   lifeTicks = int(travelTimeSeconds * FPS);
+
+		lifeTicks = std::max(lifeTicks, 4);
 
 		for (int i = 0; i < FIRE_COUNT; i++)
 		{
+			BoundingSphere sphere(origin, SPHERE_RADIUS);
+			Vector3 pos = Random::GeneratePointInSphere(sphere);
+
+			DragonFlameProjectile p;
+			p.pos = pos;
+			p.vel = dir * FLAME_SPEED;
+			p.life = lifeTicks;
+			p.roomNumber = item.RoomNumber;
+			FlameProjectiles.push_back(p);
+
 			auto& fire = *GetFreeParticle();
+			fire.on = true;
 
-			auto origin = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
-			auto target = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
+			fire.x = pos.x;
+			fire.y = pos.y;
+			fire.z = pos.z;
 
-			auto sphere = BoundingSphere(origin, SPHERE_RADIUS);
-			auto pos = Random::GeneratePointInSphere(sphere);
-
-			auto dir = target - origin;
-			dir.Normalize();
-			dir *= VEL;
+			fire.xVel = p.vel.x;
+			fire.yVel = p.vel.y;
+			fire.zVel = p.vel.z;
 
 			fire.animationType = ParticleAnimType::Loop;
 			fire.framerate = Random::GenerateFloat(0.5f, 1.5f);
 			fire.SpriteSeqID = ID_FIRE_SPRITES;
 			fire.SpriteID = Random::GenerateInt(0, 35);
 
-			fire.x = pos.x;
-			fire.y = pos.y;
-			fire.z = pos.z;
+			fire.sR = Random::GenerateFloat(0.65f, 0.8f) * UCHAR_MAX;
+			fire.sG = Random::GenerateFloat(0.25f, 0.35f) * UCHAR_MAX;
+			fire.sB = Random::GenerateFloat(0.05f, 0.12f) * UCHAR_MAX;
 
-			fire.on = true;
-			fire.sR = Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
-			fire.sG = 0.25f * UCHAR_MAX;
-			fire.sB = 0.15f * UCHAR_MAX;
-			fire.dR = Random::GenerateFloat(0.5f, 0.75f) * UCHAR_MAX;
-			fire.dG = Random::GenerateFloat(0.3f, 0.6f) * UCHAR_MAX;
-			fire.dB = 0.15f * UCHAR_MAX;
+			fire.dR = Random::GenerateFloat(0.35f, 0.55f) * UCHAR_MAX;
+			fire.dG = Random::GenerateFloat(0.15f, 0.25f) * UCHAR_MAX;
+			fire.dB = Random::GenerateFloat(0.02f, 0.08f) * UCHAR_MAX;
+
 			fire.colFadeSpeed = 12;
 			fire.fadeToBlack = 8;
 			fire.blendMode = BlendMode::Additive;
 
-			int v = Random::GenerateFloat(0.75f, 1.0f) * UCHAR_MAX;
-			fire.life =
-				fire.sLife = v / 6;
+			fire.life = fire.sLife = lifeTicks;
 
-			fire.xVel = v * (dir.x) / 10;
-			fire.yVel = v * (dir.y) / 10;
-			fire.zVel = v * (dir.z) / 10;
-
-			fire.friction = 85;
-			fire.gravity = -Random::GenerateInt(-16, 16);
+			fire.friction = 5;
+			fire.gravity = 0;
 			fire.maxYvel = 0;
+
 			fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
 
-			fire.scalar = 6;
-			fire.dSize = (v * Random::GenerateFloat(60.0f, 67.0f)) / BLOCK(0.25f);
-			fire.sSize = fire.dSize / 4;
+			fire.scalar = 4;
+			fire.dSize = Random::GenerateFloat(28.0f, 40.0f);
+			fire.sSize = fire.dSize * 0.5f;
 			fire.size = fire.dSize;
 
-			fire.x += Random::GenerateFloat(-1.0f, 1.0f);
-			fire.z += Random::GenerateFloat(-1.0f, 1.0f);
+			SpawnDragonFlameEmber(fire, dir, item.RoomNumber);
+		}
+	}
+	
+	// Places a scorch decal at the flame impact point. 
+	// Snaps to floor to avoid floating decals.
+	static void SpawnDragonScorchDecal(const Vector3& hitPos, short roomNumber)
+	{
+		auto pointColl = GetPointCollision(hitPos, roomNumber);
+		Vector3 pos = hitPos;
+
+		if (pointColl.GetFloorHeight() != NO_HEIGHT)
+			pos.y = pointColl.GetFloorHeight() + 4.0f; 
+
+		SpawnDecal(pos, roomNumber, DecalType::Explosion);
+	}
+
+	// Updates logical flame projectiles. 
+	// // Performs LOS each frame to detect impact and spawn scorch decals.
+	static void UpdateDragonFlameProjectiles()
+	{
+		static int scorchCounter = 0;
+
+		for (auto it = FlameProjectiles.begin(); it != FlameProjectiles.end(); )
+		{
+			auto& p = *it;
+
+			if (p.life-- <= 0)
+			{
+				it = FlameProjectiles.erase(it);
+				continue;
+			}
+
+			Vector3 prev = p.pos;
+			Vector3 next = p.pos + (p.vel * (1.0f / FPS));
+
+			Vector3 rayDir = next - prev;
+			float rayDist = rayDir.Length();
+
+			if (rayDist > 0.0f)
+			{
+				rayDir.Normalize();
+
+				auto roomLos = GetRoomLosCollision(prev, p.roomNumber, rayDir, rayDist);
+				auto staticLos = GetStaticLosCollision(prev, p.roomNumber, rayDir, rayDist, true);
+
+				float roomDist = roomLos.IsIntersected ? roomLos.Distance : FLT_MAX;
+				float staticDist = staticLos ? staticLos->Distance : FLT_MAX;
+
+				bool canScorch = ((++scorchCounter % 6) == 0); 
+								
+				if (roomDist < staticDist)
+				{
+					p.blocked = true;
+					SpawnDragonScorchDecal(roomLos.Position, roomLos.RoomNumber);
+					it = FlameProjectiles.erase(it);
+					continue;
+				}
+				else if (staticLos)
+				{
+					p.blocked = true;
+					SpawnDragonScorchDecal(staticLos->Position, staticLos->RoomNumber);
+					it = FlameProjectiles.erase(it);
+					continue;
+				}
+			}
+
+			p.pos = next;
+
+			short newRoom = p.roomNumber;
+			GetFloor((int)p.pos.x, (int)p.pos.y, (int)p.pos.z, &newRoom);
+			p.roomNumber = newRoom;
+
+			++it;
+		}
+
+	}
+
+	static void UpdateDragonEmbers()
+	{
+		for (auto it = DragonEmbers.begin(); it != DragonEmbers.end(); )
+		{
+			auto& e = *it;
+
+			if (e.life-- <= 0)
+			{
+				it = DragonEmbers.erase(it);
+				continue;
+			}
+
+			Vector3 prev = e.pos;
+			Vector3 next = e.pos + (e.vel * (1.0f / FPS));
+
+			Vector3 rayDir = next - prev;
+			float rayDist = rayDir.Length();
+
+			if (rayDist < 0.001f)
+			{
+				e.pos = next;
+			}
+			else
+			{
+				rayDir /= rayDist;
+
+				auto roomLos = GetRoomLosCollision(prev, e.roomNumber, rayDir, rayDist);
+				auto staticLos = GetStaticLosCollision(prev, e.roomNumber, rayDir, rayDist, true);
+
+				float roomDist = roomLos.IsIntersected ? roomLos.Distance : FLT_MAX;
+				float staticDist = staticLos ? staticLos->Distance : FLT_MAX;
+
+				if (roomDist < staticDist)
+				{
+					e.pos = roomLos.Position;
+
+					Vector3 N = -rayDir;
+					e.vel = e.vel - 2.0f * (e.vel.Dot(N)) * N;
+					e.vel *= 0.4f;
+				}
+				else if (staticLos)
+				{
+					e.pos = staticLos->Position;
+
+					Vector3 N = -rayDir;
+					e.vel = e.vel - 2.0f * (e.vel.Dot(N)) * N;
+					e.vel *= 0.4f;
+				}
+				else
+				{
+					e.pos = next;
+				}
+			}
+
+			short newRoom = e.roomNumber;
+			GetFloor((int)e.pos.x, (int)e.pos.y, (int)e.pos.z, &newRoom);
+			e.roomNumber = newRoom;
+
+			auto& ember = *GetFreeParticle();
+			ember.on = true;
+
+			ember.x = e.pos.x;
+			ember.y = e.pos.y;
+			ember.z = e.pos.z;
+
+			ember.xVel = e.vel.x;
+			ember.yVel = e.vel.y;
+			ember.zVel = e.vel.z;
+
+			ember.life = ember.sLife = std::max(e.life, 1);
+
+			ember.SpriteSeqID = ID_SPARK_SPRITE;
+			ember.SpriteID = 0;
+
+			ember.sR = 255;
+			ember.sG = 180;
+			ember.sB = 80;
+
+			ember.dR = 128;
+			ember.dG = 64;
+			ember.dB = 32;
+
+			ember.colFadeSpeed = 10;
+			ember.fadeToBlack = 6;
+			ember.blendMode = BlendMode::Additive;
+
+			ember.flags = SP_SCALE | SP_DEF | SP_ROTATE;
+
+			ember.sSize = 6.0f;
+			ember.dSize = 2.0f;
+			ember.size = ember.sSize;
+
+			ember.rotAng = Random::GenerateFloat(0.0f, PI * 2.0f);
+			ember.rotAdd = Random::GenerateFloat(-0.2f, 0.2f);
+
+			++it;
 		}
 	}
 
+	// Spawns thick, turbulent smoke while the dragon is *charging* its flame attack. 
+	// // This is the “pre‑fire” smoke that billows from the mouth as it inhales.
 	static void SpawnDragonSmokeBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
 	{
 		constexpr auto SMOKE_COUNT = 6;
@@ -351,6 +669,76 @@ namespace TEN::Entities::Creatures::TR2
 		}
 	}
 
+	// Spawns a very soft, warm exhale after the flame attack ends. 
+	// This is the “dragon cooling down” effect — subtle and atmospheric.
+	static void SpawnDragonSoftExhaleEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
+	{
+		constexpr auto SMOKE_COUNT = 2;                 // Very low density
+		constexpr auto SPHERE_RADIUS = BLOCK(0.15f);    // Tight around the mouth
+
+		auto mouthPos = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
+
+		for (int i = 0; i < SMOKE_COUNT; i++)
+		{
+			auto sphere = BoundingSphere(mouthPos, SPHERE_RADIUS);
+			auto pos = Random::GeneratePointInSphere(sphere);
+
+			// Very gentle drift — almost floating
+			Vector3 vel(
+				Random::GenerateFloat(-0.02f, 0.02f),
+				Random::GenerateFloat(0.15f, 0.35f),
+				Random::GenerateFloat(-0.02f, 0.02f)
+			);
+
+			// No suction — exhale should bloom outward softly
+			vel.x += Random::GenerateFloat(-0.02f, 0.02f);
+			vel.z += Random::GenerateFloat(-0.02f, 0.02f);
+
+			for (auto& s : SmokeParticles)
+			{
+				if (!s.active)
+				{
+					s.active = true;
+					s.position = pos;
+					s.velocity = vel;
+					s.room = item.RoomNumber;
+
+					// Very light, warm, soft colour
+					float shadeStart = Random::GenerateFloat(0.20f, 0.30f);
+					float shadeEnd = Random::GenerateFloat(0.05f, 0.15f);
+
+					s.sourceColor = Vector4(shadeStart, shadeStart * 0.97f, shadeStart * 0.9f, 0.6f);
+					s.destinationColor = Vector4(shadeEnd, shadeEnd, shadeEnd, 0.0f);
+
+					// Much larger, softer particles
+					s.sourceSize = BLOCK(Random::GenerateFloat(0.25f, 0.35f));
+					s.destinationSize = BLOCK(Random::GenerateFloat(1.2f, 1.6f));
+
+					s.age = 0.0f;
+					s.life = Random::GenerateFloat(65.0f, 95.0f); // Slow, lingering exhale
+
+					// Very floaty behaviour
+					s.gravity = -0.2f;
+					s.friction = 0.02f;
+					s.terminalVelocity = 1.0f;
+					s.affectedByWind = true;
+
+					// Slow rotation
+					s.rotation = Random::GenerateFloat(0.0f, PI * 2.0f);
+					s.angularVelocity = Random::GenerateFloat(-0.2f, 0.2f);
+					s.angularDrag = 0.96f;
+
+					s.sprite = Random::GenerateInt(0, 3);
+
+					s.StoreInterpolationData();
+					break;
+				}
+			}
+		}
+	}
+
+	// Creates a ground shockwave when the dragon's claw attack hits the floor.
+	// Adds camera shake and a visual shockwave ring.
 	static void SpawnDragonShockwaveEffect(const ItemInfo& item, int jointIndex)
 	{
 		auto pos = GetJointPosition(item, jointIndex, Vector3i(0, -8, 0));
@@ -477,6 +865,12 @@ namespace TEN::Entities::Creatures::TR2
 			{
 			case DRAGON_STATE_IDLE:
 				item.Pose.Orientation.y -= headingAngle;
+
+				if (item.Animation.AnimNumber == DRAGON_ANIM_FIRE_TO_IDLE 
+					&& item.Animation.FrameNumber >= 6 && item.Animation.FrameNumber <= 15 )
+				{ 
+					SpawnDragonSoftExhaleEffect(item, DragonMouthBite);
+				}
 
 				if (!isTargetAhead)
 				{
@@ -610,7 +1004,6 @@ namespace TEN::Entities::Creatures::TR2
 
 				break;
 
-
 			case DRAGON_STATE_FIRE_1:
 				item.Pose.Orientation.y -= headingAngle;
 				SoundEffect(SFX_TR2_DRAGON_FIRE, &item.Pose);
@@ -641,6 +1034,8 @@ namespace TEN::Entities::Creatures::TR2
 		}
 
 		SyncDragonBackSegment(item);
+		UpdateDragonFlameProjectiles();
+		UpdateDragonEmbers();
 	}
 
 	static void HandleDaggerPickup(ItemInfo& item, ItemInfo& playerItem)
