@@ -554,13 +554,27 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	return true;
 }
 
-void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerAnimNumber, int creatureState, int playerState)
+void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtraAnimNumber, int creatureState, int playerKillState)
 {
+	if (!Objects[ID_LARA_EXTRA_ANIMS].loaded ||
+		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Keyframes.size() <= 1 ||
+		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Keyframes.size() <= 1)
+	{
+		TENLog(fmt::format("Impossible to perform kill animation for object {}: animation data missing.", GetObjectName(creatureItem->ObjectNumber)), LogLevel::Warning);
+		return;
+	}
+
 	auto& playerItem = *LaraItem;
 	auto& player = GetLaraInfo(playerItem);
 
 	SetAnimation(creatureItem, creatureAnimNumber);
-	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerAnimNumber);
+	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber);
+
+	if (creatureState != NO_VALUE)
+		creatureItem->Animation.ActiveState = creatureItem->Animation.TargetState = creatureState;
+
+	if (playerKillState != NO_VALUE)
+		playerItem.Animation.ActiveState = playerItem.Animation.TargetState = playerKillState;
 
 	playerItem.Pose = creatureItem->Pose;
 	playerItem.Animation.IsAirborne = false;
@@ -739,9 +753,16 @@ static void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFla
 	if (muzzleFlash.Delay == 0)
 		return;
 
+	auto intensity = Random::GenerateFloat(0.75f, 1.0f);
+
+	auto r = (unsigned char)(128.0f * intensity);
+	auto g = (unsigned char)(64.0f  * intensity);
+	auto b = (unsigned char)(16.0f  * intensity);
+	auto falloff = (unsigned char)(15.0f * intensity);
+
 	auto muzzlePos = muzzleFlash.Bite;
 	auto pos = GetJointPosition(item, muzzlePos);
-	SpawnDynamicLight(pos.x, pos.y, pos.z, 15, 128, 64, 16);
+	SpawnDynamicLight(pos.x, pos.y, pos.z, falloff, r, g, b);
 
 	if (muzzleFlash.UseSmoke)
 	{

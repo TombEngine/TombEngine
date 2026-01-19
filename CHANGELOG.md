@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 * Added faster Xorshift32 random number generation method.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
@@ -17,6 +18,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed several enemy AI issues.
 * Fixed incorrect CLOCKWORK_BEETLE, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
+* Fixed BADDY1/2 shooting rate.
+* Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
 * Fixed SHOOT_SWITCH objects not activated with projectile weapons.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
@@ -46,6 +49,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
+* Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 
 ## [Version 1.10.1]
 

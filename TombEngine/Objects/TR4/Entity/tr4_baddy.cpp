@@ -196,7 +196,6 @@ namespace TEN::Entities::TR4
 		FRAME_BADDY_SWORD_HIT_DAMAGE_MIN = 13,
 		FRAME_BADDY_SWORD_HIT_DAMAGE_MAX = 21,
 		FRAME_BADDY_CROUCH_PICKUP = 9,
-		FRAME_BADDY_FIRE_MIN = 1,
 		FRAME_BADDY_FIRE_MAX = 13,
 		FRAME_BADDY_SOMERSAULT_START_TAKE_OFF = 18,
 	};
@@ -847,9 +846,8 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->Mood == MoodType::Attack &&
-					!(currentCreature->JumpAhead) &&
-					AI.distance > pow(BLOCK(1), 2))
+				if ((currentCreature->Mood == MoodType::Attack && !(currentCreature->JumpAhead) && AI.distance > pow(BLOCK(1), 2)) ||
+					 currentCreature->Mood == MoodType::Escape)
 				{
 					item->Animation.TargetState = BADDY_STATE_RUN;
 				}
@@ -1149,15 +1147,13 @@ namespace TEN::Entities::TR4
 					joint1 = AI.angle;
 					joint2 = AI.xAngle;
 				}
+
 				ClampRotation(item->Pose, AI.angle, ANGLE(7.0f));
 
-				if (item->Animation.FrameNumber >= FRAME_BADDY_FIRE_MAX ||
-					item->Animation.FrameNumber == FRAME_BADDY_FIRE_MIN)
-				{
+				if (item->Animation.FrameNumber >= FRAME_BADDY_FIRE_MAX || item->Animation.FrameNumber & 1)
 					break;
-				}
 
-				if (!item->HitStatus)
+				if (!(item->AIBits & MODIFY))
 					item->ItemFlags[2]--;
 
 				if (!ShotLara(item, &AI, BaddyGunBite, joint1, 15))
