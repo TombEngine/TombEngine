@@ -1,21 +1,24 @@
 #pragma once
+
 #include "Math/Math.h"
 
 struct ItemInfo;
 
+constexpr auto BAD_BOX_MEMORY_SIZE = 4;
+
 // Default zone loaded by TEN. They are added by TE at compile time.
 enum class ZoneType
 {
-	Skeleton, // Enables jump, also 1 block vault and fall.
-	Basic,	  // Enables 1 step vault, 2 step fall (default).
+	Skeleton,	// Enables jump, also 1 block vault and fall.
+	Basic,		// Enables 1 step vault, 2 step fall (default).
 
-	Water, // Enables movement exclusively underwater (exception: crocodile can go on land)
+	Water,		// Enables movement exclusively underwater (exception: crocodile can go on land)
 	Amphibious, // For crocodile like enemies
 
-	Human, // Enables 1 block vault and fall.
-	Flyer, // Enables flying anywhere except water rooms.
+	Human,		// Enables 1 block vault and fall.
+	Flyer,		// Enables flying anywhere except water rooms.
 
-	MaxZone // Used when loading level.
+	MaxZone		// Used when loading level.
 };
 
 enum class MoodType
@@ -25,8 +28,6 @@ enum class MoodType
 	Escape,
 	Stalk
 };
-
-constexpr auto BAD_BOX_MEMORY_SIZE = 4;
 
 struct BoxNode
 {
