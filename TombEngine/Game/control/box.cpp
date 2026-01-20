@@ -382,62 +382,104 @@ void AlertAllGuards(short itemNumber)
  *
  * This function records a box that the creature has failed to traverse
  * (e.g. due to collision, invalid height/zone, or clipping against geometry).
- * The bad box is used by the pathfinding system to prevent repeatedly attempting
+ * Bad boxes are used by the pathfinding system to prevent repeatedly attempting
  * the same failing overlap and getting stuck.
  *
- * Only one bad box is tracked at a time. Re-adding the same box has no effect.
- * When a new bad box is set, its patience counter is reset.
+ * Every creature can track a limited number of bad boxes. If the limit is reached,
+ * no new boxes will be added until some are cleared.
  *
  * @param LOT Pointer to the creature's LOT (pathfinding state).
  * @param boxNumber Pathfinding box to mark as bad. Ignored if NO_VALUE.
  */
-static void AddBadBox(LOTInfo* lot, int boxNumber)
+static void AddBadBox(LOTInfo* LOT, int boxNumber)
 {
-	if (boxNumber == NO_VALUE || boxNumber == lot->BadBox)
+	if (boxNumber == NO_VALUE)
 		return;
+	
+	// Check if bad box is already memorized.
+	for (auto& badBox : LOT->BadBoxes)
+	{
+		if (badBox.BoxNumber == boxNumber)
+			return;
+	}
 
-	lot->BadBox = boxNumber;
-	lot->BadBoxCount = 0;
+	// Find an empty slot to store the bad box.
+	for (auto& badBox : LOT->BadBoxes)
+	{
+		if (badBox.BoxNumber != NO_VALUE)
+			continue;
+
+		badBox.BoxNumber = boxNumber;
+		badBox.Count = 0;
+		return;
+	}
 }
 
 /**
- * @brief Updates the lifecycle of the currently marked bad pathfinding box.
+* @brief Checks if a pathfinding box is bad and currently in cooldown.
  *
- * This mechanism prevents softlocks against problematic geometry while still
- * allowing recovery if creature has already left problematic area.
- *
- * @param LOT Pointer to the creature's LOT (pathfinding state).
+ * @param lot Pointer to the creature's LOT (pathfinding state).
+ * @param boxNumber Pathfinding box to check.
+ * @return true if the box is in cooldown, false otherwise.
  */
-static void UpdateBadBox(ItemInfo* item)
+static bool IsBoxInCooldown(const LOTInfo* LOT, int boxNumber)
+{
+	if (boxNumber == NO_VALUE)
+		return false;
+
+	for (const auto& badBox : LOT->BadBoxes)
+	{
+		if (badBox.BoxNumber == boxNumber && badBox.Count < 0)
+			return true;
+	}
+
+	return false;
+}
+
+/**
+ * @brief Updates the creature's bad box memory.
+ *
+ * Creature's bad box memory mechanism prevents softlocks against
+ * problematic geometry while still allowing recovery if creature has
+ * already left problematic area.
+ *
+ * @param item Pointer to the item representing a creature.
+ */
+static void UpdateBadBoxes(ItemInfo* item)
 {
 	if (!item->IsCreature())
 		return;
 
-	auto& lot = GetCreatureInfo(item)->LOT;
+	auto& LOT = GetCreatureInfo(item)->LOT;
 
-	// No bad box defined.
-	if (lot.BadBox == NO_VALUE)
-		return;
-
-	// Bad box is already accessed, increase patience limit.
-	if (lot.BadBoxCount >= 0 && lot.BadBoxCount < BAD_BOX_PATIENCE_LIMIT)
-		lot.BadBoxCount++;
-
-	// Patience has reached the limit, flip the process to a cooldown and recalculate a path.
-	if (lot.BadBoxCount >= BAD_BOX_PATIENCE_LIMIT)
+	for (auto& badBox : LOT.BadBoxes)
 	{
-		lot.BadBoxCount = -BAD_BOX_COOLDOWN_LIMIT;
-		lot.TargetBox = NO_VALUE;
-		UpdateLOT(&lot, SEARCH_DEPTH);
-		return;
-	}
+		if (badBox.BoxNumber == NO_VALUE)
+			continue;
 
-	// If cooldown phase has finished, recover the bad box.
-	if (lot.BadBoxCount < 0)
-	{
-		lot.BadBoxCount++;
-		if (lot.BadBoxCount == 0)
-			lot.BadBox = NO_VALUE;
+		// Patience buildup.
+		if (badBox.Count >= 0 && badBox.Count < BAD_BOX_PATIENCE_LIMIT)
+		{
+			badBox.Count++;
+			continue;
+		}
+
+		// Flip into cooldown exactly at limit.
+		if (badBox.Count == BAD_BOX_PATIENCE_LIMIT)
+		{
+			badBox.Count = -BAD_BOX_COOLDOWN_LIMIT;
+			LOT.TargetBox = NO_VALUE;
+			UpdateLOT(&LOT, SEARCH_DEPTH);
+			return;
+		}
+
+		// If cooldown phase has finished, forget the bad box.
+		if (badBox.Count < 0)
+		{
+			badBox.Count++;
+			if (badBox.Count == 0)
+				badBox.BoxNumber = NO_VALUE;
+		}
 	}
 }
 
@@ -1457,8 +1499,8 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (flags & BOX_END_BIT)
 					done = true;
 
-				// PENALTY CHECK: Ignore bad box, if it is defined.
-				if (boxNumber == LOT->BadBox)
+				// PENALTY CHECK: Ignore box, if it is memorized as bad.
+				if (IsBoxInCooldown(LOT, boxNumber))
 					continue;
 
 				// ZONE CHECK: Only flyers and amphibious creatures bypass zone check.
@@ -2188,7 +2230,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	}
 
 	// Process bad box checks.
-	UpdateBadBox(item);
+	UpdateBadBoxes(item);
 
 	// Fallback: if no target box, use creature's current box.
 	if (LOT->TargetBox == NO_VALUE)

@@ -682,6 +682,17 @@ const std::vector<byte> SaveGame::Build()
 				jointRotations.push_back(creature->JointRotation[i]);
 			auto jointRotationsOffset = fbb.CreateVector(jointRotations);
 
+
+			std::vector<int> badBoxNumbers;
+			std::vector<int> badBoxCounts;
+			for (int i = 0; i < BAD_BOX_MEMORY_SIZE; i++)
+			{
+				badBoxNumbers.push_back(creature->LOT.BadBoxes[i].BoxNumber);
+				badBoxCounts.push_back(creature->LOT.BadBoxes[i].Count);
+			}
+			auto badBoxNumbersOffset = fbb.CreateVector(badBoxNumbers);
+			auto badBoxCountsOffset = fbb.CreateVector(badBoxCounts);
+
 			Save::CreatureBuilder creatureBuilder{ fbb };
 			creatureBuilder.add_alerted(creature->Alerted);
 			creatureBuilder.add_enemy(creature->Enemy == nullptr ? -1 : creature->Enemy->Index);
@@ -707,8 +718,9 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
 			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
 			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
-			creatureBuilder.add_bad_box(creature->LOT.BadBox);
-			creatureBuilder.add_bad_box_count(creature->LOT.BadBoxCount);
+			creatureBuilder.add_bad_box_numbers(badBoxNumbersOffset);
+			creatureBuilder.add_bad_box_counts(badBoxCountsOffset);
+
 			creatureOffset = creatureBuilder.Finish();
 		}
 		else if (itemToSerialize.Data.is<QuadBikeInfo>())
@@ -2877,8 +2889,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 			creature->LOT.CanJump = savedCreature->can_jump();
 			creature->LOT.CanMonkey = savedCreature->can_monkey();
-			creature->LOT.BadBox = savedCreature->bad_box();
-			creature->LOT.BadBoxCount = savedCreature->bad_box_count();
+
+			for (int j = 0; j < BAD_BOX_MEMORY_SIZE; j++)
+			{
+				creature->LOT.BadBoxes[j].BoxNumber = savedCreature->bad_box_numbers()->Get(j);
+				creature->LOT.BadBoxes[j].Count = savedCreature->bad_box_counts()->Get(j);
+			}
 
 			if (savedCreature->enemy() >= 0)
 				creature->Enemy = &g_Level.Items[savedCreature->enemy()];
