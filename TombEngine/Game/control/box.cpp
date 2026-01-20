@@ -750,7 +750,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		}
 
 		// Clamp vertical movement to min/max fly speed.
-		dy = std::clamp(dy, -LOT->Fly, (int)LOT->Fly);
+		dy = std::clamp(dy, -LOT->Fly, LOT->Fly);
 
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 		if (item->Pose.Position.y + dy <= height)

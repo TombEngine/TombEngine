@@ -54,14 +54,14 @@ struct LOTInfo
 	ZoneType Zone	= ZoneType::Basic;
 	Vector3i Target = Vector3i::Zero;
 
-	int	  TargetBox	   = 0;
-	int	  RequiredBox  = 0;
-	int	  SearchNumber = 0;
-	int	  BlockMask	   = 0;
-	short ZoneCount	   = 0;
-	short Step		   = 0;
-	short Drop		   = 0;
-	short Fly		   = 0;
+	int TargetBox	 = 0;
+	int RequiredBox  = 0;
+	int SearchNumber = 0;
+	int BlockMask	 = 0;
+	int ZoneCount	 = 0;
+	int Step		 = 0;
+	int Drop		 = 0;
+	int Fly			 = 0;
 
 	BadBox BadBoxes[BAD_BOX_MEMORY_SIZE] = {};
 
