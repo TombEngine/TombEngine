@@ -1190,16 +1190,21 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 		return true;
 
 	int height = box->height;
+	bool heightResult = false;
+
 	if ((boxHeight - height) > LOT->Step || (boxHeight - height) < LOT->Drop)
-		return true;
+		heightResult = true;
 
 	if ((boxHeight - height) < -LOT->Step && height > nextHeight)
-		return true;
+		heightResult = true;
 
 	if (LOT->Fly != NO_FLYING && y > (height + LOT->Fly))
-		return true;
+		heightResult = true;
 
-	return false;
+	if (heightResult)
+		AddBadBox(LOT, floor->PathfindingBoxID);
+
+	return heightResult;
 }
 
 int CreatureCreature(short itemNumber)  
