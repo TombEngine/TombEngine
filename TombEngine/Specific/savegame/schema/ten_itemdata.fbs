@@ -85,9 +85,10 @@ table Creature {
 	flags: int32;
 	can_jump: bool;
 	can_monkey: bool;
-	is_amphibious: bool;
 	is_jumping: bool;
 	is_monkeying: bool;
+	bad_box: int32;
+	bad_box_count: int32;
 }
 
 table LaserHead {

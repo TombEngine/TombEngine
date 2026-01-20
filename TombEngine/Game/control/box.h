@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Math/Math.h"
 
@@ -60,8 +61,12 @@ struct OVERLAP
 constexpr auto BLOCKABLE = 0x8000;
 constexpr auto BLOCKED   = 0x4000;
 
+constexpr auto SEARCH_DEPTH = 5;
 constexpr auto SEARCH_NUMBER  = INT_MAX;
 constexpr auto SEARCH_BLOCKED = (1 << 31);
+
+constexpr auto BAD_BOX_PATIENCE_LIMIT = 2 * FPS;
+constexpr auto BAD_BOX_COOLDOWN_LIMIT = 6 * FPS;
 
 constexpr auto BOX_JUMP    = 0x800;
 constexpr auto BOX_MONKEY  = 0x2000;

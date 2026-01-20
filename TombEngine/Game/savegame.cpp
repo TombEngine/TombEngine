@@ -684,16 +684,12 @@ const std::vector<byte> SaveGame::Build()
 
 			Save::CreatureBuilder creatureBuilder{ fbb };
 			creatureBuilder.add_alerted(creature->Alerted);
-			creatureBuilder.add_can_jump(creature->LOT.CanJump);
-			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
 			creatureBuilder.add_enemy(creature->Enemy == nullptr ? -1 : creature->Enemy->Index);
 			creatureBuilder.add_flags(creature->Flags);
 			creatureBuilder.add_friendly(creature->Friendly);
 			creatureBuilder.add_head_left(creature->HeadLeft);
 			creatureBuilder.add_head_right(creature->HeadRight);
 			creatureBuilder.add_hurt_by_lara(creature->HurtByLara);
-			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
-			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
 			creatureBuilder.add_joint_rotation(jointRotationsOffset);
 			creatureBuilder.add_jump_ahead(creature->JumpAhead);
 			creatureBuilder.add_location_ai(creature->LocationAI);
@@ -707,6 +703,12 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_reached_goal(creature->ReachedGoal);
 			creatureBuilder.add_tosspad(creature->Tosspad);
 			creatureBuilder.add_ai_target_number(creature->AITargetNumber);
+			creatureBuilder.add_can_jump(creature->LOT.CanJump);
+			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
+			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
+			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
+			creatureBuilder.add_bad_box(creature->LOT.BadBox);
+			creatureBuilder.add_bad_box_count(creature->LOT.BadBoxCount);
 			creatureOffset = creatureBuilder.Finish();
 		}
 		else if (itemToSerialize.Data.is<QuadBikeInfo>())
@@ -2871,14 +2873,18 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			if (savedCreature == nullptr)
 				continue;
 
-			creature->Alerted = savedCreature->alerted();
+			creature->LOT.IsJumping = savedCreature->is_jumping();
+			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 			creature->LOT.CanJump = savedCreature->can_jump();
 			creature->LOT.CanMonkey = savedCreature->can_monkey();
+			creature->LOT.BadBox = savedCreature->bad_box();
+			creature->LOT.BadBoxCount = savedCreature->bad_box_count();
 
 			if (savedCreature->enemy() >= 0)
 				creature->Enemy = &g_Level.Items[savedCreature->enemy()];
 
 			creature->Flags = savedCreature->flags();
+			creature->Alerted = savedCreature->alerted();
 			creature->Friendly = savedCreature->friendly();
 			creature->HeadLeft = savedCreature->head_left();
 			creature->HeadRight = savedCreature->head_right();
@@ -2886,8 +2892,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LocationAI = savedCreature->location_ai();
 			creature->MuzzleFlash[0].Delay = savedCreature->weapon_delay1();
 			creature->MuzzleFlash[1].Delay = savedCreature->weapon_delay2();
-			creature->LOT.IsJumping = savedCreature->is_jumping();
-			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 
 			for (int j = 0; j < 4; j++)
 				creature->JointRotation[j] = savedCreature->joint_rotation()->Get(j);

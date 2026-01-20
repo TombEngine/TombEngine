@@ -1086,9 +1086,10 @@ struct CreatureT : public flatbuffers::NativeTable {
   int32_t flags = 0;
   bool can_jump = false;
   bool can_monkey = false;
-  bool is_amphibious = false;
   bool is_jumping = false;
   bool is_monkeying = false;
+  int32_t bad_box = 0;
+  int32_t bad_box_count = 0;
 };
 
 struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1118,9 +1119,10 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_FLAGS = 42,
     VT_CAN_JUMP = 44,
     VT_CAN_MONKEY = 46,
-    VT_IS_AMPHIBIOUS = 48,
-    VT_IS_JUMPING = 50,
-    VT_IS_MONKEYING = 52
+    VT_IS_JUMPING = 48,
+    VT_IS_MONKEYING = 50,
+    VT_BAD_BOX = 52,
+    VT_BAD_BOX_COUNT = 54
   };
   int32_t maximum_turn() const {
     return GetField<int32_t>(VT_MAXIMUM_TURN, 0);
@@ -1188,14 +1190,17 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool can_monkey() const {
     return GetField<uint8_t>(VT_CAN_MONKEY, 0) != 0;
   }
-  bool is_amphibious() const {
-    return GetField<uint8_t>(VT_IS_AMPHIBIOUS, 0) != 0;
-  }
   bool is_jumping() const {
     return GetField<uint8_t>(VT_IS_JUMPING, 0) != 0;
   }
   bool is_monkeying() const {
     return GetField<uint8_t>(VT_IS_MONKEYING, 0) != 0;
+  }
+  int32_t bad_box() const {
+    return GetField<int32_t>(VT_BAD_BOX, 0);
+  }
+  int32_t bad_box_count() const {
+    return GetField<int32_t>(VT_BAD_BOX_COUNT, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1222,9 +1227,10 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            VerifyField<uint8_t>(verifier, VT_CAN_JUMP) &&
            VerifyField<uint8_t>(verifier, VT_CAN_MONKEY) &&
-           VerifyField<uint8_t>(verifier, VT_IS_AMPHIBIOUS) &&
            VerifyField<uint8_t>(verifier, VT_IS_JUMPING) &&
            VerifyField<uint8_t>(verifier, VT_IS_MONKEYING) &&
+           VerifyField<int32_t>(verifier, VT_BAD_BOX) &&
+           VerifyField<int32_t>(verifier, VT_BAD_BOX_COUNT) &&
            verifier.EndTable();
   }
   CreatureT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1302,14 +1308,17 @@ struct CreatureBuilder {
   void add_can_monkey(bool can_monkey) {
     fbb_.AddElement<uint8_t>(Creature::VT_CAN_MONKEY, static_cast<uint8_t>(can_monkey), 0);
   }
-  void add_is_amphibious(bool is_amphibious) {
-    fbb_.AddElement<uint8_t>(Creature::VT_IS_AMPHIBIOUS, static_cast<uint8_t>(is_amphibious), 0);
-  }
   void add_is_jumping(bool is_jumping) {
     fbb_.AddElement<uint8_t>(Creature::VT_IS_JUMPING, static_cast<uint8_t>(is_jumping), 0);
   }
   void add_is_monkeying(bool is_monkeying) {
     fbb_.AddElement<uint8_t>(Creature::VT_IS_MONKEYING, static_cast<uint8_t>(is_monkeying), 0);
+  }
+  void add_bad_box(int32_t bad_box) {
+    fbb_.AddElement<int32_t>(Creature::VT_BAD_BOX, bad_box, 0);
+  }
+  void add_bad_box_count(int32_t bad_box_count) {
+    fbb_.AddElement<int32_t>(Creature::VT_BAD_BOX_COUNT, bad_box_count, 0);
   }
   explicit CreatureBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1346,10 +1355,13 @@ inline flatbuffers::Offset<Creature> CreateCreature(
     int32_t flags = 0,
     bool can_jump = false,
     bool can_monkey = false,
-    bool is_amphibious = false,
     bool is_jumping = false,
-    bool is_monkeying = false) {
+    bool is_monkeying = false,
+    int32_t bad_box = 0,
+    int32_t bad_box_count = 0) {
   CreatureBuilder builder_(_fbb);
+  builder_.add_bad_box_count(bad_box_count);
+  builder_.add_bad_box(bad_box);
   builder_.add_flags(flags);
   builder_.add_ai_target_number(ai_target_number);
   builder_.add_enemy(enemy);
@@ -1362,7 +1374,6 @@ inline flatbuffers::Offset<Creature> CreateCreature(
   builder_.add_maximum_turn(maximum_turn);
   builder_.add_is_monkeying(is_monkeying);
   builder_.add_is_jumping(is_jumping);
-  builder_.add_is_amphibious(is_amphibious);
   builder_.add_can_monkey(can_monkey);
   builder_.add_can_jump(can_jump);
   builder_.add_hurt_by_lara(hurt_by_lara);
@@ -1407,9 +1418,10 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
     int32_t flags = 0,
     bool can_jump = false,
     bool can_monkey = false,
-    bool is_amphibious = false,
     bool is_jumping = false,
-    bool is_monkeying = false) {
+    bool is_monkeying = false,
+    int32_t bad_box = 0,
+    int32_t bad_box_count = 0) {
   auto joint_rotation__ = joint_rotation ? _fbb.CreateVector<int32_t>(*joint_rotation) : 0;
   return TEN::Save::CreateCreature(
       _fbb,
@@ -1435,9 +1447,10 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
       flags,
       can_jump,
       can_monkey,
-      is_amphibious,
       is_jumping,
-      is_monkeying);
+      is_monkeying,
+      bad_box,
+      bad_box_count);
 }
 
 flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -3120,9 +3133,10 @@ inline void Creature::UnPackTo(CreatureT *_o, const flatbuffers::resolver_functi
   { auto _e = flags(); _o->flags = _e; }
   { auto _e = can_jump(); _o->can_jump = _e; }
   { auto _e = can_monkey(); _o->can_monkey = _e; }
-  { auto _e = is_amphibious(); _o->is_amphibious = _e; }
   { auto _e = is_jumping(); _o->is_jumping = _e; }
   { auto _e = is_monkeying(); _o->is_monkeying = _e; }
+  { auto _e = bad_box(); _o->bad_box = _e; }
+  { auto _e = bad_box_count(); _o->bad_box_count = _e; }
 }
 
 inline flatbuffers::Offset<Creature> Creature::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -3155,9 +3169,10 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
   auto _flags = _o->flags;
   auto _can_jump = _o->can_jump;
   auto _can_monkey = _o->can_monkey;
-  auto _is_amphibious = _o->is_amphibious;
   auto _is_jumping = _o->is_jumping;
   auto _is_monkeying = _o->is_monkeying;
+  auto _bad_box = _o->bad_box;
+  auto _bad_box_count = _o->bad_box_count;
   return TEN::Save::CreateCreature(
       _fbb,
       _maximum_turn,
@@ -3182,9 +3197,10 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
       _flags,
       _can_jump,
       _can_monkey,
-      _is_amphibious,
       _is_jumping,
-      _is_monkeying);
+      _is_monkeying,
+      _bad_box,
+      _bad_box_count);
 }
 
 inline LaserHeadT *LaserHead::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

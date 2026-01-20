@@ -54,6 +54,9 @@ struct LOTInfo
 	short Drop		   = 0;
 	short Fly		   = 0;
 
+	int  BadBox		   = NO_VALUE;
+	int  BadBoxCount   = 0;
+
 	bool IsJumping		 = false;
 	bool IsMonkeying	 = false;
 
@@ -64,7 +67,7 @@ struct LOTInfo
 struct CreatureBiteInfo
 {
 	Vector3 Position = Vector3::Zero;
-	int		BoneID	 = -1;
+	int		BoneID	 = NO_VALUE;
 
 	CreatureBiteInfo() {}
 

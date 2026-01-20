@@ -378,6 +378,70 @@ void AlertAllGuards(short itemNumber)
 }
 
 /**
+ * @brief Marks a pathfinding box as temporarily invalid ("bad") for the creature.
+ *
+ * This function records a box that the creature has failed to traverse
+ * (e.g. due to collision, invalid height/zone, or clipping against geometry).
+ * The bad box is used by the pathfinding system to prevent repeatedly attempting
+ * the same failing overlap and getting stuck.
+ *
+ * Only one bad box is tracked at a time. Re-adding the same box has no effect.
+ * When a new bad box is set, its patience counter is reset.
+ *
+ * @param LOT Pointer to the creature's LOT (pathfinding state).
+ * @param boxNumber Pathfinding box to mark as bad. Ignored if NO_VALUE.
+ */
+static void AddBadBox(LOTInfo* lot, int boxNumber)
+{
+	if (boxNumber == NO_VALUE || boxNumber == lot->BadBox)
+		return;
+
+	lot->BadBox = boxNumber;
+	lot->BadBoxCount = 0;
+}
+
+/**
+ * @brief Updates the lifecycle of the currently marked bad pathfinding box.
+ *
+ * This mechanism prevents softlocks against problematic geometry while still
+ * allowing recovery if creature has already left problematic area.
+ *
+ * @param LOT Pointer to the creature's LOT (pathfinding state).
+ */
+static void UpdateBadBox(ItemInfo* item)
+{
+	if (!item->IsCreature())
+		return;
+
+	auto& lot = GetCreatureInfo(item)->LOT;
+
+	// No bad box defined.
+	if (lot.BadBox == NO_VALUE)
+		return;
+
+	// Bad box is already accessed, increase patience limit.
+	if (lot.BadBoxCount >= 0 && lot.BadBoxCount < BAD_BOX_PATIENCE_LIMIT)
+		lot.BadBoxCount++;
+
+	// Patience has reached the limit, flip the process to a cooldown and recalculate a path.
+	if (lot.BadBoxCount >= BAD_BOX_PATIENCE_LIMIT)
+	{
+		lot.BadBoxCount = -BAD_BOX_COOLDOWN_LIMIT;
+		lot.TargetBox = NO_VALUE;
+		UpdateLOT(&lot, SEARCH_DEPTH);
+		return;
+	}
+
+	// If cooldown phase has finished, recover the bad box.
+	if (lot.BadBoxCount < 0)
+	{
+		lot.BadBoxCount++;
+		if (lot.BadBoxCount == 0)
+			lot.BadBox = NO_VALUE;
+	}
+}
+
+/**
  * @brief Handles creature movement, collision, and positioning after animation.
  *
  * This function is the core of creature physical movement. After animation updates
@@ -456,6 +520,9 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 
 	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
 	{
+		if (heightThresholdReached)
+			AddBadBox(LOT, floor->PathfindingBoxID);
+
 		// Calculate which sector boundary to push creature to.
 		xPos = item->Pose.Position.x / BLOCK(1);
 		zPos = item->Pose.Position.z / BLOCK(1);
@@ -767,7 +834,10 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 
 		// Ceiling collision - push back if head would hit ceiling.
 		if (item->Pose.Position.y + top < ceiling)
+		{
 			item->Pose.Position = prevPos;
+			AddBadBox(LOT, floor->PathfindingBoxID);
+		}
 
 		floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
 		item->Floor = GetFloorHeight(floor, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
@@ -1381,6 +1451,10 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 
 				if (flags & BOX_END_BIT)
 					done = true;
+
+				// PENALTY CHECK: Ignore bad box, if it is defined.
+				if (boxNumber == LOT->BadBox)
+					continue;
 
 				// ZONE CHECK: Only flyers and amphibious creatures bypass zone check.
 				if (LOT->Zone != ZoneType::Flyer && LOT->Zone != ZoneType::Amphibious && searchZone != zone[boxNumber])
@@ -2108,6 +2182,9 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 	}
 
+	// Process bad box checks.
+	UpdateBadBox(item);
+
 	// Fallback: if no target box, use creature's current box.
 	if (LOT->TargetBox == NO_VALUE)
 		TargetBox(LOT, item->BoxNumber);
@@ -2325,7 +2402,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 {
 	// Expand the pathfinding search if needed.
-	UpdateLOT(LOT, 5);
+	UpdateLOT(LOT, SEARCH_DEPTH);
 
 	// Start with creature's current position as default target.
 	*target = item->Pose.Position;
