@@ -5,10 +5,6 @@
 -- Builders can change how the cutscene behaves by editing values in `TR2_DRAGON_Cutscene.Config`
 -- from their own level script.
 --
---
---
---
---
 -- __Full example (copy and paste into your level script):__
 --
 --      -- Load the Dragon cutscene module
@@ -75,6 +71,7 @@ local TR2_DRAGON_Cutscene = {}
 --- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR Starting colour for dragon stunned particles.
 --- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR Ending colour for dragon stunned particles.
 --- @tfield bool SHOW_DRAGON_BAR Whether to display the custom dragon boss health bar.
+--- @tfield string CUTSCENE_AUDIO_TRACK Audio track name for dagger removal cutscene. 
 
 TR2_DRAGON_Cutscene.Config = {
     DAGGER_ANIM_ID = 578,
@@ -104,6 +101,7 @@ TR2_DRAGON_Cutscene.Config = {
     COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128), math.random(51,76)),
     COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32), math.random(12,19)),
 
+	CUTSCENE_AUDIO_TRACK = "removeDagger",
     SHOW_DRAGON_BAR = true
 }
 
@@ -134,8 +132,6 @@ local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
 local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
 
 local SHOW_DRAGON_BAR
-
-
 
 --- @section InternalState
 --- Internal State (Do Not Edit)
@@ -169,8 +165,6 @@ end
 local function easeInOut(x)
     return x * x * (3 - 2 * x)
 end
-
-
 
 --- @section DragonHealthBar
 --- Dragon Health Bar Configuration
@@ -207,8 +201,6 @@ local dragonHealthBar = {
     startValue      = nil,
     maxValue        = 300
 }
-
-
 
 --- @section CutsceneInitialization
 --- Cutscene Initialization
@@ -247,8 +239,9 @@ function TR2_DRAGON_Cutscene.Init()
     COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR   = C.COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
     COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR     = C.COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
 
+	CUTSCENE_AUDIO_TRACK = C.CUTSCENE_AUDIO_TRACK
     SHOW_DRAGON_BAR = C.SHOW_DRAGON_BAR
-
+	
     angle = ORBIT_START_ANGLE
     time  = 0
 
@@ -273,8 +266,6 @@ function TR2_DRAGON_Cutscene.Init()
         CustomBar.CreateEnemyHpBar(dragonHealthBar)
     end
 end
-
-
 
 --- @section MainUpdateLoop
 --- Main Update Loop
@@ -454,7 +445,8 @@ function TR2_DRAGON_Cutscene.Update()
         Lara:SetPosition(pos)
         laraShifted = true
 
-        PlayAudioTrack("removeDagger", Sound.SoundTrackType.ONESHOT)
+		PlayAudioTrack(CUTSCENE_AUDIO_TRACK, Sound.SoundTrackType.ONESHOT)
+
         Lara:SwapMesh(10, 1108, 10)
         EmitBlood(Lara:GetJointPosition(10), 5000)
     end
@@ -502,8 +494,6 @@ function TR2_DRAGON_Cutscene.Update()
         Lara:UnswapMesh(10)
     end
 end
-
-
 
 --- @section CallbackRegistration
 --- Callback Registration
