@@ -1,48 +1,144 @@
--- MODULE: TR2_DRAGON_Cutscene.lua
--- Code Version 1
+--- @entity TR2_Dragon
+------
+-- This module provides a complete customisation of the previously missing TR2 Dragon effects. This module also implements a customisable custscene camera when Lara pulls the dagger out of the dragon.
+--	
+-- Builders can change how the cutscene behaves by editing values in `TR2_DRAGON_Cutscene.Config`
+-- from their own level script.
+--
+--
+--
+--
+--
+-- __Full example (copy and paste into your level script):__
+--
+--      -- Load the Dragon cutscene module
+--      local Dragon = require("Engine.Entity.TR2_Dragon")
+--
+--      -- Change any settings you want BEFORE the cutscene starts
+--      -- (Only change the lines you need. All others use default values.)
+--
+--      -- Camera settings
+--      Dragon.Config.ORBIT_RADIUS   = 700      -- How far the camera moves around Lara
+--      Dragon.Config.ORBIT_HEIGHT   = -120     -- Vertical offset of the orbit
+--      Dragon.Config.ORBIT_DURATION = 300      -- How long the orbit lasts
+--
+--      -- Field of view
+--      Dragon.Config.DEFAULT_FOV    = 80       -- Normal FOV
+--      Dragon.Config.CINEMATIC_FOV  = 50       -- FOV during the cutscene
+--
+--      -- Particle effects
+--      Dragon.Config.MARCO_PARTICLE_COUNT = 150
+--      Dragon.Config.DRAGON_STUN_PARTICLE_COUNT = 80
+--
+--      -- Dragon health bar
+--      Dragon.Config.SHOW_DRAGON_BAR = true    -- Set to false to hide the HP bar
+--
+--      -- The cutscene will automatically use these values when it runs.
+--
+-- __Important Notes__
+--
+-- 	• You should NOT need to edit `TR2_Dragon.lua` itself.
+-- 	• Only override the values you want to change.
+-- 	• All configuration values are applied when tr2_Dragon.Init() runs.
+-- 	• Make sure your level contains a CAMERA named "DAGGER_CAM".
+
 
 local CustomBar = require("Engine.CustomBar")
 PrintLog("TR2 Dragon module detected", LogLevel.INFO)
 
 local TR2_DRAGON_Cutscene = {}
 
-----------------------------------------------------------------------
--- USER CONFIGURATION (SAFE TO EDIT)
-----------------------------------------------------------------------
+--- @section UserConfiguration
+--- __User Configuration__
+---
 
-local DAGGER_ANIM_ID = 578
-local MESH_SWAP_ENDING_FRAME = 197
+--- @table TR2_DRAGON_Cutscene.Config
+--- @tfield int DAGGER_ANIM_ID Animation ID used when Lara pulls the dagger.
+--- @tfield number MESH_SWAP_ENDING_FRAME Frame at which Lara's mesh should be unswapped.
+--- @tfield number DEFAULT_FOV Default field of view.
+--- @tfield number CINEMATIC_FOV Cinematic field of view during the cutscene.
+--- @tfield number ORBIT_RADIUS Radius of the camera orbit around Lara.
+--- @tfield number ORBIT_HEIGHT Vertical offset of the orbit.
+--- @tfield number ORBIT_DURATION Duration of the orbit animation in frames.
+--- @tfield number ORBIT_START_ANGLE Starting angle of the orbit (radians).
+--- @tfield number ORBIT_END_ANGLE Ending angle of the orbit (radians).
+--- @tfield number MARCO_PARTICLE_MIN_RADIUS Minimum radius for Marco transformation particles.
+--- @tfield number MARCO_PARTICLE_MAX_RADIUS Maximum radius for Marco transformation particles.
+--- @tfield number MARCO_PARTICLE_COUNT Number of Marco transformation particles emitted per update.
+--- @tfield number DRAGON_STUN_PARTICLE_MIN_RADIUS Minimum radius for dragon stunned particles.
+--- @tfield number DRAGON_STUN_PARTICLE_MAX_RADIUS Maximum radius for dragon stunned particles.
+--- @tfield number DRAGON_STUN_PARTICLE_COUNT Number of dragon stunned particles emitted per update.
+--- @tfield Color COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR Starting colour for Marco’s transformation core glow.
+--- @tfield Color COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR Ending colour for Marco’s transformation core glow.
+--- @tfield Color COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR Minimum spark colour for Marco’s transformation effect.
+--- @tfield Color COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR Maximum spark colour for Marco’s transformation effect.
+--- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR Starting colour for dragon stunned particles.
+--- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR Ending colour for dragon stunned particles.
+--- @tfield bool SHOW_DRAGON_BAR Whether to display the custom dragon boss health bar.
 
-local DEFAULT_FOV   = 80
-local CINEMATIC_FOV = 55
+TR2_DRAGON_Cutscene.Config = {
+    DAGGER_ANIM_ID = 578,
+    MESH_SWAP_ENDING_FRAME = 197,
+    DEFAULT_FOV = 80,
+    CINEMATIC_FOV = 55,
+    ORBIT_RADIUS = 512,
+    ORBIT_HEIGHT = -150,
+    ORBIT_DURATION = 240,
+    ORBIT_START_ANGLE = math.rad(200),
+    ORBIT_END_ANGLE = math.rad(340),
 
-local ORBIT_RADIUS       = 512
-local ORBIT_HEIGHT       = -150
-local ORBIT_DURATION     = 240
-local ORBIT_START_ANGLE  = math.rad(200)
-local ORBIT_END_ANGLE    = math.rad(340)
+    MARCO_PARTICLE_MIN_RADIUS = 5,
+    MARCO_PARTICLE_MAX_RADIUS = 7,
+    MARCO_PARTICLE_COUNT      = 100,
 
-local MARCO_PARTICLE_MIN_RADIUS = 5
-local MARCO_PARTICLE_MAX_RADIUS = 7
-local MARCO_PARTICLE_COUNT      = 400
+    DRAGON_STUN_PARTICLE_MIN_RADIUS = 2,
+    DRAGON_STUN_PARTICLE_MAX_RADIUS = 4,
+    DRAGON_STUN_PARTICLE_COUNT      = 50,
 
-local DRAGON_STUN_PARTICLE_MIN_RADIUS = 2
-local DRAGON_STUN_PARTICLE_MAX_RADIUS = 4
-local DRAGON_STUN_PARTICLE_COUNT      = 800
+    COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0),
+    COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0),
 
-local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0)
-local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0)
+    COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0),
+    COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0),
 
-local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0)
-local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0)
+    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128), math.random(51,76)),
+    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32), math.random(12,19)),
 
-local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128),math.random(51,76))
-local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32),math.random(12,19))
+    SHOW_DRAGON_BAR = true
+}
 
-local SHOW_DRAGON_BAR = false
-----------------------------------------------------------------------
--- INTERNAL STATE (DO NOT EDIT)
-----------------------------------------------------------------------
+-- Locals that will be synced from Config in Init()
+local DAGGER_ANIM_ID
+local MESH_SWAP_ENDING_FRAME
+local DEFAULT_FOV
+local CINEMATIC_FOV
+local ORBIT_RADIUS
+local ORBIT_HEIGHT
+local ORBIT_DURATION
+local ORBIT_START_ANGLE
+local ORBIT_END_ANGLE
+
+local MARCO_PARTICLE_MIN_RADIUS
+local MARCO_PARTICLE_MAX_RADIUS
+local MARCO_PARTICLE_COUNT
+
+local DRAGON_STUN_PARTICLE_MIN_RADIUS
+local DRAGON_STUN_PARTICLE_MAX_RADIUS
+local DRAGON_STUN_PARTICLE_COUNT
+
+local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR
+local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
+local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR
+local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
+local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+
+local SHOW_DRAGON_BAR
+
+
+
+--- @section InternalState
+--- Internal State (Do Not Edit)
 
 local marco      = nil
 local camHelper  = nil
@@ -57,11 +153,12 @@ local originalPos         = nil
 local cinematicFOVActive  = false
 
 local time  = 0
-local angle = ORBIT_START_ANGLE
+local angle = 0
 
-----------------------------------------------------------------------
--- INTERNAL HELPERS
-----------------------------------------------------------------------
+
+
+--- @section InternalHelpers
+--- Internal Helpers
 
 local function Normalize(v)
     local len = v:Length()
@@ -73,28 +170,28 @@ local function easeInOut(x)
     return x * x * (3 - 2 * x)
 end
 
-----------------------------------------------------------------------
--- DRAGON HEALTH BAR
-----------------------------------------------------------------------
+
+
+--- @section DragonHealthBar
+--- Dragon Health Bar Configuration
 
 local dragonHealthBar = {
-
     barName         = "DragonHealthBar",
-
     objectIdBg      = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
     spriteIdBg      = 0,
     colorBg         = TEN.Color(255,255,255),
     posBg           = TEN.Vec2(50, 50),
     rotBg           = 0,
     scaleBg         = TEN.Vec2(19.05, 19.1),
-    alignModeBg     = TEN.View.AlignMode.CENTER_LEFT,
+    alignMode       = TEN.View.AlignMode.CENTER,
+    alignModeBg     = TEN.View.AlignMode.CENTER,
     scaleModeBg     = TEN.View.ScaleMode.FIT,
     blendModeBg     = TEN.Effects.BlendID.ALPHABLEND,
 
     objectIdBar     = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
     spriteIdBar     = 1,
     colorBar        = TEN.Color(255,0,0),
-    posBar          = TEN.Vec2(50, 50),
+    posBar          = TEN.Vec2(50, 80),
     rot             = 0,
     scaleBar        = TEN.Vec2(20, 20),
     alignMode       = TEN.View.AlignMode.CENTER_LEFT,
@@ -111,15 +208,52 @@ local dragonHealthBar = {
     maxValue        = 300
 }
 
-----------------------------------------------------------------------
--- INITIALISE CAMERA OBJECTS
-----------------------------------------------------------------------
 
+
+--- @section CutsceneInitialization
+--- Cutscene Initialization
+
+--- Initialise the TR2 Dragon cutscene.
+--- Syncs Config into internal locals, sets up camera helpers,
+--- retrieves Marco and Dragon references, and creates the dragon
+--- health bar if enabled.
 function TR2_DRAGON_Cutscene.Init()
+
+    -- Sync config into locals
+    local C = TR2_DRAGON_Cutscene.Config
+
+    DAGGER_ANIM_ID = C.DAGGER_ANIM_ID
+    MESH_SWAP_ENDING_FRAME = C.MESH_SWAP_ENDING_FRAME
+    DEFAULT_FOV = C.DEFAULT_FOV
+    CINEMATIC_FOV = C.CINEMATIC_FOV
+    ORBIT_RADIUS = C.ORBIT_RADIUS
+    ORBIT_HEIGHT = C.ORBIT_HEIGHT
+    ORBIT_DURATION = C.ORBIT_DURATION
+    ORBIT_START_ANGLE = C.ORBIT_START_ANGLE
+    ORBIT_END_ANGLE = C.ORBIT_END_ANGLE
+
+    MARCO_PARTICLE_MIN_RADIUS = C.MARCO_PARTICLE_MIN_RADIUS
+    MARCO_PARTICLE_MAX_RADIUS = C.MARCO_PARTICLE_MAX_RADIUS
+    MARCO_PARTICLE_COUNT      = C.MARCO_PARTICLE_COUNT
+
+    DRAGON_STUN_PARTICLE_MIN_RADIUS = C.DRAGON_STUN_PARTICLE_MIN_RADIUS
+    DRAGON_STUN_PARTICLE_MAX_RADIUS = C.DRAGON_STUN_PARTICLE_MAX_RADIUS
+    DRAGON_STUN_PARTICLE_COUNT      = C.DRAGON_STUN_PARTICLE_COUNT
+
+    COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = C.COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR
+    COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = C.COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
+    COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR  = C.COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR
+    COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR  = C.COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR   = C.COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
+    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR     = C.COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+
+    SHOW_DRAGON_BAR = C.SHOW_DRAGON_BAR
+
+    angle = ORBIT_START_ANGLE
+    time  = 0
 
     PrintLog("TR2 Dragon module loaded successfully", LogLevel.INFO)
 
-    -- Disable generic enemy HP bars so they don't override our custom dragon bar
     CustomBar.ShowEnemiesHpGenericBar(false)
 
     local pos = Lara:GetPosition()
@@ -136,48 +270,46 @@ function TR2_DRAGON_Cutscene.Init()
     dragonHealthBar.startValue = dragon:GetHP()
 
     if SHOW_DRAGON_BAR then
-    CustomBar.CreateEnemyHpBar(dragonHealthBar)
+        CustomBar.CreateEnemyHpBar(dragonHealthBar)
     end
 end
 
-----------------------------------------------------------------------
--- MAIN UPDATE FUNCTION
-----------------------------------------------------------------------
 
+
+--- @section MainUpdateLoop
+--- Main Update Loop
+
+--- Main update loop for the TR2 Dragon cutscene.
+--- Handles:
+---		Dragon HP bar updates
+---		Marco transformation particle effects
+---		Dragon stunned particle effects
+---		Lara repositioning during dagger pull
+---		Smooth 360° camera orbit
+---		Mesh swap and unswap logic
 function TR2_DRAGON_Cutscene.Update()
 
-    ------------------------------------------------------------------
-    -- MINIMAL, CLEAN BOSS BAR LOGIC
-    ------------------------------------------------------------------
     if SHOW_DRAGON_BAR then
 
         local bar = CustomBar.Get("DragonHealthBar")
 
-        -- If the bar was deleted (HP hit 0), recreate it
         if not bar then
             CustomBar.CreateEnemyHpBar(dragonHealthBar)
             bar = CustomBar.Get("DragonHealthBar")
 
-            -- Restore correct max HP
             local dataName = "DragonHealthBar_bar_data"
             LevelVars.Engine.CustomBars.bars[dataName].maxValue = 300
 
-            -- Set correct current HP (e.g., 150 when dragon wakes)
             if dragon then
                 bar:SetBarValue(dragon:GetHP(), 0)
             end
         end
 
-        -- Normal update
         if dragon and bar then
             bar:SetBarValue(dragon:GetHP(), 0)
             bar:SetVisibility(true)
         end
     end
-
-    ------------------------------------------------------------------
-    -- PARTICLE HELPERS
-    ------------------------------------------------------------------
 
     local function randomPointOnSphere(radius)
         local u = math.random()
@@ -241,10 +373,6 @@ function TR2_DRAGON_Cutscene.Update()
         })
     end
 
-    ------------------------------------------------------------------
-    -- MARCO TRANSFORMATION EFFECT
-    ------------------------------------------------------------------
-
     if marco[1] and marco[1]:GetVisible() and marco[1]:GetActive() then
         local target = marco[1]:GetJointPosition(18)
         emitInwardSphereParticles(
@@ -260,10 +388,6 @@ function TR2_DRAGON_Cutscene.Update()
             COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
         )
     end
-
-    ------------------------------------------------------------------
-    -- DRAGON STUNNED EFFECT
-    ------------------------------------------------------------------
 
     if dragon and dragon:GetActive() and dragon:GetAnim() == 22 then
 
@@ -292,10 +416,6 @@ function TR2_DRAGON_Cutscene.Update()
         end
     end
 
-    ------------------------------------------------------------------
-    -- DAGGER PULL CUTSCENE
-    ------------------------------------------------------------------
-
     if Lara:GetAnim() ~= DAGGER_ANIM_ID then
 
         if cinematicFOVActive then
@@ -320,10 +440,6 @@ function TR2_DRAGON_Cutscene.Update()
 
     TEN.Input.ClearAllKeys()
 
-    ------------------------------------------------------------------
-    -- 1) Shift Lara backwards ONCE
-    ------------------------------------------------------------------
-
     if not laraShifted then
         originalPos = Lara:GetPosition()
 
@@ -343,16 +459,8 @@ function TR2_DRAGON_Cutscene.Update()
         EmitBlood(Lara:GetJointPosition(10), 5000)
     end
 
-    ------------------------------------------------------------------
-    -- 2) Update camera target
-    ------------------------------------------------------------------
-
     headAnchor = Lara:GetJointPosition(7)
     camHelper:SetPosition(headAnchor)
-
-    ------------------------------------------------------------------
-    -- 3) Move camera to starting offset ONCE
-    ------------------------------------------------------------------
 
     if not camMovedOnce then
         local camPos = cam:GetPosition()
@@ -366,10 +474,6 @@ function TR2_DRAGON_Cutscene.Update()
         cinematicFOVActive = true
         camMovedOnce = true
     end
-
-    ------------------------------------------------------------------
-    -- 4) Smooth 360 orbit (LOCAL SPACE AROUND LARA)
-    ------------------------------------------------------------------
 
     if time < 1 then
         time = time + (1 / ORBIT_DURATION)
@@ -392,10 +496,6 @@ function TR2_DRAGON_Cutscene.Update()
     local camPos = headAnchor + offset
     cam:SetPosition(camPos)
 
-    ------------------------------------------------------------------
-    -- 5) Play camera + mesh unswap
-    ------------------------------------------------------------------
-
     cam:Play(camHelper)
 
     if Lara:GetFrame() == MESH_SWAP_ENDING_FRAME then
@@ -403,21 +503,19 @@ function TR2_DRAGON_Cutscene.Update()
     end
 end
 
-----------------------------------------------------------------------
--- AUTO‑REGISTRATION USING TEN CALLBACKS
-----------------------------------------------------------------------
 
--- Wrap your Init() inside LevelFuncs
+
+--- @section CallbackRegistration
+--- Callback Registration
+
 LevelFuncs.DragonCutscene_Init = function()
     TR2_DRAGON_Cutscene.Init()
 end
 
--- Wrap your Update() inside LevelFuncs
 LevelFuncs.DragonCutscene_Update = function(dt)
-    TR2_DRAGON_Cutscene.Update()
+    TR2_DRAGON_Cutscene.Update(dt)
 end
 
--- Register callbacks
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_START, LevelFuncs.DragonCutscene_Init)
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP,  LevelFuncs.DragonCutscene_Update)
 

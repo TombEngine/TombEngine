@@ -9,6 +9,7 @@ new_type("tenclass", "2 Classes", true)
 new_type("tenprimitive", "3 Primitive Classes", true)
 new_type("enum", "4 Enums", true)
 new_type("luautil", "5 Lua utility modules", true)
+new_type("entity", "6 Entity Configs", true)
 
 not_luadoc = true
 
