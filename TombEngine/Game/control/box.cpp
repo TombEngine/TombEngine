@@ -815,6 +815,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			item->Pose.Position.x = prevPos.x;
 			item->Pose.Position.z = prevPos.z;
 			dy = -LOT->Fly;
+			AddBadBox(LOT, floor->PathfindingBoxID);
 		}
 
 		item->Pose.Position.y += dy;

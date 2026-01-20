@@ -26,12 +26,20 @@ enum class MoodType
 	Stalk
 };
 
+constexpr auto BAD_BOX_MEMORY_SIZE = 4;
+
 struct BoxNode
 {
 	int exitBox		  = 0;
 	int searchNumber  = 0;
 	int nextExpansion = 0;
 	int boxNumber	  = 0;
+};
+
+struct BadBox
+{
+	int  BoxNumber	= NO_VALUE;
+	int  Count		= 0;
 };
 
 struct LOTInfo 
@@ -54,8 +62,7 @@ struct LOTInfo
 	short Drop		   = 0;
 	short Fly		   = 0;
 
-	int  BadBox		   = NO_VALUE;
-	int  BadBoxCount   = 0;
+	BadBox BadBoxes[BAD_BOX_MEMORY_SIZE] = {};
 
 	bool IsJumping		 = false;
 	bool IsMonkeying	 = false;
