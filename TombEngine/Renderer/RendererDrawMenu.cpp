@@ -1676,12 +1676,12 @@ namespace TEN::Renderer
 				auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
 				auto* creatureInfo = (CreatureInfo*)enemy.Data;
 				auto zoneType = creatureInfo->LOT.Zone;
-				auto* zones = g_Level.Zones[(int)zoneType][(int)FlipStatus].data();
+				auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
 
-				PrintDebugMessage("PlayerItem.ZoneNumber: %d", zones[playerItem.BoxNumber]);
+				PrintDebugMessage("PlayerItem.ZoneNumber: %d", playerItem.BoxNumber == NO_VALUE ? NO_VALUE : zones[playerItem.BoxNumber]);
 				PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
 				PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
-				PrintDebugMessage("Enemy.ZoneNumber: %d", zones[enemy.BoxNumber]);
+				PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
 			}
 
 			break;
