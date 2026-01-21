@@ -1472,8 +1472,7 @@ bool UpdateLOT(LOTInfo* LOT, int depth)
  */
 bool SearchLOT(LOTInfo* LOT, int depth)
 {
-	auto* zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus].data();
-	int searchZone = zone[LOT->Head];
+	auto& zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus];
 
 	for (int i = 0; i < depth; i++)
 	{
@@ -1487,15 +1486,20 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 		auto* box = &g_Level.PathfindingBoxes[LOT->Head];
 		auto* node = &LOT->Node[LOT->Head];
 
-		// Iterate through all boxes that overlap with current box.
 		int index = box->overlapIndex;
+		int searchZone = zone[LOT->Head];
+
 		bool done = false;
+
+		// Iterate through all boxes that overlap with current box.
 		if (index >= 0)
 		{
 			do
 			{
 				int boxNumber = g_Level.Overlaps[index].box;
-				int flags = g_Level.Overlaps[index++].flags;
+				int flags = g_Level.Overlaps[index].flags;
+
+				index++;
 
 				if (flags & BOX_END_BIT)
 					done = true;
