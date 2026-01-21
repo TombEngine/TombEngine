@@ -1670,7 +1670,7 @@ namespace TEN::Renderer
 			if (PathfindingDisplayIndex >= 0)
 			{
 				auto creatures = GetActiveCreatures();
-				if (creatures.empty())
+				if (creatures.empty() || creatures.size() <= PathfindingDisplayIndex)
 					break;
 
 				auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
