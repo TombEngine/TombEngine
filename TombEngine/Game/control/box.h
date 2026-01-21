@@ -88,6 +88,8 @@ constexpr auto CLIP_ALL    = (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
 
 constexpr auto CLIP_SECONDARY = 0x10;
 
+extern int PathfindingDisplayIndex;
+
 void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
 void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
 void FindAITargetObject(CreatureInfo* creature, int objectNumber);
@@ -134,3 +136,4 @@ void DrawLaraPathfinding(int boxIndex);
 void DrawItemPathfinding(int itemNumber);
 void DrawPathfindingDebug(int laraBoxIndex);
 void CyclePathfindingDisplay();
+std::vector<int> GetActiveCreatures();

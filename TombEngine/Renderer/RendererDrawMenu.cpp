@@ -2,6 +2,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/Gui.h"
@@ -1664,7 +1665,25 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
-			PrintDebugMessage("BoxNumber: %d", playerItem.BoxNumber);
+			PrintDebugMessage("PlayerItem.BoxNumber: %d", playerItem.BoxNumber);
+
+			if (PathfindingDisplayIndex >= 0)
+			{
+				auto creatures = GetActiveCreatures();
+				if (creatures.empty())
+					break;
+
+				auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
+				auto* creatureInfo = (CreatureInfo*)enemy.Data;
+				auto zoneType = creatureInfo->LOT.Zone;
+				auto* zones = g_Level.Zones[(int)zoneType][(int)FlipStatus].data();
+
+				PrintDebugMessage("PlayerItem.ZoneNumber: %d", zones[playerItem.BoxNumber]);
+				PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
+				PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
+				PrintDebugMessage("Enemy.ZoneNumber: %d", zones[enemy.BoxNumber]);
+			}
+
 			break;
 
 		case RendererDebugPage::CollisionMeshStats:

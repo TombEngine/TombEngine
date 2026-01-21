@@ -77,7 +77,7 @@ constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 // Pathfinding debug display state:
 // -1 = show Lara's nearby boxes
 // >= 0 = index into active creatures list
-static int PathfindingDisplayIndex = NO_VALUE;
+int PathfindingDisplayIndex = NO_VALUE;
 
 void DrawBox(int boxIndex, Vector3 color)
 {
@@ -183,7 +183,7 @@ void DrawItemPathfinding(int itemNumber)
 }
 
 // Collect all active creature item numbers.
-static std::vector<int> GetActiveCreatures()
+std::vector<int> GetActiveCreatures()
 {
 	auto creatures = std::vector<int>{};
 
