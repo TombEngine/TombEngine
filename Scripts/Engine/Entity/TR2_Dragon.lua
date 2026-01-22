@@ -49,29 +49,29 @@ local TR2_DRAGON_Cutscene = {}
 ---
 
 --- @table TR2_DRAGON_Cutscene.Config
---- @tfield int DAGGER_ANIM_ID Animation ID used when Lara pulls the dagger.
---- @tfield number MESH_SWAP_ENDING_FRAME Frame at which Lara's mesh should be unswapped.
---- @tfield number DEFAULT_FOV Default field of view.
---- @tfield number CINEMATIC_FOV Cinematic field of view during the cutscene.
---- @tfield number ORBIT_RADIUS Radius of the camera orbit around Lara.
---- @tfield number ORBIT_HEIGHT Vertical offset of the orbit.
---- @tfield number ORBIT_DURATION Duration of the orbit animation in frames.
---- @tfield number ORBIT_START_ANGLE Starting angle of the orbit (radians).
---- @tfield number ORBIT_END_ANGLE Ending angle of the orbit (radians).
---- @tfield number MARCO_PARTICLE_MIN_RADIUS Minimum radius for Marco transformation particles.
---- @tfield number MARCO_PARTICLE_MAX_RADIUS Maximum radius for Marco transformation particles.
---- @tfield number MARCO_PARTICLE_COUNT Number of Marco transformation particles emitted per update.
---- @tfield number DRAGON_STUN_PARTICLE_MIN_RADIUS Minimum radius for dragon stunned particles.
---- @tfield number DRAGON_STUN_PARTICLE_MAX_RADIUS Maximum radius for dragon stunned particles.
---- @tfield number DRAGON_STUN_PARTICLE_COUNT Number of dragon stunned particles emitted per update.
---- @tfield Color COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR Starting colour for Marco’s transformation core glow.
---- @tfield Color COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR Ending colour for Marco’s transformation core glow.
---- @tfield Color COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR Minimum spark colour for Marco’s transformation effect.
---- @tfield Color COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR Maximum spark colour for Marco’s transformation effect.
---- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR Starting colour for dragon stunned particles.
---- @tfield Color COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR Ending colour for dragon stunned particles.
---- @tfield bool SHOW_DRAGON_BAR Whether to display the custom dragon boss health bar.
---- @tfield string CUTSCENE_AUDIO_TRACK Audio track name for dagger removal cutscene. 
+--- @tfield int DAGGER_ANIM_ID Animation ID used when Lara pulls the dagger. _Default: 578_.
+--- @tfield number MESH_SWAP_ENDING_FRAME Frame at which Lara's hand mesh should be unswapped. _Default: 197_
+--- @tfield number DEFAULT_FOV Default field of view. _Default: 80_
+--- @tfield number CINEMATIC_FOV Cinematic field of view during the cutscene. _Default: 55
+--- @tfield number ORBIT_RADIUS Radius of the camera orbit around Lara._Default: 512
+--- @tfield number ORBIT_HEIGHT Vertical offset of the orbit. _Default: -150_
+--- @tfield number ORBIT_DURATION Duration of the orbit animation in frames. _Default: 240_
+--- @tfield number ORBIT_START_ANGLE Starting angle of the orbit (radians). _Default: 200_
+--- @tfield number ORBIT_END_ANGLE Ending angle of the orbit (radians). _Default: 340_
+--- @tfield number MARCO_PARTICLE_MIN_RADIUS Minimum radius for Marco transformation particles. _Default: 5_
+--- @tfield number MARCO_PARTICLE_MAX_RADIUS Maximum radius for Marco transformation particles. _Default: 7_
+--- @tfield number MARCO_PARTICLE_COUNT Number of Marco transformation particles emitted per update. _Default: 100_
+--- @tfield number DRAGON_STUN_PARTICLE_MIN_RADIUS Minimum radius for dragon stunned particles._Default: 2_
+--- @tfield number DRAGON_STUN_PARTICLE_MAX_RADIUS Maximum radius for dragon stunned particles. _Default: 4_
+--- @tfield number DRAGON_STUN_PARTICLE_COUNT Number of dragon stunned particles emitted per update. _Default: 50_
+--- @tfield Color MARCO_TRANSFORMATION_CORE_START_COLOR Starting colour for Marco’s transformation core glow. _Default: Color(0, 128, 0)_
+--- @tfield Color MARCO_TRANSFORMATION_CORE_END_COLOR Ending colour for Marco’s transformation core glow. _Default: Color(0, 64, 0)_
+--- @tfield Color MARCO_TRANSFORMATION_SPARK_MIN_COLOR Minimum spark colour for Marco’s transformation. _Default: Color(0, 64, 0)_
+--- @tfield Color MARCO_TRANSFORMATION_SPARK_MAX_COLOR Maximum spark colour for Marco’s transformation. _Default: Color(0, 255, 0)_
+--- @tfield Color DRAGON_STUNNED_PARTICLE_START_COLOR Starting colour for dragon stunned particles. _Default: Color(229, 128, 76)_
+--- @tfield Color DRAGON_STUNNED_PARTICLE_END_COLOR Ending colour for dragon stunned particles. _Default: Color(58, 32, 19)_
+--- @tfield bool SHOW_DRAGON_BAR Whether to display the custom dragon boss health bar. _Default: true_
+--- @tfield string CUTSCENE_AUDIO_TRACK Audio track name for dagger removal cutscene. _Default: "removeDagger"_
 
 TR2_DRAGON_Cutscene.Config = {
     DAGGER_ANIM_ID = 578,
@@ -92,14 +92,14 @@ TR2_DRAGON_Cutscene.Config = {
     DRAGON_STUN_PARTICLE_MAX_RADIUS = 4,
     DRAGON_STUN_PARTICLE_COUNT      = 50,
 
-    COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0),
-    COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0),
+    MARCO_TRANSFORMATION_CORE_START_COLOR = Color(0, 128, 0),
+    MARCO_TRANSFORMATION_CORE_END_COLOR   = Color(0, 64, 0),
 
-    COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0),
-    COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0),
+    MARCO_TRANSFORMATION_SPARK_MIN_COLOR = Color(0, 64, 0),
+    MARCO_TRANSFORMATION_SPARK_MAX_COLOR = Color(0, 255, 0),
 
-    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR = Color(math.random(204,229), math.random(102,128), math.random(51,76)),
-    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(math.random(51,58), math.random(25,32), math.random(12,19)),
+    DRAGON_STUNNED_PARTICLE_START_COLOR = Color(229,128,76),
+    DRAGON_STUNNED_PARTICLE_END_COLOR   = Color(58,32,19),
 
 	CUTSCENE_AUDIO_TRACK = "removeDagger",
     SHOW_DRAGON_BAR = true
@@ -124,12 +124,12 @@ local DRAGON_STUN_PARTICLE_MIN_RADIUS
 local DRAGON_STUN_PARTICLE_MAX_RADIUS
 local DRAGON_STUN_PARTICLE_COUNT
 
-local COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR
-local COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
-local COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR
-local COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
-local COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
-local COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+local MARCO_TRANSFORMATION_CORE_START_COLOR
+local MARCO_TRANSFORMATION_CORE_END_COLOR
+local MARCO_TRANSFORMATION_SPARK_MIN_COLOR
+local MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+local DRAGON_STUNNED_PARTICLE_START_COLOR
+local DRAGON_STUNNED_PARTICLE_END_COLOR
 
 local SHOW_DRAGON_BAR
 
@@ -232,12 +232,12 @@ function TR2_DRAGON_Cutscene.Init()
     DRAGON_STUN_PARTICLE_MAX_RADIUS = C.DRAGON_STUN_PARTICLE_MAX_RADIUS
     DRAGON_STUN_PARTICLE_COUNT      = C.DRAGON_STUN_PARTICLE_COUNT
 
-    COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR = C.COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR
-    COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR   = C.COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
-    COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR  = C.COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR
-    COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR  = C.COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
-    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR   = C.COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR
-    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR     = C.COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+    MARCO_TRANSFORMATION_CORE_START_COLOR = C.MARCO_TRANSFORMATION_CORE_START_COLOR
+    MARCO_TRANSFORMATION_CORE_END_COLOR   = C.MARCO_TRANSFORMATION_CORE_END_COLOR
+    MARCO_TRANSFORMATION_SPARK_MIN_COLOR  = C.MARCO_TRANSFORMATION_SPARK_MIN_COLOR
+    MARCO_TRANSFORMATION_SPARK_MAX_COLOR  = C.MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+    DRAGON_STUNNED_PARTICLE_START_COLOR   = C.DRAGON_STUNNED_PARTICLE_START_COLOR
+    DRAGON_STUNNED_PARTICLE_END_COLOR     = C.DRAGON_STUNNED_PARTICLE_END_COLOR
 
 	CUTSCENE_AUDIO_TRACK = C.CUTSCENE_AUDIO_TRACK
     SHOW_DRAGON_BAR = C.SHOW_DRAGON_BAR
@@ -370,13 +370,13 @@ function TR2_DRAGON_Cutscene.Update()
             target,
             math.random((MARCO_PARTICLE_MIN_RADIUS*1024), (MARCO_PARTICLE_MAX_RADIUS*1024)),
             MARCO_PARTICLE_COUNT,
-            COLOR_MARCO_TRANSFORMATION_SPARK_MIN_COLOR,
-            COLOR_MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+            MARCO_TRANSFORMATION_SPARK_MIN_COLOR,
+            MARCO_TRANSFORMATION_SPARK_MAX_COLOR
         )
         emitCoreGlow(
             target,
-            COLOR_MARCO_TRANSFORMATION_CORE_START_COLOR,
-            COLOR_MARCO_TRANSFORMATION_CORE_END_COLOR
+            MARCO_TRANSFORMATION_CORE_START_COLOR,
+            MARCO_TRANSFORMATION_CORE_END_COLOR
         )
     end
 
@@ -394,14 +394,14 @@ function TR2_DRAGON_Cutscene.Update()
                     math.random((DRAGON_STUN_PARTICLE_MIN_RADIUS * 1024),
                                 (DRAGON_STUN_PARTICLE_MAX_RADIUS * 1024)),
                     DRAGON_STUN_PARTICLE_COUNT,
-                    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-                    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+                    DRAGON_STUNNED_PARTICLE_START_COLOR,
+                    DRAGON_STUNNED_PARTICLE_END_COLOR
                 )
 
                 emitCoreGlow(
                     dragonTarget,
-                    COLOR_DRAGON_STUNNED_PARTICLE_START_COLOR,
-                    COLOR_DRAGON_STUNNED_PARTICLE_END_COLOR
+                    DRAGON_STUNNED_PARTICLE_START_COLOR,
+                    DRAGON_STUNNED_PARTICLE_END_COLOR
                 )
             end
         end
