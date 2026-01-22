@@ -266,12 +266,17 @@ namespace TEN::Scripting::Collision
 		if (_los.Items.empty())
 			return false;
 
-		auto convertedString = ValueOr<std::string>(name, {});
-		if (convertedString.empty())
+		auto searchName = ValueOr<std::string>(name, {});
+		if (searchName.empty())
 			return true;
 
-		const auto& movLos = _los.Items.front();
-		return movLos.Item != nullptr && movLos.Item->Name == convertedString;
+		for (const auto& itemLos : _los.Items)
+		{
+			if (itemLos.Item != nullptr && itemLos.Item->Name == searchName)
+				return true;
+		}
+
+		return false;
 	}
 
 	/// Check if the Ray hit a Static.
@@ -285,12 +290,17 @@ namespace TEN::Scripting::Collision
 		if (_los.Statics.empty())
 			return false;
 
-		auto convertedString = ValueOr<std::string>(name, {});
-		if (convertedString.empty())
+		auto searchName = ValueOr<std::string>(name, {});
+		if (searchName.empty())
 			return true;
 
-		const auto& staticLos = _los.Statics.front();
-		return staticLos.Static != nullptr && staticLos.Static->Name == convertedString;
+		for (const auto& staticLos : _los.Statics)
+		{
+			if (staticLos.Static != nullptr && staticLos.Static->Name == searchName)
+				return true;
+		}
+
+		return false;
 	}
 
 	/// Preview this Ray in the Collision Stats debug page.
