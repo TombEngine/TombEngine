@@ -1512,7 +1512,7 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (LOT->Zone != ZoneType::Flyer && searchZone != zone[boxNumber])
 					continue;
 
-				// AMPHIBIOUS: if the overlap is not traversable, avoid this branch
+				// AMPHIBIOUS: if the overlap is not traversable, avoid this branch.
 				if (LOT->Zone == ZoneType::Amphibious && !(flags & OVERLAP_AMPHIBIOUS_TRAVERSABLE))
 					continue;
 
