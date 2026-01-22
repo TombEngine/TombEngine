@@ -68,9 +68,13 @@ constexpr auto SEARCH_BLOCKED = (1 << 31);
 constexpr auto BAD_BOX_PATIENCE_LIMIT = 2 * FPS;
 constexpr auto BAD_BOX_COOLDOWN_LIMIT = 6 * FPS;
 
-constexpr auto BOX_JUMP    = 0x800;
-constexpr auto BOX_MONKEY  = 0x2000;
-constexpr auto BOX_END_BIT = 0x8000;
+constexpr auto BOX_WATER   = 0x200;
+constexpr auto BOX_SHALLOW = 0x400;
+
+constexpr auto OVERLAP_JUMP						= 0x800;
+constexpr auto OVERLAP_MONKEY					= 0x2000;
+constexpr auto OVERLAP_AMPHIBIOUS_TRAVERSABLE	= 0x4000;
+constexpr auto OVERLAP_END_BIT					= 0x8000;
 
 constexpr auto EXPAND_LEFT   = 0x1;
 constexpr auto EXPAND_RIGHT  = 0x2;

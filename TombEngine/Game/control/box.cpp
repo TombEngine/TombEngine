@@ -127,7 +127,7 @@ void DrawLaraPathfinding(int boxIndex)
 
 		DrawBox(overlap.box, Vector3(1, 1, 0));
 
-		if (overlap.flags & BOX_END_BIT)
+		if (overlap.flags & OVERLAP_END_BIT)
 			break;
 		else
 			index++;
@@ -1501,24 +1501,28 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 
 				index++;
 
-				if (flags & BOX_END_BIT)
+				if (flags & OVERLAP_END_BIT)
 					done = true;
 
 				// PENALTY CHECK: Ignore box, if it is memorized as bad.
 				if (IsBoxInCooldown(LOT, boxNumber))
 					continue;
 
-				// ZONE CHECK: Only flyers and amphibious creatures bypass zone check.
-				if (LOT->Zone != ZoneType::Flyer && LOT->Zone != ZoneType::Amphibious && searchZone != zone[boxNumber])
+				// ZONE CHECK: Only flyers creatures bypass zone check.
+				if (LOT->Zone != ZoneType::Flyer && searchZone != zone[boxNumber])
+					continue;
+
+				// AMPHIBIOUS: if the overlap is not traversable, avoid this branch
+				if (LOT->Zone == ZoneType::Amphibious && !(flags & OVERLAP_AMPHIBIOUS_TRAVERSABLE))
 					continue;
 
 				// HEIGHT CHECK: Can creature traverse the height difference?
 				int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
-				if ((delta > LOT->Step || delta < LOT->Drop) && (!(flags & BOX_MONKEY) || !LOT->CanMonkey))
+				if ((delta > LOT->Step || delta < LOT->Drop) && (!(flags & OVERLAP_MONKEY) || !LOT->CanMonkey))
 					continue;
 
 				// JUMP CHECK: Does this overlap require jumping?
-				if ((flags & BOX_JUMP) && !LOT->CanJump)
+				if ((flags & OVERLAP_JUMP) && !LOT->CanJump)
 					continue;
 
 				// SEARCH STATE: Check if we've already visited this box.
@@ -2267,16 +2271,16 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 				{
 					nextBox = g_Level.Overlaps[overlapIndex].box;
 					flags = g_Level.Overlaps[overlapIndex++].flags;
-				} while (nextBox != NO_VALUE && ((flags & BOX_END_BIT) == false) && (nextBox != endBox));
+				} while (nextBox != NO_VALUE && ((flags & OVERLAP_END_BIT) == false) && (nextBox != endBox));
 			}
 
 			// If we found the exit overlap, check its traversal flags.
 			if (nextBox == endBox)
 			{
-				if (flags & BOX_JUMP)
+				if (flags & OVERLAP_JUMP)
 					creature->JumpAhead = true;
 
-				if (flags & BOX_MONKEY)
+				if (flags & OVERLAP_MONKEY)
 					creature->MonkeySwingAhead = true;
 			}
 		}
