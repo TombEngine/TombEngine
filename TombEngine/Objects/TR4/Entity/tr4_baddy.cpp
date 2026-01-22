@@ -196,7 +196,6 @@ namespace TEN::Entities::TR4
 		FRAME_BADDY_SWORD_HIT_DAMAGE_MIN = 13,
 		FRAME_BADDY_SWORD_HIT_DAMAGE_MAX = 21,
 		FRAME_BADDY_CROUCH_PICKUP = 9,
-		FRAME_BADDY_FIRE_MIN = 1,
 		FRAME_BADDY_FIRE_MAX = 13,
 		FRAME_BADDY_SOMERSAULT_START_TAKE_OFF = 18,
 	};
@@ -820,7 +819,7 @@ namespace TEN::Entities::TR4
 					}
 				}
 
-				if (AI.ahead && AI.distance < pow(BLOCK(0.5f), 2))
+				if (AI.ahead && AI.distance < pow(BLOCK(0.75f), 2))
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
@@ -847,9 +846,8 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->Mood == MoodType::Attack &&
-					!(currentCreature->JumpAhead) &&
-					AI.distance > pow(BLOCK(1), 2))
+				if ((currentCreature->Mood == MoodType::Attack && !(currentCreature->JumpAhead) && AI.distance > pow(BLOCK(1), 2)) ||
+					 currentCreature->Mood == MoodType::Escape)
 				{
 					item->Animation.TargetState = BADDY_STATE_RUN;
 				}
@@ -874,21 +872,18 @@ namespace TEN::Entities::TR4
 					currentCreature->MaxTurn = 0;
 					break;
 				}
-
-				if (Targetable(item, &AI) &&
-					item->ItemFlags[2] > 0 ||
+				else if ((Targetable(item, &AI) && item->ItemFlags[2] > 0) ||
 					canJump1Sector ||
 					canJump2Sectors ||
 					currentCreature->MonkeySwingAhead ||
 					item->AIBits & FOLLOW ||
-					AI.distance < pow(614, 2) ||
 					currentCreature->JumpAhead)
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
 				}
 
-				if (AI.distance < pow(BLOCK(1), 2))
+				else if (AI.distance < pow(BLOCK(1.5f), 2))
 				{
 					item->Animation.TargetState = BADDY_STATE_WALK;
 					break;
@@ -1149,15 +1144,13 @@ namespace TEN::Entities::TR4
 					joint1 = AI.angle;
 					joint2 = AI.xAngle;
 				}
+
 				ClampRotation(item->Pose, AI.angle, ANGLE(7.0f));
 
-				if (item->Animation.FrameNumber >= FRAME_BADDY_FIRE_MAX ||
-					item->Animation.FrameNumber == FRAME_BADDY_FIRE_MIN)
-				{
+				if (item->Animation.FrameNumber >= FRAME_BADDY_FIRE_MAX || item->Animation.FrameNumber & 1)
 					break;
-				}
 
-				if (!item->HitStatus)
+				if (!(item->AIBits & MODIFY))
 					item->ItemFlags[2]--;
 
 				if (!ShotLara(item, &AI, BaddyGunBite, joint1, 15))

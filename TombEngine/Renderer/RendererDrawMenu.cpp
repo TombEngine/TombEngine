@@ -126,8 +126,8 @@ namespace TEN::Renderer
 		int y = 0;
 		auto titleOption = g_Gui.GetSelectedOption();
 
-		auto optionColor   = g_GameFlow->GetSettings()->UI.OptionTextColor;
-		auto headerColor   = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto optionColor   = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto headerColor   = g_GameFlow->GetSettings()->UI.OptionTextColor;
 		auto plainColor    = g_GameFlow->GetSettings()->UI.PlainTextColor;
 		auto disabledColor = g_GameFlow->GetSettings()->UI.DisabledTextColor;
 
@@ -582,7 +582,7 @@ namespace TEN::Renderer
 			menuPos.y = MenuVerticalLineSpacing;
 
 			// Title
-			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 			GetNextBlockPosition(&menuPos.y);
 
 			// Level 0 is always Title Level and level 1 might be Home Level.
@@ -624,7 +624,7 @@ namespace TEN::Renderer
 			y = MenuVerticalPause;
 
 			// Header
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_ACTIONS_PAUSE), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_ACTIONS_PAUSE), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 			GetNextBlockPosition(&y);
 
 			// Statistics
@@ -674,7 +674,7 @@ namespace TEN::Renderer
 
 		// Title
 		AddString(MenuCenterEntry, MenuVerticalNarrowLineSpacing, Str_LoadSave(g_Gui.GetInventoryMode() == InventoryMode::Save),
-			g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 		GetNextBlockPosition(&y);
 
 		// Savegame listing
@@ -715,7 +715,7 @@ namespace TEN::Renderer
 		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
 
 		// Title
-		AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_STATISTICS), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+		AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_STATISTICS), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 		GetNextBlockPosition(&y);
 
 		// Level name
@@ -769,6 +769,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderNewInventory()
 	{
+		g_Gui.DrawCompass(LaraItem);
+
 		g_Gui.DrawCurrentObjectList(LaraItem, RingTypes::Inventory);
 
 		if (g_Gui.GetRing(RingTypes::Ammo).RingActive)
@@ -776,7 +778,6 @@ namespace TEN::Renderer
 
 		g_Gui.DrawAmmoSelector();
 		g_Gui.FadeAmmoSelector();
-		g_Gui.DrawCompass(LaraItem);
 
 		DrawAllStrings();
 	}

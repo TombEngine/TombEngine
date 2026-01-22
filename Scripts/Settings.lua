@@ -44,8 +44,8 @@ local settings = Flow.Settings.new()
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
 	
-	settings.UI.headerTextColor = Color(240, 220, 32)
-	settings.UI.optionTextColor = Color(216, 117, 49)
+	settings.UI.headerTextColor = Color(216, 117, 49)
+	settings.UI.optionTextColor = Color(240, 220, 32)
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)	

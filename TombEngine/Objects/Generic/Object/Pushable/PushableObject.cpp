@@ -62,6 +62,8 @@ namespace TEN::Entities::Generic
 	{
 		auto& pushable = GetPushableInfo(pushableItem);
 
+		bool wasBuoyant = pushable.IsBuoyant;
+
 		// Read OCB flags.
 		int ocb = pushableItem.TriggerFlags;
 
@@ -69,6 +71,19 @@ namespace TEN::Entities::Generic
 		pushable.DoCenterAlign	= (ocb & (1 << 1)) == 0;			// Bit 1.
 		pushable.IsBuoyant		= (ocb & (1 << 2)) != 0;			// Bit 2.
 		pushable.AnimSetID		= ((ocb & (1 << 3)) != 0) ? 1 : 0;	// Bit 3.
+
+		// Force state transition if buoyancy changed.
+		if (wasBuoyant != pushable.IsBuoyant)
+		{
+			if (pushable.BehaviorState == PushableBehaviorState::WaterSurfaceIdle && !pushable.IsBuoyant)
+			{
+				pushable.BehaviorState = PushableBehaviorState::Sink;
+			}
+			else if (pushable.BehaviorState == PushableBehaviorState::UnderwaterIdle && pushable.IsBuoyant)
+			{
+				pushable.BehaviorState = PushableBehaviorState::Float;
+			}
+		}
 
 		pushable.PreviousTriggerFlags = pushableItem.TriggerFlags;
 	}
@@ -124,8 +139,8 @@ namespace TEN::Entities::Generic
 		if (player.Context.InteractedItem == itemNumber && player.Control.IsMoving)
 			return;
 
-		// Check if OCB has changed and update characteristics if needed.
-		if (pushableItem.TriggerFlags != pushable.PreviousTriggerFlags)
+		// Check if the OCB has changed or a savegame has been loaded and update characteristics if needed.
+		if (pushableItem.TriggerFlags != pushable.PreviousTriggerFlags || JustLoaded)
 			UpdatePushableFromOCB(pushableItem);
 
 		auto prevPos = pushableItem.Pose.Position;

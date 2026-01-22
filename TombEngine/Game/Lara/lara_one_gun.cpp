@@ -29,6 +29,7 @@
 #include "Math/Math.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/Generic/Switches/switch.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
@@ -1645,7 +1646,7 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 			if ((currentObject.intelligent && currentObject.collision && itemPtr->Status == ITEM_ACTIVE) ||
 				itemPtr->IsLara() ||
-				(itemPtr->Flags & 0x40 && Objects[itemPtr->ObjectNumber].explodableMeshbits))
+				(itemPtr->Flags & IFLAG_SWITCH_ONESHOT && Objects[itemPtr->ObjectNumber].explodableMeshbits))
 			{
 				// If we collide with emitter, and there are no other objects around, 
 				// don't process further in early launch stages.
@@ -1692,8 +1693,13 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 					}
 				}
 			}
-			else if (itemPtr->ObjectNumber >= ID_SMASH_OBJECT1 &&
-					 itemPtr->ObjectNumber <= ID_SMASH_OBJECT8)
+			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4)
+			{
+				doShatter = hasHit = true;
+				doExplosion = isExplosive;
+				ProcessShootSwitch(itemPtr);
+			}
+			else if (itemPtr->ObjectNumber >= ID_SMASH_OBJECT1 && itemPtr->ObjectNumber <= ID_SMASH_OBJECT8)
 			{
 				doShatter = hasHit = true;
 				doExplosion = isExplosive;

@@ -335,11 +335,11 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(UISettings, ScriptReserved_UISettings),
 
 		/// Header text color.
-		// @tfield Color headerTextColor A color used for displaying any header text in system menus.
+		// @tfield Color headerTextColor A color used for displaying header text in system menus.
 		"headerTextColor", &UISettings::HeaderTextColor,
 
 		/// Option text color.
-		// @tfield Color optionTextColor A color used for displaying option title text in system menus.
+		// @tfield Color optionTextColor A color used for displaying option text in system menus.
 		"optionTextColor", &UISettings::OptionTextColor,
 
 		/// Plain text color.
