@@ -202,13 +202,6 @@ local dragonHealthBar = {
     maxValue        = 300
 }
 
---- @section CutsceneInitialization
---- Cutscene Initialization
-
---- Initialise the TR2 Dragon cutscene.
---- Syncs Config into internal locals, sets up camera helpers,
---- retrieves Marco and Dragon references, and creates the dragon
---- health bar if enabled.
 function TR2_DRAGON_Cutscene.Init()
 
     -- Sync config into locals
@@ -267,17 +260,6 @@ function TR2_DRAGON_Cutscene.Init()
     end
 end
 
---- @section MainUpdateLoop
---- Main Update Loop
-
---- Main update loop for the TR2 Dragon cutscene.
---- Handles:
----		Dragon HP bar updates
----		Marco transformation particle effects
----		Dragon stunned particle effects
----		Lara repositioning during dagger pull
----		Smooth 360° camera orbit
----		Mesh swap and unswap logic
 function TR2_DRAGON_Cutscene.Update()
 
     if SHOW_DRAGON_BAR then
