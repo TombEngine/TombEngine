@@ -89,25 +89,30 @@ namespace TEN::Entities::TR4
 			SetAnimation(item, CROC_ANIM_IDLE);
 	}
 
-	bool IsCrocodileInWater(ItemInfo* item)
+	static bool IsCrocodileInWater(ItemInfo* item)
 	{
 		auto* creature = GetCreatureInfo(item);
 		auto bounds = GameBoundingBox(item);
-
 		int waterDepth = GetPointCollision(*item).GetWaterTopHeight();
-		if (waterDepth != NO_HEIGHT && waterDepth <= (item->Pose.Position.y + bounds.Y2))
+
+		return (waterDepth != NO_HEIGHT && waterDepth <= (item->Pose.Position.y + bounds.Y2));
+	}
+
+	static void SetCrocodileWater(ItemInfo* item)
+	{
+		auto* creature = GetCreatureInfo(item);
+
+		if (IsCrocodileInWater(item))
 		{
 			creature->LOT.Step = BLOCK(20);
 			creature->LOT.Drop = -BLOCK(20);
 			creature->LOT.Fly = CROC_SWIM_SPEED;
-			return true;
 		}
 		else
 		{
 			creature->LOT.Step = CLICK(1);
 			creature->LOT.Drop = -CLICK(1);
 			creature->LOT.Fly = NO_FLYING;
-			return false;
 		}
 	}
 
@@ -326,6 +331,7 @@ namespace TEN::Entities::TR4
 			extraTorsoRot.x = -boneAngle;
 		}
 
+		SetCrocodileWater(item);
 		CreatureTilt(item, 0);
 		CreatureJoint(item, 0, extraHeadRot.y);
 		CreatureJoint(item, 1, extraHeadRot.x);
