@@ -151,8 +151,6 @@ local cinematicFOVActive  = false
 local time  = 0
 local angle = 0
 
-
-
 --- @section InternalHelpers
 --- Internal Helpers
 
@@ -174,9 +172,9 @@ local dragonHealthBar = {
     objectIdBg      = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
     spriteIdBg      = 0,
     colorBg         = TEN.Color(255,255,255),
-    posBg           = TEN.Vec2(50, 50),
+    posBg           = TEN.Vec2(50, 80),
     rotBg           = 0,
-    scaleBg         = TEN.Vec2(19.05, 19.1),
+    scaleBg         = TEN.Vec2(20.5, 20),
     alignMode       = TEN.View.AlignMode.CENTER,
     alignModeBg     = TEN.View.AlignMode.CENTER,
     scaleModeBg     = TEN.View.ScaleMode.FIT,
@@ -188,7 +186,6 @@ local dragonHealthBar = {
     posBar          = TEN.Vec2(50, 80),
     rot             = 0,
     scaleBar        = TEN.Vec2(20, 20),
-    alignMode       = TEN.View.AlignMode.CENTER_LEFT,
     scaleMode       = TEN.View.ScaleMode.FIT,
     blendMode       = TEN.Effects.BlendID.ALPHABLEND,
 
