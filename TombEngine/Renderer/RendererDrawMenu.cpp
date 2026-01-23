@@ -1668,8 +1668,8 @@ namespace TEN::Renderer
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
 			{
-				auto& sector = GetPointCollision(playerItem).GetBottomSector();
-				PrintDebugMessage("PlayerItem.BoxNumber: %d", sector.PathfindingBoxID);
+				int playerBoxID = playerItem.BoxNumber == NO_VALUE ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
+				PrintDebugMessage("PlayerItem.BoxNumber: %d", playerBoxID);
 
 				if (PathfindingDisplayIndex >= 0)
 				{
@@ -1682,7 +1682,7 @@ namespace TEN::Renderer
 					auto zoneType = creatureInfo->LOT.Zone;
 					auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
 
-					PrintDebugMessage("PlayerItem.ZoneNumber: %d", sector.PathfindingBoxID == NO_VALUE ? NO_VALUE : zones[sector.PathfindingBoxID]);
+					PrintDebugMessage("PlayerItem.ZoneNumber: %d", playerBoxID == NO_VALUE ? NO_VALUE : zones[playerBoxID]);
 					PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
 					PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
 					PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
