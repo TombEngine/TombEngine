@@ -2,6 +2,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
@@ -20,6 +21,7 @@
 #include "Version.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Point;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -1665,23 +1667,26 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
-			PrintDebugMessage("PlayerItem.BoxNumber: %d", playerItem.BoxNumber);
-
-			if (PathfindingDisplayIndex >= 0)
 			{
-				auto creatures = GetActiveCreatures();
-				if (creatures.empty() || creatures.size() <= PathfindingDisplayIndex)
-					break;
+				auto& sector = GetPointCollision(playerItem).GetBottomSector();
+				PrintDebugMessage("PlayerItem.BoxNumber: %d", sector.PathfindingBoxID);
 
-				auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
-				auto* creatureInfo = (CreatureInfo*)enemy.Data;
-				auto zoneType = creatureInfo->LOT.Zone;
-				auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
+				if (PathfindingDisplayIndex >= 0)
+				{
+					auto creatures = GetActiveCreatures();
+					if (creatures.empty() || creatures.size() <= PathfindingDisplayIndex)
+						break;
 
-				PrintDebugMessage("PlayerItem.ZoneNumber: %d", playerItem.BoxNumber == NO_VALUE ? NO_VALUE : zones[playerItem.BoxNumber]);
-				PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
-				PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
-				PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
+					auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
+					auto* creatureInfo = (CreatureInfo*)enemy.Data;
+					auto zoneType = creatureInfo->LOT.Zone;
+					auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
+
+					PrintDebugMessage("PlayerItem.ZoneNumber: %d", sector.PathfindingBoxID == NO_VALUE ? NO_VALUE : zones[sector.PathfindingBoxID]);
+					PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
+					PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
+					PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
+				}
 			}
 
 			break;
