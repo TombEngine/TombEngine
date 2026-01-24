@@ -2088,11 +2088,10 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 		auto bounds = GameBoundingBox(item);
 		isReachable = abs(enemy->Pose.Position.y - pointColl.GetFloorHeight()) < bounds.GetHeight();
 
-		if (creature.LOT.Zone == ZoneType::Amphibious)
+		if (creature.LOT.Zone == ZoneType::Amphibious && isEnemyInWater)
 		{
-			// Amphibious creatures can reach targets in water, or on land with height check.
-			if (isEnemyInWater)
-				isReachable = true;
+			// Amphibious creatures can reach targets in water in any case.
+			isReachable = true;
 		}
 		else
 		{
