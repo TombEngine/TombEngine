@@ -254,36 +254,47 @@ void DrawItemPathfinding(int itemNumber)
 				DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
 		}
 
-		// Draw coarse path.
-		if (!bypassPathDrawing)
+		Vector3 lineStart, lineEnd;
+		bool drawOnlyDirectLine = false;
+
+		if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
 		{
-			if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
+			// Direct target-creature line.
+			lineStart = source;
+			lineEnd = target;
+			drawOnlyDirectLine = true;
+		}
+		else
+		{
+			if (hasPrev)
 			{
-				DrawDebugLine(source, target, color, RendererDebugPage::PathfindingStats);
-				break;
+				// Draw line from previous box center.
+				if (currentBox == LOT.RequiredBox)
+				{
+					lineStart = prevCenter;
+					lineEnd = target;
+				}
+				else if (currentBox != LOT.TargetBox && nodeCount > 2)
+				{
+					lineStart = prevCenter;
+					lineEnd = center;
+				}
 			}
-			else
+			else if (nextBox != NO_VALUE && nextBox != currentBox)
 			{
-				if (hasPrev)
-				{
-					// Draw line from previous box center.
-					if (currentBox == LOT.RequiredBox)
-						DrawDebugLine(prevCenter, target, color, RendererDebugPage::PathfindingStats);
-					else if (currentBox != LOT.TargetBox && nodeCount > 2)
-						DrawDebugLine(prevCenter, center, color, RendererDebugPage::PathfindingStats);
-				}
-				else if (nextBox != NO_VALUE && nextBox != currentBox)
-				{
-					// Creature line.
-					auto& finalCenter = GetBoxCenter(nextBox);
-					finalCenter.y = std::min(finalCenter.y, target.y);
-					DrawDebugLine(source, finalCenter, color, RendererDebugPage::PathfindingStats);
-				}
+				// Creature line.
+				lineStart = source;
+				lineEnd = GetBoxCenter(nextBox);
+				lineEnd.y = std::min(lineEnd.y, target.y);
 			}
 		}
 
-		// Stop if we reached destination.
-		if (currentBox == LOT.TargetBox)
+		// Draw coarse path.
+		if (!bypassPathDrawing)
+			DrawDebugLine(lineStart, lineEnd, color, RendererDebugPage::PathfindingStats);
+
+		// Stop if we reached destination or we don't need to draw any more nodes.
+		if (currentBox == LOT.TargetBox || drawOnlyDirectLine)
 			break;
 
 		prevCenter = center;
