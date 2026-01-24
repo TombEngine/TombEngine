@@ -115,6 +115,7 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 {
 	constexpr auto PREDICTION_FACTOR = 15.0f;
 	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
+	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
 
 	if (!sourceItem || !targetItem)
 		return;
@@ -130,16 +131,13 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 	auto sourceVel = GetVelocity(*sourceItem);
 	auto targetVel = GetVelocity(*targetItem);
 
-	auto toTarget = targetPos - sourcePos;
-	float distance = toTarget.Length();
-
-	auto relativeVel = sourceVel - targetVel;
-	float relativeSpeed = relativeVel.Length();
+	float distance = Vector3::Distance(targetPos, sourcePos);
+	float relativeVel = Vector3::Distance(targetVel, sourceVel);
 
 	// Avoid division by zero / jitter.
 	float t = 0.0f;
-	if (relativeSpeed > 1.0f)
-		t = distance / relativeSpeed;
+	if (relativeVel > 1.0f)
+		t = distance / relativeVel;
 
 	// Clamp prediction horizon (important for stability).
 	t = std::clamp(t, 0.0f, PREDICTION_FACTOR);
@@ -158,11 +156,11 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 
 	// Force original target position if predicted position is out of bounds.
 	auto noBox = GetPointCollision(predictedPos, targetItem->RoomNumber).GetSector().PathfindingBoxID == NO_VALUE;
+	auto finalTarget = noBox ? targetPos : predictedPos;
 
-	if (noBox)
-		LOT.Target = targetPos;
-	else
-		LOT.Target = predictedPos;
+	// Smoothly interpolate target.
+	auto currentTarget = LOT.Target.ToVector3();
+	LOT.Target = currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
 }
 
 static int GetRandomBox(LOTInfo& LOT)
