@@ -55,7 +55,7 @@ local TR2_DRAGON_Cutscene = {}
 --- @tfield number MESH_SWAP_ENDING_FRAME Frame at which Lara's hand mesh should be unswapped. _Default: 197_
 --- @tfield number DEFAULT_FOV Default field of view. _Default: 80_
 --- @tfield number CINEMATIC_FOV Cinematic field of view during the cutscene. _Default: 55_
---- @tfield number ORBIT_RADIUS Radius of the camera orbit around Lara. _Default: 512_
+--- @tfield number ORBIT_RADIUS Radius of the camera orbit around Lara. _Default: 1024_
 --- @tfield number ORBIT_HEIGHT Vertical offset of the orbit. _Default: -150_
 --- @tfield number ORBIT_DURATION Duration of the orbit animation in frames. _Default: 240_
 --- @tfield number ORBIT_START_ANGLE Starting angle of the orbit (radians). _Default: 200°_
@@ -85,7 +85,7 @@ TR2_DRAGON_Cutscene.Config = {
     DEFAULT_FOV = 80,
     CINEMATIC_FOV = 55,
 
-    ORBIT_RADIUS = 512,
+    ORBIT_RADIUS = 1024,
     ORBIT_HEIGHT = -150,
     ORBIT_DURATION = 240,
     ORBIT_START_ANGLE = math.rad(200),
@@ -148,6 +148,7 @@ local DRAGON_STUNNED_PARTICLE_END_COLOR
 -- Misc configuration values
 local SHOW_DRAGON_BAR
 local CUTSCENE_AUDIO_TRACK
+local DRAGON_NAME
 
 -- References to in‑game objects.
 local marco      = nil
@@ -165,7 +166,6 @@ local cutsceneEnabled    = false
 
 -- Time/angle values used for the orbit camera interpolation.
 local time  = 0
-local angle = 0
 
 -- Persistent stunned state.
 LevelVars.TR2_Dragon = LevelVars.TR2_Dragon or {
@@ -241,36 +241,36 @@ local dragonHealthBar = {
 function TR2_DRAGON_Cutscene.Init()
     local C = TR2_DRAGON_Cutscene.Config
 
-    DAGGER_ANIM_ID        = C.DAGGER_ANIM_ID
-    MESH_SWAP_ENDING_FRAME = C.MESH_SWAP_ENDING_FRAME
-    DEFAULT_FOV           = C.DEFAULT_FOV
-    CINEMATIC_FOV         = C.CINEMATIC_FOV
-    ORBIT_RADIUS          = C.ORBIT_RADIUS
-    ORBIT_HEIGHT          = C.ORBIT_HEIGHT
-    ORBIT_DURATION        = C.ORBIT_DURATION
-    ORBIT_START_ANGLE     = C.ORBIT_START_ANGLE
-    ORBIT_END_ANGLE       = C.ORBIT_END_ANGLE
+    DAGGER_ANIM_ID        					= C.DAGGER_ANIM_ID
+    MESH_SWAP_ENDING_FRAME 					= C.MESH_SWAP_ENDING_FRAME
+    DEFAULT_FOV          				 	= C.DEFAULT_FOV
+    CINEMATIC_FOV        				 	= C.CINEMATIC_FOV
+    ORBIT_RADIUS         				 	= C.ORBIT_RADIUS
+    ORBIT_HEIGHT         				 	= C.ORBIT_HEIGHT
+    ORBIT_DURATION       				 	= C.ORBIT_DURATION
+    ORBIT_START_ANGLE    				 	= C.ORBIT_START_ANGLE
+    ORBIT_END_ANGLE       					= C.ORBIT_END_ANGLE
 
-    MARCO_PARTICLE_MIN_RADIUS = C.MARCO_PARTICLE_MIN_RADIUS
-    MARCO_PARTICLE_MAX_RADIUS = C.MARCO_PARTICLE_MAX_RADIUS
-    MARCO_PARTICLE_COUNT      = C.MARCO_PARTICLE_COUNT
+    MARCO_PARTICLE_MIN_RADIUS				= C.MARCO_PARTICLE_MIN_RADIUS
+    MARCO_PARTICLE_MAX_RADIUS 				= C.MARCO_PARTICLE_MAX_RADIUS
+    MARCO_PARTICLE_COUNT      				= C.MARCO_PARTICLE_COUNT
 
-    DRAGON_STUN_PARTICLE_MIN_RADIUS = C.DRAGON_STUN_PARTICLE_MIN_RADIUS
-    DRAGON_STUN_PARTICLE_MAX_RADIUS = C.DRAGON_STUN_PARTICLE_MAX_RADIUS
-    DRAGON_STUN_PARTICLE_COUNT      = C.DRAGON_STUN_PARTICLE_COUNT
+    DRAGON_STUN_PARTICLE_MIN_RADIUS 		= C.DRAGON_STUN_PARTICLE_MIN_RADIUS
+    DRAGON_STUN_PARTICLE_MAX_RADIUS 		= C.DRAGON_STUN_PARTICLE_MAX_RADIUS
+    DRAGON_STUN_PARTICLE_COUNT      		= C.DRAGON_STUN_PARTICLE_COUNT
 
-    MARCO_TRANSFORMATION_CORE_START_COLOR = C.MARCO_TRANSFORMATION_CORE_START_COLOR
-    MARCO_TRANSFORMATION_CORE_END_COLOR   = C.MARCO_TRANSFORMATION_CORE_END_COLOR
-    MARCO_TRANSFORMATION_SPARK_MIN_COLOR  = C.MARCO_TRANSFORMATION_SPARK_MIN_COLOR
-    MARCO_TRANSFORMATION_SPARK_MAX_COLOR  = C.MARCO_TRANSFORMATION_SPARK_MAX_COLOR
-    DRAGON_STUNNED_PARTICLE_START_COLOR   = C.DRAGON_STUNNED_PARTICLE_START_COLOR
-    DRAGON_STUNNED_PARTICLE_END_COLOR     = C.DRAGON_STUNNED_PARTICLE_END_COLOR
+    MARCO_TRANSFORMATION_CORE_START_COLOR 	= C.MARCO_TRANSFORMATION_CORE_START_COLOR
+    MARCO_TRANSFORMATION_CORE_END_COLOR   	= C.MARCO_TRANSFORMATION_CORE_END_COLOR
+    MARCO_TRANSFORMATION_SPARK_MIN_COLOR  	= C.MARCO_TRANSFORMATION_SPARK_MIN_COLOR
+    MARCO_TRANSFORMATION_SPARK_MAX_COLOR  	= C.MARCO_TRANSFORMATION_SPARK_MAX_COLOR
+    DRAGON_STUNNED_PARTICLE_START_COLOR   	= C.DRAGON_STUNNED_PARTICLE_START_COLOR
+    DRAGON_STUNNED_PARTICLE_END_COLOR     	= C.DRAGON_STUNNED_PARTICLE_END_COLOR
 
-    CUTSCENE_AUDIO_TRACK = C.CUTSCENE_AUDIO_TRACK
-    SHOW_DRAGON_BAR      = C.SHOW_DRAGON_BAR
+    CUTSCENE_AUDIO_TRACK 					= C.CUTSCENE_AUDIO_TRACK
+    SHOW_DRAGON_BAR      					= C.SHOW_DRAGON_BAR
+	DRAGON_NAME 							= C.DRAGON_NAME
 
-    angle = ORBIT_START_ANGLE
-    time  = 0
+    time  									= 0
 
     PrintLog("TR2 Dragon module initialised", LogLevel.INFO)
     CustomBar.ShowEnemiesHpGenericBar(false)
@@ -292,7 +292,7 @@ function TR2_DRAGON_Cutscene.Init()
     marco = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
 
     -- Single, named dragon
-    dragon = GetMoveableByName(C.DRAGON_NAME)
+    dragon = DRAGON_NAME and GetMoveableByName(DRAGON_NAME) or nil
 
     -- Determine dragon mode based on OCB:
     -- OCB 0 = TR2‑accurate auto‑death at 0 HP, no dagger cutscene.
@@ -403,8 +403,7 @@ function TR2_DRAGON_Cutscene.Update()
 
     -- Ensure dragon reference is still valid (e.g. after reload)
     if not dragon then
-        local name = TR2_DRAGON_Cutscene.Config.DRAGON_NAME
-        dragon = name and GetMoveableByName(name) or nil
+        dragon = DRAGON_NAME and GetMoveableByName(DRAGON_NAME) or nil
     end
     
     -- Dragon HP bar (only visible when targeted)
@@ -518,7 +517,6 @@ function TR2_DRAGON_Cutscene.Update()
 
         camMovedOnce = false
         headAnchor   = nil
-        angle        = ORBIT_START_ANGLE
         time         = 0
 
         return
@@ -598,8 +596,8 @@ LevelFuncs.DragonCutscene_Init = function()
     TR2_DRAGON_Cutscene.Init()
 end
 
-LevelFuncs.DragonCutscene_Update = function(dt)
-    TR2_DRAGON_Cutscene.Update(dt)
+LevelFuncs.DragonCutscene_Update = function()
+    TR2_DRAGON_Cutscene.Update()
 end
 
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_START,  LevelFuncs.DragonCutscene_Init)
