@@ -51,6 +51,7 @@
 #include "Math/Math.h"
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
+#include "Renderer/Renderer.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -79,18 +80,25 @@ constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 // >= 0 = index into active creatures list
 int PathfindingDisplayIndex = NO_VALUE;
 
-void DrawBox(int boxIndex, Vector3 color)
+static Vector3 GetBoxCenter(int boxIndex)
+{
+	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
+
+	float x = ((float)currBox.left + (float)(currBox.right - currBox.left) / 2.0f) * BLOCK(1);
+	auto  y = currBox.height - CLICK(1);
+	float z = ((float)currBox.top + (float)(currBox.bottom - currBox.top) / 2.0f) * BLOCK(1);
+
+	return Vector3(z, y, x);
+}
+
+static void DrawBox(int boxIndex, const Vector3& color)
 {
 	if (boxIndex == NO_VALUE)
 		return;
 
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
 
-	float x = ((float)currBox.left + (float)(currBox.right - currBox.left) / 2.0f) * 1024.0f;
-	auto  y = currBox.height - CLICK(1);
-	float z = ((float)currBox.top + (float)(currBox.bottom - currBox.top) / 2.0f) * 1024.0f;
-
-	auto center = Vector3(z, y, x);
+	auto center = GetBoxCenter(boxIndex);
 	auto corner = Vector3(currBox.bottom * BLOCK(1), currBox.height + CLICK(1), currBox.right * BLOCK(1));
 	auto extents = (corner - center) * 0.9f;
 	auto dBox = BoundingOrientedBox(center, extents, Vector4::UnitY);
@@ -100,6 +108,28 @@ void DrawBox(int boxIndex, Vector3 color)
 		dBox.Extents = extents + Vector3(i);
 		DrawDebugBox(dBox, Vector4(color.x, color.y, color.z, 1), RendererDebugPage::PathfindingStats);
 	}
+}
+
+static void DrawLabel(const Vector3& pos, const std::string& string, const Vector4& color)
+{
+	constexpr float MIN_SCALE  = 0.2f;
+	constexpr float MAX_SCALE  = 0.8f;
+
+	float distance = (Camera.pos.ToVector3() - pos).Length();
+	float scale = 1.0f / (distance / BLOCK(2));
+
+	if (scale < MIN_SCALE)
+		return;
+
+	scale = std::clamp(scale, MIN_SCALE, MAX_SCALE);
+
+	// Get 2D label position.
+	auto labelPos = pos - Vector3(0, CLICK(0.75f), 0);
+	auto labelPos2D = g_Renderer.Get2DPosition(labelPos);
+
+	// Draw label.
+	if (labelPos2D.has_value())
+		DrawDebugString(string, *labelPos2D, color, scale, RendererDebugPage::PathfindingStats);
 }
 
 void DrawLaraPathfinding(int boxIndex)
@@ -136,6 +166,8 @@ void DrawLaraPathfinding(int boxIndex)
 
 void DrawItemPathfinding(int itemNumber)
 {
+	constexpr auto MAX_DRAW_STEPS = 100;
+
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 		return;
 
@@ -146,39 +178,110 @@ void DrawItemPathfinding(int itemNumber)
 	auto* creature = GetCreatureInfo(&item);
 	const auto& LOT = creature->LOT;
 
-	// Green: current box (where creature is).
+	// Green box: current box (where creature is).
 	if (item.BoxNumber != NO_VALUE)
 		DrawBox(item.BoxNumber, Vector3(0, 1, 0));
 
-	// Blue: TargetBox (pathfinding destination).
+	// Blue box: TargetBox (pathfinding destination).
 	if (LOT.TargetBox != NO_VALUE)
 		DrawBox(LOT.TargetBox, Vector3(0, 0, 1));
 
-	// Cyan: RequiredBox (if different from TargetBox).
+	// Cyan box: RequiredBox (if different from TargetBox).
 	if (LOT.RequiredBox != NO_VALUE && LOT.RequiredBox != LOT.TargetBox)
 		DrawBox(LOT.RequiredBox, Vector3(0, 1, 1));
 
-	// Red: trace path from current box to target following exitBox.
-	if (item.BoxNumber != NO_VALUE && LOT.TargetBox != NO_VALUE)
+	if (item.BoxNumber == NO_VALUE || LOT.TargetBox == NO_VALUE)
+		return;
+
+	// Draw creature's own node.
+	auto source = item.Pose.Position.ToVector3();
+	source.y -= CLICK(1);
+	DrawDebugSphere(source, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
+	DrawLabel(source, item.Name, Vector4::One);
+
+	// If target is not bound to enemy, indicate it.
+	auto target = LOT.Target.ToVector3();
+	bool drawName = creature->Enemy != nullptr && Vector3i::Distance(creature->Enemy->Pose.Position, LOT.Target) <= CLICK(1);
+	target.y -= CLICK(1);
+
+	// Draw target node.
+	DrawDebugSphere(target, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
+	DrawLabel(target, drawName ? creature->Enemy->Name : "< IDLE >", Vector4::One);
+
+	int currentBox = item.BoxNumber;
+	int maxSteps = MAX_DRAW_STEPS;
+
+	auto prevCenter = Vector3();
+	bool hasPrev = false;
+
+	while (currentBox != NO_VALUE && maxSteps-- > 0)
 	{
-		int currentBox = item.BoxNumber;
-		int maxSteps = 100; // Prevent infinite loops.
+		int nextBox = LOT.Node[currentBox].exitBox;
+		auto& box = g_Level.PathfindingBoxes[currentBox];
+		auto& center = GetBoxCenter(currentBox);
+		center.y = std::min(center.y, target.y);
 
-		while (currentBox != NO_VALUE &&
-		       currentBox != LOT.TargetBox &&
-		       maxSteps-- > 0)
+		// Red box: intermediate box between current creature position and target.
+		if (currentBox != item.BoxNumber)
+			DrawBox(currentBox, Vector3(1, 0, 0));
+
+		// Draw intermediate box node.
+		if (currentBox != LOT.RequiredBox && currentBox != item.BoxNumber)
 		{
-			// Skip drawing current box again (already green).
-			if (currentBox != item.BoxNumber)
-				DrawBox(currentBox, Vector3(1, 0, 0));
-
-			int nextBox = LOT.Node[currentBox].exitBox;
-
-			if (nextBox == NO_VALUE || nextBox == currentBox)
-				break;
-
-			currentBox = nextBox;
+			DrawDebugSphere(center, 32.0f, Vector4::One, RendererDebugPage::PathfindingStats);
+			DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
 		}
+
+		// If creature got a penalty for accessing bad box, indicate it.
+		bool blinkPath = false;
+		for (auto& badBox : LOT.BadBoxes)
+		{
+			if (badBox.BoxNumber != NO_VALUE && badBox.Count > 0)
+			{
+				blinkPath = true;
+				break;
+			}
+		}
+
+		if (blinkPath && ((GlobalCounter / 8) % 2 != 0))
+			break;
+
+		// Draw coarse path.
+		if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
+		{
+			DrawDebugLine(source, target, Vector4::One, RendererDebugPage::PathfindingStats);
+			break;
+		}
+		else
+		{
+			if (hasPrev)
+			{
+				// Draw line from previous box center.
+				if (currentBox == LOT.RequiredBox)
+					DrawDebugLine(prevCenter, target, Vector4::One, RendererDebugPage::PathfindingStats);
+				else if (currentBox != LOT.TargetBox && maxSteps < (MAX_DRAW_STEPS - 2))
+					DrawDebugLine(prevCenter, center, Vector4::One, RendererDebugPage::PathfindingStats);
+			}
+			else if (nextBox != NO_VALUE && nextBox != currentBox)
+			{
+				// Creature line.
+				auto& finalCenter = GetBoxCenter(nextBox);
+				finalCenter.y = std::min(finalCenter.y, target.y);
+				DrawDebugLine(source, finalCenter, Vector4::One, RendererDebugPage::PathfindingStats);
+			}
+		}
+
+		// Stop if we reached destination.
+		if (currentBox == LOT.TargetBox)
+			break;
+
+		prevCenter = center;
+		hasPrev = true;
+
+		if (nextBox == NO_VALUE || nextBox == currentBox)
+			break;
+
+		currentBox = nextBox;
 	}
 }
 

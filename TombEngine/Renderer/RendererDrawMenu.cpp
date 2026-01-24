@@ -1686,6 +1686,7 @@ namespace TEN::Renderer
 					PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
 					PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
 					PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
+					PrintDebugMessage("Enemy: %s", enemy.Name.c_str());
 				}
 			}
 
