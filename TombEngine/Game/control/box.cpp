@@ -80,6 +80,11 @@ constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 // >= 0 = index into active creatures list
 int PathfindingDisplayIndex = NO_VALUE;
 
+static int GetRandomBox(LOTInfo& LOT)
+{
+	return LOT.Node[GetRandomControl() * LOT.ZoneCount >> 15].boxNumber;
+}
+
 static Vector3 GetBoxCenter(int boxIndex)
 {
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
@@ -208,6 +213,17 @@ void DrawItemPathfinding(int itemNumber)
 	DrawDebugSphere(target, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
 	DrawLabel(target, drawName ? creature->Enemy->Name : "< IDLE >", Vector4::One);
 
+	// If creature got a penalty for accessing bad box, remember it for further indication.
+	int blinkingBox = NO_VALUE;
+	for (auto& badBox : LOT.BadBoxes)
+	{
+		if (badBox.BoxNumber != NO_VALUE && badBox.Count < -(BAD_BOX_COOLDOWN_LIMIT / 2))
+		{
+			blinkingBox = badBox.BoxNumber;
+			break;
+		}
+	}
+
 	int currentBox = item.BoxNumber;
 	int maxSteps = MAX_DRAW_STEPS;
 
@@ -221,6 +237,10 @@ void DrawItemPathfinding(int itemNumber)
 		auto& center = GetBoxCenter(currentBox);
 		center.y = std::min(center.y, target.y);
 
+		bool blink = blinkingBox != NO_VALUE;
+		auto color = blink ? Vector4(1, 0, 0, 1) : Vector4::One;
+		bool bypassPathDrawing = (blink && ((GlobalCounter / 8) % 2 != 0));
+
 		// Red box: intermediate box between current creature position and target.
 		if (currentBox != item.BoxNumber)
 			DrawBox(currentBox, Vector3(1, 0, 0));
@@ -229,24 +249,12 @@ void DrawItemPathfinding(int itemNumber)
 		if (currentBox != LOT.RequiredBox && currentBox != item.BoxNumber)
 		{
 			DrawDebugSphere(center, 32.0f, Vector4::One, RendererDebugPage::PathfindingStats);
-			DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
-		}
 
-		// If creature got a penalty for accessing bad box, indicate it by blinking path.
-		bool blinkPath = false;
-		for (auto& badBox : LOT.BadBoxes)
-		{
-			if (badBox.BoxNumber != NO_VALUE && badBox.Count < -(BAD_BOX_COOLDOWN_LIMIT / 2))
-			{
-				blinkPath = true;
-				break;
-			}
+			if ((currentBox != blinkingBox) || !bypassPathDrawing)
+				DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
 		}
-
-		auto color = blinkPath ? Vector4(1, 0, 0, 1) : Vector4::One;
 
 		// Draw coarse path.
-		bool bypassPathDrawing = (blinkPath && ((GlobalCounter / 8) % 2 != 0));
 		if (!bypassPathDrawing)
 		{
 			if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
@@ -2254,7 +2262,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		// Only pick new target if we don't have one or reached current target.
 		if (LOT->RequiredBox == NO_VALUE || item->BoxNumber == LOT->TargetBox)
 		{
-			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+			boxNumber = GetRandomBox(*LOT);
 			if (ValidBox(item, AI->zoneNumber, boxNumber))
 			{
 				// If enemy is reachable and box allows stalking, use it (keeps creature near enemy).
@@ -2271,7 +2279,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		// If enemy is unreachable, current target is near enemy, and we should move away.
 		else if (StalkBox(item, enemy, LOT->RequiredBox))
 		{
-			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+			boxNumber = GetRandomBox(*LOT);
 			if (ValidBox(item, AI->zoneNumber, boxNumber) && !StalkBox(item, enemy, boxNumber))
 			{
 				TargetBox(LOT, boxNumber);
@@ -2296,7 +2304,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Escape:
 		// ESCAPE: Find boxes far from and away from enemy.
-		boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+		boxNumber = GetRandomBox(*LOT);
 
 		// Only select new target if we don't have one yet.
 		if (ValidBox(item, AI->zoneNumber, boxNumber) && LOT->RequiredBox == NO_VALUE)
@@ -2322,7 +2330,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		// Re-evaluate if no target or current target no longer allows stalking.
 		if (LOT->RequiredBox == NO_VALUE || !StalkBox(item, enemy, LOT->RequiredBox))
 		{
-			boxNumber = LOT->Node[GetRandomControl() * LOT->ZoneCount >> 15].boxNumber;
+			boxNumber = GetRandomBox(*LOT);
 			if (ValidBox(item, AI->zoneNumber, boxNumber))
 			{
 				// Found a good stalking position.
