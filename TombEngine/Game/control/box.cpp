@@ -225,12 +225,12 @@ void DrawItemPathfinding(int itemNumber)
 	}
 
 	int currentBox = item.BoxNumber;
-	int maxSteps = MAX_DRAW_STEPS;
+	int nodeCount = 0;
 
 	auto prevCenter = Vector3();
 	bool hasPrev = false;
 
-	while (currentBox != NO_VALUE && maxSteps-- > 0)
+	while (currentBox != NO_VALUE && nodeCount++ < MAX_DRAW_STEPS)
 	{
 		int nextBox = LOT.Node[currentBox].exitBox;
 		auto& box = g_Level.PathfindingBoxes[currentBox];
@@ -269,7 +269,7 @@ void DrawItemPathfinding(int itemNumber)
 					// Draw line from previous box center.
 					if (currentBox == LOT.RequiredBox)
 						DrawDebugLine(prevCenter, target, color, RendererDebugPage::PathfindingStats);
-					else if (currentBox != LOT.TargetBox && maxSteps < (MAX_DRAW_STEPS - 2))
+					else if (currentBox != LOT.TargetBox && nodeCount > 2)
 						DrawDebugLine(prevCenter, center, color, RendererDebugPage::PathfindingStats);
 				}
 				else if (nextBox != NO_VALUE && nextBox != currentBox)
@@ -294,6 +294,8 @@ void DrawItemPathfinding(int itemNumber)
 
 		currentBox = nextBox;
 	}
+
+	PrintDebugMessage("Current path node count: %d", nodeCount);
 }
 
 // Collect all active creature item numbers.
@@ -583,7 +585,7 @@ static void UpdateBadBoxes(ItemInfo* item)
 		{
 			badBox.Count = -BAD_BOX_COOLDOWN_LIMIT;
 			LOT.TargetBox = NO_VALUE;
-			UpdateLOT(&LOT, SEARCH_DEPTH);
+			ClearLOT(&LOT);
 			return;
 		}
 
