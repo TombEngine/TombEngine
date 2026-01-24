@@ -1683,9 +1683,10 @@ namespace TEN::Renderer
 				int playerBoxID = playerItem.BoxNumber == NO_VALUE ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
 				PrintDebugMessage("PlayerItem.BoxNumber: %d", playerBoxID);
 
+				auto creatures = GetActiveCreatures();
+
 				if (PathfindingDisplayIndex >= 0)
 				{
-					auto creatures = GetActiveCreatures();
 					if (creatures.empty() || creatures.size() <= PathfindingDisplayIndex)
 						break;
 
@@ -1710,6 +1711,8 @@ namespace TEN::Renderer
 					}
 					PrintDebugMessage("Enemy.Mood: %s", mood);
 				}
+				else if (!creatures.empty())
+					PrintDebugMessage("Push TAB to scroll through enemies");
 			}
 			break;
 

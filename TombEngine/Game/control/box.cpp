@@ -75,10 +75,95 @@ constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f); // Maximum joint rota
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 
-// Pathfinding debug display state:
-// -1 = show Lara's nearby boxes
-// >= 0 = index into active creatures list
 int PathfindingDisplayIndex = NO_VALUE;
+
+static Vector3 GetVelocity(const ItemInfo& item)
+{
+	auto nextPose = item.Pose;
+
+	if (item.IsLara())
+	{
+		const auto& player = GetLaraInfo(item);
+
+		switch (player.Control.WaterStatus)
+		{
+			case WaterStatus::TreadWater:
+				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.y);
+				break;
+
+			case WaterStatus::Underwater:
+				nextPose.Translate(item.Pose.Orientation, item.Animation.Velocity.y);
+				break;
+
+			case WaterStatus::FlyCheat:
+				break;
+
+			default:
+				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				break;
+		}
+	}
+	else
+	{
+		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+	}
+
+	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
+}
+
+static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
+{
+	constexpr auto PREDICTION_FACTOR = 15.0f;
+	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
+
+	if (!sourceItem || !targetItem)
+		return;
+
+	if (!sourceItem->IsCreature())
+		return;
+
+	auto& LOT = GetCreatureInfo(sourceItem)->LOT;
+
+	auto sourcePos = sourceItem->Pose.Position.ToVector3();
+	auto targetPos = targetItem->Pose.Position.ToVector3();
+
+	auto sourceVel = GetVelocity(*sourceItem);
+	auto targetVel = GetVelocity(*targetItem);
+
+	auto toTarget = targetPos - sourcePos;
+	float distance = toTarget.Length();
+
+	auto relativeVel = sourceVel - targetVel;
+	float relativeSpeed = relativeVel.Length();
+
+	// Avoid division by zero / jitter.
+	float t = 0.0f;
+	if (relativeSpeed > 1.0f)
+		t = distance / relativeSpeed;
+
+	// Clamp prediction horizon (important for stability).
+	t = std::clamp(t, 0.0f, PREDICTION_FACTOR);
+
+	// Calculate predicted position delta.
+	auto predictedPos = targetPos + targetVel * t;
+	auto predictedDelta = predictedPos - targetPos;
+
+	// Smoothly disable prediction at close range.
+	float scale = 1.0f;
+	if (distance < PREDICTION_MIN_DISTANCE)
+		scale = distance / PREDICTION_MIN_DISTANCE;
+	predictedDelta *= scale;
+
+	predictedPos = targetPos + predictedDelta;
+
+	// Force original target position if predicted position is out of bounds.
+	auto noBox = GetPointCollision(predictedPos, targetItem->RoomNumber).GetSector().PathfindingBoxID == NO_VALUE;
+
+	if (noBox)
+		LOT.Target = targetPos;
+	else
+		LOT.Target = predictedPos;
+}
 
 static int GetRandomBox(LOTInfo& LOT)
 {
@@ -206,12 +291,12 @@ void DrawItemPathfinding(int itemNumber)
 
 	// If target is not bound to enemy, indicate it.
 	auto target = LOT.Target.ToVector3();
-	bool drawName = creature->Enemy != nullptr && Vector3i::Distance(creature->Enemy->Pose.Position, LOT.Target) <= CLICK(1);
+	bool drawName = creature->Enemy != nullptr && Vector3i::Distance(creature->Enemy->Pose.Position, LOT.Target) <= BLOCK(1);
 	target.y -= CLICK(1);
 
 	// Draw target node.
 	DrawDebugSphere(target, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
-	DrawLabel(target, drawName ? creature->Enemy->Name : "< IDLE >", Vector4::One);
+	DrawLabel(target, drawName ? creature->Enemy->Name : "< PENDING >", Vector4::One);
 
 	// If creature got a penalty for accessing bad box, remember it for further indication.
 	int blinkingBox = NO_VALUE;
@@ -2302,7 +2387,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Attack:
 		// ATTACK: Go directly to enemy's position.
-		LOT->Target = enemy->Pose.Position;
+		PredictTargetPosition(item, enemy);
 		LOT->RequiredBox = enemy->BoxNumber;
 
 		// Flying creatures target enemy's upper body when on land.
