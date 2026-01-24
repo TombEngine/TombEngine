@@ -1567,6 +1567,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::RendererStats:
 			PrintDebugMessage("RENDERER STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("FPS: %3.2f", _fps);
 			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
 			PrintDebugMessage("GPU: %s", g_Configuration.AdapterName.c_str());
@@ -1589,12 +1590,13 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Sprites: %d", _numSortedSpritesDrawCalls);
 			PrintDebugMessage("SHADOW MAP draw calls: %d", _numShadowMapDrawCalls);
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
-			PrintDebugMessage("Constant buffers updates: %d", _numConstantBufferUpdates);
+			PrintDebugMessage("Constant buffer updates: %d", _numConstantBufferUpdates);
 			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
 			break;
 
 		case RendererDebugPage::DimensionStats:
 			PrintDebugMessage("DIMENSION STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Position: %d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
 			PrintDebugMessage("Orientation: %d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
 			PrintDebugMessage("Scale: %.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
@@ -1610,6 +1612,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PlayerStats:
 			PrintDebugMessage("PLAYER STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("AnimObjectID: %d", playerItem.Animation.AnimObjectID);
 			PrintDebugMessage("AnimNumber: %d", playerItem.Animation.AnimNumber);
 			PrintDebugMessage("FrameNumber: %d", playerItem.Animation.FrameNumber);
@@ -1649,6 +1652,7 @@ namespace TEN::Renderer
 			}
 
 			PrintDebugMessage("INPUT STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage(("Clicked actions: " + clickedActions.ToString()).c_str());
 			PrintDebugMessage(("Held actions: " + heldActions.ToString()).c_str());
 			PrintDebugMessage(("Released actions: " + releasedActions.ToString()).c_str());
@@ -1661,6 +1665,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::CollisionStats:
 			PrintDebugMessage("COLLISION STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Collision type: %d", LaraCollision.CollisionType);
 			PrintDebugMessage("Bridge item ID: %d", LaraCollision.Middle.Bridge);
 			PrintDebugMessage("Front floor: %d", LaraCollision.Front.Floor);
@@ -1673,6 +1678,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
+			PrintDebugMessage(" ");
 			{
 				int playerBoxID = playerItem.BoxNumber == NO_VALUE ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
 				PrintDebugMessage("PlayerItem.BoxNumber: %d", playerBoxID);
@@ -1705,15 +1711,16 @@ namespace TEN::Renderer
 					PrintDebugMessage("Enemy.Mood: %s", mood);
 				}
 			}
-
 			break;
 
 		case RendererDebugPage::CollisionMeshStats:
 			PrintDebugMessage("COLLISION MESH STATS");
+			PrintDebugMessage(" ");
 			break;
 
 		case RendererDebugPage::PortalStats:
 			PrintDebugMessage("PORTAL STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Camera room number: %d", Camera.pos.RoomNumber);
 			PrintDebugMessage("Room collector time: %d", _timeRoomsCollector);
 			PrintDebugMessage("Rooms: %d", view.RoomsToDraw.size());
