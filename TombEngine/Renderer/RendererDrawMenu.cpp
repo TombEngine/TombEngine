@@ -1683,10 +1683,20 @@ namespace TEN::Renderer
 					auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
 
 					PrintDebugMessage("PlayerItem.ZoneNumber: %d", playerBoxID == NO_VALUE ? NO_VALUE : zones[playerBoxID]);
+					PrintDebugMessage("Enemy: %s", enemy.Name.c_str());
 					PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
 					PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
 					PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
-					PrintDebugMessage("Enemy: %s", enemy.Name.c_str());
+
+					auto mood = "Unknown";
+					switch (creatureInfo->Mood)
+					{
+						case MoodType::Attack: mood = "Attack"; break;
+						case MoodType::Stalk:  mood = "Stalk";  break;
+						case MoodType::Escape: mood = "Escape"; break;
+						case MoodType::Bored:  mood = "Bored";  break;
+					}
+					PrintDebugMessage("Enemy.Mood: %s", mood);
 				}
 			}
 
