@@ -83,7 +83,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
 	
     ShaderLight l;
     l.Color = float3(AmbientLight.xyz);
-    l.Intensity = 0.3f;
+    l.Intensity = 0.6f;
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 

@@ -9,7 +9,7 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
-#define ROOM_LIGHT_COEFF 0.7f
+#define ROOM_LIGHT_COEFF 1.4f
 
 struct PixelShaderInput
 {
@@ -204,7 +204,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
         float3 caustics = xc + yc + zc;
 
-        lighting += (caustics * attenuation * 2.0f);
+        lighting += (caustics * attenuation);
     }
 
 	// Emissive materials
