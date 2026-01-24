@@ -1401,5 +1401,6 @@ const auto JUMP_STATES = std::vector<int>
 	LS_JUMP_BACK,
 	LS_JUMP_LEFT,
 	LS_JUMP_RIGHT,
-	LS_JUMP_UP
+	LS_JUMP_UP,
+	LS_REACH
 };
