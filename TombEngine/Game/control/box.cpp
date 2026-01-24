@@ -150,17 +150,21 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 	float scale = 1.0f;
 	if (distance < PREDICTION_MIN_DISTANCE)
 		scale = distance / PREDICTION_MIN_DISTANCE;
-	predictedDelta *= scale;
 
+	predictedDelta *= scale;
 	predictedPos = targetPos + predictedDelta;
 
 	// Force original target position if predicted position is out of bounds.
 	auto noBox = GetPointCollision(predictedPos, targetItem->RoomNumber).GetSector().PathfindingBoxID == NO_VALUE;
 	auto finalTarget = noBox ? targetPos : predictedPos;
 
-	// Smoothly interpolate target.
 	auto currentTarget = LOT.Target.ToVector3();
-	LOT.Target = currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
+
+	// Smoothly interpolate target.
+	if (Vector3::Distance(currentTarget, finalTarget) < BLOCK(1))
+		LOT.Target = currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
+	else
+		LOT.Target = finalTarget;
 }
 
 static int GetRandomBox(LOTInfo& LOT)
