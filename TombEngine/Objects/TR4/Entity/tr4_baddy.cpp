@@ -819,7 +819,7 @@ namespace TEN::Entities::TR4
 					}
 				}
 
-				if (AI.ahead && AI.distance < pow(BLOCK(0.5f), 2))
+				if (AI.ahead && AI.distance < pow(BLOCK(0.75f), 2))
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
@@ -872,21 +872,18 @@ namespace TEN::Entities::TR4
 					currentCreature->MaxTurn = 0;
 					break;
 				}
-
-				if (Targetable(item, &AI) &&
-					item->ItemFlags[2] > 0 ||
+				else if ((Targetable(item, &AI) && item->ItemFlags[2] > 0) ||
 					canJump1Sector ||
 					canJump2Sectors ||
 					currentCreature->MonkeySwingAhead ||
 					item->AIBits & FOLLOW ||
-					AI.distance < pow(614, 2) ||
 					currentCreature->JumpAhead)
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
 				}
 
-				if (AI.distance < pow(BLOCK(1), 2))
+				else if (AI.distance < pow(BLOCK(1.5f), 2))
 				{
 					item->Animation.TargetState = BADDY_STATE_WALK;
 					break;
