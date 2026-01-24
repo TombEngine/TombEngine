@@ -232,42 +232,45 @@ void DrawItemPathfinding(int itemNumber)
 			DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
 		}
 
-		// If creature got a penalty for accessing bad box, indicate it.
+		// If creature got a penalty for accessing bad box, indicate it by blinking path.
 		bool blinkPath = false;
 		for (auto& badBox : LOT.BadBoxes)
 		{
-			if (badBox.BoxNumber != NO_VALUE && badBox.Count > 0)
+			if (badBox.BoxNumber != NO_VALUE && badBox.Count < -(BAD_BOX_COOLDOWN_LIMIT / 2))
 			{
 				blinkPath = true;
 				break;
 			}
 		}
 
-		if (blinkPath && ((GlobalCounter / 8) % 2 != 0))
-			break;
+		auto color = blinkPath ? Vector4(1, 0, 0, 1) : Vector4::One;
 
 		// Draw coarse path.
-		if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
+		bool bypassPathDrawing = (blinkPath && ((GlobalCounter / 8) % 2 != 0));
+		if (!bypassPathDrawing)
 		{
-			DrawDebugLine(source, target, Vector4::One, RendererDebugPage::PathfindingStats);
-			break;
-		}
-		else
-		{
-			if (hasPrev)
+			if (currentBox == item.BoxNumber && (LOT.RequiredBox == nextBox || nextBox == NO_VALUE))
 			{
-				// Draw line from previous box center.
-				if (currentBox == LOT.RequiredBox)
-					DrawDebugLine(prevCenter, target, Vector4::One, RendererDebugPage::PathfindingStats);
-				else if (currentBox != LOT.TargetBox && maxSteps < (MAX_DRAW_STEPS - 2))
-					DrawDebugLine(prevCenter, center, Vector4::One, RendererDebugPage::PathfindingStats);
+				DrawDebugLine(source, target, color, RendererDebugPage::PathfindingStats);
+				break;
 			}
-			else if (nextBox != NO_VALUE && nextBox != currentBox)
+			else
 			{
-				// Creature line.
-				auto& finalCenter = GetBoxCenter(nextBox);
-				finalCenter.y = std::min(finalCenter.y, target.y);
-				DrawDebugLine(source, finalCenter, Vector4::One, RendererDebugPage::PathfindingStats);
+				if (hasPrev)
+				{
+					// Draw line from previous box center.
+					if (currentBox == LOT.RequiredBox)
+						DrawDebugLine(prevCenter, target, color, RendererDebugPage::PathfindingStats);
+					else if (currentBox != LOT.TargetBox && maxSteps < (MAX_DRAW_STEPS - 2))
+						DrawDebugLine(prevCenter, center, color, RendererDebugPage::PathfindingStats);
+				}
+				else if (nextBox != NO_VALUE && nextBox != currentBox)
+				{
+					// Creature line.
+					auto& finalCenter = GetBoxCenter(nextBox);
+					finalCenter.y = std::min(finalCenter.y, target.y);
+					DrawDebugLine(source, finalCenter, color, RendererDebugPage::PathfindingStats);
+				}
 			}
 		}
 
