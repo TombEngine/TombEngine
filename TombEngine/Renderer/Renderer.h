@@ -295,7 +295,7 @@ namespace TEN::Renderer
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
 
-		float _currentLineHeight = 0.0f;;
+		float _currentLineHeight = 0.0f;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
 
@@ -756,6 +756,7 @@ namespace TEN::Renderer
 		void PrintDebugMessage(LPCSTR msg, va_list args);
 		void PrintDebugMessage(LPCSTR msg, ...);
 		void DrawDebugInfo(RenderView& view);
+		void DrawDebugRenderTargets(RenderView& view);
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 

@@ -1471,6 +1471,78 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
+	void Renderer::DrawDebugRenderTargets(RenderView& view)
+	{
+		if (_debugPage != RendererDebugPage::RendererStats)
+			return;
+
+		float aspectRatio = _screenWidth / (float)_screenHeight;
+		int thumbWidth = _screenWidth / 8;
+		int thumbY = 0;
+
+		auto rect = RECT{};
+
+		_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth / aspectRatio;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		_spriteBatch->Draw(_SSAOBlurredRenderTarget.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth / aspectRatio;
+
+		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
+		{
+			rect.left = _screenWidth - thumbWidth;
+			rect.top = thumbY;
+			rect.right = rect.left + thumbWidth;
+			rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+			_spriteBatch->Draw(_SMAAEdgesRenderTarget.ShaderResourceView.Get(), rect);
+			thumbY += thumbWidth / aspectRatio;
+
+			rect.left = _screenWidth - thumbWidth;
+			rect.top = thumbY;
+			rect.right = rect.left + thumbWidth;
+			rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+			_spriteBatch->Draw(_SMAABlendRenderTarget.ShaderResourceView.Get(), rect);
+			thumbY += thumbWidth / aspectRatio;
+		}
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth;
+
+		_spriteBatch->Draw(_roomAmbientMapFront.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth;
+
+		_spriteBatch->Draw(_roomAmbientMapBack.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth;
+
+		_spriteBatch->End();
+	}
+
 	void Renderer::DrawDebugInfo(RenderView& view)
 	{
 #if TEST_BUILD
@@ -1487,11 +1559,6 @@ namespace TEN::Renderer
 		_currentLineHeight = DISPLAY_SPACE_RES.y / 30;
 
 		const auto& room = g_Level.Rooms[playerItem.RoomNumber];
-
-		float aspectRatio = _screenWidth / (float)_screenHeight;
-		int thumbWidth = _screenWidth / 8;
-		auto rect = RECT{};
-		int thumbY = 0;
 
 		switch (_debugPage)
 		{
@@ -1524,67 +1591,6 @@ namespace TEN::Renderer
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
 			PrintDebugMessage("Constant buffers updates: %d", _numConstantBufferUpdates);
 			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
-
-			_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left+ thumbWidth;
-			rect.bottom = rect.top+thumbWidth / aspectRatio;
-
-			_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth / aspectRatio;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-			_spriteBatch->Draw(_SSAOBlurredRenderTarget.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth / aspectRatio;
-
-			if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
-			{
-				rect.left = _screenWidth - thumbWidth;
-				rect.top = thumbY;
-				rect.right = rect.left + thumbWidth;
-				rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-				_spriteBatch->Draw(_SMAAEdgesRenderTarget.ShaderResourceView.Get(), rect);
-				thumbY += thumbWidth / aspectRatio;
-
-				rect.left = _screenWidth - thumbWidth;
-				rect.top = thumbY;
-				rect.right = rect.left + thumbWidth;
-				rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-				_spriteBatch->Draw(_SMAABlendRenderTarget.ShaderResourceView.Get(), rect);
-				thumbY += thumbWidth / aspectRatio;
-			}
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth;
-
-			_spriteBatch->Draw(_roomAmbientMapFront.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth;
-
-			_spriteBatch->Draw(_roomAmbientMapBack.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth;
-
-			_spriteBatch->End();
-
 			break;
 
 		case RendererDebugPage::DimensionStats:

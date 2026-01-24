@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 335pxpx;}</style>
+-----<style>table.function_list td.name {min-width: 335px;}</style>
 --- This molule contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
 --
 --
@@ -31,7 +31,11 @@ local rotation = TEN.Rotation(0, 0, 0)
 local time = TEN.Time()
 local vec2 = TEN.Vec2(0,0)
 local vec3 = TEN.Vec3(0,0,0)
-LevelFuncs.TypeControlLevelFunc = function () end
+
+-- Internal sentinel: moved to LevelFuncs.Engine to reduce exposure
+-- to end users. Used only for metatable comparisons in Type.IsLevelFunc;
+-- do not modify or use directly.
+LevelFuncs.Engine.TypeControlLevelFunc = function () end
 
 local Type = {}
 
@@ -205,7 +209,7 @@ end
 --      end
 --  end
 Type.IsLevelFunc = function (variable)
-    return getmetatable(variable) == getmetatable(LevelFuncs.TypeControlLevelFunc)
+    return getmetatable(variable) == getmetatable(LevelFuncs.Engine.TypeControlLevelFunc)
 end
 
 --- Check if the variable is an enum value.

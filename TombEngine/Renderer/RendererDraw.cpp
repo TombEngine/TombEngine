@@ -1779,6 +1779,8 @@ namespace TEN::Renderer
 		Camera.DisableInterpolation = false;
 
 		_isLocked = false;
+
+		DrawDebugInfo(_gameCamera);
 	}
 
 	void Renderer::ClearScene()
@@ -2031,7 +2033,7 @@ namespace TEN::Renderer
 			CollectDisplaySprites(view);
 			DrawDisplaySprites(view, false);
 
-			DrawDebugInfo(view);
+			DrawDebugRenderTargets(view);
 			DrawAllStrings();
 			DrawDisplaySprites(view, true);
 		}
