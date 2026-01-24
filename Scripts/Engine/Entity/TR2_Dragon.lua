@@ -33,7 +33,9 @@
 -- __Important Notes__
 --
 -- -  __Make sure your level contains a CAMERA named "daggerCam".__
+-- -  This can be overriden using `Dragon.Config.CAMERA_NAME`
 -- -  __Make sure your level contains a CAMERA_TARGET named "daggerCamHelper".__
+-- -  This can be overriden using `Dragon.Config.CAMERA_TARGET_NAME`
 
 local CustomBar = require("Engine.CustomBar")
 PrintLog("TR2 Dragon module detected", LogLevel.INFO)
@@ -72,6 +74,8 @@ local TR2_DRAGON_Cutscene = {}
 --- @tfield bool SHOW_DRAGON_BAR Whether to display the custom dragon boss health bar. _Default: true_
 --- @tfield string CUTSCENE_AUDIO_TRACK Audio track name for dagger removal cutscene. _Default: "removeDagger"_
 --- @tfield string DRAGON_NAME Name for Dragon Boss (set in Tomb Editor). _Default: "dragon"_
+--- @tfield string CAMERA_NAME Name of the cutscene camera. _Default: "daggerCam"_
+--- @tfield string CAMERA_TARGET_NAME Name of the CAMERA_TARGET used as the camera target. _Default: "daggerCamHelper"_
 
 -- Default configuration values.
 -- These are copied into local variables during Init() for performance.
@@ -108,6 +112,9 @@ TR2_DRAGON_Cutscene.Config = {
     CUTSCENE_AUDIO_TRACK = "removeDagger",
     SHOW_DRAGON_BAR      = true,
     DRAGON_NAME          = "dragon",
+	CAMERA_NAME         = "daggerCam",
+	CAMERA_TARGET_NAME  = "daggerCamHelper",
+
 }
 
 --- @section InternalState
@@ -266,6 +273,8 @@ function TR2_DRAGON_Cutscene.Init()
     CUTSCENE_AUDIO_TRACK 					= C.CUTSCENE_AUDIO_TRACK
     SHOW_DRAGON_BAR      					= C.SHOW_DRAGON_BAR
 	DRAGON_NAME 							= C.DRAGON_NAME
+	CAMERA_NAME    							= C.CAMERA_NAME
+	CAMERA_TARGET_NAME 						= C.CAMERA_TARGET_NAME
 
     time  									= 0
 
@@ -278,13 +287,12 @@ function TR2_DRAGON_Cutscene.Init()
         CustomBar.Delete("DragonHealthBar")
     end
 
-    camHelper = GetMoveableByName("daggerCamHelper")
-    if not camHelper then
-        PrintLog("ERROR: daggerCamHelper not found in level!", LogLevel.ERROR)
-        return
-    end
-
-    cam = GetCameraByName("daggerCam")
+	camHelper = GetMoveableByName(CAMERA_TARGET_NAME)
+	if not camHelper then
+		PrintLog("ERROR: " .. CAMERA_TARGET_NAME .. " not found in level!", LogLevel.ERROR)
+		return
+	end
+	cam = GetCameraByName(CAMERA_NAME)
 
     marco = GetMoveablesBySlot(TEN.Objects.ObjID.MARCO_BARTOLI)
 
@@ -388,15 +396,15 @@ end
 function TR2_DRAGON_Cutscene.Update()
 
     -- Ensure helper and camera exist
-    if not camHelper then
-        camHelper = FindMoveableByName("daggerCamHelper")
-        if not camHelper then return end
-    end
+	if not camHelper then
+		camHelper = FindMoveableByName(CAMERA_TARGET_NAME)
+		if not camHelper then return end
+	end
 
-    if not cam then
-        cam = GetCameraByName("daggerCam")
-        if not cam then return end
-    end
+	if not cam then
+		cam = GetCameraByName(CAMERA_NAME)
+		if not cam then return end
+	end
 
     -- Ensure dragon reference is still valid (e.g. after reload)
     if not dragon then
