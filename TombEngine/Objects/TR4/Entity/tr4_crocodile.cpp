@@ -111,7 +111,7 @@ namespace TEN::Entities::TR4
 		else
 		{
 			creature->LOT.Step = CLICK(1);
-			creature->LOT.Drop = -CLICK(1);
+			creature->LOT.Drop = -CLICK(2); // Unlike TR4, allow croc to descend 2-click ramps.
 			creature->LOT.Fly = NO_FLYING;
 		}
 	}
