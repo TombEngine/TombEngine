@@ -286,7 +286,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteLeft, 100, extraTorsoRot, ThrowKnife));
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteRight, 100, extraTorsoRot, ThrowKnife));
 					creature->Flags = 1;
 				}
 

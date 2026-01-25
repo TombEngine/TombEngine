@@ -121,10 +121,10 @@ static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem
 	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
 
 	if (!sourceItem || !targetItem)
-		return Vector3();
+		return Vector3i();
 
-	auto sourcePos = sourceItem->Pose.Position.ToVector3();
-	auto targetPos = targetItem->Pose.Position.ToVector3();
+	auto sourcePos = sourceItem->Pose.Position;
+	auto targetPos = targetItem->Pose.Position;
 
 	if (!sourceItem->IsCreature())
 		return targetPos;
@@ -139,7 +139,7 @@ static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem
 	auto sourceVel = GetVelocity(*sourceItem);
 	auto targetVel = GetVelocity(*targetItem);
 
-	float distance = Vector3::Distance(targetPos, sourcePos);
+	float distance = Vector3i::Distance(targetPos, sourcePos);
 	float relativeVel = Vector3::Distance(targetVel, sourceVel);
 
 	// Avoid division by zero / jitter.
@@ -171,11 +171,9 @@ static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem
 
 	auto finalTarget = (blockedByFloor || noBox) ? targetPos : predictedPos;
 
-	auto currentTarget = LOT.Target.ToVector3();
-
 	// Smoothly interpolate target.
-	if (Vector3::Distance(currentTarget, finalTarget) < TARGET_DEVIATION_THRESHOLD)
-		return currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
+	if (Vector3i::Distance(LOT.Target, finalTarget) < TARGET_DEVIATION_THRESHOLD)
+		return LOT.Target + (finalTarget - LOT.Target) * PREDICTION_SMOOTHING_FACTOR;
 	else
 		return finalTarget;
 }
