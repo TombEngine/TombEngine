@@ -322,12 +322,12 @@ namespace TEN::Scripting
 
 		/// Moveable avoidance.
 		// @tfield bool moveableAvoidance Avoid collisions with moveables when possible. Enemy will attempt to turn away from the
-		// moveable if it's in the way.
+		// moveable if it's in the way. Applies only to moveables not placed near room geometry.
 		"moveableAvoidance", &PathfindingSettings::MoveableAvoidance,
 			
 		/// Static mesh avoidance.
 		// @tfield bool staticMeshAvoidance Avoid collisions with static meshes when possible. Enemy will attempt to turn away from the
-		// static mesh if it's in the way.
+		// static mesh if it's in the way. Applies only to static meshes not placed near room geometry.
 		"staticMeshAvoidance", &PathfindingSettings::StaticMeshAvoidance,
 
 		/// Vertical geometry avoidance for swimming and flying enemies.
