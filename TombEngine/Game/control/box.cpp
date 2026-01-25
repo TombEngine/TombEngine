@@ -151,6 +151,20 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 	auto predictedPos = targetPos + targetVel * t;
 	auto predictedDelta = predictedPos - targetPos;
 
+	// Don't predict target if it is moving away from the source.
+	auto toTarget = (targetPos - sourcePos).ToVector3();
+	toTarget.Normalize();
+
+	auto targetVelDir = targetVel;
+	targetVelDir.Normalize();
+
+	float alignmentDot = toTarget.Dot(targetVelDir);
+	if (alignmentDot > 0.0f)
+	{
+		alignmentDot = CUBE(alignmentDot);
+		predictedDelta *= (1.0f - std::clamp(alignmentDot, 0.0f, 1.0f));
+	}
+
 	// Smoothly disable prediction at close range.
 	float scale = 1.0f;
 	if (distance < PREDICTION_MIN_DISTANCE)
