@@ -115,29 +115,26 @@ static Vector3 GetVelocity(const ItemInfo& item)
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
 }
 
-static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
+static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 {
 	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
 	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
 
-	if (!sourceItem || !targetItem)
-		return Vector3i();
+	auto sourcePos = sourceItem.Pose.Position;
+	auto targetPos = targetItem.Pose.Position;
 
-	auto sourcePos = sourceItem->Pose.Position;
-	auto targetPos = targetItem->Pose.Position;
-
-	if (!sourceItem->IsCreature())
+	if (!sourceItem.IsCreature())
 		return targetPos;
 
-	auto& LOT = GetCreatureInfo(sourceItem)->LOT;
+	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	// Return target without prediction, if factor is zero.
 	if (predictionFactor <= EPSILON)
 		return targetPos;
 
-	auto sourceVel = GetVelocity(*sourceItem);
-	auto targetVel = GetVelocity(*targetItem);
+	auto sourceVel = GetVelocity(sourceItem);
+	auto targetVel = GetVelocity(targetItem);
 
 	float distance = Vector3i::Distance(targetPos, sourcePos);
 	float relativeVel = Vector3::Distance(targetVel, sourceVel);
@@ -163,7 +160,7 @@ static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem
 	predictedPos = targetPos + predictedDelta;
 
 	// Force original target position if predicted position is out of bounds.
-	auto pointColl = GetPointCollision(predictedPos, targetItem->RoomNumber);
+	auto pointColl = GetPointCollision(predictedPos, targetItem.RoomNumber);
 
 	auto noBox = pointColl.GetSector().PathfindingBoxID == NO_VALUE;
 	auto blockedByFloor = pointColl.GetFloorHeight() < (predictedPos.y - CLICK(1)) ||
@@ -180,11 +177,23 @@ static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem
 
 static int GetRandomBox(LOTInfo& LOT)
 {
-	return LOT.Node[GetRandomControl() * LOT.ZoneCount >> 15].boxNumber;
+	if (LOT.ZoneCount <= 0 || LOT.Node.empty())
+	{
+		TENLog("Can't get random box number, LOT data structures are not initialized.", LogLevel::Error);
+		return NO_VALUE;
+	}
+
+	int index = (int)(Random::GenerateFloat() * LOT.ZoneCount);
+	index = std::clamp(index, 0, LOT.ZoneCount - 1);
+
+	return LOT.Node[index].boxNumber;
 }
 
 static Vector3 GetBoxCenter(int boxIndex)
 {
+	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
+		return Vector3::Zero;
+
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
 
 	float x = ((float)currBox.left + (float)(currBox.right - currBox.left) / 2.0f) * BLOCK(1);
@@ -196,7 +205,7 @@ static Vector3 GetBoxCenter(int boxIndex)
 
 static void DrawBox(int boxIndex, const Vector3& color)
 {
-	if (boxIndex == NO_VALUE)
+	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
 		return;
 
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
@@ -237,7 +246,7 @@ static void DrawLabel(const Vector3& pos, const std::string& string, const Vecto
 
 void DrawLaraPathfinding(int boxIndex)
 {
-	if (boxIndex == NO_VALUE)
+	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
 		return;
 
 	auto& currBox = g_Level.PathfindingBoxes[boxIndex];
@@ -326,7 +335,7 @@ void DrawItemPathfinding(int itemNumber)
 	int currentBox = item.BoxNumber;
 	int nodeCount = 0;
 
-	auto prevCenter = Vector3();
+	auto prevCenter = Vector3::Zero;
 	bool hasPrev = false;
 
 	while (currentBox != NO_VALUE && nodeCount++ < MAX_DRAW_STEPS)
@@ -2360,7 +2369,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 		}
 	}
 
-	auto vector = PredictTargetPosition(item, enemy);
+	auto vector = PredictTargetPosition(*item, *enemy);
 
 	// Apply pivot offset and make relative.
 	vector.x -= item->Pose.Position.x + object->pivotLength * phd_sin(item->Pose.Orientation.y);
@@ -2480,7 +2489,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Attack:
 		// ATTACK: Go directly to enemy's position.
-		LOT->Target = PredictTargetPosition(item, enemy);
+		LOT->Target = PredictTargetPosition(*item, *enemy);
 		LOT->RequiredBox = enemy->BoxNumber;
 
 		// Flying creatures target enemy's upper body when on land.
