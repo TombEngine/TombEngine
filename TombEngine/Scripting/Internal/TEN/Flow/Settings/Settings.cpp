@@ -325,7 +325,7 @@ namespace TEN::Scripting
 		// by moving upwards.
 		"verticalGeometryAvoidance", &PathfindingSettings::VerticalGeometryAvoidance,
 
-		/// Water surface avoidance for swimming flying enemies.
+		/// Water surface avoidance for swimming and flying enemies.
 		// @tfield bool waterSurfaceAvoidance For flying enemies, prevents diving into the water and dying while attacking
 		// the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.
 		"waterSurfaceAvoidance", &PathfindingSettings::WaterSurfaceAvoidance);
