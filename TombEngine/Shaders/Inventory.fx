@@ -82,13 +82,15 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, normal, specular);
 	
     ShaderLight l;
-    l.Color = AmbientLight.xyz;
     l.Intensity = 0.3f;
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
+    // Modulate light color (PSX-style ×2 modulation)
+    l.Color.xyz = ModulateColor(AmbientLight.xyz, Brightness);
+
     float3 lighting = DoDirectionalLight(pos, normal, l);
-    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);;
+    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);
     lighting += emissive;
     
      // Emissive material

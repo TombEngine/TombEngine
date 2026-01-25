@@ -18,7 +18,7 @@ namespace TEN::Hud
 		// Fields
 
 		std::vector<DisplayItem> _displayItems = {};
-		Vector4                  _ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
+		Vector4                  _ambientLight = Vector4(0.35f, 0.35f, 0.175f, 1.0f);
 		
 		float _fov = ANGLE(80.0f);
 		float _prevFov = ANGLE(80.0f);

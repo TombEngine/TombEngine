@@ -141,7 +141,7 @@ namespace TEN::Hud
 			}
 		}
 
-		// If at capacity, don’t add new item.
+		// If at capacity, donï¿½t add new item.
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
 			return;
 
@@ -209,7 +209,7 @@ namespace TEN::Hud
 		_cameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
 		_targetPosition = Vector3::Zero;
 		_fov = ANGLE(80.0f);
-		_ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
+		_ambientLight = Vector4(0.35f, 0.35f, 0.175f, 1.0f);
 	}
 
 	void DrawItemsController::StoreCameraInterpolationData()
