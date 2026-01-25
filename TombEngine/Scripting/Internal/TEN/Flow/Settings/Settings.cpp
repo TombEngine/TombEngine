@@ -281,7 +281,7 @@ namespace TEN::Scripting
 
 	/// Pathfinding
 	// @section Pathfinding
-	// Extra features and enhancements that modify enemy behaviour during pathfinding and while tracking player and other enemies.
+	// Features and enhancements that modify enemy behaviour during pathfinding and while tracking player and other enemies.
 
 	void PathfindingSettings::Register(sol::table& parent)
 	{
