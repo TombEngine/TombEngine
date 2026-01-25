@@ -43,6 +43,8 @@ local settings = Flow.Settings.new()
 	settings.Pathfinding.predictionFactor = 15.0
 	settings.Pathfinding.collisionPenaltyThreshold = 2
 	settings.Pathfinding.collisionPenaltyCooldown = 6
+	settings.Pathfinding.moveableAvoidance = true
+	settings.Pathfinding.staticMeshAvoidance = true
 	settings.Pathfinding.verticalGeometryAvoidance = true
 	settings.Pathfinding.waterSurfaceAvoidance = true
 	

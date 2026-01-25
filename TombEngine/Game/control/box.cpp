@@ -35,6 +35,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
@@ -53,6 +54,8 @@
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+
+using namespace TEN::Collision::Los;
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -1305,12 +1308,72 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		return 0;
 
 	auto* creature = GetCreatureInfo(item);
-	short angle = 0;
 
+	if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance ||
+		g_GameFlow->GetSettings()->Pathfinding.StaticMeshAvoidance)
+	{
+		constexpr auto FEELER_ANGLE = ANGLE(45);
+
+		auto HasObstacle = [&](const LosCollisionData& los)
+		{
+			if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance)
+			{
+				for (const auto& entry : los.Items)
+				{
+					if (entry.Item->Index != item->Index && !entry.Item->IsCreature() && !entry.Item->IsLara())
+						return true;
+				}
+			}
+
+			if (g_GameFlow->GetSettings()->Pathfinding.StaticMeshAvoidance)
+				return !los.Statics.empty();
+
+			return false;
+		};
+
+		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
+		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
+		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
+		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z;
+
+		// Spawn feelers for object collision.
+		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);
+		auto feelLeftLos = GetLosCollision(feelerPos, item->RoomNumber, leftAngle.ToDirection(), radius, true, false, true);
+		auto feelRightLos = GetLosCollision(feelerPos, item->RoomNumber, rightAngle.ToDirection(), radius, true, false, true);
+
+		// Test LOS results.
+		bool feelMidResult = HasObstacle(feelMidLos);
+		bool feelLeftResult = HasObstacle(feelLeftLos);
+		bool feelRightResult = HasObstacle(feelRightLos);
+
+		if (feelLeftResult && feelMidResult)
+		{
+			// Obstacle on left side - turn right.
+			auto feelRightPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), rightAngle, radius);
+			creature->Target.x = feelRightPos.x;
+			creature->Target.z = feelRightPos.z;
+		}
+		else if (feelRightResult && feelMidResult)
+		{
+			// Obstacle on right side - turn left.
+			auto feelLeftPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), leftAngle, radius);
+			creature->Target.x = feelLeftPos.x;
+			creature->Target.z = feelLeftPos.z;
+		}
+		else if (feelLeftResult || feelRightResult)
+		{
+			// Obstacle on left only - slight turn right.
+			auto feelMidPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), item->Pose.Orientation, radius);
+			creature->Target.x = feelMidPos.x;
+			creature->Target.z = feelMidPos.z;
+		}
+	}
+
+	// Perform actual turn according to target position.
 	int x = creature->Target.x - item->Pose.Position.x;
 	int z = creature->Target.z - item->Pose.Position.z;
 
-	angle = phd_atan(z, x) - item->Pose.Orientation.y;
+	short angle = phd_atan(z, x) - item->Pose.Orientation.y;
 
 	int range = (item->Animation.Velocity.z * BLOCK(16)) / maxTurn;
 	int distance = Vector2(x, z).Length();
@@ -2621,8 +2684,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 				}
 				else if (AI->zoneNumber == AI->enemyZone)
 				{
-					if (AI->distance < ATTACK_RANGE ||
-						(creature->Mood == MoodType::Stalk && LOT->RequiredBox == NO_VALUE))
+					if (AI->distance < ATTACK_RANGE || (creature->Mood == MoodType::Stalk && LOT->RequiredBox == NO_VALUE))
 						creature->Mood = MoodType::Attack;
 					else
 						creature->Mood = MoodType::Stalk;

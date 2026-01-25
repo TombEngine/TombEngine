@@ -95,6 +95,8 @@ namespace TEN::Scripting
 		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
 		float	CollisionPenaltyThreshold	= 2.0f;		// Penalty threshold in seconds.
 		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
+		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
 
