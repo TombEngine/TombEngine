@@ -54,6 +54,7 @@
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Los;
 
@@ -61,6 +62,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
+using namespace TEN::Utils;
 
 // AI behavior distance thresholds.
 constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625f);	// Distance at which AI considers goal reached.
@@ -2283,6 +2285,14 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 		}
 	}
 
+	// Don't try to chase enemy into bad boxes.
+	for (auto& box : creature.LOT.BadBoxes)
+	{
+		if (box.BoxNumber == floor->PathfindingBoxID && box.Count < 0)
+		{
+			isReachable = false;
+			break;
+		}
 	}
 
 	return (isReachable ? floor->PathfindingBoxID : NO_VALUE);
