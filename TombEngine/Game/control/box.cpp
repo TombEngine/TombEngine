@@ -222,28 +222,6 @@ static void DrawBox(int boxIndex, const Vector3& color)
 	}
 }
 
-static void DrawLabel(const Vector3& pos, const std::string& string, const Vector4& color)
-{
-	constexpr float MIN_SCALE  = 0.2f;
-	constexpr float MAX_SCALE  = 0.8f;
-
-	float distance = (Camera.pos.ToVector3() - pos).Length();
-	float scale = 1.0f / (distance / BLOCK(2));
-
-	if (scale < MIN_SCALE)
-		return;
-
-	scale = std::clamp(scale, MIN_SCALE, MAX_SCALE);
-
-	// Get 2D label position.
-	auto labelPos = pos - Vector3(0, CLICK(0.75f), 0);
-	auto labelPos2D = g_Renderer.Get2DPosition(labelPos);
-
-	// Draw label.
-	if (labelPos2D.has_value())
-		DrawDebugString(string, *labelPos2D, color, scale, RendererDebugPage::PathfindingStats);
-}
-
 void DrawLaraPathfinding(int boxIndex)
 {
 	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
@@ -309,7 +287,7 @@ void DrawItemPathfinding(int itemNumber)
 	auto source = item.Pose.Position.ToVector3();
 	source.y -= CLICK(1);
 	DrawDebugSphere(source, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
-	DrawLabel(source, item.Name, Vector4::One);
+	DrawDebugString(item.Name, source, Vector4::One, RendererDebugPage::PathfindingStats);
 
 	// If target is not bound to enemy, indicate it.
 	auto target = LOT.Target.ToVector3();
@@ -318,7 +296,7 @@ void DrawItemPathfinding(int itemNumber)
 
 	// Draw target node.
 	DrawDebugSphere(target, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
-	DrawLabel(target, drawName ? creature->Enemy->Name : "< PENDING >", Vector4::One);
+	DrawDebugString(drawName ? creature->Enemy->Name : "< PENDING >", target, Vector4::One, RendererDebugPage::PathfindingStats);
 
 	// If creature got a penalty for accessing bad box, remember it for further indication.
 	int blinkingBox = NO_VALUE;
@@ -359,7 +337,7 @@ void DrawItemPathfinding(int itemNumber)
 			DrawDebugSphere(center, 32.0f, Vector4::One, RendererDebugPage::PathfindingStats);
 
 			if ((currentBox != blinkingBox) || !bypassPathDrawing)
-				DrawLabel(center, fmt::format("Box {}", currentBox), Vector4::One);
+				DrawDebugString(fmt::format("Box {}", currentBox), center, Vector4::One, RendererDebugPage::PathfindingStats);
 		}
 
 		Vector3 lineStart, lineEnd;
