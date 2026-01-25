@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 * Added faster Xorshift32 random number generation method.
+* Added explosion decal effects to Atlantean enemy projectiles.
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
@@ -35,6 +36,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
 * Fixed flickering pickup highlighter item count in high FPS mode.
+* Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
 
 ### Lua API changes

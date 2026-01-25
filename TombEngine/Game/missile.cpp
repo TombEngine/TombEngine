@@ -6,6 +6,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
@@ -21,6 +22,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Light;
 using namespace TEN::Math;
@@ -94,6 +96,7 @@ void ControlMissile(short fxNumber)
 		}
 		else if (fx.objectNumber == ID_PROJ_BOMB)
 		{
+			SpawnDecal(fx.pos.Position.ToVector3(), fx.roomNumber, DecalType::Explosion);
 			SoundEffect(SFX_TR1_ATLANTEAN_EXPLODE, &fx.pos, soundFXType);
 			TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -2, 0, fx.roomNumber);
 			TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -1, 0, fx.roomNumber);
