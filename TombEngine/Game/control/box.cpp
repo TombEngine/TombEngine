@@ -164,8 +164,13 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 	predictedPos = targetPos + predictedDelta;
 
 	// Force original target position if predicted position is out of bounds.
-	auto noBox = GetPointCollision(predictedPos, targetItem->RoomNumber).GetSector().PathfindingBoxID == NO_VALUE;
-	auto finalTarget = noBox ? targetPos : predictedPos;
+	auto pointColl = GetPointCollision(predictedPos, targetItem->RoomNumber);
+
+	auto noBox = pointColl.GetSector().PathfindingBoxID == NO_VALUE;
+	auto blockedByFloor = pointColl.GetFloorHeight() < (predictedPos.y - CLICK(1)) ||
+						  pointColl.GetCeilingHeight() > (predictedPos.y - CLICK(1));
+
+	auto finalTarget = (blockedByFloor || noBox) ? targetPos : predictedPos;
 
 	auto currentTarget = LOT.Target.ToVector3();
 
