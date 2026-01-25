@@ -37,6 +37,15 @@ local settings = Flow.Settings.new()
 	settings.Hud.speedometer = true
 	settings.Hud.pickupNotifier = true
 	
+	settings.Pathfinding.searchDepth = 5
+	settings.Pathfinding.escapeDistance = 5120
+	settings.Pathfinding.stalkDistance = 3072
+	settings.Pathfinding.predictionFactor = 15.0
+	settings.Pathfinding.collisionPenaltyThreshold = 2
+	settings.Pathfinding.collisionPenaltyCooldown = 6
+	settings.Pathfinding.verticalGeometryAvoidance = true
+	settings.Pathfinding.waterSurfaceAvoidance = true
+	
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50
 	

@@ -61,12 +61,8 @@ struct OVERLAP
 constexpr auto BLOCKABLE = 0x8000;
 constexpr auto BLOCKED   = 0x4000;
 
-constexpr auto SEARCH_DEPTH = 5;
 constexpr auto SEARCH_NUMBER  = INT_MAX;
 constexpr auto SEARCH_BLOCKED = (1 << 31);
-
-constexpr auto BAD_BOX_PATIENCE_LIMIT = 2 * FPS;
-constexpr auto BAD_BOX_COOLDOWN_LIMIT = 6 * FPS;
 
 constexpr auto BOX_WATER   = 0x200;
 constexpr auto BOX_SHALLOW = 0x400;

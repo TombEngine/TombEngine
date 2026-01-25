@@ -52,6 +52,7 @@
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Object/Pushable/PushableObject.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -59,19 +60,17 @@ using namespace TEN::Collision::Room;
 using namespace TEN::Effects::Smoke;
 
 // AI behavior distance thresholds.
-constexpr auto ESCAPE_DIST = BLOCK(5);          // Minimum distance for a box to be considered "escape" worthy.
-constexpr auto STALK_DIST = BLOCK(3);           // Maximum distance to maintain stalking behavior.
-constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625f); // Distance at which AI considers goal reached.
-constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3)); // Squared distance for attack mode (avoids sqrt).
+constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625f);	// Distance at which AI considers goal reached.
+constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3));		// Squared distance for attack mode (avoids sqrt).
 
 // Random chance thresholds for mood transitions (out of 0x7FFF).
 constexpr auto ESCAPE_CHANCE = 0x800;   // ~6% chance to escape when hit.
 constexpr auto RECOVER_CHANCE = 0x100;  // ~0.8% chance to recover from escape.
 
 // Creature movement constants.
-constexpr auto BIFF_AVOID_TURN = ANGLE(11.25f);           // Turn angle to avoid other creatures.
-constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);   // Maximum head rotation for guards.
-constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f); // Maximum joint rotation per frame.
+constexpr auto BIFF_AVOID_TURN = ANGLE(11.25f);				// Turn angle to avoid other creatures.
+constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);		// Maximum head rotation for guards.
+constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);	// Maximum joint rotation per frame.
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 
@@ -113,7 +112,6 @@ static Vector3 GetVelocity(const ItemInfo& item)
 
 static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 {
-	constexpr auto PREDICTION_FACTOR = 15.0f;
 	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
 	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
 
@@ -124,9 +122,17 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 		return;
 
 	auto& LOT = GetCreatureInfo(sourceItem)->LOT;
+	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	auto sourcePos = sourceItem->Pose.Position.ToVector3();
 	auto targetPos = targetItem->Pose.Position.ToVector3();
+
+	// Return target without prediction, if factor is zero.
+	if (predictionFactor <= EPSILON)
+	{
+		LOT.Target = targetPos;
+		return;
+	}
 
 	auto sourceVel = GetVelocity(*sourceItem);
 	auto targetVel = GetVelocity(*targetItem);
@@ -140,7 +146,7 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 		t = distance / relativeVel;
 
 	// Clamp prediction horizon (important for stability).
-	t = std::clamp(t, 0.0f, PREDICTION_FACTOR);
+	t = std::clamp(t, 0.0f, predictionFactor);
 
 	// Calculate predicted position delta.
 	auto predictedPos = targetPos + targetVel * t;
@@ -304,7 +310,8 @@ void DrawItemPathfinding(int itemNumber)
 	int blinkingBox = NO_VALUE;
 	for (auto& badBox : LOT.BadBoxes)
 	{
-		if (badBox.BoxNumber != NO_VALUE && badBox.Count < -(BAD_BOX_COOLDOWN_LIMIT / 2))
+		int cooldownLimit = g_GameFlow->GetSettings()->Pathfinding.CollisionPenaltyCooldown * FPS;
+		if (badBox.BoxNumber != NO_VALUE && badBox.Count < -(cooldownLimit / 2))
 		{
 			blinkingBox = badBox.BoxNumber;
 			break;
@@ -609,6 +616,10 @@ static void AddBadBox(LOTInfo* LOT, int boxNumber)
 {
 	if (boxNumber == NO_VALUE)
 		return;
+
+	// Don't add bad boxes if penalty system is disabled.
+	if (g_GameFlow->GetSettings()->Pathfinding.CollisionPenaltyThreshold <= EPSILON)
+		return;
 	
 	// Check if bad box is already memorized.
 	for (auto& badBox : LOT->BadBoxes)
@@ -665,6 +676,8 @@ static void UpdateBadBoxes(ItemInfo* item)
 		return;
 
 	auto& LOT = GetCreatureInfo(item)->LOT;
+	int penaltyThreshold = g_GameFlow->GetSettings()->Pathfinding.CollisionPenaltyThreshold * FPS;
+	int penaltyCooldown  = g_GameFlow->GetSettings()->Pathfinding.CollisionPenaltyCooldown  * FPS;
 
 	for (auto& badBox : LOT.BadBoxes)
 	{
@@ -672,16 +685,16 @@ static void UpdateBadBoxes(ItemInfo* item)
 			continue;
 
 		// Patience buildup.
-		if (badBox.Count >= 0 && badBox.Count < BAD_BOX_PATIENCE_LIMIT)
+		if (badBox.Count >= 0 && badBox.Count < penaltyThreshold)
 		{
 			badBox.Count++;
 			continue;
 		}
 
 		// Flip into cooldown exactly at limit.
-		if (badBox.Count == BAD_BOX_PATIENCE_LIMIT)
+		if (badBox.Count == penaltyThreshold)
 		{
-			badBox.Count = -BAD_BOX_COOLDOWN_LIMIT;
+			badBox.Count = -penaltyCooldown;
 			LOT.TargetBox = NO_VALUE;
 			ClearLOT(&LOT);
 			return;
@@ -952,7 +965,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		// creature Y position, force upward movement to overcome it. Original pathfinder
 		// would just stuck in such cases.
 
-		if (item->BoxNumber != NO_VALUE)
+		if (g_GameFlow->GetSettings()->Pathfinding.VerticalGeometryAvoidance && item->BoxNumber != NO_VALUE)
 		{
 			int nextBox = creature->LOT.Node[item->BoxNumber].exitBox;
 
@@ -990,29 +1003,32 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					dy = 0;
 			}
 
-			if (LOT->Zone == ZoneType::Water)
+			if (g_GameFlow->GetSettings()->Pathfinding.WaterSurfaceAvoidance)
 			{
-				// New TEN behaviour: clamp water creatures below water level.
-				int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
-				if (topPos + dy <= waterHeight)
+				if (LOT->Zone == ZoneType::Water)
 				{
-					item->Pose.Position.y = prevPos.y;
-					dy = std::max(0, dy);
-				}
-			}
-			else if (LOT->Zone == ZoneType::Flyer)
-			{
-				// New TEN behaviour: clamp flying creatures above water level.
-				int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
-				if (waterHeight != NO_HEIGHT)
-				{
-					int bottomPos = item->Pose.Position.y + bounds.Y2;
-
-					// If creature's bottom would enter water, prevent it.
-					if (bottomPos + dy >= waterHeight)
+					// New TEN behaviour: clamp water creatures below water level.
+					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+					if (topPos + dy <= waterHeight)
 					{
 						item->Pose.Position.y = prevPos.y;
-						dy = std::min(dy, 0);
+						dy = std::max(0, dy);
+					}
+				}
+				else if (LOT->Zone == ZoneType::Flyer)
+				{
+					// New TEN behaviour: clamp flying creatures above water level.
+					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+					if (waterHeight != NO_HEIGHT)
+					{
+						int bottomPos = item->Pose.Position.y + bounds.Y2;
+
+						// If creature's bottom would enter water, prevent it.
+						if (bottomPos + dy >= waterHeight)
+						{
+							item->Pose.Position.y = prevPos.y;
+							dy = std::min(dy, 0);
+						}
 					}
 				}
 			}
@@ -1566,14 +1582,15 @@ bool EscapeBox(ItemInfo* item, ItemInfo* enemy, int boxNumber)
 		return false;
 
 	const auto& box = g_Level.PathfindingBoxes[boxNumber];
+	int escapeDistance = g_GameFlow->GetSettings()->Pathfinding.EscapeDistance;
 
 	// Calculate vector from enemy to box center.
 	int x = ((box.top + box.bottom) * BLOCK(0.5f)) - enemy->Pose.Position.x;
 	int z = ((box.left + box.right) * BLOCK(0.5f)) - enemy->Pose.Position.z;
 
 	// Box is too close to enemy.
-	if (x > -ESCAPE_DIST && x < ESCAPE_DIST &&
-		z > -ESCAPE_DIST && z < ESCAPE_DIST)
+	if (x > -escapeDistance && x < escapeDistance &&
+		z > -escapeDistance && z < escapeDistance)
 	{
 		return false;
 	}
@@ -1825,9 +1842,11 @@ bool StalkBox(ItemInfo* item, ItemInfo* enemy, int boxNumber)
 		return false;
 
 	auto* box = &g_Level.PathfindingBoxes[boxNumber];
+	int stalkDistance = g_GameFlow->GetSettings()->Pathfinding.StalkDistance;
 
-	int xRange = STALK_DIST + ((box->bottom - box->top) * BLOCK(1));
-	int zRange = STALK_DIST + ((box->right - box->left) * BLOCK(1));
+	int xRange = stalkDistance + ((box->bottom - box->top) * BLOCK(1));
+	int zRange = stalkDistance + ((box->right - box->left) * BLOCK(1));
+
 	int x = (box->top + box->bottom) * BLOCK(1) / 2 - enemy->Pose.Position.x;
 	int z = (box->left + box->right) * BLOCK(1) / 2 - enemy->Pose.Position.z;
 
@@ -2671,7 +2690,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 {
 	// Expand the pathfinding search if needed.
-	UpdateLOT(LOT, SEARCH_DEPTH);
+	UpdateLOT(LOT, g_GameFlow->GetSettings()->Pathfinding.SearchDepth);
 
 	// Start with creature's current position as default target.
 	*target = item->Pose.Position;

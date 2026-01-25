@@ -87,6 +87,20 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct PathfindingSettings
+	{
+		int		SearchDepth					= 5;		// Pathfinding search depth.
+		int		EscapeDistance				= BLOCK(5);	// Escape distance.
+		int		StalkDistance				= BLOCK(3);	// Stalk distance.
+		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
+		float	CollisionPenaltyThreshold	= 2.0f;		// Penalty threshold in seconds.
+		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
+		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
+		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
+
+		static void Register(sol::table& parent);
+	};
+
 	struct PhysicsSettings
 	{
 		float Gravity	   = 6.0f;
@@ -146,16 +160,17 @@ namespace TEN::Scripting
 
 	struct Settings
 	{
-		AnimSettings				Animations = {};
-		CameraSettings				Camera	   = {};
-		FlareSettings				Flare	   = {};
-		GameplaySettings			Gameplay   = {};
-		GraphicsSettings			Graphics   = {};
-		std::array<HairSettings, 3> Hair	   = {};
-		HudSettings					Hud		   = {};
-		PhysicsSettings				Physics	   = {};
-		SystemSettings				System	   = {};
-		UISettings					UI		   = {};
+		AnimSettings				Animations  = {};
+		CameraSettings				Camera	    = {};
+		FlareSettings				Flare	    = {};
+		GameplaySettings			Gameplay    = {};
+		GraphicsSettings			Graphics    = {};
+		std::array<HairSettings, 3> Hair	    = {};
+		HudSettings					Hud		    = {};
+		PathfindingSettings			Pathfinding = {};
+		PhysicsSettings				Physics	    = {};
+		SystemSettings				System	    = {};
+		UISettings					UI		    = {};
 		std::array<WeaponSettings, (int)LaraWeaponType::NumWeapons - 1> Weapons = {};
 
 		Settings();
