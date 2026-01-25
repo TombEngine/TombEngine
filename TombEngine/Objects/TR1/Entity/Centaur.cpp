@@ -147,7 +147,7 @@ namespace TEN::Entities::Creatures::TR1
 				if (item.Animation.RequiredState == NO_VALUE)
 				{
 					item.Animation.RequiredState = CENTAUR_STATE_AIM;
-					CreatureEffect2(&item, CentaurRocketBite, CENTAUR_BOMB_VELOCITY, headOrient.y, BombGun);
+					ShootAtEnemy(creature.LOT.Target, creature.Enemy, CreatureEffect2(&item, CentaurRocketBite, CENTAUR_BOMB_VELOCITY, headOrient.y, BombGun));
 				}
 
 				break;

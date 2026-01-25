@@ -113,29 +113,26 @@ static Vector3 GetVelocity(const ItemInfo& item)
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
 }
 
-static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
+static Vector3i PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 {
 	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
 	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
 
 	if (!sourceItem || !targetItem)
-		return;
-
-	if (!sourceItem->IsCreature())
-		return;
-
-	auto& LOT = GetCreatureInfo(sourceItem)->LOT;
-	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+		return Vector3();
 
 	auto sourcePos = sourceItem->Pose.Position.ToVector3();
 	auto targetPos = targetItem->Pose.Position.ToVector3();
 
+	if (!sourceItem->IsCreature())
+		return targetPos;
+
+	auto& LOT = GetCreatureInfo(sourceItem)->LOT;
+	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+
 	// Return target without prediction, if factor is zero.
 	if (predictionFactor <= EPSILON)
-	{
-		LOT.Target = targetPos;
-		return;
-	}
+		return targetPos;
 
 	auto sourceVel = GetVelocity(*sourceItem);
 	auto targetVel = GetVelocity(*targetItem);
@@ -175,10 +172,10 @@ static void PredictTargetPosition(ItemInfo* sourceItem, ItemInfo* targetItem)
 	auto currentTarget = LOT.Target.ToVector3();
 
 	// Smoothly interpolate target.
-	if (Vector3::Distance(currentTarget, finalTarget) < BLOCK(1))
-		LOT.Target = currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
+	if (Vector3::Distance(currentTarget, finalTarget) < TARGET_DEVIATION_THRESHOLD)
+		return currentTarget + (finalTarget - currentTarget) * PREDICTION_SMOOTHING_FACTOR;
 	else
-		LOT.Target = finalTarget;
+		return finalTarget;
 }
 
 static int GetRandomBox(LOTInfo& LOT)
@@ -1339,7 +1336,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
 		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
 		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
-		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z;
+		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z * 1.3f; // Increase the radius slightly.
 
 		// Spawn feelers for object collision.
 		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);
@@ -2286,6 +2283,8 @@ int TargetReachable(ItemInfo* item, ItemInfo* enemy)
 		}
 	}
 
+	}
+
 	return (isReachable ? floor->PathfindingBoxID : NO_VALUE);
 }
 
@@ -2349,20 +2348,13 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 		}
 	}
 
-	auto vector = Vector3i::Zero;
-	if (enemy->IsLara())
-	{
-		auto* lara = GetLaraInfo(enemy);
-		vector.x = enemy->Pose.Position.x + (PREDICTIVE_SCALE_FACTOR * enemy->Animation.Velocity.z * phd_sin(lara->Control.MoveAngle)) - (object->pivotLength * phd_sin(item->Pose.Orientation.y)) - item->Pose.Position.x;
-		vector.z = enemy->Pose.Position.z + (PREDICTIVE_SCALE_FACTOR * enemy->Animation.Velocity.z * phd_cos(lara->Control.MoveAngle)) - (object->pivotLength * phd_cos(item->Pose.Orientation.y)) - item->Pose.Position.z;
-	}
-	else
-	{
-		vector.x = enemy->Pose.Position.x + (PREDICTIVE_SCALE_FACTOR * enemy->Animation.Velocity.z * phd_sin(enemy->Pose.Orientation.y)) - (object->pivotLength * phd_sin(item->Pose.Orientation.y)) - item->Pose.Position.x;
-		vector.z = enemy->Pose.Position.z + (PREDICTIVE_SCALE_FACTOR * enemy->Animation.Velocity.z * phd_cos(enemy->Pose.Orientation.y)) - (object->pivotLength * phd_cos(item->Pose.Orientation.y)) - item->Pose.Position.z;
-	}
+	auto vector = PredictTargetPosition(item, enemy);
 
-	vector.y = item->Pose.Position.y - enemy->Pose.Position.y;
+	// Apply pivot offset and make relative.
+	vector.x -= item->Pose.Position.x + object->pivotLength * phd_sin(item->Pose.Orientation.y);
+	vector.y = enemy->Pose.Position.y - item->Pose.Position.y;
+	vector.z -= item->Pose.Position.z + object->pivotLength * phd_cos(item->Pose.Orientation.y);
+
 	short angle = phd_atan(vector.z, vector.x);
 
 	if (vector.x > BLOCK(31.25f) || vector.x < -BLOCK(31.25f) ||
@@ -2476,7 +2468,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Attack:
 		// ATTACK: Go directly to enemy's position.
-		PredictTargetPosition(item, enemy);
+		LOT->Target = PredictTargetPosition(item, enemy);
 		LOT->RequiredBox = enemy->BoxNumber;
 
 		// Flying creatures target enemy's upper body when on land.

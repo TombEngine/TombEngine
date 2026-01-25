@@ -60,6 +60,7 @@ void InitializeLOTarray(int itemNumber)
 	if (!creature->LOT.Initialized)
 	{
 		creature->LOT.Node = std::vector<BoxNode>(g_Level.PathfindingBoxes.size(), BoxNode{});
+		creature->LOT.BadBoxes = std::vector<BadBox>(BAD_BOX_MEMORY_SIZE, BadBox{});
 		creature->LOT.Initialized = true;
 	}
 }

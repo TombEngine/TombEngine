@@ -5,6 +5,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
+#include "Game/control/box.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
@@ -29,13 +30,26 @@ constexpr auto MUTANT_BOMB_DAMAGE	= 100;
 constexpr auto DIVER_HARPOON_DAMAGE = 50;
 constexpr auto KNIFE_DAMAGE			= 50;
 
-void ShootAtLara(FX_INFO& fx)
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int fxNumber)
 {
-	auto target = Vector3(
-		LaraItem->Pose.Position.x,
-		LaraItem->Pose.Position.y - (GameBoundingBox(LaraItem).GetHeight() * 0.75f),
-		LaraItem->Pose.Position.z);
-	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), target);
+	if (item == nullptr)
+		return;
+
+	if (fxNumber == NO_VALUE || fxNumber >= MAX_SPAWNED_ITEM_COUNT)
+		return;
+
+	// If target deviated too much from the item position, prefer item's own position.
+	if (Vector3i::Distance(item->Pose.Position, target) > TARGET_DEVIATION_THRESHOLD)
+		target = item->Pose.Position;
+
+	auto targetWithOffset = Vector3(
+		target.x,
+		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
+		target.z);
+	
+	auto& fx = EffectList[fxNumber];
+
+	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
 
 	// Apply slight random scatter.
 	fx.pos.Orientation += EulerAngles(
@@ -181,13 +195,11 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 		auto& fx = EffectList[fxNumber];
 
 		fx.pos.Position = Vector3i(x, y, z);
-		fx.pos.Orientation = EulerAngles(0, yRot, 0);
 		fx.roomNumber = roomNumber;
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_SHARD;
 		fx.color = Vector4::One;
-		ShootAtLara(fx);
 	}
 
 	return fxNumber;
@@ -201,13 +213,11 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		auto& fx = EffectList[fxNumber];
 
 		fx.pos.Position = Vector3i(x, y, z);
-		fx.pos.Orientation = EulerAngles(0, yRot, 0);
 		fx.roomNumber = roomNumber;
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_BOMB;
 		fx.color = Vector4::One;
-		ShootAtLara(fx);
 	}
 
 	return fxNumber;

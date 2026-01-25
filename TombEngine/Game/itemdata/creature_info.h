@@ -47,9 +47,10 @@ struct LOTInfo
 {
 	bool Initialized = false;
 
-	std::vector<BoxNode> Node = {};
 	int Head = 0;
 	int Tail = 0;
+	std::vector<BadBox>  BadBoxes = {};
+	std::vector<BoxNode> Node = {};
 
 	ZoneType Zone	= ZoneType::Basic;
 	Vector3i Target = Vector3i::Zero;
@@ -62,8 +63,6 @@ struct LOTInfo
 	int Step		 = 0;
 	int Drop		 = 0;
 	int Fly			 = 0;
-
-	BadBox BadBoxes[BAD_BOX_MEMORY_SIZE] = {};
 
 	bool IsJumping		 = false;
 	bool IsMonkeying	 = false;

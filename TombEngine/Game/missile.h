@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/effects/effects.h"
 
-void ShootAtLara(FX_INFO& fx);
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int fxNumber);
 void ControlMissile(short fxNumber);
 void ControlNatlaGun(short fxNumber);
 

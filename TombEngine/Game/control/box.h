@@ -80,13 +80,14 @@ constexpr auto EXPAND_BOTTOM = 0x8;
 constexpr auto NO_FLYING = 0;
 constexpr auto FLY_ZONE  = 0x2000;
 
-constexpr auto CLIP_LEFT   = 0x1;
-constexpr auto CLIP_RIGHT  = 0x2;
-constexpr auto CLIP_TOP    = 0x4;
-constexpr auto CLIP_BOTTOM = 0x8;
-constexpr auto CLIP_ALL    = (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
+constexpr auto CLIP_LEFT		= 0x1;
+constexpr auto CLIP_RIGHT		= 0x2;
+constexpr auto CLIP_TOP			= 0x4;
+constexpr auto CLIP_BOTTOM		= 0x8;
+constexpr auto CLIP_ALL			= (CLIP_LEFT | CLIP_RIGHT | CLIP_TOP | CLIP_BOTTOM);
+constexpr auto CLIP_SECONDARY	= 0x10;
 
-constexpr auto CLIP_SECONDARY = 0x10;
+constexpr auto TARGET_DEVIATION_THRESHOLD = BLOCK(2);
 
 extern int PathfindingDisplayIndex;
 
