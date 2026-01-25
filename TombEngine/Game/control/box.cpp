@@ -1318,6 +1318,10 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 
 		auto HasObstacle = [&](const LosCollisionData& los)
 		{
+			// Don't check for object obstacles near room geometry to avoid being stuck.
+			if (los.Room.IsIntersected)
+				return false;
+
 			if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance)
 			{
 				for (const auto& entry : los.Items)
