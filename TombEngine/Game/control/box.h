@@ -64,8 +64,8 @@ constexpr auto BLOCKED   = 0x4000;
 constexpr auto SEARCH_NUMBER  = INT_MAX;
 constexpr auto SEARCH_BLOCKED = (1 << 31);
 
-constexpr auto BOX_WATER   = 0x200;
-constexpr auto BOX_SHALLOW = 0x400;
+constexpr auto BOX_WATER   = 0x0200;
+constexpr auto BOX_SHALLOW = 0x0400;
 
 constexpr auto OVERLAP_JUMP						= 0x800;
 constexpr auto OVERLAP_MONKEY					= 0x2000;

@@ -1366,7 +1366,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		}
 		else if (feelLeftResult || feelRightResult)
 		{
-			// Obstacle on left only - slight turn right.
+			// Obstacle on the left/right edge, just steer the creature forward.
 			auto feelMidPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), item->Pose.Orientation, radius);
 			creature->Target.x = feelMidPos.x;
 			creature->Target.z = feelMidPos.z;
@@ -1452,7 +1452,7 @@ void CreatureHealth(ItemInfo* item)
 		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &g_Level.Rooms[item->RoomNumber]))
 	{
 		auto bounds = GameBoundingBox(item);
-		auto waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
+		auto waterHeight = GetPointCollision(*item).GetWaterTopHeight();
 
 		if (waterHeight != NO_HEIGHT && item->Pose.Position.y + bounds.Y1 > waterHeight)
 			DoDamage(item, INT_MAX);
@@ -1806,7 +1806,7 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (IsBoxInCooldown(LOT, boxNumber))
 					continue;
 
-				// ZONE CHECK: Only flyers creatures bypass zone check.
+				// ZONE CHECK: Only flyer creatures can bypass zone check.
 				if (LOT->Zone != ZoneType::Flyer && searchZone != zone[boxNumber])
 					continue;
 
