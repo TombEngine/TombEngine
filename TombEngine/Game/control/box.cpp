@@ -119,6 +119,7 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 {
 	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
 	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
+	constexpr auto PREDICTION_WATER_SCALING_FACTOR = 1.25f;
 
 	auto sourcePos = sourceItem.Pose.Position;
 	auto targetPos = targetItem.Pose.Position;
@@ -128,6 +129,11 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 
 	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+
+	// Scale up prediction factor underwater.
+	if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &sourceItem) &&
+		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &targetItem))
+		predictionFactor *= PREDICTION_WATER_SCALING_FACTOR;
 
 	// Return target without prediction, if factor is zero.
 	if (predictionFactor <= EPSILON)
