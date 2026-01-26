@@ -289,10 +289,10 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<PathfindingSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(PathfindingSettings, ScriptReserved_PFSettings),
 
-		/// Pathfinding algorithm.
-		// @tfield Flow.PathfindingAlgorithm algorithm The algorithm used for pathfinding. Options are BFS (original),
-		// DIJKSTRA (distance-weighted), or ASTAR (distance-weighted with heuristic). Default is ASTAR.
-		"algorithm", &PathfindingSettings::Algorithm,
+		/// Pathfinding mode.
+		// @tfield Flow.PathfindingMode mode The algorithm used for pathfinding. Options are BFS (original),
+		// DIJKSTRA (distance-weighted), or ASTAR (distance-weighted with heuristic).
+		"mode", &PathfindingSettings::Mode,
 
 		/// Pathfinding graph search depth.
 		// @tfield int searchDepth Specifies how deep the AI will search the pathfinding graph when calculating a path to the target.

@@ -370,7 +370,7 @@ Specify which translations in the strings table correspond to which languages.
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ErrorMode, ERROR_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_GameStatus, GAME_STATUSES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_FreezeMode, FREEZE_MODES);
-	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingAlgorithm, PATHFINDING_ALGORITHMS);
+	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingMode, PATHFINDING_MODES);
 }
 
 FlowHandler::~FlowHandler()

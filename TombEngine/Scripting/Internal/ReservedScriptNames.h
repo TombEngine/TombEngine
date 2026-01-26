@@ -274,21 +274,21 @@ static constexpr char ScriptReserved_IsStringPresent[]		= "IsStringPresent";
 static constexpr char ScriptReserved_SetLanguageNames[]		= "SetLanguageNames";
 
 // Flow Tables
-static constexpr char ScriptReserved_WeatherType[]	  = "WeatherType";
-static constexpr char ScriptReserved_LaraType[]		  = "LaraType";
-static constexpr char ScriptReserved_WeaponType[]	  = "WeaponType";
-static constexpr char ScriptReserved_AmmoType[]		  = "AmmoType";
-static constexpr char ScriptReserved_WeaponMode[]	  = "WeaponMode";
-static constexpr char ScriptReserved_RotationAxis[]	  = "RotationAxis";
-static constexpr char ScriptReserved_ItemAction[]	  = "ItemAction";
-static constexpr char ScriptReserved_ErrorMode[]	  = "ErrorMode";
-static constexpr char ScriptReserved_FastReload[]	  = "FastReload";
-static constexpr char ScriptReserved_InventoryItem[]  = "InventoryItem";
-static constexpr char ScriptReserved_HandStatus[]	  = "HandStatus";
-static constexpr char ScriptReserved_WaterStatus[]	  = "WaterStatus";
-static constexpr char ScriptReserved_GameStatus[]			= "GameStatus";
-static constexpr char ScriptReserved_FreezeMode[]			= "FreezeMode";
-static constexpr char ScriptReserved_PathfindingAlgorithm[] = "PathfindingAlgorithm";
+static constexpr char ScriptReserved_WeatherType[]		= "WeatherType";
+static constexpr char ScriptReserved_LaraType[]			= "LaraType";
+static constexpr char ScriptReserved_WeaponType[]		= "WeaponType";
+static constexpr char ScriptReserved_AmmoType[]			= "AmmoType";
+static constexpr char ScriptReserved_WeaponMode[]		= "WeaponMode";
+static constexpr char ScriptReserved_RotationAxis[]		= "RotationAxis";
+static constexpr char ScriptReserved_ItemAction[]		= "ItemAction";
+static constexpr char ScriptReserved_ErrorMode[]		= "ErrorMode";
+static constexpr char ScriptReserved_FastReload[]		= "FastReload";
+static constexpr char ScriptReserved_InventoryItem[]	= "InventoryItem";
+static constexpr char ScriptReserved_HandStatus[]		= "HandStatus";
+static constexpr char ScriptReserved_WaterStatus[]		= "WaterStatus";
+static constexpr char ScriptReserved_GameStatus[]		= "GameStatus";
+static constexpr char ScriptReserved_FreezeMode[]		= "FreezeMode";
+static constexpr char ScriptReserved_PathfindingMode[]	= "PathfindingMode";
 
 // Functions
 static constexpr char ScriptReserved_IsNameInUse[]					= "IsNameInUse";

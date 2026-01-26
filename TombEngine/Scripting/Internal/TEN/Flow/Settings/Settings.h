@@ -90,7 +90,8 @@ namespace TEN::Scripting
 
 	struct PathfindingSettings
 	{
-		PathfindingAlgorithm Algorithm		= PathfindingAlgorithm::AStar; // Pathfinding algorithm.
+		PathfindingMode Mode = PathfindingMode::AStar;	// Pathfinding algorithm.
+
 		int		SearchDepth					= 5;		// Pathfinding search depth.
 		int		EscapeDistance				= BLOCK(5);	// Escape distance.
 		int		StalkDistance				= BLOCK(3);	// Stalk distance.

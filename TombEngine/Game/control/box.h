@@ -15,7 +15,7 @@ enum class JumpDistance
 	Block2
 };
 
-enum class PathfindingAlgorithm
+enum class PathfindingMode
 {
 	BFS,		// Breadth-first search (original). Fast but ignores physical distance.
 	Dijkstra,	// Distance-weighted search. Finds shortest physical path.
@@ -59,6 +59,19 @@ struct OVERLAP
 {
 	int box;
 	int flags;
+};
+
+// Priority queue element ordered by estimated total traversal cost for Dijkstra and A* pathfinding.
+struct QueueElement
+{
+	float EstimatedTotalCost;
+	float PathCost;
+	int   Box;
+
+	bool operator>(const QueueElement& other) const
+	{
+		return EstimatedTotalCost > other.EstimatedTotalCost;
+	}
 };
 
 #define CreatureEffectFunction short(int x, int y, int z, short speed, short yRot, short roomNumber)
@@ -127,6 +140,9 @@ bool EscapeBox(ItemInfo* item, ItemInfo* enemy, int boxNumber);
 void TargetBox(LOTInfo* LOT, int boxNumber);
 bool UpdateLOT(LOTInfo* LOT, int expansion);
 bool SearchLOT(LOTInfo* LOT, int expansion);
+bool SearchLOT_BFS(LOTInfo* LOT, int depth);
+bool SearchLOT_DijkstraAStar(LOTInfo* LOT, int depth, PathfindingMode mode);
+bool CanExpandToBox(LOTInfo* LOT, int fromBox, int toBox, int overlapFlags, int searchZone, const std::vector<int>& zone);
 bool CreatureActive(short itemNumber);
 void InitializeCreature(short itemNumber);
 bool StalkBox(ItemInfo* item, ItemInfo* enemy, int boxNumber);
