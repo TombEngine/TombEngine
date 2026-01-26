@@ -125,11 +125,30 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 	auto sourcePos = sourceItem.Pose.Position;
 	auto targetPos = targetItem.Pose.Position;
 
-	if (!sourceItem.IsCreature())
+	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+
+	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
+		return targetPos;
+
+	float distance = Vector3i::Distance(targetPos, sourcePos);
+	float distanceScale = 1.0f;
+
+	// Calculate smooth prediction distance scale.
+	if (distance < PREDICTION_MIN_DISTANCE)
+	{
+		distanceScale = distance / PREDICTION_MIN_DISTANCE;
+	}
+	else if (distance > PREDICTION_MAX_DISTANCE)
+	{
+		float over = (distance - PREDICTION_MAX_DISTANCE) / PREDICTION_MAX_DISTANCE;
+		distanceScale = 1.0f - std::clamp(over, 0.0f, 1.0f);
+	}
+
+	// Disable prediction at close and far ranges.
+	if (distanceScale <= EPSILON)
 		return targetPos;
 
 	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
-	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	// Scale up prediction factor underwater.
 	if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &sourceItem) &&
@@ -143,7 +162,6 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 	auto sourceVel = GetVelocity(sourceItem);
 	auto targetVel = GetVelocity(targetItem);
 
-	float distance = Vector3i::Distance(targetPos, sourcePos);
 	float relativeVel = Vector3::Distance(targetVel, sourceVel);
 
 	// Avoid division by zero / jitter.
@@ -170,19 +188,6 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 	{
 		alignmentDot = CUBE(alignmentDot);
 		predictedDelta *= (1.0f - std::clamp(alignmentDot, 0.0f, 1.0f));
-	}
-
-	// Smoothly disable prediction at close and far ranges.
-	float distanceScale = 1.0f;
-
-	if (distance < PREDICTION_MIN_DISTANCE)
-	{
-		distanceScale = distance / PREDICTION_MIN_DISTANCE;
-	}
-	else if (distance > PREDICTION_MAX_DISTANCE)
-	{
-		float over = (distance - PREDICTION_MAX_DISTANCE) / PREDICTION_MAX_DISTANCE;
-		distanceScale = 1.0f - std::clamp(over, 0.0f, 1.0f);
 	}
 
 	predictedDelta *= distanceScale;
