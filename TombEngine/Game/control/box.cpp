@@ -1731,9 +1731,9 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
  *
  * When RequiredBox changes (new target selected), this function:
  * 1. Sets it as the new TargetBox.
- * 2. Adds it to the priority queue with cost = 0.
+ * 2. Adds it to the front of the search queue (Head).
  * 3. Increments SearchNumber to invalidate old search data.
- * 4. Calls SearchLOT to expand the search using Dijkstra.
+ * 4. Calls SearchLOT to expand the search.
  *
  * The search works BACKWARDS from target to creature - each node's exitBox
  * points toward the target, so the creature follows exitBox links to reach it.
@@ -1851,7 +1851,6 @@ bool SearchLOT_BFS(LOTInfo* LOT, int depth)
 			return false;
 		}
 
-		auto* box = &g_Level.PathfindingBoxes[LOT->Head];
 		auto* node = &LOT->Node[LOT->Head];
 
 		int index = g_Level.PathfindingBoxes[LOT->Head].overlapIndex;
@@ -3031,6 +3030,7 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 	{
 		if (++iterations > maxIterations)
 			break;
+
 		box = &g_Level.PathfindingBoxes[boxNumber];
 
 		// Clamp target Y to box height.
@@ -3243,6 +3243,7 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			break;
 
 		boxNumber = nextBox;
+
 	} while (true);
 
 	// FALLBACK: Couldn't reach target box.
