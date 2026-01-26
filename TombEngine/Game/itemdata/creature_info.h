@@ -44,7 +44,7 @@ struct BadBox
 	int  Count		= 0;
 };
 
-struct LOTInfo 
+struct LOTInfo
 {
 	bool Initialized = false;
 
@@ -58,6 +58,7 @@ struct LOTInfo
 
 	int TargetBox	 = 0;
 	int RequiredBox  = 0;
+	int SourceBox    = NO_VALUE; // Creature's current box (for A* heuristic).
 	int SearchNumber = 0;
 	int BlockMask	 = 0;
 	int ZoneCount	 = 0;

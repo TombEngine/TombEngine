@@ -1756,20 +1756,21 @@ bool UpdateLOT(LOTInfo* LOT, int depth)
 }
 
 /**
- * @brief Dijkstra-based pathfinding through boxes using distance weights.
+ * @brief Pathfinding through boxes using configurable algorithm.
  *
- * This function expands the search using a priority queue ordered by accumulated
- * distance. Unlike BFS which treats all boxes equally, this approach finds paths
- * that minimize actual travel distance.
+ * Supports three algorithms selectable via settings:
+ * - BFS: Breadth-first search (original). Each edge has cost 1.
+ * - Dijkstra: Distance-weighted search. Edge cost = euclidean distance.
+ * - A*: Distance-weighted with heuristic toward creature.
  *
  * ALGORITHM:
- * 1. Extract the box with minimum cost from the priority queue.
+ * 1. Extract the box with minimum priority from the queue.
  * 2. For each overlapping (connected) box:
  *    a. Check zone compatibility (skip if different zone, unless flying/swimming).
  *    b. Check height difference against Step/Drop limits.
  *    c. Check special traversal flags (BOX_JUMP, BOX_MONKEY).
- *    d. Calculate newCost = currentCost + euclidean distance between box centers.
- *    e. If newCost < neighbor.cost, update and add to queue.
+ *    d. Calculate edge cost based on algorithm.
+ *    e. If better path found, update and add to queue.
  * 3. Repeat until queue is empty or depth reached.
  *
  * SEARCH NUMBER SYSTEM:
@@ -1785,18 +1786,122 @@ bool UpdateLOT(LOTInfo* LOT, int depth)
 bool SearchLOT(LOTInfo* LOT, int depth)
 {
 	auto& zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus];
+	auto algorithm = g_GameFlow->GetSettings()->Pathfinding.Algorithm;
 
-	// Priority queue element: (cost, boxNumber). Min-heap by cost.
-	using QueueElement = std::pair<float, int>;
-	auto compare = [](const QueueElement& a, const QueueElement& b) { return a.first > b.first; };
-	std::priority_queue<QueueElement, std::vector<QueueElement>, decltype(compare)> pq(compare);
+	// BFS uses the original FIFO queue via Head/Tail linked list.
+	if (algorithm == PathfindingAlgorithm::BFS)
+	{
+		for (int i = 0; i < depth; i++)
+		{
+			if (LOT->Head == NO_VALUE)
+			{
+				LOT->Tail = NO_VALUE;
+				return false;
+			}
 
-	// Transfer boxes from legacy Head/Tail list to priority queue (for compatibility with UpdateLOT).
+			auto* box = &g_Level.PathfindingBoxes[LOT->Head];
+			auto* node = &LOT->Node[LOT->Head];
+
+			int index = box->overlapIndex;
+			int searchZone = zone[LOT->Head];
+
+			bool done = false;
+
+			if (index >= 0)
+			{
+				do
+				{
+					int boxNumber = g_Level.Overlaps[index].box;
+					int flags = g_Level.Overlaps[index].flags;
+
+					index++;
+
+					if (flags & OVERLAP_END_BIT)
+						done = true;
+
+					if (IsBoxInCooldown(LOT, boxNumber))
+						continue;
+
+					if (LOT->Zone != ZoneType::Flyer && searchZone != zone[boxNumber])
+						continue;
+
+					if (LOT->Zone == ZoneType::Amphibious && !(flags & OVERLAP_AMPHIBIOUS_TRAVERSABLE))
+						continue;
+
+					int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
+					if ((delta > LOT->Step || delta < LOT->Drop) && (!(flags & OVERLAP_MONKEY) || !LOT->CanMonkey))
+						continue;
+
+					if ((flags & OVERLAP_JUMP) && !LOT->CanJump)
+						continue;
+
+					auto* expand = &LOT->Node[boxNumber];
+					if ((node->searchNumber & SEARCH_NUMBER) < (expand->searchNumber & SEARCH_NUMBER))
+						continue;
+
+					if (node->searchNumber & SEARCH_BLOCKED)
+					{
+						if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER))
+							continue;
+
+						expand->searchNumber = node->searchNumber;
+					}
+					else
+					{
+						if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER) && !(expand->searchNumber & SEARCH_BLOCKED))
+							continue;
+
+						if (g_Level.PathfindingBoxes[boxNumber].flags & LOT->BlockMask)
+						{
+							expand->searchNumber = node->searchNumber | SEARCH_BLOCKED;
+						}
+						else
+						{
+							expand->searchNumber = node->searchNumber;
+							expand->exitBox = LOT->Head;
+						}
+					}
+
+					if (expand->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
+					{
+						LOT->Node[LOT->Tail].nextExpansion = boxNumber;
+						LOT->Tail = boxNumber;
+					}
+				} while (!done);
+			}
+
+			LOT->Head = node->nextExpansion;
+			node->nextExpansion = NO_VALUE;
+		}
+
+		return true;
+	}
+
+	// Dijkstra and A* use priority queue.
+	// A* adds heuristic h(n) = distance to creature's box.
+	auto sourceCenter = (algorithm == PathfindingAlgorithm::AStar && LOT->SourceBox != NO_VALUE)
+		? GetBoxCenter(LOT->SourceBox) : Vector3::Zero;
+	bool useHeuristic = (algorithm == PathfindingAlgorithm::AStar && LOT->SourceBox != NO_VALUE);
+
+	// Priority queue element: (f, g, boxNumber) where f = g + h. Min-heap by f.
+	struct QueueElement
+	{
+		float f;   // Priority: g + h (A* score), or just g for Dijkstra
+		float g;   // Actual path cost from target
+		int   box; // Box number
+
+		bool operator>(const QueueElement& other) const { return f > other.f; }
+	};
+	std::priority_queue<QueueElement, std::vector<QueueElement>, std::greater<QueueElement>> pq;
+
+	// Transfer boxes from legacy Head/Tail list to priority queue.
 	int currentBox = LOT->Head;
 	while (currentBox != NO_VALUE)
 	{
 		auto* node = &LOT->Node[currentBox];
-		pq.push({ node->cost, currentBox });
+		float g = node->cost;
+		float h = useHeuristic ? Vector3::Distance(GetBoxCenter(currentBox), sourceCenter) : 0.0f;
+		pq.push({ g + h, g, currentBox });
 		int nextBox = node->nextExpansion;
 		node->nextExpansion = NO_VALUE;
 		currentBox = nextBox;
@@ -1807,15 +1912,14 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 	int expansions = 0;
 	while (expansions < depth && !pq.empty())
 	{
-		// Extract box with minimum cost.
-		auto [currentCost, headBox] = pq.top();
+		auto [currentF, currentG, headBox] = pq.top();
 		pq.pop();
 
 		auto* box = &g_Level.PathfindingBoxes[headBox];
 		auto* node = &LOT->Node[headBox];
 
-		// Skip stale entries (a better path was already found). Don't count against depth.
-		if (currentCost > node->cost)
+		// Skip stale entries (a better path was already found).
+		if (currentG > node->cost)
 			continue;
 
 		expansions++;
@@ -1826,7 +1930,6 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 
 		bool done = false;
 
-		// Iterate through all boxes that overlap with current box.
 		if (index >= 0)
 		{
 			do
@@ -1839,55 +1942,48 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if (flags & OVERLAP_END_BIT)
 					done = true;
 
-				// PENALTY CHECK: Ignore box, if it is memorized as bad.
 				if (IsBoxInCooldown(LOT, boxNumber))
 					continue;
 
-				// ZONE CHECK: Only flyer creatures can bypass zone check.
 				if (LOT->Zone != ZoneType::Flyer && searchZone != zone[boxNumber])
 					continue;
 
-				// AMPHIBIOUS: if the overlap is not traversable, avoid this branch.
 				if (LOT->Zone == ZoneType::Amphibious && !(flags & OVERLAP_AMPHIBIOUS_TRAVERSABLE))
 					continue;
 
-				// HEIGHT CHECK: Can creature traverse the height difference?
 				int delta = g_Level.PathfindingBoxes[boxNumber].height - box->height;
 				if ((delta > LOT->Step || delta < LOT->Drop) && (!(flags & OVERLAP_MONKEY) || !LOT->CanMonkey))
 					continue;
 
-				// JUMP CHECK: Does this overlap require jumping?
 				if ((flags & OVERLAP_JUMP) && !LOT->CanJump)
 					continue;
 
 				auto* expand = &LOT->Node[boxNumber];
 
-				// Calculate distance-weighted cost.
+				// Calculate distance-weighted cost and heuristic.
 				auto neighborCenter = GetBoxCenter(boxNumber);
 				float edgeCost = Vector3::Distance(currentCenter, neighborCenter);
-				float newCost = node->cost + edgeCost;
+				float newG = node->cost + edgeCost;
+				float h = useHeuristic ? Vector3::Distance(neighborCenter, sourceCenter) : 0.0f;
+				float newF = newG + h;
 
-				// SEARCH STATE: Check if we've already visited this box with a better path.
 				bool isNewSearch = (node->searchNumber & SEARCH_NUMBER) > (expand->searchNumber & SEARCH_NUMBER);
-				bool isBetterPath = newCost < expand->cost;
+				bool isBetterPath = newG < expand->cost;
 
-				// Handle blocked path propagation.
 				if (node->searchNumber & SEARCH_BLOCKED)
 				{
 					if (!isNewSearch)
 						continue;
 
 					expand->searchNumber = node->searchNumber;
-					expand->cost = newCost;
-					pq.push({ newCost, boxNumber });
+					expand->cost = newG;
+					pq.push({ newF, newG, boxNumber });
 				}
 				else
 				{
-					// Skip if already visited with equal or better cost and not blocked.
 					if (!isNewSearch && !isBetterPath && !(expand->searchNumber & SEARCH_BLOCKED))
 						continue;
 
-					// Mark blocked boxes but still allow traversal through them.
 					if (g_Level.PathfindingBoxes[boxNumber].flags & LOT->BlockMask)
 					{
 						expand->searchNumber = node->searchNumber | SEARCH_BLOCKED;
@@ -1895,26 +1991,25 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 					else
 					{
 						expand->searchNumber = node->searchNumber;
-						expand->exitBox = headBox; // Point back toward target.
+						expand->exitBox = headBox;
 					}
 
-					expand->cost = newCost;
-					pq.push({ newCost, boxNumber });
+					expand->cost = newG;
+					pq.push({ newF, newG, boxNumber });
 				}
 			} while (!done);
 		}
 	}
 
-	// Transfer remaining queue back to legacy Head/Tail list (for next frame continuation).
+	// Transfer remaining queue back to legacy Head/Tail list.
 	while (!pq.empty())
 	{
-		auto [cost, boxNumber] = pq.top();
+		auto [f, g, boxNumber] = pq.top();
 		pq.pop();
 
 		auto* node = &LOT->Node[boxNumber];
 
-		// Only add if this entry is still valid (not stale).
-		if (cost <= node->cost && node->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
+		if (g <= node->cost && node->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
 		{
 			if (LOT->Head == NO_VALUE)
 			{
@@ -2820,6 +2915,9 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
  */
 TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 {
+	// Set creature's current box for A* heuristic.
+	LOT->SourceBox = item->BoxNumber;
+
 	// Expand the pathfinding search if needed.
 	UpdateLOT(LOT, g_GameFlow->GetSettings()->Pathfinding.SearchDepth);
 

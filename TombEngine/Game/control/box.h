@@ -15,6 +15,13 @@ enum class JumpDistance
 	Block2
 };
 
+enum class PathfindingAlgorithm
+{
+	BFS,		// Breadth-first search (original). Fast but ignores physical distance.
+	Dijkstra,	// Distance-weighted search. Finds shortest physical path.
+	AStar		// A* with heuristic. Guides search toward creature for faster convergence.
+};
+
 enum TARGET_TYPE
 {
 	NO_TARGET,

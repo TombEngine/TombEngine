@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/control/box.h"
 #include "Game/Lara/lara_struct.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Strings/DisplayString/DisplayString.h"
@@ -89,6 +90,7 @@ namespace TEN::Scripting
 
 	struct PathfindingSettings
 	{
+		PathfindingAlgorithm Algorithm		= PathfindingAlgorithm::AStar; // Pathfinding algorithm.
 		int		SearchDepth					= 5;		// Pathfinding search depth.
 		int		EscapeDistance				= BLOCK(5);	// Escape distance.
 		int		StalkDistance				= BLOCK(3);	// Stalk distance.
