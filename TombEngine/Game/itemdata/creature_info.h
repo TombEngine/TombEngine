@@ -50,6 +50,7 @@ struct LOTInfo
 
 	int Head = 0;
 	int Tail = 0;
+
 	std::vector<BadBox>  BadBoxes = {};
 	std::vector<BoxNode> Node = {};
 

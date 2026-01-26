@@ -119,18 +119,38 @@ static Vector3 GetVelocity(const ItemInfo& item)
 
 static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 {
-	constexpr auto PREDICTION_MIN_DISTANCE = BLOCK(1);
-	constexpr auto PREDICTION_SMOOTHING_FACTOR = 0.25f;
-	constexpr auto PREDICTION_WATER_SCALING_FACTOR = 1.25f;
+	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(1);
+	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
+	constexpr float PREDICTION_SMOOTHING_FACTOR = 0.25f;
+	constexpr float PREDICTION_WATER_SCALING_FACTOR = 1.25f;
 
 	auto sourcePos = sourceItem.Pose.Position;
 	auto targetPos = targetItem.Pose.Position;
 
-	if (!sourceItem.IsCreature())
+	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+
+	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
+		return targetPos;
+
+	float distance = Vector3i::Distance(targetPos, sourcePos);
+	float distanceScale = 1.0f;
+
+	// Calculate smooth prediction distance scale.
+	if (distance < PREDICTION_MIN_DISTANCE)
+	{
+		distanceScale = distance / PREDICTION_MIN_DISTANCE;
+	}
+	else if (distance > PREDICTION_MAX_DISTANCE)
+	{
+		float over = (distance - PREDICTION_MAX_DISTANCE) / PREDICTION_MAX_DISTANCE;
+		distanceScale = 1.0f - std::clamp(over, 0.0f, 1.0f);
+	}
+
+	// Disable prediction at close and far ranges.
+	if (distanceScale <= EPSILON)
 		return targetPos;
 
 	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
-	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	// Scale up prediction factor underwater.
 	if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &sourceItem) &&
@@ -144,7 +164,6 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 	auto sourceVel = GetVelocity(sourceItem);
 	auto targetVel = GetVelocity(targetItem);
 
-	float distance = Vector3i::Distance(targetPos, sourcePos);
 	float relativeVel = Vector3::Distance(targetVel, sourceVel);
 
 	// Avoid division by zero / jitter.
@@ -173,12 +192,7 @@ static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem
 		predictedDelta *= (1.0f - std::clamp(alignmentDot, 0.0f, 1.0f));
 	}
 
-	// Smoothly disable prediction at close range.
-	float scale = 1.0f;
-	if (distance < PREDICTION_MIN_DISTANCE)
-		scale = distance / PREDICTION_MIN_DISTANCE;
-
-	predictedDelta *= scale;
+	predictedDelta *= distanceScale;
 	predictedPos = targetPos + predictedDelta;
 
 	// Force original target position if predicted position is out of bounds.
