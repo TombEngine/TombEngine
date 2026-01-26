@@ -31,10 +31,11 @@ enum class MoodType
 
 struct BoxNode
 {
-	int exitBox		  = 0;
-	int searchNumber  = 0;
-	int nextExpansion = 0;
-	int boxNumber	  = 0;
+	int   exitBox       = 0;
+	int   searchNumber  = 0;
+	int   nextExpansion = 0;
+	int   boxNumber     = 0;
+	float cost          = FLT_MAX; // Accumulated distance from target (for Dijkstra).
 };
 
 struct BadBox

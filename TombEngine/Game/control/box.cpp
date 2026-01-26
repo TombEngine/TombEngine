@@ -32,6 +32,8 @@
 #include "framework.h"
 #include "Game/control/box.h"
 
+#include <queue>
+
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
@@ -1713,9 +1715,9 @@ void TargetBox(LOTInfo* LOT, int boxNumber)
  *
  * When RequiredBox changes (new target selected), this function:
  * 1. Sets it as the new TargetBox.
- * 2. Adds it to the front of the search queue (Head).
+ * 2. Adds it to the priority queue with cost = 0.
  * 3. Increments SearchNumber to invalidate old search data.
- * 4. Calls SearchLOT to expand the search.
+ * 4. Calls SearchLOT to expand the search using Dijkstra.
  *
  * The search works BACKWARDS from target to creature - each node's exitBox
  * points toward the target, so the creature follows exitBox links to reach it.
@@ -1747,25 +1749,28 @@ bool UpdateLOT(LOTInfo* LOT, int depth)
 		// New search number invalidates all previous search data.
 		node->searchNumber = ++LOT->SearchNumber;
 		node->exitBox = NO_VALUE; // Target has no exit (it IS the destination).
+		node->cost = 0.0f;        // Target box has zero cost.
 	}
 
 	return SearchLOT(LOT, depth);
 }
 
 /**
- * @brief Core breadth-first search for pathfinding through boxes.
+ * @brief Dijkstra-based pathfinding through boxes using distance weights.
  *
- * This function expands the search from the current Head box to all connected boxes.
- * It builds a "flow field" where each box's exitBox points toward the target.
+ * This function expands the search using a priority queue ordered by accumulated
+ * distance. Unlike BFS which treats all boxes equally, this approach finds paths
+ * that minimize actual travel distance.
  *
  * ALGORITHM:
- * 1. Take the box at Head of the queue.
+ * 1. Extract the box with minimum cost from the priority queue.
  * 2. For each overlapping (connected) box:
  *    a. Check zone compatibility (skip if different zone, unless flying/swimming).
  *    b. Check height difference against Step/Drop limits.
  *    c. Check special traversal flags (BOX_JUMP, BOX_MONKEY).
- *    d. If reachable, set its exitBox to current box and add to queue.
- * 3. Move to next box in queue, repeat.
+ *    d. Calculate newCost = currentCost + euclidean distance between box centers.
+ *    e. If newCost < neighbor.cost, update and add to queue.
+ * 3. Repeat until queue is empty or depth reached.
  *
  * SEARCH NUMBER SYSTEM:
  * - Each search increments LOT->SearchNumber.
@@ -1781,20 +1786,43 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 {
 	auto& zone = g_Level.Zones[(int)LOT->Zone][(int)FlipStatus];
 
-	for (int i = 0; i < depth; i++)
-	{
-		// Search exhausted - no more boxes to expand.
-		if (LOT->Head == NO_VALUE)
-		{
-			LOT->Tail = NO_VALUE;
-			return false;
-		}
+	// Priority queue element: (cost, boxNumber). Min-heap by cost.
+	using QueueElement = std::pair<float, int>;
+	auto compare = [](const QueueElement& a, const QueueElement& b) { return a.first > b.first; };
+	std::priority_queue<QueueElement, std::vector<QueueElement>, decltype(compare)> pq(compare);
 
-		auto* box = &g_Level.PathfindingBoxes[LOT->Head];
-		auto* node = &LOT->Node[LOT->Head];
+	// Transfer boxes from legacy Head/Tail list to priority queue (for compatibility with UpdateLOT).
+	int currentBox = LOT->Head;
+	while (currentBox != NO_VALUE)
+	{
+		auto* node = &LOT->Node[currentBox];
+		pq.push({ node->cost, currentBox });
+		int nextBox = node->nextExpansion;
+		node->nextExpansion = NO_VALUE;
+		currentBox = nextBox;
+	}
+	LOT->Head = NO_VALUE;
+	LOT->Tail = NO_VALUE;
+
+	int expansions = 0;
+	while (expansions < depth && !pq.empty())
+	{
+		// Extract box with minimum cost.
+		auto [currentCost, headBox] = pq.top();
+		pq.pop();
+
+		auto* box = &g_Level.PathfindingBoxes[headBox];
+		auto* node = &LOT->Node[headBox];
+
+		// Skip stale entries (a better path was already found). Don't count against depth.
+		if (currentCost > node->cost)
+			continue;
+
+		expansions++;
 
 		int index = box->overlapIndex;
-		int searchZone = zone[LOT->Head];
+		int searchZone = zone[headBox];
+		auto currentCenter = GetBoxCenter(headBox);
 
 		bool done = false;
 
@@ -1832,22 +1860,31 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 				if ((flags & OVERLAP_JUMP) && !LOT->CanJump)
 					continue;
 
-				// SEARCH STATE: Check if we've already visited this box.
 				auto* expand = &LOT->Node[boxNumber];
-				if ((node->searchNumber & SEARCH_NUMBER) < (expand->searchNumber & SEARCH_NUMBER))
-					continue;
+
+				// Calculate distance-weighted cost.
+				auto neighborCenter = GetBoxCenter(boxNumber);
+				float edgeCost = Vector3::Distance(currentCenter, neighborCenter);
+				float newCost = node->cost + edgeCost;
+
+				// SEARCH STATE: Check if we've already visited this box with a better path.
+				bool isNewSearch = (node->searchNumber & SEARCH_NUMBER) > (expand->searchNumber & SEARCH_NUMBER);
+				bool isBetterPath = newCost < expand->cost;
 
 				// Handle blocked path propagation.
 				if (node->searchNumber & SEARCH_BLOCKED)
 				{
-					if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER))
+					if (!isNewSearch)
 						continue;
 
 					expand->searchNumber = node->searchNumber;
+					expand->cost = newCost;
+					pq.push({ newCost, boxNumber });
 				}
 				else
 				{
-					if ((node->searchNumber & SEARCH_NUMBER) == (expand->searchNumber & SEARCH_NUMBER) && !(expand->searchNumber & SEARCH_BLOCKED))
+					// Skip if already visited with equal or better cost and not blocked.
+					if (!isNewSearch && !isBetterPath && !(expand->searchNumber & SEARCH_BLOCKED))
 						continue;
 
 					// Mark blocked boxes but still allow traversal through them.
@@ -1858,25 +1895,41 @@ bool SearchLOT(LOTInfo* LOT, int depth)
 					else
 					{
 						expand->searchNumber = node->searchNumber;
-						expand->exitBox = LOT->Head; // Point back toward target.
+						expand->exitBox = headBox; // Point back toward target.
 					}
-				}
 
-				// Add to expansion queue if not already there.
-				if (expand->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
-				{
-					LOT->Node[LOT->Tail].nextExpansion = boxNumber;
-					LOT->Tail = boxNumber;
+					expand->cost = newCost;
+					pq.push({ newCost, boxNumber });
 				}
 			} while (!done);
 		}
-
-		// Move to next box in queue.
-		LOT->Head = node->nextExpansion;
-		node->nextExpansion = NO_VALUE;
 	}
 
-	return true;
+	// Transfer remaining queue back to legacy Head/Tail list (for next frame continuation).
+	while (!pq.empty())
+	{
+		auto [cost, boxNumber] = pq.top();
+		pq.pop();
+
+		auto* node = &LOT->Node[boxNumber];
+
+		// Only add if this entry is still valid (not stale).
+		if (cost <= node->cost && node->nextExpansion == NO_VALUE && boxNumber != LOT->Tail)
+		{
+			if (LOT->Head == NO_VALUE)
+			{
+				LOT->Head = boxNumber;
+				LOT->Tail = boxNumber;
+			}
+			else
+			{
+				LOT->Node[LOT->Tail].nextExpansion = boxNumber;
+				LOT->Tail = boxNumber;
+			}
+		}
+	}
+
+	return LOT->Head != NO_VALUE;
 }
 
 bool CreatureActive(short itemNumber)
@@ -2793,9 +2846,15 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 	int bottom = boxBottom;
 	int direction = CLIP_ALL; // Can move in all directions initially.
 
+	// Safety limit to prevent infinite loops from corrupted exitBox chains.
+	int maxIterations = (int)g_Level.PathfindingBoxes.size();
+	int iterations = 0;
+
 	// MAIN LOOP: Walk along the path from current box to target box.
 	do
 	{
+		if (++iterations > maxIterations)
+			break;
 		box = &g_Level.PathfindingBoxes[boxNumber];
 
 		// Clamp target Y to box height.
@@ -2993,11 +3052,22 @@ TARGET_TYPE CalculateTarget(Vector3i* target, ItemInfo* item, LOTInfo* LOT)
 			return TARGET_TYPE::PRIME_TARGET;
 		}
 
-		// Move to next box on path, stop if next box is blocked.
-		boxNumber = LOT->Node[boxNumber].exitBox;
-		if (boxNumber != NO_VALUE && (g_Level.PathfindingBoxes[boxNumber].flags & LOT->BlockMask))
+		// Move to next box on path.
+		int nextBox = LOT->Node[boxNumber].exitBox;
+
+		// Stop if next box is invalid, blocked, or not part of current search.
+		if (nextBox == NO_VALUE)
 			break;
-	} while (boxNumber != NO_VALUE);
+
+		if (g_Level.PathfindingBoxes[nextBox].flags & LOT->BlockMask)
+			break;
+
+		// Verify node belongs to current search (prevents following stale exitBox values).
+		if ((LOT->Node[nextBox].searchNumber & SEARCH_NUMBER) != (LOT->SearchNumber & SEARCH_NUMBER))
+			break;
+
+		boxNumber = nextBox;
+	} while (true);
 
 	// FALLBACK: Couldn't reach target box.
 	// Clamp position to last valid box boundaries.
