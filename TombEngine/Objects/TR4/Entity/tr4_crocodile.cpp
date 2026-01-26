@@ -93,9 +93,14 @@ namespace TEN::Entities::TR4
 	{
 		auto* creature = GetCreatureInfo(item);
 		auto bounds = GameBoundingBox(item);
-		int waterDepth = GetPointCollision(*item).GetWaterTopHeight();
 
-		return (waterDepth != NO_HEIGHT && waterDepth <= (item->Pose.Position.y + bounds.Y2));
+		auto pointColl = GetPointCollision(*item);
+
+		int waterSurface = pointColl.GetWaterTopHeight();
+		int waterBottom = pointColl.GetWaterBottomHeight();
+		int depth = waterBottom - waterSurface;
+
+		return (depth > CLICK(0.75f) && (waterSurface != NO_HEIGHT) && waterSurface <= (item->Pose.Position.y + bounds.Y2));
 	}
 
 	static void SetCrocodileWater(ItemInfo* item)
