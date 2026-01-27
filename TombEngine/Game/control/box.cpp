@@ -430,7 +430,9 @@ void DrawItemPathfinding(int itemNumber)
 		currentBox = nextBox;
 	}
 
-	PrintDebugMessage("Current path node count: %d", nodeCount);
+	auto mode = g_GameFlow->GetSettings()->Pathfinding.Mode;
+	PrintDebugMessage("Pathfinding mode: %s", mode == PathfindingMode::BFS ? "BFS" : (mode == PathfindingMode::Dijkstra ? "Dijkstra" : "A*"));
+	PrintDebugMessage("Path node count: %d", nodeCount);
 }
 
 // Collect all active creature item numbers.

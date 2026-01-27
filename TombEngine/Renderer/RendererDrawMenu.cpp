@@ -1681,7 +1681,7 @@ namespace TEN::Renderer
 			PrintDebugMessage(" ");
 			{
 				int playerBoxID = playerItem.BoxNumber == NO_VALUE ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
-				PrintDebugMessage("PlayerItem.BoxNumber: %d", playerBoxID);
+				PrintDebugMessage("Player box number: %d", playerBoxID);
 
 				auto creatures = GetActiveCreatures();
 
@@ -1695,11 +1695,11 @@ namespace TEN::Renderer
 					auto zoneType = creatureInfo->LOT.Zone;
 					auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
 
-					PrintDebugMessage("PlayerItem.ZoneNumber: %d", playerBoxID == NO_VALUE ? NO_VALUE : zones[playerBoxID]);
+					PrintDebugMessage("Player zone number: %d", playerBoxID == NO_VALUE ? NO_VALUE : zones[playerBoxID]);
 					PrintDebugMessage("Enemy: %s", enemy.Name.c_str());
-					PrintDebugMessage("Enemy.BoxNumber: %d", enemy.BoxNumber);
-					PrintDebugMessage("Enemy.ZoneType: %d", zoneType);
-					PrintDebugMessage("Enemy.ZoneNumber: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
+					PrintDebugMessage("Enemy box number: %d", enemy.BoxNumber);
+					PrintDebugMessage("Enemy zone type: %d", zoneType);
+					PrintDebugMessage("Enemy zone number: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
 
 					auto mood = "Unknown";
 					switch (creatureInfo->Mood)
@@ -1709,7 +1709,7 @@ namespace TEN::Renderer
 						case MoodType::Escape: mood = "Escape"; break;
 						case MoodType::Bored:  mood = "Bored";  break;
 					}
-					PrintDebugMessage("Enemy.Mood: %s", mood);
+					PrintDebugMessage("Enemy mood: %s", mood);
 				}
 				else if (!creatures.empty())
 					PrintDebugMessage("Push TAB to scroll through enemies");
