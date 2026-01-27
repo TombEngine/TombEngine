@@ -725,11 +725,6 @@ namespace TEN::Entities::TR4
 						item->Animation.TargetState = BADDY_STATE_HOLSTER_SWORD;
 						break;
 					}
-					else
-					{
-						currentCreature->Mood = MoodType::Bored;
-						break;
-					}
 				}
 				else
 				{
