@@ -74,9 +74,9 @@ namespace TEN::Entities::Creatures::TR1
 
 			if (ai.ahead)
 			{
-				headOrient.x = ai.xAngle;
+				headOrient.x = -ai.xAngle;
 				headOrient.y = ai.angle;
-				torsoOrient.x = ai.xAngle / 2;
+				torsoOrient.x = -ai.xAngle / 2;
 				torsoOrient.y = ai.angle / 2;
 			}
 

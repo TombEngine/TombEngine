@@ -2598,7 +2598,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 
 	// Apply pivot offset and make relative.
 	vector.x -= item->Pose.Position.x + object->pivotLength * phd_sin(item->Pose.Orientation.y);
-	vector.y = enemy->Pose.Position.y - item->Pose.Position.y;
+	vector.y =  item->Pose.Position.y - enemy->Pose.Position.y;
 	vector.z -= item->Pose.Position.z + object->pivotLength * phd_cos(item->Pose.Orientation.y);
 
 	short angle = phd_atan(vector.z, vector.x);
