@@ -250,13 +250,14 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		// OCB: jump right
+		// OCB: roll right
 		if (ocb == 1)
 		{
 			item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_JUMP_RIGHT;
 			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_JUMP_RIGHT;
 			item->Animation.ActiveState = BADDY_STATE_JUMP_RIGHT;
+			item->ItemFlags[4] = 1;
 			return;
 		}
 
@@ -267,6 +268,7 @@ namespace TEN::Entities::TR4
 			item->Animation.FrameNumber = 0;
 			item->Animation.TargetState = BADDY_STATE_ROLL_LEFT;
 			item->Animation.ActiveState = BADDY_STATE_ROLL_LEFT;
+			item->ItemFlags[4] = 1;
 			return;
 		}
 	
@@ -1061,7 +1063,7 @@ namespace TEN::Entities::TR4
 						}
 					}
 
-					if (currentCreature->Alerted || ocb == 2)
+					if (currentCreature->Alerted || item->ItemFlags[4] == 1)
 						item->Animation.TargetState = BADDY_STATE_CROUCH_TO_STAND;
 				}
 				else
