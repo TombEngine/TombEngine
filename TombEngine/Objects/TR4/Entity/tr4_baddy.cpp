@@ -260,7 +260,7 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		// OCB: jump left
+		// OCB: roll left
 		if (ocb == 2)
 		{
 			item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_ROLL_LEFT;
@@ -337,12 +337,14 @@ namespace TEN::Entities::TR4
 		bool roll = false;
 		bool jump = false;
 
-		if (item->TriggerFlags % 1000)
+		short ocb = item->TriggerFlags % 1000;
+
+		if (ocb)
 		{
 			creature->MaxTurn = 0;
 			creature->LOT.IsJumping = true;
 
-			if (item->TriggerFlags % 1000 > 100)
+			if (ocb > 100)
 			{
 				item->ItemFlags[0] = -80;
 				FindAITargetObject(creature, ID_AI_X1);
@@ -1059,7 +1061,7 @@ namespace TEN::Entities::TR4
 						}
 					}
 
-					if (currentCreature->Alerted)
+					if (currentCreature->Alerted || ocb == 2)
 						item->Animation.TargetState = BADDY_STATE_CROUCH_TO_STAND;
 				}
 				else
