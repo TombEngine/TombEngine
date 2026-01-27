@@ -229,7 +229,7 @@ namespace TEN::Entities::TR4
 			item->ItemFlags[2] = 0;
 		}
 	
-		item->ItemFlags[1] = -1;
+		item->ItemFlags[1] = NO_VALUE;
 
 		short ocb = item->TriggerFlags % 1000;
 
@@ -396,25 +396,15 @@ namespace TEN::Entities::TR4
 			canJump2Sectors = false;
 		}
 
-		auto* currentCreature = creature;
-
-		if (item->ItemFlags[1] == item->RoomNumber ||
-			g_Level.Rooms[item->RoomNumber].itemNumber == NO_VALUE)
+		if (item->ItemFlags[1] != item->RoomNumber)
 		{
-			currentCreature = creature;
-		}
-		else
-		{
-			currentCreature = creature;
-			creature->Enemy = LaraItem;
 			ItemInfo* currentItem = nullptr;
 			for (short itemNum = g_Level.Rooms[item->RoomNumber].itemNumber; itemNum != NO_VALUE; itemNum = currentItem->NextItem)
 			{
 				currentItem = &g_Level.Items[itemNum];
-				if ((currentItem->ObjectNumber == ID_SMALLMEDI_ITEM ||
-					 currentItem->ObjectNumber == ID_BIGMEDI_ITEM ||
-					 currentItem->ObjectNumber == ID_UZI_AMMO_ITEM) &&
-					SameZone(creature, currentItem))
+
+				if (SameZone(creature, currentItem) && item->Floor <= item->Pose.Position.y &&
+					(currentItem->ObjectNumber == ID_SMALLMEDI_ITEM || currentItem->ObjectNumber == ID_BIGMEDI_ITEM || currentItem->ObjectNumber == ID_UZI_AMMO_ITEM))
 				{
 					if (currentItem->Status != ITEM_INVISIBLE)
 					{
@@ -432,13 +422,13 @@ namespace TEN::Entities::TR4
 		if (item->HitPoints <= 0)
 		{
 			item->Floor = GetPointCollision(*item).GetFloorHeight();
-			currentCreature->LOT.IsMonkeying = false;
+			creature->LOT.IsMonkeying = false;
 
 			switch (item->Animation.ActiveState)
 			{
 			case BADDY_STATE_DEATH:
 				item->Animation.IsAirborne = true;
-				currentCreature->LOT.IsMonkeying = false;
+				creature->LOT.IsMonkeying = false;
 
 				if (item->Pose.Position.y >= item->Floor)
 				{
@@ -484,23 +474,23 @@ namespace TEN::Entities::TR4
 				item->Animation.AnimNumber = BADDY_ANIM_STAND_DEATH;
 				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = BADDY_STATE_DEATH;
-				currentCreature->LOT.IsJumping = true;
+				creature->LOT.IsJumping = true;
 
 				// OCB: respawn code for BADDY_1
 				if (item->TriggerFlags > 999)
 				{
 					for (int i = 0; i < g_Level.NumItems; i++)
 					{
-						auto* possibleEnemy = &g_Level.Items[i];
+						auto* possibleBaddy = &g_Level.Items[i];
 
-						if (possibleEnemy->ObjectNumber == ID_BADDY1 || possibleEnemy->ObjectNumber == ID_BADDY2 &&
-							(item->TriggerFlags / 1000) == (possibleEnemy->TriggerFlags / 1000) - 1 &&
-							!(possibleEnemy->Flags & IFLAG_KILLED))
+						if (possibleBaddy->ObjectNumber == ID_BADDY1 || possibleBaddy->ObjectNumber == ID_BADDY2 &&
+							(item->TriggerFlags / 1000) == (possibleBaddy->TriggerFlags / 1000) - 1 &&
+							!(possibleBaddy->Flags & IFLAG_KILLED))
 						{
 							if (EnableEntityAI(i, false))
-								possibleEnemy->Status = ITEM_ACTIVE;
+								possibleBaddy->Status = ITEM_ACTIVE;
 							else
-								possibleEnemy->Status = ITEM_INVISIBLE;
+								possibleBaddy->Status = ITEM_INVISIBLE;
 							
 							AddActiveItem(i);
 							break;
@@ -514,15 +504,15 @@ namespace TEN::Entities::TR4
 		else
 		{
 			if (item->AIBits)
-				GetAITarget(currentCreature);
-			else if (!currentCreature->Enemy)
-				currentCreature->Enemy = LaraItem;
+				GetAITarget(creature);
+			else if (!creature->Enemy)
+				creature->Enemy = LaraItem;
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
 			AI_INFO laraAI;
-			if (currentCreature->Enemy->IsLara())
+			if (creature->Enemy->IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.ahead = AI.ahead;
@@ -545,16 +535,11 @@ namespace TEN::Entities::TR4
 
 			// Vehicle handling
 			if (Lara.Context.Vehicle != NO_VALUE && AI.bite)
-				currentCreature->Mood = MoodType::Escape;
+				creature->Mood = MoodType::Escape;
 
 			CreatureMood(item, &AI, true);
 
-			angle = CreatureTurn(item, currentCreature->MaxTurn);
-
-			//currentCreature->enemy = LaraItem;
-
-			//ItemInfo* oldEnemy = creature->enemy;
-			//creature->enemy = LaraItem;
+			angle = CreatureTurn(item, creature->MaxTurn);
 
 			// Is baddy alerted?
 			if (item->HitStatus ||
@@ -562,7 +547,7 @@ namespace TEN::Entities::TR4
 				TargetVisible(item, &laraAI) &&
 				abs(LaraItem->Pose.Position.y - item->Pose.Position.y) < CLICK(4))
 			{
-				currentCreature->Alerted = true;
+				creature->Alerted = true;
 			}
 
 			if (item != Lara.TargetEntity ||
@@ -626,10 +611,10 @@ namespace TEN::Entities::TR4
 			switch (item->Animation.ActiveState)
 			{
 			case BADDY_STATE_IDLE:
-				currentCreature->MaxTurn = 0;
-				currentCreature->LOT.IsMonkeying = false;
-				currentCreature->LOT.IsJumping = false;
-				currentCreature->Flags = 0;
+				creature->MaxTurn = 0;
+				creature->LOT.IsMonkeying = false;
+				creature->LOT.IsJumping = false;
+				creature->Flags = 0;
 				joint3 = AI.angle / 2;
 
 				if (AI.ahead && item->AIBits != GUARD)
@@ -640,7 +625,7 @@ namespace TEN::Entities::TR4
 
 				if (item->AIBits & GUARD)
 				{
-					joint3 = AIGuard(currentCreature);
+					joint3 = AIGuard(creature);
 					item->Animation.TargetState = 0;
 					break;
 				}
@@ -686,8 +671,8 @@ namespace TEN::Entities::TR4
 
 				if (canJump1Sector || canJump2Sectors)
 				{
-					currentCreature->MaxTurn = 0;
-					currentCreature->LOT.IsJumping = true;
+					creature->MaxTurn = 0;
+					creature->LOT.IsJumping = true;
 
 					item->Animation.AnimNumber = BADDY_ANIM_STAND_TO_JUMP_FORWARD;
 					item->Animation.FrameNumber = 0;
@@ -701,11 +686,10 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if (currentCreature->Enemy)
+				if (creature->Enemy)
 				{
-					short objectNumber = currentCreature->Enemy->ObjectNumber;
-					if ((objectNumber == ID_SMALLMEDI_ITEM || objectNumber == ID_UZI_AMMO_ITEM || objectNumber == ID_BIGMEDI_ITEM) &&
-						AI.distance < pow(BLOCK(0.5f), 2))
+					short objectNumber = creature->Enemy->ObjectNumber;
+					if ((objectNumber == ID_SMALLMEDI_ITEM || objectNumber == ID_UZI_AMMO_ITEM || objectNumber == ID_BIGMEDI_ITEM) && AI.distance < pow(BLOCK(0.5f), 2))
 					{
 						item->Animation.TargetState = BADDY_STATE_STAND_TO_CROUCH;
 						item->Animation.RequiredState = BADDY_STATE_CROUCH_PICKUP;
@@ -719,11 +703,12 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				probe = GetPointCollision(*item);
-
-				if (currentCreature->MonkeySwingAhead && probe.GetBottomSector().Flags.Monkeyswing)
+				if (creature->MonkeySwingAhead)
 				{
-					if (probe.GetCeilingHeight() == probe.GetFloorHeight() - CLICK(6))
+					probe = GetPointCollision(*item);
+					int heightDelta = probe.GetFloorHeight() - probe.GetCeilingHeight();
+
+					if (probe.GetBottomSector().Flags.Monkeyswing && heightDelta <= CLICK(6) && heightDelta > CLICK(5))
 					{
 						if (item->TestMeshSwapFlags(MESHSWAPFLAGS_BADDY_EMPTY))
 						{
@@ -750,14 +735,14 @@ namespace TEN::Entities::TR4
 				{
 					if (roll)
 					{
-						currentCreature->MaxTurn = 0;
+						creature->MaxTurn = 0;
 						item->Animation.TargetState = BADDY_STATE_ROLL_LEFT;
 						break;
 					}
 
 					if (jump)
 					{
-						currentCreature->MaxTurn = 0;
+						creature->MaxTurn = 0;
 						item->Animation.TargetState = BADDY_STATE_JUMP_RIGHT;
 						break;
 					}
@@ -768,8 +753,8 @@ namespace TEN::Entities::TR4
 						break;
 					}
 
-					if (currentCreature->Enemy && 
-						currentCreature->Enemy->HitPoints > 0 && 
+					if (creature->Enemy &&
+						creature->Enemy->HitPoints > 0 &&
 						AI.distance < pow(BLOCK(0.5f), 2) &&
 						abs(AI.verticalDistance) < BLOCK(1))
 					{
@@ -790,10 +775,10 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_WALK:
-				currentCreature->MaxTurn = ANGLE(7.0f);
-				currentCreature->LOT.IsMonkeying = false;
-				currentCreature->LOT.IsJumping = false;
-				currentCreature->Flags = 0;
+				creature->MaxTurn = ANGLE(7.0f);
+				creature->LOT.IsMonkeying = false;
+				creature->LOT.IsJumping = false;
+				creature->Flags = 0;
 
 				if (laraAI.ahead)
 					joint3 = laraAI.angle;
@@ -808,12 +793,12 @@ namespace TEN::Entities::TR4
 
 				if (canJump1Sector || canJump2Sectors)
 				{
-					currentCreature->MaxTurn = 0;
+					creature->MaxTurn = 0;
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
 				}
 
-				if (currentCreature->ReachedGoal && currentCreature->MonkeySwingAhead && probe.GetBottomSector().Flags.Monkeyswing)
+				if (creature->MonkeySwingAhead && probe.GetBottomSector().Flags.Monkeyswing)
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
@@ -856,8 +841,8 @@ namespace TEN::Entities::TR4
 					break;
 				}
 
-				if ((currentCreature->Mood == MoodType::Attack && !(currentCreature->JumpAhead) && AI.distance > pow(BLOCK(1), 2)) ||
-					 currentCreature->Mood == MoodType::Escape)
+				if ((creature->Mood == MoodType::Attack && !(creature->JumpAhead) && AI.distance > pow(BLOCK(1), 2)) ||
+					 creature->Mood == MoodType::Escape)
 				{
 					item->Animation.TargetState = BADDY_STATE_RUN;
 				}
@@ -865,7 +850,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_RUN:
-				currentCreature->MaxTurn = ANGLE(11.0f);
+				creature->MaxTurn = ANGLE(11.0f);
 				tilt = abs(angle) / 2;
 
 				if (AI.ahead)
@@ -879,15 +864,15 @@ namespace TEN::Entities::TR4
 					(AI.angle > -ANGLE(22.5f) && AI.angle < ANGLE(22.5f) && AI.distance < pow(BLOCK(3), 2) || height2 >= (height1 + CLICK(2))))
 				{
 					item->Animation.TargetState = BADDY_STATE_SOMERSAULT;
-					currentCreature->MaxTurn = 0;
+					creature->MaxTurn = 0;
 					break;
 				}
 				else if ((Targetable(item, &AI) && item->ItemFlags[2] > 0) ||
 					canJump1Sector ||
 					canJump2Sectors ||
-					currentCreature->MonkeySwingAhead ||
+					creature->MonkeySwingAhead ||
 					item->AIBits & FOLLOW ||
-					currentCreature->JumpAhead)
+					creature->JumpAhead)
 				{
 					item->Animation.TargetState = BADDY_STATE_IDLE;
 					break;
@@ -905,7 +890,7 @@ namespace TEN::Entities::TR4
 			case BADDY_STATE_SWORD_HIT_FRONT:
 			case BADDY_STATE_SWORD_HIT_LEFT:
 			case BADDY_STATE_WALK_SWORD_HIT_RIGHT:
-				currentCreature->MaxTurn = 0;
+				creature->MaxTurn = 0;
 
 				if (item->Animation.ActiveState == BADDY_STATE_SWORD_HIT_RIGHT &&
 					AI.distance < pow(BLOCK(0.5f), 2))
@@ -933,7 +918,7 @@ namespace TEN::Entities::TR4
 						item->Pose.Orientation.y += AI.angle;
 				}
 
-				if (!currentCreature->Flags)
+				if (!creature->Flags)
 				{
 					if (item->TouchBits.Test(BaddySwordAttackJoints))
 					{
@@ -942,19 +927,19 @@ namespace TEN::Entities::TR4
 						{
 							DoDamage(creature->Enemy, 120);
 							CreatureEffect2(item, BaddySwordBite, 10, item->Pose.Orientation.y, DoBloodSplat);
-							currentCreature->Flags = 1;
+							creature->Flags = 1;
 						}
 					}
 				}
 
 				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
-					currentCreature->Flags = 0;
+					creature->Flags = 0;
 
 				break;
 
 			case BADDY_STATE_MONKEY_IDLE:
-				currentCreature->MaxTurn = 0;
-				currentCreature->Flags = 0;
+				creature->MaxTurn = 0;
+				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
 
@@ -971,8 +956,8 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_PUSH_OFF;
 				}
-				else if (item->BoxNumber != currentCreature->LOT.TargetBox &&
-					currentCreature->MonkeySwingAhead ||
+				else if (item->BoxNumber != creature->LOT.TargetBox &&
+					creature->MonkeySwingAhead ||
 					probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_FORWARD;
@@ -980,22 +965,21 @@ namespace TEN::Entities::TR4
 				else
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
-					currentCreature->LOT.IsMonkeying = false;
-					currentCreature->LOT.IsJumping = false;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
 				}
 
 				break;
 
 			case BADDY_STATE_MONKEY_FORWARD:
-				currentCreature->MaxTurn = ANGLE(7.0f);
-				currentCreature->LOT.IsJumping = true;
-				currentCreature->LOT.IsMonkeying = true;
-				currentCreature->Flags = 0;
+				creature->MaxTurn = ANGLE(7.0f);
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
+				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
 
-				if (item->BoxNumber == currentCreature->LOT.TargetBox ||
-					!currentCreature->MonkeySwingAhead)
+				if (item->BoxNumber == creature->LOT.TargetBox || !creature->MonkeySwingAhead)
 				{
 					probe = GetPointCollision(*item);
 
@@ -1023,9 +1007,9 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_MONKEY_PUSH_OFF:
-				currentCreature->MaxTurn = ANGLE(7.0f);
+				creature->MaxTurn = ANGLE(7.0f);
 
-				if (!currentCreature->Flags)
+				if (!creature->Flags)
 				{
 					if (item->TouchBits.TestAny())
 					{
@@ -1035,7 +1019,7 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.Velocity.y = 1;
 						LaraItem->Pose.Position.y += CLICK(0.75f);
 						Lara.Control.HandStatus = HandStatus::Free;
-						currentCreature->Flags = 1;
+						creature->Flags = 1;
 					}
 				}
 
@@ -1044,18 +1028,18 @@ namespace TEN::Entities::TR4
 			case BADDY_STATE_ROLL_LEFT:
 			case BADDY_STATE_JUMP_RIGHT:
 				item->Status = ITEM_ACTIVE;
-				currentCreature->MaxTurn = 0;
-				currentCreature->Alerted = false;
+				creature->MaxTurn = 0;
+				creature->Alerted = false;
 				break;
 
 			case BADDY_STATE_CROUCH:
 				if (!item->ItemFlags[0])
 				{
-					if (currentCreature->Enemy)
+					if (creature->Enemy)
 					{
-						if ((currentCreature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM ||
-							currentCreature->Enemy->ObjectNumber == ID_BIGMEDI_ITEM ||
-							currentCreature->Enemy->ObjectNumber == ID_UZI_AMMO_ITEM) &&
+						if ((creature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM ||
+							creature->Enemy->ObjectNumber == ID_BIGMEDI_ITEM ||
+							creature->Enemy->ObjectNumber == ID_UZI_AMMO_ITEM) &&
 							AI.distance < pow(BLOCK(0.5f), 2))
 						{
 							item->Animation.TargetState = BADDY_STATE_CROUCH_PICKUP;
@@ -1063,7 +1047,7 @@ namespace TEN::Entities::TR4
 						}
 					}
 
-					if (currentCreature->Alerted || item->ItemFlags[4] == 1)
+					if (creature->Alerted || item->ItemFlags[4] == 1)
 						item->Animation.TargetState = BADDY_STATE_CROUCH_TO_STAND;
 				}
 				else
@@ -1072,7 +1056,7 @@ namespace TEN::Entities::TR4
 						break;
 					
 					item->Animation.TargetState = BADDY_STATE_CROUCH_TO_STAND;
-					currentCreature->Enemy = nullptr;
+					creature->Enemy = nullptr;
 				}
 
 				break;
@@ -1083,37 +1067,37 @@ namespace TEN::Entities::TR4
 				if (item->Animation.FrameNumber != FRAME_BADDY_CROUCH_PICKUP)
 					break;
 
-				if (!currentCreature->Enemy)
+				if (!creature->Enemy)
 					break;
 
-				if (currentCreature->Enemy->ObjectNumber != ID_SMALLMEDI_ITEM &&
-					currentCreature->Enemy->ObjectNumber != ID_BIGMEDI_ITEM &&
-					currentCreature->Enemy->ObjectNumber != ID_UZI_AMMO_ITEM)
+				if (creature->Enemy->ObjectNumber != ID_SMALLMEDI_ITEM &&
+					creature->Enemy->ObjectNumber != ID_BIGMEDI_ITEM &&
+					creature->Enemy->ObjectNumber != ID_UZI_AMMO_ITEM)
 				{
 					break;
 				}
 
-				if (currentCreature->Enemy->RoomNumber == NO_VALUE ||
-					currentCreature->Enemy->Status == ITEM_INVISIBLE ||
-					currentCreature->Enemy->InDrawRoom)
+				if (creature->Enemy->RoomNumber == NO_VALUE ||
+					creature->Enemy->Status == ITEM_INVISIBLE ||
+					creature->Enemy->InDrawRoom)
 				{
-					currentCreature->Enemy = nullptr;
+					creature->Enemy = nullptr;
 					break;
 				}
 
-				if (currentCreature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM)
+				if (creature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM)
 					item->HitPoints += Objects[item->ObjectNumber].HitPoints / 2;
-				else if (currentCreature->Enemy->ObjectNumber == ID_BIGMEDI_ITEM)
+				else if (creature->Enemy->ObjectNumber == ID_BIGMEDI_ITEM)
 					item->HitPoints = Objects[item->ObjectNumber].HitPoints;
-				else if (currentCreature->Enemy->ObjectNumber == ID_UZI_AMMO_ITEM)
+				else if (creature->Enemy->ObjectNumber == ID_UZI_AMMO_ITEM)
 					item->ItemFlags[2] += BADDY_UZI_AMMO;
 				else
 				{
-					currentCreature->Enemy = nullptr;
+					creature->Enemy = nullptr;
 					break;
 				}
 			
-				KillItem(currentCreature->Enemy->Index);
+				KillItem(creature->Enemy->Index);
 
 				// Cancel enemy pointer for other active baddys
 				for (int i = 0; i < ActiveCreatures.size(); i++)
@@ -1128,7 +1112,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_AIM:
-				currentCreature->MaxTurn = 0;
+				creature->MaxTurn = 0;
 
 				if (AI.ahead)
 				{
@@ -1148,7 +1132,6 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_FIRE:
-
 				if (AI.ahead)
 				{
 					joint1 = AI.angle;
@@ -1203,7 +1186,7 @@ namespace TEN::Entities::TR4
 				break;
 
 			case BADDY_STATE_DODGE:
-				currentCreature->MaxTurn = 0;
+				creature->MaxTurn = 0;
 
 				ClampRotation(item->Pose, AI.angle, ANGLE(11.0f));
 
@@ -1234,7 +1217,7 @@ namespace TEN::Entities::TR4
 				if (item->Animation.FrameNumber != FRAME_BADDY_SOMERSAULT_START_TAKE_OFF)
 					break;
 
-				currentCreature->LOT.IsJumping = true;
+				creature->LOT.IsJumping = true;
 				break;
 
 			case BADDY_STATE_JUMP_FORWARD_1_BLOCK:
