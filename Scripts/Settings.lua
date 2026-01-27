@@ -37,6 +37,7 @@ local settings = Flow.Settings.new()
 	settings.Hud.speedometer = true
 	settings.Hud.pickupNotifier = true
 	
+	settings.Pathfinding.mode = PathfindingMode.ASTAR
 	settings.Pathfinding.searchDepth = 5
 	settings.Pathfinding.escapeDistance = 5120
 	settings.Pathfinding.stalkDistance = 3072
