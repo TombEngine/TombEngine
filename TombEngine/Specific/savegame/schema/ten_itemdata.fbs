@@ -63,6 +63,7 @@ table CreatureTarget {
 }
 
 table Creature {
+	fly_rate: int32;
 	maximum_turn: int32;
 	joint_rotation: [int32];
 	head_left: bool;

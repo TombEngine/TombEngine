@@ -1064,6 +1064,7 @@ flatbuffers::Offset<CreatureTarget> CreateCreatureTarget(flatbuffers::FlatBuffer
 
 struct CreatureT : public flatbuffers::NativeTable {
   typedef Creature TableType;
+  int32_t fly_rate = 0;
   int32_t maximum_turn = 0;
   std::vector<int32_t> joint_rotation{};
   bool head_left = false;
@@ -1097,33 +1098,37 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef CreatureBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_MAXIMUM_TURN = 4,
-    VT_JOINT_ROTATION = 6,
-    VT_HEAD_LEFT = 8,
-    VT_HEAD_RIGHT = 10,
-    VT_PATROL = 12,
-    VT_ALERTED = 14,
-    VT_REACHED_GOAL = 16,
-    VT_JUMP_AHEAD = 18,
-    VT_MONKEY_SWING_AHEAD = 20,
-    VT_FRIENDLY = 22,
-    VT_POISONED = 24,
-    VT_HURT_BY_LARA = 26,
-    VT_TOSSPAD = 28,
-    VT_LOCATION_AI = 30,
-    VT_WEAPON_DELAY1 = 32,
-    VT_WEAPON_DELAY2 = 34,
-    VT_MOOD = 36,
-    VT_ENEMY = 38,
-    VT_AI_TARGET_NUMBER = 40,
-    VT_FLAGS = 42,
-    VT_CAN_JUMP = 44,
-    VT_CAN_MONKEY = 46,
-    VT_IS_JUMPING = 48,
-    VT_IS_MONKEYING = 50,
-    VT_BAD_BOX_NUMBERS = 52,
-    VT_BAD_BOX_COUNTS = 54
+    VT_FLY_RATE = 4,
+    VT_MAXIMUM_TURN = 6,
+    VT_JOINT_ROTATION = 8,
+    VT_HEAD_LEFT = 10,
+    VT_HEAD_RIGHT = 12,
+    VT_PATROL = 14,
+    VT_ALERTED = 16,
+    VT_REACHED_GOAL = 18,
+    VT_JUMP_AHEAD = 20,
+    VT_MONKEY_SWING_AHEAD = 22,
+    VT_FRIENDLY = 24,
+    VT_POISONED = 26,
+    VT_HURT_BY_LARA = 28,
+    VT_TOSSPAD = 30,
+    VT_LOCATION_AI = 32,
+    VT_WEAPON_DELAY1 = 34,
+    VT_WEAPON_DELAY2 = 36,
+    VT_MOOD = 38,
+    VT_ENEMY = 40,
+    VT_AI_TARGET_NUMBER = 42,
+    VT_FLAGS = 44,
+    VT_CAN_JUMP = 46,
+    VT_CAN_MONKEY = 48,
+    VT_IS_JUMPING = 50,
+    VT_IS_MONKEYING = 52,
+    VT_BAD_BOX_NUMBERS = 54,
+    VT_BAD_BOX_COUNTS = 56
   };
+  int32_t fly_rate() const {
+    return GetField<int32_t>(VT_FLY_RATE, 0);
+  }
   int32_t maximum_turn() const {
     return GetField<int32_t>(VT_MAXIMUM_TURN, 0);
   }
@@ -1204,6 +1209,7 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_FLY_RATE) &&
            VerifyField<int32_t>(verifier, VT_MAXIMUM_TURN) &&
            VerifyOffset(verifier, VT_JOINT_ROTATION) &&
            verifier.VerifyVector(joint_rotation()) &&
@@ -1244,6 +1250,9 @@ struct CreatureBuilder {
   typedef Creature Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_fly_rate(int32_t fly_rate) {
+    fbb_.AddElement<int32_t>(Creature::VT_FLY_RATE, fly_rate, 0);
+  }
   void add_maximum_turn(int32_t maximum_turn) {
     fbb_.AddElement<int32_t>(Creature::VT_MAXIMUM_TURN, maximum_turn, 0);
   }
@@ -1335,6 +1344,7 @@ struct CreatureBuilder {
 
 inline flatbuffers::Offset<Creature> CreateCreature(
     flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t fly_rate = 0,
     int32_t maximum_turn = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> joint_rotation = 0,
     bool head_left = false,
@@ -1374,6 +1384,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(
   builder_.add_tosspad(tosspad);
   builder_.add_joint_rotation(joint_rotation);
   builder_.add_maximum_turn(maximum_turn);
+  builder_.add_fly_rate(fly_rate);
   builder_.add_is_monkeying(is_monkeying);
   builder_.add_is_jumping(is_jumping);
   builder_.add_can_monkey(can_monkey);
@@ -1398,6 +1409,7 @@ struct Creature::Traits {
 
 inline flatbuffers::Offset<Creature> CreateCreatureDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t fly_rate = 0,
     int32_t maximum_turn = 0,
     const std::vector<int32_t> *joint_rotation = nullptr,
     bool head_left = false,
@@ -1429,6 +1441,7 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
   auto bad_box_counts__ = bad_box_counts ? _fbb.CreateVector<int32_t>(*bad_box_counts) : 0;
   return TEN::Save::CreateCreature(
       _fbb,
+      fly_rate,
       maximum_turn,
       joint_rotation__,
       head_left,
@@ -3115,6 +3128,7 @@ inline CreatureT *Creature::UnPack(const flatbuffers::resolver_function_t *_reso
 inline void Creature::UnPackTo(CreatureT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = fly_rate(); _o->fly_rate = _e; }
   { auto _e = maximum_turn(); _o->maximum_turn = _e; }
   { auto _e = joint_rotation(); if (_e) { _o->joint_rotation.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->joint_rotation[_i] = _e->Get(_i); } } }
   { auto _e = head_left(); _o->head_left = _e; }
@@ -3151,6 +3165,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CreatureT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _fly_rate = _o->fly_rate;
   auto _maximum_turn = _o->maximum_turn;
   auto _joint_rotation = _fbb.CreateVector(_o->joint_rotation);
   auto _head_left = _o->head_left;
@@ -3179,6 +3194,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
   auto _bad_box_counts = _fbb.CreateVector(_o->bad_box_counts);
   return TEN::Save::CreateCreature(
       _fbb,
+      _fly_rate,
       _maximum_turn,
       _joint_rotation,
       _head_left,

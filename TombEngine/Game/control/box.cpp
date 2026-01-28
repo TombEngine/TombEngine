@@ -73,13 +73,14 @@ constexpr auto REACHED_GOAL_RADIUS = BLOCK(0.625f);	// Distance at which AI cons
 constexpr auto ATTACK_RANGE = SQUARE(BLOCK(3));		// Squared distance for attack mode (avoids sqrt).
 
 // Random chance thresholds for mood transitions (out of 0x7FFF).
-constexpr auto ESCAPE_CHANCE = 0x800;   // ~6% chance to escape when hit.
-constexpr auto RECOVER_CHANCE = 0x100;  // ~0.8% chance to recover from escape.
+constexpr auto ESCAPE_CHANCE  = 0x0800; // ~6% chance to escape when hit.
+constexpr auto RECOVER_CHANCE = 0x0100; // ~0.8% chance to recover from escape.
 
 // Creature movement constants.
 constexpr auto BIFF_AVOID_TURN = ANGLE(11.25f);				// Turn angle to avoid other creatures.
 constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);		// Maximum head rotation for guards.
 constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);	// Maximum joint rotation per frame.
+constexpr auto CREATURE_FLY_SMOOTH_FACTOR = 0.1f;			// Smoothing factor for fly/vertical swim velocity.
 
 constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
 
@@ -991,7 +992,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
 	{
 		// FLYING/SWIMMING: Move toward target Y at Fly speed.
-		int dy = creature->Target.y - item->Pose.Position.y;
+		int flyRate = creature->Target.y - item->Pose.Position.y;
+		flyRate = std::clamp(flyRate, -LOT->Fly, (int)LOT->Fly);
 
 		// New TEN behaviour: if next passable box's height is higher than current
 		// creature Y position, force upward movement to overcome it. Original pathfinder
@@ -1004,15 +1006,12 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			if (nextBox != NO_VALUE && nextBox != item->BoxNumber)
 			{
 				if (g_Level.PathfindingBoxes[nextBox].height < item->Pose.Position.y)
-					dy = -LOT->Fly;
+					flyRate = -LOT->Fly;
 			}
 		}
 
-		// Clamp vertical movement to min/max fly speed.
-		dy = std::clamp(dy, -LOT->Fly, LOT->Fly);
-
 		height = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
-		if (item->Pose.Position.y + dy <= height)
+		if (item->Pose.Position.y + flyRate <= height)
 		{
 			ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
@@ -1023,16 +1022,16 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			int topPos = item->Pose.Position.y + top;
 
 			// Check ceiling collision when swimming up.
-			if (topPos + dy < ceiling)
+			if (topPos + flyRate < ceiling)
 			{
 				if (topPos < ceiling)
 				{
 					// Already stuck in ceiling - push back and swim down.
 					item->Pose.Position = prevPos;
-					dy = LOT->Fly;
+					flyRate = LOT->Fly;
 				}
 				else
-					dy = 0;
+					flyRate = 0;
 			}
 
 			if (g_GameFlow->GetSettings()->Pathfinding.WaterSurfaceAvoidance)
@@ -1041,10 +1040,10 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 				{
 					// New TEN behaviour: clamp water creatures below water level.
 					int waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight();
-					if (topPos + dy <= waterHeight)
+					if (topPos + flyRate <= waterHeight)
 					{
 						item->Pose.Position.y = prevPos.y;
-						dy = std::max(0, dy);
+						flyRate = std::max(0, flyRate);
 					}
 				}
 				else if (LOT->Zone == ZoneType::Flyer)
@@ -1056,10 +1055,10 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 						int bottomPos = item->Pose.Position.y + bounds.Y2;
 
 						// If creature's bottom would enter water, prevent it.
-						if (bottomPos + dy >= waterHeight)
+						if (bottomPos + flyRate >= waterHeight)
 						{
 							item->Pose.Position.y = prevPos.y;
-							dy = std::min(dy, 0);
+							flyRate = std::min(flyRate, 0);
 						}
 					}
 				}
@@ -1069,24 +1068,29 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		{
 			// At floor level - stop vertical movement.
 			item->Pose.Position.y = height;
-			dy = 0;
+			flyRate = 0;
 		}
 		else
 		{
 			// Below floor - push back and go up.
 			item->Pose.Position.x = prevPos.x;
 			item->Pose.Position.z = prevPos.z;
-			dy = -LOT->Fly;
+			flyRate = -LOT->Fly;
 			AddBadBox(LOT, floor->PathfindingBoxID);
 		}
 
-		item->Pose.Position.y += dy;
+		if (creature->FlyRate < flyRate)
+			creature->FlyRate = std::min(creature->FlyRate + short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+		else if (creature->FlyRate > flyRate)
+			creature->FlyRate = std::max(creature->FlyRate - short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+
+		item->Pose.Position.y += creature->FlyRate;
 
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		item->Floor = GetFloorHeight(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
 		// Pitch creature based on vertical movement (nose up/down when climbing/diving).
-		angle = (item->Animation.Velocity.z) ? phd_atan(item->Animation.Velocity.z, -dy) : 0;
+		angle = (item->Animation.Velocity.z) ? phd_atan(item->Animation.Velocity.z, -creature->FlyRate) : 0;
 		if (angle < -ANGLE(20.0f))
 			angle = -ANGLE(20.0f);
 		else if (angle > ANGLE(20.0f))

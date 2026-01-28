@@ -707,6 +707,7 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_weapon_delay1(creature->MuzzleFlash[0].Delay);
 			creatureBuilder.add_weapon_delay2(creature->MuzzleFlash[1].Delay);
 			creatureBuilder.add_maximum_turn(creature->MaxTurn);
+			creatureBuilder.add_fly_rate(creature->FlyRate);
 			creatureBuilder.add_monkey_swing_ahead(creature->MonkeySwingAhead);
 			creatureBuilder.add_mood((int)creature->Mood);
 			creatureBuilder.add_patrol(creature->Patrol);
@@ -2914,6 +2915,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 			creature->JumpAhead = savedCreature->jump_ahead();
 			creature->MaxTurn = savedCreature->maximum_turn();
+			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
 			creature->Patrol = savedCreature->patrol();

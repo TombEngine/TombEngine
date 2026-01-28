@@ -135,6 +135,7 @@ struct CreatureInfo
 	int		  AITargetNumber = NO_VALUE;
 	Vector3i  Target		 = Vector3i::Zero;
 
+	int   FlyRate		   = 0;
 	short MaxTurn		   = 0;
 	short JointRotation[4] = {};
 	bool  HeadLeft		   = false;
