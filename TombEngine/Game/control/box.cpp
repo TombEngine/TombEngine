@@ -1333,6 +1333,8 @@ void CreatureTilt(ItemInfo* item, short angle)
 
 short CreatureTurn(ItemInfo* item, short maxTurn)
 {
+	constexpr auto FEELER_ANGLE = ANGLE(45);
+
 	if (!item->IsCreature() || maxTurn == 0)
 		return 0;
 
@@ -1341,25 +1343,34 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 	if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance ||
 		g_GameFlow->GetSettings()->Pathfinding.StaticMeshAvoidance)
 	{
-		constexpr auto FEELER_ANGLE = ANGLE(45);
-
 		auto HasObstacle = [&](const LosCollisionData& los)
 		{
 			// Don't check for object obstacles near room geometry to avoid being stuck.
 			if (los.Room.IsIntersected)
 				return false;
 
-			if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance)
+			if (g_GameFlow->GetSettings()->Pathfinding.MoveableAvoidance && !los.Items.empty())
 			{
 				for (const auto& entry : los.Items)
 				{
+					if (entry.IsOriginContained)
+						continue;
+
 					if (entry.Item->Index != item->Index && !entry.Item->IsCreature() && !entry.Item->IsLara())
 						return true;
 				}
 			}
 
-			if (g_GameFlow->GetSettings()->Pathfinding.StaticMeshAvoidance)
-				return !los.Statics.empty();
+			if (g_GameFlow->GetSettings()->Pathfinding.StaticMeshAvoidance && !los.Statics.empty())
+			{
+				for (const auto& entry : los.Statics)
+				{
+					if (entry.IsOriginContained)
+						continue;
+
+					return true;
+				}
+			}
 
 			return false;
 		};
