@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Entity/Centaur.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"

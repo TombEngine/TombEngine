@@ -44,6 +44,7 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
+#include "Objects/TR4/Object/FireRope.h"
 #include "Objects/TR4/Object/StatuePlinth.h"
 #include "Objects/TR4/Object/WraithTrap.h"
 #include "Objects/TR4/Object/tr4_element_puzzle.h"
@@ -506,9 +507,10 @@ namespace TEN::Entities
 			obj->Initialize = InitializeHorseman;
 			obj->control = HorsemanControl;
 			obj->collision = CreatureCollision;
+			obj->HitRoutine = HorsemanHit;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 25;
-			obj->pivotLength = 500;
+			obj->pivotLength = 50;
 			obj->radius = 409;
 			obj->intelligent = true;
 			obj->SetHitEffect(true);
@@ -575,12 +577,20 @@ namespace TEN::Entities
 			obj->SetHitEffect();
 		}
 
+		obj = &Objects[ID_FIREROPE];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeFireRope;
+			obj->control = FireRopeControl;
+			obj->collision = FireRopeCollision;
+		}
+
 		obj = &Objects[ID_LOCUSTS_EMITTER];
 		if (obj->loaded)
 		{
 			obj->Initialize = InitializeLocustEmitter;
 			obj->control = LocustEmitterControl;
-			obj->drawRoutine = nullptr;
+			obj->Hidden = true;
 		}
 
 		obj = &Objects[ID_LOCUSTS];
@@ -588,7 +598,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeLocustEmitter;
 			obj->control = LocustEmitterControl;
-			obj->drawRoutine = nullptr;
+			obj->Hidden = true;
 		}
 
 		obj = &Objects[ID_WRAITH1];
@@ -617,7 +627,7 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeBeetleSwarm;
 			obj->control = BeetleSwarmControl;
-			obj->drawRoutine = nullptr;
+			obj->Hidden = true;
 		}
 
 		obj = &Objects[ID_SAS_DYING];

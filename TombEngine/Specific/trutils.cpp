@@ -172,10 +172,10 @@ namespace TEN::Utils
 		if (string.empty())
 			return 0;
 
-		uint32_t hash = 2166136261u;
+		unsigned int hash = 2166136261u;
 		for (char c : string)
 		{
-			hash ^= static_cast<uint8_t>(c);
+			hash ^= static_cast<unsigned char>(c);
 			hash *= 16777619u;
 		}
 

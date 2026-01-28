@@ -5,6 +5,24 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer
 {
+	void Renderer::ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view)
+	{
+		switch (g_Configuration.AntialiasingMode)
+		{
+		case AntialiasingMode::None:
+			break;
+
+		case AntialiasingMode::Low:
+			ApplyFXAA(&_renderTarget, _gameCamera);
+			break;
+
+		case AntialiasingMode::Medium:
+		case AntialiasingMode::High:
+			ApplySMAA(&_renderTarget, _gameCamera);
+			break;
+		}
+	}
+
 	void Renderer::ApplySMAA(RenderTarget2D* renderTarget, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);
@@ -20,8 +38,8 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		UINT stride = sizeof(PostProcessVertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
@@ -44,7 +62,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::SmaaColorEdgeDetection);
 		 
 		_stSMAABuffer.BlendFactor = 1.0f;
-		_cbSMAABuffer.UpdateData(_stSMAABuffer, _context.Get());
+		UpdateConstantBuffer(_stSMAABuffer, _cbSMAABuffer);
 		BindConstantBufferPS(static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_SMAASceneRenderTarget, SamplerStateRegister::LinearClamp);
@@ -62,7 +80,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::SmaaBlendingWeightCalculation);
 
 		_stSMAABuffer.SubsampleIndices = Vector4::Zero;
-		_cbSMAABuffer.UpdateData(_stSMAABuffer, _context.Get());
+		UpdateConstantBuffer(_stSMAABuffer, _cbSMAABuffer);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_SMAASceneRenderTarget, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_SMAASceneSRGBRenderTarget, SamplerStateRegister::LinearClamp);
@@ -106,15 +124,15 @@ namespace TEN::Renderer
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
-		UINT stride = sizeof(PostProcessVertex);
-		UINT offset = 0;
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
 
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		// Copy render target to temp render target.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_tempRenderTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _tempRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
+		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
+		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget, SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
@@ -125,11 +143,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Fxaa);
 
-		_stPostProcessBuffer.ViewportWidth = _screenWidth;
-		_stPostProcessBuffer.ViewportHeight = _screenHeight;
-		_cbPostProcessBuffer.UpdateData(_stPostProcessBuffer, _context.Get());
+		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
+		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 		
-		BindTexture(TextureRegister::ColorMap, &_tempRenderTarget, SamplerStateRegister::AnisotropicClamp);
+		BindTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[0], SamplerStateRegister::AnisotropicClamp);
 
 		DrawTriangles(3, 0);
 	}

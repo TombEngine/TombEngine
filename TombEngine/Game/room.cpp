@@ -74,8 +74,8 @@ bool RoomData::Active() const
 	// Since engine swaps whole room memory block but substitutes flippedRoom,
 	// both original room number and flippedRoom must be chekhed for equality,
 	// as well as NO_VALUE if checking non-flipped rooms.
-	return (!FlipStats[flipNumber] && flippedRoom != RoomNumber && flippedRoom != NO_VALUE) ||
-		   ( FlipStats[flipNumber] && flippedRoom == RoomNumber);
+	return (!FlipStats[flipNumber] && flippedRoom != originalRoom && flippedRoom != NO_VALUE) ||
+		   ( FlipStats[flipNumber] && flippedRoom == originalRoom);
 }
 
 void RoomData::GenerateCollisionMesh()
@@ -606,6 +606,10 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 	for (auto& sector : flippedRoom.Sectors)
 		sector.RoomNumber = activeRoom.flippedRoom;
 
+	// Swap stopper flags.
+	for (int i = 0; i < activeRoom.Sectors.size(); i++)
+		std::swap(activeRoom.Sectors[i].Stopper, flippedRoom.Sectors[i].Stopper);
+
 	// Update renderer data.
 	g_Renderer.FlipRooms(roomNumber, activeRoom.flippedRoom);
 }
@@ -658,7 +662,7 @@ void DoFlipMap(int group)
 {
 	if (group >= MAX_FLIPMAP)
 	{
-		TENLog("Maximum flipmap group number is " + std::to_string(MAX_FLIPMAP) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Maximum flipmap group number is {}.", MAX_FLIPMAP), LogLevel::Warning);
 		return;
 	}
 

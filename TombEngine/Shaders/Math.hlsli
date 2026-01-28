@@ -5,7 +5,7 @@
 
 #define PI		3.1415926535897932384626433832795028841971693993751058209749445923
 #define PI2		6.2831853071795864769252867665590057683943387987502116419498891846
-#define EPSILON 1e-38
+#define EPSILON 1e-6f
 #define OCTAVES 6
 
 #define LT_SUN			0
@@ -530,4 +530,35 @@ float4x4 BlendBoneMatrices(VertexShaderInput input, float4x4 bones[MAX_BONES], b
 		return blendedMatrix;
 	}
 }
+
+float3 UnpackNormalMap(float4 n)
+{
+    n = n * 2.0f - 1.0f;
+    n.z = saturate(1.0f - dot(n.xy, n.xy));
+    return n.xyz;
+}
+
+inline float Gaussian(float x, float sigma)
+{
+    // exp( -x^2 / (2*sigma^2) )
+    return exp(-(x * x) / (2.0 * sigma * sigma));
+}
+
+inline float3 SafeNormalize(float3 v)
+{
+    float l2 = dot(v, v);
+    float invLen = rsqrt(max(l2, EPSILON));
+    float mask = saturate(l2 / (l2 + EPSILON));
+    return v * invLen * mask;
+}
+
+float2 GetSamplePosition(float4 projectedPosition)
+{
+    float2 samplePosition;
+    samplePosition = projectedPosition.xy / projectedPosition.w;
+    samplePosition = samplePosition * 0.5f + 0.5f;
+    samplePosition.y = 1.0f - samplePosition.y;
+    return samplePosition;
+}
+
 #endif // MATH

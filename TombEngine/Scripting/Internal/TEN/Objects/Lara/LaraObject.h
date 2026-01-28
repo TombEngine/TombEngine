@@ -25,18 +25,30 @@ public:
 	std::unique_ptr<Moveable> GetTarget() const;
 	std::unique_ptr<Moveable> GetPlayerInteractedMoveable() const;
 	HandStatus GetHandStatus() const;
+	void SetHandStatus(HandStatus status);
 	LaraWeaponType GetWeaponType() const;
 	void SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> activate);
-	int GetAmmoType() const;
+	bool GetLaserSight(LaraWeaponType weaponType) const;
+	void SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activate);
+	int GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const;
+	void SetAmmoType(PlayerAmmoType ammoType);
 	int GetAmmoCount() const;
+	int GetWeaponMode() const;
+	void SetWeaponMode(PlayerWeaponMode weaponMode);
 
 	void UndrawWeapon();
 	void DiscardTorch();
 	bool IsTorchLit() const;
 
+	WaterStatus GetWaterStatus() const;
+
+	int GetWaterSkinStatus(TypeOrNil<bool> flag) const;
+	void SetWaterSkinStatus(int amount, TypeOrNil<bool> flag);
+
 	void Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 				  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID) const;
+				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,
+				TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const;
 	bool TestInteraction(const Moveable& mov,
 						 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 						 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const;

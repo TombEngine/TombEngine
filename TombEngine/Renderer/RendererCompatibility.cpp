@@ -31,6 +31,7 @@ namespace TEN::Renderer
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;
 		_lastDepthState = DepthState::Unknown;
+		_lastMaterialIndex = NO_VALUE;
 
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
 		_spriteSequences.resize(ID_NUMBER_OBJECTS);
@@ -49,6 +50,10 @@ namespace TEN::Renderer
 
 		auto effect = RendererEffect();
 		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
+		
+		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
+		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
+		auto emptyEmissiveMap = std::vector<unsigned char>{ 0, 0, 0, 0 };
 
 		TENLog("Allocated renderer object memory.", LogLevel::Info);
 
@@ -59,14 +64,40 @@ namespace TEN::Renderer
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ORSH;
+			if (texture->ORSHMapData.size() < 1)
+			{
+				ORSH = CreateDefaultTexture(emptyORSHMap);
+			}
+			else
+			{
+				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+			}
+
+			Texture2D emissive;
+
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+			}
+
+			AtlasTexturesSet tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ORSH,
+				emissive);
+
 			_animatedTextures[i] = tex;
 		}
 
@@ -117,17 +148,43 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.RoomTextures.size(); i++)
 		{
 			TEXTURE *texture = &g_Level.RoomTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ORSH;
+			if (texture->ORSHMapData.size() < 1)
+			{
+				ORSH = CreateDefaultTexture(emptyORSHMap);
+			}
+			else
+			{
+				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+			}
+
+			AtlasTexturesSet tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ORSH,
+				emissive); 
+			
 			_roomTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES
@@ -146,17 +203,43 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.MoveablesTextures.size(); i++)
 		{
 			TEXTURE *texture = &g_Level.MoveablesTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ORSH;
+			if (texture->ORSHMapData.size() < 1)
+			{
+				ORSH = CreateDefaultTexture(emptyORSHMap);
+			}
+			else
+			{
+				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+			}
+
+			AtlasTexturesSet tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ORSH,
+				emissive); 
+			
 			_moveablesTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES
@@ -175,17 +258,43 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.StaticsTextures.size(); i++)
 		{
 			TEXTURE *texture = &g_Level.StaticsTextures[i];
+			
 			Texture2D normal;
 			if (texture->normalMapData.size() < 1)
 			{
-				normal = CreateDefaultNormalTexture();
+				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
 				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
 			}
 
-			TexturePair tex = std::make_tuple(Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()), normal);
+			Texture2D ORSH;
+			if (texture->ORSHMapData.size() < 1)
+			{
+				ORSH = CreateDefaultTexture(emptyORSHMap);
+			}
+			else
+			{
+				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+			}
+
+			Texture2D emissive;
+			if (texture->emissiveMapData.size() < 1)
+			{
+				emissive = CreateDefaultTexture(emptyEmissiveMap);
+			}
+			else
+			{
+				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+			}
+
+			AtlasTexturesSet tex = std::make_tuple(
+				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+				normal,
+				ORSH,
+				emissive); 
+			
 			_staticTextures[i] = tex;
 
 #ifdef DUMP_TEXTURES
@@ -316,6 +425,7 @@ namespace TEN::Renderer
 
 				bucket.Animated = levelBucket.animated;
 				bucket.BlendMode = static_cast<BlendMode>(levelBucket.blendMode);
+				bucket.MaterialIndex = levelBucket.materialIndex;
 				bucket.Texture = levelBucket.texture;
 				bucket.StartVertex = lastVertex;
 				bucket.StartIndex = lastIndex;
@@ -333,6 +443,8 @@ namespace TEN::Renderer
 						room.positions[poly.indices[0]] +
 						room.positions[poly.indices[1]] +
 						room.positions[poly.indices[2]]) / 3.0f;
+
+					newPoly.Centre += room.Position.ToVector3();
 
 					Vector3 p1 = room.positions[poly.indices[0]];
 					Vector3 p2 = room.positions[poly.indices[1]];
@@ -355,22 +467,21 @@ namespace TEN::Renderer
 
 						bucket.Centre += vertex->Position;
 
-						vertex->Normal = poly.normals[k];
+						vertex->Normal = PackVector3(poly.normals[k]);
 						vertex->UV = poly.textureCoordinates[k];
-						vertex->Color = Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f);
-						vertex->Tangent = poly.tangents[k];
-						vertex->Binormal = poly.binormals[k];
-						vertex->AnimationFrameOffset = poly.animatedFrame;
-						vertex->IndexInPoly = k;
-						vertex->OriginalIndex = index;
-						vertex->Effects = Vector4(room.effects[index].x, room.effects[index].y, room.effects[index].z, 0);
+						vertex->Color = VectorColorToRGBA_TempToVector4(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
+						vertex->Tangent = PackVector3(poly.tangents[k]);
+						vertex->FaceNormal = PackVector3(poly.normal);
 
 						const unsigned long long primes[]{ 73856093ULL, 19349663ULL, 83492791ULL };
-						vertex->Hash = (unsigned int)std::hash<float>{}
-						((vertex->Position.x)* primes[0]) ^
-							((unsigned int)std::hash<float>{}(vertex->Position.y) * primes[1]) ^
-							(unsigned int)std::hash<float>{}(vertex->Position.z) * primes[2];
+						unsigned int hash = (unsigned int)std::hash<float>{}
+						((vertex->Position.x) * primes[0]) ^
+							((unsigned int)std::hash<float>{}(vertex->Position.y)* primes[1]) ^
+							(unsigned int)std::hash<float>{}(vertex->Position.z)* primes[2];
 
+						vertex->AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, index, hash);
+						vertex->Effects = PackEffectsAndIndexInPoly(room.effects[index], poly.shineStrength, k);
+						
 						lastVertex++;
 					}
 
@@ -541,7 +652,7 @@ namespace TEN::Renderer
 				_moveableObjects[MoveablesIds[i]] = RendererObject();
 				RendererObject &moveable = *_moveableObjects[MoveablesIds[i]];
 				moveable.Id = MoveablesIds[i];
-				moveable.DoNotDraw = (obj->drawRoutine == nullptr);
+				moveable.Hidden = obj->Hidden;
 				moveable.ShadowType = obj->shadowType;
 													   
 				for (int j = 0; j < obj->nmeshes; j++)
@@ -804,9 +915,11 @@ namespace TEN::Renderer
 										const auto* parentMesh = skinObj.ObjectMeshes[rootMesh];
 										const auto* parentBone = skinObj.LinearizedBones[rootMesh];
 
+										int currentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+
 										// Link listed vertices.
-										if ((!isSecond && currentVertex->OriginalIndex >= vertices0.size()) || 
-											 (isSecond && currentVertex->OriginalIndex >= vertices1.size()))
+										if ((!isSecond && currentOriginalIndex >= vertices0.size()) ||
+											 (isSecond && currentOriginalIndex >= vertices1.size()))
 										{
 											continue;
 										}
@@ -817,8 +930,11 @@ namespace TEN::Renderer
 											for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
 											{
 												const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
-												if ((parentVertex->OriginalIndex == vertices1[currentVertex->OriginalIndex] &&  isSecond) ||
-													(parentVertex->OriginalIndex == vertices0[currentVertex->OriginalIndex] && !isSecond))
+
+												int parentOriginalIndex = GetOriginalIndex(parentVertex->AnimationFrameOffsetIndexHash);
+
+												if ((parentOriginalIndex == vertices1[currentOriginalIndex] &&  isSecond) ||
+													(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
 												{
 													currentVertex->BoneIndex[0] = 0;
 													currentVertex->Position = parentVertex->Position;
@@ -977,6 +1093,7 @@ namespace TEN::Renderer
 			bucket.Animated = levelBucket->animated;
 			bucket.Texture = levelBucket->texture;
 			bucket.BlendMode = static_cast<BlendMode>(levelBucket->blendMode);
+			bucket.MaterialIndex = levelBucket->materialIndex;
 			bucket.StartVertex = *lastVertex;
 			bucket.StartIndex = *lastIndex;
 			bucket.NumVertices = levelBucket->numQuads * 4 + levelBucket->numTriangles * 3;
@@ -999,44 +1116,31 @@ namespace TEN::Renderer
 				{
 					Vertex vertex;
 					int v = poly->indices[k];
-
+					
 					vertex.Position.x = meshPtr->positions[v].x;
 					vertex.Position.y = meshPtr->positions[v].y;
 					vertex.Position.z = meshPtr->positions[v].z;
 					 
-					vertex.Normal.x = poly->normals[k].x;
-					vertex.Normal.y = poly->normals[k].y;
-					vertex.Normal.z = poly->normals[k].z;
+					vertex.Normal = PackVector3(Vector3(poly->normals[k].x, poly->normals[k].y, poly->normals[k].z));
+					vertex.Tangent = PackVector3(Vector3(poly->tangents[k].x, poly->tangents[k].y, poly->tangents[k].z));
 
-					vertex.Tangent.x = poly->tangents[k].x;
-					vertex.Tangent.y = poly->tangents[k].y;
-					vertex.Tangent.z = poly->tangents[k].z;
+					vertex.FaceNormal = PackVector3(poly->normal);
 
-					vertex.Binormal.x = poly->binormals[k].x;
-					vertex.Binormal.y = poly->binormals[k].y;
-					vertex.Binormal.z = poly->binormals[k].z;
-					 
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
-
-					vertex.Color.x = meshPtr->colors[v].x;
-					vertex.Color.y = meshPtr->colors[v].y;
-					vertex.Color.z = meshPtr->colors[v].z;
-					vertex.Color.w = 1.0f;
-
+					
+					vertex.Color = VectorColorToRGBA_TempToVector4(Vector4(meshPtr->colors[v].x, meshPtr->colors[v].y, meshPtr->colors[v].z, 1.0f));
+					
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
 
-					vertex.AnimationFrameOffset = poly->animatedFrame;
-					vertex.IndexInPoly = k;
-
-					vertex.OriginalIndex = v;
-
-					vertex.Effects = Vector4(meshPtr->effects[v].x, meshPtr->effects[v].y, meshPtr->effects[v].z, poly->shineStrength);
-					vertex.Hash = (unsigned int)std::hash<float>{}
+					unsigned int hash = (unsigned int)std::hash<float>{}
 						(vertex.Position.x) ^
-							(unsigned int)std::hash<float>{}(vertex.Position.y) ^
-							(unsigned int)std::hash<float>{}(vertex.Position.z);
+						(unsigned int)std::hash<float>{}(vertex.Position.y) ^
+						(unsigned int)std::hash<float>{}(vertex.Position.z);
+
+					vertex.AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly->animatedFrame, v, hash);	
+					vertex.Effects = PackEffectsAndIndexInPoly(meshPtr->effects[v], poly->shineStrength, k);
 
 					if (obj->Type == 0)
 						_moveablesVertices[*lastVertex] = vertex;

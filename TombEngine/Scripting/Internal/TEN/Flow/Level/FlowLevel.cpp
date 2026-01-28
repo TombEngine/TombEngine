@@ -116,7 +116,7 @@ This setting does not affect ability to use weapons or flares.
 		"farView", &Level::LevelFarView,
 
 /// (bool) Reset hub data.
-// Resets the state for all previous levels, including items, flipmaps and statistics.
+// If true, resets the state of all previously visited levels, including items, flipmaps and statistics.
 //@mem resetHub
 		"resetHub", &Level::ResetHub,
 

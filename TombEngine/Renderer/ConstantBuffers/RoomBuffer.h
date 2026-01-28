@@ -19,7 +19,8 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector2 CausticsStartUV;
 		Vector2 CausticsSize;
 		//--
-		Vector4 AmbientColor;
+		Vector3 AmbientColor;
+		float RoomPadding0;
 		//--
 		ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 		//--

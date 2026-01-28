@@ -2,7 +2,7 @@
 #include "Game/effects/tomb4fx.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
@@ -23,6 +23,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
@@ -1151,13 +1152,13 @@ void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& ma
 
 	if (splash)
 	{
-		TriggerExplosionBubble(position.x, position.y, position.z, room.RoomNumber, mainColor, secondColor);
-		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, room.RoomNumber, mainColor, secondColor);
+		TriggerExplosionBubble(position.x, position.y, position.z, roomNumber, mainColor, secondColor);
+		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, roomNumber, mainColor, secondColor);
 
 		for (int i = 0; i < 3; i++)
-			TriggerExplosionSparks(position.x, position.y, position.z, 2, -1, 1, room.RoomNumber, mainColor, secondColor);
+			TriggerExplosionSparks(position.x, position.y, position.z, 2, -1, 1, roomNumber, mainColor, secondColor);
 
-		int waterHeight = GetPointCollision(position, room.RoomNumber).GetWaterTopHeight();
+		int waterHeight = GetPointCollision(position, roomNumber).GetWaterTopHeight();
 		if (waterHeight != NO_HEIGHT)
 		{
 			int dy = position.y - waterHeight;
@@ -1167,7 +1168,7 @@ void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& ma
 				SplashSetup.InnerRadius = 160;
 				SplashSetup.SplashPower = 2048 - dy;
 
-				SetupSplash(&SplashSetup, room.RoomNumber);
+				SetupSplash(&SplashSetup, roomNumber);
 			}
 		}
 	}
@@ -1177,10 +1178,10 @@ void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& ma
 		int y = position.y;
 		int z = (GetRandomControl() & 0x1FF) + position.z - CLICK(1);
 
-		TriggerExplosionBubbles(x, y, z, room.RoomNumber, mainColor, secondColor);
-		TriggerExplosionSparks(x, y, z, 2, -1, 1, room.RoomNumber, mainColor, secondColor);
+		TriggerExplosionBubbles(x, y, z, roomNumber, mainColor, secondColor);
+		TriggerExplosionSparks(x, y, z, 2, -1, 1, roomNumber, mainColor, secondColor);
 
-		int waterHeight = GetPointCollision(Vector3i(x, y, z), room.RoomNumber).GetWaterTopHeight();
+		int waterHeight = GetPointCollision(Vector3i(x, y, z), roomNumber).GetWaterTopHeight();
 		if (waterHeight != NO_HEIGHT)
 			SomeSparkEffect(x, waterHeight, z, 8);
 	}
@@ -1434,7 +1435,7 @@ void UpdateShockwaves()
 
 		if (LaraItem->HitPoints > 0 && shockwave.damage)
 		{
-			const auto& bounds = GetBestFrame(*LaraItem).BoundingBox;
+			const auto& bounds = GetClosestKeyframe(*LaraItem).BoundingBox;
 			int dx = LaraItem->Pose.Position.x - shockwave.x;
 			int dz = LaraItem->Pose.Position.z - shockwave.z;
 			float dist = sqrt(SQUARE(dx) + SQUARE(dz));

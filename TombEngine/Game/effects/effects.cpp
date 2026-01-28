@@ -2,7 +2,7 @@
 #include "Game/effects/effects.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/los.h"
 #include "Game/collision/collide_room.h"
@@ -33,6 +33,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
@@ -594,7 +595,9 @@ void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
 {
 	int count = Random::GenerateInt(3, 8);
 	TriggerRicochetSpark(pos, angle, count);
-	SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
+
+	if (sound)
+		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
 }
 
 void TriggerGlow(const GameVector& pos, const Vector3& color, int scale)
@@ -1850,7 +1853,7 @@ void ProcessEffects(ItemInfo* item)
 			{
 				TriggerElectricSpark(
 					GameVector(pos, item->RoomNumber),
-					EulerAngles(0, Random::GenerateAngle(0, ANGLE(359.0f)), 0), 2);
+					EulerAngles(0, Random::GenerateAngle(), 0), 2);
 			}
 
 			if (TestProbability(1 / 64.0f))
@@ -1863,7 +1866,7 @@ void ProcessEffects(ItemInfo* item)
 			{
 				TriggerElectricSpark(
 					GameVector(pos, item->RoomNumber),
-					EulerAngles(0, Random::GenerateAngle(0, ANGLE(359.0f)), 0), 2);
+					EulerAngles(0, Random::GenerateAngle(), 0), 2);
 			}
 
 			if (TestProbability(1 / 1.0f))
@@ -1989,8 +1992,9 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 {
 	const auto& player = GetLaraInfo(item);
 
-	// Player underwater; return early.
-	if (player.Control.WaterStatus == WaterStatus::Underwater)
+	// Player underwater or in fly mode; return early.
+	if (player.Control.WaterStatus == WaterStatus::Underwater ||
+		player.Control.WaterStatus == WaterStatus::FlyCheat)
 		return;
 
 	// Get point collision.
