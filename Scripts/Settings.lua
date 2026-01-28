@@ -48,6 +48,7 @@ local settings = Flow.Settings.new()
 	settings.Pathfinding.staticMeshAvoidance = true
 	settings.Pathfinding.verticalGeometryAvoidance = true
 	settings.Pathfinding.waterSurfaceAvoidance = true
+	settings.Pathfinding.verticalMovementSmoothing = true
 	
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50

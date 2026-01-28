@@ -102,6 +102,7 @@ namespace TEN::Scripting
 		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
+		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
 
 		static void Register(sol::table& parent);
 	};

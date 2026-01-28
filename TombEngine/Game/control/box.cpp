@@ -1079,10 +1079,17 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			AddBadBox(LOT, floor->PathfindingBoxID);
 		}
 
-		if (creature->FlyRate < flyRate)
-			creature->FlyRate = std::min(creature->FlyRate + short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
-		else if (creature->FlyRate > flyRate)
-			creature->FlyRate = std::max(creature->FlyRate - short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+		if (g_GameFlow->GetSettings()->Pathfinding.VerticalMovementSmoothing)
+		{
+			if (creature->FlyRate < flyRate)
+				creature->FlyRate = std::min(creature->FlyRate + short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+			else if (creature->FlyRate > flyRate)
+				creature->FlyRate = std::max(creature->FlyRate - short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+		}
+		else
+		{
+			creature->FlyRate = flyRate;
+		}
 
 		item->Pose.Position.y += creature->FlyRate;
 

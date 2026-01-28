@@ -343,7 +343,12 @@ namespace TEN::Scripting
 		/// Water surface avoidance for swimming and flying enemies.
 		// @tfield bool waterSurfaceAvoidance For flying enemies, prevents diving into the water and dying while attacking
 		// the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.
-		"waterSurfaceAvoidance", &PathfindingSettings::WaterSurfaceAvoidance);
+		"waterSurfaceAvoidance", &PathfindingSettings::WaterSurfaceAvoidance,
+
+		/// Vertical movement smoothing for swimming and flying enemies.
+		// @tfield bool verticalMovementSmoothing Smooths out vertical movement for swimming and flying enemies to prevent
+		// sudden unnatural jerks or changes in direction.
+		"verticalMovementSmoothing", &PathfindingSettings::VerticalMovementSmoothing);
 	}
 
 	/// Physics
