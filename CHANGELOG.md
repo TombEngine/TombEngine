@@ -6,7 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.11]
 
 ### New features
-* Overhauled enemy AI with predictive targeting, pathfinding penalty system, and object collision avoidance.
+* Overhauled enemy AI with weighted pathfinding, predictive targeting, penalty system, and collision avoidance.
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
