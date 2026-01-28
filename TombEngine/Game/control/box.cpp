@@ -121,7 +121,7 @@ static Vector3 GetVelocity(const ItemInfo& item)
 
 static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 {
-	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(1);
+	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(0.5f);
 	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
 	constexpr float PREDICTION_SMOOTHING_FACTOR = 0.25f;
 	constexpr float PREDICTION_WATER_SCALING_FACTOR = 1.25f;
