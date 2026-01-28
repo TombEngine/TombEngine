@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/HeavyStamper.h"
 
-#include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -31,20 +30,20 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-			if ((item.Animation.FrameNumber - GetAnimData(item).frameBase) >= HEAVY_STAMPER_IMPACT_FRAME)
-			{
-				Camera.bounce = -9;
-				item.ItemFlags[4] = HEAVY_STAMPER_DAMAGE;  // NOTE: Avoid the stamper pushing the player in GenericSphereBoxCollision().
-			}
-			else
-			{
-				item.ItemFlags[4] = 0;
-			}		
+		if (item.Animation.FrameNumber >= HEAVY_STAMPER_IMPACT_FRAME)
+		{
+			Camera.bounce = -9;
+			item.ItemFlags[4] = HEAVY_STAMPER_DAMAGE;  // NOTE: Avoid the stamper pushing the player in GenericSphereBoxCollision().
+		}
+		else
+		{
+			item.ItemFlags[4] = 0;
+		}		
 			
-			item.ItemFlags[0] = 1;
-			item.ItemFlags[3] = HEAVY_STAMPER_DAMAGE;
+		item.ItemFlags[0] = 1;
+		item.ItemFlags[3] = HEAVY_STAMPER_DAMAGE;
 			
-			AnimateItem(&item);
+		AnimateItem(&item);
 	}
 		
 	void CollideHeavyStamper(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
@@ -89,7 +88,7 @@ namespace TEN::Entities::Traps
 
 				if ((ItemPushItem(&item, playerItem, coll, harmBits & 1, 0) && (harmBits & 1) && (item.ItemFlags[3] > 0)) || item.ItemFlags[4] == HEAVY_STAMPER_DAMAGE)
 				{
-					if (playerItem->HitPoints < 400 && (item.Animation.FrameNumber - GetAnimData(item).frameBase) >= HEAVY_STAMPER_IMPACT_FRAME)
+					if (playerItem->HitPoints < 400 && item.Animation.FrameNumber >= HEAVY_STAMPER_IMPACT_FRAME)
 					{
 						if (item.TriggerFlags < 0)
 							playerItem->Pose.Scale = Vector3(1.0f, 0.1f, 1.0f);

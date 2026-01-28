@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/SpikedFrame.h"
 
-#include "Game/animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/effects/effects.h"

@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/TR2/Trap/CircularSaw.h"
 
-#include "Game/animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/effects.h"
@@ -64,8 +63,7 @@ namespace TEN::Entities::Traps
 			}
 			else
 			{
-				if (item.Animation.AnimNumber == GetAnimIndex(item, CIRCULAR_SAW_ANIM_DISABLED) &&
-					item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+				if (TestLastFrame(item,  CIRCULAR_SAW_ANIM_DISABLED))
 				{
 					item.Flags &= 0xC1;
 					RemoveActiveItem(itemNumber, false);
@@ -75,7 +73,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		if (item.Animation.AnimNumber == GetAnimIndex(item, CIRCULAR_SAW_ANIM_ENABLED))
+		if (item.Animation.AnimNumber == CIRCULAR_SAW_ANIM_ENABLED)
 		{
 			if (item.ItemFlags[5])
 			{

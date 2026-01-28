@@ -74,6 +74,9 @@ namespace TEN::Entities::Traps
 		}
 
 		AnimateItem(&item);
+=========
+		AnimateItem(item);
+>>>>>>>>> Temporary merge branch 2
 	}
 
 	void SpawnSlammingDoorSparks(const Vector3i& localOffset, const ItemInfo& item)

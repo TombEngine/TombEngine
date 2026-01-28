@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Objects/Generic/Traps/Pendulum.h"
 
-#include "Game/animation.h"
 #include "Game/collision/Sphere.h"
 #include "Game/collision/collide_item.h"
 #include "Game/effects/effects.h"
