@@ -64,9 +64,10 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		auto angle = GetBoneOrientation(item, 1);
+		const auto& anim = GetAnimData(item);
 
-		if (angle.y == 0 && item.TriggerFlags)
+
+		if (anim.CommandIndex == 5 && item.TriggerFlags)
 		{
 				SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 				SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
