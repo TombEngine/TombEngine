@@ -991,9 +991,16 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 
 	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
 	{
-		// FLYING/SWIMMING: Move toward target Y at Fly speed.
-		int flyRate = creature->Target.y - item->Pose.Position.y;
-		flyRate = std::clamp(flyRate, -LOT->Fly, (int)LOT->Fly);
+		// FLYING/SWIMMING: Move toward target Y at fly speed.
+		int deltaY = creature->Target.y - item->Pose.Position.y;
+		int flyRate = deltaY;
+
+		// Ease-out fly rate when close to target.
+		if (g_GameFlow->GetSettings()->Pathfinding.VerticalMovementSmoothing)
+			flyRate *= CREATURE_FLY_SMOOTH_FACTOR;
+
+		// Don't exceed maximum fly rate.
+		flyRate = std::clamp(flyRate, -LOT->Fly, LOT->Fly);
 
 		// New TEN behaviour: if next passable box's height is higher than current
 		// creature Y position, force upward movement to overcome it. Original pathfinder
@@ -1031,7 +1038,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					flyRate = LOT->Fly;
 				}
 				else
-					flyRate = 0;
+					creature->FlyRate = flyRate = 0;
 			}
 
 			if (g_GameFlow->GetSettings()->Pathfinding.WaterSurfaceAvoidance)
@@ -1043,7 +1050,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 					if (topPos + flyRate <= waterHeight)
 					{
 						item->Pose.Position.y = prevPos.y;
-						flyRate = std::max(0, flyRate);
+						creature->FlyRate = flyRate = std::max(0, flyRate);
 					}
 				}
 				else if (LOT->Zone == ZoneType::Flyer)
@@ -1058,7 +1065,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 						if (bottomPos + flyRate >= waterHeight)
 						{
 							item->Pose.Position.y = prevPos.y;
-							flyRate = std::min(flyRate, 0);
+							creature->FlyRate = flyRate = std::min(flyRate, 0);
 						}
 					}
 				}
@@ -1068,23 +1075,24 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		{
 			// At floor level - stop vertical movement.
 			item->Pose.Position.y = height;
-			flyRate = 0;
+			creature->FlyRate = flyRate = 0;
 		}
 		else
 		{
 			// Below floor - push back and go up.
 			item->Pose.Position.x = prevPos.x;
 			item->Pose.Position.z = prevPos.z;
-			flyRate = -LOT->Fly;
+			creature->FlyRate = flyRate = -LOT->Fly;
 			AddBadBox(LOT, floor->PathfindingBoxID);
 		}
 
 		if (g_GameFlow->GetSettings()->Pathfinding.VerticalMovementSmoothing)
 		{
+			// Ease-in fly rate when necessary.
 			if (creature->FlyRate < flyRate)
-				creature->FlyRate = std::min(creature->FlyRate + short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+				creature->FlyRate = std::min(creature->FlyRate + (int)(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
 			else if (creature->FlyRate > flyRate)
-				creature->FlyRate = std::max(creature->FlyRate - short(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
+				creature->FlyRate = std::max(creature->FlyRate - (int)(LOT->Fly * CREATURE_FLY_SMOOTH_FACTOR), flyRate);
 		}
 		else
 		{
