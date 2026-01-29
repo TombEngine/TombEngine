@@ -30,6 +30,7 @@
 #include "Sound/sound.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Gui;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
 
@@ -470,6 +471,7 @@ void FlowHandler::LoadFlowScript()
 	TENLog("Loading gameflow script, strings, and settings...", LogLevel::Info);
 
 	Levels.clear();
+	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);

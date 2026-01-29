@@ -355,6 +355,8 @@ namespace TEN::Gui
 	extern InventoryObject InventoryObjectTable[];
 	extern CombineList CombineTable[];
 
+	void ResetInventoryTablesToDefault();
+
 	void CombineRevolverLasersight(ItemInfo* item, bool flag);
 	void CombineCrossbowLasersight(ItemInfo* item, bool flag);
 	void CombineHKLasersight(ItemInfo* item, bool flag);
