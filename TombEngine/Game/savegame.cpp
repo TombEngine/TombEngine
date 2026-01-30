@@ -685,13 +685,16 @@ const std::vector<byte> SaveGame::Build()
 
 			std::vector<int> badBoxNumbers;
 			std::vector<int> badBoxCounts;
+			std::vector<bool> badBoxValid;
 			for (int i = 0; i < BAD_BOX_MEMORY_SIZE; i++)
 			{
 				badBoxNumbers.push_back(creature->LOT.BadBoxes[i].BoxNumber);
 				badBoxCounts.push_back(creature->LOT.BadBoxes[i].Count);
+				badBoxValid.push_back(creature->LOT.BadBoxes[i].Valid);
 			}
 			auto badBoxNumbersOffset = fbb.CreateVector(badBoxNumbers);
 			auto badBoxCountsOffset = fbb.CreateVector(badBoxCounts);
+			auto badBoxValidOffset = fbb.CreateVector(badBoxValid);
 
 			Save::CreatureBuilder creatureBuilder{ fbb };
 			creatureBuilder.add_alerted(creature->Alerted);
@@ -721,6 +724,7 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
 			creatureBuilder.add_bad_box_numbers(badBoxNumbersOffset);
 			creatureBuilder.add_bad_box_counts(badBoxCountsOffset);
+			creatureBuilder.add_bad_box_valid(badBoxValidOffset);
 
 			creatureOffset = creatureBuilder.Finish();
 		}
@@ -2895,6 +2899,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			{
 				creature->LOT.BadBoxes[j].BoxNumber = savedCreature->bad_box_numbers()->Get(j);
 				creature->LOT.BadBoxes[j].Count = savedCreature->bad_box_counts()->Get(j);
+				creature->LOT.BadBoxes[j].Valid = savedCreature->bad_box_valid()->Get(j);
 			}
 
 			if (savedCreature->enemy() >= 0)

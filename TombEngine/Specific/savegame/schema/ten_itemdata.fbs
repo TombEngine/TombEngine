@@ -90,6 +90,7 @@ table Creature {
 	is_monkeying: bool;
 	bad_box_numbers: [int32];
 	bad_box_counts: [int32];
+	bad_box_valid: [bool];
 }
 
 table LaserHead {

@@ -658,7 +658,15 @@ static void AddBadBox(LOTInfo* LOT, int boxNumber)
 	for (auto& badBox : LOT->BadBoxes)
 	{
 		if (badBox.BoxNumber == boxNumber)
+		{
+			if (badBox.Count >= 0 && !badBox.Valid)
+			{
+				badBox.Valid = true;
+				badBox.Count++;
+			}
+
 			return;
+		}
 	}
 
 	// Find an empty slot to store the bad box.
@@ -667,8 +675,9 @@ static void AddBadBox(LOTInfo* LOT, int boxNumber)
 		if (badBox.BoxNumber != NO_VALUE)
 			continue;
 
+		badBox.Valid = true;
 		badBox.BoxNumber = boxNumber;
-		badBox.Count = 0;
+		badBox.Count = 1;
 		return;
 	}
 }
@@ -717,29 +726,34 @@ static void UpdateBadBoxes(ItemInfo* item)
 		if (badBox.BoxNumber == NO_VALUE)
 			continue;
 
-		// Patience buildup.
-		if (badBox.Count >= 0 && badBox.Count < penaltyThreshold)
+		if (badBox.Count > 0)
 		{
+			if (badBox.Count >= penaltyThreshold)
+			{
+				// If penalty has built up, flip into cooldown exactly at limit.
+				badBox.Count = -penaltyCooldown;
+				LOT.TargetBox = NO_VALUE;
+				ClearLOT(&LOT);
+				return;
+			}
+			else if (!badBox.Valid)
+			{
+				// If box wasn't queried for current loop, reduce penalty count.
+				badBox.Count--;
+			}
+		}
+		else if (badBox.Count < 0)
+		{
+			// Cooldown the bad box.
 			badBox.Count++;
-			continue;
 		}
 
-		// Flip into cooldown exactly at limit.
-		if (badBox.Count == penaltyThreshold)
-		{
-			badBox.Count = -penaltyCooldown;
-			LOT.TargetBox = NO_VALUE;
-			ClearLOT(&LOT);
-			return;
-		}
+		// Forget the bad box, if timeout has elapsed.
+		if (badBox.Count == 0)
+			badBox.BoxNumber = NO_VALUE;
 
-		// If cooldown phase has finished, forget the bad box.
-		if (badBox.Count < 0)
-		{
-			badBox.Count++;
-			if (badBox.Count == 0)
-				badBox.BoxNumber = NO_VALUE;
-		}
+		// Invalidate the bad box until the next query.
+		badBox.Valid = false;
 	}
 }
 

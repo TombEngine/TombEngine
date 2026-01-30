@@ -40,6 +40,7 @@ struct BoxNode
 
 struct BadBox
 {
+	bool Valid		= false;
 	int  BoxNumber	= NO_VALUE;
 	int  Count		= 0;
 };
