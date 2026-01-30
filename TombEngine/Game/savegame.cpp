@@ -683,11 +683,8 @@ const std::vector<byte> SaveGame::Build()
 			auto jointRotationsOffset = fbb.CreateVector(jointRotations);
 
 			std::vector<flatbuffers::Offset<Save::BadBox>> badBoxes;
-			for (int i = 0; i < BAD_BOX_MEMORY_SIZE; i++)
-			{
-				const auto& box = creature->LOT.BadBoxes[i];
+			for (auto& box : creature->LOT.BadBoxes)
 				badBoxes.push_back(Save::CreateBadBox(fbb, box.Valid, box.BoxNumber, box.Count));
-			}
 			auto badBoxesOffset = fbb.CreateVector(badBoxes);
 
 			Save::CreatureBuilder creatureBuilder{ fbb };
@@ -2887,7 +2884,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LOT.CanJump = savedCreature->can_jump();
 			creature->LOT.CanMonkey = savedCreature->can_monkey();
 
-			for (int j = 0; j < BAD_BOX_MEMORY_SIZE; j++)
+			for (int j = 0; j < creature->LOT.BadBoxes.size(); j++)
 			{
 				creature->LOT.BadBoxes[j].BoxNumber = savedCreature->bad_boxes()->Get(j)->box_number();
 				creature->LOT.BadBoxes[j].Count = savedCreature->bad_boxes()->Get(j)->count();
