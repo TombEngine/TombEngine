@@ -53,6 +53,12 @@ struct Pose {
 	scale: Vector3;
 }
 
+table BadBox {
+	valid: bool;
+	box_number: int32;
+	count: int32;
+}
+
 table CreatureTarget {
 	object_number: int32;
 	room_number: int32;
@@ -88,9 +94,7 @@ table Creature {
 	can_monkey: bool;
 	is_jumping: bool;
 	is_monkeying: bool;
-	bad_box_numbers: [int32];
-	bad_box_counts: [int32];
-	bad_box_valid: [bool];
+	bad_boxes: [BadBox];
 }
 
 table LaserHead {

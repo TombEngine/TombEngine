@@ -37,6 +37,10 @@ struct GameVector;
 
 struct Pose;
 
+struct BadBox;
+struct BadBoxBuilder;
+struct BadBoxT;
+
 struct CreatureTarget;
 struct CreatureTargetBuilder;
 struct CreatureTargetT;
@@ -949,6 +953,86 @@ inline flatbuffers::Offset<ShortArray> CreateShortArrayDirect(
 
 flatbuffers::Offset<ShortArray> CreateShortArray(flatbuffers::FlatBufferBuilder &_fbb, const ShortArrayT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct BadBoxT : public flatbuffers::NativeTable {
+  typedef BadBox TableType;
+  bool valid = false;
+  int32_t box_number = 0;
+  int32_t count = 0;
+};
+
+struct BadBox FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef BadBoxT NativeTableType;
+  typedef BadBoxBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALID = 4,
+    VT_BOX_NUMBER = 6,
+    VT_COUNT = 8
+  };
+  bool valid() const {
+    return GetField<uint8_t>(VT_VALID, 0) != 0;
+  }
+  int32_t box_number() const {
+    return GetField<int32_t>(VT_BOX_NUMBER, 0);
+  }
+  int32_t count() const {
+    return GetField<int32_t>(VT_COUNT, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_VALID) &&
+           VerifyField<int32_t>(verifier, VT_BOX_NUMBER) &&
+           VerifyField<int32_t>(verifier, VT_COUNT) &&
+           verifier.EndTable();
+  }
+  BadBoxT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(BadBoxT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<BadBox> Pack(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct BadBoxBuilder {
+  typedef BadBox Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_valid(bool valid) {
+    fbb_.AddElement<uint8_t>(BadBox::VT_VALID, static_cast<uint8_t>(valid), 0);
+  }
+  void add_box_number(int32_t box_number) {
+    fbb_.AddElement<int32_t>(BadBox::VT_BOX_NUMBER, box_number, 0);
+  }
+  void add_count(int32_t count) {
+    fbb_.AddElement<int32_t>(BadBox::VT_COUNT, count, 0);
+  }
+  explicit BadBoxBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<BadBox> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<BadBox>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<BadBox> CreateBadBox(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool valid = false,
+    int32_t box_number = 0,
+    int32_t count = 0) {
+  BadBoxBuilder builder_(_fbb);
+  builder_.add_count(count);
+  builder_.add_box_number(box_number);
+  builder_.add_valid(valid);
+  return builder_.Finish();
+}
+
+struct BadBox::Traits {
+  using type = BadBox;
+  static auto constexpr Create = CreateBadBox;
+};
+
+flatbuffers::Offset<BadBox> CreateBadBox(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct CreatureTargetT : public flatbuffers::NativeTable {
   typedef CreatureTarget TableType;
   int32_t object_number = 0;
@@ -1089,9 +1173,7 @@ struct CreatureT : public flatbuffers::NativeTable {
   bool can_monkey = false;
   bool is_jumping = false;
   bool is_monkeying = false;
-  std::vector<int32_t> bad_box_numbers{};
-  std::vector<int32_t> bad_box_counts{};
-  std::vector<bool> bad_box_valid{};
+  std::vector<std::unique_ptr<TEN::Save::BadBoxT>> bad_boxes{};
 };
 
 struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1124,9 +1206,7 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CAN_MONKEY = 48,
     VT_IS_JUMPING = 50,
     VT_IS_MONKEYING = 52,
-    VT_BAD_BOX_NUMBERS = 54,
-    VT_BAD_BOX_COUNTS = 56,
-    VT_BAD_BOX_VALID = 58
+    VT_BAD_BOXES = 54
   };
   int32_t fly_rate() const {
     return GetField<int32_t>(VT_FLY_RATE, 0);
@@ -1203,14 +1283,8 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool is_monkeying() const {
     return GetField<uint8_t>(VT_IS_MONKEYING, 0) != 0;
   }
-  const flatbuffers::Vector<int32_t> *bad_box_numbers() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BAD_BOX_NUMBERS);
-  }
-  const flatbuffers::Vector<int32_t> *bad_box_counts() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BAD_BOX_COUNTS);
-  }
-  const flatbuffers::Vector<uint8_t> *bad_box_valid() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_BAD_BOX_VALID);
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::BadBox>> *bad_boxes() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::BadBox>> *>(VT_BAD_BOXES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1240,12 +1314,9 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_CAN_MONKEY) &&
            VerifyField<uint8_t>(verifier, VT_IS_JUMPING) &&
            VerifyField<uint8_t>(verifier, VT_IS_MONKEYING) &&
-           VerifyOffset(verifier, VT_BAD_BOX_NUMBERS) &&
-           verifier.VerifyVector(bad_box_numbers()) &&
-           VerifyOffset(verifier, VT_BAD_BOX_COUNTS) &&
-           verifier.VerifyVector(bad_box_counts()) &&
-           VerifyOffset(verifier, VT_BAD_BOX_VALID) &&
-           verifier.VerifyVector(bad_box_valid()) &&
+           VerifyOffset(verifier, VT_BAD_BOXES) &&
+           verifier.VerifyVector(bad_boxes()) &&
+           verifier.VerifyVectorOfTables(bad_boxes()) &&
            verifier.EndTable();
   }
   CreatureT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1332,14 +1403,8 @@ struct CreatureBuilder {
   void add_is_monkeying(bool is_monkeying) {
     fbb_.AddElement<uint8_t>(Creature::VT_IS_MONKEYING, static_cast<uint8_t>(is_monkeying), 0);
   }
-  void add_bad_box_numbers(flatbuffers::Offset<flatbuffers::Vector<int32_t>> bad_box_numbers) {
-    fbb_.AddOffset(Creature::VT_BAD_BOX_NUMBERS, bad_box_numbers);
-  }
-  void add_bad_box_counts(flatbuffers::Offset<flatbuffers::Vector<int32_t>> bad_box_counts) {
-    fbb_.AddOffset(Creature::VT_BAD_BOX_COUNTS, bad_box_counts);
-  }
-  void add_bad_box_valid(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> bad_box_valid) {
-    fbb_.AddOffset(Creature::VT_BAD_BOX_VALID, bad_box_valid);
+  void add_bad_boxes(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::BadBox>>> bad_boxes) {
+    fbb_.AddOffset(Creature::VT_BAD_BOXES, bad_boxes);
   }
   explicit CreatureBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1379,13 +1444,9 @@ inline flatbuffers::Offset<Creature> CreateCreature(
     bool can_monkey = false,
     bool is_jumping = false,
     bool is_monkeying = false,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> bad_box_numbers = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> bad_box_counts = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> bad_box_valid = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::BadBox>>> bad_boxes = 0) {
   CreatureBuilder builder_(_fbb);
-  builder_.add_bad_box_valid(bad_box_valid);
-  builder_.add_bad_box_counts(bad_box_counts);
-  builder_.add_bad_box_numbers(bad_box_numbers);
+  builder_.add_bad_boxes(bad_boxes);
   builder_.add_flags(flags);
   builder_.add_ai_target_number(ai_target_number);
   builder_.add_enemy(enemy);
@@ -1446,13 +1507,9 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
     bool can_monkey = false,
     bool is_jumping = false,
     bool is_monkeying = false,
-    const std::vector<int32_t> *bad_box_numbers = nullptr,
-    const std::vector<int32_t> *bad_box_counts = nullptr,
-    const std::vector<uint8_t> *bad_box_valid = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Save::BadBox>> *bad_boxes = nullptr) {
   auto joint_rotation__ = joint_rotation ? _fbb.CreateVector<int32_t>(*joint_rotation) : 0;
-  auto bad_box_numbers__ = bad_box_numbers ? _fbb.CreateVector<int32_t>(*bad_box_numbers) : 0;
-  auto bad_box_counts__ = bad_box_counts ? _fbb.CreateVector<int32_t>(*bad_box_counts) : 0;
-  auto bad_box_valid__ = bad_box_valid ? _fbb.CreateVector<uint8_t>(*bad_box_valid) : 0;
+  auto bad_boxes__ = bad_boxes ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::BadBox>>(*bad_boxes) : 0;
   return TEN::Save::CreateCreature(
       _fbb,
       fly_rate,
@@ -1480,9 +1537,7 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
       can_monkey,
       is_jumping,
       is_monkeying,
-      bad_box_numbers__,
-      bad_box_counts__,
-      bad_box_valid__);
+      bad_boxes__);
 }
 
 flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -3093,6 +3148,38 @@ inline flatbuffers::Offset<ShortArray> CreateShortArray(flatbuffers::FlatBufferB
       _arr);
 }
 
+inline BadBoxT *BadBox::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<BadBoxT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void BadBox::UnPackTo(BadBoxT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = valid(); _o->valid = _e; }
+  { auto _e = box_number(); _o->box_number = _e; }
+  { auto _e = count(); _o->count = _e; }
+}
+
+inline flatbuffers::Offset<BadBox> BadBox::Pack(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateBadBox(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<BadBox> CreateBadBox(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const BadBoxT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _valid = _o->valid;
+  auto _box_number = _o->box_number;
+  auto _count = _o->count;
+  return TEN::Save::CreateBadBox(
+      _fbb,
+      _valid,
+      _box_number,
+      _count);
+}
+
 inline CreatureTargetT *CreatureTarget::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<CreatureTargetT>();
   UnPackTo(_o.get(), _resolver);
@@ -3168,9 +3255,7 @@ inline void Creature::UnPackTo(CreatureT *_o, const flatbuffers::resolver_functi
   { auto _e = can_monkey(); _o->can_monkey = _e; }
   { auto _e = is_jumping(); _o->is_jumping = _e; }
   { auto _e = is_monkeying(); _o->is_monkeying = _e; }
-  { auto _e = bad_box_numbers(); if (_e) { _o->bad_box_numbers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bad_box_numbers[_i] = _e->Get(_i); } } }
-  { auto _e = bad_box_counts(); if (_e) { _o->bad_box_counts.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bad_box_counts[_i] = _e->Get(_i); } } }
-  { auto _e = bad_box_valid(); if (_e) { _o->bad_box_valid.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bad_box_valid[_i] = _e->Get(_i) != 0; } } }
+  { auto _e = bad_boxes(); if (_e) { _o->bad_boxes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bad_boxes[_i] = std::unique_ptr<TEN::Save::BadBoxT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<Creature> Creature::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -3206,9 +3291,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
   auto _can_monkey = _o->can_monkey;
   auto _is_jumping = _o->is_jumping;
   auto _is_monkeying = _o->is_monkeying;
-  auto _bad_box_numbers = _fbb.CreateVector(_o->bad_box_numbers);
-  auto _bad_box_counts = _fbb.CreateVector(_o->bad_box_counts);
-  auto _bad_box_valid = _fbb.CreateVector(_o->bad_box_valid);
+  auto _bad_boxes = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::BadBox>> (_o->bad_boxes.size(), [](size_t i, _VectorArgs *__va) { return CreateBadBox(*__va->__fbb, __va->__o->bad_boxes[i].get(), __va->__rehasher); }, &_va );
   return TEN::Save::CreateCreature(
       _fbb,
       _fly_rate,
@@ -3236,9 +3319,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
       _can_monkey,
       _is_jumping,
       _is_monkeying,
-      _bad_box_numbers,
-      _bad_box_counts,
-      _bad_box_valid);
+      _bad_boxes);
 }
 
 inline LaserHeadT *LaserHead::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -4127,7 +4208,7 @@ inline ItemDataUnion::ItemDataUnion(const ItemDataUnion &u) : type(u.type), valu
       break;
     }
     case ItemData::Creature: {
-      value = new TEN::Save::CreatureT(*reinterpret_cast<TEN::Save::CreatureT *>(u.value));
+      FLATBUFFERS_ASSERT(false);  // TEN::Save::CreatureT not copyable.
       break;
     }
     case ItemData::LaserHead: {
