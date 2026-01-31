@@ -202,6 +202,8 @@ void DrawLaraPathfinding(int boxIndex)
 void DrawItemPathfinding(int itemNumber)
 {
 	constexpr auto MAX_DRAW_STEPS = 100;
+	constexpr auto ROOT_NODE_RADIUS = 64.0f;
+	constexpr auto INTERMEDIATE_NODE_RADIUS = 32.0f;
 
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 		return;
@@ -231,16 +233,16 @@ void DrawItemPathfinding(int itemNumber)
 	// Draw creature's own node.
 	auto source = item.Pose.Position.ToVector3();
 	source.y -= CLICK(1);
-	DrawDebugSphere(source, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
+	DrawDebugSphere(source, ROOT_NODE_RADIUS, Vector4::One, RendererDebugPage::PathfindingStats, false);
 	DrawDebugString(item.Name, source, Vector4::One, RendererDebugPage::PathfindingStats);
 
 	// If target is not bound to enemy, indicate it.
 	auto target = LOT.Target.ToVector3();
 	bool drawName = creature->Enemy != nullptr && Vector3i::Distance(creature->Enemy->Pose.Position, LOT.Target) <= BLOCK(1);
-	target.y -= CLICK(1);
+	target.y -= ROOT_NODE_RADIUS;
 
 	// Draw target node.
-	DrawDebugSphere(target, 64.0f, Vector4::One, RendererDebugPage::PathfindingStats, false);
+	DrawDebugSphere(target, ROOT_NODE_RADIUS, Vector4::One, RendererDebugPage::PathfindingStats, false);
 	DrawDebugString(drawName ? creature->Enemy->Name : "< PENDING >", target, Vector4::One, RendererDebugPage::PathfindingStats);
 
 	// If creature got a penalty for accessing bad box, remember it for further indication.
@@ -279,7 +281,7 @@ void DrawItemPathfinding(int itemNumber)
 		// Draw intermediate box node.
 		if (currentBox != LOT.RequiredBox && currentBox != item.BoxNumber)
 		{
-			DrawDebugSphere(center, 32.0f, Vector4::One, RendererDebugPage::PathfindingStats);
+			DrawDebugSphere(center, INTERMEDIATE_NODE_RADIUS, Vector4::One, RendererDebugPage::PathfindingStats);
 
 			if ((currentBox != blinkingBox) || !bypassPathDrawing)
 				DrawDebugString(fmt::format("Box {}", currentBox), center, Vector4::One, RendererDebugPage::PathfindingStats);
