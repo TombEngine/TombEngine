@@ -192,7 +192,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					head = ai.angle;
 
-				if (creature->Target.y > waterHeight)
+				if (target.y > waterHeight)
 					item->Animation.TargetState = SDIVER_STATE_SWIM;
 				else if (creature->Mood == MoodType::Escape)
 					break;
