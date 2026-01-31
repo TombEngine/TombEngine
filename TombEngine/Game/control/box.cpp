@@ -120,100 +120,6 @@ static Vector3 GetVelocity(const ItemInfo& item)
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
 }
 
-static Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
-{
-	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(0.5f);
-	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
-	constexpr float PREDICTION_SMOOTHING_FACTOR = 0.25f;
-	constexpr float PREDICTION_WATER_SCALING_FACTOR = 1.25f;
-
-	auto sourcePos = sourceItem.Pose.Position;
-	auto targetPos = targetItem.Pose.Position;
-
-	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
-
-	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
-		return targetPos;
-
-	float distance = Vector3i::Distance(targetPos, sourcePos);
-	float distanceScale = 1.0f;
-
-	// Calculate smooth prediction distance scale.
-	if (distance < PREDICTION_MIN_DISTANCE)
-	{
-		distanceScale = distance / PREDICTION_MIN_DISTANCE;
-	}
-	else if (distance > PREDICTION_MAX_DISTANCE)
-	{
-		float over = (distance - PREDICTION_MAX_DISTANCE) / PREDICTION_MAX_DISTANCE;
-		distanceScale = 1.0f - std::clamp(over, 0.0f, 1.0f);
-	}
-
-	// Disable prediction at close and far ranges.
-	if (distanceScale <= EPSILON)
-		return targetPos;
-
-	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
-
-	// Scale up prediction factor underwater.
-	if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &sourceItem) &&
-		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &targetItem))
-		predictionFactor *= PREDICTION_WATER_SCALING_FACTOR;
-
-	// Return target without prediction, if factor is zero.
-	if (predictionFactor <= EPSILON)
-		return targetPos;
-
-	auto sourceVel = GetVelocity(sourceItem);
-	auto targetVel = GetVelocity(targetItem);
-
-	float relativeVel = Vector3::Distance(targetVel, sourceVel);
-
-	// Avoid division by zero / jitter.
-	float t = 0.0f;
-	if (relativeVel > 1.0f)
-		t = distance / relativeVel;
-
-	// Clamp prediction horizon (important for stability).
-	t = std::clamp(t, 0.0f, predictionFactor);
-
-	// Calculate predicted position delta.
-	auto predictedPos = targetPos + targetVel * t;
-	auto predictedDelta = predictedPos - targetPos;
-
-	// Don't predict target if it is moving away from the source.
-	auto toTarget = (targetPos - sourcePos).ToVector3();
-	toTarget.Normalize();
-
-	auto targetVelDir = targetVel;
-	targetVelDir.Normalize();
-
-	float alignmentDot = toTarget.Dot(targetVelDir);
-	if (alignmentDot > 0.0f)
-	{
-		alignmentDot = CUBE(alignmentDot);
-		predictedDelta *= (1.0f - std::clamp(alignmentDot, 0.0f, 1.0f));
-	}
-
-	predictedDelta *= distanceScale;
-	predictedPos = targetPos + predictedDelta;
-
-	// Force original target position if predicted position is out of bounds.
-	auto pointColl = GetPointCollision(predictedPos, targetItem.RoomNumber);
-
-	auto noBox = pointColl.GetSector().PathfindingBoxID == NO_VALUE;
-	auto blockedByFloor = pointColl.GetFloorHeight() < (predictedPos.y - CLICK(1)) ||
-						  pointColl.GetCeilingHeight() > (predictedPos.y - CLICK(1));
-
-	auto finalTarget = (blockedByFloor || noBox) ? targetPos : predictedPos;
-
-	// Smoothly interpolate target.
-	if (Vector3i::Distance(LOT.Target, finalTarget) < TARGET_DEVIATION_THRESHOLD)
-		return LOT.Target + (finalTarget - LOT.Target) * PREDICTION_SMOOTHING_FACTOR;
-	else
-		return finalTarget;
-}
-
 static int GetRandomBox(LOTInfo& LOT)
 {
 	if (LOT.ZoneCount <= 0 || LOT.Node.empty())
@@ -3012,6 +2918,100 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 		LOT->RequiredBox = NO_VALUE;
 	}
+}
+
+Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
+{
+	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(0.5f);
+	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
+	constexpr float PREDICTION_SMOOTHING_FACTOR = 0.25f;
+	constexpr float PREDICTION_WATER_SCALING_FACTOR = 1.25f;
+
+	auto sourcePos = sourceItem.Pose.Position;
+	auto targetPos = targetItem.Pose.Position;
+
+	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
+
+	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
+		return targetPos;
+
+	float distance = Vector3i::Distance(targetPos, sourcePos);
+	float distanceScale = 1.0f;
+
+	// Calculate smooth prediction distance scale.
+	if (distance < PREDICTION_MIN_DISTANCE)
+	{
+		distanceScale = distance / PREDICTION_MIN_DISTANCE;
+	}
+	else if (distance > PREDICTION_MAX_DISTANCE)
+	{
+		float over = (distance - PREDICTION_MAX_DISTANCE) / PREDICTION_MAX_DISTANCE;
+		distanceScale = 1.0f - std::clamp(over, 0.0f, 1.0f);
+	}
+
+	// Disable prediction at close and far ranges.
+	if (distanceScale <= EPSILON)
+		return targetPos;
+
+	auto& LOT = GetCreatureInfo(&sourceItem)->LOT;
+
+	// Scale up prediction factor underwater.
+	if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &sourceItem) &&
+		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &targetItem))
+		predictionFactor *= PREDICTION_WATER_SCALING_FACTOR;
+
+	// Return target without prediction, if factor is zero.
+	if (predictionFactor <= EPSILON)
+		return targetPos;
+
+	auto sourceVel = GetVelocity(sourceItem);
+	auto targetVel = GetVelocity(targetItem);
+
+	float relativeVel = Vector3::Distance(targetVel, sourceVel);
+
+	// Avoid division by zero / jitter.
+	float t = 0.0f;
+	if (relativeVel > 1.0f)
+		t = distance / relativeVel;
+
+	// Clamp prediction horizon (important for stability).
+	t = std::clamp(t, 0.0f, predictionFactor);
+
+	// Calculate predicted position delta.
+	auto predictedPos = targetPos + targetVel * t;
+	auto predictedDelta = predictedPos - targetPos;
+
+	// Don't predict target if it is moving away from the source.
+	auto toTarget = (targetPos - sourcePos).ToVector3();
+	toTarget.Normalize();
+
+	auto targetVelDir = targetVel;
+	targetVelDir.Normalize();
+
+	float alignmentDot = toTarget.Dot(targetVelDir);
+	if (alignmentDot > 0.0f)
+	{
+		alignmentDot = CUBE(alignmentDot);
+		predictedDelta *= (1.0f - std::clamp(alignmentDot, 0.0f, 1.0f));
+	}
+
+	predictedDelta *= distanceScale;
+	predictedPos = targetPos + predictedDelta;
+
+	// Force original target position if predicted position is out of bounds.
+	auto pointColl = GetPointCollision(predictedPos, targetItem.RoomNumber);
+
+	auto noBox = pointColl.GetSector().PathfindingBoxID == NO_VALUE;
+	auto blockedByFloor = pointColl.GetFloorHeight() < (predictedPos.y - CLICK(1)) ||
+						  pointColl.GetCeilingHeight() > (predictedPos.y - CLICK(1));
+
+	auto finalTarget = (blockedByFloor || noBox) ? targetPos : predictedPos;
+
+	// Smoothly interpolate target.
+	if (Vector3i::Distance(LOT.Target, finalTarget) < TARGET_DEVIATION_THRESHOLD)
+		return LOT.Target + (finalTarget - LOT.Target) * PREDICTION_SMOOTHING_FACTOR;
+	else
+		return finalTarget;
 }
 
 /**

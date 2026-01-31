@@ -11,6 +11,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
+#include "Game/missile.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
@@ -20,6 +21,7 @@ namespace TEN::Entities::Creatures::TR3
 {
 	constexpr auto SCUBA_DIVER_ATTACK_DAMAGE = 50;
 	constexpr auto SCUBA_DIVER_SWIM_TURN_RATE_MAX = ANGLE(3.0f);
+	constexpr auto SCUBA_DIVER_HARPOON_VELOCITY = 150.0f;
 
 	const auto ScubaGunBite = CreatureBiteInfo(Vector3(17, 164, 44), 18);
 
@@ -59,33 +61,28 @@ namespace TEN::Entities::Creatures::TR3
 		SDIVER_ANIM_DEATH_END = 17
 	};
 
-	static void ShootHarpoon(ItemInfo* item, Vector3i pos, short velocity, short yRot, short roomNumber)
+	static short ShootHarpoon(int x, int y, int z, short velocity, short yRot, short roomNumber)
 	{
 		short harpoonItemNumber = CreateItem();
 		if (harpoonItemNumber == NO_VALUE)
-			return;
+			return NO_VALUE;
 
 		auto* harpoonItem = &g_Level.Items[harpoonItemNumber];
 
 		harpoonItem->ObjectNumber = ID_SCUBA_HARPOON;
-		harpoonItem->RoomNumber = item->RoomNumber;
-		harpoonItem->Pose.Position = pos;
+		harpoonItem->RoomNumber = roomNumber;
+		harpoonItem->Pose.Position = Vector3i(x, y, z);
 
 		InitializeItem(harpoonItemNumber);
 
-		harpoonItem->Animation.Velocity.z = 150.0f;
+		harpoonItem->Animation.Velocity.z = velocity;
 		harpoonItem->Pose.Orientation.y = yRot;
 		harpoonItem->Model.Color = Vector4::One;
 
-		// Calculate pitch angle to aim at Lara.
-		int dx = LaraItem->Pose.Position.x - pos.x;
-		int dy = LaraItem->Pose.Position.y - pos.y;
-		int dz = LaraItem->Pose.Position.z - pos.z;
-		int distXZ = (int)sqrt(SQUARE(dx) + SQUARE(dz));
-		harpoonItem->Pose.Orientation.x = -phd_atan(distXZ, dy);
-
 		AddActiveItem(harpoonItemNumber);
 		harpoonItem->Status = ITEM_ACTIVE;
+
+		return harpoonItemNumber;
 	}
 
 	void ScubaHarpoonControl(short itemNumber)
@@ -179,6 +176,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 			waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight() + BLOCK(0.5f);
+			auto target = PredictTargetPosition(*item, *creature->Enemy);
 
 			switch (item->Animation.ActiveState)
 			{
@@ -223,7 +221,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (!creature->Flags)
 				{
-					ShootHarpoon(item, item->Pose.Position, item->Animation.Velocity.z, item->Pose.Orientation.y, item->RoomNumber);
+					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, ShootHarpoon), false);
 					creature->Flags = 1;
 				}
 
@@ -264,7 +262,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (!creature->Flags)
 				{
-					ShootHarpoon(item, item->Pose.Position, item->Animation.Velocity.z, item->Pose.Orientation.y, item->RoomNumber);
+					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, ShootHarpoon), false);
 					creature->Flags = 1;
 				}
 

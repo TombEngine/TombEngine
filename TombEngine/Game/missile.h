@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/effects/effects.h"
 
-void ShootAtEnemy(Vector3i target, ItemInfo* item, int fxNumber);
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int index, bool useFx = true);
 void ControlMissile(short fxNumber);
 void ControlNatlaGun(short fxNumber);
 

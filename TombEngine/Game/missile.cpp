@@ -32,12 +32,11 @@ constexpr auto MUTANT_BOMB_DAMAGE	= 100;
 constexpr auto DIVER_HARPOON_DAMAGE = 50;
 constexpr auto KNIFE_DAMAGE			= 50;
 
-void ShootAtEnemy(Vector3i target, ItemInfo* item, int fxNumber)
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int index, bool useFx)
 {
-	if (item == nullptr)
-		return;
+	constexpr auto RANDOM_ORIENT = 1.4f;
 
-	if (fxNumber == NO_VALUE || fxNumber >= MAX_SPAWNED_ITEM_COUNT)
+	if (item == nullptr || index <= NO_VALUE)
 		return;
 
 	// If target deviated too much from the item position, prefer item's own position.
@@ -48,16 +47,25 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int fxNumber)
 		target.x,
 		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
 		target.z);
-	
-	auto& fx = EffectList[fxNumber];
-
-	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
 
 	// Apply slight random scatter.
-	fx.pos.Orientation += EulerAngles(
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
+	auto randomOrient = EulerAngles(
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
 		0);
+
+	if (useFx)
+	{
+		auto& fx = EffectList[index];
+		fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
+		fx.pos.Orientation += randomOrient;
+	}
+	else
+	{
+		auto& item = g_Level.Items[index];
+		item.Pose.Orientation = Geometry::GetOrientToPoint(item.Pose.Position.ToVector3(), targetWithOffset);
+		item.Pose.Orientation += randomOrient;
+	}
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
