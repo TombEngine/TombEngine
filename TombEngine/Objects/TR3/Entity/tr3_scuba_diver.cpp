@@ -61,58 +61,6 @@ namespace TEN::Entities::Creatures::TR3
 		SDIVER_ANIM_DEATH_END = 17
 	};
 
-	static short ShootHarpoon(int x, int y, int z, short velocity, short yRot, short roomNumber)
-	{
-		short harpoonItemNumber = CreateItem();
-		if (harpoonItemNumber == NO_VALUE)
-			return NO_VALUE;
-
-		auto* harpoonItem = &g_Level.Items[harpoonItemNumber];
-
-		harpoonItem->Model.Color = Vector4::One;
-		harpoonItem->ObjectNumber = ID_SCUBA_HARPOON;
-		harpoonItem->RoomNumber = roomNumber;
-		harpoonItem->Pose.Position = Vector3i(x, y, z);
-
-		InitializeItem(harpoonItemNumber);
-
-		harpoonItem->Animation.Velocity.z = velocity;
-		harpoonItem->Pose.Orientation.y = yRot;
-
-		AddActiveItem(harpoonItemNumber);
-		harpoonItem->Status = ITEM_ACTIVE;
-
-		return harpoonItemNumber;
-	}
-
-	void ScubaHarpoonControl(short itemNumber)
-	{
-		auto* item = &g_Level.Items[itemNumber];
-
-		if (item->TouchBits.TestAny())
-		{
-			DoDamage(LaraItem, SCUBA_DIVER_ATTACK_DAMAGE);
-			DoBloodSplat(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, (GetRandomControl() & 3) + 4, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
-			KillItem(itemNumber);
-		}
-		else
-		{
-			if (!TestEnvironment(ENV_FLAG_WATER, item->RoomNumber) && item->Pose.Orientation.x > -ANGLE(67.5f))
-				item->Pose.Orientation.x -= ANGLE(1.0f);
-
-			item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
-
-			auto probe = GetPointCollision(*item);
-
-			if (item->RoomNumber != probe.GetRoomNumber())
-				ItemNewRoom(itemNumber, probe.GetRoomNumber());
-
-			item->Floor = GetPointCollision(*item).GetFloorHeight();
-			if (item->Pose.Position.y >= item->Floor)
-				KillItem(itemNumber);
-		}
-	}
-
 	void ScubaControl(short itemNumber)
 	{
 		if (!CreatureActive(itemNumber))
@@ -223,18 +171,14 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 				{
 					if (item->Animation.ActiveState == SDIVER_STATE_SWIM_SHOOT)
-					{
 						neck = -ai.angle;
-					}
 					else
-					{
 						head = ai.angle;
-					}
 				}
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, ShootHarpoon), false);
+					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, HarpoonGun));
 					creature->Flags = 1;
 				}
 
@@ -266,18 +210,6 @@ namespace TEN::Entities::Creatures::TR3
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_IDLE;
 				else
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_SHOOT;
-
-				break;
-
-			case SDIVER_STATE_TREAD_WATER_SHOOT:
-				if (shoot)
-					head = ai.angle;
-
-				if (!creature->Flags)
-				{
-					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, ShootHarpoon), false);
-					creature->Flags = 1;
-				}
 
 				break;
 			}

@@ -4,6 +4,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/missile.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
@@ -192,13 +193,6 @@ static void StartEntity(ObjectInfo* obj)
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(14, ROT_Y);
 		obj->SetHitEffect();
-	}
-
-	obj = &Objects[ID_SCUBA_HARPOON];
-	if (obj->loaded)
-	{
-		obj->control = ScubaHarpoonControl;
-		obj->collision = ObjectCollision;
 	}
 
 	obj = &Objects[ID_FLAMETHROWER_BADDY];
@@ -457,6 +451,8 @@ static void StartEntity(ObjectInfo* obj)
 
 static void StartObject(ObjectInfo* obj)
 {
+	InitProjectile(obj, ControlMissile, ID_SCUBA_HARPOON);
+
 	obj = &Objects[ID_BOSS_SHIELD];
 	if (obj->loaded)
 	{

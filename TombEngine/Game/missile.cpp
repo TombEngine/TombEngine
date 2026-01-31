@@ -32,7 +32,7 @@ constexpr auto MUTANT_BOMB_DAMAGE	= 100;
 constexpr auto DIVER_HARPOON_DAMAGE = 50;
 constexpr auto KNIFE_DAMAGE			= 50;
 
-void ShootAtEnemy(Vector3i target, ItemInfo* item, int index, bool useFx)
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 {
 	constexpr auto RANDOM_ORIENT = 1.4f;
 
@@ -54,22 +54,12 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int index, bool useFx)
 		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
 		0);
 
-	if (useFx)
-	{
-		auto& fx = EffectList[index];
-		fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
-		fx.pos.Orientation += randomOrient;
-	}
-	else
-	{
-		auto& item = g_Level.Items[index];
-		item.Pose.Orientation = Geometry::GetOrientToPoint(item.Pose.Position.ToVector3(), targetWithOffset);
-		item.Pose.Orientation += randomOrient;
-	}
+	auto& fx = EffectList[index];
+	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
+	fx.pos.Orientation += randomOrient;
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
-// TODO: ID_SCUBA_HARPOON is an regular item in TEN, so it doesn't use ControlMissile at all -- JoeyQuint 30.11.2025
 void ControlMissile(short fxNumber)
 {
 	static const int hitRadius = 200;
@@ -80,11 +70,9 @@ void ControlMissile(short fxNumber)
 	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.roomNumber);
 	auto soundFXType = isUnderwater ? SoundEnvironment::Underwater : SoundEnvironment::Land;
 
-	if (fx.objectNumber == ID_SCUBA_HARPOON && isUnderwater &&
-		fx.pos.Orientation.x > ANGLE(-67.5f))
-	{
+	// Make harpoon arch downwards if not underwater.
+	if (fx.objectNumber == ID_SCUBA_HARPOON && !isUnderwater && fx.pos.Orientation.x > ANGLE(-67.5f))
 		fx.pos.Orientation.x -= ANGLE(1.0f);
-	}
 
 	fx.pos.Translate(fx.pos.Orientation, fx.speed);
 
@@ -229,6 +217,24 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_BOMB;
+		fx.color = Vector4::One;
+	}
+
+	return fxNumber;
+}
+
+short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
+{
+	int fxNumber = CreateNewEffect(roomNumber);
+	if (fxNumber != NO_VALUE)
+	{
+		auto& fx = EffectList[fxNumber];
+
+		fx.pos.Position = Vector3i(x, y, z);
+		fx.roomNumber = roomNumber;
+		fx.speed = velocity;
+		fx.frameNumber = 0;
+		fx.objectNumber = ID_SCUBA_HARPOON;
 		fx.color = Vector4::One;
 	}
 
