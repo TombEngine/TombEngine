@@ -69,6 +69,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		auto* harpoonItem = &g_Level.Items[harpoonItemNumber];
 
+		harpoonItem->Model.Color = Vector4::One;
 		harpoonItem->ObjectNumber = ID_SCUBA_HARPOON;
 		harpoonItem->RoomNumber = roomNumber;
 		harpoonItem->Pose.Position = Vector3i(x, y, z);
@@ -77,7 +78,6 @@ namespace TEN::Entities::Creatures::TR3
 
 		harpoonItem->Animation.Velocity.z = velocity;
 		harpoonItem->Pose.Orientation.y = yRot;
-		harpoonItem->Model.Color = Vector4::One;
 
 		AddActiveItem(harpoonItemNumber);
 		harpoonItem->Status = ITEM_ACTIVE;
@@ -97,6 +97,9 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
+			if (!TestEnvironment(ENV_FLAG_WATER, item->RoomNumber) && item->Pose.Orientation.x > -ANGLE(67.5f))
+				item->Pose.Orientation.x -= ANGLE(1.0f);
+
 			item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 
 			auto probe = GetPointCollision(*item);
@@ -216,8 +219,18 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case SDIVER_STATE_SWIM_SHOOT:
+			case SDIVER_STATE_TREAD_WATER_SHOOT:
 				if (shoot)
-					neck = -ai.angle;
+				{
+					if (item->Animation.ActiveState == SDIVER_STATE_SWIM_SHOOT)
+					{
+						neck = -ai.angle;
+					}
+					else
+					{
+						head = ai.angle;
+					}
+				}
 
 				if (!creature->Flags)
 				{
