@@ -7,6 +7,7 @@
 #include "Game/control/control.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/Ripple.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -16,6 +17,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Ripple;
 
 namespace TEN::Entities::Creatures::TR3
 {
@@ -228,6 +230,10 @@ namespace TEN::Entities::Creatures::TR3
 
 		default:
 			item->Pose.Position.y = waterHeight - CLICK(2);
+			if (!(Wibble & 0xF))
+				SpawnRipple(item->Pose.Position.ToVector3(), item->RoomNumber, Random::GenerateFloat(192.0f, 256.0f), (int)RippleFlags::SlowFade | (int)RippleFlags::LowOpacity);
+			break;
+
 		}
 	}
 }
