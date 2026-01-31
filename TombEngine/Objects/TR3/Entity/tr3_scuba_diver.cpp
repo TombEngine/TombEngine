@@ -207,7 +207,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					head = ai.angle;
 
-				if (!shoot || creature->Mood == MoodType::Escape || creature->Target.y > waterHeight)
+				if (!shoot || creature->Mood == MoodType::Escape || target.y > waterHeight)
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_IDLE;
 				else
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_SHOOT;
