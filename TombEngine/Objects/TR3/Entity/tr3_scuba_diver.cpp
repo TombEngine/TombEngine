@@ -184,7 +184,6 @@ namespace TEN::Entities::Creatures::TR3
 
 				break;
 
-
 			case SDIVER_STATE_TREAD_WATER_IDLE:
 				creature->MaxTurn = SCUBA_DIVER_SWIM_TURN_RATE_MAX;
 
