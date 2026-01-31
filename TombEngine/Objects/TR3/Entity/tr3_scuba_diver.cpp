@@ -22,6 +22,7 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto SCUBA_DIVER_ATTACK_DAMAGE = 50;
 	constexpr auto SCUBA_DIVER_SWIM_TURN_RATE_MAX = ANGLE(3.0f);
 	constexpr auto SCUBA_DIVER_HARPOON_VELOCITY = 150.0f;
+	constexpr auto SCUBA_DIVER_VISIBILITY_DISTANCE = BLOCK(5);
 
 	const auto ScubaGunBite = CreatureBiteInfo(Vector3(17, 164, 44), 18);
 
@@ -106,7 +107,7 @@ namespace TEN::Entities::Creatures::TR3
 					LaraItem->Pose.Position.y - (LARA_HEIGHT - 150),
 					LaraItem->Pose.Position.z);
 
-				shoot = LOS(&origin, &target);
+				shoot = LOS(&origin, &target) && Vector3i::Distance(origin.ToVector3i(), target.ToVector3i()) < SCUBA_DIVER_VISIBILITY_DISTANCE;
 
 				// Only set target to Lara if diver can see her.
 				if (shoot)
@@ -137,15 +138,14 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					neck = -ai.angle;
 
-				if (creature->Target.y < waterHeight &&
-					item->Pose.Position.y < (waterHeight + creature->LOT.Fly))
+				if (creature->Target.y < waterHeight && item->Pose.Position.y < (waterHeight + creature->LOT.Fly))
 				{
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_IDLE;
 				}
-				else if (creature->Mood == MoodType::Escape)
-					break;
-				else if (shoot)
+				else if (creature->Mood != MoodType::Escape && shoot)
+				{
 					item->Animation.TargetState = SDIVER_STATE_SWIM_AIM;
+				}
 
 				break;
 
