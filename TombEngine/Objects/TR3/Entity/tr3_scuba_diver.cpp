@@ -95,6 +95,7 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureMood(item, &ai, false);
 
 			bool shoot = false;
+			bool outOfReach = false;
 
 			if (Lara.Control.WaterStatus == WaterStatus::Dry)
 			{
@@ -106,14 +107,11 @@ namespace TEN::Entities::Creatures::TR3
 					item->RoomNumber);
 				auto target = GameVector(
 					LaraItem->Pose.Position.x,
-					LaraItem->Pose.Position.y - (LARA_HEIGHT - 150),
+					LaraItem->Pose.Position.y - (LARA_HEIGHT - LARA_HEADROOM),
 					LaraItem->Pose.Position.z);
 
-				shoot = LOS(&origin, &target) && Vector3i::Distance(origin.ToVector3i(), target.ToVector3i()) < SCUBA_DIVER_VISIBILITY_DISTANCE;
-
-				// Only set target to Lara if diver can see her.
-				if (shoot)
-					creature->Target = LaraItem->Pose.Position;
+				outOfReach = Vector3i::Distance(origin.ToVector3i(), target.ToVector3i()) >= SCUBA_DIVER_VISIBILITY_DISTANCE;
+				shoot = LOS(&origin, &target) && !outOfReach;
 
 				// Cancel shoot if not facing towards Lara.
 				if (ai.angle < -ANGLE(45.0f) || ai.angle > ANGLE(45.0f))
@@ -125,12 +123,16 @@ namespace TEN::Entities::Creatures::TR3
 				auto origin = GameVector(item->Pose.Position, item->RoomNumber);
 				auto target = GameVector(LaraItem->Pose.Position);
 
-				shoot = LOS(&origin, &target);
+				outOfReach = Vector3i::Distance(origin.ToVector3i(), target.ToVector3i()) >= SCUBA_DIVER_VISIBILITY_DISTANCE;
+				shoot = LOS(&origin, &target) && !outOfReach;
 			}
+
+			// Only set target to Lara if diver can see her.
+			if (shoot)
+				creature->Target = PredictTargetPosition(*item, *creature->Enemy);
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 			waterHeight = GetPointCollision(*item).GetWaterSurfaceHeight() + BLOCK(0.5f);
-			auto target = PredictTargetPosition(*item, *creature->Enemy);
 
 			switch (item->Animation.ActiveState)
 			{
@@ -140,7 +142,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					neck = -ai.angle;
 
-				if (creature->Target.y < waterHeight && item->Pose.Position.y < (waterHeight + creature->LOT.Fly))
+				if (creature->Target.y < waterHeight && item->Pose.Position.y < (waterHeight + creature->LOT.Fly) && !outOfReach)
 				{
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_IDLE;
 				}
@@ -158,8 +160,7 @@ namespace TEN::Entities::Creatures::TR3
 					neck = -ai.angle;
 
 				if (!shoot || creature->Mood == MoodType::Escape ||
-					(creature->Target.y < waterHeight &&
-						item->Pose.Position.y < (waterHeight + creature->LOT.Fly)))
+					(creature->Target.y < waterHeight && item->Pose.Position.y < (waterHeight + creature->LOT.Fly)))
 				{
 					item->Animation.TargetState = SDIVER_STATE_SWIM;
 				}
@@ -180,7 +181,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, HarpoonGun));
+					ShootAtEnemy(creature->Target, creature->Enemy, CreatureEffect2(item, ScubaGunBite, SCUBA_DIVER_HARPOON_VELOCITY, head, HarpoonGun));
 					creature->Flags = 1;
 				}
 
@@ -192,11 +193,9 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					head = ai.angle;
 
-				if (target.y > waterHeight)
+				if (creature->Target.y > waterHeight || outOfReach)
 					item->Animation.TargetState = SDIVER_STATE_SWIM;
-				else if (creature->Mood == MoodType::Escape)
-					break;
-				else if (shoot)
+				else if (creature->Mood != MoodType::Escape && shoot)
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_AIM;
 
 				break;
@@ -207,7 +206,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (shoot)
 					head = ai.angle;
 
-				if (!shoot || creature->Mood == MoodType::Escape || target.y > waterHeight)
+				if (!shoot || creature->Mood == MoodType::Escape || creature->Target.y > waterHeight)
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_IDLE;
 				else
 					item->Animation.TargetState = SDIVER_STATE_TREAD_WATER_SHOOT;
