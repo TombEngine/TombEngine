@@ -369,17 +369,4 @@ namespace TEN::Scripting::Collision
 			DrawDebugLine(pos, waterSurfacePos, COLOR, DEBUG_PAGE);
 		}
 	}
-
-	// TODO: Move elsewhere!
-	void Register(sol::state* state, sol::table& parent)
-	{
-		auto collTable = sol::table(state->lua_state(), sol::create);
-		parent.set(ScriptReserved_Collision, collTable);
-
-		Probe::Register(collTable);
-		Ray::Register(collTable);
-
-		auto handler = LuaHandler(state);
-		handler.MakeReadOnlyTable(collTable, ScriptReserved_MaterialType, MATERIAL_TYPES);
-	}
 }
