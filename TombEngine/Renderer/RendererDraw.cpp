@@ -1651,6 +1651,9 @@ namespace TEN::Renderer
 		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
 			return;
 
+		if (radius <= EPSILON)
+			return;
+
 		auto dynamicLight = RendererLight{};
 
 		dynamicLight.Color = Vector3(color.x, color.y, color.z);
@@ -1776,6 +1779,8 @@ namespace TEN::Renderer
 		Camera.DisableInterpolation = false;
 
 		_isLocked = false;
+
+		DrawDebugInfo(_gameCamera);
 	}
 
 	void Renderer::ClearScene()
@@ -2028,7 +2033,7 @@ namespace TEN::Renderer
 			CollectDisplaySprites(view);
 			DrawDisplaySprites(view, false);
 
-			DrawDebugInfo(view);
+			DrawDebugRenderTargets(view);
 			DrawAllStrings();
 			DrawDisplaySprites(view, true);
 		}

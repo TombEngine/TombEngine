@@ -6,8 +6,8 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+#include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 
-enum class CallbackPoint;
 class LevelFunc;
 
 class LogicHandler : public ScriptInterfaceGame

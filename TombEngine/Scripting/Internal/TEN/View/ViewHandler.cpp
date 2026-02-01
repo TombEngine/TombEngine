@@ -381,10 +381,11 @@ namespace TEN::Scripting::View
 
 		// Register types.
 		ScriptDisplaySprite::Register(*state, tableView);
+		ScriptDisplayItem::Register(*state, tableView);
+		ScriptDisplayAnchors::Register(tableView);
 
 		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
-		ScriptDisplayItem::Register(*state, tableView);
 
 		// Register enums.
 		auto handler = LuaHandler(state);

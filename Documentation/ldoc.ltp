@@ -82,6 +82,7 @@
 <h1>$(module.name) $(modName:lower())</code></h1>
 # else
 # if modName:find("class") then modName = "Class" end
+# if modName:find("Specialtable") then modName = "Table" end
 # if modName:find("Tentable") then modName = "Table" end
 # if modName:find("Tenprimitive") then modName = "Primitive Class" end
 # if modName:find("Luautil") then modName = "Lua utility module" end

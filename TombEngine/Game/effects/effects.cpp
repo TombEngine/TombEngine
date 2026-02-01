@@ -595,7 +595,9 @@ void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
 {
 	int count = Random::GenerateInt(3, 8);
 	TriggerRicochetSpark(pos, angle, count);
-	SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
+
+	if (sound)
+		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
 }
 
 void TriggerGlow(const GameVector& pos, const Vector3& color, int scale)
