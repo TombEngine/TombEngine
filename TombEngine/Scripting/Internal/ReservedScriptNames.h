@@ -495,6 +495,7 @@ constexpr char ScriptReserved_RayGetMoveablePosition[]		= "GetMoveablePosition";
 constexpr char ScriptReserved_RayGetMoveableDistance[]		= "GetMoveableDistance";
 constexpr char ScriptReserved_RayGetRoom[]					= "GetRoom";
 constexpr char ScriptReserved_RayGetRoomDistance[]			= "GetRoomDistance";
+constexpr char ScriptReserved_RayGetRoomNormal[]			= "GetRoomNormal";
 constexpr char ScriptReserved_RayGetRoomPosition[]			= "GetRoomPosition";
 constexpr char ScriptReserved_RayGetStatic[]				= "GetStatic";
 constexpr char ScriptReserved_RayGetStaticDistance[]		= "GetStaticDistance";

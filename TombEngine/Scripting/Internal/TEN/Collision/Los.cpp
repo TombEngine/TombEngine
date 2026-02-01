@@ -43,6 +43,7 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetRoom, &Ray::GetRoom,
 			ScriptReserved_RayGetRoomPosition, &Ray::GetRoomPosition,
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
+			ScriptReserved_RayGetRoomNormal, &Ray::GetRoomNormal,
 			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
 			ScriptReserved_RayGetMoveables, &Ray::GetMoveables,
 			ScriptReserved_RayGetMoveablePosition, &Ray::GetMoveablePosition,
@@ -138,6 +139,17 @@ namespace TEN::Scripting::Collision
 	sol::optional<float> Ray::GetRoomDistance()
 	{
 		return _los.Room.Distance;
+	}
+
+	/// Get the surface normal of the Room geometry hit by the Ray.
+	// @function Ray:GetRoomNormal
+	// @treturn Vec3 Surface normal. __nil: no Room was hit, or no valid Room geometry was hit.__
+	sol::optional<Vec3> Ray::GetRoomNormal()
+	{
+		if (!_los.Room.IsIntersected || !_los.Room.Triangle.has_value())
+			return sol::nullopt;
+
+		return _los.Room.Triangle.value().Normal;
 	}
 
 	/// Get the first Moveable hit by the Ray.
