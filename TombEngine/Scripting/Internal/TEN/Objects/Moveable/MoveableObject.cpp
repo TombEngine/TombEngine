@@ -318,7 +318,7 @@ int Moveable::GetIndex() const
 /// Set the name of the function to be called when the moveable is shot by Lara.
 // Note that this will be triggered twice when shot with both pistols at once. 
 // @function Moveable:SetOnHit
-// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is shot.
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is shot.
 void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 {
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks.OnHit);
@@ -328,7 +328,7 @@ void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 // Note that enemy death often occurs at the end of an animation, and not at the exact moment
 // the enemy's HP becomes zero.
 // @function Moveable:SetOnKilled
-// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is killed.
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is killed.
 // @usage
 // LevelFuncs.baddyKilled = function(theBaddy) print("You killed a baddy!") end
 // baddy:SetOnKilled(LevelFuncs.baddyKilled)
@@ -339,7 +339,7 @@ void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 
 /// Set the function to be called when this moveable collides with another moveable.
 // @function Moveable:SetOnCollidedWithObject
-// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
 // @usage
 // -- obj1 is the collision moveable
 // -- obj2 is the collider moveable
@@ -355,7 +355,7 @@ void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
 
 /// Set the function called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
 // @function Moveable:SetOnCollidedWithRoom
-// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy).
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy).
 // @usage
 // LevelFuncs.roomCollided = function(obj)
 //     print(obj:GetName() .. " collided with room geometry")

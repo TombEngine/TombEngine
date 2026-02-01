@@ -56,6 +56,7 @@ static constexpr char ScriptReserved_DisplayStringGetPosition[]		= "GetPosition"
 static constexpr char ScriptReserved_DisplayStringGetRotation[]		= "GetRotation";
 static constexpr char ScriptReserved_DisplayStringGetScale[]		= "GetScale";
 static constexpr char ScriptReserved_DisplayStringGetColor[]		= "GetColor";
+static constexpr char ScriptReserved_DisplayStringGetAnchors[]		= "GetAnchors";
 static constexpr char ScriptReserved_DisplayStringSetObjectID[]		= "SetObjectID";
 static constexpr char ScriptReserved_DisplayStringSetSpriteID[]		= "SetSpriteID";
 static constexpr char ScriptReserved_DisplayStringSetPosition[]		= "SetPosition";
@@ -449,6 +450,7 @@ static constexpr char ScriptReserved_LevelVars[]	= "LevelVars";
 static constexpr char ScriptReserved_GameVars[]		= "GameVars";
 static constexpr char ScriptReserved_LevelFuncs[]	= "LevelFuncs";
 static constexpr char ScriptReserved_Engine[]		= "Engine";
+static constexpr char ScriptReserved_External[]		= "External";
 
 // Constants
 static constexpr char ScriptReserved_LogLevelInfo[]		= "INFO";

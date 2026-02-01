@@ -2010,7 +2010,7 @@ namespace TEN::Gui
 
 	void GuiController::FadeAmmoSelector()
 	{
-		if (!Rings[(int)RingTypes::Inventory].RingActive)
+		if (!Rings[(int)RingTypes::Inventory].RingActive && !AmmoSelectorFlag)
 		{
 			AmmoSelectorFadeVal = 0;
 		}

@@ -33,6 +33,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
 * Fixed incorrect super grenade projectile orientation.
+* Fixed ricochet sparks not being visible at longer distances.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
@@ -46,11 +47,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `ambientOcclusion` parameter to `Flow.Settings.Graphics` to force-disable ambient occlusion option.
 * Added a safeguard against adding or removing callback functions within the same callback type.
 * Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
-* Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added `Strings.DisplayStringOption.VERTICAL_BOTTOM` flag.
 * Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
 * Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
+* Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
+* Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
+* Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
+* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 * Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 
