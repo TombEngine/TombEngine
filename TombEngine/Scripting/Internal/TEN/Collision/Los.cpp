@@ -44,8 +44,8 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetRoomPosition, &Ray::GetRoomPosition,
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
 			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
-			ScriptReserved_RayGetMoveables, & Ray::GetMoveables,
-			ScriptReserved_RayGetMoveablePosition, & Ray::GetMoveablePosition,
+			ScriptReserved_RayGetMoveables, &Ray::GetMoveables,
+			ScriptReserved_RayGetMoveablePosition, &Ray::GetMoveablePosition,
 			ScriptReserved_RayGetMoveableDistance, &Ray::GetMoveableDistance,
 			ScriptReserved_RayGetStatic, &Ray::GetStatic,
 			ScriptReserved_RayGetStaticPosition, &Ray::GetStaticPosition,
@@ -304,7 +304,7 @@ namespace TEN::Scripting::Collision
 	}
 
 	/// Preview this Ray in the Collision Stats debug page.
-	// @functionRay:Preview
+	// @function Ray:Preview
 	void Ray::Preview()
 	{
 		constexpr int  TARGET_RADIUS = BLOCK(0.08f);
