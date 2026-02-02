@@ -18,7 +18,7 @@ using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Collision
 {
-	/// Casts a collision Ray in the game world.
+	/// Casts a collision ray in the game world.
 	// Provides collision information for collided rooms, moveables, and statics.
 	//
 	// @tenclass Collision.Ray
@@ -59,16 +59,16 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_ProbePreview, &Ray::Preview);
 	}
 
-	/// Create a Ray at a specified world position, direction, and distance in a room.
+	/// Create a ray at a specified world position, direction, and distance in a room.
 	// @function Ray
 	// @tparam Vec3 pos World position.
 	// @tparam int roomNumber Origin room number.
 	// @tparam Vec3 direction Direction vector.
 	// @tparam float dist Maximum distance the ray can travel.
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitMoveables Collide with moveables. Disable when not needed or required to optimize performance.
-	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with statics. Disable when not needed or required to optimize performance.
+	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with static meshes. Disable when not needed or required to optimize performance.
 	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion point.
-	// @treturn Ray A new Ray.
+	// @treturn Ray A new ray object.
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
 	{
 		*this = Ray(origin, roomNumber, dir, dist, ScriptIntersectionType::Box, ScriptIntersectionType::Box, false);
@@ -117,9 +117,9 @@ namespace TEN::Scripting::Collision
 		return false;
 	}
 	
-	/// Get the Room hit by the Ray.
+	/// Get the room hit by the ray.
 	// @function Ray:GetRoom
-	// @treturn Objects.Room Room object. __nil: no Room was hit.__
+	// @treturn Objects.Room Room object. _nil: no room was hit._
 	sol::optional<std::unique_ptr<Room>> Ray::GetRoom()
 	{
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
@@ -129,9 +129,9 @@ namespace TEN::Scripting::Collision
 		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
 	}
 
-	/// Get the position of the Room hit by the Ray.
+	/// Get the position of the room geometry where the ray hit.
 	// @function Ray:GetRoomPosition
-	// @treturn Vec3 Hit position. __nil: no Room was hit.__
+	// @treturn Vec3 Hit position. _nil: no room was hit._
 	sol::optional<Vec3> Ray::GetRoomPosition()
 	{
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
@@ -140,9 +140,9 @@ namespace TEN::Scripting::Collision
 		return _los.Room.Position;
 	}
 
-	/// Get the distance from the Ray origin to the Room hit position.
-	// @function Ray:GetRoomNumber
-	// @treturn float Hit distance. __nil: no Room was hit.__
+	/// Get the distance from the ray origin point to the room hit position.
+	// @function Ray:GetRoomDistance
+	// @treturn float Hit distance. _nil: no room was hit._
 	sol::optional<float> Ray::GetRoomDistance()
 	{
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
@@ -151,9 +151,9 @@ namespace TEN::Scripting::Collision
 		return _los.Room.Distance;
 	}
 
-	/// Get the surface normal of the Room geometry hit by the Ray.
+	/// Get the surface normal of the room geometry where the ray hit.
 	// @function Ray:GetRoomNormal
-	// @treturn Vec3 Surface normal. __nil: no Room was hit, or no valid Room geometry was hit.__
+	// @treturn Vec3 Surface normal. _nil: no room was hit, or no valid room geometry was hit._
 	sol::optional<Vec3> Ray::GetRoomNormal()
 	{
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance) || !_los.Room.Triangle.has_value())
@@ -162,10 +162,10 @@ namespace TEN::Scripting::Collision
 		return _los.Room.Triangle.value().Normal;
 	}
 
-	/// Get the first Moveable hit by the Ray.
-	// Note: Valid Moveables are only possible if Moveable hits were enabled.
+	/// Get the first moveable hit by the ray.
+	// Moveable hits will be detected only if `hitMoveables` setting was enabled while creating a ray.
 	// @function Ray:GetMoveable
-	// @treturn Objects.Moveable Moveable object. __nil: no Moveable was hit.__
+	// @treturn Objects.Moveable Moveable object. _nil: no moveable was hit._
 	sol::optional<std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -175,10 +175,10 @@ namespace TEN::Scripting::Collision
 		return std::make_unique<Moveable>(mov->Index);
 	}
 
-	/// Gets all the Moveables hit by the Ray.
-	// Note: Valid Moveables are only possible if Moveable hits were enabled.
+	/// Gets all moveables hit by the ray.
+	// Multiple moveable hits will be detected only if `hitMoveables` and `penetrate` settings were enabled while creating a ray.
 	// @function Ray:GetMoveables
-	// @treturn table Table of moveables hit by the Ray. __nil: no Moveable was hit.__
+	// @treturn table Table of moveables hit by the ray. _nil: no moveable was hit._
 	sol::optional<std::vector<std::unique_ptr<Moveable>>> Ray::GetMoveables()
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -195,10 +195,10 @@ namespace TEN::Scripting::Collision
 		return moveables;
 	}
 
-	/// Get the position of the first Moveable hit by the Ray.
-	// Note: Valid positions are only possible if Moveable hits were enabled.
+	/// Get the position of the moveable where the ray hit.
+	// Valid position will be returned only if `hitMoveables` setting was enabled while creating a ray.
 	// @function Ray:GetMoveablePosition
-	// @treturn Vec3 Hit position. __nil: no Moveable was hit.__
+	// @treturn Vec3 Hit position. _nil: no moveable was hit._
 	sol::optional<Vec3> Ray::GetMoveablePosition()
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -207,10 +207,10 @@ namespace TEN::Scripting::Collision
 		return _los.Items.front().Position;
 	}
 	
-	/// Get the distance from the Ray origin to the first Moveable hit position.
-	// Note: Valid distances are only possible if Moveable hits were enabled.
+	/// Get the distance from the ray origin to the first moveable hit position.
+	// Valid distance will be returned only if `hitMoveables` setting was enabled while creating a ray.
 	// @function Ray:GetMoveableDistance
-	// @treturn float Hit distance. __nil: no Moveable was hit.__
+	// @treturn float Hit distance. _nil: no moveable was hit._
 	sol::optional<float> Ray::GetMoveableDistance()
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -219,10 +219,10 @@ namespace TEN::Scripting::Collision
 		return _los.Items.front().Distance;
 	}
 
-	/// Get the Static hit by the Ray.
-	// Note: Valid Statics are only possible if Moveable hits were enabled.
+	/// Get the static mesh hit by the ray.
+	// Static mesh hits will be detected only if `hitStatics` setting was enabled while creating a ray.
 	// @function Ray:GetStatic
-	// @treturn Objects.Static Static object. __nil: no Static was hit.__
+	// @treturn Objects.Static Static mesh object. _nil: no static mesh was hit._
 	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
 	{	
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
@@ -235,10 +235,10 @@ namespace TEN::Scripting::Collision
 		return std::make_unique<Static>(*staticObj);
 	}
 
-	/// Get the position of the first Static hit by the Ray.
-	// Note: Valid positions are only possible if Static hits were enabled.
+	/// Get the position of the first static mesh hit by the ray.
+	// Valid position will be returned only if `hitStatics` setting was enabled while creating a ray.
 	// @function Ray:GetStaticPosition
-	// @treturn Vec3 Hit position. __nil: no Static was hit.__
+	// @treturn Vec3 Hit position. _nil: no static mesh was hit._
 	sol::optional<Vec3> Ray::GetStaticPosition()
 	{
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
@@ -247,10 +247,10 @@ namespace TEN::Scripting::Collision
 		return _los.Statics.front().Position;
 	}
 
-	/// Get the distance from the Ray origin to the first Static hit position.
-	// Note: Valid distances are only possible if Static hits were enabled.
+	/// Get the distance from the ray origin to the first static mesh hit position.
+	// Valid distance will be returned only if `hitStatics` setting was enabled while creating a ray.
 	// @function Ray:GetStaticDistance
-	// @treturn float Hit distance. __nil: no Static was hit.__
+	// @treturn float Hit distance. _nil: no static mesh was hit._
 	sol::optional<float> Ray::GetStaticDistance()
 	{
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
@@ -259,11 +259,11 @@ namespace TEN::Scripting::Collision
 		return _los.Statics.front().Distance;
 	}
 
-	/// Check if the Ray hit a Room.
-	// If a Room name is provided, returns true only when the hit occurs with the relevant Room.
+	/// Check if the ray hit a room.
+	// If a room name is provided, returns `true` only when the hit occurs with the relevant room geometry.
 	// @function Ray:HitRoom
 	// @tparam[opt] string name Name of the room to check for.
-	// @treturn bool True if a Room was hit, false otherwise.
+	// @treturn bool Room hit status. _true if a room was hit, false otherwise._
 	bool Ray::HitRoom(const TypeOrNil<std::string>& name)
 	{
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
@@ -277,12 +277,12 @@ namespace TEN::Scripting::Collision
 		return room.Name == convertedString;
 	}
 
-	/// Check if the Ray hit a Moveable.
-	// Note: Valid checks are only possible if Moveable hits were enabled.
-	// If a Moveable name is provided, returns true only when the hit occurs with the relevant Moveable.
+	/// Check if the ray hit a moveable.
+	// Moveable hits will be detected only if `hitMoveables` setting was enabled while creating a ray.
+	// If a moveable name is provided, returns `true` only when the hit occurs with the relevant moveable.
 	// @function Ray:HitMoveable
-	// @tparam[opt] string name Name of the Moveable to check for.
-	// @treturn bool True if a Moveable was hit, false otherwise.
+	// @tparam[opt] string name Name of the moveable to check for.
+	// @treturn bool Moveable hit status. _true if a moveable was hit, false otherwise._
 	bool Ray::HitMoveable(const TypeOrNil<std::string>& name)
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -301,12 +301,12 @@ namespace TEN::Scripting::Collision
 		return false;
 	}
 
-	/// Check if the Ray hit a Static.
-	// Note: Valid checks are only possible if Static hits were enabled.
-	// If a Static name is provided, returns true only when the hit occurs with the relevant Static.
+	/// Check if the ray hit a static mesh.
+	// Static mesh hits will be detected only if `hitStatics` setting was enabled while creating a ray.
+	// If a static mesh name is provided, returns `true` only when the hit occurs with the relevant static mesh.
 	// @function Ray:HitStatic
-	// @tparam[opt] string name Name of the Static to check for.
-	// @treturn bool True if a Static was hit, false otherwise.
+	// @tparam[opt] string name Name of the static mesh to check for.
+	// @treturn bool Static mesh hit status. _true if a static mesh was hit, false otherwise._
 	bool Ray::HitStatic(const TypeOrNil<std::string>& name)
 	{
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
@@ -325,7 +325,7 @@ namespace TEN::Scripting::Collision
 		return false;
 	}
 
-	/// Preview this Ray in the Collision Stats debug page.
+	/// Preview this ray in the Collision Stats debug page.
 	// @function Ray:Preview
 	void Ray::Preview()
 	{
