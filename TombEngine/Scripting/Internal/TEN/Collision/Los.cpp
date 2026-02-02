@@ -67,7 +67,7 @@ namespace TEN::Scripting::Collision
 	// @tparam float dist Maximum distance the ray can travel.
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitMoveables Collide with moveables. Disable when not needed or required to optimize performance.
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with statics. Disable when not needed or required to optimize performance.
-	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion.
+	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion point.
 	// @treturn Ray A new Ray.
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
 	{
