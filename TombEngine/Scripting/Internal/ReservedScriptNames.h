@@ -503,6 +503,7 @@ constexpr char ScriptReserved_RayGetStaticPosition[]		= "GetStaticPosition";
 constexpr char ScriptReserved_RayHitMoveable[]				= "HitMoveable";
 constexpr char ScriptReserved_RayHitRoom[]					= "HitRoom";
 constexpr char ScriptReserved_RayHitStatic[]				= "HitStatic";
+constexpr char ScriptReserved_IntersectionType[]			= "IntersectionType";
 
 constexpr char ScriptReserved_MaterialType[]				= "MaterialType";
 

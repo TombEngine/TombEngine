@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/collision/Los.h"
+#include "Scripting/Internal/TEN/Collision/IntersectionTypes.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
@@ -25,16 +26,19 @@ namespace TEN::Scripting::Collision
 		Vector3          _origin    = Vector3::Zero;
 		Vector3          _direction = Vector3::Zero;
 		float            _distance  = 0.0f;
+		bool             _penetrate = false;
+
+		// Utilities
+
+		bool IsOccluded(float dist) const;
 
 	public:
 		// Constructors
 
 		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist);
-		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables);
-		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables, bool hitStatics);
-		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist);
-		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables);
-		Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables, bool hitStatics);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics);
+		Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate);
 
 		// Getters
 

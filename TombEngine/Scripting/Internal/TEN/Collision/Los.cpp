@@ -28,11 +28,9 @@ namespace TEN::Scripting::Collision
 	{
 		using ctors = sol::constructors<
 			Ray(const Vec3&, int, const Vec3&, float),
-			Ray(const Vec3&, int, const Vec3&, float, bool),
-			Ray(const Vec3&, int, const Vec3&, float, bool, bool),
-			Ray(const Vec3&, int, const Rotation&, float),
-			Ray(const Vec3&, int, const Rotation&, float, bool),
-			Ray(const Vec3&, int, const Rotation&, float, bool, bool)>;
+			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType),
+			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType),
+			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType, bool)>;
 
 		// Register type.
 		parent.new_usertype<Ray>(
@@ -67,50 +65,65 @@ namespace TEN::Scripting::Collision
 	// @tparam int roomNumber Origin room number.
 	// @tparam Vec3 direction Direction vector.
 	// @tparam float dist Maximum distance the ray can travel.
-	// @tparam[opt=false] bool hitMoveables Collide with moveables. Use only when required to optimize performance.
-	// @tparam[opt=false] bool hitStatics Collide with statics. Use only when required to optimize performance.
+	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitMoveables Collide with moveables. Disable when not needed or required to optimize performance.
+	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with statics. Disable when not needed or required to optimize performance.
+	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion.
 	// @treturn Ray A new Ray.
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
 	{
-		*this = Ray(origin, roomNumber, dir, dist, false, false);
+		*this = Ray(origin, roomNumber, dir, dist, ScriptIntersectionType::Box, ScriptIntersectionType::Box, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables)
 	{
-		*this = Ray(origin, roomNumber, dir, dist, false, false);
+		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, ScriptIntersectionType::Box, false);
 	}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, bool hitMoveables, bool hitStatics)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics)
 	{
-		_los = GetLosCollision(origin, roomNumber, dir, dist, hitMoveables, false, hitStatics);
+		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics, false);
+	}
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate)
+	{
+		bool collideItemBoxes = hitMoveables != ScriptIntersectionType::None;
+		bool collideItemSpheres = hitMoveables == ScriptIntersectionType::BoxAndSphere;
+		bool collideStaticBoxes = hitStatics != ScriptIntersectionType::None;
+
+		if (hitStatics == ScriptIntersectionType::BoxAndSphere)
+			TENLog("Ray collision with static mesh spheres is not supported at the moment. Using IntersectionType.BOX instead.", LogLevel::Warning);
+
+		_los = GetLosCollision(origin, roomNumber, dir, dist, collideItemBoxes, collideItemSpheres, collideStaticBoxes);
 		_origin = origin;
 		_direction = dir;
 		_distance = dist;
+		_penetrate = penetrate;
 	}
 
-	/// Create a Ray at a specified world position, in a room in the direction of a given rotation for a specified distance.
-	// @function Ray
-	// @tparam Vec3 pos World position.
-	// @tparam int roomNumber Room number.
-	// @tparam Rotation rot Rotation defining the direction in which to cast.
-	// @tparam float dist Maximum distance the ray can travel.
-	// @tparam[opt=false] bool hitMoveables Collide with moveables. Use only when required to optimize performance.
-	// @tparam[opt=false] bool hitStatics Collide with statics. Use only when required to optimize performance.
-	// @treturn Ray A new Ray.
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist)
+	bool Ray::IsOccluded(float dist) const
 	{
-		*this = Ray(origin, roomNumber, rot, dist, false, false);
-	}
+		if (_penetrate)
+			return false;
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables)
-	{
-		*this = Ray(origin, roomNumber, rot, dist, hitMoveables, false);
-	}
+		if (_los.Room.IsIntersected)
+		{
+			if (_los.Room.Distance < dist)
+				return true;
+		}
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Rotation& rot, float dist, bool hitMoveables, bool hitStatics)
-	{
-		auto dir = Vec3(rot.ToEulerAngles().ToDirection());
-		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics);
+		if (!_los.Items.empty())
+		{
+			if (_los.Items.front().Distance < dist)
+				return true;
+		}
+
+		if (!_los.Statics.empty())
+		{
+			if (_los.Statics.front().Distance < dist)
+				return true;
+		}
+
+		return false;
 	}
 	
 	/// Get the Room hit by the Ray.
@@ -118,7 +131,7 @@ namespace TEN::Scripting::Collision
 	// @treturn Objects.Room Room object. __nil: no Room was hit.__
 	sol::optional<std::unique_ptr<Room>> Ray::GetRoom()
 	{
-		if (!_los.Room.IsIntersected)
+		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
 			return sol::nullopt;
 
 		int roomNumber = _los.Room.RoomNumber;
@@ -130,6 +143,9 @@ namespace TEN::Scripting::Collision
 	// @treturn Vec3 Hit position. __nil: no Room was hit.__
 	sol::optional<Vec3> Ray::GetRoomPosition()
 	{
+		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
+			return sol::nullopt;
+
 		return _los.Room.Position;
 	}
 
@@ -138,6 +154,9 @@ namespace TEN::Scripting::Collision
 	// @treturn float Hit distance. __nil: no Room was hit.__
 	sol::optional<float> Ray::GetRoomDistance()
 	{
+		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
+			return sol::nullopt;
+
 		return _los.Room.Distance;
 	}
 
@@ -146,7 +165,7 @@ namespace TEN::Scripting::Collision
 	// @treturn Vec3 Surface normal. __nil: no Room was hit, or no valid Room geometry was hit.__
 	sol::optional<Vec3> Ray::GetRoomNormal()
 	{
-		if (!_los.Room.IsIntersected || !_los.Room.Triangle.has_value())
+		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance) || !_los.Room.Triangle.has_value())
 			return sol::nullopt;
 
 		return _los.Room.Triangle.value().Normal;
@@ -158,11 +177,11 @@ namespace TEN::Scripting::Collision
 	// @treturn Objects.Moveable Moveable object. __nil: no Moveable was hit.__
 	sol::optional<std::unique_ptr<Moveable>> Ray::GetMoveable()
 	{
-		if (_los.Items.empty())
+		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return sol::nullopt;
 
 		auto mov = _los.Items.front().Item;
-		return std::make_unique<Moveable>(mov->Index);;
+		return std::make_unique<Moveable>(mov->Index);
 	}
 
 	/// Gets all the Moveables hit by the Ray.
@@ -171,7 +190,7 @@ namespace TEN::Scripting::Collision
 	// @treturn table Table of moveables hit by the Ray. __nil: no Moveable was hit.__
 	sol::optional<std::vector<std::unique_ptr<Moveable>>> Ray::GetMoveables()
 	{
-		if (_los.Items.empty())
+		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return sol::nullopt;
 
 		std::vector<std::unique_ptr<Moveable>> moveables;
@@ -191,7 +210,7 @@ namespace TEN::Scripting::Collision
 	// @treturn Vec3 Hit position. __nil: no Moveable was hit.__
 	sol::optional<Vec3> Ray::GetMoveablePosition()
 	{
-		if (_los.Items.empty())
+		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return sol::nullopt;
 
 		return _los.Items.front().Position;
@@ -203,7 +222,7 @@ namespace TEN::Scripting::Collision
 	// @treturn float Hit distance. __nil: no Moveable was hit.__
 	sol::optional<float> Ray::GetMoveableDistance()
 	{
-		if (_los.Items.empty())
+		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return sol::nullopt;
 
 		return _los.Items.front().Distance;
@@ -215,7 +234,7 @@ namespace TEN::Scripting::Collision
 	// @treturn Objects.Static Static object. __nil: no Static was hit.__
 	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
 	{	
-		if (_los.Statics.empty())
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
 			return sol::nullopt;
 
 		auto* staticObj = _los.Statics.front().Static;
@@ -231,7 +250,7 @@ namespace TEN::Scripting::Collision
 	// @treturn Vec3 Hit position. __nil: no Static was hit.__
 	sol::optional<Vec3> Ray::GetStaticPosition()
 	{
-		if (_los.Statics.empty())
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
 			return sol::nullopt;
 
 		return _los.Statics.front().Position;
@@ -243,7 +262,7 @@ namespace TEN::Scripting::Collision
 	// @treturn float Hit distance. __nil: no Static was hit.__
 	sol::optional<float> Ray::GetStaticDistance()
 	{
-		if (_los.Statics.empty())
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
 			return sol::nullopt;
 
 		return _los.Statics.front().Distance;
@@ -256,7 +275,7 @@ namespace TEN::Scripting::Collision
 	// @treturn bool True if a Room was hit, false otherwise.
 	bool Ray::HitRoom(const TypeOrNil<std::string>& name)
 	{
-		if (!_los.Room.IsIntersected)
+		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
 			return false;
 
 		auto convertedString = ValueOr<std::string>(name, {});
@@ -275,7 +294,7 @@ namespace TEN::Scripting::Collision
 	// @treturn bool True if a Moveable was hit, false otherwise.
 	bool Ray::HitMoveable(const TypeOrNil<std::string>& name)
 	{
-		if (_los.Items.empty())
+		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return false;
 
 		auto searchName = ValueOr<std::string>(name, {});
@@ -299,7 +318,7 @@ namespace TEN::Scripting::Collision
 	// @treturn bool True if a Static was hit, false otherwise.
 	bool Ray::HitStatic(const TypeOrNil<std::string>& name)
 	{
-		if (_los.Statics.empty())
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
 			return false;
 
 		auto searchName = ValueOr<std::string>(name, {});

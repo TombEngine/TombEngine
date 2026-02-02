@@ -3,9 +3,10 @@
 
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
-#include "Scripting/Internal/TEN/Collision/Probe.h"
+#include "Scripting/Internal/TEN/Collision/IntersectionTypes.h"
 #include "Scripting/Internal/TEN/Collision/Los.h"
 #include "Scripting/Internal/TEN/Collision/MaterialTypes.h"
+#include "Scripting/Internal/TEN/Collision/Probe.h"
 
 namespace TEN::Scripting::Collision
 {
@@ -19,5 +20,6 @@ namespace TEN::Scripting::Collision
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(collTable, ScriptReserved_MaterialType, MATERIAL_TYPES);
+		handler.MakeReadOnlyTable(collTable, ScriptReserved_IntersectionType, INTERSECTION_TYPE);
 	}
 }
