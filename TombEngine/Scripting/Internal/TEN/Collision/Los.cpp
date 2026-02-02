@@ -105,23 +105,14 @@ namespace TEN::Scripting::Collision
 		if (_penetrate)
 			return false;
 
-		if (_los.Room.IsIntersected)
-		{
-			if (_los.Room.Distance < dist)
-				return true;
-		}
+		if (_los.Room.IsIntersected && _los.Room.Distance < dist)
+			return true;
 
-		if (!_los.Items.empty())
-		{
-			if (_los.Items.front().Distance < dist)
-				return true;
-		}
+		if (!_los.Items.empty() && _los.Items.front().Distance < dist)
+			return true;
 
-		if (!_los.Statics.empty())
-		{
-			if (_los.Statics.front().Distance < dist)
-				return true;
-		}
+		if (!_los.Statics.empty() && _los.Statics.front().Distance < dist)
+			return true;
 
 		return false;
 	}
