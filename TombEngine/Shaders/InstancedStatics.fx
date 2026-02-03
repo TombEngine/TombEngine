@@ -105,7 +105,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 color = (mode == 0) ?
 		CombineLights(
 			ModulateColor(StaticMeshes[input.InstanceID].AmbientLight.xyz, Brightness),
-			ModulateColor(input.Color.xyz * staticColor, Brightness),
+			input.Color.xyz * staticColor,
 			tex.xyz,
 			input.WorldPosition,
 			normal,

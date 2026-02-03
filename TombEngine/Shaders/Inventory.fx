@@ -80,7 +80,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     
     // Material effects
     output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, normal, specular);
-	
+
     ShaderLight l;
     l.Intensity = 0.3f;
     l.Type = LT_SUN;
@@ -92,7 +92,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     float3 lighting = DoDirectionalLight(pos, normal, l);
     lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);
     lighting += emissive;
-    
+
      // Emissive material
     output.Color.xyz += lighting * output.Color.a;
     output.Color.xyz = saturate(output.Color.xyz);
