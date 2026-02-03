@@ -233,7 +233,8 @@ namespace TEN::Scripting::Collision
 
 		for (const auto& item : _los.Statics)
 		{
-			statics.push_back(std::make_unique<Static>(item.Static->Slot));
+			auto* staticObj = item.Static;
+			statics.push_back(std::make_unique<Static>(*staticObj));
 		}
 
 		return statics;
@@ -352,7 +353,6 @@ namespace TEN::Scripting::Collision
 		constexpr int  TARGET_RADIUS = BLOCK(0.08f);
 		constexpr auto COLOR         = Color(1.0f, 1.0f, 0.8f, 0.2f);
 		
-		short roomNumber = FindRoomNumber(Vector3i(_origin));
 		float closestDist = _los.Room.Distance;
 		auto target = _los.Room.Position;
 
