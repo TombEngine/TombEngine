@@ -219,7 +219,27 @@ namespace TEN::Scripting::Collision
 		return _los.Items.front().Distance;
 	}
 
-	/// Get the static mesh hit by the ray.
+	/// Gets all statics hit by the ray.
+	// Multiple statics hits will be detected only if `hitStatics` and `penetrate` settings were enabled while creating a ray.
+	// @function Ray:GetStatics
+	// @treturn table Table of statics hit by the ray. _nil: no static was hit._
+	sol::optional<std::vector<std::unique_ptr<Static>>> Ray::GetStatics()
+	{
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
+			return sol::nullopt;
+
+		std::vector<std::unique_ptr<Static>> statics;
+		statics.reserve(_los.Statics.size());
+
+		for (const auto& item : _los.Statics)
+		{
+			statics.push_back(std::make_unique<Static>(item.Static->Slot));
+		}
+
+		return statics;
+	}
+
+	/// Get the first static mesh hit by the ray.
 	// Static mesh hits will be detected only if `hitStatics` setting was enabled while creating a ray.
 	// @function Ray:GetStatic
 	// @treturn Objects.Static Static mesh object. _nil: no static mesh was hit._
@@ -333,12 +353,11 @@ namespace TEN::Scripting::Collision
 		constexpr auto COLOR         = Color(1.0f, 1.0f, 0.8f, 0.2f);
 		
 		short roomNumber = FindRoomNumber(Vector3i(_origin));
-		auto los = GetLosCollision(_origin, roomNumber, _direction, _distance, true, true, true);
-		float closestDist = los.Room.Distance;
-		auto target = los.Room.Position;
+		float closestDist = _los.Room.Distance;
+		auto target = _los.Room.Position;
 
 		// Clip moveable.
-		for (const auto& movLos : los.Items)
+		for (const auto& movLos : _los.Items)
 		{
 			// Skip player.
 			if (movLos.Item->ObjectNumber == ID_LARA)
@@ -355,9 +374,9 @@ namespace TEN::Scripting::Collision
 		}
 
 		// Clip static.
-		if (!los.Statics.empty())
+		if (!_los.Statics.empty())
 		{
-			const auto& staticLos = los.Statics.front();
+			const auto& staticLos = _los.Statics.front();
 			if (staticLos.Distance < closestDist)
 			{
 				closestDist = staticLos.Distance;
