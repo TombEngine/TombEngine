@@ -734,7 +734,8 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	bool isPlayerIdle = ((!isUnderwater && _moveable->Animation.ActiveState == LS_IDLE && _moveable->Animation.AnimNumber == LA_STAND_IDLE) ||
 						 (isUnderwater && _moveable->Animation.ActiveState == LS_UNDERWATER_IDLE && _moveable->Animation.AnimNumber == LA_UNDERWATER_IDLE));
 
-	g_Hud.InteractionHighlighter.Test(*LaraItem, interactedItem, InteractionMode::Always, convertedIcon);
+	if (convertedIcon != InteractionType::Undefined)
+		g_Hud.InteractionHighlighter.Test(*LaraItem, interactedItem, InteractionMode::Always, convertedIcon);
 
 	bool movingWithSameItem =
 		player.Control.IsMoving &&

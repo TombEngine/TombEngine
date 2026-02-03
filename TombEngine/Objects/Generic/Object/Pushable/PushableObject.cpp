@@ -58,6 +58,38 @@ namespace TEN::Entities::Generic
 		return (PushableInfo&)item.Data;
 	}
 
+	void UpdatePushableFromOCB(ItemInfo& pushableItem)
+	{
+		auto& pushable = GetPushableInfo(pushableItem);
+
+		bool wasBuoyant = pushable.IsBuoyant;
+		bool isSolid = pushableItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 &&
+					   pushableItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10;
+
+		// Read OCB flags.
+		int ocb = pushableItem.TriggerFlags;
+
+		pushable.CanFall		= ((ocb & (1 << 0)) != 0);				// Bit 0.
+		pushable.DoCenterAlign	= ((ocb & (1 << 1)) == 0) && !isSolid;	// Bit 1.
+		pushable.IsBuoyant		= ((ocb & (1 << 2)) != 0);				// Bit 2.
+		pushable.AnimSetID		= ((ocb & (1 << 3)) != 0) ? 1 : 0;		// Bit 3.
+
+		// Force state transition if buoyancy changed.
+		if (wasBuoyant != pushable.IsBuoyant)
+		{
+			if (pushable.BehaviorState == PushableBehaviorState::WaterSurfaceIdle && !pushable.IsBuoyant)
+			{
+				pushable.BehaviorState = PushableBehaviorState::Sink;
+			}
+			else if (pushable.BehaviorState == PushableBehaviorState::UnderwaterIdle && pushable.IsBuoyant)
+			{
+				pushable.BehaviorState = PushableBehaviorState::Float;
+			}
+		}
+
+		pushable.PreviousTriggerFlags = pushableItem.TriggerFlags;
+	}
+
 	void InitializePushableBlock(int itemNumber)
 	{
 		auto& pushableItem = g_Level.Items[itemNumber];
@@ -94,12 +126,7 @@ namespace TEN::Entities::Generic
 
 		SetPushableStopperFlag(true, pushableItem.Pose.Position, pushableItem.RoomNumber);
 
-		// Read OCB flags.
-		int ocb = pushableItem.TriggerFlags;
-		pushable.CanFall	   = (ocb & (1 << 0)) != 0;			  // Bit 0.
-		pushable.DoCenterAlign = (ocb & (1 << 1)) == 0;			  // Bit 1.
-		pushable.IsBuoyant	   = (ocb & (1 << 2)) != 0;			  // Bit 2.
-		pushable.AnimSetID	   = ((ocb & (1 << 3)) != 0) ? 1 : 0; // Bit 3.
+		UpdatePushableFromOCB(pushableItem);
 
 		pushableItem.Status = ITEM_ACTIVE;
 		AddActiveItem(itemNumber);
@@ -113,6 +140,10 @@ namespace TEN::Entities::Generic
 
 		if (player.Context.InteractedItem == itemNumber && player.Control.IsMoving)
 			return;
+
+		// Check if the OCB has changed or a savegame has been loaded and update characteristics if needed.
+		if (pushableItem.TriggerFlags != pushable.PreviousTriggerFlags || JustLoaded)
+			UpdatePushableFromOCB(pushableItem);
 
 		auto prevPos = pushableItem.Pose.Position;
 

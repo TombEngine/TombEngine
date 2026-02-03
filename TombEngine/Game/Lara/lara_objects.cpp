@@ -49,6 +49,10 @@ void lara_as_pickup(ItemInfo* item, CollisionInfo* coll)
 
 void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
 {
+	// HACK: Pickup state is shared between different animations, such as crawl, crouch
+	// and underwater, so we can't clearly define coarse collision height.
+	coll->Setup.Height = (int)(item->GetAabb().Extents.y * 2.0f);
+
 	LaraDefaultCollision(item, coll);
 	ShiftItem(item, coll);
 }

@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer
@@ -25,7 +26,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
 	{
-		AddString(string, pos, Vector2::Zero, Color(color), 1.0f, flags);
+		AddString(string, pos, Vector2::Zero, Color(color), scale, flags);
 	}
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags)
@@ -196,11 +197,13 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
+		auto shadowColor = (Vector3)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+
 		_spriteBatch->Begin();
 
 		for (const auto& rString : _stringsToDraw)
 		{
-			Vector2 drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
 
 			// Draw shadow.
 			if (rString.Flags & (int)PrintStringFlags::Outline)
@@ -208,7 +211,7 @@ namespace TEN::Renderer
 				_gameFont->DrawString(
 					_spriteBatch.get(), rString.String.c_str(),
 					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
-					Vector4(0.0f, 0.0f, 0.0f, rString.Color.w) * ScreenFadeCurrent,
+					Vector4(shadowColor.x, shadowColor.y, shadowColor.z, rString.Color.w) * ScreenFadeCurrent,
 					0.0f, Vector4::Zero, rString.Scale);
 			}
 

@@ -162,9 +162,15 @@ namespace TEN::Entities::Switches
 	{
 		auto* lara = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
-		bool doInteraction = false;
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
+		bool doInteraction = false;
+		bool isDisabled = switchItem->Animation.ActiveState == SWITCH_ON;
+
+		if (!isDisabled)
+		{
+			auto offset = Vector3(0, switchItem->GetAabb().Extents.y, 0);
+			g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation, InteractionType::Use, offset);
+		}
 
 		bool isUnderwater = (lara->Control.WaterStatus == WaterStatus::Underwater);
 
@@ -175,7 +181,7 @@ namespace TEN::Entities::Switches
 				laraItem->Animation.AnimNumber == LA_UNDERWATER_IDLE &&
 				lara->Control.WaterStatus == WaterStatus::Underwater &&
 				lara->Control.HandStatus == HandStatus::Free &&
-				switchItem->Animation.ActiveState == SWITCH_OFF) ||
+				!isDisabled) ||
 				(lara->Control.IsMoving && lara->Context.InteractedItem == itemNumber))
 			{
 				if (TestLaraPosition(CeilingUnderwaterSwitchBounds1, switchItem, laraItem))
@@ -225,7 +231,7 @@ namespace TEN::Entities::Switches
 				laraItem->Animation.ActiveState == LS_JUMP_UP &&
 				laraItem->Animation.IsAirborne &&
 				lara->Control.HandStatus == HandStatus::Free &&
-				switchItem->Animation.ActiveState == SWITCH_OFF) ||
+				!isDisabled) ||
 				(lara->Control.IsMoving && lara->Context.InteractedItem == itemNumber))
 			{
 				if (TestLaraPosition(CeilingSwitchBounds1, switchItem, laraItem))
