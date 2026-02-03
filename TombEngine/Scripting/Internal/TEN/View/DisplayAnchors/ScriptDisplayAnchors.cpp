@@ -79,14 +79,20 @@ namespace TEN::Scripting::Types
 	// -- or --
 	// print(anchors)
 	// -- result:
-	// -- DisplayAnchors { TOP_LEFT: Vec2 { x = 0.0, y = 0.0 }, TOP_CENTER: Vec2 { x = 0.0, y = 0.0 }, ... }
+	// -- { 
+	// -- TOP_LEFT: Vec2 { x = 0.0, y = 0.0 }, TOP_CENTER: Vec2 { x = 0.0, y = 0.0 },
+	// -- ... 
+	// -- }
 	//
 	// -- Example with DisplaySprite:
 	// local sprite = TEN.View.DisplaySprite(Objects.ObjID.MySpriteSequence, 0, Vec2(50, 50), 0, Vec2(100, 100))
 	// local anchors = sprite:GetAnchors()
 	// print(anchors)
 	// -- result:
-	// -- DisplayAnchors { TOP_LEFT: Vec2 { x = 45.0, y = 40.0 }, TOP_CENTER: Vec2 { x = 50.0, y = 40.0 }, ... }
+	// -- { 
+	// -- TOP_LEFT: Vec2 { x = 45.0, y = 40.0 }, TOP_CENTER: Vec2 { x = 50.0, y = 40.0 },
+	// -- ...
+	// -- }
 	std::string ScriptDisplayAnchors::ToString() const
 	{
 		std::ostringstream stream;

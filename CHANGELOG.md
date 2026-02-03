@@ -37,12 +37,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
-* Fixed flickering pickup highlighter item count in high FPS mode.
+* Fixed flickering pickup summary item count in high FPS mode.
 * Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
 
 ### Lua API changes
-* Added new `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
+* Added `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
 * Added `UI` section to `Flow.Settings` class with several options to customize main menu and system text.
 * Added `ambientOcclusion` parameter to `Flow.Settings.Graphics` to force-disable ambient occlusion option.
 * Added a safeguard against adding or removing callback functions within the same callback type.
@@ -55,7 +57,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
 * Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
 * Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
-* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 * Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 

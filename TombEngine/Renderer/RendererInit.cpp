@@ -578,8 +578,37 @@ namespace TEN::Renderer
 
 		Utils::throwIfFailed(res);
 
+		// Collect adapter information.
+		CollectAdapterInfo();
+
 		// Initialize shader manager.
 		_shaders.Initialize(_device, _context);
+	}
+
+	void Renderer::CollectAdapterInfo()
+	{
+		ComPtr<IDXGIDevice> dxgiDevice;
+		Utils::throwIfFailed(_device.As(&dxgiDevice));
+
+		ComPtr<IDXGIAdapter> dxgiAdapter;
+		Utils::throwIfFailed(dxgiDevice->GetAdapter(&dxgiAdapter));
+
+		DXGI_ADAPTER_DESC desc = {};
+		Utils::throwIfFailed(dxgiAdapter->GetDesc(&desc));
+
+		_adapterInfo.Name = TEN::Utils::ToString(desc.Description);
+		_adapterInfo.VendorId = desc.VendorId;
+		_adapterInfo.DeviceId = desc.DeviceId;
+		_adapterInfo.SubSysId = desc.SubSysId;
+		_adapterInfo.Revision = desc.Revision;
+		_adapterInfo.DedicatedVideoMemory = desc.DedicatedVideoMemory;
+		_adapterInfo.DedicatedSystemMemory = desc.DedicatedSystemMemory;
+		_adapterInfo.SharedSystemMemory = desc.SharedSystemMemory;
+
+		TENLog("Adapter: " + _adapterInfo.Name, LogLevel::Info);
+		TENLog("Dedicated VRAM: " + std::to_string(_adapterInfo.DedicatedVideoMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Dedicated system memory: " + std::to_string(_adapterInfo.DedicatedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Shared system memory: " + std::to_string(_adapterInfo.SharedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
 	}
 
 	void Renderer::ToggleFullScreen(bool force)
