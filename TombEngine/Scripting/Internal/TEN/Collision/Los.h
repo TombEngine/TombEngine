@@ -47,13 +47,14 @@ namespace TEN::Scripting::Collision
 		sol::optional<Vec3>                      GetRoomNormal();
 		sol::optional<float>                     GetRoomDistance();
 		sol::optional<std::unique_ptr<Moveable>> GetMoveable();
-		sol::optional<std::vector <std::unique_ptr<Moveable>>> GetMoveables();
 		sol::optional<Vec3>                      GetMoveablePosition();
 		sol::optional<float>                     GetMoveableDistance();
-		sol::optional<std::vector<std::unique_ptr<Static>>> GetStatics();
 		sol::optional<std::unique_ptr<Static>>   GetStatic();
 		sol::optional<Vec3>                      GetStaticPosition();
 		sol::optional<float>                     GetStaticDistance();
+
+		sol::optional<std::vector <std::unique_ptr<Moveable>>> GetMoveables();
+		sol::optional<std::vector<std::unique_ptr<Static>>> GetStatics();
 
 		// Inquirers
 

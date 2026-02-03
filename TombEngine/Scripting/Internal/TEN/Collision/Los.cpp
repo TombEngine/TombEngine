@@ -43,12 +43,14 @@ namespace TEN::Scripting::Collision
 			ScriptReserved_RayGetRoomDistance, &Ray::GetRoomDistance,
 			ScriptReserved_RayGetRoomNormal, &Ray::GetRoomNormal,
 			ScriptReserved_RayGetMoveable, &Ray::GetMoveable,
-			ScriptReserved_RayGetMoveables, &Ray::GetMoveables,
 			ScriptReserved_RayGetMoveablePosition, &Ray::GetMoveablePosition,
 			ScriptReserved_RayGetMoveableDistance, &Ray::GetMoveableDistance,
 			ScriptReserved_RayGetStatic, &Ray::GetStatic,
 			ScriptReserved_RayGetStaticPosition, &Ray::GetStaticPosition,
 			ScriptReserved_RayGetStaticDistance, &Ray::GetStaticDistance,
+
+			ScriptReserved_RayGetMoveables, &Ray::GetMoveables,
+			ScriptReserved_RayGetStatics, &Ray::GetStatics,
 
 			// Inquirers
 			ScriptReserved_RayHitMoveable, &Ray::HitMoveable,
@@ -178,7 +180,7 @@ namespace TEN::Scripting::Collision
 	/// Gets all moveables hit by the ray.
 	// Multiple moveable hits will be detected only if `hitMoveables` and `penetrate` settings were enabled while creating a ray.
 	// @function Ray:GetMoveables
-	// @treturn table Table of moveables hit by the ray. _nil: no moveable was hit._
+	// @treturn table Table of moveables hit by the ray. _nil: no moveables were hit._
 	sol::optional<std::vector<std::unique_ptr<Moveable>>> Ray::GetMoveables()
 	{
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
@@ -219,10 +221,26 @@ namespace TEN::Scripting::Collision
 		return _los.Items.front().Distance;
 	}
 
+	/// Get the first static mesh hit by the ray.
+	// Static mesh hits will be detected only if `hitStatics` setting was enabled while creating a ray.
+	// @function Ray:GetStatic
+	// @treturn Objects.Static Static mesh object. _nil: no static mesh was hit._
+	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
+	{	
+		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
+			return sol::nullopt;
+
+		auto* staticObj = _los.Statics.front().Static;
+		if (staticObj == nullptr)
+			return sol::nullopt;
+
+		return std::make_unique<Static>(*staticObj);
+	}
+
 	/// Gets all statics hit by the ray.
 	// Multiple statics hits will be detected only if `hitStatics` and `penetrate` settings were enabled while creating a ray.
 	// @function Ray:GetStatics
-	// @treturn table Table of statics hit by the ray. _nil: no static was hit._
+	// @treturn table Table of statics hit by the ray. _nil: no statics were hit._
 	sol::optional<std::vector<std::unique_ptr<Static>>> Ray::GetStatics()
 	{
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
@@ -238,22 +256,6 @@ namespace TEN::Scripting::Collision
 		}
 
 		return statics;
-	}
-
-	/// Get the first static mesh hit by the ray.
-	// Static mesh hits will be detected only if `hitStatics` setting was enabled while creating a ray.
-	// @function Ray:GetStatic
-	// @treturn Objects.Static Static mesh object. _nil: no static mesh was hit._
-	sol::optional<std::unique_ptr<Static>> Ray::GetStatic()
-	{	
-		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
-			return sol::nullopt;
-
-		auto* staticObj = _los.Statics.front().Static;
-		if (staticObj == nullptr)
-			return sol::nullopt;
-
-		return std::make_unique<Static>(*staticObj);
 	}
 
 	/// Get the position of the first static mesh hit by the ray.
