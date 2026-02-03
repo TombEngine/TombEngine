@@ -1779,6 +1779,8 @@ namespace TEN::Renderer
 		Camera.DisableInterpolation = false;
 
 		_isLocked = false;
+
+		DrawDebugInfo(_gameCamera);
 	}
 
 	void Renderer::ClearScene()
@@ -2032,7 +2034,7 @@ namespace TEN::Renderer
 			CollectDisplaySprites(view);
 			DrawDisplaySprites(view, false);
 
-			DrawDebugInfo(view);
+			DrawDebugRenderTargets(view);
 			DrawAllStrings();
 			DrawDisplaySprites(view, true);
 		}
@@ -2953,7 +2955,7 @@ namespace TEN::Renderer
 							{
 								if (rendererPass != RendererPass::GBuffer)
 								{
-									_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom.flags & ENV_FLAG_WATER));
+									_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom.flags & ENV_FLAG_WATER) && !(nativeRoom.flags & ENV_FLAG_NOCAUSTICS));
 									_stRoom.AmbientColor = Vector3(room.AmbientLight.x, room.AmbientLight.y, room.AmbientLight.z);
 									BindRoomLights(view.LightsToDraw);
 									BindRoomDecals(room.Decals);
@@ -3806,7 +3808,7 @@ namespace TEN::Renderer
 		
 		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
-		_stRoom.Caustics = (int)(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER));
+		_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
 		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.

@@ -7,47 +7,56 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 * Added faster Xorshift32 random number generation method.
+* Added explosion decal effects to Atlantean enemy projectiles.
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
-* Fixed interaction highlighter not working for pushable climbable blocks.
+* Fixed interaction highlighter not working for pushable climbable blocks and underwater switches.
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
 * Fixed several enemy AI issues.
 * Fixed incorrect CLOCKWORK_BEETLE, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
-* Fixed BADDY1/2 shooting rate.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
 * Fixed SHOOT_SWITCH objects not activated with projectile weapons.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed several BADDY1/2 issues.
+* Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
 * Fixed incorrect super grenade projectile orientation.
+* Fixed ricochet sparks not being visible at longer distances.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
-* Fixed flickering pickup highlighter item count in high FPS mode.
+* Fixed flickering pickup summary item count in high FPS mode.
+* Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
 
 ### Lua API changes
-* Added new `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
+* Added `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
 * Added `UI` section to `Flow.Settings` class with several options to customize main menu and system text.
 * Added `ambientOcclusion` parameter to `Flow.Settings.Graphics` to force-disable ambient occlusion option.
 * Added a safeguard against adding or removing callback functions within the same callback type.
 * Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
-* Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added `Strings.DisplayStringOption.VERTICAL_BOTTOM` flag.
 * Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
 * Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
+* Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
+* Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
+* Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 * Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 

@@ -55,6 +55,7 @@ static constexpr char ScriptReserved_DisplayStringGetPosition[]		= "GetPosition"
 static constexpr char ScriptReserved_DisplayStringGetRotation[]		= "GetRotation";
 static constexpr char ScriptReserved_DisplayStringGetScale[]		= "GetScale";
 static constexpr char ScriptReserved_DisplayStringGetColor[]		= "GetColor";
+static constexpr char ScriptReserved_DisplayStringGetAnchors[]		= "GetAnchors";
 static constexpr char ScriptReserved_DisplayStringSetObjectID[]		= "SetObjectID";
 static constexpr char ScriptReserved_DisplayStringSetSpriteID[]		= "SetSpriteID";
 static constexpr char ScriptReserved_DisplayStringSetPosition[]		= "SetPosition";
@@ -325,6 +326,7 @@ static constexpr char ScriptReserved_GetSoundSourceByName[]			= "GetSoundSourceB
 static constexpr char ScriptReserved_GetVolumeByName[]				= "GetVolumeByName";
 static constexpr char ScriptReserved_GetRoomsByTag[]				= "GetRoomsByTag";
 static constexpr char ScriptReserved_GetRoomByName[]				= "GetRoomByName";
+static constexpr char ScriptReserved_GetRoomByNumber[]				= "GetRoomByNumber";
 static constexpr char ScriptReserved_CalculateHorizontalDistance[]	= "CalculateHorizontalDistance";
 static constexpr char ScriptReserved_PercentToScreen[]				= "PercentToScreen";
 static constexpr char ScriptReserved_ScreenToPercent[]				= "ScreenToPercent";
@@ -447,6 +449,7 @@ static constexpr char ScriptReserved_LevelVars[]	= "LevelVars";
 static constexpr char ScriptReserved_GameVars[]		= "GameVars";
 static constexpr char ScriptReserved_LevelFuncs[]	= "LevelFuncs";
 static constexpr char ScriptReserved_Engine[]		= "Engine";
+static constexpr char ScriptReserved_External[]		= "External";
 
 // Constants
 static constexpr char ScriptReserved_LogLevelInfo[]		= "INFO";
@@ -482,6 +485,26 @@ constexpr char ScriptReserved_ProbeIsSteepCeiling[]			= "IsSteepCeiling";
 constexpr char ScriptReserved_ProbeIsSteepFloor[]			= "IsSteepFloor";
 constexpr char ScriptReserved_ProbeIsWall[]					= "IsWall";
 constexpr char ScriptReserved_ProbePreview[]				= "Preview";
+
+// Ray
+
+constexpr char ScriptReserved_Ray[]							= "Ray";
+constexpr char ScriptReserved_RayGetMoveable[]				= "GetMoveable";
+constexpr char ScriptReserved_RayGetMoveables[]				= "GetMoveables";
+constexpr char ScriptReserved_RayGetMoveablePosition[]		= "GetMoveablePosition";
+constexpr char ScriptReserved_RayGetMoveableDistance[]		= "GetMoveableDistance";
+constexpr char ScriptReserved_RayGetRoom[]					= "GetRoom";
+constexpr char ScriptReserved_RayGetRoomDistance[]			= "GetRoomDistance";
+constexpr char ScriptReserved_RayGetRoomNormal[]			= "GetRoomNormal";
+constexpr char ScriptReserved_RayGetRoomPosition[]			= "GetRoomPosition";
+constexpr char ScriptReserved_RayGetStatic[]				= "GetStatic";
+constexpr char ScriptReserved_RayGetStatics[]				= "GetStatics";
+constexpr char ScriptReserved_RayGetStaticDistance[]		= "GetStaticDistance";
+constexpr char ScriptReserved_RayGetStaticPosition[]		= "GetStaticPosition";
+constexpr char ScriptReserved_RayHitMoveable[]				= "HitMoveable";
+constexpr char ScriptReserved_RayHitRoom[]					= "HitRoom";
+constexpr char ScriptReserved_RayHitStatic[]				= "HitStatic";
+constexpr char ScriptReserved_IntersectionType[]			= "IntersectionType";
 
 constexpr char ScriptReserved_MaterialType[]				= "MaterialType";
 

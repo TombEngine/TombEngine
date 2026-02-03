@@ -23,6 +23,8 @@ namespace TEN::Scripting
 		{ "EQUIP", ItemOptions::OPT_EQUIP },
 
 		/// Examine the item. Used only with examine objects.
+		// To display a text for a given examine item, you should add a string to @{Flow.SetStrings} with a key 
+		// being lowercased item ID with a "_text" suffix (e.g., `uzi_ammo_text` for an item with ID `UZI_AMMO`).
 		// @mem EXAMINE
 		{ "EXAMINE", ItemOptions::OPT_EXAMINABLE },
 

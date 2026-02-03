@@ -82,7 +82,10 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
+		bool isDisabled = ((switchItem->TriggerFlags == 3 || switchItem->TriggerFlags == 4) && switchItem->Animation.ActiveState == SWITCH_OFF);
+
+		if (!isDisabled)
+			g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem, InteractionMode::Activation);
 
 		bool isUnderwater = (laraInfo->Control.WaterStatus == WaterStatus::Underwater);
 
@@ -101,7 +104,7 @@ namespace TEN::Entities::Switches
 			if (switchItem->TriggerFlags != 3 && isUnderwater)
 				return;
 
-			if ((switchItem->TriggerFlags == 3 || switchItem->TriggerFlags == 4) && switchItem->Animation.ActiveState == SWITCH_OFF)
+			if (isDisabled)
 				return;
 
 			SwitchBounds.BoundingBox.X1 = bounds.X1 - BLOCK(0.25f);
