@@ -351,40 +351,48 @@ namespace TEN::Scripting::Collision
 	void Ray::Preview()
 	{
 		constexpr int  TARGET_RADIUS = BLOCK(0.08f);
-		constexpr auto COLOR         = Color(1.0f, 1.0f, 0.8f, 0.2f);
+		constexpr auto HIT_COLOR     = Color(1.0f, 0.5f, 0.5f, 0.3f);
+		constexpr auto MISS_COLOR    = Color(0.5f, 1.0f, 0.5f, 0.3f);
 		
-		float closestDist = _los.Room.Distance;
 		auto target = _los.Room.Position;
 
-		// Clip moveable.
+		// Draw moveable targets.
 		for (const auto& movLos : _los.Items)
 		{
 			// Skip player.
 			if (movLos.Item->ObjectNumber == ID_LARA)
 				continue;
 
-			// Clip non-player moveable if it exists.
-			if (movLos.Distance < closestDist)
-			{
-				closestDist = movLos.Distance;
-				target = movLos.Position;
-			}
+			// Clip all further moveables if occlusion happened.
+			if (IsOccluded(movLos.Distance))
+				break;
 
-			break;
+			DrawDebugTarget(movLos.Position, Quaternion::Identity, TARGET_RADIUS, HIT_COLOR, RendererDebugPage::CollisionStats);
+			target = movLos.Position;
 		}
 
-		// Clip static.
-		if (!_los.Statics.empty())
+		// Draw static mesh targets.
+		for (const auto& staticLos : _los.Statics)
 		{
-			const auto& staticLos = _los.Statics.front();
-			if (staticLos.Distance < closestDist)
-			{
-				closestDist = staticLos.Distance;
-				target = staticLos.Position;
-			}
+			// Clip all further static meshes if occlusion happened.
+			if (IsOccluded(staticLos.Distance))
+				break;
+
+			DrawDebugTarget(staticLos.Position, Quaternion::Identity, TARGET_RADIUS, HIT_COLOR, RendererDebugPage::CollisionStats);
+			target = staticLos.Position;
 		}
 
-		DrawDebugLine(_origin, target, COLOR, RendererDebugPage::CollisionStats);
-		DrawDebugTarget(target, Quaternion::Identity, TARGET_RADIUS, COLOR, RendererDebugPage::CollisionStats);
+		bool isIntersected = _los.Room.IsIntersected || target != _los.Room.Position;
+		auto lineColor = isIntersected ? HIT_COLOR : MISS_COLOR;
+		
+		// Draw room geometry target.
+		if (!IsOccluded(_los.Room.Distance))
+		{
+			DrawDebugTarget(_los.Room.Position, Quaternion::Identity, TARGET_RADIUS, lineColor, RendererDebugPage::CollisionStats);
+			target = _los.Room.Position;
+		}
+
+		// Draw ray.
+		DrawDebugLine(_origin, target, lineColor, RendererDebugPage::CollisionStats);
 	}
 }
