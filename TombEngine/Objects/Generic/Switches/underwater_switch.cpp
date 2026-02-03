@@ -162,8 +162,8 @@ namespace TEN::Entities::Switches
 	{
 		auto* lara = GetLaraInfo(laraItem);
 		auto* switchItem = &g_Level.Items[itemNumber];
-		bool doInteraction = false;
 
+		bool doInteraction = false;
 		bool isDisabled = switchItem->Animation.ActiveState == SWITCH_ON;
 
 		if (!isDisabled)
