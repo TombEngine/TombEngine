@@ -6,6 +6,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/SMAA/AreaTex.h"
 #include "Renderer/SMAA/SearchTex.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -246,6 +247,9 @@ namespace TEN::Renderer
 
 		_spriteVertices.reserve(MAX_SPRITE_VERTICES );
 		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITE_VERTICES , _spriteVertices);
+
+		// Log VRAM usage after initialization.
+		TENLog(Graphics::VRAMTracker::Get().GetSummary(), LogLevel::Info);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());

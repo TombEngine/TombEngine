@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/Point.h"
@@ -1592,6 +1593,37 @@ namespace TEN::Renderer
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
 			PrintDebugMessage("Constant buffer updates: %d", _numConstantBufferUpdates);
 			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
+			break;
+
+		case RendererDebugPage::MemoryStats:
+		{
+			auto toMB = [](int bytes) { return static_cast<float>(bytes) / (1024.0f * 1024.0f); };
+			const auto& vram = Graphics::VRAMTracker::Get();
+
+			PrintDebugMessage("MEMORY STATS");
+			PrintDebugMessage(" ");
+			PrintDebugMessage("Adapter: %s", _adapterInfo.Name.c_str());
+			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
+			PrintDebugMessage(" ");
+			PrintDebugMessage("--- DXGI Adapter ---");
+			PrintDebugMessage("Dedicated VRAM: %d MB", _adapterInfo.DedicatedVideoMemory / (1024 * 1024));
+			PrintDebugMessage("Dedicated system memory: %d MB", _adapterInfo.DedicatedSystemMemory / (1024 * 1024));
+			PrintDebugMessage("Shared system memory: %d MB", _adapterInfo.SharedSystemMemory / (1024 * 1024));
+			PrintDebugMessage(" ");
+			PrintDebugMessage("--- Allocated ---");
+			PrintDebugMessage("Total: %.2f MB", toMB(vram.GetTotal()));
+			PrintDebugMessage("  Textures: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("  Render targets: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("  Vertex buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("  Index buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
+
+			if (_adapterInfo.DedicatedVideoMemory > 0)
+			{
+				float usagePercent = (toMB(vram.GetTotal()) / toMB((int)_adapterInfo.DedicatedVideoMemory)) * 100.0f;
+				PrintDebugMessage(" ");
+				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
+			}
+		}
 			break;
 
 		case RendererDebugPage::DimensionStats:

@@ -166,14 +166,19 @@ namespace TEN::Scripting::DisplaySprite
 	// @treturn DisplayAnchors An object containing the anchor points of the display sprite.<br>
 	// The object contains the following fields:<br>
 	// - `TOP_LEFT`<br>
-	// - `CENTER_TOP`<br>
+	// - `TOP_CENTER`<br>
 	// - `TOP_RIGHT`<br>
 	// - `CENTER_LEFT`<br>
 	// - `CENTER`<br>
 	// - `CENTER_RIGHT`<br>
 	// - `BOTTOM_RIGHT`<br>
-	// - `CENTER_BOTTOM`<br>
+	// - `BOTTOM_CENTER`<br>
 	// - `BOTTOM_LEFT`<br>
+	// @usage
+	// local objID = Objects.ObjID.ID_DEFAULT_SPRITES
+	// local sprite = View.DisplaySprite(objID, 0, Vec2(50, 50), 0, Vec2(20, 20))
+	// local anchors = sprite:GetAnchors()
+	// print("Center anchor: " .. tostring(anchors.CENTER)) -- Output: Center anchor: Vec2(50.0, 50.0)
 	ScriptDisplayAnchors ScriptDisplaySprite::GetAnchors(sol::optional<DisplaySpriteAlignMode> alignModeOpt, sol::optional<DisplaySpriteScaleMode> scaleModeOpt) const
 	{
 		ScriptDisplayAnchors anchors;
