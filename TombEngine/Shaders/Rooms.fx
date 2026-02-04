@@ -9,7 +9,7 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
-#define ROOM_LIGHT_COEFF 1.4f
+#define ROOM_LIGHT_COEFF 0.7f
 
 struct PixelShaderInput
 {
@@ -69,7 +69,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	
 	output.Position = screenPos;
     output.Normal = input.Normal.xyz;
-    output.Color = float4(ModulateColor(col, Brightness), input.Color.w);
+    output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
@@ -115,7 +115,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
     occlusion *= ambientOcclusion;
 
-	float3 lighting = input.Color.xyz;
+    float3 lighting = ModulateColor(input.Color.xyz, Brightness);
 	
 	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
@@ -208,7 +208,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
         float3 caustics = xc + yc + zc;
 
-        lighting += (caustics * attenuation);
+        lighting += (caustics * attenuation * 2.0f);
     }
 
 	// Emissive materials

@@ -118,7 +118,7 @@ float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
     float absolute = light.Color.xyz * light.Intensity * attenuation;
     float directional = absolute * d;
 
-    return saturate((absolute * 0.33f) + (directional * 0.66f));
+    return saturate((absolute * 0.33f) + (directional * 0.66f)) * 2.0f;
 }
 
 float3 DoSpotLight(float3 pos, float3 normal, ShaderLight light)
@@ -378,7 +378,7 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 
 	for (int i = 0; i < numLights; i++)
 	{
-		// Create a copy of the light with modulated color (PSX-style ×2 modulation)
+		// Create a copy of the light with modulated color (PSX-style ×2 modulation).
 		ShaderLight light = lights[i];
 		light.Color.xyz = ModulateColor(lights[i].Color.xyz, Brightness);
 
