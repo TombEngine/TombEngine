@@ -141,7 +141,7 @@ namespace TEN::Hud
 			}
 		}
 
-		// If at capacity, don�t add new item.
+		// If at capacity, don't add new item.
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
 			return;
 

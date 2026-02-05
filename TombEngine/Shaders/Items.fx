@@ -110,8 +110,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	float3 color = (BoneLightModes[input.Bone / 4][input.Bone % 4] == 0) ?
 		CombineLights(
-			ModulateColor(AmbientLight.xyz, Brightness),
-			ModulateColor(input.Color.xyz * Color, Brightness),
+			ModulateColor(AmbientLight.xyz),
+			ModulateColor(input.Color.xyz * Color),
 			tex.xyz,
 			input.WorldPosition,
 			normal,
@@ -122,7 +122,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 			emissive,
 			specular,
 			roughness) :
-		StaticLight(ModulateColor(input.Color.xyz * Color.xyz, Brightness), tex.xyz, input.FogBulbs.w, emissive);
+		StaticLight(ModulateColor(input.Color.xyz * Color.xyz), tex.xyz, input.FogBulbs.w, emissive);
 
 	float shadowable = step(0.5f, float((NumItemLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
 	float3 shadow = DoShadow(input.WorldPosition, normal, color, -0.5f);

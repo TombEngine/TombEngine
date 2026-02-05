@@ -104,8 +104,8 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3 staticColor = StaticMeshes[input.InstanceID].Color.xyz;
 	float3 color = (mode == 0) ?
 		CombineLights(
-			ModulateColor(StaticMeshes[input.InstanceID].AmbientLight.xyz, Brightness),
-			ModulateColor(input.Color.xyz * staticColor, Brightness),
+			ModulateColor(StaticMeshes[input.InstanceID].AmbientLight.xyz),
+			ModulateColor(input.Color.xyz * staticColor),
 			tex.xyz,
 			input.WorldPosition,
 			normal,
@@ -116,7 +116,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 			emissive,
 			specular,
 			roughness) :
-		StaticLight(ModulateColor(input.Color.xyz * staticColor, Brightness), tex.xyz, input.FogBulbs.w, emissive);
+		StaticLight(ModulateColor(input.Color.xyz * staticColor), tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);

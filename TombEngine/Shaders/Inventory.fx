@@ -60,7 +60,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     PixelShaderOutput output;
     
     float4 tex = Texture.Sample(Sampler, input.UV);
-    float3 baseColor = tex.xyz * ModulateColor(Color.xyz, Brightness);
+    float3 baseColor = tex.xyz * ModulateColor(Color.xyz);
     float3 pos = normalize(input.WorldPosition);
 
     output.Color = float4(baseColor, tex.w * Color.w);
@@ -87,7 +87,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
     // Modulate light color (PSX-style ×2 modulation)
-    l.Color.xyz = ModulateColor(AmbientLight.xyz, Brightness);
+    l.Color.xyz = ModulateColor(AmbientLight.xyz);
 
     float3 lighting = DoDirectionalLight(pos, normal, l);
     lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);

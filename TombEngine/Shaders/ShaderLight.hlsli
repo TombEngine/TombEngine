@@ -4,6 +4,11 @@
 #include "./CBCamera.hlsli"
 #include "./Math.hlsli"
 
+float3 ModulateColor(float3 color)
+{
+    return (color * Brightness * 2.0f);
+}
+
 static float RoughnessToExpMul(float roughness)
 {
     float r = saturate(roughness);
@@ -378,9 +383,9 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 
 	for (int i = 0; i < numLights; i++)
 	{
-		// Create a copy of the light with modulated color (PSX-style ×2 modulation).
+		// Create a copy of the light with modulated color (PSX-style x2 modulation).
 		ShaderLight light = lights[i];
-		light.Color.xyz = ModulateColor(lights[i].Color.xyz, Brightness);
+		light.Color.xyz = ModulateColor(lights[i].Color.xyz);
 
 		if (lightTypeMask & LT_MASK_SUN)
 		{
@@ -414,7 +419,7 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 	diffuse *= tex;
 
 	float3 ambTex = (ambient - shadow) * tex;
-    float3 combined = ambTex + diffuse + spec + emissive;
+	float3 combined = ambTex + diffuse + spec + emissive;
 
 	combined -= float3(fogBulbsDensity, fogBulbsDensity, fogBulbsDensity);
 	

@@ -115,7 +115,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
     occlusion *= ambientOcclusion;
 
-    float3 lighting = ModulateColor(input.Color.xyz, Brightness);
+    float3 lighting = ModulateColor(input.Color.xyz);
 	
 	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
@@ -128,7 +128,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		// Create a copy of the light with modulated color (PSX-style ×2 modulation)
 		ShaderLight light = RoomLights[i];
-		light.Color.xyz = ModulateColor(RoomLights[i].Color.xyz, Brightness);
+		light.Color.xyz = ModulateColor(RoomLights[i].Color.xyz);
 
 		if (onlyPointLights)
 		{
