@@ -51,7 +51,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
     output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
-    // Color multiplication moved to PS for correct modulation
+	output.Color *= StaticMeshes[InstanceID].Color;
 	output.PositionCopy = output.Position;
     output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;
@@ -101,11 +101,10 @@ PixelShaderOutput PS(PixelShaderInput input)
     float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), tex.w);
     occlusion *= ambientOcclusion;
 
-	float3 staticColor = StaticMeshes[input.InstanceID].Color.xyz;
 	float3 color = (mode == 0) ?
 		CombineLights(
 			ModulateColor(StaticMeshes[input.InstanceID].AmbientLight.xyz, Brightness),
-			ModulateColor(input.Color.xyz * staticColor, Brightness),
+			ModulateColor(input.Color.xyz, Brightness),
 			tex.xyz,
 			input.WorldPosition,
 			normal,
@@ -116,7 +115,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 			emissive,
 			specular,
 			roughness) :
-		StaticLight(ModulateColor(input.Color.xyz * staticColor, Brightness), tex.xyz, input.FogBulbs.w, emissive);
+		StaticLight(ModulateColor(input.Color.xyz, Brightness), tex.xyz, input.FogBulbs.w, emissive);
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);
