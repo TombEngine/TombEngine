@@ -27,6 +27,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/Utils/object_helper.h"
@@ -35,7 +36,6 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
-#include "Objects/Effects/Fireflies.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
@@ -425,11 +425,13 @@ namespace TEN::Renderer
 						GetInterpolationFactor());
 
 					// Influence flame color with object color via chroma modulation.
-					if (fire.color != Vector4::One)
+					if (fire.color != NEUTRAL_COLOR)
 					{
 						auto color3 = Vector3(color.x, color.y, color.z);
 						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
 					}
+					else
+						color *= NEUTRAL_COLOR;
 
 					AddSpriteBillboard(
 						&_sprites[spark->def],

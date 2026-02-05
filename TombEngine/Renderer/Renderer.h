@@ -714,11 +714,6 @@ namespace TEN::Renderer
 			return ((v >> 8) & 0xFFFF);
 		}
 
-		static inline Vector4 ModulateColor(Vector4 color)
-		{
-			return Vector4(color.x * 2.0f, color.y * 2.0f, color.z * 2.0f, color.w);
-		}
-
 	public:
 		Renderer();
 		~Renderer();
