@@ -103,9 +103,9 @@ namespace TEN::Entities::Traps
 		SpawnDynamicLight(
 			item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z,
 			8,
-			intensityNorm * (item.Model.Color.x / 2),
-			intensityNorm * (item.Model.Color.y / 2),
-			intensityNorm * (item.Model.Color.z / 2));
+			intensityNorm * (item.Model.Color.x),
+			intensityNorm * (item.Model.Color.y),
+			intensityNorm * (item.Model.Color.z));
 	}
 
 	void ControlLaserBarrier(short itemNumber)
