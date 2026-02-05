@@ -52,6 +52,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     output.WorldPosition = worldPosition;
 	output.Color = float4(col, input.Color.w);
 	output.Color *= StaticMeshes[InstanceID].Color;
+	output.Color.xyz = ModulateColor(output.Color.xyz, Brightness);
 	output.PositionCopy = output.Position;
     output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;

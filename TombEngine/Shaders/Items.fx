@@ -61,6 +61,7 @@ PixelShaderInput VS(VertexShaderInput input)
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = float4(col, input.Color.w);
 	output.Color *= Color;
+	output.Color.xyz = ModulateColor(output.Color.xyz, Brightness);
 	output.PositionCopy = output.Position;
     output.Sheen = DecodeSheen(input.Effects);
 	output.Bone = input.BoneIndex[0];

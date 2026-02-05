@@ -29,11 +29,7 @@ namespace TEN::Renderer
 		spr.Height = size.y;
 		spr.BlendMode = blendMode;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);
@@ -61,11 +57,7 @@ namespace TEN::Renderer
 		spr.BlendMode = blendMode;
 		spr.ConstrainAxis = constrainAxis;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);
@@ -93,11 +85,7 @@ namespace TEN::Renderer
 		spr.BlendMode = blendMode;
 		spr.LookAtAxis = lookAtAxis;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);

@@ -66,7 +66,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     int polyIndex = DecodeIndexInPoly(input.Effects);
 
 	output.PositionCopy = output.Position;
-    output.Color = lerp(sprite.Color, input.Color, saturate((float) sprite.PerVertexColor));
+    output.Color = lerp(sprite.Color, input.Color, saturate((float)sprite.PerVertexColor));
     output.UV = float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
 	output.InstanceID  = InstanceID;
 
@@ -76,26 +76,9 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	return output;
 }
 
-// TODO: From NVIDIA SDK, check if it can be useful instead of linear ramp
-float Contrast(float Input, float ContrastPower)
-{
-#if 1
-	//piecewise contrast function
-	bool IsAboveHalf = Input > 0.5;
-	float ToRaise = saturate(2 * (IsAboveHalf ? 1 - Input : Input));
-	float Output = 0.5 * pow(ToRaise, ContrastPower);
-	Output = IsAboveHalf ? 1 - Output : Output;
-	return Output;
-#else
-	// another solution to create a kind of contrast function
-	return 1.0 - exp2(-2 * pow(2.0 * saturate(Input), ContrastPower));
-#endif
-}
-
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-    float4 color = float4(ModulateColor(input.Color.xyz, Brightness), input.Color.w);
-    float4 output = Texture.Sample(Sampler, input.UV) * color;
+    float4 output = Texture.Sample(Sampler, input.UV) * input.Color * Brightness;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
