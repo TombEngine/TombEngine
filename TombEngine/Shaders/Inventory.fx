@@ -60,7 +60,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     PixelShaderOutput output;
     
     float4 tex = Texture.Sample(Sampler, input.UV);
-    float3 baseColor = tex.xyz * Color.xyz;
+    float3 baseColor = tex.xyz * ModulateColor(Color.xyz, Brightness);
     float3 pos = normalize(input.WorldPosition);
 
     output.Color = float4(baseColor, tex.w * Color.w);

@@ -1912,7 +1912,7 @@ namespace TEN::Renderer
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Brightness = 1.0f; // TODO: make this configurable and maybe also for HDR in the future
+		cameraConstantBuffer.Brightness = g_Configuration.Gamma;
 
 		if (level.GetFogMaxDistance() > 0)
 		{

@@ -19,6 +19,7 @@ constexpr auto REGKEY_INPUT	   = "Input";
 constexpr auto REGKEY_SCREEN_WIDTH		   = "ScreenWidth";
 constexpr auto REGKEY_SCREEN_HEIGHT		   = "ScreenHeight";
 constexpr auto REGKEY_ENABLE_WINDOWED_MODE = "EnableWindowedMode";
+constexpr auto REGKEY_GAMMA				   = "GammaCorrection";
 constexpr auto REGKEY_SHADOWS			   = "ShadowsMode";
 constexpr auto REGKEY_SHADOW_MAP_SIZE	   = "ShadowMapSize";
 constexpr auto REGKEY_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
@@ -68,6 +69,7 @@ struct GameConfiguration
 
 	int		   ScreenWidth		  = 0;
 	int		   ScreenHeight		  = 0;
+	float	   Gamma			  = 1.0f;
 	bool	   EnableWindowedMode = false;
 	ShadowMode ShadowType		  = ShadowMode::None;
 	int		   ShadowMapSize	  = DEFAULT_SHADOW_MAP_SIZE;

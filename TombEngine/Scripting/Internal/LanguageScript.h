@@ -63,6 +63,7 @@
 #define STRING_MUSIC_VOLUME				"music_volume"
 #define STRING_SFX_VOLUME				"sfx_volume"
 #define STRING_SCREEN_RESOLUTION		"screen_resolution"
+#define STRING_GAMMA					"gamma"
 #define STRING_SHADOWS					"shadows"
 #define STRING_SHADOWS_PLAYER			"player"
 #define STRING_SHADOWS_ALL				"all"
