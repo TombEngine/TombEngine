@@ -604,7 +604,7 @@ namespace TEN::Renderer
 						ReflectMatrixOptionally(world);
 
 						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
 						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[rat->RoomNumber].AmbientLight;
 						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
@@ -722,7 +722,7 @@ namespace TEN::Renderer
 					const auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[fish.RoomNumber].AmbientLight;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
@@ -823,7 +823,7 @@ namespace TEN::Renderer
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].World = world;
 					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].Ambient = room.AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].Color = NEUTRAL_COLOR;
 					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].LightMode = (int)mesh.LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
@@ -948,7 +948,7 @@ namespace TEN::Renderer
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].World = world;
 					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Ambient = room.AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Color = NEUTRAL_COLOR;
 					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].LightMode = (int)mesh.LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
@@ -1107,7 +1107,7 @@ namespace TEN::Renderer
 					ReflectMatrixOptionally(world);
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[locust.RoomNumber].AmbientLight;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
