@@ -60,8 +60,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = float4(col, input.Color.w);
-	output.Color *= Color;
-	output.Color.xyz = ModulateColor(output.Color.xyz, Brightness);
+	output.Color.w *= Color.w;
 	output.PositionCopy = output.Position;
     output.Sheen = DecodeSheen(input.Effects);
 	output.Bone = input.BoneIndex[0];
@@ -112,7 +111,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 color = (BoneLightModes[input.Bone / 4][input.Bone % 4] == 0) ?
 		CombineLights(
 			ModulateColor(AmbientLight.xyz, Brightness),
-			ModulateColor(input.Color.xyz, Brightness),
+			ModulateColor(input.Color.xyz * Color, Brightness),
 			tex.xyz,
 			input.WorldPosition,
 			normal,
