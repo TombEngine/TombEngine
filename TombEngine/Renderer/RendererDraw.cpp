@@ -3952,7 +3952,7 @@ namespace TEN::Renderer
 		auto world = objectInfo->World;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
