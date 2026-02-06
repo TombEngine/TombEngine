@@ -371,13 +371,18 @@ function Timer:IfRemainingTimeIs(operator, seconds)
 		TEN.Util.PrintLog("Error in Timer:IfRemainingTimeIs(): wrong value (" .. tostring(seconds) .. ") for seconds in '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 		return false
 	end
-	local remainingTime = LevelVars.Engine.Timer.timers[self.name].remainingTime
+	local timer = LevelVars.Engine.Timer.timers[self.name]
+	local remainingTime = timer.remainingTime
 	local seconds_ = math.floor(seconds * 10) / 10
 	local time = TEN.Time(seconds_ * 30)
-	if LevelVars.Engine.Timer.timers[self.name].hasTicked then
-		return Utility.CompareValue(remainingTime, time, operator)
+	local test = Utility.CompareValue(remainingTime, time, operator)
+
+	-- Only for equality/difference operators (==, !=) we check hasTicked.
+	-- This avoids false results due to the internal tick (0.1s) and ensures relational comparisons (> < >= <=) are always valid every 0.03s.
+	if operator == 0 or operator == 1 then
+		return timer.hasTicked and test or false
 	else
-		return false
+		return test
 	end
 end
 

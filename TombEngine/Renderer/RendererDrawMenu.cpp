@@ -1597,7 +1597,6 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::MemoryStats:
 		{
-			auto toMB = [](int bytes) { return static_cast<float>(bytes) / (1024.0f * 1024.0f); };
 			const auto& vram = Graphics::VRAMTracker::Get();
 
 			PrintDebugMessage("MEMORY STATS");
@@ -1611,15 +1610,15 @@ namespace TEN::Renderer
 			PrintDebugMessage("Shared system memory: %d MB", _adapterInfo.SharedSystemMemory / (1024 * 1024));
 			PrintDebugMessage(" ");
 			PrintDebugMessage("--- Allocated ---");
-			PrintDebugMessage("Total: %.2f MB", toMB(vram.GetTotal()));
-			PrintDebugMessage("  Textures: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::Texture)));
-			PrintDebugMessage("  Render targets: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
-			PrintDebugMessage("  Vertex buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
-			PrintDebugMessage("  Index buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
+			PrintDebugMessage("Total: %.2f MB", vram.ToMegabytes(vram.GetTotal()));
+			PrintDebugMessage("  Textures: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("  Render targets: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("  Vertex buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("  Index buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
 
 			if (_adapterInfo.DedicatedVideoMemory > 0)
 			{
-				float usagePercent = (toMB(vram.GetTotal()) / toMB((int)_adapterInfo.DedicatedVideoMemory)) * 100.0f;
+				float usagePercent = (vram.ToMegabytes(vram.GetTotal()) / vram.ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
 				PrintDebugMessage(" ");
 				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
 			}
