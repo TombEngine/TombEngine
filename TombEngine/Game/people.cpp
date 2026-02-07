@@ -148,15 +148,16 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	bool collidable = item->Collidable;
 	item->Collidable = false;
 
-	auto roomLos = GetRoomLosCollision(origin, item->RoomNumber, dir, dist, true);
-	auto itemLos = GetItemLosCollision(origin, item->RoomNumber, dir, dist, true);
-	auto staticLos = GetStaticLosCollision(origin, item->RoomNumber, dir, dist);
+	auto los = GetLosCollision(origin, item->RoomNumber, dir, dist, true, false, true);
+	bool collidedWithRooms = los.Room.IsIntersected;
+	bool collideWithPlayer = !los.Items.empty() && los.Items.front().Item == enemy;
+	bool collidedWithItems = !los.Items.empty() && !collideWithPlayer;
+	bool collidedWithStatics = !los.Statics.empty() && !collideWithPlayer;
 
 	// Restore collidability.
 	item->Collidable = collidable;
 
-	bool collidedWithItems = itemLos.has_value() && itemLos.value().Item != enemy;
-	return (!roomLos.IsIntersected && !collidedWithItems && !staticLos.has_value());
+	return (!collidedWithRooms && !collidedWithItems && !collidedWithStatics);
 }
 
 bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)

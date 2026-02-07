@@ -93,7 +93,8 @@ struct ObjectInfo
 	bool nonLot					= false;
 	bool isPickup				= false;
 	bool isPuzzleHole			= false;
-	bool Hidden				= false;
+	bool Hidden			     	= false;
+	bool IgnoreInLOSCheck		= false;
 
 	DWORD explodableMeshbits;
 

@@ -80,12 +80,14 @@ namespace TEN::Scripting::DisplayItem
 		static void SetAmbientLight(const ScriptColor& lightColor);
 		static void SetCameraPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation);
 		static void SetCameraTargetPosition(const Vec3& target, TypeOrNil<bool> disableInterpolation);
+		static void SetFOV(TypeOrNil<float> fov, TypeOrNil<bool> disableInterpolation);
 		static void ResetCamera(TypeOrNil<bool> disableInterpolation);
 
 		// Getters
 
-		static ScriptColor GetAmbientLight();
-		static Vec3        GetCameraPosition();
-		static Vec3        GetCameraTargetPosition();
+		static ScriptColor	GetAmbientLight();
+		static Vec3			GetCameraPosition();
+		static Vec3			GetCameraTargetPosition();
+		static float		GetFOV();
 	};
 }

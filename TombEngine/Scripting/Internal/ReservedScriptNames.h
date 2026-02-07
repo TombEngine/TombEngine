@@ -26,6 +26,7 @@ static constexpr char ScriptReserved_Statistics[]		= "Statistics";
 
 // Settings sections
 static constexpr char ScriptReserved_Settings[]			= "Settings";
+static constexpr char ScriptReserved_UISettings[]		= "UI";
 static constexpr char ScriptReserved_SystemSettings[]	= "System";
 static constexpr char ScriptReserved_GameplaySettings[] = "Gameplay";
 static constexpr char ScriptReserved_FlareSettings[]	= "Flare";
