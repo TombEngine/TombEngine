@@ -67,6 +67,7 @@ void InitializeLara(bool restore)
 	
 	Lara.Context = PlayerContext(*LaraItem, LaraCollision);
 
+	LaraItem->HitPoints = LARA_HEALTH_MAX;
 	Lara.Status.Air = LARA_AIR_MAX;
 	Lara.Status.Exposure = LARA_EXPOSURE_MAX;
 	Lara.Status.Poison = 0;
@@ -312,8 +313,6 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 	constexpr auto DEFAULT_BEETLE_LIFE			= 3;
 
 	auto& player = GetLaraInfo(item);
-
-	item.HitPoints = LARA_HEALTH_MAX;
 
 	if (Objects[ID_FLARE_INV_ITEM].loaded)
 		player.Inventory.TotalFlares = DEFAULT_FLARE_COUNT;

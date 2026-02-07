@@ -41,7 +41,7 @@ using namespace TEN::Entities::Generic;
 
 /// Set the player's poison value.
 // @function LaraObject:SetPoison
-// @tparam[opt] int poison New poison value. __default: 0, max: 128__
+// @tparam[opt=0] int poison New poison value. _Default: 0, Maximum: 128._
 // @usage
 // Lara:SetPoison(10)
 void LaraObject::SetPoison(sol::optional<int> potency)
@@ -71,7 +71,7 @@ int LaraObject::GetPoison() const
 
 /// Set the player's air value.
 // @function LaraObject:SetAir
-// @tparam int air New air value. __max: 1800__ 
+// @tparam[opt=1800] int air New air value. _Maximum: 1800._
 // @usage
 // Lara:SetAir(100)
 void LaraObject::SetAir(sol::optional<int> air)
@@ -97,7 +97,7 @@ int LaraObject::GetAir() const
 
 /// Set the player's wetness value, causing drips.
 // @function LaraObject:SetWet
-// @tparam int wetness New wetness value. __max: 255__
+// @tparam[opt=64] int wetness New wetness value. _Maximum: 255._
 // @usage
 // Lara:SetWet(100)
 void LaraObject::SetWet(sol::optional<int> wetness)
@@ -122,7 +122,7 @@ int LaraObject::GetWet() const
 
 /// Set the player's stamina value.
 // @function LaraObject:SetStamina
-// @tparam int New stamina value. __max: 120__ 
+// @tparam[opt=120] int New stamina value. _Maximum: 120._
 // @usage
 // Lara:SetStamina(120)
 void LaraObject::SetStamina(sol::optional<int> value)
