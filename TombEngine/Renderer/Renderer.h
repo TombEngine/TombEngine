@@ -10,8 +10,9 @@
 #include "Math/Math.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/Gui.h"
+#include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/PickupSummary.h"
 #include "Game/effects/effects.h"
@@ -68,6 +69,8 @@
 #include "Renderer/Structures/RendererStar.h"
 #include "Structures/RendererShader.h"
 
+using namespace TEN::Animation;
+
 enum GAME_OBJECT_ID : short;
 enum class SphereSpaceType;
 class EulerAngles;
@@ -86,6 +89,18 @@ namespace TEN::Renderer
 	using namespace DirectX::SimpleMath;
 
 	using AtlasTexturesSet = std::tuple<Texture2D, Texture2D, Texture2D, Texture2D>;
+
+	struct AdapterInfo
+	{
+		std::string Name = {};
+		unsigned int VendorId = 0;
+		unsigned int DeviceId = 0;
+		unsigned int SubSysId = 0;
+		unsigned int Revision = 0;
+		size_t DedicatedVideoMemory = 0;
+		size_t DedicatedSystemMemory = 0;
+		size_t SharedSystemMemory = 0;
+	};
 
 	class Renderer
 	{
@@ -110,6 +125,9 @@ namespace TEN::Renderer
 		D3D11_VIEWPORT _viewport;
 		D3D11_VIEWPORT _shadowMapViewport;
 		Viewport _viewportToolkit;
+
+		// Adapter info
+		AdapterInfo _adapterInfo = {};
 
 		// Render targets
 
@@ -292,7 +310,7 @@ namespace TEN::Renderer
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
 
-		float _currentLineHeight = 0.0f;;
+		float _currentLineHeight = 0.0f;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
 
@@ -371,6 +389,8 @@ namespace TEN::Renderer
 
 		ShaderManager _shaders;
 
+		void CollectAdapterInfo();
+
 		void ApplySMAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyFXAA(RenderTarget2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(RenderTarget2D* renderTarget, RenderView& view);
@@ -386,7 +406,7 @@ namespace TEN::Renderer
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererItem* item, RendererObject& obj, const AnimFrameInterpData& frameData, int mask, bool useObjectWorldRotation = false);
+		void UpdateAnimation(RendererItem* item, RendererObject& obj, const KeyframeInterpolationData& interpData, int mask, bool useObjectWorldRotation = false);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
@@ -439,6 +459,7 @@ namespace TEN::Renderer
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);
+		void DrawDisplayItems();
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
 		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
@@ -543,7 +564,7 @@ namespace TEN::Renderer
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
 		Texture2D CreateDefaultTexture(std::vector<unsigned char> color);
-
+		std::optional<Vector2> ProjectDisplayItemPointToScreen(const Vector3& worldPos) const;
 		bool IsRoomReflected(RenderView& renderView, int roomNumber);
 
 		inline bool IgnoreReflectionPassForRoom(int roomNumber)
@@ -719,6 +740,7 @@ namespace TEN::Renderer
 		void AddString(int x, int y, const std::string& string, D3DCOLOR color, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags);
 		void AddString(const std::string& string, const Vector2& pos, const Vector2& area, const Color& color, float scale, int flags);
+		void AddString(const std::string& string, const Vector2& currentPos, const Vector2& prevPos, const Vector2& area, const Color& color, float scale, int flags);
 		void AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 		void FreeRendererData();
 		void AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash = 0);
@@ -751,6 +773,7 @@ namespace TEN::Renderer
 		void PrintDebugMessage(LPCSTR msg, va_list args);
 		void PrintDebugMessage(LPCSTR msg, ...);
 		void DrawDebugInfo(RenderView& view);
+		void DrawDebugRenderTargets(RenderView& view);
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
@@ -762,9 +785,11 @@ namespace TEN::Renderer
 		void GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix);
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
+		void DrawObjectIn3DSpace(const DisplayItem& item);
 		void SetLoadingScreen(std::wstring& fileName);
 		void SetTextureOrDefault(Texture2D& texture, std::wstring path);
 		std::string GetDefaultAdapterName();
+		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
 		float						GetFramerateMultiplier() const;
@@ -773,7 +798,7 @@ namespace TEN::Renderer
 		int							GetScreenRefreshRate() const;
 		std::optional<Vector2>		Get2DPosition(const Vector3& pos) const;
 		std::pair<Vector3, Vector3> GetRay(const Vector2& pos) const;
-
+		std::optional<std::pair<Vector2, Vector2>> GetDisplayItemBounds(const DisplayItem& item) const;
 		Vector3	   GetMoveableBonePosition(int itemNumber, int boneID, const Vector3& relOffset = Vector3::Zero);
 		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 

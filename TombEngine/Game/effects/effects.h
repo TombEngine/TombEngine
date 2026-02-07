@@ -21,6 +21,8 @@ constexpr auto MAX_DYNAMICS = 64;
 constexpr auto MAX_PARTICLES		 = 8192;
 constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 
+constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(1.0f, 0.5f, 0.1f, 1.0f);
+
 extern int Wibble;
 
 enum SpriteEnumFlag
@@ -288,10 +290,8 @@ void TriggerWaterfallMist(const ItemInfo& item);
 void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color);
 void KillAllCurrentItems(short itemNumber);
 void TriggerRocketFlame(int x, int y, int z, int xv, int yv, int zv, int itemNumber);
-void TriggerRocketSmoke(int x, int y, int z);
 void TriggerFlashSmoke(int x, int y, int z, short roomNumber);
 void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vector3& color, int additional);
-void SpawnCorpseEffect(const Vector3& pos);
 void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale);
 void TriggerRocketFire(int x, int y, int z);
 void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
@@ -299,5 +299,5 @@ void Ricochet(Pose& pos);
 void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 
+void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo& muzzleFlash);
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth);
-std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);

@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/Lara/PlayerContext.h"
 #include "Math/Math.h"
+#include "Objects/game_object_ids.h"
 #include "Objects/objectslist.h"
 
 using namespace TEN::Math;
@@ -163,12 +164,12 @@ enum LaraState
 	LS_TIGHTROPE_RECOVER_BALANCE = 127,
 	LS_HORIZONTAL_BAR_SWING = 128,
 	LS_HORIZONTAL_BAR_LEAP = 129,
-	LS_UNKNOWN_1 = 130,
+	LS_RADIO_START = 130,
 	LS_RADIO_LISTENING = 131,
 	LS_RADIO_OFF = 132,
-	LS_UNKNOWN_2 = 133,
+	LS_USE_KEYCARD = 133,
 	LS_UNKNOWN_3 = 134,
-	LS_UNKNOWN_4 = 135,
+	LS_VALVE_TURN = 135,
 	LS_UNKNOWN_5 = 136,
 	LS_PICKUP_FROM_CHEST = 137,
 	LS_LADDER_TO_CROUCH = 138,
@@ -860,6 +861,13 @@ enum LaraExtraAnim
 };
 #pragma endregion
 
+enum PlayerTorchAnim
+{
+	PLAYER_TORCH_ANIM_HOLD  = 0,
+	PLAYER_TORCH_ANIM_THROW = 1,
+	PLAYER_TORCH_ANIM_DROP  = 2
+};
+
 enum LARA_MESHES
 {
 	LM_HIPS,
@@ -919,6 +927,16 @@ enum class PlayerAmmoType
 	GrenadeFlash,
 	Harpoon,
 	Rocket,
+
+	Count
+};
+
+enum class PlayerWeaponMode
+{
+	None,
+	Rapid,
+	Burst,
+	Sniper,
 
 	Count
 };
@@ -1066,10 +1084,10 @@ public:
 		return (Count == value);
 	}
 
-	Ammo& operator =(Ammo& ammo)
+	Ammo& operator =(const Ammo& ammo)
 	{
 		Count = ammo.Count;
-		IsInfinite = ammo.Count;
+		IsInfinite = ammo.IsInfinite;
 		return *this;
 	}
 
@@ -1127,15 +1145,16 @@ struct CarriedWeaponInfo
 
 struct ArmInfo
 {
-	int AnimNumber	= 0;
-	int FrameNumber = 0;
-	int FrameBase	= 0;
+	GAME_OBJECT_ID AnimObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+	int			   AnimNumber	= 0;
+	int			   FrameNumber	= 0;
 
 	EulerAngles Orientation = EulerAngles::Identity;
 	bool		Locked		= false;
 
 	int GunFlash = 0;
 	int GunSmoke = 0;
+	int AimDelay = 0;
 };
 
 struct FlareData
@@ -1358,7 +1377,7 @@ struct LaraInfo
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};
 	TorchData		  Torch = {};
-	CarriedWeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] = {}; // TODO: Move to WeaponControlData.
+	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
 	int VerticalOffset = 0;
 	PlayerJointRotationData JointRot = {};
@@ -1402,6 +1421,16 @@ const auto CRAWL_STATES = std::vector<int>
 	LS_CRAWL_TURN_RIGHT,
 	LS_CRAWL_TURN_180,
 	LS_CRAWL_TO_HANG
+};
+
+const auto JUMP_STATES = std::vector<int>
+{
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT,
+	LS_JUMP_UP,
+	LS_REACH
 };
 
 const auto IK_STATES = std::vector<int>

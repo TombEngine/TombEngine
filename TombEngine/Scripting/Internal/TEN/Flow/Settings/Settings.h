@@ -1,8 +1,11 @@
 #pragma once
 
+#include "Game/control/box.h"
 #include "Game/Lara/lara_struct.h"
 #include "Scripting/Internal/ScriptAssert.h"
+#include "Scripting/Internal/TEN/Strings/DisplayString/DisplayString.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/clock.h"
 
@@ -53,12 +56,14 @@ namespace TEN::Scripting
 	struct GameplaySettings
 	{
 		bool TargetObjectOcclusion = true;
+		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
 	};
 
 	struct GraphicsSettings
 	{
+		bool AmbientOcclusion = true;
 		bool Skinning = true;
 		bool InverseKinematics = true;
 
@@ -84,6 +89,25 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct PathfindingSettings
+	{
+		PathfindingMode Mode = PathfindingMode::AStar;	// Pathfinding algorithm.
+
+		int		SearchDepth					= 5;		// Pathfinding search depth.
+		int		EscapeDistance				= BLOCK(5);	// Escape distance.
+		int		StalkDistance				= BLOCK(3);	// Stalk distance.
+		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
+		float	CollisionPenaltyThreshold	= 1.0f;		// Penalty threshold in seconds.
+		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
+		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
+		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
+		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
+		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
+
+		static void Register(sol::table& parent);
+	};
+
 	struct PhysicsSettings
 	{
 		float Gravity	   = 6.0f;
@@ -97,6 +121,21 @@ namespace TEN::Scripting
 		ErrorMode ErrorMode		= ErrorMode::Warn;
 		bool	  FastReload	= true;
 		bool	  Multithreaded = true;
+
+		static void Register(sol::table& parent);
+	};
+
+	struct UISettings
+	{
+		ScriptColor HeaderTextColor		= ScriptColor(216, 117, 49);	// Orange
+		ScriptColor OptionTextColor		= ScriptColor(240, 220, 32);	// Yellow
+		ScriptColor PlainTextColor		= ScriptColor(255, 255, 255);	// White
+		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
+		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
+
+		Vec2 TitleMenuPosition = Vec2(50, 66);
+		float TitleMenuScale = 1.0f;
+		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
 
 		static void Register(sol::table& parent);
 	};
@@ -128,15 +167,17 @@ namespace TEN::Scripting
 
 	struct Settings
 	{
-		AnimSettings				Animations = {};
-		CameraSettings				Camera	   = {};
-		FlareSettings				Flare	   = {};
-		GameplaySettings			Gameplay   = {};
-		GraphicsSettings			Graphics   = {};
-		std::array<HairSettings, 3> Hair	   = {};
-		HudSettings					Hud		   = {};
-		PhysicsSettings				Physics	   = {};
-		SystemSettings				System	   = {};
+		AnimSettings				Animations  = {};
+		CameraSettings				Camera	    = {};
+		FlareSettings				Flare	    = {};
+		GameplaySettings			Gameplay    = {};
+		GraphicsSettings			Graphics    = {};
+		std::array<HairSettings, 3> Hair	    = {};
+		HudSettings					Hud		    = {};
+		PathfindingSettings			Pathfinding = {};
+		PhysicsSettings				Physics	    = {};
+		SystemSettings				System	    = {};
+		UISettings					UI		    = {};
 		std::array<WeaponSettings, (int)LaraWeaponType::NumWeapons - 1> Weapons = {};
 
 		Settings();

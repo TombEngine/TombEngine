@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
@@ -20,6 +20,7 @@
 #include "Objects/Generic/Doors/double_doors.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 

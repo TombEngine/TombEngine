@@ -1516,9 +1516,10 @@ LevelFuncs.Engine.Diaries.ActivateDiary = function(objectNumber)
 end
 
 -- !Ignore
-LevelFuncs.Engine.Diaries.ShowNotification = function(dt)
+LevelFuncs.Engine.Diaries.ShowNotification = function()
 
     local dataName = GameVars.Engine.LastUsedDiary .. "_diarydata"
+    local deltaTime = 1/30
 
     if GameVars.Engine.Diaries[dataName] then
         local diary = GameVars.Engine.Diaries[dataName]
@@ -1533,7 +1534,7 @@ LevelFuncs.Engine.Diaries.ShowNotification = function(dt)
 
         end
 
-        GameVars.Engine.Diaries[dataName].Notification.ElapsedTime  = GameVars.Engine.Diaries[dataName].Notification.ElapsedTime + dt
+        GameVars.Engine.Diaries[dataName].Notification.ElapsedTime  = GameVars.Engine.Diaries[dataName].Notification.ElapsedTime + deltaTime
 
         if GameVars.Engine.Diaries[dataName].Notification.ElapsedTime <= GameVars.Engine.Diaries[dataName].Notification.NotificationTime then
             diary.TargetAlpha = 255

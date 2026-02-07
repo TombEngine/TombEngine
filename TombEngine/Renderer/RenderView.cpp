@@ -62,9 +62,16 @@ namespace TEN::Renderer
 		RoomNumber = cam->pos.RoomNumber;
 		WorldPosition = Vector3(cam->pos.x, cam->pos.y, cam->pos.z);
 
-		Vector3 target = Vector3(cam->target.x, cam->target.y, cam->target.z);
-		if ((target - WorldPosition) == Vector3::Zero)
+		auto target = Vector3(cam->target.x, cam->target.y, cam->target.z);
+		
+		// Safety clamps to avoid NaNs in view direction calculation.
+		auto rawDirection = target - WorldPosition;
+
+		if (rawDirection == Vector3::Zero)
 			target.y -= 10;
+
+		if (std::abs(rawDirection.x) < EPSILON && std::abs(rawDirection.z) < EPSILON)
+			target.x -= 1;
 
 		WorldDirection = target - WorldPosition;
 		WorldDirection.Normalize();

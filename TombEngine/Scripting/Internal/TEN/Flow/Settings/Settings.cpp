@@ -45,8 +45,10 @@ namespace TEN::Scripting
 		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
+		PathfindingSettings::Register(parent);
 		PhysicsSettings::Register(parent);
 		SystemSettings::Register(parent);
+		UISettings::Register(parent);
 		WeaponSettings::Register(parent);
 
 		parent.new_usertype<Settings>(
@@ -60,8 +62,10 @@ namespace TEN::Scripting
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
+			ScriptReserved_PFSettings, &Settings::Pathfinding,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
 			ScriptReserved_SystemSettings, &Settings::System,
+			ScriptReserved_UISettings, &Settings::UI,
 			ScriptReserved_WeaponSettings, &Settings::Weapons);
 	}
 
@@ -193,9 +197,14 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GameplaySettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
 
+			/// Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling
+			// or to replace it with custom module, such as ring inventory.
+			// @tfield bool enableInventory If false, inventory will not open.
+			"enableInventory", &GameplaySettings::EnableInventory,
+
 			/// Enable target occlusion by moveables and static meshes.
 			// @tfield bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-			"targetObjectOcclusion", & GameplaySettings::TargetObjectOcclusion);
+			"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
 	}
 
 	/// Graphics
@@ -207,6 +216,10 @@ namespace TEN::Scripting
 		parent.create().new_usertype<GraphicsSettings>(ScriptReserved_GraphicsSettings, sol::constructors<GraphicsSettings()>(),
 			sol::call_constructor, sol::constructors<GraphicsSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
+
+			/// Enable ambient occlusion.
+			// @tfield bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
+			"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
 			/// Enable inverse kinematics.
 			// @tfield bool inverseKinematics If enabled, Lara model will use inverse kinematics for legs and feet.
@@ -270,6 +283,77 @@ namespace TEN::Scripting
 		"pickupNotifier", &HudSettings::PickupNotifier);
 	}
 
+	/// Pathfinding
+	// @section Pathfinding
+	// Features and enhancements that modify enemy behaviour during pathfinding and while tracking player and other enemies.
+
+	void PathfindingSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<PathfindingSettings>(ScriptReserved_PFSettings, sol::constructors<PathfindingSettings()>(),
+			sol::call_constructor, sol::constructors<PathfindingSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(PathfindingSettings, ScriptReserved_PFSettings),
+
+		/// Pathfinding mode.
+		// @tfield Flow.PathfindingMode mode The algorithm used for pathfinding. For more information, refer to @{Flow.PathfindingMode}.
+		"mode", &PathfindingSettings::Mode,
+
+		/// Pathfinding graph search depth.
+		// @tfield int searchDepth Specifies how deep the AI will search the pathfinding graph when calculating a path to the target.
+		"searchDepth", &PathfindingSettings::SearchDepth,
+
+		/// Escape distance.
+		// @tfield int escapeDistance If enemy is being attacked, it attempts to escape as far as possible from the attacker. This
+		// value specifies the distance the enemy will try to reach when escaping.
+		"escapeDistance", &PathfindingSettings::EscapeDistance,
+
+		/// Stalk distance.
+		// @tfield int stalkDistance Distance at which an enemy may follow a target without attempting another attack after having
+		// previously escaped.
+		"stalkDistance", &PathfindingSettings::StalkDistance,
+
+		/// Path prediction scale factor.
+		// @tfield float predictionFactor Determines how far ahead enemy predicts the target's position based on its
+		// current velocity. A higher value makes enemies intercept the target earlier, while a lower value reduces anticipation.
+		// If set to 0, prediction will be disabled.
+		"predictionFactor", &PathfindingSettings::PredictionFactor,
+
+		/// Collision penalty threshold.
+		// @tfield float collisionPenaltyThreshold Specifies the timeout in seconds after which the enemy will be punished for
+		// collisions with illegal geometry and will be forced to ignore its current path to the target and recalculate it.
+		// If set to 0, collision penalties will be disabled.
+		"collisionPenaltyThreshold", &PathfindingSettings::CollisionPenaltyThreshold,
+
+		/// Collision penalty cooldown.
+		// @tfield float collisionPenaltyCooldown If a collision penalty was applied to an enemy, this value specifies the timeout
+		// in seconds during which the enemy will ignore the path to the target which previously caused a penalty.
+		"collisionPenaltyCooldown", &PathfindingSettings::CollisionPenaltyCooldown,
+
+		/// Moveable avoidance.
+		// @tfield bool moveableAvoidance Avoid collisions with moveables when possible. Enemy will attempt to turn away from the
+		// moveable if it's in the way. Applies only to moveables not placed near room geometry.
+		"moveableAvoidance", &PathfindingSettings::MoveableAvoidance,
+			
+		/// Static mesh avoidance.
+		// @tfield bool staticMeshAvoidance Avoid collisions with static meshes when possible. Enemy will attempt to turn away from the
+		// static mesh if it's in the way. Applies only to static meshes not placed near room geometry.
+		"staticMeshAvoidance", &PathfindingSettings::StaticMeshAvoidance,
+
+		/// Vertical geometry avoidance for swimming and flying enemies.
+		// @tfield bool verticalGeometryAvoidance Avoid swimming or flying forward into illegal room geometry that can be avoided
+		// by moving upwards.
+		"verticalGeometryAvoidance", &PathfindingSettings::VerticalGeometryAvoidance,
+
+		/// Water surface avoidance for swimming and flying enemies.
+		// @tfield bool waterSurfaceAvoidance For flying enemies, prevents diving into the water and dying while attacking
+		// the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.
+		"waterSurfaceAvoidance", &PathfindingSettings::WaterSurfaceAvoidance,
+
+		/// Vertical movement smoothing for swimming and flying enemies.
+		// @tfield bool verticalMovementSmoothing Smooths out vertical movement for swimming and flying enemies to prevent
+		// sudden unnatural jerks or changes in direction.
+		"verticalMovementSmoothing", &PathfindingSettings::VerticalMovementSmoothing);
+	}
+
 	/// Physics
 	// @section Physics
 	// Here you will find various settings for game world physics.
@@ -287,6 +371,81 @@ namespace TEN::Scripting
 		/// Swim velocity.
 		// @tfield float swimVelocity Specifies swim velocity for Lara. Affects both surface and underwater.
 		"swimVelocity", &PhysicsSettings::SwimVelocity);
+	}
+
+	/// System
+	// @section System
+	// Global system settings that is not directly related to gameplay.
+
+	void SystemSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<SystemSettings>(ScriptReserved_SystemSettings, sol::constructors<SystemSettings()>(),
+			sol::call_constructor, sol::constructors<SystemSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(SystemSettings, ScriptReserved_SystemSettings),
+
+		/// How should the application respond to script errors?
+		// @tfield Flow.ErrorMode errorMode Error mode to use.
+		"errorMode", &SystemSettings::ErrorMode,
+
+		/// Use multithreading in certain calculations. <br>
+		// When set to `true`, some performance-critical calculations will be performed in parallel, which can give
+		// a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.
+		// @tfield bool multithreaded Determines whether to use multithreading or not.
+		"multithreaded", &SystemSettings::Multithreaded,
+
+		/// Can the game utilize the fast reload feature? <br>
+		// When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
+		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
+		// (i.e. level was updated). If set to `false`, this functionality is turned off.
+		// @tfield bool fastReload Toggles fast reload on or off.
+		"fastReload", &SystemSettings::FastReload);
+	}
+
+	/// User interface
+	// @section UI
+	// System-wide user interface settings.
+
+	void UISettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<UISettings>(ScriptReserved_UISettings, sol::constructors<UISettings()>(),
+			sol::call_constructor, sol::constructors<UISettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(UISettings, ScriptReserved_UISettings),
+
+		/// Header text color.
+		// @tfield Color headerTextColor A color used for displaying header text in system menus.
+		"headerTextColor", &UISettings::HeaderTextColor,
+
+		/// Option text color.
+		// @tfield Color optionTextColor A color used for displaying option text in system menus.
+		"optionTextColor", &UISettings::OptionTextColor,
+
+		/// Plain text color.
+		// @tfield Color plainTextColor A color used for displaying plain text in system menus.
+		"plainTextColor", &UISettings::PlainTextColor,
+
+		/// Disabled text color.
+		// @tfield Color disabledTextColor A color used for displaying any header text in menus.
+		"disabledTextColor", &UISettings::DisabledTextColor,
+
+		/// Shadow text color.
+		// @tfield Color shadowTextColor A color used for drawing a shadow under any rendered text.
+		"shadowTextColor", &UISettings::ShadowTextColor,
+			
+		/// Title menu position.
+		// @tfield Vec2 titleMenuPosition Title level menu position. Horizontal coordinate represents an alignment baseline,
+		// while vertical coordinate represents a first menu entry's vertical position.
+		"titleMenuPosition", &UISettings::TitleMenuPosition,
+			
+		/// Title menu scale.
+		// @tfield float titleMenuScale Title level menu scale.
+		"titleMenuScale", &UISettings::TitleMenuScale,
+
+		/// Title menu alignment.
+		// @tfield Strings.DisplayStringOption titleMenuAlignment Specifies menu alignment.
+		//
+		// Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}.
+		// If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.
+		"titleMenuAlignment", &UISettings::TitleMenuAlignment);
 	}
 
 	/* @fieldtype { [WeaponType]: WeaponSettings } */
@@ -364,33 +523,5 @@ namespace TEN::Scripting
 		/// Muzzle offset.
 		// @tfield Vec3 muzzleOffset specifies offset for spawning muzzle gunflash effects.
 		"muzzleOffset", &WeaponSettings::MuzzleOffset);
-	}
-
-	/// System
-	// @section System
-	// Global system settings that is not directly related to gameplay.
-
-	void SystemSettings::Register(sol::table& parent)
-	{
-		parent.create().new_usertype<SystemSettings>(ScriptReserved_SystemSettings, sol::constructors<SystemSettings()>(),
-			sol::call_constructor, sol::constructors<SystemSettings()>(),
-			sol::meta_function::new_index, NewIndexErrorMaker(SystemSettings, ScriptReserved_SystemSettings),
-
-		/// How should the application respond to script errors?
-		// @tfield Flow.ErrorMode errorMode Error mode to use.
-		"errorMode", &SystemSettings::ErrorMode,
-
-		/// Use multithreading in certain calculations. <br>
-		// When set to `true`, some performance-critical calculations will be performed in parallel, which can give
-		// a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.
-		// @tfield bool multithreaded Determines whether to use multithreading or not.
-		"multithreaded", &SystemSettings::Multithreaded,
-
-		/// Can the game utilize the fast reload feature? <br>
-		// When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
-		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
-		// (i.e. level was updated). If set to `false`, this functionality is turned off.
-		// @tfield bool fastReload Toggles fast reload on or off.
-		"fastReload", &SystemSettings::FastReload);
 	}
 }

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Effects/flame_emitters.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -22,6 +22,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
@@ -642,7 +643,7 @@ namespace TEN::Entities::Effects
 				}
 
 				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				Lara.Flare.ControlLeft = false;
 				Lara.LeftArm.Locked = true;
 				Lara.Context.InteractedItem = itemNumber;
@@ -657,7 +658,7 @@ namespace TEN::Entities::Effects
 		{
 			if (laraItem->Animation.AnimNumber >= LA_TORCH_LIGHT_1 && laraItem->Animation.AnimNumber <= LA_TORCH_LIGHT_5)
 			{
-				if (laraItem->Animation.FrameNumber - GetAnimData(laraItem).frameBase == 40)
+				if (laraItem->Animation.FrameNumber == 40)
 				{
 					TestTriggers(item, true, item->Flags & IFLAG_ACTIVATION_MASK);
 

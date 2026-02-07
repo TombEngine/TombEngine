@@ -1,18 +1,11 @@
 #include "./CBCamera.hlsli"
+#include "./CBItem.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./Materials.hlsli"
-
-cbuffer CBInventoryItem : register(b1)
-{
-	float4x4 World;
-	float4x4 Bones[32];
-	float4 ItemPosition;
-	float4 AmbientLight;
-};
 
 struct PixelShaderInput
 {
@@ -43,28 +36,34 @@ PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
 
-	output.Position = mul(mul(float4(input.Position, 1.0f), World), ViewProjection);
-    output.Normal = (mul(input.Normal.xyz, (float3x3) World).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) World).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) World).xyz);
+    float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
+    float4x4 world = mul(blended, World);
+
+	output.Position = mul(mul(float4(input.Position, 1.0f), world), ViewProjection);
+    output.Normal = (mul(input.Normal.xyz, (float3x3) world).xyz);
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
+    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
     output.Color = input.Color;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.WorldPosition = (mul(float4(input.Position, 1.0f), World).xyz);
+    output.WorldPosition = (mul(float4(input.Position, 1.0f), world).xyz);
     output.Sheen = DecodeSheen(input.Effects);
-    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) World).xyz);
+    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) world).xyz);
     
 	return output;
 }
 
 PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
 {
-    if (Animated && Type == 1)
+	if (Animated && Type == 1)
         input.UV = CalculateUVRotate(input.UV, 0);
 	
     PixelShaderOutput output;
     
-    output.Color = Texture.Sample(Sampler, input.UV);
+    float4 tex = Texture.Sample(Sampler, input.UV);
+    float3 baseColor = tex.xyz * Color.xyz;
     float3 pos = normalize(input.WorldPosition);
+
+    output.Color = float4(baseColor, tex.w * Color.w);
 
     DoAlphaTest(output.Color);
     
@@ -83,7 +82,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, normal, specular);
 	
     ShaderLight l;
-    l.Color = float3(1.0f, 1.0f, 0.5f);
+    l.Color = float3(AmbientLight.xyz);
     l.Intensity = 0.3f;
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
@@ -93,12 +92,8 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     lighting += emissive;
     
      // Emissive material
-    output.Color.xyz += lighting;
+    output.Color.xyz += lighting * output.Color.a;
     output.Color.xyz = saturate(output.Color.xyz);
-
-	// Adding some pertubations to the lighting to add a cool effect
-    float3 noise = SimplexNoise(output.Color.xyz);
-    output.Color.xyz = NormalNoise(output.Color, noise, normal);
     
     output.Emissive = float4(emissive, 1.0f);
 	

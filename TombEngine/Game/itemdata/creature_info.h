@@ -1,22 +1,24 @@
 #pragma once
+
 #include "Math/Math.h"
 
 struct ItemInfo;
 
+constexpr auto BAD_BOX_MEMORY_SIZE = 4;
+
 // Default zone loaded by TEN. They are added by TE at compile time.
 enum class ZoneType
 {
-	Skeleton, // Enables jump, also 1 block vault and fall.
-	Basic,	  // Enables 1 step vault, 2 step fall (default).
+	Skeleton,	// Enables jump, also 1 block vault and fall.
+	Basic,		// Enables 1 step vault, 2 step fall (default).
 
-	// TODO: Underwater creatures can go on land like the crocodile, which is wrong since the flag IsAmphibious is not set for them.
-	Water, // Enables movement exclusively underwater (exception: crocodile can go on land)
-	// Amphibious, // TODO: For later since it's not on level file now.
+	Water,		// Enables movement exclusively underwater (exception: crocodile can go on land)
+	Amphibious, // For crocodile like enemies
 
-	Human, // Enables 1 block vault and fall.
-	Flyer, // Enables flying anywhere except water rooms.
+	Human,		// Enables 1 block vault and fall.
+	Flyer,		// Enables flying anywhere except water rooms.
 
-	MaxZone // Used when loading level.
+	MaxZone		// Used when loading level.
 };
 
 enum class MoodType
@@ -27,54 +29,56 @@ enum class MoodType
 	Stalk
 };
 
-enum class CreatureAIPriority
-{
-	None,
-	Low,
-	Medium,
-	High
-};
-
 struct BoxNode
 {
-	int exitBox		  = 0;
-	int searchNumber  = 0;
-	int nextExpansion = 0;
-	int boxNumber	  = 0;
+	int   exitBox       = 0;
+	int   searchNumber  = 0;
+	int   nextExpansion = 0;
+	int   boxNumber     = 0;
+	float cost          = FLT_MAX; // Accumulated distance from target (for Dijkstra).
 };
 
-struct LOTInfo 
+struct BadBox
+{
+	bool Valid		= false;
+	int  BoxNumber	= NO_VALUE;
+	int  Count		= 0;
+};
+
+struct LOTInfo
 {
 	bool Initialized = false;
 
-	std::vector<BoxNode> Node = {};
 	int Head = 0;
 	int Tail = 0;
+
+	std::vector<BadBox>  BadBoxes = {};
+	std::vector<BoxNode> Node = {};
 
 	ZoneType Zone	= ZoneType::Basic;
 	Vector3i Target = Vector3i::Zero;
 
-	int	  TargetBox	   = 0;
-	int	  RequiredBox  = 0;
-	int	  SearchNumber = 0;
-	int	  BlockMask	   = 0;
-	short ZoneCount	   = 0;
-	short Step		   = 0;
-	short Drop		   = 0;
-	short Fly		   = 0;
+	int TargetBox	 = 0;
+	int RequiredBox  = 0;
+	int SourceBox    = NO_VALUE; // Creature's current box (for A* heuristic).
+	int SearchNumber = 0;
+	int BlockMask	 = 0;
+	int ZoneCount	 = 0;
+	int Step		 = 0;
+	int Drop		 = 0;
+	int Fly			 = 0;
 
-	bool IsAmphibious = false;
-	bool IsJumping	  = false;
-	bool IsMonkeying  = false;
+	bool IsJumping		 = false;
+	bool IsMonkeying	 = false;
 
-	bool CanJump	  = false;
-	bool CanMonkey	  = false;
+	bool CanJump   = false;
+	bool CanMonkey = false;
 };
 
 struct CreatureBiteInfo
 {
 	Vector3 Position = Vector3::Zero;
-	int		BoneID	 = -1;
+	int		BoneID	 = NO_VALUE;
 
 	CreatureBiteInfo() {}
 
@@ -132,6 +136,7 @@ struct CreatureInfo
 	int		  AITargetNumber = NO_VALUE;
 	Vector3i  Target		 = Vector3i::Zero;
 
+	int   FlyRate		   = 0;
 	short MaxTurn		   = 0;
 	short JointRotation[4] = {};
 	bool  HeadLeft		   = false;
@@ -152,9 +157,4 @@ struct CreatureInfo
 	short Flags		  = 0;
 
 	bool IsTargetAlive();
-
-#ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
-	CreatureAIPriority Priority = CreatureAIPriority::None;
-	size_t FramesSinceLOTUpdate = 0;
-#endif
 };

@@ -13,9 +13,7 @@ class Vec3;
 
 namespace TEN::Scripting::Collision
 {
-	// TODO:
-	// Integrate line of sight queries (LOS).
-	// Integrate moveable and static queries.
+	// TODO: Integrate moveable and static queries.
 
     class Probe
     {
@@ -66,6 +64,4 @@ namespace TEN::Scripting::Collision
 
 		void Preview();
     };
-
-	void Register(sol::state* lua, sol::table& parent);
 }

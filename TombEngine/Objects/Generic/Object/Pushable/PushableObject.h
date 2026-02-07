@@ -29,7 +29,8 @@ namespace TEN::Entities::Generic
 	extern std::vector<PushableAnimSet> PushableAnimSets;
 
 	PushableInfo& GetPushableInfo(const ItemInfo& item);
-	
+
+	void UpdatePushableFromOCB(ItemInfo& pushableItem);
 	void InitializePushableBlock(int itemNumber);
 	void ControlPushableBlock(int itemNumber);
 	void CollidePushableBlock(int itemNumber, ItemInfo* playerItem, CollisionInfo* coll);

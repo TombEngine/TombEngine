@@ -2,11 +2,13 @@
 #include "Specific/Input/Input.h"
 
 #include "Game/camera.h"
+#include "Game/control/box.h"
 #include "Game/Gui.h"
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/trutils.h"
@@ -597,6 +599,15 @@ namespace TEN::Input
 		if ((KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]) && dbDebugPage)
 			g_Renderer.SwitchDebugPage(KeyMap[OIS::KC_F10]);
 		dbDebugPage = !(KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]);
+
+		// Cycle pathfinding display with TAB when on pathfinding debug page.
+		static bool dbPathfindingCycle = true;
+		if (KeyMap[OIS::KC_TAB] && dbPathfindingCycle &&
+			g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
+		{
+			CyclePathfindingDisplay();
+		}
+		dbPathfindingCycle = !KeyMap[OIS::KC_TAB];
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;

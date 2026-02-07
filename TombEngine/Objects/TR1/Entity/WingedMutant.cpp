@@ -542,11 +542,11 @@ namespace TEN::Entities::Creatures::TR1
 				{
 					if (projectileType == WMUTANT_PROJ_SHARD)
 					{
-						CreatureEffect2(&item, WingedMutantShardBite, WINGED_MUTANT_SHARD_VELOCITY, torsoYOrient, ShardGun);
+						ShootAtEnemy(creature.LOT.Target, creature.Enemy, CreatureEffect2(&item, WingedMutantShardBite, WINGED_MUTANT_SHARD_VELOCITY, torsoYOrient, ShardGun));
 					}
 					else if (projectileType == WMUTANT_PROJ_BOMB)
 					{
-						CreatureEffect2(&item, WingedMutantRocketBite, WINGED_MUTANT_BOMB_VELOCITY, torsoYOrient, BombGun);
+						ShootAtEnemy(creature.LOT.Target, creature.Enemy, CreatureEffect2(&item, WingedMutantRocketBite, WINGED_MUTANT_BOMB_VELOCITY, torsoYOrient, BombGun));
 					}
 
 					creature.Flags = 1;
