@@ -32,7 +32,7 @@ enum class LotType
 	Skeleton,
 	Basic,
 	Water,
-	WaterAndLand,
+	Amphibious,
 	Human,
 	HumanPlusJump,
 	HumanPlusJumpAndMonkey,
@@ -89,7 +89,6 @@ struct ObjectInfo
 	int	 HitPoints				= 0;
 	bool AlwaysActive			= false;
 	bool intelligent			= false;
-	bool waterCreature			= false;
 	bool nonLot					= false;
 	bool isPickup				= false;
 	bool isPuzzleHole			= false;
@@ -107,6 +106,8 @@ struct ObjectInfo
 	void SetBoneRotationFlags(int boneID, int flags);
 	void SetHitEffect(HitEffect hitEffect);
 	void SetHitEffect(bool isSolid = false, bool isAlive = false);
+
+	bool WaterCreature() const { return LotType == LotType::Water || LotType == LotType::Amphibious; }
 };
 
 class ObjectHandler

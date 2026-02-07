@@ -236,7 +236,6 @@ void InitializeObjects()
 		obj->explodableMeshbits = 0;
 		obj->intelligent = false;
 		obj->AlwaysActive = false;
-		obj->waterCreature = false;
 		obj->nonLot = false;
 		obj->Hidden = false;
 		obj->damageType = DamageMode::Any;

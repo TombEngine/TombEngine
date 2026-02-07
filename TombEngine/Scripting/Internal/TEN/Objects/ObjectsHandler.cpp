@@ -117,6 +117,14 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_table_objects.set_function(ScriptReserved_GetRoomByName, &ObjectsHandler::GetByName<Room, ScriptReserved_Room>, this);
 
 	/***
+	Get a Room by its number.
+	@function GetRoomByNumber
+	@tparam string name The unique number of the room returned by GetRoomNumber functions.
+	@treturn Objects.Room A non-owning Room referencing the room.
+	*/
+	_table_objects.set_function(ScriptReserved_GetRoomByNumber, &ObjectsHandler::GetRoomByNumber, this);
+
+	/***
 	Get rooms by tag.
 	@function GetRoomsByTag
 	@tparam string tag Tag to select rooms by.

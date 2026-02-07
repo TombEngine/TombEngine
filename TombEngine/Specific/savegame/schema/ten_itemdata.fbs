@@ -53,6 +53,12 @@ struct Pose {
 	scale: Vector3;
 }
 
+table BadBox {
+	valid: bool;
+	box_number: int32;
+	count: int32;
+}
+
 table CreatureTarget {
 	object_number: int32;
 	room_number: int32;
@@ -63,6 +69,7 @@ table CreatureTarget {
 }
 
 table Creature {
+	fly_rate: int32;
 	maximum_turn: int32;
 	joint_rotation: [int32];
 	head_left: bool;
@@ -85,9 +92,9 @@ table Creature {
 	flags: int32;
 	can_jump: bool;
 	can_monkey: bool;
-	is_amphibious: bool;
 	is_jumping: bool;
 	is_monkeying: bool;
+	bad_boxes: [BadBox];
 }
 
 table LaserHead {
@@ -176,6 +183,8 @@ table Rubberboat {
 }
 
 table Pushable {
+	previous_trigger_flags: int32;
+
 	pushable_behaviour_state: int32;
 	pushable_gravity: float;
 	pushable_water_force: float;

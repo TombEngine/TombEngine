@@ -18,6 +18,7 @@
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
 #include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
 #include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/PathfindingAlgorithms.h"
 #include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
@@ -29,6 +30,7 @@
 #include "Sound/sound.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Gui;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
 
@@ -369,6 +371,7 @@ Specify which translations in the strings table correspond to which languages.
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ErrorMode, ERROR_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_GameStatus, GAME_STATUSES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_FreezeMode, FREEZE_MODES);
+	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingMode, PATHFINDING_MODES);
 }
 
 FlowHandler::~FlowHandler()
@@ -468,6 +471,7 @@ void FlowHandler::LoadFlowScript()
 	TENLog("Loading gameflow script, strings, and settings...", LogLevel::Info);
 
 	Levels.clear();
+	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);

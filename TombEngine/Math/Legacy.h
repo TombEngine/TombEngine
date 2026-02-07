@@ -4,7 +4,6 @@
 
 constexpr auto FP_SHIFT				   = 16;
 constexpr auto W2V_SHIFT			   = 14;
-constexpr auto PREDICTIVE_SCALE_FACTOR = 14;
 
 constexpr auto SHORTS_TO_1_DEGREE = 65536.0f / 360.0f;
 constexpr auto DEGREES_TO_1_SHORT = 360.0f / 65536.0f;

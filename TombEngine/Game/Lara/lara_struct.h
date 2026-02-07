@@ -1084,10 +1084,10 @@ public:
 		return (Count == value);
 	}
 
-	Ammo& operator =(Ammo& ammo)
+	Ammo& operator =(const Ammo& ammo)
 	{
 		Count = ammo.Count;
-		IsInfinite = ammo.Count;
+		IsInfinite = ammo.IsInfinite;
 		return *this;
 	}
 
@@ -1352,7 +1352,7 @@ struct LaraInfo
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};
 	TorchData		  Torch = {};
-	CarriedWeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] = {}; // TODO: Move to WeaponControlData.
+	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
 	EulerAngles ExtraHeadRot	= EulerAngles::Identity;
 	EulerAngles ExtraTorsoRot	= EulerAngles::Identity;
@@ -1393,4 +1393,14 @@ const auto CRAWL_STATES = std::vector<int>
 	LS_CRAWL_TURN_RIGHT,
 	LS_CRAWL_TURN_180,
 	LS_CRAWL_TO_HANG
+};
+
+const auto JUMP_STATES = std::vector<int>
+{
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT,
+	LS_JUMP_UP,
+	LS_REACH
 };

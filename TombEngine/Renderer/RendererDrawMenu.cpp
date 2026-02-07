@@ -1,7 +1,10 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 
 #include "Game/Animation/Animation.h"
+#include "Game/collision/Point.h"
+#include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/Gui.h"
@@ -19,6 +22,7 @@
 #include "Version.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Point;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -126,8 +130,8 @@ namespace TEN::Renderer
 		int y = 0;
 		auto titleOption = g_Gui.GetSelectedOption();
 
-		auto optionColor   = g_GameFlow->GetSettings()->UI.OptionTextColor;
-		auto headerColor   = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto optionColor   = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto headerColor   = g_GameFlow->GetSettings()->UI.OptionTextColor;
 		auto plainColor    = g_GameFlow->GetSettings()->UI.PlainTextColor;
 		auto disabledColor = g_GameFlow->GetSettings()->UI.DisabledTextColor;
 
@@ -582,7 +586,7 @@ namespace TEN::Renderer
 			menuPos.y = MenuVerticalLineSpacing;
 
 			// Title
-			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 			GetNextBlockPosition(&menuPos.y);
 
 			// Level 0 is always Title Level and level 1 might be Home Level.
@@ -624,7 +628,7 @@ namespace TEN::Renderer
 			y = MenuVerticalPause;
 
 			// Header
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_ACTIONS_PAUSE), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_ACTIONS_PAUSE), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 			GetNextBlockPosition(&y);
 
 			// Statistics
@@ -674,7 +678,7 @@ namespace TEN::Renderer
 
 		// Title
 		AddString(MenuCenterEntry, MenuVerticalNarrowLineSpacing, Str_LoadSave(g_Gui.GetInventoryMode() == InventoryMode::Save),
-			g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+			g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 		GetNextBlockPosition(&y);
 
 		// Savegame listing
@@ -715,7 +719,7 @@ namespace TEN::Renderer
 		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
 
 		// Title
-		AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_STATISTICS), g_GameFlow->GetSettings()->UI.OptionTextColor, SF_Center());
+		AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_STATISTICS), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
 		GetNextBlockPosition(&y);
 
 		// Level name
@@ -769,6 +773,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderNewInventory()
 	{
+		g_Gui.DrawCompass(LaraItem);
+
 		g_Gui.DrawCurrentObjectList(LaraItem, RingTypes::Inventory);
 
 		if (g_Gui.GetRing(RingTypes::Ammo).RingActive)
@@ -776,7 +782,6 @@ namespace TEN::Renderer
 
 		g_Gui.DrawAmmoSelector();
 		g_Gui.FadeAmmoSelector();
-		g_Gui.DrawCompass(LaraItem);
 
 		DrawAllStrings();
 	}
@@ -1458,6 +1463,78 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
+	void Renderer::DrawDebugRenderTargets(RenderView& view)
+	{
+		if (_debugPage != RendererDebugPage::RendererStats)
+			return;
+
+		float aspectRatio = _screenWidth / (float)_screenHeight;
+		int thumbWidth = _screenWidth / 8;
+		int thumbY = 0;
+
+		auto rect = RECT{};
+
+		_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth / aspectRatio;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+		_spriteBatch->Draw(_SSAOBlurredRenderTarget.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth / aspectRatio;
+
+		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
+		{
+			rect.left = _screenWidth - thumbWidth;
+			rect.top = thumbY;
+			rect.right = rect.left + thumbWidth;
+			rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+			_spriteBatch->Draw(_SMAAEdgesRenderTarget.ShaderResourceView.Get(), rect);
+			thumbY += thumbWidth / aspectRatio;
+
+			rect.left = _screenWidth - thumbWidth;
+			rect.top = thumbY;
+			rect.right = rect.left + thumbWidth;
+			rect.bottom = rect.top + thumbWidth / aspectRatio;
+
+			_spriteBatch->Draw(_SMAABlendRenderTarget.ShaderResourceView.Get(), rect);
+			thumbY += thumbWidth / aspectRatio;
+		}
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth;
+
+		_spriteBatch->Draw(_roomAmbientMapFront.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth;
+
+		rect.left = _screenWidth - thumbWidth;
+		rect.top = thumbY;
+		rect.right = rect.left + thumbWidth;
+		rect.bottom = rect.top + thumbWidth;
+
+		_spriteBatch->Draw(_roomAmbientMapBack.ShaderResourceView.Get(), rect);
+		thumbY += thumbWidth;
+
+		_spriteBatch->End();
+	}
+
 	void Renderer::DrawDebugInfo(RenderView& view)
 	{
 #if TEST_BUILD
@@ -1475,11 +1552,6 @@ namespace TEN::Renderer
 
 		const auto& room = g_Level.Rooms[playerItem.RoomNumber];
 
-		float aspectRatio = _screenWidth / (float)_screenHeight;
-		int thumbWidth = _screenWidth / 8;
-		auto rect = RECT{};
-		int thumbY = 0;
-
 		switch (_debugPage)
 		{
 		case RendererDebugPage::None:
@@ -1487,6 +1559,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::RendererStats:
 			PrintDebugMessage("RENDERER STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("FPS: %3.2f", _fps);
 			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
 			PrintDebugMessage("GPU: %s", g_Configuration.AdapterName.c_str());
@@ -1509,73 +1582,43 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Sprites: %d", _numSortedSpritesDrawCalls);
 			PrintDebugMessage("SHADOW MAP draw calls: %d", _numShadowMapDrawCalls);
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
-			PrintDebugMessage("Constant buffers updates: %d", _numConstantBufferUpdates);
+			PrintDebugMessage("Constant buffer updates: %d", _numConstantBufferUpdates);
 			PrintDebugMessage("Material updates: %d requested, %d executed", _numRequestedMaterialsUpdates, _numExecutedMaterialsUpdates);
+			break;
 
-			_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
+		case RendererDebugPage::MemoryStats:
+		{
+			const auto& vram = Graphics::VRAMTracker::Get();
 
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left+ thumbWidth;
-			rect.bottom = rect.top+thumbWidth / aspectRatio;
+			PrintDebugMessage("MEMORY STATS");
+			PrintDebugMessage(" ");
+			PrintDebugMessage("Adapter: %s", _adapterInfo.Name.c_str());
+			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
+			PrintDebugMessage(" ");
+			PrintDebugMessage("--- DXGI Adapter ---");
+			PrintDebugMessage("Dedicated VRAM: %d MB", _adapterInfo.DedicatedVideoMemory / (1024 * 1024));
+			PrintDebugMessage("Dedicated system memory: %d MB", _adapterInfo.DedicatedSystemMemory / (1024 * 1024));
+			PrintDebugMessage("Shared system memory: %d MB", _adapterInfo.SharedSystemMemory / (1024 * 1024));
+			PrintDebugMessage(" ");
+			PrintDebugMessage("--- Allocated ---");
+			PrintDebugMessage("Total: %.2f MB", vram.ToMegabytes(vram.GetTotal()));
+			PrintDebugMessage("  Textures: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("  Render targets: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("  Vertex buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("  Index buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
 
-			_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth / aspectRatio;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-			_spriteBatch->Draw(_SSAOBlurredRenderTarget.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth / aspectRatio;
-
-			if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
+			if (_adapterInfo.DedicatedVideoMemory > 0)
 			{
-				rect.left = _screenWidth - thumbWidth;
-				rect.top = thumbY;
-				rect.right = rect.left + thumbWidth;
-				rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-				_spriteBatch->Draw(_SMAAEdgesRenderTarget.ShaderResourceView.Get(), rect);
-				thumbY += thumbWidth / aspectRatio;
-
-				rect.left = _screenWidth - thumbWidth;
-				rect.top = thumbY;
-				rect.right = rect.left + thumbWidth;
-				rect.bottom = rect.top + thumbWidth / aspectRatio;
-
-				_spriteBatch->Draw(_SMAABlendRenderTarget.ShaderResourceView.Get(), rect);
-				thumbY += thumbWidth / aspectRatio;
+				float usagePercent = (vram.ToMegabytes(vram.GetTotal()) / vram.ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
+				PrintDebugMessage(" ");
+				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
 			}
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth;
-
-			_spriteBatch->Draw(_roomAmbientMapFront.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth;
-
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth;
-
-			_spriteBatch->Draw(_roomAmbientMapBack.ShaderResourceView.Get(), rect);
-			thumbY += thumbWidth;
-
-			_spriteBatch->End();
-
+		}
 			break;
 
 		case RendererDebugPage::DimensionStats:
 			PrintDebugMessage("DIMENSION STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Position: %d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
 			PrintDebugMessage("Orientation: %d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
 			PrintDebugMessage("Scale: %.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
@@ -1591,6 +1634,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PlayerStats:
 			PrintDebugMessage("PLAYER STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("AnimObjectID: %d", playerItem.Animation.AnimObjectID);
 			PrintDebugMessage("AnimNumber: %d", playerItem.Animation.AnimNumber);
 			PrintDebugMessage("FrameNumber: %d", playerItem.Animation.FrameNumber);
@@ -1630,6 +1674,7 @@ namespace TEN::Renderer
 			}
 
 			PrintDebugMessage("INPUT STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage(("Clicked actions: " + clickedActions.ToString()).c_str());
 			PrintDebugMessage(("Held actions: " + heldActions.ToString()).c_str());
 			PrintDebugMessage(("Released actions: " + releasedActions.ToString()).c_str());
@@ -1642,6 +1687,7 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::CollisionStats:
 			PrintDebugMessage("COLLISION STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Collision type: %d", LaraCollision.CollisionType);
 			PrintDebugMessage("Bridge item ID: %d", LaraCollision.Middle.Bridge);
 			PrintDebugMessage("Front floor: %d", LaraCollision.Front.Floor);
@@ -1654,15 +1700,52 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::PathfindingStats:
 			PrintDebugMessage("PATHFINDING STATS");
-			PrintDebugMessage("BoxNumber: %d", playerItem.BoxNumber);
+			PrintDebugMessage(" ");
+			{
+				int playerBoxID = playerItem.BoxNumber == NO_VALUE ? GetPointCollision(playerItem).GetBottomSector().PathfindingBoxID : playerItem.BoxNumber;
+				PrintDebugMessage("Player box number: %d", playerBoxID);
+
+				auto creatures = GetActiveCreatures();
+
+				if (PathfindingDisplayIndex >= 0)
+				{
+					if (creatures.empty() || creatures.size() <= PathfindingDisplayIndex)
+						break;
+
+					auto& enemy = g_Level.Items[creatures[PathfindingDisplayIndex]];
+					auto* creatureInfo = (CreatureInfo*)enemy.Data;
+					auto zoneType = creatureInfo->LOT.Zone;
+					auto& zones = g_Level.Zones[(int)zoneType][(int)FlipStatus];
+
+					PrintDebugMessage("Player zone number: %d", playerBoxID == NO_VALUE ? NO_VALUE : zones[playerBoxID]);
+					PrintDebugMessage("Enemy: %s", enemy.Name.c_str());
+					PrintDebugMessage("Enemy box number: %d", enemy.BoxNumber);
+					PrintDebugMessage("Enemy zone type: %d", zoneType);
+					PrintDebugMessage("Enemy zone number: %d", enemy.BoxNumber == NO_VALUE ? NO_VALUE : zones[enemy.BoxNumber]);
+
+					auto mood = "Unknown";
+					switch (creatureInfo->Mood)
+					{
+						case MoodType::Attack: mood = "Attack"; break;
+						case MoodType::Stalk:  mood = "Stalk";  break;
+						case MoodType::Escape: mood = "Escape"; break;
+						case MoodType::Bored:  mood = "Bored";  break;
+					}
+					PrintDebugMessage("Enemy mood: %s", mood);
+				}
+				else if (!creatures.empty())
+					PrintDebugMessage("Push TAB to scroll through enemies");
+			}
 			break;
 
 		case RendererDebugPage::CollisionMeshStats:
 			PrintDebugMessage("COLLISION MESH STATS");
+			PrintDebugMessage(" ");
 			break;
 
 		case RendererDebugPage::PortalStats:
 			PrintDebugMessage("PORTAL STATS");
+			PrintDebugMessage(" ");
 			PrintDebugMessage("Camera room number: %d", Camera.pos.RoomNumber);
 			PrintDebugMessage("Room collector time: %d", _timeRoomsCollector);
 			PrintDebugMessage("Rooms: %d", view.RoomsToDraw.size());

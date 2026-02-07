@@ -6,8 +6,8 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+#include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 
-enum class CallbackPoint;
 class LevelFunc;
 
 class LogicHandler : public ScriptInterfaceGame
@@ -111,6 +111,13 @@ public:
 	template <typename ... Ts> sol::protected_function_result CallLevelFuncByName(const std::string& name, Ts ... vs)
 	{
 		auto func = _levelFuncs_luaFunctions[name];
+
+		if (!func.valid())
+		{
+			TENLog("Could not find script function " + name, LogLevel::Warning);
+			return sol::protected_function_result();
+		}
+
 		auto funcResult = CallLevelFuncBase(func, vs...);
 
 		if (!funcResult.valid())

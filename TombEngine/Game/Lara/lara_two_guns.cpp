@@ -127,16 +127,25 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 				bool canShoot = (weaponType == LaraWeaponType::Revolver) ? isRightWeapon : true;
 				if (canShoot)
 				{
-					// HACK: Revolver, a right weapon, uses the left arm's orientation.
-					auto armOrient = (weaponType == LaraWeaponType::Revolver) ?
-						EulerAngles(
-							player.LeftArm.Orientation.x,
-							player.LeftArm.Orientation.y + laraItem.Pose.Orientation.y,
-							0) :
-						EulerAngles(
+					auto armOrient = EulerAngles::Identity;
+
+					if (weaponType == LaraWeaponType::Revolver)
+					{
+						auto additionalOrient = player.TargetEntity ? EulerAngles::Identity : player.ExtraTorsoRot;
+
+						// HACK: Revolver, a right weapon, uses the left arm's orientation.
+						armOrient = EulerAngles(
+							additionalOrient.x + player.LeftArm.Orientation.x,
+							additionalOrient.y + player.LeftArm.Orientation.y + laraItem.Pose.Orientation.y,
+							0);
+					}
+					else
+					{
+						armOrient = EulerAngles(
 							arm.Orientation.x,
 							arm.Orientation.y + laraItem.Pose.Orientation.y,
 							0);
+					}
 
 					if (FireWeapon(weaponType, player.TargetEntity, laraItem, armOrient) != FireWeaponType::NoAmmo)
 					{

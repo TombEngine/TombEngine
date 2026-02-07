@@ -60,6 +60,9 @@ namespace TEN::Renderer
 
 	void Renderer::PrintDebugMessage(LPCSTR msg, ...)
 	{
+		if (_isLocked)
+			return;
+
 		auto args = va_list{};
 		va_start(args, msg);
 		PrintDebugMessage(msg, args);
