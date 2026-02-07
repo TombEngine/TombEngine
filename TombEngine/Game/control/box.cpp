@@ -82,8 +82,6 @@ constexpr auto CREATURE_AI_ROTATION_MAX = ANGLE(90.0f);		// Maximum head rotatio
 constexpr auto CREATURE_JOINT_ROTATION_MAX = ANGLE(70.0f);	// Maximum joint rotation per frame.
 constexpr auto CREATURE_FLY_SMOOTH_FACTOR = 0.1f;			// Smoothing factor for fly/vertical swim velocity.
 
-constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
-
 int PathfindingDisplayIndex = NO_VALUE;
 
 static Vector3 GetVelocity(const ItemInfo& item)
@@ -1370,30 +1368,6 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 	item->Pose.Orientation.y += angle;
 
 	return angle;
-}
-
-static void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo& muzzleFlash)
-{
-	if (muzzleFlash.Delay == 0)
-		return;
-
-	auto intensity = Random::GenerateFloat(0.75f, 1.0f);
-
-	auto r = (unsigned char)(128.0f * intensity);
-	auto g = (unsigned char)(64.0f  * intensity);
-	auto b = (unsigned char)(16.0f  * intensity);
-	auto falloff = (unsigned char)(15.0f * intensity);
-
-	auto muzzlePos = muzzleFlash.Bite;
-	auto pos = GetJointPosition(item, muzzlePos);
-	SpawnDynamicLight(pos.x, pos.y, pos.z, falloff, r, g, b);
-
-	if (muzzleFlash.UseSmoke)
-	{
-		muzzlePos.Position.y -= CREATURE_GUN_EFFECT_VERTICAL_OFFSET;
-		auto smokePos = GetJointPosition(item, muzzlePos);
-		SpawnGunSmokeParticles(smokePos.ToVector3(), Vector3::Zero, item.RoomNumber, 1, LaraWeaponType::Pistol, 12);
-	}
 }
 
 bool CreatureAnimation(short itemNumber, short headingAngle, short tiltAngle)
