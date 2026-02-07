@@ -701,6 +701,10 @@ void HarpoonBoltControl(short itemNumber)
 		if (GlobalCounter & 1)
 			SpawnBubble(harpoonItem.Pose.Position.ToVector3(), harpoonItem.RoomNumber);
 	}
+	else if (harpoonItem.Pose.Orientation.x > -ANGLE(67.5f))
+	{
+		harpoonItem.Pose.Orientation.x -= ANGLE(1.0f);
+	}
 
 	auto prevPos = harpoonItem.Pose.Position;
 	harpoonItem.Pose.Translate(harpoonItem.Pose.Orientation, harpoonItem.Animation.Velocity.z);

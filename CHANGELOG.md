@@ -6,9 +6,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 1.11]
 
 ### New features
+* Overhauled enemy AI with weighted pathfinding, predictive targeting, penalty system, and collision avoidance.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
-* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
+* Added new debug page with memory usage statistics and more verbose logging for memory-related crashes.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
@@ -16,8 +18,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed several enemy AI issues.
-* Fixed incorrect CLOCKWORK_BEETLE, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect CLOCKWORK_BEETLE, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.

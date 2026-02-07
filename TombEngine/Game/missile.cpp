@@ -5,6 +5,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
+#include "Game/control/box.h"
 #include "Game/effects/Decal.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
@@ -31,19 +32,31 @@ constexpr auto MUTANT_BOMB_DAMAGE	= 100;
 constexpr auto DIVER_HARPOON_DAMAGE = 50;
 constexpr auto KNIFE_DAMAGE			= 50;
 
-void ShootAtLara(FX_INFO& fx)
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 {
-	auto target = Vector3(
-		LaraItem->Pose.Position.x,
-		LaraItem->Pose.Position.y - (GameBoundingBox(LaraItem).GetHeight() * 0.75f),
-		LaraItem->Pose.Position.z);
-	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), target);
+	constexpr auto RANDOM_ORIENT = 1.4f;
+
+	if (item == nullptr || index <= NO_VALUE)
+		return;
+
+	// If target deviated too much from the item position, prefer item's own position.
+	if (Vector3i::Distance(item->Pose.Position, target) > TARGET_DEVIATION_THRESHOLD)
+		target = item->Pose.Position;
+
+	auto targetWithOffset = Vector3(
+		target.x,
+		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
+		target.z);
 
 	// Apply slight random scatter.
-	fx.pos.Orientation += EulerAngles(
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
+	auto randomOrient = EulerAngles(
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
 		0);
+
+	auto& fx = EffectList[index];
+	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
+	fx.pos.Orientation += randomOrient;
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
@@ -57,11 +70,9 @@ void ControlMissile(short fxNumber)
 	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.roomNumber);
 	auto soundFXType = isUnderwater ? SoundEnvironment::Underwater : SoundEnvironment::Land;
 
-	if (fx.objectNumber == ID_SCUBA_HARPOON && isUnderwater &&
-		fx.pos.Orientation.x > ANGLE(-67.5f))
-	{
+	// Make harpoon arch downwards if not underwater.
+	if (fx.objectNumber == ID_SCUBA_HARPOON && !isUnderwater && fx.pos.Orientation.x > ANGLE(-67.5f))
 		fx.pos.Orientation.x -= ANGLE(1.0f);
-	}
 
 	fx.pos.Translate(fx.pos.Orientation, fx.speed);
 
@@ -184,13 +195,11 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 		auto& fx = EffectList[fxNumber];
 
 		fx.pos.Position = Vector3i(x, y, z);
-		fx.pos.Orientation = EulerAngles(0, yRot, 0);
 		fx.roomNumber = roomNumber;
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_SHARD;
 		fx.color = Vector4::One;
-		ShootAtLara(fx);
 	}
 
 	return fxNumber;
@@ -204,13 +213,29 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		auto& fx = EffectList[fxNumber];
 
 		fx.pos.Position = Vector3i(x, y, z);
-		fx.pos.Orientation = EulerAngles(0, yRot, 0);
 		fx.roomNumber = roomNumber;
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_BOMB;
 		fx.color = Vector4::One;
-		ShootAtLara(fx);
+	}
+
+	return fxNumber;
+}
+
+short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
+{
+	int fxNumber = CreateNewEffect(roomNumber);
+	if (fxNumber != NO_VALUE)
+	{
+		auto& fx = EffectList[fxNumber];
+
+		fx.pos.Position = Vector3i(x, y, z);
+		fx.roomNumber = roomNumber;
+		fx.speed = velocity;
+		fx.frameNumber = 0;
+		fx.objectNumber = ID_SCUBA_HARPOON;
+		fx.color = Vector4::One;
 	}
 
 	return fxNumber;
