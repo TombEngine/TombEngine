@@ -1980,16 +1980,15 @@ void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale)
 void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo& muzzleFlash)
 {
 	constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
+	constexpr auto CREATURE_GUN_EFFECT_LIGHT_FALLOFF = 15.0f * (float)UCHAR_MAX;
 
 	if (muzzleFlash.Delay == 0)
 		return;
 
 	auto intensity = Random::GenerateFloat(0.75f, 1.0f);
-	auto falloff = (unsigned char)(15.0f * intensity);
-
 	auto muzzlePos = muzzleFlash.Bite;
 	auto pos = GetJointPosition(item, muzzlePos);
-	SpawnDynamicPointLight(pos.ToVector3(), CREATURE_GUNFLASH_COLOR * intensity, falloff);
+	SpawnDynamicPointLight(pos.ToVector3(), CREATURE_GUNFLASH_COLOR * intensity, CREATURE_GUN_EFFECT_LIGHT_FALLOFF * intensity);
 
 	if (muzzleFlash.UseSmoke)
 	{
