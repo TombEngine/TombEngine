@@ -137,9 +137,9 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (timer >= 20)
 				{
-					timer = 0;
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, ShardGun);
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, ShardGun));
 					SoundEffect(SFX_TR1_ATLANTEAN_NEEDLE, &item->Pose);
+					timer = 0;
 				}
 
 				break;
@@ -150,7 +150,7 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (timer >= 20 && Targetable(item, &ai))
 				{
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, ShardGun);
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, ShardGun));
 					SoundEffect(SFX_TR1_ATLANTEAN_NEEDLE, &item->Pose);
 					timer = 0;
 				}
@@ -292,7 +292,7 @@ namespace TEN::Entities::Creatures::TR1
 				if (timer >= 30 && ai.ahead)
 				{
 					timer = 0;
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, BombGun);
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, BombGun));
 					SoundEffect(SFX_TR1_ATLANTEAN_BALL, &item->Pose);
 				}
 
@@ -321,9 +321,9 @@ namespace TEN::Entities::Creatures::TR1
 
 				if (item->Animation.RequiredState == NO_VALUE && ai.ahead)
 				{
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, BombGun);
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle + (GetRandomControl() - ANGLE(45.0f)) / 4, BombGun);
-					CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle + (GetRandomControl() - ANGLE(45.0f)) / 4, BombGun);
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle, BombGun));
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle + (GetRandomControl() - ANGLE(45.0f)) / 4, BombGun));
+					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, NatlaGunBite, NATLA_GUN_VELOCITY, ai.angle + (GetRandomControl() - ANGLE(45.0f)) / 4, BombGun));
 					SoundEffect(SFX_TR1_ATLANTEAN_BALL, &item->Pose);
 
 					item->Animation.RequiredState = NATLA_STATE_IDLE;

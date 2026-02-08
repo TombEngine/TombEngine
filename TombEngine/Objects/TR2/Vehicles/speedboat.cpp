@@ -610,11 +610,9 @@ namespace TEN::Entities::Vehicles
 
 		if (speedboatItem->Pose.Position.y >= speedboat->Water - CLICK(0.5f) && speedboat->Water != NO_HEIGHT)
 		{
-			if (!IsHeld(In::Brake) && !IsHeld(In::Look) ||
-				speedboatItem->Animation.Velocity.z)
+			if ((!IsHeld(In::Brake) && !IsHeld(In::Look)) || speedboatItem->Animation.Velocity.z)
 			{
-				if (IsHeld(In::Left) && !IsHeld(In::Reverse) ||
-					IsHeld(In::Right) && IsHeld(In::Reverse))
+				if ((IsHeld(In::Left) && !IsHeld(In::Reverse)) || (IsHeld(In::Right) && IsHeld(In::Reverse)))
 				{
 					if (speedboat->TurnRate > 0)
 						speedboat->TurnRate -= SPEEDBOAT_TURN_RATE_DECEL;
@@ -627,8 +625,7 @@ namespace TEN::Entities::Vehicles
 
 					noTurn = false;
 				}
-				else if (IsHeld(In::Right) && !IsHeld(In::Reverse) ||
-					IsHeld(In::Left) && IsHeld(In::Reverse))
+				else if ((IsHeld(In::Right) && !IsHeld(In::Reverse)) || (IsHeld(In::Left) && IsHeld(In::Reverse)))
 				{
 					if (speedboat->TurnRate < 0)
 						speedboat->TurnRate += SPEEDBOAT_TURN_RATE_DECEL;
@@ -661,7 +658,7 @@ namespace TEN::Entities::Vehicles
 					else if (speedboatItem->Animation.Velocity.z > (maxVelocity + SPEEDBOAT_VELOCITY_DECEL))
 						speedboatItem->Animation.Velocity.z -= SPEEDBOAT_VELOCITY_DECEL;
 				}
-				else if (IsHeld(In::Left) || IsHeld(In::Right) &&
+				else if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 					speedboatItem->Animation.Velocity.z >= 0 &&
 					speedboatItem->Animation.Velocity.z < SPEEDBOAT_VELOCITY_MIN)
 				{
@@ -715,7 +712,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else if (collide)
 		{
-			if (laraItem->Animation.ActiveState != SPEEDBOAT_STATE_HIT)
+			if (laraItem->Animation.TargetState != SPEEDBOAT_STATE_HIT && speedboatItem->Animation.Velocity.z > 5)
 			{
 				SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, collide);
 			}

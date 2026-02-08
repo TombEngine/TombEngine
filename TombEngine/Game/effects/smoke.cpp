@@ -244,29 +244,6 @@ namespace TEN::Effects::Smoke
 		s.angularDrag = Random::GenerateFloat(0.87f, 0.99f);
 	}
 
-	void SpawnCorpseEffect(const Vector3& pos)
-	{
-		auto& smoke = GetFreeSmokeParticle();
-		smoke = {};
-
-		auto sphere = BoundingSphere(pos, Random::GenerateFloat(8.0f, 16.0f));
-		auto spherePos = Random::GeneratePointInSphere(sphere);
-
-		smoke.position = spherePos;
-		smoke.sourceColor = Vector4(0.8f, 0.8f, 0.0f, 1.0f);
-		smoke.destinationColor = Vector4::Zero;
-		smoke.sourceSize = Random::GenerateFloat(32.0f, 64.0f);
-		smoke.active = true;
-		smoke.velocity = Random::GenerateDirection() * Random::GenerateFloat(0.1f, 0.2f);
-		smoke.affectedByWind = true;
-		smoke.friction = 0.9f;
-		smoke.gravity = 0;;
-		smoke.life = Random::GenerateFloat(100.0f, 220.0f);
-		smoke.destinationSize = Random::GenerateFloat(BLOCK(1), BLOCK(1.1f));
-		smoke.angularVelocity = Random::GenerateFloat(-0.1f, 0.1f);
-		smoke.angularDrag = Random::GenerateFloat(0.8f, 0.9f);
-	}
-
 	void TriggerBreathSmoke(long x, long y, long z, short angle)
 	{
 		auto& s = GetFreeSmokeParticle();

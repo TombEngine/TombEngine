@@ -98,7 +98,7 @@ namespace TEN::Entities::Creatures::TR1
 			else
 			{
 				creature.LOT.Step = CLICK(1);
-				creature.LOT.Drop = -CLICK(1);
+				creature.LOT.Drop = -CLICK(1.5f);
 			}
 		}
 		

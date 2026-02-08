@@ -45,6 +45,7 @@ namespace TEN::Scripting
 		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
+		PathfindingSettings::Register(parent);
 		PhysicsSettings::Register(parent);
 		SystemSettings::Register(parent);
 		UISettings::Register(parent);
@@ -61,6 +62,7 @@ namespace TEN::Scripting
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
+			ScriptReserved_PFSettings, &Settings::Pathfinding,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
 			ScriptReserved_SystemSettings, &Settings::System,
 			ScriptReserved_UISettings, &Settings::UI,
@@ -277,6 +279,77 @@ namespace TEN::Scripting
 		"pickupNotifier", &HudSettings::PickupNotifier);
 	}
 
+	/// Pathfinding
+	// @section Pathfinding
+	// Features and enhancements that modify enemy behaviour during pathfinding and while tracking player and other enemies.
+
+	void PathfindingSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<PathfindingSettings>(ScriptReserved_PFSettings, sol::constructors<PathfindingSettings()>(),
+			sol::call_constructor, sol::constructors<PathfindingSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(PathfindingSettings, ScriptReserved_PFSettings),
+
+		/// Pathfinding mode.
+		// @tfield Flow.PathfindingMode mode The algorithm used for pathfinding. For more information, refer to @{Flow.PathfindingMode}.
+		"mode", &PathfindingSettings::Mode,
+
+		/// Pathfinding graph search depth.
+		// @tfield int searchDepth Specifies how deep the AI will search the pathfinding graph when calculating a path to the target.
+		"searchDepth", &PathfindingSettings::SearchDepth,
+
+		/// Escape distance.
+		// @tfield int escapeDistance If enemy is being attacked, it attempts to escape as far as possible from the attacker. This
+		// value specifies the distance the enemy will try to reach when escaping.
+		"escapeDistance", &PathfindingSettings::EscapeDistance,
+
+		/// Stalk distance.
+		// @tfield int stalkDistance Distance at which an enemy may follow a target without attempting another attack after having
+		// previously escaped.
+		"stalkDistance", &PathfindingSettings::StalkDistance,
+
+		/// Path prediction scale factor.
+		// @tfield float predictionFactor Determines how far ahead enemy predicts the target's position based on its
+		// current velocity. A higher value makes enemies intercept the target earlier, while a lower value reduces anticipation.
+		// If set to 0, prediction will be disabled.
+		"predictionFactor", &PathfindingSettings::PredictionFactor,
+
+		/// Collision penalty threshold.
+		// @tfield float collisionPenaltyThreshold Specifies the timeout in seconds after which the enemy will be punished for
+		// collisions with illegal geometry and will be forced to ignore its current path to the target and recalculate it.
+		// If set to 0, collision penalties will be disabled.
+		"collisionPenaltyThreshold", &PathfindingSettings::CollisionPenaltyThreshold,
+
+		/// Collision penalty cooldown.
+		// @tfield float collisionPenaltyCooldown If a collision penalty was applied to an enemy, this value specifies the timeout
+		// in seconds during which the enemy will ignore the path to the target which previously caused a penalty.
+		"collisionPenaltyCooldown", &PathfindingSettings::CollisionPenaltyCooldown,
+
+		/// Moveable avoidance.
+		// @tfield bool moveableAvoidance Avoid collisions with moveables when possible. Enemy will attempt to turn away from the
+		// moveable if it's in the way. Applies only to moveables not placed near room geometry.
+		"moveableAvoidance", &PathfindingSettings::MoveableAvoidance,
+			
+		/// Static mesh avoidance.
+		// @tfield bool staticMeshAvoidance Avoid collisions with static meshes when possible. Enemy will attempt to turn away from the
+		// static mesh if it's in the way. Applies only to static meshes not placed near room geometry.
+		"staticMeshAvoidance", &PathfindingSettings::StaticMeshAvoidance,
+
+		/// Vertical geometry avoidance for swimming and flying enemies.
+		// @tfield bool verticalGeometryAvoidance Avoid swimming or flying forward into illegal room geometry that can be avoided
+		// by moving upwards.
+		"verticalGeometryAvoidance", &PathfindingSettings::VerticalGeometryAvoidance,
+
+		/// Water surface avoidance for swimming and flying enemies.
+		// @tfield bool waterSurfaceAvoidance For flying enemies, prevents diving into the water and dying while attacking
+		// the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.
+		"waterSurfaceAvoidance", &PathfindingSettings::WaterSurfaceAvoidance,
+
+		/// Vertical movement smoothing for swimming and flying enemies.
+		// @tfield bool verticalMovementSmoothing Smooths out vertical movement for swimming and flying enemies to prevent
+		// sudden unnatural jerks or changes in direction.
+		"verticalMovementSmoothing", &PathfindingSettings::VerticalMovementSmoothing);
+	}
+
 	/// Physics
 	// @section Physics
 	// Here you will find various settings for game world physics.
@@ -353,6 +426,18 @@ namespace TEN::Scripting
 		/// Shadow text color.
 		// @tfield Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
+
+		/// Title logo position.
+		// @tfield Vec2 titleLogoPosition Center point of a title level logo position.
+		"titleLogoPosition", &UISettings::TitleLogoPosition,
+
+		/// Title logo scale.
+		// @tfield Vec2 titleLogoScale Title level logo scale.
+		"titleLogoScale", &UISettings::TitleLogoScale,
+
+		/// Title logo color.
+		// @tfield Color titleLogoColor Title level logo color.
+		"titleLogoColor", &UISettings::TitleLogoColor,
 			
 		/// Title menu position.
 		// @tfield Vec2 titleMenuPosition Title level menu position. Horizontal coordinate represents an alignment baseline,
@@ -365,7 +450,6 @@ namespace TEN::Scripting
 
 		/// Title menu alignment.
 		// @tfield Strings.DisplayStringOption titleMenuAlignment Specifies menu alignment.
-		//
 		// Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}.
 		// If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.
 		"titleMenuAlignment", &UISettings::TitleMenuAlignment);

@@ -3,28 +3,32 @@
 #include "Game/Lara/lara_struct.h"
 
 /// Constants for player water statuses.
+// To be used with @{Objects.LaraObject.GetWaterStatus} function.
 // @enum Objects.WaterStatus
 // @pragma nostrip
-
-/// Table of Objects.WaterStatus constants.
-// To be used with @{Objects.LaraObject.GetWaterStatus} function.
-//
-// - `DRY` Player is in a dry room.
-// - `WADE` Player is wading the water.
-// - `TREADWATER` Player is treading the water.
-// - `UNDERWATER` Player is underwater.
-// - `FLYCHEAT` Player is using flycheat.
-//
-// @table Objects.WaterStatus
 
 namespace TEN::Scripting
 {
 	static const auto WATER_STATUSES = std::unordered_map<std::string, WaterStatus>
 	{
+		/// Player is in a dry room.
+		// @mem DRY
 		{ "DRY", WaterStatus::Dry },
+
+		/// Player is wading the water.
+		// @mem WADE
 		{ "WADE", WaterStatus::Wade },
+
+		/// Player is treading the water.
+		// @mem TREADWATER
 		{ "TREADWATER", WaterStatus::TreadWater },
+
+		/// Player is underwater.
+		// @mem UNDERWATER
 		{ "UNDERWATER", WaterStatus::Underwater },
+
+		/// Player is using flycheat.
+		// @mem FLYCHEAT
 		{ "FLYCHEAT", WaterStatus::FlyCheat }
 	};
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/control/box.h"
 #include "Game/Lara/lara_struct.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Strings/DisplayString/DisplayString.h"
@@ -87,6 +88,25 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct PathfindingSettings
+	{
+		PathfindingMode Mode = PathfindingMode::AStar;	// Pathfinding algorithm.
+
+		int		SearchDepth					= 5;		// Pathfinding search depth.
+		int		EscapeDistance				= BLOCK(5);	// Escape distance.
+		int		StalkDistance				= BLOCK(3);	// Stalk distance.
+		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
+		float	CollisionPenaltyThreshold	= 1.0f;		// Penalty threshold in seconds.
+		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
+		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
+		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
+		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
+		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
+
+		static void Register(sol::table& parent);
+	};
+
 	struct PhysicsSettings
 	{
 		float Gravity	   = 6.0f;
@@ -115,6 +135,10 @@ namespace TEN::Scripting
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
 		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
+
+		Vec2 TitleLogoPosition = Vec2(50, 20);
+		float TitleLogoScale = 0.38f;
+		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
 
 		static void Register(sol::table& parent);
 	};
@@ -146,16 +170,17 @@ namespace TEN::Scripting
 
 	struct Settings
 	{
-		AnimSettings				Animations = {};
-		CameraSettings				Camera	   = {};
-		FlareSettings				Flare	   = {};
-		GameplaySettings			Gameplay   = {};
-		GraphicsSettings			Graphics   = {};
-		std::array<HairSettings, 3> Hair	   = {};
-		HudSettings					Hud		   = {};
-		PhysicsSettings				Physics	   = {};
-		SystemSettings				System	   = {};
-		UISettings					UI		   = {};
+		AnimSettings				Animations  = {};
+		CameraSettings				Camera	    = {};
+		FlareSettings				Flare	    = {};
+		GameplaySettings			Gameplay    = {};
+		GraphicsSettings			Graphics    = {};
+		std::array<HairSettings, 3> Hair	    = {};
+		HudSettings					Hud		    = {};
+		PathfindingSettings			Pathfinding = {};
+		PhysicsSettings				Physics	    = {};
+		SystemSettings				System	    = {};
+		UISettings					UI		    = {};
 		std::array<WeaponSettings, (int)LaraWeaponType::NumWeapons - 1> Weapons = {};
 
 		Settings();
