@@ -115,9 +115,6 @@ namespace TEN::Entities::Traps
 		auto dir = Rotation.ToDirection();
 		auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, (float)item.ItemFlags[1]);
 
-		if (!los.IsIntersected) // Only calculate if we have a valid target.
-			return;
-
 		Target = GameVector(los.Position, los.RoomNumber);
 		float length = Vector3::Distance(pos, los.Position);
 
