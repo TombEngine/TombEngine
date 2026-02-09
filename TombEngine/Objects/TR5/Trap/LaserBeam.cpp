@@ -33,8 +33,9 @@ namespace TEN::Entities::Traps
 	void LaserBeamEffect::Initialize(const ItemInfo& item)
 	{
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
-		Origin = PrevOrigin = GameVector(item.Pose.Position, item.RoomNumber);
-		Rotation = PrevRotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
+
+		Origin = GameVector(item.Pose.Position, item.RoomNumber);
+		Rotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
 		Color = item.Model.Color;
 		Color.w = 1.0f;
 		Radius = (item.TriggerFlags == 0) ? RADIUS_STEP : (abs(item.TriggerFlags) * RADIUS_STEP);
@@ -83,11 +84,11 @@ namespace TEN::Entities::Traps
 	void LaserBeamEffect::StoreInterpolationData()
 	{
 		// Store old data for interpolation.
-		if (IsDirty)
-		{
-			OldVertices = Vertices;
-			OldColor = Color;
-		}
+		if (!IsDirty)
+			return;
+
+		OldVertices = Vertices;
+		OldColor = Color;
 	}
 
 	void LaserBeamEffect::Update(const ItemInfo& item)
@@ -95,49 +96,52 @@ namespace TEN::Entities::Traps
 		// Check for origin/rotation changes.
 		auto newOrigin = GameVector(item.Pose.Position, item.RoomNumber);
 		auto newRotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
-		if (PrevRotation != newRotation || PrevOrigin != newOrigin)
+
+		IsDirty = (Rotation != newRotation || Origin != newOrigin);
+
+		if (IsDirty)
 		{
 			Origin = newOrigin;
 			Rotation = newRotation;
-			PrevOrigin = newOrigin;
-			PrevRotation = newRotation;
-			IsDirty = true;
 		}
 
 		// Recalculate laser beam geometry.
-		if (IsDirty)
+		if (!IsDirty)
+			return;
+
+		StoreInterpolationData();
+
+		auto pos = Origin.ToVector3();
+		auto dir = Rotation.ToDirection();
+		auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, (float)item.ItemFlags[1]);
+
+		if (!los.IsIntersected) // Only calculate if we have a valid target.
+			return;
+
+		Target = GameVector(los.Position, los.RoomNumber);
+		float length = Vector3::Distance(pos, los.Position);
+
+		// Calculate cylinder vertices.
+		float angle = 0.0f;
+		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 		{
-			StoreInterpolationData();
-			auto pos = Origin.ToVector3();
-			auto dir = Rotation.ToDirection();
-			auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, (float)item.ItemFlags[1]);
-			if (los.IsIntersected) // Only calculate if we have a valid target.
-			{
-				Target = GameVector(los.Position, los.RoomNumber);
-				float length = Vector3::Distance(pos, los.Position);
+			float sinAngle = sinf(angle);
+			float cosAngle = cosf(angle);
+			auto relVertex = Vector3(Radius * sinAngle, Radius * cosAngle, 0.0f);
+			auto vertex = pos + Vector3::Transform(relVertex, Rotation.ToRotationMatrix());
 
-				// Calculate cylinder vertices.
-				float angle = 0.0f;
-				for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
-				{
-					float sinAngle = sinf(angle);
-					float cosAngle = cosf(angle);
-					auto relVertex = Vector3(Radius * sinAngle, Radius * cosAngle, 0.0f);
-					auto vertex = pos + Vector3::Transform(relVertex, Rotation.ToRotationMatrix());
+			Vertices[i] = vertex;
+			Vertices[SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
 
-					Vertices[i] = vertex;
-					Vertices[SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
-
-					angle += PI_MUL_2 / SUBDIVISION_COUNT;
-				}
-
-				// Calculate bounding box.
-				float boxApothem = (Radius - ((Radius * SQRT_2) - Radius) + Radius) / 2;
-				auto center = (pos + los.Position) / 2;
-				auto extents = Vector3(boxApothem, boxApothem, length / 2);
-				BoundingBox = BoundingOrientedBox(center, extents, Rotation.ToQuaternion());
-			}
+			angle += PI_MUL_2 / SUBDIVISION_COUNT;
 		}
+
+		// Calculate bounding box.
+		float boxApothem = (Radius - ((Radius * SQRT_2) - Radius) + Radius) / 2;
+		auto center = (pos + los.Position) / 2;
+		auto extents = Vector3(boxApothem, boxApothem, length / 2);
+
+		BoundingBox = BoundingOrientedBox(center, extents, Rotation.ToQuaternion());
 	}
 
 	void InitializeLaserBeam(short itemNumber)
@@ -173,13 +177,12 @@ namespace TEN::Entities::Traps
 		// Brightness fade-in and distortion.
 		if (item.Model.Color.w < 1.0f)
 			item.Model.Color.w += 0.02f;
+
 		if (beam.Color.w < 1.0f)
 			beam.Color.w += 0.02f;
-		if (item.Model.Color.w > 8.0f) // TODO: Alpha is 0 to 1 !
-		{
-			beam.Color.w = 0.8f;
-			item.Model.Color.w = 0.8f;
-		}
+
+		if (item.Model.Color.w > 1.0f)
+			beam.Color.w = item.Model.Color.w = 1.0f;
 
 		beam.IsActive = true;
 		beam.Update(item);
@@ -189,6 +192,7 @@ namespace TEN::Entities::Traps
 		{
 			if (beam.IsLethal)
 				SpawnLaserSpark(beam.Target, Random::GenerateAngle(), 6, beam.Color);
+
 			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 

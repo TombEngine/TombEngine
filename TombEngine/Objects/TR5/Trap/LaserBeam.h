@@ -13,9 +13,7 @@ namespace TEN::Entities::Traps
 		static constexpr auto SUBDIVISION_COUNT = 8;
 
 		GameVector			Origin				= GameVector::Zero;
-		GameVector			PrevOrigin			= GameVector::Zero;
 		EulerAngles			Rotation			= EulerAngles::Identity;
-		EulerAngles			PrevRotation		= EulerAngles::Identity;
 		GameVector			Target				= GameVector::Zero;
 		Vector4				Color				= Vector4::Zero;
 		BoundingOrientedBox BoundingBox			= {};

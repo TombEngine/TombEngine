@@ -83,7 +83,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareSingleLaserBeam(RenderView& view)
 	{
-		for (auto& [itemNumber, beam] : LaserBeams)
+		for (const auto& [itemNumber, beam] : LaserBeams)
 		{
 			if (!beam.IsActive)
 				continue;
@@ -127,8 +127,6 @@ namespace TEN::Renderer
 						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
 				}
 			}
-
-			beam.IsDirty = false;
 		}
 	}
 
