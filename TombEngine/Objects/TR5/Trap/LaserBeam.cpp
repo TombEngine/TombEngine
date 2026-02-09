@@ -27,6 +27,7 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto LASER_BEAM_LIGHT_INTENSITY		= 0.2f;
 	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX	= 0.1f;
+	constexpr auto LASER_BEAM_FADE_SPEED			= 0.05f;
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
 
@@ -97,7 +98,7 @@ namespace TEN::Entities::Traps
 		auto newOrigin = GameVector(item.Pose.Position, item.RoomNumber);
 		auto newRotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
 
-		IsDirty = (Rotation != newRotation || Origin != newOrigin);
+		IsDirty = !IsActive || Rotation != newRotation || Origin != newOrigin;
 
 		if (IsDirty)
 		{
@@ -162,35 +163,35 @@ namespace TEN::Entities::Traps
 		auto& item = g_Level.Items[itemNumber];
 		auto& beam = LaserBeams.at(itemNumber);
 
-		// Check if trigger is active:
+		// Check if trigger is active and mark beam as disabled in such case.
 		if (!TriggerActive(&item))
 		{
 			beam.IsActive = false;
-			beam.Color.w = 0.0f;
-			item.Model.Color.w = 0.0f;
 			return;
 		}
 
+		// Reset color to zero to fade in, if beam was just activated.
+		if (!beam.IsActive)
+			beam.Color.w = item.Model.Color.w = 0.0f;
+
 		// Brightness fade-in and distortion.
 		if (item.Model.Color.w < 1.0f)
-			item.Model.Color.w += 0.02f;
+			item.Model.Color.w = beam.Color.w += LASER_BEAM_FADE_SPEED;
 
-		if (beam.Color.w < 1.0f)
-			beam.Color.w += 0.02f;
-
+		// Clamp the value.
 		if (item.Model.Color.w > 1.0f)
 			beam.Color.w = item.Model.Color.w = 1.0f;
 
-		beam.IsActive = true;
 		beam.Update(item);
+		beam.IsActive = true;
 
-		// Check if target is calculated, then spawn effect:
+		// Check if target is calculated, then spawn effect.
 		if (beam.Target != GameVector::Zero)
 		{
 			if (beam.IsLethal)
 				SpawnLaserSpark(beam.Target, Random::GenerateAngle(), 6, beam.Color);
 
-			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY * item.Model.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
 		SoundEffect(SFX_TR5_DOOR_BEAM, &item.Pose);
