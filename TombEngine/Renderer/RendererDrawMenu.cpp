@@ -1613,23 +1613,18 @@ namespace TEN::Renderer
 			PrintDebugMessage("MEMORY STATS");
 			PrintDebugMessage(" ");
 			PrintDebugMessage("Adapter: %s", _adapterInfo.Name.c_str());
-			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
+			PrintDebugMessage("Dedicated VRAM: %.2f MB", ToMegabytes(_adapterInfo.DedicatedVideoMemory));
+			PrintDebugMessage("Shared system memory: %.2f MB", ToMegabytes(_adapterInfo.SharedSystemMemory));
 			PrintDebugMessage(" ");
-			PrintDebugMessage("--- DXGI Adapter ---");
-			PrintDebugMessage("Dedicated VRAM: %d MB", _adapterInfo.DedicatedVideoMemory / (1024 * 1024));
-			PrintDebugMessage("Dedicated system memory: %d MB", _adapterInfo.DedicatedSystemMemory / (1024 * 1024));
-			PrintDebugMessage("Shared system memory: %d MB", _adapterInfo.SharedSystemMemory / (1024 * 1024));
-			PrintDebugMessage(" ");
-			PrintDebugMessage("--- Allocated ---");
-			PrintDebugMessage("Total: %.2f MB", vram.ToMegabytes(vram.GetTotal()));
-			PrintDebugMessage("  Textures: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
-			PrintDebugMessage("  Render targets: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
-			PrintDebugMessage("  Vertex buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
-			PrintDebugMessage("  Index buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
+			PrintDebugMessage("Total usage: %.2f MB", ToMegabytes(vram.GetTotal()));
+			PrintDebugMessage("  Textures: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("  Render targets: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("  Vertex buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("  Index buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
 
 			if (_adapterInfo.DedicatedVideoMemory > 0)
 			{
-				float usagePercent = (vram.ToMegabytes(vram.GetTotal()) / vram.ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
+				float usagePercent = (ToMegabytes(vram.GetTotal()) / ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
 				PrintDebugMessage(" ");
 				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
 			}

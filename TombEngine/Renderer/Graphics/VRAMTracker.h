@@ -4,6 +4,10 @@
 #include <d3d11.h>
 #include <string>
 
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
+
 namespace TEN::Renderer::Graphics
 {
 	enum class VRAMCategory
@@ -25,21 +29,16 @@ namespace TEN::Renderer::Graphics
 			return instance;
 		}
 
-		static float ToMegabytes(unsigned long long bytes)
+		void Add(VRAMCategory category, unsigned long long bytes)
 		{
-			return (float)bytes / (1024.0f * 1024.0f);
+			_categories[(int)category] += bytes;
+			_total += bytes;
 		}
 
-		void Add(VRAMCategory category, int bytes)
+		void Remove(VRAMCategory category, unsigned long long bytes)
 		{
-			_categories[(int)category] += (unsigned long long)bytes;
-			_total += (unsigned long long)bytes;
-		}
-
-		void Remove(VRAMCategory category, int bytes)
-		{
-			_categories[(int)category] -= (unsigned long long)bytes;
-			_total -= (unsigned long long)bytes;
+			_categories[(int)category] -= bytes;
+			_total -= bytes;
 		}
 
 		unsigned long long GetTotal() const
@@ -54,13 +53,12 @@ namespace TEN::Renderer::Graphics
 
 		std::string GetSummary() const
 		{
-
-			return "VRAM usage: " +
-				std::to_string(ToMegabytes(GetTotal())) + " MB total | " +
-				"Textures: " + std::to_string(ToMegabytes(GetCategory(VRAMCategory::Texture))) + " MB | " +
-				"RenderTargets: " + std::to_string(ToMegabytes(GetCategory(VRAMCategory::RenderTarget))) + " MB | " +
-				"VB: " + std::to_string(ToMegabytes(GetCategory(VRAMCategory::VertexBuffer))) + " MB | " +
-				"IB: " + std::to_string(ToMegabytes(GetCategory(VRAMCategory::IndexBuffer))) + " MB";
+			return fmt::format("VRAM usage: {:.1f} MB total, textures: {:.1f} MB, render targets: {:.1f} MB, VB: {:.1f} MB, IB: {:.1f} MB.",
+				ToMegabytes(GetTotal()),
+				ToMegabytes(GetCategory(VRAMCategory::Texture)),
+				ToMegabytes(GetCategory(VRAMCategory::RenderTarget)),
+				ToMegabytes(GetCategory(VRAMCategory::VertexBuffer)),
+				ToMegabytes(GetCategory(VRAMCategory::IndexBuffer)));
 		}
 
 		static int GetDXGIFormatBytesPerPixel(DXGI_FORMAT format)
