@@ -699,7 +699,7 @@ namespace TEN::Entities::Creatures::TR2
 
 			if (player.Control.IsMoving &&
 				player.Context.InteractedItem == item.Index ||
-				playerItem->Animation.AnimNumber == LA_BUTTON_SMALL_PUSH)
+				playerItem->Animation.AnimNumber == LEA_PULL_DAGGER_FROM_DRAGON)
 			{
 				return;
 			}
