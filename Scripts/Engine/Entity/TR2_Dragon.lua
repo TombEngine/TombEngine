@@ -74,7 +74,7 @@ local TR2_DRAGON_Cutscene = {}
 --- @tfield string CUTSCENE_AUDIO_TRACK Audio track name for dagger removal cutscene. _Default: "removeDagger"_
 
 TR2_DRAGON_Cutscene.Config = {
-    DAGGER_ANIM_ID = 578,
+    DAGGER_ANIM_ID = 0,
     MESH_SWAP_ENDING_FRAME = 197,
     DEFAULT_FOV = 80,
     CINEMATIC_FOV = 55,
@@ -389,25 +389,27 @@ function TR2_DRAGON_Cutscene.Update()
         end
     end
 
-    if Lara:GetAnim() ~= DAGGER_ANIM_ID then
+	local isDragonDefeated = dragon and dragon:GetAnim() == 22
+	local isLaraPullingDagger = Lara:GetAnimSlot() == 1 and Lara:GetAnim() == DAGGER_ANIM_ID
 
-        if cinematicFOVActive then
-            TEN.View.SetFOV(DEFAULT_FOV)
-            cinematicFOVActive = false
-        end
+	if not (isDragonDefeated and isLaraPullingDagger) then
+		if cinematicFOVActive then
+			TEN.View.SetFOV(DEFAULT_FOV)
+			cinematicFOVActive = false
+		end
 
-        if laraShifted then
-            Lara:SetPosition(originalPos)
-            laraShifted = false
-        end
+		if laraShifted then
+			Lara:SetPosition(originalPos)
+			laraShifted = false
+		end
 
-        camMovedOnce = false
-        headAnchor   = nil
-        angle        = ORBIT_START_ANGLE
-        time         = 0
+		camMovedOnce = false
+		headAnchor   = nil
+		angle        = ORBIT_START_ANGLE
+		time         = 0
 
-        return
-    end
+		return
+	end
 
     if not camHelper or not cam then return end
 
