@@ -82,7 +82,6 @@ namespace TEN::Scripting::InventoryHandler
 		}
 
 		g_Gui.UseItem(*LaraItem, (int)objectID);
-
 	}
 
 	/// Get last item that was used in the player's inventory.
