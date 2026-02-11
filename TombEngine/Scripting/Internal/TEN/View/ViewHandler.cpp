@@ -219,12 +219,6 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
-	static void UseBinoculars()
-	{
-		auto& item = *LaraItem;
-		g_Gui.UseBinoculars(item);
-	}
-
 	void Register(sol::state* state, sol::table& parent)
 	{
 		auto tableView = sol::table(state->lua_state(), sol::create);
@@ -370,10 +364,6 @@ namespace TEN::Scripting::View
 		// @function GetAspectRatio
 		// @treturn float Display resolution's aspect ratio.
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
-
-		/// Sets the view to binoculars mode.
-		// @function UseBinoculars
-		tableView.set_function(ScriptReserved_UseBinoculars, &UseBinoculars);
 
 		// COMPATIBILITY
 		tableView.set_function("PlayFlyBy", &PlayFlyby);

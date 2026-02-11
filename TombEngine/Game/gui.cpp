@@ -2040,6 +2040,12 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
+		if (!item.IsLara())
+		{
+			TENLog("Attempt to use inventory item with a non-player object.", LogLevel::Warning);
+			return;
+		}
+
 		auto& player = GetLaraInfo(item);
 
 		player.Inventory.OldBusy = false;
