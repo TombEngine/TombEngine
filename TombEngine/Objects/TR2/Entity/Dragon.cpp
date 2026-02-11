@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR2/Entity/Dragon.h"
 
 #include "Game/camera.h"
@@ -692,4 +692,382 @@ namespace TEN::Entities::Creatures::TR2
             }
         }
     }
+    static void SpawnDragonShockwaveEffect(const ItemInfo& item, int jointIndex)
+    {
+        auto pos = GetJointPosition(item, jointIndex, Vector3i(0, -8, 0));
+
+        if (item.Animation.AnimNumber == DRAGON_ANIM_ATTACK_LEFT_2 ||
+            item.Animation.AnimNumber == DRAGON_ANIM_ATTACK_RIGHT_2)
+        {
+            if (item.Animation.FrameNumber == GetAnimData(item).EndFrameNumber)
+            {
+                auto pointColl = GetPointCollision(pos, item.RoomNumber);
+
+                if (pointColl.GetFloorHeight() == NO_HEIGHT)
+                {
+                    pos.y -= CLICK(0.5f);
+                }
+                else
+                {
+                    pos.y = pointColl.GetFloorHeight() - CLICK(0.5f);
+                }
+
+                auto pose = Pose(pos, EulerAngles::Identity);
+                TriggerShockwave(&pose, 24, 88, 256, 128, 128, 128, 32,
+                    EulerAngles::Identity, 8, true, false, false,
+                    (int)ShockwaveStyle::Normal);
+
+                Camera.bounce = -128;
+            }
+        }
+    }
+
+    void ControlDragon(short itemNumber)
+    {
+        if (!CreatureActive(itemNumber))
+            return;
+
+        auto& item = g_Level.Items[itemNumber];
+        auto& creature = *GetCreatureInfo(&item);
+        auto& timer = item.ItemFlags[1];
+
+        short headingAngle = 0;
+        short headOrient = 0;
+
+        bool isTargetAhead = false;
+
+        bool flagDaggerDeath = (item.TriggerFlags == DRAGON_OCB_DAGGER);
+
+        if (item.HitPoints <= 0)
+        {
+            if (item.Animation.ActiveState != DRAGON_STATE_DEFEAT)
+            {
+                SetAnimation(item, DRAGON_ANIM_DEATH);
+                timer = 0;
+            }
+            else
+            {
+                if (timer >= 0)
+                {
+                    SpawnDragonLightEffect(item, DragonLightEffectType::Yellow);
+                    timer++;
+
+                    if (timer == DRAGON_LIVE_TIME)
+                        item.Animation.TargetState = DRAGON_STATE_IDLE;
+
+                    if (timer == DRAGON_LIVE_TIME + DRAGON_ALMOST_LIVE)
+                        item.HitPoints = Objects[ID_DRAGON_FRONT].HitPoints / 2;
+
+                    if (!flagDaggerDeath)
+                    {
+                        if (item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED)
+                            timer = NO_VALUE;
+                    }
+                }
+                else
+                {
+                    if (timer > -20)
+                        SpawnDragonLightEffect(item, DragonLightEffectType::Red);
+
+                    if (timer == -100)
+                    {
+                        InitializeDragonBones(item);
+
+                        if (flagDaggerDeath)
+                            CollectCarriedItems(&item);
+                    }
+                    else if (timer == -200)
+                    {
+                        DisableEntityAI(itemNumber);
+                        KillItem(itemNumber);
+
+                        if (!flagDaggerDeath)
+                            DropPickups(&item);
+
+                        item.Status = ITEM_DEACTIVATED;
+                    }
+                    else if (timer < -100)
+                    {
+                        item.Pose.Position.y += 10;
+                    }
+
+                    timer--;
+                }
+            }
+        }
+        else
+        {
+            AI_INFO ai;
+            CreatureAIInfo(&item, &ai);
+
+            GetCreatureMood(&item, &ai, true);
+            CreatureMood(&item, &ai, true);
+            headingAngle = CreatureTurn(&item, DRAGON_WALK_TURN_RATE_MAX);
+
+            isTargetAhead = (ai.ahead && ai.distance > DRAGON_NEAR_RANGE && ai.distance < DRAGON_IDLE_RANGE);
+
+            if (item.TouchBits.TestAny())
+                DoDamage(creature.Enemy, DRAGON_CONTACT_DAMAGE);
+
+            switch (item.Animation.ActiveState)
+            {
+            case DRAGON_STATE_IDLE:
+                item.Pose.Orientation.y -= headingAngle;
+
+                // NEW: Soft exhale during FIRE→IDLE transition
+                if (item.Animation.AnimNumber == DRAGON_ANIM_FIRE_TO_IDLE &&
+                    item.Animation.FrameNumber >= 6 &&
+                    item.Animation.FrameNumber <= 15)
+                {
+                    SpawnDragonSoftExhaleEffect(item, DragonMouthBite);
+                }
+
+                if (!isTargetAhead)
+                {
+                    if (ai.distance > DRAGON_IDLE_RANGE || !ai.ahead)
+                    {
+                        item.Animation.TargetState = DRAGON_STATE_WALK;
+                    }
+                    else if (ai.ahead && ai.distance < DRAGON_NEAR_RANGE && !creature.Flags)
+                    {
+                        creature.Flags = 1;
+
+                        if (ai.angle < 0)
+                            item.Animation.TargetState = DRAGON_STATE_SWIPE_ATTACK_LEFT;
+                        else
+                            item.Animation.TargetState = DRAGON_STATE_SWIPE_ATTACK_RIGHT;
+                    }
+                    else if (ai.angle < 0)
+                    {
+                        item.Animation.TargetState = DRAGON_STATE_TURN_LEFT;
+                    }
+                    else
+                    {
+                        item.Animation.TargetState = DRAGON_STATE_TURN_RIGHT;
+                    }
+                }
+                else
+                {
+                    item.Animation.TargetState = DRAGON_STATE_AIM_1;
+                }
+
+                break;
+
+            case DRAGON_STATE_SWIPE_ATTACK_LEFT:
+                if (item.TouchBits.Test(DragonSwipeAttackJointsLeft))
+                {
+                    DoDamage(creature.Enemy, DRAGON_SWIPE_ATTACK_DAMAGE);
+                    creature.Flags = 0;
+                }
+
+                SpawnDragonShockwaveEffect(item, DragonSwipeAttackJointsLeft[3]);
+                break;
+
+            case DRAGON_STATE_SWIPE_ATTACK_RIGHT:
+                if (item.TouchBits.Test(DragonSwipeAttackJointsRight))
+                {
+                    DoDamage(creature.Enemy, DRAGON_SWIPE_ATTACK_DAMAGE);
+                    creature.Flags = 0;
+                }
+
+                SpawnDragonShockwaveEffect(item, DragonSwipeAttackJointsRight[3]);
+                break;
+
+            case DRAGON_STATE_WALK:
+                creature.Flags = 0;
+
+                if (isTargetAhead)
+                {
+                    item.Animation.TargetState = DRAGON_STATE_IDLE;
+                }
+                else if (headingAngle < -DRAGON_TURN_THRESHOLD_ANGLE)
+                {
+                    if (ai.distance < DRAGON_IDLE_RANGE && ai.ahead)
+                        item.Animation.TargetState = DRAGON_STATE_IDLE;
+                    else
+                        item.Animation.TargetState = DRAGON_STATE_MOVE_LEFT;
+                }
+                else if (headingAngle > DRAGON_TURN_THRESHOLD_ANGLE)
+                {
+                    if (ai.distance < DRAGON_IDLE_RANGE && ai.ahead)
+                        item.Animation.TargetState = DRAGON_STATE_IDLE;
+                    else
+                        item.Animation.TargetState = DRAGON_STATE_MOVE_RIGHT;
+                }
+
+                break;
+
+            case DRAGON_STATE_MOVE_LEFT:
+                if (headingAngle > -DRAGON_TURN_THRESHOLD_ANGLE || isTargetAhead)
+                    item.Animation.TargetState = DRAGON_STATE_WALK;
+                break;
+
+            case DRAGON_STATE_MOVE_RIGHT:
+                if (headingAngle < DRAGON_TURN_THRESHOLD_ANGLE || isTargetAhead)
+                    item.Animation.TargetState = DRAGON_STATE_WALK;
+                break;
+
+            case DRAGON_STATE_TURN_LEFT:
+                item.Pose.Orientation.y -= ANGLE(1.0f) - headingAngle;
+                creature.Flags = 0;
+                break;
+
+            case DRAGON_STATE_TURN_RIGHT:
+                item.Pose.Orientation.y += ANGLE(1.0f) - headingAngle;
+                creature.Flags = 0;
+                break;
+
+            case DRAGON_STATE_AIM_1:
+                item.Pose.Orientation.y -= headingAngle;
+
+                if (ai.ahead)
+                    headOrient = -ai.angle;
+
+                // NEW: Charging smoke
+                SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
+
+                if (isTargetAhead)
+                {
+                    item.Animation.TargetState = DRAGON_STATE_FIRE_1;
+                    creature.Flags = 30;
+                }
+                else
+                {
+                    item.Animation.TargetState = DRAGON_STATE_AIM_1;
+                    creature.Flags = 0;
+                }
+
+                break;
+
+            case DRAGON_STATE_FIRE_1:
+                item.Pose.Orientation.y -= headingAngle;
+                SoundEffect(SFX_TR2_DRAGON_FIRE, &item.Pose);
+
+                if (ai.ahead)
+                    headOrient = -ai.angle;
+
+                if (creature.Flags)
+                {
+                    if (ai.ahead)
+                        SpawnDragonFireBreathEffect(item, DragonMouthBite);
+
+                    creature.Flags--;
+                }
+                else
+                {
+                    item.Animation.TargetState = DRAGON_STATE_IDLE;
+                }
+
+                break;
+            }
+        }
+        if (timer >= 0)
+        {
+            CreatureJoint(&item, 0, headOrient);
+            CreatureAnimation(itemNumber, headingAngle, 0);
+        }
+
+        SyncDragonBackSegment(item);
+        UpdateDragonFlameProjectiles();
+        UpdateDragonEmbers();
+    }
+    static void HandleDaggerPickup(ItemInfo& item, ItemInfo& playerItem)
+    {
+        auto& player = GetLaraInfo(playerItem);
+
+        g_Hud.InteractionHighlighter.Test(playerItem, item);
+
+        if ((IsHeld(In::Action) &&
+            (item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED ||
+                (item.Animation.AnimNumber == DRAGON_ANIM_RECOVER &&
+                    item.Animation.FrameNumber <= DRAGON_ALMOST_LIVE)) &&
+            playerItem.Animation.ActiveState == LS_IDLE &&
+            playerItem.Animation.AnimNumber == LA_STAND_IDLE &&
+            player.Control.HandStatus == HandStatus::Free) ||
+            (player.Control.IsMoving && player.Context.InteractedItem == item.Index))
+        {
+            auto bounds = GameBoundingBox(&item);
+
+            DragonDaggerBounds.BoundingBox.X1 = bounds.X1 - BLOCK(1.0f);
+            DragonDaggerBounds.BoundingBox.X2 = bounds.X2 + BLOCK(1.0f);
+            DragonDaggerBounds.BoundingBox.Z1 = bounds.Z1 - BLOCK(1.0f);
+            DragonDaggerBounds.BoundingBox.Z2 = bounds.Z2 + BLOCK(1.0f);
+
+            DragonDaggerPos.x = bounds.X2 - BLOCK(2.5f);
+            DragonDaggerPos.z = bounds.Z1 + BLOCK(0.9f);
+
+            if (TestLaraPosition(DragonDaggerBounds, &item, &playerItem))
+            {
+                // Temporarily rotate dragon so Lara aligns correctly.
+                short yOrient = item.Pose.Orientation.y;
+                item.Pose.Orientation.y += ANGLE(90.0f);
+
+                if (MoveLaraPosition(DragonDaggerPos, &item, &playerItem))
+                {
+                    SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
+                    playerItem.Pose = item.Pose;
+
+                    ResetPlayerFlex(&playerItem);
+                    playerItem.Animation.FrameNumber = 0;
+                    player.Control.IsMoving = false;
+                    player.Control.HandStatus = HandStatus::Busy;
+
+                    AnimateItem(playerItem);
+
+                    // Setting ItemFlags[1] to negative value sets defeat status and triggers death.
+                    item.ItemFlags[1] = -1;
+                }
+                else
+                {
+                    player.Context.InteractedItem = item.Index;
+                }
+
+                // Restore orientation.
+                item.Pose.Orientation.y = yOrient;
+            }
+            else if (player.Control.IsMoving && player.Context.InteractedItem == item.Index)
+            {
+                player.Control.IsMoving = false;
+                player.Control.HandStatus = HandStatus::Free;
+            }
+        }
+    }
+
+    void CollideDragonFront(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
+    {
+        auto& item = g_Level.Items[itemNumber];
+        const auto& player = *GetLaraInfo(playerItem);
+
+        if (item.Animation.ActiveState == DRAGON_STATE_DEFEAT &&
+            item.TriggerFlags == DRAGON_OCB_DAGGER)
+        {
+            HandleDaggerPickup(item, *playerItem);
+
+            if ((player.Control.IsMoving &&
+                player.Context.InteractedItem == item.Index) ||
+                playerItem->Animation.AnimNumber == LEA_PULL_DAGGER_FROM_DRAGON)
+            {
+                return;
+            }
+            else
+            {
+                CreatureCollision(itemNumber, playerItem, coll);
+            }
+        }
+        else
+        {
+            if (item.HitPoints > 0)
+                CreatureCollision(itemNumber, playerItem, coll);
+        }
+    }
+
+    void CollideDragonBack(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
+    {
+        const auto& item = g_Level.Items[itemNumber];
+
+        if (item.HitPoints > 0)
+            CreatureCollision(itemNumber, playerItem, coll);
+    }
+}
+
 
