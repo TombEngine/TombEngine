@@ -7,6 +7,10 @@
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/effects/smoke.h"
+#include "Game/effects/spark.h" 
+#include "Game/effects/Decal.h" 
+#include "Game/collision/Los.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -21,6 +25,10 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Effects::Smoke;
+using namespace TEN::Effects::Spark;
+using namespace TEN::Collision::Los;
+using namespace TEN::Effects::Decal;
 
 // NOTES:
 // OCB 0: Dragon dies when hitpoints reach 0.
@@ -38,6 +46,26 @@ namespace TEN::Entities::Creatures::TR2
 			EulerAngles(ANGLE(-10.0f), -LARA_GRAB_THRESHOLD + ANGLE(90.0f) , ANGLE(-10.0f)),
 			EulerAngles(ANGLE(10.0f), LARA_GRAB_THRESHOLD + ANGLE(90.0f), ANGLE(10.0f)))
 	};
+
+	// Logical flame projectile used for LOS-based flame stopping and scorch decals.
+	struct DragonFlameProjectile
+	{
+		Vector3 pos;
+		Vector3 vel;
+		short roomNumber = 0;
+		int life = 0;
+		bool blocked = false;
+	};
+
+	// Ember particle logic (physics-only). Visual spark is spawned separately.
+	struct DragonEmber
+	{
+		Vector3 pos;
+		Vector3 vel;
+		short roomNumber;
+		int life;
+	};
+
 
 	auto DragonDaggerPos = Vector3i::Zero;
 
