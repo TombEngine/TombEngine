@@ -26,8 +26,9 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
-	settings.Gameplay.targetObjectOcclusion = true
 	settings.Gameplay.enableInventory = true
+	settings.Gameplay.killPoisonedEnemies = true
+	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.skinning = true
@@ -36,6 +37,19 @@ local settings = Flow.Settings.new()
 	settings.Hud.loadingBar = true
 	settings.Hud.speedometer = true
 	settings.Hud.pickupNotifier = true
+	
+	settings.Pathfinding.mode = PathfindingMode.ASTAR
+	settings.Pathfinding.searchDepth = 5
+	settings.Pathfinding.escapeDistance = 5120
+	settings.Pathfinding.stalkDistance = 3072
+	settings.Pathfinding.predictionFactor = 15.0
+	settings.Pathfinding.collisionPenaltyThreshold = 1
+	settings.Pathfinding.collisionPenaltyCooldown = 6
+	settings.Pathfinding.moveableAvoidance = true
+	settings.Pathfinding.staticMeshAvoidance = true
+	settings.Pathfinding.verticalGeometryAvoidance = true
+	settings.Pathfinding.waterSurfaceAvoidance = true
+	settings.Pathfinding.verticalMovementSmoothing = true
 	
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50
@@ -48,7 +62,10 @@ local settings = Flow.Settings.new()
 	settings.UI.optionTextColor = Color(240, 220, 32)
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
-	settings.UI.shadowTextColor = Color(0, 0, 0)	
+	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.titleLogoPosition = Vec2(50, 20)
+	settings.UI.titleLogoScale = 0.38
+	settings.UI.titleLogoColor = Color(255, 255, 255)
 	settings.UI.titleMenuPosition = Vec2(50, 66)
 	settings.UI.titleMenuScale = 1.0
 	settings.UI.titleMenuAlignment = Strings.DisplayStringOption.CENTER

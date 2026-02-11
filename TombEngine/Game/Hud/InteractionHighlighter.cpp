@@ -115,7 +115,7 @@ namespace TEN::Hud
 		return !armsBusy && conditionsMet;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type, Vector3 offset)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
 		if (!g_Configuration.EnableInteractionHighlighter)
@@ -144,8 +144,11 @@ namespace TEN::Hud
 
 		const auto playerBoundingBox = player.GetObb();
 
-		// Inflate object bounding box a little to increase highlight tolerance.
+		// Offset object bounding box.
 		auto itemBoundingBox = item.GetObb();
+		itemBoundingBox.Center = itemBoundingBox.Center + offset;
+
+		// Inflate object bounding box a little to increase highlight tolerance.
 		auto inflatedBoundingBox = itemBoundingBox;
 		inflatedBoundingBox.Extents = itemBoundingBox.Extents + Vector3::One * INTERACTION_PADDING;
 

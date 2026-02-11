@@ -9,6 +9,8 @@
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
+#include "Scripting/Internal/TEN/Logic/EventType.h"
+#include "Scripting/Internal/TEN/Logic/LevelEndReason.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
@@ -26,99 +28,6 @@ Saving data, triggering functions, and callbacks for level-specific scripts.
 @tentable Logic 
 @pragma nostrip
 */
-
-enum class CallbackPoint
-{
-	PreStart,
-	PostStart,
-	PreLoad,
-	PostLoad,
-	PreLoop,
-	PostLoop,
-	PreSave,
-	PostSave,
-	PreEnd,
-	PostEnd,
-	PreUseItem,
-	PostUseItem,
-	PreFreeze,
-	PostFreeze
-};
-
-enum class LevelEndReason
-{
-	LevelComplete,
-	LoadGame,
-	ExitToTitle,
-	Death,
-	Other
-};
-
-static const auto CALLBACK_POINTS = std::unordered_map<std::string, CallbackPoint>
-{
-	{ ScriptReserved_PreStart, CallbackPoint::PreStart },
-	{ ScriptReserved_PostStart, CallbackPoint::PostStart },
-	{ ScriptReserved_PreLoad, CallbackPoint::PreLoad },
-	{ ScriptReserved_PostLoad, CallbackPoint::PostLoad },
-	{ ScriptReserved_PreLoop, CallbackPoint::PreLoop },
-	{ ScriptReserved_PostLoop, CallbackPoint::PostLoop },
-	{ ScriptReserved_PreSave, CallbackPoint::PreSave },
-	{ ScriptReserved_PostSave, CallbackPoint::PostSave },
-	{ ScriptReserved_PreEnd, CallbackPoint::PreEnd },
-	{ ScriptReserved_PostEnd, CallbackPoint::PostEnd },
-	{ ScriptReserved_PreUseItem, CallbackPoint::PreUseItem },
-	{ ScriptReserved_PostUseItem, CallbackPoint::PostUseItem },
-	{ ScriptReserved_PreFreeze, CallbackPoint::PreFreeze },
-	{ ScriptReserved_PostFreeze, CallbackPoint::PostFreeze },
-
-	// COMPATIBILITY
-	{ "POSTSTART", CallbackPoint::PostStart },
-	{ "PRELOAD", CallbackPoint::PreLoad },
-	{ "POSTLOAD", CallbackPoint::PostLoad },
-	{ "PRELOOP", CallbackPoint::PreLoop },
-	{ "PRECONTROLPHASE", CallbackPoint::PreLoop },
-	{ "POSTLOOP", CallbackPoint::PostLoop },
-	{ "POSTCONTROLPHASE", CallbackPoint::PostLoop },
-	{ "PRESAVE", CallbackPoint::PreSave },
-	{ "POSTSAVE", CallbackPoint::PostSave },
-	{ "PREEND", CallbackPoint::PreEnd },
-	{ "POSTEND", CallbackPoint::PostEnd },
-	{ "PREUSEITEM", CallbackPoint::PreUseItem },
-	{ "POSTUSEITEM", CallbackPoint::PostUseItem },
-	{ "PREFREEZE", CallbackPoint::PreFreeze },
-	{ "POSTFREEZE", CallbackPoint::PostFreeze }
-};
-
-static const auto EVENT_TYPES = std::unordered_map<std::string, EventType>
-{
-	{ ScriptReserved_EventOnEnter, EventType::Enter },
-	{ ScriptReserved_EventOnInside, EventType::Inside },
-	{ ScriptReserved_EventOnLeave, EventType::Leave },
-	{ ScriptReserved_EventOnLoop, EventType::Loop },
-	{ ScriptReserved_EventOnLoad, EventType::Load },
-	{ ScriptReserved_EventOnSave, EventType::Save },
-	{ ScriptReserved_EventOnStart, EventType::Start },
-	{ ScriptReserved_EventOnEnd, EventType::End },
-	{ ScriptReserved_EventOnUseItem, EventType::UseItem },
-	{ ScriptReserved_EventOnFreeze, EventType::Freeze },
-
-	// COMPATIBILITY
-	{ "USEITEM", EventType::UseItem }
-};
-
-static const auto LEVEL_END_REASONS = std::unordered_map<std::string, LevelEndReason>
-{
-	{ ScriptReserved_EndReasonLevelComplete, LevelEndReason::LevelComplete },
-	{ ScriptReserved_EndReasonLoadGame, LevelEndReason::LoadGame },
-	{ ScriptReserved_EndReasonExitToTitle, LevelEndReason::ExitToTitle },
-	{ ScriptReserved_EndReasonDeath, LevelEndReason::Death },
-	{ ScriptReserved_EndReasonOther, LevelEndReason::Other },
-
-	// COMPATIBILITY
-	{ "LEVELCOMPLETE", LevelEndReason::LevelComplete },
-	{ "LOADGAME", LevelEndReason::LoadGame },
-	{ "EXITTOTITLE", LevelEndReason::ExitToTitle }
-};
 
 static constexpr char const* strKey = "__internal_name";
 
@@ -246,45 +155,44 @@ void LogicHandler::ResetGameTables()
 @advancedDesc
 This is intended for module/library developers who want their modules to do
 stuff during level start/load/end/save/control phase, but don't want the level
-designer to add calls to `OnStart`, `OnLoad`, etc. in their level script.
+designer to add calls to `OnStart`, `OnLoad`, etc. in their level script. Any returned value will be discarded.
 
-Possible values for `point`:
-	-- These take functions which accept no arguments
-	PRE_START -- will be called immediately before OnStart
-	POST_START -- will be called immediately after OnStart
+Note: __the order in which two functions with the same CallbackPoint are called is undefined__.
 
-	PRE_SAVE -- will be called immediately before OnSave
-	POST_SAVE -- will be called immediately after OnSave
+i.e. if you register `MyFunc` and `MyFunc2` with `PRE_LOOP`, both will be called in the beginning of game loop, but there is no guarantee that `MyFunc` will be called before `MyFunc2`, or vice-versa.
 
-	PRE_LOAD -- will be called immediately before OnLoad
-	POST_LOAD -- will be called immediately after OnLoad
+Arguments:
 
-	PRE_FREEZE -- will be called before entering freeze mode
-	POST_FREEZE -- will be called immediately after exiting freeze mode
+- The callbacks `PRE_END`, `POST_END`, `PRE_USE_ITEM`, and `POST_USE_ITEM` receive an argument (like their respective LevelFuncs.OnEnd and LevelFuncs.OnUseItem).
 
-	-- These take a LevelEndReason arg, like OnEnd
-	PRE_END -- will be called immediately before OnEnd
-	POST_END -- will be called immediately after OnEnd
-
-	-- These take functions which accepts a deltaTime argument
-	PRE_LOOP -- will be called in the beginning of game loop
-	POST_LOOP -- will be called at the end of game loop
-
-	-- These take functions which accepts an objectNumber argument, like OnUseItem
-	PRE_USE_ITEM -- will be called immediately before OnUseItem
-	POST_USE_ITEM -- will be called immediately after OnUseItem
-
-The order in which two functions with the same CallbackPoint are called is undefined.
-i.e. if you register `MyFunc` and `MyFunc2` with `PRELOOP`, both will be called in the beginning of game loop, but there is no guarantee that `MyFunc` will be called before `MyFunc2`, or vice-versa.
-
-Any returned value will be discarded.
+- The argument for `PRE_LOOP` and `POST_LOOP` is deprecated and should not be used.
 
 @function AddCallback
-@tparam CallbackPoint point When should the callback be called?
-@tparam LevelFunc func The function to be called (must be in the `LevelFuncs` hierarchy). Will receive, as an argument, the time in seconds since the last frame.
+@tparam Logic.CallbackPoint point When should the callback be called?
+@tparam function func The function to be called (must be in the `LevelFuncs` hierarchy). Will receive, as an argument, the time in seconds since the last frame.
 @usage
-	LevelFuncs.MyFunc = function(dt) print(dt) end
-	TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.MyFunc)
+	LevelFuncs.MyFunc = function() 
+		-- do stuff here
+	end
+	TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_START, LevelFuncs.MyFunc)
+
+	-- Another example, with argument
+	LevelFuncs.OnLevelEnd = function(reason)
+		-- do stuff here
+		print("Level ended because reason code: " .. reason)
+	end
+	TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_END, LevelFuncs.OnLevelEnd)
+
+	-- Another example, two functions added in the same callback type
+	LevelFuncs.FuncA = function()
+		-- do stuff here
+	end
+	LevelFuncs.FuncB = function()
+		-- do other stuff here
+	end
+	TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOAD, LevelFuncs.FuncA)
+	TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOAD, LevelFuncs.FuncB)
+	-- In this case, both FuncA and FuncB will be called after level load, but the order is undefined.
 */
 void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
@@ -315,8 +223,8 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 Will have no effect if the function was not registered as a callback
 
 @function RemoveCallback
-@tparam CallbackPoint point The callback point the function was registered with. See @{AddCallback}
-@tparam LevelFunc func The function to remove; must be in the LevelFuncs hierarchy.
+@tparam Logic.CallbackPoint point The callback point the function was registered with. See @{AddCallback}
+@tparam function func The function to remove; must be in the `LevelFuncs` hierarchy.
 @usage
 	TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.MyFunc)
 */
@@ -339,24 +247,18 @@ void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFun
 }
 
 /*** Attempt to find an event set and execute a particular event from it.
-@advancedDesc
-
-Possible event type values:
-	ENTER
-	INSIDE
-	LEAVE
-	LOAD
-	SAVE
-	START
-	END
-	LOOP
-	USE_ITEM
-	MENU
 
 @function HandleEvent
 @tparam string name Name of the event set to find.
-@tparam EventType type Event to execute.
+@tparam Logic.EventType type Event to execute.
 @tparam[opt=Lara] Objects.Moveable activator Optional activator.
+@usage
+	-- Executes the "ENTER" volume event of the event set named "MyVolumeEvent"
+	TEN.Logic.HandleEvent("MyVolumeEvent", TEN.Logic.EventType.ENTER)
+
+	-- Executes the "LOAD" global event of the event set named "MyGlobalEvent", with enemy as activator
+	enemy = TEN.Objects.GetMoveableByName("MyEnemy")
+	TEN.Logic.HandleEvent("MyGlobalEvent", TEN.Logic.EventType.LOAD, enemy)
 */
 void LogicHandler::HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator)
 {
@@ -367,7 +269,10 @@ void LogicHandler::HandleEvent(const std::string& name, EventType type, sol::opt
 
 @function EnableEvent
 @tparam string name Name of the event set to find.
-@tparam EventType type Event to enable.
+@tparam Logic.EventType type Event to enable.
+@usage
+	-- Enables the "ENTER" volume event of the event set named "MyVolumeEvent"
+	TEN.Logic.EnableEvent("MyVolumeEvent", TEN.Logic.EventType.ENTER)
 */
 void LogicHandler::EnableEvent(const std::string& name, EventType type)
 {
@@ -378,7 +283,10 @@ void LogicHandler::EnableEvent(const std::string& name, EventType type)
 
 @function DisableEvent
 @tparam string name Name of the event set to find.
-@tparam EventType type Event to disable.
+@tparam Logic.EventType type Event to disable.
+@usage
+	-- Disables the "ENTER" volume event of the event set named "MyVolumeEvent"
+	TEN.Logic.DisableEvent("MyVolumeEvent", TEN.Logic.EventType.ENTER)
 */
 void LogicHandler::DisableEvent(const std::string& name, EventType type)
 {
@@ -509,6 +417,7 @@ void LogicHandler::FreeLevelScripts()
 	_levelFuncs.raw_set(strKey, ScriptReserved_LevelFuncs);
 
 	_levelFuncs[ScriptReserved_Engine] = sol::table(*_handler.GetState(), sol::create);
+	_levelFuncs[ScriptReserved_External] = sol::table(*_handler.GetState(), sol::create);
 
 	_levelFuncs_tablesOfNames.clear();
 	_levelFuncs_luaFunctions.clear();
@@ -1091,7 +1000,7 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 {
 	if (!postLoop)
 	{
-		PerformCallbacks(CallbackPoint::PreLoop);
+		PerformCallbacks(CallbackPoint::PreLoop, deltaTime);
 
 		PerformConsoleInput();
 
@@ -1101,7 +1010,7 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 	}
 	else
 	{
-		PerformCallbacks(CallbackPoint::PostLoop);
+		PerformCallbacks(CallbackPoint::PostLoop, deltaTime);
 	}
 }
 
@@ -1166,125 +1075,6 @@ void LogicHandler::OnFreeze()
 
 	PerformCallbacks(CallbackPoint::PostFreeze);
 }
-
-/*** Special tables
-
-TombEngine uses the following tables for specific things.
-
-@section levelandgametables
-*/
-
-/*** A table with level-specific data which will be saved and loaded.
-This is for level-specific information that you want to store in saved games.
-
-@advancedDesc
-For example, you may have a level with a custom puzzle where Lara has
-to kill exactly seven enemies to open a door to a secret. You could use
-the following line each time an enemy is killed:
-
-	LevelVars.enemiesKilled = LevelVars.enemiesKilled + 1
-
-If the player saves the level after killing three, saves, and then reloads the save
-some time later, the values `3` will be put back into `LevelVars.enemiesKilled.`
-
-__This table is emptied when a level is finished.__ If the player needs to be able
-to return to the level (like in the Karnak and Alexandria levels in *The Last Revelation*),
-you will need to use the @{GameVars} table, below.
-
-__LevelVars.Engine is a reserved table used internally by TombEngine's libs. Do not modify, overwrite, or add to it.__
-
-@table LevelVars
-*/
-
-/*** A table with game data which will be saved and loaded.
-This is for information not specific to any level, but which concerns your whole
-levelset or game, that you want to store in saved games.
-
-@advancedDesc
-For example, you may wish to have a final boss say a specific voice line based on
-a choice the player made in a previous level. In the level with the choice, you could
-write:
-
-	GameVars.playerSnoopedInDrawers = true
-
-And in the script file for the level with the boss, you could write:
-
-	if GameVars.playerSnoopedInDrawers then
-		PlayAudioTrack("how_dare_you.wav")
-	end
-
-Unlike @{LevelVars}, this table will remain intact for the entirety of the game.
-
-__GameVars.Engine is a reserved table used internally by TombEngine's libs. Do not modify, overwrite, or add to it.__
-
-@table GameVars
-*/
-
-/*** A table nested table system for level-specific functions.
-
-@advancedDesc
-This serves a few purposes: it holds the level callbacks (listed below) as well as
-any trigger functions you might have specified. For example, if you give a trigger
-a Lua name of "my_trigger" in Tomb Editor, you will have to implement it as a member
-of this table:
-
-	LevelFuncs.my_trigger = function() 
-		-- implementation goes here
-	end
-
-You can organise functions into tables within the hierarchy:
-
-	LevelFuncs.enemyFuncs = {}
-
-	LevelFuncs.enemyFuncs.makeBaddyRunAway = function() 
-		-- implementation goes here
-	end
-
-	LevelFuncs.enemyFuncs.makeBaddyUseMedkit = function() 
-		-- implementation goes here
-	end
-
-There are two special subtables which you should __not__ overwrite:
-
-	LevelFuncs.Engine -- this is for 'first-party' functions, i.e. ones that come with TombEngine.
-	LevelFuncs.External -- this is for 'third-party' functions. If you write a library providing LevelFuncs functions for other builders to use in their levels, put those functions in LevelFuncs.External.YourLibraryNameHere
-
-The following are the level callbacks. They are optional; if your level has no special
-behaviour for a particular scenario, you do not need to implement the function. For
-example, if your level does not need any special initialisation when it is loaded,
-you can just leave out `LevelFuncs.OnStart`.
-
-__The order of loading is as follows:__
-
-1. The level data itself is loaded.
-2. The level script itself is run (i.e. any code you put outside the `LevelFuncs` callbacks is executed).
-3. Save data is loaded, if saving from a saved game (will empty `LevelVars` and `GameVars` and repopulate them with what they contained when the game was saved).
-4. If loading from a save, `OnLoaded` will be called. Otherwise, `OnStart` will be called.
-5. The control loop, in which `OnLoop` will be called once per frame, begins.
-
-@tfield function OnStart Will be called when a level is entered by completing a previous level or by selecting it in the menu. Will not be called when loaded from a saved game.
-@tfield function OnLoad Will be called when a saved game is loaded, just *after* data is loaded
-@tfield function(float) OnLoop Will be called during the game's update loop,
-and provides the delta time (a float representing game time since last call) via its argument.
-@tfield function OnSave Will be called when the player saves the game, just *before* data is saved
-@tfield function OnEnd(EndReason) Will be called when leaving a level. This includes finishing it, exiting to the menu, or loading a save in a different level. It can take an `EndReason` arg:
-
-	EXIT_TO_TITLE
-	LEVEL_COMPLETE
-	LOAD_GAME
-	DEATH
-	OTHER
-
-For example:
-	LevelFuncs.OnEnd = function(reason)
-		if(reason == TEN.Logic.EndReason.DEATH) then
-			print("death")
-		end
-	end
-@tfield function OnUseItem Will be called when using an item from inventory.
-@tfield function OnFreeze Will be called when any of the Freeze modes are activated.
-@table LevelFuncs
-*/
 
 void LogicHandler::InitCallbacks()
 {

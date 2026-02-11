@@ -934,9 +934,10 @@ void UpdateAllEffects()
 bool UpdateItemRoom(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
+	auto yOffset = GameBoundingBox(item).GetCenter().y;
 
 	auto roomNumber = GetPointCollision(
-		Vector3i(item->Pose.Position.x, item->Pose.Position.y - CLICK(2), item->Pose.Position.z),
+		Vector3i(item->Pose.Position.x, item->Pose.Position.y - yOffset, item->Pose.Position.z),
 		item->RoomNumber).GetRoomNumber();
 
 	if (roomNumber != item->RoomNumber)

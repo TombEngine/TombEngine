@@ -63,14 +63,16 @@ namespace TEN::Entities::Generic
 		auto& pushable = GetPushableInfo(pushableItem);
 
 		bool wasBuoyant = pushable.IsBuoyant;
+		bool isSolid = pushableItem.ObjectNumber >= ID_PUSHABLE_OBJECT_CLIMBABLE1 &&
+					   pushableItem.ObjectNumber <= ID_PUSHABLE_OBJECT_CLIMBABLE10;
 
 		// Read OCB flags.
 		int ocb = pushableItem.TriggerFlags;
 
-		pushable.CanFall		= (ocb & (1 << 0)) != 0;			// Bit 0.
-		pushable.DoCenterAlign	= (ocb & (1 << 1)) == 0;			// Bit 1.
-		pushable.IsBuoyant		= (ocb & (1 << 2)) != 0;			// Bit 2.
-		pushable.AnimSetID		= ((ocb & (1 << 3)) != 0) ? 1 : 0;	// Bit 3.
+		pushable.CanFall		= ((ocb & (1 << 0)) != 0);				// Bit 0.
+		pushable.DoCenterAlign	= ((ocb & (1 << 1)) == 0) && !isSolid;	// Bit 1.
+		pushable.IsBuoyant		= ((ocb & (1 << 2)) != 0);				// Bit 2.
+		pushable.AnimSetID		= ((ocb & (1 << 3)) != 0) ? 1 : 0;		// Bit 3.
 
 		// Force state transition if buoyancy changed.
 		if (wasBuoyant != pushable.IsBuoyant)

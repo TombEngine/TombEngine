@@ -4,15 +4,16 @@ new_type("files", "Script Files", true)
 new_type("entityclass", "Entity classes", true)
 new_type("pregameclass", "Pre-game script classes", true)
 new_type("miscclass", "Misc classes", true)
-new_type("tentable", "1 Modules", true)
-new_type("tenclass", "2 Classes", true)
-new_type("tenprimitive", "3 Primitive Classes", true)
-new_type("enum", "4 Enums", true)
-new_type("luautil", "5 Lua utility modules", true)
+new_type("specialtable", "1 Special Tables", true)
+new_type("tentable", "2 Modules", true)
+new_type("tenclass", "3 Classes", true)
+new_type("tenprimitive", "4 Primitive Classes", true)
+new_type("enum", "5 Enums", true)
+new_type("luautil", "6 Lua utility modules", true)
 
 not_luadoc = true
 
-local version = "1.10.1"
+local version = "1.11"
 project = "&nbsp;TombEngine"
 title = "TombEngine " .. version .. " Lua API"
 description = "TombEngine " .. version .. " scripting interface"
