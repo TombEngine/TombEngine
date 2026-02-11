@@ -657,14 +657,9 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (MoveLaraPosition(DragonDaggerPos, &item, &playerItem))
 				{
-					// TODO: Reimplement dagger pickup animation when state transitions
-					// from ID_LARA_EXTRA_ANIMS to ID_LARA are possible. -- Adngel 2023.10.03
 
-					//SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
-					//playerItem.Pose = item.Pose;
-
-					// HACK: Temporarily use small button push animation.
-					SetAnimation(playerItem, LA_PICKUP_PEDESTAL_LOW);
+					SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
+					playerItem.Pose = item.Pose;
 
 					ResetPlayerFlex(&playerItem);
 					playerItem.Animation.FrameNumber = 0;
@@ -674,7 +669,7 @@ namespace TEN::Entities::Creatures::TR2
 					AnimateItem(playerItem);
 
 					// Setting ItemFlags[1] to negative value sets defeat status and triggers death.
-					item.ItemFlags[1] = -1 * (100 - GetAnimData(playerItem).EndFrameNumber);
+					item.ItemFlags[1] = -1;
 				}
 				else
 				{
