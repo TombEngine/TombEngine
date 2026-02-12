@@ -7,9 +7,13 @@
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Specific/level.h"
+#include "Game/effects/item_fx.h"
+
 
 using namespace TEN::Effects::Electricity;
+using namespace TEN::Effects::Items;
 using namespace TEN::Math;
+
 
 namespace TEN::Entities::Traps
 {
@@ -70,7 +74,7 @@ namespace TEN::Entities::Traps
 				32, g, b,
 				8,
 				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut,
-				Random::GenerateFloat(2.0f, 6.0f),
+				Random::GenerateFloat(20.0f, 40.0f),
 				Random::GenerateInt(4, 8));
 		}
 
@@ -101,6 +105,7 @@ namespace TEN::Entities::Traps
 
 			// Electric fence hit - damage entity.
 			DoDamage(&entity, ELECTRIC_FENCE_DAMAGE);
+			ItemElectricBurn(&entity,100);
 		}
 	}
 }
