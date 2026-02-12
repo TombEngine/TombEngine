@@ -15,7 +15,6 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Ripple.h"
-#include "Game/effects/smoke.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -45,7 +44,6 @@ using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Ripple;
-using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Input;
@@ -702,10 +700,6 @@ void HarpoonBoltControl(short itemNumber)
 
 		if (GlobalCounter & 1)
 			SpawnBubble(harpoonItem.Pose.Position.ToVector3(), harpoonItem.RoomNumber);
-	}
-	else if (harpoonItem.Pose.Orientation.x > -ANGLE(67.5f))
-	{
-		harpoonItem.Pose.Orientation.x -= ANGLE(1.0f);
 	}
 
 	auto prevPos = harpoonItem.Pose.Position;

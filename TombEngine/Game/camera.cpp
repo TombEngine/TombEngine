@@ -1688,8 +1688,8 @@ void SetScreenFadeIn(float speed, bool force)
 
 void SetCinematicBars(float height, float speed)
 {
-	CinematicBarsSpeed = std::abs(CinematicBarsHeight - height) * (speed / (float)FPS);
 	CinematicBarsDestinationHeight = height;
+	CinematicBarsSpeed = speed;
 }
 
 void ClearCinematicBars()
@@ -1701,29 +1701,17 @@ void ClearCinematicBars()
 
 void UpdateFadeScreenAndCinematicBars()
 {
-	constexpr float EASEOUT_DISTANCE = 0.05f;
-
-	float delta = CinematicBarsDestinationHeight - CinematicBarsHeight;
-	float absDelta = std::abs(delta);
-
-	if (absDelta > EPSILON)
+	if (CinematicBarsDestinationHeight < CinematicBarsHeight)
 	{
-		float step = CinematicBarsSpeed;
-
-		if (absDelta < EASEOUT_DISTANCE)
-			step *= absDelta / EASEOUT_DISTANCE;
-
-		// keep direction
-		step = (delta > 0.0f ? step : -step);
-
-		CinematicBarsHeight += step;
-
-		// final clamp (prevents overshoot)
-		if ((delta > 0.0f && CinematicBarsHeight > CinematicBarsDestinationHeight) ||
-			(delta < 0.0f && CinematicBarsHeight < CinematicBarsDestinationHeight))
-		{
+		CinematicBarsHeight -= CinematicBarsSpeed;
+		if (CinematicBarsDestinationHeight > CinematicBarsHeight)
 			CinematicBarsHeight = CinematicBarsDestinationHeight;
-		}
+	}
+	else if (CinematicBarsDestinationHeight > CinematicBarsHeight)
+	{
+		CinematicBarsHeight += CinematicBarsSpeed;
+		if (CinematicBarsDestinationHeight < CinematicBarsHeight)
+			CinematicBarsHeight = CinematicBarsDestinationHeight;
 	}
 
 	int prevScreenFadeCurrent = ScreenFadeCurrent;

@@ -89,25 +89,12 @@ namespace TEN::Entities::TR4
 			SetAnimation(item, CROC_ANIM_IDLE);
 	}
 
-	static bool IsCrocodileInWater(ItemInfo* item)
-	{
-		auto* creature = GetCreatureInfo(item);
-		auto bounds = GameBoundingBox(item);
-
-		auto pointColl = GetPointCollision(*item);
-
-		int waterSurface = pointColl.GetWaterTopHeight();
-		int waterBottom = pointColl.GetWaterBottomHeight();
-		int depth = waterBottom - waterSurface;
-
-		return (depth > CLICK(0.75f) && (waterSurface != NO_HEIGHT) && waterSurface <= (item->Pose.Position.y + bounds.Y2));
-	}
-
-	static void SetCrocodileWater(ItemInfo* item)
+	bool IsCrocodileInWater(ItemInfo* item)
 	{
 		auto* creature = GetCreatureInfo(item);
 
-		if (IsCrocodileInWater(item))
+		int waterDepth = GetPointCollision(*item).GetWaterSurfaceHeight();
+		if (waterDepth != NO_HEIGHT)
 		{
 			creature->LOT.Step = BLOCK(20);
 			creature->LOT.Drop = -BLOCK(20);
@@ -116,9 +103,11 @@ namespace TEN::Entities::TR4
 		else
 		{
 			creature->LOT.Step = CLICK(1);
-			creature->LOT.Drop = -CLICK(2); // Unlike TR4, allow croc to descend 2-click ramps.
+			creature->LOT.Drop = -CLICK(1);
 			creature->LOT.Fly = NO_FLYING;
 		}
+
+		return waterDepth != NO_HEIGHT;
 	}
 
 	void CrocodileControl(short itemNumber)
@@ -336,7 +325,6 @@ namespace TEN::Entities::TR4
 			extraTorsoRot.x = -boneAngle;
 		}
 
-		SetCrocodileWater(item);
 		CreatureTilt(item, 0);
 		CreatureJoint(item, 0, extraHeadRot.y);
 		CreatureJoint(item, 1, extraHeadRot.x);

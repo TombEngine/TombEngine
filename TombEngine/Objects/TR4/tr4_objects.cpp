@@ -129,6 +129,7 @@ namespace TEN::Entities
 			obj->pivotLength = 20;
 			obj->radius = 128;
 			obj->intelligent = true;
+			obj->waterCreature = true;
 			obj->LotType = LotType::Water;
 			obj->SetHitEffect();
 		}
@@ -467,7 +468,8 @@ namespace TEN::Entities
 			obj->pivotLength = 300;
 			obj->radius = 409;
 			obj->intelligent = true;
-			obj->LotType = LotType::Amphibious;
+			obj->waterCreature = true;
+			obj->LotType = LotType::Water; // TODO: later, change it to WaterAndLand.
 			obj->SetBoneRotationFlags(0, ROT_Y);
 			obj->SetBoneRotationFlags(7, ROT_Y);
 			obj->SetBoneRotationFlags(9, ROT_Y);

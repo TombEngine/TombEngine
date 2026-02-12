@@ -59,10 +59,11 @@ namespace TEN::Scripting::View
 
 	static void SetCineBars(TypeOrNil<float> height, TypeOrNil<float> speed)
 	{
-		// Divide by 200 so that a percentage of 100 means that each bar takes up half the screen.
+		// divide by 200 so that a percentage of 100 means that each
+		// bar takes up half the screen
 		float heightProportion = ValueOr<float>(height, 30) / 200.0f;
-		float speedProportion = ValueOr<float>(speed, 1);
-		SetCinematicBars(heightProportion, speedProportion);
+		float speedProportion = ValueOr<float>(speed, 30) / 200.0f;
+		SetCinematicBars(heightProportion, speedProportion / float(FPS));
 	}
 
 	static void SetFOV(float angle)
@@ -244,10 +245,10 @@ namespace TEN::Scripting::View
 		//@treturn bool State of the fade out.
 		tableView.set_function(ScriptReserved_FadeOutComplete, &FadeOutComplete);
 
-		///Animate black cinematic bars in from the top and bottom of the game window.
+		///Move black cinematic bars in from the top and bottom of the game window.
 		//@function SetCineBars
 		//@tparam[opt=30] float height Percentage of the screen to be covered.
-		//@tparam[opt=1] float speed Speed in units per second. A value of 1 will make the animation take one second.
+		//@tparam[opt=30] float speed Coverage percent per second.
 		tableView.set_function(ScriptReserved_SetCineBars, &SetCineBars);
 
 		///Set field of view.
@@ -380,11 +381,10 @@ namespace TEN::Scripting::View
 
 		// Register types.
 		ScriptDisplaySprite::Register(*state, tableView);
-		ScriptDisplayItem::Register(*state, tableView);
-		ScriptDisplayAnchors::Register(tableView);
 
 		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
+		ScriptDisplayItem::Register(*state, tableView);
 
 		// Register enums.
 		auto handler = LuaHandler(state);

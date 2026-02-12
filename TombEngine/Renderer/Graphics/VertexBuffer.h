@@ -1,12 +1,9 @@
 #pragma once
-
 #include <d3d11.h>
-#include <wrl/client.h>
-#include <vector>
-
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
-#include "Renderer/Graphics/VRAMTracker.h"
+#include <wrl/client.h>
+#include <vector>
 #include "Specific/fast_vector.h"
 
 using namespace TEN::Renderer::Graphics::Vertices;
@@ -22,41 +19,14 @@ namespace TEN::Renderer::Graphics
 	{
 	private:
 		int _numVertices;
-		int _vramSize = 0;
 
 	public:
 		ComPtr<ID3D11Buffer> Buffer;
-
-		VertexBuffer() {};
-		VertexBuffer(VertexBuffer&& other) noexcept : _numVertices(other._numVertices), _vramSize(other._vramSize), Buffer(std::move(other.Buffer))
+		
+		VertexBuffer() 
 		{
-			other._vramSize = 0;
-		}
-
-		VertexBuffer& operator=(VertexBuffer&& other) noexcept
-		{
-			if (this != &other)
-			{
-				if (_vramSize > 0)
-					VRAMTracker::Get().Remove(VRAMCategory::VertexBuffer, _vramSize);
-
-				_numVertices = other._numVertices;
-				Buffer = std::move(other.Buffer);
-				_vramSize = other._vramSize;
-				other._vramSize = 0;
-			}
-			return *this;
-		}
-
-		VertexBuffer(const VertexBuffer&) = delete;
-		VertexBuffer& operator=(const VertexBuffer&) = delete;
-
-		~VertexBuffer()
-		{
-			if (_vramSize > 0)
-				VRAMTracker::Get().Remove(VRAMCategory::VertexBuffer, _vramSize);
-		}
-
+		};
+		
 		template <typename CVertex>
 		VertexBuffer(ID3D11Device* device, int numVertices, std::vector<CVertex> vertices)
 		{
@@ -81,8 +51,6 @@ namespace TEN::Renderer::Graphics
 			}
 
 			_numVertices = numVertices;
-			_vramSize = desc.ByteWidth;
-			VRAMTracker::Get().Add(VRAMCategory::VertexBuffer, _vramSize);
 		}
 
 		template <typename CVertex>
@@ -109,8 +77,6 @@ namespace TEN::Renderer::Graphics
 			}
 
 			_numVertices = numVertices;
-			_vramSize = desc.ByteWidth;
-			VRAMTracker::Get().Add(VRAMCategory::VertexBuffer, _vramSize);
 		}
 
 		template <typename CVertex>
@@ -137,8 +103,6 @@ namespace TEN::Renderer::Graphics
 			}
 
 			_numVertices = numVertices;
-			_vramSize = desc.ByteWidth;
-			VRAMTracker::Get().Add(VRAMCategory::VertexBuffer, _vramSize);
 		}
 
 		template <typename CVertex>

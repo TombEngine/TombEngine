@@ -84,9 +84,11 @@ namespace TEN::Entities::Creatures::TR2
 		fx.pos.Position.y = y;
 		fx.pos.Position.z = z;
 		fx.speed = vel;
+		fx.pos.Orientation.y = yRot;
 		fx.fallspeed = 0;
 		fx.flag2 = KNIFE_PROJECTILE_DAMAGE;
 		fx.color = Vector4::One;
+		ShootAtLara(fx);
 
 		return fxNumber;
 	}
@@ -274,7 +276,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteLeft, 100, extraTorsoRot, ThrowKnife));
+					CreatureEffect2(item, KnifeBiteLeft, 100, extraTorsoRot, ThrowKnife);
 					creature->Flags = 1;
 				}
 
@@ -286,7 +288,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteRight, 100, extraTorsoRot, ThrowKnife));
+					CreatureEffect2(item, KnifeBiteRight, 100, extraTorsoRot, ThrowKnife);
 					creature->Flags = 1;
 				}
 
@@ -298,8 +300,8 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (!creature->Flags)
 				{
-					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteLeft, 100, extraTorsoRot, ThrowKnife));
-					ShootAtEnemy(creature->LOT.Target, creature->Enemy, CreatureEffect2(item, KnifeBiteRight, 100, extraTorsoRot, ThrowKnife));
+					CreatureEffect2(item, KnifeBiteLeft, 100, extraTorsoRot, ThrowKnife);
+					CreatureEffect2(item, KnifeBiteRight, 100, extraTorsoRot, ThrowKnife);
 					creature->Flags = 1;
 				}
 

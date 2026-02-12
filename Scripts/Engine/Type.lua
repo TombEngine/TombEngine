@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 335px;}</style>
+-----<style>table.function_list td.name {min-width: 335pxpx;}</style>
 --- This molule contains functions that allow to check the data type of a variable. It also contains functions that allow to check if the variable is a TEN primitive class or a LevelFuncs.
 --
 --
@@ -26,17 +26,12 @@
 --	end
 -- @luautil Type
 
--- Constants for primitive TEN types
-local COLOR = TEN.Color(0,0,0)
-local ROTATION = TEN.Rotation(0, 0, 0)
-local TIME = TEN.Time()
-local VEC2 = TEN.Vec2(0,0)
-local VEC3 = TEN.Vec3(0,0,0)
-
--- Internal sentinel: Created within LevelFuncs.Engine to reduce exposure to end users.
--- Used only for metatable comparisons in Type.IsLevelFunc;
--- do not modify or use directly.
-LevelFuncs.Engine.TYPE_CONTROL_LEVELFUNC = function () end
+local color = TEN.Color(0,0,0)
+local rotation = TEN.Rotation(0, 0, 0)
+local time = TEN.Time()
+local vec2 = TEN.Vec2(0,0)
+local vec3 = TEN.Vec3(0,0,0)
+LevelFuncs.TypeControlLevelFunc = function () end
 
 local Type = {}
 
@@ -140,7 +135,7 @@ end
 --      end
 --  end
 Type.IsColor = function (variable)
-    return getmetatable(variable) == getmetatable(COLOR)
+    return getmetatable(variable) == getmetatable(color)
 end
 
 --- Check if the variable is a @{Rotation}.
@@ -154,7 +149,7 @@ end
 --      end
 --  end
 Type.IsRotation = function (variable)
-    return getmetatable(variable) == getmetatable(ROTATION)
+    return getmetatable(variable) == getmetatable(rotation)
 end
 
 --- Check if the variable is a @{Vec2}.
@@ -168,7 +163,7 @@ end
 --      end
 --  end
 Type.IsVec2 = function (variable)
-    return getmetatable(variable) == getmetatable(VEC2)
+    return getmetatable(variable) == getmetatable(vec2)
 end
 
 --- Check if the variable is a @{Vec3}.
@@ -182,7 +177,7 @@ end
 --      end
 --	end
 Type.IsVec3 = function (variable)
-    return getmetatable(variable) == getmetatable(VEC3)
+    return getmetatable(variable) == getmetatable(vec3)
 end
 
 --- Check if the variable is a @{Time} object.
@@ -196,7 +191,7 @@ end
 --      end
 --	end
 Type.IsTime = function (variable)
-    return getmetatable(variable) == getmetatable(TIME)
+    return getmetatable(variable) == getmetatable(time)
 end
 
 --- Check if the variable is a LevelFunc.
@@ -210,7 +205,7 @@ end
 --      end
 --  end
 Type.IsLevelFunc = function (variable)
-    return getmetatable(variable) == getmetatable(LevelFuncs.Engine.TYPE_CONTROL_LEVELFUNC)
+    return getmetatable(variable) == getmetatable(LevelFuncs.TypeControlLevelFunc)
 end
 
 --- Check if the variable is an enum value.

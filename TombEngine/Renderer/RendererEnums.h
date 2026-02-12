@@ -162,7 +162,6 @@ enum class RendererDebugPage
 {
 	None,
 	RendererStats,
-	MemoryStats,
 	DimensionStats,
 	PlayerStats,
 	InputStats,

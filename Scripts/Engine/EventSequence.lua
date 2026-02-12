@@ -83,8 +83,7 @@ end
 -- - followed by another duration in seconds, another function name, etc.
 --
 -- You can specify a function either by its name, or by a *table* __{ }__ with the function name as the first member, followed by its arguments (see example).
--- @treturn[1] EventSequence The inactive sequence.
--- @treturn[2] nil If there was an error creating the sequence.
+-- @treturn EventSequence The inactive sequence.
 -- @usage
 -- local EventSequence = require("Engine.EventSequence")
 -- local TimerFormat = {seconds = true, deciseconds = true}
@@ -164,7 +163,7 @@ EventSequence.Create = function (name, loop, timerFormat, ...)
 			error = true
 		end
 		if not (Type.IsLevelFunc(funcAndArgs) or (Type.IsTable(funcAndArgs) and Type.IsLevelFunc(funcAndArgs[1]))) then
-			TEN.Util.PrintLog("Error in EventSequence.Create(): wrong value for function arguments, used function must be inside LevelFuncs. '".. name .."' sequence was not created", TEN.Util.LogLevel.ERROR)
+			TEN.Util.PrintLog("Error in EventSequence.Create(): wrong value for function, '".. name .."' sequence was not created", TEN.Util.LogLevel.ERROR)
 			error = true
 		end
 		if error then
@@ -207,8 +206,7 @@ end
 
 --- Get an event sequence by its name.
 -- @tparam string name The label that was given to the sequence when it was created.
--- @treturn[1] EventSequence The sequence if it exists.
--- @treturn[2] nil If the sequence does not exist.
+-- @treturn EventSequence|nil The sequence if it exists, `nil` if it does not exist.
 -- @usage
 -- -- Example:
 -- EventSequence.Get("my_seq")
@@ -300,6 +298,10 @@ end
 --    EventSequence.Get("my_seq"):SetPaused(false)
 -- end
 function EventSequence:SetPaused(p)
+	if self.errorName then
+		TEN.Util.PrintLog("Error in EventSequence:SetPaused(): '" .. self.errorName .. "' sequence does not exist", TEN.Util.LogLevel.ERROR)
+		return
+	end
 	if not Type.IsBoolean(p) then
 		TEN.Util.PrintLog("Error in EventSequence:SetPaused(): invalid value for p", TEN.Util.LogLevel.ERROR)
 	else
@@ -313,8 +315,12 @@ end
 -- -- Example:
 -- EventSequence.Get("my_seq"):Stop()
 function EventSequence:Stop()
-	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
-	Timer.Get(thisES.timers[thisES.currentTimer]):Stop()
+	if self.errorName then
+		TEN.Util.PrintLog("Error in EventSequence:Stop(): '" .. self.errorName .. "' sequence does not exist", TEN.Util.LogLevel.ERROR)
+	else
+		local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
+		Timer.Get(thisES.timers[thisES.currentTimer]):Stop()
+	end
 end
 
 --- Returns whether the sequence is paused.
@@ -330,6 +336,10 @@ end
 --    EventSequence.Get("my_seq"):SetPaused(false)
 -- end
 function EventSequence:IsPaused()
+	if self.errorName then
+		TEN.Util.PrintLog("Error in EventSequence:IsPaused(): '" .. self.errorName .. "' sequence does not exist", TEN.Util.LogLevel.ERROR)
+		return false
+	end
 	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
 	return Timer.Get(thisES.timers[thisES.currentTimer]):IsPaused()
 end
@@ -342,6 +352,10 @@ end
 --    EventSequence.Get("my_seq"):Start()
 -- end
 function EventSequence:IsActive()
+	if self.errorName then
+		TEN.Util.PrintLog("Error in EventSequence:IsActive(): '" .. self.errorName .. "' sequence does not exist", TEN.Util.LogLevel.ERROR)
+		return false
+	end
 	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
 	return Timer.Get(thisES.timers[thisES.currentTimer]):IsActive()
 end

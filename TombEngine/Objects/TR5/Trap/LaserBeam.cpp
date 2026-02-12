@@ -25,9 +25,8 @@ using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto LASER_BEAM_LIGHT_INTENSITY		= 0.2f;
-	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX	= 0.1f;
-	constexpr auto LASER_BEAM_FADE_SPEED			= 0.05f;
+	constexpr auto LASER_BEAM_LIGHT_INTENSITY	  = 0.2f;
+	constexpr auto LASER_BEAM_LIGHT_AMPLITUDE_MAX = 0.1f;
 
 	extern std::unordered_map<int, LaserBeamEffect> LaserBeams = {};
 
@@ -35,8 +34,6 @@ namespace TEN::Entities::Traps
 	{
 		constexpr auto RADIUS_STEP = BLOCK(0.002f);
 
-		Origin = GameVector(item.Pose.Position, item.RoomNumber);
-		Rotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
 		Color = item.Model.Color;
 		Color.w = 1.0f;
 		Radius = (item.TriggerFlags == 0) ? RADIUS_STEP : (abs(item.TriggerFlags) * RADIUS_STEP);
@@ -56,9 +53,10 @@ namespace TEN::Entities::Traps
 			vel += Vector3(Random::GenerateFloat(-64.0f, 64.0f), Random::GenerateFloat(-64.0f, 64.0f), Random::GenerateFloat(-64, 64.0f));
 			vel.Normalize(vel);
 
-			// TODO: Demagic.
 			auto& spark = GetFreeSparkParticle();
 			spark = {};
+
+			// TODO: Demagic.
 			spark.age = 0.0f;
 			spark.life = Random::GenerateFloat(10, 20);
 			spark.friction = 0.98f;
@@ -84,49 +82,45 @@ namespace TEN::Entities::Traps
 
 	void LaserBeamEffect::StoreInterpolationData()
 	{
-		// Store old data for interpolation.
-		if (!IsDirty)
-			return;
+		for (int i = 0; i < Vertices.size(); i++)
+		{
+			OldVertices[i] = Vertices[i];
+		}
 
-		OldVertices = Vertices;
 		OldColor = Color;
 	}
 
 	void LaserBeamEffect::Update(const ItemInfo& item)
 	{
-		// Check for origin/rotation changes.
-		auto newOrigin = GameVector(item.Pose.Position, item.RoomNumber);
-		auto newRotation = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
+		auto orient = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
+		auto dir = orient.ToDirection();
+		auto rotMatrix = orient.ToRotationMatrix();
 
-		IsDirty = !IsActive || Rotation != newRotation || Origin != newOrigin;
-
-		if (IsDirty)
+		// Hit wall; spawn sparks and light.
+		auto los = GetRoomLosCollision(item.Pose.Position.ToVector3(), item.RoomNumber, dir, MAX_VISIBILITY_DISTANCE);
+		if (los.IsIntersected)
 		{
-			Origin = newOrigin;
-			Rotation = newRotation;
+			if (item.TriggerFlags > 0)
+			{
+				auto targetGameVector = GameVector(los.Position, los.RoomNumber);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, Color);
+				SpawnLaserSpark(targetGameVector, Random::GenerateAngle(), 3, Color);
+			}
+
+			SpawnLaserBeamLight(los.Position, los.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
-		// Recalculate laser beam geometry.
-		if (!IsDirty)
-			return;
-
-		StoreInterpolationData();
-
-		auto pos = Origin.ToVector3();
-		auto dir = Rotation.ToDirection();
-		auto los = GetRoomLosCollision(pos, item.RoomNumber, dir, (float)item.ItemFlags[1]);
-
-		Target = GameVector(los.Position, los.RoomNumber);
-		float length = Vector3::Distance(pos, los.Position);
+		float length = Vector3::Distance(item.Pose.Position.ToVector3(), los.Position);
 
 		// Calculate cylinder vertices.
 		float angle = 0.0f;
 		for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 		{
-			float sinAngle = sinf(angle);
-			float cosAngle = cosf(angle);
+			float sinAngle = sin(angle);
+			float cosAngle = cos(angle);
+
 			auto relVertex = Vector3(Radius * sinAngle, Radius * cosAngle, 0.0f);
-			auto vertex = pos + Vector3::Transform(relVertex, Rotation.ToRotationMatrix());
+			auto vertex = item.Pose.Position.ToVector3() + Vector3::Transform(relVertex, rotMatrix);
 
 			Vertices[i] = vertex;
 			Vertices[SUBDIVISION_COUNT + i] = Geometry::TranslatePoint(vertex, dir, length);
@@ -136,18 +130,15 @@ namespace TEN::Entities::Traps
 
 		// Calculate bounding box.
 		float boxApothem = (Radius - ((Radius * SQRT_2) - Radius) + Radius) / 2;
-		auto center = (pos + los.Position) / 2;
+		auto center = (item.Pose.Position.ToVector3() + los.Position) / 2;
 		auto extents = Vector3(boxApothem, boxApothem, length / 2);
-
-		BoundingBox = BoundingOrientedBox(center, extents, Rotation.ToQuaternion());
+		BoundingBox = BoundingOrientedBox(center, extents, orient.ToQuaternion());
 	}
 
 	void InitializeLaserBeam(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		item.ItemFlags[1] = (short)MAX_VISIBILITY_DISTANCE; // Set max laser beam length.
 
-		// Create and initialize laser beam effect.
 		auto beam = LaserBeamEffect{};
 		beam.Initialize(item);
 
@@ -156,70 +147,73 @@ namespace TEN::Entities::Traps
 
 	void ControlLaserBeam(short itemNumber)
 	{
-		// Skip if no laser beam effect exists for this item.
-		if (LaserBeams.find(itemNumber) == LaserBeams.end())
+		if (!LaserBeams.count(itemNumber))
 			return;
 
 		auto& item = g_Level.Items[itemNumber];
 		auto& beam = LaserBeams.at(itemNumber);
 
-		// Check if trigger is active and mark beam as disabled in such case.
 		if (!TriggerActive(&item))
 		{
 			beam.IsActive = false;
+			beam.Color.w = 0.0f;
+			item.Model.Color.w = 0.0f;
 			return;
 		}
 
-		// Reset color to zero to fade in, if beam was just activated.
-		if (!beam.IsActive)
-			beam.Color.w = item.Model.Color.w = 0.0f;
+		beam.StoreInterpolationData();
 
 		// Brightness fade-in and distortion.
 		if (item.Model.Color.w < 1.0f)
-			item.Model.Color.w = beam.Color.w += LASER_BEAM_FADE_SPEED;
+			item.Model.Color.w += 0.02f;
 
-		// Clamp the value.
-		if (item.Model.Color.w > 1.0f)
-			beam.Color.w = item.Model.Color.w = 1.0f;
+		if (beam.Color.w < 1.0f)
+			beam.Color.w += 0.02f;
 
-		beam.Update(item);
-		beam.IsActive = true;
-
-		// Check if target is calculated, then spawn effect.
-		if (beam.Target != GameVector::Zero)
+		// TODO: Weird.
+		if (item.Model.Color.w > 8.0f)
 		{
-			if (beam.IsLethal)
-				SpawnLaserSpark(beam.Target, Random::GenerateAngle(), 6, beam.Color);
-
-			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY * item.Model.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+			beam.Color.w = 0.8f;
+			item.Model.Color.w = 0.8f;
 		}
+
+		beam.IsActive = true;
+		beam.Update(item);
+
+		if (item.Model.Color.w >= 0.8f)
+			SpawnLaserBeamLight(item.Pose.Position.ToVector3(), item.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 
 		SoundEffect(SFX_TR5_DOOR_BEAM, &item.Pose);
 	}
 
 	void CollideLaserBeam(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
-		// Skip if no laser beam effect exists for this item.
-		if (LaserBeams.find(itemNumber) == LaserBeams.end())
+		if (!LaserBeams.count(itemNumber))
 			return;
 
 		auto& item = g_Level.Items[itemNumber];
 		auto& beam = LaserBeams.at(itemNumber);
+
 		if (!beam.IsActive)
 			return;
 
-		// Avoid calling the collision check every frame.
-		if ((item.Index % 3) != (GlobalCounter % 3))
-			return;
+		auto origin = GameVector(item.Pose.Position, item.RoomNumber);
+		auto basePos = origin.ToVector3();
 
-		// Populate the LosRoomNumbers for ObjectOnLOS2.
-		LOS(&beam.Origin, &beam.Target);
+		auto rotMatrix = EulerAngles(item.Pose.Orientation.x + ANGLE(180.0f), item.Pose.Orientation.y, item.Pose.Orientation.z);
+		auto target = GameVector(Geometry::TranslatePoint(origin.ToVector3(), rotMatrix, MAX_VISIBILITY_DISTANCE), 0);
 
-		// Check collision with Lara.
+		auto pointColl = GetPointCollision(target.ToVector3i(), item.RoomNumber);
+		if (pointColl.GetRoomNumber() != target.RoomNumber)
+			target.RoomNumber = pointColl.GetRoomNumber();
+
+		bool los2 = LOS(&origin, &target);
+
 		auto hitPos = Vector3i::Zero;
-		if (ObjectOnLOS2(&beam.Origin, &beam.Target, &hitPos, nullptr, ID_LARA) == LaraItem->Index)
+		if (ObjectOnLOS2(&origin, &target, &hitPos, nullptr, ID_LARA) == LaraItem->Index && !los2)
 		{
-			if (beam.IsLethal && playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
+			if (beam.IsLethal &&
+				playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
 			{
 				ItemRedLaserBurn(playerItem, FPS * 2);
 				DoDamage(playerItem, MAXINT);
@@ -228,7 +222,9 @@ namespace TEN::Entities::Traps
 			{
 				TestTriggers(&item, true, item.Flags & IFLAG_ACTIVATION_MASK);
 			}
+
 			beam.Color.w = Random::GenerateFloat(0.6f, 1.0f);
+			SpawnLaserBeamLight(item.Pose.Position.ToVector3(), item.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 	}
 

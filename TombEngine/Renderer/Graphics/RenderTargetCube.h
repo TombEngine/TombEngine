@@ -2,7 +2,6 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Renderer/Graphics/TextureBase.h"
-#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/RendererUtils.h"
 
 namespace TEN::Renderer::Graphics
@@ -15,7 +14,7 @@ namespace TEN::Renderer::Graphics
 	class RenderTargetCube : public TextureBase
 	{
 	public:
-		static constexpr Vector3 forwardVectors[6] =
+		static constexpr Vector3 forwardVectors[6] = 
 		{
 			//+X (right)
 			Vector3(-1,0,0),
@@ -31,7 +30,7 @@ namespace TEN::Renderer::Graphics
 			Vector3(0,0,-1),
 		};
 
-		static constexpr Vector3 upVectors[6] =
+		static constexpr Vector3 upVectors[6] = 
 		{
 			Vector3(0,-1,0),
 			Vector3(0,-1,0),
@@ -49,42 +48,7 @@ namespace TEN::Renderer::Graphics
 		D3D11_VIEWPORT Viewport;
 
 		RenderTargetCube() : Resolution(0), Viewport({}) {};
-
-		RenderTargetCube(RenderTargetCube&& other) noexcept
-			: TextureBase(std::move(other)),
-			  RenderTargetView(std::move(other.RenderTargetView)),
-			  Texture(std::move(other.Texture)),
-			  DepthStencilView(std::move(other.DepthStencilView)),
-			  DepthStencilTexture(std::move(other.DepthStencilTexture)),
-			  Resolution(other.Resolution), Viewport(other.Viewport),
-			  _vramSize(other._vramSize)
-		{
-			other._vramSize = 0;
-		}
-
-		RenderTargetCube& operator=(RenderTargetCube&& other) noexcept
-		{
-			if (this != &other)
-			{
-				if (_vramSize > 0)
-					VRAMTracker::Get().Remove(VRAMCategory::RenderTarget, _vramSize);
-
-				TextureBase::operator=(std::move(other));
-				RenderTargetView = std::move(other.RenderTargetView);
-				Texture = std::move(other.Texture);
-				DepthStencilView = std::move(other.DepthStencilView);
-				DepthStencilTexture = std::move(other.DepthStencilTexture);
-				Resolution = other.Resolution;
-				Viewport = other.Viewport;
-				_vramSize = other._vramSize;
-				other._vramSize = 0;
-			}
-			return *this;
-		}
-
-		RenderTargetCube(const RenderTargetCube&) = delete;
-		RenderTargetCube& operator=(const RenderTargetCube&) = delete;
-
+		
 		RenderTargetCube(ID3D11Device* device, int resolution, DXGI_FORMAT colorFormat, DXGI_FORMAT depthFormat)
 			: Resolution(resolution)
 		{
@@ -103,9 +67,7 @@ namespace TEN::Renderer::Graphics
 			desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 			HRESULT res = device->CreateTexture2D(&desc, NULL, Texture.GetAddressOf());
-			throwIfFailed(res, device, "CreateTexture2D (cubemap color)");
-
-			_vramSize = VRAMTracker::ComputeTexture2DSize(desc);
+			throwIfFailed(res);
 
 			D3D11_RENDER_TARGET_VIEW_DESC viewDesc = {};
 			viewDesc.Format = desc.Format;
@@ -116,7 +78,7 @@ namespace TEN::Renderer::Graphics
 			{
 				viewDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
 				res = device->CreateRenderTargetView(Texture.Get(), &viewDesc, RenderTargetView[i].GetAddressOf());
-				throwIfFailed(res, device, "CreateRenderTargetView (cubemap face " + std::to_string(i) + ")");
+				throwIfFailed(res);
 			}
 
 			// Setup the description of the shader resource view.
@@ -128,7 +90,7 @@ namespace TEN::Renderer::Graphics
 			shaderDesc.Texture2DArray.ArraySize = 6;
 			shaderDesc.Texture2DArray.FirstArraySlice = 0;
 			res = device->CreateShaderResourceView(Texture.Get(), &shaderDesc, ShaderResourceView.GetAddressOf());
-			throwIfFailed(res, device, "CreateSRV (cubemap)");
+			throwIfFailed(res);
 
 			D3D11_TEXTURE2D_DESC depthTexDesc = {};
 			depthTexDesc.Width = resolution;
@@ -144,9 +106,7 @@ namespace TEN::Renderer::Graphics
 			depthTexDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 			res = device->CreateTexture2D(&depthTexDesc, NULL, DepthStencilTexture.GetAddressOf());
-			throwIfFailed(res, device, "CreateTexture2D (cubemap depth)");
-
-			_vramSize += VRAMTracker::ComputeTexture2DSize(depthTexDesc);
+			throwIfFailed(res);
 
 			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 			dsvDesc.Format = depthTexDesc.Format;
@@ -158,19 +118,9 @@ namespace TEN::Renderer::Graphics
 			{
 				dsvDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
 				res = device->CreateDepthStencilView(DepthStencilTexture.Get(), &dsvDesc, DepthStencilView[i].GetAddressOf());
-				throwIfFailed(res, device, "CreateDepthStencilView (cubemap face " + std::to_string(i) + ")");
+				throwIfFailed(res);
 			}
 
-			VRAMTracker::Get().Add(VRAMCategory::RenderTarget, _vramSize);
 		}
-
-		~RenderTargetCube()
-		{
-			if (_vramSize > 0)
-				VRAMTracker::Get().Remove(VRAMCategory::RenderTarget, _vramSize);
-		}
-
-	private:
-		int _vramSize = 0;
 	};
 }

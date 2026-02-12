@@ -59,11 +59,6 @@ namespace TEN::Renderer
 		return TEN::Utils::ToString(adapterDesc.Description);
 	}
 
-	const AdapterInfo& Renderer::GetAdapterInfo() const
-	{
-		return _adapterInfo;
-	}
-
 	void Renderer::SetTextureOrDefault(Texture2D& texture, std::wstring path)
 	{
 		texture = Texture2D();

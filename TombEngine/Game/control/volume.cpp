@@ -13,8 +13,9 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Animation;
 using namespace TEN::Utils;
+
+using namespace TEN::Animation;
 
 namespace TEN::Control::Volumes
 {

@@ -69,7 +69,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	// Pathfinding stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
 	{
-		DrawPathfindingDebug(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
+		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
 	}
 	// Collision mesh stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
@@ -463,7 +463,6 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	HandlePlayerExtraAnim(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);
