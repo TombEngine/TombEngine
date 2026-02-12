@@ -132,7 +132,7 @@ namespace TEN::Scripting::InventoryHandler
 	// @tparam Objects.ObjID objectID Object ID of the item to set. Must be preset in the inventory.
 	static void SetFocusedItem(GAME_OBJECT_ID objectID)
 	{
-		if (!g_Gui.IsObjectInInventory(objectID) || objectID != NO_VALUE)
+		if (!g_Gui.IsObjectInInventory(objectID) && objectID != NO_VALUE)
 		{
 			TENLog(fmt::format("Item {} is not in the inventory and can't be selected.", GetObjectName(objectID)), LogLevel::Warning);
 			return;
