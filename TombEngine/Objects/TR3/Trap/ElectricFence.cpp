@@ -1,0 +1,103 @@
+#include "framework.h"
+#include "Objects/TR3/Trap/ElectricFence.h"
+
+#include "Game/effects/effects.h"
+#include "Game/effects/Electricity.h"
+#include "Game/items.h"
+#include "Game/Lara/lara.h"
+#include "Math/Math.h"
+#include "Specific/level.h"
+
+using namespace TEN::Effects::Electricity;
+using namespace TEN::Math;
+
+namespace TEN::Entities::Traps
+{
+	constexpr auto ELECTRIC_FENCE_RANGE		 = BLOCK(1);		// Horizontal detection range.
+	constexpr auto ELECTRIC_FENCE_HEIGHT	 = CLICK(2);		// Vertical detection range.
+	constexpr auto ELECTRIC_FENCE_DAMAGE	 = 100;				// Damage per frame while standing on it.
+	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE = 3;
+
+	// OCB values:
+	// 0 = Starts inactive (must be triggered on)
+	// 1 = Starts active
+
+	void InitializeElectricFence(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		// OCB determines initial state: 0 = inactive, 1 = active.
+		if (item.TriggerFlags == 0)
+			item.Status = ITEM_NOT_ACTIVE;
+		else
+			item.Status = ITEM_ACTIVE;
+	}
+
+	void ControlElectricFence(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		// Only process if active.
+		if (item.Status != ITEM_ACTIVE)
+			return;
+
+		// Spawn electric light effect.
+		int r = Random::GenerateInt(0, 63) + 128;
+		int g = Random::GenerateInt(0, 63) + 192;
+		int b = 255;
+		SpawnDynamicLight(item.Pose.Position.x, item.Pose.Position.y + 256, item.Pose.Position.z, 
+			ELECTRIC_FENCE_LIGHT_SIZE, r, g, b);
+
+		// Spawn electricity arcs occasionally for visual effect.
+		if (Random::TestProbability(1 / 8.0f))
+		{
+			auto origin = Vector3(
+				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
+				item.Pose.Position.y,
+				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
+
+			auto target = Vector3(
+				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
+				item.Pose.Position.y - Random::GenerateInt(0, CLICK(1)),
+				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
+
+			SpawnElectricity(
+				origin, target,
+				Random::GenerateInt(4, 12),
+				32, g, b,
+				8,
+				(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut,
+				Random::GenerateFloat(2.0f, 6.0f),
+				Random::GenerateInt(4, 8));
+		}
+
+		// Check all items in the level for entities standing on the fence.
+		for (auto& entity : g_Level.Items)
+		{
+			// Skip non-creatures and dead entities.
+			if (!entity.IsCreature() || entity.HitPoints <= 0)
+				continue;
+
+			// Check horizontal distance.
+			int dx = entity.Pose.Position.x - item.Pose.Position.x;
+			int dz = entity.Pose.Position.z - item.Pose.Position.z;
+			float distance2D = sqrt(SQUARE(dx) + SQUARE(dz));
+
+			if (distance2D > ELECTRIC_FENCE_RANGE)
+				continue;
+
+			// Check vertical distance (entity must be roughly at fence height).
+			int dy = abs(entity.Pose.Position.y - item.Pose.Position.y);
+			
+			if (dy > ELECTRIC_FENCE_HEIGHT)
+				continue;
+
+			// Check if entity is on the ground (not jumping over).
+			if (entity.Animation.IsAirborne)
+				continue;
+
+			// Electric fence hit - damage entity.
+			DoDamage(&entity, ELECTRIC_FENCE_DAMAGE);
+		}
+	}
+}
