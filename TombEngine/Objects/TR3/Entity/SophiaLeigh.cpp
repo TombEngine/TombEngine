@@ -889,7 +889,7 @@ namespace TEN::Entities::Creatures::TR3
 			spark->colFadeSpeed = mulSqr * 9;
 			spark->fadeToBlack = 0;
 			spark->life =
-				spark->sLife = mulSqr * 9;
+			spark->sLife = mulSqr * 9;
 			spark->blendMode = BlendMode::Additive;
 			spark->x = pos.x;
 			spark->y = pos.y;
@@ -903,8 +903,8 @@ namespace TEN::Entities::Creatures::TR3
 			spark->friction = mulSqr * 34;
 			spark->scalar = 3;
 			spark->dSize =
-				spark->sSize =
-				spark->size = Random::GenerateInt(84, 98);
+			spark->sSize =
+			spark->size = Random::GenerateInt(84, 98);
 		}
 	}
 
