@@ -1,4 +1,4 @@
-file = {"../TombEngine/Scripting/Internal", "../Scripts/Engine"}
+file = {"../TombEngine/Scripting/Internal", "../Scripts/Engine", exclude = {'../TombEngine/Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.cpp'}}
 new_type("mem", "Members", false)
 new_type("files", "Script Files", true)
 new_type("entityclass", "Entity classes", true)
