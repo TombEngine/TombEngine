@@ -19,8 +19,9 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto ELECTRIC_FENCE_RANGE		 = BLOCK(1);		// Horizontal detection range.
 	constexpr auto ELECTRIC_FENCE_HEIGHT	 = CLICK(2);		// Vertical detection range.
-	constexpr auto ELECTRIC_FENCE_DAMAGE	 = 100;				// Damage per frame while standing on it.
-	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE = 5;
+	constexpr auto ELECTRIC_FENCE_DAMAGE	 = INT_MAX;			// Damage per frame while standing on it.
+	
+	auto ELECTRIC_FENCE_LIGHT_SIZE			 = Random::GenerateInt(5,7);
 
 	// OCB values:
 	// 0 = Starts inactive (must be triggered on)
@@ -51,7 +52,7 @@ namespace TEN::Entities::Traps
 		int b = 255;
 		SpawnDynamicLight(
 			item.Pose.Position.x,
-			item.Pose.Position.y - Random::GenerateInt(0, CLICK(1)),
+			item.Pose.Position.y - CLICK(2),
 			item.Pose.Position.z,
 			ELECTRIC_FENCE_LIGHT_SIZE, r, g, b);
 
@@ -60,12 +61,12 @@ namespace TEN::Entities::Traps
 		{
 			auto origin = Vector3(
 				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-				item.Pose.Position.y,
+				item.Pose.Position.y + sin(GlobalCounter / 2.0f) * CLICK(0.5f), // Slight vertical oscillation.
 				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
 
 			auto target = Vector3(
 				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-				item.Pose.Position.y - Random::GenerateInt(0, CLICK(1)),
+				item.Pose.Position.y + sin(GlobalCounter / 4.0f) * CLICK(0.5f), // Slight vertical oscillation.
 				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
 
 			SpawnElectricity(
@@ -73,16 +74,23 @@ namespace TEN::Entities::Traps
 				Random::GenerateInt(4, 12),
 				32, g, b,
 				8,
-				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut,
+				(int)ElectricityFlags::Spline | (int)ElectricityFlags::SparkEnd,
 				Random::GenerateFloat(20.0f, 40.0f),
 				Random::GenerateInt(4, 8));
+
+			// Play electric sound
+			if (Random::TestProbability(1 / 4.0f))
+			{
+				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
+			}
 		}
 
 		// Check all items in the level for entities standing on the fence.
 		for (auto& entity : g_Level.Items)
 		{
-			// Skip non-creatures and dead entities.
-			if (!entity.IsCreature() || entity.HitPoints <= 0)
+			// Skip non-creatures flying and dead entities.
+			// TODO: Flying creatures still get affected.
+			if (!entity.IsCreature() || item.Animation.IsAirborne || entity.HitPoints <= 0)
 				continue;
 
 			// Check horizontal distance.
@@ -104,8 +112,9 @@ namespace TEN::Entities::Traps
 				continue;
 
 			// Electric fence hit - damage entity.
-			DoDamage(&entity, ELECTRIC_FENCE_DAMAGE);
-			ItemElectricBurn(&entity,100);
+			DoDamage(&entity, INT_MAX);
+			ItemElectricBurn(&entity, ELECTRIC_FENCE_DAMAGE);
+			ItemBlueElectricBurn(&entity, 2 * FPS);
 		}
 	}
 }
