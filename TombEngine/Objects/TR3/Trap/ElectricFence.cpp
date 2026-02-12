@@ -16,7 +16,7 @@ namespace TEN::Entities::Traps
 	constexpr auto ELECTRIC_FENCE_RANGE		 = BLOCK(1);		// Horizontal detection range.
 	constexpr auto ELECTRIC_FENCE_HEIGHT	 = CLICK(2);		// Vertical detection range.
 	constexpr auto ELECTRIC_FENCE_DAMAGE	 = 100;				// Damage per frame while standing on it.
-	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE = 3;
+	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE = 5;
 
 	// OCB values:
 	// 0 = Starts inactive (must be triggered on)
@@ -45,11 +45,14 @@ namespace TEN::Entities::Traps
 		int r = Random::GenerateInt(0, 63) + 128;
 		int g = Random::GenerateInt(0, 63) + 192;
 		int b = 255;
-		SpawnDynamicLight(item.Pose.Position.x, item.Pose.Position.y + 256, item.Pose.Position.z, 
+		SpawnDynamicLight(
+			item.Pose.Position.x,
+			item.Pose.Position.y - Random::GenerateInt(0, CLICK(1)),
+			item.Pose.Position.z,
 			ELECTRIC_FENCE_LIGHT_SIZE, r, g, b);
 
 		// Spawn electricity arcs occasionally for visual effect.
-		if (Random::TestProbability(1 / 8.0f))
+		if (Random::TestProbability(1 / 2.0f))
 		{
 			auto origin = Vector3(
 				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
@@ -66,7 +69,7 @@ namespace TEN::Entities::Traps
 				Random::GenerateInt(4, 12),
 				32, g, b,
 				8,
-				(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut,
+				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut,
 				Random::GenerateFloat(2.0f, 6.0f),
 				Random::GenerateInt(4, 8));
 		}
