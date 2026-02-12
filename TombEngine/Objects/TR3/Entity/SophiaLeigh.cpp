@@ -22,59 +22,59 @@ using namespace TEN::Entities::Effects;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto SOPHIALEIGH_WALK_RANGE = SQUARE(BLOCK(1));
-	constexpr auto SOPHIALEIGH_NORMAL_ATTACK_RANGE = SQUARE(BLOCK(5));
-	constexpr auto SOPHIALEIGH_NORMAL_WALK_RANGE = SQUARE(BLOCK(5));
-	constexpr auto SOPHIALEIGH_Y_DISTANCE_RANGE = BLOCK(1.5f);
-	constexpr auto SOPHIALEIGH_REACHED_GOAL_RANGE = BLOCK(0.5f);
-	constexpr auto SOPHIALEIGH_KNOCKBACK_RANGE = BLOCK(3);
-	constexpr auto SOPHIALEIGH_WAYPOINT_STABLE_FRAMES = 15; // Hysteresis: frames before committing to waypoint change.
+	constexpr auto SOPHIALEIGH_WALK_RANGE 				= SQUARE(BLOCK(1));
+	constexpr auto SOPHIALEIGH_NORMAL_ATTACK_RANGE 		= SQUARE(BLOCK(5));
+	constexpr auto SOPHIALEIGH_NORMAL_WALK_RANGE 		= SQUARE(BLOCK(5));
+	constexpr auto SOPHIALEIGH_Y_DISTANCE_RANGE			= BLOCK(1.5f);
+	constexpr auto SOPHIALEIGH_REACHED_GOAL_RANGE 		= BLOCK(0.5f);
+	constexpr auto SOPHIALEIGH_KNOCKBACK_RANGE 			= BLOCK(3);
+	constexpr auto SOPHIALEIGH_WAYPOINT_STABLE_FRAMES 	= 15;
 
-	constexpr auto SOPHIALEIGH_DAMAGE_SMALL_BOLT = 4;
-	constexpr auto SOPHIALEIGH_DAMAGE_LARGE_BOLT = 10;
+	constexpr auto SOPHIALEIGH_DAMAGE_SMALL_BOLT 		= 4;
+	constexpr auto SOPHIALEIGH_DAMAGE_LARGE_BOLT 		= 10;
+				
+	constexpr auto SOPHIALEIGH_CHARGE_TIMER_DURATION 	= 600;
+	constexpr auto SOPHIALEIGH_EXPLOSION_NUM_MAX 		= 60;
 
-	constexpr auto SOPHIALEIGH_CHARGE_TIMER_DURATION = 600;
-	constexpr auto SOPHIALEIGH_EXPLOSION_NUM_MAX = 60;
+	constexpr auto SOPHIALEIGH_EFFECT_COLOR 			= Vector4(0.0f, 0.7f, 0.3f, 0.5f);
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_COLOR 			= Vector4(0.0f, 0.7f, 0.3f, 0.5f);
+	constexpr auto SOPHIALEIGH_EXPLOSION_MAIN_COLOR		= Vector4(0.0f, 0.7f, 0.2f, 0.5f);
+	constexpr auto SOPHIALEIGH_EXPLOSION_SECOND_COLOR 	= Vector4(0.0f, 0.7f, 0.0f, 0.5f);
 
-	constexpr auto SOPHIALEIGH_EFFECT_COLOR = Vector4(0.0f, 0.7f, 0.3f, 0.5f);
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_COLOR = Vector4(0.0f, 0.7f, 0.3f, 0.5f);
-	constexpr auto SOPHIALEIGH_EXPLOSION_MAIN_COLOR = Vector4(0.0f, 0.7f, 0.2f, 0.5f);
-	constexpr auto SOPHIALEIGH_EXPLOSION_SECOND_COLOR = Vector4(0.0f, 0.7f, 0.0f, 0.5f);
+	constexpr auto SOPHIALEIGH_WALK_TURN_RATE_MAX 						= ANGLE(4.0f);
+	constexpr auto SOPHIALEIGH_RUN_TURN_RATE_MAX 						= ANGLE(7.0f);
+	constexpr auto SOPHIALEIGH_LASER_DECREASE_XANGLE_IF_LARA_CROUCH 	= ANGLE(0.2f);
+	constexpr auto SOPHIALEIGH_LASER_DISPERSION_ANGLE					= ANGLE(1.5f);
 
-	constexpr auto SOPHIALEIGH_WALK_TURN_RATE_MAX = ANGLE(4.0f);
-	constexpr auto SOPHIALEIGH_RUN_TURN_RATE_MAX = ANGLE(7.0f);
-	constexpr auto SOPHIALEIGH_LASER_DECREASE_XANGLE_IF_LARA_CROUCH = ANGLE(0.2f);
-	constexpr auto SOPHIALEIGH_LASER_DISPERSION_ANGLE = ANGLE(1.5f);
-
-	constexpr auto SOPHIALEIGH_LIGHTNING_GLOW_SIZE = 8;
-	constexpr auto SOPHIALEIGH_MAX_LIGHTNING_GLOW_SIZE = 10;
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_SPEED = -184;
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_INNER_SIZE = 2700;
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_OUTER_SIZE = 2300;
+	constexpr auto SOPHIALEIGH_LIGHTNING_GLOW_SIZE 		= 8;
+	constexpr auto SOPHIALEIGH_MAX_LIGHTNING_GLOW_SIZE 	= 10;
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_SPEED 			= -184;
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_INNER_SIZE 	= 2700;
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_OUTER_SIZE 	= 2300;
 
 	constexpr auto SOPHIALEIGH_KNOCKBACK_LARGE_INNER_SIZE = 800;
 	constexpr auto SOPHIALEIGH_KNOCKBACK_LARGE_OUTER_SIZE = 0;
 	constexpr auto SOPHIALEIGH_KNOCKBACK_SMALL_INNER_SIZE = 200;
 	constexpr auto SOPHIALEIGH_KNOCKBACK_SMALL_OUTER_SIZE = -400;
 
-	constexpr auto SOPHIALEIGH_VAULT_SHIFT = 96;
+	constexpr auto SOPHIALEIGH_VAULT_SHIFT 	= 96;
 
-	const auto SophiaLeighStaffBite = CreatureBiteInfo(Vector3(-28, 56, 356), 10);
-	const auto SophiaLeighLeftBite = CreatureBiteInfo(Vector3(-72, 48, 356), 10);
-	const auto SophiaLeighRightBite = CreatureBiteInfo(Vector3(16, 48, 304), 10);
+	const auto SophiaLeighStaffBite	= CreatureBiteInfo(Vector3(-28, 56, 356), 10);
+	const auto SophiaLeighLeftBite 	= CreatureBiteInfo(Vector3(-72, 48, 356), 10);
+	const auto SophiaLeighRightBite	= CreatureBiteInfo(Vector3(16, 48, 304), 10);
 
 	struct SophiaData
 	{
-		short angle = 0;
-		short tilt = 0;
-		short headAngle = 0;
-		short torsoXAngle = 0;
-		short torsoYAngle = 0;
-		short chargeDelay = 0;
-		short shockwaveTimer = 0;
-		short shockwaveCount = 0;
-		short waypointStableTimer = 0;  // Hysteresis timer to prevent waypoint oscillation.
-		short pendingLocationAI = -1;   // Pending LocationAI value waiting for stability.
+		short angle 				= 0;
+		short tilt 					= 0;
+		short headAngle 			= 0;
+		short torsoXAngle			= 0;
+		short torsoYAngle 			= 0;
+		short chargeDelay 			= 0;
+		short shockwaveTimer 		= 0;
+		short shockwaveCount 		= 0;
+		short waypointStableTimer 	= 0;  // Hysteresis timer to prevent waypoint oscillation.
+		short pendingLocationAI 	= -1;   // Pending LocationAI value waiting for stability.
 	};
 
 	static std::unordered_map<int, SophiaData> SophiaLeighs = {};
@@ -82,55 +82,55 @@ namespace TEN::Entities::Creatures::TR3
 	enum SophiaLeighState
 	{
 		// No state 0.
-		SOPHIALEIGH_STATE_STAND = 1,
-		SOPHIALEIGH_STATE_WALK = 2,
-		SOPHIALEIGH_STATE_RUN = 3,
-		SOPHIALEIGH_STATE_SUMMON = 4,
-		SOPHIALEIGH_STATE_BIG_SHOOT = 5,
-		SOPHIALEIGH_STATE_DEATH = 6,
-		SOPHIALEIGH_STATE_LAUGH = 7,
-		SOPHIALEIGH_STATE_SMALL_SHOOT = 8,
-		SOPHIALEIGH_STATE_CLIMB2 = 9,
-		SOPHIALEIGH_STATE_CLIMB3 = 10,
-		SOPHIALEIGH_STATE_CLIMB4 = 11,
-		SOPHIALEIGH_STATE_FALL4CLICK = 12,
+		SOPHIALEIGH_STATE_STAND 		= 1,
+		SOPHIALEIGH_STATE_WALK 			= 2,
+		SOPHIALEIGH_STATE_RUN 			= 3,
+		SOPHIALEIGH_STATE_SUMMON 		= 4,
+		SOPHIALEIGH_STATE_BIG_SHOOT 	= 5,
+		SOPHIALEIGH_STATE_DEATH 		= 6,
+		SOPHIALEIGH_STATE_LAUGH 		= 7,
+		SOPHIALEIGH_STATE_SMALL_SHOOT 	= 8,
+		SOPHIALEIGH_STATE_CLIMB2 		= 9,
+		SOPHIALEIGH_STATE_CLIMB3 		= 10,
+		SOPHIALEIGH_STATE_CLIMB4 		= 11,
+		SOPHIALEIGH_STATE_FALL4CLICK 	= 12,
 	};
 
 	enum SophiaLeighAnim
 	{
-		SOPHIALEIGH_ANIM_WALK = 0,
-		SOPHIALEIGH_ANIM_SUMMON_START = 1,
-		SOPHIALEIGH_ANIM_SUMMON = 2,
-		SOPHIALEIGH_ANIM_SUMMON_END = 3,
-		SOPHIALEIGH_ANIM_SCEPTER_AIM = 4,
-		SOPHIALEIGH_ANIM_SCEPTER_SHOOT = 5,
-		SOPHIALEIGH_ANIM_SCEPTER_AIM_TO_IDLE = 6,
-		SOPHIALEIGH_ANIM_IDLE = 7,
-		SOPHIALEIGH_ANIM_LAUGH = 8,
-		SOPHIALEIGH_ANIM_CLIMB2CLICK = 9,
-		SOPHIALEIGH_ANIM_CLIMB2CLICK_END = 10,
-		SOPHIALEIGH_ANIM_WALK_STOP = 11,
-		SOPHIALEIGH_ANIM_RUN = 12,
-		SOPHIALEIGH_ANIM_RUN_TO_STAND_LEFT = 13,
-		SOPHIALEIGH_ANIM_RUN_TO_WALK_RIGHT = 14,
-		SOPHIALEIGH_ANIM_CLIMB4CLICK = 15,
-		SOPHIALEIGH_ANIM_WALK_START = 16,
-		SOPHIALEIGH_ANIM_DEATH = 17,
-		SOPHIALEIGH_ANIM_CLIMB3CLICK = 18,
-		SOPHIALEIGH_ANIM_WALK_TO_RUN_RIGHT = 19,
-		SOPHIALEIGH_ANIM_RUN_START = 20,
-		SOPHIALEIGH_ANIM_FALL4CLICK = 21,
-		SOPHIALEIGH_ANIM_WALK_STOP_LEFT = 22,
-		SOPHIALEIGH_ANIM_RUN_TO_WALK_LEFT = 23,
-		SOPHIALEIGH_ANIM_RUN_TO_STAND_RIGHT = 24,
-		SOPHIALEIGH_ANIM_SCEPTER_SMALL_SHOOT = 25
+		SOPHIALEIGH_ANIM_WALK 					= 0,
+		SOPHIALEIGH_ANIM_SUMMON_START 			= 1,
+		SOPHIALEIGH_ANIM_SUMMON 				= 2,
+		SOPHIALEIGH_ANIM_SUMMON_END 			= 3,
+		SOPHIALEIGH_ANIM_SCEPTER_AIM 			= 4,
+		SOPHIALEIGH_ANIM_SCEPTER_SHOOT 			= 5,
+		SOPHIALEIGH_ANIM_SCEPTER_AIM_TO_IDLE 	= 6,
+		SOPHIALEIGH_ANIM_IDLE 					= 7,
+		SOPHIALEIGH_ANIM_LAUGH 					= 8,
+		SOPHIALEIGH_ANIM_CLIMB2CLICK 			= 9,
+		SOPHIALEIGH_ANIM_CLIMB2CLICK_END 		= 10,
+		SOPHIALEIGH_ANIM_WALK_STOP 				= 11,
+		SOPHIALEIGH_ANIM_RUN 					= 12,
+		SOPHIALEIGH_ANIM_RUN_TO_STAND_LEFT 		= 13,
+		SOPHIALEIGH_ANIM_RUN_TO_WALK_RIGHT 		= 14,
+		SOPHIALEIGH_ANIM_CLIMB4CLICK 			= 15,
+		SOPHIALEIGH_ANIM_WALK_START 			= 16,
+		SOPHIALEIGH_ANIM_DEATH 					= 17,
+		SOPHIALEIGH_ANIM_CLIMB3CLICK 			= 18,
+		SOPHIALEIGH_ANIM_WALK_TO_RUN_RIGHT 		= 19,
+		SOPHIALEIGH_ANIM_RUN_START 				= 20,
+		SOPHIALEIGH_ANIM_FALL4CLICK 			= 21,
+		SOPHIALEIGH_ANIM_WALK_STOP_LEFT 		= 22,
+		SOPHIALEIGH_ANIM_RUN_TO_WALK_LEFT 		= 23,
+		SOPHIALEIGH_ANIM_RUN_TO_STAND_RIGHT 	= 24,
+		SOPHIALEIGH_ANIM_SCEPTER_SMALL_SHOOT 	= 25
 	};
 
 	enum class SophiaOCB
 	{
-		Normal = 0,				// Move, climb, attack, and chase player.
-		Tower = 1,				// TR3 one, with climbing only.
-		TowerLua = 2,			// TR3 one, but uses lua to move. Must increase/decrease creature->LocationAI to go up/down.
+		Normal 		= 0,		// Move, climb, attack, and chase player.
+		Tower	 	= 1,		// TR3 one, with climbing only.
+		TowerLua	= 2,		// TR3 one, but uses lua to move. Must increase/decrease creature->LocationAI to go up/down.
 	};
 
 	static void RotateTowardTarget(ItemInfo& item, const AI_INFO& ai, short turnRate)
@@ -754,14 +754,14 @@ namespace TEN::Entities::Creatures::TR3
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		CheckForRequiredObjects(item);								// Checks for required boss objects.
-		item.ItemFlags[1] = 0;										// Light timer (for smoothing).
-		item.ItemFlags[3] = 0;										// Target vertical distance.
-		item.ItemFlags[4] = 0;										// Charged state (true or false).
-		item.ItemFlags[5] = 0;										// Death count.
-		item.ItemFlags[6] = 0;										// Reached goal (true or false).
-		item.SetFlagField((int)BossItemFlags::ExplodeCount, 0);	// Explosion counter.
-		SetAnimation(item, SOPHIALEIGH_ANIM_SUMMON_START);			// Always starts with projectile attack.
+		CheckForRequiredObjects(item);	// Checks for required boss objects.
+		item.ItemFlags[1] = 0;			// Light timer (for smoothing).
+		item.ItemFlags[3] = 0;			// Target vertical distance.
+		item.ItemFlags[4] = 0;			// Charged state (true or false).
+		item.ItemFlags[5] = 0;			// Death count.
+		item.ItemFlags[6] = 0;			// Reached goal (true or false).
+		item.ItemFlags[7] = 0;			// Explosion counter.
+		SetAnimation(item, SOPHIALEIGH_ANIM_SUMMON_START);
 
 		// Avoid multiple initialization of same item.
 		if (SophiaLeighs.find(itemNumber) == SophiaLeighs.end())
@@ -799,8 +799,8 @@ namespace TEN::Entities::Creatures::TR3
 				item.Animation.FrameNumber = endFrameNumber;
 				item.MeshBits.ClearAll();
 
-				if (item.GetFlagField((int)BossItemFlags::ExplodeCount) < SOPHIALEIGH_EXPLOSION_NUM_MAX)
-					item.ItemFlags[(int)BossItemFlags::ExplodeCount]++;
+				if (item.ItemFlags[7] < SOPHIALEIGH_EXPLOSION_NUM_MAX)
+					item.ItemFlags[7]++;
 
 				// Explosion effect with pickup drop on completion.
 				ExplodeBoss(itemNumber, item, SOPHIALEIGH_EXPLOSION_NUM_MAX, SOPHIALEIGH_SHOCKWAVE_COLOR, SOPHIALEIGH_EXPLOSION_MAIN_COLOR, SOPHIALEIGH_EXPLOSION_SECOND_COLOR, true);
