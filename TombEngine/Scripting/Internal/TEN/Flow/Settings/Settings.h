@@ -56,6 +56,7 @@ namespace TEN::Scripting
 	struct GameplaySettings
 	{
 		bool TargetObjectOcclusion = true;
+		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
@@ -135,6 +136,10 @@ namespace TEN::Scripting
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
 		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
+
+		Vec2 TitleLogoPosition = Vec2(50, 20);
+		float TitleLogoScale = 0.38f;
+		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
 
 		static void Register(sol::table& parent);
 	};

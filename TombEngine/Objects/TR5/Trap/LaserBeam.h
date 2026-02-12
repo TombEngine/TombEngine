@@ -12,12 +12,16 @@ namespace TEN::Entities::Traps
 	{
 		static constexpr auto SUBDIVISION_COUNT = 8;
 
-		Vector4				Color			 = Vector4::Zero;
-		BoundingOrientedBox BoundingBox		 = {};
+		GameVector			Origin				= GameVector::Zero;
+		EulerAngles			Rotation			= EulerAngles::Identity;
+		GameVector			Target				= GameVector::Zero;
+		Vector4				Color				= Vector4::Zero;
+		BoundingOrientedBox BoundingBox			= {};
 		std::array<Vector3, SUBDIVISION_COUNT * 2> Vertices = {};
 
 		float Radius = 0.0f;
 
+		bool IsDirty		  = true;
 		bool IsActive		  = false;
 		bool IsLethal		  = false;
 		bool IsHeavyActivator = false;

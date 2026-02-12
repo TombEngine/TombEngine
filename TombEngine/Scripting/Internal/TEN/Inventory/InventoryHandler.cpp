@@ -114,28 +114,28 @@ namespace TEN::Scripting::InventoryHandler
 		g_Gui.SetEnterInventory(objectID);
 	}
 
-	/// Converts ObjectID to InventoryItem. Used by Custom Inventory module.
+	/// Converts object ID to inventory item ID. To be used by custom inventory module.
 	// @function ConvertObjectToInventoryItem
 	// @tparam Objects.ObjID objectID Object ID of the item to convert.
-	// @treturn int InventoryID of the object.
+	// @treturn int Inventory item ID of the object.
 	static int ConvertObjectToInventoryItem(int objectID)
 	{
 		return g_Gui.ConvertObjectToInventoryItem(objectID);
 	}
 
-	/// Converts InventoryItem to ObjectID. Used by Custom Inventory module.
+	/// Converts inventory item ID to object ID. To be used by custom inventory module.
 	// @function ConvertInventoryItemToObject
-	// @tparam int inventoryID inventoryID to convert.
-	// @treturn Objects.ObjID objectID of the object.
+	// @tparam int inventoryID Inventory item ID to convert.
+	// @treturn Objects.ObjID Object ID of the item.
 	static int ConvertInventoryItemToObject(int objectNumber)
 	{
 		return g_Gui.ConvertInventoryItemToObject(objectNumber);
 	}
 
 	/// Resets inventory to a default state.
-	// Clears inventory item list and adds default set of items, which includes compass, pistols, 3 flares, 3 small medipacks and 1 large medipack.
-	// @function Reset
-	static void Reset()
+	// Clears inventory item list and adds default set of items, including a compass, pistols, 3 flares, 3 small medipacks, and 1 large medipack.
+	// @function ResetToDefault
+	static void ResetToDefault()
 	{
 		auto& player = GetLaraInfo(*LaraItem);
 		player.Inventory = {};
@@ -160,6 +160,6 @@ namespace TEN::Scripting::InventoryHandler
 		tableInventory.set_function(ScriptReserved_ConvertInvItemToObject, &ConvertInventoryItemToObject);
 		tableInventory.set_function(ScriptReserved_GetOpenInv, &GetEnterInventory);
 		tableInventory.set_function(ScriptReserved_SetOpenInv, &SetEnterInventory);
-		tableInventory.set_function(ScriptReserved_ResetInventory, &Reset);
+		tableInventory.set_function(ScriptReserved_ResetInventory, &ResetToDefault);
 	}
 }

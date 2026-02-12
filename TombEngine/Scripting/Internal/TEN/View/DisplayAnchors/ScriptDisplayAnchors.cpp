@@ -74,6 +74,7 @@ namespace TEN::Scripting::Types
 	// @treturn string A string showing all anchor points.
 	// @function __tostring
 	// @usage
+	// -- Generate generic anchors object with default values.
 	// local anchors = TEN.View.DisplayAnchors()
 	// print(tostring(anchors))
 	// -- or --
