@@ -9,11 +9,8 @@
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 
-using namespace TEN::Control::Volumes;
-using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
-using namespace TEN::Math;
 using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
@@ -88,19 +85,6 @@ namespace TEN::Entities::Traps
 		// Debug visualization
 		DrawElectricFloorDebug(item, halfSpanX, halfSpanZ, cosY, sinY);
 
-		// Spawn electric effects
-		int r = Random::GenerateInt(0, 63) + 128;
-		int g = Random::GenerateInt(0, 63) + 192;
-		int b = 255;
-		int lightSize = Random::GenerateInt(5, 7);
-
-		// Floor mode: Horizontal electrical field with dynamic light
-		SpawnDynamicLight(
-			item.Pose.Position.x,
-			item.Pose.Position.y - CLICK(2),
-			item.Pose.Position.z,
-			lightSize, r, g, b);
-
 		// Spawn electric sparks at random positions within the floor span
 		if (Random::TestProbability(0.5f))
 		{
@@ -142,12 +126,13 @@ namespace TEN::Entities::Traps
 				s.active = true;
 			}
 
-			// Spawn small dynamic light at spark position
-			SpawnDynamicLight(sparkX, sparkY, sparkZ, 3, 102, 153, 255);
-
-			// Occasional sound effect
+			// Occasional sound effect and spawn small dynamic light at spark position
 			if (Random::TestProbability(0.25f))
+			{
 				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
+				if (Random::TestProbability(0.1f))
+					SpawnDynamicLight(sparkX, sparkY, sparkZ, 10, 102, 153, 255);
+			}
 		}
 
 		// Check all creatures for collision with electric floor
@@ -218,37 +203,3 @@ namespace TEN::Entities::Traps
 		}
 	}
 }
-
-
-
-
-
-/*
-		// Floor mode: Horizontal electrical field with dynamic light
-		SpawnDynamicLight(
-			item.Pose.Position.x,
-			item.Pose.Position.y - CLICK(2),
-			item.Pose.Position.z,
-			lightSize, r, g, b);
-
-		 if (Random::TestProbability(0.5f))
-		{
-			Vector3 origin = Vector3(
-				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-				item.Pose.Position.y + sin(GlobalCounter / 2.0f) * CLICK(0.5f),
-				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
-			Vector3 target = Vector3(
-				item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-				item.Pose.Position.y + sin(GlobalCounter / 4.0f) * CLICK(0.5f),
-				item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
-
-			SpawnElectricity(origin, target,
-				Random::GenerateInt(4, 12),
-				32, g, b, 8,
-				(int)ElectricityFlags::Spline | (int)ElectricityFlags::SparkEnd,
-				Random::GenerateFloat(20.0f, 40.0f),
-				Random::GenerateInt(4, 8));
-
-			if (Random::TestProbability(0.25f))
-				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
-		} */
