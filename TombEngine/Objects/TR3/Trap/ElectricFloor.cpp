@@ -11,7 +11,6 @@
 
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
-using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
 {
@@ -138,11 +137,15 @@ namespace TEN::Entities::Traps
 		{
 			auto& player = GetLaraInfo(entity);
 
-			SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
-			entity.Animation.FrameNumber = 0;
-			player.Control.IsMoving = false;
-			player.Control.HandStatus = HandStatus::Busy;
-			AnimateItem(entity);
+			// Only trigger electrocution death if Lara is not in a vehicle
+			if (player.Context.Vehicle == NO_VALUE)
+			{
+				SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
+				entity.Animation.FrameNumber = 0;
+				player.Control.IsMoving = false;
+				player.Control.HandStatus = HandStatus::Busy;
+				AnimateItem(entity);
+			}
 
 			entity.HitPoints = 0;
 
@@ -156,7 +159,6 @@ namespace TEN::Entities::Traps
 			ItemBlueElectricBurn(&entity, 2 * FPS);
 		}
 	}
-
 	static void CheckElectricFloorCollisions(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
 	{
 		for (auto& entity : g_Level.Items)
