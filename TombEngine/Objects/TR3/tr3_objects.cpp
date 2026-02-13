@@ -517,7 +517,7 @@ static void StartTrap(ObjectInfo* obj)
 		obj->radius = 512;
 	}
 
-	obj = &Objects[ID_ELECTRIC_FENCE];
+	obj = &Objects[ID_ELECTRIC_FLOOR];
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeElectricFloor;
