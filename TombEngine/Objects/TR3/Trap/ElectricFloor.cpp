@@ -59,7 +59,7 @@ namespace TEN::Entities::Traps
 
 	static void SpawnElectricFloorEffects(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
 	{
-		if (!Random::TestProbability(0.5f))
+		if (!Random::TestProbability(0.6f))
 			return;
 
 		// Random position within the span (local coordinates)
@@ -67,9 +67,9 @@ namespace TEN::Entities::Traps
 		float localZ = Random::GenerateFloat(-halfSpanZ, halfSpanZ);
 
 		// Rotate to world coordinates
-		int sparkX = item.Pose.Position.x + (localX * cosY - localZ * sinY);
-		int sparkY = item.Pose.Position.y;
-		int sparkZ = item.Pose.Position.z + (localX * sinY + localZ * cosY);
+		float sparkX = item.Pose.Position.x + (localX * cosY - localZ * sinY);
+		float sparkY = item.Pose.Position.y;
+		float sparkZ = item.Pose.Position.z + (localX * sinY + localZ * cosY);
 
 		// Spawn electric sparks
 		int sparkCount = Random::GenerateInt(1, 2);
@@ -106,9 +106,67 @@ namespace TEN::Entities::Traps
 			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, const_cast<Pose*>(&item.Pose));
 
 			if (Random::TestProbability(0.1f))
-				SpawnDynamicLight(sparkX, sparkY, sparkZ, 10, 102, 153, 255);
+			{
+				Vector3 lightPos = Vector3(sparkX, sparkY, sparkZ);
+				Color lightColor = Color(102.0f / 255.0f, 153.0f / 255.0f, 1.0f);
+				SpawnDynamicPointLight(lightPos, lightColor, 10.0f);
+			}
 		}
 	}
+
+	static void SpawnElectricFloorLightning(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	{
+		// Only spawn lightning occasionally to avoid spam
+		if (!Random::TestProbability(0.15f))
+			return;
+
+		// Calculate the two endpoints of the lightning arc
+		// One end at left edge, one end at right edge (across the width)
+		float leftX = -halfSpanX / Random::GenerateInt(1, 2);
+		float rightX = halfSpanX / Random::GenerateInt(1, 2);
+
+		// Random Z position along the depth
+		float randomZ = Random::GenerateFloat(-halfSpanZ, halfSpanZ);
+
+		// Offset 0.25 clicks above the floor
+		float yOffset = -CLICK(0.25f);
+
+		// Transform to world coordinates
+		Vector3 origin = Vector3(
+			item.Pose.Position.x + (leftX * cosY - randomZ * sinY),
+			item.Pose.Position.y + yOffset,
+			item.Pose.Position.z + (leftX * sinY + randomZ * cosY));
+
+		Vector3 target = Vector3(
+			item.Pose.Position.x + (rightX * cosY - randomZ * sinY),
+			item.Pose.Position.y + yOffset,
+			item.Pose.Position.z + (rightX * sinY + randomZ * cosY));
+
+		// Random color variation for more dynamic look
+		float r = Random::GenerateInt(32, 128) / 255.0f;
+		float g = Random::GenerateInt(128, 192) / 255.0f;
+		float b = Random::GenerateInt(192, 255) / 255.0f;
+
+		// Spawn violent, thin lightning arc with sharp zigzags
+		SpawnElectricity(
+			origin,
+			target,
+			Random::GenerateInt(8, 16),
+			r * 255, g * 255, b * 255,
+			Random::GenerateInt(16, 32),
+			(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
+			Random::GenerateFloat(8.0f, 16.0f),
+			Random::GenerateInt(1, 2));
+
+		// Spawn dynamic light at lightning position
+		Vector3 lightPos = Vector3(
+			item.Pose.Position.x + (Random::GenerateFloat(-halfSpanX, halfSpanX) * cosY - randomZ * sinY),
+			item.Pose.Position.y + yOffset,
+			item.Pose.Position.z + (Random::GenerateFloat(-halfSpanX, halfSpanX) * sinY + randomZ * cosY));
+		Color lightColor = Color(102.0f / 255.0f, 153.0f / 255.0f, 1.0f);
+		SpawnDynamicPointLight(lightPos, lightColor, 10.0f);
+	}
+
 	static bool IsEntityInElectricField(const ItemInfo& electricFloorItem, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY)
 	{
 		// Transform entity position to local space (relative to electric floor)
@@ -159,6 +217,7 @@ namespace TEN::Entities::Traps
 			ItemBlueElectricBurn(&entity, 2 * FPS);
 		}
 	}
+
 	static void CheckElectricFloorCollisions(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
 	{
 		for (auto& entity : g_Level.Items)
@@ -204,6 +263,7 @@ namespace TEN::Entities::Traps
 		// Execute electric floor systems
 		DrawElectricFloorDebug(item, halfSpanX, halfSpanZ, cosY, sinY);
 		SpawnElectricFloorEffects(item, halfSpanX, halfSpanZ, cosY, sinY);
+		SpawnElectricFloorLightning(item, halfSpanX, halfSpanZ, cosY, sinY);
 		CheckElectricFloorCollisions(item, halfSpanX, halfSpanZ, cosY, sinY);
 	}
 }
