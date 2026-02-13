@@ -149,6 +149,8 @@ namespace TEN::Renderer
 		RenderTarget2D _roomAmbientMapBack;
 		RenderTarget2D _SSAORenderTarget;
 		RenderTarget2D _SSAOBlurredRenderTarget;
+		RenderTarget2D _SSAODepthDownscaled;
+		RenderTarget2D _SSAONormalsDownscaled;
 		RenderTarget2D _SMAASceneRenderTarget;
 		RenderTarget2D _SMAASceneSRGBRenderTarget;
 		RenderTarget2D _SMAADepthRenderTarget;

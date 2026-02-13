@@ -69,6 +69,8 @@ constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
 constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
+constexpr auto SSAO_DOWNSCALE_FACTOR = 2.0f;
+
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
 constexpr auto GLOW_BLUR_RADIUS = 24.0f;

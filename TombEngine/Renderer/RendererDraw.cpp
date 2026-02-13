@@ -2434,7 +2434,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::LinearClamp);
 			}
 		}
 
@@ -2608,7 +2608,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::LinearClamp);
 			}
 			
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
@@ -2694,7 +2694,7 @@ namespace TEN::Renderer
 			
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::LinearClamp);
 			}
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
@@ -2925,7 +2925,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::LinearClamp);
 			}
 
 			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
@@ -4045,65 +4045,78 @@ namespace TEN::Renderer
 	{
 		_doingFullscreenPass = true;
 
+		auto ssaoWidth = (int)(_screenWidth / SSAO_DOWNSCALE_FACTOR);
+		auto ssaoHeight = (int)(_screenHeight / SSAO_DOWNSCALE_FACTOR);
+
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::Write);
-
-		// Common vertex shader to all full screen effects.
-		_shaders.Bind(Shader::PostProcess);
-
-		// SSAO pixel shader.
-		_shaders.Bind(Shader::Ssao);
-
-		_context->ClearRenderTargetView(_SSAORenderTarget.RenderTargetView.Get(), Colors::White);
-		_context->OMSetRenderTargets(1, _SSAORenderTarget.RenderTargetView.GetAddressOf(), nullptr);
-
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
-		D3D11_VIEWPORT viewport;
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
-		viewport.Width = _screenWidth;
-		viewport.Height = _screenHeight;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-
-		_context->RSSetViewports(1, &viewport);
-	
-		D3D11_RECT rects[1];
-		rects[0].left = 0;
-		rects[0].right = viewport.Width;
-		rects[0].top = 0;
-		rects[0].bottom = viewport.Height;
-
-		_context->RSSetScissorRects(1, rects);
 
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
 
 		unsigned int stride = sizeof(PostProcessVertex);
 		unsigned int offset = 0;
-
 		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_depthRenderTarget, SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::PointWrap);
+		// Set half-resolution viewport for all SSAO passes.
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = ssaoWidth;
+		viewport.Height = ssaoHeight;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		_context->RSSetViewports(1, &viewport);
+
+		D3D11_RECT rects[1];
+		rects[0].left = 0;
+		rects[0].right = ssaoWidth;
+		rects[0].top = 0;
+		rects[0].bottom = ssaoHeight;
+
+		_context->RSSetScissorRects(1, rects);
+
+		// Downscale depth to half resolution (point-sampled passthrough).
+		_shaders.Bind(Shader::PostProcess);
+
+		_context->ClearRenderTargetView(_SSAODepthDownscaled.RenderTargetView.Get(), Colors::White);
+		_context->OMSetRenderTargets(1, _SSAODepthDownscaled.RenderTargetView.GetAddressOf(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
+		DrawTriangles(3, 0);
+
+		// Downscale normals to half resolution (point-sampled passthrough).
+		_context->ClearRenderTargetView(_SSAONormalsDownscaled.RenderTargetView.Get(), Colors::Transparent);
+		_context->OMSetRenderTargets(1, _SSAONormalsDownscaled.RenderTargetView.GetAddressOf(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_normalsAndMaterialIndexRenderTarget, SamplerStateRegister::PointWrap);
+		DrawTriangles(3, 0);
+
+		// SSAO pass at half resolution, sampling the downscaled inputs (1:1 mapping).
+		_shaders.Bind(Shader::Ssao);
+
+		_context->ClearRenderTargetView(_SSAORenderTarget.RenderTargetView.Get(), Colors::White);
+		_context->OMSetRenderTargets(1, _SSAORenderTarget.RenderTargetView.GetAddressOf(), nullptr);
+
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_SSAODepthDownscaled, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), &_SSAONormalsDownscaled, SamplerStateRegister::PointWrap);
 		BindTexture(static_cast<TextureRegister>(2), &_SSAONoiseTexture, SamplerStateRegister::PointWrap);
 
-		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _screenWidth, 1.0f / _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i(ssaoWidth, ssaoHeight);
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / ssaoWidth, 1.0f / ssaoHeight);
 		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
 		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
 
 		DrawTriangles(3, 0);
 
-		// Blur step.
+		// Blur step at half resolution.
 		_shaders.Bind(Shader::SsaoBlur);
 
-		_context->ClearRenderTargetView(_SSAOBlurredRenderTarget.RenderTargetView.Get(), Colors::Black);
+		_context->ClearRenderTargetView(_SSAOBlurredRenderTarget.RenderTargetView.Get(), Colors::White);
 		_context->OMSetRenderTargets(1, _SSAOBlurredRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAORenderTarget, SamplerStateRegister::PointWrap);
- 
+
 		DrawTriangles(3, 0);
 
 		_doingFullscreenPass = false;
