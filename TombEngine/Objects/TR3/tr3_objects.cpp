@@ -41,7 +41,7 @@
 
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"
-#include "Objects/TR3/Trap/ElectricFence.h"
+#include "Objects/TR3/Trap/ElectricFloor.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
@@ -520,8 +520,8 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_ELECTRIC_FENCE];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeElectricFence;
-		obj->control = ControlElectricFence;
+		obj->Initialize = InitializeElectricFloor;
+		obj->control = ControlElectricFloor;
 		obj->Hidden = true;
 	}
 
