@@ -177,14 +177,14 @@ namespace TEN::Hud
 		_color = color;
 	}
 
-	void DisplayItem::SetVisibility(bool visible)
+	void DisplayItem::SetVisible(bool visible)
 	{
 		_visible = visible;
 	}
 
-	void DisplayItem::SetMeshBits(int meshbits)
+	void DisplayItem::SetMeshBits(int meshBits)
 	{
-		_meshBits = meshbits;
+		_meshBits = meshBits;
 	}
 
 	void DisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
@@ -236,12 +236,12 @@ namespace TEN::Hud
 		}
 	}
 
-	bool DisplayItem::IsVisible() const
+	bool DisplayItem::GetVisible() const
 	{
 		return _visible;
 	}
 
-	bool DisplayItem::IsMeshVisible(int meshIndex) const
+	bool DisplayItem::GetMeshVisible(int meshIndex) const
 	{
 		return _meshBits.Test(meshIndex);
 	}

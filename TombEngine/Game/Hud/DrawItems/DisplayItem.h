@@ -54,10 +54,14 @@ namespace TEN::Hud
 		const EulerAngles&                         GetMeshOrientation(int meshIndex) const;
 		int                                        GetMeshBits() const;
 
-		int GetAnimNumber() const;
-		int GetFrameNumber() const;
-		int GetEndFrameNumber() const;
-		int GetPrevFrameNumber() const;
+		// Getters
+
+		bool GetVisible() const;
+		bool GetMeshVisible(int meshIndex) const;
+		int  GetAnimNumber() const;
+		int  GetFrameNumber() const;
+		int  GetEndFrameNumber() const;
+		int  GetPrevFrameNumber() const;
 
 		Vector3     GetInterpolatedPosition(float alpha) const;
 		EulerAngles GetInterpolatedOrientation(float alpha) const;
@@ -73,7 +77,7 @@ namespace TEN::Hud
 		void SetOrientation(const EulerAngles& orient, bool disableInterpolation);
 		void SetScale(const Vector3& scale, bool disableInterpolation);
 		void SetColor(Color& color, bool disableInterpolation);
-		void SetVisibility(bool visible);
+		void SetVisible(bool visible);
 		void SetMeshBits(int meshbits);
 		void SetMeshVisibility(int meshIndex, bool visible);
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
@@ -82,8 +86,6 @@ namespace TEN::Hud
 
 		// Inquirers
 
-		bool IsVisible() const;
-		bool IsMeshVisible(int meshIndex) const;
 		bool MeshExists(int meshIndex) const;
 
 		// Utilities

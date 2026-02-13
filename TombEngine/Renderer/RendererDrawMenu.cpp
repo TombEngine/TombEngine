@@ -979,7 +979,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawObjectIn3DSpace(const DisplayItem& item)
 	{
-		if (!item.IsVisible())
+		if (!item.GetVisible())
 			return;
 
 		float alpha = GetInterpolationFactor();
@@ -1097,7 +1097,7 @@ namespace TEN::Renderer
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
-			if (meshBits && !item.IsMeshVisible(i))
+			if (meshBits && !item.GetMeshVisible(i))
 				continue;
 
 			if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
