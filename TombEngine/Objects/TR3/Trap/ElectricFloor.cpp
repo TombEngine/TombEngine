@@ -15,7 +15,6 @@ using namespace TEN::Renderer;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto ELECTRIC_electricFloor_HEIGHT = CLICK(2);
 	constexpr auto ELECTRIC_FLOOR_DAMAGE = INT_MAX;
 
 	void InitializeElectricFloor(short itemNumber)
