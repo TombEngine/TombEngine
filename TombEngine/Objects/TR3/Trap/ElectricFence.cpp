@@ -7,7 +7,6 @@
 #include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"
 #include "Game/items.h"
-#include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
@@ -23,19 +22,7 @@ namespace TEN::Entities::Traps
 {
 	constexpr auto ELECTRIC_FENCE_HEIGHT = CLICK(2);
 	constexpr auto ELECTRIC_FENCE_DAMAGE = INT_MAX;
-	constexpr auto ELECTRIC_FENCE_LIGHT_R_MIN = 128;
-	constexpr auto ELECTRIC_FENCE_LIGHT_R_RANGE = 63;
-	constexpr auto ELECTRIC_FENCE_LIGHT_G_MIN = 192;
-	constexpr auto ELECTRIC_FENCE_LIGHT_G_RANGE = 63;
-	constexpr auto ELECTRIC_FENCE_LIGHT_B = 255;
-	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE_MIN = 5;
-	constexpr auto ELECTRIC_FENCE_LIGHT_SIZE_MAX = 7;
-	constexpr auto ELECTRIC_FENCE_WALL_THRESHOLD = CLICK(2.5f);
-	constexpr auto ELECTRIC_FENCE_HEIGHT_DIFF_THRESHOLD = CLICK(2);
-	constexpr auto ELECTRIC_FENCE_FLOOR_HEIGHT_TOLERANCE = CLICK(1);
-	constexpr auto ELECTRIC_FENCE_WAVE_SPEED_SLOW = 2.0f;
-	constexpr auto ELECTRIC_FENCE_WAVE_SPEED_FAST = 4.0f;
-	constexpr auto ELECTRIC_FENCE_WAVE_AMPLITUDE = CLICK(0.5f);
+	constexpr auto ELECTRIC_FENCE_DEBUG = true;
 
 	void InitializeElectricFence(short itemNumber)
 	{
@@ -43,54 +30,50 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_ACTIVE;
 	}
 
-	// Helper to check if there's a wall at a sector edge.
+	// Helper to check if there's a wall at a sector edge
 	static bool IsWallAtEdge(int x, int z, int roomNumber, bool checkNorth, bool checkEast, bool checkSouth, bool checkWest)
 	{
 		auto& sector = GetFloor(roomNumber, x, z);
 
-		// NOTE: Side portals indicate non-traversable walls.
+		// Check for side portal (non-traversable portal wall)
 		if (sector.SidePortalRoomNumber != 0)
 			return true;
 
-		// Check specific edge for portal.
+		// Check specific edge for portal
 		int adjacentX = x;
 		int adjacentZ = z;
 
-		if (checkNorth)
-			adjacentZ--;
-		else if (checkSouth)
-			adjacentZ++;
-		else if (checkWest)
-			adjacentX--;
-		else if (checkEast)
-			adjacentX++;
+		if (checkNorth) adjacentZ--;
+		else if (checkSouth) adjacentZ++;
+		else if (checkWest) adjacentX--;
+		else if (checkEast) adjacentX++;
 
-		// Get adjacent sector.
+		// Get adjacent sector
 		auto gridCoord = GetRoomGridCoord(roomNumber, adjacentX * BLOCK(1), adjacentZ * BLOCK(1), false);
 		if (gridCoord.x < 0 || gridCoord.y < 0)
-			return true; // Out of bounds = wall.
+			return true; // Out of bounds = wall
 
 		auto& adjacentSector = GetFloor(roomNumber, gridCoord);
 
-		// Check for portal to another room.
+		// Check for portal to another room
 		auto nextRoom = adjacentSector.GetNextRoomNumber(adjacentX * BLOCK(1), adjacentZ * BLOCK(1), true);
 		if (nextRoom.has_value() && nextRoom.value() != roomNumber)
 		{
-			// Portal exists - check if it's traversable.
+			// Portal exists - check if it's traversable
 			if (!TestNeighborRooms(roomNumber, nextRoom.value()))
-				return true; // FAILSAFE: Non-traversable portal treated as wall.
+				return true; // Non-traversable portal = wall
 		}
 
-		// Check floor/ceiling height difference.
+		// Check floor/ceiling height difference
 		int fenceFloorHeight = sector.GetSurfaceHeight(x * BLOCK(1), z * BLOCK(1), true);
 		int fenceCeilingHeight = sector.GetSurfaceHeight(x * BLOCK(1), z * BLOCK(1), false);
 		int adjacentFloorHeight = adjacentSector.GetSurfaceHeight(adjacentX * BLOCK(1), adjacentZ * BLOCK(1), true);
 		int adjacentCeilingHeight = adjacentSector.GetSurfaceHeight(adjacentX * BLOCK(1), adjacentZ * BLOCK(1), false);
 
-		// Wall if significant height difference.
-		if (abs(adjacentFloorHeight - fenceFloorHeight) >= ELECTRIC_FENCE_HEIGHT_DIFF_THRESHOLD)
+		// Wall if significant height difference
+		if (abs(adjacentFloorHeight - fenceFloorHeight) >= CLICK(2))
 			return true;
-		if (abs(adjacentCeilingHeight - fenceCeilingHeight) >= ELECTRIC_FENCE_HEIGHT_DIFF_THRESHOLD)
+		if (abs(adjacentCeilingHeight - fenceCeilingHeight) >= CLICK(2))
 			return true;
 
 		return false;
@@ -106,149 +89,253 @@ namespace TEN::Entities::Traps
 		bool isFloorMode = (item.TriggerFlags == 0);
 		bool isFenceMode = (item.TriggerFlags == 1);
 
-		// Spawn electric effects.
-		int r = Random::GenerateInt(0, ELECTRIC_FENCE_LIGHT_R_RANGE) + ELECTRIC_FENCE_LIGHT_R_MIN;
-		int g = Random::GenerateInt(0, ELECTRIC_FENCE_LIGHT_G_RANGE) + ELECTRIC_FENCE_LIGHT_G_MIN;
-		int b = ELECTRIC_FENCE_LIGHT_B;
-		int lightSize = Random::GenerateInt(ELECTRIC_FENCE_LIGHT_SIZE_MIN, ELECTRIC_FENCE_LIGHT_SIZE_MAX);
-
-		SpawnDynamicLight(
-			item.Pose.Position.x,
-			isFloorMode ? item.Pose.Position.y - CLICK(2) : item.Pose.Position.y,
-			item.Pose.Position.z,
-			lightSize, r, g, b);
-
-		// Electric arc spawning.
-		if (Random::TestProbability(isFloorMode ? 0.5f : 0.33f))
-		{
-			Vector3 origin, target;
-			if (isFloorMode)
-			{
-				origin = Vector3(
-					item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-					item.Pose.Position.y + sin(GlobalCounter / ELECTRIC_FENCE_WAVE_SPEED_SLOW) * ELECTRIC_FENCE_WAVE_AMPLITUDE,
-					item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
-				target = Vector3(
-					item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
-					item.Pose.Position.y + sin(GlobalCounter / ELECTRIC_FENCE_WAVE_SPEED_FAST) * ELECTRIC_FENCE_WAVE_AMPLITUDE,
-					item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
-			}
-			else
-			{
-				origin = Vector3(
-					item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.25f), BLOCK(0.25f)),
-					item.Pose.Position.y - Random::GenerateInt(0, CLICK(2)),
-					item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.25f), BLOCK(0.25f)));
-				target = Vector3(
-					origin.x + Random::GenerateInt(-CLICK(0.5f), CLICK(0.5f)),
-					origin.y - Random::GenerateInt(CLICK(1), CLICK(3)),
-					origin.z + Random::GenerateInt(-CLICK(0.5f), CLICK(0.5f)));
-			}
-
-			SpawnElectricity(origin, target,
-				Random::GenerateInt(isFloorMode ? 4 : 2, isFloorMode ? 12 : 6),
-				32, g, b, isFloorMode ? 8 : 6,
-				isFloorMode ?
-				((int)ElectricityFlags::Spline | (int)ElectricityFlags::SparkEnd) :
-				((int)ElectricityFlags::ThinIn | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::SparkEnd),
-				Random::GenerateFloat(isFloorMode ? 20.0f : 8.0f, isFloorMode ? 40.0f : 16.0f),
-				Random::GenerateInt(isFloorMode ? 4 : 3, isFloorMode ? 8 : 5));
-
-			if (Random::TestProbability(isFloorMode ? 0.25f : 0.33f))
-				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
-		}
-
-		// Check Lara collision.
-		auto laraItem = LaraItem;
-		if (!laraItem || laraItem->HitPoints <= 0)
-			return;
-
-		bool shouldKill = false;
+		// Spawn electric effects
+		int r = Random::GenerateInt(0, 63) + 128;
+		int g = Random::GenerateInt(0, 63) + 192;
+		int b = 255;
+		int lightSize = Random::GenerateInt(5, 7);
 
 		if (isFloorMode)
 		{
-			// Floor mode: same sector check.
-			int fenceSectorX = item.Pose.Position.x / BLOCK(1);
-			int fenceSectorZ = item.Pose.Position.z / BLOCK(1);
-			int laraSectorX = laraItem->Pose.Position.x / BLOCK(1);
-			int laraSectorZ = laraItem->Pose.Position.z / BLOCK(1);
+			// Floor mode: Horizontal electrical field with dynamic light
+			SpawnDynamicLight(
+				item.Pose.Position.x,
+				item.Pose.Position.y - CLICK(2),
+				item.Pose.Position.z,
+				lightSize, r, g, b);
 
-			if (fenceSectorX == laraSectorX && fenceSectorZ == laraSectorZ && !laraItem->Animation.IsAirborne)
+			if (Random::TestProbability(0.5f))
 			{
-				short fenceRoomNum = item.RoomNumber;
-				auto* fenceFloor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &fenceRoomNum);
-				int fenceFloorHeight = GetFloorHeight(fenceFloor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
+				Vector3 origin = Vector3(
+					item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
+					item.Pose.Position.y + sin(GlobalCounter / 2.0f) * CLICK(0.5f),
+					item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
+				Vector3 target = Vector3(
+					item.Pose.Position.x + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)),
+					item.Pose.Position.y + sin(GlobalCounter / 4.0f) * CLICK(0.5f),
+					item.Pose.Position.z + Random::GenerateInt(-BLOCK(0.5f), BLOCK(0.5f)));
 
-				short laraRoomNum = laraItem->RoomNumber;
-				auto* laraFloor = GetFloor(laraItem->Pose.Position.x, laraItem->Pose.Position.y, laraItem->Pose.Position.z, &laraRoomNum);
-				int laraFloorHeight = GetFloorHeight(laraFloor, laraItem->Pose.Position.x, laraItem->Pose.Position.y, laraItem->Pose.Position.z);
+				SpawnElectricity(origin, target,
+					Random::GenerateInt(4, 12),
+					32, g, b, 8,
+					(int)ElectricityFlags::Spline | (int)ElectricityFlags::SparkEnd,
+					Random::GenerateFloat(20.0f, 40.0f),
+					Random::GenerateInt(4, 8));
 
-				if (abs(laraFloorHeight - fenceFloorHeight) < ELECTRIC_FENCE_FLOOR_HEIGHT_TOLERANCE)
-					shouldKill = true;
+				if (Random::TestProbability(0.25f))
+					SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 			}
 		}
-		else if (isFenceMode)
+		/* else if (isFenceMode)
 		{
-			// Fence mode: wall edge check.
-			short angle = item.Pose.Orientation.y;
-			int fenceSectorX = item.Pose.Position.x / BLOCK(1);
-			int fenceSectorZ = item.Pose.Position.z / BLOCK(1);
+			// Fence mode: Short electrical bursts scattered across the wall segment
+			// Spawns every couple of seconds
 
-			// Determine wall direction.
-			bool checkNorth = (angle >= ANGLE(315.0f) || angle < ANGLE(45.0f));
-			bool checkEast = (angle >= ANGLE(45.0f) && angle < ANGLE(135.0f));
-			bool checkSouth = (angle >= ANGLE(135.0f) && angle < ANGLE(225.0f));
-			bool checkWest = (angle >= ANGLE(225.0f) && angle < ANGLE(315.0f));
-
-			// Check if wall exists.
-			if (IsWallAtEdge(fenceSectorX, fenceSectorZ, item.RoomNumber, checkNorth, checkEast, checkSouth, checkWest))
+			// Only spawn sparks occasionally (every ~4-5 seconds at 30fps)
+			if (!Random::TestProbability(0.006f))
 			{
-				int sectorMinX = fenceSectorX * BLOCK(1);
-				int sectorMaxX = sectorMinX + BLOCK(1);
-				int sectorMinZ = fenceSectorZ * BLOCK(1);
-				int sectorMaxZ = sectorMinZ + BLOCK(1);
+				// Just show dynamic light when not sparking
+				SpawnDynamicLight(
+					item.Pose.Position.x,
+					item.Pose.Position.y,
+					item.Pose.Position.z,
+					lightSize, r, g, b);
+				return;
+			}
 
-				auto& sector = GetFloor(item.RoomNumber, fenceSectorX, fenceSectorZ);
-				int wallBottom = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
-				int wallTop = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, false);
+			// Get floor and ceiling heights at fence position for wall segment height
+			short roomNumber = item.RoomNumber;
+			auto* floor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber);
+			int floorHeight = GetFloorHeight(floor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
+			int ceilingHeight = GetCeiling(floor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
 
-				bool hitWall = false;
-				if (checkNorth && abs(laraItem->Pose.Position.z - sectorMinZ) <= ELECTRIC_FENCE_WALL_THRESHOLD)
-				{
-					if (laraItem->Pose.Position.x >= sectorMinX && laraItem->Pose.Position.x <= sectorMaxX)
-						hitWall = true;
-				}
-				else if (checkEast && abs(laraItem->Pose.Position.x - sectorMaxX) <= ELECTRIC_FENCE_WALL_THRESHOLD)
-				{
-					if (laraItem->Pose.Position.z >= sectorMinZ && laraItem->Pose.Position.z <= sectorMaxZ)
-						hitWall = true;
-				}
-				else if (checkSouth && abs(laraItem->Pose.Position.z - sectorMaxZ) <= ELECTRIC_FENCE_WALL_THRESHOLD)
-				{
-					if (laraItem->Pose.Position.x >= sectorMinX && laraItem->Pose.Position.x <= sectorMaxX)
-						hitWall = true;
-				}
-				else if (checkWest && abs(laraItem->Pose.Position.x - sectorMinX) <= ELECTRIC_FENCE_WALL_THRESHOLD)
-				{
-					if (laraItem->Pose.Position.z >= sectorMinZ && laraItem->Pose.Position.z <= sectorMaxZ)
-						hitWall = true;
-				}
+			// Wall segment extends from ceiling to floor at this position
+			int wallTop = ceilingHeight + CLICK(1);
+			int wallBottom = floorHeight - CLICK(1);
 
-				if (hitWall && laraItem->Pose.Position.y >= wallTop && laraItem->Pose.Position.y <= wallBottom)
+			// Determine fence facing direction
+			short angle = item.Pose.Orientation.y;
+			Vector3 towardWall;
+			Vector3 alongWall;
+
+			if (angle >= ANGLE(315.0f) || angle < ANGLE(45.0f))
+			{
+				towardWall = Vector3(0, 0, -1); // North
+				alongWall = Vector3(1, 0, 0);   // Along X (East-West)
+			}
+			else if (angle >= ANGLE(45.0f) && angle < ANGLE(135.0f))
+			{
+				towardWall = Vector3(1, 0, 0);  // East
+				alongWall = Vector3(0, 0, 1);   // Along Z (North-South)
+			}
+			else if (angle >= ANGLE(135.0f) && angle < ANGLE(225.0f))
+			{
+				towardWall = Vector3(0, 0, 1);  // South
+				alongWall = Vector3(1, 0, 0);   // Along X (East-West)
+			}
+			else
+			{
+				towardWall = Vector3(-1, 0, 0); // West
+				alongWall = Vector3(0, 0, 1);   // Along Z (North-South)
+			}
+
+			// Base position offset toward wall
+			Vector3 basePos = item.Pose.Position.ToVector3() + (towardWall * CLICK(0.5f));
+
+			// Spawn 3-5 short spark bursts scattered across the wall segment
+			int numSparks = Random::GenerateInt(3, 5);
+			for (int i = 0; i < numSparks; i++)
+			{
+				// Random position across wall segment (width and height)
+				float alongDist = Random::GenerateFloat(-CLICK(3), CLICK(3));  // Width along wall
+				float verticalPos = Random::GenerateFloat(wallTop, wallBottom); // Wall segment height
+				float depthOffset = Random::GenerateFloat(-CLICK(0.2f), CLICK(0.2f)); // Slight depth variation
+
+				// Calculate spark center position
+				Vector3 sparkCenter = basePos + (alongWall * alongDist) + (towardWall * depthOffset);
+				sparkCenter.y = verticalPos;
+
+				// Create SHORT spark arc (not long vertical line)
+				// Origin and target are close together for a "burst" effect
+				Vector3 origin = sparkCenter + Vector3(
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)),
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)),
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)));
+
+				Vector3 target = sparkCenter + Vector3(
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)),
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)),
+					Random::GenerateFloat(-CLICK(0.5f), CLICK(0.5f)));
+
+				// Spawn short electrical burst
+				SpawnElectricity(origin, target,
+					Random::GenerateInt(4, 8),   // Lower amplitude for tighter sparks
+					32, g, b,
+					Random::GenerateFloat(8.0f, 16.0f),  // Shorter life
+					(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
+					Random::GenerateFloat(3.0f, 5.0f),   // Thinner
+					Random::GenerateInt(3, 5));          // Fewer segments
+
+				// Add glow at spark
+				if (Random::TestProbability(0.3f))
+					SpawnElectricityGlow(sparkCenter, Random::GenerateFloat(12.0f, 20.0f), 32, g, b);
+			}
+
+			// Sound effect when sparking
+			if (Random::TestProbability(0.5f))
+				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
+
+			// Dynamic light at fence center
+			SpawnDynamicLight(
+				item.Pose.Position.x,
+				item.Pose.Position.y,
+				item.Pose.Position.z,
+				lightSize, r, g, b);
+		}
+		*/
+		// Check all creatures for collision with electric fence
+		for (auto& entity : g_Level.Items)
+		{
+			// Skip dead entities
+			if (entity.HitPoints <= 0)
+				continue;
+
+			// Only check Lara and creatures
+			if (!entity.IsLara() && !entity.IsCreature())
+				continue;
+
+			// Skip airborne entities
+			if (entity.Animation.IsAirborne)
+				continue;
+
+			bool shouldKill = false;
+
+			if (isFloorMode)
+			{
+				// Floor mode: same sector check
+				int fenceSectorX = item.Pose.Position.x / BLOCK(1);
+				int fenceSectorZ = item.Pose.Position.z / BLOCK(1);
+				int entitySectorX = entity.Pose.Position.x / BLOCK(1);
+				int entitySectorZ = entity.Pose.Position.z / BLOCK(1);
+
+				if (fenceSectorX == entitySectorX && fenceSectorZ == entitySectorZ)
 				{
-					int dy = abs(laraItem->Pose.Position.y - item.Pose.Position.y);
-					if (dy <= ELECTRIC_FENCE_HEIGHT)
+					short fenceRoomNum = item.RoomNumber;
+					auto* fenceFloor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &fenceRoomNum);
+					int fenceFloorHeight = GetFloorHeight(fenceFloor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
+
+					short entityRoomNum = entity.RoomNumber;
+					auto* entityFloor = GetFloor(entity.Pose.Position.x, entity.Pose.Position.y, entity.Pose.Position.z, &entityRoomNum);
+					int entityFloorHeight = GetFloorHeight(entityFloor, entity.Pose.Position.x, entity.Pose.Position.y, entity.Pose.Position.z);
+
+					if (abs(entityFloorHeight - fenceFloorHeight) < CLICK(1))
 						shouldKill = true;
 				}
 			}
-		}
+			/* else if (isFenceMode)
+			{
+				// Fence mode: wall edge check
+				short angle = item.Pose.Orientation.y;
+				int fenceSectorX = item.Pose.Position.x / BLOCK(1);
+				int fenceSectorZ = item.Pose.Position.z / BLOCK(1);
 
-		// Apply damage if Lara touched the fence.
-		if (shouldKill)
-		{
-			DoDamage(laraItem, ELECTRIC_FENCE_DAMAGE);
-			ItemElectricBurn(laraItem, ELECTRIC_FENCE_DAMAGE);
-			ItemBlueElectricBurn(laraItem, 2 * FPS);
+				// Determine wall direction
+				bool checkNorth = (angle >= ANGLE(315.0f) || angle < ANGLE(45.0f));
+				bool checkEast = (angle >= ANGLE(45.0f) && angle < ANGLE(135.0f));
+				bool checkSouth = (angle >= ANGLE(135.0f) && angle < ANGLE(225.0f));
+				bool checkWest = (angle >= ANGLE(225.0f) && angle < ANGLE(315.0f));
+
+				// Check if wall exists
+				if (IsWallAtEdge(fenceSectorX, fenceSectorZ, item.RoomNumber, checkNorth, checkEast, checkSouth, checkWest))
+				{
+					int sectorMinX = fenceSectorX * BLOCK(1);
+					int sectorMaxX = sectorMinX + BLOCK(1);
+					int sectorMinZ = fenceSectorZ * BLOCK(1);
+					int sectorMaxZ = sectorMinZ + BLOCK(1);
+
+					constexpr auto WALL_THRESHOLD = CLICK(2.5f);
+
+					auto& sector = GetFloor(item.RoomNumber, fenceSectorX, fenceSectorZ);
+					int wallBottom = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
+					int wallTop = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, false);
+
+					bool hitWall = false;
+					if (checkNorth && abs(entity.Pose.Position.z - sectorMinZ) <= WALL_THRESHOLD)
+					{
+						if (entity.Pose.Position.x >= sectorMinX && entity.Pose.Position.x <= sectorMaxX)
+							hitWall = true;
+					}
+					else if (checkEast && abs(entity.Pose.Position.x - sectorMaxX) <= WALL_THRESHOLD)
+					{
+						if (entity.Pose.Position.z >= sectorMinZ && entity.Pose.Position.z <= sectorMaxZ)
+							hitWall = true;
+					}
+					else if (checkSouth && abs(entity.Pose.Position.z - sectorMaxZ) <= WALL_THRESHOLD)
+					{
+						if (entity.Pose.Position.x >= sectorMinX && entity.Pose.Position.x <= sectorMaxX)
+							hitWall = true;
+					}
+					else if (checkWest && abs(entity.Pose.Position.x - sectorMinX) <= WALL_THRESHOLD)
+					{
+						if (entity.Pose.Position.z >= sectorMinZ && entity.Pose.Position.z <= sectorMaxZ)
+							hitWall = true;
+					}
+
+					if (hitWall && entity.Pose.Position.y >= wallTop && entity.Pose.Position.y <= wallBottom)
+					{
+						int dy = abs(entity.Pose.Position.y - item.Pose.Position.y);
+						if (dy <= ELECTRIC_FENCE_HEIGHT)
+							shouldKill = true;
+					}
+				}
+			} */
+
+			if (shouldKill)
+			{
+				DoDamage(&entity, ELECTRIC_FENCE_DAMAGE);
+				ItemElectricBurn(&entity, ELECTRIC_FENCE_DAMAGE);
+				ItemBlueElectricBurn(&entity, 2 * FPS);
+			}
 		}
 	}
 }
