@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/ElectricFloor.h"
+#include "Game/Lara/lara_helpers.h"
 
 #include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"
@@ -65,7 +66,7 @@ namespace TEN::Entities::Traps
 				SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 		}
 
-		// Check all creatures for collision with electric electricFloor
+		// Check all creatures for collision with electric floor
 		for (auto& entity : g_Level.Items)
 		{
 			// Skip dead entities
@@ -97,17 +98,38 @@ namespace TEN::Entities::Traps
 				auto* electricFloorFloor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &electricFloorRoomNum);
 				int electricFloorFloorHeight = GetFloorHeight(electricFloorFloor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
 
-				// Check if entity's ACTUAL position is at floor level (not just if floor below them matches)
-				// This prevents airborne creatures from being electrocuted when flying over
+				// Check if entity's ACTUAL position is at floor level
 				if (abs(entity.Pose.Position.y - electricFloorFloorHeight) < CLICK(1))
 					shouldKill = true;
 			}
 
 			if (shouldKill)
 			{
-				DoDamage(&entity, ELECTRIC_FLOOR_DAMAGE);
-				ItemElectricBurn(&entity, ELECTRIC_FLOOR_DAMAGE);
-				ItemBlueElectricBurn(&entity, 2 * FPS);
+				// Special death animation for Lara
+				if (entity.IsLara())
+				{
+					auto& player = GetLaraInfo(entity);
+
+					SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
+					entity.Animation.FrameNumber = 0;
+					player.Control.IsMoving = false;
+					player.Control.HandStatus = HandStatus::Busy;
+					AnimateItem(entity);  // Pass reference, not pointer
+
+					// Trigger death sequence
+					entity.HitPoints = 0;
+
+					// Apply visual effects
+					ItemElectricBurn(&entity, ELECTRIC_FLOOR_DAMAGE);
+					ItemBlueElectricBurn(&entity, 2 * FPS);
+				}
+				else
+				{
+					// Regular damage for creatures
+					DoDamage(&entity, ELECTRIC_FLOOR_DAMAGE);
+					ItemElectricBurn(&entity, ELECTRIC_FLOOR_DAMAGE);
+					ItemBlueElectricBurn(&entity, 2 * FPS);
+				}
 			}
 		}
 	}
