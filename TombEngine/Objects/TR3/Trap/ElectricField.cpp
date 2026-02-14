@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR3/Trap/ElectricField.h"
 #include "Game/Lara/lara_helpers.h"
 
@@ -22,16 +22,17 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_ACTIVE;
 	}
 
-	static void SpawnSparks(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static void SpawnSparks(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
 		if (!Random::TestProbability(0.6f))
 			return;
 
 		float localX = Random::GenerateFloat(-halfSpanX, halfSpanX);
-		float localZ = Random::GenerateFloat(-halfSpanZ, halfSpanZ);
+		float localY = isWallMode ? Random::GenerateFloat(-BLOCK(1), BLOCK(1)) : 0;
+		float localZ = isWallMode ? -CLICK(1) : Random::GenerateFloat(-halfSpanZ, halfSpanZ);
 
 		float sparkX = item.Pose.Position.x + (localX * cosY - localZ * sinY);
-		float sparkY = item.Pose.Position.y;
+		float sparkY = item.Pose.Position.y + localY;
 		float sparkZ = item.Pose.Position.z + (localX * sinY + localZ * cosY);
 
 		int sparkCount = Random::GenerateInt(1, 2);
@@ -51,11 +52,23 @@ namespace TEN::Entities::Traps
 				sparkY + Random::GenerateFloat(-16, 16),
 				sparkZ + Random::GenerateFloat(-16, 16));
 
-			float ang = TO_RAD(Random::GenerateAngle());
-			float vertAng = -TO_RAD(90.0f);
-			Vector3 v = Vector3(sin(ang), vertAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
-			v.Normalize(v);
-			s.velocity = v * Random::GenerateFloat(8, 32);
+			if (isWallMode)
+			{
+				float	direction = Random::TestProbability(0.5f) ? 1.0f : -1.0f;
+				float	ang = TO_RAD(item.Pose.Orientation.y);
+				Vector3 v = Vector3(-sin(ang) * direction, Random::GenerateFloat(-0.2f, 0.2f), -cos(ang) * direction);
+				v.Normalize(v);
+				s.velocity = v * Random::GenerateFloat(8, 32);
+			}
+			else
+			{
+				float	ang = TO_RAD(Random::GenerateAngle());
+				float	vertAng = -TO_RAD(90.0f);
+				Vector3 v = Vector3(sin(ang), vertAng + Random::GenerateFloat(-PI / 16, PI / 16), cos(ang));
+				v.Normalize(v);
+				s.velocity = v * Random::GenerateFloat(8, 32);
+			}
+
 			s.sourceColor = Vector4(0.4f, 0.6f, 1.0f, 1);
 			s.destinationColor = Vector4(0.6f, 0.6f, 0.8f, 0.8f);
 			s.active = true;
@@ -74,53 +87,95 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void SpawnLightning(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static void SpawnLightning(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
 		if (!Random::TestProbability(0.15f))
 			return;
 
-		float leftX = -halfSpanX / Random::GenerateInt(1, 2);
-		float rightX = halfSpanX / Random::GenerateInt(1, 2);
-		float randomZ = Random::GenerateFloat(-halfSpanZ, halfSpanZ);
-		float yOffset = -CLICK(0.25f);
+		float yOffset = isWallMode ? 0 : -CLICK(0.25f);
 
-		Vector3 origin = Vector3(
-			item.Pose.Position.x + (leftX * cosY - randomZ * sinY),
-			item.Pose.Position.y + yOffset,
-			item.Pose.Position.z + (leftX * sinY + randomZ * cosY));
+		if (isWallMode)
+		{
+			float leftX = -halfSpanX / Random::GenerateInt(1, 2);
+			float rightX = halfSpanX / Random::GenerateInt(1, 2);
+			float randomY = Random::GenerateFloat(-BLOCK(0.5f), BLOCK(0.5f));
+			float wallZ = -CLICK(1);
 
-		Vector3 target = Vector3(
-			item.Pose.Position.x + (rightX * cosY - randomZ * sinY),
-			item.Pose.Position.y + yOffset,
-			item.Pose.Position.z + (rightX * sinY + randomZ * cosY));
+			Vector3 origin = Vector3(
+				item.Pose.Position.x + (leftX * cosY - wallZ * sinY),
+				item.Pose.Position.y + randomY,
+				item.Pose.Position.z + (leftX * sinY + wallZ * cosY));
 
-		float r = Random::GenerateInt(32, 128) / 255.0f;
-		float g = Random::GenerateInt(128, 192) / 255.0f;
-		float b = Random::GenerateInt(192, 255) / 255.0f;
+			Vector3 target = Vector3(
+				item.Pose.Position.x + (rightX * cosY - wallZ * sinY),
+				item.Pose.Position.y + randomY,
+				item.Pose.Position.z + (rightX * sinY + wallZ * cosY));
 
-		SpawnElectricity(
-			origin,
-			target,
-			Random::GenerateInt(8, 16),
-			r * 255, g * 255, b * 255,
-			Random::GenerateInt(16, 32),
-			(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
-			Random::GenerateFloat(8.0f, 16.0f),
-			Random::GenerateInt(1, 2));
+			float r = Random::GenerateInt(32, 128) / 255.0f;
+			float g = Random::GenerateInt(128, 192) / 255.0f;
+			float b = Random::GenerateInt(192, 255) / 255.0f;
 
-		Vector3 lightPos = Vector3(
-			item.Pose.Position.x + (Random::GenerateFloat(-halfSpanX, halfSpanX) * cosY - randomZ * sinY),
-			item.Pose.Position.y + yOffset,
-			item.Pose.Position.z + (Random::GenerateFloat(-halfSpanX, halfSpanX) * sinY + randomZ * cosY));
-		Color lightColor = Color(0.4f, 0.6f, 1.0f);
-		SpawnDynamicPointLight(lightPos, lightColor, BLOCK(3), false, 0);
+			SpawnElectricity(
+				origin,
+				target,
+				Random::GenerateInt(8, 16),
+				r * 255, g * 255, b * 255,
+				Random::GenerateInt(16, 32),
+				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
+				Random::GenerateFloat(8.0f, 16.0f),
+				Random::GenerateInt(1, 2));
+
+			Vector3 lightPos = Vector3(
+				item.Pose.Position.x + (Random::GenerateFloat(-halfSpanX, halfSpanX) * cosY - wallZ * sinY),
+				item.Pose.Position.y + randomY,
+				item.Pose.Position.z + (Random::GenerateFloat(-halfSpanX, halfSpanX) * sinY + wallZ * cosY));
+			Color lightColor = Color(0.4f, 0.6f, 1.0f);
+			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(3), false, 0);
+		}
+		else
+		{
+			float leftZ = -halfSpanZ / Random::GenerateInt(1, 2);
+			float rightZ = halfSpanZ / Random::GenerateInt(1, 2);
+			float randomX = Random::GenerateFloat(-halfSpanX, halfSpanX);
+
+			Vector3 origin = Vector3(
+				item.Pose.Position.x + (randomX * cosY - leftZ * sinY),
+				item.Pose.Position.y + yOffset,
+				item.Pose.Position.z + (randomX * sinY + leftZ * cosY));
+
+			Vector3 target = Vector3(
+				item.Pose.Position.x + (randomX * cosY - rightZ * sinY),
+				item.Pose.Position.y + yOffset,
+				item.Pose.Position.z + (randomX * sinY + rightZ * cosY));
+
+			float r = Random::GenerateInt(32, 128) / 255.0f;
+			float g = Random::GenerateInt(128, 192) / 255.0f;
+			float b = Random::GenerateInt(192, 255) / 255.0f;
+
+			SpawnElectricity(
+				origin,
+				target,
+				Random::GenerateInt(8, 16),
+				r * 255, g * 255, b * 255,
+				Random::GenerateInt(16, 32),
+				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
+				Random::GenerateFloat(8.0f, 16.0f),
+				Random::GenerateInt(1, 2));
+
+			Vector3 lightPos = Vector3(
+				item.Pose.Position.x + (randomX * cosY - Random::GenerateFloat(-halfSpanZ, halfSpanZ) * sinY),
+				item.Pose.Position.y + yOffset,
+				item.Pose.Position.z + (randomX * sinY + Random::GenerateFloat(-halfSpanZ, halfSpanZ) * cosY));
+			Color lightColor = Color(0.4f, 0.6f, 1.0f);
+			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(3), false, 0);
+		}
 	}
 
-	static void SpawnSweepingLight(ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static void SpawnSweepingLight(ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
-		int	  extraBlocksEachSide = item.TriggerFlags;
-		int	  totalSpanX = 1 + (2 * extraBlocksEachSide);
-		float travelTime = totalSpanX * FPS * 0.30f;
+		int	  extraBlocksEachSide = abs(item.TriggerFlags);
+		int	  totalSpanZ = 1 + (2 * extraBlocksEachSide);
+		float travelTime = totalSpanZ * FPS * 0.30f;
 		float stepSize = 1000.0f / travelTime;
 
 		item.ItemFlags[7] += stepSize;
@@ -128,36 +183,83 @@ namespace TEN::Entities::Traps
 			item.ItemFlags[7] = 0;
 
 		float normalizedPos = (item.ItemFlags[7] / 1000.0f) * 2.0f - 1.0f;
-		float localX = normalizedPos * halfSpanX;
-		float localZ = Random::GenerateFloat(-halfSpanZ * 0.3f, halfSpanZ * 0.3f);
-		float yOffset = -CLICK(0.25f);
 
-		Vector3 lightPos = Vector3(
-			item.Pose.Position.x + (localX * cosY - localZ * sinY),
-			item.Pose.Position.y + (yOffset - CLICK(0.75f)),
-			item.Pose.Position.z + (localX * sinY + localZ * cosY));
+		if (isWallMode)
+		{
+			float wallZ = -CLICK(1);
+			float localY = Random::GenerateFloat(-BLOCK(0.3f), BLOCK(0.3f));
+			float localX = normalizedPos * halfSpanX;
 
-		float flicker = Random::GenerateFloat(0.8f, 1.2f);
-		Color lightColor = Color(0.6f * flicker, 0.9f * flicker, 1.50f * flicker);
-		SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
+			Vector3 lightPos = Vector3(
+				item.Pose.Position.x + (localX * cosY - wallZ * sinY),
+				item.Pose.Position.y + localY,
+				item.Pose.Position.z + (localX * sinY + wallZ * cosY));
+
+			float flicker = Random::GenerateFloat(0.8f, 1.2f);
+			Color lightColor = Color(0.6f * flicker, 0.9f * flicker, 1.50f * flicker);
+			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
+		}
+		else
+		{
+			float localZ = normalizedPos * halfSpanZ;
+			float localX = Random::GenerateFloat(-halfSpanX * 0.3f, halfSpanX * 0.3f);
+			float yOffset = -CLICK(0.25f);
+
+			Vector3 lightPos = Vector3(
+				item.Pose.Position.x + (localX * cosY - localZ * sinY),
+				item.Pose.Position.y + (yOffset - CLICK(0.75f)),
+				item.Pose.Position.z + (localX * sinY + localZ * cosY));
+
+			float flicker = Random::GenerateFloat(0.8f, 1.2f);
+			Color lightColor = Color(0.6f * flicker, 0.9f * flicker, 1.50f * flicker);
+			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
+		}
 	}
 
-	static bool IsEntityInField(const ItemInfo& ElectricFieldItem, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static bool IsEntityInField(const ItemInfo& electricFieldItem, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
-		float worldDeltaX = entity.Pose.Position.x - ElectricFieldItem.Pose.Position.x;
-		float worldDeltaZ = entity.Pose.Position.z - ElectricFieldItem.Pose.Position.z;
+		float worldDeltaX = entity.Pose.Position.x - electricFieldItem.Pose.Position.x;
+		float worldDeltaZ = entity.Pose.Position.z - electricFieldItem.Pose.Position.z;
 
 		float localX = worldDeltaX * cosY + worldDeltaZ * sinY;
 		float localZ = -worldDeltaX * sinY + worldDeltaZ * cosY;
 
-		if (abs(localX) > halfSpanX || abs(localZ) > halfSpanZ)
+		auto bounds = GameBoundingBox(&entity);
+		int	 entityTop = entity.Pose.Position.y + bounds.Y1;
+		int	 entityBottom = entity.Pose.Position.y + bounds.Y2;
+
+		if (isWallMode)
+		{
+			if (abs(localX) > halfSpanX)
+				return false;
+
+			int wallHeight = BLOCK(2);
+			int fieldTop = electricFieldItem.Pose.Position.y - wallHeight;
+			int fieldBottom = electricFieldItem.Pose.Position.y + wallHeight;
+
+			if (entityTop > fieldBottom || entityBottom < fieldTop)
+				return false;
+
+			int fieldThickness = CLICK(0.5f);
+			if (abs(localZ + CLICK(1)) > fieldThickness)
+				return false;
+
+			return true;
+		}
+		else
+		{
+			if (abs(localX) > halfSpanX || abs(localZ) > halfSpanZ)
+				return false;
+
+			int fieldThickness = CLICK(0.25f);
+			int fieldTop = electricFieldItem.Pose.Position.y - fieldThickness;
+			int fieldBottom = electricFieldItem.Pose.Position.y + fieldThickness;
+
+			if (entityTop < fieldBottom && entityBottom > fieldTop)
+				return true;
+
 			return false;
-
-		short ElectricFieldRoomNum = ElectricFieldItem.RoomNumber;
-		auto* ElectricFieldFloor = GetFloor(ElectricFieldItem.Pose.Position.x, ElectricFieldItem.Pose.Position.y, ElectricFieldItem.Pose.Position.z, &ElectricFieldRoomNum);
-		int	ElectricFieldHeight = GetFloorHeight(ElectricFieldFloor, ElectricFieldItem.Pose.Position.x, ElectricFieldItem.Pose.Position.y, ElectricFieldItem.Pose.Position.z);
-
-		return (abs(entity.Pose.Position.y - ElectricFieldHeight) < CLICK(1));
+		}
 	}
 
 	static void KillEntity(ItemInfo& entity)
@@ -166,7 +268,7 @@ namespace TEN::Entities::Traps
 		{
 			auto& player = GetLaraInfo(entity);
 
-			if (player.Context.Vehicle == NO_VALUE)
+			if (player.Context.Vehicle == NO_VALUE && !player.Control.IsLow && !entity.Animation.IsAirborne)
 			{
 				SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
 				entity.Animation.FrameNumber = 0;
@@ -187,7 +289,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void CheckCollisions(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static void CheckCollisions(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
 		for (auto& entity : g_Level.Items)
 		{
@@ -197,10 +299,7 @@ namespace TEN::Entities::Traps
 			if (!entity.IsLara() && !entity.IsCreature())
 				continue;
 
-			if (entity.Animation.IsAirborne)
-				continue;
-
-			if (IsEntityInField(item, entity, halfSpanX, halfSpanZ, cosY, sinY))
+			if (IsEntityInField(item, entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
 				KillEntity(entity);
 		}
 	}
@@ -212,20 +311,33 @@ namespace TEN::Entities::Traps
 		if (item.Status != ITEM_ACTIVE)
 			return;
 
-		int extraBlocksEachSide = item.TriggerFlags;
-		int totalSpanX = 1 + (2 * extraBlocksEachSide);
-		int spanZ = 1;
+		bool isWallMode = (item.TriggerFlags < 0);
+		int	 extraBlocksEachSide = isWallMode ? (abs(item.TriggerFlags) - 1) : item.TriggerFlags;
 
-		float halfSpanX = totalSpanX * BLOCK(0.5f);
-		float halfSpanZ = spanZ * BLOCK(0.5f);
+		float halfSpanX, halfSpanZ;
+
+		if (isWallMode)
+		{
+			int totalSpanX = 1 + (2 * extraBlocksEachSide);
+			int spanZ = 1;
+			halfSpanX = totalSpanX * BLOCK(0.5f);
+			halfSpanZ = spanZ * BLOCK(0.5f);
+		}
+		else
+		{
+			int totalSpanZ = 1 + (2 * extraBlocksEachSide);
+			int spanX = 1;
+			halfSpanX = spanX * BLOCK(0.5f);
+			halfSpanZ = totalSpanZ * BLOCK(0.5f);
+		}
 
 		float rotY = TO_RAD(item.Pose.Orientation.y);
 		float cosY = cos(rotY);
 		float sinY = sin(rotY);
 
-		SpawnSparks(item, halfSpanX, halfSpanZ, cosY, sinY);
-		SpawnLightning(item, halfSpanX, halfSpanZ, cosY, sinY);
-		SpawnSweepingLight(item, halfSpanX, halfSpanZ, cosY, sinY);
-		CheckCollisions(item, halfSpanX, halfSpanZ, cosY, sinY);
+		SpawnSparks(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		SpawnLightning(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		SpawnSweepingLight(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		CheckCollisions(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
 	}
 }
