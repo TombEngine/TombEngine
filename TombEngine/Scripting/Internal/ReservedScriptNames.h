@@ -566,16 +566,17 @@ constexpr char ScriptReserved_StaticSetCollidable[]	= "SetCollidable";
 constexpr char ScriptReserved_StaticShatter[]		= "Shatter";
 
 // DrawItem
-constexpr char ScriptReserved_DrawItem[]			= "DisplayItem";
-constexpr char ScriptReserved_DrawItemGetMeshBits[] = "GetMeshBits";
-constexpr char ScriptReserved_DrawItemSetMeshBits[] = "SetMeshBits";
-constexpr char ScriptReserved_DrawItemGetCamera[]	= "GetCameraPosition";
-constexpr char ScriptReserved_DrawItemSetCamera[]	= "SetCameraPosition";
-constexpr char ScriptReserved_DrawItemGetTarget[]	= "GetTargetPosition";
-constexpr char ScriptReserved_DrawItemSetTarget[]	= "SetTargetPosition";
-constexpr char ScriptReserved_DrawItemResetCamera[] = "ResetCamera";
-constexpr char ScriptReserved_DrawItemGetAmbientLight[] = "GetAmbientLight";
-constexpr char ScriptReserved_DrawItemSetAmbientLight[] = "SetAmbientLight";
+constexpr char ScriptReserved_DisplayItem[]					= "DisplayItem";
+constexpr char ScriptReserved_DisplayItemGetMeshBits[]		= "GetMeshBits";
+constexpr char ScriptReserved_DisplayItemSetMeshBits[]		= "SetMeshBits";
+constexpr char ScriptReserved_DisplayItemGetCamera[]		= "GetCameraPosition";
+constexpr char ScriptReserved_DisplayItemSetCamera[]		= "SetCameraPosition";
+constexpr char ScriptReserved_DisplayItemGetTarget[]		= "GetTargetPosition";
+constexpr char ScriptReserved_DisplayItemSetTarget[]		= "SetTargetPosition";
+constexpr char ScriptReserved_DisplayItemResetCamera[]		= "ResetCamera";
+constexpr char ScriptReserved_DisplayItemDraw[]				= "Draw";
+constexpr char ScriptReserved_DisplayItemGetAmbientLight[]	= "GetAmbientLight";
+constexpr char ScriptReserved_DisplayItemSetAmbientLight[]	= "SetAmbientLight";
 
 // 2D Context
 constexpr auto ScriptReserved_SetScreenPosition = "SetScreenPosition";

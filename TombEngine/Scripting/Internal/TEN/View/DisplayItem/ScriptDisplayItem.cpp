@@ -35,7 +35,7 @@ namespace TEN::Scripting::DisplayItem
 
 		// Register type.
 		parent.new_usertype<ScriptDisplayItem>(
-			ScriptReserved_DrawItem, ctors(),
+			ScriptReserved_DisplayItem, ctors(),
 			sol::call_constructor, ctors(),
 
 			ScriptReserved_SetObjectID, &ScriptDisplayItem::SetObjectID,
@@ -44,7 +44,7 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_SetScale, &ScriptDisplayItem::SetScale,
 			ScriptReserved_SetColor, &ScriptDisplayItem::SetColor,
 
-			ScriptReserved_DrawItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
+			ScriptReserved_DisplayItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
 
 			ScriptReserved_SetMeshVisible, &ScriptDisplayItem::SetMeshVisibility,
 			ScriptReserved_SetJointRotation, &ScriptDisplayItem::SetMeshRotation,
@@ -60,16 +60,16 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_GetFrameNumber, &ScriptDisplayItem::GetFrameNumber,
 			ScriptReserved_GetEndFrame, &ScriptDisplayItem::GetEndFrame,
 			ScriptReserved_GetAnimNumber, &ScriptDisplayItem::GetAnimNumber,
-			ScriptReserved_DrawItemSetAmbientLight, &ScriptDisplayItem::SetAmbientLight,
-			ScriptReserved_DrawItemSetCamera, &ScriptDisplayItem::SetCameraPosition,
-			ScriptReserved_DrawItemSetTarget, &ScriptDisplayItem::SetCameraTargetPosition,
+			ScriptReserved_DisplayItemSetAmbientLight, &ScriptDisplayItem::SetAmbientLight,
+			ScriptReserved_DisplayItemSetCamera, &ScriptDisplayItem::SetCameraPosition,
+			ScriptReserved_DisplayItemSetTarget, &ScriptDisplayItem::SetCameraTargetPosition,
 			ScriptReserved_SetFOV, &ScriptDisplayItem::SetFOV,
-			ScriptReserved_DrawItemResetCamera, &ScriptDisplayItem::ResetCamera,
-			ScriptReserved_DrawItemGetAmbientLight, &ScriptDisplayItem::GetAmbientLight,
-			ScriptReserved_DrawItemGetCamera, &ScriptDisplayItem::GetCameraPosition,
-			ScriptReserved_DrawItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition,
+			ScriptReserved_DisplayItemResetCamera, &ScriptDisplayItem::ResetCamera,
+			ScriptReserved_DisplayItemGetAmbientLight, &ScriptDisplayItem::GetAmbientLight,
+			ScriptReserved_DisplayItemGetCamera, &ScriptDisplayItem::GetCameraPosition,
+			ScriptReserved_DisplayItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition,
 			ScriptReserved_GetFOV, &ScriptDisplayItem::GetFOV,
-			ScriptReserved_DisplaySpriteDraw, & ScriptDisplayItem::Draw);
+			ScriptReserved_DisplaySpriteDraw, &ScriptDisplayItem::Draw);
 	}
 
 	const TEN::Hud::DisplayItem* ScriptDisplayItem::TryGetItem() const
