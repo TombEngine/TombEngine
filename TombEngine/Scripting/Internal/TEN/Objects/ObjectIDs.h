@@ -1116,6 +1116,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem ELECTRIC_FIELD
 	{ "ELECTRIC_FIELD", ID_ELECTRIC_FIELD },
+	/// Object ID.
+	// @mem FUSEBOX
+	{ "FUSEBOX", ID_FUSEBOX },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },

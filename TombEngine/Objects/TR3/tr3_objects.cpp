@@ -42,6 +42,7 @@
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/ElectricField.h"
+#include "Objects/TR3/Trap/Fusebox.h" 
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
@@ -523,6 +524,16 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeElectricField;
 		obj->control = ControlElectricField;
 		obj->Hidden = true;
+	}
+
+	obj = &Objects[ID_FUSEBOX];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFusebox;
+		obj->control = ControlFusebox;
+		obj->collision = CollideFusebox;
+		obj->HitPoints = 1;
+		obj->SetHitEffect(true);
 	}
 
 	obj = &Objects[ID_WALL_MOUNTED_BLADE];
