@@ -17,7 +17,9 @@ namespace TEN::Hud
 
 		std::string    _itemName = {};
 		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
-		bool           _visible  = true;
+
+		bool _visible = false;
+		bool _disposing = false;
 
 		Vector3                              _position         = Vector3::Zero;
 		EulerAngles                          _orientation      = EulerAngles::Identity;
@@ -57,6 +59,7 @@ namespace TEN::Hud
 		// Getters
 
 		bool GetVisible() const;
+		bool GetDisposing() const;
 		bool GetMeshVisible(int meshIndex) const;
 		int  GetAnimNumber() const;
 		int  GetFrameNumber() const;
@@ -78,6 +81,7 @@ namespace TEN::Hud
 		void SetScale(const Vector3& scale, bool disableInterpolation);
 		void SetColor(Color& color, bool disableInterpolation);
 		void SetVisible(bool visible);
+		void SetDisposing(bool disposing);
 		void SetMeshBits(int meshbits);
 		void SetMeshVisibility(int meshIndex, bool visible);
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);

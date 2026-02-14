@@ -182,6 +182,11 @@ namespace TEN::Hud
 		_visible = visible;
 	}
 
+	void DisplayItem::SetDisposing(bool disposing)
+	{
+		_disposing = disposing;
+	}
+
 	void DisplayItem::SetMeshBits(int meshBits)
 	{
 		_meshBits = meshBits;
@@ -239,6 +244,11 @@ namespace TEN::Hud
 	bool DisplayItem::GetVisible() const
 	{
 		return _visible;
+	}
+
+	bool DisplayItem::GetDisposing() const
+	{
+		return _disposing;
 	}
 
 	bool DisplayItem::GetMeshVisible(int meshIndex) const

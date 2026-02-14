@@ -167,12 +167,25 @@ namespace TEN::Hud
 
 	void DrawItemsController::Prepare()
 	{
+		if (_displayItems.empty())
+			return;
+
+		_displayItems.erase(std::remove_if(_displayItems.begin(), _displayItems.end(),
+		[](const DisplayItem& item)
+		{
+			return item.GetDisposing();
+		}),
+			_displayItems.end());
+
 		for (auto& item : _displayItems)
 			item.SetVisible(false);
 	}
 
 	void DrawItemsController::Update()
 	{
+		if (_displayItems.empty())
+			return;
+
 		std::sort(_displayItems.begin(), _displayItems.end(),
 		[](const DisplayItem& item0, const DisplayItem& item1)
 		{
@@ -189,6 +202,9 @@ namespace TEN::Hud
 
 	void DrawItemsController::Draw() const
 	{
+		if (_displayItems.empty())
+			return;
+
 		for (const auto& item : _displayItems)
 			g_Renderer.DrawObjectIn3DSpace(item);
 	}
