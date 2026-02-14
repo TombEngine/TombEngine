@@ -41,6 +41,8 @@
 
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"
+#include "Objects/TR3/Trap/ElectricField.h"
+#include "Objects/TR3/Trap/Fusebox.h" 
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
@@ -105,10 +107,8 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->intelligent = true;
 		obj->nonLot = true;
-		obj->SetBoneRotationFlags(1, ROT_Z);
-		obj->SetBoneRotationFlags(5, ROT_Z);
-		obj->SetBoneRotationFlags(11, ROT_Z);
-		obj->SetBoneRotationFlags(12, ROT_Z);
+		obj->SetBoneRotationFlags(0, ROT_Y);
+		obj->SetBoneRotationFlags(6, ROT_Y);
 		obj->SetHitEffect();
 	}
 
@@ -516,6 +516,24 @@ static void StartTrap(ObjectInfo* obj)
 		obj->HitPoints = NOT_TARGETABLE;
 		obj->nonLot = 1;
 		obj->radius = 512;
+	}
+
+	obj = &Objects[ID_ELECTRIC_FIELD];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricField;
+		obj->control = ControlElectricField;
+		obj->Hidden = true;
+	}
+
+	obj = &Objects[ID_FUSEBOX];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFusebox;
+		obj->control = ControlFusebox;
+		obj->collision = CollideFusebox;
+		obj->HitPoints = 1;
+		obj->SetHitEffect(true);
 	}
 
 	obj = &Objects[ID_WALL_MOUNTED_BLADE];
