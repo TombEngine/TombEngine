@@ -30,6 +30,7 @@ namespace TEN::Scripting::DisplayItem
 		using ctors = sol::constructors<
 			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&, const Rotation&, const Vec3&, int),
 			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&, const Rotation&, const Vec3&),
+			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&, const Rotation&),
 			ScriptDisplayItem(std::string, GAME_OBJECT_ID, const Vec3&),
 			ScriptDisplayItem(std::string, GAME_OBJECT_ID)>;
 
@@ -116,6 +117,9 @@ namespace TEN::Scripting::DisplayItem
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale) :
 		ScriptDisplayItem(name, objectID, pos, rot, scale, ALL_JOINT_BITS) { }
+
+	ScriptDisplayItem::ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot) :
+		ScriptDisplayItem(name, objectID, pos, rot, Vector3::One, ALL_JOINT_BITS) { }
 
 	ScriptDisplayItem::ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos) :
 		ScriptDisplayItem(name, objectID, pos, EulerAngles::Identity, Vector3::One, ALL_JOINT_BITS) { }
