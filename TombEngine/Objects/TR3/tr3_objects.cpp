@@ -41,7 +41,7 @@
 
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"
-#include "Objects/TR3/Trap/ElectricFloor.h"
+#include "Objects/TR3/Trap/ElectricField.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
@@ -517,11 +517,11 @@ static void StartTrap(ObjectInfo* obj)
 		obj->radius = 512;
 	}
 
-	obj = &Objects[ID_ELECTRIC_FLOOR];
+	obj = &Objects[ID_ELECTRIC_FIELD];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeElectricFloor;
-		obj->control = ControlElectricFloor;
+		obj->Initialize = InitializeElectricField;
+		obj->control = ControlElectricField;
 		obj->Hidden = true;
 	}
 

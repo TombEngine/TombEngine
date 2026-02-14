@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Trap/ElectricFloor.h"
+#include "Objects/TR3/Trap/ElectricField.h"
 #include "Game/Lara/lara_helpers.h"
 
 #include "Game/effects/Electricity.h"
@@ -14,9 +14,9 @@ using namespace TEN::Effects::Items;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto ELECTRIC_FLOOR_DAMAGE = INT_MAX;
+	constexpr auto ELECTRIC_FIELD_DAMAGE = INT_MAX;
 
-	void InitializeElectricFloor(short itemNumber)
+	void InitializeElectricField(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		item.Status = ITEM_ACTIVE;
@@ -142,10 +142,10 @@ namespace TEN::Entities::Traps
 		SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
 	}
 
-	static bool IsEntityInField(const ItemInfo& electricFloorItem, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY)
+	static bool IsEntityInField(const ItemInfo& ElectricFieldItem, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY)
 	{
-		float worldDeltaX = entity.Pose.Position.x - electricFloorItem.Pose.Position.x;
-		float worldDeltaZ = entity.Pose.Position.z - electricFloorItem.Pose.Position.z;
+		float worldDeltaX = entity.Pose.Position.x - ElectricFieldItem.Pose.Position.x;
+		float worldDeltaZ = entity.Pose.Position.z - ElectricFieldItem.Pose.Position.z;
 
 		float localX = worldDeltaX * cosY + worldDeltaZ * sinY;
 		float localZ = -worldDeltaX * sinY + worldDeltaZ * cosY;
@@ -153,11 +153,11 @@ namespace TEN::Entities::Traps
 		if (abs(localX) > halfSpanX || abs(localZ) > halfSpanZ)
 			return false;
 
-		short electricFloorRoomNum = electricFloorItem.RoomNumber;
-		auto* electricFloorFloor = GetFloor(electricFloorItem.Pose.Position.x, electricFloorItem.Pose.Position.y, electricFloorItem.Pose.Position.z, &electricFloorRoomNum);
-		int	  electricFloorHeight = GetFloorHeight(electricFloorFloor, electricFloorItem.Pose.Position.x, electricFloorItem.Pose.Position.y, electricFloorItem.Pose.Position.z);
+		short ElectricFieldRoomNum = ElectricFieldItem.RoomNumber;
+		auto* ElectricFieldFloor = GetFloor(ElectricFieldItem.Pose.Position.x, ElectricFieldItem.Pose.Position.y, ElectricFieldItem.Pose.Position.z, &ElectricFieldRoomNum);
+		int	ElectricFieldHeight = GetFloorHeight(ElectricFieldFloor, ElectricFieldItem.Pose.Position.x, ElectricFieldItem.Pose.Position.y, ElectricFieldItem.Pose.Position.z);
 
-		return (abs(entity.Pose.Position.y - electricFloorHeight) < CLICK(1));
+		return (abs(entity.Pose.Position.y - ElectricFieldHeight) < CLICK(1));
 	}
 
 	static void KillEntity(ItemInfo& entity)
@@ -176,13 +176,13 @@ namespace TEN::Entities::Traps
 			}
 
 			entity.HitPoints = 0;
-			ItemElectricBurn(&entity, ELECTRIC_FLOOR_DAMAGE);
+			ItemElectricBurn(&entity, ELECTRIC_FIELD_DAMAGE);
 			ItemBlueElectricBurn(&entity, 2 * FPS);
 		}
 		else
 		{
-			DoDamage(&entity, ELECTRIC_FLOOR_DAMAGE);
-			ItemElectricBurn(&entity, ELECTRIC_FLOOR_DAMAGE);
+			DoDamage(&entity, ELECTRIC_FIELD_DAMAGE);
+			ItemElectricBurn(&entity, ELECTRIC_FIELD_DAMAGE);
 			ItemBlueElectricBurn(&entity, 2 * FPS);
 		}
 	}
@@ -205,7 +205,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	void ControlElectricFloor(short itemNumber)
+	void ControlElectricField(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
