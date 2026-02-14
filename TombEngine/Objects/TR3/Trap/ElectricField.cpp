@@ -8,6 +8,7 @@
 #include "Game/items.h"
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
+#include "Game/control/trigger.h"
 
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
@@ -308,7 +309,7 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		if (item.Status != ITEM_ACTIVE)
+		if (!TriggerActive(&item))
 			return;
 
 		bool isWallMode = (item.TriggerFlags < 0);
