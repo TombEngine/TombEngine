@@ -26,7 +26,7 @@ namespace TEN::Scripting::DisplayItem
 		// Methods
 
 		const TEN::Hud::DisplayItem* TryGetItem() const;
-		TEN::Hud::DisplayItem* ScriptDisplayItem::TryGetItem();
+		TEN::Hud::DisplayItem* TryGetItem();
 
 	public:
 		// Constructors
