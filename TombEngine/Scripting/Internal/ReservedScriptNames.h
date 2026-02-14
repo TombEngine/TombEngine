@@ -567,14 +567,8 @@ constexpr char ScriptReserved_StaticShatter[]		= "Shatter";
 
 // DrawItem
 constexpr char ScriptReserved_DrawItem[]			= "DisplayItem";
-constexpr char ScriptReserved_DrawItemRemove[]		= "Remove";
-constexpr char ScriptReserved_DrawItemExists[]		= "Exists";
-constexpr char ScriptReserved_DrawItemGetItem[]		= "GetItemByName";
-constexpr char ScriptReserved_DrawItemRemoveItem[]	= "RemoveItem";
 constexpr char ScriptReserved_DrawItemGetMeshBits[] = "GetMeshBits";
 constexpr char ScriptReserved_DrawItemSetMeshBits[] = "SetMeshBits";
-constexpr char ScriptReserved_DrawItemClearAll[]	= "ClearAllItems";
-constexpr char ScriptReserved_DrawItemIsObjectIDInUse[] = "IsObjectIDInUse";
 constexpr char ScriptReserved_DrawItemGetCamera[]	= "GetCameraPosition";
 constexpr char ScriptReserved_DrawItemSetCamera[]	= "SetCameraPosition";
 constexpr char ScriptReserved_DrawItemGetTarget[]	= "GetTargetPosition";

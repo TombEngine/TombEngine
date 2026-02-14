@@ -68,7 +68,8 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_DrawItemGetAmbientLight, &ScriptDisplayItem::GetAmbientLight,
 			ScriptReserved_DrawItemGetCamera, &ScriptDisplayItem::GetCameraPosition,
 			ScriptReserved_DrawItemGetTarget, &ScriptDisplayItem::GetCameraTargetPosition,
-			ScriptReserved_GetFOV, &ScriptDisplayItem::GetFOV);
+			ScriptReserved_GetFOV, &ScriptDisplayItem::GetFOV,
+			ScriptReserved_DisplaySpriteDraw, & ScriptDisplayItem::Draw);
 	}
 
 	const TEN::Hud::DisplayItem* ScriptDisplayItem::TryGetItem() const
@@ -181,7 +182,7 @@ namespace TEN::Scripting::DisplayItem
 		g_DrawItems.SetFOV(clampedFov, convertedBool);
 	}
 
-	/// Get the ambient color of the DisplayItems.
+	/// Get the ambient color of all the DisplayItems.
 	// @function GetAmbientLight
 	// @treturn Color Ambient color.
 	// @usage
@@ -239,7 +240,6 @@ namespace TEN::Scripting::DisplayItem
 	// @function DisplayItem:SetObjectID
 	// @tparam Objects.ObjID objectID New slot object ID.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetObjectID(TEN.Objects.ObjID.BIGMEDI_ITEM)
 	void ScriptDisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
@@ -252,7 +252,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam Vec3 pos New position.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetPosition(TEN.Vec3(0, 200, 1024))
 	void ScriptDisplayItem::SetPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation)
 	{
@@ -265,7 +264,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam Rotation rot New rotation.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetRotation(TEN.Rotation(0, 200, 1024))
 	void ScriptDisplayItem::SetRotation(const Rotation& rot, TypeOrNil<bool> disableInterpolation)
 	{
@@ -275,11 +273,10 @@ namespace TEN::Scripting::DisplayItem
 
 	/// Set the DisplayItem's scale.
 	// @function DisplayItem:SetScale
-	// @tparam float scale New scale.
+	// @tparam Vec3 scale New scale.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// item:SetScale(2))
+	// item:SetScale(Vec3(2,2,2))
 	void ScriptDisplayItem::SetScale(const Vec3& scale, TypeOrNil<bool> disableInterpolation)
 	{
 		if (auto* item = TryGetItem())
@@ -291,7 +288,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam Color color New color.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap color changes.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetColor(TEN.Color(128, 200, 255))
 	void ScriptDisplayItem::SetColor(const ScriptColor& color, TypeOrNil<bool> disableInterpolation)
 	{
@@ -303,7 +299,6 @@ namespace TEN::Scripting::DisplayItem
 	// @function DisplayItem:SetMeshBits
 	// @tparam int meshBits Packed MeshBits to be set.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetMeshBits(3)
 	void ScriptDisplayItem::SetMeshBits(int meshBits)
 	{
@@ -316,7 +311,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam int meshIndex Mesh index.
 	// @tparam bool isVisible True to set visible, false to set invisible.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetMeshVisible(1, false)
 	void ScriptDisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
 	{
@@ -330,7 +324,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam Rotation rot New rotation.
 	// @bool[opt=false] disableInterpolation Disables interpolation to allow for snap movements.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetJointRotation(1, TEN.Rotation(0, 200, 0))
 	void ScriptDisplayItem::SetMeshRotation(int meshIndex, Rotation rot, TypeOrNil<bool> disableInterpolation)
 	{
@@ -346,7 +339,6 @@ namespace TEN::Scripting::DisplayItem
 	// @tparam int animNumber Animation number to set.
 	// @tparam int frameNumber Frame number to set.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// item:SetFrame(2, 10)
 	void ScriptDisplayItem::SetFrame(int animNumber, int frameNumber)
 	{
@@ -362,10 +354,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Objects.ObjID Slot object ID.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local objectID = item:GetObjectID()
-	// end
+	// local objectID = item:GetObjectID()
 	GAME_OBJECT_ID ScriptDisplayItem::GetObjectID() const
 	{
 		auto* item = g_DrawItems.GetItemByName(_name);
@@ -380,10 +369,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Vec3 Position.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local objectPosition = item:GetPosition()
-	// end
+	// local objectPosition = item:GetPosition()
 	sol::optional<Vec3> ScriptDisplayItem::GetPosition() const
 	{
 		if (auto* item = TryGetItem())
@@ -397,10 +383,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Rotation Rotation.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local objectRotation = item:GetRotation()
-	// end
+	// local objectRotation = item:GetRotation()
 	sol::optional<Rotation> ScriptDisplayItem::GetRotation() const
 	{
 		if (auto* item = TryGetItem())
@@ -414,10 +397,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] float Visual scale.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local objectScale = item:GetScale()
-	// end
+	// local objectScale = item:GetScale()
 	sol::optional<Vec3> ScriptDisplayItem::GetScale() const
 	{
 		if (auto* item = TryGetItem())
@@ -431,7 +411,6 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Color Color.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
 	// local objectColor = item:GetColor()
 	sol::optional<ScriptColor> ScriptDisplayItem::GetColor() const
 	{
@@ -447,11 +426,8 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] bool Visibility status.
 	// @treturn[2] bool False if the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local test = item:GetMeshVisible(1)
-	//    print(test)
-	// end
+	// local test = item:GetMeshVisible(1)
+	// print(test)
 	bool ScriptDisplayItem::GetMeshVisibility(int meshIndex) const
 	{
 		if (auto* item = TryGetItem())
@@ -466,10 +442,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Rotation Joint rotation.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local jointRotation = item:GetJointRotation(1)
-	// end
+	// local jointRotation = item:GetJointRotation(1)
 	sol::optional<Rotation> ScriptDisplayItem::GetMeshRotation(int meshIndex) const
 	{
 		if (auto* item = TryGetItem())
@@ -484,10 +457,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] int Active animation number.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local animNumber = item:GetAnim()
-	// end
+	// local animNumber = item:GetAnim()
 	sol::optional<int> ScriptDisplayItem::GetAnimNumber() const
 	{
 		if (auto* item = TryGetItem())
@@ -501,10 +471,7 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] int Current frame number of the active animation.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local frameNumber = item:GetFrame()
-	// end
+	// local frameNumber = item:GetFrame()
 	sol::optional<int> ScriptDisplayItem::GetFrameNumber() const
 	{
 		if (auto* item = TryGetItem())
@@ -519,10 +486,8 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] int End frame number of the active animation.
 	// @treturn[2] nil If the DisplayItem does not exist.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local endFrame = item:GetEndFrame()
-	// end
+	// local endFrame = item:GetEndFrame()
+
 	sol::optional<int> ScriptDisplayItem::GetEndFrame() const
 	{
 		if (auto* item = TryGetItem())
@@ -538,14 +503,12 @@ namespace TEN::Scripting::DisplayItem
 	// @treturn[1] Vec2 size The projected width/height in display space percent.
 	// @treturn[2] nil If the DisplayItem does not exist or has no bounds.
 	// @usage
-	// local item = TEN.View.DisplayItem.GetItemByName("My name")
-	// if item:Exists() then
-	//    local bounds = item:GetBounds()
-	//	  if bounds then
-	//        print("Center: ", bounds[1].x, bounds[1].y)
-	//        print("Size: ", bounds[2].x, bounds[2].y)
-	//      end
+	// local bounds = item:GetBounds()
+	// if bounds then
+	//	 print("Center: ", bounds[1].x, bounds[1].y)
+	//	 print("Size: ", bounds[2].x, bounds[2].y)
 	// end
+	// 
 	sol::optional<std::pair<Vec2, Vec2>> ScriptDisplayItem::GetBounds() const
 	{
 		if (auto* item = TryGetItem())
@@ -555,14 +518,14 @@ namespace TEN::Scripting::DisplayItem
 				return sol::nullopt;
 
 			float screenWidth = g_Configuration.ScreenWidth;
-			float screnHeight = g_Configuration.ScreenHeight;
+			float screenHeight = g_Configuration.ScreenHeight;
 
 			const auto& center = bounds->first;
 			const auto& size = bounds->second;
 
 			// Convert to percent-based resolution.
-			auto centerPercent = Vec2(center.x / screenWidth, center.y / screnHeight) * 100.0f;
-			auto sizePercent = Vec2(size.x / screenWidth, size.y / screnHeight) * 100.0f;
+			auto centerPercent = Vec2(center.x / screenWidth, center.y / screenHeight) * 100.0f;
+			auto sizePercent = Vec2(size.x / screenWidth, size.y / screenHeight) * 100.0f;
 			return std::pair<Vec2, Vec2>(centerPercent, sizePercent);
 		}
 
@@ -571,6 +534,8 @@ namespace TEN::Scripting::DisplayItem
 
 	/// Draw the DisplayItem in display space for the current frame.
 	// @function DisplayItem:Draw
+	// @usage
+	// local endFrame = item:Draw()
 	void ScriptDisplayItem::Draw()
 	{
 		if (auto* item = TryGetItem())
