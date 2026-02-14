@@ -178,7 +178,12 @@ namespace TEN::Hud
 			_displayItems.end());
 
 		for (auto& item : _displayItems)
+		{
+			item.StoreInterpolationData();
 			item.SetVisible(false);
+		}
+
+		StoreCameraInterpolationData();
 	}
 
 	void DrawItemsController::Update()
@@ -191,13 +196,6 @@ namespace TEN::Hud
 		{
 			return (item0.GetPosition().z > item1.GetPosition().z);
 		});
-
-		for (auto& item : _displayItems)
-		{
-			item.StoreInterpolationData();
-		}
-
-		StoreCameraInterpolationData();
 	}
 
 	void DrawItemsController::Draw() const
