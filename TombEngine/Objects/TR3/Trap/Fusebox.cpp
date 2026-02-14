@@ -28,24 +28,16 @@ namespace TEN::Entities::Traps
 
 	// Spark effect parameters.
 	constexpr auto FUSEBOX_SPARK_DURATION    = 10 * FPS;
-	constexpr auto FUSEBOX_SPARK_COUNT       = 3;
-	constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.4f;
+	constexpr auto FUSEBOX_SPARK_COUNT       = 6;
+	constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.6f;
 
 	// Dynamic lighting parameters.
 	constexpr auto FUSEBOX_FLASH_DURATION  = (int)(0.5f * FPS);
 	constexpr auto FUSEBOX_FLASH_FALLOFF   = BLOCK(4);
 	constexpr auto FUSEBOX_FLICKER_FALLOFF = BLOCK(2);
 
-	// Lightning arc parameters.
-	constexpr auto FUSEBOX_ARC_SEGMENTS    = 8;
-	constexpr auto FUSEBOX_ARC_AMPLITUDE   = 24.0f;
-	constexpr auto FUSEBOX_ARC_WIDTH       = 12.0f;
-	constexpr auto FUSEBOX_ARC_LIFETIME    = 2.0f;
-	constexpr auto FUSEBOX_ARC_PROBABILITY = 0.15f;
-	constexpr auto FUSEBOX_ARC_REACH       = 96.0f;
-
 	// Yellow spark colour variation probability.
-	constexpr auto FUSEBOX_YELLOW_SPARK_PROBABILITY = 0.3f;
+	constexpr auto FUSEBOX_YELLOW_SPARK_PROBABILITY = 0.6f;
 
 	static Vector3i GetBoundingBoxCenter(const ItemInfo& item)
 	{
@@ -174,37 +166,6 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void SpawnLightningArc(const ItemInfo& item, const Vector3i& pos, float intensity)
-	{
-		if (!TestProbability(FUSEBOX_ARC_PROBABILITY * intensity))
-			return;
-
-		auto origin = Vector3(
-			(float)pos.x + GenerateFloat(-32.0f, 32.0f),
-			(float)pos.y + GenerateFloat(-32.0f, 32.0f),
-			(float)pos.z + GenerateFloat(-32.0f, 32.0f));
-
-		auto target = Vector3(
-			(float)pos.x + GenerateFloat(-FUSEBOX_ARC_REACH, FUSEBOX_ARC_REACH),
-			(float)pos.y + GenerateFloat(-FUSEBOX_ARC_REACH, FUSEBOX_ARC_REACH),
-			(float)pos.z + GenerateFloat(-FUSEBOX_ARC_REACH, FUSEBOX_ARC_REACH));
-
-		int brightness = (int)(255 * intensity);
-
-		SpawnElectricity(
-			origin, target,
-			FUSEBOX_ARC_AMPLITUDE,
-			(byte)(0.4f * brightness), (byte)(0.6f * brightness), (byte)brightness,
-			FUSEBOX_ARC_LIFETIME,
-			(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinOut,
-			FUSEBOX_ARC_WIDTH,
-			FUSEBOX_ARC_SEGMENTS);
-
-		SpawnElectricityGlow(
-			origin, 20,
-			(byte)(0.15f * brightness), (byte)(0.25f * brightness), (byte)(0.5f * brightness));
-	}
-
 	static void UpdateDynamicLight(const ItemInfo& item, const Vector3i& pos, int sparkTimer, int flashTimer)
 	{
 		// Bright white-blue flash immediately after destruction.
@@ -265,7 +226,6 @@ namespace TEN::Entities::Traps
 				float intensity = (float)sparkTimer / FUSEBOX_SPARK_DURATION;
 
 				SpawnContinuousSparks(item, pos, intensity);
-				SpawnLightningArc(item, pos, intensity);
 				UpdateDynamicLight(item, pos, sparkTimer, flashTimer);
 
 				if (TestProbability(0.5f * intensity))
