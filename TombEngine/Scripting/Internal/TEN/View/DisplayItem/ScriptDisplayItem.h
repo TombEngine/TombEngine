@@ -45,10 +45,11 @@ namespace TEN::Scripting::DisplayItem
 		void SetRotation(const Rotation& newRot, TypeOrNil<bool> disableInterpolation);
 		void SetScale(const Vec3& newScale, TypeOrNil<bool> disableInterpolation);
 		void SetColor(const ScriptColor& newColor, TypeOrNil<bool> disableInterpolation);
-		void SetMeshBits(int meshbits);
 		void SetMeshVisibility(int meshIndex, bool visible);
 		void SetMeshRotation(int meshIndex, Rotation angles, TypeOrNil<bool> disableInterpolation);
-		void SetFrame(int animation, int frame);
+		void SetAnimNumber(int animNumber);
+		void SetFrameNumber(int frameNumber);
+		void SetMeshBits(int meshbits);
 
 		// Getters
 

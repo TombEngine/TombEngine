@@ -45,23 +45,26 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_SetRotation, &ScriptDisplayItem::SetRotation,
 			ScriptReserved_SetScale, &ScriptDisplayItem::SetScale,
 			ScriptReserved_SetColor, &ScriptDisplayItem::SetColor,
+			ScriptReserved_SetMeshVisible, &ScriptDisplayItem::SetMeshVisibility,
+			ScriptReserved_SetJointRotation, &ScriptDisplayItem::SetMeshRotation,
+			ScriptReserved_SetAnimNumber, &ScriptDisplayItem::SetAnimNumber,
+			ScriptReserved_SetFrameNumber, &ScriptDisplayItem::SetFrameNumber,
 
 			ScriptReserved_DisplayItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
 
-			ScriptReserved_SetMeshVisible, &ScriptDisplayItem::SetMeshVisibility,
-			ScriptReserved_SetJointRotation, &ScriptDisplayItem::SetMeshRotation,
-			ScriptReserved_SetFrameNumber, &ScriptDisplayItem::SetFrame,
-			ScriptReserved_GetObjectID, & ScriptDisplayItem::GetObjectID,
+			ScriptReserved_GetObjectID, &ScriptDisplayItem::GetObjectID,
 			ScriptReserved_GetPosition, &ScriptDisplayItem::GetPosition,
-			ScriptReserved_GetBounds, &ScriptDisplayItem::GetBounds,
 			ScriptReserved_GetRotation, &ScriptDisplayItem::GetRotation,
 			ScriptReserved_GetScale, &ScriptDisplayItem::GetScale,
 			ScriptReserved_GetColor, &ScriptDisplayItem::GetColor,
 			ScriptReserved_GetMeshVisible, &ScriptDisplayItem::GetMeshVisibility,
 			ScriptReserved_GetJointRotation, &ScriptDisplayItem::GetMeshRotation,
-			ScriptReserved_GetFrameNumber, &ScriptDisplayItem::GetFrameNumber,
-			ScriptReserved_GetEndFrame, &ScriptDisplayItem::GetEndFrame,
 			ScriptReserved_GetAnimNumber, &ScriptDisplayItem::GetAnimNumber,
+			ScriptReserved_GetFrameNumber, &ScriptDisplayItem::GetFrameNumber,
+
+			ScriptReserved_GetEndFrame, &ScriptDisplayItem::GetEndFrame,
+			ScriptReserved_GetBounds, &ScriptDisplayItem::GetBounds,
+
 			ScriptReserved_DisplayItemSetAmbientLight, &ScriptDisplayItem::SetAmbientLight,
 			ScriptReserved_DisplayItemSetCamera, &ScriptDisplayItem::SetCameraPosition,
 			ScriptReserved_DisplayItemSetTarget, &ScriptDisplayItem::SetCameraTargetPosition,
@@ -339,21 +342,28 @@ namespace TEN::Scripting::DisplayItem
 			item->SetMeshOrientation(meshIndex, rot.ToEulerAngles(), ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the frame number of a display item from an animation.
+	/// Set the animation number of a display item.
+	// @function DisplayItem:SetAnim
+	// @tparam int animNumber Animation number to set.
+	// @usage
+	// item:SetAnim(2)
+	void ScriptDisplayItem::SetAnimNumber(int animNumber)
+	{
+		if (auto* item = TryGetItem())
+			item->SetAnimation(animNumber);
+	}
+
+	/// Set the frame number of a display item's current animation.
 	// This will set the specified animation to the given frame.
 	// The number of frames in an animation can be seen under the heading "End frame" in the WadTool animation editor.
 	// @function DisplayItem:SetFrame
-	// @tparam int animNumber Animation number to set.
 	// @tparam int frameNumber Frame number to set.
 	// @usage
-	// item:SetFrame(2, 10)
-	void ScriptDisplayItem::SetFrame(int animNumber, int frameNumber)
+	// item:SetFrame(10)
+	void ScriptDisplayItem::SetFrameNumber(int frameNumber)
 	{
 		if (auto* item = TryGetItem())
-		{
-			item->SetAnimation(animNumber);
 			item->SetFrame(frameNumber);
-		}
 	}
 
 	/// Retrieve the object ID from a display item.
@@ -458,7 +468,7 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the active animation number of a display item.
+	/// Get the current animation number of a display item.
 	// This corresponds to the number shown in the item's animation list in WadTool.
 	// @function DisplayItem:GetAnim
 	// @treturn[1] int Active animation number.
