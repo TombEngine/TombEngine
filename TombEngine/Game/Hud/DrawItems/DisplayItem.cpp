@@ -196,7 +196,7 @@ namespace TEN::Hud
 		_meshBits = meshBits;
 	}
 
-	void DisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
+	void DisplayItem::SetMeshVisible(int meshIndex, bool isVisible)
 	{
 		if (!MeshExists(meshIndex))
 			return;

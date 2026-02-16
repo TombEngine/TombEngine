@@ -83,7 +83,7 @@ namespace TEN::Hud
 		void SetVisible(bool visible);
 		void SetDisposing(bool disposing);
 		void SetMeshBits(int meshbits);
-		void SetMeshVisibility(int meshIndex, bool visible);
+		void SetMeshVisible(int meshIndex, bool visible);
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);

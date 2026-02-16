@@ -18,7 +18,8 @@ using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Scripting::Types;
 
-/// Represents a Display Item.
+/// Represents a display item.
+// Display item is a 3D model of any object available in the level that can be drawn in 2D screen space.
 //
 // @tenclass View.DisplayItem
 // @pragma nostrip
@@ -96,6 +97,109 @@ namespace TEN::Scripting::DisplayItem
 		return const_cast<TEN::Hud::DisplayItem*>(std::as_const(*this).TryGetItem());
 	}
 
+	/// Set the ambient color for all display items.
+	// @function DisplayItem.SetAmbientLight
+	// @tparam Color color New ambient color for all display items.
+	// @usage
+	// TEN.View.DisplayItem.SetAmbientLight(TEN.Color(128, 200, 255))
+	void ScriptDisplayItem::SetAmbientLight(const ScriptColor& color)
+	{
+		g_DrawItems.SetAmbientLight(color);
+	}
+
+	/// Set the camera location. This single camera is used for all display items.
+	// @function DisplayItem.SetCameraPosition
+	// @tparam Vec3 pos New camera position.
+	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
+	// @usage
+	// TEN.View.DisplayItem.SetCameraPosition(TEN.Vec3(0, 0, 1024))
+	void ScriptDisplayItem::SetCameraPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation)
+	{
+		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
+		g_DrawItems.SetCameraPosition(pos, convertedBool);
+	}
+
+	/// Set the camera target location.
+	// @function DisplayItem.SetTargetPosition
+	// @tparam Vec3 pos New target camera position.
+	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
+	// @usage
+	// TEN.View.DisplayItem.SetTargetPosition(TEN.Vec3(0, 0, 1024))
+	void ScriptDisplayItem::SetCameraTargetPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation)
+	{
+		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
+		g_DrawItems.SetCameraTargetPosition(pos, convertedBool);
+	}
+
+	/// Set the field of view for all display items.
+	// @function DisplayItem.SetFOV
+	// @tparam[opt=80] float fov Field of view angle in degrees (clamped to [10, 170]).
+	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
+	// @usage
+	// TEN.View.DisplayItem.SetFOV(80)
+	void ScriptDisplayItem::SetFOV(TypeOrNil<float> fov, TypeOrNil<bool> disableInterpolation)
+	{
+		auto convertedFOV = ValueOr<float>(fov, 80.0f);
+		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
+		auto clampedFov = ANGLE(std::clamp(abs(convertedFOV), 10.0f, 170.0f));
+		g_DrawItems.SetFOV(clampedFov, convertedBool);
+	}
+
+	/// Get the ambient color of all the display items.
+	// @function DisplayItem.GetAmbientLight
+	// @treturn Color Ambient color.
+	// @usage
+	// local color = TEN.View.DisplayItem.GetAmbientLight()
+	ScriptColor ScriptDisplayItem::GetAmbientLight()
+	{
+		return g_DrawItems.GetAmbientLight();
+	}
+
+	/// Get the camera position. This single camera is used for all display items.
+	// @function DisplayItem.GetCameraPosition
+	// @treturn Vec3 Camera position for all display items.
+	// @usage
+	// local camPos = TEN.View.DisplayItem.GetCameraPosition()
+	Vec3 ScriptDisplayItem::GetCameraPosition()
+	{
+		return g_DrawItems.GetCameraPosition();
+	}
+
+	/// Get the position of the camera target.
+	// @function DisplayItem.GetTargetPosition
+	// @treturn Vec3 The camera target position for all of the display items.
+	// @usage
+	// local targetPosition = TEN.View.DisplayItem.GetTargetPosition()
+	Vec3 ScriptDisplayItem::GetCameraTargetPosition()
+	{
+		return g_DrawItems.GetCameraTargetPosition();
+	}
+
+	/// Get field of view angle for display items.
+	// @function DisplayItem.GetFOV
+	// @treturn float Current FOV angle in degrees.
+	// @usage
+	// local fieldOfView = TEN.View.DisplayItem.GetFOV()
+	float ScriptDisplayItem::GetFOV()
+	{
+		return TO_DEGREES(g_DrawItems.GetFov());
+	}
+
+	/// Reset the camera position, camera target position, and field of view.
+	// @function DisplayItem.ResetCamera
+	// @usage
+	// local targetPosition = TEN.View.DisplayItem.ResetCamera()
+	void ScriptDisplayItem::ResetCamera(TypeOrNil<bool> disableInterpolation)
+	{
+		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
+		g_DrawItems.ResetCamera(convertedBool);
+	}
+
+	/// Class
+	// @section Class
+	// Methods for DisplayItem instances.
+	
+
 	/// Create a DisplayItem object.
 	// @function DisplayItem
 	// @tparam string name Lua name of the display item.
@@ -138,109 +242,7 @@ namespace TEN::Scripting::DisplayItem
 		g_DrawItems.RemoveItem(_name);
 	}
 
-	/// Set the ambient color for all DisplayItems.
-	// @function SetAmbientLight
-	// @tparam Color color New ambient color for all DisplayItems.
-	// @usage
-	// TEN.View.DisplayItem.SetAmbientLight(TEN.Color(128, 200, 255))
-	void ScriptDisplayItem::SetAmbientLight(const ScriptColor& color)
-	{
-		g_DrawItems.SetAmbientLight(color);
-	}
-
-	/// Set the camera location. This single camera is used for all DisplayItems.
-	// @function SetCameraPosition
-	// @tparam Vec3 pos New camera position.
-	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
-	// @usage
-	// TEN.View.DisplayItem.SetCameraPosition(TEN.Vec3(0, 0, 1024))
-	void ScriptDisplayItem::SetCameraPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation)
-	{
-		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
-		g_DrawItems.SetCameraPosition(pos, convertedBool);
-	}
-
-	/// Set the camera target location.
-	// @function SetTargetPosition
-	// @tparam Vec3 pos New target camera position.
-	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
-	// @usage
-	// TEN.View.DisplayItem.SetTargetPosition(TEN.Vec3(0, 0, 1024))
-	void ScriptDisplayItem::SetCameraTargetPosition(const Vec3& pos, TypeOrNil<bool> disableInterpolation)
-	{
-		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
-		g_DrawItems.SetCameraTargetPosition(pos, convertedBool);
-	}
-
-	/// Set the field of view for all DisplayItems.
-	// @function SetFOV
-	// @tparam[opt=80] float fov Field of fiew angle in degrees (clamped to [10, 170]).
-	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
-	// @usage
-	// TEN.View.DisplayItem.SetFOV(80)
-	void ScriptDisplayItem::SetFOV(TypeOrNil<float> fov, TypeOrNil<bool> disableInterpolation)
-	{
-		auto convertedFOV = ValueOr<float>(fov, 80.0f);
-		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
-		auto clampedFov = ANGLE(std::clamp(abs(convertedFOV), 10.0f, 170.0f));
-		g_DrawItems.SetFOV(clampedFov, convertedBool);
-	}
-
-	/// Get the ambient color of all the DisplayItems.
-	// @function GetAmbientLight
-	// @treturn Color Ambient color.
-	// @usage
-	// local color = TEN.View.DisplayItem.GetAmbientLight()
-	ScriptColor ScriptDisplayItem::GetAmbientLight()
-	{
-		return g_DrawItems.GetAmbientLight();
-	}
-
-	/// Get the camera position. This single camera is used for all DisplayItems.
-	// @function GetCameraPosition
-	// @treturn Vec3 Camera position for all DisplayItems.
-	// @usage
-	// local camPos = TEN.View.DisplayItem.GetCameraPosition()
-	Vec3 ScriptDisplayItem::GetCameraPosition()
-	{
-		return g_DrawItems.GetCameraPosition();
-	}
-
-	/// Get the position of the camera target.
-	// @function GetTargetPosition
-	// @treturn Vec3 The camera target position for all of the DisplayItems.
-	// @usage
-	// local targetPosition = TEN.View.DisplayItem.GetTargetPosition()
-	Vec3 ScriptDisplayItem::GetCameraTargetPosition()
-	{
-		return g_DrawItems.GetCameraTargetPosition();
-	}
-
-	/// Get field of view angle for DisplayItems.
-	// @function GetFOV
-	// @treturn float Current FOV angle in degrees.
-	// @usage
-	// local fieldOfView = TEN.View.DisplayItem.GetFOV()
-	float ScriptDisplayItem::GetFOV()
-	{
-		return TO_DEGREES(g_DrawItems.GetFov());
-	}
-
-	/// Reset the camera position, camera target position, and field of view.
-	// @function ResetCamera
-	// @usage
-	// local targetPosition = TEN.View.DisplayItem.ResetCamera()
-	void ScriptDisplayItem::ResetCamera(TypeOrNil<bool> disableInterpolation)
-	{
-		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
-		g_DrawItems.ResetCamera(convertedBool);
-	}
-
-	/// Class
-	// @section Class
-	// Methods for DisplayItem instances.
-
-	/// Change the DisplayItem's object ID. 
+	/// Change the display item's object ID. 
 	// @function DisplayItem:SetObjectID
 	// @tparam Objects.ObjID objectID New slot object ID.
 	// @usage
@@ -251,7 +253,7 @@ namespace TEN::Scripting::DisplayItem
 			item->SetObjectID(objectID);
 	}
 
-	/// Set the DisplayItem's position.
+	/// Set the display item's position.
 	// @function DisplayItem:SetPosition
 	// @tparam Vec3 pos New position.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
@@ -263,7 +265,7 @@ namespace TEN::Scripting::DisplayItem
 			item->SetPosition(pos, ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the DisplayItem's rotation.
+	/// Set the display item's rotation.
 	// @function DisplayItem:SetRotation
 	// @tparam Rotation rot New rotation.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
@@ -275,7 +277,7 @@ namespace TEN::Scripting::DisplayItem
 			item->SetOrientation(rot.ToEulerAngles(), ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the DisplayItem's scale.
+	/// Set the display item's scale.
 	// @function DisplayItem:SetScale
 	// @tparam Vec3 scale New scale.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
@@ -287,7 +289,7 @@ namespace TEN::Scripting::DisplayItem
 			item->SetScale(scale, ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the DisplayItem's color.
+	/// Set the display item's color.
 	// @function DisplayItem:SetColor
 	// @tparam Color color New color.
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap color changes.
@@ -299,7 +301,9 @@ namespace TEN::Scripting::DisplayItem
 			item->SetColor(Color(color), ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the packed MeshBits for the DisplayItem (for advanced users).
+	/// Set the packed mesh bits for the display item.
+	// Mesh bits represent the visibility of every mesh in a given display item. Can be used in advanced workflows, such
+	// as drawing a revolver with or without a lasersight.
 	// @function DisplayItem:SetMeshBits
 	// @tparam int meshBits Packed MeshBits to be set.
 	// @usage
@@ -310,7 +314,7 @@ namespace TEN::Scripting::DisplayItem
 			item->SetMeshBits(meshBits);
 	}
 
-	/// Make the specified mesh of a DisplayItem visible or invisible.
+	/// Make the specified mesh of a display item visible or invisible.
 	// @function DisplayItem:SetMeshVisible
 	// @tparam int meshIndex Mesh index.
 	// @tparam bool isVisible True to set visible, false to set invisible.
@@ -319,10 +323,10 @@ namespace TEN::Scripting::DisplayItem
 	void ScriptDisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
 	{
 		if (auto* item = TryGetItem())
-			item->SetMeshVisibility(meshIndex, isVisible);
+			item->SetMeshVisible(meshIndex, isVisible);
 	}
 
-	/// Set the DisplayItem's joint rotation.
+	/// Set the display item's joint rotation.
 	// @function DisplayItem:SetJointRotation
 	// @tparam int meshIndex Joint index..
 	// @tparam Rotation rot New rotation.
@@ -335,10 +339,9 @@ namespace TEN::Scripting::DisplayItem
 			item->SetMeshOrientation(meshIndex, rot.ToEulerAngles(), ValueOr<bool>(disableInterpolation, false));
 	}
 
-	/// Set the frame number from an animation.
+	/// Set the frame number of a display item from an animation.
 	// This will set the specified animation to the given frame.
-	// The number of frames in an animation can be seen under the heading "End frame" in
-	// the WadTool animation editor.
+	// The number of frames in an animation can be seen under the heading "End frame" in the WadTool animation editor.
 	// @function DisplayItem:SetFrame
 	// @tparam int animNumber Animation number to set.
 	// @tparam int frameNumber Frame number to set.
@@ -353,10 +356,10 @@ namespace TEN::Scripting::DisplayItem
 		}
 	}
 
-	/// Retrieve the object ID from a DisplayItem.
+	/// Retrieve the object ID from a display item.
 	// @function DisplayItem:GetObjectID
 	// @treturn[1] Objects.ObjID Slot object ID.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local objectID = item:GetObjectID()
 	GAME_OBJECT_ID ScriptDisplayItem::GetObjectID() const
@@ -368,10 +371,10 @@ namespace TEN::Scripting::DisplayItem
 		return ID_NO_OBJECT;
 	}
 
-	/// Get the DisplayItem's position.
+	/// Get the display item's position.
 	// @function DisplayItem:GetPosition
 	// @treturn[1] Vec3 Position.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local objectPosition = item:GetPosition()
 	sol::optional<Vec3> ScriptDisplayItem::GetPosition() const
@@ -382,10 +385,10 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the DisplayItem's rotation.
+	/// Get the display item's rotation.
 	// @function DisplayItem:GetRotation
 	// @treturn[1] Rotation Rotation.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local objectRotation = item:GetRotation()
 	sol::optional<Rotation> ScriptDisplayItem::GetRotation() const
@@ -396,10 +399,10 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the DisplayItem's visual scale.
+	/// Get the display item's scale.
 	// @function DisplayItem:GetScale
-	// @treturn[1] float Visual scale.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[1] float Scale.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local objectScale = item:GetScale()
 	sol::optional<Vec3> ScriptDisplayItem::GetScale() const
@@ -410,10 +413,10 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the DisplayItem's color.
+	/// Get the display item's color.
 	// @function DisplayItem:GetColor
 	// @treturn[1] Color Color.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local objectColor = item:GetColor()
 	sol::optional<ScriptColor> ScriptDisplayItem::GetColor() const
@@ -424,11 +427,11 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the visibility state of a specified mesh in the DisplayItem.
+	/// Get the visibility state of a specified mesh in the display item.
 	// @function DisplayItem:GetMeshVisible
 	// @tparam int index Index of a mesh.
 	// @treturn[1] bool Visibility status.
-	// @treturn[2] bool False if the DisplayItem does not exist.
+	// @treturn[2] bool False if the display item does not exist.
 	// @usage
 	// local test = item:GetMeshVisible(1)
 	// print(test)
@@ -440,11 +443,11 @@ namespace TEN::Scripting::DisplayItem
 		return false;
 	}
 
-	/// Get the DisplayItem's joint rotation.
+	/// Get the display item's joint rotation.
 	// @function DisplayItem:GetJointRotation
 	// @tparam int meshIndex Index of the joint to check.
 	// @treturn[1] Rotation Joint rotation.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local jointRotation = item:GetJointRotation(1)
 	sol::optional<Rotation> ScriptDisplayItem::GetMeshRotation(int meshIndex) const
@@ -455,11 +458,11 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the active animation number.
+	/// Get the active animation number of a display item.
 	// This corresponds to the number shown in the item's animation list in WadTool.
 	// @function DisplayItem:GetAnim
 	// @treturn[1] int Active animation number.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local animNumber = item:GetAnim()
 	sol::optional<int> ScriptDisplayItem::GetAnimNumber() const
@@ -470,10 +473,10 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the current frame number of the active animation.
+	/// Get the current frame number of the active animation of a display item.
 	// @function DisplayItem:GetFrame
 	// @treturn[1] int Current frame number of the active animation.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local frameNumber = item:GetFrame()
 	sol::optional<int> ScriptDisplayItem::GetFrameNumber() const
@@ -484,11 +487,11 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the end frame number of the DisplayItem's active animation.
-	// This is the "End Frame" set in WADTool for the animation.
+	/// Get the end frame number of the display item's active animation.
+	// This is the "End Frame" set in WadTool for the animation.
 	// @function DisplayItem:GetEndFrame()
 	// @treturn[1] int End frame number of the active animation.
-	// @treturn[2] nil If the DisplayItem does not exist.
+	// @treturn[2] nil If the display item does not exist.
 	// @usage
 	// local endFrame = item:GetEndFrame()
 
@@ -500,12 +503,12 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Get the projected 2D bounding box of the DisplayItem.
-	// Projects the DisplayItem into display space and returns two Vec2 values.
+	/// Get the projected 2D bounding box of the display item.
+	// Projects the display item into display space and returns two Vec2 values.
 	// @function DisplayItem:GetBounds
-	// @treturn[1] Vec2 center Projected center position in display space percent.
-	// @treturn[1] Vec2 size The projected width/height in display space percent.
-	// @treturn[2] nil If the DisplayItem does not exist or has no bounds.
+	// @treturn[1] Vec2 center Projected center position in display space in percent.
+	// @treturn[1] Vec2 size The projected width/height in display space in percent.
+	// @treturn[2] nil If the display item does not exist or has no bounds.
 	// @usage
 	// local bounds = item:GetBounds()
 	// if bounds then
@@ -536,7 +539,7 @@ namespace TEN::Scripting::DisplayItem
 		return sol::nullopt;
 	}
 
-	/// Draw the DisplayItem in display space for the current frame.
+	/// Draw the display item in display space for the current frame.
 	// @function DisplayItem:Draw
 	// @usage
 	// local endFrame = item:Draw()
