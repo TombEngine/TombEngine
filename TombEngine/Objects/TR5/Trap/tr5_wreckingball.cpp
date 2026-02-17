@@ -32,18 +32,19 @@ namespace TEN::Entities::Traps
     {
         enum class Phase
         {
-            IdleAtTop,        // Previously -1
-            MovingHorizontal, // Previously 0
-            PreparingDrop,    // Previously 1
-            Falling,          // Previously 2
-            WinchingUp        // Previously 3
+            IdleAtTop,
+            MovingHorizontal,
+            PreparingDrop,
+            Falling,
+            WinchingUp
         };
 
         Phase PhaseState = Phase::IdleAtTop;
 
-        int  MoveAxis = 0;      // 0 = none, 1 = X, 2 = Z
-        int  Timer = 0;      // Reserved for future use
-        short BaseObject = -1;    // Anchor object ID (ANIMATING16)
+        int   MoveAxis = 0;   // 0 = none, 1 = X, 2 = Z
+        int   Timer = 0;   // Reserved / wander timer if needed
+        int   DropDelay = 0;   // NEW: delay before opening / dropping
+        short BaseObject = -1;
 
         int TargetX = 0;
         int TargetZ = 0;
@@ -234,28 +235,45 @@ namespace TEN::Entities::Traps
             StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
             SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
+            // TR5: item_flags[1] = 1; trigger_flags = 30;
             state.PhaseState = WreckingBallState::Phase::PreparingDrop;
+            state.DropDelay = 30; // ~0.5s at 60fps, tweak if needed
             state.MoveAxis = 0;
         }
     }
 
     static void UpdatePreparingDrop(ItemInfo& item, WreckingBallState& state)
     {
-        if (!item.Animation.ActiveState)
-            item.Animation.TargetState = 1;
+        // TR5: if (trigger_flags) trigger_flags--;
+        if (state.DropDelay > 0)
+        {
+            state.DropDelay--;
+            return;
+        }
 
+        // TR5: if (!current_anim_state) goal_anim_state = 1;
+        if (item.Animation.ActiveState == 0)
+        {
+            item.Animation.TargetState = 1; // open (Anim 1)
+            return;
+        }
+
+        // TR5: else if (frame_number == anims[anim_number].frame_end) { drop... }
         if (TestLastFrame(item))
         {
             SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
+
             state.PhaseState = WreckingBallState::Phase::Falling;
-            item.Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.Gravity;
+
+            // TR5: fallspeed = 6; pos.y += fallspeed;
+            item.Animation.Velocity.y = 6.0f;
             item.Pose.Position.y += item.Animation.Velocity.y;
         }
     }
 
     static void UpdateFalling(ItemInfo& item, WreckingBallState& state)
     {
-        item.Animation.Velocity.y += 24;
+        item.Animation.Velocity.y += 24.0f;
         item.Pose.Position.y += item.Animation.Velocity.y;
 
         short room = item.RoomNumber;
@@ -265,24 +283,26 @@ namespace TEN::Entities::Traps
             item.Pose.Position.y,
             item.Pose.Position.z);
 
+        // TR5: if (c - pos.y_pos < 1536 && current_anim_state) goal_anim_state = 0;
+        if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != 0)
+        {
+            item.Animation.TargetState = 0; // close (Anim 2) before impact
+        }
+
         if (height < item.Pose.Position.y)
         {
             item.Pose.Position.y = height;
 
-            if (item.Animation.Velocity.y > 48)
+            if (item.Animation.Velocity.y > 48.0f)
             {
                 BounceCamera(&item, 64, 8192);
                 item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
             }
             else
             {
-                item.Animation.Velocity.y = 0;
+                item.Animation.Velocity.y = 0.0f;
                 state.PhaseState = WreckingBallState::Phase::WinchingUp;
             }
-        }
-        else if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState)
-        {
-            item.Animation.TargetState = 0;
         }
     }
 
