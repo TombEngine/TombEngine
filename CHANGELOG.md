@@ -46,6 +46,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 * Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
+* Added `View.DisplayItem` class that can be used to render 3D items in 2D space.
 * Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
 * Added `UI` section to `Flow.Settings` class with several options to customize main menu and system text.
 * Added several `Inventory` functions, including `Inventory.UseItem` and `Inventory.ResetToDefault`.
