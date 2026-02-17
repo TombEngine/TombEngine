@@ -46,16 +46,25 @@ namespace TEN::Hud
 
 	Vector3 DrawItemsController::GetInterpolatedCameraPosition(float alpha) const
 	{
+		if (Vector3::Distance(_prevCameraPosition, _cameraPosition) < EPSILON)
+			return _cameraPosition;
+
 		return Vector3::Lerp(_prevCameraPosition, _cameraPosition, alpha);
 	}
 
 	Vector3 DrawItemsController::GetInterpolatedCameraTargetPosition(float alpha) const
 	{
+		if (Vector3::Distance(_prevTargetPosition, _targetPosition) < EPSILON)
+			return _targetPosition;
+
 		return Vector3::Lerp(_prevTargetPosition, _targetPosition, alpha);
 	}
 
 	float DrawItemsController::GetInterpolatedFov(float alpha) const
 	{
+		if (std::abs(_prevFov - _fov) < EPSILON)
+			return _fov;
+
 		return Lerp(_prevFov, _fov, alpha);
 	}
 
