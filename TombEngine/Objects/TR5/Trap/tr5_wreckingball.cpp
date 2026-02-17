@@ -17,350 +17,352 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+#include <unordered_map>
+
 using namespace TEN::Animation;
 using namespace TEN::Effects::Environment;
 
-// TODO: Refactor.
-//			- Modularize.
-//			- Remove all legacy magic garbage.
-//			- Revise logic to remove constrains and allow it to move around different structures.
-//			- Change management of base object (item2).
-//			- Make light effect optional.
-// 
-// NOTES
-// ItemFlags[0] = ??
-// ItemFlags[1] = ??
-// ItemFlags[2] = ??
-// ItemFlags[3] = Base object ID (by default ANIMATING16)
-
 namespace TEN::Entities::Traps
 {
-	static short WreckingBallData[2] = { 0, 0 };
+    // ---------------------------------------------------------------------
+    // Per?wrecking?ball state.
+    // ---------------------------------------------------------------------
 
-	void InitializeWreckingBall(short itemNumber)
-	{
-		auto& item = g_Level.Items[itemNumber];
+    struct WreckingBallState
+    {
+        enum class Phase
+        {
+            IdleAtTop,        // Previously -1
+            MovingHorizontal, // Previously 0
+            PreparingDrop,    // Previously 1
+            Falling,          // Previously 2
+            WinchingUp        // Previously 3
+        };
 
-		auto pointColl = GetPointCollision(item);
+        Phase PhaseState = Phase::IdleAtTop;
 
-		item.ItemFlags[3] = FindAllItems(ID_ANIMATING16)[0];
-		item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
+        int  MoveAxis = 0;      // 0 = none, 1 = X, 2 = Z
+        int  Timer = 0;      // Reserved for future use
+        short BaseObject = -1;    // Anchor object ID (ANIMATING16)
 
-		if (pointColl.GetRoomNumber() != item.RoomNumber)
-			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
-	}
+        int TargetX = 0;
+        int TargetZ = 0;
+    };
 
-	void CollideWreckingBall(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
-	{
-		auto& item = g_Level.Items[itemNumber];
+    static std::unordered_map<short, WreckingBallState> WreckingBallStates;
 
-		if (TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
-		{
-			auto prevPos = playerItem->Pose.Position;
+    // ---------------------------------------------------------------------
+    // Initialization
+    // ---------------------------------------------------------------------
 
-			bool test = false;
-			if ((prevPos.x & WALL_MASK) > CLICK(1) &&
-				(prevPos.x & WALL_MASK) < CLICK(3) &&
-				(prevPos.z & WALL_MASK) > CLICK(1) &&
-				(prevPos.z & WALL_MASK) < CLICK(3))
-			{
-				test = true;
-			}
+    void InitializeWreckingBall(short itemNumber)
+    {
+        auto& item = g_Level.Items[itemNumber];
+        auto& state = WreckingBallStates[itemNumber];
 
-			int damage = (item.Animation.Velocity.y > 0.0f) ? 96 : 0;
+        auto pointColl = GetPointCollision(item);
 
-			if (ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 1))
-			{
-				if (test)
-				{
-					DoDamage(playerItem, INT_MAX);
-				}
-				else
-				{
-					DoDamage(playerItem, damage);
-				}
+        // Find anchor object (ANIMATING16) – keep same behaviour as old code.
+        auto anchors = FindAllItems(ID_ANIMATING16);
+        if (!anchors.empty())
+            state.BaseObject = anchors[0];
 
-				prevPos -= playerItem->Pose.Position;
+        // Position ball below ceiling as before.
+        item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
 
-				if (damage != 0)
-				{
-					for (int i = 14 + (GetRandomControl() & 3); i > 0; --i)
-					{
-						TriggerBlood(playerItem->Pose.Position.x + (GetRandomControl() & 63) - 32, playerItem->Pose.Position.y - (GetRandomControl() & 511) - 256,
-							playerItem->Pose.Position.z + (GetRandomControl() & 63) - 32, -1, 1);
-					}
-				}
+        if (pointColl.GetRoomNumber() != item.RoomNumber)
+            ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
 
-				if (!coll->Setup.EnableObjectPush || test)
-					playerItem->Pose.Position += prevPos;
-			}
-		}
-	}
+        // Initial target is current position.
+        state.TargetX = item.Pose.Position.x;
+        state.TargetZ = item.Pose.Position.z;
+    }
 
-	void ControlWreckingBall(short itemNumber)
-	{
-		int x, z, oldX, oldZ, wx, wz, flagX, flagZ, height, dx, dz, ceilingX, ceilingZ, adx, adz;
-		short room;
+    // ---------------------------------------------------------------------
+    // Collision (kept close to original)
+    // ---------------------------------------------------------------------
 
-		auto& item = g_Level.Items[itemNumber];
-		auto& item2 = g_Level.Items[item.ItemFlags[3]];
+    void CollideWreckingBall(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
+    {
+        auto& item = g_Level.Items[itemNumber];
 
-		bool test = true;
+        if (TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
+        {
+            auto prevPos = playerItem->Pose.Position;
 
-		if ((LaraItem->Pose.Position.x >= BLOCK(44) &&
-			LaraItem->Pose.Position.x <= BLOCK(56) &&
-			LaraItem->Pose.Position.z >= BLOCK(26) &&
-			LaraItem->Pose.Position.z <= BLOCK(42)) ||
-			item.ItemFlags[2] < 900)
-		{
-			if (item.ItemFlags[2] < 900)
-			{
-				if (!item.ItemFlags[2] || !(GlobalCounter & 0x3F))
-				{
-					WreckingBallData[0] = GetRandomControl() % 7 - 3;
-					WreckingBallData[1] = GetRandomControl() % 7 - 3;
-				}
+            bool killZone = false;
+            if ((prevPos.x & WALL_MASK) > CLICK(1) &&
+                (prevPos.x & WALL_MASK) < CLICK(3) &&
+                (prevPos.z & WALL_MASK) > CLICK(1) &&
+                (prevPos.z & WALL_MASK) < CLICK(3))
+            {
+                killZone = true;
+            }
 
-				x = (WreckingBallData[0] << 10) + 51712;
-				z = (WreckingBallData[1] << 10) + 34304;
-				test = false;
-			}
-			else
-			{
-				x = LaraItem->Pose.Position.x;
-				z = LaraItem->Pose.Position.z;
-			}
-		}
-		else
-		{
-			x = 51200;
-			z = 33792;
-			test = false;
-		}
+            int damage = (item.Animation.Velocity.y > 0.0f) ? 96 : 0;
 
-		if (item.ItemFlags[2] < 900)
-			++item.ItemFlags[2];
+            if (ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 1))
+            {
+                if (killZone)
+                    DoDamage(playerItem, INT_MAX);
+                else
+                    DoDamage(playerItem, damage);
 
-		if (item.ItemFlags[1] <= 0)
-		{
-			oldX = item.Pose.Position.x;
-			oldZ = item.Pose.Position.z;
-			x = x & 0xFFFFFE00 | 0x200;
-			z = z & 0xFFFFFE00 | 0x200;
-			dx = x - item.Pose.Position.x;
-			dz = z - item.Pose.Position.z;
-			wx = 0;
+                prevPos -= playerItem->Pose.Position;
 
-			if (dx < 0)
-			{
-				wx = -1024;
-			}
-			else if (dx > 0)
-			{
-				wx = 1024;
-			}
-			wz = 0;
+                if (damage != 0)
+                {
+                    for (int i = 14 + (GetRandomControl() & 3); i > 0; --i)
+                    {
+                        TriggerBlood(
+                            playerItem->Pose.Position.x + (GetRandomControl() & 63) - 32,
+                            playerItem->Pose.Position.y - (GetRandomControl() & 511) - 256,
+                            playerItem->Pose.Position.z + (GetRandomControl() & 63) - 32,
+                            -1,
+                            1);
+                    }
+                }
 
-			if (dz < 0)
-			{
-				wz = -1024;
-			}
-			else if (dz > 0)
-			{
-				wz = 1024;
-			}
+                if (!coll->Setup.EnableObjectPush || killZone)
+                    playerItem->Pose.Position += prevPos;
+            }
+        }
+    }
 
-			room = item.RoomNumber;
-			ceilingX = GetCeiling(GetFloor(item.Pose.Position.x + wx, item2.Pose.Position.y, item.Pose.Position.z, &room), item.Pose.Position.x + wx, item2.Pose.Position.y, item.Pose.Position.z);
-			room = item.RoomNumber;
+    // ---------------------------------------------------------------------
+    // Behaviour helpers
+    // ---------------------------------------------------------------------
 
-			ceilingZ = GetCeiling(GetFloor(item.Pose.Position.x, item2.Pose.Position.y, item.Pose.Position.z + wz, &room), item.Pose.Position.x, item2.Pose.Position.y, item.Pose.Position.z + wz);
-			if (ceilingX <= item2.Pose.Position.y && ceilingX != NO_HEIGHT)
-			{
-				flagX = 1;
-			}
-			else
-			{
-				flagX = 0;
-			}
+    static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
+    {
+        if (state.BaseObject < 0)
+            return;
 
-			if (ceilingZ <= item2.Pose.Position.y && ceilingZ != NO_HEIGHT)
-			{
-				flagZ = 1;
-			}
-			else
-			{
-				flagZ = 0;
-			}
+        auto& anchor = g_Level.Items[state.BaseObject];
 
-			if (!item.ItemFlags[0])
-			{
-				if (flagX && dx && (abs(dx) > abs(dz) || !flagZ || GetRandomControl() & 1))
-				{
-					item.ItemFlags[0] = 1;
-				}
-				else if (flagZ && dz)
-				{
-					item.ItemFlags[0] = 2;
-				}
-			}
+        anchor.Pose.Position.x = item.Pose.Position.x;
+        anchor.Pose.Position.z = item.Pose.Position.z;
 
-			if (item.ItemFlags[0] == 1)
-			{
-				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+        short room = anchor.RoomNumber;
+        anchor.Pose.Position.y = GetCeiling(
+            GetFloor(anchor.Pose.Position.x, anchor.Pose.Position.y, anchor.Pose.Position.z, &room),
+            anchor.Pose.Position.x,
+            anchor.Pose.Position.y,
+            anchor.Pose.Position.z);
 
-				adx = abs(dx);
-				if (adx >= 32)
-					adx = 32;
+        if (room != anchor.RoomNumber)
+            ItemNewRoom(state.BaseObject, room);
 
-				if (dx > 0)
-				{
-					item.Pose.Position.x += adx;
-				}
-				else if (dx < 0)
-				{
-					item.Pose.Position.x -= adx;
-				}
-				else
-				{
-					item.ItemFlags[0] = 0;
-				}
-			}
+        TriggerAlertLight(
+            anchor.Pose.Position.x,
+            anchor.Pose.Position.y + 64,
+            anchor.Pose.Position.z,
+            255, 64, 0,
+            64 * (GlobalCounter & 0x3F),
+            anchor.RoomNumber,
+            24);
 
-			if (item.ItemFlags[0] == 2)
-			{
-				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+        TriggerAlertLight(
+            anchor.Pose.Position.x,
+            anchor.Pose.Position.y + 64,
+            anchor.Pose.Position.z,
+            255, 64, 0,
+            64 * ((GlobalCounter - 32) & 0x3F),
+            anchor.RoomNumber,
+            24);
+    }
 
-				adz = abs(dz);
-				if (adz >= 32)
-					adz = 32;
+    static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
+    {
+        // Simple behaviour: when idle, always target Lara's current position.
+        state.TargetX = LaraItem->Pose.Position.x;
+        state.TargetZ = LaraItem->Pose.Position.z;
+        state.PhaseState = WreckingBallState::Phase::MovingHorizontal;
+        state.MoveAxis = 0;
+    }
 
-				if (dz > 0)
-				{
-					item.Pose.Position.z += adz;
-				}
-				else if (dz < 0)
-				{
-					item.Pose.Position.z -= adz;
-				}
-				else
-				{
-					item.ItemFlags[0] = 0;
-				}
-			}
+    static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
+    {
+        constexpr int Speed = 32;
 
-			if (item.ItemFlags[1] == -1 && (oldX != item.Pose.Position.x || oldZ != item.Pose.Position.z))
-			{
-				item.ItemFlags[1] = 0;
-				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_A, &item.Pose);
-			}
+        // Snap target to grid like original.
+        int targetX = (state.TargetX & ~0x3FF) | 512;
+        int targetZ = (state.TargetZ & ~0x3FF) | 512;
 
-			if ((item.Pose.Position.x & 0x3FF) == 512 && (item.Pose.Position.z & 0x3FF) == 512)
-				item.ItemFlags[0] = 0;
+        int dx = targetX - item.Pose.Position.x;
+        int dz = targetZ - item.Pose.Position.z;
 
-			if (x == item.Pose.Position.x && z == item.Pose.Position.z && test)
-			{
-				if (item.ItemFlags[1] != -1)
-				{
-					StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
-					SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
-				}
+        // Decide axis if not chosen.
+        if (state.MoveAxis == 0)
+        {
+            if (abs(dx) > abs(dz))
+                state.MoveAxis = 1;
+            else
+                state.MoveAxis = 2;
+        }
 
-				item.ItemFlags[1] = 1;
-				item.TriggerFlags = 30;
-			}
-		}
-		else if (item.ItemFlags[1] == 1)
-		{
-			if (!item.TriggerFlags)
-			{
-				--item.TriggerFlags;
-			}
-			else if (!item.Animation.ActiveState)
-			{
-				item.Animation.TargetState = 1;
-			}
-			else if (TestLastFrame(item))
-			{
-				SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
-				++item.ItemFlags[1];
-				item.Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.Gravity;
-				item.Pose.Position.y += item.Animation.Velocity.y;
-			}
-		}
-		else if (item.ItemFlags[1] == 2)
-		{
-			item.Animation.Velocity.y += 24;
-			item.Pose.Position.y += item.Animation.Velocity.y;
-			room = item.RoomNumber;
+        if (state.MoveAxis == 1)
+        {
+            int step = std::clamp(dx, -Speed, Speed);
+            if (step != 0)
+            {
+                item.Pose.Position.x += step;
+                SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+            }
+            else
+            {
+                state.MoveAxis = 0;
+            }
+        }
+        else if (state.MoveAxis == 2)
+        {
+            int step = std::clamp(dz, -Speed, Speed);
+            if (step != 0)
+            {
+                item.Pose.Position.z += step;
+                SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+            }
+            else
+            {
+                state.MoveAxis = 0;
+            }
+        }
 
-			height = GetFloorHeight(GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room), item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
-			if (height < item.Pose.Position.y)
-			{
-				item.Pose.Position.y = height;
-				if (item.Animation.Velocity.y > 48)
-				{
-					BounceCamera(&item, 64, 8192);
-					item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
-				}
-				else
-				{
-					++item.ItemFlags[1];
-					item.Animation.Velocity.y = 0;
-				}
-			}
-			else if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState)
-			{
-				item.Animation.TargetState = 0;
-			}
-		}
-		else if (item.ItemFlags[1] == 3)
-		{
-			item.Animation.Velocity.y -= 3;
-			item.Pose.Position.y += item.Animation.Velocity.y;
+        // Reached target (close enough)?
+        if (abs(dx) <= Speed && abs(dz) <= Speed)
+        {
+            StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
+            SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
-			if (item.Pose.Position.y < item2.Pose.Position.y + 1644)
-			{
-				StopSoundEffect(SFX_TR5_BASE_CLAW_WINCH_UP_LOOP);
-				item.ItemFlags[0] = 1;
-				item.Pose.Position.y = item2.Pose.Position.y + 1644;
+            state.PhaseState = WreckingBallState::Phase::PreparingDrop;
+            state.MoveAxis = 0;
+        }
+    }
 
-				if (item.Animation.Velocity.y < -32.0f)
-				{
-					SoundEffect(SFX_TR5_BASE_CLAW_TOP_IMPACT, &item.Pose, SoundEnvironment::Land, 1.0f, 0.5f);
-					item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
-					BounceCamera(&item, 16, 8192);
-				}
-				else
-				{
-					item.ItemFlags[1] = -1;
-					item.Animation.Velocity.y = 0;
-					item.ItemFlags[0] = 0;
-				}
-			}
-			else if (!item.ItemFlags[0])
-			{
-				SoundEffect(SFX_TR5_BASE_CLAW_WINCH_UP_LOOP, &item.Pose);
-			}
-		}
+    static void UpdatePreparingDrop(ItemInfo& item, WreckingBallState& state)
+    {
+        if (!item.Animation.ActiveState)
+            item.Animation.TargetState = 1;
 
-		item2.Pose.Position.x = item.Pose.Position.x;
-		item2.Pose.Position.z = item.Pose.Position.z;
-		room = item.RoomNumber;
-		item2.Pose.Position.y = GetCeiling(GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room), item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
+        if (TestLastFrame(item))
+        {
+            SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
+            state.PhaseState = WreckingBallState::Phase::Falling;
+            item.Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.Gravity;
+            item.Pose.Position.y += item.Animation.Velocity.y;
+        }
+    }
 
-		GetFloor(item2.Pose.Position.x, item2.Pose.Position.y, item2.Pose.Position.z, &room);
-		if (room != item2.RoomNumber)
-			ItemNewRoom(item.ItemFlags[3], room);
+    static void UpdateFalling(ItemInfo& item, WreckingBallState& state)
+    {
+        item.Animation.Velocity.y += 24;
+        item.Pose.Position.y += item.Animation.Velocity.y;
 
-		TriggerAlertLight(item2.Pose.Position.x, item2.Pose.Position.y + 64, item2.Pose.Position.z, 255, 64, 0, 64 * (GlobalCounter & 0x3F), item2.RoomNumber, 24);
-		TriggerAlertLight(item2.Pose.Position.x, item2.Pose.Position.y + 64, item2.Pose.Position.z, 255, 64, 0, 64 * (GlobalCounter - 32) & 0xFFF, item2.RoomNumber, 24);
+        short room = item.RoomNumber;
+        int height = GetFloorHeight(
+            GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room),
+            item.Pose.Position.x,
+            item.Pose.Position.y,
+            item.Pose.Position.z);
 
-		room = item.RoomNumber;
-		GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
-		if (room != item.RoomNumber)
-			ItemNewRoom(itemNumber, room);
+        if (height < item.Pose.Position.y)
+        {
+            item.Pose.Position.y = height;
 
-		AnimateItem(item);
-	}
+            if (item.Animation.Velocity.y > 48)
+            {
+                BounceCamera(&item, 64, 8192);
+                item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
+            }
+            else
+            {
+                item.Animation.Velocity.y = 0;
+                state.PhaseState = WreckingBallState::Phase::WinchingUp;
+            }
+        }
+        else if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState)
+        {
+            item.Animation.TargetState = 0;
+        }
+    }
+
+    static void UpdateWinchUp(ItemInfo& item, WreckingBallState& state)
+    {
+        if (state.BaseObject < 0)
+        {
+            state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+            item.Animation.Velocity.y = 0;
+            return;
+        }
+
+        auto& anchor = g_Level.Items[state.BaseObject];
+        int targetY = anchor.Pose.Position.y + 1644;
+
+        item.Animation.Velocity.y -= 3;
+        item.Pose.Position.y += item.Animation.Velocity.y;
+
+        if (item.Pose.Position.y < targetY)
+        {
+            StopSoundEffect(SFX_TR5_BASE_CLAW_WINCH_UP_LOOP);
+            item.Pose.Position.y = targetY;
+
+            if (item.Animation.Velocity.y < -32.0f)
+            {
+                SoundEffect(SFX_TR5_BASE_CLAW_TOP_IMPACT, &item.Pose, SoundEnvironment::Land, 1.0f, 0.5f);
+                item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
+                BounceCamera(&item, 16, 8192);
+            }
+            else
+            {
+                item.Animation.Velocity.y = 0;
+                state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+            }
+        }
+        else
+        {
+            SoundEffect(SFX_TR5_BASE_CLAW_WINCH_UP_LOOP, &item.Pose);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Main control
+    // ---------------------------------------------------------------------
+
+    void ControlWreckingBall(short itemNumber)
+    {
+        auto& item = g_Level.Items[itemNumber];
+        auto& state = WreckingBallStates[itemNumber];
+
+        // Keep ball in correct room.
+        short room = item.RoomNumber;
+        GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
+        if (room != item.RoomNumber)
+            ItemNewRoom(itemNumber, room);
+
+        switch (state.PhaseState)
+        {
+        case WreckingBallState::Phase::IdleAtTop:
+            UpdateIdle(item, state);
+            break;
+
+        case WreckingBallState::Phase::MovingHorizontal:
+            UpdateHorizontalMovement(item, state);
+            break;
+
+        case WreckingBallState::Phase::PreparingDrop:
+            UpdatePreparingDrop(item, state);
+            break;
+
+        case WreckingBallState::Phase::Falling:
+            UpdateFalling(item, state);
+            break;
+
+        case WreckingBallState::Phase::WinchingUp:
+            UpdateWinchUp(item, state);
+            break;
+        }
+
+        UpdateAnchor(item, state);
+        AnimateItem(item);
+    }
 }
