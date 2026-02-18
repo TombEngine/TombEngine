@@ -147,7 +147,9 @@ namespace TEN::Hud
 
 	void DisplayItem::SetPosition(const Vector3& pos, bool disableInterpolation)
 	{
-		if (disableInterpolation)
+		constexpr auto DELTA_TOLERANCE = 100.0f;
+
+		if (disableInterpolation || Vector3::Distance(pos, _position) > DELTA_TOLERANCE)
 			_prevPosition = pos;
 
 		_position = pos;
@@ -155,7 +157,9 @@ namespace TEN::Hud
 
 	void DisplayItem::SetOrientation(const EulerAngles& orient, bool disableInterpolation)
 	{
-		if (disableInterpolation)
+		constexpr auto DELTA_TOLERANCE = ANGLE(45);
+
+		if (disableInterpolation || !EulerAngles::Compare(orient, _orientation, DELTA_TOLERANCE))
 			_prevOrientation = orient;
 
 		_orientation = orient;
@@ -177,17 +181,22 @@ namespace TEN::Hud
 		_color = color;
 	}
 
-	void DisplayItem::SetVisibility(bool visible)
+	void DisplayItem::SetVisible(bool visible)
 	{
 		_visible = visible;
 	}
 
-	void DisplayItem::SetMeshBits(int meshbits)
+	void DisplayItem::SetDisposing(bool disposing)
 	{
-		_meshBits = meshbits;
+		_disposing = disposing;
 	}
 
-	void DisplayItem::SetMeshVisibility(int meshIndex, bool isVisible)
+	void DisplayItem::SetMeshBits(int meshBits)
+	{
+		_meshBits = meshBits;
+	}
+
+	void DisplayItem::SetMeshVisible(int meshIndex, bool isVisible)
 	{
 		if (!MeshExists(meshIndex))
 			return;
@@ -236,12 +245,17 @@ namespace TEN::Hud
 		}
 	}
 
-	bool DisplayItem::IsVisible() const
+	bool DisplayItem::GetVisible() const
 	{
 		return _visible;
 	}
 
-	bool DisplayItem::IsMeshVisible(int meshIndex) const
+	bool DisplayItem::GetDisposing() const
+	{
+		return _disposing;
+	}
+
+	bool DisplayItem::GetMeshVisible(int meshIndex) const
 	{
 		return _meshBits.Test(meshIndex);
 	}

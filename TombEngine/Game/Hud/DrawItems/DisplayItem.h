@@ -17,7 +17,9 @@ namespace TEN::Hud
 
 		std::string    _itemName = {};
 		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
-		bool           _visible  = true;
+
+		bool _visible = false;
+		bool _disposing = false;
 
 		Vector3                              _position         = Vector3::Zero;
 		EulerAngles                          _orientation      = EulerAngles::Identity;
@@ -54,10 +56,15 @@ namespace TEN::Hud
 		const EulerAngles&                         GetMeshOrientation(int meshIndex) const;
 		int                                        GetMeshBits() const;
 
-		int GetAnimNumber() const;
-		int GetFrameNumber() const;
-		int GetEndFrameNumber() const;
-		int GetPrevFrameNumber() const;
+		// Getters
+
+		bool GetVisible() const;
+		bool GetDisposing() const;
+		bool GetMeshVisible(int meshIndex) const;
+		int  GetAnimNumber() const;
+		int  GetFrameNumber() const;
+		int  GetEndFrameNumber() const;
+		int  GetPrevFrameNumber() const;
 
 		Vector3     GetInterpolatedPosition(float alpha) const;
 		EulerAngles GetInterpolatedOrientation(float alpha) const;
@@ -73,17 +80,16 @@ namespace TEN::Hud
 		void SetOrientation(const EulerAngles& orient, bool disableInterpolation);
 		void SetScale(const Vector3& scale, bool disableInterpolation);
 		void SetColor(Color& color, bool disableInterpolation);
-		void SetVisibility(bool visible);
+		void SetVisible(bool visible);
+		void SetDisposing(bool disposing);
 		void SetMeshBits(int meshbits);
-		void SetMeshVisibility(int meshIndex, bool visible);
+		void SetMeshVisible(int meshIndex, bool visible);
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
 
 		// Inquirers
 
-		bool IsVisible() const;
-		bool IsMeshVisible(int meshIndex) const;
 		bool MeshExists(int meshIndex) const;
 
 		// Utilities

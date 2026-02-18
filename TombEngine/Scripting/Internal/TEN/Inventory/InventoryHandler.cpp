@@ -72,7 +72,7 @@ namespace TEN::Scripting::InventoryHandler
 	// For equippable or consumable items, standard game conditions will apply - for example, firearms can't be used underwater, and keys or puzzle items
 	// can only be used in close proximity to a corresponding key or puzzle hole.
 	// @function UseItem
-	//@tparam Objects.ObjID objectID Object ID to use. Must be preset in the inventory.
+	//@tparam Objects.ObjID objectID Object ID to use. Must be present in the inventory.
 	static void UseItem(GAME_OBJECT_ID objectID)
 	{
 		if (!g_Gui.IsObjectInInventory(objectID))
@@ -97,7 +97,7 @@ namespace TEN::Scripting::InventoryHandler
 	/// Set last item that was used in the player's inventory.
 	// Will only be valid for the next frame. If not processed by the game, Lara will say "No".
 	//@function SetUsedItem
-	//@tparam Objects.ObjID objectID Object ID of the item to select from inventory. Must be preset in the inventory.
+	//@tparam Objects.ObjID objectID Object ID of the item to select from inventory. Must be present in the inventory.
 	static void SetUsedItem(GAME_OBJECT_ID objectID)
 	{
 		if (!g_Gui.IsObjectInInventory(objectID))
@@ -129,7 +129,7 @@ namespace TEN::Scripting::InventoryHandler
 
 	/// Opens the inventory and focuses on the specified item, if it is available.
 	// @function SetFocusedItem
-	// @tparam Objects.ObjID objectID Object ID of the item to set. Must be preset in the inventory.
+	// @tparam Objects.ObjID objectID Object ID of the item to set. Must be present in the inventory.
 	static void SetFocusedItem(GAME_OBJECT_ID objectID)
 	{
 		if (!g_Gui.IsObjectInInventory(objectID) && objectID != NO_VALUE)

@@ -1408,6 +1408,22 @@ bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned lo
 	return decompressedSize == static_cast<int>(uncompressedSize);
 }
 
+#ifdef _WIN64
+long long GetRemainingSize(FILE* filePtr)
+{
+	auto current_position = _ftelli64(filePtr);
+
+	if (_fseeki64(filePtr, 0, SEEK_END) != 0)
+		return NO_VALUE;
+
+	auto size = _ftelli64(filePtr);
+
+	if (_fseeki64(filePtr, current_position, SEEK_SET) != 0)
+		return NO_VALUE;
+
+	return (size - current_position);
+}
+#else
 long GetRemainingSize(FILE* filePtr)
 {
 	long current_position = ftell(filePtr);
@@ -1420,19 +1436,20 @@ long GetRemainingSize(FILE* filePtr)
 	if (fseek(filePtr, current_position, SEEK_SET) != 0)
 		return NO_VALUE;
 
-	return size;
+	return (size - current_position);
 }
+#endif
 
 bool ReadCompressedBlock(FILE* filePtr, bool skip)
 {
-	int compressedSize = 0;
-	int uncompressedSize = 0;
+	unsigned int compressedSize = 0;
+	unsigned int uncompressedSize = 0;
 
 	ReadFileEx(&uncompressedSize, 1, 4, filePtr);
 	ReadFileEx(&compressedSize, 1, 4, filePtr);
 
 	// Safeguard against changed file format.
-	long remainingSize = GetRemainingSize(filePtr);
+	auto remainingSize = GetRemainingSize(filePtr);
 	if (uncompressedSize <= 0 || compressedSize <= 0 || compressedSize > remainingSize)
 		throw std::exception{ "Data block size is incorrect. Probably old level version?" };
 

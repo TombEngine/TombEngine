@@ -31,15 +31,15 @@ namespace TEN::Hud
 	public:
 		// Getters
 
-		DisplayItem* GetItemByName(const std::string& name);
+		DisplayItem*			  GetItemByName(const std::string& name);
 		std::vector<DisplayItem>& GetItems();
-		Vector3                   GetCameraPosition() const;
-		Vector3                   GetCameraTargetPosition() const;
+		Vector3					  GetCameraPosition() const;
+		Vector3					  GetCameraTargetPosition() const;
 		float					  GetFov() const;
-		Vector3                   GetInterpolatedCameraPosition(float alpha) const;
+		Vector3					  GetInterpolatedCameraPosition(float alpha) const;
 		Vector3                   GetInterpolatedCameraTargetPosition(float alpha) const;
 		float					  GetInterpolatedFov(float alpha) const;
-		Vector4                   GetAmbientLight() const;
+		Vector4					  GetAmbientLight() const;
 
 		// Setters
 
@@ -59,6 +59,7 @@ namespace TEN::Hud
 		void AddItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& origin, const EulerAngles& orient, const Vector3& scale, int meshBits);
 		void RemoveItem(const std::string& name);
 
+		void Prepare();
 		void Update();
 		void Draw() const;
 		void Clear();

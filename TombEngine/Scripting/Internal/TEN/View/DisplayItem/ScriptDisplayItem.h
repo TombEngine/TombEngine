@@ -23,19 +23,20 @@ namespace TEN::Scripting::DisplayItem
 
 		std::string _name = {};
 
+		// Methods
+
+		const TEN::Hud::DisplayItem* TryGetItem() const;
+		TEN::Hud::DisplayItem* TryGetItem();
+
 	public:
 		// Constructors
 
 		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale, int meshBits);
 		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale);
+		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot);
 		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos);
 		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID);
-		ScriptDisplayItem(const std::string& name);
-
-		// Methods
-
-		void Remove();
-		bool Exists() const;
+		~ScriptDisplayItem();
 
 		// Setters
 
@@ -44,11 +45,11 @@ namespace TEN::Scripting::DisplayItem
 		void SetRotation(const Rotation& newRot, TypeOrNil<bool> disableInterpolation);
 		void SetScale(const Vec3& newScale, TypeOrNil<bool> disableInterpolation);
 		void SetColor(const ScriptColor& newColor, TypeOrNil<bool> disableInterpolation);
-		void SetMeshBits(int meshbits);
 		void SetMeshVisibility(int meshIndex, bool visible);
 		void SetMeshRotation(int meshIndex, Rotation angles, TypeOrNil<bool> disableInterpolation);
-		void SetVisibility(bool visible);
-		void SetFrame(int animation, int frame);
+		void SetAnimNumber(int animNumber);
+		void SetFrameNumber(int frameNumber);
+		void SetMeshBits(int meshbits);
 
 		// Getters
 
@@ -59,19 +60,14 @@ namespace TEN::Scripting::DisplayItem
 		sol::optional <ScriptColor> GetColor() const;
 		bool GetMeshVisibility(int meshIndex) const;
 		sol::optional <Rotation> GetMeshRotation(int meshIndex) const;
-		bool GetVisibility() const;
 		sol::optional <int> GetAnimNumber() const;
 		sol::optional <int> GetFrameNumber() const;
 		sol::optional <int> GetEndFrame() const;
 		sol::optional<std::pair<Vec2, Vec2>> GetBounds() const;
 
-		// Functions
+		// Methods
 
-		static ScriptDisplayItem GetItemByName(const std::string& itemName);
-		static void RemoveItem(const std::string& itemName);
-		static void ClearItems();
-		static bool IfItemExists(const std::string& itemName);
-		static bool IfObjectIDExists(const GAME_OBJECT_ID objectID);
+		void Draw();
 
 		// Static camera functions
 
