@@ -1427,7 +1427,7 @@ bool DecompressChunked(char* dest, char* compressedRegion, unsigned int totalUnc
 
 		int result = LZ4_decompress_safe(regionPtr, destPtr, chunkCompressed, chunkUncompressed);
 
-		if (result != static_cast<int>(chunkUncompressed))
+		if (result != (int)chunkUncompressed)
 			return false;
 
 		regionPtr += chunkCompressed;
@@ -1439,7 +1439,6 @@ bool DecompressChunked(char* dest, char* compressedRegion, unsigned int totalUnc
 }
 
 #ifdef _WIN64
-
 long long GetRemainingSize(FILE* filePtr)
 {
 	auto current_position = _ftelli64(filePtr);
