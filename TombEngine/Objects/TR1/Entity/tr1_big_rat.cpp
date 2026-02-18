@@ -27,13 +27,13 @@ namespace TEN::Entities::Creatures::TR1
 	constexpr auto BIG_RAT_POUNCE_ATTACK_DAMAGE = 20;
 
 	constexpr auto BIG_RAT_LAND_BITE_ATTACK_RANGE = SQUARE(BLOCK(0.34f));
-	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE = SQUARE(BLOCK(1.0f)); // 1.5f in OG, but seems too far in TEN.
+	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE = SQUARE(BLOCK(1.0f)); // 1.5f in OG, but seems too far for TEN.
 
 	constexpr auto BIG_RAT_REAR_POSE_CHANCE = 256.0f / 32768.0f; // = 0.0078125 (1/128)
 	constexpr auto BIG_RAT_WATER_SURFACE_OFFSET = 25;
 	constexpr auto BIG_RAT_RIPPLE_RADIUS = 128.0f;
 
-	constexpr auto BIG_RAT_RUN_TURN_RATE_MAX = ANGLE(9.0f); // 6.0f in OG, but it doesn't in TEN.
+	constexpr auto BIG_RAT_RUN_TURN_RATE_MAX = ANGLE(9.0f); // 6.0f in OG, but it too big angle for TEN.
 	constexpr auto BIG_RAT_SWIM_TURN_RATE_MAX = ANGLE(4.0f);
 
 	const auto BigRatBite = CreatureBiteInfo(Vector3(0, -11, 108), 3);
