@@ -25,7 +25,7 @@ using namespace TEN::Effects::Environment;
 namespace TEN::Entities::Traps
 {
     // ---------------------------------------------------------------------
-    // Per?wrecking?ball state.
+    // Wrecking Ball state.
     // ---------------------------------------------------------------------
 
     struct WreckingBallState
@@ -65,31 +65,31 @@ namespace TEN::Entities::Traps
 
         auto pointColl = GetPointCollision(item);
 
-        // Find anchor (ID_WRECKINGBALL_ANCHOR)
+        // Find anchor object (WRECKINGBALL_ANCHOR)
         auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
         if (!anchors.empty())
             state.BaseObject = anchors[0];
 
-        // Find chain (ID_WRECKINGBALL_CHAIN)
+        // Find chain object (WRECKINGBALL_CHAIN)
         auto chains = FindAllItems(ID_WRECKINGBALL_CHAIN);
         if (!chains.empty())
             state.ChainObject = chains[0];
 
-        // Error if either is missing
+        // Validate both objects exist
         if (state.BaseObject < 0 || state.ChainObject < 0)
         {
             TENLog(
                 "WreckingBall ERROR: Missing required objects. "
-                "Anchor=" + std::to_string(state.BaseObject) +
-                " Chain=" + std::to_string(state.ChainObject),
+                "Expected Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR) +
+                " Chain ID=" + std::to_string(ID_WRECKINGBALL_CHAIN) +
+                " | Found Anchor ItemIndex=" + std::to_string(state.BaseObject) +
+                " Chain ItemIndex=" + std::to_string(state.ChainObject),
                 LogLevel::Error);
 
-            // Disable the wrecking ball so it doesn't behave unpredictably
             item.Flags |= IFLAG_INVISIBLE;
             item.Status = ITEM_NOT_ACTIVE;
             return;
         }
-
 
         // Position ball below ceiling as before.
         item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
@@ -97,7 +97,6 @@ namespace TEN::Entities::Traps
         if (pointColl.GetRoomNumber() != item.RoomNumber)
             ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
 
-        // Initial target is current position.
         state.TargetX = item.Pose.Position.x;
         state.TargetZ = item.Pose.Position.z;
     }
@@ -232,7 +231,6 @@ namespace TEN::Entities::Traps
         if (room != chain.RoomNumber)
             ItemNewRoom(state.ChainObject, room);
     }
-
 
     static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
     {
