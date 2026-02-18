@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Objects/TR5/Trap/tr5_wreckingball.h"
 
 #include "Game/Animation/Animation.h"
@@ -18,32 +18,34 @@
 #include "Specific/level.h"
 
 #include <unordered_map>
+#include <algorithm>
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Environment;
 
 namespace TEN::Entities::Traps
 {
-    // ---------------------------------------------------------------------
-    // Wrecking Ball state.
-    // ---------------------------------------------------------------------
+    constexpr auto WRECKINGBALL_STATE_IDLE = 0;
+    constexpr auto WRECKINGBALL_STATE_DROP = 1;
+    constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
+    constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
     struct WreckingBallState
     {
         enum class Phase
         {
             IdleAtTop,
-            MovingHorizontal,
+            Moving,
             PreparingDrop,
-            Falling,
-            WinchingUp
+            Dropping,
+            WinchUp
         };
 
         Phase PhaseState = Phase::IdleAtTop;
 
-        int   MoveAxis = 0;   // 0 = none, 1 = X, 2 = Z
-        int   Timer = 0;   // Reserved / wander timer if needed
-        int   DropDelay = 0;   // NEW: delay before opening / dropping
+        int   MoveAxis = 0;
+        int   Timer = 0;
+        int   DropDelay = 0;
 
         short BaseObject = -1;
         short ChainObject = -1;
@@ -55,7 +57,7 @@ namespace TEN::Entities::Traps
     static std::unordered_map<short, WreckingBallState> WreckingBallStates;
 
     // ---------------------------------------------------------------------
-    // Initialization
+    // Init
     // ---------------------------------------------------------------------
 
     void InitializeWreckingBall(short itemNumber)
@@ -65,17 +67,14 @@ namespace TEN::Entities::Traps
 
         auto pointColl = GetPointCollision(item);
 
-        // Find anchor object (WRECKINGBALL_ANCHOR)
         auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
         if (!anchors.empty())
             state.BaseObject = anchors[0];
 
-        // Find chain object (WRECKINGBALL_CHAIN)
         auto chains = FindAllItems(ID_WRECKINGBALL_CHAIN);
         if (!chains.empty())
             state.ChainObject = chains[0];
 
-        // Validate both objects exist
         if (state.BaseObject < 0 || state.ChainObject < 0)
         {
             TENLog(
@@ -91,7 +90,6 @@ namespace TEN::Entities::Traps
             return;
         }
 
-        // Position ball below ceiling as before.
         item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
 
         if (pointColl.GetRoomNumber() != item.RoomNumber)
@@ -102,7 +100,7 @@ namespace TEN::Entities::Traps
     }
 
     // ---------------------------------------------------------------------
-    // Collision (kept close to original)
+    // Collision
     // ---------------------------------------------------------------------
 
     void CollideWreckingBall(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
@@ -153,8 +151,83 @@ namespace TEN::Entities::Traps
     }
 
     // ---------------------------------------------------------------------
-    // Behaviour helpers
+    // Helpers
     // ---------------------------------------------------------------------
+
+    static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
+    {
+        int   y = anchor.Pose.Position.y;
+        short room = anchor.RoomNumber;
+
+        int currentCeiling = GetCeiling(
+            GetFloor(anchor.Pose.Position.x, y, anchor.Pose.Position.z, &room),
+            anchor.Pose.Position.x, y, anchor.Pose.Position.z);
+
+        room = anchor.RoomNumber;
+        int newCeiling = GetCeiling(
+            GetFloor(newX, y, newZ, &room),
+            newX, y, newZ);
+
+        return (newCeiling == currentCeiling);
+    }
+
+    static bool CanOccupyPosition(const ItemInfo& ball, int x, int z)
+    {
+        constexpr int BALL_RADIUS = CLICK(1);
+
+        int   y = ball.Pose.Position.y;
+        short room = ball.RoomNumber;
+
+        auto* floor = GetFloor(x, y, z, &room);
+        int   ceiling = GetCeiling(floor, x, y, z);
+        int   floorY = GetFloorHeight(floor, x, y, z);
+
+        if (y - BALL_RADIUS < ceiling)
+            return false;
+
+        if (y + BALL_RADIUS > floorY)
+            return false;
+
+        if (floorY == NO_HEIGHT)
+            return false;
+
+        return true;
+    }
+
+    static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
+    {
+        if (!LaraItem)
+            return false;
+
+        constexpr int MAX_RADIUS = 8;
+
+        int laraX = LaraItem->Pose.Position.x;
+        int laraZ = LaraItem->Pose.Position.z;
+
+        for (int r = 1; r <= MAX_RADIUS; r++)
+        {
+            for (int dx = -r; dx <= r; dx++)
+            {
+                for (int dz = -r; dz <= r; dz++)
+                {
+                    if (std::abs(dx) != r && std::abs(dz) != r)
+                        continue;
+
+                    int testX = ((laraX + dx * CLICK(1)) & ~0x3FF) | 512;
+                    int testZ = ((laraZ + dz * CLICK(1)) & ~0x3FF) | 512;
+
+                    if (IsCeilingSafeForAnchor(anchor, testX, testZ))
+                    {
+                        outX = testX;
+                        outZ = testZ;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 
     static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
     {
@@ -203,20 +276,15 @@ namespace TEN::Entities::Traps
         auto& chain = g_Level.Items[state.ChainObject];
         auto& anchor = g_Level.Items[state.BaseObject];
 
-        // 1. Chain follows anchor horizontally.
         chain.Pose.Position.x = anchor.Pose.Position.x;
         chain.Pose.Position.z = anchor.Pose.Position.z;
-
-        // 2. Chain pivot stays exactly at anchor height.
         chain.Pose.Position.y = anchor.Pose.Position.y;
 
-        // 3. Compute vertical distance to wrecking ball, with a TEST offset.
-        constexpr float TEST_OFFSET_Y = 1000.0f; // makes chain effectively shorter / higher
+        constexpr float TEST_OFFSET_Y = 1000.0f;
         float distance = (float)item.Pose.Position.y - (float)anchor.Pose.Position.y - TEST_OFFSET_Y;
         if (distance < 0.0f)
             distance = 0.0f;
 
-        // 4. Chain mesh length.
         constexpr float CHAIN_LENGTH = 3500.0f;
 
         float scaleY = distance / CHAIN_LENGTH;
@@ -225,7 +293,6 @@ namespace TEN::Entities::Traps
 
         chain.Pose.Scale.y = scaleY;
 
-        // 5. Room update.
         short room = chain.RoomNumber;
         GetFloor(chain.Pose.Position.x, chain.Pose.Position.y, chain.Pose.Position.z, &room);
         if (room != chain.RoomNumber)
@@ -234,118 +301,211 @@ namespace TEN::Entities::Traps
 
     static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
     {
-        // Simple behaviour: when idle, always target Lara's current position.
-        state.TargetX = LaraItem->Pose.Position.x;
-        state.TargetZ = LaraItem->Pose.Position.z;
-        state.PhaseState = WreckingBallState::Phase::MovingHorizontal;
+        if (!LaraItem)
+            return;
+
+        auto& anchor = g_Level.Items[state.BaseObject];
+
+        int targetX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+        int targetZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
+
+        if (!IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+            return;
+
+        state.TargetX = targetX;
+        state.TargetZ = targetZ;
+        state.PhaseState = WreckingBallState::Phase::Moving;
         state.MoveAxis = 0;
+        state.Timer = 0;
     }
 
     static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
     {
-        constexpr int Speed = 32;
+        if (!LaraItem)
+        {
+            state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+            return;
+        }
 
-        // Snap target to grid like original.
+        constexpr int Speed = 64;
+
+        auto& anchor = g_Level.Items[state.BaseObject];
+
         int targetX = (state.TargetX & ~0x3FF) | 512;
         int targetZ = (state.TargetZ & ~0x3FF) | 512;
+
+        if (!IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+        {
+            state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+            state.MoveAxis = 0;
+            state.Timer = 0;
+            return;
+        }
 
         int dx = targetX - item.Pose.Position.x;
         int dz = targetZ - item.Pose.Position.z;
 
-        // Decide axis if not chosen.
+        bool movedThisFrame = false;
+
+        auto tryMoveAxis = [&](int axis)
+            {
+                bool moved = false;
+
+                if (axis == 1)
+                {
+                    int step = std::clamp(dx, -Speed, Speed);
+                    if (step != 0)
+                    {
+                        int newX = item.Pose.Position.x + step;
+                        int newZ = item.Pose.Position.z;
+
+                        if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
+                            return false;
+
+                        int nextX = newX + (step > 0 ? BLOCK(1) : -BLOCK(1));
+                        int nextZ = newZ;
+
+                        if (!CanOccupyPosition(item, nextX, nextZ))
+                        {
+                            state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+                            state.MoveAxis = 0;
+                            state.Timer = 0;
+                            return true;
+                        }
+
+                        item.Pose.Position.x = newX;
+                        SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+                        moved = true;
+                    }
+                }
+                else if (axis == 2)
+                {
+                    int step = std::clamp(dz, -Speed, Speed);
+                    if (step != 0)
+                    {
+                        int newX = item.Pose.Position.x;
+                        int newZ = item.Pose.Position.z + step;
+
+                        if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
+                            return false;
+
+                        int nextX = newX;
+                        int nextZ = newZ + (step > 0 ? BLOCK(1) : -BLOCK(1));
+
+                        if (!CanOccupyPosition(item, nextX, nextZ))
+                        {
+                            state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+                            state.MoveAxis = 0;
+                            state.Timer = 0;
+                            return true;
+                        }
+
+                        item.Pose.Position.z = newZ;
+                        SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+                        moved = true;
+                    }
+                }
+
+                return moved;
+            };
+
         if (state.MoveAxis == 0)
-        {
-            if (abs(dx) > abs(dz))
-                state.MoveAxis = 1;
-            else
-                state.MoveAxis = 2;
-        }
+            state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
 
         if (state.MoveAxis == 1)
         {
-            int step = std::clamp(dx, -Speed, Speed);
-            if (step != 0)
-            {
-                item.Pose.Position.x += step;
-                SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-            }
-            else
-            {
-                state.MoveAxis = 0;
-            }
+            movedThisFrame = tryMoveAxis(1);
+            if (!movedThisFrame)
+                movedThisFrame = tryMoveAxis(2);
         }
-        else if (state.MoveAxis == 2)
+        else
         {
-            int step = std::clamp(dz, -Speed, Speed);
-            if (step != 0)
-            {
-                item.Pose.Position.z += step;
-                SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-            }
-            else
-            {
-                state.MoveAxis = 0;
-            }
+            movedThisFrame = tryMoveAxis(2);
+            if (!movedThisFrame)
+                movedThisFrame = tryMoveAxis(1);
         }
 
-        // Reached target (close enough)?
-        if (abs(dx) <= Speed && abs(dz) <= Speed)
+        if (std::abs(dx) <= Speed && std::abs(dz) <= Speed)
         {
             StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
             SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
-            // TR5: item_flags[1] = 1; trigger_flags = 30;
             state.PhaseState = WreckingBallState::Phase::PreparingDrop;
-            state.DropDelay = 30; // ~0.5s at 60fps, tweak if needed
+            state.DropDelay = 30;
             state.MoveAxis = 0;
+            state.Timer = 0;
+            return;
+        }
+
+        if (!movedThisFrame)
+        {
+            state.Timer++;
+
+            if (state.Timer > 10)
+            {
+                int bestX, bestZ;
+
+                if (FindClosestReachableTile(anchor, bestX, bestZ))
+                {
+                    state.TargetX = bestX;
+                    state.TargetZ = bestZ;
+                    state.MoveAxis = 0;
+                    state.Timer = 0;
+                    return;
+                }
+
+                state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+                state.MoveAxis = 0;
+                state.Timer = 0;
+                return;
+            }
+        }
+        else
+        {
+            state.Timer = 0;
         }
     }
 
     static void UpdatePreparingDrop(ItemInfo& item, WreckingBallState& state)
     {
-        // TR5: if (trigger_flags) trigger_flags--;
         if (state.DropDelay > 0)
         {
             state.DropDelay--;
             return;
         }
 
-        // TR5: if (!current_anim_state) goal_anim_state = 1;
-        if (item.Animation.ActiveState == 0)
+        if (item.Animation.ActiveState == WRECKINGBALL_STATE_IDLE)
         {
-            item.Animation.TargetState = 1; // open (Anim 1)
+            item.Animation.TargetState = WRECKINGBALL_STATE_DROP;
             return;
         }
 
-        // TR5: else if (frame_number == anims[anim_number].frame_end) { drop... }
         if (TestLastFrame(item))
         {
             SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
 
-            state.PhaseState = WreckingBallState::Phase::Falling;
+            state.PhaseState = WreckingBallState::Phase::Dropping;
 
-            // TR5: fallspeed = 6; pos.y += fallspeed;
             item.Animation.Velocity.y = 6.0f;
             item.Pose.Position.y += item.Animation.Velocity.y;
         }
     }
 
-    static void UpdateFalling(ItemInfo& item, WreckingBallState& state)
+    static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
     {
         item.Animation.Velocity.y += 24.0f;
         item.Pose.Position.y += item.Animation.Velocity.y;
 
         short room = item.RoomNumber;
-        int height = GetFloorHeight(
+        int   height = GetFloorHeight(
             GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room),
             item.Pose.Position.x,
             item.Pose.Position.y,
             item.Pose.Position.z);
 
-        // TR5: if (c - pos.y_pos < 1536 && current_anim_state) goal_anim_state = 0;
-        if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != 0)
+        if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != WRECKINGBALL_STATE_IDLE)
         {
-            item.Animation.TargetState = 0; // close (Anim 2) before impact
+            item.Animation.TargetState = WRECKINGBALL_STATE_IDLE;
         }
 
         if (height < item.Pose.Position.y)
@@ -360,7 +520,7 @@ namespace TEN::Entities::Traps
             else
             {
                 item.Animation.Velocity.y = 0.0f;
-                state.PhaseState = WreckingBallState::Phase::WinchingUp;
+                state.PhaseState = WreckingBallState::Phase::WinchUp;
             }
         }
     }
@@ -375,7 +535,7 @@ namespace TEN::Entities::Traps
         }
 
         auto& anchor = g_Level.Items[state.BaseObject];
-        int targetY = anchor.Pose.Position.y + 1644;
+        int   targetY = anchor.Pose.Position.y + 1644;
 
         item.Animation.Velocity.y -= 3;
         item.Pose.Position.y += item.Animation.Velocity.y;
@@ -404,7 +564,7 @@ namespace TEN::Entities::Traps
     }
 
     // ---------------------------------------------------------------------
-    // Main control
+    // Main
     // ---------------------------------------------------------------------
 
     void ControlWreckingBall(short itemNumber)
@@ -412,7 +572,6 @@ namespace TEN::Entities::Traps
         auto& item = g_Level.Items[itemNumber];
         auto& state = WreckingBallStates[itemNumber];
 
-        // Keep ball in correct room.
         short room = item.RoomNumber;
         GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
         if (room != item.RoomNumber)
@@ -424,7 +583,7 @@ namespace TEN::Entities::Traps
             UpdateIdle(item, state);
             break;
 
-        case WreckingBallState::Phase::MovingHorizontal:
+        case WreckingBallState::Phase::Moving:
             UpdateHorizontalMovement(item, state);
             break;
 
@@ -432,11 +591,11 @@ namespace TEN::Entities::Traps
             UpdatePreparingDrop(item, state);
             break;
 
-        case WreckingBallState::Phase::Falling:
-            UpdateFalling(item, state);
+        case WreckingBallState::Phase::Dropping:
+            UpdateDropping(item, state);
             break;
 
-        case WreckingBallState::Phase::WinchingUp:
+        case WreckingBallState::Phase::WinchUp:
             UpdateWinchUp(item, state);
             break;
         }
