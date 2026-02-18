@@ -44,7 +44,9 @@ namespace TEN::Entities::Traps
         int   MoveAxis = 0;   // 0 = none, 1 = X, 2 = Z
         int   Timer = 0;   // Reserved / wander timer if needed
         int   DropDelay = 0;   // NEW: delay before opening / dropping
+
         short BaseObject = -1;
+        short ChainObject = -1;
 
         int TargetX = 0;
         int TargetZ = 0;
@@ -63,10 +65,31 @@ namespace TEN::Entities::Traps
 
         auto pointColl = GetPointCollision(item);
 
-        // Find anchor object (ANIMATING16) – keep same behaviour as old code.
-        auto anchors = FindAllItems(ID_ANIMATING16);
+        // Find anchor (ID_WRECKINGBALL_ANCHOR)
+        auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
         if (!anchors.empty())
             state.BaseObject = anchors[0];
+
+        // Find chain (ID_WRECKINGBALL_CHAIN)
+        auto chains = FindAllItems(ID_WRECKINGBALL_CHAIN);
+        if (!chains.empty())
+            state.ChainObject = chains[0];
+
+        // Error if either is missing
+        if (state.BaseObject < 0 || state.ChainObject < 0)
+        {
+            TENLog(
+                "WreckingBall ERROR: Missing required objects. "
+                "Anchor=" + std::to_string(state.BaseObject) +
+                " Chain=" + std::to_string(state.ChainObject),
+                LogLevel::Error);
+
+            // Disable the wrecking ball so it doesn't behave unpredictably
+            item.Flags |= IFLAG_INVISIBLE;
+            item.Status = ITEM_NOT_ACTIVE;
+            return;
+        }
+
 
         // Position ball below ceiling as before.
         item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
@@ -172,6 +195,44 @@ namespace TEN::Entities::Traps
             anchor.RoomNumber,
             24);
     }
+
+    static void UpdateChain(ItemInfo& item, WreckingBallState& state)
+    {
+        if (state.ChainObject < 0 || state.BaseObject < 0)
+            return;
+
+        auto& chain = g_Level.Items[state.ChainObject];
+        auto& anchor = g_Level.Items[state.BaseObject];
+
+        // 1. Chain follows anchor horizontally.
+        chain.Pose.Position.x = anchor.Pose.Position.x;
+        chain.Pose.Position.z = anchor.Pose.Position.z;
+
+        // 2. Chain pivot stays exactly at anchor height.
+        chain.Pose.Position.y = anchor.Pose.Position.y;
+
+        // 3. Compute vertical distance to wrecking ball, with a TEST offset.
+        constexpr float TEST_OFFSET_Y = 1000.0f; // makes chain effectively shorter / higher
+        float distance = (float)item.Pose.Position.y - (float)anchor.Pose.Position.y - TEST_OFFSET_Y;
+        if (distance < 0.0f)
+            distance = 0.0f;
+
+        // 4. Chain mesh length.
+        constexpr float CHAIN_LENGTH = 3500.0f;
+
+        float scaleY = distance / CHAIN_LENGTH;
+        if (scaleY < 0.1f)
+            scaleY = 0.1f;
+
+        chain.Pose.Scale.y = scaleY;
+
+        // 5. Room update.
+        short room = chain.RoomNumber;
+        GetFloor(chain.Pose.Position.x, chain.Pose.Position.y, chain.Pose.Position.z, &room);
+        if (room != chain.RoomNumber)
+            ItemNewRoom(state.ChainObject, room);
+    }
+
 
     static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
     {
@@ -383,6 +444,7 @@ namespace TEN::Entities::Traps
         }
 
         UpdateAnchor(item, state);
+        UpdateChain(item, state);
         AnimateItem(item);
     }
 }
