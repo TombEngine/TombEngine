@@ -1408,7 +1408,38 @@ bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned lo
 	return decompressedSize == static_cast<int>(uncompressedSize);
 }
 
+bool DecompressChunked(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
+{
+	char* regionPtr = compressedRegion;
+
+	unsigned int numChunks = *(unsigned int*)regionPtr;
+	regionPtr += 4;
+
+	char* destPtr = dest;
+	unsigned int totalDecompressed = 0;
+
+	for (unsigned int i = 0; i < numChunks; i++)
+	{
+		unsigned int chunkUncompressed = *(unsigned int*)regionPtr;
+		regionPtr += 4;
+		unsigned int chunkCompressed = *(unsigned int*)regionPtr;
+		regionPtr += 4;
+
+		int result = LZ4_decompress_safe(regionPtr, destPtr, chunkCompressed, chunkUncompressed);
+
+		if (result != static_cast<int>(chunkUncompressed))
+			return false;
+
+		regionPtr += chunkCompressed;
+		destPtr += chunkUncompressed;
+		totalDecompressed += chunkUncompressed;
+	}
+
+	return totalDecompressed == totalUncompressedSize;
+}
+
 #ifdef _WIN64
+
 long long GetRemainingSize(FILE* filePtr)
 {
 	auto current_position = _ftelli64(filePtr);
@@ -1462,7 +1493,15 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 	auto compressedBuffer = (char*)malloc(compressedSize);
 	ReadFileEx(compressedBuffer, compressedSize, 1, filePtr);
 	DataPtr = (char*)malloc(uncompressedSize);
-	Decompress((byte*)DataPtr, (byte*)compressedBuffer, compressedSize, uncompressedSize);
+
+	if (!DecompressChunked(DataPtr, compressedBuffer, uncompressedSize))
+	{
+		free(compressedBuffer);
+		free(DataPtr);
+		DataPtr = nullptr;
+		throw std::exception{ "LZ4 decompression failed." };
+	}
+
 	free(compressedBuffer);
 
 	CurrentDataPtr = DataPtr;
