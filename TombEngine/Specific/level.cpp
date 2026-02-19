@@ -1478,6 +1478,12 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
 	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
 
+#ifndef _WIN64
+	// Safeguard against incompatible block size.
+	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
+		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
+#endif
+
 	// Safeguard against changed file format.
 	auto remainingSize = GetRemainingSize(filePtr);
 	if (uncompressedSize <= 0 || compressedSize <= 0 || compressedSize > remainingSize)
