@@ -1472,11 +1472,11 @@ long GetRemainingSize(FILE* filePtr)
 
 bool ReadCompressedBlock(FILE* filePtr, bool skip)
 {
-	unsigned int compressedSize = 0;
-	unsigned int uncompressedSize = 0;
+	long long compressedSize = 0;
+	long long uncompressedSize = 0;
 
-	ReadFileEx(&uncompressedSize, 1, 4, filePtr);
-	ReadFileEx(&compressedSize, 1, 4, filePtr);
+	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
+	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
 
 	// Safeguard against changed file format.
 	auto remainingSize = GetRemainingSize(filePtr);
@@ -1485,7 +1485,11 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 
 	if (skip) 
 	{
+#ifdef _WIN64
+		_fseeki64(filePtr, compressedSize, SEEK_CUR);
+#else
 		fseek(filePtr, compressedSize, SEEK_CUR);
+#endif
 		return false;
 	}
 
