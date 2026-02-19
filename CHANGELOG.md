@@ -43,6 +43,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flickering pickup summary item count in high FPS mode.
 * Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
+* Fixed loading of level files bigger than 2 GB (only for 64-bit systems).
 
 ### Lua API changes
 * Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
