@@ -1401,7 +1401,7 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	char* regionPtr = compressedRegion;
 
 	unsigned int numChunks = *(unsigned int*)regionPtr;
-	regionPtr += 4;
+	regionPtr += sizeof(unsigned int);
 
 	char* destPtr = dest;
 	unsigned int totalDecompressed = 0;
@@ -1409,9 +1409,9 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	for (unsigned int i = 0; i < numChunks; i++)
 	{
 		unsigned int chunkUncompressed = *(unsigned int*)regionPtr;
-		regionPtr += 4;
+		regionPtr += sizeof(unsigned int);
 		unsigned int chunkCompressed = *(unsigned int*)regionPtr;
-		regionPtr += 4;
+		regionPtr += sizeof(unsigned int);
 
 		int result = LZ4_decompress_safe(regionPtr, destPtr, chunkCompressed, chunkUncompressed);
 
