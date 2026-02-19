@@ -61,7 +61,7 @@ namespace TEN::Entities::Traps
 	{
 		enum class Phase
 		{
-			IdleAtTop = 0,
+			IdleAtTop,
 			Moving,
 			PreparingDrop,
 			Dropping,
