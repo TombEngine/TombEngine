@@ -1396,19 +1396,7 @@ void FileClose(FILE* ptr)
 	fclose(ptr);
 }
 
-bool Decompress(byte* dest, byte* src, unsigned long compressedSize, unsigned long uncompressedSize)
-{
-	int decompressedSize = LZ4_decompress_safe(
-		reinterpret_cast<const char*>(src),
-		reinterpret_cast<char*>(dest),
-		static_cast<int>(compressedSize),
-		static_cast<int>(uncompressedSize)
-	);
-
-	return decompressedSize == static_cast<int>(uncompressedSize);
-}
-
-bool DecompressChunked(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
+bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
 {
 	char* regionPtr = compressedRegion;
 
@@ -1503,7 +1491,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 	ReadFileEx(compressedBuffer, compressedSize, 1, filePtr);
 	DataPtr = (char*)malloc(uncompressedSize);
 
-	if (!DecompressChunked(DataPtr, compressedBuffer, uncompressedSize))
+	if (!Decompress(DataPtr, compressedBuffer, uncompressedSize))
 	{
 		free(compressedBuffer);
 		free(DataPtr);
