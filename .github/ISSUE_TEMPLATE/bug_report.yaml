@@ -1,85 +1,99 @@
 name: Bug report
-description: Create a report to help us understand and triage your issue.
-labels: 
-  - Awaiting Triage
+description: Create a report to help us understand and diagnose your issue. Your contribution is welcomed and valued! It is highly recommended that you are using the latest version before submitting a bug report.
+title: "[ bug Report ]"
+labels: Awaiting Triage
 
 body:
-  - type: markdown
-    attributes:
-      value: |
-        ## Bug Report
 
-        Please follow this document carefully to report a bug.
+- type: markdown
+  attributes:
+    value: |
+      Please follow this document in order to report a bug. It is highly recommended that you are using the latest version before submitting a bug report.
 
-        > **Important**: It is highly recommended that you use the latest version before submitting a bug report.
+- type: dropdown
+  attributes:
+    label: TombEngine version
+    description: |
+      Please select the TombEngine Version from the dropdown list. 
+    options:
+      - Development Build
+      - v1.8.0 (latest version)
+      - v1.7.1
+      - v1.7.0
+      - v1.5
+  validations:
+    required: true
 
-  - type: dropdown
-    attributes:
-      label: Tomb Engine Version
-      description: |
-        Please select the TombEngine version you are using.
-      options:
-        - Development build 
-        - v1.10.1 (latest public release)
-        - v1.10.0  
-    validations:
-      required: true
+- type: dropdown
+  attributes:
+    label: Tomb Editor version
+    description: |
+      Please select the Tomb Editor version used from the dropdown list.
+    options:
+      - Development Build
+      - v1.8.0 (latest version)
+      - v1.7.2
+      - v1.7.1
+      - v1.7.0
+  validations:
+    required: true
 
-  - type: checkboxes
-    attributes:
-      label: Development Version
-      description: Are you submitting this report from a development build that has not been officially released?
-      options: 
-        - label: "I am using an unofficial development version."
-        - label: "I am using an official release."
-        - label: "I am using an official pre-release."
-    validations:
-      required: true
+- type: textarea
+  attributes:
+    label: Describe the bug
+    description: |
+      Please provide A clear and concise description of what the bug is.
+    placeholder: |
+      Your bug report here.
+  validations:
+    required: true
 
-  - type: textarea
-    attributes:
-      label: Describe the Bug
-      description: |
-        Please provide a clear and concise description of what the issue is.
-      placeholder: |
-        Your bug report here.
-    validations:
-      required: true
+- type: textarea
+  attributes:
+    label: To Reproduce
+    description: |
+      To reproduce the behaviour, please provide detailed steps for the development team to follow. This can be done through screenshots or a written guide
 
-  - type: textarea
-    attributes:
-      label: To Reproduce
-      description: |
-        Please provide detailed steps to reproduce the issue.
-        
-        **Note**: If the bug cannot be reproduced or the issue is not clearly explained, it may be closed without further investigation.
-      placeholder: |
-        Step-by-step reproduction instructions here.
-    validations:
-      required: true
+      **If the bug cannot be reproduced, and if the issue is not adequately explained, it will be closed without further investigation**
+    placeholder: |
+     Provide detailed reproducible steps here. 
+  validations:
+    required: true
 
-  - type: textarea
-    attributes:
-      label: Expected Behaviour
-      description: |
-        What did you expect to happen?
+- type: textarea
+  attributes:
+    label: Expected Behaviour
+    description: |
+      A clear and concise description of what you expected to happen.
+    placeholder: |
+      A description of what should happen here.
+  validations:
+    required: true
 
-        **Note**: If the bug cannot be reproduced or the issue is not clearly explained, it may be closed without further investigation.
-      placeholder: |
-        A description of what should happen here.
-    validations:
-      required: true
+- type: textarea
+  attributes:
+    label: Additional Content
+    description: |
+      Add any other context about the problem here. 
 
-  - type: textarea
-    attributes:
-      label: Minimal Reproduction Project
-      description: |
-        Please upload a .zip file (10 MB max) containing your level and all assets needed to compile the level, including a minimal version where the bug occurs.
+      * Are you testing an build of a TombEngine that has not yet been released? If so please give some context.
+      *  Did you get any asset from the TombEngine website that has presented a bug? 
+    placeholder: |
+      A description of any additional content here.
+  validations:
+    required: false
 
-        Alternatively, provide a download link from a cloud storage service (e.g., Google Drive, Dropbox).
+- type: textarea
+  attributes:
+    label: Minimal reproduction project 
+    description: |
+      **Please upload a .zip file containing your level and all assets needed to compile the level and a cut-down version of your level where the bug presents itself**
+      The project can be uploaded as a zip file (10 mb max) or provide a link from google drive, dropbox etc.
+      **Note** if you do not provide this, your issue may be rejected
+    placeholder: |
+      Download link to your project 
+  validations:
+    required: true
+      
 
-        > **Important**: If you do not provide a minimal reproduction project, your issue may be rejected.
-      placeholder: |
-        Download link to your project or attach a .zip file.
-    validations:
-      required: true
+
