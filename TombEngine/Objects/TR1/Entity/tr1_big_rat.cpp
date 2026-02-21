@@ -22,18 +22,18 @@ using namespace TEN::Math;
 namespace TEN::Entities::Creatures::TR1
 {
 	constexpr auto BIG_RAT_BITE_ATTACK_DAMAGE   = 20;
-	constexpr auto BIG_RAT_POUNCE_ATTACK_DAMAGE = 25; // 20 in OG
+	constexpr auto BIG_RAT_POUNCE_ATTACK_DAMAGE = 25; // 20 in OG.
 
 	constexpr auto BIG_RAT_LAND_BITE_ATTACK_RANGE  = SQUARE(BLOCK(0.34f));
-	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE     = SQUARE(BLOCK(1.0f)); // (3 / 2.0f) in OG, adapted to TEN to minimize false attack
+	constexpr auto BIG_RAT_POUNCE_ATTACK_RANGE     = SQUARE(BLOCK(1.0f)); // (3 / 2.0f) in OG, adapted to TEN to minimize false attack.
 	constexpr auto BIG_RAT_WATER_BITE_ATTACK_RANGE = SQUARE(BLOCK(0.3f));
 
 	constexpr auto BIG_RAT_REAR_POSE_CHANCE     = 1 / 128.0f;
-	constexpr auto BIG_RAT_WATER_SURFACE_OFFSET = 25; // increased to prevent the rat entering the slopes in water
+	constexpr auto BIG_RAT_WATER_SURFACE_OFFSET = 25; // Increased to prevent the rat entering the slopes in water.
 	constexpr auto BIG_RAT_RIPPLE_RADIUS        = 128.0f;
 
-	constexpr auto BIG_RAT_RUN_TURN_RATE_MAX  = ANGLE(9.0f);  // (6.0f) in OG, revert after spasm effect with velocity is implemented
-	constexpr auto BIG_RAT_SWIM_TURN_RATE_MAX = ANGLE(4.0f); // (3.0f) in OG, revert after spasm effect with velocity is implemented
+	constexpr auto BIG_RAT_RUN_TURN_RATE_MAX  = ANGLE(9.0f); // (6.0f) in OG, revert after spasm effect with velocity is implemented.
+	constexpr auto BIG_RAT_SWIM_TURN_RATE_MAX = ANGLE(4.0f); // (3.0f) in OG, revert after spasm effect with velocity is implemented.
 
 	const auto BigRatBite = CreatureBiteInfo(Vector3(0, -11, 108), 3);
 	const auto BigRatAttackJoints = std::vector<unsigned int>{ 0, 1, 2, 3, 7, 8, 24, 25 };
@@ -162,17 +162,15 @@ namespace TEN::Entities::Creatures::TR1
 				if (ai.ahead && item->TouchBits.Test(BigRatAttackJoints))
 				{
 					if (Random::TestProbability(1 / 14.0f))
-					SetAnimation(item, BIG_RAT_ANIM_IDLE); // Trick to increase BITE-ATTACK by randomizer
+						SetAnimation(item, BIG_RAT_ANIM_IDLE); // Trick to increase BITE-ATTACK by randomizer.
 
 					item->Animation.TargetState = BIG_RAT_STATE_IDLE;
 					break;
 				}
-
 				else if (ai.bite && ai.distance < BIG_RAT_POUNCE_ATTACK_RANGE)
 				{
 					item->Animation.TargetState = BIG_RAT_STATE_POUNCE_ATTACK;
 				}
-
 				else if (ai.ahead && Random::TestProbability(BIG_RAT_REAR_POSE_CHANCE))
 				{
 					item->Animation.TargetState = BIG_RAT_STATE_IDLE;
@@ -222,7 +220,7 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case BIG_RAT_STATE_SWIM_BITE_ATTACK:
-				if (item->Animation.RequiredState == NO_VALUE && ai.ahead &&
+				if (item->Animation.RequiredState != BIG_RAT_STATE_SWIM && ai.ahead &&
 					item->TouchBits.Test(BigRatAttackJoints))
 				{
 					DoDamage(creature->Enemy, BIG_RAT_BITE_ATTACK_DAMAGE);
