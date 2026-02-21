@@ -30,6 +30,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
+* Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
