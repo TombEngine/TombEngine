@@ -56,11 +56,11 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	// Refraction
 	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
-	float2 clipPos = screenPos.xy / screenPos.w;
 
 	if (CameraUnderwater != Water)
 	{
-		float factor = (Frame + clipPos.x * 320);
+		float phaseOffset = DecodeHash(input.AnimationFrameOffsetIndexHash) * (1.0f / 256.0f);
+		float factor = Frame + phaseOffset * 320.0f;
 		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
 		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
 		screenPos.x += xOffset * weight;
