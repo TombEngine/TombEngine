@@ -15,11 +15,12 @@ namespace TEN::Hud
 	private:
 		// Fields
 
-		std::string    _itemName = {};
+		unsigned int _id = 0;
 		GAME_OBJECT_ID _objectID = GAME_OBJECT_ID::ID_NO_OBJECT;
 
 		bool _visible = false;
 		bool _disposing = false;
+		bool _wasInterpolated = false;
 
 		Vector3                              _position         = Vector3::Zero;
 		EulerAngles                          _orientation      = EulerAngles::Identity;
@@ -42,11 +43,11 @@ namespace TEN::Hud
 		// Constructors
 
 		DisplayItem() = default;
-		DisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale);
+		DisplayItem(unsigned int id, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale);
 
 		// Getters
 
-		const std::string&                         GetName() const;
+		unsigned int                               GetID() const;
 		GAME_OBJECT_ID                             GetObjectID() const;
 		const Vector3&                             GetPosition() const;
 		std::optional<std::pair<Vector2, Vector2>> GetBounds() const;
@@ -74,7 +75,6 @@ namespace TEN::Hud
 
 		// Setters
 
-		void SetName(const std::string& name);
 		void SetObjectID(GAME_OBJECT_ID objectID);
 		void SetPosition(const Vector3& pos, bool disableInterpolation);
 		void SetOrientation(const EulerAngles& orient, bool disableInterpolation);
