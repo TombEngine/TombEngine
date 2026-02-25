@@ -209,13 +209,15 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void KillEntity(ItemInfo& entity)
+	static void KillEntity(ItemInfo& entity, bool isWallMode)
 	{
 		if (entity.IsLara())
 		{
 			auto& player = GetLaraInfo(entity);
 
-			if (player.Context.Vehicle == NO_VALUE && !player.Control.IsLow && !entity.Animation.IsAirborne)
+			// Special electrocution death animation only for FLOOR mode
+			if (!isWallMode &&
+				player.Context.Vehicle == NO_VALUE && !player.Control.IsLow && !entity.Animation.IsAirborne)
 			{
 				SetAnimation(entity, ID_LARA_EXTRA_ANIMS, LEA_ELECTROCUTION_DEATH);
 				entity.Animation.FrameNumber = 0;
@@ -276,7 +278,7 @@ namespace TEN::Entities::Traps
 		{
 			if (IsEntityInField(item, center, *entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
 			{
-				KillEntity(*entity);
+				KillEntity(*entity, isWallMode);
 				isKilling = true;
 			}
 		}
@@ -417,6 +419,11 @@ namespace TEN::Entities::Traps
 		if (totalBlocks == 0)
 			totalBlocks = 1;  // Default to 1 block if OCB is 0
 
+		// Calculate rotation values early
+		float rotY = TO_RAD(-item.Pose.Orientation.y);  // Negate to match editor rotation direction
+		float cosY = cos(rotY);
+		float sinY = sin(rotY);
+
 		float halfSpanX, halfSpanZ;
 		float localOffsetX = 0.0f;
 		float localOffsetZ = 0.0f;
@@ -443,10 +450,6 @@ namespace TEN::Entities::Traps
 			localOffsetX = 0.0f;
 			localOffsetZ = -(totalBlocks - 1) * BLOCK(0.5f);  // For OCB=1: 0, OCB=2: -BLOCK(0.5), OCB=3: -BLOCK(1)
 		}
-
-		float rotY = TO_RAD(-item.Pose.Orientation.y);  // Negate to match editor rotation direction
-		float cosY = cos(rotY);
-		float sinY = sin(rotY);
 
 		// Transform local offset to world space
 		float worldOffsetX = localOffsetX * cosY - localOffsetZ * sinY;
