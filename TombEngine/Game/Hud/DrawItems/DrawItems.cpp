@@ -162,40 +162,58 @@ namespace TEN::Hud
 	void DrawItemsController::RemoveItem(const std::string& name)
 	{
 		auto item = std::find_if(_displayItems.begin(), _displayItems.end(),
-			[&](const DisplayItem& item)
-			{
-				return item.GetName() == name;
-			});
+		[&](const DisplayItem& item)
+		{
+			return item.GetName() == name;
+		});
 
 		if (item != _displayItems.end())
 		{
-			int removedIndex = static_cast<int>(std::distance(_displayItems.begin(), item));
+			int removedIndex = (int)(std::distance(_displayItems.begin(), item));
 			_displayItems.erase(item);
 		}
 	}
 
-	void DrawItemsController::Update()
+	void DrawItemsController::Prepare()
 	{
-		std::sort(_displayItems.begin(), _displayItems.end(),
-			[](const DisplayItem& item0, const DisplayItem& item1)
-			{
-				return (item0.GetPosition().z > item1.GetPosition().z);
-			});
+		if (_displayItems.empty())
+			return;
+
+		_displayItems.erase(std::remove_if(_displayItems.begin(), _displayItems.end(),
+		[](const DisplayItem& item)
+		{
+			return item.GetDisposing();
+		}),
+			_displayItems.end());
 
 		for (auto& item : _displayItems)
 		{
 			item.StoreInterpolationData();
+			item.SetVisible(false);
 		}
 
 		StoreCameraInterpolationData();
 	}
 
+	void DrawItemsController::Update()
+	{
+		if (_displayItems.empty())
+			return;
+
+		std::sort(_displayItems.begin(), _displayItems.end(),
+		[](const DisplayItem& item0, const DisplayItem& item1)
+		{
+			return (item0.GetPosition().z > item1.GetPosition().z);
+		});
+	}
+
 	void DrawItemsController::Draw() const
 	{
+		if (_displayItems.empty())
+			return;
+
 		for (const auto& item : _displayItems)
-		{
 			g_Renderer.DrawObjectIn3DSpace(item);
-		}
 	}
 
 	void DrawItemsController::Clear()

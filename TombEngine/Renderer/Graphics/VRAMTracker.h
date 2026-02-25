@@ -53,7 +53,7 @@ namespace TEN::Renderer::Graphics
 
 		std::string GetSummary() const
 		{
-			return fmt::format("VRAM usage: {:.1f} MB total, textures: {:.1f} MB, render targets: {:.1f} MB, VB: {:.1f} MB, IB: {:.1f} MB.",
+			return fmt::format("VRAM usage: {:.1f} MB total, textures: {:.1f} MB, RT: {:.1f} MB, VB: {:.1f} MB, IB: {:.1f} MB.",
 				ToMegabytes(GetTotal()),
 				ToMegabytes(GetCategory(VRAMCategory::Texture)),
 				ToMegabytes(GetCategory(VRAMCategory::RenderTarget)),
