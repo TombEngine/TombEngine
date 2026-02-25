@@ -38,6 +38,9 @@ LevelVars.Engine.Timer = {timers = {}}
 local ZERO = TEN.Time()
 local DEFAULT_TEXT_OPTIONS = {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.VERTICAL_CENTER}
 local DEFAULT_TIMER_FORMAT = {minutes = true, seconds = true, deciseconds = true}
+local FRAME_TIME = 1/30
+local pairs = pairs
+local unpack = table.unpack
 
 --- Create (but do not start) a new timer.
 -- @tparam string name A label to give this timer; used to retrieve the timer later.<br>__Do not give your timers a name beginning with \_\_TEN, as this is reserved for timers used by other internal libaries__.
@@ -75,6 +78,7 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 	LevelVars.Engine.Timer.timers[name] = {}
 	local thisTimer = LevelVars.Engine.Timer.timers[name]
 	thisTimer.name = name
+	thisTimer.isInternal = string.match(name, "__TEN") and true or false
 	thisTimer.totalTime = TEN.Time((math.floor(totalTime * 10) / 10)  * 30)
 	thisTimer.realRemainingTime = thisTimer.totalTime
 	thisTimer.remainingTime = thisTimer.totalTime
@@ -782,13 +786,14 @@ LevelFuncs.Engine.Timer.Decrease = function ()
 end
 
 LevelFuncs.Engine.Timer.UpdateAll = function()
-	for _, t in pairs(LevelVars.Engine.Timer.timers) do
+	local timers = LevelVars.Engine.Timer.timers
+	for _, t in pairs(timers) do
 		if t.active then
 			if t.timerFormat then
 				local text = Utility.GenerateTimeFormattedString(t.remainingTime, t.timerFormat)
 				local color = t.paused and t.pausedColor or t.unpausedColor
 				local timerString = TEN.Strings.DisplayString(text, t.pos, t.scale, color, false, t.stringOption)
-				local time = (t.remainingTime == ZERO and not t.loop and not string.match(t.name, "__TEN")) and 1 or 1/30
+				local time = (t.remainingTime == ZERO and not t.loop and not t.isInternal) and 1 or FRAME_TIME
 				TEN.Strings.ShowString(timerString, time)
 			end
 			if t.remainingTime == ZERO then
@@ -800,7 +805,7 @@ LevelFuncs.Engine.Timer.UpdateAll = function()
 				end
 				t.skipFirstTick = true
 				if t.func then
-					t.func(table.unpack(t.funcArgs))
+					t.func(unpack(t.funcArgs))
 				end
 			end
 		end

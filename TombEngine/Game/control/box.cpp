@@ -1400,8 +1400,11 @@ void CreatureHealth(ItemInfo* item)
 {
 	auto* creature = GetCreatureInfo(item);
 
-	if (creature->Poisoned && item->HitPoints > 1 && (GlobalCounter & 0x1F) == 0x1F)
-		item->HitPoints--;
+	if (creature->Poisoned && (GlobalCounter & 0x1F) == 0x1F)
+	{
+		if (item->HitPoints > (g_GameFlow->GetSettings()->Gameplay.KillPoisonedEnemies ? 0 : 1))
+			item->HitPoints--;
+	}
 
 	if (!Objects[item->ObjectNumber].WaterCreature() &&
 		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &g_Level.Rooms[item->RoomNumber]))

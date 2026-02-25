@@ -97,6 +97,8 @@ namespace TEN::Renderer
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
+
+			_context->Flush();
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
@@ -183,6 +185,8 @@ namespace TEN::Renderer
 				std::move(ORSH),
 				std::move(emissive));
 
+			_context->Flush();
+
 #ifdef DUMP_TEXTURES
 			char filename[255];
 			sprintf(filename, "dump\\room_%d.png", i);
@@ -235,6 +239,8 @@ namespace TEN::Renderer
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
+
+			_context->Flush();
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
@@ -289,6 +295,8 @@ namespace TEN::Renderer
 				std::move(ORSH),
 				std::move(emissive));
 
+			_context->Flush();
+
 #ifdef DUMP_TEXTURES
 			char filename[255];
 			sprintf(filename, "dump\\static_%d.png", i);
@@ -306,6 +314,7 @@ namespace TEN::Renderer
 		{
 			auto& texture = g_Level.SpritesTextures[i];
 			_spritesTextures[i] = Texture2D(_device.Get(), texture.colorMapData.data(), (int)texture.colorMapData.size());
+			_context->Flush();
 		}
 
 		if (_spritesTextures.size() > 0)

@@ -71,20 +71,14 @@ namespace TEN::Scripting::Collision
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with static meshes. Disable when not needed or required to optimize performance.
 	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion point.
 	// @treturn Ray A new ray object.
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist)
-	{
-		*this = Ray(origin, roomNumber, dir, dist, ScriptIntersectionType::Box, ScriptIntersectionType::Box, false);
-	}
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist) :
+		Ray(origin, roomNumber, dir, dist, ScriptIntersectionType::Box, ScriptIntersectionType::Box, false) { }
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables)
-	{
-		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, ScriptIntersectionType::Box, false);
-	}
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables) :
+		Ray(origin, roomNumber, dir, dist, hitMoveables, ScriptIntersectionType::Box, false) { }
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics)
-	{
-		*this = Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics, false);
-	}
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics) :
+		Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics, false) { }
 
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate)
 	{

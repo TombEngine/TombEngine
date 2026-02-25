@@ -70,10 +70,11 @@ namespace TEN::Scripting::Types
 	}
 
 	/// Metafunction. Use tostring(anchors).
-	// @tparam DisplayAnchors This DisplayAnchors.
+	// @tparam View.DisplayAnchors This DisplayAnchors.
 	// @treturn string A string showing all anchor points.
 	// @function __tostring
 	// @usage
+	// -- Generate generic anchors object with default values.
 	// local anchors = TEN.View.DisplayAnchors()
 	// print(tostring(anchors))
 	// -- or --

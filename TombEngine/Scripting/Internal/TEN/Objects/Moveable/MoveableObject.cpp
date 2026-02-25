@@ -214,7 +214,8 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
-		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight);
+		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -1348,11 +1349,20 @@ void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int state
 	AnimateItem(_moveable);
 }
 
-/// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
+/// Show interaction highlight for the object for current game frame.
+// Can be useful if you have scripted an interaction with it.
 // @function Moveable:ShowInteractionHighlight
 // @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
 void Moveable::ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType)
 {
 	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
 	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable, InteractionMode::Always, convertedIcon);
+}
+
+/// Suppresses interaction highlight for the object for current game frame.
+// Can be useful when you need to manually block interaction highlight for a particular object or in a particular area.
+// @function Moveable:HideInteractionHighlight
+void Moveable::HideInteractionHighlight()
+{
+	g_Hud.InteractionHighlighter.Suppress(_moveable.Get()->Index);
 }

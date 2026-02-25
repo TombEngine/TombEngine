@@ -227,12 +227,12 @@ namespace TEN::Entities::Switches
 
 					if (switchItem->Animation.ActiveState == SWITCH_OFF)
 					{
-						SetAnimation(laraItem, offAnim);
+						SetExtendedAnimation(*laraItem, offAnim);
 						switchItem->Animation.TargetState = SWITCH_ON;
 					}
 					else
 					{
-						SetAnimation(laraItem, onAnim);
+						SetExtendedAnimation(*laraItem, onAnim);
 						switchItem->Animation.TargetState = SWITCH_OFF;
 					}
 

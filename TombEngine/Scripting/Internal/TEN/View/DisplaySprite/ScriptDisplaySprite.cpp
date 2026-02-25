@@ -163,7 +163,7 @@ namespace TEN::Scripting::DisplaySprite
 	// @function DisplaySprite:GetAnchors
 	// @tparam[opt=DisplaySpriteAlignMode.Center] View.AlignMode alignMode Alignment mode.
 	// @tparam[opt=DisplaySpriteScaleMode.Fit] View.ScaleMode scaleMode Scaling mode.
-	// @treturn DisplayAnchors An object containing the anchor points of the display sprite.<br>
+	// @treturn View.DisplayAnchors An object containing the anchor points of the display sprite.<br>
 	// The object contains the following fields:<br>
 	// - `TOP_LEFT`<br>
 	// - `TOP_CENTER`<br>

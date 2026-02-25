@@ -57,11 +57,6 @@ namespace TEN::Renderer
 	constexpr auto MenuVerticalPause = 220;
 	constexpr auto MenuVerticalOptionsPause = 275;
 
-	// Title logo positioning
-	constexpr auto LogoTop = 50;
-	constexpr auto LogoWidth = 300;
-	constexpr auto LogoHeight = 150;
-
 	// Used with distance travelled
 	constexpr auto UnitsToMeters = 419;
 
@@ -613,6 +608,7 @@ namespace TEN::Renderer
 			break;
 		}
 
+		DrawDebugInfo(_gameCamera);
 		DrawAllStrings();
 	}
 
@@ -987,7 +983,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawObjectIn3DSpace(const DisplayItem& item)
 	{
-		if (!item.IsVisible())
+		if (!item.GetVisible())
 			return;
 
 		float alpha = GetInterpolationFactor();
@@ -1005,8 +1001,7 @@ namespace TEN::Renderer
 		float aspectRatio = (float)(_screenWidth) / _screenHeight;
 
 		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Up);
-		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(
-			g_DrawItems.GetInterpolatedFov(alpha), aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_DrawItems.GetInterpolatedFov(alpha), aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 
 		auto& moveableObject = _moveableObjects[objectNumber];
 		if (!moveableObject.has_value())
@@ -1106,7 +1101,7 @@ namespace TEN::Renderer
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
-			if (meshBits && !item.IsMeshVisible(i))
+			if (meshBits && !item.GetMeshVisible(i))
 				continue;
 
 			if (skinMode == SkinningMode::Full && g_Level.Meshes[object.meshIndex + i].hidden)
@@ -1302,22 +1297,37 @@ namespace TEN::Renderer
 
 			if (drawLogo && _logo.Texture != nullptr)
 			{
+				auto& settings = g_GameFlow->GetSettings()->UI;
+
 				float factorX = (float)_screenWidth / DISPLAY_SPACE_RES.x;
 				float factorY = (float)_screenHeight / DISPLAY_SPACE_RES.y;
 				float scale = _screenWidth > _screenHeight ? factorX : factorY;
 
-				int logoLeft   = (DISPLAY_SPACE_RES.x / 2) - (LogoWidth / 2);
-				int logoRight  = (DISPLAY_SPACE_RES.x / 2) + (LogoWidth / 2);
-				int logoBottom = LogoTop + LogoHeight;
+				float logoWidthScaled  = _logo.Width * settings.TitleLogoScale;
+				float logoHeightScaled = _logo.Height * settings.TitleLogoScale;
+
+				float centerX = (settings.TitleLogoPosition.x / 100.0f) * DISPLAY_SPACE_RES.x;
+				float centerY = (settings.TitleLogoPosition.y / 100.0f) * DISPLAY_SPACE_RES.y;
+
+				float logoLeft   = centerX - logoWidthScaled  * 0.5f;
+				float logoRight  = centerX + logoWidthScaled  * 0.5f;
+				float logoTop    = centerY - logoHeightScaled * 0.5f;
+				float logoBottom = centerY + logoHeightScaled * 0.5f;
 
 				RECT rect;
 				rect.left   = logoLeft   * scale;
 				rect.right  = logoRight  * scale;
-				rect.top    = LogoTop    * scale;
+				rect.top    = logoTop    * scale;
 				rect.bottom = logoBottom * scale;
 
+				// HACK: Color range slippage. Remove in fix color range PR.
+				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
+									 settings.TitleLogoColor.GetG() / (float)UCHAR_MAX,
+									 settings.TitleLogoColor.GetB() / (float)UCHAR_MAX,
+									 settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
+
 				_spriteBatch->Begin(SpriteSortMode_BackToFront, _renderStates->NonPremultiplied());
-				_spriteBatch->Draw(_logo.ShaderResourceView.Get(), rect, Vector4::One * ScreenFadeCurrent);
+				_spriteBatch->Draw(_logo.ShaderResourceView.Get(), rect, color * ScreenFadeCurrent);
 				_spriteBatch->End();
 			}
 
@@ -1607,23 +1617,18 @@ namespace TEN::Renderer
 			PrintDebugMessage("MEMORY STATS");
 			PrintDebugMessage(" ");
 			PrintDebugMessage("Adapter: %s", _adapterInfo.Name.c_str());
-			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
+			PrintDebugMessage("Dedicated VRAM: %.2f MB", ToMegabytes(_adapterInfo.DedicatedVideoMemory));
+			PrintDebugMessage("Shared system memory: %.2f MB", ToMegabytes(_adapterInfo.SharedSystemMemory));
 			PrintDebugMessage(" ");
-			PrintDebugMessage("--- DXGI Adapter ---");
-			PrintDebugMessage("Dedicated VRAM: %d MB", _adapterInfo.DedicatedVideoMemory / (1024 * 1024));
-			PrintDebugMessage("Dedicated system memory: %d MB", _adapterInfo.DedicatedSystemMemory / (1024 * 1024));
-			PrintDebugMessage("Shared system memory: %d MB", _adapterInfo.SharedSystemMemory / (1024 * 1024));
-			PrintDebugMessage(" ");
-			PrintDebugMessage("--- Allocated ---");
-			PrintDebugMessage("Total: %.2f MB", vram.ToMegabytes(vram.GetTotal()));
-			PrintDebugMessage("  Textures: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
-			PrintDebugMessage("  Render targets: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
-			PrintDebugMessage("  Vertex buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
-			PrintDebugMessage("  Index buffers: %.2f MB", vram.ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
+			PrintDebugMessage("Total usage: %.2f MB", ToMegabytes(vram.GetTotal()));
+			PrintDebugMessage("  Textures: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("  Render targets: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("  Vertex buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("  Index buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
 
 			if (_adapterInfo.DedicatedVideoMemory > 0)
 			{
-				float usagePercent = (vram.ToMegabytes(vram.GetTotal()) / vram.ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
+				float usagePercent = (ToMegabytes(vram.GetTotal()) / ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
 				PrintDebugMessage(" ");
 				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
 			}
