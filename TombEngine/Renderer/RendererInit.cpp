@@ -6,6 +6,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/SMAA/AreaTex.h"
 #include "Renderer/SMAA/SearchTex.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -226,6 +227,7 @@ namespace TEN::Renderer
 		 
 		_SMAAAreaTexture = Texture2D(_device.Get(), AREATEX_WIDTH, AREATEX_HEIGHT, DXGI_FORMAT_R8G8_UNORM, AREATEX_PITCH, areaTexBytes);
 		_SMAASearchTexture = Texture2D(_device.Get(), SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, DXGI_FORMAT_R8_UNORM, SEARCHTEX_PITCH, searchTexBytes);
+		_context->Flush();
 
 		CreateSSAONoiseTexture();
 		InitializePostProcess();
@@ -235,7 +237,8 @@ namespace TEN::Renderer
 
 		_roomAmbientMapFront = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
 		_roomAmbientMapBack = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
-		
+		_context->Flush();
+
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
@@ -243,6 +246,9 @@ namespace TEN::Renderer
 
 		_spriteVertices.reserve(MAX_SPRITE_VERTICES );
 		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITE_VERTICES , _spriteVertices);
+
+		// Log VRAM usage after initialization.
+		TENLog(Graphics::VRAMTracker::Get().GetSummary(), LogLevel::Info);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
@@ -487,7 +493,10 @@ namespace TEN::Renderer
 		_glowRenderTarget[1] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_legacyReflectionsRenderTarget = RenderTarget2D(_device.Get(), w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_skyboxRenderTarget = Texture2DArray(_device.Get(), ROOM_AMBIENT_MAP_SIZE, 2, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
-		
+
+		// Flush GPU command buffer after render target creation to prevent TDR on Intel integrated GPUs.
+		_context->Flush();
+
 		// Initialize sprite and primitive batches
 		_spriteBatch = std::make_unique<SpriteBatch>(_context.Get());
 		_primitiveBatch = std::make_unique<PrimitiveBatch<Vertex>>(_context.Get());
@@ -510,12 +519,7 @@ namespace TEN::Renderer
 		_viewportToolkit = Viewport(_viewport.TopLeftX, _viewport.TopLeftY, _viewport.Width, _viewport.Height,
 			_viewport.MinDepth, _viewport.MaxDepth);
 
-		// Low AA is done with FXAA, Medium - High AA are done with SMAA.
-		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
-		{
-			InitializeSMAA();
-		}
-
+		InitializeSMAA();
 		SetFullScreen();
 	}
 
@@ -528,6 +532,8 @@ namespace TEN::Renderer
 		_SMAASceneSRGBRenderTarget = RenderTarget2D(_device.Get(), &_SMAASceneRenderTarget, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 		_SMAAEdgesRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SMAABlendRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+
+		_context->Flush();
 	}
 
 	void Renderer::InitializeCommonTextures()
@@ -543,7 +549,9 @@ namespace TEN::Renderer
 		SetTextureOrDefault(_logo, GetAssetPath(L"Textures/Logo.png"));
 		SetTextureOrDefault(_loadingBarBorder, GetAssetPath(L"Textures/LoadingBarBorder.png"));
 		SetTextureOrDefault(_loadingBarInner, GetAssetPath(L"Textures/LoadingBarInner.png"));
-		SetTextureOrDefault(_whiteTexture, GetAssetPath(L"Textures/WhiteSprite.png")); 
+		SetTextureOrDefault(_whiteTexture, GetAssetPath(L"Textures/WhiteSprite.png"));
+
+		_context->Flush();
 
 		_whiteSprite.Height = _whiteTexture.Height;
 		_whiteSprite.Width = _whiteTexture.Width;
@@ -575,8 +583,37 @@ namespace TEN::Renderer
 
 		Utils::throwIfFailed(res);
 
+		// Collect adapter information.
+		CollectAdapterInfo();
+
 		// Initialize shader manager.
 		_shaders.Initialize(_device, _context);
+	}
+
+	void Renderer::CollectAdapterInfo()
+	{
+		ComPtr<IDXGIDevice> dxgiDevice;
+		Utils::throwIfFailed(_device.As(&dxgiDevice));
+
+		ComPtr<IDXGIAdapter> dxgiAdapter;
+		Utils::throwIfFailed(dxgiDevice->GetAdapter(&dxgiAdapter));
+
+		DXGI_ADAPTER_DESC desc = {};
+		Utils::throwIfFailed(dxgiAdapter->GetDesc(&desc));
+
+		_adapterInfo.Name = TEN::Utils::ToString(desc.Description);
+		_adapterInfo.VendorId = desc.VendorId;
+		_adapterInfo.DeviceId = desc.DeviceId;
+		_adapterInfo.SubSysId = desc.SubSysId;
+		_adapterInfo.Revision = desc.Revision;
+		_adapterInfo.DedicatedVideoMemory = desc.DedicatedVideoMemory;
+		_adapterInfo.DedicatedSystemMemory = desc.DedicatedSystemMemory;
+		_adapterInfo.SharedSystemMemory = desc.SharedSystemMemory;
+
+		TENLog("Adapter: " + _adapterInfo.Name, LogLevel::Info);
+		TENLog("Dedicated VRAM: " + std::to_string(_adapterInfo.DedicatedVideoMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Dedicated system memory: " + std::to_string(_adapterInfo.DedicatedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Shared system memory: " + std::to_string(_adapterInfo.SharedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
 	}
 
 	void Renderer::ToggleFullScreen(bool force)

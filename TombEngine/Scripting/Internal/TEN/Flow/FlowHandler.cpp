@@ -18,6 +18,7 @@
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
 #include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
 #include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/PathfindingAlgorithms.h"
 #include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
@@ -29,6 +30,7 @@
 #include "Sound/sound.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Gui;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
 
@@ -286,6 +288,13 @@ Must be an integer value (0 means no secrets).
 @tparam int count Total number of secrets in the game.
 */
 	tableFlow.set_function(ScriptReserved_SetTotalSecretCount, &FlowHandler::SetTotalSecretCount, this);
+
+/*** Get global game session time.
+Represents a global session time elapsed since the game launch. Does not correspond to time values in level or game statistics.
+@function GetGlobalGameTime
+@treturn Time Global game session time elapsed since the game launch.
+*/
+	tableFlow.set_function(ScriptReserved_GetGlobalGameTime, &FlowHandler::GetGlobalGameTime, this);
 	
 /*** Do FlipMap with specific group ID.
 @function FlipMap
@@ -369,6 +378,7 @@ Specify which translations in the strings table correspond to which languages.
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ErrorMode, ERROR_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_GameStatus, GAME_STATUSES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_FreezeMode, FREEZE_MODES);
+	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingMode, PATHFINDING_MODES);
 }
 
 FlowHandler::~FlowHandler()
@@ -452,7 +462,6 @@ void FlowHandler::SetTitleScreenImagePath(const std::string& path)
 	TitleScreenImagePath = path;
 }
 
-
 int FlowHandler::GetTotalSecretCount()
 {
 	return TotalNumberOfSecrets;
@@ -463,11 +472,17 @@ void FlowHandler::SetTotalSecretCount(int secretsNumber)
 	TotalNumberOfSecrets = secretsNumber;
 }
 
+Time FlowHandler::GetGlobalGameTime()
+{
+	return Time(GlobalCounter);
+}
+
 void FlowHandler::LoadFlowScript()
 {
 	TENLog("Loading gameflow script, strings, and settings...", LogLevel::Info);
 
 	Levels.clear();
+	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);

@@ -243,5 +243,5 @@ a:target + * {
   background-color: #FF9;
 }
 
-/* border-top for class section */
-.section-header.has-description {border-top: 1px solid #ccc; padding-top: 1em;}
+/* border-top for section header */
+.section-header ~ .section-header {border-top: 1px solid #ccc; padding-top: 1em;}

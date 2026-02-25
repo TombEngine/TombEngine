@@ -115,7 +115,7 @@ namespace TEN::Hud
 		return !armsBusy && conditionsMet;
 	}
 
-	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type)
+	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type, Vector3 offset)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
 		if (!g_Configuration.EnableInteractionHighlighter)
@@ -124,6 +124,13 @@ namespace TEN::Hud
 		// Another interaction highlight takes priority.
 		if (_isActive)
 			return;
+
+		// Bypass if item index is currently suppressed and clear the suppression for the next test.
+		if (_suppressedItemNumbers.find(item.Index) != _suppressedItemNumbers.end())
+		{
+			_suppressedItemNumbers.erase(item.Index);
+			return;
+		}
 
 		// Rough interaction distance test.
 		auto distance = Vector3::Distance(player.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
@@ -144,8 +151,11 @@ namespace TEN::Hud
 
 		const auto playerBoundingBox = player.GetObb();
 
-		// Inflate object bounding box a little to increase highlight tolerance.
+		// Offset object bounding box.
 		auto itemBoundingBox = item.GetObb();
+		itemBoundingBox.Center = itemBoundingBox.Center + offset;
+
+		// Inflate object bounding box a little to increase highlight tolerance.
 		auto inflatedBoundingBox = itemBoundingBox;
 		inflatedBoundingBox.Extents = itemBoundingBox.Extents + Vector3::One * INTERACTION_PADDING;
 
@@ -332,8 +342,13 @@ namespace TEN::Hud
 		if (_previous.Fade > 0.0f)
 			_previous.Fade = std::max(0.0f, _previous.Fade - FADE_SPEED);
 
-		// Reset for next frame — if Show() not called again, we fade out
+		// Reset for next frame - if Show() not called again, we fade out.
 		_isActive = false;
+	}
+
+	void InteractionHighlighterController::Suppress(int index)
+	{
+		_suppressedItemNumbers.insert(index);
 	}
 
 	void InteractionHighlighterController::Clear()
@@ -342,5 +357,7 @@ namespace TEN::Hud
 
 		_previous = {};
 		_current  = {};
+
+		_suppressedItemNumbers.clear();
 	}
 }

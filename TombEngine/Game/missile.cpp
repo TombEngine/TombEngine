@@ -5,6 +5,8 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
+#include "Game/control/box.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
@@ -20,6 +22,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Light;
 using namespace TEN::Math;
@@ -29,20 +32,31 @@ constexpr auto MUTANT_BOMB_DAMAGE	= 100;
 constexpr auto DIVER_HARPOON_DAMAGE = 50;
 constexpr auto KNIFE_DAMAGE			= 50;
 
-void ShootAtLara(ItemInfo& fx)
+void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 {
-	auto target = Vector3(
-		LaraItem->Pose.Position.x,
-		LaraItem->Pose.Position.y - (GameBoundingBox(LaraItem).GetHeight() * 0.75f),
-		LaraItem->Pose.Position.z);
+	constexpr auto RANDOM_ORIENT = 1.4f;
 
-	fx.Pose.Orientation = Geometry::GetOrientToPoint(fx.Pose.Position.ToVector3(), target);
+	if (item == nullptr || index <= NO_VALUE)
+		return;
+
+	// If target deviated too much from the item position, prefer item's own position.
+	if (Vector3i::Distance(item->Pose.Position, target) > TARGET_DEVIATION_THRESHOLD)
+		target = item->Pose.Position;
+
+	auto targetWithOffset = Vector3(
+		target.x,
+		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
+		target.z);
 
 	// Apply slight random scatter.
-	fx.Pose.Orientation += EulerAngles(
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
-		Random::GenerateAngle(ANGLE(-1.4f), ANGLE(1.4f)),
+	auto randomOrient = EulerAngles(
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
+		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
 		0);
+
+	auto& fx = g_Level.Items[index];
+	fx.Pose.Orientation = Geometry::GetOrientToPoint(fx.Pose.Position.ToVector3(), targetWithOffset);
+	fx.Pose.Orientation += randomOrient;
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
@@ -57,11 +71,9 @@ void ControlMissile(short fxNumber)
 	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.RoomNumber);
 	auto soundFXType = isUnderwater ? SoundEnvironment::Underwater : SoundEnvironment::Land;
 
-	if (fx.ObjectNumber == ID_SCUBA_HARPOON && isUnderwater &&
-		fx.Pose.Orientation.x > ANGLE(-67.5f))
-	{
+	// Make harpoon arch downwards if not underwater.
+	if (fx.ObjectNumber == ID_SCUBA_HARPOON && !isUnderwater && fx.Pose.Orientation.x > ANGLE(-67.5f))
 		fx.Pose.Orientation.x -= ANGLE(1.0f);
-	}
 
 	fx.Pose.Translate(fx.Pose.Orientation, fx.Animation.Velocity.z);
 
@@ -82,6 +94,7 @@ void ControlMissile(short fxNumber)
 		}
 		else if (fx.ObjectNumber == ID_PROJ_BOMB)
 		{
+			SpawnDecal(fx.Pose.Position.ToVector3(), fx.RoomNumber, DecalType::Explosion);
 			SoundEffect(SFX_TR1_ATLANTEAN_EXPLODE, &fx.Pose, soundFXType);
 			TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -2, 0, fx.RoomNumber);
 			TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -1, 0, fx.RoomNumber);
@@ -190,8 +203,6 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 		fx.Animation.Velocity.z = velocity;
 		fx.Animation.FrameNumber = 0;
 		fx.Model.Color = Vector4::One;
-
-		ShootAtLara(fx);
 	}
 
 	return fxNumber;
@@ -208,8 +219,22 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		fx.Animation.Velocity.z = velocity;
 		fx.Animation.FrameNumber = 0;
 		fx.Model.Color = Vector4::One;
+	}
 
-		ShootAtLara(fx);
+	return fxNumber;
+}
+
+short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
+{
+	int fxNumber = CreateNewEffect(roomNumber, ID_SCUBA_HARPOON, Pose(Vector3i(x, y, z), EulerAngles(0, yRot, 0)));
+	if (fxNumber != NO_VALUE)
+	{
+		auto& fx = g_Level.Items[fxNumber];
+
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = velocity;
+		fx.Animation.FrameNumber = 0;
+		fx.Model.Color = Vector4::One;
 	}
 
 	return fxNumber;

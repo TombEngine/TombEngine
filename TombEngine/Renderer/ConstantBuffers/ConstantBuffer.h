@@ -15,6 +15,19 @@ namespace TEN::Renderer::ConstantBuffers
 
 	public:
 		ConstantBuffer() = default;
+		ConstantBuffer(ConstantBuffer&& other) noexcept : buffer(std::move(other.buffer)) { }
+
+		ConstantBuffer& operator=(ConstantBuffer&& other) noexcept
+		{
+			if (this != &other)
+				buffer = std::move(other.buffer);
+
+			return *this;
+		}
+
+		ConstantBuffer(const ConstantBuffer&) = delete;
+		ConstantBuffer& operator=(const ConstantBuffer&) = delete;
+
 		ConstantBuffer(ID3D11Device* device)
 		{
 			auto desc = D3D11_BUFFER_DESC{};

@@ -37,5 +37,9 @@ static const std::unordered_map<std::string, RoomEnvFlags> ROOM_FLAG_IDS
 
 	/// No lens flare room flag.
 	// @mem NOLENSFLARE
-	{ "NOLENSFLARE", RoomEnvFlags::ENV_FLAG_NO_LENSFLARE }
+	{ "NOLENSFLARE", RoomEnvFlags::ENV_FLAG_NO_LENSFLARE },
+	
+	/// No caustics room flag (valid only for water rooms).
+	// @mem NOCAUSTICS
+	{ "NOCAUSTICS", RoomEnvFlags::ENV_FLAG_NOCAUSTICS }
 };

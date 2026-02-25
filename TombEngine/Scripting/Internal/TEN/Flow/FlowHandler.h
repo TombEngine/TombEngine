@@ -74,6 +74,7 @@ public:
 	void		SetTitleScreenImagePath(const std::string& path);
 	int			GetTotalSecretCount();
 	void		SetTotalSecretCount(int secretsNumber);
+	Time		GetGlobalGameTime();
 	bool		IsFlyCheatEnabled() const;
 	void		EnableFlyCheat(bool enable);
 	bool		IsPointFilterEnabled() const;
