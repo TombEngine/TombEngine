@@ -2,6 +2,8 @@
 #include "Objects/TR3/Trap/ElectricField.h"
 #include "Game/Lara/lara_helpers.h"
 
+#include "Game/collision/Point.h"
+#include "Game/collision/floordata.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/item_fx.h"
@@ -10,6 +12,7 @@
 #include "Sound/sound.h"
 #include "Game/control/trigger.h"
 
+using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
 
@@ -28,9 +31,17 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 		item.Status = ITEM_ACTIVE;
+
+		// Get ceiling height ONLY within the current room (not rooms above)
+		using namespace TEN::Collision::Floordata;
+		auto& sector = GetFloor(item.RoomNumber, item.Pose.Position.x, item.Pose.Position.z);
+		int ceilingHeight = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, false);  // false = ceiling
+
+		// Store wall height in ItemFlags[0] (distance from item position UP to room ceiling)
+		item.ItemFlags[0] = item.Pose.Position.y - ceilingHeight;
 	}
 
-	static void SpawnSparks(const Vector3& center, int roomNumber, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
+	static void SpawnSparks(const Vector3& center, int roomNumber, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode, float wallHeight = 0.0f)
 	{
 		// Throttle: Only update every 2nd frame (50% reduction)
 		if (GlobalCounter % EFFECT_UPDATE_INTERVAL != 0)
@@ -41,7 +52,7 @@ namespace TEN::Entities::Traps
 			return;
 
 		float localX = Random::GenerateFloat(-halfSpanX, halfSpanX);
-		float localY = isWallMode ? Random::GenerateFloat(-BLOCK(1), BLOCK(1)) : 0;
+		float localY = isWallMode ? Random::GenerateFloat(-wallHeight, 0.0f) : 0;  // Sparks from floor (0) to ceiling (-wallHeight)
 		float localZ = isWallMode ? 0 : Random::GenerateFloat(-halfSpanZ, halfSpanZ);
 
 		float sparkX = center.x + (localX * cosY - localZ * sinY);
@@ -99,7 +110,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void SpawnFloorLight(const Vector3& center, int itemIndex, int roomNumber, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
+	static void SpawnFloorLight(const Vector3& center, int itemIndex, int roomNumber, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode, float wallHeight = 0.0f)
 	{
 		// Throttle more aggressively to reduce epilepsy risk
 		// Only spawn every 5 frames minimum
@@ -114,7 +125,7 @@ namespace TEN::Entities::Traps
 		{
 			// Random position along wall width - FULLY contained within field bounds
 			float localX = Random::GenerateFloat(-halfSpanX, halfSpanX);
-			float localY = Random::GenerateFloat(-BLOCK(0.5f), BLOCK(0.5f));
+			float localY = Random::GenerateFloat(-wallHeight * 0.8f, -wallHeight * 0.2f);  // Middle 60% of wall height
 			float wallZ = 0;
 
 			Vector3 lightPos = Vector3(
@@ -152,7 +163,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static bool IsEntityInField(const Vector3& center, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
+	static bool IsEntityInField(const ItemInfo& item, const Vector3& center, const ItemInfo& entity, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
 		float worldDeltaX = entity.Pose.Position.x - center.x;
 		float worldDeltaZ = entity.Pose.Position.z - center.z;
@@ -169,9 +180,9 @@ namespace TEN::Entities::Traps
 			if (abs(localX) > halfSpanX)
 				return false;
 
-			int wallHeight = BLOCK(2);
-			int fieldTop = center.y - wallHeight;
-			int fieldBottom = center.y + wallHeight;
+			// Wall starts at floor (center.y) and extends UP to ceiling
+			int fieldBottom = center.y;  // Floor level
+			int fieldTop = center.y - item.ItemFlags[0];  // Ceiling level (negative Y is up)
 
 			if (entityTop > fieldBottom || entityBottom < fieldTop)
 				return false;
@@ -263,7 +274,7 @@ namespace TEN::Entities::Traps
 		bool isKilling = false;
 		for (auto* entity : nearbyItems)
 		{
-			if (IsEntityInField(center, *entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
+			if (IsEntityInField(item, center, *entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
 			{
 				KillEntity(*entity);
 				isKilling = true;
@@ -292,9 +303,9 @@ namespace TEN::Entities::Traps
 			float rightX = halfSpanX;
 			float wallZ = 0;
 
-			int wallHeight = BLOCK(2);
-			int topY = center.y - wallHeight;
-			int bottomY = center.y + wallHeight;
+			// Wall starts at floor (center.y) and extends UP to ceiling
+			int bottomY = center.y;  // Floor level
+			int topY = center.y - item.ItemFlags[0];  // Ceiling level (negative Y is up)
 
 			// Transform corners to world space
 			Vector3 bottomLeft = Vector3(
@@ -419,11 +430,11 @@ namespace TEN::Entities::Traps
 
 			// Offset center to the right: origin is at left edge, so shift by (width - 1) / 2
 			localOffsetX = (totalBlocks - 1) * BLOCK(0.5f);  // For OCB=1: 0, OCB=2: BLOCK(0.5), OCB=3: BLOCK(1)
-			localOffsetZ = 0.0f;       // No forward offset for wall
+			localOffsetZ = +CLICK(1.75f);  // Forward offset of 448 units so wall doesn't overlap geometry
 		}
 		else
 		{
-			// Floor mode: Origin at BACK edge, field extends FORWARD
+			// Floor mode: Origin at BACK edge, field extends FORWARD (edge-aligned)
 			// Width is always 1 block, depth is variable (OCB)
 			halfSpanX = BLOCK(0.5f);
 			halfSpanZ = totalBlocks * BLOCK(0.5f);
@@ -433,7 +444,7 @@ namespace TEN::Entities::Traps
 			localOffsetZ = -(totalBlocks - 1) * BLOCK(0.5f);  // For OCB=1: 0, OCB=2: -BLOCK(0.5), OCB=3: -BLOCK(1)
 		}
 
-		float rotY = TO_RAD(item.Pose.Orientation.y);
+		float rotY = TO_RAD(-item.Pose.Orientation.y);  // Negate to match editor rotation direction
 		float cosY = cos(rotY);
 		float sinY = sin(rotY);
 
@@ -447,8 +458,11 @@ namespace TEN::Entities::Traps
 			item.Pose.Position.y,
 			item.Pose.Position.z + worldOffsetZ);
 
-		SpawnSparks(effectiveCenter, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
-		SpawnFloorLight(effectiveCenter, item.Index, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		// Get wall height for effects (only used in wall mode)
+		float wallHeight = isWallMode ? item.ItemFlags[0] : 0.0f;
+
+		SpawnSparks(effectiveCenter, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode, wallHeight);
+		SpawnFloorLight(effectiveCenter, item.Index, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode, wallHeight);
 
 		bool isKilling = CheckCollisions(item, effectiveCenter, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
 
