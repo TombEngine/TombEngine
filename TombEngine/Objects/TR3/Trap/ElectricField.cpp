@@ -96,122 +96,42 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void SpawnLightning(const ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
+	static void SpawnFloorLight(ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
 	{
-		if (!Random::TestProbability(0.15f))
+		// Throttle more aggressively to reduce epilepsy risk
+		// Only spawn every 5 frames minimum
+		if (GlobalCounter % 5 != 0)
 			return;
 
-		float yOffset = isWallMode ? 0 : -CLICK(0.25f);
+		// Lower probability for gentler effect
+		if (!Random::TestProbability(0.2f))
+			return;
 
 		if (isWallMode)
 		{
-			float leftX = -halfSpanX / Random::GenerateInt(1, 2);
-			float rightX = halfSpanX / Random::GenerateInt(1, 2);
-			float randomY = Random::GenerateFloat(-BLOCK(0.5f), BLOCK(0.5f));
+			// Random position along wall width - FULLY contained within field bounds
+			float localX = Random::GenerateFloat(-halfSpanX, halfSpanX);
+			float localY = Random::GenerateFloat(-BLOCK(0.5f), BLOCK(0.5f));
 			float wallZ = -CLICK(1);
-
-			Vector3 origin = Vector3(
-				item.Pose.Position.x + (leftX * cosY - wallZ * sinY),
-				item.Pose.Position.y + randomY,
-				item.Pose.Position.z + (leftX * sinY + wallZ * cosY));
-
-			Vector3 target = Vector3(
-				item.Pose.Position.x + (rightX * cosY - wallZ * sinY),
-				item.Pose.Position.y + randomY,
-				item.Pose.Position.z + (rightX * sinY + wallZ * cosY));
-
-			float r = Random::GenerateInt(32, 128) / 255.0f;
-			float g = Random::GenerateInt(128, 192) / 255.0f;
-			float b = Random::GenerateInt(192, 255) / 255.0f;
-
-			SpawnElectricity(
-				origin,
-				target,
-				Random::GenerateInt(8, 16),
-				r * 255, g * 255, b * 255,
-				Random::GenerateInt(16, 32),
-				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
-				Random::GenerateFloat(8.0f, 16.0f),
-				Random::GenerateInt(1, 2));
-
-			Vector3 lightPos = Vector3(
-				item.Pose.Position.x + (Random::GenerateFloat(-halfSpanX, halfSpanX) * cosY - wallZ * sinY),
-				item.Pose.Position.y + randomY,
-				item.Pose.Position.z + (Random::GenerateFloat(-halfSpanX, halfSpanX) * sinY + wallZ * cosY));
-			Color lightColor = Color(0.4f, 0.6f, 1.0f);
-			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(3), false, 0);
-		}
-		else
-		{
-			float leftZ = -halfSpanZ / Random::GenerateInt(1, 2);
-			float rightZ = halfSpanZ / Random::GenerateInt(1, 2);
-			float randomX = Random::GenerateFloat(-halfSpanX, halfSpanX);
-
-			Vector3 origin = Vector3(
-				item.Pose.Position.x + (randomX * cosY - leftZ * sinY),
-				item.Pose.Position.y + yOffset,
-				item.Pose.Position.z + (randomX * sinY + leftZ * cosY));
-
-			Vector3 target = Vector3(
-				item.Pose.Position.x + (randomX * cosY - rightZ * sinY),
-				item.Pose.Position.y + yOffset,
-				item.Pose.Position.z + (randomX * sinY + rightZ * cosY));
-
-			float r = Random::GenerateInt(32, 128) / 255.0f;
-			float g = Random::GenerateInt(128, 192) / 255.0f;
-			float b = Random::GenerateInt(192, 255) / 255.0f;
-
-			SpawnElectricity(
-				origin,
-				target,
-				Random::GenerateInt(8, 16),
-				r * 255, g * 255, b * 255,
-				Random::GenerateInt(16, 32),
-				(int)ElectricityFlags::Spline | (int)ElectricityFlags::ThinIn | (int)ElectricityFlags::SparkEnd,
-				Random::GenerateFloat(8.0f, 16.0f),
-				Random::GenerateInt(1, 2));
-
-			Vector3 lightPos = Vector3(
-				item.Pose.Position.x + (randomX * cosY - Random::GenerateFloat(-halfSpanZ, halfSpanZ) * sinY),
-				item.Pose.Position.y + yOffset,
-				item.Pose.Position.z + (randomX * sinY + Random::GenerateFloat(-halfSpanZ, halfSpanZ) * cosY));
-			Color lightColor = Color(0.4f, 0.6f, 1.0f);
-			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(3), false, 0);
-		}
-	}
-
-	static void SpawnSweepingLight(ItemInfo& item, float halfSpanX, float halfSpanZ, float cosY, float sinY, bool isWallMode)
-	{
-		int	  extraBlocksEachSide = abs(item.TriggerFlags);
-		int	  totalSpanZ = 1 + (2 * extraBlocksEachSide);
-		float travelTime = totalSpanZ * FPS * 0.30f;
-		float stepSize = 1000.0f / travelTime;
-
-		item.ItemFlags[7] += stepSize;
-		if (item.ItemFlags[7] >= 1000)
-			item.ItemFlags[7] = 0;
-
-		float normalizedPos = (item.ItemFlags[7] / 1000.0f) * 2.0f - 1.0f;
-
-		if (isWallMode)
-		{
-			float wallZ = -CLICK(1);
-			float localY = Random::GenerateFloat(-BLOCK(0.3f), BLOCK(0.3f));
-			float localX = normalizedPos * halfSpanX;
 
 			Vector3 lightPos = Vector3(
 				item.Pose.Position.x + (localX * cosY - wallZ * sinY),
 				item.Pose.Position.y + localY,
 				item.Pose.Position.z + (localX * sinY + wallZ * cosY));
 
-			float flicker = Random::GenerateFloat(0.8f, 1.2f);
+			// Reduced flicker range to be gentler (was 0.8-1.2, now 0.9-1.1)
+			float flicker = Random::GenerateFloat(0.9f, 1.1f);
 			Color lightColor = Color(0.6f * flicker, 0.9f * flicker, 1.50f * flicker);
-			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
+
+			// Smaller radius to keep light more contained within field bounds
+			float lightRadius = std::min(BLOCK(3.0f), halfSpanX * 1.5f);
+			SpawnDynamicPointLight(lightPos, lightColor, lightRadius, false, item.Index);  // No shadows
 		}
 		else
 		{
-			float localZ = normalizedPos * halfSpanZ;
-			float localX = Random::GenerateFloat(-halfSpanX * 0.3f, halfSpanX * 0.3f);
+			// Random position along floor depth - FULLY contained within field bounds
+			float localZ = Random::GenerateFloat(-halfSpanZ, halfSpanZ);
+			float localX = Random::GenerateFloat(-halfSpanX, halfSpanX);
 			float yOffset = -CLICK(0.25f);
 
 			Vector3 lightPos = Vector3(
@@ -219,9 +139,13 @@ namespace TEN::Entities::Traps
 				item.Pose.Position.y + (yOffset - CLICK(0.75f)),
 				item.Pose.Position.z + (localX * sinY + localZ * cosY));
 
-			float flicker = Random::GenerateFloat(0.8f, 1.2f);
+			// Reduced flicker range
+			float flicker = Random::GenerateFloat(0.9f, 1.1f);
 			Color lightColor = Color(0.6f * flicker, 0.9f * flicker, 1.50f * flicker);
-			SpawnDynamicPointLight(lightPos, lightColor, BLOCK(5.0f), true, item.Index);
+
+			// Smaller radius to keep light more contained
+			float lightRadius = std::min(BLOCK(3.0f), halfSpanZ * 1.5f);
+			SpawnDynamicPointLight(lightPos, lightColor, lightRadius, false, item.Index);  // No shadows
 		}
 	}
 
@@ -348,23 +272,26 @@ namespace TEN::Entities::Traps
 			return;
 
 		bool isWallMode = (item.TriggerFlags < 0);
-		int	 extraBlocksEachSide = isWallMode ? (abs(item.TriggerFlags) - 1) : item.TriggerFlags;
+
+		// OCB directly represents total width in blocks
+		// Positive OCB = floor mode depth, Negative OCB = wall mode width
+		int totalBlocks = abs(item.TriggerFlags);
+		if (totalBlocks == 0)
+			totalBlocks = 1;  // Default to 1 block if OCB is 0
 
 		float halfSpanX, halfSpanZ;
 
 		if (isWallMode)
 		{
-			int totalSpanX = 1 + (2 * extraBlocksEachSide);
-			int spanZ = 1;
-			halfSpanX = totalSpanX * BLOCK(0.5f);
-			halfSpanZ = spanZ * BLOCK(0.5f);
+			// Wall mode: width is variable (OCB), depth is always 1 block
+			halfSpanX = totalBlocks * BLOCK(0.5f);  // Center-aligned width
+			halfSpanZ = BLOCK(0.5f);
 		}
 		else
 		{
-			int totalSpanZ = 1 + (2 * extraBlocksEachSide);
-			int spanX = 1;
-			halfSpanX = spanX * BLOCK(0.5f);
-			halfSpanZ = totalSpanZ * BLOCK(0.5f);
+			// Floor mode: width is always 1 block, depth is variable (OCB)
+			halfSpanX = BLOCK(0.5f);
+			halfSpanZ = totalBlocks * BLOCK(0.5f);  // Center-aligned depth
 		}
 
 		float rotY = TO_RAD(item.Pose.Orientation.y);
@@ -372,8 +299,7 @@ namespace TEN::Entities::Traps
 		float sinY = sin(rotY);
 
 		SpawnSparks(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
-		SpawnLightning(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
-		SpawnSweepingLight(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		SpawnFloorLight(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
 		CheckCollisions(item, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
 	}
 }
