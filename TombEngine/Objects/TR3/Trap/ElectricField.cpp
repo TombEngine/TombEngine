@@ -1,11 +1,15 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/ElectricField.h"
 
+#include "Game/animation/Animation.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/trigger.h"
+#include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"
+#include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
+#include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Renderer/Renderer.h"
@@ -14,6 +18,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
+using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Math::Random;
 
@@ -25,12 +30,28 @@ namespace TEN::Entities::Traps
 	constexpr auto SPARK_SPAWN_PROBABILITY = 0.4f;
 	constexpr auto SOUND_PROBABILITY = 0.25f;
 	constexpr auto SPARK_LIGHT_PROBABILITY = 0.05f;
+	constexpr auto LIGHTNING_LIGHT_RADIUS = BLOCK(3);
 	constexpr auto FLOOR_LIGHT_INTERVAL = 5;
 	constexpr auto FLOOR_LIGHT_PROBABILITY = 0.2f;
 	constexpr auto WALL_FIELD_THICKNESS = CLICK(0.5f);
 	constexpr auto FLOOR_FIELD_THICKNESS = CLICK(0.25f);
 	constexpr auto BRIDGE_DETECTION_TOLERANCE = CLICK(0.5f);
 	constexpr auto WALL_FORWARD_OFFSET = CLICK(1.75f);
+
+	// Lightning burst timing (in frames at 30 FPS).
+	constexpr auto LIGHTNING_COOLDOWN_MIN = 5 * FPS;
+	constexpr auto LIGHTNING_COOLDOWN_MAX = 10 * FPS;
+	constexpr auto LIGHTNING_DURATION_MIN = FPS / 2;
+	constexpr auto LIGHTNING_DURATION_MAX = FPS;
+
+	constexpr auto LIGHTNING_FLAGS = (int)ElectricityFlags::Spline |
+		(int)ElectricityFlags::ThinIn |
+		(int)ElectricityFlags::SparkEnd;
+
+	// ItemFlags layout:
+	// [0] = Wall height (floor to ceiling distance).
+	// [1] = Lightning cooldown counter (frames until next burst).
+	// [2] = Lightning active duration counter (frames remaining in current burst).
 
 	void InitializeElectricField(short itemNumber)
 	{
@@ -41,6 +62,8 @@ namespace TEN::Entities::Traps
 		int ceilingHeight = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, false);
 
 		item.ItemFlags[0] = item.Pose.Position.y - ceilingHeight;
+		item.ItemFlags[1] = Random::GenerateInt(LIGHTNING_COOLDOWN_MIN, LIGHTNING_COOLDOWN_MAX);
+		item.ItemFlags[2] = 0;
 	}
 
 	static void SpawnSparks(
@@ -114,6 +137,156 @@ namespace TEN::Entities::Traps
 				auto lightColor = Color(0.4f, 0.6f, 1.0f);
 				SpawnDynamicPointLight(Vector3(sparkX, sparkY, sparkZ), lightColor, BLOCK(2), false, 0);
 			}
+		}
+	}
+
+	static void SpawnArcSmoke(const Vector3& pos, const Vector3& surfaceNormal, int roomNumber)
+	{
+		auto offsetPos = pos + surfaceNormal * 32.0f;
+		SpawnElectricArcSmoke(offsetPos, roomNumber);
+		SpawnDynamicPointLight(pos, Color(0.6f, 0.8f, 1.0f), BLOCK(10), false, 0);
+
+		// Burst of sparks at contact point, spraying away from surface.
+		int sparkCount = Random::GenerateInt(4, 8);
+
+		for (int i = 0; i < sparkCount; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+
+			spark = {};
+			spark.active = true;
+			spark.age = 0;
+			spark.life = Random::GenerateFloat(24, 48);
+			spark.friction = 0.98f;
+			spark.gravity = 3.0f;
+			spark.height = Random::GenerateFloat(128.0f, 384.0f);
+			spark.width = Random::GenerateFloat(16.0f, 32.0f);
+			spark.room = roomNumber;
+			spark.pos = pos + Vector3(Random::GenerateFloat(-8, 8), Random::GenerateFloat(-8, 8), Random::GenerateFloat(-8, 8));
+
+			// Cone of sparks in surface normal direction with spread.
+			float spread = Random::GenerateFloat(-0.4f, 0.4f);
+			auto dir = surfaceNormal + Vector3(Random::GenerateFloat(-spread, spread), Random::GenerateFloat(-spread, spread), Random::GenerateFloat(-spread, spread));
+			dir.Normalize(dir);
+
+			spark.velocity = dir * Random::GenerateFloat(16, 48);
+			spark.sourceColor = Vector4(0.6f, 0.8f, 1.0f, 1.0f);
+			spark.destinationColor = Vector4(0.3f, 0.4f, 0.8f, 0.0f);
+		}
+	}
+
+	static void SpawnLightning(
+		ItemInfo& item,
+		const Vector3& center,
+		float halfSpanX,
+		float halfSpanZ,
+		float cosY,
+		float sinY,
+		bool isWallMode,
+		float wallHeight)
+	{
+		// Manage burst timing via ItemFlags[1] (cooldown) and ItemFlags[2] (active duration).
+		if (item.ItemFlags[2] > 0)
+		{
+			item.ItemFlags[2]--;
+			return;
+		}
+
+		item.ItemFlags[1]--;
+
+		if (item.ItemFlags[1] > 0)
+			return;
+
+		item.ItemFlags[2] = Random::GenerateInt(LIGHTNING_DURATION_MIN, LIGHTNING_DURATION_MAX);
+		item.ItemFlags[1] = Random::GenerateInt(LIGHTNING_COOLDOWN_MIN, LIGHTNING_COOLDOWN_MAX);
+
+		auto soundPose = Pose(center);
+		float pitch = Random::GenerateFloat(0.8f, 1.2f);
+		SoundEffect(SFX_TR4_LARA_ELECTRIC_CRACKLES, &soundPose, SoundEnvironment::Always, pitch);
+
+		float r = Random::GenerateInt(32, 128) / 255.0f;
+		float g = Random::GenerateInt(128, 192) / 255.0f;
+		float b = Random::GenerateInt(192, 255) / 255.0f;
+
+		if (isWallMode)
+		{
+			float leftX = -halfSpanX;
+			float rightX = halfSpanX;
+			float midX = Random::GenerateFloat(leftX * 0.6f, rightX * 0.6f);
+			float randomY = Random::GenerateFloat(-wallHeight, 0);
+
+			// Arc protrudes outward from the wall surface.
+			float arcDepth = Random::GenerateFloat(CLICK(1), CLICK(3));
+			float arcDir = Random::TestProbability(0.5f) ? 1.0f : -1.0f;
+
+			auto origin = Vector3(
+				center.x + (leftX * cosY),
+				center.y + randomY,
+				center.z + (leftX * sinY));
+
+			auto midpoint = Vector3(
+				center.x + (midX * cosY) + (-sinY * arcDepth * arcDir),
+				center.y + randomY,
+				center.z + (midX * sinY) + (cosY * arcDepth * arcDir));
+
+			auto target = Vector3(
+				center.x + (rightX * cosY),
+				center.y + randomY,
+				center.z + (rightX * sinY));
+
+			int segments = Random::GenerateInt(8, 16);
+			int life = Random::GenerateInt(16, 32);
+			float width = Random::GenerateFloat(8.0f, 16.0f);
+			int splitCount = Random::GenerateInt(1, 4);
+
+			SpawnElectricity(origin, midpoint, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+			SpawnElectricity(midpoint, target, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+
+			auto wallNormal = Vector3(-sinY * arcDir, 0, cosY * arcDir);
+			SpawnArcSmoke(origin, wallNormal, item.RoomNumber);
+			SpawnArcSmoke(target, wallNormal, item.RoomNumber);
+
+			SpawnDynamicPointLight(midpoint, Color(0.4f, 0.6f, 1.0f), LIGHTNING_LIGHT_RADIUS, false, 0);
+		}
+		else
+		{
+			float leftZ = -halfSpanZ;
+			float rightZ = halfSpanZ;
+			float midZ = Random::GenerateFloat(leftZ * 0.6f, rightZ * 0.6f);
+			float randomX = Random::GenerateFloat(-halfSpanX, halfSpanX);
+			float yOffset = -FLOOR_FIELD_THICKNESS;
+
+			// Arc rises upward from the floor surface.
+			float arcHeight = Random::GenerateFloat(CLICK(1), CLICK(3));
+
+			auto origin = Vector3(
+				center.x + (randomX * cosY - leftZ * sinY),
+				center.y + yOffset,
+				center.z + (randomX * sinY + leftZ * cosY));
+
+			auto midpoint = Vector3(
+				center.x + (randomX * cosY - midZ * sinY),
+				center.y + yOffset - arcHeight,
+				center.z + (randomX * sinY + midZ * cosY));
+
+			auto target = Vector3(
+				center.x + (randomX * cosY - rightZ * sinY),
+				center.y + yOffset,
+				center.z + (randomX * sinY + rightZ * cosY));
+
+			int segments = Random::GenerateInt(8, 16);
+			int life = Random::GenerateInt(16, 32);
+			float width = Random::GenerateFloat(8.0f, 16.0f);
+			int splitCount = Random::GenerateInt(1, 2);
+
+			SpawnElectricity(origin, midpoint, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+			SpawnElectricity(midpoint, target, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+
+			auto upNormal = Vector3(0, -1, 0);
+			SpawnArcSmoke(origin, upNormal, item.RoomNumber);
+			SpawnArcSmoke(target, upNormal, item.RoomNumber);
+
+			SpawnDynamicPointLight(midpoint, Color(0.4f, 0.6f, 1.0f), LIGHTNING_LIGHT_RADIUS, false, 0);
 		}
 	}
 
@@ -223,8 +396,51 @@ namespace TEN::Entities::Traps
 		}
 	}
 
+	static void SpawnBodyElectricity(ItemInfo& entity)
+	{
+		const auto& object = Objects[entity.ObjectNumber];
+		int meshCount = object.nmeshes;
+
+		if (meshCount < 2)
+			return;
+
+		int arcCount = Random::GenerateInt(2, 4);
+
+		for (int i = 0; i < arcCount; i++)
+		{
+			int jointA = Random::GenerateInt(0, meshCount - 1);
+			int jointB = Random::GenerateInt(0, meshCount - 1);
+
+			if (jointA == jointB)
+				continue;
+
+			auto posA = GetJointPosition(entity, jointA).ToVector3();
+			auto posB = GetJointPosition(entity, jointB).ToVector3();
+
+			float r = Random::GenerateInt(32, 128) / 255.0f;
+			float g = Random::GenerateInt(128, 192) / 255.0f;
+			float b = Random::GenerateInt(192, 255) / 255.0f;
+
+			SpawnElectricity(
+				posA, posB,
+				Random::GenerateInt(4, 8),
+				r * 255, g * 255, b * 255,
+				Random::GenerateInt(8, 16),
+				LIGHTNING_FLAGS,
+				Random::GenerateFloat(4.0f, 8.0f),
+				Random::GenerateInt(1, 2));
+		}
+
+		// Single light at a random joint to illuminate the effect.
+		int lightJoint = Random::GenerateInt(0, meshCount - 1);
+		auto lightPos = GetJointPosition(entity, lightJoint).ToVector3();
+		SpawnDynamicPointLight(lightPos, Color(0.4f, 0.6f, 1.0f), BLOCK(2), false, 0);
+	}
+
 	static void KillEntity(ItemInfo& entity, bool isWallMode)
 	{
+		SpawnBodyElectricity(entity);
+
 		if (entity.IsLara())
 		{
 			auto& player = GetLaraInfo(entity);
@@ -271,7 +487,7 @@ namespace TEN::Entities::Traps
 		{
 			auto& entity = g_Level.Items[itemNum];
 
-			if (entity.HitPoints > 0 && (entity.IsLara() || entity.IsCreature()))
+			if (entity.IsLara() || entity.IsCreature())
 				nearbyItems.push_back(&entity);
 
 			itemNum = entity.NextItem;
@@ -286,7 +502,7 @@ namespace TEN::Entities::Traps
 			{
 				auto& entity = g_Level.Items[itemNum];
 
-				if (entity.HitPoints > 0 && (entity.IsLara() || entity.IsCreature()))
+				if (entity.IsLara() || entity.IsCreature())
 					nearbyItems.push_back(&entity);
 
 				itemNum = entity.NextItem;
@@ -297,9 +513,23 @@ namespace TEN::Entities::Traps
 
 		for (auto* entity : nearbyItems)
 		{
-			if (IsEntityInField(item, center, *entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
+			bool inField = IsEntityInField(item, center, *entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+
+			// Continue body electricity on entities dying inside the field.
+			if (entity->HitPoints <= 0 && inField)
+			{
+				SpawnBodyElectricity(*entity);
+				SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &entity->Pose);
+				continue;
+			}
+
+			if (entity->HitPoints <= 0)
+				continue;
+
+			if (inField)
 			{
 				KillEntity(*entity, isWallMode);
+				SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &entity->Pose);
 				isKilling = true;
 			}
 		}
@@ -354,7 +584,88 @@ namespace TEN::Entities::Traps
 		float wallHeight = isWallMode ? (float)item.ItemFlags[0] : 0.0f;
 
 		SpawnSparks(effectiveCenter, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode, wallHeight);
+		SpawnLightning(item, effectiveCenter, halfSpanX, halfSpanZ, cosY, sinY, isWallMode, wallHeight);
 		SpawnFloorLight(effectiveCenter, item.Index, item.RoomNumber, halfSpanX, halfSpanZ, cosY, sinY, isWallMode, wallHeight);
-		CheckCollisions(item, effectiveCenter, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+		bool isKilling = CheckCollisions(item, effectiveCenter, halfSpanX, halfSpanZ, cosY, sinY, isWallMode);
+
+		if (!isKilling)
+			item.ItemFlags[3] = 0;
+
+		// Floor mode: trigger burst effects on first contact only.
+		if (isKilling && !isWallMode && item.ItemFlags[3] == 0)
+		{
+			item.ItemFlags[3] = 1;
+
+			// Find the entity that triggered the kill for positioning.
+			auto collisionPos = effectiveCenter;
+
+			const auto& room = g_Level.Rooms[item.RoomNumber];
+			int itemNum = room.itemNumber;
+
+			while (itemNum != NO_VALUE)
+			{
+				auto& entity = g_Level.Items[itemNum];
+
+				if ((entity.IsLara() || entity.IsCreature()) &&
+					IsEntityInField(item, effectiveCenter, entity, halfSpanX, halfSpanZ, cosY, sinY, isWallMode))
+				{
+					collisionPos = Vector3(
+						(float)entity.Pose.Position.x,
+						effectiveCenter.y,
+						(float)entity.Pose.Position.z);
+					break;
+				}
+
+				itemNum = entity.NextItem;
+			}
+			float r = Random::GenerateInt(32, 128) / 255.0f;
+			float g = Random::GenerateInt(128, 192) / 255.0f;
+			float b = Random::GenerateInt(192, 255) / 255.0f;
+
+			float randomX = collisionPos.x - effectiveCenter.x;
+			float leftZ = -halfSpanZ;
+			float rightZ = halfSpanZ;
+			float midZ = Random::GenerateFloat(leftZ * 0.6f, rightZ * 0.6f);
+			float yOffset = -FLOOR_FIELD_THICKNESS;
+
+			float arcHeight = Random::GenerateFloat(CLICK(1), CLICK(3));
+
+			auto origin = Vector3(
+				collisionPos.x + (leftZ * -sinY),
+				effectiveCenter.y + yOffset,
+				collisionPos.z + (leftZ * cosY));
+
+			auto midpoint = Vector3(
+				collisionPos.x + (midZ * -sinY),
+				effectiveCenter.y + yOffset - arcHeight,
+				collisionPos.z + (midZ * cosY));
+
+			auto target = Vector3(
+				collisionPos.x + (rightZ * -sinY),
+				effectiveCenter.y + yOffset,
+				collisionPos.z + (rightZ * cosY));
+
+			int segments = Random::GenerateInt(8, 16);
+			int life = Random::GenerateInt(16, 32);
+			float width = Random::GenerateFloat(8.0f, 16.0f);
+			int splitCount = Random::GenerateInt(1, 2);
+
+			SpawnElectricity(origin, midpoint, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+			SpawnElectricity(midpoint, target, segments, r * 255, g * 255, b * 255, life, LIGHTNING_FLAGS, width, splitCount);
+
+			auto upNormal = Vector3(0, -1, 0);
+			SpawnArcSmoke(origin, upNormal, item.RoomNumber);
+			SpawnArcSmoke(target, upNormal, item.RoomNumber);
+
+			SpawnDynamicPointLight(midpoint, Color(0.4f, 0.6f, 1.0f), LIGHTNING_LIGHT_RADIUS, false, 0);
+
+			auto soundPose = Pose(effectiveCenter);
+			float pitch = Random::GenerateFloat(0.8f, 1.2f);
+			SoundEffect(SFX_TR4_LARA_ELECTRIC_CRACKLES, &soundPose, SoundEnvironment::Always, pitch);
+
+			// Blue shockwave at collision point.
+			auto shockPose = Pose(Vector3i(collisionPos.x, collisionPos.y - 10, collisionPos.z));
+			TriggerShockwave(&shockPose, 0, BLOCK(0.5f), 64, 121, 213, 242, 30, EulerAngles(0, 0, 0), 0, true, false, false, (int)ShockwaveStyle::Normal);
+		}
 	}
 }
