@@ -67,7 +67,7 @@ namespace TEN::Entities::Traps
 		const auto& anim = GetAnimData(item);
 
 
-		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE))
+		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE) && item.TriggerFlags)
 		{
 			SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 			SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
@@ -89,7 +89,7 @@ namespace TEN::Entities::Traps
 		};
 
 		const auto basePos = Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation.y, localOffset);
-		const Vector4 sparkColor(2.0f, 1.0f, 0.2f, 1.0f);
+		const Vector4 sparkColor(1.0f, 0.5f, 0.1f, 1.0f);
 
 		for (const auto& [minY, maxY] : yOffsetRanges)
 		{
