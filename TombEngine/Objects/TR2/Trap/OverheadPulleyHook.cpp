@@ -10,6 +10,10 @@ using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Traps
 {
+	constexpr int FIRST_DAMAGE_FRAME_START = 54;
+	constexpr int FIRST_DAMAGE_FRAME_END = 66;
+	constexpr int SECOND_DAMAGE_FRAME_START = 114;
+
 	const std::vector<unsigned int> OverheadPulleyHookHarmJoints = { 2, 3 };
 
 	void ControlOverheadPulleyHook(short itemNumber)
@@ -19,8 +23,8 @@ namespace TEN::Entities::Traps
 		if (!TriggerActive(&item))
 			return;
 
-		if ((item.Animation.FrameNumber > 54 && item.Animation.FrameNumber < 66) ||
-			(item.Animation.FrameNumber > 114))
+		if ((item.Animation.FrameNumber > FIRST_DAMAGE_FRAME_START && item.Animation.FrameNumber < FIRST_DAMAGE_FRAME_END) ||
+			(item.Animation.FrameNumber > SECOND_DAMAGE_FRAME_START))
 		{
 			item.ItemFlags[3] = 0;
 		}

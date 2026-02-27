@@ -53,7 +53,7 @@ namespace TEN::Entities::Traps
 		if (item->Animation.ActiveState != SPIKED_FRAME_DAMAGE_STATE)
 			return;
 
-		DoDamage(LaraItem, SPIKED_FRAME_DAMAGE);
-		DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item->Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);		
+		DoDamage(playerItem, SPIKED_FRAME_DAMAGE);
+		DoLotsOfBlood(playerItem->Pose.Position.x, playerItem->Pose.Position.y - CLICK(2), playerItem->Pose.Position.z, (short)(item->Animation.Velocity.z * 2), playerItem->Pose.Orientation.y, playerItem->RoomNumber, 2);
 	}
 }

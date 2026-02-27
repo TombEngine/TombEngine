@@ -67,16 +67,13 @@ namespace TEN::Entities::Traps
 		const auto& anim = GetAnimData(item);
 
 
-		if (anim.CommandIndex == 5 && item.TriggerFlags)
+		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE))
 		{
-				SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
-				SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
+			SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
+			SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
 		}
 
 		AnimateItem(&item);
-=========
-		AnimateItem(item);
->>>>>>>>> Temporary merge branch 2
 	}
 
 	void SpawnSlammingDoorSparks(const Vector3i& localOffset, const ItemInfo& item)

@@ -22,6 +22,7 @@ namespace TEN::Entities::Traps
 {	
 	constexpr auto HEAVY_STAMPER_DAMAGE = 70;
 	constexpr auto HEAVY_STAMPER_IMPACT_FRAME = 40;
+	constexpr auto PLAYER_HP_DEATH_THRESHOLD = 400;
 
 	void ControlHeavyStamper(short itemNumber)
 	{
@@ -88,7 +89,7 @@ namespace TEN::Entities::Traps
 
 				if ((ItemPushItem(&item, playerItem, coll, harmBits & 1, 0) && (harmBits & 1) && (item.ItemFlags[3] > 0)) || item.ItemFlags[4] == HEAVY_STAMPER_DAMAGE)
 				{
-					if (playerItem->HitPoints < 400 && item.Animation.FrameNumber >= HEAVY_STAMPER_IMPACT_FRAME)
+					if (playerItem->HitPoints < PLAYER_HP_DEATH_THRESHOLD && item.Animation.FrameNumber >= HEAVY_STAMPER_IMPACT_FRAME)
 					{
 						if (item.TriggerFlags < 0)
 							playerItem->Pose.Scale = Vector3(1.0f, 0.1f, 1.0f);

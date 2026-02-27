@@ -17,13 +17,13 @@ using namespace TEN::Math::Random;
 namespace TEN::Entities::Traps
 {
 	constexpr auto CIRCULAR_SAW_HARM_DAMAGE = 5000;
-	constexpr auto CIRCULAR_SAW_HARM_MESH = 0x4;
+	constexpr auto CIRCULAR_SAW_HARM_MESH = 4;
 	constexpr auto CIRCULAR_SAW_OVERDRIVE_SOUND_TIMER = 12;
 
 	enum CircularSawState
 	{
 		CIRCULAR_SAW_STATE_STOP,
-		CIRCULAR_SAW_STATE_SART		
+		CIRCULAR_SAW_STATE_START		
 	};
 
 	enum CircularSawAnim
@@ -46,9 +46,9 @@ namespace TEN::Entities::Traps
 
 		if (TriggerActive(&item))
 		{
-			if (item.Animation.TargetState != CIRCULAR_SAW_STATE_SART)
+			if (item.Animation.TargetState != CIRCULAR_SAW_STATE_START)
 			{
-				item.Animation.TargetState = CIRCULAR_SAW_STATE_SART;
+				item.Animation.TargetState = CIRCULAR_SAW_STATE_START;
 				item.ItemFlags[0] = CIRCULAR_SAW_HARM_MESH;
 			}
 		}
@@ -106,13 +106,13 @@ namespace TEN::Entities::Traps
 
 			TriggerSawSpark(pos, EulerAngles(Random::GenerateAngle(), sparkYAngle, 0), 3, sparkColor);
 
-			if (i)
-			{
+			if (!i)
+				continue;
+			
 				float mult = Random::GenerateFloat(0.7f, 1.0f);
 				byte r = (byte)(mult * 190.0f);
 				byte g = (byte)(mult * 100.0f);
-				SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);
-			}
+				SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);			
 		}
 	}
 
@@ -187,7 +187,7 @@ namespace TEN::Entities::Traps
 					{
 						item.ItemFlags[5] = CIRCULAR_SAW_OVERDRIVE_SOUND_TIMER;
 						TriggerLaraBlood();
-						DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);
+						DoLotsOfBlood(playerItem->Pose.Position.x, playerItem->Pose.Position.y - CLICK(2), playerItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), playerItem->Pose.Orientation.y, playerItem->RoomNumber, 2);
 					}
 				}
 			}

@@ -68,6 +68,23 @@ namespace TEN::Animation
 			command->Execute(item, isFrameBased);
 	}
 
+	bool IsSoundEffectCommandActive(const ItemInfo& item, int soundId)
+	{
+		const auto& animData = GetAnimData(item);
+		int currentFrame = item.Animation.FrameNumber;
+
+		for (const auto& cmdPtr : animData.Commands)
+		{
+			auto soundCmd = std::dynamic_pointer_cast<const TEN::Animation::SoundEffectCommand>(cmdPtr);
+			if (soundCmd)
+			{
+				if (soundCmd->GetFrameNumber() == currentFrame && soundCmd->GetSoundID() == soundId)
+					return true;
+			}
+		}
+		return false;
+	}
+
 	void AnimateItem(ItemInfo& item)
 	{
 		if (!item.IsLara())
