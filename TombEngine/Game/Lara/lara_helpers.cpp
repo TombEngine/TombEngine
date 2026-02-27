@@ -1069,7 +1069,7 @@ static PlayerLimbRotationData SolvePlayerLegIK(const ItemInfo& item, const Playe
 	// the upper/lower segment angle in local lower-limb rotation.
 	float currentDot = std::clamp(currentBaseDir.Dot(currentMiddleDir), -1.0f, 1.0f);
 	float targetDot = std::clamp(targetBaseDir.Dot(targetMiddleDir), -1.0f, 1.0f);
-	short kneeAngleDelta = FROM_RAD(acos(targetDot) - acos(currentDot));
+	short kneeAngleDelta = FROM_RAD(std::acos(targetDot) - std::acos(currentDot));
 	middleParentDelta.x -= kneeAngleDelta;
 
 	auto middleOrient = EulerAngles::Lerp(limbRot.Middle, middleParentDelta, alpha);
