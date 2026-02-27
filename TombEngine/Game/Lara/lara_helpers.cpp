@@ -1027,34 +1027,54 @@ static PlayerLimbRotationData SolvePlayerLegIK(const ItemInfo& item, const Playe
 	auto pole = Geometry::TranslatePoint(pos1, item.Pose.Orientation.y + pivotAngle, std::max(length0, length1) * 1.5f);
 	auto ik3DSol = Solvers::SolveIK3D(base, end, pole, length0, length1);
 
-	auto baseOrient = EulerAngles(ik3DSol.Middle - ik3DSol.Base);
-	auto middleOrient = EulerAngles(ik3DSol.End - ik3DSol.Middle);
-
-	// Debug
-	if (true)
+	auto getDeltaLocalOrient = [](const Vector3& currentDirWorld, const Vector3& targetDirWorld, const Quaternion& parentOrientWorld)
 	{
-		DrawDebugSphere(pole, 25, Vector4::One);
-		DrawDebugSphere(ik3DSol.Base, 50, Vector4::One);
-		DrawDebugSphere(ik3DSol.Middle, 50, Vector4::One);
-		DrawDebugSphere(ik3DSol.End, 50, Vector4::One);
-		DrawDebugLine(ik3DSol.Base, ik3DSol.Middle, Vector4::One);
-		DrawDebugLine(ik3DSol.Middle, ik3DSol.End, Vector4::One);
+		auto parentInvMatrix = Matrix::CreateFromQuaternion(parentOrientWorld).Invert();
 
-		auto refBase = ik3DSol.Base;
-		refBase = Geometry::TranslatePoint(refBase, item.Pose.Orientation.y, BLOCK(0.5f));
+		auto currentDirLocal = Vector3::Transform(currentDirWorld, parentInvMatrix);
+		auto targetDirLocal = Vector3::Transform(targetDirWorld, parentInvMatrix);
 
-		auto baseDir = baseOrient.ToDirection();
-		auto refMiddle = Geometry::TranslatePoint(refBase, baseDir, length0);
+		currentDirLocal.Normalize();
+		targetDirLocal.Normalize();
 
-		auto middleDir = middleOrient.ToDirection();
-		auto refEnd = Geometry::TranslatePoint(refMiddle, middleDir, length1);
+		auto currentOrient = EulerAngles(currentDirLocal);
+		auto targetOrient = EulerAngles(targetDirLocal);
+		auto deltaOrient = targetOrient - currentOrient;
 
-		DrawDebugLine(refBase, refMiddle, Vector4::One);
-		DrawDebugLine(refMiddle, refEnd, Vector4::One);
-	}
+		deltaOrient.y = 0;
+		return deltaOrient;
+	};
 
-	return limbRot;
-	//return PlayerLimbRotationData{ baseOrient, middleOrient, limbRot.End };
+	auto currentBaseDir = pos1 - pos0;
+	auto targetBaseDir = ik3DSol.Middle - ik3DSol.Base;
+	currentBaseDir.Normalize();
+	targetBaseDir.Normalize();
+
+	auto currentMiddleDir = pos2 - pos1;
+	auto targetMiddleDir = ik3DSol.End - ik3DSol.Middle;
+	currentMiddleDir.Normalize();
+	targetMiddleDir.Normalize();
+
+	auto rootOrient = item.Pose.Orientation.ToQuaternion();
+	auto baseParentDelta = getDeltaLocalOrient(currentBaseDir, targetBaseDir, rootOrient);
+
+	auto baseOrient = EulerAngles::Lerp(limbRot.Base, baseParentDelta, alpha);
+
+	// Use IK-solved upper leg direction as parent frame for lower leg,
+	// so shin bends independently instead of inheriting upper leg rotation.
+	auto solvedBaseWorldOrient = EulerAngles(targetBaseDir).ToQuaternion();
+	auto middleParentDelta = getDeltaLocalOrient(currentMiddleDir, targetMiddleDir, solvedBaseWorldOrient);
+
+	// Preserve hierarchical knee bend by explicitly applying delta of
+	// the upper/lower segment angle in local lower-limb rotation.
+	float currentDot = std::clamp(currentBaseDir.Dot(currentMiddleDir), -1.0f, 1.0f);
+	float targetDot = std::clamp(targetBaseDir.Dot(targetMiddleDir), -1.0f, 1.0f);
+	short kneeAngleDelta = FROM_RAD(acos(targetDot) - acos(currentDot));
+	middleParentDelta.x -= kneeAngleDelta;
+
+	auto middleOrient = EulerAngles::Lerp(limbRot.Middle, middleParentDelta, alpha);
+
+	return PlayerLimbRotationData{ baseOrient, middleOrient, limbRot.End };
 }
 
 void HandlePlayerLegIK(ItemInfo& item)
@@ -1094,28 +1114,25 @@ void HandlePlayerLegIK(ItemInfo& item)
 	player.JointRot.LeftLeg.End = GetPlayerFootRoll(item, player.JointRot.LeftLeg, lPointColl.GetFloorNormal(), lFootPos.y - lFloorHeight, HEEL_HEIGHT, ALPHA);
 	player.JointRot.RightLeg.End = GetPlayerFootRoll(item, player.JointRot.RightLeg, rPointColl.GetFloorNormal(), rFootPos.y - rFloorHeight, HEEL_HEIGHT, ALPHA);
 
-	// Solve IK.
-	if (lFloorHeight != rFloorHeight)
+	// Left leg.
+	if (lFloorHeight < rFloorHeight || lFloorHeight == rFloorHeight)
 	{
-		// Left leg.
-		if (lFloorHeight < rFloorHeight)
+		// Solve IK chain.
+		if (abs(vPosVisual - lFloorHeight) <= HEIGHT_TOLERANCE &&
+			isUpright && isLeftFloorSteppable)
 		{
-			// Solve IK chain.
-			if (abs(vPosVisual - lFloorHeight) <= HEIGHT_TOLERANCE &&
-				isUpright && isLeftFloorSteppable)
-			{
-				player.JointRot.LeftLeg = SolvePlayerLegIK(item, player.JointRot.LeftLeg, LM_LTHIGH, LM_LSHIN, LM_LFOOT, -PIVOT_ANGLE, HEEL_HEIGHT, ALPHA);
-			}
+			player.JointRot.LeftLeg = SolvePlayerLegIK(item, player.JointRot.LeftLeg, LM_LTHIGH, LM_LSHIN, LM_LFOOT, -PIVOT_ANGLE, HEEL_HEIGHT, ALPHA);
 		}
-		// Right leg.
-		else
+	}
+
+	// Right leg.	
+	if (lFloorHeight > rFloorHeight || lFloorHeight == rFloorHeight)
+	{
+		// Solve IK chain.
+		if (abs(vPosVisual - rFloorHeight) <= HEIGHT_TOLERANCE &&
+			isUpright && isRightFloorSteppable)
 		{
-			// Solve IK chain.
-			if (abs(vPosVisual - rFloorHeight) <= HEIGHT_TOLERANCE &&
-				isUpright && isRightFloorSteppable)
-			{
-				player.JointRot.RightLeg = SolvePlayerLegIK(item, player.JointRot.RightLeg, LM_RTHIGH, LM_RSHIN, LM_RFOOT, PIVOT_ANGLE, HEEL_HEIGHT, ALPHA);
-			}
+			player.JointRot.RightLeg = SolvePlayerLegIK(item, player.JointRot.RightLeg, LM_RTHIGH, LM_RSHIN, LM_RFOOT, PIVOT_ANGLE, HEEL_HEIGHT, ALPHA);
 		}
 	}
 
