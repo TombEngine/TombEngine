@@ -134,6 +134,7 @@ public:
 	void Explode();
 	void Shatter();
 	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
+	void HideInteractionHighlight();
 
 	// Operators
 

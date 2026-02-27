@@ -1,12 +1,20 @@
 -- ldignore
+
+-- Internal functions specific to modules. These are not intended for end users. These functions are not documented in the API reference.
+
 local Util = {}
 local Type = require("Engine.Type")
 local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true }
+local floor = math.floor
+local concat = table.concat
+local format = string.format
+
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
 end
 
 -- Check if the time format is correct.
+-- Used by: Timer.lua
 Util.CheckTimeFormat = function(timerFormat, errorText)
 	errorText = errorText and Type.IsString(errorText) and errorText or false
 	if Type.IsTable(timerFormat) then
@@ -29,6 +37,7 @@ Util.CheckTimeFormat = function(timerFormat, errorText)
 end
 
 -- Generate a formatted string from a time.
+-- Used by: Timer.lua
 Util.GenerateTimeFormattedString = function(time, timerFormat)
 	if not timerFormat then
 		return ""
@@ -36,21 +45,21 @@ Util.GenerateTimeFormattedString = function(time, timerFormat)
 	local result = {}
 	local index = 1
 	if timerFormat.hours then
-		result[index] = string.format("%02d", time.h)
+		result[index] = format("%02d", time.h)
 		index = index + 1
 	end
 	if timerFormat.minutes then
-		result[index] = string.format("%02d", timerFormat.hours and time.m or (time.m + (60 * time.h)))
+		result[index] = format("%02d", timerFormat.hours and time.m or (time.m + (60 * time.h)))
 		index = index + 1
 	end
 	if timerFormat.seconds then
-		result[index] = string.format("%02d", timerFormat.minutes and time.s or (time.s + (60 * time.m)))
+		result[index] = format("%02d", timerFormat.minutes and time.s or (time.s + (60 * time.m)))
 		index = index + 1
 	end
-	local formattedString = table.concat(result, ":")
+	local formattedString = concat(result, ":")
 
 	if timerFormat.deciseconds then
-		local deciseconds = math.floor(time.c / 10)
+		local deciseconds = floor(time.c / 10)
 		return (index == 1) and tostring(deciseconds) or formattedString .. "." .. deciseconds
 	end
 	return formattedString

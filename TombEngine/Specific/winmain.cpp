@@ -592,6 +592,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	else
 #endif
 	{
+		// Set console to UTF-8 mode for proper Unicode character display.
+		SetConsoleOutputCP(CP_UTF8);
+		SetConsoleCP(CP_UTF8);
+
 		ConsoleThreadHandle = BeginThread(ConsoleInput, ConsoleThreadID);
 	}
 

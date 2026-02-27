@@ -466,6 +466,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	HandlePlayerExtraAnim(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);

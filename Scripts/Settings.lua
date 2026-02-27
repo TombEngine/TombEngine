@@ -26,8 +26,9 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
-	settings.Gameplay.targetObjectOcclusion = true
 	settings.Gameplay.enableInventory = true
+	settings.Gameplay.killPoisonedEnemies = true
+	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.skinning = true
@@ -61,7 +62,10 @@ local settings = Flow.Settings.new()
 	settings.UI.optionTextColor = Color(240, 220, 32)
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
-	settings.UI.shadowTextColor = Color(0, 0, 0)	
+	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.titleLogoPosition = Vec2(50, 20)
+	settings.UI.titleLogoScale = 0.38
+	settings.UI.titleLogoColor = Color(255, 255, 255)
 	settings.UI.titleMenuPosition = Vec2(50, 66)
 	settings.UI.titleMenuScale = 1.0
 	settings.UI.titleMenuAlignment = Strings.DisplayStringOption.CENTER
