@@ -9,6 +9,19 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
+* Added HEAVY_STAMPER (ID 459) object from TR3.
+* Added DRILL_BIT (ID 460) object from TR3.
+* Added SPIKED_FRAME (ID 461) object from TR3.
+* Added SWINGING_SANDBAG (ID 462) object from TR2.
+* Added SWINGING_BOX (ID 463) object from TR2.
+* Added OVERHEAD_PULLEY_HOOK (ID 464) object from TR2.
+* Added SWINGING_IRON_ANCHOR (ID 465) object from TR3.
+* Added SWINGING_SPIKE_BAG (ID 466) object from TR2.
+* Added CIRCULAR_SAW (ID 467) object from TR2.
+* Added ROLLING_BARRELS	 (ID 468) object from TR2.
+* Added MULTIPLE_BOULDERS (ID 469) object from TR2.
+* Added spark effect to SLAMMING_DOORS if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
@@ -93,19 +106,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Reworked thumbstick camera to act like in FLEP patch.
 * Increased renderer performance and reduced GPU memory usage.
 * Increased level loading speed by switching to LZ4 compression format.
-* Added HEAVY_STAMPER (ID 459) object from TR3.
-* Added DRILL_BIT (ID 460) object from TR3.
-* Added SPIKED_FRAME (ID 461) object from TR3.
-* Added SWINGING_SANDBAG (ID 462) object from TR2.
-* Added SWINGING_BOX (ID 463) object from TR2.
-* Added OVERHEAD_PULLEY_HOOK (ID 464) object from TR2.
-* Added SWINGING_IRON_ANCHOR (ID 465) object from TR3.
-* Added SWINGING_SPIKE_BAG (ID 466) object from TR2.
-* Added CIRCULAR_SAW (ID 467) object from TR2.
-* Added ROLLING_BARRELS	 (ID 468) object from TR2.
-* Added MULTIPLE_BOULDERS (ID 469) object from TR2.
-* Added spark effect to SLAMMING_DOORS if OCB is above 0.
-* Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
 
 ### Bug fixes
 * Fixed FIRE_PENDULUM light being overblown when explosive weapons are used.
