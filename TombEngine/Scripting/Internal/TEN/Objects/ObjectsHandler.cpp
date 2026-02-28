@@ -34,8 +34,6 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler(lua),
 	_table_objects(sol::table(_handler.GetState()->lua_state(), sol::create))
 {
-	TEN::Scripting::Properties::InitPropertyLua(*lua);
-
 	parent.set(ScriptReserved_Objects, _table_objects);
 
 	/***
@@ -141,7 +139,6 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn bool True if name is in use and an object with a given name is present, false if not.
 	*/
 	_table_objects.set_function(ScriptReserved_IsNameInUse, &ObjectsHandler::IsNameInUse, this);
-
 
 	/***
 	Converts moveable Object ID to a string with internal slot name.

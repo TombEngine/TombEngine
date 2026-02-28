@@ -8,14 +8,6 @@
 
 namespace TEN::Scripting::Properties
 {
-	// Stored Lua state for property-to-Lua conversion. Set once during handler initialization.
-	inline lua_State* s_propertyLuaState = nullptr;
-
-	inline void InitPropertyLua(sol::state& state)
-	{
-		s_propertyLuaState = state.lua_state();
-	}
-
 	// Convert a Lua value to a PropertyValue.
 	inline PropertyValue PropertyValueFromLua(const sol::object& obj)
 	{
@@ -58,11 +50,11 @@ namespace TEN::Scripting::Properties
 	}
 
 	// Convert a PropertyValue to a Lua sol::object.
-	inline sol::object PropertyValueToLua(const PropertyValue& value)
+	inline sol::object PropertyValueToLua(sol::state& state, const PropertyValue& value)
 	{
-		return std::visit([](const auto& val) -> sol::object
+		return std::visit([&state](const auto& val) -> sol::object
 		{
-			return sol::make_object(s_propertyLuaState, val);
+			return sol::make_object(state, val);
 		}, value);
 	}
 }

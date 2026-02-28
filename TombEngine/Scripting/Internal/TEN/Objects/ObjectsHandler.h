@@ -180,7 +180,7 @@ private:
 			return sol::nil;
 
 		auto* val = props->GetRaw(name);
-		return val ? PropertyValueToLua(*val) : sol::nil;
+		return val ? PropertyValueToLua(*_handler.GetState(), *val) : sol::nil;
 	}
 
 	void SetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name, const sol::object& value)
@@ -195,7 +195,7 @@ private:
 			return sol::nil;
 
 		auto* val = props->GetRaw(name);
-		return val ? PropertyValueToLua(*val) : sol::nil;
+		return val ? PropertyValueToLua(*_handler.GetState(), *val) : sol::nil;
 	}
 
 	void SetStaticProperty(int slotID, const std::string& name, const sol::object& value)
