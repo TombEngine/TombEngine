@@ -466,7 +466,7 @@ namespace TEN::SpotCam
 	// Tracking camera: finds the closest spline position to Lara using a coarse-to-fine search.
 	static float FindClosestSplineAlpha(int knotCount)
 	{
-		auto laraPos = LaraItem->Pose.Position;
+		auto  laraPos = LaraItem->Pose.Position;
 		float closestAlpha = 0.0f;
 		float searchStep = 1.0f / 8.0f;
 	
@@ -474,7 +474,7 @@ namespace TEN::SpotCam
 	
 		for (int iteration = 0; iteration < 8; iteration++)
 		{
-			float closestDist = 65536.0f;
+			float closestDist = FLT_MAX;
 	
 			for (int sample = 0; sample < 8; sample++)
 			{
@@ -486,9 +486,7 @@ namespace TEN::SpotCam
 				float cy = Spline(sampleAlpha, &Knots.PosY[1], knotCount);
 				float cz = Spline(sampleAlpha, &Knots.PosZ[1], knotCount);
 	
-				float dist = Vector3::Distance(
-					Vector3(cx, cy, cz),
-					Vector3((float)laraPos.x, (float)laraPos.y, (float)laraPos.z));
+				float dist = Vector3::Distance(Vector3(cx, cy, cz), Vector3((float)laraPos.x, (float)laraPos.y, (float)laraPos.z));
 	
 				if (dist <= closestDist)
 				{
@@ -499,6 +497,7 @@ namespace TEN::SpotCam
 	
 			float halfStep = searchStep / 2.0f;
 			searchStart = closestAlpha - 2.0f * halfStep;
+
 			if (searchStart < 0.0f)
 				searchStart = 0.0f;
 	
@@ -526,15 +525,15 @@ namespace TEN::SpotCam
 		int knotCount = (firstCam.Flags & SCF_TRACKING_CAM) ? (SequenceCameraCount + 2) : 4;
 	
 		// Interpolate all camera properties at current spline position.
-		float interpPosX    = Spline(SplineAlpha, &Knots.PosX[1], knotCount);
-		float interpPosY    = Spline(SplineAlpha, &Knots.PosY[1], knotCount);
-		float interpPosZ    = Spline(SplineAlpha, &Knots.PosZ[1], knotCount);
+		float interpPosX    = Spline(SplineAlpha, &Knots.PosX[1],    knotCount);
+		float interpPosY    = Spline(SplineAlpha, &Knots.PosY[1],    knotCount);
+		float interpPosZ    = Spline(SplineAlpha, &Knots.PosZ[1],    knotCount);
 		float interpTargetX = Spline(SplineAlpha, &Knots.TargetX[1], knotCount);
 		float interpTargetY = Spline(SplineAlpha, &Knots.TargetY[1], knotCount);
 		float interpTargetZ = Spline(SplineAlpha, &Knots.TargetZ[1], knotCount);
-		float interpSpeed   = Spline(SplineAlpha, &Knots.Speed[1], knotCount);
-		float interpRoll    = Spline(SplineAlpha, &Knots.Roll[1], knotCount);
-		float interpFOV     = Spline(SplineAlpha, &Knots.FOV[1], knotCount);
+		float interpSpeed   = Spline(SplineAlpha, &Knots.Speed[1],   knotCount);
+		float interpRoll    = Spline(SplineAlpha, &Knots.Roll[1],    knotCount);
+		float interpFOV     = Spline(SplineAlpha, &Knots.FOV[1],     knotCount);
 	
 		// Handle screen fading.
 		if ((SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_IN) &&
@@ -570,7 +569,7 @@ namespace TEN::SpotCam
 		else
 		{
 			// Non-tracking: advance alpha and manage pause state machine.
-			float normalizedSpeed = interpSpeed / 65536.0f;
+			float normalizedSpeed = interpSpeed / (float)USHRT_MAX;
 			advancedToNextSegment = AdvanceOrPauseSequence(normalizedSpeed);
 		}
 	
@@ -610,6 +609,7 @@ namespace TEN::SpotCam
 		// Disable interpolation if camera jumped too far.
 		auto origin = Vector3((float)Camera.pos.x, (float)Camera.pos.y, (float)Camera.pos.z);
 		auto target = Vector3(interpPosX, interpPosY, interpPosZ);
+
 		if (Vector3::Distance(origin, target) > BLOCK(0.25f))
 			Camera.DisableInterpolation = true;
 	
@@ -682,7 +682,7 @@ namespace TEN::SpotCam
 			return;
 	
 		// Non-tracking: check if the spline segment is complete.
-		float normalizedSpeed = interpSpeed / 65536.0f;
+		float normalizedSpeed = interpSpeed / (float)USHRT_MAX;
 		if (!advancedToNextSegment && SplineAlpha <= 1.0f - normalizedSpeed)
 			return;
 	
@@ -707,21 +707,23 @@ namespace TEN::SpotCam
 	
 			if (SpotCams[CurrentCameraIndex].Flags & SCF_DISABLE_LARA_CONTROLS)
 			{
+				Lara.Control.IsLocked = true;
+
 				if (CurrentLevel)
 					SetCinematicBars(SPOTCAM_CINEMATIC_BARS_HEIGHT, SPOTCAM_CINEMATIC_BARS_SPEED);
-				Lara.Control.IsLocked = true;
 			}
 	
 			// Handle cut-to-cam: jump to a specific camera in the sequence.
 			if (SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)
 			{
 				int jumpTarget = FirstCameraIndex + SpotCams[CurrentCameraIndex].Timer;
-				Camera.DisableInterpolation = true;
 	
 				Knots.SetKnot(1, SpotCams[jumpTarget]);
-				knotStartIndex = 2;
 				CurrentCameraIndex = jumpTarget;
 				prevCamIndex = jumpTarget;
+
+				knotStartIndex = 2;
+				Camera.DisableInterpolation = true;
 			}
 	
 			knotStartIndex++;
