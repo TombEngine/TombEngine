@@ -57,6 +57,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 

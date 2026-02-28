@@ -30,6 +30,7 @@ namespace TEN::Renderer
 	using namespace TEN::Effects::DisplaySprite;
 	using namespace TEN::Effects::Environment;
 	using namespace TEN::Math;
+	using namespace TEN::SpotCam;
 
 	void Renderer::InitializeGameBars()
 	{

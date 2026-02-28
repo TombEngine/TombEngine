@@ -35,6 +35,7 @@ using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";

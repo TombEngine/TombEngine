@@ -29,6 +29,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Scripting::DisplaySprite;
 using namespace TEN::Scripting::DisplayItem;
 using namespace TEN::Scripting::View;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 

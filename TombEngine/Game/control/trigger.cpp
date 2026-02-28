@@ -30,6 +30,7 @@
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 int TriggerTimer;

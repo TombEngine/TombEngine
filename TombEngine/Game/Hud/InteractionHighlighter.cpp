@@ -14,8 +14,9 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Los;
-using namespace TEN::Math;
 using namespace TEN::Effects::DisplaySprite;
+using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Hud
