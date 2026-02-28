@@ -9,7 +9,7 @@ C++ for gameplay logic, AI behavior, puzzle mechanics, etc.
 | Layer | Scope | Storage | Purpose |
 |-------|-------|---------|---------|
 | **Layer 1 — Type** | All instances of a type | `PropertyHandler` (global static maps) | Default values shared by every instance of an object type |
-| **Layer 2 — Instance** | Single entity | `ItemInfo::Properties` / `StaticInfo::Properties` (`PropertyMap` member) | Per-instance overrides |
+| **Layer 2 — Instance** | Single entity | `ItemInfo::Properties` / `StaticMesh::Properties` (`PropertyMap` member) | Per-instance overrides |
 
 Resolution order: **Instance → Type → caller-supplied default**.
 
@@ -53,7 +53,7 @@ you use.
 
 ## Accessing Instance Properties (`PropertyMap`)
 
-Every `ItemInfo` (moveable) and `StaticInfo` (static mesh) has a public member:
+Every `ItemInfo` (moveable) and `StaticMesh` (static mesh) has a public member:
 
 ```cpp
 TEN::Scripting::Properties::PropertyMap Properties;
@@ -143,14 +143,14 @@ std::vector<std::string> names = item.Properties.GetNames();
 
 ## Two-Layer Resolution (`PropertyHandler`)
 
-`PropertyHandler` checks the instance layer first, then the type layer. If neither
+`PropertyHandler::Get` checks the instance layer first, then the type layer. If neither
 layer contains the property, resolution returns `nullptr` (raw form) or the caller's
 default value (typed form).
 
-All resolve functions accept the entity reference directly (`const ItemInfo&` or
+All overloads accept the entity reference directly (`const ItemInfo&` or
 `const StaticMesh&`) and derive the object number / slot internally.
 
-### Using typed `GetMoveableProperty` (recommended)
+### Using typed `Get` (recommended)
 
 ```cpp
 using namespace TEN::Scripting::Properties;
@@ -158,7 +158,7 @@ using namespace TEN::Scripting::Properties;
 auto& item = g_Level.Items[itemNumber];
 
 // By name (simple, hashes internally):
-float damage = PropertyHandler::GetMoveableProperty<float>(item, "damage", 10.0f);
+float damage = PropertyHandler::Get<float>(item, "damage", 10.0f);
 
 // By pre-computed hash (fast — use in hot code):
 static const int kDamageHash   = GetHash("damage");
@@ -166,12 +166,12 @@ static const int kSpeedHash    = GetHash("speed");
 static const int kFriendlyHash = GetHash("friendly");
 
 // Resolves: instance property → type property → default.
-float damage2  = PropertyHandler::GetMoveableProperty<float>(item, kDamageHash, 10.0f);
-float speed    = PropertyHandler::GetMoveableProperty<float>(item, kSpeedHash, 1.0f);
-bool  friendly = PropertyHandler::GetMoveableProperty<bool>(item, kFriendlyHash, false);
+float damage2  = PropertyHandler::Get<float>(item, kDamageHash, 10.0f);
+float speed    = PropertyHandler::Get<float>(item, kSpeedHash, 1.0f);
+bool  friendly = PropertyHandler::Get<bool>(item, kFriendlyHash, false);
 
 // Default value is optional (zero-initialized if omitted):
-float damage3 = PropertyHandler::GetMoveableProperty<float>(item, kDamageHash); // 0.0f if not found
+float damage3 = PropertyHandler::Get<float>(item, kDamageHash); // 0.0f if not found
 ```
 
 ### Statics
@@ -181,7 +181,7 @@ auto& staticObj = g_Level.Rooms[roomNumber].mesh[meshIndex];
 
 static const int kFragileHash = GetHash("fragile");
 
-bool fragile = PropertyHandler::GetStaticProperty<bool>(staticObj, kFragileHash, false);
+bool fragile = PropertyHandler::Get<bool>(staticObj, kFragileHash, false);
 ```
 
 ### Raw pointer resolution (when you need to branch on presence)
@@ -189,7 +189,7 @@ bool fragile = PropertyHandler::GetStaticProperty<bool>(staticObj, kFragileHash,
 ```cpp
 static const int kBehaviorHash = GetHash("behavior");
 
-const PropertyValue* val = PropertyHandler::GetMoveableProperty(item, kBehaviorHash);
+const PropertyValue* val = PropertyHandler::Get(item, kBehaviorHash);
 
 if (val != nullptr)
 {
@@ -202,7 +202,7 @@ else
 }
 
 // Or by name:
-const PropertyValue* val2 = PropertyHandler::GetMoveableProperty(item, "behavior");
+const PropertyValue* val2 = PropertyHandler::Get(item, "behavior");
 ```
 
 ---
@@ -232,7 +232,7 @@ typeProps.Set("damage", PropertyValue(25.0f));
 |---------|------|-------------|
 | `Get<T>("name")` / `GetOr<T>("name", def)` | O(1) amortized, but hashes the string each call | One-off reads, init code |
 | `Get<T>(hash)` / `GetOr<T>(hash, def)` | O(1) with no hashing | Hot paths — AI ticks, control loops |
-| `GetMoveableProperty<T>(item, hash, …)` | Two O(1) lookups worst-case | Hot paths needing two-layer resolution |
+| `PropertyHandler::Get<T>(entity, hash, …)` | Two O(1) lookups worst-case | Hot paths needing two-layer resolution |
 
 **Best practice:** Declare hashes as `static const` locals or class constants using `GetHash` from `Specific/trutils.h`:
 
@@ -249,8 +249,8 @@ static const int kSpeed  = GetHash("speed");
 - **Level load:** Lua scripts populate type properties via `Moveable.SetTypeProperty()`
   and instance properties via `myObj:SetProperty()`.
 - **Savegame:** Both layers are serialized/deserialized automatically through FlatBuffers.
-- **Level unload:** `PropertyHandler::Clear()` is called from `LogicHandler::ResetScripts()`,
-  and instance `PropertyMap` members are destroyed with their owning `ItemInfo`/`StaticInfo`.
+- **Level unload:** `PropertyHandler::Clear()` is called from `ObjectsHandler::FreeEntities()`,
+  and instance `PropertyMap` members are destroyed with their owning `ItemInfo`/`StaticMesh`.
 
 ---
 
@@ -268,21 +268,19 @@ PropertyMap::Has(name/hash)          → bool
 PropertyMap::Remove(name/hash)       → bool
 PropertyMap::Clear()                 → void
 
-PropertyHandler::GetMoveableProperty(item, name)                    → const PropertyValue*
-PropertyHandler::GetMoveableProperty(item, hash)                    → const PropertyValue*
-PropertyHandler::GetStaticProperty(staticMesh, name)                → const PropertyValue*
-PropertyHandler::GetStaticProperty(staticMesh, hash)                → const PropertyValue*
-PropertyHandler::GetMoveableProperty<T>(item, name, def = T{})      → T
-PropertyHandler::GetMoveableProperty<T>(item, hash, def = T{})      → T
-PropertyHandler::GetStaticProperty<T>(staticMesh, name, def = T{})  → T
-PropertyHandler::GetStaticProperty<T>(staticMesh, hash, def = T{})  → T
-PropertyHandler::FindMoveableProperties(objectID)                       → const PropertyMap*
-PropertyHandler::FindStaticProperties(slotID)                           → const PropertyMap*
-PropertyHandler::GetMoveableProperties(objectID)                        → PropertyMap&
-PropertyHandler::GetStaticProperties(slotID)                            → PropertyMap&
-PropertyHandler::Clear()                                                → void
+PropertyHandler::Get(item, name)                    → const PropertyValue*
+PropertyHandler::Get(item, hash)                    → const PropertyValue*
+PropertyHandler::Get(staticMesh, name)              → const PropertyValue*
+PropertyHandler::Get(staticMesh, hash)              → const PropertyValue*
+PropertyHandler::Get<T>(item, name, def = T{})      → T
+PropertyHandler::Get<T>(item, hash, def = T{})      → T
+PropertyHandler::Get<T>(staticMesh, name, def = T{})→ T
+PropertyHandler::Get<T>(staticMesh, hash, def = T{})→ T
+PropertyHandler::FindMoveableProperties(objectID)   → const PropertyMap*
+PropertyHandler::FindStaticProperties(slotID)       → const PropertyMap*
+PropertyHandler::GetMoveableProperties(objectID)    → PropertyMap&
+PropertyHandler::GetStaticProperties(slotID)        → PropertyMap&
+PropertyHandler::Clear()                            → void
 
 GetHash(name)                        → int   (from Specific/trutils.h)
-```
-PropertyHandler::Clear()                                                → void
 ```

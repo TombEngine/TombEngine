@@ -50,7 +50,7 @@ namespace TEN::Scripting::Properties
 	}
 
 	// Convert a PropertyValue to a Lua sol::object.
-	inline sol::object PropertyValueToLua(sol::state& state, const PropertyValue& value)
+	inline sol::object PropertyValueToLua(sol::state_view state, const PropertyValue& value)
 	{
 		return std::visit([&state](const auto& val) -> sol::object
 		{

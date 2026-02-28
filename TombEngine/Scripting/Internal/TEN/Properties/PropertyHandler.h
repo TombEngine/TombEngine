@@ -64,7 +64,7 @@ namespace TEN::Scripting::Properties
 		template <typename T>
 		static T Get(const StaticMesh& staticMesh, const std::string& name, const T& defaultValue = T{})
 		{
-			return GetStaticProperty<T>(staticMesh, GetHash(name), defaultValue);
+			return Get<T>(staticMesh, GetHash(name), defaultValue);
 		}
 
 		template <typename T>

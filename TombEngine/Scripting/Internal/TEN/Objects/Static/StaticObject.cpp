@@ -269,14 +269,14 @@ namespace TEN::Scripting
 	// @function Static:GetProperty
 	// @tparam string name The property name.
 	// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
-	sol::object Static::GetProperty(const std::string& name) const
+	sol::object Static::GetProperty(sol::this_state state, const std::string& name) const
 	{
 		auto* val = PropertyHandler::Get(_static, name);
 
 		if (val == nullptr)
 			return sol::nil;
 
-		return PropertyValueToLua(*val);
+		return PropertyValueToLua(state, *val);
 	}
 
 	/// Set a property value.
