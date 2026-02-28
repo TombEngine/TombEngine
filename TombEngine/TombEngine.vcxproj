@@ -927,6 +927,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Objects\NamedBase.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\ObjectIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\ObjectsHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyLuaConverters.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyMap.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertySavegame.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyValue.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomFlags.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomReverbTypes.h" />
@@ -1387,6 +1392,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Objects\Lara\LaraObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Moveable\MoveableObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\ObjectsHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Properties\PropertyMap.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Properties\PropertyHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Room\RoomObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Sink\SinkObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.cpp" />

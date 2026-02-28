@@ -183,6 +183,50 @@ struct FireflyDataT;
 
 struct KeyValPair;
 
+struct PropertyBool;
+struct PropertyBoolBuilder;
+struct PropertyBoolT;
+
+struct PropertyFloat;
+struct PropertyFloatBuilder;
+struct PropertyFloatT;
+
+struct PropertyString;
+struct PropertyStringBuilder;
+struct PropertyStringT;
+
+struct PropertyVec2;
+struct PropertyVec2Builder;
+struct PropertyVec2T;
+
+struct PropertyVec3;
+struct PropertyVec3Builder;
+struct PropertyVec3T;
+
+struct PropertyColor;
+struct PropertyColorBuilder;
+struct PropertyColorT;
+
+struct PropertyRotation;
+struct PropertyRotationBuilder;
+struct PropertyRotationT;
+
+struct PropertyTime;
+struct PropertyTimeBuilder;
+struct PropertyTimeT;
+
+struct PropertyEntry;
+struct PropertyEntryBuilder;
+struct PropertyEntryT;
+
+struct PropertyMapData;
+struct PropertyMapDataBuilder;
+struct PropertyMapDataT;
+
+struct TypePropertyMap;
+struct TypePropertyMapBuilder;
+struct TypePropertyMapT;
+
 struct ScriptTable;
 struct ScriptTableBuilder;
 struct ScriptTableT;
@@ -278,6 +322,194 @@ inline const char *EnumNameTorchState(TorchState e) {
   const size_t index = static_cast<size_t>(e);
   return EnumNamesTorchState()[index];
 }
+
+enum class PropertyValueUnion : uint8_t {
+  NONE = 0,
+  prop_bool = 1,
+  prop_float = 2,
+  prop_string = 3,
+  prop_vec2 = 4,
+  prop_vec3 = 5,
+  prop_color = 6,
+  prop_rotation = 7,
+  prop_time = 8,
+  MIN = NONE,
+  MAX = prop_time
+};
+
+inline const PropertyValueUnion (&EnumValuesPropertyValueUnion())[9] {
+  static const PropertyValueUnion values[] = {
+    PropertyValueUnion::NONE,
+    PropertyValueUnion::prop_bool,
+    PropertyValueUnion::prop_float,
+    PropertyValueUnion::prop_string,
+    PropertyValueUnion::prop_vec2,
+    PropertyValueUnion::prop_vec3,
+    PropertyValueUnion::prop_color,
+    PropertyValueUnion::prop_rotation,
+    PropertyValueUnion::prop_time
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesPropertyValueUnion() {
+  static const char * const names[10] = {
+    "NONE",
+    "prop_bool",
+    "prop_float",
+    "prop_string",
+    "prop_vec2",
+    "prop_vec3",
+    "prop_color",
+    "prop_rotation",
+    "prop_time",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNamePropertyValueUnion(PropertyValueUnion e) {
+  if (flatbuffers::IsOutRange(e, PropertyValueUnion::NONE, PropertyValueUnion::prop_time)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesPropertyValueUnion()[index];
+}
+
+template<typename T> struct PropertyValueUnionTraits {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::NONE;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyBool> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_bool;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyFloat> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_float;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyString> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_string;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyVec2> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_vec2;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyVec3> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_vec3;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyColor> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_color;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyRotation> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_rotation;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Save::PropertyTime> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_time;
+};
+
+struct PropertyValueUnionUnion {
+  PropertyValueUnion type;
+  void *value;
+
+  PropertyValueUnionUnion() : type(PropertyValueUnion::NONE), value(nullptr) {}
+  PropertyValueUnionUnion(PropertyValueUnionUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(PropertyValueUnion::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  PropertyValueUnionUnion(const PropertyValueUnionUnion &);
+  PropertyValueUnionUnion &operator=(const PropertyValueUnionUnion &u)
+    { PropertyValueUnionUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  PropertyValueUnionUnion &operator=(PropertyValueUnionUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~PropertyValueUnionUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = PropertyValueUnionTraits<typename RT::TableType>::enum_value;
+    if (type != PropertyValueUnion::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, PropertyValueUnion type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  TEN::Save::PropertyBoolT *Asprop_bool() {
+    return type == PropertyValueUnion::prop_bool ?
+      reinterpret_cast<TEN::Save::PropertyBoolT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyBoolT *Asprop_bool() const {
+    return type == PropertyValueUnion::prop_bool ?
+      reinterpret_cast<const TEN::Save::PropertyBoolT *>(value) : nullptr;
+  }
+  TEN::Save::PropertyFloatT *Asprop_float() {
+    return type == PropertyValueUnion::prop_float ?
+      reinterpret_cast<TEN::Save::PropertyFloatT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyFloatT *Asprop_float() const {
+    return type == PropertyValueUnion::prop_float ?
+      reinterpret_cast<const TEN::Save::PropertyFloatT *>(value) : nullptr;
+  }
+  TEN::Save::PropertyStringT *Asprop_string() {
+    return type == PropertyValueUnion::prop_string ?
+      reinterpret_cast<TEN::Save::PropertyStringT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyStringT *Asprop_string() const {
+    return type == PropertyValueUnion::prop_string ?
+      reinterpret_cast<const TEN::Save::PropertyStringT *>(value) : nullptr;
+  }
+  TEN::Save::PropertyVec2T *Asprop_vec2() {
+    return type == PropertyValueUnion::prop_vec2 ?
+      reinterpret_cast<TEN::Save::PropertyVec2T *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyVec2T *Asprop_vec2() const {
+    return type == PropertyValueUnion::prop_vec2 ?
+      reinterpret_cast<const TEN::Save::PropertyVec2T *>(value) : nullptr;
+  }
+  TEN::Save::PropertyVec3T *Asprop_vec3() {
+    return type == PropertyValueUnion::prop_vec3 ?
+      reinterpret_cast<TEN::Save::PropertyVec3T *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyVec3T *Asprop_vec3() const {
+    return type == PropertyValueUnion::prop_vec3 ?
+      reinterpret_cast<const TEN::Save::PropertyVec3T *>(value) : nullptr;
+  }
+  TEN::Save::PropertyColorT *Asprop_color() {
+    return type == PropertyValueUnion::prop_color ?
+      reinterpret_cast<TEN::Save::PropertyColorT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyColorT *Asprop_color() const {
+    return type == PropertyValueUnion::prop_color ?
+      reinterpret_cast<const TEN::Save::PropertyColorT *>(value) : nullptr;
+  }
+  TEN::Save::PropertyRotationT *Asprop_rotation() {
+    return type == PropertyValueUnion::prop_rotation ?
+      reinterpret_cast<TEN::Save::PropertyRotationT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyRotationT *Asprop_rotation() const {
+    return type == PropertyValueUnion::prop_rotation ?
+      reinterpret_cast<const TEN::Save::PropertyRotationT *>(value) : nullptr;
+  }
+  TEN::Save::PropertyTimeT *Asprop_time() {
+    return type == PropertyValueUnion::prop_time ?
+      reinterpret_cast<TEN::Save::PropertyTimeT *>(value) : nullptr;
+  }
+  const TEN::Save::PropertyTimeT *Asprop_time() const {
+    return type == PropertyValueUnion::prop_time ?
+      reinterpret_cast<const TEN::Save::PropertyTimeT *>(value) : nullptr;
+  }
+};
+
+bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type);
+bool VerifyPropertyValueUnionVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 enum class VarUnion : uint8_t {
   NONE = 0,
@@ -1154,6 +1386,7 @@ struct ItemT : public flatbuffers::NativeTable {
   std::string lua_on_hit_name{};
   std::string lua_on_collided_with_object_name{};
   std::string lua_on_collided_with_room_name{};
+  std::unique_ptr<TEN::Save::PropertyMapDataT> properties{};
 };
 
 struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1206,7 +1439,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LUA_ON_KILLED_NAME = 88,
     VT_LUA_ON_HIT_NAME = 90,
     VT_LUA_ON_COLLIDED_WITH_OBJECT_NAME = 92,
-    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 94
+    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 94,
+    VT_PROPERTIES = 96
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1410,6 +1644,9 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *lua_on_collided_with_room_name() const {
     return GetPointer<const flatbuffers::String *>(VT_LUA_ON_COLLIDED_WITH_ROOM_NAME);
   }
+  const TEN::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Save::PropertyMapData *>(VT_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ANIM_OBJECT_ID) &&
@@ -1466,6 +1703,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(lua_on_collided_with_object_name()) &&
            VerifyOffset(verifier, VT_LUA_ON_COLLIDED_WITH_ROOM_NAME) &&
            verifier.VerifyString(lua_on_collided_with_room_name()) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
            verifier.EndTable();
   }
   ItemT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1699,6 +1938,9 @@ struct ItemBuilder {
   void add_lua_on_collided_with_room_name(flatbuffers::Offset<flatbuffers::String> lua_on_collided_with_room_name) {
     fbb_.AddOffset(Item::VT_LUA_ON_COLLIDED_WITH_ROOM_NAME, lua_on_collided_with_room_name);
   }
+  void add_properties(flatbuffers::Offset<TEN::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(Item::VT_PROPERTIES, properties);
+  }
   explicit ItemBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1757,8 +1999,10 @@ inline flatbuffers::Offset<Item> CreateItem(
     flatbuffers::Offset<flatbuffers::String> lua_on_killed_name = 0,
     flatbuffers::Offset<flatbuffers::String> lua_on_hit_name = 0,
     flatbuffers::Offset<flatbuffers::String> lua_on_collided_with_object_name = 0,
-    flatbuffers::Offset<flatbuffers::String> lua_on_collided_with_room_name = 0) {
+    flatbuffers::Offset<flatbuffers::String> lua_on_collided_with_room_name = 0,
+    flatbuffers::Offset<TEN::Save::PropertyMapData> properties = 0) {
   ItemBuilder builder_(_fbb);
+  builder_.add_properties(properties);
   builder_.add_lua_on_collided_with_room_name(lua_on_collided_with_room_name);
   builder_.add_lua_on_collided_with_object_name(lua_on_collided_with_object_name);
   builder_.add_lua_on_hit_name(lua_on_hit_name);
@@ -1860,7 +2104,8 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     const char *lua_on_killed_name = nullptr,
     const char *lua_on_hit_name = nullptr,
     const char *lua_on_collided_with_object_name = nullptr,
-    const char *lua_on_collided_with_room_name = nullptr) {
+    const char *lua_on_collided_with_room_name = nullptr,
+    flatbuffers::Offset<TEN::Save::PropertyMapData> properties = 0) {
   auto item_flags__ = item_flags ? _fbb.CreateVector<int32_t>(*item_flags) : 0;
   auto mesh_index__ = mesh_index ? _fbb.CreateVector<int32_t>(*mesh_index) : 0;
   auto lua_name__ = lua_name ? _fbb.CreateString(lua_name) : 0;
@@ -1915,7 +2160,8 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       lua_on_killed_name__,
       lua_on_hit_name__,
       lua_on_collided_with_object_name__,
-      lua_on_collided_with_room_name__);
+      lua_on_collided_with_room_name__,
+      properties);
 }
 
 flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb, const ItemT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -5306,6 +5552,7 @@ struct StaticMeshInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Save::Vector4> color{};
   int32_t hit_points = 0;
   int32_t flags = 0;
+  std::unique_ptr<TEN::Save::PropertyMapDataT> properties{};
 };
 
 struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -5318,7 +5565,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ROOM_NUMBER = 8,
     VT_COLOR = 10,
     VT_HIT_POINTS = 12,
-    VT_FLAGS = 14
+    VT_FLAGS = 14,
+    VT_PROPERTIES = 16
   };
   int32_t number() const {
     return GetField<int32_t>(VT_NUMBER, 0);
@@ -5338,6 +5586,9 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t flags() const {
     return GetField<int32_t>(VT_FLAGS, 0);
   }
+  const TEN::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Save::PropertyMapData *>(VT_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_NUMBER) &&
@@ -5346,6 +5597,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Save::Vector4>(verifier, VT_COLOR) &&
            VerifyField<int32_t>(verifier, VT_HIT_POINTS) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
            verifier.EndTable();
   }
   StaticMeshInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -5375,6 +5628,9 @@ struct StaticMeshInfoBuilder {
   void add_flags(int32_t flags) {
     fbb_.AddElement<int32_t>(StaticMeshInfo::VT_FLAGS, flags, 0);
   }
+  void add_properties(flatbuffers::Offset<TEN::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(StaticMeshInfo::VT_PROPERTIES, properties);
+  }
   explicit StaticMeshInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -5393,8 +5649,10 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
     int32_t room_number = 0,
     const TEN::Save::Vector4 *color = 0,
     int32_t hit_points = 0,
-    int32_t flags = 0) {
+    int32_t flags = 0,
+    flatbuffers::Offset<TEN::Save::PropertyMapData> properties = 0) {
   StaticMeshInfoBuilder builder_(_fbb);
+  builder_.add_properties(properties);
   builder_.add_flags(flags);
   builder_.add_hit_points(hit_points);
   builder_.add_color(color);
@@ -7498,6 +7756,858 @@ struct FireflyData::Traits {
 
 flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBufferBuilder &_fbb, const FireflyDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct PropertyBoolT : public flatbuffers::NativeTable {
+  typedef PropertyBool TableType;
+  bool value = false;
+};
+
+struct PropertyBool FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyBoolT NativeTableType;
+  typedef PropertyBoolBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  bool value() const {
+    return GetField<uint8_t>(VT_VALUE, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_VALUE) &&
+           verifier.EndTable();
+  }
+  PropertyBoolT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyBoolT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyBool> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyBoolBuilder {
+  typedef PropertyBool Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(bool value) {
+    fbb_.AddElement<uint8_t>(PropertyBool::VT_VALUE, static_cast<uint8_t>(value), 0);
+  }
+  explicit PropertyBoolBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyBool> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyBool>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyBool> CreatePropertyBool(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool value = false) {
+  PropertyBoolBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyBool::Traits {
+  using type = PropertyBool;
+  static auto constexpr Create = CreatePropertyBool;
+};
+
+flatbuffers::Offset<PropertyBool> CreatePropertyBool(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyFloatT : public flatbuffers::NativeTable {
+  typedef PropertyFloat TableType;
+  float value = 0.0f;
+};
+
+struct PropertyFloat FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyFloatT NativeTableType;
+  typedef PropertyFloatBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  float value() const {
+    return GetField<float>(VT_VALUE, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_VALUE) &&
+           verifier.EndTable();
+  }
+  PropertyFloatT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyFloatT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyFloat> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyFloatBuilder {
+  typedef PropertyFloat Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(float value) {
+    fbb_.AddElement<float>(PropertyFloat::VT_VALUE, value, 0.0f);
+  }
+  explicit PropertyFloatBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyFloat> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyFloat>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float value = 0.0f) {
+  PropertyFloatBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyFloat::Traits {
+  using type = PropertyFloat;
+  static auto constexpr Create = CreatePropertyFloat;
+};
+
+flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyStringT : public flatbuffers::NativeTable {
+  typedef PropertyString TableType;
+  std::string value{};
+};
+
+struct PropertyString FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyStringT NativeTableType;
+  typedef PropertyStringBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  const flatbuffers::String *value() const {
+    return GetPointer<const flatbuffers::String *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyString(value()) &&
+           verifier.EndTable();
+  }
+  PropertyStringT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyStringT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyString> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyStringBuilder {
+  typedef PropertyString Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::String> value) {
+    fbb_.AddOffset(PropertyString::VT_VALUE, value);
+  }
+  explicit PropertyStringBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyString> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyString>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyString(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> value = 0) {
+  PropertyStringBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyString::Traits {
+  using type = PropertyString;
+  static auto constexpr Create = CreatePropertyString;
+};
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyStringDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *value = nullptr) {
+  auto value__ = value ? _fbb.CreateString(value) : 0;
+  return TEN::Save::CreatePropertyString(
+      _fbb,
+      value__);
+}
+
+flatbuffers::Offset<PropertyString> CreatePropertyString(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyVec2T : public flatbuffers::NativeTable {
+  typedef PropertyVec2 TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+};
+
+struct PropertyVec2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyVec2T NativeTableType;
+  typedef PropertyVec2Builder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           verifier.EndTable();
+  }
+  PropertyVec2T *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyVec2T *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyVec2> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyVec2Builder {
+  typedef PropertyVec2 Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyVec2::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyVec2::VT_Y, y, 0.0f);
+  }
+  explicit PropertyVec2Builder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyVec2> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyVec2>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f) {
+  PropertyVec2Builder builder_(_fbb);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyVec2::Traits {
+  using type = PropertyVec2;
+  static auto constexpr Create = CreatePropertyVec2;
+};
+
+flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyVec3T : public flatbuffers::NativeTable {
+  typedef PropertyVec3 TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+  float z = 0.0f;
+};
+
+struct PropertyVec3 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyVec3T NativeTableType;
+  typedef PropertyVec3Builder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6,
+    VT_Z = 8
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  float z() const {
+    return GetField<float>(VT_Z, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           VerifyField<float>(verifier, VT_Z) &&
+           verifier.EndTable();
+  }
+  PropertyVec3T *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyVec3T *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyVec3> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyVec3Builder {
+  typedef PropertyVec3 Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyVec3::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyVec3::VT_Y, y, 0.0f);
+  }
+  void add_z(float z) {
+    fbb_.AddElement<float>(PropertyVec3::VT_Z, z, 0.0f);
+  }
+  explicit PropertyVec3Builder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyVec3> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyVec3>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f,
+    float z = 0.0f) {
+  PropertyVec3Builder builder_(_fbb);
+  builder_.add_z(z);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyVec3::Traits {
+  using type = PropertyVec3;
+  static auto constexpr Create = CreatePropertyVec3;
+};
+
+flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyColorT : public flatbuffers::NativeTable {
+  typedef PropertyColor TableType;
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  uint8_t a = 0;
+};
+
+struct PropertyColor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyColorT NativeTableType;
+  typedef PropertyColorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_R = 4,
+    VT_G = 6,
+    VT_B = 8,
+    VT_A = 10
+  };
+  uint8_t r() const {
+    return GetField<uint8_t>(VT_R, 0);
+  }
+  uint8_t g() const {
+    return GetField<uint8_t>(VT_G, 0);
+  }
+  uint8_t b() const {
+    return GetField<uint8_t>(VT_B, 0);
+  }
+  uint8_t a() const {
+    return GetField<uint8_t>(VT_A, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_R) &&
+           VerifyField<uint8_t>(verifier, VT_G) &&
+           VerifyField<uint8_t>(verifier, VT_B) &&
+           VerifyField<uint8_t>(verifier, VT_A) &&
+           verifier.EndTable();
+  }
+  PropertyColorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyColorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyColor> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyColorBuilder {
+  typedef PropertyColor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_r(uint8_t r) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_R, r, 0);
+  }
+  void add_g(uint8_t g) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_G, g, 0);
+  }
+  void add_b(uint8_t b) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_B, b, 0);
+  }
+  void add_a(uint8_t a) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_A, a, 0);
+  }
+  explicit PropertyColorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyColor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyColor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyColor> CreatePropertyColor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint8_t r = 0,
+    uint8_t g = 0,
+    uint8_t b = 0,
+    uint8_t a = 0) {
+  PropertyColorBuilder builder_(_fbb);
+  builder_.add_a(a);
+  builder_.add_b(b);
+  builder_.add_g(g);
+  builder_.add_r(r);
+  return builder_.Finish();
+}
+
+struct PropertyColor::Traits {
+  using type = PropertyColor;
+  static auto constexpr Create = CreatePropertyColor;
+};
+
+flatbuffers::Offset<PropertyColor> CreatePropertyColor(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyRotationT : public flatbuffers::NativeTable {
+  typedef PropertyRotation TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+  float z = 0.0f;
+};
+
+struct PropertyRotation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyRotationT NativeTableType;
+  typedef PropertyRotationBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6,
+    VT_Z = 8
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  float z() const {
+    return GetField<float>(VT_Z, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           VerifyField<float>(verifier, VT_Z) &&
+           verifier.EndTable();
+  }
+  PropertyRotationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyRotationT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyRotation> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyRotationBuilder {
+  typedef PropertyRotation Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyRotation::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyRotation::VT_Y, y, 0.0f);
+  }
+  void add_z(float z) {
+    fbb_.AddElement<float>(PropertyRotation::VT_Z, z, 0.0f);
+  }
+  explicit PropertyRotationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyRotation> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyRotation>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f,
+    float z = 0.0f) {
+  PropertyRotationBuilder builder_(_fbb);
+  builder_.add_z(z);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyRotation::Traits {
+  using type = PropertyRotation;
+  static auto constexpr Create = CreatePropertyRotation;
+};
+
+flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyTimeT : public flatbuffers::NativeTable {
+  typedef PropertyTime TableType;
+  int32_t frame_count = 0;
+};
+
+struct PropertyTime FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyTimeT NativeTableType;
+  typedef PropertyTimeBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_FRAME_COUNT = 4
+  };
+  int32_t frame_count() const {
+    return GetField<int32_t>(VT_FRAME_COUNT, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_FRAME_COUNT) &&
+           verifier.EndTable();
+  }
+  PropertyTimeT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyTimeT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyTime> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyTimeBuilder {
+  typedef PropertyTime Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_frame_count(int32_t frame_count) {
+    fbb_.AddElement<int32_t>(PropertyTime::VT_FRAME_COUNT, frame_count, 0);
+  }
+  explicit PropertyTimeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyTime> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyTime>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyTime> CreatePropertyTime(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t frame_count = 0) {
+  PropertyTimeBuilder builder_(_fbb);
+  builder_.add_frame_count(frame_count);
+  return builder_.Finish();
+}
+
+struct PropertyTime::Traits {
+  using type = PropertyTime;
+  static auto constexpr Create = CreatePropertyTime;
+};
+
+flatbuffers::Offset<PropertyTime> CreatePropertyTime(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyEntryT : public flatbuffers::NativeTable {
+  typedef PropertyEntry TableType;
+  std::string name{};
+  TEN::Save::PropertyValueUnionUnion value{};
+};
+
+struct PropertyEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyEntryT NativeTableType;
+  typedef PropertyEntryBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_VALUE_TYPE = 6,
+    VT_VALUE = 8
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  TEN::Save::PropertyValueUnion value_type() const {
+    return static_cast<TEN::Save::PropertyValueUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
+  }
+  const void *value() const {
+    return GetPointer<const void *>(VT_VALUE);
+  }
+  template<typename T> const T *value_as() const;
+  const TEN::Save::PropertyBool *value_as_prop_bool() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_bool ? static_cast<const TEN::Save::PropertyBool *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyFloat *value_as_prop_float() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_float ? static_cast<const TEN::Save::PropertyFloat *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyString *value_as_prop_string() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_string ? static_cast<const TEN::Save::PropertyString *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyVec2 *value_as_prop_vec2() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_vec2 ? static_cast<const TEN::Save::PropertyVec2 *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyVec3 *value_as_prop_vec3() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_vec3 ? static_cast<const TEN::Save::PropertyVec3 *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyColor *value_as_prop_color() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_color ? static_cast<const TEN::Save::PropertyColor *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyRotation *value_as_prop_rotation() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_rotation ? static_cast<const TEN::Save::PropertyRotation *>(value()) : nullptr;
+  }
+  const TEN::Save::PropertyTime *value_as_prop_time() const {
+    return value_type() == TEN::Save::PropertyValueUnion::prop_time ? static_cast<const TEN::Save::PropertyTime *>(value()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           VerifyPropertyValueUnion(verifier, value(), value_type()) &&
+           verifier.EndTable();
+  }
+  PropertyEntryT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyEntryT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyEntry> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+template<> inline const TEN::Save::PropertyBool *PropertyEntry::value_as<TEN::Save::PropertyBool>() const {
+  return value_as_prop_bool();
+}
+
+template<> inline const TEN::Save::PropertyFloat *PropertyEntry::value_as<TEN::Save::PropertyFloat>() const {
+  return value_as_prop_float();
+}
+
+template<> inline const TEN::Save::PropertyString *PropertyEntry::value_as<TEN::Save::PropertyString>() const {
+  return value_as_prop_string();
+}
+
+template<> inline const TEN::Save::PropertyVec2 *PropertyEntry::value_as<TEN::Save::PropertyVec2>() const {
+  return value_as_prop_vec2();
+}
+
+template<> inline const TEN::Save::PropertyVec3 *PropertyEntry::value_as<TEN::Save::PropertyVec3>() const {
+  return value_as_prop_vec3();
+}
+
+template<> inline const TEN::Save::PropertyColor *PropertyEntry::value_as<TEN::Save::PropertyColor>() const {
+  return value_as_prop_color();
+}
+
+template<> inline const TEN::Save::PropertyRotation *PropertyEntry::value_as<TEN::Save::PropertyRotation>() const {
+  return value_as_prop_rotation();
+}
+
+template<> inline const TEN::Save::PropertyTime *PropertyEntry::value_as<TEN::Save::PropertyTime>() const {
+  return value_as_prop_time();
+}
+
+struct PropertyEntryBuilder {
+  typedef PropertyEntry Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(PropertyEntry::VT_NAME, name);
+  }
+  void add_value_type(TEN::Save::PropertyValueUnion value_type) {
+    fbb_.AddElement<uint8_t>(PropertyEntry::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
+  }
+  void add_value(flatbuffers::Offset<void> value) {
+    fbb_.AddOffset(PropertyEntry::VT_VALUE, value);
+  }
+  explicit PropertyEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyEntry> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyEntry>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    TEN::Save::PropertyValueUnion value_type = TEN::Save::PropertyValueUnion::NONE,
+    flatbuffers::Offset<void> value = 0) {
+  PropertyEntryBuilder builder_(_fbb);
+  builder_.add_value(value);
+  builder_.add_name(name);
+  builder_.add_value_type(value_type);
+  return builder_.Finish();
+}
+
+struct PropertyEntry::Traits {
+  using type = PropertyEntry;
+  static auto constexpr Create = CreatePropertyEntry;
+};
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntryDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    TEN::Save::PropertyValueUnion value_type = TEN::Save::PropertyValueUnion::NONE,
+    flatbuffers::Offset<void> value = 0) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return TEN::Save::CreatePropertyEntry(
+      _fbb,
+      name__,
+      value_type,
+      value);
+}
+
+flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyMapDataT : public flatbuffers::NativeTable {
+  typedef PropertyMapData TableType;
+  std::vector<std::unique_ptr<TEN::Save::PropertyEntryT>> entries{};
+};
+
+struct PropertyMapData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyMapDataT NativeTableType;
+  typedef PropertyMapDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ENTRIES = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::PropertyEntry>> *entries() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::PropertyEntry>> *>(VT_ENTRIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ENTRIES) &&
+           verifier.VerifyVector(entries()) &&
+           verifier.VerifyVectorOfTables(entries()) &&
+           verifier.EndTable();
+  }
+  PropertyMapDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyMapDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyMapData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyMapDataBuilder {
+  typedef PropertyMapData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_entries(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::PropertyEntry>>> entries) {
+    fbb_.AddOffset(PropertyMapData::VT_ENTRIES, entries);
+  }
+  explicit PropertyMapDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyMapData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyMapData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::PropertyEntry>>> entries = 0) {
+  PropertyMapDataBuilder builder_(_fbb);
+  builder_.add_entries(entries);
+  return builder_.Finish();
+}
+
+struct PropertyMapData::Traits {
+  using type = PropertyMapData;
+  static auto constexpr Create = CreatePropertyMapData;
+};
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<TEN::Save::PropertyEntry>> *entries = nullptr) {
+  auto entries__ = entries ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::PropertyEntry>>(*entries) : 0;
+  return TEN::Save::CreatePropertyMapData(
+      _fbb,
+      entries__);
+}
+
+flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TypePropertyMapT : public flatbuffers::NativeTable {
+  typedef TypePropertyMap TableType;
+  int32_t type_id = 0;
+  std::unique_ptr<TEN::Save::PropertyMapDataT> properties{};
+};
+
+struct TypePropertyMap FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TypePropertyMapT NativeTableType;
+  typedef TypePropertyMapBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TYPE_ID = 4,
+    VT_PROPERTIES = 6
+  };
+  int32_t type_id() const {
+    return GetField<int32_t>(VT_TYPE_ID, 0);
+  }
+  const TEN::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Save::PropertyMapData *>(VT_PROPERTIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_TYPE_ID) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
+           verifier.EndTable();
+  }
+  TypePropertyMapT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TypePropertyMapT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TypePropertyMap> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct TypePropertyMapBuilder {
+  typedef TypePropertyMap Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_type_id(int32_t type_id) {
+    fbb_.AddElement<int32_t>(TypePropertyMap::VT_TYPE_ID, type_id, 0);
+  }
+  void add_properties(flatbuffers::Offset<TEN::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(TypePropertyMap::VT_PROPERTIES, properties);
+  }
+  explicit TypePropertyMapBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<TypePropertyMap> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TypePropertyMap>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t type_id = 0,
+    flatbuffers::Offset<TEN::Save::PropertyMapData> properties = 0) {
+  TypePropertyMapBuilder builder_(_fbb);
+  builder_.add_properties(properties);
+  builder_.add_type_id(type_id);
+  return builder_.Finish();
+}
+
+struct TypePropertyMap::Traits {
+  using type = TypePropertyMap;
+  static auto constexpr Create = CreateTypePropertyMap;
+};
+
+flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct ScriptTableT : public flatbuffers::NativeTable {
   typedef ScriptTable TableType;
   std::vector<TEN::Save::KeyValPair> keys_vals{};
@@ -8688,6 +9798,8 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::string> callbacks_post_useitem{};
   std::vector<std::string> callbacks_pre_freeze{};
   std::vector<std::string> callbacks_post_freeze{};
+  std::vector<std::unique_ptr<TEN::Save::TypePropertyMapT>> moveable_type_properties{};
+  std::vector<std::unique_ptr<TEN::Save::TypePropertyMapT>> static_type_properties{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -8758,7 +9870,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CALLBACKS_PRE_USEITEM = 124,
     VT_CALLBACKS_POST_USEITEM = 126,
     VT_CALLBACKS_PRE_FREEZE = 128,
-    VT_CALLBACKS_POST_FREEZE = 130
+    VT_CALLBACKS_POST_FREEZE = 130,
+    VT_MOVEABLE_TYPE_PROPERTIES = 132,
+    VT_STATIC_TYPE_PROPERTIES = 134
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -8952,6 +10066,12 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_FREEZE);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *moveable_type_properties() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *>(VT_MOVEABLE_TYPE_PROPERTIES);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *static_type_properties() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *>(VT_STATIC_TYPE_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -9103,6 +10223,12 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS_POST_FREEZE) &&
            verifier.VerifyVector(callbacks_post_freeze()) &&
            verifier.VerifyVectorOfStrings(callbacks_post_freeze()) &&
+           VerifyOffset(verifier, VT_MOVEABLE_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(moveable_type_properties()) &&
+           verifier.VerifyVectorOfTables(moveable_type_properties()) &&
+           VerifyOffset(verifier, VT_STATIC_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(static_type_properties()) &&
+           verifier.VerifyVectorOfTables(static_type_properties()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -9306,6 +10432,12 @@ struct SaveGameBuilder {
   void add_callbacks_post_freeze(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_FREEZE, callbacks_post_freeze);
   }
+  void add_moveable_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>> moveable_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_MOVEABLE_TYPE_PROPERTIES, moveable_type_properties);
+  }
+  void add_static_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>> static_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_STATIC_TYPE_PROPERTIES, static_type_properties);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -9382,8 +10514,12 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_useitem = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_useitem = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_freeze = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>> moveable_type_properties = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>> static_type_properties = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_static_type_properties(static_type_properties);
+  builder_.add_moveable_type_properties(moveable_type_properties);
   builder_.add_callbacks_post_freeze(callbacks_post_freeze);
   builder_.add_callbacks_pre_freeze(callbacks_pre_freeze);
   builder_.add_callbacks_post_useitem(callbacks_post_useitem);
@@ -9521,7 +10657,9 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_useitem = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_useitem = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_freeze = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze = nullptr) {
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> *static_type_properties = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Item>>(*items) : 0;
@@ -9562,6 +10700,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto callbacks_post_useitem__ = callbacks_post_useitem ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_useitem) : 0;
   auto callbacks_pre_freeze__ = callbacks_pre_freeze ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_pre_freeze) : 0;
   auto callbacks_post_freeze__ = callbacks_post_freeze ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*callbacks_post_freeze) : 0;
+  auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
+  auto static_type_properties__ = static_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::TypePropertyMap>>(*static_type_properties) : 0;
   return TEN::Save::CreateSaveGame(
       _fbb,
       header,
@@ -9627,7 +10767,9 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       callbacks_pre_useitem__,
       callbacks_post_useitem__,
       callbacks_pre_freeze__,
-      callbacks_post_freeze__);
+      callbacks_post_freeze__,
+      moveable_type_properties__,
+      static_type_properties__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -9853,6 +10995,7 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = lua_on_hit_name(); if (_e) _o->lua_on_hit_name = _e->str(); }
   { auto _e = lua_on_collided_with_object_name(); if (_e) _o->lua_on_collided_with_object_name = _e->str(); }
   { auto _e = lua_on_collided_with_room_name(); if (_e) _o->lua_on_collided_with_room_name = _e->str(); }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<Item> Item::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -9909,6 +11052,7 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _lua_on_hit_name = _o->lua_on_hit_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->lua_on_hit_name);
   auto _lua_on_collided_with_object_name = _o->lua_on_collided_with_object_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->lua_on_collided_with_object_name);
   auto _lua_on_collided_with_room_name = _o->lua_on_collided_with_room_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->lua_on_collided_with_room_name);
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
   return TEN::Save::CreateItem(
       _fbb,
       _anim_object_id,
@@ -9956,7 +11100,8 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _lua_on_killed_name,
       _lua_on_hit_name,
       _lua_on_collided_with_object_name,
-      _lua_on_collided_with_room_name);
+      _lua_on_collided_with_room_name,
+      _properties);
 }
 
 inline FXInfoT *FXInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11095,6 +12240,7 @@ inline void StaticMeshInfo::UnPackTo(StaticMeshInfoT *_o, const flatbuffers::res
   { auto _e = color(); if (_e) _o->color = std::unique_ptr<TEN::Save::Vector4>(new TEN::Save::Vector4(*_e)); }
   { auto _e = hit_points(); _o->hit_points = _e; }
   { auto _e = flags(); _o->flags = _e; }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<StaticMeshInfo> StaticMeshInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StaticMeshInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11111,6 +12257,7 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   auto _color = _o->color ? _o->color.get() : 0;
   auto _hit_points = _o->hit_points;
   auto _flags = _o->flags;
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
   return TEN::Save::CreateStaticMeshInfo(
       _fbb,
       _number,
@@ -11118,7 +12265,8 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
       _room_number,
       _color,
       _hit_points,
-      _flags);
+      _flags,
+      _properties);
 }
 
 inline ParticleInfoT *ParticleInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11798,6 +12946,325 @@ inline flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBuffe
       _rot_ang);
 }
 
+inline PropertyBoolT *PropertyBool::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyBoolT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyBool::UnPackTo(PropertyBoolT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); _o->value = _e; }
+}
+
+inline flatbuffers::Offset<PropertyBool> PropertyBool::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyBool(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyBool> CreatePropertyBool(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyBoolT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value;
+  return TEN::Save::CreatePropertyBool(
+      _fbb,
+      _value);
+}
+
+inline PropertyFloatT *PropertyFloat::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyFloatT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyFloat::UnPackTo(PropertyFloatT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); _o->value = _e; }
+}
+
+inline flatbuffers::Offset<PropertyFloat> PropertyFloat::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyFloat(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyFloatT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value;
+  return TEN::Save::CreatePropertyFloat(
+      _fbb,
+      _value);
+}
+
+inline PropertyStringT *PropertyString::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyStringT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyString::UnPackTo(PropertyStringT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) _o->value = _e->str(); }
+}
+
+inline flatbuffers::Offset<PropertyString> PropertyString::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyString(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyString(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyStringT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->value);
+  return TEN::Save::CreatePropertyString(
+      _fbb,
+      _value);
+}
+
+inline PropertyVec2T *PropertyVec2::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyVec2T>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyVec2::UnPackTo(PropertyVec2T *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+}
+
+inline flatbuffers::Offset<PropertyVec2> PropertyVec2::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyVec2(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyVec2T* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  return TEN::Save::CreatePropertyVec2(
+      _fbb,
+      _x,
+      _y);
+}
+
+inline PropertyVec3T *PropertyVec3::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyVec3T>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyVec3::UnPackTo(PropertyVec3T *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+  { auto _e = z(); _o->z = _e; }
+}
+
+inline flatbuffers::Offset<PropertyVec3> PropertyVec3::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyVec3(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyVec3T* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  auto _z = _o->z;
+  return TEN::Save::CreatePropertyVec3(
+      _fbb,
+      _x,
+      _y,
+      _z);
+}
+
+inline PropertyColorT *PropertyColor::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyColorT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyColor::UnPackTo(PropertyColorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = r(); _o->r = _e; }
+  { auto _e = g(); _o->g = _e; }
+  { auto _e = b(); _o->b = _e; }
+  { auto _e = a(); _o->a = _e; }
+}
+
+inline flatbuffers::Offset<PropertyColor> PropertyColor::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyColor(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyColor> CreatePropertyColor(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyColorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _r = _o->r;
+  auto _g = _o->g;
+  auto _b = _o->b;
+  auto _a = _o->a;
+  return TEN::Save::CreatePropertyColor(
+      _fbb,
+      _r,
+      _g,
+      _b,
+      _a);
+}
+
+inline PropertyRotationT *PropertyRotation::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyRotationT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyRotation::UnPackTo(PropertyRotationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+  { auto _e = z(); _o->z = _e; }
+}
+
+inline flatbuffers::Offset<PropertyRotation> PropertyRotation::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyRotation(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyRotationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  auto _z = _o->z;
+  return TEN::Save::CreatePropertyRotation(
+      _fbb,
+      _x,
+      _y,
+      _z);
+}
+
+inline PropertyTimeT *PropertyTime::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyTimeT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyTime::UnPackTo(PropertyTimeT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = frame_count(); _o->frame_count = _e; }
+}
+
+inline flatbuffers::Offset<PropertyTime> PropertyTime::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyTime(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyTime> CreatePropertyTime(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyTimeT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _frame_count = _o->frame_count;
+  return TEN::Save::CreatePropertyTime(
+      _fbb,
+      _frame_count);
+}
+
+inline PropertyEntryT *PropertyEntry::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyEntryT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyEntry::UnPackTo(PropertyEntryT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = value_type(); _o->value.type = _e; }
+  { auto _e = value(); if (_e) _o->value.value = TEN::Save::PropertyValueUnionUnion::UnPack(_e, value_type(), _resolver); }
+}
+
+inline flatbuffers::Offset<PropertyEntry> PropertyEntry::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyEntry(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyEntryT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  auto _value_type = _o->value.type;
+  auto _value = _o->value.Pack(_fbb);
+  return TEN::Save::CreatePropertyEntry(
+      _fbb,
+      _name,
+      _value_type,
+      _value);
+}
+
+inline PropertyMapDataT *PropertyMapData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyMapDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyMapData::UnPackTo(PropertyMapDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = entries(); if (_e) { _o->entries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entries[_i] = std::unique_ptr<TEN::Save::PropertyEntryT>(_e->Get(_i)->UnPack(_resolver)); } } }
+}
+
+inline flatbuffers::Offset<PropertyMapData> PropertyMapData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyMapData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyMapDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _entries = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::PropertyEntry>> (_o->entries.size(), [](size_t i, _VectorArgs *__va) { return CreatePropertyEntry(*__va->__fbb, __va->__o->entries[i].get(), __va->__rehasher); }, &_va );
+  return TEN::Save::CreatePropertyMapData(
+      _fbb,
+      _entries);
+}
+
+inline TypePropertyMapT *TypePropertyMap::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<TypePropertyMapT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void TypePropertyMap::UnPackTo(TypePropertyMapT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = type_id(); _o->type_id = _e; }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
+}
+
+inline flatbuffers::Offset<TypePropertyMap> TypePropertyMap::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTypePropertyMap(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TypePropertyMapT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _type_id = _o->type_id;
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
+  return TEN::Save::CreateTypePropertyMap(
+      _fbb,
+      _type_id,
+      _properties);
+}
+
 inline ScriptTableT *ScriptTable::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<ScriptTableT>();
   UnPackTo(_o.get(), _resolver);
@@ -12283,6 +13750,8 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = callbacks_post_useitem(); if (_e) { _o->callbacks_post_useitem.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_useitem[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_pre_freeze(); if (_e) { _o->callbacks_pre_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_freeze[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_post_freeze(); if (_e) { _o->callbacks_post_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_freeze[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -12357,6 +13826,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _callbacks_post_useitem = _fbb.CreateVectorOfStrings(_o->callbacks_post_useitem);
   auto _callbacks_pre_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_pre_freeze);
   auto _callbacks_post_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_post_freeze);
+  auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
+  auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
   return TEN::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -12422,7 +13893,225 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _callbacks_pre_useitem,
       _callbacks_post_useitem,
       _callbacks_pre_freeze,
-      _callbacks_post_freeze);
+      _callbacks_post_freeze,
+      _moveable_type_properties,
+      _static_type_properties);
+}
+
+inline bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type) {
+  switch (type) {
+    case PropertyValueUnion::NONE: {
+      return true;
+    }
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyBool *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyFloat *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyString *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec2 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec3 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyColor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyRotation *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyTime *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return true;
+  }
+}
+
+inline bool VerifyPropertyValueUnionVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyPropertyValueUnion(
+        verifier,  values->Get(i), types->GetEnum<PropertyValueUnion>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline void *PropertyValueUnionUnion::UnPack(const void *obj, PropertyValueUnion type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyBool *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyFloat *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyString *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec2 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec3 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyColor *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyRotation *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyTime *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> PropertyValueUnionUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyBoolT *>(value);
+      return CreatePropertyBool(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyFloatT *>(value);
+      return CreatePropertyFloat(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyStringT *>(value);
+      return CreatePropertyString(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec2T *>(value);
+      return CreatePropertyVec2(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyVec3T *>(value);
+      return CreatePropertyVec3(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyColorT *>(value);
+      return CreatePropertyColor(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyRotationT *>(value);
+      return CreatePropertyRotation(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Save::PropertyTimeT *>(value);
+      return CreatePropertyTime(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline PropertyValueUnionUnion::PropertyValueUnionUnion(const PropertyValueUnionUnion &u) : type(u.type), value(nullptr) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      value = new TEN::Save::PropertyBoolT(*reinterpret_cast<TEN::Save::PropertyBoolT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      value = new TEN::Save::PropertyFloatT(*reinterpret_cast<TEN::Save::PropertyFloatT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      value = new TEN::Save::PropertyStringT(*reinterpret_cast<TEN::Save::PropertyStringT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      value = new TEN::Save::PropertyVec2T(*reinterpret_cast<TEN::Save::PropertyVec2T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      value = new TEN::Save::PropertyVec3T(*reinterpret_cast<TEN::Save::PropertyVec3T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      value = new TEN::Save::PropertyColorT(*reinterpret_cast<TEN::Save::PropertyColorT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      value = new TEN::Save::PropertyRotationT(*reinterpret_cast<TEN::Save::PropertyRotationT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      value = new TEN::Save::PropertyTimeT(*reinterpret_cast<TEN::Save::PropertyTimeT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void PropertyValueUnionUnion::Reset() {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyBoolT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyFloatT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyStringT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyVec2T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyVec3T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyColorT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyRotationT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<TEN::Save::PropertyTimeT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = PropertyValueUnion::NONE;
 }
 
 inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, VarUnion type) {

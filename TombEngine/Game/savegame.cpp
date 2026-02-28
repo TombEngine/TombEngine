@@ -38,6 +38,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertySavegame.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
@@ -57,6 +58,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
@@ -652,6 +654,11 @@ const std::vector<byte> SaveGame::Build()
 		auto luaOnCollidedObjectNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnObjectCollided);
 		auto luaOnCollidedRoomNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnRoomCollided);
 
+		// Serialize per-instance properties.
+		flatbuffers::Offset<Save::PropertyMapData> itemPropsOffset;
+		if (!itemToSerialize.Properties.IsEmpty())
+			itemPropsOffset = BuildPropertyMap(fbb, itemToSerialize.Properties);
+
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
@@ -938,6 +945,9 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_lua_on_collided_with_object_name(luaOnCollidedObjectNameOffset);
 		serializedItem.add_lua_on_collided_with_room_name(luaOnCollidedRoomNameOffset);
 
+		if (!itemToSerialize.Properties.IsEmpty())
+			serializedItem.add_properties(itemPropsOffset);
+
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
 
@@ -1127,6 +1137,11 @@ const std::vector<byte> SaveGame::Build()
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
+			// Serialize per-instance static properties (must be before builder).
+			flatbuffers::Offset<Save::PropertyMapData> staticPropsOffset;
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticPropsOffset = BuildPropertyMap(fbb, room->mesh[j].Properties);
+
 			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
 			staticObjBuilder.add_number(j);
@@ -1135,6 +1150,10 @@ const std::vector<byte> SaveGame::Build()
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
 			staticObjBuilder.add_flags(room->mesh[j].Flags);
+
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticObjBuilder.add_properties(staticPropsOffset);
+
 			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
@@ -1643,6 +1662,10 @@ const std::vector<byte> SaveGame::Build()
 	auto stringsCallbackPreFreeze = fbb.CreateVectorOfStrings(callbackVecPreFreeze);
 	auto stringsCallbackPostFreeze = fbb.CreateVectorOfStrings(callbackVecPostFreeze);
 
+	// Serialize global type properties.
+	auto moveableTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllMoveableProperties());
+	auto staticTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllStaticProperties());
+
 	Save::SaveGameBuilder sgb{ fbb };
 
 	sgb.add_header(headerOffset);
@@ -1720,6 +1743,9 @@ const std::vector<byte> SaveGame::Build()
 
 	sgb.add_callbacks_pre_freeze(stringsCallbackPreFreeze);
 	sgb.add_callbacks_post_freeze(stringsCallbackPostFreeze);
+
+	sgb.add_moveable_type_properties(moveableTypePropsOffset);
+	sgb.add_static_type_properties(staticTypePropsOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
@@ -2639,6 +2665,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.HitPoints = savedStaticObj.hit_points();
 		staticObj.Flags = savedStaticObj.flags();
 		staticObj.Dirty = true;
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedStaticObj.properties(), staticObj.Properties);
 		
 		if (!staticObj.Flags)
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
@@ -2764,6 +2793,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Callbacks.OnHit = savedItem->lua_on_hit_name()->str();
 		item->Callbacks.OnObjectCollided = savedItem->lua_on_collided_with_object_name()->str();
 		item->Callbacks.OnRoomCollided = savedItem->lua_on_collided_with_room_name()->str();
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedItem->properties(), item->Properties);
 
 		g_GameScriptEntities->TryAddColliding(i);
 
@@ -3053,6 +3085,11 @@ void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 
 	ParseLevel(s, hubMode);
+
+	// Load global type properties.
+	ParseTypeProperties(s->moveable_type_properties(), PropertyHandler::GetMutableMoveableProperties());
+	ParseTypeProperties(s->static_type_properties(), PropertyHandler::GetMutableStaticProperties());
+
 	ParseLua(s, hubMode);
 	ParseStatistics(s, hubMode);
 

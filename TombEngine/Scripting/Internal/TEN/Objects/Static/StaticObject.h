@@ -66,6 +66,13 @@ namespace TEN::Scripting
 		void Disable();
 		void Shatter();
 
+		// Properties
+
+		sol::object GetProperty(const std::string& name) const;
+		void SetProperty(const std::string& name, const sol::object& value);
+		bool HasInstanceProperty(const std::string& name) const;
+		void ClearInstanceProperty(const std::string& name);
+
 		// Operators
 
 		Static& operator =(const Static& staticObj) = delete;

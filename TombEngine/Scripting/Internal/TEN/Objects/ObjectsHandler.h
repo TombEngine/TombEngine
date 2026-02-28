@@ -7,6 +7,10 @@
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+
+using namespace TEN::Scripting::Properties;
 
 class ObjectsHandler : public ScriptInterfaceObjectsHandler
 {
@@ -163,5 +167,39 @@ private:
 		_nameMap.clear();
 		_collidingItemsToRemove.clear();
 		_collidingItems.clear();
+
+		PropertyHandler::Clear();
+	}
+
+	// Global type-level property API (called from Lua)
+
+	sol::object GetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name)
+	{
+		auto* props = PropertyHandler::FindMoveableProperties((int)objectID);
+		if (props == nullptr)
+			return sol::nil;
+
+		auto* val = props->GetRaw(name);
+		return val ? PropertyValueToLua(*val) : sol::nil;
+	}
+
+	void SetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name, const sol::object& value)
+	{
+		PropertyHandler::GetMoveableProperties((int)objectID).Set(name, PropertyValueFromLua(value));
+	}
+
+	sol::object GetStaticProperty(int slotID, const std::string& name)
+	{
+		auto* props = PropertyHandler::FindStaticProperties(slotID);
+		if (props == nullptr)
+			return sol::nil;
+
+		auto* val = props->GetRaw(name);
+		return val ? PropertyValueToLua(*val) : sol::nil;
+	}
+
+	void SetStaticProperty(int slotID, const std::string& name, const sol::object& value)
+	{
+		PropertyHandler::GetStaticProperties(slotID).Set(name, PropertyValueFromLua(value));
 	}
 };

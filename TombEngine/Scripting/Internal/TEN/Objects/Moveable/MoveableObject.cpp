@@ -16,6 +16,8 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/ObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -24,6 +26,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Effects::Items;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 /// Represents a moveable object in the game world.
@@ -215,7 +218,12 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
-		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
+
+		ScriptReserved_GetProperty, &Moveable::GetProperty,
+		ScriptReserved_SetProperty, &Moveable::SetProperty,
+		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty,
+		ScriptReserved_ClearInstanceProperty, &Moveable::ClearInstanceProperty);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -668,6 +676,49 @@ short Moveable::GetItemFlags(int index) const
 void Moveable::SetItemFlags(short value, int index)
 {
 	_moveable->ItemFlags[index] = value;
+}
+
+/// Get a property value.
+// Tries to get an instance property first, then fallbacks to global object ID property. Returns nil if the property does not exist.
+// @function Moveable:GetProperty
+// @tparam string name The property name.
+// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+sol::object Moveable::GetProperty(const std::string& name) const
+{
+	auto* val = PropertyHandler::Get(*_moveable, name);
+
+	if (val == nullptr)
+		return sol::nil;
+
+	return PropertyValueToLua(*val);
+}
+
+/// Set a property value.
+// Sets a property for this moveable instance. If property does not exist, it creates it. Does not override global object ID property that is set by @{Objects.SetMoveableProperty}.
+// @function Moveable:SetProperty
+// @tparam string name The property name.
+// @tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+void Moveable::SetProperty(const std::string& name, const sol::object& value)
+{
+	_moveable->Properties.Set(name, PropertyValueFromLua(value));
+}
+
+/// Check if a per-instance property value exists.
+// @function Moveable:HasInstanceProperty
+// @tparam string name The property name.
+// @treturn bool True if an instance property exists.
+bool Moveable::HasInstanceProperty(const std::string& name) const
+{
+	return _moveable->Properties.Has(name);
+}
+
+/// Clear a per-instance property value.
+// If global object ID property with the same name exists, it will will be returned on subsequent @{Moveable:GetProperty} calls.
+// @function Moveable:ClearInstanceProperty
+// @tparam string name The property name.
+void Moveable::ClearInstanceProperty(const std::string& name)
+{
+	_moveable->Properties.Remove(name);
 }
 
 /// Get the OCB of the AI object that the enemy is currently trying to reach.

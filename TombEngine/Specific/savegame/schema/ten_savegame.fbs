@@ -110,6 +110,8 @@ table Item {
 	lua_on_hit_name: string;
 	lua_on_collided_with_object_name: string;
 	lua_on_collided_with_room_name: string;
+
+	properties: PropertyMapData;
 }
 
 table FXInfo {
@@ -383,6 +385,8 @@ table StaticMeshInfo {
 	color: Vector4;
 	hit_points: int32;
 	flags: int32;
+
+	properties: PropertyMapData;
 }
 
 table ParticleInfo {
@@ -555,6 +559,44 @@ struct KeyValPair {
 	val: uint32;
 }
 
+// Property system tables
+
+table PropertyBool      { value: bool; }
+table PropertyFloat     { value: float; }
+table PropertyString    { value: string; }
+table PropertyVec2      { x: float; y: float; }
+table PropertyVec3      { x: float; y: float; z: float; }
+table PropertyColor     { r: ubyte; g: ubyte; b: ubyte; a: ubyte; }
+table PropertyRotation  { x: float; y: float; z: float; }
+table PropertyTime      { frame_count: int32; }
+
+union PropertyValueUnion {
+	prop_bool: PropertyBool,
+	prop_float: PropertyFloat,
+	prop_string: PropertyString,
+	prop_vec2: PropertyVec2,
+	prop_vec3: PropertyVec3,
+	prop_color: PropertyColor,
+	prop_rotation: PropertyRotation,
+	prop_time: PropertyTime
+}
+
+table PropertyEntry {
+	name: string;
+	value: PropertyValueUnion;
+}
+
+table PropertyMapData {
+	entries: [PropertyEntry];
+}
+
+table TypePropertyMap {
+	type_id: int32;
+	properties: PropertyMapData;
+}
+
+// End property system tables
+
 table ScriptTable {
 	keys_vals: [KeyValPair];
 }
@@ -710,6 +752,9 @@ table SaveGame {
 	callbacks_post_useitem: [string];
 	callbacks_pre_freeze: [string];
 	callbacks_post_freeze: [string];
+
+	moveable_type_properties: [TypePropertyMap];
+	static_type_properties: [TypePropertyMap];
 }
 
 root_type TEN.Save.SaveGame;

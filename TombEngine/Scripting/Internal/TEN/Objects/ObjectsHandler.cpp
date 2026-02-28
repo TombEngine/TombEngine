@@ -34,6 +34,8 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler(lua),
 	_table_objects(sol::table(_handler.GetState()->lua_state(), sol::create))
 {
+	TEN::Scripting::Properties::InitPropertyLua(*lua);
+
 	parent.set(ScriptReserved_Objects, _table_objects);
 
 	/***
@@ -148,6 +150,42 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn string Internal slot name.
 	*/
 	_table_objects.set_function(ScriptReserved_GetSlotName, &GetObjectName);
+
+	/***
+	Get a global property for a moveable object ID.
+	@function GetMoveableProperty
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@tparam string name Property name.
+	@treturn any Property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+	*/
+	_table_objects.set_function(ScriptReserved_GetMoveableProperty, &ObjectsHandler::GetMoveableProperty, this);
+
+	/***
+	Set a global property for a moveable object ID.
+	@function SetMoveableProperty
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@tparam string name Property name.
+	@tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	*/
+	_table_objects.set_function(ScriptReserved_SetMoveableProperty, &ObjectsHandler::SetMoveableProperty, this);
+
+	/***
+	Get a global property for a static slot ID.
+	@function GetStaticProperty
+	@tparam int slotID Static slot ID.
+	@tparam string name Property name.
+	@treturn any Property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+	*/
+	_table_objects.set_function(ScriptReserved_GetStaticProperty, &ObjectsHandler::GetStaticProperty, this);
+
+	/***
+	Set a global property for a static slot ID.
+	@function SetStaticProperty
+	@tparam int slotID Static slot ID.
+	@tparam string name Property name.
+	@tparam any value Property value (can be bool, number, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}).
+	*/
+	_table_objects.set_function(ScriptReserved_SetStaticProperty, &ObjectsHandler::SetStaticProperty, this);
 
 	LaraObject::Register(_table_objects);
 

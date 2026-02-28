@@ -566,6 +566,20 @@ constexpr char ScriptReserved_StaticSetSolid[]		= "SetSolid";
 constexpr char ScriptReserved_StaticSetCollidable[]	= "SetCollidable";
 constexpr char ScriptReserved_StaticShatter[]		= "Shatter";
 
+// Properties (shared between Moveable and Static)
+
+constexpr char ScriptReserved_GetProperty[]				= "GetProperty";
+constexpr char ScriptReserved_SetProperty[]				= "SetProperty";
+constexpr char ScriptReserved_HasInstanceProperty[]		= "HasInstanceProperty";
+constexpr char ScriptReserved_ClearInstanceProperty[]	= "ClearInstanceProperty";
+
+// Properties (global type-level, on Objects table)
+
+constexpr char ScriptReserved_GetMoveableProperty[]		= "GetMoveableProperty";
+constexpr char ScriptReserved_SetMoveableProperty[]		= "SetMoveableProperty";
+constexpr char ScriptReserved_GetStaticProperty[]		= "GetStaticProperty";
+constexpr char ScriptReserved_SetStaticProperty[]		= "SetStaticProperty";
+
 // DrawItem
 constexpr char ScriptReserved_DisplayItem[]					= "DisplayItem";
 constexpr char ScriptReserved_DisplayItemGetMeshBits[]		= "GetMeshBits";

@@ -3,11 +3,13 @@
 #include "Game/Animation/Animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyMap.h"
 #include "Specific/Structures/BitField.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/newtypes.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Utils;
 
 constexpr float VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
@@ -155,6 +157,8 @@ struct ItemInfo
 	unsigned char AIBits	  = 0; // AIObjectFlags enum.
 	short		  AfterDeath  = 0;
 	short		  CarriedItem = 0;
+
+	PropertyMap Properties = {};
 
 	// Getters
 

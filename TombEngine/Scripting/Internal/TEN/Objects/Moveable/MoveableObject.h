@@ -136,6 +136,13 @@ public:
 	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
 	void HideInteractionHighlight();
 
+	// Properties
+
+	sol::object GetProperty(const std::string& name) const;
+	void SetProperty(const std::string& name, const sol::object& value);
+	bool HasInstanceProperty(const std::string& name) const;
+	void ClearInstanceProperty(const std::string& name);
+
 	// Operators
 
 	Moveable& operator =(const Moveable& mov) = delete;

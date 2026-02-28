@@ -5,10 +5,13 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 /// Represents a static object in the game world.
@@ -58,7 +61,13 @@ namespace TEN::Scripting
 			// Utilities
 			ScriptReserved_StaticEnable, &Static::Enable,
 			ScriptReserved_StaticDisable, &Static::Disable,
-			ScriptReserved_StaticShatter, &Static::Shatter);
+			ScriptReserved_StaticShatter, &Static::Shatter,
+
+			// Properties
+			ScriptReserved_GetProperty, &Static::GetProperty,
+			ScriptReserved_SetProperty, &Static::SetProperty,
+			ScriptReserved_HasInstanceProperty, &Static::HasInstanceProperty,
+			ScriptReserved_ClearInstanceProperty, &Static::ClearInstanceProperty);
 	}
 
 	Static::Static(StaticMesh& staticObj) :
@@ -253,6 +262,49 @@ namespace TEN::Scripting
 		{
 			_static.Flags &= ~StaticMeshFlags::SM_COLLISION;
 		}
+	}
+
+	/// Get a property value.
+	// Tries to get an instance property first, then fallbacks to global slot property. Returns nil if the property does not exist.
+	// @function Static:GetProperty
+	// @tparam string name The property name.
+	// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+	sol::object Static::GetProperty(const std::string& name) const
+	{
+		auto* val = PropertyHandler::Get(_static, name);
+
+		if (val == nullptr)
+			return sol::nil;
+
+		return PropertyValueToLua(*val);
+	}
+
+	/// Set a property value.
+	// Sets a property for this static mesh instance. If property does not exist, it creates it. Does not override global slot property that is set by @{Objects.SetStaticProperty}.
+	// @function Static:SetProperty
+	// @tparam string name The property name.
+	// @tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	void Static::SetProperty(const std::string& name, const sol::object& value)
+	{
+		_static.Properties.Set(name, PropertyValueFromLua(value));
+	}
+
+	/// Check if a per-instance property value exists.
+	// @function Static:HasInstanceProperty
+	// @tparam string name The property name.
+	// @treturn bool True if an instance property exists.
+	bool Static::HasInstanceProperty(const std::string& name) const
+	{
+		return _static.Properties.Has(name);
+	}
+
+	/// Clear a per-instance property value.
+	// If global slot property with the same name exists, it will will be returned on subsequent @{Static:GetProperty} calls.
+	// @function Static:ClearInstanceProperty
+	// @tparam string name The property name.
+	void Static::ClearInstanceProperty(const std::string& name)
+	{
+		_static.Properties.Remove(name);
 	}
 
 	/// Enable this static. Used when previously shattered disabled manually.
