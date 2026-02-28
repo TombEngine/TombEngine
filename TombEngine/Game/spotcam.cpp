@@ -20,6 +20,18 @@ using namespace TEN::Collision::Point;
 
 constexpr auto MAX_SPLINE_KNOTS = 18;
 
+// Duration in seconds for smooth ease-in and ease-out during camera pauses.
+constexpr auto PAUSE_EASE_DURATION = 0.5f;
+constexpr auto PAUSE_EASE_STEP     = 1.0f / (PAUSE_EASE_DURATION * FPS);
+
+enum class PausePhase
+{
+	None,    // Normal playback; speed factor = 1.
+	EaseOut, // Decelerating; speed factor transitions from 1 to 0.
+	Hold,    // Fully stopped; speed factor = 0.
+	EaseIn   // Accelerating; speed factor transitions from 0 to 1.
+};
+
 // Spline knot arrays for camera interpolation. Each component is stored
 // as a contiguous float array so it can be passed directly to Spline().
 struct SplineCameraKnots
@@ -34,22 +46,22 @@ struct SplineCameraKnots
 	float FOV[MAX_SPLINE_KNOTS]     = {};
 	float Speed[MAX_SPLINE_KNOTS]   = {};
 
-	void SetKnot(int index, const SPOTCAM& cam)
+	void SetKnot(int index, const SpotCam& cam)
 	{
-		PosX[index]    = (float)cam.x;
-		PosY[index]    = (float)cam.y;
-		PosZ[index]    = (float)cam.z;
-		TargetX[index] = (float)cam.tx;
-		TargetY[index] = (float)cam.ty;
-		TargetZ[index] = (float)cam.tz;
-		Roll[index]    = (float)cam.roll;
-		FOV[index]     = (float)cam.fov;
-		Speed[index]   = (float)cam.speed;
+		PosX[index]    = (float)cam.Position.x;
+		PosY[index]    = (float)cam.Position.y;
+		PosZ[index]    = (float)cam.Position.z;
+		TargetX[index] = (float)cam.Target.x;
+		TargetY[index] = (float)cam.Target.y;
+		TargetZ[index] = (float)cam.Target.z;
+		Roll[index]    = (float)cam.Roll;
+		FOV[index]     = (float)cam.FOV;
+		Speed[index]   = (float)cam.Speed;
 	}
 };
 
 // Public globals (declared extern in header).
-std::vector<SPOTCAM>         SpotCam;
+std::vector<SpotCam>         SpotCams;
 std::unordered_map<int, int> SpotCamRemap;
 std::vector<int>             CameraCnt;
 
@@ -63,21 +75,27 @@ bool SpotcamOverlay      = false;
 // File-local state.
 static SplineCameraKnots Knots = {};
 
-static float  SplineAlpha        = 0.0f; // Normalized spline position [0, 1].
-static bool   IsTransitionToGame = false; // Transitioning back to gameplay camera.
-static int    FirstCameraIndex   = 0;
-static int    LastCameraIndex    = 0;
+static float  SplineAlpha         = 0.0f;  // Normalized spline position [0, 1].
+static int    FirstCameraIndex    = 0;
+static int    LastCameraIndex     = 0;
 static int    SequenceCameraCount = 0;
-static int    SplineFromOffset   = 0; // Number of leading knots sourced from initial camera.
-static bool   IsFirstLookPress   = false;
-static short  CurrentCameraIndex = 0;
-static int    CurrentSequenceID  = 0;
+static int    SplineFromOffset    = 0;     // Number of leading knots sourced from initial camera.
+static short  CurrentCameraIndex  = 0;
+static int    CurrentSequenceID   = 0;
 
-static int    PauseTimer     = 0;
-static bool   IsPaused       = false;
-static int    LoopCount      = 0;
+static bool   IsFirstLookPress    = false;
+static bool   IsTransitionToGame  = false; // Transitioning back to gameplay camera.
+static bool   RunHeavyTriggers    = false;
+
+// Pause state machine.
+static PausePhase CurrentPausePhase   = PausePhase::None;
+static float      PauseSpeedFactor    = 1.0f;  // Multiplier applied to camera speed.
+static float      PauseEaseProgress   = 0.0f;  // Progress through current ease phase [0, 1].
+static int        PauseHoldTimer      = 0;     // Frames remaining in hold phase.
+static bool       IsPauseComplete     = false; // Prevents re-triggering pause for same segment.
+
+static int    LoopCount       = 0;
 static int    FadeCameraIndex = NO_VALUE;
-static bool   RunHeavyTriggers = false;
 
 static Vector3i SavedLaraPos       = Vector3i::Zero;
 static int      SavedCameraRoom    = 0;
@@ -86,13 +104,82 @@ static Vector3i SavedCameraTarget  = Vector3i::Zero;
 static int      SavedLaraHealth    = 0;
 static int      SavedLaraAir       = 0;
 
+// Updates the pause state machine each frame.
+static void UpdatePause()
+{
+	switch (CurrentPausePhase)
+	{
+	case PausePhase::EaseOut:
+		PauseEaseProgress += PAUSE_EASE_STEP;
+
+		if (PauseEaseProgress >= 1.0f)
+		{
+			PauseEaseProgress = 1.0f;
+			PauseSpeedFactor = 0.0f;
+			CurrentPausePhase = PausePhase::Hold;
+		}
+		else
+		{
+			PauseSpeedFactor = 1.0f - Smoothstep(PauseEaseProgress);
+		}
+		break;
+
+	case PausePhase::Hold:
+		PauseHoldTimer--;
+
+		if (PauseHoldTimer <= 0)
+		{
+			PauseEaseProgress = 0.0f;
+			CurrentPausePhase = PausePhase::EaseIn;
+		}
+		break;
+
+	case PausePhase::EaseIn:
+		PauseEaseProgress += PAUSE_EASE_STEP;
+
+		if (PauseEaseProgress >= 1.0f)
+		{
+			PauseEaseProgress = 0.0f;
+			PauseSpeedFactor = 1.0f;
+			CurrentPausePhase = PausePhase::None;
+			IsPauseComplete = true;
+		}
+		else
+		{
+			PauseSpeedFactor = Smoothstep(PauseEaseProgress);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+// Begins a smooth pause: ease-out, hold, then ease-in.
+static void BeginPause(int holdFrames)
+{
+	PauseHoldTimer = holdFrames;
+	PauseEaseProgress = 0.0f;
+	CurrentPausePhase = PausePhase::EaseOut;
+}
+
+// Resets the pause state machine to idle.
+static void ResetPause()
+{
+	CurrentPausePhase = PausePhase::None;
+	PauseSpeedFactor  = 1.0f;
+	PauseEaseProgress = 0.0f;
+	PauseHoldTimer    = 0;
+	IsPauseComplete   = false;
+}
+
 void ClearSpotCamSequences()
 {
 	UseSpotCam = false;
 	SpotcamDontDrawLara = false;
 	SpotcamOverlay = false;
 
-	SpotCam.clear();
+	SpotCams.clear();
 	SpotCamRemap.clear();
 	CameraCnt.clear();
 }
@@ -104,19 +191,19 @@ void InitializeSpotCamSequences(bool startFirstSequence)
 	CameraCnt.clear();
 	SpotCamRemap.clear();
 
-	if (SpotCam.empty())
+	if (SpotCams.empty())
 		return;
 
-	int currentSequence = SpotCam[0].sequence;
+	unsigned int currentSequence = SpotCams[0].Sequence;
 	int count = 0;
 
-	for (const auto& cam : SpotCam)
+	for (const auto& cam : SpotCams)
 	{
-		if (cam.sequence != currentSequence)
+		if (cam.Sequence != currentSequence)
 		{
 			SpotCamRemap[currentSequence] = (int)CameraCnt.size();
 			CameraCnt.push_back(count);
-			currentSequence = cam.sequence;
+			currentSequence = cam.Sequence;
 			count = 0;
 		}
 
@@ -135,7 +222,7 @@ void InitializeSpotCamSequences(bool startFirstSequence)
 
 void InitializeSpotCam(short sequence)
 {
-	if (SpotCam.empty() || SpotCamRemap.find(sequence) == SpotCamRemap.end())
+	if (SpotCams.empty() || SpotCamRemap.find(sequence) == SpotCamRemap.end())
 	{
 		TENLog(fmt::format("Initializing flyby sequence {} failed, sequence not found.", sequence), LogLevel::Warning);
 		return;
@@ -147,24 +234,24 @@ void InitializeSpotCam(short sequence)
 		return;
 	}
 
-	// Reset player optics.
-	Lara.Control.Look.OpticRange = 0;
-	Lara.Control.Look.IsUsingLasersight = false;
-	AlterFOV(ANGLE(DEFAULT_FOV), false);
+	// Reset player data.
 	LaraItem->MeshBits = ALL_JOINT_BITS;
 	ResetPlayerFlex(LaraItem);
 
-	Camera.bounce = 0;
+	Lara.Control.Look.OpticRange = 0;
+	Lara.Control.Look.IsUsingLasersight = false;
+	Lara.Control.IsLocked = false;
 	Lara.Inventory.IsBusy = 0;
+
+	AlterFOV(ANGLE(DEFAULT_FOV), false);
+	Camera.bounce = 0;
 
 	// Reset spotcam state.
 	FadeCameraIndex      = NO_VALUE;
 	LastSpotCamSequence  = sequence;
 	TrackCameraInit      = false;
-	PauseTimer           = 0;
-	IsPaused             = false;
 	LoopCount            = 0;
-	Lara.Control.IsLocked = false;
+	ResetPause();
 
 	// Save player state.
 	SavedLaraAir    = Lara.Status.Air;
@@ -179,18 +266,21 @@ void InitializeSpotCam(short sequence)
 	// Compute first camera index for this sequence.
 	CurrentSequenceID = sequence;
 	CurrentCameraIndex = 0;
+
 	for (int i = 0; i < SpotCamRemap[sequence]; i++)
 		CurrentCameraIndex += CameraCnt[i];
 
-	SplineAlpha      = 0.0f;
+	SplineAlpha = 0.0f;
 	IsTransitionToGame = false;
+
 	FirstCameraIndex = CurrentCameraIndex;
 	LastCameraIndex  = CurrentCameraIndex + CameraCnt[SpotCamRemap[sequence]] - 1;
+
 	SequenceCameraCount = CameraCnt[SpotCamRemap[sequence]];
 
-	const auto& firstCam = SpotCam[CurrentCameraIndex];
+	const auto& firstCam = SpotCams[CurrentCameraIndex];
 
-	if (firstCam.flags & SCF_DISABLE_LARA_CONTROLS)
+	if (firstCam.Flags & SCF_DISABLE_LARA_CONTROLS)
 	{
 		Lara.Control.IsLocked = true;
 		SetCinematicBars(SPOTCAM_CINEMATIC_BARS_HEIGHT, SPOTCAM_CINEMATIC_BARS_SPEED);
@@ -199,21 +289,21 @@ void InitializeSpotCam(short sequence)
 	// Populate spline knot arrays.
 	Knots = {};
 
-	if (firstCam.flags & SCF_TRACKING_CAM)
+	if (firstCam.Flags & SCF_TRACKING_CAM)
 	{
 		// Tracking camera: pad with first camera, then all cameras, then pad with last.
-		Knots.SetKnot(1, SpotCam[FirstCameraIndex]);
+		Knots.SetKnot(1, SpotCams[FirstCameraIndex]);
 		SplineFromOffset = 0;
 
 		for (int i = 0; i < SequenceCameraCount; i++)
-			Knots.SetKnot(i + 2, SpotCam[FirstCameraIndex + i]);
+			Knots.SetKnot(i + 2, SpotCams[FirstCameraIndex + i]);
 
-		Knots.SetKnot(SequenceCameraCount + 2, SpotCam[LastCameraIndex]);
+		Knots.SetKnot(SequenceCameraCount + 2, SpotCams[LastCameraIndex]);
 	}
-	else if (firstCam.flags & SCF_CUT_PAN)
+	else if (firstCam.Flags & SCF_CUT_PAN)
 	{
 		// Cut-pan: first knot is current camera, then fill 4 knots from sequence.
-		Knots.SetKnot(1, SpotCam[CurrentCameraIndex]);
+		Knots.SetKnot(1, SpotCams[CurrentCameraIndex]);
 		Camera.DisableInterpolation = true;
 		SplineFromOffset = 0;
 
@@ -223,7 +313,7 @@ void InitializeSpotCam(short sequence)
 			if (camIndex > LastCameraIndex)
 				camIndex = FirstCameraIndex;
 
-			Knots.SetKnot(i + 2, SpotCam[camIndex]);
+			Knots.SetKnot(i + 2, SpotCams[camIndex]);
 			camIndex++;
 		}
 
@@ -231,10 +321,10 @@ void InitializeSpotCam(short sequence)
 		if (CurrentCameraIndex > LastCameraIndex)
 			CurrentCameraIndex = FirstCameraIndex;
 
-		if (firstCam.flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
+		if (firstCam.Flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
 			RunHeavyTriggers = true;
 
-		if (firstCam.flags & SCF_HIDE_LARA)
+		if (firstCam.Flags & SCF_HIDE_LARA)
 			SpotcamDontDrawLara = true;
 	}
 	else
@@ -253,24 +343,24 @@ void InitializeSpotCam(short sequence)
 			Knots.TargetZ[index] = (float)SavedCameraTarget.z;
 			Knots.FOV[index]     = (float)CurrentFOV;
 			Knots.Roll[index]    = 0.0f;
-			Knots.Speed[index]   = (float)firstCam.speed;
+			Knots.Speed[index]   = (float)firstCam.Speed;
 		};
 
 		setInitialKnot(1);
 		setInitialKnot(2);
 
 		// Knot [3] = first spotcam in sequence.
-		Knots.SetKnot(3, SpotCam[CurrentCameraIndex]);
+		Knots.SetKnot(3, SpotCams[CurrentCameraIndex]);
 
 		// Knot [4] = next spotcam (or clamped to last).
 		int nextIndex = CurrentCameraIndex + 1;
 		if (nextIndex > LastCameraIndex)
 			nextIndex = FirstCameraIndex;
 
-		Knots.SetKnot(4, SpotCam[nextIndex]);
+		Knots.SetKnot(4, SpotCams[nextIndex]);
 	}
 
-	if (firstCam.flags & SCF_HIDE_LARA)
+	if (firstCam.Flags & SCF_HIDE_LARA)
 		SpotcamDontDrawLara = true;
 }
 
@@ -296,7 +386,7 @@ static void RunCameraHeavyTriggers()
 }
 
 // Ends the spotcam sequence and restores normal camera.
-static void EndSpotCamSequence(const SPOTCAM& firstCam)
+static void EndSpotCamSequence(const SpotCam& firstCam)
 {
 	if (RunHeavyTriggers)
 	{
@@ -315,7 +405,7 @@ static void EndSpotCamSequence(const SPOTCAM& firstCam)
 	Camera.speed = 1;
 	Camera.DisableInterpolation = true;
 
-	if (firstCam.flags & SCF_CUT_TO_LARA_CAM)
+	if (firstCam.Flags & SCF_CUT_TO_LARA_CAM)
 	{
 		Camera.pos.x = SavedCameraPos.x;
 		Camera.pos.y = SavedCameraPos.y;
@@ -348,7 +438,7 @@ static void FillSplineKnots(int startKnotIndex, int startCamIndex, int count, bo
 				camIndex = LastCameraIndex;
 		}
 
-		Knots.SetKnot(startKnotIndex + i, SpotCam[camIndex]);
+		Knots.SetKnot(startKnotIndex + i, SpotCams[camIndex]);
 		camIndex++;
 	}
 }
@@ -400,7 +490,7 @@ static float FindClosestSplineAlpha(int knotCount)
 
 void CalculateSpotCameras()
 {
-	if (SpotCam.empty() || FirstCameraIndex >= (int)SpotCam.size())
+	if (SpotCams.empty() || FirstCameraIndex >= (int)SpotCams.size())
 	{
 		UseSpotCam = false;
 		return;
@@ -412,29 +502,29 @@ void CalculateSpotCameras()
 		Lara.Status.Air = SavedLaraAir;
 	}
 
-	const auto& firstCam = SpotCam[FirstCameraIndex];
-	int knotCount = (firstCam.flags & SCF_TRACKING_CAM) ? (SequenceCameraCount + 2) : 4;
+	const auto& firstCam = SpotCams[FirstCameraIndex];
+	int knotCount = (firstCam.Flags & SCF_TRACKING_CAM) ? (SequenceCameraCount + 2) : 4;
 
 	// Interpolate all camera properties at current spline position.
-	float interpPosX   = Spline(SplineAlpha, &Knots.PosX[1], knotCount);
-	float interpPosY   = Spline(SplineAlpha, &Knots.PosY[1], knotCount);
-	float interpPosZ   = Spline(SplineAlpha, &Knots.PosZ[1], knotCount);
+	float interpPosX    = Spline(SplineAlpha, &Knots.PosX[1], knotCount);
+	float interpPosY    = Spline(SplineAlpha, &Knots.PosY[1], knotCount);
+	float interpPosZ    = Spline(SplineAlpha, &Knots.PosZ[1], knotCount);
 	float interpTargetX = Spline(SplineAlpha, &Knots.TargetX[1], knotCount);
 	float interpTargetY = Spline(SplineAlpha, &Knots.TargetY[1], knotCount);
 	float interpTargetZ = Spline(SplineAlpha, &Knots.TargetZ[1], knotCount);
-	float interpSpeed  = Spline(SplineAlpha, &Knots.Speed[1], knotCount);
-	float interpRoll   = Spline(SplineAlpha, &Knots.Roll[1], knotCount);
-	float interpFOV    = Spline(SplineAlpha, &Knots.FOV[1], knotCount);
+	float interpSpeed   = Spline(SplineAlpha, &Knots.Speed[1], knotCount);
+	float interpRoll    = Spline(SplineAlpha, &Knots.Roll[1], knotCount);
+	float interpFOV     = Spline(SplineAlpha, &Knots.FOV[1], knotCount);
 
 	// Handle screen fading.
-	if ((SpotCam[CurrentCameraIndex].flags & SCF_SCREEN_FADE_IN) &&
+	if ((SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_IN) &&
 		FadeCameraIndex != CurrentCameraIndex)
 	{
 		SetScreenFadeIn(FADE_SCREEN_SPEED);
 		FadeCameraIndex = CurrentCameraIndex;
 	}
 
-	if ((SpotCam[CurrentCameraIndex].flags & SCF_SCREEN_FADE_OUT) &&
+	if ((SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_OUT) &&
 		FadeCameraIndex != CurrentCameraIndex)
 	{
 		SetScreenFadeOut(FADE_SCREEN_SPEED);
@@ -442,22 +532,23 @@ void CalculateSpotCameras()
 	}
 
 	// Tracking camera: advance spline position to track Lara.
-	if (firstCam.flags & SCF_TRACKING_CAM)
+	if (firstCam.Flags & SCF_TRACKING_CAM)
 	{
 		float closestAlpha = FindClosestSplineAlpha(knotCount);
 
 		// Smoothly approach the closest position.
 		SplineAlpha += (closestAlpha - SplineAlpha) / 32.0f;
 
-		if ((firstCam.flags & SCF_CUT_PAN) && std::abs(closestAlpha - SplineAlpha) > 0.5f)
+		if ((firstCam.Flags & SCF_CUT_PAN) && std::abs(closestAlpha - SplineAlpha) > 0.5f)
 			SplineAlpha = closestAlpha;
 
 		SplineAlpha = std::clamp(SplineAlpha, 0.0f, 1.0f);
 	}
-	else if (!PauseTimer)
+	else
 	{
 		// Non-tracking: advance by interpolated speed (normalize from [0, 65536] to [0, 1]).
-		SplineAlpha += interpSpeed / 65536.0f;
+		// Apply pause speed factor for smooth easing.
+		SplineAlpha = std::min(SplineAlpha + interpSpeed / 65536.0f * PauseSpeedFactor, 1.0f);
 	}
 
 	bool lookPressed = IsHeld(In::Look);
@@ -465,9 +556,9 @@ void CalculateSpotCameras()
 		IsFirstLookPress = false;
 
 	// Handle look-key breakout for non-tracking cameras.
-	if (!(firstCam.flags & SCF_DISABLE_BREAKOUT) && lookPressed)
+	if (!(firstCam.Flags & SCF_DISABLE_BREAKOUT) && lookPressed)
 	{
-		if (firstCam.flags & SCF_TRACKING_CAM)
+		if (firstCam.Flags & SCF_TRACKING_CAM)
 		{
 			if (!IsFirstLookPress)
 			{
@@ -504,7 +595,7 @@ void CalculateSpotCameras()
 	Camera.pos.y = (int)interpPosY;
 	Camera.pos.z = (int)interpPosZ;
 
-	if ((firstCam.flags & SCF_FOCUS_LARA_HEAD) || (firstCam.flags & SCF_TRACKING_CAM))
+	if ((firstCam.Flags & SCF_FOCUS_LARA_HEAD) || (firstCam.Flags & SCF_TRACKING_CAM))
 	{
 		Camera.target.x = LaraItem->Pose.Position.x;
 		Camera.target.y = LaraItem->Pose.Position.y;
@@ -527,10 +618,10 @@ void CalculateSpotCameras()
 		// This issue is only present in sub-click floor height setups after TE 1.7.0. -- Lwmte, 02.11.2024
 
 		auto pos = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
-		int collRoomNumber = GetPointCollision(pos, SpotCam[CurrentCameraIndex].roomNumber).GetRoomNumber();
+		int collRoomNumber = GetPointCollision(pos, SpotCams[CurrentCameraIndex].RoomNumber).GetRoomNumber();
 
 		if (collRoomNumber != Camera.pos.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
-			collRoomNumber = FindRoomNumber(pos, SpotCam[CurrentCameraIndex].roomNumber);
+			collRoomNumber = FindRoomNumber(pos, SpotCams[CurrentCameraIndex].RoomNumber);
 
 		Camera.pos.RoomNumber = collRoomNumber;
 	}
@@ -544,13 +635,13 @@ void CalculateSpotCameras()
 	UpdateMikePos(*LaraItem);
 
 	// Apply per-camera flags.
-	if (SpotCam[CurrentCameraIndex].flags & SCF_OVERLAY)
+	if (SpotCams[CurrentCameraIndex].Flags & SCF_OVERLAY)
 		SpotcamOverlay = true;
 
-	if (SpotCam[CurrentCameraIndex].flags & SCF_HIDE_LARA)
+	if (SpotCams[CurrentCameraIndex].Flags & SCF_HIDE_LARA)
 		SpotcamDontDrawLara = true;
 
-	if (SpotCam[CurrentCameraIndex].flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
+	if (SpotCams[CurrentCameraIndex].Flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
 		RunHeavyTriggers = true;
 
 	if (RunHeavyTriggers)
@@ -560,9 +651,16 @@ void CalculateSpotCameras()
 	}
 
 	// Tracking camera just sets init flag and returns.
-	if (firstCam.flags & SCF_TRACKING_CAM)
+	if (firstCam.Flags & SCF_TRACKING_CAM)
 	{
 		TrackCameraInit = true;
+		return;
+	}
+
+	// While in any pause phase, update the state machine and skip segment transitions.
+	if (CurrentPausePhase != PausePhase::None)
+	{
+		UpdatePause();
 		return;
 	}
 
@@ -572,23 +670,17 @@ void CalculateSpotCameras()
 		return;
 
 	// Handle pause at end of segment.
-	if (SpotCam[CurrentCameraIndex].timer > 0 &&
-		(SpotCam[CurrentCameraIndex].flags & SCF_STOP_MOVEMENT))
+	if (SpotCams[CurrentCameraIndex].Timer > 0 &&
+		(SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) &&
+		!IsPauseComplete)
 	{
-		if (!PauseTimer && !IsPaused)
-			PauseTimer = SpotCam[CurrentCameraIndex].timer >> 3;
-	}
-
-	if (PauseTimer)
-	{
-		PauseTimer--;
-		if (!PauseTimer)
-			IsPaused = true;
+		BeginPause(SpotCams[CurrentCameraIndex].Timer >> 3);
 		return;
 	}
 
 	// Segment complete: advance to next camera.
 	SplineAlpha = 0.0f;
+	IsPauseComplete = false;
 
 	int prevCamIndex = (CurrentCameraIndex != FirstCameraIndex) ? (CurrentCameraIndex - 1) : LastCameraIndex;
 	int knotStartIndex = 1;
@@ -602,10 +694,10 @@ void CalculateSpotCameras()
 	}
 	else
 	{
-		if (SpotCam[CurrentCameraIndex].flags & SCF_REENABLE_LARA_CONTROLS)
+		if (SpotCams[CurrentCameraIndex].Flags & SCF_REENABLE_LARA_CONTROLS)
 			Lara.Control.IsLocked = false;
 
-		if (SpotCam[CurrentCameraIndex].flags & SCF_DISABLE_LARA_CONTROLS)
+		if (SpotCams[CurrentCameraIndex].Flags & SCF_DISABLE_LARA_CONTROLS)
 		{
 			if (CurrentLevel)
 				SetCinematicBars(SPOTCAM_CINEMATIC_BARS_HEIGHT, SPOTCAM_CINEMATIC_BARS_SPEED);
@@ -613,49 +705,49 @@ void CalculateSpotCameras()
 		}
 
 		// Handle cut-to-cam: jump to a specific camera in the sequence.
-		if (SpotCam[CurrentCameraIndex].flags & SCF_CUT_TO_CAM)
+		if (SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)
 		{
-			int jumpTarget = FirstCameraIndex + SpotCam[CurrentCameraIndex].timer;
+			int jumpTarget = FirstCameraIndex + SpotCams[CurrentCameraIndex].Timer;
 			Camera.DisableInterpolation = true;
 
-			Knots.SetKnot(1, SpotCam[jumpTarget]);
+			Knots.SetKnot(1, SpotCams[jumpTarget]);
 			knotStartIndex = 2;
 			CurrentCameraIndex = jumpTarget;
 			prevCamIndex = jumpTarget;
 		}
 
 		knotStartIndex++;
-		Knots.SetKnot(knotStartIndex - 1, SpotCam[prevCamIndex]);
+		Knots.SetKnot(knotStartIndex - 1, SpotCams[prevCamIndex]);
 	}
 
 	// Fill remaining knots from subsequent cameras.
 	int nextCamIndex = prevCamIndex + 1;
-	bool isLooping = (firstCam.flags & SCF_LOOP_SEQUENCE) != 0;
+	bool isLooping = (firstCam.Flags & SCF_LOOP_SEQUENCE) != 0;
 	FillSplineKnots(knotStartIndex, nextCamIndex, 4 - (knotStartIndex - 1), isLooping);
 
 	CurrentCameraIndex++;
-	IsPaused = false;
+	IsPauseComplete = false;
 
 	if (CurrentCameraIndex <= LastCameraIndex)
 		return;
 
 	// Sequence ended.
-	if (firstCam.flags & SCF_LOOP_SEQUENCE)
+	if (firstCam.Flags & SCF_LOOP_SEQUENCE)
 	{
 		CurrentCameraIndex = FirstCameraIndex;
 		LoopCount++;
 		return;
 	}
 
-	if ((firstCam.flags & SCF_CUT_TO_LARA_CAM) || IsTransitionToGame)
+	if ((firstCam.Flags & SCF_CUT_TO_LARA_CAM) || IsTransitionToGame)
 	{
 		EndSpotCamSequence(firstCam);
 		return;
 	}
 
 	// No explicit end flag: smoothly blend back to gameplay camera.
-	Knots.SetKnot(1, SpotCam[CurrentCameraIndex - 1]);
-	Knots.SetKnot(2, SpotCam[CurrentCameraIndex - 1]);
+	Knots.SetKnot(1, SpotCams[CurrentCameraIndex - 1]);
+	Knots.SetKnot(2, SpotCams[CurrentCameraIndex - 1]);
 
 	CAMERA_INFO backup;
 	memcpy(&backup, &Camera, sizeof(CAMERA_INFO));
@@ -722,13 +814,14 @@ float Spline(float alpha, const float* knots, int knotCount)
 	float t = alpha * segments - (float)span;
 
 	// Catmull-Rom coefficients:
-	// c1 = (-k0 + 3*k1 - 3*k2 + k3) / 2     (cubic)
-	// c2 = (2*k0 - 5*k1 + 4*k2 - k3) / 2     (quadratic)
-	// c3 = (k2 - k0) / 2                      (linear)
-	// c0 = k1                                  (constant)
-	float c3 = (k[2] - k[0]) * 0.5f;
-	float c2 = k[0] - 2.5f * k[1] + 2.0f * k[2] - 0.5f * k[3];
+	// c1 = (-k0 + 3*k1 - 3*k2 + k3) / 2 (cubic)
+	// c2 = (2*k0 - 5*k1 + 4*k2 - k3) / 2 (quadratic)
+	// c3 = (k2 - k0) / 2 (linear)
+	// c0 = k1 (constant)
+
 	float c1 = (-k[0] + 3.0f * k[1] - 3.0f * k[2] + k[3]) * 0.5f;
+	float c2 = k[0] - 2.5f * k[1] + 2.0f * k[2] - 0.5f * k[3];
+	float c3 = (k[2] - k[0]) * 0.5f;
 
 	return t * (t * (t * c1 + c2) + c3) + k[1];
 }
@@ -775,13 +868,13 @@ Pose GetCameraTransform(int sequence, float alpha, bool loop)
 	{
 		int seqID = std::clamp(firstIndex + i, firstIndex, (firstIndex + cameraCount) - 1);
 
-		xOrigins.push_back((float)SpotCam[seqID].x);
-		yOrigins.push_back((float)SpotCam[seqID].y);
-		zOrigins.push_back((float)SpotCam[seqID].z);
-		xTargets.push_back((float)SpotCam[seqID].tx);
-		yTargets.push_back((float)SpotCam[seqID].ty);
-		zTargets.push_back((float)SpotCam[seqID].tz);
-		rolls.push_back((float)SpotCam[seqID].roll);
+		xOrigins.push_back((float)SpotCams[seqID].Position.x);
+		yOrigins.push_back((float)SpotCams[seqID].Position.y);
+		zOrigins.push_back((float)SpotCams[seqID].Position.z);
+		xTargets.push_back((float)SpotCams[seqID].Target.x);
+		yTargets.push_back((float)SpotCams[seqID].Target.y);
+		zTargets.push_back((float)SpotCams[seqID].Target.z);
+		rolls.push_back((float)SpotCams[seqID].Roll);
 	}
 
 	auto getInterpolatedPoint = [&](float t, std::vector<float>& x, std::vector<float>& y, std::vector<float>& z)

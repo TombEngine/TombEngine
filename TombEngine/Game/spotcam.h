@@ -10,28 +10,21 @@ constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED  = 1.0f;
 
 class Pose;
 
-struct SPOTCAM
+struct SpotCam
 {
-	int x = 0;
-	int y = 0;
-	int z = 0;
-	int tx = 0;
-	int ty = 0;
-	int tz = 0;
-
-	unsigned char sequence = 0;
-	unsigned char camera   = 0;
-
-	short fov        = 0;
-	short roll       = 0;
-	short timer      = 0;
-	short speed      = 0;
-	short flags      = 0;
-	short roomNumber = 0;
-	short pad        = 0;
+	Vector3i     Position   = Vector3i::Zero;
+	Vector3i     Target     = Vector3i::Zero;
+	unsigned int Sequence   = 0;
+	unsigned int Camera     = 0;
+	short        FOV        = 0;
+	short        Roll       = 0;
+	short        Timer      = 0;
+	short        Speed      = 0;
+	short        Flags      = 0;
+	short        RoomNumber = 0;
 };
 
-enum SPOTCAM_FLAGS
+enum SpotCamFlags
 {
 	SCF_CUT_PAN                 = (1 << 0),  // Cut without panning smoothly.
 	SCF_OVERLAY                 = (1 << 1),  // TODO: Add vignette.
@@ -51,7 +44,7 @@ enum SPOTCAM_FLAGS
 	SCF_CAMERA_ONE_SHOT         = (1 << 15),
 };
 
-extern std::vector<SPOTCAM> SpotCam;
+extern std::vector<SpotCam> SpotCams;
 extern std::unordered_map<int, int> SpotCamRemap;
 extern std::vector<int> CameraCnt;
 extern int  LastSpotCamSequence;

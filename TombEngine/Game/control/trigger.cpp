@@ -708,10 +708,10 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 					}
 				}
 
-				if (!(SpotCam[spotCamIndex].flags & SCF_CAMERA_ONE_SHOT))
+				if (!(SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
 				{
 					if (trigger & ONESHOT)
-						SpotCam[spotCamIndex].flags |= SCF_CAMERA_ONE_SHOT;
+						SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
 
 					if (!UseSpotCam || CurrentLevel == 0)
 					{

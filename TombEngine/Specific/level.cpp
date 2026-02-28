@@ -606,10 +606,29 @@ void LoadCameras()
 	int numSpotcams = ReadCount();
 	TENLog("Flyby camera count: " + std::to_string(numSpotcams), LogLevel::Info);
 
-	// TODO: Read properly!
-	SpotCam.resize(numSpotcams);
-	if (numSpotcams != 0)
-		ReadBytes(SpotCam.data(), numSpotcams * sizeof(SPOTCAM));
+	SpotCams.resize(numSpotcams);
+	for (int i = 0; i < numSpotcams; i++)
+	{
+		auto& cam = SpotCams[i];
+		cam.Position.x = ReadInt32();
+		cam.Position.y = ReadInt32();
+		cam.Position.z = ReadInt32();
+		cam.Target.x   = ReadInt32();
+		cam.Target.y   = ReadInt32();
+		cam.Target.z   = ReadInt32();
+
+		cam.Sequence   = (unsigned int)ReadUInt8();
+		cam.Camera     = (unsigned int)ReadUInt8();
+
+		cam.FOV        = ReadInt16();
+		cam.Roll       = ReadInt16();
+		cam.Timer      = ReadInt16();
+		cam.Speed      = ReadInt16();
+		cam.Flags      = ReadInt16();
+		cam.RoomNumber = ReadInt16();
+
+		ReadInt16(); // Padding.
+	}
 
 	int sinkCount = ReadCount();
 	TENLog("Sink count: " + std::to_string(sinkCount), LogLevel::Info);
