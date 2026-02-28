@@ -174,17 +174,7 @@ namespace TEN::Utils
 
 	int GetHash(const std::string& string)
 	{
-		if (string.empty())
-			return 0;
-
-		unsigned int hash = 2166136261u;
-		for (char c : string)
-		{
-			hash ^= static_cast<unsigned char>(c);
-			hash *= 16777619u;
-		}
-
-		return static_cast<int>(hash);
+		return GetHash(string.c_str());
 	}
 
     Vector2 GetAspectCorrect2DPosition(const Vector2& pos)

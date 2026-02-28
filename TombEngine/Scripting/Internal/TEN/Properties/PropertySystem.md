@@ -234,13 +234,24 @@ typeProps.Set("damage", PropertyValue(25.0f));
 | `Get<T>(hash)` / `GetOr<T>(hash, def)` | O(1) with no hashing | Hot paths — AI ticks, control loops |
 | `PropertyHandler::Get<T>(entity, hash, …)` | Two O(1) lookups worst-case | Hot paths needing two-layer resolution |
 
-**Best practice:** Declare hashes as `static const` locals or class constants using `GetHash` from `Specific/trutils.h`:
+**Best practice:** Declare hashes as `constexpr` constants using `GetHash` from `Specific/trutils.h`.
+The `const char*` overload is `constexpr`, so the hash is computed at **compile time** — zero
+runtime cost:
 
 ```cpp
-static const int kHealth = GetHash("health");
-static const int kDamage = GetHash("damage");
-static const int kSpeed  = GetHash("speed");
+// Compile-time hashes (resolved by the compiler, no runtime hashing):
+constexpr int kHealth = GetHash("health");
+constexpr int kDamage = GetHash("damage");
+constexpr int kSpeed  = GetHash("speed");
+
+// Use directly — no string hashing at runtime:
+float hp     = PropertyHandler::Get<float>(item, kHealth, 100.0f);
+float damage = item.Properties.GetOr<float>(kDamage, 10.0f);
 ```
+
+> **Note:** `GetHash(const char*)` is `constexpr` and works with string literals.
+> `GetHash(const std::string&)` is the runtime overload for dynamic strings.
+> Both produce identical FNV-1a hashes.
 
 ---
 
@@ -357,6 +368,7 @@ PropertyHandler
   ::GetMutableMoveableProperties()      → unordered_map&
   ::GetMutableStaticProperties()        → unordered_map&
 
-GetHash(name)                → int   (FNV-1a, from Specific/trutils.h)
-ValidatePropertyName(name)   → bool  (from PropertyLuaConverters.h)
+GetHash(const string& name)  → int            (FNV-1a, runtime, from Specific/trutils.h)
+GetHash(const char* name)    → constexpr int   (FNV-1a, compile-time, from Specific/trutils.h)
+ValidatePropertyName(name)   → bool            (from PropertyLuaConverters.h)
 ```
