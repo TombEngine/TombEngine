@@ -530,6 +530,7 @@ namespace TEN::SpotCam
 	{
 		if (SpotCams.empty() || FirstCameraIndex >= (int)SpotCams.size())
 		{
+			TENLog(fmt::format("Flyby sequence {} refers to a camera {} that does not exist.", CurrentSequenceID, FirstCameraIndex), LogLevel::Warning);
 			UseSpotCam = false;
 			return;
 		}
