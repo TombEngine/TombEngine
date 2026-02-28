@@ -71,7 +71,6 @@ namespace TEN::Scripting
 		sol::object GetProperty(sol::this_state state, const std::string& name) const;
 		void SetProperty(const std::string& name, const sol::object& value);
 		bool HasInstanceProperty(const std::string& name) const;
-		void ClearInstanceProperty(const std::string& name);
 
 		// Operators
 

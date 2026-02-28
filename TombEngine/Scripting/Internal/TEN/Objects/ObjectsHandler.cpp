@@ -158,11 +158,11 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_table_objects.set_function(ScriptReserved_GetMoveableProperty, &ObjectsHandler::GetMoveableProperty, this);
 
 	/***
-	Set a global property for a moveable object ID.
+	Set a global property for a moveable object ID. If property does not exist, it creates it. If value is nil, the property is removed.
 	@function SetMoveableProperty
 	@tparam Objects.ObjID objectID Moveable object ID.
 	@tparam string name Property name.
-	@tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	@tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
 	*/
 	_table_objects.set_function(ScriptReserved_SetMoveableProperty, &ObjectsHandler::SetMoveableProperty, this);
 
@@ -176,11 +176,11 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_table_objects.set_function(ScriptReserved_GetStaticProperty, &ObjectsHandler::GetStaticProperty, this);
 
 	/***
-	Set a global property for a static slot ID.
+	Set a global property for a static slot ID. If property does not exist, it creates it. If value is nil, the property is removed.
 	@function SetStaticProperty
 	@tparam int slotID Static slot ID.
 	@tparam string name Property name.
-	@tparam any value Property value (can be bool, number, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}).
+	@tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
 	*/
 	_table_objects.set_function(ScriptReserved_SetStaticProperty, &ObjectsHandler::SetStaticProperty, this);
 

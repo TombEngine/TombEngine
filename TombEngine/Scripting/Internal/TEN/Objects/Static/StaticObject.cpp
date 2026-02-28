@@ -66,8 +66,7 @@ namespace TEN::Scripting
 			// Properties
 			ScriptReserved_GetProperty, &Static::GetProperty,
 			ScriptReserved_SetProperty, &Static::SetProperty,
-			ScriptReserved_HasInstanceProperty, &Static::HasInstanceProperty,
-			ScriptReserved_ClearInstanceProperty, &Static::ClearInstanceProperty);
+			ScriptReserved_HasInstanceProperty, &Static::HasInstanceProperty);
 	}
 
 	Static::Static(StaticMesh& staticObj) :
@@ -280,13 +279,17 @@ namespace TEN::Scripting
 	}
 
 	/// Set a property value.
-	// Sets a property for this static mesh instance. If property does not exist, it creates it. Does not override global slot property that is set by @{Objects.SetStaticProperty}.
+	// Will be set only for this static mesh instance. If property does not exist, creates it.
+	// If value is nil, the instance property is removed. Does not affect global slot property set by @{Objects.SetStaticProperty}.
 	// @function Static:SetProperty
 	// @tparam string name The property name.
-	// @tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}. Pass nil to remove.
 	void Static::SetProperty(const std::string& name, const sol::object& value)
 	{
-		_static.Properties.Set(name, PropertyValueFromLua(value));
+		if (value == sol::nil)
+			_static.Properties.Remove(name);
+		else
+			_static.Properties.Set(name, PropertyValueFromLua(value));
 	}
 
 	/// Check if a per-instance property value exists.
@@ -296,15 +299,6 @@ namespace TEN::Scripting
 	bool Static::HasInstanceProperty(const std::string& name) const
 	{
 		return _static.Properties.Has(name);
-	}
-
-	/// Clear a per-instance property value.
-	// If global slot property with the same name exists, it will will be returned on subsequent @{Static:GetProperty} calls.
-	// @function Static:ClearInstanceProperty
-	// @tparam string name The property name.
-	void Static::ClearInstanceProperty(const std::string& name)
-	{
-		_static.Properties.Remove(name);
 	}
 
 	/// Enable this static. Used when previously shattered disabled manually.

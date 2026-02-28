@@ -571,7 +571,6 @@ constexpr char ScriptReserved_StaticShatter[]		= "Shatter";
 constexpr char ScriptReserved_GetProperty[]				= "GetProperty";
 constexpr char ScriptReserved_SetProperty[]				= "SetProperty";
 constexpr char ScriptReserved_HasInstanceProperty[]		= "HasInstanceProperty";
-constexpr char ScriptReserved_ClearInstanceProperty[]	= "ClearInstanceProperty";
 
 // Properties (global type-level, on Objects table)
 

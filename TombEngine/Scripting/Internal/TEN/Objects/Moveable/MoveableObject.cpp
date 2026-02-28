@@ -222,8 +222,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 
 		ScriptReserved_GetProperty, &Moveable::GetProperty,
 		ScriptReserved_SetProperty, &Moveable::SetProperty,
-		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty,
-		ScriptReserved_ClearInstanceProperty, &Moveable::ClearInstanceProperty);
+		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -694,13 +693,17 @@ sol::object Moveable::GetProperty(sol::this_state state, const std::string& name
 }
 
 /// Set a property value.
-// Sets a property for this moveable instance. If property does not exist, it creates it. Does not override global object ID property that is set by @{Objects.SetMoveableProperty}.
+// Will be set only for this moveable instance. If property does not exist, creates it.
+// If value is nil, the instance property is removed. Does not affect global object ID property set by @{Objects.SetMoveableProperty}.
 // @function Moveable:SetProperty
 // @tparam string name The property name.
-// @tparam any value The value of any given type: bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
 void Moveable::SetProperty(const std::string& name, const sol::object& value)
 {
-	_moveable->Properties.Set(name, PropertyValueFromLua(value));
+	if (value == sol::nil)
+		_moveable->Properties.Remove(name);
+	else
+		_moveable->Properties.Set(name, PropertyValueFromLua(value));
 }
 
 /// Check if a per-instance property value exists.
@@ -710,15 +713,6 @@ void Moveable::SetProperty(const std::string& name, const sol::object& value)
 bool Moveable::HasInstanceProperty(const std::string& name) const
 {
 	return _moveable->Properties.Has(name);
-}
-
-/// Clear a per-instance property value.
-// If global object ID property with the same name exists, it will will be returned on subsequent @{Moveable:GetProperty} calls.
-// @function Moveable:ClearInstanceProperty
-// @tparam string name The property name.
-void Moveable::ClearInstanceProperty(const std::string& name)
-{
-	_moveable->Properties.Remove(name);
 }
 
 /// Get the OCB of the AI object that the enemy is currently trying to reach.

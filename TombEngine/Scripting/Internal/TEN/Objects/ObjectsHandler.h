@@ -185,7 +185,10 @@ private:
 
 	void SetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name, const sol::object& value)
 	{
-		PropertyHandler::GetMoveableProperties((int)objectID).Set(name, PropertyValueFromLua(value));
+		if (value == sol::nil)
+			PropertyHandler::GetMoveableProperties((int)objectID).Remove(name);
+		else
+			PropertyHandler::GetMoveableProperties((int)objectID).Set(name, PropertyValueFromLua(value));
 	}
 
 	sol::object GetStaticProperty(int slotID, const std::string& name)
@@ -200,6 +203,9 @@ private:
 
 	void SetStaticProperty(int slotID, const std::string& name, const sol::object& value)
 	{
-		PropertyHandler::GetStaticProperties(slotID).Set(name, PropertyValueFromLua(value));
+		if (value == sol::nil)
+			PropertyHandler::GetStaticProperties(slotID).Remove(name);
+		else
+			PropertyHandler::GetStaticProperties(slotID).Set(name, PropertyValueFromLua(value));
 	}
 };
