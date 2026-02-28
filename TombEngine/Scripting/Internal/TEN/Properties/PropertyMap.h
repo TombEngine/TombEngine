@@ -24,14 +24,14 @@ namespace TEN::Scripting::Properties
 		}
 
 		// Get a typed property by pre-computed hash (fast path for C++ hot code).
+		// Integral types (except bool) are read from the stored float and cast automatically.
 		template <typename T> std::optional<T> Get(int hash) const
 		{
 			auto it = _values.find(hash);
 			if (it == _values.end())
 				return std::nullopt;
 
-			auto* ptr = std::get_if<T>(&it->second);
-			return ptr ? std::optional<T>(*ptr) : std::nullopt;
+			return ExtractValue<T>(it->second);
 		}
 
 		// Get a typed property by name, returning a default if not found or type mismatch.
@@ -41,14 +41,14 @@ namespace TEN::Scripting::Properties
 		}
 
 		// Get a typed property by hash, returning a default if not found or type mismatch.
+		// Integral types (except bool) are read from the stored float and cast automatically.
 		template <typename T> T GetOr(int hash, const T& defaultValue) const
 		{
 			auto it = _values.find(hash);
 			if (it == _values.end())
 				return defaultValue;
 
-			auto* ptr = std::get_if<T>(&it->second);
-			return ptr ? *ptr : defaultValue;
+			return ExtractValue<T>(it->second).value_or(defaultValue);
 		}
 
 		// Get raw variant by name.
