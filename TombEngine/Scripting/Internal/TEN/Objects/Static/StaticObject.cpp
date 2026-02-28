@@ -304,7 +304,7 @@ namespace TEN::Scripting
 		}
 	}
 
-	/// Check if a per-instance property value exists.
+	/// Check if a property value was individually set for a given static mesh instance.
 	// @function Static:HasInstanceProperty
 	// @tparam string name The property name.
 	// @treturn bool True if an instance property exists.

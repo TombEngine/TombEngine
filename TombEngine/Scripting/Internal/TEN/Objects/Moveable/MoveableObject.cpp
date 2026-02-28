@@ -718,7 +718,7 @@ void Moveable::SetProperty(const std::string& name, const sol::object& value)
 	}
 }
 
-/// Check if a per-instance property value exists.
+/// Check if a property value was individually set for a given moveable instance.
 // @function Moveable:HasInstanceProperty
 // @tparam string name The property name.
 // @treturn bool True if an instance property exists.
