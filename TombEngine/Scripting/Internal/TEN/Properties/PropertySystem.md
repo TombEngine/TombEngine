@@ -244,43 +244,119 @@ static const int kSpeed  = GetHash("speed");
 
 ---
 
+## Lua Binding Helpers (`PropertyLuaConverters.h`)
+
+These inline functions live in `Scripting/Internal/TEN/Properties/PropertyLuaConverters.h`
+and are used by the Lua-facing property implementations in `MoveableObject.cpp`,
+`StaticObject.cpp`, and `ObjectsHandler.h`:
+
+| Function | Purpose |
+|----------|---------|
+| `ValidatePropertyName(name)` | Returns `false` and logs a script error if name is empty. Guards all Lua entry points. |
+| `PropertyValueFromLua(obj)` | Converts a `sol::object` to a `PropertyValue` variant. Asserts on unsupported types. |
+| `PropertyValueToLua(state, value)` | Converts a `PropertyValue` variant to a `sol::object` via `std::visit`. |
+
+---
+
+## Savegame Serialization (`PropertySavegame.h`)
+
+Both layers are serialized/deserialized automatically through FlatBuffers. The helpers
+live in `Scripting/Internal/TEN/Properties/PropertySavegame.h`:
+
+| Function | Direction | Purpose |
+|----------|-----------|---------|
+| `BuildPropertyValue(fbb, value, outType)` | Save | Serialize a single `PropertyValue` to FlatBuffers. |
+| `BuildPropertyMap(fbb, propMap)` | Save | Serialize a `PropertyMap` to a `PropertyMapData` offset. |
+| `BuildTypeProperties(fbb, typeProps)` | Save | Serialize a full `unordered_map<int, PropertyMap>` for type properties. |
+| `ParsePropertyEntry(entry)` | Load | Deserialize a single `PropertyEntry` to `std::optional<PropertyValue>`. |
+| `ParsePropertyMap(data, outMap)` | Load | Deserialize `PropertyMapData` into a `PropertyMap`. |
+| `ParseTypeProperties(vec, outMap)` | Load | Deserialize type property vectors back into global maps. |
+
+In `savegame.cpp`:
+
+```cpp
+// Saving:
+auto moveableTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllMoveableProperties());
+auto staticTypePropsOffset   = BuildTypeProperties(fbb, PropertyHandler::GetAllStaticProperties());
+
+// Loading:
+ParseTypeProperties(s->moveable_type_properties(), PropertyHandler::GetMutableMoveableProperties());
+ParseTypeProperties(s->static_type_properties(),   PropertyHandler::GetMutableStaticProperties());
+```
+
+Instance properties (`ItemInfo::Properties` / `StaticMesh::Properties`) are serialized
+per-entity alongside other item/static data using `BuildPropertyMap` / `ParsePropertyMap`.
+
+---
+
 ## Lifecycle
 
-- **Level load:** Lua scripts populate type properties via `Moveable.SetTypeProperty()`
-  and instance properties via `myObj:SetProperty()`.
-- **Savegame:** Both layers are serialized/deserialized automatically through FlatBuffers.
+- **Level load:** Lua scripts populate type properties via `Objects.SetMoveableProperty()` /
+  `Objects.SetStaticProperty()` and instance properties via `myObj:SetProperty()`.
+- **Savegame save:** Both layers serialized through FlatBuffers (see above).
+- **Savegame load:** Both layers deserialized back from FlatBuffers.
 - **Level unload:** `PropertyHandler::Clear()` is called from `ObjectsHandler::FreeEntities()`,
-  and instance `PropertyMap` members are destroyed with their owning `ItemInfo`/`StaticMesh`.
+  and instance `PropertyMap` members are destroyed with their owning `ItemInfo` / `StaticMesh`.
+
+---
+
+## File Map
+
+| File | Purpose |
+|------|---------|
+| `Properties/PropertyValue.h` | `PropertyValue` variant type alias |
+| `Properties/PropertyMap.h` | Per-entity hash-based property container (header + templates) |
+| `Properties/PropertyMap.cpp` | Non-template `PropertyMap` method implementations |
+| `Properties/PropertyHandler.h` | Type-level registry + two-layer `Get` overloads (header + templates) |
+| `Properties/PropertyHandler.cpp` | Non-template `PropertyHandler` method implementations |
+| `Properties/PropertyLuaConverters.h` | `ValidatePropertyName`, `PropertyValueFromLua`, `PropertyValueToLua` |
+| `Properties/PropertySavegame.h` | FlatBuffers Build/Parse helpers for both layers |
+
+All paths relative to `Scripting/Internal/TEN/`.
 
 ---
 
 ## Quick Reference
 
 ```
-PropertyMap::Get<T>(name)            → std::optional<T>
-PropertyMap::Get<T>(hash)            → std::optional<T>
-PropertyMap::GetOr<T>(name, def)     → T
-PropertyMap::GetOr<T>(hash, def)     → T
-PropertyMap::GetRaw(name)            → const PropertyValue*
-PropertyMap::GetRaw(hash)            → const PropertyValue*
-PropertyMap::Set(name, value)        → void
-PropertyMap::Has(name/hash)          → bool
-PropertyMap::Remove(name/hash)       → bool
-PropertyMap::Clear()                 → void
+PropertyMap
+  ::Get<T>(name)             → std::optional<T>
+  ::Get<T>(hash)             → std::optional<T>
+  ::GetOr<T>(name, def)      → T
+  ::GetOr<T>(hash, def)      → T
+  ::GetRaw(name)             → const PropertyValue*
+  ::GetRaw(hash)             → const PropertyValue*
+  ::Set(name, value)         → void
+  ::Has(name)                → bool
+  ::Has(hash)                → bool
+  ::Remove(name)             → bool
+  ::Remove(hash)             → bool
+  ::Clear()                  → void
+  ::IsEmpty()                → bool
+  ::GetCount()               → size_t
+  ::GetNames()               → vector<string>
+  ::GetName(hash)            → const string*
+  ::begin() / end()          → iterator (over hash→value pairs)
 
-PropertyHandler::Get(item, name)                    → const PropertyValue*
-PropertyHandler::Get(item, hash)                    → const PropertyValue*
-PropertyHandler::Get(staticMesh, name)              → const PropertyValue*
-PropertyHandler::Get(staticMesh, hash)              → const PropertyValue*
-PropertyHandler::Get<T>(item, name, def = T{})      → T
-PropertyHandler::Get<T>(item, hash, def = T{})      → T
-PropertyHandler::Get<T>(staticMesh, name, def = T{})→ T
-PropertyHandler::Get<T>(staticMesh, hash, def = T{})→ T
-PropertyHandler::FindMoveableProperties(objectID)   → const PropertyMap*
-PropertyHandler::FindStaticProperties(slotID)       → const PropertyMap*
-PropertyHandler::GetMoveableProperties(objectID)    → PropertyMap&
-PropertyHandler::GetStaticProperties(slotID)        → PropertyMap&
-PropertyHandler::Clear()                            → void
+PropertyHandler
+  ::Get(item, name)                     → const PropertyValue*
+  ::Get(item, hash)                     → const PropertyValue*
+  ::Get(staticMesh, name)               → const PropertyValue*
+  ::Get(staticMesh, hash)               → const PropertyValue*
+  ::Get<T>(item, name, def = T{})       → T
+  ::Get<T>(item, hash, def = T{})       → T
+  ::Get<T>(staticMesh, name, def = T{}) → T
+  ::Get<T>(staticMesh, hash, def = T{}) → T
+  ::GetMoveableProperties(objectID)     → PropertyMap&
+  ::FindMoveableProperties(objectID)    → const PropertyMap*
+  ::GetStaticProperties(slotID)         → PropertyMap&
+  ::FindStaticProperties(slotID)        → const PropertyMap*
+  ::Clear()                             → void
+  ::GetAllMoveableProperties()          → const unordered_map&
+  ::GetAllStaticProperties()            → const unordered_map&
+  ::GetMutableMoveableProperties()      → unordered_map&
+  ::GetMutableStaticProperties()        → unordered_map&
 
-GetHash(name)                        → int   (from Specific/trutils.h)
+GetHash(name)                → int   (FNV-1a, from Specific/trutils.h)
+ValidatePropertyName(name)   → bool  (from PropertyLuaConverters.h)
 ```
