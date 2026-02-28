@@ -30,17 +30,32 @@ namespace TEN::SpotCam
 	
 	struct SplineCameraKnots
 	{
-		static constexpr auto MAX_SPLINE_KNOTS = 18;
-	
-		float PosX[MAX_SPLINE_KNOTS]    = {};
-		float PosY[MAX_SPLINE_KNOTS]    = {};
-		float PosZ[MAX_SPLINE_KNOTS]    = {};
-		float TargetX[MAX_SPLINE_KNOTS] = {};
-		float TargetY[MAX_SPLINE_KNOTS] = {};
-		float TargetZ[MAX_SPLINE_KNOTS] = {};
-		float Roll[MAX_SPLINE_KNOTS]    = {};
-		float FOV[MAX_SPLINE_KNOTS]     = {};
-		float Speed[MAX_SPLINE_KNOTS]   = {};
+		static const int TRACKING_KNOT_COUNT = 3;
+		static const int SPLINE_KNOT_COUNT   = 6;
+		static const int BLEND_KNOT_COUNT    = 5;
+
+		std::vector<float> PosX    = {};
+		std::vector<float> PosY    = {};
+		std::vector<float> PosZ    = {};
+		std::vector<float> TargetX = {};
+		std::vector<float> TargetY = {};
+		std::vector<float> TargetZ = {};
+		std::vector<float> Roll    = {};
+		std::vector<float> FOV     = {};
+		std::vector<float> Speed   = {};
+
+		void Resize(int count)
+		{
+			PosX.assign(count, 0.0f);
+			PosY.assign(count, 0.0f);
+			PosZ.assign(count, 0.0f);
+			TargetX.assign(count, 0.0f);
+			TargetY.assign(count, 0.0f);
+			TargetZ.assign(count, 0.0f);
+			Roll.assign(count, 0.0f);
+			FOV.assign(count, 0.0f);
+			Speed.assign(count, 0.0f);
+		}
 	
 		void SetKnot(int index, const SpotCamData& cam)
 		{
@@ -80,10 +95,10 @@ namespace TEN::SpotCam
 	static short  CurrentCameraIndex  = 0;
 	static int    FadeCameraIndex     = NO_VALUE;
 	
+	static int    CurrentSequenceID   = 0;
 	static int    SequenceCameraCount = 0;
 	static int    LoopCount           = 0;
 	static int    SplineFromOffset    = 0; // Number of leading knots sourced from initial camera.
-	static int    CurrentSequenceID   = 0;
 	
 	static bool   IsFirstLookPress    = false;
 	static bool   IsTransitionToGame  = false;
@@ -233,11 +248,10 @@ namespace TEN::SpotCam
 		}
 	
 		// Populate spline knot arrays.
-		Knots = {};
-	
 		if (firstCam.Flags & SCF_TRACKING_CAM)
 		{
 			// Tracking camera: pad with first camera, then all cameras, then pad with last.
+			Knots.Resize(SequenceCameraCount + SplineCameraKnots::TRACKING_KNOT_COUNT);
 			Knots.SetKnot(1, SpotCams[FirstCameraIndex]);
 			SplineFromOffset = 0;
 	
@@ -249,9 +263,11 @@ namespace TEN::SpotCam
 		else if (firstCam.Flags & SCF_CUT_PAN)
 		{
 			// Cut-pan: first knot is current camera, then fill 4 knots from sequence.
+			Knots.Resize(SplineCameraKnots::SPLINE_KNOT_COUNT);
 			Knots.SetKnot(1, SpotCams[CurrentCameraIndex]);
-			Camera.DisableInterpolation = true;
 			SplineFromOffset = 0;
+
+			Camera.DisableInterpolation = true;
 	
 			int camIndex = CurrentCameraIndex;
 			for (int i = 0; i < 4; i++)
@@ -275,7 +291,8 @@ namespace TEN::SpotCam
 		}
 		else
 		{
-			// Smooth pan: blend from current camera position to first spotcam.
+			// Smooth pan: blend from current camera position to first spotcam (indices 0-4).
+			Knots.Resize(SplineCameraKnots::BLEND_KNOT_COUNT);
 			SplineFromOffset = 1;
 	
 			// Knots [1] and [2] = current camera position (for smooth approach).
@@ -352,8 +369,10 @@ namespace TEN::SpotCam
 				PauseEaseProgress = 0.0f;
 	
 				// Derive step so the initial alpha velocity matches the current camera speed.
+				// Clamp to a minimum so the pause doesn't stall if speed is near zero.
 				float remainingAlpha = std::max(1.0f - SplineAlpha, 0.001f);
-				PauseEaseStep = normalizedSpeed / (2.0f * remainingAlpha);
+				float clampedSpeed = std::max(normalizedSpeed, 0.001f);
+				PauseEaseStep = clampedSpeed / (2.0f * remainingAlpha);
 				CurrentPausePhase = PausePhase::EaseOut;
 			}
 		}
@@ -523,6 +542,14 @@ namespace TEN::SpotCam
 	
 		const auto& firstCam = SpotCams[FirstCameraIndex];
 		int knotCount = (firstCam.Flags & SCF_TRACKING_CAM) ? (SequenceCameraCount + 2) : 4;
+
+		// Spline() needs at least 4 knots to form a valid segment.
+		if (knotCount < 4)
+		{
+			TENLog(fmt::format("Flyby sequence {} has too few cameras for spline interpolation.", CurrentSequenceID), LogLevel::Warning);
+			UseSpotCam = false;
+			return;
+		}
 	
 		// Interpolate all camera properties at current spline position.
 		float interpPosX    = Spline(SplineAlpha, &Knots.PosX[1],    knotCount);
@@ -717,6 +744,12 @@ namespace TEN::SpotCam
 			if (SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)
 			{
 				int jumpTarget = FirstCameraIndex + SpotCams[CurrentCameraIndex].Timer;
+
+				if (jumpTarget < FirstCameraIndex || jumpTarget > LastCameraIndex)
+				{
+					TENLog(fmt::format("Flyby sequence {} has no camera with index {}. Check the flyby setup in the editor.", CurrentSequenceID, jumpTarget), LogLevel::Warning);
+					jumpTarget = std::clamp(jumpTarget, FirstCameraIndex, LastCameraIndex);
+				}
 	
 				Knots.SetKnot(1, SpotCams[jumpTarget]);
 				CurrentCameraIndex = jumpTarget;
@@ -810,20 +843,21 @@ namespace TEN::SpotCam
 	
 	float Spline(float alpha, const float* knots, int knotCount)
 	{
-		int segments = knotCount - 3;
-		int span = (int)(alpha * segments);
+		int segmentCount = knotCount - 3;
+		int segmentIndex = (int)(alpha * segmentCount);
 	
-		if (span >= segments)
-			span = segments - 1;
+		if (segmentIndex >= segmentCount)
+			segmentIndex = segmentCount - 1;
 	
-		const float* k = &knots[span];
-		float t = alpha * segments - (float)span;
+		const float* knot = &knots[segmentIndex];
+		float segmentPos = alpha * segmentCount - (float)segmentIndex;
 	
-		float c1 = (-k[0] + 3.0f * k[1] - 3.0f * k[2] + k[3]) * 0.5f;
-		float c2 = k[0] - 2.5f * k[1] + 2.0f * k[2] - 0.5f * k[3];
-		float c3 = (k[2] - k[0]) * 0.5f;
+		float cCube   = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
+		float cQuad   = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
+		float cLinear = (knot[2] - knot[0]) * 0.5f;
+		float cConst  = knot[1];
 	
-		return t * (t * (t * c1 + c2) + c3) + k[1];
+		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
 	}
 	
 	Pose GetCameraTransform(int sequence, float alpha, bool loop)
