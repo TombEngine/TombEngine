@@ -155,7 +155,7 @@ namespace TEN::SpotCam
 		if (SpotCams.empty())
 			return;
 	
-		unsigned int currentSequence = SpotCams[0].Sequence;
+		int currentSequence = SpotCams[0].Sequence;
 		int count = 0;
 	
 		for (const auto& cam : SpotCams)

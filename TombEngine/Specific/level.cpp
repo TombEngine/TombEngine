@@ -618,17 +618,15 @@ void LoadCameras()
 		cam.Target.y   = ReadInt32();
 		cam.Target.z   = ReadInt32();
 
-		cam.Sequence   = (unsigned int)ReadUInt8();
-		cam.Camera     = (unsigned int)ReadUInt8();
+		cam.Sequence   = ReadInt32();
+		cam.Camera     = ReadInt32();
 
 		cam.FOV        = ReadInt16();
 		cam.Roll       = ReadInt16();
 		cam.Timer      = ReadInt16();
 		cam.Speed      = ReadInt16();
 		cam.Flags      = ReadInt16();
-		cam.RoomNumber = ReadInt16();
-
-		ReadInt16(); // Padding.
+		cam.RoomNumber = ReadInt32();
 	}
 
 	int sinkCount = ReadCount();
