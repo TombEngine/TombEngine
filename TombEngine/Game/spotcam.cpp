@@ -18,24 +18,18 @@ using namespace TEN::Renderer;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Collision::Point;
 
-constexpr auto MAX_SPLINE_KNOTS = 18;
-
-// Duration in seconds for smooth ease-in and ease-out during camera pauses.
-constexpr auto PAUSE_EASE_DURATION = 0.5f;
-constexpr auto PAUSE_EASE_STEP     = 1.0f / (PAUSE_EASE_DURATION * FPS);
-
 enum class PausePhase
 {
-	None,    // Normal playback; speed factor = 1.
-	EaseOut, // Decelerating; speed factor transitions from 1 to 0.
-	Hold,    // Fully stopped; speed factor = 0.
-	EaseIn   // Accelerating; speed factor transitions from 0 to 1.
+	None,    // Normal playback, speed factor = 1.
+	EaseOut, // Quadratic ease-out, speed factor transitions from 1 to 0.
+	Hold,    // Fully stopped, speed factor = 0.
+	EaseIn   // Quadratic ease-in, speed factor transitions from 0 to 1.
 };
 
-// Spline knot arrays for camera interpolation. Each component is stored
-// as a contiguous float array so it can be passed directly to Spline().
 struct SplineCameraKnots
 {
+	static constexpr auto MAX_SPLINE_KNOTS = 18;
+
 	float PosX[MAX_SPLINE_KNOTS]    = {};
 	float PosY[MAX_SPLINE_KNOTS]    = {};
 	float PosZ[MAX_SPLINE_KNOTS]    = {};
@@ -60,7 +54,8 @@ struct SplineCameraKnots
 	}
 };
 
-// Public globals (declared extern in header).
+// Public globals.
+
 std::vector<SpotCam>         SpotCams;
 std::unordered_map<int, int> SpotCamRemap;
 std::vector<int>             CameraCnt;
@@ -72,30 +67,26 @@ bool SpotcamSwitched     = false;
 bool SpotcamDontDrawLara = false;
 bool SpotcamOverlay      = false;
 
-// File-local state.
+// Local state.
+
 static SplineCameraKnots Knots = {};
 
-static float  SplineAlpha         = 0.0f;  // Normalized spline position [0, 1].
+static float  SplineAlpha         = 0.0f; // Normalized spline position [0, 1].
+
 static int    FirstCameraIndex    = 0;
 static int    LastCameraIndex     = 0;
-static int    SequenceCameraCount = 0;
-static int    SplineFromOffset    = 0;     // Number of leading knots sourced from initial camera.
 static short  CurrentCameraIndex  = 0;
+static int    FadeCameraIndex     = NO_VALUE;
+
+static int    SequenceCameraCount = 0;
+static int    LoopCount           = 0;
+static int    SplineFromOffset    = 0; // Number of leading knots sourced from initial camera.
 static int    CurrentSequenceID   = 0;
 
 static bool   IsFirstLookPress    = false;
-static bool   IsTransitionToGame  = false; // Transitioning back to gameplay camera.
+static bool   IsTransitionToGame  = false;
 static bool   RunHeavyTriggers    = false;
 
-// Pause state machine.
-static PausePhase CurrentPausePhase   = PausePhase::None;
-static float      PauseSpeedFactor    = 1.0f;  // Multiplier applied to camera speed.
-static float      PauseEaseProgress   = 0.0f;  // Progress through current ease phase [0, 1].
-static int        PauseHoldTimer      = 0;     // Frames remaining in hold phase.
-static bool       IsPauseComplete     = false; // Prevents re-triggering pause for same segment.
-
-static int    LoopCount       = 0;
-static int    FadeCameraIndex = NO_VALUE;
 
 static Vector3i SavedLaraPos       = Vector3i::Zero;
 static int      SavedCameraRoom    = 0;
@@ -104,73 +95,26 @@ static Vector3i SavedCameraTarget  = Vector3i::Zero;
 static int      SavedLaraHealth    = 0;
 static int      SavedLaraAir       = 0;
 
-// Updates the pause state machine each frame.
-static void UpdatePause()
-{
-	switch (CurrentPausePhase)
-	{
-	case PausePhase::EaseOut:
-		PauseEaseProgress += PAUSE_EASE_STEP;
+// Pause state machine.
 
-		if (PauseEaseProgress >= 1.0f)
-		{
-			PauseEaseProgress = 1.0f;
-			PauseSpeedFactor = 0.0f;
-			CurrentPausePhase = PausePhase::Hold;
-		}
-		else
-		{
-			PauseSpeedFactor = 1.0f - Smoothstep(PauseEaseProgress);
-		}
-		break;
-
-	case PausePhase::Hold:
-		PauseHoldTimer--;
-
-		if (PauseHoldTimer <= 0)
-		{
-			PauseEaseProgress = 0.0f;
-			CurrentPausePhase = PausePhase::EaseIn;
-		}
-		break;
-
-	case PausePhase::EaseIn:
-		PauseEaseProgress += PAUSE_EASE_STEP;
-
-		if (PauseEaseProgress >= 1.0f)
-		{
-			PauseEaseProgress = 0.0f;
-			PauseSpeedFactor = 1.0f;
-			CurrentPausePhase = PausePhase::None;
-			IsPauseComplete = true;
-		}
-		else
-		{
-			PauseSpeedFactor = Smoothstep(PauseEaseProgress);
-		}
-		break;
-
-	default:
-		break;
-	}
-}
-
-// Begins a smooth pause: ease-out, hold, then ease-in.
-static void BeginPause(int holdFrames)
-{
-	PauseHoldTimer = holdFrames;
-	PauseEaseProgress = 0.0f;
-	CurrentPausePhase = PausePhase::EaseOut;
-}
+static PausePhase CurrentPausePhase   = PausePhase::None;
+static float      PauseSpeedFactor    = 1.0f;  // Multiplier applied to per-frame speed advancement.
+static float      PauseEaseProgress   = 0.0f;  // Progress through current ease phase [0, 1].
+static float      PauseEaseStep       = 0.0f;  // Per-frame step, derived from segment speed at ease start.
+static float      PauseEaseStartAlpha = 0.0f;  // SplineAlpha when ease-out began.
+static int        PauseHoldTimer      = 0;     // Frames remaining in hold phase.
+static bool       IsPauseComplete     = false; // Prevents re-triggering pause for same segment.
 
 // Resets the pause state machine to idle.
-static void ResetPause()
+static void InitializePauseState()
 {
 	CurrentPausePhase = PausePhase::None;
-	PauseSpeedFactor  = 1.0f;
+	PauseSpeedFactor = 1.0f;
 	PauseEaseProgress = 0.0f;
-	PauseHoldTimer    = 0;
-	IsPauseComplete   = false;
+	PauseEaseStep = 0.0f;
+	PauseEaseStartAlpha = 0.0f;
+	PauseHoldTimer = 0;
+	IsPauseComplete = false;
 }
 
 void ClearSpotCamSequences()
@@ -251,7 +195,7 @@ void InitializeSpotCam(short sequence)
 	LastSpotCamSequence  = sequence;
 	TrackCameraInit      = false;
 	LoopCount            = 0;
-	ResetPause();
+	InitializePauseState();
 
 	// Save player state.
 	SavedLaraAir    = Lara.Status.Air;
@@ -365,8 +309,11 @@ void InitializeSpotCam(short sequence)
 }
 
 // Runs heavy triggers at the camera's current position.
-static void RunCameraHeavyTriggers()
+static void TestVolumesAndTriggers()
 {
+	if (!RunHeavyTriggers)
+		return;
+
 	auto oldType = Camera.type;
 	Camera.type = CameraType::Heavy;
 
@@ -383,17 +330,88 @@ static void RunCameraHeavyTriggers()
 	}
 
 	Camera.type = oldType;
+	RunHeavyTriggers = false;
+}
+
+// Advances the spline position by the given normalised speed and manages the pause state machine (ease-out, hold, ease-in).
+static bool AdvanceOrPauseSequence(float normalizedSpeed)
+{
+	constexpr auto PAUSE_EASE_DISTANCE = 0.15f;
+
+	// Trigger ease-out when the camera is within PAUSE_EASE_DISTANCE of the segment end and a pause is pending.
+	if (CurrentPausePhase == PausePhase::None)
+	{
+		bool hasPause = SpotCams[CurrentCameraIndex].Timer > 0 && (SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) && !IsPauseComplete;
+
+		if (hasPause && (1.0f - SplineAlpha) <= PAUSE_EASE_DISTANCE)
+		{
+			IsPauseComplete = true;
+			PauseEaseStartAlpha = SplineAlpha;
+			PauseEaseProgress = 0.0f;
+
+			// Derive step so the initial alpha velocity matches the current camera speed.
+			float remainingAlpha = std::max(1.0f - SplineAlpha, 0.001f);
+			PauseEaseStep = normalizedSpeed / (2.0f * remainingAlpha);
+			CurrentPausePhase = PausePhase::EaseOut;
+		}
+	}
+
+	switch (CurrentPausePhase)
+	{
+	case PausePhase::EaseOut:
+
+		PauseEaseProgress = std::min(PauseEaseProgress + PauseEaseStep, 1.0f);
+		SplineAlpha = PauseEaseStartAlpha + (1.0f - PauseEaseStartAlpha) * PauseEaseProgress * (2.0f - PauseEaseProgress);
+
+		if (PauseEaseProgress >= 1.0f)
+		{
+			PauseSpeedFactor = 0.0f;
+			PauseHoldTimer = SpotCams[CurrentCameraIndex].Timer >> 3;
+			CurrentPausePhase = PausePhase::Hold;
+		}
+		return false;
+
+	case PausePhase::Hold:
+
+		PauseHoldTimer--;
+
+		if (PauseHoldTimer <= 0)
+		{
+			PauseEaseProgress = 0.0f;
+			PauseSpeedFactor = 0.0f;
+			CurrentPausePhase = PausePhase::EaseIn;
+			return true; // Signal caller to advance to next segment.
+		}
+		return false;
+
+	case PausePhase::EaseIn:
+
+		PauseEaseProgress = std::min(PauseEaseProgress + PauseEaseStep, 1.0f);
+		PauseSpeedFactor = PauseEaseProgress * PauseEaseProgress;
+
+		if (PauseEaseProgress >= 1.0f)
+		{
+			PauseSpeedFactor = 1.0f;
+			PauseEaseProgress = 0.0f;
+			IsPauseComplete = false;
+			CurrentPausePhase = PausePhase::None;
+		}
+
+		// Advance alpha normally using the ramping speed factor.
+		SplineAlpha = std::min(SplineAlpha + normalizedSpeed * PauseSpeedFactor, 1.0f);
+		return false;
+
+	default:
+		// No pause active; normal advance.
+		SplineAlpha = std::min(SplineAlpha + normalizedSpeed, 1.0f);
+		return false;
+	}
 }
 
 // Ends the spotcam sequence and restores normal camera.
-static void EndSpotCamSequence(const SpotCam& firstCam)
+static void EndSequence(const SpotCam& firstCam)
 {
-	if (RunHeavyTriggers)
-	{
-		RunCameraHeavyTriggers();
-		RunHeavyTriggers = false;
-	}
-
+	TestVolumesAndTriggers();
 	SetCinematicBars(0.0f, SPOTCAM_CINEMATIC_BARS_SPEED);
 
 	UseSpotCam = false;
@@ -531,6 +549,9 @@ void CalculateSpotCameras()
 		FadeCameraIndex = CurrentCameraIndex;
 	}
 
+	// Advance spline position.
+	bool advancedToNextSegment = false;
+
 	// Tracking camera: advance spline position to track Lara.
 	if (firstCam.Flags & SCF_TRACKING_CAM)
 	{
@@ -546,9 +567,9 @@ void CalculateSpotCameras()
 	}
 	else
 	{
-		// Non-tracking: advance by interpolated speed (normalize from [0, 65536] to [0, 1]).
-		// Apply pause speed factor for smooth easing.
-		SplineAlpha = std::min(SplineAlpha + interpSpeed / 65536.0f * PauseSpeedFactor, 1.0f);
+		// Non-tracking: advance alpha and manage pause state machine.
+		float normalizedSpeed = interpSpeed / 65536.0f;
+		advancedToNextSegment = AdvanceOrPauseSequence(normalizedSpeed);
 	}
 
 	bool lookPressed = IsHeld(In::Look);
@@ -644,11 +665,7 @@ void CalculateSpotCameras()
 	if (SpotCams[CurrentCameraIndex].Flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
 		RunHeavyTriggers = true;
 
-	if (RunHeavyTriggers)
-	{
-		RunCameraHeavyTriggers();
-		RunHeavyTriggers = false;
-	}
+	TestVolumesAndTriggers();
 
 	// Tracking camera just sets init flag and returns.
 	if (firstCam.Flags & SCF_TRACKING_CAM)
@@ -657,26 +674,15 @@ void CalculateSpotCameras()
 		return;
 	}
 
-	// While in any pause phase, update the state machine and skip segment transitions.
-	if (CurrentPausePhase != PausePhase::None)
-	{
-		UpdatePause();
+	// During active pause phases (ease-out, hold, ease-in active), skip
+	// segment-advance logic unless the hold timer just expired.
+	if (CurrentPausePhase != PausePhase::None && !advancedToNextSegment)
 		return;
-	}
 
 	// Non-tracking: check if the spline segment is complete.
 	float normalizedSpeed = interpSpeed / 65536.0f;
-	if (SplineAlpha <= 1.0f - normalizedSpeed)
+	if (!advancedToNextSegment && SplineAlpha <= 1.0f - normalizedSpeed)
 		return;
-
-	// Handle pause at end of segment.
-	if (SpotCams[CurrentCameraIndex].Timer > 0 &&
-		(SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) &&
-		!IsPauseComplete)
-	{
-		BeginPause(SpotCams[CurrentCameraIndex].Timer >> 3);
-		return;
-	}
 
 	// Segment complete: advance to next camera.
 	SplineAlpha = 0.0f;
@@ -741,7 +747,7 @@ void CalculateSpotCameras()
 
 	if ((firstCam.Flags & SCF_CUT_TO_LARA_CAM) || IsTransitionToGame)
 	{
-		EndSpotCamSequence(firstCam);
+		EndSequence(firstCam);
 		return;
 	}
 
@@ -798,10 +804,6 @@ void CalculateSpotCameras()
 		CurrentCameraIndex = LastCameraIndex;
 }
 
-// Catmull-Rom spline interpolation.
-// @param alpha  Normalized parameter in [0, 1] across all segments.
-// @param knots  Array of control point values.
-// @param knotCount  Number of control points (must be >= 4).
 float Spline(float alpha, const float* knots, int knotCount)
 {
 	int segments = knotCount - 3;
@@ -812,12 +814,6 @@ float Spline(float alpha, const float* knots, int knotCount)
 
 	const float* k = &knots[span];
 	float t = alpha * segments - (float)span;
-
-	// Catmull-Rom coefficients:
-	// c1 = (-k0 + 3*k1 - 3*k2 + k3) / 2 (cubic)
-	// c2 = (2*k0 - 5*k1 + 4*k2 - k3) / 2 (quadratic)
-	// c3 = (k2 - k0) / 2 (linear)
-	// c0 = k1 (constant)
 
 	float c1 = (-k[0] + 3.0f * k[1] - 3.0f * k[2] + k[3]) * 0.5f;
 	float c2 = k[0] - 2.5f * k[1] + 2.0f * k[2] - 0.5f * k[3];
@@ -895,18 +891,18 @@ Pose GetCameraTransform(int sequence, float alpha, bool loop)
 	// If looping and alpha is near sequence boundaries, blend between end and start.
 	if (loop && (alpha < BLEND_START || alpha >= BLEND_END))
 	{
-		float blendFactor = (alpha < BLEND_START)
-			? (0.5f + (alpha / BLEND_RANGE) * 0.5f)
-			: ((alpha - BLEND_END) / BLEND_START) * 0.5f;
+		float blendFactor = (alpha < BLEND_START) ? (0.5f + (alpha / BLEND_RANGE) * 0.5f) : ((alpha - BLEND_END) / BLEND_START) * 0.5f;
 
 		originPos = Vector3::Lerp(
 			getInterpolatedPoint(BLEND_END, xOrigins, yOrigins, zOrigins),
 			getInterpolatedPoint(BLEND_START, xOrigins, yOrigins, zOrigins),
 			blendFactor);
+
 		targetPos = Vector3::Lerp(
 			getInterpolatedPoint(BLEND_END, xTargets, yTargets, zTargets),
 			getInterpolatedPoint(BLEND_START, xTargets, yTargets, zTargets),
 			blendFactor);
+
 		orientZ = (short)Lerp(getInterpolatedRoll(BLEND_END), getInterpolatedRoll(BLEND_START), blendFactor);
 	}
 	else
