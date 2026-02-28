@@ -678,7 +678,7 @@ void Moveable::SetItemFlags(short value, int index)
 }
 
 /// Get a property value.
-// Tries to get an instance property first, then fallbacks to global object ID property. Returns nil if the property does not exist.
+// Tries to get an instance property first, then falls back to global object ID property. Returns nil if the property does not exist.
 // @function Moveable:GetProperty
 // @tparam string name The property name.
 // @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
