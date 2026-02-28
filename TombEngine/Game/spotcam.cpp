@@ -841,25 +841,6 @@ namespace TEN::SpotCam
 			CurrentCameraIndex = LastCameraIndex;
 	}
 	
-	float Spline(float alpha, const float* knots, int knotCount)
-	{
-		int segmentCount = knotCount - 3;
-		int segmentIndex = (int)(alpha * segmentCount);
-	
-		if (segmentIndex >= segmentCount)
-			segmentIndex = segmentCount - 1;
-	
-		const float* knot = &knots[segmentIndex];
-		float segmentPos = alpha * segmentCount - (float)segmentIndex;
-	
-		float cCube   = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
-		float cQuad   = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
-		float cLinear = (knot[2] - knot[0]) * 0.5f;
-		float cConst  = knot[1];
-	
-		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
-	}
-	
 	Pose GetSpotCamSequenceTransform(int sequence, float alpha, bool loop)
 	{
 		constexpr auto BLEND_RANGE = 0.1f;

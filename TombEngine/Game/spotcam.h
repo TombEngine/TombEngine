@@ -58,8 +58,5 @@ namespace TEN::SpotCam
 	void InitializeSpotCamSequences(bool startFirstSequence);
 	void InitializeSpotCam(short sequence);
 	void CalculateSpotCam();
-
-	float Spline(float alpha, const float* knots, int knotCount);
-
 	Pose GetSpotCamSequenceTransform(int sequence, float alpha, bool loop);
 }
