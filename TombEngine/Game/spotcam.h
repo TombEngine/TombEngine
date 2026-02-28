@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-
 #include "Math/Math.h"
 #include "Specific/clock.h"
 
