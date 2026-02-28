@@ -14,14 +14,16 @@ namespace TEN::SpotCam
 	{
 		Vector3i     Position   = Vector3i::Zero;
 		Vector3i     Target     = Vector3i::Zero;
+		int          RoomNumber = 0;
+
 		int          Sequence   = 0;
 		int          Camera     = 0;
+
 		short        FOV        = 0;
 		short        Roll       = 0;
 		short        Timer      = 0;
 		short        Speed      = 0;
 		short        Flags      = 0;
-		short        RoomNumber = 0;
 	};
 
 	enum SpotCamFlags
