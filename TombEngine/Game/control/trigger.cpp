@@ -25,6 +25,7 @@
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/level.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
@@ -432,7 +433,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 	int flip = NO_VALUE;
 	int newEffect = NO_VALUE;
 	int keyResult = 0;
-	int spotCamIndex = 0;
 
 	auto data = GetTriggerIndex(floor, x, y, z);
 
@@ -700,19 +700,12 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 				UseSpotCam = false;
 			else
 			{
-				spotCamIndex = 0;
-				if (SpotCamRemap[value] != 0)
-				{
-					for (int i = 0; i < SpotCamRemap[value]; i++)
-					{
-						spotCamIndex += CameraCnt[i];
-					}
-				}
+				int spotCamIndex = GetSequenceFirstCameraIndex(value);
 
-				if (!(SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
+				if (!(g_Level.SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
 				{
 					if (trigger & ONESHOT)
-						SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
+						g_Level.SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
 
 					if (!UseSpotCam || CurrentLevel == 0)
 					{

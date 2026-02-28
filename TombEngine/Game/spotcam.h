@@ -10,7 +10,7 @@ namespace TEN::SpotCam
 	constexpr auto SPOTCAM_CINEMATIC_BARS_HEIGHT = 1.0f / 16;
 	constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED  = 1.0f;
 
-	struct SpotCamData
+	struct SpotCamInfo
 	{
 		Vector3i     Position   = Vector3i::Zero;
 		Vector3i     Target     = Vector3i::Zero;
@@ -44,15 +44,15 @@ namespace TEN::SpotCam
 		SCF_CAMERA_ONE_SHOT         = (1 << 15),
 	};
 
-	extern std::vector<SpotCamData> SpotCams;
-	extern std::unordered_map<int, int> SpotCamRemap;
-	extern std::vector<int> CameraCnt;
 	extern int  LastSpotCamSequence;
 	extern bool UseSpotCam;
 	extern bool SpotcamSwitched;
 	extern bool SpotcamDontDrawLara;
 	extern bool SpotcamOverlay;
 	extern bool TrackCameraInit;
+
+	bool HasSpotCamSequence(int sequence);
+	int  GetSequenceFirstCameraIndex(int sequence);
 
 	void ClearSpotCamSequences();
 	void InitializeSpotCamSequences(bool startFirstSequence);

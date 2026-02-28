@@ -11,6 +11,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Specific/Input/Input.h"
+#include "Specific/level.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Input;
@@ -57,7 +58,7 @@ namespace TEN::SpotCam
 			Speed.assign(count, 0.0f);
 		}
 	
-		void SetKnot(int index, const SpotCamData& cam)
+		void SetKnot(int index, const SpotCamInfo& cam)
 		{
 			PosX[index]    = (float)cam.Position.x;
 			PosY[index]    = (float)cam.Position.y;
@@ -72,11 +73,7 @@ namespace TEN::SpotCam
 	};
 	
 	// Public globals.
-	
-	std::vector<SpotCamData>     SpotCams;
-	std::unordered_map<int, int> SpotCamRemap;
-	std::vector<int>             CameraCnt;
-	
+
 	int  LastSpotCamSequence = 0;
 	bool TrackCameraInit     = false;
 	bool UseSpotCam          = false;
@@ -87,7 +84,10 @@ namespace TEN::SpotCam
 	// Local state.
 	
 	static SplineCameraKnots Knots = {};
-	
+
+	static std::unordered_map<int, int> SequenceMap      = {};
+	static std::vector<int>             SequenceCamCount = {};
+
 	static float  SplineAlpha         = 0.0f; // Normalized spline position [0, 1].
 	
 	static int    FirstCameraIndex    = 0;
@@ -133,37 +133,62 @@ namespace TEN::SpotCam
 		PauseHoldTimer = 0;
 		IsPauseComplete = false;
 	}
-	
+
+	bool HasSpotCamSequence(int sequence)
+	{
+		return SequenceMap.find(sequence) != SequenceMap.end();
+	}
+
+	int GetSequenceFirstCameraIndex(int sequence)
+	{
+		if (!HasSpotCamSequence(sequence))
+			return 0;
+
+		int index = 0;
+		for (int i = 0; i < SequenceMap[sequence]; i++)
+			index += SequenceCamCount[i];
+
+		return index;
+	}
+
+	static int GetSequenceCameraCount(int sequence)
+	{
+		if (!HasSpotCamSequence(sequence))
+			return 0;
+
+		return SequenceCamCount[SequenceMap[sequence]];
+	}
+
 	void ClearSpotCamSequences()
 	{
 		UseSpotCam = false;
 		SpotcamDontDrawLara = false;
 		SpotcamOverlay = false;
 	
-		SpotCams.clear();
-		SpotCamRemap.clear();
-		CameraCnt.clear();
+		g_Level.SpotCams.clear();
+		SequenceMap.clear();
+		SequenceCamCount.clear();
 	}
-	
+
 	void InitializeSpotCamSequences(bool startFirstSequence)
 	{
 		TrackCameraInit = false;
 	
-		CameraCnt.clear();
-		SpotCamRemap.clear();
-	
-		if (SpotCams.empty())
+		SequenceCamCount.clear();
+		SequenceMap.clear();
+
+		if (g_Level.SpotCams.empty())
 			return;
-	
-		int currentSequence = SpotCams[0].Sequence;
+
+		int currentSequence = g_Level.SpotCams[0].Sequence;
 		int count = 0;
 	
-		for (const auto& cam : SpotCams)
+		for (const auto& cam : g_Level.SpotCams)
 		{
 			if (cam.Sequence != currentSequence)
 			{
-				SpotCamRemap[currentSequence] = (int)CameraCnt.size();
-				CameraCnt.push_back(count);
+				SequenceMap[currentSequence] = (int)SequenceCamCount.size();
+				SequenceCamCount.push_back(count);
 				currentSequence = cam.Sequence;
 				count = 0;
 			}
@@ -171,10 +196,10 @@ namespace TEN::SpotCam
 			count++;
 		}
 	
-		SpotCamRemap[currentSequence] = (int)CameraCnt.size();
-		CameraCnt.push_back(count);
-	
-		if (startFirstSequence && SpotCamRemap.count(0))
+		SequenceMap[currentSequence] = (int)SequenceCamCount.size();
+		SequenceCamCount.push_back(count);
+
+		if (startFirstSequence&& HasSpotCamSequence(0))
 		{
 			InitializeSpotCam(0);
 			UseSpotCam = true;
@@ -183,7 +208,7 @@ namespace TEN::SpotCam
 	
 	void InitializeSpotCam(short sequence)
 	{
-		if (SpotCams.empty() || SpotCamRemap.find(sequence) == SpotCamRemap.end())
+		if (g_Level.SpotCams.empty() || !HasSpotCamSequence(sequence))
 		{
 			TENLog(fmt::format("Initializing flyby sequence {} failed, sequence not found.", sequence), LogLevel::Warning);
 			return;
@@ -226,21 +251,17 @@ namespace TEN::SpotCam
 	
 		// Compute first camera index for this sequence.
 		CurrentSequenceID = sequence;
-		CurrentCameraIndex = 0;
-	
-		for (int i = 0; i < SpotCamRemap[sequence]; i++)
-			CurrentCameraIndex += CameraCnt[i];
-	
+		CurrentCameraIndex = GetSequenceFirstCameraIndex(sequence);
+
 		SplineAlpha = 0.0f;
 		IsTransitionToGame = false;
-	
-		FirstCameraIndex = CurrentCameraIndex;
-		LastCameraIndex  = CurrentCameraIndex + CameraCnt[SpotCamRemap[sequence]] - 1;
-	
-		SequenceCameraCount = CameraCnt[SpotCamRemap[sequence]];
-	
-		const auto& firstCam = SpotCams[CurrentCameraIndex];
-	
+
+		FirstCameraIndex    = CurrentCameraIndex;
+		SequenceCameraCount = GetSequenceCameraCount(sequence);
+		LastCameraIndex     = FirstCameraIndex + SequenceCameraCount - 1;
+
+		const auto& firstCam = g_Level.SpotCams[CurrentCameraIndex];
+
 		if (firstCam.Flags & SCF_DISABLE_LARA_CONTROLS)
 		{
 			Lara.Control.IsLocked = true;
@@ -252,19 +273,19 @@ namespace TEN::SpotCam
 		{
 			// Tracking camera: pad with first camera, then all cameras, then pad with last.
 			Knots.Resize(SequenceCameraCount + SplineCameraKnots::TRACKING_KNOT_COUNT);
-			Knots.SetKnot(1, SpotCams[FirstCameraIndex]);
+			Knots.SetKnot(1, g_Level.SpotCams[FirstCameraIndex]);
 			SplineFromOffset = 0;
-	
+
 			for (int i = 0; i < SequenceCameraCount; i++)
-				Knots.SetKnot(i + 2, SpotCams[FirstCameraIndex + i]);
-	
-			Knots.SetKnot(SequenceCameraCount + 2, SpotCams[LastCameraIndex]);
+				Knots.SetKnot(i + 2, g_Level.SpotCams[FirstCameraIndex + i]);
+
+			Knots.SetKnot(SequenceCameraCount + 2, g_Level.SpotCams[LastCameraIndex]);
 		}
 		else if (firstCam.Flags & SCF_CUT_PAN)
 		{
 			// Cut-pan: first knot is current camera, then fill 4 knots from sequence.
 			Knots.Resize(SplineCameraKnots::SPLINE_KNOT_COUNT);
-			Knots.SetKnot(1, SpotCams[CurrentCameraIndex]);
+			Knots.SetKnot(1, g_Level.SpotCams[CurrentCameraIndex]);
 			SplineFromOffset = 0;
 
 			Camera.DisableInterpolation = true;
@@ -275,10 +296,10 @@ namespace TEN::SpotCam
 				if (camIndex > LastCameraIndex)
 					camIndex = FirstCameraIndex;
 	
-				Knots.SetKnot(i + 2, SpotCams[camIndex]);
+				Knots.SetKnot(i + 2, g_Level.SpotCams[camIndex]);
 				camIndex++;
 			}
-	
+
 			CurrentCameraIndex++;
 			if (CurrentCameraIndex > LastCameraIndex)
 				CurrentCameraIndex = FirstCameraIndex;
@@ -313,14 +334,14 @@ namespace TEN::SpotCam
 			setInitialKnot(2);
 	
 			// Knot [3] = first spotcam in sequence.
-			Knots.SetKnot(3, SpotCams[CurrentCameraIndex]);
+			Knots.SetKnot(3, g_Level.SpotCams[CurrentCameraIndex]);
 	
 			// Knot [4] = next spotcam (or clamped to last).
 			int nextIndex = CurrentCameraIndex + 1;
 			if (nextIndex > LastCameraIndex)
 				nextIndex = FirstCameraIndex;
 	
-			Knots.SetKnot(4, SpotCams[nextIndex]);
+			Knots.SetKnot(4, g_Level.SpotCams[nextIndex]);
 		}
 	
 		if (firstCam.Flags & SCF_HIDE_LARA)
@@ -360,7 +381,7 @@ namespace TEN::SpotCam
 		// Trigger ease-out when the camera is within PAUSE_EASE_DISTANCE of the segment end and a pause is pending.
 		if (CurrentPausePhase == PausePhase::None)
 		{
-			bool hasPause = SpotCams[CurrentCameraIndex].Timer > 0 && (SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) && !IsPauseComplete;
+			bool hasPause = g_Level.SpotCams[CurrentCameraIndex].Timer > 0 && (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) && !IsPauseComplete;
 	
 			if (hasPause && (1.0f - SplineAlpha) <= PAUSE_EASE_DISTANCE)
 			{
@@ -387,7 +408,7 @@ namespace TEN::SpotCam
 			if (PauseEaseProgress >= 1.0f)
 			{
 				PauseSpeedFactor = 0.0f;
-				PauseHoldTimer = SpotCams[CurrentCameraIndex].Timer >> 3;
+				PauseHoldTimer = g_Level.SpotCams[CurrentCameraIndex].Timer >> 3;
 				CurrentPausePhase = PausePhase::Hold;
 			}
 			return false;
@@ -430,7 +451,7 @@ namespace TEN::SpotCam
 	}
 	
 	// Ends the spotcam sequence and restores normal camera.
-	static void EndSequence(const SpotCamData& firstCam)
+	static void EndSequence(const SpotCamInfo& firstCam)
 	{
 		TestVolumesAndTriggers();
 		SetCinematicBars(0.0f, SPOTCAM_CINEMATIC_BARS_SPEED);
@@ -477,7 +498,7 @@ namespace TEN::SpotCam
 					camIndex = LastCameraIndex;
 			}
 	
-			Knots.SetKnot(startKnotIndex + i, SpotCams[camIndex]);
+			Knots.SetKnot(startKnotIndex + i, g_Level.SpotCams[camIndex]);
 			camIndex++;
 		}
 	}
@@ -528,7 +549,7 @@ namespace TEN::SpotCam
 	
 	void CalculateSpotCam()
 	{
-		if (SpotCams.empty() || FirstCameraIndex >= (int)SpotCams.size())
+		if (g_Level.SpotCams.empty() || FirstCameraIndex >= (int)g_Level.SpotCams.size())
 		{
 			TENLog(fmt::format("Flyby sequence {} refers to a camera {} that does not exist.", CurrentSequenceID, FirstCameraIndex), LogLevel::Warning);
 			UseSpotCam = false;
@@ -541,7 +562,7 @@ namespace TEN::SpotCam
 			Lara.Status.Air = SavedLaraAir;
 		}
 	
-		const auto& firstCam = SpotCams[FirstCameraIndex];
+		const auto& firstCam = g_Level.SpotCams[FirstCameraIndex];
 		int knotCount = (firstCam.Flags & SCF_TRACKING_CAM) ? (SequenceCameraCount + 2) : 4;
 
 		// Spline() needs at least 4 knots to form a valid segment.
@@ -564,14 +585,14 @@ namespace TEN::SpotCam
 		float interpFOV     = Spline(SplineAlpha, &Knots.FOV[1],     knotCount);
 	
 		// Handle screen fading.
-		if ((SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_IN) &&
+		if ((g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_IN) &&
 			FadeCameraIndex != CurrentCameraIndex)
 		{
 			SetScreenFadeIn(FADE_SCREEN_SPEED);
 			FadeCameraIndex = CurrentCameraIndex;
 		}
 	
-		if ((SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_OUT) &&
+		if ((g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_OUT) &&
 			FadeCameraIndex != CurrentCameraIndex)
 		{
 			SetScreenFadeOut(FADE_SCREEN_SPEED);
@@ -669,10 +690,10 @@ namespace TEN::SpotCam
 			// This issue is only present in sub-click floor height setups after TE 1.7.0. -- Lwmte, 02.11.2024
 	
 			auto pos = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
-			int collRoomNumber = GetPointCollision(pos, SpotCams[CurrentCameraIndex].RoomNumber).GetRoomNumber();
+			int collRoomNumber = GetPointCollision(pos, g_Level.SpotCams[CurrentCameraIndex].RoomNumber).GetRoomNumber();
 	
 			if (collRoomNumber != Camera.pos.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
-				collRoomNumber = FindRoomNumber(pos, SpotCams[CurrentCameraIndex].RoomNumber);
+				collRoomNumber = FindRoomNumber(pos, g_Level.SpotCams[CurrentCameraIndex].RoomNumber);
 	
 			Camera.pos.RoomNumber = collRoomNumber;
 		}
@@ -686,13 +707,13 @@ namespace TEN::SpotCam
 		UpdateMikePos(*LaraItem);
 	
 		// Apply per-camera flags.
-		if (SpotCams[CurrentCameraIndex].Flags & SCF_OVERLAY)
+		if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_OVERLAY)
 			SpotcamOverlay = true;
-	
-		if (SpotCams[CurrentCameraIndex].Flags & SCF_HIDE_LARA)
+
+		if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_HIDE_LARA)
 			SpotcamDontDrawLara = true;
-	
-		if (SpotCams[CurrentCameraIndex].Flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
+
+		if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_ACTIVATE_HEAVY_TRIGGERS)
 			RunHeavyTriggers = true;
 	
 		TestVolumesAndTriggers();
@@ -730,10 +751,10 @@ namespace TEN::SpotCam
 		}
 		else
 		{
-			if (SpotCams[CurrentCameraIndex].Flags & SCF_REENABLE_LARA_CONTROLS)
+			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_REENABLE_LARA_CONTROLS)
 				Lara.Control.IsLocked = false;
-	
-			if (SpotCams[CurrentCameraIndex].Flags & SCF_DISABLE_LARA_CONTROLS)
+
+			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_DISABLE_LARA_CONTROLS)
 			{
 				Lara.Control.IsLocked = true;
 
@@ -742,9 +763,9 @@ namespace TEN::SpotCam
 			}
 	
 			// Handle cut-to-cam: jump to a specific camera in the sequence.
-			if (SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)
+			if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_CUT_TO_CAM)
 			{
-				int jumpTarget = FirstCameraIndex + SpotCams[CurrentCameraIndex].Timer;
+				int jumpTarget = FirstCameraIndex + g_Level.SpotCams[CurrentCameraIndex].Timer;
 
 				if (jumpTarget < FirstCameraIndex || jumpTarget > LastCameraIndex)
 				{
@@ -752,7 +773,7 @@ namespace TEN::SpotCam
 					jumpTarget = std::clamp(jumpTarget, FirstCameraIndex, LastCameraIndex);
 				}
 	
-				Knots.SetKnot(1, SpotCams[jumpTarget]);
+				Knots.SetKnot(1, g_Level.SpotCams[jumpTarget]);
 				CurrentCameraIndex = jumpTarget;
 				prevCamIndex = jumpTarget;
 
@@ -761,7 +782,7 @@ namespace TEN::SpotCam
 			}
 	
 			knotStartIndex++;
-			Knots.SetKnot(knotStartIndex - 1, SpotCams[prevCamIndex]);
+			Knots.SetKnot(knotStartIndex - 1, g_Level.SpotCams[prevCamIndex]);
 		}
 	
 		// Fill remaining knots from subsequent cameras.
@@ -790,8 +811,8 @@ namespace TEN::SpotCam
 		}
 	
 		// No explicit end flag: smoothly blend back to gameplay camera.
-		Knots.SetKnot(1, SpotCams[CurrentCameraIndex - 1]);
-		Knots.SetKnot(2, SpotCams[CurrentCameraIndex - 1]);
+		Knots.SetKnot(1, g_Level.SpotCams[CurrentCameraIndex - 1]);
+		Knots.SetKnot(2, g_Level.SpotCams[CurrentCameraIndex - 1]);
 	
 		CAMERA_INFO backup;
 		memcpy(&backup, &Camera, sizeof(CAMERA_INFO));
@@ -850,13 +871,13 @@ namespace TEN::SpotCam
 	
 		alpha = std::clamp(alpha, 0.0f, 1.0f);
 	
-		if (sequence < 0 || SpotCamRemap.find(sequence) == SpotCamRemap.end())
+		if (sequence < 0 || !HasSpotCamSequence(sequence))
 		{
 			TENLog("Wrong flyby sequence number provided for getting camera coordinates.", LogLevel::Warning);
 			return Pose::Zero;
 		}
-	
-		int cameraCount = CameraCnt[SpotCamRemap[sequence]];
+
+		int cameraCount = GetSequenceCameraCount(sequence);
 		if (cameraCount < 2)
 		{
 			TENLog("Not enough cameras in flyby sequence to calculate the coordinates.", LogLevel::Warning);
@@ -864,9 +885,7 @@ namespace TEN::SpotCam
 		}
 	
 		// Find first camera index for this sequence.
-		int firstIndex = 0;
-		for (int i = 0; i < SpotCamRemap[sequence]; i++)
-			firstIndex += CameraCnt[i];
+		int firstIndex = GetSequenceFirstCameraIndex(sequence);
 	
 		int splinePoints = cameraCount + 2;
 	
@@ -884,13 +903,13 @@ namespace TEN::SpotCam
 		{
 			int seqID = std::clamp(firstIndex + i, firstIndex, (firstIndex + cameraCount) - 1);
 	
-			xOrigins.push_back((float)SpotCams[seqID].Position.x);
-			yOrigins.push_back((float)SpotCams[seqID].Position.y);
-			zOrigins.push_back((float)SpotCams[seqID].Position.z);
-			xTargets.push_back((float)SpotCams[seqID].Target.x);
-			yTargets.push_back((float)SpotCams[seqID].Target.y);
-			zTargets.push_back((float)SpotCams[seqID].Target.z);
-			rolls.push_back((float)SpotCams[seqID].Roll);
+			xOrigins.push_back((float)g_Level.SpotCams[seqID].Position.x);
+			yOrigins.push_back((float)g_Level.SpotCams[seqID].Position.y);
+			zOrigins.push_back((float)g_Level.SpotCams[seqID].Position.z);
+			xTargets.push_back((float)g_Level.SpotCams[seqID].Target.x);
+			yTargets.push_back((float)g_Level.SpotCams[seqID].Target.y);
+			zTargets.push_back((float)g_Level.SpotCams[seqID].Target.z);
+			rolls.push_back((float)g_Level.SpotCams[seqID].Roll);
 		}
 	
 		auto getInterpolatedPoint = [&](float t, std::vector<float>& x, std::vector<float>& y, std::vector<float>& z)
