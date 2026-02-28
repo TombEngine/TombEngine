@@ -91,11 +91,18 @@ namespace TEN::Math
 
 	float Spline(float alpha, const float* knots, int knotCount)
 	{
-		int segmentCount = knotCount - 3;
-		int segmentIndex = (int)(alpha * segmentCount);
+		if (!knots || knotCount < 4)
+		{
+			TENLog("Can't perform spline operation: spline requires at least 4 knots", LogLevel::Warning);
+			return 0.0f;
+		}
 
-		if (segmentIndex >= segmentCount)
-			segmentIndex = segmentCount - 1;
+		alpha = std::clamp(alpha, 0.0f, 1.0f);
+
+		int segmentCount = knotCount - 3;
+
+		int segmentIndex = (int)(alpha * segmentCount);
+		segmentIndex = std::min(segmentIndex, segmentCount - 1);
 
 		const float* knot = &knots[segmentIndex];
 		float segmentPos = alpha * segmentCount - (float)segmentIndex;

@@ -697,8 +697,10 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (triggerType == TRIGGER_TYPES::ANTIPAD ||
 				triggerType == TRIGGER_TYPES::ANTITRIGGER ||
 				triggerType == TRIGGER_TYPES::HEAVYANTITRIGGER)
+			{
 				UseSpotCam = false;
-			else
+			}
+			else if (HasSpotCamSequence(value))
 			{
 				int spotCamIndex = GetSequenceFirstCameraIndex(value);
 

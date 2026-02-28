@@ -10,11 +10,13 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Math/Utils.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Input;
+using namespace TEN::Math;
 using namespace TEN::Renderer;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Collision::Point;
@@ -92,7 +94,7 @@ namespace TEN::SpotCam
 	
 	static int    FirstCameraIndex    = 0;
 	static int    LastCameraIndex     = 0;
-	static short  CurrentCameraIndex  = 0;
+	static int    CurrentCameraIndex  = 0;
 	static int    FadeCameraIndex     = NO_VALUE;
 	
 	static int    CurrentSequenceID   = 0;
