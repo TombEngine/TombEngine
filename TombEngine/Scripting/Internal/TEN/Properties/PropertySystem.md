@@ -253,7 +253,7 @@ and are used by the Lua-facing property implementations in `MoveableObject.cpp`,
 | Function | Purpose |
 |----------|---------|
 | `ValidatePropertyName(name)` | Returns `false` and logs a script error if name is empty. Guards all Lua entry points. |
-| `PropertyValueFromLua(obj)` | Converts a `sol::object` to a `PropertyValue` variant. Asserts on unsupported types. |
+| `PropertyValueFromLua(obj)` | Converts a `sol::object` to a `PropertyValue`. Returns `std::nullopt` on unsupported types. |
 | `PropertyValueToLua(state, value)` | Converts a `PropertyValue` variant to a `sol::object` via `std::visit`. |
 
 ---

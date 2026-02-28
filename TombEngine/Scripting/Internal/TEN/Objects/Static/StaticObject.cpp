@@ -264,7 +264,7 @@ namespace TEN::Scripting
 	}
 
 	/// Get a property value.
-	// Tries to get an instance property first, then fallbacks to global slot property. Returns nil if the property does not exist.
+	// Tries to get an instance property first, then falls back to global slot property. Returns nil if the property does not exist.
 	// @function Static:GetProperty
 	// @tparam string name The property name.
 	// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
@@ -293,9 +293,15 @@ namespace TEN::Scripting
 			return;
 
 		if (value == sol::nil)
+		{
 			_static.Properties.Remove(name);
+		}
 		else
-			_static.Properties.Set(name, PropertyValueFromLua(value));
+		{
+			auto propValue = PropertyValueFromLua(value);
+			if (propValue.has_value())
+				_static.Properties.Set(name, *propValue);
+		}
 	}
 
 	/// Check if a per-instance property value exists.

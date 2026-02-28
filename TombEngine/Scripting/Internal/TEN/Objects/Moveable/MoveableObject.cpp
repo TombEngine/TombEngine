@@ -707,9 +707,15 @@ void Moveable::SetProperty(const std::string& name, const sol::object& value)
 		return;
 
 	if (value == sol::nil)
+	{
 		_moveable->Properties.Remove(name);
+	}
 	else
-		_moveable->Properties.Set(name, PropertyValueFromLua(value));
+	{
+		auto propValue = PropertyValueFromLua(value);
+		if (propValue.has_value())
+			_moveable->Properties.Set(name, *propValue);
+	}
 }
 
 /// Check if a per-instance property value exists.

@@ -14,8 +14,8 @@ namespace TEN::Scripting::Properties
 		return ScriptAssert(!name.empty(), "Property name cannot be blank.");
 	}
 
-	// Convert a Lua value to a PropertyValue.
-	inline PropertyValue PropertyValueFromLua(const sol::object& obj)
+	// Convert a Lua value to a PropertyValue. Returns std::nullopt on unsupported types.
+	inline std::optional<PropertyValue> PropertyValueFromLua(const sol::object& obj)
 	{
 		switch (obj.get_type())
 		{
@@ -46,12 +46,12 @@ namespace TEN::Scripting::Properties
 				return obj.as<Time>();
 
 			ScriptAssert(false, "Unsupported userdata type for property value.");
-			return false;
+			return std::nullopt;
 		}
 
 		default:
 			ScriptAssert(false, "Unsupported Lua type for property value. Supported: bool, number, string, Vec2, Vec3, Color, Rotation, Time.");
-			return false;
+			return std::nullopt;
 		}
 	}
 

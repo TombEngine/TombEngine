@@ -192,9 +192,15 @@ private:
 			return;
 
 		if (value == sol::nil)
+		{
 			PropertyHandler::GetMoveableProperties((int)objectID).Remove(name);
+		}
 		else
-			PropertyHandler::GetMoveableProperties((int)objectID).Set(name, PropertyValueFromLua(value));
+		{
+			auto propValue = PropertyValueFromLua(value);
+			if (propValue.has_value())
+				PropertyHandler::GetMoveableProperties((int)objectID).Set(name, *propValue);
+		}
 	}
 
 	sol::object GetStaticProperty(int slotID, const std::string& name)
@@ -216,8 +222,14 @@ private:
 			return;
 
 		if (value == sol::nil)
+		{
 			PropertyHandler::GetStaticProperties(slotID).Remove(name);
+		}
 		else
-			PropertyHandler::GetStaticProperties(slotID).Set(name, PropertyValueFromLua(value));
+		{
+			auto propValue = PropertyValueFromLua(value);
+			if (propValue.has_value())
+				PropertyHandler::GetStaticProperties(slotID).Set(name, *propValue);
+		}
 	}
 };
