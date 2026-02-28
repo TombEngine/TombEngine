@@ -8,6 +8,12 @@
 
 namespace TEN::Scripting::Properties
 {
+	// Validate that a property name is not empty. Returns false and logs error if blank.
+	inline bool ValidatePropertyName(const std::string& name)
+	{
+		return ScriptAssert(!name.empty(), "Property name cannot be blank.");
+	}
+
 	// Convert a Lua value to a PropertyValue.
 	inline PropertyValue PropertyValueFromLua(const sol::object& obj)
 	{

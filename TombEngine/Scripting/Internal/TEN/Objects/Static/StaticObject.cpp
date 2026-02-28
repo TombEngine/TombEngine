@@ -270,6 +270,9 @@ namespace TEN::Scripting
 	// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
 	sol::object Static::GetProperty(sol::this_state state, const std::string& name) const
 	{
+		if (!ValidatePropertyName(name))
+			return sol::nil;
+
 		auto* val = PropertyHandler::Get(_static, name);
 
 		if (val == nullptr)
@@ -286,6 +289,9 @@ namespace TEN::Scripting
 	// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}. Pass nil to remove.
 	void Static::SetProperty(const std::string& name, const sol::object& value)
 	{
+		if (!ValidatePropertyName(name))
+			return;
+
 		if (value == sol::nil)
 			_static.Properties.Remove(name);
 		else
@@ -298,6 +304,9 @@ namespace TEN::Scripting
 	// @treturn bool True if an instance property exists.
 	bool Static::HasInstanceProperty(const std::string& name) const
 	{
+		if (!ValidatePropertyName(name))
+			return false;
+
 		return _static.Properties.Has(name);
 	}
 

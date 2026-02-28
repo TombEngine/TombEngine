@@ -684,6 +684,9 @@ void Moveable::SetItemFlags(short value, int index)
 // @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
 sol::object Moveable::GetProperty(sol::this_state state, const std::string& name) const
 {
+	if (!ValidatePropertyName(name))
+		return sol::nil;
+
 	auto* val = PropertyHandler::Get(*_moveable, name);
 
 	if (val == nullptr)
@@ -700,6 +703,9 @@ sol::object Moveable::GetProperty(sol::this_state state, const std::string& name
 // @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
 void Moveable::SetProperty(const std::string& name, const sol::object& value)
 {
+	if (!ValidatePropertyName(name))
+		return;
+
 	if (value == sol::nil)
 		_moveable->Properties.Remove(name);
 	else
@@ -712,6 +718,9 @@ void Moveable::SetProperty(const std::string& name, const sol::object& value)
 // @treturn bool True if an instance property exists.
 bool Moveable::HasInstanceProperty(const std::string& name) const
 {
+	if (!ValidatePropertyName(name))
+		return false;
+
 	return _moveable->Properties.Has(name);
 }
 
