@@ -376,23 +376,26 @@ namespace TEN::SpotCam
 	// Advances the spline position by the given normalised speed and manages the pause state machine (ease-out, hold, ease-in).
 	static bool AdvanceOrPauseSequence(float normalizedSpeed)
 	{
-		constexpr auto PAUSE_EASE_DISTANCE = 0.15f;
+		constexpr auto EASE_DISTANCE = 0.15f;
+		constexpr auto MIN_SPEED = 0.001f;
 	
 		// Trigger ease-out when the camera is within PAUSE_EASE_DISTANCE of the segment end and a pause is pending.
 		if (CurrentPausePhase == PausePhase::None)
 		{
 			bool hasPause = g_Level.SpotCams[CurrentCameraIndex].Timer > 0 && (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_STOP_MOVEMENT) && !IsPauseComplete;
 	
-			if (hasPause && (1.0f - SplineAlpha) <= PAUSE_EASE_DISTANCE)
+			if (hasPause && (1.0f - SplineAlpha) <= EASE_DISTANCE)
 			{
 				IsPauseComplete = true;
 				PauseEaseStartAlpha = SplineAlpha;
 				PauseEaseProgress = 0.0f;
 	
 				// Derive step so the initial alpha velocity matches the current camera speed.
+				float remainingAlpha = std::max(1.0f - SplineAlpha, MIN_SPEED);
+
 				// Clamp to a minimum so the pause doesn't stall if speed is near zero.
-				float remainingAlpha = std::max(1.0f - SplineAlpha, 0.001f);
-				float clampedSpeed = std::max(normalizedSpeed, 0.001f);
+				float clampedSpeed = std::max(normalizedSpeed, MIN_SPEED);
+
 				PauseEaseStep = clampedSpeed / (2.0f * remainingAlpha);
 				CurrentPausePhase = PausePhase::EaseOut;
 			}
