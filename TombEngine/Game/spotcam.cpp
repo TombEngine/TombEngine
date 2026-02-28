@@ -860,7 +860,7 @@ namespace TEN::SpotCam
 		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
 	}
 	
-	Pose GetCameraTransform(int sequence, float alpha, bool loop)
+	Pose GetSpotCamSequenceTransform(int sequence, float alpha, bool loop)
 	{
 		constexpr auto BLEND_RANGE = 0.1f;
 		constexpr auto BLEND_START = BLEND_RANGE;

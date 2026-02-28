@@ -61,5 +61,5 @@ namespace TEN::SpotCam
 
 	float Spline(float alpha, const float* knots, int knotCount);
 
-	Pose GetCameraTransform(int sequence, float alpha, bool loop);
+	Pose GetSpotCamSequenceTransform(int sequence, float alpha, bool loop);
 }
