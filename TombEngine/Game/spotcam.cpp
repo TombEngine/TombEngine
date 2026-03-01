@@ -107,7 +107,6 @@ namespace TEN::SpotCam
 	static bool   RunHeavyTriggers    = false;
 	
 	
-	static Vector3i SavedLaraPos       = Vector3i::Zero;
 	static int      SavedCameraRoom    = 0;
 	static Vector3i SavedCameraPos     = Vector3i::Zero;
 	static Vector3i SavedCameraTarget  = Vector3i::Zero;
@@ -144,7 +143,7 @@ namespace TEN::SpotCam
 	int GetSequenceFirstCameraIndex(int sequence)
 	{
 		if (!HasSpotCamSequence(sequence))
-			return 0;
+			return NO_VALUE;
 
 		int index = 0;
 		for (int i = 0; i < SequenceMap[sequence]; i++)
@@ -244,7 +243,6 @@ namespace TEN::SpotCam
 		// Save player state.
 		SavedLaraAir    = Lara.Status.Air;
 		SavedLaraHealth = LaraItem->HitPoints;
-		SavedLaraPos    = LaraItem->Pose.Position;
 	
 		// Save camera state.
 		SavedCameraPos    = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
@@ -254,6 +252,12 @@ namespace TEN::SpotCam
 		// Compute first camera index for this sequence.
 		CurrentSequenceID = sequence;
 		CurrentCameraIndex = GetSequenceFirstCameraIndex(sequence);
+
+		if (CurrentCameraIndex == NO_VALUE)
+		{
+			TENLog(fmt::format("Can't find proper first camera index for flyby sequence {}.", sequence), LogLevel::Warning);
+			return;
+		}
 
 		SplineAlpha = 0.0f;
 		IsTransitionToGame = false;
@@ -878,19 +882,24 @@ namespace TEN::SpotCam
 	
 		if (sequence < 0 || !HasSpotCamSequence(sequence))
 		{
-			TENLog("Wrong flyby sequence number provided for getting camera coordinates.", LogLevel::Warning);
+			TENLog(fmt::format("Wrong flyby sequence number {} provided for getting camera coordinates.", sequence), LogLevel::Warning);
 			return Pose::Zero;
 		}
 
 		int cameraCount = GetSequenceCameraCount(sequence);
 		if (cameraCount < 2)
 		{
-			TENLog("Not enough cameras in flyby sequence to calculate the coordinates.", LogLevel::Warning);
+			TENLog(fmt::format("Not enough cameras in flyby sequence {} to calculate the coordinates.", sequence), LogLevel::Warning);
 			return Pose::Zero;
 		}
 	
 		// Find first camera index for this sequence.
 		int firstIndex = GetSequenceFirstCameraIndex(sequence);
+		if (firstIndex == NO_VALUE)
+		{
+			TENLog(fmt::format("First camera index is incorrect in flyby sequence {}.", sequence), LogLevel::Warning);
+			return Pose::Zero;
+		}
 	
 		int splinePoints = cameraCount + 2;
 	

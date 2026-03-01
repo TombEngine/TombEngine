@@ -92,10 +92,7 @@ namespace TEN::Math
 	float Spline(float alpha, const float* knots, int knotCount)
 	{
 		if (!knots || knotCount < 4)
-		{
-			TENLog("Can't perform spline operation: spline requires at least 4 knots", LogLevel::Warning);
 			return 0.0f;
-		}
 
 		alpha = std::clamp(alpha, 0.0f, 1.0f);
 

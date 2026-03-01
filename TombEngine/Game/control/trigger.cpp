@@ -704,7 +704,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			{
 				int spotCamIndex = GetSequenceFirstCameraIndex(value);
 
-				if (!(g_Level.SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
+				if (spotCamIndex != NO_VALUE && !(g_Level.SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
 				{
 					if (trigger & ONESHOT)
 						g_Level.SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
@@ -714,6 +714,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 						UseSpotCam = true;
 						if (LastSpotCamSequence != value)
 							TrackCameraInit = false;
+
 						InitializeSpotCam(value);
 					}
 				}
