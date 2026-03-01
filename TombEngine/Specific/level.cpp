@@ -1390,7 +1390,7 @@ void LoadEventSets()
 void LoadProperties()
 {
 	int blobCount = ReadCount();
-	TENLog("Property script blob count: " + std::to_string(blobCount), LogLevel::Info);
+	TENLog("Property count: " + std::to_string(blobCount), LogLevel::Info);
 
 	if (blobCount > 0)
 		g_Level.PropertyBlob = ReadString();
