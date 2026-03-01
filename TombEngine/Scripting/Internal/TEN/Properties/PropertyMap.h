@@ -3,8 +3,6 @@
 #include "Scripting/Internal/TEN/Properties/PropertyValue.h"
 #include "Specific/trutils.h"
 
-using TEN::Utils::GetHash;
-
 namespace TEN::Scripting::Properties
 {
 	class PropertyMap
@@ -20,7 +18,7 @@ namespace TEN::Scripting::Properties
 		// Get a typed property by name (hashes internally).
 		template <typename T> std::optional<T> Get(const std::string& name) const
 		{
-			return Get<T>(GetHash(name));
+			return Get<T>(TEN::Utils::GetHash(name));
 		}
 
 		// Get a typed property by pre-computed hash (fast path for C++ hot code).
@@ -37,7 +35,7 @@ namespace TEN::Scripting::Properties
 		// Get a typed property by name, returning a default if not found or type mismatch.
 		template <typename T> T GetOr(const std::string& name, const T& defaultValue) const
 		{
-			return GetOr<T>(GetHash(name), defaultValue);
+			return GetOr<T>(TEN::Utils::GetHash(name), defaultValue);
 		}
 
 		// Get a typed property by hash, returning a default if not found or type mismatch.

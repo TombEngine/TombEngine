@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Properties/PropertyMap.h"
 
+using namespace TEN::Utils;
+
 namespace TEN::Scripting::Properties
 {
 	const PropertyValue* PropertyMap::GetRaw(const std::string& name) const

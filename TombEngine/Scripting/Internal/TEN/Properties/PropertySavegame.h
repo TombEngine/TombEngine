@@ -84,6 +84,9 @@ namespace TEN::Scripting::Properties
 			auto valueType = Save::PropertyValueUnion::NONE;
 			auto valueOffset = BuildPropertyValue(fbb, *val, valueType);
 
+			if (valueType == Save::PropertyValueUnion::NONE)
+				continue;
+
 			Save::PropertyEntryBuilder entry(fbb);
 			entry.add_name(nameOffset);
 			entry.add_value_type(valueType);
