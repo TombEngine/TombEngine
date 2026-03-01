@@ -292,9 +292,9 @@ per-entity alongside other item/static data using `BuildPropertyMap` / `ParsePro
 | File | Purpose |
 |------|---------|
 | `Properties/PropertyValue.h` | `PropertyValue` variant type alias |
-| `Properties/PropertyMap.h` | Per-entity hash-based property container (header + templates) |
+| `Properties/PropertyMap.h` | Hash-based property container (header + templates) |
 | `Properties/PropertyMap.cpp` | Non-template `PropertyMap` method implementations |
-| `Properties/PropertyHandler.h` | Type-level registry + two-layer `Get` overloads (header + templates) |
+| `Properties/PropertyHandler.h` | Global-level registry + two-layer `Get` methods and overloads (header + templates) |
 | `Properties/PropertyHandler.cpp` | Non-template `PropertyHandler` method implementations |
 | `Properties/PropertyLuaConverters.h` | `ValidatePropertyName`, `PropertyValueFromLua`, `PropertyValueToLua` |
 | `Properties/PropertySavegame.h` | FlatBuffers Build/Parse helpers for both layers |
