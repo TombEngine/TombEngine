@@ -198,8 +198,8 @@ if (typeProps)
     float baseDamage = typeProps->GetOr<float>("damage", 10.0f);
 }
 
-// GetMoveableProperties internally is an `unordered_map` and automatically creates the map
-// if it doesn't exist (use for writes):
+// GetMoveableProperties internally references an `unordered_map` and automatically creates an entry
+// in it, if it doesn't exist yet (use for writes):
 PropertyMap& typeProps = PropertyHandler::GetMoveableProperties(objectID);
 typeProps.Set("damage", PropertyValue(25.0f));
 ```
