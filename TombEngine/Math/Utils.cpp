@@ -104,10 +104,10 @@ namespace TEN::Math
 		const float* knot = &knots[segmentIndex];
 		float segmentPos = alpha * segmentCount - (float)segmentIndex;
 
-		float cCube = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
-		float cQuad = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
+		float cCube   = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
+		float cQuad   = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
 		float cLinear = (knot[2] - knot[0]) * 0.5f;
-		float cConst = knot[1];
+		float cConst  = knot[1];
 
 		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
 	}
