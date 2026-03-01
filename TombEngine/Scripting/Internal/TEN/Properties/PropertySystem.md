@@ -214,7 +214,7 @@ typeProps.Set("damage", PropertyValue(25.0f));
 | `Get<T>(hash)` / `GetOr<T>(hash, def)`     | O(1) with no hashing | Hot paths — AI ticks, control loops |
 | `PropertyHandler::Get<T>(entity, hash, …)` | Two O(1) lookups worst-case | Hot paths needing two-layer resolution |
 
-**Best practice:** Use `GetHash` directly with a string literal (e.g. `GetHash("damage")` or declare hashes as `constexpr`
+**Best practice:** Use `GetHash` directly with a string literal (e.g. `GetHash("damage")`) or declare hashes as `constexpr`
 constants using `GetHash`. In both cases the hash is computed at **compile time** — zero runtime cost:
 
 ```cpp
