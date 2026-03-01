@@ -1389,7 +1389,11 @@ void LoadEventSets()
 
 void LoadProperties()
 {
-	g_Level.PropertyBlob = ReadString();
+	int blobSize = ReadInt32();
+	TENLog("Property blob size: " + std::to_string(blobSize), LogLevel::Info);
+
+	if (blobSize > 0)
+		g_Level.PropertyBlob = ReadString();
 }
 
 FILE* FileOpen(const char* fileName)
