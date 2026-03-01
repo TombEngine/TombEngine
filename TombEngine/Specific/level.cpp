@@ -1387,6 +1387,11 @@ void LoadEventSets()
 	}
 }
 
+void LoadProperties()
+{
+	g_Level.PropertyBlob = ReadString();
+}
+
 FILE* FileOpen(const char* fileName)
 {
 	FILE* ptr = fopen(fileName, "rb");
@@ -1649,6 +1654,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadCameras();
 			LoadSoundSources();
 			LoadEventSets();
+			LoadProperties();
 			UpdateProgress(80, partial);
 
 			FinalizeBlock();

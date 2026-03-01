@@ -152,16 +152,6 @@ struct LevelData
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc.
-
-	std::vector<LevelCameraInfo> Cameras   = {};
-	std::vector<EventSet>		 GlobalEventSets = {};
-	std::vector<EventSet>		 VolumeEventSets = {};
-	std::vector<int>			 LoopedEventSetIndices = {};
-	std::vector<AI_OBJECT>		 AIObjects = {};
-	std::vector<SPRITE>			 Sprites   = {};
-	std::vector<MirrorData>		 Mirrors = {};
-
 	// Texture and materials
 
 	TEXTURE				 SkyTexture		   = {};
@@ -172,6 +162,20 @@ struct LevelData
 	std::vector<TEXTURE> SpritesTextures   = {};
 	std::vector<ANIMATED_TEXTURES_SEQUENCE> AnimatedTexturesSequences = {};
 	std::vector<MaterialData> Materials    = {};
+
+	// Misc.
+
+	std::vector<LevelCameraInfo> Cameras = {};
+	std::vector<EventSet>		 GlobalEventSets = {};
+	std::vector<EventSet>		 VolumeEventSets = {};
+	std::vector<int>			 LoopedEventSetIndices = {};
+	std::vector<AI_OBJECT>		 AIObjects = {};
+	std::vector<SPRITE>			 Sprites = {};
+	std::vector<MirrorData>		 Mirrors = {};
+	std::string					 PropertyBlob = {};
+
+	// Property script blob from Tomb Editor (executed after level script load).
+
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;
@@ -206,6 +210,7 @@ void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
 void LoadMaterials();
+void LoadProperties();
 
 void GetCarriedItems();
 void GetAIPickups();

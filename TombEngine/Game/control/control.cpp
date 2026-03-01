@@ -622,6 +622,13 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		});
 	}
 
+	// Execute property script blob.
+	if (!g_Level.PropertyBlob.empty())
+	{
+		TENLog("Executing property script blob...", LogLevel::Info);
+		g_GameScript->ExecuteString(g_Level.PropertyBlob);
+	}
+
 	// Play default background music.
 	if (!loadGame)
 		PlaySoundTrack(level.GetAmbientTrack(), SoundTrackType::BGM, 0, SOUND_XFADETIME_LEVELJUMP);
