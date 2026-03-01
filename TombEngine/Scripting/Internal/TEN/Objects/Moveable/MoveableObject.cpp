@@ -516,7 +516,7 @@ Vec3 Moveable::GetScale() const
 // @tparam Rotation rotation The moveable's new rotation.
 void Moveable::SetRotation(const Rotation& rot)
 {
-	constexpr auto BIG_ANGLE_THRESHOLD = ANGLE(30.0f);
+	constexpr auto BIG_ANGLE_THRESHOLD = ANGLE(45.0f);
 
 	auto newRot = rot.ToEulerAngles();
 	bool bigRotation = !EulerAngles::Compare(newRot, _moveable->Pose.Orientation, BIG_ANGLE_THRESHOLD);

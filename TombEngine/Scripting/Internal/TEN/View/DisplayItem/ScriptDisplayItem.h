@@ -21,7 +21,7 @@ namespace TEN::Scripting::DisplayItem
 	private:
 		// Fields
 
-		std::string _name = {};
+		unsigned int _id = 0;
 
 		// Methods
 
@@ -31,11 +31,11 @@ namespace TEN::Scripting::DisplayItem
 	public:
 		// Constructors
 
-		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale, int meshBits);
-		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale);
-		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot);
-		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vec3& pos);
-		ScriptDisplayItem(const std::string& name, GAME_OBJECT_ID objectID);
+		ScriptDisplayItem(GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale, int meshBits);
+		ScriptDisplayItem(GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot, const Vec3& scale);
+		ScriptDisplayItem(GAME_OBJECT_ID objectID, const Vec3& pos, const Rotation& rot);
+		ScriptDisplayItem(GAME_OBJECT_ID objectID, const Vec3& pos);
+		ScriptDisplayItem(GAME_OBJECT_ID objectID);
 		~ScriptDisplayItem();
 
 		// Setters

@@ -1186,7 +1186,7 @@ namespace TEN::Renderer
 	{
 		if (!g_DrawItems.IsEmpty())
 		{
-			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
+			_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 			g_DrawItems.Draw();
 		}
 	}
@@ -1371,17 +1371,23 @@ namespace TEN::Renderer
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
 	{
 		if (staticBackground)
-		{	
+		{
 			// Set basic render states.
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear screen
-			_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
-			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+			// Clear screen.
+			_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), Colors::Black);
+			_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
+			_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-			// Bind back buffer.
-			_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
+			// Bind and clear render target.
+			ID3D11RenderTargetView* pRenderViewPtrs[2];
+			pRenderViewPtrs[0] = _renderTarget.RenderTargetView.Get();
+			pRenderViewPtrs[1] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
+
+			// Bind render target.
+			_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 			_context->RSSetViewports(1, &_viewport);
 			ResetScissor();
 
@@ -1400,7 +1406,17 @@ namespace TEN::Renderer
 		DrawDisplayItems();
 		DrawDisplaySprites(_gameCamera, true);
 		DrawAllStrings();
-		
+
+		if (staticBackground)
+		{
+			BindConstantBufferVS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
+			BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
+
+			ApplyGlow(&_renderTarget, _gameCamera);
+			ApplyAntialiasing(&_renderTarget, _gameCamera);
+			CopyRenderTarget(&_renderTarget, &_backBuffer, _gameCamera);
+		}
+
 		ClearScene();
 
 		_context->ClearState();

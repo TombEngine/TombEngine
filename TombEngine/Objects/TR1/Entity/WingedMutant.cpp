@@ -165,7 +165,7 @@ namespace TEN::Entities::Creatures::TR1
 				return WMUTANT_PROJ_SHARD;
 			}
 			else if ((ai.angle < 0 && ai.angle > ANGLE(-45.0f)) &&
-				item.TestFlagField(WMUTANT_CONF_DISABLE_BOMB_WEAPON, false), Objects[GAME_OBJECT_ID::ID_PROJ_BOMB].loaded)
+				item.TestFlagField(WMUTANT_CONF_DISABLE_BOMB_WEAPON, false) && Objects[GAME_OBJECT_ID::ID_PROJ_BOMB].loaded)
 			{
 				return WMUTANT_PROJ_BOMB;
 			}

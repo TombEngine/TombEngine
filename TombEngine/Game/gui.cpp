@@ -635,7 +635,8 @@ namespace TEN::Gui
 				auto screenResolution = g_Configuration.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
 
 				bool screenResolutionChanged = CurrentSettings.Configuration.ScreenWidth != screenResolution.x ||
-					CurrentSettings.Configuration.ScreenHeight != screenResolution.y;
+					CurrentSettings.Configuration.ScreenHeight != screenResolution.y ||
+					CurrentSettings.Configuration.EnableWindowedMode != g_Configuration.EnableWindowedMode;
 
 				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
 				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;

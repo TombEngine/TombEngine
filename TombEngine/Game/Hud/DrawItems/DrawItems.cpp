@@ -13,11 +13,11 @@ namespace TEN::Hud
 {
 	DrawItemsController g_DrawItems = {};
 
-	DisplayItem* DrawItemsController::GetItemByName(const std::string& name)
+	DisplayItem* DrawItemsController::GetItemByID(unsigned int id)
 	{
 		for (auto& item : _displayItems)
 		{
-			if (item.GetName() == name)
+			if (item.GetID() == id)
 				return &item;
 		}
 
@@ -107,11 +107,11 @@ namespace TEN::Hud
 		return _displayItems.empty();
 	}
 
-	bool DrawItemsController::TestItemExists(const std::string& name)
+	bool DrawItemsController::TestItemExists(unsigned int id)
 	{
 		for (auto& item : _displayItems)
 		{
-			if (item.GetName() == name)
+			if (item.GetID() == id)
 			{
 				return true;
 			}
@@ -133,38 +133,30 @@ namespace TEN::Hud
 		return false;
 	}
 
-	void DrawItemsController::AddItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale, int meshBits)
+	unsigned int DrawItemsController::AddItem(GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale, int meshBits)
 	{
-		// Check if item already exists.
-		for (auto& item : _displayItems)
-		{
-			if (item.GetName() == name)
-			{
-				// Update existing item.
-				item.SetObjectID(objectID);
-				item.SetPosition(pos, true);
-				item.SetOrientation(orient, true);
-				item.SetScale(scale, true);
-				item.SetMeshBits(meshBits);
-				return;
-			}
-		}
-
 		// If at capacity, don’t add new item.
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
-			return;
+			return 0;
 
-		auto newItem = DisplayItem(name, objectID, pos, orient, scale);
+		if (_lastID == UINT_MAX)
+			_lastID = 0;
+
+		_lastID++;
+
+		auto newItem = DisplayItem(_lastID, objectID, pos, orient, scale);
 		newItem.SetMeshBits(meshBits);
 		_displayItems.push_back(newItem);
+
+		return _lastID;
 	}
 
-	void DrawItemsController::RemoveItem(const std::string& name)
+	void DrawItemsController::RemoveItem(unsigned int id)
 	{
 		auto item = std::find_if(_displayItems.begin(), _displayItems.end(),
 		[&](const DisplayItem& item)
 		{
-			return item.GetName() == name;
+			return item.GetID() == id;
 		});
 
 		if (item != _displayItems.end())

@@ -11,9 +11,9 @@ using namespace TEN::Math;
 
 namespace TEN::Hud
 {
-	DisplayItem::DisplayItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale)
+	DisplayItem::DisplayItem(unsigned int id, GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale)
 	{
-		_itemName = name;
+		_id = id;
 		_objectID = objectID;
 		_position = pos;
 		_orientation = orient;
@@ -23,9 +23,9 @@ namespace TEN::Hud
 		_prevScale = scale;
 	}
 
-	const std::string& DisplayItem::GetName() const
+	unsigned int DisplayItem::GetID() const
 	{
-		return _itemName;
+		return _id;
 	}
 
 	GAME_OBJECT_ID DisplayItem::GetObjectID() const
@@ -135,11 +135,6 @@ namespace TEN::Hud
 		return EulerAngles::Lerp(prevIt->second, it->second, alpha);
 	}
 
-	void DisplayItem::SetName(const std::string& name)
-	{
-		_itemName = name;
-	}
-
 	void DisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;
@@ -149,7 +144,7 @@ namespace TEN::Hud
 	{
 		constexpr auto DELTA_TOLERANCE = 100.0f;
 
-		if (disableInterpolation || Vector3::Distance(pos, _position) > DELTA_TOLERANCE)
+		if (!_wasInterpolated || disableInterpolation || Vector3::Distance(pos, _position) > DELTA_TOLERANCE)
 			_prevPosition = pos;
 
 		_position = pos;
@@ -159,7 +154,7 @@ namespace TEN::Hud
 	{
 		constexpr auto DELTA_TOLERANCE = ANGLE(45);
 
-		if (disableInterpolation || !EulerAngles::Compare(orient, _orientation, DELTA_TOLERANCE))
+		if (!_wasInterpolated || disableInterpolation || !EulerAngles::Compare(orient, _orientation, DELTA_TOLERANCE))
 			_prevOrientation = orient;
 
 		_orientation = orient;
@@ -167,7 +162,7 @@ namespace TEN::Hud
 
 	void DisplayItem::SetScale(const Vector3& scale, bool disableInterpolation)
 	{
-		if (disableInterpolation)
+		if (!_wasInterpolated || disableInterpolation)
 			_prevScale = scale;
 
 		_scale = scale;
@@ -175,7 +170,7 @@ namespace TEN::Hud
 
 	void DisplayItem::SetColor(Color& color, bool disableInterpolation)
 	{
-		if (disableInterpolation)
+		if (!_wasInterpolated || disableInterpolation)
 			_prevColor = color;
 
 		_color = color;
@@ -278,5 +273,6 @@ namespace TEN::Hud
 		_prevColor = _color;
 		_prevMeshOrientations = _meshOrientations;
 		_prevFrameNumber = _frameNumber;
+		_wasInterpolated = true;
 	}
 }
