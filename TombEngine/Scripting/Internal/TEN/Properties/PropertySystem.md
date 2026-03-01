@@ -4,14 +4,15 @@
 
 The property system provides a **two-layered** key-value store for attaching custom data to
 game entities (Moveables and Statics). Properties set in Lua scripts are accessible from
-C++ for gameplay logic, AI behavior, puzzle mechanics, etc.
+C++ and vice versa, and can be used as a modern and intuitive replacement for outdated
+techniques, such as OCBs and ItemFlags.
 
 | Layer | Scope | Storage | Purpose |
 |-------|-------|---------|---------|
-| **Layer 1 — Type** | All instances of a type | `PropertyHandler` (global static maps) | Default values shared by every instance of an object type |
-| **Layer 2 — Instance** | Single entity | `ItemInfo::Properties` / `StaticMesh::Properties` (`PropertyMap` member) | Per-instance overrides |
+| **Layer 1 — Global** | All instances of a given type | `PropertyHandler` (global static maps) | Default values shared by every instance of this type |
+| **Layer 2 — Instance** | Unique single instance | `ItemInfo::Properties` / `StaticMesh::Properties` (`PropertyMap` member) | Per-instance overrides of global values |
 
-Resolution order: **Instance → Type → caller-supplied default**.
+Resolution order: **Instance → Type → caller-supplied harcoded default**.
 
 ---
 
@@ -29,6 +30,8 @@ Resolution order: **Instance → Type → caller-supplied default**.
 | `ScriptColor` | `Color` | RGBA color |
 | `Rotation` | `Rotation` | Euler rotation |
 | `Time` | `Time` | Time value |
+
+Additionally, existing value may be set to `nil`. In this case, the property is removed from the map and resolution falls back to the next layer.
 
 ---
 
@@ -51,150 +54,57 @@ you use.
 
 ---
 
-## Accessing Instance Properties (`PropertyMap`)
+## Accessing the property via `PropertyHandler`
 
-Every `ItemInfo` (moveable) and `StaticMesh` (static mesh) has a public member:
+`PropertyHandler::Get` is the main method to get property value on the C++ side.
+It automatically handles property value priority: it checks the instance layer first, then
+the global type layer. If neither layer contains the property, method either returns
+`nullptr` (raw form) or the caller's default hardcoded value.
+
+All overloads accept the entity reference / pointer directly (`const ItemInfo&/*` or
+`const StaticMesh&/*`) and derive the object number / static mesh slot internally.
+
+### Using `Get`
 
 ```cpp
-TEN::Scripting::Properties::PropertyMap Properties;
-```
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 
-### Get with `std::optional` (explicit null handling)
-
-```cpp
 using namespace TEN::Scripting::Properties;
+using namespace TEN::Utils;
 
 auto& item = g_Level.Items[itemNumber];
 
-// By name (hashes internally every call):
-std::optional<float> hp = item.Properties.Get<float>("health");
-if (hp.has_value())
-    DoSomething(*hp);
+// Method 1: by name (simple, hashes internally every call):
+int damage1 = PropertyHandler::Get(item, "damage", 10);
 
-// By pre-computed hash (fast — use in hot code):
-static const int kHealthHash = GetHash("health");
-std::optional<float> hp2 = item.Properties.Get<float>(kHealthHash);
+// Method 2: by pre-computed hash (faster — use in performance critical code):
+int damage2 = PropertyHandler::Get(item, GetHash("damage"), 10);
+
+// Method 3: default value is not provided (std::variant pointer, will be nullptr if not found):
+auto damage3 = PropertyHandler::Get(item, "pincer_damage");
 ```
 
-### Get with default value (`GetOr`)
+Methods 1 and 2 are template-based and will automatically resolve property data type from the
+caller's expected type (`int` in the example). Method 3 is the raw form that returns a pointer
+to the underlying `PropertyValue` variant, which should be resolved manually and can be `nullptr`
+if the property is not found in either layer.
 
-When a sensible fallback exists, `GetOr` avoids the `optional` boilerplate:
-
-```cpp
-// By name — returns 100.0f if "health" is missing or is not a float:
-float hp = item.Properties.GetOr<float>("health", 100.0f);
-
-// By pre-computed hash:
-static const int kHealthHash = GetHash("health");
-float hp2 = item.Properties.GetOr<float>(kHealthHash, 100.0f);
-
-// Works with every supported type:
-bool aggressive  = item.Properties.GetOr<bool>("aggressive", false);
-std::string name = item.Properties.GetOr<std::string>("display_name", "Unknown");
-Vec3 offset      = item.Properties.GetOr<Vec3>("spawn_offset", Vec3(0, 0, 0));
-```
-
-> **Behavior:** `GetOr` returns the default value in **two** cases:
-> 1. The property key does not exist.
-> 2. The property exists but holds a **different type** than `T`.
-
-### Get raw variant
-
-When you need to inspect the type at runtime:
-
-```cpp
-const PropertyValue* raw = item.Properties.GetRaw("some_key");
-if (raw != nullptr)
-{
-    if (auto* f = std::get_if<float>(raw))
-        // use *f
-    else if (auto* s = std::get_if<std::string>(raw))
-        // use *s
-}
-```
-
-### Setting, removing, querying
-
-```cpp
-auto& props = item.Properties;
-
-props.Set("health", PropertyValue(100.0f));     // Create or overwrite.
-props.Has("health");                             // true
-props.Remove("health");                          // Returns true if removed.
-props.Clear();                                   // Remove all.
-props.IsEmpty();                                 // true after Clear().
-props.GetCount();                                // Number of entries.
-```
-
-### Iteration
-
-```cpp
-for (const auto& [hash, value] : item.Properties)
-{
-    const std::string* name = item.Properties.GetName(hash);
-    // 'value' is a PropertyValue variant.
-}
-
-// Or get all names:
-std::vector<std::string> names = item.Properties.GetNames();
-```
-
----
-
-## Two-Layer Resolution (`PropertyHandler`)
-
-`PropertyHandler::Get` checks the instance layer first, then the type layer. If neither
-layer contains the property, resolution returns `nullptr` (raw form) or the caller's
-default value (typed form).
-
-All overloads accept the entity reference directly (`const ItemInfo&` or
-`const StaticMesh&`) and derive the object number / slot internally.
-
-### Using typed `Get` (recommended)
-
-```cpp
-using namespace TEN::Scripting::Properties;
-
-auto& item = g_Level.Items[itemNumber];
-
-// By name (simple, hashes internally):
-float damage = PropertyHandler::Get<float>(item, "damage", 10.0f);
-
-// By pre-computed hash (fast — use in hot code):
-static const int kDamageHash   = GetHash("damage");
-static const int kSpeedHash    = GetHash("speed");
-static const int kFriendlyHash = GetHash("friendly");
-
-// Resolves: instance property → type property → default.
-float damage2  = PropertyHandler::Get<float>(item, kDamageHash, 10.0f);
-float speed    = PropertyHandler::Get<float>(item, kSpeedHash, 1.0f);
-bool  friendly = PropertyHandler::Get<bool>(item, kFriendlyHash, false);
-
-// Default value is optional (zero-initialized if omitted):
-float damage3 = PropertyHandler::Get<float>(item, kDamageHash); // 0.0f if not found
-```
-
-### Statics
+#### Statics
 
 ```cpp
 auto& staticObj = g_Level.Rooms[roomNumber].mesh[meshIndex];
-
-static const int kFragileHash = GetHash("fragile");
-
-bool fragile = PropertyHandler::Get<bool>(staticObj, kFragileHash, false);
+bool fragile = PropertyHandler::Get(staticObj, GetHash("fragile"), false);
 ```
 
-### Raw pointer resolution (when you need to branch on presence)
+#### Raw pointer resolution (when you need to branch on presence)
 
 ```cpp
-static const int kBehaviorHash = GetHash("behavior");
-
-const PropertyValue* val = PropertyHandler::Get(item, kBehaviorHash);
+const PropertyValue* val = PropertyHandler::Get(item, GetHash("behaviour"));
 
 if (val != nullptr)
 {
     if (auto* str = std::get_if<std::string>(val))
-        ApplyBehavior(*str);
+        ApplyBehaviour(*str);
 }
 else
 {
@@ -207,9 +117,74 @@ const PropertyValue* val2 = PropertyHandler::Get(item, "behavior");
 
 ---
 
-## Querying Type Properties Directly
+## Querying instance properties directly via `PropertyMap`
 
-For cases where you only want the type-level default (ignoring any instance override):
+Every `ItemInfo` (moveable) and `StaticMesh` (static mesh) has a public member:
+
+```cpp
+TEN::Scripting::Properties::PropertyMap Properties;
+```
+
+### Get with `std::optional` (explicit null handling)
+
+```cpp
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+
+using namespace TEN::Scripting::Properties;
+
+auto& item = g_Level.Items[itemNumber];
+
+// By name (hashes internally every call):
+std::optional<float> hp = item.Properties.Get<float>("health");
+if (hp.has_value())
+    DoSomething(*hp);
+
+// By pre-computed hash (faster — use in performance critical code):
+std::optional<float> hp2 = item.Properties.Get<float>(GetHash("health"));
+```
+
+### Get with default value (`GetOr`)
+
+When a sensible fallback exists, `GetOr` avoids the `optional` boilerplate:
+
+```cpp
+// By name — returns 100.0f if "health" is missing or is not a float:
+float hp1 = item.Properties.GetOr<float>("health", 100.0f);
+
+// By pre-computed hash:
+float hp2 = item.Properties.GetOr<float>(GetHash("health"), 100.0f);
+
+// Works with every supported type:
+bool aggressive  = item.Properties.GetOr<bool>("aggressive", false);
+std::string name = item.Properties.GetOr<std::string>("display_name", "Unknown");
+Vec3 offset      = item.Properties.GetOr<Vec3>("spawn_offset", Vec3(0, 0, 0));
+```
+
+> **Behaviour:** `GetOr` returns the default value in **two** cases:
+> 1. The property key does not exist.
+> 2. The property exists but holds a **different type** than `T`.
+
+### Get raw variant
+
+When you need to inspect the type at runtime:
+## Accessing the property via `PropertyHandler`
+
+```cpp
+const PropertyValue* raw = item.Properties.GetRaw("some_key");
+if (raw != nullptr)
+{
+    if (auto* f = std::get_if<float>(raw))
+        // Use float path
+    else if (auto* s = std::get_if<std::string>(raw))
+        // Use string path
+}
+```
+
+---
+
+## Querying global properties directly via `PropertyMap`
+
+For cases where you only want to access the global property, ignoring any instance override:
 
 ```cpp
 // Returns nullptr if no type properties registered for this object ID.
@@ -219,7 +194,8 @@ if (typeProps)
     float baseDamage = typeProps->GetOr<float>("damage", 10.0f);
 }
 
-// GetMoveableProperties creates the map if it doesn't exist (use for writes):
+// GetMoveableProperties internally is an `unordered_map` and automatically creates the map
+// if it doesn't exist (use for writes):
 PropertyMap& typeProps = PropertyHandler::GetMoveableProperties(objectID);
 typeProps.Set("damage", PropertyValue(25.0f));
 ```
@@ -231,27 +207,24 @@ typeProps.Set("damage", PropertyValue(25.0f));
 | Pattern | Cost | When to use |
 |---------|------|-------------|
 | `Get<T>("name")` / `GetOr<T>("name", def)` | O(1) amortized, but hashes the string each call | One-off reads, init code |
-| `Get<T>(hash)` / `GetOr<T>(hash, def)` | O(1) with no hashing | Hot paths — AI ticks, control loops |
+| `Get<T>(hash)` / `GetOr<T>(hash, def)`     | O(1) with no hashing | Hot paths — AI ticks, control loops |
 | `PropertyHandler::Get<T>(entity, hash, …)` | Two O(1) lookups worst-case | Hot paths needing two-layer resolution |
 
-**Best practice:** Declare hashes as `constexpr` constants using `GetHash` from `Specific/trutils.h`.
-The `const char*` overload is `constexpr`, so the hash is computed at **compile time** — zero
-runtime cost:
+**Best practice:** Use `GetHash` directly with a string literal (e.g. `GetHash("damage")` or declare hashes as `constexpr`
+constants using `GetHash`. In both cases the hash is computed at **compile time** — zero runtime cost:
 
 ```cpp
-// Compile-time hashes (resolved by the compiler, no runtime hashing):
-constexpr int kHealth = GetHash("health");
-constexpr int kDamage = GetHash("damage");
-constexpr int kSpeed  = GetHash("speed");
+// Use directly:
+float hp = PropertyHandler::Get(item, GetHash("health"), 100.0f);
 
-// Use directly — no string hashing at runtime:
-float hp     = PropertyHandler::Get<float>(item, kHealth, 100.0f);
+// Explicitly define hash:
+constexpr int kDamage = GetHash("damage");
 float damage = item.Properties.GetOr<float>(kDamage, 10.0f);
 ```
 
-> **Note:** `GetHash(const char*)` is `constexpr` and works with string literals.
-> `GetHash(const std::string&)` is the runtime overload for dynamic strings.
-> Both produce identical FNV-1a hashes.
+> `GetHash(const std::string&)` is the runtime overload for dynamic strings and will calculate hash every call. It should
+be avoided in frequently called code paths, except cases when accessed via Lua API methods.
+> Both overloads will produce identical FNV-1a hashes.
 
 ---
 

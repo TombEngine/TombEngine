@@ -1432,6 +1432,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="packages.config" />
     <None Include="Resources\Title.bin" />
     <None Include="RuleSet.ruleset" />
+    <None Include="Scripting\Internal\TEN\Properties\PropertySystem.md" />
     <None Include="Shaders\AnimatedTextures.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
