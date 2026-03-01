@@ -58,6 +58,9 @@ public:
 	static bool Save(int slot);
 	static void Delete(int slot);
 
+	static bool SaveGlobalVars();
+	static bool LoadGlobalVars();
+
 	static bool DoesSaveGameExist(int slot, bool silent = false);
 	static bool IsLoadGamePossible();
 	static bool IsSaveGameValid(int slot);

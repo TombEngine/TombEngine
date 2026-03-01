@@ -639,6 +639,9 @@ void DeInitializeScripting(int levelIndex, GameStatus reason)
 	// If level index is 0, it means we are in a title level and game variables should be cleared.
 	if (levelIndex == 0)
 		g_GameScript->ResetScripts(true);
+
+	// Always save global variables on any script deinit event.
+	SaveGame::SaveGlobalVars();
 }
 
 void InitializeOrLoadGame(bool loadGame)
