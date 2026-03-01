@@ -706,6 +706,12 @@ std::unordered_map<unsigned int, sol::table> LogicHandler::DeserializeScriptVars
 
 			for (auto& [first, second] : indexTab)
 			{
+				if (first >= vars.size() || second >= vars.size())
+				{
+					TENLog("Corrupted save data: variable index out of range. Skipping entry.", LogLevel::Warning);
+					continue;
+				}
+
 				if (std::holds_alternative<IndexTable>(vars[second]))
 				{
 					solTables.try_emplace(second, *_handler.GetState(), sol::create);

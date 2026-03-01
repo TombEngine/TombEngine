@@ -3152,8 +3152,7 @@ bool SaveGame::SaveGlobalVars()
 		std::vector<SavedVar> savedVars;
 		g_GameScript->GetGlobalVariables(savedVars);
 
-		// Nothing to save if vars are empty (only root table).
-		if (savedVars.size() <= 1)
+		if (savedVars.empty())
 			return true;
 
 		FlatBufferBuilder fbb{};
@@ -3173,12 +3172,24 @@ bool SaveGame::SaveGlobalVars()
 			std::filesystem::create_directory(FullSaveDirectory);
 
 		auto filename = FullSaveDirectory + GLOBAL_VARS_FILENAME;
-		TENLog(fmt::format("Saving global variables to {}.", filename), LogLevel::Info);
 
 		std::ofstream fileOut{};
 		fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+
+		if (!fileOut.is_open())
+		{
+			TENLog("Failed to open file for saving global variables.", LogLevel::Error);
+			return false;
+		}
+
 		fileOut.write(reinterpret_cast<const char*>(buffer), size);
 		fileOut.close();
+
+		if (fileOut.fail())
+		{
+			TENLog("Failed to write global variables to file.", LogLevel::Error);
+			return false;
+		}
 
 		return true;
 	}
@@ -3191,6 +3202,9 @@ bool SaveGame::SaveGlobalVars()
 
 bool SaveGame::LoadGlobalVars()
 {
+	if (!g_GameScript)
+		return false;
+
 	auto filename = FullSaveDirectory + GLOBAL_VARS_FILENAME;
 
 	if (!std::filesystem::is_regular_file(filename))
@@ -3201,12 +3215,24 @@ bool SaveGame::LoadGlobalVars()
 
 	try
 	{
-		TENLog(fmt::format("Loading global variables from {}.", filename), LogLevel::Info);
-
 		auto file = std::ifstream();
 		file.open(filename, std::ios_base::binary | std::ios_base::ate);
 
+		if (!file.is_open())
+		{
+			TENLog("Failed to open global variables file.", LogLevel::Error);
+			return false;
+		}
+
 		auto size = file.tellg();
+
+		if (size <= 0)
+		{
+			TENLog("Global variables file is empty or unreadable.", LogLevel::Warning);
+			file.close();
+			return false;
+		}
+
 		file.seekg(0, std::ios::beg);
 
 		auto buffer = std::vector<byte>(size);
