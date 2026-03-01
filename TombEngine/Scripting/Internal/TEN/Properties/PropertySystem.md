@@ -31,7 +31,7 @@ Resolution order: **Instance → Type → caller-supplied hardcoded default**.
 | `Rotation` | `Rotation` | Euler rotation |
 | `Time` | `Time` | Time value |
 
-Additionally, existing value may be set to `nil`. In this case, the property is removed from the map and resolution falls back to the next layer.
+On the Lua side, existing property value may be also set to `nil`. In this case, the property is removed from the map and resolution falls back to the next layer.
 
 ---
 
