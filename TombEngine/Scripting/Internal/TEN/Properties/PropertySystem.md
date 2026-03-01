@@ -184,7 +184,8 @@ if (raw != nullptr)
 
 ## Querying global properties directly via `PropertyMap`
 
-For cases where you only want to access the global property, ignoring any instance override:
+For cases where you only want to access the global property, ignoring any instance override, 
+same principle applies as with directly querying instance properties:
 
 ```cpp
 // Returns nullptr if no type properties registered for this object ID.
