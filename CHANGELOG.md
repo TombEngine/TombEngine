@@ -19,7 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, COBRA, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
