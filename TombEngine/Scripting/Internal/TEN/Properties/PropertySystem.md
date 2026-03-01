@@ -9,10 +9,10 @@ techniques, such as OCBs and ItemFlags.
 
 | Layer | Scope | Storage | Purpose |
 |-------|-------|---------|---------|
-| **Layer 1 — Global** | All instances of a given type | `PropertyHandler` (global static maps) | Default values shared by every instance of this type |
+| **Layer 1 — Global** | All instances of a given type | `PropertyHandler` (global static maps) | Values shared by every instance of this type |
 | **Layer 2 — Instance** | Unique single instance | `ItemInfo::Properties` / `StaticMesh::Properties` (`PropertyMap` member) | Per-instance overrides of global values |
 
-Resolution order: **Instance → Type → caller-supplied harcoded default**.
+Resolution order: **Instance → Type → caller-supplied hardcoded default**.
 
 ---
 
