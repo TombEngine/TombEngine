@@ -82,10 +82,11 @@ namespace TEN::Entities::Creatures::TR3
 
 			if (creature->Enemy && item->Animation.ActiveState != COBRA_STATE_SLEEP)
 			{
-				auto enemyPos = creature->Enemy->IsLara() ? GetJointPosition(creature->Enemy, LM_TORSO) : creature->Enemy->Pose.Position;
+				auto enemyPos = creature->Enemy->Pose.Position;
+				enemyPos.y -= CLICK(1.5f);
 
 				auto origin = GameVector(enemyPos, creature->Enemy->RoomNumber);
-				auto target = GameVector(GetJointPosition(item, 11), item->RoomNumber);
+				auto target = GameVector(GetJointPosition(item, 9), item->RoomNumber);
 
 				isEnemyVisible = LOS(&origin, &target);
 
