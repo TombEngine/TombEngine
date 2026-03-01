@@ -345,7 +345,7 @@ PropertyHandler
   ::GetMutableMoveableProperties()      → unordered_map&
   ::GetMutableStaticProperties()        → unordered_map&
 
-GetHash(const string& name)  → int            (FNV-1a, runtime, from Specific/trutils.h)
+GetHash(const string& name)  → int             (FNV-1a, runtime, from Specific/trutils.h)
 GetHash(const char* name)    → constexpr int   (FNV-1a, compile-time, from Specific/trutils.h)
 ValidatePropertyName(name)   → bool            (from PropertyLuaConverters.h)
 ```
