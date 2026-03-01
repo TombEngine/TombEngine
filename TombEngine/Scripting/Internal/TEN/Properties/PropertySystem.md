@@ -167,7 +167,6 @@ Vec3 offset      = item.Properties.GetOr<Vec3>("spawn_offset", Vec3(0, 0, 0));
 ### Get raw variant
 
 When you need to inspect the type at runtime:
-## Accessing the property via `PropertyHandler`
 
 ```cpp
 const PropertyValue* raw = item.Properties.GetRaw("some_key");
