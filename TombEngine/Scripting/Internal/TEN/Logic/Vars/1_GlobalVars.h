@@ -14,8 +14,8 @@
 // 		-- Show "New Game+" option in the menu
 // 	end
 //
-// GlobalVars are saved to an external file when the engine exits and restored when the engine launches.
-// They are also included in regular savegames for redundancy.
+// GlobalVars are saved to an external file when the engine exits or switches a level, and restored
+// when the engine launches.
 //
 // In GlobalVars, you can only save certain types of variables:
 // 
