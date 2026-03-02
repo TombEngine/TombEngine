@@ -40,7 +40,8 @@ void main()
     {
         discard;
     }
-    vec4 col = fs_in.Color;
+    vec2 uv = vec2((fs_in.UV.x * BarScale.x) + BarStartUV.x, (fs_in.UV.y * BarScale.y) + BarStartUV.y);
+    vec4 col = texture(Texture, uv);
     if (Poisoned != 0)
     {
         float factor = sin(((float(HUDFrame % 30) / 30.0)) * PI2) * 0.5 + 0.5;

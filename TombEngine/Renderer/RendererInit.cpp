@@ -10,9 +10,10 @@
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 #include "Specific/EngineMain.h"
-#ifdef USE_OPENGL
+#ifdef HAS_OPENGL
 #include "Renderer/Native/OpenGL/GLGraphicsDevice.h"
-#else
+#endif
+#ifdef HAS_DX11
 #include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
 #endif
 #include "Renderer/Graphics/VRAMTracker.h"
@@ -32,11 +33,13 @@ namespace TEN::Renderer
 
 		_graphicsDevice->Initialize();
 
-#ifdef USE_OPENGL
-		// OpenGL can only query adapter info after context creation.
-		_adapterInfo = _graphicsDevice->GetAdapterInfo();
-		Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
-#endif
+		// If adapter info wasn't set during Create() (e.g. OpenGL queries it after context creation),
+		// query it now.
+		if (_adapterInfo.Name.empty())
+		{
+			_adapterInfo = _graphicsDevice->GetAdapterInfo();
+			Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
+		}
 
 		InitializeScreen(w, h, false);
 		InitializeCommonTextures();
@@ -387,22 +390,35 @@ namespace TEN::Renderer
 		_whiteSprite.Texture = _whiteTexture.get();
 	}
 
-	void Renderer::Create()
+	void Renderer::Create(GraphicsAPI api)
 	{
 		TENLog("Creating renderer native device...", LogLevel::Info);
 
-#ifdef USE_OPENGL
-		_graphicsDevice = std::make_unique<TEN::Renderer::Native::OpenGL::GLGraphicsDevice>();
-#else
-		_graphicsDevice = std::make_unique<TEN::Renderer::Native::DirectX11::DX11GraphicsDevice>();
+		switch (api)
+		{
+#ifdef HAS_OPENGL
+		case GraphicsAPI::OpenGL:
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::OpenGL::GLGraphicsDevice>();
+			break;
 #endif
+#ifdef HAS_DX11
+		case GraphicsAPI::DirectX11:
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::DirectX11::DX11GraphicsDevice>();
+			break;
+#endif
+		default:
+			throw std::runtime_error("Selected graphics API not available.");
+		}
+
 		_graphicsDevice->CreateDevice();
 
-#ifndef USE_OPENGL
-		// DX11 can query adapter info before window creation.
-		_adapterInfo = _graphicsDevice->GetAdapterInfo();
-		Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
-#endif
+		// DX11 can query adapter info immediately; OpenGL defers to Initialize()
+		// because the GL context (and GLAD function pointers) don't exist yet.
+		if (!_graphicsDevice->NeedsFBOYFlip())
+		{
+			_adapterInfo = _graphicsDevice->GetAdapterInfo();
+			Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
+		}
 
 		// Initialize shader manager.
 		_shaders.Initialize(_graphicsDevice.get());

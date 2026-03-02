@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef USE_OPENGL
+#ifdef HAS_OPENGL
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
@@ -144,6 +144,8 @@ namespace TEN::Renderer::Native::OpenGL
 		int GetRefreshRate() override;
 		int GetScreenWidth() override;
 		int GetScreenHeight() override;
+
+		bool NeedsFBOYFlip() const override { return true; }
 	};
 }
 

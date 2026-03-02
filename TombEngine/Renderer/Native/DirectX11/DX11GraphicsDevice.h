@@ -1,7 +1,7 @@
 #pragma once
 #include "framework.h"
 
-#ifdef SDL_PLATFORM_WIN32
+#ifdef HAS_DX11
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include <wrl/client.h>

@@ -57,7 +57,7 @@ vec2 CalculateUVRotateForLegacyWaterfalls(vec2 uv, uint frame)
 vec2 GetFrame(uint index, uint offset)
 {
     float speed = float(FPS) / 30.0;
-    int frame = int(Frame * uint(speed) + offset) % int(NumAnimFrames);
+    int frame = int(float(Frame) * speed + float(offset)) % int(NumAnimFrames);
 
     vec2 result = vec2(0);
 

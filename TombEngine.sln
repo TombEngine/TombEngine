@@ -9,30 +9,18 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
-		Debug_OpenGL|x64 = Debug_OpenGL|x64
-		Debug_OpenGL|x86 = Debug_OpenGL|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-		Release_OpenGL|x64 = Release_OpenGL|x64
-		Release_OpenGL|x86 = Release_OpenGL|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug|x64.ActiveCfg = Debug|x64
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug|x64.Build.0 = Debug|x64
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug|x86.ActiveCfg = Debug|Win32
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug|x86.Build.0 = Debug|Win32
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug_OpenGL|x64.ActiveCfg = Debug_OpenGL|x64
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug_OpenGL|x64.Build.0 = Debug_OpenGL|x64
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug_OpenGL|x86.ActiveCfg = Debug_OpenGL|Win32
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Debug_OpenGL|x86.Build.0 = Debug_OpenGL|Win32
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release|x64.ActiveCfg = Release|x64
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release|x64.Build.0 = Release|x64
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release|x86.ActiveCfg = Release|Win32
 		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release|x86.Build.0 = Release|Win32
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release_OpenGL|x64.ActiveCfg = Release_OpenGL|x64
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release_OpenGL|x64.Build.0 = Release_OpenGL|x64
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release_OpenGL|x86.ActiveCfg = Release_OpenGL|Win32
-		{15AB0220-541C-4DA1-94EB-ED3C47E4582E}.Release_OpenGL|x86.Build.0 = Release_OpenGL|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

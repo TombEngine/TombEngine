@@ -179,6 +179,13 @@ enum class RendererDebugPage
 	Count
 };
 
+enum class GraphicsAPI
+{
+	Auto,
+	DirectX11,
+	OpenGL
+};
+
 enum class TransparentFaceType
 {
 	Room,

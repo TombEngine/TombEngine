@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#ifdef USE_OPENGL
+#ifdef HAS_OPENGL
 
 #include "Renderer/Native/OpenGL/GLConstantBuffer.h"
 #include "Renderer/Native/OpenGL/GLErrorHelper.h"

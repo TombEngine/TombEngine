@@ -257,6 +257,7 @@ int main(int argc, char* argv[])
 	// Process command line arguments.
 	auto levelFile = std::string();
 	auto gameDir = std::string();
+	auto cmdLineApi = GraphicsAPI::Auto;
 
 	// Parse command line arguments.
 	for (int i = 1; i < argc; ++i)
@@ -278,6 +279,14 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "gamedir") && i + 1 < argc)
 		{
 			gameDir = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "api") && i + 1 < argc)
+		{
+			auto val = TEN::Utils::ToLower(std::string(argv[++i]));
+			if (val == "dx11" || val == "d3d11" || val == "directx11")
+				cmdLineApi = GraphicsAPI::DirectX11;
+			else if (val == "opengl" || val == "gl")
+				cmdLineApi = GraphicsAPI::OpenGL;
 		}
 	}
 
@@ -362,22 +371,30 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	g_Renderer.Create();
-
 	// Load configuration and optionally show setup dialog.
 	if (!LoadConfiguration())
 		InitDefaultConfiguration();
 
 	g_Bindings.Initialize();
 
+	// Resolve GraphicsAPI (command line overrides config).
+	auto resolvedApi = (cmdLineApi != GraphicsAPI::Auto) ? cmdLineApi : g_Configuration.RendererAPI;
+	if (resolvedApi == GraphicsAPI::Auto)
+	{
+#ifdef HAS_DX11
+		resolvedApi = GraphicsAPI::DirectX11;
+#else
+		resolvedApi = GraphicsAPI::OpenGL;
+#endif
+	}
+
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
 
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
-#ifdef USE_OPENGL
-	windowFlags |= SDL_WINDOW_OPENGL;
-#endif
+	if (resolvedApi == GraphicsAPI::OpenGL)
+		windowFlags |= SDL_WINDOW_OPENGL;
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
@@ -397,6 +414,13 @@ int main(int argc, char* argv[])
 	}
 
 	g_Platform->SetSDL3Window(sdlWindow);
+
+	// Create renderer device (must happen after SDL window is created for OpenGL context).
+	g_Renderer.Create(resolvedApi);
+
+	// Update adapter name now that the renderer is available.
+	if (g_Configuration.AdapterName.empty())
+		g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
 
 	try
 	{

@@ -666,7 +666,7 @@ namespace TEN::Renderer
 
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
-		void Create();
+		void Create(GraphicsAPI api);
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
 		void BindGraphicsContext();
 		void ReleaseGraphicsContext();

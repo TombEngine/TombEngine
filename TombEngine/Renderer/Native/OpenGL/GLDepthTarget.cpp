@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#ifdef USE_OPENGL
+#ifdef HAS_OPENGL
 
 #include "Renderer/Native/OpenGL/GLDepthTarget.h"
 #include "Renderer/Native/OpenGL/GLUtils.h"
@@ -36,7 +36,7 @@ namespace TEN::Renderer::Native::OpenGL
 		_height = height;
 		_arraySize = arraySize;
 		_format = depthFormat;
-
+		
 		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &_texture);
 		glTextureStorage3D(_texture, 1, depthFormat, width, height, arraySize);
 		glTextureParameteri(_texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef USE_OPENGL
+#ifdef HAS_OPENGL
 
 #include <glad/glad.h>
 #include "Renderer/Graphics/IRenderTarget2D.h"

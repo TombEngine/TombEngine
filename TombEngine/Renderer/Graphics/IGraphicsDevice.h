@@ -116,6 +116,8 @@ namespace TEN::Renderer::Graphics
 		virtual int GetScreenWidth() = 0;
 		virtual int GetScreenHeight() = 0;
 
+		virtual bool NeedsFBOYFlip() const { return false; }
+
 		virtual ~IGraphicsDevice() = default;
 	};
 }

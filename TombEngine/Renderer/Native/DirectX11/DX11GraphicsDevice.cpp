@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#ifdef SDL_PLATFORM_WIN32
+#ifdef HAS_DX11
 
 #include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
@@ -785,7 +785,14 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		auto nativeShader = std::make_unique<DX11Shader>();
 
-		auto baseFileName = req.SourceDirectory + req.FileName;
+		// Construct HLSL source directory path.
+		// Replace "Shaders/" with "Shaders/HLSL/" in SourceDirectory.
+		auto hlslSourceDir = req.SourceDirectory;
+		auto pos = hlslSourceDir.rfind(L"Shaders/");
+		if (pos != std::wstring::npos)
+			hlslSourceDir.insert(pos + 8, L"HLSL/");
+
+		auto baseFileName = hlslSourceDir + req.FileName;
 		auto prefix = ((req.CompileIndex < 10) ? L"0" : L"") + std::to_wstring(req.CompileIndex) + L"_";
 
 		// VS

@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#ifdef SDL_PLATFORM_WIN32
+#ifdef HAS_DX11
 
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"

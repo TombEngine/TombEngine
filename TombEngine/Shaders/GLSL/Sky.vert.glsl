@@ -1,7 +1,6 @@
 #version 450 core
 
 #include "CBCamera.glsl"
-#include "CBItem.glsl"
 #include "Blending.glsl"
 #include "VertexInput.glsl"
 #include "Math.glsl"
@@ -26,7 +25,7 @@ out VS_OUT {
 
 void main()
 {
-    vec4 worldPosition = World * vec4(in_Position, 1.0);
+    vec4 worldPosition = SkyWorld * vec4(in_Position, 1.0);
 
     gl_Position = ViewProjection * worldPosition;
     vs_out.Normal = in_Normal.xyz;

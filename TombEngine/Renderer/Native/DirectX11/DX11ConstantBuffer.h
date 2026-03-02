@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef SDL_PLATFORM_WIN32
+#ifdef HAS_DX11
 
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include <d3d11.h>

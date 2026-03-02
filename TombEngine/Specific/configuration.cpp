@@ -105,7 +105,7 @@ void InitDefaultConfiguration()
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
-	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
+	g_Configuration.AdapterName = {};
 
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
 }
@@ -147,7 +147,11 @@ bool LoadConfiguration()
 
 		if (section == "Graphics")
 		{
-			if (key == "ScreenWidth")             
+			if (key == "RendererAPI")
+			{
+				g_Configuration.RendererAPI = (GraphicsAPI)ToInt(val, (int)g_Configuration.RendererAPI);
+			}
+			else if (key == "ScreenWidth")
 			{
 				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
 			}
@@ -289,6 +293,7 @@ bool SaveConfiguration()
 	std::ostringstream ss;
 
 	ss << "[Graphics]\n";
+	ss << "RendererAPI=" << (int)g_Configuration.RendererAPI << "\n";
 	ss << "ScreenWidth=" << g_Configuration.ScreenWidth << "\n";
 	ss << "ScreenHeight=" << g_Configuration.ScreenHeight << "\n";
 	ss << "EnableWindowedMode=" << (g_Configuration.EnableWindowedMode ? 1 : 0) << "\n";
