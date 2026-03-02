@@ -1,0 +1,471 @@
+#!/usr/bin/env python3
+"""Bidirectional sync between Sources.cmake and TombEngine.vcxproj.
+
+Usage:
+    python Tools/sync_vcxproj.py --from-vcxproj   # vcxproj -> Sources.cmake
+    python Tools/sync_vcxproj.py --to-vcxproj      # Sources.cmake -> vcxproj
+    python Tools/sync_vcxproj.py --check            # verify sync (for CI)
+"""
+
+import argparse
+import re
+import sys
+import textwrap
+from pathlib import Path
+
+# Paths relative to repo root
+REPO_ROOT = Path(__file__).resolve().parent.parent
+VCXPROJ_PATH = REPO_ROOT / "TombEngine" / "TombEngine.vcxproj"
+SOURCES_CMAKE_PATH = REPO_ROOT / "TombEngine" / "Sources.cmake"
+
+# Module classification rules.
+# Order matters: first match wins. Each entry is (variable_prefix, path_predicate).
+# variable_prefix is used to form TEN_{prefix}_SOURCES and TEN_{prefix}_HEADERS.
+MODULE_RULES = [
+    ("RENDERER_DX11",  lambda p: p.startswith("Renderer/Native/DirectX11/")),
+    ("RENDERER_OPENGL", lambda p: p.startswith("Renderer/Native/OpenGL/")),
+    ("RENDERER",       lambda p: p.startswith("Renderer/")),
+    ("GAME",           lambda p: p.startswith("Game/")),
+    ("MATH",           lambda p: p.startswith("Math/")),
+    ("OBJECTS",        lambda p: p.startswith("Objects/")),
+    ("PHYSICS",        lambda p: p.startswith("Physics/")),
+    ("SCRIPTING",      lambda p: p.startswith("Scripting/")),
+    ("SOUND",          lambda p: p.startswith("Sound/")),
+    ("PLATFORM",       lambda p: p.startswith("Specific/Platform/")),
+    ("SPECIFIC",       lambda p: p.startswith("Specific/")),
+]
+
+# Files that go into special categories (checked before MODULE_RULES)
+PCH_SOURCE = "framework.cpp"
+THIRDPARTY_SOURCES = ["../Libs/glad/glad.c"]
+ROOT_HEADERS = {"framework.h", "resource.h", "targetver.h", "Types.h", "Version.h"}
+
+# Ordered list of module prefixes for output
+MODULE_ORDER = [
+    "GAME", "MATH", "OBJECTS", "PHYSICS",
+    "RENDERER", "RENDERER_DX11", "RENDERER_OPENGL",
+    "SCRIPTING", "SOUND", "SPECIFIC", "PLATFORM",
+]
+
+
+def normalize_path(p: str) -> str:
+    """Normalize backslashes to forward slashes."""
+    return p.replace("\\", "/")
+
+
+def to_vcxproj_path(p: str) -> str:
+    """Convert forward slashes to backslashes for vcxproj."""
+    return p.replace("/", "\\")
+
+
+# ---------------------------------------------------------------------------
+# Parsing vcxproj
+# ---------------------------------------------------------------------------
+
+def parse_vcxproj(vcxproj_text: str):
+    """Extract ClCompile and ClInclude paths from vcxproj XML text."""
+    compile_paths = re.findall(r'<ClCompile\s+Include="([^"]+)"', vcxproj_text)
+    include_paths = re.findall(r'<ClInclude\s+Include="([^"]+)"', vcxproj_text)
+    return (
+        [normalize_path(p) for p in compile_paths],
+        [normalize_path(p) for p in include_paths],
+    )
+
+
+def classify_file(path: str, is_source: bool):
+    """Return the module key for a file path, or a special key."""
+    basename = path.rsplit("/", 1)[-1] if "/" in path else path
+
+    if is_source:
+        if path == PCH_SOURCE:
+            return "PCH"
+        if path in THIRDPARTY_SOURCES:
+            return "THIRDPARTY"
+    else:
+        if basename in ROOT_HEADERS:
+            return "ROOT_HEADERS"
+
+    for prefix, predicate in MODULE_RULES:
+        if predicate(path):
+            return prefix
+
+    # Fallback: root-level source files that don't match any module
+    if is_source:
+        return "PCH"  # shouldn't happen for well-structured projects
+    return "ROOT_HEADERS"
+
+
+def group_files(compile_paths, include_paths):
+    """Group files into module buckets.
+
+    Returns dict: module_key -> {"SOURCES": [...], "HEADERS": [...]}
+    """
+    groups = {}
+    for prefix in MODULE_ORDER:
+        groups[prefix] = {"SOURCES": [], "HEADERS": []}
+    groups["PCH"] = {"SOURCES": []}
+    groups["ROOT_HEADERS"] = {"HEADERS": []}
+    groups["THIRDPARTY"] = {"SOURCES": []}
+
+    for path in compile_paths:
+        key = classify_file(path, is_source=True)
+        if key not in groups:
+            groups[key] = {"SOURCES": [], "HEADERS": []}
+        if "SOURCES" not in groups[key]:
+            groups[key]["SOURCES"] = []
+        groups[key]["SOURCES"].append(path)
+
+    for path in include_paths:
+        key = classify_file(path, is_source=False)
+        if key not in groups:
+            groups[key] = {"SOURCES": [], "HEADERS": []}
+        if "HEADERS" not in groups[key]:
+            groups[key]["HEADERS"] = []
+        groups[key]["HEADERS"].append(path)
+
+    # Sort each group alphabetically
+    for key in groups:
+        for kind in groups[key]:
+            groups[key][kind].sort(key=str.lower)
+
+    return groups
+
+
+# ---------------------------------------------------------------------------
+# Generating Sources.cmake
+# ---------------------------------------------------------------------------
+
+def generate_sources_cmake(groups) -> str:
+    """Generate the content of Sources.cmake from grouped files."""
+    lines = []
+    lines.append("# Auto-generated by Tools/sync_vcxproj.py — do not edit manually.")
+    lines.append("# Run: python Tools/sync_vcxproj.py --from-vcxproj")
+    lines.append("")
+
+    # PCH source
+    lines.append("# Precompiled header source")
+    lines.append("set(TEN_PCH_SOURCE")
+    for f in groups["PCH"]["SOURCES"]:
+        lines.append(f"    {f}")
+    lines.append(")")
+    lines.append("")
+
+    # Root headers
+    lines.append("# Root headers")
+    lines.append("set(TEN_ROOT_HEADERS")
+    for f in groups["ROOT_HEADERS"]["HEADERS"]:
+        lines.append(f"    {f}")
+    lines.append(")")
+    lines.append("")
+
+    # Module groups
+    for prefix in MODULE_ORDER:
+        group = groups.get(prefix, {"SOURCES": [], "HEADERS": []})
+        label = prefix.replace("_", " ").title()
+
+        sources = group.get("SOURCES", [])
+        headers = group.get("HEADERS", [])
+
+        if sources:
+            lines.append(f"# {label} sources")
+            lines.append(f"set(TEN_{prefix}_SOURCES")
+            for f in sources:
+                lines.append(f"    {f}")
+            lines.append(")")
+            lines.append("")
+
+        if headers:
+            lines.append(f"# {label} headers")
+            lines.append(f"set(TEN_{prefix}_HEADERS")
+            for f in headers:
+                lines.append(f"    {f}")
+            lines.append(")")
+            lines.append("")
+
+    # Third-party sources
+    if groups["THIRDPARTY"]["SOURCES"]:
+        lines.append("# Third-party sources")
+        lines.append("set(TEN_THIRDPARTY_SOURCES")
+        for f in groups["THIRDPARTY"]["SOURCES"]:
+            lines.append(f"    {f}")
+        lines.append(")")
+        lines.append("")
+
+    # Aggregates
+    lines.append("# Aggregate lists")
+    lines.append("set(TEN_ALL_SOURCES")
+    lines.append("    ${TEN_PCH_SOURCE}")
+    for prefix in MODULE_ORDER:
+        if groups.get(prefix, {}).get("SOURCES"):
+            lines.append(f"    ${{TEN_{prefix}_SOURCES}}")
+    lines.append("    ${TEN_THIRDPARTY_SOURCES}")
+    lines.append(")")
+    lines.append("")
+
+    lines.append("set(TEN_ALL_HEADERS")
+    lines.append("    ${TEN_ROOT_HEADERS}")
+    for prefix in MODULE_ORDER:
+        if groups.get(prefix, {}).get("HEADERS"):
+            lines.append(f"    ${{TEN_{prefix}_HEADERS}}")
+    lines.append(")")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Parsing Sources.cmake
+# ---------------------------------------------------------------------------
+
+def parse_sources_cmake(cmake_text: str):
+    """Parse Sources.cmake and return (compile_paths, include_paths)."""
+    # Extract all set() blocks
+    variables = {}
+    for match in re.finditer(
+        r'set\(\s*(\w+)\s*\n(.*?)\)',
+        cmake_text,
+        re.DOTALL,
+    ):
+        var_name = match.group(1)
+        body = match.group(2)
+        # Extract file paths (lines that don't start with ${ and are not empty)
+        files = []
+        for line in body.strip().splitlines():
+            line = line.strip()
+            if not line or line.startswith("${"):
+                continue
+            files.append(line)
+        variables[var_name] = files
+
+    # Reconstruct compile_paths and include_paths
+    compile_paths = []
+    include_paths = []
+
+    # PCH source
+    compile_paths.extend(variables.get("TEN_PCH_SOURCE", []))
+
+    # Module sources and headers
+    for prefix in MODULE_ORDER:
+        compile_paths.extend(variables.get(f"TEN_{prefix}_SOURCES", []))
+        include_paths.extend(variables.get(f"TEN_{prefix}_HEADERS", []))
+
+    # Third-party
+    compile_paths.extend(variables.get("TEN_THIRDPARTY_SOURCES", []))
+
+    # Root headers
+    include_paths.extend(variables.get("TEN_ROOT_HEADERS", []))
+
+    return compile_paths, include_paths
+
+
+# ---------------------------------------------------------------------------
+# Updating vcxproj (text-based replacement)
+# ---------------------------------------------------------------------------
+
+FRAMEWORK_CPP_TEMPLATE = textwrap.dedent("""\
+    <ClCompile Include="framework.cpp">
+          <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+          <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+          <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+          <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+        </ClCompile>""")
+
+GLAD_C_TEMPLATE = textwrap.dedent("""\
+    <ClCompile Include="..\\Libs\\glad\\glad.c">
+          <PrecompiledHeader>NotUsing</PrecompiledHeader>
+        </ClCompile>""")
+
+
+def generate_clcompile_block(compile_paths: list[str]) -> str:
+    """Generate the ClCompile ItemGroup content (without <ItemGroup> tags)."""
+    lines = []
+    for path in sorted(compile_paths, key=str.lower):
+        vpath = to_vcxproj_path(path)
+        if path == PCH_SOURCE:
+            lines.append(f"    {FRAMEWORK_CPP_TEMPLATE}")
+        elif path in THIRDPARTY_SOURCES:
+            lines.append(f"    {GLAD_C_TEMPLATE}")
+        else:
+            lines.append(f'    <ClCompile Include="{vpath}" />')
+    return "\n".join(lines)
+
+
+def generate_clinclude_block(include_paths: list[str]) -> str:
+    """Generate the ClInclude ItemGroup content (without <ItemGroup> tags)."""
+    lines = []
+    for path in sorted(include_paths, key=str.lower):
+        vpath = to_vcxproj_path(path)
+        lines.append(f'    <ClInclude Include="{vpath}" />')
+    return "\n".join(lines)
+
+
+def update_vcxproj(vcxproj_text: str, compile_paths: list[str],
+                   include_paths: list[str]) -> str:
+    """Replace ClInclude and ClCompile ItemGroups in vcxproj text."""
+    # Pattern for ClInclude ItemGroup (the one starting with <ClInclude>)
+    include_pattern = re.compile(
+        r'(  <ItemGroup>\n)'
+        r'(    <ClInclude .+?)'
+        r'(\n  </ItemGroup>)',
+        re.DOTALL,
+    )
+
+    # Pattern for ClCompile ItemGroup (the one starting with framework.cpp)
+    compile_pattern = re.compile(
+        r'(  <ItemGroup>\n)'
+        r'(    <ClCompile .+?)'
+        r'(\n  </ItemGroup>)',
+        re.DOTALL,
+    )
+
+    new_include_content = generate_clinclude_block(include_paths)
+    new_compile_content = generate_clcompile_block(compile_paths)
+
+    # Find and replace ClInclude block (first match)
+    include_match = include_pattern.search(vcxproj_text)
+    if not include_match:
+        print("ERROR: Could not find ClInclude ItemGroup in vcxproj", file=sys.stderr)
+        sys.exit(1)
+
+    result = (
+        vcxproj_text[:include_match.start()]
+        + f"  <ItemGroup>\n{new_include_content}\n  </ItemGroup>"
+        + vcxproj_text[include_match.end():]
+    )
+
+    # Find and replace ClCompile block (search from after the include block)
+    compile_match = compile_pattern.search(result, include_match.start() + len(new_include_content))
+    if not compile_match:
+        print("ERROR: Could not find ClCompile ItemGroup in vcxproj", file=sys.stderr)
+        sys.exit(1)
+
+    result = (
+        result[:compile_match.start()]
+        + f"  <ItemGroup>\n{new_compile_content}\n  </ItemGroup>"
+        + result[compile_match.end():]
+    )
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def cmd_from_vcxproj():
+    """Read vcxproj, generate Sources.cmake."""
+    print(f"Reading {VCXPROJ_PATH}...")
+    vcxproj_text = VCXPROJ_PATH.read_text(encoding="utf-8-sig")
+    compile_paths, include_paths = parse_vcxproj(vcxproj_text)
+
+    print(f"  Found {len(compile_paths)} source files, {len(include_paths)} headers")
+
+    groups = group_files(compile_paths, include_paths)
+    cmake_content = generate_sources_cmake(groups)
+
+    SOURCES_CMAKE_PATH.write_text(cmake_content, encoding="utf-8", newline="\n")
+    print(f"Generated {SOURCES_CMAKE_PATH}")
+
+
+def cmd_to_vcxproj():
+    """Read Sources.cmake, update vcxproj."""
+    print(f"Reading {SOURCES_CMAKE_PATH}...")
+    cmake_text = SOURCES_CMAKE_PATH.read_text(encoding="utf-8")
+    compile_paths, include_paths = parse_sources_cmake(cmake_text)
+
+    print(f"  Found {len(compile_paths)} source files, {len(include_paths)} headers")
+
+    print(f"Updating {VCXPROJ_PATH}...")
+    vcxproj_text = VCXPROJ_PATH.read_text(encoding="utf-8-sig")
+    new_vcxproj = update_vcxproj(vcxproj_text, compile_paths, include_paths)
+
+    VCXPROJ_PATH.write_text(new_vcxproj, encoding="utf-8-sig", newline="\r\n")
+    print("Done.")
+
+
+def cmd_check():
+    """Verify that Sources.cmake and vcxproj are in sync."""
+    if not SOURCES_CMAKE_PATH.exists():
+        print(f"ERROR: {SOURCES_CMAKE_PATH} does not exist", file=sys.stderr)
+        sys.exit(1)
+
+    # Parse both files
+    vcxproj_text = VCXPROJ_PATH.read_text(encoding="utf-8-sig")
+    vcx_compile, vcx_include = parse_vcxproj(vcxproj_text)
+
+    cmake_text = SOURCES_CMAKE_PATH.read_text(encoding="utf-8")
+    cmake_compile, cmake_include = parse_sources_cmake(cmake_text)
+
+    # Compare as sorted sets
+    vcx_compile_set = set(vcx_compile)
+    vcx_include_set = set(vcx_include)
+    cmake_compile_set = set(cmake_compile)
+    cmake_include_set = set(cmake_include)
+
+    errors = []
+
+    only_in_vcx_compile = vcx_compile_set - cmake_compile_set
+    only_in_cmake_compile = cmake_compile_set - vcx_compile_set
+    only_in_vcx_include = vcx_include_set - cmake_include_set
+    only_in_cmake_include = cmake_include_set - vcx_include_set
+
+    if only_in_vcx_compile:
+        errors.append("Sources in vcxproj but not in Sources.cmake:")
+        for f in sorted(only_in_vcx_compile):
+            errors.append(f"  + {f}")
+
+    if only_in_cmake_compile:
+        errors.append("Sources in Sources.cmake but not in vcxproj:")
+        for f in sorted(only_in_cmake_compile):
+            errors.append(f"  - {f}")
+
+    if only_in_vcx_include:
+        errors.append("Headers in vcxproj but not in Sources.cmake:")
+        for f in sorted(only_in_vcx_include):
+            errors.append(f"  + {f}")
+
+    if only_in_cmake_include:
+        errors.append("Headers in Sources.cmake but not in vcxproj:")
+        for f in sorted(only_in_cmake_include):
+            errors.append(f"  - {f}")
+
+    if errors:
+        print("SYNC CHECK FAILED:", file=sys.stderr)
+        for line in errors:
+            print(line, file=sys.stderr)
+        print("\nRun 'python Tools/sync_vcxproj.py --from-vcxproj' to regenerate "
+              "Sources.cmake from vcxproj, or '--to-vcxproj' for the reverse.",
+              file=sys.stderr)
+        sys.exit(1)
+    else:
+        print(f"OK: Sources.cmake and vcxproj are in sync "
+              f"({len(vcx_compile_set)} sources, {len(vcx_include_set)} headers)")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Sync Sources.cmake <-> TombEngine.vcxproj"
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--from-vcxproj", action="store_true",
+                       help="Generate Sources.cmake from vcxproj")
+    group.add_argument("--to-vcxproj", action="store_true",
+                       help="Update vcxproj from Sources.cmake")
+    group.add_argument("--check", action="store_true",
+                       help="Verify sync (exit 1 if out of sync)")
+    args = parser.parse_args()
+
+    if args.from_vcxproj:
+        cmd_from_vcxproj()
+    elif args.to_vcxproj:
+        cmd_to_vcxproj()
+    elif args.check:
+        cmd_check()
+
+
+if __name__ == "__main__":
+    main()

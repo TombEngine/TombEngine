@@ -1,0 +1,115 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "win-x64-msvc",
+            "displayName": "Windows x64 (Visual Studio)",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/win-x64",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "win-x64-ninja",
+            "displayName": "Windows x64 (Ninja + MSVC)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/win-x64-ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "linux-x64-gcc",
+            "displayName": "Linux x64 (GCC)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/linux-x64-gcc",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "linux-x64-clang",
+            "displayName": "Linux x64 (Clang)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/linux-x64-clang",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "macos-clang",
+            "displayName": "macOS (Clang)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/macos",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "win-x64-debug",
+            "displayName": "Debug",
+            "configurePreset": "win-x64-msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "win-x64-release",
+            "displayName": "Release",
+            "configurePreset": "win-x64-msvc",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-debug",
+            "displayName": "Debug",
+            "configurePreset": "linux-x64-gcc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-release",
+            "displayName": "Release",
+            "configurePreset": "linux-x64-gcc",
+            "configuration": "Release"
+        }
+    ]
+}

@@ -26,3 +26,4 @@ packages/
 *.str
 *.ten
 Logs/
+build/
