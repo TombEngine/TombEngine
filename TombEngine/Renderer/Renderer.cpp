@@ -75,6 +75,16 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
+	void Renderer::BindGraphicsContext()
+	{
+		_graphicsDevice->BindContext();
+	}
+
+	void Renderer::ReleaseGraphicsContext()
+	{
+		_graphicsDevice->ReleaseContext();
+	}
+
 	void Renderer::UpdateVideoTexture(ITexture2D* texture)
 	{
 		_videoSprite.X = _videoSprite.Y = 0;

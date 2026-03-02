@@ -86,6 +86,8 @@ namespace TEN::Renderer::Graphics
 
 		virtual void CreateDevice() = 0;
 		virtual void Initialize() = 0;
+		virtual void ReleaseContext() {}
+		virtual void BindContext() {}
 		virtual std::unique_ptr<IRenderSurface2D> InitializeSwapChain(int width, int height) = 0;
 		virtual std::string GetDefaultAdapterName() = 0;
 		virtual AdapterInfo GetAdapterInfo() = 0;

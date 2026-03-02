@@ -10,7 +10,11 @@
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 #include "Specific/EngineMain.h"
+#ifdef USE_OPENGL
+#include "Renderer/Native/OpenGL/GLGraphicsDevice.h"
+#else
 #include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
+#endif
 #include "Renderer/Graphics/VRAMTracker.h"
 
 extern GameConfiguration g_Configuration;
@@ -27,6 +31,13 @@ namespace TEN::Renderer
 		_isWindowed = windowed;
 
 		_graphicsDevice->Initialize();
+
+#ifdef USE_OPENGL
+		// OpenGL can only query adapter info after context creation.
+		_adapterInfo = _graphicsDevice->GetAdapterInfo();
+		Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
+#endif
+
 		InitializeScreen(w, h, false);
 		InitializeCommonTextures();
 
@@ -107,6 +118,12 @@ namespace TEN::Renderer
 
 		_primitiveBatch = _graphicsDevice->InitializePrimitiveBatch();
 		_spriteBatch = _graphicsDevice->InitializeSpriteBatch();
+
+		// Ensure all GL operations complete before transferring context to another thread.
+		_graphicsDevice->Flush();
+
+		// Release GL context from the main thread so the game thread can acquire it.
+		_graphicsDevice->ReleaseContext();
 	}
 
 	void Renderer::InitializePostProcess()
@@ -122,13 +139,6 @@ namespace TEN::Renderer
 		vertices[2].UV = Vector2(2.0f, 1.0f);
 
 		_fullscreenTriangleVertexBuffer = _graphicsDevice->CreateVertexBuffer(3, sizeof(PostProcessVertex), vertices);
-
-		D3D11_INPUT_ELEMENT_DESC postProcessInputLayoutItems[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-		};
 
 		std::vector<RendererInputLayoutField> fields;
 
@@ -381,12 +391,18 @@ namespace TEN::Renderer
 	{
 		TENLog("Creating renderer native device...", LogLevel::Info);
 
+#ifdef USE_OPENGL
+		_graphicsDevice = std::make_unique<TEN::Renderer::Native::OpenGL::GLGraphicsDevice>();
+#else
 		_graphicsDevice = std::make_unique<TEN::Renderer::Native::DirectX11::DX11GraphicsDevice>();
+#endif
 		_graphicsDevice->CreateDevice();
 
-		// Populate adapter info and store in VRAM tracker.
+#ifndef USE_OPENGL
+		// DX11 can query adapter info before window creation.
 		_adapterInfo = _graphicsDevice->GetAdapterInfo();
 		Graphics::VRAMTracker::Get().SetAdapterInfo(_adapterInfo);
+#endif
 
 		// Initialize shader manager.
 		_shaders.Initialize(_graphicsDevice.get());

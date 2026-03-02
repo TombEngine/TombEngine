@@ -375,6 +375,9 @@ int main(int argc, char* argv[])
 	int height = g_Configuration.ScreenHeight;
 
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
+#ifdef USE_OPENGL
+	windowFlags |= SDL_WINDOW_OPENGL;
+#endif
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 

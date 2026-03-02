@@ -1879,8 +1879,22 @@ bool LoadLevelFile(int levelIndex)
 	CleanUp();
 	FreeLevel(fastReload);
 	
-	LevelLoadTask = std::async(std::launch::async, LoadLevel, levelPath, fastReload);
+	// Release GL context from game thread so the async loading thread can use it
+	// for rendering the loading screen. The game thread is blocked on .get() so
+	// there is no contention.
+	g_Renderer.ReleaseGraphicsContext();
+
+	LevelLoadTask = std::async(std::launch::async, [&]()
+	{
+		g_Renderer.BindGraphicsContext();
+		bool result = LoadLevel(levelPath, fastReload);
+		g_Renderer.ReleaseGraphicsContext();
+		return result;
+	});
 	bool loadSuccess = LevelLoadTask.get();
+
+	// Re-acquire GL context on the game thread.
+	g_Renderer.BindGraphicsContext();
 
 	if (loadSuccess && isDummyLevel)
 		std::filesystem::remove(levelPath);

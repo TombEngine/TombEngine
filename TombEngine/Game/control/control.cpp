@@ -365,6 +365,9 @@ int SDLCALL GameMain(void *)
 {
 	TENLog("Starting GameMain()...", LogLevel::Info);
 
+	// Make the GL context current on the game thread (it was released from the main thread after init).
+	g_Renderer.BindGraphicsContext();
+
 	TimeInit();
 
 	// Proceed with intro content only if game isn't started from the editor.

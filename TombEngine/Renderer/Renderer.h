@@ -668,6 +668,8 @@ namespace TEN::Renderer
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Create();
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
+		void BindGraphicsContext();
+		void ReleaseGraphicsContext();
 		void ReloadShaders(bool recompileAAShaders = false);
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);
