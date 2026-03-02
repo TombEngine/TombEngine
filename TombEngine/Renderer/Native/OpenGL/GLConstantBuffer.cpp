@@ -25,12 +25,12 @@ namespace TEN::Renderer::Native::OpenGL
 
 	void GLConstantBuffer::UpdateData(void* data)
 	{
-		void* ptr = glMapNamedBufferRange(_ubo, 0, _size,
+		void* dataPtr = glMapNamedBufferRange(_ubo, 0, _size,
 			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-		if (ptr)
+		if (dataPtr)
 		{
-			memcpy(ptr, data, _size);
+			memcpy(dataPtr, data, _size);
 			glUnmapNamedBuffer(_ubo);
 		}
 		else

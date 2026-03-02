@@ -431,6 +431,13 @@ namespace TEN::Renderer
 			}
 		}
 
+#ifdef USE_OPENGL
+		// In OpenGL, FBO textures have flipped V convention compared to loaded textures.
+		// Swap UV.y range for render target textures so content appears right-side up.
+		if (dynamic_cast<IRenderTarget2D*>(texture) != nullptr)
+			std::swap(uvStart.y, uvEnd.y);
+#endif
+
 		auto vertices = std::array<Vertex, VERTEX_COUNT>{};
 		auto colorVec4 = Vector4(color.x, color.y, color.z, 1.0f);
 

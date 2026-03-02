@@ -66,15 +66,15 @@ namespace TEN::Renderer::Native::OpenGL
 		if (_vertices.empty())
 			return;
 
-		// Save current VAO, bind ours for drawing, then restore.
-		GLint prevVAO = 0;
-		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVAO);
-
 		glNamedBufferSubData(_vbo, 0, _vertices.size() * sizeof(Vertex), _vertices.data());
-		glBindVertexArray(_vao);
-		glDrawArrays(_primitiveType, 0, (GLsizei)_vertices.size());
 
-		glBindVertexArray(prevVAO);
+		// Use the currently bound default VAO (which has correct vertex attribute format
+		// from SetInputLayout). Just temporarily rebind our VBO to its binding point 0.
+		GLint currentVAO = 0;
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &currentVAO);
+		glVertexArrayVertexBuffer(currentVAO, 0, _vbo, 0, sizeof(Vertex));
+
+		glDrawArrays(_primitiveType, 0, (GLsizei)_vertices.size());
 	}
 
 	void GLPrimitiveBatch::End()

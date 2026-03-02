@@ -15,5 +15,5 @@ void main()
 {
     gl_Position = vec4(in_Position, 1.0);
     vs_out.Color = in_Color;
-    vs_out.UV = vec2(in_UV.x, 1.0 - in_UV.y);
+    vs_out.UV = in_UV;
 }

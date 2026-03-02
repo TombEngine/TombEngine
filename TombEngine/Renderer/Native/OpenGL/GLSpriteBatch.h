@@ -15,6 +15,7 @@ namespace TEN::Renderer::Native::OpenGL
 	{
 		GLuint TextureHandle;
 		float Left, Top, Right, Bottom;
+		float U0 = 0, V0 = 0, U1 = 1, V1 = 1;
 		Vector4 Color;
 	};
 
@@ -43,6 +44,7 @@ namespace TEN::Renderer::Native::OpenGL
 		void Begin(SpriteSortingMode sortingMode, BlendMode blendMode) override;
 		void End() override;
 		void Draw(ITextureBase* texture, RendererRectangle area, Vector4 color) override;
+		void DrawWithUV(GLuint textureHandle, RendererRectangle area, float u0, float v0, float u1, float v1, Vector4 color);
 	};
 }
 

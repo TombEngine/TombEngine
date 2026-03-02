@@ -98,48 +98,48 @@ namespace TEN::Renderer::Native::OpenGL
 
 			struct DDSHeader
 			{
-				uint32_t size;
-				uint32_t flags;
-				uint32_t height;
-				uint32_t width;
-				uint32_t pitchOrLinearSize;
-				uint32_t depth;
-				uint32_t mipMapCount;
-				uint32_t reserved1[11];
+				unsigned int size;
+				unsigned int flags;
+				unsigned int height;
+				unsigned int width;
+				unsigned int pitchOrLinearSize;
+				unsigned int depth;
+				unsigned int mipMapCount;
+				unsigned int reserved1[11];
 				// Pixel format.
-				uint32_t pfSize;
-				uint32_t pfFlags;
-				uint32_t pfFourCC;
-				uint32_t pfRGBBitCount;
-				uint32_t pfRBitMask;
-				uint32_t pfGBitMask;
-				uint32_t pfBBitMask;
-				uint32_t pfABitMask;
-				uint32_t caps;
-				uint32_t caps2;
-				uint32_t caps3;
-				uint32_t caps4;
-				uint32_t reserved2;
+				unsigned int pfSize;
+				unsigned int pfFlags;
+				unsigned int pfFourCC;
+				unsigned int pfRGBBitCount;
+				unsigned int pfRBitMask;
+				unsigned int pfGBitMask;
+				unsigned int pfBBitMask;
+				unsigned int pfABitMask;
+				unsigned int caps;
+				unsigned int caps2;
+				unsigned int caps3;
+				unsigned int caps4;
+				unsigned int reserved2;
 			};
 
 			const DDSHeader* hdr = reinterpret_cast<const DDSHeader*>(data + 4);
 			_width = hdr->width;
 			_height = hdr->height;
-			int mipCount = std::max((uint32_t)1, hdr->mipMapCount);
+			int mipCount = std::max((unsigned int)1, hdr->mipMapCount);
 
 			const unsigned char* pixelData = data + 128;
 			int remainingSize = dataSize - 128;
 
 			// Check for DX10 extended header.
-			uint32_t fourCC = hdr->pfFourCC;
+			unsigned int fourCC = hdr->pfFourCC;
 			GLenum compressedFormat = 0;
 			int blockSize = 0;
 			bool isDX10 = false;
 
-			constexpr uint32_t FOURCC_DXT1 = 0x31545844; // "DXT1"
-			constexpr uint32_t FOURCC_DXT3 = 0x33545844; // "DXT3"
-			constexpr uint32_t FOURCC_DXT5 = 0x35545844; // "DXT5"
-			constexpr uint32_t FOURCC_DX10 = 0x30315844; // "DX10"
+			constexpr unsigned int FOURCC_DXT1 = 0x31545844; // "DXT1"
+			constexpr unsigned int FOURCC_DXT3 = 0x33545844; // "DXT3"
+			constexpr unsigned int FOURCC_DXT5 = 0x35545844; // "DXT5"
+			constexpr unsigned int FOURCC_DX10 = 0x30315844; // "DX10"
 
 			if (fourCC == FOURCC_DX10)
 			{
@@ -153,11 +153,11 @@ namespace TEN::Renderer::Native::OpenGL
 
 				struct DX10Header
 				{
-					uint32_t dxgiFormat;
-					uint32_t resourceDimension;
-					uint32_t miscFlag;
-					uint32_t arraySize;
-					uint32_t miscFlags2;
+					unsigned int dxgiFormat;
+					unsigned int resourceDimension;
+					unsigned int miscFlag;
+					unsigned int arraySize;
+					unsigned int miscFlags2;
 				};
 
 				const DX10Header* dx10 = reinterpret_cast<const DX10Header*>(data + 128);

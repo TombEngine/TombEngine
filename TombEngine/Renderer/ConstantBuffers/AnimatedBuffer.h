@@ -20,10 +20,10 @@ namespace TEN::Renderer::ConstantBuffers
 	{
 		std::array<AnimatedFrame, 256> Textures;
 		//--
-		uint32_t NumFrames;
-		uint32_t Fps;
-		uint32_t Type;
-		uint32_t Animated;
+		unsigned int NumFrames;
+		unsigned int Fps;
+		unsigned int Type;
+		unsigned int Animated;
 		//--
 		float UVRotateDirection;
 		float UvRotateSpeed;

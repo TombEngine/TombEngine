@@ -26,13 +26,13 @@ namespace TEN::Renderer::Native::OpenGL
 		}
 
 		// Read glyph count.
-		uint32_t glyphCount;
+		unsigned int glyphCount;
 		file.read(reinterpret_cast<char*>(&glyphCount), 4);
 
 		// Read glyph table.
 		struct RawGlyph
 		{
-			uint32_t Character;
+			unsigned int Character;
 			int32_t TexLeft, TexTop, TexRight, TexBottom;
 			float XOffset, YOffset, XAdvance;
 		};
@@ -44,15 +44,15 @@ namespace TEN::Renderer::Native::OpenGL
 		file.read(reinterpret_cast<char*>(&_lineSpacing), 4);
 
 		// Read default character.
-		uint32_t defaultChar;
+		unsigned int defaultChar;
 		file.read(reinterpret_cast<char*>(&defaultChar), 4);
 		_defaultChar = (wchar_t)defaultChar;
 
 		// Read texture data.
-		uint32_t texWidth, texHeight;
-		uint32_t texFormat; // DXGI format.
-		uint32_t texStride;
-		uint32_t texRows;
+		unsigned int texWidth, texHeight;
+		unsigned int texFormat; // DXGI format.
+		unsigned int texStride;
+		unsigned int texRows;
 
 		file.read(reinterpret_cast<char*>(&texWidth), 4);
 		file.read(reinterpret_cast<char*>(&texHeight), 4);
@@ -63,7 +63,7 @@ namespace TEN::Renderer::Native::OpenGL
 		_atlasWidth = texWidth;
 		_atlasHeight = texHeight;
 
-		uint32_t texDataSize = texStride * texRows;
+		unsigned int texDataSize = texStride * texRows;
 		std::vector<unsigned char> texData(texDataSize);
 		file.read(reinterpret_cast<char*>(texData.data()), texDataSize);
 
@@ -135,13 +135,13 @@ namespace TEN::Renderer::Native::OpenGL
 		return _lineSpacing;
 	}
 
-	const GLSpriteFont::FontGlyph* GLSpriteFont::FindGlyphInternal(uint32_t character) const
+	const GLSpriteFont::FontGlyph* GLSpriteFont::FindGlyphInternal(unsigned int character) const
 	{
 		auto it = _glyphs.find(character);
 		if (it != _glyphs.end())
 			return &it->second;
 
-		it = _glyphs.find((uint32_t)_defaultChar);
+		it = _glyphs.find((unsigned int)_defaultChar);
 		if (it != _glyphs.end())
 			return &it->second;
 
@@ -161,9 +161,19 @@ namespace TEN::Renderer::Native::OpenGL
 			}
 			else
 			{
-				auto* g = FindGlyphInternal((uint32_t)*str);
+				auto* g = FindGlyphInternal((unsigned int)*str);
 				if (g)
-					x += g->XAdvance;
+				{
+					// Match DirectXTK's ForEachGlyph: XOffset is left bearing,
+					// XAdvance is right bearing, advance = glyph_width + XAdvance.
+					x += g->XOffset;
+					if (x < 0)
+						x = 0;
+
+					float w = (float)(g->Subrect.Right - g->Subrect.Left);
+					maxX = std::max(maxX, x + w);
+					x += w + g->XAdvance;
+				}
 			}
 			str++;
 		}
@@ -182,7 +192,7 @@ namespace TEN::Renderer::Native::OpenGL
 
 	Glyph GLSpriteFont::FindGlyph(char c)
 	{
-		auto* g = FindGlyphInternal((uint32_t)(unsigned char)c);
+		auto* g = FindGlyphInternal((unsigned int)(unsigned char)c);
 		Glyph result = {};
 		if (g)
 		{
@@ -197,7 +207,7 @@ namespace TEN::Renderer::Native::OpenGL
 
 	Glyph GLSpriteFont::FindGlyph(wchar_t c)
 	{
-		auto* g = FindGlyphInternal((uint32_t)c);
+		auto* g = FindGlyphInternal((unsigned int)c);
 		Glyph result = {};
 		if (g)
 		{
@@ -212,8 +222,13 @@ namespace TEN::Renderer::Native::OpenGL
 
 	void GLSpriteFont::DrawStringInternal(ISpriteBatch* spriteBatch, const wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
 	{
-		// Simple implementation: draw each glyph as a sprite quad via the sprite batch.
-		// rotation and origin are ignored for simplicity (matching DirectXTK behavior for common cases).
+		if (!_atlasTexture || _atlasWidth == 0 || _atlasHeight == 0)
+			return;
+
+		auto* glBatch = static_cast<GLSpriteBatch*>(spriteBatch);
+		float invW = 1.0f / (float)_atlasWidth;
+		float invH = 1.0f / (float)_atlasHeight;
+
 		float x = position.x - origin.x * scale;
 		float y = position.y - origin.y * scale;
 
@@ -226,21 +241,29 @@ namespace TEN::Renderer::Native::OpenGL
 			}
 			else
 			{
-				auto* g = FindGlyphInternal((uint32_t)*text);
+				auto* g = FindGlyphInternal((unsigned int)*text);
 				if (g)
 				{
-					float gx = x + g->XOffset * scale;
+					// Match DirectXTK's ForEachGlyph algorithm:
+					// XOffset is the left side bearing, XAdvance is the right side bearing.
+					// The cursor advance per glyph = XOffset + glyph_width + XAdvance.
+					x += g->XOffset * scale;
+
 					float gy = y + g->YOffset * scale;
 					float gw = (float)(g->Subrect.Right - g->Subrect.Left) * scale;
 					float gh = (float)(g->Subrect.Bottom - g->Subrect.Top) * scale;
 
-					RendererRectangle area((int)gx, (int)gy, (int)(gx + gw), (int)(gy + gh));
-					// NOTE: We'd need to pass UV subrect too. For now, the SpriteBatch::Draw
-					// interface doesn't support subrects, so this is a simplified version.
-					// A full implementation would need the atlas texture and subrect UVs.
-					spriteBatch->Draw(nullptr, area, color);
+					RendererRectangle area((int)x, (int)gy, (int)(x + gw), (int)(gy + gh));
 
-					x += g->XAdvance * scale;
+					float u0 = g->Subrect.Left * invW;
+					float v0 = g->Subrect.Top * invH;
+					float u1 = g->Subrect.Right * invW;
+					float v1 = g->Subrect.Bottom * invH;
+
+					glBatch->DrawWithUV(_atlasTexture, area, u0, v0, u1, v1, color);
+
+					// Advance cursor by glyph width + right side bearing.
+					x += (gw + g->XAdvance * scale);
 				}
 			}
 			text++;

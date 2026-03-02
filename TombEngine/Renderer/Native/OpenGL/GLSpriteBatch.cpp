@@ -14,9 +14,12 @@ namespace TEN::Renderer::Native::OpenGL
 		layout(location=2) in vec4 aColor;
 		out vec2 vUV;
 		out vec4 vColor;
-		uniform mat4 uProjection;
+		uniform vec2 uScreenSize;
 		void main() {
-			gl_Position = uProjection * vec4(aPos, 0.0, 1.0);
+			gl_Position = vec4(
+				aPos.x / uScreenSize.x * 2.0 - 1.0,
+				-(aPos.y / uScreenSize.y * 2.0 - 1.0),
+				0.0, 1.0);
 			vUV = aUV;
 			vColor = aColor;
 		}
@@ -28,8 +31,10 @@ namespace TEN::Renderer::Native::OpenGL
 		in vec4 vColor;
 		layout(binding=0) uniform sampler2D uTexture;
 		layout(location=0) out vec4 FragColor;
+		layout(location=1) out vec4 FragColor1;
 		void main() {
 			FragColor = texture(uTexture, vUV) * vColor;
+			FragColor1 = vec4(0.0);
 		}
 	)";
 
@@ -59,6 +64,16 @@ namespace TEN::Renderer::Native::OpenGL
 		glAttachShader(_program, vs);
 		glAttachShader(_program, fs);
 		glLinkProgram(_program);
+
+		GLint linkOk = 0;
+		glGetProgramiv(_program, GL_LINK_STATUS, &linkOk);
+		if (!linkOk)
+		{
+			char log[512];
+			glGetProgramInfoLog(_program, sizeof(log), nullptr, log);
+			TENLog(std::string("SpriteBatch program link error: ") + log, LogLevel::Error);
+		}
+
 		glDeleteShader(vs);
 		glDeleteShader(fs);
 
@@ -123,6 +138,22 @@ namespace TEN::Renderer::Native::OpenGL
 		_queue.push_back(quad);
 	}
 
+	void GLSpriteBatch::DrawWithUV(GLuint textureHandle, RendererRectangle area, float u0, float v0, float u1, float v1, Vector4 color)
+	{
+		SpriteBatchQuad quad;
+		quad.TextureHandle = textureHandle;
+		quad.Left = (float)area.Left;
+		quad.Top = (float)area.Top;
+		quad.Right = (float)area.Right;
+		quad.Bottom = (float)area.Bottom;
+		quad.U0 = u0;
+		quad.V0 = v0;
+		quad.U1 = u1;
+		quad.V1 = v1;
+		quad.Color = color;
+		_queue.push_back(quad);
+	}
+
 	void GLSpriteBatch::Flush()
 	{
 		if (_queue.empty())
@@ -141,7 +172,6 @@ namespace TEN::Renderer::Native::OpenGL
 		};
 
 		GLuint currentTex = 0;
-		int quadStart = 0;
 
 		// Sort by texture for batching.
 		std::sort(_queue.begin(), _queue.end(),
@@ -150,33 +180,55 @@ namespace TEN::Renderer::Native::OpenGL
 		// Save GL state that we modify.
 		GLint prevVAO = 0;
 		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVAO);
+		GLint prevPipeline = 0;
+		glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &prevPipeline);
+		GLint prevProgram = 0;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &prevProgram);
+		GLboolean prevCullFace = glIsEnabled(GL_CULL_FACE);
+		GLboolean prevBlend = glIsEnabled(GL_BLEND);
+		GLboolean prevDepth = glIsEnabled(GL_DEPTH_TEST);
 
-		// Activate SpriteBatch's own linked program (overrides pipeline).
+		// Unbind any active pipeline so the linked program takes clean precedence.
+		glBindProgramPipeline(0);
+
+		// Activate SpriteBatch's own linked program.
 		glUseProgram(_program);
 
-		// Orthographic projection matching screen coordinates.
-		float proj[16] = {};
-		float L = 0, R = (float)_screenW, T = 0, B = (float)_screenH;
-		proj[0] = 2.0f / (R - L);
-		proj[5] = 2.0f / (T - B);
-		proj[10] = -1.0f;
-		proj[12] = -(R + L) / (R - L);
-		proj[13] = -(T + B) / (T - B);
-		proj[15] = 1.0f;
-		glUniformMatrix4fv(glGetUniformLocation(_program, "uProjection"), 1, GL_FALSE, proj);
+		// Query the current viewport for the orthographic projection.
+		// This matches DirectXTK's behavior of using the actual viewport dimensions
+		// rather than cached values, ensuring correctness even if the render target changes.
+		GLint viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		float vpW = (float)viewport[2];
+		float vpH = (float)viewport[3];
+
+		// Upload screen size for the vertex shader's orthographic projection.
+		glUniform2f(glGetUniformLocation(_program, "uScreenSize"), vpW, vpH);
 
 		glBindVertexArray(_vao);
 		glBindSampler(0, _sampler);
 
+		// Set 2D rendering state.
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+
+		if (_blendMode == BlendMode::AlphaBlend || _blendMode == BlendMode::FastAlphaBlend)
+		{
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glBlendEquation(GL_FUNC_ADD);
+		}
+
 		for (size_t i = 0; i < _queue.size(); i++)
 		{
 			const auto& q = _queue[i];
-			addVertex(q.Left,  q.Top,    0, 0, q.Color);
-			addVertex(q.Right, q.Top,    1, 0, q.Color);
-			addVertex(q.Right, q.Bottom, 1, 1, q.Color);
-			addVertex(q.Left,  q.Top,    0, 0, q.Color);
-			addVertex(q.Right, q.Bottom, 1, 1, q.Color);
-			addVertex(q.Left,  q.Bottom, 0, 1, q.Color);
+
+			addVertex(q.Left,  q.Top,    q.U0, q.V0, q.Color);
+			addVertex(q.Right, q.Top,    q.U1, q.V0, q.Color);
+			addVertex(q.Right, q.Bottom, q.U1, q.V1, q.Color);
+			addVertex(q.Left,  q.Top,    q.U0, q.V0, q.Color);
+			addVertex(q.Right, q.Bottom, q.U1, q.V1, q.Color);
+			addVertex(q.Left,  q.Bottom, q.U0, q.V1, q.Color);
 		}
 
 		glNamedBufferData(_vbo, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
@@ -201,8 +253,13 @@ namespace TEN::Renderer::Native::OpenGL
 			}
 		}
 
-		// Restore GL state: deactivate glUseProgram so the pipeline takes over again.
-		glUseProgram(0);
+		// Restore GL state.
+		if (prevCullFace) glEnable(GL_CULL_FACE);
+		if (prevDepth) glEnable(GL_DEPTH_TEST);
+		if (prevBlend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+
+		glUseProgram(prevProgram);
+		glBindProgramPipeline(prevPipeline);
 		glBindSampler(0, 0);
 		glBindVertexArray(prevVAO);
 	}

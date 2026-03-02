@@ -37,7 +37,7 @@ namespace TEN::Platform
 
 	std::wstring MacOSSubsystem::GetBinaryPath(bool includeExeName)
 	{
-		uint32_t bufSize = 0;
+		unsigned int bufSize = 0;
 		_NSGetExecutablePath(nullptr, &bufSize);
 
 		auto buffer = std::vector<char>(bufSize);
