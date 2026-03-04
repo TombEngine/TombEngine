@@ -62,7 +62,11 @@ set(ALL_HEADERS
 # ---------------------------------------------------------------------------
 # Target
 # ---------------------------------------------------------------------------
-add_executable(TombEngine WIN32 ${ALL_SOURCES} ${ALL_HEADERS})
+if(WIN32)
+    add_executable(TombEngine WIN32 ${ALL_SOURCES} ${ALL_HEADERS})
+else()
+    add_executable(TombEngine ${ALL_SOURCES} ${ALL_HEADERS})
+endif()
 target_compile_features(TombEngine PRIVATE cxx_std_17)
 
 # Precompiled headers
@@ -79,32 +83,38 @@ target_include_directories(TombEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # ---------------------------------------------------------------------------
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/Libs)
 
+# Header-only / always-vendored libraries (all platforms).
 target_include_directories(TombEngine PRIVATE
     ${LIBS_DIR}
     ${LIBS_DIR}/glad
-    ${LIBS_DIR}/lua
     ${LIBS_DIR}/sol
-    ${LIBS_DIR}/zlib
-    ${LIBS_DIR}/lz4
-    ${LIBS_DIR}/sdl3/include
-    ${LIBS_DIR}/spdlog
-    ${LIBS_DIR}/ois
-    ${LIBS_DIR}/vlc
-    ${LIBS_DIR}/bass
     ${LIBS_DIR}/srtparser
     ${LIBS_DIR}/glm
+    ${LIBS_DIR}/bass
 )
+
+# On Windows, all third-party headers come from Libs/.
+if(WIN32)
+    target_include_directories(TombEngine PRIVATE
+        ${LIBS_DIR}/lua
+        ${LIBS_DIR}/zlib
+        ${LIBS_DIR}/lz4
+        ${LIBS_DIR}/sdl3/include
+        ${LIBS_DIR}/spdlog
+        ${LIBS_DIR}/vlc
+    )
+endif()
 
 # ---------------------------------------------------------------------------
 # Preprocessor definitions
 # ---------------------------------------------------------------------------
 target_compile_definitions(TombEngine PRIVATE
-    _CRT_SECURE_NO_WARNINGS
-    NOMINMAX
     SPDLOG_COMPILED_LIB
     SOL_SAFE_USERTYPE
     SOL_SAFE_FUNCTION_CALLS
     ${RENDERER_DEFINES}
+    $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>
+    $<$<PLATFORM_ID:Windows>:NOMINMAX>
 )
 
 if(WIN32)
@@ -143,6 +153,7 @@ if(MSVC)
     )
     target_link_options(TombEngine PRIVATE
         $<$<CONFIG:Release>:/LTCG>
+        /ENTRY:mainCRTStartup
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TombEngine PRIVATE
@@ -175,7 +186,6 @@ if(WIN32)
         ${LIBS_DIR}/sdl3/lib/x64
         ${LIBS_DIR}/vlc/${ARCH_DIR}
         ${LIBS_DIR}/bass/${ARCH_DIR}
-        ${LIBS_DIR}/ois/${ARCH_DIR}
     )
 
     # System libraries
@@ -198,37 +208,58 @@ if(WIN32)
         bass_fx
         libvlc
         libvlccore
-        $<IF:$<CONFIG:Debug>,sdl3,sdl3>
+        sdl3
         $<IF:$<CONFIG:Debug>,spdlogd,spdlog>
-        $<IF:$<CONFIG:Debug>,liblz4_static_d,liblz4_static>
-        $<IF:$<CONFIG:Debug>,OIS_d,OIS>
-    )
-
-    # NuGet packages (XAudio2)
-    set(NUGET_DIR ${CMAKE_SOURCE_DIR}/packages)
-
-    set(XAUDIO2_DIR ${NUGET_DIR}/Microsoft.XAudio2.Redist.1.2.10)
-    target_include_directories(TombEngine PRIVATE
-        ${XAUDIO2_DIR}/build/native/include
-    )
-    target_link_libraries(TombEngine PRIVATE
-        $<IF:$<CONFIG:Debug>,
-            ${XAUDIO2_DIR}/build/native/debug/lib/${ARCH_DIR}/xaudio2_9redist.lib,
-            ${XAUDIO2_DIR}/build/native/release/lib/${ARCH_DIR}/xaudio2_9redist.lib
-        >
+        liblz4_static
     )
 
 else()
-    # Linux / macOS — use system packages
+    # Linux / macOS — use system packages where available,
+    # prebuilt libraries from Libs/ for BASS and VLC.
     include(CMakeFindDependencyMacro)
     find_package(PkgConfig REQUIRED)
 
-    find_package(SDL3 REQUIRED)
+    find_package(SDL3 QUIET)
+    if(NOT SDL3_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(SDL3
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+            GIT_TAG        release-3.2.8
+        )
+        FetchContent_MakeAvailable(SDL3)
+    endif()
     find_package(OpenGL REQUIRED)
 
     pkg_check_modules(SPDLOG REQUIRED spdlog)
     pkg_check_modules(LZ4    REQUIRED liblz4)
     pkg_check_modules(LUA    REQUIRED lua5.3)
+
+    # Determine platform-specific lib subdirectory for prebuilt libs.
+    if(APPLE)
+        set(BASS_LIB_DIR macos)  # Universal binaries (x86_64 + arm64).
+        if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+            set(VLC_LIB_DIR macos/arm64)
+        else()
+            set(VLC_LIB_DIR macos/x86_64)
+        endif()
+        set(VLC_LIBRARIES vlc vlccore)
+        target_link_directories(TombEngine PRIVATE
+            ${LIBS_DIR}/bass/${BASS_LIB_DIR}
+            ${LIBS_DIR}/vlc/${VLC_LIB_DIR}
+        )
+    else()
+        # Linux: BASS from prebuilt, VLC from system package.
+        if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+            set(BASS_LIB_DIR linux/aarch64)
+        else()
+            set(BASS_LIB_DIR linux/x86_64)
+        endif()
+        pkg_check_modules(VLC REQUIRED libvlc)
+        target_link_directories(TombEngine PRIVATE
+            ${LIBS_DIR}/bass/${BASS_LIB_DIR}
+        )
+        target_include_directories(TombEngine PRIVATE ${VLC_INCLUDE_DIRS})
+    endif()
 
     target_link_libraries(TombEngine PRIVATE
         SDL3::SDL3
@@ -236,11 +267,21 @@ else()
         ${SPDLOG_LIBRARIES}
         ${LZ4_LIBRARIES}
         ${LUA_LIBRARIES}
+        bass
+        bassmix
+        bass_fx
+        ${VLC_LIBRARIES}
     )
     target_include_directories(TombEngine PRIVATE
         ${SPDLOG_INCLUDE_DIRS}
         ${LZ4_INCLUDE_DIRS}
         ${LUA_INCLUDE_DIRS}
+    )
+
+    # RPATH so the executable finds BASS .so/.dylib next to itself.
+    set_target_properties(TombEngine PROPERTIES
+        INSTALL_RPATH "$ORIGIN"
+        BUILD_RPATH   "$ORIGIN"
     )
 endif()
 
@@ -252,7 +293,6 @@ if(WIN32)
     set(DLL_DIRS
         ${LIBS_DIR}/bass/${ARCH_DIR}
         ${LIBS_DIR}/lua/${ARCH_DIR}
-        ${LIBS_DIR}/ois/${ARCH_DIR}
         ${LIBS_DIR}/vlc/${ARCH_DIR}
         ${LIBS_DIR}/sdl3/lib/x64
     )
@@ -272,6 +312,15 @@ if(WIN32)
             "$<TARGET_FILE_DIR:TombEngine>/*.pdb"
         VERBATIM
     )
+else()
+    # Copy BASS shared libraries next to the executable.
+    file(GLOB BASS_SHARED_LIBS "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.so" "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.dylib")
+    foreach(BASS_LIB ${BASS_SHARED_LIBS})
+        add_custom_command(TARGET TombEngine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${BASS_LIB}" "$<TARGET_FILE_DIR:TombEngine>"
+        )
+    endforeach()
 endif()
 
 # Copy shaders
@@ -294,4 +343,8 @@ add_custom_command(TARGET TombEngine POST_BUILD
 # ---------------------------------------------------------------------------
 # IDE source grouping (Visual Studio, Xcode, CLion)
 # ---------------------------------------------------------------------------
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ALL_SOURCES} ${ALL_HEADERS})
+# Filter out files outside the TombEngine/ tree (e.g. Libs/glad/glad.c)
+# before calling source_group, which requires all files to share the ROOT prefix.
+set(_GROUPABLE_FILES ${ALL_SOURCES} ${ALL_HEADERS})
+list(FILTER _GROUPABLE_FILES INCLUDE REGEX "^${CMAKE_CURRENT_SOURCE_DIR}")
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${_GROUPABLE_FILES})

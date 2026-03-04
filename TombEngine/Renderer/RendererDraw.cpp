@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <execution>
 #include <filesystem>
 
 #include "ConstantBuffers/CameraMatrixBuffer.h"

@@ -12,7 +12,6 @@ set(TEN_ROOT_HEADERS
     resource.h
     targetver.h
     Types.h
-    Version.h
 )
 
 # Game sources
@@ -25,7 +24,7 @@ set(TEN_GAME_SOURCES
     Game/collision/floordata.cpp
     Game/collision/Los.cpp
     Game/collision/Point.cpp
-    Game/collision/Sphere.cpp
+    Game/collision/sphere.cpp
     Game/control/box.cpp
     Game/control/control.cpp
     Game/control/flipeffect.cpp
@@ -33,19 +32,19 @@ set(TEN_GAME_SOURCES
     Game/control/lot.cpp
     Game/control/trigger.cpp
     Game/control/volume.cpp
-    Game/Debug/Debug.cpp
+    Game/debug/debug.cpp
     Game/effects/Blood.cpp
-    Game/effects/Bubble.cpp
+    Game/effects/bubble.cpp
     Game/effects/chaffFX.cpp
     Game/effects/debris.cpp
     Game/effects/Decal.cpp
     Game/effects/DisplaySprite.cpp
-    Game/effects/Drip.cpp
+    Game/effects/drip.cpp
     Game/effects/effects.cpp
     Game/effects/Electricity.cpp
     Game/effects/explosion.cpp
-    Game/effects/Footprint.cpp
-    Game/effects/Hair.cpp
+    Game/effects/footprint.cpp
+    Game/effects/hair.cpp
     Game/effects/item_fx.cpp
     Game/effects/Light.cpp
     Game/effects/Ripple.cpp
@@ -119,7 +118,7 @@ set(TEN_GAME_HEADERS
     Game/collision/floordata.h
     Game/collision/Los.h
     Game/collision/Point.h
-    Game/collision/Sphere.h
+    Game/collision/sphere.h
     Game/control/box.h
     Game/control/control.h
     Game/control/event.h
@@ -128,19 +127,19 @@ set(TEN_GAME_HEADERS
     Game/control/lot.h
     Game/control/trigger.h
     Game/control/volume.h
-    Game/Debug/Debug.h
+    Game/debug/debug.h
     Game/effects/Blood.h
-    Game/effects/Bubble.h
+    Game/effects/bubble.h
     Game/effects/chaffFX.h
     Game/effects/debris.h
     Game/effects/Decal.h
     Game/effects/DisplaySprite.h
-    Game/effects/Drip.h
+    Game/effects/drip.h
     Game/effects/effects.h
     Game/effects/Electricity.h
     Game/effects/explosion.h
-    Game/effects/Footprint.h
-    Game/effects/Hair.h
+    Game/effects/footprint.h
+    Game/effects/hair.h
     Game/effects/item_fx.h
     Game/effects/Light.h
     Game/effects/Ripple.h
@@ -747,7 +746,6 @@ set(TEN_OBJECTS_HEADERS
     Objects/TR5/Trap/tr5_romehammer.h
     Objects/TR5/Trap/tr5_ventilator.h
     Objects/TR5/Trap/tr5_wreckingball.h
-    Objects/TR5/Trap/ZipLine.h
     Objects/Utils/object_helper.h
     Objects/Utils/VehicleHelpers.h
 )
@@ -828,20 +826,13 @@ set(TEN_RENDERER_HEADERS
     Renderer/Graphics/ITexture2D.h
     Renderer/Graphics/ITextureBase.h
     Renderer/Graphics/IVertexBuffer.h
-    Renderer/Graphics/IVideoPlayer.h
     Renderer/Graphics/Vertices/PostProcessVertex.h
     Renderer/Graphics/Vertices/SpriteVertex.h
     Renderer/Graphics/Vertices/Vertex.h
     Renderer/Graphics/VRAMAllocation.h
     Renderer/Graphics/VRAMTracker.h
     Renderer/Renderer.h
-    Renderer/RendererBucket.h
     Renderer/RendererEnums.h
-    Renderer/RendererPolygon.h
-    Renderer/RendererRectangle.h
-    Renderer/RendererSprite2D.h
-    Renderer/RendererSpriteVertex.h
-    Renderer/RendererTransparentFace.h
     Renderer/RendererUtils.h
     Renderer/RenderView.h
     Renderer/ShaderManager/ShaderManager.h
@@ -1057,11 +1048,6 @@ set(TEN_SCRIPTING_HEADERS
     Scripting/Internal/TEN/Logic/LevelFunc.h
     Scripting/Internal/TEN/Logic/LevelVars.h
     Scripting/Internal/TEN/Logic/LogicHandler.h
-    Scripting/Internal/TEN/Misc/ActionIDs.h
-    Scripting/Internal/TEN/Misc/CameraTypes.h
-    Scripting/Internal/TEN/Misc/LevelLog.h
-    Scripting/Internal/TEN/Misc/Miscellaneous.h
-    Scripting/Internal/TEN/Misc/SoundTrackTypes.h
     Scripting/Internal/TEN/Objects/AIObject/AIObject.h
     Scripting/Internal/TEN/Objects/Camera/CameraObject.h
     Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h
@@ -1120,10 +1106,10 @@ set(TEN_SPECIFIC_SOURCES
     Specific/clock.cpp
     Specific/configuration.cpp
     Specific/EngineMain.cpp
+    Specific/Input/Action.cpp
     Specific/Input/Bindings.cpp
+    Specific/Input/Event.cpp
     Specific/Input/Input.cpp
-    Specific/Input/InputAction.cpp
-    Specific/Input/Keys.cpp
     Specific/IO/ChunkId.cpp
     Specific/IO/ChunkReader.cpp
     Specific/IO/Streams.cpp
@@ -1143,10 +1129,10 @@ set(TEN_SPECIFIC_HEADERS
     Specific/configuration.h
     Specific/EngineMain.h
     Specific/fast_vector.h
+    Specific/Input/Action.h
     Specific/Input/Bindings.h
+    Specific/Input/Event.h
     Specific/Input/Input.h
-    Specific/Input/InputAction.h
-    Specific/Input/Keys.h
     Specific/IO/ChunkId.h
     Specific/IO/ChunkReader.h
     Specific/IO/ChunkWriter.h

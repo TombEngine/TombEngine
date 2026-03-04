@@ -1,7 +1,9 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#ifdef _MSC_VER
 #include <execution>
+#endif
 #include <stack>
 #include <tuple>
 
@@ -605,24 +607,26 @@ namespace TEN::Renderer
 		_roomsVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_roomsVertices.size(), sizeof(Vertex), _roomsVertices.data());
 		_roomsIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_roomsIndices.size(), _roomsIndices.data());
 
-		std::for_each(std::execution::par_unseq,
-			_rooms.begin(),
-			_rooms.end(),
-			[](RendererRoom& room)
-			{
-				std::sort(
-					room.Buckets.begin(),
-					room.Buckets.end(),
-					[](RendererBucket& a, RendererBucket& b)
-					{
-						if (a.BlendMode == b.BlendMode)
-							return (a.Texture < b.Texture);
-						else
-							return (a.BlendMode < b.BlendMode);
-					}
-				);
-			}
-		);
+		auto sortBuckets = [](RendererRoom& room)
+		{
+			std::sort(
+				room.Buckets.begin(),
+				room.Buckets.end(),
+				[](RendererBucket& a, RendererBucket& b)
+				{
+					if (a.BlendMode == b.BlendMode)
+						return (a.Texture < b.Texture);
+					else
+						return (a.BlendMode < b.BlendMode);
+				}
+			);
+		};
+
+#ifdef _MSC_VER
+		std::for_each(std::execution::par_unseq, _rooms.begin(), _rooms.end(), sortBuckets);
+#else
+		std::for_each(_rooms.begin(), _rooms.end(), sortBuckets);
+#endif
 
 		TENLog("Preparing object data...", LogLevel::Info);
 			 

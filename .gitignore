@@ -1,5 +1,7 @@
 enc_temp_folder/
 Build/
+build/
+cmake-build-*/
 Documentation/doc/
 Documentation/API.xml
 TombEngine/x64/
@@ -18,12 +20,15 @@ packages/
 *.zip
 *.db
 *.opendb
-.exp
-.pdb
-.ilk
+*.exp
+*.pdb
+*.ilk
+*_d.lib
+*_d.dll
 *.wav
 *.trc
 *.str
 *.ten
+.DS_Store
+Thumbs.db
 Logs/
-build/
