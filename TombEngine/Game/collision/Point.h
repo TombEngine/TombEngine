@@ -2,7 +2,7 @@
 #include "Game/collision/collide_room.h"
 #include "Math/Math.h"
 
-enum RoomEnvFlags;
+enum RoomEnvFlags : int;
 class FloorInfo;
 struct ItemInfo;
 

@@ -1732,7 +1732,7 @@ namespace TEN::Renderer
 		case RendererDebugPage::CollisionStats:
 			PrintDebugMessage("COLLISION STATS");
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Collision type: %d", LaraCollision.CollisionType);
+			PrintDebugMessage("Collision type: %d", LaraCollision.CollType);
 			PrintDebugMessage("Bridge item ID: %d", LaraCollision.Middle.Bridge);
 			PrintDebugMessage("Front floor: %d", LaraCollision.Front.Floor);
 			PrintDebugMessage("Front left floor: %d", LaraCollision.FrontLeft.Floor);

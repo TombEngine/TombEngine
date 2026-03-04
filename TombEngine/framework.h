@@ -26,7 +26,9 @@
 #include <ctime>
 #include <chrono>
 #include <deque>
+#ifdef _MSC_VER
 #include <execution>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -69,17 +71,11 @@ using namespace TEN::Math::Collision;
 // sol
 #include <sol.hpp>
 
-// spdlog
-#include <spdlog.h>
-#include <spdlog/fmt/fmt.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
 // srtparser.h
 #include <srtparser.h>
 
 // spdlog
-#include <spdlog.h>
+#include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

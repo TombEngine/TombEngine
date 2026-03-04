@@ -76,7 +76,7 @@ public:
 
 struct SectorSurfaceTriangleData
 {
-	Plane		 Plane			  = {};
+	Plane		 SurfacePlane	  = {};
 	int			 PortalRoomNumber = 0;
 	short		 SteepSlopeAngle  = 0;
 	MaterialType Material		  = MaterialType::Stone;

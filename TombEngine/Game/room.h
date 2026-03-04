@@ -23,7 +23,7 @@ extern bool FlipStatus;
 extern bool FlipStats[MAX_FLIPMAP];
 extern int  FlipMap[MAX_FLIPMAP];
 
-enum RoomEnvFlags
+enum RoomEnvFlags : int
 {
 	ENV_FLAG_WATER			 = 1 << 0,
 	ENV_FLAG_SWAMP			 = 1 << 2,

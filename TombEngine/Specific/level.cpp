@@ -1100,16 +1100,16 @@ void LoadStaticRoomData()
 				sector.FloorSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_FLOOR_SLOPE_ANGLE;
 				sector.FloorSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.FloorSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.FloorSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
-				sector.FloorSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
+				sector.FloorSurface.Triangles[0].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), true);
+				sector.FloorSurface.Triangles[1].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), true);
 
 				sector.CeilingSurface.SplitAngle = FROM_RAD(ReadFloat());
 				sector.CeilingSurface.Triangles[0].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.CeilingSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.CeilingSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
-				sector.CeilingSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
+				sector.CeilingSurface.Triangles[0].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), false);
+				sector.CeilingSurface.Triangles[1].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), false);
 
 				sector.SidePortalRoomNumber = ReadInt32();
 				sector.Flags.Death = ReadBool();

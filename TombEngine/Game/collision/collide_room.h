@@ -3,7 +3,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 
-enum RoomEnvFlags;
+enum RoomEnvFlags : int;
 class FloorInfo;
 struct ItemInfo;
 struct RoomData;
@@ -103,7 +103,7 @@ struct CollisionInfo
 	CollisionPositionData FrontLeft	  = {};
 	CollisionPositionData FrontRight  = {};
 
-	CollisionType CollisionType = CollisionType::None;
+	CollisionType CollType = CollisionType::None;
 	Pose		  Shift			= Pose::Zero;
 
 	Vector3 FloorNormal			 = Vector3::Zero;

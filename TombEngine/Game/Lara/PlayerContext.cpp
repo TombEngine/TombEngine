@@ -633,8 +633,8 @@ namespace TEN::Entities::Player
 
 		// 2) Assess collision with ceiling.
 		if (relCeilHeight < 0 &&
-			coll.CollisionType != CollisionType::Top &&
-			coll.CollisionType != CollisionType::TopFront)
+			coll.CollType != CollisionType::Top &&
+			coll.CollType != CollisionType::TopFront)
 		{
 			return false;
 		}

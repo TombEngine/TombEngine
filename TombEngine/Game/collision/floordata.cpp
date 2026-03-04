@@ -74,7 +74,7 @@ Vector3 FloorInfo::GetSurfaceNormal(int triID, bool isFloor) const
 	const auto& tri = tris[triID];
 
 	// Return plane normal.
-	return tri.Plane.Normal();
+	return tri.SurfacePlane.Normal();
 }
 
 Vector3 FloorInfo::GetSurfaceNormal(int x, int z, bool isFloor) const
@@ -100,7 +100,7 @@ bool FloorInfo::IsSurfaceSplit(bool isFloor) const
 	const auto& tris = isFloor ? FloorSurface.Triangles : CeilingSurface.Triangles;
 
 	// Check if surface planes aren't equal or portal is split.
-	bool arePlanesEqual = (tris[0].Plane == tris[1].Plane);
+	bool arePlanesEqual = (tris[0].SurfacePlane == tris[1].SurfacePlane);
 	return (!arePlanesEqual || IsSurfaceSplitPortal(isFloor));
 }
 
@@ -203,15 +203,15 @@ int FloorInfo::GetSurfaceHeight(int x, int z, bool isFloor) const
 
 	// Calculate relative plane height at intersection using plane equation.
 	auto sectorPoint = GetSectorPoint(x, z);
-	auto normal = tri.Plane.Normal();
+	auto normal = tri.SurfacePlane.Normal();
 	float relPlaneHeight = -((normal.x * sectorPoint.x) + (normal.z * sectorPoint.y)) / normal.y;
 
 	// FAILSAFE: Due to float precision loss, NO_HEIGHT constant can't be recovered from plane and original value must be returned from original definition.
-	if (tri.Plane.D() == (float)NO_HEIGHT)
+	if (tri.SurfacePlane.D() == (float)NO_HEIGHT)
 		return NO_HEIGHT;
 
 	// Return sector floor or ceiling height. NOTE: Bridges ignored.
-	return (tri.Plane.D() + relPlaneHeight);
+	return (tri.SurfacePlane.D() + relPlaneHeight);
 }
 
 int FloorInfo::GetSurfaceHeight(const Vector3i& pos, bool isFloor) const
@@ -320,8 +320,8 @@ bool FloorInfo::IsWall(int triID) const
 	const auto& ceilTri = CeilingSurface.Triangles[triID];
 
 	bool areSplitAnglesEqual = (FloorSurface.SplitAngle == CeilingSurface.SplitAngle);
-	bool areNormalsParallel = (floorTri.Plane.Normal() == -ceilTri.Plane.Normal());
-	bool areDistsEqual = (floorTri.Plane.D() == ceilTri.Plane.D());
+	bool areNormalsParallel = (floorTri.SurfacePlane.Normal() == -ceilTri.SurfacePlane.Normal());
+	bool areDistsEqual = (floorTri.SurfacePlane.D() == ceilTri.SurfacePlane.D());
 
 	return (areSplitAnglesEqual && areNormalsParallel && areDistsEqual);
 }
