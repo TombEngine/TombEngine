@@ -10,7 +10,6 @@
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 extern GameConfiguration g_Configuration;
@@ -740,7 +739,7 @@ namespace TEN::Renderer::Native::OpenGL
 	// Render Target Clearing
 	// ========================================================================
 
-	void GLGraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor)
+	void GLGraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor)
 	{
 		auto* glRT = static_cast<GLRenderTarget2D*>(renderTarget);
 
@@ -749,13 +748,13 @@ namespace TEN::Renderer::Native::OpenGL
 
 		GLuint fbo = GetOrCreateFBO(glRT->GetGLTexture(), 0, false, 0, false, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glClearBufferfv(GL_COLOR, 0, clearColor.f);
+		glClearBufferfv(GL_COLOR, 0, &clearColor.x);
 		glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 
 		glEnable(GL_SCISSOR_TEST);
 	}
 
-	void GLGraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor)
+	void GLGraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor)
 	{
 		auto* glRT = static_cast<GLRenderTarget2D*>(renderTarget);
 
@@ -763,7 +762,7 @@ namespace TEN::Renderer::Native::OpenGL
 
 		GLuint fbo = GetOrCreateFBO(glRT->GetGLTexture(), 0, glRT->IsArray(), arrayIndex, false, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glClearBufferfv(GL_COLOR, 0, clearColor.f);
+		glClearBufferfv(GL_COLOR, 0, &clearColor.x);
 		glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 
 		glEnable(GL_SCISSOR_TEST);

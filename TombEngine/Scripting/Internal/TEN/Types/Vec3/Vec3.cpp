@@ -287,9 +287,19 @@ bool Vec3::IsEqualTo(const Vec3& vector0, const Vec3& vector1)
 	return false;
 }
 
+Vector2 Vec3::ToVector2() const
+{
+	return Vector2(x, y);
+}
+
 Vector3 Vec3::ToVector3() const
 {
 	return Vector3(x, y, z);
+}
+
+Vector4 Vec3::ToVector4() const
+{
+	return Vector4(x, y, z, 0);
 }
 
 Vector3i Vec3::ToVector3i() const
@@ -302,7 +312,17 @@ GameVector Vec3::ToGameVector() const
 	return GameVector(x, y, z);
 }
 
+Vec3::operator Vector2() const
+{
+	return ToVector2();
+}
+
 Vec3::operator Vector3() const
 {
 	return ToVector3();
-};
+}
+
+Vec3::operator Vector4() const
+{
+	return ToVector4();
+}

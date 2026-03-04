@@ -92,7 +92,7 @@ namespace TEN::Video
 			result *= boostFactor;
 			result.Clamp(Vector3::Zero, Vector3::One);
 		}
-
+		
 		if (luma < 0.5f)
 		{
 			float desaturationFactor = (0.4f - luma) / 0.4f;

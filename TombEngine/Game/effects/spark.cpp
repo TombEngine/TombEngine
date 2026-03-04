@@ -10,7 +10,7 @@
 #include "Math/Math.h"
 #include "Math/Random.h"
 
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 using namespace TEN::Math::Random;
 
 namespace TEN::Effects::Spark

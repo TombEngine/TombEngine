@@ -8,8 +8,7 @@
 #include "Specific/EngineMain.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
-#include <wincodec.h>
-#include <ScreenGrab.h>
+#include <stb_image_write.h>
 #include <ctime>
 
 extern GameConfiguration g_Configuration;
@@ -136,15 +135,15 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (blendMode)
 		{
 		case BlendMode::AlphaBlend:
-			_context->OMSetBlendState(_renderStates->NonPremultiplied(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_nonPremultipliedBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::AlphaTest:
-			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_opaqueBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Opaque:
-			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_opaqueBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Subtractive:
@@ -152,7 +151,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case BlendMode::Additive:
-			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_additiveBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Screen:
@@ -174,17 +173,16 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (depthState)
 		{
 		case DepthState::Read:
-			_context->OMSetDepthStencilState(_renderStates->DepthRead(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthReadState.Get(), 0xFFFFFFFF);
 			break;
 
 		case DepthState::Write:
-			_context->OMSetDepthStencilState(_renderStates->DepthDefault(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthDefaultState.Get(), 0xFFFFFFFF);
 			break;
 
 		case DepthState::None:
-			_context->OMSetDepthStencilState(_renderStates->DepthNone(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthNoneState.Get(), 0xFFFFFFFF);
 			break;
-
 		}
 	}
 
@@ -205,7 +203,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case CullMode::Wireframe:
-			_context->RSSetState(_renderStates->Wireframe());
+			_context->RSSetState(_wireframeRasterizerState.Get());
 			break;
 
 		}
@@ -232,19 +230,19 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (samplerType)
 		{
 		case SamplerStateRegister::AnisotropicClamp:
-			d3dSamplerState = _renderStates->AnisotropicClamp();
+			d3dSamplerState = _anisotropicClampSampler.Get();
 			break;
 
 		case SamplerStateRegister::AnisotropicWrap:
-			d3dSamplerState = _renderStates->AnisotropicWrap();
+			d3dSamplerState = _anisotropicWrapSampler.Get();
 			break;
 
 		case SamplerStateRegister::LinearClamp:
-			d3dSamplerState = _renderStates->LinearClamp();
+			d3dSamplerState = _linearClampSampler.Get();
 			break;
 
 		case SamplerStateRegister::LinearWrap:
-			d3dSamplerState = _renderStates->LinearWrap();
+			d3dSamplerState = _linearWrapSampler.Get();
 			break;
 
 		case SamplerStateRegister::PointWrap:
@@ -329,16 +327,16 @@ namespace TEN::Renderer::Native::DirectX11
 		_context->Draw(count, baseVertex);
 	}
 
-	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor)
+	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(), clearColor);
+		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(), &clearColor.x);
 	}
 
-	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor)
+	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(arrayIndex), clearColor);
+		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(arrayIndex), &clearColor.x);
 	}
 
 	void DX11GraphicsDevice::ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil)
@@ -481,7 +479,101 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::Initialize()
 	{
-		_renderStates = std::make_unique<CommonStates>(_device.Get());
+		// --- Blend states (replacing CommonStates) ---
+
+		// Opaque: no blending.
+		D3D11_BLEND_DESC opaqueDesc = {};
+		opaqueDesc.RenderTarget[0].BlendEnable = FALSE;
+		opaqueDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&opaqueDesc, _opaqueBlendState.GetAddressOf()));
+
+		// Additive: SrcAlpha + One.
+		D3D11_BLEND_DESC additiveDesc = {};
+		additiveDesc.RenderTarget[0].BlendEnable = TRUE;
+		additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		additiveDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&additiveDesc, _additiveBlendState.GetAddressOf()));
+
+		// NonPremultiplied: SrcAlpha + InvSrcAlpha.
+		D3D11_BLEND_DESC nonPremultDesc = {};
+		nonPremultDesc.RenderTarget[0].BlendEnable = TRUE;
+		nonPremultDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		nonPremultDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		nonPremultDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&nonPremultDesc, _nonPremultipliedBlendState.GetAddressOf()));
+
+		// --- Depth stencil states (replacing CommonStates) ---
+
+		// DepthDefault: read + write, LessEqual.
+		D3D11_DEPTH_STENCIL_DESC depthDefaultDesc = {};
+		depthDefaultDesc.DepthEnable = TRUE;
+		depthDefaultDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthDefaultDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		throwIfFailed(_device->CreateDepthStencilState(&depthDefaultDesc, _depthDefaultState.GetAddressOf()));
+
+		// DepthRead: read only, LessEqual.
+		D3D11_DEPTH_STENCIL_DESC depthReadDesc = {};
+		depthReadDesc.DepthEnable = TRUE;
+		depthReadDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthReadDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		throwIfFailed(_device->CreateDepthStencilState(&depthReadDesc, _depthReadState.GetAddressOf()));
+
+		// DepthNone: disabled.
+		D3D11_DEPTH_STENCIL_DESC depthNoneDesc = {};
+		depthNoneDesc.DepthEnable = FALSE;
+		depthNoneDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		throwIfFailed(_device->CreateDepthStencilState(&depthNoneDesc, _depthNoneState.GetAddressOf()));
+
+		// --- Sampler states (replacing CommonStates) ---
+
+		D3D11_SAMPLER_DESC anisotropicClampDesc = {};
+		anisotropicClampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		anisotropicClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
+		anisotropicClampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		anisotropicClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&anisotropicClampDesc, _anisotropicClampSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC anisotropicWrapDesc = {};
+		anisotropicWrapDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		anisotropicWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
+		anisotropicWrapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		anisotropicWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&anisotropicWrapDesc, _anisotropicWrapSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC linearClampDesc = {};
+		linearClampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		linearClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		linearClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&linearClampDesc, _linearClampSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC linearWrapDesc = {};
+		linearWrapDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		linearWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		linearWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&linearWrapDesc, _linearWrapSampler.GetAddressOf()));
+
+		// --- Custom blend states (project-specific) ---
 
 		D3D11_BLEND_DESC blendStateDesc{};
 		blendStateDesc.AlphaToCoverageEnable = false;
@@ -599,6 +691,14 @@ namespace TEN::Renderer::Native::DirectX11
 		rasterizerStateDesc.ScissorEnable = true;
 		throwIfFailed(_device->CreateRasterizerState(&rasterizerStateDesc, _cullNoneRasterizerState.GetAddressOf()));
 
+		rasterizerStateDesc.CullMode = D3D11_CULL_NONE;
+		rasterizerStateDesc.FillMode = D3D11_FILL_WIREFRAME;
+		rasterizerStateDesc.DepthClipEnable = true;
+		rasterizerStateDesc.MultisampleEnable = true;
+		rasterizerStateDesc.AntialiasedLineEnable = true;
+		rasterizerStateDesc.ScissorEnable = true;
+		throwIfFailed(_device->CreateRasterizerState(&rasterizerStateDesc, _wireframeRasterizerState.GetAddressOf()));
+
 		D3D11_SAMPLER_DESC samplerStateDesc = {};
 		samplerStateDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 		samplerStateDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -667,8 +767,6 @@ namespace TEN::Renderer::Native::DirectX11
 		// Initialize render targets
 		ID3D11Texture2D* backBufferTexture = NULL;
 		throwIfFailed(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast <void**>(&backBufferTexture)));
-
-		_viewportToolkit = Viewport(0, 0, width, height, 0.0f, 1.0f);
 
 		_screenWidth = width;
 		_screenHeight = height;
@@ -777,8 +875,6 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_screenWidth = width;
 		_screenHeight = height;
-
-		_viewportToolkit = Viewport(0, 0, width, height, 0.0f, 1.0f);
 	}
 
 	std::unique_ptr<IShader> DX11GraphicsDevice::CreateShader(ShaderCompileRequest& req)
@@ -985,19 +1081,63 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<IPrimitiveBatch> DX11GraphicsDevice::InitializePrimitiveBatch()
 	{
-		return std::make_unique<DX11PrimitiveBatch>(_context.Get());
+		return std::make_unique<DX11PrimitiveBatch>(_device.Get(), _context.Get());
 	}
 
 	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, path.c_str(), 
-			&GUID_WICPixelFormat24bppBGR, nullptr, true);
+		auto* srcTexture = nativeRenderTarget->GetD3D11Texture();
+		if (!srcTexture)
+			return;
+
+		D3D11_TEXTURE2D_DESC srcDesc;
+		srcTexture->GetDesc(&srcDesc);
+
+		// Create staging texture for CPU readback.
+		D3D11_TEXTURE2D_DESC stagingDesc = srcDesc;
+		stagingDesc.Usage = D3D11_USAGE_STAGING;
+		stagingDesc.BindFlags = 0;
+		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		stagingDesc.MiscFlags = 0;
+		stagingDesc.MipLevels = 1;
+		stagingDesc.ArraySize = 1;
+
+		ComPtr<ID3D11Texture2D> stagingTexture;
+		HRESULT hr = _device->CreateTexture2D(&stagingDesc, nullptr, stagingTexture.GetAddressOf());
+		if (FAILED(hr))
+			return;
+
+		_context->CopyResource(stagingTexture.Get(), srcTexture);
+
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		hr = _context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+		if (FAILED(hr))
+			return;
+
+		int w = (int)srcDesc.Width;
+		int h = (int)srcDesc.Height;
+
+		// Convert to RGBA for stb_image_write.
+		std::vector<unsigned char> pixels(w * h * 4);
+		for (int y = 0; y < h; y++)
+		{
+			auto* srcRow = reinterpret_cast<const unsigned char*>(
+				reinterpret_cast<const char*>(mapped.pData) + y * mapped.RowPitch);
+			auto* dstRow = pixels.data() + y * w * 4;
+			memcpy(dstRow, srcRow, w * 4);
+		}
+
+		_context->Unmap(stagingTexture.Get(), 0);
+
+		auto pathStr = TEN::Utils::ToString(path);
+		stbi_write_png(pathStr.c_str(), w, h, 4, pixels.data(), w * 4);
 	}
 
 	Vector3 DX11GraphicsDevice::Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world)
 	{
-		return _viewportToolkit.Unproject(position, projection, view, world);
+		Viewport vp(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight, 0.0f, 1.0f);
+		return vp.Unproject(position, projection, view, world);
 	}
 
 	void DX11GraphicsDevice::Flush()

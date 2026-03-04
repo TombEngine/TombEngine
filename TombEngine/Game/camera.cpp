@@ -1535,7 +1535,7 @@ void ItemsCollideCamera()
 		{
 			DrawDebugBox(
 				bounds.ToBoundingOrientedBox(item->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
+				Color(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 		}
 	}
 
@@ -1561,7 +1561,7 @@ void ItemsCollideCamera()
 		{
 			DrawDebugBox(
 				bounds.ToBoundingOrientedBox(mesh->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
+				Color(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 		}
 	}
 

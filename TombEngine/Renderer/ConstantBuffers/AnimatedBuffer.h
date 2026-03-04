@@ -1,11 +1,10 @@
 #pragma once
 #include <array>
 #include <cstdint>
-#include <SimpleMath.h>
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 
 	struct AnimatedFrame
 	{

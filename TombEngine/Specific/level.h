@@ -114,7 +114,7 @@ struct MESH
 struct MirrorData
 {
 	int	   RoomNumber		= 0;
-	Plane  Plane			= SimpleMath::Plane();
+	Plane  Plane			= TEN::Math::Library::Plane();
 	Matrix ReflectionMatrix = Matrix::Identity;
 	
 	bool Enabled		  = false;

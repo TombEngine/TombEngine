@@ -27,7 +27,7 @@ namespace TEN::Animation
 	{
 		Vector3					RootOffset		 = Vector3::Zero;
 		std::vector<Quaternion> BoneOrientations = {};
-		BoundingBox				Aabb			 = DirectX::BoundingBox(); // Local AABB.
+		BoundingBox				Aabb			 = TEN::Math::Collision::BoundingBox(); // Local AABB.
 
 		// Deprecated.
 		GameBoundingBox BoundingBox = GameBoundingBox::Zero; // Local AABB.

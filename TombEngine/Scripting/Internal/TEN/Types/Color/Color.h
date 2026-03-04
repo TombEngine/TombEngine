@@ -23,6 +23,7 @@ namespace TEN::Scripting::Types
 		ScriptColor();
 		ScriptColor(byte r, byte g, byte b);
 		ScriptColor(byte r, byte g, byte b, byte a);
+		ScriptColor(const Color& color);
 		ScriptColor(const Vector3& color);
 		ScriptColor(const Vector4& color);
 		ScriptColor(D3DCOLOR);

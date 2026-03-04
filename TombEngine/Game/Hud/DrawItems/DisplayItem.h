@@ -25,7 +25,7 @@ namespace TEN::Hud
 		Vector3                              _position         = Vector3::Zero;
 		EulerAngles                          _orientation      = EulerAngles::Identity;
 		Vector3                              _scale            = Vector3::Zero;
-		Color                                _color            = Vector4::One;
+		Color                                _color            = Color(1.0f, 1.0f, 1.0f, 1.0f);
 		BitField                             _meshBits         = BitField::Default;
 		std::unordered_map<int, EulerAngles> _meshOrientations = {};
 
@@ -36,7 +36,7 @@ namespace TEN::Hud
 		Vector3                              _prevPosition         = Vector3::Zero;
 		EulerAngles                          _prevOrientation      = EulerAngles::Identity;
 		Vector3                              _prevScale            = Vector3::Zero;
-		Color                                _prevColor            = Vector4::One;
+		Color                                _prevColor            = Color(1.0f, 1.0f, 1.0f, 1.0f);
 		std::unordered_map<int, EulerAngles> _prevMeshOrientations = {};
 
 	public:

@@ -240,6 +240,7 @@ set(TEN_MATH_HEADERS
     Math/Objects/Vector2i.h
     Math/Objects/Vector3i.h
     Math/Random.h
+    Math/SimpleMath.h
     Math/Solvers.h
     Math/Utils.h
 )
@@ -769,6 +770,7 @@ set(TEN_RENDERER_SOURCES
     Renderer/Frustum.cpp
     Renderer/Graphics/VRAMAllocation.cpp
     Renderer/Graphics/VRAMTracker.cpp
+    Renderer/stb_impl.cpp
     Renderer/Renderer.cpp
     Renderer/RendererAntialiasing.cpp
     Renderer/RendererCompatibility.cpp
@@ -890,6 +892,7 @@ set(TEN_RENDERER_DX11_SOURCES
     Renderer/Native/DirectX11/DX11GraphicsDevice.cpp
     Renderer/Native/DirectX11/DX11IndexBuffer.cpp
     Renderer/Native/DirectX11/DX11InputLayout.cpp
+    Renderer/Native/DirectX11/DX11PrimitiveBatch.cpp
     Renderer/Native/DirectX11/DX11RenderTarget2D.cpp
     Renderer/Native/DirectX11/DX11SpriteBatch.cpp
     Renderer/Native/DirectX11/DX11SpriteFont.cpp

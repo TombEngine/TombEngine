@@ -6,7 +6,6 @@
 #include "Renderer/Native/OpenGL/GLUtils.h"
 #include "Renderer/Native/OpenGL/GLErrorHelper.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace TEN::Renderer::Native::OpenGL

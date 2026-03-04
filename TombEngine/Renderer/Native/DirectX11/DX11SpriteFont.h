@@ -3,44 +3,57 @@
 #ifdef HAS_DX11
 
 #include <d3d11.h>
-#include "Renderer/Native/DirectX11/DX11SpriteBatch.h"
-#include "Renderer/Graphics/ISpriteFont.h"
 #include <wrl/client.h>
-#include <SpriteFont.h>
 #include <memory>
+#include <unordered_map>
+#include "Renderer/Graphics/ISpriteFont.h"
+#include "Renderer/Native/DirectX11/DX11SpriteBatch.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
 	using namespace TEN::Renderer::Graphics;
-	using namespace DirectX;
 
 	using Microsoft::WRL::ComPtr;
 
 	class DX11SpriteFont final : public ISpriteFont
 	{
-		// TODO: in the future, use cross platform font libraries for handling fonts also with support of true type fonts and extended characters.
-
 	private:
-		std::unique_ptr<SpriteFont> _gameFont;
+		struct FontGlyph
+		{
+			unsigned int Character;
+			RendererRectangle Subrect;
+			float XOffset;
+			float YOffset;
+			float XAdvance;
+		};
+
+		ComPtr<ID3D11ShaderResourceView> _atlasSRV;
+		int _atlasWidth = 0;
+		int _atlasHeight = 0;
+		float _lineSpacing = 0;
+		wchar_t _defaultChar = L' ';
+		std::unordered_map<unsigned int, FontGlyph> _glyphs;
+
+		bool ParseSpriteFontFile(ID3D11Device* device, const std::wstring& path);
+		const FontGlyph* FindGlyphInternal(unsigned int character) const;
+		Vector2 MeasureStringInternal(const wchar_t* str);
+		void DrawStringInternal(ISpriteBatch* spriteBatch, const wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale);
 
 	public:
-		DX11SpriteFont();
+		DX11SpriteFont() = default;
 		~DX11SpriteFont() = default;
 
 		DX11SpriteFont(ID3D11Device* device, std::wstring fontPath);
 
-		float GetLineSpacing();
-
-		Vector2 MeasureString(std::wstring str);
-		Vector2 MeasureString(wchar_t* str);
-
-		Glyph FindGlyph(char c);
-		Glyph FindGlyph(wchar_t c);
-
-		void DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
+		float GetLineSpacing() override;
+		Vector2 MeasureString(std::wstring str) override;
+		Vector2 MeasureString(wchar_t* str) override;
+		Glyph FindGlyph(char c) override;
+		Glyph FindGlyph(wchar_t c) override;
+		void DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
+		void DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
+		void DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
+		void DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
 	};
 }
 

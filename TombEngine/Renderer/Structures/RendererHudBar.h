@@ -1,12 +1,11 @@
 #pragma once
-#include <SimpleMath.h>
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Math/Utils.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
+	using namespace TEN::Math::Library;
 	using namespace TEN::Renderer;
 	using namespace TEN::Renderer::Graphics;
 	using namespace TEN::Math;

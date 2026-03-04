@@ -231,7 +231,7 @@ void UpdateDebris()
 
 			deb.velocity *= deb.linearDrag;
 			deb.velocity += deb.gravity;
-			deb.velocity = XMVector3ClampLength(deb.velocity, 0, deb.terminalVelocity);
+			deb.velocity = Vector3::ClampLength(deb.velocity, 0, deb.terminalVelocity);
 			deb.rotation *= Quaternion::CreateFromYawPitchRoll(deb.angularVelocity.x, deb.angularVelocity.y, deb.angularVelocity.z);
 			deb.worldPosition += deb.velocity;
 			deb.angularVelocity *= deb.angularDrag;

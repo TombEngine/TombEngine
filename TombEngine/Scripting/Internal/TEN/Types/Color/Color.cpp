@@ -73,6 +73,11 @@ namespace TEN::Scripting::Types
 	{
 	}
 
+	ScriptColor::ScriptColor(const Color& color) :
+		_color(color.ToVector4())
+	{
+	}
+
 	ScriptColor::ScriptColor(D3DCOLOR color) :
 		_color(color)
 	{

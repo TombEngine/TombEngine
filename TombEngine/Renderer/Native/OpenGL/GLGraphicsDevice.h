@@ -21,7 +21,7 @@
 
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Library;
 
 namespace TEN::Renderer::Native::OpenGL
 {
@@ -98,8 +98,8 @@ namespace TEN::Renderer::Native::OpenGL
 		void DrawInstancedTriangles(int count, int instances, int baseVertex) override;
 		void DrawTriangles(int count, int baseVertex) override;
 
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor) override;
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor) override;
 
 		void ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;
 		void ClearDepthStencil(IDepthTarget* renderTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;

@@ -4,10 +4,9 @@
 #include <fstream>
 #include <string>
 #include <stdlib.h>
-#include <SimpleMath.h>
 
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math::Collision;
+using namespace TEN::Math::Library;
 
 enum SeekOrigin
 {

@@ -50,9 +50,19 @@ public:
 	// Converters
 
 	Vector2	 ToVector2() const;
+	Vector3	 ToVector3() const;
 	//Vector2i ToVector2i() const;
 
 	// Operators
 
 	operator Vector2() const;
+	operator Vector3() const;
+
+	// Arithmetic with Vector2.
+	Vector2 operator+(const Vector2& v) const { return Vector2(x + v.x, y + v.y); }
+	Vector2 operator-(const Vector2& v) const { return Vector2(x - v.x, y - v.y); }
+	Vector2 operator*(const Vector2& v) const { return Vector2(x * v.x, y * v.y); }
+	Vector2 operator/(const Vector2& v) const { return Vector2(x / v.x, y / v.y); }
+	Vector2 operator*(float s) const { return Vector2(x * s, y * s); }
+	Vector2 operator/(float s) const { return Vector2(x / s, y / s); }
 };

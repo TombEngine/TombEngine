@@ -293,7 +293,10 @@ namespace TEN::Scripting::DisplayItem
 	void ScriptDisplayItem::SetColor(const ScriptColor& color, TypeOrNil<bool> disableInterpolation)
 	{
 		if (auto* item = TryGetItem())
-			item->SetColor(Color(color), ValueOr<bool>(disableInterpolation, false));
+		{
+			Color c = color;
+			item->SetColor(c, ValueOr<bool>(disableInterpolation, false));
+		}
 	}
 
 	/// Set the packed mesh bits for the display item.

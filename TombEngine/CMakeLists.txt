@@ -92,6 +92,7 @@ target_include_directories(TombEngine PRIVATE
     ${LIBS_DIR}/vlc
     ${LIBS_DIR}/bass
     ${LIBS_DIR}/srtparser
+    ${LIBS_DIR}/glm
 )
 
 # ---------------------------------------------------------------------------
@@ -203,19 +204,8 @@ if(WIN32)
         $<IF:$<CONFIG:Debug>,OIS_d,OIS>
     )
 
-    # NuGet packages (DirectXTK, XAudio2)
+    # NuGet packages (XAudio2)
     set(NUGET_DIR ${CMAKE_SOURCE_DIR}/packages)
-
-    set(DIRECTXTK_DIR ${NUGET_DIR}/directxtk_desktop_2019.2022.12.16.1)
-    target_include_directories(TombEngine PRIVATE
-        ${DIRECTXTK_DIR}/include
-    )
-    target_link_libraries(TombEngine PRIVATE
-        $<IF:$<CONFIG:Debug>,
-            ${DIRECTXTK_DIR}/native/lib/${ARCH_DIR}/Debug/DirectXTK.lib,
-            ${DIRECTXTK_DIR}/native/lib/${ARCH_DIR}/Release/DirectXTK.lib
-        >
-    )
 
     set(XAUDIO2_DIR ${NUGET_DIR}/Microsoft.XAudio2.Redist.1.2.10)
     target_include_directories(TombEngine PRIVATE

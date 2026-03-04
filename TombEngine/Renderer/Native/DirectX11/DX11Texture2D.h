@@ -4,8 +4,6 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
-#include <WICTextureLoader.h>
-#include <DDSTextureLoader.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
 #include "Renderer/Graphics/ITexture2D.h"
 #include "Renderer/Graphics/VRAMAllocation.h"
@@ -13,7 +11,6 @@
 namespace TEN::Renderer::Native::DirectX11
 {
 	using namespace TEN::Renderer::Graphics;
-	using namespace DirectX;
 
 	using Microsoft::WRL::ComPtr;
 
