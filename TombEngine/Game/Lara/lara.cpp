@@ -733,7 +733,7 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 		return;
 
 	// HACK: backup controls until proper control lock is implemented -- Lwmte, 07.12.22
-	auto actionMap = ActionMap;
+	//auto actionMap = ActionMap;
 
 	if (isTitle)
 		ClearAllActions();
@@ -746,8 +746,8 @@ void UpdateLara(ItemInfo* item, bool isTitle)
 	InItemControlLoop = false;
 	KillMoveItems();
 
-	if (isTitle)
-		ActionMap = actionMap;
+	//if (isTitle)
+	//	ActionMap = actionMap;
 
 	// Update player animations.
 	g_Renderer.UpdateLaraAnimations(true);

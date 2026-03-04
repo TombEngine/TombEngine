@@ -20,8 +20,8 @@
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/Input/Action.h"
 #include "Specific/Input/Input.h"
-#include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 
 using namespace TEN::Gui;
@@ -703,7 +703,7 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 //	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
 void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionId> actionID,
 							TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const
 {
 	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
@@ -712,7 +712,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
 	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
 	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
-	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
+	auto convertedActionID = ValueOr<ActionId>(actionID, In::Action);
 	auto convertedObjectID = ValueOr<GAME_OBJECT_ID>(objectID, ID_NO_OBJECT);
 	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
 

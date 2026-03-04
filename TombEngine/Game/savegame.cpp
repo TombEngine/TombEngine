@@ -1066,11 +1066,12 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto soundtrackMapOffset = fbb.CreateVector(soundTrackMap);
 
+	// @inputme
 	// Action queue
-	std::vector<int> actionQueue;
-	for (int i = 0; i < ActionQueueMap.size(); i++)
-		actionQueue.push_back((int)ActionQueueMap[(ActionID)i]);
-	auto actionQueueOffset = fbb.CreateVector(actionQueue);
+	//auto actionQueue = std::vector<int>{};
+	//for (int i = 0; i < ActionQueueMap.size(); i++)
+	//	actionQueue.push_back((int)ActionQueueMap[(ActionId)i]);
+	//auto actionQueueOffset = fbb.CreateVector(actionQueue);
 
 	// Flipmaps
 	std::vector<int> flipMaps;
@@ -1669,7 +1670,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_soundtracks(soundtrackOffset);
 	sgb.add_cd_flags(soundtrackMapOffset);
 	sgb.add_video(videoInfoOffset);
-	sgb.add_action_queue(actionQueueOffset);
+	//sgb.add_action_queue(actionQueueOffset); // @inputme
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
 	sgb.add_room_items(roomItemsOffset);
@@ -2698,8 +2699,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Restore action queue.
 	for (int i = 0; i < s->action_queue()->size(); i++)
 	{
-		TENAssert(i < ActionQueueMap.size(), "Action queue size was changed.");
-		ActionQueueMap[(ActionID)i] = (ActionQueueState)s->action_queue()->Get(i);
+		//TENAssert(i < ActionQueueMap.size(), "Action queue size was changed."); // @inputme
+		//ActionQueueMap[(ActionId)i] = (ActionQueueState)s->action_queue()->Get(i);
 	}
 
 	// Legacy soundtrack map.

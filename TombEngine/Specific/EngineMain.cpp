@@ -166,7 +166,7 @@ int SDLCALL ConsoleInput(void*)
 
 static void HandleWindowFocusGained(SDL_Window* window)
 {
-	SetInputLockState(false);
+	g_Input.Unlock();
 
 	if (!g_Configuration.EnableWindowedMode)
 	{
@@ -186,7 +186,7 @@ static void HandleWindowFocusGained(SDL_Window* window)
 
 static void HandleWindowFocusLost(SDL_Window* window)
 {
-	SetInputLockState(true);
+	g_Input.Lock();
 
 	if (!g_Configuration.EnableWindowedMode)
 		SDL_MinimizeWindow(window);
@@ -375,7 +375,8 @@ int main(int argc, char* argv[])
 	if (!LoadConfiguration())
 		InitDefaultConfiguration();
 
-	g_Bindings.Initialize();
+	// @inputme
+	g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.KeyboardMouseBindings);
 
 	// Resolve GraphicsAPI (command line overrides config).
 	auto resolvedApi = (cmdLineApi != GraphicsAPI::Auto) ? cmdLineApi : g_Configuration.RendererAPI;
@@ -431,7 +432,7 @@ int main(int argc, char* argv[])
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
 		// Initialize input.
-		InitializeInput();
+		g_Input.Initialize();
 
 		// Load level if specified in command line.
 		CurrentLevel = g_GameFlow->GetLevelNumber(levelFile);

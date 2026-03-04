@@ -2,38 +2,38 @@
 
 namespace TEN::Input
 {
-	enum class ActionID;
+	enum class ActionId;
+	enum class EventId;
 
-	using BindingProfile = std::unordered_map<ActionID, int>; // Key = action ID, value = key ID.
+	using BindingProfile = std::unordered_map<ActionId, std::vector<EventId>>; // Key = action ID, value = event IDs.
 
-	extern const BindingProfile DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-	extern const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE;
-	extern const BindingProfile RAW_EVENT_BINDING_PROFILE;
-
-	// TODO: The true ideal solution will be to have the following:
-	//	KeyboardMouseDefault
-	//	KeyboardMouseCustom
-	//	GamepadDefault
-	//	GamepadCustom
-	//	Raw
-	// And update the GUI accordingly to be capable of toggling between a keyboard/mouse bindings view and a gamepad bindings view.
-	enum class BindingProfileID
+	enum class BindingProfileId
 	{
-		Default,
-		Custom,
-		Raw,
+		// Custom
+
+		CustomKeyboardMouse,
+		CustomGamepad,
+
+		// Raw
+
+		RawKeyboard,
+		RawMouse,
+		RawGamepad,
 
 		Count
 	};
 
-	// TODO: Allow different binding profiles for each device. Default, Custom1, Custom2.
+	extern const BindingProfile                DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+	extern const BindingProfile                DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
+	extern const std::vector<BindingProfileId> CUSTOM_BINDING_PROFILE_IDS;
+	extern const std::vector<BindingProfileId> RAW_BINDING_PROFILE_IDS;
+
 	class BindingManager
 	{
 	private:
 		// Fields
 
-		std::unordered_map<BindingProfileID, BindingProfile> _bindings	= {}; // Key = binding profile ID, value = binding profile.
-		std::unordered_map<ActionID, bool>					 _conflicts = {}; // Key = action ID, value = has conflict.
+		std::vector<BindingProfile> _bindings = {}; // Index = binding profile ID.
 
 	public:
 		// Constructors
@@ -42,25 +42,16 @@ namespace TEN::Input
 
 		// Getters
 
-		int					  GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const;
-		const BindingProfile& GetBindingProfile(BindingProfileID profileID) const;
-		const std::string&    GetBoundKeyName(ActionID actionID);
+		const std::string&    GetBoundKeyName(ActionId actionID);
+		const BindingProfile& GetProfile(BindingProfileId profileId) const;
 
 		// Setters
 
-		void SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID);
-		void SetBindingProfile(BindingProfileID profileID, const BindingProfile& profile);
-		void SetDefaultBindingProfile(BindingProfileID profileID);
-		void SetConflict(ActionID actionID, bool value);
-
-		// Inquirers
-
-		bool TestConflict(ActionID actionID);
+		void SetProfile(BindingProfileId profileId, const BindingProfile& newProfile);
+		void SetBinding(BindingProfileId profileId, ActionId actionId, EventId eventId);
 
 		// Utilities
 
-		void Initialize();
+		void Initialize(const BindingProfile& customKeyboardMouseProfile, const BindingProfile& customGamepadProfile);
 	};
-
-	extern BindingManager g_Bindings;
 }

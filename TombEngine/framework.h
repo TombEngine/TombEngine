@@ -63,19 +63,17 @@ using namespace TEN::Math;
 using namespace TEN::Math::Library;
 using namespace TEN::Math::Collision;
 
-// OIS
-#include <OISException.h>
-#include <OISForceFeedback.h>
-#include <OISInputManager.h>
-#include <OISJoyStick.h>
-#include <OISKeyboard.h>
-#include <OISMouse.h>
-
 // SDL3
 #include <SDL3/SDL.h>
 
 // sol
 #include <sol.hpp>
+
+// spdlog
+#include <spdlog.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 // srtparser.h
 #include <srtparser.h>

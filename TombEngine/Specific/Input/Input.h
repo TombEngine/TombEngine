@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Math/Math.h"
+#include "Specific/Input/Action.h"
 #include "Specific/Input/Bindings.h"
-#include "Specific/Input/InputAction.h"
-#include "Specific/Input/Keys.h"
+#include "Specific/Input/Event.h"
 
 using namespace TEN::Math;
 
@@ -11,15 +11,33 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
-	enum class AxisID
+	enum class GamepadVendorId
 	{
+		Generic,
+		Xbox,
+		Nintendo,
+		Sony
+	};
+
+	enum class RumbleMode
+	{
+		Low,
+		High,
+		LowAndHigh
+	};
+
+	enum class AnalogAxisId
+	{
+		// Gameplay
+
 		Move,
 		Camera,
 
+		// Raw
+
 		Mouse,
-		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
-		/*StickLeft,
-		StickRight,*/
+		StickLeft,
+		StickRight,
 
 		Count
 	};
@@ -30,57 +48,135 @@ namespace TEN::Input
 		Update,
 		Clear
 	};
-
-	enum class RumbleMode
+	
+	struct GamepadData
 	{
-		None,
-		Left,
-		Right,
-		Both
+		int             Id       = NO_VALUE;
+		SDL_Gamepad*    Device   = nullptr;
+		GamepadVendorId VendorId = GamepadVendorId::Generic;
 	};
 
 	struct RumbleData
 	{
-		float	   Power	 = 0.0f;
-		RumbleMode Mode		 = RumbleMode::None;
-		float	   LastPower = 0.0f;
-		float	   FadeSpeed = 0.0f;
+		RumbleMode   Mode               = RumbleMode::Low;
+		float        IntensityFrom      = 0.0f;
+		float        IntensityTo        = 0.0f;
+		unsigned int DurationGameFrames = 0;
+		unsigned int GameFrames         = 0;
 	};
 
-	extern std::unordered_map<int, float>				  KeyMap;
-	extern std::unordered_map<ActionID, Action>			  ActionMap;
-	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
-	extern std::unordered_map<AxisID, Vector2>			  AxisMap;
+	struct DeviceStateData
+	{
+		std::vector<float> Events         = {}; // Index = `EventId`.
+		Vector2            CursorPosition = {};
 
-	void InitializeInput();
-	void DeinitializeInput();
-	void SetInputLockState(bool locked);
-	void DefaultConflict();
-	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
-	void ApplyActionQueue();
-	void ClearAllActions();
-	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
-	void StopRumble();
-    void ApplyDefaultBindings();
-    bool ApplyDefaultXInputBindings();
+		bool IsUsingGamepad   = false;
+		bool HasKeyboardInput = false;
+		bool HasMouseInput    = false;
+		bool HasGamepadInput  = false;
+	};
 
-	Vector2 GetMouse2DPosition();
+	class InputManager
+	{
+	private:
+		// Fields
 
-	void		 ClearAction(ActionID actionID);
-	bool		 NoAction();
-	bool		 IsClicked(ActionID actionID);
-	bool		 IsHeld(ActionID actionID, float delaySec = 0.0f);
-	bool		 IsPulsed(ActionID actionID, float delaySec, float initialDelaySec = 0.0f);
-	bool		 IsReleased(ActionID actionID, float maxDelaySec = FLT_MAX);
-	float		 GetActionValue(ActionID actionID);
-	unsigned int GetActionTimeActive(ActionID actionID);
-	unsigned int GetActionTimeInactive(ActionID actionID);
+		GamepadData     _gamepad      = {};
+		RumbleData      _rumble       = {};
+		DeviceStateData _deviceStates = {};
 
-	bool IsDirectionalActionHeld();
-	bool IsWakeActionHeld();
-	bool IsOpticActionHeld();
+		BindingProfileId			  _activeBindingProfileId = BindingProfileId::CustomKeyboardMouse;
+		BindingManager                _bindings               = BindingManager();
+		std::vector<Action>           _actions                = {}; // Index = `ActionId`.
+		std::vector<ActionQueueState> _actionQueues           = {}; // Index = `ActionId`.
+		std::vector<Vector2>          _analogAxes             = {}; // Index = `AnalogAxisId`.
 
+		bool _isLocked = false;
+
+	public:
+		// Constructors
+
+		InputManager() = default;
+
+		// Getters
+
+		const Action&   GetAction(ActionId actionId) const;
+		const Vector2&  GetAnalogAxis(AnalogAxisId axisId) const;
+		const Vector2&  GetCursorPosition() const;
+		float           GetRawEventState(EventId eventId) const;
+		GamepadVendorId GetGamepadVendorId() const;
+
+		// Setters
+
+		void SetActiveBindingProfileId(BindingProfileId profileId);
+		void SetActionQueue(ActionId actionId, ActionQueueState queueState);
+		void SetRumble(RumbleMode mode, float intensityFrom, float intensityTo, float durationSec);
+
+		// Inquirers
+
+		bool IsGamepadConnected() const;
+		bool IsUsingGamepad() const;
+
+		// Utilities
+
+		void Initialize();
+		void Deinitialize();
+		void Update(SDL_Window& window, const Vector2& mouseWheelAxis, bool allowAsyncUpdate = false, bool applyQueues = false);
+
+		void Lock();
+		void Unlock();
+		void ConnectGamepad(int deviceId);
+		void DisconnectGamepad(int deviceId);
+		void StopRumble();
+		void ApplyActionQueues();
+		void ClearAction(ActionId actionId);
+
+	private:
+		// Helpers
+
+		std::string GetGamepadVendorName(GamepadVendorId vendorId) const;
+
+		void UpdateActions(bool applyQueues);
+		void UpdateAnalogAxes();
+		void UpdateRumble();
+
+		void ReadKeyboard();
+		void ReadMouse(SDL_Window& window, const Vector2& wheelAxis);
+		void ReadGamepad();
+
+		void HandleHotkeyActions();
+	};
+
+	extern InputManager   g_Input;
+	extern BindingManager g_Bindings;
+
+	// Getters
+
+	float          GetActionValue(ActionId actionId);
+	unsigned int   GetActionTimeActive(ActionId actionId);
+	unsigned int   GetActionTimeInactive(ActionId actionId);
 	const Vector2& GetMoveAxis();
 	const Vector2& GetCameraAxis();
 	const Vector2& GetMouseAxis();
+	Vector2        GetMouse2DPosition();
+
+	// Inquirers
+
+	bool IsClicked(ActionId actionId);
+	bool IsHeld(ActionId actionId, float delaySec = 0.0f);
+	bool IsPulsed(ActionId actionId, float delaySec, float initialDelaySec = 0.0f);
+	bool IsReleased(ActionId actionId, float delaySecMax = FLT_MAX);
+	bool IsDirectionalActionHeld();
+	bool IsWakeActionHeld();
+	bool IsOpticActionHeld();
+	bool NoAction();
+
+	// Utilities
+
+	void ApplyDefaultBindings();
+	void Rumble(float power, float durationSec = 0.3f, RumbleMode mode = RumbleMode::LowAndHigh);
+	void StopRumble();
+
+	void ClearAllActions();
+	void ClearAction(ActionId actionId);
 }

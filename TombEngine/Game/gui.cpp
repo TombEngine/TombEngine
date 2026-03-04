@@ -125,18 +125,18 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
-	bool GuiController::GuiIsPulsed(ActionID actionID) const
+	bool GuiController::GuiIsPulsed(ActionId actionId) const
 	{
 		constexpr auto DELAY		 = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
 
 		// Action already held prior to entering menu; lock input.
-		if (GetActionTimeActive(actionID) >= TimeInMenu)
+		if (GetActionTimeActive(actionId) >= TimeInMenu)
 			return false;
 
 		// Pulse only directional inputs.
-		auto oppositeAction = std::optional<ActionID>(std::nullopt);
-		switch (actionID)
+		auto oppositeAction = std::optional<ActionId>(std::nullopt);
+		switch (actionId)
 		{
 		case In::Forward:
 			oppositeAction = In::Back;
@@ -163,7 +163,7 @@ namespace TEN::Gui
 		if (isActionLocked)
 			return false;
 
-		return IsPulsed(actionID, DELAY, INITIAL_DELAY);
+		return IsPulsed(actionId, DELAY, INITIAL_DELAY);
 	}
 
 	bool GuiController::GuiIsSelected(bool onClicked) const
@@ -778,8 +778,10 @@ namespace TEN::Gui
 					}
 					else
 					{
-						g_Renderer.PrepareScene(); // Just for updating blink time.
-						UpdateInputActions();
+						// Just to update blink time.
+						g_Renderer.PrepareScene();
+
+						g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 					}
 
 					if (CurrentSettings.IgnoreInput)
@@ -789,17 +791,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedKeyID = 0;
-						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
+						auto selectedEventId = std::optional<EventId>(std::nullopt);
+						for (auto eventId : BINDABLE_EVENT_IDS)
 						{
-							if (KeyMap[selectedKeyID])
+							if (g_Input.GetRawEventState(eventId))
+							{
+								selectedEventId = eventId;
 								break;
+							}
 						}
 
-						if (selectedKeyID == KEY_COUNT)
-							selectedKeyID = 0;
-
-						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						if (selectedEventId.has_value() && !GetEventName(*selectedEventId).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -820,8 +822,8 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
-							DefaultConflict();
+							// @inputme
+							//g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -911,21 +913,39 @@ namespace TEN::Gui
 			{
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
+					// @inputme
+					//ApplyDefaultBindings();
+					return;
+				}
+
+				// Apply.
+				if (SelectedOption == (OptionCount - 1))
 				{
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
+					// @inputme
+					//CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
+					//g_Configuration.KeyboardMouseBindings = g_Bindings.GetBindingProfile(BindingProfileId::CustomKeyboardMouse);
 					SaveConfiguration();
 				}
 				else if (SelectedOption == OptionCount) // Cancel.
 				{
-					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
-				}
-				else if (SelectedOption == (OptionCount - 2)) // Defaults.
-				{
-					ApplyDefaultBindings();
+					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
+					// @inputme
+					//g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
+
+					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
+					SelectedOption = 2;
 					return;
 				}
+
+			if (GuiIsDeselected())
+			{
+				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
+				// @inputme
+				//g_Bindings.SetBindingProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 2;
@@ -1209,7 +1229,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		UpdateInputActions();
+		g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 
 		switch (MenuToDisplay)
 		{
@@ -2247,7 +2267,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[In::Flare].Update(1.0f);
+					//ActionMap[In::Flare].Update(1.0f);
 
 					HandleWeapon(item);
 					ClearAllActions();
@@ -3339,7 +3359,7 @@ namespace TEN::Gui
 				SaveGame::Statistics.Game.TimeTaken++;
 				SaveGame::Statistics.Level.TimeTaken++;
 
-				UpdateInputActions();
+				g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero); // @inputme
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 					exitLoop = true;

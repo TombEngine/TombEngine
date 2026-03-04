@@ -111,8 +111,8 @@ void DoThumbstickCamera()
 
 	// Only read axis values if overall magnitude is above threshold.
 	auto axisCoeff = Vector2::Zero;
-	if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
-		axisCoeff = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+	if (GetCameraAxis().Length() > MANUAL_ROTATION_THRESHOLD)
+		axisCoeff = GetCameraAxis() * MANUAL_ROTATION_SPEED;
 	
 	// Accumulate extra angles to gradually rotate camera around Lara over time.
 	Camera.extraAngle += ANGLE(axisCoeff.x);

@@ -16,7 +16,7 @@
 #include "Math/Math.h"
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Specific/configuration.h"
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Version.h"
@@ -366,11 +366,10 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::DefaultKeyboardMouse, (ActionId)k);
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -419,11 +418,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -478,11 +478,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -530,11 +531,12 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						// @inputme
+						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
+						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
+						//
+						//int key = userKeyID ? userKeyID : defaultKeyID;
+						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -1702,18 +1704,16 @@ namespace TEN::Renderer
 
 			for (auto actionGroupID : USER_ACTION_GROUP_IDS)
 			{
-				for (auto actionID : ACTION_ID_GROUPS[(int)actionGroupID])
+				for (auto actionId : ACTION_ID_GROUPS[(int)actionGroupID])
 				{
-					const auto& action = ActionMap.at(actionID);
+					if (IsClicked(actionId))
+						clickedActions.Set((int)actionId);
 
-					if (action.IsClicked())
-						clickedActions.Set((int)action.GetID());
+					if (IsHeld(actionId))
+						heldActions.Set((int)actionId);
 
-					if (action.IsHeld())
-						heldActions.Set((int)action.GetID());
-
-					if (action.IsReleased())
-						releasedActions.Set((int)action.GetID());
+					if (IsReleased(actionId))
+						releasedActions.Set((int)actionId);
 				}
 			}
 
