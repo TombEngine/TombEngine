@@ -239,8 +239,6 @@ else()
     # Linux / macOS — use system packages where available,
     # prebuilt libraries from Libs/ for BASS and VLC.
     include(CMakeFindDependencyMacro)
-    find_package(PkgConfig REQUIRED)
-
     include(FetchContent)
 
     find_package(SDL3 QUIET)
@@ -264,8 +262,33 @@ else()
 
     find_package(OpenGL REQUIRED)
 
-    pkg_check_modules(LZ4    REQUIRED liblz4)
-    pkg_check_modules(LUA    REQUIRED lua5.3)
+    # Build LZ4 from source via FetchContent (no system liblz4-dev needed).
+    FetchContent_Declare(lz4
+        GIT_REPOSITORY https://github.com/lz4/lz4.git
+        GIT_TAG        v1.10.0
+        SOURCE_SUBDIR  build/cmake
+    )
+    set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
+    set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(lz4)
+
+    # Build Lua 5.3 from source via FetchContent (no system liblua5.3-dev needed).
+    FetchContent_Declare(lua
+        URL      https://www.lua.org/ftp/lua-5.3.6.tar.gz
+        URL_HASH SHA256=fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60
+    )
+    FetchContent_MakeAvailable(lua)
+    file(GLOB LUA_CORE_SOURCES ${lua_SOURCE_DIR}/src/*.c)
+    list(REMOVE_ITEM LUA_CORE_SOURCES
+        ${lua_SOURCE_DIR}/src/lua.c
+        ${lua_SOURCE_DIR}/src/luac.c
+    )
+    add_library(lua53_static STATIC ${LUA_CORE_SOURCES})
+    target_include_directories(lua53_static PUBLIC ${lua_SOURCE_DIR}/src)
+    target_compile_definitions(lua53_static PRIVATE LUA_USE_POSIX LUA_USE_DLOPEN)
+    target_link_libraries(lua53_static PRIVATE m dl)
 
     # Determine platform-specific lib subdirectory for prebuilt libs.
     if(APPLE)
@@ -281,33 +304,32 @@ else()
             ${LIBS_DIR}/vlc/${VLC_LIB_DIR}
         )
     else()
-        # Linux: BASS from prebuilt, VLC from system package.
+        # Linux: BASS and VLC from prebuilt libs in Libs/.
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
             set(BASS_LIB_DIR linux/aarch64)
+            set(VLC_LIB_DIR linux/aarch64)
         else()
             set(BASS_LIB_DIR linux/x86_64)
+            set(VLC_LIB_DIR linux/x86_64)
         endif()
-        pkg_check_modules(VLC REQUIRED libvlc)
         target_link_directories(TombEngine PRIVATE
             ${LIBS_DIR}/bass/${BASS_LIB_DIR}
+            ${LIBS_DIR}/vlc/${VLC_LIB_DIR}
         )
-        target_include_directories(TombEngine PRIVATE ${VLC_INCLUDE_DIRS})
+        target_include_directories(TombEngine PRIVATE ${LIBS_DIR}/vlc)
     endif()
 
     target_link_libraries(TombEngine PRIVATE
         SDL3::SDL3
         OpenGL::GL
         spdlog::spdlog
-        ${LZ4_LIBRARIES}
-        ${LUA_LIBRARIES}
+        lz4_static
+        lua53_static
         bass
         bassmix
         bass_fx
-        ${VLC_LIBRARIES}
-    )
-    target_include_directories(TombEngine PRIVATE
-        ${LZ4_INCLUDE_DIRS}
-        ${LUA_INCLUDE_DIRS}
+        vlc
+        vlccore
     )
 
     # RPATH so the executable finds BASS .so/.dylib next to itself.
@@ -352,6 +374,26 @@ else()
                 "${BASS_LIB}" "$<TARGET_FILE_DIR:TombEngine>"
         )
     endforeach()
+
+    # Copy VLC shared libraries next to the executable (Linux only).
+    if(NOT APPLE)
+        file(GLOB VLC_SHARED_LIBS "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so" "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so.*")
+        foreach(VLC_LIB ${VLC_SHARED_LIBS})
+            add_custom_command(TARGET TombEngine POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${VLC_LIB}" "$<TARGET_FILE_DIR:TombEngine>"
+            )
+        endforeach()
+
+        # Copy VLC plugins directory if present.
+        if(EXISTS "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins")
+            add_custom_command(TARGET TombEngine POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins"
+                    "$<TARGET_FILE_DIR:TombEngine>/plugins"
+            )
+        endif()
+    endif()
 endif()
 
 # Copy shaders
@@ -370,6 +412,50 @@ add_custom_command(TARGET TombEngine POST_BUILD
         "${CMAKE_SOURCE_DIR}/Scripts/SystemStrings.lua"
         "$<TARGET_FILE_DIR:TombEngine>/../Scripts/SystemStrings.lua"
 )
+
+# ---------------------------------------------------------------------------
+# Install rules (Linux standalone distribution)
+# ---------------------------------------------------------------------------
+if(NOT WIN32)
+    # Binary goes into Engine/ subdirectory.
+    install(TARGETS TombEngine RUNTIME DESTINATION Engine)
+
+    # BASS shared libraries.
+    file(GLOB _INSTALL_BASS_LIBS
+        "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.so"
+        "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.dylib"
+    )
+    install(FILES ${_INSTALL_BASS_LIBS} DESTINATION Engine)
+
+    if(NOT APPLE)
+        # VLC shared libraries.
+        file(GLOB _INSTALL_VLC_LIBS
+            "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so"
+            "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so.*"
+        )
+        install(FILES ${_INSTALL_VLC_LIBS} DESTINATION Engine)
+
+        # VLC plugins.
+        if(EXISTS "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins")
+            install(DIRECTORY "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins"
+                    DESTINATION Engine)
+        endif()
+    endif()
+
+    # Shaders.
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
+            DESTINATION .)
+
+    # Engine scripts.
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/Scripts/Engine"
+            DESTINATION Scripts)
+    install(FILES "${CMAKE_SOURCE_DIR}/Scripts/SystemStrings.lua"
+            DESTINATION Scripts)
+
+    # Launcher script.
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/packaging/linux/TombEngine.sh"
+            DESTINATION .)
+endif()
 
 # ---------------------------------------------------------------------------
 # IDE source grouping (Visual Studio, Xcode, CLion)

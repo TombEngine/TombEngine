@@ -225,6 +225,15 @@ namespace TEN::Video
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
 
+#ifdef SDL_PLATFORM_LINUX
+		// Point VLC at bundled plugins directory next to the executable.
+		static std::string pluginPathArg;
+		auto binaryDir = g_Platform->GetBinaryPath(false);
+		auto binaryDirNarrow = std::string(binaryDir.begin(), binaryDir.end());
+		pluginPathArg = "--plugin-path=" + binaryDirNarrow + "plugins";
+		vlcArgs.push_back(pluginPathArg.c_str());
+#endif
+
 		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
 
 #if _DEBUG

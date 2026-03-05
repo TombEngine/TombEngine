@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=TombEngine
+Comment=Open-source Tomb Raider level engine
+Exec=TombEngine
+Icon=TombEngine
+Categories=Game;
+Terminal=false

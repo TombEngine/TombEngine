@@ -1,0 +1,23 @@
+#!/bin/bash
+# AppImage entry point for TombEngine.
+
+APPDIR="$(dirname "$(readlink -f "$0")")"
+ENGINE_DIR="$APPDIR/usr/bin"
+
+export LD_LIBRARY_PATH="$ENGINE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export VLC_PLUGIN_PATH="$ENGINE_DIR/plugins"
+
+# Default game directory to current working directory if not specified.
+HAS_GAMEDIR=0
+for arg in "$@"; do
+    if [ "$arg" = "-gamedir" ]; then
+        HAS_GAMEDIR=1
+        break
+    fi
+done
+
+if [ "$HAS_GAMEDIR" -eq 0 ]; then
+    exec "$ENGINE_DIR/TombEngine" -gamedir "$(pwd)" "$@"
+else
+    exec "$ENGINE_DIR/TombEngine" "$@"
+fi
