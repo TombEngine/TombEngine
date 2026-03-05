@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Game/control/box_types.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 #include "Math/Math.h"
 

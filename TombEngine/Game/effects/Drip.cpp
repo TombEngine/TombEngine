@@ -11,7 +11,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;

@@ -7,7 +7,7 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Math;
 using TEN::Renderer::g_Renderer;

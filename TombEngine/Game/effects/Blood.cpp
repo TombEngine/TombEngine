@@ -6,7 +6,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Math;
 

@@ -21,7 +21,7 @@
 #include "Scripting/Internal/TEN/View/DisplaySprite/ScriptDisplaySprite.h"
 #include "Scripting/Internal/TEN/View/ScaleModes.h"
 #include "Scripting/Internal/TEN/View/PostProcessEffects.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/Video/Video.h"
 #include "Specific/trutils.h"
 

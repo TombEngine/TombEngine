@@ -9,7 +9,7 @@
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer

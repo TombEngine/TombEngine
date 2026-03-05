@@ -39,7 +39,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
 #include "Specific/trutils.h"

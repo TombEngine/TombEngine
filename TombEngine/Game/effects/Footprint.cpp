@@ -13,7 +13,7 @@
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;

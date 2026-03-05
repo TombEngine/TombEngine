@@ -3,7 +3,7 @@
 
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/sphere.h"
+#include "Game/collision/Sphere.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Game/Setup.h"

@@ -5,12 +5,12 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;

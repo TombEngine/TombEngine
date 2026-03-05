@@ -4,7 +4,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Renderer.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/Structures/BitField.h"
 
 using namespace TEN::Math;

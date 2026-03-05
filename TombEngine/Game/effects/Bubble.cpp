@@ -9,7 +9,7 @@
 #include "Game/Setup.h"
 #include "Objects/objectslist.h"
 #include "Math/Math.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Effects::Ripple;

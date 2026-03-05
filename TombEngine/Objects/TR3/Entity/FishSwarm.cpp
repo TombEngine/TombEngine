@@ -16,7 +16,7 @@
 #include "Math/Math.h"
 #include "Objects/TR3/Object/Corpse.h"
 #include "Renderer/Renderer.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/Items.h"
+#include "Game/items.h"
 #include "Game/effects/Light.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"

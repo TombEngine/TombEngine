@@ -3,8 +3,8 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
-#include "Game/control/los.h"
-#include "Game/effects/blood.h"
+#include "Game/control/Los.h"
+#include "Game/effects/Blood.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
@@ -29,7 +29,7 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/trutils.h"
 #include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 

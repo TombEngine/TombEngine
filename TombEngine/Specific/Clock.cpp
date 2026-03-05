@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/EngineMain.h"
 
 constexpr auto CONTROL_FRAME_TIME = 1000.0f / 30.0f;

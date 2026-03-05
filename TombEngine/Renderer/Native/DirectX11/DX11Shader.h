@@ -4,7 +4,7 @@
 
 #include <d3d11.h>
 #include "Renderer/Graphics/IShader.h"
-#include "Game/debug/debug.h"
+#include "Game/debug/Debug.h"
 #include <wrl/client.h>
 #include <d3dcompiler.h>
 

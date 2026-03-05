@@ -21,7 +21,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/configuration.h"
 #include "Specific/EngineMain.h"
 #include "Specific/level.h"

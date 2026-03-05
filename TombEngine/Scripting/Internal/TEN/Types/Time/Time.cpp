@@ -3,7 +3,7 @@
 
 #include "Math/Math.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 namespace TEN::Scripting
 {

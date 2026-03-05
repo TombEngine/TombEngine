@@ -14,7 +14,7 @@
 #include "Game/Lara/lara_collide.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Inventory/InventoryHandler.h"
 
-#include "Game/gui.h"
+#include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Lara/lara.h"

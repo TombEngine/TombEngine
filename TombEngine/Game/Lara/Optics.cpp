@@ -2,7 +2,7 @@
 #include "Game/Lara/Optics.h"
 
 #include "Game/camera.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"

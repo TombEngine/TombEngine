@@ -4,7 +4,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/Blood.h"
@@ -29,7 +29,7 @@
 #include "Objects/TR5/Emitter/Waterfall.h"
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 

@@ -7,7 +7,7 @@
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Scripting::Types;
 
