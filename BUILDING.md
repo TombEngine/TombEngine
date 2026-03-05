@@ -48,7 +48,7 @@ Install the required build tools.
 sudo apt update
 sudo apt install -y \
     build-essential cmake ninja-build \
-    libgl-dev
+    libgl-dev wget zstd
 ```
 
 **Fedora:**
@@ -56,14 +56,18 @@ sudo apt install -y \
 ```bash
 sudo dnf install -y \
     gcc-c++ cmake ninja-build \
-    mesa-libGL-devel
+    mesa-libGL-devel wget zstd
 ```
 
 > **Note:** SDL3, spdlog, Lua 5.3, and LZ4 are automatically fetched and built from source via CMake FetchContent. No system `-dev` packages are needed for these libraries.
+>
+> `wget` and `zstd` are needed by the VLC auto-download script (see below).
 
-### Downloading VLC Libraries
+### VLC Libraries
 
-VLC is bundled as prebuilt shared libraries rather than pulled from system packages. Before building, you must populate `Libs/vlc/linux/<arch>/` using the provided download script:
+VLC is bundled as prebuilt shared libraries. During CMake configure, if the VLC libraries are not found in `Libs/vlc/linux/<arch>/`, the build system **automatically downloads** them by running `Tools/download-vlc-linux.sh`. This requires `wget` and `zstd` to be installed (included in the prerequisites above).
+
+You can also run the script manually if needed:
 
 ```bash
 # Download VLC libs for x86_64 (default)
@@ -82,22 +86,7 @@ The script downloads from Ubuntu 22.04 (jammy) packages and extracts:
 | `plugins/` | VLC codec and demux plugins |
 | `libavcodec.so.*`, `libavformat.so.*`, etc. | FFmpeg libraries required by VLC plugins |
 
-The resulting directory structure:
-
-```
-Libs/vlc/linux/x86_64/
-├── libvlc.so.5 → libvlc.so.5.6.1
-├── libvlc.so → libvlc.so.5.6.1
-├── libvlccore.so.9 → libvlccore.so.9.0.1
-├── libavcodec.so.58, libavformat.so.58, ...
-└── plugins/
-    ├── access/
-    ├── codec/
-    ├── demux/
-    └── ...
-```
-
-> **Note:** You only need to run this script once. The downloaded libraries are committed to the repository under `Libs/vlc/linux/`, or you can add them to `.gitignore` and download them in CI.
+> **Note:** The VLC libraries are now committed to the repository under `Libs/vlc/linux/`. If you clone fresh, they are already present and no download is needed.
 
 ### Building
 
