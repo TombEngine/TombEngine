@@ -2914,6 +2914,9 @@ Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
 		return targetPos;
 
+	if (Objects[sourceItem.ObjectNumber].nonLot)
+		return targetPos;
+
 	float distance = Vector3i::Distance(targetPos, sourcePos);
 	float distanceScale = 1.0f;
 

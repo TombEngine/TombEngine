@@ -19,7 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, COBRA, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
@@ -30,6 +30,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
+* Fixed OCB calculation for WINGED_MUMMY. 
+  [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
 * Fixed teleporting upwards after corner shimmy when another ledge is above.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.

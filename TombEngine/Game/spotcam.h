@@ -10,6 +10,7 @@ constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED = 1.0f;
 
 class Pose;
 
+#pragma pack(push, 1)
 struct SPOTCAM
 {
 	int x;
@@ -18,16 +19,16 @@ struct SPOTCAM
 	int tx;
 	int ty;
 	int tz;
-	unsigned char sequence;
-	unsigned char camera;
+	int sequence;
+	int camera;
 	short fov;
 	short roll;
 	short timer;
 	short speed;
 	short flags;
-	short roomNumber;
-	short pad;
+	int roomNumber;
 };
+#pragma pack(pop)
 
 enum SPOTCAM_FLAGS
 {
