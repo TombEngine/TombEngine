@@ -424,7 +424,7 @@ namespace TEN::Input
 			}
 			else if (IsHeld(In::Right))
 			{
-				moveAxis.x = -1.0f;
+				moveAxis.x = 1.0f;
 			}
 			else
 			{

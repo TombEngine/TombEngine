@@ -78,9 +78,9 @@ void HighFramerateSynchronizer::Step()
 
 float HighFramerateSynchronizer::GetInterpolationFactor()
 {
-	return std::min(
+	return std::clamp(
 		static_cast<float>(_controlDelay / CONTROL_FRAME_TIME),
-		1.0f);
+		0.0f, 1.0f);
 }
 
 int TimeSync()

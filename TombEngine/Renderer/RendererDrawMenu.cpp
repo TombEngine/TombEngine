@@ -17,6 +17,8 @@
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Action.h"
+#include "Specific/Input/Bindings.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Version.h"
@@ -366,10 +368,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						// @inputme
-						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::DefaultKeyboardMouse, (ActionId)k);
-						//int key = userKeyID ? userKeyID : defaultKeyID;
-						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						auto& keyName = g_Bindings.GetBoundKeyName((ActionId)k);
+						AddString(MenuRightSideEntry, y, keyName.c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -418,12 +418,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						// @inputme
-						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-						//
-						//int key = userKeyID ? userKeyID : defaultKeyID;
-						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						auto& keyName = g_Bindings.GetBoundKeyName((ActionId)(baseIndex + k));
+						AddString(MenuRightSideEntry, y, keyName.c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -478,12 +474,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						// @inputme
-						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-						//
-						//int key = userKeyID ? userKeyID : defaultKeyID;
-						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						auto& keyName = g_Bindings.GetBoundKeyName((ActionId)(baseIndex + k));
+						AddString(MenuRightSideEntry, y, keyName.c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -531,12 +523,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						// @inputme
-						//int defaultKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Default, (ActionId)(baseIndex + k));
-						//int userKeyID = g_Bindings.GetBoundEventIds(BindingProfileId::Custom, (ActionId)(baseIndex + k));
-						//
-						//int key = userKeyID ? userKeyID : defaultKeyID;
-						//AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
+						auto& keyName = g_Bindings.GetBoundKeyName((ActionId)(baseIndex + k));
+						AddString(MenuRightSideEntry, y, keyName.c_str(), PRINTSTRING_COLOR_ORANGE, SF(false));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))

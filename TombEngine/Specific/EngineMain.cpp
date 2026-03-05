@@ -246,9 +246,6 @@ int main(int argc, char* argv[])
 	g_Platform = CreatePlatformSubsystem();
 	g_Platform->Initialize();
 	g_Platform->CheckPrerequisites();
-	
-	// Disable HiDPI scaling — the engine manages its own resolution.
-	SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "0");
 
 	// Initialize SDL3.
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
@@ -379,7 +376,7 @@ int main(int argc, char* argv[])
 		InitDefaultConfiguration();
 
 	// @inputme
-	g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.KeyboardMouseBindings);
+	g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
 	// Resolve GraphicsAPI (command line overrides config).
 	auto resolvedApi = (cmdLineApi != GraphicsAPI::Auto) ? cmdLineApi : g_Configuration.RendererAPI;

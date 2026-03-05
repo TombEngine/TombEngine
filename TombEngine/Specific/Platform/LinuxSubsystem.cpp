@@ -12,7 +12,8 @@ namespace TEN::Platform
 {
 	void LinuxSubsystem::Initialize()
 	{
-		// No Linux-specific initialization required.
+		// Disable HiDPI scaling — the engine manages its own resolution.
+		SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "0");
 	}
 
 	void LinuxSubsystem::Tick()
