@@ -32,3 +32,6 @@ packages/
 .DS_Store
 Thumbs.db
 Logs/
+
+# VLC libraries downloaded by Tools/download-vlc-linux.sh
+Libs/vlc/linux/
