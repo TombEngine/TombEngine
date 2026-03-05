@@ -42,6 +42,7 @@ namespace TEN::Renderer
 		}
 
 		InitializeScreen(w, h, false);
+		SetFullScreen();
 		InitializeCommonTextures();
 
 		// Load shaders.
@@ -352,7 +353,6 @@ namespace TEN::Renderer
 		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 
 		InitializeSMAA();
-		SetFullScreen();
 	}
 
 	void Renderer::InitializeSMAA()
@@ -428,10 +428,33 @@ namespace TEN::Renderer
 	{
 		_isWindowed = force ? false : !_isWindowed;
 		SetFullScreen();
+
+		// When the user toggles fullscreen (force=false, i.e. Alt+Enter),
+		// we are on the game thread where the GL context is current, so we
+		// can safely rebuild render targets for OpenGL.  DX11 handles this
+		// internally via DXGI so no resize is needed.
+		// When force=true (focus-regain from the main thread), the resolution
+		// hasn't changed, so no render target rebuild is necessary.
+		if (!force && _graphicsDevice->NeedsFBOYFlip())
+		{
+			auto* window = g_Platform->GetSDL3Window();
+			int newW = 0, newH = 0;
+			SDL_GetWindowSizeInPixels(window, &newW, &newH);
+
+			if (newW > 0 && newH > 0)
+				ChangeScreenResolution(newW, newH, _isWindowed, false);
+		}
 	}
 
 	void Renderer::SetFullScreen()
 	{
+		// Guard against re-entrancy: SDL_SyncWindow may pump events internally,
+		// which can trigger focus-gained → ToggleFullScreen → SetFullScreen again.
+		static bool inProgress = false;
+		if (inProgress)
+			return;
+		inProgress = true;
+
 		auto* window = g_Platform->GetSDL3Window();
 
 		if (!_isWindowed)
@@ -454,5 +477,7 @@ namespace TEN::Renderer
 			SDL_RaiseWindow(window);
 			SDL_SyncWindow(window);
 		}
+
+		inProgress = false;
 	}
 }

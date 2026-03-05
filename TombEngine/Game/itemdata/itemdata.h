@@ -43,12 +43,16 @@ class ItemData
 		char,
 		short,
 		int,
+#ifdef SDL_PLATFORM_WINDOWS
 		long,
+#endif
 		long long,
 		unsigned char,
 		unsigned short,
 		unsigned int,
+#ifdef SDL_PLATFORM_WINDOWS
 		unsigned long,
+#endif
 		unsigned long long,
 		float,
 		double,

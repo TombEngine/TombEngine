@@ -319,6 +319,17 @@ namespace TEN::Renderer::Native::OpenGL
 		_screenWidth = width;
 		_screenHeight = height;
 
+		// Invalidate the FBO cache: old render target textures have been deleted
+		// by InitializeScreen and OpenGL may reuse the same texture IDs.
+		// Stale cached FBOs would reference deleted textures.
+		for (auto& [key, fbo] : _fboCache)
+		{
+			if (fbo)
+				glDeleteFramebuffers(1, &fbo);
+		}
+		_fboCache.clear();
+		_backbufferFBO = 0;
+
 		if (!g_Configuration.EnableHighFramerate)
 			_refreshRate = 30;
 		else
@@ -386,6 +397,15 @@ namespace TEN::Renderer::Native::OpenGL
 		glBindVertexArray(_defaultVAO);
 		glBindProgramPipeline(_pipeline);
 		glUseProgram(0);
+	}
+
+	void GLGraphicsDevice::ClearDefaultFramebuffer()
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		SDL_GL_SwapWindow(g_Platform->GetSDL3Window());
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 	void GLGraphicsDevice::Flush()
@@ -1265,15 +1285,17 @@ namespace TEN::Renderer::Native::OpenGL
 		int w = glRT->GetWidth();
 		int h = glRT->GetHeight();
 
-		std::vector<unsigned char> pixels(w * h * 4);
+		// Ensure all rendering to the texture is complete before reading back.
+		glFinish();
 
-		GLuint fbo = GetOrCreateFBO(glRT->GetGLTexture(), 0, false, 0, false, 0);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-		glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, _currentFBO);
+		int bufSize = w * h * 4;
+		std::vector<unsigned char> pixels(bufSize);
 
-		// Flip vertically (OpenGL reads bottom-up).
-		std::vector<unsigned char> flipped(w * h * 4);
+		// Read directly from the texture using DSA (avoids FBO binding issues).
+		glGetTextureImage(glRT->GetGLTexture(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bufSize, pixels.data());
+
+		// Flip vertically (OpenGL stores textures bottom-up).
+		std::vector<unsigned char> flipped(bufSize);
 		for (int y = 0; y < h; y++)
 			memcpy(&flipped[y * w * 4], &pixels[(h - 1 - y) * w * 4], w * 4);
 

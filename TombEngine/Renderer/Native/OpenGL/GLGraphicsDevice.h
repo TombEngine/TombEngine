@@ -128,6 +128,7 @@ namespace TEN::Renderer::Native::OpenGL
 
 		void Present() override;
 		void ClearState() override;
+		void ClearDefaultFramebuffer() override;
 
 		std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::wstring fontPath) override;
 		std::unique_ptr<ISpriteBatch> InitializeSpriteBatch() override;

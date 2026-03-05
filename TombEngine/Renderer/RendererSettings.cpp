@@ -9,7 +9,7 @@
 
 namespace TEN::Renderer 
 {
-	void Renderer::ChangeScreenResolution(int width, int height, bool windowed) 
+	void Renderer::ChangeScreenResolution(int width, int height, bool windowed, bool applyWindowState)
 	{
 		_graphicsDevice->UnbindAllRenderTargets();
 		_graphicsDevice->Flush();
@@ -19,6 +19,12 @@ namespace TEN::Renderer
 		_isWindowed = windowed;
 
 		InitializeScreen(width, height, true);
+
+		// Apply windowed/fullscreen state to the SDL window when the change
+		// originates from the settings menu.  Skip when called from
+		// ToggleFullScreen, which already applied the window state.
+		if (applyWindowState)
+			SetFullScreen();
 	}
 
 	std::string Renderer::GetDefaultAdapterName()

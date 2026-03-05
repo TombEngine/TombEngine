@@ -1390,6 +1390,16 @@ namespace TEN::Renderer
 
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
 	{
+		// Re-dump the game scene after a resolution change so the background
+		// texture matches the new render target size.
+		if (_graphicsSettingsChanged)
+		{
+			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+			Camera.DisableInterpolation = true;
+			DumpGameScene();
+			_graphicsSettingsChanged = false;
+		}
+
 		if (staticBackground)
 		{
 			// Set basic render states.

@@ -97,37 +97,72 @@ std::vector<Vector2i> GetAllSupportedScreenResolutions()
 	if (display == 0)
 		return screenResolutions;
 
+	// Helper to add a resolution if not already in the list.
+	auto addUnique = [&screenResolutions](int w, int h)
+	{
+		for (const auto& res : screenResolutions)
+		{
+			if (res.x == w && res.y == h)
+				return;
+		}
+		screenResolutions.push_back(Vector2i(w, h));
+	};
+
 	int count = 0;
 	auto modes = SDL_GetFullscreenDisplayModes(display, &count);
-	if (modes == nullptr || count <= 0)
-		return screenResolutions;
-
-	screenResolutions.reserve(count);
-
-	for (int i = 0; i < count; ++i)
+	if (modes != nullptr && count > 0)
 	{
-		const auto* mode = modes[i];
-		if (mode == nullptr)
-			continue;
+		screenResolutions.reserve(count);
 
-		auto screenResolution = Vector2i(mode->w, mode->h);
-
-		bool add = true;
-		for (const auto& screenRes : screenResolutions)
+		for (int i = 0; i < count; ++i)
 		{
-			if (screenRes.x == screenResolution.x &&
-				screenRes.y == screenResolution.y)
-			{
-				add = false;
-				break;
-			}
+			const auto* mode = modes[i];
+			if (mode != nullptr)
+				addUnique(mode->w, mode->h);
 		}
 
-		if (add)
-			screenResolutions.push_back(screenResolution);
+		SDL_free(modes);
 	}
 
-	SDL_free(modes);
+	// SDL may return only the native resolution on some platforms/drivers
+	// (e.g. Wayland, some X11 setups, OpenGL on Windows).
+	// Always supplement with common resolutions that fit within the desktop size.
+	auto* desktopMode = SDL_GetDesktopDisplayMode(display);
+	if (desktopMode != nullptr)
+	{
+		int maxW = desktopMode->w;
+		int maxH = desktopMode->h;
+
+		static const Vector2i commonResolutions[] =
+		{
+			{ 1024,  768 },
+			{ 1152,  864 },
+			{ 1280,  720 },
+			{ 1280,  800 },
+			{ 1280, 1024 },
+			{ 1360,  768 },
+			{ 1366,  768 },
+			{ 1440,  900 },
+			{ 1600,  900 },
+			{ 1600, 1200 },
+			{ 1680, 1050 },
+			{ 1920, 1080 },
+			{ 1920, 1200 },
+			{ 2560, 1440 },
+			{ 2560, 1600 },
+			{ 3440, 1440 },
+			{ 3840, 2160 }
+		};
+
+		for (const auto& res : commonResolutions)
+		{
+			if (res.x <= maxW && res.y <= maxH)
+				addUnique(res.x, res.y);
+		}
+
+		// Always include native desktop resolution.
+		addUnique(maxW, maxH);
+	}
 
 	std::sort(
 		screenResolutions.begin(), screenResolutions.end(),

@@ -96,6 +96,7 @@ namespace TEN::Renderer::Graphics
 
 		virtual void Present() = 0;
 		virtual void ClearState() = 0;
+		virtual void ClearDefaultFramebuffer() {};
 
 		virtual std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::wstring fontPath) = 0;
 		virtual std::unique_ptr<ISpriteBatch> InitializeSpriteBatch() = 0;

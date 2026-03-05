@@ -724,7 +724,7 @@ namespace TEN::Renderer
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
-		void ChangeScreenResolution(int width, int height, bool windowed);
+		void ChangeScreenResolution(int width, int height, bool windowed, bool applyWindowState = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
