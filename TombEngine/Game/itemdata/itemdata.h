@@ -1,8 +1,14 @@
 #pragma once
 #include <cstddef>
 #include <functional>
+#include <sstream>
 #include <stdexcept>
 #include <variant>
+
+#ifdef __linux__
+#include <execinfo.h>
+#include <cstdlib>
+#endif
 
 #include "Game/collision/collide_room.h"
 #include "Game/itemdata/creature_info.h"
@@ -74,6 +80,34 @@ class ItemData
 		ElectricalLightInfo,
 		BridgeObject
 	> data;
+	// Return the type name of the currently held alternative.
+	std::string CurrentTypeName() const
+	{
+		return std::visit([](auto&& val) -> std::string
+		{
+			return typeid(val).name();
+		}, data);
+	}
+
+	// Capture a backtrace string for diagnostics.
+	static std::string CaptureBacktrace()
+	{
+#ifdef __linux__
+		constexpr int MAX_FRAMES = 32;
+		void* frames[MAX_FRAMES];
+		int count = backtrace(frames, MAX_FRAMES);
+		char** symbols = backtrace_symbols(frames, count);
+		std::ostringstream bt;
+		bt << "\nBacktrace:\n";
+		for (int i = 0; i < count; i++)
+			bt << "  [" << i << "] " << (symbols ? symbols[i] : "???") << "\n";
+		free(symbols);
+		return bt.str();
+#else
+		return {};
+#endif
+	}
+
 	public:
 	ItemData();
 
@@ -91,7 +125,12 @@ class ItemData
 			return &ref;
 		}
 
-		throw std::runtime_error("Attempted to read ItemData as wrong type.");
+		std::ostringstream oss;
+		oss << "Attempted to read ItemData as '" << typeid(T).name()
+			<< "*' but it holds '" << CurrentTypeName()
+			<< "' (variant index " << data.index() << ")."
+			<< CaptureBacktrace();
+		throw std::runtime_error(oss.str());
 	}
 
 	template<typename T>
@@ -103,7 +142,12 @@ class ItemData
 			return ref;
 		}
 
-		throw std::runtime_error("Attempted to read ItemData as wrong type.");
+		std::ostringstream oss;
+		oss << "Attempted to read ItemData as '" << typeid(T).name()
+			<< "&' but it holds '" << CurrentTypeName()
+			<< "' (variant index " << data.index() << ")."
+			<< CaptureBacktrace();
+		throw std::runtime_error(oss.str());
 	}
 
 	/* Uncommented, we want to store pointers to global data too (LaraInfo for example).
@@ -136,6 +180,12 @@ class ItemData
 	}
 
 	operator bool() const
+	{
+		return !std::holds_alternative<std::nullptr_t>(data);
+	}
+
+	// Non-const overload to prevent template operator T&() from matching bool.
+	operator bool()
 	{
 		return !std::holds_alternative<std::nullptr_t>(data);
 	}

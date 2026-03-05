@@ -75,6 +75,9 @@ void FlareControl(short itemNumber)
 
 	const auto& settings = g_GameFlow->GetSettings()->Flare;
 
+	if (!flareItem.Data.is<int>())
+		flareItem.Data = (int)0;
+
 	int& life = flareItem.Data;
 	life &= 0x7FFF;
 	if (life >= (settings.Timeout * FPS))
