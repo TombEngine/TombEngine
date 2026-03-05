@@ -312,6 +312,20 @@ else()
             set(BASS_LIB_DIR linux/x86_64)
             set(VLC_LIB_DIR linux/x86_64)
         endif()
+
+        # Auto-download VLC libraries if not present.
+        if(NOT EXISTS "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/libvlc.so")
+            message(STATUS "VLC libraries not found, downloading...")
+            execute_process(
+                COMMAND bash "${CMAKE_SOURCE_DIR}/Tools/download-vlc-linux.sh" "${CMAKE_SYSTEM_PROCESSOR}"
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                RESULT_VARIABLE VLC_DL_RESULT
+            )
+            if(NOT VLC_DL_RESULT EQUAL 0)
+                message(FATAL_ERROR "Failed to download VLC libraries. Run manually: bash Tools/download-vlc-linux.sh ${CMAKE_SYSTEM_PROCESSOR}")
+            endif()
+        endif()
+
         target_link_directories(TombEngine PRIVATE
             ${LIBS_DIR}/bass/${BASS_LIB_DIR}
             ${LIBS_DIR}/vlc/${VLC_LIB_DIR}

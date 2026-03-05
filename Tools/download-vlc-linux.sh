@@ -6,9 +6,17 @@
 #   ./Tools/download-vlc-linux.sh [x86_64|aarch64]
 #
 # Defaults to x86_64 if no argument is given.
-# Requires: wget, ar, tar (standard on most Linux systems).
+# Requires: wget, ar, tar, zstd (sudo apt install wget zstd).
 
 set -euo pipefail
+
+# Check required tools.
+for tool in wget ar zstd; do
+    if ! command -v "$tool" &>/dev/null; then
+        echo "Error: '$tool' is required but not found. Install it with: sudo apt install $tool"
+        exit 1
+    fi
+done
 
 ARCH="${1:-x86_64}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -97,7 +105,12 @@ download_and_extract() {
         return
     fi
 
-    tar xf "$data_tar"
+    # Handle .tar.zst separately since tar may lack built-in zstd support.
+    if [[ "$data_tar" == *.zst ]]; then
+        zstd -dq "$data_tar" -o data.tar && tar xf data.tar
+    else
+        tar xf "$data_tar"
+    fi
     cd "$WORK_DIR"
 }
 
@@ -109,10 +122,10 @@ echo "==> Collecting shared libraries..."
 
 # Copy VLC core libraries.
 find "$WORK_DIR" -name "libvlc.so*" -not -type d | while read -r f; do
-    cp -a "$f" "$OUTPUT_DIR/"
+    cp "$f" "$OUTPUT_DIR/"
 done
 find "$WORK_DIR" -name "libvlccore.so*" -not -type d | while read -r f; do
-    cp -a "$f" "$OUTPUT_DIR/"
+    cp "$f" "$OUTPUT_DIR/"
 done
 
 # Copy VLC plugins.
@@ -127,19 +140,19 @@ done
 # Copy FFmpeg libraries needed by VLC plugins.
 for lib_pattern in "libavcodec.so*" "libavformat.so*" "libswscale.so*" "libavutil.so*" "libswresample.so*"; do
     find "$WORK_DIR" -name "$lib_pattern" -not -type d | while read -r f; do
-        cp -a "$f" "$OUTPUT_DIR/"
+        cp "$f" "$OUTPUT_DIR/"
     done
 done
 
-# Create symlinks for soname compatibility (e.g., libvlc.so -> libvlc.so.5.6.1).
+# Create soname copies for compatibility (e.g., libvlc.so -> libvlc.so.5.6.1).
+# Uses copies instead of symlinks for NTFS/WSL compatibility.
 cd "$OUTPUT_DIR"
 for sofile in libvlc.so.* libvlccore.so.*; do
     [ -f "$sofile" ] || continue
-    # Extract soname (e.g., libvlc.so.5).
     base="${sofile%%.*}"
     soname=$(echo "$sofile" | grep -oP '^[^.]+\.so\.\d+')
-    [ -n "$soname" ] && [ ! -e "$soname" ] && ln -sf "$sofile" "$soname"
-    [ ! -e "${base}.so" ] && ln -sf "$sofile" "${base}.so"
+    [ -n "$soname" ] && [ ! -e "$soname" ] && cp "$sofile" "$soname"
+    [ ! -e "${base}.so" ] && cp "$sofile" "${base}.so"
 done
 
 echo "==> VLC libraries installed to $OUTPUT_DIR"

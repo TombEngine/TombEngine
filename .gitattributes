@@ -1,0 +1,3 @@
+# Ensure shell scripts always use LF line endings.
+*.sh text eol=lf
+packaging/appimage/AppRun text eol=lf
