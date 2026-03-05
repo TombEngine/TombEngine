@@ -51,7 +51,7 @@ sudo apt install -y \
     libgl-dev wget zstd
 ```
 
-**Fedora:**
+**Fedora / RHEL:**
 
 ```bash
 sudo dnf install -y \
@@ -59,9 +59,17 @@ sudo dnf install -y \
     mesa-libGL-devel wget zstd
 ```
 
+**Arch Linux:**
+
+```bash
+sudo pacman -S --needed \
+    base-devel cmake ninja \
+    mesa wget zstd
+```
+
 > **Note:** SDL3, spdlog, Lua 5.3, and LZ4 are automatically fetched and built from source via CMake FetchContent. No system `-dev` packages are needed for these libraries.
 >
-> `wget` and `zstd` are needed by the VLC auto-download script (see below).
+> `wget` and `zstd` are needed by the VLC auto-download script (see below). The script downloads and extracts Ubuntu `.deb` packages using standard tools (`wget`, `ar`, `tar`, `zstd`) — it does **not** require `apt` or Debian/Ubuntu, and works on any Linux distribution.
 
 ### VLC Libraries
 
