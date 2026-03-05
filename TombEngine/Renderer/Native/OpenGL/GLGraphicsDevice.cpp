@@ -367,8 +367,6 @@ namespace TEN::Renderer::Native::OpenGL
 			// Disable scissor test — it clips the blit destination.
 			glDisable(GL_SCISSOR_TEST);
 
-			glNamedFramebufferReadBuffer(_backbufferFBO, GL_COLOR_ATTACHMENT0);
-
 			// Query actual drawable size in pixels (may differ from logical window size due to HiDPI scaling).
 			int drawW = _screenWidth;
 			int drawH = _screenHeight;
@@ -376,17 +374,19 @@ namespace TEN::Renderer::Native::OpenGL
 			if (window)
 				SDL_GetWindowSizeInPixels(window, &drawW, &drawH);
 
-			glBlitNamedFramebuffer(
-				_backbufferFBO, 0,
+			// Use glBindFramebuffer + glBlitFramebuffer instead of the DSA
+			// glBlitNamedFramebuffer, as some drivers (notably AMD) return
+			// GL_INVALID_OPERATION when blitting to FBO 0 via the named path.
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, _backbufferFBO);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			glBlitFramebuffer(
 				0, 0, _screenWidth, _screenHeight,
 				0, 0, drawW, drawH,
 				GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 			glEnable(GL_SCISSOR_TEST);
-
-			GLenum err = glGetError();
-			if (err != GL_NO_ERROR)
-				TENLog("Present blit GL error: 0x" + std::to_string(err), LogLevel::Error);
 		}
 
 		SDL_GL_SwapWindow(g_Platform->GetSDL3Window());
