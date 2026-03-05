@@ -5,6 +5,7 @@
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Game/Sink.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
@@ -20,18 +21,16 @@ using namespace TEN::Control::Volumes;
 struct ChunkId;
 struct LEB128;
 struct SampleInfo;
-struct SinkInfo;
-struct BOX_INFO;
-struct OVERLAP;
+#include "Game/control/box_types.h"
 
 struct TEXTURE
 {
 	int width;
 	int height;
-	std::vector<byte> colorMapData;
-	std::vector<byte> normalMapData;
-	std::vector<byte> ORSHMapData;
-	std::vector<byte> emissiveMapData;
+	std::vector<unsigned char> colorMapData;
+	std::vector<unsigned char> normalMapData;
+	std::vector<unsigned char> ORSHMapData;
+	std::vector<unsigned char> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME

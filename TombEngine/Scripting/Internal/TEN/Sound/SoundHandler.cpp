@@ -66,7 +66,8 @@ namespace TEN::Scripting::Sound
 	// @tparam[opt] Vec3 position The 3D position of the sound, i.e. where the sound "comes from". If not given, the sound will not be positional.
 	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos)
 	{
-		SoundEffect(soundID, pos.has_value() ? &Pose(pos->ToVector3i()) : nullptr, SoundEnvironment::Always);
+		auto soundPose = pos.has_value() ? Pose(pos->ToVector3i()) : Pose();
+		SoundEffect(soundID, pos.has_value() ? &soundPose : nullptr, SoundEnvironment::Always);
 	}
 
 	/// Stop sound effect.
@@ -101,7 +102,7 @@ namespace TEN::Scripting::Sound
 	// @treturn string Current subtitle string.
 	static TypeOrNil<std::string> GetCurrentVoiceTrackSubtitle()
 	{
-		auto& result = GetCurrentSubtitle();
+		auto result = GetCurrentSubtitle();
 
 		if (result.has_value())
 		{

@@ -49,9 +49,9 @@ namespace TEN::Entities::TR4
 		{
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
-			byte r = (GetRandomControl() & 0x3F) + 192;
-			byte g = (GetRandomControl() & 0x1F) + 96;
-			byte b = 0;
+			unsigned char r = (GetRandomControl() & 0x3F) + 192;
+			unsigned char g = (GetRandomControl() & 0x1F) + 96;
+			unsigned char b = 0;
 			short fade = 0;
 
 			if (item->ItemFlags[3])

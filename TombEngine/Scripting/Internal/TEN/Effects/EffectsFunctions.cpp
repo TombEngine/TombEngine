@@ -91,10 +91,10 @@ namespace TEN::Scripting::Effects
 
 		// Multiply by two since a) lightning loses two "life" each frame, and b) it must be
 		// an even number to avoid overshooting a value of 0 and wrapping around.
-		byte byteLife = lifeInFrames * 2;
+		unsigned char byteLife = lifeInFrames * 2;
 
 		int amp = ValueOr<int>(amplitude, 20);
-		byte byteAmp = std::clamp(amp, 1, 255);
+		unsigned char byteAmp = std::clamp(amp, 1, 255);
 
 		bool isSmooth = ValueOr<bool>(smooth, false);
 		bool isDrift = ValueOr<bool>(endDrift, false);
@@ -307,13 +307,13 @@ namespace TEN::Scripting::Effects
 		auto bMode = table.get_or("blendMode", BlendMode::AlphaBlend);
 		part.blendMode = bMode;
 
-		auto pos = (Vec3)table["pos"];
+		auto pos = Vec3(table["pos"].get<Vector3>());
 		part.x = pos.x;
 		part.y = pos.y;
 		part.z = pos.z;
 		part.roomNumber = FindRoomNumber(pos.ToVector3i());
 
-		auto vel = ((Vec3)table["vel"]) / (float)FPS;
+		auto vel = Vec3(table["vel"].get<Vector3>()) / (float)FPS;
 		part.xVel = short(vel.x * 32);
 		part.yVel = short(vel.y * 32);
 		part.zVel = short(vel.z * 32);
@@ -332,12 +332,12 @@ namespace TEN::Scripting::Effects
 		part.friction = table.get_or("friction", 0.0f) / (float)FPS;
 		part.maxYvel = table.get_or("maxYVel", 0.0f) / (float)FPS;
 
-		auto convertedStartColor = table.get_or("startColor", ScriptColor(255, 255, 255));
+		auto convertedStartColor = table["startColor"].valid() ? table["startColor"].get<ScriptColor>() : ScriptColor(255, 255, 255);
 		part.sR = convertedStartColor.GetR();
 		part.sG = convertedStartColor.GetG();
 		part.sB = convertedStartColor.GetB();
 
-		auto convertedEndColor = table.get_or("endColor", ScriptColor(255, 255, 255));
+		auto convertedEndColor = table["endColor"].valid() ? table["endColor"].get<ScriptColor>() : ScriptColor(255, 255, 255);
 		part.dR = convertedEndColor.GetR();
 		part.dG = convertedEndColor.GetG();
 		part.dB = convertedEndColor.GetB();

@@ -106,7 +106,7 @@ void TriggerChaffSmoke(const Vector3i& pos, const Vector3i& vel, int speed, bool
 	SMOKE_SPARKS* smoke;
 
 	int rnd = 0;
-	BYTE trans, size;
+	unsigned char trans, size;
 	
 	smoke = &SmokeSparks[GetFreeSmokeSpark()];
 

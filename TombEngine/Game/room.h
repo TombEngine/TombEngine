@@ -3,6 +3,7 @@
 #include "Math/Math.h"
 #include "Physics/Physics.h"
 #include "Game/StaticMesh.h"
+#include "Game/control/volume_types.h"
 
 using namespace TEN::Math;
 using namespace TEN::Physics;
@@ -12,7 +13,6 @@ enum class ReverbType;
 class FloorInfo;
 class GameBoundingBox;
 struct BUCKET;
-struct TriggerVolume;
 
 constexpr auto MAX_FLIPMAP	= 256;
 constexpr auto NUM_ROOMS	= 1024;
@@ -59,7 +59,7 @@ struct RoomLightData
 	float length;         // Range of light
 	float cutoff;         // Range of light
 	float dx, dy, dz;    // Direction - used only by sun and spot lights
-	byte type;
+	unsigned char type;
 	bool castShadows;
 };
 

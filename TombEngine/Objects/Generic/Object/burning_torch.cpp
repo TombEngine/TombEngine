@@ -223,7 +223,8 @@ namespace TEN::Entities::Generic
 			if (!(Wibble & 3))
 				TriggerTorchFlame(laraItem->Index, 0, startColor, endColor);
 
-			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &Pose(pos));
+			auto firePose = Pose(pos);
+			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &firePose);
 		}
 		else
 		{

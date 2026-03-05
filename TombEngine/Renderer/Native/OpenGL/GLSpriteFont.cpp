@@ -12,7 +12,7 @@ namespace TEN::Renderer::Native::OpenGL
 	// Format: https://github.com/microsoft/DirectXTK/wiki/MakeSpriteFont
 	bool GLSpriteFont::ParseSpriteFontFile(const std::wstring& path)
 	{
-		std::ifstream file(path, std::ios::binary);
+		std::ifstream file(std::filesystem::path(path), std::ios::binary);
 		if (!file)
 			return false;
 

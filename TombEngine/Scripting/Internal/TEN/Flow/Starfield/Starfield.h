@@ -12,8 +12,8 @@ namespace TEN::Scripting
 	private:
 		// Constants
 
-		static const auto STAR_COUNT_MAX  = 6000;
-		static const auto METEOR_COUNT_MAX = 100;
+		static constexpr int STAR_COUNT_MAX  = 6000;
+		static constexpr int METEOR_COUNT_MAX = 100;
 
 		// Fields
 

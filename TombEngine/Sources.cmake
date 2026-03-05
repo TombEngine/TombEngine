@@ -120,6 +120,7 @@ set(TEN_GAME_HEADERS
     Game/collision/Point.h
     Game/collision/sphere.h
     Game/control/box.h
+    Game/control/box_types.h
     Game/control/control.h
     Game/control/event.h
     Game/control/flipeffect.h
@@ -127,6 +128,7 @@ set(TEN_GAME_HEADERS
     Game/control/lot.h
     Game/control/trigger.h
     Game/control/volume.h
+    Game/control/volume_types.h
     Game/debug/debug.h
     Game/effects/Blood.h
     Game/effects/bubble.h

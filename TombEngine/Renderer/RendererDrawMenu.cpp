@@ -1395,7 +1395,7 @@ namespace TEN::Renderer
 		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
 	}
 
-	void Renderer::SetLoadingScreen(std::wstring& fileName)
+	void Renderer::SetLoadingScreen(const std::wstring& fileName)
 	{
 		_loadingScreenTexture = SetTextureOrDefault(fileName);
 	}
@@ -1732,7 +1732,7 @@ namespace TEN::Renderer
 		case RendererDebugPage::CollisionStats:
 			PrintDebugMessage("COLLISION STATS");
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Collision type: %d", LaraCollision.CollType);
+			PrintDebugMessage("Collision type: %d", LaraCollision.CollisionType);
 			PrintDebugMessage("Bridge item ID: %d", LaraCollision.Middle.Bridge);
 			PrintDebugMessage("Front floor: %d", LaraCollision.Front.Floor);
 			PrintDebugMessage("Front left floor: %d", LaraCollision.FrontLeft.Floor);

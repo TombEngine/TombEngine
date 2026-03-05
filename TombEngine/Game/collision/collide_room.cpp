@@ -671,7 +671,7 @@ void GetCollisionInfo(CollisionInfo* coll, ItemInfo* item, const Vector3i& offse
 
 		if (coll->DiagonalStepAtRight())
 		{
-			int quarter = unsigned short(coll->Setup.ForwardAngle) / ANGLE(90.0f); // NOTE: Different from quadrant!
+			int quarter = (unsigned short)(coll->Setup.ForwardAngle) / ANGLE(90.0f); // NOTE: Different from quadrant!
 			quarter %= 2;
 
 			if (coll->MiddleRight.HasFlippedDiagonalSplit())
@@ -738,7 +738,7 @@ void AlignEntityToSurface(ItemInfo* item, const Vector2& ellipse, float alpha, s
 
 int GetQuadrant(short angle)
 {
-	return (unsigned short(angle + ANGLE(45.0f)) / ANGLE(90.0f));
+	return ((unsigned short)(angle + ANGLE(45.0f)) / ANGLE(90.0f));
 }
 
 bool TestNeighborRooms(int roomNumber0, int roomNumber1)

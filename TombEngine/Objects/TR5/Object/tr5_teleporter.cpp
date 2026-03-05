@@ -44,7 +44,7 @@ void ControlTeleporter(short itemNumber)
 		LaraItem->Pose.Position.z = item->Pose.Position.z;
 		LaraItem->Pose.Orientation.y = item->Pose.Orientation.y - ANGLE(180.0f);
 
-		auto& pointColl = GetPointCollision(*item);
+		auto pointColl = GetPointCollision(*item);
 		LaraItem->Pose.Position.y = pointColl.GetPosition().y;
 
 		if (LaraItem->RoomNumber != pointColl.GetRoomNumber())

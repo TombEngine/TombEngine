@@ -23,7 +23,7 @@ struct LEB128
 		long result = 0;
 		int currentShift = 0;
 
-		byte currentByte;
+		unsigned char currentByte;
 		do
 		{
 			stream->Read(reinterpret_cast<char *>(&currentByte), 1);
@@ -53,10 +53,10 @@ struct LEB128
 		return static_cast<short>(std::min(std::max(value, static_cast<long>(INT16_MIN)), static_cast<long>(INT16_MAX)));
 	}
 
-	static byte ReadByte(BaseStream* stream)
+	static unsigned char ReadByte(BaseStream* stream)
 	{
 		long value = ReadLong(stream);
-		return static_cast<byte>(std::min(std::max(value, 0L), static_cast<long>(UINT8_MAX)));
+		return static_cast<unsigned char>(std::min(std::max(value, 0L), static_cast<long>(UINT8_MAX)));
 	}	
 
 	static unsigned int ReadUInt32(BaseStream* stream)
@@ -76,7 +76,7 @@ struct LEB128
 		do
 		{
 			// Write byte
-			byte currentByte = ((byte)(value & 0x7F));
+			unsigned char currentByte = ((unsigned char)(value & 0x7F));
 			if (maximumSize >> 6 == 0 || maximumSize >> 6 == -1)
 			{
 				stream->WriteByte(currentByte);
@@ -87,7 +87,7 @@ struct LEB128
 				return;
 			}
 
-			byte b = currentByte | 0x80;
+			unsigned char b = currentByte | 0x80;
 			stream->WriteByte(b);
 
 			// Move data to next byte

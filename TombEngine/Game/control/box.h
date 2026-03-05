@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/control/box_types.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Math/Math.h"
@@ -40,25 +41,6 @@ struct AI_INFO
 	short angle;
 	short xAngle;
 	short enemyFacing;
-};
-
-// TODO: Use DX BoundingBox class to store AABB.
-struct BOX_INFO
-{
-	unsigned int left;
-	unsigned int right;
-	unsigned int top;
-	unsigned int bottom;
-
-	int height;
-	int overlapIndex;
-	int flags;
-};
-
-struct OVERLAP
-{
-	int box;
-	int flags;
 };
 
 // Priority queue element ordered by estimated total traversal cost for Dijkstra and A* pathfinding.

@@ -119,9 +119,9 @@ struct SoundTrackSlot
 struct SampleInfo
 {
 	short Number;
-	byte Volume;
-	byte Radius;
-	byte Randomness;
+	unsigned char Volume;
+	unsigned char Radius;
+	unsigned char Randomness;
 	signed char Pitch;
 	short Flags;
 };

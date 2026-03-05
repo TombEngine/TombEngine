@@ -154,11 +154,16 @@ namespace TEN::Utils
 
     std::wstring ToWString(const std::string& string)
     {
+#ifdef SDL_PLATFORM_WIN32
         auto cString = string.c_str();
         int size = MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), nullptr, 0);
         auto wString = std::wstring(size, 0);
         MultiByteToWideChar(CP_UTF8, 0, cString, (int)strlen(cString), &wString[0], size);
         return wString;
+#else
+        auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>();
+        return converter.from_bytes(string);
+#endif
     }
 
 	std::wstring ToWString(const char* cString)

@@ -26,21 +26,21 @@ public:
 
 	bool ReadChunks(std::function<bool(ChunkId*, long, int)> func, int arg);
 
-	char* ReadChunkArrayOfBytes(__int64 length);
+	char* ReadChunkArrayOfBytes(long long length);
 
-	bool ReadChunkBool(__int64 length);
+	bool ReadChunkBool(long long length);
 
-	__int64 ReadChunkLong(__int64 length);
+	long long ReadChunkLong(long long length);
 
-	int ReadChunkInt32(__int64 length);
+	int ReadChunkInt32(long long length);
 
-	unsigned int ReadChunkUInt32(__int64 length);
+	unsigned int ReadChunkUInt32(long long length);
 
-	short ReadChunkInt16(__int64 length);
+	short ReadChunkInt16(long long length);
 
-	unsigned short ReadChunkUInt16(__int64 length);
+	unsigned short ReadChunkUInt16(long long length);
 
-	byte ReadChunkByte(__int64 length);
+	unsigned char ReadChunkByte(long long length);
 
 	BaseStream* GetRawStream();
 };

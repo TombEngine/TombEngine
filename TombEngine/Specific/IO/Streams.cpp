@@ -7,12 +7,12 @@ using std::ifstream;
 using std::fstream;
 using std::ofstream;
 
-bool BaseStream::ReadBytes(byte* value, int length)
+bool BaseStream::ReadBytes(unsigned char* value, int length)
 {
 	return Read(reinterpret_cast<char*>(value), length);
 }
 
-bool BaseStream::ReadByte(byte* value)
+bool BaseStream::ReadByte(unsigned char* value)
 {
 	return Read(reinterpret_cast<char*>(value), 1);
 }
@@ -125,12 +125,12 @@ bool BaseStream::ReadBoundingSphere(BoundingSphere* sphere)
 	return true;
 }
 
-bool BaseStream::WriteBytes(byte* value, int length)
+bool BaseStream::WriteBytes(unsigned char* value, int length)
 {
 	return Write(reinterpret_cast<char*>(value), length);
 }
 
-bool BaseStream::WriteByte(byte value)
+bool BaseStream::WriteByte(unsigned char value)
 {
 	return Write(reinterpret_cast<char*>(&value), 1);
 }
@@ -224,7 +224,7 @@ bool MemoryStream::Close()
 
 FileStream::FileStream(char* fileName, bool read, bool write)
 {
-	int mode = 0;
+	auto mode = std::ios_base::openmode{};
 	if (read)
 		mode |= ifstream::binary | fstream::in;
 

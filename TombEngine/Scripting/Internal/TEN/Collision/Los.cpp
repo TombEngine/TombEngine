@@ -133,7 +133,7 @@ namespace TEN::Scripting::Collision
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance))
 			return sol::nullopt;
 
-		return _los.Room.Position;
+		return Vec3(_los.Room.Position);
 	}
 
 	/// Get the distance from the ray origin point to the room hit position.
@@ -155,7 +155,7 @@ namespace TEN::Scripting::Collision
 		if (!_los.Room.IsIntersected || IsOccluded(_los.Room.Distance) || !_los.Room.Triangle.has_value())
 			return sol::nullopt;
 
-		return _los.Room.Triangle.value().Normal;
+		return Vec3(_los.Room.Triangle.value().Normal);
 	}
 
 	/// Get the first moveable hit by the ray.
@@ -200,7 +200,7 @@ namespace TEN::Scripting::Collision
 		if (_los.Items.empty() || IsOccluded(_los.Items.front().Distance))
 			return sol::nullopt;
 
-		return _los.Items.front().Position;
+		return Vec3(_los.Items.front().Position);
 	}
 	
 	/// Get the distance from the ray origin to the first moveable hit position.
@@ -261,7 +261,7 @@ namespace TEN::Scripting::Collision
 		if (_los.Statics.empty() || IsOccluded(_los.Statics.front().Distance))
 			return sol::nullopt;
 
-		return _los.Statics.front().Position;
+		return Vec3(_los.Statics.front().Position);
 	}
 
 	/// Get the distance from the ray origin to the first static mesh hit position.

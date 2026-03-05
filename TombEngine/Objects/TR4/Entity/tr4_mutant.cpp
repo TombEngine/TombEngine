@@ -96,7 +96,7 @@ namespace TEN::Entities::TR4
 		auto* sptr = GetFreeParticle();
 
 		sptr->on = true;
-		BYTE color = (GetRandomControl() & 0x3F) - 128;
+		unsigned char color = (GetRandomControl() & 0x3F) - 128;
 		sptr->sB = 0;
 		sptr->sR = color;
 		sptr->sG = color / 2;
@@ -108,7 +108,7 @@ namespace TEN::Entities::TR4
 		sptr->colFadeSpeed = (GetRandomControl() & 3) + 8;
 		sptr->blendMode = BlendMode::Additive;
 		sptr->dynamic = -1;
-		BYTE life = (GetRandomControl() & 7) + 32;
+		unsigned char life = (GetRandomControl() & 7) + 32;
 		sptr->life = life;
 		sptr->sLife = life;
 		sptr->x = (GetRandomControl() & 0xF) - 8;
@@ -131,9 +131,9 @@ namespace TEN::Entities::TR4
 
 		sptr->gravity = 0;
 		sptr->maxYvel = 0;
-		sptr->fxObj = byte(fxNumber);
+		sptr->fxObj = (unsigned char)(fxNumber);
 		sptr->scalar = 2;
-		BYTE size = (GetRandomControl() & 0xF) + 128;
+		unsigned char size = (GetRandomControl() & 0xF) + 128;
 		sptr->size = size;
 		sptr->sSize = size;
 		sptr->dSize = size / 4;

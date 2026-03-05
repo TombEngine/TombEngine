@@ -68,7 +68,7 @@ constexpr auto SAVEGAME_FILE_MASK = "savegame.";
 
 GameStats SaveGame::Statistics;
 SaveGameHeader SaveGame::Infos[SAVEGAME_MAX];
-std::map<int, std::vector<byte>> SaveGame::Hub;
+std::map<int, std::vector<unsigned char>> SaveGame::Hub;
 
 int SaveGame::LastSaveGame;
 std::string SaveGame::FullSaveDirectory;
@@ -251,7 +251,7 @@ void SaveGame::Init(const std::string& gameDirectory)
 	FullSaveDirectory = gameDirectory + SAVEGAME_PATH;
 }
 
-const std::vector<byte> SaveGame::Build()
+const std::vector<unsigned char> SaveGame::Build()
 {
 	ItemInfo itemToSerialize{};
 	FlatBufferBuilder fbb{};
@@ -1728,7 +1728,7 @@ const std::vector<byte> SaveGame::Build()
 	auto buffer = fbb.GetBufferPointer();
 	auto size   = fbb.GetSize();
 
-	auto result = std::vector<byte>(buffer, buffer + size);
+	auto result = std::vector<unsigned char>(buffer, buffer + size);
 	return result;
 }
 
@@ -1838,7 +1838,7 @@ bool SaveGame::Load(int slot)
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
 
 		// Read current level save data.
-		auto saveData = std::vector<byte>(size);
+		auto saveData = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(saveData.data()), size);
 
 		// Reset hub data, as it's about to be replaced with saved one.
@@ -1856,7 +1856,7 @@ bool SaveGame::Load(int slot)
 			file.read(reinterpret_cast<char*>(&index), sizeof(index));
 
 			file.read(reinterpret_cast<char*>(&size), sizeof(size));
-			auto hubBuffer = std::vector<byte>(size);
+			auto hubBuffer = std::vector<unsigned char>(size);
 			file.read(reinterpret_cast<char*>(hubBuffer.data()), size);
 
 			Hub[index] = hubBuffer;
@@ -3041,9 +3041,10 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 }
 
-void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
+void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 {
-	if (!Save::VerifySaveGameBuffer(flatbuffers::Verifier(buffer.data(), buffer.size())))
+	auto verifier = flatbuffers::Verifier(buffer.data(), buffer.size());
+	if (!Save::VerifySaveGameBuffer(verifier))
 	{
 		TENLog("Savegame data is incorrect and was not loaded! Incorrect flatbuffer format or memory corruption?", LogLevel::Error);
 		return;
@@ -3099,7 +3100,8 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 		file.read(buffer.get(), size);
 		file.close();
 
-		bool bufferIsValid = Save::VerifySaveGameBuffer(flatbuffers::Verifier(reinterpret_cast<const unsigned char*>(buffer.get()), size));
+		auto verifier2 = flatbuffers::Verifier(reinterpret_cast<const unsigned char*>(buffer.get()), size);
+		bool bufferIsValid = Save::VerifySaveGameBuffer(verifier2);
 
 		if (size <= 0 || size >= length || !bufferIsValid)
 		{

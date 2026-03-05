@@ -54,7 +54,7 @@ bool ChunkReader::ReadChunks(bool(*func)(ChunkId* parentChunkId, int maxSize, in
 			break;
 
 		// Read up to a 64 bit number for the chunk size
-		__int64 chunkSize = LEB128::ReadLong(m_stream);
+		long long chunkSize = LEB128::ReadLong(m_stream);
 
 		// Try loading chunk content
 		bool chunkRecognized = false;
@@ -81,7 +81,7 @@ bool ChunkReader::ReadChunks(std::function<bool(ChunkId*, long, int)> func, int 
 			break;
 
 		// Read up to a 64 bit number for the chunk size
-		__int64 chunkSize = LEB128::ReadLong(m_stream);
+		long long chunkSize = LEB128::ReadLong(m_stream);
 
 		// Try loading chunk content
 		bool chunkRecognized = false;
@@ -99,44 +99,44 @@ bool ChunkReader::ReadChunks(std::function<bool(ChunkId*, long, int)> func, int 
 	return true;
 }
 
-char* ChunkReader::ReadChunkArrayOfBytes(__int64 length)
+char* ChunkReader::ReadChunkArrayOfBytes(long long length)
 {
 	char* value = (char*)malloc(length);
 	m_stream->Read(value, length);
 	return value;
 }
 
-bool ChunkReader::ReadChunkBool(__int64 length)
+bool ChunkReader::ReadChunkBool(long long length)
 {
 	return (LEB128::ReadByte(m_stream) != 0);
 }
 
-__int64 ChunkReader::ReadChunkLong(__int64 length)
+long long ChunkReader::ReadChunkLong(long long length)
 {
 	return LEB128::ReadLong(m_stream);
 }
 
-int ChunkReader::ReadChunkInt32(__int64 length)
+int ChunkReader::ReadChunkInt32(long long length)
 {
 	return LEB128::ReadInt32(m_stream);
 }
 
-unsigned int ChunkReader::ReadChunkUInt32(__int64 length)
+unsigned int ChunkReader::ReadChunkUInt32(long long length)
 {
 	return LEB128::ReadUInt32(m_stream);
 }
 
-short ChunkReader::ReadChunkInt16(__int64 length)
+short ChunkReader::ReadChunkInt16(long long length)
 {
 	return LEB128::ReadInt16(m_stream);
 }
 
-unsigned short ChunkReader::ReadChunkUInt16(__int64 length)
+unsigned short ChunkReader::ReadChunkUInt16(long long length)
 {
 	return LEB128::ReadUInt16(m_stream);
 }
 
-byte ChunkReader::ReadChunkByte(__int64 length)
+unsigned char ChunkReader::ReadChunkByte(long long length)
 {
 	return LEB128::ReadByte(m_stream);
 }

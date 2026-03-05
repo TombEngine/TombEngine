@@ -300,7 +300,7 @@ namespace TEN::Renderer
 					auto dir = target - origin;
 					dir.Normalize();
 
-					byte r, g, b;
+					unsigned char r, g, b;
 					if (arc.life >= 16)
 					{
 						r = arc.r;
@@ -315,7 +315,7 @@ namespace TEN::Renderer
 					}
 
 
-					byte oldR, oldG, oldB;
+					unsigned char oldR, oldG, oldB;
 					if (arc.PrevLife >= 16)
 					{
 						oldR = arc.PrevR;
@@ -329,9 +329,9 @@ namespace TEN::Renderer
 						oldB = (arc.PrevLife * arc.PrevB) / 16;
 					}
 
-					r = (byte)Lerp(oldR, r, GetInterpolationFactor());
-					g = (byte)Lerp(oldG, g, GetInterpolationFactor());
-					b = (byte)Lerp(oldB, b, GetInterpolationFactor());
+					r = (unsigned char)Lerp(oldR, r, GetInterpolationFactor());
+					g = (unsigned char)Lerp(oldG, g, GetInterpolationFactor());
+					b = (unsigned char)Lerp(oldB, b, GetInterpolationFactor());
 
 					AddSpriteBillboardConstrained(
 						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
@@ -644,7 +644,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Splashes rendering"))
 				return;
 
-			byte color = (splash.life >= 32 ? 128 : (byte)((splash.life / 32.0f) * 128));
+			unsigned char color = (splash.life >= 32 ? 128 : (unsigned char)((splash.life / 32.0f) * 128));
 
 			if (!splash.isRipple) 
 			{
@@ -655,7 +655,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			byte prevColor = (splash.PrevLife >= 32 ? 128 : (byte)((splash.PrevLife / 32.0f) * 128));
+			unsigned char prevColor = (splash.PrevLife >= 32 ? 128 : (unsigned char)((splash.PrevLife / 32.0f) * 128));
 
 			if (!splash.isRipple)
 			{
@@ -666,7 +666,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			color = (byte)Lerp(prevColor, color, GetInterpolationFactor());
+			color = (unsigned char)Lerp(prevColor, color, GetInterpolationFactor());
 
 			float xInner;
 			float zInner;
@@ -861,7 +861,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Shockwaves rendering"))
 				return;
 
-			byte color = shockwave->life * 8;
+			unsigned char color = shockwave->life * 8;
 
 			shockwave->yRot += shockwave->yRot / FPS;
 

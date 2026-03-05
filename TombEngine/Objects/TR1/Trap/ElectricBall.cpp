@@ -44,7 +44,7 @@ namespace TEN::Entities::Traps
 
 	ElectricBallInfo ElectricBallData;
 
-	 void SpawnElectricBallShockwaveAttackSparks(int x, int y, int z, byte r, byte g, byte b, byte size)
+	 void SpawnElectricBallShockwaveAttackSparks(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b, unsigned char size)
 	{
 		auto* spark = GetFreeParticle();
 
@@ -272,9 +272,9 @@ namespace TEN::Entities::Traps
 		{
 			if (item.ItemFlags[4] >  0)
 			{				
-				byte blue = (item.ItemFlags[4] << 2) + Random::GenerateInt(2, 18);
-				byte green = blue >> 2;
-				byte red = 0;
+				unsigned char blue = (item.ItemFlags[4] << 2) + Random::GenerateInt(2, 18);
+				unsigned char green = blue >> 2;
+				unsigned char red = 0;
 
 				SpawnDynamicLight(pos1.x, pos1.y, pos1.z, (item.ItemFlags[4] + 8) / 5, red, green, blue);
 				item.ItemFlags[3]--;

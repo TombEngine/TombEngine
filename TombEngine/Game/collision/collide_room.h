@@ -103,7 +103,7 @@ struct CollisionInfo
 	CollisionPositionData FrontLeft	  = {};
 	CollisionPositionData FrontRight  = {};
 
-	CollisionType CollType = CollisionType::None;
+	CollisionType CollisionType = CollisionType::None;
 	Pose		  Shift			= Pose::Zero;
 
 	Vector3 FloorNormal			 = Vector3::Zero;

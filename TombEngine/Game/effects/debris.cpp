@@ -184,7 +184,7 @@ void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumb
 				fragment->velocity = CalculateFragmentImpactVelocity(fragment->worldPosition, ShatterImpactData.impactDirection, ShatterImpactData.impactLocation);
 				fragment->roomNumber = roomNumber;
 				fragment->numBounces = 0;
-				fragment->color = isStatic ? mesh->Color : item->color;
+				fragment->color = isStatic ? (Vector4)mesh->Color : item->color;
 				fragment->lightMode = fragmentsMesh->lightMode;
 
 				fragment->UpdateTransform();

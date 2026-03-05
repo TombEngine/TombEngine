@@ -384,7 +384,7 @@ void AddFire(int x, int y, int z, short roomNum, float size, short fade)
 	AddFire(Vector3i(x, y, z), roomNum, Vector4::One, size, fade);
 }
 
-void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
+void AddFire(const Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
 {
 	FIRE_LIST newFire;
 	
@@ -633,7 +633,7 @@ void UpdateSmoke()
 	}
 }
 
-void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, byte initial, LaraWeaponType weaponType, byte count)
+void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, unsigned char initial, LaraWeaponType weaponType, unsigned char count)
 {
 	TriggerGunSmokeParticles(x, y, z, xv, yv, zv, initial, weaponType, count);
 }
@@ -1139,7 +1139,7 @@ void SomeSparkEffect(int x, int y, int z, int count)
 		spark->friction = 5;
 		int random = GetRandomControl() & 0xFFF;
 		spark->xVel = -128 * phd_sin(random << 4);
-		spark->yVel = -640 - (byte)GetRandomControl();
+		spark->yVel = -640 - (unsigned char)GetRandomControl();
 		spark->zVel = 128 * phd_cos(random << 4);
 		spark->flags = 0;
 		spark->x = x + (spark->xVel >> 3);

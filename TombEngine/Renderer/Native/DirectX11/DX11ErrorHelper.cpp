@@ -83,7 +83,7 @@ namespace TEN::Renderer::Native::DirectX11
 					SIZE_T messageLength = 0;
 					infoQueue->GetMessage(i, nullptr, &messageLength);
 
-					auto messageData = std::vector<byte>(messageLength);
+					auto messageData = std::vector<unsigned char>(messageLength);
 					auto* message = reinterpret_cast<D3D11_MESSAGE*>(messageData.data());
 					infoQueue->GetMessage(i, message, &messageLength);
 

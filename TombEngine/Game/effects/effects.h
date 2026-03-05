@@ -190,10 +190,10 @@ struct Particle
 	int PrevY;
 	int PrevZ;
 	short PrevRotAng;
-	byte PrevR;
-	byte PrevG; 
-	byte PrevB;
-	byte PrevScalar;
+	unsigned char PrevR;
+	unsigned char PrevG; 
+	unsigned char PrevB;
+	unsigned char PrevScalar;
 
 	void StoreInterpolationData()
 	{
@@ -210,13 +210,13 @@ struct Particle
 
 struct ParticleDynamic
 {
-	byte On;
-	byte Falloff;
-	byte R;
-	byte G;
-	byte B;
-	byte Flags;
-	byte Pad[2];
+	unsigned char On;
+	unsigned char Falloff;
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+	unsigned char Flags;
+	unsigned char Pad[2];
 };
 
 extern GameBoundingBox DeadlyBounds;
@@ -295,7 +295,7 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale);
 void TriggerRocketFire(int x, int y, int z);
 void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
-void Ricochet(Pose& pos);
+void Ricochet(const Pose& pos);
 void ProcessEffects(ItemInfo* item);
 void UpdateWibble();
 

@@ -179,9 +179,9 @@ namespace TEN::Entities::Creatures::TR3
 		float distance = Vector3::Distance(item.Pose.Position.ToVector3(), enemy.Pose.Position.ToVector3());
 		if (distance <= SOPHIALEIGH_KNOCKBACK_RANGE)
 		{
-			byte red = SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX;
-			byte green = SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX;
-			byte blue = SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX;
+			unsigned char red = SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX;
+			unsigned char green = SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX;
+			unsigned char blue = SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX;
 
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 			auto centerPos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);

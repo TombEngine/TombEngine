@@ -1,4 +1,3 @@
-#pragma once
 #include "framework.h"
 #include "Game/effects/spark.h"
 

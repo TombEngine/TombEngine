@@ -39,6 +39,7 @@ class ItemData
 {
 	std::variant<
 		std::nullptr_t,
+		bool,
 		char,
 		short,
 		int,

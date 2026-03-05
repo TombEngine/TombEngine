@@ -265,7 +265,7 @@ void DrawItemPathfinding(int itemNumber)
 	{
 		int nextBox = LOT.Node[currentBox].exitBox;
 		auto& box = g_Level.PathfindingBoxes[currentBox];
-		auto& center = GetBoxCenter(currentBox);
+		auto center = GetBoxCenter(currentBox);
 		center.y = std::min(center.y, target.y);
 
 		bool blink = blinkingBox != NO_VALUE;

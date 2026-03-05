@@ -7,12 +7,12 @@ struct ChunkWritingState
 {
 private:
 	BaseStream* m_stream;
-	__int64 m_chunkSizePosition;
-	__int64 m_previousPosition;
-	__int64 m_maximumSize;
+	long long m_chunkSizePosition;
+	long long m_previousPosition;
+	long long m_maximumSize;
 
 public:
-	ChunkWritingState(BaseStream* stream, ChunkId* chunkID, __int64 maximumSize)
+	ChunkWritingState(BaseStream* stream, ChunkId* chunkID, long long maximumSize)
 	{
 		m_stream = stream;
 
@@ -68,26 +68,26 @@ public:
 		LEB128::Write(m_stream, 0);
 	}
 
-	void WriteChunkArrayOfBytes(ChunkId* chunkID, byte* value, int length)
+	void WriteChunkArrayOfBytes(ChunkId* chunkID, unsigned char* value, int length)
 	{
 		chunkID->ToStream(m_stream);
 		LEB128::Write(m_stream, length);
 		m_stream->WriteBytes(value, length);
 	}
 
-	void WriteChunkInt(ChunkId* chunkID, __int64 value)
+	void WriteChunkInt(ChunkId* chunkID, long long value)
 	{
 		chunkID->ToStream(m_stream);
 		LEB128::Write(m_stream, LEB128::GetLength(m_stream, value));
 		LEB128::Write(m_stream, value);
 	}
 
-	ChunkWritingState* WriteChunk(ChunkId* chunkID, __int64 maximumSize = LEB128::MaximumSize4Byte)
+	ChunkWritingState* WriteChunk(ChunkId* chunkID, long long maximumSize = LEB128::MaximumSize4Byte)
 	{
 		return new ChunkWritingState(m_stream, chunkID, maximumSize);
 	}
 
-	void WriteChunk(ChunkId* chunkID, void(*writeChunk)(int, int), int arg1, int arg2, __int64 maximumSize = LEB128::MaximumSize4Byte)
+	void WriteChunk(ChunkId* chunkID, void(*writeChunk)(int, int), int arg1, int arg2, long long maximumSize = LEB128::MaximumSize4Byte)
 	{
 		ChunkWritingState* state = WriteChunk(chunkID, maximumSize);
 		writeChunk(arg1, arg2);
@@ -95,7 +95,7 @@ public:
 		delete state;
 	}
 
-	void WriteChunkWithChildren(ChunkId* chunkID, void(*writeChunk)(int, int), int arg1, int arg2, __int64 maximumSize = LEB128::MaximumSize4Byte)
+	void WriteChunkWithChildren(ChunkId* chunkID, void(*writeChunk)(int, int), int arg1, int arg2, long long maximumSize = LEB128::MaximumSize4Byte)
 	{
 		ChunkWritingState* state = WriteChunk(chunkID, maximumSize);
 		writeChunk(arg1, arg2);

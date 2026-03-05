@@ -75,6 +75,13 @@ set_source_files_properties(../Libs/glad/glad.c
     PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
+# GCC requires optimization for SSE intrinsics used by stb_image, even in Debug.
+if(NOT MSVC)
+    set_source_files_properties(Renderer/stb_impl.cpp
+        PROPERTIES COMPILE_OPTIONS "-O2"
+    )
+endif()
+
 # Include self for #include "Game/...", "Renderer/...", etc.
 target_include_directories(TombEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -84,8 +91,16 @@ target_include_directories(TombEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/Libs)
 
 # Header-only / always-vendored libraries (all platforms).
+# On non-Windows, use -idirafter for ${LIBS_DIR} so that FetchContent spdlog
+# headers (added via spdlog::spdlog target) take priority over the vendored
+# spdlog in Libs/spdlog/.
+if(WIN32)
+    target_include_directories(TombEngine PRIVATE ${LIBS_DIR})
+else()
+    target_compile_options(TombEngine PRIVATE -idirafter ${LIBS_DIR})
+endif()
+
 target_include_directories(TombEngine PRIVATE
-    ${LIBS_DIR}
     ${LIBS_DIR}/glad
     ${LIBS_DIR}/sol
     ${LIBS_DIR}/srtparser
@@ -161,6 +176,21 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wno-sign-compare
         -Wno-conversion
         -Wno-deprecated-declarations
+        -Wno-changes-meaning
+        -Wno-unused-function
+        -fpermissive
+        -Wno-parentheses
+        -Wno-unused-variable
+        -Wno-unused-but-set-variable
+        -Wno-strict-aliasing
+        -Wno-switch
+        -Wno-class-memaccess
+        -Wno-format-security
+        -Wno-int-in-bool-context
+        -Wno-maybe-uninitialized
+        -Wno-misleading-indentation
+        -Wno-pointer-arith
+        -Wno-narrowing
     )
     target_compile_options(TombEngine PRIVATE
         $<$<CONFIG:Release>:-O2 -ffast-math>
@@ -219,18 +249,29 @@ else()
     include(CMakeFindDependencyMacro)
     find_package(PkgConfig REQUIRED)
 
+    include(FetchContent)
+
     find_package(SDL3 QUIET)
     if(NOT SDL3_FOUND)
-        include(FetchContent)
         FetchContent_Declare(SDL3
             GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
             GIT_TAG        release-3.2.8
         )
         FetchContent_MakeAvailable(SDL3)
     endif()
+
+    # Build spdlog from source so that headers and library ABI always match.
+    # The vendored Libs/spdlog/ headers use fmt v8 which is incompatible with
+    # system spdlog/fmt packages; building from source avoids this mismatch.
+    FetchContent_Declare(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG        v1.10.0
+    )
+    set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(spdlog)
+
     find_package(OpenGL REQUIRED)
 
-    pkg_check_modules(SPDLOG REQUIRED spdlog)
     pkg_check_modules(LZ4    REQUIRED liblz4)
     pkg_check_modules(LUA    REQUIRED lua5.3)
 
@@ -264,7 +305,7 @@ else()
     target_link_libraries(TombEngine PRIVATE
         SDL3::SDL3
         OpenGL::GL
-        ${SPDLOG_LIBRARIES}
+        spdlog::spdlog
         ${LZ4_LIBRARIES}
         ${LUA_LIBRARIES}
         bass
@@ -273,7 +314,6 @@ else()
         ${VLC_LIBRARIES}
     )
     target_include_directories(TombEngine PRIVATE
-        ${SPDLOG_INCLUDE_DIRS}
         ${LZ4_INCLUDE_DIRS}
         ${LUA_INCLUDE_DIRS}
     )

@@ -38,7 +38,7 @@ namespace TEN::Entities::Effects
 	constexpr int FLAME_BIG_RADIUS = CLICK(2.33f);
 	constexpr int FLAME_ITEM_BURN_TIMEOUT = 3 * FPS;
 
-	byte Flame3xzoffs[16][2] =
+	unsigned char Flame3xzoffs[16][2] =
 	{
 		{ 9, 9 },
 		{ 24, 9 },
@@ -462,8 +462,8 @@ namespace TEN::Entities::Effects
 			{
 				SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &item->Pose);
 
-				byte g = (GetRandomControl() & 0x3F) + 192;
-				byte b = (GetRandomControl() & 0x3F) + 192;
+				unsigned char g = (GetRandomControl() & 0x3F) + 192;
+				unsigned char b = (GetRandomControl() & 0x3F) + 192;
 
 				auto origin = item->Pose.Position.ToVector3();
 				auto target = Vector3::Zero;

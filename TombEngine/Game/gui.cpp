@@ -810,11 +810,11 @@ namespace TEN::Gui
 								break;
 
 							case Menu::QuickActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size());
+								baseIndex = (unsigned int)(GeneralActionStrings.size() + VehicleActionStrings.size());
 								break;
 
 							case Menu::MenuActions:
-								baseIndex = unsigned int(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
+								baseIndex = (unsigned int)(GeneralActionStrings.size() + VehicleActionStrings.size() + QuickActionStrings.size());
 								break;
 
 							default:
@@ -1458,7 +1458,7 @@ namespace TEN::Gui
 		const auto& invObject = InventoryObjectTable[ring.CurrentObjectList[ring.CurrentObjectInList].InventoryItem];
 
 		int number = 0;
-		unsigned __int64 options = invObject.Options;
+		unsigned long long options = invObject.Options;
 		AmmoSelectorFlag = 0;
 		NumAmmoSlots = 0;
 
@@ -1590,7 +1590,7 @@ namespace TEN::Gui
 
 	void GuiController::InsertObjectIntoList_v2(int objectNumber)
 	{
-		unsigned __int64 options = InventoryObjectTable[objectNumber].Options;
+		unsigned long long options = InventoryObjectTable[objectNumber].Options;
 
 		if (options & (OPT_COMBINABLE | OPT_ALWAYS_COMBINE))
 		{
@@ -2792,7 +2792,7 @@ namespace TEN::Gui
 		const auto& player = GetLaraInfo(*item);
 		auto& ring = Rings[(int)ringType];
 
-		if (ring.CurrentObjectList <= 0)
+		if (ring.CurrentObjectList == nullptr)
 			return;
 
 		if (ringType == RingTypes::Ammo)

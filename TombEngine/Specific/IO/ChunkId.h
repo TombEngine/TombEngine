@@ -6,7 +6,7 @@
 struct ChunkId
 {
 private:
-	byte*		m_chunkBytes;
+	unsigned char*		m_chunkBytes;
 	int		m_length;
 
 public:
@@ -22,7 +22,7 @@ public:
 
 	void ToStream(BaseStream* stream);
 
-	byte* GetBytes();
+	unsigned char* GetBytes();
 
 	int GetLength();
 

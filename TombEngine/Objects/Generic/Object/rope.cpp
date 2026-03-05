@@ -367,7 +367,7 @@ namespace TEN::Entities::Generic
 		rope->velocity[0].y = 0;
 		rope->velocity[0].z = 0;
 
-		for (INT i = 0; i < ROPE_SEGMENTS - 1; ++i)
+		for (int i = 0; i < ROPE_SEGMENTS - 1; ++i)
 		{
 			rope->normalisedSegment[i].x = rope->segment[i + 1].x - rope->segment[i].x;
 			rope->normalisedSegment[i].y = rope->segment[i + 1].y - rope->segment[i].y;

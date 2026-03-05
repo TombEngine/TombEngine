@@ -594,19 +594,19 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 			flag = 1;
 		}
 
-		if (coll0.CollType == CollisionType::Left)
+		if (coll0.CollisionType == CollisionType::Left)
 		{
 			item->Pose.Orientation.y += ANGLE(2.0f);
 		}
-		else if (coll0.CollType == CollisionType::Right)
+		else if (coll0.CollisionType == CollisionType::Right)
 		{
 			item->Pose.Orientation.y -= ANGLE(2.0f);
 		}
-		else if (coll1.CollType == CollisionType::Left)
+		else if (coll1.CollisionType == CollisionType::Left)
 		{
 			item->Pose.Orientation.y += ANGLE(2.0f);
 		}
-		else if (coll1.CollType == CollisionType::Right)
+		else if (coll1.CollisionType == CollisionType::Right)
 		{
 			item->Pose.Orientation.y -= ANGLE(2.0f);
 		}

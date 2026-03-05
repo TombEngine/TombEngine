@@ -733,7 +733,7 @@ namespace TEN::Renderer
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
-		void SetLoadingScreen(std::wstring& fileName);
+		void SetLoadingScreen(const std::wstring& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::wstring path);
 		std::string GetDefaultAdapterName();
 		const AdapterInfo& GetAdapterInfo() const;

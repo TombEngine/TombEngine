@@ -12,7 +12,7 @@ ChunkId::ChunkId(char* bytes, int length)
 	}
 	else
 	{
-		m_chunkBytes = (byte*)malloc(length);
+		m_chunkBytes = (unsigned char*)malloc(length);
 		memcpy(m_chunkBytes, bytes, length);
 		m_length = length;
 	}
@@ -50,7 +50,7 @@ void ChunkId::ToStream(BaseStream* stream)
 	stream->WriteBytes(m_chunkBytes, m_length);
 }
 
-byte* ChunkId::GetBytes()
+unsigned char* ChunkId::GetBytes()
 {
 	return m_chunkBytes;
 }

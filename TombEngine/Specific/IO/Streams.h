@@ -24,9 +24,9 @@ public:
 	virtual bool IsEOF() = 0;
 	virtual bool Close() = 0;
 	
-	bool ReadBytes(byte* value, int length);
+	bool ReadBytes(unsigned char* value, int length);
 
-	bool ReadByte(byte* value);
+	bool ReadByte(unsigned char* value);
 
 	bool ReadBool(bool* value);
 
@@ -52,9 +52,9 @@ public:
 
 	bool ReadBoundingSphere(BoundingSphere* sphere);
 
-	bool WriteBytes(byte* value, int length);
+	bool WriteBytes(unsigned char* value, int length);
 
-	bool WriteByte(byte value);
+	bool WriteByte(unsigned char value);
 
 	bool WriteInt16(short value);
 

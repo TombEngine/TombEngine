@@ -108,6 +108,8 @@ void InitDefaultConfiguration()
 	g_Configuration.AdapterName = {};
 
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
+
+	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 }
 
 bool LoadConfiguration()

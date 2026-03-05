@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.un4seen.com)",
+      "WebSearch",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(IFS= read:*)"
+    ]
+  }
+}

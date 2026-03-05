@@ -3,6 +3,7 @@
 #include <unordered_set>
 
 #include "Scripting/Internal/LuaHandler.h"
+#include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
@@ -11,7 +12,7 @@
 class ObjectsHandler : public ScriptInterfaceObjectsHandler
 {
 public:
-	ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent);
+	ObjectsHandler(sol::state* lua, sol::table& parent);
 
 	bool NotifyKilled(ItemInfo* key) override;
 	bool AddMoveableToMap(ItemInfo* key, Moveable* mov);
@@ -65,7 +66,7 @@ private:
 		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
 
-		return std::make_unique<R>(std::get<R::IdentifierType>(_nameMap.at(name)));
+		return std::make_unique<R>(std::get<typename R::IdentifierType>(_nameMap.at(name)));
 	}
 
 	template <typename R>

@@ -167,7 +167,7 @@ int ReadCount(int maxValue = SQUARE(1024))
 	int count = ReadInt32();
 
 	if (count < 0 || count > maxValue)
-		throw std::exception("Level data block has incorrect size. Level version is probably outdated.");
+		throw std::runtime_error("Level data block has incorrect size. Level version is probably outdated.");
 
 	return count;
 }
@@ -387,7 +387,7 @@ void LoadObjects()
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
+			throw std::runtime_error(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -852,7 +852,7 @@ void LoadDynamicRoomData()
 	int roomCount = ReadCount();
 
 	if (g_Level.Rooms.size() != roomCount)
-		throw std::exception("Dynamic room data count is inconsistent with room count.");
+		throw std::runtime_error("Dynamic room data count is inconsistent with room count.");
 
 	for (int i = 0; i < roomCount; i++)
 	{
@@ -1100,16 +1100,16 @@ void LoadStaticRoomData()
 				sector.FloorSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_FLOOR_SLOPE_ANGLE;
 				sector.FloorSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.FloorSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.FloorSurface.Triangles[0].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), true);
-				sector.FloorSurface.Triangles[1].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), true);
+				sector.FloorSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
+				sector.FloorSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), true);
 
 				sector.CeilingSurface.SplitAngle = FROM_RAD(ReadFloat());
 				sector.CeilingSurface.Triangles[0].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[1].SteepSlopeAngle = DEFAULT_STEEP_CEILING_SLOPE_ANGLE;
 				sector.CeilingSurface.Triangles[0].PortalRoomNumber = ReadInt32();
 				sector.CeilingSurface.Triangles[1].PortalRoomNumber = ReadInt32();
-				sector.CeilingSurface.Triangles[0].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), false);
-				sector.CeilingSurface.Triangles[1].SurfacePlane = ConvertFakePlaneToPlane(ReadVector3(), false);
+				sector.CeilingSurface.Triangles[0].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
+				sector.CeilingSurface.Triangles[1].Plane = ConvertFakePlaneToPlane(ReadVector3(), false);
 
 				sector.SidePortalRoomNumber = ReadInt32();
 				sector.Flags.Death = ReadBool();
@@ -1237,9 +1237,17 @@ void FreeLevel(bool partial)
 
 size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream)
 {
+#ifdef _MSC_VER
 	_lock_file(stream);
+#else
+	flockfile(stream);
+#endif
 	size_t result = fread(ptr, size, count, stream);
+#ifdef _MSC_VER
 	_unlock_file(stream);
+#else
+	funlockfile(stream);
+#endif
 	return result;
 }
 
@@ -1430,6 +1438,7 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 #if PLATFORM_64BIT
 long long GetRemainingSize(FILE* filePtr)
 {
+#ifdef _MSC_VER
 	auto current_position = _ftelli64(filePtr);
 
 	if (_fseeki64(filePtr, 0, SEEK_END) != 0)
@@ -1439,6 +1448,17 @@ long long GetRemainingSize(FILE* filePtr)
 
 	if (_fseeki64(filePtr, current_position, SEEK_SET) != 0)
 		return NO_VALUE;
+#else
+	auto current_position = ftello64(filePtr);
+
+	if (fseeko64(filePtr, 0, SEEK_END) != 0)
+		return NO_VALUE;
+
+	auto size = ftello64(filePtr);
+
+	if (fseeko64(filePtr, current_position, SEEK_SET) != 0)
+		return NO_VALUE;
+#endif
 
 	return (size - current_position);
 }
@@ -1470,18 +1490,20 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 #ifndef PLATFORM_64BIT
 	// Safeguard against incompatible block size.
 	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
-		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
+		throw std::runtime_error{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
 #endif
 
 	// Safeguard against changed file format.
 	auto remainingSize = GetRemainingSize(filePtr);
 	if (uncompressedSize <= 0 || compressedSize <= 0 || compressedSize > remainingSize)
-		throw std::exception{ "Data block size is incorrect. Probably old level version?" };
+		throw std::runtime_error{ "Data block size is incorrect. Probably old level version?" };
 
 	if (skip) 
 	{
-#ifdef _WIN64
+#ifdef _MSC_VER
 		_fseeki64(filePtr, compressedSize, SEEK_CUR);
+#elif PLATFORM_64BIT
+		fseeko64(filePtr, compressedSize, SEEK_CUR);
 #else
 		fseek(filePtr, compressedSize, SEEK_CUR);
 #endif
@@ -1497,7 +1519,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 		free(compressedBuffer);
 		free(DataPtr);
 		DataPtr = nullptr;
-		throw std::exception{ "LZ4 decompression failed." };
+		throw std::runtime_error{ "LZ4 decompression failed." };
 	}
 
 	free(compressedBuffer);
@@ -1535,7 +1557,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		filePtr = FileOpen(path.c_str());
 
 		if (!filePtr)
-			throw std::exception{ (std::string{ "Unable to read level file: " } + path).c_str() };
+			throw std::runtime_error{ (std::string{ "Unable to read level file: " } + path).c_str() };
 
 		char header[4];
 		unsigned char version[4];
@@ -1589,7 +1611,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		if (SystemNameHash != 0) 
 		{
 			if (SystemNameHash != systemHash)
-				throw std::exception("An attempt was made to use level debug feature on a different system.");
+				throw std::runtime_error("An attempt was made to use level debug feature on a different system.");
 
 			InitializeGame = true;
 			SystemNameHash = 0;

@@ -191,9 +191,9 @@ void RoomData::CollectSectorCollisionMeshTriangles(CollisionMeshDesc& desc,
 		relX += AXIS_OFFSET;
 		relZ += AXIS_OFFSET;
 
-		auto normal = tri.SurfacePlane.Normal();
+		auto normal = tri.Plane.Normal();
 		float relPlaneHeight = -((normal.x * relX) + (normal.z * relZ)) / normal.y;
-		return (int)RoundToStep(tri.SurfacePlane.D() + relPlaneHeight, HEIGHT_STEP); // FAILSAFE: Round to circumvent plane query error.
+		return (int)RoundToStep(tri.Plane.D() + relPlaneHeight, HEIGHT_STEP); // FAILSAFE: Round to circumvent plane query error.
 	};
 
 	auto generateSectorVertices = [&]()

@@ -243,7 +243,7 @@ float DisplayString::GetScale() const
 
 void DisplayString::SetPosition(const sol::variadic_args& args)
 {
-	auto& displayString = GetItemCallbackRoutine(_id).value();
+	auto displayString = GetItemCallbackRoutine(_id).value();
 
 	if (args.size() == 1)
 	{

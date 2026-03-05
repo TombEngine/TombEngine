@@ -389,7 +389,7 @@ namespace TEN::Effects::Environment
 				// This avoids calls to GetPointCollision() for every particle.
 				
 				auto coeff = std::min(std::max(0.0f, (pointColl.GetFloorHeight() - part.Position.y)), std::max(0.0f, (part.Position.y - pointColl.GetCeilingHeight())));
-				part.CollisionCheckDelay = std::min(floor(coeff / std::max(std::numeric_limits<float>::denorm_min(), part.Velocity.y)), WEATHER_PARTICLE_COLL_CHECK_DELAY_MAX);
+				part.CollisionCheckDelay = std::min((float)floor(coeff / std::max(std::numeric_limits<float>::denorm_min(), part.Velocity.y)), WEATHER_PARTICLE_COLL_CHECK_DELAY_MAX);
 				collisionCalculated = true;
 			}
 			else

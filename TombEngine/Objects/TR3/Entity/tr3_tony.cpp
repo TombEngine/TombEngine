@@ -651,9 +651,9 @@ namespace TEN::Entities::Creatures::TR3
 			if (bright > 16)
 				bright = 16;
 
-			byte r = 31 - ((GetRandomControl() / 16) & 3);
-			byte g = 24 - ((GetRandomControl() / 64) & 3);
-			byte b = GetRandomControl() & 7;
+			unsigned char r = 31 - ((GetRandomControl() / 16) & 3);
+			unsigned char g = 24 - ((GetRandomControl() / 64) & 3);
+			unsigned char b = GetRandomControl() & 7;
 			r = (r * bright) / 16;
 			g = (g * bright) / 16;
 			b = (b * bright) / 16;

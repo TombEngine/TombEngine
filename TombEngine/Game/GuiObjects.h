@@ -294,7 +294,7 @@ namespace TEN::Gui
 		short YOffset;
 		float Scale1;
 		EulerAngles Orientation;
-		unsigned __int64 Options;
+		unsigned long long Options;
 		const char* ObjectName;
 		unsigned int MeshBits;
 		short RotFlags;

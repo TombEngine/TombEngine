@@ -85,7 +85,8 @@ namespace TEN::Renderer::Native::OpenGL
 
 	std::string GLGraphicsDevice::ReadShaderFile(const std::wstring& path)
 	{
-		std::ifstream file(path);
+		auto fspath = std::filesystem::path(path);
+		std::ifstream file(fspath);
 		if (!file)
 			throw std::runtime_error("Cannot open shader file: " + TEN::Utils::ToString(path));
 
@@ -357,10 +358,17 @@ namespace TEN::Renderer::Native::OpenGL
 
 			glNamedFramebufferReadBuffer(_backbufferFBO, GL_COLOR_ATTACHMENT0);
 
+			// Query actual drawable size in pixels (may differ from logical window size due to HiDPI scaling).
+			int drawW = _screenWidth;
+			int drawH = _screenHeight;
+			auto* window = g_Platform->GetSDL3Window();
+			if (window)
+				SDL_GetWindowSizeInPixels(window, &drawW, &drawH);
+
 			glBlitNamedFramebuffer(
 				_backbufferFBO, 0,
 				0, 0, _screenWidth, _screenHeight,
-				0, 0, _screenWidth, _screenHeight,
+				0, 0, drawW, drawH,
 				GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 			glEnable(GL_SCISSOR_TEST);

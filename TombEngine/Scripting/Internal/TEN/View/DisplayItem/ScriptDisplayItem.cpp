@@ -412,7 +412,7 @@ namespace TEN::Scripting::DisplayItem
 	sol::optional<Vec3> ScriptDisplayItem::GetScale() const
 	{
 		if (auto* item = TryGetItem())
-			return item->GetScale();
+			return Vec3(item->GetScale());
 
 		return sol::nullopt;
 	}

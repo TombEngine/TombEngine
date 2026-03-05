@@ -62,9 +62,9 @@ void StrobeLightControl(short itemNumber)
 	{
 		item->Pose.Orientation.y += ANGLE(16.0f);
 
-		byte r = item->Model.Color.x * SCHAR_MAX;
-		byte g = item->Model.Color.y * SCHAR_MAX;
-		byte b = item->Model.Color.z * SCHAR_MAX;
+		unsigned char r = item->Model.Color.x * SCHAR_MAX;
+		unsigned char g = item->Model.Color.y * SCHAR_MAX;
+		unsigned char b = item->Model.Color.z * SCHAR_MAX;
 
 		TriggerAlertLight(
 			item->Pose.Position.x,

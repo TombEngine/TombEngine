@@ -615,7 +615,7 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		}
 
 		g_GameScript->InitCallbacks();
-		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, Vec2& area, float scale, int flags)
+		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, Vec2 pos, Vec2 area, float scale, int flags)
 		{
 			g_Renderer.AddString(
 				key,

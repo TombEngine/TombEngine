@@ -52,8 +52,8 @@ namespace TEN::Scripting
 		Time  operator -(const Time& time) const;
 		Time& operator +=(const Time& time);
 		Time& operator -=(const Time& time);
-		Time& Time::operator ++();
-		Time& Time::operator ++(int);
+		Time& operator ++();
+		Time& operator ++(int);
 		operator int() const { return _frameCount; }
 
 	private:

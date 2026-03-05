@@ -143,7 +143,7 @@ namespace TEN::Debug
 
 	void PrintDebugMessage(const char* msg, ...)
 	{
-		auto args = va_list{};
+		va_list args;
 		va_start(args, msg);
 		g_Renderer.PrintDebugMessage(msg, args);
 		va_end(args);

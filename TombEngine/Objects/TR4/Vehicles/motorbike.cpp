@@ -336,7 +336,7 @@ namespace TEN::Entities::Vehicles
 	static void TriggerMotorbikeExhaustSmoke(int x, int y, int z, short angle, short speed, bool moving)
 	{
 		int random = 0;
-		BYTE trans, size;
+		unsigned char trans, size;
 
 		auto* sptr = GetFreeParticle();
 

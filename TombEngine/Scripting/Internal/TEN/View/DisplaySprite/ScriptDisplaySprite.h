@@ -9,7 +9,7 @@
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 
-enum BLEND_MODE;
+// BLEND_MODE forward declaration removed; BlendMode is used instead.
 
 namespace TEN::Scripting::DisplaySprite
 {

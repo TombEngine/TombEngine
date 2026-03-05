@@ -679,7 +679,7 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 			{
 				bool validKey = true;
 				unsigned int keyIndex = 0;
-				std::variant<std::string, unsigned int> key{unsigned int(0)};
+				std::variant<std::string, unsigned int> key{(unsigned int)(0)};
 
 				// Strings and numbers can be keys AND values.
 				switch (first.get_type())
