@@ -112,7 +112,6 @@ target_include_directories(TombEngine PRIVATE
 if(WIN32)
     target_include_directories(TombEngine PRIVATE
         ${LIBS_DIR}/lua
-        ${LIBS_DIR}/zlib
         ${LIBS_DIR}/lz4
         ${LIBS_DIR}/sdl3/include
         ${LIBS_DIR}/spdlog
@@ -201,21 +200,14 @@ endif()
 # Libraries
 # ---------------------------------------------------------------------------
 if(WIN32)
-    # Determine arch-specific lib subdirectory
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(ARCH_DIR x64)
-    else()
-        set(ARCH_DIR x86)
-    endif()
-
-    # Library search paths for prebuilt third-party libs
+    # Library search paths for prebuilt third-party libs (x64 only)
     target_link_directories(TombEngine PRIVATE
-        ${LIBS_DIR}/spdlog/${ARCH_DIR}
-        ${LIBS_DIR}/lua/${ARCH_DIR}
-        ${LIBS_DIR}/lz4/${ARCH_DIR}
+        ${LIBS_DIR}/spdlog/x64
+        ${LIBS_DIR}/lua/x64
+        ${LIBS_DIR}/lz4/x64
         ${LIBS_DIR}/sdl3/lib/x64
-        ${LIBS_DIR}/vlc/${ARCH_DIR}
-        ${LIBS_DIR}/bass/${ARCH_DIR}
+        ${LIBS_DIR}/vlc/x64
+        ${LIBS_DIR}/bass/x64
     )
 
     # System libraries
@@ -329,11 +321,10 @@ endif()
 # Post-build: copy shaders, scripts, and DLLs to output directory
 # ---------------------------------------------------------------------------
 if(WIN32)
-    # Determine arch-specific lib subdirectory (reuse ARCH_DIR from above)
     set(DLL_DIRS
-        ${LIBS_DIR}/bass/${ARCH_DIR}
-        ${LIBS_DIR}/lua/${ARCH_DIR}
-        ${LIBS_DIR}/vlc/${ARCH_DIR}
+        ${LIBS_DIR}/bass/x64
+        ${LIBS_DIR}/lua/x64
+        ${LIBS_DIR}/vlc/x64
         ${LIBS_DIR}/sdl3/lib/x64
     )
 
