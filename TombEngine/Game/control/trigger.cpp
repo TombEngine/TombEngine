@@ -24,7 +24,7 @@
 #include "Objects/objectslist.h"
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;

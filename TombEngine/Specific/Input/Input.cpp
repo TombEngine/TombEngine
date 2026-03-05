@@ -10,7 +10,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Bindings.h"
 #include "Specific/Input/Event.h"

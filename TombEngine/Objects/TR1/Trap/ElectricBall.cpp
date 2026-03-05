@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Trap/ElectricBall.h"
 
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/spark.h"

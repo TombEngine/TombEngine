@@ -2,7 +2,7 @@
 #include "Objects/Effects/LensFlare.h"
 
 #include "Game/camera.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Math/Math.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"

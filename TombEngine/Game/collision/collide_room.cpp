@@ -3,7 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
 #include "Game/Lara/lara.h"

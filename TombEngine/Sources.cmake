@@ -24,27 +24,27 @@ set(TEN_GAME_SOURCES
     Game/collision/floordata.cpp
     Game/collision/Los.cpp
     Game/collision/Point.cpp
-    Game/collision/sphere.cpp
+    Game/collision/Sphere.cpp
     Game/control/box.cpp
     Game/control/control.cpp
     Game/control/flipeffect.cpp
-    Game/control/los.cpp
+    Game/control/Los.cpp
     Game/control/lot.cpp
     Game/control/trigger.cpp
     Game/control/volume.cpp
-    Game/debug/debug.cpp
+    Game/Debug/Debug.cpp
     Game/effects/Blood.cpp
-    Game/effects/bubble.cpp
+    Game/effects/Bubble.cpp
     Game/effects/chaffFX.cpp
     Game/effects/debris.cpp
     Game/effects/Decal.cpp
     Game/effects/DisplaySprite.cpp
-    Game/effects/drip.cpp
+    Game/effects/Drip.cpp
     Game/effects/effects.cpp
     Game/effects/Electricity.cpp
     Game/effects/explosion.cpp
-    Game/effects/footprint.cpp
-    Game/effects/hair.cpp
+    Game/effects/Footprint.cpp
+    Game/effects/Hair.cpp
     Game/effects/item_fx.cpp
     Game/effects/Light.cpp
     Game/effects/Ripple.cpp
@@ -55,7 +55,7 @@ set(TEN_GAME_SOURCES
     Game/effects/Streamer.cpp
     Game/effects/tomb4fx.cpp
     Game/effects/weather.cpp
-    Game/gui.cpp
+    Game/Gui.cpp
     Game/GuiObjects.cpp
     Game/Hud/DrawItems/DisplayItem.cpp
     Game/Hud/DrawItems/DrawItems.cpp
@@ -118,30 +118,30 @@ set(TEN_GAME_HEADERS
     Game/collision/floordata.h
     Game/collision/Los.h
     Game/collision/Point.h
-    Game/collision/sphere.h
+    Game/collision/Sphere.h
     Game/control/box.h
     Game/control/box_types.h
     Game/control/control.h
     Game/control/event.h
     Game/control/flipeffect.h
-    Game/control/los.h
+    Game/control/Los.h
     Game/control/lot.h
     Game/control/trigger.h
     Game/control/volume.h
     Game/control/volume_types.h
-    Game/debug/debug.h
+    Game/Debug/Debug.h
     Game/effects/Blood.h
-    Game/effects/bubble.h
+    Game/effects/Bubble.h
     Game/effects/chaffFX.h
     Game/effects/debris.h
     Game/effects/Decal.h
     Game/effects/DisplaySprite.h
-    Game/effects/drip.h
+    Game/effects/Drip.h
     Game/effects/effects.h
     Game/effects/Electricity.h
     Game/effects/explosion.h
-    Game/effects/footprint.h
-    Game/effects/hair.h
+    Game/effects/Footprint.h
+    Game/effects/Hair.h
     Game/effects/item_fx.h
     Game/effects/Light.h
     Game/effects/Ripple.h
@@ -152,7 +152,7 @@ set(TEN_GAME_HEADERS
     Game/effects/Streamer.h
     Game/effects/tomb4fx.h
     Game/effects/weather.h
-    Game/gui.h
+    Game/Gui.h
     Game/GuiObjects.h
     Game/Hud/DrawItems/DisplayItem.h
     Game/Hud/DrawItems/DrawItems.h
@@ -362,7 +362,7 @@ set(TEN_OBJECTS_SOURCES
     Objects/TR3/Entity/TwinAutoGun.cpp
     Objects/TR3/Entity/WaspMutant.cpp
     Objects/TR3/Entity/Winston.cpp
-    Objects/TR3/Object/corpse.cpp
+    Objects/TR3/Object/Corpse.cpp
     Objects/TR3/tr3_objects.cpp
     Objects/TR3/Trap/ElectricCleaner.cpp
     Objects/TR3/Trap/FirePendulum.cpp
@@ -1105,7 +1105,7 @@ set(TEN_SOUND_HEADERS
 
 # Specific sources
 set(TEN_SPECIFIC_SOURCES
-    Specific/clock.cpp
+    Specific/Clock.cpp
     Specific/configuration.cpp
     Specific/EngineMain.cpp
     Specific/Input/Action.cpp
@@ -1127,7 +1127,7 @@ set(TEN_SPECIFIC_SOURCES
 
 # Specific headers
 set(TEN_SPECIFIC_HEADERS
-    Specific/clock.h
+    Specific/Clock.h
     Specific/configuration.h
     Specific/EngineMain.h
     Specific/fast_vector.h

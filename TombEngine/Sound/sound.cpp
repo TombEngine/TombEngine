@@ -3,7 +3,7 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
-#include "Game/gui.h"
+#include "Game/Gui.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
 #include "Game/Setup.h"

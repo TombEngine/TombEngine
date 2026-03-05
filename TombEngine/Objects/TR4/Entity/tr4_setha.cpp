@@ -18,7 +18,7 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;

@@ -12,7 +12,7 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Game/misc.h"
-#include "Game/setup.h"
+#include "Game/Setup.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/people.h"

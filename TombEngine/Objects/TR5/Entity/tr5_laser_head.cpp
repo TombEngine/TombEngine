@@ -2,7 +2,7 @@
 #include "Objects/TR5/Entity/tr5_laser_head.h"
 
 #include "Game/Animation/Animation.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"

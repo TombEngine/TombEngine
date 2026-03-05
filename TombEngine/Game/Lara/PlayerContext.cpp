@@ -6,7 +6,7 @@
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/collision/floordata.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"

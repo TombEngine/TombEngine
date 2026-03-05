@@ -3,7 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/Sphere.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"

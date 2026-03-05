@@ -1,5 +1,5 @@
 #pragma once
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 namespace TEN::Effects::Decal
 {

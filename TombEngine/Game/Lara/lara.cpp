@@ -7,7 +7,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/control/volume.h"
 #include "Game/effects/Hair.h"
 #include "Game/effects/item_fx.h"

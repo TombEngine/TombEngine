@@ -2,7 +2,7 @@
 #include "Game/GuiObjects.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Math/Math.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/Action.h"
 

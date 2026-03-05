@@ -5,7 +5,7 @@
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"

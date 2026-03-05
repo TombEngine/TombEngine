@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Specific/Input/Action.h"
 
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 namespace TEN::Input
 {

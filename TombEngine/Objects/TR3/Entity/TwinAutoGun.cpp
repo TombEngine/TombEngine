@@ -2,7 +2,7 @@
 #include "Objects/TR3/Entity/TwinAutoGun.h"
 
 #include "Game/control/box.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Lara/lara.h"

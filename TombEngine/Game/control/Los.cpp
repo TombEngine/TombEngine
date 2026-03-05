@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"

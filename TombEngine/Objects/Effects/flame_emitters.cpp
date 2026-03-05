@@ -19,7 +19,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 

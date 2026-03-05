@@ -8,7 +8,7 @@
 #include "Game/collision/Point.h"
 #include "Game/collision/Sphere.h"
 #include "Game/control/box.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Streamer.h"

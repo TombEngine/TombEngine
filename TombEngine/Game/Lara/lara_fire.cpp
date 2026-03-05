@@ -6,7 +6,7 @@
 #include "Game/camera.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Sphere.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/itemdata/creature_info.h"

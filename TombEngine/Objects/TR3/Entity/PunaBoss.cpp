@@ -2,7 +2,7 @@
 #include "Objects/TR3/Entity/PunaBoss.h"
 
 #include "Game/control/box.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"

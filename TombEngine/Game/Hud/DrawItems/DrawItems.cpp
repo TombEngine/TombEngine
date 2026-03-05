@@ -4,7 +4,7 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Math;
 using TEN::Renderer::g_Renderer;
@@ -135,7 +135,7 @@ namespace TEN::Hud
 
 	unsigned int DrawItemsController::AddItem(GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale, int meshBits)
 	{
-		// If at capacity, don’t add new item.
+		// If at capacity, donï¿½t add new item.
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
 			return 0;
 

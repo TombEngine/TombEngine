@@ -8,7 +8,7 @@
 #include "Game/collision/Sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/light.h"
+#include "Game/effects/Light.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Sound/sound.h"

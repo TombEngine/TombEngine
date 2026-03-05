@@ -7,7 +7,7 @@
 #include "Game/items.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 using namespace TEN::Math;
 
