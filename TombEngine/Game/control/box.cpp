@@ -2650,7 +2650,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		if (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
 		{
 			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
-			LOT->Target.y += bounds.Y1;
+			LOT->Target.y = enemy->Pose.Position.y + bounds.Y1;
 		}
 
 		break;
