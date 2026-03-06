@@ -1787,11 +1787,11 @@ namespace TEN::Renderer
 		case RendererDebugPage::GrassStats:
 			PrintDebugMessage("GRASS STATS");
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Total blades: %d", _grassSystem.GetTotalBladeCount());
-			PrintDebugMessage("Visible tiles: %d", _grassSystem.GetVisibleTileCount());
-			PrintDebugMessage("Visible blades: %d", _grassSystem.GetVisibleBladeCount());
-			PrintDebugMessage("Draw calls: %d", _numGrassDrawCalls);
-			PrintDebugMessage("Grass enabled: %s", _grassSystem.IsEnabled() ? "Yes" : "No");
+			PrintDebugMessage(("Total blades: " + std::to_string(_grassSystem.GetTotalBladeCount())).c_str());
+			PrintDebugMessage(("Visible tiles: " + std::to_string(_grassSystem.GetVisibleTileCount())).c_str());
+			PrintDebugMessage(("Visible blades: " + std::to_string(_grassSystem.GetVisibleBladeCount())).c_str());
+			PrintDebugMessage(("Draw calls: " + std::to_string(_numGrassDrawCalls)).c_str());
+			PrintDebugMessage(_grassSystem.IsEnabled() ? "Grass enabled: Yes" : "Grass enabled: No");
 			break;
 
 		case RendererDebugPage::WireframeMode:
