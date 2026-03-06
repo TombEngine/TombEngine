@@ -203,6 +203,41 @@ namespace TEN::Renderer::Native::OpenGL
 		float vpH = (float)viewport[3];
 
 		// Upload screen size for the vertex shader's orthographic projection.
+		static bool sbLogged = false;
+		if (!sbLogged)
+		{
+			sbLogged = true;
+			TENLog("SpriteBatch: viewport=" + std::to_string((int)vpW) + "x" + std::to_string((int)vpH), LogLevel::Warning);
+
+			// Log the first sprite's pixel coordinates and resulting NDC.
+			const auto& q0 = _queue[0];
+			float ndcL = q0.Left / vpW * 2.0f - 1.0f;
+			float ndcR = q0.Right / vpW * 2.0f - 1.0f;
+			float ndcT = -(q0.Top / vpH * 2.0f - 1.0f);
+			float ndcB = -(q0.Bottom / vpH * 2.0f - 1.0f);
+			TENLog("SpriteBatch first sprite: px=(" + std::to_string(q0.Left) + "," + std::to_string(q0.Top)
+				+ ")-(" + std::to_string(q0.Right) + "," + std::to_string(q0.Bottom)
+				+ ") ndc=(" + std::to_string(ndcL) + "," + std::to_string(ndcT)
+				+ ")-(" + std::to_string(ndcR) + "," + std::to_string(ndcB) + ")", LogLevel::Warning);
+
+			// Log the bound FBO's color attachment dimensions.
+			GLint fbo = 0;
+			glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+			if (fbo != 0)
+			{
+				GLint texId = 0;
+				glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+					GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &texId);
+				if (texId != 0)
+				{
+					GLint texW = 0, texH = 0;
+					glGetTextureLevelParameteriv(texId, 0, GL_TEXTURE_WIDTH, &texW);
+					glGetTextureLevelParameteriv(texId, 0, GL_TEXTURE_HEIGHT, &texH);
+					TENLog("SpriteBatch FBO=" + std::to_string(fbo) + " tex=" + std::to_string(texId)
+						+ " size=" + std::to_string(texW) + "x" + std::to_string(texH), LogLevel::Warning);
+				}
+			}
+		}
 		glUniform2f(glGetUniformLocation(_program, "uScreenSize"), vpW, vpH);
 
 		glBindVertexArray(_vao);

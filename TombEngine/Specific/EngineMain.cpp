@@ -428,7 +428,7 @@ int main(int argc, char* argv[])
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
 
-	unsigned int windowFlags = SDL_WINDOW_RESIZABLE;
+	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 	if (resolvedApi == GraphicsAPI::OpenGL)
 		windowFlags |= SDL_WINDOW_OPENGL;
 	if (!g_Configuration.EnableWindowedMode)
@@ -463,8 +463,20 @@ int main(int argc, char* argv[])
 		// Initialize audio (should be called prior to initializing renderer, because video handler needs it).
 		Sound_Init(GameDirectory);
 
-		// Initialize renderer.
-		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
+		// Initialize renderer. Use actual pixel dimensions (may differ from logical size due to HiDPI scaling).
+		int renderW = g_Configuration.ScreenWidth;
+		int renderH = g_Configuration.ScreenHeight;
+		SDL_GetWindowSizeInPixels(sdlWindow, &renderW, &renderH);
+
+		int logicalW = 0, logicalH = 0;
+		SDL_GetWindowSize(sdlWindow, &logicalW, &logicalH);
+		float displayScale = SDL_GetWindowDisplayScale(sdlWindow);
+		TENLog("INIT: config=" + std::to_string(g_Configuration.ScreenWidth) + "x" + std::to_string(g_Configuration.ScreenHeight)
+			+ " logical=" + std::to_string(logicalW) + "x" + std::to_string(logicalH)
+			+ " pixels=" + std::to_string(renderW) + "x" + std::to_string(renderH)
+			+ " displayScale=" + std::to_string(displayScale), LogLevel::Warning);
+
+		g_Renderer.Initialize(GameDirectory, renderW, renderH, g_Configuration.EnableWindowedMode);
 
 		// Initialize input.
 		g_Input.Initialize();

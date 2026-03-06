@@ -1946,6 +1946,28 @@ namespace TEN::Renderer
 
 		cameraConstantBuffer.Hemisphere = 0;
 
+		// DIAGNOSTIC: Log dimension mismatch and matrix data.
+		static bool sceneDiag = false;
+		if (!sceneDiag)
+		{
+			sceneDiag = true;
+			TENLog("=== 3D SCENE DIAGNOSTIC ===", LogLevel::Warning);
+			TENLog("g_Configuration: " + std::to_string(g_Configuration.ScreenWidth) + "x" + std::to_string(g_Configuration.ScreenHeight), LogLevel::Warning);
+			TENLog("view.Viewport: " + std::to_string(view.Viewport.Width) + "x" + std::to_string(view.Viewport.Height), LogLevel::Warning);
+			TENLog("_viewport: " + std::to_string(_viewport.Width) + "x" + std::to_string(_viewport.Height), LogLevel::Warning);
+			TENLog("screenW/H: " + std::to_string(_graphicsDevice->GetScreenWidth()) + "x" + std::to_string(_graphicsDevice->GetScreenHeight()), LogLevel::Warning);
+
+			auto& vp = cameraConstantBuffer.ViewProjection;
+			TENLog("ViewProj diagonal: " + std::to_string(vp._11) + ", " + std::to_string(vp._22) + ", " + std::to_string(vp._33) + ", " + std::to_string(vp._44), LogLevel::Warning);
+			TENLog("ViewProj row3(translation): " + std::to_string(vp._41) + ", " + std::to_string(vp._42) + ", " + std::to_string(vp._43) + ", " + std::to_string(vp._44), LogLevel::Warning);
+
+			auto& proj = cameraConstantBuffer.Projection;
+			TENLog("Proj diagonal: " + std::to_string(proj._11) + ", " + std::to_string(proj._22) + ", " + std::to_string(proj._33) + ", " + std::to_string(proj._44), LogLevel::Warning);
+			TENLog("ViewSize: " + std::to_string(cameraConstantBuffer.ViewSize.x) + "x" + std::to_string(cameraConstantBuffer.ViewSize.y), LogLevel::Warning);
+
+			_graphicsDevice->LogRenderState("3D_SCENE_START");
+		}
+
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
 		// Draw horizon and sky.
@@ -1955,7 +1977,7 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearRenderTarget2D(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent);
 		_graphicsDevice->ClearRenderTarget2D(_depthRenderTarget->GetRenderTarget(), Colors::White);
 		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		
+
 		std::vector<IRenderTarget2D*> gbuffer;
 		gbuffer.push_back(_normalsAndMaterialIndexRenderTarget->GetRenderTarget());
 		gbuffer.push_back(_depthRenderTarget->GetRenderTarget());
@@ -2008,14 +2030,18 @@ namespace TEN::Renderer
 
 		_doingFullscreenPass = true;
 
-		// Calculates glow
-		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
-		ApplyGlow(_renderTarget.get(), view);
+		// DIAGNOSTIC: Skip glow and AA to isolate tiling bug.
+		if (!_graphicsDevice->NeedsFBOYFlip())
+		{
+			// Calculates glow
+			// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
+			ApplyGlow(_renderTarget.get(), view);
 
-		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
-		// FXAA: RT -> PPRT0, PPRT0 -> RT
-		// SMAA: RT -> ..., ... -> RT
-		ApplyAntialiasing(_renderTarget.get(), view);
+			// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
+			// FXAA: RT -> PPRT0, PPRT0 -> RT
+			// SMAA: RT -> ..., ... -> RT
+			ApplyAntialiasing(_renderTarget.get(), view);
+		}
 
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
