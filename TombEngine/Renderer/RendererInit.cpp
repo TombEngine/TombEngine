@@ -73,6 +73,11 @@ namespace TEN::Renderer
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
 		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
+		// Initialize grass constant buffers.
+		_cbGrassSettings = CreateConstantBuffer<CGrassSettingsBuffer>();
+		_cbGrassInstances = CreateConstantBuffer<CGrassInstanceBuffer>();
+		_grassSystem.Initialize(_device.Get());
+
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
 		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
@@ -553,6 +558,9 @@ namespace TEN::Renderer
 		SetTextureOrDefault(_loadingBarBorder, GetAssetPath(L"Textures/LoadingBarBorder.png"));
 		SetTextureOrDefault(_loadingBarInner, GetAssetPath(L"Textures/LoadingBarInner.png"));
 		SetTextureOrDefault(_whiteTexture, GetAssetPath(L"Textures/WhiteSprite.png"));
+
+		// Initialize grass atlas texture.
+		SetTextureOrDefault(_grassAtlasTexture, GetAssetPath(L"Textures/GrassAtlas.png"));
 
 		_context->Flush();
 

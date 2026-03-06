@@ -1070,6 +1070,11 @@ namespace TEN::Renderer
 			}
 		}
 
+		// Generate grass instances from level floor materials.
+		TENLog("Generating grass instances...", LogLevel::Info);
+		_grassSystem.GenerateForLevel();
+		TENLog("Generated " + std::to_string(_grassSystem.GetTotalBladeCount()) + " grass blades.", LogLevel::Info);
+
 		return true;
 	}
 

@@ -116,6 +116,8 @@ namespace TEN::Renderer::Utils
 		Load(Shader::InstancedStatics, "InstancedStatics", "", ShaderType::PixelAndVertex);
 		Load(Shader::InstancedSprites, "InstancedSprites", "", ShaderType::PixelAndVertex);
 
+		Load(Shader::Grass, "Grass", "", ShaderType::PixelAndVertex);
+
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel);
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex);
 		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex);

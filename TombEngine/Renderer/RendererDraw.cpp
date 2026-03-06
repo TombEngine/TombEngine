@@ -1861,6 +1861,8 @@ namespace TEN::Renderer
 		BindConstantBufferVS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::Sky, _cbSky.get());
+		BindConstantBufferVS(ConstantBufferRegister::GrassSettings, _cbGrassSettings.get());
+		BindConstantBufferVS(ConstantBufferRegister::GrassInstances, _cbGrassInstances.get());
 
 		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferPS(ConstantBufferRegister::Material, _cbMaterial.get());
@@ -1873,6 +1875,8 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::Sky, _cbSky.get());
+		BindConstantBufferPS(ConstantBufferRegister::GrassSettings, _cbGrassSettings.get());
+		BindConstantBufferPS(ConstantBufferRegister::GrassInstances, _cbGrassInstances.get());
 
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
@@ -2402,6 +2406,10 @@ namespace TEN::Renderer
 				DrawStatics(view, pass);
 				DrawDebris(view, pass); // Debris mostly originate from shatter statics.
 			}
+
+			// Draw grass after statics, before sprites.
+			if (statics && pass == RendererPass::Opaque)
+				DrawGrass(view, pass);
 
 			// Sorted sprites already collected at beginning of frame.
 			if (sprites && pass != RendererPass::CollectTransparentFaces)
@@ -4247,5 +4255,60 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::NormalMap, &std::get<1>(atlas), SamplerStateRegister::AnisotropicClamp);
 		BindTexture(TextureRegister::ORSHMap, &std::get<2>(atlas), SamplerStateRegister::AnisotropicClamp);
 		BindTexture(TextureRegister::EmissiveMap, &std::get<3>(atlas), SamplerStateRegister::AnisotropicClamp);
+	}
+
+	void Renderer::DrawGrass(RenderView& view, RendererPass rendererPass)
+	{
+		if (!_grassSystem.IsEnabled())
+			return;
+
+		// Update the player influence sphere each frame.
+		if (LaraItem != nullptr)
+		{
+			auto& config = _grassSystem.GetConfig();
+			Vector3 playerPos = LaraItem->Pose.Position.ToVector3();
+			_grassSystem.AddInfluence(playerPos, config.PlayerBendRadius, config.PlayerBendIntensity);
+		}
+
+		// Bind grass shader.
+		_shaders.Bind(Shader::Grass);
+
+		// Bind grass constant buffers.
+		BindConstantBufferVS(ConstantBufferRegister::GrassSettings, _cbGrassSettings.get());
+		BindConstantBufferPS(ConstantBufferRegister::GrassSettings, _cbGrassSettings.get());
+		BindConstantBufferVS(ConstantBufferRegister::GrassInstances, _cbGrassInstances.get());
+		BindConstantBufferPS(ConstantBufferRegister::GrassInstances, _cbGrassInstances.get());
+
+		// Bind grass atlas texture.
+		BindTexture(TextureRegister::GrassAtlas, &_grassAtlasTexture, SamplerStateRegister::AnisotropicClamp);
+
+		// Set render state for alpha-cutout grass.
+		SetBlendMode(BlendMode::AlphaTest);
+		SetCullMode(CullMode::None); // Grass quads are visible from both sides.
+		SetDepthState(DepthState::Write);
+
+		// Use the null vertex buffer - vertices are generated from InstanceID + VertexID in VS.
+		_context->IASetInputLayout(nullptr);
+		_context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+		_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		// Get time for wind/bending animation.
+		float time = (float)GlobalCounter * 0.03333f + GetInterpolationFactor() * 0.03333f;
+		_grassSystem.Update(time);
+
+		// Draw all visible grass tiles.
+		_grassSystem.Draw(_context.Get(), view, _cbGrassSettings, _cbGrassInstances, time);
+		_numGrassDrawCalls = _grassSystem.GetDrawCallCount();
+
+		// Restore state.
+		SetCullMode(CullMode::CounterClockwise);
+
+		// Restore input layout and vertex/index buffers for subsequent draw calls.
+		_context->IASetInputLayout(_inputLayout.Get());
+		unsigned int stride = sizeof(Vertex);
+		unsigned int offset = 0;
+		_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	}
 }

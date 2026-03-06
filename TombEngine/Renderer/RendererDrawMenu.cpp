@@ -1784,6 +1784,16 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Dot products: %d", _numDotProducts);
 			break;
 
+		case RendererDebugPage::GrassStats:
+			PrintDebugMessage("GRASS STATS");
+			PrintDebugMessage(" ");
+			PrintDebugMessage("Total blades: %d", _grassSystem.GetTotalBladeCount());
+			PrintDebugMessage("Visible tiles: %d", _grassSystem.GetVisibleTileCount());
+			PrintDebugMessage("Visible blades: %d", _grassSystem.GetVisibleBladeCount());
+			PrintDebugMessage("Draw calls: %d", _numGrassDrawCalls);
+			PrintDebugMessage("Grass enabled: %s", _grassSystem.IsEnabled() ? "Yes" : "No");
+			break;
+
 		case RendererDebugPage::WireframeMode:
 			PrintDebugMessage("WIREFRAME MODE");
 			break;

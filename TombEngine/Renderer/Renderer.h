@@ -40,6 +40,7 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/ConstantBuffers/GrassBuffer.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
@@ -68,6 +69,7 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Structures/RendererShader.h"
+#include "Renderer/Grass/GrassSystem.h"
 
 using namespace TEN::Animation;
 
@@ -191,6 +193,15 @@ namespace TEN::Renderer
 		CMaterialBuffer _stMaterial;
 		ConstantBuffer<CMaterialBuffer> _cbMaterial;
 
+		// Grass system
+
+		Grass::GrassSystem _grassSystem;
+		CGrassSettingsBuffer _stGrassSettings;
+		ConstantBuffer<CGrassSettingsBuffer> _cbGrassSettings;
+		CGrassInstanceBuffer _stGrassInstances;
+		ConstantBuffer<CGrassInstanceBuffer> _cbGrassInstances;
+		Texture2D _grassAtlasTexture;
+
 		// Primitive batches
 
 		std::unique_ptr<SpriteBatch> _spriteBatch;
@@ -300,6 +311,7 @@ namespace TEN::Renderer
 		int _numShadowMapDrawCalls = 0;
 		int _numDebrisDrawCalls = 0;
 		int _numEffectsDrawCalls = 0;
+		int _numGrassDrawCalls = 0;
 
 		int _numDotProducts = 0;
 		int _numCheckPortalCalls = 0;
@@ -441,6 +453,7 @@ namespace TEN::Renderer
 		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
+		void DrawGrass(RenderView& view, RendererPass rendererPass);
 		void DrawLara(RenderView& view, RendererPass rendererPass);
 		void PrepareFires(RenderView& view);
 		void PrepareParticles(RenderView& view);
