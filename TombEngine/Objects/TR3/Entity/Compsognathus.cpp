@@ -117,7 +117,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			if (cadaverPos == INVALID_CADAVER_POSITION)
 			{
-				float shortestDist = INFINITY;
+				float shortestDist = FLT_MAX;
 				for (auto& targetItem : g_Level.Items)
 				{
 					if (!Objects.CheckID(targetItem.ObjectNumber) || targetItem.Index == itemNumber || targetItem.RoomNumber == NO_VALUE)

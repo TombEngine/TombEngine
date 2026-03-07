@@ -2,6 +2,7 @@
 
 #include "Math/Math.h"
 #include "Physics/Physics.h"
+#include "Game/StaticMesh.h"
 
 using namespace TEN::Math;
 using namespace TEN::Physics;
@@ -32,20 +33,13 @@ enum RoomEnvFlags
 	ENV_FLAG_NOT_NEAR_SKYBOX = 1 << 6,
 	ENV_FLAG_NO_LENSFLARE	 = 1 << 7,
 	ENV_FLAG_MIST			 = 1 << 8,
-	ENV_FLAG_CAUSTICS		 = 1 << 9,
+	ENV_FLAG_NOCAUSTICS		 = 1 << 9,
 	ENV_FLAG_UNKNOWN3		 = 1 << 10,
 	ENV_FLAG_DAMAGE			 = 1 << 11,
 	ENV_FLAG_COLD			 = 1 << 12
 };
 
-enum StaticMeshFlags : short
-{
-	SM_VISIBLE	 = 1 << 0,
-	SM_SOLID	 = 1 << 1,
-	SM_COLLISION = 1 << 2
-};
-
-struct RoomVertexData
+struct ROOM_VERTEX
 {
 	Vector3 position;
 	Vector3 normal;
@@ -53,21 +47,6 @@ struct RoomVertexData
 	Vector3 color;
 	int		effects;
 	int		index;
-};
-
-struct MESH_INFO
-{
-	Pose pos;
-	int roomNumber;
-	short staticNumber;
-	short flags;
-	Vector4 color;
-	short HitPoints;
-	std::string Name;
-	bool Dirty;
-	
-	BoundingOrientedBox GetObb() const;
-	BoundingOrientedBox GetVisibilityObb() const;
 };
 
 struct RoomLightData
@@ -133,7 +112,6 @@ public:
 // TODO: Make class?
 struct RoomData
 {
-	int						 RoomNumber = 0;
 	std::string				 Name		= {};
 	std::vector<std::string> Tags		= {};
 
@@ -144,21 +122,24 @@ struct RoomData
 	int			XSize		 = 0;
 	int			ZSize		 = 0;
 
+	std::vector<int> NeighborRoomNumbers = {};
+
 	Vector3 ambient;
 	int flags;
 	int meshEffect;
 	ReverbType reverbType;
+
+	int originalRoom;
 	int flippedRoom;
 	int flipNumber;
+
 	short itemNumber;
 	short fxNumber;
-	bool boundActive;
 
-	std::vector<int> NeighborRoomNumbers = {};
-	
 	//RoomObjectHandler Moveables = RoomObjectHandler(); // TODO: Refactor linked list of items in room to use a BVH instead.
 	//RoomObjectHandler Statics	= RoomObjectHandler(); // TODO: Refactor to use BVH.
-	std::vector<MESH_INFO> mesh = {}; // Statics
+
+	std::vector<StaticMesh> mesh = {}; // Statics
 
 	CollisionMesh			   CollisionMesh  = {};
 	RoomObjectHandler		   Bridges		  = RoomObjectHandler();
@@ -193,7 +174,6 @@ Vector3i GetRoomCenter(int roomNumber);
 int IsRoomOutside(int x, int y, int z);
 void InitializeNeighborRoomList();
 
-GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox);
 std::vector<int> GetNeighborRoomNumbers(int roomNumber, unsigned int searchDepth);
 
 namespace TEN::Collision::Room

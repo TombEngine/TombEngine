@@ -12,5 +12,4 @@ namespace TEN::Entities::Vehicles
 	void DoRubberBoatMount(ItemInfo* rBoatItem, ItemInfo* laraItem, VehicleMountType mountType);
 
 	void RubberBoatControl(short itemNumber);
-	void DrawRubberBoat(ItemInfo* rBoatItem);
 }

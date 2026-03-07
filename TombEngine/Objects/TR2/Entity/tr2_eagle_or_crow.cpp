@@ -2,6 +2,7 @@
 #include "Objects/TR2/Entity/tr2_eagle_or_crow.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Point.h"
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
@@ -10,6 +11,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
+
+using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -40,14 +43,14 @@ namespace TEN::Entities::Creatures::TR2
 
 		if (item->ObjectNumber == ID_CROW)
 		{
-			item->Animation.AnimNumber = Objects[ID_CROW].animIndex + 14;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = 14;
+			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = item->Animation.TargetState = 7;
 		}
 		else
 		{
-			item->Animation.AnimNumber = Objects[ID_EAGLE].animIndex + 5;
-			item->Animation.FrameNumber = GetAnimData(item).frameBase;
+			item->Animation.AnimNumber = 5;
+			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = item->Animation.TargetState = 2;
 		}
 	}
@@ -84,11 +87,11 @@ namespace TEN::Entities::Creatures::TR2
 
 			default:
 				if (item->ObjectNumber == ID_CROW)
-					item->Animation.AnimNumber = Objects[ID_CROW].animIndex + 1;
+					item->Animation.AnimNumber = 1;
 				else
-					item->Animation.AnimNumber = Objects[ID_EAGLE].animIndex + 8;
+					item->Animation.AnimNumber = 8;
 
-				item->Animation.FrameNumber = GetAnimData(item).frameBase;
+				item->Animation.FrameNumber = 0;
 				item->Animation.ActiveState = 4;
 				item->Animation.Velocity.z = 0;
 				item->Animation.IsAirborne = true;
@@ -132,7 +135,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (item->Animation.RequiredState != NO_VALUE)
 					item->Animation.TargetState = item->Animation.RequiredState;
-				if (creature->Mood == MoodType::Bored)
+				if (creature->Mood == MoodType::Bored && GetPointCollision(*item).GetWaterSurfaceHeight() == NO_HEIGHT)
 					item->Animation.TargetState = 2;
 				else if (AI.ahead && AI.distance < pow(BLOCK(0.5f), 2))
 					item->Animation.TargetState = 6;

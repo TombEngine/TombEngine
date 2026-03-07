@@ -190,7 +190,7 @@ namespace TEN::Gui
 		void DrawCompass(ItemInfo* item);
 		void CancelInventorySelection();
 		void UseItem(ItemInfo& item, int objectNumber);
-
+		void UseBinoculars(ItemInfo& item);
 		// Getters
 
 		const InventoryRing& GetRing(RingTypes ringType);

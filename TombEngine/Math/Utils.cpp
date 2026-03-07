@@ -99,6 +99,61 @@ namespace TEN::Math
 		return float((color.x * RED_COEFF) + (color.y * GREEN_COEFF) + (color.z * BLUE_COEFF));
 	}
 
+	float Chroma(const Vector3& color)
+	{
+		float r = color.x;
+		float g = color.y;
+		float b = color.z;
+
+		float maxVal = std::max({ r, g, b });
+		float minVal = std::min({ r, g, b });
+		float chroma = maxVal - minVal;
+
+		float normalizedChroma = (maxVal == 0.0f) ? 0.0f : (chroma / maxVal);
+		return normalizedChroma;
+	}
+
+	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
+	{
+		std::array<int, 3> colorS =
+		{
+			int(mainColor.x * UCHAR_MAX),
+			int(mainColor.y * UCHAR_MAX),
+			int(mainColor.z * UCHAR_MAX)
+		};
+
+		std::array<int, 3> colorD =
+		{
+			int(additionalColor.x * UCHAR_MAX),
+			int(additionalColor.y * UCHAR_MAX),
+			int(additionalColor.z * UCHAR_MAX)
+		};
+
+		// Determine weakest RGB component
+		int lowestS = *std::min_element(colorS.begin(), colorS.end());
+		int lowestD = *std::min_element(colorD.begin(), colorD.end());
+
+		constexpr auto CHROMA_SHIFT = 32;
+		constexpr auto LUMA_SHIFT = 0.5f;
+
+		for (int i = 0; i < 3; i++)
+		{
+			if (colorS[i] != lowestS)
+				colorS[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			if (colorD[i] != lowestD)
+				colorD[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			colorS[i] = int(colorS[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+			colorD[i] = int(colorD[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+
+			colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
+			colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
+		}
+
+		return { colorS, colorD };
+	}
+
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint)
 	{
 		float luma = Luma(tint);
@@ -115,5 +170,23 @@ namespace TEN::Math
 	{
 		auto result = Screen(Vector3(ambient), Vector3(tint));
 		return Vector4(result.x, result.y, result.z, ambient.w * tint.w);
+	}
+
+	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c)
+	{
+		return c;
+
+		/*
+		auto to8 = [](float v) -> unsigned int {
+			float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
+			return static_cast<unsigned int>(std::lround(x));
+			};
+
+		unsigned int R = to8(c.x);
+		unsigned int G = to8(c.y);
+		unsigned int B = to8(c.z);
+		unsigned int A = to8(c.w);
+
+		return (R) | (G << 8) | (B << 16) | (A << 24);*/
 	}
 }

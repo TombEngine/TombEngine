@@ -20,12 +20,17 @@ namespace TEN::Config
 
 	// Controls keys
 
-	constexpr auto REGKEY_ENABLE_TANK_CAMERA_CONTROL = "EnableTankCameraControl";
-	constexpr auto REGKEY_INVERT_CAMERA_X_AXIS		 = "InvertCameraXAxis";
-	constexpr auto REGKEY_INVERT_CAMERA_Y_AXIS		 = "InvertCameraYAxis";
-	constexpr auto REGKEY_ENABLE_RUMBLE				 = "EnableRumble";
-	constexpr auto REGKEY_MOUSE_SENSITIVITY			 = "MouseSensitivity";
-	constexpr auto REGKEY_MENU_OPTION_LOOPING_MODE	 = "MenuOptionLoopingMode";
+	constexpr auto REGKEY_SCREEN_WIDTH		   = "ScreenWidth";
+	constexpr auto REGKEY_SCREEN_HEIGHT		   = "ScreenHeight";
+	constexpr auto REGKEY_ENABLE_WINDOWED_MODE = "EnableWindowedMode";
+	constexpr auto REGKEY_SHADOWS			   = "ShadowsMode";
+	constexpr auto REGKEY_SHADOW_MAP_SIZE	   = "ShadowMapSize";
+	constexpr auto REGKEY_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
+	constexpr auto REGKEY_ENABLE_CAUSTICS	   = "EnableCaustics";
+	constexpr auto REGKEY_ENABLE_DECALS		   = "EnableDecals";
+	constexpr auto REGKEY_ANTIALIASING_MODE	   = "AntialiasingMode";
+	constexpr auto REGKEY_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
+	constexpr auto REGKEY_HIGH_FRAMERATE       = "EnableHighFramerate";
 
 	// Gameplay keys
 
@@ -65,10 +70,7 @@ namespace TEN::Config
 		AllMenus,
 		SaveLoadOnly,
 		Off,
-
-		Count
 	};
-
 	enum class ControlMode
 	{
 		Classic,
@@ -137,16 +139,17 @@ namespace TEN::Config
 		
 		// Graphics
 
-		int				 ScreenWidth			= 0;
-		int				 ScreenHeight			= 0;
-		WindowMode		 WindowMode				= WindowMode::Windowed;
-		FrameRateMode	 FrameRateMode			= FrameRateMode::Thirty;
-		ShadowMode		 ShadowType				= ShadowMode::None;
-		int				 ShadowMapSize			= DEFAULT_SHADOW_MAP_SIZE;
-		int				 ShadowBlobCountMax		= DEFAULT_SHADOW_BLOB_COUNT_MAX;
-		bool			 EnableCaustics			= false;
-		bool			 EnableAmbientOcclusion = false;
-		AntialiasingMode AntialiasingMode		= AntialiasingMode::None;
+	int		   ScreenWidth		  = 0;
+	int		   ScreenHeight		  = 0;
+	bool	   EnableWindowedMode = false;
+	ShadowMode ShadowType		  = ShadowMode::None;
+	int		   ShadowMapSize	  = DEFAULT_SHADOW_MAP_SIZE;
+	int		   ShadowBlobsMax	  = DEFAULT_SHADOW_BLOB_COUNT_MAX;
+	bool	   EnableCaustics	  = false;
+	bool	   EnableDecals		  = true;
+	bool	   EnableAmbientOcclusion = false;
+	bool	   EnableHighFramerate    = true;
+	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
 
 		// Sound
 
@@ -156,17 +159,31 @@ namespace TEN::Config
 		int	 MusicVolume  = 0;
 		int	 SfxVolume	  = 0;
 
-		std::vector<Vector2i> SupportedScreenResolutions = {};
-		std::string			  AdapterName				 = {};
+	// Gameplay
 
-		// Inquirers
+	bool EnableSubtitles				= false;
+	bool EnableAutoMonkeySwingJump		= false;
+	bool EnableAutoTargeting			= false;
+	bool EnableTargetHighlighter		= false;
+	bool EnableInteractionHighlighter	= false;
+	bool EnableRumble					= false;
+	bool EnableThumbstickCamera			= false;
 
-		bool IsUsingClassicControls() const;
-		bool IsUsingEnhancedControls() const;
-		bool IsUsingModernControls() const;
-		bool IsUsingOmnidirectionalSwimControls() const;
-		bool IsUsingPlanarSwimControls() const;
-	};
+	// Input
+	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
+	//MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
+	BindingProfile		  Bindings				= {};
+
+	std::vector<Vector2i> SupportedScreenResolutions = {};
+	std::string			  AdapterName				 = {};
+	// Inquirers
+
+	bool IsUsingClassicControls() const;
+	bool IsUsingEnhancedControls() const;
+	bool IsUsingModernControls() const;
+	bool IsUsingOmnidirectionalSwimControls() const;
+	bool IsUsingPlanarSwimControls() const;
+};
 
 	extern GameConfiguration g_Config;
 

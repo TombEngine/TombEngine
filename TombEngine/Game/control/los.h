@@ -4,7 +4,7 @@
 #include "Objects/objectslist.h"
 #include "Math/Math.h"
 
-struct MESH_INFO;
+struct StaticMesh;
 
 constexpr auto NO_LOS_ITEM = INT_MAX;
 
@@ -12,5 +12,5 @@ constexpr auto NO_LOS_ITEM = INT_MAX;
 
 bool LOS(const GameVector* origin, GameVector* target);
 bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push);
-bool GetTargetOnLOS(GameVector* origin, GameVector* target, bool drawTarget, bool isFiring);
-int	 ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, MESH_INFO** mesh, GAME_OBJECT_ID priorityObjectID = GAME_OBJECT_ID::ID_NO_OBJECT);
+bool GetTargetOnLOS(GameVector* origin, GameVector* target);
+int	 ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** mesh, GAME_OBJECT_ID priorityObjectID = GAME_OBJECT_ID::ID_NO_OBJECT);

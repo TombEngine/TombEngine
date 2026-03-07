@@ -2,6 +2,9 @@
 
 namespace TEN::Utils
 {
+	// Memory utilities
+	float ToMegabytes(unsigned long long bytes);
+	
 	// String utilities
 
 	std::string ConstructAssetDirectory(std::string customDirectory);
@@ -15,6 +18,7 @@ namespace TEN::Utils
 	std::wstring ToWString(const char* cString);
 
 	std::vector<std::wstring> SplitString(const std::wstring& string);
+	std::vector<std::wstring> SplitWords(const std::wstring& input);
 
 	int GetHash(const std::string& string);
 
@@ -24,6 +28,7 @@ namespace TEN::Utils
 	Vector2 Convert2DPositionToNDC(const Vector2& pos);
 	Vector2 ConvertNDCTo2DPosition(const Vector2& ndc);
 
+	std::wstring GetBinaryPath(bool includeExeName);
 	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion);
 
 	template <typename TElement>

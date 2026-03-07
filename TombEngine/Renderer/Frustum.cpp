@@ -113,9 +113,18 @@ namespace TEN::Renderer
 	void Frustum::NormalizePlane(int side)
 	{
 		float magnitude = sqrt(frustum[side][0] * frustum[side][0] + frustum[side][1] * frustum[side][1] + frustum[side][2] * frustum[side][2]);
-		frustum[side][0] /= magnitude;
-		frustum[side][1] /= magnitude;
-		frustum[side][2] /= magnitude;
-		frustum[side][3] /= magnitude;
+
+		if (magnitude > EPSILON)
+		{
+			frustum[side][0] /= magnitude;
+			frustum[side][1] /= magnitude;
+			frustum[side][2] /= magnitude;
+			frustum[side][3] /= magnitude;
+		}
+		else
+		{
+			// Degenerate plane: zero it out to avoid propagating NaNs.
+			frustum[side][0] = frustum[side][1] = frustum[side][2] = frustum[side][3] = 0.0f;
+		}
 	}
 }

@@ -13,13 +13,13 @@
 	@function InventoryItem
 	@tparam string nameKey key for the item's (localised) name. Corresponds to an entry in strings.lua.
 	@tparam Objects.ObjID objectID object ID of the inventory object to change
-	@tparam float yOffset y-axis offset (positive values move the item down).<br />
+	@tparam float yOffset y-axis offset (positive values move the item down).<br>
 A value of about 100 will cause the item to display directly below its usual position.
-	@tparam float scale item size (1 being standard size).<br />
+	@tparam float scale item size (1 being standard size).<br>
 A value of 0.5 will cause the item to render at half the size,
 and a value of 2 will cause the item to render at twice the size.
 	@tparam Rotation rot rotation around x, y, and z axes.
-	@tparam RotationAxis axis Axis to rotate around when the item is observed at in the inventory.<br />
+	@tparam RotationAxis axis Axis to rotate around when the item is observed at in the inventory.<br>
 Note that this is entirely separate from the `rot` field described above.
 Must one of the following:
 	X
@@ -33,6 +33,9 @@ e.g. `myItem.rotAxisWhenCurrent = RotationAxis.X`
 
 namespace TEN::Scripting
 {
+
+	constexpr long long SUPPORTED_ITEM_BITMASK = ~((OPT_CHOOSE_AMMO_ROCKET << 1) - 1);
+
 	InventoryItem::InventoryItem(const std::string& name, GAME_OBJECT_ID objectID, float yOffset, float scale, const Rotation& rot, RotationFlags rotFlags, int meshBits, ItemOptions action) :
 		Name(name),
 		YOffset(yOffset),
@@ -51,16 +54,23 @@ namespace TEN::Scripting
 
 		parent.new_usertype<InventoryItem>(
 			ScriptReserved_InventoryItem,
-			ctors(), sol::call_constructor, ctors());
+			ctors(), sol::call_constructor, ctors(),
+			// Expose fields to Lua
+			"nameKey", &InventoryItem::Name,
+			"objectID", &InventoryItem::ObjectID,
+			"yOffset", &InventoryItem::YOffset,
+			"scale", &InventoryItem::Scale,
+			"rotation", &InventoryItem::Rot,
+			"axis", &InventoryItem::RotFlags,
+			"meshBits", &InventoryItem::MeshBits,
+			"action", sol::property(&InventoryItem::GetAction)
+			);
 	}
 
 	// TODO: Add validation so the user can't choose something unimplemented.
 	void InventoryItem::SetAction(ItemOptions menuAction)
 	{
-		bool isSupported = (menuAction & ItemOptions::OPT_EQUIP) != 0 ||
-						   (menuAction & ItemOptions::OPT_USE) != 0 || 
-						   (menuAction & ItemOptions::OPT_EXAMINABLE) != 0 || 
-						   (menuAction & ItemOptions::OPT_COMBINABLE) != 0;
+		bool isSupported = (menuAction & SUPPORTED_ITEM_BITMASK) == 0;
 
 		if (!ScriptAssert(isSupported, "Unsupported item menu action: " + std::to_string(menuAction)))
 		{
@@ -72,5 +82,10 @@ namespace TEN::Scripting
 		{
 			MenuAction = menuAction;
 		}
+
+	}
+	ItemOptions InventoryItem::GetAction() const
+	{
+		return MenuAction;
 	}
 }

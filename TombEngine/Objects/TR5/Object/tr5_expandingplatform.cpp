@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_expandingplatform.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -16,17 +16,42 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Generic
 {
-	static void UpdateExpandingPlatformScale(short itemNumber)
+	static void UpdateExpandingPlatformMutators(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.Pose.Scale.z = (float)item.ItemFlags[1] / (float)BLOCK(4);
+		auto bounds = GameBoundingBox(&item);
+		float normalizedThickness = item.ItemFlags[1] / BLOCK(4.0f);
+		int width = abs(bounds.Z2 - bounds.Z1) / 2;
+		float offset = width * normalizedThickness;
+
+		// Update bone mutators.
+		float zTranslate = 0.0f;
+		if (item.Pose.Orientation.y == 0)
+			zTranslate = width - offset;
+
+		if (item.Pose.Orientation.y == ANGLE(90.0f))
+			zTranslate = -offset + width;
+
+		if (item.Pose.Orientation.y == ANGLE(180.0f))
+			zTranslate = -offset + width;
+
+		if (item.Pose.Orientation.y == ANGLE(270.0f))
+			zTranslate = width - offset;
+
+		for (auto& mutator : item.Model.Mutators)
+		{
+			// Make sure that scale is set to epsilon as a minimum to avoid rendering issues.
+			mutator.Scale = Vector3(1.0f, 1.0f, std::max(EPSILON, item.ItemFlags[1] / BLOCK(4.0f)));
+			mutator.Offset = Vector3(0.0f, 0.0f, zTranslate);
+		}
 	}
 
 	static bool IsOnExpandingPlatform(const ItemInfo& item, const Vector3i& pos)
@@ -105,7 +130,7 @@ namespace TEN::Entities::Generic
 		g_Level.PathfindingBoxes[GetPointCollision(item).GetSector().PathfindingBoxID].flags &= ~BLOCKED;
 
 		// Set scale to default.
-		UpdateExpandingPlatformScale(itemNumber);
+		UpdateExpandingPlatformMutators(itemNumber);
 
 		if (item.TriggerFlags < 0)
 		{
@@ -316,6 +341,6 @@ namespace TEN::Entities::Generic
 			ShiftPlayerOnPlatform(item, false);
 		}
 
-		UpdateExpandingPlatformScale(itemNumber);
+		UpdateExpandingPlatformMutators(itemNumber);
 	}
 }

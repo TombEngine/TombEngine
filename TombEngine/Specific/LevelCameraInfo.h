@@ -5,6 +5,13 @@
 
 using namespace TEN::Math;
 
+enum class LevelCameraFlags
+{
+	None = 0,
+	Locked = 1 << 0,
+	GlideOut = 1 << 1 // Unused for now but exists in the editor.
+};
+
 struct LevelCameraInfo
 {
 	std::string Name  = {};

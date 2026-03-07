@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_submarine.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -21,6 +21,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 
 using namespace TEN::Math;
@@ -492,7 +493,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		item->Pose.Orientation.z += 16 * item->Animation.Velocity.z;
 
-		TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.z);
+		item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.z);
 		
 		auto probe = GetPointCollision(*item);
 
@@ -504,7 +505,7 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				LaraItem->HitStatus = true;
 				KillItem(itemNumber);
-				TriggerUnderwaterExplosion(item, 1);
+				TriggerUnderwaterExplosion(item, false);
 				SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 				SoundEffect(SFX_TR5_VEHICLE_DIVESUIT_HIT, &LaraItem->Pose, SoundEnvironment::Always);
 				DoDamage(LaraItem, 200);
@@ -527,7 +528,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->Pose.Position.x = x;
 			item->Pose.Position.y = y;
 			item->Pose.Position.z = z;
-			TriggerUnderwaterExplosion(item, 1);
+			TriggerUnderwaterExplosion(item, false);
 			SoundEffect(SFX_TR5_UNDERWATER_EXPLOSION, &item->Pose, SoundEnvironment::Always);
 			KillItem(itemNumber);
 		}

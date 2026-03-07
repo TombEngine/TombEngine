@@ -1,7 +1,21 @@
 #pragma once
 #include "Game/control/box.h"
 
-extern std::vector<CreatureInfo*> ActiveCreatures;
+const std::vector<GAME_OBJECT_ID> FriendlyCreatures = 
+{
+	ID_LARA,
+	ID_TROOPS,
+	ID_CIVVY,
+	ID_GUIDE,
+	ID_VON_CROY,
+	ID_SCIENTIST,
+	ID_MONK1,
+	ID_MONK2,
+	ID_WHALE,
+	ID_WINSTON
+};
+
+extern std::vector<int> ActiveCreatures;
 
 void InitializeLOTarray(int allocMem);
 bool EnableEntityAI(short itemNum, bool always, bool makeTarget = true);

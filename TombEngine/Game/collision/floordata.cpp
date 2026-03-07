@@ -400,14 +400,25 @@ namespace TEN::Collision::Floordata
 			(round(scaledNormal.z) * 4)) * sign;
 	}
 
+	Vector3i GetNearestSectorCenter(const Vector3i& pos)
+	{
+		// Calculate sector-aligned position.
+		return Vector3i(
+			((pos.x / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2),
+			pos.y,
+			((pos.z / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2));
+	}
+
 	Vector2i GetSectorPoint(int x, int z)
 	{
 		constexpr auto HALF_BLOCK = (int)BLOCK(0.5f);
 
-		// Return relative 2D point in range [0, BLOCK(1)).
-		return Vector2i(
-			(x % BLOCK(1)) - HALF_BLOCK,
-			(z % BLOCK(1)) - HALF_BLOCK);
+		// Normalize x and z to [0, BLOCK_SIZE] before subtracting HALF_BLOCK.
+		int localX = ((x % BLOCK(1)) + BLOCK(1)) % BLOCK(1) - HALF_BLOCK;
+		int localZ = ((z % BLOCK(1)) + BLOCK(1)) % BLOCK(1) - HALF_BLOCK;
+
+		// Return relative 2D point in range [0, BLOCK(1)].
+		return Vector2i(localX, localZ);
 	}
 
 	Vector2i GetRoomGridCoord(int roomNumber, int x, int z, bool clampToBounds)
@@ -827,19 +838,9 @@ namespace TEN::Collision::Floordata
 
 	static void DrawSectorFlagLabel(const Vector3& pos, const std::string& string, const Vector4& color, float verticalOffset)
 	{
-		constexpr auto LABEL_SCALE = 0.8f;
 		constexpr auto HALF_BLOCK  = BLOCK(0.5f);
-
-		// Get 2D label position.
 		auto labelPos = pos + Vector3(HALF_BLOCK, 0.0f, HALF_BLOCK);
-		auto labelPos2D = g_Renderer.Get2DPosition(labelPos);
-
-		// Draw label.
-		if (labelPos2D.has_value())
-		{
-			*labelPos2D += Vector2(0.0f, verticalOffset);
-			DrawDebugString(string, *labelPos2D, color, LABEL_SCALE, RendererDebugPage::CollisionStats);
-		}
+		DrawDebugString(string, labelPos, color, RendererDebugPage::CollisionStats);
 	}
 
 	void DrawNearbySectorFlags(const ItemInfo& item)

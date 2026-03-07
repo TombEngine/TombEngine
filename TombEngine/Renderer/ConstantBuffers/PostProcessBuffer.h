@@ -15,8 +15,7 @@ namespace TEN::Renderer::ConstantBuffers
 	{
 		float CinematicBarsHeight;
 		float ScreenFadeFactor;
-		int ViewportWidth;
-		int ViewportHeight;
+		Vector2i ViewportSize;
 		//--
 		float EffectStrength;
 		Vector3 Tint;
@@ -25,6 +24,16 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		ShaderLensFlare LensFlares[MAX_LENS_FLARES_DRAW];
 		//--
-		int NumLensFlares;
+		int NumLensFlares; 
+		float DownscaleFactor;
+		Vector2 Padding3;
+		//--
+		Vector2 TexelSize;
+		Vector2 BlurDirection;
+		//--
+		float BlurSigma;
+		int BlurRadius;
+		float GlowIntensity;
+		int GlowSoftAdd;
 	};
 }

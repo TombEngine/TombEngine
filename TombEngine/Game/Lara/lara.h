@@ -156,7 +156,7 @@ static const auto PLAYER_STRAFE_STATE_IDS = std::vector<int>
 };
 
 extern LaraInfo		 Lara;
-extern ItemInfo*	 LaraItem;
+extern ItemHandler	 LaraItem;
 extern CollisionInfo LaraCollision;
 
 void LaraControl(ItemInfo* item, CollisionInfo* coll);
@@ -164,6 +164,5 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll);
 void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll);
 void LaraUnderwater(ItemInfo* item, CollisionInfo* coll);
 void LaraCheat(ItemInfo* item, CollisionInfo* coll);
-void AnimateItem(ItemInfo* item);
 void UpdateLara(ItemInfo* item, bool isTitle);
 bool UpdateLaraRoom(ItemInfo* item, int height, int xOffset = 0, int zOffset = 0);

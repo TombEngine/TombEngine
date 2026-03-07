@@ -171,8 +171,8 @@ namespace TEN::Input
 		{ In::MouseClickLeft,	MK_LCLICK },
 		{ In::MouseClickMiddle, MK_MCLICK },
 		{ In::MouseClickRight,	MK_RCLICK },
-		{ In::MouseScrollUp,	MK_AXIS_X_NEG },
-		{ In::MouseScrollDown,	MK_AXIS_X_POS }
+		{ In::MouseScrollUp,	MK_AXIS_Z_NEG },
+		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
 	};
 
 	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const
@@ -204,6 +204,15 @@ namespace TEN::Input
 		// Return binding profile.
 		const auto& [keyProfileID, profile] = *profileIt;
 		return profile;
+	}
+
+	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
+	{
+		int defaultKeyID = GetBoundKeyID(BindingProfileID::Default, (ActionID)(actionID));
+		int userKeyID = GetBoundKeyID(BindingProfileID::Custom, (ActionID)(actionID));
+		int boundKey = userKeyID ? userKeyID : defaultKeyID;
+
+		return GetKeyName(boundKey);
 	}
 
 	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)

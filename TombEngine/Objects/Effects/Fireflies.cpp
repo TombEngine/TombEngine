@@ -187,14 +187,14 @@ namespace TEN::Effects::Fireflies
             if (targetItem == &item)
             {
                 // Choose one of the available firefly number that has the light.
-                if (targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] == NO_VALUE && targetItem->ItemFlags[FirefliesItemFlags::TriggerFlags] >= 0)
+                if (targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] == NO_VALUE && targetItem->ItemFlags[FirefliesItemFlags::Spawncounter] > 0)
                 {
-                    targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] = Random::GenerateInt(0, targetItem->TriggerFlags);
+                    targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] = Random::GenerateInt(0, targetItem->ItemFlags[FirefliesItemFlags::Spawncounter] - 1);
                 }
                 // Two lights max for each cluster.
-                if (targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] == NO_VALUE && targetItem->ItemFlags[FirefliesItemFlags::TriggerFlags] >= 0)
+                if (targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] == NO_VALUE && targetItem->ItemFlags[FirefliesItemFlags::Spawncounter] > 0)
                 {
-                    targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] = Random::GenerateInt(0, targetItem->TriggerFlags);
+                    targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] = Random::GenerateInt(0, targetItem->ItemFlags[FirefliesItemFlags::Spawncounter] - 1);
                 }
 
                 auto posBase = firefly.Position;

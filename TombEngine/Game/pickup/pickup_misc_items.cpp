@@ -170,7 +170,8 @@ std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 {	
 	auto HasBeetle = [&](int bit)
 	{
-		return lara.Inventory.BeetleComponents &= 1 << bit;
+		auto beetleComponents = lara.Inventory.BeetleComponents;
+		return beetleComponents &= 1 << bit;
 	};
 
 	switch (objectID)

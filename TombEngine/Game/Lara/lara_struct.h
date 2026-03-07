@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/Lara/PlayerContext.h"
 #include "Math/Math.h"
+#include "Objects/game_object_ids.h"
 #include "Objects/objectslist.h"
 
 using namespace TEN::Math;
@@ -163,12 +164,12 @@ enum LaraState
 	LS_TIGHTROPE_RECOVER_BALANCE = 127,
 	LS_HORIZONTAL_BAR_SWING = 128,
 	LS_HORIZONTAL_BAR_LEAP = 129,
-	LS_UNKNOWN_1 = 130,
+	LS_RADIO_START = 130,
 	LS_RADIO_LISTENING = 131,
 	LS_RADIO_OFF = 132,
-	LS_UNKNOWN_2 = 133,
+	LS_USE_KEYCARD = 133,
 	LS_UNKNOWN_3 = 134,
-	LS_UNKNOWN_4 = 135,
+	LS_VALVE_TURN = 135,
 	LS_UNKNOWN_5 = 136,
 	LS_PICKUP_FROM_CHEST = 137,
 	LS_LADDER_TO_CROUCH = 138,
@@ -233,6 +234,8 @@ enum LaraState
 	LS_SKIP_BACK = 207,
 	LS_WALK_FORWARD_TURN_180 = 208,
 	LS_RUN_FORWARD_TURN_180 = 209,
+
+	LS_PULLEY_UNGRAB = 198,
 
 	NUM_LARA_STATES
 };
@@ -834,8 +837,15 @@ enum LaraAnim
 	LA_LEDGE_JUMP_UP_END = 566,
 	LA_LEDGE_JUMP_BACK_START = 567,
 	LA_LEDGE_JUMP_BACK_END = 568,
+	LA_UNDERWATER_WALL_KICK = 569,			// Lara kick wall underwater.
+	LA_WALL_PUSH = 570,						// Lara Push Wall above ground.
+	LA_WALL_LEVER_SWITCH = 571,				// Use lever above ground
+	LA_UNDERWATER_PULLEY_GRAB = 572,		// Grab underwater pulley
+	LA_UNDERWATER_PULLEY_PULL = 573,		// Pull underwater pulley		
+	LA_UNDERWATER_PULLEY_UNGRAB = 574,		// Release underwater pulley
+	LA_CEILING_LEVER_SWITCH = 575,			// Use ceiling switch above ground
 
-	// 569-598 reserved for ladder object. -- Sezz 2023.04.16
+	//ADD NEW ANIMATIONS HERE
 
 	LA_STAND_IDLE_TO_SKIP_BACK = 599,
 	LA_SKIP_BACK = 600,
@@ -844,9 +854,6 @@ enum LaraAnim
 
 	NUM_LARA_ANIMS
 
-	// TRASHED ANIMS (reuse slots before going any higher and remove entries from this list when you do):
-	// 370,
-	// 442
 };
 
 enum LaraExtraAnim
@@ -870,6 +877,13 @@ enum LaraExtraAnim
 	LEA_BIG_SCORPION_DEATH = 16
 };
 #pragma endregion
+
+enum PlayerTorchAnim
+{
+	PLAYER_TORCH_ANIM_HOLD  = 0,
+	PLAYER_TORCH_ANIM_THROW = 1,
+	PLAYER_TORCH_ANIM_DROP  = 2
+};
 
 enum LARA_MESHES
 {
@@ -930,6 +944,16 @@ enum class PlayerAmmoType
 	GrenadeFlash,
 	Harpoon,
 	Rocket,
+
+	Count
+};
+
+enum class PlayerWeaponMode
+{
+	None,
+	Rapid,
+	Burst,
+	Sniper,
 
 	Count
 };
@@ -1077,10 +1101,10 @@ public:
 		return (Count == value);
 	}
 
-	Ammo& operator =(Ammo& ammo)
+	Ammo& operator =(const Ammo& ammo)
 	{
 		Count = ammo.Count;
-		IsInfinite = ammo.Count;
+		IsInfinite = ammo.IsInfinite;
 		return *this;
 	}
 
@@ -1138,15 +1162,16 @@ struct CarriedWeaponInfo
 
 struct ArmInfo
 {
-	int AnimNumber	= 0;
-	int FrameNumber = 0;
-	int FrameBase	= 0;
+	GAME_OBJECT_ID AnimObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+	int			   AnimNumber	= 0;
+	int			   FrameNumber	= 0;
 
 	EulerAngles Orientation = EulerAngles::Identity;
 	bool		Locked		= false;
 
 	int GunFlash = 0;
 	int GunSmoke = 0;
+	int AimDelay = 0;
 };
 
 struct FlareData
@@ -1158,7 +1183,12 @@ struct FlareData
 
 struct TorchData
 {
+	static constexpr auto FADE_TIMEOUT = 0.5f;
+
 	bool	   IsLit = false;
+	int		   Fade = 0;
+	Vector3	   CurrentColor = Vector3::Zero;
+	Vector3    NextColor = Vector3::Zero;
 	TorchState State = TorchState::Holding;
 };
 
@@ -1360,9 +1390,7 @@ struct LaraInfo
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};
 	TorchData		  Torch = {};
-
-	// TODO: Move to PlayerInventoryData.
-	CarriedWeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] = {};
+	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
 	PlayerLimbRotationData LimbRot = {};
 	EulerAngles ExtraTorsoRot	= EulerAngles::Identity; // Deprecated.
@@ -1385,4 +1413,33 @@ struct LaraInfo
 	signed char Location		= 0;
 	signed char HighestLocation = 0;
 	signed char LocationPad		= 0;
+};
+
+const auto CROUCH_STATES = std::vector<int>
+{
+	LS_CROUCH_IDLE,
+	LS_CROUCH_TURN_LEFT,
+	LS_CROUCH_TURN_RIGHT,
+	LS_CROUCH_TURN_180
+};
+
+const auto CRAWL_STATES = std::vector<int>
+{
+	LS_CRAWL_IDLE,
+	LS_CRAWL_FORWARD,
+	LS_CRAWL_BACK,
+	LS_CRAWL_TURN_LEFT,
+	LS_CRAWL_TURN_RIGHT,
+	LS_CRAWL_TURN_180,
+	LS_CRAWL_TO_HANG
+};
+
+const auto JUMP_STATES = std::vector<int>
+{
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT,
+	LS_JUMP_UP,
+	LS_REACH
 };

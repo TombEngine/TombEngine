@@ -93,6 +93,11 @@ void Level::Register(sol::table& parent)
 //@mem weatherStrength
 		"weatherStrength", &Level::WeatherStrength,
 
+/// (bool) Choose if weather should be clustered or not.
+// You can set it to `false` globally or in specific regions of your level where clusters can slip through paper-thin walls.
+//@mem weatherClustering
+		"weatherClustering", &Level::WeatherClustering,
+
 /*** (LaraType) Appearance of Lara. Must be either `LaraType.Normal` or `LaraType.Young`.
 E.g. `myLevel.laraType = LaraType.Young` will make Lara appear as young (with two ponytails rendered).
 This setting does not affect ability to use weapons or flares.
@@ -111,11 +116,11 @@ This setting does not affect ability to use weapons or flares.
 		"farView", &Level::LevelFarView,
 
 /// (bool) Reset hub data.
-// Resets the state for all previous levels, including items, flipmaps and statistics.
+// If true, resets the state of all previously visited levels, including items, flipmaps and statistics.
 //@mem resetHub
 		"resetHub", &Level::ResetHub,
 
-/// (table of @{Flow.InventoryItem}s) A table of inventory object layout overrides.
+/// (@{Flow.InventoryItem}[]) A table of inventory object layout overrides.
 //@mem objects
 		"objects", &Level::InventoryObjects,
 
@@ -179,6 +184,11 @@ bool Level::GetStormEnabled() const
 bool Level::GetRumbleEnabled() const
 {
 	return Rumble;
+}
+
+bool Level::GetWeatherClustering() const
+{
+	return WeatherClustering;
 }
 
 float Level::GetWeatherStrength() const

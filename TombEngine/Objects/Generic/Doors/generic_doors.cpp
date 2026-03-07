@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Doors/generic_doors.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Sphere.h"
@@ -9,6 +9,7 @@
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
 #include "Game/itemdata/door_data.h"
 #include "Game/itemdata/itemdata.h"
 #include "Game/items.h"
@@ -24,9 +25,11 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Room;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Physics;
 
@@ -68,12 +71,8 @@ namespace TEN::Entities::Doors
 		auto& door = GetDoorObject(doorItem);
 
 		door.opened = false;
-		door.dptr1 = nullptr;
-		door.dptr2 = nullptr;
-		door.dptr3 = nullptr;
-		door.dptr4 = nullptr;
 
-		short boxNumber, twoRoom;
+		int boxNumber, twoRoom;
 
 		int xOffset = 0;
 		int zOffset = 0;
@@ -109,7 +108,7 @@ namespace TEN::Entities::Doors
 			boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x + xOffset, doorItem.Pose.Position.z - b->Position.z + zOffset)->PathfindingBoxID;
 		}
 
-		door.d1.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE; 
+		door.d1.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 		door.d1.data = *door.d1.floor;
 
 		if (room->flippedRoom != NO_VALUE)
@@ -128,7 +127,7 @@ namespace TEN::Entities::Doors
 				boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x + xOffset, doorItem.Pose.Position.z - b->Position.z + zOffset)->PathfindingBoxID;
 			}
 
-			door.d1flip.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
+			door.d1flip.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 			door.d1flip.data = *door.d1flip.floor;
 		}
 		else
@@ -162,10 +161,10 @@ namespace TEN::Entities::Doors
 				boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x, doorItem.Pose.Position.z - b->Position.z)->PathfindingBoxID;
 			}
 
-			door.d2.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
+			door.d2.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 			door.d2.data = *door.d2.floor;
 
-			if (room->flippedRoom != -1)
+			if (room->flippedRoom != NO_VALUE)
 			{
 				room = &g_Level.Rooms[room->flippedRoom];
 				door.d2flip.floor = GetSector(room, doorItem.Pose.Position.x - room->Position.x, doorItem.Pose.Position.z - room->Position.z);
@@ -181,7 +180,7 @@ namespace TEN::Entities::Doors
 					boxNumber = GetSector(b, doorItem.Pose.Position.x - b->Position.x, doorItem.Pose.Position.z - b->Position.z)->PathfindingBoxID;
 				}
 
-				door.d2flip.block = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE; 
+				door.d2flip.box = (boxNumber != NO_VALUE && g_Level.PathfindingBoxes[boxNumber].flags & BLOCKABLE) ? boxNumber : NO_VALUE;
 				door.d2flip.data = *door.d2flip.floor;
 			}
 			else
@@ -212,12 +211,12 @@ namespace TEN::Entities::Doors
 			{
 				case CardinalDirection::NORTH:
 				case CardinalDirection::EAST:
-					bound = INFINITY;
+					bound = FLT_MAX;
 					break;
 
 				case CardinalDirection::SOUTH:
 				case CardinalDirection::WEST:
-					bound = -INFINITY;
+					bound = -FLT_MAX;
 					break;
 			}
 
@@ -290,8 +289,11 @@ namespace TEN::Entities::Doors
 		auto& doorItem = g_Level.Items[itemNumber];
 		auto& player = GetLaraInfo(*playerItem);
 
-		if (doorItem.TriggerFlags == 2 &&
-			doorItem.Status == ITEM_NOT_ACTIVE && !doorItem.Animation.IsAirborne && // CHECK
+		bool canBeOpenedWithCrowbar = doorItem.TriggerFlags == 2;
+		if (canBeOpenedWithCrowbar)
+			g_Hud.InteractionHighlighter.Test(*playerItem, doorItem, InteractionMode::Activation);
+
+		if (canBeOpenedWithCrowbar && doorItem.Status == ITEM_NOT_ACTIVE &&
 			((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
 				playerItem->Animation.ActiveState == LS_IDLE &&
 				playerItem->Animation.AnimNumber == LA_STAND_IDLE &&
@@ -313,14 +315,7 @@ namespace TEN::Entities::Doors
 						}
 						else
 						{
-							if (OldPickupPos.x != playerItem->Pose.Position.x || OldPickupPos.y != playerItem->Pose.Position.y || OldPickupPos.z != playerItem->Pose.Position.z)
-							{
-								OldPickupPos.x = playerItem->Pose.Position.x;
-								OldPickupPos.y = playerItem->Pose.Position.y;
-								OldPickupPos.z = playerItem->Pose.Position.z;
-								SayNo();
-							}
-
+							SayNo(playerItem->Pose.Position);
 							doorItem.Pose.Orientation.y ^= ANGLE(180.0f);
 						}
 
@@ -465,7 +460,7 @@ namespace TEN::Entities::Doors
 			}
 		}
 
-		AnimateItem(&doorItem);
+		AnimateItem(doorItem);
 	}
 
 	void OpenThatDoor(DOORPOS_DATA* doorPos, DOOR_DATA* dd)
@@ -474,14 +469,16 @@ namespace TEN::Entities::Doors
 		if (sector == nullptr)
 			return;
 
+		// Room number should be preserved because it may conflict with flipmap workflow.
+		int roomNumber = sector->RoomNumber;
 		*doorPos->floor = doorPos->data;
+		doorPos->floor->RoomNumber = roomNumber;
 
-		int pathfindingBoxID = doorPos->block;
-		if (pathfindingBoxID != NO_VALUE)
+		if (doorPos->box != NO_VALUE)
 		{
-			g_Level.PathfindingBoxes[pathfindingBoxID].flags &= ~BLOCKED;
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			g_Level.PathfindingBoxes[doorPos->box].flags &= ~BLOCKED;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 
@@ -509,13 +506,12 @@ namespace TEN::Entities::Doors
 		sector->CeilingSurface.Triangles[0].Plane =
 		sector->CeilingSurface.Triangles[1].Plane = WALL_PLANE;
 
-		int pathfindingBoxID = doorPos->block;
-		if (pathfindingBoxID != NO_VALUE)
+		if (doorPos->box != NO_VALUE)
 		{
-			g_Level.PathfindingBoxes[pathfindingBoxID].flags |= BLOCKED;
+			g_Level.PathfindingBoxes[doorPos->box].flags |= BLOCKED;
 
-			for (auto& creature : ActiveCreatures)
-				creature->LOT.TargetBox = NO_VALUE;
+			for (auto creatureIndex : ActiveCreatures)
+				GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 		}
 	}
 

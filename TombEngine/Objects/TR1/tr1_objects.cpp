@@ -92,8 +92,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 200;
 		obj->radius = 204;
 		obj->intelligent = true;
-		obj->waterCreature = true;
-		obj->LotType = LotType::Water;
+		obj->LotType = LotType::Amphibious;
 		obj->SetBoneRotationFlags(1, ROT_Y);
 		obj->SetHitEffect();
 	}
@@ -134,8 +133,6 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		// NOTE: lara is obviously loaded by default.
 		auto& laraObj = Objects[ID_LARA];
-		obj->animIndex = laraObj.animIndex;
-		obj->frameBase = laraObj.frameBase;
 		obj->Initialize = InitializeCreature;
 		obj->collision = CreatureCollision;
 		obj->control = DoppelgangerControl;
@@ -236,7 +233,7 @@ static void StartObject(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->collision = AIPickupCollision;
-		obj->drawRoutine = nullptr;
+		obj->Hidden = true;
 	}
 }
 
@@ -309,8 +306,7 @@ static void StartTrap(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeElectricBallImpactPoint;
-		obj->drawRoutine = nullptr;
-		obj->usingDrawAnimatingItem = false;
+		obj->Hidden = true;
 	}
 }
 

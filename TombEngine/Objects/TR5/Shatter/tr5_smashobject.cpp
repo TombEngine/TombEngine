@@ -34,11 +34,20 @@ void SmashObject(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	int sector = ((item->Pose.Position.z - room->Position.z) / 1024) + room->ZSize * ((item->Pose.Position.x - room->Position.z) / 1024);
+	int sectorX = (item->Pose.Position.x - room->Position.x) / BLOCK(1);
+	int sectorZ = (item->Pose.Position.z - room->Position.z) / BLOCK(1);
 
-	auto* box = &g_Level.PathfindingBoxes[room->Sectors[sector].PathfindingBoxID];
-	if (box->flags & 0x8000)
-		box->flags &= ~BLOCKED;
+	if (sectorX >= 0 && sectorX < room->XSize && sectorZ >= 0 && sectorZ < room->ZSize)
+	{
+		int sectorIndex = sectorZ + room->ZSize * sectorX;
+
+		if (room->Sectors[sectorIndex].PathfindingBoxID != NO_VALUE)
+		{
+			auto* box = &g_Level.PathfindingBoxes[room->Sectors[sectorIndex].PathfindingBoxID];
+			if (box->flags & BLOCKABLE)
+				box->flags &= ~BLOCKED;
+		}
+	}
 
 	SoundEffect(SFX_TR5_SMASH_GLASS, &item->Pose);
 

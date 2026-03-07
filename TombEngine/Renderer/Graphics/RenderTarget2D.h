@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Renderer/Graphics/TextureBase.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/RendererUtils.h"
 
 namespace TEN::Renderer::Graphics
@@ -20,6 +21,40 @@ namespace TEN::Renderer::Graphics
 		ComPtr<ID3D11ShaderResourceView> DepthShaderResourceView;
 
 		RenderTarget2D() {};
+
+		RenderTarget2D(RenderTarget2D&& other) noexcept
+			: TextureBase(std::move(other)),
+			  RenderTargetView(std::move(other.RenderTargetView)),
+			  Texture(std::move(other.Texture)),
+			  DepthStencilView(std::move(other.DepthStencilView)),
+			  DepthStencilTexture(std::move(other.DepthStencilTexture)),
+			  DepthShaderResourceView(std::move(other.DepthShaderResourceView)),
+			  _vramSize(other._vramSize)
+		{
+			other._vramSize = 0;
+		}
+
+		RenderTarget2D& operator=(RenderTarget2D&& other) noexcept
+		{
+			if (this != &other)
+			{
+				if (_vramSize > 0)
+					VRAMTracker::Get().Remove(VRAMCategory::RenderTarget, _vramSize);
+
+				TextureBase::operator=(std::move(other));
+				RenderTargetView = std::move(other.RenderTargetView);
+				Texture = std::move(other.Texture);
+				DepthStencilView = std::move(other.DepthStencilView);
+				DepthStencilTexture = std::move(other.DepthStencilTexture);
+				DepthShaderResourceView = std::move(other.DepthShaderResourceView);
+				_vramSize = other._vramSize;
+				other._vramSize = 0;
+			}
+			return *this;
+		}
+
+		RenderTarget2D(const RenderTarget2D&) = delete;
+		RenderTarget2D& operator=(const RenderTarget2D&) = delete;
 
 		RenderTarget2D(ID3D11Device* device, int width, int height, DXGI_FORMAT colorFormat, bool isTypeless, DXGI_FORMAT depthFormat)
 		{
@@ -42,7 +77,9 @@ namespace TEN::Renderer::Graphics
 			desc.MiscFlags = 0;
 
 			auto res = device->CreateTexture2D(&desc, nullptr, &Texture);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateTexture2D (render target color)");
+
+			_vramSize = VRAMTracker::ComputeTexture2DSize(desc);
 
 			auto viewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
 			viewDesc.Format = colorFormat;
@@ -50,7 +87,7 @@ namespace TEN::Renderer::Graphics
 			viewDesc.Texture2D.MipSlice = 0;
 
 			res = device->CreateRenderTargetView(Texture.Get(), &viewDesc, &RenderTargetView);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateRenderTargetView");
 
 			// Set up description of shader resource view.
 			auto shaderDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
@@ -60,7 +97,7 @@ namespace TEN::Renderer::Graphics
 			shaderDesc.Texture2D.MipLevels = 1;
 
 			res = device->CreateShaderResourceView(Texture.Get(), &shaderDesc, &ShaderResourceView);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateSRV (render target)");
 
 			if (depthFormat != DXGI_FORMAT_UNKNOWN)
 			{
@@ -78,7 +115,9 @@ namespace TEN::Renderer::Graphics
 				depthTexDesc.MiscFlags = 0;
 
 				res = device->CreateTexture2D(&depthTexDesc, NULL, &DepthStencilTexture);
-				throwIfFailed(res);
+				throwIfFailed(res, device, "CreateTexture2D (render target depth)");
+
+				_vramSize += VRAMTracker::ComputeTexture2DSize(depthTexDesc);
 
 				auto dsvDesc = D3D11_DEPTH_STENCIL_VIEW_DESC{};
 				dsvDesc.Format = depthTexDesc.Format;
@@ -87,8 +126,10 @@ namespace TEN::Renderer::Graphics
 				dsvDesc.Texture2D.MipSlice = 0;
 
 				res = device->CreateDepthStencilView(DepthStencilTexture.Get(), &dsvDesc, &DepthStencilView);
-				throwIfFailed(res);
+				throwIfFailed(res, device, "CreateDepthStencilView");
 			}
+
+			VRAMTracker::Get().Add(VRAMCategory::RenderTarget, _vramSize);
 		}
 
 		// Constructor is for sharing same texture resource of another render target.
@@ -107,7 +148,7 @@ namespace TEN::Renderer::Graphics
 			viewDesc.Texture2D.MipSlice = 0;
 
 			auto res = device->CreateRenderTargetView(Texture.Get(), &viewDesc, &RenderTargetView);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateRenderTargetView (shared texture)");
 
 			// Set up description of shader resource view.
 			auto shaderDesc = D3D11_SHADER_RESOURCE_VIEW_DESC{};
@@ -117,7 +158,9 @@ namespace TEN::Renderer::Graphics
 			shaderDesc.Texture2D.MipLevels = 1;
 
 			res = device->CreateShaderResourceView(Texture.Get(), &shaderDesc, &ShaderResourceView);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateSRV (shared texture)");
+
+			// Shared texture: don't count VRAM again, texture is owned by parent.
 		}
 
 		RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, DXGI_FORMAT depthFormat)
@@ -138,7 +181,7 @@ namespace TEN::Renderer::Graphics
 			viewDesc.Texture2D.MipSlice = 0;
 
 			HRESULT res = device->CreateRenderTargetView(Texture.Get(), &viewDesc, &RenderTargetView);
-			throwIfFailed(res);
+			throwIfFailed(res, device, "CreateRenderTargetView (existing texture)");
 
 			// Setup the description of the shader resource view.
 			if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
@@ -150,7 +193,7 @@ namespace TEN::Renderer::Graphics
 				shaderDesc.Texture2D.MipLevels = 1;
 
 				res = device->CreateShaderResourceView(Texture.Get(), &shaderDesc, &ShaderResourceView);
-				throwIfFailed(res);
+				throwIfFailed(res, device, "CreateSRV (existing texture)");
 			}
 
 			if (depthFormat != DXGI_FORMAT_UNKNOWN)
@@ -169,7 +212,9 @@ namespace TEN::Renderer::Graphics
 				depthTexDesc.MiscFlags = 0;
 
 				res = device->CreateTexture2D(&depthTexDesc, NULL, &DepthStencilTexture);
-				throwIfFailed(res);
+				throwIfFailed(res, device, "CreateTexture2D (existing texture depth)");
+
+				_vramSize = VRAMTracker::ComputeTexture2DSize(depthTexDesc);
 
 				D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 				dsvDesc.Format = depthTexDesc.Format;
@@ -178,11 +223,23 @@ namespace TEN::Renderer::Graphics
 				dsvDesc.Texture2D.MipSlice = 0;
 
 				res = device->CreateDepthStencilView(DepthStencilTexture.Get(), &dsvDesc, &DepthStencilView);
-				throwIfFailed(res);
+				throwIfFailed(res, device, "CreateDepthStencilView (existing texture)");
 			}
+
+			// External texture: count only the depth texture we created, not the color texture.
+			if (_vramSize > 0)
+				VRAMTracker::Get().Add(VRAMCategory::RenderTarget, _vramSize);
+		}
+
+		~RenderTarget2D()
+		{
+			if (_vramSize > 0)
+				VRAMTracker::Get().Remove(VRAMCategory::RenderTarget, _vramSize);
 		}
 
 	private:
+		int _vramSize = 0;
+
 		DXGI_FORMAT MakeTypeless(DXGI_FORMAT format)
 		{
 			switch (format)

@@ -9,6 +9,7 @@
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
 #include "Game/effects/Bubble.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/effects.h"
@@ -26,6 +27,7 @@
 #include "Game/effects/weather.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
+#include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
 #include "Game/Lara/lara_helpers.h"
@@ -38,13 +40,13 @@
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
-#include "Objects/Effects/tr4_locusts.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
+#include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
@@ -59,8 +61,8 @@
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Specific/winmain.h"
 #include "Specific/Video/Video.h"
+#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Collision::Floordata;
@@ -69,6 +71,7 @@ using namespace TEN::Control::Volumes;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
@@ -104,6 +107,7 @@ bool InitializeGame	= false;
 bool DoTheGame		= false;
 bool JustLoaded		= false;
 bool ThreadEnded	= false;
+bool DebugMode		= false;
 
 int RequiredStartPos;
 int CurrentLevel;
@@ -154,6 +158,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	RegeneratePickups();
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Controls are polled before OnLoop to allow input data to be overwritten by script API methods.
@@ -199,6 +204,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateDebris();
 	UpdateGunFlashes();
 	UpdateGunShells();
+	UpdateDecals();
 	UpdateFootprints();
 	UpdateSplashes();
 	UpdateElectricityArcs();
@@ -222,6 +228,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
+	g_DrawItems.Update();
 	UpdateFadeScreenAndCinematicBars();
 
 	// Rumble screen (like in submarine level of TRC).
@@ -298,6 +305,7 @@ GameStatus FreezePhase()
 	SetupInterpolation();
 	//PrepareCamera(); // TODO: Restore.
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Track previous player animation to queue hair update if needed.
@@ -322,6 +330,8 @@ GameStatus FreezePhase()
 		PlaySoundSources();
 		Sound_UpdateScene();
 	}
+
+	g_DrawItems.Update();
 
 	// HACK: Update player hair if animation was switched in spectator mode.
 	// Needed for photo mode and other similar functionality.
@@ -358,15 +368,19 @@ unsigned CALLBACK GameMain(void *)
 
 	TimeInit();
 
-	// Do fixed-time title image.
-	if (!g_GameFlow->IntroImagePath.empty())
-		g_Renderer.RenderTitleImage();
-
-	// Play intro video.
-	if (!g_GameFlow->IntroVideoPath.empty())
+	// Proceed with intro content only if game isn't started from the editor.
+	if (CurrentLevel == NO_VALUE)
 	{
-		g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
-		while (DoTheGame && g_VideoPlayer.Update());
+		// Do fixed-time title image.
+		if (!g_GameFlow->IntroImagePath.empty())
+			g_Renderer.RenderTitleImage();
+
+		// Play intro video.
+		if (!g_GameFlow->IntroVideoPath.empty())
+		{
+			g_VideoPlayer.Play(g_GameFlow->GetGameDir() + g_GameFlow->IntroVideoPath);
+			while (DoTheGame && g_VideoPlayer.Update());
+		}
 	}
 
 	// Execute Lua gameflow and play game.
@@ -378,8 +392,6 @@ unsigned CALLBACK GameMain(void *)
 
 	// Finish thread.
 	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	EndThread();
-
 	return true;
 }
 
@@ -425,14 +437,14 @@ void UpdateShatters()
 		SmashedMeshCount--;
 
 		auto* floor = GetFloor(
-			SmashedMesh[SmashedMeshCount]->pos.Position.x,
-			SmashedMesh[SmashedMeshCount]->pos.Position.y,
-			SmashedMesh[SmashedMeshCount]->pos.Position.z,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.x,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.y,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.z,
 			&SmashedMeshRoom[SmashedMeshCount]);
 
-		TestTriggers(SmashedMesh[SmashedMeshCount]->pos.Position.x,
-			SmashedMesh[SmashedMeshCount]->pos.Position.y,
-			SmashedMesh[SmashedMeshCount]->pos.Position.z,
+		TestTriggers(SmashedMesh[SmashedMeshCount]->Pose.Position.x,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.y,
+			SmashedMesh[SmashedMeshCount]->Pose.Position.z,
 			SmashedMeshRoom[SmashedMeshCount], true);
 
 		TestVolumes(SmashedMeshRoom[SmashedMeshCount], SmashedMesh[SmashedMeshCount]);
@@ -520,6 +532,10 @@ void CleanUp()
 	// Reset oscillator seed.
 	Wibble = 0;
 
+	// Reset extra camera angles.
+	Camera.extraAngle = 0;
+	Camera.extraElevation = 0;
+
 	// Clear player lock, otherwise controls will lock if user exits to title while playing flyby with locked controls.
 	Lara.Control.IsLocked = false;
 
@@ -541,6 +557,7 @@ void CleanUp()
 	ClearUnderwaterBloodParticles();
 	ClearBubbles();
 	ClearAllDisplaySprites();
+	ClearDecals();
 	ClearFootprints();
 	ClearDrips();
 	ClearRipples();
@@ -556,6 +573,7 @@ void CleanUp()
 
 	// Clear HUD.
 	g_Hud.Clear();
+	g_DrawItems.Clear();
 
 	// Clear soundtrack masks.
 	ClearSoundTrackMasks();
@@ -593,13 +611,14 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		}
 
 		g_GameScript->InitCallbacks();
-		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, float scale, int flags)
+		g_GameStringsHandler->SetCallbackDrawString([](const std::string& key, D3DCOLOR color, const Vec2& pos, Vec2& area, float scale, int flags)
 		{
 			g_Renderer.AddString(
 				key,
-				Vector2(
-					(pos.x / g_Config.ScreenWidth) * DISPLAY_SPACE_RES.x,
-					(pos.y / g_Config.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((pos.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(pos.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
+				Vector2((area.x / g_Configuration.ScreenWidth)  * DISPLAY_SPACE_RES.x,
+						(area.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
 				Color(color), scale, flags);
 		});
 	}
@@ -639,6 +658,7 @@ void InitializeOrLoadGame(bool loadGame)
 
 		InitializeGame = false;
 
+		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
 		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
@@ -696,13 +716,16 @@ GameStatus DoGameLoop(int levelIndex)
 			legacy30FpsDoneDraw = false;
 		}
 
+		if (g_VideoPlayer.IsBackgroundPlaybackQueued())
+			continue;
+
 		if (status != GameStatus::Normal)
 			break;
 
 		if (g_GameFlow->LastFreezeMode != g_GameFlow->CurrentFreezeMode)
 			continue;
 
-		if (g_Config.FrameRateMode != FrameRateMode::Sixty)
+		if (g_Configuration.FrameRateMode != FrameRateMode::Sixty)
 		{
 			if (!legacy30FpsDoneDraw)
 			{
@@ -792,6 +815,7 @@ GameStatus HandleMenuCalls(bool isTitle)
 	}
 
 	bool playerAlive = LaraItem->HitPoints > 0;
+	bool inventoryEnabled = g_GameFlow->GetSettings()->Gameplay.EnableInventory;
 	
 	bool doLoad      = IsClicked(In::Load) || 
 					   (!IsClicked(In::Inventory) && !NoAction() && SaveGame::IsLoadGamePossible() && Lara.Control.Count.Death > DEATH_INPUT_TIMEOUT);
@@ -800,13 +824,13 @@ GameStatus HandleMenuCalls(bool isTitle)
 	bool doInventory = (IsClicked(In::Inventory) || g_Gui.GetEnterInventory() != NO_VALUE) && playerAlive;
 
 	// Handle inventory.
-	if (doSave && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasSave && g_Gui.GetInventoryMode() != InventoryMode::Save)
+	if (doSave && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasSave && g_Gui.GetInventoryMode() != InventoryMode::Save && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Save);
 		g_Gui.CallInventory(LaraItem, false);
 	}
-	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load)
+	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Load);
@@ -818,8 +842,9 @@ GameStatus HandleMenuCalls(bool isTitle)
 		if (g_Gui.CallPause())
 			gameStatus = GameStatus::ExitToTitle;
 	}
-	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars)
+	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars && inventoryEnabled)
 	{
+
 		if (g_Gui.CallInventory(LaraItem, true))
 			gameStatus = GameStatus::LoadGame;
 	}

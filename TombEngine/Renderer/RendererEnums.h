@@ -8,11 +8,6 @@ using namespace DirectX::SimpleMath;
 #define SHAPE_RECTANGLE 0
 #define SHAPE_TRIANGLE	1
 
-#define PRINTSTRING_COLOR_ORANGE D3DCOLOR_ARGB(255, 216, 117, 49)
-#define PRINTSTRING_COLOR_WHITE D3DCOLOR_ARGB(255, 255, 255, 255)
-#define PRINTSTRING_COLOR_BLACK D3DCOLOR_ARGB(255, 0, 0, 0)
-#define PRINTSTRING_COLOR_YELLOW D3DCOLOR_ARGB(255, 240, 220, 32)
-
 constexpr auto MAX_LINES_2D		= 256;
 constexpr auto MAX_LINES_3D		= 16384;
 constexpr auto MAX_TRIANGLES_3D = 16384;
@@ -26,7 +21,7 @@ constexpr auto MAX_LIGHTS = 100;
 constexpr auto AMBIENT_LIGHT_INTERPOLATION_STEP = 1.0f / 10.0f;
 constexpr auto MAX_DYNAMIC_SHADOWS = 1;
 constexpr auto MAX_DYNAMIC_LIGHTS = 1024;
-constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(1);
+constexpr auto ITEM_LIGHT_COLLECTION_RADIUS = BLOCK(2);
 constexpr auto CAMERA_LIGHT_COLLECTION_RADIUS = BLOCK(4);
 
 constexpr auto MAX_TRANSPARENT_FACES		  = 16384;
@@ -44,6 +39,9 @@ constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
+constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.1f;
+constexpr float DISPLAY_ITEM_FAR_PLANE = BLOCK(100);
+
 constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
 constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;
 constexpr auto MAX_ROOM_BOUNDS = 256;
@@ -52,6 +50,7 @@ constexpr auto MIN_FAR_VIEW = 3200.0f;
 constexpr auto DEFAULT_FAR_VIEW = 102400.0f;
 
 constexpr auto INSTANCED_SPRITES_BUCKET_SIZE = 512;
+constexpr auto MAX_SPRITE_VERTICES 			 = INSTANCED_SPRITES_BUCKET_SIZE * 6;
 
 constexpr auto SKY_TILES_COUNT = 20;
 constexpr auto SKY_SIZE = 10240.0f;
@@ -66,8 +65,21 @@ constexpr auto MAX_FOG_BULBS_DRAW = 32;
 constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
-constexpr auto ROOM_AMBIENT_MAP_SIZE = 64;
+constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
+constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
+
+constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
+constexpr auto GLOW_BLUR_SIGMA = 10.0f;
+constexpr auto GLOW_BLUR_RADIUS = 24.0f;
+constexpr auto INVENTORY_GLOW_BLUR_SIGMA = 4.0f;
+constexpr auto INVENTORY_GLOW_BLUR_RADIUS = 8.0f;
+
+constexpr auto GLOW_VERTEX_SHIFT = 0;
+constexpr auto MOVE_VERTEX_SHIFT = 8;
+constexpr auto SHININESS_VERTEX_SHIFT = 16;
+constexpr auto LOCKED_VERTEX_SHIFT = 24;
+constexpr auto INDEX_IN_POLY_VERTEX_SHIFT = 25;
 
 enum class LightType
 {
@@ -150,6 +162,7 @@ enum class RendererDebugPage
 {
 	None,
 	RendererStats,
+	MemoryStats,
 	DimensionStats,
 	PlayerStats,
 	InputStats,
@@ -177,12 +190,16 @@ enum class TextureRegister
 	NormalMap = 1,
 	CausticsMap = 2,
 	ShadowMap = 3,
-	ReflectionMap = 4,
+	GBufferNormalMap = 4,
 	Hud = 5,
-	DepthMap = 6,
+	GBufferDepthMap = 6,
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
-	SSAO = 9
+	SSAO = 9,
+	ORSHMap = 10,
+	EmissiveMap = 11,
+	LegacyEnvironmentReflections = 12,
+	SkyboxEnvironmentReflections = 13
 };
 
 enum class SamplerStateRegister
@@ -200,13 +217,13 @@ enum class ConstantBufferRegister
 {
 	Camera = 0,
 	Item = 1,
+	Material = 2,
 	InstancedStatics = 3,
 	ShadowLight = 4,
 	Room = 5,
 	AnimatedTextures = 6,
 	PostProcess = 7,
-	Static = 8,
-	Sprite = 9,
+	Sky = 8,
 	Hud = 10,
 	HudBar = 11,
 	Blending = 12,
@@ -226,7 +243,8 @@ enum class PrintStringFlags
 	Blink			= (1 << 1),
 	Right			= (1 << 2),
 	Outline			= (1 << 3),
-	VerticalCenter	= (1 << 4)
+	VerticalCenter	= (1 << 4),
+	VerticalBottom	= (1 << 5)
 };
 
 enum class RendererPass
@@ -268,6 +286,14 @@ enum class RendererObjectType
 	HairSecondary
 };
 
+enum class TextureSource
+{
+	Rooms,
+	Moveables,
+	Statics,
+	Animated
+};
+
 enum class SMAAMode
 {
 	MODE_SMAA_1X,
@@ -304,4 +330,11 @@ enum class PostProcessMode
 	Monochrome = 1,
 	Negative = 2,
 	Exclusion = 3
+};
+
+enum class MaterialShaderType
+{
+	Default = 0,
+	Reflective = 1,
+	SkyboxReflective = 2
 };

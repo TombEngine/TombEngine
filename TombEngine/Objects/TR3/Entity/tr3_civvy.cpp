@@ -117,12 +117,14 @@ namespace TEN::Entities::Creatures::TR3
 	// If this function works well, in the future it could be made generic for other other ally entities.
 	static ItemInfo& FindNearestCivvyTarget(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& excludedTargets, float rangeDetection)
 	{
-		float maxRange = (rangeDetection <= 0) ? INFINITY : rangeDetection;
+		float maxRange = (rangeDetection <= 0) ? FLT_MAX : rangeDetection;
 
-		float nearestDistance = INFINITY;
+		float nearestDistance = FLT_MAX;
 		ItemInfo* result = nullptr;
-		for (auto& targetCreature : ActiveCreatures)
+		for (auto creatureIndex : ActiveCreatures)
 		{
+			auto* targetCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+
 			// Ignore itself and invalid entities.
 			if (targetCreature->ItemNumber == NO_VALUE || targetCreature->ItemNumber == item.Index)
 				continue;
@@ -163,7 +165,7 @@ namespace TEN::Entities::Creatures::TR3
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, CIVVY_ANIM_IDLE);
+		SetAnimation(item, CIVVY_ANIM_IDLE);
 	}
 
 	void CivvyControl(short itemNumber)
@@ -191,7 +193,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != CIVVY_STATE_DEATH)
-				SetAnimation(&item, CIVVY_ANIM_DEATH);
+				SetAnimation(item, CIVVY_ANIM_DEATH);
 		}
 		else
 		{
@@ -494,7 +496,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
@@ -531,7 +533,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
@@ -571,7 +573,7 @@ namespace TEN::Entities::Creatures::TR3
 					jointTorsoRot.y = ai.angle;
 				}
 
-				if (creature.Flags == CIVVY_HAS_NOT_HIT_YET)
+				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
 					if (creature.Enemy->IsLara())
 					{
@@ -612,22 +614,22 @@ namespace TEN::Entities::Creatures::TR3
 			{
 			case 2:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_2_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_2_STEPS_UP);
 				break;
 
 			case 3:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_3_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_3_STEPS_UP);
 				break;
 
 			case 4:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_4_STEPS_UP);
+				SetAnimation(item, CIVVY_ANIM_VAULT_4_STEPS_UP);
 				break;
 
 			case -4:
 				creature.MaxTurn = 0;
-				SetAnimation(&item, CIVVY_ANIM_VAULT_4_STEPS_DOWN);
+				SetAnimation(item, CIVVY_ANIM_VAULT_4_STEPS_DOWN);
 				break;
 			}
 		}

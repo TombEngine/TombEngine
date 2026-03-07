@@ -1,18 +1,22 @@
 #include "framework.h"
-#include "Objects/Generic/Switches/generic_switch.h"
-#include "Specific/Input/Input.h"
+
+#include "Game/Animation/Animation.h"
+#include "Game/collision/collide_item.h"
+#include "Game/Gui.h"
+#include "Game/Hud/Hud.h"
+#include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
-#include "Objects/Generic/Switches/crowbar_switch.h"
-#include "Game/Gui.h"
-#include "Sound/sound.h"
 #include "Game/pickup/pickup.h"
+#include "Objects/Generic/Switches/crowbar_switch.h"
+#include "Objects/Generic/Switches/generic_switch.h"
+#include "Sound/sound.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Game/collision/collide_item.h"
-#include "Game/animation.h"
-#include "Game/items.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Gui;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Switches
@@ -50,6 +54,8 @@ namespace TEN::Entities::Switches
 		auto* laraInfo = GetLaraInfo(laraItem);
 		ItemInfo* switchItem = &g_Level.Items[itemNumber];
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
+
 		int doSwitch = 0;
 
 		if (((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() == ID_CROWBAR_ITEM) &&
@@ -71,7 +77,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_OFF;
 						}
 						else
@@ -100,7 +106,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_ON;
 						}
 						else
@@ -126,15 +132,7 @@ namespace TEN::Entities::Switches
 				if (laraInfo->Inventory.HasCrowbar)
 					g_Gui.SetEnterInventory(ID_CROWBAR_ITEM);
 				else
-				{
-					if (OldPickupPos.x != laraItem->Pose.Position.x || OldPickupPos.y != laraItem->Pose.Position.y || OldPickupPos.z != laraItem->Pose.Position.z)
-					{
-						OldPickupPos.x = laraItem->Pose.Position.x;
-						OldPickupPos.y = laraItem->Pose.Position.y;
-						OldPickupPos.z = laraItem->Pose.Position.z;
-						SayNo();
-					}
-				}
+					SayNo(laraItem->Pose.Position);
 			}
 			else
 			{

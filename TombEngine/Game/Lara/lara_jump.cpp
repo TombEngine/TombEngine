@@ -46,7 +46,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::Horizontal;
 
 	// Update running jump counter in preparation for possible jump action soon after landing.
-	int jumpTime = g_Config.IsUsingModernControls() ? PLAYER_MODERN_CONTROL_RUN_JUMP_TIME : (PLAYER_TANK_CONTROL_RUN_JUMP_TIME / 2);
+	int jumpTime = g_Configuration.IsUsingModernControls() ? PLAYER_MODERN_CONTROL_RUN_JUMP_TIME : (PLAYER_TANK_CONTROL_RUN_JUMP_TIME / 2);
 	player.Control.Count.Run++;
 	if (player.Control.Count.Run > jumpTime)
 		player.Control.Count.Run = jumpTime;
@@ -62,7 +62,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
@@ -81,7 +81,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		{
 			item->Animation.TargetState = LS_DEATH;
 		}
-		else if ((g_Config.IsUsingModernControls() ?
+		else if ((g_Configuration.IsUsingModernControls() ?
 			(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) : IsHeld(In::Forward)) &&
 			!IsHeld(In::Walk) &&
 			player.Control.WaterStatus != WaterStatus::Wade)
@@ -110,7 +110,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Roll) || (IsHeld(In::Back) && !g_Config.IsUsingModernControls()))
+	if (IsHeld(In::Roll) || (IsHeld(In::Back) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -219,12 +219,12 @@ void lara_as_reach(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Turn.
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
 	}
-	else if (g_Config.IsUsingEnhancedControls())
+	else if (g_Configuration.IsUsingEnhancedControls())
 	{
 		if (IsHeld(In::Left) || IsHeld(In::Right))
 			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX / 2);
@@ -315,7 +315,7 @@ void lara_as_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 	if (IsClicked(In::Jump) && GetMoveAxis() == Vector2::Zero)
 		player.Control.JumpDirection = JumpDirection::None;
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsPlayerStrafing(*item) || IsHeld(In::Walk))
 		{
@@ -432,8 +432,8 @@ void lara_col_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 	bool isSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 
 	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
-	if (!g_Config.IsUsingModernControls() /*||
-		(g_Config.IsUsingModernControls &&
+	if (!g_Configuration.IsUsingModernControls() /*||
+		(g_Configuration.IsUsingModernControls &&
 			(player.Control.HandStatus == HandStatus::WeaponDraw ||
 			 player.Control.HandStatus == HandStatus::WeaponReady))*/)
 	{
@@ -515,12 +515,12 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Turn.
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
 	}
-	else if (g_Config.IsUsingEnhancedControls())
+	else if (g_Configuration.IsUsingEnhancedControls())
 	{
 		if (IsHeld(In::Left) || IsHeld(In::Right))
 			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
@@ -534,7 +534,7 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 		{
 			item->Animation.TargetState = LS_DEATH;
 		}
-		else if (g_Config.IsUsingModernControls() && IsHeld(In::Back))
+		else if (g_Configuration.IsUsingModernControls() && IsHeld(In::Back))
 		{
 			item->Animation.TargetState = LS_SKIP_BACK;
 		}
@@ -553,7 +553,7 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Roll) || (IsHeld(In::Forward) && !g_Config.IsUsingModernControls()))
+	if (IsHeld(In::Roll) || (IsHeld(In::Forward) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -613,7 +613,7 @@ void lara_as_jump_right(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// TODO: It appears Core planned this feature. Add animations to make it possible.
-	/*if (IsHeld(In::Roll) || (IsHeld(In::Left) && !g_Config.IsUsingModernControls()))
+	/*if (IsHeld(In::Roll) || (IsHeld(In::Left) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -672,7 +672,7 @@ void lara_as_jump_left(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// TODO: It appears Core planned this feature. Add animations to make it possible.
-	/*if (IsHeld(In::Roll) || (IsHeld(In::Right) && !g_Config.IsUsingModernControls()))
+	/*if (IsHeld(In::Roll) || (IsHeld(In::Right) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -857,12 +857,12 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Turn.
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
 	}
-	else if (g_Config.IsUsingEnhancedControls())
+	else if (g_Configuration.IsUsingEnhancedControls())
 	{
 		if (IsHeld(In::Left) || IsHeld(In::Right))
 		{
@@ -870,7 +870,7 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 2, LARA_LEAN_MAX);
 		}
 	}
-	else if (g_Config.IsUsingClassicControls())
+	else if (g_Configuration.IsUsingClassicControls())
 	{
 		ResetPlayerTurnRateY(*item);
 	}
@@ -887,7 +887,7 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			g_GameFlow->GetSettings()->Animations.CrawlspaceDive)
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
-			TranslateItem(item, coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
+			item->Pose.Translate(coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
 		}
 		else
 		{

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/collision/collide_item.h"
@@ -9,6 +9,7 @@
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_flare.h"
@@ -21,7 +22,9 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Vehicles
@@ -102,12 +105,8 @@ namespace TEN::Entities::Vehicles
 			return false;
 		}
 
-		int x = laraItem->Pose.Position.x - bigGunItem->Pose.Position.x;
-		int y = laraItem->Pose.Position.y - bigGunItem->Pose.Position.y;
-		int z = laraItem->Pose.Position.z - bigGunItem->Pose.Position.z;
-
-		int distance = SQUARE(x) + SQUARE(y) + SQUARE(z);
-		if (distance > BLOCK(30))
+		auto distance = Vector3i::Distance(laraItem->Pose.Position, bigGunItem->Pose.Position);
+		if (distance > CLICK(0.5f))
 			return false;
 
 		short deltaAngle = abs(laraItem->Pose.Orientation.y - bigGunItem->Pose.Orientation.y);
@@ -159,12 +158,14 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0 || lara->Context.Vehicle != NO_VALUE)
 			return;
 
+		g_Hud.InteractionHighlighter.Test(*laraItem, *bigGunItem);
+
 		if (BigGunTestMount(laraItem, bigGunItem))
 		{
 			SetLaraVehicle(laraItem, bigGunItem);
 
 			DoVehicleFlareDiscard(laraItem);
-			SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_MOUNT);
+			SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_MOUNT);
 			laraItem->Animation.IsAirborne = false;
 			laraItem->Pose = bigGunItem->Pose;
 			lara->Control.HandStatus = HandStatus::Busy;
@@ -268,17 +269,23 @@ namespace TEN::Entities::Vehicles
 		{
 			if (bigGun->XOrientFrame == BGUN_X_ORIENT_MIDDLE_FRAME)
 			{
-				SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_DISMOUNT);
+				SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_DISMOUNT);
 				bigGun->TurnRate.y = 0;
 				bigGun->IsBarrelRotating = false;
 				bigGun->Flags = BGUN_FLAG_DISMOUNT;
 			}
 			else if (bigGun->Rotation.x > 0)
+			{
 				bigGun->Rotation.x -= BGUN_X_ORIENT_STEP;
+				bigGun->Rotation.x = std::min(bigGun->Rotation.x, (short)0);
+			}
 			else if (bigGun->Rotation.x < 0)
+			{
 				bigGun->Rotation.x += BGUN_X_ORIENT_STEP;
+				bigGun->Rotation.x = std::max(bigGun->Rotation.x, (short)0);
+			}
 
-			bigGun->XOrientFrame = (int)round((bigGun->Rotation.x + BGUN_X_ORIENT_MAX) / BGUN_X_ORIENT_STEP);
+			bigGun->XOrientFrame = (int)round((bigGun->Rotation.x + BGUN_X_ORIENT_MAX) / (float)BGUN_X_ORIENT_STEP);
 		}
 
 		switch (laraItem->Animation.ActiveState)
@@ -286,9 +293,9 @@ namespace TEN::Entities::Vehicles
 		case BGUN_STATE_MOUNT:
 		case BGUN_STATE_DISMOUNT:
 			AnimateItem(laraItem);
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			SyncItemAnimation(*bigGunItem, *laraItem);
 
-			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(laraItem))
+			if (bigGun->Flags & BGUN_FLAG_DISMOUNT && TestLastFrame(*laraItem))
 			{
 				SetAnimation(laraItem, LA_STAND_IDLE);
 				SetLaraVehicle(laraItem, nullptr);
@@ -299,7 +306,7 @@ namespace TEN::Entities::Vehicles
 			break;
 
 		case BGUN_STATE_ROTATE_VERTICALLY:
-			SyncVehicleAnimation(*bigGunItem, *laraItem);
+			SyncItemAnimation(*bigGunItem, *laraItem);
 
 			if (bigGun->FireCount > 0)
 				bigGun->FireCount--;
@@ -308,7 +315,7 @@ namespace TEN::Entities::Vehicles
 
 			bigGun->Flags = BGUN_FLAG_UP_DOWN;
 
-			SetAnimation(*laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_ROTATE_VERTICALLY, bigGun->XOrientFrame);
+			SetAnimation(laraItem, ID_LARA_BIGGUN_ANIM, BGUN_ANIM_ROTATE_VERTICALLY, bigGun->XOrientFrame);
 			break;
 		}
 

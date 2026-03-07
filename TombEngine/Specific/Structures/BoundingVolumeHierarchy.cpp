@@ -92,7 +92,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it != _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to insert leaf with existing object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -115,7 +117,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to move missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -149,7 +153,9 @@ namespace TEN::Structures
 		auto it = _leafIdMap.find(objectId);
 		if (it == _leafIdMap.end())
 		{
+#if _DEBUG
 			TENLog("BVH: Attempted to remove missing leaf with object ID " + std::to_string(objectId) + ".", LogLevel::Warning, LogConfig::All, true);
+#endif
 			return;
 		}
 
@@ -254,41 +260,40 @@ namespace TEN::Structures
 			int leftChildId = sibling.LeftChildId;
 			int rightChildId = sibling.RightChildId;
 
-			float area = Geometry::GetBoundingBoxArea(sibling.Aabb);
-			float inheritCost = Geometry::GetBoundingBoxArea(leaf.Aabb) * 2;
+			float inheritCost = Geometry::GetAabbArea(leaf.Aabb) * 2;
 
 			// Calculate cost of creating new parent for sibling and new leaf.
 			auto mergedAabb = BoundingBox();
 			BoundingBox::CreateMerged(mergedAabb, sibling.Aabb, leaf.Aabb);
-			float mergedArea = Geometry::GetBoundingBoxArea(mergedAabb);
+			float mergedArea = Geometry::GetAabbArea(mergedAabb);
 			float cost = mergedArea * 2;
 
 			// Calculate cost of descending into left child.
-			float leftCost = INFINITY;
+			float leftCost = FLT_MAX;
 			if (leftChildId != NO_VALUE)
 			{
 				const auto& leftChild = _nodes[leftChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, leftChild.Aabb, leaf.Aabb);
-				float newArea = Geometry::GetBoundingBoxArea(aabb);
+				float newArea = Geometry::GetAabbArea(aabb);
 
 				leftCost = leftChild.IsLeaf() ?
 					newArea + inheritCost :
-					(newArea - Geometry::GetBoundingBoxArea(leftChild.Aabb)) + inheritCost;
+					(newArea - Geometry::GetAabbArea(leftChild.Aabb)) + inheritCost;
 			}
 
 			// Calculate cost of descending into right child.
-			float rightCost = INFINITY;
+			float rightCost = FLT_MAX;
 			if (rightChildId != NO_VALUE)
 			{
 				const auto& rightChild = _nodes[rightChildId];
 				auto aabb = BoundingBox();
 				BoundingBox::CreateMerged(aabb, rightChild.Aabb, leaf.Aabb);
-				float newArea = Geometry::GetBoundingBoxArea(aabb);
+				float newArea = Geometry::GetAabbArea(aabb);
 
 				rightCost = rightChild.IsLeaf() ?
 					newArea + inheritCost :
-					(newArea - Geometry::GetBoundingBoxArea(rightChild.Aabb)) + inheritCost;
+					(newArea - Geometry::GetAabbArea(rightChild.Aabb)) + inheritCost;
 			}
 
 			// Test if descent is worthwhile according to minimum cost.
@@ -299,7 +304,9 @@ namespace TEN::Structures
 			siblingId = (leftCost < rightCost) ? leftChildId : rightChildId;
 			if (siblingId == NO_VALUE)
 			{
+#if _DEBUG
 				TENLog("BVH: Sibling leaf search failed.", LogLevel::Warning);
+#endif
 				break;
 			}
 		}
@@ -685,7 +692,7 @@ namespace TEN::Structures
 				if (strategy == BvhBuildStrategy::Fast)
 					return bestSplit;
 
-				float bestCost = INFINITY;
+				float bestCost = FLT_MAX;
 				int range = (strategy == BvhBuildStrategy::Balanced) ? BALANCED_STRAT_SPLIT_RANGE_MAX : (end - start);
 
 				// Balanced or accurate strategy: surface area heuristic.
@@ -702,8 +709,8 @@ namespace TEN::Structures
 						BoundingBox::CreateMerged(aabb1, aabb1, aabbs[i]);
 
 					// Calculate cost.
-					float surfaceArea0 = Geometry::GetBoundingBoxArea(aabb0);
-					float surfaceArea1 = Geometry::GetBoundingBoxArea(aabb1);
+					float surfaceArea0 = Geometry::GetAabbArea(aabb0);
+					float surfaceArea1 = Geometry::GetAabbArea(aabb1);
 					float cost = (surfaceArea0 * (split - start)) + (surfaceArea1 * (end - split));
 
 					// Track best split.

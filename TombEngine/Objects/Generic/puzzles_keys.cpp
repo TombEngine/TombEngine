@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/puzzles_keys.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
@@ -17,6 +17,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
@@ -82,7 +83,7 @@ void InitializePuzzleDone(short itemNumber)
 	const auto& anim = GetAnimData(receptacleItem);
 
 	receptacleItem.Animation.RequiredState = NO_VALUE;
-	receptacleItem.Animation.FrameNumber = anim.frameBase + anim.frameEnd;
+	receptacleItem.Animation.FrameNumber = anim.EndFrameNumber;
 }
 
 void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -122,6 +123,8 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 		puzzleType = PuzzleType::Specfic;
 	}
 
+	g_Hud.InteractionHighlighter.Test(*laraItem, receptacleItem);
+
 	bool isUnderwater = (player.Control.WaterStatus == WaterStatus::Underwater);
 	const auto& activeBounds = isUnderwater ? WaterKeyHoleBounds : PuzzleBounds;
 
@@ -150,6 +153,8 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 				{
 					if (g_Gui.IsObjectInInventory(receptacleItem.ObjectNumber - (ID_PUZZLE_HOLE1 - ID_PUZZLE_ITEM1)))
 						g_Gui.SetEnterInventory(receptacleItem.ObjectNumber - (ID_PUZZLE_HOLE1 - ID_PUZZLE_ITEM1));
+					else if (IsClicked(In::Action))
+						SayNo();
 
 					receptacleItem.Pose.Orientation.y = prevYOrient;
 					return;
@@ -180,7 +185,7 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 			if (puzzleType == PuzzleType::Specfic)
 			{
-				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
+				laraItem->Animation.ActiveState = LS_INSERT_PUZZLE;
 				laraItem->Animation.AnimNumber = -receptacleItem.TriggerFlags;
 
 				if (laraItem->Animation.AnimNumber != LA_TRIDENT_SET)
@@ -195,7 +200,7 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 			g_Gui.SetInventoryItemChosen(NO_VALUE);
 			ResetPlayerFlex(laraItem);
-			laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			player.Control.IsMoving = false;
 			player.Control.HandStatus = HandStatus::Busy;
 			player.Context.InteractedItem = itemNumber;
@@ -243,13 +248,13 @@ void PuzzleHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 
 void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
-	if ((g_Level.Items[itemNumber].TriggerFlags - 998) > 1)
+	if (g_Level.Items[itemNumber].TriggerFlags != 999)
 		ObjectCollision(itemNumber, laraItem, coll);
 
 	auto& receptacleItem = g_Level.Items[itemNumber];
 	auto& player = GetLaraInfo(*laraItem);
 
-	// NOTE: Only execute code below if Triggertype is switch trigger.
+	// NOTE: Only execute code below if Trigger type is switch trigger.
 	short* triggerIndexPtr = GetTriggerIndex(&receptacleItem);
 	if (triggerIndexPtr == nullptr)
 		return;
@@ -258,7 +263,7 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 	if (triggerType != TRIGGER_TYPES::SWITCH)
 		return;
 
-	AnimateItem(&receptacleItem);
+	AnimateItem(receptacleItem);
 
 	// Start level with correct object when loading game.
 	if (receptacleItem.ItemFlags[5] == (int)ReusableReceptacleState::Empty)
@@ -269,7 +274,9 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 		return;
 	}
 
-	// Activate triggers when startig level for first time.
+	g_Hud.InteractionHighlighter.Test(*laraItem, receptacleItem);
+
+	// Activate triggers when starting level for first time.
 	if (receptacleItem.ItemFlags[5] == (int)ReusableReceptacleState::None)
 	{
 		receptacleItem.ItemFlags[1] = true;
@@ -317,7 +324,7 @@ void PuzzleDoneCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* co
 			receptacleItem.ItemFlags[0] = 1;
 
 			ResetPlayerFlex(laraItem);
-			laraItem->Animation.FrameNumber = GetAnimData(*laraItem, laraItem->Animation.AnimNumber).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			player.Control.IsMoving = false;
 			player.Control.HandStatus = HandStatus::Busy;
 			player.Context.InteractedItem = itemNumber;
@@ -371,10 +378,7 @@ void PuzzleDone(ItemInfo* item, short itemNumber)
 	else
 	{
 		item->ObjectNumber += GAME_OBJECT_ID{ ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1 };
-		item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex;
-		item->Animation.FrameNumber = GetAnimData(item).frameBase;
-		item->Animation.ActiveState = GetAnimData(item).ActiveState;
-		item->Animation.TargetState = GetAnimData(item).ActiveState;
+		SetAnimation(item, 0);
 		item->Animation.RequiredState = NO_VALUE;
 		item->DisableInterpolation = true;
 		item->ResetModelToDefault();
@@ -476,6 +480,9 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 	short triggerType = (*(triggerIndexPtr++) >> 8) & TRIGGER_BITS;
 
+	auto interactionMode = (triggerType == TRIGGER_TYPES::SWITCH) ? InteractionMode::Always : InteractionMode::Activation;
+	g_Hud.InteractionHighlighter.Test(*laraItem, *keyHoleItem, interactionMode);
+
 	bool isUnderwater = (player->Control.WaterStatus == WaterStatus::Underwater);
 	const auto& activeBounds = isUnderwater ? WaterKeyHoleBounds : KeyHoleBounds;
 	const auto& pos = isUnderwater ? WaterKeyHolePosition : KeyHolePosition;
@@ -500,6 +507,8 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				{
 					if (g_Gui.IsObjectInInventory(keyHoleItem->ObjectNumber - (ID_KEY_HOLE1 - ID_KEY_ITEM1)))
 						g_Gui.SetEnterInventory(keyHoleItem->ObjectNumber - (ID_KEY_HOLE1 - ID_KEY_ITEM1));
+					else if (IsClicked(In::Action))
+						SayNo();
 
 					return;
 				}
@@ -535,7 +544,7 @@ void KeyHoleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				}
 
 				laraItem->Animation.ActiveState = LS_INSERT_KEY;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				player->Control.IsMoving = false;
 				ResetPlayerFlex(laraItem);
 				player->Control.HandStatus = HandStatus::Busy;

@@ -18,6 +18,7 @@ void lara_as_special(ItemInfo* item, CollisionInfo* coll);
 void lara_as_null(ItemInfo* item, CollisionInfo* coll);
 void lara_as_controlled(ItemInfo* item, CollisionInfo* coll);
 void lara_as_controlled_no_look(ItemInfo* item, CollisionInfo* coll);
+void lara_as_controlled_no_look_follow(ItemInfo* item, CollisionInfo* coll);
 void lara_as_vault(ItemInfo* item, CollisionInfo* coll);
 void lara_as_auto_jump(ItemInfo* item, CollisionInfo* coll);
 

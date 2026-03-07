@@ -6,6 +6,7 @@
 #include "Game/items.h"
 #include "Game/lara/lara_fire.h"
 #include "Game/lara/lara_helpers.h"
+#include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Specific/configuration.h"
@@ -175,7 +176,7 @@ namespace TEN::Hud
 		const auto& player = GetLaraInfo(playerItem);
 
 		// Check if target highlighter is enabled or lasersight is active.
-		if (!g_Config.EnableTargetHighlighter || player.Control.Look.IsUsingBinoculars)
+		if (!g_Configuration.EnableTargetHighlighter || player.Control.Look.IsUsingBinoculars)
 		{
 			if (!_crosshairs.empty())
 				_crosshairs.clear();
@@ -218,6 +219,10 @@ namespace TEN::Hud
 	void TargetHighlighterController::Draw() const
 	{
 		//DrawDebug();
+
+		// Never highlight if flyby camera is active.
+		if (UseSpotCam)
+			return;
 
 		if (_crosshairs.empty())
 			return;
@@ -286,7 +291,7 @@ namespace TEN::Hud
 		if (_crosshairs.size() >= CROSSHAIR_COUNT_MAX)
 		{
 			int key = 0;
-			float smallestScale = INFINITY;
+			float smallestScale = FLT_MAX;
 			
 			for (auto& [itemNumber, crosshair] : _crosshairs)
 			{
@@ -361,7 +366,7 @@ namespace TEN::Hud
 			crosshair.IsPrimary ? primaryCount++ : peripheralCount++;
 
 		PrintDebugMessage("TARGET HIGHLIGHTER DEBUG");
-		PrintDebugMessage(g_Config.EnableTargetHighlighter ? "Enabled" : "Disabled");
+		PrintDebugMessage(g_Configuration.EnableTargetHighlighter ? "Enabled" : "Disabled");
 		PrintDebugMessage("Primary crosshairs: %d", primaryCount);
 		PrintDebugMessage("Peripheral crosshairs: %d", peripheralCount);
 	}

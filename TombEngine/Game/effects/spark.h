@@ -5,7 +5,7 @@
 
 namespace TEN::Effects::Spark
 {
-	constexpr auto SPARK_RICOCHET_COLOR_DEFAULT = Vector4(1.0f, 1.0f, 0.0f, 1.0f);
+	constexpr auto SPARK_RICOCHET_COLOR_DEFAULT = Vector4(1.0f, 0.6f, 0.0f, 1.0f);
 
 	struct SparkParticle
 	{
@@ -32,7 +32,7 @@ namespace TEN::Effects::Spark
 			PrevVelocity = velocity;
 		}
 	};
-	extern std::array<SparkParticle, 128> SparkParticles;
+	extern std::array<SparkParticle, 256> SparkParticles;
 			
 	void UpdateSparkParticles();
 	void DisableSparkParticles();

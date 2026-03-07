@@ -101,7 +101,7 @@ namespace TEN::Entities::Traps
 			return;
 
 		if (playerItem->Animation.AnimNumber != LA_DETONATOR_USE ||
-			playerItem->Animation.FrameNumber < (GetAnimData(playerItem).frameBase + 57))
+			playerItem->Animation.FrameNumber < 57)
 		{
 			if (TestBoundsCollide(&mineItem, playerItem, BLOCK(0.5f)))
 			{
@@ -115,7 +115,7 @@ namespace TEN::Entities::Traps
 				KillItem(itemNumber);
 
 				playerItem->Animation.AnimNumber = LA_MINE_DEATH;
-				playerItem->Animation.FrameNumber = GetAnimData(*playerItem).frameBase;
+				playerItem->Animation.FrameNumber = 0;
 				playerItem->Animation.ActiveState = LS_DEATH;
 				playerItem->Animation.Velocity.z = 0;
 

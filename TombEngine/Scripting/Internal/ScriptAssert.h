@@ -1,7 +1,5 @@
 #pragma once
 
-#include <spdlog/fmt/fmt.h>
-
 enum class ErrorMode
 {
 	Silent,

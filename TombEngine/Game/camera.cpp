@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/camera.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
@@ -19,6 +19,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
+#include "Game/StaticMesh.h"
 #include "Math/Math.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Sound/sound.h"
@@ -145,7 +146,7 @@ void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
 	}
 	else
 	{
-		if (g_Config.IsUsingModernControls() && !player.Control.IsLocked)
+		if (g_Configuration.IsUsingModernControls() && !player.Control.IsLocked)
 		{
 			Rotation.Lerp(GetControlRotation(), CONTROLLED_CAMERA_ROT_LERP_ALPHA);
 
@@ -186,7 +187,7 @@ void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
 
 void CameraInfo::UpdateListenerPosition(const ItemInfo& item)
 {
-	float persp = ((g_Config.ScreenWidth / 2) * phd_cos(Fov / 2)) / phd_sin(Fov / 2);
+	float persp = ((g_Configuration.ScreenWidth / 2) * phd_cos(Fov / 2)) / phd_sin(Fov / 2);
 	ListenerPosition = Position + (persp * Vector3(phd_sin(actualAngle), 0.0f, phd_cos(actualAngle)));
 }
 
@@ -205,7 +206,7 @@ void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
 	ClampAltitudeAngle(player.Control.WaterStatus == WaterStatus::Underwater);
 
 	// Move camera.
-	if (g_Config.IsUsingModernControls() || IsControllingTankCamera)
+	if (g_Configuration.IsUsingModernControls() || IsControllingTankCamera)
 	{
 		// Get LOS.
 		auto dir = -EulerAngles(actualElevation, actualAngle, 0).ToDirection();
@@ -439,7 +440,7 @@ EulerAngles CameraInfo::GetControlRotation() const
 	constexpr auto SMOOTHING_FACTOR				 = 8.0f;
 
 	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
-	auto axisSign = Vector2(g_Config.InvertCameraXAxis ? -1 : 1, g_Config.InvertCameraYAxis ? -1 : 1);
+	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
 
 	// Calculate axis.
 	auto axis = (isUsingMouse ? GetMouseAxis() : GetCameraAxis()) * axisSign;
@@ -454,7 +455,7 @@ EulerAngles CameraInfo::GetControlRotation() const
 
 bool CameraInfo::CanControlTankCamera(const ItemInfo& playerItem) const
 {
-	if (!g_Config.EnableTankCameraControl)
+	if (!g_Configuration.EnableTankCameraControl)
 		return false;
 
 	const auto& player = GetLaraInfo(playerItem);
@@ -483,7 +484,7 @@ bool CameraInfo::TestStrafeZoom(const ItemInfo& playerItem) const
 {
 	const auto& player = GetLaraInfo(playerItem);
 
-	if (!g_Config.IsUsingModernControls())
+	if (!g_Configuration.IsUsingModernControls())
 		return false;
 
 	if (player.Control.HandStatus == HandStatus::WeaponDraw ||
@@ -559,7 +560,7 @@ void CameraInfo::UpdateAzimuthAngle(const ItemInfo& item)
 	constexpr auto AUTO_ROT_DELTA_ANGLE_MAX = BASE_ANGLE * 1.5f;
 	constexpr auto AZIMUTH_ANGLE_LERP_ALPHA = 0.075f;
 
-	if (!g_Config.IsUsingModernControls() || IsPlayerStrafing(item))
+	if (!g_Configuration.IsUsingModernControls() || IsPlayerStrafing(item))
 		return;
 
 	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
@@ -1131,7 +1132,7 @@ void CalculateCamera(ItemInfo& playerItem, const CollisionInfo& coll)
 	int z = 0;
 	if (item->IsLara())
 	{
-		float heightCoeff = g_Config.IsUsingModernControls() ? 0.9f : 0.75f;
+		float heightCoeff = g_Configuration.IsUsingModernControls() ? 0.9f : 0.75f;
 		auto offset = g_Camera.GetPlayerOffset(*item, coll) * heightCoeff;
 		y = item->Pose.Position.y + offset.y;
 	}
@@ -1197,7 +1198,7 @@ void CalculateCamera(ItemInfo& playerItem, const CollisionInfo& coll)
 		{
 			g_Camera.PrevTarget = GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
 
-			if (!g_Config.IsUsingModernControls())
+			if (!g_Configuration.IsUsingModernControls())
 				y -= CLICK(1);
 		}
 

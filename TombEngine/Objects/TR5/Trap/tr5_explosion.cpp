@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Trap/tr5_explosion.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -20,6 +20,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
 
@@ -163,13 +164,13 @@ namespace TEN::Entities::Traps
 
 					for (auto* staticPtr : collObjects.Statics)
 					{
-						if (Statics[staticPtr->staticNumber].shatterType != ShatterType::None)
+						if (Statics[staticPtr->Slot].shatterType != ShatterType::None)
 						{
-							TriggerExplosionSparks(staticPtr->pos.Position.x, staticPtr->pos.Position.y, staticPtr->pos.Position.z, 3, -2, 0, item.RoomNumber);
-							staticPtr->pos.Position.y -= 128;
-							TriggerShockwave(&staticPtr->pos, 40, 176, 64, 128, 96, 0, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
-							staticPtr->pos.Position.y += 128;
-							SoundEffect(GetShatterSound(staticPtr->staticNumber), &staticPtr->pos);
+							TriggerExplosionSparks(staticPtr->Pose.Position.x, staticPtr->Pose.Position.y, staticPtr->Pose.Position.z, 3, -2, 0, item.RoomNumber);
+							staticPtr->Pose.Position.y -= 128;
+							TriggerShockwave(&staticPtr->Pose, 40, 176, 64, 128, 96, 0, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+							staticPtr->Pose.Position.y += 128;
+							SoundEffect(GetShatterSound(staticPtr->Slot), &staticPtr->Pose);
 							ShatterObject(nullptr, staticPtr, -128, item.RoomNumber, 0);
 						}
 					}

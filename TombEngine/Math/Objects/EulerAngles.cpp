@@ -128,10 +128,10 @@ using namespace TEN::Math;
 		float cosY = cos(TO_RAD(y));
 
 		// Return normalized direction vector.
-		return Vector3(
-			sinY * cosX,
-			-sinX,
-			cosY * cosX);
+		auto result = Vector3(sinY * cosX, -sinX, cosY * cosX);
+		result.Normalize();
+
+		return result;
 	}
 
 	AxisAngle EulerAngles::ToAxisAngle() const

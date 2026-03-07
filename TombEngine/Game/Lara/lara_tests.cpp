@@ -2,7 +2,7 @@
 #include "Game/Lara/lara_tests.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -22,6 +22,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Config;
@@ -109,7 +110,7 @@ bool TestValidLedge(ItemInfo* item, CollisionInfo* coll, bool ignoreHeadroom, bo
 
 bool TestValidLedgeAngle(ItemInfo* item, CollisionInfo* coll)
 {
-	return (abs(Geometry::GetShortestAngle(coll->NearestLedgeAngle, g_Config.IsUsingModernControls() ? GetPlayerHeadingAngleY(*item) : item->Pose.Orientation.y)) <= LARA_GRAB_THRESHOLD);
+	return (abs(Geometry::GetShortestAngle(coll->NearestLedgeAngle, g_Configuration.IsUsingModernControls() ? GetPlayerHeadingAngleY(*item) : item->Pose.Orientation.y)) <= LARA_GRAB_THRESHOLD);
 }
 
 bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
@@ -165,8 +166,8 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 
 	if (lara->Control.CanClimbLadder) // Ladder case
 	{
-		lara->Control.ToggleClimb = g_Config.EnableClimbToggle;
-		if (IsClicked(In::Action) && g_Config.EnableClimbToggle)
+		lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+		if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
 			lara->Control.ToggleClimb = false;
 
 		if (HasClimbAction(*item) && item->HitPoints > 0)
@@ -187,7 +188,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 			}
 			else
 			{
-				if (((item->Animation.AnimNumber == LA_REACH_TO_HANG && item->Animation.FrameNumber == GetFrameIndex(item, 21)) || item->Animation.AnimNumber == LA_HANG_IDLE)  &&
+				if (((item->Animation.AnimNumber == LA_REACH_TO_HANG && item->Animation.FrameNumber == 21) || item->Animation.AnimNumber == LA_HANG_IDLE)  &&
 					TestLaraClimbIdle(item, coll))
 				{
 					item->Animation.TargetState = LS_LADDER_IDLE;
@@ -206,8 +207,8 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 	}
 	else // Normal case
 	{
-		lara->Control.ToggleClimb = g_Config.EnableClimbToggle;
-		if (IsClicked(In::Action) && g_Config.EnableClimbToggle)
+		lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+		if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
 			lara->Control.ToggleClimb = false;
 
 		if ((HasClimbAction(*item) && item->HitPoints > 0 && coll->Front.Floor <= 0) ||
@@ -272,7 +273,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 		{
 			SetAnimation(item, LA_JUMP_UP, 9);
 			item->Pose.Position.x += coll->Shift.Position.x;
-			item->Pose.Position.y += GameBoundingBox(item).Y2 * (g_Config.EnableClimbToggle ? 2.5f : 1.8f);
+			item->Pose.Position.y += GameBoundingBox(item).Y2 * (g_Configuration.EnableClimbToggle ? 2.5f : 1.8f);
 			item->Pose.Position.z += coll->Shift.Position.z;
 			item->Animation.IsAirborne = true;
 			item->Animation.Velocity.z = 2;
@@ -288,7 +289,7 @@ bool TestLaraHangJump(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) && !g_Config.EnableClimbToggle)
+	if (!IsHeld(In::Action) && !g_Configuration.EnableClimbToggle)
 		return false;
 
 	if (lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
@@ -356,7 +357,7 @@ bool TestLaraHangJumpUp(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) && !g_Config.EnableClimbToggle)
+	if (!IsHeld(In::Action) && !g_Configuration.EnableClimbToggle)
 		return false;
 
 	if (lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
@@ -579,6 +580,8 @@ bool TestLaraValidHangPosition(ItemInfo* item, CollisionInfo* coll)
 
 CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAngle)
 {
+	constexpr int CORNER_TEST_OFFSET = 16;
+
 	auto* lara = GetLaraInfo(item);
 
 	// Lara isn't in stop state yet, bypass test
@@ -605,11 +608,10 @@ CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAng
 
 		// Store next position
 		item->Pose = cornerResult.RealPositionResult;
-		lara->Context.NextCornerPos.Position = Vector3i(
-			item->Pose.Position.x,
-			GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + 16, -(coll->Setup.Height + CLICK(0.5f))).GetFloorHeight() + abs(bounds.Y1),
-			item->Pose.Position.z
-		);
+
+		int nextVerticalPos = GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + CORNER_TEST_OFFSET, -(coll->Setup.Height + CORNER_TEST_OFFSET)).GetFloorHeight() + abs(bounds.Y1);
+
+		lara->Context.NextCornerPos.Position = Vector3i(item->Pose.Position.x, nextVerticalPos, item->Pose.Position.z);
 		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y;
 		lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 
@@ -1140,6 +1142,16 @@ bool TestLaraWeaponType(LaraWeaponType refWeaponType, const std::vector<LaraWeap
 	return Contains(weaponTypeList, refWeaponType);
 }
 
+bool TestLaraTorchFlame(ItemInfo* item, ItemInfo* flameItem)
+{
+	auto* lara = GetLaraInfo(item);
+
+	bool bothIgnited = (lara->Torch.IsLit == (flameItem->Status == ITEM_ACTIVE));
+	bool colorsEqual = (lara->Torch.CurrentColor == (Vector3)flameItem->Model.Color);
+
+	return !bothIgnited || (lara->Torch.IsLit && !colorsEqual);
+}
+
 static std::vector<LaraWeaponType> StandingWeaponTypes
 {
 	LaraWeaponType::Shotgun,
@@ -1153,7 +1165,42 @@ static std::vector<LaraWeaponType> StandingWeaponTypes
 
 bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 {
-	return (TestLaraWeaponType(weaponType, StandingWeaponTypes) || GetLaraInfo(*item).Weapons[(int)weaponType].HasLasersight);
+	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
+}
+
+bool IsSideJumpState(int state)
+{
+	static const std::vector<int> jumpStates
+	{
+		LS_JUMP_LEFT,
+		LS_JUMP_RIGHT,
+	};
+	return TestState(state, jumpStates);
+}
+
+bool IsCrouching(const ItemInfo* item)
+{
+	bool crouching =
+		item->Animation.ActiveState == LS_CROUCH_IDLE ||
+		item->Animation.ActiveState == LS_CROUCH_ROLL ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_LEFT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_RIGHT ||
+		item->Animation.ActiveState == LS_CROUCH_TURN_180 ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
+		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
+
+	// HACK: Unless there's better way to detect animation phase,
+	// assume player is crouching if animation is in first 75% of crouch-to-stand animation.
+	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
+	{
+		const auto& anim = GetAnimData(*item);
+
+		int midpoint = anim.EndFrameNumber * 0.75f;
+		if (item->Animation.FrameNumber <= midpoint)
+			crouching = true;
+	}
+
+	return crouching;
 }
 
 bool IsVaultState(int state)
@@ -1220,7 +1267,7 @@ bool IsPlayerStrafing(const ItemInfo& item)
 	const auto& player = GetLaraInfo(item);
 
 	// 1) Check if modern control mode is set.
-	if (!g_Config.IsUsingModernControls())
+	if (!g_Configuration.IsUsingModernControls())
 		return false;
 
 	// 2) Test for strafe state.
@@ -1261,7 +1308,7 @@ bool IsPlayerInCombat(const ItemInfo& item)
 
 bool HasOppositeAction(const ItemInfo& item)
 {
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if ((IsHeld(In::Forward) && IsHeld(In::Back)) ||
 			(IsHeld(In::Left) && IsHeld(In::Right)))
@@ -1281,13 +1328,13 @@ bool HasOppositeAction(const ItemInfo& item)
 bool HasClimbAction(const ItemInfo& item)
 {
 	const auto& player = GetLaraInfo(item);
-	return g_Config.EnableClimbToggle ? player.Control.ToggleClimb : IsHeld(In::Action);
+	return g_Configuration.EnableClimbToggle ? player.Control.ToggleClimb : IsHeld(In::Action);
 }
 
 bool HasCrouchAction(const ItemInfo& item)
 {
 	const auto& player = GetLaraInfo(item);
-	return (g_Config.EnableCrouchToggle ? player.Control.ToggleCrouch : IsHeld(In::Crouch));
+	return (g_Configuration.EnableCrouchToggle ? player.Control.ToggleCrouch : IsHeld(In::Crouch));
 }
 
 std::optional<VaultTestResult> TestLaraVaultTolerance(ItemInfo* item, CollisionInfo* coll, VaultTestSetup testSetup)
@@ -1550,7 +1597,9 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 	auto* lara = GetLaraInfo(item);
 	auto& settings = g_GameFlow->GetSettings()->Animations;
 
-	if (lara->Control.HandStatus != HandStatus::Free)
+	bool torchInHand = lara->Control.Weapon.GunType == LaraWeaponType::Torch;
+
+	if (lara->Control.HandStatus != HandStatus::Free && !torchInHand)
 		return std::nullopt;
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, item) && lara->Context.WaterSurfaceDist < -CLICK(3))
@@ -1561,34 +1610,12 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 	// Attempt ledge vault.
 	if (TestValidLedge(item, coll))
 	{
-		// Vault to crouch up one step.
-		vaultResult = TestLaraVault1StepToCrouch(item, coll);
-		if (vaultResult.has_value())
-		{
-			vaultResult->TargetState = LS_VAULT_1_STEP_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
-				return std::nullopt;
-
-			return vaultResult;
-		}
-
 		// Vault to stand up two steps.
 		vaultResult = TestLaraVault2Steps(item, coll);
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_VAULT_2_STEPS;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
-				return std::nullopt;
-
-			return vaultResult;
-		}
-
-		// Vault to crouch up two steps.
-		vaultResult = TestLaraVault2StepsToCrouch(item, coll);
-		if (vaultResult.has_value() && settings.CrawlExtended)
-		{
-			vaultResult->TargetState = LS_VAULT_2_STEPS_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1599,7 +1626,33 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_VAULT_3_STEPS;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
+				return std::nullopt;
+
+			return vaultResult;
+		}
+
+		// All other vault tests are invalid with torch in hand.
+		if (torchInHand)
+			return std::nullopt;
+
+		// Vault to crouch up one step.
+		vaultResult = TestLaraVault1StepToCrouch(item, coll);
+		if (vaultResult.has_value())
+		{
+			vaultResult->TargetState = LS_VAULT_1_STEP_CROUCH;
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
+				return std::nullopt;
+
+			return vaultResult;
+		}
+
+		// Vault to crouch up two steps.
+		vaultResult = TestLaraVault2StepsToCrouch(item, coll);
+		if (vaultResult.has_value() && settings.CrawlExtended)
+		{
+			vaultResult->TargetState = LS_VAULT_2_STEPS_CROUCH;
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1610,7 +1663,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value() && settings.CrawlExtended)
 		{
 			vaultResult->TargetState = LS_VAULT_3_STEPS_CROUCH;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1621,7 +1674,7 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 		if (vaultResult.has_value())
 		{
 			vaultResult->TargetState = LS_AUTO_JUMP;
-			if (!HasStateDispatch(item, vaultResult->TargetState))
+			if (!TestStateDispatch(*item, vaultResult->TargetState))
 				return std::nullopt;
 
 			return vaultResult;
@@ -1633,10 +1686,10 @@ std::optional<VaultTestResult> TestLaraVault(ItemInfo* item, CollisionInfo* coll
 
 	// Auto jump to monkey swing.
 	vaultResult = TestLaraAutoMonkeySwingJump(item, coll);
-	if (vaultResult.has_value() && g_Config.EnableAutoMonkeySwingJump)
+	if (vaultResult.has_value() && !torchInHand && g_Configuration.EnableAutoMonkeySwingJump)
 	{
 		vaultResult->TargetState = LS_AUTO_JUMP;
-		if (!HasStateDispatch(item, vaultResult->TargetState))
+		if (!TestStateDispatch(*item, vaultResult->TargetState))
 			return std::nullopt;
 
 		return vaultResult;
@@ -1663,7 +1716,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 		// TODO: Somehow harmonise Context.CalcJumpVelocity to work for both ledge and ladder auto jumps, because otherwise there will be a need for an odd workaround in the future.
 		lara->Context.CalcJumpVelocity = -3 - sqrt(-9600 - 12 * std::max((vaultResult->Height - item->Pose.Position.y + CLICK(0.2f)), -CLICK(7.1f)));
 		item->Animation.AnimNumber = LA_STAND_SOLID;
-		item->Animation.FrameNumber = GetFrameIndex(item, 0);
+		item->Animation.FrameNumber = 0;
 		item->Animation.TargetState = LS_JUMP_UP;
 		item->Animation.ActiveState = LS_IDLE;
 		lara->Control.TurnRate.y = 0;
@@ -1681,7 +1734,7 @@ bool TestAndDoLaraLadderClimb(ItemInfo* item, CollisionInfo* coll)
 	if (vaultResult.has_value() && TestLaraClimbIdle(item, coll))
 	{
 		item->Animation.AnimNumber = LA_STAND_SOLID;
-		item->Animation.FrameNumber = GetFrameIndex(item, 0);
+		item->Animation.FrameNumber = 0;
 		item->Animation.TargetState = LS_LADDER_IDLE;
 		item->Animation.ActiveState = LS_IDLE;
 		lara->Control.HandStatus = HandStatus::Busy;
@@ -1815,7 +1868,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 		else
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_STEP_DOWN;
 
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1828,7 +1881,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 		else
 			crawlVaultResult.TargetState = LS_CRAWL_EXIT_JUMP;
 
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1837,7 +1890,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	if (crawlVaultResult.Success)
 	{
 		crawlVaultResult.TargetState = LS_CRAWL_STEP_UP;
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 
@@ -1846,7 +1899,7 @@ CrawlVaultTestResult TestLaraCrawlVault(ItemInfo* item, CollisionInfo* coll)
 	if (crawlVaultResult.Success)
 	{
 		crawlVaultResult.TargetState = LS_CRAWL_STEP_DOWN;
-		crawlVaultResult.Success = HasStateDispatch(item, crawlVaultResult.TargetState);
+		crawlVaultResult.Success = TestStateDispatch(*item, crawlVaultResult.TargetState);
 		return crawlVaultResult;
 	}
 

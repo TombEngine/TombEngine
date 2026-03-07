@@ -5,12 +5,20 @@
 
 cbuffer CBCamera : register(b0)
 {
-	float4x4 ViewProjection;
-	float4x4 View;
+    float4x4 ViewProjection;
+	//--
+    float4x4 View;
+	//--
     float4x4 Projection;
+	//--
+    float4x4 InverseView;
+	//--
     float4x4 InverseProjection;
-	float4x4 DualParaboloidView;
-	float4 CamPositionWS;
+	//--
+    float4x4 DualParaboloidView;
+	//--
+    float4 CamPositionWS;
+	//--
 	float4 CamDirectionWS;
 	//--
 	float2 ViewSize;
@@ -19,7 +27,7 @@ cbuffer CBCamera : register(b0)
 	unsigned int Frame;
 	unsigned int RoomNumber;
 	unsigned int CameraUnderwater;
-	int Emisphere;
+	int Hemisphere;
 	//--
 	int AmbientOcclusion;
 	int AmbientOcclusionExponent;
@@ -34,8 +42,9 @@ cbuffer CBCamera : register(b0)
 	float FarPlane;
 	//--
     int RefreshRate;
-	int NumFogBulbs;
-	float2 Padding2;
+    int NumFogBulbs;
+    float InterpolatedFrame;
+    float Padding2;
 	//--
 	ShaderFogBulb FogBulbs[MAX_FOG_BULBS];
 };

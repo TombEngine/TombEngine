@@ -6,8 +6,8 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+#include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 
-enum class CallbackPoint;
 class LevelFunc;
 
 class LogicHandler : public ScriptInterfaceGame
@@ -74,33 +74,50 @@ private:
 	sol::protected_function	_onUseItem = {};
 	sol::protected_function	_onFreeze  = {};
 
+	std::optional<CallbackPoint> _lastCallbackPoint = std::nullopt;
 	std::unordered_map<CallbackPoint, std::unordered_set<std::string>*> _callbacks;
+
 	std::vector<std::variant<std::string, unsigned int>> _savedVarPath;
 
-	bool _shortenedCalls = false;
-
+	LuaHandler _handler;
 	std::string _consoleInput = {};
+	bool _shortenedCalls = false;
+	bool _insideFunction = false;
+	unsigned int _functionCallCount = 0;
 
 	void PerformConsoleInput();
+	void PerformCallbacks(CallbackPoint point, int argument = NO_VALUE);
 
 	std::string GetRequestedPath() const;
 
 	void ResetLevelTables();
 	void ResetGameTables();
-	LuaHandler _handler;
 
 public:	
 	LogicHandler(sol::state* lua, sol::table& parent);
 
 	template <typename ... Ts> sol::protected_function_result CallLevelFuncBase(const sol::protected_function& func, Ts ... vs)
 	{
+		bool insideFunction = _insideFunction;
+		_insideFunction = true;
+		_functionCallCount++;
+
 		auto funcResult = func.call(vs...);
+		
+		_insideFunction = insideFunction;
 		return funcResult;
 	}
 
 	template <typename ... Ts> sol::protected_function_result CallLevelFuncByName(const std::string& name, Ts ... vs)
 	{
 		auto func = _levelFuncs_luaFunctions[name];
+
+		if (!func.valid())
+		{
+			TENLog("Could not find script function " + name, LogLevel::Warning);
+			return sol::protected_function_result();
+		}
+
 		auto funcResult = CallLevelFuncBase(func, vs...);
 
 		if (!funcResult.valid())
@@ -145,8 +162,9 @@ public:
 	void ExecuteScriptFile(const std::string& luaFilename) override;
 	void ExecuteString(const std::string& command) override;
 	void ExecuteFunction(const std::string& name, TEN::Control::Volumes::Activator, const std::string& arguments) override;
-
 	void ExecuteFunction(const std::string& name, short idOne, short idTwo) override;
+
+	unsigned int GetFunctionCallCount() override;
 
 	void GetVariables(std::vector<SavedVar>& vars) override;
 	void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) override;

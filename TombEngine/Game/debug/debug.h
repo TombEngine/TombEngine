@@ -59,6 +59,7 @@ namespace TEN::Debug
 	// Objects
 
 	void PrintDebugMessage(LPCSTR msg, ...);
+	void DrawDebugString(const std::string& string, const Vector3& pos, const Vector4& color, RendererDebugPage page);
 	void DrawDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page = RendererDebugPage::None);
 	void DrawDebug2DLine(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
 	void DrawDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);

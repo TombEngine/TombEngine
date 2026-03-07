@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_enemy_jeep.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -18,6 +18,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
 
@@ -68,22 +69,14 @@ namespace TEN::Entities::TR4
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		item->ItemFlags[0] = -80;
+		InitializeCreature(itemNumber);
 
-		if (g_Level.NumItems > 0)
-		{
-			for (int i = 0; i < g_Level.NumItems; i++)
-			{
-				auto* other = &g_Level.Items[i];
-
-				if (other == item || other->TriggerFlags != item->TriggerFlags)
-					continue;
-
-				item->ItemFlags[1] = i;
-				other->ItemFlags[0] = -80;
-				other->Pose.Position.y = item->Pose.Position.y - BLOCK(1);
-			}
-		}
+		item->Animation.AnimNumber = 9;
+		item->Animation.FrameNumber = 0;
+		item->Animation.ActiveState = 0;
+		item->Animation.TargetState = 0;
+		item->MeshBits = 0xFFFDBFFF;
+		item->Status = ITEM_NOT_ACTIVE;
 	}
 
 	void EnemyJeepControl(short itemNumber)
@@ -156,7 +149,7 @@ namespace TEN::Entities::TR4
 			case 0:
 			case 2:
 				item->ItemFlags[0] -= 128;
-				item->MeshBits = -98305;
+				item->MeshBits = 0xFFFE7FFF;
 
 				pos = GetJointPosition(item, 11, Vector3i(0, -144, -1024));
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
@@ -213,8 +206,8 @@ namespace TEN::Entities::TR4
 			{
 				if (height4 > (item->Floor + CLICK(2)) && item->Animation.ActiveState != 5)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 8;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = 8;
+					item->Animation.FrameNumber = 0;
 					item->Animation.ActiveState = 5;
 					item->Animation.TargetState = 1;
 					item->ItemFlags[1] = 0;
@@ -254,8 +247,8 @@ namespace TEN::Entities::TR4
 
 				if (Lara.Location < item->ItemFlags[3] && item->Animation.ActiveState != 2 && item->Animation.TargetState != 2)
 				{
-					item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + 1;
-					item->Animation.FrameNumber = GetAnimData(item).frameBase;
+					item->Animation.AnimNumber = 1;
+					item->Animation.FrameNumber = 0;
 					item->Animation.TargetState = 2;
 					item->Animation.ActiveState = 2;
 
@@ -305,7 +298,7 @@ namespace TEN::Entities::TR4
 
 					if (aiObject != nullptr)
 					{
-						creature->Enemy = nullptr;
+						creature->Enemy = target;
 						target->ObjectNumber = aiObject->objectNumber;
 						target->RoomNumber = aiObject->roomNumber;
 						target->Pose.Position = aiObject->pos.Position;

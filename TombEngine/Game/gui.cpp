@@ -3,7 +3,7 @@
 
 #include <OISKeyboard.h>
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
@@ -28,7 +28,9 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Config;
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Utils;
@@ -373,7 +375,7 @@ namespace TEN::Gui
 				 MenuToDisplay == Menu::SelectLevel ||
 				 MenuToDisplay == Menu::Options)
 		{
-			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 			if (GuiIsDeselected() && MenuToDisplay != Menu::Title)
 			{
@@ -466,9 +468,9 @@ namespace TEN::Gui
 
 		// Get current display mode.
 		CurrentSettings.SelectedScreenResolution = 0;
-		for (int i = 0; i < g_Config.SupportedScreenResolutions.size(); i++)
+		for (int i = 0; i < g_Configuration.SupportedScreenResolutions.size(); i++)
 		{
-			auto screenRes = g_Config.SupportedScreenResolutions[i];
+			auto screenRes = g_Configuration.SupportedScreenResolutions[i];
 			if (screenRes.x == CurrentSettings.Config.ScreenWidth &&
 				screenRes.y == CurrentSettings.Config.ScreenHeight)
 			{
@@ -482,33 +484,23 @@ namespace TEN::Gui
 	{
 		enum ControlsSettingsOption
 		{
-			KeyBindings,
-
-			TankCameraControl,
-			InvertCameraXAxis,
-			InvertCameraYAxis,
-			EnableRumble,
-
-			MouseSensitivity,
-			MenuOptionLooping,
-
-			Apply,
+			ScreenResolution,
+			Windowed,
+			ShadowType,
+			Caustics,
+			Decals,
+			Antialiasing,
+			AmbientOcclusion,
+			HighFramerate,
+			Save,
 			Cancel,
 
 			Count
 		};
 
-		OptionCount = (int)ControlsSettingsOption::Count - 1;
+		OptionCount = (int)DisplaySettingsOption::Count - 1;
 
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			MenuToDisplay = Menu::Options;
-			SelectedOption = 0;
-			return;
-		}
-
-		if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
+		if (GuiIsPulsed(In::Left))
 		{
 			switch (SelectedOption)
 			{
@@ -534,31 +526,26 @@ namespace TEN::Gui
 			}
 		}
 
-		if (IsPulsed(In::Left, 0.05f, 0.4f))
-		{
-			switch (SelectedOption)
-			{
-			case ControlsSettingsOption::MouseSensitivity:
-				if (CurrentSettings.Config.MouseSensitivity > GameConfiguration::MOUSE_SENSITIVITY_MIN)
-				{
-					CurrentSettings.Config.MouseSensitivity -= 1;
-					if (CurrentSettings.Config.MouseSensitivity < GameConfiguration::MOUSE_SENSITIVITY_MIN)
-						CurrentSettings.Config.MouseSensitivity = GameConfiguration::MOUSE_SENSITIVITY_MIN;
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
+				break;
 
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				}
+			case DisplaySettingsOption::Antialiasing:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
 				break;
 
-			case ControlsSettingsOption::MenuOptionLooping:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-
-				switch (CurrentSettings.Config.MenuOptionLoopingMode)
+			case DisplaySettingsOption::AmbientOcclusion:
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
 				{
-				default:
-				case MenuOptionLoopingMode::AllMenus:
-					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
-					break;
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
+				break;
 
 				case MenuOptionLoopingMode::SaveLoadOnly:
 					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
@@ -585,21 +572,44 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
 
+			case DisplaySettingsOption::ShadowType:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+
+				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
+					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
+				else
+					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) + 1);
+
 				break;
 
 			case ControlsSettingsOption::MenuOptionLooping:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				switch (CurrentSettings.Config.MenuOptionLoopingMode)
-				{
-				default:
-				case MenuOptionLoopingMode::AllMenus:
-					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
-					break;
+			case DisplaySettingsOption::Decals:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableDecals = !CurrentSettings.Configuration.EnableDecals;
+				break;
 
-				case MenuOptionLoopingMode::SaveLoadOnly:
-					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::Off;
-					break;
+			case DisplaySettingsOption::Antialiasing:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+
+				if (CurrentSettings.Configuration.AntialiasingMode == AntialiasingMode::High)
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode::None;
+				else
+					CurrentSettings.Configuration.AntialiasingMode = AntialiasingMode(int(CurrentSettings.Configuration.AntialiasingMode) + 1);
+
+				break;
+
+			case DisplaySettingsOption::AmbientOcclusion:
+				if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableAmbientOcclusion = !CurrentSettings.Configuration.EnableAmbientOcclusion;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+
+				break;
 
 				case MenuOptionLoopingMode::Off:
 					CurrentSettings.Config.MenuOptionLoopingMode = MenuOptionLoopingMode::AllMenus;
@@ -608,13 +618,11 @@ namespace TEN::Gui
 			}
 		}
 
-		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
-		if (GuiIsSelected())
+		if (GuiIsSelected() || GuiIsDeselected())
 		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-
-			switch (SelectedOption)
+			if (SelectedOption == DisplaySettingsOption::Save || GuiIsDeselected())
 			{
 			case ControlsSettingsOption::KeyBindings:
 				BackupOptions();
@@ -622,31 +630,47 @@ namespace TEN::Gui
 				SelectedOption = 0;
 				break;
 
-			case ControlsSettingsOption::Apply:
-			{
-				bool indicateRumble = CurrentSettings.Config.EnableRumble && !g_Config.EnableRumble;
+				bool screenResolutionChanged = CurrentSettings.Configuration.ScreenWidth != screenResolution.x ||
+					CurrentSettings.Configuration.ScreenHeight != screenResolution.y ||
+					CurrentSettings.Configuration.EnableWindowedMode != g_Configuration.EnableWindowedMode;
 
-				// Save configuration.
-				g_Config = CurrentSettings.Config;
+				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
+				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;
+
+				// Determine whether we should update AA shaders.
+				bool shouldRecompileAAShaders = CurrentSettings.Configuration.AntialiasingMode != AntialiasingMode::Low &&
+					(screenResolutionChanged || g_Configuration.AntialiasingMode != CurrentSettings.Configuration.AntialiasingMode);
+
+				g_Configuration = CurrentSettings.Configuration;
 				SaveConfiguration();
 
-				// Rumble if setting was changed.
-				if (indicateRumble)
-					Rumble(0.5f);
+				// Reset screen and go back.
+				if (screenResolutionChanged)
+				{
+					g_Renderer.ChangeScreenResolution(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight,
+						CurrentSettings.Configuration.EnableWindowedMode);
+				}
 
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 0;
 			}
 				break;
 
-			case ControlsSettingsOption::Cancel:
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-				SetVolumeTracks(g_Config.MusicVolume);
-				SetVolumeFX(g_Config.SfxVolume);
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 0;
-				break;
 			}
+			else if (SelectedOption == DisplaySettingsOption::Cancel)
+			{
+				MenuToDisplay = Menu::Options;
+				SelectedOption = 0;
+			}
+			else
+			{
+				// No action was taken, no need to play confirmation sound.
+				return;
+			}
+
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}
 
@@ -767,7 +791,7 @@ namespace TEN::Gui
 		}
 		else
 		{
-			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 			// HACK: Menu screen scroll.
 			if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
@@ -806,104 +830,31 @@ namespace TEN::Gui
 				}
 			}
 
-			if (GuiIsSelected())
+			if (GuiIsSelected() || GuiIsDeselected())
 			{
-				// Defaults.
-				if (SelectedOption == (OptionCount - 2))
+				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
+				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
 				{
-					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					SaveConfiguration();
+				}
+				else if (SelectedOption == OptionCount) // Cancel.
+				{
+					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+				}
+				else if (SelectedOption == (OptionCount - 2)) // Defaults.
+				{
 					ApplyDefaultBindings();
 					return;
 				}
 
-				// Apply.
-				if (SelectedOption == (OptionCount - 1))
-				{
-					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-
-					//CurrentSettings.Config.KeyBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom); // TODO: Restore.
-					//g_Config.KeyBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom); // TODO: Restore.
-					SaveConfiguration();
-
-					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
-					SelectedOption = 2;
-					return;
-				}
-
-				// Cancel.
-				if (SelectedOption == OptionCount)
-				{
-					SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-
-					//g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Config.KeyBindings); // TODO: Restore.
-
-					MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
-					SelectedOption = 2;
-					return;
-				}
-			}
-
-			if (GuiIsDeselected())
-			{
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-				MenuToDisplay = Menu::Controls;
-				SelectedOption = 0;
+				MenuToDisplay = Menu::Options;
+				SelectedOption = 2;
 			}
 		}
 	}
-
-	void GuiController::HandleGameplaySettingsInput()
-	{
-		enum GameplaySettingsOption
-		{
-			ControlMode,
-			SwimControlMode,
-			WalkToggle,
-			CrouchToggle,
-			ClimbToggle,
-			AutoMonkeySwingJump,
-			AutoTargeting,
-			OppositeActionRoll,
-
-			TargetHighlighter,
-			//InteractionHints,
-			Subtitles,
-
-			Apply,
-			Cancel,
-
-			Count
-		};
-
-		OptionCount = (int)GameplaySettingsOption::Count - 1;
-
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			MenuToDisplay = Menu::Options;
-			SelectedOption = 1;
-			return;
-		}
-
-		if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
-		{
-			switch (SelectedOption)
-			{
-			case GameplaySettingsOption::ControlMode:
-			{
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-
-				int controlMode = (int)CurrentSettings.Config.ControlMode;
-				GuiIsPulsed(In::Left) ? --controlMode : ++controlMode;
-
-				if (controlMode < (int)ControlMode::Classic)
-				{
-					controlMode = (int)ControlMode::Count - 1;
-				}
-				else if (controlMode > (int)ControlMode::Modern)
-				{
-					controlMode = (int)ControlMode::Classic;
-				}
 
 				CurrentSettings.Config.ControlMode = (Config::ControlMode)controlMode;
 			}
@@ -965,7 +916,7 @@ namespace TEN::Gui
 			}
 		}
 
-		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 		if (GuiIsSelected())
 		{
@@ -978,14 +929,18 @@ namespace TEN::Gui
 				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
-				MenuToDisplay = Menu::Options;
-				SelectedOption = 1;
-				break;
+			Subtitles,
+			AutoMonkeySwingJump,
+			AutoTargeting,
+			TargetHighlighter,
+			InteractionHighlighter,
+			ToggleRumble,
+			ThumbstickCameraControl,
 
 			case GameplaySettingsOption::Cancel:
 				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-				SetVolumeTracks(g_Config.MusicVolume);
-				SetVolumeFX(g_Config.SfxVolume);
+				SetVolumeTracks(g_Configuration.MusicVolume);
+				SetVolumeFX(g_Configuration.SfxVolume);
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 1;
 				break;
@@ -1013,15 +968,7 @@ namespace TEN::Gui
 
 		OptionCount = (int)DisplaySettingsOption::Count - 1;
 
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr);
-			MenuToDisplay = Menu::Options;
-			SelectedOption = 2;
-			return;
-		}
-
-		if (GuiIsPulsed(In::Left))
+		if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
 		{
 			switch (SelectedOption)
 			{
@@ -1076,7 +1023,12 @@ namespace TEN::Gui
 				CurrentSettings.Config.EnableCaustics = !CurrentSettings.Config.EnableCaustics;
 				break;
 
-			case DisplaySettingsOption::Antialiasing:
+			case OtherSettingsOption::InteractionHighlighter:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				break;
+
+			case OtherSettingsOption::ToggleRumble:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				if (CurrentSettings.Config.AntialiasingMode == AntialiasingMode::None)
 				{
@@ -1096,13 +1048,15 @@ namespace TEN::Gui
 			}
 		}
 
-		if (GuiIsPulsed(In::Right))
+		bool isVolumeAdjusted = false;
+
+		if (IsPulsed(In::Left, 0.05f, 0.4f))
 		{
 			switch (SelectedOption)
 			{
 			case DisplaySettingsOption::ScreenResolution:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.SelectedScreenResolution < g_Config.SupportedScreenResolutions.size() - 1)
+				if (CurrentSettings.SelectedScreenResolution < g_Configuration.SupportedScreenResolutions.size() - 1)
 					CurrentSettings.SelectedScreenResolution++;
 
 				break;
@@ -1115,7 +1069,11 @@ namespace TEN::Gui
 				}
 				else
 				{
-					CurrentSettings.Config.WindowMode = WindowMode(int(CurrentSettings.Config.WindowMode) + 1);
+					CurrentSettings.Configuration.MusicVolume -= VOLUME_STEP;
+					if (CurrentSettings.Configuration.MusicVolume < 0)
+						CurrentSettings.Configuration.MusicVolume = 0;
+
+					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
 				}
 
 				break;
@@ -1133,15 +1091,8 @@ namespace TEN::Gui
 
 				break;*/
 
-			case DisplaySettingsOption::ShadowType:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				if (CurrentSettings.Config.ShadowType == ShadowMode::All)
-				{
-					CurrentSettings.Config.ShadowType = ShadowMode::None;
-				}
-				else
-				{
-					CurrentSettings.Config.ShadowType = ShadowMode(int(CurrentSettings.Config.ShadowType) + 1);
+					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
 				break;
@@ -1171,7 +1122,7 @@ namespace TEN::Gui
 			}
 		}
 
-		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 		if (GuiIsSelected())
 		{
@@ -1180,7 +1131,7 @@ namespace TEN::Gui
 			if (SelectedOption == DisplaySettingsOption::Apply)
 			{
 				// Save configuration.
-				auto screenRes = g_Config.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
+				auto screenRes = g_Configuration.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
 				CurrentSettings.Config.ScreenWidth = screenRes.x;
 				CurrentSettings.Config.ScreenHeight = screenRes.y;
 
@@ -1204,48 +1155,12 @@ namespace TEN::Gui
 		}
 	}
 
-	void GuiController::HandleSoundSettingsInput()
-	{
-		enum SoundSettingsOption
-		{
-			MusicVolume,
-			SfxVolume,
-			Reverb,
-
-			Apply,
-			Cancel,
-
-			Count
-		};
-
-		OptionCount = (int)SoundSettingsOption::Count - 1;
-
-		if (GuiIsDeselected())
-		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-
-			MenuToDisplay = Menu::Options;
-			SelectedOption = 3;
-
-			SetVolumeTracks(g_Config.MusicVolume);
-			SetVolumeFX(g_Config.SfxVolume);
-			return;
-		}
-
-		if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
-		{
-			switch (SelectedOption)
-			{
-			case SoundSettingsOption::Reverb:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Config.EnableReverb = !CurrentSettings.Config.EnableReverb;
 				break;
 			}
 		}
 
 		if (IsPulsed(In::Left, 0.05f, 0.4f))
 		{
-			bool isVolumeAdjusted = false;
 			switch (SelectedOption)
 			{
 			case SoundSettingsOption::MusicVolume:
@@ -1268,8 +1183,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Config.SfxVolume < 0)
 						CurrentSettings.Config.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Config.SfxVolume);
-					isVolumeAdjusted = true;
+					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
 				}
 
 				break;
@@ -1294,8 +1208,8 @@ namespace TEN::Gui
 					if (CurrentSettings.Config.MusicVolume > GameConfiguration::SOUND_VOLUME_MAX)
 						CurrentSettings.Config.MusicVolume = GameConfiguration::SOUND_VOLUME_MAX;
 
-					SetVolumeTracks(CurrentSettings.Config.MusicVolume);
-					isVolumeAdjusted = true;
+					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
 				break;
@@ -1313,80 +1227,39 @@ namespace TEN::Gui
 
 				break;
 			}
-
-			if (isVolumeAdjusted)
-			{
-				if (IsClicked(In::Right))
-					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-			}
 		}
 
-		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+		if (isVolumeAdjusted)
+			SoundEffect(SFX_TR4_MENU_ROTATE, nullptr, SoundEnvironment::Always);
 
-		if (GuiIsSelected())
+		SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+
+		if (GuiIsSelected() || GuiIsDeselected())
 		{
-			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-
-			if (SelectedOption == SoundSettingsOption::Apply)
+			if (SelectedOption == OtherSettingsOption::Apply || GuiIsDeselected())
 			{
 				// Save configuration.
 				g_Config = CurrentSettings.Config;
 				SaveConfiguration();
 
-				MenuToDisplay = Menu::Options;
-				SelectedOption = 3;
+				// Rumble if setting was changed.
+				if (indicateRumble)
+					Rumble(0.5f);
 			}
 			else if (SelectedOption == SoundSettingsOption::Cancel)
 			{
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-				SetVolumeTracks(g_Config.MusicVolume);
-				SetVolumeFX(g_Config.SfxVolume);
-				MenuToDisplay = Menu::Options;
-				SelectedOption = 3;
+				SetVolumeTracks(g_Configuration.MusicVolume);
+				SetVolumeFX(g_Configuration.SfxVolume);
 			}
-		}
-	}
+			else
+			{
+				// No action was taken, no need to play confirmation sound.
+				return;
+			}
 
-	void GuiController::BackupOptions()
-	{
-		CurrentSettings.Config = g_Config;
-	}
-
-	void GuiController::HandleOptionsInput()
-	{
-		enum OptionsOption
-		{
-			Controls,
-			Gameplay,
-			Display,
-			Sound
-		};
-
-		switch (SelectedOption)
-		{
-		case OptionsOption::Controls:
-			BackupOptions();
-			MenuToDisplay = Menu::Controls;
-			SelectedOption = 0;
-			break;
-
-		case OptionsOption::Gameplay:
-			BackupOptions();
-			MenuToDisplay = Menu::Gameplay;
-			SelectedOption = 0;
-			break;
-
-		case OptionsOption::Display:
-			FillDisplayOptions();
-			MenuToDisplay = Menu::Display;
-			SelectedOption = 0;
-			break;
-
-		case OptionsOption::Sound:
-			BackupOptions();
-			MenuToDisplay = Menu::Sound;
-			SelectedOption = 0;
-			break;
+			MenuToDisplay = Menu::Options;
+			SelectedOption = 1;
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 		}
 	}
 
@@ -1447,15 +1320,16 @@ namespace TEN::Gui
 		if (MenuToDisplay == Menu::Pause ||
 			MenuToDisplay == Menu::Options)
 		{
-			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 		}
 
 		if (GuiIsDeselected() || IsClicked(In::Pause))
 		{
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
 			if (MenuToDisplay == Menu::Pause)
 			{
 				SetInventoryMode(InventoryMode::None);
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 				return InventoryResult::None;
 			}
 
@@ -1464,12 +1338,12 @@ namespace TEN::Gui
 			{
 				SelectedOption = ((MenuToDisplay == Menu::Statistics) ? PauseMenuOption::Statistics : PauseMenuOption::Options);
 				MenuToDisplay = Menu::Pause;
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 			}
 		}
-
-		if (GuiIsSelected())
+		else if (GuiIsSelected())
 		{
+			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
+
 			switch (MenuToDisplay)
 			{
 			case Menu::Pause:
@@ -1499,7 +1373,6 @@ namespace TEN::Gui
 
 			case Menu::Statistics:
 				MenuToDisplay = Menu::Pause;
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 				break;
 			}
 		}
@@ -2097,10 +1970,10 @@ namespace TEN::Gui
 
 		if (player.Inventory.BeetleComponents)
 		{
-			if (player.Inventory.BeetleComponents & 2)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_1)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART1);
 
-			if (player.Inventory.BeetleComponents & 4)
+			if (player.Inventory.BeetleComponents & BEETLECOMP_FLAG_COMBO_2)
 				InsertObjectIntoList_v2(INV_OBJECT_BEETLE_PART2);
 		}
 
@@ -2279,7 +2152,7 @@ namespace TEN::Gui
 
 	void GuiController::FadeAmmoSelector()
 	{
-		if (Rings[(int)RingTypes::Inventory].RingActive)
+		if (!Rings[(int)RingTypes::Inventory].RingActive && !AmmoSelectorFlag)
 		{
 			AmmoSelectorFadeVal = 0;
 		}
@@ -2309,23 +2182,11 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
-		const auto CROUCH_STATES = std::vector<int>
+		if (!item.IsLara())
 		{
-			LS_CROUCH_IDLE,
-			LS_CROUCH_TURN_LEFT,
-			LS_CROUCH_TURN_RIGHT,
-			LS_CROUCH_TURN_180
-		};
-		const auto CRAWL_STATES = std::vector<int>
-		{
-			LS_CRAWL_IDLE,
-			LS_CRAWL_FORWARD,
-			LS_CRAWL_BACK,
-			LS_CRAWL_TURN_LEFT,
-			LS_CRAWL_TURN_RIGHT,
-			LS_CRAWL_TURN_180,
-			LS_CRAWL_TO_HANG
-		};
+			TENLog("Attempt to use inventory item with a non-player object.", LogLevel::Warning);
+			return;
+		}
 
 		auto& player = GetLaraInfo(item);
 
@@ -2354,6 +2215,9 @@ namespace TEN::Gui
 				return;
 			}
 
+			if (player.Context.Vehicle != NO_VALUE)
+				return;
+
 			switch (InventoryItemChosen)
 			{
 				case ID_PISTOLS_ITEM:
@@ -2375,6 +2239,7 @@ namespace TEN::Gui
 			if (player.Control.HandStatus == HandStatus::Free &&
 				player.Control.Weapon.GunType == player.Control.Weapon.RequestGunType)
 			{
+				InitializeNewWeapon(item);
 				player.Control.HandStatus = HandStatus::WeaponDraw;
 			}
 
@@ -2401,6 +2266,9 @@ namespace TEN::Gui
 			{
 				return;
 			}
+
+			if (player.Context.Vehicle != NO_VALUE)
+				return;
 
 			switch (InventoryItemChosen)
 			{
@@ -2474,32 +2342,7 @@ namespace TEN::Gui
 			return;
 
 		case ID_BINOCULARS_ITEM:
-			if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
-				(player.Control.IsLow && !IsHeld(In::Crouch))) &&
-				!UseSpotCam && !TrackCameraInit)
-			{
-				player.Control.Look.OpticRange = ANGLE(0.7f);
-				player.Control.Look.IsUsingBinoculars = true;
-				player.Inventory.OldBusy = true;
-
-				// TODO: To prevent Lara from crouching or performing other actions, the inherent state of
-				// LA_BINOCULARS_IDLE must be changed to LS_IDLE. @Sezz 2022.05.19
-				//SetAnimation(item, LA_BINOCULARS_IDLE);
-
-				if (player.Control.HandStatus != HandStatus::Free)
-					player.Control.HandStatus = HandStatus::WeaponUndraw;
-			}
-
-			if (prevOpticRange != ANGLE(0.0f))
-			{
-				player.Control.Look.OpticRange = prevOpticRange;
-			}
-			else
-			{
-				g_Camera.PrevBinocularCameraType = g_Camera.oldType;
-			}
-
-			InventoryItemChosen = NO_VALUE;
+			UseBinoculars(item);
 			return;
 
 		case ID_SMALLMEDI_ITEM:
@@ -2567,11 +2410,12 @@ namespace TEN::Gui
 		auto& player = GetLaraInfo(*item);
 		auto& invRing = Rings[(int)RingTypes::Inventory];
 		auto& ammoRing = Rings[(int)RingTypes::Ammo];
+		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
 
 		if (ammoRing.RingActive)
 		{
 			auto optionString = g_GameFlow->GetString(OptionStrings[5].c_str());
-			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+			g_Renderer.AddString(PHD_CENTER_X, PHD_CENTER_Y, optionString, plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 
 			if (invRing.ObjectListMovement)
 				return;
@@ -2767,12 +2611,12 @@ namespace TEN::Gui
 
 					if (i == CurrentSelectedOption)
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 					else
 					{
-						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), PRINTSTRING_COLOR_WHITE, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 						yPos += LINE_HEIGHT;
 					}
 				}
@@ -2782,7 +2626,7 @@ namespace TEN::Gui
 				!invRing.ObjectListMovement &&
 				!ammoRing.ObjectListMovement)
 			{
-				CurrentSelectedOption = GetLoopedSelectedOption(CurrentSelectedOption, n - 1, g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
+				CurrentSelectedOption = GetLoopedSelectedOption(CurrentSelectedOption, n - 1, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 				if (AmmoActive)
 					*CurrentAmmoType = CurrentSelectedOption;
@@ -2941,6 +2785,12 @@ namespace TEN::Gui
 		if (!AmmoSelectorFlag)
 			return;
 
+		float opacity = AmmoSelectorFadeVal / 128.0f;
+
+		// Don't draw fading UI elements if opacity is lower than minimal threshold.
+		if (opacity <= 0.1f)
+			return;
+
 		int xPos = (2 * PHD_CENTER_X - OBJLIST_SPACING) / 2;
 		if (NumAmmoSlots == 2)
 			xPos -= OBJLIST_SPACING / 2;
@@ -2969,14 +2819,14 @@ namespace TEN::Gui
 
 				int x = PHD_CENTER_X - 300 + xPos;
 				int y = 480;
-				short objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
-				float scaler = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
+				int objectNumber = ConvertInventoryItemToObject(AmmoObjectList[n].InventoryItem);
+				float scale = InventoryObjectTable[AmmoObjectList[n].InventoryItem].Scale1;
 
 				if (n == *CurrentAmmoType)
 				{
 					char invTextBuffer[256];
 
-					if (AmmoObjectList[n].Amount == -1)
+					if (AmmoObjectList[n].Amount == NO_VALUE)
 					{
 						sprintf(&invTextBuffer[0], g_GameFlow->GetString(STRING_UNLIMITED).c_str(), g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName));
 					}
@@ -2985,18 +2835,14 @@ namespace TEN::Gui
 						sprintf(&invTextBuffer[0], "%d x %s", AmmoObjectList[n].Amount, g_GameFlow->GetString(InventoryObjectTable[AmmoObjectList[n].InventoryItem].ObjectName).c_str());
 					}
 
-					// CHECK: AmmoSelectorFadeVal is never true and therefore the string is never printed.
-					//if (AmmoSelectorFadeVal)
-						g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
-
-					if (n == *CurrentAmmoType)
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
-					else
-						g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					auto color = g_GameFlow->GetSettings()->UI.OptionTextColor;
+					color.SetA(opacity * UCHAR_MAX);
+					g_Renderer.AddString(PHD_CENTER_X, 380, &invTextBuffer[0], color, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 				else
 				{
-					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scaler);
+					g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, y), AmmoObjectList[n].Orientation, scale, opacity);
 				}
 
 				xPos += OBJLIST_SPACING;
@@ -3020,7 +2866,7 @@ namespace TEN::Gui
 			if (CombineRingFadeDir == 1)
 			{
 				if (CombineRingFadeVal < 128)
-					CombineRingFadeVal += 32;
+					CombineRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal > 128)
 				{
@@ -3030,7 +2876,7 @@ namespace TEN::Gui
 			}
 			else if (CombineRingFadeDir == 2)
 			{
-				CombineRingFadeVal -= 32;
+				CombineRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 				if (CombineRingFadeVal <= 0)
 				{
@@ -3056,7 +2902,7 @@ namespace TEN::Gui
 		else if (NormalRingFadeDir == 1)
 		{
 			if (NormalRingFadeVal < 128)
-				NormalRingFadeVal += 32;
+				NormalRingFadeVal += 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal > 128)
 			{
@@ -3069,7 +2915,7 @@ namespace TEN::Gui
 		}
 		else if (NormalRingFadeDir == 2)
 		{
-			NormalRingFadeVal -= 32;
+			NormalRingFadeVal -= 32 / g_Renderer.GetFramerateMultiplier();
 
 			if (NormalRingFadeVal <= 0)
 			{
@@ -3181,20 +3027,20 @@ namespace TEN::Gui
 				if (!minObj && !maxObj)
 					shade = 128;
 
-				if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
-				{
-					shade = CombineRingFadeVal;
-				}
-				else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
-				{
-					shade = NormalRingFadeVal;
-				}
-
 				auto& listObject = ring.CurrentObjectList[n];
 				const auto& invObject = InventoryObjectTable[listObject.InventoryItem];
 
 				if (!i)
 				{
+					if (ringType == RingTypes::Ammo && CombineRingFadeVal < 128 && shade)
+					{
+						shade = CombineRingFadeVal;
+					}
+					else if (ringType == RingTypes::Inventory && NormalRingFadeVal < 128 && shade)
+					{
+						shade = NormalRingFadeVal;
+					}
+
 					int numItems = 0;
 					int count = 0;
 					char textBuffer[128];
@@ -3328,10 +3174,10 @@ namespace TEN::Gui
 						objectNumber = int(PHD_CENTER_Y + (DISPLAY_SPACE_RES.y + 1) * 0.0625 * 2.0);
 					}
 
-					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, PRINTSTRING_COLOR_YELLOW, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
+					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.OptionTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
-				if (!i && !ring.ObjectListMovement)
+				if (!i && !ring.ObjectListMovement) 
 				{
 					if (invObject.RotFlags & INV_ROT_X)
 						listObject.Orientation.x += ANGLE(5.0f);
@@ -3382,10 +3228,11 @@ namespace TEN::Gui
 				int y2 = 480; // Combine.
 				short objectNumber = ConvertInventoryItemToObject(listObject.InventoryItem);
 				float scaler = invObject.Scale1;
+				float opacity = shade / 128.0f;
 				auto& orient = listObject.Orientation;
 				int bits = invObject.MeshBits;
 
-				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, 1.0f, bits);
+				g_Renderer.DrawObjectIn2DSpace(objectNumber, Vector2(x, (ringType == RingTypes::Inventory) ? y : y2), orient, scaler, opacity, bits);
 
 				if (++n >= ring.NumObjectsInList)
 					n = 0;
@@ -3520,28 +3367,30 @@ namespace TEN::Gui
 
 			UpdateInputActions(item);
 
-			if (GuiIsDeselected() || IsClicked(In::Inventory))
-			{
-				SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-				exitLoop = true;
-			}
+				if (GuiIsDeselected() || IsClicked(In::Inventory))
+					exitLoop = true;
 
 			DrawInventory();
 			DrawCompass(item);
 
-			switch (InvMode)
-			{
-			case InventoryMode::InGame:
-				DoInventory(item);
-				break;
+				switch (InvMode)
+				{
+				case InventoryMode::InGame:
+					if (exitLoop)
+						SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
 
-			case InventoryMode::Statistics:
-				DoStatisticsMode();
-				break;
+					DoInventory(item);
+					break;
 
-			case InventoryMode::Examine:
-				DoExamineMode();
-				break;
+				case InventoryMode::Statistics:
+					exitLoop = !resetMode;
+					DoStatisticsMode();
+					break;
+
+				case InventoryMode::Examine:
+					exitLoop = !resetMode;
+					DoExamineMode();
+					break;
 
 			case InventoryMode::Load:
 				switch (DoLoad())
@@ -3691,8 +3540,8 @@ namespace TEN::Gui
 
 	LoadResult GuiController::DoLoad()
 	{
-		bool canLoop = g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
-					   g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
+		bool canLoop = g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
+					   g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
 		SelectedSaveSlot = GetLoopedSelectedOption(SelectedSaveSlot, SAVEGAME_MAX - 1, canLoop);
 
 		if (GuiIsSelected())
@@ -3715,8 +3564,8 @@ namespace TEN::Gui
 
 	bool GuiController::DoSave()
 	{
-		bool canLoop = g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
-					   g_Config.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
+		bool canLoop = g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
+					   g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
 		SelectedSaveSlot = GetLoopedSelectedOption(SelectedSaveSlot, SAVEGAME_MAX - 1, canLoop);
 
 		if (GuiIsSelected())
@@ -3794,5 +3643,23 @@ namespace TEN::Gui
 		}
 
 		return false;
+	}
+
+	void GuiController::UseBinoculars(ItemInfo& item)
+	{	
+		auto& player = GetLaraInfo(item);
+
+		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
+			(player.Control.IsLow && !IsHeld(In::Crouch))) &&
+			!UseSpotCam && !TrackCameraInit)
+		{
+			SetScreenFadeIn(OPTICS_FADE_SPEED);
+			BinocularOldCamera = Camera.oldType;
+			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
+			player.Control.Look.IsUsingBinoculars = true;
+			player.Inventory.OldBusy = true;
+		}
+
+		InventoryItemChosen = NO_VALUE;
 	}
 }

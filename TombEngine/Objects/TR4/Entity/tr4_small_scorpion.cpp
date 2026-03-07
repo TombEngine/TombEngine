@@ -157,8 +157,8 @@ namespace TEN::Entities::TR4
 				{
 					if (item->TouchBits.Test(SmallScorpionAttackJoints))
 					{
-						if (item->Animation.FrameNumber > GetAnimData(item).frameBase + 20 &&
-							item->Animation.FrameNumber < GetAnimData(item).frameBase + 32)
+						if (item->Animation.FrameNumber > 20 &&
+							item->Animation.FrameNumber < 32)
 						{
 							short rotation;
 							CreatureBiteInfo biteInfo;

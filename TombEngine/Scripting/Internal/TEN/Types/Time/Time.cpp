@@ -248,7 +248,7 @@ namespace TEN::Scripting
 
 	Time::Hmsc Time::ParseFormattedString(const std::string& formattedTime)
 	{
-		std::regex timeFormat(R"((?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)");
+		auto timeFormat = std::regex(R"((?:(\d+):)?(\d+):(\d+)(?:\.(\d+))?)");
 		std::smatch match;
 
 		if (!std::regex_match(formattedTime, match, timeFormat))

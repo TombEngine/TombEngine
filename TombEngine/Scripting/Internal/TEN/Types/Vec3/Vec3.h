@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Scripting/Internal/ScriptUtil.h"
+
 namespace sol { class state; }
 
 class GameVector;
@@ -34,9 +36,11 @@ public:
 	Vec3  Translate(const Vec3& dir, float dist);
 	Vec3  Translate(const Rotation& rot, float dist);
 	Vec3  Translate(const Rotation& rot, const Vec3& relOffset);
+	Vec3  Translate(float headingAngle, const Vec3& relOffset, TypeOrNil<Vec3> axis);
 	Vec3  Rotate(const Rotation& rot) const;
 	Vec3  Lerp(const Vec3& vector, float alpha) const;
 	Vec3  Cross(const Vec3& vector) const;
+	Vec3  Direction(const Vec3& vector) const;
 	float Dot(const Vec3& vector) const;
 	float Distance(const Vec3& vector) const;
 	float Length() const;

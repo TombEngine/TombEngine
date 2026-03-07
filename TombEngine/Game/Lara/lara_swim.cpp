@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_swim.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -17,6 +17,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Config;
 using namespace TEN::Input;
@@ -45,16 +46,16 @@ void lara_as_underwater_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if ((IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Config.EnableOppositeActionRoll)) &&
+	if ((IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll)) &&
 		!hasDivesuit)
 	{
 		SetAnimation(item, LA_UNDERWATER_ROLL_180_START);
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
-		if (g_Config.IsUsingOmnidirectionalSwimControls())
+		if (g_Configuration.IsUsingOmnidirectionalSwimControls())
 		{
 			if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			{
@@ -64,7 +65,7 @@ void lara_as_underwater_idle(ItemInfo* item, CollisionInfo* coll)
 				item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 			}
 		}
-		else if (g_Config.IsUsingPlanarSwimControls())
+		else if (g_Configuration.IsUsingPlanarSwimControls())
 		{
 			if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			{
@@ -130,9 +131,9 @@ void lara_as_underwater_swim_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
-		if (g_Config.IsUsingOmnidirectionalSwimControls())
+		if (g_Configuration.IsUsingOmnidirectionalSwimControls())
 		{
 			if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			{
@@ -146,7 +147,7 @@ void lara_as_underwater_swim_forward(ItemInfo* item, CollisionInfo* coll)
 				item->Animation.TargetState = LS_UNDERWATER_INERTIA;
 			}
 		}
-		else if (g_Config.IsUsingPlanarSwimControls())
+		else if (g_Configuration.IsUsingPlanarSwimControls())
 		{
 			if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 			{
@@ -228,7 +229,7 @@ void lara_as_underwater_inertia(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		HandlePlayerTurn(*item, PLAYER_SWIM_TURN_ALPHA, LARA_LEAN_MAX, false, TURN_FLAGS);
 

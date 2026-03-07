@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
+#include "Game/effects/blood.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
@@ -32,10 +33,12 @@
 #include "Specific/trutils.h"
 #include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
+
 /// Functions to generate effects.
 // @tentable Effects 
 // @pragma nostrip
 
+using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Electricity;
@@ -97,13 +100,13 @@ namespace TEN::Scripting::Effects
 		bool isDrift = ValueOr<bool>(endDrift, false);
 
 		char flags = 0;
-		if(isSmooth)
+		if (isSmooth)
 			flags |= 1;
 
-		if(isDrift)
+		if (isDrift)
 			flags |= 2;
 
-		auto convertedColor = ValueOr<ScriptColor>(color, ScriptColor( 255, 255, 255 ));
+		auto convertedColor = ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255)).PremultiplyAlpha();
 
 		SpawnElectricity(convertedOrigin, convertedTarget, byteAmp, convertedColor.GetR(), convertedColor.GetG(), convertedColor.GetB(), byteLife, flags, width, segs);
 	}
@@ -123,7 +126,7 @@ namespace TEN::Scripting::Effects
 	// @tparam[opt=2] float life Lifespan in seconds.
 	// @tparam[opt=false] bool damage Harm the player on collision.
 	// @tparam[opt=false] bool poison Poison the player on collision.
-	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
 	// @tparam[opt=random] float startRot Rotation at start of life.
 	// @usage
 	// EmitParticle(
@@ -221,7 +224,7 @@ namespace TEN::Scripting::Effects
 			part.flags |= SP_WIND;
 	}
 
-	/// Emit a particle with extensive configuration options, including sprite sequence animation, lights, sounds, and damage effects.
+	/// Emit a particle with extensive configuration options. Options include sprite sequence animation, lights, sounds, and damage effects.
 	// @function EmitAdvancedParticle
 	// @tparam ParticleData particleData Table containing particle data.
 	// @usage
@@ -261,7 +264,7 @@ namespace TEN::Scripting::Effects
 	// @table ParticleData
 	// @tfield Vec3 pos World position.
 	// @tfield Vec3 vel Directional velocity in world units per second.
-	// @tfield[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID.SpriteConstants spriteSeqID Sprite sequence slot ID.
+	// @tfield[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
 	// @tfield[opt=0] int spriteID Sprite ID in the sprite sequence slot.
 	// @tfield[opt=2] float life Lifespan in seconds.
 	// @tfield[opt=0] float maxYVel Maximum vertical velocity in world units per second.
@@ -421,7 +424,7 @@ namespace TEN::Scripting::Effects
 		int innerRad = ValueOr<int>(innerRadius, 0);
 		int outerRad = ValueOr<int>(outerRadius, 128);
 
-		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
+		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
 		int spd = ValueOr<int>(speed, 50);
 		int ang = ValueOr<int>(angle, 0);
  
@@ -444,13 +447,13 @@ namespace TEN::Scripting::Effects
 	// If you want a light that sticks around, you must call this each frame.
 	// @function EmitLight
 	// @tparam Vec3 pos World position of the light.
-	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color light color.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
 	// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
 	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
-		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
+		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
 		int rad = (float)(ValueOr<int>(radius, 20) * BLOCK(0.25f));
 		SpawnDynamicPointLight(pos.ToVector3(), color, rad, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
@@ -460,7 +463,7 @@ namespace TEN::Scripting::Effects
 	// @function EmitSpotLight
 	// @tparam Vec3 pos World position of the light.
 	// @tparam Vec3 dir Normal which indicates light direction.
-	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
 	// @tparam[opt=10] int radius Overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units.
 	// @tparam[opt=5] int falloff Radius, at which light starts to fade out, measured in "clicks".
 	// @tparam[opt=20] int distance Distance, at which light cone fades out, measured in "clicks".
@@ -468,20 +471,43 @@ namespace TEN::Scripting::Effects
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
 	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<int> falloff, TypeOrNil<int> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
-		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255));
+		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
 		int rad =	  (float)(ValueOr<int>(radius,   10) * BLOCK(0.25f));
 		int fallOff = (float)(ValueOr<int>(falloff,   5) * BLOCK(0.25f));
 		int dist =	  (float)(ValueOr<int>(distance, 20) * BLOCK(0.25f));
 		SpawnDynamicSpotLight(pos.ToVector3(), dir.ToVector3(), color, rad, fallOff, dist, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
 
+	/// Emit dynamic fog bulb that lasts for a single frame.
+	// If you want a fog bulb that sticks around, you must call this each frame.
+	// @function EmitFogBulb
+	// @tparam Vec3 pos Position of the fog bulb.
+	// @tparam[opt=20] int radius Radius measured in "clicks" or 256 world units.
+	// @tparam[opt=255] int density Density, ranging from 0 to 255.
+	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
+	// @tparam[opt] string name If provided, engine will interpolate this fog bulb for high framerate mode (be careful not to use same name for different fogbulbs)
+	static void EmitFogBulb(Vec3 pos, TypeOrNil<int> radius, TypeOrNil<int> density, TypeOrNil<ScriptColor> col, TypeOrNil<std::string> name)
+	{
+		constexpr auto DEFAULT_DENSITY = 255;
+
+		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
+		int rad = (float)(ValueOr<int>(radius, 20));
+		int dens = (float)(ValueOr<int>(density, DEFAULT_DENSITY));
+		SpawnDynamicFogBulb(pos.ToVector3(), rad, dens, color, GetHash(ValueOr<std::string>(name, std::string())));
+	}
+
 	/// Emit blood.
 	// @function EmitBlood
 	// @tparam Vec3 pos World position.
-	// @tparam[opt=1] int count Sprite count.
+	// @tparam[opt=1] int count Blood sprite count.
 	static void EmitBlood(const Vec3& pos, TypeOrNil<int> count)
 	{
-		TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+		if (room.flags & ENV_FLAG_WATER)
+			SpawnUnderwaterBloodCloud(pos, roomNumber, (GetRandomControl() & 7) + 8, ValueOr<int>(count, 1));
+		else
+			TriggerBlood(pos.x, pos.y, pos.z, -1, ValueOr<int>(count, 1));
 	}
 
 	/// Emit an air bubble in a water room.
@@ -500,41 +526,34 @@ namespace TEN::Scripting::Effects
 		SpawnBubble(pos.ToVector3(), roomNumber, convertedSize, convertedAmp);
 	}
 
-	/// Emit fire for one frame. Will not hurt player. Call this each frame if you want a continuous fire.
+	/// Emit waterfall mist.
+	// @function EmitWaterfallMist
+	// @tparam Vec3 pos World position where the effect will be spawned.
+	// @tparam[opt=64] float size Effect size.
+	// @tparam[opt=32] float width Width of the effect.
+	// @tparam[opt=0] float rot Rotation of effect in degrees.
+	// @tparam[opt=Color(255&#44; 255&#44; 255&#44; 255)] Color color Color of the effect.
+	static void EmitWaterfallMist(const Vec3& pos, TypeOrNil<int> size, TypeOrNil<int> width, TypeOrNil<float> angle, TypeOrNil<ScriptColor> color)
+	{
+		constexpr auto DEFAULT_SIZE = 64;
+		constexpr auto DEFAULT_WIDTH = 32;
+
+		auto convertedAngle = ANGLE(ValueOr<float>(angle, 0.0f));
+		auto convertedSize = ValueOr<int>(size, DEFAULT_SIZE);
+		auto convertedWidth = ValueOr<int>(width, DEFAULT_WIDTH);
+		auto _color = ValueOr<ScriptColor>(color, ScriptColor(255, 255, 255)).PremultiplyAlpha();
+		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
+
+		TriggerWaterfallMist(pos, convertedSize, convertedWidth, convertedAngle, convertedColor);
+	}
+
+	/// Emit fire for a single frame. Will not hurt player. Call this each frame if you want a continuous fire.
 	// @function EmitFire
 	// @tparam Vec3 pos World position.
 	// @tparam[opt=1] float size Fire size.
 	static void EmitFire(const Vec3& pos, TypeOrNil<float> size)
 	{
 		AddFire(pos.x, pos.y, pos.z, FindRoomNumber(pos.ToVector3i()), ValueOr<float>(size, 1));
-	}
-
-	/// Make an explosion. Does not hurt Lara
-	// @function MakeExplosion 
-	// @tparam Vec3 pos World position.
-	// @tparam[opt=512] float size This will not be the size of the sprites, but rather the distance between the origin and any additional sprites.
-	// @tparam[opt=false] bool shockwave If true, create a very faint white shockwave which will not hurt Lara.
-	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave)
-	{
-		TriggerExplosion(Vector3(pos.x, pos.y, pos.z), ValueOr<float>(size, 512.0f), true, false, ValueOr<bool>(shockwave, false), FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)));
-	}
-
-	/// Make an earthquake
-	// @function MakeEarthquake 
-	// @tparam[opt=100] int strength How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
-	static void Earthquake(TypeOrNil<int> strength)
-	{
-		int str = ValueOr<int>(strength, 100);
-		g_Camera.bounce = -str;
-	}
-
-	/// Get the wind vector for the current game frame.
-	// This represents the 3D displacement applied by the engine on things like particles affected by wind.
-	// @function GetWind()
-	// @treturn Vec3 Wind vector.
-	static Vec3 GetWind()
-	{
-		return Vec3(Weather.Wind());
 	}
 
 	/// Emit an extending streamer effect.
@@ -582,6 +601,140 @@ namespace TEN::Scripting::Effects
 			convertedEdgeFeatherID, /*convertedLengthFeatherID, */convertedBlendID);
 	}
 
+	/// Emit a particle flowing effect.
+	// @function EmitFlow
+	// @tparam Vec3 pos World position.
+	// @tparam Vec3 dir Directional velocity of the particles in world units per second.
+	// @tparam[opt=512] float radius Radius of emitter. The particles will be emitted inside the circle of provided radius measured from centre of world position.
+	// @tparam[opt=1] float life Lifespan in seconds.
+	// @tparam[opt=0] float friction Friction affecting velocity over time in world units per second.
+	// @tparam[opt=25] float maxSize Max size of the particle.
+	// @tparam[opt=Color(128&#44; 128&#44; 128)] Color startColor Color at start of life.
+	// @tparam[opt=Color(0&#44; 0&#44; 0)] Color endColor Color at end of life.
+	// @tparam[opt=Objects.ObjID.DEFAULT_SPRITES] Objects.ObjID spriteSeqID Sprite sequence slot ID.
+	// @tparam[opt=14 (UNDERWATER_DUST)] int spriteID Sprite ID in the sprite sequence slot.
+	static void EmitFlow(const Vec3& pos, const Vec3& dir, TypeOrNil<float> radius, TypeOrNil<float> life, TypeOrNil<float> friction, TypeOrNil<float> maxSize, TypeOrNil<ScriptColor> startColor, TypeOrNil<ScriptColor> endColor, TypeOrNil<GAME_OBJECT_ID> spriteSeqID, TypeOrNil<int> spriteID)
+	{
+		constexpr auto DEFAULT_LIFE = 1.0f;
+		constexpr auto SECS_PER_FRAME = 1.0f / (float)FPS;
+		constexpr auto DUST_SIZE_MAX = 25.0f;
+
+		auto convertedSpriteSeqID = ValueOr<GAME_OBJECT_ID>(spriteSeqID, ID_DEFAULT_SPRITES);
+		if (!CheckIfSlotExists(convertedSpriteSeqID, "EmitParticle() script function."))
+			return;
+
+		auto convertedPos = pos.ToVector3();
+		auto convertedDir = dir.ToVector3() / (float)FPS;
+		auto convertedRad = ValueOr<float>(radius, BLOCK(0.5f));
+		auto convertedLife = std::max(0.1f, ValueOr<float>(life, DEFAULT_LIFE));
+		auto convertedFriction = ValueOr<float>(friction, 0) / (float)FPS;
+		auto convertedMaxSize = std::max(0.1f, ValueOr<float>(maxSize, DUST_SIZE_MAX));
+		auto convertedStartColor = ValueOr<ScriptColor>(startColor, ScriptColor(128, 128, 128, 255));
+		auto convertedEndColor = ValueOr<ScriptColor>(endColor, ScriptColor(0, 0, 0, 255));
+		auto convertedSpriteID = ValueOr<int>(spriteID, SPRITE_TYPES::SPR_UNDERWATERDUST);
+
+		auto& part = *GetFreeParticle();
+
+		part.on = true;
+		part.SpriteSeqID = convertedSpriteSeqID;
+		part.SpriteID = convertedSpriteID;
+		part.blendMode = BlendMode::Additive;
+
+		// Set particle colors
+		part.sR = convertedStartColor.GetR();
+		part.sG = convertedStartColor.GetG();
+		part.sB = convertedStartColor.GetB();
+
+		part.dR = convertedEndColor.GetR();
+		part.dG = convertedEndColor.GetG();
+		part.dB = convertedEndColor.GetB();
+
+		part.life =
+			part.sLife = (int)round(convertedLife / SECS_PER_FRAME);
+		part.colFadeSpeed = part.life / 2;
+		part.fadeToBlack = part.life / 3;
+
+		// Randomize position within the given radius
+		float angle = TO_DEGREES(Random::GenerateAngle());
+		float randRadius = sqrt(Random::GenerateFloat()) * convertedRad;
+
+		part.x = convertedPos.x + randRadius * cos(angle);
+		part.y = convertedPos.y + (Random::GenerateFloat() * 2.0f - 1.0f) * convertedRad;
+		part.z = convertedPos.z + randRadius * sin(angle);
+		part.roomNumber = FindRoomNumber(Vector3i(part.x, part.y, part.z));
+
+		part.xVel = convertedDir.x * 32;
+		part.yVel = convertedDir.y * 32;
+		part.zVel = convertedDir.z * 32;
+
+		part.rotAng = ANGLE(0.0f) >> 4;
+		part.rotAdd = ANGLE(0.0f) >> 4;
+
+		// Other properties
+		part.friction = convertedFriction;
+		part.maxYvel = 0;
+		part.gravity = 0;
+		part.flags = SP_SCALE | SP_ROTATE | SP_DEF | SP_EXPDEF;
+		part.scalar = 2;
+		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
+	}
+
+	/// Make an explosion. Does not hurt Lara
+	// @function MakeExplosion 
+	// @tparam Vec3 pos World position.
+	// @tparam[opt=512] float size Size of the shockwave if enabled.
+	// @tparam[opt=false] bool shockwave If true, creates a very faint shockwave which will not hurt Lara.
+	// For underwater rooms, it creates a splash if `pos` is near the surface. Shockwave uses `mainColor` if provided.
+	// @tparam[opt] Color mainColor Main color of the explosion and the shockwave. If not provided, default explosion color will be used. Must be provided for colored explosions.
+	// @tparam[opt] Color additionalColor Additional color of the explosion. If provided, explosion would randomly use the main or the additional color. If not provided, only main color will be used.
+	static void MakeExplosion(Vec3 pos, TypeOrNil<float> size, TypeOrNil<bool> shockwave, TypeOrNil<ScriptColor> mainColor, TypeOrNil<ScriptColor> additionalColor)
+	{
+		auto convertedShockwave = ValueOr<bool>(shockwave, false);
+		auto convertedSize = ValueOr<float>(size, 512.0f);
+
+		auto convertedMainColor = ValueOr<ScriptColor>(mainColor, ScriptColor(0, 0, 0));
+		auto convertedAdditionalColor = ValueOr<ScriptColor>(additionalColor, convertedMainColor);
+
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		const auto& room = g_Level.Rooms[roomNumber];
+
+		if (room.flags & ENV_FLAG_WATER)
+			TriggerUnderwaterExplosion(pos.ToVector3(), ValueOr<bool>(shockwave, false), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+		else
+		{
+			TriggerExplosionSparks(pos.x, pos.y, pos.z, 3, -2, 0, FindRoomNumber(Vector3i(pos.x, pos.y, pos.z)), Vector3(convertedMainColor), Vector3(convertedAdditionalColor));
+
+			if (convertedShockwave)
+			{
+				auto shockPos = Pose(Vector3i(pos));
+
+				if (Vector3(convertedMainColor) == Vector3::Zero)
+					TriggerShockwave(&shockPos, 0, convertedSize, 64, 128, 96, 0, 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+				else
+					TriggerShockwave(&shockPos, 0, convertedSize, 64, convertedMainColor.GetR(), convertedMainColor.GetG(), convertedMainColor.GetB(), 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+			}
+
+		}
+	}
+
+	/// Make an earthquake.
+	// @function MakeEarthquake 
+	// @tparam[opt=100] int strength How strong should the earthquake be? Increasing this value also increases the lifespan of the earthquake.
+	static void Earthquake(TypeOrNil<int> strength)
+	{
+		int str = ValueOr<int>(strength, 100);
+		g_Camera.bounce = -str;
+	}
+
+	/// Get the wind vector for the current game frame.
+	// This represents the 3D displacement applied by the engine on things like particles affected by wind.
+	// @function GetWind()
+	// @treturn Vec3 Wind vector.
+	static Vec3 GetWind()
+	{
+		return Vec3(Weather.Wind());
+	}
+
 	void Register(sol::state* state, sol::table& parent) 
 	{
 		auto tableEffects = sol::table(state->lua_state(), sol::create);
@@ -594,11 +747,13 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitShockwave, &EmitShockwave);
 		tableEffects.set_function(ScriptReserved_EmitLight, &EmitLight);
 		tableEffects.set_function(ScriptReserved_EmitSpotLight, &EmitSpotLight);
+		tableEffects.set_function(ScriptReserved_EmitFogBulb, &EmitFogBulb);
 		tableEffects.set_function(ScriptReserved_EmitBlood, &EmitBlood);
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
-
+		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
+		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);

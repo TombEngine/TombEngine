@@ -20,7 +20,7 @@ namespace TEN::Scripting::Types
 		static void Register(sol::table& parent);
 
 		// Constructors
-
+		ScriptColor();
 		ScriptColor(byte r, byte g, byte b);
 		ScriptColor(byte r, byte g, byte b, byte a);
 		ScriptColor(const Vector3& color);
@@ -40,6 +40,10 @@ namespace TEN::Scripting::Types
 		void SetG(byte value);
 		void SetB(byte value);
 		void SetA(byte value);
+
+		// Methods
+
+		ScriptColor PremultiplyAlpha();
 
 		// Converters
 

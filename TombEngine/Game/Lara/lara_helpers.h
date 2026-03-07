@@ -46,6 +46,7 @@ void HandlePlayerSwimTurnFlex(ItemInfo& item, float alpha);
 void HandlePlayerTurn(ItemInfo& item, float turnAlpha, short leanAngleMax, bool isStrafing, int flags, short yAngleOffset = ANGLE(0.0f));
 void HandlePlayerUpJumpShift(ItemInfo& item);
 void HandlePlayerFlyCheat(ItemInfo& item);
+void HandlePlayerExtraAnim(ItemInfo& item);
 void HandlePlayerWetnessDrips(ItemInfo& item);
 void HandlePlayerDiveBubbles(ItemInfo& item);
 void HandlePlayerAirBubbles(ItemInfo* item);

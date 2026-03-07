@@ -6,8 +6,10 @@
 #include "Sound/sound_effects.h"
 
 constexpr auto SOUND_NO_CHANNEL              = -1;
-constexpr auto SOUND_BASS_UNITS              = 1.0f / 1024.0f;	// TR->BASS distance unit coefficient
-constexpr auto SOUND_MAXVOL_RADIUS           = 1024.0f;		// Max. volume hearing distance
+constexpr auto SOUND_SAMPLE_RATE             = 44100;
+constexpr auto SOUND_CHANNEL_COUNT           = 2;
+constexpr auto SOUND_BASS_UNITS              = 1.0f / 420.0f;	// TR->BASS distance unit coefficient (in meters)
+constexpr auto SOUND_MAXVOL_RADIUS           = 1024.0f;			// Max. volume hearing distance
 constexpr auto SOUND_OMNIPRESENT_ORIGIN      = Vector3(1.17549e-038f, 1.17549e-038f, 1.17549e-038f);
 constexpr auto SOUND_MAX_SAMPLES             = 8192;
 constexpr auto SOUND_MAX_CHANNELS            = 32;
@@ -161,11 +163,11 @@ void FreeSamples();
 void StopAllSounds();
 void PauseAllSounds(SoundPauseMode mode);
 void ResumeAllSounds(SoundPauseMode mode);
-void SayNo();
 void PlaySoundSources();
+void SayNo(std::optional<Vector3i> referencePosition = std::nullopt);
 int  GetShatterSound(int shatterID);
 
-void PlaySoundTrack(const std::string& trackName, SoundTrackType mode, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
+void PlaySoundTrack(const std::string& trackName, SoundTrackType type, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
 void PlaySoundTrack(const std::string& trackName, short mask = 0);
 void PlaySoundTrack(int index, short mask = 0);
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime);
@@ -174,11 +176,14 @@ void ClearSoundTrackMasks();
 void PlaySecretTrack();
 void EnumerateLegacyTracks();
 void LoadSubtitles(const std::string& path);
-float GetSoundTrackLoudness(SoundTrackType mode);
+float GetSoundTrackLoudness(SoundTrackType type);
 std::optional<std::string> GetCurrentSubtitle();
 std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
 
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData);
+
+void Sound_VideoPlayCallback(void* opaque, const void* samples, unsigned count, int64_t pts);
+void Sound_VideoFlushCallback(void* data, int64_t pts);
 
 void  SetVolumeTracks(int vol);
 void  SetVolumeFX(int vol);
@@ -191,7 +196,7 @@ void  Sound_FreeSample(int index);
 int   Sound_GetFreeSlot();
 void  Sound_FreeSlot(int index, unsigned int fadeout = 0);
 int   Sound_EffectIsPlaying(int effectID, Pose *position);
-int   Sound_TrackIsPlaying(const std::string& fileName);
+int   Sound_TrackIsPlaying(const std::string& fileName, std::optional<SoundTrackType> type = std::nullopt);
 float Sound_DistanceToListener(Pose *position);
 float Sound_DistanceToListener(Vector3 position);
 float Sound_Attenuate(float gain, float distance, float radius);

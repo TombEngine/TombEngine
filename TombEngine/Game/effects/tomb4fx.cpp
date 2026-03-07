@@ -2,7 +2,7 @@
 #include "Game/effects/tomb4fx.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
@@ -17,12 +17,14 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
@@ -32,6 +34,7 @@ using namespace TEN::Effects::Splash;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
+using namespace TEN::Math::Random;
 using TEN::Renderer::g_Renderer;
 
 // NOTE: This fixes body part exploding instantly if entity is on ground.
@@ -95,7 +98,7 @@ int GetFreeFireSpark()
 
 void TriggerGlobalStaticFlame()
 {
-	FIRE_SPARKS* spark = &FireSparks[0];
+	auto* spark = &FireSparks[0];
 
 	spark->on = true;
 	spark->dR = spark->sR = (GetRandomControl() & 0x3F) - 64;
@@ -107,6 +110,7 @@ void TriggerGlobalStaticFlame()
 	spark->fadeToBlack = 0;
 	spark->life = 8;
 	spark->sLife = 8;
+	spark->rotAng = 2048;
 	spark->position = Vector3i(
 		(GetRandomControl() & 7) - 4,
 		0,
@@ -122,7 +126,7 @@ void TriggerGlobalStaticFlame()
 
 void TriggerGlobalFireSmoke()
 {
-	FIRE_SPARKS* spark = &FireSparks[GetFreeFireSpark()];
+	auto* spark = &FireSparks[GetFreeFireSpark()];
 
 	spark->on = 1;
 	spark->sR = 0;
@@ -167,7 +171,7 @@ void TriggerGlobalFireSmoke()
 
 void TriggerGlobalFireFlame()
 {
-	FIRE_SPARKS* spark = &FireSparks[GetFreeFireSpark()];
+	auto* spark = &FireSparks[GetFreeFireSpark()];
 
 	spark->on = true;
 	spark->sR = 255;
@@ -377,11 +381,17 @@ void UpdateFireProgress()
 
 void AddFire(int x, int y, int z, short roomNum, float size, short fade)
 {
+	AddFire(Vector3i(x, y, z), roomNum, Vector4::One, size, fade);
+}
+
+void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
+{
 	FIRE_LIST newFire;
 	
 	newFire.fade = (fade == 0 ? 1 : (unsigned char)fade);
-	newFire.position = Vector3i(x, y, z);
-	newFire.roomNumber = roomNum;
+	newFire.position = pos;
+	newFire.roomNumber = roomNumber;
+	newFire.color = color;
 	newFire.size = size;
 	newFire.StoreInterpolationData();
 	
@@ -393,8 +403,18 @@ void ClearFires()
 	Fires.clear();
 }
 
-void UpdateFireSparks()
+void UpdateFireSparks(bool recursive)
 {
+	// Fast-forward fire progress on level start.
+	if (!recursive && (JustLoaded || SaveGame::Statistics.Level.TimeTaken.GetFrameCount() == 0))
+	{
+		for (int i = 0; i < FPS; i++)
+		{
+			UpdateWibble();
+			UpdateFireSparks(true);
+		}
+	}
+
 	UpdateFireProgress();
 
 	for (int i = 0; i < MAX_SPARKS_FIRE; i++)
@@ -956,41 +976,12 @@ void UpdateGunFlashes()
 		if ((hand ? Lara.RightArm.GunFlash : Lara.LeftArm.GunFlash) == 0)
 			continue;
 
-		auto& part = *GetFreeParticle();
-
-		part.on = true;
-		part.SpriteSeqID = ID_DEFAULT_SPRITES;
-		part.SpriteID = 11;
-		part.blendMode = BlendMode::Additive;
-
 		auto offset = settings.MuzzleOffset.ToVector3i();
 		if (!hand)
 			offset.x = -offset.x;
 
 		auto pos = GetJointPosition(LaraItem, hand ? LM_RHAND : LM_LHAND, offset);
-		part.x = pos.x;
-		part.y = pos.y;
-		part.z = pos.z;
-		part.roomNumber = LaraItem->RoomNumber;
-
-		part.rotAng = ANGLE(TO_DEGREES(Random::GenerateAngle())) >> 4;
-		part.rotAdd = 0;
-
-		part.sSize = part.size = part.dSize = 192;
-		part.scalar = 2;
-
-		part.xVel = part.yVel = part.zVel = 0;
-		part.gravity = part.friction = part.maxYvel = 0;
-
-		part.sR = part.dR = settings.FlashColor.GetR() / 2;
-		part.sG = part.dG = settings.FlashColor.GetG() / 2;
-		part.sB = part.dB = settings.FlashColor.GetB() / 2;
-
-		part.life = part.sLife = 2;
-		part.colFadeSpeed = 1;
-		part.fadeToBlack  = 1;
-
-		part.flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+		TriggerGlow(GameVector(pos, LaraItem->RoomNumber), (Vector3)settings.FlashColor / 2, 192);
 	}
 }
 
@@ -1099,12 +1090,12 @@ void AddWaterSparks(int x, int y, int z, int num)
 		auto* spark = GetFreeParticle();
 
 		spark->on = 1;
-		spark->sR = 127;
-		spark->sG = 127;
-		spark->sB = 127;
-		spark->dR = 48;
-		spark->dG = 48;
-		spark->dB = 48;
+		spark->sR = 227;
+		spark->sG = 227;
+		spark->sB = 227;
+		spark->dR = 148;
+		spark->dG = 148;
+		spark->dB = 148;
 		spark->colFadeSpeed = 4;
 		spark->fadeToBlack = 8;
 		spark->life = 10;
@@ -1159,42 +1150,52 @@ void SomeSparkEffect(int x, int y, int z, int count)
 	}
 }
 
-void TriggerUnderwaterExplosion(ItemInfo* item, int flag)
+void TriggerUnderwaterExplosion(ItemInfo* item, bool splash)
 {
-	if (flag)
-	{
-		int x = (GetRandomControl() & 0x1FF) + item->Pose.Position.x - CLICK(1);
-		int y = item->Pose.Position.y;
-		int z = (GetRandomControl() & 0x1FF) + item->Pose.Position.z - CLICK(1);
+	auto position = item->Pose.Position.ToVector3();
 
-		TriggerExplosionBubbles(x, y, z, item->RoomNumber);
-		TriggerExplosionSparks(x, y, z, 2, -1, 1, item->RoomNumber);
+	TriggerUnderwaterExplosion(position, splash);
+}
 
-		int waterHeight = GetPointCollision(Vector3i(x, y, z), item->RoomNumber).GetWaterTopHeight();
-		if (waterHeight != NO_HEIGHT)
-			SomeSparkEffect(x, waterHeight, z, 8);
-	}
-	else
+void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& mainColor, const Vector3& secondColor)
+{
+	int roomNumber = FindRoomNumber(position);
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	if (splash)
 	{
-		TriggerExplosionBubble(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, item->RoomNumber);
-		TriggerExplosionSparks(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 2, -2, 1, item->RoomNumber);
+		TriggerExplosionBubble(position.x, position.y, position.z, roomNumber, mainColor, secondColor);
+		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, roomNumber, mainColor, secondColor);
 
 		for (int i = 0; i < 3; i++)
-			TriggerExplosionSparks(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 2, -1, 1, item->RoomNumber);
+			TriggerExplosionSparks(position.x, position.y, position.z, 2, -1, 1, roomNumber, mainColor, secondColor);
 
-		int waterHeight = GetPointCollision(*item).GetWaterTopHeight();
+		int waterHeight = GetPointCollision(position, roomNumber).GetWaterTopHeight();
 		if (waterHeight != NO_HEIGHT)
 		{
-			int dy = item->Pose.Position.y - waterHeight;
+			int dy = position.y - waterHeight;
 			if (dy < 2048)
 			{
-				SplashSetup.Position = Vector3(item->Pose.Position.x, waterHeight, item->Pose.Position.z);
+				SplashSetup.Position = Vector3(position.x, waterHeight, position.z);
 				SplashSetup.InnerRadius = 160;
 				SplashSetup.SplashPower = 2048 - dy;
 
-				SetupSplash(&SplashSetup, item->RoomNumber);
+				SetupSplash(&SplashSetup, roomNumber);
 			}
 		}
+	}
+	else
+	{
+		int x = (GetRandomControl() & 0x1FF) + position.x - CLICK(1);
+		int y = position.y;
+		int z = (GetRandomControl() & 0x1FF) + position.z - CLICK(1);
+
+		TriggerExplosionBubbles(x, y, z, roomNumber, mainColor, secondColor);
+		TriggerExplosionSparks(x, y, z, 2, -1, 1, roomNumber, mainColor, secondColor);
+
+		int waterHeight = GetPointCollision(Vector3i(x, y, z), roomNumber).GetWaterTopHeight();
+		if (waterHeight != NO_HEIGHT)
+			SomeSparkEffect(x, waterHeight, z, 8);
 	}
 }
 
@@ -1202,7 +1203,7 @@ void ExplodeVehicle(ItemInfo* laraItem, ItemInfo* vehicle)
 {
 	if (g_Level.Rooms[vehicle->RoomNumber].flags & ENV_FLAG_WATER)
 	{
-		TriggerUnderwaterExplosion(vehicle, 1);
+		TriggerUnderwaterExplosion(vehicle, false);
 	}
 	else
 	{
@@ -1245,25 +1246,23 @@ void ExplodingDeath(short itemNumber, short flags)
 
 	for (int i = 0; i < obj->nmeshes; i++)
 	{
-		Matrix boneMatrix;
-		g_Renderer.GetBoneMatrix(itemNumber, i, &boneMatrix);
-		boneMatrix = world * boneMatrix;
-
 		if (!item->MeshBits.Test(i))
 			continue;
 
 		item->MeshBits.Clear(i);
 
-		if (i == 0 ||  ((GetRandomControl() & 3) != 0 && (flags & BODY_DO_EXPLOSION)))
+		if (i == 0 || ((GetRandomControl() & 3) != 0 && (flags & BODY_DO_EXPLOSION)))
 		{
+			auto bonePos = GetJointPosition(item, i, Vector3i::Zero);
+
 			short fxNumber = CreateNewEffect(item->RoomNumber);
 			if (fxNumber != NO_VALUE)
 			{
-				FX_INFO* fx = &EffectList[fxNumber];
+				auto* fx = &EffectList[fxNumber];
 
-				fx->pos.Position.x = boneMatrix.Translation().x;
-				fx->pos.Position.y = boneMatrix.Translation().y - BODY_PART_SPAWN_VERTICAL_OFFSET;
-				fx->pos.Position.z = boneMatrix.Translation().z;
+				fx->pos.Position.x = bonePos.x;
+				fx->pos.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
+				fx->pos.Position.z = bonePos.z;
 
 				fx->roomNumber = item->RoomNumber;
 				fx->pos.Orientation.x = 0;
@@ -1448,7 +1447,7 @@ void UpdateShockwaves()
 
 		if (LaraItem->HitPoints > 0 && shockwave.damage)
 		{
-			const auto& bounds = GetBestFrame(*LaraItem).BoundingBox;
+			const auto& bounds = GetClosestKeyframe(*LaraItem).BoundingBox;
 			int dx = LaraItem->Pose.Position.x - shockwave.x;
 			int dz = LaraItem->Pose.Position.z - shockwave.z;
 			float dist = sqrt(SQUARE(dx) + SQUARE(dz));
@@ -1470,20 +1469,35 @@ void UpdateShockwaves()
 	}
 }
 
-void TriggerExplosionBubble(int x, int y, int z, short roomNumber)
+void TriggerExplosionBubble(int x, int y, int z, short roomNumber, const Vector3& mainColor, const Vector3& secondColor)
 {
 	constexpr auto BUBBLE_COUNT = 24;
 	auto* spark = GetFreeParticle();
 
-	spark->sR = 128;
-	spark->dR = 128;
-	spark->dG = 128;
-	spark->dB = 128;
+	if (mainColor == Vector3::Zero)
+	{
+		spark->sR = 128;
+		spark->sG = 64;
+		spark->sB = 0;
+		spark->dR = 128;
+		spark->dG = 128;
+		spark->dB = 128;
+	}
+	else
+	{
+		auto [colorS, colorD] = GenerateColorShift(mainColor, secondColor);
+
+		spark->sR = colorS[0];
+		spark->sG = colorS[1];
+		spark->sB = colorS[2];
+		spark->dR = colorD[0];
+		spark->dG = colorD[1];
+		spark->dB = colorD[2];
+	}
+
 	spark->on = 1;
 	spark->life = 24;
 	spark->sLife = 24;
-	spark->sG = 64;
-	spark->sB = 0;
 	spark->colFadeSpeed = 8;
 	spark->fadeToBlack = 12;
 	spark->blendMode = BlendMode::Additive;

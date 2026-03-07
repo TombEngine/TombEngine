@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_climb.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
@@ -15,6 +15,7 @@
 #include "Specific/level.h"
 #include "Specific/configuration.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Config;
 using namespace TEN::Input;
@@ -43,10 +44,10 @@ void lara_as_climb_end(ItemInfo* item, CollisionInfo* coll)
 
 void lara_col_climb_down(ItemInfo* item, CollisionInfo* coll)
 {
-	if (LaraCheckForLetGo(item, coll) || !TestAnimNumber(*item, LA_LADDER_DOWN))
+	if (LaraCheckForLetGo(item, coll) || item->Animation.AnimNumber != LA_LADDER_DOWN)
 		return;
 
-	int frame = item->Animation.FrameNumber - GetAnimData(item->ObjectNumber, LA_LADDER_DOWN).frameBase;
+	int frame = item->Animation.FrameNumber;
 	int yShift = 0;
 
 	switch (frame)
@@ -131,9 +132,9 @@ void lara_as_climb_down(ItemInfo* item, CollisionInfo* coll)
 
 void lara_col_climb_up(ItemInfo* item, CollisionInfo* coll)
 {
-	if (!LaraCheckForLetGo(item, coll) && TestAnimNumber(*item, LA_LADDER_UP))
+	if (!LaraCheckForLetGo(item, coll) && item->Animation.AnimNumber == LA_LADDER_UP)
 	{
-		int frame = item->Animation.FrameNumber - GetAnimData(item->ObjectNumber, LA_LADDER_UP).frameBase;
+		int frame = item->Animation.FrameNumber;
 		int yShift;
 		int resultRight, resultLeft;
 		int shiftRight, shiftLeft;
@@ -540,30 +541,17 @@ void LaraDoClimbLeftRight(ItemInfo* item, CollisionInfo* coll, int result, int s
 		return;
 	}
 
-	if (IsHeld(In::Left))
+	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
-		short troomnumber = item->RoomNumber;
-		int dx = int(sin(TO_RAD(item->Pose.Orientation.y - ANGLE(90.0f))) * 10);
-		int dz = int(cos(TO_RAD(item->Pose.Orientation.y - ANGLE(90.0f))) * 10);
-		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
-			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
-		{
-			item->Animation.TargetState = LS_LADDER_DISMOUNT_LEFT;
-			item->Animation.ActiveState = LS_MISC_CONTROL;
-		}
-	}
-	else if (IsHeld(In::Right))
-	{
-		short troomnumber = item->RoomNumber;
-		int dx = int(sin(TO_RAD(item->Pose.Orientation.y + ANGLE(90.0f))) * 10);
-		int dz = int(cos(TO_RAD(item->Pose.Orientation.y + ANGLE(90.0f))) * 10);
-		int height = GetFloorHeight(GetFloor(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz, &troomnumber),
-			item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z) - item->Pose.Position.y;
+		int sign = IsHeld(In::Left) ? -1 : 1;
+		int dx = int(sin(TO_RAD(item->Pose.Orientation.y + (ANGLE(90.0f) * sign)) * 10));
+		int dz = int(cos(TO_RAD(item->Pose.Orientation.y + (ANGLE(90.0f) * sign)) * 10));
+		auto point = GetPointCollision(Vector3i(item->Pose.Position.x + dx, item->Pose.Position.y, item->Pose.Position.z + dz), item->RoomNumber);
+		int height = point.GetFloorHeight() - item->Pose.Position.y;
 
-		if (height < CLICK(1.5f)) // LADDER dismounts (left/right)
+		if (!point.IsSteepFloor() && !point.GetBottomSector().Flags.Death && height < CLICK(1.5f))
 		{
-			item->Animation.TargetState = LS_LADDER_DISMOUNT_RIGHT;
+			item->Animation.TargetState = IsHeld(In::Left) ? LS_LADDER_DISMOUNT_LEFT : LS_LADDER_DISMOUNT_RIGHT;
 			item->Animation.ActiveState = LS_MISC_CONTROL;
 		}
 	}
@@ -984,8 +972,8 @@ bool LaraCheckForLetGo(ItemInfo* item, CollisionInfo* coll)
 	item->Animation.Velocity.y = 0;
 	item->Animation.IsAirborne = false;
 
-	lara->Control.ToggleClimb = g_Config.EnableClimbToggle;
-	if (IsClicked(In::Action) && g_Config.EnableClimbToggle)
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
 		lara->Control.ToggleClimb = false;
 
 	if (HasClimbAction(*item) && item->HitPoints > 0 || item->Animation.AnimNumber == LA_ONWATER_TO_LADDER) // Can't let go on this anim

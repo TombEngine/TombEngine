@@ -21,8 +21,8 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int NumLights;
 		int LightMode;
-		int Padding1;
-		int Padding2;
+		int ApplyFogBulbs;
+		int InstancedStaticMeshPadding0;
 	};
 
 	struct alignas(16) CInstancedStaticMeshBuffer

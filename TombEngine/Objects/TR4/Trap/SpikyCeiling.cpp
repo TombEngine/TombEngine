@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/SpikyCeiling.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -13,6 +13,8 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Sphere;
 
 namespace TEN::Entities::Traps
@@ -91,7 +93,7 @@ namespace TEN::Entities::Traps
 		if (TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
 		{
 			DoDamage(playerItem, SPIKY_CEILING_HARM_DAMAGE);
-			DoLotsOfBlood(playerItem->Pose.Position.x, playerItem->Pose.Position.y + CLICK(3), playerItem->Pose.Position.z, 4, playerItem->Pose.Orientation.y, playerItem->RoomNumber, 3);
+			DoLotsOfBlood(playerItem->Pose.Position.x, playerItem->Pose.Position.y - CLICK(3), playerItem->Pose.Position.z, 4, playerItem->Pose.Orientation.y, playerItem->RoomNumber, 3);
 			playerItem->TouchBits.ClearAll();
 
 			SoundEffect(SFX_TR4_LARA_GRABFEET, &playerItem->Pose);

@@ -6,6 +6,7 @@
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
@@ -23,10 +24,12 @@
 #include "Objects/TR4/Vehicles/jeep.h"
 #include "Objects/TR4/Vehicles/motorbike.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Player;
 using namespace TEN::Hud;
+using namespace TEN::Utils;
 
 // Globals
 int					PlayerHitPoints		  = 0;
@@ -62,15 +65,12 @@ void InitializeLara(bool restore)
 
 	LaraItem->Data = &Lara;
 	LaraItem->Collidable = false;
-
-	Lara.Context.Vehicle = NO_VALUE;
-	Lara.Context.WaterSurfaceDist = 100;
+	
+	Lara.Context = PlayerContext(*LaraItem, LaraCollision);
 	Lara.Control.HeadingOrientTarget.y = LaraItem->Pose.Orientation.y;
 	Lara.Control.RefCameraOrient = EulerAngles(g_Camera.actualElevation, g_Camera.actualAngle, 0);
-	Lara.Control.HandStatus = HandStatus::Free;
-	Lara.Control.Look.Mode = LookMode::None;
-	Lara.Control.Rope.Ptr = NO_VALUE;
-	Lara.Control.Weapon.WeaponItem = NO_VALUE;
+
+	LaraItem->HitPoints = LARA_HEALTH_MAX;
 	Lara.Status.Air = LARA_AIR_MAX;
 	Lara.Status.Exposure = LARA_EXPOSURE_MAX;
 	Lara.Status.Poison = 0;
@@ -177,7 +177,7 @@ void InitializeLaraStartPosition(ItemInfo& playerItem)
 		if (playerItem.RoomNumber != item.RoomNumber)
 			ItemNewRoom(playerItem.Index, item.RoomNumber);
 
-		TENLog("Player start position has been set according to start position of object with ID " + std::to_string(item.TriggerFlags) + ".", LogLevel::Info);
+		TENLog(fmt::format("Player start position has been set according to start position of object with ID {}.", item.TriggerFlags), LogLevel::Info);
 		break;
 	}
 
@@ -195,7 +195,7 @@ void InitializePlayerVehicle(ItemInfo& playerItem)
 		return;
 
 	// Restore vehicle.
-	TENLog("Transferring vehicle " + GetObjectName(PlayerVehicleObjectID) + " from the previous level.");
+	TENLog(fmt::format("Transferring vehicle {} from the previous level.", GetObjectName(PlayerVehicleObjectID)));
 	vehicle->Pose = playerItem.Pose;
 	SetLaraVehicle(&playerItem, vehicle);
 	playerItem.Animation = PlayerAnim;
@@ -310,8 +310,6 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 
 	auto& player = GetLaraInfo(item);
 
-	item.HitPoints = LARA_HEALTH_MAX;
-
 	if (Objects[ID_FLARE_INV_ITEM].loaded)
 		player.Inventory.TotalFlares = DEFAULT_FLARE_COUNT;
 
@@ -352,6 +350,8 @@ void InitializeLaraDefaultInventory(ItemInfo& item)
 
 	if (player.Weapons[(int)LaraWeaponType::Pistol].Present)
 	{
+		InitializeNewWeapon(item);
+		player.LeftArm.AnimNumber = player.RightArm.AnimNumber = 1;
 		player.Control.Weapon.HolsterInfo.LeftHolster =
 		player.Control.Weapon.HolsterInfo.RightHolster = HolsterSlot::Pistols;
 	}

@@ -32,6 +32,7 @@ namespace TEN::Renderer
 		bufferToFill.Projection = Camera.Projection;
 		bufferToFill.View = Camera.View;
 		bufferToFill.ViewProjection = Camera.ViewProjection;
+		bufferToFill.InverseView = Camera.View.Invert();
 		bufferToFill.InverseProjection = Camera.Projection.Invert();
 		bufferToFill.CamDirectionWS = Vector4(Camera.WorldDirection);
 		bufferToFill.CamPositionWS = Vector4(Camera.WorldPosition);
@@ -59,17 +60,26 @@ namespace TEN::Renderer
 
 	RenderViewCamera::RenderViewCamera(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height)
 	{
-		auto target = camera.LookAt;
-		if ((target - WorldPosition) == Vector3::Zero)
-			target.y -= 10.0f;
+		RoomNumber = cam->RoomNumber;
+		WorldPosition = Vector3(cam->Position.x, cam->Position.y, cam->Position.z);
 
-		auto dir = target - camera.Position;
-		dir.Normalize();
-		target = Geometry::TranslatePoint(target, dir, camera.Radius);
+		auto target = Vector3(cam->LookAt.x, cam->LookAt.y, cam->LookAt.z);
+		
+		// Safety clamps to avoid NaNs in view direction calculation.
+		auto rawDirection = target - WorldPosition;
 
-		auto rotMatrix = Matrix::CreateFromYawPitchRoll(0.0f, 0.0f, roll);
-		auto up = -Vector3::UnitY;
-		up = Vector3::Transform(up, rotMatrix);
+		if (rawDirection == Vector3::Zero)
+			target.y -= 10;
+
+		if (std::abs(rawDirection.x) < EPSILON && std::abs(rawDirection.z) < EPSILON)
+			target.x -= 1;
+
+		WorldDirection = target - WorldPosition;
+		WorldDirection.Normalize();
+		
+		Vector3 up = -Vector3::UnitY;
+		Matrix upRotation = Matrix::CreateFromAxisAngle(WorldDirection, roll);
+		up = Vector3::Transform(up, upRotation);
 		up.Normalize();
 
 		RoomNumber = camera.RoomNumber;

@@ -8,6 +8,7 @@
 #include "Math/Math.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
+#include "Specific/Parallel.h"
 
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Math;
@@ -16,7 +17,7 @@ using namespace TEN::Renderer;
 ShatterImpactInfo ShatterImpactData;
 SHATTER_ITEM ShatterItem;
 short SmashedMeshCount;
-MESH_INFO* SmashedMesh[32];
+StaticMesh* SmashedMesh[32];
 short SmashedMeshRoom[32];
 std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
@@ -57,7 +58,7 @@ DebrisFragment* GetFreeDebrisFragment()
 	return nullptr;
 }
 
-void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumber, int noZXVel)
+void ShatterObject(SHATTER_ITEM* item, StaticMesh* mesh, int num, short roomNumber, int noZXVel)
 {
 	int meshIndex = 0;
 	short yRot = 0;
@@ -67,17 +68,17 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 	if (mesh)
 	{
-		if (!(mesh->flags & StaticMeshFlags::SM_VISIBLE))
+		if (!(mesh->Flags & StaticMeshFlags::SM_VISIBLE))
 			return;
 
 		isStatic = true;
-		meshIndex = Statics[mesh->staticNumber].meshNumber;
-		yRot = mesh->pos.Orientation.y;
-		pos = Vector3(mesh->pos.Position.x, mesh->pos.Position.y, mesh->pos.Position.z);
-		scale = mesh->pos.Scale;
+		meshIndex = Statics[mesh->Slot].meshNumber;
+		yRot = mesh->Pose.Orientation.y;
+		pos = Vector3(mesh->Pose.Position.x, mesh->Pose.Position.y, mesh->Pose.Position.z);
+		scale = mesh->Pose.Scale;
 
 		if (mesh->HitPoints <= 0)
-			mesh->flags &= ~StaticMeshFlags::SM_VISIBLE;
+			mesh->Flags &= ~StaticMeshFlags::SM_VISIBLE;
 
 		SmashedMeshRoom[SmashedMeshCount] = roomNumber;
 		SmashedMesh[SmashedMeshCount] = mesh;
@@ -129,25 +130,25 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				Matrix rotationMatrix = Matrix::CreateFromYawPitchRoll(TO_RAD(yRot), 0, 0);
 
-				Vector3 pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
-				Vector3 pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
-				Vector3 pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
+				auto pos1 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 0]]] * scale;
+				auto pos2 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 1]]] * scale;
+				auto pos3 = fragmentsMesh->positions[poly->indices[indices[j * 3 + 2]]] * scale;
 
-				Vector2 uv1 = poly->textureCoordinates[indices[j * 3 + 0]];
-				Vector2 uv2 = poly->textureCoordinates[indices[j * 3 + 1]];
-				Vector2 uv3 = poly->textureCoordinates[indices[j * 3 + 2]];
+				auto uv1 = poly->textureCoordinates[indices[j * 3 + 0]];
+				auto uv2 = poly->textureCoordinates[indices[j * 3 + 1]];
+				auto uv3 = poly->textureCoordinates[indices[j * 3 + 2]];
 
-				Vector3 normal1 = poly->normals[indices[j * 3 + 0]];
-				Vector3 normal2 = poly->normals[indices[j * 3 + 1]];
-				Vector3 normal3 = poly->normals[indices[j * 3 + 2]];
+				auto normal1 = poly->normals[indices[j * 3 + 0]];
+				auto normal2 = poly->normals[indices[j * 3 + 1]];
+				auto normal3 = poly->normals[indices[j * 3 + 2]];
 
-				Vector3 color1 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 0]]];
-				Vector3 color2 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 1]]];
-				Vector3 color3 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 2]]];
+				auto color1 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 0]]];
+				auto color2 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 1]]];
+				auto color3 = fragmentsMesh->colors[poly->indices[indices[j * 3 + 2]]];
 
-				//Take the average of all 3 local positions
-				Vector3 localPos = (pos1 + pos2 + pos3) / 3;
-				Vector3 worldPos = Vector3::Transform(localPos, rotationMatrix);
+				// Take the average of all 3 local positions
+				auto localPos = (pos1 + pos2 + pos3) / 3;
+				auto worldPos = Vector3::Transform(localPos, rotationMatrix);
 
 				fragment->worldPosition = worldPos + pos;
 
@@ -169,6 +170,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 
 				fragment->mesh.blendMode = renderBucket.blendMode;
 				fragment->mesh.tex = renderBucket.texture;
+				fragment->mesh.Animated = renderBucket.animated;
 
 				fragment->isStatic = isStatic;
 				fragment->active = true;
@@ -182,7 +184,7 @@ void ShatterObject(SHATTER_ITEM* item, MESH_INFO* mesh, int num, short roomNumbe
 				fragment->velocity = CalculateFragmentImpactVelocity(fragment->worldPosition, ShatterImpactData.impactDirection, ShatterImpactData.impactLocation);
 				fragment->roomNumber = roomNumber;
 				fragment->numBounces = 0;
-				fragment->color = isStatic ? mesh->color : item->color;
+				fragment->color = isStatic ? mesh->Color : item->color;
 				fragment->lightMode = fragmentsMesh->lightMode;
 
 				fragment->UpdateTransform();
@@ -216,14 +218,16 @@ void DisableDebris()
 
 void UpdateDebris()
 {
-	for (auto& deb : DebrisFragments)
+	auto updateDebris = [&](int start, int end)
 	{
-		if (deb.active)
+		for (int i = start; i < end; i++)
 		{
-			deb.StoreInterpolationData();
+			auto& deb = DebrisFragments[i];
 
-			FloorInfo* floor;
-			short roomNumber;
+			if (!deb.active)
+				continue;
+
+			deb.StoreInterpolationData();
 
 			deb.velocity *= deb.linearDrag;
 			deb.velocity += deb.gravity;
@@ -232,8 +236,8 @@ void UpdateDebris()
 			deb.worldPosition += deb.velocity;
 			deb.angularVelocity *= deb.angularDrag;
 
-			roomNumber = deb.roomNumber;
-			floor = GetFloor(deb.worldPosition.x, deb.worldPosition.y, deb.worldPosition.z, &roomNumber);
+			short roomNumber = deb.roomNumber;
+			auto* floor = GetFloor(deb.worldPosition.x, deb.worldPosition.y, deb.worldPosition.z, &roomNumber);
 
 			if (deb.worldPosition.y < floor->GetSurfaceHeight(deb.worldPosition.x, deb.worldPosition.z, false))
 			{
@@ -256,7 +260,7 @@ void UpdateDebris()
 					deb.active = false;
 					continue;
 				}
-				
+
 				deb.velocity.y *= -deb.restitution;
 				deb.velocity.x *= deb.friction;
 				deb.velocity.z *= deb.friction;
@@ -265,5 +269,19 @@ void UpdateDebris()
 
 			deb.UpdateTransform();
 		}
+	};
+
+	bool debrisActive = false;
+
+	for (auto& deb : DebrisFragments)
+	{
+		if (!deb.active)
+			continue;
+
+		debrisActive = true;
+		break;
 	}
+
+	if (debrisActive)
+		g_Parallel.AddTasks((int)DebrisFragments.size(), updateDebris).wait();
 }

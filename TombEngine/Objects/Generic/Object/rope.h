@@ -19,6 +19,7 @@ namespace TEN::Entities::Generic
 	struct ROPE_STRUCT
 	{
 		int room;
+		int index;
 		Vector3i position;
 
 		std::array<Vector3i, ROPE_SEGMENTS> segment			  = {};

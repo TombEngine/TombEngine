@@ -88,7 +88,7 @@ void StringsHandler::ShowString(const DisplayString& str, sol::optional<float> n
 	auto it = m_userDisplayStrings.find(str.GetID());
 	it->second._timeRemaining = numSeconds.value_or(0.0f);
 	it->second._isInfinite = !numSeconds.has_value();
-	it->second._deleteWhenZero = autoDelete.value_or(true);
+	it->second._deleteWhenZero = numSeconds.has_value() && autoDelete.value_or(true);
 }
 
 bool StringsHandler::IsStringDisplaying(const DisplayString& displayString)
@@ -132,7 +132,10 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 				if (str._flags[(size_t)DisplayStringOptions::VerticalCenter])
 					flags |= (int)PrintStringFlags::VerticalCenter;
 
-				m_callbackDrawSring(cstr, str._color, str._position, str._scale, flags);
+				if (str._flags[(size_t)DisplayStringOptions::VerticalBottom])
+					flags |= (int)PrintStringFlags::VerticalBottom;
+
+				m_callbackDrawSring(cstr, str._color, str._position, str._area, str._scale, flags);
 
 				str._timeRemaining -= deltaTime;
 			}

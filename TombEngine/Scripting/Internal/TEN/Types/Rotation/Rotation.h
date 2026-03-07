@@ -24,12 +24,14 @@ namespace TEN::Scripting
 
 		Rotation() = default;
 		Rotation(float x, float y, float z);
+		Rotation(const Vec3& dir);
 		Rotation(const Vector3& vec);
 		Rotation(const EulerAngles& eulers);
 
 		// Utilities
 
 		Rotation Lerp(const Rotation& rot, float alpha) const;
+		Rotation Signed() const;
 		Vec3	 Direction() const;
 
 		// Converters
@@ -50,6 +52,7 @@ namespace TEN::Scripting
 	private:
 		// Helpers
 
-		float WrapAngle(float angle) const;
+		float WrapToUnsignedAngle(float angle) const;
+		float WrapToSignedAngle(float angle) const;
 	};
 }

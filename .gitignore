@@ -1,10 +1,13 @@
 enc_temp_folder/
 Build/
+Documentation/doc/
+Documentation/API.xml
 TombEngine/x64/
 TombEngine/Debug/
 TombEngine/Release/
 packages/
 .vs/
+.vscode/
 .vsconfig
 *.dmp
 *.id0

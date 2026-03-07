@@ -6,6 +6,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererUtils.h"
+#include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/SMAA/AreaTex.h"
 #include "Renderer/SMAA/SearchTex.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -40,32 +41,29 @@ namespace TEN::Renderer
 
 		// Initialize render states.
 		_renderStates = std::make_unique<CommonStates>(_device.Get());
-
+	    
 		// Initialize input layout using first vertex shader.
 		D3D11_INPUT_ELEMENT_DESC inputLayoutItems[] =
 		{
 			{ "POSITION",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",               0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",               0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD",             0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "COLOR",                0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TANGENT",              0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "BINORMAL",             0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TANGENT",              0, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",               1, DXGI_FORMAT_R8G8B8A8_SNORM,     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEINDICES",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "BONEWEIGHTS",          0, DXGI_FORMAT_R8G8B8A8_UINT,      0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "ANIMATIONFRAMEOFFSET", 0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "EFFECTS",              0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "POLYINDEX",            0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "DRAWINDEX",            0, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "HASH",                 0, DXGI_FORMAT_R32_SINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+			{ "EFFECTS",              0, DXGI_FORMAT_R32_UINT,		     0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "EFFECTS",			  1, DXGI_FORMAT_R32_UINT,           0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 
 		const auto& roomShader = _shaders.Get(Shader::Rooms);
-		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 13, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
+		Utils::throwIfFailed(_device->CreateInputLayout(inputLayoutItems, 10, roomShader.Vertex.Blob->GetBufferPointer(), roomShader.Vertex.Blob->GetBufferSize(), &_inputLayout));
 
 		// Initialize constant buffers.
 		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
 		_cbItem = CreateConstantBuffer<CItemBuffer>();
-		_cbStatic = CreateConstantBuffer<CStaticBuffer>();
+		_cbSky = CreateConstantBuffer<CSkyBuffer>();
 		_cbLights = CreateConstantBuffer<CLightBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
@@ -75,14 +73,14 @@ namespace TEN::Renderer
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
 		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
+		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
 		_cbHUD = CreateConstantBuffer<CHUDBuffer>();
-		_cbSprite = CreateConstantBuffer<CSpriteBuffer>();
 		_stHUD.View = Matrix::CreateLookAt(Vector3::Zero, Vector3(0, 0, 1), Vector3(0, -1, 0));
 		_stHUD.Projection = Matrix::CreateOrthographicOffCenter(0, DISPLAY_SPACE_RES.x, 0, DISPLAY_SPACE_RES.y, 0, 1.0f);
-		_cbHUD.UpdateData(_stHUD, _context.Get());
+		UpdateConstantBuffer(_stHUD, _cbHUD);
 		_currentCausticsFrame = 0;
 
 		// Preallocate lists.
@@ -115,11 +113,11 @@ namespace TEN::Renderer
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;
 		blendStateDesc.RenderTarget[0].BlendEnable = true;
-		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_INV_DEST_COLOR;
-		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
 		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		Utils::throwIfFailed(_device->CreateBlendState(&blendStateDesc, _screenBlendState.GetAddressOf()));
@@ -141,7 +139,7 @@ namespace TEN::Renderer
 		blendStateDesc.RenderTarget[0].BlendEnable = true;
 		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_INV_DEST_COLOR;
 		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
-		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_SUBTRACT;
 		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
@@ -234,6 +232,7 @@ namespace TEN::Renderer
 		 
 		_SMAAAreaTexture = Texture2D(_device.Get(), AREATEX_WIDTH, AREATEX_HEIGHT, DXGI_FORMAT_R8G8_UNORM, AREATEX_PITCH, areaTexBytes);
 		_SMAASearchTexture = Texture2D(_device.Get(), SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, DXGI_FORMAT_R8_UNORM, SEARCHTEX_PITCH, searchTexBytes);
+		_context->Flush();
 
 		CreateSSAONoiseTexture();
 		InitializePostProcess();
@@ -243,11 +242,18 @@ namespace TEN::Renderer
 
 		_roomAmbientMapFront = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
 		_roomAmbientMapBack = RenderTarget2D(_device.Get(), ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D32_FLOAT);
+		_context->Flush();
 
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsVertices);
 		_sortedPolygonsIndexBuffer = IndexBuffer(_device.Get(), MAX_TRANSPARENT_VERTICES, _sortedPolygonsIndices);
+
+		_spriteVertices.reserve(MAX_SPRITE_VERTICES );
+		_spriteVertexBuffer = VertexBuffer<Vertex>(_device.Get(), MAX_SPRITE_VERTICES , _spriteVertices);
+
+		// Log VRAM usage after initialization.
+		TENLog(Graphics::VRAMTracker::Get().GetSummary(), LogLevel::Info);
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
@@ -322,35 +328,39 @@ namespace TEN::Renderer
 
 		//Bottom Left
 		quadVertices[0].Position = Vector3(-0.5, -0.5, 0);
-		quadVertices[0].Normal = Vector3(-1, -1, 1);
-		quadVertices[0].Normal.Normalize();
+		auto normal = Vector3(-1, -1, 1);
+		normal.Normalize();
+		quadVertices[0].Normal = PackVector3(normal);
 		quadVertices[0].UV = Vector2(0, 1);
-		quadVertices[0].Color = Vector4(1, 1, 1, 1);
-		quadVertices[0].IndexInPoly = 3;
+		quadVertices[0].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[0].Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Left 
 		quadVertices[1].Position = Vector3(-0.5, 0.5, 0);
-		quadVertices[1].Normal = Vector3(-1, 1, 1);
-		quadVertices[1].Normal.Normalize();
+		normal = Vector3(-1, 1, 1);
+		normal.Normalize();
+		quadVertices[1].Normal = PackVector3(normal);
 		quadVertices[1].UV = Vector2(0, 0);
-		quadVertices[1].Color = Vector4(1, 1, 1, 1);
-		quadVertices[1].IndexInPoly = 0;
+		quadVertices[1].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[1].Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Top Right
 		quadVertices[3].Position = Vector3(0.5, 0.5, 0);
-		quadVertices[3].Normal = Vector3(1, 1, 1);
-		quadVertices[3].Normal.Normalize();
+		normal = Vector3(1, 1, 1);
+		normal.Normalize();
+		quadVertices[3].Normal = PackVector3(normal);
 		quadVertices[3].UV = Vector2(1, 0);
-		quadVertices[3].Color = Vector4(1, 1, 1, 1);
-		quadVertices[3].IndexInPoly = 1;
+		quadVertices[3].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[3].Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
-		quadVertices[2].Normal = Vector3(1, -1, 1);
-		quadVertices[2].Normal.Normalize();
+		normal = Vector3(1, -1, 1);
+		normal.Normalize();
+		quadVertices[2].Normal = PackVector3(normal);
 		quadVertices[2].UV = Vector2(1, 1);
-		quadVertices[2].Color = Vector4(1, 1, 1, 1);
-		quadVertices[2].IndexInPoly = 2;
+		quadVertices[2].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+		quadVertices[2].Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 		_quadVertexBuffer = VertexBuffer<Vertex>(_device.Get(), 4, quadVertices.data());
 	}
@@ -383,10 +393,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -395,10 +402,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + (z + 1) * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = (z + 1) / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -407,10 +411,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = (x + 1) / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 
@@ -419,10 +420,7 @@ namespace TEN::Renderer
 				vertices[lastVertex].Position.z = -size / 2.0f + z * 512.0f;
 				vertices[lastVertex].UV.x = x / 20.0f;
 				vertices[lastVertex].UV.y = z / 20.0f;
-				vertices[lastVertex].Color.x = 1.0f;
-				vertices[lastVertex].Color.y = 1.0f;
-				vertices[lastVertex].Color.z = 1.0f;
-				vertices[lastVertex].Color.w = 1.0f;
+				vertices[lastVertex].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
 
 				lastVertex++;
 			}
@@ -437,7 +435,7 @@ namespace TEN::Renderer
 		DXGI_SWAP_CHAIN_DESC sd;
 		sd.BufferDesc.Width = w;
 		sd.BufferDesc.Height = h;
-		if (g_Config.FrameRateMode == FrameRateMode::Thirty)
+		if (g_Configuration.FrameRateMode == FrameRateMode::Thirty)
 		{
 			_refreshRate = 30;
 
@@ -489,13 +487,20 @@ namespace TEN::Renderer
 		_renderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_postProcessRenderTarget[0] = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_postProcessRenderTarget[1] = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
-		_tempRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_dumpScreenRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
-		_shadowMap = Texture2DArray(_device.Get(), Config::g_Config.ShadowMapSize, 6, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		_shadowMap = Texture2DArray(_device.Get(), Config::g_Configuration.ShadowMapSize, 6, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_depthRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R32_FLOAT, false, DXGI_FORMAT_UNKNOWN);
-		_normalsRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_normalsAndMaterialIndexRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_emissiveAndRoughnessRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAORenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SSAOBlurredRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_glowRenderTarget[0] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_glowRenderTarget[1] = RenderTarget2D(_device.Get(), w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_legacyReflectionsRenderTarget = RenderTarget2D(_device.Get(), w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+		_skyboxRenderTarget = Texture2DArray(_device.Get(), ROOM_AMBIENT_MAP_SIZE, 2, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
+
+		// Flush GPU command buffer after render target creation to prevent TDR on Intel integrated GPUs.
+		_context->Flush();
 
 		// Initialize sprite and primitive batches
 		_spriteBatch = std::make_unique<SpriteBatch>(_context.Get());
@@ -511,20 +516,15 @@ namespace TEN::Renderer
 
 		_shadowMapViewport.TopLeftX = 0;
 		_shadowMapViewport.TopLeftY = 0;
-		_shadowMapViewport.Width = Config::g_Config.ShadowMapSize;
-		_shadowMapViewport.Height = Config::g_Config.ShadowMapSize;
+		_shadowMapViewport.Width = Config::g_Configuration.ShadowMapSize;
+		_shadowMapViewport.Height = Config::g_Configuration.ShadowMapSize;
 		_shadowMapViewport.MinDepth = 0.0f;
 		_shadowMapViewport.MaxDepth = 1.0f;
 
 		_viewportToolkit = Viewport(_viewport.TopLeftX, _viewport.TopLeftY, _viewport.Width, _viewport.Height,
 			_viewport.MinDepth, _viewport.MaxDepth);
 
-		// Low AA is done with FXAA, Medium - High AA are done with SMAA.
-		if (Config::g_Config.AntialiasingMode > AntialiasingMode::Low)
-		{
-			InitializeSMAA();
-		}
-
+		InitializeSMAA();
 		SetFullScreen();
 	}
 
@@ -537,6 +537,8 @@ namespace TEN::Renderer
 		_SMAASceneSRGBRenderTarget = RenderTarget2D(_device.Get(), &_SMAASceneRenderTarget, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 		_SMAAEdgesRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_SMAABlendRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
+
+		_context->Flush();
 	}
 
 	void Renderer::InitializeCommonTextures()
@@ -552,7 +554,9 @@ namespace TEN::Renderer
 		SetTextureOrDefault(_logo, GetAssetPath(L"Textures/Logo.png"));
 		SetTextureOrDefault(_loadingBarBorder, GetAssetPath(L"Textures/LoadingBarBorder.png"));
 		SetTextureOrDefault(_loadingBarInner, GetAssetPath(L"Textures/LoadingBarInner.png"));
-		SetTextureOrDefault(_whiteTexture, GetAssetPath(L"Textures/WhiteSprite.png")); 
+		SetTextureOrDefault(_whiteTexture, GetAssetPath(L"Textures/WhiteSprite.png"));
+
+		_context->Flush();
 
 		_whiteSprite.Height = _whiteTexture.Height;
 		_whiteSprite.Width = _whiteTexture.Width;
@@ -584,8 +588,37 @@ namespace TEN::Renderer
 
 		Utils::throwIfFailed(res);
 
+		// Collect adapter information.
+		CollectAdapterInfo();
+
 		// Initialize shader manager.
 		_shaders.Initialize(_device, _context);
+	}
+
+	void Renderer::CollectAdapterInfo()
+	{
+		ComPtr<IDXGIDevice> dxgiDevice;
+		Utils::throwIfFailed(_device.As(&dxgiDevice));
+
+		ComPtr<IDXGIAdapter> dxgiAdapter;
+		Utils::throwIfFailed(dxgiDevice->GetAdapter(&dxgiAdapter));
+
+		DXGI_ADAPTER_DESC desc = {};
+		Utils::throwIfFailed(dxgiAdapter->GetDesc(&desc));
+
+		_adapterInfo.Name = TEN::Utils::ToString(desc.Description);
+		_adapterInfo.VendorId = desc.VendorId;
+		_adapterInfo.DeviceId = desc.DeviceId;
+		_adapterInfo.SubSysId = desc.SubSysId;
+		_adapterInfo.Revision = desc.Revision;
+		_adapterInfo.DedicatedVideoMemory = desc.DedicatedVideoMemory;
+		_adapterInfo.DedicatedSystemMemory = desc.DedicatedSystemMemory;
+		_adapterInfo.SharedSystemMemory = desc.SharedSystemMemory;
+
+		TENLog("Adapter: " + _adapterInfo.Name, LogLevel::Info);
+		TENLog("Dedicated VRAM: " + std::to_string(_adapterInfo.DedicatedVideoMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Dedicated system memory: " + std::to_string(_adapterInfo.DedicatedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
+		TENLog("Shared system memory: " + std::to_string(_adapterInfo.SharedSystemMemory / (1024 * 1024)) + " MB", LogLevel::Info);
 	}
 
 	void Renderer::ToggleFullScreen(bool force)

@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include "Specific/clock.h"
-#include "winmain.h"
+#include "Specific/winmain.h"
 
 constexpr auto CONTROL_FRAME_TIME = 1000.0f / 30.0f;
 constexpr auto DEBUG_SKIP_FRAME_TIME = 10 * CONTROL_FRAME_TIME;
@@ -131,7 +131,7 @@ bool TestGlobalTimeInterval(unsigned int intervalGameFrames, unsigned int offset
 
 unsigned int SecToGameFrames(float sec)
 {
-	return ((unsigned int)round(sec / (float)FPS));
+	return ((unsigned int)round(sec * (float)FPS));
 }
 
 float GameFramesToSec(unsigned int gameFrames)

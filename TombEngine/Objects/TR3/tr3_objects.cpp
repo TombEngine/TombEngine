@@ -4,6 +4,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/missile.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
@@ -42,6 +43,8 @@
 #include "Objects/TR3/Trap/ElectricCleaner.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TurningBlade.h"
+#include "Objects/TR3/Trap/FirePendulum.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -102,8 +105,8 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->intelligent = true;
 		obj->nonLot = true;
-		obj->SetBoneRotationFlags(0, ROT_Y);
-		obj->SetBoneRotationFlags(6, ROT_Y);
+		obj->SetBoneRotationFlags(1, ROT_Z);
+		obj->SetBoneRotationFlags(7, ROT_Z);
 		obj->SetHitEffect();
 	}
 
@@ -185,19 +188,11 @@ static void StartEntity(ObjectInfo* obj)
 		obj->HitPoints = 20;
 		obj->radius = 340;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->pivotLength = 50;
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(14, ROT_Y);
 		obj->SetHitEffect();
-	}
-
-	obj = &Objects[ID_SCUBA_HARPOON];
-	if (obj->loaded)
-	{
-		obj->control = ScubaHarpoonControl;
-		obj->collision = ObjectCollision;
 	}
 
 	obj = &Objects[ID_FLAMETHROWER_BADDY];
@@ -450,12 +445,14 @@ static void StartEntity(ObjectInfo* obj)
 		obj->Initialize = InitializeFishSwarm;
 		obj->control = ControlFishSwarm;
 		obj->intelligent = true;
-		obj->drawRoutine = NULL;
+		obj->Hidden = true;
 	}
 }
 
 static void StartObject(ObjectInfo* obj)
 {
+	InitProjectile(obj, ControlMissile, ID_SCUBA_HARPOON);
+
 	obj = &Objects[ID_BOSS_SHIELD];
 	if (obj->loaded)
 	{
@@ -526,6 +523,31 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = WallMountedBladeControl;
 		obj->collision = GenericSphereBoxCollision;
 	}
+
+	obj = &Objects[ID_TURNING_WALL_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TURNING_CEILING_BLADE];
+	if (obj->loaded)
+	{
+		obj->control = ControlTurningBlade;
+		obj->collision = CollideTurningBlade;
+		obj->SetHitEffect(true);
+	}
+	
+	obj = &Objects[ID_FIRE_PENDULUM];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFirePendulum;
+		obj->control = ControlFirePendulum;
+		obj->collision = CollideFirePendulum;
+		obj->SetHitEffect(true);
+	}
 }
 
 static void StartVehicles(ObjectInfo* obj)
@@ -545,7 +567,6 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->Initialize = InitializeRubberBoat;
 		obj->control = RubberBoatControl;
 		obj->collision = RubberBoatPlayerCollision;
-		obj->drawRoutine = DrawRubberBoat;
 		obj->shadowType = ShadowMode::Player;
 		obj->SetHitEffect(true);
 
@@ -595,7 +616,7 @@ static void StartProjectiles(ObjectInfo* obj)
 {
 	obj = &Objects[ID_TONY_BOSS_FLAME];
 	obj->control = ControlTonyFireBall;
-	obj->drawRoutine = nullptr;
+	obj->Hidden = true;
 }
 
 void InitializeTR3Objects()

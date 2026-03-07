@@ -2,6 +2,7 @@
 #include "Objects/TR4/Object/tr4_sarcophagus.h"
 
 #include "Game/collision/collide_item.h"
+#include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -10,6 +11,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Hud;
 using namespace TEN::Input;
 
 const auto SarcophagusPosition = Vector3i(0, 0, -300);
@@ -31,6 +33,8 @@ void SarcophagusCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 	auto* laraInfo = GetLaraInfo(laraItem);
 	auto* sarcItem = &g_Level.Items[itemNumber];
 
+	g_Hud.InteractionHighlighter.Test(*laraItem, *sarcItem, InteractionMode::Activation);
+
 	if (IsHeld(In::Action) &&
 		laraItem->Animation.ActiveState == LS_IDLE &&
 		laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
@@ -44,7 +48,7 @@ void SarcophagusCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 			{
 				laraItem->Animation.AnimNumber = LA_PICKUP_SARCOPHAGUS;
 				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				sarcItem->Flags |= IFLAG_ACTIVATION_MASK;
 
 				AddActiveItem(itemNumber);
@@ -67,7 +71,7 @@ void SarcophagusCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 		}
 	}
 	else if (laraItem->Animation.AnimNumber != LA_PICKUP_SARCOPHAGUS ||
-			 laraItem->Animation.FrameNumber != GetAnimData(*laraItem, LA_PICKUP_SARCOPHAGUS).frameBase + 113)
+			 laraItem->Animation.FrameNumber != 113)
 	{
 		ObjectCollision(itemNumber, laraItem, coll);
 	}

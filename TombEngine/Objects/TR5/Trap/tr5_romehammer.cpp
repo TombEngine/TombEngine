@@ -31,7 +31,7 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(&item))
 		{
 			item.ItemFlags[3] = ROME_HAMMER_HARM_DAMAGE;
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 		else
 		{

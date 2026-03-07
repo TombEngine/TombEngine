@@ -24,6 +24,8 @@ namespace TEN::Scripting
 		InventoryItem(const std::string& name, GAME_OBJECT_ID objectID, float yOffset, float scale, const Rotation& rot, RotationFlags rotFlags, int meshBits, ItemOptions menuAction);
 
 		void SetAction(ItemOptions action);
+    
+		ItemOptions GetAction() const;
 
 		std::string			 Name	  = {};
 		InventoryObjectTypes ObjectID = INV_OBJECT_PISTOLS;

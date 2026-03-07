@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer/Graphics/Texture2D.h"
+#include "Sound/sound.h"
 
 using namespace TEN::Math;
 using namespace TEN::Renderer::Graphics;
@@ -65,11 +66,11 @@ namespace TEN::Video
 
 		void SetPosition(int frameCount);
 		void SetNormalizedPosition(float pos);
-		void SetVolume(int volume);
 
 		// Inquirers
 
 		bool IsPlaying() const;
+		bool IsBackgroundPlaybackQueued() const;
 
 		// Utilties
 
@@ -101,7 +102,8 @@ namespace TEN::Video
 		static void*		OnLockFrame(void* data, void** pixels);
 		static void			OnUnlockFrame(void* data, void* picture, void* const* pixels);
 		static void			OnLog(void* data, int level, const libvlc_log_t* ctx, const char* fmt, va_list args);
-		static unsigned int OnSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines);
+		static unsigned int OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines);
+		static int			OnAudioSetup(void** data, char* format, unsigned* rate, unsigned* channels);
 	};
 
 	extern VideoHandler g_VideoPlayer;

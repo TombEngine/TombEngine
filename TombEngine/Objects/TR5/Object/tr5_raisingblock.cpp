@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Object/tr5_raisingblock.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Math;
 
@@ -71,8 +72,8 @@ namespace TEN::Entities::Generic
 		if (floor->PathfindingBoxID != NO_VALUE)
 			g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags &= ~BLOCKED;
 
-		// Set Y scale to 0 by default.
-		item.Pose.Scale.y = 0.0f;
+		// Set Y scale to epsilon by default (not 0 because it may cause rendering issues).
+		item->Pose.Scale.y = EPSILON;
 
 		if (item.TriggerFlags < 0)
 		{
@@ -155,9 +156,9 @@ namespace TEN::Entities::Generic
 			item->ItemFlags[1] -= 64;
 		}
 
-		// Update bone mutators.
+		// Update scale.
 		if (item->TriggerFlags > -1)
-			item->Pose.Scale.y = (float)item->ItemFlags[1] / (float)BLOCK(4);
+			item->Pose.Scale.y = std::max(EPSILON, (float)item->ItemFlags[1] / (float)BLOCK(4));
 
 		bridge.Update(*item);
 	}

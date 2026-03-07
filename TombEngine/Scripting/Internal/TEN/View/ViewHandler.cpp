@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/effects/weather.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/Optics.h"
 #include "Game/spotcam.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Internal/LuaHandler.h"
@@ -16,6 +17,7 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/View/AlignModes.h"
 #include "Scripting/Internal/TEN/View/CameraTypes.h"
+#include "Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.h"
 #include "Scripting/Internal/TEN/View/DisplaySprite/ScriptDisplaySprite.h"
 #include "Scripting/Internal/TEN/View/ScaleModes.h"
 #include "Scripting/Internal/TEN/View/PostProcessEffects.h"
@@ -25,6 +27,7 @@
 
 using namespace TEN::Effects::Environment;
 using namespace TEN::Scripting::DisplaySprite;
+using namespace TEN::Scripting::DisplayItem;
 using namespace TEN::Scripting::View;
 using namespace TEN::Utils;
 using namespace TEN::Video;
@@ -56,11 +59,10 @@ namespace TEN::Scripting::View
 
 	static void SetCineBars(TypeOrNil<float> height, TypeOrNil<float> speed)
 	{
-		// divide by 200 so that a percentage of 100 means that each
-		// bar takes up half the screen
+		// Divide by 200 so that a percentage of 100 means that each bar takes up half the screen.
 		float heightProportion = ValueOr<float>(height, 30) / 200.0f;
-		float speedProportion = ValueOr<float>(speed, 30) / 200.0f;
-		SetCinematicBars(heightProportion, speedProportion / float(FPS));
+		float speedProportion = ValueOr<float>(speed, 1);
+		SetCinematicBars(heightProportion, speedProportion);
 	}
 
 	static void SetFOV(float angle)
@@ -236,10 +238,10 @@ namespace TEN::Scripting::View
 		//@treturn bool State of the fade out.
 		tableView.set_function(ScriptReserved_FadeOutComplete, &FadeOutComplete);
 
-		///Move black cinematic bars in from the top and bottom of the game window.
+		///Animate black cinematic bars in from the top and bottom of the game window.
 		//@function SetCineBars
 		//@tparam[opt=30] float height Percentage of the screen to be covered.
-		//@tparam[opt=30] float speed Coverage percent per second.
+		//@tparam[opt=1] float speed Speed in units per second. A value of 1 will make the animation take one second.
 		tableView.set_function(ScriptReserved_SetCineBars, &SetCineBars);
 
 		///Set field of view.
@@ -348,7 +350,7 @@ namespace TEN::Scripting::View
 		// @treturn Rotation Rotation at the given progress point.
 		tableView.set_function(ScriptReserved_GetFlybyRotation, &GetFlybyRotation);
 
-		/// Reset object camera back to Lara and deactivate object camera.
+		/// Reset object camera back to Lara and deactivate object camera. Can be used after @{Objects.Moveable.AttachObjCamera}.
 		//@function ResetObjCamera
 		tableView.set_function(ScriptReserved_ResetObjCamera, &ResetObjCamera);
 
@@ -367,6 +369,11 @@ namespace TEN::Scripting::View
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
+		ScriptDisplaySprite::Register(*state, tableView);
+		ScriptDisplayItem::Register(*state, tableView);
+		ScriptDisplayAnchors::Register(tableView);
+
+		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
 
 		// Register enums.

@@ -7,6 +7,7 @@
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
+#include "Game/misc.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Generic/Doors/generic_doors.h"
@@ -29,16 +30,6 @@ bool FlipStats[MAX_FLIPMAP];
 int  FlipMap[MAX_FLIPMAP];
 
 std::vector<short> OutsideRoomTable[OUTSIDE_SIZE][OUTSIDE_SIZE];
-
-BoundingOrientedBox MESH_INFO::GetObb() const
-{
-	return GetBoundsAccurate(*this, false).ToBoundingOrientedBox(pos);
-}
-
-BoundingOrientedBox MESH_INFO::GetVisibilityObb() const
-{
-	return GetBoundsAccurate(*this, true).ToBoundingOrientedBox(pos);
-}
 
 std::vector<int> RoomObjectHandler::GetIds() const
 {
@@ -83,8 +74,8 @@ bool RoomData::Active() const
 	// Since engine swaps whole room memory block but substitutes flippedRoom,
 	// both original room number and flippedRoom must be chekhed for equality,
 	// as well as NO_VALUE if checking non-flipped rooms.
-	return (!FlipStats[flipNumber] && flippedRoom != RoomNumber && flippedRoom != NO_VALUE) ||
-		   ( FlipStats[flipNumber] && flippedRoom == RoomNumber);
+	return (!FlipStats[flipNumber] && flippedRoom != originalRoom && flippedRoom != NO_VALUE) ||
+		   ( FlipStats[flipNumber] && flippedRoom == originalRoom);
 }
 
 void RoomData::GenerateCollisionMesh()
@@ -615,6 +606,10 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 	for (auto& sector : flippedRoom.Sectors)
 		sector.RoomNumber = activeRoom.flippedRoom;
 
+	// Swap stopper flags.
+	for (int i = 0; i < activeRoom.Sectors.size(); i++)
+		std::swap(activeRoom.Sectors[i].Stopper, flippedRoom.Sectors[i].Stopper);
+
 	// Update renderer data.
 	g_Renderer.FlipRooms(roomNumber, activeRoom.flippedRoom);
 }
@@ -667,7 +662,7 @@ void DoFlipMap(int group)
 {
 	if (group >= MAX_FLIPMAP)
 	{
-		TENLog("Maximum flipmap group number is " + std::to_string(MAX_FLIPMAP) + ".", LogLevel::Warning);
+		TENLog(fmt::format("Maximum flipmap group number is {}.", MAX_FLIPMAP), LogLevel::Warning);
 		return;
 	}
 
@@ -687,8 +682,8 @@ void DoFlipMap(int group)
 	FlipStatus =
 	FlipStats[group] = !FlipStats[group];
 
-	for (auto& creature : ActiveCreatures)
-		creature->LOT.TargetBox = NO_VALUE;
+	for (auto creatureIndex : ActiveCreatures)
+		GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
 }
 
 bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)
@@ -753,24 +748,27 @@ int IsRoomOutside(int x, int y, int z)
 	return NO_VALUE;
 }
 
-GameBoundingBox& GetBoundsAccurate(const MESH_INFO& mesh, bool getVisibilityBox)
+namespace TEN::Collision::Room
 {
-	static auto bounds = GameBoundingBox();
-
-	if (getVisibilityBox)
+	// TODO: Can use floordata's GetRoomGridCoord()?
+	FloorInfo* GetSector(RoomData* room, int x, int z)
 	{
-		bounds = Statics[mesh.staticNumber].visibilityBox * mesh.pos.Scale;
-	}
-	else
-	{
-		bounds = Statics[mesh.staticNumber].collisionBox * mesh.pos.Scale;
-	}
+		int sectorX = std::clamp(x / BLOCK(1), 0, room->XSize - 1);
+		int sectorZ = std::clamp(z / BLOCK(1), 0, room->ZSize - 1);
 
-	return bounds;
+		int sectorID = sectorZ + (sectorX * room->ZSize);
+		if (sectorID > room->Sectors.size())
+			return nullptr;
+
+		return &room->Sectors[sectorID];
+	}
 }
 
 bool IsPointInRoom(const Vector3i& pos, int roomNumber)
 {
+	if (roomNumber < 0 || roomNumber >= g_Level.Rooms.size())
+		return false;
+
 	const auto& room = g_Level.Rooms[roomNumber];
 
 	if (!room.Active())

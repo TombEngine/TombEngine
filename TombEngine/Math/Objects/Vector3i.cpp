@@ -19,7 +19,7 @@
 
 	float Vector3i::DistanceSquared(const Vector3i& origin, const Vector3i& target)
 	{
-		return (SQUARE(target.x - origin.x) + SQUARE(target.y - origin.y) + SQUARE(target.z - origin.z));
+		return (SQUARE(float(target.x - origin.x)) + SQUARE(float(target.y - origin.y)) + SQUARE(float(target.z - origin.z)));
 	}
 
 	void Vector3i::Lerp(const Vector3i& target, float alpha)
