@@ -188,7 +188,7 @@ namespace TEN::Animation
 				DelAlignLaraToRope(&item);
 
 			if (!player.Control.IsMoving)
-				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				item.Pose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
 
 			g_Renderer.UpdateLaraAnimations(true);
 		}

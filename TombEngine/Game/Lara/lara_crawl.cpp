@@ -738,7 +738,7 @@ void lara_col_crawl_forward(ItemInfo* item, CollisionInfo* coll)
 	if (LaraDeflectEdgeCrawl(item, coll))
 	{
 		item->Animation.TargetState = LS_SOFT_SPLAT;
-		if (GetStateDispatch(item, GetAnimData(*item)))
+		if (GetStateDispatch(*item))
 		{
 			item->Animation.ActiveState = LS_SOFT_SPLAT;
 			return;
