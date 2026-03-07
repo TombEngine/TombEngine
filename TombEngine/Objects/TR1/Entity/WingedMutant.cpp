@@ -556,6 +556,7 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case WMUTANT_STATE_FLY:
+				creature.MaxTurn = WINGED_MUTANT_RUN_TURN_RATE_MAX;
 				if (creature.Mood != MoodType::Escape && isSameZoneInGroundMode)
 				{
 					item.Animation.TargetState = WMUTANT_STATE_IDLE; // Switch to ground mode.
