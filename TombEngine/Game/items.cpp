@@ -697,10 +697,12 @@ void InitializeItem(short itemNumber)
 	auto& item = g_Level.Items[itemNumber];
 	const auto& object = Objects[item.ObjectNumber];
 
-	SetAnimation(item, 0);
-	item.Animation.RequiredState = NO_VALUE;
-	item.Animation.Velocity = Vector3::Zero;
-	item.Animation.AnimObjectID = item.ObjectNumber;
+	if (!object.Animations.empty())
+		SetAnimation(item, 0);
+
+	item->Animation.RequiredState = NO_VALUE;
+	item->Animation.Velocity = Vector3::Zero;
+	item->Animation.AnimObjectID = item->ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 		item.ItemFlags[i] = 0;
@@ -982,7 +984,7 @@ bool UpdateItemRoom(short itemNumber)
 	auto yOffset = GameBoundingBox(item).GetCenter().y;
 
 	auto roomNumber = GetPointCollision(
-		Vector3i(item->Pose.Position.x, item->Pose.Position.y - yOffset, item->Pose.Position.z),
+		Vector3i(item->Pose.Position.x, item->Pose.Position.y + yOffset, item->Pose.Position.z),
 		item->RoomNumber).GetRoomNumber();
 
 	if (roomNumber != item->RoomNumber)

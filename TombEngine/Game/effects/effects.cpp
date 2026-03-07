@@ -1176,14 +1176,16 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 
 short DoBloodSplat(int x, int y, int z, short speed, short direction, short roomNumber)
 {
-	short probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+	int intensity = Random::GenerateInt(10, 20);
+	int probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+
 	if (TestEnvironment(ENV_FLAG_WATER, probedRoomNumber))
 	{
-		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, speed);
+		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, intensity);
 	}
 	else
 	{
-		TriggerBlood(x, y, z, direction >> 4, speed);
+		TriggerBlood(x, y, z, direction >> 4, intensity);
 	}
 
 	return 0;

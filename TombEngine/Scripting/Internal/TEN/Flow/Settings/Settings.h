@@ -56,6 +56,7 @@ namespace TEN::Scripting
 	struct GameplaySettings
 	{
 		bool TargetObjectOcclusion = true;
+		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
@@ -98,8 +99,8 @@ namespace TEN::Scripting
 		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
 		float	CollisionPenaltyThreshold	= 1.0f;		// Penalty threshold in seconds.
 		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
-		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
-		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
+		bool	MoveableAvoidance			= false;	// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= false;	// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
 		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
@@ -135,6 +136,10 @@ namespace TEN::Scripting
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
 		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
+
+		Vec2 TitleLogoPosition = Vec2(50, 20);
+		float TitleLogoScale = 0.38f;
+		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
 
 		static void Register(sol::table& parent);
 	};

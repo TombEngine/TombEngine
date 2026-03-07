@@ -42,6 +42,13 @@ using namespace TEN::Animation;
 	// NOTE: Deprecated. Use item.GetObb() instead.
 	GameBoundingBox::GameBoundingBox(const ItemInfo* item)
 	{
+		// If object has no animations, return empty bounds.
+		if (Objects[item->ObjectNumber].Animations.empty())
+		{
+			*this = GameBoundingBox::Zero;
+			return;
+		}
+
 		const auto& anim = GetAnimData(*item);
 		auto rootMotionCounter = anim.GetRootMotionCounteraction(item->Animation.FrameNumber);
 

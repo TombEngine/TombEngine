@@ -137,6 +137,7 @@ namespace TEN::Animation
 	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear);
 	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear);
 	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber = 0, int blendFrameCount = 0, const BezierCurve2& blendCurve = BezierCurve2::Linear); // TODO: Deprecated. Must switch to references.
+	void SetExtendedAnimation(ItemInfo& item, int rawAnimNumber);
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch);
 
 	// Utilities

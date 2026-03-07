@@ -140,6 +140,15 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	*/
 	_table_objects.set_function(ScriptReserved_IsNameInUse, &ObjectsHandler::IsNameInUse, this);
 
+
+	/***
+	Converts moveable Object ID to a string with internal slot name.
+	@function GetSlotName
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@treturn string Internal slot name.
+	*/
+	_table_objects.set_function(ScriptReserved_GetSlotName, &GetObjectName);
+
 	LaraObject::Register(_table_objects);
 
 	Moveable::Register(*lua, _table_objects);

@@ -709,7 +709,7 @@ namespace TEN::Renderer
 		// Loop through meshes.
 		for (int i = 0; i < moveable->ObjectMeshes.size(); i++)
 		{
-			if (item.GetMeshBits() && !item.IsMeshVisible(i))
+			if (item.GetMeshBits() && !item.GetMeshVisible(i))
 				continue;
 
 			const auto& sphere = moveable->ObjectMeshes[i]->Sphere;

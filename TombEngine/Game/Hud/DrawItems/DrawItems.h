@@ -28,18 +28,20 @@ namespace TEN::Hud
 		Vector3 _prevCameraPosition = _cameraPosition;
 		Vector3 _prevTargetPosition = _targetPosition;
 
+		unsigned int _lastID = 0;
+
 	public:
 		// Getters
 
-		DisplayItem* GetItemByName(const std::string& name);
+		DisplayItem*			  GetItemByID(unsigned int id);
 		std::vector<DisplayItem>& GetItems();
-		Vector3                   GetCameraPosition() const;
-		Vector3                   GetCameraTargetPosition() const;
+		Vector3					  GetCameraPosition() const;
+		Vector3					  GetCameraTargetPosition() const;
 		float					  GetFov() const;
-		Vector3                   GetInterpolatedCameraPosition(float alpha) const;
+		Vector3					  GetInterpolatedCameraPosition(float alpha) const;
 		Vector3                   GetInterpolatedCameraTargetPosition(float alpha) const;
 		float					  GetInterpolatedFov(float alpha) const;
-		Vector4                   GetAmbientLight() const;
+		Vector4					  GetAmbientLight() const;
 
 		// Setters
 
@@ -51,14 +53,15 @@ namespace TEN::Hud
 		// Inquirers
 
 		bool IsEmpty();
-		bool TestItemExists(const std::string& name);
+		bool TestItemExists(unsigned int id);
 		bool TestObjectIDExists(GAME_OBJECT_ID objectID);
 
 		// Utilities
 
-		void AddItem(const std::string& name, GAME_OBJECT_ID objectID, const Vector3& origin, const EulerAngles& orient, const Vector3& scale, int meshBits);
-		void RemoveItem(const std::string& name);
+		unsigned int AddItem(GAME_OBJECT_ID objectID, const Vector3& origin, const EulerAngles& orient, const Vector3& scale, int meshBits);
+		void RemoveItem(unsigned int id);
 
+		void Prepare();
 		void Update();
 		void Draw() const;
 		void Clear();

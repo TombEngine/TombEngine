@@ -1098,8 +1098,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		item->Pose.Orientation.x = 0;
 	}
 
-	// Update room number if creature moved to different room.
 	UpdateItemRoom(item->Index);
+
 	return true;
 }
 
@@ -1400,8 +1400,11 @@ void CreatureHealth(ItemInfo* item)
 {
 	auto* creature = GetCreatureInfo(item);
 
-	if (creature->Poisoned && item->HitPoints > 1 && (GlobalCounter & 0x1F) == 0x1F)
-		item->HitPoints--;
+	if (creature->Poisoned && (GlobalCounter & 0x1F) == 0x1F)
+	{
+		if (item->HitPoints > (g_GameFlow->GetSettings()->Gameplay.KillPoisonedEnemies ? 0 : 1))
+			item->HitPoints--;
+	}
 
 	if (!Objects[item->ObjectNumber].WaterCreature() &&
 		TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, &g_Level.Rooms[item->RoomNumber]))
@@ -2909,6 +2912,9 @@ Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
+		return targetPos;
+
+	if (Objects[sourceItem.ObjectNumber].nonLot)
 		return targetPos;
 
 	float distance = Vector3i::Distance(targetPos, sourcePos);

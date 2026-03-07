@@ -1110,7 +1110,7 @@ const std::vector<byte> SaveGame::Build()
 
 	// Flyby cameras
 	std::vector<flatbuffers::Offset<Save::FlyByCamera>> flybyCameras;
-	for (int i = 0; i < NumberSpotcams; i++)
+	for (int i = 0; i < (int)SpotCam.size(); i++)
 	{
 		Save::FlyByCameraBuilder flyby{ fbb };
 		flyby.add_flags(SpotCam[i].flags);
@@ -2727,7 +2727,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Flyby cameras 
 	for (int i = 0; i < s->flyby_cameras()->size(); i++)
 	{
-		if (i < NumberSpotcams)
+		if (i < (int)SpotCam.size())
 			SpotCam[i].flags = s->flyby_cameras()->Get(i)->flags();
 	}
 

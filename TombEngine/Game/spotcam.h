@@ -1,13 +1,16 @@
 #pragma once
+
+#include <unordered_map>
+
 #include "Math/Math.h"
 #include "Specific/clock.h"
 
-constexpr auto MAX_SPOTCAMS = 256;
 constexpr auto SPOTCAM_CINEMATIC_BARS_HEIGHT = 1.0f / 16;
-constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED = 1.0f / FPS;
+constexpr auto SPOTCAM_CINEMATIC_BARS_SPEED = 1.0f;
 
 class Pose;
 
+#pragma pack(push, 1)
 struct SPOTCAM
 {
 	int x;
@@ -16,16 +19,16 @@ struct SPOTCAM
 	int tx;
 	int ty;
 	int tz;
-	unsigned char sequence;
-	unsigned char camera;
+	int sequence;
+	int camera;
 	short fov;
 	short roll;
 	short timer;
 	short speed;
 	short flags;
-	short roomNumber;
-	short pad;
+	int roomNumber;
 };
+#pragma pack(pop)
 
 enum SPOTCAM_FLAGS
 {
@@ -47,11 +50,10 @@ enum SPOTCAM_FLAGS
 	SCF_CAMERA_ONE_SHOT			= (1 << 15),
 };
 
-extern SPOTCAM SpotCam[MAX_SPOTCAMS];
-extern int SpotCamRemap[MAX_SPOTCAMS];
-extern int CameraCnt[MAX_SPOTCAMS];
+extern std::vector<SPOTCAM> SpotCam;
+extern std::unordered_map<int, int> SpotCamRemap;
+extern std::vector<int> CameraCnt;
 extern int LastSpotCamSequence;
-extern int NumberSpotcams;
 extern bool UseSpotCam;
 extern bool SpotcamSwitched;
 extern bool SpotcamDontDrawLara;
