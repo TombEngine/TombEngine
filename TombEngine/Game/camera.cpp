@@ -36,15 +36,15 @@ using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
-constexpr auto CAMERA_OBJECT_COLL_DIST_THRESHOLD   = BLOCK(4);
-constexpr auto CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
+constexpr float CAMERA_OBJECT_COLL_DIST_THRESHOLD   = BLOCK(4);
+constexpr float CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
 
 CameraInfo		 g_Camera;
 ScreenEffectData g_ScreenEffect;
 
 void CameraInfo::Update(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed)
 {
-	constexpr auto BUFFER = BLOCK(0.2f);
+	constexpr float BUFFER = BLOCK(0.2f);
 
 	const auto& player = GetLaraInfo(playerItem);
 
@@ -128,9 +128,9 @@ void CameraInfo::Update(const ItemInfo& playerItem, Vector3 idealPos, int idealR
 
 void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
 {
-	constexpr auto CONTROLLED_CAMERA_ROT_LERP_ALPHA = 0.5f;
-	constexpr auto COMBAT_CAMERA_REBOUND_ALPHA		= 0.3f;
-	constexpr auto LOCKED_CAMERA_ALTITUDE_ROT_ALPHA = 1 / 8.0f;
+	constexpr float CONTROLLED_CAMERA_ROT_LERP_ALPHA = 0.5f;
+	constexpr float COMBAT_CAMERA_REBOUND_ALPHA      = 0.3f;
+	constexpr float LOCKED_CAMERA_ALTITUDE_ROT_ALPHA = 1 / 8.0f;
 
 	const auto& player = GetLaraInfo(playerItem);
 
@@ -193,13 +193,13 @@ void CameraInfo::UpdateListenerPosition(const ItemInfo& item)
 
 void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
 {
-	constexpr auto MODERN_CAMERA_DIST_LERP_ALPHA   = 0.4f;
-	constexpr auto STRAFE_CAMERA_FOV			   = ANGLE(86.0f);
-	constexpr auto STRAFE_CAMERA_FOV_LERP_ALPHA	   = 0.5f;
-	constexpr auto STRAFE_CAMERA_DIST_OFFSET_COEFF = 0.5f;
-	constexpr auto STRAFE_CAMERA_ZOOM_BUFFER	   = BLOCK(0.1f);
-	constexpr auto TANK_CAMERA_SWIVEL_STEP_COUNT   = 4;
-	constexpr auto TANK_CAMERA_CLOSE_DIST_MIN	   = BLOCK(0.75f);
+	constexpr float MODERN_CAMERA_DIST_LERP_ALPHA   = 0.4f;
+	constexpr short STRAFE_CAMERA_FOV               = ANGLE(86.0f);
+	constexpr float STRAFE_CAMERA_FOV_LERP_ALPHA    = 0.5f;
+	constexpr float STRAFE_CAMERA_DIST_OFFSET_COEFF = 0.5f;
+	constexpr float STRAFE_CAMERA_ZOOM_BUFFER       = BLOCK(0.1f);
+	constexpr int   TANK_CAMERA_SWIVEL_STEP_COUNT   = 4;
+	constexpr float TANK_CAMERA_CLOSE_DIST_MIN      = BLOCK(0.75f);
 
 	const auto& player = GetLaraInfo(playerItem);
 
@@ -306,7 +306,7 @@ void CameraInfo::RumbleFromBounce()
 
 void CameraInfo::LookCamera(const ItemInfo& playerItem, const CollisionInfo& coll)
 {
-	constexpr auto DIST_COEFF = 0.5f;
+	constexpr float DIST_COEFF = 0.5f;
 
 	const auto& player = GetLaraInfo(playerItem);
 
@@ -393,10 +393,10 @@ Vector3 CameraInfo::GetGeometryOffset() const
 
 Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& coll) const
 {
-	constexpr auto VERTICAL_OFFSET_DEFAULT		  = -BLOCK(0.05f);
-	constexpr auto VERTICAL_OFFSET_SWAMP		  = BLOCK(0.4f);
-	constexpr auto VERTICAL_OFFSET_MONKEY_SWING	  = BLOCK(0.25f);
-	constexpr auto VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
+	constexpr float VERTICAL_OFFSET_DEFAULT        = -BLOCK(0.05f);
+	constexpr float VERTICAL_OFFSET_SWAMP          = BLOCK(0.4f);
+	constexpr float VERTICAL_OFFSET_MONKEY_SWING   = BLOCK(0.25f);
+	constexpr float VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
 
 	const auto& player = GetLaraInfo(item);
 
@@ -434,10 +434,10 @@ Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& c
 
 EulerAngles CameraInfo::GetControlRotation() const
 {
-	constexpr auto SLOW_ROT_COEFF				 = 0.4f;
-	constexpr auto MOUSE_AXIS_SENSITIVITY_COEFF	 = 20.0f;
-	constexpr auto CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
-	constexpr auto SMOOTHING_FACTOR				 = 8.0f;
+	constexpr float SLOW_ROT_COEFF                = 0.4f;
+	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF  = 20.0f;
+	constexpr float CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
+	constexpr float SMOOTHING_FACTOR              = 8.0f;
 
 	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
 	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
@@ -702,7 +702,7 @@ void ClearObjCamera()
 
 void MoveObjCamera(GameVector* ideal, ItemInfo* item, int boneID, ItemInfo* targetItem, int targetBoneID)
 {
-	constexpr auto ANGLE_THRESHOLD_DEG = 100.0f;
+	constexpr float ANGLE_THRESHOLD_DEG = 100.0f;
 
 	auto idealPos = GetJointPosition(item, boneID, Vector3i::Zero).ToVector3();
 	auto lookAt = GetJointPosition(targetItem, targetBoneID, Vector3i::Zero).ToVector3();
@@ -811,7 +811,7 @@ void ChaseCamera(const ItemInfo& playerItem)
 
 void CombatCamera(const ItemInfo& playerItem)
 {
-	constexpr auto BUFFER = CLICK(0.25f);
+	constexpr float BUFFER = CLICK(0.25f);
 
 	const auto& player = GetLaraInfo(playerItem);
 
