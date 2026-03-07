@@ -512,7 +512,7 @@ bool CameraInfo::TestCollidableMoveable(const ItemInfo& mov) const
 
 	// 3) Check object collidability.
 	const auto& object = Objects[mov.ObjectNumber];
-	if (!mov.Collidable || !object.usingDrawAnimatingItem)
+	if (!mov.Collidable/* || !object.usingDrawAnimatingItem*/)
 		return false;
 
 	// 4) Check object attributes.
@@ -526,10 +526,10 @@ bool CameraInfo::TestCollidableMoveable(const ItemInfo& mov) const
 	return true;
 }
 
-bool CameraInfo::TestCollidableStatic(const MESH_INFO& staticObj) const
+bool CameraInfo::TestCollidableStatic(const StaticMesh& staticObj) const
 {
 	// 1) Test distance.
-	float distSqr = Vector3i::DistanceSquared(Position, staticObj.pos.Position);
+	float distSqr = Vector3i::DistanceSquared(Position, staticObj.Pose.Position);
 	if (distSqr >= SQUARE(CAMERA_OBJECT_COLL_DIST_THRESHOLD))
 		return false;
 
@@ -1016,7 +1016,7 @@ void BinocularCamera(ItemInfo* item)
 
 	auto origin0 = GameVector(g_Camera.Position, g_Camera.RoomNumber);
 	auto target0 = GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
-	GetTargetOnLOS(&origin0, &target0, false, false);
+	GetTargetOnLOS(&origin0, &target0);
 	g_Camera.LookAt = target0.ToVector3();
 	g_Camera.LookAtRoomNumber = target0.RoomNumber;
 

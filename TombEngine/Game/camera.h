@@ -201,7 +201,7 @@ private:
 	bool CanControlTankCamera(const ItemInfo& playerItem) const;
 	bool TestStrafeZoom(const ItemInfo& playerItem) const;
 	bool TestCollidableMoveable(const ItemInfo& mov) const;
-	bool TestCollidableStatic(const MESH_INFO& staticObj) const;
+	bool TestCollidableStatic(const StaticMesh& staticObj) const;
 	bool TestCollidableObb(const BoundingOrientedBox& obb) const;
 
 	// Helper utilities

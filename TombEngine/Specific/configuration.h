@@ -185,7 +185,7 @@ namespace TEN::Config
 	bool IsUsingPlanarSwimControls() const;
 };
 
-	extern GameConfiguration g_Config;
+	extern GameConfiguration g_Configuration;
 
 	int	 SetupDialog();
 	void InitDefaultConfiguration();

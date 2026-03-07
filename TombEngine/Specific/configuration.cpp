@@ -18,7 +18,7 @@ using namespace TEN::Utils;
 
 namespace TEN::Config
 {
-	GameConfiguration g_Config;
+	GameConfiguration g_Configuration;
 
 	bool GameConfiguration::IsUsingClassicControls() const
 	{

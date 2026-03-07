@@ -379,7 +379,7 @@ namespace TEN::Renderer
 			farView = DEFAULT_FAR_VIEW;
 
 		farView = farView;
-		_gameCamera = RenderView(camera, roll, fov, NEAR_PLANE, farView, Config::g_Config.ScreenWidth, Config::g_Config.ScreenHeight);
+		_gameCamera = RenderView(camera, roll, fov, NEAR_PLANE, farView, Config::g_Configuration.ScreenWidth, Config::g_Configuration.ScreenHeight);
 	}
 
 	bool Renderer::SphereBoxIntersection(const BoundingBox& box, const Vector3& sphereCentre, float sphereRadius)
@@ -537,7 +537,7 @@ namespace TEN::Renderer
 
 	float Renderer::GetFramerateMultiplier() const
 	{
-		return (g_Config.FrameRateMode == FrameRateMode::Sixty) ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
+		return (g_Configuration.FrameRateMode == FrameRateMode::Sixty) ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
 	}
 
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const
