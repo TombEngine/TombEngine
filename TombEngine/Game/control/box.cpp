@@ -1106,8 +1106,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtraAnimNumber, int creatureState, int playerKillState)
 {
 	if (!Objects[ID_LARA_EXTRA_ANIMS].loaded ||
-		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Keyframes.size() <= 1 ||
-		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Keyframes.size() <= 1)
+		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Frames.size() <= 1 ||
+		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Frames.size() <= 1)
 	{
 		TENLog(fmt::format("Impossible to perform kill animation for object {}: animation data missing.", GetObjectName(creatureItem->ObjectNumber)), LogLevel::Warning);
 		return;
@@ -1317,7 +1317,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
 		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
 		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
-		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z * 1.3f; // Increase the radius slightly.
+		auto radius = GetAnimData(*item).Frames[item->Animation.FrameNumber].LocalAabb.Extents.z * 1.3f; // Increase the radius slightly.
 
 		// Spawn feelers for object collision.
 		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);

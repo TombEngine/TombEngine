@@ -1057,7 +1057,7 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 			auto& object = Objects[currentItem.ObjectNumber];
 
 			if (!object.isPickup && (currentItem.ObjectNumber != ID_HIGH_OBJECT1 || currentItem.ItemFlags[0] == 5))
-				return &GetClosestKeyframe(g_Level.Items[currentItem.Index]).BoundingBox;
+				return &GetAnimData(g_Level.Items[currentItem.Index]).Frames[currentItem.Animation.FrameNumber].BoundingBox;
 		}
 	}
 

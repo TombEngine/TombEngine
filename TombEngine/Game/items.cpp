@@ -700,9 +700,9 @@ void InitializeItem(short itemNumber)
 	if (!object.Animations.empty())
 		SetAnimation(item, 0);
 
-	item->Animation.RequiredState = NO_VALUE;
-	item->Animation.Velocity = Vector3::Zero;
-	item->Animation.AnimObjectID = item->ObjectNumber;
+	item.Animation.RequiredState = NO_VALUE;
+	item.Animation.Velocity = Vector3::Zero;
+	item.Animation.AnimObjectID = item.ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 		item.ItemFlags[i] = 0;
