@@ -921,7 +921,7 @@ void BounceCamera(ItemInfo* item, int bounce, float distMax)
 	float dist = Vector3i::Distance(item->Pose.Position.ToVector3(), g_Camera.Position);
 	if (dist < distMax)
 	{
-		if (distMax == -1)
+		if (distMax == NO_VALUE)
 		{
 			g_Camera.bounce = bounce;
 		}
@@ -930,7 +930,7 @@ void BounceCamera(ItemInfo* item, int bounce, float distMax)
 			g_Camera.bounce = -(bounce * (distMax - dist) / distMax);
 		}
 	}
-	else if (distMax == -1)
+	else if (distMax == NO_VALUE)
 	{
 		g_Camera.bounce = bounce;
 	}
