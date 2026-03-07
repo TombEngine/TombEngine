@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/items.h"
+#include "Game/Hud/InteractionHighlighter.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/NamedBase.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -17,6 +18,7 @@ struct ItemInfo;
 namespace TEN::Scripting { class Rotation; };
 namespace TEN::Scripting::Types { class ScriptColor; }
 
+using namespace TEN::Hud;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Types;
 
@@ -125,13 +127,14 @@ public:
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
-	void AnimFromObject(GAME_OBJECT_ID object, int animNumber, int stateID);
+	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
 	void DisableItem();
 	void MakeInvisible(); // Compatibility.
 	void Explode();
 	void Shatter();
-	void ShowInteractionHighlight();
+	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
+	void HideInteractionHighlight();
 
 	// Operators
 

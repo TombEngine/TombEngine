@@ -1,10 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara.h"
 
-#include "Game/Lara/lara_helpers.h"
-#include "Game/Lara/lara_initialise.h"
-#include "Game/Lara/lara_tests.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Attractor.h"
 #include "Game/collision/collide_item.h"
@@ -32,6 +29,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Attractor;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
@@ -66,7 +64,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	// Pathfinding stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
 	{
-		DrawNearbyPathfinding(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
+		DrawPathfindingDebug(GetPointCollision(item).GetBottomSector().PathfindingBoxID);
 	}
 	// Collision mesh stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
@@ -232,6 +230,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 	if (player.Context.Vehicle == NO_VALUE)
 		SpawnPlayerWaterSurfaceEffects(*item, water.WaterHeight, water.WaterDepth);
 
+	int headOffset = 0;
 	bool isWaterOnHeadspace = false;
 
 	// TODO: Move unrelated handling elsewhere.
@@ -327,9 +326,12 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 			// Determine if player's head is above water surface. Needed to prevent
 			// pre-TR5 bug where player would keep submerged until root mesh was above water level.
+			// Account for pitch: when angled upward, head position is higher than root position.
+			// LARA_HEADROOM / 2 - Allow half of the head to be above water before resurfacing.
+			headOffset = (LARA_HEADROOM / 2) + (int)(CLICK(1) * phd_sin(item->Pose.Orientation.x));
 			isWaterOnHeadspace = TestEnvironment(
-				ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - CLICK(1), item->Pose.Position.z,
-				GetPointCollision(*item, 0, 0, -CLICK(1)).GetRoomNumber());
+				ENV_FLAG_WATER, item->Pose.Position.x, item->Pose.Position.y - headOffset, item->Pose.Position.z,
+				GetPointCollision(*item, 0, 0, -headOffset).GetRoomNumber());
 
 			if (water.WaterDepth == NO_HEIGHT || abs(water.HeightFromWater) >= CLICK(1) || isWaterOnHeadspace ||
 				item->Animation.AnimNumber == LA_UNDERWATER_RESURFACE || item->Animation.AnimNumber == LA_ONWATER_DIVE)
@@ -515,6 +517,7 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	HandlePlayerExtraAnim(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);
 	HandleLaraMovementParameters(item, coll);
 	AnimateItem(item);
@@ -596,7 +599,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 		LaraWaterCurrent(item, coll);
 
 	AnimateItem(item);
-	TranslateItem(item, player.Control.MoveAngle, item->Animation.Velocity.y);
+	item->Pose.Translate(player.Control.MoveAngle, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
 
@@ -700,7 +703,7 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 		LaraWaterCurrent(item, coll);
 
 	AnimateItem(item);
-	TranslateItem(item, item->Pose.Orientation, item->Animation.Velocity.y);
+	item->Pose.Translate(item->Pose.Orientation, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
 

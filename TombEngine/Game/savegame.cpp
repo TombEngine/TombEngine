@@ -42,6 +42,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 
 using namespace flatbuffers;
@@ -56,6 +57,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Utils;
 using namespace TEN::Video;
 
 namespace Save = TEN::Save;
@@ -187,7 +189,7 @@ bool SaveGame::IsSaveGameSlotValid(int slot)
 {
 	if (slot < 0 || slot > SAVEGAME_MAX_SLOT)
 	{
-		TENLog("Attempted to access invalid savegame slot " + std::to_string(slot), LogLevel::Warning);
+		TENLog(fmt::format("Attempted to access invalid savegame slot {}.", slot), LogLevel::Warning);
 		return false;
 	}
 
@@ -199,7 +201,7 @@ bool SaveGame::DoesSaveGameExist(int slot, bool silent)
 	if (!std::filesystem::is_regular_file(GetSavegameFilename(slot)))
 	{
 		if (!silent)
-			TENLog("Attempted to access missing savegame slot " + std::to_string(slot), LogLevel::Warning);
+			TENLog(fmt::format("Attempted to access missing savegame slot {}.", slot), LogLevel::Warning);
 
 		return false;
 	}
@@ -426,20 +428,20 @@ const std::vector<byte> SaveGame::Build()
 	auto holsterInfoOffset = holsterInfo.Finish();
 
 	Save::ArmInfoBuilder leftArm{ fbb };
+	leftArm.add_anim_object_id(Lara.LeftArm.AnimObjectID);
 	leftArm.add_anim_number(Lara.LeftArm.AnimNumber);
 	leftArm.add_gun_flash(Lara.LeftArm.GunFlash);
 	leftArm.add_gun_smoke(Lara.LeftArm.GunSmoke);
-	leftArm.add_frame_base(Lara.LeftArm.FrameBase);
 	leftArm.add_frame_number(Lara.LeftArm.FrameNumber);
 	leftArm.add_locked(Lara.LeftArm.Locked);
 	leftArm.add_rotation(&FromEulerAngles(Lara.LeftArm.Orientation));
 	auto leftArmOffset = leftArm.Finish();
 
 	Save::ArmInfoBuilder rightArm{ fbb };
+	rightArm.add_anim_object_id(Lara.RightArm.AnimObjectID);
 	rightArm.add_anim_number(Lara.RightArm.AnimNumber);
 	rightArm.add_gun_flash(Lara.RightArm.GunFlash);
 	rightArm.add_gun_smoke(Lara.RightArm.GunSmoke);
-	rightArm.add_frame_base(Lara.RightArm.FrameBase);
 	rightArm.add_frame_number(Lara.RightArm.FrameNumber);
 	rightArm.add_locked(Lara.RightArm.Locked);
 	rightArm.add_rotation(&FromEulerAngles(Lara.RightArm.Orientation));
@@ -671,16 +673,31 @@ const std::vector<byte> SaveGame::Build()
 	{
 		auto nameOffset = fbb.CreateString(room.Name);
 
+		std::vector<bool> blockStopperFlags;
+		for (auto& sector : room.Sectors)
+		{
+			blockStopperFlags.push_back(sector.Stopper);
+		}
+		auto blockStopperFlagsOffset = fbb.CreateVector(blockStopperFlags);
+
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
 		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
+		serializedInfo.add_block_stopper_flags(blockStopperFlagsOffset);
 		auto serializedInfoOffset = serializedInfo.Finish();
 
 		rooms.push_back(serializedInfoOffset);
 	}
 	auto roomOffset = fbb.CreateVector(rooms);
+
+	std::vector<int> boxFlags;
+	for (auto& box : g_Level.PathfindingBoxes)
+	{
+		boxFlags.push_back(box.flags);
+	}
+	auto boxFlagsOffset = fbb.CreateVector(boxFlags);
 
 	int currentItemIndex = 0;
 	for (auto& itemToSerialize : g_Level.Items) 
@@ -692,7 +709,7 @@ const std::vector<byte> SaveGame::Build()
 		auto luaOnCollidedRoomNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnRoomCollided);
 
 		std::vector<int> itemFlags;
-		for (int i = 0; i < 7; i++)
+		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
 		auto itemFlagsOffset = fbb.CreateVector(itemFlags);
 
@@ -721,25 +738,26 @@ const std::vector<byte> SaveGame::Build()
 				jointRotations.push_back(creature->JointRotation[i]);
 			auto jointRotationsOffset = fbb.CreateVector(jointRotations);
 
+			std::vector<flatbuffers::Offset<Save::BadBox>> badBoxes;
+			for (auto& box : creature->LOT.BadBoxes)
+				badBoxes.push_back(Save::CreateBadBox(fbb, box.Valid, box.BoxNumber, box.Count));
+			auto badBoxesOffset = fbb.CreateVector(badBoxes);
+
 			Save::CreatureBuilder creatureBuilder{ fbb };
 			creatureBuilder.add_alerted(creature->Alerted);
-			creatureBuilder.add_can_jump(creature->LOT.CanJump);
-			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
-			creatureBuilder.add_enemy(creature->Enemy == nullptr ? -1 : creature->Enemy->Index);
+			creatureBuilder.add_enemy(creature->Enemy == nullptr ? NO_VALUE : creature->Enemy->Index);
 			creatureBuilder.add_flags(creature->Flags);
 			creatureBuilder.add_friendly(creature->Friendly);
 			creatureBuilder.add_head_left(creature->HeadLeft);
 			creatureBuilder.add_head_right(creature->HeadRight);
 			creatureBuilder.add_hurt_by_lara(creature->HurtByLara);
-			creatureBuilder.add_is_amphibious(creature->LOT.IsAmphibious);
-			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
-			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
 			creatureBuilder.add_joint_rotation(jointRotationsOffset);
 			creatureBuilder.add_jump_ahead(creature->JumpAhead);
 			creatureBuilder.add_location_ai(creature->LocationAI);
 			creatureBuilder.add_weapon_delay1(creature->MuzzleFlash[0].Delay);
 			creatureBuilder.add_weapon_delay2(creature->MuzzleFlash[1].Delay);
 			creatureBuilder.add_maximum_turn(creature->MaxTurn);
+			creatureBuilder.add_fly_rate(creature->FlyRate);
 			creatureBuilder.add_monkey_swing_ahead(creature->MonkeySwingAhead);
 			creatureBuilder.add_mood((int)creature->Mood);
 			creatureBuilder.add_patrol(creature->Patrol);
@@ -747,6 +765,12 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_reached_goal(creature->ReachedGoal);
 			creatureBuilder.add_tosspad(creature->Tosspad);
 			creatureBuilder.add_ai_target_number(creature->AITargetNumber);
+			creatureBuilder.add_can_jump(creature->LOT.CanJump);
+			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
+			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
+			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
+			creatureBuilder.add_bad_boxes(badBoxesOffset);
+
 			creatureOffset = creatureBuilder.Finish();
 		}
 		else if (itemToSerialize.Data.is<QuadBikeInfo>())
@@ -833,6 +857,8 @@ const std::vector<byte> SaveGame::Build()
 
 			Save::PushableBuilder pushableBuilder{ fbb };
 
+			pushableBuilder.add_previous_trigger_flags((int)pushable->PreviousTriggerFlags);
+
 			pushableBuilder.add_pushable_behaviour_state((int)pushable->BehaviorState);
 			pushableBuilder.add_pushable_gravity(pushable->Gravity);
 			pushableBuilder.add_pushable_water_force(pushable->Oscillation);
@@ -880,11 +906,9 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		if (Objects.CheckID(itemToSerialize.ObjectNumber, true))
-			serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber - Objects[itemToSerialize.ObjectNumber].animIndex);
-
 		serializedItem.add_next_item(itemToSerialize.NextItem);
 		serializedItem.add_next_item_active(itemToSerialize.NextActive);
+		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
 		serializedItem.add_carried_item(itemToSerialize.CarriedItem);
@@ -1142,7 +1166,7 @@ const std::vector<byte> SaveGame::Build()
 
 	// Flyby cameras
 	std::vector<flatbuffers::Offset<Save::FlyByCamera>> flybyCameras;
-	for (int i = 0; i < NumberSpotcams; i++)
+	for (int i = 0; i < (int)SpotCam.size(); i++)
 	{
 		Save::FlyByCameraBuilder flyby{ fbb };
 		flyby.add_flags(SpotCam[i].flags);
@@ -1217,6 +1241,8 @@ const std::vector<byte> SaveGame::Build()
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 	Save::LevelDataBuilder levelData { fbb };
+
+	levelData.add_random_seed(Random::GetSeed());
 
 	levelData.add_level_far_view(level->LevelFarView);
 
@@ -1683,6 +1709,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
+	sgb.add_box_flags(boxFlagsOffset);
 	sgb.add_next_item_free(NextItemFree);
 	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
@@ -1767,7 +1794,7 @@ void SaveGame::SaveHub(int index)
 		return;
 
 	// Build hub data.
-	TENLog("Saving hub data for level #" + std::to_string(index) + (IsOnHub(index) ? " (overwrite)" : " (new)"), LogLevel::Info);
+	TENLog(fmt::format("Saving hub data for level #{} {}.", index, IsOnHub(index) ? "(overwrite)" : "(new)"), LogLevel::Info);
 	Hub[index] = Build();
 }
 
@@ -1780,7 +1807,7 @@ void SaveGame::LoadHub(int index)
 	if (IsOnHub(index))
 	{
 		// Load hub data.
-		TENLog("Loading hub data for level #" + std::to_string(index), LogLevel::Info);
+		TENLog(fmt::format("Loading hub data for level #{}.", index), LogLevel::Info);
 		Parse(Hub[index], true);
 	}
 
@@ -1813,14 +1840,14 @@ bool SaveGame::Save(int slot)
 	// Savegame infos need to be reloaded so that last savegame counter properly increases.
 	LoadHeaders();
 
-	auto fileName = GetSavegameFilename(slot);
-	TENLog("Saving to savegame: " + fileName, LogLevel::Info);
+	auto filename = GetSavegameFilename(slot);
+	TENLog(fmt::format("Saving to savegame {}.", filename), LogLevel::Info);
 
 	if (!std::filesystem::is_directory(FullSaveDirectory))
 		std::filesystem::create_directory(FullSaveDirectory);
 
 	std::ofstream fileOut{};
-	fileOut.open(fileName, std::ios_base::binary | std::ios_base::out);
+	fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
 
 	// Write current level save data.
 	auto currentLevelState = SaveGame::Build();
@@ -1850,12 +1877,12 @@ bool SaveGame::Load(int slot)
 {
 	if (!IsSaveGameValid(slot))
 	{
-		TENLog("Loading from savegame in slot " + std::to_string(slot) + " is impossible, data is missing or level has changed.", LogLevel::Error);
+		TENLog(fmt::format("Loading from savegame in slot {} is not possible. Data is missing or the level has changed.", slot), LogLevel::Error);
 		return false;
 	}
 
 	auto fileName = GetSavegameFilename(slot);
-	TENLog("Loading from savegame: " + fileName, LogLevel::Info);
+	TENLog(fmt::format("Loading from savegame {}.", fileName), LogLevel::Info);
 
 	auto file = std::ifstream();
 	try
@@ -1876,7 +1903,7 @@ bool SaveGame::Load(int slot)
 		int hubCount = 0;
 		file.read(reinterpret_cast<char*>(&hubCount), sizeof(hubCount));
 
-		TENLog("Hub count: " + std::to_string(hubCount), LogLevel::Info);
+		TENLog(fmt::format("Hub count: {}", hubCount), LogLevel::Info);
 
 		for (int i = 0; i < hubCount; i++)
 		{
@@ -1898,7 +1925,7 @@ bool SaveGame::Load(int slot)
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error while loading savegame: " + std::string(ex.what()), LogLevel::Error);
+		TENLog(fmt::format("Error while loading savegame: {}", ex.what()), LogLevel::Error);
 
 		if (file.is_open())
 			file.close();
@@ -1941,6 +1968,8 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	// Global level data
 
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
+
+	Random::SetSeed(s->level_data()->random_seed());
 
 	level->LevelFarView = s->level_data()->level_far_view();
 
@@ -2300,19 +2329,19 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Inventory.TotalFlares = s->lara()->inventory()->total_flares();
 	Lara.Inventory.TotalLargeMedipacks = s->lara()->inventory()->total_large_medipacks();
 	Lara.Inventory.TotalSmallMedipacks = s->lara()->inventory()->total_small_medipacks();
+	Lara.LeftArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->left_arm()->anim_object_id();
 	Lara.LeftArm.AnimNumber = s->lara()->left_arm()->anim_number();
 	Lara.LeftArm.GunFlash = s->lara()->left_arm()->gun_flash();
 	Lara.LeftArm.GunSmoke = s->lara()->left_arm()->gun_smoke();
-	Lara.LeftArm.FrameBase = s->lara()->left_arm()->frame_base();
 	Lara.LeftArm.FrameNumber = s->lara()->left_arm()->frame_number();
 	Lara.LeftArm.Locked = s->lara()->left_arm()->locked();
 	Lara.LeftArm.Orientation = ToEulerAngles(s->lara()->left_arm()->rotation());
 	Lara.Location = s->lara()->location();
 	Lara.LocationPad = s->lara()->location_pad();
+	Lara.RightArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->right_arm()->anim_object_id();
 	Lara.RightArm.AnimNumber = s->lara()->right_arm()->anim_number();
 	Lara.RightArm.GunFlash = s->lara()->right_arm()->gun_flash();
 	Lara.RightArm.GunSmoke = s->lara()->right_arm()->gun_smoke();
-	Lara.RightArm.FrameBase = s->lara()->right_arm()->frame_base();
 	Lara.RightArm.FrameNumber = s->lara()->right_arm()->frame_number();
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
 	Lara.RightArm.Orientation = ToEulerAngles(s->lara()->right_arm()->rotation());
@@ -2673,6 +2702,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		g_Level.Rooms[room->index()].reverbType = (ReverbType)room->reverb_type();
 	}
 
+	// Box flags
+	for (int i = 0; i < s->box_flags()->size(); i++)
+	{
+		g_Level.PathfindingBoxes[i].flags = s->box_flags()->Get(i);
+	}
+
 	// Static objects
 	for (int i = 0; i < s->static_meshes()->size(); i++)
 	{
@@ -2690,13 +2725,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.Dirty = true;
 		
 		if (!staticObj.Flags)
-		{
-			int roomNumber = savedStaticObj.room_number();
-			auto& sector = *GetFloor(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, (short*)&roomNumber);
-
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
-			sector.Stopper = false;
-		}
 	}
 
 	// Volumes
@@ -2736,6 +2765,16 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		FlipMap[i] = s->flip_maps()->Get(i) << 8;
 	}
 
+	// Room sector stopper flags (should be applied after flipmaps)
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto room = s->rooms()->Get(i);
+		for (int j = 0; j < room->block_stopper_flags()->size(); j++)
+		{
+			g_Level.Rooms[room->index()].Sectors[j].Stopper = room->block_stopper_flags()->Get(j);
+		}
+	}
+
 	// Flipeffects
 	FlipEffect = s->flip_effect();
 	FlipStatus = s->flip_status();
@@ -2772,7 +2811,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Flyby cameras 
 	for (int i = 0; i < s->flyby_cameras()->size(); i++)
 	{
-		if (i < NumberSpotcams)
+		if (i < (int)SpotCam.size())
 			SpotCam[i].flags = s->flyby_cameras()->Get(i)->flags();
 	}
 
@@ -2848,7 +2887,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Animation.ActiveState = savedItem->active_state();
 		item->Animation.RequiredState = savedItem->required_state();
 		item->Animation.TargetState = savedItem->target_state();
-		item->Animation.AnimNumber = object->animIndex + savedItem->anim_number();
+		item->Animation.AnimNumber = savedItem->anim_number();
 		item->Animation.FrameNumber = savedItem->frame_number();
 		item->Animation.Velocity = ToVector3(savedItem->velocity());
 
@@ -2865,7 +2904,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
 
 		// Flags and timers
-		for (int j = 0; j < 7; j++)
+		for (int j = 0; j < ITEM_FLAG_COUNT; j++)
 			item->ItemFlags[j] = savedItem->item_flags()->Get(j);
 
 		item->Timer = savedItem->timer();
@@ -2910,7 +2949,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			(item->Status == ITEM_ACTIVE || item->Status == ITEM_DEACTIVATED))
 		{
 			item->ObjectNumber = (GAME_OBJECT_ID)((int)item->ObjectNumber + ID_PUZZLE_DONE1 - ID_PUZZLE_HOLE1);
-			item->Animation.AnimNumber = Objects[item->ObjectNumber].animIndex + savedItem->anim_number();
 		}
 
 		// Initialize bridges.
@@ -2932,14 +2970,23 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			if (savedCreature == nullptr)
 				continue;
 
-			creature->Alerted = savedCreature->alerted();
+			creature->LOT.IsJumping = savedCreature->is_jumping();
+			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 			creature->LOT.CanJump = savedCreature->can_jump();
 			creature->LOT.CanMonkey = savedCreature->can_monkey();
+
+			for (int j = 0; j < creature->LOT.BadBoxes.size(); j++)
+			{
+				creature->LOT.BadBoxes[j].BoxNumber = savedCreature->bad_boxes()->Get(j)->box_number();
+				creature->LOT.BadBoxes[j].Count = savedCreature->bad_boxes()->Get(j)->count();
+				creature->LOT.BadBoxes[j].Valid = savedCreature->bad_boxes()->Get(j)->valid();
+			}
 
 			if (savedCreature->enemy() >= 0)
 				creature->Enemy = &g_Level.Items[savedCreature->enemy()];
 
 			creature->Flags = savedCreature->flags();
+			creature->Alerted = savedCreature->alerted();
 			creature->Friendly = savedCreature->friendly();
 			creature->HeadLeft = savedCreature->head_left();
 			creature->HeadRight = savedCreature->head_right();
@@ -2947,15 +2994,13 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LocationAI = savedCreature->location_ai();
 			creature->MuzzleFlash[0].Delay = savedCreature->weapon_delay1();
 			creature->MuzzleFlash[1].Delay = savedCreature->weapon_delay2();
-			creature->LOT.IsAmphibious = savedCreature->is_amphibious();
-			creature->LOT.IsJumping = savedCreature->is_jumping();
-			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 
 			for (int j = 0; j < 4; j++)
 				creature->JointRotation[j] = savedCreature->joint_rotation()->Get(j);
 
 			creature->JumpAhead = savedCreature->jump_ahead();
 			creature->MaxTurn = savedCreature->maximum_turn();
+			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
 			creature->Patrol = savedCreature->patrol();
@@ -3038,6 +3083,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		{
 			auto* pushable = (PushableInfo*)item->Data;
 			auto* savedPushable = (Save::Pushable*)savedItem->data();
+
+			pushable->PreviousTriggerFlags = (short)savedPushable->previous_trigger_flags();
 
 			pushable->BehaviorState = (PushableBehaviorState)savedPushable->pushable_behaviour_state();
 			pushable->Gravity = savedPushable->pushable_gravity();
@@ -3129,7 +3176,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 
 	if (length == 0)
 	{
-		TENLog("Savegame #" + std::to_string(slot) + " has no data!", LogLevel::Warning);
+		TENLog(fmt::format("Savegame #{} has no data.", slot), LogLevel::Warning);
 		return false;
 	}
 
@@ -3146,7 +3193,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 
 		if (size <= 0 || size >= length || !bufferIsValid)
 		{
-			TENLog("Incorrect data in savegame #" + std::to_string(slot) + ". Old format?", LogLevel::Warning);
+			TENLog(fmt::format("Incorrect data in savegame #{}. The level format may be outdated.", slot), LogLevel::Warning);
 			return false;
 		}
 
@@ -3166,7 +3213,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	}
 	catch (std::exception& ex)
 	{
-		TENLog("Error reading savegame #" + std::to_string(slot) + ", Exception: " + ex.what(), LogLevel::Error);
+		TENLog(fmt::format("Error reading savegame #{}. Exception: {}", slot, ex.what()), LogLevel::Error);
 		return false;
 	}
 }

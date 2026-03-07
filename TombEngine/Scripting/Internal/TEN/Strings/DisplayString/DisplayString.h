@@ -24,6 +24,7 @@ enum class DisplayStringOptions
 	Right,
 	Blink,
 	VerticalCenter,
+	VerticalBottom,
 
 	Count
 };
@@ -52,6 +53,10 @@ static const std::unordered_map<std::string, DisplayStringOptions> DISPLAY_STRIN
 	/// Sets the vertical origin point of the multiline string to the center.
 	// @mem VERTICAL_CENTER
 	{ "VERTICAL_CENTER", DisplayStringOptions::VerticalCenter }
+
+	/// Sets the vertical origin point of the multiline string to the bottom.
+	// @mem VERTICAL_BOTTOM
+	,{ "VERTICAL_BOTTOM", DisplayStringOptions::VerticalBottom }
 };
 
 class UserDisplayString

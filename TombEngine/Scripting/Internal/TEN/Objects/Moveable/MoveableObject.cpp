@@ -214,7 +214,8 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
-		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight);
+		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -286,6 +287,7 @@ void Moveable::SetObjectID(GAME_OBJECT_ID id)
 {
 	_moveable->ObjectNumber = id;
 	_moveable->ResetModelToDefault();
+	SetAnimation(_moveable, 0);
 }
 
 void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify)
@@ -317,7 +319,7 @@ int Moveable::GetIndex() const
 /// Set the name of the function to be called when the moveable is shot by Lara.
 // Note that this will be triggered twice when shot with both pistols at once. 
 // @function Moveable:SetOnHit
-// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is shot.
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is shot.
 void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 {
 	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks.OnHit);
@@ -327,7 +329,7 @@ void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 // Note that enemy death often occurs at the end of an animation, and not at the exact moment
 // the enemy's HP becomes zero.
 // @function Moveable:SetOnKilled
-// @tparam function function Callback function in LevelFuncs hierarchy to call when moveable is killed.
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is killed.
 // @usage
 // LevelFuncs.baddyKilled = function(theBaddy) print("You killed a baddy!") end
 // baddy:SetOnKilled(LevelFuncs.baddyKilled)
@@ -338,7 +340,7 @@ void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 
 /// Set the function to be called when this moveable collides with another moveable.
 // @function Moveable:SetOnCollidedWithObject
-// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
 // @usage
 // -- obj1 is the collision moveable
 // -- obj2 is the collider moveable
@@ -354,7 +356,7 @@ void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
 
 /// Set the function called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
 // @function Moveable:SetOnCollidedWithRoom
-// @tparam function function Callback function to be called (must be in LevelFuncs hierarchy).
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy).
 // @usage
 // LevelFuncs.roomCollided = function(obj)
 //     print(obj:GetName() .. " collided with room geometry")
@@ -514,7 +516,7 @@ Vec3 Moveable::GetScale() const
 // @tparam Rotation rotation The moveable's new rotation.
 void Moveable::SetRotation(const Rotation& rot)
 {
-	constexpr auto BIG_ANGLE_THRESHOLD = ANGLE(30.0f);
+	constexpr auto BIG_ANGLE_THRESHOLD = ANGLE(45.0f);
 
 	auto newRot = rot.ToEulerAngles();
 	bool bigRotation = !EulerAngles::Compare(newRot, _moveable->Pose.Orientation, BIG_ANGLE_THRESHOLD);
@@ -814,7 +816,7 @@ int Moveable::GetAnimSlot() const
 // @treturn int The index of the active animation.
 int Moveable::GetAnimNumber() const
 {
-	return _moveable->Animation.AnimNumber - Objects[_moveable->Animation.AnimObjectID].animIndex;
+	return _moveable->Animation.AnimNumber;
 }
 
 /// Set the moveable's animation to the one specified by the given index.
@@ -825,7 +827,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
 }
 
 /// Retrieve frame number.
@@ -834,7 +836,7 @@ void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 // @treturn int The current frame of the active animation.
 int Moveable::GetFrameNumber() const
 {
-	return (_moveable->Animation.FrameNumber - GetAnimData(*_moveable).frameBase);
+	return _moveable->Animation.FrameNumber;
 }
 
 /// Get the moveable's velocity.
@@ -873,14 +875,13 @@ void Moveable::SetVelocity(Vec3 velocity)
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
-
-	unsigned int frameCount = anim.frameEnd - anim.frameBase;
 	
-	bool cond = frameNumber < frameCount;
+	bool cond = (frameNumber < anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, frameCount-1))
+
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
 	{
-		_moveable->Animation.FrameNumber = frameNumber + anim.frameBase;
+		_moveable->Animation.FrameNumber = frameNumber;
 	}
 	else
 	{
@@ -895,7 +896,7 @@ void Moveable::SetFrameNumber(int frameNumber)
 int Moveable::GetEndFrame() const
 {
 	const auto& anim = GetAnimData(*_moveable);
-	return (anim.frameEnd - anim.frameBase);
+	return anim.EndFrameNumber;
 }
 
 /// Determine whether the moveable is active or not.
@@ -1058,7 +1059,7 @@ bool Moveable::GetMeshSwapped(int meshId) const
 // @function Moveable:SwapMesh
 // @tparam int index Index of a mesh.
 // @tparam int objectID ID of a slot to get meshswap from.
-// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use.
+// @tparam[opt] int swapIndex Index of a mesh from meshswap slot to use. In WadTool, you have to set vertex weights for this mesh according to original mesh index to avoid rendering issues.
 void Moveable::SwapMesh(int meshId, int objectID, sol::optional<int> swapIndex)
 {
 	if (!MeshExists(meshId))
@@ -1146,6 +1147,12 @@ void Moveable::EnableItem(sol::optional<float> timer)
 	if (_moveableID == NO_VALUE)
 		return;
 
+	if (_moveable->Flags & IFLAG_KILLED)
+	{
+		TENLog("Attempt to re-enable a moveable " + _moveable->Name + " which was already destroyed or in the process of destroying.", LogLevel::Warning);
+		return;
+	}
+
 	bool wasInvisible = false;
 	if (_moveable->Status == ITEM_INVISIBLE)
 		wasInvisible = true;
@@ -1219,7 +1226,10 @@ void Moveable::SetCollidable(bool isCollidable)
 // @treturn bool Item's visibility state.
 bool Moveable::GetVisible() const
 {
-	return (_moveable->Status != ITEM_INVISIBLE && _moveable->Model.Color.w > EPSILON);
+	if (_moveable->Status == ITEM_INVISIBLE || _moveable->Model.Color.w <= EPSILON)
+		return false;
+
+	return IsItemInRoom(_moveable->Index, _moveable->RoomNumber);
 }
 
 // Make the item invisible. Alias for `Moveable:SetVisible(false)`.
@@ -1313,11 +1323,13 @@ bool Moveable::MeshExists(int index) const
 	return true;
 }
 
-/// Attach camera to a moveable.
+/// Attach camera to the moveable's current position, and target another moveable.
+// The camera's position and target position will be maintained until this function is called again.
+// Use @{View.ResetObjCamera} to restore the regular camera.
 // @function Moveable:AttachObjCamera
-// @tparam int mesh Mesh of a moveable to use as a camera position.
-// @tparam Objects.Moveable target Target moveable to attach camera to.
-// @tparam int targetMesh Mesh of a target moveable to use as a camera target.
+// @tparam int mesh Mesh of the moveable to which the camera will be attached.
+// @tparam Objects.Moveable target Moveable to target.
+// @tparam int targetMesh Mesh of the moveable to target.
 void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId)
 {
 	ObjCamera(_moveable, camMeshId, mov._moveable, targetMeshId, true);
@@ -1331,15 +1343,26 @@ void Moveable::AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshI
 void Moveable::AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID)
 {
 	_moveable->Animation.AnimObjectID = objectID;
-	_moveable->Animation.AnimNumber = Objects[objectID].animIndex + animNumber;
+	_moveable->Animation.AnimNumber = animNumber;
 	_moveable->Animation.ActiveState = stateID;
-	_moveable->Animation.FrameNumber = GetAnimData(*_moveable).frameBase;
+	_moveable->Animation.FrameNumber = 0;
 	AnimateItem(_moveable);
 }
 
-/// Show interaction highlight for the object. Can be useful if you have scripted an interaction with it.
+/// Show interaction highlight for the object for current game frame.
+// Can be useful if you have scripted an interaction with it.
 // @function Moveable:ShowInteractionHighlight
-void Moveable::ShowInteractionHighlight()
+// @tparam[opt] Objects.InteractionType interactionType Interaction icon type to show.
+void Moveable::ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType)
 {
-	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable);
+	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
+	g_Hud.InteractionHighlighter.Test(*LaraItem.Get(), *_moveable, InteractionMode::Always, convertedIcon);
+}
+
+/// Suppresses interaction highlight for the object for current game frame.
+// Can be useful when you need to manually block interaction highlight for a particular object or in a particular area.
+// @function Moveable:HideInteractionHighlight
+void Moveable::HideInteractionHighlight()
+{
+	g_Hud.InteractionHighlighter.Suppress(_moveable.Get()->Index);
 }

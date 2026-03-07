@@ -1,22 +1,25 @@
 #include "framework.h"
 #include "Game/collision/collide_room.h"
 
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/los.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/animation.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
+#include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 void ShiftItem(ItemInfo* item, CollisionInfo* coll)
 {
@@ -67,7 +70,7 @@ int FindGridShift(int x, int z)
 // Test if the axis-aligned bounding box collides with geometry at all.
 bool TestItemRoomCollisionAABB(ItemInfo* item)
 {
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
 	auto box = bounds + item->Pose;
 	short maxY = std::min(box.Y1, box.Y2);
 	short minY = std::max(box.Y1, box.Y2);
@@ -167,7 +170,7 @@ static void HandleDiagonalShift(ItemInfo& item, CollisionInfo& coll, const Vecto
 	// HACK: Force slight push left to avoid getting stuck.
 	float alpha = 1.0f - ((float)deltaAngle / (float)ANGLE(90.0f));
 	if (alpha >= 0.5f)
-		TranslateItem(&item, perpSplitAngle, item.Animation.Velocity.z * alpha);
+		item.Pose.Translate(perpSplitAngle, item.Animation.Velocity.z * alpha);
 
 	// Set shift.
 	coll.Shift.Position.x += coll.Setup.PrevPosition.x - pos.x;

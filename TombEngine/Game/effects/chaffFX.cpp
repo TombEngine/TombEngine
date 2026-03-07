@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/effects/chaffFX.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
 #include "Game/effects/Bubble.h"
@@ -17,6 +17,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Math;
 

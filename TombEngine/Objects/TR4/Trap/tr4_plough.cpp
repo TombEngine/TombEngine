@@ -1,10 +1,12 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_plough.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -24,7 +26,7 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(&item))
 		{
 			*((int*)&item.ItemFlags) = 0x3F000;
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 		else
 		{

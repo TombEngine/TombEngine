@@ -1,14 +1,33 @@
 #include "framework.h"
 #include "Math/Random.h"
 
-#include <random>
-
 #include "Math/Constants.h"
 #include "Math/Objects/EulerAngles.h"
 
 namespace TEN::Math::Random
 {
-	static std::mt19937 Engine;
+	constexpr unsigned int DEFAULT_SEED = 0x12345678;
+	static unsigned int Seed = DEFAULT_SEED;
+
+	unsigned int GetSeed()
+	{
+		return Seed;
+	}
+
+	void SetSeed(unsigned int seed)
+	{
+		Seed = (seed == 0) ? DEFAULT_SEED : seed;
+	}
+
+	static inline unsigned int Xorshift32()
+	{
+		unsigned int x = Seed;
+		x ^= x << 13;
+		x ^= x >> 17;
+		x ^= x << 5;
+		Seed = x;
+		return x;
+	}
 
 	int GenerateInt(int low, int high)
 	{
@@ -18,7 +37,7 @@ namespace TEN::Math::Random
 		if (low > high)
 			std::swap(low, high);
 
-		return (Engine() / (Engine.max() / (high - low + 1) + 1) + low);
+		return (Xorshift32() / (UINT_MAX / (high - low + 1) + 1) + low);
 	}
 
 	float GenerateFloat(float low, float high)
@@ -29,7 +48,7 @@ namespace TEN::Math::Random
 		if (low > high)
 			std::swap(low, high);
 
-		return ((high - low) * Engine() / Engine.max() + low);
+		return ((high - low) * (float)Xorshift32() / (float)UINT_MAX + low);
 	}
 
 	short GenerateAngle(short low, short high)

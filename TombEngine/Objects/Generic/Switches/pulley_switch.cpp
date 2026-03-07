@@ -124,7 +124,7 @@ namespace TEN::Entities::Switches
 						laraItem->Animation.ActiveState = LS_PULLEY;
 						laraItem->Animation.TargetState = LS_PULLEY;
 						laraItem->Animation.Velocity = Vector3::Zero;
-						laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+						laraItem->Animation.FrameNumber = 0;
 						laraInfo->Control.IsMoving = false;
 						laraInfo->Control.HandStatus = HandStatus::Busy;
 						laraInfo->Context.InteractedItem = itemNumber;
@@ -165,7 +165,7 @@ namespace TEN::Entities::Switches
 
 		bool isPulling = (LaraItem->Animation.AnimNumber == LA_PULLEY_PULL || LaraItem->Animation.AnimNumber == LA_UNDERWATER_PULLEY_PULL);
 		bool isReleasing = (LaraItem->Animation.AnimNumber == LA_PULLEY_RELEASE || LaraItem->Animation.AnimNumber == LA_UNDERWATER_PULLEY_UNGRAB);
-		bool isBaseFrame = (LaraItem->Animation.FrameNumber == GetAnimData(*LaraItem).frameBase);
+		bool isBaseFrame = (LaraItem->Animation.FrameNumber == 0);
 
 		switch (switchItem->Animation.ActiveState)
 		{

@@ -11,7 +11,7 @@ namespace TEN::Scripting::Types
 {
 	void ScriptColor::Register(sol::table& parent)
 	{
-		using ctors = sol::constructors<ScriptColor(byte, byte, byte), ScriptColor(byte, byte, byte, byte)>;
+		using ctors = sol::constructors<ScriptColor(), ScriptColor(byte, byte, byte), ScriptColor(byte, byte, byte, byte)>;
 
 		// Register type.
 		parent.new_usertype<ScriptColor>(
@@ -39,11 +39,19 @@ namespace TEN::Scripting::Types
 
 	/// Create a Color object.
 	// @function Color
-	// @int R Red component.
-	// @int G Green component.
-	// @int B Blue component.
+	// @int[opt=128] R Red component.
+	// @int[opt=128] G Green component.
+	// @int[opt=128] B Blue component.
 	// @int[opt=255] A Alpha (transparency) component.
 	// @treturn Color A new Color object.
+	// @usage
+	// local color1 = TEN.Color()               -- Default gray color (128, 128, 128, 255)
+	// local color2 = TEN.Color(255, 0, 0)      -- Red color with full opacity (255, 0, 0, 255)
+	// local color3 = TEN.Color(0, 255, 0, 128) -- Green color with 50% opacity
+	ScriptColor::ScriptColor() :
+		_color(128, 128, 128, 255)
+	{
+	}
 	ScriptColor::ScriptColor(byte r, byte g, byte b) :
 		_color(r, g, b)
 	{

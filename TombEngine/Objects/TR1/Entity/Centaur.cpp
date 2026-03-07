@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Entity/Centaur.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -74,9 +74,9 @@ namespace TEN::Entities::Creatures::TR1
 
 			if (ai.ahead)
 			{
-				headOrient.x = ai.xAngle;
+				headOrient.x = -ai.xAngle;
 				headOrient.y = ai.angle;
-				torsoOrient.x = ai.xAngle / 2;
+				torsoOrient.x = -ai.xAngle / 2;
 				torsoOrient.y = ai.angle / 2;
 			}
 
@@ -147,7 +147,7 @@ namespace TEN::Entities::Creatures::TR1
 				if (item.Animation.RequiredState == NO_VALUE)
 				{
 					item.Animation.RequiredState = CENTAUR_STATE_AIM;
-					CreatureEffect2(&item, CentaurRocketBite, CENTAUR_BOMB_VELOCITY, headOrient.y, BombGun);
+					ShootAtEnemy(creature.LOT.Target, creature.Enemy, CreatureEffect2(&item, CentaurRocketBite, CENTAUR_BOMB_VELOCITY, headOrient.y, BombGun));
 				}
 
 				break;

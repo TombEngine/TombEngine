@@ -68,11 +68,13 @@ public:
 	int			GetSecretCount() const;
 	void		SetSecretCount(int secretsNum);
 	void		AddSecret(int levelSecretIndex);
+	sol::table	GetSaveHeaders(sol::this_state state);
 	void		SetIntroImagePath(const std::string& path);
 	void		SetIntroVideoPath(const std::string& path);
 	void		SetTitleScreenImagePath(const std::string& path);
 	int			GetTotalSecretCount();
 	void		SetTotalSecretCount(int secretsNumber);
+	Time		GetGlobalGameTime();
 	bool		IsFlyCheatEnabled() const;
 	void		EnableFlyCheat(bool enable);
 	bool		IsPointFilterEnabled() const;

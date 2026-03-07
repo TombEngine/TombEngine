@@ -4,6 +4,11 @@ class EulerAngles;
 
 namespace TEN::Math::Random
 {
+	// Utility
+
+	unsigned int GetSeed();
+	void SetSeed(unsigned int seed);
+
 	// Value generation
 
 	int	  GenerateInt(int low = 0, int high = SHRT_MAX);

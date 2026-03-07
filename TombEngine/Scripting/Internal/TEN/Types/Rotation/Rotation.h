@@ -24,6 +24,7 @@ namespace TEN::Scripting
 
 		Rotation() = default;
 		Rotation(float x, float y, float z);
+		Rotation(const Vec3& dir);
 		Rotation(const Vector3& vec);
 		Rotation(const EulerAngles& eulers);
 

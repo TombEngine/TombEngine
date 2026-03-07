@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
- 
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/Decal.h"
@@ -18,6 +18,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
@@ -594,14 +595,14 @@ namespace TEN::Renderer
 				if (rendererStatic.CacheLights || _invalidateCache)
 				{
 					// Collect all lights and return cached light for next frames.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, false, &cachedRoomLights, &lights);
 					rendererStatic.CacheLights = false;
 					rendererStatic.CachedRoomLights = cachedRoomLights;
 				}
 				else
 				{
 					// Collect only dynamic lights and use cached lights from rooms.
-					CollectLights(rendererStatic.Pose.Position.ToVector3(), BLOCK(1), rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
+					CollectLights(rendererStatic.Pose.Position.ToVector3(), ITEM_LIGHT_COLLECTION_RADIUS, rendererRoom.RoomNumber, NO_VALUE, false, true, &rendererStatic.CachedRoomLights, &lights);
 				}
 			}
 			rendererStatic.LightsToDraw = lights;

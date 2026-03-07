@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/Generic/Object/ZipLine.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
 #include "Game/control/box.h"
@@ -14,6 +14,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -118,11 +119,11 @@ namespace TEN::Entities::Traps
 
 		if (zipLineItem.Animation.ActiveState == 1)
 		{
-			AnimateItem(&zipLineItem);
+			AnimateItem(zipLineItem);
 			return;
 		}
 
-		AnimateItem(&zipLineItem);
+		AnimateItem(zipLineItem);
 
 		// Accelerate.
 		if (zipLineItem.Animation.Velocity.y < VEL_MAX)
@@ -131,7 +132,7 @@ namespace TEN::Entities::Traps
 		// Translate.
 		// TODO: Use proper calculation of the trajectory instead of bitwise operation.
 		auto headingOrient = EulerAngles(0, zipLineItem.Pose.Orientation.y, 0);
-		TranslateItem(&zipLineItem, headingOrient, zipLineItem.Animation.Velocity.y);
+		zipLineItem.Pose.Translate(headingOrient, zipLineItem.Animation.Velocity.y);
 		zipLineItem.Pose.Position.y += ((int)zipLineItem.Animation.Velocity.y >> 2);
 
 		int vPos = zipLineItem.Pose.Position.y + CLICK(0.25f);

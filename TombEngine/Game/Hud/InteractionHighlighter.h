@@ -35,6 +35,8 @@ namespace TEN::Hud
 		// Members
 
 		bool _isActive = false;
+		std::unordered_set<int> _suppressedItemNumbers = {};
+
 		HighlightState _current = {};
 		HighlightState _previous = {};
 
@@ -45,9 +47,10 @@ namespace TEN::Hud
 	public:
 		// Utilities
 
-		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always);
+		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always, InteractionType overriddenType = InteractionType::Undefined, Vector3 offset = Vector3::Zero);
 		void Draw() const;
 		void Update();
+		void Suppress(int index);
 		void Clear();
 	};
 }

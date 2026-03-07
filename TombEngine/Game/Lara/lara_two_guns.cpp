@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_two_guns.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
@@ -18,6 +18,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -50,27 +51,24 @@ static void SetArmInfo(const ItemInfo& laraItem, ArmInfo& arm, int frame)
 	const auto& player = GetLaraInfo(laraItem);
 	const auto& weaponAnimData = GetWeaponAnimData(player.Control.Weapon.GunType);
 
-	int animBase = Objects[(int)weaponAnimData.ObjectID].animIndex;
-
 	if (frame < weaponAnimData.Draw1Anim)
 	{
-		arm.AnimNumber = animBase;
+		arm.AnimNumber = 0;
 	}
 	else if (frame < weaponAnimData.Draw2Anim)
 	{
-		arm.AnimNumber = animBase + 1;
+		arm.AnimNumber = 1;
 	}
 	else if (frame < weaponAnimData.RecoilAnim)
 	{
-		arm.AnimNumber = animBase + 2;
+		arm.AnimNumber = 2;
 	}
 	else
 	{
-		arm.AnimNumber = animBase + 3;
+		arm.AnimNumber = 3;
 	}
 
 	arm.FrameNumber = frame;
-	arm.FrameBase = GetAnimData(arm.AnimNumber).FramePtr;
 }
 
 static void ReadyPistols(ItemInfo& laraItem, LaraWeaponType weaponType)
@@ -79,8 +77,8 @@ static void ReadyPistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 	player.Control.HandStatus = HandStatus::WeaponReady;
 	player.TargetEntity = nullptr;
-	player.LeftArm.FrameBase =
-	player.RightArm.FrameBase = Objects[GetWeaponObjectID(weaponType)].frameBase;
+	player.LeftArm.AnimObjectID =
+	player.RightArm.AnimObjectID = GetWeaponObjectID(weaponType);
 	player.LeftArm.FrameNumber =
 	player.RightArm.FrameNumber = 0;
 	player.LeftArm.Orientation =
@@ -129,16 +127,26 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 				bool canShoot = (weaponType == LaraWeaponType::Revolver) ? isRightWeapon : true;
 				if (canShoot)
 				{
-					// HACK: Revolver, a right weapon, uses the left arm's orientation.
-					auto armOrient = (weaponType == LaraWeaponType::Revolver) ?
-						EulerAngles(
-							player.LeftArm.Orientation.x,
-							player.LeftArm.Orientation.y + laraItem.Pose.Orientation.y,
-							0) :
-						EulerAngles(
+					auto armOrient = EulerAngles::Identity;
+
+					if (weaponType == LaraWeaponType::Revolver)
+					{
+						// Allow free targeting while standing still and no target present.
+						auto additionalOrient = (player.TargetEntity || laraItem.Animation.ActiveState != LS_IDLE) ? EulerAngles::Identity : player.ExtraTorsoRot;
+
+						// HACK: Revolver, a right weapon, uses the left arm's orientation.
+						armOrient = EulerAngles(
+							additionalOrient.x + player.LeftArm.Orientation.x,
+							additionalOrient.y + player.LeftArm.Orientation.y + laraItem.Pose.Orientation.y,
+							0);
+					}
+					else
+					{
+						armOrient = EulerAngles(
 							arm.Orientation.x,
 							arm.Orientation.y + laraItem.Pose.Orientation.y,
 							0);
+					}
 
 					if (FireWeapon(weaponType, player.TargetEntity, laraItem, armOrient) != FireWeaponType::NoAmmo)
 					{

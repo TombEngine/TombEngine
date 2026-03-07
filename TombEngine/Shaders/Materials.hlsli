@@ -199,4 +199,27 @@ float CalculateOcclusion(float2 samplePosition, float alpha)
 	return occlusion;
 }
 
+inline float3 EnsureNormal(float3 n, float3 worldPos)
+{
+    // Eliminate NaNs by replacing them with 0.
+    n = (n == n) ? n : float3(0, 0, 0);
+
+    float l2 = dot(n, n);
+
+    // If too small, choose a fallback facing the camera
+    if (l2 < EPSILON)
+    {
+        // Camera direction in world space
+        float3 viewDir = normalize(CamPositionWS - worldPos);
+
+        // Guarantee a valid vector even if Cam == worldPos
+        if (any(isnan(viewDir)) || dot(viewDir,viewDir) < EPSILON)
+            viewDir = float3(0, 0, 1);
+
+        return viewDir;
+    }
+
+    return normalize(n);
+}
+
 #endif

@@ -11,6 +11,11 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Utils
 {
+	float ToMegabytes(unsigned long long bytes)
+	{
+		return (float)bytes / (1024.0f * 1024.0f);
+	}
+
 	std::string ConstructAssetDirectory(std::string customDirectory)
 	{
 		static const int searchDepth = 2;

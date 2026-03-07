@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR1/Entity/tr1_giant_mutant.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/box.h"
 #include "Game/effects/effects.h"
@@ -15,6 +15,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR1

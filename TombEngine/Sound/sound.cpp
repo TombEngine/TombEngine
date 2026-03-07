@@ -455,17 +455,17 @@ void EnumerateLegacyTracks()
 	}
 }
 
-float GetSoundTrackLoudness(SoundTrackType mode)
+float GetSoundTrackLoudness(SoundTrackType type)
 {
 	float result = 0.0f;
 
 	if (!g_Configuration.EnableSound)
 		return result;
 
-	if (!BASS_ChannelIsActive(SoundtrackSlot[(int)mode].Channel))
+	if (!BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel))
 		return result;
 
-	BASS_ChannelGetLevelEx(SoundtrackSlot[(int)mode].Channel, &result, 0.1f, BASS_LEVEL_MONO | BASS_LEVEL_RMS);
+	BASS_ChannelGetLevelEx(SoundtrackSlot[(int)type].Channel, &result, 0.1f, BASS_LEVEL_MONO | BASS_LEVEL_RMS);
 	return std::clamp(result * 2.0f, 0.0f, 1.0f);
 }
 
@@ -493,7 +493,7 @@ std::optional<std::string> GetCurrentSubtitle()
 	return std::nullopt;
 }
 
-void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional<QWORD> pos, int forceFadeInTime)
+void PlaySoundTrack(const std::string& track, SoundTrackType type, std::optional<QWORD> pos, int forceFadeInTime)
 {
 	if (!g_Configuration.EnableSound)
 		return;
@@ -505,18 +505,18 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional
 	DWORD crossfadeTime = 0;
 	DWORD flags = BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
 
-	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)mode].Channel);
-	if (channelActive && SoundtrackSlot[(int)mode].Track.compare(track) == 0)
+	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel);
+	if (channelActive && SoundtrackSlot[(int)type].Track.compare(track) == 0)
 	{
 		// Same track is incoming with different playhead; set it to new position.
-		auto stream = SoundtrackSlot[(int)mode].Channel;
+		auto stream = SoundtrackSlot[(int)type].Channel;
 		if (pos.has_value() && BASS_ChannelGetLength(stream, BASS_POS_BYTE) > pos.value())
 			BASS_ChannelSetPosition(stream, pos.value(), BASS_POS_BYTE);
 
 		return;
 	}
 
-	switch (mode)
+	switch (type)
 	{
 	case SoundTrackType::OneShot:
 	case SoundTrackType::Voice:
@@ -548,7 +548,7 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional
 	}
 
 	if (channelActive)
-		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)mode].Channel, BASS_ATTRIB_VOL, -1.0f, crossfadeTime);
+		BASS_ChannelSlideAttribute(SoundtrackSlot[(int)type].Channel, BASS_ATTRIB_VOL, -1.0f, crossfadeTime);
 
 	auto stream = BASS_StreamCreateFile(false, fullTrackName.c_str(), 0, 0, flags);
 
@@ -559,7 +559,7 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional
 
 	// Damp BGM track in case one-shot track is about to play.
 
-	if (mode == SoundTrackType::OneShot)
+	if (type == SoundTrackType::OneShot)
 	{
 		if (BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
 			BASS_ChannelSlideAttribute(SoundtrackSlot[(int)SoundTrackType::BGM].Channel, BASS_ATTRIB_VOL, masterVolume * SOUND_BGM_DAMP_COEFFICIENT, SOUND_XFADETIME_BGM_START);
@@ -597,11 +597,11 @@ void PlaySoundTrack(const std::string& track, SoundTrackType mode, std::optional
 	if (Sound_CheckBASSError("Playing soundtrack '%s'", true, fullTrackName.filename().string().c_str()))
 		return;
 
-	SoundtrackSlot[(int)mode].Channel = stream;
-	SoundtrackSlot[(int)mode].Track = track;
+	SoundtrackSlot[(int)type].Channel = stream;
+	SoundtrackSlot[(int)type].Track = track;
 
 	// Additionally attempt to load subtitle file, if exists.
-	if (mode == SoundTrackType::Voice)
+	if (type == SoundTrackType::Voice)
 		LoadSubtitles(track);
 }
 
@@ -772,7 +772,7 @@ int Sound_GetFreeSlot()
 	return farSlot;
 }
 
-int Sound_TrackIsPlaying(const std::string& fileName)
+int Sound_TrackIsPlaying(const std::string& fileName, std::optional<SoundTrackType> type)
 {
 	for (int i = 0; i < (int)SoundTrackType::Count; i++)
 	{
@@ -784,7 +784,7 @@ int Sound_TrackIsPlaying(const std::string& fileName)
 		auto name1 = TEN::Utils::ToLower(slot.Track);
 		auto name2 = TEN::Utils::ToLower(fileName);
 
-		if (name1.compare(name2) == 0)
+		if (name1.compare(name2) == 0 && (!type.has_value() || (SoundTrackType)i == type.value()))
 			return true;
 	}
 

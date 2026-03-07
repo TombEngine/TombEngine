@@ -10,8 +10,11 @@
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/HandStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Lara/LaraObject.h"
+#include "Scripting/Internal/TEN/Objects/Lara/WaterStatuses.h"
+#include "Scripting/Internal/TEN/Objects/Lara/WeaponModes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableStatuses.h"
+#include "Scripting/Internal/TEN/Objects/Moveable/InteractionType.h"
 #include "Scripting/Internal/TEN/Objects/ObjectIDs.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomFlags.h"
 #include "Scripting/Internal/TEN/Objects/Room/RoomObject.h"
@@ -114,6 +117,14 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_table_objects.set_function(ScriptReserved_GetRoomByName, &ObjectsHandler::GetByName<Room, ScriptReserved_Room>, this);
 
 	/***
+	Get a Room by its number.
+	@function GetRoomByNumber
+	@tparam string name The unique number of the room returned by GetRoomNumber functions.
+	@treturn Objects.Room A non-owning Room referencing the room.
+	*/
+	_table_objects.set_function(ScriptReserved_GetRoomByNumber, &ObjectsHandler::GetRoomByNumber, this);
+
+	/***
 	Get rooms by tag.
 	@function GetRoomsByTag
 	@tparam string tag Tag to select rooms by.
@@ -128,6 +139,15 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn bool True if name is in use and an object with a given name is present, false if not.
 	*/
 	_table_objects.set_function(ScriptReserved_IsNameInUse, &ObjectsHandler::IsNameInUse, this);
+
+
+	/***
+	Converts moveable Object ID to a string with internal slot name.
+	@function GetSlotName
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@treturn string Internal slot name.
+	*/
+	_table_objects.set_function(ScriptReserved_GetSlotName, &GetObjectName);
 
 	LaraObject::Register(_table_objects);
 
@@ -177,8 +197,11 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomReverb, ROOM_REVERB_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponType, WEAPON_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_AmmoType, AMMO_TYPES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponMode, WEAPON_MODES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_HandStatus, HAND_STATUSES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WaterStatus, WATER_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoveableStatus, MOVEABLE_STATUSES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_InteractionType, INTERACTION_TYPE);
 }
 
 void ObjectsHandler::TestCollidingObjects()

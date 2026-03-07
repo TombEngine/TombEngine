@@ -195,7 +195,7 @@ namespace TEN::Entities::Creatures::TR1
 				{
 					// TODO: Add gunflash for cowboy after PR #1069 is merged to develop branch.
 
-					if (!(creature.Flags & 1) && item.Animation.FrameNumber == GetFrameIndex(&item, 2))
+					if (!(creature.Flags & 1) && item.Animation.FrameNumber == 2)
 					{
 						ShotLara(&item, &ai, CowboyGunLeft, extraHeadRot.y, COWBOY_SHOT_DAMAGE);
 						creature.MuzzleFlash[0].Bite = CowboyGunLeft;
@@ -203,7 +203,7 @@ namespace TEN::Entities::Creatures::TR1
 						creature.Flags |= 1;
 					}
 
-					if (!(creature.Flags & 2) && item.Animation.FrameNumber == GetFrameIndex(&item, 10))
+					if (!(creature.Flags & 2) && item.Animation.FrameNumber == 10)
 					{
 						ShotLara(&item, &ai, CowboyGunRight, extraHeadRot.y, COWBOY_SHOT_DAMAGE);
 						creature.MuzzleFlash[1].Bite = CowboyGunRight;

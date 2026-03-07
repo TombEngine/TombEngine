@@ -17,7 +17,7 @@ namespace TEN::Entities::Vehicles
 
 	void KayakDoRipple(ItemInfo* kayakItem, int xOffset, int zOffset);
 
-	int  KayakGetCollisionAnim(ItemInfo* kayakItem, int xDiff, int zDiff);
+	int  KayakGetCollisionAnimation(ItemInfo* kayakItem, int xDiff, int zDiff);
 	int  KayakDoDynamics(int height, int verticalVelocity, int* y);
 	void KayakDoCurrent(ItemInfo* kayakItem, ItemInfo* laraItem);
 	bool KayakCanGetOut(ItemInfo* kayakItem, int dir);

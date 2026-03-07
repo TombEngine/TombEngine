@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -13,6 +13,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 constexpr auto BAT_LARA_DAMAGE = 2;

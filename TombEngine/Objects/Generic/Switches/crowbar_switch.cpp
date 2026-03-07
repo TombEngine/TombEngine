@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
@@ -14,6 +14,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -76,7 +77,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_OFF;
 						}
 						else
@@ -105,7 +106,7 @@ namespace TEN::Entities::Switches
 						{
 							doSwitch = 1;
 							laraItem->Animation.AnimNumber = LA_CROWBAR_USE_ON_FLOOR;
-							laraItem->Animation.FrameNumber =  GetAnimData(laraItem).frameBase;
+							laraItem->Animation.FrameNumber = 0;
 							switchItem->Animation.TargetState = SWITCH_ON;
 						}
 						else

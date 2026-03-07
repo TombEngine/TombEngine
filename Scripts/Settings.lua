@@ -26,8 +26,11 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
+	settings.Gameplay.enableInventory = true
+	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.targetObjectOcclusion = true
-	
+
+	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
@@ -35,12 +38,37 @@ local settings = Flow.Settings.new()
 	settings.Hud.speedometer = true
 	settings.Hud.pickupNotifier = true
 	
+	settings.Pathfinding.mode = PathfindingMode.ASTAR
+	settings.Pathfinding.searchDepth = 5
+	settings.Pathfinding.escapeDistance = 5120
+	settings.Pathfinding.stalkDistance = 3072
+	settings.Pathfinding.predictionFactor = 15.0
+	settings.Pathfinding.collisionPenaltyThreshold = 1
+	settings.Pathfinding.collisionPenaltyCooldown = 6
+	settings.Pathfinding.moveableAvoidance = false
+	settings.Pathfinding.staticMeshAvoidance = false
+	settings.Pathfinding.verticalGeometryAvoidance = true
+	settings.Pathfinding.waterSurfaceAvoidance = true
+	settings.Pathfinding.verticalMovementSmoothing = true
+	
 	settings.Physics.gravity = 6
 	settings.Physics.swimVelocity = 50
 	
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
+	
+	settings.UI.headerTextColor = Color(216, 117, 49)
+	settings.UI.optionTextColor = Color(240, 220, 32)
+	settings.UI.plainTextColor = Color(255, 255, 255)
+	settings.UI.disabledTextColor = Color(128, 128, 128)
+	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.titleLogoPosition = Vec2(50, 20)
+	settings.UI.titleLogoScale = 0.38
+	settings.UI.titleLogoColor = Color(255, 255, 255)
+	settings.UI.titleMenuPosition = Vec2(50, 66)
+	settings.UI.titleMenuScale = 1.0
+	settings.UI.titleMenuAlignment = Strings.DisplayStringOption.CENTER
 	
 	-- Hair[1] is normal player hair. Types [2] and [3] are for left and right young Lara hair.
 	
@@ -55,7 +83,7 @@ local settings = Flow.Settings.new()
 	settings.Hair[3].rootMesh = 14
 	settings.Hair[3].offset = Vec3(48, -48, -50)
 	settings.Hair[3].indices = { 68, 69, 70, 71 }
-	
+
 	-- Not all weapon settings are applicable to every weapon. Those which are not applicable
 	-- for a particular weapon type are omitted. See documentation for more details.
 	
@@ -71,6 +99,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.PISTOLS].shell = true
 	settings.Weapons[WeaponType.PISTOLS].muzzleFlash = true
 	settings.Weapons[WeaponType.PISTOLS].muzzleGlow = false
+	settings.Weapons[WeaponType.PISTOLS].muzzleOffset = Vec3(0, 120, 30)
 	settings.Weapons[WeaponType.PISTOLS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.PISTOLS].pickupCount = 30
 	
@@ -87,6 +116,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.REVOLVER].shell = false
 	settings.Weapons[WeaponType.REVOLVER].muzzleFlash = true
 	settings.Weapons[WeaponType.REVOLVER].muzzleGlow = false
+	settings.Weapons[WeaponType.REVOLVER].muzzleOffset = Vec3(-10, 130, 65)
 	settings.Weapons[WeaponType.REVOLVER].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.REVOLVER].pickupCount = 6
 	
@@ -102,6 +132,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.UZIS].shell = true
 	settings.Weapons[WeaponType.UZIS].muzzleFlash = true
 	settings.Weapons[WeaponType.UZIS].muzzleGlow = false
+	settings.Weapons[WeaponType.UZIS].muzzleOffset = Vec3(0, 110, 40)
 	settings.Weapons[WeaponType.UZIS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.UZIS].pickupCount = 30
 	
@@ -116,6 +147,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.SHOTGUN].shell = true
 	settings.Weapons[WeaponType.SHOTGUN].muzzleFlash = false
 	settings.Weapons[WeaponType.SHOTGUN].muzzleGlow = false
+	settings.Weapons[WeaponType.SHOTGUN].muzzleOffset = Vec3(0, 210, 40)
 	settings.Weapons[WeaponType.SHOTGUN].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.SHOTGUN].pickupCount = 6
 	
@@ -131,6 +163,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.HK].shell = true
 	settings.Weapons[WeaponType.HK].muzzleFlash = true
 	settings.Weapons[WeaponType.HK].muzzleGlow = false
+	settings.Weapons[WeaponType.HK].muzzleOffset = Vec3(0, 220, 102)
 	settings.Weapons[WeaponType.HK].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.HK].pickupCount = 30
 	

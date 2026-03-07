@@ -206,6 +206,15 @@ namespace TEN::Input
 		return profile;
 	}
 
+	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
+	{
+		int defaultKeyID = GetBoundKeyID(BindingProfileID::Default, (ActionID)(actionID));
+		int userKeyID = GetBoundKeyID(BindingProfileID::Custom, (ActionID)(actionID));
+		int boundKey = userKeyID ? userKeyID : defaultKeyID;
+
+		return GetKeyName(boundKey);
+	}
+
 	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)
 	{
 		// Overwrite or add key-action binding.

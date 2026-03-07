@@ -1,5 +1,6 @@
 #pragma once
-#include "Game/animation.h"
+
+#include "Game/Animation/Animation.h"
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
 #include "Specific/Structures/BitField.h"
@@ -8,15 +9,18 @@
 
 namespace TEN::Collision::Attractor { class AttractorObject; };
 
+using namespace TEN::Animation;
 using namespace TEN::Utils;
 
-constexpr auto MAX_SPAWNED_ITEM_COUNT = 1024;
-constexpr auto ITEM_FLAG_COUNT = 8;
+constexpr float VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
 
-constexpr auto NOT_TARGETABLE = SHRT_MIN / 2;
+constexpr int MAX_SPAWNED_ITEM_COUNT = 1024;
+constexpr int ITEM_FLAG_COUNT        = 8;
 
-constexpr auto ALL_JOINT_BITS = UINT_MAX;
-constexpr auto NO_JOINT_BITS  = 0u;
+constexpr int NOT_TARGETABLE = SHRT_MIN / 2;
+
+constexpr unsigned int ALL_JOINT_BITS = UINT_MAX;
+constexpr unsigned int NO_JOINT_BITS  = 0u;
 
 enum class EffectType
 {
@@ -39,7 +43,8 @@ enum ItemStatus
 
 enum ItemFlags
 {
-	IFLAG_TRIGGERED       = 1 << 5,
+	IFLAG_TRIGGERED		  = 1 << 5,
+	IFLAG_SWITCH_ONESHOT  = 1 << 6,
 	IFLAG_CLEAR_BODY	  = 1 << 7,
 	IFLAG_INVISIBLE		  = 1 << 8,
 	IFLAG_ACTIVATION_MASK = 0x1F << 9, // Bits 9-13 (IFLAG_CODEBITS)
@@ -88,8 +93,8 @@ struct EntityAnimationData
 {
 	GAME_OBJECT_ID AnimObjectID = ID_NO_OBJECT;
 
-	int AnimNumber	  = 0; // g_Level.Anims index.
-	int FrameNumber	  = 0; // g_Level.Frames index.
+	int AnimNumber	  = 0;
+	int FrameNumber	  = 0;
 	int ActiveState	  = 0;
 	int TargetState	  = 0;
 	int RequiredState = NO_VALUE;
@@ -182,8 +187,9 @@ struct ItemInfo
 
 	// Getters
 
-	BoundingBox			GetAabb() const;
-	BoundingOrientedBox GetObb() const;
+	BoundingBox					GetAabb() const;
+	BoundingOrientedBox			GetObb() const;
+	std::vector<BoundingSphere> GetSpheres() const;
 
 	void HandleOffsetBlend();
 
@@ -214,10 +220,6 @@ struct ItemInfo
 	bool IsLara() const;
 	bool IsCreature() const;
 	bool IsBridge() const;
-
-	// Getters
-
-	std::vector<BoundingSphere> GetSpheres() const;
 };
 
 class ItemHandler
@@ -239,6 +241,7 @@ public:
 bool TestState(int refState, const std::vector<int>& stateList);
 void EffectNewRoom(short fxNumber, short roomNumber);
 void ItemNewRoom(short itemNumber, short roomNumber);
+bool IsItemInRoom(short itemNumber, short roomNumber);
 void AddActiveItem(short itemNumber);
 short CreateItem();
 void RemoveAllItemsInRoom(short roomNumber, short objectNumber);
@@ -263,4 +266,4 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn = 
 void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
 
-Vector3i GetNearestSectorCenter(const Vector3i& pos);
+void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);

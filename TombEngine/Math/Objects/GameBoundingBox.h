@@ -28,6 +28,7 @@ struct ObjectInfo;
 
 		GameBoundingBox() = default;
 		GameBoundingBox(float x1, float x2, float y1, float y2, float z1, float z2);
+		GameBoundingBox(const BoundingBox& aabb);
 		GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber = 0, int frameNumber = 0);
 		GameBoundingBox(const ItemInfo* item);
 

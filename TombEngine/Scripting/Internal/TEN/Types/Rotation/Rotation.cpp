@@ -3,6 +3,7 @@
 
 #include "Math/Math.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 
 using namespace TEN::Math;
 
@@ -16,7 +17,8 @@ namespace TEN::Scripting
 	void Rotation::Register(sol::table& parent)
 	{
 		using ctors = sol::constructors<
-			Rotation(float, float, float)>;
+			Rotation(float, float, float),
+			Rotation(Vec3)>;
 
 		// Register type.
 		parent.new_usertype<Rotation>(
@@ -58,6 +60,17 @@ namespace TEN::Scripting
 		this->x = WrapToUnsignedAngle(x);
 		this->y = WrapToUnsignedAngle(y);
 		this->z = WrapToUnsignedAngle(z);
+	}
+
+	/// Create a Rotation object from a direction vector.
+	// @function Rotation
+	// @tparam Vec3 dir Normalized direction vector.
+	// @treturn Rotation A new Rotation object.
+	Rotation::Rotation(const Vec3& dir)
+	{
+		auto convertedDir = dir.ToVector3();
+		auto orient = EulerAngles(convertedDir);
+		*this = Rotation(orient);
 	}
 
 	Rotation::Rotation(const Vector3& vec)

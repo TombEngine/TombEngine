@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR2/Entity/tr2_shark.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -11,8 +11,12 @@
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
+
 namespace TEN::Entities::Creatures::TR2
 {
+	constexpr auto SHARK_KILL_ANIM = 19;
+	constexpr auto SHARK_KILL_STATE = 6;
 	constexpr auto SHARK_BITE_ATTACK_DAMAGE = 400;
 
 	const auto SharkBite = CreatureBiteInfo(Vector3(17, -22, 344), 12);
@@ -43,6 +47,8 @@ namespace TEN::Entities::Creatures::TR2
 			CreatureAIInfo(item, &AI);
 			GetCreatureMood(item, &AI, true);
 			CreatureMood(item, &AI, true);
+
+			bool laraAlive = creature->Enemy && creature->Enemy->IsLara() && creature->Enemy->HitPoints > 0;
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
@@ -103,9 +109,15 @@ namespace TEN::Entities::Creatures::TR2
 
 				break;
 			}
+
+			if (creature->Enemy && creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0 && laraAlive)
+			{
+				CreatureKill(item, SHARK_KILL_ANIM, LEA_SHARK_DEATH, SHARK_KILL_STATE, LS_WATER_DEATH);
+				return;
+			}
 		}
 
-		if (item->Animation.ActiveState != 6)
+		if (item->Animation.ActiveState != SHARK_KILL_STATE)
 		{
 			CreatureJoint(item, 0, head);
 			CreatureAnimation(itemNumber, angle, 0);

@@ -50,14 +50,15 @@ namespace TEN::Math::Geometry
 
 	// Box getters
 
-	BoundingBox GetBoundingBox(const BoundingOrientedBox& box);
-	BoundingBox GetBoundingBox(const std::vector<Vector3>& points);
-	float		GetBoundingBoxArea(const BoundingBox& box);
+	BoundingBox GetAabb(const BoundingOrientedBox& obb);
+	BoundingBox GetAabb(const std::vector<Vector3>& points);
+	float		GetAabbArea(const BoundingBox& box);
 
 	// Misc. getters
 
 	EulerAngles GetOrientToPoint(const Vector3& origin, const Vector3& target);
 	EulerAngles GetRelOrientToNormal(short orient, const Vector3& normal, const Vector3& axis = Vector3::UnitY);
+	Vector3i GetNearestSectorCenter(const Vector3i& pos);
 
 	// Converters
 

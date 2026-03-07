@@ -18,6 +18,7 @@
 #include "Scripting/Internal/TEN/Flow/Enums/GameStatuses.h"
 #include "Scripting/Internal/TEN/Flow/Enums/ItemActions.h"
 #include "Scripting/Internal/TEN/Flow/Enums/LaraTypes.h"
+#include "Scripting/Internal/TEN/Flow/Enums/PathfindingAlgorithms.h"
 #include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
@@ -29,6 +30,7 @@
 #include "Sound/sound.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Gui;
 using namespace TEN::Scripting;
 using namespace TEN::Scripting::Collision;
 
@@ -225,6 +227,34 @@ Check if a savegame exists.
 	tableFlow.set_function(ScriptReserved_DoesSaveGameExist, &FlowHandler::DoesSaveGameExist, this);
 
 /***
+Get the header of all savegames
+@function GetSaveHeaders
+@treturn SaveData A table with save data headers.
+@usage
+local headers = TEN.Flow.GetSaveHeaders()
+for i, header in ipairs(headers) do
+	if header.Present then
+		print("Slot", i, ":", header.LevelName,
+		string.format("Time %02d:%02d:%02d", header.Hours, header.Minutes, header.Seconds))
+	else
+		print("Slot", i, ": <empty>")
+	end
+end
+*/
+
+/// Structure for SaveData header table.
+// @table SaveData
+// @tfield string LevelName The display name of the level stored in the save slot.
+// @tfield int Hours Hours component of the total play time recorded in the save.
+// @tfield int Minutes Minutes component of the total play time.
+// @tfield int Seconds Seconds component of the total play time.
+// @tfield int Level Numeric level index associated with this save.
+// @tfield int Timer Raw timer value saved internally by the engine.
+// @tfield int Count Save slot index or internal counter value.
+// @tfield bool Present True if the save slot contains valid savegame data; false if the slot is empty.
+	tableFlow.set_function(ScriptReserved_GetSaveHeaders, &FlowHandler::GetSaveHeaders, this);
+
+/***
 Returns the player's current per-game secret count.
 @function GetSecretCount
 @treturn int Current game secret count.
@@ -258,6 +288,13 @@ Must be an integer value (0 means no secrets).
 @tparam int count Total number of secrets in the game.
 */
 	tableFlow.set_function(ScriptReserved_SetTotalSecretCount, &FlowHandler::SetTotalSecretCount, this);
+
+/*** Get global game session time.
+Represents a global session time elapsed since the game launch. Does not correspond to time values in level or game statistics.
+@function GetGlobalGameTime
+@treturn Time Global game session time elapsed since the game launch.
+*/
+	tableFlow.set_function(ScriptReserved_GetGlobalGameTime, &FlowHandler::GetGlobalGameTime, this);
 	
 /*** Do FlipMap with specific group ID.
 @function FlipMap
@@ -341,6 +378,7 @@ Specify which translations in the strings table correspond to which languages.
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_ErrorMode, ERROR_MODES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_GameStatus, GAME_STATUSES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_FreezeMode, FREEZE_MODES);
+	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_PathfindingMode, PATHFINDING_MODES);
 }
 
 FlowHandler::~FlowHandler()
@@ -424,7 +462,6 @@ void FlowHandler::SetTitleScreenImagePath(const std::string& path)
 	TitleScreenImagePath = path;
 }
 
-
 int FlowHandler::GetTotalSecretCount()
 {
 	return TotalNumberOfSecrets;
@@ -435,11 +472,17 @@ void FlowHandler::SetTotalSecretCount(int secretsNumber)
 	TotalNumberOfSecrets = secretsNumber;
 }
 
+Time FlowHandler::GetGlobalGameTime()
+{
+	return Time(GlobalCounter);
+}
+
 void FlowHandler::LoadFlowScript()
 {
 	TENLog("Loading gameflow script, strings, and settings...", LogLevel::Info);
 
 	Levels.clear();
+	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
@@ -654,6 +697,33 @@ void FlowHandler::AddSecret(int levelSecretIndex)
 	SaveGame::Statistics.SecretBits |= 1 << levelSecretIndex;
 	SaveGame::Statistics.Level.Secrets++;
 	SaveGame::Statistics.Game.Secrets++;
+}
+
+sol::table FlowHandler::GetSaveHeaders(sol::this_state state)
+{	
+	sol::state_view lua(state);
+
+	SaveGame::LoadHeaders();
+	auto headersTable = lua.create_table();
+
+	for (int i = 0; i < SAVEGAME_MAX; ++i)
+	{	
+		const SaveGameHeader& header = SaveGame::Infos[i];
+
+		sol::table headerTable = lua.create_table();
+		headerTable["LevelName"] = header.LevelName;
+		headerTable["Hours"] = header.Hours;
+		headerTable["Minutes"] = header.Minutes;
+		headerTable["Seconds"] = header.Seconds;
+		headerTable["Level"] = header.Level;
+		headerTable["Timer"] = header.Timer;
+		headerTable["Count"] = header.Count;
+		headerTable["Present"] = header.Present;
+
+		headersTable[i + 1] = headerTable;
+	}
+
+	return headersTable;
 }
 
 bool FlowHandler::IsFlyCheatEnabled() const

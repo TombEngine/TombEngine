@@ -1,9 +1,9 @@
 #include "framework.h"
 #include "Game/people.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/debris.h"
 #include "Game/itemdata/creature_info.h"
@@ -12,6 +12,8 @@
 #include "Game/misc.h"
 #include "Sound/sound.h"
 
+using namespace TEN::Animation;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
@@ -125,32 +127,37 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	if ((!enemy->IsCreature() && !enemy->IsLara()) || enemy->HitPoints <= 0)
 		return false;
 
-	const auto& bounds = GetBestFrame(*item).BoundingBox;
-	const auto& boundsTarget = GetBestFrame(*enemy).BoundingBox;
+	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
+	const auto& boundsTarget = GetClosestKeyframe(*enemy).BoundingBox;
 
-	auto origin = GameVector(
+	auto origin = Vector3(
 		item->Pose.Position.x,
 		(item->ObjectNumber == ID_SNIPER) ? (item->Pose.Position.y - CLICK(3)) : (item->Pose.Position.y + ((bounds.Y2 + 3 * bounds.Y1) / 4)),
-		item->Pose.Position.z,
-		item->RoomNumber);
-	auto target = GameVector(
+		item->Pose.Position.z);
+
+	auto target = Vector3(
 		enemy->Pose.Position.x,
 		enemy->Pose.Position.y + ((boundsTarget.Y2 + 3 * boundsTarget.Y1) / 4),
-		enemy->Pose.Position.z,
-		enemy->RoomNumber); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
+		enemy->Pose.Position.z); // TODO: Check why this line didn't exist in the first place. -- TokyoSU 2022.08.05
+
+	auto dist = Vector3::Distance(origin, target);
+	auto dir = (target - origin);
+	dir.Normalize();
 
 	// Temporarily ignore self occlusion for LOS check.
 	bool collidable = item->Collidable;
 	item->Collidable = false;
 
-	StaticMesh* mesh = nullptr;
-	Vector3i vector = {};
-	int losItemIndex = ObjectOnLOS2(&origin, &target, &vector, &mesh, GAME_OBJECT_ID::ID_NO_OBJECT);
+	auto los = GetLosCollision(origin, item->RoomNumber, dir, dist, true, false, true);
+	bool collidedWithRooms = los.Room.IsIntersected;
+	bool collideWithPlayer = !los.Items.empty() && los.Items.front().Item == enemy;
+	bool collidedWithItems = !los.Items.empty() && !collideWithPlayer;
+	bool collidedWithStatics = !los.Statics.empty() && !collideWithPlayer;
 
 	// Restore collidability.
 	item->Collidable = collidable;
 
-	return (LOS(&origin, &target) && losItemIndex == NO_LOS_ITEM && mesh == nullptr);
+	return (!collidedWithRooms && !collidedWithItems && !collidedWithStatics);
 }
 
 bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
@@ -170,19 +177,24 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 	short angle = ai->angle - creature->JointRotation[2];
 	if (angle > ANGLE(-maxAngleInDegrees) && angle < ANGLE(maxAngleInDegrees))
 	{
-		const auto& bounds = GetBestFrame(*enemy).BoundingBox;
+		const auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
 
-		auto origin = GameVector(
+		auto origin = Vector3(
 			item->Pose.Position.x,
 			item->Pose.Position.y - CLICK(3),
-			item->Pose.Position.z,
-			item->RoomNumber);
-		auto target = GameVector(
+			item->Pose.Position.z);
+
+		auto target = Vector3(
 			enemy->Pose.Position.x,
 			enemy->Pose.Position.y + ((((bounds.Y1 * 2) + bounds.Y1) + bounds.Y2) / 4),
 			enemy->Pose.Position.z);
 
-		return LOS(&origin, &target);
+		auto dist = Vector3::Distance(origin, target);
+		auto dir = (target - origin);
+		dir.Normalize();
+
+		auto roomLos = GetRoomLosCollision(origin, item->RoomNumber, dir, dist, true);
+		return !roomLos.IsIntersected;
 	}
 
 	return false;
@@ -190,8 +202,7 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 
 void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBoneNumber, int deathAnimNumber, int damage, SOUND_EFFECTS soundID)
 {
-	auto animNumber = item.Animation.AnimNumber - Objects[item.Animation.AnimObjectID].animIndex;
-	if (animNumber != deathAnimNumber)
+	if (item.Animation.AnimNumber != deathAnimNumber)
 		return;
 
 	// No more shots left.
@@ -200,8 +211,8 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 
 	const auto& anim = GetAnimData(item);
 
-	int frameCount = anim.frameEnd - anim.frameBase;
-	int frameNumber = item.Animation.FrameNumber - anim.frameBase;
+	int frameCount = anim.EndFrameNumber;
+	int frameNumber = item.Animation.FrameNumber;
 
 	// Calculate frame range when final attack may occur. It is limited to last third of the animation.
 	int frameBase = frameCount - (frameCount / 3);

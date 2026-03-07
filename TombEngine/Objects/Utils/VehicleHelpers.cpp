@@ -211,13 +211,6 @@ namespace TEN::Entities::Vehicles
 		return height;
 	}
 
-	void SyncVehicleAnimation(ItemInfo& vehicleItem, const ItemInfo& playerItem)
-	{
-		int animNumber = GetAnimNumber(playerItem);
-		int frameNumber = GetFrameNumber(playerItem);
-		SetAnimation(vehicleItem, animNumber, frameNumber);
-	}
-
 	void DoVehicleCollision(ItemInfo* vehicleItem, int radius)
 	{
 		CollisionInfo coll = {};
@@ -293,7 +286,7 @@ namespace TEN::Entities::Vehicles
 
 		if (lara->Control.Weapon.GunType == LaraWeaponType::Flare)
 		{
-			CreateFlare(*laraItem, ID_FLARE_ITEM, 0);
+			CreateFlare(*laraItem, ID_FLARE_ITEM, false);
 			UndrawFlareMeshes(*laraItem);
 			lara->Control.Weapon.GunType = LaraWeaponType::None;
 			lara->Control.Weapon.RequestGunType = LaraWeaponType::None;

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <SimpleMath.h>
-
 namespace TEN::Utils
 {
-	using namespace DirectX::SimpleMath;
-
+	// Memory utilities
+	float ToMegabytes(unsigned long long bytes);
+	
 	// String utilities
 
 	std::string ConstructAssetDirectory(std::string customDirectory);

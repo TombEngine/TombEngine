@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Trap/tr4_cog.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
@@ -10,6 +10,8 @@
 #include "Game/Lara/lara.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Traps
 {
@@ -20,7 +22,7 @@ namespace TEN::Entities::Traps
 		if (TriggerActive(&item))
 		{
 			item.Status = ITEM_ACTIVE;
-			AnimateItem(&item);
+			AnimateItem(item);
 		}
 		else if (item.TriggerFlags == 2)
 		{

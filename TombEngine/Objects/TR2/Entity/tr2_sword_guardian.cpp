@@ -2,7 +2,7 @@
 #include "Objects/TR2/Entity/tr2_sword_guardian.h"
 
 #include "Game/collision/collide_room.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
@@ -15,6 +15,8 @@
 #include "Objects/TR2/Entity/tr2_spear_guardian.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Animation;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -173,7 +175,7 @@ namespace TEN::Entities::Creatures::TR2
 		const auto& object = Objects[item.ObjectNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(&item, SWORD_GUARDIAN_ANIM_AWAKE);
+		SetAnimation(item, SWORD_GUARDIAN_ANIM_AWAKE);
 		item.Status = ITEM_NOT_ACTIVE;
 
 		item.ItemFlags[0] = 0; // Joint index for mesh swap.

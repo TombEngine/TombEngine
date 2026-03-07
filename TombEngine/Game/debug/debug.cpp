@@ -1,13 +1,6 @@
 #include "framework.h"
 #include "Game/Debug/Debug.h"
 
-#include <chrono>
-#include <filesystem>
-#include <spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <stdarg.h>
-
 #include "Renderer/Renderer.h"
 
 using TEN::Renderer::g_Renderer;
@@ -149,6 +142,28 @@ namespace TEN::Debug
 		va_start(args, msg);
 		g_Renderer.PrintDebugMessage(msg, args);
 		va_end(args);
+	}
+
+	void DrawDebugString(const std::string& string, const Vector3& pos, const Vector4& color, RendererDebugPage page)
+	{
+		constexpr float MIN_SCALE = 0.2f;
+		constexpr float MAX_SCALE = 0.8f;
+
+		float distance = (Camera.pos.ToVector3() - pos).Length();
+		float scale = 1.0f / (distance / BLOCK(2));
+
+		if (scale < MIN_SCALE)
+			return;
+
+		scale = std::clamp(scale, MIN_SCALE, MAX_SCALE);
+
+		// Get 2D label position.
+		auto labelPos = pos - Vector3(0, CLICK(0.75f), 0);
+		auto labelPos2D = g_Renderer.Get2DPosition(labelPos);
+
+		// Draw label.
+		if (labelPos2D.has_value())
+			DrawDebugString(string, *labelPos2D, color, scale, page);
 	}
 	
 	void DrawDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)

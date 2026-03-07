@@ -3,6 +3,7 @@
 #include "Game/effects/spark.h"
 
 #include <array>
+#include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/Setup.h"
@@ -80,6 +81,12 @@ namespace TEN::Effects::Spark
 
 	void TriggerRicochetSpark(const GameVector& pos, short angle, int count, const Vector4& colorStart)
 	{
+		constexpr auto DISTANCE_MULT_MAX = 3.0f;
+		constexpr auto DISTANCE_SCALE_THRESHOLD = BLOCK(DISTANCE_MULT_MAX);
+
+		// Make sparks bigger depending on a distance to imitate classic effect.
+		auto distanceMult = std::clamp(Vector3::Distance(pos.ToVector3(), Camera.pos.ToVector3()) / DISTANCE_SCALE_THRESHOLD, 1.0f, DISTANCE_MULT_MAX);
+
 		for (int i = 0; i < count; i++) 
 		{
 			auto& s = GetFreeSparkParticle();
@@ -88,8 +95,8 @@ namespace TEN::Effects::Spark
 			s.life = GenerateFloat(10, 20);
 			s.friction = 0.98f;
 			s.gravity = 1.2f;
-			s.width = 8.0f;
-			s.height = 64.0f;
+			s.width = 8.0f * distanceMult;
+			s.height = 64.0f * distanceMult;
 			s.room = pos.RoomNumber;
 			s.pos = pos.ToVector3();
 			float ang = TO_RAD(angle);

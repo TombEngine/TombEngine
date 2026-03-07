@@ -92,13 +92,13 @@ namespace TEN::Renderer
 				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
-			AtlasTexturesSet tex = std::make_tuple(
+			_animatedTextures[i] = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
-				normal,
-				ORSH,
-				emissive);
+				std::move(normal),
+				std::move(ORSH),
+				std::move(emissive));
 
-			_animatedTextures[i] = tex;
+			_context->Flush();
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
@@ -179,13 +179,13 @@ namespace TEN::Renderer
 				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
-			AtlasTexturesSet tex = std::make_tuple(
+			_roomTextures[i] = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
-				normal,
-				ORSH,
-				emissive); 
-			
-			_roomTextures[i] = tex;
+				std::move(normal),
+				std::move(ORSH),
+				std::move(emissive));
+
+			_context->Flush();
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
@@ -234,13 +234,13 @@ namespace TEN::Renderer
 				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
-			AtlasTexturesSet tex = std::make_tuple(
+			_moveablesTextures[i] = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
-				normal,
-				ORSH,
-				emissive); 
-			
-			_moveablesTextures[i] = tex;
+				std::move(normal),
+				std::move(ORSH),
+				std::move(emissive));
+
+			_context->Flush();
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
@@ -289,13 +289,13 @@ namespace TEN::Renderer
 				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
 			}
 
-			AtlasTexturesSet tex = std::make_tuple(
+			_staticTextures[i] = std::make_tuple(
 				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
-				normal,
-				ORSH,
-				emissive); 
-			
-			_staticTextures[i] = tex;
+				std::move(normal),
+				std::move(ORSH),
+				std::move(emissive));
+
+			_context->Flush();
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
@@ -314,6 +314,7 @@ namespace TEN::Renderer
 		{
 			auto& texture = g_Level.SpritesTextures[i];
 			_spritesTextures[i] = Texture2D(_device.Get(), texture.colorMapData.data(), (int)texture.colorMapData.size());
+			_context->Flush();
 		}
 
 		if (_spritesTextures.size() > 0)

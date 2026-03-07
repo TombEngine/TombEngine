@@ -27,6 +27,7 @@
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 #include "Objects/TR2/Vehicles/skidoo.h"
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -47,6 +48,7 @@ using namespace TEN::Player;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 // -----------------------------
 // HELPER FUNCTIONS
@@ -886,6 +888,19 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 	dbFlyCheat = !KeyMap[OIS::KeyCode::KC_O];
 }
 
+void HandlePlayerExtraAnim(ItemInfo& item)
+{
+	if (item.Animation.AnimObjectID != GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS)
+		return;
+
+	auto& anim = GetAnimData(item);
+	if (anim.NextAnimNumber != 0 || anim.NextFrameNumber != 0)
+		return;
+
+	if (TestLastFrame(item))
+		SetAnimation(item, LA_STAND_SOLID);
+}
+
 void HandlePlayerWetnessDrips(ItemInfo& item)
 {
 	auto& player = *GetLaraInfo(&item);
@@ -1016,20 +1031,22 @@ void HandlePlayerElevationChange(ItemInfo* item, CollisionInfo* coll)
 	{
 		if (CanStepUp(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_UP;
 			item->DisableInterpolation = true;
 
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_UP);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
 		}
 		else if (CanStepDown(*item, *coll))
 		{
-			item->Animation.TargetState = LS_STEP_DOWN;
-			if (GetStateDispatch(item, GetAnimData(*item)))
+			const auto* dispatch = GetStateDispatch(*item, LS_STEP_DOWN);
+			if (dispatch != nullptr)
 			{
+				SetStateDispatch(*item, *dispatch);
 				item->Pose.Position.y += coll->Middle.Floor;
 				return;
 			}
@@ -1145,7 +1162,7 @@ LaraInfo& GetLaraInfo(ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	auto& firstLaraItem = *FindItem(ID_LARA);
 	auto* player = (LaraInfo*&)firstLaraItem.Data;
@@ -1160,7 +1177,7 @@ const LaraInfo& GetLaraInfo(const ItemInfo& item)
 		return *player;
 	}
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item.ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable..", GetObjectName(item.ObjectNumber)), LogLevel::Warning);
 
 	const auto& firstPlayerItem = *FindItem(ID_LARA);
 	const auto* player = (LaraInfo*&)firstPlayerItem.Data;
@@ -1172,7 +1189,7 @@ LaraInfo*& GetLaraInfo(ItemInfo* item)
 	if (item->ObjectNumber == ID_LARA)
 		return (LaraInfo*&)item->Data;
 
-	TENLog(std::string("Attempted to fetch LaraInfo data from entity with object ID ") + std::to_string(item->ObjectNumber), LogLevel::Warning);
+	TENLog(fmt::format("Attempted to fetch LaraInfo data from {} moveable.", GetObjectName(item->ObjectNumber)), LogLevel::Warning);
 
 	auto& firstPlayerItem = *FindItem(ID_LARA);
 	return (LaraInfo*&)firstPlayerItem.Data;

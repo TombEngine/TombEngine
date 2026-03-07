@@ -61,7 +61,7 @@ void lara_as_monkey_idle(ItemInfo* item, CollisionInfo* coll)
 		if (IsHeld(In::Jump))
 		{
 			item->Animation.TargetState = LS_JUMP_FORWARD;
-			if (HasStateDispatch(item, LS_JUMP_FORWARD))
+			if (TestStateDispatch(*item, LS_JUMP_FORWARD))
 				player.Control.HandStatus = HandStatus::Free;
 
 			return;
@@ -527,7 +527,7 @@ void lara_as_monkey_turn_left(ItemInfo* item, CollisionInfo* coll)
 		if (IsHeld(In::Jump))
 		{
 			item->Animation.TargetState = LS_JUMP_FORWARD;
-			if (HasStateDispatch(item, LS_JUMP_FORWARD))
+			if (TestStateDispatch(*item, LS_JUMP_FORWARD))
 				player.Control.HandStatus = HandStatus::Free;
 
 			return;
@@ -617,7 +617,7 @@ void lara_as_monkey_turn_right(ItemInfo* item, CollisionInfo* coll)
 		if (IsHeld(In::Jump))
 		{
 			item->Animation.TargetState = LS_JUMP_FORWARD;
-			if (HasStateDispatch(item, LS_JUMP_FORWARD))
+			if (TestStateDispatch(*item, LS_JUMP_FORWARD))
 				player.Control.HandStatus = HandStatus::Free;
 
 			return;

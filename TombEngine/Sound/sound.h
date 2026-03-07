@@ -167,7 +167,7 @@ void PlaySoundSources();
 void SayNo(std::optional<Vector3i> referencePosition = std::nullopt);
 int  GetShatterSound(int shatterID);
 
-void PlaySoundTrack(const std::string& trackName, SoundTrackType mode, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
+void PlaySoundTrack(const std::string& trackName, SoundTrackType type, std::optional<QWORD> pos = std::nullopt, int forceFadeInTime = 0);
 void PlaySoundTrack(const std::string& trackName, short mask = 0);
 void PlaySoundTrack(int index, short mask = 0);
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime);
@@ -176,7 +176,7 @@ void ClearSoundTrackMasks();
 void PlaySecretTrack();
 void EnumerateLegacyTracks();
 void LoadSubtitles(const std::string& path);
-float GetSoundTrackLoudness(SoundTrackType mode);
+float GetSoundTrackLoudness(SoundTrackType type);
 std::optional<std::string> GetCurrentSubtitle();
 std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
 
@@ -196,7 +196,7 @@ void  Sound_FreeSample(int index);
 int   Sound_GetFreeSlot();
 void  Sound_FreeSlot(int index, unsigned int fadeout = 0);
 int   Sound_EffectIsPlaying(int effectID, Pose *position);
-int   Sound_TrackIsPlaying(const std::string& fileName);
+int   Sound_TrackIsPlaying(const std::string& fileName, std::optional<SoundTrackType> type = std::nullopt);
 float Sound_DistanceToListener(Pose *position);
 float Sound_DistanceToListener(Vector3 position);
 float Sound_Attenuate(float gain, float distance, float radius);

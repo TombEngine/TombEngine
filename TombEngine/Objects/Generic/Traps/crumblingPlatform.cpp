@@ -10,10 +10,12 @@
 #include "Objects/Generic/Object/BridgeObject.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Generic;
+using namespace TEN::Utils;
 
 // NOTES:
 // ItemFlags[0]: Delay in frame time.
@@ -191,7 +193,7 @@ namespace TEN::Entities::Traps
 			AlignEntityToSurface(&item, radius);
 
 			// Deactivate.
-			if (TestLastFrame(&item))
+			if (TestLastFrame(*&item))
 			{
 				RemoveActiveItem(itemNumber);
 				item.Status = ITEM_NOT_ACTIVE;
@@ -202,13 +204,12 @@ namespace TEN::Entities::Traps
 
 		default:
 			TENLog(
-				"Error with crumbling platform item " + std::to_string(itemNumber) +
-				": attempted to handle missing state " + std::to_string(item.Animation.ActiveState),
+				fmt::format("Error with crumbling platform moveable {}: attempted to handle missing state {}.", itemNumber, item.Animation.ActiveState),
 				LogLevel::Error, LogConfig::All);
 			break;
 		}
 
-		AnimateItem(&item);
+		AnimateItem(item);
 	}
 
 	void CollideCrumblingPlatform(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)

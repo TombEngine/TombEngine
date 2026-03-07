@@ -49,7 +49,7 @@ namespace TEN::Collision::Attractor
 			}
 		}
 		
-		_aabb = Geometry::GetBoundingBox(points);
+		_aabb = Geometry::GetAabb(points);
 	}
 
 	AttractorObject::~AttractorObject()

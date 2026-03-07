@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_tests.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -23,6 +23,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Player;
@@ -139,6 +140,16 @@ bool IsStandingWeapon(const ItemInfo* item, LaraWeaponType weaponType)
 	return (TestLaraWeaponType(weaponType, StandingWeaponTypes));
 }
 
+bool IsSideJumpState(int state)
+{
+	static const std::vector<int> jumpStates
+	{
+		LS_JUMP_LEFT,
+		LS_JUMP_RIGHT,
+	};
+	return TestState(state, jumpStates);
+}
+
 bool IsCrouching(const ItemInfo* item)
 {
 	bool crouching =
@@ -150,14 +161,14 @@ bool IsCrouching(const ItemInfo* item)
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_ABORT ||
 		item->Animation.AnimNumber == LA_STAND_TO_CROUCH_START;
 
-	// HACK: Unless we have a better way to detect the phase of animation,
-	// assume that player is crouching if the animation is in the first 75% of the crouch-to-stand animation.
+	// HACK: Unless there's better way to detect animation phase,
+	// assume player is crouching if animation is in first 75% of crouch-to-stand animation.
 	if (item->Animation.AnimNumber == LA_CROUCH_TO_STAND)
 	{
-		int frameCount = g_Level.Anims[item->Animation.AnimNumber].frameEnd - g_Level.Anims[item->Animation.AnimNumber].frameBase;
-		int midpoint = frameCount * 0.75f;
+		const auto& anim = GetAnimData(*item);
 
-		if (item->Animation.FrameNumber <= g_Level.Anims[item->Animation.AnimNumber].frameBase + midpoint)
+		int midpoint = anim.EndFrameNumber * 0.75f;
+		if (item->Animation.FrameNumber <= midpoint)
 			crouching = true;
 	}
 

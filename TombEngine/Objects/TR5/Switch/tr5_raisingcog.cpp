@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "tr5_raisingcog.h"
+
 #include "Specific/level.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
@@ -7,8 +8,9 @@
 #include "Game/spotcam.h"
 #include "Objects/objectslist.h"
 #include "Objects/Generic/Switches/generic_switch.h"
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
 
 void InitializeRaisingCog(short itemNumber)

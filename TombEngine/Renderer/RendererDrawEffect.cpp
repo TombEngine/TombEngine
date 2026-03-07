@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -37,6 +37,7 @@
 #include "Structures/RendererSpriteBucket.h"
 #include "Objects/Effects/Fireflies.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
@@ -90,25 +91,41 @@ namespace TEN::Renderer
 			for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 			{
 				bool isLastSubdivision = (i == (LaserBeamEffect::SUBDIVISION_COUNT - 1));
+				auto& v1 = beam.Vertices[i];
+				auto& v2 = beam.Vertices[isLastSubdivision ? 0 : (i + 1)];
+				auto& v3 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))];
+				auto& v4 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i];
+				auto& beamColor = beam.Color;
 
-				auto color = Color::Lerp(beam.OldColor, beam.Color, GetInterpolationFactor());
+				// Make lerp only if beam is moving !
+				if (beam.IsDirty)
+				{
+					auto color = Color::Lerp(beam.OldColor, beamColor, GetInterpolationFactor());
 
-				AddColoredQuad(
-					Vector3::Lerp(beam.OldVertices[i], beam.Vertices[i], GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[isLastSubdivision ? 0 : (i + 1)], 
-						beam.Vertices[isLastSubdivision ? 0 : (i + 1)],
-						GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
-						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
-						GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
-						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
-						GetInterpolationFactor()),
-					color, color, color, color,
-					BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+					AddColoredQuad(
+						Vector3::Lerp(beam.OldVertices[i], v1, GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[isLastSubdivision ? 0 : (i + 1)],
+							v2,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
+							v3,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
+							v4,
+							GetInterpolationFactor()),
+						color, color, color, color,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
+				else
+				{
+					AddColoredQuad(
+						v1, v2, v3, v4,
+						beamColor, beamColor, beamColor, beamColor,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
 			}
 		}
 	}
@@ -343,13 +360,8 @@ namespace TEN::Renderer
 			if (!firefly.on)
 				continue;
 
-
-			if (!CheckIfSlotExists(ID_SPARK_SPRITE, "Particle rendering"))
+			if (!CheckIfSlotExists(ID_FIREFLY_SPRITES, "Firefly rendering"))
 				continue;
-
-			auto axis = Vector3(0,0,0);
-			axis.Normalize();
-
 
 			firefly.scalar = 3;
 			firefly.size = 3;
@@ -358,8 +370,6 @@ namespace TEN::Renderer
 				Vector3(firefly.PrevX, firefly.PrevY, firefly.PrevZ),
 				Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z),
 				GetInterpolationFactor());
-
-			pos = Vector3(firefly.Position.x, firefly.Position.y, firefly.Position.z);
 
 			// Disallow sprites out of bounds.
 			int spriteIndex = Objects[firefly.SpriteSeqID].meshIndex + firefly.SpriteID;
@@ -526,7 +536,11 @@ namespace TEN::Renderer
 				}
 				else
 				{
-					auto* item = &g_Level.Items[particle.fxObj];
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
 
 					auto nodePos = Vector3i::Zero;
 					if (particle.flags & SP_NODEATTACH)
@@ -537,6 +551,8 @@ namespace TEN::Renderer
 						}
 						else
 						{
+							auto* item = &g_Level.Items[particle.fxObj];
+
 							nodePos.x = NodeOffsets[particle.nodeNumber].x;
 							nodePos.y = NodeOffsets[particle.nodeNumber].y;
 							nodePos.z = NodeOffsets[particle.nodeNumber].z;
@@ -1254,7 +1270,7 @@ namespace TEN::Renderer
 			BindBucketTextures(flashBucket, TextureSource::Moveables, false);
 			BindMaterial(flashBucket.MaterialIndex, false);
 
-			auto meshOffset = g_Level.Frames[GetAnimData(gunflash, 0).FramePtr].Offset;
+			auto meshOffset = Objects[gunflash].Animations.front().Keyframes.front().RootOffset;
 			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
 
 			offset.x = -offset.x;
@@ -1265,7 +1281,7 @@ namespace TEN::Renderer
 
 			if (Lara.LeftArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_LHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1283,7 +1299,7 @@ namespace TEN::Renderer
 
 			if (Lara.RightArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_RHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1326,7 +1342,7 @@ namespace TEN::Renderer
 				auto& creature = *GetCreatureInfo(&nativeItem);
 				const auto& rRoom = _rooms[nativeItem.RoomNumber];
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = CREATURE_GUNFLASH_COLOR;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = rRoom.AmbientLight;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
 
@@ -1351,13 +1367,14 @@ namespace TEN::Renderer
 						if (flashBucket.Polygons.size() == 0)
 							continue;
 
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[flashBucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+						BindMaterial(flashBucket.MaterialIndex, false);
 
 						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[0].Bite.Position);
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[0].ApplyXRotation)
@@ -1393,13 +1410,14 @@ namespace TEN::Renderer
 						if (flashBucket.Polygons.size() == 0)
 							continue;
 
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[flashBucket.Texture]), SamplerStateRegister::AnisotropicClamp);
+						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+						BindMaterial(flashBucket.MaterialIndex, false);
 
 						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[1].Bite.Position);
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[1].ApplyXRotation)
@@ -1619,11 +1637,19 @@ namespace TEN::Renderer
 					}
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Identity;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
 
-					UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					// Update only if parameters are actually changed to reduce overhead.
+					if (firstDebris ||
+						(_stInstancedStaticMeshBuffer.StaticMeshes[0].Color != deb.color ||
+						 _stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient != _rooms[deb.roomNumber].AmbientLight ||
+						 _stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode != (int)deb.lightMode))
+					{
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
+						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
+
+						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(matrix);

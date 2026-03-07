@@ -81,7 +81,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->Animation.ActiveState <= 3 &&
 			!creature->Flags &&
 			item->TouchBits & 0x9470 &&
-			item->Animation.FrameNumber > GetAnimData(item).frameBase + 18)
+			item->Animation.FrameNumber > 18)
 		{
 			DoDamage(creature->Enemy, 400);
 			CreatureEffect2(item, InvisibleGhostBite, 10, item->Pose.Orientation.y, DoBloodSplat);

@@ -1,7 +1,8 @@
 #include "framework.h"
 #include "Objects/Generic/Object/objects.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
+#include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
@@ -15,6 +16,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -102,7 +104,7 @@ void TightropeCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* col
 			{
 				laraItem->Animation.ActiveState = LS_TIGHTROPE_ENTER;
 				laraItem->Animation.AnimNumber = LA_TIGHTROPE_START;
-				laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+				laraItem->Animation.FrameNumber = 0;
 				laraInfo->Control.IsMoving = false;
 				ResetPlayerFlex(laraItem);
 				laraInfo->Control.Tightrope.Balance = 0;
@@ -150,7 +152,7 @@ void HorizontalBarCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo*
 		{
 			laraItem->Animation.ActiveState = LS_MISC_CONTROL;
 			laraItem->Animation.AnimNumber = LA_SWINGBAR_GRAB;
-			laraItem->Animation.FrameNumber = GetAnimData(laraItem).frameBase;
+			laraItem->Animation.FrameNumber = 0;
 			laraItem->Animation.Velocity.y = false;
 			laraItem->Animation.IsAirborne = false;
 
@@ -233,8 +235,8 @@ void InitializeAnimating(short itemNumber)
 {
 	/*auto* item = &g_Level.Items[itemNumber];
 	item->ActiveState = 0;
-	item->animNumber = Objects[item->objectNumber].animIndex;
-	item->frameNumber = g_Level.Anims[item->animNumber].frameBase;*/
+	item->animNumber = 0;
+	item->frameNumber = 0;*/
 }
 
 void AnimatingControl(short itemNumber)
@@ -244,14 +246,14 @@ void AnimatingControl(short itemNumber)
 	if (TriggerActive(&item))
 	{
 		item.Status = ITEM_ACTIVE;
-		AnimateItem(&item);
+		AnimateItem(item);
 
 		if (item.TriggerFlags == 666) //OCB used for the helicopter animating in the Train level.
 		{
 			auto pos = GetJointPosition(item, 0);
 			SoundEffect(SFX_TR4_HELICOPTER_LOOP, (Pose*)&pos);
 
-			if (item.Animation.FrameNumber == GetAnimData(item).frameEnd)
+			if (TestLastFrame(item))
 			{
 				item.Flags &= 0xC1;
 				RemoveActiveItem(itemNumber);
@@ -266,13 +268,78 @@ void AnimatingControl(short itemNumber)
 	}
 
 	// TODO: ID_SHOOT_SWITCH2 is probably the bell in Trajan Markets, use Lua for that.
-	/*if (item->frameNumber >= g_Level.Anims[item->animNumber].frameEnd)
+	/*if (TestLastFrame(item))
 	{
-		item->frameNumber = g_Level.Anims[item->animNumber].frameBase;
+		item->frameNumber = 0;
 		RemoveActiveItem(itemNumber);
 		item->aiBits = 0;
 		item->status = ITEM_NOT_ACTIVE;
 	}*/
+}
+
+void EarthquakeControl(short itemNumber)
+{
+	auto& item = g_Level.Items[itemNumber];
+
+	if (!TriggerActive(&item))
+		return;
+
+	if (item.TriggerFlags)
+	{
+		// OCB 333 and 888 are legacy modes for TR4 compatibility.
+		// Any other positive OCB value triggers an earthquake for specified amount of seconds.
+		// Any negative OCB value triggers a rumble sound effect for specified amount of seconds.
+
+		bool legacyMode888 = (item.TriggerFlags == 888);
+		bool legacyMode333 = (item.TriggerFlags == 333);
+
+		int timeout = (legacyMode888 ? 5 : (legacyMode333 ? 16 : abs(item.TriggerFlags))) * FPS;
+		float volume = std::clamp((float)(timeout - item.ItemFlags[0]) / (float)FPS, 0.01f, 1.0f); // Fadeout for the last second.
+
+		if (!legacyMode333 && item.TriggerFlags > 0)
+			Camera.bounce = -64 - (GetRandomControl() & 0x1F);
+
+		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f, volume);
+
+		item.ItemFlags[0]++;
+
+		if (item.ItemFlags[0] >= timeout)
+			KillItem(itemNumber);
+	}
+	else
+	{
+		if (!item.ItemFlags[1])
+			item.ItemFlags[1] = 100;
+
+		if (!item.ItemFlags[2])
+		{
+			if (abs(item.ItemFlags[0] - item.ItemFlags[1]) < 16)
+			{
+				if (item.ItemFlags[1] == 20)
+				{
+					item.ItemFlags[1] = 100;
+					item.ItemFlags[2] = (GetRandomControl() & 0x7F) + 90;
+				}
+				else
+				{
+					item.ItemFlags[1] = 20;
+					item.ItemFlags[2] = (GetRandomControl() & 0x7F) + 30;
+				}
+			}
+		}
+
+		if (item.ItemFlags[2])
+			item.ItemFlags[2]--;
+
+		if (item.ItemFlags[0] <= item.ItemFlags[1])
+			item.ItemFlags[0] += (GetRandomControl() & 7) + 2;
+		else
+			item.ItemFlags[0] -= (GetRandomControl() & 7) + 2;
+
+		float pitch = (item.ItemFlags[0] / 100.0f) / 2.0f;
+		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f + pitch);
+		Camera.bounce = -item.ItemFlags[0];
+	}
 }
 
 

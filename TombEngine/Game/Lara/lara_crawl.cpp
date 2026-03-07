@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_crawl.h"
 
-#include "Game/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
@@ -17,6 +17,7 @@
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Player;
 using namespace TEN::Input;
 
@@ -445,8 +446,8 @@ void lara_as_crawl_idle(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		if ((IsHeld(In::Sprint) && CanCrouchRoll(*item, *coll)) ||
-			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares)) &&
-			 !IsStandingWeapon(item, player.Control.Weapon.GunType) && HasStateDispatch(item, LS_CROUCH_IDLE)))
+			((IsHeld(In::Draw) || (IsHeld(In::Flare) && player.Inventory.TotalFlares != 0)) &&
+				!IsStandingWeapon(item, player.Control.Weapon.GunType) && TestStateDispatch(*item, LS_CROUCH_IDLE)))
 		{
 			item->Animation.TargetState = LS_CROUCH_IDLE;
 			player.Control.HandStatus = HandStatus::Free;

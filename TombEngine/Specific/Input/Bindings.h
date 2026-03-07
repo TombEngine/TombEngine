@@ -44,6 +44,7 @@ namespace TEN::Input
 
 		int					  GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const;
 		const BindingProfile& GetBindingProfile(BindingProfileID profileID) const;
+		const std::string&    GetBoundKeyName(ActionID actionID);
 
 		// Setters
 

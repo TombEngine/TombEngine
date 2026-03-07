@@ -11,7 +11,7 @@
 --		barName             = "water",
 --		startValue          = 0,
 --		maxValue            = 1000,
---		objectIdBg          = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHIC,
+--		objectIdBg          = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
 --		spriteIdBg          = 0,
 --		colorBg             = TEN.Color(255,255,255),
 --		posBg               = TEN.Vec2(20, 20),
@@ -20,7 +20,7 @@
 --		alignModeBg         = TEN.View.AlignMode.CENTER_LEFT,
 --		scaleModeBg         = TEN.View.ScaleMode.FIT,
 --		blendModeBg         = TEN.Effects.BlendID.ALPHABLEND,
---		objectIdBar         = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHIC,
+--		objectIdBar         = TEN.Objects.ObjID.CUSTOM_BAR_GRAPHICS,
 --		spriteIdBar         = 1,
 --		colorBar            = TEN.Color(255,0,0),
 --		posBar              = TEN.Vec2(20.15, 20),
@@ -64,7 +64,7 @@ LevelVars.Engine.CustomBars = {bars = {}, enemiesHpBar = {status = nil}}
 -- Creates a custom progress bar with extensive configuration options.
 -- @tparam table barData The table that contains all the bar data. Refer to table setup for barData.
 --
--- @treturn CustomBar The custombar in its hidden state
+-- @treturn CustomBar The custom bar in its hidden state
 --
 CustomBar.Create = function (barData)
 

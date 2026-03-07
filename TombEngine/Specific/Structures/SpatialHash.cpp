@@ -348,7 +348,7 @@ namespace TEN::Structures
 
 	std::vector<Vector3i> SpatialHash::GetCellKeys(const BoundingOrientedBox& obb) const
 	{
-		auto aabb = Geometry::GetBoundingBox(obb);
+		auto aabb = Geometry::GetAabb(obb);
 
 		// Collect keys of cells intersecting OBB.
 		auto keys = GetCellKeys(aabb);
