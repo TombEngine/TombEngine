@@ -10,8 +10,8 @@ struct GrassInfluenceSphere
 	float Radius;
 	//--
 	float Intensity;
-	float Timestamp;
-	float Padding0;
+	float Timestamp;       // Last refresh time (used for decay).
+	float BirthTimestamp;  // Creation time (used for rise).
 	float Padding1;
 };
 
@@ -27,6 +27,15 @@ struct GrassInstanceData
 	//--
 	float2 UVOffset;
 	float2 UVScale;
+	//--
+	float3 AmbientLight;
+	float WindEnabled;
+	//--
+	float3 SunDirection;
+	float SunIntensity;
+	//--
+	float3 SunColor;
+	float SunPad0;
 };
 
 cbuffer GrassSettingsBuffer : register(b9)

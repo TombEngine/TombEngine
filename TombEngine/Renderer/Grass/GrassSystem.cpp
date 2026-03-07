@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Renderer/Grass/GrassSystem.h"
 
-#include <random>
 #include <algorithm>
 #include <map>
 
@@ -44,7 +43,6 @@ namespace TEN::Renderer::Grass
 	{
 		_allBlades.clear();
 		_tiles.clear();
-		_nextInfluenceSlot = 0;
 		_currentTime = 0.0f;
 		_lastVisibleTileCount = 0;
 		_lastVisibleBladeCount = 0;
@@ -59,9 +57,7 @@ namespace TEN::Renderer::Grass
 		Clear();
 
 		for (int roomNum = 0; roomNum < (int)g_Level.Rooms.size(); roomNum++)
-		{
 			GenerateGrassForRoom(roomNum);
-		}
 
 		BuildTiles();
 	}
@@ -153,17 +149,18 @@ namespace TEN::Renderer::Grass
 				finalZ = std::clamp(finalZ, (float)worldZ + 1.0f, (float)(worldZ + BLOCK_UNIT) - 1.0f);
 
 				// Get the actual floor height at this exact position.
-				auto& room = g_Level.Rooms[roomNumber];
 				auto& sector = GetFloor(roomNumber, (int)finalX, (int)finalZ);
 
 				if (sector.IsWall((int)finalX, (int)finalZ))
 					continue;
 
 				int height = sector.GetSurfaceHeight((int)finalX, (int)finalZ, true);
+
 				if (height == NO_HEIGHT)
 					continue;
 
 				Vector3 localNormal = sector.GetSurfaceNormal((int)finalX, (int)finalZ, true);
+
 				if (localNormal.y > -0.5f)
 					continue;
 
@@ -177,6 +174,8 @@ namespace TEN::Renderer::Grass
 				// Select a sprite variant from the atlas.
 				int totalSprites = _config.AtlasColumns * _config.AtlasRows;
 				blade.SpriteIdx = (int)(rng2 * totalSprites) % totalSprites;
+				blade.RoomNumber = roomNumber;
+				blade.WindEnabled = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_SKYBOX) != 0;
 
 				_allBlades.push_back(blade);
 			}
@@ -192,6 +191,7 @@ namespace TEN::Renderer::Grass
 		struct TileKey
 		{
 			int tx, tz;
+
 			bool operator<(const TileKey& other) const
 			{
 				return (tx < other.tx) || (tx == other.tx && tz < other.tz);
@@ -226,13 +226,15 @@ namespace TEN::Renderer::Grass
 				auto& blade = _allBlades[idx];
 				sortedBlades.push_back(blade);
 
-				bmin = Vector3::Min(bmin, blade.Position - Vector3(0, _config.BladeHeight, 0));
-				bmax = Vector3::Max(bmax, blade.Position + Vector3(0, _config.BladeHeight * 1.5f, 0));
+				// TEN uses inverted Y (up = -Y), so blades grow toward negative Y.
+				bmin = Vector3::Min(bmin, blade.Position - Vector3(0, _config.BladeHeight * 1.5f, 0));
+				bmax = Vector3::Max(bmax, blade.Position + Vector3(0, _config.BladeHeight, 0));
 			}
 
-			// Expand the bounding box slightly for wind sway.
-			bmin -= Vector3(_config.BladeWidth, 0, _config.BladeWidth);
-			bmax += Vector3(_config.BladeWidth, 0, _config.BladeWidth);
+			// Expand bounding box for blade half-width + wind displacement.
+			float xzPad = _config.BladeWidth * _config.MaxScale * 0.5f + _config.WindStrength * 1.5f;
+			bmin -= Vector3(xzPad, 0, xzPad);
+			bmax += Vector3(xzPad, 0, xzPad);
 
 			tile.Bounds = BoundingBox(
 				(bmin + bmax) * 0.5f,
@@ -257,6 +259,7 @@ namespace TEN::Renderer::Grass
 			if (inf.Active)
 			{
 				float dist = Vector3::Distance(inf.Position, position);
+
 				if (dist < radius * 0.5f)
 				{
 					// Update existing.
@@ -269,15 +272,38 @@ namespace TEN::Renderer::Grass
 			}
 		}
 
-		// Allocate a new slot (ring buffer with oldest eviction).
-		auto& slot = _influences[_nextInfluenceSlot];
-		slot.Position = position;
-		slot.Radius = radius;
-		slot.Intensity = intensity;
-		slot.Timestamp = _currentTime;
-		slot.Active = true;
+		// Allocate a new slot: prefer inactive slots, then the most-decayed active one.
+		int bestSlot = -1;
+		float bestAge = -1.0f;
 
-		_nextInfluenceSlot = (_nextInfluenceSlot + 1) % MAX_INFLUENCES;
+		for (int i = 0; i < MAX_INFLUENCES; i++)
+		{
+			if (!_influences[i].Active)
+			{
+				bestSlot = i;
+				break;
+			}
+
+			// Evict the influence that has decayed the most (largest age since last refresh).
+			float age = _currentTime - _influences[i].Timestamp;
+
+			if (age > bestAge)
+			{
+				bestAge = age;
+				bestSlot = i;
+			}
+		}
+
+		if (bestSlot < 0)
+			bestSlot = 0;
+
+		auto& slot          = _influences[bestSlot];
+		slot.Position       = position;
+		slot.Radius         = radius;
+		slot.Intensity      = intensity;
+		slot.Timestamp      = _currentTime;
+		slot.BirthTimestamp = _currentTime;
+		slot.Active         = true;
 	}
 
 	void GrassSystem::Draw(
@@ -285,6 +311,9 @@ namespace TEN::Renderer::Grass
 		const RenderView& view,
 		ConstantBuffer<CGrassSettingsBuffer>& cbSettings,
 		ConstantBuffer<CGrassInstanceBuffer>& cbInstances,
+		const Vector4* roomAmbients,
+		const RoomSunData* roomSuns,
+		int numRooms,
 		float time)
 	{
 		if (!_enabled || _allBlades.empty() || _tiles.empty())
@@ -297,7 +326,12 @@ namespace TEN::Renderer::Grass
 		settings.WindStrength = _config.WindStrength;
 		settings.WindFrequency = _config.WindFrequency;
 		settings.WindDirection = _config.WindDirection;
-		settings.WindDirection.Normalize();
+
+		if (settings.WindDirection.LengthSquared() > 0.0001f)
+			settings.WindDirection.Normalize();
+		else
+			settings.WindDirection = Vector3(1.0f, 0.0f, 0.0f);
+
 		settings.Time = time;
 		settings.BendRiseSpeed = _config.BendRiseSpeed;
 		settings.BendDecaySpeed = _config.BendDecaySpeed;
@@ -308,23 +342,29 @@ namespace TEN::Renderer::Grass
 
 		// Pack influence spheres.
 		int numInfluences = 0;
+
 		for (int i = 0; i < MAX_INFLUENCES; i++)
 		{
 			if (_influences[i].Active)
 			{
-				// Expire old influences.
+				// Expire old influences when the computed bend factor drops below 1%.
 				float age = time - _influences[i].Timestamp;
-				if (age > 5.0f) // 5 seconds max lifetime.
+				float activeWindow = 0.2f;
+				float decayTime = std::max(age - activeWindow, 0.0f);
+				float bendFactor = std::exp(-decayTime * _config.BendDecaySpeed);
+
+				if (bendFactor < 0.01f)
 				{
 					_influences[i].Active = false;
 					continue;
 				}
 
-				auto& dst = settings.Influences[numInfluences];
-				dst.Position = _influences[i].Position;
-				dst.Radius = _influences[i].Radius;
-				dst.Intensity = _influences[i].Intensity;
-				dst.Timestamp = _influences[i].Timestamp;
+				auto& dst          = settings.Influences[numInfluences];
+				dst.Position       = _influences[i].Position;
+				dst.Radius         = _influences[i].Radius;
+				dst.Intensity      = _influences[i].Intensity;
+				dst.Timestamp      = _influences[i].Timestamp;
+				dst.BirthTimestamp = _influences[i].BirthTimestamp;
 				numInfluences++;
 
 				if (numInfluences >= MAX_GRASS_INFLUENCE_SPHERES)
@@ -335,6 +375,13 @@ namespace TEN::Renderer::Grass
 
 		cbSettings.UpdateData(settings, context);
 
+		// Precompute squared distances for culling.
+		float maxDrawDistSq = _config.MaxDrawDistance * _config.MaxDrawDistance;
+		float fadeStartDistSq = _config.FadeStartDistance * _config.FadeStartDistance;
+		float tileMaxDist = _config.MaxDrawDistance + TILE_SIZE;
+		float tileMaxDistSq = tileMaxDist * tileMaxDist;
+		float fadeRange = _config.MaxDrawDistance - _config.FadeStartDistance;
+
 		// Frustum cull tiles and draw visible ones in batches.
 		const auto& frustum = view.Camera.Frustum;
 		const Vector3 camPos = view.Camera.WorldPosition;
@@ -342,6 +389,11 @@ namespace TEN::Renderer::Grass
 		_lastVisibleTileCount = 0;
 		_lastVisibleBladeCount = 0;
 		_lastDrawCallCount = 0;
+
+		// Precompute atlas UV scale (constant for all blades).
+		Vector2 uvScale(
+			1.0f / _config.AtlasColumns,
+			1.0f / _config.AtlasRows);
 
 		CGrassInstanceBuffer instanceBuffer = {};
 		int batchCount = 0;
@@ -364,6 +416,7 @@ namespace TEN::Renderer::Grass
 				tile.Bounds.Center.x - tile.Bounds.Extents.x,
 				tile.Bounds.Center.y - tile.Bounds.Extents.y,
 				tile.Bounds.Center.z - tile.Bounds.Extents.z);
+
 			Vector3 tileMax(
 				tile.Bounds.Center.x + tile.Bounds.Extents.x,
 				tile.Bounds.Center.y + tile.Bounds.Extents.y,
@@ -372,31 +425,36 @@ namespace TEN::Renderer::Grass
 			if (!frustum.AABBInFrustum(tileMin, tileMax))
 				continue;
 
-			// Distance culling: check tile center vs max draw distance.
+			// Distance culling: check tile center vs max draw distance (squared).
 			Vector3 tileCenter(tile.Bounds.Center.x, tile.Bounds.Center.y, tile.Bounds.Center.z);
-			float tileDist = Vector3::Distance(camPos, tileCenter);
+			float tileDistSq = Vector3::DistanceSquared(camPos, tileCenter);
 
-			if (tileDist > _config.MaxDrawDistance + TILE_SIZE)
+			if (tileDistSq > tileMaxDistSq)
 				continue;
 
 			_lastVisibleTileCount++;
 
 			// Process blades in this tile.
 			int end = tile.StartIndex + tile.BladeCount;
+
 			for (int i = tile.StartIndex; i < end; i++)
 			{
 				auto& blade = _allBlades[i];
 
-				// Per-blade distance culling.
-				float bladeDist = Vector3::Distance(camPos, blade.Position);
-				if (bladeDist > _config.MaxDrawDistance)
+				// Per-blade distance culling (squared to avoid sqrt).
+				float bladeDistSq = Vector3::DistanceSquared(camPos, blade.Position);
+
+				if (bladeDistSq > maxDrawDistSq)
 					continue;
 
 				// LOD: reduce density at distance.
-				if (bladeDist > _config.FadeStartDistance)
+				if (bladeDistSq > fadeStartDistSq)
 				{
-					float lodFactor = (bladeDist - _config.FadeStartDistance) /
-						(_config.MaxDrawDistance - _config.FadeStartDistance);
+					float bladeDist = std::sqrt(bladeDistSq);
+					float lodFactor = (fadeRange > 0.001f)
+						? (bladeDist - _config.FadeStartDistance) / fadeRange
+						: 1.0f;
+
 					// Probabilistic LOD: skip some blades at distance.
 					if (blade.Seed < lodFactor * 0.6f)
 						continue;
@@ -414,15 +472,36 @@ namespace TEN::Renderer::Grass
 				inst.Seed = blade.Seed;
 				inst.Color = blade.Color;
 
+				// Look up room ambient light for this blade.
+				inst.AmbientLight = (blade.RoomNumber >= 0 && blade.RoomNumber < numRooms)
+					? Vector3(roomAmbients[blade.RoomNumber])
+					: Vector3(0.5f, 0.5f, 0.5f);
+
+				// Wind is baked at generation time from the room's skybox flag.
+				inst.WindEnabled = blade.WindEnabled ? 1.0f : 0.0f;
+
+				// Per-room sun bulb lighting (direction pre-normalized in DrawGrass).
+				if (blade.RoomNumber >= 0 && blade.RoomNumber < numRooms && roomSuns[blade.RoomNumber].Intensity > 0.0f)
+				{
+					const auto& sun = roomSuns[blade.RoomNumber];
+					inst.SunDirection = sun.Direction;
+					inst.SunColor = sun.Color;
+					inst.SunIntensity = sun.Intensity;
+				}
+				else
+				{
+					inst.SunDirection = Vector3::Zero;
+					inst.SunColor = Vector3::Zero;
+					inst.SunIntensity = 0.0f;
+				}
+
 				// Calculate UV offset for sprite atlas variant.
 				int col = blade.SpriteIdx % _config.AtlasColumns;
 				int row = blade.SpriteIdx / _config.AtlasColumns;
-				inst.UVScale = Vector2(
-					1.0f / _config.AtlasColumns,
-					1.0f / _config.AtlasRows);
+				inst.UVScale = uvScale;
 				inst.UVOffset = Vector2(
-					col * inst.UVScale.x,
-					row * inst.UVScale.y);
+					col * uvScale.x,
+					row * uvScale.y);
 
 				batchCount++;
 				_lastVisibleBladeCount++;

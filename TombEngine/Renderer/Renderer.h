@@ -196,11 +196,13 @@ namespace TEN::Renderer
 		// Grass system
 
 		Grass::GrassSystem _grassSystem;
-		CGrassSettingsBuffer _stGrassSettings;
 		ConstantBuffer<CGrassSettingsBuffer> _cbGrassSettings;
-		CGrassInstanceBuffer _stGrassInstances;
 		ConstantBuffer<CGrassInstanceBuffer> _cbGrassInstances;
 		Texture2D _grassAtlasTexture;
+
+		// Per-room grass lighting (rebuilt each frame, persistent to avoid per-frame heap alloc).
+		std::vector<Vector4> _grassRoomAmbients;
+		std::vector<Grass::RoomSunData> _grassRoomSuns;
 
 		// Primitive batches
 

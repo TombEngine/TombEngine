@@ -32,63 +32,110 @@ namespace TEN::Renderer::Grass
 	// A single grass blade instance (CPU side).
 	struct GrassBlade
 	{
-		Vector3 Position  = Vector3::Zero;
-		Vector3 Normal    = Vector3::UnitY;
-		float   Scale     = 1.0f;
-		float   Seed      = 0.0f;
-		Vector4 Color     = Vector4::One;
-		int     SpriteIdx = 0; // Index into grass atlas sprite variants.
+		Vector3 Position     = Vector3::Zero;
+		Vector3 Normal       = Vector3::UnitY;
+		float   Scale        = 1.0f;
+		float   Seed         = 0.0f;
+		Vector4 Color        = Vector4::One;
+		int     SpriteIdx    = 0; // Index into grass atlas sprite variants.
+		int     RoomNumber   = 0; // Room this blade belongs to (for ambient lookup).
+		bool    WindEnabled  = false; // True if blade is in an outdoor (skybox) room.
 	};
 
 	// A spatial tile containing grass blades for culling.
 	struct GrassTile
 	{
 		BoundingBox    Bounds;
-		int            RoomNumber  = 0;
-		int            StartIndex  = 0;  // Into the owning GrassGrid's blade array.
+		int            StartIndex  = 0; // Into the owning GrassGrid's blade array.
 		int            BladeCount  = 0;
 	};
 
 	// Influence sphere for bending effect (e.g., player walking through grass).
 	struct GrassInfluence
 	{
-		Vector3 Position   = Vector3::Zero;
-		float   Radius     = 0.0f;
-		float   Intensity  = 0.0f;
-		float   Timestamp  = 0.0f;
-		bool    Active     = false;
+		Vector3 Position       = Vector3::Zero;
+		float   Radius         = 0.0f;
+		float   Intensity      = 0.0f;
+		float   Timestamp      = 0.0f; // Last refresh time (used for decay).
+		float   BirthTimestamp = 0.0f; // Creation time (used for rise).
+		bool    Active         = false;
 	};
 
 	// Configuration for the grass system.
 	struct GrassConfig
 	{
-		// Placement.
-		float Density           = 16.0f;  // Blades per BLOCK(1) unit on each axis.
+		// -- Placement --
+		// Number of grass blades placed per BLOCK unit on each axis within a sector.
+		// E.g. 16 = 256 blades per sector (16x16 grid before jitter).
+		float Density           = 16.0f;
+
+		// Minimum and maximum random scale multiplier applied to each blade.
 		float MinScale          = 0.6f;
 		float MaxScale          = 1.5f;
-		float JitterAmount      = 1.0f;   // 0 = grid, 1 = full jitter within cell.
 
-		// Rendering.
-		float BladeWidth        = 56.0f;  // World units.
-		float BladeHeight       = 350.0f; // World units (~1/3 block).
-		float MaxDrawDistance    = 16384.0f;  // ~16 blocks.
-		float FadeStartDistance = 12288.0f;  // ~12 blocks.
+		// Controls how much each blade is randomly offset from its grid cell centre.
+		// 0.0 = perfectly uniform grid (no randomness).
+		// 1.0 = blade can appear anywhere within its cell (fully random).
+		float JitterAmount      = 1.0f;
 
-		// Wind.
-		float   WindStrength    = 25.0f;
-		float   WindFrequency   = 1.5f;
+		// -- Rendering --
+		// Width and height of each grass quad in world units.
+		float BladeWidth        = 64.0f;
+		float BladeHeight       = 256.0f;
+
+		// Maximum distance from the camera at which grass is drawn at all.
+		// Blades beyond this distance are skipped entirely. Reducing this improves performance.
+		float MaxDrawDistance   = 16384.0f;
+
+		// Distance at which grass begins to fade out (alpha fades to 0 at MaxDrawDistance).
+		float FadeStartDistance = 12288.0f;
+
+		// -- Wind --
+		// Maximum world-unit displacement of a blade tip caused by wind at full swing.
+		// Higher values = more dramatic swaying. Too high can look unnatural.
+		float WindStrength      = 128.0f;
+
+		// How many full wind oscillation cycles occur per second.
+		// Higher values = faster flickering; lower values = slow, rolling waves.
+		float WindFrequency     = 1.5f;
+
+		// The primary direction the wind blows.
 		Vector3 WindDirection   = Vector3(1.0f, 0.0f, 0.3f);
 
-		// Bending.
+		// -- Bending (player interaction) --
+		// How fast grass blades bend down when Lara first steps into them.
+		// This is a linear ramp: full bend is reached after (1.0 / BendRiseSpeed) seconds.
+		// E.g. 10.0 = full bend in ~0.1s (snappy). 2.0 = full bend in ~0.5s (slow lean).
 		float BendRiseSpeed     = 10.0f;
-		float BendDecaySpeed    = 1.5f;
-		float BendMaxAngle      = 250.0f; // World units of displacement at full bend.
-		float PlayerBendRadius  = 512.0f; // ~2 clicks.
+
+		// How fast bent blades spring back up after Lara leaves.
+		// This is an exponential decay: bend halves every (ln2 / BendDecaySpeed) seconds.
+		// E.g. 2.5 = blades mostly upright in ~2s. 0.1 = blades stay flat for ~45s.
+		float BendDecaySpeed    = 2.5f;
+
+		// Maximum world-unit displacement applied to a blade tip at full bend.
+		// This should be roughly equal to BladeHeight for a convincing flat collapse.
+		// Too low = blades barely react; too high = blades stretch past the floor.
+		float BendMaxAngle      = 256.0f;
+
+		// Radius around Lara (in world units) within which grass blades are bent each frame.
+		float PlayerBendRadius  = 512.0f;
+
+		// Multiplier on the overall bending strength. 1.0 = normal full bend.
+		// Reduce below 1.0 for subtler interaction; raise above 1.0 to exaggerate.
 		float PlayerBendIntensity = 1.0f;
 
 		// Atlas layout (assuming a simple grid of sprite variants in one texture).
 		int   AtlasColumns      = 4;
 		int   AtlasRows         = 1;
+	};
+
+	// Per-room sun bulb data (one entry per room, built each frame).
+	struct RoomSunData
+	{
+		Vector3 Direction = Vector3::Zero;
+		Vector3 Color     = Vector3::Zero;
+		float   Intensity = 0.0f;
 	};
 
 	class GrassSystem
@@ -109,6 +156,9 @@ namespace TEN::Renderer::Grass
 			const RenderView& view,
 			ConstantBuffer<CGrassSettingsBuffer>& cbSettings,
 			ConstantBuffer<CGrassInstanceBuffer>& cbInstances,
+			const Vector4* roomAmbients,
+			const RoomSunData* roomSuns,
+			int numRooms,
 			float time);
 
 		// Add a bending influence (call each frame for active influences).
@@ -142,10 +192,9 @@ namespace TEN::Renderer::Grass
 		// Spatial tiles for frustum culling.
 		std::vector<GrassTile> _tiles;
 
-		// Active influence spheres (ring buffer).
+		// Active influence spheres.
 		static constexpr int MAX_INFLUENCES = MAX_GRASS_INFLUENCE_SPHERES;
 		std::array<GrassInfluence, MAX_GRASS_INFLUENCE_SPHERES> _influences = {};
-		int _nextInfluenceSlot = 0;
 		float _currentTime = 0.0f;
 
 		// Debug counters.

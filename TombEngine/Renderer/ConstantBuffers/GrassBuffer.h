@@ -14,8 +14,8 @@ namespace TEN::Renderer::ConstantBuffers
 		float Radius;
 		//--
 		float Intensity;
-		float Timestamp;
-		float Padding0;
+		float Timestamp;       // Last refresh time (used for decay).
+		float BirthTimestamp;  // Creation time (used for rise).
 		float Padding1;
 	};
 
@@ -31,6 +31,15 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		Vector2 UVOffset;
 		Vector2 UVScale;
+		//--
+		Vector3 AmbientLight;
+		float WindEnabled; // 1.0 = blade in outdoor (skybox) room; 0.0 = indoors, no wind.
+		//--
+		Vector3 SunDirection;
+		float SunIntensity;
+		//--
+		Vector3 SunColor;
+		float SunPad0;
 	};
 
 	struct alignas(16) CGrassSettingsBuffer

@@ -4297,8 +4297,43 @@ namespace TEN::Renderer
 		float time = (float)GlobalCounter * 0.03333f + GetInterpolationFactor() * 0.03333f;
 		_grassSystem.Update(time);
 
+		// Update room ambient lookup for grass lighting (reuse persistent vector).
+		_grassRoomAmbients.resize(_rooms.size());
+		for (size_t i = 0; i < _rooms.size(); i++)
+			_grassRoomAmbients[i] = _rooms[i].AmbientLight;
+
+		// Build per-room sun bulb cache (pick the brightest sun in each room).
+		_grassRoomSuns.resize(_rooms.size());
+		for (size_t i = 0; i < _rooms.size(); i++)
+		{
+			Grass::RoomSunData best = {};
+			for (auto& light : _rooms[i].Lights)
+			{
+				if (light.Type == LightType::Sun && light.Intensity > best.Intensity)
+				{
+					best.Direction = light.Direction;
+					best.Color = light.Color;
+					best.Intensity = light.Intensity;
+				}
+			}
+
+			// Pre-normalize sun direction so Draw() doesn't have to per-blade.
+			if (best.Intensity > 0.0f)
+			{
+				float lenSq = best.Direction.LengthSquared();
+
+				if (lenSq > 0.0001f)
+					best.Direction.Normalize();
+				else
+					best.Direction = Vector3(0.0f, 1.0f, 0.0f);
+			}
+
+			_grassRoomSuns[i] = best;
+		}
+
 		// Draw all visible grass tiles.
-		_grassSystem.Draw(_context.Get(), view, _cbGrassSettings, _cbGrassInstances, time);
+		_grassSystem.Draw(_context.Get(), view, _cbGrassSettings, _cbGrassInstances,
+			_grassRoomAmbients.data(), _grassRoomSuns.data(), (int)_grassRoomAmbients.size(), time);
 		_numGrassDrawCalls = _grassSystem.GetDrawCallCount();
 
 		// Restore state.
