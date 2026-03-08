@@ -2,6 +2,7 @@
 #include "Objects/Effects/Boss.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
@@ -10,6 +11,7 @@
 #include "Game/Setup.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 
+using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Entities::Creatures::TR3;
 
@@ -268,6 +270,21 @@ namespace TEN::Effects::Boss
 
 		if (counter >= countUntilDeath)
 		{
+			{
+				auto pos = item.Pose.Position.ToVector3();
+				pos.y = GetPointCollision(pos, item.RoomNumber).GetFloorHeight();
+
+				for (short n = item.CarriedItem; n != NO_VALUE; n = g_Level.Items[n].CarriedItem)
+				{
+					auto& p = g_Level.Items[n];
+					p.Pose.Position = pos;
+					p.Pose.Position.y -= GameBoundingBox(&p).Y2;
+					p.Pose.Orientation.y = ANGLE(Random::GenerateInt(0, 359));
+					ItemNewRoom(n, item.RoomNumber);
+				}
+
+				item.CarriedItem = NO_VALUE;
+			}
 			if (allowExplosion)
 				CreatureDie(itemNumber, allowExplosion, true);
 			else
