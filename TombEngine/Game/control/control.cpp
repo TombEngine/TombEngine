@@ -57,6 +57,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
@@ -627,6 +628,16 @@ void InitializeScripting(int levelIndex, bool loadGame)
 	{
 		TENLog("Executing property script blob...", LogLevel::Info);
 		g_GameScript->ExecuteString(g_Level.PropertyBlob);
+	}
+
+	// Apply property overrides that depend on scripts being loaded.
+	for (int i = 0; i < g_Level.NumItems; i++)
+	{
+		auto& item = g_Level.Items[i];
+		const auto& object = Objects[item.ObjectNumber];
+
+		if (object.intelligent)
+			item.HitPoints = TEN::Scripting::Properties::PropertyHandler::Get<int>(item, "hitpoints", item.HitPoints);
 	}
 
 	// Play default background music.
