@@ -3,6 +3,17 @@
 include(Sources.cmake)
 
 # ---------------------------------------------------------------------------
+# Platform subdirectory for output layout (Engine/Windows, Engine/Linux, etc.)
+# ---------------------------------------------------------------------------
+if(WIN32)
+    set(TEN_PLATFORM_SUBDIR "Windows")
+elseif(APPLE)
+    set(TEN_PLATFORM_SUBDIR "macOS")
+else()
+    set(TEN_PLATFORM_SUBDIR "Linux")
+endif()
+
+# ---------------------------------------------------------------------------
 # Platform-specific renderer selection
 # ---------------------------------------------------------------------------
 if(WIN32)
@@ -68,6 +79,12 @@ else()
     add_executable(TombEngine ${ALL_SOURCES} ${ALL_HEADERS})
 endif()
 target_compile_features(TombEngine PRIVATE cxx_std_17)
+
+# Output directory: place binary under Engine/<Platform>/ so all platforms
+# can coexist in a single game distribution.
+set_target_properties(TombEngine PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Engine/${TEN_PLATFORM_SUBDIR}"
+)
 
 # Precompiled headers
 target_precompile_headers(TombEngine PRIVATE framework.h)
@@ -410,36 +427,38 @@ else()
     endif()
 endif()
 
-# Copy shaders
+# Copy shaders (two levels up from Engine/<Platform>/)
 add_custom_command(TARGET TombEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
-        "$<TARGET_FILE_DIR:TombEngine>/../Shaders"
+        "$<TARGET_FILE_DIR:TombEngine>/../../Shaders"
 )
 
-# Copy engine scripts
+# Copy engine scripts (two levels up from Engine/<Platform>/)
 add_custom_command(TARGET TombEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/Scripts/Engine"
-        "$<TARGET_FILE_DIR:TombEngine>/../Scripts/Engine"
+        "$<TARGET_FILE_DIR:TombEngine>/../../Scripts/Engine"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/Scripts/SystemStrings.lua"
-        "$<TARGET_FILE_DIR:TombEngine>/../Scripts/SystemStrings.lua"
+        "$<TARGET_FILE_DIR:TombEngine>/../../Scripts/SystemStrings.lua"
 )
 
 # ---------------------------------------------------------------------------
 # Install rules (Linux standalone distribution)
 # ---------------------------------------------------------------------------
 if(NOT WIN32)
-    # Binary goes into Engine/ subdirectory.
-    install(TARGETS TombEngine RUNTIME DESTINATION Engine)
+    set(_INSTALL_ENGINE_DIR "Engine/${TEN_PLATFORM_SUBDIR}")
+
+    # Binary goes into Engine/<Platform>/ subdirectory.
+    install(TARGETS TombEngine RUNTIME DESTINATION ${_INSTALL_ENGINE_DIR})
 
     # BASS shared libraries.
     file(GLOB _INSTALL_BASS_LIBS
         "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.so"
         "${LIBS_DIR}/bass/${BASS_LIB_DIR}/*.dylib"
     )
-    install(FILES ${_INSTALL_BASS_LIBS} DESTINATION Engine)
+    install(FILES ${_INSTALL_BASS_LIBS} DESTINATION ${_INSTALL_ENGINE_DIR})
 
     if(NOT APPLE)
         # VLC shared libraries.
@@ -447,12 +466,12 @@ if(NOT WIN32)
             "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so"
             "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/*.so.*"
         )
-        install(FILES ${_INSTALL_VLC_LIBS} DESTINATION Engine)
+        install(FILES ${_INSTALL_VLC_LIBS} DESTINATION ${_INSTALL_ENGINE_DIR})
 
         # VLC plugins.
         if(EXISTS "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins")
             install(DIRECTORY "${LIBS_DIR}/vlc/${VLC_LIB_DIR}/plugins"
-                    DESTINATION Engine)
+                    DESTINATION ${_INSTALL_ENGINE_DIR})
         endif()
     endif()
 
