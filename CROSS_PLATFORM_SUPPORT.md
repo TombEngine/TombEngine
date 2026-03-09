@@ -138,7 +138,7 @@ cd /path/to/GameDir
 ./Engine/TombEngine
 ```
 
-**Without a sound device** (e.g., WSL2, headless server, CI):
+**Without a sound device** (e.g., headless server, CI — see [Audio on WSL2](#audio-on-wsl2-wslg) for WSLg setup):
 
 ```bash
 SDL_AUDIO_DRIVER=dummy ./Engine/TombEngine
@@ -273,10 +273,78 @@ Or specify the game directory explicitly:
 
 > **Note:** The AppImage contains the engine, shaders, scripts, and all shared libraries. It does **not** contain game data (levels, audio, FMV, etc.) — you must provide those separately.
 
+### HiDPI / Display Scaling (X11)
+
+On X11-based desktops (including WSLg / XWayland), SDL3 cannot reliably detect the compositor's display scale. The engine detects it automatically from several sources, in priority order:
+
+| Priority | Source | Description |
+|----------|--------|-------------|
+| 1 | `TEN_HIDPI_SCALE` | User override (set to e.g. `2.0`) |
+| 2 | `GDK_SCALE` | GNOME integer scale factor |
+| 3 | `QT_SCALE_FACTOR` | KDE/Qt fractional scale factor |
+| 4 | `~/.config/monitors.xml` | GNOME monitor configuration |
+| 5 | `/proc/version` + `reg.exe` | WSLg: reads Windows DPI from the registry |
+| 6 | `xrdb -query` → `Xft.dpi` | X11 resource database DPI |
+| 7 | `SDL_GetDisplayContentScale` | SDL fallback (often returns 1.0 on X11) |
+
+When a scale > 1.0 is detected, the engine shrinks the window so that the compositor's upscaling produces the intended resolution on screen. The rendering resolution is unaffected.
+
+If automatic detection fails or gives the wrong value, override it manually:
+
+```bash
+TEN_HIDPI_SCALE=2.0 ./Engine/TombEngine
+```
+
+On native Wayland (not XWayland), the engine disables SDL's built-in scaling and manages resolution internally — no manual override is needed.
+
+### Audio on WSL2 (WSLg)
+
+WSLg includes a PulseAudio server that bridges to Windows audio. BASS (the engine's audio library) uses ALSA, which needs to be configured to route through PulseAudio.
+
+**1. Install the required packages:**
+
+```bash
+sudo apt install libasound2-plugins libpulse0 pulseaudio-utils
+```
+
+**2. Create `~/.asoundrc` to route ALSA through PulseAudio:**
+
+```
+pcm.default pulse
+ctl.default pulse
+```
+
+**3. Verify audio works:**
+
+```bash
+# Check PulseAudio connection
+pactl info
+
+# Test audio output
+speaker-test -t wav -c 2
+```
+
+If `pactl info` fails, check that the PulseAudio socket exists:
+
+```bash
+ls -la /mnt/wslg/PulseServer
+echo $PULSE_SERVER   # should be unix:/mnt/wslg/PulseServer
+```
+
+If the socket is missing, ensure you are running Windows 11 with WSLg enabled and that your WSL distribution is up to date (`wsl --update` from PowerShell).
+
+**Fallback — run without audio:**
+
+```bash
+SDL_AUDIO_DRIVER=dummy ./Engine/TombEngine
+```
+
+The engine will detect the missing audio device and disable sound automatically, but suppressing the ALSA errors requires the `dummy` driver.
+
 ### Known Issues
 
-- **WSL2 (WSLg):** The Wayland compositor may cause display scaling artifacts with the OpenGL renderer (e.g., tiled/repeated scene). This is a WSLg compositor limitation, not an engine bug. The engine renders correctly on native Linux.
-- **Audio on WSL2:** WSL2 does not expose audio devices by default. Use `SDL_AUDIO_DRIVER=dummy` to bypass audio initialization.
+- **Screen resolution list on WSLg:** The virtual X11 display in WSLg reports a scaled-down resolution. The engine compensates using the detected HiDPI scale, but the list may not include all native modes. Use `TEN_HIDPI_SCALE` if the maximum resolution appears too low.
+- **Wayland backend:** Forcing `SDL_VIDEO_DRIVER=wayland` is not supported on WSLg — the Wayland backend may crash or fail to initialize. Let SDL choose the default (`x11` on WSLg).
 
 ---
 
