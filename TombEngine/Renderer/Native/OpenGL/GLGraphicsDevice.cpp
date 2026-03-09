@@ -297,8 +297,12 @@ namespace TEN::Renderer::Native::OpenGL
 
 	GLGraphicsDevice::~GLGraphicsDevice()
 	{
-		// Clean up FBO cache.
+		// Clean up FBO caches.
 		for (auto& [key, fbo] : _fboCache)
+		{
+			if (fbo) glDeleteFramebuffers(1, &fbo);
+		}
+		for (auto& [key, fbo] : _mrtFboCache)
 		{
 			if (fbo) glDeleteFramebuffers(1, &fbo);
 		}
@@ -328,6 +332,12 @@ namespace TEN::Renderer::Native::OpenGL
 				glDeleteFramebuffers(1, &fbo);
 		}
 		_fboCache.clear();
+		for (auto& [key, fbo] : _mrtFboCache)
+		{
+			if (fbo)
+				glDeleteFramebuffers(1, &fbo);
+		}
+		_mrtFboCache.clear();
 		_backbufferFBO = 0;
 
 		if (!g_Configuration.EnableHighFramerate)
@@ -915,40 +925,57 @@ namespace TEN::Renderer::Native::OpenGL
 		if (renderTargets.empty())
 			return;
 
-		// For MRT, we need a unique FBO. Use first color + depth as cache key, and attach the rest.
-		auto* firstRT = static_cast<GLRenderTarget2D*>(renderTargets[0]);
-		GLuint depthTex = 0;
+		// Build a hash key from all color textures + depth texture.
+		uint64_t key = 0x9e3779b97f4a7c15ULL; // seed
+		for (auto* rt : renderTargets)
+		{
+			auto* glRT = static_cast<GLRenderTarget2D*>(rt);
+			key ^= (uint64_t)glRT->GetGLTexture() * 0x517cc1b727220a95ULL + 0x6c62272e07bb0142ULL;
+		}
 		if (depthTarget)
 		{
 			auto* glDT = static_cast<GLDepthTarget*>(depthTarget);
-			depthTex = glDT->GetGLTexture();
+			key ^= (uint64_t)glDT->GetGLTexture() * 0x2545f4914f6cdd1dULL;
 		}
 
-		// Create a dedicated MRT FBO.
-		GLuint fbo;
-		glCreateFramebuffers(1, &fbo);
-
-		for (int i = 0; i < (int)renderTargets.size(); i++)
+		auto it = _mrtFboCache.find(key);
+		if (it != _mrtFboCache.end())
 		{
-			auto* rt = static_cast<GLRenderTarget2D*>(renderTargets[i]);
-			if (rt->IsArray())
-				glNamedFramebufferTextureLayer(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0, 0);
-			else
-				glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0);
+			_currentFBO = it->second;
+			glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 		}
+		else
+		{
+			GLuint fbo;
+			glCreateFramebuffers(1, &fbo);
 
-		if (depthTex)
-			glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
+			for (int i = 0; i < (int)renderTargets.size(); i++)
+			{
+				auto* rt = static_cast<GLRenderTarget2D*>(renderTargets[i]);
+				if (rt->IsArray())
+					glNamedFramebufferTextureLayer(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0, 0);
+				else
+					glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0);
+			}
 
-		std::vector<GLenum> drawBuffers;
-		for (int i = 0; i < (int)renderTargets.size(); i++)
-			drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-		glNamedFramebufferDrawBuffers(fbo, (GLsizei)drawBuffers.size(), drawBuffers.data());
+			if (depthTarget)
+			{
+				auto* glDT = static_cast<GLDepthTarget*>(depthTarget);
+				glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, glDT->GetGLTexture(), 0);
+			}
 
-		_currentFBO = fbo;
-		glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
+			std::vector<GLenum> drawBuffers;
+			for (int i = 0; i < (int)renderTargets.size(); i++)
+				drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+			glNamedFramebufferDrawBuffers(fbo, (GLsizei)drawBuffers.size(), drawBuffers.data());
+
+			_mrtFboCache[key] = fbo;
+			_currentFBO = fbo;
+			glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
+		}
 
 		// Reset scissor to full render target size (DX11 does this implicitly).
+		auto* firstRT = static_cast<GLRenderTarget2D*>(renderTargets[0]);
 		glScissor(0, 0, firstRT->GetWidth(), firstRT->GetHeight());
 	}
 
@@ -957,42 +984,60 @@ namespace TEN::Renderer::Native::OpenGL
 		if (renderTargets.empty())
 			return;
 
-		GLuint depthTex = 0;
-		bool depthIsArray = false;
+		// Build a hash key from all color textures, array indices, and depth.
+		uint64_t key = 0x9e3779b97f4a7c15ULL;
+		for (const auto& binding : renderTargets)
+		{
+			auto* rt = static_cast<GLRenderTarget2D*>(binding.RenderTarget);
+			key ^= (uint64_t)rt->GetGLTexture() * 0x517cc1b727220a95ULL + 0x6c62272e07bb0142ULL;
+			key ^= (uint64_t)(binding.ArrayIndex + 1) * 0x2545f4914f6cdd1dULL;
+		}
 		if (depthTarget.DepthTarget)
 		{
 			auto* glDT = static_cast<GLDepthTarget*>(depthTarget.DepthTarget);
-			depthTex = glDT->GetGLTexture();
-			depthIsArray = glDT->IsArray();
+			key ^= (uint64_t)glDT->GetGLTexture() * 0x369dea0f31a53f85ULL;
+			key ^= (uint64_t)(depthTarget.ArrayIndex + 1) * 0x1fc0e649c5e2b853ULL;
 		}
 
-		GLuint fbo;
-		glCreateFramebuffers(1, &fbo);
-
-		for (int i = 0; i < (int)renderTargets.size(); i++)
+		auto it = _mrtFboCache.find(key);
+		if (it != _mrtFboCache.end())
 		{
-			auto* rt = static_cast<GLRenderTarget2D*>(renderTargets[i].RenderTarget);
-			if (rt->IsArray())
-				glNamedFramebufferTextureLayer(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0, renderTargets[i].ArrayIndex);
-			else
-				glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0);
+			_currentFBO = it->second;
+			glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 		}
-
-		if (depthTex)
+		else
 		{
-			if (depthIsArray)
-				glNamedFramebufferTextureLayer(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0, depthTarget.ArrayIndex);
-			else
-				glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
+			GLuint fbo;
+			glCreateFramebuffers(1, &fbo);
+
+			for (int i = 0; i < (int)renderTargets.size(); i++)
+			{
+				auto* rt = static_cast<GLRenderTarget2D*>(renderTargets[i].RenderTarget);
+				if (rt->IsArray())
+					glNamedFramebufferTextureLayer(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0, renderTargets[i].ArrayIndex);
+				else
+					glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0 + i, rt->GetGLTexture(), 0);
+			}
+
+			if (depthTarget.DepthTarget)
+			{
+				auto* glDT = static_cast<GLDepthTarget*>(depthTarget.DepthTarget);
+				GLuint depthTex = glDT->GetGLTexture();
+				if (glDT->IsArray())
+					glNamedFramebufferTextureLayer(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0, depthTarget.ArrayIndex);
+				else
+					glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
+			}
+
+			std::vector<GLenum> drawBuffers;
+			for (int i = 0; i < (int)renderTargets.size(); i++)
+				drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+			glNamedFramebufferDrawBuffers(fbo, (GLsizei)drawBuffers.size(), drawBuffers.data());
+
+			_mrtFboCache[key] = fbo;
+			_currentFBO = fbo;
+			glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 		}
-
-		std::vector<GLenum> drawBuffers;
-		for (int i = 0; i < (int)renderTargets.size(); i++)
-			drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-		glNamedFramebufferDrawBuffers(fbo, (GLsizei)drawBuffers.size(), drawBuffers.data());
-
-		_currentFBO = fbo;
-		glBindFramebuffer(GL_FRAMEBUFFER, _currentFBO);
 
 		// Reset scissor to full render target size (DX11 does this implicitly).
 		auto* firstMRT = static_cast<GLRenderTarget2D*>(renderTargets[0].RenderTarget);

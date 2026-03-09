@@ -26,10 +26,12 @@ namespace TEN::Renderer::Native::OpenGL
 		GLuint _vbo       = 0;
 		GLuint _program   = 0;
 		GLuint _sampler   = 0;
+		GLint  _locScreenSize = -1;
 		int    _screenW   = 0;
 		int    _screenH   = 0;
 
 		std::vector<SpriteBatchQuad> _queue;
+		std::vector<float> _vertices;
 		BlendMode _blendMode = BlendMode::Opaque;
 
 		void Flush();

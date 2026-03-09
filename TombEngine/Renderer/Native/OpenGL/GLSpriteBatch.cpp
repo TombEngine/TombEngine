@@ -95,6 +95,9 @@ namespace TEN::Renderer::Native::OpenGL
 		glVertexArrayAttribBinding(_vao, 1, 0);
 		glVertexArrayAttribBinding(_vao, 2, 0);
 
+		// Cache uniform location.
+		_locScreenSize = glGetUniformLocation(_program, "uScreenSize");
+
 		// Create sampler.
 		glCreateSamplers(1, &_sampler);
 		glSamplerParameteri(_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -134,6 +137,14 @@ namespace TEN::Renderer::Native::OpenGL
 		quad.Top = (float)area.Top;
 		quad.Right = (float)area.Right;
 		quad.Bottom = (float)area.Bottom;
+
+		// OpenGL FBO textures are stored bottom-to-top; flip V for render targets.
+		if (dynamic_cast<GLRenderTarget2D*>(texture))
+		{
+			quad.V0 = 1.0f;
+			quad.V1 = 0.0f;
+		}
+
 		quad.Color = color;
 		_queue.push_back(quad);
 	}
@@ -159,52 +170,46 @@ namespace TEN::Renderer::Native::OpenGL
 		if (_queue.empty())
 			return;
 
-		// Build vertex data: 6 vertices per quad (2 triangles).
-		std::vector<float> vertices;
-		vertices.reserve(_queue.size() * 6 * 8);
-
-		auto addVertex = [&](float x, float y, float u, float v, const Vector4& c)
-		{
-			vertices.push_back(x); vertices.push_back(y);
-			vertices.push_back(u); vertices.push_back(v);
-			vertices.push_back(c.x); vertices.push_back(c.y);
-			vertices.push_back(c.z); vertices.push_back(c.w);
-		};
-
-		GLuint currentTex = 0;
-
 		// Sort by texture for batching. Use stable_sort to preserve draw order
 		// (shadow before text) for quads that share the same texture.
 		std::stable_sort(_queue.begin(), _queue.end(),
 			[](const SpriteBatchQuad& a, const SpriteBatchQuad& b) { return a.TextureHandle < b.TextureHandle; });
 
-		// Save GL state that we modify.
-		GLint prevVAO = 0;
-		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVAO);
+		// Build vertex data into persistent member buffer: 6 vertices per quad (2 triangles), 8 floats each.
+		_vertices.clear();
+		_vertices.reserve(_queue.size() * 6 * 8);
+
+		for (size_t i = 0; i < _queue.size(); i++)
+		{
+			const auto& q = _queue[i];
+			auto pushVert = [&](float x, float y, float u, float v)
+			{
+				_vertices.push_back(x); _vertices.push_back(y);
+				_vertices.push_back(u); _vertices.push_back(v);
+				_vertices.push_back(q.Color.x); _vertices.push_back(q.Color.y);
+				_vertices.push_back(q.Color.z); _vertices.push_back(q.Color.w);
+			};
+
+			pushVert(q.Left,  q.Top,    q.U0, q.V0);
+			pushVert(q.Right, q.Top,    q.U1, q.V0);
+			pushVert(q.Right, q.Bottom, q.U1, q.V1);
+			pushVert(q.Left,  q.Top,    q.U0, q.V0);
+			pushVert(q.Right, q.Bottom, q.U1, q.V1);
+			pushVert(q.Left,  q.Bottom, q.U0, q.V1);
+		}
+
+		// Save the active pipeline so we can restore it after drawing.
 		GLint prevPipeline = 0;
 		glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &prevPipeline);
-		GLint prevProgram = 0;
-		glGetIntegerv(GL_CURRENT_PROGRAM, &prevProgram);
-		GLboolean prevCullFace = glIsEnabled(GL_CULL_FACE);
-		GLboolean prevBlend = glIsEnabled(GL_BLEND);
-		GLboolean prevDepth = glIsEnabled(GL_DEPTH_TEST);
 
-		// Unbind any active pipeline so the linked program takes clean precedence.
+		// Override the separable pipeline with our linked program.
 		glBindProgramPipeline(0);
-
-		// Activate SpriteBatch's own linked program.
 		glUseProgram(_program);
 
-		// Query the current viewport for the orthographic projection.
-		// This matches DirectXTK's behavior of using the actual viewport dimensions
-		// rather than cached values, ensuring correctness even if the render target changes.
+		// Use the current viewport for the orthographic projection.
 		GLint viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
-		float vpW = (float)viewport[2];
-		float vpH = (float)viewport[3];
-
-		// Upload screen size for the vertex shader's orthographic projection.
-		glUniform2f(glGetUniformLocation(_program, "uScreenSize"), vpW, vpH);
+		glUniform2f(_locScreenSize, (float)viewport[2], (float)viewport[3]);
 
 		glBindVertexArray(_vao);
 		glBindSampler(0, _sampler);
@@ -220,22 +225,10 @@ namespace TEN::Renderer::Native::OpenGL
 			glBlendEquation(GL_FUNC_ADD);
 		}
 
-		for (size_t i = 0; i < _queue.size(); i++)
-		{
-			const auto& q = _queue[i];
-
-			addVertex(q.Left,  q.Top,    q.U0, q.V0, q.Color);
-			addVertex(q.Right, q.Top,    q.U1, q.V0, q.Color);
-			addVertex(q.Right, q.Bottom, q.U1, q.V1, q.Color);
-			addVertex(q.Left,  q.Top,    q.U0, q.V0, q.Color);
-			addVertex(q.Right, q.Bottom, q.U1, q.V1, q.Color);
-			addVertex(q.Left,  q.Bottom, q.U0, q.V1, q.Color);
-		}
-
-		glNamedBufferData(_vbo, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+		glNamedBufferData(_vbo, _vertices.size() * sizeof(float), _vertices.data(), GL_DYNAMIC_DRAW);
 
 		int vertexOffset = 0;
-		currentTex = _queue[0].TextureHandle;
+		GLuint currentTex = _queue[0].TextureHandle;
 
 		for (size_t i = 0; i <= _queue.size(); i++)
 		{
@@ -254,15 +247,12 @@ namespace TEN::Renderer::Native::OpenGL
 			}
 		}
 
-		// Restore GL state.
-		if (prevCullFace) glEnable(GL_CULL_FACE);
-		if (prevDepth) glEnable(GL_DEPTH_TEST);
-		if (prevBlend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-
-		glUseProgram(prevProgram);
+		// Restore state expected by the engine's separable pipeline.
+		glUseProgram(0);
 		glBindProgramPipeline(prevPipeline);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
 		glBindSampler(0, 0);
-		glBindVertexArray(prevVAO);
 	}
 
 	void GLSpriteBatch::End()

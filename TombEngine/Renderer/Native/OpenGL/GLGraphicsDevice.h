@@ -37,8 +37,9 @@ namespace TEN::Renderer::Native::OpenGL
 		// Sampler objects, keyed by SamplerStateRegister.
 		std::map<SamplerStateRegister, GLuint> _samplers;
 
-		// FBO cache keyed by (colorTexHandle << 32 | depthTexHandle).
+		// FBO cache: single-RT keyed by (colorTex << 32 | depthTex), MRT keyed by hash of all attachments.
 		std::unordered_map<uint64_t, GLuint> _fboCache;
+		std::unordered_map<uint64_t, GLuint> _mrtFboCache;
 
 		// Currently bound input layout.
 		GLInputLayout* _currentInputLayout = nullptr;

@@ -484,8 +484,10 @@ int main(int argc, char* argv[])
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
 
-	SDL_DestroyWindow(sdlWindow);
+	// Wait for the game thread to finish before destroying the window,
+	// otherwise GL calls on the game thread hang on a destroyed context.
 	EngineClose();
+	SDL_DestroyWindow(sdlWindow);
 
 	exit(EXIT_SUCCESS);
 }
