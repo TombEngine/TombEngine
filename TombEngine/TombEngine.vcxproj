@@ -50,7 +50,7 @@
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\Engine\Windows\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\Windows\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -59,7 +59,7 @@
     <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\Engine\Windows\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\Windows\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>

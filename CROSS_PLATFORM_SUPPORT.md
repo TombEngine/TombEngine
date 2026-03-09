@@ -87,7 +87,7 @@ All third-party libraries are vendored in the `Libs/` directory as prebuilt x64 
 1. Open `TombEngine.sln` in Visual Studio 2022.
 2. Select **Debug|x64** or **Release|x64** as the build configuration.
 3. Build the solution (**Ctrl+Shift+B**).
-4. The executable is output to `Build/<Configuration>/Engine/Windows/`.
+4. The executable is output to `Build/<Configuration>/Bin/Windows/`.
 
 ### Building with CMake
 
@@ -184,15 +184,15 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-The executable is placed at `build/Engine/Linux/TombEngine`. BASS and VLC shared libraries are automatically copied next to the binary by the build system.
+The executable is placed at `build/Bin/Linux/TombEngine`. BASS and VLC shared libraries are automatically copied next to the binary by the build system.
 
 ### Setting Up Game Files
 
-The engine expects game data files (levels, scripts, audio, etc.) in a directory structure relative to the executable. All platforms coexist under `Engine/`:
+The engine expects game data files (levels, scripts, audio, etc.) in a directory structure relative to the executable. All platforms coexist under `Bin/`:
 
 ```
 GameDir/
-├── Engine/
+├── Bin/
 │   ├── Windows/
 │   │   ├── TombEngine.exe
 │   │   └── *.dll
@@ -222,13 +222,13 @@ Shared assets (Shaders, Scripts, Audio, Data, FMV) are platform-independent and 
 
 ```bash
 cd /path/to/GameDir
-./Engine/Linux/TombEngine
+./Bin/Linux/TombEngine
 ```
 
 **Without a sound device** (e.g., headless server, CI — see [Audio on WSL2](#audio-on-wsl2-wslg) for WSLg setup):
 
 ```bash
-SDL_AUDIO_DRIVER=dummy ./Engine/Linux/TombEngine
+SDL_AUDIO_DRIVER=dummy ./Bin/Linux/TombEngine
 ```
 
 **Command-line options:**
@@ -262,7 +262,7 @@ Run with GDB:
 
 ```bash
 cd /path/to/GameDir
-SDL_AUDIO_DRIVER=dummy gdb -ex run ./Engine/Linux/TombEngine
+SDL_AUDIO_DRIVER=dummy gdb -ex run ./Bin/Linux/TombEngine
 ```
 
 When a crash occurs, GDB will pause. Type `bt` to see the full backtrace:
@@ -293,7 +293,7 @@ Running `cmake --install` produces the following layout:
 ```
 TombEngine/
 ├── TombEngine.sh            # launcher script (entry point)
-├── Engine/
+├── Bin/
 │   └── Linux/
 │       ├── TombEngine       # binary
 │       ├── libbass.so, ...  # BASS shared libraries
@@ -379,7 +379,7 @@ When a scale > 1.0 is detected, the engine shrinks the window so that the compos
 If automatic detection fails or gives the wrong value, override it manually:
 
 ```bash
-TEN_HIDPI_SCALE=2.0 ./Engine/Linux/TombEngine
+TEN_HIDPI_SCALE=2.0 ./Bin/Linux/TombEngine
 ```
 
 On native Wayland (not XWayland), the engine disables SDL's built-in scaling and manages resolution internally — no manual override is needed.
@@ -423,7 +423,7 @@ If the socket is missing, ensure you are running Windows 11 with WSLg enabled an
 **Fallback — run without audio:**
 
 ```bash
-SDL_AUDIO_DRIVER=dummy ./Engine/TombEngine
+SDL_AUDIO_DRIVER=dummy ./Bin/Linux/TombEngine
 ```
 
 The engine will detect the missing audio device and disable sound automatically, but suppressing the ALSA errors requires the `dummy` driver.

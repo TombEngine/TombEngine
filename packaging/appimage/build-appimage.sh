@@ -23,10 +23,10 @@ echo "==> Restructuring for AppImage FHS layout..."
 # AppImage expects usr/bin, usr/share structure.
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-# Move Engine/<Platform> contents (binary + libs) to usr/bin.
-mv "$APPDIR"/Engine/Linux/* "$APPDIR/usr/bin/"
-rmdir "$APPDIR/Engine/Linux"
-rmdir "$APPDIR/Engine"
+# Move Bin/<Platform> contents (binary + libs) to usr/bin.
+mv "$APPDIR"/Bin/Linux/* "$APPDIR/usr/bin/"
+rmdir "$APPDIR/Bin/Linux"
+rmdir "$APPDIR/Bin"
 
 # Move Shaders and Scripts next to the binary (the engine will find them
 # via -gamedir, but include them for convenience).

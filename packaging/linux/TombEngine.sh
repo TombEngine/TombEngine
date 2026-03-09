@@ -3,7 +3,7 @@
 # Sets up library paths and launches the engine from the correct directory.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENGINE_DIR="$SCRIPT_DIR/Engine/Linux"
+ENGINE_DIR="$SCRIPT_DIR/Bin/Linux"
 
 export LD_LIBRARY_PATH="$ENGINE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export VLC_PLUGIN_PATH="$ENGINE_DIR/plugins"

@@ -3,7 +3,7 @@
 include(Sources.cmake)
 
 # ---------------------------------------------------------------------------
-# Platform subdirectory for output layout (Engine/Windows, Engine/Linux, etc.)
+# Platform subdirectory for output layout (Bin/Windows, Bin/Linux, etc.)
 # ---------------------------------------------------------------------------
 if(WIN32)
     set(TEN_PLATFORM_SUBDIR "Windows")
@@ -80,11 +80,26 @@ else()
 endif()
 target_compile_features(TombEngine PRIVATE cxx_std_17)
 
-# Output directory: place binary under Engine/<Platform>/ so all platforms
-# can coexist in a single game distribution.
-set_target_properties(TombEngine PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Engine/${TEN_PLATFORM_SUBDIR}"
-)
+# Output directory: place binary under <Config>/Bin/<Platform>/ so all
+# platforms can coexist in a single game distribution and game assets live
+# at the <Config>/ level (e.g. Build/Release/Bin/Windows/).
+# For multi-config generators (Visual Studio, Ninja Multi-Config) we must
+# set per-config properties to prevent CMake from appending the config name
+# inside Bin/<Platform>/.
+foreach(_CONFIG Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER ${_CONFIG} _CONFIG_UPPER)
+    set_target_properties(TombEngine PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_${_CONFIG_UPPER}
+            "${CMAKE_BINARY_DIR}/${_CONFIG}/Bin/${TEN_PLATFORM_SUBDIR}"
+    )
+endforeach()
+# Single-config fallback (e.g. plain Ninja or Makefiles).
+if(CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set_target_properties(TombEngine PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY
+            "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Bin/${TEN_PLATFORM_SUBDIR}"
+    )
+endif()
 
 # Precompiled headers
 target_precompile_headers(TombEngine PRIVATE framework.h)
@@ -427,14 +442,14 @@ else()
     endif()
 endif()
 
-# Copy shaders (two levels up from Engine/<Platform>/)
+# Copy shaders (two levels up from Bin/<Platform>/)
 add_custom_command(TARGET TombEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
         "$<TARGET_FILE_DIR:TombEngine>/../../Shaders"
 )
 
-# Copy engine scripts (two levels up from Engine/<Platform>/)
+# Copy engine scripts (two levels up from Bin/<Platform>/)
 add_custom_command(TARGET TombEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/Scripts/Engine"
@@ -448,9 +463,9 @@ add_custom_command(TARGET TombEngine POST_BUILD
 # Install rules (Linux standalone distribution)
 # ---------------------------------------------------------------------------
 if(NOT WIN32)
-    set(_INSTALL_ENGINE_DIR "Engine/${TEN_PLATFORM_SUBDIR}")
+    set(_INSTALL_ENGINE_DIR "Bin/${TEN_PLATFORM_SUBDIR}")
 
-    # Binary goes into Engine/<Platform>/ subdirectory.
+    # Binary goes into Bin/<Platform>/ subdirectory.
     install(TARGETS TombEngine RUNTIME DESTINATION ${_INSTALL_ENGINE_DIR})
 
     # BASS shared libraries.
