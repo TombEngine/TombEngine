@@ -28,6 +28,7 @@
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
+#include "Renderer/ConstantBuffers/SunLightBuffer.h"
 #include "Renderer/ConstantBuffers/RoomBuffer.h"
 #include "Renderer/ConstantBuffers/ItemBuffer.h"
 #include "Renderer/ConstantBuffers/AnimatedBuffer.h"
@@ -144,6 +145,7 @@ namespace TEN::Renderer
 		RenderTarget2D _tempRoomAmbientRenderTarget3;
 		RenderTarget2D _tempRoomAmbientRenderTarget4;
 		Texture2DArray _shadowMap;
+		Texture2DArray _csmShadowMap;
 		RenderTarget2D _legacyReflectionsRenderTarget;
 		RenderTarget2D _roomAmbientMapFront;
 		RenderTarget2D _roomAmbientMapBack;
@@ -172,6 +174,8 @@ namespace TEN::Renderer
 		ConstantBuffer<CAnimatedBuffer> _cbAnimated;
 		CShadowLightBuffer _stShadowMap;
 		ConstantBuffer<CShadowLightBuffer> _cbShadowMap;
+		CSunLightBuffer _stSunLight;
+		ConstantBuffer<CSunLightBuffer> _cbSunLight;
 		CHUDBuffer _stHUD;
 		ConstantBuffer<CHUDBuffer> _cbHUD;
 		CHUDBarBuffer _stHUDBar;
@@ -246,6 +250,8 @@ namespace TEN::Renderer
 		int _dynamicLightList = 0;
 		std::vector<RendererLight> _dynamicLights[2];
 		RendererLight* _shadowLight;
+		RendererLight* _sunLight = nullptr;
+		D3D11_VIEWPORT _csmShadowMapViewport = {};
 
 		// Lines
 
@@ -271,7 +277,7 @@ namespace TEN::Renderer
 		Matrix _playerWorldMatrix;
 
 		// Preallocated pools of objects for avoiding new/delete.
-		// Items and effects are safe (can't be more than 1024 items in TR), 
+		// Items and effects are safe (can't be more than 1024 items in TR),
 		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
 
 		std::vector<RendererItem> _items;
@@ -513,6 +519,8 @@ namespace TEN::Renderer
 		void RenderBlobShadows(RenderView& renderView);
 		void RenderShadowMap(RendererItem* item, RenderView& view);
 		void RenderItemShadows(RenderView& renderView);
+		void CollectSunLight(RenderView& renderView);
+		void RenderCSMShadowMaps(RenderView& renderView);
 		void SetBlendMode(BlendMode blendMode, bool force = false);
 		void SetDepthState(DepthState depthState, bool force = false);
 		void SetCullMode(CullMode cullMode, bool force = false);
@@ -704,7 +712,7 @@ namespace TEN::Renderer
 		{
 			int packed =
 				((hash & 0xFF) << 0) |
-				((meshIndex & 0xFFFF) << 8) | 
+				((meshIndex & 0xFFFF) << 8) |
 				((frameOffset & 0xFF) << 24);
 			return packed;
 		}

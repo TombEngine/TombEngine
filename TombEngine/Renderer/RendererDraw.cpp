@@ -1817,6 +1817,10 @@ namespace TEN::Renderer
 		CollectLightsForCamera();
 		RenderItemShadows(view);
 
+		// Render cascaded shadow maps for directional sun light.
+		CollectSunLight(view);
+		RenderCSMShadowMaps(view);
+
 		// Prepare all sprites for later.
 		PrepareFires(view);
 		PrepareSmokes(view);
@@ -1861,6 +1865,7 @@ namespace TEN::Renderer
 		BindConstantBufferVS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferVS(ConstantBufferRegister::Sky, _cbSky.get());
+		BindConstantBufferVS(ConstantBufferRegister::SunLight, _cbSunLight.get());
 
 		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferPS(ConstantBufferRegister::Material, _cbMaterial.get());
@@ -1873,6 +1878,7 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBufferPS(ConstantBufferRegister::Sky, _cbSky.get());
+		BindConstantBufferPS(ConstantBufferRegister::SunLight, _cbSunLight.get());
 
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1880,6 +1886,12 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 
 		BindMaterial(0, true);
+
+		// Bind CSM shadow map texture globally for sun shadow sampling.
+		if (_sunLight != nullptr)
+		{
+			BindTexture(TextureRegister::CSMShadowMap, &_csmShadowMap, SamplerStateRegister::CSMShadowMap);
+		}
 
 		_stAnimated.Animated = 0;
 		UpdateConstantBuffer(_stAnimated, _cbAnimated);
@@ -2488,6 +2500,389 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::CollectSunLight(RenderView& renderView)
+	{
+		_sunLight = nullptr;
+
+		// Search all rooms for the brightest sun light (any sun light can cast CSM shadows).
+		RendererLight* bestSun = nullptr;
+		float bestIntensity = 0.0f;
+		int sunCount = 0;
+
+		for (auto& room : _rooms)
+		{
+			for (auto& light : room.Lights)
+			{
+				if (light.Type != LightType::Sun)
+					continue;
+
+				sunCount++;
+				float intensity = light.Intensity * Luma(light.Color);
+				if (intensity > bestIntensity)
+				{
+					bestIntensity = intensity;
+					bestSun = &light;
+				}
+			}
+		}
+
+		_sunLight = bestSun;
+
+		static bool csmLoggedOnce = false;
+		if (!csmLoggedOnce)
+		{
+			csmLoggedOnce = true;
+			if (_sunLight != nullptr)
+			{
+				TENLog("CSM: Found " + std::to_string(sunCount) + " sun light(s). Best intensity: " + std::to_string(bestIntensity) +
+					" Dir=(" + std::to_string(_sunLight->Direction.x) + "," + std::to_string(_sunLight->Direction.y) + "," + std::to_string(_sunLight->Direction.z) + ")", LogLevel::Info);
+			}
+			else
+			{
+				TENLog("CSM: No sun light found in any room. Total rooms: " + std::to_string(_rooms.size()), LogLevel::Warning);
+			}
+		}
+	}
+
+	void Renderer::RenderCSMShadowMaps(RenderView& renderView)
+	{
+		constexpr int NUM_CASCADES = 3;
+		constexpr int CSM_RESOLUTION = 2048;
+
+		if (_sunLight == nullptr)
+		{
+			_stSunLight.Enabled = false;
+			UpdateConstantBuffer(_stSunLight, _cbSunLight);
+			return;
+		}
+
+		// Set up CSM shadow map if not yet created.
+		if (_csmShadowMap.Resolution != CSM_RESOLUTION)
+		{
+			_csmShadowMap = Texture2DArray(_device.Get(), CSM_RESOLUTION, NUM_CASCADES, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
+			_csmShadowMapViewport.TopLeftX = 0;
+			_csmShadowMapViewport.TopLeftY = 0;
+			_csmShadowMapViewport.Width = (float)CSM_RESOLUTION;
+			_csmShadowMapViewport.Height = (float)CSM_RESOLUTION;
+			_csmShadowMapViewport.MinDepth = 0.0f;
+			_csmShadowMapViewport.MaxDepth = 1.0f;
+		}
+
+		// Clear CSM shadow map.
+		for (int i = 0; i < NUM_CASCADES; i++)
+		{
+			_context->ClearRenderTargetView(_csmShadowMap.RenderTargetView[i].Get(), Colors::White);
+			_context->ClearDepthStencilView(_csmShadowMap.DepthStencilView[i].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		}
+
+		auto lightDir = _sunLight->Direction;
+		lightDir.Normalize();
+
+		// Camera parameters.
+		float nearPlane = renderView.Camera.NearPlane;
+		float farPlane = std::min(renderView.Camera.FarPlane, 20480.0f); // Limit shadow range
+		auto viewMatrix = renderView.Camera.View;
+		auto projMatrix = renderView.Camera.Projection;
+		auto invViewProj = (viewMatrix * projMatrix).Invert();
+
+		// Define cascade splits (practical split scheme).
+		float cascadeSplits[NUM_CASCADES];
+		float lambda = 0.75f; // Blend between logarithmic and linear
+		float ratio = farPlane / nearPlane;
+
+		for (int i = 0; i < NUM_CASCADES; i++)
+		{
+			float p = (float)(i + 1) / (float)NUM_CASCADES;
+			float logSplit = nearPlane * pow(ratio, p);
+			float linearSplit = nearPlane + (farPlane - nearPlane) * p;
+			cascadeSplits[i] = lambda * logSplit + (1.0f - lambda) * linearSplit;
+		}
+
+		// Store splits in the constant buffer for shader cascade selection.
+		_stSunLight.CascadeSplitsAndPixelSize = Vector4(
+			cascadeSplits[0], cascadeSplits[1], cascadeSplits[2],
+			1.0f / (float)CSM_RESOLUTION);
+
+		// Reset GPU state.
+		SetBlendMode(BlendMode::Opaque);
+		SetCullMode(CullMode::CounterClockwise);
+
+		_shaders.Bind(Shader::CSMShadowMap);
+
+		for (int cascade = 0; cascade < NUM_CASCADES; cascade++)
+		{
+			// Compute frustum corners for this cascade slice.
+			float prevSplit = (cascade == 0) ? nearPlane : cascadeSplits[cascade - 1];
+			float currSplit = cascadeSplits[cascade];
+
+			// Convert splits to [0,1] range for NDC.
+			float prevSplitNDC = (projMatrix.m[2][2] * -prevSplit + projMatrix.m[3][2]) / (projMatrix.m[2][3] * -prevSplit + projMatrix.m[3][3]);
+			float currSplitNDC = (projMatrix.m[2][2] * -currSplit + projMatrix.m[3][2]) / (projMatrix.m[2][3] * -currSplit + projMatrix.m[3][3]);
+
+			// NDC frustum corners.
+			Vector3 frustumCorners[8] =
+			{
+				Vector3(-1.0f,  1.0f, prevSplitNDC),
+				Vector3( 1.0f,  1.0f, prevSplitNDC),
+				Vector3(-1.0f, -1.0f, prevSplitNDC),
+				Vector3( 1.0f, -1.0f, prevSplitNDC),
+				Vector3(-1.0f,  1.0f, currSplitNDC),
+				Vector3( 1.0f,  1.0f, currSplitNDC),
+				Vector3(-1.0f, -1.0f, currSplitNDC),
+				Vector3( 1.0f, -1.0f, currSplitNDC),
+			};
+
+			// Transform to world space.
+			Vector3 center = Vector3::Zero;
+			for (int i = 0; i < 8; i++)
+			{
+				auto corner = Vector4::Transform(Vector4(frustumCorners[i].x, frustumCorners[i].y, frustumCorners[i].z, 1.0f), invViewProj);
+				frustumCorners[i] = Vector3(corner.x / corner.w, corner.y / corner.w, corner.z / corner.w);
+				center += frustumCorners[i];
+			}
+			center /= 8.0f;
+
+			// Compute sphere radius for stable shadow map.
+			float radius = 0.0f;
+			for (int i = 0; i < 8; i++)
+			{
+				float dist = Vector3::Distance(frustumCorners[i], center);
+				radius = std::max(radius, dist);
+			}
+			radius = ceil(radius * 16.0f) / 16.0f; // Snap to reduce shimmer.
+
+			// Build light view matrix looking down the sun direction.
+			// Push the eye back along the light direction so shadow casters
+			// beyond the frustum center are captured. Using 3x the cascade
+			// radius balances caster coverage against depth precision.
+			auto lightUp = (abs(lightDir.y) > 0.99f) ? Vector3::UnitZ : Vector3::UnitY;
+			float backExtent = radius * 3.0f;
+			auto lightView = Matrix::CreateLookAt(center - lightDir * backExtent, center, lightUp);
+
+			// Orthographic projection enclosing the frustum.
+			auto lightProj = Matrix::CreateOrthographic(radius * 2.0f, radius * 2.0f, 0.0f, backExtent + radius);
+
+			// Snap to shadow map texel grid to prevent shadow swimming.
+			auto lightViewProj = lightView * lightProj;
+			auto shadowOrigin = Vector4::Transform(Vector4(0, 0, 0, 1), lightViewProj);
+			shadowOrigin *= (float)CSM_RESOLUTION / 2.0f;
+			Vector2 roundedOrigin(round(shadowOrigin.x), round(shadowOrigin.y));
+			Vector2 roundOffset = roundedOrigin - Vector2(shadowOrigin.x, shadowOrigin.y);
+			roundOffset *= 2.0f / (float)CSM_RESOLUTION;
+
+			auto offsetMatrix = Matrix::CreateTranslation(roundOffset.x, roundOffset.y, 0.0f);
+			lightProj *= offsetMatrix;
+
+			_stSunLight.CascadeViewProjections[cascade] = lightView * lightProj;
+
+			// Bind render target for this cascade.
+			_context->OMSetRenderTargets(1, _csmShadowMap.RenderTargetView[cascade].GetAddressOf(),
+				_csmShadowMap.DepthStencilView[cascade].Get());
+			_context->RSSetViewports(1, &_csmShadowMapViewport);
+			ResetScissor();
+
+			// Set camera matrices for shadow rendering.
+			auto shadowCam = CCameraMatrixBuffer{};
+			shadowCam.ViewProjection = lightView * lightProj;
+			UpdateConstantBuffer(shadowCam, _cbCameraMatrices);
+			BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+
+			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+
+			// Render room geometry into shadow map.
+			if (!_roomTextures.empty())
+			{
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+
+				_context->IASetVertexBuffers(0, 1, _roomsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_context->IASetIndexBuffer(_roomsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				_context->IASetInputLayout(_inputLayout.Get());
+
+				BindTexture(TextureRegister::ColorMap, &std::get<0>(_roomTextures[0]), SamplerStateRegister::AnisotropicClamp);
+
+				// Use identity world matrix for rooms (already in world space).
+				_stItem.World = Matrix::Identity;
+				_stItem.Skinned = 0;
+				_stItem.BonesMatrices[0] = Matrix::Identity;
+				UpdateConstantBuffer(_stItem, _cbItem);
+				BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
+
+				for (auto& room : _rooms)
+				{
+					for (auto& bucket : room.Buckets)
+					{
+						if (bucket.NumVertices == 0)
+							continue;
+
+						if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+							continue;
+
+						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					}
+				}
+			}
+
+			// Render static geometry into shadow map.
+			if (!_staticTextures.empty())
+			{
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+
+				_context->IASetVertexBuffers(0, 1, _staticsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_context->IASetIndexBuffer(_staticsIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+				BindTexture(TextureRegister::ColorMap, &std::get<0>(_staticTextures[0]), SamplerStateRegister::AnisotropicClamp);
+
+				for (auto& room : _rooms)
+				{
+					for (auto& staticMesh : room.Statics)
+					{
+						if (!staticMesh.ObjectNumber)
+							continue;
+
+						auto& obj = _staticObjects[staticMesh.ObjectNumber];
+						if (!obj.has_value())
+							continue;
+
+						_stItem.World = staticMesh.World;
+						_stItem.Skinned = 0;
+						_stItem.BonesMatrices[0] = Matrix::Identity;
+						UpdateConstantBuffer(_stItem, _cbItem);
+
+						for (auto& mesh : obj->ObjectMeshes)
+						{
+							for (auto& bucket : mesh->Buckets)
+							{
+								if (bucket.NumVertices == 0)
+									continue;
+
+								if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+									continue;
+
+								DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+							}
+						}
+					}
+				}
+			}
+
+			// Render moveable (item) geometry into shadow map.
+			if (!_moveablesTextures.empty())
+			{
+				unsigned int stride = sizeof(Vertex);
+				unsigned int offset = 0;
+
+				_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+				BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[0]), SamplerStateRegister::AnisotropicClamp);
+
+				for (auto* room : renderView.RoomsToDraw)
+				{
+					for (auto* item : room->ItemsToDraw)
+					{
+						if (!_moveableObjects[item->ObjectID].has_value())
+							continue;
+
+						auto& obj = _moveableObjects[item->ObjectID].value();
+						auto skinMode = GetSkinningMode(obj, item->SkinIndex);
+
+						_stItem.World = item->InterpolatedWorld;
+						_stItem.Skinned = (int)skinMode;
+
+						for (int k = 0; k < MAX_BONES; k++)
+							_stItem.BoneLightModes[k] = (int)LightMode::Static;
+
+						// Render skin mesh for fully-skinned items (e.g. Lara).
+						if (skinMode == SkinningMode::Full)
+						{
+							for (int m = 0; m < obj.AnimationTransforms.size(); m++)
+								_stItem.BonesMatrices[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+							UpdateConstantBuffer(_stItem, _cbItem);
+
+							if (item->SkinIndex != NO_VALUE)
+							{
+								auto* skinMesh = GetMesh(item->SkinIndex);
+								for (auto& bucket : skinMesh->Buckets)
+								{
+									if (bucket.NumVertices == 0)
+										continue;
+									if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+										continue;
+									DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+								}
+							}
+
+							// Re-upload non-bind-pose transforms for individual meshes.
+							memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+							UpdateConstantBuffer(_stItem, _cbItem);
+						}
+						else
+						{
+							memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+							UpdateConstantBuffer(_stItem, _cbItem);
+						}
+
+						for (int k = 0; k < obj.ObjectMeshes.size(); k++)
+						{
+							if (item->MeshIndex.size() <= k)
+								break;
+
+							auto* mesh = GetMesh(item->MeshIndex[k]);
+							if (g_Level.Meshes[item->MeshIndex[k]].hidden)
+								continue;
+
+							for (auto& bucket : mesh->Buckets)
+							{
+								if (bucket.NumVertices == 0)
+									continue;
+								if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+									continue;
+								DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+							}
+						}
+
+						// Render Lara's extras: joints, holsters, and hair.
+						if (item->ObjectID == ID_LARA)
+						{
+							if (skinMode == SkinningMode::Classic)
+								DrawLaraJoints(item, room, renderView, RendererPass::ShadowMap);
+							DrawLaraHolsters(item, room, renderView, RendererPass::ShadowMap);
+							DrawLaraHair(item, room, renderView, RendererPass::ShadowMap);
+						}
+					}
+				}
+			}
+		}
+
+		// Unbind the CSM shadow map from render target so it can be used as a shader resource.
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		_context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+		// Fill sun light constant buffer.
+		_stSunLight.Direction = lightDir;
+		_stSunLight.Intensity = _sunLight->Intensity;
+		_stSunLight.Color = _sunLight->Color;
+		_stSunLight.Enabled = true;
+		// CascadeSplitsAndPixelSize already set above.
+
+		static bool csmRenderLoggedOnce = false;
+		if (!csmRenderLoggedOnce)
+		{
+			csmRenderLoggedOnce = true;
+			TENLog("CSM: Rendered shadow maps. Enabled=1, Dir=(" + std::to_string(lightDir.x) + "," + std::to_string(lightDir.y) + "," + std::to_string(lightDir.z) + ")", LogLevel::Info);
+		}
+		_stSunLight.DepthBias = 0.001f;
+		_stSunLight.SlopeBias = 0.004f;
+		_stSunLight.NormalBias = 2.5f;  // In texel units — scales automatically per cascade.
+		_stSunLight.ShadowIntensity = 0.8f;
+
+		UpdateConstantBuffer(_stSunLight, _cbSunLight);
+	}
+
 	void Renderer::DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass)
 	{
 		// Extremely hacky function to get first rendered face of a waterfall object mesh, calculate
@@ -2921,6 +3316,12 @@ namespace TEN::Renderer
 				}
 				
 				UpdateConstantBuffer(_stShadowMap, _cbShadowMap);
+
+				// Bind CSM shadow map texture for sun shadows.
+				if (_sunLight != nullptr)
+				{
+					BindTexture(TextureRegister::CSMShadowMap, &_csmShadowMap, SamplerStateRegister::CSMShadowMap);
+				}
 			}
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)

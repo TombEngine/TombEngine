@@ -34,13 +34,14 @@ float3 DoSpecularPoint(float3 pos, float3 n, ShaderLight light, float strength, 
     float strengthUsed = lerp(1.0, strength, m);
     float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
 	
-    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float3 viewDir = normalize(pos - CamPositionWS.xyz);
+    float vr = saturate(dot(viewDir, reflectDir));
     float spec = pow(vr, max(expVal, 1.0));
 
     return attenuation * spec * color * intenSpec;
 }
 
-float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
+float3 DoSpecularSun(float3 pos, float3 n, ShaderLight light, float strength, float specularIntensity, float roughness)
 {
     float m = saturate(sign(strength));
 	
@@ -56,7 +57,8 @@ float3 DoSpecularSun(float3 n, ShaderLight light, float strength, float specular
     float strengthUsed = lerp(1.0, strength, m);
     float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
 	
-    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float3 viewDir = normalize(pos - CamPositionWS.xyz);
+    float vr = saturate(dot(viewDir, reflectDir));
     float spec = pow(vr, max(expVal, 1.0));
 
     return spec * color * intenSpec;
@@ -84,7 +86,8 @@ float3 DoSpecularSpot(float3 pos, float3 n, ShaderLight light, float strength, f
     float strengthUsed = lerp(1.0, strength, m);
     float expVal = max((strengthUsed * SPEC_FACTOR) * expMul, 1.0);
 	
-    float vr = saturate(dot(CamDirectionWS.xyz, reflectDir));
+    float3 viewDir = normalize(pos - CamPositionWS.xyz);
+    float vr = saturate(dot(viewDir, reflectDir));
     float spec = pow(vr, max(expVal, 1.0));
 	
     float cosine = dot(-lightDir, light.Direction.xyz);
@@ -115,8 +118,8 @@ float3 DoShadowLight(float3 pos, float3 normal, ShaderLight light)
     float attenuation = saturate((light.Out - distance) / (light.Out - light.In));
     float d = saturate(dot(normal, lightDir));
 
-    float absolute = light.Color.xyz * light.Intensity * attenuation;
-    float directional = absolute * d;
+    float3 absolute = light.Color.xyz * light.Intensity * attenuation;
+    float3 directional = absolute * d;
 
     return saturate((absolute * 0.33f) + (directional * 0.66f)) * 2.0f;
 }
@@ -149,7 +152,7 @@ void DoPointAndSpotLight(float3 pos, float3 normal, ShaderLight light, float spe
     pointOutput = saturate(light.Color.xyz * light.Intensity * distanceAttenuation * d);
     spotOutput  = saturate(light.Color.xyz * light.Intensity * angleAttenuation * distanceAttenuation * d);
 	
-    pointOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
+    pointOutput += DoSpecularPoint(pos, normal, light, 0.0f, specularIntensity, roughness);
     spotOutput += DoSpecularSpot(pos, normal, light, 0.0f, specularIntensity, roughness);
 }
 
@@ -382,7 +385,7 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 		{
 			float isSun = step(0.5f, float(lights[i].Type == LT_SUN));
 			diffuse += isSun * DoDirectionalLight(pos, normal, lights[i]);
-            spec += isSun * DoSpecularSun(normal, lights[i], sheen, specular, roughness);
+            spec += isSun * DoSpecularSun(pos, normal, lights[i], sheen, specular, roughness);
         }
 
 		if (lightTypeMask & LT_MASK_POINT)

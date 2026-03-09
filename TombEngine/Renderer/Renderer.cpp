@@ -181,6 +181,10 @@ namespace TEN::Renderer
 			samplerState = _shadowSampler.Get();
 			break;
 
+		case SamplerStateRegister::CSMShadowMap:
+			samplerState = _shadowSampler.Get();
+			break;
+
 		default:
 			return;
 		}
@@ -216,6 +220,10 @@ namespace TEN::Renderer
 			break;
 
 		case SamplerStateRegister::ShadowMap:
+			samplerState = _shadowSampler.Get();
+			break;
+
+		case SamplerStateRegister::CSMShadowMap:
 			samplerState = _shadowSampler.Get();
 			break;
 

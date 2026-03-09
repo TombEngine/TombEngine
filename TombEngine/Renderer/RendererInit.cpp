@@ -72,6 +72,7 @@ namespace TEN::Renderer
 		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
 		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
+		_cbSunLight = CreateConstantBuffer<CSunLightBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
@@ -487,6 +488,7 @@ namespace TEN::Renderer
 		_postProcessRenderTarget[1] = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_dumpScreenRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_shadowMap = Texture2DArray(_device.Get(), g_Configuration.ShadowMapSize, 6, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		_csmShadowMap = Texture2DArray(_device.Get(), 2048, NUM_CSM_CASCADES, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		_depthRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R32_FLOAT, false, DXGI_FORMAT_UNKNOWN);
 		_normalsAndMaterialIndexRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
 		_emissiveAndRoughnessRenderTarget = RenderTarget2D(_device.Get(), w, h, DXGI_FORMAT_R8G8B8A8_UNORM, false, DXGI_FORMAT_UNKNOWN);
@@ -518,6 +520,13 @@ namespace TEN::Renderer
 		_shadowMapViewport.Height = g_Configuration.ShadowMapSize;
 		_shadowMapViewport.MinDepth = 0.0f;
 		_shadowMapViewport.MaxDepth = 1.0f;
+
+		_csmShadowMapViewport.TopLeftX = 0;
+		_csmShadowMapViewport.TopLeftY = 0;
+		_csmShadowMapViewport.Width = 2048;
+		_csmShadowMapViewport.Height = 2048;
+		_csmShadowMapViewport.MinDepth = 0.0f;
+		_csmShadowMapViewport.MaxDepth = 1.0f;
 
 		_viewportToolkit = Viewport(_viewport.TopLeftX, _viewport.TopLeftY, _viewport.Width, _viewport.Height,
 			_viewport.MinDepth, _viewport.MaxDepth);

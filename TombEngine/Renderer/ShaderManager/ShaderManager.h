@@ -23,6 +23,7 @@ namespace TEN::Renderer::Utils
 		Inventory,
 		FullScreenQuad,
 		ShadowMap,
+		CSMShadowMap,
 
 		// HUD
 

@@ -1,4 +1,5 @@
 #include "./Math.hlsli"
+// v2 - CSM sun shadow support
 #include "./CBCamera.hlsli"
 #include "./CBInstancedStatics.hlsli"
 #include "./ShaderLight.hlsli"
@@ -119,6 +120,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 	color = DoBlobShadows(input.WorldPosition, color);
+	color = DoSunShadow(input.WorldPosition, normal, color);
 
 	output.Color = float4(color * occlusion, tex.w);
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));

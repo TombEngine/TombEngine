@@ -88,7 +88,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
 
     float3 lighting = DoDirectionalLight(pos, normal, l);
-    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);;
+    lighting += DoSpecularSun(pos, normal, l, input.Sheen, specular, roughness);
     lighting += emissive;
     
      // Emissive material

@@ -107,6 +107,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::FullScreenQuad, "FullScreenQuad", "", ShaderType::PixelAndVertex);
 
 		Load(Shader::ShadowMap, "ShadowMap", "", ShaderType::PixelAndVertex, shadowMap);
+		Load(Shader::CSMShadowMap, "CSMShadowMap", "", ShaderType::PixelAndVertex);
 
 		Load(Shader::Hud, "HUD", "", ShaderType::Vertex);
 		Load(Shader::HudColor, "HUD", "ColoredHUD", ShaderType::Pixel);
@@ -195,11 +196,22 @@ namespace TEN::Renderer::Utils
 				}
 			}
 
-			// Check modification dates of source and compiled files.
+			// Check modification dates of source, includes, and compiled files.
 			if (!forceRecompile && std::filesystem::exists(csoFileName))
 			{
 				auto csoTime = std::filesystem::last_write_time(csoFileName);
 				auto srcTime = std::filesystem::last_write_time(srcFileNameWithExtension);
+
+				// Also check all .hlsli include files for changes.
+				for (auto& entry : std::filesystem::directory_iterator(shaderPath))
+				{
+					if (entry.is_regular_file() && entry.path().extension() == L".hlsli")
+					{
+						auto includeTime = entry.last_write_time();
+						if (includeTime > srcTime)
+							srcTime = includeTime;
+					}
+				}
 
 				// Load compiled shader if it exists and is up-to-date.
 				if (srcTime < csoTime)

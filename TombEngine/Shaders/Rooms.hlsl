@@ -1,3 +1,4 @@
+// v2 - CSM sun shadow support
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"
@@ -120,6 +121,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
 	lighting = DoBlobShadows(input.WorldPosition, lighting);
+	lighting = DoSunShadow(input.WorldPosition, normal, lighting);
 
 	bool onlyPointLights = (NumRoomLights & ~LT_MASK) == LT_MASK_POINT;
 	int numLights = NumRoomLights & LT_MASK;

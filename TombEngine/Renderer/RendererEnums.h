@@ -199,7 +199,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	CSMShadowMap = 14
 };
 
 enum class SamplerStateRegister
@@ -210,7 +211,8 @@ enum class SamplerStateRegister
 	LinearClamp = 3,
 	AnisotropicWrap = 4,
 	AnisotropicClamp = 5,
-	ShadowMap = 6
+	ShadowMap = 6,
+	CSMShadowMap = 7
 };
 
 enum class ConstantBufferRegister
@@ -227,7 +229,8 @@ enum class ConstantBufferRegister
 	Hud = 10,
 	HudBar = 11,
 	Blending = 12,
-	InstancedSprites = 13
+	InstancedSprites = 13,
+	SunLight = 9
 };
 
 enum class AlphaTestMode
