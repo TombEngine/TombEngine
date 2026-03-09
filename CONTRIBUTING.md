@@ -394,6 +394,165 @@ if (portalRoomNumber != NO_VALUE &&
 }
 ```
 
+## Cross-Platform C++ Compliance
+
+TombEngine targets **Windows (MSVC)**, **Linux (GCC/G++)**, and **macOS (Clang)**. The codebase must compile cleanly on all three compilers. MSVC is notably lenient and accepts many non-standard constructs that GCC and Clang reject. Every contributor **must** write strictly ISO C++17-compliant code.
+
+Below is a catalogue of MSVC-specific patterns that have caused real build failures on GCC. **Do not use any of them.**
+
+### Non-Standard Types and Constants
+
+| MSVC-Only | Standard Replacement | Example |
+|-----------|---------------------|---------|
+| `byte` | `unsigned char` | `unsigned char r = color.GetR();` |
+| `unsigned __int64` | `unsigned long long` or `uint64_t` | `unsigned long long Options;` |
+| `MAXINT` | `INT_MAX` (`<climits>`) | `DoDamage(item, INT_MAX);` |
+
+### Non-Standard Language Extensions
+
+* **`std::exception` with a string** — MSVC accepts `throw std::exception("message")`. The standard only allows a default constructor. Use `std::runtime_error` instead:
+  ```cpp
+  // Wrong (MSVC extension):
+  throw std::exception("Something failed");
+
+  // Correct:
+  throw std::runtime_error("Something failed");
+  ```
+
+* **`abstract` keyword in class declarations** — MSVC accepts `class Foo abstract { ... }`. This is not standard C++. Simply remove it; the pure virtual functions already make the class abstract:
+  ```cpp
+  // Wrong:
+  class AnimCommand abstract { ... };
+
+  // Correct:
+  class AnimCommand { ... };
+  ```
+
+* **`va_list` brace initialization** — GCC rejects `va_list args{};` because `va_list` may be an array type. Use plain declaration:
+  ```cpp
+  // Wrong:
+  auto args = va_list{};
+
+  // Correct:
+  va_list args;
+  va_start(args, msg);
+  ```
+
+* **`static const auto` for integral constants** — GCC enforces stricter ODR rules. Use `static constexpr` with an explicit type:
+  ```cpp
+  // Wrong:
+  static const auto MAX_COUNT = 6000;
+
+  // Correct:
+  static constexpr int MAX_COUNT = 6000;
+  ```
+
+### Template and Name Lookup
+
+* **Missing `typename` for dependent types** — GCC enforces two-phase name lookup. Use `typename` when referring to a type that depends on a template parameter:
+  ```cpp
+  // Wrong (MSVC assumes type):
+  return std::get<R::IdentifierType>(map.at(name));
+
+  // Correct:
+  return std::get<typename R::IdentifierType>(map.at(name));
+  ```
+
+* **Member names shadowing type names** — GCC's stricter lookup causes ambiguities when a member has the same name as its type. Rename the member or the type:
+  ```cpp
+  // Problematic:
+  struct Info { CollisionType CollType; }; // "CollType" shadows type name
+
+  // Renamed to avoid ambiguity:
+  struct Info { CollisionType Type; };
+  ```
+
+* **Enum forward declarations** — GCC requires the underlying type in forward declarations:
+  ```cpp
+  // Wrong:
+  enum class RoomEnvFlags;
+
+  // Correct:
+  enum class RoomEnvFlags : unsigned int;
+  ```
+
+### Reference Semantics
+
+* **Taking address of temporaries** — MSVC silently allows binding a pointer/reference to a temporary. GCC rejects this as UB. Always assign the temporary to a local variable first:
+  ```cpp
+  // Wrong (temporary destroyed before use):
+  SoundEffect(SFX_WADE, &Pose(item->Pose.Position));
+
+  // Correct:
+  auto wadePose = Pose(item->Pose.Position);
+  SoundEffect(SFX_WADE, &wadePose);
+  ```
+
+### Narrowing Conversions
+
+GCC catches implicit narrowing more aggressively. Always cast explicitly:
+```cpp
+// Wrong (double to float):
+Life = std::max(Life, round(LIFE_BUFFER * FPS));
+
+// Correct:
+Life = std::max(Life, (float)round(LIFE_BUFFER * FPS));
+```
+
+### File I/O and Platform APIs
+
+When using platform-specific APIs, always provide a cross-platform alternative behind preprocessor guards:
+
+```cpp
+#ifdef _MSC_VER
+    auto pos = _ftelli64(filePtr);
+#else
+    auto pos = ftello64(filePtr);
+#endif
+```
+
+Similarly, `MultiByteToWideChar` (Windows API), `_lock_file` / `_unlock_file`, etc., must be guarded. Prefer standard C++ alternatives (`std::wstring_convert`, `std::filesystem::path`) where available.
+
+### `std::ifstream` with `std::wstring`
+
+MSVC accepts `std::ifstream(wstringPath)` directly. GCC requires a `std::filesystem::path`:
+```cpp
+// Wrong (MSVC-only):
+std::ifstream file(wstringPath);
+
+// Correct:
+std::ifstream file(std::filesystem::path(wstringPath));
+```
+
+### Include Paths
+
+Never use backslash `\` in `#include` directives. Linux paths are case-sensitive and use forward slashes only:
+```cpp
+// Wrong:
+#include "Game\effects\simple_particle.h"
+
+// Correct:
+#include "Game/effects/simple_particle.h"
+```
+
+### Algorithm Stability
+
+`std::sort` is **not** guaranteed to preserve the relative order of equal elements. On MSVC it may happen to be stable; on GCC it is not. If ordering among equal keys matters, use `std::stable_sort`.
+
+### Quick Checklist
+
+Before submitting a PR, verify that your code does not contain:
+
+- [ ] `byte` / `__int64` / `MAXINT` / `abstract`
+- [ ] `throw std::exception("...")`
+- [ ] `va_list args{}`
+- [ ] `static const auto` for integral constants
+- [ ] Missing `typename` on dependent types
+- [ ] Address-of temporaries (`&Foo(...)`)
+- [ ] Backslash `\` in include paths
+- [ ] Unguarded platform-specific APIs (`_ftelli64`, `MultiByteToWideChar`, etc.)
+- [ ] `std::sort` where order of equal elements matters
+
 ## Branches and pull requests
 
 Make sure that epic branches (tens or hundreds of files changed due to renames, namespace wrappings, etc) **are focused on a single feature or task**. Don't jump in to others epic branches with another round of your epic changes. It masks bugs and makes review process very cumbersome.

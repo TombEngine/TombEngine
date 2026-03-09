@@ -1,15 +1,86 @@
-# Building TombEngine
+# Cross-Platform Support
 
-This document explains how to build TombEngine from source on Windows and Linux.
+This document explains how to build TombEngine from source on Windows, Linux, and macOS, and covers platform-specific considerations.
+
+## Build System Overview
+
+The primary build system is **CMake** (3.21+). The repository also contains a Visual Studio solution (`TombEngine.sln`) for direct use on Windows, but CMake is the canonical source-of-truth for file lists, compiler flags, and dependencies.
+
+### CMake Presets
+
+The repository includes a `CMakePresets.json` with ready-to-use configurations:
+
+| Preset | Platform | Generator | Compiler |
+|--------|----------|-----------|----------|
+| `win-x64-msvc` | Windows | Visual Studio 17 2022 | MSVC |
+| `win-x64-ninja` | Windows | Ninja Multi-Config | MSVC |
+| `linux-x64-gcc` | Linux | Ninja Multi-Config | GCC |
+| `linux-x64-clang` | Linux | Ninja Multi-Config | Clang |
+| `macos-clang` | macOS | Ninja Multi-Config | Clang |
+
+Usage:
+
+```bash
+# Configure using a preset
+cmake --preset linux-x64-gcc
+
+# Build (Debug or Release)
+cmake --build --preset linux-debug
+cmake --build --preset linux-release
+```
+
+You can also configure manually without presets (see platform-specific sections below).
+
+### Source File Synchronization (`sync_vcxproj.py`)
+
+CMake and the Visual Studio `.vcxproj` share the same file list through `TombEngine/Sources.cmake`. A Python script keeps them in sync:
+
+```bash
+# Generate Sources.cmake from the vcxproj (after adding files in Visual Studio)
+python Tools/sync_vcxproj.py --from-vcxproj
+
+# Update vcxproj from Sources.cmake (after adding files in CMake)
+python Tools/sync_vcxproj.py --to-vcxproj
+
+# Verify sync (useful in CI)
+python Tools/sync_vcxproj.py --check
+```
+
+**Python prerequisites:** This script requires Python 3.6+.
+
+| Platform | Installation |
+|----------|-------------|
+| **Windows** | Download from [python.org](https://www.python.org/downloads/) or `winget install Python.Python.3` |
+| **Linux** | `sudo apt install python3` (Ubuntu/Debian), `sudo dnf install python3` (Fedora), `sudo pacman -S python` (Arch) |
+| **macOS** | `brew install python3` or use the system Python 3 (Xcode Command Line Tools) |
+
+There is also a `check_sources.py` script that validates all files listed in `Sources.cmake` exist on disk and reports unlisted files:
+
+```bash
+python check_sources.py
+```
+
+### Third-Party Libraries
+
+| Library | Windows | Linux / macOS |
+|---------|---------|---------------|
+| SDL3 | Prebuilt (`Libs/`) | FetchContent (GitHub release) |
+| spdlog | Prebuilt (`Libs/`) | FetchContent (v1.10.0, built from source) |
+| LZ4 | Prebuilt (`Libs/`) | FetchContent (v1.10.0) |
+| Lua 5.3 | Prebuilt (`Libs/`) | FetchContent (lua.org, built from source) |
+| BASS | Prebuilt (`Libs/`) | Prebuilt (`Libs/bass/linux/` or `macos/`) |
+| VLC | Prebuilt (`Libs/`) | Auto-downloaded from Ubuntu packages (see below) |
+
+---
 
 ## Windows
 
 ### Prerequisites
 
 - **Visual Studio 2022** (v143 toolset) with the "Desktop development with C++" workload
-- Or **CMake 3.20+** with the Visual Studio generator
+- Or **CMake 3.21+** with the Visual Studio or Ninja generator
 
-All third-party libraries (BASS, Lua, LZ4, SDL3, spdlog, VLC) are vendored in the `Libs/` directory as prebuilt x64 binaries. No additional setup is required.
+All third-party libraries are vendored in the `Libs/` directory as prebuilt x64 binaries. No additional setup is required.
 
 ### Building with Visual Studio
 
@@ -21,6 +92,11 @@ All third-party libraries (BASS, Lua, LZ4, SDL3, spdlog, VLC) are vendored in th
 ### Building with CMake
 
 ```bash
+# Using a preset
+cmake --preset win-x64-msvc
+cmake --build --preset win-x64-release
+
+# Or manually
 cmake -B Build/win-x64 -A x64
 cmake --build Build/win-x64 --config Release
 ```
@@ -48,7 +124,7 @@ Install the required build tools.
 sudo apt update
 sudo apt install -y \
     build-essential cmake ninja-build \
-    libgl-dev wget zstd
+    libgl-dev wget zstd python3
 ```
 
 **Fedora / RHEL:**
@@ -56,7 +132,7 @@ sudo apt install -y \
 ```bash
 sudo dnf install -y \
     gcc-c++ cmake ninja-build \
-    mesa-libGL-devel wget zstd
+    mesa-libGL-devel wget zstd python3
 ```
 
 **Arch Linux:**
@@ -64,7 +140,7 @@ sudo dnf install -y \
 ```bash
 sudo pacman -S --needed \
     base-devel cmake ninja \
-    mesa wget zstd
+    mesa wget zstd python
 ```
 
 > **Note:** SDL3, spdlog, Lua 5.3, and LZ4 are automatically fetched and built from source via CMake FetchContent. No system `-dev` packages are needed for these libraries.
@@ -99,10 +175,12 @@ The script downloads from Ubuntu 22.04 (jammy) packages and extracts:
 ### Building
 
 ```bash
-# Configure (Release)
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+# Using a preset
+cmake --preset linux-x64-gcc
+cmake --build --preset linux-release
 
-# Build
+# Or manually
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
@@ -350,4 +428,30 @@ The engine will detect the missing audio device and disable sound automatically,
 
 ## macOS
 
-macOS support is experimental. The build system is prepared (CMakeLists.txt handles macOS paths for BASS and VLC libraries), but has not been fully tested. Contributions welcome.
+macOS support is **experimental**. The build system is prepared, but it has not been fully tested.
+
+### Prerequisites
+
+```bash
+# Install Xcode Command Line Tools (provides Clang, make, etc.)
+xcode-select --install
+
+# Install CMake and Ninja via Homebrew
+brew install cmake ninja python3
+```
+
+### Building
+
+```bash
+# Using a preset
+cmake --preset macos-clang
+cmake --build build/macos --config Release
+
+# Or manually
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+Third-party libraries are handled the same way as Linux: SDL3, spdlog, LZ4, and Lua are fetched via FetchContent. BASS and VLC are prebuilt in `Libs/bass/macos/` and `Libs/vlc/macos/` respectively (architecture-specific: `x86_64` and `arm64`).
+
+Contributions to improve macOS support are welcome.

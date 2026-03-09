@@ -12,6 +12,7 @@ set(TEN_ROOT_HEADERS
     resource.h
     targetver.h
     Types.h
+    Version.h
 )
 
 # Game sources

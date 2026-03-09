@@ -367,6 +367,18 @@ namespace TEN::Renderer::Native::OpenGL
 	{
 		_screenWidth = width;
 		_screenHeight = height;
+
+		// Resize the SDL window to match the new render resolution.
+		// DX11 does this implicitly via DXGI's ResizeTarget().
+		auto* window = g_Platform->GetSDL3Window();
+		if (window)
+		{
+			float scale = g_Platform->DetectDisplayScale();
+			if (scale > 1.0f)
+				SDL_SetWindowSize(window, (int)(width / scale), (int)(height / scale));
+			else
+				SDL_SetWindowSize(window, width, height);
+		}
 	}
 
 	void GLGraphicsDevice::Present()
