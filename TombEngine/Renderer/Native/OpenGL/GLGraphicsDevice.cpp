@@ -367,7 +367,9 @@ namespace TEN::Renderer::Native::OpenGL
 			// Disable scissor test — it clips the blit destination.
 			glDisable(GL_SCISSOR_TEST);
 
-			// Query actual drawable size in pixels (may differ from logical window size due to HiDPI scaling).
+			// Query actual GL drawable size. On HiDPI (WSLg, macOS Retina) the drawable
+			// may be larger than the window (e.g. 3200x1800 for a 1600x900 window at 2x).
+			// We must blit to the FULL drawable to fill the screen.
 			int drawW = _screenWidth;
 			int drawH = _screenHeight;
 			auto* window = g_Platform->GetSDL3Window();

@@ -439,7 +439,7 @@ namespace TEN::Renderer
 		{
 			auto* window = g_Platform->GetSDL3Window();
 			int newW = 0, newH = 0;
-			SDL_GetWindowSizeInPixels(window, &newW, &newH);
+			SDL_GetWindowSize(window, &newW, &newH);
 
 			if (newW > 0 && newH > 0)
 				ChangeScreenResolution(newW, newH, _isWindowed, false);
@@ -470,7 +470,17 @@ namespace TEN::Renderer
 			SDL_SetWindowAlwaysOnTop(window, false);
 			SDL_SetWindowBordered(window, true);
 
-			SDL_SetWindowSize(window, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+			// Use current window size rather than render resolution, because on X11/HiDPI
+			// the window may be smaller than the render resolution (e.g. 800x450 window
+			// with 1600x900 render resolution at 2x display scale).
+			int winW = 0, winH = 0;
+			SDL_GetWindowSize(window, &winW, &winH);
+			if (winW <= 0 || winH <= 0)
+			{
+				winW = _graphicsDevice->GetScreenWidth();
+				winH = _graphicsDevice->GetScreenHeight();
+			}
+			SDL_SetWindowSize(window, winW, winH);
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
 			SDL_RestoreWindow(window);

@@ -42,6 +42,17 @@ namespace TEN::Platform
 		// Platform-specific audio codec workarounds.
 		virtual void InitialiseAudioCodecs() = 0;
 		virtual void ReleaseAudioCodecs() = 0;
+
+		// Returns the OS display scale factor (e.g. 2.0 for 200% HiDPI).
+		// Used to shrink the window so the compositor's upscaling produces
+		// the intended size on screen.  Returns 1.0 when no scaling is needed.
+		virtual float DetectDisplayScale() = 0;
+
+		// Returns the native desktop resolution (physical pixels).
+		virtual Vector2i GetScreenResolution() = 0;
+
+		// Returns all supported screen resolutions for the primary display.
+		virtual std::vector<Vector2i> GetAllSupportedScreenResolutions() = 0;
 	};
 
 	std::unique_ptr<ISubsystem> CreatePlatformSubsystem();

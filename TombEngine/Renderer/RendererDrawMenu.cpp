@@ -1531,7 +1531,7 @@ namespace TEN::Renderer
 
 		_isLocked = true;
 	}
-
+	
 	void Renderer::DrawDebugRenderTargets(RenderView& view)
 	{
 		if (_debugPage != RendererDebugPage::RendererStats)

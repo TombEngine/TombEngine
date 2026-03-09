@@ -10,6 +10,7 @@ layout(binding = 2) uniform sampler2D NoiseTexture;
 
 in VS_OUT {
     vec2 UV;
+    vec4 Color;
 } fs_in;
 
 layout(location = 0) out float FragColor;

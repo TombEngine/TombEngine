@@ -57,20 +57,7 @@ bool ArgEquals(const char* incomingArg, const std::string& name)
 
 Vector2i GetScreenResolution()
 {
-	auto screenRes = Vector2i::Zero;
-
-	auto display = SDL_GetPrimaryDisplay();
-	if (display == 0)
-		return screenRes;
-
-	auto mode = SDL_GetCurrentDisplayMode(display);
-	if (mode == nullptr)
-		return screenRes;
-
-	screenRes.x = mode->w;
-	screenRes.y = mode->h;
-
-	return screenRes;
+	return g_Platform->GetScreenResolution();
 }
 
 int GetCurrentScreenRefreshRate()
@@ -91,87 +78,7 @@ int GetCurrentScreenRefreshRate()
 
 std::vector<Vector2i> GetAllSupportedScreenResolutions()
 {
-	auto screenResolutions = std::vector<Vector2i>{};
-
-	auto display = SDL_GetPrimaryDisplay();
-	if (display == 0)
-		return screenResolutions;
-
-	// Helper to add a resolution if not already in the list.
-	auto addUnique = [&screenResolutions](int w, int h)
-	{
-		for (const auto& res : screenResolutions)
-		{
-			if (res.x == w && res.y == h)
-				return;
-		}
-		screenResolutions.push_back(Vector2i(w, h));
-	};
-
-	int count = 0;
-	auto modes = SDL_GetFullscreenDisplayModes(display, &count);
-	if (modes != nullptr && count > 0)
-	{
-		screenResolutions.reserve(count);
-
-		for (int i = 0; i < count; ++i)
-		{
-			const auto* mode = modes[i];
-			if (mode != nullptr)
-				addUnique(mode->w, mode->h);
-		}
-
-		SDL_free(modes);
-	}
-
-	// SDL may return only the native resolution on some platforms/drivers
-	// (e.g. Wayland, some X11 setups, OpenGL on Windows).
-	// Always supplement with common resolutions that fit within the desktop size.
-	auto* desktopMode = SDL_GetDesktopDisplayMode(display);
-	if (desktopMode != nullptr)
-	{
-		int maxW = desktopMode->w;
-		int maxH = desktopMode->h;
-
-		static const Vector2i commonResolutions[] =
-		{
-			{ 1024,  768 },
-			{ 1152,  864 },
-			{ 1280,  720 },
-			{ 1280,  800 },
-			{ 1280, 1024 },
-			{ 1360,  768 },
-			{ 1366,  768 },
-			{ 1440,  900 },
-			{ 1600,  900 },
-			{ 1600, 1200 },
-			{ 1680, 1050 },
-			{ 1920, 1080 },
-			{ 1920, 1200 },
-			{ 2560, 1440 },
-			{ 2560, 1600 },
-			{ 3440, 1440 },
-			{ 3840, 2160 }
-		};
-
-		for (const auto& res : commonResolutions)
-		{
-			if (res.x <= maxW && res.y <= maxH)
-				addUnique(res.x, res.y);
-		}
-
-		// Always include native desktop resolution.
-		addUnique(maxW, maxH);
-	}
-
-	std::sort(
-		screenResolutions.begin(), screenResolutions.end(),
-		[](const Vector2i& screenRes0, const Vector2i& screenRes1)
-		{
-			return ((screenRes0.x == screenRes1.x) ? (screenRes0.y < screenRes1.y) : (screenRes0.x < screenRes1.x));
-		});
-
-	return screenResolutions;
+	return g_Platform->GetAllSupportedScreenResolutions();
 }
 
 int SDLCALL ConsoleInput(void*)
@@ -283,10 +190,17 @@ int main(int argc, char* argv[])
 	g_Platform->CheckPrerequisites();
 
 	// Initialize SDL3.
-	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
 	{
 		// Handle error.
 		return 1;
+	}
+
+	// Initialize audio subsystem separately; continue without sound if no device is available.
+	if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
+	{
+		TENLog(std::string("SDL audio initialization failed: ") + SDL_GetError() + ". Disabling sound.", LogLevel::Warning);
+		g_Configuration.EnableSound = false;
 	}
 
 	// Process command line arguments.
@@ -434,6 +348,18 @@ int main(int argc, char* argv[])
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 
+	// Detect display scale to compensate for OS-level DPI scaling.
+	// Platform subsystem handles detection per-platform (env vars, registry, etc.).
+	float displayScale = g_Platform->DetectDisplayScale();
+	if (displayScale > 1.0f)
+	{
+		width = (int)(width / displayScale);
+		height = (int)(height / displayScale);
+		TENLog("HiDPI detected (scale=" + std::to_string(displayScale)
+			+ "): adjusting window from " + std::to_string(g_Configuration.ScreenWidth) + "x" + std::to_string(g_Configuration.ScreenHeight)
+			+ " to " + std::to_string(width) + "x" + std::to_string(height), LogLevel::Info);
+	}
+
 	auto sdlWindow = SDL_CreateWindow(
 		g_GameFlow->GetString(STRING_WINDOW_TITLE),
 		width,
@@ -463,18 +389,19 @@ int main(int argc, char* argv[])
 		// Initialize audio (should be called prior to initializing renderer, because video handler needs it).
 		Sound_Init(GameDirectory);
 
-		// Initialize renderer. Use actual pixel dimensions (may differ from logical size due to HiDPI scaling).
+		// Use the configured resolution for rendering, regardless of window/drawable size.
+		// The Present() blit will scale from render resolution to the actual GL drawable.
 		int renderW = g_Configuration.ScreenWidth;
 		int renderH = g_Configuration.ScreenHeight;
-		SDL_GetWindowSizeInPixels(sdlWindow, &renderW, &renderH);
 
-		int logicalW = 0, logicalH = 0;
-		SDL_GetWindowSize(sdlWindow, &logicalW, &logicalH);
-		float displayScale = SDL_GetWindowDisplayScale(sdlWindow);
-		TENLog("INIT: config=" + std::to_string(g_Configuration.ScreenWidth) + "x" + std::to_string(g_Configuration.ScreenHeight)
-			+ " logical=" + std::to_string(logicalW) + "x" + std::to_string(logicalH)
-			+ " pixels=" + std::to_string(renderW) + "x" + std::to_string(renderH)
-			+ " displayScale=" + std::to_string(displayScale), LogLevel::Warning);
+		int windowW = 0, windowH = 0, pixelW = 0, pixelH = 0;
+		SDL_GetWindowSize(sdlWindow, &windowW, &windowH);
+		SDL_GetWindowSizeInPixels(sdlWindow, &pixelW, &pixelH);
+		const char* videoDriver = SDL_GetCurrentVideoDriver();
+		TENLog("INIT: videoDriver=" + std::string(videoDriver ? videoDriver : "null")
+			+ " render=" + std::to_string(renderW) + "x" + std::to_string(renderH)
+			+ " window=" + std::to_string(windowW) + "x" + std::to_string(windowH)
+			+ " pixels=" + std::to_string(pixelW) + "x" + std::to_string(pixelH), LogLevel::Info);
 
 		g_Renderer.Initialize(GameDirectory, renderW, renderH, g_Configuration.EnableWindowedMode);
 

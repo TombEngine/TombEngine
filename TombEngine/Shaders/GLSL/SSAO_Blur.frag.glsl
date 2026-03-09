@@ -12,6 +12,7 @@ layout(binding = 9) uniform sampler2D SSAOTexture;
 
 in VS_OUT {
     vec2 UV;
+    vec4 Color;
 } fs_in;
 
 layout(location = 0) out float FragColor;

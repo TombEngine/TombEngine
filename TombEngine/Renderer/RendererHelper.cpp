@@ -366,8 +366,10 @@ namespace TEN::Renderer
 		if (farView < MIN_FAR_VIEW)
 			farView = DEFAULT_FAR_VIEW;
 
-		_currentGameCamera = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
-		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		int w = _graphicsDevice->GetScreenWidth();
+		int h = _graphicsDevice->GetScreenHeight();
+		_currentGameCamera = RenderView(cam, cam->Roll, cam->Fov, 32, farView, w, h);
+		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, w, h);
 	}
 
 	bool Renderer::SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius)

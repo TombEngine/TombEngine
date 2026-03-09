@@ -412,6 +412,90 @@ namespace TEN::Platform
 		}
 	}
 
+	float WindowsSubsystem::DetectDisplayScale()
+	{
+		// SDL handles HiDPI correctly on Windows.
+		return 1.0f;
+	}
+
+	Vector2i WindowsSubsystem::GetScreenResolution()
+	{
+		auto display = SDL_GetPrimaryDisplay();
+		if (display == 0)
+			return Vector2i::Zero;
+
+		auto* mode = SDL_GetCurrentDisplayMode(display);
+		if (mode == nullptr)
+			return Vector2i::Zero;
+
+		return Vector2i(mode->w, mode->h);
+	}
+
+	std::vector<Vector2i> WindowsSubsystem::GetAllSupportedScreenResolutions()
+	{
+		auto screenResolutions = std::vector<Vector2i>{};
+
+		auto display = SDL_GetPrimaryDisplay();
+		if (display == 0)
+			return screenResolutions;
+
+		auto addUnique = [&screenResolutions](int w, int h)
+		{
+			for (const auto& res : screenResolutions)
+			{
+				if (res.x == w && res.y == h)
+					return;
+			}
+			screenResolutions.push_back(Vector2i(w, h));
+		};
+
+		int count = 0;
+		auto modes = SDL_GetFullscreenDisplayModes(display, &count);
+		if (modes != nullptr && count > 0)
+		{
+			screenResolutions.reserve(count);
+			for (int i = 0; i < count; ++i)
+			{
+				const auto* mode = modes[i];
+				if (mode != nullptr)
+					addUnique(mode->w, mode->h);
+			}
+			SDL_free(modes);
+		}
+
+		auto* desktopMode = SDL_GetDesktopDisplayMode(display);
+		if (desktopMode != nullptr)
+		{
+			int maxW = desktopMode->w;
+			int maxH = desktopMode->h;
+
+			static const Vector2i commonResolutions[] =
+			{
+				{ 1024,  768 }, { 1152,  864 }, { 1280,  720 }, { 1280,  800 },
+				{ 1280, 1024 }, { 1360,  768 }, { 1366,  768 }, { 1440,  900 },
+				{ 1600,  900 }, { 1600, 1200 }, { 1680, 1050 }, { 1920, 1080 },
+				{ 1920, 1200 }, { 2560, 1440 }, { 2560, 1600 }, { 3440, 1440 },
+				{ 3840, 2160 }
+			};
+
+			for (const auto& res : commonResolutions)
+			{
+				if (res.x <= maxW && res.y <= maxH)
+					addUnique(res.x, res.y);
+			}
+
+			addUnique(maxW, maxH);
+		}
+
+		std::sort(screenResolutions.begin(), screenResolutions.end(),
+			[](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.x == b.x) ? (a.y < b.y) : (a.x < b.x);
+			});
+
+		return screenResolutions;
+	}
+
 	std::unique_ptr<ISubsystem> CreatePlatformSubsystem()
 	{
 		// On Windows, return concrete WindowsSubsystem.

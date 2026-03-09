@@ -40,6 +40,11 @@ namespace TEN::Platform
 
 		void InitialiseAudioCodecs() override;
 		void ReleaseAudioCodecs() override;
+
+		float DetectDisplayScale() override;
+
+		Vector2i GetScreenResolution() override;
+		std::vector<Vector2i> GetAllSupportedScreenResolutions() override;
 	};
 }
 

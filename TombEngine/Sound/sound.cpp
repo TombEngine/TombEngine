@@ -996,6 +996,10 @@ void Sound_Init(const std::string& gameDirectory)
 	FullAudioDirectory = gameDirectory + TRACKS_PATH;
 	EnumerateLegacyTracks();
 
+	// Sound was already disabled (e.g. SDL audio subsystem failed to initialize).
+	if (!g_Configuration.EnableSound)
+		return;
+
 	// List all found sound devices. First device is always a dummy null device 
 	// so if the list returns 1 element that means that not sound devices are installed 
 	// on the system.
