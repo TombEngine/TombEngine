@@ -15,6 +15,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -104,6 +105,10 @@ namespace TEN::Entities::Effects
 
 		if (active)
 		{
+			// Don't fade in active flames right at the level start.
+			if (SaveGame::Statistics.Level.TimeTaken.GetFrameCount() <= 1)
+				item->ItemFlags[3] = 0;
+
 			if (item->ItemFlags[3] > 0)
 			{
 				item->ItemFlags[3] -= 16;

@@ -665,7 +665,8 @@ namespace TEN::Gui
 				auto screenResolution = g_Configuration.SupportedScreenResolutions[CurrentSettings.SelectedScreenResolution];
 
 				bool screenResolutionChanged = CurrentSettings.Configuration.ScreenWidth != screenResolution.x ||
-					CurrentSettings.Configuration.ScreenHeight != screenResolution.y;
+					CurrentSettings.Configuration.ScreenHeight != screenResolution.y ||
+					CurrentSettings.Configuration.EnableWindowedMode != g_Configuration.EnableWindowedMode;
 
 				CurrentSettings.Configuration.ScreenWidth = screenResolution.x;
 				CurrentSettings.Configuration.ScreenHeight = screenResolution.y;
@@ -2073,6 +2074,12 @@ namespace TEN::Gui
 
 	void GuiController::UseItem(ItemInfo& item, int objectNumber)
 	{
+		if (!item.IsLara())
+		{
+			TENLog("Attempt to use inventory item with a non-player object.", LogLevel::Warning);
+			return;
+		}
+
 		auto& player = GetLaraInfo(item);
 
 		player.Inventory.OldBusy = false;

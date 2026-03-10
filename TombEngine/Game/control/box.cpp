@@ -1098,8 +1098,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		item->Pose.Orientation.x = 0;
 	}
 
-	// Update room number if creature moved to different room.
 	UpdateItemRoom(item->Index);
+
 	return true;
 }
 
@@ -2912,6 +2912,9 @@ Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
 	if (!sourceItem.IsCreature() || predictionFactor <= EPSILON)
+		return targetPos;
+
+	if (Objects[sourceItem.ObjectNumber].nonLot)
 		return targetPos;
 
 	float distance = Vector3i::Distance(targetPos, sourcePos);

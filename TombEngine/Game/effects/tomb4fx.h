@@ -315,7 +315,7 @@ void UpdateFireProgress();
 void ClearFires();
 void AddFire(int x, int y, int z, short roomNum, float size, short fade = 1);
 void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade = 1);
-void UpdateFireSparks();
+void UpdateFireSparks(bool recursive = false);
 int GetFreeSmokeSpark();
 void UpdateSmoke();
 void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, byte initial, LaraWeaponType weaponType, byte count);

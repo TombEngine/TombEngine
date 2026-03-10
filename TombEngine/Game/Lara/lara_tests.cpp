@@ -565,6 +565,8 @@ bool TestLaraValidHangPosition(ItemInfo* item, CollisionInfo* coll)
 
 CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAngle)
 {
+	constexpr int CORNER_TEST_OFFSET = 16;
+
 	auto* lara = GetLaraInfo(item);
 
 	// Lara isn't in stop state yet, bypass test
@@ -591,11 +593,10 @@ CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAng
 
 		// Store next position
 		item->Pose = cornerResult.RealPositionResult;
-		lara->Context.NextCornerPos.Position = Vector3i(
-			item->Pose.Position.x,
-			GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + 16, -(coll->Setup.Height + CLICK(0.5f))).GetFloorHeight() + abs(bounds.Y1),
-			item->Pose.Position.z
-		);
+
+		int nextVerticalPos = GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + CORNER_TEST_OFFSET, -(coll->Setup.Height + CORNER_TEST_OFFSET)).GetFloorHeight() + abs(bounds.Y1);
+
+		lara->Context.NextCornerPos.Position = Vector3i(item->Pose.Position.x, nextVerticalPos, item->Pose.Position.z);
 		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y;
 		lara->Control.MoveAngle = item->Pose.Orientation.y;
 

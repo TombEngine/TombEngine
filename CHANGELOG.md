@@ -11,6 +11,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
 * Added new debug page with memory usage statistics and more verbose logging for memory-related crashes.
+* Removed original limits for flyby camera and sequence count.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
@@ -18,7 +19,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed incorrect CLOCKWORK_BEETLE, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, COBRA, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
@@ -29,33 +30,42 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
+* Fixed OCB calculation for WINGED_MUMMY. 
+  [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
+* Fixed teleporting upwards after corner shimmy when another ledge is above.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
+* Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
 * Fixed incorrect super grenade projectile orientation.
 * Fixed ricochet sparks not being visible at longer distances.
+* Fixed blood particles not being visible for stationary enemies.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
-* Fixed crashes on certain GPUs with dynamic memory allocation.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
 * Fixed flickering pickup summary item count in high FPS mode.
 * Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
+* Fixed crashes on certain GPUs with dynamic memory allocation.
+* Fixed loading of level files bigger than 2 GB (only for 64-bit systems).
 
 ### Lua API changes
 * Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
-* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` method.
+* Added `View.DisplayItem` class that can be used to render 3D items in 2D space.
+* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` function.
 * Added `UI` section to `Flow.Settings` class with several options to customize main menu and system text.
-* Added `Inventory.Reset` function to reset inventory state to default.
+* Added several `Inventory` functions, including `Inventory.UseItem` and `Inventory.ResetToDefault`.
+* Added `Flow.GetGlobalGameTime` function.
 * Added `ambientOcclusion` parameter to `Flow.Settings.Graphics` to force-disable ambient occlusion option.
 * Added `killPoisonedEnemies` parameter to `Flow.Settings.Gameplay` to enable or disable killing enemies with poisoned ammo.
 * Added a safeguard against adding or removing callback functions within the same callback type.
-* Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
+* Added a safeguard for `Moveable:Enable` function called for already destroyed moveables.
+* Added `Moveable:HideInteractionHighlight` function.
 * Added `Strings.DisplayStringOption.VERTICAL_BOTTOM` flag.
-* Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
-* Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
+* Added optional type argument for inventory item and interaction type for `LaraObject:Interact` function.
+* Added optional type argument for interaction type for `Object:ShowInteractionHighlight` function.
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
 * Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.

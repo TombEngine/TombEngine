@@ -50,10 +50,9 @@ int LastSpotCamSequence;
 int LaraHealth;
 int LaraAir;
 int CurrentSpotcamSequence;
-SPOTCAM SpotCam[MAX_SPOTCAMS];
-int SpotCamRemap[MAX_SPOTCAMS];
-int CameraCnt[MAX_SPOTCAMS];
-int NumberSpotcams;
+std::vector<SPOTCAM> SpotCam;
+std::unordered_map<int, int> SpotCamRemap;
+std::vector<int> CameraCnt;
 
 bool CheckTrigger = false;
 bool UseSpotCam = false;
@@ -67,47 +66,41 @@ void ClearSpotCamSequences()
 	SpotcamDontDrawLara = false;
 	SpotcamOverlay = false;
 
-
-	for (int i = 0; i < MAX_SPOTCAMS; i++)
-		SpotCam[i] = {};
+	SpotCam.clear();
+	SpotCamRemap.clear();
+	CameraCnt.clear();
 }
 
 void InitializeSpotCamSequences(bool startFirstSequence)
 {
 	TrackCameraInit = false;
 
-	int n = NumberSpotcams;
-	int cc = 1;
+	CameraCnt.clear();
+	SpotCamRemap.clear();
 
-	if (n != 0)
+	if (SpotCam.empty())
+		return;
+
+	int currentSequence = SpotCam[0].sequence;
+	int count = 0;
+
+	for (const auto& cam : SpotCam)
 	{
-		int ce = 0;
-		int s = SpotCam[0].sequence;
-
-		if (cc < n)
+		if (cam.sequence != currentSequence)
 		{
-			for (n = 1; n < NumberSpotcams; n++)
-			{
-				// Same sequence.
-				if (SpotCam[n].sequence == s)
-					cc++;
-				// New sequence.
-				else
-				{
-					CameraCnt[ce] = cc;
-					cc = 1;
-					SpotCamRemap[s] = ce;
-					ce++;
-					s = SpotCam[n].sequence;
-				}
-			}
+			SpotCamRemap[currentSequence] = (int)CameraCnt.size();
+			CameraCnt.push_back(count);
+			currentSequence = cam.sequence;
+			count = 0;
 		}
 
-		CameraCnt[ce] = cc;
-		SpotCamRemap[s] = ce;
+		count++;
 	}
 
-	if (startFirstSequence)
+	SpotCamRemap[currentSequence] = (int)CameraCnt.size();
+	CameraCnt.push_back(count);
+
+	if (startFirstSequence && SpotCamRemap.count(0))
 	{
 		InitializeSpotCam(0);
 		UseSpotCam = true;
@@ -116,6 +109,12 @@ void InitializeSpotCamSequences(bool startFirstSequence)
 
 void InitializeSpotCam(short Sequence)
 {
+	if (SpotCam.empty() || SpotCamRemap.find(Sequence) == SpotCamRemap.end())
+	{
+		TENLog(fmt::format("Initializing flyby sequence {} failed, sequence not found.", Sequence), LogLevel::Warning);
+		return;
+	}
+
 	if (TrackCameraInit != 0 && LastSpotCamSequence == Sequence)
 	{
 		TrackCameraInit = false;
@@ -135,7 +134,7 @@ void InitializeSpotCam(short Sequence)
 
 	Lara.Inventory.IsBusy = 0;
 
-	CameraFade = -1;
+	CameraFade = NO_VALUE;
 	LastSpotCamSequence = Sequence;
 	TrackCameraInit = false;
 	SpotcamTimer = 0;
@@ -362,8 +361,13 @@ void CalculateSpotCameras()
 	int ly; // stack offset -48
 	int cn; // $s0
 
-
 	CAMERA_INFO backup;
+
+	if (SpotCam.empty() || FirstCamera >= (int)SpotCam.size())
+	{
+		UseSpotCam = false;
+		return;
+	}
 
 	if (Lara.Control.IsLocked)
 	{
@@ -848,7 +852,7 @@ Pose GetCameraTransform(int sequence, float alpha, bool loop)
 
 	alpha = std::clamp(alpha, 0.0f, 1.0f);
 
-	if (sequence < 0 || sequence >= MAX_SPOTCAMS)
+	if (sequence < 0 || SpotCamRemap.find(sequence) == SpotCamRemap.end())
 	{
 		TENLog("Wrong flyby sequence number provided for getting camera coordinates.", LogLevel::Warning);
 		return Pose::Zero;
