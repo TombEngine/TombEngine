@@ -6,7 +6,7 @@
 #define SHADOW_BLUR      (2.0f)
 
 #define CSM_NUM_CASCADES 3
-#define CSM_SHADOW_BLUR  1.0f
+#define CSM_SHADOW_BLUR  5.0f
 #define CSM_DEBUG_CASCADES 0  // Set to 1 to visualize cascades as colored bands
 
 struct Sphere
@@ -57,7 +57,7 @@ float2 TexOffset(int u, int v)
     return float2(u * 1.0f / ShadowMapSize, v * 1.0f / ShadowMapSize);
 }
 
-//https://gist.github.com/JuanDiegoMontoya/d8788148dcb9780848ce8bf50f89b7bb
+
 int GetCubeFaceIndex(float3 dir)
 {
     float x = abs(dir.x);
@@ -183,11 +183,14 @@ float3 DoSunShadow(float3 worldPos, float3 normal, float3 lighting)
     if (BlendMode != BLENDMODE_OPAQUE && BlendMode != BLENDMODE_ALPHATEST && BlendMode != BLENDMODE_ALPHABLEND)
         return lighting;
 
-    // Normal offset bias: shift the shadow lookup position along the surface
-    // normal. This is the primary technique to prevent self-shadowing (acne)
-    // without introducing Peter Panning (shadow detachment).
+    // Facing factor: same formula as DoShadow for point/spot lights.
+    // DoShadow uses bias = -2.5, giving facingFactor = saturate((ndot+2.5)/3.5),
+    // which means facingFactor is always > 0 for any real surface — side faces
+    // and even back faces still receive cast shadows from other geometry.
+    // We use the same bias here so sun shadows behave consistently.
     float ndotl = dot(normal, -SunDirection);
-    float sinAngle = sqrt(1.0f - saturate(ndotl) * saturate(ndotl));
+    float facingBias = -2.5f;
+    float facingFactor = saturate((ndotl - facingBias) / (1.0f - facingBias + EPSILON));
 
     // Compute view-space depth for cascade selection (use original position).
     float4 viewPos = mul(float4(worldPos, 1.0f), View);
@@ -205,32 +208,39 @@ float3 DoSunShadow(float3 worldPos, float3 normal, float3 lighting)
     }
 
     // Compute world-space shadow texel size for this cascade from the VP matrix.
-    // Ortho projection encodes 2/width in the first column's length.
+    // The VP combines view rotation with ortho projection, so the X scale is
+    // distributed across the first column; its length recovers 2/worldWidth.
     float4x4 cascadeVP = CascadeViewProjections[cascadeIndex];
     float orthoScale = length(float3(cascadeVP[0][0], cascadeVP[1][0], cascadeVP[2][0]));
     float texelWorldSize = 2.0f * CascadeSplitsAndPixelSize.w / orthoScale;
 
-    // Apply normal offset scaled by texel size (CSMNormalBias is in texel units).
+    // Normal offset bias: shift along the surface normal to prevent acne.
+    // saturate(ndotl) clamps negative values to 0, giving maximum offset on
+    // back faces (sinAngle = 1) and decreasing offset as the surface faces
+    // the sun more directly (where acne is least severe).
+    float clamped = saturate(ndotl);
+    float sinAngle = sqrt(1.0f - clamped * clamped);
     float3 biasedWorldPos = worldPos + normal * texelWorldSize * CSMNormalBias * sinAngle;
 
     // Project normal-offset position into selected cascade's light space.
     float4 lightClipSpace = mul(float4(biasedWorldPos, 1.0f), CascadeViewProjections[cascadeIndex]);
     lightClipSpace.xyz /= lightClipSpace.w;
 
-    // Check bounds — if outside cascade, no shadow.
-    if (lightClipSpace.x < -1.0f || lightClipSpace.x > 1.0f ||
-        lightClipSpace.y < -1.0f || lightClipSpace.y > 1.0f ||
-        lightClipSpace.z <  0.0f || lightClipSpace.z > 1.0f)
+    // If outside the cascade's depth range, no shadow data exists — bail out.
+    if (lightClipSpace.z < 0.0f || lightClipSpace.z > 1.0f)
         return lighting;
 
-    // Convert from clip to UV space.
+    // Clamp XY to valid UV range instead of bailing out entirely. The normal
+    // offset bias can push a position slightly outside the cascade's XY bounds;
+    // clamping prevents hard shadow drop-out seams at cascade edges.
     float2 shadowUV;
-    shadowUV.x = lightClipSpace.x *  0.5f + 0.5f;
-    shadowUV.y = lightClipSpace.y * -0.5f + 0.5f;
+    shadowUV.x = saturate(lightClipSpace.x *  0.5f + 0.5f);
+    shadowUV.y = saturate(lightClipSpace.y * -0.5f + 0.5f);
     float compareDepth = lightClipSpace.z;
 
-    // Minimal depth + slope bias as safety net (normal offset handles most acne).
-    float slopeBias = CSMSlopeBias * (1.0f - saturate(ndotl));
+    // Depth + slope bias. saturate(ndotl) caps the slope bias at CSMSlopeBias
+    // for back faces instead of exceeding it (which caused cast shadows to vanish).
+    float slopeBias = CSMSlopeBias * (1.0f - clamped);
     compareDepth -= CSMDepthBias + slopeBias;
 
     // PCF filtering (3x3).
@@ -283,9 +293,13 @@ float3 DoSunShadow(float3 worldPos, float3 normal, float3 lighting)
         }
     }
 
-    // Simple darkening: lerp between full shadow and no shadow.
-    // shadowFactor = 1.0 means lit (no change), 0.0 means fully in shadow.
-    float darken = lerp(1.0f - CSMShadowIntensity, 1.0f, shadowFactor);
+    // Blend shadow result with facingFactor, same pattern as DoShadow:
+    // facingFactor = 0 → shadowFactor stays 1.0 (no darkening, back-face).
+    // facingFactor = 1 → shadowFactor is the full CSM result.
+    shadowFactor = lerp(1.0f, shadowFactor, facingFactor);
+
+    float intensity = min(CSMShadowIntensity, SHADOW_INTENSITY);
+    float darken = lerp(1.0f - intensity, 1.0f, shadowFactor);
 
 #if CSM_DEBUG_CASCADES
     // Debug: visualize cascade index as colored tint.
