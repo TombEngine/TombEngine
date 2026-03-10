@@ -122,11 +122,24 @@ target_include_directories(TombEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # ---------------------------------------------------------------------------
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/Libs)
 
+# Build spdlog from source on all platforms so that CRT flags always match.
+# Must be before include directory setup so we can prioritize FetchContent headers.
+include(FetchContent)
+FetchContent_Declare(spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG        v1.10.0
+)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(spdlog)
+
 # Header-only / always-vendored libraries (all platforms).
-# On non-Windows, use -idirafter for ${LIBS_DIR} so that FetchContent spdlog
-# headers (added via spdlog::spdlog target) take priority over the vendored
-# spdlog in Libs/spdlog/.
-if(WIN32)
+# Use -idirafter for ${LIBS_DIR} so that FetchContent spdlog headers
+# take priority over the vendored spdlog in Libs/spdlog/.
+if(MSVC)
+    # MSVC doesn't support -idirafter; add FetchContent spdlog headers BEFORE
+    # ${LIBS_DIR} so they take priority over the vendored Libs/spdlog/ headers.
+    get_target_property(_SPDLOG_INC spdlog INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(TombEngine BEFORE PRIVATE ${_SPDLOG_INC})
     target_include_directories(TombEngine PRIVATE ${LIBS_DIR})
 else()
     target_compile_options(TombEngine PRIVATE -idirafter ${LIBS_DIR})
@@ -146,7 +159,6 @@ if(WIN32)
         ${LIBS_DIR}/lua
         ${LIBS_DIR}/lz4
         ${LIBS_DIR}/sdl3/include
-        ${LIBS_DIR}/spdlog
         ${LIBS_DIR}/vlc
     )
 endif()
@@ -231,10 +243,10 @@ endif()
 # ---------------------------------------------------------------------------
 # Libraries
 # ---------------------------------------------------------------------------
+
 if(WIN32)
     # Library search paths for prebuilt third-party libs (x64 only)
     target_link_directories(TombEngine PRIVATE
-        ${LIBS_DIR}/spdlog/x64
         ${LIBS_DIR}/lua/x64
         ${LIBS_DIR}/lz4/x64
         ${LIBS_DIR}/sdl3/lib/x64
@@ -263,7 +275,7 @@ if(WIN32)
         libvlc
         libvlccore
         sdl3
-        $<IF:$<CONFIG:Debug>,spdlogd,spdlog>
+        spdlog::spdlog
         liblz4_static
     )
 
@@ -271,7 +283,6 @@ else()
     # Linux / macOS — use system packages where available,
     # prebuilt libraries from Libs/ for BASS and VLC.
     include(CMakeFindDependencyMacro)
-    include(FetchContent)
 
     find_package(SDL3 QUIET)
     if(NOT SDL3_FOUND)
@@ -281,16 +292,6 @@ else()
         )
         FetchContent_MakeAvailable(SDL3)
     endif()
-
-    # Build spdlog from source so that headers and library ABI always match.
-    # The vendored Libs/spdlog/ headers use fmt v8 which is incompatible with
-    # system spdlog/fmt packages; building from source avoids this mismatch.
-    FetchContent_Declare(spdlog
-        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG        v1.10.0
-    )
-    set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(spdlog)
 
     find_package(OpenGL REQUIRED)
 
