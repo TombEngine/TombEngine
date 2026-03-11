@@ -50,6 +50,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed linear inventory not fading ammo and combine selectors.
 * Fixed crashes on certain GPUs with dynamic memory allocation.
 * Fixed loading of level files bigger than 2 GB (only for 64-bit systems).
+* Fixed animation glitch when Lara dies in a hanging state
 
 ### Lua API changes
 * Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
