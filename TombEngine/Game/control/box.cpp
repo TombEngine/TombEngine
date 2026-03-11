@@ -2644,10 +2644,10 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	case MoodType::Attack:
 	{
 	// Flying creatures target enemy's upper body when on land.
-	int headOffset = (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
-		? GetClosestKeyframe(*enemy).BoundingBox.Y1 : 0;
+	auto targetOffset = (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
+		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
 
-	LOT->Target = PredictTargetPosition(*item, *enemy, headOffset);
+	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
 	LOT->RequiredBox = enemy->BoxNumber;
 
 	break;
@@ -2897,7 +2897,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	}
 }
 
-Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem, int targetYOffset)
+Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem, Vector3i targetOffset)
 {
 	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(0.5f);
 	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
@@ -2906,7 +2906,7 @@ Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem, int t
 
 	auto sourcePos = sourceItem.Pose.Position;
 	auto targetPos = targetItem.Pose.Position;
-	targetPos.y += targetYOffset;
+	targetPos += targetOffset;
 
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
