@@ -124,7 +124,7 @@ Install the required build tools.
 sudo apt update
 sudo apt install -y \
     build-essential cmake ninja-build \
-    libgl-dev wget zstd python3
+    libgl-dev libtbb-dev wget zstd python3
 ```
 
 **Fedora / RHEL:**
@@ -132,7 +132,7 @@ sudo apt install -y \
 ```bash
 sudo dnf install -y \
     gcc-c++ cmake ninja-build \
-    mesa-libGL-devel wget zstd python3
+    mesa-libGL-devel tbb-devel wget zstd python3
 ```
 
 **Arch Linux:**
@@ -140,10 +140,12 @@ sudo dnf install -y \
 ```bash
 sudo pacman -S --needed \
     base-devel cmake ninja \
-    mesa wget zstd python
+    mesa tbb wget zstd python
 ```
 
 > **Note:** SDL3, spdlog, Lua 5.3, and LZ4 are automatically fetched and built from source via CMake FetchContent. No system `-dev` packages are needed for these libraries.
+>
+> `libtbb-dev` (Intel TBB) is required for `std::execution` parallel algorithms support on GCC/Clang. On MSVC (Windows) it is built into the runtime and not needed.
 >
 > `wget` and `zstd` are needed by the VLC auto-download script (see below). The script downloads and extracts Ubuntu `.deb` packages using standard tools (`wget`, `ar`, `tar`, `zstd`) — it does **not** require `apt` or Debian/Ubuntu, and works on any Linux distribution.
 

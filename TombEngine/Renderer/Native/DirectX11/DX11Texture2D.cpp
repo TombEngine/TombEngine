@@ -74,19 +74,16 @@ namespace TEN::Renderer::Native::DirectX11
 	// ======================================================================
 	// Constructor 2: from file on disk (using stb_image).
 	// ======================================================================
-	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::wstring& fileName)
+	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
 	{
 		HRESULT res;
 
-		// Convert wide string to narrow for stb_image.
-		std::string narrowPath(fileName.begin(), fileName.end());
-
 		int channels;
 		stbi_set_flip_vertically_on_load(false);
-		unsigned char* pixels = stbi_load(narrowPath.c_str(), &_width, &_height, &channels, 4);
+		unsigned char* pixels = stbi_load(fileName.c_str(), &_width, &_height, &channels, 4);
 		if (!pixels)
 		{
-			TENLog("Failed to load texture: " + narrowPath, LogLevel::Error);
+			TENLog("Failed to load texture: " + fileName, LogLevel::Error);
 			return;
 		}
 

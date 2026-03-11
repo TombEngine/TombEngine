@@ -12,7 +12,6 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void throwIfFailed(const HRESULT& res);
 	void throwIfFailed(const HRESULT& res, const std::string& info);
-	void throwIfFailed(const HRESULT& res, const std::wstring& info);
 	void throwIfFailed(const HRESULT& res, ID3D11Device* device, const std::string& context);
 }
 

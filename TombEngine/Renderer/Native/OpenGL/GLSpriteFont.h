@@ -29,23 +29,18 @@ namespace TEN::Renderer::Native::OpenGL
 		wchar_t _defaultChar = L' ';
 		std::unordered_map<unsigned int, FontGlyph> _glyphs;
 
-		bool ParseSpriteFontFile(const std::wstring& path);
+		bool ParseSpriteFontFile(const std::string& path);
 
 	public:
 		GLSpriteFont() = default;
 		~GLSpriteFont();
 
-		GLSpriteFont(const std::wstring& fontPath);
+		GLSpriteFont(const std::string& fontPath);
 
 		float GetLineSpacing() override;
-		Vector2 MeasureString(std::wstring str) override;
-		Vector2 MeasureString(wchar_t* str) override;
+		Vector2 MeasureString(const std::string& str) override;
 		Glyph FindGlyph(char c) override;
-		Glyph FindGlyph(wchar_t c) override;
-		void DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
+		void DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
 
 	private:
 		Vector2 MeasureStringInternal(const wchar_t* str);

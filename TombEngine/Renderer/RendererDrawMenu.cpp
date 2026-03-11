@@ -1171,7 +1171,7 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitleImage()
 	{
-		auto texture = SetTextureOrDefault(TEN::Utils::ToWString(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str()));
+		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
 		if (texture == nullptr || !texture->IsValid())
 			return;
 
@@ -1383,7 +1383,7 @@ namespace TEN::Renderer
 		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
 	}
 
-	void Renderer::SetLoadingScreen(const std::wstring& fileName)
+	void Renderer::SetLoadingScreen(const std::string& fileName)
 	{
 		_loadingScreenTexture = SetTextureOrDefault(fileName);
 	}

@@ -571,7 +571,7 @@ namespace TEN::Renderer
 		template <typename CBuff>
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer()
 		{
-			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), L"")); //TEN::Utils::ToString( typeid(CBuff).name()
+			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), "")); //typeid(CBuff).name()
 		}
 
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
@@ -733,8 +733,8 @@ namespace TEN::Renderer
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
-		void SetLoadingScreen(const std::wstring& fileName);
-		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::wstring path);
+		void SetLoadingScreen(const std::string& fileName);
+		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();

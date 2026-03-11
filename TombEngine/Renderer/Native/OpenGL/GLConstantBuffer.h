@@ -22,7 +22,7 @@ namespace TEN::Renderer::Native::OpenGL
 		GLuint GetGLBuffer() const { return _ubo; }
 		int GetSize() const { return _size; }
 
-		GLConstantBuffer(int size, std::wstring name);
+		GLConstantBuffer(int size, std::string name);
 		void UpdateData(void* data);
 	};
 }

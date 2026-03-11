@@ -7,7 +7,7 @@
 
 namespace TEN::Renderer::Native::OpenGL
 {
-	GLConstantBuffer::GLConstantBuffer(int size, std::wstring name)
+	GLConstantBuffer::GLConstantBuffer(int size, std::string name)
 	{
 		_size = size;
 

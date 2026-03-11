@@ -9,9 +9,9 @@
 namespace TEN::Renderer::Native::DirectX11
 {
 	// Parse the DirectXTK "DXTKfont" binary .spritefont format.
-	bool DX11SpriteFont::ParseSpriteFontFile(ID3D11Device* device, const std::wstring& path)
+	bool DX11SpriteFont::ParseSpriteFontFile(ID3D11Device* device, const std::string& path)
 	{
-		std::ifstream file(path, std::ios::binary);
+		std::ifstream file(std::filesystem::path(path), std::ios::binary);
 		if (!file)
 			return false;
 
@@ -135,7 +135,7 @@ namespace TEN::Renderer::Native::DirectX11
 		return true;
 	}
 
-	DX11SpriteFont::DX11SpriteFont(ID3D11Device* device, std::wstring fontPath)
+	DX11SpriteFont::DX11SpriteFont(ID3D11Device* device, std::string fontPath)
 	{
 		if (!ParseSpriteFontFile(device, fontPath))
 			TENLog("Failed to load spritefont", LogLevel::Error);
@@ -188,27 +188,15 @@ namespace TEN::Renderer::Native::DirectX11
 		return Vector2(std::max(maxX, x), y);
 	}
 
-	Vector2 DX11SpriteFont::MeasureString(std::wstring str) { return MeasureStringInternal(str.c_str()); }
-	Vector2 DX11SpriteFont::MeasureString(wchar_t* str) { return MeasureStringInternal(str); }
+	Vector2 DX11SpriteFont::MeasureString(const std::string& str)
+	{
+		std::wstring wstr(str.begin(), str.end());
+		return MeasureStringInternal(wstr.c_str());
+	}
 
 	Glyph DX11SpriteFont::FindGlyph(char c)
 	{
 		auto* g = FindGlyphInternal((unsigned int)(unsigned char)c);
-		Glyph result = {};
-		if (g)
-		{
-			result.Character = g->Character;
-			result.Subrect = g->Subrect;
-			result.XOffset = g->XOffset;
-			result.YOffset = g->YOffset;
-			result.XAdvance = g->XAdvance;
-		}
-		return result;
-	}
-
-	Glyph DX11SpriteFont::FindGlyph(wchar_t c)
-	{
-		auto* g = FindGlyphInternal((unsigned int)c);
 		Glyph result = {};
 		if (g)
 		{
@@ -268,26 +256,9 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 	}
 
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		DrawStringInternal(spriteBatch, text.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		DrawStringInternal(spriteBatch, text, position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
+	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
 	{
 		std::wstring wtext(text.begin(), text.end());
-		DrawStringInternal(spriteBatch, wtext.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		std::string stext(text);
-		std::wstring wtext(stext.begin(), stext.end());
 		DrawStringInternal(spriteBatch, wtext.c_str(), position, color, rotation, origin, scale);
 	}
 }

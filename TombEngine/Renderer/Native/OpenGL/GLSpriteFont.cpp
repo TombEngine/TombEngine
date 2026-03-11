@@ -10,7 +10,7 @@ namespace TEN::Renderer::Native::OpenGL
 {
 	// DirectXTK .spritefont binary format parser.
 	// Format: https://github.com/microsoft/DirectXTK/wiki/MakeSpriteFont
-	bool GLSpriteFont::ParseSpriteFontFile(const std::wstring& path)
+	bool GLSpriteFont::ParseSpriteFontFile(const std::string& path)
 	{
 		std::ifstream file(std::filesystem::path(path), std::ios::binary);
 		if (!file)
@@ -118,7 +118,7 @@ namespace TEN::Renderer::Native::OpenGL
 		return true;
 	}
 
-	GLSpriteFont::GLSpriteFont(const std::wstring& fontPath)
+	GLSpriteFont::GLSpriteFont(const std::string& fontPath)
 	{
 		if (!ParseSpriteFontFile(fontPath))
 			TENLog("Failed to load spritefont", LogLevel::Error);
@@ -180,34 +180,15 @@ namespace TEN::Renderer::Native::OpenGL
 		return Vector2(std::max(maxX, x), y);
 	}
 
-	Vector2 GLSpriteFont::MeasureString(std::wstring str)
+	Vector2 GLSpriteFont::MeasureString(const std::string& str)
 	{
-		return MeasureStringInternal(str.c_str());
-	}
-
-	Vector2 GLSpriteFont::MeasureString(wchar_t* str)
-	{
-		return MeasureStringInternal(str);
+		std::wstring wstr(str.begin(), str.end());
+		return MeasureStringInternal(wstr.c_str());
 	}
 
 	Glyph GLSpriteFont::FindGlyph(char c)
 	{
 		auto* g = FindGlyphInternal((unsigned int)(unsigned char)c);
-		Glyph result = {};
-		if (g)
-		{
-			result.Character = g->Character;
-			result.Subrect = g->Subrect;
-			result.XOffset = g->XOffset;
-			result.YOffset = g->YOffset;
-			result.XAdvance = g->XAdvance;
-		}
-		return result;
-	}
-
-	Glyph GLSpriteFont::FindGlyph(wchar_t c)
-	{
-		auto* g = FindGlyphInternal((unsigned int)c);
 		Glyph result = {};
 		if (g)
 		{
@@ -270,26 +251,9 @@ namespace TEN::Renderer::Native::OpenGL
 		}
 	}
 
-	void GLSpriteFont::DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		DrawStringInternal(spriteBatch, text.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void GLSpriteFont::DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		DrawStringInternal(spriteBatch, text, position, color, rotation, origin, scale);
-	}
-
-	void GLSpriteFont::DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
+	void GLSpriteFont::DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
 	{
 		std::wstring wtext(text.begin(), text.end());
-		DrawStringInternal(spriteBatch, wtext.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void GLSpriteFont::DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		std::string stext(text);
-		std::wstring wtext(stext.begin(), stext.end());
 		DrawStringInternal(spriteBatch, wtext.c_str(), position, color, rotation, origin, scale);
 	}
 }

@@ -26,7 +26,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		ID3D11Buffer* GetD3D11Buffer() const noexcept { return _buffer.Get(); }
 
-		DX11ConstantBuffer(ID3D11Device* device, int size, std::wstring name);
+		DX11ConstantBuffer(ID3D11Device* device, int size, std::string name);
 		void UpdateData(void* data, ID3D11DeviceContext* ctx);
 	};
 }

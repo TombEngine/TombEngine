@@ -1,9 +1,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
-#ifdef _MSC_VER
 #include <execution>
-#endif
 #include <stack>
 #include <tuple>
 
@@ -622,11 +620,7 @@ namespace TEN::Renderer
 			);
 		};
 
-#ifdef _MSC_VER
 		std::for_each(std::execution::par_unseq, _rooms.begin(), _rooms.end(), sortBuckets);
-#else
-		std::for_each(_rooms.begin(), _rooms.end(), sortBuckets);
-#endif
 
 		TENLog("Preparing object data...", LogLevel::Info);
 			 

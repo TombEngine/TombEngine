@@ -118,7 +118,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<ITexture2D> DX11GraphicsDevice::CreateTexture2DFromFile(const std::string fileName)
 	{
-		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), TEN::Utils::ToWString(fileName));
+		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), fileName);
 		_context->Flush();
 		return texture;
 	}
@@ -296,7 +296,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 	}
 
-	std::unique_ptr<IConstantBuffer> DX11GraphicsDevice::CreateConstantBuffer(int size, std::wstring name)
+	std::unique_ptr<IConstantBuffer> DX11GraphicsDevice::CreateConstantBuffer(int size, std::string name)
 	{
 		return std::make_unique<DX11ConstantBuffer>(_device.Get(), size, name);
 	}
@@ -884,33 +884,33 @@ namespace TEN::Renderer::Native::DirectX11
 		// Construct HLSL source directory path.
 		// Replace "Shaders/" with "Shaders/HLSL/" in SourceDirectory.
 		auto hlslSourceDir = req.SourceDirectory;
-		auto pos = hlslSourceDir.rfind(L"Shaders/");
-		if (pos != std::wstring::npos)
-			hlslSourceDir.insert(pos + 8, L"HLSL/");
+		auto pos = hlslSourceDir.rfind("Shaders/");
+		if (pos != std::string::npos)
+			hlslSourceDir.insert(pos + 8, "HLSL/");
 
 		auto baseFileName = hlslSourceDir + req.FileName;
-		auto prefix = ((req.CompileIndex < 10) ? L"0" : L"") + std::to_wstring(req.CompileIndex) + L"_";
+		auto prefix = ((req.CompileIndex < 10) ? "0" : "") + std::to_string(req.CompileIndex) + "_";
 
 		// VS
 		auto makeCsoName = [&](const std::string& shaderType) {
-			return req.BinaryDirectory + prefix + req.FileName + L"." +
-				std::wstring(shaderType.begin(), shaderType.end()) + L".cso";
+			return req.BinaryDirectory + prefix + req.FileName + "." +
+				shaderType + ".cso";
 			};
 
 		auto macros = ToD3DMacros(req.Macros);
 
 		auto compileOne = [&](const std::string& shaderType,
-			const std::wstring& entry,
+			const std::string& entry,
 			const char* model,
 			ID3D10Blob** outBlob)
 			{
 				auto csoFileName = makeCsoName(shaderType);
 				auto srcFileName = baseFileName;
 
-				auto srcFileNameWithExt = srcFileName + L".hlsl";
+				auto srcFileNameWithExt = srcFileName + ".hlsl";
 				if (!std::filesystem::exists(srcFileNameWithExt))
 				{
-					srcFileNameWithExt = srcFileName + L".fx";
+					srcFileNameWithExt = srcFileName + ".fx";
 				}
 
 				bool loadedFromDisk = false;
@@ -945,9 +945,10 @@ namespace TEN::Renderer::Native::DirectX11
 #endif
 
 					ComPtr<ID3D10Blob> errors;
-					auto target = shaderType + TEN::Utils::ToString(entry);
+					auto target = shaderType + entry;
+					auto wPath = TEN::Utils::ToWString(srcFileNameWithExt);
 					auto hr = D3DCompileFromFile(
-						srcFileNameWithExt.c_str(),
+						wPath.c_str(),
 						macros.data(),
 						D3D_COMPILE_STANDARD_FILE_INCLUDE,
 						target.c_str(),
@@ -1069,7 +1070,7 @@ namespace TEN::Renderer::Native::DirectX11
 		_context->ClearState();
 	}
 
-	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::wstring fontPath)
+	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::string fontPath)
 	{
 		return std::make_unique<DX11SpriteFont>(_device.Get(), fontPath);
 	}
@@ -1084,7 +1085,7 @@ namespace TEN::Renderer::Native::DirectX11
 		return std::make_unique<DX11PrimitiveBatch>(_device.Get(), _context.Get());
 	}
 
-	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path)
+	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 		auto* srcTexture = nativeRenderTarget->GetD3D11Texture();
@@ -1130,8 +1131,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_context->Unmap(stagingTexture.Get(), 0);
 
-		auto pathStr = TEN::Utils::ToString(path);
-		stbi_write_png(pathStr.c_str(), w, h, 4, pixels.data(), w * 4);
+		stbi_write_png(path.c_str(), w, h, 4, pixels.data(), w * 4);
 	}
 
 	Vector3 DX11GraphicsDevice::Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world)

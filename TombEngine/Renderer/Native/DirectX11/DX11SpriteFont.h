@@ -34,7 +34,7 @@ namespace TEN::Renderer::Native::DirectX11
 		wchar_t _defaultChar = L' ';
 		std::unordered_map<unsigned int, FontGlyph> _glyphs;
 
-		bool ParseSpriteFontFile(ID3D11Device* device, const std::wstring& path);
+		bool ParseSpriteFontFile(ID3D11Device* device, const std::string& path);
 		const FontGlyph* FindGlyphInternal(unsigned int character) const;
 		Vector2 MeasureStringInternal(const wchar_t* str);
 		void DrawStringInternal(ISpriteBatch* spriteBatch, const wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale);
@@ -43,17 +43,12 @@ namespace TEN::Renderer::Native::DirectX11
 		DX11SpriteFont() = default;
 		~DX11SpriteFont() = default;
 
-		DX11SpriteFont(ID3D11Device* device, std::wstring fontPath);
+		DX11SpriteFont(ID3D11Device* device, std::string fontPath);
 
 		float GetLineSpacing() override;
-		Vector2 MeasureString(std::wstring str) override;
-		Vector2 MeasureString(wchar_t* str) override;
+		Vector2 MeasureString(const std::string& str) override;
 		Glyph FindGlyph(char c) override;
-		Glyph FindGlyph(wchar_t c) override;
-		void DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
-		void DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
+		void DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale) override;
 	};
 }
 

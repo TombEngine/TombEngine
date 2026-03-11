@@ -366,12 +366,15 @@ else()
         target_include_directories(TombEngine PRIVATE ${LIBS_DIR}/vlc)
     endif()
 
+    find_package(TBB REQUIRED)
+
     target_link_libraries(TombEngine PRIVATE
         SDL3::SDL3
         OpenGL::GL
         spdlog::spdlog
         lz4_static
         lua53_static
+        TBB::tbb
         bass
         bassmix
         bass_fx

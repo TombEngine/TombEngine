@@ -21,14 +21,11 @@
 #include <array>
 #include <atomic>
 #include <cctype>
-#include <codecvt>
 #include <cstdint>
 #include <ctime>
 #include <chrono>
 #include <deque>
-#ifdef _MSC_VER
 #include <execution>
-#endif
 #include <filesystem>
 #include <fstream>
 #include <functional>

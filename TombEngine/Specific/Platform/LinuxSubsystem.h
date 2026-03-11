@@ -18,7 +18,7 @@ namespace TEN::Platform
 		// Getters
 
 		SDL_Window*                 GetSDL3Window() override;
-		std::wstring                GetBinaryPath(bool includeExeName) override;
+		std::string                 GetBinaryPath(bool includeExeName) override;
 		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
 
 		// Setters

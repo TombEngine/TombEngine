@@ -56,8 +56,8 @@ namespace TEN::Renderer::Native::OpenGL
 
 		GLuint GetOrCreateFBO(GLuint colorTex, GLuint depthTex, bool colorIsArray, int colorArrayIndex, bool depthIsArray, int depthArrayIndex);
 		GLuint GetTextureHandle(ITextureBase* texture);
-		std::string ReadShaderFile(const std::wstring& path);
-		std::string ResolveIncludes(const std::string& source, const std::wstring& directory, std::set<std::string>& alreadyIncluded);
+		std::string ReadShaderFile(const std::string& path);
+		std::string ResolveIncludes(const std::string& source, const std::string& directory, std::set<std::string>& alreadyIncluded);
 		GLuint CompileSeparableProgram(GLenum shaderType, const std::string& source, const std::string& label);
 
 	public:
@@ -90,7 +90,7 @@ namespace TEN::Renderer::Native::OpenGL
 
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 
-		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) override;
+		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
 		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
@@ -131,14 +131,14 @@ namespace TEN::Renderer::Native::OpenGL
 		void ClearState() override;
 		void ClearDefaultFramebuffer() override;
 
-		std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::wstring fontPath) override;
+		std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::string fontPath) override;
 		std::unique_ptr<ISpriteBatch> InitializeSpriteBatch() override;
 		std::unique_ptr<IPrimitiveBatch> InitializePrimitiveBatch() override;
 
 		void SetViewport(RendererViewport viewport) override;
 		Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) override;
 
-		void SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path) override;
+		void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) override;
 
 		void Flush() override;
 		void UnbindAllRenderTargets() override;

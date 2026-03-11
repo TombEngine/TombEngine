@@ -83,19 +83,19 @@ namespace TEN::Renderer::Native::OpenGL
 		return fbo;
 	}
 
-	std::string GLGraphicsDevice::ReadShaderFile(const std::wstring& path)
+	std::string GLGraphicsDevice::ReadShaderFile(const std::string& path)
 	{
 		auto fspath = std::filesystem::path(path);
 		std::ifstream file(fspath);
 		if (!file)
-			throw std::runtime_error("Cannot open shader file: " + TEN::Utils::ToString(path));
+			throw std::runtime_error("Cannot open shader file: " + path);
 
 		std::stringstream ss;
 		ss << file.rdbuf();
 		return ss.str();
 	}
 
-	std::string GLGraphicsDevice::ResolveIncludes(const std::string& source, const std::wstring& directory, std::set<std::string>& alreadyIncluded)
+	std::string GLGraphicsDevice::ResolveIncludes(const std::string& source, const std::string& directory, std::set<std::string>& alreadyIncluded)
 	{
 		std::string result;
 		std::istringstream stream(source);
@@ -124,7 +124,7 @@ namespace TEN::Renderer::Native::OpenGL
 					alreadyIncluded.insert(includeFile);
 
 					// Read and recursively resolve the included file.
-					auto includePath = directory + std::wstring(includeFile.begin(), includeFile.end());
+					auto includePath = directory + includeFile;
 					try
 					{
 						auto includedSource = ReadShaderFile(includePath);
@@ -739,7 +739,7 @@ namespace TEN::Renderer::Native::OpenGL
 	// Constant Buffers
 	// ========================================================================
 
-	std::unique_ptr<IConstantBuffer> GLGraphicsDevice::CreateConstantBuffer(int size, std::wstring name)
+	std::unique_ptr<IConstantBuffer> GLGraphicsDevice::CreateConstantBuffer(int size, std::string name)
 	{
 		return std::make_unique<GLConstantBuffer>(size, name);
 	}
@@ -1125,9 +1125,9 @@ namespace TEN::Renderer::Native::OpenGL
 		// Construct GLSL source directory path.
 		// Replace "Shaders/" with "Shaders/GLSL/" in SourceDirectory.
 		auto glslSourceDir = req.SourceDirectory;
-		auto pos = glslSourceDir.rfind(L"Shaders/");
-		if (pos != std::wstring::npos)
-			glslSourceDir.insert(pos + 8, L"GLSL/");
+		auto pos = glslSourceDir.rfind("Shaders/");
+		if (pos != std::string::npos)
+			glslSourceDir.insert(pos + 8, "GLSL/");
 
 		auto buildDefines = [&]() -> std::string
 		{
@@ -1161,7 +1161,7 @@ namespace TEN::Renderer::Native::OpenGL
 			return defines;
 		};
 
-		auto loadAndPrepend = [&](const std::wstring& filePath, const std::string& defines) -> std::string
+		auto loadAndPrepend = [&](const std::string& filePath, const std::string& defines) -> std::string
 		{
 			auto source = ReadShaderFile(filePath);
 
@@ -1182,7 +1182,7 @@ namespace TEN::Renderer::Native::OpenGL
 		};
 
 		std::string baseDefines = buildDefines();
-		auto entryStr = TEN::Utils::ToString(req.EntryPoint);
+		auto entryStr = req.EntryPoint;
 
 		// Stage-specific defines: shader stage identification and gl_PerVertex for separable programs.
 		std::string vsDefines = baseDefines + "#define VERTEX_SHADER 1\nout gl_PerVertex { vec4 gl_Position; };\n";
@@ -1193,21 +1193,21 @@ namespace TEN::Renderer::Native::OpenGL
 		if (req.Type == ShaderType::Vertex || req.Type == ShaderType::PixelAndVertex)
 		{
 			// Try entry-point-specific VS first (e.g., GBuffer_Rooms.vert.glsl), then fall back to base (e.g., GBuffer.vert.glsl).
-			auto vsFile = std::wstring();
+			auto vsFile = std::string();
 			if (!req.EntryPoint.empty() && req.EntryPoint != req.FileName)
 			{
-				auto variantFile = glslSourceDir + req.FileName + L"_" + req.EntryPoint + L".vert.glsl";
+				auto variantFile = glslSourceDir + req.FileName + "_" + req.EntryPoint + ".vert.glsl";
 				if (std::filesystem::exists(variantFile))
 					vsFile = variantFile;
 			}
 			if (vsFile.empty())
-				vsFile = glslSourceDir + req.FileName + L".vert.glsl";
+				vsFile = glslSourceDir + req.FileName + ".vert.glsl";
 
 			if (std::filesystem::exists(vsFile))
 			{
 				auto source = loadAndPrepend(vsFile, vsDefines);
 				GLuint prog = CompileSeparableProgram(GL_VERTEX_SHADER, source,
-					TEN::Utils::ToString(req.FileName) + ".vert");
+					req.FileName + ".vert");
 				nativeShader->SetVSProgram(prog);
 			}
 		}
@@ -1215,17 +1215,17 @@ namespace TEN::Renderer::Native::OpenGL
 		// Compile fragment shader.
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{
-			std::wstring fsFile;
-			if (!req.EntryPoint.empty() && req.EntryPoint != L"" && req.EntryPoint != req.FileName)
-				fsFile = glslSourceDir + req.FileName + L"_" + req.EntryPoint + L".frag.glsl";
+			std::string fsFile;
+			if (!req.EntryPoint.empty() && req.EntryPoint != req.FileName)
+				fsFile = glslSourceDir + req.FileName + "_" + req.EntryPoint + ".frag.glsl";
 			else
-				fsFile = glslSourceDir + req.FileName + L".frag.glsl";
+				fsFile = glslSourceDir + req.FileName + ".frag.glsl";
 
 			if (std::filesystem::exists(fsFile))
 			{
 				auto source = loadAndPrepend(fsFile, fsDefines);
 				GLuint prog = CompileSeparableProgram(GL_FRAGMENT_SHADER, source,
-					TEN::Utils::ToString(req.FileName) + ".frag");
+					req.FileName + ".frag");
 				nativeShader->SetFSProgram(prog);
 			}
 		}
@@ -1233,12 +1233,12 @@ namespace TEN::Renderer::Native::OpenGL
 		// Compile geometry shader.
 		if (req.Type == ShaderType::Geometry)
 		{
-			auto gsFile = glslSourceDir + req.FileName + L".geom.glsl";
+			auto gsFile = glslSourceDir + req.FileName + ".geom.glsl";
 			if (std::filesystem::exists(gsFile))
 			{
 				auto source = loadAndPrepend(gsFile, gsDefines);
 				GLuint prog = CompileSeparableProgram(GL_GEOMETRY_SHADER, source,
-					TEN::Utils::ToString(req.FileName) + ".geom");
+					req.FileName + ".geom");
 				nativeShader->SetGSProgram(prog);
 			}
 		}
@@ -1291,7 +1291,7 @@ namespace TEN::Renderer::Native::OpenGL
 	// Sprite/Font/Primitive
 	// ========================================================================
 
-	std::unique_ptr<ISpriteFont> GLGraphicsDevice::InitializeSpriteFont(std::wstring fontPath)
+	std::unique_ptr<ISpriteFont> GLGraphicsDevice::InitializeSpriteFont(std::string fontPath)
 	{
 		return std::make_unique<GLSpriteFont>(fontPath);
 	}
@@ -1338,7 +1338,7 @@ namespace TEN::Renderer::Native::OpenGL
 		return vp.Unproject(position, projection, view, world);
 	}
 
-	void GLGraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path)
+	void GLGraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
 	{
 		auto* glRT = static_cast<GLRenderTarget2D*>(renderTarget);
 		int w = glRT->GetWidth();
@@ -1358,8 +1358,7 @@ namespace TEN::Renderer::Native::OpenGL
 		for (int y = 0; y < h; y++)
 			memcpy(&flipped[y * w * 4], &pixels[(h - 1 - y) * w * 4], w * 4);
 
-		auto pathStr = TEN::Utils::ToString(path);
-		stbi_write_png(pathStr.c_str(), w, h, 4, flipped.data(), w * 4);
+		stbi_write_png(path.c_str(), w, h, 4, flipped.data(), w * 4);
 	}
 
 	int GLGraphicsDevice::GetRefreshRate() { return _refreshRate; }

@@ -12,7 +12,10 @@ namespace TEN::Platform
 {
 	void LinuxSubsystem::Initialize()
 	{
-		// Disable HiDPI scaling � the engine manages its own resolution.
+		// Inherit UTF-8 locale from the environment (standard on modern Linux).
+		setlocale(LC_ALL, "");
+
+		// Disable HiDPI scaling, the engine manages its own resolution.
 		SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "0");
 	}
 
@@ -36,7 +39,7 @@ namespace TEN::Platform
 		_window = window;
 	}
 
-	std::wstring LinuxSubsystem::GetBinaryPath(bool includeExeName)
+	std::string LinuxSubsystem::GetBinaryPath(bool includeExeName)
 	{
 		static const int MAX_PATH_LENGTH = 1024;
 		char buffer[MAX_PATH_LENGTH] = {};
@@ -45,20 +48,19 @@ namespace TEN::Platform
 		if (len <= 0)
 		{
 			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
+			return std::string();
 		}
 
 		buffer[len] = '\0';
 
-		// Convert to wstring.
-		auto result = std::wstring(buffer, buffer + len);
-		std::replace(result.begin(), result.end(), L'\\', L'/');
+		auto result = std::string(buffer, len);
+		std::replace(result.begin(), result.end(), '\\', '/');
 
 		if (includeExeName)
 			return result;
 
-		size_t pos = result.find_last_of(L"/");
-		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
+		size_t pos = result.find_last_of("/");
+		return (pos != std::string::npos) ? result.substr(0, pos + 1) : std::string();
 	}
 
 	std::vector<unsigned short> LinuxSubsystem::GetProductOrFileVersion(bool productVersion)
@@ -136,7 +138,7 @@ namespace TEN::Platform
 	{
 		// Look for dummy.ten next to the executable.
 		auto exePath = GetBinaryPath(false);
-		auto dummyPath = std::filesystem::path(exePath.begin(), exePath.end()) / "dummy.ten";
+		auto dummyPath = std::filesystem::path(exePath) / "dummy.ten";
 
 		if (!std::filesystem::is_regular_file(dummyPath))
 		{
