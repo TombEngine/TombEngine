@@ -2643,8 +2643,12 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	case MoodType::Attack:
 	{
-	// Flying creatures target enemy's upper body when on land.
-	auto targetOffset = (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
+	// Flying creatures target enemy's upper body when enemy is not in water.
+	bool isEnemyOnLand = enemy->IsLara()
+		? (GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry)		 // Lara.
+		: !TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber); // Other Creatures.
+
+	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand)
 		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
 
 	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
