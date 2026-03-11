@@ -419,13 +419,13 @@ namespace TEN::Scripting
 		"collisionPenaltyCooldown", &PathfindingSettings::CollisionPenaltyCooldown,
 
 		/// Moveable avoidance.
-		// @tfield[opt=true] bool moveableAvoidance Avoid collisions with moveables when possible. Enemy will attempt to turn away from the
-		// moveable if it's in the way. Applies only to moveables not placed near room geometry.
+		// @tfield[opt=false] bool moveableAvoidance Avoid collisions with moveables where possible. Enemy will attempt to turn away from the
+		// moveable if it's in the way. Applies only to moveables not placed near room geometry. Experimental feature, use with caution.
 		"moveableAvoidance", &PathfindingSettings::MoveableAvoidance,
 			
 		/// Static mesh avoidance.
-		// @tfield[opt=true] bool staticMeshAvoidance Avoid collisions with static meshes when possible. Enemy will attempt to turn away from the
-		// static mesh if it's in the way. Applies only to static meshes not placed near room geometry.
+		// @tfield[opt=false] bool staticMeshAvoidance Avoid collisions with static meshes where possible. Enemy will attempt to turn away from the
+		// static mesh if it's in the way. Applies only to static meshes not placed near room geometry. Experimental feature, use with caution.
 		"staticMeshAvoidance", &PathfindingSettings::StaticMeshAvoidance,
 
 		/// Vertical geometry avoidance for swimming and flying enemies.

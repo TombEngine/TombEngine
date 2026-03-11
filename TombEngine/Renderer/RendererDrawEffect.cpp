@@ -1282,7 +1282,7 @@ namespace TEN::Renderer
 
 			if (Lara.LeftArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_LHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1300,7 +1300,7 @@ namespace TEN::Renderer
 
 			if (Lara.RightArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_RHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1375,7 +1375,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[0].ApplyXRotation)
@@ -1418,7 +1418,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[1].ApplyXRotation)

@@ -1234,6 +1234,7 @@ namespace TEN::Entities::TR4
 
 		if (item->Animation.ActiveState >= BADDY_STATE_JUMP_FORWARD_2_BLOCKS ||
 			item->Animation.ActiveState == BADDY_STATE_JUMP_FORWARD_1_BLOCK ||
+			item->Animation.ActiveState == BADDY_STATE_JUMP_FORWARD_FALL ||
 			item->Animation.ActiveState == BADDY_STATE_MONKEY_FORWARD ||
 			item->Animation.ActiveState == BADDY_STATE_DEATH ||
 			item->Animation.ActiveState == BADDY_STATE_SOMERSAULT ||

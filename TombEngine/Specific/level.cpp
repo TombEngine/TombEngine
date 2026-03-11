@@ -603,15 +603,13 @@ void LoadCameras()
 		g_GameScriptEntities->AddName(camera.Name, camera);
 	}
 
-	NumberSpotcams = ReadCount();
-	TENLog("Flyby camera count: " + std::to_string(NumberSpotcams), LogLevel::Info);
-
-	if (NumberSpotcams > MAX_SPOTCAMS)
-		throw std::exception(fmt::format("Maximum number of flyby cameras is currently {}. Reduce amount of flyby cameras in your level.", MAX_SPOTCAMS).c_str());
+	int numSpotcams = ReadCount();
+	TENLog("Flyby camera count: " + std::to_string(numSpotcams), LogLevel::Info);
 
 	// TODO: Read properly!
-	if (NumberSpotcams != 0)
-		ReadBytes(SpotCam, NumberSpotcams * sizeof(SPOTCAM));
+	SpotCam.resize(numSpotcams);
+	if (numSpotcams != 0)
+		ReadBytes(SpotCam.data(), numSpotcams * sizeof(SPOTCAM));
 
 	int sinkCount = ReadCount();
 	TENLog("Sink count: " + std::to_string(sinkCount), LogLevel::Info);
