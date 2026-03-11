@@ -8,12 +8,12 @@
     "configurePresets": [
         {
             "name": "win-x64-msvc",
-            "displayName": "Windows x64 (Visual Studio)",
+            "displayName": "Windows x64 (Visual Studio + MSVC)",
             "generator": "Visual Studio 17 2022",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/build/win-x64",
+            "binaryDir": "${sourceDir}/Build/msvc",
             "cacheVariables": {
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
             "condition": {
                 "type": "equals",
@@ -25,11 +25,27 @@
             "name": "win-x64-ninja",
             "displayName": "Windows x64 (Ninja + MSVC)",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/win-x64-ninja",
+            "binaryDir": "${sourceDir}/Build/ninja-msvc",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "win-x64-gcc",
+            "displayName": "Windows x64 (Ninja + GCC/MinGW)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/Build/mingw",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
             "condition": {
                 "type": "equals",
@@ -41,11 +57,11 @@
             "name": "linux-x64-gcc",
             "displayName": "Linux x64 (GCC)",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/linux-x64-gcc",
+            "binaryDir": "${sourceDir}/Build/gcc",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "gcc",
                 "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
             "condition": {
                 "type": "equals",
@@ -57,11 +73,11 @@
             "name": "linux-x64-clang",
             "displayName": "Linux x64 (Clang)",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/linux-x64-clang",
+            "binaryDir": "${sourceDir}/Build/clang",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
             "condition": {
                 "type": "equals",
@@ -73,11 +89,11 @@
             "name": "macos-clang",
             "displayName": "macOS (Clang)",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/macos",
+            "binaryDir": "${sourceDir}/Build/macos",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
             "condition": {
                 "type": "equals",
@@ -89,25 +105,25 @@
     "buildPresets": [
         {
             "name": "win-x64-debug",
-            "displayName": "Debug",
+            "displayName": "Debug (MSVC)",
             "configurePreset": "win-x64-msvc",
             "configuration": "Debug"
         },
         {
             "name": "win-x64-release",
-            "displayName": "Release",
+            "displayName": "Release (MSVC)",
             "configurePreset": "win-x64-msvc",
             "configuration": "Release"
         },
         {
             "name": "linux-debug",
-            "displayName": "Debug",
+            "displayName": "Debug (GCC)",
             "configurePreset": "linux-x64-gcc",
             "configuration": "Debug"
         },
         {
             "name": "linux-release",
-            "displayName": "Release",
+            "displayName": "Release (GCC)",
             "configurePreset": "linux-x64-gcc",
             "configuration": "Release"
         }

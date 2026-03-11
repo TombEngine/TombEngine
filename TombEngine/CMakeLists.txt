@@ -80,24 +80,21 @@ else()
 endif()
 target_compile_features(TombEngine PRIVATE cxx_std_17)
 
-# Output directory: place binary under <Config>/Bin/<Platform>/ so all
-# platforms can coexist in a single game distribution and game assets live
-# at the <Config>/ level (e.g. Build/Release/Bin/Windows/).
-# For multi-config generators (Visual Studio, Ninja Multi-Config) we must
-# set per-config properties to prevent CMake from appending the config name
-# inside Bin/<Platform>/.
+# Output directory: place the final binary under Build/<Config>/Bin/<Platform>/
+# using an absolute path so the exe always lands in the same location regardless
+# of which preset (and binaryDir) is active.
 foreach(_CONFIG Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER ${_CONFIG} _CONFIG_UPPER)
     set_target_properties(TombEngine PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_${_CONFIG_UPPER}
-            "${CMAKE_BINARY_DIR}/${_CONFIG}/Bin/${TEN_PLATFORM_SUBDIR}"
+            "${CMAKE_SOURCE_DIR}/Build/${_CONFIG}/Bin/${TEN_PLATFORM_SUBDIR}"
     )
 endforeach()
 # Single-config fallback (e.g. plain Ninja or Makefiles).
 if(CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_target_properties(TombEngine PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY
-            "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Bin/${TEN_PLATFORM_SUBDIR}"
+            "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Bin/${TEN_PLATFORM_SUBDIR}"
     )
 endif()
 
