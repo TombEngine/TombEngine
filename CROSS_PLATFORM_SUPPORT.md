@@ -14,9 +14,12 @@ The repository includes a `CMakePresets.json` with ready-to-use configurations:
 |--------|----------|-----------|----------|
 | `win-x64-msvc` | Windows | Visual Studio 17 2022 | MSVC |
 | `win-x64-ninja` | Windows | Ninja Multi-Config | MSVC |
+| `win-x64-gcc` | Windows | Ninja Multi-Config | GCC (MinGW) |
 | `linux-x64-gcc` | Linux | Ninja Multi-Config | GCC |
 | `linux-x64-clang` | Linux | Ninja Multi-Config | Clang |
 | `macos-clang` | macOS | Ninja Multi-Config | Clang |
+
+Each preset has its own build cache directory (e.g. `Build/msvc/`, `Build/gcc/`), but the final executable is always placed in `Build/<Config>/Bin/<Platform>/` regardless of which preset is used.
 
 Usage:
 
@@ -97,8 +100,8 @@ cmake --preset win-x64-msvc
 cmake --build --preset win-x64-release
 
 # Or manually
-cmake -B Build/win-x64 -A x64
-cmake --build Build/win-x64 --config Release
+cmake -B Build/msvc -A x64
+cmake --build Build/msvc --config Release
 ```
 
 ### Selecting the Graphics API
@@ -186,7 +189,7 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-The executable is placed at `build/Bin/Linux/TombEngine`. BASS and VLC shared libraries are automatically copied next to the binary by the build system.
+The executable is placed at `Build/Release/Bin/Linux/TombEngine` (or `Build/Debug/Bin/Linux/` for debug builds). BASS and VLC shared libraries are automatically copied next to the binary by the build system.
 
 ### Setting Up Game Files
 
