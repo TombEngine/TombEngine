@@ -144,9 +144,11 @@ float Remap(float value, float low1, float high1, float low2, float high2)
 }
 
 // Height fraction [0,1] within cloud layer.
+// In TEN's Y-down space: bottomY is the slab's lower face (highest Y = nearest ground).
+// Returns 0 at the bottom face, 1 at the top face.
 float HeightFraction(float worldY, float bottomY, float thickness)
 {
-	return saturate((worldY - bottomY) / max(thickness, 1.0f));
+	return saturate((bottomY - worldY) / max(thickness, 1.0f));
 }
 
 // Height-based density gradient: rounded-bottom cumulus-like profile.
@@ -215,58 +217,34 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 }
 
 // ===========================================================================
-// Ray-sphere intersection for cloud shell
+// Cloud slab intersection — TEN uses Y-down coordinates
 // ===========================================================================
 
-// Returns (tNear, tFar) for intersection with a sphere centered at (0, planetCenterY, 0).
-// Returns (-1, -1) if no intersection.
-float2 IntersectSphere(float3 rayOrigin, float3 rayDir, float sphereRadius)
-{
-	float3 center = float3(0.0f, PlanetCenterY, 0.0f);
-	float3 oc = rayOrigin - center;
-
-	float b = dot(oc, rayDir);
-	float c = dot(oc, oc) - sphereRadius * sphereRadius;
-	float disc = b * b - c;
-
-	if (disc < 0.0f)
-		return float2(-1.0f, -1.0f);
-
-	float sqrtDisc = sqrt(disc);
-	return float2(-b - sqrtDisc, -b + sqrtDisc);
-}
-
-// Intersect ray with the cloud shell (two concentric spheres).
-// Returns (tEntry, tExit) of the overlapping region.
+// Intersect a ray with the flat horizontal cloud slab.
+// In TEN: Y increases downward, so clouds ABOVE the camera have lower Y values.
+//   Slab bottom face (nearest ground)  = CamPositionWS.y - CloudBottomHeight
+//   Slab top face   (furthest from ground) = bottom - CloudThickness
+// Returns (tEntry, tExit), or (-1, -1) on miss.
 float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
 {
-	float innerRadius = EarthRadius + CloudBottomHeight;
-	float outerRadius = EarthRadius + CloudTopHeight;
+	float slabBottom = CamPositionWS.y - CloudBottomHeight;
+	float slabTop    = slabBottom - CloudThickness;
 
-	float2 innerHit = IntersectSphere(rayOrigin, rayDir, innerRadius);
-	float2 outerHit = IntersectSphere(rayOrigin, rayDir, outerRadius);
-
-	// Camera is below cloud layer (most common case).
-	if (innerHit.x < 0.0f && innerHit.y < 0.0f)
-	{
-		// Camera inside inner sphere — cloud volume starts at outer sphere near hit.
-		// This shouldn't typically happen for sky views.
+	// Horizontal rays never cross the horizontal slab.
+	if (abs(rayDir.y) < 0.0001f)
 		return float2(-1.0f, -1.0f);
-	}
 
-	// Camera below inner sphere: march from inner far to outer far.
-	if (innerHit.x > 0.0f)
-		return float2(innerHit.x, outerHit.y);
+	float t0 = (slabBottom - rayOrigin.y) / rayDir.y;
+	float t1 = (slabTop    - rayOrigin.y) / rayDir.y;
 
-	// Camera inside cloud layer: march from 0 to outer far.
-	if (innerHit.y > 0.0f && outerHit.x < 0.0f)
-		return float2(0.0f, outerHit.y);
+	float tNear = min(t0, t1);
+	float tFar  = max(t0, t1);
 
-	// Camera above cloud layer: march from outer near to inner near.
-	if (outerHit.x > 0.0f)
-		return float2(outerHit.x, innerHit.x);
+	// Miss: slab entirely behind camera, or degenerate interval.
+	if (tFar < 0.0f || tNear >= tFar)
+		return float2(-1.0f, -1.0f);
 
-	return float2(-1.0f, -1.0f);
+	return float2(max(tNear, 0.0f), tFar);
 }
 
 // ===========================================================================
@@ -309,8 +287,8 @@ float LightTransmittance(float3 pos, float heightFrac)
 	for (int shadowStep = 0; shadowStep < ShadowStepCount; shadowStep++)
 	{
 		lightPos += lightStep;
-		float lh = HeightFraction(lightPos.y, 
-		           CamPositionWS.y + CloudBottomHeight, CloudThickness);
+		float lh = HeightFraction(lightPos.y,
+		           CamPositionWS.y - CloudBottomHeight, CloudThickness);
 
 		if (lh < 0.0f || lh > 1.0f)
 			break;
@@ -380,7 +358,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 
 		float3 samplePos = rayOrigin + rayDir * t;
 		float  heightFrac = HeightFraction(samplePos.y,
-		                    rayOrigin.y + CloudBottomHeight, CloudThickness);
+		                    rayOrigin.y - CloudBottomHeight, CloudThickness);
 
 		// Skip samples outside the cloud layer boundary.
 		if (heightFrac >= 0.0f && heightFrac <= 1.0f)
@@ -485,9 +463,9 @@ float4 PS(VSOutput input) : SV_TARGET
 	float3 rayOrigin = CamPositionWS.xyz;
 	float3 rayDir    = GetViewRayDir(input.UV);
 
-	// Only render clouds for upward-looking rays (above horizon).
-	// Allow a small angle below horizon for seamless blending.
-	if (rayDir.y < -0.02f)
+	// In TEN Y-down: upward rays have rayDir.y < 0.
+	// Discard downward-looking rays (into the ground).
+	if (rayDir.y > 0.02f)
 		return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	float4 cloudResult = RaymarchClouds(rayOrigin, rayDir, input.Position.xy);
@@ -548,7 +526,7 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
 
 		float3 samplePos = rayOrigin + rayDir * t;
 		float heightFrac = HeightFraction(samplePos.y,
-		                   rayOrigin.y + CloudBottomHeight, CloudThickness);
+		                   rayOrigin.y - CloudBottomHeight, CloudThickness);
 
 		if (heightFrac >= 0.0f && heightFrac <= 1.0f)
 		{
