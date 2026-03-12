@@ -18,7 +18,8 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto COBRA_BITE_POISON_POTENCY = 8;
 
 	constexpr auto COBRA_ATTACK_RANGE = SQUARE(BLOCK(1));
-	constexpr auto COBRA_AWARE_RANGE = SQUARE(BLOCK(1.25f)); // OG Cobra Nevada.
+	constexpr auto COBRA_AWARE_RANGE = SQUARE(BLOCK(1.25f));
+	constexpr auto COBRA_VERTICAL_AWARE_RANGE = SQUARE(BLOCK(0.5f));
 	constexpr auto COBRA_SLEEP_RANGE = SQUARE(BLOCK(2.5f));
 
 	constexpr auto COBRA_DISTURBANCE_VELOCITY = 15.0f;
@@ -91,14 +92,16 @@ namespace TEN::Entities::Creatures::TR3
 
 				isEnemyVisible = LOS(&origin, &target);
 
-				// little trick to prevent Cobra jerking: after losing LOS, `EnemyIsVisible` working few more frames.
-					if (isEnemyVisible)
-						item->ItemFlags[3] = 6;
-					else if (item->ItemFlags[3] > 0)
-					{
-						item->ItemFlags[3]--;
-						isEnemyVisible = true;
-					}
+				// A little trick to prevent Cobra jerking: after losing LOS, `EnemyIsVisible` working few more frames.
+				if (isEnemyVisible)
+				{
+					item->ItemFlags[3] = 6;
+				}
+				else if (item->ItemFlags[3] > 0)
+				{
+					item->ItemFlags[3]--;
+					isEnemyVisible = true;
+				}
 
 				if (creature->Enemy->Animation.Velocity.z > COBRA_DISTURBANCE_VELOCITY ||
 					abs(creature->Enemy->Animation.Velocity.y) > COBRA_DISTURBANCE_VELOCITY)
@@ -110,31 +113,36 @@ namespace TEN::Entities::Creatures::TR3
 				creature->Target.z = creature->Enemy->Pose.Position.z;
 			}
 
-			bool isEnemyClose = AI.distance < COBRA_AWARE_RANGE && AI.verticalDistance > -BLOCK(0.75f); // Cobra keep targeting when lost LOS if Lara hanging on edge in AWARE_RANGE.
+			// Cobra keep targeting when lost LOS if Lara hanging on edge in AWARE_RANGE.
+			bool isEnemyClose = AI.distance < COBRA_AWARE_RANGE && AI.verticalDistance > -BLOCK(0.75f);
+
 			if ((isEnemyVisible || isEnemyClose) && item->Animation.ActiveState != COBRA_STATE_SLEEP)
 			{
 				angle = CreatureTurn(item, creature->MaxTurn);
 
 				if (AI.ahead)
-						tilt = -AI.xAngle;
-					vertTilt = (AI.verticalDistance >= 0) ? tilt : 0; // Can invert rotation direction or disable tilt for accurate adjusting CreatureJoints.
+					tilt = -AI.xAngle;
 
-					bool isWakeUp = (item->Animation.ActiveState == COBRA_STATE_WAKE_UP);
-					bool isLaraJump = creature->Enemy->Animation.IsAirborne;
+				// Can invert rotation direction or disable tilt for accurate adjusting CreatureJoints.
+				vertTilt = (AI.verticalDistance >= 0) ? tilt : 0;
 
-					short leftTurn  = isWakeUp || isLaraJump ? ANGLE(10.0f) : ANGLE(2.0f); // leftTurn & rightTurn speed works only in ATTACK_RANGE, otherwise ANGLE(10.0f) as OG.
-					short rightTurn = isWakeUp || isLaraJump ? ANGLE(10.0f) : ANGLE(3.0f);
+				bool isWakeUp = (item->Animation.ActiveState == COBRA_STATE_WAKE_UP);
+				bool isLaraJump = creature->Enemy->Animation.IsAirborne;
 
-					if (abs(AI.angle) < rightTurn)
-						item->Pose.Orientation.y += AI.angle;
-					else if (AI.angle < 0)
-						item->Pose.Orientation.y -= leftTurn;
-					else
-						item->Pose.Orientation.y += rightTurn;
-				}
+				// leftTurn & rightTurn speed works only in ATTACK_RANGE, otherwise ANGLE(10.0f) as OG.
+				short leftTurn  = isWakeUp || isLaraJump ? ANGLE(10.0f) : ANGLE(2.0f); 
+				short rightTurn = isWakeUp || isLaraJump ? ANGLE(10.0f) : ANGLE(3.0f);
 
-				switch (item->Animation.ActiveState)
-				{
+				if (abs(AI.angle) < rightTurn)
+					item->Pose.Orientation.y += AI.angle;
+				else if (AI.angle < 0)
+					item->Pose.Orientation.y -= leftTurn;
+				else
+					item->Pose.Orientation.y += rightTurn;
+			}
+
+			switch (item->Animation.ActiveState)
+			{
 			case COBRA_STATE_IDLE:
 				creature->Flags = 0;
 
@@ -159,8 +167,9 @@ namespace TEN::Entities::Creatures::TR3
 					item->HitPoints = NOT_TARGETABLE;
 				}
 
+				
 				if (AI.distance < COBRA_AWARE_RANGE && creature->Enemy && creature->Enemy->HitPoints > 0 &&
-						abs(AI.verticalDistance) < BLOCK(0.5f) && !creature->Enemy->Animation.IsAirborne) // if BLOCK(0.75f) - Cobra will wake up if Lara grab the edge in AWARE_RANGE.
+					abs(AI.verticalDistance) < COBRA_VERTICAL_AWARE_RANGE && !creature->Enemy->Animation.IsAirborne) // Wake up if Lara grabs the edge in AWARE_RANGE.
 				{
 					item->Animation.TargetState = COBRA_STATE_WAKE_UP;
 					item->HitPoints = item->ItemFlags[2];
@@ -189,10 +198,10 @@ namespace TEN::Entities::Creatures::TR3
 			}
 		}
 
-		CreatureJoint(item, 0, tilt / 4);			// body.
-		CreatureJoint(item, 1, tilt / 2);			// neck.
-		CreatureJoint(item, 2, -vertTilt / 4);		// open mouth.
-		CreatureJoint(item, 3, vertTilt);			// show teeth.
+		CreatureJoint(item, 0, tilt / 4);		// Body.
+		CreatureJoint(item, 1, tilt / 2);		// Neck.
+		CreatureJoint(item, 2, -vertTilt / 4);	// Open mouth.
+		CreatureJoint(item, 3, vertTilt);		// Show teeth.
 		CreatureAnimation(itemNumber, angle, 0);
 	}
 }
