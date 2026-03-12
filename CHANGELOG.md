@@ -32,6 +32,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
 * Fixed OCB calculation for WINGED_MUMMY. 
   [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
+* Fixed TR3 bosses not dropping items when killed.
 * Fixed teleporting upwards after corner shimmy when another ledge is above.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
@@ -50,7 +51,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed linear inventory not fading ammo and combine selectors.
 * Fixed crashes on certain GPUs with dynamic memory allocation.
 * Fixed loading of level files bigger than 2 GB (only for 64-bit systems).
-* Fixed Tomb Raider III bosses not dropping items when killed.
 
 ### Lua API changes
 * Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.

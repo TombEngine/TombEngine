@@ -8,6 +8,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/misc.h"
+#include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 
@@ -197,7 +198,7 @@ namespace TEN::Effects::Boss
 	}
 
 	// NOTE: Actual death occurs when countUntilDeath >= 60.
-	void ExplodeBoss(int itemNumber, ItemInfo& item, int countUntilDeath, const Vector4& color, const Vector4& explosionColor1, const Vector4& explosionColor2, bool allowExplosion)
+	void ExplodeBoss(ItemInfo& item, int countUntilDeath, const Vector4& color, const Vector4& explosionColor1, const Vector4& explosionColor2, bool allowExplosion)
 	{
 		// Disable shield.
 		item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
@@ -270,25 +271,12 @@ namespace TEN::Effects::Boss
 
 		if (counter >= countUntilDeath)
 		{
-			{
-				auto pos = item.Pose.Position.ToVector3();
-				pos.y = GetPointCollision(pos, item.RoomNumber).GetFloorHeight();
+			DropPickups(&item, true);
 
-				for (short n = item.CarriedItem; n != NO_VALUE; n = g_Level.Items[n].CarriedItem)
-				{
-					auto& p = g_Level.Items[n];
-					p.Pose.Position = pos;
-					p.Pose.Position.y -= GameBoundingBox(&p).Y2;
-					p.Pose.Orientation.y = ANGLE(Random::GenerateInt(0, 359));
-					ItemNewRoom(n, item.RoomNumber);
-				}
-
-				item.CarriedItem = NO_VALUE;
-			}
 			if (allowExplosion)
-				CreatureDie(itemNumber, allowExplosion, true);
+				CreatureDie(item.Index, allowExplosion, true);
 			else
-				KillItem(itemNumber);
+				KillItem(item.Index);
 		}
 	}
 
