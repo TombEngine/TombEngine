@@ -326,13 +326,13 @@ namespace TEN::Entities::Creatures::TR1
 				{
 					item.Animation.TargetState = WMUTANT_STATE_SWIPE_ATTACK;
 				}
-				else if (ai.bite && ai.distance < WINGED_MUTANT_IDLE_JUMP_ATTACK_RANGE)
-				{
-					item.Animation.TargetState = WMUTANT_STATE_IDLE_JUMP_ATTACK;
-				}
 				else if (ai.bite && ai.distance < WINGED_MUTANT_SWIPE_ATTACK_RANGE)
 				{
 					item.Animation.TargetState = WMUTANT_STATE_SWIPE_ATTACK;
+				}
+				else if (ai.bite && ai.distance < WINGED_MUTANT_IDLE_JUMP_ATTACK_RANGE)
+				{
+					item.Animation.TargetState = WMUTANT_STATE_IDLE_JUMP_ATTACK;
 				}
 				else if (projectileType == WMUTANT_PROJ_SHARD)
 				{
@@ -556,13 +556,17 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case WMUTANT_STATE_FLY:
-				creature.MaxTurn = WINGED_MUTANT_RUN_TURN_RATE_MAX;
-				if (creature.Mood != MoodType::Escape && isSameZoneInGroundMode)
-				{
-					item.Animation.TargetState = WMUTANT_STATE_IDLE; // Switch to ground mode.
-					item.Pose.Position.y = item.Floor;
-					item.SetFlagField(WMUTANT_CONF_PATHFINDING_MODE, WMUTANT_PATH_GROUND);
-				}
+					creature.MaxTurn = WINGED_MUTANT_RUN_TURN_RATE_MAX;
+
+					// Override TargetOffset to OG point.
+					if (creature.Mood == MoodType::Attack && creature.Enemy != nullptr)
+						creature.Target.y = creature.Enemy->Pose.Position.y;
+
+					if (creature.Mood != MoodType::Escape && isSameZoneInGroundMode && (item.Floor - item.Pose.Position.y) <= CLICK(2))
+					{
+						item.Animation.TargetState = WMUTANT_STATE_IDLE; // Switch to ground mode.
+						item.SetFlagField(WMUTANT_CONF_PATHFINDING_MODE, WMUTANT_PATH_GROUND);
+					}
 
 				break;
 			}
