@@ -148,6 +148,9 @@ namespace TEN::Renderer::Native::OpenGL
 		int GetScreenHeight() override;
 
 		bool NeedsFBOYFlip() const override { return true; }
+
+		void BeginDebugEvent(const std::string& name) override;
+		void EndDebugEvent() override;
 	};
 }
 

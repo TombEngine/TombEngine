@@ -800,6 +800,9 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		throwIfFailed(res);
+
+		// Query annotation interface for RenderDoc/PIX debug events.
+		_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), reinterpret_cast<void**>(_annotation.GetAddressOf()));
 	}
 
 	std::string DX11GraphicsDevice::GetDefaultAdapterName()
@@ -1188,6 +1191,21 @@ namespace TEN::Renderer::Native::DirectX11
 	int DX11GraphicsDevice::GetScreenHeight()
 	{
 		return _screenHeight;
+	}
+
+	void DX11GraphicsDevice::BeginDebugEvent(const std::string& name)
+	{
+		if (_annotation)
+		{
+			auto wname = TEN::Utils::ToWString(name);
+			_annotation->BeginEvent(wname.c_str());
+		}
+	}
+
+	void DX11GraphicsDevice::EndDebugEvent()
+	{
+		if (_annotation)
+			_annotation->EndEvent();
 	}
 }
 

@@ -1364,6 +1364,16 @@ namespace TEN::Renderer::Native::OpenGL
 	int GLGraphicsDevice::GetRefreshRate() { return _refreshRate; }
 	int GLGraphicsDevice::GetScreenWidth() { return _screenWidth; }
 	int GLGraphicsDevice::GetScreenHeight() { return _screenHeight; }
+
+	void GLGraphicsDevice::BeginDebugEvent(const std::string& name)
+	{
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name.c_str());
+	}
+
+	void GLGraphicsDevice::EndDebugEvent()
+	{
+		glPopDebugGroup();
+	}
 }
 
 #endif

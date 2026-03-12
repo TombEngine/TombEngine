@@ -143,8 +143,7 @@ namespace TEN::Renderer
 			return;
 
 		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		auto shadowLightPos = (_shadowLight->Hash == 0) ?
 			_shadowLight->Position :
@@ -178,12 +177,18 @@ namespace TEN::Renderer
 
 		for (int step = 0; step < 6; step++)
 		{
-			// Bind render target.
-			_graphicsDevice->BindRenderTarget(
-				IRenderTargetBinding(_shadowMap->GetRenderTarget(), step),
-				IDepthTargetBinding(_shadowMap->GetDepthTarget(), step));
-			_graphicsDevice->SetViewport(_shadowMapViewport);
-			_graphicsDevice->SetScissor(_shadowMapViewport);
+			// Bind render target (already cleared by ClearShadowMap).
+			{
+				RenderPassDescriptor shadowPass;
+				shadowPass.Name = "Shadow Map Face " + std::to_string(step);
+				shadowPass.ColorAttachments.push_back({
+					_shadowMap->GetRenderTarget(), step,
+					LoadAction::Load, StoreAction::Store
+				});
+				shadowPass.DepthAttachment = { _shadowMap->GetDepthTarget(), step, LoadAction::Load, StoreAction::Store };
+				shadowPass.Viewport = _shadowMapViewport;
+				BeginRenderPass(shadowPass);
+			}
 
 			if (shadowLightPos == item->Position)
 				return;
@@ -418,9 +423,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines2D()
 	{
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::Lines2D);
 
 		_shaders.Bind(Shader::Solid);
 		auto worldMatrix = Matrix::CreateOrthographicOffCenter(0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0, _viewport.MinDepth, _viewport.MaxDepth);
@@ -454,8 +457,7 @@ namespace TEN::Renderer
 
 		_primitiveBatch->End();
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 	}
 
 	void Renderer::DrawSpiders(RenderView& view, RendererPass rendererPass)
@@ -1149,8 +1151,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::DebugLines);
 
 		_shaders.Bind(Shader::Solid);
 
@@ -1175,14 +1176,12 @@ namespace TEN::Renderer
 
 		_primitiveBatch->End();
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 	}
 
 	void Renderer::DrawTriangles3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::DebugLines);
 
 		_shaders.Bind(Shader::Solid);
 
@@ -1213,8 +1212,7 @@ namespace TEN::Renderer
 
 		_primitiveBatch->End();
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 	}
 
 	void Renderer::AddDebugLine(const Vector3& origin, const Vector3& target, const Color& color, RendererDebugPage page)
@@ -1878,9 +1876,7 @@ namespace TEN::Renderer
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		BindPipeline(Pipelines::OpaqueDefault, true);
 
 		BindMaterial(0, true);
 
@@ -1898,14 +1894,18 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
 
 		// Bind and clear render target.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Reset viewport and scissor.
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
+		{
+			RenderPassDescriptor mainPass;
+			mainPass.Name = "Main RT";
+			mainPass.ColorAttachments.push_back({
+				_renderTarget->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store,
+				_debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black
+			});
+			mainPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			mainPass.Viewport = view.Viewport;
+			BeginRenderPass(mainPass);
+		}
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		CCameraMatrixBuffer cameraConstantBuffer;
@@ -1949,22 +1949,28 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
 		// Draw horizon and sky.
+		BeginDebugEvent("Sky");
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
+		EndDebugEvent();
 
 		// Build G-Buffer (normals + depth).
-		_graphicsDevice->ClearRenderTarget2D(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearRenderTarget2D(_depthRenderTarget->GetRenderTarget(), Colors::White);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-
-		std::vector<IRenderTarget2D*> gbuffer;
-		gbuffer.push_back(_normalsAndMaterialIndexRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_depthRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-		_graphicsDevice->BindRenderTargets(gbuffer, _renderTarget->GetDepthTarget());
+		{
+			RenderPassDescriptor gbufferPass;
+			gbufferPass.Name = "G-Buffer";
+			gbufferPass.ColorAttachments = {
+				{ _normalsAndMaterialIndexRenderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Transparent },
+				{ _depthRenderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::White },
+				{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Transparent }
+			};
+			gbufferPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Load, StoreAction::Store };
+			gbufferPass.Viewport = view.Viewport;
+			BeginRenderPass(gbufferPass);
+		}
 
 		// Render G-Buffer pass.
+		BeginDebugEvent("G-Buffer Pass");
 		DoRenderPass(RendererPass::GBuffer, view, true);
+		EndDebugEvent();
 
 		// Calculate ambient occlusion.
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
@@ -1973,12 +1979,20 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
-
 		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		{
+			RenderPassDescriptor mainPass;
+			mainPass.Name = "Main RT (Opaque/Transparent)";
+			mainPass.ColorAttachments.push_back({
+				_renderTarget->GetRenderTarget(), 0,
+				LoadAction::Load, StoreAction::Store
+			});
+			mainPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Load, StoreAction::Store };
+			mainPass.Viewport = view.Viewport;
+			BeginRenderPass(mainPass);
+		}
 
+		BeginDebugEvent("Draw Passes");
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
@@ -1990,14 +2004,24 @@ namespace TEN::Renderer
 		// Draw 3D debug lines and triangles.
 		DrawLines3D(view);
 		DrawTriangles3D(view);
+		EndDebugEvent();
 
 		// Copy current scene to the reflections render target for the next frame
 		// RT -> LRRT
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		// Clear the depth buffer for drawing HUD on top
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Re-bind main RT with depth clear for HUD on top.
+		{
+			RenderPassDescriptor hudPass;
+			hudPass.Name = "HUD Overlay";
+			hudPass.ColorAttachments.push_back({
+				_renderTarget->GetRenderTarget(), 0,
+				LoadAction::Load, StoreAction::Store
+			});
+			hudPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			hudPass.Viewport = view.Viewport;
+			BeginRenderPass(hudPass);
+		}
 
 		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
@@ -2007,6 +2031,8 @@ namespace TEN::Renderer
 		}
 
 		_doingFullscreenPass = true;
+
+		BeginDebugEvent("Fullscreen Passes");
 
 		// Calculates glow
 		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
@@ -2026,8 +2052,10 @@ namespace TEN::Renderer
 		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
 		DrawPostprocess(renderTarget, view, renderMode);
 
+		EndDebugEvent();
 		_doingFullscreenPass = false;
 
+		BeginDebugEvent("2D Overlays");
 		DrawOverlays(view);
 		DrawLines2D();
 
@@ -2040,10 +2068,14 @@ namespace TEN::Renderer
 			DrawAllStrings();
 			DrawDisplaySprites(view, true);
 		}
+		EndDebugEvent();
 
 		time2 = std::chrono::high_resolution_clock::now();
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
+
+		// End the last render pass. Required by SDL_GPU before presenting.
+		EndRenderPass();
 
 		ClearScene();
 		CalculateFrameRate();
@@ -2314,22 +2346,25 @@ namespace TEN::Renderer
 			return;
 
 		// Set basic render states.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 
-		// Clear screen
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Bind back buffer.
-		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-		
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
+		// Clear and bind back buffer.
+		{
+			RenderPassDescriptor pass;
+			pass.Name = "Fullscreen Texture";
+			pass.ColorAttachments.push_back({
+				_backBuffer->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			pass.DepthAttachment = { _backBuffer->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			pass.Viewport = _viewport;
+			BeginRenderPass(pass);
+		}
 
 		// Draw full screen background.
 		DrawFullScreenQuad(texture, Vector3::One, true, aspect);
 
+		EndRenderPass();
 		ClearScene();
 
 		_graphicsDevice->ClearState();
@@ -2344,8 +2379,7 @@ namespace TEN::Renderer
 	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)
 	{
 		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
@@ -2357,7 +2391,7 @@ namespace TEN::Renderer
 		// If mirrors are in view, render mirrored objects for every mirror.
 		if (drawMirrors && !view.Mirrors.empty())
 		{
-			SetCullMode(CullMode::Clockwise);
+			BindPipeline(Pipelines::OpaqueCW);
 			for (auto& mirror : view.Mirrors)
 			{
 				_currentMirror = &mirror;
@@ -2365,7 +2399,7 @@ namespace TEN::Renderer
 				_currentMirror = nullptr;
 			}
 
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline(Pipelines::OpaqueDefault);
 		}
 	}
 
@@ -2479,6 +2513,7 @@ namespace TEN::Renderer
 
 	void Renderer::RenderItemShadows(RenderView& renderView)
 	{
+		BeginDebugEvent("Shadows");
 		RenderBlobShadows(renderView);
 
 		if (g_Configuration.ShadowType != ShadowMode::None)
@@ -2487,6 +2522,7 @@ namespace TEN::Renderer
 				for (auto itemToDraw : room->ItemsToDraw)
 					RenderShadowMap(itemToDraw, renderView);
 		}
+		EndDebugEvent();
 	}
 
 	void Renderer::DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass)
@@ -2988,26 +3024,21 @@ namespace TEN::Renderer
 	
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
-		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 0, Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_skyboxRenderTarget->GetDepthTarget(), 0, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		_graphicsDevice->BindRenderTarget(
-			IRenderTargetBinding(_skyboxRenderTarget->GetRenderTarget(), 0),
-			IDepthTargetBinding(_skyboxRenderTarget->GetDepthTarget(), 0)
-		);
+		RendererViewport viewport = { 0, 0, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 1 };
 
-		RendererViewport viewport;
-		viewport.X = 0;
-		viewport.Y = 0;
-		viewport.Width = ROOM_AMBIENT_MAP_SIZE;
-		viewport.Height = ROOM_AMBIENT_MAP_SIZE;
-		viewport.MinDepth = 0;
-		viewport.MaxDepth = 1;
+		{
+			RenderPassDescriptor skyPass;
+			skyPass.Name = "Skybox Hemisphere 0";
+			skyPass.ColorAttachments.push_back({
+				_skyboxRenderTarget->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			skyPass.DepthAttachment = { _skyboxRenderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			skyPass.Viewport = viewport;
+			BeginRenderPass(skyPass);
+		}
 
-		_graphicsDevice->SetViewport(viewport);
-		_graphicsDevice->SetScissor(viewport);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		auto view = RenderView(_gameCamera.Camera.WorldPosition, Vector3::UnitX, Vector3::UnitY, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 32, DEFAULT_FAR_VIEW, PI / 2.0f);
 
@@ -3022,20 +3053,25 @@ namespace TEN::Renderer
 
 		DrawHorizonAndSky(_skyboxRenderTarget->GetDepthTarget(), view, 0, true);
 
-		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 1, Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_skyboxRenderTarget->GetDepthTarget(), 1, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		_graphicsDevice->BindRenderTarget(
-			IRenderTargetBinding(_skyboxRenderTarget->GetRenderTarget(), 1),
-			IDepthTargetBinding(_skyboxRenderTarget->GetDepthTarget(), 1)
-		);
-		SetCullMode(CullMode::Clockwise);
+		{
+			RenderPassDescriptor skyPass2;
+			skyPass2.Name = "Skybox Hemisphere 1";
+			skyPass2.ColorAttachments.push_back({
+				_skyboxRenderTarget->GetRenderTarget(), 1,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			skyPass2.DepthAttachment = { _skyboxRenderTarget->GetDepthTarget(), 1, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			skyPass2.Viewport = viewport;
+			BeginRenderPass(skyPass2);
+		}
+		BindPipeline({ BlendMode::Opaque, DepthState::Write, CullMode::Clockwise });
 
 		cameraConstantBuffer.Hemisphere = 1;
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
 		DrawHorizonAndSky(_skyboxRenderTarget->GetDepthTarget(), view, 1, true);
 
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 	}
 
 	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
@@ -3071,7 +3107,7 @@ namespace TEN::Renderer
 		_graphicsDevice->BindVertexBuffer(_skyVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_skyIndexBuffer.get());
 
-		SetBlendMode(BlendMode::Additive);
+		BindPipeline(Pipelines::Additive);
 
 		for (int layer = 0; layer < 2; layer++)
 		{
@@ -3103,9 +3139,7 @@ namespace TEN::Renderer
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
-			SetDepthState(DepthState::Read);
-			SetBlendMode(BlendMode::Additive);
-			SetCullMode(CullMode::None);
+			BindPipeline(Pipelines::AdditiveNoCull);
 
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
@@ -3234,7 +3268,7 @@ namespace TEN::Renderer
 
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline(Pipelines::OpaqueDefault);
 		}
 
 		// Draw horizon.
@@ -3245,11 +3279,10 @@ namespace TEN::Renderer
 
 			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
 				continue;
-			
+
 			_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 
-			SetDepthState(DepthState::None);
-			SetBlendMode(BlendMode::Opaque);
+			BindPipeline({ BlendMode::Opaque, DepthState::None, CullMode::CounterClockwise });
 
 			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -3297,9 +3330,7 @@ namespace TEN::Renderer
 		// Eventually draw the sun sprite.
 		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass)
 		{
-			SetDepthState(DepthState::Read);
-			SetBlendMode(BlendMode::Additive);
-			SetCullMode(CullMode::None);
+			BindPipeline(Pipelines::AdditiveNoCull);
 
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
@@ -4021,9 +4052,7 @@ namespace TEN::Renderer
 	{
 		_doingFullscreenPass = true;
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
+		BindPipeline(Pipelines::FullscreenPass);
 
 		// Common vertex shader to all full screen effects.
 		_shaders.Bind(Shader::PostProcess);
@@ -4031,13 +4060,18 @@ namespace TEN::Renderer
 		// SSAO pixel shader.
 		_shaders.Bind(Shader::Ssao);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAORenderTarget->GetRenderTarget(), Colors::White);
-		_graphicsDevice->BindRenderTarget(_SSAORenderTarget->GetRenderTarget(), nullptr);
-
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
-		_graphicsDevice->SetViewport(viewport);
-		_graphicsDevice->SetScissor(viewport);
+
+		{
+			RenderPassDescriptor ssaoPass;
+			ssaoPass.Name = "SSAO";
+			ssaoPass.ColorAttachments.push_back({
+				_SSAORenderTarget->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::White
+			});
+			ssaoPass.Viewport = viewport;
+			BeginRenderPass(ssaoPass);
+		}
 	
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
@@ -4058,8 +4092,16 @@ namespace TEN::Renderer
 		// Blur step.
 		_shaders.Bind(Shader::SsaoBlur);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
+		{
+			RenderPassDescriptor blurPass;
+			blurPass.Name = "SSAO Blur";
+			blurPass.ColorAttachments.push_back({
+				_SSAOBlurredRenderTarget->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			blurPass.Viewport = viewport;
+			BeginRenderPass(blurPass);
+		}
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
  

@@ -4,6 +4,7 @@
 #ifdef HAS_DX11
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
+#include <d3d11_1.h>
 #include <wrl/client.h>
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
@@ -30,6 +31,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11Device> _device = nullptr;
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
+		ComPtr<ID3DUserDefinedAnnotation> _annotation = nullptr;
 
 		ComPtr<ID3D11BlendState> _opaqueBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _additiveBlendState = nullptr;
@@ -183,6 +185,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 		int GetScreenWidth() override;
 		int GetScreenHeight() override;
+
+		void BeginDebugEvent(const std::string& name) override;
+		void EndDebugEvent() override;
 	};
 }
 

@@ -295,6 +295,9 @@ namespace TEN::Renderer
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
 
+		bool _renderPassActive = false;
+		bool _renderPassEventActive = false;
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -459,6 +462,11 @@ namespace TEN::Renderer
 		void RenderBlobShadows(RenderView& renderView);
 		void RenderShadowMap(RendererItem* item, RenderView& view);
 		void RenderItemShadows(RenderView& renderView);
+		void BeginRenderPass(const RenderPassDescriptor& desc);
+		void EndRenderPass();
+		void BeginDebugEvent(const std::string& name);
+		void EndDebugEvent();
+		void BindPipeline(const RenderPipelineState& pipeline, bool force = false);
 		void SetBlendMode(BlendMode blendMode, bool force = false);
 		void SetDepthState(DepthState depthState, bool force = false);
 		void SetCullMode(CullMode cullMode, bool force = false);

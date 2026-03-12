@@ -15,6 +15,8 @@
 #include "Renderer/Graphics/IPrimitiveBatch.h"
 #include "Renderer/Graphics/ISpriteBatch.h"
 #include "Renderer/Graphics/ISpriteFont.h"
+#include "Renderer/Graphics/RenderPassDescriptor.h"
+#include "Renderer/Graphics/RenderPipelineState.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Graphics/AdapterInfo.h"
 #include "Renderer/Structures/RendererRectangle.h"
@@ -116,6 +118,70 @@ namespace TEN::Renderer::Graphics
 		virtual int GetScreenHeight() = 0;
 
 		virtual bool NeedsFBOYFlip() const { return false; }
+
+		// Debug event API — override in backends to emit GPU annotations (RenderDoc, PIX, etc.).
+		virtual void BeginDebugEvent(const std::string& name) {}
+		virtual void EndDebugEvent() {}
+
+		// Render pass API — default implementations decompose into legacy calls.
+		virtual void BeginRenderPass(const RenderPassDescriptor& desc)
+		{
+			// Clear attachments.
+			for (auto& ca : desc.ColorAttachments)
+			{
+				if (ca.RenderTarget != nullptr && ca.LoadAction == LoadAction::Clear)
+				{
+					if (ca.ArrayIndex != 0)
+						ClearRenderTarget2D(ca.RenderTarget, ca.ArrayIndex, ca.ClearColor);
+					else
+						ClearRenderTarget2D(ca.RenderTarget, ca.ClearColor);
+				}
+			}
+
+			if (desc.DepthAttachment.DepthTarget != nullptr && desc.DepthAttachment.LoadAction == LoadAction::Clear)
+			{
+				if (desc.DepthAttachment.ArrayIndex != 0)
+					ClearDepthStencil(desc.DepthAttachment.DepthTarget, desc.DepthAttachment.ArrayIndex,
+						desc.DepthAttachment.ClearFlags, desc.DepthAttachment.ClearDepth, desc.DepthAttachment.ClearStencil);
+				else
+					ClearDepthStencil(desc.DepthAttachment.DepthTarget,
+						desc.DepthAttachment.ClearFlags, desc.DepthAttachment.ClearDepth, desc.DepthAttachment.ClearStencil);
+			}
+
+			// Bind render targets.
+			if (desc.ColorAttachments.size() == 1)
+			{
+				auto& ca = desc.ColorAttachments[0];
+				if (ca.ArrayIndex != 0)
+					BindRenderTarget(
+						IRenderTargetBinding(ca.RenderTarget, ca.ArrayIndex),
+						IDepthTargetBinding(desc.DepthAttachment.DepthTarget, desc.DepthAttachment.ArrayIndex));
+				else
+					BindRenderTarget(ca.RenderTarget, desc.DepthAttachment.DepthTarget);
+			}
+			else if (desc.ColorAttachments.size() > 1)
+			{
+				std::vector<IRenderTarget2D*> rts;
+				rts.reserve(desc.ColorAttachments.size());
+				for (auto& ca : desc.ColorAttachments)
+					rts.push_back(ca.RenderTarget);
+				BindRenderTargets(rts, desc.DepthAttachment.DepthTarget);
+			}
+
+			// Set viewport and scissor.
+			SetViewport(desc.Viewport);
+			SetScissor(desc.Viewport);
+		}
+
+		virtual void EndRenderPass() {}
+
+		// Pipeline state API — default implementation decomposes into individual state calls.
+		virtual void BindPipeline(const RenderPipelineState& state)
+		{
+			SetBlendMode(state.Blend);
+			SetDepthState(state.Depth);
+			SetCullMode(state.Cull);
+		}
 
 		virtual ~IGraphicsDevice() = default;
 	};

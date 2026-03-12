@@ -1254,9 +1254,9 @@ namespace TEN::Renderer
 		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
 
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-		SetBlendMode(BlendMode::Additive);
+		BindPipeline(Pipelines::Additive);
 
-		for (const auto& flashBucket : flashMesh.Buckets) 
+		for (const auto& flashBucket : flashMesh.Buckets)
 		{
 			if (flashBucket.BlendMode == BlendMode::Opaque)
 				continue;
@@ -1310,7 +1310,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		SetBlendMode(BlendMode::Opaque);
+		BindPipeline(Pipelines::OpaqueDefault);
 		return true;
 	}
 
@@ -1342,7 +1342,7 @@ namespace TEN::Renderer
 
 				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
 
-				SetBlendMode(BlendMode::Additive);
+				BindPipeline(Pipelines::Additive);
 				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 				if (creature.MuzzleFlash[0].Delay != 0 && creature.MuzzleFlash[0].Bite.BoneID != -1)
@@ -1433,10 +1433,10 @@ namespace TEN::Renderer
 			}
 		}
 
-		SetBlendMode(BlendMode::Opaque);
+		BindPipeline(Pipelines::OpaqueDefault);
 	}
 
-	void Renderer::PrepareFootprints(RenderView& view) 
+	void Renderer::PrepareFootprints(RenderView& view)
 	{
 		for (const auto& footprint : Footprints)
 		{
@@ -1590,7 +1590,7 @@ namespace TEN::Renderer
 		{
 			_shaders.Bind(Shader::InstancedStatics);
 
-			SetCullMode(CullMode::None);
+			BindPipeline(Pipelines::OpaqueNoCull);
 
 			_primitiveBatch->Begin();
 
@@ -1680,8 +1680,7 @@ namespace TEN::Renderer
 			// TODO: temporary fix, we need to remove every use of SpriteBatch and PrimitiveBatch because
 			// they mess up render states cache.
 
-			SetBlendMode(BlendMode::Opaque, true);
-			SetDepthState(DepthState::Write, true);
+			BindPipeline(Pipelines::OpaqueDefault, true);
 		}
 	}
 

@@ -323,15 +323,117 @@ namespace TEN::Renderer
 			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 
+	void Renderer::BeginRenderPass(const RenderPassDescriptor& desc)
+	{
+		// Close the previous render pass debug event (render pass events are flat/peers).
+		if (_renderPassEventActive)
+		{
+			_graphicsDevice->EndDebugEvent();
+			_renderPassEventActive = false;
+		}
+
+		// End the previous render pass on the device. Required by SDL_GPU which needs
+		// explicit EndRenderPass before BeginRenderPass. No-op for DX11/GL.
+		if (_renderPassActive)
+			_graphicsDevice->EndRenderPass();
+
+		_graphicsDevice->BeginRenderPass(desc);
+		_renderPassActive = true;
+
+		if (!desc.Name.empty())
+		{
+			_graphicsDevice->BeginDebugEvent(desc.Name);
+			_renderPassEventActive = true;
+		}
+	}
+
+	void Renderer::EndRenderPass()
+	{
+		if (_renderPassEventActive)
+		{
+			_graphicsDevice->EndDebugEvent();
+			_renderPassEventActive = false;
+		}
+
+		if (_renderPassActive)
+		{
+			_graphicsDevice->EndRenderPass();
+			_renderPassActive = false;
+		}
+	}
+
+	void Renderer::BeginDebugEvent(const std::string& name)
+	{
+		// Close any active render pass event — standalone events are peers with render pass events.
+		if (_renderPassEventActive)
+		{
+			_graphicsDevice->EndDebugEvent();
+			_renderPassEventActive = false;
+		}
+
+		_graphicsDevice->BeginDebugEvent(name);
+	}
+
+	void Renderer::EndDebugEvent()
+	{
+		// Close any render pass event nested inside this standalone event.
+		if (_renderPassEventActive)
+		{
+			_graphicsDevice->EndDebugEvent();
+			_renderPassEventActive = false;
+		}
+
+		_graphicsDevice->EndDebugEvent();
+	}
+
+	void Renderer::BindPipeline(const RenderPipelineState& pipeline, bool force)
+	{
+		// Update blending constant buffer if blend mode changed.
+		if (pipeline.Blend != _lastBlendMode || force)
+		{
+			_stBlending.BlendMode = static_cast<unsigned int>(pipeline.Blend);
+			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+		}
+
+		// Override wireframe debug mode.
+		CullMode effectiveCull = pipeline.Cull;
+		if (_debugPage == RendererDebugPage::WireframeMode)
+		{
+			if (!_doingFullscreenPass)
+				effectiveCull = CullMode::Wireframe;
+			else
+				force = true;
+		}
+
+		// Delegate to device only if state changed.
+		if (pipeline.Blend != _lastBlendMode || force)
+		{
+			_graphicsDevice->SetBlendMode(pipeline.Blend);
+			_lastBlendMode = pipeline.Blend;
+		}
+
+		if (pipeline.Depth != _lastDepthState || force)
+		{
+			_graphicsDevice->SetDepthState(pipeline.Depth);
+			_lastDepthState = pipeline.Depth;
+		}
+
+		if (effectiveCull != _lastCullMode || force)
+		{
+			_graphicsDevice->SetCullMode(effectiveCull);
+			_lastCullMode = effectiveCull;
+		}
+	}
+
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
-	{	
+	{
 		if (blendMode != _lastBlendMode || force)
 		{
 			_graphicsDevice->SetBlendMode(blendMode);
 
 			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
 			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
-			
+
 			_lastBlendMode = blendMode;
 		}
 
@@ -358,7 +460,7 @@ namespace TEN::Renderer
 	}
 
 	void Renderer::SetCullMode(CullMode cullMode, bool force)
-	{ 
+	{
 		if (_debugPage == RendererDebugPage::WireframeMode)
 		{
 			if (!_doingFullscreenPass)

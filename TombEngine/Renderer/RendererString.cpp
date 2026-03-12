@@ -196,7 +196,7 @@ namespace TEN::Renderer
 		if (_stringsToDraw.empty())
 			return;
 
-		SetBlendMode(BlendMode::AlphaBlend);
+		BindPipeline(Pipelines::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
 

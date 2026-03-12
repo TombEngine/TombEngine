@@ -130,9 +130,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::HudNoDepth);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
@@ -191,9 +189,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::HudNoDepth);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
@@ -245,7 +241,7 @@ namespace TEN::Renderer
 		auto flashColor = Weather.FlashColor();
 		if (flashColor != Vector3::Zero)
 		{
-			SetBlendMode(BlendMode::Additive);
+			BindPipeline(Pipelines::Additive);
 			DrawFullScreenQuad(_whiteTexture.get(), flashColor);
 		}
 
@@ -255,7 +251,7 @@ namespace TEN::Renderer
 		if (!Lara.Control.Look.OpticRange && !SpotcamOverlay)
 			return;
 
-		SetBlendMode(BlendMode::AlphaBlend);
+		BindPipeline(Pipelines::AlphaBlend);
 
 		if (Lara.Control.Look.OpticRange != 0 && !Lara.Control.Look.IsUsingLasersight)
 		{
@@ -265,7 +261,7 @@ namespace TEN::Renderer
 		{
 			DrawFullScreenSprite(&_sprites[Objects[ID_LASERSIGHT_GRAPHICS].meshIndex], Vector3::One);
 
-			SetBlendMode(BlendMode::Opaque);
+			BindPipeline(Pipelines::OpaqueDefault);
 
 			// Draw the aiming point
 			Vertex vertices[4];
@@ -315,13 +311,14 @@ namespace TEN::Renderer
 
 	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target, IDepthTarget* depthTarget)
 	{
-		// Reset GPU state
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::None);
+		// Reset GPU state.
+		BindPipeline(Pipelines::OpaqueNoCull);
 
-		_graphicsDevice->BindRenderTarget(target, depthTarget);
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
+		RenderPassDescriptor pass;
+		pass.ColorAttachments.push_back({ target, 0, LoadAction::Load, StoreAction::Store });
+		pass.DepthAttachment = { depthTarget, 0, LoadAction::Load, StoreAction::Store };
+		pass.Viewport = _viewport;
+		BeginRenderPass(pass);
 
 		DrawFullScreenQuad(texture, Vector3(fade), true);
 	}

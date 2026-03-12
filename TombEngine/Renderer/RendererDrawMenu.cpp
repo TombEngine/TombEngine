@@ -929,9 +929,7 @@ namespace TEN::Renderer
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 						continue;
 
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
+					BindPipeline({ GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w), DepthState::Write, CullMode::CounterClockwise });
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
 					BindMaterial(bucket.MaterialIndex, false);
@@ -984,9 +982,7 @@ namespace TEN::Renderer
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 						continue;
 
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
+					BindPipeline({ GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w), DepthState::Write, CullMode::CounterClockwise });
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
 					BindMaterial(bucket.MaterialIndex, false);
@@ -1040,9 +1036,7 @@ namespace TEN::Renderer
 			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
 		}
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		// Set vertex buffer.
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1099,11 +1093,8 @@ namespace TEN::Renderer
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 						continue;
 
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
+					BindPipeline({ GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w), DepthState::Write, CullMode::CounterClockwise });
 					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
 					BindMaterial(bucket.MaterialIndex, false);
@@ -1153,11 +1144,8 @@ namespace TEN::Renderer
 					if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 						continue;
 
-					SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w));
+					BindPipeline({ GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, color.w), DepthState::Write, CullMode::CounterClockwise });
 					SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
-					SetCullMode(CullMode::CounterClockwise);
-					SetDepthState(DepthState::Write);
 
 					BindBucketTextures(bucket, TextureSource::Moveables, animated);
 					BindMaterial(bucket.MaterialIndex, false);
@@ -1199,6 +1187,7 @@ namespace TEN::Renderer
 			DrawFullScreenImage(texture.get(), Smoothstep(currentFade), _backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
 			Synchronize();
 
+			EndRenderPass();
 			_graphicsDevice->Present();
 			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		}
@@ -1272,28 +1261,31 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
-		// Set basic render states
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		// Set basic render states.
+		BindPipeline(Pipelines::OpaqueDefault, true);
 
-		// Bind and clear render target
-		std::vector<IRenderTarget2D*> renderTargets;
-		renderTargets.push_back(_renderTarget->GetRenderTarget());
-		renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
+		// Clear and set up render targets.
+		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		_graphicsDevice->SetViewport(_viewport);
 		_graphicsDevice->SetScissor(_viewport);
 
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		
 		if (background != nullptr)
 			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		{
+			RenderPassDescriptor pass;
+			pass.Name = "Inventory Scene";
+			pass.ColorAttachments = {
+				{ _renderTarget->GetRenderTarget(), 0, LoadAction::Load, StoreAction::Store },
+				{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, LoadAction::Load, StoreAction::Store }
+			};
+			pass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			pass.Viewport = _viewport;
+			BeginRenderPass(pass);
+		}
 
 		// Set vertex buffer.
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1403,22 +1395,20 @@ namespace TEN::Renderer
 		if (staticBackground)
 		{
 			// Set basic render states.
-			SetBlendMode(BlendMode::Opaque);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline(Pipelines::OpaqueDefault);
 
-			// Clear screen
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-			std::vector<IRenderTarget2D*> renderTargets;
-			renderTargets.push_back(_backBuffer->GetRenderTarget());
-			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-			// Bind back buffer.
-			_graphicsDevice->BindRenderTargets(renderTargets, _backBuffer->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
+			// Clear and bind back buffer + emissive RT.
+			{
+				RenderPassDescriptor pass;
+				pass.Name = "Freeze Mode";
+				pass.ColorAttachments = {
+					{ _backBuffer->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Black },
+					{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Transparent }
+				};
+				pass.DepthAttachment = { _backBuffer->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+				pass.Viewport = _viewport;
+				BeginRenderPass(pass);
+			}
 
 			// Draw full screen background.
 			DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3::One);
@@ -1448,6 +1438,7 @@ namespace TEN::Renderer
 
 		ClearScene();
 
+		EndRenderPass();
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present();
 	}
@@ -1455,19 +1446,22 @@ namespace TEN::Renderer
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
 		// Set basic render states.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		do
 		{
-			// Clear screen.
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-			// Bind back buffer.
-			_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
+			// Clear and bind back buffer.
+			{
+				RenderPassDescriptor pass;
+				pass.Name = "Loading Screen";
+				pass.ColorAttachments.push_back({
+					_backBuffer->GetRenderTarget(), 0,
+					LoadAction::Clear, StoreAction::Store, Colors::Black
+				});
+				pass.DepthAttachment = { _backBuffer->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+				pass.Viewport = _viewport;
+				BeginRenderPass(pass);
+			}
 
 			// Draw fullscreen background. If unavailable, draw last dumped game scene.
 			if (_loadingScreenTexture)
@@ -1482,6 +1476,7 @@ namespace TEN::Renderer
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
+			EndRenderPass();
 			_graphicsDevice->Present();
 			_graphicsDevice->ClearState();
 
@@ -1505,12 +1500,11 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		BindPipeline(Pipelines::OpaqueDefault, true);
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
 
+		EndRenderPass();
 		_graphicsDevice->Present();
 	}
 
@@ -1526,7 +1520,8 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
-		
+
+		EndRenderPass();
 		_graphicsDevice->Present();
 
 		_isLocked = true;
