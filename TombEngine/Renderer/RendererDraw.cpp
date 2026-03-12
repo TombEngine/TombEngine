@@ -29,6 +29,7 @@
 #include "Renderer/RenderView.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Structures/RendererSortableObject.h"
+#include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -1950,6 +1951,9 @@ namespace TEN::Renderer
 		// Draw horizon and sky.
 		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), view);
 
+		// Draw volumetric clouds over sky (if enabled; otherwise no-op).
+		DrawVolumetricClouds(view);
+
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
@@ -3085,6 +3089,11 @@ namespace TEN::Renderer
 		for (int layer = 0; layer < 2; layer++)
 		{
 			if (Vector3(Weather.SkyColor(layer)) == Vector3::Zero)
+				continue;
+
+			// Skip legacy bitmap rendering if this layer uses volumetric clouds.
+			auto* levelPtr = dynamic_cast<const Level*>(g_GameFlow->GetLevel(CurrentLevel));
+			if (levelPtr && levelPtr->HasVolumetricCloudLayer(layer))
 				continue;
 
 			for (int i = 0; i < 2; i++)

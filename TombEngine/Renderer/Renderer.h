@@ -40,6 +40,8 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
+#include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
@@ -190,6 +192,14 @@ namespace TEN::Renderer
 		ConstantBuffer<CSkyBuffer> _cbSky;
 		CMaterialBuffer _stMaterial;
 		ConstantBuffer<CMaterialBuffer> _cbMaterial;
+
+		// Volumetric clouds
+		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
+		ConstantBuffer<ConstantBuffers::CVolumetricCloudBuffer> _cbVolumetricCloud;
+		RenderTarget2D _cloudRenderTarget;
+		RenderTarget2D _cloudOcclusionTarget;
+		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
+		VolumetricCloud::CloudRuntimeState _cloudState;
 
 		// Primitive batches
 
@@ -435,6 +445,15 @@ namespace TEN::Renderer
 		void PrepareSingleLaserBeam(RenderView& view);
 		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, RenderView& renderView, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
+
+		// Volumetric clouds
+		void InitializeVolumetricClouds();
+		void ResizeVolumetricCloudTargets();
+		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings, RenderView& view);
+		void DrawVolumetricClouds(RenderView& renderView);
+		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
+		float GetCloudLensFlareOcclusion() const;
+		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);

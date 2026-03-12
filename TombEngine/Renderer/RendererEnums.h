@@ -224,6 +224,7 @@ enum class ConstantBufferRegister
 	AnimatedTextures = 6,
 	PostProcess = 7,
 	Sky = 8,
+	VolumetricCloud = 9,
 	Hud = 10,
 	HudBar = 11,
 	Blending = 12,

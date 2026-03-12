@@ -48,6 +48,11 @@ namespace TEN::Renderer::Utils
 		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel);
 		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel);
 		Load(Shader::GlowCombine, "PostProcess", "GlowCombine", ShaderType::Pixel);
+
+		// Volumetric clouds.
+		Load(Shader::VolumetricClouds, "VolumetricClouds", "", ShaderType::PixelAndVertex);
+		Load(Shader::VolumetricCloudComposite, "VolumetricClouds", "CloudComposite", ShaderType::Pixel);
+		Load(Shader::VolumetricCloudOcclusion, "VolumetricClouds", "CloudOcclusion", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

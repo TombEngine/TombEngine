@@ -53,15 +53,25 @@ namespace TEN::Renderer
 		
 		if (!view.LensFlaresToDraw.empty())
 		{
+			// Update cloud occlusion for lens flare attenuation (before setting up lens flare RT).
+			UpdateCloudLensFlareOcclusion(view);
+			float cloudOcclusion = GetCloudLensFlareOcclusion();
+
 			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
 			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+			_context->RSSetViewports(1, &view.Viewport);
 
 			_shaders.Bind(Shader::PostProcessLensFlare);
 
 			for (int i = 0; i < view.LensFlaresToDraw.size(); i++)
 			{
 				_stPostProcessBuffer.LensFlares[i].Position = view.LensFlaresToDraw[i].Position;
-				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
+
+				// Attenuate flare color by cloud transmittance: 1.0 = fully visible, 0.0 = fully occluded.
+				auto flareColor = view.LensFlaresToDraw[i].Color.ToVector3();
+				if (view.LensFlaresToDraw[i].IsGlobal)
+					flareColor *= cloudOcclusion;
+				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
 			UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);

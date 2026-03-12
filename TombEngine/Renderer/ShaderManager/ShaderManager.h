@@ -68,6 +68,12 @@ namespace TEN::Renderer::Utils
 		Downscale,
 		GlowCombine,
 
+		// Volumetric clouds
+
+		VolumetricClouds,
+		VolumetricCloudComposite,
+		VolumetricCloudOcclusion,
+
 		Count
 	};
 

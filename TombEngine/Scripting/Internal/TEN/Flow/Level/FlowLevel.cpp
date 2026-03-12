@@ -56,6 +56,16 @@ void Level::Register(sol::table& parent)
 //@mem layer2
 		"layer2", &Level::Layer2,
 
+/// (@{Flow.VolumetricCloudLayer}) Primary volumetric cloud layer.
+// When set, replaces the bitmap layer1 with volumetric clouds.
+//@mem volumetricLayer1
+		"volumetricLayer1", &Level::VolumetricLayer1,
+
+/// (@{Flow.VolumetricCloudLayer}) Secondary volumetric cloud layer.
+// When set, replaces the bitmap layer2 with volumetric clouds.
+//@mem volumetricLayer2
+		"volumetricLayer2", &Level::VolumetricLayer2,
+
 ///  (@{Flow.Horizon}) Primary horizon object.
 //@mem horizon1
 		"horizon1", &Level::Horizon1,
@@ -164,6 +174,24 @@ bool Level::GetSkyLayerEnabled(int index) const
 short Level::GetSkyLayerSpeed(int index) const
 {
 	return GetSkyLayer(index).CloudSpeed;
+}
+
+bool Level::HasVolumetricCloudLayer(int index) const
+{
+	if (index == 0)
+		return VolumetricLayer1.has_value();
+	if (index == 1)
+		return VolumetricLayer2.has_value();
+	return false;
+}
+
+const TEN::Scripting::VolumetricCloudLayer* Level::GetVolumetricCloudLayer(int index) const
+{
+	if (index == 0 && VolumetricLayer1.has_value())
+		return &VolumetricLayer1.value();
+	if (index == 1 && VolumetricLayer2.has_value())
+		return &VolumetricLayer2.value();
+	return nullptr;
 }
 
 LaraType Level::GetLaraType() const

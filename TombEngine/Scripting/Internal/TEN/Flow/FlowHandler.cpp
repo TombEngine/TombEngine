@@ -22,6 +22,7 @@
 #include "Scripting/Internal/TEN/Flow/Enums/WeatherTypes.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
+#include "Scripting/Internal/TEN/Flow/VolumetricCloudLayer/VolumetricCloudLayer.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
@@ -364,6 +365,7 @@ Specify which translations in the strings table correspond to which languages.
 	Vec3::Register(parent);
 	Level::Register(tableFlow);
 	SkyLayer::Register(tableFlow);
+	VolumetricCloudLayer::Register(tableFlow);
 	InventoryItem::Register(tableFlow);
 	Settings::Register(tableFlow);
 	Fog::Register(tableFlow);
