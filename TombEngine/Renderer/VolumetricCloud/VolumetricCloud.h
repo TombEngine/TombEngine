@@ -83,7 +83,7 @@ namespace TEN::Renderer::VolumetricCloud
 		// Atmosphere
 		float Coverage          = 0.55f;   // [0,1] — global cloud coverage
 		float Density           = 0.8f;    // Density multiplier
-		float CloudBottomHeight = 8000.0f; // World units above camera horizon
+		float CloudBottomHeight = 1536.0f; // World units above camera (matches TEN sky layer offset)
 		float CloudThickness    = 2500.0f; // Vertical extent of cloud slab
 
 		// Wind & evolution

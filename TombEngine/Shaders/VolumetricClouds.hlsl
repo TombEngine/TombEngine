@@ -478,20 +478,24 @@ float4 PS(VSOutput input) : SV_TARGET
 }
 
 // ===========================================================================
-// PSCloudComposite — Upscale half-res clouds and composite over scene
+// PSCloudComposite — Upscale half-res clouds and alpha-blend over scene.
+//
+// The cloud render target (RGBA: lit cloud color + opacity) is bound to t0.
+// Hardware alpha blending (AlphaBlend) composites this over the existing
+// framebuffer content, which may contain:
+//   - Legacy sky bitmap layer(s)
+//   - Horizon mesh (possibly closing overhead)
+//   - Starfield
+//   - Black void where nothing was drawn
+// The shader simply passes through the cloud RGBA unchanged.
+// Where cloud alpha is 0 the existing content shows through; where alpha
+// is 1 the cloud fully occludes whatever is behind it.
 // ===========================================================================
 
 float4 PSCloudComposite(VSOutput input) : SV_TARGET
 {
-	// Sample background scene color.
-	float4 sceneColor = SceneColorTexture.Sample(PointSamp, input.UV);
-
-	// Sample cloud result (bilinear upscale from half-res).
-	float4 cloudColor = CloudTexture.Sample(LinearSamp, input.UV);
-
-	// Alpha blend: clouds over scene.
-	float3 result = lerp(sceneColor.rgb, cloudColor.rgb, cloudColor.a);
-	return float4(result, sceneColor.a);
+	// Sample cloud result from half-res RT (bilinear upscale).
+	return SceneColorTexture.Sample(LinearSamp, input.UV);
 }
 
 // ===========================================================================

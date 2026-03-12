@@ -143,7 +143,7 @@ namespace TEN::Renderer
 
 		// Earth radius for spherical shell curvature.
 		// Using a moderate value that gives visible curvature at cloud altitudes.
-		_stVolumetricCloud.EarthRadius  = 600000.0f;
+		_stVolumetricCloud.EarthRadius   = 600000.0f;
 		_stVolumetricCloud.PlanetCenterY = -(600000.0f);
 
 		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
