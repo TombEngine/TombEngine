@@ -19,7 +19,7 @@ namespace TEN::Entities::Creatures::TR3
 
 	constexpr auto COBRA_ATTACK_RANGE = SQUARE(BLOCK(1));
 	constexpr auto COBRA_AWARE_RANGE = SQUARE(BLOCK(1.25f));
-	constexpr auto COBRA_VERTICAL_AWARE_RANGE = SQUARE(BLOCK(0.5f));
+	constexpr auto COBRA_VERTICAL_AWARE_RANGE = BLOCK(0.5f);
 	constexpr auto COBRA_SLEEP_RANGE = SQUARE(BLOCK(2.5f));
 
 	constexpr auto COBRA_DISTURBANCE_VELOCITY = 15.0f;
