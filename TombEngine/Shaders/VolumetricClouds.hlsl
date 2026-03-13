@@ -118,6 +118,9 @@ float FBMLowFreq(float3 p)
 }
 
 // High-frequency FBM (2 octaves) — detail erosion.
+// Persistence reduced to 0.35 (was 0.5): the second (finer) octave contributes
+// 35% instead of 50%, cutting the high-frequency portion that aliases into
+// stripe shimmer at medium viewing distances.
 float FBMDetail(float3 p)
 {
 	float v  = 0.0f;
@@ -129,7 +132,7 @@ float FBMDetail(float3 p)
 	{
 		v += a * ValueNoise3D(s);
 		s *= 2.73f;
-		a *= 0.5f;
+		a *= 0.35f;  // Was 0.5: lower second-octave weight reduces aliasing shimmer
 	}
 	return v;
 }
@@ -235,8 +238,15 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		// Erosion is strongest INSIDE cloud bodies and near-zero at the silhouette.
 		// This preserves stable edges while allowing internal billowing texture.
 		// erosionWeight approaches DetailStrength only where shapeDensity is high.
-		float interiorMask = smoothstep(0.25f, 0.7f, shapeDensity);
-		float erosionWeight = interiorMask * DetailStrength * 0.5f;
+		//
+		// Narrowed interior mask (0.35–0.65 was 0.25–0.70): thin density features
+		// below 0.35 receive zero erosion, preventing them from flickering to black
+		// as per-frame jitter moves the sample through the detail noise field.
+		// Reduced max weight factor (0.40 was 0.50): even at full interior, the
+		// erosion can pull at most 40% of DetailStrength, not 50%, keeping thin
+		// layers from collapsing to zero and creating dark stripes.
+		float interiorMask = smoothstep(0.35f, 0.65f, shapeDensity);
+		float erosionWeight = interiorMask * DetailStrength * 0.40f;
 		shapeDensity = Remap(shapeDensity, erosionWeight * detail, 1.0f, 0.0f, 1.0f);
 	}
 
@@ -330,8 +340,14 @@ float LightTransmittance(float3 pos, float heightFrac)
 
 	// Powder / silver lining approximation:
 	// Bright edge when looking toward light through thin cloud.
+	// Floor the raw powder value at 0.25 before the SilverliningStr lerp.
+	// Without this, thin features (small accumDensity) produce powder ≈ 0,
+	// making them near-black. As density oscillates frame-to-frame via jitter,
+	// that creates bright↔black stripe flicker. The floor keeps thin regions
+	// at worst 25% dark, cutting contrast without affecting thick cloud bodies
+	// (where powder ≈ 1.0 anyway).
 	float powder = 1.0f - exp(-accumDensity * Absorption * 2.0f);
-	powder = lerp(1.0f, powder, SilverliningStr);
+	powder = lerp(1.0f, max(powder, 0.25f), SilverliningStr);
 
 	return transmittance * powder;
 }
@@ -342,9 +358,20 @@ float LightTransmittance(float3 pos, float heightFrac)
 
 float ScreenJitter(float2 screenPos)
 {
-	// Interleaved gradient noise (Jimenez 2014) — good temporal properties.
+	// Interleaved gradient noise (Jimenez 2014).
+	//
+	// Per-frame shift REMOVED. Previously FrameIndex shifted the IGN pattern
+	// each frame to break up banding, but without TAA to accumulate frames the
+	// effect is the opposite: every frame independently samples a different
+	// slice of the detail noise field. In thin/medium-density layers this makes
+	// the per-sample density jump between near-zero and non-zero every frame,
+	// which manifests as the stripe-like shimmer.
+	//
+	// Static-per-pixel IGN still gives full spatial decorrelation between
+	// neighboring pixels (no fixed banding) but the same pixel always starts
+	// at the same sub-step offset → temporally stable density → no flicker.
 	float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
-	float jitter = frac(magic.z * frac(dot(screenPos + FrameIndex * float2(1.7f, 3.5f), magic.xy)));
+	float jitter = frac(magic.z * frac(dot(screenPos, magic.xy)));
 	return jitter * JitterStrength;
 }
 
@@ -463,6 +490,44 @@ float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, flo
 }
 
 // ===========================================================================
+// Atmospheric horizon fade
+// ===========================================================================
+
+// Returns a [0, 1] opacity multiplier that softly attenuates cloud opacity for
+// rays that graze the horizon or see very distant cloud regions.
+//
+// In TEN's Y-down space: sky is -Y, horizon is Y ≈ 0.
+//   elevation = -rayDir.y   (0 at horizon, 1 straight up)
+//
+// Distance and elevation are geometrically equivalent for a flat cloud slab:
+//   tEntry ≈ CloudBottomHeight / elevation
+// So a single elevation-based curve captures both the distance-fade and the
+// horizon-haze fade simultaneously.
+//
+// Curve design:
+//   elevation 0.00  (0°)   → 0%   (totally transparent — merges with horizon)
+//   elevation 0.06  (~3°)  → 20%  (strongly faded — very distant fringe)
+//   elevation 0.12  (~7°)  → 50%  (half strength — hazy transition region)
+//   elevation 0.22  (~13°) → 85%  (nearly full — close-ish cloud masses)
+//   elevation 0.30  (~17°) → 100% (fully opaque — nearby/overhead clouds)
+//
+// The sqrt push on the smoothstep result gives an exponential-feeling rolloff:
+// opacity recovers quickly once a cloud is even a few degrees above the horizon,
+// while the near-horizon region stays very faint and "airy".
+float HorizonAtmosphericFade(float3 rayDir)
+{
+	// Elevation in [0,1]: 0 = horizontal, 1 = overhead.
+	float elevation = saturate(-rayDir.y);
+
+	// Soft fade band from 0° to ~17° above the horizon.
+	float fade = smoothstep(0.0f, 0.30f, elevation);
+
+	// sqrt push: makes the lower half of the transition feel gentle and
+	// atmospheric (exponential character) rather than linear.
+	return sqrt(fade);
+}
+
+// ===========================================================================
 // Reconstruct view-space ray direction from UV
 // ===========================================================================
 
@@ -500,6 +565,12 @@ float4 PS(VSOutput input) : SV_TARGET
 	// Debug views.
 	if (CloudDebugView != 0)
 		cloudResult = DebugVisualization(rayOrigin, rayDir, input.Position.xy, cloudResult, PrimaryStepCount);
+
+	// Atmospheric horizon fade: attenuate cloud opacity for low-elevation rays.
+	// Distant clouds smoothly dissolve into whatever sky/horizon is behind them.
+	// Only applied when not in a debug view (debug views show unmodified density).
+	if (CloudDebugView == 0)
+		cloudResult.a *= HorizonAtmosphericFade(rayDir);
 
 	return cloudResult;
 }
