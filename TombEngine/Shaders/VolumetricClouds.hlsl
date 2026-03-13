@@ -101,7 +101,16 @@ float ValueNoise3D(float3 p)
 // Low-frequency FBM (3 octaves) — cloud shape.
 // Persistence reduced to 0.38 so higher octaves barely affect the silhouette;
 // only the first (dominant) octave drives large stable cloud masses.
-float FBMLowFreq(float3 p)
+//
+// lod [0,1]: distance-based LOD for Moiré prevention.
+//   When a cloud sample is far from the camera, the step size of the primary
+//   ray march becomes comparable to the wavelength of the finest octave.
+//   That sub-step-size noise aliases into shimmering interference bands.
+//   At lod=0 (near): all three octaves at full weight.
+//   At lod=0.5:      oct=2 (finest, 5.62x freq) fully silent.
+//   At lod=1.0:      oct=1 (2.37x freq) also silent; only the first
+//                    (coarsest) octave drives cloud shapes.
+float FBMLowFreq(float3 p, float lod)
 {
 	float v  = 0.0f;
 	float a  = 0.5f;
@@ -110,7 +119,14 @@ float FBMLowFreq(float3 p)
 	[unroll]
 	for (int oct = 0; oct < 3; oct++)
 	{
-		v += a * ValueNoise3D(s);
+		// oct=0 (coarsest, ~1/ShapeScale wavelength): always full.
+		// oct=1 (2.37x freq): fades to zero at lod=1.0 (far cloud regions).
+		// oct=2 (5.62x freq): fades to zero at lod=0.5 (medium distance).
+		float octWeight;
+		if      (oct == 0) octWeight = 1.0f;
+		else if (oct == 1) octWeight = saturate(1.0f - lod);
+		else               octWeight = saturate(1.0f - lod * 2.0f);
+		v += a * octWeight * ValueNoise3D(s);
 		s *= 2.37f;  // Lacunarity (non-power-of-2 avoids tiling artifacts)
 		a *= 0.38f;  // Low persistence: each octave contributes much less than the previous
 	}
@@ -118,10 +134,15 @@ float FBMLowFreq(float3 p)
 }
 
 // High-frequency FBM (2 octaves) — detail erosion.
-// Persistence reduced to 0.35 (was 0.5): the second (finer) octave contributes
-// 35% instead of 50%, cutting the high-frequency portion that aliases into
-// stripe shimmer at medium viewing distances.
-float FBMDetail(float3 p)
+// Persistence reduced to 0.35 (was 0.5).
+//
+// lod [0,1]: same distance LOD as FBMLowFreq but more aggressive.
+//   Detail noise runs at a much finer scale than shape noise, so it aliases
+//   even at shorter distances. The second (finest) octave is suppressed by
+//   lod=0.5; the first detail octave fades fully by lod=1.
+//   At medium viewing distances (lod≈0.4) both octaves are already partially
+//   muted, removing the high-contrast detail bands that produce Moiré.
+float FBMDetail(float3 p, float lod)
 {
 	float v  = 0.0f;
 	float a  = 0.5f;
@@ -130,9 +151,12 @@ float FBMDetail(float3 p)
 	[unroll]
 	for (int oct = 0; oct < 2; oct++)
 	{
-		v += a * ValueNoise3D(s);
+		// oct=0 (coarser): fades to 0 at lod=1.
+		// oct=1 (finer):   fades to 0 at lod=0.5 (2x faster).
+		float octWeight = saturate(1.0f - lod * (1.0f + (float)oct));
+		v += a * octWeight * ValueNoise3D(s);
 		s *= 2.73f;
-		a *= 0.35f;  // Was 0.5: lower second-octave weight reduces aliasing shimmer
+		a *= 0.35f;  // Persistence: lower second-octave weight reduces aliasing shimmer
 	}
 	return v;
 }
@@ -190,6 +214,21 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// --- Height gradient ---
 	float hGrad = HeightGradient(heightFrac);
 
+	// --- Distance LOD for Moiré / aliasing prevention ---
+	// The step size of the primary ray march is fixed at CloudThickness*6 / PrimaryStepCount.
+	// When a sample is far from the camera, the finest noise octaves have wavelengths
+	// smaller than that step size → they alias into shimmering interference bands (Moiré).
+	//
+	// Metric: horizontal (XZ-plane) distance from camera to sample.
+	//   At CloudBottomHeight * 1.5 (≈56° elevation) → lod = 0, full quality.
+	//   At CloudBottomHeight * 6.0 (≈ 9° elevation)  → lod = 1, fine octaves silent.
+	// CloudBottomHeight is the camera-to-cloud-base vertical distance, naturally
+	// scaling with scene size without needing separate tuning.
+	float horizDist = length(worldPos.xz - CamPositionWS.xz);
+	float lodNear   = max(CloudBottomHeight * 1.5f, 1.0f);
+	float lodFar    = max(CloudBottomHeight * 6.0f, lodNear + 1.0f);
+	float distLOD   = saturate((horizDist - lodNear) / (lodFar - lodNear));
+
 	// --- Base shape noise ---
 	// Sampling position is purely driven by horizontal wind drift.
 	// No Y-displacement here — any 3D shift of shapePos produces twisting artifacts
@@ -198,7 +237,12 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	                 + float3(WindDirection.x, 0.0f, WindDirection.y) 
 	                   * CloudTime * WindSpeed;
 
-	float baseShape = FBMLowFreq(shapePos);
+	float baseShape = FBMLowFreq(shapePos, distLOD);
+
+	// First octave of the shape noise: the smoothest, lowest-frequency
+	// component. This alone defines the stable cloud silhouette.
+	// Weight 0.5 matches oct=0's amplitude in FBMLowFreq.
+	float oct0Shape = 0.5f * ValueNoise3D(shapePos);
 
 	// --- Billowing: threshold modulation (no sampling displacement) ---
 	// Billowing is achieved by slowly oscillating the remap lower threshold.
@@ -215,15 +259,66 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 
 		// Max threshold shift: ±0.26 at EvolutionSpeed=1, ±0.42 at EvolutionSpeed=5.
 		// Clamped so clouds never fully vanish or fully merge.
+		// Scaled down at distance: far cloud regions have a much smaller sweep range.
+		// This is critical — the billowing sweep moves shapeDensity through the
+		// S-curve's steep zone (0.3–0.7) repeatedly, creating bright/dark banding
+		// at medium/far distance. Reducing swellAmp there avoids that oscillation.
 		float swellAmp = 0.26f * saturate(EvolutionSpeed * 0.2f + 0.1f);
+		swellAmp *= (1.0f - distLOD * 0.85f);  // Near: full swell. Far: ~15% of normal.
 		remapLow = clamp(0.22f - sin(swellPhase) * swellAmp, 0.001f, 0.46f);
 	}
 
-	float shapeDensity = Remap(baseShape, remapLow, 1.0f, 0.0f, 1.0f);
-	shapeDensity = smoothstep(0.0f, 1.0f, shapeDensity);
+	// --- Stable silhouette blend ---
+	// The visible cloud BOUNDARY is defined exclusively by octave 0 — the
+	// smoothest, lowest-frequency noise component. Higher FBM octaves add fine
+	// interior structure but must never extend or retract the visible edge,
+	// as that produces per-pixel crawling and noisy silhouettes during motion.
+	//
+	// oct0Density: where oct0 says "cloud exists". Smooth, stable boundary.
+	// fullDensity: full multi-octave FBM. Rich interior detail.
+	// edgeMask:    smoothstep ramp [0, 0.15] of oct0Density — controls how
+	//             much higher-octave detail is permitted at each point.
+	//
+	// Near the boundary (edgeMask ≈ 0): density = oct0Density (smooth).
+	// Deep inside (edgeMask = 1): density = fullDensity (full detail).
+	// The wide transition band (15% of the remapped oct0 range) prevents any
+	// visible seam where higher octaves suddenly appear.
+	// During wind and billowing, the edge moves with oct0's smooth gradient,
+	// not with noisy higher-octave features.
+	float oct0Density  = Remap(oct0Shape, remapLow, 1.0f, 0.0f, 1.0f);
+	float fullDensity  = Remap(baseShape, remapLow, 1.0f, 0.0f, 1.0f);
+
+	// --- Absorption-widened silhouette zone ---
+	// At the cloud boundary, oct0Density is very small (0.001–0.05 range).
+	// At low absorption these tiny values produce negligible opacity per step.
+	// At high absorption, exp(-d * A * step) turns them into visible per-pixel
+	// speckle because even d=0.02 at Abs=5 gives ~10% opacity per step.
+	//
+	// Fix: widen the oct0-only (smooth) boundary zone proportionally to
+	// absorption.  At high Abs the smooth-edge region extends deeper into
+	// the cloud body before higher octaves are introduced.
+	//   edgeWidth = 0.15 (default) → 0.35 (at Abs≥3.0)
+	// This ensures the density gradient at the visible boundary is always
+	// smooth and low-frequency, regardless of absorption setting.
+	float absEdgeWiden = saturate((Absorption - 0.5f) * 0.4f);
+	float edgeWidth    = lerp(0.15f, 0.35f, absEdgeWiden);
+	float edgeMask     = smoothstep(0.0f, edgeWidth, oct0Density);
+	float shapeDensity = lerp(oct0Density, fullDensity, edgeMask);
+
+	// --- Distance- and absorption-softened S-curve ---
+	// smoothstep(0,1,x) amplifies contrast (peak slope 1.5 at x=0.5).
+	// At distance or high absorption, blend toward a linear ramp to prevent
+	// the steep mid-range from creating banding during motion.
+	{
+		float absorpFade  = saturate((Absorption - 0.5f) * 0.4f);
+		float sCurveFade  = max(distLOD, absorpFade);
+		float ssValue     = smoothstep(0.0f, 1.0f, shapeDensity);
+		shapeDensity      = lerp(ssValue, shapeDensity, sCurveFade);
+	}
+
 	shapeDensity *= coverageMask * hGrad;
 
-	if (shapeDensity <= 0.001f)
+	if (shapeDensity <= 0.0001f)
 		return 0.0f;
 
 	// --- Detail erosion (interior only) ---
@@ -233,24 +328,55 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		float3 detailPos = worldPos * DetailScale 
 		                  + float3(WindDirection.x, 0.0f, WindDirection.y) 
 		                    * CloudTime * EvolutionSpeed;
-		float detail = FBMDetail(detailPos);
+		// Pass distLOD: at medium/far distance FBMDetail progressively mutes its
+		// octaves, so detail returns 0 at lod=1 without needing a separate branch.
+		float detail = FBMDetail(detailPos, distLOD);
 
 		// Erosion is strongest INSIDE cloud bodies and near-zero at the silhouette.
 		// This preserves stable edges while allowing internal billowing texture.
-		// erosionWeight approaches DetailStrength only where shapeDensity is high.
 		//
-		// Narrowed interior mask (0.35–0.65 was 0.25–0.70): thin density features
-		// below 0.35 receive zero erosion, preventing them from flickering to black
-		// as per-frame jitter moves the sample through the detail noise field.
-		// Reduced max weight factor (0.40 was 0.50): even at full interior, the
-		// erosion can pull at most 40% of DetailStrength, not 50%, keeping thin
-		// layers from collapsing to zero and creating dark stripes.
-		float interiorMask = smoothstep(0.35f, 0.65f, shapeDensity);
-		float erosionWeight = interiorMask * DetailStrength * 0.40f;
+		// Two guards control how far inward the erosion zone begins:
+		//   (a) distLOD via erosionWeight scalar — already applied
+		//   (b) Absorption — when Abs is high, even a small density value becomes
+		//       opaque, so boundary noise that erosion carves into looks like hard
+		//       holes.  We move the interior mask threshold upward with absorption
+		//       so only genuinely dense core regions are ever eroded.
+		//
+		//   absorpEdgeGuard: 0 at Abs≤0.5, 1 at Abs≥3.0
+		//   maskLow  moves from 0.35 (default) → 0.60 (high absorption)
+		//   maskHigh moves from 0.65            → 0.85
+		//
+		// Additionally, total erosion depth scales down with absorption via
+		// absorpErosionScale, preventing detail noise from carving visible holes
+		// in cloud silhouettes that the Beer-Lambert curve makes 
+		// disproportionately dark.
+		float absorpEdgeGuard  = saturate((Absorption - 0.5f) * 0.4f);
+		float maskLow          = lerp(0.35f, 0.60f, absorpEdgeGuard);
+		float maskHigh         = lerp(0.65f, 0.85f, absorpEdgeGuard);
+		float interiorMask     = smoothstep(maskLow, maskHigh, shapeDensity);
+		float absorpErosionScale = saturate(1.0f - (Absorption - 0.5f) * 0.35f);
+		float erosionWeight    = interiorMask * DetailStrength * 0.40f
+		                         * (1.0f - distLOD) * absorpErosionScale;
 		shapeDensity = Remap(shapeDensity, erosionWeight * detail, 1.0f, 0.0f, 1.0f);
 	}
 
-	return max(shapeDensity * CloudDensity, 0.0f);
+	// --- Absorption-proportional soft density floor ---
+	// At high absorption, Beer-Lambert turns even tiny density values into
+	// visible per-pixel opacity spots (dithering / speckle at cloud edges).
+	// Example: d=0.02, Abs=5.0, stepSize=500 → extinction=50 → fully opaque
+	// from what should be an imperceptible boundary wisp.
+	//
+	// Fix: apply a soft threshold that smoothly fades very low density
+	// values to zero. The threshold scales with Absorption so the
+	// "clean" zone around zero widens as absorption increases.
+	//   At Abs=0.5:  minVisible ≈ 0.005 (barely any density is suppressed).
+	//   At Abs=3.0+: minVisible ≈ 0.06  (wider band → no speckle at edges).
+	// Above the threshold, density is untouched.
+	float finalDensity = max(shapeDensity * CloudDensity, 0.0f);
+	float minVisible   = lerp(0.005f, 0.06f, saturate((Absorption - 0.5f) * 0.4f));
+	finalDensity      *= smoothstep(0.0f, minVisible, finalDensity);
+
+	return finalDensity;
 }
 
 // ===========================================================================
@@ -340,14 +466,21 @@ float LightTransmittance(float3 pos, float heightFrac)
 
 	// Powder / silver lining approximation:
 	// Bright edge when looking toward light through thin cloud.
-	// Floor the raw powder value at 0.25 before the SilverliningStr lerp.
-	// Without this, thin features (small accumDensity) produce powder ≈ 0,
-	// making them near-black. As density oscillates frame-to-frame via jitter,
-	// that creates bright↔black stripe flicker. The floor keeps thin regions
-	// at worst 25% dark, cutting contrast without affecting thick cloud bodies
-	// (where powder ≈ 1.0 anyway).
+	//
+	// The powder term darkens thin regions: 1 - exp(-d*A*2) is near-zero when
+	// accumDensity is tiny.  multiplying transmittance (≈1) by a near-zero
+	// powder makes the boundary near-black.  As noise makes density wobble
+	// frame-to-frame, that black flickers bright↔dark.
+	//
+	// Fix: raise the powder floor proportionally with Absorption.
+	//   At Abs=0.5 (low): floor = 0.25  (original value)
+	//   At Abs=1.5:       floor = 0.42
+	//   At Abs=3.0+:      floor = 0.65
+	// High absorption must not make thin edges darker; it should make thick
+	// interiors richer while leaving boundary lighting soft and stable.
+	float powderFloor = lerp(0.25f, 0.65f, saturate((Absorption - 0.5f) * 0.4f));
 	float powder = 1.0f - exp(-accumDensity * Absorption * 2.0f);
-	powder = lerp(1.0f, max(powder, 0.25f), SilverliningStr);
+	powder = lerp(1.0f, max(powder, powderFloor), SilverliningStr);
 
 	return transmittance * powder;
 }
@@ -421,7 +554,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 			bool useDetail = (DetailNoiseEnabled != 0);
 			float density = CloudDensityAtWorldPos(samplePos, heightFrac, useDetail);
 
-			if (density > 0.001f)
+			if (density > 0.0001f)
 			{
 				// Lighting at this point.
 				float lightT = LightTransmittance(samplePos, heightFrac);
@@ -520,7 +653,7 @@ float HorizonAtmosphericFade(float3 rayDir)
 	float elevation = saturate(-rayDir.y);
 
 	// Soft fade band from 0° to ~17° above the horizon.
-	float fade = smoothstep(0.0f, 0.30f, elevation);
+	float fade = smoothstep(0.0f, 0.10f, elevation);
 
 	// sqrt push: makes the lower half of the transition feel gentle and
 	// atmospheric (exponential character) rather than linear.

@@ -5,9 +5,11 @@
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
+#include "Math/Math.h"
 
 using namespace TEN::Renderer::VolumetricCloud;
 using namespace TEN::Scripting::Types;
+using namespace TEN::Math::Random;
 
 namespace TEN::Scripting
 {
@@ -211,7 +213,8 @@ namespace TEN::Scripting
 
 	void VolumetricCloudLayer::SetThickness(float val)
 	{
-		Settings.CloudThickness = std::clamp(val, 100.0f, 100000.0f);
+		float value = GenerateFloat(val, val + 100000.0f);
+		Settings.CloudThickness = std::clamp(value, 100.0f, 200000.0f);
 	}
 
 	void VolumetricCloudLayer::SetEvolutionSpeed(float val)
@@ -221,12 +224,12 @@ namespace TEN::Scripting
 
 	void VolumetricCloudLayer::SetShapeScale(float val)
 	{
-		Settings.Noise.ShapeScale = std::clamp(val, 0.000001f, 0.01f);
+		Settings.Noise.ShapeScale = std::clamp(val, 0.0f, 1.0f);
 	}
 
 	void VolumetricCloudLayer::SetDetailScale(float val)
 	{
-		Settings.Noise.DetailScale = std::clamp(val, 0.00001f, 0.1f);
+		Settings.Noise.DetailScale = std::clamp(val, 0.0f, 1.0f);
 	}
 
 	void VolumetricCloudLayer::SetDetailStrength(float val)
@@ -236,7 +239,7 @@ namespace TEN::Scripting
 
 	void VolumetricCloudLayer::SetAbsorption(float val)
 	{
-		Settings.Absorption = std::clamp(val, 0.0f, 5.0f);
+		Settings.Absorption = std::clamp(val, 0.0f, 25.0f);
 	}
 
 	void VolumetricCloudLayer::SetAmbient(float val)
