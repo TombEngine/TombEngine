@@ -216,7 +216,7 @@ namespace TEN::Scripting
 
 	void VolumetricCloudLayer::SetEvolutionSpeed(float val)
 	{
-		Settings.EvolutionSpeed = std::clamp(val, 0.0f, 2.0f);
+		Settings.EvolutionSpeed = std::clamp(val, 0.0f, 5.0f);
 	}
 
 	void VolumetricCloudLayer::SetShapeScale(float val)

@@ -99,6 +99,8 @@ float ValueNoise3D(float3 p)
 }
 
 // Low-frequency FBM (3 octaves) — cloud shape.
+// Persistence reduced to 0.38 so higher octaves barely affect the silhouette;
+// only the first (dominant) octave drives large stable cloud masses.
 float FBMLowFreq(float3 p)
 {
 	float v  = 0.0f;
@@ -110,7 +112,7 @@ float FBMLowFreq(float3 p)
 	{
 		v += a * ValueNoise3D(s);
 		s *= 2.37f;  // Lacunarity (non-power-of-2 avoids tiling artifacts)
-		a *= 0.5f;
+		a *= 0.38f;  // Low persistence: each octave contributes much less than the previous
 	}
 	return v;
 }
@@ -186,30 +188,55 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	float hGrad = HeightGradient(heightFrac);
 
 	// --- Base shape noise ---
+	// Sampling position is purely driven by horizontal wind drift.
+	// No Y-displacement here — any 3D shift of shapePos produces twisting artifacts
+	// because the noise has structure in all three axes.
 	float3 shapePos = worldPos * ShapeScale 
 	                 + float3(WindDirection.x, 0.0f, WindDirection.y) 
 	                   * CloudTime * WindSpeed;
+
 	float baseShape = FBMLowFreq(shapePos);
 
-	// Remap shape noise to create hard-edged cloud masses.
-	float shapeDensity = Remap(baseShape, 0.3f, 1.0f, 0.0f, 1.0f);
+	// --- Billowing: threshold modulation (no sampling displacement) ---
+	// Billowing is achieved by slowly oscillating the remap lower threshold.
+	// This makes cloud masses expand and contract without moving the noise field,
+	// avoiding all twisting / distortion artifacts.
+	// Different regions puff independently via a coarse spatially-varying phase.
+	float remapLow = 0.22f;
+	if (EvolutionSpeed > 0.001f)
+	{
+		// Phase noise sampled at much coarser scale than shape — one puff region
+		// covers many cloud masses, giving a coherent swell without fragmentation.
+		float phaseNoise = ValueNoise3D(worldPos * ShapeScale * 0.25f);
+		float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
+
+		// Max threshold shift: ±0.18 at EvolutionSpeed=1, ±0.30 at EvolutionSpeed=5.
+		// Clamped so clouds never fully vanish or fully merge.
+		float swellAmp = 0.18f * saturate(EvolutionSpeed * 0.2f + 0.1f);
+		remapLow = clamp(0.22f - sin(swellPhase) * swellAmp, 0.01f, 0.42f);
+	}
+
+	float shapeDensity = Remap(baseShape, remapLow, 1.0f, 0.0f, 1.0f);
+	shapeDensity = smoothstep(0.0f, 1.0f, shapeDensity);
 	shapeDensity *= coverageMask * hGrad;
 
 	if (shapeDensity <= 0.001f)
 		return 0.0f;
 
-	// --- Detail erosion ---
+	// --- Detail erosion (interior only) ---
 	if (useDetail && DetailNoiseEnabled != 0)
 	{
-		// Detail noise uses different wind speed for local evolution.
+		// No Y-drift: vertical wobble was the primary source of edge warping.
 		float3 detailPos = worldPos * DetailScale 
-		                  + float3(WindDirection.x, 0.3f, WindDirection.y) 
+		                  + float3(WindDirection.x, 0.0f, WindDirection.y) 
 		                    * CloudTime * EvolutionSpeed;
 		float detail = FBMDetail(detailPos);
 
-		// Erode the shape by subtracting weighted detail.
-		// More erosion near cloud edges (low density).
-		float erosionWeight = lerp(DetailStrength, DetailStrength * 0.25f, shapeDensity);
+		// Erosion is strongest INSIDE cloud bodies and near-zero at the silhouette.
+		// This preserves stable edges while allowing internal billowing texture.
+		// erosionWeight approaches DetailStrength only where shapeDensity is high.
+		float interiorMask = smoothstep(0.25f, 0.7f, shapeDensity);
+		float erosionWeight = interiorMask * DetailStrength * 0.5f;
 		shapeDensity = Remap(shapeDensity, erosionWeight * detail, 1.0f, 0.0f, 1.0f);
 	}
 
