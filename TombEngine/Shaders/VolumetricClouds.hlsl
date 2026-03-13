@@ -210,10 +210,10 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		float phaseNoise = ValueNoise3D(worldPos * ShapeScale * 0.25f);
 		float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
 
-		// Max threshold shift: ±0.18 at EvolutionSpeed=1, ±0.30 at EvolutionSpeed=5.
+		// Max threshold shift: ±0.26 at EvolutionSpeed=1, ±0.42 at EvolutionSpeed=5.
 		// Clamped so clouds never fully vanish or fully merge.
-		float swellAmp = 0.18f * saturate(EvolutionSpeed * 0.2f + 0.1f);
-		remapLow = clamp(0.22f - sin(swellPhase) * swellAmp, 0.01f, 0.42f);
+		float swellAmp = 0.26f * saturate(EvolutionSpeed * 0.2f + 0.1f);
+		remapLow = clamp(0.22f - sin(swellPhase) * swellAmp, 0.001f, 0.46f);
 	}
 
 	float shapeDensity = Remap(baseShape, remapLow, 1.0f, 0.0f, 1.0f);

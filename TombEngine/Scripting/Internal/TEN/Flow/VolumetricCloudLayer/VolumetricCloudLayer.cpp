@@ -196,22 +196,22 @@ namespace TEN::Scripting
 
 	void VolumetricCloudLayer::SetDensity(float val)
 	{
-		Settings.Density = std::clamp(val, 0.0f, 5.0f);
+		Settings.Density = std::clamp(val, 0.0f, 10.0f);
 	}
 
 	void VolumetricCloudLayer::SetWindSpeed(float val)
 	{
-		Settings.WindSpeed = std::clamp(val, 0.0f, 1.0f);
+		Settings.WindSpeed = std::clamp(val, 0.0f, 8.0f);
 	}
 
 	void VolumetricCloudLayer::SetBottomHeight(float val)
 	{
-		Settings.CloudBottomHeight = std::clamp(val, 500.0f, 50000.0f);
+		Settings.CloudBottomHeight = std::clamp(val, 500.0f, 200000.0f);
 	}
 
 	void VolumetricCloudLayer::SetThickness(float val)
 	{
-		Settings.CloudThickness = std::clamp(val, 100.0f, 20000.0f);
+		Settings.CloudThickness = std::clamp(val, 100.0f, 100000.0f);
 	}
 
 	void VolumetricCloudLayer::SetEvolutionSpeed(float val)
