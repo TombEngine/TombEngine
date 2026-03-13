@@ -44,10 +44,8 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 		target = item->Pose.Position;
 
 	auto bounds = GameBoundingBox(item);
-	auto targetWithOffset = Vector3(
-		target.x,
-		item->Pose.Position.y + bounds.Y2 + (bounds.Y1 - bounds.Y2) * 0.75f,
-		target.z);
+	auto yOffset = bounds.Y2 - (bounds.GetHeight() * 0.75f);
+	auto targetWithOffset = Vector3(target.x, item->Pose.Position.y + yOffset, target.z);
 
 	// Apply slight random scatter.
 	auto randomOrient = EulerAngles(
