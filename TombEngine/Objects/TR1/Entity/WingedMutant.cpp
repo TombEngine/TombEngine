@@ -556,17 +556,17 @@ namespace TEN::Entities::Creatures::TR1
 				break;
 
 			case WMUTANT_STATE_FLY:
-					creature.MaxTurn = WINGED_MUTANT_RUN_TURN_RATE_MAX;
+				creature.MaxTurn = WINGED_MUTANT_RUN_TURN_RATE_MAX;
 
-					// Override TargetOffset to OG point.
-					if (creature.Mood == MoodType::Attack && creature.Enemy != nullptr)
-						creature.Target.y = creature.Enemy->Pose.Position.y;
+				// Override TargetOffset to OG point.
+				if (creature.Mood == MoodType::Attack && creature.Enemy != nullptr)
+					creature.Target.y = creature.Enemy->Pose.Position.y;
 
-					if (creature.Mood != MoodType::Escape && isSameZoneInGroundMode && (item.Floor - item.Pose.Position.y) <= CLICK(2))
-					{
-						item.Animation.TargetState = WMUTANT_STATE_IDLE; // Switch to ground mode.
-						item.SetFlagField(WMUTANT_CONF_PATHFINDING_MODE, WMUTANT_PATH_GROUND);
-					}
+				if (creature.Mood != MoodType::Escape && isSameZoneInGroundMode && (item.Floor - item.Pose.Position.y) <= CLICK(2))
+				{
+					item.Animation.TargetState = WMUTANT_STATE_IDLE; // Switch to ground mode.
+					item.SetFlagField(WMUTANT_CONF_PATHFINDING_MODE, WMUTANT_PATH_GROUND);
+				}
 
 				break;
 			}
