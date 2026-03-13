@@ -234,7 +234,27 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::VolumetricCloudComposite);
 		DrawTriangles(3, 0);
 
+		// --- Cleanup: restore all IA and pipeline state changed by the cloud pass ---
+		// CRITICAL: restore the regular mesh input layout.
+		// _fullscreenTriangleInputLayout is incompatible with _moveablesVertexBuffer.
+		// Leaving it active causes the GBuffer pass to interpret vertex data incorrectly,
+		// writing garbage depth values, which results in ghost meshes on all objects.
+		_context->IASetInputLayout(_inputLayout.Get());
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		// Unbind cloud RT SRVs so subsequent passes don't accidentally sample cloud content.
+		ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 2, nullSRVs);
+
+		// Reset render states.
 		SetBlendMode(BlendMode::Opaque);
+		SetDepthState(DepthState::Write);
+		SetCullMode(CullMode::CounterClockwise);
+
+		// Restore full-res viewport and main render target.
+		_context->RSSetViewports(1, &renderView.Viewport);
+		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
+			_renderTarget.DepthStencilView.Get());
 	}
 
 	// ========================================================================

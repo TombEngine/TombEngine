@@ -1954,6 +1954,11 @@ namespace TEN::Renderer
 		// Draw volumetric clouds over sky (if enabled; otherwise no-op).
 		DrawVolumetricClouds(view);
 
+		// Ensure the correct mesh input layout is active before the GBuffer pass.
+		// (The cloud pass uses _fullscreenTriangleInputLayout which must not leak here.)
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_context->IASetInputLayout(_inputLayout.Get());
+
 		// Build G-Buffer (normals + depth).
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
