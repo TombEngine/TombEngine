@@ -164,8 +164,17 @@ namespace TEN::Renderer
 		if (activeSettings->Coverage < 0.001f)
 			return;
 
-		// Resolve quality params.
-		_cloudState.ActiveQuality = GetQualityParams(activeSettings->Quality);
+		// Resolve quality params — resize render target if the resolution scale changed.
+		auto newQuality = GetQualityParams(activeSettings->Quality);
+		if (newQuality.RenderResolutionScale != _cloudState.ActiveQuality.RenderResolutionScale)
+		{
+			_cloudState.ActiveQuality = newQuality;
+			ResizeVolumetricCloudTargets();
+		}
+		else
+		{
+			_cloudState.ActiveQuality = newQuality;
+		}
 
 		// Update accumulated time.
 		float dt = 1.0f / std::max(_refreshRate, 30);
