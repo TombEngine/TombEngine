@@ -280,7 +280,7 @@ bool TestLaraHangJump(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -345,7 +345,7 @@ bool TestLaraHangJumpUp(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -1397,7 +1397,7 @@ std::optional<VaultTestResult> TestLaraVault3StepsToCrouch(ItemInfo* item, Colli
 	{
 		int(-CLICK(2.5f)), int(-CLICK(3.5f)),
 		LARA_HEIGHT_CRAWL, LARA_HEIGHT,
-		int(CLICK(1)),
+		int(CLICK(1))
 	};
 
 	auto testResult = TestLaraVaultTolerance(item, coll, testSetup);

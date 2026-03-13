@@ -43,10 +43,9 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 	if (Vector3i::Distance(item->Pose.Position, target) > TARGET_DEVIATION_THRESHOLD)
 		target = item->Pose.Position;
 
-	auto targetWithOffset = Vector3(
-		target.x,
-		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
-		target.z);
+	auto bounds = GameBoundingBox(item);
+	auto yOffset = bounds.Y2 - (bounds.GetHeight() * 0.75f);
+	auto targetWithOffset = Vector3(target.x, item->Pose.Position.y + yOffset, target.z);
 
 	// Apply slight random scatter.
 	auto randomOrient = EulerAngles(
