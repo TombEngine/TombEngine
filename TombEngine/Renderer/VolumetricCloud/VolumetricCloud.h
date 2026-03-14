@@ -101,6 +101,13 @@ namespace TEN::Renderer::VolumetricCloud
 		float PhaseForward      = 0.6f;    // HG phase function forward lobe
 		float PhaseBackward     = 0.3f;    // HG phase function backward lobe
 
+		// Fading
+		float HorizonFade     = 1.0f;   // Multiplier on horizon atmospheric fade. 0 = no fade, 1 = full fade.
+		float DistanceFade    = 1.0f;   // Multiplier on distance-based opacity falloff. 0 = no fade, 1 = full fade.
+
+		// Cloud type (maps to CloudCategory enum)
+		int CloudType = 0;             // 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
+
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
 		float JitterStrength        = 1.0f;
@@ -149,6 +156,9 @@ namespace TEN::Renderer::VolumetricCloud
 
 	inline CloudQualityParams GetQualityParams(CloudQualityPreset preset)
 	{
+		// Always use High quality regardless of the configured preset.
+		preset = CloudQualityPreset::High;
+
 		switch (preset)
 		{
 		case CloudQualityPreset::Low:

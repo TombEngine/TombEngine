@@ -55,4 +55,10 @@ cbuffer CBVolumetricCloud : register(b9)
 	float FrameIndex;
 	float EarthRadius;
 	float PlanetCenterY;
+	//--
+	// Row 10
+	float HorizonFade;    // Multiplier on horizon atmospheric fade (0 = none, 1 = full).
+	float DistanceFade;   // Multiplier on distance-based opacity falloff (0 = none, 1 = full).
+	int   CloudType;      // 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
+	float CloudPadding2;
 };

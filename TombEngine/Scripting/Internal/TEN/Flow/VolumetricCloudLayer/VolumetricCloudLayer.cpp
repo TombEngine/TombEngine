@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Flow/VolumetricCloudLayer/VolumetricCloudLayer.h"
 
 #include <algorithm>
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
@@ -10,6 +11,7 @@
 using namespace TEN::Renderer::VolumetricCloud;
 using namespace TEN::Scripting::Types;
 using namespace TEN::Math::Random;
+using namespace TEN::Sky;
 
 namespace TEN::Scripting
 {
@@ -84,7 +86,21 @@ namespace TEN::Scripting
 
 			/// (string) Quality preset: "Low", "Medium", or "High". Default: "Medium".
 			// @mem quality
-			"quality", sol::property(&VolumetricCloudLayer::GetQuality, &VolumetricCloudLayer::SetQuality)
+			"quality", sol::property(&VolumetricCloudLayer::GetQuality, &VolumetricCloudLayer::SetQuality),
+
+			/*** Create a VolumetricCloudLayer pre-configured from a named weather preset.
+			@function fromPreset
+			@tparam string presetName Preset name: "ClearSky", "Cirrus", "Thunderstorm", etc.
+			@tparam[opt] string layer Which cloud layer of the preset to copy: "cloudA" (default) or "cloudB".
+			@treturn VolumetricCloudLayer A cloud layer object populated with the preset's values.
+			@usage
+			level.volumetricLayer1 = Flow.VolumetricCloudLayer.fromPreset("Cirrus")
+			level.volumetricLayer1 = Flow.VolumetricCloudLayer.fromPreset("Thunderstorm", "cloudB")
+			*/
+			"fromPreset", sol::overload(
+				[](const std::string& name) { return VolumetricCloudLayer::FromPreset(name); },
+				[](const std::string& name, const std::string& lyr) { return VolumetricCloudLayer::FromPreset(name, lyr); }
+			)
 		);
 	}
 
@@ -100,6 +116,21 @@ namespace TEN::Scripting
 		Settings.Enabled = true;
 		Settings.Mode = CloudLayerMode::Volumetric;
 		ParseSettingsTable(settingsTable);
+	}
+
+	VolumetricCloudLayer VolumetricCloudLayer::FromPreset(const std::string& presetName, const std::string& layer)
+	{
+		auto type = SkyCloudSystem::StringToPresetType(presetName);
+		const auto* def = g_SkyCloudSystem.GetPresetDefinition(type);
+		if (!def)
+			return {};
+
+		const VolumetricCloudLayerSnapshot& snapshot =
+			(layer == "cloudB") ? def->TargetState.CloudB : def->TargetState.CloudA;
+
+		VolumetricCloudLayer result;
+		result.Settings = snapshot.ToRenderSettings();
+		return result;
 	}
 
 	// -----------------------------------------------------------------------

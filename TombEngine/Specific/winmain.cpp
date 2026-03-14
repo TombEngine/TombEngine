@@ -11,6 +11,12 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/ImGuiIntegration.h"
+#include <imgui.h>
+
+// Forward declaration as instructed by imgui_impl_win32.h (guarded by #if 0 in the header).
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -445,6 +451,20 @@ void CALLBACK HandleWmCommand(unsigned short wParam)
 LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	static bool receivedWmClose = false;
+
+	// Let ImGui process input first when the debug overlay is visible.
+	if (TEN::Renderer::ImGuiIsOverlayVisible())
+	{
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+			return true;
+	}
+
+	// Toggle debug overlay with F8.
+	if (msg == WM_KEYDOWN && wParam == VK_F8)
+	{
+		TEN::Renderer::ImGuiToggleOverlay();
+		return 0;
+	}
 
 	// Disables ALT + SPACE
 	if (msg == WM_SYSCOMMAND && wParam == SC_KEYMENU)

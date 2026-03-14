@@ -182,13 +182,52 @@ float HeightFraction(float worldY, float bottomY, float thickness)
 
 // Height-based density gradient: rounded-bottom cumulus-like profile.
 // Produces soft ramp-in at bottom, plateau in middle, smooth fade at top.
+// Now dispatches per CloudType for type-authentic vertical density envelopes.
+//
+// CloudType 0 (None):                  generic cumulus fallback
+// CloudType 1 (CirrusHigh):            thin concentrated band in upper 30%
+// CloudType 2 (AltocumulusMid):        rounded cumulus, slight bottom bias
+// CloudType 3 (StratocumulusLow):      broad flat slab, gradual top fade
+// CloudType 4 (CumulonimbusVertical):  tall anvil shape, dense through most of height
 float HeightGradient(float heightFrac)
 {
-	// Bottom ramp: soft entry from 0.0 to 0.15
-	float bottom = smoothstep(0.0f, 0.15f, heightFrac);
-	// Top ramp: fade starting at 0.7
-	float top = 1.0f - smoothstep(0.7f, 1.0f, heightFrac);
-	return bottom * top;
+	if (CloudType == 1) // CirrusHigh
+	{
+		// Thin wispy band concentrated in the upper portion of the slab.
+		// Peaks at 75-85% height, fades quickly below and above.
+		float bottom = smoothstep(0.5f, 0.75f, heightFrac);
+		float top    = 1.0f - smoothstep(0.85f, 1.0f, heightFrac);
+		return bottom * top;
+	}
+	else if (CloudType == 2) // AltocumulusMid
+	{
+		// Classic cumulus profile — rounded bottom entry, broad middle, gentle top fade.
+		float bottom = smoothstep(0.0f, 0.2f, heightFrac);
+		float top    = 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
+		return bottom * top;
+	}
+	else if (CloudType == 3) // StratocumulusLow
+	{
+		// Broad flat slab — density is nearly constant through the middle,
+		// with thin ramps at bottom and top.
+		float bottom = smoothstep(0.0f, 0.08f, heightFrac);
+		float top    = 1.0f - smoothstep(0.8f, 1.0f, heightFrac);
+		return bottom * top;
+	}
+	else if (CloudType == 4) // CumulonimbusVertical
+	{
+		// Towering anvil: dense from bottom through 80% of height,
+		// then a slower fade near top to simulate the spreading anvil cap.
+		float bottom = smoothstep(0.0f, 0.1f, heightFrac);
+		float top    = 1.0f - smoothstep(0.8f, 1.0f, heightFrac) * 0.6f; // never fully zero at top
+		return bottom * top;
+	}
+	else // None / default — original generic profile
+	{
+		float bottom = smoothstep(0.0f, 0.15f, heightFrac);
+		float top    = 1.0f - smoothstep(0.7f, 1.0f, heightFrac);
+		return bottom * top;
+	}
 }
 
 // ===========================================================================
@@ -197,9 +236,17 @@ float HeightGradient(float heightFrac)
 
 float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 {
+	// --- Sky-space coordinates for stable cloud anchoring ---
+	// The cloud slab follows the camera, so worldPos (= CamPos + rayDir*t)
+	// shifts with camera movement.  Subtracting the camera position gives
+	// a position that depends only on the ray direction and intersection
+	// distance, making the noise pattern behave like an infinitely distant
+	// sky dome — stable during camera translation.
+	float3 skyPos = worldPos - CamPositionWS.xyz;
+
 	// --- Coverage / Weather noise ---
 	// Large-scale weather map controls where clouds exist.
-	float2 weatherUV = worldPos.xz * WeatherScale 
+	float2 weatherUV = skyPos.xz * WeatherScale 
 	                  + WindDirection * CloudTime * WindSpeed * 0.3f;
 	float weatherNoise = ValueNoise3D(float3(weatherUV, 0.0f));
 
@@ -224,7 +271,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	//   At CloudBottomHeight * 6.0 (≈ 9° elevation)  → lod = 1, fine octaves silent.
 	// CloudBottomHeight is the camera-to-cloud-base vertical distance, naturally
 	// scaling with scene size without needing separate tuning.
-	float horizDist = length(worldPos.xz - CamPositionWS.xz);
+	float horizDist = length(skyPos.xz);
 	float lodNear   = max(CloudBottomHeight * 1.5f, 1.0f);
 	float lodFar    = max(CloudBottomHeight * 6.0f, lodNear + 1.0f);
 	float distLOD   = saturate((horizDist - lodNear) / (lodFar - lodNear));
@@ -233,7 +280,26 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// Sampling position is purely driven by horizontal wind drift.
 	// No Y-displacement here — any 3D shift of shapePos produces twisting artifacts
 	// because the noise has structure in all three axes.
-	float3 shapePos = worldPos * ShapeScale 
+	//
+	// Per-CloudType noise distortion:
+	//   CirrusHigh:   horizontal stretch (3x XZ, 0.4x Y) for wispy fibrous streaks.
+	//   AltocumulusMid: slight XZ stretch (1.3x) for patchy roundish puffs.
+	//   StratocumulusLow: strong XZ stretch (2x, 0.6x Y) for flat sheet-like slabs.
+	//   CumulonimbusVertical: vertical stretch (0.7x XZ, 1.5x Y) for tall towers.
+	//   Default: isotropic (no distortion).
+	float3 noiseScale;
+	if (CloudType == 1) // CirrusHigh — fibrous horizontal streaks
+		noiseScale = float3(3.0f, 0.4f, 3.0f);
+	else if (CloudType == 2) // AltocumulusMid — slightly elongated patches
+		noiseScale = float3(1.3f, 0.9f, 1.3f);
+	else if (CloudType == 3) // StratocumulusLow — flat sheet
+		noiseScale = float3(2.0f, 0.6f, 2.0f);
+	else if (CloudType == 4) // CumulonimbusVertical — tall vertical towers
+		noiseScale = float3(0.7f, 1.5f, 0.7f);
+	else
+		noiseScale = float3(1.0f, 1.0f, 1.0f);
+
+	float3 shapePos = skyPos * ShapeScale * noiseScale
 	                 + float3(WindDirection.x, 0.0f, WindDirection.y) 
 	                   * CloudTime * WindSpeed;
 
@@ -254,7 +320,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	{
 		// Phase noise sampled at much coarser scale than shape — one puff region
 		// covers many cloud masses, giving a coherent swell without fragmentation.
-		float phaseNoise = ValueNoise3D(worldPos * ShapeScale * 0.25f);
+		float phaseNoise = ValueNoise3D(skyPos * ShapeScale * 0.25f);
 		float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
 
 		// Max threshold shift: ±0.26 at EvolutionSpeed=1, ±0.42 at EvolutionSpeed=5.
@@ -324,8 +390,9 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// --- Detail erosion (interior only) ---
 	if (useDetail && DetailNoiseEnabled != 0)
 	{
+		// Apply same per-type noise distortion to detail sampling for consistency.
 		// No Y-drift: vertical wobble was the primary source of edge warping.
-		float3 detailPos = worldPos * DetailScale 
+		float3 detailPos = skyPos * DetailScale * noiseScale
 		                  + float3(WindDirection.x, 0.0f, WindDirection.y) 
 		                    * CloudTime * EvolutionSpeed;
 		// Pass distLOD: at medium/far distance FBMDetail progressively mutes its
@@ -355,8 +422,20 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		float maskHigh         = lerp(0.65f, 0.85f, absorpEdgeGuard);
 		float interiorMask     = smoothstep(maskLow, maskHigh, shapeDensity);
 		float absorpErosionScale = saturate(1.0f - (Absorption - 0.5f) * 0.35f);
+
+		// Per-CloudType erosion weight multiplier:
+		//   CirrusHigh: minimal erosion — cirrus clouds are smooth/wispy.
+		//   StratocumulusLow: reduced erosion — flat smooth sheets.
+		//   CumulonimbusVertical: enhanced erosion — dramatic towering structures.
+		//   Others: standard erosion.
+		float typeErosionMul;
+		if      (CloudType == 1) typeErosionMul = 0.15f; // CirrusHigh: almost no erosion
+		else if (CloudType == 3) typeErosionMul = 0.6f;  // StratocumulusLow: mild
+		else if (CloudType == 4) typeErosionMul = 1.4f;  // CumulonimbusVertical: enhanced
+		else                     typeErosionMul = 1.0f;  // default
+
 		float erosionWeight    = interiorMask * DetailStrength * 0.40f
-		                         * (1.0f - distLOD) * absorpErosionScale;
+		                         * (1.0f - distLOD) * absorpErosionScale * typeErosionMul;
 		shapeDensity = Remap(shapeDensity, erosionWeight * detail, 1.0f, 0.0f, 1.0f);
 	}
 
@@ -422,9 +501,43 @@ float HenyeyGreenstein(float cosTheta, float g)
 
 float DualLobePhase(float cosTheta)
 {
-	float forward  = HenyeyGreenstein(cosTheta, PhaseForward);
-	float backward = HenyeyGreenstein(cosTheta, -PhaseBackward);
-	return lerp(backward, forward, 0.7f);
+	// Per-CloudType phase function tuning:
+	//   CirrusHigh: ice crystals — very strong forward scattering (g=0.85),
+	//               minimal backscatter. Creates bright halo/glare near sun.
+	//   AltocumulusMid: standard water droplets — balanced dual-lobe.
+	//   StratocumulusLow: water droplets — slightly more diffuse (broader lobe).
+	//   CumulonimbusVertical: large mixed-phase drops — broad forward, some back.
+	//   Default: use CB PhaseForward/PhaseBackward directly.
+
+	float fwd, bk, fwdWeight;
+	if (CloudType == 1) // CirrusHigh — ice crystal forward scattering
+	{
+		fwd       = 0.85f;
+		bk        = 0.15f;
+		fwdWeight = 0.9f;  // heavily forward-dominant
+	}
+	else if (CloudType == 3) // StratocumulusLow — diffuse water droplets
+	{
+		fwd       = 0.45f;
+		bk        = 0.35f;
+		fwdWeight = 0.6f;
+	}
+	else if (CloudType == 4) // CumulonimbusVertical — large mixed-phase
+	{
+		fwd       = 0.7f;
+		bk        = 0.4f;
+		fwdWeight = 0.65f;
+	}
+	else // AltocumulusMid, None, default — use CB parameters
+	{
+		fwd       = PhaseForward;
+		bk        = PhaseBackward;
+		fwdWeight = 0.7f;
+	}
+
+	float forward  = HenyeyGreenstein(cosTheta, fwd);
+	float backward = HenyeyGreenstein(cosTheta, -bk);
+	return lerp(backward, forward, fwdWeight);
 }
 
 // ===========================================================================
@@ -593,7 +706,8 @@ float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, flo
 	if (CloudDebugView == 1) // CoverageMask
 	{
 		float3 samplePos = rayOrigin + rayDir * (CloudBottomHeight + CloudThickness * 0.5f);
-		float2 wUV = samplePos.xz * WeatherScale + WindDirection * CloudTime * WindSpeed * 0.3f;
+		float3 dbgSkyPos = samplePos - CamPositionWS.xyz;
+		float2 wUV = dbgSkyPos.xz * WeatherScale + WindDirection * CloudTime * WindSpeed * 0.3f;
 		float wn = ValueNoise3D(float3(wUV, 0.0f));
 		float cm = Remap(wn, 1.0f - Coverage, 1.0f, 0.0f, 1.0f);
 		return float4(cm.xxx, 1.0f);
@@ -657,7 +771,11 @@ float HorizonAtmosphericFade(float3 rayDir)
 
 	// sqrt push: makes the lower half of the transition feel gentle and
 	// atmospheric (exponential character) rather than linear.
-	return sqrt(fade);
+	float baseFade = sqrt(fade);
+
+	// HorizonFade CB parameter: 0 = disable horizon fade, 1 = full fade.
+	// Lerp between no fade (1.0) and the computed fade to allow per-layer control.
+	return lerp(1.0f, baseFade, HorizonFade);
 }
 
 // ===========================================================================
@@ -703,7 +821,24 @@ float4 PS(VSOutput input) : SV_TARGET
 	// Distant clouds smoothly dissolve into whatever sky/horizon is behind them.
 	// Only applied when not in a debug view (debug views show unmodified density).
 	if (CloudDebugView == 0)
+	{
 		cloudResult.a *= HorizonAtmosphericFade(rayDir);
+
+		// Distance fade: attenuate clouds based on how far the cloud slab entry
+		// point is from the camera. DistanceFade CB parameter controls strength
+		// (0 = no distance fade, 1 = full fade). The fade band runs from 60% to
+		// 100% of the max march distance (CloudThickness * 6).
+		if (DistanceFade > 0.0f)
+		{
+			float2 tRange = IntersectCloudVolume(rayOrigin, rayDir);
+			if (tRange.x > 0.0f)
+			{
+				float maxDist  = CloudThickness * 6.0f;
+				float distFade = 1.0f - smoothstep(maxDist * 0.6f, maxDist, tRange.x);
+				cloudResult.a *= lerp(1.0f, distFade, DistanceFade);
+			}
+		}
+	}
 
 	return cloudResult;
 }

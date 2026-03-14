@@ -25,6 +25,9 @@ namespace TEN::Scripting
 		VolumetricCloudLayer() = default;
 		VolumetricCloudLayer(sol::table settingsTable);
 
+		// Static factory.
+		static VolumetricCloudLayer FromPreset(const std::string& presetName, const std::string& layer = "cloudA");
+
 		// Getters.
 		bool        GetEnabled() const;
 		float       GetCoverage() const;

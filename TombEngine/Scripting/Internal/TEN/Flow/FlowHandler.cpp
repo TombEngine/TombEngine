@@ -23,6 +23,7 @@
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Scripting/Internal/TEN/Flow/VolumetricCloudLayer/VolumetricCloudLayer.h"
+#include "Scripting/Internal/TEN/Flow/Weather/WeatherPreset.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
@@ -372,6 +373,7 @@ Specify which translations in the strings table correspond to which languages.
 	Horizon::Register(tableFlow);
 	LensFlare::Register(tableFlow);
 	Starfield::Register(tableFlow);
+	TEN::Scripting::RegisterWeatherAPI(tableFlow);
 
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_WeatherType, WEATHER_TYPES);
 	_handler.MakeReadOnlyTable(tableFlow, ScriptReserved_LaraType, PLAYER_TYPES);

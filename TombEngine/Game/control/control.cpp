@@ -25,6 +25,7 @@
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
@@ -73,6 +74,7 @@ using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Sky;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
@@ -191,6 +193,9 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Update weather.
 	Weather.Update();
+
+	// Update layered sky/cloud/weather system.
+	g_SkyCloudSystem.Update(1.0f / 30.0f); // TEN runs at 30 ticks/sec.
 
 	// Update effects.
 	StreamerEffect.Update();
@@ -540,6 +545,9 @@ void CleanUp()
 
 	// Resets lightning and wind parameters to avoid holding over previous weather to new level.
 	Weather.Clear();
+
+	// Reset the layered sky/cloud/weather system to default state for the new level.
+	g_SkyCloudSystem.Initialize();
 
 	// Clear creatures, otherwise list of active creatures from previous level will spill into new level.
 	ActiveCreatures.clear();

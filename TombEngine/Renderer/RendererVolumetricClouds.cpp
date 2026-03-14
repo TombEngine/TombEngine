@@ -37,6 +37,9 @@ namespace TEN::Renderer
 
 		// Render targets are created/resized in ResizeVolumetricCloudTargets().
 		ResizeVolumetricCloudTargets();
+
+		// Initialize dual volumetric cloud layer B targets.
+		InitializeDualVolumetricClouds();
 	}
 
 	void Renderer::ResizeVolumetricCloudTargets()
@@ -145,6 +148,11 @@ namespace TEN::Renderer
 		// Using a moderate value that gives visible curvature at cloud altitudes.
 		_stVolumetricCloud.EarthRadius   = 600000.0f;
 		_stVolumetricCloud.PlanetCenterY = -(600000.0f);
+
+		// Fading parameters.
+		_stVolumetricCloud.HorizonFade   = settings.HorizonFade;
+		_stVolumetricCloud.DistanceFade  = settings.DistanceFade;
+		_stVolumetricCloud.CloudType     = settings.CloudType;
 
 		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
 	}

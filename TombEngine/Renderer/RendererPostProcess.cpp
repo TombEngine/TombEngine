@@ -1,6 +1,9 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 #include "Game/spotcam.h"
+#include "Game/Sky/SkyCloudSystem.h"
+
+using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
@@ -54,8 +57,19 @@ namespace TEN::Renderer
 		if (!view.LensFlaresToDraw.empty())
 		{
 			// Update cloud occlusion for lens flare attenuation (before setting up lens flare RT).
-			UpdateCloudLensFlareOcclusion(view);
-			float cloudOcclusion = GetCloudLensFlareOcclusion();
+			// If the new dual-layer system has active volumetric layers, use its combined
+			// transmittance; otherwise fall back to the legacy single-layer occlusion.
+			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			{
+				// Dual-layer occlusion is updated inside DrawDualVolumetricClouds().
+			}
+			else
+			{
+				UpdateCloudLensFlareOcclusion(view);
+			}
+			float cloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
+				: GetCloudLensFlareOcclusion();
 
 			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
 			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);

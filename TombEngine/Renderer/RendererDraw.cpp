@@ -26,9 +26,12 @@
 #include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
+#include "Renderer/ImGuiIntegration.h"
+#include "Game/Sky/SkyCloudDebug.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Structures/RendererSortableObject.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
@@ -42,6 +45,7 @@ using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Renderer::Structures;
+using namespace TEN::Sky;
 
 extern GUNSHELL_STRUCT Gunshells[MAX_GUNSHELL];
 
@@ -1951,8 +1955,13 @@ namespace TEN::Renderer
 		// Draw horizon and sky.
 		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), view);
 
-		// Draw volumetric clouds over sky (if enabled; otherwise no-op).
-		DrawVolumetricClouds(view);
+		// Draw volumetric clouds over sky.
+		// Use the new dual-layer system if the SkyCloudSystem has active layers,
+		// otherwise fall back to the legacy single-layer path for backward compatibility.
+		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			DrawDualVolumetricClouds(view);
+		else
+			DrawVolumetricClouds(view);
 
 		// Ensure the correct mesh input layout is active before the GBuffer pass.
 		// (The cloud pass uses _fullscreenTriangleInputLayout which must not leak here.)
@@ -3380,6 +3389,13 @@ namespace TEN::Renderer
 	{
 		InterpolateCamera(interpFactor);
 		RenderScene(&_backBuffer, _gameCamera);
+
+		// ImGui debug overlay: NewFrame -> draw windows -> render.
+		// Must happen after RenderScene (so it draws on top) and before ClearState/Present.
+		ImGuiNewFrame();
+		if (ImGuiIsOverlayVisible())
+			TEN::Sky::DrawSkyCloudDebugOverlay();
+		ImGuiRenderFrame();
 
 		_context->ClearState();
 		_swapChain->Present(1, 0);

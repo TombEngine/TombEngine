@@ -5,6 +5,7 @@
 #include <d3dcompiler.h>
 
 #include "Renderer/Renderer.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 #include "Renderer/SMAA/AreaTex.h"
@@ -256,6 +257,9 @@ namespace TEN::Renderer
 
 		// Initialize video player.
 		g_VideoPlayer.Initialize(gameDir, _device.Get(), _context.Get());
+
+		// Initialize ImGui debug overlay.
+		ImGuiInit();
 	}
 
 	void Renderer::InitializePostProcess()

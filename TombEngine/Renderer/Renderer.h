@@ -201,6 +201,11 @@ namespace TEN::Renderer
 		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
 
+		// Dual volumetric cloud layer B (layer A reuses the members above).
+		RenderTarget2D _cloudRenderTargetB;
+		RenderTarget2D _cloudOcclusionTargetB;
+		VolumetricCloud::CloudRuntimeState _cloudStateB;
+
 		// Primitive batches
 
 		std::unique_ptr<SpriteBatch> _spriteBatch;
@@ -454,6 +459,22 @@ namespace TEN::Renderer
 		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
 		float GetCloudLensFlareOcclusion() const;
 		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
+
+		// Dual volumetric cloud layers (new layered system).
+		void InitializeDualVolumetricClouds();
+		void ResizeDualCloudTargets();
+		void DrawDualVolumetricClouds(RenderView& renderView);
+		void DrawSingleVolumetricCloudLayer(
+			const VolumetricCloud::CloudRenderSettings& settings,
+			VolumetricCloud::CloudRuntimeState& state,
+			RenderTarget2D& renderTarget,
+			RenderView& renderView);
+		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
+		float ComputeSingleLayerOcclusion(
+			const VolumetricCloud::CloudRenderSettings& settings,
+			VolumetricCloud::CloudRuntimeState& state,
+			RenderTarget2D& occlusionTarget,
+			RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
@@ -835,6 +856,10 @@ namespace TEN::Renderer
 		void SetGraphicsSettingsChanged();
 
 		RendererDebugPage GetDebugPage() const;
+
+		// --- D3D11 accessors (for ImGui integration) ---
+		ID3D11Device*        GetDevice()        { return _device.Get(); }
+		ID3D11DeviceContext* GetDeviceContext()  { return _context.Get(); }
 	};
 
 	extern Renderer g_Renderer;

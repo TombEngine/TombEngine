@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
@@ -28,6 +29,7 @@ namespace TEN::Renderer
 
 	Renderer::~Renderer()
 	{
+		ImGuiShutdown();
 		FreeRendererData();
 	}
 

@@ -62,5 +62,11 @@ namespace TEN::Renderer::ConstantBuffers
 		float FrameIndex;
 		float EarthRadius;
 		float PlanetCenterY;
+		//--
+		// Row 10
+		float HorizonFade;    // Multiplier on horizon atmospheric fade (0 = none, 1 = full).
+		float DistanceFade;   // Multiplier on distance-based opacity falloff (0 = none, 1 = full).
+		int   CloudType;      // Cloud category enum: 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
+		float Padding2;
 	};
 }
