@@ -21,23 +21,27 @@ if(WIN32)
         ${TEN_RENDERER_SOURCES}
         ${TEN_RENDERER_DX11_SOURCES}
         ${TEN_RENDERER_OPENGL_SOURCES}
+        ${TEN_RENDERER_SDLGPU_SOURCES}
     )
     set(RENDERER_HEADERS
         ${TEN_RENDERER_HEADERS}
         ${TEN_RENDERER_DX11_HEADERS}
         ${TEN_RENDERER_OPENGL_HEADERS}
+        ${TEN_RENDERER_SDLGPU_HEADERS}
     )
-    set(RENDERER_DEFINES HAS_DX11 HAS_OPENGL)
+    set(RENDERER_DEFINES HAS_DX11 HAS_OPENGL HAS_SDLGPU)
 else()
     set(RENDERER_SOURCES
         ${TEN_RENDERER_SOURCES}
         ${TEN_RENDERER_OPENGL_SOURCES}
+        ${TEN_RENDERER_SDLGPU_SOURCES}
     )
     set(RENDERER_HEADERS
         ${TEN_RENDERER_HEADERS}
         ${TEN_RENDERER_OPENGL_HEADERS}
+        ${TEN_RENDERER_SDLGPU_HEADERS}
     )
-    set(RENDERER_DEFINES HAS_OPENGL)
+    set(RENDERER_DEFINES HAS_OPENGL HAS_SDLGPU)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -128,6 +132,26 @@ FetchContent_Declare(spdlog
 )
 set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
+
+# SDL_shadercross for SDL_GPU shader compilation (HLSL → SPIRV → native).
+# On Windows, SDL3 is vendored (pre-built) — create an imported SDL3::Headers
+# target so that SDL_shadercross's find_package(SDL3) is skipped.
+if(WIN32 AND NOT TARGET SDL3::Headers)
+    add_library(SDL3::Headers INTERFACE IMPORTED)
+    set_target_properties(SDL3::Headers PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LIBS_DIR}/sdl3/include"
+    )
+endif()
+
+FetchContent_Declare(SDL_shadercross
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL_shadercross.git
+    GIT_TAG        main
+)
+set(SDLSHADERCROSS_SHARED OFF CACHE BOOL "" FORCE)
+set(SDLSHADERCROSS_INSTALL OFF CACHE BOOL "" FORCE)
+set(SDLSHADERCROSS_CLI OFF CACHE BOOL "" FORCE)
+set(SDLSHADERCROSS_VENDORED ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(SDL_shadercross)
 
 # Header-only / always-vendored libraries (all platforms).
 # Use -idirafter for ${LIBS_DIR} so that FetchContent spdlog headers
@@ -274,6 +298,7 @@ if(WIN32)
         sdl3
         spdlog::spdlog
         liblz4_static
+        SDL3_shadercross::SDL3_shadercross-static
     )
 
 else()
@@ -375,6 +400,7 @@ else()
         bass
         bassmix
         bass_fx
+        SDL3_shadercross::SDL3_shadercross-static
         vlc
         vlccore
     )

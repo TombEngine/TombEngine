@@ -183,7 +183,10 @@ enum class GraphicsAPI
 {
 	Auto,
 	DirectX11,
-	OpenGL
+	OpenGL,
+	Vulkan,
+	D3D12,
+	Metal
 };
 
 enum class TransparentFaceType

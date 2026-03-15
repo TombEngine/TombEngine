@@ -16,6 +16,9 @@
 #ifdef HAS_DX11
 #include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
 #endif
+#ifdef HAS_SDLGPU
+#include "Renderer/Native/SDLGPU/SDLGPUGraphicsDevice.h"
+#endif
 #include "Renderer/Graphics/VRAMTracker.h"
 
 extern GameConfiguration g_Configuration;
@@ -404,6 +407,17 @@ namespace TEN::Renderer
 #ifdef HAS_DX11
 		case GraphicsAPI::DirectX11:
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::DirectX11::DX11GraphicsDevice>();
+			break;
+#endif
+#ifdef HAS_SDLGPU
+		case GraphicsAPI::Vulkan:
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("vulkan");
+			break;
+		case GraphicsAPI::D3D12:
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("d3d12");
+			break;
+		case GraphicsAPI::Metal:
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("metal");
 			break;
 #endif
 		default:

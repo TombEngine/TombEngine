@@ -187,8 +187,8 @@ set(TEN_GAME_HEADERS
     Game/Lara/lara_struct.h
     Game/Lara/lara_surface.h
     Game/Lara/lara_swim.h
-    Game/Lara/lara_tests.h
     Game/Lara/lara_test_structs.h
+    Game/Lara/lara_tests.h
     Game/Lara/lara_two_guns.h
     Game/Lara/Optics.h
     Game/Lara/PlayerContext.h
@@ -198,12 +198,12 @@ set(TEN_GAME_HEADERS
     Game/missile.h
     Game/people.h
     Game/pickup/pickup.h
-    Game/pickup/pickuputil.h
     Game/pickup/pickup_ammo.h
     Game/pickup/pickup_consumable.h
     Game/pickup/pickup_key_items.h
     Game/pickup/pickup_misc_items.h
     Game/pickup/pickup_weapon.h
+    Game/pickup/pickuputil.h
     Game/room.h
     Game/savegame.h
     Game/Setup.h
@@ -719,8 +719,8 @@ set(TEN_OBJECTS_HEADERS
     Objects/TR5/Entity/tr5_imp.h
     Objects/TR5/Entity/tr5_lagoon_witch.h
     Objects/TR5/Entity/tr5_larson.h
-    Objects/TR5/Entity/tr5_laserhead_info.h
     Objects/TR5/Entity/tr5_laser_head.h
+    Objects/TR5/Entity/tr5_laserhead_info.h
     Objects/TR5/Entity/tr5_lion.h
     Objects/TR5/Entity/tr5_reaper.h
     Objects/TR5/Entity/tr5_roman_statue.h
@@ -771,7 +771,6 @@ set(TEN_RENDERER_SOURCES
     Renderer/Frustum.cpp
     Renderer/Graphics/VRAMAllocation.cpp
     Renderer/Graphics/VRAMTracker.cpp
-    Renderer/stb_impl.cpp
     Renderer/Renderer.cpp
     Renderer/RendererAntialiasing.cpp
     Renderer/RendererCompatibility.cpp
@@ -791,6 +790,7 @@ set(TEN_RENDERER_SOURCES
     Renderer/RendererUtils.cpp
     Renderer/RenderView.cpp
     Renderer/ShaderManager/ShaderManager.cpp
+    Renderer/stb_impl.cpp
 )
 
 # Renderer headers
@@ -948,6 +948,40 @@ set(TEN_RENDERER_OPENGL_HEADERS
     Renderer/Native/OpenGL/GLTexture2D.h
     Renderer/Native/OpenGL/GLUtils.h
     Renderer/Native/OpenGL/GLVertexBuffer.h
+)
+
+# Renderer Sdlgpu sources
+set(TEN_RENDERER_SDLGPU_SOURCES
+    Renderer/Native/SDLGPU/SDLGPUDepthTarget.cpp
+    Renderer/Native/SDLGPU/SDLGPUGraphicsDevice.cpp
+    Renderer/Native/SDLGPU/SDLGPUIndexBuffer.cpp
+    Renderer/Native/SDLGPU/SDLGPUInputLayout.cpp
+    Renderer/Native/SDLGPU/SDLGPUPipelineCache.cpp
+    Renderer/Native/SDLGPU/SDLGPUPrimitiveBatch.cpp
+    Renderer/Native/SDLGPU/SDLGPURenderTarget2D.cpp
+    Renderer/Native/SDLGPU/SDLGPUShader.cpp
+    Renderer/Native/SDLGPU/SDLGPUSpriteBatch.cpp
+    Renderer/Native/SDLGPU/SDLGPUSpriteFont.cpp
+    Renderer/Native/SDLGPU/SDLGPUTexture2D.cpp
+    Renderer/Native/SDLGPU/SDLGPUVertexBuffer.cpp
+)
+
+# Renderer Sdlgpu headers
+set(TEN_RENDERER_SDLGPU_HEADERS
+    Renderer/Native/SDLGPU/SDLGPUConstantBuffer.h
+    Renderer/Native/SDLGPU/SDLGPUDepthTarget.h
+    Renderer/Native/SDLGPU/SDLGPUGraphicsDevice.h
+    Renderer/Native/SDLGPU/SDLGPUIndexBuffer.h
+    Renderer/Native/SDLGPU/SDLGPUInputLayout.h
+    Renderer/Native/SDLGPU/SDLGPUPipelineCache.h
+    Renderer/Native/SDLGPU/SDLGPUPrimitiveBatch.h
+    Renderer/Native/SDLGPU/SDLGPURenderTarget2D.h
+    Renderer/Native/SDLGPU/SDLGPUShader.h
+    Renderer/Native/SDLGPU/SDLGPUSpriteBatch.h
+    Renderer/Native/SDLGPU/SDLGPUSpriteFont.h
+    Renderer/Native/SDLGPU/SDLGPUTexture2D.h
+    Renderer/Native/SDLGPU/SDLGPUUtils.h
+    Renderer/Native/SDLGPU/SDLGPUVertexBuffer.h
 )
 
 # Scripting sources
@@ -1187,6 +1221,7 @@ set(TEN_ALL_SOURCES
     ${TEN_RENDERER_SOURCES}
     ${TEN_RENDERER_DX11_SOURCES}
     ${TEN_RENDERER_OPENGL_SOURCES}
+    ${TEN_RENDERER_SDLGPU_SOURCES}
     ${TEN_SCRIPTING_SOURCES}
     ${TEN_SOUND_SOURCES}
     ${TEN_SPECIFIC_SOURCES}
@@ -1203,6 +1238,7 @@ set(TEN_ALL_HEADERS
     ${TEN_RENDERER_HEADERS}
     ${TEN_RENDERER_DX11_HEADERS}
     ${TEN_RENDERER_OPENGL_HEADERS}
+    ${TEN_RENDERER_SDLGPU_HEADERS}
     ${TEN_SCRIPTING_HEADERS}
     ${TEN_SOUND_HEADERS}
     ${TEN_SPECIFIC_HEADERS}

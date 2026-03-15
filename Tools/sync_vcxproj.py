@@ -24,6 +24,7 @@ SOURCES_CMAKE_PATH = REPO_ROOT / "TombEngine" / "Sources.cmake"
 MODULE_RULES = [
     ("RENDERER_DX11",  lambda p: p.startswith("Renderer/Native/DirectX11/")),
     ("RENDERER_OPENGL", lambda p: p.startswith("Renderer/Native/OpenGL/")),
+    ("RENDERER_SDLGPU", lambda p: p.startswith("Renderer/Native/SDLGPU/")),
     ("RENDERER",       lambda p: p.startswith("Renderer/")),
     ("GAME",           lambda p: p.startswith("Game/")),
     ("MATH",           lambda p: p.startswith("Math/")),
@@ -43,7 +44,7 @@ ROOT_HEADERS = {"framework.h", "resource.h", "targetver.h", "Types.h", "Version.
 # Ordered list of module prefixes for output
 MODULE_ORDER = [
     "GAME", "MATH", "OBJECTS", "PHYSICS",
-    "RENDERER", "RENDERER_DX11", "RENDERER_OPENGL",
+    "RENDERER", "RENDERER_DX11", "RENDERER_OPENGL", "RENDERER_SDLGPU",
     "SCRIPTING", "SOUND", "SPECIFIC", "PLATFORM",
 ]
 

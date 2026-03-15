@@ -236,6 +236,12 @@ int main(int argc, char* argv[])
 				cmdLineApi = GraphicsAPI::DirectX11;
 			else if (val == "opengl" || val == "gl")
 				cmdLineApi = GraphicsAPI::OpenGL;
+			else if (val == "vulkan" || val == "vk")
+				cmdLineApi = GraphicsAPI::Vulkan;
+			else if (val == "d3d12" || val == "dx12" || val == "directx12")
+				cmdLineApi = GraphicsAPI::D3D12;
+			else if (val == "metal")
+				cmdLineApi = GraphicsAPI::Metal;
 		}
 	}
 
@@ -331,7 +337,9 @@ int main(int argc, char* argv[])
 	auto resolvedApi = (cmdLineApi != GraphicsAPI::Auto) ? cmdLineApi : g_Configuration.RendererAPI;
 	if (resolvedApi == GraphicsAPI::Auto)
 	{
-#ifdef HAS_DX11
+#if defined(__APPLE__)
+		resolvedApi = GraphicsAPI::Metal;
+#elif defined(_WIN32)
 		resolvedApi = GraphicsAPI::DirectX11;
 #else
 		resolvedApi = GraphicsAPI::OpenGL;

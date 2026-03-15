@@ -180,9 +180,9 @@ namespace TEN::Renderer
 			return;
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-	
+
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);	
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
 
@@ -211,10 +211,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
-		
+
 		_stHUDBar.Percent = percentage / 100.0f;
 		_stHUDBar.Poisoned = false;
-		_stHUDBar.Frame = 0; 
+		_stHUDBar.Frame = 0;
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());

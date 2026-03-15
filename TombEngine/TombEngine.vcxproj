@@ -45,8 +45,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(SolutionDir)Libs\spirv_cross;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\spirv_cross\x64;$(SolutionDir)Libs\sdl_shadercross\x64;</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
@@ -55,8 +55,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(SolutionDir)Libs\spirv_cross;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\spirv_cross\x64;$(SolutionDir)Libs\sdl_shadercross\x64;</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\Windows\</OutDir>
@@ -67,7 +67,7 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>HAS_OPENGL;HAS_DX11;_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAS_OPENGL;HAS_DX11;HAS_SDLGPU;SDL_SHADERCROSS_DXC;_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\glm;$(SolutionDir)Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -87,7 +87,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;opengl32.lib;spirv-cross-c-shared.lib;dxcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -118,6 +118,8 @@ xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\sdl3\lib\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\sdl_shadercross\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\spirv_cross\x64\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
 xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
@@ -132,7 +134,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>HAS_OPENGL;HAS_DX11;_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAS_OPENGL;HAS_DX11;HAS_SDLGPU;SDL_SHADERCROSS_DXC;_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\glm;$(SolutionDir)Libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -162,7 +164,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;opengl32.lib;spirv-cross-c-shared.lib;dxcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -196,6 +198,8 @@ xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\sdl_shadercross\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(SolutionDir)Libs\spirv_cross\x64\*.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" "%EngineDir%"
 xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
@@ -652,6 +656,20 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Native\OpenGL\GLTexture2D.h" />
     <ClInclude Include="Renderer\Native\OpenGL\GLUtils.h" />
     <ClInclude Include="Renderer\Native\OpenGL\GLVertexBuffer.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUConstantBuffer.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUDepthTarget.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUGraphicsDevice.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUIndexBuffer.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUInputLayout.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUPipelineCache.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUPrimitiveBatch.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPURenderTarget2D.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUShader.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUSpriteBatch.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUSpriteFont.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUTexture2D.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUUtils.h" />
+    <ClInclude Include="Renderer\Native\SDLGPU\SDLGPUVertexBuffer.h" />
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
     <ClInclude Include="Renderer\RendererUtils.h" />
@@ -826,6 +844,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   <ItemGroup>
     <ClCompile Include="..\Libs\glad\glad.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\sdl_shadercross\SDL_shadercross.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="framework.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -1208,6 +1230,18 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\OpenGL\GLSpriteFont.cpp" />
     <ClCompile Include="Renderer\Native\OpenGL\GLTexture2D.cpp" />
     <ClCompile Include="Renderer\Native\OpenGL\GLVertexBuffer.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUDepthTarget.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUGraphicsDevice.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUIndexBuffer.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUInputLayout.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUPipelineCache.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUPrimitiveBatch.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPURenderTarget2D.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUShader.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUSpriteBatch.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUSpriteFont.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUTexture2D.cpp" />
+    <ClCompile Include="Renderer\Native\SDLGPU\SDLGPUVertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
     <ClCompile Include="Renderer\RendererCompatibility.cpp" />
