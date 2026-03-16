@@ -289,12 +289,20 @@ namespace TEN::Renderer
 				wasGpuSet = true;
 			}
 
-			// Define sprite preparation logic.
-			auto prepareSprites = [&](int start, int end)
+			// Cap sprite batch size to keep push uniform data under 16KB.
+			constexpr int MAX_SPRITES_PER_BATCH = 16384 / (int)sizeof(InstancedSprite);
+			int totalSprites = (int)spriteBucket.SpritesToDraw.size();
+			int baseSprite = 0;
+
+			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
+
+			while (baseSprite < totalSprites)
 			{
-				for (int i = start; i < end; i++)
+				int batchCount = std::min(totalSprites - baseSprite, MAX_SPRITES_PER_BATCH);
+
+				for (int i = 0; i < batchCount; i++)
 				{
-					const auto& spriteToDraw = spriteBucket.SpritesToDraw[i];
+					const auto& spriteToDraw = spriteBucket.SpritesToDraw[baseSprite + i];
 
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(spriteToDraw, view);
 					_stInstancedSpriteBuffer.Sprites[i].Color = spriteToDraw.color;
@@ -305,16 +313,14 @@ namespace TEN::Renderer
 
 					PackSpriteTextureCoordinates(i, spriteToDraw.Sprite);
 				}
-			};
-			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
 
-			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+				UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+					batchCount * (int)sizeof(InstancedSprite));
+				DrawInstancedTriangles(4, batchCount, 0);
 
-			// Draw sprites with instancing.
-			DrawInstancedTriangles(4, (int)spriteBucket.SpritesToDraw.size(), 0);
-
-			_numInstancedSpritesDrawCalls++;
+				_numInstancedSpritesDrawCalls++;
+				baseSprite += batchCount;
+			}
 		}
 
 		// Draw 3D non-instanced sprites.
@@ -354,7 +360,8 @@ namespace TEN::Renderer
 
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
 
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+				(int)sizeof(InstancedSprite));
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -443,7 +450,8 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, object->Sprite->Sprite);
 
-		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+			(int)sizeof(InstancedSprite));
 
 		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		
@@ -518,7 +526,8 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
-		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+			(int)sizeof(InstancedSprite));
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);

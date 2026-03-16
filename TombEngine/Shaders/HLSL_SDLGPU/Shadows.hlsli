@@ -5,20 +5,18 @@
 #define SHADOW_INTENSITY (0.6f)
 #define SHADOW_BLUR      (2.0f)
 
+#ifndef SPHERE_STRUCT_DEFINED
+#define SPHERE_STRUCT_DEFINED
 struct Sphere
 {
     float3 position;
     float radius;
 };
+#endif
 
+#ifndef SHADOWLIGHT_CB_MERGED
 #ifndef REG_CB_SHADOW_LIGHT
 #define REG_CB_SHADOW_LIGHT b4
-#endif
-#ifndef REG_TEX_SHADOWMAP
-#define REG_TEX_SHADOWMAP t3
-#endif
-#ifndef REG_SMP_SHADOWMAP
-#define REG_SMP_SHADOWMAP s3
 #endif
 cbuffer ShadowLightBuffer : register(REG_CB_SHADOW_LIGHT)
 {
@@ -30,6 +28,14 @@ cbuffer ShadowLightBuffer : register(REG_CB_SHADOW_LIGHT)
     int padding;
     Sphere Spheres[16];
 };
+#endif
+
+#ifndef REG_TEX_SHADOWMAP
+#define REG_TEX_SHADOWMAP t3
+#endif
+#ifndef REG_SMP_SHADOWMAP
+#define REG_SMP_SHADOWMAP s3
+#endif
 
 Texture2DArray ShadowMap : register(REG_TEX_SHADOWMAP);
 SamplerComparisonState ShadowMapSampler : register(REG_SMP_SHADOWMAP);

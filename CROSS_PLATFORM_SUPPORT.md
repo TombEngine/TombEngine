@@ -127,15 +127,17 @@ Install the required build tools.
 sudo apt update
 sudo apt install -y \
     build-essential cmake ninja-build \
-    libgl-dev libtbb-dev wget zstd python3
+    libstdc++-dev libgl-dev libtbb-dev wget zstd python3
 ```
+
+> **Note:** On some minimal Ubuntu installations, `build-essential` does not pull in the full C++ standard library headers. If you get errors like `fatal error: cstdint: No such file or directory`, install `libstdc++-<version>-dev` explicitly (e.g. `libstdc++-13-dev`). The unversioned `libstdc++-dev` metapackage picks the default version automatically.
 
 **Fedora / RHEL:**
 
 ```bash
 sudo dnf install -y \
     gcc-c++ cmake ninja-build \
-    mesa-libGL-devel tbb-devel wget zstd python3
+    libstdc++-devel mesa-libGL-devel tbb-devel wget zstd python3
 ```
 
 **Arch Linux:**

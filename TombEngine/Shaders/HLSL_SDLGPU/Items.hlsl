@@ -1,6 +1,7 @@
 // @SDLGPU_RESOURCE_MAP
 // VS_UBO: 0=0 1=1 6=2
-// PS_UBO: 0=0 1=1 2=2 4=3 6=4 12=5
+// PS_UBO: 0=0 1=1 6=2
+// PS_UBO_MERGE: 3=2,4,12
 // PS_TEX: 0=0 1=1 7=2 8=3 3=4 9=5 10=6 11=7 12=8 13=9
 // PS_TEX_ARRAY: 4 9
 // @END_RESOURCE_MAP
@@ -15,15 +16,17 @@
 #define REG_CB_MATERIAL b3
 #define REG_CB_SHADOW_LIGHT b4
 #define REG_CB_BLENDING b5
-// VS unused textures: use defaults from includes (unique registers, no type conflicts)
+// VS unused textures: must define all register macros used by global declarations
+#define REG_TEX_AMBIENT_FRONT t2
+#define REG_SMP_AMBIENT_FRONT s2
+#define REG_TEX_AMBIENT_BACK t3
+#define REG_SMP_AMBIENT_BACK s3
 #else
-// PS CBs: Camera(0), Item(1), Material(2), ShadowLight(4), AnimTex(6), Blending(12) -> contiguous b0-b5
+// PS CBs: Camera(0), Item(1), AnimTex(6), MergedMSB(Material+ShadowLight+Blending) -> b0-b3
 #define REG_CB_CAMERA b0
 #define REG_CB_ITEM b1
-#define REG_CB_MATERIAL b2
-#define REG_CB_SHADOW_LIGHT b3
-#define REG_CB_ANIMATED_TEXTURE b4
-#define REG_CB_BLENDING b5
+#define REG_CB_ANIMATED_TEXTURE b2
+#define REG_CB_MERGED_MSB b3
 // PS textures -> contiguous t0-t9
 #define REG_TEX_AMBIENT_FRONT t2
 #define REG_SMP_AMBIENT_FRONT s2
@@ -43,6 +46,7 @@
 #define REG_SMP_SKYBOX_REFLECTIONS s9
 #endif
 
+#include "./CBMergedMSB.hlsli"
 #include "./Math.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"

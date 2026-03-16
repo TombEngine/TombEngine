@@ -114,43 +114,11 @@ namespace TEN::Renderer::Native::SDLGPU
 		// Multi-sample (no MSAA for now).
 		pci.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
-		// Diagnostic: log full pipeline state before creation.
-		{
-			std::string diag = "Pipeline create: VS=" + std::to_string((uintptr_t)pci.vertex_shader)
-				+ " FS=" + std::to_string((uintptr_t)pci.fragment_shader)
-				+ " vtxBufs=" + std::to_string(pci.vertex_input_state.num_vertex_buffers)
-				+ " vtxAttrs=" + std::to_string(pci.vertex_input_state.num_vertex_attributes)
-				+ " prim=" + std::to_string((int)pci.primitive_type)
-				+ " fill=" + std::to_string((int)pci.rasterizer_state.fill_mode)
-				+ " cull=" + std::to_string((int)pci.rasterizer_state.cull_mode)
-				+ " depthClip=" + std::to_string(pci.rasterizer_state.enable_depth_clip)
-				+ " depthTest=" + std::to_string(pci.depth_stencil_state.enable_depth_test)
-				+ " depthWrite=" + std::to_string(pci.depth_stencil_state.enable_depth_write)
-				+ " compareOp=" + std::to_string((int)pci.depth_stencil_state.compare_op)
-				+ " stencil=" + std::to_string(pci.depth_stencil_state.enable_stencil_test)
-				+ " colors=" + std::to_string(pci.target_info.num_color_targets)
-				+ " hasDepth=" + std::to_string(pci.target_info.has_depth_stencil_target)
-				+ " depthFmt=" + std::to_string((int)pci.target_info.depth_stencil_format)
-				+ " msaa=" + std::to_string((int)pci.multisample_state.sample_count);
-			for (Uint32 c = 0; c < pci.target_info.num_color_targets; ++c)
-				diag += " colorFmt[" + std::to_string(c) + "]=" + std::to_string((int)colorDescs[c].format)
-					+ " blend=" + std::to_string(colorDescs[c].blend_state.enable_blend);
-			TENLog(diag, LogLevel::Info);
-		}
-
 		auto* pipeline = SDL_CreateGPUGraphicsPipeline(_device, &pci);
 		if (!pipeline)
 		{
-			TENLog("Pipeline cache: SDL_CreateGPUGraphicsPipeline failed — " + std::string(SDL_GetError())
-				+ " (colors=" + std::to_string(key.NumColorTargets)
-				+ " colorFmt[0]=" + std::to_string((int)key.ColorFormats[0])
-				+ " depth=" + std::to_string(key.HasDepthTarget)
-				+ " depthFmt=" + std::to_string((int)key.DepthFormat) + ")",
+			TENLog("Pipeline cache: SDL_CreateGPUGraphicsPipeline failed — " + std::string(SDL_GetError()),
 				LogLevel::Warning);
-		}
-		else
-		{
-			TENLog("Pipeline created OK: " + std::to_string((uintptr_t)pipeline), LogLevel::Info);
 		}
 		_cache[key] = pipeline;
 		return pipeline;

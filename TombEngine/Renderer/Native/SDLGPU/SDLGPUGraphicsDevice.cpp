@@ -740,6 +740,9 @@ namespace TEN::Renderer::Native::SDLGPU
 	{
 		auto* cb = static_cast<SDLGPUConstantBuffer*>(constantBuffer);
 		cb->UpdateData(data);
+		// Reset push size to full capacity. Callers that need a smaller push
+		// should use Renderer::UpdateConstantBuffer(data, cb, usedSize).
+		cb->SetPushSize(cb->GetCapacity());
 	}
 
 	void SDLGPUGraphicsDevice::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
@@ -786,6 +789,7 @@ namespace TEN::Renderer::Native::SDLGPU
 			hlslSourceDir.insert(pos + 8, "HLSL_SDLGPU/");
 
 		auto hlslFile = hlslSourceDir + request.FileName + ".hlsl";
+		TENLog("Loading HLSL: " + hlslFile, LogLevel::Info);
 
 		// Read HLSL source.
 		if (!std::filesystem::exists(hlslFile))
@@ -804,10 +808,13 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		auto entryPoint = request.EntryPoint;
 
-		// Lambda: compile one shader stage.
+		// Lambda: compile one shader stage. Returns GPU shader and remap result.
+		struct CompileResult { SDL_GPUShader* shader; SPIRVRemapResult remap; };
+
 		auto compileStage = [&](const std::string& stagePrefix, SDL_ShaderCross_ShaderStage stage)
-			-> SDL_GPUShader*
+			-> CompileResult
 		{
+			CompileResult cr = {};
 			std::string entry = stagePrefix + entryPoint;
 
 			// Build per-stage defines: add VERTEX_SHADER for VS so shaders
@@ -845,7 +852,7 @@ namespace TEN::Renderer::Native::SDLGPU
 			{
 				TENLog("Failed to compile HLSL to SPIRV: " + entry + " in " + hlslFile
 					+ " — " + SDL_GetError(), LogLevel::Error);
-				return nullptr;
+				return cr;
 			}
 
 			// Verify SPIRV magic number.
@@ -857,36 +864,46 @@ namespace TEN::Renderer::Native::SDLGPU
 						+ std::to_string(magic), LogLevel::Warning);
 			}
 
-			// Count resources from SPIRV before patching (counts are set-independent).
-			auto resCounts = CountSPIRVResources(spirvData, spirvSize);
+			// Remap SPIRV bindings and descriptor sets in one pass:
+			// - Compact USED resources to contiguous bindings 0..N-1
+			// - Push UNUSED resources beyond the used range
+			// - Patch DescriptorSet decorations: VS samplers→set0, VS UBOs→set1,
+			//   FS samplers→set2, FS UBOs→set3 (SDL_GPU Vulkan layout)
+			cr.remap = RemapSPIRVDescriptorSets(spirvData, spirvSize, stage);
+			if (!cr.remap.success)
+				TENLog("WARNING: SPIRV binding remap failed for " + entry, LogLevel::Warning);
 
-			// Patch SPIRV descriptor sets for SDL_GPU's Vulkan backend:
-			// DXC puts everything in set 0; SDL_GPU expects
-			// VS: set 0=samplers, set 1=UBOs; FS: set 2=samplers, set 3=UBOs.
-			bool isFragment = (stage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT);
-			if (!PatchSPIRVDescriptorSets(spirvData, spirvSize, isFragment))
-				TENLog("WARNING: SPIRV descriptor set patching failed for " + entry, LogLevel::Warning);
+			// DumpSPIRVDescriptors(spirvData, spirvSize, entry + " post-remap");
+
+			// SDL_GPU hard-limits uniform buffer slots to 4 per stage.
+			// Shaders should use CB merging (PS_UBO_MERGE / VS_UBO_MERGE) to stay within this limit.
+			if (cr.remap.numUniformBuffers > 4)
+			{
+				TENLog("ERROR: Shader " + entry + " declares " + std::to_string(cr.remap.numUniformBuffers)
+					+ " UBOs, exceeding SDL_GPU's 4-slot limit. Add CB merging to the shader's resource map!",
+					LogLevel::Error);
+			}
 
 			TENLog("Shader " + entry + ": SPIRV=" + std::to_string(spirvSize) + "B"
-				+ " smp=" + std::to_string(resCounts.numSamplers)
-				+ " sTex=" + std::to_string(resCounts.numStorageTextures)
-				+ " sBuf=" + std::to_string(resCounts.numStorageBuffers)
-				+ " UBO=" + std::to_string(resCounts.numUniformBuffers),
+				+ " smp=" + std::to_string(cr.remap.numSamplerSlots)
+				+ " sTex=" + std::to_string(cr.remap.numStorageTextures)
+				+ " sBuf=" + std::to_string(cr.remap.numStorageBuffers)
+				+ " UBO=" + std::to_string(cr.remap.numUniformBuffers),
 				LogLevel::Info);
 
 			if (stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX)
 			{
 				nativeShader->SetVertexResourceCounts(
-					resCounts.numSamplers,
-					resCounts.numUniformBuffers,
-					resCounts.numStorageBuffers);
+					cr.remap.numSamplerSlots,
+					cr.remap.numUniformBuffers,
+					cr.remap.numStorageBuffers);
 			}
 			else if (stage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT)
 			{
 				nativeShader->SetFragmentResourceCounts(
-					resCounts.numSamplers,
-					resCounts.numUniformBuffers,
-					resCounts.numStorageBuffers);
+					cr.remap.numSamplerSlots,
+					cr.remap.numUniformBuffers,
+					cr.remap.numStorageBuffers);
 			}
 
 			// Create GPU shader with patched SPIRV.
@@ -897,35 +914,71 @@ namespace TEN::Renderer::Native::SDLGPU
 			shaderCI.format = SDL_GPU_SHADERFORMAT_SPIRV;
 			shaderCI.stage = (stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX)
 				? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-			shaderCI.num_samplers = resCounts.numSamplers;
-			shaderCI.num_storage_textures = resCounts.numStorageTextures;
-			shaderCI.num_storage_buffers = resCounts.numStorageBuffers;
-			shaderCI.num_uniform_buffers = resCounts.numUniformBuffers;
+			shaderCI.num_samplers = cr.remap.numSamplerSlots;
+			shaderCI.num_storage_textures = cr.remap.numStorageTextures;
+			shaderCI.num_storage_buffers = cr.remap.numStorageBuffers;
+			shaderCI.num_uniform_buffers = cr.remap.numUniformBuffers;
 
-			auto* gpuShader = SDL_CreateGPUShader(_device, &shaderCI);
+			cr.shader = SDL_CreateGPUShader(_device, &shaderCI);
 
-			if (!gpuShader)
+			if (!cr.shader)
 			{
 				TENLog("Failed to create GPU shader: " + entry + " in " + hlslFile
 					+ " — " + SDL_GetError(), LogLevel::Error);
 			}
 
 			SDL_free(spirvData);
-			return gpuShader;
+			return cr;
+		};
+
+		// Helper: compose static resource map (engine slot → HLSL register)
+		// with SPIRV remap (HLSL register → new SPIRV binding) to get
+		// the final engine slot → SPIRV binding map for this entry point.
+		auto composeMap = [](const std::map<uint32_t, uint32_t>& engineToHlsl,
+		                     const std::map<uint32_t, uint32_t>& hlslToSpirv)
+			-> std::map<uint32_t, uint32_t>
+		{
+			std::map<uint32_t, uint32_t> result;
+			for (auto& [engineSlot, hlslReg] : engineToHlsl)
+			{
+				auto it = hlslToSpirv.find(hlslReg);
+				if (it != hlslToSpirv.end())
+					result[engineSlot] = it->second;
+			}
+			return result;
+		};
+
+		// Helper: compose merge metadata (HLSL slot → SPIRV binding + engine regs).
+		auto composeMerge = [](const std::vector<MergedUBO>& merges,
+		                       const std::map<uint32_t, uint32_t>& hlslToSpirv)
+			-> std::vector<SDLGPUShader::MergedSlot>
+		{
+			std::vector<SDLGPUShader::MergedSlot> result;
+			for (auto& m : merges)
+			{
+				auto it = hlslToSpirv.find(m.hlslSlot);
+				if (it != hlslToSpirv.end())
+					result.push_back({ it->second, m.engineRegs });
+			}
+			return result;
 		};
 
 		// Compile vertex shader.
 		if (request.Type == ShaderType::Vertex || request.Type == ShaderType::PixelAndVertex)
 		{
-			auto* vs = compileStage("VS", SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
-			nativeShader->SetVertexShader(vs);
-			nativeShader->SetVertexUBOMapping(resourceMap.vsUBOMap);
+			auto cr = compileStage("VS", SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
+			nativeShader->SetVertexShader(cr.shader);
 
-			// DIAG: log VS binding maps from metadata.
+			// Compose: engine slot → HLSL register (from metadata) → SPIRV binding (from remap).
+			auto composedVSUBO = composeMap(resourceMap.vsUBOMap, cr.remap.uboOldToNewBinding);
+			nativeShader->SetVertexUBOMapping(composedVSUBO);
+			nativeShader->SetVertexArrayedBindings(cr.remap.arrayedSamplerBindings);
+			nativeShader->SetVertexMergedUBOs(composeMerge(resourceMap.vsUBOMerge, cr.remap.uboOldToNewBinding));
+
 			{
-				std::string mapLog = "VS UBO map (metadata):";
-				for (auto& [oldB, newB] : resourceMap.vsUBOMap)
-					mapLog += " b" + std::to_string(oldB) + "→" + std::to_string(newB);
+				std::string mapLog = "VS UBO map (composed):";
+				for (auto& [eng, spirv] : composedVSUBO)
+					mapLog += " e" + std::to_string(eng) + "→" + std::to_string(spirv);
 				TENLog(mapLog, LogLevel::Info);
 			}
 		}
@@ -933,22 +986,33 @@ namespace TEN::Renderer::Native::SDLGPU
 		// Compile pixel/fragment shader.
 		if (request.Type == ShaderType::Pixel || request.Type == ShaderType::PixelAndVertex)
 		{
-			auto* ps = compileStage("PS", SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT);
-			nativeShader->SetFragmentShader(ps);
-			nativeShader->SetFragmentSamplerMapping(resourceMap.psTexMap, resourceMap.psTexArraySlots);
-			nativeShader->SetFragmentUBOMapping(resourceMap.psUBOMap);
+			auto cr = compileStage("PS", SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT);
+			nativeShader->SetFragmentShader(cr.shader);
 
-			// DIAG: log FS binding maps from metadata.
+			// Compose binding maps for PS.
+			auto composedPSTex = composeMap(resourceMap.psTexMap, cr.remap.samplerOldToNewBinding);
+			auto composedPSUBO = composeMap(resourceMap.psUBOMap, cr.remap.uboOldToNewBinding);
+			nativeShader->SetFragmentSamplerMapping(composedPSTex, cr.remap.arrayedSamplerBindings);
+			nativeShader->SetFragmentUBOMapping(composedPSUBO);
+			nativeShader->SetFragmentMergedUBOs(composeMerge(resourceMap.psUBOMerge, cr.remap.uboOldToNewBinding));
+
 			{
-				std::string mapLog = "FS sampler map (metadata):";
-				for (auto& [oldB, newB] : resourceMap.psTexMap)
-					mapLog += " t" + std::to_string(oldB) + "→" + std::to_string(newB);
+				std::string mapLog = "FS sampler map (composed):";
+				for (auto& [eng, spirv] : composedPSTex)
+					mapLog += " t" + std::to_string(eng) + "→" + std::to_string(spirv);
 				mapLog += " arrayed:";
-				for (auto b : resourceMap.psTexArraySlots)
+				for (auto b : cr.remap.arrayedSamplerBindings)
 					mapLog += " " + std::to_string(b);
 				mapLog += " | FS UBO map:";
-				for (auto& [oldB, newB] : resourceMap.psUBOMap)
-					mapLog += " b" + std::to_string(oldB) + "→" + std::to_string(newB);
+				for (auto& [eng, spirv] : composedPSUBO)
+					mapLog += " b" + std::to_string(eng) + "→" + std::to_string(spirv);
+				for (auto& m : nativeShader->GetFragmentMergedUBOs())
+				{
+					mapLog += " | MERGE spirv" + std::to_string(m.spirvSlot) + "=[";
+					for (size_t i = 0; i < m.engineRegs.size(); i++)
+						mapLog += (i ? "," : "") + std::to_string(m.engineRegs[i]);
+					mapLog += "]";
+				}
 				TENLog(mapLog, LogLevel::Info);
 			}
 		}
@@ -1030,7 +1094,8 @@ namespace TEN::Renderer::Native::SDLGPU
 				std::vector<SDL_GPUTextureSamplerBinding> vsBindings(numVS);
 				for (unsigned int i = 0; i < numVS; ++i)
 				{
-					vsBindings[i].texture = _dummyTexture2D;
+					vsBindings[i].texture = _currentVSShader->IsVSArrayedSamplerBinding((int)i)
+						? _dummyTexture2DArray : _dummyTexture2D;
 					vsBindings[i].sampler = _dummySampler;
 				}
 				SDL_BindGPUVertexSamplers(_renderPass, 0, vsBindings.data(), numVS);
@@ -1047,21 +1112,88 @@ namespace TEN::Renderer::Native::SDLGPU
 		// Engine binds CBs by HLSL register number (b0, b1, b4, b5, …), but SPIRV UBO
 		// bindings are remapped to contiguous 0…N. Use the old→new map to place each CB
 		// at the correct SPIRV slot, then fill any remaining slots with zeros.
-		static const char s_zeroBuf[1024] = {};
+		//
+		// Merged UBOs: some shaders combine multiple engine CBs into a single SPIRV UBO
+		// to stay within SDL_GPU's 4-slot-per-stage limit. For these, we concatenate the
+		// data from the listed engine CBs (in order) and push as one uniform block.
+		static const char s_zeroBuf[2048] = {};
+
+		// Helper: push merged UBOs for a stage, returning the set of engine slots consumed.
+		auto pushMerged = [&](
+			const std::vector<SDLGPUShader::MergedSlot>& merges,
+			const std::map<int, BoundCB>& boundCBs,
+			std::vector<bool>& pushed,
+			unsigned int numExpected,
+			bool isVertex)
+		{
+			std::set<int> consumedEngineSlots;
+			std::vector<uint8_t> mergeBuffer;
+
+			for (auto& merge : merges)
+			{
+				if (merge.spirvSlot >= numExpected)
+					continue;
+
+				mergeBuffer.clear();
+				for (uint32_t engineReg : merge.engineRegs)
+				{
+					auto it = boundCBs.find((int)engineReg);
+					if (it != boundCBs.end() && it->second.Buffer)
+					{
+						auto* buf = it->second.Buffer;
+						const uint8_t* data = static_cast<const uint8_t*>(buf->GetData());
+						mergeBuffer.insert(mergeBuffer.end(), data, data + buf->GetSize());
+					}
+					consumedEngineSlots.insert((int)engineReg);
+				}
+
+				if (!mergeBuffer.empty())
+				{
+					if (isVertex)
+						SDL_PushGPUVertexUniformData(_commandBuffer, merge.spirvSlot,
+							mergeBuffer.data(), (Uint32)mergeBuffer.size());
+					else
+						SDL_PushGPUFragmentUniformData(_commandBuffer, merge.spirvSlot,
+							mergeBuffer.data(), (Uint32)mergeBuffer.size());
+				}
+				else
+				{
+					// All constituent CBs are unbound; push zeros.
+					if (isVertex)
+						SDL_PushGPUVertexUniformData(_commandBuffer, merge.spirvSlot, s_zeroBuf, 16);
+					else
+						SDL_PushGPUFragmentUniformData(_commandBuffer, merge.spirvSlot, s_zeroBuf, 16);
+				}
+				pushed[merge.spirvSlot] = true;
+			}
+
+			return consumedEngineSlots;
+		};
 
 		// Push vertex stage uniforms.
 		{
 			unsigned int numExpected = _currentVSShader ? _currentVSShader->GetNumVertexUBOs() : 0;
 			if (numExpected > 0)
 			{
-				// Track which SPIRV slots have been pushed.
 				std::vector<bool> pushed(numExpected, false);
 
+				// First, push any merged UBOs.
+				auto consumed = pushMerged(
+					_currentVSShader->GetVertexMergedUBOs(), _boundVertexCBs,
+					pushed, numExpected, true);
+
+				// Then push individual (non-merged) CBs.
 				for (auto& [engineSlot, bound] : _boundVertexCBs)
 				{
+					if (consumed.count(engineSlot))
+						continue;
+
 					int spirvSlot = _currentVSShader->MapVertexUBOSlot(engineSlot);
 					if (spirvSlot < 0 || spirvSlot >= (int)numExpected)
 						continue;
+					if (pushed[spirvSlot])
+						continue;
+
 					if (bound.Buffer)
 					{
 						SDL_PushGPUVertexUniformData(_commandBuffer, spirvSlot,
@@ -1090,11 +1222,23 @@ namespace TEN::Renderer::Native::SDLGPU
 			{
 				std::vector<bool> pushed(numExpected, false);
 
+				// First, push any merged UBOs.
+				auto consumed = pushMerged(
+					_currentPSShader->GetFragmentMergedUBOs(), _boundFragmentCBs,
+					pushed, numExpected, false);
+
+				// Then push individual (non-merged) CBs.
 				for (auto& [engineSlot, bound] : _boundFragmentCBs)
 				{
+					if (consumed.count(engineSlot))
+						continue;
+
 					int spirvSlot = _currentPSShader->MapFragmentUBOSlot(engineSlot);
 					if (spirvSlot < 0 || spirvSlot >= (int)numExpected)
 						continue;
+					if (pushed[spirvSlot])
+						continue;
+
 					if (bound.Buffer)
 					{
 						SDL_PushGPUFragmentUniformData(_commandBuffer, spirvSlot,
@@ -1147,13 +1291,11 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		SDL_BindGPUGraphicsPipeline(_renderPass, pipeline);
 
-		// Bind vertex buffer.
 		SDL_GPUBufferBinding vbBinding = {};
 		vbBinding.buffer = _currentVertexBuffer->GetGPUBuffer();
 		vbBinding.offset = 0;
 		SDL_BindGPUVertexBuffers(_renderPass, 0, &vbBinding, 1);
 
-		// Bind index buffer.
 		SDL_GPUBufferBinding ibBinding = {};
 		ibBinding.buffer = _currentIndexBuffer->GetGPUBuffer();
 		ibBinding.offset = 0;
@@ -1161,65 +1303,6 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		BindTexturesForDraw();
 		PushUniformsForDraw();
-
-		// DIAG: log first few draw calls with full resource details.
-		{
-			static int s_drawCount = 0;
-			if (s_drawCount < 3)
-			{
-				unsigned int numFS = _currentPSShader ? _currentPSShader->GetNumFragmentSamplers() : 0;
-				unsigned int numVS_UBO = _currentVSShader ? _currentVSShader->GetNumVertexUBOs() : 0;
-				unsigned int numFS_UBO = _currentPSShader ? _currentPSShader->GetNumFragmentUBOs() : 0;
-
-				std::string diag = "DrawIndexed #" + std::to_string(s_drawCount)
-					+ " count=" + std::to_string(count)
-					+ " fsTex=" + std::to_string(numFS)
-					+ " vsUBO=" + std::to_string(numVS_UBO)
-					+ " fsUBO=" + std::to_string(numFS_UBO);
-
-				// Check dummy resources.
-				diag += " dummy2D=" + std::to_string((uintptr_t)_dummyTexture2D)
-					+ " dummyArr=" + std::to_string((uintptr_t)_dummyTexture2DArray)
-					+ " dummySmp=" + std::to_string((uintptr_t)_dummySampler);
-
-				// Log bound texture details (engine slot → spirv slot).
-				for (auto& [slot, bt] : _boundTextures)
-				{
-					int spirv = _currentPSShader ? _currentPSShader->MapFragmentSamplerSlot(slot) : -1;
-					diag += " T[" + std::to_string(slot) + "→" + std::to_string(spirv)
-						+ " tex=" + std::to_string((uintptr_t)bt.Texture)
-						+ " smp=" + std::to_string((uintptr_t)bt.Sampler) + "]";
-				}
-
-				// Log VS UBO mapping.
-				diag += " VS_UBO_MAP:";
-				for (auto& [slot, bound] : _boundVertexCBs)
-				{
-					int spirv = _currentVSShader ? _currentVSShader->MapVertexUBOSlot(slot) : -1;
-					int sz = (bound.Buffer) ? bound.Buffer->GetSize() : 0;
-					diag += " b" + std::to_string(slot) + "→" + std::to_string(spirv) + "(" + std::to_string(sz) + ")";
-				}
-
-				// Log FS UBO mapping.
-				diag += " FS_UBO_MAP:";
-				for (auto& [slot, bound] : _boundFragmentCBs)
-				{
-					int spirv = _currentPSShader ? _currentPSShader->MapFragmentUBOSlot(slot) : -1;
-					int sz = (bound.Buffer) ? bound.Buffer->GetSize() : 0;
-					diag += " b" + std::to_string(slot) + "→" + std::to_string(spirv) + "(" + std::to_string(sz) + ")";
-				}
-
-				// Log pipeline and VB/IB.
-				diag += " pipeline=" + std::to_string((uintptr_t)pipeline)
-					+ " renderPass=" + std::to_string((uintptr_t)_renderPass)
-					+ " cmdBuf=" + std::to_string((uintptr_t)_commandBuffer)
-					+ " VB=" + std::to_string((uintptr_t)_currentVertexBuffer->GetGPUBuffer())
-					+ " IB=" + std::to_string((uintptr_t)_currentIndexBuffer->GetGPUBuffer());
-
-				TENLog(diag, LogLevel::Info);
-				s_drawCount++;
-			}
-		}
 
 		SDL_DrawGPUIndexedPrimitives(_renderPass, count, 1, baseIndex, baseVertex, 0);
 	}
@@ -1406,6 +1489,13 @@ namespace TEN::Renderer::Native::SDLGPU
 			auto* rt = static_cast<SDLGPURenderTarget2D*>(ca.RenderTarget);
 			SDL_GPUColorTargetInfo info = {};
 			info.texture = rt->GetGPUTexture();
+
+			// Validate texture.
+			if (!info.texture)
+			{
+				TENLog("BeginRenderPass '" + desc.Name + "': NULL color texture at index " + std::to_string(colorInfos.size()), LogLevel::Error);
+				continue;
+			}
 			info.layer_or_depth_plane = ca.ArrayIndex;
 			info.clear_color.r = ca.ClearColor.x;
 			info.clear_color.g = ca.ClearColor.y;
@@ -1445,6 +1535,8 @@ namespace TEN::Renderer::Native::SDLGPU
 			auto* dt = static_cast<SDLGPUDepthTarget*>(desc.DepthAttachment.DepthTarget);
 			// Each layer is a separate 2D texture (SDL_GPU forbids depth array textures).
 			depthInfo.texture = dt->GetGPUTexture(desc.DepthAttachment.ArrayIndex);
+			if (!depthInfo.texture)
+				TENLog("BeginRenderPass '" + desc.Name + "': NULL depth texture (arrayIdx=" + std::to_string(desc.DepthAttachment.ArrayIndex) + ")", LogLevel::Error);
 			depthInfo.clear_depth = desc.DepthAttachment.ClearDepth;
 			depthInfo.clear_stencil = desc.DepthAttachment.ClearStencil;
 
@@ -1479,6 +1571,9 @@ namespace TEN::Renderer::Native::SDLGPU
 			colorInfos.empty() ? nullptr : colorInfos.data(),
 			(Uint32)colorInfos.size(),
 			hasDepth ? &depthInfo : nullptr);
+
+		if (!_renderPass)
+			TENLog("BeginRenderPass '" + desc.Name + "': SDL_BeginGPURenderPass FAILED — " + SDL_GetError(), LogLevel::Error);
 
 		_inRenderPass = true;
 

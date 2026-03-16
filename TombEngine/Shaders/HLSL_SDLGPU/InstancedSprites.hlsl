@@ -34,7 +34,8 @@
 
 // NOTE: This shader is used for all opaque or not sorted transparent sprites, that can be instanced for a faster drawing
 
-#define INSTANCED_SPRITES_BUCKET_SIZE 512
+// Reduced from 512 to fit within 16KB uniform push limit (128 bytes/sprite).
+#define INSTANCED_SPRITES_BUCKET_SIZE 128
 #define FADE_FACTOR .789f
 
 struct PixelShaderInput

@@ -303,12 +303,11 @@ namespace TEN::Renderer::Native::SDLGPU
 			}
 		}
 
-		// Pass 3: patch the SPIRV — update Binding decorations only.
-		// Do NOT patch DescriptorSet decorations: SDL_GPU's Vulkan backend
-		// handles the set 0 → sets 0/1/2/3 remapping internally based on
-		// resource type. Patching sets ourselves causes double-remapping.
-		// We only need to make bindings contiguous (0..N-1) within each
-		// resource category so they match SDL_GPU's descriptor set layout.
+		// Pass 3: patch the SPIRV — update both Binding and DescriptorSet decorations.
+		// DXC puts everything on set=0. SDL_GPU's Vulkan backend expects:
+		//   VS: set 0 = samplers/textures, set 1 = UBOs
+		//   FS: set 2 = samplers/textures, set 3 = UBOs
+		// We patch DescriptorSet based on varNewSet and Binding based on varNewBinding.
 		i = 5;
 		while (i < wordCount)
 		{
@@ -323,6 +322,12 @@ namespace TEN::Renderer::Native::SDLGPU
 				{
 					auto it = varNewBinding.find(target);
 					if (it != varNewBinding.end())
+						words[i + 3] = it->second;
+				}
+				else if (decoration == DecorationDescriptorSet)
+				{
+					auto it = varNewSet.find(target);
+					if (it != varNewSet.end())
 						words[i + 3] = it->second;
 				}
 			}
@@ -346,12 +351,21 @@ namespace TEN::Renderer::Native::SDLGPU
 		return result;
 	}
 	// --- Shader resource map parsed from HLSL_SDLGPU metadata comments ---
+	// Merged UBO: one HLSL register holds concatenated data from multiple engine CBs.
+	struct MergedUBO
+	{
+		uint32_t hlslSlot;                     // HLSL register for the merged cbuffer
+		std::vector<uint32_t> engineRegs;      // Engine CB registers to concatenate (in order)
+	};
+
 	struct ShaderResourceMap
 	{
 		std::map<uint32_t, uint32_t> vsUBOMap;   // engine CB register → contiguous VS UBO slot
 		std::map<uint32_t, uint32_t> psUBOMap;   // engine CB register → contiguous PS UBO slot
 		std::map<uint32_t, uint32_t> psTexMap;   // engine tex register → contiguous PS sampler slot
 		std::set<uint32_t> psTexArraySlots;      // PS sampler slots that expect Texture2DArray
+		std::vector<MergedUBO> psUBOMerge;       // PS merged UBOs
+		std::vector<MergedUBO> vsUBOMerge;       // VS merged UBOs
 		bool valid = false;
 	};
 
@@ -360,6 +374,8 @@ namespace TEN::Renderer::Native::SDLGPU
 	//   // @SDLGPU_RESOURCE_MAP
 	//   // VS_UBO: engine_reg=slot engine_reg=slot ...
 	//   // PS_UBO: engine_reg=slot ...
+	//   // PS_UBO_MERGE: hlsl_slot=engine_reg1,engine_reg2,...
+	//   // VS_UBO_MERGE: hlsl_slot=engine_reg1,engine_reg2,...
 	//   // PS_TEX: engine_reg=slot ...
 	//   // PS_TEX_ARRAY: slot slot ...
 	//   // @END_RESOURCE_MAP
@@ -418,6 +434,42 @@ namespace TEN::Renderer::Native::SDLGPU
 			while (iss >> slot)
 				result.psTexArraySlots.insert(slot);
 		}
+
+		// Parse UBO_MERGE lines: "hlsl_slot=engine_reg1,engine_reg2,..."
+		auto parseMerge = [](const std::string& block, const std::string& tag) -> std::vector<MergedUBO>
+		{
+			std::vector<MergedUBO> merges;
+			auto pos = block.find(tag);
+			if (pos == std::string::npos)
+				return merges;
+
+			pos += tag.size();
+			auto eol = block.find('\n', pos);
+			if (eol == std::string::npos) eol = block.size();
+			std::string line = block.substr(pos, eol - pos);
+
+			std::istringstream iss(line);
+			std::string token;
+			while (iss >> token)
+			{
+				auto eq = token.find('=');
+				if (eq == std::string::npos) continue;
+
+				MergedUBO m;
+				m.hlslSlot = (uint32_t)std::stoul(token.substr(0, eq));
+				std::string regs = token.substr(eq + 1);
+				std::istringstream regStream(regs);
+				std::string reg;
+				while (std::getline(regStream, reg, ','))
+					m.engineRegs.push_back((uint32_t)std::stoul(reg));
+
+				merges.push_back(m);
+			}
+			return merges;
+		};
+
+		result.psUBOMerge = parseMerge(block, "PS_UBO_MERGE:");
+		result.vsUBOMerge = parseMerge(block, "VS_UBO_MERGE:");
 
 		result.valid = true;
 		return result;

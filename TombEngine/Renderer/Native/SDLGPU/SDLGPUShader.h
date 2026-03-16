@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <map>
 #include <set>
+#include <vector>
 #include "Renderer/Graphics/IShader.h"
 
 namespace TEN::Renderer::Native::SDLGPU
@@ -14,6 +15,10 @@ namespace TEN::Renderer::Native::SDLGPU
 
 	class SDLGPUShader final : public IShader
 	{
+	public:
+		// Merged UBOs: SPIRV slot → list of engine CB registers to concatenate.
+		struct MergedSlot { uint32_t spirvSlot; std::vector<uint32_t> engineRegs; };
+
 	private:
 		SDL_GPUShader* _vertexShader   = nullptr;
 		SDL_GPUShader* _fragmentShader = nullptr;
@@ -30,10 +35,14 @@ namespace TEN::Renderer::Native::SDLGPU
 		// HLSL register → SPIRV binding maps (for translating engine slots to GPU slots).
 		std::map<uint32_t, uint32_t> _fsSamplerOldToNew;
 		std::set<uint32_t> _fsArrayedBindings; // SPIRV bindings that expect Texture2DArray.
+		std::set<uint32_t> _vsArrayedBindings; // VS SPIRV bindings that expect Texture2DArray.
 
 		// UBO binding maps per stage.
 		std::map<uint32_t, uint32_t> _vsUBOOldToNew;
 		std::map<uint32_t, uint32_t> _fsUBOOldToNew;
+
+		std::vector<MergedSlot> _vsMergedUBOs;
+		std::vector<MergedSlot> _fsMergedUBOs;
 
 	public:
 		SDLGPUShader() = default;
@@ -90,6 +99,16 @@ namespace TEN::Renderer::Native::SDLGPU
 			_vsUBOOldToNew = std::move(oldToNew);
 		}
 
+		void SetVertexArrayedBindings(std::set<uint32_t> arrayed)
+		{
+			_vsArrayedBindings = std::move(arrayed);
+		}
+
+		bool IsVSArrayedSamplerBinding(int spirvBinding) const
+		{
+			return _vsArrayedBindings.count((uint32_t)spirvBinding) > 0;
+		}
+
 		void SetFragmentUBOMapping(std::map<uint32_t, uint32_t> oldToNew)
 		{
 			_fsUBOOldToNew = std::move(oldToNew);
@@ -107,6 +126,11 @@ namespace TEN::Renderer::Native::SDLGPU
 			auto it = _fsUBOOldToNew.find((uint32_t)engineSlot);
 			return (it != _fsUBOOldToNew.end()) ? (int)it->second : -1;
 		}
+
+		void SetVertexMergedUBOs(std::vector<MergedSlot> merged) { _vsMergedUBOs = std::move(merged); }
+		void SetFragmentMergedUBOs(std::vector<MergedSlot> merged) { _fsMergedUBOs = std::move(merged); }
+		const std::vector<MergedSlot>& GetVertexMergedUBOs() const { return _vsMergedUBOs; }
+		const std::vector<MergedSlot>& GetFragmentMergedUBOs() const { return _fsMergedUBOs; }
 	};
 }
 

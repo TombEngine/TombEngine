@@ -1,6 +1,7 @@
 // @SDLGPU_RESOURCE_MAP
 // VS_UBO: 0=0 1=1 6=2
-// PS_UBO: 0=0 1=1 2=2 6=3 12=4
+// PS_UBO: 0=0 1=1 6=2
+// PS_UBO_MERGE: 3=2,4,12
 // PS_TEX: 0=0 1=1 10=2 11=3 12=4 13=5
 // PS_TEX_ARRAY: 5
 // @END_RESOURCE_MAP
@@ -16,12 +17,11 @@
 #define REG_CB_BLENDING b4
 // VS unused textures: use defaults from includes (unique registers, no type conflicts)
 #else
-// PS CBs: Camera(0), Item(1), Material(2), AnimTex(6), Blending(12) -> contiguous b0-b4
+// PS CBs: Camera(0), Item(1), AnimTex(6), MergedMSB(Material+ShadowLight+Blending) -> b0-b3
 #define REG_CB_CAMERA b0
 #define REG_CB_ITEM b1
-#define REG_CB_MATERIAL b2
-#define REG_CB_ANIMATED_TEXTURE b3
-#define REG_CB_BLENDING b4
+#define REG_CB_ANIMATED_TEXTURE b2
+#define REG_CB_MERGED_MSB b3
 // PS textures -> contiguous t0-t5
 #define REG_TEX_ORSH t2
 #define REG_SMP_ORSH s2
@@ -35,6 +35,7 @@
 #define REG_SMP_SSAO s0
 #endif
 
+#include "./CBMergedMSB.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"
 #include "./Blending.hlsli"

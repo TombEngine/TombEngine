@@ -107,6 +107,11 @@ target_precompile_headers(TombEngine PRIVATE framework.h)
 set_source_files_properties(../Libs/glad/glad.c
     PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
+if(WIN32)
+    set_source_files_properties(../Libs/sdl_shadercross/SDL_shadercross.c
+        PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+    )
+endif()
 
 # GCC requires optimization for SSE intrinsics used by stb_image, even in Debug.
 if(NOT MSVC)
@@ -133,14 +138,24 @@ FetchContent_Declare(spdlog
 set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
 
-# SDL_shadercross for SDL_GPU shader compilation (HLSL → SPIRV → native).
+# SDL3 must be available before SDL_shadercross (which does find_package(SDL3)).
 # On Windows, SDL3 is vendored (pre-built) — create an imported SDL3::Headers
-# target so that SDL_shadercross's find_package(SDL3) is skipped.
+# target so that SDL_shadercross's find_package(SDL3) is satisfied.
 if(WIN32 AND NOT TARGET SDL3::Headers)
     add_library(SDL3::Headers INTERFACE IMPORTED)
     set_target_properties(SDL3::Headers PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${LIBS_DIR}/sdl3/include"
     )
+else()
+    # Linux / macOS — fetch or find SDL3 before SDL_shadercross needs it.
+    find_package(SDL3 QUIET)
+    if(NOT SDL3_FOUND)
+        FetchContent_Declare(SDL3
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+            GIT_TAG        release-3.2.8
+        )
+        FetchContent_MakeAvailable(SDL3)
+    endif()
 endif()
 
 FetchContent_Declare(SDL_shadercross
@@ -220,6 +235,7 @@ if(MSVC)
         /external:anglebrackets
         /bigobj
         /MP
+        /FS
         /WX
         /wd4018
         /wd4244
@@ -306,14 +322,7 @@ else()
     # prebuilt libraries from Libs/ for BASS and VLC.
     include(CMakeFindDependencyMacro)
 
-    find_package(SDL3 QUIET)
-    if(NOT SDL3_FOUND)
-        FetchContent_Declare(SDL3
-            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-            GIT_TAG        release-3.2.8
-        )
-        FetchContent_MakeAvailable(SDL3)
-    endif()
+    # SDL3 already fetched/found earlier (before SDL_shadercross).
 
     find_package(OpenGL REQUIRED)
 

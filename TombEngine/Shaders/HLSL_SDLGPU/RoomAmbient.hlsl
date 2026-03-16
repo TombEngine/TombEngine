@@ -1,6 +1,7 @@
 // @SDLGPU_RESOURCE_MAP
 // VS_UBO: 0=0 8=1 5=2 6=3
-// PS_UBO: 0=0 8=1 5=2 6=3 12=4 4=5
+// PS_UBO: 0=0 5=1 6=2
+// PS_UBO_MERGE: 3=8,4,12
 // PS_TEX: 0=0 3=1
 // PS_TEX_ARRAY: 1
 // @END_RESOURCE_MAP
@@ -17,18 +18,17 @@
 #define REG_CB_SHADOW_LIGHT b5
 // VS unused textures: use defaults from includes (unique registers, no type conflicts)
 #else
-// PS CBs: Camera(0), Sky(8), Room(5), AnimTex(6), Blending(12), ShadowLight(4) -> contiguous b0-b5
+// PS CBs: Camera(0), Room(5), AnimTex(6), MergedSSB(Sky+ShadowLight+Blending) -> b0-b3
 #define REG_CB_CAMERA b0
-#define REG_CB_SKY b1
-#define REG_CB_ROOM b2
-#define REG_CB_ANIMATED_TEXTURE b3
-#define REG_CB_BLENDING b4
-#define REG_CB_SHADOW_LIGHT b5
+#define REG_CB_ROOM b1
+#define REG_CB_ANIMATED_TEXTURE b2
+#define REG_CB_MERGED_SSB b3
 // PS textures -> contiguous t0-t1
 #define REG_TEX_SHADOWMAP t1
 #define REG_SMP_SHADOWMAP s1
 #endif
 
+#include "./CBMergedSSB.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
 #include "./CBSky.hlsli"

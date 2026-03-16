@@ -1,13 +1,14 @@
 // @SDLGPU_RESOURCE_MAP
 // VS_UBO: 0=0 5=1 6=2
-// PS_UBO: 0=0 2=1 4=2 5=3 6=4 12=5
+// PS_UBO: 0=0 5=1 6=2
+// PS_UBO_MERGE: 3=2,4,12
 // PS_TEX: 0=0 1=1 2=2 3=3 9=4 10=5 11=6 12=7 13=8
 // PS_TEX_ARRAY: 3 8
 // @END_RESOURCE_MAP
 #pragma pack_matrix(row_major)
 
 #ifdef VERTEX_SHADER
-// VS CBs: Camera(0), Room(5), AnimTex(6) → contiguous b0-b2
+// VS CBs: Camera(0), Room(5), AnimTex(6) -> contiguous b0-b2
 #define REG_CB_CAMERA b0
 #define REG_CB_ROOM b1
 #define REG_CB_ANIMATED_TEXTURE b2
@@ -16,14 +17,12 @@
 #define REG_CB_BLENDING b5
 // VS unused textures: use defaults from includes (unique registers, no type conflicts)
 #else
-// PS CBs: Camera(0), Material(2), ShadowLight(4), Room(5), AnimTex(6), Blending(12) → contiguous b0-b5
+// PS CBs: Camera(0), Room(5), AnimTex(6), MergedMSB(Material+ShadowLight+Blending) -> b0-b3
 #define REG_CB_CAMERA b0
-#define REG_CB_MATERIAL b1
-#define REG_CB_SHADOW_LIGHT b2
-#define REG_CB_ROOM b3
-#define REG_CB_ANIMATED_TEXTURE b4
-#define REG_CB_BLENDING b5
-// PS textures → contiguous t0-t8
+#define REG_CB_ROOM b1
+#define REG_CB_ANIMATED_TEXTURE b2
+#define REG_CB_MERGED_MSB b3
+// PS textures -> contiguous t0-t8
 #define REG_TEX_SSAO t4
 #define REG_SMP_SSAO s4
 #define REG_TEX_ORSH t5
@@ -38,6 +37,7 @@
 #define REG_SMP_SHADOWMAP s3
 #endif
 
+#include "./CBMergedMSB.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBRoom.hlsli"
 #include "./VertexInput.hlsli"

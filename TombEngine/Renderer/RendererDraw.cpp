@@ -4,6 +4,9 @@
 #include <chrono>
 #include <filesystem>
 
+#ifdef HAS_SDLGPU
+#include "Renderer/Native/SDLGPU/SDLGPUConstantBuffer.h"
+#endif
 #include "ConstantBuffers/CameraMatrixBuffer.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
@@ -360,7 +363,8 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+			UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(),
+				gunShellCount * (int)sizeof(InstancedStaticMesh));
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -629,7 +633,7 @@ namespace TEN::Renderer
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -744,7 +748,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -863,7 +867,8 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(),
+						batCount * (int)sizeof(InstancedStaticMesh));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -975,7 +980,7 @@ namespace TEN::Renderer
 					beetleCount++;
 				}
 
-				if (beetleCount == INSTANCED_STATIC_MESH_BUCKET_SIZE || 
+				if (beetleCount == INSTANCED_STATIC_MESH_BUCKET_SIZE ||
 					(i == TEN::Entities::TR4::NUM_BEETLES - 1 && beetleCount > 0))
 				{
 					if (rendererPass == RendererPass::GBuffer)
@@ -991,7 +996,8 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(),
+						beetleCount * (int)sizeof(InstancedStaticMesh));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1120,7 +1126,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1953,6 +1959,22 @@ namespace TEN::Renderer
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
 		EndDebugEvent();
 
+		// After sky, re-clear depth so sky geometry doesn't occlude the scene.
+		// In SDL_GPU, ClearDepthStencil() is a no-op (clears only work via render pass
+		// LoadAction::Clear). So we end the pass and re-begin with depth clear + color load.
+		EndRenderPass();
+		{
+			RenderPassDescriptor postSkyPass;
+			postSkyPass.Name = "Post-Sky Depth Clear";
+			postSkyPass.ColorAttachments.push_back({
+				_renderTarget->GetRenderTarget(), 0,
+				LoadAction::Load, StoreAction::Store, Colors::Black
+			});
+			postSkyPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			postSkyPass.Viewport = view.Viewport;
+			BeginRenderPass(postSkyPass);
+		}
+
 		// Build G-Buffer (normals + depth).
 		{
 			RenderPassDescriptor gbufferPass;
@@ -2605,6 +2627,22 @@ namespace TEN::Renderer
 
 			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
+
+			// DIAG: log first few items' CB data
+			static int s_itemDiag = 0;
+			if (s_itemDiag < 5)
+			{
+				TENLog("[ITEM DIAG #" + std::to_string(s_itemDiag) + "] obj=" + std::to_string(item->ObjectID)
+					+ " Color=(" + std::to_string(_stItem.Color.x) + "," + std::to_string(_stItem.Color.y)
+					+ "," + std::to_string(_stItem.Color.z) + "," + std::to_string(_stItem.Color.w) + ")"
+					+ " Ambient=(" + std::to_string(_stItem.AmbientLight.x) + "," + std::to_string(_stItem.AmbientLight.y)
+					+ "," + std::to_string(_stItem.AmbientLight.z) + ")"
+					+ " NumLights=" + std::to_string(_stItem.NumLights & 0xFFFF)
+					+ " Skinned=" + std::to_string(_stItem.Skinned)
+					+ " cbSize=" + std::to_string(sizeof(_stItem)),
+					LogLevel::Info);
+				s_itemDiag++;
+			}
 		}
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -2744,7 +2782,10 @@ namespace TEN::Renderer
 				auto* refMesh = refStaticObj.ObjectMeshes[0];
 
 				int staticsCount = (int)statics.size();
-				int bucketSize = INSTANCED_STATIC_MESH_BUCKET_SIZE;
+				// Vulkan's minimum maxUniformBufferRange is 16KB. Cap bucket size
+				// so the instanced CB fits within that limit on all backends.
+				constexpr int MAX_SAFE_INSTANCES = 16384 / (int)sizeof(InstancedStaticMesh);
+				int bucketSize = std::min((int)INSTANCED_STATIC_MESH_BUCKET_SIZE, MAX_SAFE_INSTANCES);
 				int baseStaticIndex = 0;
 
 				while (baseStaticIndex < staticsCount)
@@ -2781,7 +2822,24 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+							UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(),
+							instancesCount * (int)sizeof(InstancedStaticMesh));
+
+						// DIAG: log first few static batches
+						static int s_staticDiag = 0;
+						if (s_staticDiag < 3)
+						{
+							auto& s0 = _stInstancedStaticMeshBuffer.StaticMeshes[0];
+							TENLog("[STATIC DIAG #" + std::to_string(s_staticDiag) + "]"
+								+ " instances=" + std::to_string(instancesCount)
+								+ " Color0=(" + std::to_string(s0.Color.x) + "," + std::to_string(s0.Color.y)
+								+ "," + std::to_string(s0.Color.z) + "," + std::to_string(s0.Color.w) + ")"
+								+ " Ambient0=(" + std::to_string(s0.Ambient.x) + "," + std::to_string(s0.Ambient.y)
+								+ "," + std::to_string(s0.Ambient.z) + ")"
+								+ " cbSize=" + std::to_string(sizeof(_stInstancedStaticMeshBuffer)),
+								LogLevel::Info);
+							s_staticDiag++;
+						}
 
 						bool bindTextureAndMaterialsRequired = true;
 
@@ -2810,7 +2868,7 @@ namespace TEN::Renderer
 																		
 									DrawIndexedInstancedTriangles(bucket.NumIndices, instancesCount, bucket.StartIndex, 0);
 
-									_numInstancedStaticsDrawCalls++;
+								_numInstancedStaticsDrawCalls++;
 								}
 
 								bindTextureAndMaterialsRequired = true; 
@@ -3194,7 +3252,8 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 				}
 
-				UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+				UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+					starsToDraw * (int)sizeof(InstancedSprite));
 
 				// Draw sprites with instancing.
 				DrawInstancedTriangles(4, starsToDraw, 0);
@@ -3257,7 +3316,8 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 					}
 
-					UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+					UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+						meteorsToDraw * (int)sizeof(InstancedSprite));
 
 					// Draw sprites with instancing.
 					DrawInstancedTriangles(4, meteorsToDraw, 0);
@@ -3367,7 +3427,8 @@ namespace TEN::Renderer
 
 			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
+				(int)sizeof(InstancedSprite));
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
@@ -3926,7 +3987,7 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3964,7 +4025,7 @@ namespace TEN::Renderer
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);

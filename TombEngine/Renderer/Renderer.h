@@ -1,4 +1,7 @@
 #pragma once
+#ifdef HAS_SDLGPU
+#include "Renderer/Native/SDLGPU/SDLGPUConstantBuffer.h"
+#endif
 #include "Math/Math.h"
 #include "Game/control/box.h"
 #include "Game/items.h"
@@ -573,6 +576,17 @@ namespace TEN::Renderer
 		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb) noexcept
 		{
 			_graphicsDevice->UpdateConstantBuffer(cb, data);
+			_numConstantBufferUpdates++;
+		}
+
+		// Update CB and set effective push size (for SDL_GPU ring buffer efficiency).
+		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb, int usedSize) noexcept
+		{
+			_graphicsDevice->UpdateConstantBuffer(cb, data);
+#ifdef HAS_SDLGPU
+			if (auto* sdlCB = dynamic_cast<TEN::Renderer::Native::SDLGPU::SDLGPUConstantBuffer*>(cb))
+				sdlCB->SetPushSize(usedSize);
+#endif
 			_numConstantBufferUpdates++;
 		}
 
