@@ -108,6 +108,23 @@ namespace TEN::Renderer::VolumetricCloud
 		// Cloud type (maps to CloudCategory enum)
 		int CloudType = 0;             // 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
 
+		// Altocumulus-specific appearance tuning (only meaningful for CloudType == 2 / AltocumulusMid)
+		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM noise
+		float AltoCovSoftWidth   = 0.08f;  // [0,0.25]   self-referential coverage soft-threshold width
+		float AltoAbsorption      = 1.0f;   // [0.1,5.0] absorption coefficient
+		float AltoCloudSize      = 1.0f;   // [0.2,5.0]  feature scale multiplier
+		float AltoCloudAmount    = 0.6875f;// [0.0,1.0]  coverage/fill control
+		float AltoCloudBrightness = 1.0f;  // [0.1,4.0]  brightness multiplier
+		float AltoCloudColorR    = 1.0f;   // [0,1]      color tint red
+		float AltoCloudColorG    = 1.0f;   // [0,1]      color tint green
+		float AltoCloudColorB    = 1.0f;   // [0,1]      color tint blue
+		float AltoFbmLacunarity  = 2.6434f;// [1.5,4.0]  FBM frequency ratio per octave
+		float AltoFbmGain        = 0.5f;   // [0.1,0.9]  FBM amplitude scaling per octave
+		float AltoThickness      = 1800.0f;// [50,5000]  cloud slab thickness
+		float AltoCloudColorDarkR = 0.55f; // [0,1]      dark/shadow color tint red
+		float AltoCloudColorDarkG = 0.55f; // [0,1]      dark/shadow color tint green
+		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
+
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
 		float JitterStrength        = 1.0f;

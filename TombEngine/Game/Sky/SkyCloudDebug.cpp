@@ -87,14 +87,34 @@ namespace TEN::Sky
 		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
 		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
-		params.push_back({"Shape Scale",      &snap.ShapeScale,         0.0f,    0.01f,    0.00001f, "%.6f",     def(&VolumetricCloudLayerSnapshot::ShapeScale)});
-		params.push_back({"Detail Scale",     &snap.DetailScale,        0.0f,    0.01f,    0.0001f,  "%.5f",     def(&VolumetricCloudLayerSnapshot::DetailScale)});
+		// Practical ranges for current volumetric shader tuning:
+		// ShapeScale remains linear and most useful up to ~0.000135.
+		// Above this, the shader applies a soft-cap, so large debug ranges are
+		// mostly noise and make the UI harder to tune precisely.
+		params.push_back({"Shape Scale",      &snap.ShapeScale,         0.0f,    0.0006f, 0.000001f, "%.6f",     def(&VolumetricCloudLayerSnapshot::ShapeScale)});
+		params.push_back({"Detail Scale",     &snap.DetailScale,        0.0f,    0.003f,  0.00001f,  "%.5f",     def(&VolumetricCloudLayerSnapshot::DetailScale)});
 		params.push_back({"Detail Strength",  &snap.DetailStrength,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DetailStrength)});
 		params.push_back({"Absorption",       &snap.Absorption,         0.0f,    25.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Absorption)});
 		params.push_back({"Ambient Contrib",  &snap.AmbientContrib,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AmbientContrib)});
 		params.push_back({"Silverlining",     &snap.SilverliningStr,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::SilverliningStr)});
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
 		params.push_back({"Distance Fade",    &snap.DistanceFade,       0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DistanceFade)});
+		// --- Altocumulus-specific parameters (meaningful only when Category == AltocumulusMid) ---
+		params.push_back({"Alto Billow Str",  &snap.AltoBillowStrength, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoBillowStrength)});
+		params.push_back({"Alto Cov Soft W",  &snap.AltoCovSoftWidth,   0.0f,    0.25f,    0.005f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::AltoCovSoftWidth)});
+		params.push_back({"Alto Absorption", &snap.AltoAbsorption,      0.1f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoAbsorption)});
+		params.push_back({"Alto Cloud Size",  &snap.AltoCloudSize,      0.2f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudSize)});
+		params.push_back({"Alto Cloud Amount",&snap.AltoCloudAmount,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudAmount)});
+		params.push_back({"Alto Brightness",  &snap.AltoCloudBrightness, 0.1f,   4.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudBrightness)});
+		params.push_back({"Alto Color R",     &snap.AltoCloudColorR,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorR)});
+		params.push_back({"Alto Color G",     &snap.AltoCloudColorG,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorG)});
+		params.push_back({"Alto Color B",     &snap.AltoCloudColorB,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorB)});
+		params.push_back({"Alto Dark Col R",  &snap.AltoCloudColorDarkR, 0.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorDarkR)});
+		params.push_back({"Alto Dark Col G",  &snap.AltoCloudColorDarkG, 0.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorDarkG)});
+		params.push_back({"Alto Dark Col B",  &snap.AltoCloudColorDarkB, 0.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudColorDarkB)});
+		params.push_back({"Alto FBM Lacun",   &snap.AltoFbmLacunarity,  1.5f,    4.0f,     0.01f,    "%.4f",     def(&VolumetricCloudLayerSnapshot::AltoFbmLacunarity)});
+		params.push_back({"Alto FBM Gain",    &snap.AltoFbmGain,        0.1f,    0.9f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoFbmGain)});
+		params.push_back({"Alto Thickness",   &snap.AltoThickness,      50.0f, 5000.0f,    50.0f,    "%.0f",     def(&VolumetricCloudLayerSnapshot::AltoThickness)});
 
 		return params;
 	}
@@ -184,6 +204,49 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// Apply tuned cloud-pattern values for current shader behavior.
+	// ====================================================================
+
+	static void ApplyPatternPresetForCategory(VolumetricCloudLayerSnapshot& snap)
+	{
+		switch (snap.Category)
+		{
+		case CloudCategory::AltocumulusMid:
+			// Schaefchenwolken: reference-shader-inspired soft cotton-ball puffs.
+			// Uses only Alto-specific parameters for density/lighting.
+			snap.AltoBillowStrength = 0.85f;
+			snap.AltoCovSoftWidth   = 0.035f;
+			snap.AltoAbsorption     = 1.0f;
+			snap.AltoCloudSize      = 1.0f;
+			snap.AltoCloudAmount    = 0.6875f;
+			snap.AltoCloudBrightness = 1.0f;
+			snap.AltoCloudColorR    = 1.0f;
+			snap.AltoCloudColorG    = 1.0f;
+			snap.AltoCloudColorB    = 1.0f;
+			snap.AltoCloudColorDarkR = 0.55f;
+			snap.AltoCloudColorDarkG = 0.55f;
+			snap.AltoCloudColorDarkB = 0.65f;
+			snap.AltoFbmLacunarity  = 2.6434f;
+			snap.AltoFbmGain        = 0.5f;
+			snap.AltoThickness      = 1800.0f;
+			break;
+
+		case CloudCategory::CirrusHigh:
+			// Federwolken: thin, elongated wisps.
+			snap.ShapeScale = 0.00009f;
+			snap.DetailScale = 0.00055f;
+			snap.DetailStrength = 0.14f;
+			snap.EvolutionSpeed = 0.05f;
+			snap.Coverage = 0.38f;
+			snap.Absorption = 0.45f;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	// ====================================================================
 	// Draw a cloud layer section with all parameter sliders.
 	// ====================================================================
 
@@ -204,12 +267,51 @@ namespace TEN::Sky
 		// Category combo.
 		DrawCategoryCombo("Category", snap.Category);
 
+		// One-click pattern presets for requested cloud types.
+		if (snap.Category == CloudCategory::AltocumulusMid ||
+			snap.Category == CloudCategory::CirrusHigh)
+		{
+			if (ImGui::Button("Apply Tuned Pattern"))
+				ApplyPatternPresetForCategory(snap);
+			ImGui::SameLine();
+			if (snap.Category == CloudCategory::AltocumulusMid)
+				ImGui::TextDisabled("Altocumulus grouping (Schaefchen)");
+			else
+				ImGui::TextDisabled("Elongated Cirrus wisps (Federwolken)");
+		}
+
 		ImGui::Separator();
 
 		// Build and draw all parameter sliders.
 		auto params = BuildParamList(snap, defaults);
 		for (auto& p : params)
 			DrawParamSlider(p, idPrefix);
+
+		// Altocumulus color pickers (visual RGB widgets for bright top + dark base).
+		if (snap.Category == CloudCategory::AltocumulusMid)
+		{
+			ImGui::Separator();
+			ImGui::TextDisabled("Bright (Top) Color");
+			float altoColor[3] = { snap.AltoCloudColorR, snap.AltoCloudColorG, snap.AltoCloudColorB };
+			char colorId[128];
+			snprintf(colorId, sizeof(colorId), "Alto Color##%s", idPrefix);
+			if (ImGui::ColorEdit3(colorId, altoColor))
+			{
+				snap.AltoCloudColorR = altoColor[0];
+				snap.AltoCloudColorG = altoColor[1];
+				snap.AltoCloudColorB = altoColor[2];
+			}
+			ImGui::TextDisabled("Dark (Base / Shadow) Color");
+			float darkColor[3] = { snap.AltoCloudColorDarkR, snap.AltoCloudColorDarkG, snap.AltoCloudColorDarkB };
+			char darkColorId[128];
+			snprintf(darkColorId, sizeof(darkColorId), "Alto Dark Color##%s", idPrefix);
+			if (ImGui::ColorEdit3(darkColorId, darkColor))
+			{
+				snap.AltoCloudColorDarkR = darkColor[0];
+				snap.AltoCloudColorDarkG = darkColor[1];
+				snap.AltoCloudColorDarkB = darkColor[2];
+			}
+		}
 
 		// Reset all button.
 		if (defaults)

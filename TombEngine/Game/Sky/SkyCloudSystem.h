@@ -122,6 +122,23 @@ namespace TEN::Sky
 		float HorizonFade     = 1.0f;   // Fade near horizon, 0 = none, 1 = full
 		float DistanceFade    = 1.0f;   // Distance-based fade factor
 
+		// Altocumulus-specific appearance tuning (only meaningful for Category == AltocumulusMid)
+		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM
+		float AltoCovSoftWidth   = 0.08f;  // [0,0.25]   self-referential coverage soft-threshold
+		float AltoAbsorption      = 1.0f;   // [0.1,5.0] absorption coefficient
+		float AltoCloudSize      = 1.0f;   // [0.2,5.0]  feature scale (1=default, <1=bigger, >1=smaller)
+		float AltoCloudAmount    = 0.6875f;// [0.0,1.0]  coverage/fill (0=sparse, 1=overcast)
+		float AltoCloudBrightness = 1.0f;  // [0.1,4.0]  brightness multiplier
+		float AltoCloudColorR    = 1.0f;   // [0,1]      color tint red
+		float AltoCloudColorG    = 1.0f;   // [0,1]      color tint green
+		float AltoCloudColorB    = 1.0f;   // [0,1]      color tint blue
+		float AltoFbmLacunarity  = 2.6434f;// [1.5,4.0]  FBM frequency ratio per octave
+		float AltoFbmGain        = 0.5f;   // [0.1,0.9]  FBM amplitude scaling per octave
+		float AltoThickness      = 1800.0f;// [50,5000]  cloud slab thickness
+		float AltoCloudColorDarkR = 0.55f; // [0,1]      dark/shadow color tint red
+		float AltoCloudColorDarkG = 0.55f; // [0,1]      dark/shadow color tint green
+		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
+
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 
 		// Convert to/from the renderer's CloudRenderSettings.

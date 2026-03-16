@@ -98,6 +98,16 @@ float ValueNoise3D(float3 p)
 	return lerp(n0, n1, u.z);
 }
 
+// Billow noise: absolute-value form of value noise.
+// Converts [0,1] range into a ridge-like [0,1] form peaked at 0, mirroring
+// abs(snoise()) from the reference volumetric cloud shader. The resulting FBM
+// produces rounded cauliflower-like bumps — the defining basis for the
+// cotton-ball altocumulus cloud look of the reference shader.
+float BillowNoise3D(float3 p)
+{
+	return abs(ValueNoise3D(p) * 2.0f - 1.0f);
+}
+
 // Low-frequency FBM (3 octaves) — cloud shape.
 // Persistence reduced to 0.38 so higher octaves barely affect the silhouette;
 // only the first (dominant) octave drives large stable cloud masses.
@@ -129,6 +139,66 @@ float FBMLowFreq(float3 p, float lod)
 		v += a * octWeight * ValueNoise3D(s);
 		s *= 2.37f;  // Lacunarity (non-power-of-2 avoids tiling artifacts)
 		a *= 0.38f;  // Low persistence: each octave contributes much less than the previous
+	}
+	return v;
+}
+
+// Billow FBM — 3-octave FBM using BillowNoise3D as basis function.
+// Lacunarity 2.032 matches the reference volumetric cloud shader (vs 2.37 for
+// regular FBM), giving less spectral compression and more distinct scale
+// separation. Gain 0.5 matches reference shader init_gain / gain = 0.5.
+// Distance LOD suppresses fine octaves at range, same as FBMLowFreq.
+float FBMLowFreqBillow(float3 p, float lod)
+{
+	float v  = 0.0f;
+	float a  = 0.5f;
+	float3 s = p;
+
+	[unroll]
+	for (int oct = 0; oct < 3; oct++)
+	{
+		float octWeight;
+		if      (oct == 0) octWeight = 1.0f;
+		else if (oct == 1) octWeight = saturate(1.0f - lod);
+		else               octWeight = saturate(1.0f - lod * 2.0f);
+		v += a * octWeight * BillowNoise3D(s);
+		s *= 2.032f;  // Reference shader lacunarity
+		a *= 0.5f;    // Reference shader gain
+	}
+	return v;
+}
+
+// Reference-shader-inspired 5-octave Altocumulus FBM.
+// Blends standard value noise with billow (abs-value) noise per octave.
+// billowBlend [0,1]: 0 = pure value FBM, 1 = pure billow FBM (reference look).
+// Lacunarity and gain are configurable (reference: 2.6434, 0.5).
+// 5 octaves match the reference shader's fbm_clouds function.
+// Distance LOD progressively silences fine octaves at range.
+float FBMAlto5(float3 p, float lacunarity, float gain, float billowBlend, float lod)
+{
+	float v  = 0.0f;
+	float a  = 0.5f;
+	float3 s = p;
+
+	[unroll]
+	for (int oct = 0; oct < 5; oct++)
+	{
+		// Distance LOD: progressively silence finer octaves.
+		// Octaves 0-1 (coarsest): always full weight.
+		// Octaves 2-4: fade with increasing aggression at distance.
+		float octWeight;
+		if      (oct <= 1) octWeight = 1.0f;
+		else if (oct == 2) octWeight = saturate(1.0f - lod);
+		else if (oct == 3) octWeight = saturate(1.0f - lod * 1.5f);
+		else               octWeight = saturate(1.0f - lod * 2.0f);
+
+		float valN = ValueNoise3D(s);
+		float bilN = BillowNoise3D(s);
+		float n = lerp(valN, bilN, billowBlend);
+
+		v += a * octWeight * n;
+		s *= lacunarity;
+		a *= gain;
 	}
 	return v;
 }
@@ -189,43 +259,44 @@ float HeightFraction(float worldY, float bottomY, float thickness)
 // CloudType 2 (AltocumulusMid):        rounded cumulus, slight bottom bias
 // CloudType 3 (StratocumulusLow):      broad flat slab, gradual top fade
 // CloudType 4 (CumulonimbusVertical):  tall anvil shape, dense through most of height
-float HeightGradient(float heightFrac)
+// Evaluate height gradient with per-column noise offsets so that the
+// visible bottom and top boundaries of the cloud vary organically.
+// bShift [-0.18..+0.18]: raises/lowers the start of the bottom fade-in.
+// tShift [-0.12..+0.12]: raises/lowers the start of the top fade-out.
+float HeightGradient(float heightFrac, float bShift, float tShift)
 {
 	if (CloudType == 1) // CirrusHigh
 	{
-		// Thin wispy band concentrated in the upper portion of the slab.
-		// Peaks at 75-85% height, fades quickly below and above.
-		float bottom = smoothstep(0.5f, 0.75f, heightFrac);
-		float top    = 1.0f - smoothstep(0.85f, 1.0f, heightFrac);
+		// Thin wispy band — noise-offset bottom/top within narrow band.
+		float bottom = smoothstep(0.5f + bShift * 0.5f, 0.75f + bShift * 0.3f, heightFrac);
+		float top    = 1.0f - smoothstep(0.85f + tShift * 0.5f, 1.0f, heightFrac);
 		return bottom * top;
 	}
 	else if (CloudType == 2) // AltocumulusMid
 	{
-		// Classic cumulus profile — rounded bottom entry, broad middle, gentle top fade.
-		float bottom = smoothstep(0.0f, 0.2f, heightFrac);
-		float top    = 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
+		// Mid-layer patch field: softer rounded cloudlets with moderate thickness.
+		float bottom = smoothstep(0.06f + bShift * 0.7f, 0.28f + bShift * 0.6f, heightFrac);
+		float top    = 1.0f - smoothstep(0.58f + tShift * 0.8f, 0.90f + tShift * 0.5f, heightFrac);
 		return bottom * top;
 	}
 	else if (CloudType == 3) // StratocumulusLow
 	{
-		// Broad flat slab — density is nearly constant through the middle,
-		// with thin ramps at bottom and top.
-		float bottom = smoothstep(0.0f, 0.08f, heightFrac);
-		float top    = 1.0f - smoothstep(0.8f, 1.0f, heightFrac);
+		// Flat sheet but with noise-roughened base and top.
+		float bottom = smoothstep(0.0f + bShift, 0.18f + bShift, heightFrac);
+		float top    = 1.0f - smoothstep(0.80f + tShift, 1.0f + tShift * 0.3f, heightFrac);
 		return bottom * top;
 	}
 	else if (CloudType == 4) // CumulonimbusVertical
 	{
-		// Towering anvil: dense from bottom through 80% of height,
-		// then a slower fade near top to simulate the spreading anvil cap.
-		float bottom = smoothstep(0.0f, 0.1f, heightFrac);
-		float top    = 1.0f - smoothstep(0.8f, 1.0f, heightFrac) * 0.6f; // never fully zero at top
+		// Towering anvil — strongly varying organic base, rounded top.
+		float bottom = smoothstep(0.0f + bShift, 0.22f + bShift, heightFrac);
+		float top    = 1.0f - smoothstep(0.78f + tShift, 1.0f, heightFrac) * 0.6f;
 		return bottom * top;
 	}
-	else // None / default — original generic profile
+	else // None / default
 	{
-		float bottom = smoothstep(0.0f, 0.15f, heightFrac);
-		float top    = 1.0f - smoothstep(0.7f, 1.0f, heightFrac);
+		float bottom = smoothstep(0.0f + bShift, 0.22f + bShift, heightFrac);
+		float top    = 1.0f - smoothstep(0.70f + tShift, 1.0f + tShift * 0.4f, heightFrac);
 		return bottom * top;
 	}
 }
@@ -244,6 +315,80 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// sky dome — stable during camera translation.
 	float3 skyPos = worldPos - CamPositionWS.xyz;
 
+	// --- Distance LOD (computed early — needed for distance-based softening) ---
+	// Metric: horizontal (XZ-plane) distance from camera to sample.
+	//   At CloudBottomHeight * 1.0 (≈45° elevation) → lod = 0, full quality.
+	//   At CloudBottomHeight * 6.0 (≈ 9° elevation)  → lod = 1, fine octaves silent.
+	// lodNear lowered from 1.5 to 1.0 so distance softening kicks in earlier:
+	//   At 20° elevation distLOD ≈ 0.35 (was 0.28) → medium-distance clouds
+	//   already receive meaningful detail reduction and edge softening.
+	float horizDist = length(skyPos.xz);
+	float lodNear   = max(CloudBottomHeight * 1.0f, 1.0f);
+	float lodFar    = max(CloudBottomHeight * 6.0f, lodNear + 1.0f);
+	float distLOD   = saturate((horizDist - lodNear) / (lodFar - lodNear));
+
+	// Squared distance factor: gentle at medium range, strong at far range.
+	// Used by edge-width, minVisible, and coverage softening below.
+	float distLOD2  = distLOD * distLOD;
+
+	// ===================================================================
+	// AltocumulusMid — FULLY SELF-CONTAINED density path.
+	// Ported from reference shader. Uses ONLY Alto-specific CB parameters.
+	// Shared params used: CloudBottomHeight (slab position), DistanceFade,
+	// WindDirection/WindSpeed/CloudTime (animation infrastructure).
+	// Does NOT use: Coverage, CloudDensity, CloudThickness, Absorption,
+	// ShapeScale, DetailScale, WeatherScale, AmbientContrib, SilverliningStr,
+	// HeightGradient, or any other shared cloud-type parameters.
+	// ===================================================================
+	if (CloudType == 2)
+	{
+		// AltoCloudSize=1.0 → reference scale (pos*0.001). <1=bigger, >1=smaller.
+		float altoScale = 0.001f * AltoCloudSize;
+		// Wind drift in noise-space: NOT scaled by altoScale so cloud motion speed
+		// is independent of cloud size, matching the shared path convention.
+		// Result: clouds visibly translate across the sky at WindSpeed world-units/frame.
+		float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y)
+		               * CloudTime * WindSpeed;
+		float3 p = skyPos * altoScale + windOfs;
+
+		// Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
+		// 5 octaves of abs(snoise(p)) — billow FBM.
+		float dens = FBMAlto5(p * 2.032f, AltoFbmLacunarity, AltoFbmGain,
+		                      AltoBillowStrength, distLOD);
+
+		// Reference: dens *= smoothstep(cld_coverage, cld_coverage + .035, dens);
+		// Self-referential smoothstep: THE signature look of this shader.
+		// AltoCloudAmount controls fill: 0=sparse, 1=overcast.
+		// covThreshold = 1.0 - amount: higher amount → lower threshold → more clouds.
+		// Default amount=0.6875 → thresh=0.3125 → matches reference cld_coverage.
+		float covThresh = saturate(1.0f - AltoCloudAmount);
+		float covSoft   = max(AltoCovSoftWidth, 0.001f);
+
+		// Evolution / pulsing: slowly oscillate the coverage threshold so cloud
+		// masses gently puff up and deflate over time.
+		// EvolutionSpeed=0 → static. Higher values → faster / stronger pulsing.
+		// A coarse spatial noise gives each region its own phase so puffing is
+		// locally independent (not a global in/out sync).
+		if (EvolutionSpeed > 0.001f)
+		{
+			float spatialPhase = ValueNoise3D(p * 0.4f) * 6.2832f;
+			float swellPhase   = CloudTime * EvolutionSpeed * 0.04f + spatialPhase;
+			float swellAmp     = 0.08f * saturate(EvolutionSpeed * 0.5f + 0.1f);
+			swellAmp          *= max(1.0f - distLOD * 0.8f, 0.0f); // damp at far range
+			covThresh = saturate(covThresh - sin(swellPhase) * swellAmp);
+		}
+
+		dens *= smoothstep(covThresh, covThresh + covSoft, dens);
+
+		// Reference shader does NOT use height gradient in density.
+		// Height-dependent behavior is in illumination (exp(h)/1.95 + dark/bright blend).
+
+		if (dens <= 0.0001f)
+			return 0.0f;
+
+		return dens;
+	}
+
 	// --- Coverage / Weather noise ---
 	// Large-scale weather map controls where clouds exist.
 	float2 weatherUV = skyPos.xz * WeatherScale 
@@ -253,45 +398,79 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// Remap weather noise with coverage parameter.
 	// Higher coverage -> more clouds, but always with variation.
 	float coverageMask = Remap(weatherNoise, 1.0f - Coverage, 1.0f, 0.0f, 1.0f);
-	coverageMask = pow(coverageMask, lerp(1.5f, 0.7f, Coverage));
+	// Distance-softened coverage exponent: at close range the exponent shapes
+	// the cloud boundary normally.  At far range (distLOD→1) the exponent is
+	// reduced to 60% of its base value, widening the density gradient across
+	// the weather boundary so far cloud edges are broader and softer.
+	float coverageExp = lerp(1.2f, 0.85f, Coverage);
+	coverageExp *= lerp(1.0f, 0.6f, distLOD2);
+	coverageMask = pow(saturate(coverageMask), coverageExp);
+
+	// --- Height-dependent coverage narrowing ---
+	// Real cumulus clouds have a broad base and a narrowing rising body.
+	// Reducing effective coverage with heightFrac creates natural tapering:
+	// the base footprint is maximum, the crown is smaller and more rounded.
+	// Stratus (3) and Cirrus (1) are horizontal sheets — no tapering.
+	// Amounts increased from previous pass: stronger tapering makes the
+	// lateral shape difference between base and crown more visible.
+	{
+		float heightTaper = 0.0f;
+		if      (CloudType == 4) heightTaper = heightFrac * heightFrac * 0.25f; // CumulonimbusVertical: quadratic, narrow crown
+		else if (CloudType == 0) heightTaper = heightFrac * 0.30f;              // Default/generic
+		coverageMask = saturate(coverageMask * (1.0f - heightTaper));
+	}
 
 	if (coverageMask <= 0.001f)
 		return 0.0f;
 
-	// --- Height gradient ---
-	float hGrad = HeightGradient(heightFrac);
+	// --- Soft-cap ShapeScale ---
+	// Linear below 0.000135 (confirmed "good" range by artist).
+	// Above that, sqrt-compress so doubling the UI value only gives sqrt(2)x
+	// more noise frequency — prevents the pattern from becoming unpleasantly
+	// tiny at high values while preserving fine-tuning at low values.
+	static const float refShapeScale = 0.000135f;
+	float effectiveShapeScale = (ShapeScale <= refShapeScale)
+	    ? ShapeScale
+	    : refShapeScale * sqrt(ShapeScale / refShapeScale);
 
-	// --- Distance LOD for Moiré / aliasing prevention ---
-	// The step size of the primary ray march is fixed at CloudThickness*6 / PrimaryStepCount.
-	// When a sample is far from the camera, the finest noise octaves have wavelengths
-	// smaller than that step size → they alias into shimmering interference bands (Moiré).
+	// --- Organic height gradient ---
+	// Sample two very coarse, stable noise values from the horizontal sky
+	// position (independent of ShapeScale and wind) to offset the visible
+	// bottom and top boundaries per cloud column.
 	//
-	// Metric: horizontal (XZ-plane) distance from camera to sample.
-	//   At CloudBottomHeight * 1.5 (≈56° elevation) → lod = 0, full quality.
-	//   At CloudBottomHeight * 6.0 (≈ 9° elevation)  → lod = 1, fine octaves silent.
-	// CloudBottomHeight is the camera-to-cloud-base vertical distance, naturally
-	// scaling with scene size without needing separate tuning.
-	float horizDist = length(skyPos.xz);
-	float lodNear   = max(CloudBottomHeight * 1.5f, 1.0f);
-	float lodFar    = max(CloudBottomHeight * 6.0f, lodNear + 1.0f);
-	float distLOD   = saturate((horizDist - lodNear) / (lodFar - lodNear));
+	// Scale 0.000065/wu is much coarser than even the coarsest shape noise,
+	// so the boundary variation is broad and gentle (hundreds of world-units
+	// per noise period), giving the impression of large-scale cloud billows
+	// rather than fine-grained distortion.
+	//
+	// bShift in [-0.18, +0.18]: negative = bottom starts lower (cloud extends
+	//   further down in that column), positive = bottom is higher (more tapered).
+	// tShift in [-0.12, +0.12]: negative = top fades earlier (rounded crown),
+	//   positive = top extends a bit higher (swelling upward).
+	//
+	// Both use seed offsets (+7.3, +13.1) so bottom and top vary independently.
+	float2 hgUV    = skyPos.xz * 0.000065f;
+	float  bNoise  = ValueNoise3D(float3(hgUV.x,        hgUV.y,        7.3f));
+	float  tNoise  = ValueNoise3D(float3(hgUV.x + 5.7f, hgUV.y + 3.2f, 13.1f));
+	float  bShift  = (bNoise - 0.5f) * 0.36f;   // [-0.18, +0.18]
+	float  tShift  = (tNoise - 0.5f) * 0.24f;   // [-0.12, +0.12]
+	float hGrad = HeightGradient(heightFrac, bShift, tShift);
 
 	// --- Base shape noise ---
 	// Sampling position is purely driven by horizontal wind drift.
 	// No Y-displacement here — any 3D shift of shapePos produces twisting artifacts
 	// because the noise has structure in all three axes.
 	//
-	// Per-CloudType noise distortion:
-	//   CirrusHigh:   horizontal stretch (3x XZ, 0.4x Y) for wispy fibrous streaks.
-	//   AltocumulusMid: slight XZ stretch (1.3x) for patchy roundish puffs.
+	// Per-CloudType noise distortion applied to the shape sampling position.
+	//   CirrusHigh:   shapePos is fully overridden below (wind-aligned anisotropy).
+	//                 noiseScale here only affects the detail pass (Y=0.15 = very flat).
 	//   StratocumulusLow: strong XZ stretch (2x, 0.6x Y) for flat sheet-like slabs.
 	//   CumulonimbusVertical: vertical stretch (0.7x XZ, 1.5x Y) for tall towers.
 	//   Default: isotropic (no distortion).
+	//   (AltocumulusMid returns early above — never reaches this code.)
 	float3 noiseScale;
-	if (CloudType == 1) // CirrusHigh — fibrous horizontal streaks
-		noiseScale = float3(3.0f, 0.4f, 3.0f);
-	else if (CloudType == 2) // AltocumulusMid — slightly elongated patches
-		noiseScale = float3(1.3f, 0.9f, 1.3f);
+	if (CloudType == 1) // CirrusHigh — detail scale only (shapePos overridden below)
+		noiseScale = float3(3.0f, 0.15f, 3.0f);
 	else if (CloudType == 3) // StratocumulusLow — flat sheet
 		noiseScale = float3(2.0f, 0.6f, 2.0f);
 	else if (CloudType == 4) // CumulonimbusVertical — tall vertical towers
@@ -299,9 +478,86 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	else
 		noiseScale = float3(1.0f, 1.0f, 1.0f);
 
-	float3 shapePos = skyPos * ShapeScale * noiseScale
+	// Normalize the Y component of noise coordinates so the vertical noise
+	// range is independent of CloudThickness. Without this, a thick slab
+	// causes the noise to cycle multiple periods vertically, producing
+	// distinct horizontal density layers (visible "stacked slices").
+	// Clamping to 2500 (reference design thickness) fixes the Y range
+	// while leaving XZ sampling — and all horizontal cloud structure — unchanged.
+	float shapeY = -CloudBottomHeight - heightFrac * min(CloudThickness, 2500.0f);
+
+	// --- Height-dependent horizontal deformation ---
+	// A vertical ray traverses the cloud slab sampling shapePos at the same
+	// (x, z) in noise-space at every heightFrac. When ShapeScale is small or
+	// the density field is spatially smooth, every height returns nearly the
+	// same cross-section — a "Minecraft column" / vertical-extrusion artifact.
+	//
+	// Root cause of the previous fix's failure:
+	//   driftN = ValueNoise3D(float3(driftUV, 4.17f)) — 4.17 is CONSTANT.
+	//   Every height level got the same drift angle; only the amplitude varied.
+	//   The cloud leaned in one static direction rather than organically deforming.
+	//
+	// Fix: two independent noise channels (driftX, driftZ) both include
+	// heightFrac in their sample domain, so the deformation DIRECTION rotates
+	// as height increases.  The cloud leans one way at h=0.3, a different way
+	// at h=0.6, and yet another at h=0.9 — genuinely different cross-sections.
+	//
+	// Amplitude ~1.0 noise-unit RMS at crown (h=1): far enough that the crown
+	// samples a clearly different region of the density field than the base,
+	// giving distinct silhouettes even with very small ShapeScale.
+	//
+	// Scale: 0.000115/wu is fixed, independent of ShapeScale, so the
+	// deformation works for any cloud scale setting.
+	float2 driftUV   = skyPos.xz * 0.000115f;
+	float  distAtt   = 1.0f - distLOD * 0.5f;
+	float  driftX    = ValueNoise3D(float3(driftUV.x,         driftUV.y,         heightFrac * 2.1f + 0.73f)) - 0.5f;
+	float  driftZ    = ValueNoise3D(float3(driftUV.x + 4.83f, driftUV.y + 2.31f, heightFrac * 2.1f        )) - 0.5f;
+	float  driftAmt  = heightFrac * 2.8f * distAtt;
+	float2 driftXZ   = float2(driftX, driftZ) * driftAmt;
+
+	float2 shapeXZScale = noiseScale.xz;
+
+	float3 shapePos = float3(skyPos.x * effectiveShapeScale * shapeXZScale.x + driftXZ.x,
+	                         shapeY   * effectiveShapeScale * noiseScale.y,
+	                         skyPos.z * effectiveShapeScale * shapeXZScale.y + driftXZ.y)
 	                 + float3(WindDirection.x, 0.0f, WindDirection.y) 
 	                   * CloudTime * WindSpeed;
+
+	// --- CirrusHigh: wind-aligned anisotropic shapePos override ---
+	// Replaces the isotropic shapePos above with an extreme aspect-ratio
+	// sample space aligned to the wind direction, producing the long thin
+	// fibrous streaks (Federwolken / mare's tails) typical of high cirrus.
+	//
+	// Coordinate system:
+	//   wDir  = normalised wind direction in XZ-plane
+	//   wPerp = 90° perpendicular to wind
+	//
+	// Scale ratios:
+	//   Along-wind  * 0.22  →  very slowly varying → long wisps
+	//   Across-wind * 3.5   →  rapidly varying      → thin cross-section
+	//   Y           * 0.12  →  nearly flat slab
+	//
+	// Aspect ratio along:across ≈ 1:16 — distinctly fibrous even at close range.
+	// Drift is applied in the rotated frame so wisps translate purely along wind.
+	if (CloudType == 1)
+	{
+		float2 wDir    = (dot(WindDirection, WindDirection) > 0.0001f)
+		               ? normalize(WindDirection) : float2(1.0f, 0.0f);
+		float2 wPerp   = float2(-wDir.y, wDir.x);
+		float  aWind   = dot(skyPos.xz, wDir);
+		float  pWind   = dot(skyPos.xz, wPerp);
+		float2 drift2  = WindDirection * CloudTime * WindSpeed;
+		float  dAlong  = dot(drift2, wDir);
+		float  dPerp   = dot(drift2, wPerp);
+		shapePos = float3(
+		    aWind * effectiveShapeScale * 0.22f + dAlong * 0.22f,
+		    shapeY * effectiveShapeScale * 0.12f,
+		    pWind  * effectiveShapeScale * 3.5f  + dPerp  * 3.5f
+		);
+	}
+
+	// CloudType == 2 (AltocumulusMid) returns early from the self-contained
+	// density path above, so the code below is only reached by other types.
 
 	float baseShape = FBMLowFreq(shapePos, distLOD);
 
@@ -315,12 +571,14 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// This makes cloud masses expand and contract without moving the noise field,
 	// avoiding all twisting / distortion artifacts.
 	// Different regions puff independently via a coarse spatially-varying phase.
-	float remapLow = 0.22f;
+	float remapBase = 0.22f;
+	float remapLow = remapBase;
 	if (EvolutionSpeed > 0.001f)
 	{
 		// Phase noise sampled at much coarser scale than shape — one puff region
 		// covers many cloud masses, giving a coherent swell without fragmentation.
-		float phaseNoise = ValueNoise3D(skyPos * ShapeScale * 0.25f);
+		// Use the same Y-normalized position to keep billowing consistent.
+		float phaseNoise = ValueNoise3D(float3(skyPos.x, shapeY, skyPos.z) * effectiveShapeScale * 0.25f);
 		float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
 
 		// Max threshold shift: ±0.26 at EvolutionSpeed=1, ±0.42 at EvolutionSpeed=5.
@@ -330,8 +588,24 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		// S-curve's steep zone (0.3–0.7) repeatedly, creating bright/dark banding
 		// at medium/far distance. Reducing swellAmp there avoids that oscillation.
 		float swellAmp = 0.26f * saturate(EvolutionSpeed * 0.2f + 0.1f);
-		swellAmp *= (1.0f - distLOD * 0.85f);  // Near: full swell. Far: ~15% of normal.
-		remapLow = clamp(0.22f - sin(swellPhase) * swellAmp, 0.001f, 0.46f);
+		// Quadratic damping: at medium distance (lod=0.5) swell is 25% of normal;
+		// at far (lod=1.0) swell is zero.  Previous linear damping (1-lod*0.85)
+		// left 57% at lod=0.5, which was enough to push the boundary density
+		// back and forth between frames → temporal instability at far edges.
+		swellAmp *= pow(1.0f - distLOD, 2.0f);
+		remapLow = clamp(remapBase - sin(swellPhase) * swellAmp, 0.001f, 0.46f);
+	}
+
+	// --- Height-dependent crown erosion ---
+	// Near the top of the cloud raise the remap-low threshold so the density
+	// field is compressed more aggressively at the crown.  This produces the
+	// cauliflower / broken-top effect that real tall clouds exhibit: the base
+	// body is dense and continuous, but the crown dissolves into ragged puffs.
+	// Skipped for Cirrus (already wispy, no crown) and Stratus (uniform slab).
+	if (CloudType != 1 && CloudType != 3)
+	{
+		float crownBias = heightFrac * heightFrac * 0.09f;
+		remapLow = clamp(remapLow + crownBias, 0.001f, 0.46f);
 	}
 
 	// --- Stable silhouette blend ---
@@ -363,11 +637,23 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// Fix: widen the oct0-only (smooth) boundary zone proportionally to
 	// absorption.  At high Abs the smooth-edge region extends deeper into
 	// the cloud body before higher octaves are introduced.
-	//   edgeWidth = 0.15 (default) → 0.35 (at Abs≥3.0)
-	// This ensures the density gradient at the visible boundary is always
-	// smooth and low-frequency, regardless of absorption setting.
+	//   edgeWidth = 0.25 (default) → 0.50 (at Abs≥3.0)
+	//
+	// Widened from 0.15/0.35 → 0.25/0.50: the previous narrow zone (0.15)
+	// allowed detail octaves to influence the silhouette too close to the
+	// boundary, contributing high-frequency noise to the outer contour that
+	// appeared as stairstepping and dithering when rendered at half resolution.
+	// The wider zone (0.25 base) ensures the outer ~25% of oct0 range is always
+	// driven by the smooth low-frequency oct0 alone, giving a wide feathered fade.
 	float absEdgeWiden = saturate((Absorption - 0.5f) * 0.4f);
-	float edgeWidth    = lerp(0.15f, 0.35f, absEdgeWiden);
+	float baseEdgeWidth = lerp(0.25f, 0.50f, absEdgeWiden);
+	// Distance-widen the oct0-only smooth zone: at far range (distLOD→1),
+	// edgeWidth approaches 0.80, meaning 80% of the oct0 density range uses
+	// only the smooth first-octave component.  This is the primary fix for
+	// jagged far silhouettes — higher FBM octaves are suppressed over a much
+	// wider boundary band at distance, so the visible contour is driven
+	// exclusively by the lowest-frequency, spatially-smooth noise field.
+	float edgeWidth    = lerp(baseEdgeWidth, 0.80f, distLOD2);
 	float edgeMask     = smoothstep(0.0f, edgeWidth, oct0Density);
 	float shapeDensity = lerp(oct0Density, fullDensity, edgeMask);
 
@@ -392,7 +678,11 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	{
 		// Apply same per-type noise distortion to detail sampling for consistency.
 		// No Y-drift: vertical wobble was the primary source of edge warping.
-		float3 detailPos = skyPos * DetailScale * noiseScale
+		// Apply proportional drift (0.45x): keeps interior erosion patterns
+		// consistent with the shape drift so eroded pockets also evolve with height.
+		float3 detailPos = float3(skyPos.x * DetailScale * noiseScale.x + driftXZ.x * 0.45f,
+		                          shapeY   * DetailScale * noiseScale.y,
+		                          skyPos.z * DetailScale * noiseScale.z + driftXZ.y * 0.45f)
 		                  + float3(WindDirection.x, 0.0f, WindDirection.y) 
 		                    * CloudTime * EvolutionSpeed;
 		// Pass distLOD: at medium/far distance FBMDetail progressively mutes its
@@ -448,12 +738,27 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// Fix: apply a soft threshold that smoothly fades very low density
 	// values to zero. The threshold scales with Absorption so the
 	// "clean" zone around zero widens as absorption increases.
-	//   At Abs=0.5:  minVisible ≈ 0.005 (barely any density is suppressed).
-	//   At Abs=3.0+: minVisible ≈ 0.06  (wider band → no speckle at edges).
-	// Above the threshold, density is untouched.
+	//   At Abs=0.5:  minVisible ≈ 0.015 (small but meaningful suppression zone).
+	//   At Abs=3.0+: minVisible ≈ 0.10  (wider band → no speckle at edges).
+	//
+	// Widened from 0.005/0.06 → 0.015/0.10: the previous values left a narrow
+	// "almost zero" density band visible at the silhouette. With a low step count
+	// (12 steps) and large step size, each edge pixel either catches 1–2 of these
+	// near-zero samples or misses them entirely depending on jitter offset, which
+	// creates the classic dithered / posterized boundary pattern. A wider floor
+	// ensures only genuinely contributing density survives to the Beer-Lambert
+	// integral, so the silhouette transition is smooth rather than speckled.
+	// The smoothstep transition band is also widened (2x minVisible) rather than
+	// equal to minVisible, for an even gentler fade-to-zero curve.
 	float finalDensity = max(shapeDensity * CloudDensity, 0.0f);
-	float minVisible   = lerp(0.005f, 0.06f, saturate((Absorption - 0.5f) * 0.4f));
-	finalDensity      *= smoothstep(0.0f, minVisible, finalDensity);
+	// Distance-widened density floor: at far range the minimum visible density
+	// is raised so the thin boundary fringe that individual ray-march steps
+	// either catch or miss is suppressed to zero.
+	// Uses a linear ramp (saturate(d/threshold)) instead of smoothstep to avoid
+	// introducing contour-band quantization from the S-curve plateau.
+	float baseMinVisible = lerp(0.015f, 0.10f, saturate((Absorption - 0.5f) * 0.4f));
+	float minVisible     = lerp(baseMinVisible, max(baseMinVisible, 0.12f), distLOD2);
+	finalDensity        *= saturate(finalDensity / max(minVisible, 0.0001f));
 
 	return finalDensity;
 }
@@ -462,15 +767,15 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 // Cloud slab intersection — TEN uses Y-down coordinates
 // ===========================================================================
 
-// Intersect a ray with the flat horizontal cloud slab.
+// Intersect a ray with a flat horizontal cloud slab of given thickness.
 // In TEN: Y increases downward, so clouds ABOVE the camera have lower Y values.
 //   Slab bottom face (nearest ground)  = CamPositionWS.y - CloudBottomHeight
-//   Slab top face   (furthest from ground) = bottom - CloudThickness
+//   Slab top face   (furthest from ground) = bottom - thickness
 // Returns (tEntry, tExit), or (-1, -1) on miss.
-float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
+float2 IntersectCloudVolumeEx(float3 rayOrigin, float3 rayDir, float thickness)
 {
 	float slabBottom = CamPositionWS.y - CloudBottomHeight;
-	float slabTop    = slabBottom - CloudThickness;
+	float slabTop    = slabBottom - thickness;
 
 	// Horizontal rays never cross the horizontal slab.
 	if (abs(rayDir.y) < 0.0001f)
@@ -487,6 +792,11 @@ float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
 		return float2(-1.0f, -1.0f);
 
 	return float2(max(tNear, 0.0f), tFar);
+}
+
+float2 IntersectCloudVolume(float3 rayOrigin, float3 rayDir)
+{
+	return IntersectCloudVolumeEx(rayOrigin, rayDir, CloudThickness);
 }
 
 // ===========================================================================
@@ -575,7 +885,8 @@ float LightTransmittance(float3 pos, float heightFrac)
 	}
 
 	// Beer-Lambert.
-	float transmittance = exp(-accumDensity * Absorption);
+	float opticalDepth  = accumDensity * Absorption;
+	float transmittance = exp(-opticalDepth);
 
 	// Powder / silver lining approximation:
 	// Bright edge when looking toward light through thin cloud.
@@ -585,14 +896,19 @@ float LightTransmittance(float3 pos, float heightFrac)
 	// powder makes the boundary near-black.  As noise makes density wobble
 	// frame-to-frame, that black flickers bright↔dark.
 	//
-	// Fix: raise the powder floor proportionally with Absorption.
-	//   At Abs=0.5 (low): floor = 0.25  (original value)
-	//   At Abs=1.5:       floor = 0.42
-	//   At Abs=3.0+:      floor = 0.65
-	// High absorption must not make thin edges darker; it should make thick
-	// interiors richer while leaving boundary lighting soft and stable.
-	float powderFloor = lerp(0.25f, 0.65f, saturate((Absorption - 0.5f) * 0.4f));
-	float powder = 1.0f - exp(-accumDensity * Absorption * 2.0f);
+	// Edge-color preservation for low Absorption:
+	// At low absorption, thin regions should become more translucent but should
+	// not collapse to dark gray outlines. Keep a higher powder floor for low Abs,
+	// then lift it further in very thin optical-depth regions.
+	// This preserves bright cloud color in fading boundaries while still allowing
+	// deep interiors to shade normally.
+	float absNorm       = saturate((Absorption - 0.5f) * 0.4f);
+	float baseFloor     = lerp(0.55f, 0.68f, absNorm);
+	float thinEdge      = 1.0f - saturate(opticalDepth / 0.18f);
+	float edgeFloorLift = thinEdge * 0.25f;
+	float powderFloor   = min(baseFloor + edgeFloorLift, 0.95f);
+
+	float powder = 1.0f - exp(-opticalDepth * 2.0f);
 	powder = lerp(1.0f, max(powder, powderFloor), SilverliningStr);
 
 	return transmittance * powder;
@@ -604,21 +920,24 @@ float LightTransmittance(float3 pos, float heightFrac)
 
 float ScreenJitter(float2 screenPos)
 {
-	// Interleaved gradient noise (Jimenez 2014).
-	//
-	// Per-frame shift REMOVED. Previously FrameIndex shifted the IGN pattern
-	// each frame to break up banding, but without TAA to accumulate frames the
-	// effect is the opposite: every frame independently samples a different
-	// slice of the detail noise field. In thin/medium-density layers this makes
-	// the per-sample density jump between near-zero and non-zero every frame,
-	// which manifests as the stripe-like shimmer.
-	//
-	// Static-per-pixel IGN still gives full spatial decorrelation between
-	// neighboring pixels (no fixed banding) but the same pixel always starts
-	// at the same sub-step offset → temporally stable density → no flicker.
+	// Interleaved gradient noise (Jimenez 2014) — static per-pixel.
+	// No per-frame shift: without TAA, frame-varying jitter causes shimmer.
+	// Static IGN gives spatial decorrelation without temporal instability.
 	float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
-	float jitter = frac(magic.z * frac(dot(screenPos, magic.xy)));
-	return jitter * JitterStrength;
+	float rawJitter = frac(magic.z * frac(dot(screenPos, magic.xy)));
+	float thickBandGuard = saturate((CloudThickness - 2600.0f) / 2200.0f);
+	float jitterMin      = lerp(0.35f, 0.85f, thickBandGuard);
+	float jitterAbsDamp  = lerp(jitterMin, 1.0f, saturate((Absorption - 0.2f) * 2.5f));
+	// Uniform [0,1] distribution — no bell-shaping.
+	// The smoothstep bell was compressing most pixels toward jitter ≈ 0.5,
+	// which re-aligned the first-step plane across adjacent pixels and made
+	// height-gradient transition bands coherent (visible horizontal slabs).
+	// With uniform distribution each pixel starts at a truly decorrelated
+	// offset; the 3x3 bilateral composite filters any resulting edge noise.
+	// At very low absorption, full jitter manifests as visible pepper noise
+	// because cloud extinction is weak and many stochastic edge samples remain.
+	// Damping jitter there keeps silhouettes smooth without reintroducing bands.
+	return rawJitter * JitterStrength * jitterAbsDamp;
 }
 
 // ===========================================================================
@@ -627,19 +946,43 @@ float ScreenJitter(float2 screenPos)
 
 float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 {
-	// Intersect cloud volume.
-	float2 tRange = IntersectCloudVolume(rayOrigin, rayDir);
+	// AltocumulusMid uses its own thickness and absorption — fully self-contained.
+	float effThickness  = (CloudType == 2) ? AltoThickness  : CloudThickness;
+	float effAbsorption = (CloudType == 2) ? AltoAbsorption : Absorption;
+
+	// Intersect cloud volume using the effective thickness.
+	float2 tRange = IntersectCloudVolumeEx(rayOrigin, rayDir, effThickness);
 
 	if (tRange.x < 0.0f)
 		return float4(0.0f, 0.0f, 0.0f, 0.0f); // No intersection — fully transparent.
 
 	// Clamp max march distance to avoid wasting steps on very long grazing rays.
-	float maxDist = min(tRange.y - tRange.x, CloudThickness * 6.0f);
-	float stepSize = maxDist / (float)PrimaryStepCount;
+	float maxDist = min(tRange.y - tRange.x, effThickness * 6.0f);
 
-	// Jittered start offset to hide banding.
+	// Adaptive step count: for tall cloud volumes the nominal step size
+	// (maxDist / PrimaryStepCount) can become large enough that each step
+	// produces a visible extinction slab — especially at height-gradient
+	// transition zones (bottom/top fade) where density changes sharply.
+	// Guarantee stepSize ≤ effThickness/24 so that transition zones in tall
+	// clouds are sampled densely enough to avoid visible layered march slabs.
+	float minStepsF      = ceil(maxDist / max(effThickness / 24.0f, 1.0f));
+	int   effectiveSteps = clamp((int)max((float)PrimaryStepCount, minStepsF), 1, 64);
+	// Low-absorption boost: when absorption is very small, each sample carries
+	// little extinction and stochastic sampling noise is more visible.
+	// Increase effective steps in that regime to average out point noise.
+	float lowAbsStepBoost = lerp(2.0f, 1.0f, saturate((effAbsorption - 0.2f) * 2.5f));
+	effectiveSteps        = clamp((int)ceil((float)effectiveSteps * lowAbsStepBoost), 1, 64);
+	float stepSize       = maxDist / (float)effectiveSteps;
+	float thickBandGuard = saturate((effThickness - 2600.0f) / 2200.0f);
+
+	// Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
 	float jitter = ScreenJitter(screenPos);
 	float t = tRange.x + stepSize * jitter;
+
+	// Secondary per-pixel hash for per-step sub-jitter decorrelation.
+	// Different seed from ScreenJitter to avoid start/sub correlation.
+	float3 magic2     = float3(0.19881f, 0.04679f, 41.731f);
+	float  rawJitter2 = frac(magic2.z * frac(dot(screenPos * 0.81f + float2(1.3f, 2.7f), magic2.xy)));
 
 	// Phase function for light scattering.
 	float cosTheta = dot(rayDir, normalize(CloudLightDirection));
@@ -651,14 +994,23 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 	int    steps = 0;
 
 	[loop]
-	for (int step = 0; step < PrimaryStepCount; step++)
+	for (int step = 0; step < effectiveSteps; step++)
 	{
 		if (transmittance < 0.01f)
 			break; // Early out — cloud is opaque.
 
-		float3 samplePos = rayOrigin + rayDir * t;
+		// Per-step golden-ratio sub-jitter: offsets each sample within its
+		// step interval so the march planes are not perfectly periodic.
+		// rawJitter2 provides per-pixel phase; step * 0.618 (golden ratio) gives
+		// maximally equidistant offsets across all steps, guaranteeing that
+		// adjacent steps never accidentally re-align into coherent horizontal slabs.
+		// Amplitude ±0.35 * stepSize keeps samples within each step's sub-domain.
+		float subJitterMin = lerp(0.22f, 0.55f, thickBandGuard);
+		float subJitterAmp = lerp(subJitterMin, 0.7f, saturate((effAbsorption - 0.2f) * 2.5f));
+		float subOff     = (frac(rawJitter2 + (float)step * 0.61803398875f) - 0.5f) * stepSize * subJitterAmp;
+		float3 samplePos = rayOrigin + rayDir * (t + subOff);
 		float  heightFrac = HeightFraction(samplePos.y,
-		                    rayOrigin.y - CloudBottomHeight, CloudThickness);
+		                    rayOrigin.y - CloudBottomHeight, effThickness);
 
 		// Skip samples outside the cloud layer boundary.
 		if (heightFrac >= 0.0f && heightFrac <= 1.0f)
@@ -669,22 +1021,48 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 
 			if (density > 0.0001f)
 			{
-				// Lighting at this point.
-				float lightT = LightTransmittance(samplePos, heightFrac);
-				
-				// Ambient term: increases with height to simulate sky scattering.
-				float ambient = AmbientContrib * lerp(0.6f, 1.0f, heightFrac);
+				// Extinction for this step.
+				float extinction = density * effAbsorption * stepSize;
 
 				// Total in-scattered light at this sample.
-				float3 sampleLight = CloudLightColor * (lightT * phase + ambient);
+				float3 sampleLight;
+				if (CloudType == 2)
+				{
+					// === AltocumulusMid: fully self-contained lighting ===
+					// Blend from dark base color (h=0) to bright top color (h=1),
+					// then modulate by reference height-illumination exp(h)/1.95.
+					// This gives the characteristic altocumulus look:
+					//   bottom → dark (AltoCloudColorDark × 0.51)
+					//   top    → bright (AltoCloudColor × 1.39)
+					float3 cloudColor  = lerp(AltoCloudColorDark, AltoCloudColor,
+					                          saturate(heightFrac));
+					float  heightIllum = exp(heightFrac) / 1.95f;
+					sampleLight = CloudLightColor * cloudColor
+					            * AltoCloudBrightness * heightIllum;
+				}
+				else
+				{
+					// Standard lighting with shadow rays for non-Alto types.
+					float lightT = LightTransmittance(samplePos, heightFrac);
 
-				// Extinction for this step.
-				float extinction = density * Absorption * stepSize;
+					// Ambient term: increases with height to simulate sky scattering.
+					float ambient = AmbientContrib * lerp(0.6f, 1.0f, heightFrac);
+
+					// Thin-edge color hold: when extinction is tiny (soft boundary),
+					// keep a little extra lit cloud color so lowering Absorption fades
+					// edges transparently instead of darkening them.
+					float thinExtinction = 1.0f - saturate(extinction / 0.12f);
+					float lowAbsFactor   = 1.0f - saturate(Absorption * 0.35f);
+					float edgeColorHold  = thinExtinction * lowAbsFactor * 0.45f;
+
+					sampleLight = CloudLightColor * (lightT * phase + ambient * (1.0f + edgeColorHold));
+				}
+
 				float sampleTransmittance = exp(-extinction);
 
 				// Energy-conserving integration (Frostbite technique).
-				float3 integScatter = sampleLight * (1.0f - sampleTransmittance) / max(density * Absorption, 0.0001f);
-				scatteredLight += transmittance * integScatter * density * Absorption;
+				float3 integScatter = sampleLight * (1.0f - sampleTransmittance) / max(density * effAbsorption, 0.0001f);
+				scatteredLight += transmittance * integScatter * density * effAbsorption;
 				transmittance *= sampleTransmittance;
 			}
 		}
@@ -813,6 +1191,22 @@ float4 PS(VSOutput input) : SV_TARGET
 
 	float4 cloudResult = RaymarchClouds(rayOrigin, rayDir, input.Position.xy);
 
+	// --- Universal thin-edge opacity suppression ---
+	// Very low alpha values carry per-pixel jitter noise. Rather than using
+	// smoothstep (which creates contour bands / quantized levels in the low-
+	// alpha region), use a linear saturate ramp. This cleanly fades the
+	// boundary fringe to zero without introducing any non-linear S-curve
+	// that would make certain alpha ranges pile up into visible bands.
+	// At far range (low elevation), the threshold rises to handle the
+	// larger boundary noise of distant clouds.
+	{
+		float elevation  = saturate(-rayDir.y);
+		float distFactor = saturate(1.0f - elevation * 5.0f);
+		float thinThresh = lerp(0.03f, 0.12f, distFactor);
+		if (thinThresh > 0.0f)
+			cloudResult.a *= saturate(cloudResult.a / thinThresh);
+	}
+
 	// Debug views.
 	if (CloudDebugView != 0)
 		cloudResult = DebugVisualization(rayOrigin, rayDir, input.Position.xy, cloudResult, PrimaryStepCount);
@@ -838,6 +1232,12 @@ float4 PS(VSOutput input) : SV_TARGET
 				cloudResult.a *= lerp(1.0f, distFade, DistanceFade);
 			}
 		}
+
+		// Post-fade thin-alpha cleanup: HorizonFade and DistanceFade can
+		// reduce previously solid alpha to very small values. Use a linear
+		// ramp (not smoothstep) to avoid introducing contour bands at the
+		// fade boundary from the S-curve's slope plateau.
+		cloudResult.a *= saturate(cloudResult.a / 0.025f);
 	}
 
 	return cloudResult;
@@ -853,15 +1253,93 @@ float4 PS(VSOutput input) : SV_TARGET
 //   - Horizon mesh (possibly closing overhead)
 //   - Starfield
 //   - Black void where nothing was drawn
-// The shader simply passes through the cloud RGBA unchanged.
-// Where cloud alpha is 0 the existing content shows through; where alpha
-// is 1 the cloud fully occludes whatever is behind it.
+//
+// Upsampling: uses a 3x3 cross-bilateral filter (edge-aware Gaussian) to
+// smooth out per-pixel jitter-based opacity noise at cloud silhouettes
+// when upscaling from half resolution to full. Combined spatial Gaussian
+// and bilateral alpha weighting produces a continuous, dither-free boundary.
 // ===========================================================================
 
 float4 PSCloudComposite(VSOutput input) : SV_TARGET
 {
-	// Sample cloud result from half-res RT (bilinear upscale).
-	return SceneColorTexture.Sample(LinearSamp, input.UV);
+	float2 texelSize = InvCloudRenderSize;
+	float2 uv = input.UV;
+
+	// Centre sample — used as bilateral reference.
+	float4 cCenter = SceneColorTexture.Sample(LinearSamp, uv);
+	float  refAlpha = cCenter.a;
+
+	// 3x3 bilateral upsampling filter.
+	// The previous 4-tap bilateral with tight sigma (0.15) preserved per-pixel
+	// jitter-based opacity noise at the cloud silhouette: adjacent pixels with
+	// alpha 0.0 vs 0.04 (from jitter hit/miss) were NOT blended together
+	// because the sigma rejected their alpha difference. This preserved the
+	// structured dithering pattern in the upsampled output.
+	//
+	// Fix: 3x3 kernel (covers 3×3 half-res texels = 6×6 full-res pixels)
+	// with wider bilateral sigma (0.4). The wider kernel spatially averages
+	// the jitter noise pattern, and the larger sigma allows cross-boundary
+	// blending so the dithered 0/non-zero alpha pixels are smoothed into a
+	// continuous gradient. Spatial Gaussian weighting (sigma=1.0 texel)
+	// ensures the center pixel dominates while neighbors contribute softly.
+	const float spatialSigma2   = 2.0f;  // 2 * 1.0² (spatial sigma = 1 texel)
+	const float alphaSigma2RGB  = 0.32f; // 2 * 0.4² (RGB bilateral sigma = 0.4)
+	const float alphaSigma2Edge = 1.28f; // 2 * 0.8² (alpha bilateral sigma = 0.8)
+
+	float3 accumRGBPremul = float3(0.0f, 0.0f, 0.0f);
+	float  accumAlpha     = 0.0f;
+	float  accumWeightRGB = 0.0f;
+	float  accumWeightA   = 0.0f;
+
+	[unroll]
+	for (int oy = -1; oy <= 1; oy++)
+	{
+		[unroll]
+		for (int ox = -1; ox <= 1; ox++)
+		{
+			float2 offset = float2((float)ox, (float)oy);
+			float4 tap = SceneColorTexture.Sample(LinearSamp, uv + offset * texelSize);
+
+			// Spatial Gaussian weight.
+			float spatialDist2 = float(ox * ox + oy * oy);
+			float wSpatial = exp(-spatialDist2 / spatialSigma2);
+
+			// Bilateral alpha weights.
+			float alphaDiff = tap.a - refAlpha;
+			float wAlphaRGB  = exp(-(alphaDiff * alphaDiff) / alphaSigma2RGB);
+			float wAlphaEdge = exp(-(alphaDiff * alphaDiff) / alphaSigma2Edge);
+
+			float wRGB = wSpatial * wAlphaRGB;
+			float wA   = wSpatial * wAlphaEdge;
+
+			// Composite de-banding in premultiplied-alpha space.
+			// In straight-alpha filtering, fully transparent texels (alpha=0)
+			// still contribute their RGB (usually black) and create gray/dark
+			// halos around thin cloud edges. Premultiplying RGB by alpha before
+			// filtering removes that fringe contamination.
+			float3 tapRGBPremul = tap.rgb * tap.a;
+			accumRGBPremul += tapRGBPremul * wRGB;
+			accumAlpha     += tap.a * wA;
+			accumWeightRGB += wRGB;
+			accumWeightA   += wA;
+		}
+	}
+
+	if (accumWeightRGB < 0.001f || accumWeightA < 0.001f)
+		return cCenter;
+
+	float outAlpha      = accumAlpha / accumWeightA;
+	float3 outRGBPremul = accumRGBPremul / accumWeightRGB;
+
+	// Suppress isolated tiny-alpha speckles from stochastic edge sampling.
+	// At very low absorption we use a slightly higher threshold to remove the
+	// remaining pepper pattern in cloud interiors/silhouettes.
+	float tinyAlphaThresh = lerp(0.035f, 0.02f, saturate((Absorption - 0.2f) * 2.5f));
+	outAlpha *= saturate(outAlpha / tinyAlphaThresh);
+
+	float3 outRGB       = (outAlpha > 0.0001f) ? (outRGBPremul / outAlpha) : cCenter.rgb;
+
+	return float4(outRGB, outAlpha);
 }
 
 // ===========================================================================

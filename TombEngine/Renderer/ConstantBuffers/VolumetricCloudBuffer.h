@@ -68,5 +68,25 @@ namespace TEN::Renderer::ConstantBuffers
 		float DistanceFade;   // Multiplier on distance-based opacity falloff (0 = none, 1 = full).
 		int   CloudType;      // Cloud category enum: 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
 		float Padding2;
+		//--
+		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 2)
+		float AltoBillowStrength;  // [0,1]      blend toward billow (abs-value) FBM noise
+		float AltoCovSoftWidth;    // [0,0.25]   self-referential coverage soft-threshold width
+		float AltoAbsorption;      // [0.1,5.0]  absorption coefficient for Altocumulus
+		float AltoCloudSize;       // [0.2,5.0]  feature scale multiplier
+		//--
+		// Row 12 — Altocumulus extended parameters
+		float AltoCloudAmount;     // [0.0,1.0]  coverage/fill control
+		float AltoCloudBrightness; // [0.1,4.0]  brightness multiplier
+		float AltoFbmLacunarity;   // [1.5,4.0]  FBM frequency ratio per octave
+		float AltoFbmGain;         // [0.1,0.9]  FBM amplitude scaling per octave
+		//--
+		// Row 13 — Altocumulus cloud color
+		Vector3 AltoCloudColor;    // [0,1] per channel — RGB tint for cloud top/highlights
+		float   AltoThickness;     // [50,5000]  cloud slab thickness for Altocumulus
+		//--
+		// Row 14 — Altocumulus dark / shadow color
+		Vector3 AltoCloudColorDark;// [0,1] per channel — RGB tint for cloud base/shadow
+		float   AltoRow14Pad;
 	};
 }

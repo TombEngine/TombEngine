@@ -154,6 +154,25 @@ namespace TEN::Renderer
 		_stVolumetricCloud.DistanceFade  = settings.DistanceFade;
 		_stVolumetricCloud.CloudType     = settings.CloudType;
 
+		_stVolumetricCloud.AltoBillowStrength = settings.AltoBillowStrength;
+		_stVolumetricCloud.AltoCovSoftWidth   = settings.AltoCovSoftWidth;
+		_stVolumetricCloud.AltoAbsorption     = settings.AltoAbsorption;
+		_stVolumetricCloud.AltoCloudSize      = settings.AltoCloudSize;
+
+		_stVolumetricCloud.AltoCloudAmount    = settings.AltoCloudAmount;
+		_stVolumetricCloud.AltoCloudBrightness = settings.AltoCloudBrightness;
+		_stVolumetricCloud.AltoFbmLacunarity  = settings.AltoFbmLacunarity;
+		_stVolumetricCloud.AltoFbmGain        = settings.AltoFbmGain;
+
+		_stVolumetricCloud.AltoCloudColor     = Vector3(settings.AltoCloudColorR,
+		                                                settings.AltoCloudColorG,
+		                                                settings.AltoCloudColorB);
+		_stVolumetricCloud.AltoThickness      = settings.AltoThickness;
+		_stVolumetricCloud.AltoCloudColorDark = Vector3(settings.AltoCloudColorDarkR,
+		                                                settings.AltoCloudColorDarkG,
+		                                                settings.AltoCloudColorDarkB);
+		_stVolumetricCloud.AltoRow14Pad       = 0.0f;
+
 		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
 	}
 
@@ -169,7 +188,9 @@ namespace TEN::Renderer
 			return;
 
 		// Quick early-out: coverage is zero means perfectly clear sky.
-		if (activeSettings->Coverage < 0.001f)
+		// AltocumulusMid (CloudType==2) uses its own AltoCloudAmount, not shared Coverage.
+		bool isAlto = (activeSettings->CloudType == 2);
+		if (!isAlto && activeSettings->Coverage < 0.001f)
 			return;
 
 		// Resolve quality params — resize render target if the resolution scale changed.
