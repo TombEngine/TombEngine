@@ -345,7 +345,7 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Do explosion effect.
-				ExplodeBoss(itemNumber, item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR, PUNA_EXPLOSION_MAIN_COLOR, PUNA_EXPLOSION_SECOND_COLOR);
+				ExplodeBoss(item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR, PUNA_EXPLOSION_MAIN_COLOR, PUNA_EXPLOSION_SECOND_COLOR);
 				return;
 			}
 		}

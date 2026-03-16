@@ -56,9 +56,9 @@ namespace TEN::Scripting
 	// @function Time
 	// @tparam int gameFrames Total game frame count.
 	// @treturn Time A new Time object initialized with the given frame count.
-	Time::Time(int gameFrames)
+	Time::Time(float gameFrames)
 	{
-		_frameCount = std::clamp(gameFrames, 0, INT_MAX);
+		_frameCount = std::clamp((int)std::round(gameFrames), 0, INT_MAX);
 	}
 
 	/// Create a Time object from a formatted string.

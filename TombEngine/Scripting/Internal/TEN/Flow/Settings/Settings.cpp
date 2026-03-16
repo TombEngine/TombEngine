@@ -244,19 +244,19 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GameplaySettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GameplaySettings, ScriptReserved_GameplaySettings),
 
-			/// Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling
-			// or to replace it with custom module, such as ring inventory.
-			// @tfield[opt=true] bool enableInventory If false, inventory will not open.
-			"enableInventory", &GameplaySettings::EnableInventory,
+		/// Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling
+		// or to replace it with custom module, such as ring inventory.
+		// @tfield[opt=true] bool enableInventory If false, inventory will not open.
+		"enableInventory", &GameplaySettings::EnableInventory,
 
-			/// Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will
-			// reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.
-			// @tfield[opt=true] bool killPoisonedEnemies If false, enemies won't be killed by poison.
-			"killPoisonedEnemies", &GameplaySettings::KillPoisonedEnemies,
+		/// Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will
+		// reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.
+		// @tfield[opt=true] bool killPoisonedEnemies If false, enemies won't be killed by poison.
+		"killPoisonedEnemies", &GameplaySettings::KillPoisonedEnemies,
 
-			/// Enable target occlusion by moveables and static meshes.
-			// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-			"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+		/// Enable target occlusion by moveables and static meshes.
+		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
+		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
 	}
 
 	/// Graphics
@@ -280,13 +280,13 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<GraphicsSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(GraphicsSettings, ScriptReserved_GraphicsSettings),
 
-			/// Enable ambient occlusion.
-			// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
-			"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
+		/// Enable ambient occlusion.
+		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
+		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
-			/// Enable skinning.
-			// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
-			"skinning", &GraphicsSettings::Skinning);
+		/// Enable skinning.
+		// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
+		"skinning", &GraphicsSettings::Skinning);
 	}
 
 	/* @fieldtype HairSettings[] */
@@ -559,7 +559,7 @@ namespace TEN::Scripting
 		"titleLogoPosition", &UISettings::TitleLogoPosition,
 
 		/// Title logo scale.
-		// @tfield[opt=TEN.Vec2(1&#44; 1)] Vec2 titleLogoScale Title level logo scale.
+		// @tfield[opt=0.38] float titleLogoScale Title level logo scale.
 		"titleLogoScale", &UISettings::TitleLogoScale,
 
 		/// Title logo color.
