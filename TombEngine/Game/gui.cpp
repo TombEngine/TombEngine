@@ -45,8 +45,6 @@ namespace TEN::Gui
 	constexpr int OBJLIST_SPACING = PHD_CENTER_X / 2;
 
 	constexpr auto GAMMA_STEP			 = 0.1f;
-	constexpr auto GAMMA_MIN			 = 0.5f;
-	constexpr auto GAMMA_MAX			 = 1.5f;
 	constexpr auto VOLUME_MAX			 = 100;
 	constexpr auto VOLUME_STEP			 = VOLUME_MAX / 20;
 	constexpr auto MOUSE_SENSITIVITY_MAX = 35;

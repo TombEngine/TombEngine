@@ -870,6 +870,7 @@ namespace TEN::Renderer
 		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		hudCamera.Brightness = g_Configuration.Gamma;
 		UpdateConstantBuffer(hudCamera, _cbCameraMatrices);
+		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);
@@ -1040,6 +1041,7 @@ namespace TEN::Renderer
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
 		hudCamera.Brightness = g_Configuration.Gamma;
 		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
+		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);

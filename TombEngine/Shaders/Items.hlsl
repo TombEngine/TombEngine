@@ -111,7 +111,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3 color = (BoneLightModes[input.Bone / 4][input.Bone % 4] == 0) ?
 		CombineLights(
 			ModulateColor(AmbientLight.xyz),
-			ModulateColor(input.Color.xyz * Color),
+			ModulateColor(input.Color.xyz * Color.xyz),
 			tex.xyz,
 			input.WorldPosition,
 			normal,

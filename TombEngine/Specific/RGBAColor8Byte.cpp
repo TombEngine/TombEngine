@@ -4,7 +4,7 @@
 static byte FloatComponentToByte(float value)
 {
 	// TODO: Look into what these actually do and test them to see if they are actually not undefined.
-	long byteValue = std::lroundf(value * 255.0f);
+	int byteValue = std::clamp((int)std::lroundf(value * (float)UCHAR_MAX), 0, UCHAR_MAX);
 	return (byte)byteValue;
 }
 

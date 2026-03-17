@@ -534,7 +534,7 @@ bool LoadConfiguration()
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;
 	g_Configuration.EnableHighFramerate = enableHighFramerate;
-	g_Configuration.Gamma = (float)gammaCorrection / 10.0f;
+	g_Configuration.Gamma = (float)std::clamp(gammaCorrection / 10.0f, GAMMA_MIN, GAMMA_MAX);
 
 	g_Configuration.EnableSound = enableSound;
 	g_Configuration.EnableReverb = enableReverb;

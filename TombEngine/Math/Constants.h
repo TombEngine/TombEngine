@@ -25,6 +25,8 @@
 	// Graphics constants
 
 	constexpr auto NEUTRAL_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	constexpr auto GAMMA_MIN     = 0.5f;
+	constexpr auto GAMMA_MAX     = 1.5f;
 
 	// World constants
 
