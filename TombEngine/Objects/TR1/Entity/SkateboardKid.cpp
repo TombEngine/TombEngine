@@ -9,7 +9,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Specific/trutils.h"
-#include <Sound/sound.h>
+#include "Sound/sound.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Math;
