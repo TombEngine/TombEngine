@@ -694,6 +694,7 @@ enum SOUND_EFFECTS
 	SFX_TR2_SLAM_DOOR_CLOSE = 681,
 	SFX_TR2_SWINGING = 682,
 	SFX_TR2_SWINGING_TRAP = 683,
+	SFX_TR2_HENCHMAN_DEATH4 = 838,
 
 	// TR3 sounds
 
@@ -1160,7 +1161,7 @@ enum SOUND_EFFECTS
 	SFX_TR5_FLOOR_METAL_OPEN = 1141,
 	SFX_TR5_AIRCON_LOOP = 1142,
 
-	// Additional version-specific sounds
+	// Additional version-specific sounds TODO: Move these into the appopiate sections and sync TE with TEN side Stranger1992 18/03/26
 
 	SFX_TR1_SLAMDOOR_OPEN = 1143,
 	SFX_TR1_SLAMDOOR_CLOSE = 1144,
