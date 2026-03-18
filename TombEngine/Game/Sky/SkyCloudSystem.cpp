@@ -96,6 +96,7 @@ namespace TEN::Sky
 		s.AltoCloudColorDarkR = AltoCloudColorDarkR;
 		s.AltoCloudColorDarkG = AltoCloudColorDarkG;
 		s.AltoCloudColorDarkB = AltoCloudColorDarkB;
+		s.AltoBottomSoftness  = AltoBottomSoftness;
 		return s;
 	}
 
@@ -136,6 +137,7 @@ namespace TEN::Sky
 		snap.AltoCloudColorDarkR = src.AltoCloudColorDarkR;
 		snap.AltoCloudColorDarkG = src.AltoCloudColorDarkG;
 		snap.AltoCloudColorDarkB = src.AltoCloudColorDarkB;
+		snap.AltoBottomSoftness  = src.AltoBottomSoftness;
 		return snap;
 	}
 
@@ -219,6 +221,7 @@ namespace TEN::Sky
 		result.AltoCloudColorDarkR = LerpFloat(a.AltoCloudColorDarkR, b.AltoCloudColorDarkR, t);
 		result.AltoCloudColorDarkG = LerpFloat(a.AltoCloudColorDarkG, b.AltoCloudColorDarkG, t);
 		result.AltoCloudColorDarkB = LerpFloat(a.AltoCloudColorDarkB, b.AltoCloudColorDarkB, t);
+		result.AltoBottomSoftness  = LerpFloat(a.AltoBottomSoftness,  b.AltoBottomSoftness,  t);
 
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
@@ -351,7 +354,129 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- FewClouds -----
+		// ----- RainSnowOvercast -----
+		// Heavy uniform overcast: large slow-rolling blanketing clouds.
+		// Uses CloudB only (AltocumulusMid). Values set by level designer.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::RainSnowOvercast;
+			def.Name = "RainSnowOvercast";
+			def.DefaultTransitionDuration = 60.0f;
+			def.RandomWeight = 0.8f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled           = true;
+			b.Category          = CloudCategory::AltocumulusMid;
+			b.BottomHeight      = 4061.0f;
+			b.Thickness         = 1000.0f;
+			b.WindDirectionX    = 1.0f;
+			b.WindDirectionY    = 0.0f;
+			b.WindSpeed         = 0.6288f;
+			b.EvolutionSpeed    = 5.0f;
+			b.HorizonFade       = 0.0f;
+			b.DistanceFade      = 0.549f;
+			b.AltoBillowStrength = 0.0f;
+			b.AltoCovSoftWidth   = 0.25f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.317f;
+			b.AltoCloudAmount    = 0.799f;
+			b.AltoCloudBrightness = 0.932f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.55f;
+			b.AltoCloudColorDarkG = 0.55f;
+			b.AltoCloudColorDarkB = 0.65f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 0.401f;
+			b.AltoThickness      = 5000.0f;
+			b.AltoBottomSoftness = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- BrokenClouds -----
+		// Partial coverage: distinct cloud groups at varying heights.
+		// Uses CloudB only (AltocumulusMid).
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::BrokenClouds;
+			def.Name = "BrokenClouds";
+			def.DefaultTransitionDuration = 45.0f;
+			def.RandomWeight = 1.5f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled           = true;
+			b.Category          = CloudCategory::AltocumulusMid;
+			b.BottomHeight      = 3500.0f;
+			b.Thickness         = 1400.0f;
+			b.WindDirectionX    = 1.0f;
+			b.WindDirectionY    = 0.0f;
+			b.WindSpeed         = 0.35f;
+			b.EvolutionSpeed    = 2.5f;
+			b.HorizonFade       = 0.0f;
+			b.DistanceFade      = 0.5f;
+			b.AltoBillowStrength = 0.5f;
+			b.AltoCovSoftWidth   = 0.15f;
+			b.AltoAbsorption     = 0.8f;
+			b.AltoCloudSize      = 0.45f;
+			b.AltoCloudAmount    = 0.62f;
+			b.AltoCloudBrightness = 1.0f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.55f;
+			b.AltoCloudColorDarkG = 0.55f;
+			b.AltoCloudColorDarkB = 0.65f;
+			b.AltoFbmLacunarity  = 3.2f;
+			b.AltoFbmGain        = 0.45f;
+			b.AltoThickness      = 3000.0f;
+			b.AltoBottomSoftness = 0.65f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- Thunderstorm -----
+		// Dark threatening overcast with rapid churn; very large cloud masses.
+		// Uses CloudB only (AltocumulusMid).
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::Thunderstorm;
+			def.Name = "Thunderstorm";
+			def.DefaultTransitionDuration = 60.0f;
+			def.RandomWeight = 0.3f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled           = true;
+			b.Category          = CloudCategory::AltocumulusMid;
+			b.BottomHeight      = 2500.0f;
+			b.Thickness         = 1200.0f;
+			b.WindDirectionX    = 1.0f;
+			b.WindDirectionY    = 0.0f;
+			b.WindSpeed         = 0.8f;
+			b.EvolutionSpeed    = 6.0f;
+			b.HorizonFade       = 0.0f;
+			b.DistanceFade      = 0.4f;
+			b.AltoBillowStrength = 0.0f;
+			b.AltoCovSoftWidth   = 0.30f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.22f;
+			b.AltoCloudAmount    = 0.90f;
+			b.AltoCloudBrightness = 0.75f;
+			b.AltoCloudColorR    = 0.90f;
+			b.AltoCloudColorG    = 0.90f;
+			b.AltoCloudColorB    = 0.95f;
+			b.AltoCloudColorDarkR = 0.27f;
+			b.AltoCloudColorDarkG = 0.27f;
+			b.AltoCloudColorDarkB = 0.35f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 0.40f;
+			b.AltoThickness      = 5000.0f;
+			b.AltoBottomSoftness = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+	
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::FewClouds;
@@ -527,30 +652,33 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration = 40.0f;
 			def.RandomWeight = 1.5f;
 
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::AltocumulusMid;
-			a.Coverage      = 0.5f;
-			a.Density       = 0.55f;
-			a.BottomHeight  = 2500.0f;
-			a.Thickness     = 1800.0f;
-			a.WindSpeed     = 0.003f;
-			a.EvolutionSpeed = 0.12f;
-			a.ShapeScale    = 0.00011f;
-			a.DetailScale   = 0.0008f;
-			a.DetailStrength = 0.35f;
-			a.Absorption    = 0.9f;
-			a.AmbientContrib = 0.4f;
-			a.SilverliningStr = 0.5f;
-			a.AltoBillowStrength = 0.85f;
-			a.AltoCovSoftWidth   = 0.035f;
-			a.AltoAbsorption     = 1.0f;
-			a.AltoCloudSize      = 1.0f;
-			a.AltoCloudAmount    = 0.6875f;
-			a.AltoCloudBrightness = 1.0f;
-			a.AltoFbmLacunarity  = 2.6434f;
-			a.AltoFbmGain        = 0.5f;
-			a.AltoThickness      = 1800.0f;
+			auto& b = def.TargetState.CloudB;
+			b.Enabled            = true;
+			b.Category           = CloudCategory::AltocumulusMid;
+			b.BottomHeight       = 2127.0f;
+			b.Thickness          = 3252.0f;
+			b.WindDirectionX     = 1.0f;
+			b.WindDirectionY     = 0.0f;
+			b.WindSpeed          = 0.2423f;
+			b.EvolutionSpeed     = 5.0f;
+			b.HorizonFade        = 1.0f;
+			b.DistanceFade       = 0.0f;
+			b.AltoBillowStrength = 1.0f;
+			b.AltoCovSoftWidth   = 0.25f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.509f;
+			b.AltoCloudAmount    = 0.640f;
+			b.AltoCloudBrightness = 1.034f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.55f;
+			b.AltoCloudColorDarkG = 0.55f;
+			b.AltoCloudColorDarkB = 0.65f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 0.5f;
+			b.AltoThickness      = 1480.0f;
+			b.AltoBottomSoftness = 1.0f;
 
 			_presets[def.Type] = def;
 		}
@@ -578,33 +706,6 @@ namespace TEN::Sky
 			a.Absorption    = 1.2f;
 			a.AmbientContrib = 0.3f;
 			a.SilverliningStr = 0.3f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- LowFoggyClouds -----
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::LowFoggyClouds;
-			def.Name = "LowFoggyClouds";
-			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 0.8f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::StratocumulusLow;
-			b.Coverage      = 0.75f;
-			b.Density       = 0.85f;
-			b.BottomHeight  = 500.0f;
-			b.Thickness     = 1000.0f;
-			b.WindSpeed     = 0.002f;
-			b.EvolutionSpeed = 0.06f;
-			b.ShapeScale    = 0.00015f;
-			b.DetailScale   = 0.0015f;
-			b.DetailStrength = 0.15f;
-			b.Absorption    = 1.5f;
-			b.AmbientContrib = 0.15f;
-			b.SilverliningStr = 0.1f;
 
 			_presets[def.Type] = def;
 		}
@@ -1143,7 +1244,7 @@ namespace TEN::Sky
 		case WeatherPresetType::Cirrus:          return "Cirrus";
 		case WeatherPresetType::Altocumulus:     return "Altocumulus";
 		case WeatherPresetType::Stratocumulus:   return "Stratocumulus";
-		case WeatherPresetType::LowFoggyClouds: return "LowFoggyClouds";
+		case WeatherPresetType::RainSnowOvercast:    return "RainSnowOvercast";
 		case WeatherPresetType::StormBuildUp:    return "StormBuildUp";
 		case WeatherPresetType::Thunderstorm:    return "Thunderstorm";
 		case WeatherPresetType::HeavyStorm:      return "HeavyStorm";
@@ -1163,7 +1264,8 @@ namespace TEN::Sky
 			{ "Cirrus",          WeatherPresetType::Cirrus },
 			{ "Altocumulus",     WeatherPresetType::Altocumulus },
 			{ "Stratocumulus",   WeatherPresetType::Stratocumulus },
-			{ "LowFoggyClouds", WeatherPresetType::LowFoggyClouds },
+			{ "RainSnowOvercast", WeatherPresetType::RainSnowOvercast },
+			{ "LowFoggyClouds",   WeatherPresetType::RainSnowOvercast }, // legacy alias
 			{ "StormBuildUp",    WeatherPresetType::StormBuildUp },
 			{ "Thunderstorm",    WeatherPresetType::Thunderstorm },
 			{ "HeavyStorm",      WeatherPresetType::HeavyStorm },

@@ -65,7 +65,7 @@ namespace TEN::Sky
 		Cirrus,
 		Altocumulus,
 		Stratocumulus,
-		LowFoggyClouds,
+		RainSnowOvercast,
 		StormBuildUp,
 		Thunderstorm,
 		HeavyStorm,
@@ -138,6 +138,7 @@ namespace TEN::Sky
 		float AltoCloudColorDarkR = 0.55f; // [0,1]      dark/shadow color tint red
 		float AltoCloudColorDarkG = 0.55f; // [0,1]      dark/shadow color tint green
 		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
+		float AltoBottomSoftness  = 0.35f; // [0,1]      0=flat bottom, 1=organic underside
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 

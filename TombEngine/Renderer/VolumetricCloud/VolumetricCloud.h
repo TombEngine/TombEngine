@@ -124,6 +124,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoCloudColorDarkR = 0.55f; // [0,1]      dark/shadow color tint red
 		float AltoCloudColorDarkG = 0.55f; // [0,1]      dark/shadow color tint green
 		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
+		float AltoBottomSoftness  = 0.35f; // [0,1]      0=flat bottom, 1=organic underside
 
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
@@ -151,8 +152,11 @@ namespace TEN::Renderer::VolumetricCloud
 
 	struct CloudRuntimeState
 	{
-		float AccumulatedTime = 0.0f;  // Global time for wind/evolution
-		int   FrameCounter    = 0;     // Monotonic frame counter for jitter cycling
+		float AccumulatedTime  = 0.0f;  // Global time for evolution (EvolutionSpeed pulsing)
+		float WindAccumOffset  = 0.0f;  // Pre-integrated wind offset — monotonically non-decreasing.
+		                                 // Prevents backwards cloud motion when WindSpeed transitions
+		                                 // to a lower value (avoids the CloudTime*WindSpeed artifact).
+		int   FrameCounter     = 0;     // Monotonic frame counter for jitter cycling
 
 		// Current packed quality params
 		CloudQualityParams ActiveQuality = {};

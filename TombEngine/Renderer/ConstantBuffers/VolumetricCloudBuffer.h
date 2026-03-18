@@ -85,8 +85,14 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector3 AltoCloudColor;    // [0,1] per channel — RGB tint for cloud top/highlights
 		float   AltoThickness;     // [50,5000]  cloud slab thickness for Altocumulus
 		//--
-		// Row 14 — Altocumulus dark / shadow color
+		// Row 14 — Altocumulus dark / shadow color + underside softness
 		Vector3 AltoCloudColorDark;// [0,1] per channel — RGB tint for cloud base/shadow
-		float   AltoRow14Pad;
+		float   AltoBottomSoftness;// [0,1] 0=flat slab bottom, 1=organic irregular underside
+		//--
+		// Row 15 — Sun screen-space UV for cloud-coverage occlusion sampling.
+		// Set to (-1,-1) when no global lens flare is active or sun is behind camera.
+		Vector2 SunScreenUV;  // projected sun UV in [0,1] x [0,1]
+		float   SunOccPad0;
+		float   SunOccPad1;
 	};
 }

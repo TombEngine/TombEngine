@@ -3345,6 +3345,20 @@ namespace TEN::Renderer
 			unsigned int offset = 0;
 			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
+			// Attenuate sun sprite by volumetric cloud transmittance.
+			// Uses the same smoothed value already computed for lens flare halo occlusion
+			// (previous frame, one-frame lag is invisible due to temporal smoothing).
+			float sunCloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
+				: GetCloudLensFlareOcclusion();
+
+			auto& rawSunColor = renderView.LensFlaresToDraw[0].Color;
+			auto  sunColor    = Color(
+				rawSunColor.x * sunCloudOcclusion,
+				rawSunColor.y * sunCloudOcclusion,
+				rawSunColor.z * sunCloudOcclusion,
+				rawSunColor.w);
+
 			auto rDrawSprite = RendererSpriteToDraw{};
 			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
 
@@ -3354,10 +3368,10 @@ namespace TEN::Renderer
 			rDrawSprite.Scale = 1.0f;
 			rDrawSprite.Width = SUN_SIZE;
 			rDrawSprite.Height = SUN_SIZE;
-			rDrawSprite.color = renderView.LensFlaresToDraw[0].Color;
+			rDrawSprite.color = sunColor;
 
 			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
-			_stInstancedSpriteBuffer.Sprites[0].Color = renderView.LensFlaresToDraw[0].Color;
+			_stInstancedSpriteBuffer.Sprites[0].Color = sunColor;
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 

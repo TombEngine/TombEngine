@@ -32,7 +32,14 @@ namespace TEN::Scripting
 		snap.Coverage        = std::clamp(tf("coverage",        0.55 ), 0.0f, 1.0f);
 		snap.Density         = std::max(  tf("density",          0.8  ), 0.0f);
 		snap.BottomHeight    =            tf("bottomHeight",   1536.0  );
-		snap.Thickness       = std::max(  tf("thickness",      2500.0  ), 1.0f);
+		// "horizonWidth" controls the cloud slab's vertical extent (CloudThickness),
+		// which determines how far toward the horizon clouds are visible.
+		// "thickness" accepted as legacy alias.
+		{
+			double hw = table.get_or("horizonWidth",
+				table.get_or("thickness", 2500.0));
+			snap.Thickness = std::max(static_cast<float>(hw), 1.0f);
+		}
 		snap.WindDirectionX  =            tf("windDirectionX",    1.0  );
 		snap.WindDirectionY  =            tf("windDirectionY",    0.0  );
 		snap.WindSpeed       = std::max(  tf("windSpeed",       0.003  ), 0.0f);
@@ -45,6 +52,24 @@ namespace TEN::Scripting
 		snap.SilverliningStr = std::clamp(tf("silverlining",     0.4   ), 0.0f, 1.0f);
 		snap.HorizonFade     = std::clamp(tf("horizonFade",      1.0   ), 0.0f, 1.0f);
 		snap.DistanceFade    = std::clamp(tf("distanceFade",     1.0   ), 0.0f, 1.0f);
+
+		// Altocumulus-specific fields (only meaningful for category == "AltocumulusMid").
+		snap.AltoBillowStrength  = std::clamp(tf("altoBillowStrength",  0.75  ), 0.0f, 1.0f);
+		snap.AltoCovSoftWidth    = std::clamp(tf("altoCovSoftWidth",    0.08  ), 0.0f, 0.5f);
+		snap.AltoAbsorption      = std::max(  tf("altoAbsorption",      1.0   ), 0.0f);
+		snap.AltoCloudSize       = std::max(  tf("altoCloudSize",       1.0   ), 0.01f);
+		snap.AltoCloudAmount     = std::clamp(tf("altoCloudAmount",     0.6875), 0.0f, 1.0f);
+		snap.AltoCloudBrightness = std::max(  tf("altoCloudBrightness", 1.0   ), 0.0f);
+		snap.AltoCloudColorR     = std::clamp(tf("altoCloudColorR",     1.0   ), 0.0f, 1.0f);
+		snap.AltoCloudColorG     = std::clamp(tf("altoCloudColorG",     1.0   ), 0.0f, 1.0f);
+		snap.AltoCloudColorB     = std::clamp(tf("altoCloudColorB",     1.0   ), 0.0f, 1.0f);
+		snap.AltoCloudColorDarkR = std::clamp(tf("altoCloudColorDarkR", 0.55  ), 0.0f, 1.0f);
+		snap.AltoCloudColorDarkG = std::clamp(tf("altoCloudColorDarkG", 0.55  ), 0.0f, 1.0f);
+		snap.AltoCloudColorDarkB = std::clamp(tf("altoCloudColorDarkB", 0.65  ), 0.0f, 1.0f);
+		snap.AltoFbmLacunarity   = std::clamp(tf("altoFbmLacunarity",   2.6434), 1.0f, 6.0f);
+		snap.AltoFbmGain         = std::clamp(tf("altoFbmGain",         0.5   ), 0.0f, 1.0f);
+		snap.AltoThickness       = std::max(  tf("altoThickness",       1800.0), 1.0f);
+		snap.AltoBottomSoftness  = std::clamp(tf("altoBottomSoftness",  0.35  ), 0.0f, 1.0f);
 
 		// Quality string -> enum.
 		std::string qualStr = table.get_or("quality", std::string("Medium"));

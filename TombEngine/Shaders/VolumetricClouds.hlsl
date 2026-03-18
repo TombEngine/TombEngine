@@ -344,12 +344,26 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	{
 		// AltoCloudSize=1.0 → reference scale (pos*0.001). <1=bigger, >1=smaller.
 		float altoScale = 0.001f * AltoCloudSize;
-		// Wind drift in noise-space: NOT scaled by altoScale so cloud motion speed
-		// is independent of cloud size, matching the shared path convention.
-		// Result: clouds visibly translate across the sky at WindSpeed world-units/frame.
-		float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y)
-		               * CloudTime * WindSpeed;
+		// Wind drift in noise-space. WindSpeed in the CB carries the pre-integrated
+		// wind offset (accumulated on the CPU each frame as WindSpeed * dt).
+		// This is monotonically non-decreasing, preventing the backwards-motion
+		// artifact that occurred when WindSpeed transitioned to a lower value
+		// (where CloudTime * NewSpeed < CloudTime * OldSpeed).
+		float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
 		float3 p = skyPos * altoScale + windOfs;
+
+		// Domain warping: break rectangular iso-contours produced by separable
+		// value noise. At large feature scales (low AltoCloudSize) only a few
+		// noise cells are visible, so their straight, grid-aligned edges form
+		// L / T / jigsaw shapes. Two cheap noise evaluations at ~5x the cloud
+		// cell scale displace the FBM input in XZ by up to ~0.28 noise-space
+		// units (≈57% of one cloud-cell width), turning straight boundaries
+		// into organic, billowing forms at all zoom levels.
+		{
+			float3 pW = float3(p.x, 0.0f, p.z) * 0.41f;
+			p.x += (ValueNoise3D(pW + float3(3.17f, 0.0f, 7.63f)) - 0.5f) * 0.28f;
+			p.z += (ValueNoise3D(pW + float3(0.59f, 0.0f, 2.44f)) - 0.5f) * 0.28f;
+		}
 
 		// Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
 		// 5 octaves of abs(snoise(p)) — billow FBM.
@@ -383,6 +397,39 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		// Reference shader does NOT use height gradient in density.
 		// Height-dependent behavior is in illumination (exp(h)/1.95 + dark/bright blend).
 
+		// --- Organic bottom shaping ---
+		// AltoBottomSoftness [0,1]: 0 = flat slab bottom (no change),
+		// 1 = fully organic, irregular underside sculpted by coarse noise.
+		// Two-scale noise: coarse clusters set per-region depth, fine detail
+		// adds local variation within each cluster so different cloud groups
+		// clearly hang at different heights rather than all equally deep.
+		if (AltoBottomSoftness > 0.001f)
+		{
+			float3 basePos    = skyPos + windOfs / altoScale;
+			// Coarse scale: large cluster-level depth variation (~every few km).
+			float3 coarsePos  = basePos * 0.000045f;
+			// Fine scale: column-level detail within each cluster.
+			float3 detailPos  = basePos * 0.00012f;
+			float coarseNoise = ValueNoise3D(float3(coarsePos.x,  0.0f, coarsePos.z));
+			float detailNoise = ValueNoise3D(float3(detailPos.x,  0.0f, detailPos.z));
+
+			// Coarse dominates so whole cloud clusters are visibly deep or shallow.
+			float combinedNoise = saturate(coarseNoise * 0.65f + detailNoise * 0.35f);
+
+			// Per-column bottom threshold in heightFrac space [0=slab floor, 1=top].
+			// combinedNoise=0 → deep (threshold near depthBase),
+			// combinedNoise=1 → shallow (threshold raised by depthRange).
+			// depthBase > 0 ensures even the deepest clouds stay slightly above the
+			// hard slab floor — "raising the deepest point a little" as requested.
+			float depthBase  = 0.05f;
+			float depthRange = AltoBottomSoftness * 0.35f;
+			float threshold  = depthBase + combinedNoise * depthRange;
+
+			float fadeRange  = lerp(0.03f, 0.30f, AltoBottomSoftness);
+			float bottomFade = smoothstep(threshold, threshold + fadeRange, heightFrac);
+			dens *= bottomFade;
+		}
+
 		if (dens <= 0.0001f)
 			return 0.0f;
 
@@ -392,7 +439,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	// --- Coverage / Weather noise ---
 	// Large-scale weather map controls where clouds exist.
 	float2 weatherUV = skyPos.xz * WeatherScale 
-	                  + WindDirection * CloudTime * WindSpeed * 0.3f;
+	                  + WindDirection * WindSpeed * 0.3f;
 	float weatherNoise = ValueNoise3D(float3(weatherUV, 0.0f));
 
 	// Remap weather noise with coverage parameter.
@@ -521,7 +568,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 	                         shapeY   * effectiveShapeScale * noiseScale.y,
 	                         skyPos.z * effectiveShapeScale * shapeXZScale.y + driftXZ.y)
 	                 + float3(WindDirection.x, 0.0f, WindDirection.y) 
-	                   * CloudTime * WindSpeed;
+	                   * WindSpeed;
 
 	// --- CirrusHigh: wind-aligned anisotropic shapePos override ---
 	// Replaces the isotropic shapePos above with an extreme aspect-ratio
@@ -546,7 +593,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail)
 		float2 wPerp   = float2(-wDir.y, wDir.x);
 		float  aWind   = dot(skyPos.xz, wDir);
 		float  pWind   = dot(skyPos.xz, wPerp);
-		float2 drift2  = WindDirection * CloudTime * WindSpeed;
+		float2 drift2  = WindDirection * WindSpeed;
 		float  dAlong  = dot(drift2, wDir);
 		float  dPerp   = dot(drift2, wPerp);
 		shapePos = float3(
@@ -1085,7 +1132,7 @@ float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, flo
 	{
 		float3 samplePos = rayOrigin + rayDir * (CloudBottomHeight + CloudThickness * 0.5f);
 		float3 dbgSkyPos = samplePos - CamPositionWS.xyz;
-		float2 wUV = dbgSkyPos.xz * WeatherScale + WindDirection * CloudTime * WindSpeed * 0.3f;
+		float2 wUV = dbgSkyPos.xz * WeatherScale + WindDirection * WindSpeed * 0.3f;
 		float wn = ValueNoise3D(float3(wUV, 0.0f));
 		float cm = Remap(wn, 1.0f - Coverage, 1.0f, 0.0f, 1.0f);
 		return float4(cm.xxx, 1.0f);
@@ -1343,47 +1390,127 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
 }
 
 // ===========================================================================
-// PSCloudOcclusion — Evaluate cloud transmittance along a single direction
-// for lens flare occlusion. Outputs transmittance in the red channel.
+// PSCloudOcclusion — Multi-sample cloud transmittance for sun occlusion.
+//
+// Marches transmittance along the sun direction and 4 ring offsets around it,
+// approximating partial disk coverage when a cloud only partially obscures
+// the visible sun disk. Returns averaged visibility in [0,1] (red channel).
+//   1.0 = sun fully unoccluded
+//   0.0 = sun completely hidden
 // ===========================================================================
 
-float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
+// March Beer-Lambert transmittance along one direction through the cloud volume.
+float MarchSunTransmittance(float3 rayOrigin, float3 rayDir)
 {
-	float3 rayOrigin = CamPositionWS.xyz;
-	float3 rayDir    = normalize(CloudLightDirection);
-
-	// Intersect cloud volume.
+	// Intersect cloud slab. Negative tRange.x means no intersection.
 	float2 tRange = IntersectCloudVolume(rayOrigin, rayDir);
-
 	if (tRange.x < 0.0f)
-		return float4(1.0f, 0.0f, 0.0f, 1.0f); // No clouds in path — fully visible.
+		return 1.0f; // Clear path — fully visible.
 
-	// Use a small number of samples for occlusion.
-	int occSteps = max(PrimaryStepCount / 2, 4);
-	float maxDist = min(tRange.y - tRange.x, CloudThickness * 4.0f);
+	int   occSteps = max(PrimaryStepCount / 2, 4);
+	float maxDist  = min(tRange.y - tRange.x, CloudThickness * 4.0f);
 	float stepSize = maxDist / (float)occSteps;
-	float t = tRange.x;
-
-	float transmittance = 1.0f;
+	float t        = tRange.x;
+	float transm   = 1.0f;
 
 	[loop]
-	for (int occStep = 0; occStep < occSteps; occStep++)
+	for (int i = 0; i < occSteps; i++)
 	{
-		if (transmittance < 0.01f)
+		if (transm < 0.01f)
 			break;
 
-		float3 samplePos = rayOrigin + rayDir * t;
-		float heightFrac = HeightFraction(samplePos.y,
-		                   rayOrigin.y - CloudBottomHeight, CloudThickness);
+		float3 samplePos  = rayOrigin + rayDir * t;
+		float  heightFrac = HeightFraction(samplePos.y,
+		                    rayOrigin.y - CloudBottomHeight, CloudThickness);
 
 		if (heightFrac >= 0.0f && heightFrac <= 1.0f)
 		{
 			float density = CloudDensityAtWorldPos(samplePos, heightFrac, false);
-			transmittance *= exp(-density * Absorption * stepSize);
+			transm *= exp(-density * Absorption * stepSize);
 		}
 
 		t += stepSize;
 	}
 
-	return float4(transmittance, 0.0f, 0.0f, 1.0f);
+	return transm;
+}
+
+float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
+{
+	// Angular half-radius of the sun disk used for the volumetric ray-march offsets.
+	static const float SUN_DISK_HALF_ANGLE = 0.05f;
+
+	float3 rayOrigin = CamPositionWS.xyz;
+	float3 sunDir    = normalize(CloudLightDirection);
+
+	// Build an orthonormal tangent frame perpendicular to the sun direction.
+	float3 refUp = abs(sunDir.y) < 0.9f ? float3(0.0f, 1.0f, 0.0f) : float3(1.0f, 0.0f, 0.0f);
+	float3 right = normalize(cross(sunDir, refUp));
+	float3 up    = cross(sunDir, right);
+
+	// 5-tap volumetric transmittance: center + 4 cardinal ring offsets.
+	float3 dirs[5];
+	dirs[0] = sunDir;
+	dirs[1] = normalize(sunDir + right * SUN_DISK_HALF_ANGLE);
+	dirs[2] = normalize(sunDir - right * SUN_DISK_HALF_ANGLE);
+	dirs[3] = normalize(sunDir + up    * SUN_DISK_HALF_ANGLE);
+	dirs[4] = normalize(sunDir - up    * SUN_DISK_HALF_ANGLE);
+
+	float totalTransmittance = 0.0f;
+
+	[unroll]
+	for (int s = 0; s < 5; s++)
+		totalTransmittance += MarchSunTransmittance(rayOrigin, dirs[s]);
+
+	float rayVisibility = totalTransmittance * 0.2f; // averaged across 5 taps
+
+	// ---------------------------------------------------------------------------
+	// Screen-space cloud coverage around the sun.
+	//
+	// The volumetric ray-march only samples along the exact sun direction and a
+	// few close neighbours. When the cloud density field has a natural gap right
+	// at the sun direction (common in procedural noise), all ray taps fall inside
+	// the gap and report near-zero density even though the surrounding rendered
+	// clouds look dense. The screen-space sampling below fixes this by measuring
+	// the actual cloud alpha in the cloud half-res render target (bound to t0)
+	// across a wider "corona" area around the sun's projected screen position.
+	//
+	// CORONA_RADIUS: sample ring offset in half-res cloud RT pixels.
+	// 8 pixels at typical half-res (960x540) ≈ 16 full-res pixels from sun center.
+	// ---------------------------------------------------------------------------
+	static const float CORONA_RADIUS = 8.0f;
+
+	bool sunOnScreen = (SunScreenUV.x > 0.01f && SunScreenUV.x < 0.99f &&
+	                    SunScreenUV.y > 0.01f && SunScreenUV.y < 0.99f);
+
+	float visibility = rayVisibility;
+
+	if (sunOnScreen)
+	{
+		// Offset step per ring sample in cloud RT UV space.
+		float2 stepXY = InvCloudRenderSize * CORONA_RADIUS;
+		// 0.7071 = 1/sqrt(2): diagonal ring samples at equal radius.
+		float2 diagXY = stepXY * 0.7071f;
+
+		// 9-tap pattern: center + 4 cardinal + 4 diagonal.
+		float cloudAlpha = 0.0f;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( stepXY.x,  0.0f)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-stepXY.x,  0.0f)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( 0.0f,  stepXY.y)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( 0.0f, -stepXY.y)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( diagXY.x,  diagXY.y)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-diagXY.x,  diagXY.y)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( diagXY.x, -diagXY.y)).a;
+		cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-diagXY.x, -diagXY.y)).a;
+		cloudAlpha /= 9.0f;
+
+		// Screen-space visibility: 1 = no cloud near sun, 0 = sun area fully covered.
+		float screenVisibility = 1.0f - cloudAlpha;
+
+		// Use the most-occluding estimate from either method.
+		visibility = min(rayVisibility, screenVisibility);
+	}
+
+	return float4(visibility, 0.0f, 0.0f, 1.0f);
 }

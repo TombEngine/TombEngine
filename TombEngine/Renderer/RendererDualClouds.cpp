@@ -110,7 +110,8 @@ namespace TEN::Renderer
 		RenderTarget2D& renderTarget,
 		RenderView& renderView)
 	{
-		if (!settings.Enabled || settings.Coverage < 0.001f)
+		bool layerIsAlto = (settings.CloudType == 2);
+		if (!settings.Enabled || (!layerIsAlto && settings.Coverage < 0.001f))
 			return;
 
 		// Resolve quality params.
@@ -133,14 +134,18 @@ namespace TEN::Renderer
 			state.ActiveQuality = newQuality;
 		}
 
-		// Update time.
+		// Update times — evolution time and wind offset accumulated separately.
+		// Wind offset is monotonically non-decreasing to prevent backwards motion
+		// when WindSpeed transitions to a lower value during preset blending.
 		float dt = 1.0f / std::max(_refreshRate, 30);
-		if (!state.FreezeWind && !state.FreezeEvolution)
+		if (!state.FreezeEvolution)
 			state.AccumulatedTime += dt;
+		if (!state.FreezeWind)
+			state.WindAccumOffset += settings.WindSpeed * dt;
 		state.FrameCounter++;
 
 		// Fill constant buffer.
-		UpdateVolumetricCloudBuffer(settings, renderView);
+		UpdateVolumetricCloudBuffer(settings, state, renderView);
 
 		// --- Pass 1: Render to half-res target ---
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -210,13 +215,13 @@ namespace TEN::Renderer
 		// Update layer A occlusion.
 		float transA = ComputeSingleLayerOcclusion(
 			g_SkyCloudSystem.GetCloudARenderSettings(),
-			_cloudState, _cloudOcclusionTarget, renderView);
+			_cloudState, _cloudOcclusionTarget, _cloudRenderTarget, renderView);
 		g_SkyCloudSystem.SetLayerTransmittance(0, transA);
 
 		// Update layer B occlusion.
 		float transB = ComputeSingleLayerOcclusion(
 			g_SkyCloudSystem.GetCloudBRenderSettings(),
-			_cloudStateB, _cloudOcclusionTargetB, renderView);
+			_cloudStateB, _cloudOcclusionTargetB, _cloudRenderTargetB, renderView);
 		g_SkyCloudSystem.SetLayerTransmittance(1, transB);
 	}
 
@@ -224,9 +229,11 @@ namespace TEN::Renderer
 		const CloudRenderSettings& settings,
 		CloudRuntimeState& state,
 		RenderTarget2D& occlusionTarget,
+		RenderTarget2D& cloudColorTarget,
 		RenderView& renderView)
 	{
-		if (!settings.Enabled || settings.Coverage < 0.001f)
+		bool occIsAlto = (settings.CloudType == 2);
+		if (!settings.Enabled || (!occIsAlto && settings.Coverage < 0.001f))
 			return 1.0f; // Fully visible (no clouds).
 
 		// Throttle updates.
@@ -239,7 +246,7 @@ namespace TEN::Renderer
 		state.FlareOcclusion.CacheValidFrames = 0;
 
 		// Fill CB with this layer's settings.
-		UpdateVolumetricCloudBuffer(settings, renderView);
+		UpdateVolumetricCloudBuffer(settings, state, renderView);
 
 		// Render occlusion to 1x1 target.
 		float clearColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
@@ -268,8 +275,17 @@ namespace TEN::Renderer
 		_context->IASetVertexBuffers(0, 1,
 			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
+		// Bind this layer's cloud half-res RT as t0 so PSCloudOcclusion can
+		// sample cloud alpha in the vicinity of the sun's projected screen position.
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &cloudColorTarget,
+			SamplerStateRegister::LinearClamp);
+
 		_shaders.Bind(Shader::VolumetricCloudOcclusion);
 		DrawTriangles(3, 0);
+
+		// Unbind t0.
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
 
 		// Readback.
 		D3D11_TEXTURE2D_DESC stagingDesc = {};
@@ -297,7 +313,7 @@ namespace TEN::Renderer
 		}
 
 		// Temporal smoothing.
-		constexpr float SMOOTH_FACTOR = 0.15f;
+		constexpr float SMOOTH_FACTOR = 0.6f;
 		float prev = state.FlareOcclusion.SmoothedTransmittance;
 		float curr = state.FlareOcclusion.CloudTransmittance;
 		state.FlareOcclusion.SmoothedTransmittance = prev + (curr - prev) * SMOOTH_FACTOR;

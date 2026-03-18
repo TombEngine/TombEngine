@@ -68,7 +68,9 @@ namespace TEN::Renderer
 	// Per-frame constant buffer update
 	// ========================================================================
 
-	void Renderer::UpdateVolumetricCloudBuffer(const CloudRenderSettings& settings, RenderView& view)
+	void Renderer::UpdateVolumetricCloudBuffer(const CloudRenderSettings& settings,
+	                                             const CloudRuntimeState& runtimeState,
+	                                             RenderView& view)
 	{
 		auto& q = _cloudState.ActiveQuality;
 
@@ -89,11 +91,15 @@ namespace TEN::Renderer
 
 		_stVolumetricCloud.PhaseForward      = settings.PhaseForward;
 		_stVolumetricCloud.PhaseBackward     = settings.PhaseBackward;
-		_stVolumetricCloud.WindSpeed         = _cloudState.FreezeWind ? 0.0f : settings.WindSpeed;
-		_stVolumetricCloud.EvolutionSpeed    = _cloudState.FreezeEvolution ? 0.0f : settings.EvolutionSpeed;
+		// WindSpeed CB slot carries the pre-integrated wind offset (not speed).
+		// This avoids the backwards-motion artifact: when WindSpeed transitions to a
+		// lower value, CloudTime*WindSpeed_new < CloudTime*WindSpeed_old causing
+		// clouds to jump backwards. With accumulation the offset only grows or slows.
+		_stVolumetricCloud.WindSpeed         = runtimeState.FreezeWind ? 0.0f : runtimeState.WindAccumOffset;
+		_stVolumetricCloud.EvolutionSpeed    = runtimeState.FreezeEvolution ? 0.0f : settings.EvolutionSpeed;
 
 		_stVolumetricCloud.WindDirection     = settings.WindDirection;
-		_stVolumetricCloud.Time              = _cloudState.AccumulatedTime;
+		_stVolumetricCloud.Time              = runtimeState.AccumulatedTime;
 		_stVolumetricCloud.JitterStrength    = settings.JitterStrength;
 
 		// Light direction: prefer existing lens flare direction, fallback to settings.
@@ -171,7 +177,31 @@ namespace TEN::Renderer
 		_stVolumetricCloud.AltoCloudColorDark = Vector3(settings.AltoCloudColorDarkR,
 		                                                settings.AltoCloudColorDarkG,
 		                                                settings.AltoCloudColorDarkB);
-		_stVolumetricCloud.AltoRow14Pad       = 0.0f;
+		_stVolumetricCloud.AltoBottomSoftness = settings.AltoBottomSoftness;
+
+		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
+		// can sample the cloud render target around the sun's actual screen position.
+		_stVolumetricCloud.SunScreenUV = Vector2(-1.0f, -1.0f); // default: no sun / off-screen
+		if (!view.LensFlaresToDraw.empty() && view.LensFlaresToDraw[0].IsGlobal)
+		{
+			const auto& sunPos = view.LensFlaresToDraw[0].Position;
+			auto clip = Vector4::Transform(
+				Vector4(sunPos.x, sunPos.y, sunPos.z, 1.0f),
+				view.Camera.ViewProjection);
+			if (clip.w > 0.001f)
+			{
+				float ndcX = clip.x / clip.w;
+				float ndcY = clip.y / clip.w;
+				if (ndcX > -1.0f && ndcX < 1.0f && ndcY > -1.0f && ndcY < 1.0f)
+				{
+					_stVolumetricCloud.SunScreenUV = Vector2(
+						ndcX *  0.5f + 0.5f,   // U: 0 = left,  1 = right
+						ndcY * -0.5f + 0.5f);  // V: 0 = top,   1 = bottom (DX convention)
+				}
+			}
+		}
+		_stVolumetricCloud.SunOccPad0 = 0.0f;
+		_stVolumetricCloud.SunOccPad1 = 0.0f;
 
 		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
 	}
@@ -205,14 +235,18 @@ namespace TEN::Renderer
 			_cloudState.ActiveQuality = newQuality;
 		}
 
-		// Update accumulated time.
+		// Update accumulated times — evolution time and wind offset are accumulated
+		// separately so each can be frozen independently, and so wind offset is
+		// always monotonically non-decreasing (prevents backwards cloud motion).
 		float dt = 1.0f / std::max(_refreshRate, 30);
-		if (!_cloudState.FreezeWind && !_cloudState.FreezeEvolution)
+		if (!_cloudState.FreezeEvolution)
 			_cloudState.AccumulatedTime += dt;
+		if (!_cloudState.FreezeWind)
+			_cloudState.WindAccumOffset += activeSettings->WindSpeed * dt;
 		_cloudState.FrameCounter++;
 
 		// Update constant buffer.
-		UpdateVolumetricCloudBuffer(*activeSettings, renderView);
+		UpdateVolumetricCloudBuffer(*activeSettings, _cloudState, renderView);
 
 		// --- Pass 1: Render clouds to half-res target ---
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -335,8 +369,17 @@ namespace TEN::Renderer
 		_context->IASetVertexBuffers(0, 1,
 			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
+		// Bind the cloud half-res render target as t0 so PSCloudOcclusion can
+		// sample cloud alpha around the sun's projected screen position.
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_cloudRenderTarget,
+			SamplerStateRegister::LinearClamp);
+
 		_shaders.Bind(Shader::VolumetricCloudOcclusion);
 		DrawTriangles(3, 0);
+
+		// Unbind t0 so the cloud RT isn't held as SRV while it may be reused.
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
 
 		// Read back the transmittance value.
 		// Use a staging texture for GPU -> CPU readback.
@@ -366,7 +409,7 @@ namespace TEN::Renderer
 		}
 
 		// Temporal smoothing to avoid flicker.
-		constexpr float SMOOTH_FACTOR = 0.15f;
+		constexpr float SMOOTH_FACTOR = 0.6f;
 		float prev = _cloudState.FlareOcclusion.SmoothedTransmittance;
 		float curr = _cloudState.FlareOcclusion.CloudTransmittance;
 		_cloudState.FlareOcclusion.SmoothedTransmittance = prev + (curr - prev) * SMOOTH_FACTOR;

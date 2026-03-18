@@ -454,7 +454,9 @@ namespace TEN::Renderer
 		// Volumetric clouds
 		void InitializeVolumetricClouds();
 		void ResizeVolumetricCloudTargets();
-		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings, RenderView& view);
+		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
+		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
+		                                 RenderView& view);
 		void DrawVolumetricClouds(RenderView& renderView);
 		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
 		float GetCloudLensFlareOcclusion() const;
@@ -474,6 +476,7 @@ namespace TEN::Renderer
 			const VolumetricCloud::CloudRenderSettings& settings,
 			VolumetricCloud::CloudRuntimeState& state,
 			RenderTarget2D& occlusionTarget,
+			RenderTarget2D& cloudColorTarget,
 			RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);

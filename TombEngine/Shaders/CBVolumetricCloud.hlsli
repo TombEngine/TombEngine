@@ -78,7 +78,12 @@ cbuffer CBVolumetricCloud : register(b9)
 	float3 AltoCloudColor;     // [0,1] per channel — RGB tint for cloud top/highlights
 	float  AltoThickness;      // [50,5000]  cloud slab thickness for Altocumulus
 	//--
-	// Row 14 — Altocumulus dark / shadow color
+	// Row 14 — Altocumulus dark / shadow color + underside softness
 	float3 AltoCloudColorDark; // [0,1] per channel — RGB tint for cloud base/shadow
-	float  AltoRow14Pad;
+	float  AltoBottomSoftness; // [0,1] 0=flat slab bottom, 1=organic irregular underside
+	//--
+	// Row 15 — Sun screen-space UV for cloud-coverage occlusion sampling.
+	// (-1,-1) when no global lens flare is active or sun is behind/off-screen.
+	float2 SunScreenUV;
+	float2 SunOccPad;
 };

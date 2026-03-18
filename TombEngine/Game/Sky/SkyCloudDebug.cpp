@@ -82,7 +82,7 @@ namespace TEN::Sky
 		params.push_back({"Coverage",         &snap.Coverage,           0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::Coverage)});
 		params.push_back({"Density",          &snap.Density,            0.0f,    10.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Density)});
 		params.push_back({"Bottom Height",    &snap.BottomHeight,       100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::BottomHeight)});
-		params.push_back({"Thickness",        &snap.Thickness,          100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::Thickness)});
+		params.push_back({"Horizon Width",    &snap.Thickness,          100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::Thickness)});
 		params.push_back({"Wind Dir X",       &snap.WindDirectionX,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionX)});
 		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
 		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
@@ -115,6 +115,7 @@ namespace TEN::Sky
 		params.push_back({"Alto FBM Lacun",   &snap.AltoFbmLacunarity,  1.5f,    4.0f,     0.01f,    "%.4f",     def(&VolumetricCloudLayerSnapshot::AltoFbmLacunarity)});
 		params.push_back({"Alto FBM Gain",    &snap.AltoFbmGain,        0.1f,    0.9f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoFbmGain)});
 		params.push_back({"Alto Thickness",   &snap.AltoThickness,      50.0f, 5000.0f,    50.0f,    "%.0f",     def(&VolumetricCloudLayerSnapshot::AltoThickness)});
+		params.push_back({"Alto Bot Soft",     &snap.AltoBottomSoftness,  0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoBottomSoftness)});
 
 		return params;
 	}
@@ -229,6 +230,7 @@ namespace TEN::Sky
 			snap.AltoFbmLacunarity  = 2.6434f;
 			snap.AltoFbmGain        = 0.5f;
 			snap.AltoThickness      = 1800.0f;
+			snap.AltoBottomSoftness = 0.35f;
 			break;
 
 		case CloudCategory::CirrusHigh:
