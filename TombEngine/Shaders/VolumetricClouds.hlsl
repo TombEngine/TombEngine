@@ -1,4 +1,4 @@
-// VolumetricClouds.hlsl Bounded-volume procedural volumetric cloud renderer.
+﻿// VolumetricClouds.hlsl Bounded-volume procedural volumetric cloud renderer.
 //
 // Architecture:
 //   - Rendered as a fullscreen pass AFTER the sky bitmap, BEFORE world geometry.
@@ -106,6 +106,45 @@ float ValueNoise3D(float3 p)
 float BillowNoise3D(float3 p)
 {
     return abs(ValueNoise3D(p) * 2.0f - 1.0f);
+}
+
+// Curl noise: computes the 2D curl of ValueNoise3D used as a scalar potential.
+// Returns a divergence-free displacement vector in the XZ plane.
+// Because curl(F) has zero divergence, no flow convergence points exist,
+// so domain-warped iso-contours form smooth organic curves instead of
+// L/T/jigsaw corners. This is the standard AAA domain-warping technique
+// (Guerrilla Games, Frostbite, RDR2 cloud systems).
+float2 CurlNoise2D(float3 p, float eps)
+{
+    float nx0 = ValueNoise3D(p + float3( eps, 0.0f,  0.0f));
+    float nx1 = ValueNoise3D(p + float3(-eps, 0.0f,  0.0f));
+    float nz0 = ValueNoise3D(p + float3( 0.0f, 0.0f,  eps));
+    float nz1 = ValueNoise3D(p + float3( 0.0f, 0.0f, -eps));
+    // 2D curl in XZ plane: curl_x = dN/dz,  curl_z = -dN/dx.
+    return float2((nz0 - nz1) / (2.0f * eps), -(nx0 - nx1) / (2.0f * eps));
+}
+
+// Worley (cellular) noise in the XZ plane.
+// Returns the normalized minimum distance to the nearest random point in a
+// cell grid. Inverted (1 - worley) yields smooth rounded blobs - natural
+// cloud-puff shapes. Altocumulus is physically a cellular cloud type, so
+// Worley noise matches its real morphology (Andrew Schneider, Siggraph 2015:
+// "The Real-Time Volumetric Cloudscapes of Horizon Zero Dawn").
+float WorleyNoise2D(float2 p)
+{
+    float2 ip = floor(p);
+    float minDist = 8.0f;
+    for (int dy = -1; dy <= 1; dy++)
+    for (int dx = -1; dx <= 1; dx++)
+    {
+        float2 cell = ip + float2(dx, dy);
+        float2 pt   = cell + frac(sin(float2(
+            dot(cell, float2(127.1f, 311.7f)),
+            dot(cell, float2(269.5f, 183.3f))
+        )) * 43758.5453123f);
+        minDist = min(minDist, length(p - pt));
+    }
+    return saturate(minDist); // [0, ~1.0]
 }
 
 // Low-frequency FBM (3 octaves) " cloud shape.
@@ -384,17 +423,33 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         float3 windOfs  = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
         float3 p        = skyPos * baseScale + windOfs;
 
-        // Domain warping: break rectangular iso-contours produced by separable
-        // value noise. At large feature scales (low AltoCloudSize) only a few
-        // noise cells are visible, so their straight, grid-aligned edges form
-        // L / T / jigsaw shapes. Two cheap noise evaluations at ~5x the cloud
-        // cell scale displace the FBM input in XZ by up to ~0.28 noise-space
-        // units (???57% of one cloud-cell width), turning straight boundaries
-        // into organic, billowing forms at all zoom levels.
+        // Domain warping via curl noise (divergence-free) eliminates the
+        // grid-aligned jigsaw artifacts that value-noise displacement produces.
+        // Because curl(F) has zero divergence, iso-contour deformation never
+        // creates convergence points where edges pinch into L/T/puzzle corners.
+        //
+        // Amplitudes are matched to the original value-noise warp (±0.14 p-space
+        // units). CurlNoise2D returns a finite-difference gradient whose typical
+        // component magnitude is ~0.4-0.7, so amplitudes of 0.18/0.07 yield
+        // displacements comparable to the original ±0.14 range while remaining
+        // smooth even at zenith where xz-coverage is compressed.
+        //
+        // eps is intentionally wider (0.15/0.10) than the original, giving a
+        // lower-frequency curl field that produces broad organic sweeps rather
+        // than tight wiggles.
+        //
+        // Pass 1: coarse warp - establishes the large organic sweep of each cloud mass.
+        // Pass 2: finer warp  - adds local billow detail at the already-warped position.
         {
-            float3 pW = float3(p.x, 0.0f, p.z) * 0.41f;
-            p.x += (ValueNoise3D(pW + float3(3.17f, 0.0f, 7.63f)) - 0.5f) * 0.28f;
-            p.z += (ValueNoise3D(pW + float3(0.59f, 0.0f, 2.44f)) - 0.5f) * 0.28f;
+            float3 pW  = float3(p.x, 0.0f, p.z) * 0.41f;
+            float2 c1  = CurlNoise2D(pW  + float3(3.17f, 0.0f, 7.63f), 0.15f);
+            p.x += c1.x * 0.18f;
+            p.z += c1.y * 0.18f;
+
+            float3 pW2 = float3(p.x, 0.0f, p.z) * 0.80f;
+            float2 c2  = CurlNoise2D(pW2 + float3(0.59f, 0.0f, 2.44f), 0.10f);
+            p.x += c2.x * 0.07f;
+            p.z += c2.y * 0.07f;
         }
 
         // Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
@@ -402,11 +457,26 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         float dens = FBMAlto5(p * 2.032f, AltoFbmLacunarity, AltoFbmGain,
                               AltoBillowStrength, distLOD);
 
+        // Worley cellular erosion (Guerrilla "Horizon Zero Dawn" technique, Siggraph 2015).
+        // Inverted Worley = smooth rounded blobs that match real altocumulus cell morphology.
+        // Used as an erosion mask: Remap shifts the density base downward inside each cloud
+        // mass, hollowing cell interiors into puffy individual pockets instead of flat plates.
+        // Effect only inside existing cloud masses (dens near 0 -> no change).
+        // Scale 0.55 -> Worley cells are ~55% the size of the FBM first octave so individual
+        // puffs are clearly visible without overpowering the large-scale shape.
+        // Strength 0.24: slightly stronger than original to better dissolve grid-aligned edges
+        // left by value-noise FBM iso-contours without over-fragmenting large cloud masses.
+        {
+            float worley    = WorleyNoise2D(float2(p.x, p.z) * 2.032f * 0.55f);
+            float invWorley = 1.0f - saturate(worley * 1.3f);
+            dens = saturate(Remap(dens, -(invWorley * 0.24f), 1.0f, 0.0f, 1.0f));
+        }
+
         // Reference: dens *= smoothstep(cld_coverage, cld_coverage + .035, dens);
         // Self-referential smoothstep: THE signature look of this shader.
         // AltoCloudAmount controls fill: 0=sparse, 1=overcast.
-        // covThreshold = 1.0 - amount: higher amount ??? lower threshold ??? more clouds.
-        // Default amount=0.6875 ??? thresh=0.3125 ??? matches reference cld_coverage.
+        // covThreshold = 1.0 - amount: higher amount -> lower threshold -> more clouds.
+        // Default amount=0.6875 -> thresh=0.3125 -> matches reference cld_coverage.
         // AltoCloudAmount always controls global density; bias only shifts the spatial balance.
         float effectiveAmount = saturate(AltoCloudAmount + densityShift);
         float covThresh = saturate(1.0f - effectiveAmount);
@@ -472,6 +542,14 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             float bottomFade = smoothstep(threshold, threshold + fadeRange, heightFrac);
             dens *= bottomFade;
         }
+
+        // --- Smooth crown (top fade) ---
+        // Without a top-fade the slab has a hard cutoff at heightFrac=1.0: when AltoThickness
+        // is large the iso-contours of the flat density field become visible as jigsaw edges.
+        // A smoothstep crown fade mirrors AltoBottomSoftness for the top, giving each cloud
+        // mass a naturally tapering, puffy upper boundary regardless of AltoThickness.
+        // Crown fade starts at 65% height and reaches zero at the slab top.
+        dens *= 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
 
         if (dens <= 0.0001f)
             return 0.0f;

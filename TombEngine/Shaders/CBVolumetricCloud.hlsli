@@ -76,7 +76,7 @@ cbuffer CBVolumetricCloud : register(b9)
     //--
     // Row 13 — Altocumulus cloud color
     float3 AltoCloudColor;	 // [0,1] per channel — RGB tint for cloud top/highlights
-    float  AltoThickness;	  // [50,5000]  cloud slab thickness for Altocumulus
+    float  AltoThickness;		  // [50,15000] cloud slab thickness for Altocumulus
     //--
     // Row 14 — Altocumulus dark / shadow color + underside softness
     float3 AltoCloudColorDark; // [0,1] per channel — RGB tint for cloud base/shadow

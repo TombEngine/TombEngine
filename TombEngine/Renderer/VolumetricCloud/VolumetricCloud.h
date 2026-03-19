@@ -120,7 +120,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoCloudColorB    = 1.0f;   // [0,1]      color tint blue
 		float AltoFbmLacunarity  = 2.6434f;// [1.5,4.0]  FBM frequency ratio per octave
 		float AltoFbmGain        = 0.5f;   // [0.1,0.9]  FBM amplitude scaling per octave
-		float AltoThickness      = 1800.0f;// [50,5000]  cloud slab thickness
+		float AltoThickness      = 1800.0f;// [50,15000] cloud slab thickness
 		float AltoCloudColorDarkR = 0.55f; // [0,1]      dark/shadow color tint red
 		float AltoCloudColorDarkG = 0.55f; // [0,1]      dark/shadow color tint green
 		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
