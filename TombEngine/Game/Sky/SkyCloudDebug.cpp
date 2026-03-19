@@ -136,7 +136,9 @@ namespace TEN::Sky
 		params.push_back({"Light Bolt Col R",  &snap.LightningBoltColorR, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorR)});
 		params.push_back({"Light Bolt Col G",  &snap.LightningBoltColorG, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorG)});
 		params.push_back({"Light Bolt Col B",  &snap.LightningBoltColorB, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorB)});
-		params.push_back({"Light Ambient",     &snap.LightningAmbientContrib,0.0f, 1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningAmbientContrib)});
+		params.push_back({"Light Ambient",     &snap.LightningAmbientContrib,    0.0f, 1.0f, 0.01f, "%.3f", def(&VolumetricCloudLayerSnapshot::LightningAmbientContrib)});
+		params.push_back({"Light Bolt Length", &snap.LightningBoltLengthScale,    0.1f, 5.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::LightningBoltLengthScale)});
+		params.push_back({"Light Bolt Thick",  &snap.LightningBoltThicknessScale, 0.001f, 5.0f, 0.05f, "%.3f", def(&VolumetricCloudLayerSnapshot::LightningBoltThicknessScale)});
 
 		return params;
 	}

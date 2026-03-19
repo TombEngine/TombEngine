@@ -1,4 +1,4 @@
-﻿// VolumetricClouds.hlsl Bounded-volume procedural volumetric cloud renderer.
+// VolumetricClouds.hlsl Bounded-volume procedural volumetric cloud renderer.
 //
 // Architecture:
 //   - Rendered as a fullscreen pass AFTER the sky bitmap, BEFORE world geometry.
@@ -1192,6 +1192,121 @@ float ScreenJitter(float2 screenPos)
 }
 
 // ===========================================================================
+// Helper: minimum distance from view ray (ro, rd) to a 3D line segment (A, B).
+// Used by the lightning bolt arc renderer.
+//
+// Based on the standard two-line closest-point formulation.
+// Returns a very large value for degenerate cases (segment too short, or
+// ray nearly parallel to segment pointing toward camera).
+// ===========================================================================
+float RayToSegmentMinDist(float3 ro, float3 rd, float3 A, float3 B)
+{
+    float3 AB = B - A;
+    float3 AO = ro - A;
+
+    float ABlenSq = dot(AB, AB);
+    if (ABlenSq < 0.01f)
+    {
+        // Degenerate: treat as point at A
+        float tRay = max(dot(A - ro, rd), 0.0f);
+        return length(ro + rd * tRay - A);
+    }
+
+    // a = dot(rd, rd) = 1 (rd is normalised)
+    float b = dot(rd, AB);
+    float c = ABlenSq;
+    float d = dot(rd, AO);
+    float e = dot(AB, AO);
+
+    float denom = c - b * b; // = |AB|^2 - (rd.AB)^2  >=0
+
+    float t, s;
+    if (denom < 0.01f)
+    {
+        // Nearly parallel � bolt pointing straight at camera; no visible arc
+        return 1e6f;
+    }
+    else
+    {
+        t = (b * e - c * d) / denom;
+        s = (e - b * d) / denom;
+    }
+
+    t = max(t, 0.0f);        // ray only goes forward
+    s = clamp(s, 0.0f, 1.0f); // clamp to segment endpoints
+
+    float3 P = ro + rd * t;
+    float3 Q = A + AB * s;
+    return length(P - Q);
+}
+
+// Correct 3D distance from view ray (ro, rd normalised) to a bolt segment [A,B].
+//
+// For skew lines the standard closest-approach formula is used.
+// For near-parallel lines (vertical bolt + upward view ray) the formula degenerates;
+// instead we return  length(cross(rd, ro-A))  which is the perpendicular distance
+// from the infinite ray LINE to the infinite segment LINE � constant along the whole
+// segment, so the bolt glows uniformly even when viewed from directly below.
+float BoltSegDist(float3 ro, float3 rd, float3 A, float3 B)
+{
+    float3 AB  = B - A;
+    float3 rA  = ro - A;          // vector from A to ray origin
+    float  ab2 = dot(AB, AB);
+
+    if (ab2 < 0.01f)
+        return length(cross(rd, rA)); // degenerate segment � point A
+
+    float  rdab  = dot(rd, AB);
+    float  denom = ab2 - rdab * rdab; // ab2 * sin�(angle between rd and AB)
+
+    if (denom < 0.0001f * ab2)
+    {
+        // Nearly parallel: perpendicular distance from ray line to segment line.
+        // cross(rd, rA) magnitude = |rA| * sin(angle between rd and rA) = distance
+        // from point A to the infinite ray line �  constant for all points along AB.
+        return length(cross(rd, rA));
+    }
+
+    // Unconstrained closest-approach parameter on segment, then clamp.
+    float  s  = clamp((dot(AB, rA) - rdab * dot(rd, rA)) / denom, 0.0f, 1.0f);
+    float3 Qs = A + AB * s;
+
+    // Closest point on ray to Qs.
+    float  t  = max(dot(rd, Qs - ro), 0.0f);
+    return length(ro + rd * t - Qs);
+}
+
+// ---------------------------------------------------------------------------
+// 1-D smooth value noise + 4-octave FBM for continuous bolt path deflection.
+// Matches the GLSL reference shader's fbm-deflected cylinder approach:
+//   bolt centre at height s = (boltX + FBM(s), Y, boltZ + FBM(s))
+// giving smooth curvature with no endpoint "bead" artefacts.
+// ---------------------------------------------------------------------------
+
+float SmoothNoise1D(float x)
+{
+    float i = floor(x);
+    float f = frac(x);
+    float u = f * f * (3.0f - 2.0f * f);   // Hermite smoothstep
+    float h0 = frac(sin(i          * 127.1f) * 43758.5453f) * 2.0f - 1.0f;
+    float h1 = frac(sin((i + 1.0f) * 127.1f) * 43758.5453f) * 2.0f - 1.0f;
+    return lerp(h0, h1, u);
+}
+
+float BoltFBM(float p)
+{
+    float v = 0.0f, a = 1.0f, fq = 1.0f;
+    [unroll]
+    for (int k = 0; k < 4; k++)
+    {
+        v  += SmoothNoise1D(p * fq + (float)k * 31.71f) * a;
+        a  *= 0.5f;
+        fq *= 2.0f;
+    }
+    return v;   // approximately in [-1, 1]
+}
+
+// ===========================================================================
 // Main cloud raymarch
 // ===========================================================================
 
@@ -1564,6 +1679,240 @@ float4 PS(VSOutput input) : SV_TARGET
         return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     float4 cloudResult = RaymarchClouds(rayOrigin, rayDir, input.Position.xy);
+
+    // --- Lightning bolt arc rendering (AltocumulusMid only) ---
+    // Fully tied to the cloud flash: uses identical flashCycle + hash as the raymarcher.
+    //
+    // KNOT FIX: glow is applied ONCE using the minimum distance to the whole polyline,
+    // not summed per-segment. This prevents the 2� brightness at shared endpoints that
+    // caused bright knots at every segment junction.
+    //
+    // Hash quality: cycleN = frac(flashCycle * f) * 360 keeps sin() arguments in [0,~600].
+    if (CloudType == 2 && LightningEnabled != 0)
+    {
+        float flashCycle = floor(CloudTime * LightningInternalSpeed);
+        float flashFrac  = frac(CloudTime * LightningInternalSpeed);
+        float flashRand  = frac(sin(flashCycle * 127.1f + 311.7f) * 43758.5453f);
+
+        if (flashRand < LightningInternalFreq)
+        {
+            float boltGateRand = frac(sin(flashCycle * 179.3f + 43.7f) * 43758.5453f);
+            if (boltGateRand < LightningStrikeFreq)
+            {
+                float altoExtentXZ = max(CloudBottomHeight * 0.8f, 25000.0f);
+
+                // Flash XZ � bitwise-identical hashes to the raymarcher flash position.
+                float flashR3x = frac(sin(flashCycle * 73.1f + 1.3f) * 43758.5453f);
+                float flashR3z = frac(sin(flashCycle * 53.3f + 3.7f) * 43758.5453f);
+                float boltX    = rayOrigin.x + (flashR3x - 0.5f) * altoExtentXZ;
+                float boltZ    = rayOrigin.z + (flashR3z - 0.5f) * altoExtentXZ;
+
+                float cloudBaseY = rayOrigin.y - CloudBottomHeight;
+                float boltLength = CloudBottomHeight * 0.6f * LightningBoltLengthScale;
+
+                // Radii clamped so bolt stays thin at all cloud heights.
+                float outerR     = clamp(CloudBottomHeight * 0.018f * LightningBoltThicknessScale, 40.0f, 180.0f * LightningBoltThicknessScale);
+                float midR       = outerR * 0.30f;
+                float innerAuraR = outerR * 0.50f;
+                float innerCoreR = outerR * 0.20f;
+
+                float boltPulse = exp(-flashFrac * 5.0f);
+                float cycleN    = frac(flashCycle * 0.6180339887f) * 360.0f;
+
+                // ----------------------------------------------------------------
+                // Build main bolt polyline.
+                // Per-cycle: 40% ? complex (9 segs + 2 forks), 60% ? simple (6 segs + 1 fork).
+                // BoltSegDist is used for all glow distances � it projects onto the
+                // view plane, giving uniform brightness along segments regardless of angle.
+                // ----------------------------------------------------------------
+                bool  isComplex = (frac(sin(cycleN + 91.3f) * 43758.5453f) < 0.4f);
+
+                // Per-cycle FBM seed offsets (golden-ratio and silver-ratio scramble).
+                float seedX = frac(sin(cycleN * 0.6180339887f + 13.7f) * 43758.5453f) * 47.3f;
+                float seedZ = frac(sin(cycleN * 0.7548776662f + 27.1f) * 43758.5453f) * 47.3f;
+
+
+                // FBM bolt path: build array of curve points, then use BoltSegDist on
+                // consecutive segments. Segments fill gaps perfectly (no bead artefact)
+                // while the FBM curvature prevents the "all parallel" case that used to
+                // plague straight bolts.
+                const int BOLT_SAMPLES = 24;
+                float3 boltPath[24];
+                [loop]
+                for (int si = 0; si < BOLT_SAMPLES; si++)
+                {
+                    float  s   = (float)si / (float)(BOLT_SAMPLES - 1);
+                    float  amp = outerR * 1.5f * (1.0f - s * 0.4f);
+                    boltPath[si] = float3(
+                        boltX + BoltFBM(s * 3.0f + seedX) * amp,
+                        cloudBaseY + s * boltLength,
+                        boltZ + BoltFBM(s * 3.0f + seedZ) * amp);
+                }
+
+                float minDistMain = 1e6f;
+                [loop]
+                for (int si = 0; si < BOLT_SAMPLES - 1; si++)
+                    minDistMain = min(minDistMain, BoltSegDist(rayOrigin, rayDir, boltPath[si], boltPath[si + 1]));
+
+                // Fork origins: FBM evaluated at fixed height fractions on the main bolt.
+                float  fo1s   = 0.33f;
+                float  fo1amp = outerR * 1.5f * (1.0f - fo1s * 0.4f);
+                float3 fork1Origin = float3(
+                    boltX + BoltFBM(fo1s * 3.0f + seedX) * fo1amp,
+                    cloudBaseY + fo1s * boltLength,
+                    boltZ + BoltFBM(fo1s * 3.0f + seedZ) * fo1amp);
+
+                // ----------------------------------------------------------------
+                // Fork 1 - always present, branches from fork1Origin (~33% up the main bolt).
+                // FBM path array + BoltSegDist segments - same approach as main bolt.
+                // ----------------------------------------------------------------
+                const int FORK_SAMPLES = 16;
+                float fDX   = (frac(sin(cycleN + 53.1f) * 43758.5453f) - 0.5f) * boltLength * 0.55f;
+                float fDZ   = (frac(sin(cycleN + 61.7f) * 43758.5453f) - 0.5f) * boltLength * 0.55f;
+                float fLenY = boltLength * 0.45f;
+                float fSeedX = frac(sin(cycleN * 0.5f + 19.1f) * 43758.5453f) * 47.3f;
+                float fSeedZ = frac(sin(cycleN * 0.5f + 31.7f) * 43758.5453f) * 47.3f;
+
+                float3 forkPath1[16];
+                [loop]
+                for (int fi = 0; fi < FORK_SAMPLES; fi++)
+                {
+                    float  ff   = (float)fi / (float)(FORK_SAMPLES - 1);
+                    float  famp = outerR * 0.8f * (1.0f - ff * 0.5f);
+                    forkPath1[fi] = float3(
+                        fork1Origin.x + fDX * ff + BoltFBM(ff * 3.0f + fSeedX) * famp,
+                        fork1Origin.y + fLenY * ff,
+                        fork1Origin.z + fDZ * ff + BoltFBM(ff * 3.0f + fSeedZ) * famp);
+                }
+
+                float minDistFork1 = 1e6f;
+                [loop]
+                for (int fi = 0; fi < FORK_SAMPLES - 1; fi++)
+                    minDistFork1 = min(minDistFork1, BoltSegDist(rayOrigin, rayDir, forkPath1[fi], forkPath1[fi + 1]));
+
+                // ----------------------------------------------------------------
+                // Fork 2 - complex bolts only; branches from ~56% up the main bolt.
+                // FBM path array + BoltSegDist segments - masked by fork2Scale.
+                // ----------------------------------------------------------------
+                float  fo2s   = 0.56f;
+                float  fo2amp = outerR * 1.5f * (1.0f - fo2s * 0.4f);
+                float3 fork2Origin = float3(
+                    boltX + BoltFBM(fo2s * 3.0f + seedX) * fo2amp,
+                    cloudBaseY + fo2s * boltLength,
+                    boltZ + BoltFBM(fo2s * 3.0f + seedZ) * fo2amp);
+                float f2DX   = (frac(sin(cycleN + 83.1f) * 43758.5453f) - 0.5f) * boltLength * 0.4f;
+                float f2DZ   = (frac(sin(cycleN + 97.3f) * 43758.5453f) - 0.5f) * boltLength * 0.4f;
+                float f2LenY = boltLength * 0.35f;
+                float f2SeedX = frac(sin(cycleN * 0.5f + 43.9f) * 43758.5453f) * 47.3f;
+                float f2SeedZ = frac(sin(cycleN * 0.5f + 57.3f) * 43758.5453f) * 47.3f;
+
+                float3 forkPath2[16];
+                [loop]
+                for (int fi = 0; fi < FORK_SAMPLES; fi++)
+                {
+                    float  ff   = (float)fi / (float)(FORK_SAMPLES - 1);
+                    float  famp = outerR * 0.8f * (1.0f - ff * 0.5f);
+                    forkPath2[fi] = float3(
+                        fork2Origin.x + f2DX * ff + BoltFBM(ff * 3.0f + f2SeedX) * famp,
+                        fork2Origin.y + f2LenY * ff,
+                        fork2Origin.z + f2DZ * ff + BoltFBM(ff * 3.0f + f2SeedZ) * famp);
+                }
+
+                float minDistFork2 = 1e6f;
+                [loop]
+                for (int fi = 0; fi < FORK_SAMPLES - 1; fi++)
+                    minDistFork2 = min(minDistFork2, BoltSegDist(rayOrigin, rayDir, forkPath2[fi], forkPath2[fi + 1]));
+
+                float fork2Scale = isComplex ? 1.0f : 0.0f;
+
+                // ----------------------------------------------------------------
+                // Glow   applied ONCE per polyline using view-plane projected distance.
+                // ----------------------------------------------------------------
+                float3 boltAccumLight = float3(0.0f, 0.0f, 0.0f);
+                float  boltAccumAlpha = 0.0f;
+
+                // Main bolt glow.
+                {
+                    float d  = minDistMain;
+                    float og = pow(saturate(outerR     / max(d, outerR     * 0.05f)), 0.8f);
+                    float mg = pow(saturate(midR       / max(d, midR       * 0.03f)), 1.4f);
+                    float ag = pow(saturate(innerAuraR / max(d, innerAuraR * 0.02f)), 2.0f);
+                    float ig = pow(saturate(innerCoreR / max(d, innerCoreR * 0.01f)), 3.0f);
+
+                    boltAccumLight += LightningBoltColor * og * LightningGlowIntensity;
+                    boltAccumLight += lerp(LightningBoltColor, float3(0.88f, 0.95f, 1.0f), 0.6f) * mg * (LightningGlowIntensity * 3.5f);
+                    boltAccumLight += float3(0.90f, 0.95f, 1.0f) * ag * (LightningGlowIntensity * 5.0f);
+                    boltAccumLight += float3(0.96f, 0.98f, 1.0f) * ig * (LightningGlowIntensity * 14.0f);
+                    boltAccumAlpha += og + mg * 1.5f + ag * 2.0f + ig * 5.0f;
+                }
+
+                // Fork 1 glow (dimmer, 65% radii).
+                {
+                    float fo = outerR     * 0.65f;
+                    float fm = midR       * 0.65f;
+                    float fa = innerAuraR * 0.65f;
+                    float fc = innerCoreR * 0.65f;
+                    float d  = minDistFork1;
+
+                    float og = pow(saturate(fo / max(d, fo * 0.05f)), 0.8f);
+                    float mg = pow(saturate(fm / max(d, fm * 0.03f)), 1.4f);
+                    float ag = pow(saturate(fa / max(d, fa * 0.02f)), 2.0f);
+                    float ig = pow(saturate(fc / max(d, fc * 0.01f)), 3.0f);
+
+                    boltAccumLight += LightningBoltColor * og * LightningGlowIntensity * 0.6f;
+                    boltAccumLight += lerp(LightningBoltColor, float3(0.88f, 0.95f, 1.0f), 0.6f) * mg * (LightningGlowIntensity * 2.5f);
+                    boltAccumLight += float3(0.90f, 0.95f, 1.0f) * ag * (LightningGlowIntensity * 3.5f);
+                    boltAccumLight += float3(0.96f, 0.98f, 1.0f) * ig * (LightningGlowIntensity * 9.0f);
+                    boltAccumAlpha += og * 0.6f + mg + ag * 1.5f + ig * 3.0f;
+                }
+
+                // Fork 2 glow (complex bolts only, 55% radii, masked by fork2Scale).
+                {
+                    float fo = outerR     * 0.55f;
+                    float fm = midR       * 0.55f;
+                    float fa = innerAuraR * 0.55f;
+                    float fc = innerCoreR * 0.55f;
+                    float d  = minDistFork2;
+
+                    float og = pow(saturate(fo / max(d, fo * 0.05f)), 0.8f);
+                    float mg = pow(saturate(fm / max(d, fm * 0.03f)), 1.4f);
+                    float ag = pow(saturate(fa / max(d, fa * 0.02f)), 2.0f);
+                    float ig = pow(saturate(fc / max(d, fc * 0.01f)), 3.0f);
+
+                    boltAccumLight += (LightningBoltColor * og * LightningGlowIntensity * 0.5f
+                                    + lerp(LightningBoltColor, float3(0.88f, 0.95f, 1.0f), 0.6f) * mg * (LightningGlowIntensity * 2.0f)
+                                    + float3(0.90f, 0.95f, 1.0f) * ag * (LightningGlowIntensity * 3.0f)
+                                    + float3(0.96f, 0.98f, 1.0f) * ig * (LightningGlowIntensity * 7.0f)) * fork2Scale;
+                    boltAccumAlpha += (og * 0.5f + mg * 0.8f + ag * 1.2f + ig * 2.5f) * fork2Scale;
+                }
+
+                boltAccumLight *= boltPulse;
+                boltAccumAlpha *= boltPulse;
+
+                // ----------------------------------------------------------------
+                // Cloud illumination: tint nearby cloud voxels with LightningBoltColor.
+                // The view ray hits the cloud slab at t = CloudBottomHeight / (-rayDir.y).
+                // Horizontal distance from that hit point to the bolt axis drives a
+                // large-radius exponential falloff, modulated by cloud density (alpha)
+                // so only actual cloud pixels receive the illumination tint.
+                // ----------------------------------------------------------------
+                {
+                    float  tCloud     = CloudBottomHeight / max(-rayDir.y, 0.001f);
+                    float3 cloudHitPt = rayOrigin + rayDir * tCloud;
+                    float2 toBot      = float2(cloudHitPt.x - boltX, cloudHitPt.z - boltZ);
+                    float  distXZ     = length(toBot);
+                    float  illumR     = CloudBottomHeight * 1.2f * (1.0f + 0.02f * (LightningBoltLengthScale - 1.0f));
+                    float  illum      = exp(-distXZ / illumR);
+                    cloudResult.rgb  += LightningBoltColor * illum * boltPulse
+                                        * LightningGlowIntensity * 0.25f * cloudResult.a;
+                }
+
+                float boltAlphaContrib = saturate(boltAccumAlpha * 0.5f);
+                cloudResult.rgb += boltAccumLight;
+                cloudResult.a    = max(cloudResult.a, boltAlphaContrib);
+            }
+        }
+    }
 
     // --- Universal thin-edge opacity suppression ---
     // Very low alpha values carry per-pixel jitter noise. Rather than using

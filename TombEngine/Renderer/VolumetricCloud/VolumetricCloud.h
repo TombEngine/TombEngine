@@ -143,6 +143,8 @@ namespace TEN::Renderer::VolumetricCloud
 		float LightningBoltColorB  = 1.0f;
 		float LightningFlashIntensity = 4.0f;
 		float LightningAmbientContrib = 0.15f;
+		float LightningBoltLengthScale    = 1.0f;
+		float LightningBoltThicknessScale = 1.0f;
 
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;

@@ -201,7 +201,9 @@ namespace TEN::Renderer
 		_stVolumetricCloud.LightningBoltColor     = Vector3(settings.LightningBoltColorR,
 		                                                    settings.LightningBoltColorG,
 		                                                    settings.LightningBoltColorB);
-		_stVolumetricCloud.LightningAmbientContrib = settings.LightningAmbientContrib;
+		_stVolumetricCloud.LightningAmbientContrib        = settings.LightningAmbientContrib;
+		_stVolumetricCloud.LightningBoltLengthScale    = settings.LightningBoltLengthScale;
+		_stVolumetricCloud.LightningBoltThicknessScale = settings.LightningBoltThicknessScale;
 
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.
@@ -224,9 +226,6 @@ namespace TEN::Renderer
 				}
 			}
 		}
-		_stVolumetricCloud.SunOccPad0 = 0.0f;
-		_stVolumetricCloud.SunOccPad1 = 0.0f;
-
 		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
 	}
 

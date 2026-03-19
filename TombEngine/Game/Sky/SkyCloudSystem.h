@@ -158,6 +158,8 @@ namespace TEN::Sky
 		float LightningBoltColorB   = 1.0f;  // [0,1]      bolt glow color B
 		float LightningFlashIntensity = 4.0f;// [0.5,15]   internal cloud-flash intensity
 		float LightningAmbientContrib = 0.15f;// [0,1]     how much lightning adds to ambient
+		float LightningBoltLengthScale    = 1.0f; // [0.1,5]   bolt length multiplier
+		float LightningBoltThicknessScale = 1.0f; // [0.1,5]   bolt radius multiplier
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 

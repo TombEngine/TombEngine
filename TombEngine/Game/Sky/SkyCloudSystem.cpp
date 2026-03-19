@@ -113,6 +113,8 @@ namespace TEN::Sky
 		s.LightningBoltColorB   = LightningBoltColorB;
 		s.LightningFlashIntensity = LightningFlashIntensity;
 		s.LightningAmbientContrib = LightningAmbientContrib;
+		s.LightningBoltLengthScale    = LightningBoltLengthScale;
+		s.LightningBoltThicknessScale = LightningBoltThicknessScale;
 
 		return s;
 	}
@@ -172,6 +174,8 @@ namespace TEN::Sky
 		snap.LightningBoltColorB   = src.LightningBoltColorB;
 		snap.LightningFlashIntensity = src.LightningFlashIntensity;
 		snap.LightningAmbientContrib = src.LightningAmbientContrib;
+		snap.LightningBoltLengthScale    = src.LightningBoltLengthScale;
+		snap.LightningBoltThicknessScale = src.LightningBoltThicknessScale;
 
 		return snap;
 	}
@@ -273,6 +277,8 @@ namespace TEN::Sky
 		result.LightningBoltColorB   = LerpFloat(a.LightningBoltColorB,   b.LightningBoltColorB,   t);
 		result.LightningFlashIntensity = LerpFloat(a.LightningFlashIntensity, b.LightningFlashIntensity, t);
 		result.LightningAmbientContrib = LerpFloat(a.LightningAmbientContrib, b.LightningAmbientContrib, t);
+		result.LightningBoltLengthScale    = LerpFloat(a.LightningBoltLengthScale,    b.LightningBoltLengthScale,    t);
+		result.LightningBoltThicknessScale = LerpFloat(a.LightningBoltThicknessScale, b.LightningBoltThicknessScale, t);
 
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
@@ -870,6 +876,8 @@ namespace TEN::Sky
 			b.LightningBoltColorB   = 1.0f;
 			b.LightningFlashIntensity = 4.0f;
 			b.LightningAmbientContrib = 0.15f;
+			b.LightningBoltLengthScale    = 1.0f;
+			b.LightningBoltThicknessScale = 1.0f;
 
 			_presets[def.Type] = def;
 		}

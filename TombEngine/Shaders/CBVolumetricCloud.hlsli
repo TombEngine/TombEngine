@@ -111,8 +111,9 @@ cbuffer CBVolumetricCloud : register(b9)
     float3 LightningBoltColor;	// [0,1] per channel
     float  LightningAmbientContrib;// [0,1]
     //--
-    // Row 20 — Sun screen-space UV for cloud-coverage occlusion sampling.
+    // Row 20 — Sun screen-space UV + bolt scale params.
     // (-1,-1) when no global lens flare is active or sun is behind/off-screen.
     float2 SunScreenUV;
-    float2 SunOccPad;
+    float  LightningBoltLengthScale;    // [0.1,5] bolt length multiplier
+    float  LightningBoltThicknessScale; // [0.1,5] bolt radius multiplier
 };

@@ -118,10 +118,10 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector3 LightningBoltColor;    // [0,1] per channel
 		float   LightningAmbientContrib;// [0,1]
 		//--
-		// Row 20 — Sun screen-space UV for cloud-coverage occlusion sampling.
+		// Row 20 — Sun screen-space UV + bolt scale params.
 		// Set to (-1,-1) when no global lens flare is active or sun is behind camera.
-		Vector2 SunScreenUV;  // projected sun UV in [0,1] x [0,1]
-		float   SunOccPad0;
-		float   SunOccPad1;
+		Vector2 SunScreenUV;               // projected sun UV in [0,1] x [0,1]
+		float   LightningBoltLengthScale;    // [0.1,5] bolt length multiplier
+		float   LightningBoltThicknessScale; // [0.1,5] bolt radius multiplier
 	};
 }
