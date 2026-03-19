@@ -13,6 +13,7 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Sound/sound.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
@@ -114,6 +115,9 @@ namespace TEN::Entities::Creatures::TR1
 
 		SetBigRatWater(item);
 		bool isOnWater = IsBigRatOnWater(item);
+
+		if (item->HitStatus)
+			SoundEffect(SFX_TR1_RAT_CHIRP, &item->Pose);
 
 		if (item->HitPoints <= 0)
 		{

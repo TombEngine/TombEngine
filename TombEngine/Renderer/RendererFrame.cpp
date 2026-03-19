@@ -445,7 +445,7 @@ namespace TEN::Renderer
 			if (item.Model.Color.w < EPSILON)
 				continue;
 
-			if (item.ObjectNumber == ID_LARA && (SpotcamOverlay || SpotcamDontDrawLara))
+			if (item.ObjectNumber == ID_LARA && UseSpotCam && (SpotcamOverlay || SpotcamDontDrawLara))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && CurrentLevel == 0 && !g_GameFlow->IsLaraInTitleEnabled())

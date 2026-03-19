@@ -216,14 +216,16 @@ end
 --- Check if the variable is an enum value.
 -- @tparam variable variable Variable to be checked.
 -- @tparam table enumTable Enum table to be checked against.
--- @tparam[opt=true] bool showError (optional) If `true`, an error message will be printed if the parameters are invalid.
+-- @tparam[opt=true] bool showError (optional) If `true`, an error message will be printed in console if the parameters are invalid.
 -- @treturn bool `true` if the variable is a value of the enum, `false` otherwise.
 -- @usage
 -- -- Example: set flags for DisplayString in a module script
 -- local string = TEN.Strings.DisplayString("Example", TEN.Vec2(50, 50))
 -- LevelFuncs.SetDisplayStringFlags = function (flags)
 --     for _, flag in ipairs(flags) do
---         if not Type.IsEnumValue(flag, TEN.Strings.DisplayStringOption) then
+--         -- Set showError to false to disable the internal error messages,
+--         -- since the function already has its own error handling
+--         if not Type.IsEnumValue(flag, TEN.Strings.DisplayStringOption, false) then
 --             TEN.Util.PrintLog("Invalid flag for DisplayStringOption enum.", TEN.Util.LogLevel.ERROR)
 --             return
 --         end

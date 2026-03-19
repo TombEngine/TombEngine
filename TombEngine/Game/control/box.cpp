@@ -2642,18 +2642,20 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		break;
 
 	case MoodType::Attack:
-		// ATTACK: Go directly to enemy's position.
-		LOT->Target = PredictTargetPosition(*item, *enemy);
-		LOT->RequiredBox = enemy->BoxNumber;
+	{
+	// Flying creatures target enemy's upper body when enemy is not in water.
+	bool isEnemyOnLand = enemy->IsLara()
+		? (GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry)		 // Lara.
+		: !TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber); // Other Creatures.
 
-		// Flying creatures target enemy's upper body when on land.
-		if (LOT->Zone == ZoneType::Flyer && Lara.Control.WaterStatus == WaterStatus::Dry)
-		{
-			auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
-			LOT->Target.y += bounds.Y1;
-		}
+	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand)
+		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
 
-		break;
+	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
+	LOT->RequiredBox = enemy->BoxNumber;
+
+	break;
+	}
 
 	case MoodType::Escape:
 		// ESCAPE: Find boxes far from and away from enemy.
@@ -2899,7 +2901,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	}
 }
 
-Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
+Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem, Vector3i targetOffset)
 {
 	constexpr float PREDICTION_MIN_DISTANCE = BLOCK(0.5f);
 	constexpr float PREDICTION_MAX_DISTANCE = BLOCK(6);
@@ -2908,6 +2910,7 @@ Vector3i PredictTargetPosition(ItemInfo& sourceItem, ItemInfo& targetItem)
 
 	auto sourcePos = sourceItem.Pose.Position;
 	auto targetPos = targetItem.Pose.Position;
+	targetPos += targetOffset;
 
 	auto predictionFactor = g_GameFlow->GetSettings()->Pathfinding.PredictionFactor;
 
