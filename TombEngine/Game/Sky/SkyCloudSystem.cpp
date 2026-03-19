@@ -944,9 +944,23 @@ namespace TEN::Sky
 		{
 			// Transition complete.
 			tr.Progress = 1.0f;
-			_currentState = tr.TargetSnapshot;
+			_currentState  = tr.TargetSnapshot;
 			_currentPreset = tr.Target;
 			tr.Active = false;
+
+			// Auto-chain: if this preset defines a NextPreset, start transitioning immediately.
+			auto it = _presets.find(_currentPreset);
+			if (it != _presets.end() && !it->second.NextPreset.empty())
+			{
+				const auto& chainDef = it->second;
+				float durA = (chainDef.NextPresetTransitionDurationA >= 0.0f)
+					? chainDef.NextPresetTransitionDurationA
+					: chainDef.NextPresetTransitionDuration;
+				float durB = (chainDef.NextPresetTransitionDurationB >= 0.0f)
+					? chainDef.NextPresetTransitionDurationB
+					: chainDef.NextPresetTransitionDuration;
+				TransitionToPreset(StringToPresetType(chainDef.NextPreset), durA, durB);
+			}
 			return;
 		}
 
@@ -954,19 +968,27 @@ namespace TEN::Sky
 		float easedT = ApplyEasing(rawT, tr.Curve);
 		tr.Progress = easedT;
 
-		// Staged transition: high-altitude layers lead.
-		float highT = easedT;
-		float lowT  = easedT;
-		if (tr.HighLayerLeadFraction > 0.0f)
+		// Staged transition: per-layer durations or legacy lead-fraction fallback.
+		float highT, lowT;
+		if (tr.DurationA != tr.DurationB)
 		{
-			// High layers reach completion earlier by the lead fraction.
+			// Explicit per-layer durations — each layer has its own independent timeline.
+			highT = ApplyEasing(std::min(tr.Elapsed / tr.DurationA, 1.0f), tr.Curve);
+			lowT  = ApplyEasing(std::min(tr.Elapsed / tr.DurationB, 1.0f), tr.Curve);
+		}
+		else if (tr.HighLayerLeadFraction > 0.0f)
+		{
+			// Legacy lead-fraction staging (equal DurationA/B).
 			float highRaw = std::clamp(rawT / (1.0f - tr.HighLayerLeadFraction), 0.0f, 1.0f);
 			highT = ApplyEasing(highRaw, tr.Curve);
-
-			// Low layers start slightly later.
 			float lowRaw = std::clamp((rawT - tr.HighLayerLeadFraction) /
 				(1.0f - tr.HighLayerLeadFraction), 0.0f, 1.0f);
 			lowT = ApplyEasing(lowRaw, tr.Curve);
+		}
+		else
+		{
+			highT = easedT;
+			lowT  = easedT;
 		}
 
 		// Interpolate each component separately for staged transitions.
@@ -998,6 +1020,19 @@ namespace TEN::Sky
 		_transition.Active = false;
 		_currentPreset = preset;
 		_currentState = it->second.TargetState;
+
+		// Auto-chain: if this preset defines a NextPreset, start transitioning immediately.
+		const auto& def = it->second;
+		if (!def.NextPreset.empty())
+		{
+			float durA = (def.NextPresetTransitionDurationA >= 0.0f)
+				? def.NextPresetTransitionDurationA
+				: def.NextPresetTransitionDuration;
+			float durB = (def.NextPresetTransitionDurationB >= 0.0f)
+				? def.NextPresetTransitionDurationB
+				: def.NextPresetTransitionDuration;
+			TransitionToPreset(StringToPresetType(def.NextPreset), durA, durB);
+		}
 	}
 
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1013,13 +1048,53 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		const auto& def = it->second;
+
+		// Resolve per-layer durations: use stored defaults if set (>= 0), else use durationSeconds.
+		float effA = (def.TransitionDurationA >= 0.0f) ? def.TransitionDurationA : durationSeconds;
+		float effB = (def.TransitionDurationB >= 0.0f) ? def.TransitionDurationB : durationSeconds;
+
+		// When no per-layer override, apply legacy HighLayerLeadFraction to derive A duration.
+		if (def.TransitionDurationA < 0.0f && def.TransitionDurationB < 0.0f && def.HighLayerLeadFraction > 0.0f)
+			effA = durationSeconds * (1.0f - def.HighLayerLeadFraction);
+
 		auto& tr = _transition;
 		tr.Active           = true;
 		tr.Source            = _currentPreset;
 		tr.Target            = preset;
-		tr.SourceSnapshot    = _currentState; // Capture current blended state as source.
+		tr.SourceSnapshot    = _currentState;
+		tr.TargetSnapshot    = def.TargetState;
+		tr.DurationA         = std::max(effA, 0.1f);
+		tr.DurationB         = std::max(effB, 0.1f);
+		tr.Duration          = std::max(tr.DurationA, tr.DurationB);
+		tr.Elapsed           = 0.0f;
+		tr.Progress          = 0.0f;
+		tr.Curve             = curve;
+		tr.HighLayerLeadFraction = def.HighLayerLeadFraction;
+	}
+
+	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
+	                                         EasingCurve curve)
+	{
+		if (preset == WeatherPresetType::Random)
+		{
+			StartRandomWeather(120.0f, std::max(durationASeconds, durationBSeconds), curve);
+			return;
+		}
+
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		auto& tr = _transition;
+		tr.Active           = true;
+		tr.Source            = _currentPreset;
+		tr.Target            = preset;
+		tr.SourceSnapshot    = _currentState;
 		tr.TargetSnapshot    = it->second.TargetState;
-		tr.Duration          = std::max(durationSeconds, 0.1f);
+		tr.DurationA         = std::max(durationASeconds, 0.1f);
+		tr.DurationB         = std::max(durationBSeconds, 0.1f);
+		tr.Duration          = std::max(tr.DurationA, tr.DurationB);
 		tr.Elapsed           = 0.0f;
 		tr.Progress          = 0.0f;
 		tr.Curve             = curve;
@@ -1364,6 +1439,12 @@ namespace TEN::Sky
 		info.CurrentPreset        = _currentPreset;
 		info.TargetPreset         = GetTargetPreset();
 		info.TransitionProgress   = GetTransitionProgress();
+		// Show pending auto-chain preset if one is configured for the current preset.
+		{
+			auto it = _presets.find(_currentPreset);
+			if (it != _presets.end())
+				info.NextPreset = it->second.NextPreset;
+		}
 		info.RandomModeActive     = _randomWeather.Active;
 		info.RandomDwellRemaining = std::max(0.0f, _randomWeather.DwellTime - _randomWeather.DwellElapsed);
 		info.Layer1Enabled        = _currentState.Layer1.Enabled;

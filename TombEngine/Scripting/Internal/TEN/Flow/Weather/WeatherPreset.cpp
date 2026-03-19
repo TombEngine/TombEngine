@@ -342,12 +342,22 @@ namespace TEN::Scripting
 					return static_cast<float>(tbl.get_or(key, fallback));
 				};
 
-				def.DefaultTransitionDuration = tf(definition, "transitionDuration",
-					(double)def.DefaultTransitionDuration);
-				def.RandomWeight = std::max(tf(definition, "randomWeight",
+			def.DefaultTransitionDuration = tf(definition, "transitionDuration",
+				(double)def.DefaultTransitionDuration);
+			// Per-layer transition durations. -1 = not explicitly set; inherits durationSeconds at transition time.
+			def.TransitionDurationA = (float)definition.get_or("transitionDurationA", -1.0);
+			def.TransitionDurationB = (float)definition.get_or("transitionDurationB", -1.0);
+			def.RandomWeight = std::max(tf(definition, "randomWeight",
 					(double)def.RandomWeight), 0.0f);
-				def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
+			def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
 					(double)def.HighLayerLeadFraction), 0.0f, 1.0f);
+
+			// Auto-chain: next preset to transition to after this one becomes active.
+			def.NextPreset = definition.get_or("nextPreset", std::string(""));
+			def.NextPresetTransitionDuration  = std::max(tf(definition, "nextTransitionDuration",
+				(double)def.NextPresetTransitionDuration), 0.1f);
+			def.NextPresetTransitionDurationA = (float)definition.get_or("nextTransitionDurationA", -1.0);
+			def.NextPresetTransitionDurationB = (float)definition.get_or("nextTransitionDurationB", -1.0);
 
 				sol::optional<sol::table> cloudATbl = definition["cloudA"];
 				if (cloudATbl.has_value())

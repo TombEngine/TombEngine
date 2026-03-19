@@ -402,6 +402,9 @@ namespace TEN::Sky
 				ImGui::TextDisabled("No active transition");
 			}
 
+			if (!info.NextPreset.empty())
+				ImGui::Text("Auto-chain -> %s", info.NextPreset.c_str());
+
 			ImGui::Separator();
 
 			ImGui::Text("Random Weather: %s", info.RandomModeActive ? "ACTIVE" : "OFF");
@@ -456,12 +459,32 @@ namespace TEN::Sky
 
 				ImGui::SameLine();
 
-				static float transitionDuration = 30.0f;
-				ImGui::SetNextItemWidth(100.0f);
-				ImGui::DragFloat("##transDur", &transitionDuration, 1.0f, 1.0f, 300.0f, "%.0f s");
+				static float transDurA = 30.0f;
+				static float transDurB = 30.0f;
+				static int   lastPresetForDur = -1;
+
+				// Auto-fill from preset definition when selection changes.
+				if (selectedPresetIdx != lastPresetForDur)
+				{
+					lastPresetForDur = selectedPresetIdx;
+					const auto* selDef = g_SkyCloudSystem.GetPresetDefinition(selectedType);
+					if (selDef)
+					{
+						transDurA = (selDef->TransitionDurationA >= 0.0f) ? selDef->TransitionDurationA : selDef->DefaultTransitionDuration;
+						transDurB = (selDef->TransitionDurationB >= 0.0f) ? selDef->TransitionDurationB : selDef->DefaultTransitionDuration;
+					}
+				}
+
+				ImGui::Text("Transition:");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(80.0f);
+				ImGui::DragFloat("A##transDurA", &transDurA, 1.0f, 1.0f, 300.0f, "%.0f s");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(80.0f);
+				ImGui::DragFloat("B##transDurB", &transDurB, 1.0f, 1.0f, 300.0f, "%.0f s");
 				ImGui::SameLine();
 				if (ImGui::Button("Transition"))
-					g_SkyCloudSystem.TransitionToPreset(selectedType, transitionDuration);
+					g_SkyCloudSystem.TransitionToPreset(selectedType, transDurA, transDurB);
 
 				if (g_SkyCloudSystem.IsTransitioning())
 				{
@@ -540,10 +563,34 @@ namespace TEN::Sky
 				if (def)
 				{
 					ImGui::Text("Name: %s", def->Name.c_str());
-					ImGui::DragFloat("Transition Duration", &def->DefaultTransitionDuration, 1.0f, 1.0f, 300.0f, "%.0f s");
+					ImGui::DragFloat("Default Transition",  &def->DefaultTransitionDuration, 1.0f, 1.0f, 300.0f, "%.0f s");
+					// Per-layer durations: -1 means "inherit DefaultTransition at runtime".
+					ImGui::DragFloat("Transition A (Layer A)", &def->TransitionDurationA, 1.0f, -1.0f, 300.0f,
+						def->TransitionDurationA < 0.0f ? "(inherit default)" : "%.0f s");
+					ImGui::DragFloat("Transition B (Layer B)", &def->TransitionDurationB, 1.0f, -1.0f, 300.0f,
+						def->TransitionDurationB < 0.0f ? "(inherit default)" : "%.0f s");
 					ImGui::DragFloat("Random Weight", &def->RandomWeight, 0.1f, 0.0f, 10.0f, "%.1f");
 					ImGui::Checkbox("Allow in Random", &def->AllowInRandom);
-					ImGui::DragFloat("High Layer Lead", &def->HighLayerLeadFraction, 0.01f, 0.0f, 1.0f, "%.2f");
+					ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f, 0.0f, 1.0f, "%.2f");
+
+					ImGui::Separator();
+					ImGui::Text("Auto-Chain (NextPreset)");
+					// Editable next-preset name.
+					static char nextPresetBuf[64] = {};
+					if (ImGui::IsWindowAppearing())
+						strncpy_s(nextPresetBuf, def->NextPreset.c_str(), sizeof(nextPresetBuf) - 1);
+					if (ImGui::InputText("Next Preset##chain", nextPresetBuf, sizeof(nextPresetBuf)))
+						def->NextPreset = nextPresetBuf;
+					ImGui::DragFloat("Next Trans Default##chain",  &def->NextPresetTransitionDuration,  1.0f, 0.1f, 300.0f, "%.0f s");
+					ImGui::DragFloat("Next Trans A##chain", &def->NextPresetTransitionDurationA, 1.0f, -1.0f, 300.0f,
+						def->NextPresetTransitionDurationA < 0.0f ? "(inherit default)" : "%.0f s");
+					ImGui::DragFloat("Next Trans B##chain", &def->NextPresetTransitionDurationB, 1.0f, -1.0f, 300.0f,
+						def->NextPresetTransitionDurationB < 0.0f ? "(inherit default)" : "%.0f s");
+					if (ImGui::Button("Clear Auto-Chain"))
+					{
+						def->NextPreset = "";
+						nextPresetBuf[0] = '\0';
+					}
 
 					ImGui::Separator();
 					DrawLayerSection("Preset Cloud A", "defA", def->TargetState.CloudA, nullptr);

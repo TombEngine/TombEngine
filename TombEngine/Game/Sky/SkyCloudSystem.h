@@ -236,6 +236,13 @@ namespace TEN::Sky
 		// > 0 = higher-altitude layers lead by this fraction of the total duration.
 		// Superseded by TransitionDurationA / TransitionDurationB when those are >= 0.
 		float HighLayerLeadFraction     = 0.0f;
+
+		// Auto-chain: once this preset becomes active, immediately start transitioning to NextPreset.
+		// Empty string = no chaining.
+		std::string NextPreset                    = "";
+		float       NextPresetTransitionDuration  = 30.0f; // seconds for the chained transition.
+		float       NextPresetTransitionDurationA = -1.0f; // < 0 = inherit NextPresetTransitionDuration.
+		float       NextPresetTransitionDurationB = -1.0f; // < 0 = inherit NextPresetTransitionDuration.
 	};
 
 	// ====================================================================
@@ -351,6 +358,7 @@ namespace TEN::Sky
 			WeatherPresetType CurrentPreset   = WeatherPresetType::ClearSky;
 			WeatherPresetType TargetPreset    = WeatherPresetType::ClearSky;
 			float TransitionProgress          = 0.0f;
+			std::string NextPreset            = "";   // Name of the chained preset (empty = none).
 			bool  RandomModeActive            = false;
 			float RandomDwellRemaining        = 0.0f;
 			bool  Layer1Enabled               = false;
