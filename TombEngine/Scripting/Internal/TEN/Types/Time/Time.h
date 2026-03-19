@@ -16,7 +16,7 @@ namespace TEN::Scripting
 		// Constructors
 
 		Time() = default;
-		Time(float gameFrames);
+		Time(int gameFrames);
 		Time(const std::string& formattedTime);
 		Time(const sol::table& hmsTable);
 
