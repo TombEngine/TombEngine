@@ -179,6 +179,30 @@ namespace TEN::Renderer
 		                                                settings.AltoCloudColorDarkB);
 		_stVolumetricCloud.AltoBottomSoftness = settings.AltoBottomSoftness;
 
+		// AltocumulusMid sky-height redistribution parameters
+		_stVolumetricCloud.AltoZenithBias        = settings.AltoZenithBias;
+		_stVolumetricCloud.AltoHtPad3 = 0.0f;
+		_stVolumetricCloud.AltoHtPad4 = 0.0f;
+		_stVolumetricCloud.AltoHtPad5 = 0.0f;
+		_stVolumetricCloud.AltoHeightBlendPower  = settings.AltoHeightBlendPower;
+		_stVolumetricCloud.AltoHtPad0 = 0.0f;
+		_stVolumetricCloud.AltoHtPad1 = 0.0f;
+		_stVolumetricCloud.AltoHtPad2 = 0.0f;
+
+		// Lightning parameters
+		_stVolumetricCloud.LightningEnabled       = settings.LightningEnabled;
+		_stVolumetricCloud.LightningStrikeFreq    = settings.LightningStrikeFreq;
+		_stVolumetricCloud.LightningInternalFreq  = settings.LightningInternalFreq;
+		_stVolumetricCloud.LightningPad           = 0.0f;
+		_stVolumetricCloud.LightningSpeed         = settings.LightningSpeed;
+		_stVolumetricCloud.LightningInternalSpeed = settings.LightningInternalSpeed;
+		_stVolumetricCloud.LightningGlowIntensity = settings.LightningGlowIntensity;
+		_stVolumetricCloud.LightningFlashIntensity = settings.LightningFlashIntensity;
+		_stVolumetricCloud.LightningBoltColor     = Vector3(settings.LightningBoltColorR,
+		                                                    settings.LightningBoltColorG,
+		                                                    settings.LightningBoltColorB);
+		_stVolumetricCloud.LightningAmbientContrib = settings.LightningAmbientContrib;
+
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.
 		_stVolumetricCloud.SunScreenUV = Vector2(-1.0f, -1.0f); // default: no sun / off-screen

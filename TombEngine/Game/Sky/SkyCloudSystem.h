@@ -44,11 +44,12 @@ namespace TEN::Sky
 
 	enum class CloudCategory
 	{
-		None,                // No clouds / clear sky
-		CirrusHigh,         // Thin, wispy, high altitude
-		AltocumulusMid,     // Patchy, medium altitude, moderate density
-		StratocumulusLow,   // Dense, low altitude, broad coverage
-		CumulonimbusVertical // Strong vertical development, storm-capable
+		None,                       // No clouds / clear sky
+		CirrusHigh,                 // Thin, wispy, high altitude
+		AltocumulusMid,             // Patchy, medium altitude, moderate density
+		StratocumulusLow,           // Dense, low altitude, broad coverage
+		CumulonimbusVertical,       // Strong vertical development, storm-capable
+		CumulonimbusVerticalBuildUp  // Distant horizon tower buildup (pre-storm)
 	};
 
 	// ====================================================================
@@ -140,6 +141,24 @@ namespace TEN::Sky
 		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
 		float AltoBottomSoftness  = 0.35f; // [0,1]      0=flat bottom, 1=organic underside
 
+		// Altocumulus sky-height redistribution (only meaningful for Category == AltocumulusMid)
+		// 0 = uniform. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
+		float AltoZenithBias       = 0.0f; // [-1,1]  cloud distribution bias
+		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp
+
+		// Lightning parameters (only for AltocumulusMid — internal flash + bolt glow)
+		bool  LightningEnabled      = false;
+		float LightningStrikeFreq   = 0.1f;  // [0,1]      probability of visible bolt per cycle
+		float LightningInternalFreq = 0.5f;  // [0,1]      probability of internal flash per cycle
+		float LightningSpeed        = 2.5f;  // [0.5,10]   cycle speed
+		float LightningInternalSpeed = 5.0f; // [1,20]     internal flash source movement speed
+		float LightningGlowIntensity = 3.0f; // [0.5,10]   glow strength
+		float LightningBoltColorR   = 0.3f;  // [0,1]      bolt glow color R
+		float LightningBoltColorG   = 0.6f;  // [0,1]      bolt glow color G
+		float LightningBoltColorB   = 1.0f;  // [0,1]      bolt glow color B
+		float LightningFlashIntensity = 4.0f;// [0.5,15]   internal cloud-flash intensity
+		float LightningAmbientContrib = 0.15f;// [0,1]     how much lightning adds to ambient
+
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 
 		// Convert to/from the renderer's CloudRenderSettings.
@@ -201,15 +220,21 @@ namespace TEN::Sky
 		// Transition defaults (seconds).
 		float DefaultTransitionDuration = 30.0f;
 
+		// Per-layer transition durations (seconds).
+		// Negative value = use DefaultTransitionDuration as fallback.
+		float TransitionDurationA = -1.0f;  // CloudA transition time. < 0 means inherit DefaultTransitionDuration.
+		float TransitionDurationB = -1.0f;  // CloudB transition time. < 0 means inherit DefaultTransitionDuration.
+
 		// Random weather config.
 		float RandomWeight              = 1.0f;    // Probability weight for random selection.
 		bool  AllowInRandom             = true;     // Can this preset be picked by random mode?
 
-		// Optional transition hints.
+		// Optional transition hints (legacy).
 		// If the transition FROM this preset should stage certain params first
 		// (e.g., cirrus appears before lower clouds fill in), define a staging factor.
 		// 0.0 = everything transitions together (default).
 		// > 0 = higher-altitude layers lead by this fraction of the total duration.
+		// Superseded by TransitionDurationA / TransitionDurationB when those are >= 0.
 		float HighLayerLeadFraction     = 0.0f;
 	};
 
@@ -224,11 +249,13 @@ namespace TEN::Sky
 		WeatherPresetType Target   = WeatherPresetType::ClearSky;
 		SkyCloudSnapshot  SourceSnapshot = {};
 		SkyCloudSnapshot  TargetSnapshot = {};
-		float Duration              = 30.0f;   // Total transition time (seconds).
+		float Duration              = 30.0f;   // Total transition time = max(DurationA, DurationB).
+		float DurationA             = 30.0f;   // CloudA transition duration (seconds).
+		float DurationB             = 30.0f;   // CloudB transition duration (seconds).
 		float Elapsed               = 0.0f;    // Time elapsed.
-		float Progress              = 0.0f;    // [0, 1] eased.
+		float Progress              = 0.0f;    // [0, 1] eased (based on Duration).
 		EasingCurve Curve           = EasingCurve::SmoothStep;
-		float HighLayerLeadFraction = 0.0f;
+		float HighLayerLeadFraction = 0.0f;    // Legacy; overridden by DurationA/B when both >= 0.
 	};
 
 	// ====================================================================
@@ -267,6 +294,9 @@ namespace TEN::Sky
 		// --- Preset control ---
 		void SetPresetImmediate(WeatherPresetType preset);
 		void TransitionToPreset(WeatherPresetType preset, float durationSeconds,
+		                         EasingCurve curve = EasingCurve::SmoothStep);
+		// Per-layer duration overload: CloudA and CloudB transition independently.
+		void TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
 		                        EasingCurve curve = EasingCurve::SmoothStep);
 		void InterruptTransition(); // Stop mid-transition, keep current blended state.
 

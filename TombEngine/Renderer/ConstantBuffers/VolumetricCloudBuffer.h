@@ -89,7 +89,36 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector3 AltoCloudColorDark;// [0,1] per channel — RGB tint for cloud base/shadow
 		float   AltoBottomSoftness;// [0,1] 0=flat slab bottom, 1=organic irregular underside
 		//--
-		// Row 15 — Sun screen-space UV for cloud-coverage occlusion sampling.
+		// Row 15 — Altocumulus sky-height redistribution
+		// 0 = uniform distribution. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
+		float   AltoZenithBias;   // [-1,1]  cloud distribution bias
+		float   AltoHtPad3;
+		float   AltoHtPad4;
+		float   AltoHtPad5;
+		//--
+		// Row 16 — Altocumulus sky-height modulation (continued)
+		float   AltoHeightBlendPower;   // [0.25,4]  exponent on the skyHeight ramp
+		float   AltoHtPad0;
+		float   AltoHtPad1;
+		float   AltoHtPad2;
+		//--
+		// Row 17 — Lightning enable + frequencies
+		int     LightningEnabled;      // 0 or 1
+		float   LightningStrikeFreq;   // [0,1]
+		float   LightningInternalFreq; // [0,1]
+		float   LightningPad;
+		//--
+		// Row 18 — Lightning speed + glow
+		float   LightningSpeed;        // [0.5,10]
+		float   LightningInternalSpeed;// [1,20]
+		float   LightningGlowIntensity;// [0.5,10]
+		float   LightningFlashIntensity;// [0.5,15]
+		//--
+		// Row 19 — Lightning bolt color + ambient
+		Vector3 LightningBoltColor;    // [0,1] per channel
+		float   LightningAmbientContrib;// [0,1]
+		//--
+		// Row 20 — Sun screen-space UV for cloud-coverage occlusion sampling.
 		// Set to (-1,-1) when no global lens flare is active or sun is behind camera.
 		Vector2 SunScreenUV;  // projected sun UV in [0,1] x [0,1]
 		float   SunOccPad0;

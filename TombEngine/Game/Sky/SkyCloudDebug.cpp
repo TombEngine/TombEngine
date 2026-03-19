@@ -39,8 +39,9 @@ namespace TEN::Sky
 		case CloudCategory::CirrusHigh:           return "CirrusHigh";
 		case CloudCategory::AltocumulusMid:       return "AltocumulusMid";
 		case CloudCategory::StratocumulusLow:     return "StratocumulusLow";
-		case CloudCategory::CumulonimbusVertical: return "CumulonimbusVertical";
-		default:                                  return "Unknown";
+		case CloudCategory::CumulonimbusVertical:        return "CumulonimbusVertical";
+		case CloudCategory::CumulonimbusVerticalBuildUp: return "CumulonimbusVerticalBuildUp";
+		default:                                         return "Unknown";
 		}
 	}
 
@@ -76,6 +77,8 @@ namespace TEN::Sky
 			return defaults ? defaults->*member : 0.0f;
 		};
 
+		const bool isAlto = (snap.Category == CloudCategory::AltocumulusMid);
+
 		std::vector<CloudDebugParam> params;
 
 		//                Label               Ptr                       Min      Max       Step       Fmt         Default
@@ -87,16 +90,20 @@ namespace TEN::Sky
 		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
 		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
-		// Practical ranges for current volumetric shader tuning:
-		// ShapeScale remains linear and most useful up to ~0.000135.
-		// Above this, the shader applies a soft-cap, so large debug ranges are
-		// mostly noise and make the UI harder to tune precisely.
-		params.push_back({"Shape Scale",      &snap.ShapeScale,         0.0f,    0.0006f, 0.000001f, "%.6f",     def(&VolumetricCloudLayerSnapshot::ShapeScale)});
-		params.push_back({"Detail Scale",     &snap.DetailScale,        0.0f,    0.003f,  0.00001f,  "%.5f",     def(&VolumetricCloudLayerSnapshot::DetailScale)});
-		params.push_back({"Detail Strength",  &snap.DetailStrength,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DetailStrength)});
-		params.push_back({"Absorption",       &snap.Absorption,         0.0f,    25.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Absorption)});
-		params.push_back({"Ambient Contrib",  &snap.AmbientContrib,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AmbientContrib)});
-		params.push_back({"Silverlining",     &snap.SilverliningStr,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::SilverliningStr)});
+		// Not used by Alto's self-contained density/lighting path.
+		if (!isAlto)
+		{
+			// Practical ranges for current volumetric shader tuning:
+			// ShapeScale remains linear and most useful up to ~0.000135.
+			// Above this, the shader applies a soft-cap, so large debug ranges are
+			// mostly noise and make the UI harder to tune precisely.
+			params.push_back({"Shape Scale",      &snap.ShapeScale,         0.0f,    0.0006f, 0.000001f, "%.6f",     def(&VolumetricCloudLayerSnapshot::ShapeScale)});
+			params.push_back({"Detail Scale",     &snap.DetailScale,        0.0f,    0.003f,  0.00001f,  "%.5f",     def(&VolumetricCloudLayerSnapshot::DetailScale)});
+			params.push_back({"Detail Strength",  &snap.DetailStrength,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DetailStrength)});
+			params.push_back({"Absorption",       &snap.Absorption,         0.0f,    25.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Absorption)});
+			params.push_back({"Ambient Contrib",  &snap.AmbientContrib,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AmbientContrib)});
+			params.push_back({"Silverlining",     &snap.SilverliningStr,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::SilverliningStr)});
+		}
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
 		params.push_back({"Distance Fade",    &snap.DistanceFade,       0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DistanceFade)});
 		// --- Altocumulus-specific parameters (meaningful only when Category == AltocumulusMid) ---
@@ -116,6 +123,20 @@ namespace TEN::Sky
 		params.push_back({"Alto FBM Gain",    &snap.AltoFbmGain,        0.1f,    0.9f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoFbmGain)});
 		params.push_back({"Alto Thickness",   &snap.AltoThickness,      50.0f, 5000.0f,    50.0f,    "%.0f",     def(&VolumetricCloudLayerSnapshot::AltoThickness)});
 		params.push_back({"Alto Bot Soft",     &snap.AltoBottomSoftness,  0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoBottomSoftness)});
+		// --- AltocumulusMid cloud distribution: 0=uniform, (+)=more toward horizon, (-)=more toward zenith ---
+		params.push_back({"Cloud Distribution", &snap.AltoZenithBias,      -1.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoZenithBias)});
+		params.push_back({"Alto Height Power",  &snap.AltoHeightBlendPower, 0.25f,  4.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHeightBlendPower)});
+		// --- Lightning parameters (Alto and Cumulonimbus) ---
+		params.push_back({"Light Strike Freq", &snap.LightningStrikeFreq, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningStrikeFreq)});
+		params.push_back({"Light Int Freq",    &snap.LightningInternalFreq,0.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningInternalFreq)});
+		params.push_back({"Light Speed",       &snap.LightningSpeed,      0.1f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningSpeed)});
+		params.push_back({"Light Int Speed",   &snap.LightningInternalSpeed,0.1f,  5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningInternalSpeed)});
+		params.push_back({"Light Glow Int",    &snap.LightningGlowIntensity,0.0f,  5.0f,     0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::LightningGlowIntensity)});
+		params.push_back({"Light Flash Int",   &snap.LightningFlashIntensity,0.0f, 5.0f,     0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::LightningFlashIntensity)});
+		params.push_back({"Light Bolt Col R",  &snap.LightningBoltColorR, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorR)});
+		params.push_back({"Light Bolt Col G",  &snap.LightningBoltColorG, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorG)});
+		params.push_back({"Light Bolt Col B",  &snap.LightningBoltColorB, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningBoltColorB)});
+		params.push_back({"Light Ambient",     &snap.LightningAmbientContrib,0.0f, 1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningAmbientContrib)});
 
 		return params;
 	}
@@ -192,7 +213,7 @@ namespace TEN::Sky
 	static bool DrawCategoryCombo(const char* label, CloudCategory& category)
 	{
 		static const char* names[] = {
-			"None", "CirrusHigh", "AltocumulusMid", "StratocumulusLow", "CumulonimbusVertical"
+			"None", "CirrusHigh", "AltocumulusMid", "StratocumulusLow", "CumulonimbusVertical", "CumulonimbusVerticalBuildUp"
 		};
 		int current = static_cast<int>(category);
 		bool changed = false;
@@ -271,15 +292,19 @@ namespace TEN::Sky
 
 		// One-click pattern presets for requested cloud types.
 		if (snap.Category == CloudCategory::AltocumulusMid ||
-			snap.Category == CloudCategory::CirrusHigh)
+			snap.Category == CloudCategory::CirrusHigh ||
+			snap.Category == CloudCategory::CumulonimbusVertical ||
+			snap.Category == CloudCategory::CumulonimbusVerticalBuildUp)
 		{
 			if (ImGui::Button("Apply Tuned Pattern"))
 				ApplyPatternPresetForCategory(snap);
 			ImGui::SameLine();
 			if (snap.Category == CloudCategory::AltocumulusMid)
 				ImGui::TextDisabled("Altocumulus grouping (Schaefchen)");
-			else
+			else if (snap.Category == CloudCategory::CirrusHigh)
 				ImGui::TextDisabled("Elongated Cirrus wisps (Federwolken)");
+			else
+				ImGui::TextDisabled("Storm tower defaults (Cumulonimbus)");
 		}
 
 		ImGui::Separator();
@@ -313,6 +338,17 @@ namespace TEN::Sky
 				snap.AltoCloudColorDarkG = darkColor[1];
 				snap.AltoCloudColorDarkB = darkColor[2];
 			}
+			ImGui::TextDisabled("Lightning Bolt Color");
+			float boltColor[3] = { snap.LightningBoltColorR, snap.LightningBoltColorG, snap.LightningBoltColorB };
+			char boltColorId[128];
+			snprintf(boltColorId, sizeof(boltColorId), "Bolt Color##%s", idPrefix);
+			if (ImGui::ColorEdit3(boltColorId, boltColor))
+			{
+				snap.LightningBoltColorR = boltColor[0];
+				snap.LightningBoltColorG = boltColor[1];
+				snap.LightningBoltColorB = boltColor[2];
+			}
+			ImGui::Checkbox("Lightning Enabled", &snap.LightningEnabled);
 		}
 
 		// Reset all button.

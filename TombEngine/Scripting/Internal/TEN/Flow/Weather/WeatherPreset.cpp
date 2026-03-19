@@ -70,6 +70,21 @@ namespace TEN::Scripting
 		snap.AltoFbmGain         = std::clamp(tf("altoFbmGain",         0.5   ), 0.0f, 1.0f);
 		snap.AltoThickness       = std::max(  tf("altoThickness",       1800.0), 1.0f);
 		snap.AltoBottomSoftness  = std::clamp(tf("altoBottomSoftness",  0.35  ), 0.0f, 1.0f);
+		snap.AltoZenithBias      = std::clamp(tf("altoZenithBias",       0.0  ), -1.0f, 1.0f);
+		snap.AltoHeightBlendPower= std::clamp(tf("altoHeightBlendPower", 1.0  ), 0.25f, 4.0f);
+
+		// Lightning parameters (AltocumulusMid only).
+		snap.LightningEnabled        = table.get_or("lightningEnabled",        false);
+		snap.LightningStrikeFreq     = std::clamp(tf("lightningStrikeFreq",     0.1  ), 0.0f,  1.0f);
+		snap.LightningInternalFreq   = std::clamp(tf("lightningInternalFreq",   0.5  ), 0.0f,  1.0f);
+		snap.LightningSpeed          = std::clamp(tf("lightningSpeed",          2.5  ), 0.5f, 10.0f);
+		snap.LightningInternalSpeed  = std::clamp(tf("lightningInternalSpeed",  5.0  ), 1.0f, 20.0f);
+		snap.LightningGlowIntensity  = std::clamp(tf("lightningGlowIntensity",  3.0  ), 0.5f, 10.0f);
+		snap.LightningBoltColorR     = std::clamp(tf("lightningBoltColorR",     0.3  ), 0.0f,  1.0f);
+		snap.LightningBoltColorG     = std::clamp(tf("lightningBoltColorG",     0.6  ), 0.0f,  1.0f);
+		snap.LightningBoltColorB     = std::clamp(tf("lightningBoltColorB",     1.0  ), 0.0f,  1.0f);
+		snap.LightningFlashIntensity = std::clamp(tf("lightningFlashIntensity", 4.0  ), 0.5f, 15.0f);
+		snap.LightningAmbientContrib = std::clamp(tf("lightningAmbientContrib", 0.15 ), 0.0f,  1.0f);
 
 		// Quality string -> enum.
 		std::string qualStr = table.get_or("quality", std::string("Medium"));

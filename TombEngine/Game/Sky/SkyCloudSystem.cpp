@@ -97,6 +97,23 @@ namespace TEN::Sky
 		s.AltoCloudColorDarkG = AltoCloudColorDarkG;
 		s.AltoCloudColorDarkB = AltoCloudColorDarkB;
 		s.AltoBottomSoftness  = AltoBottomSoftness;
+
+		s.AltoZenithBias       = AltoZenithBias;
+		s.AltoHeightBlendPower  = AltoHeightBlendPower;
+
+		// Lightning
+		s.LightningEnabled      = LightningEnabled ? 1 : 0;
+		s.LightningStrikeFreq   = LightningStrikeFreq;
+		s.LightningInternalFreq = LightningInternalFreq;
+		s.LightningSpeed        = LightningSpeed;
+		s.LightningInternalSpeed = LightningInternalSpeed;
+		s.LightningGlowIntensity = LightningGlowIntensity;
+		s.LightningBoltColorR   = LightningBoltColorR;
+		s.LightningBoltColorG   = LightningBoltColorG;
+		s.LightningBoltColorB   = LightningBoltColorB;
+		s.LightningFlashIntensity = LightningFlashIntensity;
+		s.LightningAmbientContrib = LightningAmbientContrib;
+
 		return s;
 	}
 
@@ -105,6 +122,7 @@ namespace TEN::Sky
 	{
 		VolumetricCloudLayerSnapshot snap;
 		snap.Enabled       = src.Enabled;
+		snap.Category      = static_cast<CloudCategory>(src.CloudType);
 		snap.Coverage      = src.Coverage;
 		snap.Density       = src.Density;
 		snap.BottomHeight  = src.CloudBottomHeight;
@@ -138,6 +156,23 @@ namespace TEN::Sky
 		snap.AltoCloudColorDarkG = src.AltoCloudColorDarkG;
 		snap.AltoCloudColorDarkB = src.AltoCloudColorDarkB;
 		snap.AltoBottomSoftness  = src.AltoBottomSoftness;
+
+		snap.AltoZenithBias       = src.AltoZenithBias;
+		snap.AltoHeightBlendPower  = src.AltoHeightBlendPower;
+
+		// Lightning
+		snap.LightningEnabled      = (src.LightningEnabled != 0);
+		snap.LightningStrikeFreq   = src.LightningStrikeFreq;
+		snap.LightningInternalFreq = src.LightningInternalFreq;
+		snap.LightningSpeed        = src.LightningSpeed;
+		snap.LightningInternalSpeed = src.LightningInternalSpeed;
+		snap.LightningGlowIntensity = src.LightningGlowIntensity;
+		snap.LightningBoltColorR   = src.LightningBoltColorR;
+		snap.LightningBoltColorG   = src.LightningBoltColorG;
+		snap.LightningBoltColorB   = src.LightningBoltColorB;
+		snap.LightningFlashIntensity = src.LightningFlashIntensity;
+		snap.LightningAmbientContrib = src.LightningAmbientContrib;
+
 		return snap;
 	}
 
@@ -222,6 +257,22 @@ namespace TEN::Sky
 		result.AltoCloudColorDarkG = LerpFloat(a.AltoCloudColorDarkG, b.AltoCloudColorDarkG, t);
 		result.AltoCloudColorDarkB = LerpFloat(a.AltoCloudColorDarkB, b.AltoCloudColorDarkB, t);
 		result.AltoBottomSoftness  = LerpFloat(a.AltoBottomSoftness,  b.AltoBottomSoftness,  t);
+
+		result.AltoZenithBias       = LerpFloat(a.AltoZenithBias,       b.AltoZenithBias,       t);
+		result.AltoHeightBlendPower  = LerpFloat(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
+
+		// Lightning
+		result.LightningEnabled      = (t < 0.5f) ? a.LightningEnabled : b.LightningEnabled;
+		result.LightningStrikeFreq   = LerpFloat(a.LightningStrikeFreq,   b.LightningStrikeFreq,   t);
+		result.LightningInternalFreq = LerpFloat(a.LightningInternalFreq, b.LightningInternalFreq, t);
+		result.LightningSpeed        = LerpFloat(a.LightningSpeed,        b.LightningSpeed,        t);
+		result.LightningInternalSpeed = LerpFloat(a.LightningInternalSpeed, b.LightningInternalSpeed, t);
+		result.LightningGlowIntensity = LerpFloat(a.LightningGlowIntensity, b.LightningGlowIntensity, t);
+		result.LightningBoltColorR   = LerpFloat(a.LightningBoltColorR,   b.LightningBoltColorR,   t);
+		result.LightningBoltColorG   = LerpFloat(a.LightningBoltColorG,   b.LightningBoltColorG,   t);
+		result.LightningBoltColorB   = LerpFloat(a.LightningBoltColorB,   b.LightningBoltColorB,   t);
+		result.LightningFlashIntensity = LerpFloat(a.LightningFlashIntensity, b.LightningFlashIntensity, t);
+		result.LightningAmbientContrib = LerpFloat(a.LightningAmbientContrib, b.LightningAmbientContrib, t);
 
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
@@ -711,6 +762,9 @@ namespace TEN::Sky
 		}
 
 		// ----- StormBuildUp -----
+		// Distant towering cumulonimbus buildup near the horizon.
+		// Cloud A: Altocumulus mid-level overcast thickening overhead.
+		// Cloud B: CumulonimbusVerticalBuildUp — ring of distant tower formations.
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::StormBuildUp;
@@ -734,33 +788,41 @@ namespace TEN::Sky
 			a.Absorption    = 1.2f;
 			a.AmbientContrib = 0.25f;
 			a.SilverliningStr = 0.3f;
+			a.AltoCloudColorDarkR = 0.45f;
+			a.AltoCloudColorDarkG = 0.45f;
+			a.AltoCloudColorDarkB = 0.55f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled       = true;
-			b.Category      = CloudCategory::CumulonimbusVertical;
-			b.Coverage      = 0.5f;
-			b.Density       = 0.8f;
+			b.Category      = CloudCategory::CumulonimbusVerticalBuildUp;
+			b.Coverage      = 0.55f;
+			b.Density       = 0.85f;
 			b.BottomHeight  = 800.0f;
-			b.Thickness     = 4000.0f;
-			b.WindSpeed     = 0.006f;
-			b.EvolutionSpeed = 0.25f;
+			b.Thickness     = 4500.0f;
+			b.WindSpeed     = 0.004f;
+			b.EvolutionSpeed = 0.2f;
 			b.ShapeScale    = 0.00012f;
 			b.DetailScale   = 0.001f;
-			b.DetailStrength = 0.45f;
+			b.DetailStrength = 0.4f;
 			b.Absorption    = 1.5f;
 			b.AmbientContrib = 0.2f;
 			b.SilverliningStr = 0.2f;
+			b.HorizonFade   = 0.3f;
 
 			_presets[def.Type] = def;
 		}
 
 		// ----- Thunderstorm -----
+		// Full active thunderstorm with lightning.
+		// Cloud A: Dense altocumulus overcast (dark, oppressive sky).
+		// Cloud B: CumulonimbusVertical with lightning flashes.
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::Thunderstorm;
 			def.Name = "Thunderstorm";
 			def.DefaultTransitionDuration = 60.0f;
 			def.RandomWeight = 0.3f;
+			def.HighLayerLeadFraction = 0.0f;
 
 			auto& a = def.TargetState.CloudA;
 			a.Enabled       = true;
@@ -777,6 +839,9 @@ namespace TEN::Sky
 			a.Absorption    = 1.6f;
 			a.AmbientContrib = 0.15f;
 			a.SilverliningStr = 0.15f;
+			a.AltoCloudColorDarkR = 0.27f;
+			a.AltoCloudColorDarkG = 0.27f;
+			a.AltoCloudColorDarkB = 0.35f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled       = true;
@@ -793,6 +858,18 @@ namespace TEN::Sky
 			b.Absorption    = 2.0f;
 			b.AmbientContrib = 0.1f;
 			b.SilverliningStr = 0.1f;
+			// Lightning — active thunderstorm
+			b.LightningEnabled      = true;
+			b.LightningStrikeFreq   = 0.1f;
+			b.LightningInternalFreq = 0.5f;
+			b.LightningSpeed        = 2.5f;
+			b.LightningInternalSpeed = 5.0f;
+			b.LightningGlowIntensity = 3.0f;
+			b.LightningBoltColorR   = 0.3f;
+			b.LightningBoltColorG   = 0.6f;
+			b.LightningBoltColorB   = 1.0f;
+			b.LightningFlashIntensity = 4.0f;
+			b.LightningAmbientContrib = 0.15f;
 
 			_presets[def.Type] = def;
 		}
@@ -1229,6 +1306,7 @@ namespace TEN::Sky
 		if (name == "AltocumulusMid")      return CloudCategory::AltocumulusMid;
 		if (name == "StratocumulusLow")    return CloudCategory::StratocumulusLow;
 		if (name == "CumulonimbusVertical") return CloudCategory::CumulonimbusVertical;
+		if (name == "CumulonimbusVerticalBuildUp") return CloudCategory::CumulonimbusVerticalBuildUp;
 		return CloudCategory::None;
 	}
 
