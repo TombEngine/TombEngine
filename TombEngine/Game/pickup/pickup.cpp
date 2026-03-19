@@ -862,7 +862,7 @@ void RegeneratePickups()
 	}
 }
 
-void DropPickups(ItemInfo* item)
+void DropPickups(ItemInfo* item, bool disableAlignment)
 {
 	ItemInfo* pickup = nullptr;
 
@@ -881,7 +881,7 @@ void DropPickups(ItemInfo* item)
 	// and also does not significantly differ in height to an object centerpoint height.
 	// If all corner tests will fail, a pickup will be spawned at bounding box centerpoint, as it does in tomb4.
 
-	for (int corner = 0; corner < 4; corner++)
+	if (!disableAlignment) for (int corner = 0; corner < 4; corner++)
 	{
 		auto angle = item->Pose.Orientation;
 		angle.y += startAngle + corner * ANGLE(90.0f);
@@ -971,11 +971,13 @@ void DropPickups(ItemInfo* item)
 
 		pickup->RoomNumber = item->RoomNumber;
 		AlignEntityToSurface(pickup, Vector2(Objects[pickup->ObjectNumber].radius));
-		pickup->RoomNumber = -1;
-		pickup->Flags |= 32;
+		pickup->RoomNumber = NO_VALUE;
+		pickup->Flags |= IFLAG_TRIGGERED;
 
 		ItemNewRoom(pickupNumber, item->RoomNumber);
 	}
+
+	item->CarriedItem = NO_VALUE;
 }
 
 void PickupControl(short itemNumber)

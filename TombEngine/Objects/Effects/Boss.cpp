@@ -2,14 +2,17 @@
 #include "Objects/Effects/Boss.h"
 
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/misc.h"
+#include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 
+using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Entities::Creatures::TR3;
 
@@ -195,7 +198,7 @@ namespace TEN::Effects::Boss
 	}
 
 	// NOTE: Actual death occurs when countUntilDeath >= 60.
-	void ExplodeBoss(int itemNumber, ItemInfo& item, int countUntilDeath, const Vector4& color, const Vector4& explosionColor1, const Vector4& explosionColor2, bool allowExplosion)
+	void ExplodeBoss(ItemInfo& item, int countUntilDeath, const Vector4& color, const Vector4& explosionColor1, const Vector4& explosionColor2, bool allowExplosion)
 	{
 		// Disable shield.
 		item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
@@ -268,10 +271,12 @@ namespace TEN::Effects::Boss
 
 		if (counter >= countUntilDeath)
 		{
+			DropPickups(&item, true);
+
 			if (allowExplosion)
-				CreatureDie(itemNumber, allowExplosion, true);
+				CreatureDie(item.Index, allowExplosion, true);
 			else
-				KillItem(itemNumber);
+				KillItem(item.Index);
 		}
 	}
 
