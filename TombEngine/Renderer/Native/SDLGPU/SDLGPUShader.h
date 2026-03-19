@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <map>
 #include <set>
-#include <vector>
 #include "Renderer/Graphics/IShader.h"
 
 namespace TEN::Renderer::Native::SDLGPU
@@ -15,10 +14,6 @@ namespace TEN::Renderer::Native::SDLGPU
 
 	class SDLGPUShader final : public IShader
 	{
-	public:
-		// Merged UBOs: SPIRV slot → list of engine CB registers to concatenate.
-		struct MergedSlot { uint32_t spirvSlot; std::vector<uint32_t> engineRegs; };
-
 	private:
 		SDL_GPUShader* _vertexShader   = nullptr;
 		SDL_GPUShader* _fragmentShader = nullptr;
@@ -32,17 +27,17 @@ namespace TEN::Renderer::Native::SDLGPU
 		unsigned int _numFragmentUBOs     = 0;
 		unsigned int _numFragmentBuffers  = 0;
 
-		// HLSL register → SPIRV binding maps (for translating engine slots to GPU slots).
+		// HLSL register -> SPIRV binding maps (for translating engine slots to GPU slots).
 		std::map<uint32_t, uint32_t> _fsSamplerOldToNew;
 		std::set<uint32_t> _fsArrayedBindings; // SPIRV bindings that expect Texture2DArray.
 		std::set<uint32_t> _vsArrayedBindings; // VS SPIRV bindings that expect Texture2DArray.
 
-		// UBO binding maps per stage.
+		// UBO binding maps per stage: HLSL register -> SPIRV binding.
+		// Since shaders use fixed b0-b3 registers, and engine ConstantBufferRegister
+		// maps directly to HLSL register numbers, this is effectively:
+		// engine slot N -> SPIRV binding (from remap).
 		std::map<uint32_t, uint32_t> _vsUBOOldToNew;
 		std::map<uint32_t, uint32_t> _fsUBOOldToNew;
-
-		std::vector<MergedSlot> _vsMergedUBOs;
-		std::vector<MergedSlot> _fsMergedUBOs;
 
 	public:
 		SDLGPUShader() = default;
@@ -62,7 +57,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		unsigned int GetNumFragmentUBOs() const { return _numFragmentUBOs; }
 		unsigned int GetNumFragmentBuffers() const { return _numFragmentBuffers; }
 
-		// Map engine texture register → SPIRV binding. Returns -1 if not found.
+		// Map engine texture register -> SPIRV binding. Returns -1 if not found.
 		int MapFragmentSamplerSlot(int engineSlot) const
 		{
 			auto it = _fsSamplerOldToNew.find((uint32_t)engineSlot);
@@ -114,7 +109,7 @@ namespace TEN::Renderer::Native::SDLGPU
 			_fsUBOOldToNew = std::move(oldToNew);
 		}
 
-		// Map engine CB register → SPIRV UBO slot. Returns -1 if not found.
+		// Map engine CB register -> SPIRV UBO slot. Returns -1 if not found.
 		int MapVertexUBOSlot(int engineSlot) const
 		{
 			auto it = _vsUBOOldToNew.find((uint32_t)engineSlot);
@@ -126,11 +121,6 @@ namespace TEN::Renderer::Native::SDLGPU
 			auto it = _fsUBOOldToNew.find((uint32_t)engineSlot);
 			return (it != _fsUBOOldToNew.end()) ? (int)it->second : -1;
 		}
-
-		void SetVertexMergedUBOs(std::vector<MergedSlot> merged) { _vsMergedUBOs = std::move(merged); }
-		void SetFragmentMergedUBOs(std::vector<MergedSlot> merged) { _fsMergedUBOs = std::move(merged); }
-		const std::vector<MergedSlot>& GetVertexMergedUBOs() const { return _vsMergedUBOs; }
-		const std::vector<MergedSlot>& GetFragmentMergedUBOs() const { return _fsMergedUBOs; }
 	};
 }
 

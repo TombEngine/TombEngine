@@ -1,7 +1,11 @@
 #ifndef CBMATERIALSHADER
 #define CBMATERIALSHADER
 
-cbuffer CBMaterial : register(b2)
+#ifndef MATERIAL_CB_MERGED
+#ifndef REG_CB_MATERIAL
+#define REG_CB_MATERIAL b2
+#endif
+cbuffer CBMaterial : register(REG_CB_MATERIAL)
 {
     float4 MaterialParameters0;
     //--
@@ -16,5 +20,6 @@ cbuffer CBMaterial : register(b2)
     int CBMaterial_Padding1;
     int CBMaterial_Padding2;
 };
+#endif
 
 #endif

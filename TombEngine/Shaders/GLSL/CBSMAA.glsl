@@ -1,7 +1,7 @@
 #ifndef CBSMAA
 #define CBSMAA
 
-layout(std140, binding = 13) uniform SMAABuffer
+layout(std140, binding = 0) uniform SMAABuffer
 {
     vec4 subsampleIndices;
     float blendFactor;

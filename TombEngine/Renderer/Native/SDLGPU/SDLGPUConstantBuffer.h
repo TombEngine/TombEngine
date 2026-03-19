@@ -19,6 +19,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		std::string       _name;
 		int               _size = 0;      // Allocated capacity.
 		int               _pushSize = 0;  // Actual bytes to push (may be < _size).
+		uint64_t          _generation = 0; // Incremented on each UpdateData call.
 
 	public:
 		SDLGPUConstantBuffer() = default;
@@ -34,6 +35,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		const std::string& GetName() const { return _name; }
 		const void* GetData() const { return _data.data(); }
 		void* GetMutableData() { return _data.data(); }
+		uint64_t GetGeneration() const { return _generation; }
 
 		// Set the number of bytes actually used (for variable-size CBs like instanced statics).
 		void SetPushSize(int size) { _pushSize = std::min(size, _size); }
@@ -41,6 +43,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		void UpdateData(const void* data)
 		{
 			std::memcpy(_data.data(), data, _size);
+			_generation++;
 		}
 	};
 }

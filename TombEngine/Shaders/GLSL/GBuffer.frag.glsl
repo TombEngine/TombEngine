@@ -4,10 +4,11 @@
 #include "AnimatedTextures.glsl"
 #include "Blending.glsl"
 #include "Math.glsl"
-#include "Materials.glsl"
 
 layout(binding = 0) uniform sampler2D Texture;
 layout(binding = 1) uniform sampler2D NormalTexture;
+layout(binding = 10) uniform sampler2D ORSHTexture;
+layout(binding = 11) uniform sampler2D EmissiveTexture;
 
 in VS_OUT {
     vec3 Normal;

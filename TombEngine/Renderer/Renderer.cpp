@@ -311,6 +311,8 @@ namespace TEN::Renderer
 			_stMaterial.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
 
 			UpdateConstantBuffer(&_stMaterial, _cbMaterial.get());
+			_stLightBuffer.Material = _stMaterial;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
 
 			_lastMaterialIndex = materialIndex;
 
@@ -339,6 +341,7 @@ namespace TEN::Renderer
 
 		_graphicsDevice->BeginRenderPass(desc);
 		_renderPassActive = true;
+		_currentRenderPassDesc = desc;
 
 		if (!desc.Name.empty())
 		{
@@ -360,6 +363,27 @@ namespace TEN::Renderer
 			_graphicsDevice->EndRenderPass();
 			_renderPassActive = false;
 		}
+	}
+
+	void Renderer::ClearDepthMidPass(float depth, unsigned char stencil, DepthStencilClearFlags flags)
+	{
+		if (!_renderPassActive)
+			return;
+
+		// Re-open the current render pass with depth LoadAction::Clear and color LoadAction::Load.
+		auto pass = _currentRenderPassDesc;
+		pass.Name = "Mid-Pass Depth Clear";
+
+		for (auto& ca : pass.ColorAttachments)
+			ca.LoadAction = LoadAction::Load;
+
+		pass.DepthAttachment.LoadAction = LoadAction::Clear;
+		pass.DepthAttachment.ClearDepth = depth;
+		pass.DepthAttachment.ClearStencil = stencil;
+		pass.DepthAttachment.ClearFlags = flags;
+
+		EndRenderPass();
+		BeginRenderPass(pass);
 	}
 
 	void Renderer::BeginDebugEvent(const std::string& name)
@@ -393,6 +417,8 @@ namespace TEN::Renderer
 		{
 			_stBlending.BlendMode = static_cast<unsigned int>(pipeline.Blend);
 			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
 		}
 
 		// Override wireframe debug mode.
@@ -433,6 +459,8 @@ namespace TEN::Renderer
 
 			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
 			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
 
 			_lastBlendMode = blendMode;
 		}
@@ -490,6 +518,8 @@ namespace TEN::Renderer
 			_stBlending.AlphaTest = (int)mode;
 			_stBlending.AlphaThreshold = threshold;
 			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
 		}
 	}
 

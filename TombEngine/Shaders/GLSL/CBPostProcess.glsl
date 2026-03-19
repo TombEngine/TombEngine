@@ -12,7 +12,7 @@ struct ShaderLensFlare
     float Padding2;
 };
 
-layout(std140, binding = 7) uniform CBPostProcess
+layout(std140, binding = 2) uniform CBPostProcess
 {
     float CinematicBarsHeight;
     float ScreenFadeFactor;

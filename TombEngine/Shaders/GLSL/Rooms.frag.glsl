@@ -2,6 +2,7 @@
 
 #include "CBCamera.glsl"
 #include "CBRoom.glsl"
+#include "CLightBuffer.glsl"
 #include "Blending.glsl"
 #include "Math.glsl"
 #include "AnimatedTextures.glsl"

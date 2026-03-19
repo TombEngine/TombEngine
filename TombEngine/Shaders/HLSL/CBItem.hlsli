@@ -3,7 +3,7 @@
 
 #include "./ShaderLight.hlsli"
 
-cbuffer CBItem : register(b1) 
+cbuffer CBItem : register(b1)
 {
 	float4x4 World;
 	//--

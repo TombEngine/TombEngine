@@ -1,3 +1,8 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+#include "./CBMergedMSB.hlsli"
 #include "./Math.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"

@@ -201,8 +201,10 @@ float CalculateOcclusion(float2 samplePosition, float alpha)
 
 inline float3 EnsureNormal(float3 n, float3 worldPos)
 {
-    // Eliminate NaNs by replacing them with 0.
-    n = isnan(n) ? float3(0, 0, 0) : n;
+    // Eliminate NaNs by replacing them with 0 (isnan is SM5-safe and component-wise).
+    n.x = isnan(n.x) ? 0.0f : n.x;
+    n.y = isnan(n.y) ? 0.0f : n.y;
+    n.z = isnan(n.z) ? 0.0f : n.z;
 
     float l2 = dot(n, n);
 

@@ -75,11 +75,16 @@ namespace TEN::Renderer::Native::SDLGPU
 			return nullptr;
 		}
 
+		// Check if running on Vulkan (native SPIRV) vs D3D12/Metal.
+		auto* drvName = SDL_GetGPUDeviceDriver(device);
+		bool isVulkan = drvName && std::string(drvName) == "vulkan";
+		std::vector<uint8_t> preRemapSPIRV;
+		if (!isVulkan)
+			preRemapSPIRV.assign((uint8_t*)spirvData, (uint8_t*)spirvData + spirvSize);
+
 		// Remap SPIRV descriptor sets for SDL_GPU's Vulkan backend convention.
-		// Also returns corrected resource counts.
 		auto remapResult = RemapSPIRVDescriptorSets(spirvData, spirvSize, stage);
 
-		// Use corrected resource counts from our SPIRV analysis.
 		SDL_ShaderCross_GraphicsShaderResourceInfo resourceInfo = {};
 		resourceInfo.num_samplers = remapResult.numSamplerSlots;
 		resourceInfo.num_uniform_buffers = remapResult.numUniformBuffers;
@@ -93,29 +98,35 @@ namespace TEN::Renderer::Native::SDLGPU
 			+ " UBOs=" + std::to_string(resourceInfo.num_uniform_buffers),
 			LogLevel::Info);
 
-		// Try creating the shader directly via SDL_CreateGPUShader to bypass SDL_ShaderCross
-		// SPIRV-direct path issues. This gives us full control over resource counts.
-		SDL_GPUShaderCreateInfo sci2 = {};
-		sci2.code = (const Uint8*)spirvData;
-		sci2.code_size = spirvSize;
-		sci2.entrypoint = entryPoint; // DXC uses the HLSL function name as SPIRV entry point.
-		sci2.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		sci2.stage = (stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX)
-			? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-		sci2.num_samplers = resourceInfo.num_samplers;
-		sci2.num_storage_textures = resourceInfo.num_storage_textures;
-		sci2.num_storage_buffers = resourceInfo.num_storage_buffers;
-		sci2.num_uniform_buffers = resourceInfo.num_uniform_buffers;
+		SDL_GPUShader* gpuShader = nullptr;
 
-		TENLog(std::string("SpriteBatch creating GPU shader ") + entryPoint
-			+ " stage=" + std::to_string((int)sci2.stage)
-			+ " samplers=" + std::to_string(sci2.num_samplers)
-			+ " storageTex=" + std::to_string(sci2.num_storage_textures)
-			+ " storageBuf=" + std::to_string(sci2.num_storage_buffers)
-			+ " UBOs=" + std::to_string(sci2.num_uniform_buffers),
-			LogLevel::Info);
-
-		auto* gpuShader = SDL_CreateGPUShader(device, &sci2);
+		if (isVulkan)
+		{
+			// Vulkan: use remapped SPIRV directly.
+			SDL_GPUShaderCreateInfo sci2 = {};
+			sci2.code = (const Uint8*)spirvData;
+			sci2.code_size = spirvSize;
+			sci2.entrypoint = entryPoint;
+			sci2.format = SDL_GPU_SHADERFORMAT_SPIRV;
+			sci2.stage = (stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX)
+				? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
+			sci2.num_samplers = resourceInfo.num_samplers;
+			sci2.num_storage_textures = resourceInfo.num_storage_textures;
+			sci2.num_storage_buffers = resourceInfo.num_storage_buffers;
+			sci2.num_uniform_buffers = resourceInfo.num_uniform_buffers;
+			gpuShader = SDL_CreateGPUShader(device, &sci2);
+		}
+		else
+		{
+			// D3D12/Metal: let SDL_ShaderCross handle cross-compilation from pre-remap SPIRV.
+			SDL_ShaderCross_SPIRV_Info sci = {};
+			sci.bytecode = preRemapSPIRV.data();
+			sci.bytecode_size = preRemapSPIRV.size();
+			sci.entrypoint = entryPoint;
+			sci.shader_stage = stage;
+			sci.props = 0;
+			gpuShader = SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(device, &sci, &resourceInfo, 0);
+		}
 
 		SDL_free(spirvData);
 

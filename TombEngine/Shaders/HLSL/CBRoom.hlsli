@@ -3,7 +3,7 @@
 
 #include "./ShaderLight.hlsli"
 
-cbuffer CBRoom : register(b5)
+cbuffer CBRoom : register(b1)
 {
     int Water;
     int Caustics;

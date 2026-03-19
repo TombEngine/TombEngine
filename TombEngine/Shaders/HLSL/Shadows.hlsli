@@ -5,13 +5,17 @@
 #define SHADOW_INTENSITY (0.6f)
 #define SHADOW_BLUR      (2.0f)
 
+#ifndef SPHERE_STRUCT_DEFINED
+#define SPHERE_STRUCT_DEFINED
 struct Sphere
 {
     float3 position;
     float radius;
 };
+#endif
 
-cbuffer ShadowLightBuffer : register(b4)
+#ifndef SHADOWLIGHT_CB_MERGED
+cbuffer ShadowLightBuffer : register(b3)
 {
     ShaderLight Light;
     float4x4 LightViewProjections[6];
@@ -21,6 +25,7 @@ cbuffer ShadowLightBuffer : register(b4)
     int padding;
     Sphere Spheres[16];
 };
+#endif
 
 Texture2DArray ShadowMap : register(t3);
 SamplerComparisonState ShadowMapSampler : register(s3);

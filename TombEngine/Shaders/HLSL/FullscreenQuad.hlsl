@@ -1,3 +1,7 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
 #include "./VertexInput.hlsli"
 
 struct PixelShaderInput

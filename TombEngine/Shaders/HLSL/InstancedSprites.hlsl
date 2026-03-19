@@ -1,3 +1,8 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+#define REG_CB_BLENDING b2
 #include "./CBCamera.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
@@ -8,7 +13,8 @@
 
 // NOTE: This shader is used for all opaque or not sorted transparent sprites, that can be instanced for a faster drawing
 
-#define INSTANCED_SPRITES_BUCKET_SIZE 512
+// Reduced from 512 to fit within 16KB uniform push limit (128 bytes/sprite).
+#define INSTANCED_SPRITES_BUCKET_SIZE 128
 #define FADE_FACTOR .789f
 
 struct PixelShaderInput
@@ -33,7 +39,7 @@ struct InstancedSprite
     int PerVertexColor;
 };
 
-cbuffer InstancedSpriteBuffer : register(b13)
+cbuffer InstancedSpriteBuffer : register(b1)
 {
 	InstancedSprite Sprites[INSTANCED_SPRITES_BUCKET_SIZE];
 };

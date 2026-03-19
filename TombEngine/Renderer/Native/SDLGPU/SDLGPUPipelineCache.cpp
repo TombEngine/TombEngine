@@ -89,6 +89,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		case DepthState::None:
 			pci.depth_stencil_state.enable_depth_test = false;
 			pci.depth_stencil_state.enable_depth_write = false;
+			pci.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_ALWAYS; // D3D12 validates even when disabled.
 			break;
 		}
 
@@ -113,11 +114,23 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		// Multi-sample (no MSAA for now).
 		pci.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+		pci.multisample_state.sample_mask = 0xFFFFFFFF;
 
 		auto* pipeline = SDL_CreateGPUGraphicsPipeline(_device, &pci);
 		if (!pipeline)
 		{
-			TENLog("Pipeline cache: SDL_CreateGPUGraphicsPipeline failed — " + std::string(SDL_GetError()),
+			std::string diagInfo = " VS=" + std::to_string((uintptr_t)key.VertexShader)
+				+ " FS=" + std::to_string((uintptr_t)key.FragmentShader)
+				+ " colors=" + std::to_string(key.NumColorTargets);
+			for (int i = 0; i < key.NumColorTargets; ++i)
+				diagInfo += " cFmt" + std::to_string(i) + "=" + std::to_string((int)key.ColorFormats[i]);
+			diagInfo += " hasDepth=" + std::to_string(key.HasDepthTarget)
+				+ " dFmt=" + std::to_string((int)key.DepthFormat)
+				+ " blend=" + std::to_string((int)key.PipelineState.Blend)
+				+ " depth=" + std::to_string((int)key.PipelineState.Depth)
+				+ " cull=" + std::to_string((int)key.PipelineState.Cull)
+				+ " prim=" + std::to_string((int)key.Primitive);
+			TENLog("Pipeline cache: SDL_CreateGPUGraphicsPipeline failed — " + std::string(SDL_GetError()) + diagInfo,
 				LogLevel::Warning);
 		}
 		_cache[key] = pipeline;

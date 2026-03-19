@@ -1,3 +1,8 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+#define REG_CB_BLENDING b2
 #include "./CBCamera.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
@@ -9,7 +14,7 @@
 
 #define FADE_FACTOR .789f
 
-cbuffer SpriteBuffer : register(b9)
+cbuffer SpriteBuffer : register(b1)
 {
 	float IsSoftParticle;
 	int RenderType;

@@ -28,6 +28,7 @@
 #include "Renderer/ConstantBuffers/BlendingBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
 #include "Renderer/ConstantBuffers/MaterialBuffer.h"
+#include "Renderer/ConstantBuffers/LightBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedStaticBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
@@ -149,6 +150,10 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbSky;
 		CMaterialBuffer _stMaterial;
 		std::unique_ptr<IConstantBuffer> _cbMaterial;
+		CLightBuffer _stLightBuffer;
+		std::unique_ptr<IConstantBuffer> _cbLightBuffer;
+		CLightBufferSky _stLightBufferSky;
+		std::unique_ptr<IConstantBuffer> _cbLightBufferSky;
 
 		// Primitive batches
 
@@ -300,6 +305,7 @@ namespace TEN::Renderer
 
 		bool _renderPassActive = false;
 		bool _renderPassEventActive = false;
+		RenderPassDescriptor _currentRenderPassDesc;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
@@ -467,6 +473,7 @@ namespace TEN::Renderer
 		void RenderItemShadows(RenderView& renderView);
 		void BeginRenderPass(const RenderPassDescriptor& desc);
 		void EndRenderPass();
+		void ClearDepthMidPass(float depth = 1.0f, unsigned char stencil = 0, DepthStencilClearFlags flags = DepthStencilClearFlags::DepthAndStencil);
 		void BeginDebugEvent(const std::string& name);
 		void EndDebugEvent();
 		void BindPipeline(const RenderPipelineState& pipeline, bool force = false);

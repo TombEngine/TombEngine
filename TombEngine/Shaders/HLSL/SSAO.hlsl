@@ -1,3 +1,8 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+#define REG_CB_POST_PROCESS b1
 #include "./Math.hlsli"
 #include "./VertexInput.hlsli"
 #include "./CBCamera.hlsli"

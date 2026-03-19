@@ -1122,8 +1122,8 @@ namespace TEN::Renderer::Native::OpenGL
 	{
 		auto nativeShader = std::make_unique<GLShader>();
 
-		// Construct GLSL source directory path.
-		// Replace "Shaders/" with "Shaders/GLSL/" in SourceDirectory.
+		// Load native GLSL shaders from Shaders/GLSL/.
+
 		auto glslSourceDir = req.SourceDirectory;
 		auto pos = glslSourceDir.rfind("Shaders/");
 		if (pos != std::string::npos)
@@ -1134,11 +1134,9 @@ namespace TEN::Renderer::Native::OpenGL
 			std::string defines = "#version 450 core\n";
 			for (auto& [key, value] : req.Macros)
 			{
-				// Skip HLSL-specific SMAA defines; GLSL SMAA implementation doesn't need them.
 				if (key.find("SMAA_HLSL") != std::string::npos)
 					continue;
 
-				// Translate HLSL type names to GLSL in macro values.
 				auto glslValue = value;
 				auto replaceAll = [](std::string& str, const std::string& from, const std::string& to)
 				{
@@ -1164,35 +1162,26 @@ namespace TEN::Renderer::Native::OpenGL
 		auto loadAndPrepend = [&](const std::string& filePath, const std::string& defines) -> std::string
 		{
 			auto source = ReadShaderFile(filePath);
-
-			// Resolve #include directives recursively.
 			std::set<std::string> alreadyIncluded;
 			source = ResolveIncludes(source, glslSourceDir, alreadyIncluded);
-
-			// Insert defines after the #version line if present, otherwise prepend.
 			auto versionPos = source.find("#version");
 			if (versionPos != std::string::npos)
 			{
 				auto lineEnd = source.find('\n', versionPos);
 				if (lineEnd != std::string::npos)
-					source.insert(lineEnd + 1, defines.substr(defines.find('\n') + 1)); // Skip #version in defines.
+					source.insert(lineEnd + 1, defines.substr(defines.find('\n') + 1));
 				return source;
 			}
 			return defines + source;
 		};
 
 		std::string baseDefines = buildDefines();
-		auto entryStr = req.EntryPoint;
-
-		// Stage-specific defines: shader stage identification and gl_PerVertex for separable programs.
 		std::string vsDefines = baseDefines + "#define VERTEX_SHADER 1\nout gl_PerVertex { vec4 gl_Position; };\n";
 		std::string fsDefines = baseDefines + "#define FRAGMENT_SHADER 1\n";
 		std::string gsDefines = baseDefines + "#define GEOMETRY_SHADER 1\nout gl_PerVertex { vec4 gl_Position; };\n";
 
-		// Compile vertex shader.
 		if (req.Type == ShaderType::Vertex || req.Type == ShaderType::PixelAndVertex)
 		{
-			// Try entry-point-specific VS first (e.g., GBuffer_Rooms.vert.glsl), then fall back to base (e.g., GBuffer.vert.glsl).
 			auto vsFile = std::string();
 			if (!req.EntryPoint.empty() && req.EntryPoint != req.FileName)
 			{
@@ -1206,13 +1195,11 @@ namespace TEN::Renderer::Native::OpenGL
 			if (std::filesystem::exists(vsFile))
 			{
 				auto source = loadAndPrepend(vsFile, vsDefines);
-				GLuint prog = CompileSeparableProgram(GL_VERTEX_SHADER, source,
-					req.FileName + ".vert");
+				GLuint prog = CompileSeparableProgram(GL_VERTEX_SHADER, source, req.FileName + ".vert");
 				nativeShader->SetVSProgram(prog);
 			}
 		}
 
-		// Compile fragment shader.
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{
 			std::string fsFile;
@@ -1224,21 +1211,18 @@ namespace TEN::Renderer::Native::OpenGL
 			if (std::filesystem::exists(fsFile))
 			{
 				auto source = loadAndPrepend(fsFile, fsDefines);
-				GLuint prog = CompileSeparableProgram(GL_FRAGMENT_SHADER, source,
-					req.FileName + ".frag");
+				GLuint prog = CompileSeparableProgram(GL_FRAGMENT_SHADER, source, req.FileName + ".frag");
 				nativeShader->SetFSProgram(prog);
 			}
 		}
 
-		// Compile geometry shader.
 		if (req.Type == ShaderType::Geometry)
 		{
 			auto gsFile = glslSourceDir + req.FileName + ".geom.glsl";
 			if (std::filesystem::exists(gsFile))
 			{
 				auto source = loadAndPrepend(gsFile, gsDefines);
-				GLuint prog = CompileSeparableProgram(GL_GEOMETRY_SHADER, source,
-					req.FileName + ".geom");
+				GLuint prog = CompileSeparableProgram(GL_GEOMETRY_SHADER, source, req.FileName + ".geom");
 				nativeShader->SetGSProgram(prog);
 			}
 		}

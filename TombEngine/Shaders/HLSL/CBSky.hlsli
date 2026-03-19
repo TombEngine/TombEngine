@@ -1,7 +1,8 @@
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
 
-cbuffer CBSky : register(b8)
+#ifndef SKY_CB_MERGED
+cbuffer CBSky : register(b1)
 {
     float4x4 World;
 	//--
@@ -12,3 +13,4 @@ cbuffer CBSky : register(b8)
     int ApplyFogBulbs;
     float3 CSkyBuffer_Padding0;
 };
+#endif

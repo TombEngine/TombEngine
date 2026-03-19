@@ -8,13 +8,17 @@
 #define SHADOW_INTENSITY (0.6)
 #define SHADOW_BLUR      (2.0)
 
+#ifndef SPHERE_STRUCT_DEFINED
+#define SPHERE_STRUCT_DEFINED
 struct Sphere
 {
     vec3 position;
     float radius;
 };
+#endif
 
-layout(std140, binding = 4) uniform ShadowLightBuffer
+#ifndef SHADOWLIGHT_CB_MERGED
+layout(std140, binding = 3) uniform ShadowLightBuffer
 {
     ShaderLight Light;
     mat4 LightViewProjections[6];
@@ -24,6 +28,7 @@ layout(std140, binding = 4) uniform ShadowLightBuffer
     int ShadowPadding;
     Sphere Spheres[16];
 };
+#endif
 
 layout(binding = 3) uniform sampler2DArrayShadow ShadowMap;
 

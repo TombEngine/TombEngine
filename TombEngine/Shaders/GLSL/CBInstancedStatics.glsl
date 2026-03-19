@@ -14,7 +14,7 @@ struct InstancedStatic
     uvec4 LightInfo;
 };
 
-layout(std140, binding = 3) uniform CBInstancedStatics
+layout(std140, binding = 1) uniform CBInstancedStatics
 {
     InstancedStatic StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
 };

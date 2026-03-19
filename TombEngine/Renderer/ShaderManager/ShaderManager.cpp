@@ -115,9 +115,9 @@ namespace TEN::Renderer::Utils
 		Load(Shader::InstancedSprites, "InstancedSprites", "", ShaderType::PixelAndVertex, {});
 
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel, {});
-		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex, {});
-		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex, {});
-		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex, {});
+		Load(Shader::GBufferRooms, "GBufferVSRooms", "", ShaderType::Vertex, {});
+		Load(Shader::GBufferItems, "GBufferVSItems", "", ShaderType::Vertex, {});
+		Load(Shader::GBufferInstancedStatics, "GBufferVSStatics", "", ShaderType::Vertex, {});
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)

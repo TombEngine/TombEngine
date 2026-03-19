@@ -122,8 +122,16 @@ namespace TEN::Renderer
 	{
 		for (int step = 0; step < _shadowMap->GetRenderTarget()->GetArraySize(); step++)
 		{
-			_graphicsDevice->ClearRenderTarget2D(_shadowMap->GetRenderTarget(), step, Colors::White);
-			_graphicsDevice->ClearDepthStencil(_shadowMap->GetDepthTarget(), step, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			RenderPassDescriptor pass;
+			pass.Name = "Clear Shadow Map";
+			pass.ColorAttachments.push_back({
+				_shadowMap->GetRenderTarget(), step,
+				LoadAction::Clear, StoreAction::Store, Colors::White
+			});
+			pass.DepthAttachment = { _shadowMap->GetDepthTarget(), step, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			pass.Viewport = _shadowMapViewport;
+			BeginRenderPass(pass);
+			EndRenderPass();
 		}
 	}
 
@@ -218,7 +226,7 @@ namespace TEN::Renderer
 			auto shadowProjection = CCameraMatrixBuffer{};
 			shadowProjection.ViewProjection = view * projection;
 			UpdateConstantBuffer(&shadowProjection, _cbCameraMatrices.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
@@ -227,8 +235,8 @@ namespace TEN::Renderer
 			auto& obj = GetRendererObject((GAME_OBJECT_ID)item->ObjectID);
 			auto skinMode = GetSkinningMode(obj, item->SkinIndex);
 
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
 
 			_stItem.World = item->InterpolatedWorld;
 			_stItem.Color = item->Color;
@@ -357,10 +365,21 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedStatics);
 
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+
 			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-			SetBlendMode(BlendMode::Opaque);
+			BindPipeline({ BlendMode::Opaque, _lastDepthState, _lastCullMode });
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 			UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(),
@@ -608,6 +627,28 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+				}
+				else
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				}
+				if (rendererPass != RendererPass::GBuffer)
+				{
+					_stLightBuffer.Material = _stMaterial;
+					_stLightBuffer.Shadow = _stShadowMap;
+					_stLightBuffer.Blending = _stBlending;
+					UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+				}
+
 				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
@@ -726,6 +767,28 @@ namespace TEN::Renderer
 				else
 				{
 					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+				}
+				else
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				}
+				if (rendererPass != RendererPass::GBuffer)
+				{
+					_stLightBuffer.Material = _stMaterial;
+					_stLightBuffer.Shadow = _stShadowMap;
+					_stLightBuffer.Blending = _stBlending;
+					UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 				}
 
 				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -864,6 +927,20 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+					if (rendererPass != RendererPass::GBuffer)
+					{
+						_stLightBuffer.Material = _stMaterial;
+						_stLightBuffer.Shadow = _stShadowMap;
+						_stLightBuffer.Blending = _stBlending;
+						UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+						BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+						BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+					}
+
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
@@ -993,6 +1070,20 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+					if (rendererPass != RendererPass::GBuffer)
+					{
+						_stLightBuffer.Material = _stMaterial;
+						_stLightBuffer.Shadow = _stShadowMap;
+						_stLightBuffer.Blending = _stBlending;
+						UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+						BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+						BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+					}
+
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
@@ -1100,6 +1191,28 @@ namespace TEN::Renderer
 				else
 				{
 					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+				}
+				else
+				{
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+				}
+				if (rendererPass != RendererPass::GBuffer)
+				{
+					_stLightBuffer.Material = _stMaterial;
+					_stLightBuffer.Shadow = _stShadowMap;
+					_stLightBuffer.Blending = _stBlending;
+					UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+					BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 				}
 
 				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1856,30 +1969,10 @@ namespace TEN::Renderer
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
 
-		// Bind constant buffers.
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Material, _cbMaterial.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Blending, _cbBlending.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
-
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Material, _cbMaterial.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Blending, _cbBlending.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
+		// Bind Camera to Slot0 (shared by all scene shaders).
+		// Per-shader bindings (Slot1-3) are handled in each draw function before its draw calls.
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
 
 		// Reset GPU state.
 		BindPipeline(Pipelines::OpaqueDefault, true);
@@ -1958,22 +2051,6 @@ namespace TEN::Renderer
 		BeginDebugEvent("Sky");
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
 		EndDebugEvent();
-
-		// After sky, re-clear depth so sky geometry doesn't occlude the scene.
-		// In SDL_GPU, ClearDepthStencil() is a no-op (clears only work via render pass
-		// LoadAction::Clear). So we end the pass and re-begin with depth clear + color load.
-		EndRenderPass();
-		{
-			RenderPassDescriptor postSkyPass;
-			postSkyPass.Name = "Post-Sky Depth Clear";
-			postSkyPass.ColorAttachments.push_back({
-				_renderTarget->GetRenderTarget(), 0,
-				LoadAction::Load, StoreAction::Store, Colors::Black
-			});
-			postSkyPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
-			postSkyPass.Viewport = view.Viewport;
-			BeginRenderPass(postSkyPass);
-		}
 
 		// Build G-Buffer (normals + depth).
 		{
@@ -2489,6 +2566,26 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::Items);
 			}
 
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			if (rendererPass == RendererPass::GBuffer)
+			{
+				// GBuffer PS: Material(Slot1), AnimTex(Slot2), Blending(Slot3)
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+			}
+			else
+			{
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+				_stLightBuffer.Material = _stMaterial;
+				_stLightBuffer.Shadow = _stShadowMap;
+				_stLightBuffer.Blending = _stBlending;
+				UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			}
+
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
@@ -2675,6 +2772,8 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::Statics);
 			}
 
+			// TODO: Statics shader slot bindings for DISABLE_INSTANCING path.
+
 			// Bind vertex and index buffer
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
@@ -2759,6 +2858,20 @@ namespace TEN::Renderer
 			else
 			{
 				_shaders.Bind(Shader::InstancedStatics);
+			}
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			if (rendererPass != RendererPass::GBuffer)
+			{
+				_stLightBuffer.Material = _stMaterial;
+				_stLightBuffer.Shadow = _stShadowMap;
+				_stLightBuffer.Blending = _stBlending;
+				UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 			}
 
 			// Bind vertex and index buffer
@@ -2974,27 +3087,41 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::Rooms);
 			}
 
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			if (rendererPass == RendererPass::GBuffer)
+			{
+				// GBuffer PS: Material(Slot1), AnimTex(Slot2), Blending(Slot3)
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+			}
+			else
+			{
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			}
+
 			// Bind vertex and index buffer.
 			_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
-			   
+
 			if (rendererPass != RendererPass::GBuffer)
 			{
 				// Bind caustics texture.
 				if (TEN::Utils::Contains(SpriteSequencesIds, (int)ID_CAUSTIC_TEXTURES))
-				{     
+				{
 					int nmeshes = -Objects[ID_CAUSTIC_TEXTURES].nmeshes;
 					int meshIndex = Objects[ID_CAUSTIC_TEXTURES].meshIndex;
 					int causticsFrame = GlobalCounter % nmeshes;
 					auto causticsSprite = _spriteSequences[ID_CAUSTIC_TEXTURES].SpritesList[causticsFrame];
 
 					BindTexture(TextureRegister::CausticsMap, causticsSprite->Texture, SamplerStateRegister::AnisotropicClamp);
-				
+
 					_stRoom.CausticsSize = Vector2(
 						(float)causticsSprite->Width / (float)causticsSprite->Texture->GetWidth(),
 						(float)causticsSprite->Height / (float)causticsSprite->Texture->GetHeight());
 					_stRoom.CausticsStartUV = causticsSprite->UV[0];
-				} 
+				}
 
 				// Set shadow map data and bind shadow map texture.
 				if (_shadowLight != nullptr)
@@ -3009,8 +3136,14 @@ namespace TEN::Renderer
 				{
 					_stShadowMap.CastShadows = false;
 				}
-				
-				UpdateConstantBuffer(&_stShadowMap, _cbShadowMap.get());
+
+				// Fill merged CLightBuffer AFTER shadow data is set.
+				_stLightBuffer.Material = _stMaterial;
+				_stLightBuffer.Shadow = _stShadowMap;
+				_stLightBuffer.Blending = _stBlending;
+				UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 			}
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
@@ -3078,14 +3211,14 @@ namespace TEN::Renderer
 
 			ResetScissor();
 		}
-	}
+	} 
 	
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
 		RendererViewport viewport = { 0, 0, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 1 };
 
 		{
-			RenderPassDescriptor skyPass;
+			RenderPassDescriptor skyPass; 
 			skyPass.Name = "Skybox Hemisphere 0";
 			skyPass.ColorAttachments.push_back({
 				_skyboxRenderTarget->GetRenderTarget(), 0,
@@ -3093,6 +3226,7 @@ namespace TEN::Renderer
 			});
 			skyPass.DepthAttachment = { _skyboxRenderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
 			skyPass.Viewport = viewport;
+			 
 			BeginRenderPass(skyPass);
 		}
 
@@ -3134,11 +3268,11 @@ namespace TEN::Renderer
 
 	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
 	{
+		constexpr auto SUN_SIZE = 64;
 		constexpr auto STAR_SIZE = 2;
-		constexpr auto SUN_SIZE	 = 64;
-
+		
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
-
+		 
 		bool anyOutsideRooms = false;
 		for (int k = 0; k < renderView.RoomsToDraw.size(); k++)
 		{
@@ -3146,9 +3280,9 @@ namespace TEN::Renderer
 			if (nativeRoom.flags & ENV_FLAG_SKYBOX)
 			{
 				anyOutsideRooms = true;
-				break;
+				break; 
 			}
-		}
+		} 
 
 		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && !reflectionPass))
 			return;
@@ -3160,6 +3294,30 @@ namespace TEN::Renderer
 		auto rotation = Matrix::CreateRotationX(PI);
 
 		_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
+
+		if (reflectionPass)
+		{
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBufferSky.Sky = _stSky;
+			_stLightBufferSky.Shadow = _stShadowMap;
+			_stLightBufferSky.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBufferSky, _cbLightBufferSky.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBufferSky.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBufferSky.get());
+		}
+		else
+		{
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbSky.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbSky.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+		}
+
 		BindTexture(TextureRegister::ColorMap, _skyTexture.get(), SamplerStateRegister::AnisotropicClamp);
 
 		_graphicsDevice->BindVertexBuffer(_skyVertexBuffer.get());
@@ -3177,7 +3335,7 @@ namespace TEN::Renderer
 
 				auto translation = Matrix::CreateTranslation(
 					renderView.Camera.WorldPosition.x + Weather.SkyPosition(layer) - i * SKY_SIZE,
-					renderView.Camera.WorldPosition.y - 1536.0f, 
+					renderView.Camera.WorldPosition.y - 1536.0f,
 					renderView.Camera.WorldPosition.z);
 				auto world = rotation * translation;
 
@@ -3193,7 +3351,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		_graphicsDevice->ClearDepthStencil(depthTarget, arrayIndex, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		ClearDepthMidPass();
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
@@ -3202,6 +3360,11 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 			_shaders.Bind(Shader::InstancedSprites);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
 
 			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
 
@@ -3342,6 +3505,29 @@ namespace TEN::Renderer
 
 			_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 
+			if (reflectionPass)
+			{
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				_stLightBufferSky.Sky = _stSky;
+				_stLightBufferSky.Shadow = _stShadowMap;
+				_stLightBufferSky.Blending = _stBlending;
+				UpdateConstantBuffer(&_stLightBufferSky, _cbLightBufferSky.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBufferSky.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBufferSky.get());
+			}
+			else
+			{
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbSky.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbSky.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+			}
+
 			BindPipeline({ BlendMode::Opaque, DepthState::None, CullMode::CounterClockwise });
 
 			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -3375,7 +3561,7 @@ namespace TEN::Renderer
 						BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 						// Always render horizon as alpha-blended surface.
-						SetBlendMode(GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, alpha));
+						BindPipeline({ GetBlendModeFromAlpha((bucket.BlendMode == BlendMode::AlphaTest) ? BlendMode::AlphaBlend : bucket.BlendMode, alpha), DepthState::None, CullMode::CounterClockwise });
 						SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 						// Draw vertices.
@@ -3395,6 +3581,11 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 			_shaders.Bind(Shader::InstancedSprites);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
 
 			// Set up vertex buffer and parameters.
 			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
@@ -3437,7 +3628,7 @@ namespace TEN::Renderer
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.
-		_graphicsDevice->ClearDepthStencil(depthTarget, arrayIndex, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		ClearDepthMidPass();
 	}
 
 	void Renderer::Render(float interpFactor)
@@ -3506,7 +3697,7 @@ namespace TEN::Renderer
 
 					if (rendererPass == RendererPass::ShadowMap)
 					{
-						SetBlendMode(BlendMode::Opaque);
+						BindPipeline({ BlendMode::Opaque, _lastDepthState, _lastCullMode });
 						SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
@@ -3560,13 +3751,13 @@ namespace TEN::Renderer
 			}
 
 			if (blendMode == BlendMode::Opaque)
-			{ 
-				SetBlendMode(BlendMode::Opaque);
+			{
+				BindPipeline({ BlendMode::Opaque, _lastDepthState, _lastCullMode });
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
 			else
 			{
-				SetBlendMode(BlendMode::AlphaTest);
+				BindPipeline({ BlendMode::AlphaTest, _lastDepthState, _lastCullMode });
 				SetAlphaTest(AlphaTestMode::GreatherThan, FAST_ALPHA_BLEND_THRESHOLD);
 			}
 			break;
@@ -3580,21 +3771,21 @@ namespace TEN::Renderer
 
 			if (blendMode == BlendMode::Opaque)
 			{
-				SetBlendMode(BlendMode::Opaque);
+				BindPipeline({ BlendMode::Opaque, _lastDepthState, _lastCullMode });
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
 			else
 			{
 				if (drawPass == 0)
 				{
-					SetBlendMode(BlendMode::Opaque);
+					BindPipeline({ BlendMode::Opaque, _lastDepthState, _lastCullMode });
 					SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 				}
 				else
 				{
-					SetBlendMode(BlendMode::AlphaBlend);
+					BindPipeline({ BlendMode::AlphaBlend, DepthState::Read, _lastCullMode });
 					SetAlphaTest(AlphaTestMode::LessThan, ALPHA_TEST_THRESHOLD);
-				};
+				}
 			}
 			break;
 
@@ -3604,7 +3795,7 @@ namespace TEN::Renderer
 				return false;
 			}
 
-			SetBlendMode(BlendMode::Additive);
+			BindPipeline({ BlendMode::Additive, _lastDepthState, _lastCullMode });
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 
@@ -3872,12 +4063,22 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::CounterClockwise });
 
 			_shaders.Bind(Shader::Rooms);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbRoom.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
@@ -3892,7 +4093,7 @@ namespace TEN::Renderer
 
 		SetScissor(objectInfo->Room->ClipBounds);
 
-		SetBlendMode(objectInfo->BlendMode);
+		BindPipeline({ objectInfo->BlendMode, DepthState::Read, CullMode::CounterClockwise });
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
@@ -3914,12 +4115,22 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::CounterClockwise });
 
 			_shaders.Bind(Shader::Items);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
@@ -3951,7 +4162,7 @@ namespace TEN::Renderer
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
 		UpdateConstantBuffer(&_stItem, _cbItem.get());
 
-		SetBlendMode(objectInfo->BlendMode);
+		BindPipeline({ objectInfo->BlendMode, DepthState::Read, CullMode::CounterClockwise });
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
@@ -3971,12 +4182,22 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::CounterClockwise });
 
 			_shaders.Bind(Shader::InstancedStatics);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
@@ -3989,7 +4210,7 @@ namespace TEN::Renderer
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
 		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
-		SetBlendMode(objectInfo->BlendMode);
+		BindPipeline({ objectInfo->BlendMode, DepthState::Read, CullMode::CounterClockwise });
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
@@ -4009,10 +4230,20 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::CounterClockwise });
 
 			_shaders.Bind(Shader::InstancedStatics);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 		}
 
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
@@ -4027,7 +4258,7 @@ namespace TEN::Renderer
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
 		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get(), (int)sizeof(InstancedStaticMesh));
 
-		SetBlendMode(objectInfo->BlendMode);
+		BindPipeline({ objectInfo->BlendMode, DepthState::Read, CullMode::CounterClockwise });
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
@@ -4053,10 +4284,20 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
+			BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::CounterClockwise });
 
 			_shaders.Bind(Shader::Items);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 		}
 
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
@@ -4097,7 +4338,7 @@ namespace TEN::Renderer
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
 		UpdateConstantBuffer(&_stItem, _cbItem.get());
 
-		SetBlendMode(objectInfo->BlendMode);
+		BindPipeline({ objectInfo->BlendMode, DepthState::Read, CullMode::CounterClockwise });
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
@@ -4120,6 +4361,10 @@ namespace TEN::Renderer
 
 		// SSAO pixel shader.
 		_shaders.Bind(Shader::Ssao);
+
+		// SSAO shader: Camera(Slot0), PostProcess(Slot1)
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbPostProcessBuffer.get());
 
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 

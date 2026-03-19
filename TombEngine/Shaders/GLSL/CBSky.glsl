@@ -4,7 +4,8 @@
 #include "Math.glsl"
 #include "ShaderLight.glsl"
 
-layout(std140, binding = 8) uniform CBSky
+#ifndef SKY_CB_MERGED
+layout(std140, binding = 1) uniform CBSky
 {
     mat4 SkyWorld;
     //--
@@ -15,5 +16,6 @@ layout(std140, binding = 8) uniform CBSky
     int ApplyFogBulbs;
     vec3 CSkyBuffer_Padding0;
 };
+#endif
 
 #endif

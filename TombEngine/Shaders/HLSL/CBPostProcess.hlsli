@@ -9,7 +9,10 @@ struct ShaderLensFlare
     float Padding2;
 };
 
-cbuffer CBPostProcess : register(b7)
+#ifndef REG_CB_POST_PROCESS
+#define REG_CB_POST_PROCESS b2
+#endif
+cbuffer CBPostProcess : register(REG_CB_POST_PROCESS)
 {
     float CinematicBarsHeight;
     float ScreenFadeFactor;

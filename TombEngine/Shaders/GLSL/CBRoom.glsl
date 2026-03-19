@@ -3,7 +3,7 @@
 
 #include "ShaderLight.glsl"
 
-layout(std140, binding = 5) uniform CBRoom
+layout(std140, binding = 1) uniform CBRoom
 {
     int Water;
     int Caustics;

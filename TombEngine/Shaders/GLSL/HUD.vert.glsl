@@ -3,7 +3,7 @@
 #include "VertexInput.glsl"
 #include "Math.glsl"
 
-layout(std140, binding = 10) uniform HUDBuffer
+layout(std140, binding = 0) uniform HUDBuffer
 {
     mat4 HUDView;
     mat4 HUDProjection;

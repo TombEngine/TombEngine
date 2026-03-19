@@ -4,6 +4,7 @@
 #include "CBCamera.glsl"
 #include "CBInstancedStatics.glsl"
 #include "ShaderLight.glsl"
+#include "CLightBuffer.glsl"
 #include "Blending.glsl"
 #include "Shadows.glsl"
 #include "AnimatedTextures.glsl"

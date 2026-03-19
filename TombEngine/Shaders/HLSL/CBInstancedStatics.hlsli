@@ -3,7 +3,9 @@
 
 #include "./ShaderLight.hlsli"
 
-#define INSTANCED_STATIC_MESH_BUCKET_SIZE 100
+// Reduced from 100 to stay within Vulkan's minimum maxUniformBufferRange (16KB).
+// 624 bytes/instance * 25 = 15600 bytes.
+#define INSTANCED_STATIC_MESH_BUCKET_SIZE 25
 
 struct InstancedStatic
 {
@@ -14,7 +16,7 @@ struct InstancedStatic
     uint4 LightInfo;
 };
 
-cbuffer CBInstancedStatics : register(b3)
+cbuffer CBInstancedStatics : register(b1)
 {
     InstancedStatic StaticMeshes[INSTANCED_STATIC_MESH_BUCKET_SIZE];
 };

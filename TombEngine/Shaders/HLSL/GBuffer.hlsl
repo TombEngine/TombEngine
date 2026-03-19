@@ -1,14 +1,16 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+// GBuffer PS: Camera(b0), Material(b1), AnimTex(b2), Blending(b3)
+#define REG_CB_MATERIAL b1
 #include "./CBCamera.hlsli"
-#include "./CBItem.hlsli"
-#include "./CBInstancedStatics.hlsli"
-#include "./CBRoom.hlsli"
 #include "./Materials.hlsli"
 #include "./VertexInput.hlsli"
 #include "./VertexEffects.hlsli"
 #include "./AnimatedTextures.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
-#include "./Materials.hlsli"
 
 struct PixelShaderInput
 {
@@ -47,90 +49,10 @@ float3 EncodeNormal(float3 n)
 	return n.xyz;
 }
 
-PixelShaderInput VSRooms(VertexShaderInput input)
-{
-	PixelShaderInput output;
-
-	// Setting effect weight on TE side prevents portal vertices from moving.
-	// Here we just read weight and decide if we should apply refraction or movement effect.
-    float weight = DecodeWeight(input.Effects);
-
-	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects * weight, wibble);
-
-	// Refraction
-	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
-	float2 clipPos = screenPos.xy / screenPos.w;
-
-	if (CameraUnderwater != Water)
-	{
-		float factor = (Frame + clipPos.x * 320);
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		screenPos.x += xOffset * weight;
-		screenPos.y += yOffset * weight;
-	}
-
-	output.Position = screenPos;
-    output.Normal = input.Normal.xyz;
-	output.Tangent = input.Tangent.xyz;
-    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
-    output.PositionCopy = screenPos;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.DistanceFog = DoDistanceFogForVertex(pos);
-	
-	return output;
-}
-
-PixelShaderInput VSItems(VertexShaderInput input)
-{
-	PixelShaderInput output;
-	
-	// Blend and apply world matrix
-	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
-	float4x4 world = mul(blended, World);
-
-	// Calculate vertex effects
-	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects, wibble);
-
-	output.Position = mul(mul(float4(pos, 1.0f), world), ViewProjection);
-    output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
-    output.DistanceFog = DoDistanceFogForVertex(pos);
-	
-	return output;
-}
-
-PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : SV_InstanceID)
-{
-	PixelShaderInput output;
-
-	// Calculate vertex effects
-    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects, wibble);
-
-	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
-
-	output.Position = mul(worldPosition, ViewProjection);
-    output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.DistanceFog = DoDistanceFogForVertex(pos);
-	
-	return output;
-}
-
 PixelShaderOutput PS(PixelShaderInput input)
 {
 	PixelShaderOutput output;
-	
+
     if (Animated && Type == 1)
         if (IsWaterfall == 1)
             input.UV = CalculateUVRotateForLegacyWaterfalls(input.UV, 0);
@@ -140,10 +62,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float4 color = Texture.Sample(Sampler, input.UV);
 
 	DoAlphaTest(color);
-	
+
     float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
     float specular = ORSHTexture.Sample(ORSHSampler, input.UV).z;
-	
+
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
@@ -152,6 +74,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = DoDistanceFogForPixel(emissive, 0.0f, pow(input.DistanceFog, 2)).xyz;
     output.Emissive.w = specular;
-	
+
 	return output;
 }

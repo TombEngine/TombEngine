@@ -1,3 +1,8 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
+#define REG_CB_MATERIAL b1
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
 #include "./Materials.hlsli"

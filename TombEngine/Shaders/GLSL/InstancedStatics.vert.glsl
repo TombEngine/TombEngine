@@ -7,9 +7,7 @@
 #include "VertexEffects.glsl"
 #include "VertexInput.glsl"
 #include "Blending.glsl"
-#include "Shadows.glsl"
 #include "AnimatedTextures.glsl"
-#include "Materials.glsl"
 
 layout(location = 0) in vec3 in_Position;
 layout(location = 1) in vec4 in_Normal;

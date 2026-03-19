@@ -1,6 +1,16 @@
 #version 450 core
 
 #include "CBCamera.glsl"
+
+#define BLENDING_CB_MERGED 1
+layout(std140, binding = 2) uniform CBBlending
+{
+    uint BlendMode;
+    int AlphaTest;
+    float AlphaThreshold;
+    int CBBlending_Padding0;
+};
+
 #include "Blending.glsl"
 #include "VertexInput.glsl"
 #include "Math.glsl"

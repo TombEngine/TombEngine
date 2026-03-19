@@ -229,19 +229,10 @@ enum class SamplerStateRegister
 
 enum class ConstantBufferRegister
 {
-	Camera = 0,
-	Item = 1,
-	Material = 2,
-	InstancedStatics = 3,
-	ShadowLight = 4,
-	Room = 5,
-	AnimatedTextures = 6,
-	PostProcess = 7,
-	Sky = 8,
-	Hud = 10,
-	HudBar = 11,
-	Blending = 12,
-	InstancedSprites = 13
+	Slot0 = 0,
+	Slot1 = 1,
+	Slot2 = 2,
+	Slot3 = 3
 };
 
 enum class AlphaTestMode

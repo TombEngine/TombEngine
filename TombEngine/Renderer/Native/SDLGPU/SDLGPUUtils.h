@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <map>
 #include <set>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -348,130 +347,6 @@ namespace TEN::Renderer::Native::SDLGPU
 		result.arrayedSamplerBindings = arrayedBindings;
 
 		result.success = true;
-		return result;
-	}
-	// --- Shader resource map parsed from HLSL_SDLGPU metadata comments ---
-	// Merged UBO: one HLSL register holds concatenated data from multiple engine CBs.
-	struct MergedUBO
-	{
-		uint32_t hlslSlot;                     // HLSL register for the merged cbuffer
-		std::vector<uint32_t> engineRegs;      // Engine CB registers to concatenate (in order)
-	};
-
-	struct ShaderResourceMap
-	{
-		std::map<uint32_t, uint32_t> vsUBOMap;   // engine CB register → contiguous VS UBO slot
-		std::map<uint32_t, uint32_t> psUBOMap;   // engine CB register → contiguous PS UBO slot
-		std::map<uint32_t, uint32_t> psTexMap;   // engine tex register → contiguous PS sampler slot
-		std::set<uint32_t> psTexArraySlots;      // PS sampler slots that expect Texture2DArray
-		std::vector<MergedUBO> psUBOMerge;       // PS merged UBOs
-		std::vector<MergedUBO> vsUBOMerge;       // VS merged UBOs
-		bool valid = false;
-	};
-
-	// Parse the @SDLGPU_RESOURCE_MAP metadata block from HLSL source.
-	// Format:
-	//   // @SDLGPU_RESOURCE_MAP
-	//   // VS_UBO: engine_reg=slot engine_reg=slot ...
-	//   // PS_UBO: engine_reg=slot ...
-	//   // PS_UBO_MERGE: hlsl_slot=engine_reg1,engine_reg2,...
-	//   // VS_UBO_MERGE: hlsl_slot=engine_reg1,engine_reg2,...
-	//   // PS_TEX: engine_reg=slot ...
-	//   // PS_TEX_ARRAY: slot slot ...
-	//   // @END_RESOURCE_MAP
-	inline ShaderResourceMap ParseShaderResourceMap(const std::string& hlslSource)
-	{
-		ShaderResourceMap result;
-		auto startPos = hlslSource.find("@SDLGPU_RESOURCE_MAP");
-		auto endPos = hlslSource.find("@END_RESOURCE_MAP");
-		if (startPos == std::string::npos || endPos == std::string::npos)
-			return result;
-
-		std::string block = hlslSource.substr(startPos, endPos - startPos);
-
-		auto parsePairs = [](const std::string& block, const std::string& tag) -> std::map<uint32_t, uint32_t>
-		{
-			std::map<uint32_t, uint32_t> map;
-			auto pos = block.find(tag);
-			if (pos == std::string::npos)
-				return map;
-
-			// Find the content after the tag until end of line.
-			pos += tag.size();
-			auto eol = block.find('\n', pos);
-			if (eol == std::string::npos) eol = block.size();
-			std::string line = block.substr(pos, eol - pos);
-
-			// Parse "old=new old=new ..." pairs.
-			std::istringstream iss(line);
-			std::string token;
-			while (iss >> token)
-			{
-				auto eq = token.find('=');
-				if (eq != std::string::npos)
-				{
-					uint32_t oldReg = (uint32_t)std::stoul(token.substr(0, eq));
-					uint32_t newSlot = (uint32_t)std::stoul(token.substr(eq + 1));
-					map[oldReg] = newSlot;
-				}
-			}
-			return map;
-		};
-
-		result.vsUBOMap = parsePairs(block, "VS_UBO:");
-		result.psUBOMap = parsePairs(block, "PS_UBO:");
-		result.psTexMap = parsePairs(block, "PS_TEX:");
-
-		// Parse PS_TEX_ARRAY: slot slot ...
-		auto arrPos = block.find("PS_TEX_ARRAY:");
-		if (arrPos != std::string::npos)
-		{
-			arrPos += 13;
-			auto eol = block.find('\n', arrPos);
-			if (eol == std::string::npos) eol = block.size();
-			std::istringstream iss(block.substr(arrPos, eol - arrPos));
-			uint32_t slot;
-			while (iss >> slot)
-				result.psTexArraySlots.insert(slot);
-		}
-
-		// Parse UBO_MERGE lines: "hlsl_slot=engine_reg1,engine_reg2,..."
-		auto parseMerge = [](const std::string& block, const std::string& tag) -> std::vector<MergedUBO>
-		{
-			std::vector<MergedUBO> merges;
-			auto pos = block.find(tag);
-			if (pos == std::string::npos)
-				return merges;
-
-			pos += tag.size();
-			auto eol = block.find('\n', pos);
-			if (eol == std::string::npos) eol = block.size();
-			std::string line = block.substr(pos, eol - pos);
-
-			std::istringstream iss(line);
-			std::string token;
-			while (iss >> token)
-			{
-				auto eq = token.find('=');
-				if (eq == std::string::npos) continue;
-
-				MergedUBO m;
-				m.hlslSlot = (uint32_t)std::stoul(token.substr(0, eq));
-				std::string regs = token.substr(eq + 1);
-				std::istringstream regStream(regs);
-				std::string reg;
-				while (std::getline(regStream, reg, ','))
-					m.engineRegs.push_back((uint32_t)std::stoul(reg));
-
-				merges.push_back(m);
-			}
-			return merges;
-		};
-
-		result.psUBOMerge = parseMerge(block, "PS_UBO_MERGE:");
-		result.vsUBOMerge = parseMerge(block, "VS_UBO_MERGE:");
-
-		result.valid = true;
 		return result;
 	}
 

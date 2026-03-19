@@ -10,7 +10,7 @@ struct AnimatedFrameUV
     float2 BottomLeft;
 };
 
-cbuffer CBAnimatedTexture : register(b6)
+cbuffer CBAnimatedTexture : register(b2)
 {
     AnimatedFrameUV AnimFrames[256];
 	//--

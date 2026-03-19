@@ -80,6 +80,8 @@ namespace TEN::Renderer
 		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
 		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
+		_cbLightBuffer = CreateConstantBuffer<CLightBuffer>();
+		_cbLightBufferSky = CreateConstantBuffer<CLightBufferSky>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
@@ -414,7 +416,7 @@ namespace TEN::Renderer
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("vulkan");
 			break;
 		case GraphicsAPI::D3D12:
-			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("d3d12");
+			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("direct3d12");
 			break;
 		case GraphicsAPI::Metal:
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("metal");

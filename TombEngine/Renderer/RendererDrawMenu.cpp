@@ -889,9 +889,20 @@ namespace TEN::Renderer
 		hudCamera.Frame = GlobalCounter;
 		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);
+
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 
 		// Construct world matrix.
 		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z + BLOCK(1));
@@ -916,8 +927,8 @@ namespace TEN::Renderer
 			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -970,8 +981,8 @@ namespace TEN::Renderer
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
 
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1052,9 +1063,18 @@ namespace TEN::Renderer
 		hudCamera.CamDirectionWS = -Vector4::UnitZ;
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
 		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
 
-		_shaders.Bind(Shader::Inventory);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 
 		// Construct world matrix. // pos.x, pos.y, pos.z
 		auto translationMatrix = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
@@ -1079,8 +1099,8 @@ namespace TEN::Renderer
 			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1131,8 +1151,8 @@ namespace TEN::Renderer
 			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1189,7 +1209,6 @@ namespace TEN::Renderer
 
 			EndRenderPass();
 			_graphicsDevice->Present();
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		}
 	}
 
@@ -1197,7 +1216,7 @@ namespace TEN::Renderer
 	{
 		if (!g_DrawItems.IsEmpty())
 		{
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			ClearDepthMidPass();
 			g_DrawItems.Draw();
 		}
 	}
@@ -1264,23 +1283,36 @@ namespace TEN::Renderer
 		// Set basic render states.
 		BindPipeline(Pipelines::OpaqueDefault, true);
 
-		// Clear and set up render targets.
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
+		// Clear and set up render targets via render pass.
 		_graphicsDevice->SetViewport(_viewport);
 		_graphicsDevice->SetScissor(_viewport);
 
 		if (background != nullptr)
-			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		{
+			// Clear color + depth, then draw background image.
+			RenderPassDescriptor bgPass;
+			bgPass.Name = "Inventory Background";
+			bgPass.ColorAttachments = {
+				{ _renderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Black },
+				{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, LoadAction::Clear, StoreAction::Store, Colors::Transparent }
+			};
+			bgPass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			bgPass.Viewport = _viewport;
+			BeginRenderPass(bgPass);
+
+			BindPipeline(Pipelines::OpaqueNoCull);
+			DrawFullScreenQuad(background, Vector3(backgroundFade), true);
+		}
 
 		{
 			RenderPassDescriptor pass;
 			pass.Name = "Inventory Scene";
+
+			// If no background was drawn, clear color targets here. Otherwise load them.
+			auto colorLoadAction = (background != nullptr) ? LoadAction::Load : LoadAction::Clear;
 			pass.ColorAttachments = {
-				{ _renderTarget->GetRenderTarget(), 0, LoadAction::Load, StoreAction::Store },
-				{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, LoadAction::Load, StoreAction::Store }
+				{ _renderTarget->GetRenderTarget(), 0, colorLoadAction, StoreAction::Store, Colors::Black },
+				{ _emissiveAndRoughnessRenderTarget->GetRenderTarget(), 0, colorLoadAction, StoreAction::Store, Colors::Transparent }
 			};
 			pass.DepthAttachment = { _renderTarget->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
 			pass.Viewport = _viewport;
@@ -1295,6 +1327,17 @@ namespace TEN::Renderer
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);
+
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbItem.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 
 		if (CurrentLevel == 0)
 		{
@@ -1367,7 +1410,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		ClearDepthMidPass();
 
 		ApplyGlow(_renderTarget.get(), _gameCamera);
 		ApplyAntialiasing(_renderTarget.get(), _gameCamera);
@@ -1428,8 +1471,8 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbPostProcessBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbPostProcessBuffer.get());
 
 			ApplyGlow(_renderTarget.get(), _gameCamera);
 			ApplyAntialiasing(_renderTarget.get(), _gameCamera);
@@ -1496,8 +1539,18 @@ namespace TEN::Renderer
 			_graphicsSettingsChanged = false;
 		}
 
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Clear back buffer via render pass.
+		{
+			RenderPassDescriptor pass;
+			pass.Name = "Inventory Clear";
+			pass.ColorAttachments.push_back({
+				_backBuffer->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			pass.DepthAttachment = { _backBuffer->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			pass.Viewport = _viewport;
+			BeginRenderPass(pass);
+		}
 
 		// Reset GPU state.
 		BindPipeline(Pipelines::OpaqueDefault, true);
@@ -1516,8 +1569,18 @@ namespace TEN::Renderer
 		InterpolateCamera(interpFactor);
 		DumpGameScene();
 
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Clear back buffer via render pass.
+		{
+			RenderPassDescriptor pass;
+			pass.Name = "Title Clear";
+			pass.ColorAttachments.push_back({
+				_backBuffer->GetRenderTarget(), 0,
+				LoadAction::Clear, StoreAction::Store, Colors::Black
+			});
+			pass.DepthAttachment = { _backBuffer->GetDepthTarget(), 0, LoadAction::Clear, StoreAction::Store, 1.0f, 0 };
+			pass.Viewport = _viewport;
+			BeginRenderPass(pass);
+		}
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 

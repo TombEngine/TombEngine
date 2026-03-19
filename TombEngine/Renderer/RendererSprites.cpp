@@ -278,10 +278,14 @@ namespace TEN::Renderer
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
-				SetDepthState(DepthState::Read);
-				SetCullMode(CullMode::None);
+				BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::None });
 
 				_shaders.Bind(Shader::InstancedSprites);
+
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
 
 				// Set up vertex buffer and parameters.
 				_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
@@ -339,10 +343,14 @@ namespace TEN::Renderer
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
-				SetDepthState(DepthState::Read);
-				SetCullMode(CullMode::None);
+				BindPipeline({ _lastBlendMode, DepthState::Read, CullMode::None });
 
 				_shaders.Bind(Shader::InstancedSprites);
+
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+				BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
 
 				// Set up vertex buffer and parameters.
 				_graphicsDevice->BindVertexBuffer(_spriteVertexBuffer.get());
@@ -434,12 +442,15 @@ namespace TEN::Renderer
 
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
-		SetBlendMode(object->Sprite->BlendMode);
+		BindPipeline({ object->Sprite->BlendMode, DepthState::Read, CullMode::None });
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 		_shaders.Bind(Shader::InstancedSprites);
+
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
 			GetWorldMatrixForSprite(*object->Sprite, view) :
@@ -511,6 +522,11 @@ namespace TEN::Renderer
 		{
 			_shaders.Bind(Shader::InstancedSprites);
 
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedSpriteBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbBlending.get());
+
 			_graphicsDevice->BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -529,9 +545,7 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(),
 			(int)sizeof(InstancedSprite));
 
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
-		SetBlendMode(objectInfo->Sprite->BlendMode);
+		BindPipeline({ objectInfo->Sprite->BlendMode, DepthState::Read, CullMode::None });
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);

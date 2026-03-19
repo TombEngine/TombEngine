@@ -1,6 +1,16 @@
 #version 450 core
 
 #include "CBCamera.glsl"
+
+#define BLENDING_CB_MERGED 1
+layout(std140, binding = 2) uniform CBBlending
+{
+    uint BlendMode;
+    int AlphaTest;
+    float AlphaThreshold;
+    int CBBlending_Padding0;
+};
+
 #include "Blending.glsl"
 #include "Math.glsl"
 #include "SpriteEffects.glsl"
@@ -8,7 +18,7 @@
 
 #define FADE_FACTOR 0.789
 
-layout(std140, binding = 9) uniform SpriteBuffer
+layout(std140, binding = 1) uniform SpriteBuffer
 {
     float IsSoftParticle;
     int RenderType;

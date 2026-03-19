@@ -1,3 +1,7 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
 /**
  * Copyright (C) 2013 Jorge Jimenez (jorge@iryoku.com)
  * Copyright (C) 2013 Jose I. Echevarria (joseignacioechevarria@gmail.com)
@@ -26,7 +30,7 @@
  * SOFTWARE.
  */
 
-cbuffer SMAABuffer : register(b13)
+cbuffer SMAABuffer : register(b0)
 {
     /**
      * This is only required for temporal modes (SMAA T2x).

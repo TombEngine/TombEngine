@@ -16,6 +16,7 @@
 #include "Renderer/Native/SDLGPU/SDLGPUInputLayout.h"
 #include "Renderer/Native/SDLGPU/SDLGPUShader.h"
 #include "Renderer/Native/SDLGPU/SDLGPUPipelineCache.h"
+#include "Renderer/Native/SDLGPU/SDLGPUStorageBuffer.h"
 #include "Renderer/Native/SDLGPU/SDLGPUSpriteBatch.h"
 #include "Renderer/Native/SDLGPU/SDLGPUPrimitiveBatch.h"
 #include "Renderer/Native/SDLGPU/SDLGPUSpriteFont.h"
@@ -65,6 +66,14 @@ namespace TEN::Renderer::Native::SDLGPU
 		};
 		std::map<int, BoundTexture> _boundTextures;
 
+		// Storage buffers bound per stage for draw-time binding.
+		struct BoundStorageBuffer
+		{
+			SDLGPUStorageBuffer* Buffer = nullptr;
+		};
+		std::map<int, BoundStorageBuffer> _boundVertexStorageBuffers;   // Key = slot.
+		std::map<int, BoundStorageBuffer> _boundFragmentStorageBuffers;
+
 		// Current render target info (needed for PSO cache key).
 		SDL_GPUTextureFormat _currentColorFormats[4] = {};
 		int                  _numCurrentColorTargets = 0;
@@ -105,6 +114,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		void UploadToTexture(SDL_GPUTexture* texture, int width, int height, SDL_GPUTextureFormat format, const void* data);
 		void PushUniformsForDraw();
 		void BindTexturesForDraw();
+		void BindStorageBuffersForDraw();
 		SDL_GPUGraphicsPipeline* GetCurrentPipeline();
 
 		// Re-begin the render pass after a copy pass interruption.
@@ -219,6 +229,10 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		// Pipeline state API override.
 		void BindPipeline(const RenderPipelineState& state) override;
+
+		// Storage buffer API for large data (bypasses push uniform ring buffer).
+		std::unique_ptr<SDLGPUStorageBuffer> CreateStorageBuffer(int capacity);
+		void BindStorageBuffer(ShaderStage stage, int slot, SDLGPUStorageBuffer* buffer);
 	};
 }
 

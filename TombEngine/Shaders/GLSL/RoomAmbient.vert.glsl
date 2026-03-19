@@ -2,6 +2,7 @@
 
 #include "CBCamera.glsl"
 #include "CBRoom.glsl"
+#include "CLightBufferSky.glsl"
 #include "CBSky.glsl"
 #include "VertexInput.glsl"
 #include "VertexEffects.glsl"

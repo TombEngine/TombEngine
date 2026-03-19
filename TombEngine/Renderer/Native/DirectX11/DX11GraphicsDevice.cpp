@@ -900,12 +900,11 @@ namespace TEN::Renderer::Native::DirectX11
 				shaderType + ".cso";
 			};
 
-		auto macros = ToD3DMacros(req.Macros);
-
 		auto compileOne = [&](const std::string& shaderType,
 			const std::string& entry,
 			const char* model,
-			ID3D10Blob** outBlob)
+			ID3D10Blob** outBlob,
+			const std::map<std::string, std::string>& stageMacros)
 			{
 				auto csoFileName = makeCsoName(shaderType);
 				auto srcFileName = baseFileName;
@@ -947,6 +946,7 @@ namespace TEN::Renderer::Native::DirectX11
 					flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
 #endif
 
+					auto macros = ToD3DMacros(stageMacros);
 					ComPtr<ID3D10Blob> errors;
 					auto target = shaderType + entry;
 					auto wPath = TEN::Utils::ToWString(srcFileNameWithExt);
@@ -978,10 +978,15 @@ namespace TEN::Renderer::Native::DirectX11
 				}
 			};
 
+		// Build per-stage macros. VS needs VERTEX_SHADER=1 for unified shaders.
+		auto psMacros = req.Macros;
+		auto vsMacros = req.Macros;
+		vsMacros["VERTEX_SHADER"] = "1";
+
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{
 			auto blob = nativeShader->GetD3D10Blob();
-			compileOne("PS", req.EntryPoint, "ps_5_0", &blob);
+			compileOne("PS", req.EntryPoint, "ps_5_0", &blob, psMacros);
 			ComPtr<ID3D11PixelShader> ps;
 			throwIfFailed(_device->CreatePixelShader(blob->GetBufferPointer(),
 				blob->GetBufferSize(),
@@ -993,7 +998,7 @@ namespace TEN::Renderer::Native::DirectX11
 		if (req.Type == ShaderType::Vertex || req.Type == ShaderType::PixelAndVertex)
 		{
 			ComPtr<ID3D10Blob> vsBlob;
-			compileOne("VS", req.EntryPoint, "vs_5_0", vsBlob.GetAddressOf());
+			compileOne("VS", req.EntryPoint, "vs_5_0", vsBlob.GetAddressOf(), vsMacros);
 			ComPtr<ID3D11VertexShader> vs;
 			throwIfFailed(_device->CreateVertexShader(vsBlob->GetBufferPointer(),
 				vsBlob->GetBufferSize(),
@@ -1006,7 +1011,7 @@ namespace TEN::Renderer::Native::DirectX11
 		if (req.Type == ShaderType::Geometry)
 		{
 			ComPtr<ID3D10Blob> gsBlob;
-			compileOne("GS", req.EntryPoint, "gs_5_0", gsBlob.GetAddressOf());
+			compileOne("GS", req.EntryPoint, "gs_5_0", gsBlob.GetAddressOf(), vsMacros);
 			ComPtr<ID3D11GeometryShader> gs;
 			throwIfFailed(_device->CreateGeometryShader(gsBlob->GetBufferPointer(),
 				gsBlob->GetBufferSize(),

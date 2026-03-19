@@ -29,6 +29,12 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::PostProcess);
 
+		// PostProcess shader: Camera(Slot0), Material(Slot1), PostProcess(Slot2), Blending(Slot3)
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbPostProcessBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
+
 		// *** START OF POST-PROCESSING CHAIN ***
 
 		// Copy render target to post process render target. --------------------------------------------------------------------
@@ -241,6 +247,12 @@ namespace TEN::Renderer
 		RendererViewport glowViewport = { 0, 0, (int)( _graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), (int)( _graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR), 0.0f, 1.0f };
 
 		_shaders.Bind(Shader::PostProcess);
+
+		// PostProcess shader variants: Camera(Slot0), Material(Slot1), PostProcess(Slot2), Blending(Slot3)
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbMaterial.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbPostProcessBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbBlending.get());
 
 		_stPostProcessBuffer.ViewportSize = Vector2i( _graphicsDevice->GetScreenWidth(),  _graphicsDevice->GetScreenHeight());
 

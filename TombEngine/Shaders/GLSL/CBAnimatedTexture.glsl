@@ -10,7 +10,7 @@ struct AnimatedFrameUV
     vec2 BottomLeft;
 };
 
-layout(std140, binding = 6) uniform CBAnimatedTexture
+layout(std140, binding = 2) uniform CBAnimatedTexture
 {
     AnimatedFrameUV AnimFrames[256];
     //--

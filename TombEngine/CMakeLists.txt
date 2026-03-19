@@ -303,6 +303,14 @@ if(WIN32)
         opengl32
     )
 
+    # SPIRV-Cross C shared library (for HLSL → SPIRV → GLSL transpilation).
+    add_library(spirv-cross-c SHARED IMPORTED)
+    set_target_properties(spirv-cross-c PROPERTIES
+        IMPORTED_LOCATION "${LIBS_DIR}/spirv_cross/x64/spirv-cross-c-shared.dll"
+        IMPORTED_IMPLIB   "${LIBS_DIR}/spirv_cross/x64/spirv-cross-c-shared.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${LIBS_DIR}/spirv_cross"
+    )
+
     # Third-party prebuilt libraries
     target_link_libraries(TombEngine PRIVATE
         lua53
@@ -315,6 +323,7 @@ if(WIN32)
         spdlog::spdlog
         liblz4_static
         SDL3_shadercross::SDL3_shadercross-static
+        spirv-cross-c
     )
 
 else()

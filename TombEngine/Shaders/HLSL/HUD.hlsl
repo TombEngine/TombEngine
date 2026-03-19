@@ -1,7 +1,11 @@
-#include "VertexInput.hlsli"
-#include "Math.hlsli"
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
 
-cbuffer HUDBuffer : register(b10)
+#include "./VertexInput.hlsli"
+#include "./Math.hlsli"
+
+cbuffer HUDBuffer : register(b0)
 {
 	float4x4 View;
 	float4x4 Projection;
@@ -14,7 +18,7 @@ struct PixelShaderInput
 	float4 Color: COLOR;
 };
 
-cbuffer HUDBarBuffer : register(b11)
+cbuffer HUDBarBuffer : register(b1)
 {
 	float2 BarStartUV;
 	float2 BarScale;

@@ -67,18 +67,6 @@ namespace TEN::Renderer::Graphics
 		virtual void DrawInstancedTriangles(int count, int instances, int baseVertex) = 0;
 		virtual void DrawTriangles(int count, int baseVertex) = 0;
 
-		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor) = 0;
-		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor) = 0;
-		//virtual void ClearRenderTargetCube(IRenderTargetCube* textureCube, int faceIndex, Vector4 clearColor) = 0;
-		
-		virtual void ClearDepthStencil(IDepthTarget* depthTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;
-		virtual void ClearDepthStencil(IDepthTarget* depthTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;
-
-		virtual void BindRenderTarget(IRenderTarget2D* renderTarget, IDepthTarget* depthTarget) = 0;
-		virtual void BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget) = 0;
-		virtual void BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget) = 0;
-		virtual void BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget) = 0;
-
 		virtual void SetPrimitiveType(PrimitiveType primitiveType) = 0;
 
 		virtual void SetInputLayout(IInputLayout* inputLayout) = 0;
@@ -184,5 +172,19 @@ namespace TEN::Renderer::Graphics
 		}
 
 		virtual ~IGraphicsDevice() = default;
+
+	protected:
+		// Legacy clear/bind methods — used internally by the default BeginRenderPass() implementation.
+		// Renderer code should use BeginRenderPass()/EndRenderPass() instead of calling these directly.
+		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor) = 0;
+		virtual void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor) = 0;
+
+		virtual void ClearDepthStencil(IDepthTarget* depthTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;
+		virtual void ClearDepthStencil(IDepthTarget* depthTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) = 0;
+
+		virtual void BindRenderTarget(IRenderTarget2D* renderTarget, IDepthTarget* depthTarget) = 0;
+		virtual void BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget) = 0;
+		virtual void BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget) = 0;
+		virtual void BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget) = 0;
 	};
 }

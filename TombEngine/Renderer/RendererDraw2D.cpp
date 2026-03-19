@@ -120,8 +120,6 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-		
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(bar.VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
@@ -132,14 +130,14 @@ namespace TEN::Renderer
 
 		BindPipeline(Pipelines::HudNoDepth);
 
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbHUD.get());
 
 		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
 		 
 		BindTexture(TextureRegister::Hud, borderSprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -147,9 +145,6 @@ namespace TEN::Renderer
 
 		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-
-		
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
@@ -166,8 +161,8 @@ namespace TEN::Renderer
 		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->GetWidth(), innerSprite->Height / (float)innerSprite->Texture->GetHeight());
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
 
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
 		 
 		BindTexture(TextureRegister::Hud, innerSprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -179,8 +174,6 @@ namespace TEN::Renderer
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
@@ -191,18 +184,16 @@ namespace TEN::Renderer
 
 		BindPipeline(Pipelines::HudNoDepth);
 
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot0, _cbHUD.get());
 		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
 
 		_stHUDBar.BarStartUV = Vector2::Zero;
 		_stHUDBar.BarScale = Vector2::One;
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
 
 		DrawIndexedTriangles(56, 0, 0);
-
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
@@ -216,8 +207,8 @@ namespace TEN::Renderer
 		_stHUDBar.Poisoned = false;
 		_stHUDBar.Frame = 0;
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbHUDBar.get());
 
 		BindTexture(TextureRegister::Hud, _loadingBarInner.get(), SamplerStateRegister::LinearClamp);
 
@@ -346,7 +337,7 @@ namespace TEN::Renderer
 				_primitiveBatch->Begin();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
-				SetBlendMode(spriteToDraw.BlendMode);
+				BindPipeline({ spriteToDraw.BlendMode, _lastDepthState, _lastCullMode });
 			}
 			else if (texture2DPtr != spriteToDraw.SpritePtr->Texture || _lastBlendMode != spriteToDraw.BlendMode)
 			{
@@ -354,7 +345,7 @@ namespace TEN::Renderer
 				_primitiveBatch->Begin();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
-				SetBlendMode(spriteToDraw.BlendMode);
+				BindPipeline({ spriteToDraw.BlendMode, _lastDepthState, _lastCullMode });
 			}
 
 			// Calculate vertex base.

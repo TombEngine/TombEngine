@@ -1,6 +1,7 @@
 #version 450 core
 
 #include "CBCamera.glsl"
+#include "CLightBufferSky.glsl"
 #include "CBSky.glsl"
 #include "VertexInput.glsl"
 #include "VertexEffects.glsl"

@@ -51,9 +51,6 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// 1) Edge detection using color method (also depth and luma available).
-		_graphicsDevice->ClearRenderTarget2D(_SMAAEdgesRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearRenderTarget2D(_SMAABlendRenderTarget->GetRenderTarget(), Colors::Transparent);
-
 		BindPipeline(Pipelines::FullscreenPass);
 
 		{
@@ -61,7 +58,7 @@ namespace TEN::Renderer
 			pass.Name = "SMAA: Edge Detection";
 			pass.ColorAttachments.push_back({
 				_SMAAEdgesRenderTarget->GetRenderTarget(), 0,
-				LoadAction::Load, StoreAction::Store
+				LoadAction::Clear, StoreAction::Store, Colors::Transparent
 			});
 			pass.Viewport = view.Viewport;
 			BeginRenderPass(pass);
@@ -72,7 +69,7 @@ namespace TEN::Renderer
 
 		_stSMAABuffer.BlendFactor = 1.0f;
 		UpdateConstantBuffer(&_stSMAABuffer, _cbSMAABuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbSMAABuffer.get());
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _SMAASceneRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _SMAASceneSRGBRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
@@ -89,7 +86,7 @@ namespace TEN::Renderer
 			pass.Name = "SMAA: Blend Weights";
 			pass.ColorAttachments.push_back({
 				_SMAABlendRenderTarget->GetRenderTarget(), 0,
-				LoadAction::Load, StoreAction::Store
+				LoadAction::Clear, StoreAction::Store, Colors::Transparent
 			});
 			pass.Viewport = view.Viewport;
 			BeginRenderPass(pass);
@@ -176,6 +173,9 @@ namespace TEN::Renderer
 		}
 
 		_shaders.Bind(Shader::Fxaa);
+
+		// FXAA shader: PostProcess(Slot0)
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot0, _cbPostProcessBuffer.get());
 
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());

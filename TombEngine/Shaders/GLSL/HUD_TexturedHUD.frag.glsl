@@ -2,7 +2,7 @@
 
 #include "Math.glsl"
 
-layout(std140, binding = 11) uniform HUDBarBuffer
+layout(std140, binding = 1) uniform HUDBarBuffer
 {
     vec2 BarStartUV;
     vec2 BarScale;

@@ -1,6 +1,16 @@
 #version 450 core
 
 #include "CBCamera.glsl"
+
+#define BLENDING_CB_MERGED 1
+layout(std140, binding = 2) uniform CBBlending
+{
+    uint BlendMode;
+    int AlphaTest;
+    float AlphaThreshold;
+    int CBBlending_Padding0;
+};
+
 #include "Blending.glsl"
 #include "Math.glsl"
 #include "ShaderLight.glsl"
@@ -21,7 +31,7 @@ struct InstancedSprite
     int PerVertexColor;
 };
 
-layout(std140, binding = 13) uniform InstancedSpriteBuffer
+layout(std140, binding = 1) uniform InstancedSpriteBuffer
 {
     InstancedSprite Sprites[INSTANCED_SPRITES_BUCKET_SIZE];
 };

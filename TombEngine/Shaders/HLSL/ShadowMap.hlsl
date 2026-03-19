@@ -1,6 +1,9 @@
+#ifndef OPENGL_BACKEND
+#pragma pack_matrix(row_major)
+#endif
+
 #include "./CBCamera.hlsli"
 #include "./CBItem.hlsli"
-#include "./Blending.hlsli"
 #include "./Math.hlsli"
 #include "./VertexInput.hlsli"
 

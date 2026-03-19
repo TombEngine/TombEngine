@@ -1240,6 +1240,17 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1317,6 +1328,17 @@ namespace TEN::Renderer
 	void Renderer::DrawBaddyGunflashes(RenderView& view)
 	{
 		_shaders.Bind(Shader::InstancedStatics);
+
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1550,6 +1572,17 @@ namespace TEN::Renderer
 	{
 		_shaders.Bind(Shader::InstancedStatics);
 
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+		_stLightBuffer.Material = _stMaterial;
+		_stLightBuffer.Shadow = _stShadowMap;
+		_stLightBuffer.Blending = _stBlending;
+		UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
@@ -1589,6 +1622,17 @@ namespace TEN::Renderer
 		if (activeDebrisExist)
 		{
 			_shaders.Bind(Shader::InstancedStatics);
+
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot1, _cbInstancedStaticMeshBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot2, _cbAnimated.get());
+			_stLightBuffer.Material = _stMaterial;
+			_stLightBuffer.Shadow = _stShadowMap;
+			_stLightBuffer.Blending = _stBlending;
+			UpdateConstantBuffer(&_stLightBuffer, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Slot3, _cbLightBuffer.get());
 
 			BindPipeline(Pipelines::OpaqueNoCull);
 
