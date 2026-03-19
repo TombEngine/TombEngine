@@ -125,6 +125,13 @@ namespace TEN::Hud
 		if (_isActive)
 			return;
 
+		// Bypass if item index is currently suppressed and clear the suppression for the next test.
+		if (_suppressedItemNumbers.find(item.Index) != _suppressedItemNumbers.end())
+		{
+			_suppressedItemNumbers.erase(item.Index);
+			return;
+		}
+
 		// Rough interaction distance test.
 		auto distance = Vector3::Distance(player.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
 		if (distance > INTERACTION_DISTANCE)
@@ -335,8 +342,13 @@ namespace TEN::Hud
 		if (_previous.Fade > 0.0f)
 			_previous.Fade = std::max(0.0f, _previous.Fade - FADE_SPEED);
 
-		// Reset for next frame — if Show() not called again, we fade out
+		// Reset for next frame - if Show() not called again, we fade out.
 		_isActive = false;
+	}
+
+	void InteractionHighlighterController::Suppress(int index)
+	{
+		_suppressedItemNumbers.insert(index);
 	}
 
 	void InteractionHighlighterController::Clear()
@@ -345,5 +357,7 @@ namespace TEN::Hud
 
 		_previous = {};
 		_current  = {};
+
+		_suppressedItemNumbers.clear();
 	}
 }

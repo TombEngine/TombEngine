@@ -157,6 +157,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	RegeneratePickups();
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Controls are polled before OnLoop to allow input data to be overwritten by script API methods.
@@ -303,6 +304,7 @@ GameStatus FreezePhase()
 	SetupInterpolation();
 	PrepareCamera();
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Track previous player animation to queue hair update if needed.
