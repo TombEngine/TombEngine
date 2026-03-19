@@ -111,7 +111,12 @@ namespace TEN::Renderer
 		RenderView& renderView)
 	{
 		bool layerIsAlto = (settings.CloudType == 2);
-		if (!settings.Enabled || (!layerIsAlto && settings.Coverage < 0.001f))
+		if (!settings.Enabled)
+			return;
+		// For non-Alto types, Coverage drives the raymarch density directly — skip at 0.
+		// For AltocumulusMid, Coverage is a post-fade opacity multiplier in the shader;
+		// still skip the full render pass when Coverage is exactly 0 (fully transparent).
+		if (settings.Coverage < 0.001f)
 			return;
 
 		// Resolve quality params.

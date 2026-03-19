@@ -108,6 +108,63 @@ float BillowNoise3D(float3 p)
     return abs(ValueNoise3D(p) * 2.0f - 1.0f);
 }
 
+// Gradient hash: maps a 3D integer grid point to a pseudorandom unit gradient vector.
+// Used by PerlinNoise3D.
+float3 GradHash33(float3 p)
+{
+    p = frac(p * float3(0.1031f, 0.1030f, 0.0973f));
+    p += dot(p, p.yzx + 33.33f);
+    float3 h = frac(float3(
+        (p.x + p.y) * p.z,
+        (p.x + p.z) * p.y,
+        (p.y + p.z) * p.x
+    )) * 2.0f - 1.0f;
+    // Normalize to unit sphere so all gradient magnitudes are equal.
+    // length(h) >= eps is guaranteed because the hash distributes away from zero.
+    return normalize(h);
+}
+
+// Classic Perlin gradient noise, output remapped to approximately [0, 1].
+//
+// WHY this matters for Alto clouds:
+//   ValueNoise3D has iso-contours that are grid-axis-aligned rectangles.
+//   At low octave count (distant clouds, large AltoCloudSize), those rectangular
+//   iso-contours dominate and produce jigsaw shapes regardless of curl warp /
+//   Worley erosion, because those tools only reshape existing iso-contour topology.
+//
+//   Perlin gradient noise is constructed via dot(gradient, offset) rather than
+//   interpolated scalar values, so its iso-contours are roughly spherical and
+//   rotationally symmetric - matching the reference shader s abs(snoise()) whose
+//   snoise is Simplex noise (another gradient variant). Near and far, at any
+//   octave count, gradient-noise iso-contours remain organic.
+//
+//   abs(PerlinNoise3D * 2 - 1) = Perlin billow = direct equivalent of abs(snoise).
+float PerlinNoise3D(float3 p)
+{
+    float3 ip = floor(p);
+    float3 f  = frac(p);
+    float3 u  = f * f * f * (f * (f * 6.0f - 15.0f) + 10.0f); // quintic
+
+    float n000 = dot(GradHash33(ip + float3(0,0,0)), f - float3(0,0,0));
+    float n100 = dot(GradHash33(ip + float3(1,0,0)), f - float3(1,0,0));
+    float n010 = dot(GradHash33(ip + float3(0,1,0)), f - float3(0,1,0));
+    float n110 = dot(GradHash33(ip + float3(1,1,0)), f - float3(1,1,0));
+    float n001 = dot(GradHash33(ip + float3(0,0,1)), f - float3(0,0,1));
+    float n101 = dot(GradHash33(ip + float3(1,0,1)), f - float3(1,0,1));
+    float n011 = dot(GradHash33(ip + float3(0,1,1)), f - float3(0,1,1));
+    float n111 = dot(GradHash33(ip + float3(1,1,1)), f - float3(1,1,1));
+
+    float n00 = lerp(n000, n100, u.x);
+    float n01 = lerp(n001, n101, u.x);
+    float n10 = lerp(n010, n110, u.x);
+    float n11 = lerp(n011, n111, u.x);
+    float n0  = lerp(n00,  n10,  u.y);
+    float n1  = lerp(n01,  n11,  u.y);
+    // Perlin output range is approximately [-0.5, 0.5] for unit gradients in 3D.
+    // Clamp with saturate after remapping to avoid sub-zero values at corners.
+    return saturate(lerp(n0, n1, u.z) + 0.5f);
+}
+
 // Curl noise: computes the 2D curl of ValueNoise3D used as a scalar potential.
 // Returns a divergence-free displacement vector in the XZ plane.
 // Because curl(F) has zero divergence, no flow convergence points exist,
@@ -207,12 +264,21 @@ float FBMLowFreqBillow(float3 p, float lod)
     return v;
 }
 
-// Reference-shader-inspired 5-octave Altocumulus FBM.
-// Blends standard value noise with billow (abs-value) noise per octave.
-// billowBlend [0,1]: 0 = pure value FBM, 1 = pure billow FBM (reference look).
+// Altocumulus 5-octave FBM using Perlin gradient noise.
+// Replaces the former value-noise implementation to match the reference
+// shader s abs(snoise()) whose snoise is a gradient-noise variant.
+//
+// Value noise: iso-contours are grid-axis-aligned rectangles (jigsaw).
+// Gradient (Perlin) noise: iso-contours are roughly spherical = organic.
+// This difference is the primary cause of the angular/jigsaw appearance at
+// distance and large AltoCloudSize, where curl warp / Worley erosion cannot
+// fully compensate for the underlying grid topology of value noise.
+//
+// billowBlend [0,1]: 0 = smooth Perlin, 1 = abs(Perlin) = Perlin billow.
+// Default AltoBillowStrength=0.75 blends 75% billow for the cauliflower look.
 // Lacunarity and gain are configurable (reference: 2.6434, 0.5).
-// 5 octaves match the reference shader's fbm_clouds function.
-// Distance LOD progressively silences fine octaves at range.
+// Distance LOD progressively reduces fine octaves with a minimum floor on
+// oct2/oct3 to ensure frequency diversity at all distances.
 float FBMAlto5(float3 p, float lacunarity, float gain, float billowBlend, float lod)
 {
     float v  = 0.0f;
@@ -222,20 +288,22 @@ float FBMAlto5(float3 p, float lacunarity, float gain, float billowBlend, float 
     [unroll]
     for (int oct = 0; oct < 5; oct++)
     {
-        // Distance LOD: progressively silence finer octaves.
-        // Octaves 0-1 (coarsest): always full weight.
-        // Octaves 2-4: fade with increasing aggression at distance.
+        // Distance LOD: reduce finer octaves at range.
+        // Oct 0-1 (coarsest): always full weight.
+        // Oct 2: floor at 0.35 - keeps 3+ active octaves at all distances.
+        // Oct 3: floor at 0.15 - small mid-freq contribution at distance.
+        // Oct 4 (finest): fully suppressible - highest moire risk.
         float octWeight;
-        if	  (oct <= 1) octWeight = 1.0f;
-        else if (oct == 2) octWeight = saturate(1.0f - lod);
-        else if (oct == 3) octWeight = saturate(1.0f - lod * 1.5f);
-        else			   octWeight = saturate(1.0f - lod * 2.0f);
+        if      (oct <= 1) octWeight = 1.0f;
+        else if (oct == 2) octWeight = max(saturate(1.0f - lod),        0.35f);
+        else if (oct == 3) octWeight = max(saturate(1.0f - lod * 1.5f), 0.15f);
+        else               octWeight = saturate(1.0f - lod * 2.0f);
 
-        float valN = ValueNoise3D(s);
-        float bilN = BillowNoise3D(s);
-        float n = lerp(valN, bilN, billowBlend);
+        float pN   = PerlinNoise3D(s);
+        float valN = pN;
+        float bilN = abs(pN * 2.0f - 1.0f); // Perlin billow = abs(snoise) equivalent
 
-        v += a * octWeight * n;
+        v += a * octWeight * lerp(valN, bilN, billowBlend);
         s *= lacunarity;
         a *= gain;
     }
@@ -428,28 +496,29 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // Because curl(F) has zero divergence, iso-contour deformation never
         // creates convergence points where edges pinch into L/T/puzzle corners.
         //
-        // Amplitudes are matched to the original value-noise warp (±0.14 p-space
-        // units). CurlNoise2D returns a finite-difference gradient whose typical
-        // component magnitude is ~0.4-0.7, so amplitudes of 0.18/0.07 yield
-        // displacements comparable to the original ±0.14 range while remaining
-        // smooth even at zenith where xz-coverage is compressed.
-        //
-        // eps is intentionally wider (0.15/0.10) than the original, giving a
-        // lower-frequency curl field that produces broad organic sweeps rather
-        // than tight wiggles.
-        //
-        // Pass 1: coarse warp - establishes the large organic sweep of each cloud mass.
-        // Pass 2: finer warp  - adds local billow detail at the already-warped position.
+        // Three passes target three distinct frequency bands:
+        //   Pass 1 (coarse, 0.41x): large organic sweep of each cloud mass.
+        //   Pass 2 (medium, 0.80x): billow detail within each mass.
+        //   Pass 3 (fine,   1.60x): targets cell-to-cell boundary iso-contours
+        //     specifically the frequency band where value-noise grid alignment
+        //     is most visible when AltoCloudSize is large and many cells fill
+        //     the screen. Small eps gives a higher-frequency curl field so
+        //     individual cell edges are broken into short curved segments.
         {
             float3 pW  = float3(p.x, 0.0f, p.z) * 0.41f;
             float2 c1  = CurlNoise2D(pW  + float3(3.17f, 0.0f, 7.63f), 0.15f);
-            p.x += c1.x * 0.18f;
-            p.z += c1.y * 0.18f;
+            p.x += c1.x * 0.22f;
+            p.z += c1.y * 0.22f;
 
             float3 pW2 = float3(p.x, 0.0f, p.z) * 0.80f;
             float2 c2  = CurlNoise2D(pW2 + float3(0.59f, 0.0f, 2.44f), 0.10f);
-            p.x += c2.x * 0.07f;
-            p.z += c2.y * 0.07f;
+            p.x += c2.x * 0.09f;
+            p.z += c2.y * 0.09f;
+
+            float3 pW3 = float3(p.x, 0.0f, p.z) * 1.60f;
+            float2 c3  = CurlNoise2D(pW3 + float3(5.33f, 0.0f, 1.88f), 0.06f);
+            p.x += c3.x * 0.035f;
+            p.z += c3.y * 0.035f;
         }
 
         // Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
@@ -457,19 +526,38 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         float dens = FBMAlto5(p * 2.032f, AltoFbmLacunarity, AltoFbmGain,
                               AltoBillowStrength, distLOD);
 
-        // Worley cellular erosion (Guerrilla "Horizon Zero Dawn" technique, Siggraph 2015).
-        // Inverted Worley = smooth rounded blobs that match real altocumulus cell morphology.
-        // Used as an erosion mask: Remap shifts the density base downward inside each cloud
-        // mass, hollowing cell interiors into puffy individual pockets instead of flat plates.
-        // Effect only inside existing cloud masses (dens near 0 -> no change).
-        // Scale 0.55 -> Worley cells are ~55% the size of the FBM first octave so individual
-        // puffs are clearly visible without overpowering the large-scale shape.
-        // Strength 0.24: slightly stronger than original to better dissolve grid-aligned edges
-        // left by value-noise FBM iso-contours without over-fragmenting large cloud masses.
+        // Dual-scale Worley cellular erosion (Guerrilla "Horizon Zero Dawn", Siggraph 2015).
+        // Two scales are needed because a single scale only shapes ONE frequency of cloud:
+        //
+        // Scale A (0.55x FBM) -> coarse puff cells: carves large cloud masses into
+        //   individual billowing mounds. Covers large-coverage regions well.
+        //
+        // Scale B (1.05x FBM) -> fine fragment cells: small cloud fragments near the
+        //   coverage threshold have very little density excess above covThresh, so the
+        //   coarse Worley barely touches them. A finer scale Worley erosion specifically
+        //   breaks those thin fragments into small rounded puffs instead of flat slabs.
+        //   Strength scales with distLOD: at distance the surviving FBM octaves are fewer
+        //   (even with the floor weights) so grid-aligned edges are relatively more
+        //   prominent -> a stronger Worley B compensates by increasing cellular erosion.
+        //
+        // Remap lower-bound shift: positive invWorley -> more density at cell centers
+        // (creates rounded mounds), near-zero invWorley at cell walls -> thin separating
+        // gaps between puffs. Applied BEFORE the coverage smoothstep so the shapes are
+        // carved before the threshold cut.
         {
-            float worley    = WorleyNoise2D(float2(p.x, p.z) * 2.032f * 0.55f);
-            float invWorley = 1.0f - saturate(worley * 1.3f);
-            dens = saturate(Remap(dens, -(invWorley * 0.24f), 1.0f, 0.0f, 1.0f));
+            float2 wPos     = float2(p.x, p.z) * 2.032f;
+            float worleyA   = WorleyNoise2D(wPos * 0.55f);
+            float invWA     = 1.0f - saturate(worleyA * 1.3f);
+            dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
+
+            float worleyB   = WorleyNoise2D(wPos * 1.05f);
+            float invWB     = 1.0f - saturate(worleyB * 1.4f);
+            // Constant strength (no distLOD dependence): distLOD was used here as a
+            // Value-Noise workaround but caused measurable coverage drop at distance
+            // even at AltoZenithBias=0, breaking the uniform-at-0 guarantee.
+            // With Perlin gradient noise the iso-contour shape is already organic at
+            // all distances, so a flat 0.15 gives equal erosion near/far.
+            dens = saturate(Remap(dens, -(invWB * 0.15f), 1.0f, 0.0f, 1.0f));
         }
 
         // Reference: dens *= smoothstep(cld_coverage, cld_coverage + .035, dens);
@@ -501,7 +589,10 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             float spatialPhase = ValueNoise3D(p * 0.4f) * 6.2832f;
             float swellPhase   = CloudTime * EvolutionSpeed * 0.04f + spatialPhase;
             float swellAmp	 = 0.08f * saturate(EvolutionSpeed * 0.5f + 0.1f);
-            swellAmp		  *= max(1.0f - distLOD * 0.8f, 0.0f); // damp at far range
+            // No distLOD damping: damping created a near/far coverage difference at
+            // AltoZenithBias=0 because near clouds expanded more during swell peaks.
+            // Evolution speed is already a global parameter; uniform swell amplitude
+            // keeps cloud "presence" consistent at all distances at bias=0.
             covThresh = saturate(covThresh - sin(swellPhase) * swellAmp);
         }
 
@@ -1521,6 +1612,17 @@ float4 PS(VSOutput input) : SV_TARGET
         // ramp (not smoothstep) to avoid introducing contour bands at the
         // fade boundary from the S-curve's slope plateau.
         cloudResult.a *= saturate(cloudResult.a / 0.025f);
+
+        // AltocumulusMid global layer opacity via Coverage slider [0,1].
+        // Applied AFTER HorizonAtmosphericFade and DistanceFade so the
+        // horizon gradient is preserved at all opacity levels.
+        //   Coverage = 1.0 -> full opacity (default behaviour).
+        //   Coverage = 0.5 -> entire layer at half opacity, horizon still fades.
+        //   Coverage = 0.0 -> layer fully transparent.
+        // The Coverage CB field is uploaded by UpdateVolumetricCloudBuffer()
+        // and is already present in the shared cbuffer for all cloud types.
+        if (CloudType == 2)
+            cloudResult.a *= saturate(Coverage);
     }
 
     return cloudResult;
