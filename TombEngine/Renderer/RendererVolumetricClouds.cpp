@@ -185,9 +185,18 @@ namespace TEN::Renderer
 		_stVolumetricCloud.AltoHtPad4 = 0.0f;
 		_stVolumetricCloud.AltoHtPad5 = 0.0f;
 		_stVolumetricCloud.AltoHeightBlendPower  = settings.AltoHeightBlendPower;
-		_stVolumetricCloud.AltoHtPad0 = 0.0f;
-		_stVolumetricCloud.AltoHtPad1 = 0.0f;
-		_stVolumetricCloud.AltoHtPad2 = 0.0f;
+
+		// Sun elevation for cloud day/night lighting.
+		// Compute from lens flare pitch (same source as LightDirection).
+		float cloudSunElev = 1.0f; // Default: high sun.
+		if (levelPtr->GetLensFlareEnabled())
+		{
+			float pitch = DirectX::XMConvertToRadians((float)levelPtr->GetLensFlarePitch());
+			cloudSunElev = std::sin(pitch);
+		}
+		_stVolumetricCloud.SunElevation        = cloudSunElev;
+		_stVolumetricCloud.CloudNightAmbient   = _atmosphericSkySettings.CloudNightAmbient;
+		_stVolumetricCloud.CloudTwilightAmbient = _atmosphericSkySettings.CloudTwilightAmbient;
 
 		// Lightning parameters
 		_stVolumetricCloud.LightningEnabled       = settings.LightningEnabled;

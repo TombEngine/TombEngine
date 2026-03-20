@@ -53,6 +53,9 @@ namespace TEN::Renderer::Utils
 		Load(Shader::VolumetricClouds, "VolumetricClouds", "", ShaderType::PixelAndVertex);
 		Load(Shader::VolumetricCloudComposite, "VolumetricClouds", "CloudComposite", ShaderType::Pixel);
 		Load(Shader::VolumetricCloudOcclusion, "VolumetricClouds", "CloudOcclusion", ShaderType::Pixel);
+
+		// Atmospheric sky dome.
+		Load(Shader::AtmosphericSkyDome, "AtmosphericSkyDome", "AtmosphericSky", ShaderType::PixelAndVertex);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

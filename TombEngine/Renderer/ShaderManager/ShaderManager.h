@@ -74,6 +74,10 @@ namespace TEN::Renderer::Utils
 		VolumetricCloudComposite,
 		VolumetricCloudOcclusion,
 
+		// Atmospheric sky dome
+
+		AtmosphericSkyDome,
+
 		Count
 	};
 

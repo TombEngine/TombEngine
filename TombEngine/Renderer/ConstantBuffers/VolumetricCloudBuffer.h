@@ -98,9 +98,9 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		// Row 16 — Altocumulus sky-height modulation (continued)
 		float   AltoHeightBlendPower;   // [0.25,4]  exponent on the skyHeight ramp
-		float   AltoHtPad0;
-		float   AltoHtPad1;
-		float   AltoHtPad2;
+		float   SunElevation;           // sin(pitch): +1 = zenith, 0 = horizon, -1 = nadir.
+		float   CloudNightAmbient;      // [0,0.5] minimum ambient when sun is below horizon.
+		float   CloudTwilightAmbient;   // [0,1] ambient contribution during twilight.
 		//--
 		// Row 17 — Lightning enable + frequencies
 		int     LightningEnabled;      // 0 or 1

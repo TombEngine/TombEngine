@@ -1426,16 +1426,20 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                 if (CloudType == 2)
                 {
                     // === AltocumulusMid: fully self-contained lighting ===
-                    // Blend from dark base color (h=0) to bright top color (h=1),
-                    // then modulate by reference height-illumination exp(h)/1.95.
-                    // This gives the characteristic altocumulus look:
-                    //   bottom ??? dark (AltoCloudColorDark ?-- 0.51)
-                    //   top	??? bright (AltoCloudColor ?-- 1.39)
                     float3 cloudColor = lerp(AltoCloudColorDark, AltoCloudColor,
                         saturate(heightFrac));
                     float  heightIllum = exp(heightFrac) / 1.95f;
+
+                    // Sun-elevation modulation for Altocumulus:
+                    float altoSunFade = saturate(CloudSunElevation * 6.0f + 0.5f);
+                    altoSunFade = altoSunFade * altoSunFade;
+                    float altoTwilightBoost = saturate(1.0f - abs(CloudSunElevation) * 8.0f) * CloudTwilightAmbient;
+                    float altoNightBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
+                    float altoDirectFactor = AltoCloudBrightness * heightIllum * altoSunFade;
+                    float altoAmbientFactor = altoTwilightBoost + altoNightBase;
+
                     sampleLight = CloudLightColor * cloudColor
-                        * AltoCloudBrightness * heightIllum;
+                        * (altoDirectFactor + altoAmbientFactor);
 
                     // === Lightning / internal flash illumination ===
                     // Positions are computed in world-space, centered on the camera (rayOrigin.xz)
@@ -1544,7 +1548,17 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     float thinExtinction = 1.0f - saturate(extinction / 0.12f);
                     float lowAbsFactor   = 1.0f - saturate(Absorption * 0.35f);
                     float edgeColorHold  = thinExtinction * lowAbsFactor * 0.45f;
-                    sampleLight = CloudLightColor * (lightT * phase + ambient * (1.0f + edgeColorHold));
+
+                    // Sun-elevation-based lighting modulation:
+                    // When the sun is below the horizon, direct light fades out
+                    // and only ambient/twilight/night contribution remains.
+                    float sunFade = saturate(CloudSunElevation * 6.0f + 0.5f); // 1.0 at day, fades to 0 below horizon.
+                    sunFade = sunFade * sunFade; // Smooth falloff.
+                    float twilightBoost = saturate(1.0f - abs(CloudSunElevation) * 8.0f) * CloudTwilightAmbient;
+                    float nightAmbientBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
+                    float effectiveAmbient = ambient * (1.0f + edgeColorHold) + twilightBoost + nightAmbientBase;
+
+                    sampleLight = CloudLightColor * (lightT * phase * sunFade + effectiveAmbient);
                 }
 
                 float sampleTransmittance = exp(-extinction);

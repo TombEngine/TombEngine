@@ -41,6 +41,8 @@
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
+#include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
+#include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
@@ -198,6 +200,11 @@ namespace TEN::Renderer
 		ConstantBuffer<ConstantBuffers::CVolumetricCloudBuffer> _cbVolumetricCloud;
 		RenderTarget2D _cloudRenderTarget;
 		RenderTarget2D _cloudOcclusionTarget;
+
+		// Atmospheric sky dome
+		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;
+		ConstantBuffer<ConstantBuffers::CAtmosphericSkyBuffer> _cbAtmosphericSky;
+		AtmosphericSkySettings _atmosphericSkySettings;
 		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
 
@@ -450,6 +457,17 @@ namespace TEN::Renderer
 		void PrepareSingleLaserBeam(RenderView& view);
 		void DrawHorizonAndSky(ID3D11DepthStencilView* depthStencilView, RenderView& renderView, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
+
+		// Atmospheric sky dome
+		void InitializeAtmosphericSky();
+		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
+		void DrawAtmosphericSkyDome(RenderView& renderView);
+	public:
+		float ComputeDayNightBlend(float sunElevation) const;
+		float ComputeStarfieldVisibility(float sunElevation) const;
+		AtmosphericSkySettings& GetAtmosphericSkySettings() { return _atmosphericSkySettings; }
+		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }
+	private:
 
 		// Volumetric clouds
 		void InitializeVolumetricClouds();

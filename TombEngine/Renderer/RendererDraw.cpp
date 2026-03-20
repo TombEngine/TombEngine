@@ -3089,6 +3089,16 @@ namespace TEN::Renderer
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
 
+		// --- Atmospheric sky dome (rendered first as opaque background) ---
+		if (_atmosphericSkySettings.Enabled && !reflectionPass)
+		{
+			DrawAtmosphericSkyDome(renderView);
+
+			// Restore vertex buffer state for subsequent legacy sky rendering.
+			stride = sizeof(Vertex);
+			offset = 0;
+		}
+
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
@@ -3135,6 +3145,21 @@ namespace TEN::Renderer
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
+			// When the atmospheric sky dome is active, modulate star visibility
+			// by the computed starfield visibility factor (day=0, night=1).
+			float starfieldAlphaScale = 1.0f;
+			if (_atmosphericSkySettings.Enabled)
+			{
+				auto* starLevelPtr = g_GameFlow->GetLevel(CurrentLevel);
+				if (starLevelPtr->GetLensFlareEnabled())
+				{
+					constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+					float pitch = (float)starLevelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+					float sunElev = std::sin(pitch);
+					starfieldAlphaScale = ComputeStarfieldVisibility(sunElev);
+				}
+			}
+
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
@@ -3180,7 +3205,7 @@ namespace TEN::Renderer
 						star.Color.x,
 						star.Color.y,
 						star.Color.z,
-						star.Blinking * star.Extinction);
+						star.Blinking * star.Extinction * starfieldAlphaScale);
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 

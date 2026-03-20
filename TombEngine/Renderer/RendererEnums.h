@@ -229,6 +229,7 @@ enum class ConstantBufferRegister
 	HudBar = 11,
 	Blending = 12,
 	InstancedSprites = 13
+	// AtmosphericSky reuses slot 10 (Hud) — sky dome renders in a different pass than HUD.
 };
 
 enum class AlphaTestMode

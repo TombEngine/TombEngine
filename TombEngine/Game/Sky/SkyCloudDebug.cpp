@@ -27,6 +27,7 @@
 
 #include "Game/control/control.h"
 #include "Game/Effects/LensFlareDebug.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -658,6 +659,101 @@ namespace TEN::Sky
 	// ====================================================================
 	// Unified Sky Debug Window
 	// ====================================================================
+	// Atmospheric Sky Dome debug tab
+	// ====================================================================
+
+	static void DrawAtmosphericSkyTabContent()
+	{
+		using namespace TEN::Renderer;
+		auto& settings = g_Renderer.GetAtmosphericSkySettings();
+
+		ImGui::Checkbox("Enabled", &settings.Enabled);
+		ImGui::Separator();
+
+		if (!settings.Enabled)
+		{
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Atmospheric sky dome is disabled.");
+			return;
+		}
+
+		// --- Sun info (read-only) ---
+		ImGui::Text("Sun Info (from Lens Flare):");
+		auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+		if (levelPtr && levelPtr->GetLensFlareEnabled())
+		{
+			float pitch = (float)levelPtr->GetLensFlarePitch();
+			float yaw   = (float)levelPtr->GetLensFlareYaw();
+			float elev  = std::sin(DirectX::XMConvertToRadians(pitch));
+			ImGui::Text("  Pitch: %.1f  Yaw: %.1f  Elevation: %.3f", pitch, yaw, elev);
+
+			auto col = levelPtr->GetLensFlareEvaluatedColor();
+			ImGui::Text("  Sun Color: (%.2f, %.2f, %.2f)", col.x, col.y, col.z);
+
+			// Compute and display day/night state.
+			float dayNight = g_Renderer.ComputeDayNightBlend(elev);
+			float starVis  = g_Renderer.ComputeStarfieldVisibility(elev);
+			ImGui::Text("  Day/Night Blend: %.3f  Starfield: %.3f", dayNight, starVis);
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "  Lens flare not enabled.");
+		}
+
+		ImGui::Separator();
+
+		// --- Scattering parameters ---
+		if (ImGui::CollapsingHeader("Scattering", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Sky Color R",           &settings.SkyColorR,            0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Sky Color G",           &settings.SkyColorG,            0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Sky Color B",           &settings.SkyColorB,            0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Density",               &settings.Density,              0.1f, 3.0f, "%.3f");
+			ImGui::SliderFloat("Zenith Offset",         &settings.ZenithOffset,         0.0f, 0.5f, "%.3f");
+			ImGui::SliderFloat("Multi Scatter Phase",   &settings.MultiScatterPhase,    0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Anisotropic Intensity", &settings.AnisotropicIntensity, 0.0f, 2.0f, "%.3f");
+		}
+
+		// --- Glow and brightness ---
+		if (ImGui::CollapsingHeader("Glow & Brightness", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Mie Intensity",          &settings.MieIntensity,          0.0f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Rayleigh Intensity",     &settings.RayleighIntensity,     0.0f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Sun Glow Intensity",     &settings.SunGlowIntensity,      0.0f, 10.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Darkening Str",  &settings.HorizonDarkeningStr,   0.1f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Exposure Multiplier",    &settings.ExposureMultiplier,     0.1f, 5.0f, "%.3f");
+		}
+
+		// --- Night sky ---
+		if (ImGui::CollapsingHeader("Night Sky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Night Sky Brightness",   &settings.NightSkyBrightness,    0.0f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Twilight Offset",        &settings.TwilightOffset,        0.0f, 0.3f, "%.4f");
+			ImGui::SliderFloat("Night Blend Speed",      &settings.NightBlendSpeed,       1.0f, 20.0f, "%.2f");
+		}
+
+		// --- Cloud lighting integration ---
+		if (ImGui::CollapsingHeader("Cloud Sun Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Cloud Sun Light Intensity",      &settings.CloudSunLightIntensity,      0.0f, 5.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Ambient Intensity",        &settings.CloudAmbientIntensity,       0.0f, 2.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Silverlining Strength",    &settings.CloudSilverliningStrength,   0.0f, 3.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Forward Scatter Strength", &settings.CloudForwardScatterStrength, 0.0f, 3.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Light Absorption",         &settings.CloudLightAbsorption,        0.1f, 5.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Sun Warmth Influence",     &settings.CloudSunWarmthInfluence,     0.0f, 1.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Twilight Ambient",         &settings.CloudTwilightAmbient,        0.0f, 1.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Night Ambient",            &settings.CloudNightAmbient,           0.0f, 0.5f,  "%.3f");
+		}
+
+		// --- Reset button ---
+		ImGui::Separator();
+		if (ImGui::Button("Reset Defaults"))
+		{
+			settings = TEN::Renderer::AtmosphericSkySettings{};
+			settings.Enabled = true; // Keep it enabled after reset.
+		}
+	}
+
+	// ====================================================================
 
 	void DrawSkyDebugWindow()
 	{
@@ -682,6 +778,12 @@ namespace TEN::Sky
 				auto* levelPtr = dynamic_cast<Level*>(
 					g_GameFlow->GetLevel(CurrentLevel));
 				DrawHorizonSection(levelPtr);
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Atmospheric Sky"))
+			{
+				DrawAtmosphericSkyTabContent();
 				ImGui::EndTabItem();
 			}
 
