@@ -7,11 +7,26 @@
     },
     "configurePresets": [
         {
-            "name": "win-x64-msvc",
-            "displayName": "Windows x64 (Visual Studio + MSVC)",
+            "name": "win-x64-vs2026",
+            "displayName": "Windows x64 (Visual Studio 2026)",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/Build/msvc-2026",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "win-x64-vs2022",
+            "displayName": "Windows x64 (Visual Studio 2022)",
             "generator": "Visual Studio 17 2022",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/Build/msvc",
+            "binaryDir": "${sourceDir}/Build/msvc-2022",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build/install"
             },
@@ -104,15 +119,27 @@
     ],
     "buildPresets": [
         {
-            "name": "win-x64-debug",
-            "displayName": "Debug (MSVC)",
-            "configurePreset": "win-x64-msvc",
+            "name": "win-x64-debug-2026",
+            "displayName": "Debug (VS 2026)",
+            "configurePreset": "win-x64-vs2026",
             "configuration": "Debug"
         },
         {
-            "name": "win-x64-release",
-            "displayName": "Release (MSVC)",
-            "configurePreset": "win-x64-msvc",
+            "name": "win-x64-release-2026",
+            "displayName": "Release (VS 2026)",
+            "configurePreset": "win-x64-vs2026",
+            "configuration": "Release"
+        },
+        {
+            "name": "win-x64-debug-2022",
+            "displayName": "Debug (VS 2022)",
+            "configurePreset": "win-x64-vs2022",
+            "configuration": "Debug"
+        },
+        {
+            "name": "win-x64-release-2022",
+            "displayName": "Release (VS 2022)",
+            "configurePreset": "win-x64-vs2022",
             "configuration": "Release"
         },
         {

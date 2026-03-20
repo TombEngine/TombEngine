@@ -401,11 +401,6 @@ namespace TEN::Renderer
 
 		switch (api)
 		{
-#ifdef HAS_OPENGL
-		case GraphicsAPI::OpenGL:
-			_graphicsDevice = std::make_unique<TEN::Renderer::Native::OpenGL::GLGraphicsDevice>();
-			break;
-#endif
 #ifdef HAS_DX11
 		case GraphicsAPI::DirectX11:
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::DirectX11::DX11GraphicsDevice>();
@@ -414,9 +409,6 @@ namespace TEN::Renderer
 #ifdef HAS_SDLGPU
 		case GraphicsAPI::Vulkan:
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("vulkan");
-			break;
-		case GraphicsAPI::D3D12:
-			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("direct3d12");
 			break;
 		case GraphicsAPI::Metal:
 			_graphicsDevice = std::make_unique<TEN::Renderer::Native::SDLGPU::SDLGPUGraphicsDevice>("metal");

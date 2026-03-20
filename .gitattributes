@@ -1,3 +1,13 @@
 # Ensure shell scripts always use LF line endings.
 *.sh text eol=lf
 packaging/appimage/AppRun text eol=lf
+
+# Git LFS — prebuilt closed-source / large binary dependencies.
+Libs/bass/**/*.dll filter=lfs diff=lfs merge=lfs -text
+Libs/bass/**/*.lib filter=lfs diff=lfs merge=lfs -text
+Libs/bass/**/*.so filter=lfs diff=lfs merge=lfs -text
+Libs/bass/**/*.dylib filter=lfs diff=lfs merge=lfs -text
+Libs/vlc/**/*.dll filter=lfs diff=lfs merge=lfs -text
+Libs/vlc/**/*.lib filter=lfs diff=lfs merge=lfs -text
+Libs/vlc/**/*.so filter=lfs diff=lfs merge=lfs -text
+Libs/vlc/**/*.dylib filter=lfs diff=lfs merge=lfs -text

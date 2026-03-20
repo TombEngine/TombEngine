@@ -23,7 +23,6 @@ struct GameConfiguration
 
 	// Graphics
 
-	GraphicsAPI RendererAPI		  = GraphicsAPI::Auto;
 	int		   ScreenWidth		  = 0;
 	int		   ScreenHeight		  = 0;
 	bool	   EnableWindowedMode = false;

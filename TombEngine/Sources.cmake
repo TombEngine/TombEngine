@@ -2,14 +2,9 @@
 # Run: python Tools/sync_vcxproj.py --from-vcxproj
 
 # Precompiled header source
-# SDL_shadercross.c is only compiled directly on Windows (MSVC);
-# on Linux/macOS it comes from the FetchContent-built static library.
 set(TEN_PCH_SOURCE
     framework.cpp
 )
-if(WIN32)
-    list(APPEND TEN_PCH_SOURCE ../Libs/sdl_shadercross/SDL_shadercross.c)
-endif()
 
 # Root headers
 set(TEN_ROOT_HEADERS
@@ -1213,7 +1208,6 @@ set(TEN_PLATFORM_HEADERS
 
 # Third-party sources
 set(TEN_THIRDPARTY_SOURCES
-    ../Libs/glad/glad.c
 )
 
 # Aggregate lists

@@ -5,7 +5,13 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# Ensure consistent CRT linkage across all targets (including FetchContent deps).
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "")
+
 add_subdirectory(TombEngine)
+
+# Make TombEngine the default startup project in Visual Studio (instead of ALL_BUILD).
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT TombEngine)
 
 # ---------------------------------------------------------------------------
 # CPack — Linux standalone distribution tarball

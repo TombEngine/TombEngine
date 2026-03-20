@@ -142,23 +142,6 @@ namespace TEN::Renderer
 		auto* shadowMode = g_Gui.GetCurrentSettings().Configuration.ShadowType != ShadowMode::None ?
 			(g_Gui.GetCurrentSettings().Configuration.ShadowType == ShadowMode::Player ? STRING_SHADOWS_PLAYER : STRING_SHADOWS_ALL) : STRING_SHADOWS_NONE;
 
-		const char* rendererMode;
-		switch (g_Gui.GetCurrentSettings().Configuration.RendererAPI)
-		{
-		default:
-		case GraphicsAPI::Auto:
-			rendererMode = STRING_RENDERER_AUTO;
-			break;
-
-		case GraphicsAPI::DirectX11:
-			rendererMode = STRING_RENDERER_DIRECTX11;
-			break;
-
-		case GraphicsAPI::OpenGL:
-			rendererMode = STRING_RENDERER_OPENGL;
-			break;
-		}
-
 		const char* antialiasMode;
 		switch (g_Gui.GetCurrentSettings().Configuration.AntialiasingMode)
 		{
@@ -247,17 +230,14 @@ namespace TEN::Renderer
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableHighFramerate), plainColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
-			// Renderer API (requires restart)
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RENDERER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, g_GameFlow->GetString(rendererMode), plainColor, SF(titleOption == 8));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 9));
 			break;
 
 		case Menu::OtherSettings:

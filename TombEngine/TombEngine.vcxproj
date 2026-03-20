@@ -42,11 +42,14 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <!-- Path to the CMake build tree. Run: cmake [preset win-x64-msvc] to populate. -->
+    <CMakeDepsDir>$(SolutionDir)Build\msvc</CMakeDepsDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(SolutionDir)Libs\spirv_cross;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\spirv_cross\x64;$(SolutionDir)Libs\sdl_shadercross\x64;</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(CMakeDepsDir)\_deps\lua-src\src;$(CMakeDepsDir)\_deps\lz4-src\lib;$(CMakeDepsDir)\_deps\sdl3-src\include;$(CMakeDepsDir)\_deps\spdlog-src\include;$(CMakeDepsDir)\_deps\sdl_shadercross-src\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(CMakeDepsDir)\_deps\spdlog-build\$(Configuration);$(CMakeDepsDir)\TombEngine\$(Configuration);$(CMakeDepsDir)\_deps\lz4-build\$(Configuration);$(CMakeDepsDir)\_deps\sdl3-build\$(Configuration);$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(CMakeDepsDir)\_deps\sdl_shadercross-build\$(Configuration);$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\lib;$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\SPIRV-Cross\$(Configuration)</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
@@ -55,8 +58,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\lz4;$(SolutionDir)Libs\sdl3\include;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(SolutionDir)Libs\spirv_cross;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath);$(SolutionDir)Libs\spdlog\x64;$(SolutionDir)Libs\lua\x64;$(SolutionDir)Libs\lz4\x64;$(SolutionDir)Libs\sdl3\lib\x64;$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(SolutionDir)Libs\spirv_cross\x64;$(SolutionDir)Libs\sdl_shadercross\x64;</LibraryPath>
+    <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\glad;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\vlc;$(SolutionDir)Libs\bass;$(SolutionDir)Libs\srtparser;$(CMakeDepsDir)\_deps\lua-src\src;$(CMakeDepsDir)\_deps\lz4-src\lib;$(CMakeDepsDir)\_deps\sdl3-src\include;$(CMakeDepsDir)\_deps\spdlog-src\include;$(CMakeDepsDir)\_deps\sdl_shadercross-src\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath);$(CMakeDepsDir)\_deps\spdlog-build\$(Configuration);$(CMakeDepsDir)\TombEngine\$(Configuration);$(CMakeDepsDir)\_deps\lz4-build\$(Configuration);$(CMakeDepsDir)\_deps\sdl3-build\$(Configuration);$(SolutionDir)Libs\vlc\x64;$(SolutionDir)Libs\bass\x64;$(CMakeDepsDir)\_deps\sdl_shadercross-build\$(Configuration);$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\lib;$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\SPIRV-Cross\$(Configuration)</LibraryPath>
     <TargetExt>.exe</TargetExt>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(Configuration)\Bin\Windows\</OutDir>
@@ -87,7 +90,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;opengl32.lib;spirv-cross-c-shared.lib;dxcompiler.lib;ucrtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53_static.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;lz4.lib;SDL3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;opengl32.lib;dxcompiler.lib;SDL3_shadercross-static.lib;spirv-cross-c-sharedd.lib;ucrtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -115,11 +118,10 @@ if not exist %EngineDir% mkdir %EngineDir%
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl3\lib\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl_shadercross\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\spirv_cross\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(CMakeDepsDir)\_deps\sdl3-build\$(Configuration)\SDL3.dll" "$(TargetDir)"
+xcopy /Y "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\SPIRV-Cross\$(Configuration)\spirv-cross-c-shared*.dll" "$(TargetDir)"
+if exist "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\bin\dxcompiler.dll" xcopy /Y "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\bin\dxcompiler.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" %EngineDir%
 xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" %ScriptsDir%
@@ -164,7 +166,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;opengl32.lib;spirv-cross-c-shared.lib;dxcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;lua53_static.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;lz4.lib;SDL3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;opengl32.lib;dxcompiler.lib;SDL3_shadercross-static.lib;spirv-cross-c-shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -196,10 +198,10 @@ if not exist "%EngineDir%" mkdir "%EngineDir%"
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\vlc\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\sdl_shadercross\x64\*.dll" "$(TargetDir)"
-xcopy /Y "$(SolutionDir)Libs\spirv_cross\x64\*.dll" "$(TargetDir)"
+xcopy /Y "$(CMakeDepsDir)\_deps\sdl3-build\$(Configuration)\SDL3.dll" "$(TargetDir)"
+xcopy /Y "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\SPIRV-Cross\$(Configuration)\spirv-cross-c-shared*.dll" "$(TargetDir)"
+if exist "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\bin\dxcompiler.dll" xcopy /Y "$(CMakeDepsDir)\_deps\sdl_shadercross-build\external\DirectXShaderCompiler\$(Configuration)\bin\dxcompiler.dll" "$(TargetDir)"
 
 xcopy /D /Y /I /E "$(SolutionDir)Scripts\Engine\*.*" "%EngineDir%"
 xcopy /D /Y "$(SolutionDir)Scripts\SystemStrings.lua" "%ScriptsDir%"
@@ -844,10 +846,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
   <ItemGroup>
     <ClCompile Include="..\Libs\glad\glad.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\Libs\sdl_shadercross\SDL_shadercross.c">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="framework.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

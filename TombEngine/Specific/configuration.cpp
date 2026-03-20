@@ -149,11 +149,7 @@ bool LoadConfiguration()
 
 		if (section == "Graphics")
 		{
-			if (key == "RendererAPI")
-			{
-				g_Configuration.RendererAPI = (GraphicsAPI)ToInt(val, (int)g_Configuration.RendererAPI);
-			}
-			else if (key == "ScreenWidth")
+			if (key == "ScreenWidth")
 			{
 				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
 			}
@@ -295,7 +291,6 @@ bool SaveConfiguration()
 	std::ostringstream ss;
 
 	ss << "[Graphics]\n";
-	ss << "RendererAPI=" << (int)g_Configuration.RendererAPI << "\n";
 	ss << "ScreenWidth=" << g_Configuration.ScreenWidth << "\n";
 	ss << "ScreenHeight=" << g_Configuration.ScreenHeight << "\n";
 	ss << "EnableWindowedMode=" << (g_Configuration.EnableWindowedMode ? 1 : 0) << "\n";

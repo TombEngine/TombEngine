@@ -234,12 +234,8 @@ int main(int argc, char* argv[])
 			auto val = TEN::Utils::ToLower(std::string(argv[++i]));
 			if (val == "dx11" || val == "d3d11" || val == "directx11")
 				cmdLineApi = GraphicsAPI::DirectX11;
-			else if (val == "opengl" || val == "gl")
-				cmdLineApi = GraphicsAPI::OpenGL;
 			else if (val == "vulkan" || val == "vk")
 				cmdLineApi = GraphicsAPI::Vulkan;
-			else if (val == "d3d12" || val == "dx12" || val == "directx12")
-				cmdLineApi = GraphicsAPI::D3D12;
 			else if (val == "metal")
 				cmdLineApi = GraphicsAPI::Metal;
 		}
@@ -333,26 +329,18 @@ int main(int argc, char* argv[])
 	// @inputme
 	g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
-	// Resolve GraphicsAPI (command line overrides config).
-	auto resolvedApi = (cmdLineApi != GraphicsAPI::Auto) ? cmdLineApi : g_Configuration.RendererAPI;
+	// Resolve GraphicsAPI: command line overrides default.
+	// Default is Vulkan (via SDL_GPU) on all platforms.
+	// DX11 is available on Windows via: -api dx11
+	auto resolvedApi = cmdLineApi;
 	if (resolvedApi == GraphicsAPI::Auto)
-	{
-#if defined(__APPLE__)
-		resolvedApi = GraphicsAPI::Metal;
-#elif defined(_WIN32)
-		resolvedApi = GraphicsAPI::DirectX11;
-#else
-		resolvedApi = GraphicsAPI::OpenGL;
-#endif
-	}
+		resolvedApi = GraphicsAPI::Vulkan;
 
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
 
 	unsigned int windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-	if (resolvedApi == GraphicsAPI::OpenGL)
-		windowFlags |= SDL_WINDOW_OPENGL;
 	if (!g_Configuration.EnableWindowedMode)
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 

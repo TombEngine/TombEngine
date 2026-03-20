@@ -183,9 +183,7 @@ enum class GraphicsAPI
 {
 	Auto,
 	DirectX11,
-	OpenGL,
 	Vulkan,
-	D3D12,
 	Metal
 };
 

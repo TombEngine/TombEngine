@@ -4,7 +4,7 @@ What you will read under has been agreed by the current active team in order to 
 
 **1. Developer**
 
-- If you wish to contribute to the TEN project, you must read and follow the coding convention used by the team, available here: https://github.com/MontyTRC89/TombEngine/blob/master/CONTRIBUTING.md#coding-conventions
+- If you wish to contribute to the TEN project, you must read and follow the coding convention used by the team, available here: [Coding Conventions](#coding-conventions)
 - Do not work directly on master nor any branch which may be developed by several members. Create your branch, and name it with a clear description of the feature/set of features you are working on. You may regularly merge/rebase master or the active development branch with yours.
 - Be respectful to other developers. Disagreements may occur on code style, changes, and should be discussed directly with the person who pushed or merged the commit/branch. If you are unsure of what some parts of the code means, or why a decision was made, contact the team as a whole so they can be explained to you.
 - Do not make a pull request until your branch and features are extensively tested by the QA team. You are invited to test your feature set as much as you can too.
@@ -393,6 +393,18 @@ if (portalRoomNumber != NO_VALUE &&
     player.Explode();
 }
 ```
+
+## Build System
+
+TombEngine uses **CMake** as the single build system for all platforms. On Windows, CMake generates a Visual Studio solution. See [CMAKE.md](CMAKE.md) for step-by-step instructions.
+
+**Quick start:**
+1. Install CMake from https://cmake.org/download/
+2. Double-click `GenerateSolution_VS2022.cmd` (or `_VS2026.cmd`)
+3. Open the generated solution:
+   - VS 2022: `Build\msvc-2022\TombEngine.sln`
+   - VS 2026: `Build\msvc-2026\TombEngine.slnx`
+4. Build as usual (Ctrl+Shift+B)
 
 ## Cross-Platform C++ Compliance
 

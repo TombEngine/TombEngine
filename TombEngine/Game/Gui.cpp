@@ -503,7 +503,6 @@ namespace TEN::Gui
 			Antialiasing,
 			AmbientOcclusion,
 			HighFramerate,
-			RendererAPI,
 			Save,
 			Cancel,
 
@@ -574,15 +573,6 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
 
-			case DisplaySettingsOption::RendererAPI:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-
-				if (CurrentSettings.Configuration.RendererAPI == GraphicsAPI::Auto)
-					CurrentSettings.Configuration.RendererAPI = GraphicsAPI::OpenGL;
-				else
-					CurrentSettings.Configuration.RendererAPI = GraphicsAPI(int(CurrentSettings.Configuration.RendererAPI) - 1);
-
-				break;
 			}
 		}
 
@@ -647,15 +637,6 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
 
-			case DisplaySettingsOption::RendererAPI:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-
-				if (CurrentSettings.Configuration.RendererAPI == GraphicsAPI::OpenGL)
-					CurrentSettings.Configuration.RendererAPI = GraphicsAPI::Auto;
-				else
-					CurrentSettings.Configuration.RendererAPI = GraphicsAPI(int(CurrentSettings.Configuration.RendererAPI) + 1);
-
-				break;
 			}
 		}
 

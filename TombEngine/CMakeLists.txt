@@ -20,28 +20,24 @@ if(WIN32)
     set(RENDERER_SOURCES
         ${TEN_RENDERER_SOURCES}
         ${TEN_RENDERER_DX11_SOURCES}
-        ${TEN_RENDERER_OPENGL_SOURCES}
         ${TEN_RENDERER_SDLGPU_SOURCES}
     )
     set(RENDERER_HEADERS
         ${TEN_RENDERER_HEADERS}
         ${TEN_RENDERER_DX11_HEADERS}
-        ${TEN_RENDERER_OPENGL_HEADERS}
         ${TEN_RENDERER_SDLGPU_HEADERS}
     )
-    set(RENDERER_DEFINES HAS_DX11 HAS_OPENGL HAS_SDLGPU)
+    set(RENDERER_DEFINES HAS_DX11 HAS_SDLGPU)
 else()
     set(RENDERER_SOURCES
         ${TEN_RENDERER_SOURCES}
-        ${TEN_RENDERER_OPENGL_SOURCES}
         ${TEN_RENDERER_SDLGPU_SOURCES}
     )
     set(RENDERER_HEADERS
         ${TEN_RENDERER_HEADERS}
-        ${TEN_RENDERER_OPENGL_HEADERS}
         ${TEN_RENDERER_SDLGPU_HEADERS}
     )
-    set(RENDERER_DEFINES HAS_OPENGL HAS_SDLGPU)
+    set(RENDERER_DEFINES HAS_SDLGPU)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -104,14 +100,6 @@ endif()
 
 # Precompiled headers
 target_precompile_headers(TombEngine PRIVATE framework.h)
-set_source_files_properties(../Libs/glad/glad.c
-    PROPERTIES SKIP_PRECOMPILE_HEADERS ON
-)
-if(WIN32)
-    set_source_files_properties(../Libs/sdl_shadercross/SDL_shadercross.c
-        PROPERTIES SKIP_PRECOMPILE_HEADERS ON
-    )
-endif()
 
 # GCC requires optimization for SSE intrinsics used by stb_image, even in Debug.
 if(NOT MSVC)
@@ -124,13 +112,12 @@ endif()
 target_include_directories(TombEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ---------------------------------------------------------------------------
-# Include directories — third-party libraries
+# FetchContent dependencies (all platforms)
 # ---------------------------------------------------------------------------
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/Libs)
-
-# Build spdlog from source on all platforms so that CRT flags always match.
-# Must be before include directory setup so we can prioritize FetchContent headers.
 include(FetchContent)
+
+# spdlog — built from source on all platforms for CRT consistency.
 FetchContent_Declare(spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG        v1.10.0
@@ -138,29 +125,20 @@ FetchContent_Declare(spdlog
 set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(spdlog)
 
-# SDL3 must be available before SDL_shadercross (which does find_package(SDL3)).
-# On Windows, SDL3 is vendored (pre-built) — create an imported SDL3::Headers
-# target so that SDL_shadercross's find_package(SDL3) is satisfied.
-if(WIN32 AND NOT TARGET SDL3::Headers)
-    add_library(SDL3::Headers INTERFACE IMPORTED)
-    set_target_properties(SDL3::Headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${LIBS_DIR}/sdl3/include"
+# SDL3 — built from source on all platforms.
+find_package(SDL3 QUIET)
+if(NOT SDL3_FOUND)
+    FetchContent_Declare(SDL3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG        release-3.2.8
     )
-else()
-    # Linux / macOS — fetch or find SDL3 before SDL_shadercross needs it.
-    find_package(SDL3 QUIET)
-    if(NOT SDL3_FOUND)
-        FetchContent_Declare(SDL3
-            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-            GIT_TAG        release-3.2.8
-        )
-        FetchContent_MakeAvailable(SDL3)
-    endif()
+    FetchContent_MakeAvailable(SDL3)
 endif()
 
+# SDL_shadercross — pinned to a specific commit for reproducibility.
 FetchContent_Declare(SDL_shadercross
     GIT_REPOSITORY https://github.com/libsdl-org/SDL_shadercross.git
-    GIT_TAG        main
+    GIT_TAG        3a314481ede01f5d966f0e834019942e34c02b82  # Pinned 2026-03-19
 )
 set(SDLSHADERCROSS_SHARED OFF CACHE BOOL "" FORCE)
 set(SDLSHADERCROSS_INSTALL OFF CACHE BOOL "" FORCE)
@@ -168,35 +146,60 @@ set(SDLSHADERCROSS_CLI OFF CACHE BOOL "" FORCE)
 set(SDLSHADERCROSS_VENDORED ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(SDL_shadercross)
 
-# Header-only / always-vendored libraries (all platforms).
-# Use -idirafter for ${LIBS_DIR} so that FetchContent spdlog headers
-# take priority over the vendored spdlog in Libs/spdlog/.
-if(MSVC)
-    # MSVC doesn't support -idirafter; add FetchContent spdlog headers BEFORE
-    # ${LIBS_DIR} so they take priority over the vendored Libs/spdlog/ headers.
-    get_target_property(_SPDLOG_INC spdlog INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(TombEngine BEFORE PRIVATE ${_SPDLOG_INC})
-    target_include_directories(TombEngine PRIVATE ${LIBS_DIR})
-else()
-    target_compile_options(TombEngine PRIVATE -idirafter ${LIBS_DIR})
+# LZ4 — built from source on all platforms.
+FetchContent_Declare(lz4
+    GIT_REPOSITORY https://github.com/lz4/lz4.git
+    GIT_TAG        v1.10.0
+    SOURCE_SUBDIR  build/cmake
+)
+set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
+set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(lz4)
+
+# stb — header-only image loading/writing (stb_image.h, stb_image_write.h).
+FetchContent_Declare(stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG        28d546d5eb77d4585506a20480f4de2e706dff4c
+)
+FetchContent_MakeAvailable(stb)
+# stb is header-only with no CMakeLists.txt; just expose the source dir.
+target_include_directories(TombEngine PRIVATE ${stb_SOURCE_DIR})
+
+# Lua 5.3 — built from source on all platforms (static library).
+FetchContent_Declare(lua
+    URL      https://www.lua.org/ftp/lua-5.3.6.tar.gz
+    URL_HASH SHA256=fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(lua)
+file(GLOB LUA_CORE_SOURCES ${lua_SOURCE_DIR}/src/*.c)
+list(REMOVE_ITEM LUA_CORE_SOURCES
+    ${lua_SOURCE_DIR}/src/lua.c
+    ${lua_SOURCE_DIR}/src/luac.c
+)
+add_library(lua53_static STATIC ${LUA_CORE_SOURCES})
+target_include_directories(lua53_static PUBLIC ${lua_SOURCE_DIR}/src)
+if(NOT WIN32)
+    target_compile_definitions(lua53_static PRIVATE LUA_USE_POSIX LUA_USE_DLOPEN)
+    target_link_libraries(lua53_static PRIVATE m dl)
 endif()
 
+# ---------------------------------------------------------------------------
+# Include directories — third-party libraries
+# ---------------------------------------------------------------------------
 target_include_directories(TombEngine PRIVATE
-    ${LIBS_DIR}/glad
+    ${LIBS_DIR}
     ${LIBS_DIR}/sol
     ${LIBS_DIR}/srtparser
     ${LIBS_DIR}/glm
     ${LIBS_DIR}/bass
 )
 
-# On Windows, all third-party headers come from Libs/.
+# VLC headers.
 if(WIN32)
-    target_include_directories(TombEngine PRIVATE
-        ${LIBS_DIR}/lua
-        ${LIBS_DIR}/lz4
-        ${LIBS_DIR}/sdl3/include
-        ${LIBS_DIR}/vlc
-    )
+    target_include_directories(TombEngine PRIVATE ${LIBS_DIR}/vlc)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -284,9 +287,6 @@ endif()
 if(WIN32)
     # Library search paths for prebuilt third-party libs (x64 only)
     target_link_directories(TombEngine PRIVATE
-        ${LIBS_DIR}/lua/x64
-        ${LIBS_DIR}/lz4/x64
-        ${LIBS_DIR}/sdl3/lib/x64
         ${LIBS_DIR}/vlc/x64
         ${LIBS_DIR}/bass/x64
     )
@@ -300,68 +300,25 @@ if(WIN32)
         dxguid
         d3d11
         version
-        opengl32
     )
 
-    # SPIRV-Cross C shared library (for HLSL → SPIRV → GLSL transpilation).
-    add_library(spirv-cross-c SHARED IMPORTED)
-    set_target_properties(spirv-cross-c PROPERTIES
-        IMPORTED_LOCATION "${LIBS_DIR}/spirv_cross/x64/spirv-cross-c-shared.dll"
-        IMPORTED_IMPLIB   "${LIBS_DIR}/spirv_cross/x64/spirv-cross-c-shared.lib"
-        INTERFACE_INCLUDE_DIRECTORIES "${LIBS_DIR}/spirv_cross"
-    )
-
-    # Third-party prebuilt libraries
+    # Third-party libraries
     target_link_libraries(TombEngine PRIVATE
-        lua53
+        SDL3::SDL3
+        spdlog::spdlog
+        lz4_static
+        lua53_static
+        SDL3_shadercross::SDL3_shadercross-static
         bass
         bassmix
         bass_fx
         libvlc
         libvlccore
-        sdl3
-        spdlog::spdlog
-        liblz4_static
-        SDL3_shadercross::SDL3_shadercross-static
-        spirv-cross-c
     )
 
 else()
     # Linux / macOS — use system packages where available,
     # prebuilt libraries from Libs/ for BASS and VLC.
-    include(CMakeFindDependencyMacro)
-
-    # SDL3 already fetched/found earlier (before SDL_shadercross).
-
-    find_package(OpenGL REQUIRED)
-
-    # Build LZ4 from source via FetchContent (no system liblz4-dev needed).
-    FetchContent_Declare(lz4
-        GIT_REPOSITORY https://github.com/lz4/lz4.git
-        GIT_TAG        v1.10.0
-        SOURCE_SUBDIR  build/cmake
-    )
-    set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
-    set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE BOOL "" FORCE)
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(lz4)
-
-    # Build Lua 5.3 from source via FetchContent (no system liblua5.3-dev needed).
-    FetchContent_Declare(lua
-        URL      https://www.lua.org/ftp/lua-5.3.6.tar.gz
-        URL_HASH SHA256=fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60
-    )
-    FetchContent_MakeAvailable(lua)
-    file(GLOB LUA_CORE_SOURCES ${lua_SOURCE_DIR}/src/*.c)
-    list(REMOVE_ITEM LUA_CORE_SOURCES
-        ${lua_SOURCE_DIR}/src/lua.c
-        ${lua_SOURCE_DIR}/src/luac.c
-    )
-    add_library(lua53_static STATIC ${LUA_CORE_SOURCES})
-    target_include_directories(lua53_static PUBLIC ${lua_SOURCE_DIR}/src)
-    target_compile_definitions(lua53_static PRIVATE LUA_USE_POSIX LUA_USE_DLOPEN)
-    target_link_libraries(lua53_static PRIVATE m dl)
 
     # Determine platform-specific lib subdirectory for prebuilt libs.
     if(APPLE)
@@ -410,7 +367,6 @@ else()
 
     target_link_libraries(TombEngine PRIVATE
         SDL3::SDL3
-        OpenGL::GL
         spdlog::spdlog
         lz4_static
         lua53_static
@@ -434,11 +390,10 @@ endif()
 # Post-build: copy shaders, scripts, and DLLs to output directory
 # ---------------------------------------------------------------------------
 if(WIN32)
+    # Copy prebuilt DLLs (BASS, VLC).
     set(DLL_DIRS
         ${LIBS_DIR}/bass/x64
-        ${LIBS_DIR}/lua/x64
         ${LIBS_DIR}/vlc/x64
-        ${LIBS_DIR}/sdl3/lib/x64
     )
 
     foreach(DLL_DIR ${DLL_DIRS})
@@ -448,6 +403,23 @@ if(WIN32)
             COMMAND_EXPAND_LISTS
         )
     endforeach()
+
+    # Copy SDL3.dll from FetchContent build tree.
+    add_custom_command(TARGET TombEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:TombEngine>"
+    )
+
+    # Copy dxcompiler.dll from SDL_shadercross build tree (needed at runtime
+    # for HLSL -> SPIRV compilation in the SDL_GPU backend).
+    # When DXC is built from source (SDLSHADERCROSS_VENDORED), the DXIL
+    # validator is statically linked into dxcompiler.dll — no separate dxil.dll.
+    if(TARGET dxcompiler)
+        add_custom_command(TARGET TombEngine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:dxcompiler>" "$<TARGET_FILE_DIR:TombEngine>"
+        )
+    endif()
 
     # Clean non-DLL files that got copied from the lib directories
     add_custom_command(TARGET TombEngine POST_BUILD
@@ -551,10 +523,27 @@ if(NOT WIN32)
 endif()
 
 # ---------------------------------------------------------------------------
+# Shader files (not compiled by CMake, but visible in IDE)
+# ---------------------------------------------------------------------------
+file(GLOB_RECURSE SHADER_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.hlsl"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.hlsli"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.glsl"
+)
+target_sources(TombEngine PRIVATE ${SHADER_FILES})
+
+# ---------------------------------------------------------------------------
 # IDE source grouping (Visual Studio, Xcode, CLion)
 # ---------------------------------------------------------------------------
-# Filter out files outside the TombEngine/ tree (e.g. Libs/glad/glad.c)
-# before calling source_group, which requires all files to share the ROOT prefix.
-set(_GROUPABLE_FILES ${ALL_SOURCES} ${ALL_HEADERS})
+# Sources.cmake uses relative paths; make them absolute so source_group(TREE) works.
+set(_GROUPABLE_FILES)
+foreach(_f ${ALL_SOURCES} ${ALL_HEADERS} ${SHADER_FILES})
+    if(IS_ABSOLUTE "${_f}")
+        list(APPEND _GROUPABLE_FILES "${_f}")
+    else()
+        list(APPEND _GROUPABLE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${_f}")
+    endif()
+endforeach()
+# Keep only files inside the TombEngine/ tree.
 list(FILTER _GROUPABLE_FILES INCLUDE REGEX "^${CMAKE_CURRENT_SOURCE_DIR}")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${_GROUPABLE_FILES})

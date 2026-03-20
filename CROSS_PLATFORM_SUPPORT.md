@@ -1,201 +1,166 @@
 # Cross-Platform Support
 
-This document explains how to build TombEngine from source on Windows, Linux, and macOS, and covers platform-specific considerations.
+This document explains how to build TombEngine from source on Windows, Linux, and macOS.
 
-## Build System Overview
+## Graphics APIs
 
-The primary build system is **CMake** (3.21+). The repository also contains a Visual Studio solution (`TombEngine.sln`) for direct use on Windows, but CMake is the canonical source-of-truth for file lists, compiler flags, and dependencies.
+| API | Windows | Linux | macOS |
+|-----|---------|-------|-------|
+| **Vulkan** | Default (via SDL_GPU) | Default (via SDL_GPU) | - |
+| **Metal** | - | - | Default (via SDL_GPU / MoltenVK) |
+| **DirectX 11** | Fallback (`-api dx11`) | - | - |
 
-### CMake Presets
-
-The repository includes a `CMakePresets.json` with ready-to-use configurations:
-
-| Preset | Platform | Generator | Compiler |
-|--------|----------|-----------|----------|
-| `win-x64-msvc` | Windows | Visual Studio 17 2022 | MSVC |
-| `win-x64-ninja` | Windows | Ninja Multi-Config | MSVC |
-| `win-x64-gcc` | Windows | Ninja Multi-Config | GCC (MinGW) |
-| `linux-x64-gcc` | Linux | Ninja Multi-Config | GCC |
-| `linux-x64-clang` | Linux | Ninja Multi-Config | Clang |
-| `macos-clang` | macOS | Ninja Multi-Config | Clang |
-
-Each preset has its own build cache directory (e.g. `Build/msvc/`, `Build/gcc/`), but the final executable is always placed in `Build/<Config>/Bin/<Platform>/` regardless of which preset is used.
-
-Usage:
-
+The default renderer is **Vulkan** (via SDL_GPU) on Windows and Linux, and **Metal** (via SDL_GPU / MoltenVK) on macOS. On Windows, DirectX 11 is available as a command-line fallback:
 ```bash
-# Configure using a preset
-cmake --preset linux-x64-gcc
-
-# Build (Debug or Release)
-cmake --build --preset linux-debug
-cmake --build --preset linux-release
+TombEngine -api vulkan     # Vulkan (default on Windows/Linux)
+TombEngine -api dx11       # DirectX 11 (Windows only)
+TombEngine -api metal      # Metal (macOS only)
 ```
 
-You can also configure manually without presets (see platform-specific sections below).
+The graphics API cannot be changed from the in-game settings menu.
 
-### Source File Synchronization (`sync_vcxproj.py`)
+---
 
-CMake and the Visual Studio `.vcxproj` share the same file list through `TombEngine/Sources.cmake`. A Python script keeps them in sync:
+## Third-Party Libraries
 
-```bash
-# Generate Sources.cmake from the vcxproj (after adding files in Visual Studio)
-python Tools/sync_vcxproj.py --from-vcxproj
+All open-source libraries are downloaded and built from source automatically via CMake FetchContent. No manual setup required.
 
-# Update vcxproj from Sources.cmake (after adding files in CMake)
-python Tools/sync_vcxproj.py --to-vcxproj
-
-# Verify sync (useful in CI)
-python Tools/sync_vcxproj.py --check
-```
-
-**Python prerequisites:** This script requires Python 3.6+.
-
-| Platform | Installation |
-|----------|-------------|
-| **Windows** | Download from [python.org](https://www.python.org/downloads/) or `winget install Python.Python.3` |
-| **Linux** | `sudo apt install python3` (Ubuntu/Debian), `sudo dnf install python3` (Fedora), `sudo pacman -S python` (Arch) |
-| **macOS** | `brew install python3` or use the system Python 3 (Xcode Command Line Tools) |
-
-There is also a `check_sources.py` script that validates all files listed in `Sources.cmake` exist on disk and reports unlisted files:
-
-```bash
-python check_sources.py
-```
-
-### Third-Party Libraries
-
-| Library | Windows | Linux / macOS |
-|---------|---------|---------------|
-| SDL3 | Prebuilt (`Libs/`) | FetchContent (GitHub release) |
-| spdlog | Prebuilt (`Libs/`) | FetchContent (v1.10.0, built from source) |
-| LZ4 | Prebuilt (`Libs/`) | FetchContent (v1.10.0) |
-| Lua 5.3 | Prebuilt (`Libs/`) | FetchContent (lua.org, built from source) |
-| BASS | Prebuilt (`Libs/`) | Prebuilt (`Libs/bass/linux/` or `macos/`) |
-| VLC | Prebuilt (`Libs/`) | Auto-downloaded from Ubuntu packages (see below) |
+| Library | Version | Notes |
+|---------|---------|-------|
+| SDL3 | 3.2.8 | Window, input, GPU abstraction |
+| spdlog | 1.10.0 | Logging |
+| LZ4 | 1.10.0 | Compression |
+| Lua | 5.3.6 | Scripting (static library) |
+| SDL_shadercross | Pinned commit | HLSL to SPIRV compilation |
+| stb | Pinned commit | Image loading/writing (stb_image, stb_image_write) |
+| BASS | Prebuilt | Closed-source audio (in `Libs/bass/`) |
+| VLC | Prebuilt | Video playback (in `Libs/vlc/`) |
+| GLM, sol2, etc. | Vendored | Header-only (in `Libs/`) |
+| TBB | System package | Linux/macOS only (`std::execution` support) |
 
 ---
 
 ## Windows
 
-### Prerequisites
+### What You Need
 
-- **Visual Studio 2022** (v143 toolset) with the "Desktop development with C++" workload
-- Or **CMake 3.21+** with the Visual Studio or Ninja generator
+1. **Visual Studio 2022** or **Visual Studio 2026** with the **"Desktop development with C++"** workload.
+2. **CMake 3.21 or newer.** Download the installer from https://cmake.org/download/ and run it. Check "Add CMake to PATH" during installation.
 
-All third-party libraries are vendored in the `Libs/` directory as prebuilt x64 binaries. No additional setup is required.
+### How to Build (Step by Step)
 
-### Building with Visual Studio
+1. **Clone the repository** (or download and extract the ZIP).
 
-1. Open `TombEngine.sln` in Visual Studio 2022.
-2. Select **Debug|x64** or **Release|x64** as the build configuration.
-3. Build the solution (**Ctrl+Shift+B**).
-4. The executable is output to `Build/<Configuration>/Bin/Windows/`.
+2. **Generate the Visual Studio solution.** In the repository folder, double-click one of these files:
+   - `GenerateSolution_VS2022.cmd` (if you have Visual Studio 2022)
+   - `GenerateSolution_VS2026.cmd` (if you have Visual Studio 2026)
 
-### Building with CMake
+   A command prompt window will open. Wait until it says "Fatto!" (done). The first run takes a few minutes because it downloads all dependencies.
 
-```bash
-# Using a preset
-cmake --preset win-x64-msvc
-cmake --build --preset win-x64-release
+3. **Open the solution.** Open the generated solution in Visual Studio:
+   - VS 2022: **`Build\msvc-2022\TombEngine.sln`**
+   - VS 2026: **`Build\msvc-2026\TombEngine.slnx`**
 
-# Or manually
-cmake -B Build/msvc -A x64
-cmake --build Build/msvc --config Release
-```
+   > **Important:** do NOT open the `TombEngine.sln` in the repository root. That is a legacy file. Always use the CMake-generated solution.
 
-### Selecting the Graphics API
+4. **Build.** In Visual Studio:
+   - Select **Debug|x64** or **Release|x64** from the toolbar.
+   - Press **Ctrl+Shift+B** (or menu Build > Build Solution).
 
-By default, the Windows build includes both DirectX 11 and OpenGL renderers. You can select at runtime:
+5. **Run.** The compiled executable is in:
+   - Debug: `Build\Debug\Bin\Windows\TombEngine.exe`
+   - Release: `Build\Release\Bin\Windows\TombEngine.exe`
 
-```bash
-TombEngine.exe -api dx11      # DirectX 11 (default)
-TombEngine.exe -api opengl    # OpenGL
-```
+### Adding New Source Files
+
+1. Add the `.cpp`/`.h` files in Visual Studio as you normally would.
+2. Double-click **`SyncSources_FromVcxproj.cmd`** to update the CMake source list.
+3. Re-run **`GenerateSolution_VS20xx.cmd`** to refresh the solution.
+
+See [CMAKE.md](CMAKE.md) for more details.
+
+### When to Re-run GenerateSolution
+
+- After `git pull` if `CMakeLists.txt` or `Sources.cmake` changed.
+- After adding or removing source files.
+- If the build breaks with missing file errors.
+
+You do NOT need to re-run it for normal code changes (editing existing files).
 
 ---
 
 ## Linux
 
-### Prerequisites
+### What You Need
 
-Install the required build tools.
+Install the required packages for your distribution.
 
 **Ubuntu / Debian:**
-
 ```bash
 sudo apt update
 sudo apt install -y \
     build-essential cmake ninja-build \
-    libstdc++-dev libgl-dev libtbb-dev wget zstd python3
+    libstdc++-dev libgl-dev libtbb-dev wget zstd
 ```
 
-> **Note:** On some minimal Ubuntu installations, `build-essential` does not pull in the full C++ standard library headers. If you get errors like `fatal error: cstdint: No such file or directory`, install `libstdc++-<version>-dev` explicitly (e.g. `libstdc++-13-dev`). The unversioned `libstdc++-dev` metapackage picks the default version automatically.
-
 **Fedora / RHEL:**
-
 ```bash
 sudo dnf install -y \
     gcc-c++ cmake ninja-build \
-    libstdc++-devel mesa-libGL-devel tbb-devel wget zstd python3
+    libstdc++-devel mesa-libGL-devel tbb-devel wget zstd
 ```
 
 **Arch Linux:**
-
 ```bash
 sudo pacman -S --needed \
     base-devel cmake ninja \
-    mesa tbb wget zstd python
+    mesa tbb wget zstd
 ```
 
-> **Note:** SDL3, spdlog, Lua 5.3, and LZ4 are automatically fetched and built from source via CMake FetchContent. No system `-dev` packages are needed for these libraries.
->
-> `libtbb-dev` (Intel TBB) is required for `std::execution` parallel algorithms support on GCC/Clang. On MSVC (Windows) it is built into the runtime and not needed.
->
-> `wget` and `zstd` are needed by the VLC auto-download script (see below). The script downloads and extracts Ubuntu `.deb` packages using standard tools (`wget`, `ar`, `tar`, `zstd`) — it does **not** require `apt` or Debian/Ubuntu, and works on any Linux distribution.
+> **Note:** SDL3, spdlog, Lua, LZ4, and SDL_shadercross are downloaded and built automatically. You do NOT need to install them manually.
 
-### VLC Libraries
+### How to Build (Step by Step)
 
-VLC is bundled as prebuilt shared libraries. During CMake configure, if the VLC libraries are not found in `Libs/vlc/linux/<arch>/`, the build system **automatically downloads** them by running `Tools/download-vlc-linux.sh`. This requires `wget` and `zstd` to be installed (included in the prerequisites above).
+1. **Open a terminal** and go to the repository folder:
+   ```bash
+   cd /path/to/TombEngine
+   ```
 
-You can also run the script manually if needed:
+2. **Configure the build:**
+   ```bash
+   cmake --preset linux-x64-gcc
+   ```
+   This downloads all dependencies (first run takes a few minutes).
 
+3. **Build:**
+   ```bash
+   cmake --build Build/gcc --config Release
+   ```
+
+4. **The executable is at:**
+   ```
+   Build/Release/Bin/Linux/TombEngine
+   ```
+
+For a Debug build:
 ```bash
-# Download VLC libs for x86_64 (default)
-./Tools/download-vlc-linux.sh
-
-# Or for aarch64
-./Tools/download-vlc-linux.sh aarch64
+cmake --build Build/gcc --config Debug
+# Output: Build/Debug/Bin/Linux/TombEngine
 ```
 
-The script downloads from Ubuntu 22.04 (jammy) packages and extracts:
+### VLC Libraries (Linux Only)
 
-| Component | Description |
-|-----------|-------------|
-| `libvlc.so.*` | VLC main library |
-| `libvlccore.so.*` | VLC core library |
-| `plugins/` | VLC codec and demux plugins |
-| `libavcodec.so.*`, `libavformat.so.*`, etc. | FFmpeg libraries required by VLC plugins |
+VLC is bundled as prebuilt shared libraries. During CMake configure, if VLC is not found in `Libs/vlc/linux/<arch>/`, the build system **automatically downloads** it. This requires `wget` and `zstd`.
 
-> **Note:** The VLC libraries are now committed to the repository under `Libs/vlc/linux/`. If you clone fresh, they are already present and no download is needed.
-
-### Building
-
+You can also download manually:
 ```bash
-# Using a preset
-cmake --preset linux-x64-gcc
-cmake --build --preset linux-release
-
-# Or manually
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+./Tools/download-vlc-linux.sh           # x86_64 (default)
+./Tools/download-vlc-linux.sh aarch64   # ARM64
 ```
-
-The executable is placed at `Build/Release/Bin/Linux/TombEngine` (or `Build/Debug/Bin/Linux/` for debug builds). BASS and VLC shared libraries are automatically copied next to the binary by the build system.
 
 ### Setting Up Game Files
 
-The engine expects game data files (levels, scripts, audio, etc.) in a directory structure relative to the executable. All platforms coexist under `Bin/`:
+The engine expects game data relative to the executable. All platforms share the same folder structure:
 
 ```
 GameDir/
@@ -206,24 +171,19 @@ GameDir/
 │   ├── Linux/
 │   │   ├── TombEngine
 │   │   ├── libbass.so, ...
-│   │   ├── libvlc.so.5, ...
-│   │   └── plugins/
+│   │   └── libvlc.so.5, ...
 │   └── macOS/
 │       ├── TombEngine
 │       └── *.dylib
 ├── Shaders/
-│   ├── DX11/
-│   └── GLSL/
 ├── Scripts/
-│   ├── Engine/
-│   └── SystemStrings.lua
 ├── Audio/
 ├── Data/
 ├── FMV/
 └── Screens/
 ```
 
-Shared assets (Shaders, Scripts, Audio, Data, FMV) are platform-independent and shared across all builds. Only binaries and native libraries are platform-specific. The `Shaders/` and `Scripts/Engine/` directories are automatically copied by the build system.
+Shared assets (Shaders, Scripts, Audio, Data, FMV) are platform-independent. Shaders and engine scripts are automatically copied by the build system.
 
 ### Running
 
@@ -232,8 +192,7 @@ cd /path/to/GameDir
 ./Bin/Linux/TombEngine
 ```
 
-**Without a sound device** (e.g., headless server, CI — see [Audio on WSL2](#audio-on-wsl2-wslg) for WSLg setup):
-
+**Without a sound device** (e.g., headless server, CI, WSL without audio):
 ```bash
 SDL_AUDIO_DRIVER=dummy ./Bin/Linux/TombEngine
 ```
@@ -244,230 +203,107 @@ SDL_AUDIO_DRIVER=dummy ./Bin/Linux/TombEngine
 |--------|-------------|
 | `-debug` | Enable debug mode (shows console) |
 | `-level <file>` | Load a specific level file |
-| `-api opengl` | Force OpenGL renderer |
+| `-api vulkan` | Force Vulkan renderer (default on Windows/Linux) |
+| `-api dx11` | Force DirectX 11 renderer (Windows only) |
+| `-api metal` | Force Metal renderer (macOS only) |
 | `-gamedir <path>` | Set the game asset directory |
 
-### Debug Build
-
-```bash
-# Configure with debug symbols
-cmake -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
-
-# Build
-cmake --build build-debug
-```
-
-### Debugging with GDB
-
-Install GDB:
+### Debug Build with GDB
 
 ```bash
 sudo apt install -y gdb
-```
 
-Run with GDB:
-
-```bash
 cd /path/to/GameDir
 SDL_AUDIO_DRIVER=dummy gdb -ex run ./Bin/Linux/TombEngine
 ```
 
-When a crash occurs, GDB will pause. Type `bt` to see the full backtrace:
-
-```
-(gdb) bt
-```
-
-Other useful GDB commands:
-
-| Command | Description |
-|---------|-------------|
-| `bt` | Full backtrace |
-| `bt full` | Backtrace with local variables |
-| `frame N` | Switch to frame N |
-| `print var` | Print variable value |
-| `continue` | Resume execution |
-| `quit` | Exit GDB |
+When a crash occurs, type `bt` in GDB for the backtrace.
 
 ### Packaging a Standalone Distribution
 
-The build system supports creating a fully self-contained Linux distribution with zero system dependencies beyond glibc and OpenGL drivers. Two formats are available: a tarball and an AppImage.
-
-#### Install Layout
-
-Running `cmake --install` produces the following layout:
-
-```
-TombEngine/
-├── TombEngine.sh            # launcher script (entry point)
-├── Bin/
-│   └── Linux/
-│       ├── TombEngine       # binary
-│       ├── libbass.so, ...  # BASS shared libraries
-│       ├── libvlc.so.5, ...# VLC shared libraries
-│       └── plugins/         # VLC plugins
-├── Shaders/
-└── Scripts/
-    ├── Engine/
-    └── SystemStrings.lua
-```
-
-The `TombEngine.sh` launcher script automatically sets `LD_LIBRARY_PATH` and `VLC_PLUGIN_PATH` so that the bundled libraries are found at runtime. It also passes `-gamedir` pointing to its own directory, so you can place the distribution directly inside a game data folder.
-
-#### Creating a Tarball (CPack)
+#### Tarball (CPack)
 
 ```bash
-# Build
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --preset linux-x64-gcc
+cmake --build Build/gcc --config Release
 
-# Install to a local directory (for inspection)
-cmake --install build --prefix build/install
-
-# Or create a .tar.gz package via CPack
-cd build && cpack
+# Create .tar.gz
+cd Build/gcc && cpack
 ```
 
-This produces `TombEngine-<version>-linux-<arch>.tar.gz`. To use it:
+Produces `TombEngine-<version>-linux-<arch>.tar.gz`.
+
+#### AppImage
+
+Requires [appimagetool](https://github.com/AppImage/appimagetool) on `PATH`.
 
 ```bash
-# Extract into a game data directory
-cd /path/to/GameDir
-tar xf TombEngine-1.0.0-linux-x86_64.tar.gz --strip-components=1
-
-# Run
-./TombEngine.sh
+cmake --preset linux-x64-gcc
+cmake --build Build/gcc --config Release
+./packaging/appimage/build-appimage.sh Build/gcc
 ```
-
-#### Building an AppImage
-
-An AppImage bundles everything into a single portable executable. It requires [appimagetool](https://github.com/AppImage/appimagetool) on `PATH`.
-
-```bash
-# Build first
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-
-# Build the AppImage
-./packaging/appimage/build-appimage.sh build
-```
-
-This produces `build/TombEngine-x86_64.AppImage`. Run it from a game data directory:
-
-```bash
-cd /path/to/GameDir
-./TombEngine-x86_64.AppImage
-```
-
-Or specify the game directory explicitly:
-
-```bash
-./TombEngine-x86_64.AppImage -gamedir /path/to/GameDir
-```
-
-> **Note:** The AppImage contains the engine, shaders, scripts, and all shared libraries. It does **not** contain game data (levels, audio, FMV, etc.) — you must provide those separately.
 
 ### HiDPI / Display Scaling (X11)
 
-On X11-based desktops (including WSLg / XWayland), SDL3 cannot reliably detect the compositor's display scale. The engine detects it automatically from several sources, in priority order:
-
-| Priority | Source | Description |
-|----------|--------|-------------|
-| 1 | `TEN_HIDPI_SCALE` | User override (set to e.g. `2.0`) |
-| 2 | `GDK_SCALE` | GNOME integer scale factor |
-| 3 | `QT_SCALE_FACTOR` | KDE/Qt fractional scale factor |
-| 4 | `~/.config/monitors.xml` | GNOME monitor configuration |
-| 5 | `/proc/version` + `reg.exe` | WSLg: reads Windows DPI from the registry |
-| 6 | `xrdb -query` → `Xft.dpi` | X11 resource database DPI |
-| 7 | `SDL_GetDisplayContentScale` | SDL fallback (often returns 1.0 on X11) |
-
-When a scale > 1.0 is detected, the engine shrinks the window so that the compositor's upscaling produces the intended resolution on screen. The rendering resolution is unaffected.
-
-If automatic detection fails or gives the wrong value, override it manually:
+On X11 desktops (including WSLg / XWayland), SDL3 cannot reliably detect display scaling. The engine auto-detects it from several sources. If it fails, override manually:
 
 ```bash
 TEN_HIDPI_SCALE=2.0 ./Bin/Linux/TombEngine
 ```
 
-On native Wayland (not XWayland), the engine disables SDL's built-in scaling and manages resolution internally — no manual override is needed.
+On native Wayland, scaling is handled automatically.
 
 ### Audio on WSL2 (WSLg)
 
-WSLg includes a PulseAudio server that bridges to Windows audio. BASS (the engine's audio library) uses ALSA, which needs to be configured to route through PulseAudio.
-
-**1. Install the required packages:**
+WSLg includes PulseAudio. To route BASS audio through it:
 
 ```bash
 sudo apt install libasound2-plugins libpulse0 pulseaudio-utils
 ```
 
-**2. Create `~/.asoundrc` to route ALSA through PulseAudio:**
-
+Create `~/.asoundrc`:
 ```
 pcm.default pulse
 ctl.default pulse
 ```
 
-**3. Verify audio works:**
-
-```bash
-# Check PulseAudio connection
-pactl info
-
-# Test audio output
-speaker-test -t wav -c 2
-```
-
-If `pactl info` fails, check that the PulseAudio socket exists:
-
-```bash
-ls -la /mnt/wslg/PulseServer
-echo $PULSE_SERVER   # should be unix:/mnt/wslg/PulseServer
-```
-
-If the socket is missing, ensure you are running Windows 11 with WSLg enabled and that your WSL distribution is up to date (`wsl --update` from PowerShell).
-
-**Fallback — run without audio:**
-
+If audio doesn't work:
 ```bash
 SDL_AUDIO_DRIVER=dummy ./Bin/Linux/TombEngine
 ```
 
-The engine will detect the missing audio device and disable sound automatically, but suppressing the ALSA errors requires the `dummy` driver.
+---
 
-### Known Issues
+## macOS (Experimental)
 
-- **Screen resolution list on WSLg:** The virtual X11 display in WSLg reports a scaled-down resolution. The engine compensates using the detected HiDPI scale, but the list may not include all native modes. Use `TEN_HIDPI_SCALE` if the maximum resolution appears too low.
-- **Wayland backend:** Forcing `SDL_VIDEO_DRIVER=wayland` is not supported on WSLg — the Wayland backend may crash or fail to initialize. Let SDL choose the default (`x11` on WSLg).
+### What You Need
+
+```bash
+xcode-select --install          # Xcode Command Line Tools
+brew install cmake ninja        # CMake and Ninja
+```
+
+### How to Build
+
+```bash
+cmake --preset macos-clang
+cmake --build Build/macos --config Release
+```
+
+Libraries are handled the same as Linux: SDL3, spdlog, LZ4, Lua, SDL_shadercross are built from source. BASS and VLC are prebuilt in `Libs/bass/macos/` and `Libs/vlc/macos/`.
 
 ---
 
-## macOS
+## CMake Presets Reference
 
-macOS support is **experimental**. The build system is prepared, but it has not been fully tested.
+| Preset | Platform | Generator |
+|--------|----------|-----------|
+| `win-x64-vs2026` | Windows | Visual Studio 18 2026 |
+| `win-x64-vs2022` | Windows | Visual Studio 17 2022 |
+| `win-x64-ninja` | Windows | Ninja Multi-Config (MSVC) |
+| `win-x64-gcc` | Windows | Ninja Multi-Config (GCC/MinGW) |
+| `linux-x64-gcc` | Linux | Ninja Multi-Config (GCC) |
+| `linux-x64-clang` | Linux | Ninja Multi-Config (Clang) |
+| `macos-clang` | macOS | Ninja Multi-Config (Clang) |
 
-### Prerequisites
-
-```bash
-# Install Xcode Command Line Tools (provides Clang, make, etc.)
-xcode-select --install
-
-# Install CMake and Ninja via Homebrew
-brew install cmake ninja python3
-```
-
-### Building
-
-```bash
-# Using a preset
-cmake --preset macos-clang
-cmake --build build/macos --config Release
-
-# Or manually
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-```
-
-Third-party libraries are handled the same way as Linux: SDL3, spdlog, LZ4, and Lua are fetched via FetchContent. BASS and VLC are prebuilt in `Libs/bass/macos/` and `Libs/vlc/macos/` respectively (architecture-specific: `x86_64` and `arm64`).
-
-Contributions to improve macOS support are welcome.
+All presets output the final executable to `Build/<Config>/Bin/<Platform>/` regardless of which preset is used.

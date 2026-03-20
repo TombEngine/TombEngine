@@ -9,45 +9,6 @@
 
 using namespace TEN::Input;
 
-// VLC 3.x vs 4.x API compatibility layer.
-// On Windows we use vendored VLC 4.x headers+libs. On Linux, system VLC 3.x.
-#ifdef SDL_PLATFORM_WIN32
-	#define VLC_STATE_ENDING libvlc_Stopping
-#else
-	#define VLC_STATE_ENDING libvlc_Ended
-#endif
-
-namespace
-{
-	inline void StopVlcPlayer(libvlc_media_player_t* p_mi)
-	{
-#ifdef SDL_PLATFORM_WIN32
-		libvlc_media_player_stop_async(p_mi);
-#else
-		libvlc_media_player_stop(p_mi);
-#endif
-	}
-
-	inline void SetVlcPosition(libvlc_media_player_t* p_mi, float pos)
-	{
-#ifdef SDL_PLATFORM_WIN32
-		libvlc_media_player_set_position(p_mi, pos, false);
-#else
-		libvlc_media_player_set_position(p_mi, pos);
-#endif
-	}
-
-	inline libvlc_media_t* NewVlcMediaPath(libvlc_instance_t* inst, const char* path)
-	{
-#ifdef SDL_PLATFORM_WIN32
-		(void)inst;
-		return libvlc_media_new_path(path);
-#else
-		return libvlc_media_new_path(inst, path);
-#endif
-	}
-}
-
 namespace TEN::Video
 {
 	VideoHandler g_VideoPlayer = {};
@@ -181,7 +142,7 @@ namespace TEN::Video
 		if (_player == nullptr)
 			return;
 
-		SetVlcPosition(_player, std::clamp(pos, 0.0f, 1.0f));
+		libvlc_media_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f));
 		HandleError();
 	}
 
@@ -261,7 +222,7 @@ namespace TEN::Video
 		if (_player != nullptr)
 		{
 			if (libvlc_media_player_is_playing(_player))
-				StopVlcPlayer(_player);
+				libvlc_media_player_stop(_player);
 
 			while (libvlc_media_player_is_playing(_player))
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -326,7 +287,7 @@ namespace TEN::Video
 		_fileName = fullVideoName;
 		_needRender = _updateInput = false;
 
-		auto* media = NewVlcMediaPath(_vlcInstance, _fileName.c_str());
+		auto* media = libvlc_media_new_path(_vlcInstance, _fileName.c_str());
 		if (media == nullptr)
 		{
 			TENLog("Failed to create media from path: " + _fileName, LogLevel::Error);
@@ -334,11 +295,7 @@ namespace TEN::Video
 		}
 
 		// VLC requires to initialize media. Load into player and release right away.
-#ifdef SDL_PLATFORM_WIN32
-		_player = libvlc_media_player_new_from_media(_vlcInstance, media);
-#else
 		_player = libvlc_media_player_new_from_media(media);
-#endif
 		libvlc_media_release(media);
 
 		if (_player == nullptr)
@@ -497,7 +454,7 @@ namespace TEN::Video
 			return;
 
 		// Reset playback to start if video is looped.
-		if (_looped && !interruptPlayback && (state == VLC_STATE_ENDING || state == libvlc_Stopped))
+		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video or video has finished playback or in an error, stop and delete it.
@@ -531,7 +488,7 @@ namespace TEN::Video
 		}
 
 		// Reset playback to start if video is looped.
-		if (_looped && (state == VLC_STATE_ENDING || state == libvlc_Stopped))
+		if (_looped && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		HandleError();
@@ -592,7 +549,7 @@ namespace TEN::Video
 
 		DeinitializeVideoTexture();
 
-		StopVlcPlayer(_player);
+		libvlc_media_player_stop(_player);
 		libvlc_media_player_release(_player);
 
 		_player = nullptr;

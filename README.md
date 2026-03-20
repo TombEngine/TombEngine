@@ -1,4 +1,4 @@
-# Tomb Engine 
+# Tomb Engine
 
 ![Logo](https://github.com/TombEngine/TombEngine/blob/7c50d26ca898c74978336d41e16ce3ce0c8ecacd/TEN%20logo.png)
 
@@ -10,32 +10,72 @@
 - Uncapped map size.
 - A streamlined player control scheme.
 
+## Graphics APIs
+
+| API | Windows | Linux | macOS |
+|-----|---------|-------|-------|
+| DirectX 11 | Fallback (`-api dx11`) | - | - |
+| Vulkan | Default (via SDL_GPU) | Default (via SDL_GPU) | - |
+| Metal | - | - | Default (via SDL_GPU / MoltenVK) |
+
 *Tomb Engine* is used in conjunction with *Tomb Editor*. The repository can be found [here](https://github.com/MontyTRC89/Tomb-Editor).
 
-# Compiling *Tomb Engine*
-To compile *TEN*, ensure you have installed:
-- *Microsoft Visual Studio*
-- *Tomb Editor* (for level creation and testing)
+## Building from Source
 
-Steps:
-1) Clone the repository to your GitHub Desktop.
-2) Open `TombEngine.sln`.
-4) Compile the solution.
-5) Once compiled, create a separate folder to serve as your main *TEN* directory (or create a test *TEN* project using *TombIDE*)
-6) Copy everything inside the `Build` folder to the main *TEN* directory.
-7) Ensure you have the necessary level data and texture files.
-8) In case Windows warns about missing DLLs (bass.dll, etc.), copy the missing DLL files found inside the `Libs` folder to your main `TEN` directory.
+### Windows (Visual Studio)
 
-*Visual Studio* may warn about NuGet packages. To fix:
-1) Delete the `Packages` folder.
-2) Go back to *Microsoft Visual Studio*.
-3) Right-click on the *TEN* solution in the *Solution Explorer* tab and select "Restore NuGet Packages".
-4) If it doesn't help, manually install  `directxtk_desktop_2019` and `Microsoft.XAudio2.Redist` packages via NuGet Package Manager.
+**Requirements:**
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) or [Visual Studio 2026](https://visualstudio.microsoft.com/) with the "Desktop development with C++" workload.
+- [CMake 3.21+](https://cmake.org/download/) (download the `.msi` installer and install).
 
-Once done, you should be able to build a level with *Tomb Editor* and run it in *TEN*.
+**Steps:**
 
-# Contributions
+1. Clone the repository.
+2. Double-click **`GenerateSolution_VS2022.cmd`** (or `GenerateSolution_VS2026.cmd`).
+   - This downloads and configures all dependencies automatically.
+   - Wait for it to finish (first run takes a few minutes).
+3. Open the generated solution in Visual Studio:
+   - VS 2022: **`Build\msvc-2022\TombEngine.sln`**
+   - VS 2026: **`Build\msvc-2026\TombEngine.slnx`**
+4. Select **Debug|x64** or **Release|x64**.
+5. Build the solution (Ctrl+Shift+B).
+6. The executable appears in `Build\Debug\Bin\Windows\` (or `Build\Release\Bin\Windows\`).
+
+> **Adding new source files:** add them in Visual Studio normally, then double-click **`SyncSources_FromVcxproj.cmd`** to update the CMake file list. Re-run `GenerateSolution_VS20xx.cmd` to refresh the solution.
+
+### Linux
+
+See [CROSS_PLATFORM_SUPPORT.md](CROSS_PLATFORM_SUPPORT.md) for detailed instructions.
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt install build-essential cmake ninja-build libstdc++-dev libgl-dev libtbb-dev wget zstd
+
+# Build
+cmake --preset linux-x64-gcc
+cmake --build Build/gcc --config Release
+```
+
+### macOS (experimental)
+
+See [CROSS_PLATFORM_SUPPORT.md](CROSS_PLATFORM_SUPPORT.md).
+
+## Selecting the Graphics API at Runtime
+
+The default renderer is **Vulkan** (via SDL_GPU) on Windows and Linux, and **Metal** (via SDL_GPU / MoltenVK) on macOS. On Windows, DirectX 11 is available as a fallback:
+
+```bash
+TombEngine -api vulkan     # Vulkan (default on Windows/Linux)
+TombEngine -api dx11       # DirectX 11 (Windows only)
+TombEngine -api metal      # Metal (macOS only)
+```
+
+## Contributions
+
 Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
 
-# Disclaimer
+See [CONTRIBUTING.md](CONTRIBUTING.md) for coding conventions and workflow.
+
+## Disclaimer
+
 Tomb Engine uses modified MIT license for non-commercial use only. For more information, see [license](https://github.com/TombEngine/TombEngine?tab=License-1-ov-file#readme). Tomb Engine is unaffiliated with the Crystal Dynamics group of companies or Embracer Group AB. *Tomb Raider* is a trademark of the Crystal Dynamics group of companies. Tomb Engine team is not responsible for illegal use of this source code and built binaries alone or in combination with third-party assets or components. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.
