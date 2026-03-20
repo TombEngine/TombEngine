@@ -3362,18 +3362,24 @@ namespace TEN::Renderer
 			auto rDrawSprite = RendererSpriteToDraw{};
 			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
 
+			// Scale sun sprite larger near horizon.
+			// TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
+			float sunElevation = std::clamp(-renderView.LensFlaresToDraw[0].Direction.y, 0.0f, 1.0f);
+			float sunSizeScale = 1.0f + (1.0f - sunElevation) * 0.8f; // 1.0x zenith → 1.8x horizon
+
 			rDrawSprite.Type = SpriteType::Billboard;
 			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1);
 			rDrawSprite.Rotation = 0.0f;
 			rDrawSprite.Scale = 1.0f;
-			rDrawSprite.Width = SUN_SIZE;
-			rDrawSprite.Height = SUN_SIZE;
+			rDrawSprite.Width  = SUN_SIZE * sunSizeScale;
+			rDrawSprite.Height = SUN_SIZE * sunSizeScale;
 			rDrawSprite.color = sunColor;
 
 			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
 			_stInstancedSpriteBuffer.Sprites[0].Color = sunColor;
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
+			_stInstancedSpriteBuffer.Sprites[0].RenderType = 0;
 
 			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
@@ -3408,7 +3414,9 @@ namespace TEN::Renderer
 		// Must happen after RenderScene (so it draws on top) and before ClearState/Present.
 		ImGuiNewFrame();
 		if (ImGuiIsOverlayVisible())
-			TEN::Sky::DrawSkyCloudDebugOverlay();
+		{
+			TEN::Sky::DrawSkyDebugWindow();
+		}
 		ImGuiRenderFrame();
 
 		_context->ClearState();

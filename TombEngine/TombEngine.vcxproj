@@ -497,6 +497,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\room.h" />
     <ClInclude Include="Game\savegame.h" />
     <ClInclude Include="Game\Setup.h" />
+    <ClInclude Include="Game\Effects\LensFlareDebug.h" />
     <ClInclude Include="Game\Sky\SkyCloudDebug.h" />
     <ClInclude Include="Game\Sky\SkyCloudSystem.h" />
     <ClInclude Include="Game\spotcam.h" />
@@ -1085,6 +1086,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\room.cpp" />
     <ClCompile Include="Game\savegame.cpp" />
     <ClCompile Include="Game\Setup.cpp" />
+    <ClCompile Include="Game\Effects\LensFlareDebug.cpp" />
     <ClCompile Include="Game\Sky\SkyCloudDebug.cpp" />
     <ClCompile Include="Game\Sky\SkyCloudSystem.cpp" />
     <ClCompile Include="Game\spotcam.cpp" />

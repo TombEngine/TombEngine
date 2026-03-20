@@ -116,7 +116,7 @@ namespace TEN::Renderer
 				std::cos(pitch) * std::cos(yaw));
 			_stVolumetricCloud.LightDirection.Normalize();
 
-			auto flareColor = levelPtr->GetLensFlareColor();
+			auto flareColor = levelPtr->GetLensFlareEvaluatedColor();
 			_stVolumetricCloud.LightColor = Vector3(
 				flareColor.x,
 				flareColor.y,

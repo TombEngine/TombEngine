@@ -35,10 +35,10 @@ namespace TEN::Sky
 	// Public API
 	// ====================================================================
 
-	/// Main entry point: call once per frame when the debug overlay is visible.
-	/// Renders the full ImGui cloud debug window with all sections.
-	void DrawSkyCloudDebugOverlay();
+	/// Draw the unified sky debug window with "Wolken" and "Sonne/Horizon" tabs.
+	/// Call once per frame when the debug overlay is visible.
+	void DrawSkyDebugWindow();
 
-	/// Plain-text summary (for the old text-based debug page, still useful).
+	/// Plain-text summary (for legacy debug page compatibility).
 	std::string GetSkyCloudDebugText();
 }

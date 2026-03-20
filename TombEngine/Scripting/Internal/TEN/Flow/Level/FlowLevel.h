@@ -96,6 +96,11 @@ struct Level : public ScriptInterfaceLevel
 	short GetLensFlarePitch() const override;
 	short GetLensFlareYaw() const override;
 	Color GetLensFlareColor() const override;
+	Color GetLensFlareEvaluatedColor() const override;
+	int   GetLensFlareColorMode() const override;
+
+	// Lens flare mutable access (for debug UI).
+	TEN::Scripting::LensFlare& GetMutableLensFlare();
 
 	// Starfield getters
 	int	  GetStarfieldStarCount() const override;

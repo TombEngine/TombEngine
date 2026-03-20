@@ -375,6 +375,21 @@ Color Level::GetLensFlareColor() const
 	return LensFlare.GetColor();
 }
 
+Color Level::GetLensFlareEvaluatedColor() const
+{
+	return LensFlare.EvaluateColor();
+}
+
+int Level::GetLensFlareColorMode() const
+{
+	return static_cast<int>(LensFlare.GetColorMode());
+}
+
+TEN::Scripting::LensFlare& Level::GetMutableLensFlare()
+{
+	return LensFlare;
+}
+
 int Level::GetStarfieldStarCount() const
 {
 	return Starfield.GetStarCount();

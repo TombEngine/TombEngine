@@ -45,6 +45,8 @@ table LevelData {
 	lensflare_pitch: float;
 	lensflare_yaw: float;
 	lensflare_color: int32;
+	lensflare_color_b: int32;
+	lensflare_color_mode: int32;
 
 	starfield_star_count: int32;
 	starfield_meteor_count: int32;

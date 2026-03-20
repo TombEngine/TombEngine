@@ -586,6 +586,8 @@ struct LevelDataT : public flatbuffers::NativeTable {
   float lensflare_pitch = 0.0f;
   float lensflare_yaw = 0.0f;
   int32_t lensflare_color = 0;
+  int32_t lensflare_color_b = 0;
+  int32_t lensflare_color_mode = 0;
   int32_t starfield_star_count = 0;
   int32_t starfield_meteor_count = 0;
   int32_t starfield_meteor_spawn_density = 0;
@@ -628,10 +630,12 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LENSFLARE_PITCH = 60,
     VT_LENSFLARE_YAW = 62,
     VT_LENSFLARE_COLOR = 64,
-    VT_STARFIELD_STAR_COUNT = 66,
-    VT_STARFIELD_METEOR_COUNT = 68,
-    VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
-    VT_STARFIELD_METEOR_VELOCITY = 72
+    VT_LENSFLARE_COLOR_B = 66,
+    VT_LENSFLARE_COLOR_MODE = 68,
+    VT_STARFIELD_STAR_COUNT = 70,
+    VT_STARFIELD_METEOR_COUNT = 72,
+    VT_STARFIELD_METEOR_SPAWN_DENSITY = 74,
+    VT_STARFIELD_METEOR_VELOCITY = 76
   };
   uint32_t random_seed() const {
     return GetField<uint32_t>(VT_RANDOM_SEED, 0);
@@ -726,6 +730,12 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t lensflare_color() const {
     return GetField<int32_t>(VT_LENSFLARE_COLOR, 0);
   }
+  int32_t lensflare_color_b() const {
+    return GetField<int32_t>(VT_LENSFLARE_COLOR_B, 0);
+  }
+  int32_t lensflare_color_mode() const {
+    return GetField<int32_t>(VT_LENSFLARE_COLOR_MODE, 0);
+  }
   int32_t starfield_star_count() const {
     return GetField<int32_t>(VT_STARFIELD_STAR_COUNT, 0);
   }
@@ -771,6 +781,8 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<float>(verifier, VT_LENSFLARE_PITCH) &&
            VerifyField<float>(verifier, VT_LENSFLARE_YAW) &&
            VerifyField<int32_t>(verifier, VT_LENSFLARE_COLOR) &&
+           VerifyField<int32_t>(verifier, VT_LENSFLARE_COLOR_B) &&
+           VerifyField<int32_t>(verifier, VT_LENSFLARE_COLOR_MODE) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_STAR_COUNT) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_COUNT) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_SPAWN_DENSITY) &&
@@ -879,6 +891,12 @@ struct LevelDataBuilder {
   void add_lensflare_color(int32_t lensflare_color) {
     fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_COLOR, lensflare_color, 0);
   }
+  void add_lensflare_color_b(int32_t lensflare_color_b) {
+    fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_COLOR_B, lensflare_color_b, 0);
+  }
+  void add_lensflare_color_mode(int32_t lensflare_color_mode) {
+    fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_COLOR_MODE, lensflare_color_mode, 0);
+  }
   void add_starfield_star_count(int32_t starfield_star_count) {
     fbb_.AddElement<int32_t>(LevelData::VT_STARFIELD_STAR_COUNT, starfield_star_count, 0);
   }
@@ -935,6 +953,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     float lensflare_pitch = 0.0f,
     float lensflare_yaw = 0.0f,
     int32_t lensflare_color = 0,
+    int32_t lensflare_color_b = 0,
+    int32_t lensflare_color_mode = 0,
     int32_t starfield_star_count = 0,
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
@@ -944,6 +964,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
   builder_.add_starfield_meteor_spawn_density(starfield_meteor_spawn_density);
   builder_.add_starfield_meteor_count(starfield_meteor_count);
   builder_.add_starfield_star_count(starfield_star_count);
+  builder_.add_lensflare_color_mode(lensflare_color_mode);
+  builder_.add_lensflare_color_b(lensflare_color_b);
   builder_.add_lensflare_color(lensflare_color);
   builder_.add_lensflare_yaw(lensflare_yaw);
   builder_.add_lensflare_pitch(lensflare_pitch);
@@ -9672,6 +9694,8 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = lensflare_pitch(); _o->lensflare_pitch = _e; }
   { auto _e = lensflare_yaw(); _o->lensflare_yaw = _e; }
   { auto _e = lensflare_color(); _o->lensflare_color = _e; }
+  { auto _e = lensflare_color_b(); _o->lensflare_color_b = _e; }
+  { auto _e = lensflare_color_mode(); _o->lensflare_color_mode = _e; }
   { auto _e = starfield_star_count(); _o->starfield_star_count = _e; }
   { auto _e = starfield_meteor_count(); _o->starfield_meteor_count = _e; }
   { auto _e = starfield_meteor_spawn_density(); _o->starfield_meteor_spawn_density = _e; }
@@ -9717,6 +9741,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _lensflare_pitch = _o->lensflare_pitch;
   auto _lensflare_yaw = _o->lensflare_yaw;
   auto _lensflare_color = _o->lensflare_color;
+  auto _lensflare_color_b = _o->lensflare_color_b;
+  auto _lensflare_color_mode = _o->lensflare_color_mode;
   auto _starfield_star_count = _o->starfield_star_count;
   auto _starfield_meteor_count = _o->starfield_meteor_count;
   auto _starfield_meteor_spawn_density = _o->starfield_meteor_spawn_density;
@@ -9754,6 +9780,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _lensflare_pitch,
       _lensflare_yaw,
       _lensflare_color,
+      _lensflare_color_b,
+      _lensflare_color_mode,
       _starfield_star_count,
       _starfield_meteor_count,
       _starfield_meteor_spawn_density,

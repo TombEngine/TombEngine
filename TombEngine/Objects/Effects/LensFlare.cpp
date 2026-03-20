@@ -153,7 +153,7 @@ namespace TEN::Entities::Effects
 			return;
 
 		auto orient   = EulerAngles(g_GameFlow->GetLevel(CurrentLevel)->GetLensFlarePitch(), g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareYaw(), 0);
-		auto color    = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareColor();
+		auto color    = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareEvaluatedColor();
 		auto spriteID = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareSunSpriteID();
 		
 		auto pos = Camera.pos.ToVector3();

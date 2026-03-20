@@ -1207,6 +1207,8 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_lensflare_pitch(level->LensFlare.GetPitch());
 	levelData.add_lensflare_yaw(level->LensFlare.GetYaw());
 	levelData.add_lensflare_sprite_id(level->LensFlare.GetSunSpriteID());
+	levelData.add_lensflare_color_b(level->LensFlare.GetColorB());
+	levelData.add_lensflare_color_mode(static_cast<int32_t>(level->LensFlare.GetColorMode()));
 
 	levelData.add_starfield_meteor_count(level->Starfield.GetMeteorCount());
 	levelData.add_starfield_meteor_spawn_density(level->Starfield.GetMeteorSpawnDensity());
@@ -1934,6 +1936,9 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	level->LensFlare.SetPitch(s->level_data()->lensflare_pitch());
 	level->LensFlare.SetYaw(s->level_data()->lensflare_yaw());
 	level->LensFlare.SetColor(s->level_data()->lensflare_color());
+	level->LensFlare.SetColorB(s->level_data()->lensflare_color_b());
+	level->LensFlare.SetColorMode(static_cast<TEN::Scripting::LensFlareColorMode>(
+		s->level_data()->lensflare_color_mode()));
 
 	level->Starfield.SetStarCount(s->level_data()->starfield_star_count());
 	level->Starfield.SetMeteorCount(s->level_data()->starfield_meteor_count());

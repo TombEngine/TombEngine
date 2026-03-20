@@ -13,6 +13,14 @@ using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting
 {
+	// Color mode for the global lens flare / sun.
+	enum class LensFlareColorMode
+	{
+		AutoRealistic,     // No color provided — derive from sun elevation.
+		SingleColor,       // One color provided — use as-is.
+		GradientTwoColor   // Two colors provided — interpolate by elevation.
+	};
+
 	class LensFlare
 	{
 	public:
@@ -26,20 +34,27 @@ namespace TEN::Scripting
 
 		Rotation	_rotation = {};
 		ScriptColor _color	  = 0;
+		ScriptColor _colorB   = ScriptColor(255, 250, 235);  // Zenith color for gradient mode.
+
+		LensFlareColorMode _colorMode = LensFlareColorMode::SingleColor;
 
 	public:
 		// Constructors
 
 		LensFlare() = default;
-		LensFlare(float pitch, float yaw, const ScriptColor& color);
+		LensFlare(float pitch, float yaw);                                              // AutoRealistic
+		LensFlare(float pitch, float yaw, const ScriptColor& color);                    // SingleColor
+		LensFlare(float pitch, float yaw, const ScriptColor& colorA, const ScriptColor& colorB); // Gradient
 
 		// Getters
 
-		int			GetSunSpriteID() const;
-		float		GetPitch() const;
-		float		GetYaw() const;
-		ScriptColor GetColor() const;
-		bool		GetEnabled() const;
+		int			       GetSunSpriteID() const;
+		float		       GetPitch() const;
+		float		       GetYaw() const;
+		ScriptColor        GetColor() const;
+		ScriptColor        GetColorB() const;
+		bool		       GetEnabled() const;
+		LensFlareColorMode GetColorMode() const;
 
 		// Setters
 
@@ -47,6 +62,17 @@ namespace TEN::Scripting
 		void SetPitch(float pitch);
 		void SetYaw(float yaw);
 		void SetColor(const ScriptColor& color);
+		void SetColorB(const ScriptColor& color);
 		void SetEnabled(bool value);
+		void SetColorMode(LensFlareColorMode mode);
+
+		// Evaluate the effective sun color for the current elevation.
+		Color EvaluateColor() const;
+
+		// Compute normalized elevation [0..1] from pitch (0 = horizon, 1 = zenith).
+		float GetNormalizedElevation() const;
 	};
+
+	// Compute realistic sun color from normalized elevation [0,1].
+	Color ComputeRealisticSunColor(float elevation);
 }

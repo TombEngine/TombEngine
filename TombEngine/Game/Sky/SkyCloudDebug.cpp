@@ -25,6 +25,12 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Game/control/control.h"
+#include "Game/Effects/LensFlareDebug.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Specific/level.h"
+
 namespace TEN::Sky
 {
 	// ====================================================================
@@ -372,15 +378,8 @@ namespace TEN::Sky
 	// Main overlay
 	// ====================================================================
 
-	void DrawSkyCloudDebugOverlay()
+	static void DrawCloudTabContent()
 	{
-		ImGui::SetNextWindowSize(ImVec2(520, 720), ImGuiCond_FirstUseEver);
-		if (!ImGui::Begin("Sky / Cloud Debug", nullptr, ImGuiWindowFlags_NoCollapse))
-		{
-			ImGui::End();
-			return;
-		}
-
 		auto info = g_SkyCloudSystem.GetDebugInfo();
 		auto& state = g_SkyCloudSystem.GetMutableCurrentState();
 
@@ -609,6 +608,84 @@ namespace TEN::Sky
 			}
 
 			ImGui::Unindent(8.0f);
+		}
+
+	}
+
+	// ====================================================================
+	// Horizon mesh section (Sonne/Horizon tab)
+	// ====================================================================
+
+	static void DrawHorizonSection(Level* level)
+	{
+		if (!level)
+			return;
+
+		if (!ImGui::CollapsingHeader("Horizont-Mesh", ImGuiTreeNodeFlags_DefaultOpen))
+			return;
+
+		ImGui::Indent(8.0f);
+
+		ImGui::TextDisabled("Horizont 1");
+		{
+			bool enabled = level->Horizon1.GetEnabled();
+			if (ImGui::Checkbox("Aktiv##h1", &enabled))
+				level->Horizon1.SetEnabled(enabled);
+
+			float alpha = level->Horizon1.GetTransparency();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
+			if (ImGui::SliderFloat("Alpha##h1", &alpha, 0.0f, 1.0f, "%.2f"))
+				level->Horizon1.SetTransparency(alpha);
+		}
+
+		ImGui::Separator();
+
+		ImGui::TextDisabled("Horizont 2");
+		{
+			bool enabled = level->Horizon2.GetEnabled();
+			if (ImGui::Checkbox("Aktiv##h2", &enabled))
+				level->Horizon2.SetEnabled(enabled);
+
+			float alpha = level->Horizon2.GetTransparency();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
+			if (ImGui::SliderFloat("Alpha##h2", &alpha, 0.0f, 1.0f, "%.2f"))
+				level->Horizon2.SetTransparency(alpha);
+		}
+
+		ImGui::Unindent(8.0f);
+	}
+
+	// ====================================================================
+	// Unified Sky Debug Window
+	// ====================================================================
+
+	void DrawSkyDebugWindow()
+	{
+		ImGui::SetNextWindowSize(ImVec2(520, 760), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Sky Debug", nullptr, ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::End();
+			return;
+		}
+
+		if (ImGui::BeginTabBar("##SkyDebugTabs"))
+		{
+			if (ImGui::BeginTabItem("Wolken"))
+			{
+				DrawCloudTabContent();
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Sonne/Horizon"))
+			{
+				TEN::Effects::DrawLensFlareTabContent();
+				auto* levelPtr = dynamic_cast<Level*>(
+					g_GameFlow->GetLevel(CurrentLevel));
+				DrawHorizonSection(levelPtr);
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
 		}
 
 		ImGui::End();

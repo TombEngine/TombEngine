@@ -198,7 +198,7 @@ float4 PSLensFlare(PixelShaderInput input) : SV_Target
 
 		float3 lensFlareColor = max(float3(0.0f, 0.0f, 0.0f),
 			LensFlares[i].Color *
-			float3(4.5f, 3.6f, 3.6f) * 
+			float3(4.5f, 4.5f, 4.5f) * 
 			LensFlare(position.xy, lensFlarePosition.xy));
 		lensFlareColor = LensFlareColorCorrection(lensFlareColor, 0.5f, 0.1f);
 		totalLensFlareColor += lensFlareColor;
