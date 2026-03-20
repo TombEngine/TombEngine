@@ -106,9 +106,10 @@ namespace TEN::Renderer
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 		if (levelPtr->GetLensFlareEnabled())
 		{
-			// Reconstruct light direction from lens flare pitch/yaw.
-			float pitch = DirectX::XMConvertToRadians((float)levelPtr->GetLensFlarePitch());
-			float yaw   = DirectX::XMConvertToRadians((float)levelPtr->GetLensFlareYaw());
+			// GetLensFlarePitch/Yaw return TEN short angles (65536 = 360 degrees).
+			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+			float yaw   = (float)levelPtr->GetLensFlareYaw()   * SHORT_TO_RAD;
 
 			_stVolumetricCloud.LightDirection = Vector3(
 				std::cos(pitch) * std::sin(yaw),
@@ -191,7 +192,8 @@ namespace TEN::Renderer
 		float cloudSunElev = 1.0f; // Default: high sun.
 		if (levelPtr->GetLensFlareEnabled())
 		{
-			float pitch = DirectX::XMConvertToRadians((float)levelPtr->GetLensFlarePitch());
+			constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			cloudSunElev = std::sin(pitch);
 		}
 		_stVolumetricCloud.SunElevation        = cloudSunElev;
