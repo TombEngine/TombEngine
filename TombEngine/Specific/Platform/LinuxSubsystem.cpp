@@ -4,6 +4,7 @@
 #ifdef SDL_PLATFORM_LINUX
 
 #include <csignal>
+#include <execinfo.h>
 #include <filesystem>
 #include <fstream>
 #include <unistd.h>
@@ -73,6 +74,7 @@ namespace TEN::Platform
 	{
 		static const auto handler = [](int sig)
 		{
+			// Use only async-signal-safe functions here (write, backtrace, backtrace_symbols_fd).
 			const char* sigName = "Unknown signal";
 
 			switch (sig)
@@ -84,8 +86,21 @@ namespace TEN::Platform
 			case SIGILL:  sigName = "Illegal instruction (SIGILL)"; break;
 			}
 
-			auto errorMessage = "Unhandled signal: " + std::string(sigName) + ".";
-			TENLog(errorMessage, LogLevel::Error);
+			// Write directly to stderr (fd 2) — no heap allocation.
+			write(STDERR_FILENO, "\n=== CRASH: ", 12);
+			write(STDERR_FILENO, sigName, strlen(sigName));
+			write(STDERR_FILENO, " ===\nStack trace:\n", 18);
+
+			// backtrace + backtrace_symbols_fd are async-signal-safe on glibc.
+			constexpr int MAX_FRAMES = 32;
+			void* frames[MAX_FRAMES];
+			int frameCount = backtrace(frames, MAX_FRAMES);
+			backtrace_symbols_fd(frames, frameCount, STDERR_FILENO);
+
+			write(STDERR_FILENO, "=== END TRACE ===\n", 18);
+
+			// Also try to log via TENLog (best-effort, may fail if heap is corrupted).
+			TENLog("Unhandled signal: " + std::string(sigName) + ".", LogLevel::Error);
 
 			// Re-raise with default handler to produce a core dump.
 			signal(sig, SIG_DFL);

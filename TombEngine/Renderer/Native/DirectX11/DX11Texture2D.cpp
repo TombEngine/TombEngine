@@ -11,10 +11,7 @@
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	// ======================================================================
-	// Constructor 1: from raw pixel data.
-	// ======================================================================
-	DX11Texture2D::DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, void* data)
+	DX11Texture2D::DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, void* data, bool isDynamic)
 	{
 		HRESULT res;
 
@@ -26,14 +23,23 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.Width = width;
 		desc.Height = height;
 		desc.Format = format;
-		desc.CPUAccessFlags = 0;
 		desc.MiscFlags = 0;
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
-		desc.Usage = D3D11_USAGE_DEFAULT;
+
+		if (isDynamic)
+		{
+			desc.Usage = D3D11_USAGE_DYNAMIC;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		}
+		else
+		{
+			desc.Usage = D3D11_USAGE_DEFAULT;
+			desc.CPUAccessFlags = 0;
+		}
 
 		if (data != nullptr)
 		{

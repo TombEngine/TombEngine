@@ -386,8 +386,15 @@ int SDLCALL GameMain(void *)
 	}
 
 	// Execute Lua gameflow and play game.
-	g_GameFlow->DoFlow();
-	
+	try
+	{
+		g_GameFlow->DoFlow();
+	}
+	catch (std::exception const& ex)
+	{
+		TENLog("Fatal error in game flow: " + std::string(ex.what()), LogLevel::Error);
+	}
+
 	// Exit game.
 	DeInitialize();
 	DoTheGame = false;

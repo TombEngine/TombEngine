@@ -45,7 +45,7 @@ namespace TEN::Renderer::Graphics
 
 		virtual IRenderTargetCube* CreateRenderTargetCube(int size, SurfaceFormat colorFormat) = 0;
 
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data) = 0;
+		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic = false) = 0;
 		virtual std::unique_ptr<ITexture2D> CreateTexture2DFromFile(const std::string fileName) = 0;
 		virtual std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) = 0;
 		virtual void UpdateTexture2D(ITexture2D* texture, std::vector<char> data) = 0;

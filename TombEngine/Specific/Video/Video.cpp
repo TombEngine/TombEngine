@@ -171,30 +171,55 @@ namespace TEN::Video
 		auto pluginCachePath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
 
 		std::vector<const char*> vlcArgs;
-		vlcArgs.push_back("--vout=none");		 // Disable video output and title because rendering is done to a D3D texture.
-		vlcArgs.push_back("--aout=adummy");		 // Disable audio output because audio is routed to BASS.
+		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless); rendering goes through libvlc_video_set_callbacks.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
+
+#ifdef _WIN32
+		vlcArgs.push_back("--aout=amem");		 // On Windows, explicitly set amem audio output for BASS callback routing.
+#endif
+		// On Linux, no --aout is set; any explicit value blocks VLC during media opening.
 
 #if !_DEBUG
 		vlcArgs.push_back("--quiet");			 // Don't generate excessive VLC warnings in the console.
 #endif
 
-		if (!std::filesystem::is_regular_file(pluginCachePath))
+		// Use bundled plugins if available, otherwise fall back to system VLC.
+		auto pluginDir = g_Platform->GetBinaryPath(false) + "plugins";
+		bool hasBundledPlugins = std::filesystem::is_directory(pluginDir);
+
+		if (hasBundledPlugins && !std::filesystem::is_regular_file(pluginCachePath))
 		{
 			TENLog("Rebuilding video plugin cache", LogLevel::Info);
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
 
 #ifdef SDL_PLATFORM_LINUX
-		// Point VLC at bundled plugins directory next to the executable.
-		static std::string pluginPathArg;
-		auto binaryDir = g_Platform->GetBinaryPath(false);
-		pluginPathArg = "--plugin-path=" + binaryDir + "plugins";
-		vlcArgs.push_back(pluginPathArg.c_str());
+		if (hasBundledPlugins)
+			setenv("VLC_PLUGIN_PATH", pluginDir.c_str(), 1);
 #endif
 
 		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
+
+		if (_vlcInstance == nullptr)
+		{
+			const char* err = libvlc_errmsg();
+			TENLog("VLC initialization failed: " + std::string(err ? err : "unknown error"), LogLevel::Error);
+
+			// Retry with minimal arguments in case a module name is not available.
+			std::vector<const char*> minimalArgs = { "--no-video-title", "--no-media-library" };
+			_vlcInstance = libvlc_new(static_cast<int>(minimalArgs.size()), minimalArgs.data());
+
+			if (_vlcInstance == nullptr)
+			{
+				err = libvlc_errmsg();
+				TENLog("VLC minimal init also failed: " + std::string(err ? err : "unknown error") +
+					". Video playback will be unavailable.", LogLevel::Error);
+				return;
+			}
+
+			TENLog("VLC initialized with minimal arguments.", LogLevel::Warning);
+		}
 
 #if _DEBUG
 		//libvlc_log_set(_vlcInstance, OnLog, nullptr);
@@ -240,6 +265,12 @@ namespace TEN::Video
 
 	bool VideoHandler::Play(const std::string& filename, VideoPlaybackMode mode, bool silent, bool loop)
 	{
+		if (_vlcInstance == nullptr)
+		{
+			TENLog("Cannot play video: VLC is not initialized.", LogLevel::Error);
+			return false;
+		}
+
 		auto fullVideoName = filename;
 
 		// At first, attempt to load video file with original filename. Then proceed with asset directory.
@@ -381,8 +412,18 @@ namespace TEN::Video
 		if (_deInitializing || _player == nullptr)
 			return false;
 
+		// Create or recreate GPU texture on main thread (deferred from VLC callback).
+		// VLC may change resolution mid-stream, so recreate if size mismatches.
+		if (_size != Vector2i::Zero &&
+			(_videoTexture == nullptr || _videoTexture->GetWidth() != _size.x || _videoTexture->GetHeight() != _size.y))
+		{
+			TENLog("Creating video texture: " + std::to_string(_size.x) + "x" + std::to_string(_size.y), LogLevel::Info);
+			_videoTexture.reset();
+			_videoTexture = _device->CreateTexture2D(_size.x, _size.y, SurfaceFormat::SF_BGRA8_Unorm, nullptr, true);
+		}
+
 		// Attempt to map and render texture only if callback has set frame to be rendered.
-		if (_needRender)
+		if (_needRender && _videoTexture != nullptr)
 		{
 			_device->UpdateTexture2D(_videoTexture.get(), _frameBuffer);
 
@@ -394,28 +435,6 @@ namespace TEN::Video
 			{
 				RenderBackground();
 			}
-
-			/*if (_videoTexture && SUCCEEDED(_d3dContext->Map(_videoTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
-			{
-				// Copy framebuffer row by row, otherwise skewing may occur.
-				unsigned char* pData = reinterpret_cast<unsigned char*>(mappedResource.pData);
-				for (int row = 0; row < _size.y; row++)
-					memcpy(pData + row * mappedResource.RowPitch, _frameBuffer.data() + row * _size.x * 4, _size.x * 4);
-				_d3dContext->Unmap(_videoTexture, 0);
-
-				if (_playbackMode == VideoPlaybackMode::Exclusive)
-				{
-					RenderExclusive();
-				}
-				else if (_playbackMode == VideoPlaybackMode::Background)
-				{
-					RenderBackground();
-				}
-			}
-			else
-			{
-				TENLog("Failed to render video texture", LogLevel::Error);
-			}*/
 
 			_needRender = false;
 		}
@@ -449,7 +468,14 @@ namespace TEN::Video
 
 		auto state = libvlc_media_player_get_state(_player);
 
-		// If player is just opening, buffering, or stopping, always return early and wait for process to end.
+		static auto lastLoggedState = libvlc_NothingSpecial;
+		if (state != lastLoggedState)
+		{
+			TENLog("VLC state: " + std::to_string((int)state), LogLevel::Info);
+			lastLoggedState = state;
+		}
+
+		// If player is just opening or buffering, always return early and wait for process to end.
 		if (state == libvlc_Opening || state == libvlc_Buffering)
 			return;
 
@@ -457,8 +483,8 @@ namespace TEN::Video
 		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
-		// If user pressed a key to break out from video or video has finished playback or in an error, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error || (!_starting && state == libvlc_Stopped))
+		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
+		if (interruptPlayback || state == libvlc_Error || state == libvlc_Stopped)
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
@@ -516,27 +542,23 @@ namespace TEN::Video
 
 	bool VideoHandler::InitializeVideoTexture()
 	{
-		if (_videoTexture != nullptr)
+		if (!_frameBuffer.empty())
 		{
 			TENLog("Video texture already exists", LogLevel::Error);
 			return false;
 		}
 
+		// Only allocate CPU buffer here (called from VLC thread).
+		// GPU texture creation is deferred to Update() on the main thread
+		// to avoid D3D11 context calls from non-main threads.
 		_frameBuffer.resize(_size.x * _size.y * 4);
-
-		_videoTexture = _device->CreateTexture2D(_size.x, _size.y, SurfaceFormat::SF_BGRA8_Unorm, nullptr);
 
 		return true;
 	}
 
 	void VideoHandler::DeinitializeVideoTexture()
 	{
-		if (_videoTexture != nullptr)
-		{
-			_videoTexture.release();
-			_videoTexture = nullptr;
-		}
-
+		_videoTexture.reset();
 		_frameBuffer.clear();
 
 		_size = Vector2i::Zero;
@@ -569,6 +591,13 @@ namespace TEN::Video
 	{
 		auto* player = static_cast<VideoHandler*>(data);
 		player->_needRender = true;
+
+		static bool firstFrame = true;
+		if (firstFrame)
+		{
+			TENLog("VLC first frame decoded", LogLevel::Info);
+			firstFrame = false;
+		}
 
 		if (player->_playbackMode == VideoPlaybackMode::Exclusive)
 			player->_updateInput = true;
@@ -618,18 +647,21 @@ namespace TEN::Video
 
 	unsigned int VideoHandler::OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)
 	{
+		TENLog("VLC OnVideoSetup: " + std::to_string(*width) + "x" + std::to_string(*height), LogLevel::Info);
+
 		strncpy(chroma, "BGRA", 4);
 
 		*pitches = *width * 4;
 		*lines = *height;
 
 		auto* player = static_cast<VideoHandler*>(*data);
+		auto newSize = Vector2i(*width, *height);
 
-		// Fetch video size only once when playback is just started.
-		if (player->_size == Vector2i::Zero)
+		// Reallocate CPU framebuffer when size changes (VLC may call this multiple times).
+		if (player->_size != newSize)
 		{
-			player->_size = Vector2i(*width, *height);
-			player->InitializeVideoTexture();
+			player->_size = newSize;
+			player->_frameBuffer.resize(newSize.x * newSize.y * 4);
 		}
 
 		return 1;

@@ -153,7 +153,7 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		IRenderTargetCube* CreateRenderTargetCube(int size, SurfaceFormat colorFormat) override;
 
-		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data) override;
+		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic = false) override;
 		std::unique_ptr<ITexture2D> CreateTexture2DFromFile(const std::string fileName) override;
 		std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) override;
 		void UpdateTexture2D(ITexture2D* texture, std::vector<char> data) override;

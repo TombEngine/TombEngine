@@ -109,9 +109,9 @@ namespace TEN::Renderer::Native::DirectX11
 		return nullptr; // new DX11RenderTargetCube(_device.Get(), size, GetDXGIFormat(colorFormat), GetDXGIFormat(depthFormat));
 	}
 
-	std::unique_ptr<ITexture2D> DX11GraphicsDevice::CreateTexture2D(int width, int height, SurfaceFormat format, void* data)
+	std::unique_ptr<ITexture2D> DX11GraphicsDevice::CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic)
 	{
-		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), width, height, GetDXGIFormat(format), data);
+		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), width, height, GetDXGIFormat(format), data, isDynamic);
 		_context->Flush();
 		return texture;
 	}

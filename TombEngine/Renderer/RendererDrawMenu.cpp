@@ -254,8 +254,8 @@ namespace TEN::Renderer
 			GetNextLinePosition(&y);
 
 			// Enable sound special effects
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_REVERB), optionColor, SF(titleOption == 0));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableReverb), plainColor, SF(titleOption == 0));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_REVERB), optionColor, SF(titleOption == 1));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableReverb), plainColor, SF(titleOption == 1));
 
 			GetNextLinePosition(&y);
 
@@ -264,63 +264,63 @@ namespace TEN::Renderer
 				InitializeMenuBars(y);
 
 			// Music volume
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MUSIC_VOLUME), optionColor, SF(titleOption == 1));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MUSIC_VOLUME), optionColor, SF(titleOption == 2));
 
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.MusicVolume / 100.0f, *g_MusicVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
 			GetNextLinePosition(&y);
 
 			// Sound FX volume
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SFX_VOLUME), optionColor, SF(titleOption == 2));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SFX_VOLUME), optionColor, SF(titleOption == 3));
 
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.SfxVolume / 100.0f, *g_SFXVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
 			GetNextBlockPosition(&y);
 
 			// Subtitles
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 3));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 3));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 4));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 4));
 			GetNextLinePosition(&y);
 
 			// Auto monkey swing jump
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 4));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 4));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 5));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 5));
 			GetNextLinePosition(&y);
 
 			// Auto targeting
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 5));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 5));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 6));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 6));
 			GetNextLinePosition(&y);
 
 			// Target highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 6));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter), plainColor, SF(titleOption == 6));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter), plainColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter), plainColor, SF(titleOption == 7));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter), plainColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Vibration
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 8));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 9));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 9));
 			GetNextLinePosition(&y);
 
 			// Thumbstick camera
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 9));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 9));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 10));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 10));
 			GetNextBlockPosition(&y);
 
 			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 10));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 10));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 11));
+			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 11));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 11));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
 
 			break;
 

@@ -278,6 +278,9 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TombEngine PRIVATE
         $<$<CONFIG:Release>:-O2 -ffast-math>
     )
+    # NOTE: -rdynamic is NOT used because it exports all symbols and causes
+    # conflicts with VLC plugins (VLC hangs during media opening).
+    # Stack traces use backtrace_symbols_fd which works without it.
 endif()
 
 # ---------------------------------------------------------------------------

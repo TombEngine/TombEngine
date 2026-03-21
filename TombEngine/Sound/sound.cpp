@@ -710,6 +710,13 @@ static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD
 
 void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, int64_t pts)
 {
+	static bool firstCall = true;
+	if (firstCall)
+	{
+		TENLog("VLC audio callback received: count=" + std::to_string(count), LogLevel::Info);
+		firstCall = false;
+	}
+
 	if (!BASS_ChannelIsActive(BASS_Video))
 	{
 		BASS_ChannelPlay(BASS_Video, false);

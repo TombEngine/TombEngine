@@ -640,7 +640,7 @@ namespace TEN::Renderer::Native::SDLGPU
 	// Texture2D
 	// -----------------------------------------------------------------------
 
-	std::unique_ptr<ITexture2D> SDLGPUGraphicsDevice::CreateTexture2D(int width, int height, SurfaceFormat format, void* data)
+	std::unique_ptr<ITexture2D> SDLGPUGraphicsDevice::CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic)
 	{
 		auto sdlFmt = GetSDLGPUTextureFormat(format);
 		return std::make_unique<SDLGPUTexture2D>(_device, width, height, sdlFmt, data);
