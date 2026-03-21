@@ -338,7 +338,13 @@ namespace TEN::Video
 		// Route sound data to BASS, if video is not played in silent mode.
 		if (!_silent)
 		{
+#ifdef _WIN32
 			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
+#else
+			// On Linux VLC 3.x, format callbacks may not trigger the amem module.
+			// Set the format directly to force amem activation.
+			libvlc_audio_set_format(_player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
+#endif
 			libvlc_audio_set_callbacks(_player, Sound_VideoPlayCallback, nullptr, nullptr, Sound_VideoFlushCallback, nullptr, this);
 		}
 

@@ -392,7 +392,13 @@ int SDLCALL GameMain(void *)
 	}
 	catch (std::exception const& ex)
 	{
-		TENLog("Fatal error in game flow: " + std::string(ex.what()), LogLevel::Error);
+		// DoFlow may have already called ShutdownTENLog() before re-throwing,
+		// so use stderr directly instead of TENLog to avoid crashing.
+		fprintf(stderr, "[fatal] Game flow error: %s\n", ex.what());
+
+		// Exit immediately — normal cleanup path crashes because DoFlow's
+		// catch block calls ShutdownTENLog() which corrupts shared state.
+		_Exit(EXIT_FAILURE);
 	}
 
 	// Exit game.
