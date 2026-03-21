@@ -79,7 +79,7 @@ namespace TEN::Renderer
 		Vector3 sunDir(0.0f, -1.0f, 0.0f);
 		Vector3 sunColor(1.0f, 0.95f, 0.85f);
 		float   sunElevation = 1.0f;
-		Vector2 sunScreenUV(-1.0f, -1.0f);
+		Vector2 sunScreenUV(-10.0f, -10.0f);  // sentinel: sun behind camera
 
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 		if (levelPtr->GetLensFlareEnabled())
@@ -112,46 +112,53 @@ namespace TEN::Renderer
 		}
 
 		// Project sun to screen UV: prefer lens flare world position, fall back to virtual sun.
+		// Sentinel -10 means "no sun direction available at all" — rays fully suppressed.
+		// Off-screen or behind-camera suns get properly projected UVs; intensity fades via
+		// sunFacingFade (see below) so the rays gracefully disappear as you turn away.
 		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal)
 		{
 			const auto& sunPos = renderView.LensFlaresToDraw[0].Position;
 			auto clip = Vector4::Transform(
 				Vector4(sunPos.x, sunPos.y, sunPos.z, 1.0f),
 				renderView.Camera.ViewProjection);
-			if (clip.w > 0.001f)
+			float absW = std::abs(clip.w);
+			if (absW > 0.0001f)
 			{
-				float ndcX = clip.x / clip.w;
-				float ndcY = clip.y / clip.w;
-				// Allow slightly off-screen so shafts can originate from just outside the frame.
-				if (ndcX > -1.5f && ndcX < 1.5f && ndcY > -1.5f && ndcY < 1.5f)
-				{
-					sunScreenUV = Vector2(
-						ndcX *  0.5f + 0.5f,
-						ndcY * -0.5f + 0.5f);
-				}
+				// Divide by |w| WITHOUT a sign flip so the UV stays on the same side
+				// of the screen even when the sun crosses behind the camera plane.
+				// (Standard clip.x/clip.w would mirror the UV to the opposite edge.)
+				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
+				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
+				sunScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
 
 		// Fallback: project a virtual sun far along sunDir from the camera.
-		if (sunScreenUV.x < -0.5f && sunDir.LengthSquared() > 0.001f)
+		if (sunScreenUV.x < -5.0f && sunDir.LengthSquared() > 0.001f)
 		{
 			constexpr float VIRTUAL_SUN_DIST = 500000.0f;
 			Vector3 virtualSunPos = renderView.Camera.WorldPosition + sunDir * VIRTUAL_SUN_DIST;
 			auto clip = Vector4::Transform(
 				Vector4(virtualSunPos.x, virtualSunPos.y, virtualSunPos.z, 1.0f),
 				renderView.Camera.ViewProjection);
-			if (clip.w > 0.001f)
+			float absW = std::abs(clip.w);
+			if (absW > 0.0001f)
 			{
-				float ndcX = clip.x / clip.w;
-				float ndcY = clip.y / clip.w;
-				if (ndcX > -1.5f && ndcX < 1.5f && ndcY > -1.5f && ndcY < 1.5f)
-				{
-					sunScreenUV = Vector2(
-						ndcX *  0.5f + 0.5f,
-						ndcY * -0.5f + 0.5f);
-				}
+				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
+				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
+				sunScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
+
+		// Sun-facing fade: smoothly mute rays as the camera turns away from the sun.
+		// Uses the dot product between sun direction and camera look direction.
+		//   dot =  1 : sun directly ahead       → fully visible
+		//   dot =  0 : sun exactly 90° to side  → ~50% visible (rays come from edge)
+		//   dot = -0.25 : sun 104° off-axis     → fully gone
+		float sunFacingDot  = sunDir.Dot(renderView.Camera.WorldDirection);
+		float sunFacingFade = Saturate((sunFacingDot - (-0.25f)) / (0.15f - (-0.25f)));
+		// Smooth the fade curve (smoothstep equivalent).
+		sunFacingFade = sunFacingFade * sunFacingFade * (3.0f - 2.0f * sunFacingFade);
 
 		// --- Cloud coverage for auto-strength ---
 		// Use scene-wide Coverage from cloud settings — NOT sun-point transmittance,
@@ -175,7 +182,7 @@ namespace TEN::Renderer
 
 		// --- Auto-strength ---
 		float autoStrength = ComputeGodRayAutoStrength(sunElevation, cloudCoverage);
-		float finalAutoStrength = 1.0f + (autoStrength - 1.0f) * settings.AutoStrengthMix;
+		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * settings.AutoStrengthMix) * sunFacingFade;
 
 		// --- Fill constant buffer ---
 		_stGodRay.SunScreenPos  = sunScreenUV;
@@ -222,8 +229,9 @@ namespace TEN::Renderer
 		// Update the constant buffer.
 		UpdateGodRayBuffer(renderView);
 
-		// Skip if sun is off-screen.
-		if (_stGodRay.SunScreenPos.x < -0.5f)
+		// Skip only if the sun is behind the camera (sentinel -10).
+		// Off-screen but in-front suns still produce rays from the screen edge.
+		if (_stGodRay.SunScreenPos.x < -5.0f)
 			return;
 
 		// --- Pass 1: Render god rays to half-res target ---

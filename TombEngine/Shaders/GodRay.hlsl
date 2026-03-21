@@ -78,8 +78,9 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
 {
     float2 uv = input.UV;
 
-    // Early out: sun off-screen or automatic strength is zero.
-    if (GodRaySunScreenPos.x < -0.5f || GodRayAutoStrength < 0.001f)
+    // Early out: sun behind the camera (sentinel -10) or automatic strength is zero.
+    // Off-screen-but-in-front suns (UV outside [0,1]) still produce rays from the screen edge.
+    if (GodRaySunScreenPos.x < -5.0f || GodRayAutoStrength < 0.001f)
         return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Aspect-corrected centered UV — used only for the screen-edge vignette.
@@ -87,9 +88,10 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     float2 uvCentered = (uv - 0.5f) * float2(aspect, 1.0f);
 
     // Step vector: each iteration moves sampleUV one step toward the sun.
-    // After GodRaySampleCount steps we reach ~99% of the way to the sun.
+    // GodRayLength controls how far the march reaches (1.0 = all the way to the sun,
+    // 0.5 = half way, giving shorter/tighter shafts).
     float2 toSun     = uv - GodRaySunScreenPos;   // points AWAY from sun
-    float2 marchStep = toSun * 0.99f / (float)GodRaySampleCount;
+    float2 marchStep = toSun * clamp(GodRayLength, 0.01f, 1.5f) / (float)GodRaySampleCount;
 
     // Jitter the starting UV by up to one step to break banding.
     float2 sampleUV = uv + marchStep * GodRayHash(uv);
@@ -97,6 +99,16 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     // Sun-disc falloff: scale so that the disc is meaningfully wide.
     // GodRaySoftness=1 gives radius ~0.125 UV, =3 gives radius ~0.04 UV.
     float discScale = GodRaySoftness * 8.0f;
+
+    // Cloud occlusion AT the sun position: sample both layers at the projected sun UV.
+    // Clamp to [0,1] so off-screen sun positions sample the nearest screen edge instead
+    // of wrapping/clamping to garbage. A value of 1 means dense cloud in front of the sun.
+    float2 sunUV       = saturate(GodRaySunScreenPos);
+    float  sunCloudA   = CloudTexture.SampleLevel(LinearSamp, sunUV, 0).a;
+    float  sunCloudB   = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0).a;
+    float  sunOcclusion = saturate(max(sunCloudA, sunCloudB));
+    // Soft threshold: disc starts fading when cloud at sun > 0.3, fully gone at 0.8.
+    float  sunDiscVis  = 1.0f - smoothstep(0.3f, 0.8f, sunOcclusion);
 
     float  accumulated = 0.0f;
     float  w           = 1.0f;           // weight starts full, decays as we move toward sun
@@ -113,18 +125,14 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         float cloudOpacity = saturate(max(cloudAlphaA, cloudAlphaB));
 
         // Sky gap: 1 in clear sky, 0 inside cloud bodies.
-        // This is the "scene brightness" that the Shadertoy samples from iChannel0:
-        //   bright sky in gaps, dark where clouds block.
         float cloudGap = 1.0f - cloudOpacity;
 
-        // Virtual sun disc at its projected screen position.
-        // Adds extra brightness exactly at the light source so rays converge there.
+        // Virtual sun disc, attenuated by cloud cover at the sun position.
+        // When thick storm clouds sit over the sun, sunDiscVis → 0 and the disc vanishes.
         float sunDist = distance(cuv, GodRaySunScreenPos);
-        float sunDisc = exp(-sunDist * discScale);
+        float sunDisc = exp(-sunDist * discScale) * sunDiscVis;
 
         // Scene brightness = sky gap fill + sun disc.
-        // cloudGap handles shaft shadows; sunDisc adds the bright anchor at the source.
-        // saturate keeps values in [0,1] for numerical stability.
         float sceneBrightness = saturate(cloudGap + sunDisc);
 
         accumulated += sceneBrightness * w;
