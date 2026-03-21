@@ -107,8 +107,8 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     float  sunCloudA   = CloudTexture.SampleLevel(LinearSamp, sunUV, 0).a;
     float  sunCloudB   = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0).a;
     float  sunOcclusion = saturate(max(sunCloudA, sunCloudB));
-    // Soft threshold: disc starts fading when cloud at sun > 0.3, fully gone at 0.8.
-    float  sunDiscVis  = 1.0f - smoothstep(0.3f, 0.8f, sunOcclusion);
+    // Tight threshold: disc starts fading when cloud at sun > 0.2, fully gone at 0.55.
+    float  sunDiscVis  = 1.0f - smoothstep(0.2f, 0.55f, sunOcclusion);
 
     float  accumulated = 0.0f;
     float  w           = 1.0f;           // weight starts full, decays as we move toward sun
@@ -125,7 +125,11 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         float cloudOpacity = saturate(max(cloudAlphaA, cloudAlphaB));
 
         // Sky gap: 1 in clear sky, 0 inside cloud bodies.
-        float cloudGap = 1.0f - cloudOpacity;
+        // Apply a soft step so near-opaque cloud areas (cloudGap ~0.05-0.15) that occur
+        // even at AltoThickness 4000+ contribute almost nothing, while real sky gaps
+        // (cloudGap ~0.5+) contribute fully. This eliminates the faint leak without
+        // affecting rays through genuine gaps in the cloud cover.
+        float cloudGap = smoothstep(0.05f, 0.35f, 1.0f - cloudOpacity);
 
         // Virtual sun disc, attenuated by cloud cover at the sun position.
         // When thick storm clouds sit over the sun, sunDiscVis → 0 and the disc vanishes.
