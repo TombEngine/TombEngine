@@ -194,6 +194,15 @@ namespace TEN::Renderer
 		_stGodRay.SunElevation  = sunElevation;
 		_stGodRay.AutoStrength  = finalAutoStrength;
 
+		// Apply atmospheric sky gradient so god ray tint matches the sky dome.
+		{
+			const auto& atmo = _atmosphericSkySettings;
+			float sunInfl = std::max(0.0f, 1.0f - sunElevation * atmo.SunElevationRampSpeed);
+			float blend   = sunInfl * atmo.SunWarmInfluence;
+			sunColor.x = 1.0f + (sunColor.x - 1.0f) * blend;
+			sunColor.y = 1.0f + (sunColor.y - 1.0f) * blend;
+			sunColor.z = 1.0f + (sunColor.z - 1.0f) * blend;
+		}
 		_stGodRay.SunColor      = sunColor;
 		_stGodRay.Softness      = settings.Softness;
 

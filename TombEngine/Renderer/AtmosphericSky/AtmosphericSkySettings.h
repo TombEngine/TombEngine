@@ -45,5 +45,13 @@ namespace TEN::Renderer
 		float CloudSunWarmthInfluence      = 0.30f;   // [0,1]   How much sun color tints clouds.
 		float CloudTwilightAmbient         = 0.15f;   // [0,1]   Twilight ambient contribution.
 		float CloudNightAmbient            = 0.03f;   // [0,0.5] Night ambient minimum.
+
+		// --- Sun elevation color ramp ---
+		// Controls the "2-color mode" gradient: white (zenith) <-> warm sun color (horizon).
+		//   SunElevationRampSpeed: how quickly the warm tint fades as the sun rises.
+		//     1.0 = tint gone at sunY=1.0 (90°), 2.0 = tint gone at sunY=0.5 (30°).
+		//   SunWarmInfluence: max blend weight toward AtmoSunColor at horizon (0=always white, 1=full color).
+		float SunElevationRampSpeed  = 5.0f;   // [0.1,5] Ramp speed: higher = white zone starts sooner.
+		float SunWarmInfluence       = 1.0f;   // [0,1]   Max warmth at sun color at horizon.
 	};
 }

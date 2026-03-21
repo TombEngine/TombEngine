@@ -134,6 +134,9 @@ namespace TEN::Renderer
 		_stAtmosphericSky.ViewSize     = Vector2((float)_screenWidth, (float)_screenHeight);
 		_stAtmosphericSky.InvViewSize  = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
 
+		_stAtmosphericSky.SunElevationRampSpeed = settings.SunElevationRampSpeed;
+		_stAtmosphericSky.SunWarmInfluence      = settings.SunWarmInfluence;
+
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
 	}
 

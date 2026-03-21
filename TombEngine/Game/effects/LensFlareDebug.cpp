@@ -18,6 +18,7 @@
 #include <cmath>
 
 #include "Game/control/control.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Scripting/Internal/TEN/Flow/LensFlare/LensFlare.h"
@@ -321,6 +322,8 @@ namespace TEN::Effects
 		{
 			ImGui::Indent(8.0f);
 
+			auto& atmoSettings = g_Renderer.GetAtmosphericSkySettings();
+
 			// Color mode combo.
 			LensFlareColorMode mode = lensFlare.GetColorMode();
 			int modeInt = static_cast<int>(mode);
@@ -350,7 +353,13 @@ namespace TEN::Effects
 				for (int i = 0; i < RAMP_STEPS; i++)
 				{
 					float t = static_cast<float>(i) / (RAMP_STEPS - 1);
-					Color c = ComputeRealisticSunColor(t);
+					Color rawC = ComputeRealisticSunColor(t);
+					float sunInfl = std::max(0.0f, 1.0f - t * atmoSettings.SunElevationRampSpeed);
+					float blend   = sunInfl * atmoSettings.SunWarmInfluence;
+					Color c;
+					c.x = std::clamp(1.0f + (rawC.x - 1.0f) * blend, 0.0f, 1.0f);
+					c.y = std::clamp(1.0f + (rawC.y - 1.0f) * blend, 0.0f, 1.0f);
+					c.z = std::clamp(1.0f + (rawC.z - 1.0f) * blend, 0.0f, 1.0f);
 					ImU32 col = IM_COL32(
 						static_cast<int>(c.x * 255.0f),
 						static_cast<int>(c.y * 255.0f),
@@ -375,9 +384,14 @@ namespace TEN::Effects
 					IM_COL32(255, 255, 255, 220));
 				ImGui::Dummy(ImVec2(rampWidth, 10.0f));
 
-				// Show computed color.
+				// Show computed color (with sky gradient applied at current elevation).
 				Color evalColor = lensFlare.EvaluateColor();
-				DrawColorSwatch("Current", evalColor);
+				float skyBlend = std::max(0.0f, 1.0f - currentElev * atmoSettings.SunElevationRampSpeed) * atmoSettings.SunWarmInfluence;
+				Color skyColor;
+				skyColor.x = std::clamp(1.0f + (evalColor.x - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.y = std::clamp(1.0f + (evalColor.y - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.z = std::clamp(1.0f + (evalColor.z - 1.0f) * skyBlend, 0.0f, 1.0f);
+				DrawColorSwatch("Current", skyColor);
 			}
 			else if (mode == LensFlareColorMode::SingleColor)
 			{
@@ -398,7 +412,13 @@ namespace TEN::Effects
 				}
 
 				Color evalColor = lensFlare.EvaluateColor();
-				DrawColorSwatch("Effective", evalColor);
+				float curElev = lensFlare.GetNormalizedElevation();
+				float skyBlend = std::max(0.0f, 1.0f - curElev * atmoSettings.SunElevationRampSpeed) * atmoSettings.SunWarmInfluence;
+				Color skyColor;
+				skyColor.x = std::clamp(1.0f + (evalColor.x - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.y = std::clamp(1.0f + (evalColor.y - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.z = std::clamp(1.0f + (evalColor.z - 1.0f) * skyBlend, 0.0f, 1.0f);
+				DrawColorSwatch("Effective", skyColor);
 			}
 			else if (mode == LensFlareColorMode::GradientTwoColor)
 			{
@@ -447,9 +467,14 @@ namespace TEN::Effects
 				{
 					float t = static_cast<float>(i) / (RAMP_STEPS - 1);
 					float st = t * t * (3.0f - 2.0f * t); // smoothstep matching EvaluateColor
-					float r = colA[0] + (colB[0] - colA[0]) * st;
-					float g = colA[1] + (colB[1] - colA[1]) * st;
-					float b = colA[2] + (colB[2] - colA[2]) * st;
+					float rawR = colA[0] + (colB[0] - colA[0]) * st;
+					float rawG = colA[1] + (colB[1] - colA[1]) * st;
+					float rawB = colA[2] + (colB[2] - colA[2]) * st;
+					float sunInfl = std::max(0.0f, 1.0f - t * atmoSettings.SunElevationRampSpeed);
+					float blend   = sunInfl * atmoSettings.SunWarmInfluence;
+					float r = std::clamp(1.0f + (rawR - 1.0f) * blend, 0.0f, 1.0f);
+					float g = std::clamp(1.0f + (rawG - 1.0f) * blend, 0.0f, 1.0f);
+					float b = std::clamp(1.0f + (rawB - 1.0f) * blend, 0.0f, 1.0f);
 
 					ImU32 col = IM_COL32(
 						static_cast<int>(r * 255.0f),
@@ -476,8 +501,20 @@ namespace TEN::Effects
 				ImGui::Dummy(ImVec2(rampWidth, 10.0f));
 
 				Color evalColor = lensFlare.EvaluateColor();
-				DrawColorSwatch("Effective", evalColor);
+				float skyBlend = std::max(0.0f, 1.0f - currentElev * atmoSettings.SunElevationRampSpeed) * atmoSettings.SunWarmInfluence;
+				Color skyColor;
+				skyColor.x = std::clamp(1.0f + (evalColor.x - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.y = std::clamp(1.0f + (evalColor.y - 1.0f) * skyBlend, 0.0f, 1.0f);
+				skyColor.z = std::clamp(1.0f + (evalColor.z - 1.0f) * skyBlend, 0.0f, 1.0f);
+				DrawColorSwatch("Effective", skyColor);
 			}
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Sky Gradient (Atmospheric Sky)");
+			ImGui::SliderFloat("Elevation Ramp Speed", &atmoSettings.SunElevationRampSpeed, 0.1f, 5.0f, "%.3f");
+			ImGui::TextDisabled("  Low = warm tint persists high up. High = warm only at horizon.");
+			ImGui::SliderFloat("Warm Influence",       &atmoSettings.SunWarmInfluence,      0.0f, 1.0f, "%.3f");
+			ImGui::TextDisabled("  0 = always white. 1 = full sun color at horizon.");
 
 			ImGui::Unindent(8.0f);
 		}

@@ -124,6 +124,15 @@ namespace TEN::Renderer
 				flareColor.x,
 				flareColor.y,
 				flareColor.z);
+
+			// Apply atmospheric sky gradient so cloud light matches the sky dome.
+			const auto& atmo = _atmosphericSkySettings;
+			float sunElevLens = std::sin(pitch);
+			float sunInfl = std::max(0.0f, 1.0f - sunElevLens * atmo.SunElevationRampSpeed);
+			float blend   = sunInfl * atmo.SunWarmInfluence;
+			_stVolumetricCloud.LightColor.x = 1.0f + (_stVolumetricCloud.LightColor.x - 1.0f) * blend;
+			_stVolumetricCloud.LightColor.y = 1.0f + (_stVolumetricCloud.LightColor.y - 1.0f) * blend;
+			_stVolumetricCloud.LightColor.z = 1.0f + (_stVolumetricCloud.LightColor.z - 1.0f) * blend;
 		}
 		else if (settings.LightDirection.LengthSquared() > 0.001f)
 		{

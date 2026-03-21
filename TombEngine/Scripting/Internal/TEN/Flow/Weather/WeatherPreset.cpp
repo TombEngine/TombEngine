@@ -7,6 +7,7 @@
 
 #include <sol/sol.hpp>
 #include "Game/Sky/SkyCloudSystem.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Internal/ScriptAssert.h"
 
 using namespace TEN::Sky;
@@ -368,6 +369,24 @@ namespace TEN::Scripting
 					def.TargetState.CloudB = ParseCloudLayerTable(cloudBTbl.value());
 
 				g_SkyCloudSystem.OverridePreset(type, def);
+			});
+
+		/// Set atmospheric sky gradient curve parameters.
+		/// Controls how quickly the sky shifts from white at zenith to the warm sun
+		/// color near the horizon, and how strong that warm tint is.
+		///
+		/// @function Flow.SetAtmosphericSkySettings
+		/// @tparam table settings Table with any subset of:
+		///   sunElevationRampSpeed (float, default 1.1): how fast warm tint fades as
+		///     the sun rises — higher = white zone starts sooner.
+		///   sunWarmInfluence (float, default 0.3): max warmth blend at the horizon
+		///     (0 = always white, 1 = full AtmoSunColor at the horizon).
+		parent.set_function("SetAtmosphericSkySettings",
+			[](sol::table settings)
+			{
+				auto& s = g_Renderer.GetAtmosphericSkySettings();
+				if (auto v = settings.get<sol::optional<float>>("sunElevationRampSpeed"); v.has_value()) s.SunElevationRampSpeed = *v;
+				if (auto v = settings.get<sol::optional<float>>("sunWarmInfluence");       v.has_value()) s.SunWarmInfluence       = *v;
 			});
 	}
 }

@@ -180,11 +180,12 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
 
     // Tint by sun color for warm sunrise/sunset.
     // sunY = 0: sun at horizon (max warm tint), sunY = 1: sun at zenith (no tint = white).
-    // Denominator controls how quickly the tint fades as the sun rises.
-    //   1/denominator = sunY value where tint = 0 (fully white).
-    //   Lower denominator = white zone starts earlier (sun stays white-ish longer).
-    float sunInfluence = saturate(1.0f - sunY * 1.1f); // Warm tint only when sun is very low.
-    totalSky *= lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor, sunInfluence * 0.3f);
+    // AtmoSunElevationRampSpeed: how quickly the warm tint fades as the sun rises.
+    //   low value (0.5) = white zone is narrow, warm tint persists high up.
+    //   high value (3.0) = warm tint only very close to the horizon.
+    // AtmoSunWarmInfluence: max blend weight at horizon (0 = always white, 1 = full sun color).
+    float sunInfluence = saturate(1.0f - sunY * AtmoSunElevationRampSpeed);
+    totalSky *= lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor, sunInfluence * AtmoSunWarmInfluence);
 
     // Horizon darkening: darken the sky near and below the horizon.
     // viewDir.y near 0 or negative = near/below horizon.
