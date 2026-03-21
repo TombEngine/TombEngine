@@ -1963,6 +1963,9 @@ namespace TEN::Renderer
 		else
 			DrawVolumetricClouds(view);
 
+		// Draw god rays (radial light shafts from sun through cloud gaps).
+		DrawGodRays(view);
+
 		// Ensure the correct mesh input layout is active before the GBuffer pass.
 		// (The cloud pass uses _fullscreenTriangleInputLayout which must not leak here.)
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

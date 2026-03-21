@@ -56,6 +56,10 @@ namespace TEN::Renderer::Utils
 
 		// Atmospheric sky dome.
 		Load(Shader::AtmosphericSkyDome, "AtmosphericSkyDome", "AtmosphericSky", ShaderType::PixelAndVertex);
+
+		// God rays.
+		Load(Shader::GodRay, "GodRay", "GodRay", ShaderType::PixelAndVertex);
+		Load(Shader::GodRayComposite, "GodRay", "GodRayComposite", ShaderType::Pixel);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

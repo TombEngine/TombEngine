@@ -218,6 +218,16 @@ namespace TEN::Renderer
 		_stVolumetricCloud.LightningBoltLengthScale    = settings.LightningBoltLengthScale;
 		_stVolumetricCloud.LightningBoltThicknessScale = settings.LightningBoltThicknessScale;
 
+		// Atmospheric sun-lighting multipliers (from AtmosphericSkySettings).
+		_stVolumetricCloud.CloudSunLightIntensity      = _atmosphericSkySettings.CloudSunLightIntensity;
+		_stVolumetricCloud.CloudAmbientIntensity       = _atmosphericSkySettings.CloudAmbientIntensity;
+		_stVolumetricCloud.CloudSilverliningStrength   = _atmosphericSkySettings.CloudSilverliningStrength;
+		_stVolumetricCloud.CloudForwardScatterStrength = _atmosphericSkySettings.CloudForwardScatterStrength;
+		_stVolumetricCloud.CloudLightAbsorption        = _atmosphericSkySettings.CloudLightAbsorption;
+		_stVolumetricCloud.CloudSunWarmthInfluence     = _atmosphericSkySettings.CloudSunWarmthInfluence;
+		_stVolumetricCloud.CloudLtPad1                 = 0.0f;
+		_stVolumetricCloud.CloudLtPad2                 = 0.0f;
+
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.
 		_stVolumetricCloud.SunScreenUV = Vector2(-1.0f, -1.0f); // default: no sun / off-screen

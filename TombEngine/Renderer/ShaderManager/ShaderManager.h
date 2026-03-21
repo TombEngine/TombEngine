@@ -78,6 +78,11 @@ namespace TEN::Renderer::Utils
 
 		AtmosphericSkyDome,
 
+		// God rays
+
+		GodRay,
+		GodRayComposite,
+
 		Count
 	};
 

@@ -1435,11 +1435,19 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     altoSunFade = altoSunFade * altoSunFade;
                     float altoTwilightBoost = saturate(1.0f - abs(CloudSunElevation) * 8.0f) * CloudTwilightAmbient;
                     float altoNightBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
-                    float altoDirectFactor = AltoCloudBrightness * heightIllum * altoSunFade;
-                    float altoAmbientFactor = altoTwilightBoost + altoNightBase;
+                    float altoDirectFactor = AltoCloudBrightness * heightIllum * altoSunFade * CloudSunLightIntensity;
+                    float altoAmbientFactor = (altoTwilightBoost + altoNightBase) * max(CloudAmbientIntensity, 0.001f);
 
-                    sampleLight = CloudLightColor * cloudColor
-                        * (altoDirectFactor + altoAmbientFactor);
+                    // Silverlining: top-edge brightening toward the sun.
+                    float altoSilver  = CloudSilverliningStrength * 0.25f * heightFrac * altoSunFade * CloudSunLightIntensity;
+                    // Forward scatter: broad sun-aligned hazy glow boost.
+                    float altoForward = CloudForwardScatterStrength * 0.12f * altoSunFade * CloudSunLightIntensity;
+                    // Sun warmth: tint cloud illumination toward golden tone at low sun angles.
+                    float3 altoWarmTint = float3(1.0f, 0.88f, 0.65f);
+                    float3 altoLitColor = lerp(CloudLightColor, CloudLightColor * altoWarmTint, CloudSunWarmthInfluence * altoSunFade);
+
+                    sampleLight = altoLitColor * cloudColor
+                        * (altoDirectFactor + altoAmbientFactor + altoSilver + altoForward);
 
                     // === Lightning / internal flash illumination ===
                     // Positions are computed in world-space, centered on the camera (rayOrigin.xz)
@@ -1558,7 +1566,18 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     float nightAmbientBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
                     float effectiveAmbient = ambient * (1.0f + edgeColorHold) + twilightBoost + nightAmbientBase;
 
-                    sampleLight = CloudLightColor * (lightT * phase * sunFade + effectiveAmbient);
+                    // Beer-Lambert absorption exponent on shadow transmittance.
+                    float absLightT = pow(max(lightT, 0.001f), CloudLightAbsorption);
+                    // Direct sun: HG phase boosted by forward-scatter strength.
+                    float directSun = absLightT * phase * CloudForwardScatterStrength * sunFade * CloudSunLightIntensity;
+                    // Silverlining: additive phase-squared forward glow (edge brightening toward sun).
+                    float silverGlow = phase * phase * sunFade * CloudSilverliningStrength * 0.3f * CloudSunLightIntensity;
+                    // Ambient scaled by CloudAmbientIntensity.
+                    float ambLight = effectiveAmbient * max(CloudAmbientIntensity, 0.001f);
+                    // Sun warmth: tint light toward warm golden tone.
+                    float3 stdWarmTint = float3(1.0f, 0.88f, 0.65f);
+                    float3 stdLitColor = lerp(CloudLightColor, CloudLightColor * stdWarmTint, CloudSunWarmthInfluence * sunFade);
+                    sampleLight = stdLitColor * (directSun + silverGlow + ambLight);
                 }
 
                 float sampleTransmittance = exp(-extinction);

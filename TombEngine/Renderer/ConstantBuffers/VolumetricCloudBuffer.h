@@ -123,5 +123,17 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector2 SunScreenUV;               // projected sun UV in [0,1] x [0,1]
 		float   LightningBoltLengthScale;    // [0.1,5] bolt length multiplier
 		float   LightningBoltThicknessScale; // [0.1,5] bolt radius multiplier
+		//--
+		// Row 21 — Atmospheric sun-lighting multipliers (from AtmosphericSkySettings).
+		float CloudSunLightIntensity;       // [0,5]   direct sun brightness multiplier.
+		float CloudAmbientIntensity;        // [0,2]   ambient light multiplier.
+		float CloudSilverliningStrength;    // [0,3]   silverlining / forward-scatter boost.
+		float CloudForwardScatterStrength;  // [0,3]   broad HG scatter strength.
+		//--
+		// Row 22
+		float CloudLightAbsorption;         // [0.1,5] Beer-Lambert absorption exponent (standard clouds).
+		float CloudSunWarmthInfluence;      // [0,1]   sun color warmth blend.
+		float CloudLtPad1;
+		float CloudLtPad2;
 	};
 }

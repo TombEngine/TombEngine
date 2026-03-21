@@ -28,6 +28,7 @@
 #include "Game/control/control.h"
 #include "Game/Effects/LensFlareDebug.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/GodRay/GodRaySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -754,6 +755,119 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// God Ray Tab
+	// ====================================================================
+
+	static void DrawGodRayTabContent()
+	{
+		using namespace TEN::Renderer;
+		auto& settings = g_Renderer.GetGodRaySettings();
+
+		ImGui::Checkbox("Enabled", &settings.Enabled);
+		ImGui::Separator();
+
+		if (!settings.Enabled)
+		{
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "God rays are disabled.");
+			return;
+		}
+
+		// --- Auto-strength info (read-only) ---
+		ImGui::Text("Auto Strength Info:");
+		{
+			auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+
+			// Sun elevation (from lens flare pitch in TEN short angles).
+			float elev = 1.0f;
+			if (levelPtr && levelPtr->GetLensFlareEnabled())
+			{
+				constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+				float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+				elev = std::sin(pitch);
+			}
+
+			// Cloud coverage: use render settings Coverage (scene-wide), not sun-point transmittance.
+			float coverage = 0.0f;
+			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			{
+				float covA = g_SkyCloudSystem.IsCloudAActive()
+					? g_SkyCloudSystem.GetCloudARenderSettings().Coverage : 0.0f;
+				float covB = g_SkyCloudSystem.IsCloudBActive()
+					? g_SkyCloudSystem.GetCloudBRenderSettings().Coverage : 0.0f;
+				coverage = std::max(covA, covB);
+			}
+			else
+			{
+				if (levelPtr && levelPtr->HasVolumetricCloudLayer(0))
+				{
+					auto* vlayer = levelPtr->GetVolumetricCloudLayer(0);
+					if (vlayer && vlayer->Settings.Enabled)
+						coverage = vlayer->Settings.Coverage;
+				}
+				else if (levelPtr && levelPtr->HasVolumetricCloudLayer(1))
+				{
+					auto* vlayer = levelPtr->GetVolumetricCloudLayer(1);
+					if (vlayer && vlayer->Settings.Enabled)
+						coverage = vlayer->Settings.Coverage;
+				}
+			}
+
+			float elevFactor     = std::max(1.0f - elev * 0.6f, 0.3f);
+			float coverageFactor = std::min(coverage * 3.0f, 1.0f);
+			float autoStr        = elevFactor * coverageFactor;
+			float finalAuto      = 1.0f + (autoStr - 1.0f) * settings.AutoStrengthMix;
+
+			ImGui::Text("  Sun Elevation:    %.3f", elev);
+			ImGui::Text("  Cloud Coverage:   %.3f", coverage);
+			ImGui::Text("  Elev Factor:      %.3f", elevFactor);
+			ImGui::Text("  Coverage Factor:  %.3f", coverageFactor);
+			ImGui::Text("  Auto Strength:    %.3f", autoStr);
+			ImGui::Text("  Final Auto Str:   %.3f (mix=%.2f)", finalAuto, settings.AutoStrengthMix);
+		}
+
+		// --- Actual GPU constant buffer values (what the shader actually receives) ---
+		ImGui::Separator();
+		ImGui::Text("GPU CB (actual values sent to shader):");
+		{
+			const auto& cb = g_Renderer.GetGodRayBuffer();
+			bool sunOnScreen = (cb.SunScreenPos.x > -0.5f);
+			ImGui::TextColored(
+				sunOnScreen ? ImVec4(0.4f, 1.0f, 0.4f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
+				"  SunScreenPos:    (%.3f, %.3f) %s",
+				cb.SunScreenPos.x, cb.SunScreenPos.y,
+				sunOnScreen ? "[ON-SCREEN]" : "[OFF-SCREEN - rays BLOCKED]");
+			ImGui::Text("  CB AutoStrength:  %.3f", cb.AutoStrength);
+			ImGui::Text("  CB Intensity:     %.3f", cb.Intensity);
+			ImGui::Text("  CB Decay:         %.4f", cb.Decay);
+			ImGui::Text("  CB Softness:      %.3f", cb.Softness);
+			ImGui::Text("  CB SampleCount:   %d",   cb.SampleCount);
+			ImGui::Text("  CB SunColor:      (%.2f, %.2f, %.2f)", cb.SunColor.x, cb.SunColor.y, cb.SunColor.z);
+			ImGui::Text("  CB SunElevation:  %.3f", cb.SunElevation);
+		}
+
+		ImGui::Separator();
+
+		// --- Main controls ---
+		if (ImGui::CollapsingHeader("Ray Parameters", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Length",          &settings.Length,          0.05f, 1.5f, "%.3f");
+			ImGui::SliderFloat("Intensity",       &settings.Intensity,      0.0f,  3.0f, "%.3f");
+			ImGui::SliderFloat("Decay",           &settings.Decay,          0.90f, 1.0f, "%.4f");
+			ImGui::SliderFloat("Softness",        &settings.Softness,       0.1f,  3.0f, "%.3f");
+			ImGui::SliderInt("Sample Count",      &settings.SampleCount,    16,    128);
+			ImGui::SliderFloat("Auto Strength Mix", &settings.AutoStrengthMix, 0.0f, 1.0f, "%.3f");
+		}
+
+		// --- Reset button ---
+		ImGui::Separator();
+		if (ImGui::Button("Reset Defaults"))
+		{
+			settings = TEN::Renderer::GodRay::GodRaySettings{};
+			settings.Enabled = true;
+		}
+	}
+
+	// ====================================================================
 
 	void DrawSkyDebugWindow()
 	{
@@ -784,6 +898,12 @@ namespace TEN::Sky
 			if (ImGui::BeginTabItem("Atmospheric Sky"))
 			{
 				DrawAtmosphericSkyTabContent();
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("God Rays"))
+			{
+				DrawGodRayTabContent();
 				ImGui::EndTabItem();
 			}
 
