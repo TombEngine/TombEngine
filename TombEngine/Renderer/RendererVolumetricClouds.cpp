@@ -111,9 +111,11 @@ namespace TEN::Renderer
 			float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
 			float yaw   = (float)levelPtr->GetLensFlareYaw()   * SHORT_TO_RAD;
 
+			// Negate Y so the direction points toward the sun in TEN's Y-down world
+			// (positive pitch = sun above horizon = negative Y = up).
 			_stVolumetricCloud.LightDirection = Vector3(
 				std::cos(pitch) * std::sin(yaw),
-				std::sin(pitch),
+				-std::sin(pitch),
 				std::cos(pitch) * std::cos(yaw));
 			_stVolumetricCloud.LightDirection.Normalize();
 
