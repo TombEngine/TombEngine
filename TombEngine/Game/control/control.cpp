@@ -612,6 +612,10 @@ void InitializeScripting(int levelIndex, bool loadGame)
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
 
+	// Re-register TEN.* aliases (Flow, Objects, etc.) in the new Lua environment.
+	// ResetScripts() creates a new globals table, discarding previous aliases.
+	g_GameScript->ShortenTENCalls();
+
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
 
 	// Run level script if it exists.

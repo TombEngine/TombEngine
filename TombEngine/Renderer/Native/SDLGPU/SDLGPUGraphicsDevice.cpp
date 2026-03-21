@@ -1663,21 +1663,10 @@ namespace TEN::Renderer::Native::SDLGPU
 
 	Vector3 SDLGPUGraphicsDevice::Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world)
 	{
-		auto viewProjection = world * view * projection;
-		auto invVP = viewProjection.Invert();
-
-		// Transform from screen space [0,1] to NDC [-1,1].
-		Vector4 ndc;
-		ndc.x = position.x * 2.0f - 1.0f;
-		ndc.y = position.y * 2.0f - 1.0f;
-		ndc.z = position.z; // Already [0,1] depth range.
-		ndc.w = 1.0f;
-
-		auto result = Vector4::Transform(ndc, invVP);
-		if (result.w != 0.0f)
-			result /= result.w;
-
-		return Vector3(result.x, result.y, result.z);
+		// Match DX11 Viewport::Unproject behavior: input is in pixel coordinates,
+		// not [0,1] normalized. Convert pixels to NDC using screen dimensions.
+		Viewport vp(0.0f, 0.0f, (float)_screenWidth, (float)_screenHeight, 0.0f, 1.0f);
+		return vp.Unproject(position, projection, view, world);
 	}
 
 	void SDLGPUGraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
