@@ -648,6 +648,8 @@ CustomDiary.Create = function(object, objectIdBg, spriteIdBg, colorBg, pos, rot,
     GameVars.Engine.Diaries[dataName].Background           = {}
     GameVars.Engine.Diaries[dataName].AlphaBlendSpeed      = 100
     GameVars.Engine.Diaries[dataName].EntryFadingIn        = true
+    GameVars.Engine.Diaries[dataName].DiaryVisible         = false
+    GameVars.Engine.Diaries[dataName].NotificationVisible  = false
 
 	print("CustomDiary Constructed for CustomDiary: " .. dataName)
     return setmetatable(self, CustomDiary)
@@ -684,9 +686,13 @@ CustomDiary.Status = function(value)
         if GameVars.Engine.Diaries then
             if value == true then
                 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POSTUSEITEM, LevelFuncs.Engine.Diaries.ActivateDiary)
+                TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Diaries.ShowDiary)
+                TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Diaries.ShowNotification)
                 TEN.Util.PrintLog("Diary system started.", Util.LogLevel.INFO)
             elseif value == false then
                 TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.POSTUSEITEM, LevelFuncs.Engine.Diaries.ActivateDiary)
+                TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Diaries.ShowDiary)
+                TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Diaries.ShowNotification)
                 TEN.Util.PrintLog("Diary system stopped.", Util.LogLevel.INFO)
             end
         end
@@ -763,7 +769,7 @@ function CustomDiary:UnlockPages(pageIndex, notification)
             diary.Notification.ElapsedTime = 0
             diary.TargetAlpha = 255
             diary.CurrentAlpha = 1
-            TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Diaries.ShowNotification)
+            diary.NotificationVisible = true
         end
     end
 end
@@ -1329,6 +1335,10 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
     local objectNumber = GameVars.Engine.LastUsedDiary
 	local dataName = objectNumber .. "_diarydata"
 
+    if not GameVars.Engine.Diaries[dataName].DiaryVisible then
+        return
+    end
+
     if GameVars.Engine.Diaries[dataName] then
 
         local diary             = GameVars.Engine.Diaries[dataName]
@@ -1406,7 +1416,7 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
             StopAudioTrack(Sound.SoundTrackType.VOICE)
             PlaySound(diary.ExitSound)
             Flow.SetFreezeMode(Flow.FreezeMode.NONE)
-            TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Diaries.ShowDiary)
+            GameVars.Engine.Diaries[dataName].DiaryVisible   = false
             return
         end
 
@@ -1509,7 +1519,7 @@ LevelFuncs.Engine.Diaries.ActivateDiary = function(objectNumber)
         TEN.Inventory.ClearUsedItem()
         GameVars.Engine.Diaries[dataName].TargetAlpha = 255
         GameVars.Engine.Diaries[dataName].EntryTargetAlpha = 255
-		TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PREFREEZE, LevelFuncs.Engine.Diaries.ShowDiary)
+        GameVars.Engine.Diaries[dataName].DiaryVisible  = true
         Flow.SetFreezeMode(Flow.FreezeMode.FULL)
 	end
 
@@ -1520,6 +1530,10 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
 
     local dataName = GameVars.Engine.LastUsedDiary .. "_diarydata"
     local deltaTime = 1/30
+
+    if not GameVars.Engine.Diaries[dataName].NotificationVisible then
+        return
+    end
 
     if GameVars.Engine.Diaries[dataName] then
         local diary = GameVars.Engine.Diaries[dataName]
@@ -1546,8 +1560,7 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
             LevelFuncs.Engine.Diaries.PrepareNotification()
         elseif diary.CurrentAlpha == 0 then
             diary.Notification.ElapsedTime = 0
-            TEN.Logic.RemoveCallback(TEN.Logic.CallbackPoint.PRELOOP, LevelFuncs.Engine.Diaries.ShowNotification)
-            --print("Notification Callback removed")
+            GameVars.Engine.Diaries[dataName].NotificationVisible = false
             return
         end
 	end
