@@ -7,6 +7,29 @@
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
 
+// VLC 4.x compatibility layer.
+// When upgrading to VLC 4.x headers, these wrappers adapt the changed API signatures.
+// VLC 3.x: libvlc_media_new_path(instance, path)        → VLC 4.x: libvlc_media_new_path(path)
+// VLC 3.x: libvlc_media_player_new_from_media(media)     → VLC 4.x: libvlc_media_player_new_from_media(instance, media)
+// VLC 3.x: libvlc_media_player_stop(player) [sync]       → VLC 4.x: libvlc_media_player_stop_async(player)
+// VLC 3.x: libvlc_media_player_set_position(player, float) → VLC 4.x: (player, double, bool fast_seek)
+// VLC 3.x: libvlc_Ended state exists                     → VLC 4.x: removed, use libvlc_Stopping
+#if LIBVLC_VERSION_MAJOR >= 4
+	#define VLC4 1
+	inline libvlc_media_t* vlc_media_new_path(libvlc_instance_t*, const char* path) { return libvlc_media_new_path(path); }
+	inline libvlc_media_player_t* vlc_player_from_media(libvlc_instance_t* inst, libvlc_media_t* m) { return libvlc_media_player_new_from_media(inst, m); }
+	inline void vlc_player_stop(libvlc_media_player_t* p) { libvlc_media_player_stop_async(p); }
+	inline void vlc_player_set_position(libvlc_media_player_t* p, float pos) { libvlc_media_player_set_position(p, (double)pos, false); }
+	#define vlc_Ended libvlc_Stopping
+#else
+	#define VLC4 0
+	inline libvlc_media_t* vlc_media_new_path(libvlc_instance_t* inst, const char* path) { return libvlc_media_new_path(inst, path); }
+	inline libvlc_media_player_t* vlc_player_from_media(libvlc_instance_t*, libvlc_media_t* m) { return libvlc_media_player_new_from_media(m); }
+	inline void vlc_player_stop(libvlc_media_player_t* p) { libvlc_media_player_stop(p); }
+	inline void vlc_player_set_position(libvlc_media_player_t* p, float pos) { libvlc_media_player_set_position(p, pos); }
+	#define vlc_Ended libvlc_Ended
+#endif
+
 using namespace TEN::Input;
 
 namespace TEN::Video
@@ -142,7 +165,7 @@ namespace TEN::Video
 		if (_player == nullptr)
 			return;
 
-		libvlc_media_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f));
+		vlc_player_set_position(_player, std::clamp(pos, 0.0f, 1.0f));
 		HandleError();
 	}
 
@@ -175,10 +198,12 @@ namespace TEN::Video
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
-#ifdef _WIN32
-		vlcArgs.push_back("--aout=amem");		 // On Windows, explicitly set amem audio output for BASS callback routing.
+#if VLC4
+		vlcArgs.push_back("--aout=amem");		 // VLC 4.x: amem works on all platforms for BASS callback routing.
+#elif defined(_WIN32)
+		vlcArgs.push_back("--aout=amem");		 // VLC 3.x Windows: explicitly set amem audio output for BASS callback routing.
 #endif
-		// On Linux, no --aout is set; any explicit value blocks VLC during media opening.
+		// VLC 3.x Linux: no --aout is set; any explicit value blocks VLC during media opening.
 
 #if !_DEBUG
 		vlcArgs.push_back("--quiet");			 // Don't generate excessive VLC warnings in the console.
@@ -247,7 +272,7 @@ namespace TEN::Video
 		if (_player != nullptr)
 		{
 			if (libvlc_media_player_is_playing(_player))
-				libvlc_media_player_stop(_player);
+				vlc_player_stop(_player);
 
 			while (libvlc_media_player_is_playing(_player))
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -318,7 +343,7 @@ namespace TEN::Video
 		_fileName = fullVideoName;
 		_needRender = _updateInput = false;
 
-		auto* media = libvlc_media_new_path(_vlcInstance, _fileName.c_str());
+		auto* media = vlc_media_new_path(_vlcInstance, _fileName.c_str());
 		if (media == nullptr)
 		{
 			TENLog("Failed to create media from path: " + _fileName, LogLevel::Error);
@@ -326,7 +351,7 @@ namespace TEN::Video
 		}
 
 		// VLC requires to initialize media. Load into player and release right away.
-		_player = libvlc_media_player_new_from_media(media);
+		_player = vlc_player_from_media(_vlcInstance, media);
 		libvlc_media_release(media);
 
 		if (_player == nullptr)
@@ -338,10 +363,10 @@ namespace TEN::Video
 		// Route sound data to BASS, if video is not played in silent mode.
 		if (!_silent)
 		{
-#ifdef _WIN32
+#if VLC4 || defined(_WIN32)
 			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
 #else
-			// On Linux VLC 3.x, format callbacks may not trigger the amem module.
+			// VLC 3.x Linux: format callbacks may not trigger the amem module.
 			// Set the format directly to force amem activation.
 			libvlc_audio_set_format(_player, "FL32", SOUND_SAMPLE_RATE, SOUND_CHANNEL_COUNT);
 #endif
@@ -486,7 +511,7 @@ namespace TEN::Video
 			return;
 
 		// Reset playback to start if video is looped.
-		if (_looped && !interruptPlayback && (state == libvlc_Ended || state == libvlc_Stopped))
+		if (_looped && !interruptPlayback && (state == vlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
@@ -520,7 +545,7 @@ namespace TEN::Video
 		}
 
 		// Reset playback to start if video is looped.
-		if (_looped && (state == libvlc_Ended || state == libvlc_Stopped))
+		if (_looped && (state == vlc_Ended || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
 		HandleError();
@@ -577,7 +602,7 @@ namespace TEN::Video
 
 		DeinitializeVideoTexture();
 
-		libvlc_media_player_stop(_player);
+		vlc_player_stop(_player);
 		libvlc_media_player_release(_player);
 
 		_player = nullptr;
