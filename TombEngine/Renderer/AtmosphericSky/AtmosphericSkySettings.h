@@ -57,7 +57,7 @@ namespace TEN::Renderer
 		// --- Shader sun disk ---
 		// Rendered inside the atmospheric scattering pass so the bottom half is
 		// darkened by the same horizon band — giving a natural half-set appearance.
-		float SunDiskSize      = 1.5f;    // [0.1,10] Apparent half-angle in degrees.
-		float SunDiskIntensity = 30.0f;   // [1,200]  Brightness before tone mapping.
+		float SunDiskSize      = 1.62f;    // [0.1,10] Apparent half-angle in degrees.
+		float SunDiskIntensity = 103.6f;   // [1,200]  Brightness before tone mapping.
 	};
 }
