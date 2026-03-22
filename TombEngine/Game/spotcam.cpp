@@ -417,7 +417,7 @@ namespace TEN::SpotCam
 			if (PauseEaseProgress >= 1.0f)
 			{
 				PauseSpeedFactor = 0.0f;
-				PauseHoldTimer = g_Level.SpotCams[CurrentCameraIndex].Timer >> 3;
+				PauseHoldTimer = g_Level.SpotCams[CurrentCameraIndex].Timer >> 4;
 				CurrentPausePhase = PausePhase::Hold;
 			}
 			return false;
