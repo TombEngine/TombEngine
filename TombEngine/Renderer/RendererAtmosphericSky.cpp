@@ -136,8 +136,30 @@ namespace TEN::Renderer
 			sunColor = Vector3(flareColor.x, flareColor.y, flareColor.z);
 		}
 
-		float dayNightBlend     = ComputeDayNightBlend(sunElevation);
-		float starfieldVis      = ComputeStarfieldVisibility(sunElevation);
+		float dayNightBlend = ComputeDayNightBlend(sunElevation);
+		float starfieldVis  = ComputeStarfieldVisibility(sunElevation);
+
+		// --- Pre-compute moon data ---
+		// Done before the CB fill so phaseBrightness is available to modulate NightSkyBrightness.
+		const auto& moon  = _moonSettings;
+		float moonPitchRad    = moon.Pitch * (DirectX::XM_PI / 180.0f);
+		float moonYawRad      = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+		Vector3 moonDir(
+			std::cos(moonPitchRad) * std::sin(moonYawRad),
+			-std::sin(moonPitchRad),
+			std::cos(moonPitchRad) * std::cos(moonYawRad));
+		moonDir.Normalize();
+		float moonElevation   = std::sin(moonPitchRad);
+		float moonPhase       = ComputeMoonPhase(sunDir, moonDir);
+		// Phase brightness: full moon (phase~1) = 1, new moon (phase~0) = 0 (smoothstep).
+		float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
+		float moonVisibility  = moon.Enabled ? ComputeMoonVisibility(sunElevation) : 0.0f;
+		// Moon color: base color tinted slightly by sun warmth on the lit side.
+		float sunTint = 0.15f * phaseBrightness;
+		Vector3 moonColor(
+			moon.BaseColorR + sunColor.x * sunTint,
+			moon.BaseColorG + sunColor.y * sunTint,
+			moon.BaseColorB + sunColor.z * sunTint);
 
 		// --- Fill constant buffer ---
 		_stAtmosphericSky.SunDirection    = sunDir;
@@ -159,7 +181,13 @@ namespace TEN::Renderer
 		_stAtmosphericSky.HorizonDarkeningStr   = settings.HorizonDarkeningStr;
 		_stAtmosphericSky.ExposureMultiplier    = settings.ExposureMultiplier;
 
-		_stAtmosphericSky.NightSkyBrightness    = settings.NightSkyBrightness;
+		// NightSkyBrightness scales with moon phase:
+		//   full moon  (phaseBrightness = 1) → settings.NightSkyBrightness     (max)
+		//   new moon   (phaseBrightness = 0) → 5% of settings value           (minimal ambient)
+		float nightBrightness = moon.Enabled
+			? settings.NightSkyBrightness * (0.05f + 0.95f * phaseBrightness)
+			: settings.NightSkyBrightness;
+		_stAtmosphericSky.NightSkyBrightness    = nightBrightness;
 		_stAtmosphericSky.StarfieldVisibility   = starfieldVis;
 		_stAtmosphericSky.TwilightOffset        = settings.TwilightOffset;
 		_stAtmosphericSky.NightBlendSpeed       = settings.NightBlendSpeed;
@@ -174,38 +202,8 @@ namespace TEN::Renderer
 		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (DirectX::XM_PI / 180.0f));
 		_stAtmosphericSky.SunDiskIntensity  = settings.SunDiskIntensity;
 
-		// --- Moon data ---
-		const auto& moon = _moonSettings;
-
-		// Build moon direction from pitch/yaw (same convention as sun).
-		float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
-		float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
-		Vector3 moonDir(
-			std::cos(moonPitchRad) * std::sin(moonYawRad),
-			-std::sin(moonPitchRad),
-			std::cos(moonPitchRad) * std::cos(moonYawRad));
-		moonDir.Normalize();
-
-		float moonElevation = std::sin(moonPitchRad);
-
-		// Moon phase from sun-moon angular relationship.
-		float moonPhase = ComputeMoonPhase(sunDir, moonDir);
-
-		// Phase brightness: full moon (phase ~1.0) = bright, new moon (phase ~0.0) = dark.
-		// Use a smoothed curve so quarter moons are dimmer than expected.
-		float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
-
-		// Moon visibility: fades in as the sky darkens.
-		float moonVisibility = moon.Enabled ? ComputeMoonVisibility(sunElevation) : 0.0f;
-
-		// Moon color: base color tinted by sun illumination.
-		// The lit side takes on a slight warm tint from the sun color.
-		float sunTint = 0.15f * phaseBrightness; // subtle sun coloring
-		Vector3 moonColor(
-			moon.BaseColorR + sunColor.x * sunTint,
-			moon.BaseColorG + sunColor.y * sunTint,
-			moon.BaseColorB + sunColor.z * sunTint);
-
+		// --- Moon CB fill ---
+		// (direction, phase, visibility, and color are all pre-computed above)
 		_stAtmosphericSky.MoonDirection      = moonDir;
 		_stAtmosphericSky.MoonElevation      = moonElevation;
 		_stAtmosphericSky.MoonColor          = moonColor;

@@ -837,7 +837,7 @@ namespace TEN::Sky
 			ImGui::Separator();
 			ImGui::TextDisabled("Moon Glow (Sky Halo)");
 			ImGui::SliderFloat("Glow Intensity", &moon.GlowIntensity, 0.0f, 2.0f, "%.3f");
-			ImGui::SliderFloat("Glow Falloff",   &moon.GlowFalloff,   1.0f, 50.0f, "%.2f");
+			ImGui::SliderFloat("Glow Falloff",   &moon.GlowFalloff,   1.0f, 100.0f, "%.2f");
 
 			ImGui::Unindent(8.0f);
 		}
