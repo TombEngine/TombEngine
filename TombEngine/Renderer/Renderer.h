@@ -45,6 +45,7 @@
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
+#include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
@@ -209,6 +210,9 @@ namespace TEN::Renderer
 		AtmosphericSkySettings _atmosphericSkySettings;
 		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
 		VolumetricCloud::CloudRuntimeState _cloudState;
+
+		// Moon system
+		Moon::MoonSettings _moonSettings;
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
@@ -473,8 +477,12 @@ namespace TEN::Renderer
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
+		float ComputeMoonPhase(const DirectX::SimpleMath::Vector3& sunDir, const DirectX::SimpleMath::Vector3& moonDir) const;
+		float ComputeMoonVisibility(float sunElevation) const;
 		AtmosphericSkySettings& GetAtmosphericSkySettings() { return _atmosphericSkySettings; }
 		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }
+		Moon::MoonSettings& GetMoonSettings() { return _moonSettings; }
+		const Moon::MoonSettings& GetMoonSettings() const { return _moonSettings; }
 	private:
 
 		// God rays

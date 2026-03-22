@@ -35,7 +35,7 @@ namespace TEN::Sky
 	// Public API
 	// ====================================================================
 
-	/// Draw the unified sky debug window with "Wolken" and "Sonne/Horizon" tabs.
+	/// Draw the unified sky debug window with "Wolken", "Sun/Moon/Horizon/Stars", "Atmospheric Sky", and "God Rays" tabs.
 	/// Call once per frame when the debug overlay is visible.
 	void DrawSkyDebugWindow();
 

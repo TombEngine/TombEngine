@@ -16,6 +16,7 @@
 
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
+#include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -58,12 +59,44 @@ namespace TEN::Renderer
 
 	float Renderer::ComputeStarfieldVisibility(float sunElevation) const
 	{
-		// Stars become visible during twilight and fully visible at night.
-		// Start showing stars slightly before full night.
-		float twilightStart = _atmosphericSkySettings.TwilightOffset * 0.5f;
-		float starFade = Saturate((-sunElevation + twilightStart) * 4.0f);
-		starFade = starFade * starFade; // Quadratic fade-in.
+		// Stars fade in at the same time as the moon — using identical thresholds
+		// so they appear together during twilight.
+		float twilightStart = _atmosphericSkySettings.TwilightOffset * 0.25f;
+		float starFade = Saturate((-sunElevation + twilightStart) * 3.0f);
+		starFade = starFade * starFade * (3.0f - 2.0f * starFade); // smoothstep
 		return starFade;
+	}
+
+	// ========================================================================
+	// Moon phase computation
+	// ========================================================================
+
+	float Renderer::ComputeMoonPhase(const Vector3& sunDir, const Vector3& moonDir) const
+	{
+		// Phase is based on the angular relationship between sun and moon.
+		// When the moon is opposite the sun (dot = -1), the sun fully illuminates
+		// the moon face toward the viewer → full moon.
+		// When the moon is in the same direction as the sun (dot = +1),
+		// the sun illuminates the far side → new moon.
+		//
+		// phase = 0.5 * (1 - dot(sunDir, moonDir))
+		//   dot = -1 → phase = 1.0 (full moon)
+		//   dot =  0 → phase = 0.5 (half moon / quarter)
+		//   dot = +1 → phase = 0.0 (new moon)
+		float d = sunDir.Dot(moonDir);
+		return 0.5f * (1.0f - d);
+	}
+
+	float Renderer::ComputeMoonVisibility(float sunElevation) const
+	{
+		// Moon becomes visible as the sky darkens.
+		// Starts fading in during twilight, fully visible at night.
+		// Uses a slightly earlier threshold than starfield so the moon
+		// appears before the stars.
+		float twilightStart = _atmosphericSkySettings.TwilightOffset * 0.25f;
+		float moonFade = Saturate((-sunElevation + twilightStart) * 3.0f);
+		moonFade = moonFade * moonFade * (3.0f - 2.0f * moonFade); // smoothstep
+		return moonFade;
 	}
 
 	// ========================================================================
@@ -140,6 +173,51 @@ namespace TEN::Renderer
 		// Pre-compute cos(half_angle) on CPU to avoid a cos() call per pixel in the shader.
 		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (DirectX::XM_PI / 180.0f));
 		_stAtmosphericSky.SunDiskIntensity  = settings.SunDiskIntensity;
+
+		// --- Moon data ---
+		const auto& moon = _moonSettings;
+
+		// Build moon direction from pitch/yaw (same convention as sun).
+		float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
+		float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+		Vector3 moonDir(
+			std::cos(moonPitchRad) * std::sin(moonYawRad),
+			-std::sin(moonPitchRad),
+			std::cos(moonPitchRad) * std::cos(moonYawRad));
+		moonDir.Normalize();
+
+		float moonElevation = std::sin(moonPitchRad);
+
+		// Moon phase from sun-moon angular relationship.
+		float moonPhase = ComputeMoonPhase(sunDir, moonDir);
+
+		// Phase brightness: full moon (phase ~1.0) = bright, new moon (phase ~0.0) = dark.
+		// Use a smoothed curve so quarter moons are dimmer than expected.
+		float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
+
+		// Moon visibility: fades in as the sky darkens.
+		float moonVisibility = moon.Enabled ? ComputeMoonVisibility(sunElevation) : 0.0f;
+
+		// Moon color: base color tinted by sun illumination.
+		// The lit side takes on a slight warm tint from the sun color.
+		float sunTint = 0.15f * phaseBrightness; // subtle sun coloring
+		Vector3 moonColor(
+			moon.BaseColorR + sunColor.x * sunTint,
+			moon.BaseColorG + sunColor.y * sunTint,
+			moon.BaseColorB + sunColor.z * sunTint);
+
+		_stAtmosphericSky.MoonDirection      = moonDir;
+		_stAtmosphericSky.MoonElevation      = moonElevation;
+		_stAtmosphericSky.MoonColor          = moonColor;
+		_stAtmosphericSky.MoonPhase          = moonPhase;
+		_stAtmosphericSky.MoonDiskCosRadius  = std::cos(moon.DiskSize * (DirectX::XM_PI / 180.0f));
+		_stAtmosphericSky.MoonDiskIntensity  = moon.DiskIntensity;
+		_stAtmosphericSky.MoonGlowIntensity  = moon.GlowIntensity;
+		_stAtmosphericSky.MoonGlowFalloff    = moon.GlowFalloff;
+		_stAtmosphericSky.MoonEnabled        = moon.Enabled ? 1.0f : 0.0f;
+		_stAtmosphericSky.MoonPhaseBrightness = phaseBrightness;
+		_stAtmosphericSky.MoonVisibility     = moonVisibility;
+		_stAtmosphericSky.MoonPad0           = 0.0f;
 
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
 	}

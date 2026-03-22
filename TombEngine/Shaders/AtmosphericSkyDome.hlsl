@@ -230,6 +230,182 @@ float3 ComputeNightSky(float3 viewDir)
 }
 
 // ---------------------------------------------------------------------------
+// Moon surface noise — adapted from IQ's Shadertoy planet shader
+// ---------------------------------------------------------------------------
+
+float MoonNoise3D(float3 p)
+{
+    return frac(sin(dot(p, float3(12.9898f, 78.233f, 128.852f))) * 43758.5453f) * 2.0f - 1.0f;
+}
+
+float MoonSimplex3D(float3 p)
+{
+    const float F3 = 1.0f / 3.0f;
+    const float G3 = 1.0f / 6.0f;
+
+    float s = (p.x + p.y + p.z) * F3;
+    int i = (int)floor(p.x + s);
+    int j = (int)floor(p.y + s);
+    int k = (int)floor(p.z + s);
+
+    float t  = (float)(i + j + k) * G3;
+    float x0 = p.x - ((float)i - t);
+    float y0 = p.y - ((float)j - t);
+    float z0 = p.z - ((float)k - t);
+
+    int i1, j1, k1, i2, j2, k2;
+    if (x0 >= y0)
+    {
+        if      (y0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; }
+        else if (x0 >= z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; }
+        else               { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; }
+    }
+    else
+    {
+        if      (y0 < z0)  { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; }
+        else if (x0 < z0)  { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; }
+        else               { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; }
+    }
+
+    float x1 = x0 - (float)i1 + G3,        y1 = y0 - (float)j1 + G3,        z1 = z0 - (float)k1 + G3;
+    float x2 = x0 - (float)i2 + 2.0f*G3,   y2 = y0 - (float)j2 + 2.0f*G3,   z2 = z0 - (float)k2 + 2.0f*G3;
+    float x3 = x0 - 1.0f       + 3.0f*G3,  y3 = y0 - 1.0f       + 3.0f*G3,  z3 = z0 - 1.0f       + 3.0f*G3;
+
+    float3 ijk0 = float3((float)i,       (float)j,       (float)k      );
+    float3 ijk1 = float3((float)(i+i1),  (float)(j+j1),  (float)(k+k1) );
+    float3 ijk2 = float3((float)(i+i2),  (float)(j+j2),  (float)(k+k2) );
+    float3 ijk3 = float3((float)(i+1),   (float)(j+1),   (float)(k+1)  );
+
+    float3 gr0 = normalize(float3(MoonNoise3D(ijk0), MoonNoise3D(ijk0*2.01f), MoonNoise3D(ijk0*2.02f)));
+    float3 gr1 = normalize(float3(MoonNoise3D(ijk1), MoonNoise3D(ijk1*2.01f), MoonNoise3D(ijk1*2.02f)));
+    float3 gr2 = normalize(float3(MoonNoise3D(ijk2), MoonNoise3D(ijk2*2.01f), MoonNoise3D(ijk2*2.02f)));
+    float3 gr3 = normalize(float3(MoonNoise3D(ijk3), MoonNoise3D(ijk3*2.01f), MoonNoise3D(ijk3*2.02f)));
+
+    float n0=0, n1=0, n2=0, n3=0;
+    float t0 = 0.5f-x0*x0-y0*y0-z0*z0; if (t0>=0) { t0*=t0; n0=t0*t0*dot(gr0,float3(x0,y0,z0)); }
+    float t1 = 0.5f-x1*x1-y1*y1-z1*z1; if (t1>=0) { t1*=t1; n1=t1*t1*dot(gr1,float3(x1,y1,z1)); }
+    float t2 = 0.5f-x2*x2-y2*y2-z2*z2; if (t2>=0) { t2*=t2; n2=t2*t2*dot(gr2,float3(x2,y2,z2)); }
+    float t3 = 0.5f-x3*x3-y3*y3-z3*z3; if (t3>=0) { t3*=t3; n3=t3*t3*dot(gr3,float3(x3,y3,z3)); }
+
+    return 96.0f * (n0+n1+n2+n3);
+}
+
+float MoonFBM(float3 p)
+{
+    float f = 0.0f;
+    f += 0.500000f * MoonSimplex3D(p); p *= 2.01f;
+    f += 0.250000f * MoonSimplex3D(p); p *= 2.02f;
+    f += 0.125000f * MoonSimplex3D(p); p *= 2.03f;
+    f += 0.062500f * MoonSimplex3D(p); p *= 2.04f;
+    f += 0.031250f * MoonSimplex3D(p); p *= 2.05f;
+    f += 0.015625f * MoonSimplex3D(p);
+    return f;
+}
+
+// ---------------------------------------------------------------------------
+// Moon rendering — sphere with FBM surface + smooth diffuse sun illumination
+// ---------------------------------------------------------------------------
+
+// Renders the moon as a 3D sphere with:
+//   - Procedural surface texture (FBM noise simulating highlands/maria)
+//   - Bump-mapped normals for terrain detail
+//   - Smooth Lambertian diffuse lighting from the sun direction
+//   - Limb brightening (inner atmosphere rim effect)
+//
+// Phase behaviour:
+//   sunDir ≈ -moonDir  →  full moon  (lit hemisphere faces viewer)
+//   sunDir ≈  moonDir  →  new moon   (dark hemisphere faces viewer)
+//   sunDir ⊥  moonDir  →  quarter moon (terminator through center)
+float3 ComputeMoonDisk(float3 viewDir, float3 moonDir, float3 sunDir)
+{
+    if (AtmoMoonEnabled < 0.5f)
+        return float3(0.0f, 0.0f, 0.0f);
+
+    float moonCosAngle = dot(viewDir, moonDir);
+
+    // Disk boundary with soft fringe.
+    float moonEdgeWidth = (1.0f - AtmoMoonDiskCosRadius) * 0.15f;
+    float diskMask = smoothstep(AtmoMoonDiskCosRadius - moonEdgeWidth,
+                                AtmoMoonDiskCosRadius + moonEdgeWidth,
+                                moonCosAngle);
+    if (diskMask < 0.001f)
+        return float3(0.0f, 0.0f, 0.0f);
+
+    // Build orthonormal moon-disk frame.
+    // TEN Y-down: world up = (0, -1, 0).
+    float3 worldUp = float3(0.0f, -1.0f, 0.0f);
+    float3 moonRight;
+    if (abs(dot(moonDir, worldUp)) > 0.99f)
+        moonRight = normalize(cross(moonDir, float3(1.0f, 0.0f, 0.0f)));
+    else
+        moonRight = normalize(cross(moonDir, worldUp));
+    float3 moonUpVec = cross(moonRight, moonDir);
+
+    // Disk radius in tangent space: sin(halfAngle).
+    float diskRadius = sqrt(max(1e-6f, 1.0f - AtmoMoonDiskCosRadius * AtmoMoonDiskCosRadius));
+
+    // Normalized 2D position on the disk face: [-1, 1] at the disk edge.
+    float3 viewTangent = viewDir - moonDir * moonCosAngle;
+    float px = dot(viewTangent, moonRight)  / diskRadius;
+    float py = dot(viewTangent, moonUpVec)  / diskRadius;
+
+    // Sphere geometry: pz > 0 is the hemisphere facing the viewer.
+    float pz = sqrt(max(0.0f, 1.0f - px*px - py*py));
+
+    // Surface normal in world space: outward from sphere, pointing toward viewer at center.
+    // -moonDir is the "toward viewer" axis at the disk center.
+    // Result is already unit-length because px² + py² + pz² = 1.
+    float3 sphereNorm = px * moonRight + py * moonUpVec - pz * moonDir;
+
+    // Bump mapping: displace sphere normal components via FBM to simulate terrain.
+    const float e = 0.05f;
+    float nx = MoonFBM(sphereNorm + float3(e, 0.0f, 0.0f)) * 0.5f + 0.5f;
+    float ny = MoonFBM(sphereNorm + float3(0.0f, e, 0.0f)) * 0.5f + 0.5f;
+    float nz = MoonFBM(sphereNorm + float3(0.0f, 0.0f, e)) * 0.5f + 0.5f;
+    float3 bumpNorm = normalize(float3(sphereNorm.x * nx, sphereNorm.y * ny, sphereNorm.z * nz));
+
+    // Surface albedo: bright lunar highlands vs dark maria.
+    float surfaceAlbedo = 1.0f - (MoonFBM(sphereNorm) * 0.5f + 0.5f);
+
+    // Lambertian diffuse from sun direction.
+    // max(0) ensures only the lit hemisphere contributes.
+    float diffuse = max(0.0f, dot(bumpNorm, sunDir));
+
+    // Earthshine: keep the dark side faintly visible.
+    const float earthshine = 0.03f;
+    float illumination = surfaceAlbedo * max(diffuse, earthshine);
+
+    // Horizon darkening (same as sun disk).
+    float viewY = -viewDir.y;
+    float horizonFade = saturate(viewY * 4.0f + 0.1f);
+    horizonFade = pow(horizonFade, AtmoHorizonDarkeningStr);
+
+    return diskMask * illumination * AtmoMoonColor * AtmoMoonDiskIntensity
+         * AtmoMoonVisibility * horizonFade;
+}
+
+// Moon glow — subtle halo illuminating the local sky around the moon.
+float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
+{
+    if (AtmoMoonEnabled < 0.5f || AtmoMoonGlowIntensity < 0.001f)
+        return float3(0.0f, 0.0f, 0.0f);
+
+    float cosAngle = dot(viewDir, moonDir);
+    // Glow falloff: power-based, wider than the disk.
+    float glow = pow(saturate(cosAngle), AtmoMoonGlowFalloff) * AtmoMoonGlowIntensity;
+
+    // Scale by phase brightness and visibility.
+    glow *= AtmoMoonPhaseBrightness * AtmoMoonVisibility;
+
+    // Horizon darkening.
+    float viewY = -viewDir.y;
+    float horizonFade = saturate(viewY * 4.0f + 0.1f);
+    horizonFade = pow(horizonFade, AtmoHorizonDarkeningStr * 0.5f);
+
+    return glow * AtmoMoonColor * horizonFade;
+}
+
+// ---------------------------------------------------------------------------
 // Tone mapping — Jodie-Reinhard (from reference shader)
 // ---------------------------------------------------------------------------
 
@@ -252,6 +428,9 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
     // Sun direction from the existing lens flare system (passed via CB).
     float3 sunDir = normalize(AtmoSunDirection);
 
+    // Moon direction from the moon system (passed via CB).
+    float3 moonDir = normalize(AtmoMoonDirection);
+
     // --- Day sky ---
     float3 daySky = ComputeAtmosphericScattering(viewDir, sunDir);
 
@@ -267,11 +446,18 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
     // --- Night sky ---
     float3 nightSky = ComputeNightSky(viewDir);
 
+    // Add moon glow to the night sky (local sky illumination).
+    nightSky += ComputeMoonGlow(viewDir, moonDir);
+
     // --- Blend day/night ---
     // AtmoDayNightBlend: 0 = full day, 1 = full night.
     float nightFactor = AtmoDayNightBlend;
 
     float3 finalColor = lerp(daySky, nightSky, nightFactor);
+
+    // --- Moon disk (rendered on top of the sky blend, behind clouds) ---
+    // The moon can be faintly visible during the day but becomes prominent at night.
+    finalColor += ComputeMoonDisk(viewDir, moonDir, sunDir);
 
     // Output with alpha = 1 (opaque sky background).
     // Stars and sun sprite render separately in their own passes.

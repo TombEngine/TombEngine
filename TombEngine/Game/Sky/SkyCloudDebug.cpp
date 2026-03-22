@@ -29,6 +29,7 @@
 #include "Game/Effects/LensFlareDebug.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/GodRay/GodRaySettings.h"
+#include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -615,7 +616,365 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
-	// Horizon mesh section (Sonne/Horizon tab)
+	// Moon Position Widget — circular control like the sun widget
+	// ====================================================================
+
+	static constexpr float MOON_WIDGET_SIZE   = 220.0f;
+	static constexpr float MOON_POINT_RADIUS  = 7.0f;
+	static constexpr float MOON_HIT_RADIUS    = 12.0f;
+	static constexpr float MOON_PITCH_MIN     = -10.0f;
+	static constexpr float MOON_PITCH_MAX     = 90.0f;
+	static constexpr float MOON_MAX_RADIUS    = 1.0f + (-MOON_PITCH_MIN / MOON_PITCH_MAX);
+
+	static ImVec2 MoonPitchYawToCirclePoint(float pitch, float yaw)
+	{
+		float r = std::clamp(1.0f - pitch / MOON_PITCH_MAX, 0.0f, MOON_MAX_RADIUS);
+		float yawRad = yaw * (3.14159265f / 180.0f);
+		return ImVec2(r * std::sin(yawRad), -r * std::cos(yawRad));
+	}
+
+	static void MoonCirclePointToPitchYaw(const ImVec2& point, float& outPitch, float& outYaw)
+	{
+		float r = std::sqrt(point.x * point.x + point.y * point.y);
+		r = std::clamp(r, 0.0f, MOON_MAX_RADIUS);
+		outPitch = std::clamp(MOON_PITCH_MAX * (1.0f - r), MOON_PITCH_MIN, MOON_PITCH_MAX);
+		float yawRad = std::atan2(point.x, -point.y);
+		outYaw = std::fmod(yawRad * (180.0f / 3.14159265f) + 360.0f, 360.0f);
+	}
+
+	static ImVec2 ClampToMoonCircle(const ImVec2& p)
+	{
+		float len = std::sqrt(p.x * p.x + p.y * p.y);
+		if (len <= MOON_MAX_RADIUS) return p;
+		return ImVec2(p.x / len * MOON_MAX_RADIUS, p.y / len * MOON_MAX_RADIUS);
+	}
+
+	static bool DrawMoonPositionWidget(float& pitch, float& yaw)
+	{
+		bool changed = false;
+		float halfSize = MOON_WIDGET_SIZE * 0.5f;
+		float radius = (halfSize - 2.0f) / MOON_MAX_RADIUS;
+
+		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+		ImVec2 center = ImVec2(canvasPos.x + halfSize, canvasPos.y + halfSize);
+
+		ImGui::InvisibleButton("##moonWidget", ImVec2(MOON_WIDGET_SIZE, MOON_WIDGET_SIZE));
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		// Background.
+		drawList->AddRectFilled(canvasPos,
+			ImVec2(canvasPos.x + MOON_WIDGET_SIZE, canvasPos.y + MOON_WIDGET_SIZE),
+			IM_COL32(15, 15, 30, 255));
+		drawList->AddRect(canvasPos,
+			ImVec2(canvasPos.x + MOON_WIDGET_SIZE, canvasPos.y + MOON_WIDGET_SIZE),
+			IM_COL32(60, 60, 100, 255));
+
+		// Horizon circle.
+		drawList->AddCircle(center, radius, IM_COL32(50, 60, 100, 255), 64, 1.5f);
+		// Below-horizon ring.
+		drawList->AddCircle(center, radius * MOON_MAX_RADIUS, IM_COL32(80, 40, 40, 100), 64, 1.0f);
+		// Crosshairs.
+		drawList->AddLine(ImVec2(center.x - radius, center.y), ImVec2(center.x + radius, center.y), IM_COL32(40, 40, 60, 128));
+		drawList->AddLine(ImVec2(center.x, center.y - radius), ImVec2(center.x, center.y + radius), IM_COL32(40, 40, 60, 128));
+		// Labels.
+		drawList->AddCircle(center, 3.0f, IM_COL32(80, 100, 140, 180), 16, 1.0f);
+		drawList->AddText(ImVec2(center.x + 6, center.y - 8), IM_COL32(100, 100, 120, 200), "Zenith");
+
+		// Convert current pitch/yaw to screen position.
+		ImVec2 normalizedPoint = MoonPitchYawToCirclePoint(pitch, yaw);
+		ImVec2 screenPoint = ImVec2(
+			center.x + normalizedPoint.x * radius,
+			center.y + normalizedPoint.y * radius);
+
+		// Interaction.
+		static bool moonDragging = false;
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+		bool mouseDown = ImGui::GetIO().MouseDown[0];
+
+		float distToPoint = std::sqrt(
+			(mousePos.x - screenPoint.x) * (mousePos.x - screenPoint.x) +
+			(mousePos.y - screenPoint.y) * (mousePos.y - screenPoint.y));
+		float distToCenter = std::sqrt(
+			(mousePos.x - center.x) * (mousePos.x - center.x) +
+			(mousePos.y - center.y) * (mousePos.y - center.y));
+
+		if (ImGui::IsItemActive() && mouseDown)
+		{
+			if (!moonDragging && (distToPoint < MOON_HIT_RADIUS || distToCenter <= radius * MOON_MAX_RADIUS))
+				moonDragging = true;
+		}
+		else
+		{
+			moonDragging = false;
+		}
+
+		if (moonDragging)
+		{
+			ImVec2 newNormalized = ImVec2(
+				(mousePos.x - center.x) / radius,
+				(mousePos.y - center.y) / radius);
+			newNormalized = ClampToMoonCircle(newNormalized);
+			MoonCirclePointToPitchYaw(newNormalized, pitch, yaw);
+			changed = true;
+			screenPoint = ImVec2(
+				center.x + newNormalized.x * radius,
+				center.y + newNormalized.y * radius);
+		}
+
+		// Draw moon point (bluish-white glow).
+		drawList->AddCircleFilled(screenPoint, MOON_POINT_RADIUS + 3.0f, IM_COL32(180, 200, 255, 60));
+		drawList->AddCircleFilled(screenPoint, MOON_POINT_RADIUS, IM_COL32(200, 210, 240, 255));
+		drawList->AddCircle(screenPoint, MOON_POINT_RADIUS, IM_COL32(220, 230, 255, 255), 0, 1.5f);
+		if (moonDragging)
+			drawList->AddCircle(screenPoint, MOON_POINT_RADIUS + 5.0f, IM_COL32(180, 200, 255, 180), 0, 2.0f);
+
+		return changed;
+	}
+
+	// ====================================================================
+	// Moon debug content
+	// ====================================================================
+
+	static void DrawMoonTabContent()
+	{
+		using namespace TEN::Renderer;
+		using namespace TEN::Renderer::Moon;
+		auto& moon = g_Renderer.GetMoonSettings();
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		// --- Moon Enable ---
+		if (ImGui::CollapsingHeader("Moon System", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			ImGui::Checkbox("Moon Enabled", &moon.Enabled);
+
+			if (!moon.Enabled)
+			{
+				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Moon system is disabled.");
+				ImGui::Unindent(8.0f);
+				return;
+			}
+
+			// --- Moon State Info ---
+			ImGui::Text("Pitch: %.1f deg", moon.Pitch);
+			ImGui::Text("Yaw:   %.1f deg", moon.Yaw);
+
+			// Compute phase info for readout.
+			auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+			if (levelPtr && levelPtr->GetLensFlareEnabled())
+			{
+				float sunPitchRad = (float)levelPtr->GetLensFlarePitch() * (3.14159265f / 180.0f);
+				float sunYawRad   = (float)levelPtr->GetLensFlareYaw() * (3.14159265f / 180.0f);
+				// Build sun direction for phase computation.
+				float sunElev = std::sin(sunPitchRad);
+				float moonVis = g_Renderer.ComputeMoonVisibility(sunElev);
+
+				DirectX::SimpleMath::Vector3 sunDir(
+					std::cos(sunPitchRad) * std::sin(sunYawRad),
+					-std::sin(sunPitchRad),
+					std::cos(sunPitchRad) * std::cos(sunYawRad));
+				sunDir.Normalize();
+
+				float moonPitchRad = moon.Pitch * (3.14159265f / 180.0f);
+				float moonYawRad   = moon.Yaw * (3.14159265f / 180.0f);
+				DirectX::SimpleMath::Vector3 moonDir(
+					std::cos(moonPitchRad) * std::sin(moonYawRad),
+					-std::sin(moonPitchRad),
+					std::cos(moonPitchRad) * std::cos(moonYawRad));
+				moonDir.Normalize();
+
+				float phase = g_Renderer.ComputeMoonPhase(sunDir, moonDir);
+				float brightness = phase * phase * (3.0f - 2.0f * phase);
+
+				// Describe phase.
+				const char* phaseName = "Quarter";
+				if (phase > 0.9f)       phaseName = "Full Moon";
+				else if (phase > 0.7f)  phaseName = "Waxing Gibbous";
+				else if (phase > 0.45f) phaseName = "Half Moon";
+				else if (phase > 0.2f)  phaseName = "Crescent";
+				else                    phaseName = "New Moon";
+
+				ImGui::Text("Phase: %.2f (%s)", phase, phaseName);
+				ImGui::Text("Phase Brightness: %.2f", brightness);
+				ImGui::Text("Moon Visibility: %.2f", moonVis);
+			}
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// --- Moon Position Control ---
+		if (ImGui::CollapsingHeader("Moon Position Control", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			ImGui::Text("Drag the moon point inside the circle:");
+			if (DrawMoonPositionWidget(moon.Pitch, moon.Yaw))
+			{
+				// Position updated via widget.
+			}
+
+			ImGui::Spacing();
+			ImGui::SliderFloat("Moon Pitch##manual", &moon.Pitch, MOON_PITCH_MIN, MOON_PITCH_MAX, "%.1f deg");
+			ImGui::SliderFloat("Moon Yaw##manual", &moon.Yaw, 0.0f, 360.0f, "%.1f deg");
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// --- Moon Appearance ---
+		if (ImGui::CollapsingHeader("Moon Appearance", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			ImGui::SliderFloat("Disk Size",      &moon.DiskSize,      0.1f, 10.0f, "%.2f deg");
+			ImGui::SliderFloat("Disk Intensity", &moon.DiskIntensity, 1.0f, 100.0f, "%.1f");
+			ImGui::SliderFloat("Base Color R",   &moon.BaseColorR,    0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Base Color G",   &moon.BaseColorG,    0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Base Color B",   &moon.BaseColorB,    0.0f, 1.0f, "%.3f");
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Moon Glow (Sky Halo)");
+			ImGui::SliderFloat("Glow Intensity", &moon.GlowIntensity, 0.0f, 2.0f, "%.3f");
+			ImGui::SliderFloat("Glow Falloff",   &moon.GlowFalloff,   1.0f, 50.0f, "%.2f");
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// --- Night Cloud Lighting ---
+		if (ImGui::CollapsingHeader("Night Cloud Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			ImGui::SliderFloat("Moon Cloud Light Intensity", &moon.CloudLightIntensity, 0.0f, 2.0f, "%.3f");
+			ImGui::TextDisabled("  Direct moonlight intensity on clouds at night.");
+			ImGui::SliderFloat("Moon Cloud Ambient Boost",   &moon.CloudAmbientBoost,   0.0f, 0.5f, "%.3f");
+			ImGui::TextDisabled("  Additional ambient for moonlit clouds.");
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// --- Moon God Rays ---
+		if (ImGui::CollapsingHeader("Moon God Rays", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			ImGui::Checkbox("Moon God Rays Enabled", &moon.GodRays.Enabled);
+
+			if (moon.GodRays.Enabled)
+			{
+				ImGui::SliderFloat("Length##moonray",      &moon.GodRays.Length,      0.05f, 1.5f, "%.3f");
+				ImGui::SliderFloat("Intensity##moonray",   &moon.GodRays.Intensity,   0.0f,  1.0f, "%.3f");
+				ImGui::SliderFloat("Decay##moonray",       &moon.GodRays.Decay,       0.90f, 1.0f, "%.4f");
+				ImGui::SliderFloat("Softness##moonray",    &moon.GodRays.Softness,    0.1f,  3.0f, "%.3f");
+				ImGui::SliderInt("Samples##moonray",       &moon.GodRays.SampleCount, 16,    128);
+				ImGui::SliderFloat("Auto Strength##moonray", &moon.GodRays.AutoStrength, 0.0f, 1.0f, "%.3f");
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Moon god rays are disabled.");
+			}
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// --- Reset Moon ---
+		ImGui::Separator();
+		if (ImGui::Button("Reset Moon Defaults"))
+		{
+			bool wasEnabled = moon.Enabled;
+			moon = MoonSettings{};
+			moon.Enabled = wasEnabled;
+		}
+	}
+
+	// ====================================================================
+	// Starfield debug section
+	// ====================================================================
+
+	static void DrawStarfieldSection(Level* level)
+	{
+		if (!level)
+			return;
+
+		if (!ImGui::CollapsingHeader("Starfield", ImGuiTreeNodeFlags_DefaultOpen))
+			return;
+
+		ImGui::Indent(8.0f);
+
+		// Persistent saved star count — used to restore when toggling back on.
+		static int savedStarCount = 1000;
+
+		int starCount = level->Starfield.GetStarCount();
+		bool enabled = (starCount > 0);
+
+		// Enable/disable toggle.
+		if (ImGui::Checkbox("Starfield Enabled", &enabled))
+		{
+			if (enabled)
+			{
+				level->Starfield.SetStarCount(std::max(savedStarCount, 1));
+			}
+			else
+			{
+				savedStarCount = std::max(starCount, 1);
+				level->Starfield.SetStarCount(0);
+			}
+			starCount = level->Starfield.GetStarCount();
+		}
+
+		ImGui::Spacing();
+
+		// Sliders always visible — edits are applied live when enabled,
+		// or staged in savedStarCount when disabled so settings persist.
+		int editStarCount = enabled ? starCount : savedStarCount;
+		if (ImGui::SliderInt("Star Count", &editStarCount, 1, 6000))
+		{
+			savedStarCount = editStarCount;
+			if (enabled)
+				level->Starfield.SetStarCount(editStarCount);
+		}
+
+		int meteorCount = level->Starfield.GetMeteorCount();
+		if (ImGui::SliderInt("Meteor Count", &meteorCount, 0, 100))
+			level->Starfield.SetMeteorCount(meteorCount);
+
+		int meteorDensity = level->Starfield.GetMeteorSpawnDensity();
+		if (ImGui::SliderInt("Meteor Spawn Density", &meteorDensity, 0, 100))
+			level->Starfield.SetMeteorSpawnDensity(meteorDensity);
+
+		float meteorVel = level->Starfield.GetMeteorVelocity();
+		if (ImGui::SliderFloat("Meteor Velocity", &meteorVel, 0.0f, 100.0f, "%.1f"))
+			level->Starfield.SetMeteorVelocity(meteorVel);
+
+		// Starfield visibility info (from atmospheric sky).
+		ImGui::Separator();
+		ImGui::TextDisabled("Visibility (from Atmospheric Sky)");
+
+		auto& atmoSettings = g_Renderer.GetAtmosphericSkySettings();
+		if (atmoSettings.Enabled && level->GetLensFlareEnabled())
+		{
+			constexpr float SHORT_TO_RAD = (3.14159265f * 2.0f / 65536.0f);
+			float sunPitchRad = (float)level->GetLensFlarePitch() * SHORT_TO_RAD;
+			float sunElev = std::sin(sunPitchRad);
+			float starVis = g_Renderer.ComputeStarfieldVisibility(sunElev);
+			float dayNight = g_Renderer.ComputeDayNightBlend(sunElev);
+
+			ImGui::Text("  Star Visibility:   %.3f", starVis);
+			ImGui::Text("  Day/Night Blend:   %.3f", dayNight);
+			ImGui::Text("  Night Sky Brightness: %.3f", atmoSettings.NightSkyBrightness);
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "  Atmospheric sky disabled or no lens flare.");
+		}
+
+		ImGui::Unindent(8.0f);
+	}
+
+	// ====================================================================
+	// Horizon mesh section (Sun/Moon/Horizon/Stars tab)
 	// ====================================================================
 
 	static void DrawHorizonSection(Level* level)
@@ -900,12 +1259,14 @@ namespace TEN::Sky
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Sonne/Horizon"))
+			if (ImGui::BeginTabItem("Sun/Moon/Horizon/Stars"))
 			{
 				TEN::Effects::DrawLensFlareTabContent();
+				DrawMoonTabContent();
 				auto* levelPtr = dynamic_cast<Level*>(
 					g_GameFlow->GetLevel(CurrentLevel));
 				DrawHorizonSection(levelPtr);
+				DrawStarfieldSection(levelPtr);
 				ImGui::EndTabItem();
 			}
 

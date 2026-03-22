@@ -3171,6 +3171,16 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedSprites);
 
+			// Ensure the atmospheric sky CB (b10) is bound so InstancedSprites.hlsl
+			// can access moon direction/radius for the star occlusion discard.
+			// Sky band shaders run between DrawAtmosphericSkyDome and here, so
+			// we rebind explicitly rather than relying on D3D11 state persistence.
+			if (_atmosphericSkySettings.Enabled)
+			{
+				auto* atmoSkyBuf = _cbAtmosphericSky.get();
+				_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
+			}
+
 			// Set up vertex buffer and parameters.
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;

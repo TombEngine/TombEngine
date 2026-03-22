@@ -46,6 +46,26 @@ cbuffer CBAtmosphericSky : register(b10)
     float  AtmoSunWarmInfluence;      // Max blend weight toward sun color at horizon.
     float  AtmoSunDiskCosRadius;      // cos(half_angle): threshold for sun disk.
     float  AtmoSunDiskIntensity;      // Sun disk brightness before tone mapping.
+    //--
+    // Row 8 — Moon direction and elevation
+    float3 AtmoMoonDirection;         // Normalized world-space moon direction.
+    float  AtmoMoonElevation;         // sin(pitch): +1 = zenith, 0 = horizon, -1 = nadir.
+    //--
+    // Row 9 — Moon color and phase
+    float3 AtmoMoonColor;             // Moon surface color (tinted by sun illumination).
+    float  AtmoMoonPhase;             // [0,1] 0 = new moon, 0.5 = full moon, 1 = new moon.
+    //--
+    // Row 10 — Moon disk and glow
+    float  AtmoMoonDiskCosRadius;     // cos(half_angle): threshold for moon disk.
+    float  AtmoMoonDiskIntensity;     // Moon disk brightness before tone mapping.
+    float  AtmoMoonGlowIntensity;     // Halo/glow brightness around moon in sky.
+    float  AtmoMoonGlowFalloff;       // How quickly glow fades from moon center.
+    //--
+    // Row 11 — Moon enable/visibility + phase illumination
+    float  AtmoMoonEnabled;           // 0 or 1.
+    float  AtmoMoonPhaseBrightness;   // [0,1] brightness from moon phase.
+    float  AtmoMoonVisibility;        // [0,1] fades in as sky darkens.
+    float  AtmoMoonPad0;
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

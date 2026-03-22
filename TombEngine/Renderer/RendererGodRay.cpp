@@ -16,6 +16,7 @@
 #include "Game/Sky/SkyCloudSystem.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/GodRay/GodRaySettings.h"
+#include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -74,6 +75,7 @@ namespace TEN::Renderer
 	void Renderer::UpdateGodRayBuffer(RenderView& renderView)
 	{
 		const auto& settings = _godRaySettings;
+		const auto& moon     = _moonSettings;
 
 		// --- Sun direction and screen position ---
 		Vector3 sunDir(0.0f, -1.0f, 0.0f);
@@ -111,11 +113,56 @@ namespace TEN::Renderer
 			}
 		}
 
-		// Project sun to screen UV: prefer lens flare world position, fall back to virtual sun.
-		// Sentinel -10 means "no sun direction available at all" — rays fully suppressed.
-		// Off-screen or behind-camera suns get properly projected UVs; intensity fades via
-		// sunFacingFade (see below) so the rays gracefully disappear as you turn away.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal)
+		// --- Determine if we should use moon god rays at night ---
+		float dayNightBlend = ComputeDayNightBlend(sunElevation);
+		bool useMoonRays = moon.Enabled && moon.GodRays.Enabled && dayNightBlend > 0.5f;
+
+		// The effective ray source direction, screen UV, color, and settings
+		// switch from sun to moon based on day/night state.
+		Vector3 rayDir   = sunDir;
+		Vector3 rayColor = sunColor;
+		Vector2 rayScreenUV(-10.0f, -10.0f);
+		float   rayLength, rayIntensity, rayDecay, raySoftness, rayAutoMix;
+		int     raySampleCount;
+
+		if (useMoonRays)
+		{
+			// Build moon direction.
+			float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
+			float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+			rayDir = Vector3(
+				std::cos(moonPitchRad) * std::sin(moonYawRad),
+				-std::sin(moonPitchRad),
+				std::cos(moonPitchRad) * std::cos(moonYawRad));
+			rayDir.Normalize();
+
+			// Moon phase brightness for ray intensity modulation.
+			float moonPhase = ComputeMoonPhase(sunDir, rayDir);
+			float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
+
+			// Moon color: cool bluish tint.
+			rayColor = Vector3(moon.BaseColorR, moon.BaseColorG, moon.BaseColorB) * phaseBrightness;
+
+			rayLength      = moon.GodRays.Length;
+			rayIntensity   = moon.GodRays.Intensity * phaseBrightness;
+			rayDecay       = moon.GodRays.Decay;
+			raySampleCount = moon.GodRays.SampleCount;
+			raySoftness    = moon.GodRays.Softness;
+			rayAutoMix     = moon.GodRays.AutoStrength;
+		}
+		else
+		{
+			// Daytime: use sun settings.
+			rayLength      = settings.Length;
+			rayIntensity   = settings.Intensity;
+			rayDecay       = settings.Decay;
+			raySampleCount = settings.SampleCount;
+			raySoftness    = settings.Softness;
+			rayAutoMix     = settings.AutoStrengthMix;
+		}
+
+		// Project ray source (sun or moon) to screen UV.
+		if (!useMoonRays && !renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal)
 		{
 			const auto& sunPos = renderView.LensFlaresToDraw[0].Position;
 			auto clip = Vector4::Transform(
@@ -124,45 +171,35 @@ namespace TEN::Renderer
 			float absW = std::abs(clip.w);
 			if (absW > 0.0001f)
 			{
-				// Divide by |w| WITHOUT a sign flip so the UV stays on the same side
-				// of the screen even when the sun crosses behind the camera plane.
-				// (Standard clip.x/clip.w would mirror the UV to the opposite edge.)
 				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
 				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
-				sunScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
+				rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
 
-		// Fallback: project a virtual sun far along sunDir from the camera.
-		if (sunScreenUV.x < -5.0f && sunDir.LengthSquared() > 0.001f)
+		// Fallback: project a virtual source far along rayDir from the camera.
+		if (rayScreenUV.x < -5.0f && rayDir.LengthSquared() > 0.001f)
 		{
 			constexpr float VIRTUAL_SUN_DIST = 500000.0f;
-			Vector3 virtualSunPos = renderView.Camera.WorldPosition + sunDir * VIRTUAL_SUN_DIST;
+			Vector3 virtualPos = renderView.Camera.WorldPosition + rayDir * VIRTUAL_SUN_DIST;
 			auto clip = Vector4::Transform(
-				Vector4(virtualSunPos.x, virtualSunPos.y, virtualSunPos.z, 1.0f),
+				Vector4(virtualPos.x, virtualPos.y, virtualPos.z, 1.0f),
 				renderView.Camera.ViewProjection);
 			float absW = std::abs(clip.w);
 			if (absW > 0.0001f)
 			{
 				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
 				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
-				sunScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
+				rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
 
-		// Sun-facing fade: smoothly mute rays as the camera turns away from the sun.
-		// Uses the dot product between sun direction and camera look direction.
-		//   dot =  1 : sun directly ahead       → fully visible
-		//   dot =  0 : sun exactly 90° to side  → ~50% visible (rays come from edge)
-		//   dot = -0.25 : sun 104° off-axis     → fully gone
-		float sunFacingDot  = sunDir.Dot(renderView.Camera.WorldDirection);
-		float sunFacingFade = Saturate((sunFacingDot - (-0.25f)) / (0.15f - (-0.25f)));
-		// Smooth the fade curve (smoothstep equivalent).
-		sunFacingFade = sunFacingFade * sunFacingFade * (3.0f - 2.0f * sunFacingFade);
+		// Ray-source-facing fade: smoothly mute rays as the camera turns away.
+		float rayFacingDot  = rayDir.Dot(renderView.Camera.WorldDirection);
+		float rayFacingFade = Saturate((rayFacingDot - (-0.25f)) / (0.15f - (-0.25f)));
+		rayFacingFade = rayFacingFade * rayFacingFade * (3.0f - 2.0f * rayFacingFade);
 
 		// --- Cloud coverage for auto-strength ---
-		// Use scene-wide Coverage from cloud settings — NOT sun-point transmittance,
-		// which would be ~0 whenever the sun shines through a gap (exactly when you'd want rays).
 		float cloudCoverage = 0.0f;
 		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
 		{
@@ -181,37 +218,47 @@ namespace TEN::Renderer
 		}
 
 		// --- Auto-strength ---
-		float autoStrength = ComputeGodRayAutoStrength(sunElevation, cloudCoverage);
+		float rayElevation = useMoonRays ? std::sin(moon.Pitch * (DirectX::XM_PI / 180.0f)) : sunElevation;
+		float autoStrength = ComputeGodRayAutoStrength(rayElevation, cloudCoverage);
 
-		// Fade god rays out as the sun descends below the horizon.
-		// Uses the same formula as the atmospheric sky shader's sunBelowFade:
-		//   elevation = 0 (horizon): 1.0 (full), elevation ≈ -0.125 (~-7°): ~zero.
-		float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
-		sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+		// Fade: for sun rays, fade out when sun is below horizon.
+		// For moon rays, fade out when moon is below horizon.
+		float belowHorizonFade;
+		if (useMoonRays)
+		{
+			float moonElev = std::sin(moon.Pitch * (DirectX::XM_PI / 180.0f));
+			belowHorizonFade = std::clamp(1.0f + moonElev * 8.0f, 0.0f, 1.0f);
+		}
+		else
+		{
+			belowHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+		}
+		belowHorizonFade = belowHorizonFade * belowHorizonFade * (3.0f - 2.0f * belowHorizonFade);
 
-		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * settings.AutoStrengthMix) * sunFacingFade * sunBelowFade;
+		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * rayAutoMix) * rayFacingFade * belowHorizonFade;
 
 		// --- Fill constant buffer ---
-		_stGodRay.SunScreenPos  = sunScreenUV;
-		_stGodRay.RayLength     = settings.Length;
-		_stGodRay.Intensity     = settings.Intensity;
+		_stGodRay.SunScreenPos  = rayScreenUV;
+		_stGodRay.RayLength     = rayLength;
+		_stGodRay.Intensity     = rayIntensity;
 
-		_stGodRay.Decay         = settings.Decay;
-		_stGodRay.SampleCount   = settings.SampleCount;
-		_stGodRay.SunElevation  = sunElevation;
+		_stGodRay.Decay         = rayDecay;
+		_stGodRay.SampleCount   = raySampleCount;
+		_stGodRay.SunElevation  = rayElevation;
 		_stGodRay.AutoStrength  = finalAutoStrength;
 
-		// Apply atmospheric sky gradient so god ray tint matches the sky dome.
+		// Apply atmospheric sky gradient to daytime sun rays.
+		if (!useMoonRays)
 		{
 			const auto& atmo = _atmosphericSkySettings;
 			float sunInfl = std::max(0.0f, 1.0f - sunElevation * atmo.SunElevationRampSpeed);
 			float blend   = sunInfl * atmo.SunWarmInfluence;
-			sunColor.x = 1.0f + (sunColor.x - 1.0f) * blend;
-			sunColor.y = 1.0f + (sunColor.y - 1.0f) * blend;
-			sunColor.z = 1.0f + (sunColor.z - 1.0f) * blend;
+			rayColor.x = 1.0f + (rayColor.x - 1.0f) * blend;
+			rayColor.y = 1.0f + (rayColor.y - 1.0f) * blend;
+			rayColor.z = 1.0f + (rayColor.z - 1.0f) * blend;
 		}
-		_stGodRay.SunColor      = sunColor;
-		_stGodRay.Softness      = settings.Softness;
+		_stGodRay.SunColor      = rayColor;
+		_stGodRay.Softness      = raySoftness;
 
 		_stGodRay.ViewSize      = Vector2((float)_screenWidth, (float)_screenHeight);
 		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
@@ -225,8 +272,31 @@ namespace TEN::Renderer
 
 	void Renderer::DrawGodRays(RenderView& renderView)
 	{
-		if (!_godRaySettings.Enabled)
-			return;
+		// Check if any ray source is enabled.
+		float dayNightBlend = 0.0f;
+		{
+			auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+			float sunElev = 1.0f;
+			if (levelPtr->GetLensFlareEnabled())
+			{
+				constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
+				float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+				sunElev = std::sin(pitch);
+			}
+			dayNightBlend = ComputeDayNightBlend(sunElev);
+		}
+		bool useMoonRays = _moonSettings.Enabled && _moonSettings.GodRays.Enabled && dayNightBlend > 0.5f;
+
+		if (useMoonRays)
+		{
+			if (!_moonSettings.GodRays.Enabled)
+				return;
+		}
+		else
+		{
+			if (!_godRaySettings.Enabled)
+				return;
+		}
 
 		// Require volumetric clouds to provide the occlusion mask.
 		bool hasClouds = false;

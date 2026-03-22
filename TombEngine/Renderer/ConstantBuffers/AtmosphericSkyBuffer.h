@@ -49,5 +49,25 @@ namespace TEN::Renderer::ConstantBuffers
 		float   SunWarmInfluence;      // Max blend weight toward sun color at horizon.
 		float   SunDiskCosRadius;      // cos(half_angle): precomputed for sun disk threshold.
 		float   SunDiskIntensity;      // Sun disk brightness multiplier before tone mapping.
+		//--
+		// Row 8 — Moon direction and elevation
+		Vector3 MoonDirection;         // Normalized world-space moon direction.
+		float   MoonElevation;         // sin(pitch): +1 = zenith, 0 = horizon, -1 = nadir.
+		//--
+		// Row 9 — Moon color and phase
+		Vector3 MoonColor;             // Moon surface color (tinted by sun illumination).
+		float   MoonPhase;             // [0,1] 0 = new moon, 0.5 = full moon, 1 = new moon (cycle).
+		//--
+		// Row 10 — Moon disk and glow
+		float   MoonDiskCosRadius;     // cos(half_angle): precomputed for moon disk threshold.
+		float   MoonDiskIntensity;     // Moon disk brightness before tone mapping.
+		float   MoonGlowIntensity;     // Halo/glow brightness around moon in sky.
+		float   MoonGlowFalloff;       // How quickly glow fades from moon center.
+		//--
+		// Row 11 — Moon enable/visibility + phase illumination
+		float   MoonEnabled;           // 0 or 1.
+		float   MoonPhaseBrightness;   // [0,1] computed brightness from phase (full=1, new=0).
+		float   MoonVisibility;        // [0,1] computed visibility (fades in as sky darkens).
+		float   MoonPad0;
 	};
 }

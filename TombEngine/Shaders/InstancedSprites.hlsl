@@ -1,4 +1,5 @@
 #include "./CBCamera.hlsli"
+#include "./CBAtmosphericSky.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
@@ -97,6 +98,21 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
+
+    // Moon disk occlusion: discard star/meteor pixels that fall inside the moon.
+    // Reconstruct world-space view direction from clip-space position.
+    // PositionCopy is the VS clip-space output (before rasterizer), so
+    // PositionCopy.y/w > 0 already means "top of screen" — NO Y flip is needed
+    // (unlike the atmosphere shader which starts from UV space where y=0 is top).
+    if (AtmoMoonEnabled > 0.5f && AtmoMoonVisibility > 0.01f)
+    {
+        float2 ndc    = input.PositionCopy.xy / input.PositionCopy.w;
+        float4 vPos   = mul(float4(ndc.x, ndc.y, 1.0f, 1.0f), InverseProjection);
+        vPos.xyz     /= vPos.w;
+        float3 viewDir = normalize(mul(float4(vPos.xyz, 0.0f), InverseView).xyz);
+        if (dot(viewDir, normalize(AtmoMoonDirection)) > AtmoMoonDiskCosRadius)
+            discard;
+    }
 	
     if (sprite.IsSoftParticle == 1)
 	{

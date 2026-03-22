@@ -16,6 +16,7 @@
 #include "Game/camera.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
+#include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -104,6 +105,10 @@ namespace TEN::Renderer
 
 		// Light direction: prefer existing lens flare direction, fallback to settings.
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+		Vector3 sunLightDir(0.3f, 0.85f, 0.2f);
+		Vector3 sunLightColor(1.0f, 0.95f, 0.85f);
+		float   sunElevLens = 1.0f;
+
 		if (levelPtr->GetLensFlareEnabled())
 		{
 			// GetLensFlarePitch/Yaw return TEN short angles (65536 = 360 degrees).
@@ -113,39 +118,74 @@ namespace TEN::Renderer
 
 			// Negate Y so the direction points toward the sun in TEN's Y-down world
 			// (positive pitch = sun above horizon = negative Y = up).
-			_stVolumetricCloud.LightDirection = Vector3(
+			sunLightDir = Vector3(
 				std::cos(pitch) * std::sin(yaw),
 				-std::sin(pitch),
 				std::cos(pitch) * std::cos(yaw));
-			_stVolumetricCloud.LightDirection.Normalize();
+			sunLightDir.Normalize();
 
 			auto flareColor = levelPtr->GetLensFlareEvaluatedColor();
-			_stVolumetricCloud.LightColor = Vector3(
+			sunLightColor = Vector3(
 				flareColor.x,
 				flareColor.y,
 				flareColor.z);
 
 			// Apply atmospheric sky gradient so cloud light matches the sky dome.
 			const auto& atmo = _atmosphericSkySettings;
-			float sunElevLens = std::sin(pitch);
+			sunElevLens = std::sin(pitch);
 			float sunInfl = std::max(0.0f, 1.0f - sunElevLens * atmo.SunElevationRampSpeed);
 			float blend   = sunInfl * atmo.SunWarmInfluence;
-			_stVolumetricCloud.LightColor.x = 1.0f + (_stVolumetricCloud.LightColor.x - 1.0f) * blend;
-			_stVolumetricCloud.LightColor.y = 1.0f + (_stVolumetricCloud.LightColor.y - 1.0f) * blend;
-			_stVolumetricCloud.LightColor.z = 1.0f + (_stVolumetricCloud.LightColor.z - 1.0f) * blend;
+			sunLightColor.x = 1.0f + (sunLightColor.x - 1.0f) * blend;
+			sunLightColor.y = 1.0f + (sunLightColor.y - 1.0f) * blend;
+			sunLightColor.z = 1.0f + (sunLightColor.z - 1.0f) * blend;
 		}
 		else if (settings.LightDirection.LengthSquared() > 0.001f)
 		{
-			_stVolumetricCloud.LightDirection = settings.LightDirection;
-			_stVolumetricCloud.LightDirection.Normalize();
-			_stVolumetricCloud.LightColor = Vector3(1.0f, 0.95f, 0.85f);
+			sunLightDir = settings.LightDirection;
+			sunLightDir.Normalize();
+			sunLightColor = Vector3(1.0f, 0.95f, 0.85f);
 		}
 		else
 		{
-			// Default: high sun.
-			_stVolumetricCloud.LightDirection = Vector3(0.3f, 0.85f, 0.2f);
+			sunLightDir.Normalize();
+		}
+
+		// --- Moon/night cloud lighting blend ---
+		// At nighttime, blend the cloud light source from sun to moon.
+		float dayNightBlend = ComputeDayNightBlend(sunElevLens);
+		const auto& moon = _moonSettings;
+
+		if (moon.Enabled && dayNightBlend > 0.01f)
+		{
+			// Build moon direction from pitch/yaw.
+			float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
+			float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+			Vector3 moonLightDir(
+				std::cos(moonPitchRad) * std::sin(moonYawRad),
+				-std::sin(moonPitchRad),
+				std::cos(moonPitchRad) * std::cos(moonYawRad));
+			moonLightDir.Normalize();
+
+			// Moon phase brightness (same computation as in RendererAtmosphericSky.cpp).
+			float moonPhase = ComputeMoonPhase(sunLightDir, moonLightDir);
+			float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
+
+			// Moonlight color: cool bluish-white, dimmed by phase.
+			Vector3 moonLightColor(
+				moon.BaseColorR * moon.CloudLightIntensity * phaseBrightness,
+				moon.BaseColorG * moon.CloudLightIntensity * phaseBrightness,
+				moon.BaseColorB * moon.CloudLightIntensity * phaseBrightness);
+
+			// Blend direction and color from sun to moon based on day/night factor.
+			_stVolumetricCloud.LightDirection = Vector3::Lerp(sunLightDir, moonLightDir, dayNightBlend);
 			_stVolumetricCloud.LightDirection.Normalize();
-			_stVolumetricCloud.LightColor = Vector3(1.0f, 0.95f, 0.85f);
+			_stVolumetricCloud.LightColor = Vector3::Lerp(sunLightColor, moonLightColor, dayNightBlend);
+		}
+		else
+		{
+			// Day or moon disabled: use sun lighting.
+			_stVolumetricCloud.LightDirection = sunLightDir;
+			_stVolumetricCloud.LightColor     = sunLightColor;
 		}
 
 		_stVolumetricCloud.PrimaryStepCount   = q.PrimaryStepCount;
