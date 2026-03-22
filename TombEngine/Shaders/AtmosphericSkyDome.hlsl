@@ -169,11 +169,17 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     // Additional sun glow field.
     float3 sunGlow = GetSunGlow(viewDir, sunDir) * sunAbsorption * AtmoSunColor;
 
+    // Fade all sun-dependent effects when the sun is below the horizon.
+    // Matches the sun sprite fade and god ray fade for visual consistency.
+    // sunY = 0 (horizon): 1.0 (full), sunY ≈ -0.125 (~-7°): ~zero.
+    float sunBelowFade = saturate(1.0f + sunY * 8.0f);
+    sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+
     // Mix between absorbed sky and brighter sky based on sun influence.
     // When the sun is higher, the sky transitions from deeply absorbed to brighter.
-    float3 totalSky = lerp(sky * absorption, sky / (sky + 0.5f), sunPointDistMult);
-    totalSky += mie;
-    totalSky += sunGlow;
+    float3 totalSky = lerp(sky * absorption, sky / (sky + 0.5f), sunPointDistMult * sunBelowFade);
+    totalSky += mie * sunBelowFade;
+    totalSky += sunGlow * sunBelowFade;
 
     // Apply sun absorption from the sun's path through the atmosphere.
     totalSky *= sunAbsorption * 0.5f + 0.5f * length(sunAbsorption);
@@ -183,12 +189,25 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     // AtmoSunElevationRampSpeed: how quickly the warm tint fades as the sun rises.
     //   low value (0.5) = white zone is narrow, warm tint persists high up.
     //   high value (3.0) = warm tint only very close to the horizon.
-    // AtmoSunWarmInfluence: max blend weight at horizon (0 = always white, 1 = full sun color).
+    // sunBelowFade ensures the warm tint is fully removed when the sun is below the horizon.
     float sunInfluence = saturate(1.0f - sunY * AtmoSunElevationRampSpeed);
-    totalSky *= lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor, sunInfluence * AtmoSunWarmInfluence);
+    totalSky *= lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor, sunInfluence * AtmoSunWarmInfluence * sunBelowFade);
+
+    // Shader sun disk — replaces the billboard sprite so the disk is subject to the
+    // same horizon darkening below. The bottom half naturally fades into the dark band,
+    // giving a physically correct half-set appearance.
+    // AtmoSunDiskCosRadius = cos(half_angle), precomputed on CPU.
+    // Edge softness: 15% of disk radius for a smooth limb.
+    float sunCosAngle  = dot(viewDir, sunDir);
+    float sunEdgeWidth = (1.0f - AtmoSunDiskCosRadius) * 0.15f;
+    float sunDisk = smoothstep(AtmoSunDiskCosRadius - sunEdgeWidth,
+                               AtmoSunDiskCosRadius + sunEdgeWidth,
+                               sunCosAngle);
+    totalSky += sunDisk * AtmoSunColor * AtmoSunDiskIntensity * sunBelowFade;
 
     // Horizon darkening: darken the sky near and below the horizon.
     // viewDir.y near 0 or negative = near/below horizon.
+    // The sun disk is added BEFORE this so its bottom half is darkened identically.
     float horizonFactor = saturate(viewY * 4.0f + 0.1f); // Ramps from dark at horizon to full above.
     horizonFactor = pow(horizonFactor, AtmoHorizonDarkeningStr);
     totalSky *= horizonFactor;

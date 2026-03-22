@@ -84,7 +84,17 @@ namespace TEN::Renderer
 				// Attenuate flare color by cloud transmittance: 1.0 = fully visible, 0.0 = fully occluded.
 				auto flareColor = view.LensFlaresToDraw[i].Color.ToVector3();
 				if (view.LensFlaresToDraw[i].IsGlobal)
+				{
 					flareColor *= cloudOcclusion;
+
+					// Fade the lens flare glow below the horizon unconditionally so the sun
+					// cannot be seen below the horizon regardless of atmospheric sky state.
+					// Direction.y = -sin(pitch) in TEN Y-down, so elevation = -Direction.y.
+					float sunElevation = -view.LensFlaresToDraw[i].Direction.y;
+					float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+					sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+					flareColor *= sunBelowFade;
+				}
 				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();

@@ -137,6 +137,10 @@ namespace TEN::Renderer
 		_stAtmosphericSky.SunElevationRampSpeed = settings.SunElevationRampSpeed;
 		_stAtmosphericSky.SunWarmInfluence      = settings.SunWarmInfluence;
 
+		// Pre-compute cos(half_angle) on CPU to avoid a cos() call per pixel in the shader.
+		_stAtmosphericSky.SunDiskCosRadius  = std::cos(settings.SunDiskSize * (DirectX::XM_PI / 180.0f));
+		_stAtmosphericSky.SunDiskIntensity  = settings.SunDiskIntensity;
+
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
 	}
 

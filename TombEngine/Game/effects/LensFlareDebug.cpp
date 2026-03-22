@@ -37,8 +37,12 @@ namespace TEN::Effects
 	static constexpr float HIT_RADIUS        = 12.0f;  // Larger hit-test radius for easy grabbing.
 
 	// Pitch mapping: center of circle = 90 degrees (zenith), edge = 0 (horizon).
-	static constexpr float PITCH_MIN = 0.0f;
+	// Below-horizon pitch allowed so the sun can dip below the horizon darkening line.
+	static constexpr float PITCH_MIN = -10.0f;
 	static constexpr float PITCH_MAX = 90.0f;
+
+	// Maximum widget radius: r=1 = horizon (pitch 0), slightly beyond = below horizon.
+	static constexpr float MAX_WIDGET_RADIUS = 1.0f + (-PITCH_MIN / PITCH_MAX);
 
 	// Yaw mapping: left = 0, right = 360.
 	static constexpr float YAW_MIN = 0.0f;
@@ -64,8 +68,9 @@ namespace TEN::Effects
 	// Yaw=0 points up (north), clockwise.
 	static ImVec2 PitchYawToCirclePoint(float pitch, float yaw)
 	{
-		// Radius from center: 0 at zenith (pitch=90), 1 at horizon (pitch=0).
-		float r = std::clamp(1.0f - pitch / PITCH_MAX, 0.0f, 1.0f);
+		// Radius from center: 0 at zenith (pitch=90), 1 at horizon (pitch=0),
+		// >1 for below-horizon (negative pitch).
+		float r = std::clamp(1.0f - pitch / PITCH_MAX, 0.0f, MAX_WIDGET_RADIUS);
 
 		// Angle: yaw=0 points up (-Y), clockwise.
 		float yawRad = yaw * (3.14159265f / 180.0f);
@@ -79,9 +84,10 @@ namespace TEN::Effects
 	// Inverse polar sky-dome projection: distance from center -> pitch, angle -> yaw.
 	static void CirclePointToPitchYaw(const ImVec2& point, float& outPitch, float& outYaw)
 	{
-		// Distance from center: 0 = zenith (pitch=90), 1 = horizon (pitch=0).
+		// Distance from center: 0 = zenith (pitch=90), 1 = horizon (pitch=0),
+		// >1 = below horizon (negative pitch).
 		float r = std::sqrt(point.x * point.x + point.y * point.y);
-		r = std::clamp(r, 0.0f, 1.0f);
+		r = std::clamp(r, 0.0f, MAX_WIDGET_RADIUS);
 		outPitch = std::clamp(PITCH_MAX * (1.0f - r), PITCH_MIN, PITCH_MAX);
 
 		// Angle: atan2(x, -y) gives yaw=0 pointing up, clockwise.
@@ -90,13 +96,14 @@ namespace TEN::Effects
 		outYaw = std::fmod(outYaw + 360.0f, 360.0f);
 	}
 
-	// Clamp a 2D point to the unit circle.
-	static ImVec2 ClampToUnitCircle(const ImVec2& p)
+	// Clamp a 2D point to the maximum widget radius (allows slightly beyond
+	// the unit circle for below-horizon sun positions).
+	static ImVec2 ClampToWidgetCircle(const ImVec2& p)
 	{
 		float len = std::sqrt(p.x * p.x + p.y * p.y);
-		if (len <= 1.0f)
+		if (len <= MAX_WIDGET_RADIUS)
 			return p;
-		return ImVec2(p.x / len, p.y / len);
+		return ImVec2(p.x / len * MAX_WIDGET_RADIUS, p.y / len * MAX_WIDGET_RADIUS);
 	}
 
 	// ====================================================================
@@ -109,7 +116,8 @@ namespace TEN::Effects
 		bool changed = false;
 
 		float halfSize = WIDGET_SIZE * 0.5f;
-		float radius = halfSize - 2.0f; // Slight padding.
+		// Horizon circle radius; shrunk so the below-horizon ring still fits inside the widget.
+		float radius = (halfSize - 2.0f) / MAX_WIDGET_RADIUS;
 
 		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
 		ImVec2 center = ImVec2(canvasPos.x + halfSize, canvasPos.y + halfSize);
@@ -127,8 +135,11 @@ namespace TEN::Effects
 			ImVec2(canvasPos.x + WIDGET_SIZE, canvasPos.y + WIDGET_SIZE),
 			IM_COL32(80, 80, 100, 255));
 
-		// Draw inscribed circle.
+		// Draw inscribed circle (horizon line).
 		drawList->AddCircle(center, radius, IM_COL32(70, 90, 120, 255), 64, 1.5f);
+
+		// Draw faint outer ring showing below-horizon limit.
+		drawList->AddCircle(center, radius * MAX_WIDGET_RADIUS, IM_COL32(120, 50, 50, 100), 64, 1.0f);
 
 		// Draw crosshair lines.
 		drawList->AddLine(ImVec2(center.x - radius, center.y),
@@ -138,7 +149,7 @@ namespace TEN::Effects
 			ImVec2(center.x, center.y + radius),
 			IM_COL32(50, 50, 70, 128));
 
-		// Draw labels: center = zenith, edge = horizon.
+		// Draw labels: center = zenith, edge = horizon, beyond = below horizon.
 		drawList->AddText(ImVec2(canvasPos.x + 4, canvasPos.y + WIDGET_SIZE - 16),
 			IM_COL32(120, 120, 140, 200), "Horizon");
 		// Draw a small ring at the center to mark the zenith.
@@ -168,8 +179,9 @@ namespace TEN::Effects
 
 		if (ImGui::IsItemActive() && mouseDown)
 		{
-			// Start dragging if near the point, or allow click-to-place inside circle.
-			if (!isDragging && (distToPoint < HIT_RADIUS || distToCenter <= radius))
+			// Start dragging if near the point, or allow click-to-place inside widget area
+			// (including the below-horizon ring).
+			if (!isDragging && (distToPoint < HIT_RADIUS || distToCenter <= radius * MAX_WIDGET_RADIUS))
 				isDragging = true;
 		}
 		else
@@ -184,8 +196,8 @@ namespace TEN::Effects
 				(mousePos.x - center.x) / radius,
 				(mousePos.y - center.y) / radius);
 
-			// Clamp to unit circle.
-			newNormalized = ClampToUnitCircle(newNormalized);
+			// Clamp to widget circle (allows below-horizon positions).
+			newNormalized = ClampToWidgetCircle(newNormalized);
 
 			// Convert back to pitch/yaw.
 			CirclePointToPitchYaw(newNormalized, pitch, yaw);

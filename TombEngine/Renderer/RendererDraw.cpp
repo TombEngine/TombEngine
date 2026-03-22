@@ -3358,7 +3358,10 @@ namespace TEN::Renderer
 		}
 
 		// Eventually draw the sun sprite.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass)
+		// Skipped when the atmospheric sky is active: the sky shader renders its own
+		// sun disk that correctly fades behind the horizon darkening band.
+		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass
+			&& !_atmosphericSkySettings.Enabled)
 		{
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3392,8 +3395,22 @@ namespace TEN::Renderer
 
 			// Scale sun sprite larger near horizon.
 			// TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
-			float sunElevation = std::clamp(-renderView.LensFlaresToDraw[0].Direction.y, 0.0f, 1.0f);
-			float sunSizeScale = 1.0f + (1.0f - sunElevation) * 0.8f; // 1.0x zenith → 1.8x horizon
+			float sunElevation = -renderView.LensFlaresToDraw[0].Direction.y;
+			float sunElevClamped = std::clamp(sunElevation, 0.0f, 1.0f);
+			float sunSizeScale = 1.0f + (1.0f - sunElevClamped) * 0.8f; // 1.0x zenith -> 1.8x horizon
+
+			// Fade the sun sprite using sunBelowFade: full at horizon (elevation=0), gone by ~-7°.
+			// Applied unconditionally so the sun cannot be seen below the horizon
+			// regardless of whether the atmospheric sky dome is enabled.
+			{
+				float sunHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+				sunHorizonFade = sunHorizonFade * sunHorizonFade * (3.0f - 2.0f * sunHorizonFade);
+				sunColor = Color(
+					sunColor.x * sunHorizonFade,
+					sunColor.y * sunHorizonFade,
+					sunColor.z * sunHorizonFade,
+					sunColor.w);
+			}
 
 			rDrawSprite.Type = SpriteType::Billboard;
 			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1);

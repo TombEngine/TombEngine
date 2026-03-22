@@ -41,11 +41,11 @@ cbuffer CBAtmosphericSky : register(b10)
     float2 AtmoViewSize;            // Render target size.
     float2 AtmoInvViewSize;         // 1.0 / AtmoViewSize.
     //--
-    // Row 7 — Sun elevation color ramp
+    // Row 7 — Sun elevation color ramp + shader sun disk
     float  AtmoSunElevationRampSpeed; // How quickly warm tint fades as sun rises.
     float  AtmoSunWarmInfluence;      // Max blend weight toward sun color at horizon.
-    float  _AtmoPad0;
-    float  _AtmoPad1;
+    float  AtmoSunDiskCosRadius;      // cos(half_angle): threshold for sun disk.
+    float  AtmoSunDiskIntensity;      // Sun disk brightness before tone mapping.
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

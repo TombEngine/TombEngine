@@ -32,9 +32,9 @@ namespace TEN::Renderer
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
 		// --- Night sky ---
-		float NightSkyBrightness     = 1.00f;   // [0,5]   Night sky base brightness.
-		float TwilightOffset         = 0.05f;   // [0,0.3] Sun elevation where twilight starts (radians).
-		float NightBlendSpeed        = 6.00f;   // [1,20]  How quickly night blends in.
+		float NightSkyBrightness     = 0.994f;   // [0,5]   Night sky base brightness.
+		float TwilightOffset         = 0.0f;   // [0,0.3] Sun elevation where twilight starts (radians).
+		float NightBlendSpeed        = 6.37f;   // [1,20]  How quickly night blends in.
 
 		// --- Cloud sun-lighting integration ---
 		float CloudSunLightIntensity       = 1.00f;   // [0,5]   Direct sun light on clouds.
@@ -53,5 +53,11 @@ namespace TEN::Renderer
 		//   SunWarmInfluence: max blend weight toward AtmoSunColor at horizon (0=always white, 1=full color).
 		float SunElevationRampSpeed  = 5.0f;   // [0.1,5] Ramp speed: higher = white zone starts sooner.
 		float SunWarmInfluence       = 1.0f;   // [0,1]   Max warmth at sun color at horizon.
+
+		// --- Shader sun disk ---
+		// Rendered inside the atmospheric scattering pass so the bottom half is
+		// darkened by the same horizon band — giving a natural half-set appearance.
+		float SunDiskSize      = 1.5f;    // [0.1,10] Apparent half-angle in degrees.
+		float SunDiskIntensity = 30.0f;   // [1,200]  Brightness before tone mapping.
 	};
 }

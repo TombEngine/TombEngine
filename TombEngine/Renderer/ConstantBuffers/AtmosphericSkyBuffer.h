@@ -44,10 +44,10 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector2 ViewSize;            // Render target size.
 		Vector2 InvViewSize;         // 1.0 / ViewSize.
 		//--
-		// Row 7 — Sun elevation color ramp
+		// Row 7 — Sun elevation color ramp + shader sun disk
 		float   SunElevationRampSpeed; // Controls how quickly warm tint fades as sun rises.
 		float   SunWarmInfluence;      // Max blend weight toward sun color at horizon.
-		float   _Pad0;                 // Padding for 16-byte alignment.
-		float   _Pad1;
+		float   SunDiskCosRadius;      // cos(half_angle): precomputed for sun disk threshold.
+		float   SunDiskIntensity;      // Sun disk brightness multiplier before tone mapping.
 	};
 }

@@ -182,7 +182,14 @@ namespace TEN::Renderer
 
 		// --- Auto-strength ---
 		float autoStrength = ComputeGodRayAutoStrength(sunElevation, cloudCoverage);
-		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * settings.AutoStrengthMix) * sunFacingFade;
+
+		// Fade god rays out as the sun descends below the horizon.
+		// Uses the same formula as the atmospheric sky shader's sunBelowFade:
+		//   elevation = 0 (horizon): 1.0 (full), elevation ≈ -0.125 (~-7°): ~zero.
+		float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+		sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+
+		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * settings.AutoStrengthMix) * sunFacingFade * sunBelowFade;
 
 		// --- Fill constant buffer ---
 		_stGodRay.SunScreenPos  = sunScreenUV;

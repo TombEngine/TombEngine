@@ -694,6 +694,11 @@ namespace TEN::Sky
 			float dayNight = g_Renderer.ComputeDayNightBlend(elev);
 			float starVis  = g_Renderer.ComputeStarfieldVisibility(elev);
 			ImGui::Text("  Day/Night Blend: %.3f  Starfield: %.3f", dayNight, starVis);
+
+			// Compute and display sun horizon fade (matching sprite fade in renderer).
+			float hFade = std::clamp(elev * 4.0f + 1.0f, 0.0f, 1.0f);
+			hFade = std::pow(hFade, settings.HorizonDarkeningStr);
+			ImGui::Text("  Sun Horizon Fade: %.3f", hFade);
 		}
 		else
 		{
@@ -712,6 +717,15 @@ namespace TEN::Sky
 			ImGui::SliderFloat("Zenith Offset",         &settings.ZenithOffset,         0.0f, 0.5f, "%.3f");
 			ImGui::SliderFloat("Multi Scatter Phase",   &settings.MultiScatterPhase,    0.0f, 1.0f, "%.3f");
 			ImGui::SliderFloat("Anisotropic Intensity", &settings.AnisotropicIntensity, 0.0f, 2.0f, "%.3f");
+		}
+
+		// --- Sun disk ---
+		if (ImGui::CollapsingHeader("Sun Disk", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Sun Disk Size",      &settings.SunDiskSize,      0.1f, 10.0f, "%.2f deg");
+			ImGui::TextDisabled("  Apparent half-angle of the sun disk in degrees.");
+			ImGui::SliderFloat("Sun Disk Intensity", &settings.SunDiskIntensity, 1.0f, 200.0f, "%.1f");
+			ImGui::TextDisabled("  Brightness before tone mapping. High = solid white disk.");
 		}
 
 		// --- Glow and brightness ---
