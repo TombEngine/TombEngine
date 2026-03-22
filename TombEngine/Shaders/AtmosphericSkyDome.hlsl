@@ -406,6 +406,218 @@ float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
 }
 
 // ---------------------------------------------------------------------------
+// Aurora Borealis — raymarched curtain aurora spanning the full sky dome
+// ---------------------------------------------------------------------------
+// Converted from a Shadertoy GLSL aurora shader to HLSL. Uses triangle-wave
+// noise with raymarching through horizontal planes to create curtain-like
+// aurora structures that drape across the entire sky, similar to AltocumulusMid
+// cloud coverage. Only the aurora effect is used (no stars / water reflection).
+//
+// Key visual elements:
+//   - Raymarched volumetric curtains covering the full hemisphere
+//   - Triangle-wave noise with rotational domain warping
+//   - Per-step color from existing aurora color presets
+//   - Smooth dithered sampling to reduce banding
+//   - Height-dependent color gradient (green bottom → purple/red top)
+// ---------------------------------------------------------------------------
+
+// --- Aurora rotation matrix helper ---
+float2x2 AuroraRotMat(float a)
+{
+    float c = cos(a);
+    float s = sin(a);
+    return float2x2(c, -s, s, c);
+}
+
+// Constant rotation matrix (≈17° rotation for noise decorrelation).
+static const float2x2 AuroraM2 = float2x2(0.95534, -0.29552, 0.29552, 0.95534);
+
+// --- Triangle wave: cheap periodic function with flat tops/bottoms ---
+float AuroraTri(float x)
+{
+    return clamp(abs(frac(x) - 0.5), 0.01, 0.49);
+}
+
+// --- 2D triangle wave pair for domain warping ---
+float2 AuroraTri2(float2 p)
+{
+    return float2(
+        AuroraTri(p.x) + AuroraTri(p.y),
+        AuroraTri(p.y + AuroraTri(p.x))
+    );
+}
+
+// --- 2D triangle noise with rotational warping ---
+// Produces the characteristic aurora curtain texture.
+// animTime: pre-computed animation time (AuroraTime * speed).
+float AuroraTriNoise2D(float2 p, float animTime)
+{
+    float z = 1.8;
+    float z2 = 2.5;
+    float rz = 0.0;
+    p = mul(p, AuroraRotMat(p.x * 0.06));
+    float2 bp = p;
+
+    for (int i = 0; i < 5; i++)
+    {
+        float2 dg = AuroraTri2(bp * 1.85) * 0.75;
+        dg = mul(dg, AuroraRotMat(animTime));
+        p -= dg / z2;
+        bp *= 1.3;
+        z2 *= 0.45;
+        z *= 0.42;
+        p *= 1.21 + (rz - 1.0) * 0.02;
+        rz += AuroraTri(p.x + AuroraTri(p.y)) * z;
+        p = mul(p, -AuroraM2);
+    }
+
+    return clamp(1.0 / pow(rz * 29.0, 1.3), 0.0, 0.55);
+}
+
+// --- Simple 2D hash for per-pixel dithering ---
+float AuroraHash21(float2 n)
+{
+    return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
+}
+
+// Get aurora color based on preset index and height within the aurora band.
+// heightFrac: 0 = bottom of aurora, 1 = top of aurora
+// preset: 0=GreenClassic, 1=GreenPurple, 2=GreenRedTips, 3=BluePurple, 4=StrongMulticolor
+float3 GetAuroraColor(float heightFrac, float preset)
+{
+    // Interpolate between integer presets for smooth transitions.
+    float presetFrac = frac(preset);
+    int presetA = (int)floor(preset) % 5;
+    int presetB = (presetA + 1) % 5;
+
+    float3 botA, topA;
+    if      (presetA == 0) { botA = float3(0.1, 0.8, 0.2);  topA = float3(0.05, 0.4, 0.1);  }
+    else if (presetA == 1) { botA = float3(0.1, 0.7, 0.3);  topA = float3(0.5, 0.1, 0.6);   }
+    else if (presetA == 2) { botA = float3(0.1, 0.8, 0.2);  topA = float3(0.7, 0.1, 0.05);  }
+    else if (presetA == 3) { botA = float3(0.15, 0.2, 0.7); topA = float3(0.4, 0.1, 0.5);   }
+    else                   { botA = float3(0.1, 0.6, 0.3);  topA = float3(0.6, 0.1, 0.5);   }
+
+    float3 botB, topB;
+    if      (presetB == 0) { botB = float3(0.1, 0.8, 0.2);  topB = float3(0.05, 0.4, 0.1);  }
+    else if (presetB == 1) { botB = float3(0.1, 0.7, 0.3);  topB = float3(0.5, 0.1, 0.6);   }
+    else if (presetB == 2) { botB = float3(0.1, 0.8, 0.2);  topB = float3(0.7, 0.1, 0.05);  }
+    else if (presetB == 3) { botB = float3(0.15, 0.2, 0.7); topB = float3(0.4, 0.1, 0.5);   }
+    else                   { botB = float3(0.1, 0.6, 0.3);  topB = float3(0.6, 0.1, 0.5);   }
+
+    float3 bottomColor = lerp(botA, botB, presetFrac);
+    float3 topColor    = lerp(topA, topB, presetFrac);
+
+    float colorBlend = pow(saturate(heightFrac), 1.5);
+    return lerp(bottomColor, topColor, colorBlend);
+}
+
+// ---------------------------------------------------------------------------
+// Compute the aurora contribution for a given view direction.
+//
+// Raymarches through a series of horizontal planes above the viewer.
+// At each step, the triangle-wave noise field (AuroraTriNoise2D) is sampled
+// on the horizontal plane to produce curtain-like structures that span the
+// entire sky dome — similar in coverage to AltocumulusMid clouds.
+//
+// screenPos: SV_POSITION.xy — used for per-pixel dithering to reduce banding.
+// ---------------------------------------------------------------------------
+float3 ComputeAurora(float3 viewDir, float2 screenPos)
+{
+    if (AuroraEnabled < 0.5 || AuroraVisibility < 0.001)
+        return float3(0.0, 0.0, 0.0);
+
+    // TEN is Y-down: negate so positive rdY = above horizon.
+    float3 rd = normalize(float3(viewDir.x, -viewDir.y, viewDir.z));
+
+    // Only render aurora above horizon.
+    if (rd.y < -0.01)
+        return float3(0.0, 0.0, 0.0);
+
+    // Ray origin: camera sits below the aurora plane.
+    float3 ro = float3(0.0, 0.0, -6.7);
+
+    // Animation time: AuroraSpeed maps so that default (0.3) ≈ reference speed.
+    float animTime = AuroraTime * AuroraSpeed * 0.2;
+
+    // AuroraHeight controls the base altitude of the aurora plane.
+    // Default 0.45 → baseH ≈ 0.9  (reference used 0.8).
+    float baseH = AuroraHeight * 2.0;
+
+    // Denominator factor for plane intersection — controls vertical curtain stretch.
+    // AuroraVerticalStretch default 3.0 → 3.0 × 0.667 ≈ 2.0 (matches reference).
+    // Higher = more stretched/elongated curtains, lower = shorter.
+    float vStretch = AuroraVerticalStretch * 0.667;
+
+    // Accumulation.
+    float4 col    = float4(0.0, 0.0, 0.0, 0.0);
+    float4 avgCol = float4(0.0, 0.0, 0.0, 0.0);
+
+    // Number of raymarching steps — more steps = finer curtains.
+    // AuroraLayerCount (1–5) scales the step count: 1→25, 3→50, 5→75.
+    int numSteps = clamp((int)(AuroraLayerCount * 16.67), 25, 75);
+
+    // AuroraSoftness [0,1]: 0 = crisp step transitions, 1 = very soft blending.
+    float blendWeight = lerp(0.7, 0.2, AuroraSoftness);
+
+    for (int i = 0; i < numSteps; i++)
+    {
+        float fi = (float)i;
+
+        // Per-pixel dither offset to break banding.
+        float of = 0.006 * AuroraHash21(screenPos) * smoothstep(0.0, 15.0, fi);
+
+        // Intersect horizontal plane at increasing heights above the camera.
+        // vStretch controls the vertical elongation of curtain features.
+        float pt = ((baseH + pow(fi, 1.4) * 0.002) - ro.y) / (rd.y * vStretch + 0.4);
+        pt -= of;
+
+        // World-space hit position on the plane.
+        float3 bpos = ro + pt * rd;
+
+        // Horizontal sample position.
+        // AuroraSpread scales coverage width; AuroraNoiseScale controls feature size.
+        float2 p = bpos.zx * AuroraNoiseScale * AuroraSpread;
+
+        // Domain warp — AuroraDistortionStr adds swirling ripple motion to curtains.
+        p += float2(
+            sin(p.y * 3.0 + animTime * 0.7),
+            cos(p.x * 2.0 + animTime * 0.5)
+        ) * AuroraDistortionStr * 0.12;
+
+        float rzt = AuroraTriNoise2D(p, animTime);
+
+        // AuroraBandSharpness: higher = narrower, more intense curtain bands.
+        rzt = pow(saturate(rzt / 0.55), AuroraBandSharpness) * 0.55;
+
+        // Per-step color from the existing preset system.
+        // heightFrac maps step index to a position in the color gradient.
+        float heightFrac = saturate(fi / (float)numSteps);
+        float4 col2 = float4(0.0, 0.0, 0.0, rzt);
+        col2.rgb = GetAuroraColor(heightFrac, AuroraColorPreset) * rzt * AuroraColorIntensity;
+
+        // Running average — blendWeight controls crispness vs. softness.
+        avgCol = lerp(avgCol, col2, blendWeight);
+
+        // Accumulate with exponential falloff and smooth fade-in.
+        col += avgCol * exp2(-fi * 0.065 - 2.5) * smoothstep(0.0, 5.0, fi);
+    }
+
+    // Horizon fade: aurora fades near the horizon.
+    // AuroraHorizonFade scales the falloff (default 1.0 → reference behavior).
+    float horizonMask = clamp(rd.y * AuroraHorizonFade * 15.0 + 0.4, 0.0, 1.0);
+    col *= horizonMask;
+
+    // Apply brightness, intensity, and night visibility.
+    float3 result = col.rgb * AuroraBrightness * AuroraIntensity * AuroraVisibility * 1.8;
+
+    // Saturation control.
+    float luminance = dot(result, float3(0.2126, 0.7152, 0.0722));
+    result = lerp(float3(luminance, luminance, luminance), result, AuroraSaturation);
+
+    return max(result, float3(0.0, 0.0, 0.0));
+}
+
+// ---------------------------------------------------------------------------
 // Tone mapping — Jodie-Reinhard (from reference shader)
 // ---------------------------------------------------------------------------
 
@@ -462,4 +674,24 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
     // Output with alpha = 1 (opaque sky background).
     // Stars and sun sprite render separately in their own passes.
     return float4(finalColor, 1.0f);
+}
+
+// ---------------------------------------------------------------------------
+// Aurora pass — separate additive fullscreen draw
+// ---------------------------------------------------------------------------
+// Allows aurora to be rendered independently of the sky dome, as an additive
+// layer on top of whatever sky is currently rendered. The CB (b10) is filled
+// each frame by UpdateAtmosphericSkyBuffer on the C++ side.
+
+VSOutput VSAurora(VSInput input)
+{
+    return VSAtmosphericSky(input);
+}
+
+float4 PSAurora(VSOutput input) : SV_TARGET
+{
+    float3 viewDir = GetViewDirection(input.UV);
+    float3 aurora = ComputeAurora(viewDir, input.Position.xy);
+    // Output additive color — alpha is unused in additive blend mode.
+    return float4(aurora, 1.0);
 }

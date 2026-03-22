@@ -77,6 +77,7 @@ namespace TEN::Renderer::Utils
 		// Atmospheric sky dome
 
 		AtmosphericSkyDome,
+		Aurora,
 
 		// God rays
 

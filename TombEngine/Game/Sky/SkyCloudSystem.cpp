@@ -740,17 +740,18 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- Stratocumulus -----
+		// ----- Aurora Borealis -----
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::Stratocumulus;
-			def.Name = "Stratocumulus";
+			def.Type = WeatherPresetType::AuroraBorealis;
+			def.Name = "AuroraBorealis";
 			def.DefaultTransitionDuration = 50.0f;
-			def.RandomWeight = 1.3f;
+			def.RandomWeight = 0.0f;
+			def.AllowInRandom = false;
 
 			auto& a = def.TargetState.CloudA;
 			a.Enabled       = true;
-			a.Category      = CloudCategory::StratocumulusLow;
+			a.Category      = CloudCategory::Aurora;
 			a.Coverage      = 0.65f;
 			a.Density       = 0.7f;
 			a.BottomHeight  = 1200.0f;
@@ -882,11 +883,11 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- HeavyStorm -----
+		// ----- StormTransformation -----
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::HeavyStorm;
-			def.Name = "HeavyStorm";
+			def.Type = WeatherPresetType::StormTransformation;
+			def.Name = "StormTransformation";
 			def.DefaultTransitionDuration = 45.0f;
 			def.RandomWeight = 0.15f;
 
@@ -1390,6 +1391,7 @@ namespace TEN::Sky
 		if (name == "StratocumulusLow")    return CloudCategory::StratocumulusLow;
 		if (name == "CumulonimbusVertical") return CloudCategory::CumulonimbusVertical;
 		if (name == "CumulonimbusVerticalBuildUp") return CloudCategory::CumulonimbusVerticalBuildUp;
+		if (name == "Aurora")              return CloudCategory::Aurora;
 		return CloudCategory::None;
 	}
 
@@ -1404,11 +1406,11 @@ namespace TEN::Sky
 		case WeatherPresetType::Overcast:        return "Overcast";
 		case WeatherPresetType::Cirrus:          return "Cirrus";
 		case WeatherPresetType::Altocumulus:     return "Altocumulus";
-		case WeatherPresetType::Stratocumulus:   return "Stratocumulus";
+		case WeatherPresetType::AuroraBorealis:  return "AuroraBorealis";
 		case WeatherPresetType::RainSnowOvercast:    return "RainSnowOvercast";
 		case WeatherPresetType::StormBuildUp:    return "StormBuildUp";
 		case WeatherPresetType::Thunderstorm:    return "Thunderstorm";
-		case WeatherPresetType::HeavyStorm:      return "HeavyStorm";
+		case WeatherPresetType::StormTransformation:      return "StormTransformation";
 		case WeatherPresetType::Random:          return "Random";
 		default:                                 return "Unknown";
 		}
@@ -1424,12 +1426,11 @@ namespace TEN::Sky
 			{ "Overcast",        WeatherPresetType::Overcast },
 			{ "Cirrus",          WeatherPresetType::Cirrus },
 			{ "Altocumulus",     WeatherPresetType::Altocumulus },
-			{ "Stratocumulus",   WeatherPresetType::Stratocumulus },
+			{ "AuroraBorealis",  WeatherPresetType::AuroraBorealis },
 			{ "RainSnowOvercast", WeatherPresetType::RainSnowOvercast },
-			{ "LowFoggyClouds",   WeatherPresetType::RainSnowOvercast }, // legacy alias
 			{ "StormBuildUp",    WeatherPresetType::StormBuildUp },
 			{ "Thunderstorm",    WeatherPresetType::Thunderstorm },
-			{ "HeavyStorm",      WeatherPresetType::HeavyStorm },
+			{ "StormTransformation",      WeatherPresetType::StormTransformation },
 			{ "Random",          WeatherPresetType::Random },
 		};
 

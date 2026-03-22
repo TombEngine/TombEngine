@@ -127,8 +127,8 @@ namespace TEN::Scripting
 		/// @function Flow.SetWeatherPreset
 		/// @tparam string presetName Name of the weather preset.
 		/// Valid values: "ClearSky", "FewClouds", "ScatteredClouds", "BrokenClouds",
-		/// "Overcast", "Cirrus", "Altocumulus", "Stratocumulus", "LowFoggyClouds",
-		/// "StormBuildUp", "Thunderstorm", "HeavyStorm", "Random"
+		/// "Overcast", "Cirrus", "Altocumulus", "AuroraBorealis",
+		/// "StormBuildUp", "Thunderstorm", "StormTransformation", "Random"
 		parent.set_function("SetWeatherPreset",
 			[](const std::string& presetName)
 			{
@@ -322,7 +322,7 @@ namespace TEN::Scripting
 		///   - cloudB (table): cloud layer B parameters
 		/// Cloud layer tables support all fields from SetVolumetricCloudLayerA
 		/// plus "category" ("None", "CirrusHigh", "AltocumulusMid",
-		/// "StratocumulusLow", "CumulonimbusVertical") which selects the
+		/// "StratocumulusLow", "CumulonimbusVertical", "Aurora") which selects the
 		/// shader rendering path for that cloud type.
 		parent.set_function("DefineWeatherPreset",
 			[](const std::string& presetName, sol::table definition)

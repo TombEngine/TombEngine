@@ -32,7 +32,7 @@ namespace TEN::Renderer
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
 		// --- Night sky ---
-		float NightSkyBrightness     = 0.994f;   // [0,5]   Night sky base brightness.
+		float NightSkyBrightness     = 5.0f;   // [0,5]   Night sky base brightness.
 		float TwilightOffset         = 0.0f;   // [0,0.3] Sun elevation where twilight starts (radians).
 		float NightBlendSpeed        = 6.37f;   // [1,20]  How quickly night blends in.
 

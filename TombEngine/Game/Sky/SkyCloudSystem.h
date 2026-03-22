@@ -49,7 +49,8 @@ namespace TEN::Sky
 		AltocumulusMid,             // Patchy, medium altitude, moderate density
 		StratocumulusLow,           // Dense, low altitude, broad coverage
 		CumulonimbusVertical,       // Strong vertical development, storm-capable
-		CumulonimbusVerticalBuildUp  // Distant horizon tower buildup (pre-storm)
+		CumulonimbusVerticalBuildUp, // Distant horizon tower buildup (pre-storm)
+		Aurora                      // High-altitude aurora borealis effect
 	};
 
 	// ====================================================================
@@ -65,11 +66,11 @@ namespace TEN::Sky
 		Overcast,
 		Cirrus,
 		Altocumulus,
-		Stratocumulus,
+		AuroraBorealis,
 		RainSnowOvercast,
 		StormBuildUp,
 		Thunderstorm,
-		HeavyStorm,
+		StormTransformation,
 		Random,                // Meta-preset: activates random weather mode
 
 		Count

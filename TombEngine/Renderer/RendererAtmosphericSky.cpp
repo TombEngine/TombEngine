@@ -16,6 +16,7 @@
 
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
+#include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -217,6 +218,42 @@ namespace TEN::Renderer
 		_stAtmosphericSky.MoonVisibility     = moonVisibility;
 		_stAtmosphericSky.MoonPad0           = 0.0f;
 
+		// --- Aurora CB fill ---
+		const auto& aurora = _auroraSettings;
+		// Aurora visibility: computed from sun elevation, similar to starfield.
+		// Fully visible at night, fades out during twilight, invisible during day.
+		float auroraVisibility = 0.0f;
+		if (aurora.Enabled)
+		{
+			float auroraFade = Saturate((-sunElevation + aurora.NightFadeThreshold) * aurora.SunSuppressionStr);
+			auroraFade = auroraFade * auroraFade * (3.0f - 2.0f * auroraFade); // smoothstep
+			auroraVisibility = auroraFade;
+
+			// Accumulate animation time.
+			_auroraTime += 1.0f / 30.0f; // Approximate frame time; consistent drift.
+		}
+
+		_stAtmosphericSky.AuroraEnabled          = aurora.Enabled ? 1.0f : 0.0f;
+		_stAtmosphericSky.AuroraIntensity         = aurora.Intensity;
+		_stAtmosphericSky.AuroraBrightness        = aurora.Brightness;
+		_stAtmosphericSky.AuroraHeight            = aurora.Height;
+		_stAtmosphericSky.AuroraSpread            = aurora.Spread;
+		_stAtmosphericSky.AuroraSpeed             = aurora.Speed;
+		_stAtmosphericSky.AuroraBandSharpness     = aurora.BandSharpness;
+		_stAtmosphericSky.AuroraNoiseScale        = aurora.NoiseScale;
+		_stAtmosphericSky.AuroraVerticalStretch   = aurora.VerticalStretch;
+		_stAtmosphericSky.AuroraDistortionStr     = aurora.DistortionStrength;
+		_stAtmosphericSky.AuroraLayerCount        = (float)aurora.LayerCount;
+		_stAtmosphericSky.AuroraSoftness          = aurora.Softness;
+		_stAtmosphericSky.AuroraColorPreset       = (float)aurora.ColorPreset;
+		_stAtmosphericSky.AuroraColorIntensity    = aurora.ColorIntensity;
+		_stAtmosphericSky.AuroraSaturation        = aurora.Saturation;
+		_stAtmosphericSky.AuroraVisibility        = auroraVisibility;
+		_stAtmosphericSky.AuroraNightFadeThreshold = aurora.NightFadeThreshold;
+		_stAtmosphericSky.AuroraHorizonFade       = aurora.HorizonFade;
+		_stAtmosphericSky.AuroraSunSuppressionStr = aurora.SunSuppressionStr;
+		_stAtmosphericSky.AuroraTime              = _auroraTime;
+
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
 	}
 
@@ -252,6 +289,50 @@ namespace TEN::Renderer
 
 		// Bind and draw.
 		_shaders.Bind(Shader::AtmosphericSkyDome);
+		DrawTriangles(3, 0);
+
+		// Restore regular input layout.
+		_context->IASetInputLayout(_inputLayout.Get());
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
+
+	// ========================================================================
+	// Draw aurora — separate additive pass, independent of sky dome
+	// ========================================================================
+
+	void Renderer::DrawAurora(RenderView& renderView)
+	{
+		const auto& aurora = _auroraSettings;
+		if (!aurora.Enabled)
+			return;
+
+		// If the sky dome is disabled it won't have called UpdateAtmosphericSkyBuffer,
+		// so update the CB here to ensure aurora parameters are current.
+		if (!_atmosphericSkySettings.Enabled)
+			UpdateAtmosphericSkyBuffer(renderView);
+
+		if (_stAtmosphericSky.AuroraVisibility < 0.001f)
+			return;
+
+		// Bind CB to b10 (same slot used by sky dome).
+		auto* buf = _cbAtmosphericSky.get();
+		_context->PSSetConstantBuffers(10, 1, buf);
+		_context->VSSetConstantBuffers(10, 1, buf);
+
+		// Render additively on top of whatever sky is below.
+		SetBlendMode(BlendMode::Additive);
+		SetCullMode(CullMode::CounterClockwise);
+		SetDepthState(DepthState::None);
+
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+		_context->IASetVertexBuffers(0, 1,
+			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
+		_shaders.Bind(Shader::Aurora);
 		DrawTriangles(3, 0);
 
 		// Restore regular input layout.

@@ -66,6 +66,36 @@ cbuffer CBAtmosphericSky : register(b10)
     float  AtmoMoonPhaseBrightness;   // [0,1] brightness from moon phase.
     float  AtmoMoonVisibility;        // [0,1] fades in as sky darkens.
     float  AtmoMoonPad0;
+    //--
+    // Row 12 — Aurora core parameters
+    float  AuroraEnabled;             // 0 or 1.
+    float  AuroraIntensity;           // Overall brightness multiplier.
+    float  AuroraBrightness;          // Base brightness of aurora bands.
+    float  AuroraHeight;              // Sky-space height position.
+    //--
+    // Row 13 — Aurora shape parameters
+    float  AuroraSpread;              // Horizontal spread across sky.
+    float  AuroraSpeed;               // Animation drift speed.
+    float  AuroraBandSharpness;       // Sharpness of individual bands.
+    float  AuroraNoiseScale;          // Scale of noise pattern.
+    //--
+    // Row 14 — Aurora shape continued
+    float  AuroraVerticalStretch;     // Vertical elongation of curtains.
+    float  AuroraDistortionStr;       // Noise distortion / wave warping.
+    float  AuroraLayerCount;          // Number of overlapping bands.
+    float  AuroraSoftness;            // Overall softness of effect.
+    //--
+    // Row 15 — Aurora color parameters
+    float  AuroraColorPreset;         // Color preset index.
+    float  AuroraColorIntensity;      // Color vibrancy multiplier.
+    float  AuroraSaturation;          // Color saturation.
+    float  AuroraVisibility;          // [0,1] computed night visibility factor.
+    //--
+    // Row 16 — Aurora visibility parameters
+    float  AuroraNightFadeThreshold;  // Sun elevation below which aurora appears.
+    float  AuroraHorizonFade;         // How quickly aurora fades near horizon.
+    float  AuroraSunSuppressionStr;   // How strongly sunlight suppresses aurora.
+    float  AuroraTime;                // Accumulated animation time.
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

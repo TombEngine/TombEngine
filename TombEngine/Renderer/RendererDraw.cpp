@@ -3102,6 +3102,16 @@ namespace TEN::Renderer
 			offset = 0;
 		}
 
+		// --- Aurora borealis — additive pass, independent of sky dome ---
+		if (_auroraSettings.Enabled && !reflectionPass)
+		{
+			DrawAurora(renderView);
+
+			// Restore vertex buffer state.
+			stride = sizeof(Vertex);
+			offset = 0;
+		}
+
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 

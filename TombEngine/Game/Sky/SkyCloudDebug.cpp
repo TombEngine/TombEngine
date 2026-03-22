@@ -28,6 +28,7 @@
 #include "Game/control/control.h"
 #include "Game/Effects/LensFlareDebug.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -50,6 +51,7 @@ namespace TEN::Sky
 		case CloudCategory::StratocumulusLow:     return "StratocumulusLow";
 		case CloudCategory::CumulonimbusVertical:        return "CumulonimbusVertical";
 		case CloudCategory::CumulonimbusVerticalBuildUp: return "CumulonimbusVerticalBuildUp";
+		case CloudCategory::Aurora:               return "Aurora";
 		default:                                         return "Unknown";
 		}
 	}
@@ -224,7 +226,7 @@ namespace TEN::Sky
 	static bool DrawCategoryCombo(const char* label, CloudCategory& category)
 	{
 		static const char* names[] = {
-			"None", "CirrusHigh", "AltocumulusMid", "StratocumulusLow", "CumulonimbusVertical", "CumulonimbusVerticalBuildUp"
+			"None", "CirrusHigh", "AltocumulusMid", "StratocumulusLow", "CumulonimbusVertical", "CumulonimbusVerticalBuildUp", "Aurora"
 		};
 		int current = static_cast<int>(category);
 		bool changed = false;
@@ -281,6 +283,103 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// Aurora Borealis layer controls — shown inside Cloud Layer A/B when
+	// Category == CloudCategory::Aurora (replaces volumetric cloud sliders).
+	// ====================================================================
+
+	static void DrawAuroraControls()
+	{
+		using namespace TEN::Renderer;
+		using namespace TEN::Renderer::Aurora;
+		auto& aurora = g_Renderer.GetAuroraSettings();
+
+		// Night-time visibility readout.
+		{
+			auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+			if (levelPtr && levelPtr->GetLensFlareEnabled())
+			{
+				constexpr float SHORT_TO_RAD = (3.14159265f * 2.0f / 65536.0f);
+				float sunPitchRad = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+				float sunElev = std::sin(sunPitchRad);
+				float auroraFade = std::clamp((-sunElev + aurora.NightFadeThreshold) * aurora.SunSuppressionStr, 0.0f, 1.0f);
+				auroraFade = auroraFade * auroraFade * (3.0f - 2.0f * auroraFade);
+				ImGui::Text("Sun Elev: %.3f  |  Aurora Visibility: %.3f", sunElev, auroraFade);
+				if (auroraFade < 0.01f)
+					ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "(Sun too high - aurora not visible)");
+				else if (auroraFade < 0.5f)
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.5f, 1.0f), "(Twilight - aurora faint)");
+				else
+					ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.5f, 1.0f), "(Night - aurora visible)");
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "Lens flare not enabled.");
+			}
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::CollapsingHeader("Core##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Intensity##aurora",    &aurora.Intensity,  0.0f,  3.0f,  "%.3f");
+			ImGui::SliderFloat("Brightness##aurora",   &aurora.Brightness, 0.0f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Height##aurora",       &aurora.Height,     0.05f, 1.0f,  "%.3f");
+			ImGui::TextDisabled("  Zenith coverage: 1.0 = full canopy, 0.1 = near-horizon band");
+			ImGui::SliderFloat("Speed##aurora",        &aurora.Speed,      0.0f,  2.0f,  "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Color##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			static const char* auroraPresetNames[] = {
+				"0: Green Classic", "1: Green + Purple", "2: Green + Red Tips",
+				"3: Blue / Purple", "4: Strong Multicolor"
+			};
+			ImGui::Combo("Color Preset##aurora", &aurora.ColorPreset, auroraPresetNames, IM_ARRAYSIZE(auroraPresetNames));
+			ImGui::SliderFloat("Color Intensity##aurora", &aurora.ColorIntensity, 0.0f, 3.0f, "%.3f");
+			ImGui::SliderFloat("Saturation##aurora",      &aurora.Saturation,     0.0f, 2.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Shape##aurora"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Band Sharpness##aurora",   &aurora.BandSharpness,     0.5f, 8.0f,  "%.3f");
+			ImGui::SliderFloat("Noise Scale##aurora",      &aurora.NoiseScale,         0.1f, 5.0f,  "%.3f");
+			ImGui::SliderFloat("Vertical Stretch##aurora", &aurora.VerticalStretch,    0.5f, 10.0f, "%.3f");
+			ImGui::SliderFloat("Spread##aurora",           &aurora.Spread,             0.1f, 1.0f,  "%.3f");
+			ImGui::SliderFloat("Distortion##aurora",       &aurora.DistortionStrength, 0.0f, 1.0f,  "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Night Visibility##aurora"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Night Fade Threshold##aurora", &aurora.NightFadeThreshold, 0.0f,  0.5f,  "%.3f");
+			ImGui::SliderFloat("Sun Suppression##aurora",      &aurora.SunSuppressionStr,  1.0f,  20.0f, "%.2f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Advanced##aurora"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderInt("Layer Count##aurora",  &aurora.LayerCount, 1, 5);
+			ImGui::SliderFloat("Softness##aurora",   &aurora.Softness,   0.0f, 1.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		ImGui::Separator();
+		if (ImGui::Button("Reset Aurora Defaults##layer"))
+		{
+			bool wasEnabled = aurora.Enabled;
+			aurora = AuroraSettings{};
+			aurora.Enabled = wasEnabled;
+		}
+	}
+
+	// ====================================================================
 	// Draw a cloud layer section with all parameter sliders.
 	// ====================================================================
 
@@ -300,6 +399,17 @@ namespace TEN::Sky
 
 		// Category combo.
 		DrawCategoryCombo("Category", snap.Category);
+
+		// For Aurora category, show aurora controls instead of volumetric cloud controls.
+		if (snap.Category == CloudCategory::Aurora)
+		{
+			using namespace TEN::Renderer::Aurora;
+			g_Renderer.GetAuroraSettings().Enabled = snap.Enabled;
+			ImGui::Separator();
+			DrawAuroraControls();
+			ImGui::Unindent(8.0f);
+			return;
+		}
 
 		// One-click pattern presets for requested cloud types.
 		if (snap.Category == CloudCategory::AltocumulusMid ||

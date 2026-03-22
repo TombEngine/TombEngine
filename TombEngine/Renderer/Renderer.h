@@ -44,6 +44,7 @@
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
+#include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
@@ -213,6 +214,10 @@ namespace TEN::Renderer
 
 		// Moon system
 		Moon::MoonSettings _moonSettings;
+
+		// Aurora system
+		Aurora::AuroraSettings _auroraSettings;
+		float _auroraTime = 0.0f;  // Accumulated animation time.
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
@@ -474,6 +479,7 @@ namespace TEN::Renderer
 		void InitializeAtmosphericSky();
 		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
 		void DrawAtmosphericSkyDome(RenderView& renderView);
+		void DrawAurora(RenderView& renderView);
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
@@ -483,6 +489,8 @@ namespace TEN::Renderer
 		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }
 		Moon::MoonSettings& GetMoonSettings() { return _moonSettings; }
 		const Moon::MoonSettings& GetMoonSettings() const { return _moonSettings; }
+		Aurora::AuroraSettings& GetAuroraSettings() { return _auroraSettings; }
+		const Aurora::AuroraSettings& GetAuroraSettings() const { return _auroraSettings; }
 	private:
 
 		// God rays
