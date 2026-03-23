@@ -1333,15 +1333,18 @@ end
 LevelFuncs.Engine.Diaries.ShowDiary = function()
 
     local objectNumber = GameVars.Engine.LastUsedDiary
-	local dataName = objectNumber .. "_diarydata"
-
-    if not GameVars.Engine.Diaries[dataName].DiaryVisible then
+    if not objectNumber then
         return
     end
+
+    local dataName = objectNumber .. "_diarydata"
 
     if GameVars.Engine.Diaries[dataName] then
 
         local diary             = GameVars.Engine.Diaries[dataName]
+        if not diary.DiaryVisible then
+            return
+        end
         local currentIndex      = diary.CurrentPageIndex
         local maxPages          = diary.UnlockedPages
         local narrationTrack    = diary.Pages[currentIndex].NarrationTrack
