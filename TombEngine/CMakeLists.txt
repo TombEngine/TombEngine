@@ -98,6 +98,11 @@ if(CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     )
 endif()
 
+# Visual Studio debugger: set working directory so the game finds its assets.
+set_target_properties(TombEngine PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/$<CONFIG>"
+)
+
 # Precompiled headers
 target_precompile_headers(TombEngine PRIVATE framework.h)
 
@@ -534,6 +539,10 @@ file(GLOB_RECURSE SHADER_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.glsl"
 )
 target_sources(TombEngine PRIVATE ${SHADER_FILES})
+set_source_files_properties(${SHADER_FILES} PROPERTIES
+    HEADER_FILE_ONLY TRUE
+    VS_TOOL_OVERRIDE "None"
+)
 
 # ---------------------------------------------------------------------------
 # IDE source grouping (Visual Studio, Xcode, CLion)

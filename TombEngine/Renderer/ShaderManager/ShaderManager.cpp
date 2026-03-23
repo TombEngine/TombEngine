@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/ShaderManager/ShaderManager.h"
 
+#include <SDL3/SDL_events.h>
+
 #include "Renderer/RendererUtils.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
@@ -308,6 +310,11 @@ namespace TEN::Renderer::Utils
 	{
 		Destroy(shader);
 		_shaders[(int)shader] = std::move(LoadOrCompile(fileName, funcName, type, defines, forceRecompile));
+
+		// Pump SDL events between shader compilations to prevent the window
+		// from being marked "Not Responding" by the OS during the lengthy
+		// HLSL → SPIRV compilation phase.
+		SDL_PumpEvents();
 	}
 
 	void ShaderManager::Destroy(Shader shader)
