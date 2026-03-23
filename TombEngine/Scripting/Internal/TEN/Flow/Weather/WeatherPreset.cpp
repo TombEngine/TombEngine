@@ -318,6 +318,12 @@ namespace TEN::Scripting
 		///   - transitionDuration (float): default transition seconds
 		///   - randomWeight (float): likelihood in random mode
 		///   - highLayerLeadFraction (float): how much high layer leads in transitions
+		///   - nextPreset (string): name of preset to chain to after this one becomes active
+		///   - nextTransitionDuration (float): transition duration for the chain
+		///   - duration (float|table): how long (seconds) to stay at this preset before chaining.
+		///       Use a plain number for a fixed duration, e.g. duration = 30.0
+		///       Use a {min, max} table for a random range, e.g. duration = {10, 60}
+		///       Omit or set < 0 to chain immediately (default).
 		///   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
 		///   - cloudB (table): cloud layer B parameters
 		/// Cloud layer tables support all fields from SetVolumetricCloudLayerA
@@ -359,6 +365,32 @@ namespace TEN::Scripting
 				(double)def.NextPresetTransitionDuration), 0.1f);
 			def.NextPresetTransitionDurationA = (float)definition.get_or("nextTransitionDurationA", -1.0);
 			def.NextPresetTransitionDurationB = (float)definition.get_or("nextTransitionDurationB", -1.0);
+
+			// Dwell duration before chaining to NextPreset.
+			// Accepts a float (fixed seconds) or a {min, max} table (random range).
+			// Omitting the field (or setting < 0) chains immediately (legacy behavior).
+			def.NextPresetDwellDuration    = -1.0f;
+			def.NextPresetDwellDurationMin = -1.0f;
+			def.NextPresetDwellDurationMax = -1.0f;
+			{
+				sol::object durObj = definition["duration"];
+				if (durObj.is<sol::table>())
+				{
+					sol::table durTbl = durObj.as<sol::table>();
+					// Accept {min, max} — first two array elements.
+					sol::optional<double> lo = durTbl[1];
+					sol::optional<double> hi = durTbl[2];
+					if (lo.has_value() && hi.has_value())
+					{
+						def.NextPresetDwellDurationMin = std::max((float)lo.value(), 0.0f);
+						def.NextPresetDwellDurationMax = std::max((float)hi.value(), def.NextPresetDwellDurationMin);
+					}
+				}
+				else if (durObj.is<double>())
+				{
+					def.NextPresetDwellDuration = std::max((float)durObj.as<double>(), 0.0f);
+				}
+			}
 
 				sol::optional<sol::table> cloudATbl = definition["cloudA"];
 				if (cloudATbl.has_value())

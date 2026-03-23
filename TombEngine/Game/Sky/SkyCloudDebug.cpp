@@ -141,6 +141,7 @@ namespace TEN::Sky
 		// --- AltocumulusMid cloud distribution: 0=uniform, (+)=more toward horizon, (-)=more toward zenith ---
 		params.push_back({"Cloud Distribution", &snap.AltoZenithBias,      -1.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoZenithBias)});
 		params.push_back({"Alto Height Power",  &snap.AltoHeightBlendPower, 0.25f,  4.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHeightBlendPower)});
+		params.push_back({"Bleed Depth",        &snap.AltoBleedDepth,       0.0f, 100.0f,     0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::AltoBleedDepth)});
 		// --- Lightning parameters (Alto and Cumulonimbus) ---
 		params.push_back({"Light Strike Freq", &snap.LightningStrikeFreq, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningStrikeFreq)});
 		params.push_back({"Light Int Freq",    &snap.LightningInternalFreq,0.0f,   1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::LightningInternalFreq)});

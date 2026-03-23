@@ -138,6 +138,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoZenithBias       = 0.0f; // [-1,1]  cloud distribution bias
 		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp
 		float AltoHorizonWidth     = 0.0f; // [0,1]   0=wide (to near horizon), 1=zenith-only cap
+		float AltoBleedDepth       = 30.0f; // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 
 		// Lightning
 		int   LightningEnabled     = 0;

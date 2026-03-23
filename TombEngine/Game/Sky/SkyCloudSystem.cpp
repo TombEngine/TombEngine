@@ -102,6 +102,7 @@ namespace TEN::Sky
 		s.AltoZenithBias       = AltoZenithBias;
 		s.AltoHeightBlendPower  = AltoHeightBlendPower;
 		s.AltoHorizonWidth      = AltoHorizonWidth;
+		s.AltoBleedDepth        = AltoBleedDepth;
 
 		// Lightning
 		s.LightningEnabled      = LightningEnabled ? 1 : 0;
@@ -165,6 +166,7 @@ namespace TEN::Sky
 		snap.AltoZenithBias       = src.AltoZenithBias;
 		snap.AltoHeightBlendPower  = src.AltoHeightBlendPower;
 		snap.AltoHorizonWidth      = src.AltoHorizonWidth;
+		snap.AltoBleedDepth        = src.AltoBleedDepth;
 
 		// Lightning
 		snap.LightningEnabled      = (src.LightningEnabled != 0);
@@ -270,6 +272,7 @@ namespace TEN::Sky
 		result.AltoZenithBias       = LerpFloat(a.AltoZenithBias,       b.AltoZenithBias,       t);
 		result.AltoHeightBlendPower  = LerpFloat(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
 		result.AltoHorizonWidth      = LerpFloat(a.AltoHorizonWidth,      b.AltoHorizonWidth,      t);
+		result.AltoBleedDepth        = LerpFloat(a.AltoBleedDepth,        b.AltoBleedDepth,        t);
 
 		// Lightning
 		result.LightningEnabled      = (t < 0.5f) ? a.LightningEnabled : b.LightningEnabled;
@@ -374,6 +377,9 @@ namespace TEN::Sky
 		_manualOverrideLayer2 = false;
 		_cloudATransmittance  = 1.0f;
 		_cloudBTransmittance  = 1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+		_nextPresetDwellTarget  = -1.0f;
+		_dwellRNG.seed(std::random_device{}());
 
 		// Apply weather config from Gameflow.lua (level.weatherPreset / level.randomWeather).
 		auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
@@ -944,6 +950,8 @@ namespace TEN::Sky
 
 		if (_transition.Active)
 			UpdateTransition(deltaTime);
+		else if (!_randomWeather.Active)
+			UpdatePresetDwell(deltaTime);
 	}
 
 	// ====================================================================
@@ -963,19 +971,10 @@ namespace TEN::Sky
 			_currentPreset = tr.Target;
 			tr.Active = false;
 
-			// Auto-chain: if this preset defines a NextPreset, start transitioning immediately.
+			// Auto-chain: if this preset defines a NextPreset, start dwell or chain immediately.
 			auto it = _presets.find(_currentPreset);
 			if (it != _presets.end() && !it->second.NextPreset.empty())
-			{
-				const auto& chainDef = it->second;
-				float durA = (chainDef.NextPresetTransitionDurationA >= 0.0f)
-					? chainDef.NextPresetTransitionDurationA
-					: chainDef.NextPresetTransitionDuration;
-				float durB = (chainDef.NextPresetTransitionDurationB >= 0.0f)
-					? chainDef.NextPresetTransitionDurationB
-					: chainDef.NextPresetTransitionDuration;
-				TransitionToPreset(StringToPresetType(chainDef.NextPreset), durA, durB);
-			}
+				StartNextPresetDwell(it->second);
 			return;
 		}
 
@@ -1032,22 +1031,18 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		// Cancel any pending dwell from the previous preset.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+
 		_transition.Active = false;
 		_currentPreset = preset;
 		_currentState = it->second.TargetState;
 
-		// Auto-chain: if this preset defines a NextPreset, start transitioning immediately.
+		// Auto-chain: if this preset defines a NextPreset, start dwell or chain immediately.
 		const auto& def = it->second;
 		if (!def.NextPreset.empty())
-		{
-			float durA = (def.NextPresetTransitionDurationA >= 0.0f)
-				? def.NextPresetTransitionDurationA
-				: def.NextPresetTransitionDuration;
-			float durB = (def.NextPresetTransitionDurationB >= 0.0f)
-				? def.NextPresetTransitionDurationB
-				: def.NextPresetTransitionDuration;
-			TransitionToPreset(StringToPresetType(def.NextPreset), durA, durB);
-		}
+			StartNextPresetDwell(def);
 	}
 
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1062,6 +1057,10 @@ namespace TEN::Sky
 		auto it = _presets.find(preset);
 		if (it == _presets.end())
 			return;
+
+		// Cancel any pending dwell before starting a new transition.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
 
 		const auto& def = it->second;
 
@@ -1101,6 +1100,10 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		// Cancel any pending dwell before starting a new transition.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+
 		auto& tr = _transition;
 		tr.Active           = true;
 		tr.Source            = _currentPreset;
@@ -1120,6 +1123,77 @@ namespace TEN::Sky
 	{
 		// Freeze the current blended state and stop transitioning.
 		_transition.Active = false;
+		// Also cancel any pending dwell that might fire from the interrupted target.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+	}
+
+	// ====================================================================
+	// Preset dwell (wait before chaining to NextPreset)
+	// ====================================================================
+
+	float SkyCloudSystem::ResolveNextPresetDwell(const WeatherPresetDefinition& def)
+	{
+		// If a random range is fully specified, roll within it.
+		if (def.NextPresetDwellDurationMin >= 0.0f &&
+			def.NextPresetDwellDurationMax >= def.NextPresetDwellDurationMin)
+		{
+			std::uniform_real_distribution<float> dist(
+				def.NextPresetDwellDurationMin,
+				def.NextPresetDwellDurationMax);
+			return dist(_dwellRNG);
+		}
+		// Fixed value (< 0 means "chain immediately").
+		return def.NextPresetDwellDuration;
+	}
+
+	void SkyCloudSystem::StartNextPresetDwell(const WeatherPresetDefinition& def)
+	{
+		float dwell = ResolveNextPresetDwell(def);
+		if (dwell <= 0.0f)
+		{
+			// Chain immediately — no dwell needed.
+			float durA = (def.NextPresetTransitionDurationA >= 0.0f)
+				? def.NextPresetTransitionDurationA
+				: def.NextPresetTransitionDuration;
+			float durB = (def.NextPresetTransitionDurationB >= 0.0f)
+				? def.NextPresetTransitionDurationB
+				: def.NextPresetTransitionDuration;
+			TransitionToPreset(StringToPresetType(def.NextPreset), durA, durB);
+		}
+		else
+		{
+			// Queue the dwell.
+			_nextPresetDwellTarget  = dwell;
+			_nextPresetDwellElapsed = 0.0f;
+		}
+	}
+
+	void SkyCloudSystem::UpdatePresetDwell(float deltaTime)
+	{
+		if (_nextPresetDwellTarget < 0.0f)
+			return; // No dwell pending.
+
+		_nextPresetDwellElapsed += deltaTime;
+		if (_nextPresetDwellElapsed < _nextPresetDwellTarget)
+			return;
+
+		// Dwell expired — clear timer, then fire the chain transition.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+
+		auto it = _presets.find(_currentPreset);
+		if (it == _presets.end() || it->second.NextPreset.empty())
+			return;
+
+		const auto& chainDef = it->second;
+		float durA = (chainDef.NextPresetTransitionDurationA >= 0.0f)
+			? chainDef.NextPresetTransitionDurationA
+			: chainDef.NextPresetTransitionDuration;
+		float durB = (chainDef.NextPresetTransitionDurationB >= 0.0f)
+			? chainDef.NextPresetTransitionDurationB
+			: chainDef.NextPresetTransitionDuration;
+		TransitionToPreset(StringToPresetType(chainDef.NextPreset), durA, durB);
 	}
 
 	// ====================================================================

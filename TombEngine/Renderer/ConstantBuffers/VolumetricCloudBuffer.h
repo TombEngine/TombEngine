@@ -93,7 +93,7 @@ namespace TEN::Renderer::ConstantBuffers
 		// 0 = uniform distribution. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
 		float   AltoZenithBias;   // [-1,1]  cloud distribution bias
 		float   AltoHorizonWidth; // [0,1]  0=wide (to near horizon), 1=zenith-only cap
-		float   AltoHtPad4;
+		float   AltoBleedDepth;  // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 		float   AltoHtPad5;
 		//--
 		// Row 16 — Altocumulus sky-height modulation (continued)

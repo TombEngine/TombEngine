@@ -238,7 +238,7 @@ namespace TEN::Renderer
 		// AltocumulusMid sky-height redistribution parameters
 		_stVolumetricCloud.AltoZenithBias        = settings.AltoZenithBias;
 		_stVolumetricCloud.AltoHorizonWidth      = settings.AltoHorizonWidth;
-		_stVolumetricCloud.AltoHtPad4 = 0.0f;
+		_stVolumetricCloud.AltoBleedDepth        = settings.AltoBleedDepth;
 		_stVolumetricCloud.AltoHtPad5 = 0.0f;
 		_stVolumetricCloud.AltoHeightBlendPower  = settings.AltoHeightBlendPower;
 

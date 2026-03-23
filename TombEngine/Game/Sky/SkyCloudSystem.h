@@ -148,6 +148,7 @@ namespace TEN::Sky
 		float AltoZenithBias       = 0.0f; // [-1,1]  cloud distribution bias
 		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp
 		float AltoHorizonWidth     = 0.0f; // [0,1]   0=wide (to near horizon), 1=zenith-only cap
+		float AltoBleedDepth       = 0.0f; // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 
 		// Lightning parameters (only for AltocumulusMid — internal flash + bolt glow)
 		bool  LightningEnabled      = false;
@@ -242,12 +243,20 @@ namespace TEN::Sky
 		// Superseded by TransitionDurationA / TransitionDurationB when those are >= 0.
 		float HighLayerLeadFraction     = 0.0f;
 
-		// Auto-chain: once this preset becomes active, immediately start transitioning to NextPreset.
+		// Auto-chain: once this preset becomes active, start transitioning to NextPreset.
 		// Empty string = no chaining.
 		std::string NextPreset                    = "";
 		float       NextPresetTransitionDuration  = 30.0f; // seconds for the chained transition.
 		float       NextPresetTransitionDurationA = -1.0f; // < 0 = inherit NextPresetTransitionDuration.
 		float       NextPresetTransitionDurationB = -1.0f; // < 0 = inherit NextPresetTransitionDuration.
+
+		// Dwell duration: how long (seconds) to stay at this preset before chaining to NextPreset.
+		// < 0 = chain immediately (backward-compatible default).
+		// If DwellDurationMin >= 0 and DwellDurationMax >= DwellDurationMin, a random value
+		// in [DwellDurationMin, DwellDurationMax] is rolled each time the preset becomes active.
+		float NextPresetDwellDuration    = -1.0f;
+		float NextPresetDwellDurationMin = -1.0f;
+		float NextPresetDwellDurationMax = -1.0f;
 	};
 
 	// ====================================================================
@@ -403,6 +412,16 @@ namespace TEN::Sky
 		// Lens flare occlusion from each volumetric layer.
 		float _cloudATransmittance = 1.0f;
 		float _cloudBTransmittance = 1.0f;
+
+		// Dwell state: countdown before firing a deferred NextPreset chain.
+		// _nextPresetDwellTarget < 0 means no dwell is pending.
+		float _nextPresetDwellElapsed = 0.0f;
+		float _nextPresetDwellTarget  = -1.0f;
+		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
+
+		float ResolveNextPresetDwell(const WeatherPresetDefinition& def);
+		void  UpdatePresetDwell(float deltaTime);
+		void  StartNextPresetDwell(const WeatherPresetDefinition& def);
 	};
 
 	// Global instance.

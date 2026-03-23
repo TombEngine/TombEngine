@@ -645,9 +645,9 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         if (dens <= 0.0001f)
             return 0.0f;
 
-        // AltoHorizonWidth zenith cap: 0=wide (clouds spread to near-horizon), 1=zenith-only.
-        // skyH=1 at zenith, 0 at the far visible edge. Cap edge maps [0,1] to [0,0.9] in skyH.
-        if (AltoHorizonWidth > 0.001f)
+        // AltoHorizonWidth zenith cap (disabled in bleed pass — bleed clouds must be
+        // visible from near-horizontal rays that point toward the mountains).
+        if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f)
         {
             float altoCapEdge = AltoHorizonWidth * 0.90f;
             dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
@@ -1325,13 +1325,41 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float effAbsorption = (CloudType == 2) ? AltoAbsorption : Absorption;
 
     // Intersect cloud volume using the effective thickness.
-    float2 tRange = IntersectCloudVolumeEx(rayOrigin, rayDir, effThickness);
+    // Bleed pass: extend the Alto cloud slab DOWNWARD (toward camera) so clouds appear
+    // to pour below their natural base height and flow over mountain tops.
+    // AltoBleedDepth [0,100] controls how far below the base they extend:
+    // value * 0.01 * CloudBottomHeight = world-unit extension (100 = full CloudBottomHeight).
+    // Wind streaming drifts deep samples in the wind direction so
+    // the clouds appear to flow from their source direction.
+    float bleedExtent = 0.0f;
+    if (CloudIsBleedPass > 0.001f && CloudType == 2)
+        bleedExtent = (AltoBleedDepth * 0.01f) * CloudBottomHeight; // purely driven by AltoBleedDepth, not CloudIsBleedPass
+
+    // Intersect cloud volume. For the bleed pass the slab bottom is extended downward.
+    float2 tRange;
+    if (bleedExtent > 0.001f && abs(rayDir.y) > 0.0001f)
+    {
+        // Extended slab: bottom shifted toward camera (higher Y in TEN Y-down).
+        float slabBtm = CamPositionWS.y - CloudBottomHeight + bleedExtent;
+        float slabTop = CamPositionWS.y - CloudBottomHeight - effThickness;
+        float t0 = (slabBtm - rayOrigin.y) / rayDir.y;
+        float t1 = (slabTop - rayOrigin.y) / rayDir.y;
+        float tNear = min(t0, t1);
+        float tFar  = max(t0, t1);
+        tRange = (tFar < 0.0f || tNear >= tFar)
+               ? float2(-1.0f, -1.0f)
+               : float2(max(tNear, 0.0f), tFar);
+    }
+    else
+    {
+        tRange = IntersectCloudVolumeEx(rayOrigin, rayDir, effThickness);
+    }
 
     if (tRange.x < 0.0f)
         return float4(0.0f, 0.0f, 0.0f, 0.0f); // No intersection   fully transparent.
 
     // Clamp max march distance to avoid wasting steps on very long grazing rays.
-    float maxDist = min(tRange.y - tRange.x, effThickness * 6.0f);
+    float maxDist = min(tRange.y - tRange.x, (effThickness + bleedExtent) * 6.0f);
 
     // Adaptive step count: for tall cloud volumes the nominal step size
     // (maxDist / PrimaryStepCount) can become large enough that each step
@@ -1393,6 +1421,12 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
         altoSkyH = 0.0f;
     }
 
+    // Bleed-zone lower bound: how far below 0 (in heightFrac units) the extended
+    // slab reaches. Samples with heightFrac in [-bleedFracLimit, 0) are in the
+    // pour-down zone and get wind-streamed XZ offsets with a depth-based fade.
+    float bleedFracLimit = (bleedExtent > 0.001f && effThickness > 0.001f)
+                         ? (bleedExtent / effThickness) : 0.0f;
+
     // Accumulation.
     float  transmittance = 1.0f;
     float3 scatteredLight = float3(0.0f, 0.0f, 0.0f);
@@ -1418,11 +1452,35 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                             rayOrigin.y - CloudBottomHeight, effThickness);
 
         // Skip samples outside the cloud layer boundary.
-        if (heightFrac >= 0.0f && heightFrac <= 1.0f)
+        // In the bleed pass the lower bound is extended by bleedFracLimit.
+        if (heightFrac >= -bleedFracLimit && heightFrac <= 1.0f)
         {
+            // Bleed zone: samples below the original slab base (heightFrac < 0).
+            // Project onto the slab base and stream the XZ position in the wind
+            // direction — the deeper the sample, the more it has drifted.
+            // This gives the appearance of cloud mass pouring off the mountain
+            // top and flowing downward in the prevailing wind direction.
+            float3 effectiveSamplePos = samplePos;
+            float  effectiveHF        = max(heightFrac, 0.0f);
+            float  bleedDensityFade   = 1.0f;
+            if (heightFrac < 0.0f && bleedFracLimit > 0.001f)
+            {
+                // depthT: 0=at slab base, 1=at maximum bleed depth.
+                float depthT = -heightFrac / bleedFracLimit;
+                // Stream: 40% of CloudBottomHeight lateral drift at full depth.
+                float2 wDir = (dot(WindDirection, WindDirection) > 0.001f)
+                            ? normalize(WindDirection) : float2(1.0f, 0.0f);
+                effectiveSamplePos.xz += wDir * (depthT * CloudBottomHeight * 0.4f);
+                // Project onto slab base for the density lookup.
+                effectiveHF = 0.0f;
+                // Quadratic fade: fully opaque at base, transparent at max depth.
+                bleedDensityFade = (1.0f - depthT) * (1.0f - depthT);
+            }
+
             // Sample density (use detail noise if available).
             bool useDetail = (DetailNoiseEnabled != 0);
-            float density = CloudDensityAtWorldPos(samplePos, heightFrac, useDetail, altoSkyH);
+            float density = CloudDensityAtWorldPos(effectiveSamplePos, effectiveHF, useDetail, altoSkyH);
+            density *= bleedDensityFade;
 
             if (density > 0.0001f)
             {

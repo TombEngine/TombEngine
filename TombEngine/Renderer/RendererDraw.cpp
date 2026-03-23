@@ -3369,11 +3369,13 @@ namespace TEN::Renderer
 			// alpha=1.0 triggers fully-opaque blending (overwriting cloud pixels painted
 			// after the horizon mesh); 0.99 forces alpha-blending (visually identical,
 			// but lets the post-horizon bleed composite survive).
+			// Triggered by HorizonMeshBleed > 0 OR AltoBleedDepth > 0.
 			if (!reflectionPass)
 			{
 				const auto& bleedState = g_SkyCloudSystem.GetCurrentState();
 				float maxBleed = std::max(bleedState.CloudA.HorizonMeshBleed, bleedState.CloudB.HorizonMeshBleed);
-				if (maxBleed > 0.001f && alpha >= 1.0f)
+				float maxBleedDepth = std::max(bleedState.CloudA.AltoBleedDepth, bleedState.CloudB.AltoBleedDepth);
+				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f) && alpha >= 1.0f)
 					alpha = 0.99f;
 			}
 
@@ -3413,20 +3415,39 @@ namespace TEN::Renderer
 		// At 1.0 this intentionally recreates the old behaviour where clouds were
 		// drawn in front of the mountains. At 0.0 the second pass is skipped, so
 		// the mountains fully overwrite the earlier cloud composite.
+		// Bleed clouds are only drawn when at least one horizon mesh layer is visible
+		// (opacity > 0): bleed clouds are designed to flow over those mountains and
+		// should not appear without destination geometry.
 		if (!reflectionPass)
 		{
+			bool anyHorizonVisible = false;
+			for (int hLayer = 0; hLayer < 2; hLayer++)
+			{
+				if (levelPtr->GetHorizonEnabled(hLayer) && levelPtr->GetHorizonTransparency(hLayer) > EPSILON)
+					anyHorizonVisible = true;
+			}
 			auto doBleedOverlay = [&](CloudRenderSettings settings, VolumetricCloud::CloudRuntimeState& layerState, RenderTarget2D& cloudRT, float bleedStrength)
 			{
-				if (!settings.Enabled || bleedStrength < 0.001f)
+				if (!settings.Enabled)
 					return;
 				if (settings.CloudType != 2)
 					return;
 
-				// Pass bleedStrength into the composite shader via BleedPassStrength.
-				// The shader applies an inverse-horizon-fade mask so the bleed clouds
-				// only appear near the mountains/horizon — not double-composited in
-				// the sky. Coverage stays at full to preserve volumetric cloud density.
-				settings.BleedPassStrength = bleedStrength;
+				// AltoBleedDepth [0,100] drives bleed opacity progressively: 0 = invisible, 100 = full.
+				// HorizonMeshBleed bleedStrength adds on top (original mountain-bleed behavior).
+				float altoBleedIntensity = std::clamp(settings.AltoBleedDepth / 100.0f, 0.0f, 1.0f);
+				float effectiveBleed = std::max(altoBleedIntensity, bleedStrength);
+				if (effectiveBleed < 0.001f)
+					return;
+
+				// Lerp cloud shape parameters toward bleed-optimised values as AltoBleedDepth increases:
+				//   AltoZenithBias    : current value → -1.0  (push distribution toward zenith/top so
+				//                       clouds flood downward from above rather than pooling at horizon)
+				//   AltoHeightBlendPower: current value → 1.470 (soften the height ramp for a wider curtain)
+				settings.AltoZenithBias       = settings.AltoZenithBias       + ((-1.0f)  - settings.AltoZenithBias)       * altoBleedIntensity;
+				settings.AltoHeightBlendPower = settings.AltoHeightBlendPower + (1.470f   - settings.AltoHeightBlendPower) * altoBleedIntensity;
+
+				settings.BleedPassStrength = effectiveBleed;
 
 				DrawSingleVolumetricCloudLayer(settings, layerState, cloudRT, renderView, false);
 
@@ -3436,20 +3457,23 @@ namespace TEN::Renderer
 				_context->RSSetViewports(1, &renderView.Viewport);
 			};
 
-			const auto& liveState = g_SkyCloudSystem.GetCurrentState();
-			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			if (anyHorizonVisible)
 			{
-				if (g_SkyCloudSystem.IsCloudAActive())
-					doBleedOverlay(g_SkyCloudSystem.GetCloudARenderSettings(), _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
-				if (g_SkyCloudSystem.IsCloudBActive())
-					doBleedOverlay(g_SkyCloudSystem.GetCloudBRenderSettings(), _cloudStateB, _cloudRenderTargetB, liveState.CloudB.HorizonMeshBleed);
-			}
-			else
-			{
-				// Single-layer path via level script: use CloudA bleed if any.
-				const CloudRenderSettings* singleSettings = GetActiveVolumetricCloudSettings();
-				if (singleSettings && singleSettings->Enabled)
-					doBleedOverlay(*singleSettings, _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
+				const auto& liveState = g_SkyCloudSystem.GetCurrentState();
+				if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				{
+					if (g_SkyCloudSystem.IsCloudAActive())
+						doBleedOverlay(g_SkyCloudSystem.GetCloudARenderSettings(), _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
+					if (g_SkyCloudSystem.IsCloudBActive())
+						doBleedOverlay(g_SkyCloudSystem.GetCloudBRenderSettings(), _cloudStateB, _cloudRenderTargetB, liveState.CloudB.HorizonMeshBleed);
+				}
+				else
+				{
+					// Single-layer path via level script: use CloudA bleed if any.
+					const CloudRenderSettings* singleSettings = GetActiveVolumetricCloudSettings();
+					if (singleSettings && singleSettings->Enabled)
+						doBleedOverlay(*singleSettings, _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
+				}
 			}
 
 			// Restore mesh rendering state.
