@@ -21,10 +21,13 @@ using namespace TEN::Math::Random;
 
 namespace TEN::Entities::Traps
 {
-	// ItemFlags usage:
-	// [0] = Destroyed state (0 = intact, 1 = destroyed).
-	// [1] = Spark timer. Counts down from FUSEBOX_SPARK_DURATION to 0 after destruction.
-	// [2] = Flash timer. Brief countdown for the initial destruction flash.
+	// ItemFlags indices.
+	enum FuseboxFlags
+	{
+		IsDestroyed = 0, // 0 = intact, 1 = destroyed.
+		SparkTimer  = 1, // Counts down from FUSEBOX_SPARK_DURATION to 0 after destruction.
+		FlashTimer  = 2  // Brief countdown for the initial destruction flash.
+	};
 
 	// Spark effect parameters.
 	constexpr auto FUSEBOX_SPARK_DURATION    = 10 * FPS;
@@ -198,10 +201,11 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		item.Status       = ITEM_ACTIVE;
-		item.ItemFlags[0] = 0;
-		item.ItemFlags[1] = 0;
-		item.ItemFlags[2] = 0;
+		AddActiveItem(itemNumber);
+		item.Status                         = ITEM_ACTIVE;
+		item.ItemFlags[FuseboxFlags::IsDestroyed] = 0;
+		item.ItemFlags[FuseboxFlags::SparkTimer]  = 0;
+		item.ItemFlags[FuseboxFlags::FlashTimer]  = 0;
 	}
 
 	void ControlFusebox(short itemNumber)
@@ -210,15 +214,15 @@ namespace TEN::Entities::Traps
 		auto  pos  = GetBoundingBoxCenter(item);
 
 		// Already destroyed; run spark wind-down effects.
-		if (item.ItemFlags[0] == 1)
+		if (item.ItemFlags[FuseboxFlags::IsDestroyed] == 1)
 		{
-			int sparkTimer = item.ItemFlags[1];
-			int flashTimer = item.ItemFlags[2];
+			int sparkTimer = item.ItemFlags[FuseboxFlags::SparkTimer];
+			int flashTimer = item.ItemFlags[FuseboxFlags::FlashTimer];
 
 			if (flashTimer > 0)
 			{
 				flashTimer--;
-				item.ItemFlags[2] = flashTimer;
+				item.ItemFlags[FuseboxFlags::FlashTimer] = flashTimer;
 			}
 
 			if (sparkTimer > 0)
@@ -232,7 +236,7 @@ namespace TEN::Entities::Traps
 					SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, const_cast<Pose*>(&item.Pose));
 
 				sparkTimer--;
-				item.ItemFlags[1] = sparkTimer;
+				item.ItemFlags[FuseboxFlags::SparkTimer] = sparkTimer;
 			}
 
 			AnimateItem(&item);
@@ -242,9 +246,9 @@ namespace TEN::Entities::Traps
 		// Check if fusebox has been destroyed by gunfire.
 		if (item.HitPoints <= 0)
 		{
-			item.ItemFlags[0] = 1;
-			item.ItemFlags[1] = FUSEBOX_SPARK_DURATION;
-			item.ItemFlags[2] = FUSEBOX_FLASH_DURATION;
+			item.ItemFlags[FuseboxFlags::IsDestroyed] = 1;
+			item.ItemFlags[FuseboxFlags::SparkTimer]  = FUSEBOX_SPARK_DURATION;
+			item.ItemFlags[FuseboxFlags::FlashTimer]  = FUSEBOX_FLASH_DURATION;
 
 			SetAnimation(item, item.ObjectNumber, 1);
 			SpawnDestructionBlast(item, pos);
