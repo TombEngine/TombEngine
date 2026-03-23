@@ -85,7 +85,7 @@ cbuffer CBVolumetricCloud : register(b9)
     // Row 15 — Altocumulus sky-height redistribution
     // 0 = uniform distribution. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
     float AltoZenithBias;   // [-1,1]  cloud distribution bias
-    float AltoHtPad3;
+    float AltoHorizonWidth; // [0,1]  0=wide (to near horizon), 1=zenith-only cap
     float AltoHtPad4;
     float AltoHtPad5;
     //--

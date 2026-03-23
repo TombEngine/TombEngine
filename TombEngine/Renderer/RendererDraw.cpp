@@ -3365,6 +3365,18 @@ namespace TEN::Renderer
 
 			float alpha = levelPtr->GetHorizonTransparency(layer);
 
+			// Cap alpha to 0.99 when the cloud bleed-overlay pass is active.
+			// alpha=1.0 triggers fully-opaque blending (overwriting cloud pixels painted
+			// after the horizon mesh); 0.99 forces alpha-blending (visually identical,
+			// but lets the post-horizon bleed composite survive).
+			if (!reflectionPass)
+			{
+				const auto& bleedState = g_SkyCloudSystem.GetCurrentState();
+				float maxBleed = std::max(bleedState.CloudA.HorizonMeshBleed, bleedState.CloudB.HorizonMeshBleed);
+				if (maxBleed > 0.001f && alpha >= 1.0f)
+					alpha = 0.99f;
+			}
+
 			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
 			_stSky.Color = Color(1.0f, 1.0f, 1.0f, alpha);
 			_stSky.ApplyFogBulbs = 1;

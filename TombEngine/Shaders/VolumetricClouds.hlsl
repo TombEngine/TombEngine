@@ -645,6 +645,14 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         if (dens <= 0.0001f)
             return 0.0f;
 
+        // AltoHorizonWidth zenith cap: 0=wide (clouds spread to near-horizon), 1=zenith-only.
+        // skyH=1 at zenith, 0 at the far visible edge. Cap edge maps [0,1] to [0,0.9] in skyH.
+        if (AltoHorizonWidth > 0.001f)
+        {
+            float altoCapEdge = AltoHorizonWidth * 0.90f;
+            dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
+        }
+
         return dens;
     }
 
@@ -2105,10 +2113,11 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //
     // Normal pass  (CloudIsBleedPass == 0): full HorizonAtmosphericFade, clouds
     //   dissolve naturally at the horizon.
-    // Bleed pass   (CloudIsBleedPass > 0 == bleedStrength): skip the broad fade
-    //   so clouds appear in front of mountains. Apply only a very narrow
-    //   bottom-edge softness (smoothstep over ~3°) to round off the hard
-    //   geometric bottom of the cloud slab without suppressing the whole layer.
+    // Bleed pass   (CloudIsBleedPass > 0 == bleedStrength): no per-pixel
+    //   elevation masking at all. Organic cloud shapes come entirely from the
+    //   volumetric raymarcher (AltoBottomSoftness, cloud slab geometry). Any
+    //   screen-space elevation fade would produce a flat horizontal cut that
+    //   ignores the mountain silhouette — exactly what we don't want.
     float3 compRayDir = GetViewRayDir(uv);
     float finalAlpha = outAlpha;
     if (CloudIsBleedPass < 0.001f)
@@ -2118,12 +2127,8 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     }
     else
     {
-        // Bleed pass: only a narrow bottom-edge fade to preserve cloud shapes.
-        // elevation = 0 at horizon, ~0.05 at ~3° above — just enough to
-        // smooth the hard underside of the cloud slab.
-        float elevation      = saturate(-compRayDir.y);
-        float bottomSoftness = smoothstep(0.0f, 0.05f, elevation);
-        finalAlpha *= CloudIsBleedPass * bottomSoftness;
+        // Bleed pass: raymarcher geometry provides all shaping — no composite fade.
+        finalAlpha *= CloudIsBleedPass;
     }
     return float4(outRGB, finalAlpha * CloudCompositeScale);
 }

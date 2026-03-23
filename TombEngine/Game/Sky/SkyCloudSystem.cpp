@@ -101,6 +101,7 @@ namespace TEN::Sky
 
 		s.AltoZenithBias       = AltoZenithBias;
 		s.AltoHeightBlendPower  = AltoHeightBlendPower;
+		s.AltoHorizonWidth      = AltoHorizonWidth;
 
 		// Lightning
 		s.LightningEnabled      = LightningEnabled ? 1 : 0;
@@ -163,6 +164,7 @@ namespace TEN::Sky
 
 		snap.AltoZenithBias       = src.AltoZenithBias;
 		snap.AltoHeightBlendPower  = src.AltoHeightBlendPower;
+		snap.AltoHorizonWidth      = src.AltoHorizonWidth;
 
 		// Lightning
 		snap.LightningEnabled      = (src.LightningEnabled != 0);
@@ -267,6 +269,7 @@ namespace TEN::Sky
 
 		result.AltoZenithBias       = LerpFloat(a.AltoZenithBias,       b.AltoZenithBias,       t);
 		result.AltoHeightBlendPower  = LerpFloat(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
+		result.AltoHorizonWidth      = LerpFloat(a.AltoHorizonWidth,      b.AltoHorizonWidth,      t);
 
 		// Lightning
 		result.LightningEnabled      = (t < 0.5f) ? a.LightningEnabled : b.LightningEnabled;

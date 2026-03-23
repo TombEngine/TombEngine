@@ -137,6 +137,7 @@ namespace TEN::Renderer::VolumetricCloud
 		// 0 = uniform. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
 		float AltoZenithBias       = 0.0f; // [-1,1]  cloud distribution bias
 		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp
+		float AltoHorizonWidth     = 0.0f; // [0,1]   0=wide (to near horizon), 1=zenith-only cap
 
 		// Lightning
 		int   LightningEnabled     = 0;
