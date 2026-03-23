@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/ElectricField.h"
 
-#include "Game/animation/Animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/trigger.h"
