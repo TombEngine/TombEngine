@@ -338,6 +338,7 @@ namespace TEN::Sky
 		CloudRenderSettings     GetCloudBRenderSettings() const;
 		bool                    IsCloudAActive() const;
 		bool                    IsCloudBActive() const;
+		bool                    IsAuroraPresetActive() const;
 		bool                    IsLegacyLayer1Active() const;
 		bool                    IsLegacyLayer2Active() const;
 

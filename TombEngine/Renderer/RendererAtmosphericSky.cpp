@@ -14,6 +14,7 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
@@ -24,6 +25,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::ConstantBuffers;
+using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
@@ -219,7 +221,27 @@ namespace TEN::Renderer
 		_stAtmosphericSky.MoonPad0           = 0.0f;
 
 		// --- Aurora CB fill ---
-		const auto& aurora = _auroraSettings;
+		auto& aurora = _auroraSettings;
+
+		// Drive aurora.Enabled from the sky cloud system's live snapshot.
+		// This ensures aurora rendering responds to preset selection outside the debug menu.
+		bool wantsAurora = g_SkyCloudSystem.IsAuroraPresetActive();
+
+		// Advance preset fade toward target (linear, then smoothstepped for output).
+		{
+			float fadeTarget = wantsAurora ? 1.0f : 0.0f;
+			float fadeStep   = (_auroraPresetFadeDuration > 0.0f)
+				? (1.0f / 30.0f) / _auroraPresetFadeDuration
+				: 1.0f;
+			if (_auroraPresetFade < fadeTarget)
+				_auroraPresetFade = Saturate(_auroraPresetFade + fadeStep);
+			else if (_auroraPresetFade > fadeTarget)
+				_auroraPresetFade = Saturate(_auroraPresetFade - fadeStep);
+		}
+
+		// Keep aurora enabled while the fade is still visible (allows fade-out to complete).
+		aurora.Enabled = wantsAurora || (_auroraPresetFade > 0.001f);
+
 		// Aurora visibility: computed from sun elevation, similar to starfield.
 		// Fully visible at night, fades out during twilight, invisible during day.
 		float auroraVisibility = 0.0f;
@@ -228,6 +250,10 @@ namespace TEN::Renderer
 			float auroraFade = Saturate((-sunElevation + aurora.NightFadeThreshold) * aurora.SunSuppressionStr);
 			auroraFade = auroraFade * auroraFade * (3.0f - 2.0f * auroraFade); // smoothstep
 			auroraVisibility = auroraFade;
+
+			// Apply preset fade (smoothstepped) as an additional multiplier.
+			float presetFadeSmooth = _auroraPresetFade * _auroraPresetFade * (3.0f - 2.0f * _auroraPresetFade);
+			auroraVisibility *= presetFadeSmooth;
 
 			// Accumulate animation time.
 			_auroraTime += 1.0f / 30.0f; // Approximate frame time; consistent drift.

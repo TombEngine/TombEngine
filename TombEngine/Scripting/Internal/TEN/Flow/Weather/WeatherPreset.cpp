@@ -388,5 +388,27 @@ namespace TEN::Scripting
 				if (auto v = settings.get<sol::optional<float>>("sunElevationRampSpeed"); v.has_value()) s.SunElevationRampSpeed = *v;
 				if (auto v = settings.get<sol::optional<float>>("sunWarmInfluence");       v.has_value()) s.SunWarmInfluence       = *v;
 			});
+
+		/// Set the aurora fade-in/fade-out duration when switching weather presets.
+		/// Controls how many seconds the aurora takes to appear or disappear
+		/// when the AuroraBorealis preset is selected or deselected.
+		///
+		/// @function Flow.SetAuroraFadeDuration
+		/// @tparam float seconds Duration in seconds (clamped to [0.5, 120]).
+		parent.set_function("SetAuroraFadeDuration",
+			[](float seconds)
+			{
+				g_Renderer.GetAuroraPresetFadeDuration() = std::clamp(seconds, 0.5f, 120.0f);
+			});
+
+		/// Get the current aurora fade-in/fade-out duration in seconds.
+		///
+		/// @function Flow.GetAuroraFadeDuration
+		/// @treturn float Current fade duration in seconds.
+		parent.set_function("GetAuroraFadeDuration",
+			[]() -> float
+			{
+				return g_Renderer.GetAuroraPresetFadeDuration();
+			});
 	}
 }

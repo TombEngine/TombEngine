@@ -38,5 +38,9 @@ namespace TEN::Scripting
 	///   Flow.SetVolumetricCloudLayerB({ coverage = 0.3, density = 0.5, ... })
 	///   Flow.ClearWeatherOverrides()
 	///
+	///   -- Aurora fade duration (seconds for aurora to appear/disappear on preset change)
+	///   Flow.SetAuroraFadeDuration(15.0)
+	///   local dur = Flow.GetAuroraFadeDuration()
+	///
 	void RegisterWeatherAPI(sol::table& parent);
 }

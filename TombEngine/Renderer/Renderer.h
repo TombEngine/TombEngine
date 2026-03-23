@@ -217,7 +217,9 @@ namespace TEN::Renderer
 
 		// Aurora system
 		Aurora::AuroraSettings _auroraSettings;
-		float _auroraTime = 0.0f;  // Accumulated animation time.
+		float _auroraTime        = 0.0f;   // Accumulated animation time.
+		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
+		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
@@ -491,6 +493,9 @@ namespace TEN::Renderer
 		const Moon::MoonSettings& GetMoonSettings() const { return _moonSettings; }
 		Aurora::AuroraSettings& GetAuroraSettings() { return _auroraSettings; }
 		const Aurora::AuroraSettings& GetAuroraSettings() const { return _auroraSettings; }
+		float  GetAuroraPresetFade() const { return _auroraPresetFade; }
+		float& GetAuroraPresetFadeDuration() { return _auroraPresetFadeDuration; }
+		float  GetAuroraPresetFadeDuration() const { return _auroraPresetFadeDuration; }
 	private:
 
 		// God rays

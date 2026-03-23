@@ -24,6 +24,7 @@ namespace TEN::Renderer::Aurora
 		GreenRedTips,       // Green + red tips at top
 		BluePurple,         // Blue/purple (rare aurora)
 		StrongMulticolor,   // Full multicolor display
+		TurquoiseBluePurple,// Turquoise bottom, blue mid, purple top
 
 		Count
 	};
@@ -43,7 +44,7 @@ namespace TEN::Renderer::Aurora
 		float Speed                = 0.3f;     // [0, 2]     Animation drift speed.
 
 		// --- Color ---
-		int   ColorPreset          = 0;        // [0, 4]     AuroraColorPreset index.
+		int   ColorPreset          = 0;        // [0, 5]     AuroraColorPreset index.
 		float ColorIntensity       = 1.0f;     // [0, 3]     Color saturation/vibrancy multiplier.
 		float Saturation           = 1.0f;     // [0, 2]     Color saturation (1 = normal, 0 = grayscale).
 

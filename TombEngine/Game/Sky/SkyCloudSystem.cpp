@@ -1324,6 +1324,16 @@ namespace TEN::Sky
 		return _currentState.CloudB.Enabled && _currentState.CloudB.Coverage > 0.001f;
 	}
 
+	bool SkyCloudSystem::IsAuroraPresetActive() const
+	{
+		// Aurora is active if any volumetric cloud layer has the Aurora category and is enabled.
+		if (_currentState.CloudA.Enabled && _currentState.CloudA.Category == CloudCategory::Aurora)
+			return true;
+		if (_currentState.CloudB.Enabled && _currentState.CloudB.Category == CloudCategory::Aurora)
+			return true;
+		return false;
+	}
+
 	bool SkyCloudSystem::IsLegacyLayer1Active() const
 	{
 		return _currentState.Layer1.Enabled;

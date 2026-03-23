@@ -3102,16 +3102,6 @@ namespace TEN::Renderer
 			offset = 0;
 		}
 
-		// --- Aurora borealis — additive pass, independent of sky dome ---
-		if (_auroraSettings.Enabled && !reflectionPass)
-		{
-			DrawAurora(renderView);
-
-			// Restore vertex buffer state.
-			stride = sizeof(Vertex);
-			offset = 0;
-		}
-
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
 
@@ -3464,6 +3454,20 @@ namespace TEN::Renderer
 			DrawInstancedTriangles(4, 1, 0);
 
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		}
+
+		// --- Aurora borealis — additive pass, drawn after horizon mesh so it is never
+		// overwritten by opaque horizon geometry. The smooth horizon-fade in the shader
+		// ensures no aurora bleeds onto the solid ground area.
+		if (_auroraSettings.Enabled && !reflectionPass)
+		{
+			DrawAurora(renderView);
+
+			// Restore regular vertex / topology state.
+			stride = sizeof(Vertex);
+			offset = 0;
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			_context->IASetInputLayout(_inputLayout.Get());
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.

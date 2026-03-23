@@ -335,7 +335,7 @@ namespace TEN::Sky
 			ImGui::Indent(8.0f);
 			static const char* auroraPresetNames[] = {
 				"0: Green Classic", "1: Green + Purple", "2: Green + Red Tips",
-				"3: Blue / Purple", "4: Strong Multicolor"
+				"3: Blue / Purple", "4: Strong Multicolor", "5: Turquoise / Blue / Purple"
 			};
 			ImGui::Combo("Color Preset##aurora", &aurora.ColorPreset, auroraPresetNames, IM_ARRAYSIZE(auroraPresetNames));
 			ImGui::SliderFloat("Color Intensity##aurora", &aurora.ColorIntensity, 0.0f, 3.0f, "%.3f");
@@ -367,6 +367,16 @@ namespace TEN::Sky
 			ImGui::Indent(8.0f);
 			ImGui::SliderInt("Layer Count##aurora",  &aurora.LayerCount, 1, 5);
 			ImGui::SliderFloat("Softness##aurora",   &aurora.Softness,   0.0f, 1.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Preset Fade##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::Text("Fade Progress: %.3f", g_Renderer.GetAuroraPresetFade());
+			ImGui::SliderFloat("Fade Duration (s)##aurora", &g_Renderer.GetAuroraPresetFadeDuration(),
+			                   0.5f, 120.0f, "%.1f s");
+			ImGui::TextDisabled("  Duration for aurora to fade in/out when preset changes.");
 			ImGui::Unindent(8.0f);
 		}
 

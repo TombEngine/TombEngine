@@ -487,28 +487,40 @@ float3 GetAuroraColor(float heightFrac, float preset)
 {
     // Interpolate between integer presets for smooth transitions.
     float presetFrac = frac(preset);
-    int presetA = (int)floor(preset) % 5;
-    int presetB = (presetA + 1) % 5;
+    int presetA = (int)floor(preset) % 6;
+    int presetB = (presetA + 1) % 6;
 
-    float3 botA, topA;
-    if      (presetA == 0) { botA = float3(0.1, 0.8, 0.2);  topA = float3(0.05, 0.4, 0.1);  }
-    else if (presetA == 1) { botA = float3(0.1, 0.7, 0.3);  topA = float3(0.5, 0.1, 0.6);   }
-    else if (presetA == 2) { botA = float3(0.1, 0.8, 0.2);  topA = float3(0.7, 0.1, 0.05);  }
-    else if (presetA == 3) { botA = float3(0.15, 0.2, 0.7); topA = float3(0.4, 0.1, 0.5);   }
-    else                   { botA = float3(0.1, 0.6, 0.3);  topA = float3(0.6, 0.1, 0.5);   }
+    // Each preset defines three color stops: bottom, mid (50 %), top.
+    // For presets 0-4 the mid is exactly lerp(bot, top, 0.5), so the final
+    // output is identical to the old two-stop formula.  Preset 5 uses a
+    // distinct mid to produce the intended turquoise → blue → purple gradient.
+    float3 botA, midA, topA;
+    if      (presetA == 0) { botA = float3(0.1,  0.8,  0.2 ); midA = float3(0.075, 0.6,  0.15 ); topA = float3(0.05, 0.4,  0.1 ); }
+    else if (presetA == 1) { botA = float3(0.1,  0.7,  0.3 ); midA = float3(0.3,   0.4,  0.45 ); topA = float3(0.5,  0.1,  0.6 ); }
+    else if (presetA == 2) { botA = float3(0.1,  0.8,  0.2 ); midA = float3(0.4,   0.45, 0.125); topA = float3(0.7,  0.1,  0.05); }
+    else if (presetA == 3) { botA = float3(0.15, 0.2,  0.7 ); midA = float3(0.275, 0.15, 0.6  ); topA = float3(0.4,  0.1,  0.5 ); }
+    else if (presetA == 4) { botA = float3(0.1,  0.6,  0.3 ); midA = float3(0.35,  0.35, 0.4  ); topA = float3(0.6,  0.1,  0.5 ); }
+    else                   { botA = float3(0.0,  0.8,  0.7 ); midA = float3(0.1,   0.3,  0.9  ); topA = float3(0.5,  0.1,  0.8 ); } // Turquoise / Blue / Purple
 
-    float3 botB, topB;
-    if      (presetB == 0) { botB = float3(0.1, 0.8, 0.2);  topB = float3(0.05, 0.4, 0.1);  }
-    else if (presetB == 1) { botB = float3(0.1, 0.7, 0.3);  topB = float3(0.5, 0.1, 0.6);   }
-    else if (presetB == 2) { botB = float3(0.1, 0.8, 0.2);  topB = float3(0.7, 0.1, 0.05);  }
-    else if (presetB == 3) { botB = float3(0.15, 0.2, 0.7); topB = float3(0.4, 0.1, 0.5);   }
-    else                   { botB = float3(0.1, 0.6, 0.3);  topB = float3(0.6, 0.1, 0.5);   }
+    float3 botB, midB, topB;
+    if      (presetB == 0) { botB = float3(0.1,  0.8,  0.2 ); midB = float3(0.075, 0.6,  0.15 ); topB = float3(0.05, 0.4,  0.1 ); }
+    else if (presetB == 1) { botB = float3(0.1,  0.7,  0.3 ); midB = float3(0.3,   0.4,  0.45 ); topB = float3(0.5,  0.1,  0.6 ); }
+    else if (presetB == 2) { botB = float3(0.1,  0.8,  0.2 ); midB = float3(0.4,   0.45, 0.125); topB = float3(0.7,  0.1,  0.05); }
+    else if (presetB == 3) { botB = float3(0.15, 0.2,  0.7 ); midB = float3(0.275, 0.15, 0.6  ); topB = float3(0.4,  0.1,  0.5 ); }
+    else if (presetB == 4) { botB = float3(0.1,  0.6,  0.3 ); midB = float3(0.35,  0.35, 0.4  ); topB = float3(0.6,  0.1,  0.5 ); }
+    else                   { botB = float3(0.0,  0.8,  0.7 ); midB = float3(0.1,   0.3,  0.9  ); topB = float3(0.5,  0.1,  0.8 ); } // Turquoise / Blue / Purple
 
     float3 bottomColor = lerp(botA, botB, presetFrac);
+    float3 midColor    = lerp(midA, midB, presetFrac);
     float3 topColor    = lerp(topA, topB, presetFrac);
 
-    float colorBlend = pow(saturate(heightFrac), 1.5);
-    return lerp(bottomColor, topColor, colorBlend);
+    // 3-stop piecewise gradient with the same power-bias as before.
+    // t < 0.5  → bottom → mid;  t >= 0.5 → mid → top.
+    // Continuity is guaranteed: both sides evaluate to midColor at t == 0.5.
+    float t = pow(saturate(heightFrac), 1.5);
+    float3 lowerHalf = lerp(bottomColor, midColor, saturate(t * 2.0));
+    float3 upperHalf = lerp(midColor,    topColor,  saturate((t - 0.5) * 2.0));
+    return t < 0.5 ? lowerHalf : upperHalf;
 }
 
 // ---------------------------------------------------------------------------
@@ -602,9 +614,13 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
         col += avgCol * exp2(-fi * 0.065 - 2.5) * smoothstep(0.0, 5.0, fi);
     }
 
-    // Horizon fade: aurora fades near the horizon.
-    // AuroraHorizonFade scales the falloff (default 1.0 → reference behavior).
-    float horizonMask = clamp(rd.y * AuroraHorizonFade * 15.0 + 0.4, 0.0, 1.0);
+    // Horizon fade: aurora fades softly toward the horizon (similar to alto cloud HorizonFade).
+    // AuroraHorizonFade [0,2] controls the width of the fade band above the horizon.
+    //   0   → no fade (sharp cutoff at horizon)
+    //   1.0 → default: full visibility reached ~9° above horizon, gone at horizon
+    //   2.0 → very gradual: full visibility reached ~17° above horizon
+    float horizonT    = saturate(rd.y / max(AuroraHorizonFade * 0.15, 0.001));
+    float horizonMask = horizonT * horizonT * (3.0 - 2.0 * horizonT); // smoothstep
     col *= horizonMask;
 
     // Apply brightness, intensity, and night visibility.
