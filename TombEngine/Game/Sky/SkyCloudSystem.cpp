@@ -79,6 +79,7 @@ namespace TEN::Sky
 		s.SilverliningStr = SilverliningStr;
 		s.HorizonFade     = HorizonFade;
 		s.DistanceFade    = DistanceFade;
+		s.HorizonMeshBleed = HorizonMeshBleed;
 		s.Quality         = Quality;
 		s.CloudType       = static_cast<int>(Category);
 		s.AltoBillowStrength = AltoBillowStrength;
@@ -141,6 +142,7 @@ namespace TEN::Sky
 		snap.SilverliningStr = src.SilverliningStr;
 		snap.HorizonFade     = src.HorizonFade;
 		snap.DistanceFade    = src.DistanceFade;
+		snap.HorizonMeshBleed = src.HorizonMeshBleed;
 		snap.Quality         = src.Quality;
 		snap.AltoBillowStrength = src.AltoBillowStrength;
 		snap.AltoCovSoftWidth   = src.AltoCovSoftWidth;
@@ -245,6 +247,7 @@ namespace TEN::Sky
 		result.SilverliningStr = LerpFloat(a.SilverliningStr, b.SilverliningStr, t);
 		result.HorizonFade        = LerpFloat(a.HorizonFade,        b.HorizonFade,        t);
 		result.DistanceFade       = LerpFloat(a.DistanceFade,       b.DistanceFade,       t);
+		result.HorizonMeshBleed   = LerpFloat(a.HorizonMeshBleed,   b.HorizonMeshBleed,   t);
 		result.AltoBillowStrength = LerpFloat(a.AltoBillowStrength, b.AltoBillowStrength, t);
 		result.AltoCovSoftWidth   = LerpFloat(a.AltoCovSoftWidth,   b.AltoCovSoftWidth,   t);
 		result.AltoAbsorption      = LerpFloat(a.AltoAbsorption,      b.AltoAbsorption,      t);

@@ -3328,6 +3328,18 @@ namespace TEN::Renderer
 			offset = 0;
 		}
 
+		// Draw aurora BEFORE the horizon mesh so that opaque horizon geometry
+		// naturally overwrites it by draw order — no depth test needed.
+		if (_auroraSettings.Enabled && !reflectionPass)
+		{
+			DrawAurora(renderView);
+			// Restore mesh input layout and draw topology after fullscreen triangle pass.
+			_context->IASetInputLayout(_inputLayout.Get());
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			stride = sizeof(Vertex);
+			offset = 0;
+		}
+
 		// Draw horizon.
 		for (int layer = 0; layer < 2; layer++)
 		{
@@ -3383,6 +3395,58 @@ namespace TEN::Renderer
 					}
 				}
 			}
+		}
+
+		// Re-render AltocumulusMid after the horizon mesh at HorizonMeshBleed intensity.
+		// At 1.0 this intentionally recreates the old behaviour where clouds were
+		// drawn in front of the mountains. At 0.0 the second pass is skipped, so
+		// the mountains fully overwrite the earlier cloud composite.
+		if (!reflectionPass)
+		{
+			auto doBleedOverlay = [&](CloudRenderSettings settings, VolumetricCloud::CloudRuntimeState& layerState, RenderTarget2D& cloudRT, float bleedStrength)
+			{
+				if (!settings.Enabled || bleedStrength < 0.001f)
+					return;
+				if (settings.CloudType != 2)
+					return;
+
+				// Pass bleedStrength into the composite shader via BleedPassStrength.
+				// The shader applies an inverse-horizon-fade mask so the bleed clouds
+				// only appear near the mountains/horizon — not double-composited in
+				// the sky. Coverage stays at full to preserve volumetric cloud density.
+				settings.BleedPassStrength = bleedStrength;
+
+				DrawSingleVolumetricCloudLayer(settings, layerState, cloudRT, renderView, false);
+
+				// The cloud draw restores the main target, but explicitly restore the
+				// caller-owned DSV used by this sky pass.
+				_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), depthStencilView);
+				_context->RSSetViewports(1, &renderView.Viewport);
+			};
+
+			const auto& liveState = g_SkyCloudSystem.GetCurrentState();
+			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			{
+				if (g_SkyCloudSystem.IsCloudAActive())
+					doBleedOverlay(g_SkyCloudSystem.GetCloudARenderSettings(), _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
+				if (g_SkyCloudSystem.IsCloudBActive())
+					doBleedOverlay(g_SkyCloudSystem.GetCloudBRenderSettings(), _cloudStateB, _cloudRenderTargetB, liveState.CloudB.HorizonMeshBleed);
+			}
+			else
+			{
+				// Single-layer path via level script: use CloudA bleed if any.
+				const CloudRenderSettings* singleSettings = GetActiveVolumetricCloudSettings();
+				if (singleSettings && singleSettings->Enabled)
+					doBleedOverlay(*singleSettings, _cloudState, _cloudRenderTarget, liveState.CloudA.HorizonMeshBleed);
+			}
+
+			// Restore mesh rendering state.
+			_context->IASetInputLayout(_inputLayout.Get());
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			stride = sizeof(Vertex);
+			offset = 0;
+			SetBlendMode(BlendMode::Opaque);
+			SetDepthState(DepthState::None);
 		}
 
 		// Eventually draw the sun sprite.
@@ -3474,23 +3538,7 @@ namespace TEN::Renderer
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
-		// --- Aurora borealis — additive pass, drawn after horizon mesh so it is never
-		// overwritten by opaque horizon geometry. The smooth horizon-fade in the shader
-		// ensures no aurora bleeds onto the solid ground area.
-		if (_auroraSettings.Enabled && !reflectionPass)
-		{
-			DrawAurora(renderView);
-
-			// Restore regular vertex / topology state.
-			stride = sizeof(Vertex);
-			offset = 0;
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			_context->IASetInputLayout(_inputLayout.Get());
-		}
-
 		// For reflection passes clear depth so the skybox RT is fresh for the next face.
-		// For the main pass, preserve horizon-mesh depth here so that DrawAurora (above)
-		// can depth-test against it.  The caller resets depth after this function returns.
 		if (reflectionPass)
 			_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}

@@ -211,6 +211,10 @@ namespace TEN::Renderer
 		_stVolumetricCloud.HorizonFade   = settings.HorizonFade;
 		_stVolumetricCloud.DistanceFade  = settings.DistanceFade;
 		_stVolumetricCloud.CloudType     = settings.CloudType;
+		// Normal composite pass: full opacity.
+		// BleedPassStrength is 0 for normal draws; doBleedOverlay sets it to bleedStrength.
+		_stVolumetricCloud.CloudCompositeScale = 1.0f;
+		_stVolumetricCloud.CloudIsBleedPass    = settings.BleedPassStrength;
 
 		_stVolumetricCloud.AltoBillowStrength = settings.AltoBillowStrength;
 		_stVolumetricCloud.AltoCovSoftWidth   = settings.AltoCovSoftWidth;
@@ -274,7 +278,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CloudForwardScatterStrength = _atmosphericSkySettings.CloudForwardScatterStrength;
 		_stVolumetricCloud.CloudLightAbsorption        = _atmosphericSkySettings.CloudLightAbsorption;
 		_stVolumetricCloud.CloudSunWarmthInfluence     = _atmosphericSkySettings.CloudSunWarmthInfluence;
-		_stVolumetricCloud.CloudLtPad1                 = 0.0f;
+		// CloudIsBleedPass is set to 0.0f directly above (normal pass); CloudLtPad2 unused.
 		_stVolumetricCloud.CloudLtPad2                 = 0.0f;
 
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion

@@ -527,7 +527,8 @@ namespace TEN::Renderer
 			const VolumetricCloud::CloudRenderSettings& settings,
 			VolumetricCloud::CloudRuntimeState& state,
 			RenderTarget2D& renderTarget,
-			RenderView& renderView);
+			RenderView& renderView,
+			bool advanceState = true);
 		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
 		float ComputeSingleLayerOcclusion(
 			const VolumetricCloud::CloudRenderSettings& settings,

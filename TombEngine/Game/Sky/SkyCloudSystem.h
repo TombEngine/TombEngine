@@ -123,6 +123,7 @@ namespace TEN::Sky
 
 		float HorizonFade     = 1.0f;   // Fade near horizon, 0 = none, 1 = full
 		float DistanceFade    = 1.0f;   // Distance-based fade factor
+		float HorizonMeshBleed = 0.0f;  // [0,1] how much clouds bleed through the opaque horizon mesh after it is drawn
 
 		// Altocumulus-specific appearance tuning (only meaningful for Category == AltocumulusMid)
 		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM

@@ -67,7 +67,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float HorizonFade;    // Multiplier on horizon atmospheric fade (0 = none, 1 = full).
 		float DistanceFade;   // Multiplier on distance-based opacity falloff (0 = none, 1 = full).
 		int   CloudType;      // Cloud category enum: 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
-		float Padding2;
+		float CloudCompositeScale; // Composite alpha multiplier: 1.0 = normal, <1.0 = bleed-through pass.
 		//--
 		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 2)
 		float AltoBillowStrength;  // [0,1]      blend toward billow (abs-value) FBM noise
@@ -133,7 +133,7 @@ namespace TEN::Renderer::ConstantBuffers
 		// Row 22
 		float CloudLightAbsorption;         // [0.1,5] Beer-Lambert absorption exponent (standard clouds).
 		float CloudSunWarmthInfluence;      // [0,1]   sun color warmth blend.
-		float CloudLtPad1;
+		float CloudIsBleedPass;             // 0 = normal composite, 1 = bleed-through-mountains pass (un-fades horizon).
 		float CloudLtPad2;
 	};
 }

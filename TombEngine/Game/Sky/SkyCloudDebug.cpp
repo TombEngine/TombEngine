@@ -117,6 +117,7 @@ namespace TEN::Sky
 		}
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
 		params.push_back({"Distance Fade",    &snap.DistanceFade,       0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DistanceFade)});
+		params.push_back({"Horizon Mesh Bleed", &snap.HorizonMeshBleed,  0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonMeshBleed)});
 		// --- Altocumulus-specific parameters (meaningful only when Category == AltocumulusMid) ---
 		params.push_back({"Alto Billow Str",  &snap.AltoBillowStrength, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoBillowStrength)});
 		params.push_back({"Alto Cov Soft W",  &snap.AltoCovSoftWidth,   0.0f,    0.25f,    0.005f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::AltoCovSoftWidth)});
@@ -393,22 +394,26 @@ namespace TEN::Sky
 	// Draw a cloud layer section with all parameter sliders.
 	// ====================================================================
 
-	static void DrawLayerSection(
+	static bool DrawLayerSection(
 		const char* title,
 		const char* idPrefix,
 		VolumetricCloudLayerSnapshot& snap,
 		const VolumetricCloudLayerSnapshot* defaults)
 	{
 		if (!ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
-			return;
+			return false;
+
+		bool changed = false;
 
 		ImGui::Indent(8.0f);
 
 		// Enabled toggle.
-		ImGui::Checkbox("Enabled", &snap.Enabled);
+		if (ImGui::Checkbox("Enabled", &snap.Enabled))
+			changed = true;
 
 		// Category combo.
-		DrawCategoryCombo("Category", snap.Category);
+		if (DrawCategoryCombo("Category", snap.Category))
+			changed = true;
 
 		// For Aurora category, show aurora controls instead of volumetric cloud controls.
 		if (snap.Category == CloudCategory::Aurora)
@@ -418,7 +423,7 @@ namespace TEN::Sky
 			ImGui::Separator();
 			DrawAuroraControls();
 			ImGui::Unindent(8.0f);
-			return;
+			return changed;
 		}
 
 		// One-click pattern presets for requested cloud types.
@@ -428,7 +433,10 @@ namespace TEN::Sky
 			snap.Category == CloudCategory::CumulonimbusVerticalBuildUp)
 		{
 			if (ImGui::Button("Apply Tuned Pattern"))
+			{
 				ApplyPatternPresetForCategory(snap);
+				changed = true;
+			}
 			ImGui::SameLine();
 			if (snap.Category == CloudCategory::AltocumulusMid)
 				ImGui::TextDisabled("Altocumulus grouping (Schaefchen)");
@@ -443,7 +451,7 @@ namespace TEN::Sky
 		// Build and draw all parameter sliders.
 		auto params = BuildParamList(snap, defaults);
 		for (auto& p : params)
-			DrawParamSlider(p, idPrefix);
+			changed |= DrawParamSlider(p, idPrefix);
 
 		// Altocumulus color pickers (visual RGB widgets for bright top + dark base).
 		if (snap.Category == CloudCategory::AltocumulusMid)
@@ -458,6 +466,7 @@ namespace TEN::Sky
 				snap.AltoCloudColorR = altoColor[0];
 				snap.AltoCloudColorG = altoColor[1];
 				snap.AltoCloudColorB = altoColor[2];
+				changed = true;
 			}
 			ImGui::TextDisabled("Dark (Base / Shadow) Color");
 			float darkColor[3] = { snap.AltoCloudColorDarkR, snap.AltoCloudColorDarkG, snap.AltoCloudColorDarkB };
@@ -468,6 +477,7 @@ namespace TEN::Sky
 				snap.AltoCloudColorDarkR = darkColor[0];
 				snap.AltoCloudColorDarkG = darkColor[1];
 				snap.AltoCloudColorDarkB = darkColor[2];
+				changed = true;
 			}
 			ImGui::TextDisabled("Lightning Bolt Color");
 			float boltColor[3] = { snap.LightningBoltColorR, snap.LightningBoltColorG, snap.LightningBoltColorB };
@@ -478,8 +488,10 @@ namespace TEN::Sky
 				snap.LightningBoltColorR = boltColor[0];
 				snap.LightningBoltColorG = boltColor[1];
 				snap.LightningBoltColorB = boltColor[2];
+				changed = true;
 			}
-			ImGui::Checkbox("Lightning Enabled", &snap.LightningEnabled);
+			if (ImGui::Checkbox("Lightning Enabled", &snap.LightningEnabled))
+				changed = true;
 		}
 
 		// Reset all button.
@@ -489,12 +501,16 @@ namespace TEN::Sky
 			char resetId[64];
 			snprintf(resetId, sizeof(resetId), "Reset All##%s", idPrefix);
 			if (ImGui::Button(resetId))
+			{
 				snap = *defaults;
+				changed = true;
+			}
 			ImGui::SameLine();
 			ImGui::TextDisabled("(revert to preset defaults)");
 		}
 
 		ImGui::Unindent(8.0f);
+		return changed;
 	}
 
 	// ====================================================================
@@ -655,8 +671,10 @@ namespace TEN::Sky
 			const VolumetricCloudLayerSnapshot* defaultsB =
 				presetDef ? &presetDef->TargetState.CloudB : nullptr;
 
-			DrawLayerSection("Cloud Layer A (Live)", "liveA", state.CloudA, defaultsA);
-			DrawLayerSection("Cloud Layer B (Live)", "liveB", state.CloudB, defaultsB);
+			if (DrawLayerSection("Cloud Layer A (Live)", "liveA", state.CloudA, defaultsA))
+				g_SkyCloudSystem.SetVolumetricLayerA(state.CloudA);
+			if (DrawLayerSection("Cloud Layer B (Live)", "liveB", state.CloudB, defaultsB))
+				g_SkyCloudSystem.SetVolumetricLayerB(state.CloudB);
 		}
 
 		// ----------------------------------------------------------------

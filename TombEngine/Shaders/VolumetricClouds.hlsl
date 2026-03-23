@@ -1967,13 +1967,12 @@ float4 PS(VSOutput input) : SV_TARGET
     if (CloudDebugView != 0)
         cloudResult = DebugVisualization(rayOrigin, rayDir, input.Position.xy, cloudResult, PrimaryStepCount);
 
-    // Atmospheric horizon fade: attenuate cloud opacity for low-elevation rays.
-    // Distant clouds smoothly dissolve into whatever sky/horizon is behind them.
-    // Only applied when not in a debug view (debug views show unmodified density).
+    // NOTE: HorizonAtmosphericFade is NOT applied here — it is deferred to
+    // PSCloudComposite so the cloud RT stores un-faded alpha.  This lets the
+    // bleed-through-mountains re-composite use the full cloud opacity directly
+    // instead of the lossy divide-out recovery that produced color artifacts.
     if (CloudDebugView == 0)
     {
-        cloudResult.a *= HorizonAtmosphericFade(rayDir);
-
         // Distance fade: attenuate clouds based on how far the cloud slab entry
         // point is from the camera. DistanceFade CB parameter controls strength
         // (0 = no distance fade, 1 = full fade). The fade band runs from 60% to
@@ -1989,20 +1988,14 @@ float4 PS(VSOutput input) : SV_TARGET
             }
         }
 
-        // Post-fade thin-alpha cleanup: HorizonFade and DistanceFade can
-        // reduce previously solid alpha to very small values. Use a linear
-        // ramp (not smoothstep) to avoid introducing contour bands at the
-        // fade boundary from the S-curve's slope plateau.
+        // Post-fade thin-alpha cleanup: DistanceFade can reduce previously
+        // solid alpha to very small values. Use a linear ramp (not smoothstep)
+        // to avoid introducing contour bands at the fade boundary.
         cloudResult.a *= saturate(cloudResult.a / 0.025f);
 
         // AltocumulusMid global layer opacity via Coverage slider [0,1].
-        // Applied AFTER HorizonAtmosphericFade and DistanceFade so the
-        // horizon gradient is preserved at all opacity levels.
-        //   Coverage = 1.0 -> full opacity (default behaviour).
-        //   Coverage = 0.5 -> entire layer at half opacity, horizon still fades.
-        //   Coverage = 0.0 -> layer fully transparent.
-        // The Coverage CB field is uploaded by UpdateVolumetricCloudBuffer()
-        // and is already present in the shared cbuffer for all cloud types.
+        // Applied AFTER DistanceFade so the fade gradient is preserved
+        // at all opacity levels.
         if (CloudType == 2)
             cloudResult.a *= saturate(Coverage);
     }
@@ -2106,7 +2099,33 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
 
     float3 outRGB	   = (outAlpha > 0.0001f) ? (outRGBPremul / outAlpha) : cCenter.rgb;
 
-    return float4(outRGB, outAlpha);
+    // HorizonAtmosphericFade is applied here in the composite pass, NOT during
+    // raymarching.  The cloud RT stores un-faded alpha with valid RGB so the
+    // bilateral upsampler always has good signal — even near the horizon.
+    //
+    // Normal pass  (CloudIsBleedPass == 0): full HorizonAtmosphericFade, clouds
+    //   dissolve naturally at the horizon.
+    // Bleed pass   (CloudIsBleedPass > 0 == bleedStrength): skip the broad fade
+    //   so clouds appear in front of mountains. Apply only a very narrow
+    //   bottom-edge softness (smoothstep over ~3°) to round off the hard
+    //   geometric bottom of the cloud slab without suppressing the whole layer.
+    float3 compRayDir = GetViewRayDir(uv);
+    float finalAlpha = outAlpha;
+    if (CloudIsBleedPass < 0.001f)
+    {
+        // Normal pass: clouds dissolve naturally at the horizon.
+        finalAlpha *= HorizonAtmosphericFade(compRayDir);
+    }
+    else
+    {
+        // Bleed pass: only a narrow bottom-edge fade to preserve cloud shapes.
+        // elevation = 0 at horizon, ~0.05 at ~3° above — just enough to
+        // smooth the hard underside of the cloud slab.
+        float elevation      = saturate(-compRayDir.y);
+        float bottomSoftness = smoothstep(0.0f, 0.05f, elevation);
+        finalAlpha *= CloudIsBleedPass * bottomSoftness;
+    }
+    return float4(outRGB, finalAlpha * CloudCompositeScale);
 }
 
 // ===========================================================================

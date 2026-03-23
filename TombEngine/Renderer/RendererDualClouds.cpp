@@ -108,7 +108,8 @@ namespace TEN::Renderer
 		const CloudRenderSettings& settings,
 		CloudRuntimeState& state,
 		RenderTarget2D& renderTarget,
-		RenderView& renderView)
+		RenderView& renderView,
+		bool advanceState)
 	{
 		bool layerIsAlto = (settings.CloudType == 2);
 		if (!settings.Enabled)
@@ -142,12 +143,17 @@ namespace TEN::Renderer
 		// Update times — evolution time and wind offset accumulated separately.
 		// Wind offset is monotonically non-decreasing to prevent backwards motion
 		// when WindSpeed transitions to a lower value during preset blending.
-		float dt = 1.0f / std::max(_refreshRate, 30);
-		if (!state.FreezeEvolution)
-			state.AccumulatedTime += dt;
-		if (!state.FreezeWind)
-			state.WindAccumOffset += settings.WindSpeed * dt;
-		state.FrameCounter++;
+		// Optional skip is used by the post-horizon bleed draw so clouds don't
+		// advance twice per frame when the extra overlay pass is enabled.
+		if (advanceState)
+		{
+			float dt = 1.0f / std::max(_refreshRate, 30);
+			if (!state.FreezeEvolution)
+				state.AccumulatedTime += dt;
+			if (!state.FreezeWind)
+				state.WindAccumOffset += settings.WindSpeed * dt;
+			state.FrameCounter++;
+		}
 
 		// Fill constant buffer.
 		UpdateVolumetricCloudBuffer(settings, state, renderView);

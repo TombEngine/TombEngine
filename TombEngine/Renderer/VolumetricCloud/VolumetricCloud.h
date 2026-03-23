@@ -102,8 +102,15 @@ namespace TEN::Renderer::VolumetricCloud
 		float PhaseBackward     = 0.3f;    // HG phase function backward lobe
 
 		// Fading
-		float HorizonFade     = 1.0f;   // Multiplier on horizon atmospheric fade. 0 = no fade, 1 = full fade.
-		float DistanceFade    = 1.0f;   // Multiplier on distance-based opacity falloff. 0 = no fade, 1 = full fade.
+		float HorizonFade      = 1.0f;  // Multiplier on horizon atmospheric fade. 0 = no fade, 1 = full fade.
+		float DistanceFade     = 1.0f;  // Multiplier on distance-based opacity falloff. 0 = no fade, 1 = full fade.
+		float HorizonMeshBleed = 0.0f;  // [0,1] re-composite alpha after horizon mesh (0=no bleed, 1=full bleed).
+
+		// Internal renderer field — not part of saved state.
+		// Set by doBleedOverlay to pass bleedStrength into the composite shader.
+		// 0.0 = normal pass (HorizonAtmosphericFade applied).
+		// >0  = bleed pass  (inverse-fade mask, value carries blendStrength).
+		float BleedPassStrength = 0.0f;
 
 		// Cloud type (maps to CloudCategory enum)
 		int CloudType = 0;             // 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical

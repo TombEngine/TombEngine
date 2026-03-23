@@ -200,13 +200,17 @@ namespace TEN::Renderer
 		rayFacingFade = rayFacingFade * rayFacingFade * (3.0f - 2.0f * rayFacingFade);
 
 		// --- Cloud coverage for auto-strength ---
+		// Aurora-category layers are not real clouds and must not boost god ray strength.
 		float cloudCoverage = 0.0f;
+		const int auroraType = (int)CloudCategory::Aurora;
 		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
 		{
 			float coverageA = 0.0f, coverageB = 0.0f;
-			if (g_SkyCloudSystem.IsCloudAActive())
+			if (g_SkyCloudSystem.IsCloudAActive() &&
+			    g_SkyCloudSystem.GetCloudARenderSettings().CloudType != auroraType)
 				coverageA = g_SkyCloudSystem.GetCloudARenderSettings().Coverage;
-			if (g_SkyCloudSystem.IsCloudBActive())
+			if (g_SkyCloudSystem.IsCloudBActive() &&
+			    g_SkyCloudSystem.GetCloudBRenderSettings().CloudType != auroraType)
 				coverageB = g_SkyCloudSystem.GetCloudBRenderSettings().Coverage;
 			cloudCoverage = std::max(coverageA, coverageB);
 		}
@@ -299,9 +303,18 @@ namespace TEN::Renderer
 		}
 
 		// Require volumetric clouds to provide the occlusion mask.
+		// Aurora-category layers are pure light effects, not cloud geometry — exclude them
+		// so they contribute neither an occlusion mask nor auto-strength for god rays.
 		bool hasClouds = false;
 		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-			hasClouds = true;
+		{
+			// Only count as "real clouds" if at least one layer is not the Aurora category.
+			const int auroraType = (int)CloudCategory::Aurora;
+			bool aOnly = !g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.GetCloudARenderSettings().CloudType == auroraType;
+			bool bOnly = !g_SkyCloudSystem.IsCloudBActive() || g_SkyCloudSystem.GetCloudBRenderSettings().CloudType == auroraType;
+			if (!(aOnly && bOnly))
+				hasClouds = true;
+		}
 		else
 		{
 			const auto* activeSettings = GetActiveVolumetricCloudSettings();
