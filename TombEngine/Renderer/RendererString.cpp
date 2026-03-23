@@ -197,7 +197,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
-		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor.PremultiplyAlpha();
 
 		_spriteBatch->Begin();
 
