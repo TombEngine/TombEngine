@@ -1,4 +1,4 @@
-﻿#include "framework.h"
+#include "framework.h"
 #include "Objects/TR2/Entity/Dragon.h"
 
 #include "Game/camera.h"
