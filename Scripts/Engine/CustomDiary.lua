@@ -777,8 +777,8 @@ function CustomDiary:UnlockPages(pageIndex, notification)
             diary.Notification.ElapsedTime = 0
             diary.TargetAlpha = 255
             diary.CurrentAlpha = 1
-            diary.NotificationVisible = true
             GameVars.Engine.LastUsedDiary = diary.Object
+            diary.NotificationVisible = true
         end
     end
 end
