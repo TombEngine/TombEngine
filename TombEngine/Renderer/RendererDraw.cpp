@@ -1952,16 +1952,16 @@ namespace TEN::Renderer
 
 		ID3D11RenderTargetView* pRenderViewPtrs[3];
 
-		// Draw horizon and sky.
+		// Draw horizon, sky, clouds (behind horizon mesh), and aurora.
+		// Cloud compositing now happens inside DrawHorizonAndSky, before the horizon mesh,
+		// so opaque mountain geometry in the horizon mesh naturally covers the clouds.
 		DrawHorizonAndSky(_renderTarget.DepthStencilView.Get(), view);
 
-		// Draw volumetric clouds over sky.
-		// Use the new dual-layer system if the SkyCloudSystem has active layers,
-		// otherwise fall back to the legacy single-layer path for backward compatibility.
-		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-			DrawDualVolumetricClouds(view);
-		else
-			DrawVolumetricClouds(view);
+		// Horizon-mesh depth was preserved at end of DrawHorizonAndSky (for aurora occlusion).
+		// Clear now so that DrawGodRays and the GBuffer pass start with uniform depth.
+		_context->ClearDepthStencilView(
+			_renderTarget.DepthStencilView.Get(),
+			D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// Draw god rays (radial light shafts from sun through cloud gaps).
 		DrawGodRays(view);
@@ -3310,6 +3310,24 @@ namespace TEN::Renderer
 			SetCullMode(CullMode::CounterClockwise);
 		}
 
+		// Composite volumetric clouds BEFORE the horizon mesh so that opaque horizon geometry
+		// naturally paints over them — no depth tricks needed for this.
+		// Skip for reflection pass (same rule as aurora).
+		if (!reflectionPass)
+		{
+			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				DrawDualVolumetricClouds(renderView);
+			else
+				DrawVolumetricClouds(renderView);
+
+			// Cloud passes restore _renderTarget + full viewport on cleanup,
+			// but rebind the depth-stencil that this function owns explicitly.
+			_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(), depthStencilView);
+			_context->RSSetViewports(1, &renderView.Viewport);
+			stride = sizeof(Vertex);
+			offset = 0;
+		}
+
 		// Draw horizon.
 		for (int layer = 0; layer < 2; layer++)
 		{
@@ -3470,8 +3488,11 @@ namespace TEN::Renderer
 			_context->IASetInputLayout(_inputLayout.Get());
 		}
 
-		// Clear just the Z-buffer to start drawing on top of horizon.
-		_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		// For reflection passes clear depth so the skybox RT is fresh for the next face.
+		// For the main pass, preserve horizon-mesh depth here so that DrawAurora (above)
+		// can depth-test against it.  The caller resets depth after this function returns.
+		if (reflectionPass)
+			_context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	void Renderer::Render(float interpFactor)

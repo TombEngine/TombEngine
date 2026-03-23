@@ -500,7 +500,7 @@ float3 GetAuroraColor(float heightFrac, float preset)
     else if (presetA == 2) { botA = float3(0.1,  0.8,  0.2 ); midA = float3(0.4,   0.45, 0.125); topA = float3(0.7,  0.1,  0.05); }
     else if (presetA == 3) { botA = float3(0.15, 0.2,  0.7 ); midA = float3(0.275, 0.15, 0.6  ); topA = float3(0.4,  0.1,  0.5 ); }
     else if (presetA == 4) { botA = float3(0.1,  0.6,  0.3 ); midA = float3(0.35,  0.35, 0.4  ); topA = float3(0.6,  0.1,  0.5 ); }
-    else                   { botA = float3(0.0,  0.8,  0.7 ); midA = float3(0.1,   0.3,  0.9  ); topA = float3(0.5,  0.1,  0.8 ); } // Turquoise / Blue / Purple
+    else                   { botA = float3(0.0,  0.75, 0.65); midA = float3(0.45,  0.1,  0.9  ); topA = float3(0.7,  0.0,  0.95); } // Turquoise / Blue / Purple
 
     float3 botB, midB, topB;
     if      (presetB == 0) { botB = float3(0.1,  0.8,  0.2 ); midB = float3(0.075, 0.6,  0.15 ); topB = float3(0.05, 0.4,  0.1 ); }
@@ -508,7 +508,7 @@ float3 GetAuroraColor(float heightFrac, float preset)
     else if (presetB == 2) { botB = float3(0.1,  0.8,  0.2 ); midB = float3(0.4,   0.45, 0.125); topB = float3(0.7,  0.1,  0.05); }
     else if (presetB == 3) { botB = float3(0.15, 0.2,  0.7 ); midB = float3(0.275, 0.15, 0.6  ); topB = float3(0.4,  0.1,  0.5 ); }
     else if (presetB == 4) { botB = float3(0.1,  0.6,  0.3 ); midB = float3(0.35,  0.35, 0.4  ); topB = float3(0.6,  0.1,  0.5 ); }
-    else                   { botB = float3(0.0,  0.8,  0.7 ); midB = float3(0.1,   0.3,  0.9  ); topB = float3(0.5,  0.1,  0.8 ); } // Turquoise / Blue / Purple
+    else                   { botB = float3(0.0,  0.75, 0.65); midB = float3(0.45,  0.1,  0.9  ); topB = float3(0.7,  0.0,  0.95); } // Turquoise / Blue / Purple
 
     float3 bottomColor = lerp(botA, botB, presetFrac);
     float3 midColor    = lerp(midA, midB, presetFrac);

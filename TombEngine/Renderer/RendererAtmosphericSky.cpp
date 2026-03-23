@@ -346,9 +346,13 @@ namespace TEN::Renderer
 		_context->VSSetConstantBuffers(10, 1, buf);
 
 		// Render additively on top of whatever sky is below.
+		// DepthState::Read: the fullscreen triangle sits at z=1 (far plane), so it fails
+		// the depth test wherever the horizon mesh has written a closer depth — blocking
+		// aurora behind opaque horizon geometry.  Sky pixels (z=1) pass the test, as do
+		// pixels where transparent horizon textures left depth untouched.
 		SetBlendMode(BlendMode::Additive);
 		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::None);
+		SetDepthState(DepthState::Read);
 
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
