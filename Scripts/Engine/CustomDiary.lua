@@ -709,6 +709,12 @@ CustomDiary.Status = function(value)
     end
 end
 
+--- Enables or disables debug output for custom diaries.
+-- @tparam bool status If true, debug messages will be printed to the console.
+CustomDiary.Debug = function (status)
+    debug = status or false
+end
+
 --- The function checks whether the specified diary is currently visible.
 -- @treturn bool `true` if the diary is visible and `false` if it is not.
 function CustomDiary:IsVisible()
