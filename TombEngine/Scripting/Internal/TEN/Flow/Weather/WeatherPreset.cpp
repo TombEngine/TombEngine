@@ -321,9 +321,12 @@ namespace TEN::Scripting
 		///   - nextPreset (string): name of preset to chain to after this one becomes active
 		///   - nextTransitionDuration (float): transition duration for the chain
 		///   - duration (float|table): how long (seconds) to stay at this preset before chaining.
-		///       Use a plain number for a fixed duration, e.g. duration = 30.0
+		///       Use 0 to stay at this preset indefinitely (until manually changed).
+		///       Use a plain number > 0 for a fixed duration, e.g. duration = 30.0
 		///       Use a {min, max} table for a random range, e.g. duration = {10, 60}
 		///       Omit or set < 0 to chain immediately (default).
+		///       When duration expires and no nextPreset is set, AltocumulusMid layers
+		///       will drift out in the wind direction (natural dissolution).
 		///   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
 		///   - cloudB (table): cloud layer B parameters
 		/// Cloud layer tables support all fields from SetVolumetricCloudLayerA
@@ -359,12 +362,91 @@ namespace TEN::Scripting
 			def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
 					(double)def.HighLayerLeadFraction), 0.0f, 1.0f);
 
-			// Auto-chain: next preset to transition to after this one becomes active.
-			def.NextPreset = definition.get_or("nextPreset", std::string(""));
+			// ----------------------------------------------------------------
+			// Auto-chain helpers: parses a Lua key that can be either
+			//   string form: nextPresetX = "SomePreset"
+			//   table form:  nextPresetX = { SomePreset = {weight, dur [,durA, durB]}, ... }
+			// ----------------------------------------------------------------
+			// Parse a nextPreset* field that can be either a string or a probability table.
+			// Entry format (table form):
+			//   2-value old:  PresetName = { weight,              duration [, durA, durB] }
+			//   3-value new:  PresetName = { weightDay, weightNight, duration [, durA, durB] }
+			// The 3-value form is detected when the third array element is present and numeric.
+			auto ParseNextPresetField = [&](
+				const char* luaKey,
+				std::string& outName,
+				std::vector<NextPresetCandidate>& outCandidates)
+			{
+				outName = "";
+				outCandidates.clear();
+				sol::object obj = definition[luaKey];
+				if (obj.is<std::string>())
+				{
+					outName = obj.as<std::string>();
+				}
+				else if (obj.is<sol::table>())
+				{
+					sol::table tbl = obj.as<sol::table>();
+					tbl.for_each([&](const sol::object& key, const sol::object& val)
+					{
+						if (!key.is<std::string>() || !val.is<sol::table>())
+							return;
+						NextPresetCandidate c;
+						c.Name = key.as<std::string>();
+						sol::table et = val.as<sol::table>();
+						sol::optional<double> e1 = et[1];
+						sol::optional<double> e2 = et[2];
+						sol::optional<double> e3 = et[3];
+						sol::optional<double> e4 = et[4];
+						sol::optional<double> e5 = et[5];
+						if (e3.has_value())
+						{
+							// 3-value format: { weightDay, weightNight, duration [, durA, durB] }
+							if (e1.has_value()) c.Weight             = std::max((float)e1.value(), 0.0f);
+							if (e2.has_value()) c.WeightNight        = std::max((float)e2.value(), 0.0f);
+							                    c.TransitionDuration = std::max((float)e3.value(), 0.1f);
+							if (e4.has_value()) c.TransitionDurationA = (float)e4.value();
+							if (e5.has_value()) c.TransitionDurationB = (float)e5.value();
+						}
+						else
+						{
+							// 2-value format (legacy): { weight, duration [, durA, durB] }
+							if (e1.has_value()) c.Weight              = std::max((float)e1.value(), 0.0f);
+							if (e2.has_value()) c.TransitionDuration  = std::max((float)e2.value(), 0.1f);
+							if (e3.has_value()) c.TransitionDurationA = (float)e3.value();
+							if (e4.has_value()) c.TransitionDurationB = (float)e4.value();
+						}
+						outCandidates.push_back(std::move(c));
+					});
+				}
+			};
+
+			// nextPreset / nextPresetAB  — full-preset (both layers) chain.
+			// Both Lua keys map to the same fields; nextPresetAB takes priority if both given.
+			ParseNextPresetField("nextPreset",   def.NextPreset, def.NextPresetCandidates);
+			{
+				std::string abName; std::vector<NextPresetCandidate> abCands;
+				ParseNextPresetField("nextPresetAB", abName, abCands);
+				if (!abName.empty() || !abCands.empty())
+				{
+					def.NextPreset           = abName;
+					def.NextPresetCandidates = std::move(abCands);
+				}
+			}
 			def.NextPresetTransitionDuration  = std::max(tf(definition, "nextTransitionDuration",
 				(double)def.NextPresetTransitionDuration), 0.1f);
 			def.NextPresetTransitionDurationA = (float)definition.get_or("nextTransitionDurationA", -1.0);
 			def.NextPresetTransitionDurationB = (float)definition.get_or("nextTransitionDurationB", -1.0);
+
+			// nextPresetA — Layer-A-only chain (only CloudA transitions; CloudB/preset unchanged).
+			ParseNextPresetField("nextPresetA", def.NextPresetA, def.NextPresetACandidates);
+			def.NextPresetADuration = std::max(tf(definition, "nextTransitionDurationA_chain",
+				(double)def.NextPresetADuration), 0.1f);
+
+			// nextPresetB — Layer-B-only chain (only CloudB transitions; CloudA/preset unchanged).
+			ParseNextPresetField("nextPresetB", def.NextPresetB, def.NextPresetBCandidates);
+			def.NextPresetBDuration = std::max(tf(definition, "nextTransitionDurationB_chain",
+				(double)def.NextPresetBDuration), 0.1f);
 
 			// Dwell duration before chaining to NextPreset.
 			// Accepts a float (fixed seconds) or a {min, max} table (random range).

@@ -134,6 +134,6 @@ namespace TEN::Renderer::ConstantBuffers
 		float CloudLightAbsorption;         // [0.1,5] Beer-Lambert absorption exponent (standard clouds).
 		float CloudSunWarmthInfluence;      // [0,1]   sun color warmth blend.
 		float CloudIsBleedPass;             // 0 = normal composite, 1 = bleed-through-mountains pass (un-fades horizon).
-		float CloudLtPad2;
+		float DriftOutProgress;             // [0,1] wind-directional dissolution progress (0 = normal, 1 = fully dissolved).
 	};
 }

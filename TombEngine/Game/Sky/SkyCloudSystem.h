@@ -217,6 +217,18 @@ namespace TEN::Sky
 	// Weather preset definition
 	// ====================================================================
 
+	// Per-entry in a probabilistic next-preset list.
+	// Used when nextPreset is defined as a table in Lua instead of a single string.
+	struct NextPresetCandidate
+	{
+		std::string Name;
+		float       Weight              = 1.0f;  // Relative probability weight during day (>= 0).
+		float       WeightNight         = -1.0f; // Weight during night. < 0 = same as Weight (no day/night split).
+		float       TransitionDuration  = 30.0f; // Transition duration in seconds.
+		float       TransitionDurationA = -1.0f; // Per-layer; < 0 = inherit TransitionDuration.
+		float       TransitionDurationB = -1.0f; // Per-layer; < 0 = inherit TransitionDuration.
+	};
+
 	struct WeatherPresetDefinition
 	{
 		WeatherPresetType Type        = WeatherPresetType::ClearSky;
@@ -257,6 +269,25 @@ namespace TEN::Sky
 		float NextPresetDwellDuration    = -1.0f;
 		float NextPresetDwellDurationMin = -1.0f;
 		float NextPresetDwellDurationMax = -1.0f;
+
+		// Probabilistic next-preset list (set when nextPreset / nextPresetAB is a Lua table).
+		// When non-empty, a candidate is picked by weighted random instead of using NextPreset.
+		// Each entry carries its own transition duration so different follow-ups can have
+		// different transition speeds.
+		std::vector<NextPresetCandidate> NextPresetCandidates;
+
+		// Layer-A-only auto-chain: only CloudA transitions to the target preset's CloudA snapshot.
+		// Does NOT change CloudB or _currentPreset — layers stay independent.
+		// nextPresetA = "PresetName"  or  nextPresetA = { PresetName = {weight, duration}, ... }
+		std::string NextPresetA         = "";
+		float       NextPresetADuration = 30.0f;
+		std::vector<NextPresetCandidate> NextPresetACandidates;
+
+		// Layer-B-only auto-chain: only CloudB transitions to the target preset's CloudB snapshot.
+		// nextPresetB = "PresetName"  or  nextPresetB = { PresetName = {weight, duration}, ... }
+		std::string NextPresetB         = "";
+		float       NextPresetBDuration = 30.0f;
+		std::vector<NextPresetCandidate> NextPresetBCandidates;
 	};
 
 	// ====================================================================
@@ -313,6 +344,19 @@ namespace TEN::Sky
 		std::mt19937 RNG;
 		bool   Seeded          = false;
 		uint32_t Seed          = 0;
+	};
+
+	// ====================================================================
+	// Drift-out state — wind-directional dissolution when no NextPreset
+	// ====================================================================
+
+	struct DriftOutState
+	{
+		bool  Active   = false;
+		float Duration = 60.0f;  // Seconds for clouds to fully dissolve.
+		float Elapsed  = 0.0f;
+		float Progress = 0.0f;   // [0, 1] smoothstepped dissolution progress.
+		VolumetricCloudLayerSnapshot StartSnapshot = {};
 	};
 
 	// ====================================================================
@@ -389,6 +433,18 @@ namespace TEN::Sky
 		bool                    IsAuroraPresetActive() const;
 		bool                    IsLegacyLayer1Active() const;
 		bool                    IsLegacyLayer2Active() const;
+
+		// --- Drift-out queries ---
+		bool  IsCloudADriftingOut() const;
+		bool  IsCloudBDriftingOut() const;
+		float GetCloudADriftOutProgress() const;
+		float GetCloudBDriftOutProgress() const;
+
+		// --- Night blend ---
+		// Called by the renderer each frame with the current moon/starfield visibility [0..1].
+		// Controls day-vs-night weight blending in probabilistic next-preset chains.
+		void  SetNightBlend(float blend);
+		float GetNightBlend() const;
 
 		// --- Lens flare occlusion ---
 		// Combined transmittance from both volumetric layers.
@@ -471,9 +527,22 @@ namespace TEN::Sky
 		float _nextPresetDwellTarget  = -1.0f;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
 
+		// Night blend factor [0 = full day, 1 = full night].
+		// Set each frame by the renderer via SetNightBlend().
+		// Used to interpolate between Weight and WeightNight in NextPresetCandidate.
+		float _nightBlend = 0.0f;
+
+		// Drift-out: wind-directional dissolution (per layer).
+		DriftOutState _driftOutA;
+		DriftOutState _driftOutB;
+
 		float ResolveNextPresetDwell(const WeatherPresetDefinition& def);
 		void  UpdatePresetDwell(float deltaTime);
 		void  StartNextPresetDwell(const WeatherPresetDefinition& def);
+		void  FireNextPresetChains(const WeatherPresetDefinition& def);
+		const NextPresetCandidate* PickNextPresetCandidate(const std::vector<NextPresetCandidate>& candidates);
+		void  StartDriftOut(DriftOutState& state, const VolumetricCloudLayerSnapshot& current);
+		void  UpdateDriftOut(float deltaTime, DriftOutState& state, VolumetricCloudLayerSnapshot& current);
 	};
 
 	// Global instance.

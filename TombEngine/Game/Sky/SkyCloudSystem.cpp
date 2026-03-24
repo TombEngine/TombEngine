@@ -379,6 +379,8 @@ namespace TEN::Sky
 		_cloudBTransmittance  = 1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 		_nextPresetDwellTarget  = -1.0f;
+		_driftOutA = {};
+		_driftOutB = {};
 		_dwellRNG.seed(std::random_device{}());
 
 		// Apply weather config from Gameflow.lua (level.weatherPreset / level.randomWeather).
@@ -959,6 +961,12 @@ namespace TEN::Sky
 			UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA);
 		if (!_manualOverrideCloudB && _layerTransitionB.Active)
 			UpdateLayerTransition(deltaTime, _layerTransitionB, _currentState.CloudB);
+
+		// Drift-out: wind-directional dissolution when dwell expired with no NextPreset.
+		if (!_manualOverrideCloudA && _driftOutA.Active)
+			UpdateDriftOut(deltaTime, _driftOutA, _currentState.CloudA);
+		if (!_manualOverrideCloudB && _driftOutB.Active)
+			UpdateDriftOut(deltaTime, _driftOutB, _currentState.CloudB);
 	}
 
 	// ====================================================================
@@ -978,9 +986,9 @@ namespace TEN::Sky
 			_currentPreset = tr.Target;
 			tr.Active = false;
 
-			// Auto-chain: if this preset defines a NextPreset, start dwell or chain immediately.
+				// Auto-chain or drift-out: check dwell / NextPreset for the new active preset.
 			auto it = _presets.find(_currentPreset);
-			if (it != _presets.end() && !it->second.NextPreset.empty())
+			if (it != _presets.end())
 				StartNextPresetDwell(it->second);
 			return;
 		}
@@ -1044,13 +1052,14 @@ namespace TEN::Sky
 		_nextPresetDwellElapsed = 0.0f;
 
 		_transition.Active = false;
+		_driftOutA.Active  = false;
+		_driftOutB.Active  = false;
 		_currentPreset = preset;
 		_currentState = it->second.TargetState;
 
-		// Auto-chain: if this preset defines a NextPreset, start dwell or chain immediately.
+		// Auto-chain or drift-out: check dwell / NextPreset for the new active preset.
 		const auto& def = it->second;
-		if (!def.NextPreset.empty())
-			StartNextPresetDwell(def);
+		StartNextPresetDwell(def);
 	}
 
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1066,9 +1075,11 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell before starting a new transition.
+		// Cancel any pending dwell / drift-out before starting a new transition.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_driftOutA.Active = false;
+		_driftOutB.Active = false;
 
 		const auto& def = it->second;
 
@@ -1108,9 +1119,11 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell before starting a new transition.
+		// Cancel any pending dwell / drift-out before starting a new transition.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_driftOutA.Active = false;
+		_driftOutB.Active = false;
 
 		auto& tr = _transition;
 		tr.Active           = true;
@@ -1131,9 +1144,11 @@ namespace TEN::Sky
 	{
 		// Freeze the current blended state and stop transitioning.
 		_transition.Active = false;
-		// Also cancel any pending dwell that might fire from the interrupted target.
+		// Also cancel any pending dwell / drift-out that might fire from the interrupted target.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_driftOutA.Active = false;
+		_driftOutB.Active = false;
 	}
 
 	// ====================================================================
@@ -1251,26 +1266,139 @@ namespace TEN::Sky
 		return def.NextPresetDwellDuration;
 	}
 
+	void SkyCloudSystem::SetNightBlend(float blend)
+	{
+		_nightBlend = std::clamp(blend, 0.0f, 1.0f);
+	}
+
+	float SkyCloudSystem::GetNightBlend() const
+	{
+		return _nightBlend;
+	}
+
+	// Weighted-random pick from a NextPresetCandidate list.
+	// Interpolates between Weight (day) and WeightNight (night) using _nightBlend.
+	// Returns nullptr if the list is empty.
+	const NextPresetCandidate* SkyCloudSystem::PickNextPresetCandidate(
+		const std::vector<NextPresetCandidate>& candidates)
+	{
+		if (candidates.empty())
+			return nullptr;
+
+		auto effectiveWeight = [&](const NextPresetCandidate& c) -> float
+		{
+			if (c.WeightNight >= 0.0f)
+				return c.Weight + (c.WeightNight - c.Weight) * _nightBlend;
+			return c.Weight;
+		};
+
+		float totalWeight = 0.0f;
+		for (const auto& c : candidates)
+			totalWeight += std::max(effectiveWeight(c), 0.0f);
+
+		if (totalWeight <= 0.0f)
+			return &candidates[0];
+
+		std::uniform_real_distribution<float> dist(0.0f, totalWeight);
+		float roll = dist(_dwellRNG);
+
+		float cumulative = 0.0f;
+		for (const auto& c : candidates)
+		{
+			cumulative += std::max(effectiveWeight(c), 0.0f);
+			if (roll <= cumulative)
+				return &c;
+		}
+
+		return &candidates.back();
+	}
+
+	// Helper: resolve AB transition durations from a candidate entry.
+	static void ResolveABDuration(const NextPresetCandidate& c, float& outA, float& outB)
+	{
+		outA = (c.TransitionDurationA >= 0.0f) ? c.TransitionDurationA : c.TransitionDuration;
+		outB = (c.TransitionDurationB >= 0.0f) ? c.TransitionDurationB : c.TransitionDuration;
+	}
+
+	// Fire all applicable next-preset chains (AB, A-only, B-only) for a given preset definition.
+	// Used by both StartNextPresetDwell (immediate path) and UpdatePresetDwell (dwell-expired path).
+	void SkyCloudSystem::FireNextPresetChains(const WeatherPresetDefinition& def)
+	{
+		bool anyChainFired = false;
+
+		// --- AB chain (full preset transition) ---
+		if (const auto* cab = PickNextPresetCandidate(def.NextPresetCandidates))
+		{
+			float durA, durB;
+			ResolveABDuration(*cab, durA, durB);
+			TransitionToPreset(StringToPresetType(cab->Name), durA, durB);
+			anyChainFired = true;
+		}
+		else if (!def.NextPreset.empty())
+		{
+			float durA = (def.NextPresetTransitionDurationA >= 0.0f)
+				? def.NextPresetTransitionDurationA : def.NextPresetTransitionDuration;
+			float durB = (def.NextPresetTransitionDurationB >= 0.0f)
+				? def.NextPresetTransitionDurationB : def.NextPresetTransitionDuration;
+			TransitionToPreset(StringToPresetType(def.NextPreset), durA, durB);
+			anyChainFired = true;
+		}
+
+		// --- A-only chain (independent CloudA layer transition) ---
+		if (const auto* ca = PickNextPresetCandidate(def.NextPresetACandidates))
+		{
+			TransitionLayerAToPreset(StringToPresetType(ca->Name), ca->TransitionDuration);
+			anyChainFired = true;
+		}
+		else if (!def.NextPresetA.empty())
+		{
+			TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
+			anyChainFired = true;
+		}
+
+		// --- B-only chain (independent CloudB layer transition) ---
+		if (const auto* cb = PickNextPresetCandidate(def.NextPresetBCandidates))
+		{
+			TransitionLayerBToPreset(StringToPresetType(cb->Name), cb->TransitionDuration);
+			anyChainFired = true;
+		}
+		else if (!def.NextPresetB.empty())
+		{
+			TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
+			anyChainFired = true;
+		}
+
+		// --- No chain fired and no AB preset defined → drift-out AltocumulusMid layers ---
+		if (!anyChainFired)
+		{
+			if (_currentState.CloudA.Enabled &&
+				_currentState.CloudA.Category == CloudCategory::AltocumulusMid)
+				StartDriftOut(_driftOutA, _currentState.CloudA);
+
+			if (_currentState.CloudB.Enabled &&
+				_currentState.CloudB.Category == CloudCategory::AltocumulusMid)
+				StartDriftOut(_driftOutB, _currentState.CloudB);
+		}
+	}
+
 	void SkyCloudSystem::StartNextPresetDwell(const WeatherPresetDefinition& def)
 	{
 		float dwell = ResolveNextPresetDwell(def);
-		if (dwell <= 0.0f)
+
+		// duration = 0 → stay at this preset forever (no chaining, no drift-out).
+		if (dwell == 0.0f)
+			return;
+
+		// duration < 0 → fire all chains immediately.
+		if (dwell < 0.0f)
 		{
-			// Chain immediately — no dwell needed.
-			float durA = (def.NextPresetTransitionDurationA >= 0.0f)
-				? def.NextPresetTransitionDurationA
-				: def.NextPresetTransitionDuration;
-			float durB = (def.NextPresetTransitionDurationB >= 0.0f)
-				? def.NextPresetTransitionDurationB
-				: def.NextPresetTransitionDuration;
-			TransitionToPreset(StringToPresetType(def.NextPreset), durA, durB);
+			FireNextPresetChains(def);
+			return;
 		}
-		else
-		{
-			// Queue the dwell.
-			_nextPresetDwellTarget  = dwell;
-			_nextPresetDwellElapsed = 0.0f;
-		}
+
+		// duration > 0 → start dwell timer; chains fire when it expires.
+		_nextPresetDwellTarget  = dwell;
+		_nextPresetDwellElapsed = 0.0f;
 	}
 
 	void SkyCloudSystem::UpdatePresetDwell(float deltaTime)
@@ -1282,23 +1410,68 @@ namespace TEN::Sky
 		if (_nextPresetDwellElapsed < _nextPresetDwellTarget)
 			return;
 
-		// Dwell expired — clear timer, then fire the chain transition.
+		// Dwell expired — clear timer and fire all chains.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 
 		auto it = _presets.find(_currentPreset);
-		if (it == _presets.end() || it->second.NextPreset.empty())
+		if (it == _presets.end())
 			return;
 
-		const auto& chainDef = it->second;
-		float durA = (chainDef.NextPresetTransitionDurationA >= 0.0f)
-			? chainDef.NextPresetTransitionDurationA
-			: chainDef.NextPresetTransitionDuration;
-		float durB = (chainDef.NextPresetTransitionDurationB >= 0.0f)
-			? chainDef.NextPresetTransitionDurationB
-			: chainDef.NextPresetTransitionDuration;
-		TransitionToPreset(StringToPresetType(chainDef.NextPreset), durA, durB);
+		FireNextPresetChains(it->second);
 	}
+
+	// ====================================================================
+	// Drift-out: wind-directional dissolution
+	// ====================================================================
+
+	void SkyCloudSystem::StartDriftOut(DriftOutState& state,
+	                                   const VolumetricCloudLayerSnapshot& current)
+	{
+		state.Active        = true;
+		state.Duration      = 60.0f; // Seconds for clouds to fully dissolve.
+		state.Elapsed       = 0.0f;
+		state.Progress      = 0.0f;
+		state.StartSnapshot = current;
+	}
+
+	void SkyCloudSystem::UpdateDriftOut(float deltaTime, DriftOutState& state,
+	                                    VolumetricCloudLayerSnapshot& current)
+	{
+		if (!state.Active)
+			return;
+
+		state.Elapsed += deltaTime;
+		float t = std::clamp(state.Elapsed / state.Duration, 0.0f, 1.0f);
+		state.Progress = t * t * (3.0f - 2.0f * t); // smoothstep
+
+		// Reduce density-contributing parameters toward zero.
+		float fade = 1.0f - state.Progress;
+		current.Coverage        = state.StartSnapshot.Coverage        * fade;
+		current.Density         = state.StartSnapshot.Density         * fade;
+		current.AltoCloudAmount = state.StartSnapshot.AltoCloudAmount * fade;
+		current.AmbientContrib  = state.StartSnapshot.AmbientContrib  * fade;
+
+		// Slow down evolution so no new micro-formation appears.
+		current.EvolutionSpeed  = state.StartSnapshot.EvolutionSpeed  * fade;
+
+		// Wind stays unchanged — clouds keep drifting.
+
+		if (state.Elapsed >= state.Duration)
+		{
+			// Drift-out complete — layer fully dissolved.
+			state.Active    = false;
+			current.Enabled = false;
+			current.Coverage        = 0.0f;
+			current.Density         = 0.0f;
+			current.AltoCloudAmount = 0.0f;
+		}
+	}
+
+	bool  SkyCloudSystem::IsCloudADriftingOut()        const { return _driftOutA.Active; }
+	bool  SkyCloudSystem::IsCloudBDriftingOut()        const { return _driftOutB.Active; }
+	float SkyCloudSystem::GetCloudADriftOutProgress()  const { return _driftOutA.Active ? _driftOutA.Progress : 0.0f; }
+	float SkyCloudSystem::GetCloudBDriftOutProgress()  const { return _driftOutB.Active ? _driftOutB.Progress : 0.0f; }
 
 	// ====================================================================
 	// Random weather
@@ -1490,12 +1663,16 @@ namespace TEN::Sky
 
 	CloudRenderSettings SkyCloudSystem::GetCloudARenderSettings() const
 	{
-		return _currentState.CloudA.ToRenderSettings();
+		auto s = _currentState.CloudA.ToRenderSettings();
+		s.DriftOutProgress = _driftOutA.Active ? _driftOutA.Progress : 0.0f;
+		return s;
 	}
 
 	CloudRenderSettings SkyCloudSystem::GetCloudBRenderSettings() const
 	{
-		return _currentState.CloudB.ToRenderSettings();
+		auto s = _currentState.CloudB.ToRenderSettings();
+		s.DriftOutProgress = _driftOutB.Active ? _driftOutB.Progress : 0.0f;
+		return s;
 	}
 
 	bool SkyCloudSystem::IsCloudAActive() const

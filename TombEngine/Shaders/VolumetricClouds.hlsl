@@ -653,6 +653,34 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
         }
 
+        // --- Wind-directional drift-out dissolution ---
+        // When DriftOutProgress > 0, a soft boundary sweeps from the upwind side
+        // (where new clouds would scroll in from) toward the downwind side.
+        // Upwind clouds dissolve first; downwind clouds linger and fade via
+        // the CPU-side coverage/density reduction over the drift-out duration.
+        //
+        // Cloud motion: p = skyPos*scale + windDir*accum  →  as accum grows,
+        // noise patterns move in -windDir in sky-space.  Therefore the +windDir
+        // side of the sky is "upwind" (source of new clouds).
+        if (DriftOutProgress > 0.001f)
+        {
+            float2 windDir2D = normalize(WindDirection);
+            // Project sky position onto wind axis: positive = upwind (cloud source).
+            float windProjSky = dot(skyPos.xz, windDir2D);
+            // Normalize to roughly [-1, +1] across the visible cloud field.
+            float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
+            float normalizedProj = windProjSky / fieldExtent;
+
+            // Boundary sweeps from far downwind (-1.5) toward far upwind (+1.5).
+            // At progress=0: boundary at -1.5 → nothing suppressed.
+            // At progress=1: boundary at +1.5 → everything suppressed.
+            float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
+            float softness = 0.4f;
+            // Suppress everything UPWIND of the boundary.
+            float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
+            dens *= (1.0f - suppress);
+        }
+
         return dens;
     }
 
@@ -1024,6 +1052,19 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     float baseMinVisible = lerp(0.015f, 0.10f, saturate((Absorption - 0.5f) * 0.4f));
     float minVisible	 = lerp(baseMinVisible, max(baseMinVisible, 0.12f), distLOD2);
     finalDensity		*= saturate(finalDensity / max(minVisible, 0.0001f));
+
+    // --- Wind-directional drift-out dissolution ---
+    if (DriftOutProgress > 0.001f)
+    {
+        float2 windDir2D = normalize(WindDirection);
+        float windProjSky = dot(skyPos.xz, windDir2D);
+        float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
+        float normalizedProj = windProjSky / fieldExtent;
+        float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
+        float softness = 0.4f;
+        float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
+        finalDensity *= (1.0f - suppress);
+    }
 
     return finalDensity;
 }

@@ -142,6 +142,10 @@ namespace TEN::Renderer
 		float dayNightBlend = ComputeDayNightBlend(sunElevation);
 		float starfieldVis  = ComputeStarfieldVisibility(sunElevation);
 
+		// Inform the sky cloud system of the current day/night state so that
+		// probabilistic next-preset chains can blend between day and night weights.
+		g_SkyCloudSystem.SetNightBlend(starfieldVis);
+
 		// --- Pre-compute moon data ---
 		// Done before the CB fill so phaseBrightness is available to modulate NightSkyBrightness.
 		const auto& moon  = _moonSettings;

@@ -278,8 +278,8 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CloudForwardScatterStrength = _atmosphericSkySettings.CloudForwardScatterStrength;
 		_stVolumetricCloud.CloudLightAbsorption        = _atmosphericSkySettings.CloudLightAbsorption;
 		_stVolumetricCloud.CloudSunWarmthInfluence     = _atmosphericSkySettings.CloudSunWarmthInfluence;
-		// CloudIsBleedPass is set to 0.0f directly above (normal pass); CloudLtPad2 unused.
-		_stVolumetricCloud.CloudLtPad2                 = 0.0f;
+		// CloudIsBleedPass is set to 0.0f directly above (normal pass).
+		_stVolumetricCloud.DriftOutProgress             = settings.DriftOutProgress;
 
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.

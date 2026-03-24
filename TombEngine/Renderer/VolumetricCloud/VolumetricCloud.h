@@ -155,6 +155,10 @@ namespace TEN::Renderer::VolumetricCloud
 		float LightningBoltLengthScale    = 1.0f;
 		float LightningBoltThicknessScale = 1.0f;
 
+		// Drift-out: wind-directional dissolution progress [0,1].
+		// 0 = normal rendering, 1 = fully dissolved.
+		float DriftOutProgress = 0.0f;
+
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
 		float JitterStrength        = 1.0f;
