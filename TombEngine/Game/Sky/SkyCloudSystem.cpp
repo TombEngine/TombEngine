@@ -425,6 +425,76 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
+		// ----- ClearSkyHigh -----
+		// Clear sky with a delicate veil of high-altitude cirrus wisps.
+		// Feels like a fresh, breezy clear day with just enough cloud to add depth.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::ClearSkyHigh;
+			def.Name = "ClearSkyHigh";
+			def.DefaultTransitionDuration = 55.0f;
+			def.RandomWeight = 1.8f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled        = true;
+			a.Category       = CloudCategory::CirrusHigh;
+			a.Coverage       = 0.10f;  // Very sparse — most of sky is open.
+			a.Density        = 0.18f;
+			a.BottomHeight   = 22000.0f;
+			a.Thickness      = 4000.0f;
+			a.WindSpeed      = 0.003f;
+			a.EvolutionSpeed = 0.06f;
+			a.ShapeScale     = 0.000030f;
+			a.DetailScale    = 0.00080f;
+			a.DetailStrength = 0.08f;
+			a.Absorption     = 0.30f;
+			a.AmbientContrib = 0.85f;
+			a.SilverliningStr = 0.80f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- ClearSkyLow -----
+		// Clear sky with a thin lingering low-altitude haze/mist layer near the horizon.
+		// Gives a slightly hazy, warm morning or evening quality to the sky.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::ClearSkyLow;
+			def.Name = "ClearSkyLow";
+			def.DefaultTransitionDuration = 55.0f;
+			def.RandomWeight = 1.6f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled             = true;
+			b.Category            = CloudCategory::StratocumulusLow;
+			b.BottomHeight        = 800.0f;
+			b.Thickness           = 600.0f;
+			b.WindDirectionX      = 1.0f;
+			b.WindDirectionY      = 0.0f;
+			b.WindSpeed           = 0.0015f;
+			b.EvolutionSpeed      = 0.04f;
+			b.HorizonFade         = 1.0f; // Strong horizon fade — barely visible overhead.
+			b.DistanceFade        = 0.8f;
+			b.AltoBillowStrength  = 0.0f;
+			b.AltoCovSoftWidth    = 0.40f;
+			b.AltoAbsorption      = 0.10f;
+			b.AltoCloudSize       = 0.18f;
+			b.AltoCloudAmount     = 0.22f;
+			b.AltoCloudBrightness = 1.25f; // Bright, sun-lit haze.
+			b.AltoCloudColorR     = 1.0f;
+			b.AltoCloudColorG     = 0.97f;
+			b.AltoCloudColorB     = 0.93f; // Slight warmth.
+			b.AltoCloudColorDarkR = 0.72f;
+			b.AltoCloudColorDarkG = 0.70f;
+			b.AltoCloudColorDarkB = 0.75f;
+			b.AltoFbmLacunarity   = 3.0f;
+			b.AltoFbmGain         = 0.38f;
+			b.AltoThickness       = 600.0f;
+			b.AltoBottomSoftness  = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+
 		// ----- RainSnowOvercast -----
 		// Heavy uniform overcast: large slow-rolling blanketing clouds.
 		// Uses CloudB only (AltocumulusMid). Values set by level designer.
@@ -939,6 +1009,134 @@ namespace TEN::Sky
 
 			_presets[def.Type] = def;
 		}
+
+		// ----- Cirrustratus -----
+		// Thin, translucent veil of cirrus covering almost the entire sky.
+		// Creates a milky, halo-prone appearance typical of approaching warm fronts.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::Cirrustratus;
+			def.Name = "Cirrustratus";
+			def.DefaultTransitionDuration = 60.0f;
+			def.RandomWeight = 1.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled        = true;
+			a.Category       = CloudCategory::CirrusHigh;
+			a.Coverage       = 0.90f;  // Near-total coverage but whisper-thin.
+			a.Density        = 0.12f;  // Very low density — barely opaque.
+			a.BottomHeight   = 18000.0f;
+			a.Thickness      = 3000.0f;
+			a.WindSpeed      = 0.004f;
+			a.EvolutionSpeed = 0.03f;
+			a.ShapeScale     = 0.000022f;
+			a.DetailScale    = 0.00045f;
+			a.DetailStrength = 0.07f;
+			a.Absorption     = 0.18f;
+			a.AmbientContrib = 0.90f;
+			a.SilverliningStr = 0.55f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- CirrocumulusLots -----
+		// Dense rippled mackerel-sky pattern of small cirrocumulus cloudlets at high altitude.
+		// Typically indicates instability aloft; can precede deteriorating weather.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::CirrocumulusLots;
+			def.Name = "CirrocumulusLots";
+			def.DefaultTransitionDuration = 45.0f;
+			def.RandomWeight = 1.2f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled        = true;
+			a.Category       = CloudCategory::CirrusHigh;
+			a.Coverage       = 0.75f;
+			a.Density        = 0.28f;
+			a.BottomHeight   = 16000.0f;
+			a.Thickness      = 2500.0f;
+			a.WindSpeed      = 0.007f;
+			a.EvolutionSpeed = 0.09f;
+			a.ShapeScale     = 0.000065f;  // Finer scale for ripple/streak pattern.
+			a.DetailScale    = 0.00110f;
+			a.DetailStrength = 0.22f;
+			a.Absorption     = 0.50f;
+			a.AmbientContrib = 0.60f;
+			a.SilverliningStr = 0.65f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- CirrocumulusFew -----
+		// Occasional small patches of rippled cirrocumulus — open fair-weather sky
+		// punctuated by decorative high-altitude cloudlets.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::CirrocumulusFew;
+			def.Name = "CirrocumulusFew";
+			def.DefaultTransitionDuration = 50.0f;
+			def.RandomWeight = 2.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled        = true;
+			a.Category       = CloudCategory::CirrusHigh;
+			a.Coverage       = 0.18f;
+			a.Density        = 0.22f;
+			a.BottomHeight   = 17000.0f;
+			a.Thickness      = 2000.0f;
+			a.WindSpeed      = 0.005f;
+			a.EvolutionSpeed = 0.06f;
+			a.ShapeScale     = 0.000060f;
+			a.DetailScale    = 0.00095f;
+			a.DetailStrength = 0.18f;
+			a.Absorption     = 0.38f;
+			a.AmbientContrib = 0.75f;
+			a.SilverliningStr = 0.72f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- AltocumulusHigh -----
+		// Altocumulus pushed to higher altitude than the default preset,
+		// producing a lighter, thinner, more broken layer typical of subsiding air.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::AltocumulusHigh;
+			def.Name = "AltocumulusHigh";
+			def.DefaultTransitionDuration = 45.0f;
+			def.RandomWeight = 1.3f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled             = true;
+			b.Category            = CloudCategory::AltocumulusMid;
+			b.BottomHeight        = 4200.0f;   // Noticeably higher than default Altocumulus.
+			b.Thickness           = 2400.0f;   // Thinner layer.
+			b.WindDirectionX      = 1.0f;
+			b.WindDirectionY      = 0.0f;
+			b.WindSpeed           = 0.19f;
+			b.EvolutionSpeed      = 3.8f;
+			b.HorizonFade         = 0.9f;
+			b.DistanceFade        = 0.1f;
+			b.AltoBillowStrength  = 0.75f;    // Less billowing — higher/drier air.
+			b.AltoCovSoftWidth    = 0.30f;
+			b.AltoAbsorption      = 0.08f;
+			b.AltoCloudSize       = 0.45f;
+			b.AltoCloudAmount     = 0.55f;
+			b.AltoCloudBrightness = 1.10f;
+			b.AltoCloudColorR     = 1.0f;
+			b.AltoCloudColorG     = 1.0f;
+			b.AltoCloudColorB     = 1.0f;
+			b.AltoCloudColorDarkR = 0.60f;
+			b.AltoCloudColorDarkG = 0.60f;
+			b.AltoCloudColorDarkB = 0.72f;
+			b.AltoFbmLacunarity   = 3.8f;
+			b.AltoFbmGain         = 0.46f;
+			b.AltoThickness       = 1100.0f;
+			b.AltoBottomSoftness  = 0.85f;
+
+			_presets[def.Type] = def;
+		}
 	}
 
 	// ====================================================================
@@ -1151,6 +1349,25 @@ namespace TEN::Sky
 		_driftOutB.Active = false;
 	}
 
+	void SkyCloudSystem::StopAllTransitions()
+	{
+		// Full-preset transition.
+		_transition.Active      = false;
+		// Per-layer independent transitions.
+		_layerTransitionA.Active = false;
+		_layerTransitionB.Active = false;
+		// Random weather mode.
+		_randomWeather.Active   = false;
+		// Preset dwell timer.
+		_nextPresetDwellTarget  = -1.0f;
+		_nextPresetDwellElapsed = 0.0f;
+		// Drift-out dissolve.
+		_driftOutA.Active = false;
+		_driftOutB.Active = false;
+		// Manual overrides — release so the next preset/transition can take over.
+		ClearManualOverrides();
+	}
+
 	// ====================================================================
 	// Independent per-layer preset transitions
 	// ====================================================================
@@ -1184,6 +1401,9 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		// Release the manual override so UpdateLayerTransition can drive this layer.
+		_manualOverrideCloudA = false;
+
 		auto& tr  = _layerTransitionA;
 		tr.Active   = true;
 		tr.Source   = _currentState.CloudA;
@@ -1201,6 +1421,9 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		// Release the manual override so UpdateLayerTransition can drive this layer.
+		_manualOverrideCloudB = false;
+
 		auto& tr  = _layerTransitionB;
 		tr.Active   = true;
 		tr.Source   = _currentState.CloudB;
@@ -1217,6 +1440,7 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		_manualOverrideCloudA    = false;
 		_layerTransitionA.Active = false;
 		_currentState.CloudA     = it->second.TargetState.CloudA;
 	}
@@ -1227,6 +1451,7 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
+		_manualOverrideCloudB    = false;
 		_layerTransitionB.Active = false;
 		_currentState.CloudB     = it->second.TargetState.CloudB;
 	}
@@ -1770,39 +1995,51 @@ namespace TEN::Sky
 	{
 		switch (type)
 		{
-		case WeatherPresetType::ClearSky:        return "ClearSky";
-		case WeatherPresetType::FewClouds:       return "FewClouds";
-		case WeatherPresetType::ScatteredClouds: return "ScatteredClouds";
-		case WeatherPresetType::BrokenClouds:    return "BrokenClouds";
-		case WeatherPresetType::Overcast:        return "Overcast";
-		case WeatherPresetType::Cirrus:          return "Cirrus";
-		case WeatherPresetType::Altocumulus:     return "Altocumulus";
-		case WeatherPresetType::AuroraBorealis:  return "AuroraBorealis";
-		case WeatherPresetType::RainSnowOvercast:    return "RainSnowOvercast";
-		case WeatherPresetType::StormBuildUp:    return "StormBuildUp";
-		case WeatherPresetType::Thunderstorm:    return "Thunderstorm";
-		case WeatherPresetType::StormTransformation:      return "StormTransformation";
-		case WeatherPresetType::Random:          return "Random";
-		default:                                 return "Unknown";
+		case WeatherPresetType::ClearSky:             return "ClearSky";
+		case WeatherPresetType::ClearSkyHigh:         return "ClearSkyHigh";
+		case WeatherPresetType::ClearSkyLow:          return "ClearSkyLow";
+		case WeatherPresetType::FewClouds:            return "FewClouds";
+		case WeatherPresetType::ScatteredClouds:      return "ScatteredClouds";
+		case WeatherPresetType::BrokenClouds:         return "BrokenClouds";
+		case WeatherPresetType::Overcast:             return "Overcast";
+		case WeatherPresetType::Cirrus:               return "Cirrus";
+		case WeatherPresetType::Cirrustratus:         return "Cirrustratus";
+		case WeatherPresetType::CirrocumulusLots:     return "CirrocumulusLots";
+		case WeatherPresetType::CirrocumulusFew:      return "CirrocumulusFew";
+		case WeatherPresetType::Altocumulus:          return "Altocumulus";
+		case WeatherPresetType::AltocumulusHigh:      return "AltocumulusHigh";
+		case WeatherPresetType::AuroraBorealis:       return "AuroraBorealis";
+		case WeatherPresetType::RainSnowOvercast:     return "RainSnowOvercast";
+		case WeatherPresetType::StormBuildUp:         return "StormBuildUp";
+		case WeatherPresetType::Thunderstorm:         return "Thunderstorm";
+		case WeatherPresetType::StormTransformation:  return "StormTransformation";
+		case WeatherPresetType::Random:               return "Random";
+		default:                                      return "Unknown";
 		}
 	}
 
 	WeatherPresetType SkyCloudSystem::StringToPresetType(const std::string& name)
 	{
 		static const std::unordered_map<std::string, WeatherPresetType> map = {
-			{ "ClearSky",        WeatherPresetType::ClearSky },
-			{ "FewClouds",       WeatherPresetType::FewClouds },
-			{ "ScatteredClouds", WeatherPresetType::ScatteredClouds },
-			{ "BrokenClouds",    WeatherPresetType::BrokenClouds },
-			{ "Overcast",        WeatherPresetType::Overcast },
-			{ "Cirrus",          WeatherPresetType::Cirrus },
-			{ "Altocumulus",     WeatherPresetType::Altocumulus },
-			{ "AuroraBorealis",  WeatherPresetType::AuroraBorealis },
-			{ "RainSnowOvercast", WeatherPresetType::RainSnowOvercast },
-			{ "StormBuildUp",    WeatherPresetType::StormBuildUp },
-			{ "Thunderstorm",    WeatherPresetType::Thunderstorm },
-			{ "StormTransformation",      WeatherPresetType::StormTransformation },
-			{ "Random",          WeatherPresetType::Random },
+			{ "ClearSky",            WeatherPresetType::ClearSky },
+			{ "ClearSkyHigh",        WeatherPresetType::ClearSkyHigh },
+			{ "ClearSkyLow",         WeatherPresetType::ClearSkyLow },
+			{ "FewClouds",           WeatherPresetType::FewClouds },
+			{ "ScatteredClouds",     WeatherPresetType::ScatteredClouds },
+			{ "BrokenClouds",        WeatherPresetType::BrokenClouds },
+			{ "Overcast",            WeatherPresetType::Overcast },
+			{ "Cirrus",              WeatherPresetType::Cirrus },
+			{ "Cirrustratus",        WeatherPresetType::Cirrustratus },
+			{ "CirrocumulusLots",    WeatherPresetType::CirrocumulusLots },
+			{ "CirrocumulusFew",     WeatherPresetType::CirrocumulusFew },
+			{ "Altocumulus",         WeatherPresetType::Altocumulus },
+			{ "AltocumulusHigh",     WeatherPresetType::AltocumulusHigh },
+			{ "AuroraBorealis",      WeatherPresetType::AuroraBorealis },
+			{ "RainSnowOvercast",    WeatherPresetType::RainSnowOvercast },
+			{ "StormBuildUp",        WeatherPresetType::StormBuildUp },
+			{ "Thunderstorm",        WeatherPresetType::Thunderstorm },
+			{ "StormTransformation", WeatherPresetType::StormTransformation },
+			{ "Random",              WeatherPresetType::Random },
 		};
 
 		auto it = map.find(name);

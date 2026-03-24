@@ -60,12 +60,18 @@ namespace TEN::Sky
 	enum class WeatherPresetType
 	{
 		ClearSky,
+		ClearSkyHigh,          // Clear sky with a few high-altitude cirrus wisps.
+		ClearSkyLow,           // Clear sky with lingering low-lying haze/mist layer.
 		FewClouds,
 		ScatteredClouds,
 		BrokenClouds,
 		Overcast,
 		Cirrus,
+		Cirrustratus,          // Thin veil of cirrus covering the whole sky.
+		CirrocumulusLots,      // Copious high rippled cirrocumulus (mackerel sky).
+		CirrocumulusFew,       // Sparse patches of high rippled cirrocumulus.
 		Altocumulus,
+		AltocumulusHigh,       // Altocumulus pushed to higher altitude, thinner.
 		AuroraBorealis,
 		RainSnowOvercast,
 		StormBuildUp,
@@ -382,7 +388,8 @@ namespace TEN::Sky
 		// Per-layer duration overload: CloudA and CloudB transition independently.
 		void TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
 		                        EasingCurve curve = EasingCurve::SmoothStep);
-		void InterruptTransition(); // Stop mid-transition, keep current blended state.
+		void InterruptTransition();      // Stop mid-transition, keep current blended state.
+		void StopAllTransitions();       // Cancel ALL active transitions, dwell, drift-out, and random weather.
 
 		// --- Independent per-layer preset control ---
 		// These target only the CloudA or CloudB snapshot of a preset, leaving

@@ -657,6 +657,10 @@ void InitializeOrLoadGame(bool loadGame)
 	// Restore game?
 	if (loadGame)
 	{
+		// Cancel any in-progress transitions before restoring the saved state,
+		// so the saved sky/preset takes effect cleanly without interference.
+		g_SkyCloudSystem.StopAllTransitions();
+
 		if (!SaveGame::Load(g_GameFlow->SelectedSaveGame))
 		{
 			NextLevel = g_GameFlow->GetNumLevels();
@@ -753,6 +757,10 @@ GameStatus DoGameLoop(int levelIndex)
 
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
+	// Stop all sky transitions so the loading-screen screenshot and any remaining
+	// frames are free of mid-transition artefacts.
+	g_SkyCloudSystem.StopAllTransitions();
+
 	// Save last screenshot for loading screen.
 	g_Renderer.DumpGameScene();
 
