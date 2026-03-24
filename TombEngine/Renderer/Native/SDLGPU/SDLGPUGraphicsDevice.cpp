@@ -97,7 +97,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		{
 			static SDL_GPUDevice* TryCreate(SDL_GPUShaderFormat fmt, bool debug, const char* driver)
 			{
-#ifdef _WIN32
+#ifdef SDL_PLATFORM_WIN32
 				__try { return SDL_CreateGPUDevice(fmt, debug, driver); }
 				__except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
 #else

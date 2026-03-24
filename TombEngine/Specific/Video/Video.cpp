@@ -200,7 +200,7 @@ namespace TEN::Video
 
 #if VLC4
 		vlcArgs.push_back("--aout=amem");		 // VLC 4.x: amem works on all platforms for BASS callback routing.
-#elif defined(_WIN32)
+#elif defined(SDL_PLATFORM_WIN32)
 		vlcArgs.push_back("--aout=amem");		 // VLC 3.x Windows: explicitly set amem audio output for BASS callback routing.
 #endif
 		// VLC 3.x Linux: no --aout is set; any explicit value blocks VLC during media opening.
