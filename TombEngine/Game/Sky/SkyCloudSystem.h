@@ -280,6 +280,25 @@ namespace TEN::Sky
 	};
 
 	// ====================================================================
+	// Independent per-layer transition state (volumetric cloud layers only)
+	//
+	// Allows CloudA and CloudB to each transition toward the CloudA/CloudB
+	// snapshot of *different* presets, completely independently of each
+	// other and of the full-preset WeatherTransitionState.
+	// ====================================================================
+
+	struct LayerTransitionState
+	{
+		bool  Active   = false;
+		VolumetricCloudLayerSnapshot Source = {};
+		VolumetricCloudLayerSnapshot Target = {};
+		float Duration = 30.0f;   // Total transition time in seconds.
+		float Elapsed  = 0.0f;
+		float Progress = 0.0f;    // [0, 1] eased progress.
+		EasingCurve Curve = EasingCurve::SmoothStep;
+	};
+
+	// ====================================================================
 	// Random weather controller state
 	// ====================================================================
 
@@ -320,6 +339,24 @@ namespace TEN::Sky
 		void TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
 		                        EasingCurve curve = EasingCurve::SmoothStep);
 		void InterruptTransition(); // Stop mid-transition, keep current blended state.
+
+		// --- Independent per-layer preset control ---
+		// These target only the CloudA or CloudB snapshot of a preset, leaving
+		// the other layer completely unaffected. Each runs its own timer.
+		void TransitionLayerAToPreset(WeatherPresetType preset, float durationSeconds,
+		                              EasingCurve curve = EasingCurve::SmoothStep);
+		void TransitionLayerBToPreset(WeatherPresetType preset, float durationSeconds,
+		                              EasingCurve curve = EasingCurve::SmoothStep);
+		void SetLayerAPresetImmediate(WeatherPresetType preset);
+		void SetLayerBPresetImmediate(WeatherPresetType preset);
+		void InterruptLayerATransition();
+		void InterruptLayerBTransition();
+
+		// Progress queries for per-layer transitions.
+		bool  IsLayerATransitioning() const;
+		bool  IsLayerBTransitioning() const;
+		float GetLayerATransitionProgress() const;
+		float GetLayerBTransitionProgress() const;
 
 		// --- Random weather ---
 		void StartRandomWeather(float dwellTime, float transitionTime,
@@ -385,6 +422,12 @@ namespace TEN::Sky
 			float CombinedTransmittance       = 1.0f;
 			CloudCategory CloudACategory      = CloudCategory::None;
 			CloudCategory CloudBCategory      = CloudCategory::None;
+
+			// Per-layer independent transition state.
+			bool  LayerATransitioning         = false;
+			bool  LayerBTransitioning         = false;
+			float LayerATransitionProgress    = 0.0f;
+			float LayerBTransitionProgress    = 0.0f;
 		};
 
 		DebugInfo GetDebugInfo() const;
@@ -396,12 +439,21 @@ namespace TEN::Sky
 		void ApplySnapshot(const SkyCloudSnapshot& snapshot);
 		WeatherPresetType PickRandomPreset();
 
+		// --- Per-layer independent transition ---
+		// Advances one layer's transition and writes the result back to `current`.
+		void UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
+		                           VolumetricCloudLayerSnapshot& current);
+
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;
 		SkyCloudSnapshot       _currentState;
 		WeatherPresetType      _currentPreset  = WeatherPresetType::ClearSky;
 		WeatherTransitionState _transition;
 		RandomWeatherState     _randomWeather;
+
+		// Per-layer independent transition states.
+		LayerTransitionState   _layerTransitionA;
+		LayerTransitionState   _layerTransitionB;
 
 		// Manual override flags.
 		bool _manualOverrideCloudA  = false;

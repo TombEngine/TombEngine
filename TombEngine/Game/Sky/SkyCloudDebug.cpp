@@ -638,7 +638,7 @@ namespace TEN::Sky
 				}
 			}
 
-			ImGui::Separator();
+		ImGui::Separator();
 
 			// Random weather controls.
 			static float rwDwell = 120.0f;
@@ -659,6 +659,90 @@ namespace TEN::Sky
 			{
 				if (ImGui::Button("Stop Random"))
 					g_SkyCloudSystem.StopRandomWeather();
+			}
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// ----------------------------------------------------------------
+		// Per-Layer Preset Switcher (Layer A and Layer B independently)
+		// ----------------------------------------------------------------
+		if (ImGui::CollapsingHeader("Per-Layer Preset Switcher"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::TextDisabled("Select different presets for Layer A and Layer B independently.");
+			ImGui::Separator();
+
+			auto presetTypesL = g_SkyCloudSystem.GetAllPresetTypes();
+			std::vector<const char*> presetNamesL;
+			presetNamesL.reserve(presetTypesL.size());
+			for (auto t : presetTypesL)
+				presetNamesL.push_back(SkyCloudSystem::PresetTypeToString(t));
+
+			if (!presetNamesL.empty())
+			{
+				// --- Layer A ---
+				ImGui::TextUnformatted("Cloud Layer A");
+				ImGui::Indent(8.0f);
+
+				static int layerAPresetIdx = 0;
+				if (layerAPresetIdx >= static_cast<int>(presetNamesL.size())) layerAPresetIdx = 0;
+				ImGui::SetNextItemWidth(160.0f);
+				ImGui::Combo("Preset##layerA", &layerAPresetIdx, presetNamesL.data(), static_cast<int>(presetNamesL.size()));
+
+				static float layerADur = 30.0f;
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(80.0f);
+				ImGui::DragFloat("s##layerADur", &layerADur, 1.0f, 1.0f, 300.0f, "%.0f s");
+
+				WeatherPresetType typeA = presetTypesL[layerAPresetIdx];
+				if (ImGui::Button("Apply Immediately##layerA"))
+					g_SkyCloudSystem.SetLayerAPresetImmediate(typeA);
+				ImGui::SameLine();
+				if (ImGui::Button("Transition##layerA"))
+					g_SkyCloudSystem.TransitionLayerAToPreset(typeA, layerADur);
+				if (g_SkyCloudSystem.IsLayerATransitioning())
+				{
+					ImGui::SameLine();
+					if (ImGui::Button("Interrupt##layerA"))
+						g_SkyCloudSystem.InterruptLayerATransition();
+					ImGui::SameLine();
+					ImGui::ProgressBar(g_SkyCloudSystem.GetLayerATransitionProgress(), ImVec2(100.0f, 0.0f));
+				}
+
+				ImGui::Unindent(8.0f);
+				ImGui::Separator();
+
+				// --- Layer B ---
+				ImGui::TextUnformatted("Cloud Layer B");
+				ImGui::Indent(8.0f);
+
+				static int layerBPresetIdx = 0;
+				if (layerBPresetIdx >= static_cast<int>(presetNamesL.size())) layerBPresetIdx = 0;
+				ImGui::SetNextItemWidth(160.0f);
+				ImGui::Combo("Preset##layerB", &layerBPresetIdx, presetNamesL.data(), static_cast<int>(presetNamesL.size()));
+
+				static float layerBDur = 30.0f;
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(80.0f);
+				ImGui::DragFloat("s##layerBDur", &layerBDur, 1.0f, 1.0f, 300.0f, "%.0f s");
+
+				WeatherPresetType typeB = presetTypesL[layerBPresetIdx];
+				if (ImGui::Button("Apply Immediately##layerB"))
+					g_SkyCloudSystem.SetLayerBPresetImmediate(typeB);
+				ImGui::SameLine();
+				if (ImGui::Button("Transition##layerB"))
+					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
+				if (g_SkyCloudSystem.IsLayerBTransitioning())
+				{
+					ImGui::SameLine();
+					if (ImGui::Button("Interrupt##layerB"))
+						g_SkyCloudSystem.InterruptLayerBTransition();
+					ImGui::SameLine();
+					ImGui::ProgressBar(g_SkyCloudSystem.GetLayerBTransitionProgress(), ImVec2(100.0f, 0.0f));
+				}
+
+				ImGui::Unindent(8.0f);
 			}
 
 			ImGui::Unindent(8.0f);

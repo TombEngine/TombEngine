@@ -952,6 +952,13 @@ namespace TEN::Sky
 			UpdateTransition(deltaTime);
 		else if (!_randomWeather.Active)
 			UpdatePresetDwell(deltaTime);
+
+		// Per-layer independent transitions — run last so they take priority over
+		// any CloudA/B values written by the full-preset transition above.
+		if (!_manualOverrideCloudA && _layerTransitionA.Active)
+			UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA);
+		if (!_manualOverrideCloudB && _layerTransitionB.Active)
+			UpdateLayerTransition(deltaTime, _layerTransitionB, _currentState.CloudB);
 	}
 
 	// ====================================================================
@@ -1015,8 +1022,9 @@ namespace TEN::Sky
 		// Apply manual overrides if set.
 		if (!_manualOverrideLayer1) _currentState.Layer1 = blended.Layer1;
 		if (!_manualOverrideLayer2) _currentState.Layer2 = blended.Layer2;
-		if (!_manualOverrideCloudA) _currentState.CloudA = blended.CloudA;
-		if (!_manualOverrideCloudB) _currentState.CloudB = blended.CloudB;
+		// Skip per-layer if an independent layer transition is running (it takes priority).
+		if (!_manualOverrideCloudA && !_layerTransitionA.Active) _currentState.CloudA = blended.CloudA;
+		if (!_manualOverrideCloudB && !_layerTransitionB.Active) _currentState.CloudB = blended.CloudB;
 	}
 
 	void SkyCloudSystem::SetPresetImmediate(WeatherPresetType preset)
@@ -1127,6 +1135,102 @@ namespace TEN::Sky
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 	}
+
+	// ====================================================================
+	// Independent per-layer preset transitions
+	// ====================================================================
+
+	void SkyCloudSystem::UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
+	                                            VolumetricCloudLayerSnapshot& current)
+	{
+		if (!layerTr.Active)
+			return;
+
+		layerTr.Elapsed += deltaTime;
+
+		if (layerTr.Elapsed >= layerTr.Duration)
+		{
+			layerTr.Progress = 1.0f;
+			current          = layerTr.Target;
+			layerTr.Active   = false;
+			return;
+		}
+
+		float rawT   = layerTr.Elapsed / layerTr.Duration;
+		float easedT = ApplyEasing(rawT, layerTr.Curve);
+		layerTr.Progress = easedT;
+		current = VolumetricCloudLayerSnapshot::Lerp(layerTr.Source, layerTr.Target, easedT);
+	}
+
+	void SkyCloudSystem::TransitionLayerAToPreset(WeatherPresetType preset, float durationSeconds,
+	                                               EasingCurve curve)
+	{
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		auto& tr  = _layerTransitionA;
+		tr.Active   = true;
+		tr.Source   = _currentState.CloudA;
+		tr.Target   = it->second.TargetState.CloudA;
+		tr.Duration = std::max(durationSeconds, 0.1f);
+		tr.Elapsed  = 0.0f;
+		tr.Progress = 0.0f;
+		tr.Curve    = curve;
+	}
+
+	void SkyCloudSystem::TransitionLayerBToPreset(WeatherPresetType preset, float durationSeconds,
+	                                               EasingCurve curve)
+	{
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		auto& tr  = _layerTransitionB;
+		tr.Active   = true;
+		tr.Source   = _currentState.CloudB;
+		tr.Target   = it->second.TargetState.CloudB;
+		tr.Duration = std::max(durationSeconds, 0.1f);
+		tr.Elapsed  = 0.0f;
+		tr.Progress = 0.0f;
+		tr.Curve    = curve;
+	}
+
+	void SkyCloudSystem::SetLayerAPresetImmediate(WeatherPresetType preset)
+	{
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		_layerTransitionA.Active = false;
+		_currentState.CloudA     = it->second.TargetState.CloudA;
+	}
+
+	void SkyCloudSystem::SetLayerBPresetImmediate(WeatherPresetType preset)
+	{
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		_layerTransitionB.Active = false;
+		_currentState.CloudB     = it->second.TargetState.CloudB;
+	}
+
+	void SkyCloudSystem::InterruptLayerATransition()
+	{
+		_layerTransitionA.Active = false;
+	}
+
+	void SkyCloudSystem::InterruptLayerBTransition()
+	{
+		_layerTransitionB.Active = false;
+	}
+
+	bool SkyCloudSystem::IsLayerATransitioning() const { return _layerTransitionA.Active; }
+	bool SkyCloudSystem::IsLayerBTransitioning() const { return _layerTransitionB.Active; }
+
+	float SkyCloudSystem::GetLayerATransitionProgress() const { return _layerTransitionA.Progress; }
+	float SkyCloudSystem::GetLayerBTransitionProgress() const { return _layerTransitionB.Progress; }
 
 	// ====================================================================
 	// Preset dwell (wait before chaining to NextPreset)
@@ -1555,6 +1659,10 @@ namespace TEN::Sky
 		info.CombinedTransmittance = GetCombinedCloudTransmittance();
 		info.CloudACategory       = _currentState.CloudA.Category;
 		info.CloudBCategory       = _currentState.CloudB.Category;
+		info.LayerATransitioning      = _layerTransitionA.Active;
+		info.LayerBTransitioning      = _layerTransitionB.Active;
+		info.LayerATransitionProgress = _layerTransitionA.Progress;
+		info.LayerBTransitionProgress = _layerTransitionB.Progress;
 		return info;
 	}
 }
