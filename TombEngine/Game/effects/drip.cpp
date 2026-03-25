@@ -41,6 +41,7 @@ namespace TEN::Effects::Drip
 		drip.Life =
 		drip.LifeMax = std::round(lifeInSec * FPS);
 		drip.Gravity = gravity;
+		drip.StoreInterpolationData();
 	}
 
 	void SpawnSplashDrips(const Vector3& pos, int roomNumber, unsigned int count, bool isSmallSplash)

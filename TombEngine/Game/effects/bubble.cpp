@@ -65,6 +65,7 @@ namespace TEN::Effects::Bubble
 		bubble.Gravity = Lerp(GRAVITY_MIN, GRAVITY_MAX, size / BUBBLE_SIZE_MAX);
 		bubble.OscillationPeriod = Random::GenerateFloat(0.0f, size);
 		bubble.OscillationVelocity = Lerp(BUBBLE_OSC_VELOCITY_MAX, BUBBLE_OSC_VELOCITY_MIN, size / BUBBLE_SIZE_MAX);
+		bubble.StoreInterpolationData();
 	}
 
 	void SpawnBubble(const Vector3& pos, int roomNumber, int flags)

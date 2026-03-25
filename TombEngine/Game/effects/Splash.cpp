@@ -27,6 +27,8 @@ namespace TEN::Effects::Splash
 			if (splash.isActive)
 				continue;
 
+			splash = {};
+
 			if (splashSetupCount == 0)
 			{
 				float splashPower = std::min(256.0f, setup->SplashPower);
@@ -43,7 +45,11 @@ namespace TEN::Effects::Splash
 				splash.HeightVel = -16;
 				splash.OuterRadius = setup->InnerRadius / 3;
 				splash.outerRadialVel = splashVel * 1.5f;
+				splash.AnimSpeed = 0.0f;
+				splash.AnimPhase = 0.0f;
 				splash.SpriteSeqStart = 8; // Splash texture.
+				splash.SpriteSeqEnd = 8;
+				splash.StoreInterpolationData();
 				splashSetupCount++;
 			}
 			else
@@ -79,6 +85,8 @@ namespace TEN::Effects::Splash
 				splash.SpriteSeqStart = 4; // Splash texture.
 				splash.SpriteSeqEnd = 7; // Splash texture.
 				splash.AnimSpeed = fmin(0.6f, (1 / splash.outerRadialVel) * 2);
+				splash.AnimPhase = 0.0f;
+				splash.StoreInterpolationData();
 
 				splashSetupCount++;
 			}
