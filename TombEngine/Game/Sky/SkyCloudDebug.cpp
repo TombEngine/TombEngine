@@ -46,11 +46,7 @@ namespace TEN::Sky
 		switch (cat)
 		{
 		case CloudCategory::None:                 return "None";
-		case CloudCategory::CirrusHigh:           return "CirrusHigh";
 		case CloudCategory::AltocumulusMid:       return "AltocumulusMid";
-		case CloudCategory::StratocumulusLow:     return "StratocumulusLow";
-		case CloudCategory::CumulonimbusVertical:        return "CumulonimbusVertical";
-		case CloudCategory::CumulonimbusVerticalBuildUp: return "CumulonimbusVerticalBuildUp";
 		case CloudCategory::Aurora:               return "Aurora";
 		default:                                         return "Unknown";
 		}
@@ -88,36 +84,17 @@ namespace TEN::Sky
 			return defaults ? defaults->*member : 0.0f;
 		};
 
-		const bool isAlto = (snap.Category == CloudCategory::AltocumulusMid);
-
 		std::vector<CloudDebugParam> params;
 
 		//                Label               Ptr                       Min      Max       Step       Fmt         Default
 		params.push_back({"Coverage",         &snap.Coverage,           0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::Coverage)});
 		params.push_back({"Density",          &snap.Density,            0.0f,    10.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Density)});
 		params.push_back({"Bottom Height",    &snap.BottomHeight,       100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::BottomHeight)});
-		if (isAlto)
-			params.push_back({"Horizon Width",    &snap.AltoHorizonWidth,   0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHorizonWidth)});
-		else
-			params.push_back({"Horizon Width",    &snap.Thickness,          100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::Thickness)});
+		params.push_back({"Horizon Width",    &snap.AltoHorizonWidth,   0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHorizonWidth)});
 		params.push_back({"Wind Dir X",       &snap.WindDirectionX,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionX)});
 		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
 		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
-		// Not used by Alto's self-contained density/lighting path.
-		if (!isAlto)
-		{
-			// Practical ranges for current volumetric shader tuning:
-			// ShapeScale remains linear and most useful up to ~0.000135.
-			// Above this, the shader applies a soft-cap, so large debug ranges are
-			// mostly noise and make the UI harder to tune precisely.
-			params.push_back({"Shape Scale",      &snap.ShapeScale,         0.0f,    0.0006f, 0.000001f, "%.6f",     def(&VolumetricCloudLayerSnapshot::ShapeScale)});
-			params.push_back({"Detail Scale",     &snap.DetailScale,        0.0f,    0.003f,  0.00001f,  "%.5f",     def(&VolumetricCloudLayerSnapshot::DetailScale)});
-			params.push_back({"Detail Strength",  &snap.DetailStrength,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DetailStrength)});
-			params.push_back({"Absorption",       &snap.Absorption,         0.0f,    25.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Absorption)});
-			params.push_back({"Ambient Contrib",  &snap.AmbientContrib,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AmbientContrib)});
-			params.push_back({"Silverlining",     &snap.SilverliningStr,    0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::SilverliningStr)});
-		}
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
 		params.push_back({"Distance Fade",    &snap.DistanceFade,       0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DistanceFade)});
 		params.push_back({"Horizon Mesh Bleed", &snap.HorizonMeshBleed,  0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonMeshBleed)});
@@ -231,7 +208,7 @@ namespace TEN::Sky
 	static bool DrawCategoryCombo(const char* label, CloudCategory& category)
 	{
 		static const char* names[] = {
-			"None", "CirrusHigh", "AltocumulusMid", "StratocumulusLow", "CumulonimbusVertical", "CumulonimbusVerticalBuildUp", "Aurora"
+			"None", "AltocumulusMid", "Aurora"
 		};
 		int current = static_cast<int>(category);
 		bool changed = false;
@@ -270,16 +247,6 @@ namespace TEN::Sky
 			snap.AltoFbmGain        = 0.5f;
 			snap.AltoThickness      = 1800.0f;
 			snap.AltoBottomSoftness = 0.35f;
-			break;
-
-		case CloudCategory::CirrusHigh:
-			// Federwolken: thin, elongated wisps.
-			snap.ShapeScale = 0.00009f;
-			snap.DetailScale = 0.00055f;
-			snap.DetailStrength = 0.14f;
-			snap.EvolutionSpeed = 0.05f;
-			snap.Coverage = 0.38f;
-			snap.Absorption = 0.45f;
 			break;
 
 		default:
@@ -431,10 +398,7 @@ namespace TEN::Sky
 		}
 
 		// One-click pattern presets for requested cloud types.
-		if (snap.Category == CloudCategory::AltocumulusMid ||
-			snap.Category == CloudCategory::CirrusHigh ||
-			snap.Category == CloudCategory::CumulonimbusVertical ||
-			snap.Category == CloudCategory::CumulonimbusVerticalBuildUp)
+		if (snap.Category == CloudCategory::AltocumulusMid)
 		{
 			if (ImGui::Button("Apply Tuned Pattern"))
 			{
@@ -442,12 +406,7 @@ namespace TEN::Sky
 				changed = true;
 			}
 			ImGui::SameLine();
-			if (snap.Category == CloudCategory::AltocumulusMid)
-				ImGui::TextDisabled("Altocumulus grouping (Schaefchen)");
-			else if (snap.Category == CloudCategory::CirrusHigh)
-				ImGui::TextDisabled("Elongated Cirrus wisps (Federwolken)");
-			else
-				ImGui::TextDisabled("Storm tower defaults (Cumulonimbus)");
+			ImGui::TextDisabled("Altocumulus grouping (Schaefchen)");
 		}
 
 		ImGui::Separator();

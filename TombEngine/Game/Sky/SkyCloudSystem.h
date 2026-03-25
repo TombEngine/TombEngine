@@ -45,11 +45,7 @@ namespace TEN::Sky
 	enum class CloudCategory
 	{
 		None,                       // No clouds / clear sky
-		CirrusHigh,                 // Thin, wispy, high altitude
 		AltocumulusMid,             // Patchy, medium altitude, moderate density
-		StratocumulusLow,           // Dense, low altitude, broad coverage
-		CumulonimbusVertical,       // Strong vertical development, storm-capable
-		CumulonimbusVerticalBuildUp, // Distant horizon tower buildup (pre-storm)
 		Aurora                      // High-altitude aurora borealis effect
 	};
 
@@ -60,23 +56,22 @@ namespace TEN::Sky
 	enum class WeatherPresetType
 	{
 		ClearSky,
-		ClearSkyHigh,          // Clear sky with a few high-altitude cirrus wisps.
-		ClearSkyLow,           // Clear sky with lingering low-lying haze/mist layer.
-		CirrocumulusClear,
+		ClearSkyHigh,          // Clear sky with faint high-altitude wisps.
+		ClearSkyLow,           // Clear sky with thin horizon haze layer.
+		CirrocumulusClear,     // Open sky with very few scattered cirrocumulus patches.
+		CirrocumulusLots,      // Dense rippled mackerel-sky cirrocumulus.
+		CirrocumulusFew,       // Sparse patches of rippled cirrocumulus.
+		Cirrustratus,          // Thin translucent veil of cirrus covering the sky.
 		StormBuildUpHigh,
 		BrokenClouds,
 		Overcast,
-		Cirrus,
-		Cirrustratus,          // Thin veil of cirrus covering the whole sky.
-		CirrocumulusLots,      // Copious high rippled cirrocumulus (mackerel sky).
-		CirrocumulusFew,       // Sparse patches of high rippled cirrocumulus.
 		Altocumulus,
 		AltocumulusHigh,       // Altocumulus pushed to higher altitude, thinner.
 		AuroraBorealis,
 		RainSnowOvercast,
 		StormBuildUp,
+		StormTransformation,   // Bridge preset: rapid shift to full thunderstorm.
 		Thunderstorm,
-		StormTransformation,
 		Random,                // Meta-preset: activates random weather mode
 
 		Count
@@ -118,14 +113,6 @@ namespace TEN::Sky
 		float WindDirectionY  = 0.0f;
 		float WindSpeed       = 0.003f;
 		float EvolutionSpeed  = 0.15f;
-
-		float ShapeScale      = 0.00008f;
-		float DetailScale     = 0.0008f;
-		float DetailStrength  = 0.35f;
-
-		float Absorption      = 1.1f;
-		float AmbientContrib  = 0.35f;
-		float SilverliningStr = 0.4f;
 
 		float HorizonFade     = 1.0f;   // Fade near horizon, 0 = none, 1 = full
 		float DistanceFade    = 1.0f;   // Distance-based fade factor

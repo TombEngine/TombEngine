@@ -113,7 +113,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float BleedPassStrength = 0.0f;
 
 		// Cloud type (maps to CloudCategory enum)
-		int CloudType = 0;             // 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
+		int CloudType = 0;             // 0=None, 1=AltocumulusMid, 2=Aurora
 
 		// Altocumulus-specific appearance tuning (only meaningful for CloudType == 2 / AltocumulusMid)
 		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM noise

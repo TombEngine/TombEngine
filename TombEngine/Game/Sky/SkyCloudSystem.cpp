@@ -71,12 +71,12 @@ namespace TEN::Sky
 		s.WindDirection   = Vector2(WindDirectionX, WindDirectionY);
 		s.WindSpeed       = WindSpeed;
 		s.EvolutionSpeed  = EvolutionSpeed;
-		s.Noise.ShapeScale    = ShapeScale;
-		s.Noise.DetailScale   = DetailScale;
-		s.Noise.DetailStrength = DetailStrength;
-		s.Absorption      = Absorption;
-		s.AmbientContrib  = AmbientContrib;
-		s.SilverliningStr = SilverliningStr;
+		s.Noise.ShapeScale    = 0.00008f;  // Default — unused (no standard cloud types left).
+		s.Noise.DetailScale   = 0.0008f;
+		s.Noise.DetailStrength = 0.35f;
+		s.Absorption      = 1.1f;          // Default — unused (Alto has AltoAbsorption).
+		s.AmbientContrib  = 0.35f;
+		s.SilverliningStr = 0.4f;
 		s.HorizonFade     = HorizonFade;
 		s.DistanceFade    = DistanceFade;
 		s.HorizonMeshBleed = HorizonMeshBleed;
@@ -136,12 +136,6 @@ namespace TEN::Sky
 		snap.WindDirectionY = src.WindDirection.y;
 		snap.WindSpeed     = src.WindSpeed;
 		snap.EvolutionSpeed = src.EvolutionSpeed;
-		snap.ShapeScale    = src.Noise.ShapeScale;
-		snap.DetailScale   = src.Noise.DetailScale;
-		snap.DetailStrength = src.Noise.DetailStrength;
-		snap.Absorption    = src.Absorption;
-		snap.AmbientContrib = src.AmbientContrib;
-		snap.SilverliningStr = src.SilverliningStr;
 		snap.HorizonFade     = src.HorizonFade;
 		snap.DistanceFade    = src.DistanceFade;
 		snap.HorizonMeshBleed = src.HorizonMeshBleed;
@@ -243,12 +237,6 @@ namespace TEN::Sky
 		result.WindDirectionY  = LerpFloat(a.WindDirectionY, b.WindDirectionY, t);
 		result.WindSpeed       = LerpFloat(a.WindSpeed, b.WindSpeed, t);
 		result.EvolutionSpeed  = LerpFloat(a.EvolutionSpeed, b.EvolutionSpeed, t);
-		result.ShapeScale      = LerpFloat(a.ShapeScale, b.ShapeScale, t);
-		result.DetailScale     = LerpFloat(a.DetailScale, b.DetailScale, t);
-		result.DetailStrength  = LerpFloat(a.DetailStrength, b.DetailStrength, t);
-		result.Absorption      = LerpFloat(a.Absorption, b.Absorption, t);
-		result.AmbientContrib  = LerpFloat(a.AmbientContrib, b.AmbientContrib, t);
-		result.SilverliningStr = LerpFloat(a.SilverliningStr, b.SilverliningStr, t);
 		result.HorizonFade        = LerpFloat(a.HorizonFade,        b.HorizonFade,        t);
 		result.DistanceFade       = LerpFloat(a.DistanceFade,       b.DistanceFade,       t);
 		result.HorizonMeshBleed   = LerpFloat(a.HorizonMeshBleed,   b.HorizonMeshBleed,   t);
@@ -425,76 +413,6 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- ClearSkyHigh -----
-		// Clear sky with a delicate veil of high-altitude cirrus wisps.
-		// Feels like a fresh, breezy clear day with just enough cloud to add depth.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::ClearSkyHigh;
-			def.Name = "ClearSkyHigh";
-			def.DefaultTransitionDuration = 55.0f;
-			def.RandomWeight = 1.8f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled        = true;
-			a.Category       = CloudCategory::CirrusHigh;
-			a.Coverage       = 0.10f;  // Very sparse — most of sky is open.
-			a.Density        = 0.18f;
-			a.BottomHeight   = 22000.0f;
-			a.Thickness      = 4000.0f;
-			a.WindSpeed      = 0.003f;
-			a.EvolutionSpeed = 0.06f;
-			a.ShapeScale     = 0.000030f;
-			a.DetailScale    = 0.00080f;
-			a.DetailStrength = 0.08f;
-			a.Absorption     = 0.30f;
-			a.AmbientContrib = 0.85f;
-			a.SilverliningStr = 0.80f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- ClearSkyLow -----
-		// Clear sky with a thin lingering low-altitude haze/mist layer near the horizon.
-		// Gives a slightly hazy, warm morning or evening quality to the sky.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::ClearSkyLow;
-			def.Name = "ClearSkyLow";
-			def.DefaultTransitionDuration = 55.0f;
-			def.RandomWeight = 1.6f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled             = true;
-			b.Category            = CloudCategory::StratocumulusLow;
-			b.BottomHeight        = 800.0f;
-			b.Thickness           = 600.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.0015f;
-			b.EvolutionSpeed      = 0.04f;
-			b.HorizonFade         = 1.0f; // Strong horizon fade — barely visible overhead.
-			b.DistanceFade        = 0.8f;
-			b.AltoBillowStrength  = 0.0f;
-			b.AltoCovSoftWidth    = 0.40f;
-			b.AltoAbsorption      = 0.10f;
-			b.AltoCloudSize       = 0.18f;
-			b.AltoCloudAmount     = 0.22f;
-			b.AltoCloudBrightness = 1.25f; // Bright, sun-lit haze.
-			b.AltoCloudColorR     = 1.0f;
-			b.AltoCloudColorG     = 0.97f;
-			b.AltoCloudColorB     = 0.93f; // Slight warmth.
-			b.AltoCloudColorDarkR = 0.72f;
-			b.AltoCloudColorDarkG = 0.70f;
-			b.AltoCloudColorDarkB = 0.75f;
-			b.AltoFbmLacunarity   = 3.0f;
-			b.AltoFbmGain         = 0.38f;
-			b.AltoThickness       = 600.0f;
-			b.AltoBottomSoftness  = 1.0f;
-
-			_presets[def.Type] = def;
-		}
-
 		// ----- RainSnowOvercast -----
 		// Heavy uniform overcast: large slow-rolling blanketing clouds.
 		// Uses CloudB only (AltocumulusMid). Values set by level designer.
@@ -618,32 +536,6 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 	
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::CirrocumulusClear;
-			def.Name = "CirrocumulusClear";
-			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 2.5f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::CirrusHigh;
-			a.Coverage      = 0.15f;
-			a.Density       = 0.3f;
-			a.BottomHeight  = 4000.0f;
-			a.Thickness     = 1500.0f;
-			a.WindSpeed     = 0.002f;
-			a.EvolutionSpeed = 0.08f;
-			a.ShapeScale    = 0.00006f;
-			a.DetailScale   = 0.0006f;
-			a.DetailStrength = 0.2f;
-			a.Absorption    = 0.6f;
-			a.AmbientContrib = 0.5f;
-			a.SilverliningStr = 0.6f;
-
-			_presets[def.Type] = def;
-		}
-
 		// ----- StormBuildUpHigh -----
 		{
 			WeatherPresetDefinition def;
@@ -661,57 +553,7 @@ namespace TEN::Sky
 			a.Thickness     = 1700.0f;
 			a.WindSpeed     = 0.003f;
 			a.EvolutionSpeed = 0.12f;
-			a.ShapeScale    = 0.00011f;
-			a.DetailScale   = 0.00085f;
-			a.DetailStrength = 0.3f;
-			a.Absorption    = 0.9f;
-			a.AmbientContrib = 0.4f;
-			a.SilverliningStr = 0.5f;
 
-			_presets[def.Type] = def;
-		}
-
-		// ----- BrokenClouds -----
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::BrokenClouds;
-			def.Name = "BrokenClouds";
-			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 1.5f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::AltocumulusMid;
-			a.Coverage      = 0.62f;
-			a.Density       = 0.6f;
-			a.BottomHeight  = 2000.0f;
-			a.Thickness     = 2000.0f;
-			a.WindSpeed     = 0.004f;
-			a.EvolutionSpeed = 0.15f;
-			a.ShapeScale    = 0.00011f;
-			a.DetailScale   = 0.0008f;
-			a.DetailStrength = 0.35f;
-			a.Absorption    = 1.0f;
-			a.AmbientContrib = 0.35f;
-			a.SilverliningStr = 0.45f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::StratocumulusLow;
-			b.Coverage      = 0.2f;
-			b.Density       = 0.4f;
-			b.BottomHeight  = 1200.0f;
-			b.Thickness     = 1200.0f;
-			b.WindSpeed     = 0.005f;
-			b.EvolutionSpeed = 0.1f;
-			b.ShapeScale    = 0.0001f;
-			b.DetailScale   = 0.001f;
-			b.DetailStrength = 0.3f;
-			b.Absorption    = 1.1f;
-			b.AmbientContrib = 0.3f;
-			b.SilverliningStr = 0.35f;
-
-			def.HighLayerLeadFraction = 0.15f;
 			_presets[def.Type] = def;
 		}
 
@@ -732,55 +574,6 @@ namespace TEN::Sky
 			a.Thickness     = 2200.0f;
 			a.WindSpeed     = 0.003f;
 			a.EvolutionSpeed = 0.1f;
-			a.ShapeScale    = 0.00012f;
-			a.DetailScale   = 0.001f;
-			a.DetailStrength = 0.25f;
-			a.Absorption    = 1.3f;
-			a.AmbientContrib = 0.25f;
-			a.SilverliningStr = 0.2f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::StratocumulusLow;
-			b.Coverage      = 0.7f;
-			b.Density       = 0.6f;
-			b.BottomHeight  = 1000.0f;
-			b.Thickness     = 1500.0f;
-			b.WindSpeed     = 0.004f;
-			b.EvolutionSpeed = 0.08f;
-			b.ShapeScale    = 0.00012f;
-			b.DetailScale   = 0.0012f;
-			b.DetailStrength = 0.2f;
-			b.Absorption    = 1.4f;
-			b.AmbientContrib = 0.2f;
-			b.SilverliningStr = 0.15f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- Cirrus -----
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::Cirrus;
-			def.Name = "Cirrus";
-			def.DefaultTransitionDuration = 50.0f;
-			def.RandomWeight = 1.5f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::CirrusHigh;
-			a.Coverage      = 0.4f;
-			a.Density       = 0.2f;
-			a.BottomHeight  = 5000.0f;
-			a.Thickness     = 1000.0f;
-			a.WindSpeed     = 0.006f;
-			a.EvolutionSpeed = 0.05f;
-			a.ShapeScale    = 0.00005f;
-			a.DetailScale   = 0.0005f;
-			a.DetailStrength = 0.15f;
-			a.Absorption    = 0.4f;
-			a.AmbientContrib = 0.6f;
-			a.SilverliningStr = 0.7f;
 
 			_presets[def.Type] = def;
 		}
@@ -842,20 +635,13 @@ namespace TEN::Sky
 			a.Thickness     = 2000.0f;
 			a.WindSpeed     = 0.004f;
 			a.EvolutionSpeed = 0.1f;
-			a.ShapeScale    = 0.0001f;
-			a.DetailScale   = 0.001f;
-			a.DetailStrength = 0.3f;
-			a.Absorption    = 1.2f;
-			a.AmbientContrib = 0.3f;
-			a.SilverliningStr = 0.3f;
 
 			_presets[def.Type] = def;
 		}
 
 		// ----- StormBuildUp -----
-		// Distant towering cumulonimbus buildup near the horizon.
+		// Thickening overcast with dark undertones.
 		// Cloud A: Altocumulus mid-level overcast thickening overhead.
-		// Cloud B: CumulonimbusVerticalBuildUp — ring of distant tower formations.
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::StormBuildUp;
@@ -873,226 +659,9 @@ namespace TEN::Sky
 			a.Thickness     = 2400.0f;
 			a.WindSpeed     = 0.005f;
 			a.EvolutionSpeed = 0.2f;
-			a.ShapeScale    = 0.00011f;
-			a.DetailScale   = 0.0009f;
-			a.DetailStrength = 0.4f;
-			a.Absorption    = 1.2f;
-			a.AmbientContrib = 0.25f;
-			a.SilverliningStr = 0.3f;
 			a.AltoCloudColorDarkR = 0.45f;
 			a.AltoCloudColorDarkG = 0.45f;
 			a.AltoCloudColorDarkB = 0.55f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::CumulonimbusVerticalBuildUp;
-			b.Coverage      = 0.55f;
-			b.Density       = 0.85f;
-			b.BottomHeight  = 800.0f;
-			b.Thickness     = 4500.0f;
-			b.WindSpeed     = 0.004f;
-			b.EvolutionSpeed = 0.2f;
-			b.ShapeScale    = 0.00012f;
-			b.DetailScale   = 0.001f;
-			b.DetailStrength = 0.4f;
-			b.Absorption    = 1.5f;
-			b.AmbientContrib = 0.2f;
-			b.SilverliningStr = 0.2f;
-			b.HorizonFade   = 0.3f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- Thunderstorm -----
-		// Full active thunderstorm with lightning.
-		// Cloud A: Dense altocumulus overcast (dark, oppressive sky).
-		// Cloud B: CumulonimbusVertical with lightning flashes.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::Thunderstorm;
-			def.Name = "Thunderstorm";
-			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 0.3f;
-			def.HighLayerLeadFraction = 0.0f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::AltocumulusMid;
-			a.Coverage      = 0.85f;
-			a.Density       = 0.8f;
-			a.BottomHeight  = 1500.0f;
-			a.Thickness     = 2600.0f;
-			a.WindSpeed     = 0.007f;
-			a.EvolutionSpeed = 0.3f;
-			a.ShapeScale    = 0.00011f;
-			a.DetailScale   = 0.001f;
-			a.DetailStrength = 0.4f;
-			a.Absorption    = 1.6f;
-			a.AmbientContrib = 0.15f;
-			a.SilverliningStr = 0.15f;
-			a.AltoCloudColorDarkR = 0.27f;
-			a.AltoCloudColorDarkG = 0.27f;
-			a.AltoCloudColorDarkB = 0.35f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::CumulonimbusVertical;
-			b.Coverage      = 0.8f;
-			b.Density       = 1.0f;
-			b.BottomHeight  = 500.0f;
-			b.Thickness     = 5000.0f;
-			b.WindSpeed     = 0.008f;
-			b.EvolutionSpeed = 0.35f;
-			b.ShapeScale    = 0.00014f;
-			b.DetailScale   = 0.0012f;
-			b.DetailStrength = 0.5f;
-			b.Absorption    = 2.0f;
-			b.AmbientContrib = 0.1f;
-			b.SilverliningStr = 0.1f;
-			// Lightning — active thunderstorm
-			b.LightningEnabled      = true;
-			b.LightningStrikeFreq   = 0.1f;
-			b.LightningInternalFreq = 0.5f;
-			b.LightningSpeed        = 2.5f;
-			b.LightningInternalSpeed = 5.0f;
-			b.LightningGlowIntensity = 3.0f;
-			b.LightningBoltColorR   = 0.3f;
-			b.LightningBoltColorG   = 0.6f;
-			b.LightningBoltColorB   = 1.0f;
-			b.LightningFlashIntensity = 4.0f;
-			b.LightningAmbientContrib = 0.15f;
-			b.LightningBoltLengthScale    = 1.0f;
-			b.LightningBoltThicknessScale = 1.0f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- StormTransformation -----
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::StormTransformation;
-			def.Name = "StormTransformation";
-			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 0.15f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled       = true;
-			a.Category      = CloudCategory::CumulonimbusVertical;
-			a.Coverage      = 0.95f;
-			a.Density       = 1.0f;
-			a.BottomHeight  = 1000.0f;
-			a.Thickness     = 4000.0f;
-			a.WindSpeed     = 0.01f;
-			a.EvolutionSpeed = 0.4f;
-			a.ShapeScale    = 0.00012f;
-			a.DetailScale   = 0.0012f;
-			a.DetailStrength = 0.5f;
-			a.Absorption    = 2.0f;
-			a.AmbientContrib = 0.08f;
-			a.SilverliningStr = 0.05f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled       = true;
-			b.Category      = CloudCategory::CumulonimbusVertical;
-			b.Coverage      = 0.9f;
-			b.Density       = 1.2f;
-			b.BottomHeight  = 300.0f;
-			b.Thickness     = 5500.0f;
-			b.WindSpeed     = 0.012f;
-			b.EvolutionSpeed = 0.45f;
-			b.ShapeScale    = 0.00016f;
-			b.DetailScale   = 0.0015f;
-			b.DetailStrength = 0.55f;
-			b.Absorption    = 2.5f;
-			b.AmbientContrib = 0.05f;
-			b.SilverliningStr = 0.05f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- Cirrustratus -----
-		// Thin, translucent veil of cirrus covering almost the entire sky.
-		// Creates a milky, halo-prone appearance typical of approaching warm fronts.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::Cirrustratus;
-			def.Name = "Cirrustratus";
-			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 1.0f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled        = true;
-			a.Category       = CloudCategory::CirrusHigh;
-			a.Coverage       = 0.90f;  // Near-total coverage but whisper-thin.
-			a.Density        = 0.12f;  // Very low density — barely opaque.
-			a.BottomHeight   = 18000.0f;
-			a.Thickness      = 3000.0f;
-			a.WindSpeed      = 0.004f;
-			a.EvolutionSpeed = 0.03f;
-			a.ShapeScale     = 0.000022f;
-			a.DetailScale    = 0.00045f;
-			a.DetailStrength = 0.07f;
-			a.Absorption     = 0.18f;
-			a.AmbientContrib = 0.90f;
-			a.SilverliningStr = 0.55f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- CirrocumulusLots -----
-		// Dense rippled mackerel-sky pattern of small cirrocumulus cloudlets at high altitude.
-		// Typically indicates instability aloft; can precede deteriorating weather.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::CirrocumulusLots;
-			def.Name = "CirrocumulusLots";
-			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 1.2f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled        = true;
-			a.Category       = CloudCategory::CirrusHigh;
-			a.Coverage       = 0.75f;
-			a.Density        = 0.28f;
-			a.BottomHeight   = 16000.0f;
-			a.Thickness      = 2500.0f;
-			a.WindSpeed      = 0.007f;
-			a.EvolutionSpeed = 0.09f;
-			a.ShapeScale     = 0.000065f;  // Finer scale for ripple/streak pattern.
-			a.DetailScale    = 0.00110f;
-			a.DetailStrength = 0.22f;
-			a.Absorption     = 0.50f;
-			a.AmbientContrib = 0.60f;
-			a.SilverliningStr = 0.65f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- CirrocumulusFew -----
-		// Occasional small patches of rippled cirrocumulus — open fair-weather sky
-		// punctuated by decorative high-altitude cloudlets.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::CirrocumulusFew;
-			def.Name = "CirrocumulusFew";
-			def.DefaultTransitionDuration = 50.0f;
-			def.RandomWeight = 2.0f;
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled        = true;
-			a.Category       = CloudCategory::CirrusHigh;
-			a.Coverage       = 0.18f;
-			a.Density        = 0.22f;
-			a.BottomHeight   = 17000.0f;
-			a.Thickness      = 2000.0f;
-			a.WindSpeed      = 0.005f;
-			a.EvolutionSpeed = 0.06f;
-			a.ShapeScale     = 0.000060f;
-			a.DetailScale    = 0.00095f;
-			a.DetailStrength = 0.18f;
-			a.Absorption     = 0.38f;
-			a.AmbientContrib = 0.75f;
-			a.SilverliningStr = 0.72f;
 
 			_presets[def.Type] = def;
 		}
@@ -1134,6 +703,377 @@ namespace TEN::Sky
 			b.AltoFbmGain         = 0.46f;
 			b.AltoThickness       = 1100.0f;
 			b.AltoBottomSoftness  = 0.85f;
+
+			_presets[def.Type] = def;
+		}
+		// ----- ClearSkyHigh -----
+		// Clear sky with a few faint high-altitude cloudlets.
+		// Cloud A disabled but carries tuned values for cross-fade use.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::ClearSkyHigh;
+			def.Name = "ClearSkyHigh";
+			def.DefaultTransitionDuration = 30.0f;
+			def.RandomWeight = 1.8f;
+			def.NextPresetDwellDurationMin = 300.0f;
+			def.NextPresetDwellDurationMax = 560.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = false;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 0.0f;
+			a.BottomHeight       = 2500.0f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.1678f;
+			a.EvolutionSpeed     = 4.532f;
+			a.HorizonFade        = 1.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.458f;
+			a.AltoCovSoftWidth   = 0.165f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 0.412f;
+			a.AltoCloudAmount    = 0.451f;
+			a.AltoCloudBrightness = 0.769f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.587f;
+			a.AltoThickness      = 5000.0f;
+			a.AltoBottomSoftness = 0.153f;
+			a.AltoZenithBias     = 1.0f;
+			a.AltoHeightBlendPower = 1.564f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- ClearSkyLow -----
+		// Clear sky with a thin horizon haze band (Cloud B, visually invisible at coverage 0).
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::ClearSkyLow;
+			def.Name = "ClearSkyLow";
+			def.DefaultTransitionDuration = 30.0f;
+			def.RandomWeight = 1.6f;
+			def.NextPresetDwellDurationMin = 300.0f;
+			def.NextPresetDwellDurationMax = 560.0f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled            = true;
+			b.Category           = CloudCategory::AltocumulusMid;
+			b.Coverage           = 0.0f;
+			b.BottomHeight       = 2127.0f;
+			b.Thickness          = 3252.0f;
+			b.WindDirectionX     = 1.0f;
+			b.WindDirectionY     = 0.0f;
+			b.WindSpeed          = 0.2423f;
+			b.EvolutionSpeed     = 5.0f;
+			b.HorizonFade        = 1.0f;
+			b.DistanceFade       = 0.0f;
+			b.AltoBillowStrength = 1.0f;
+			b.AltoCovSoftWidth   = 0.25f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.509f;
+			b.AltoCloudAmount    = 0.0f;
+			b.AltoCloudBrightness = 1.034f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.55f;
+			b.AltoCloudColorDarkG = 0.55f;
+			b.AltoCloudColorDarkB = 0.65f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 0.687f;
+			b.AltoThickness      = 1480.0f;
+			b.AltoBottomSoftness = 1.0f;
+			b.AltoZenithBias     = 0.0f;
+			b.AltoHeightBlendPower = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- CirrocumulusClear -----
+		// Very open sky with near-zero coverage cloudlets; chains immediately to ClearSkyHigh.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::CirrocumulusClear;
+			def.Name = "CirrocumulusClear";
+			def.DefaultTransitionDuration = 1.0f;
+			def.RandomWeight = 1.5f;
+			def.NextPresetDwellDuration = 0.0f;
+			def.NextPreset = "ClearSkyHigh";
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = true;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 0.0f;
+			a.BottomHeight       = 1536.0f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.6464f;
+			a.EvolutionSpeed     = 3.043f;
+			a.HorizonFade        = 0.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.0f;
+			a.AltoCovSoftWidth   = 0.25f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 1.621f;
+			a.AltoCloudAmount    = 0.356f;
+			a.AltoCloudBrightness = 1.0f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.5f;
+			a.AltoThickness      = 1004.0f;
+			a.AltoBottomSoftness = 0.941f;
+			a.AltoZenithBias     = 0.161f;
+			a.AltoHeightBlendPower = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- StormTransformation -----
+		// Near-instant bridge preset: holds briefly then chains to Thunderstorm.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::StormTransformation;
+			def.Name = "StormTransformation";
+			def.DefaultTransitionDuration = 1.0f;
+			def.RandomWeight = 0.8f;
+			def.NextPresetDwellDuration = 0.1f;
+			def.NextPreset = "Thunderstorm";
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = true;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 0.45f;
+			a.BottomHeight       = 2500.0f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.1678f;
+			a.EvolutionSpeed     = 4.532f;
+			a.HorizonFade        = 1.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.458f;
+			a.AltoCovSoftWidth   = 0.165f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 0.412f;
+			a.AltoCloudAmount    = 0.451f;
+			a.AltoCloudBrightness = 0.769f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.853f;
+			a.AltoThickness      = 5000.0f;
+			a.AltoBottomSoftness = 0.153f;
+			a.AltoZenithBias     = 0.0f;
+			a.AltoHeightBlendPower = 1.0f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled            = true;
+			b.Category           = CloudCategory::AltocumulusMid;
+			b.Coverage           = 1.0f;
+			b.BottomHeight       = 2663.0f;
+			b.WindDirectionX     = 1.0f;
+			b.WindDirectionY     = 0.0f;
+			b.WindSpeed          = 0.6288f;
+			b.EvolutionSpeed     = 5.0f;
+			b.HorizonFade        = 0.724f;
+			b.DistanceFade       = 0.0f;
+			b.AltoBillowStrength = 0.0f;
+			b.AltoCovSoftWidth   = 0.25f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.536f;
+			b.AltoCloudAmount    = 0.594f;
+			b.AltoCloudBrightness = 0.401f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.13f;
+			b.AltoCloudColorDarkG = 0.13f;
+			b.AltoCloudColorDarkB = 0.172f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 1.0f;
+			b.AltoThickness      = 5000.0f;
+			b.AltoBottomSoftness = 0.745f;
+			b.AltoZenithBias     = 0.2f;
+			b.AltoHeightBlendPower = 2.637f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- Cirrustratus -----
+		// Partially cloudy sky (Cloud A) with an optional high disabled layer (Cloud B).
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::Cirrustratus;
+			def.Name = "Cirrustratus";
+			def.DefaultTransitionDuration = 30.0f;
+			def.RandomWeight = 1.0f;
+			def.NextPresetDwellDurationMin = 300.0f;
+			def.NextPresetDwellDurationMax = 560.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = true;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 0.45f;
+			a.BottomHeight       = 2500.0f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.1678f;
+			a.EvolutionSpeed     = 4.532f;
+			a.HorizonFade        = 1.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.458f;
+			a.AltoCovSoftWidth   = 0.165f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 0.412f;
+			a.AltoCloudAmount    = 0.451f;
+			a.AltoCloudBrightness = 0.769f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.853f;
+			a.AltoThickness      = 5000.0f;
+			a.AltoBottomSoftness = 0.153f;
+			a.AltoZenithBias     = 0.0f;
+			a.AltoHeightBlendPower = 1.0f;
+
+			auto& b = def.TargetState.CloudB;
+			b.Enabled            = false;
+			b.Category           = CloudCategory::AltocumulusMid;
+			b.Coverage           = 1.0f;
+			b.BottomHeight       = 11028.0f;
+			b.AltoHorizonWidth   = 0.184f;
+			b.WindDirectionX     = 1.0f;
+			b.WindDirectionY     = 0.0f;
+			b.WindSpeed          = 0.3075f;
+			b.EvolutionSpeed     = 5.0f;
+			b.HorizonFade        = 0.836f;
+			b.DistanceFade       = 0.278f;
+			b.AltoBillowStrength = 1.0f;
+			b.AltoCovSoftWidth   = 0.159f;
+			b.AltoAbsorption     = 0.1f;
+			b.AltoCloudSize      = 0.225f;
+			b.AltoCloudAmount    = 0.0f;
+			b.AltoCloudBrightness = 1.585f;
+			b.AltoCloudColorR    = 1.0f;
+			b.AltoCloudColorG    = 1.0f;
+			b.AltoCloudColorB    = 1.0f;
+			b.AltoCloudColorDarkR = 0.585f;
+			b.AltoCloudColorDarkG = 0.636f;
+			b.AltoCloudColorDarkB = 0.76f;
+			b.AltoFbmLacunarity  = 4.0f;
+			b.AltoFbmGain        = 0.506f;
+			b.AltoThickness      = 5000.0f;
+			b.AltoBottomSoftness = 0.769f;
+			b.AltoZenithBias     = 1.0f;
+			b.AltoHeightBlendPower = 1.924f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- CirrocumulusLots -----
+		// Dense rippled mackerel-sky pattern at high altitude.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::CirrocumulusLots;
+			def.Name = "CirrocumulusLots";
+			def.DefaultTransitionDuration = 45.0f;
+			def.RandomWeight = 1.2f;
+			def.NextPresetDwellDurationMin = 300.0f;
+			def.NextPresetDwellDurationMax = 560.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = true;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 1.0f;
+			a.BottomHeight       = 1536.0f;
+			a.AltoHorizonWidth   = 0.031f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.6464f;
+			a.EvolutionSpeed     = 3.043f;
+			a.HorizonFade        = 1.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.0f;
+			a.AltoCovSoftWidth   = 0.25f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 1.637f;
+			a.AltoCloudAmount    = 0.36f;
+			a.AltoCloudBrightness = 1.0f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.486f;
+			a.AltoThickness      = 344.0f;
+			a.AltoBottomSoftness = 0.427f;
+			a.AltoZenithBias     = 0.0f;
+			a.AltoHeightBlendPower = 1.0f;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- CirrocumulusFew -----
+		// Sparse patches of rippled cirrocumulus in an otherwise open sky.
+		{
+			WeatherPresetDefinition def;
+			def.Type = WeatherPresetType::CirrocumulusFew;
+			def.Name = "CirrocumulusFew";
+			def.DefaultTransitionDuration = 30.0f;
+			def.RandomWeight = 2.0f;
+			def.NextPresetDwellDurationMin = 300.0f;
+			def.NextPresetDwellDurationMax = 560.0f;
+
+			auto& a = def.TargetState.CloudA;
+			a.Enabled            = true;
+			a.Category           = CloudCategory::AltocumulusMid;
+			a.Coverage           = 1.0f;
+			a.BottomHeight       = 1536.0f;
+			a.WindDirectionX     = 1.0f;
+			a.WindDirectionY     = 0.0f;
+			a.WindSpeed          = 0.6464f;
+			a.EvolutionSpeed     = 3.043f;
+			a.HorizonFade        = 0.0f;
+			a.DistanceFade       = 0.0f;
+			a.AltoBillowStrength = 0.0f;
+			a.AltoCovSoftWidth   = 0.25f;
+			a.AltoAbsorption     = 0.1f;
+			a.AltoCloudSize      = 1.621f;
+			a.AltoCloudAmount    = 0.356f;
+			a.AltoCloudBrightness = 1.0f;
+			a.AltoCloudColorR    = 1.0f;
+			a.AltoCloudColorG    = 1.0f;
+			a.AltoCloudColorB    = 1.0f;
+			a.AltoCloudColorDarkR = 0.693f;
+			a.AltoCloudColorDarkG = 0.693f;
+			a.AltoCloudColorDarkB = 0.873f;
+			a.AltoFbmLacunarity  = 4.0f;
+			a.AltoFbmGain        = 0.5f;
+			a.AltoThickness      = 1004.0f;
+			a.AltoBottomSoftness = 0.941f;
+			a.AltoZenithBias     = 0.161f;
+			a.AltoHeightBlendPower = 1.0f;
 
 			_presets[def.Type] = def;
 		}
@@ -1665,7 +1605,6 @@ namespace TEN::Sky
 		current.Coverage        = state.StartSnapshot.Coverage        * fade;
 		current.Density         = state.StartSnapshot.Density         * fade;
 		current.AltoCloudAmount = state.StartSnapshot.AltoCloudAmount * fade;
-		current.AmbientContrib  = state.StartSnapshot.AmbientContrib  * fade;
 
 		// Slow down evolution so no new micro-formation appears.
 		current.EvolutionSpeed  = state.StartSnapshot.EvolutionSpeed  * fade;
@@ -1972,11 +1911,7 @@ namespace TEN::Sky
 
 	CloudCategory SkyCloudSystem::CategoryFromString(const std::string& name)
 	{
-		if (name == "CirrusHigh")          return CloudCategory::CirrusHigh;
 		if (name == "AltocumulusMid")      return CloudCategory::AltocumulusMid;
-		if (name == "StratocumulusLow")    return CloudCategory::StratocumulusLow;
-		if (name == "CumulonimbusVertical") return CloudCategory::CumulonimbusVertical;
-		if (name == "CumulonimbusVerticalBuildUp") return CloudCategory::CumulonimbusVerticalBuildUp;
 		if (name == "Aurora")              return CloudCategory::Aurora;
 		return CloudCategory::None;
 	}
@@ -1985,51 +1920,49 @@ namespace TEN::Sky
 	{
 		switch (type)
 		{
-		case WeatherPresetType::ClearSky:             return "ClearSky";
-		case WeatherPresetType::ClearSkyHigh:         return "ClearSkyHigh";
-		case WeatherPresetType::ClearSkyLow:          return "ClearSkyLow";
-		case WeatherPresetType::CirrocumulusClear:            return "CirrocumulusClear";
+		case WeatherPresetType::ClearSky:              return "ClearSky";
+		case WeatherPresetType::ClearSkyHigh:          return "ClearSkyHigh";
+		case WeatherPresetType::ClearSkyLow:           return "ClearSkyLow";
+		case WeatherPresetType::CirrocumulusClear:     return "CirrocumulusClear";
+		case WeatherPresetType::CirrocumulusLots:      return "CirrocumulusLots";
+		case WeatherPresetType::CirrocumulusFew:       return "CirrocumulusFew";
+		case WeatherPresetType::Cirrustratus:          return "Cirrustratus";
 		case WeatherPresetType::StormBuildUpHigh:      return "StormBuildUpHigh";
-		case WeatherPresetType::BrokenClouds:         return "BrokenClouds";
-		case WeatherPresetType::Overcast:             return "Overcast";
-		case WeatherPresetType::Cirrus:               return "Cirrus";
-		case WeatherPresetType::Cirrustratus:         return "Cirrustratus";
-		case WeatherPresetType::CirrocumulusLots:     return "CirrocumulusLots";
-		case WeatherPresetType::CirrocumulusFew:      return "CirrocumulusFew";
-		case WeatherPresetType::Altocumulus:          return "Altocumulus";
-		case WeatherPresetType::AltocumulusHigh:      return "AltocumulusHigh";
-		case WeatherPresetType::AuroraBorealis:       return "AuroraBorealis";
-		case WeatherPresetType::RainSnowOvercast:     return "RainSnowOvercast";
-		case WeatherPresetType::StormBuildUp:         return "StormBuildUp";
-		case WeatherPresetType::Thunderstorm:         return "Thunderstorm";
-		case WeatherPresetType::StormTransformation:  return "StormTransformation";
-		case WeatherPresetType::Random:               return "Random";
-		default:                                      return "Unknown";
+		case WeatherPresetType::BrokenClouds:          return "BrokenClouds";
+		case WeatherPresetType::Overcast:              return "Overcast";
+		case WeatherPresetType::Altocumulus:           return "Altocumulus";
+		case WeatherPresetType::AltocumulusHigh:       return "AltocumulusHigh";
+		case WeatherPresetType::AuroraBorealis:        return "AuroraBorealis";
+		case WeatherPresetType::RainSnowOvercast:      return "RainSnowOvercast";
+		case WeatherPresetType::StormBuildUp:          return "StormBuildUp";
+		case WeatherPresetType::StormTransformation:   return "StormTransformation";
+		case WeatherPresetType::Thunderstorm:          return "Thunderstorm";
+		case WeatherPresetType::Random:                return "Random";
+		default:                                       return "Unknown";
 		}
 	}
 
 	WeatherPresetType SkyCloudSystem::StringToPresetType(const std::string& name)
 	{
 		static const std::unordered_map<std::string, WeatherPresetType> map = {
-			{ "ClearSky",            WeatherPresetType::ClearSky },
-			{ "ClearSkyHigh",        WeatherPresetType::ClearSkyHigh },
-			{ "ClearSkyLow",         WeatherPresetType::ClearSkyLow },
-			{ "CirrocumulusClear",           WeatherPresetType::CirrocumulusClear },
-			{ "StormBuildUpHigh",     WeatherPresetType::StormBuildUpHigh },
-			{ "BrokenClouds",        WeatherPresetType::BrokenClouds },
-			{ "Overcast",            WeatherPresetType::Overcast },
-			{ "Cirrus",              WeatherPresetType::Cirrus },
-			{ "Cirrustratus",        WeatherPresetType::Cirrustratus },
-			{ "CirrocumulusLots",    WeatherPresetType::CirrocumulusLots },
-			{ "CirrocumulusFew",     WeatherPresetType::CirrocumulusFew },
-			{ "Altocumulus",         WeatherPresetType::Altocumulus },
-			{ "AltocumulusHigh",     WeatherPresetType::AltocumulusHigh },
-			{ "AuroraBorealis",      WeatherPresetType::AuroraBorealis },
-			{ "RainSnowOvercast",    WeatherPresetType::RainSnowOvercast },
-			{ "StormBuildUp",        WeatherPresetType::StormBuildUp },
-			{ "Thunderstorm",        WeatherPresetType::Thunderstorm },
-			{ "StormTransformation", WeatherPresetType::StormTransformation },
-			{ "Random",              WeatherPresetType::Random },
+			{ "ClearSky",              WeatherPresetType::ClearSky },
+			{ "ClearSkyHigh",          WeatherPresetType::ClearSkyHigh },
+			{ "ClearSkyLow",           WeatherPresetType::ClearSkyLow },
+			{ "CirrocumulusClear",     WeatherPresetType::CirrocumulusClear },
+			{ "CirrocumulusLots",      WeatherPresetType::CirrocumulusLots },
+			{ "CirrocumulusFew",       WeatherPresetType::CirrocumulusFew },
+			{ "Cirrustratus",          WeatherPresetType::Cirrustratus },
+			{ "StormBuildUpHigh",      WeatherPresetType::StormBuildUpHigh },
+			{ "BrokenClouds",          WeatherPresetType::BrokenClouds },
+			{ "Overcast",              WeatherPresetType::Overcast },
+			{ "Altocumulus",           WeatherPresetType::Altocumulus },
+			{ "AltocumulusHigh",       WeatherPresetType::AltocumulusHigh },
+			{ "AuroraBorealis",        WeatherPresetType::AuroraBorealis },
+			{ "RainSnowOvercast",      WeatherPresetType::RainSnowOvercast },
+			{ "StormBuildUp",          WeatherPresetType::StormBuildUp },
+			{ "StormTransformation",   WeatherPresetType::StormTransformation },
+			{ "Thunderstorm",          WeatherPresetType::Thunderstorm },
+			{ "Random",                WeatherPresetType::Random },
 		};
 
 		auto it = map.find(name);

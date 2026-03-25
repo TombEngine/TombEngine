@@ -66,7 +66,7 @@ namespace TEN::Renderer::ConstantBuffers
 		// Row 10
 		float HorizonFade;    // Multiplier on horizon atmospheric fade (0 = none, 1 = full).
 		float DistanceFade;   // Multiplier on distance-based opacity falloff (0 = none, 1 = full).
-		int   CloudType;      // Cloud category enum: 0=None, 1=CirrusHigh, 2=AltocumulusMid, 3=StratocumulusLow, 4=CumulonimbusVertical
+		int   CloudType;      // Cloud category enum: 0=None, 1=AltocumulusMid, 2=Aurora
 		float CloudCompositeScale; // Composite alpha multiplier: 1.0 = normal, <1.0 = bleed-through pass.
 		//--
 		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 2)

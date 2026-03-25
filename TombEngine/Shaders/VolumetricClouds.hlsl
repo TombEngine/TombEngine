@@ -362,35 +362,18 @@ float HeightFraction(float worldY, float bottomY, float thickness)
 // Now dispatches per CloudType for type-authentic vertical density envelopes.
 //
 // CloudType 0 (None):				  generic cumulus fallback
-// CloudType 1 (CirrusHigh):			thin concentrated band in upper 30%
-// CloudType 2 (AltocumulusMid):		rounded cumulus, slight bottom bias
-// CloudType 3 (StratocumulusLow):	  broad flat slab, gradual top fade
-// CloudType 4 (CumulonimbusVertical):  tall anvil shape, dense through most of height
+// CloudType 1 (AltocumulusMid):		rounded cumulus, slight bottom bias
 // Evaluate height gradient with per-column noise offsets so that the
 // visible bottom and top boundaries of the cloud vary organically.
 // bShift [-0.18..+0.18]: raises/lowers the start of the bottom fade-in.
 // tShift [-0.12..+0.12]: raises/lowers the start of the top fade-out.
 float HeightGradient(float heightFrac, float bShift, float tShift)
 {
-    if (CloudType == 1) // CirrusHigh
-    {
-        // Thin wispy band noise-offset bottom/top within narrow band.
-        float bottom = smoothstep(0.5f + bShift * 0.5f, 0.75f + bShift * 0.3f, heightFrac);
-        float top	= 1.0f - smoothstep(0.85f + tShift * 0.5f, 1.0f, heightFrac);
-        return bottom * top;
-    }
-    else if (CloudType == 2) // AltocumulusMid
+    if (CloudType == 1) // AltocumulusMid
     {
         // Mid-layer patch field: softer rounded cloudlets with moderate thickness.
         float bottom = smoothstep(0.06f + bShift * 0.7f, 0.28f + bShift * 0.6f, heightFrac);
         float top	= 1.0f - smoothstep(0.58f + tShift * 0.8f, 0.90f + tShift * 0.5f, heightFrac);
-        return bottom * top;
-    }
-    else if (CloudType == 3) // StratocumulusLow
-    {
-        // Flat sheet but with noise-roughened base and top.
-        float bottom = smoothstep(0.0f + bShift, 0.18f + bShift, heightFrac);
-        float top	= 1.0f - smoothstep(0.80f + tShift, 1.0f + tShift * 0.3f, heightFrac);
         return bottom * top;
     }
     else // None / default
@@ -440,7 +423,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // ShapeScale, DetailScale, WeatherScale, AmbientContrib, SilverliningStr,
     // HeightGradient, or any other shared cloud-type parameters.
     // ===================================================================
-    if (CloudType == 2)
+    if (CloudType == 1)
     {
         // AltoCloudSize=1.0 ??? reference scale (pos*0.001). <1=bigger, >1=smaller.
         // --- Sky-height redistribution (bias-based) ---
@@ -756,19 +739,9 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // because the noise has structure in all three axes.
     //
     // Per-CloudType noise distortion applied to the shape sampling position.
-    //   CirrusHigh:   shapePos is fully overridden below (wind-aligned anisotropy).
-    //				 noiseScale here only affects the detail pass (Y=0.15 = very flat).
-    //   StratocumulusLow: strong XZ stretch (2x, 0.6x Y) for flat sheet-like slabs.
-    //   CumulonimbusVertical: vertical stretch (0.7x XZ, 1.5x Y) for tall towers.
     //   Default: isotropic (no distortion).
     //   (AltocumulusMid returns early above   never reaches this code.)
-    float3 noiseScale;
-    if (CloudType == 1) // CirrusHigh   detail scale only (shapePos overridden below)
-        noiseScale = float3(3.0f, 0.15f, 3.0f);
-    else if (CloudType == 3) // StratocumulusLow   flat sheet
-        noiseScale = float3(2.0f, 0.6f, 2.0f);
-    else
-        noiseScale = float3(1.0f, 1.0f, 1.0f);
+    float3 noiseScale = float3(1.0f, 1.0f, 1.0f);
 
     // Normalize the Y component of noise coordinates so the vertical noise
     // range is independent of CloudThickness. Without this, a thick slab
@@ -815,40 +788,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
                      + float3(WindDirection.x, 0.0f, WindDirection.y) 
                        * WindSpeed;
 
-    // --- CirrusHigh: wind-aligned anisotropic shapePos override ---
-    // Replaces the isotropic shapePos above with an extreme aspect-ratio
-    // sample space aligned to the wind direction, producing the long thin
-    // fibrous streaks (Federwolken / mare's tails) typical of high cirrus.
-    //
-    // Coordinate system:
-    //   wDir  = normalised wind direction in XZ-plane
-    //   wPerp = 90?deg perpendicular to wind
-    //
-    // Scale ratios:
-    //   Along-wind  * 0.22  ???  very slowly varying ??? long wisps
-    //   Across-wind * 3.5   ???  rapidly varying	  ??? thin cross-section
-    //   Y		   * 0.12  ???  nearly flat slab
-    //
-    // Aspect ratio along:across ??? 1:16   distinctly fibrous even at close range.
-    // Drift is applied in the rotated frame so wisps translate purely along wind.
-    if (CloudType == 1)
-    {
-        float2 wDir	= (dot(WindDirection, WindDirection) > 0.0001f)
-                       ? normalize(WindDirection) : float2(1.0f, 0.0f);
-        float2 wPerp   = float2(-wDir.y, wDir.x);
-        float  aWind   = dot(skyPos.xz, wDir);
-        float  pWind   = dot(skyPos.xz, wPerp);
-        float2 drift2  = WindDirection * WindSpeed;
-        float  dAlong  = dot(drift2, wDir);
-        float  dPerp   = dot(drift2, wPerp);
-        shapePos = float3(
-            aWind * effectiveShapeScale * 0.22f + dAlong * 0.22f,
-            shapeY * effectiveShapeScale * 0.12f,
-            pWind  * effectiveShapeScale * 3.5f  + dPerp  * 3.5f
-        );
-    }
-
-    // CloudType == 2 (AltocumulusMid) returns early from the self-contained
+    // CloudType == 1 (AltocumulusMid) returns early from the self-contained
     // density path above, so the code below is only reached by other types.
 
     float baseShape = FBMLowFreq(shapePos, distLOD);
@@ -894,7 +834,6 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // cauliflower / broken-top effect that real tall clouds exhibit: the base
     // body is dense and continuous, but the crown dissolves into ragged puffs.
     // Skipped for Cirrus (already wispy, no crown) and Stratus (uniform slab).
-    if (CloudType != 1 && CloudType != 3)
     {
         float crownBias = heightFrac * heightFrac * 0.09f;
         remapLow = clamp(remapLow + crownBias, 0.001f, 0.46f);
@@ -1005,15 +944,8 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         float interiorMask	 = smoothstep(maskLow, maskHigh, shapeDensity);
         float absorpErosionScale = saturate(1.0f - (Absorption - 0.5f) * 0.35f);
 
-        // Per-CloudType erosion weight multiplier:
-        //   CirrusHigh: minimal erosion   cirrus clouds are smooth/wispy.
-        //   StratocumulusLow: reduced erosion   flat smooth sheets.
-        //   CumulonimbusVertical: enhanced erosion   dramatic towering structures.
-        //   Others: standard erosion.
-        float typeErosionMul;
-        if	  (CloudType == 1) typeErosionMul = 0.15f; // CirrusHigh: almost no erosion
-        else if (CloudType == 3) typeErosionMul = 0.6f;  // StratocumulusLow: mild
-        else					 typeErosionMul = 1.0f;  // default
+        // Per-CloudType erosion weight multiplier.
+        float typeErosionMul = 1.0f;
 
         float erosionWeight	= interiorMask * DetailStrength * 0.40f
                                  * (1.0f - distLOD) * absorpErosionScale * typeErosionMul;
@@ -1118,32 +1050,12 @@ float HenyeyGreenstein(float cosTheta, float g)
 float DualLobePhase(float cosTheta)
 {
     // Per-CloudType phase function tuning:
-    //   CirrusHigh: ice crystals   very strong forward scattering (g=0.85),
-    //			   minimal backscatter. Creates bright halo/glare near sun.
     //   AltocumulusMid: standard water droplets   balanced dual-lobe.
-    //   StratocumulusLow: water droplets   slightly more diffuse (broader lobe).
-    //   CumulonimbusVertical: large mixed-phase drops   broad forward, some back.
     //   Default: use CB PhaseForward/PhaseBackward directly.
 
-    float fwd, bk, fwdWeight;
-    if (CloudType == 1) // CirrusHigh   ice crystal forward scattering
-    {
-        fwd	   = 0.85f;
-        bk		= 0.15f;
-        fwdWeight = 0.9f;  // heavily forward-dominant
-    }
-    else if (CloudType == 3) // StratocumulusLow   diffuse water droplets
-    {
-        fwd	   = 0.45f;
-        bk		= 0.35f;
-        fwdWeight = 0.6f;
-    }
-    else // AltocumulusMid, None, default   use CB parameters
-    {
-        fwd	   = PhaseForward;
-        bk		= PhaseBackward;
-        fwdWeight = 0.7f;
-    }
+    float fwd	   = PhaseForward;
+    float bk		= PhaseBackward;
+    float fwdWeight = 0.7f;
 
     float forward  = HenyeyGreenstein(cosTheta, fwd);
     float backward = HenyeyGreenstein(cosTheta, -bk);
@@ -1362,8 +1274,8 @@ float BoltFBM(float p)
 float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 {
     // AltocumulusMid uses its own thickness and absorption   fully self-contained.
-    float effThickness  = (CloudType == 2) ? AltoThickness  : CloudThickness;
-    float effAbsorption = (CloudType == 2) ? AltoAbsorption : Absorption;
+    float effThickness  = (CloudType == 1) ? AltoThickness  : CloudThickness;
+    float effAbsorption = (CloudType == 1) ? AltoAbsorption : Absorption;
 
     // Intersect cloud volume using the effective thickness.
     // Bleed pass: extend the Alto cloud slab DOWNWARD (toward camera) so clouds appear
@@ -1373,7 +1285,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // Wind streaming drifts deep samples in the wind direction so
     // the clouds appear to flow from their source direction.
     float bleedExtent = 0.0f;
-    if (CloudIsBleedPass > 0.001f && CloudType == 2)
+    if (CloudIsBleedPass > 0.001f && CloudType == 1)
         bleedExtent = (AltoBleedDepth * 0.01f) * CloudBottomHeight; // purely driven by AltoBleedDepth, not CloudIsBleedPass
 
     // Intersect cloud volume. For the bleed pass the slab bottom is extended downward.
@@ -1450,7 +1362,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // This creates flat circular isolines in the slab, matching the geometry of the
     // actual flat cloud layer (right diagram), NOT a dome (wrong diagram).
     float altoSkyH;
-    if (CloudType == 2)
+    if (CloudType == 1)
     {
         float sinElev  = max(abs(rayDir.y), 0.001f);
         float cosElev  = length(rayDir.xz);
@@ -1530,7 +1442,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 
                 // Total in-scattered light at this sample.
                 float3 sampleLight;
-                if (CloudType == 2)
+                if (CloudType == 1)
                 {
                     // === AltocumulusMid: fully self-contained lighting ===
                     float3 cloudColor = lerp(AltoCloudColorDark, AltoCloudColor,
@@ -1657,7 +1569,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                 }
                 else
                 {
-                    // Standard lighting for non-Alto cloud types (CirrusHigh, StratocumulusLow, etc.)
+                    // Standard lighting for non-Alto cloud types.
                     float lightT = LightTransmittance(samplePos, heightFrac);
                     float ambient = AmbientContrib * lerp(0.6f, 1.0f, heightFrac);
                     float thinExtinction = 1.0f - saturate(extinction / 0.12f);
@@ -1828,7 +1740,7 @@ float4 PS(VSOutput input) : SV_TARGET
     // caused bright knots at every segment junction.
     //
     // Hash quality: cycleN = frac(flashCycle * f) * 360 keeps sin() arguments in [0,~600].
-    if (CloudType == 2 && LightningEnabled != 0)
+    if (CloudType == 1 && LightningEnabled != 0)
     {
         float flashCycle = floor(CloudTime * LightningInternalSpeed);
         float flashFrac  = frac(CloudTime * LightningInternalSpeed);
@@ -2103,7 +2015,7 @@ float4 PS(VSOutput input) : SV_TARGET
         // AltocumulusMid global layer opacity via Coverage slider [0,1].
         // Applied AFTER DistanceFade so the fade gradient is preserved
         // at all opacity levels.
-        if (CloudType == 2)
+        if (CloudType == 1)
             cloudResult.a *= saturate(Coverage);
     }
 

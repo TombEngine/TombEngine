@@ -45,12 +45,6 @@ namespace TEN::Scripting
 		snap.WindDirectionY  =            tf("windDirectionY",    0.0  );
 		snap.WindSpeed       = std::max(  tf("windSpeed",       0.003  ), 0.0f);
 		snap.EvolutionSpeed  = std::max(  tf("evolutionSpeed",  0.15   ), 0.0f);
-		snap.ShapeScale      = std::max(  tf("shapeScale",    0.00008  ), 0.000001f);
-		snap.DetailScale     = std::max(  tf("detailScale",    0.0008  ), 0.000001f);
-		snap.DetailStrength  = std::clamp(tf("detailStrength",  0.35   ), 0.0f, 1.0f);
-		snap.Absorption      = std::max(  tf("absorption",       1.1   ), 0.0f);
-		snap.AmbientContrib  = std::clamp(tf("ambient",          0.35  ), 0.0f, 1.0f);
-		snap.SilverliningStr = std::clamp(tf("silverlining",     0.4   ), 0.0f, 1.0f);
 		snap.HorizonFade     = std::clamp(tf("horizonFade",      1.0   ), 0.0f, 1.0f);
 		snap.DistanceFade    = std::clamp(tf("distanceFade",     1.0   ), 0.0f, 1.0f);
 
@@ -126,9 +120,12 @@ namespace TEN::Scripting
 		///
 		/// @function Flow.SetWeatherPreset
 		/// @tparam string presetName Name of the weather preset.
-		/// Valid values: "ClearSky", "CirrocumulusClear", "StormBuildUpHigh", "BrokenClouds",
-		/// "Overcast", "Cirrus", "Altocumulus", "AuroraBorealis",
-		/// "StormBuildUp", "Thunderstorm", "StormTransformation", "Random"
+		/// Valid values: "ClearSky", "ClearSkyHigh", "ClearSkyLow",
+		/// "CirrocumulusClear", "CirrocumulusLots", "CirrocumulusFew",
+		/// "Cirrustratus", "StormBuildUpHigh", "BrokenClouds",
+		/// "Overcast", "Altocumulus", "AltocumulusHigh", "AuroraBorealis",
+		/// "RainSnowOvercast", "StormBuildUp", "StormTransformation",
+		/// "Thunderstorm", "Random"
 		parent.set_function("SetWeatherPreset",
 			[](const std::string& presetName)
 			{
@@ -325,13 +322,11 @@ namespace TEN::Scripting
 		///       Use a plain number > 0 for a fixed duration, e.g. duration = 30.0
 		///       Use a {min, max} table for a random range, e.g. duration = {10, 60}
 		///       Omit or set < 0 to chain immediately (default).
-		///       When duration expires and no nextPreset is set, AltocumulusMid layers
-		///       will drift out in the wind direction (natural dissolution).
+		///       When duration expires and no nextPreset is set, the preset stays active indefinitely.
 		///   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
 		///   - cloudB (table): cloud layer B parameters
 		/// Cloud layer tables support all fields from SetVolumetricCloudLayerA
-		/// plus "category" ("None", "CirrusHigh", "AltocumulusMid",
-		/// "StratocumulusLow", "CumulonimbusVertical", "Aurora") which selects the
+		/// plus "category" ("None", "AltocumulusMid", "Aurora") which selects the
 		/// shader rendering path for that cloud type.
 		parent.set_function("DefineWeatherPreset",
 			[](const std::string& presetName, sol::table definition)
