@@ -1903,7 +1903,7 @@ namespace TEN::Renderer
 		// Reset viewport and scissor.
 		_context->RSSetViewports(1, &view.Viewport);
 		ResetScissor();
-		
+
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		CCameraMatrixBuffer cameraConstantBuffer;
 		view.FillConstantBuffer(cameraConstantBuffer);
