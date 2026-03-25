@@ -209,7 +209,7 @@ namespace TEN::Entities::Traps
 			{
 				for (int i = 0; i < 4; i++)
 					SpawnBubble(GeneratePointInBox(box.ToBoundingOrientedBox(item.Pose)), item.RoomNumber, 
-					GenerateInt(64, 256), GenerateInt(BLOCK(0.15f), BLOCK(1.0f)));
+					GenerateInt(32, 256), GenerateInt(BLOCK(0.15f), BLOCK(0.5f)));
 			}
 		}
 
