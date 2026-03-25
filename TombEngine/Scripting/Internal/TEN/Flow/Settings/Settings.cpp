@@ -102,6 +102,10 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool crouchRoll When enabled, player can perform crawlspace roll by pressing sprint key.
 		"crouchRoll", &AnimSettings::CrouchRoll,
 
+		/// Draw weapon during dive.
+		// @tfield[opt=false] bool drawWeaponDuringDive When enabled, player can draw weapons during swan dive animation.
+		"drawWeaponDuringDive", &AnimSettings::DrawWeaponDuringDive,
+
 		/// Crawlspace dive.
 		// @tfield[opt=true] bool crawlspaceSwandive When enabled, player will be able to swandive into crawlspaces.
 		"crawlspaceSwandive", &AnimSettings::CrawlspaceDive,

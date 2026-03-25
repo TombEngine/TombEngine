@@ -6,6 +6,7 @@
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_collide.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_tests.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_basic.h"
@@ -709,7 +710,15 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.HandStatus = HandStatus::Busy;
+	if (!g_GameFlow->GetSettings()->Animations.DrawWeaponDuringDive)
+	{
+		player.Control.HandStatus = HandStatus::Busy;
+	}
+	else if (player.Control.HandStatus == HandStatus::Busy)
+	{
+		player.Control.HandStatus = HandStatus::Free;
+	}
+
 	player.Control.Look.Mode = LookMode::Horizontal;
 	coll->Setup.EnableObjectPush = true;
 	coll->Setup.EnableSpasm = false;
@@ -753,7 +762,23 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			item->Animation.TargetState = LS_IDLE;
 
 		SetLaraLand(item, coll);
-		player.Control.HandStatus = HandStatus::Free;
+
+		if (g_GameFlow->GetSettings()->Animations.DrawWeaponDuringDive &&
+			player.Control.Weapon.GunType != LaraWeaponType::None &&
+			player.Control.Weapon.GunType != LaraWeaponType::Flare &&
+			player.Control.HandStatus != HandStatus::Free)
+		{
+			if (player.Control.HandStatus != HandStatus::WeaponReady)
+			{
+				player.Control.HandStatus = HandStatus::WeaponDraw;
+				InitializeNewWeapon(*item);
+			}
+		}
+		else
+		{
+			player.Control.HandStatus = HandStatus::Free;
+		}
+
 		return;
 	}
 

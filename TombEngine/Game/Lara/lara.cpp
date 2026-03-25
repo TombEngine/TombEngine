@@ -226,14 +226,38 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 						SetAnimation(item, LA_SWANDIVE_DIVE);
 						item->Animation.Velocity.y /= 2;
 						item->Pose.Orientation.x = ANGLE(-45.0f);
-						player.Control.HandStatus = HandStatus::Free;
+
+						if (player.Control.Weapon.GunType != LaraWeaponType::HarpoonGun)
+						{
+							if (player.Control.Weapon.GunType != LaraWeaponType::None &&
+								player.Control.HandStatus != HandStatus::Free)
+							{
+								player.Control.HandStatus = HandStatus::WeaponUndraw;
+							}
+							else
+							{
+								player.Control.HandStatus = HandStatus::Free;
+							}
+						}
 					}
 					else if (item->Animation.ActiveState == LS_FREEFALL_DIVE)
 					{
 						SetAnimation(item, LA_SWANDIVE_FREEFALL_DIVE);
 						item->Animation.Velocity.y /= 2;
 						item->Pose.Orientation.x = ANGLE(-85.0f);
-						player.Control.HandStatus = HandStatus::Free;
+
+						if (player.Control.Weapon.GunType != LaraWeaponType::HarpoonGun)
+						{
+							if (player.Control.Weapon.GunType != LaraWeaponType::None &&
+								player.Control.HandStatus != HandStatus::Free)
+							{
+								player.Control.HandStatus = HandStatus::WeaponUndraw;
+							}
+							else
+							{
+								player.Control.HandStatus = HandStatus::Free;
+							}
+						}
 					}
 					else
 					{

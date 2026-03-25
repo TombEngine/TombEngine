@@ -519,6 +519,19 @@ void DrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 void UndrawShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
 	auto& player = GetLaraInfo(laraItem);
+
+	if (player.Control.Weapon.WeaponItem == NO_VALUE)
+	{
+		UndrawShotgunMeshes(laraItem, weaponType);
+		player.Control.HandStatus = HandStatus::Free;
+		player.TargetEntity = nullptr;
+		player.LeftArm.Locked =
+		player.RightArm.Locked = false;
+		player.LeftArm.FrameNumber =
+		player.RightArm.FrameNumber = 0;
+		return;
+	}
+
 	auto& item = g_Level.Items[player.Control.Weapon.WeaponItem];
 
 	// HACK
