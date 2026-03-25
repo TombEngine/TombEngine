@@ -684,7 +684,7 @@ namespace TEN::Scripting::Effects
 	/// Emit a splash effect.
 	// @function EmitSplash
 	// @tparam Vec3 pos World position. Needs to be inside a water room.
-	// @tparam[opt=128] int splashPower Determines the height of splash, ranging from 0 to 1024
+	// @tparam[opt=128] int splashPower Determines the height of splash, ranging from 0 to 1024.
 	static void EmitSplash(const Vec3& pos, TypeOrNil<int> splashPower)
 	{
 		auto convertedPower = std::clamp(ValueOr<int>(splashPower, 128), 0, 1024);
