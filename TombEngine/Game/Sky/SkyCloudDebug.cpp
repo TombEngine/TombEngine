@@ -65,8 +65,8 @@ namespace TEN::Sky
 		}
 	}
 
-	// Number of entries in WeatherPresetType (excluding Random and Count).
-	static constexpr int REAL_PRESET_COUNT = static_cast<int>(WeatherPresetType::Random);
+	// Number of entries in WeatherPresetType (excluding Count).
+	static constexpr int REAL_PRESET_COUNT = static_cast<int>(WeatherPresetType::Count);
 
 	// ====================================================================
 	// Build parameter list from a VolumetricCloudLayerSnapshot.
@@ -508,21 +508,62 @@ namespace TEN::Sky
 			if (!info.NextPreset.empty())
 				ImGui::Text("Auto-chain -> %s", info.NextPreset.c_str());
 
-			ImGui::Separator();
-
-			ImGui::Text("Random Weather: %s", info.RandomModeActive ? "ACTIVE" : "OFF");
-			if (info.RandomModeActive)
-				ImGui::Text("  Dwell Remaining: %.1f s", info.RandomDwellRemaining);
+			// Dwell timer.
+			if (info.DwellTarget >= 0.0f)
+			{
+				float dwellPct = (info.DwellTarget > 0.0f) ? (info.DwellElapsed / info.DwellTarget) : 1.0f;
+				char dwellLabel[64];
+				snprintf(dwellLabel, sizeof(dwellLabel), "Dwell %.1fs / %.1fs", info.DwellElapsed, info.DwellTarget);
+				ImGui::ProgressBar(dwellPct, ImVec2(-1, 0), dwellLabel);
+			}
+			else if (g_SkyCloudSystem.IsTransitioning())
+			{
+				ImGui::TextDisabled("Dwell: -- (transitioning, starts after)");
+			}
+			else
+			{
+				ImGui::TextDisabled("Dwell: none (staying)");
+			}
 
 			ImGui::Separator();
 
 			// Layer status summary.
 			ImGui::Text("Legacy Layer 1: %s", info.Layer1Enabled ? "ON" : "OFF");
 			ImGui::Text("Legacy Layer 2: %s", info.Layer2Enabled ? "ON" : "OFF");
-			ImGui::Text("Cloud A: %s  [%s]", info.CloudAEnabled ? "ON" : "OFF",
-				CloudCategoryToString(info.CloudACategory));
-			ImGui::Text("Cloud B: %s  [%s]", info.CloudBEnabled ? "ON" : "OFF",
-				CloudCategoryToString(info.CloudBCategory));
+
+			// Cloud A — show active preset and transition target.
+			if (info.LayerATransitioning)
+				ImGui::Text("Cloud A: %s  -> %s  [%s]  (%.0f%%)",
+					SkyCloudSystem::PresetTypeToString(info.LayerAPreset),
+					SkyCloudSystem::PresetTypeToString(info.LayerATargetPreset),
+					CloudCategoryToString(info.CloudACategory),
+					info.LayerATransitionProgress * 100.0f);
+			else
+				ImGui::Text("Cloud A: %s  [%s]  %s",
+					SkyCloudSystem::PresetTypeToString(info.LayerAPreset),
+					CloudCategoryToString(info.CloudACategory),
+					info.CloudAEnabled ? "ON" : "OFF");
+			if (info.LayerADwellTarget >= 0.0f)
+				ImGui::TextDisabled("  A Dwell: %.1fs / %.1fs", info.LayerADwellElapsed, info.LayerADwellTarget);
+			else if (info.LayerATransitioning)
+				ImGui::TextDisabled("  A Dwell: -- (starts after transition)");
+
+			// Cloud B — show active preset and transition target.
+			if (info.LayerBTransitioning)
+				ImGui::Text("Cloud B: %s  -> %s  [%s]  (%.0f%%)",
+					SkyCloudSystem::PresetTypeToString(info.LayerBPreset),
+					SkyCloudSystem::PresetTypeToString(info.LayerBTargetPreset),
+					CloudCategoryToString(info.CloudBCategory),
+					info.LayerBTransitionProgress * 100.0f);
+			else
+				ImGui::Text("Cloud B: %s  [%s]  %s",
+					SkyCloudSystem::PresetTypeToString(info.LayerBPreset),
+					CloudCategoryToString(info.CloudBCategory),
+					info.CloudBEnabled ? "ON" : "OFF");
+			if (info.LayerBDwellTarget >= 0.0f)
+				ImGui::TextDisabled("  B Dwell: %.1fs / %.1fs", info.LayerBDwellElapsed, info.LayerBDwellTarget);
+			else if (info.LayerBTransitioning)
+				ImGui::TextDisabled("  B Dwell: -- (starts after transition)");
 
 			ImGui::Separator();
 			ImGui::Text("Transmittance A: %.3f  B: %.3f  Combined: %.3f",
@@ -599,28 +640,7 @@ namespace TEN::Sky
 
 		ImGui::Separator();
 
-			// Random weather controls.
-			static float rwDwell = 120.0f;
-			static float rwTransition = 60.0f;
-			ImGui::Text("Random Weather");
-			ImGui::SetNextItemWidth(100.0f);
-			ImGui::DragFloat("Dwell (s)##rw", &rwDwell, 1.0f, 5.0f, 600.0f, "%.0f");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(100.0f);
-			ImGui::DragFloat("Trans (s)##rw", &rwTransition, 1.0f, 5.0f, 300.0f, "%.0f");
-			ImGui::SameLine();
-			if (!g_SkyCloudSystem.IsRandomWeatherActive())
-			{
-				if (ImGui::Button("Start Random"))
-					g_SkyCloudSystem.StartRandomWeather(rwDwell, rwTransition);
-			}
-			else
-			{
-				if (ImGui::Button("Stop Random"))
-					g_SkyCloudSystem.StopRandomWeather();
-			}
-
-			ImGui::Unindent(8.0f);
+		ImGui::Unindent(8.0f);
 		}
 
 		// ----------------------------------------------------------------
@@ -758,9 +778,7 @@ namespace TEN::Sky
 						def->TransitionDurationA < 0.0f ? "(inherit default)" : "%.0f s");
 					ImGui::DragFloat("Transition B (Layer B)", &def->TransitionDurationB, 1.0f, -1.0f, 300.0f,
 						def->TransitionDurationB < 0.0f ? "(inherit default)" : "%.0f s");
-					ImGui::DragFloat("Random Weight", &def->RandomWeight, 0.1f, 0.0f, 10.0f, "%.1f");
-					ImGui::Checkbox("Allow in Random", &def->AllowInRandom);
-					ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f, 0.0f, 1.0f, "%.2f");
+ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f, 0.0f, 1.0f, "%.2f");
 
 					ImGui::Separator();
 					ImGui::Text("Auto-Chain (NextPreset)");
@@ -1486,11 +1504,7 @@ namespace TEN::Sky
 		ss << "=== Sky/Cloud System ===\n";
 		ss << "Preset:     " << SkyCloudSystem::PresetTypeToString(info.CurrentPreset) << "\n";
 		ss << "Target:     " << SkyCloudSystem::PresetTypeToString(info.TargetPreset) << "\n";
-		ss << "Transition: " << (info.TransitionProgress * 100.0f) << "%\n";
-		ss << "Random:     " << (info.RandomModeActive ? "ON" : "OFF");
-		if (info.RandomModeActive)
-			ss << " (dwell remaining: " << info.RandomDwellRemaining << "s)";
-		ss << "\n\n";
+		ss << "Transition: " << (info.TransitionProgress * 100.0f) << "%\n\n";
 
 		ss << "--- Layers ---\n";
 		ss << "Legacy 1:   " << (info.Layer1Enabled ? "ON" : "OFF") << "\n";

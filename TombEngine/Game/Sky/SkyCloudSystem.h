@@ -14,8 +14,6 @@
 //
 //   Weather presets define target states for all four layers.
 //   A transition system interpolates smoothly between preset states.
-//   A random weather controller cycles presets automatically.
-//
 //   The system is fully controllable from Lua and backward-compatible
 //   with levels that only use layer1/layer2 bitmap sky.
 // ============================================================================
@@ -72,7 +70,6 @@ namespace TEN::Sky
 		StormBuildUp,
 		StormTransformation,   // Bridge preset: rapid shift to full thunderstorm.
 		Thunderstorm,
-		Random,                // Meta-preset: activates random weather mode
 
 		Count
 	};
@@ -236,10 +233,6 @@ namespace TEN::Sky
 		float TransitionDurationA = -1.0f;  // CloudA transition time. < 0 means inherit DefaultTransitionDuration.
 		float TransitionDurationB = -1.0f;  // CloudB transition time. < 0 means inherit DefaultTransitionDuration.
 
-		// Random weather config.
-		float RandomWeight              = 1.0f;    // Probability weight for random selection.
-		bool  AllowInRandom             = true;     // Can this preset be picked by random mode?
-
 		// Optional transition hints (legacy).
 		// If the transition FROM this preset should stage certain params first
 		// (e.g., cirrus appears before lower clouds fill in), define a staging factor.
@@ -314,29 +307,13 @@ namespace TEN::Sky
 	struct LayerTransitionState
 	{
 		bool  Active   = false;
+		WeatherPresetType TargetPreset = WeatherPresetType::ClearSky;
 		VolumetricCloudLayerSnapshot Source = {};
 		VolumetricCloudLayerSnapshot Target = {};
 		float Duration = 30.0f;   // Total transition time in seconds.
 		float Elapsed  = 0.0f;
 		float Progress = 0.0f;    // [0, 1] eased progress.
 		EasingCurve Curve = EasingCurve::SmoothStep;
-	};
-
-	// ====================================================================
-	// Random weather controller state
-	// ====================================================================
-
-	struct RandomWeatherState
-	{
-		bool   Active          = false;
-		float  DwellTime       = 120.0f;  // Seconds to stay in a preset before switching.
-		float  DwellElapsed    = 0.0f;    // Time spent in current preset.
-		float  TransitionTime  = 60.0f;   // Seconds for each transition.
-		EasingCurve Curve      = EasingCurve::SmoothStep;
-		std::vector<WeatherPresetType> ExcludedPresets;
-		std::mt19937 RNG;
-		bool   Seeded          = false;
-		uint32_t Seed          = 0;
 	};
 
 	// ====================================================================
@@ -350,6 +327,12 @@ namespace TEN::Sky
 		float Elapsed  = 0.0f;
 		float Progress = 0.0f;   // [0, 1] smoothstepped dissolution progress.
 		VolumetricCloudLayerSnapshot StartSnapshot = {};
+	};
+
+	struct LayerDwellState
+	{
+		float Elapsed = 0.0f;
+		float Target  = -1.0f; // < 0 = no dwell pending.
 	};
 
 	// ====================================================================
@@ -376,7 +359,7 @@ namespace TEN::Sky
 		void TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
 		                        EasingCurve curve = EasingCurve::SmoothStep);
 		void InterruptTransition();      // Stop mid-transition, keep current blended state.
-		void StopAllTransitions();       // Cancel ALL active transitions, dwell, drift-out, and random weather.
+		void StopAllTransitions();       // Cancel ALL active transitions, dwell, and drift-out.
 
 		// --- Independent per-layer preset control ---
 		// These target only the CloudA or CloudB snapshot of a preset, leaving
@@ -396,13 +379,6 @@ namespace TEN::Sky
 		float GetLayerATransitionProgress() const;
 		float GetLayerBTransitionProgress() const;
 
-		// --- Random weather ---
-		void StartRandomWeather(float dwellTime, float transitionTime,
-		                        EasingCurve curve = EasingCurve::SmoothStep);
-		void StopRandomWeather();
-		void SetRandomSeed(uint32_t seed);
-		void SetRandomExclusions(const std::vector<WeatherPresetType>& exclusions);
-
 		// --- Manual layer override ---
 		void SetVolumetricLayerA(const VolumetricCloudLayerSnapshot& snapshot);
 		void SetVolumetricLayerB(const VolumetricCloudLayerSnapshot& snapshot);
@@ -415,7 +391,6 @@ namespace TEN::Sky
 		WeatherPresetType GetTargetPreset() const;
 		float             GetTransitionProgress() const;
 		bool              IsTransitioning() const;
-		bool              IsRandomWeatherActive() const;
 
 		// --- Current blended state access (for renderer & debug) ---
 		const SkyCloudSnapshot& GetCurrentState() const;
@@ -461,8 +436,7 @@ namespace TEN::Sky
 			WeatherPresetType TargetPreset    = WeatherPresetType::ClearSky;
 			float TransitionProgress          = 0.0f;
 			std::string NextPreset            = "";   // Name of the chained preset (empty = none).
-			bool  RandomModeActive            = false;
-			float RandomDwellRemaining        = 0.0f;
+
 			bool  Layer1Enabled               = false;
 			bool  Layer2Enabled               = false;
 			bool  CloudAEnabled               = false;
@@ -478,6 +452,20 @@ namespace TEN::Sky
 			bool  LayerBTransitioning         = false;
 			float LayerATransitionProgress    = 0.0f;
 			float LayerBTransitionProgress    = 0.0f;
+
+			// Per-layer active and target preset.
+			WeatherPresetType LayerAPreset       = WeatherPresetType::ClearSky;
+			WeatherPresetType LayerBPreset       = WeatherPresetType::ClearSky;
+			WeatherPresetType LayerATargetPreset = WeatherPresetType::ClearSky;
+			WeatherPresetType LayerBTargetPreset = WeatherPresetType::ClearSky;
+
+			// Dwell timer (how long until next-preset chain fires).
+			float DwellElapsed = 0.0f;
+			float DwellTarget  = -1.0f; // < 0 = no dwell pending.
+			float LayerADwellElapsed = 0.0f;
+			float LayerADwellTarget  = -1.0f;
+			float LayerBDwellElapsed = 0.0f;
+			float LayerBDwellTarget  = -1.0f;
 		};
 
 		DebugInfo GetDebugInfo() const;
@@ -485,21 +473,18 @@ namespace TEN::Sky
 	private:
 		// --- Internal ---
 		void UpdateTransition(float deltaTime);
-		void UpdateRandomWeather(float deltaTime);
 		void ApplySnapshot(const SkyCloudSnapshot& snapshot);
-		WeatherPresetType PickRandomPreset();
 
 		// --- Per-layer independent transition ---
 		// Advances one layer's transition and writes the result back to `current`.
-		void UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
-		                           VolumetricCloudLayerSnapshot& current);
+		bool UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
+		                          VolumetricCloudLayerSnapshot& current);
 
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;
 		SkyCloudSnapshot       _currentState;
 		WeatherPresetType      _currentPreset  = WeatherPresetType::ClearSky;
 		WeatherTransitionState _transition;
-		RandomWeatherState     _randomWeather;
 
 		// Per-layer independent transition states.
 		LayerTransitionState   _layerTransitionA;
@@ -511,6 +496,10 @@ namespace TEN::Sky
 		bool _manualOverrideLayer1  = false;
 		bool _manualOverrideLayer2  = false;
 
+		// Per-layer active preset (diverges from _currentPreset when layers transition independently).
+		WeatherPresetType _layerAPreset = WeatherPresetType::ClearSky;
+		WeatherPresetType _layerBPreset = WeatherPresetType::ClearSky;
+
 		// Lens flare occlusion from each volumetric layer.
 		float _cloudATransmittance = 1.0f;
 		float _cloudBTransmittance = 1.0f;
@@ -519,6 +508,8 @@ namespace TEN::Sky
 		// _nextPresetDwellTarget < 0 means no dwell is pending.
 		float _nextPresetDwellElapsed = 0.0f;
 		float _nextPresetDwellTarget  = -1.0f;
+		LayerDwellState _layerDwellA;
+		LayerDwellState _layerDwellB;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
 
 		// Night blend factor [0 = full day, 1 = full night].
@@ -533,6 +524,8 @@ namespace TEN::Sky
 		float ResolveNextPresetDwell(const WeatherPresetDefinition& def);
 		void  UpdatePresetDwell(float deltaTime);
 		void  StartNextPresetDwell(const WeatherPresetDefinition& def);
+		void  StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState, bool isLayerA);
+		void  UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset, bool isLayerA);
 		void  FireNextPresetChains(const WeatherPresetDefinition& def);
 		const NextPresetCandidate* PickNextPresetCandidate(const std::vector<NextPresetCandidate>& candidates);
 		void  StartDriftOut(DriftOutState& state, const VolumetricCloudLayerSnapshot& current);

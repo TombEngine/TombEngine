@@ -13,15 +13,6 @@
 
 using namespace TEN::Scripting;
 
-// Settings for level.randomWeather in Gameflow.lua.
-struct LevelRandomWeatherConfig
-{
-	float                    DwellTime      = 120.0f; // seconds between preset changes
-	float                    TransitionTime = 60.0f;  // seconds per transition
-	std::string              Easing         = "SmoothStep";
-	std::vector<std::string> Exclude        = {};     // preset names to never pick
-};
-
 struct Level : public ScriptInterfaceLevel
 {
 	Fog			Fog			 = {};
@@ -37,7 +28,6 @@ struct Level : public ScriptInterfaceLevel
 
 	// New weather preset system.
 	std::optional<std::string>              WeatherPreset; // e.g. "BrokenClouds"
-	std::optional<LevelRandomWeatherConfig> RandomWeather; // random cycling config
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};

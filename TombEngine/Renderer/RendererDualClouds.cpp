@@ -111,8 +111,9 @@ namespace TEN::Renderer
 		RenderView& renderView,
 		bool advanceState)
 	{
-		bool layerIsAlto = (settings.CloudType == 2);
-		if (!settings.Enabled)
+		// CloudType 1 = AltocumulusMid (volumetric), CloudType 2 = Aurora (rendered by separate pass — no cloud geometry).
+		bool layerIsAlto = (settings.CloudType == 1);
+		if (!settings.Enabled || settings.CloudType == 2)
 			return;
 		// For non-Alto types, Coverage drives the raymarch density directly — skip at 0.
 		// For AltocumulusMid, Coverage is a post-fade opacity multiplier in the shader;
@@ -243,8 +244,9 @@ namespace TEN::Renderer
 		RenderTarget2D& cloudColorTarget,
 		RenderView& renderView)
 	{
-		bool occIsAlto = (settings.CloudType == 2);
-		if (!settings.Enabled || (!occIsAlto && settings.Coverage < 0.001f))
+		bool occIsAlto = (settings.CloudType == 1);
+		// Aurora layers (CloudType 2) are rendered by a separate pass — skip occlusion.
+		if (!settings.Enabled || settings.CloudType == 2 || (!occIsAlto && settings.Coverage < 0.001f))
 			return 1.0f; // Fully visible (no clouds).
 
 		// Throttle updates.

@@ -161,64 +161,6 @@ namespace TEN::Scripting
 				g_SkyCloudSystem.InterruptTransition();
 			});
 
-		/// Start random weather mode.
-		///
-		/// @function Flow.StartRandomWeather
-		/// @tparam[opt] table settings Optional settings table:
-		///   - dwellTime (float): seconds before switching, default 120.
-		///   - transitionTime (float): seconds per transition, default 60.
-		///   - easing (string): easing curve name, default "SmoothStep".
-		///   - seed (int): optional RNG seed for determinism.
-		///   - exclude (table): list of preset name strings to exclude.
-		parent.set_function("StartRandomWeather",
-			[](sol::optional<sol::table> settingsOpt)
-			{
-				float dwell = 120.0f;
-				float transition = 60.0f;
-				EasingCurve curve = EasingCurve::SmoothStep;
-
-				if (settingsOpt.has_value())
-				{
-					auto& tbl = settingsOpt.value();
-					dwell = tbl.get_or("dwellTime", 120.0f);
-					transition = tbl.get_or("transitionTime", 60.0f);
-
-					std::string easingStr = tbl.get_or<std::string>("easing", "SmoothStep");
-					curve = ParseEasingString(easingStr);
-
-					sol::optional<uint32_t> seedOpt = tbl["seed"];
-					if (seedOpt.has_value())
-						g_SkyCloudSystem.SetRandomSeed(seedOpt.value());
-
-					sol::optional<sol::table> excludeOpt = tbl["exclude"];
-					if (excludeOpt.has_value())
-					{
-						std::vector<WeatherPresetType> exclusions;
-						excludeOpt.value().for_each(
-							[&](sol::object /*key*/, sol::object val)
-							{
-								if (val.is<std::string>())
-								{
-									exclusions.push_back(
-										SkyCloudSystem::StringToPresetType(val.as<std::string>()));
-								}
-							});
-						g_SkyCloudSystem.SetRandomExclusions(exclusions);
-					}
-				}
-
-				g_SkyCloudSystem.StartRandomWeather(dwell, transition, curve);
-			});
-
-		/// Stop random weather mode.
-		///
-		/// @function Flow.StopRandomWeather
-		parent.set_function("StopRandomWeather",
-			[]()
-			{
-				g_SkyCloudSystem.StopRandomWeather();
-			});
-
 		/// Get the current active weather preset name.
 		///
 		/// @function Flow.GetCurrentWeatherPreset
@@ -259,16 +201,6 @@ namespace TEN::Scripting
 			[]() -> bool
 			{
 				return g_SkyCloudSystem.IsTransitioning();
-			});
-
-		/// Check if random weather mode is active.
-		///
-		/// @function Flow.IsRandomWeatherActive
-		/// @treturn bool True if random weather mode is running.
-		parent.set_function("IsRandomWeatherActive",
-			[]() -> bool
-			{
-				return g_SkyCloudSystem.IsRandomWeatherActive();
 			});
 
 		/// Manually override volumetric cloud layer A settings.
@@ -313,15 +245,14 @@ namespace TEN::Scripting
 		/// @tparam string presetName Name of the preset to override.
 		/// @tparam table definition Table with:
 		///   - transitionDuration (float): default transition seconds
-		///   - randomWeight (float): likelihood in random mode
 		///   - highLayerLeadFraction (float): how much high layer leads in transitions
 		///   - nextPreset (string): name of preset to chain to after this one becomes active
 		///   - nextTransitionDuration (float): transition duration for the chain
 		///   - duration (float|table): how long (seconds) to stay at this preset before chaining.
-		///       Use 0 to stay at this preset indefinitely (until manually changed).
-		///       Use a plain number > 0 for a fixed duration, e.g. duration = 30.0
+		///       Omit or set to -1 (or any negative) to stay at this preset forever (no chaining, default).
+		///       Use 0 to chain/fire nextPreset/A/B immediately when the preset becomes active.
+		///       Use a plain number > 0 for a fixed dwell, e.g. duration = 30.0
 		///       Use a {min, max} table for a random range, e.g. duration = {10, 60}
-		///       Omit or set < 0 to chain immediately (default).
 		///       When duration expires and no nextPreset is set, the preset stays active indefinitely.
 		///   - cloudA (table): cloud layer A parameters (coverage, density, category, etc.)
 		///   - cloudB (table): cloud layer B parameters
@@ -352,8 +283,6 @@ namespace TEN::Scripting
 			// Per-layer transition durations. -1 = not explicitly set; inherits durationSeconds at transition time.
 			def.TransitionDurationA = (float)definition.get_or("transitionDurationA", -1.0);
 			def.TransitionDurationB = (float)definition.get_or("transitionDurationB", -1.0);
-			def.RandomWeight = std::max(tf(definition, "randomWeight",
-					(double)def.RandomWeight), 0.0f);
 			def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
 					(double)def.HighLayerLeadFraction), 0.0f, 1.0f);
 
@@ -465,7 +394,8 @@ namespace TEN::Scripting
 				}
 				else if (durObj.is<double>())
 				{
-					def.NextPresetDwellDuration = std::max((float)durObj.as<double>(), 0.0f);
+					// Negative values (e.g. -1) are stored as-is → "stay forever" sentinel.
+					def.NextPresetDwellDuration = (float)durObj.as<double>();
 				}
 			}
 

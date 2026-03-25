@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // SkyCloudSystem.cpp — Layered Sky & Cloud Weather System Implementation
 // ============================================================================
 
@@ -358,7 +358,6 @@ namespace TEN::Sky
 		_currentPreset = WeatherPresetType::ClearSky;
 		_currentState  = _presets[WeatherPresetType::ClearSky].TargetState;
 		_transition    = {};
-		_randomWeather = {};
 		_manualOverrideCloudA = false;
 		_manualOverrideCloudB = false;
 		_manualOverrideLayer1 = false;
@@ -367,30 +366,18 @@ namespace TEN::Sky
 		_cloudBTransmittance  = 1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 		_nextPresetDwellTarget  = -1.0f;
+		_layerDwellA = {};
+		_layerDwellB = {};
 		_driftOutA = {};
 		_driftOutB = {};
 		_dwellRNG.seed(std::random_device{}());
 
-		// Apply weather config from Gameflow.lua (level.weatherPreset / level.randomWeather).
+		// Apply weather config from Gameflow.lua (level.weatherPreset).
 		auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 		if (level)
 		{
-			// randomWeather takes priority over weatherPreset.
-			if (level->RandomWeather.has_value())
-			{
-				const auto& cfg = level->RandomWeather.value();
-				// Convert exclude list from strings to enum values.
-				std::vector<WeatherPresetType> exclusions;
-				for (const auto& name : cfg.Exclude)
-					exclusions.push_back(StringToPresetType(name));
-				if (!exclusions.empty())
-					SetRandomExclusions(exclusions);
-				StartRandomWeather(cfg.DwellTime, cfg.TransitionTime, EasingFromString(cfg.Easing));
-			}
-			else if (level->WeatherPreset.has_value())
-			{
+			if (level->WeatherPreset.has_value())
 				SetPresetImmediate(StringToPresetType(level->WeatherPreset.value()));
-			}
 		}
 	}
 
@@ -408,7 +395,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::ClearSky;
 			def.Name = "ClearSky";
 			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 2.0f;
 			// All layers disabled — perfectly clear sky.
 			_presets[def.Type] = def;
 		}
@@ -421,7 +407,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::RainSnowOvercast;
 			def.Name = "RainSnowOvercast";
 			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 0.8f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled           = true;
@@ -462,7 +447,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::BrokenClouds;
 			def.Name = "BrokenClouds";
 			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 1.5f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled           = true;
@@ -503,7 +487,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::Thunderstorm;
 			def.Name = "Thunderstorm";
 			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 0.3f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled           = true;
@@ -542,7 +525,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::StormBuildUpHigh;
 			def.Name = "StormBuildUpHigh";
 			def.DefaultTransitionDuration = 40.0f;
-			def.RandomWeight = 2.0f;
 
 			auto& a = def.TargetState.CloudA;
 			a.Enabled       = true;
@@ -563,7 +545,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::Overcast;
 			def.Name = "Overcast";
 			def.DefaultTransitionDuration = 60.0f;
-			def.RandomWeight = 1.2f;
 
 			auto& a = def.TargetState.CloudA;
 			a.Enabled       = true;
@@ -584,7 +565,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::Altocumulus;
 			def.Name = "Altocumulus";
 			def.DefaultTransitionDuration = 40.0f;
-			def.RandomWeight = 1.5f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled            = true;
@@ -623,8 +603,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::AuroraBorealis;
 			def.Name = "AuroraBorealis";
 			def.DefaultTransitionDuration = 50.0f;
-			def.RandomWeight = 0.0f;
-			def.AllowInRandom = false;
 
 			auto& a = def.TargetState.CloudA;
 			a.Enabled       = true;
@@ -647,7 +625,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::StormBuildUp;
 			def.Name = "StormBuildUp";
 			def.DefaultTransitionDuration = 90.0f;
-			def.RandomWeight = 0.6f;
 			def.HighLayerLeadFraction = 0.2f;
 
 			auto& a = def.TargetState.CloudA;
@@ -674,7 +651,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::AltocumulusHigh;
 			def.Name = "AltocumulusHigh";
 			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 1.3f;
 
 			auto& b = def.TargetState.CloudB;
 			b.Enabled             = true;
@@ -714,7 +690,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::ClearSkyHigh;
 			def.Name = "ClearSkyHigh";
 			def.DefaultTransitionDuration = 30.0f;
-			def.RandomWeight = 1.8f;
 			def.NextPresetDwellDurationMin = 300.0f;
 			def.NextPresetDwellDurationMax = 560.0f;
 
@@ -758,7 +733,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::ClearSkyLow;
 			def.Name = "ClearSkyLow";
 			def.DefaultTransitionDuration = 30.0f;
-			def.RandomWeight = 1.6f;
 			def.NextPresetDwellDurationMin = 300.0f;
 			def.NextPresetDwellDurationMax = 560.0f;
 
@@ -803,7 +777,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::CirrocumulusClear;
 			def.Name = "CirrocumulusClear";
 			def.DefaultTransitionDuration = 1.0f;
-			def.RandomWeight = 1.5f;
 			def.NextPresetDwellDuration = 0.0f;
 			def.NextPreset = "ClearSkyHigh";
 
@@ -847,7 +820,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::StormTransformation;
 			def.Name = "StormTransformation";
 			def.DefaultTransitionDuration = 1.0f;
-			def.RandomWeight = 0.8f;
 			def.NextPresetDwellDuration = 0.1f;
 			def.NextPreset = "Thunderstorm";
 
@@ -921,7 +893,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::Cirrustratus;
 			def.Name = "Cirrustratus";
 			def.DefaultTransitionDuration = 30.0f;
-			def.RandomWeight = 1.0f;
 			def.NextPresetDwellDurationMin = 300.0f;
 			def.NextPresetDwellDurationMax = 560.0f;
 
@@ -996,7 +967,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::CirrocumulusLots;
 			def.Name = "CirrocumulusLots";
 			def.DefaultTransitionDuration = 45.0f;
-			def.RandomWeight = 1.2f;
 			def.NextPresetDwellDurationMin = 300.0f;
 			def.NextPresetDwellDurationMax = 560.0f;
 
@@ -1041,7 +1011,6 @@ namespace TEN::Sky
 			def.Type = WeatherPresetType::CirrocumulusFew;
 			def.Name = "CirrocumulusFew";
 			def.DefaultTransitionDuration = 30.0f;
-			def.RandomWeight = 2.0f;
 			def.NextPresetDwellDurationMin = 300.0f;
 			def.NextPresetDwellDurationMax = 560.0f;
 
@@ -1085,20 +1054,32 @@ namespace TEN::Sky
 
 	void SkyCloudSystem::Update(float deltaTime)
 	{
-		if (_randomWeather.Active)
-			UpdateRandomWeather(deltaTime);
-
 		if (_transition.Active)
 			UpdateTransition(deltaTime);
-		else if (!_randomWeather.Active)
+		else
 			UpdatePresetDwell(deltaTime);
 
 		// Per-layer independent transitions — run last so they take priority over
 		// any CloudA/B values written by the full-preset transition above.
 		if (!_manualOverrideCloudA && _layerTransitionA.Active)
-			UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA);
+		{
+			if (UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA))
+				StartLayerDwell(_layerAPreset, _layerDwellA, true);
+		}
+		else
+		{
+			UpdateLayerDwell(deltaTime, _layerDwellA, _layerAPreset, true);
+		}
+
 		if (!_manualOverrideCloudB && _layerTransitionB.Active)
-			UpdateLayerTransition(deltaTime, _layerTransitionB, _currentState.CloudB);
+		{
+			if (UpdateLayerTransition(deltaTime, _layerTransitionB, _currentState.CloudB))
+				StartLayerDwell(_layerBPreset, _layerDwellB, false);
+		}
+		else
+		{
+			UpdateLayerDwell(deltaTime, _layerDwellB, _layerBPreset, false);
+		}
 
 		// Drift-out: wind-directional dissolution when dwell expired with no NextPreset.
 		if (!_manualOverrideCloudA && _driftOutA.Active)
@@ -1175,24 +1156,20 @@ namespace TEN::Sky
 
 	void SkyCloudSystem::SetPresetImmediate(WeatherPresetType preset)
 	{
-		if (preset == WeatherPresetType::Random)
-		{
-			StartRandomWeather(120.0f, 60.0f);
-			return;
-		}
-
 		auto it = _presets.find(preset);
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell from the previous preset.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-
-		_transition.Active = false;
-		_driftOutA.Active  = false;
-		_driftOutB.Active  = false;
+		_layerDwellA = {};
+		_layerDwellB = {};
+		_transition.Active      = false;
+		_driftOutA.Active       = false;
+		_driftOutB.Active       = false;
 		_currentPreset = preset;
+		_layerAPreset  = preset;
+		_layerBPreset  = preset;
 		_currentState = it->second.TargetState;
 
 		// Auto-chain or drift-out: check dwell / NextPreset for the new active preset.
@@ -1203,12 +1180,6 @@ namespace TEN::Sky
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
 	                                         EasingCurve curve)
 	{
-		if (preset == WeatherPresetType::Random)
-		{
-			StartRandomWeather(120.0f, durationSeconds, curve);
-			return;
-		}
-
 		auto it = _presets.find(preset);
 		if (it == _presets.end())
 			return;
@@ -1216,12 +1187,12 @@ namespace TEN::Sky
 		// Cancel any pending dwell / drift-out before starting a new transition.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_layerDwellA = {};
+		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
 
 		const auto& def = it->second;
-
-		// Resolve per-layer durations: use stored defaults if set (>= 0), else use durationSeconds.
 		float effA = (def.TransitionDurationA >= 0.0f) ? def.TransitionDurationA : durationSeconds;
 		float effB = (def.TransitionDurationB >= 0.0f) ? def.TransitionDurationB : durationSeconds;
 
@@ -1247,19 +1218,15 @@ namespace TEN::Sky
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationASeconds, float durationBSeconds,
 	                                         EasingCurve curve)
 	{
-		if (preset == WeatherPresetType::Random)
-		{
-			StartRandomWeather(120.0f, std::max(durationASeconds, durationBSeconds), curve);
-			return;
-		}
-
 		auto it = _presets.find(preset);
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell / drift-out before starting a new transition.
+		// Cancel any pending dwell and drift-out before starting a new transition.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_layerDwellA = {};
+		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
 
@@ -1285,6 +1252,8 @@ namespace TEN::Sky
 		// Also cancel any pending dwell / drift-out that might fire from the interrupted target.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_layerDwellA = {};
+		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
 	}
@@ -1296,11 +1265,11 @@ namespace TEN::Sky
 		// Per-layer independent transitions.
 		_layerTransitionA.Active = false;
 		_layerTransitionB.Active = false;
-		// Random weather mode.
-		_randomWeather.Active   = false;
 		// Preset dwell timer.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
+		_layerDwellA = {};
+		_layerDwellB = {};
 		// Drift-out dissolve.
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
@@ -1312,11 +1281,11 @@ namespace TEN::Sky
 	// Independent per-layer preset transitions
 	// ====================================================================
 
-	void SkyCloudSystem::UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
-	                                            VolumetricCloudLayerSnapshot& current)
+	bool SkyCloudSystem::UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
+	                                           VolumetricCloudLayerSnapshot& current)
 	{
 		if (!layerTr.Active)
-			return;
+			return false;
 
 		layerTr.Elapsed += deltaTime;
 
@@ -1325,13 +1294,14 @@ namespace TEN::Sky
 			layerTr.Progress = 1.0f;
 			current          = layerTr.Target;
 			layerTr.Active   = false;
-			return;
+			return true;
 		}
 
 		float rawT   = layerTr.Elapsed / layerTr.Duration;
 		float easedT = ApplyEasing(rawT, layerTr.Curve);
 		layerTr.Progress = easedT;
 		current = VolumetricCloudLayerSnapshot::Lerp(layerTr.Source, layerTr.Target, easedT);
+		return false;
 	}
 
 	void SkyCloudSystem::TransitionLayerAToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1344,8 +1314,11 @@ namespace TEN::Sky
 		// Release the manual override so UpdateLayerTransition can drive this layer.
 		_manualOverrideCloudA = false;
 
+		_layerAPreset = preset;
+		_layerDwellA  = {};
 		auto& tr  = _layerTransitionA;
-		tr.Active   = true;
+		tr.Active       = true;
+		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudA;
 		tr.Target   = it->second.TargetState.CloudA;
 		tr.Duration = std::max(durationSeconds, 0.1f);
@@ -1364,8 +1337,11 @@ namespace TEN::Sky
 		// Release the manual override so UpdateLayerTransition can drive this layer.
 		_manualOverrideCloudB = false;
 
+		_layerBPreset = preset;
+		_layerDwellB  = {};
 		auto& tr  = _layerTransitionB;
-		tr.Active   = true;
+		tr.Active       = true;
+		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudB;
 		tr.Target   = it->second.TargetState.CloudB;
 		tr.Duration = std::max(durationSeconds, 0.1f);
@@ -1382,7 +1358,9 @@ namespace TEN::Sky
 
 		_manualOverrideCloudA    = false;
 		_layerTransitionA.Active = false;
+		_layerAPreset            = preset;
 		_currentState.CloudA     = it->second.TargetState.CloudA;
+		StartLayerDwell(preset, _layerDwellA, true);
 	}
 
 	void SkyCloudSystem::SetLayerBPresetImmediate(WeatherPresetType preset)
@@ -1393,17 +1371,21 @@ namespace TEN::Sky
 
 		_manualOverrideCloudB    = false;
 		_layerTransitionB.Active = false;
+		_layerBPreset            = preset;
 		_currentState.CloudB     = it->second.TargetState.CloudB;
+		StartLayerDwell(preset, _layerDwellB, false);
 	}
 
 	void SkyCloudSystem::InterruptLayerATransition()
 	{
 		_layerTransitionA.Active = false;
+		_layerDwellA = {};
 	}
 
 	void SkyCloudSystem::InterruptLayerBTransition()
 	{
 		_layerTransitionB.Active = false;
+		_layerDwellB = {};
 	}
 
 	bool SkyCloudSystem::IsLayerATransitioning() const { return _layerTransitionA.Active; }
@@ -1540,12 +1522,12 @@ namespace TEN::Sky
 	{
 		float dwell = ResolveNextPresetDwell(def);
 
-		// duration = 0 → stay at this preset forever (no chaining, no drift-out).
-		if (dwell == 0.0f)
+		// duration < 0 (omitted / -1) → stay at this preset forever, no chaining.
+		if (dwell < 0.0f)
 			return;
 
-		// duration < 0 → fire all chains immediately.
-		if (dwell < 0.0f)
+		// duration == 0 → fire all chains immediately.
+		if (dwell == 0.0f)
 		{
 			FireNextPresetChains(def);
 			return;
@@ -1554,6 +1536,73 @@ namespace TEN::Sky
 		// duration > 0 → start dwell timer; chains fire when it expires.
 		_nextPresetDwellTarget  = dwell;
 		_nextPresetDwellElapsed = 0.0f;
+	}
+
+	void SkyCloudSystem::StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState, bool isLayerA)
+	{
+		dwellState = {};
+
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		const auto& def = it->second;
+		float dwell = ResolveNextPresetDwell(def);
+		if (dwell < 0.0f)
+			return;
+
+		if (dwell == 0.0f)
+		{
+			if (isLayerA)
+			{
+				if (const auto* candidate = PickNextPresetCandidate(def.NextPresetACandidates))
+					TransitionLayerAToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+				else if (!def.NextPresetA.empty())
+					TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
+			}
+			else
+			{
+				if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
+					TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+				else if (!def.NextPresetB.empty())
+					TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
+			}
+			return;
+		}
+
+		dwellState.Target = dwell;
+	}
+
+	void SkyCloudSystem::UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset, bool isLayerA)
+	{
+		if (dwellState.Target < 0.0f)
+			return;
+
+		dwellState.Elapsed += deltaTime;
+		if (dwellState.Elapsed < dwellState.Target)
+			return;
+
+		dwellState = {};
+
+		auto it = _presets.find(preset);
+		if (it == _presets.end())
+			return;
+
+		const auto& def = it->second;
+		if (isLayerA)
+		{
+			if (const auto* candidate = PickNextPresetCandidate(def.NextPresetACandidates))
+				TransitionLayerAToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+			else if (!def.NextPresetA.empty())
+				TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
+		}
+		else
+		{
+			if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
+				TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+			else if (!def.NextPresetB.empty())
+				TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
+		}
 	}
 
 	void SkyCloudSystem::UpdatePresetDwell(float deltaTime)
@@ -1628,119 +1677,6 @@ namespace TEN::Sky
 	float SkyCloudSystem::GetCloudBDriftOutProgress()  const { return _driftOutB.Active ? _driftOutB.Progress : 0.0f; }
 
 	// ====================================================================
-	// Random weather
-	// ====================================================================
-
-	void SkyCloudSystem::StartRandomWeather(float dwellTime, float transitionTime,
-	                                         EasingCurve curve)
-	{
-		_randomWeather.Active = true;
-		_randomWeather.DwellTime = std::max(dwellTime, 5.0f);
-		_randomWeather.DwellElapsed = 0.0f;
-		_randomWeather.TransitionTime = std::max(transitionTime, 1.0f);
-		_randomWeather.Curve = curve;
-
-		if (!_randomWeather.Seeded)
-		{
-			std::random_device rd;
-			_randomWeather.RNG.seed(rd());
-		}
-	}
-
-	void SkyCloudSystem::StopRandomWeather()
-	{
-		_randomWeather.Active = false;
-	}
-
-	void SkyCloudSystem::SetRandomSeed(uint32_t seed)
-	{
-		_randomWeather.Seed = seed;
-		_randomWeather.Seeded = true;
-		_randomWeather.RNG.seed(seed);
-	}
-
-	void SkyCloudSystem::SetRandomExclusions(const std::vector<WeatherPresetType>& exclusions)
-	{
-		_randomWeather.ExcludedPresets = exclusions;
-	}
-
-	void SkyCloudSystem::UpdateRandomWeather(float deltaTime)
-	{
-		if (_transition.Active)
-			return; // Wait for current transition to finish.
-
-		_randomWeather.DwellElapsed += deltaTime;
-
-		if (_randomWeather.DwellElapsed >= _randomWeather.DwellTime)
-		{
-			_randomWeather.DwellElapsed = 0.0f;
-
-			WeatherPresetType next = PickRandomPreset();
-			if (next != _currentPreset)
-			{
-				TransitionToPreset(next, _randomWeather.TransitionTime, _randomWeather.Curve);
-			}
-		}
-	}
-
-	WeatherPresetType SkyCloudSystem::PickRandomPreset()
-	{
-		// Build weighted list of eligible presets.
-		std::vector<std::pair<WeatherPresetType, float>> candidates;
-
-		for (auto& [type, def] : _presets)
-		{
-			if (!def.AllowInRandom)
-				continue;
-
-			if (type == WeatherPresetType::Random)
-				continue;
-
-			// Check exclusions.
-			bool excluded = false;
-			for (auto excl : _randomWeather.ExcludedPresets)
-			{
-				if (excl == type)
-				{
-					excluded = true;
-					break;
-				}
-			}
-
-			if (excluded)
-				continue;
-
-			// Reduce weight for the current preset to avoid picking the same one.
-			float weight = def.RandomWeight;
-			if (type == _currentPreset)
-				weight *= 0.1f;
-
-			if (weight > 0.0f)
-				candidates.emplace_back(type, weight);
-		}
-
-		if (candidates.empty())
-			return _currentPreset;
-
-		float totalWeight = 0.0f;
-		for (auto& [type, w] : candidates)
-			totalWeight += w;
-
-		std::uniform_real_distribution<float> dist(0.0f, totalWeight);
-		float roll = dist(_randomWeather.RNG);
-
-		float accumulated = 0.0f;
-		for (auto& [type, w] : candidates)
-		{
-			accumulated += w;
-			if (roll <= accumulated)
-				return type;
-		}
-
-		return candidates.back().first;
-	}
-
-	// ====================================================================
 	// Manual layer overrides
 	// ====================================================================
 
@@ -1798,11 +1734,6 @@ namespace TEN::Sky
 	bool SkyCloudSystem::IsTransitioning() const
 	{
 		return _transition.Active;
-	}
-
-	bool SkyCloudSystem::IsRandomWeatherActive() const
-	{
-		return _randomWeather.Active;
 	}
 
 	const SkyCloudSnapshot& SkyCloudSystem::GetCurrentState() const
@@ -1937,7 +1868,6 @@ namespace TEN::Sky
 		case WeatherPresetType::StormBuildUp:          return "StormBuildUp";
 		case WeatherPresetType::StormTransformation:   return "StormTransformation";
 		case WeatherPresetType::Thunderstorm:          return "Thunderstorm";
-		case WeatherPresetType::Random:                return "Random";
 		default:                                       return "Unknown";
 		}
 	}
@@ -1962,7 +1892,6 @@ namespace TEN::Sky
 			{ "StormBuildUp",          WeatherPresetType::StormBuildUp },
 			{ "StormTransformation",   WeatherPresetType::StormTransformation },
 			{ "Thunderstorm",          WeatherPresetType::Thunderstorm },
-			{ "Random",                WeatherPresetType::Random },
 		};
 
 		auto it = map.find(name);
@@ -1985,8 +1914,6 @@ namespace TEN::Sky
 			if (it != _presets.end())
 				info.NextPreset = it->second.NextPreset;
 		}
-		info.RandomModeActive     = _randomWeather.Active;
-		info.RandomDwellRemaining = std::max(0.0f, _randomWeather.DwellTime - _randomWeather.DwellElapsed);
 		info.Layer1Enabled        = _currentState.Layer1.Enabled;
 		info.Layer2Enabled        = _currentState.Layer2.Enabled;
 		info.CloudAEnabled        = IsCloudAActive();
@@ -2000,6 +1927,16 @@ namespace TEN::Sky
 		info.LayerBTransitioning      = _layerTransitionB.Active;
 		info.LayerATransitionProgress = _layerTransitionA.Progress;
 		info.LayerBTransitionProgress = _layerTransitionB.Progress;
+		info.LayerAPreset             = _layerAPreset;
+		info.LayerBPreset             = _layerBPreset;
+		info.LayerATargetPreset       = _layerTransitionA.Active ? _layerTransitionA.TargetPreset : _layerAPreset;
+		info.LayerBTargetPreset       = _layerTransitionB.Active ? _layerTransitionB.TargetPreset : _layerBPreset;
+		info.DwellElapsed             = _nextPresetDwellElapsed;
+		info.DwellTarget              = _nextPresetDwellTarget;
+		info.LayerADwellElapsed       = _layerDwellA.Elapsed;
+		info.LayerADwellTarget        = _layerDwellA.Target;
+		info.LayerBDwellElapsed       = _layerDwellB.Elapsed;
+		info.LayerBDwellTarget        = _layerDwellB.Target;
 		return info;
 	}
 }

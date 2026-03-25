@@ -72,37 +72,8 @@ void Level::Register(sol::table& parent)
 // "Cirrustratus", "StormBuildUpHigh", "BrokenClouds", "Overcast",
 // "Altocumulus", "AltocumulusHigh", "AuroraBorealis", "RainSnowOvercast",
 // "StormBuildUp", "StormTransformation", "Thunderstorm".
-// Overridden by randomWeather if both are set.
 //@mem weatherPreset
 		"weatherPreset", &Level::WeatherPreset,
-
-/// (table) Start the level with cycling random weather.
-// Table fields (all optional):
-//   dwellTime (float)      -- seconds before switching preset, default 120
-//   transitionTime (float) -- seconds per transition, default 60
-//   easing (string)        -- "Linear", "SmoothStep", "EaseIn", "EaseOut", "EaseInOut"
-//   exclude (table)        -- list of preset name strings to never pick
-// Example: level.randomWeather = { dwellTime=90, transitionTime=45, exclude={"Thunderstorm"} }
-//@mem randomWeather
-		"randomWeather", sol::property(
-			[](const Level&) { return false; }, // write-only; getter unused
-			[](Level& self, sol::table tbl)
-			{
-				LevelRandomWeatherConfig cfg;
-				cfg.DwellTime      = static_cast<float>(tbl.get_or("dwellTime",      120.0));
-				cfg.TransitionTime = static_cast<float>(tbl.get_or("transitionTime",  60.0));
-				cfg.Easing         = tbl.get_or("easing", std::string("SmoothStep"));
-				sol::optional<sol::table> excl = tbl["exclude"];
-				if (excl.has_value())
-				{
-					excl.value().for_each([&](sol::object /*key*/, sol::object val)
-					{
-						if (val.is<std::string>())
-							cfg.Exclude.push_back(val.as<std::string>());
-					});
-				}
-				self.RandomWeather = cfg;
-			}),
 
 ///  (@{Flow.Horizon}) Primary horizon object.
 //@mem horizon1

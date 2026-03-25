@@ -23,15 +23,10 @@ namespace TEN::Scripting
 	///   Flow.TransitionWeather("Thunderstorm", 120.0)
 	///   Flow.TransitionWeather("Overcast", 60.0, "EaseInOut")
 	///
-	///   -- Random weather mode
-	///   Flow.StartRandomWeather({ dwellTime = 120, transitionTime = 60 })
-	///   Flow.StopRandomWeather()
-	///
 	///   -- Query
 	///   local current = Flow.GetCurrentWeatherPreset()
 	///   local target  = Flow.GetTargetWeatherPreset()
 	///   local progress = Flow.GetWeatherTransitionProgress()
-	///   local isRandom = Flow.IsRandomWeatherActive()
 	///
 	///   -- Manual layer override (advanced)
 	///   Flow.SetVolumetricCloudLayerA({ coverage = 0.5, density = 0.8, ... })

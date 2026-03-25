@@ -317,8 +317,11 @@ namespace TEN::Renderer
 			return;
 
 		// Quick early-out: coverage is zero means perfectly clear sky.
-		// AltocumulusMid (CloudType==2) uses its own AltoCloudAmount, not shared Coverage.
-		bool isAlto = (activeSettings->CloudType == 2);
+		// AltocumulusMid (CloudType==1) uses its own AltoCloudAmount, not shared Coverage.
+		// Aurora (CloudType==2) is rendered by a separate pass — skip here.
+		if (activeSettings->CloudType == 2)
+			return;
+		bool isAlto = (activeSettings->CloudType == 1);
 		if (!isAlto && activeSettings->Coverage < 0.001f)
 			return;
 
