@@ -55,17 +55,16 @@ PixelShaderInput VS(VertexShaderInput input)
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	// Refraction
-	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
+float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
 
-	if (CameraUnderwater != Water)
-	{
-		float phaseOffset = DecodeHash(input.AnimationFrameOffsetIndexHash) * (1.0f / 256.0f);
-		float factor = Frame + phaseOffset * 320.0f;
-		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 4;
-		screenPos.x += xOffset * weight;
-		screenPos.y += yOffset * weight;
-	}
+if (CameraUnderwater != Water)
+{
+    float factor = Frame + (input.Position.x + input.Position.z) * 0.2f;
+    float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024) * 3;
+    float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024) * 3;
+    screenPos.x += xOffset * weight;
+    screenPos.y += yOffset * weight;
+}
 	
 	output.Position = screenPos;
     output.Normal = input.Normal.xyz;
