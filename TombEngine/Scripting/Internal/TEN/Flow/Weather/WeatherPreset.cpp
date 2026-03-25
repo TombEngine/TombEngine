@@ -126,7 +126,7 @@ namespace TEN::Scripting
 		///
 		/// @function Flow.SetWeatherPreset
 		/// @tparam string presetName Name of the weather preset.
-		/// Valid values: "ClearSky", "FewClouds", "ScatteredClouds", "BrokenClouds",
+		/// Valid values: "ClearSky", "CirrocumulusClear", "StormBuildUpHigh", "BrokenClouds",
 		/// "Overcast", "Cirrus", "Altocumulus", "AuroraBorealis",
 		/// "StormBuildUp", "Thunderstorm", "StormTransformation", "Random"
 		parent.set_function("SetWeatherPreset",

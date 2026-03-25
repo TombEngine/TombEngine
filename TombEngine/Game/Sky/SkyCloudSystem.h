@@ -62,8 +62,8 @@ namespace TEN::Sky
 		ClearSky,
 		ClearSkyHigh,          // Clear sky with a few high-altitude cirrus wisps.
 		ClearSkyLow,           // Clear sky with lingering low-lying haze/mist layer.
-		FewClouds,
-		ScatteredClouds,
+		CirrocumulusClear,
+		StormBuildUpHigh,
 		BrokenClouds,
 		Overcast,
 		Cirrus,

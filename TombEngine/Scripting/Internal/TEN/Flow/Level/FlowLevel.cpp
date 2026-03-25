@@ -67,7 +67,7 @@ void Level::Register(sol::table& parent)
 		"volumetricLayer2", &Level::VolumetricLayer2,
 
 /// (string) Start the level with a fixed weather preset.
-// Valid values: "ClearSky", "FewClouds", "ScatteredClouds", "BrokenClouds", "Overcast",
+// Valid values: "ClearSky", "CirrocumulusClear", "StormBuildUpHigh", "BrokenClouds", "Overcast",
 // "Cirrus", "Altocumulus", "AuroraBorealis", "StormBuildUp", "Thunderstorm", "StormTransformation".
 // Overridden by randomWeather if both are set.
 //@mem weatherPreset

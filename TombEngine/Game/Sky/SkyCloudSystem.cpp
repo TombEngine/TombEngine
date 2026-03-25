@@ -620,8 +620,8 @@ namespace TEN::Sky
 	
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::FewClouds;
-			def.Name = "FewClouds";
+			def.Type = WeatherPresetType::CirrocumulusClear;
+			def.Name = "CirrocumulusClear";
 			def.DefaultTransitionDuration = 45.0f;
 			def.RandomWeight = 2.5f;
 
@@ -644,11 +644,11 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- ScatteredClouds -----
+		// ----- StormBuildUpHigh -----
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::ScatteredClouds;
-			def.Name = "ScatteredClouds";
+			def.Type = WeatherPresetType::StormBuildUpHigh;
+			def.Name = "StormBuildUpHigh";
 			def.DefaultTransitionDuration = 40.0f;
 			def.RandomWeight = 2.0f;
 
@@ -1593,17 +1593,7 @@ namespace TEN::Sky
 			anyChainFired = true;
 		}
 
-		// --- No chain fired and no AB preset defined → drift-out AltocumulusMid layers ---
-		if (!anyChainFired)
-		{
-			if (_currentState.CloudA.Enabled &&
-				_currentState.CloudA.Category == CloudCategory::AltocumulusMid)
-				StartDriftOut(_driftOutA, _currentState.CloudA);
-
-			if (_currentState.CloudB.Enabled &&
-				_currentState.CloudB.Category == CloudCategory::AltocumulusMid)
-				StartDriftOut(_driftOutB, _currentState.CloudB);
-		}
+		// No chain fired → preset stays active indefinitely. No drift-out.
 	}
 
 	void SkyCloudSystem::StartNextPresetDwell(const WeatherPresetDefinition& def)
@@ -1998,8 +1988,8 @@ namespace TEN::Sky
 		case WeatherPresetType::ClearSky:             return "ClearSky";
 		case WeatherPresetType::ClearSkyHigh:         return "ClearSkyHigh";
 		case WeatherPresetType::ClearSkyLow:          return "ClearSkyLow";
-		case WeatherPresetType::FewClouds:            return "FewClouds";
-		case WeatherPresetType::ScatteredClouds:      return "ScatteredClouds";
+		case WeatherPresetType::CirrocumulusClear:            return "CirrocumulusClear";
+		case WeatherPresetType::StormBuildUpHigh:      return "StormBuildUpHigh";
 		case WeatherPresetType::BrokenClouds:         return "BrokenClouds";
 		case WeatherPresetType::Overcast:             return "Overcast";
 		case WeatherPresetType::Cirrus:               return "Cirrus";
@@ -2024,8 +2014,8 @@ namespace TEN::Sky
 			{ "ClearSky",            WeatherPresetType::ClearSky },
 			{ "ClearSkyHigh",        WeatherPresetType::ClearSkyHigh },
 			{ "ClearSkyLow",         WeatherPresetType::ClearSkyLow },
-			{ "FewClouds",           WeatherPresetType::FewClouds },
-			{ "ScatteredClouds",     WeatherPresetType::ScatteredClouds },
+			{ "CirrocumulusClear",           WeatherPresetType::CirrocumulusClear },
+			{ "StormBuildUpHigh",     WeatherPresetType::StormBuildUpHigh },
 			{ "BrokenClouds",        WeatherPresetType::BrokenClouds },
 			{ "Overcast",            WeatherPresetType::Overcast },
 			{ "Cirrus",              WeatherPresetType::Cirrus },
