@@ -3,14 +3,12 @@
 
 static byte FloatComponentToByte(float value)
 {
-	// TODO: Look into what these actually do and test them to see if they are actually not undefined.
 	int byteValue = std::clamp((int)std::lroundf(value * (float)UCHAR_MAX), 0, UCHAR_MAX);
 	return (byte)byteValue;
 }
 
 static float ByteComponentToFloat(byte b)
 {
-	// TODO: Look into what these actually do and test them to see if they are actually not undefined.
 	float value = (b / 255.0f);
 	return value;
 }
