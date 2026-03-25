@@ -359,6 +359,7 @@ static constexpr char ScriptReserved_EmitFire[]						= "EmitFire";
 static constexpr char ScriptReserved_EmitWaterfallMist[]			= "EmitWaterfallMist";
 static constexpr char ScriptReserved_EmitFlow[]						= "EmitFlow";
 static constexpr char ScriptReserved_EmitStreamer[]					= "EmitStreamer";
+static constexpr char ScriptReserved_EmitSplash[]					= "EmitSplash";
 static constexpr char ScriptReserved_MakeExplosion[]				= "MakeExplosion";
 static constexpr char ScriptReserved_MakeEarthquake[]				= "MakeEarthquake";
 static constexpr char ScriptReserved_GetWind[]						= "GetWind";

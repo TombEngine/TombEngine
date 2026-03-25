@@ -139,15 +139,24 @@ namespace TEN::Effects::Splash
 
 	void Splash(ItemInfo* item)
 	{
+
 		int probedRoomNumber = GetPointCollision(*item).GetRoomNumber();
-		if (!TestEnvironment(ENV_FLAG_WATER, probedRoomNumber))
+	
+		Splash(item->Pose.Position, probedRoomNumber, item->Animation.Velocity.y);
+
+	}
+
+	void Splash(Vector3i position, int roomNumber, int splashPower)
+	{
+		if (!TestEnvironment(ENV_FLAG_WATER, roomNumber))
 			return;
 
-		int waterHeight = GetPointCollision(*item).GetWaterTopHeight();
+		int waterHeight = GetPointCollision(position, roomNumber).GetWaterTopHeight();
 
-		SplashSetup.Position = Vector3(item->Pose.Position.x, waterHeight - 1, item->Pose.Position.z);
-		SplashSetup.SplashPower = item->Animation.Velocity.y;
+		SplashSetup.Position = Vector3(position.x, waterHeight - 1, position.z);
+		SplashSetup.SplashPower = splashPower;
 		SplashSetup.InnerRadius = 64;
-		SetupSplash(&SplashSetup, probedRoomNumber);
+		SetupSplash(&SplashSetup, roomNumber);
+
 	}
 }
