@@ -5,7 +5,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.11.1]
 
-# Lua API changes
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
 * Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
 
 ## [Version 1.11]
