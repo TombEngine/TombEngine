@@ -844,6 +844,20 @@ namespace TEN::Renderer::Native::SDLGPU
 		// and creates the GPU shader (SPIRV for Vulkan, DXIL/MSL via ShaderCross for others).
 		struct CompileResult { SDL_GPUShader* shader; SPIRVRemapResult remap; };
 
+		// Compute the newest modification time across all shader source files
+		// (.hlsl + .hlsli) so any include change invalidates the SPIRV cache.
+		auto newestShaderTime = std::filesystem::file_time_type::min();
+		for (auto& dirEntry : std::filesystem::directory_iterator(hlslSourceDir))
+		{
+			auto ext = dirEntry.path().extension().string();
+			if (ext == ".hlsl" || ext == ".hlsli")
+			{
+				auto t = std::filesystem::last_write_time(dirEntry);
+				if (t > newestShaderTime)
+					newestShaderTime = t;
+			}
+		}
+
 		auto compileStage = [&](const std::string& stagePrefix, SDL_ShaderCross_ShaderStage stage)
 			-> CompileResult
 		{
@@ -858,33 +872,77 @@ namespace TEN::Renderer::Native::SDLGPU
 			if (stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX)
 				defineStrings.push_back({ "VERTEX_SHADER", "1" });
 
-			std::vector<SDL_ShaderCross_HLSL_Define> defines;
+			// Build a defines suffix for the cache filename (e.g. "_TRANSPARENT_SHADOW_MAP").
+			std::string definesSuffix;
 			for (auto& ds : defineStrings)
 			{
-				SDL_ShaderCross_HLSL_Define def;
-				def.name = const_cast<char*>(ds.name.c_str());
-				def.value = const_cast<char*>(ds.value.c_str());
-				defines.push_back(def);
+				if (!ds.name.empty())
+					definesSuffix += "_" + ds.name;
 			}
-			defines.push_back({ nullptr, nullptr }); // Null sentinel.
 
-			SDL_ShaderCross_HLSL_Info hlslInfo = {};
-			hlslInfo.source = hlslSource.c_str();
-			hlslInfo.entrypoint = entry.c_str();
-			hlslInfo.shader_stage = stage;
-			hlslInfo.defines = defines.data();
-			hlslInfo.include_dir = hlslSourceDir.c_str();
-			hlslInfo.props = 0;
+			// SPIRV cache path: Shaders/Bin/<VERSION>/00_Rooms_VS.spv
+			auto prefix = ((request.CompileIndex < 10) ? "0" : "") + std::to_string(request.CompileIndex) + "_";
+			auto spvFile = request.BinaryDirectory + prefix + request.FileName + "_" + stagePrefix + definesSuffix + ".spv";
 
-			// Compile HLSL -> SPIRV.
+			// Try loading cached SPIRV if it exists and is newer than all shader sources.
+			void* spirvData = nullptr;
 			size_t spirvSize = 0;
-			void* spirvData = SDL_ShaderCross_CompileSPIRVFromHLSL(&hlslInfo, &spirvSize);
+			bool fromCache = false;
 
+			if (!request.ForceRecompile && std::filesystem::exists(spvFile))
+			{
+				auto cacheTime = std::filesystem::last_write_time(spvFile);
+				if (cacheTime > newestShaderTime)
+				{
+					std::ifstream ifs(spvFile, std::ios::binary | std::ios::ate);
+					if (ifs.is_open())
+					{
+						spirvSize = (size_t)ifs.tellg();
+						ifs.seekg(0);
+						spirvData = SDL_malloc(spirvSize);
+						ifs.read((char*)spirvData, spirvSize);
+						fromCache = true;
+						TENLog("SPIRV cache hit: " + entry, LogLevel::Info);
+					}
+				}
+			}
+
+			// Cache miss: compile HLSL -> SPIRV via DXC.
 			if (!spirvData)
 			{
-				TENLog("Failed to compile HLSL to SPIRV: " + entry + " in " + hlslFile
-					+ " -- " + SDL_GetError(), LogLevel::Error);
-				return cr;
+				std::vector<SDL_ShaderCross_HLSL_Define> defines;
+				for (auto& ds : defineStrings)
+				{
+					SDL_ShaderCross_HLSL_Define def;
+					def.name = const_cast<char*>(ds.name.c_str());
+					def.value = const_cast<char*>(ds.value.c_str());
+					defines.push_back(def);
+				}
+				defines.push_back({ nullptr, nullptr });
+
+				SDL_ShaderCross_HLSL_Info hlslInfo = {};
+				hlslInfo.source = hlslSource.c_str();
+				hlslInfo.entrypoint = entry.c_str();
+				hlslInfo.shader_stage = stage;
+				hlslInfo.defines = defines.data();
+				hlslInfo.include_dir = hlslSourceDir.c_str();
+				hlslInfo.props = 0;
+
+				spirvData = SDL_ShaderCross_CompileSPIRVFromHLSL(&hlslInfo, &spirvSize);
+
+				if (!spirvData)
+				{
+					TENLog("Failed to compile HLSL to SPIRV: " + entry + " in " + hlslFile
+						+ " -- " + SDL_GetError(), LogLevel::Error);
+					return cr;
+				}
+
+				// Save compiled SPIRV to cache.
+				std::ofstream ofs(spvFile, std::ios::binary);
+				if (ofs.is_open())
+					ofs.write((const char*)spirvData, spirvSize);
+
+				TENLog("Compiled and cached SPIRV: " + entry + " (" + std::to_string(spirvSize) + "B)", LogLevel::Info);
 			}
 
 			// Verify SPIRV magic number.

@@ -536,7 +536,15 @@ namespace TEN::Platform
 
 	void WindowsSubsystem::ConfigureConsole()
 	{
-		// Set console to UTF-8 mode for proper Unicode character display.
+		// WIN32 subsystem apps have no console by default; create one.
+		if (!GetConsoleWindow())
+		{
+			AllocConsole();
+			freopen("CONOUT$", "w", stdout);
+			freopen("CONOUT$", "w", stderr);
+			freopen("CONIN$", "r", stdin);
+		}
+
 		SetConsoleOutputCP(CP_UTF8);
 		SetConsoleCP(CP_UTF8);
 	}
