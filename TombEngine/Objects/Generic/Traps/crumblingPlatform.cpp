@@ -30,8 +30,8 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MAX	 = 100.0f;
-	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MIN	 = 10.0f;
+	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MAX = 100.0f;
+	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MIN = 10.0f;
 	constexpr auto CRUMBLING_PLATFORM_VELOCITY_ACCEL = 4.0f;
 
 	constexpr auto CRUMBLING_PLATFORM_DELAY = 1.2f;
@@ -167,7 +167,7 @@ namespace TEN::Entities::Traps
 			// Get point collision.
 			auto box = GameBoundingBox(&item);
 			auto pointColl = GetPointCollision(item);
-			int relFloorHeight = (item.Pose.Position.y - pointColl.GetFloorHeight()) - box.Y1 ;
+			int relFloorHeight = (item.Pose.Position.y - pointColl.GetFloorHeight()) - box.Y1;
 
 			// Airborne.
 			if (relFloorHeight <= fallVel)
@@ -189,16 +189,22 @@ namespace TEN::Entities::Traps
 			int probedRoomNumber = pointColl.GetRoomNumber();
 			if (item.RoomNumber != probedRoomNumber)
 			{
-				// Spawn splash when entering water.
+				// Spawn 6 splashes at random positions across platform when entering water.
 				if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, probedRoomNumber) &&
 					!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 				{
 					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
 
-					SplashSetup.Position = Vector3(item.Pose.Position.x, waterHeight - 1, item.Pose.Position.z);
-					SplashSetup.SplashPower = fallVel * 2.0f;
-					SplashSetup.InnerRadius = 256;
-					SetupSplash(&SplashSetup, probedRoomNumber);
+					for (int i = 0; i < 6; i++)
+					{
+						SplashSetup.Position = Vector3(
+							item.Pose.Position.x + GenerateFloat((float)box.X1, (float)box.X2),
+							waterHeight - 1,
+							item.Pose.Position.z + GenerateFloat((float)box.Z1, (float)box.Z2));
+						SplashSetup.SplashPower = GenerateFloat(fallVel * 0.5f, fallVel * 2.0f);
+						SplashSetup.InnerRadius = GenerateFloat(48, 128);
+						SetupSplash(&SplashSetup, probedRoomNumber);
+					}
 				}
 
 				ItemNewRoom(itemNumber, probedRoomNumber);
@@ -207,9 +213,10 @@ namespace TEN::Entities::Traps
 			// Spawn bubbles every frame while sinking underwater.
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 			{
-				for (int i = 0; i < 4; i++)
-					SpawnBubble(GeneratePointInBox(box.ToBoundingOrientedBox(item.Pose)), item.RoomNumber, 
-					GenerateInt(32, 256), GenerateInt(BLOCK(0.15f), BLOCK(0.5f)));
+				for (int i = 0; i < 6; i++)
+					SpawnBubble(
+						GeneratePointInBox(box.ToBoundingOrientedBox(item.Pose)),
+						item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
 			}
 		}
 
