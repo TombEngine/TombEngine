@@ -688,9 +688,8 @@ namespace TEN::Scripting::Effects
 	static void EmitSplash(const Vec3& pos, TypeOrNil<int> splashPower)
 	{
 		auto convertedPower = std::clamp(ValueOr<int>(splashPower, 128), 0, 1024);
-		int roomNumber = FindRoomNumber(pos.ToVector3i());
 
-		Splash(pos.ToVector3i(), roomNumber, convertedPower);
+		Splash(pos.ToVector3i(), convertedPower);
 	}
 
 	/// Make an explosion. Does not hurt Lara
