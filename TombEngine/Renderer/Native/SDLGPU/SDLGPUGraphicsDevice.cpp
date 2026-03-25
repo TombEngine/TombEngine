@@ -74,8 +74,9 @@ namespace TEN::Renderer::Native::SDLGPU
 
 	void SDLGPUGraphicsDevice::CreateDevice()
 	{
-		// Enable verbose GPU logging for diagnostics.
-		SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_VERBOSE);
+		// Suppress verbose GPU logging — it outputs thousands of lines per frame
+		// through the console, which is synchronous on Windows and kills FPS.
+		SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_WARN);
 
 		// Suppress DXC HLSL compilation warnings emitted by SDL_ShaderCross via SDL_LogWarn.
 		SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR);
@@ -1123,15 +1124,17 @@ namespace TEN::Renderer::Native::SDLGPU
 		// the shader's declared sampler count.
 		// Uses the HLSL-register → SPIRV-binding map to place textures at the
 		// correct slot, and picks the right dummy texture type (2D vs 2D_ARRAY).
+		// Use fixed-size arrays to avoid heap allocation per draw call.
+		static constexpr int MAX_SAMPLER_BINDINGS = 16;
+
 		if (_currentPSShader)
 		{
 			unsigned int numFS = _currentPSShader->GetNumFragmentSamplers();
-			if (numFS > 0)
+			if (numFS > 0 && numFS <= MAX_SAMPLER_BINDINGS)
 			{
-				std::vector<SDL_GPUTextureSamplerBinding> fsBindings(numFS);
+				SDL_GPUTextureSamplerBinding fsBindings[MAX_SAMPLER_BINDINGS];
 				for (unsigned int i = 0; i < numFS; ++i)
 				{
-					// Choose dummy type based on whether this binding expects an array texture.
 					fsBindings[i].texture = _currentPSShader->IsArrayedSamplerBinding((int)i)
 						? _dummyTexture2DArray : _dummyTexture2D;
 					fsBindings[i].sampler = _dummySampler;
@@ -1140,7 +1143,6 @@ namespace TEN::Renderer::Native::SDLGPU
 				{
 					if (!bt.Texture || !bt.Sampler)
 						continue;
-					// Translate engine register number to SPIRV binding index.
 					int spirvSlot = _currentPSShader->MapFragmentSamplerSlot(engineSlot);
 					if (spirvSlot >= 0 && spirvSlot < (int)numFS)
 					{
@@ -1148,24 +1150,23 @@ namespace TEN::Renderer::Native::SDLGPU
 						fsBindings[spirvSlot].sampler = bt.Sampler;
 					}
 				}
-				SDL_BindGPUFragmentSamplers(_renderPass, 0, fsBindings.data(), numFS);
+				SDL_BindGPUFragmentSamplers(_renderPass, 0, fsBindings, numFS);
 			}
 		}
 
-		// Bind vertex stage samplers (rare, but some shaders may use them).
 		if (_currentVSShader)
 		{
 			unsigned int numVS = _currentVSShader->GetNumVertexSamplers();
-			if (numVS > 0)
+			if (numVS > 0 && numVS <= MAX_SAMPLER_BINDINGS)
 			{
-				std::vector<SDL_GPUTextureSamplerBinding> vsBindings(numVS);
+				SDL_GPUTextureSamplerBinding vsBindings[MAX_SAMPLER_BINDINGS];
 				for (unsigned int i = 0; i < numVS; ++i)
 				{
 					vsBindings[i].texture = _currentVSShader->IsVSArrayedSamplerBinding((int)i)
 						? _dummyTexture2DArray : _dummyTexture2D;
 					vsBindings[i].sampler = _dummySampler;
 				}
-				SDL_BindGPUVertexSamplers(_renderPass, 0, vsBindings.data(), numVS);
+				SDL_BindGPUVertexSamplers(_renderPass, 0, vsBindings, numVS);
 			}
 		}
 	}
@@ -1182,6 +1183,7 @@ namespace TEN::Renderer::Native::SDLGPU
 		static const char s_zeroBuf[2048] = {};
 
 		// Push uniforms for a single stage (vertex or fragment).
+		// Use fixed-size bitmask instead of heap-allocated vector<bool>.
 		auto pushStage = [&](
 			SDLGPUShader* shader,
 			const std::map<int, BoundCB>& boundCBs,
@@ -1193,22 +1195,21 @@ namespace TEN::Renderer::Native::SDLGPU
 			unsigned int numExpected = isVertex
 				? shader->GetNumVertexUBOs()
 				: shader->GetNumFragmentUBOs();
-			if (numExpected == 0)
+			if (numExpected == 0 || numExpected > 4)
 				return;
 
 			auto pushFn = isVertex
 				? SDL_PushGPUVertexUniformData
 				: SDL_PushGPUFragmentUniformData;
 
-			std::vector<bool> pushed(numExpected, false);
+			unsigned int pushedMask = 0;
 
-			// Push each bound CB to its corresponding SPIRV slot.
 			for (auto& [engineSlot, bound] : boundCBs)
 			{
 				int spirvSlot = isVertex
 					? shader->MapVertexUBOSlot(engineSlot)
 					: shader->MapFragmentUBOSlot(engineSlot);
-				if (spirvSlot < 0 || spirvSlot >= (int)numExpected || pushed[spirvSlot])
+				if (spirvSlot < 0 || spirvSlot >= (int)numExpected || (pushedMask & (1u << spirvSlot)))
 					continue;
 
 				if (bound.Buffer)
@@ -1216,13 +1217,12 @@ namespace TEN::Renderer::Native::SDLGPU
 				else
 					pushFn(_commandBuffer, spirvSlot, s_zeroBuf, 16);
 
-				pushed[spirvSlot] = true;
+				pushedMask |= (1u << spirvSlot);
 			}
 
-			// Fill any remaining slots with zeros.
 			for (unsigned int i = 0; i < numExpected; ++i)
 			{
-				if (!pushed[i])
+				if (!(pushedMask & (1u << i)))
 					pushFn(_commandBuffer, i, s_zeroBuf, 16);
 			}
 		};
@@ -1260,30 +1260,33 @@ namespace TEN::Renderer::Native::SDLGPU
 		if (!_renderPass)
 			return;
 
-		// Bind vertex stage storage buffers.
+		// Use fixed-size arrays to avoid heap allocation per draw call.
+		static constexpr int MAX_STORAGE_BUFFERS = 8;
+
 		if (!_boundVertexStorageBuffers.empty())
 		{
-			std::vector<SDL_GPUBuffer*> buffers;
+			SDL_GPUBuffer* buffers[MAX_STORAGE_BUFFERS];
+			int count = 0;
 			for (auto& [slot, bound] : _boundVertexStorageBuffers)
 			{
-				if (bound.Buffer && bound.Buffer->GetGPUBuffer())
-					buffers.push_back(bound.Buffer->GetGPUBuffer());
+				if (bound.Buffer && bound.Buffer->GetGPUBuffer() && count < MAX_STORAGE_BUFFERS)
+					buffers[count++] = bound.Buffer->GetGPUBuffer();
 			}
-			if (!buffers.empty())
-				SDL_BindGPUVertexStorageBuffers(_renderPass, 0, buffers.data(), (Uint32)buffers.size());
+			if (count > 0)
+				SDL_BindGPUVertexStorageBuffers(_renderPass, 0, buffers, (Uint32)count);
 		}
 
-		// Bind fragment stage storage buffers.
 		if (!_boundFragmentStorageBuffers.empty())
 		{
-			std::vector<SDL_GPUBuffer*> buffers;
+			SDL_GPUBuffer* buffers[MAX_STORAGE_BUFFERS];
+			int count = 0;
 			for (auto& [slot, bound] : _boundFragmentStorageBuffers)
 			{
-				if (bound.Buffer && bound.Buffer->GetGPUBuffer())
-					buffers.push_back(bound.Buffer->GetGPUBuffer());
+				if (bound.Buffer && bound.Buffer->GetGPUBuffer() && count < MAX_STORAGE_BUFFERS)
+					buffers[count++] = bound.Buffer->GetGPUBuffer();
 			}
-			if (!buffers.empty())
-				SDL_BindGPUFragmentStorageBuffers(_renderPass, 0, buffers.data(), (Uint32)buffers.size());
+			if (count > 0)
+				SDL_BindGPUFragmentStorageBuffers(_renderPass, 0, buffers, (Uint32)count);
 		}
 	}
 
@@ -1645,12 +1648,18 @@ namespace TEN::Renderer::Native::SDLGPU
 			_inRenderPass = false;
 		}
 
+		// Block until a swapchain image is available.
+		// Without this, the game spins at 700+ FPS but 99% of frames are
+		// discarded (swapchainTexture=NULL), causing visible 1 FPS stutter.
+		SDL_WaitForGPUSwapchain(_device, _window);
+
 		// Acquire swapchain texture.
 		SDL_GPUTexture* swapchainTexture = nullptr;
 		Uint32 swapW = 0, swapH = 0;
-		if (!SDL_AcquireGPUSwapchainTexture(_commandBuffer, _window, &swapchainTexture, &swapW, &swapH))
+		bool acquireOk = SDL_AcquireGPUSwapchainTexture(_commandBuffer, _window, &swapchainTexture, &swapW, &swapH);
+
+		if (!acquireOk)
 		{
-			// Swapchain not ready (e.g., minimized). Submit empty command buffer.
 			SDL_SubmitGPUCommandBuffer(_commandBuffer);
 			_commandBuffer = nullptr;
 			return;
@@ -1658,7 +1667,6 @@ namespace TEN::Renderer::Native::SDLGPU
 
 		if (swapchainTexture && _backbufferTexture)
 		{
-			// Blit backbuffer to swapchain.
 			SDL_GPUBlitInfo blitInfo = {};
 			blitInfo.source.texture = _backbufferTexture;
 			blitInfo.source.w = _screenWidth;
