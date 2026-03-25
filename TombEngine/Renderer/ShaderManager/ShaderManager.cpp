@@ -21,6 +21,14 @@ namespace TEN::Renderer::Utils
 			Destroy((Shader)i);
 	}
 
+	void ShaderManager::DestroyAll()
+	{
+		for (int i = 0; i < (int)Shader::Count; i++)
+			Destroy((Shader)i);
+
+		_graphicsDevice = nullptr;
+	}
+
 	const IShader* ShaderManager::Get(Shader shader)
 	{
 		return _shaders[(int)shader].get();

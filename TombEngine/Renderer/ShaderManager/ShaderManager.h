@@ -19,6 +19,7 @@ namespace TEN::Renderer::Utils
 		~ShaderManager();
 
 		const IShader* Get(Shader shader);
+		void DestroyAll();
 
 		void Initialize(IGraphicsDevice* graphicsDevice);
 		void LoadShaders(int width, int height, bool recompileAAShaders = false);

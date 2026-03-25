@@ -513,6 +513,11 @@ void EngineClose()
 		GamePauseMutex = nullptr;
 	}
 
+	// Release all GPU resources while SDL is still alive.
+	// g_Renderer is a global whose destructor would otherwise run after
+	// SDL_Quit() has already torn down the Vulkan backend.
+	g_Renderer.Shutdown();
+
 	g_Platform->Shutdown();
 
 	SDL_Quit();

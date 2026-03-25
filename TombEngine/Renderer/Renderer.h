@@ -692,6 +692,11 @@ namespace TEN::Renderer
 		Renderer();
 		~Renderer();
 
+		// Explicitly release all GPU resources and the graphics device.
+		// Must be called before SDL_Quit() since g_Renderer is a global
+		// whose destructor runs after SDL is already torn down.
+		void Shutdown();
+
 		RendererMesh* GetRendererMeshFromTrMesh(RendererObject* obj, MESH* meshPtr, short boneIndex, int isJoints, int isHairs, int* lastVertex, int* lastIndex);
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Create(GraphicsAPI api);

@@ -31,6 +31,11 @@ namespace TEN::Renderer::Native::SDLGPU
 
 	SDLGPUGraphicsDevice::~SDLGPUGraphicsDevice()
 	{
+		// Wait for all in-flight GPU commands to complete before releasing
+		// any resources, otherwise Vulkan may access freed memory.
+		if (_device)
+			SDL_WaitForGPUIdle(_device);
+
 		_pipelineCache.Clear();
 
 		for (auto& [reg, sampler] : _samplers)
@@ -52,11 +57,10 @@ namespace TEN::Renderer::Native::SDLGPU
 		}
 		// _dummySampler is owned by _samplers map, released below.
 
-		if (_backbufferTexture)
-		{
-			SDL_ReleaseGPUTexture(_device, _backbufferTexture);
-			_backbufferTexture = nullptr;
-		}
+		// _backbufferTexture is a non-owning alias into the render target
+		// returned by InitializeSwapChain() — released by the Renderer,
+		// not here.
+		_backbufferTexture = nullptr;
 
 		if (_device)
 		{

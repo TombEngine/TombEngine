@@ -28,7 +28,88 @@ namespace TEN::Renderer
 
 	Renderer::~Renderer()
 	{
+		Shutdown();
+	}
+
+	void Renderer::Shutdown()
+	{
+		if (!_graphicsDevice)
+			return;
+
 		FreeRendererData();
+
+		// Release shaders.
+		_shaders.DestroyAll();
+
+		// Release render targets.
+		_normalsAndMaterialIndexRenderTarget.reset();
+		_depthRenderTarget.reset();
+		_emissiveAndRoughnessRenderTarget.reset();
+		_dumpScreenRenderTarget.reset();
+		_renderTarget.reset();
+		_postProcessRenderTarget[0].reset();
+		_postProcessRenderTarget[1].reset();
+		_glowRenderTarget[0].reset();
+		_glowRenderTarget[1].reset();
+		_tempRoomAmbientRenderTarget1.reset();
+		_tempRoomAmbientRenderTarget2.reset();
+		_tempRoomAmbientRenderTarget3.reset();
+		_tempRoomAmbientRenderTarget4.reset();
+		_shadowMap.reset();
+		_legacyReflectionsRenderTarget.reset();
+		_SSAORenderTarget.reset();
+		_SSAOBlurredRenderTarget.reset();
+		_SMAASceneRenderTarget.reset();
+		_SMAASceneSRGBRenderTarget.reset();
+		_SMAADepthRenderTarget.reset();
+		_SMAAEdgesRenderTarget.reset();
+		_SMAABlendRenderTarget.reset();
+		_skyboxRenderTarget.reset();
+		_backBuffer.reset();
+
+		// Release constant buffers.
+		_cbCameraMatrices.reset();
+		_cbItem.reset();
+		_cbRoom.reset();
+		_cbAnimated.reset();
+		_cbShadowMap.reset();
+		_cbHUD.reset();
+		_cbHUDBar.reset();
+		_cbPostProcessBuffer.reset();
+		_cbInstancedSpriteBuffer.reset();
+		_cbBlending.reset();
+		_cbInstancedStaticMeshBuffer.reset();
+		_cbSMAABuffer.reset();
+		_cbSky.reset();
+		_cbMaterial.reset();
+		_cbLightBuffer.reset();
+		_cbLightBufferSky.reset();
+
+		// Release textures and buffers.
+		_logo.reset();
+		_skyTexture.reset();
+		_whiteTexture.reset();
+		_loadingBarBorder.reset();
+		_loadingBarInner.reset();
+		_loadingScreenTexture.reset();
+		_SMAAAreaTexture.reset();
+		_SMAASearchTexture.reset();
+		_SSAONoiseTexture.reset();
+		_skyVertexBuffer.reset();
+		_skyIndexBuffer.reset();
+		_quadVertexBuffer.reset();
+		_spriteVertexBuffer.reset();
+		_sortedPolygonsVertexBuffer.reset();
+		_sortedPolygonsIndexBuffer.reset();
+		_fullscreenTriangleVertexBuffer.reset();
+		_gameFont.reset();
+		_vertexInputLayout.reset();
+		_fullScreenVertexInputLayout.reset();
+		_primitiveBatch.reset();
+		_spriteBatch.reset();
+
+		// Finally, release the graphics device (calls WaitForGPUIdle).
+		_graphicsDevice.reset();
 	}
 
 	void Renderer::FreeRendererData()
