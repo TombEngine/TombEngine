@@ -714,10 +714,6 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 	{
 		player.Control.HandStatus = HandStatus::Busy;
 	}
-	else if (player.Control.HandStatus == HandStatus::Busy)
-	{
-		player.Control.HandStatus = HandStatus::Free;
-	}
 
 	player.Control.Look.Mode = LookMode::Horizontal;
 	coll->Setup.EnableObjectPush = true;
