@@ -2,11 +2,15 @@
 #include "Objects/Generic/Traps/CrumblingPlatform.h"
 
 #include "Game/collision/collide_item.h"
+#include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
+#include "Game/effects/Bubble.h"
+#include "Game/effects/Splash.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/setup.h"
+#include "Math/Random.h"
 #include "Objects/Generic/Object/BridgeObject.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
@@ -14,7 +18,10 @@
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Generic;
+using namespace TEN::Math::Random;
 using namespace TEN::Utils;
 
 // NOTES:
@@ -181,7 +188,29 @@ namespace TEN::Entities::Traps
 			// Update room number.
 			int probedRoomNumber = pointColl.GetRoomNumber();
 			if (item.RoomNumber != probedRoomNumber)
+			{
+				// Spawn splash when entering water.
+				if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, probedRoomNumber) &&
+					!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+				{
+					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
+
+					SplashSetup.Position = Vector3(item.Pose.Position.x, waterHeight - 1, item.Pose.Position.z);
+					SplashSetup.SplashPower = fallVel * 2.0f;
+					SplashSetup.InnerRadius = 256;
+					SetupSplash(&SplashSetup, probedRoomNumber);
+				}
+
 				ItemNewRoom(itemNumber, probedRoomNumber);
+			}
+
+			// Spawn bubbles every frame while sinking underwater.
+			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+			{
+				for (int i = 0; i < 4; i++)
+					SpawnBubble(GeneratePointInBox(box.ToBoundingOrientedBox(item.Pose)), item.RoomNumber, 
+					GenerateInt(64, 256), GenerateInt(BLOCK(0.15f), BLOCK(1.0f)));
+			}
 		}
 
 		break;
