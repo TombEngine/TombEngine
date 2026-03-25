@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 * Fixed `Timer` class not working correctly with single frame intervals.
+* Added `Effects.EmitSplash` for gemerating splashes.
 
 ## [Version 1.11]
 
