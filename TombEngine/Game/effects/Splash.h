@@ -2,7 +2,7 @@
 
 namespace TEN::Effects::Splash
 {
-	constexpr auto SPLASH_EFFECT_COUNT_MAX = 24;
+	constexpr auto SPLASH_EFFECT_COUNT_MAX = 64;
 
 	// TODO: Refactor everything here to use new effect handling patterns.
 
