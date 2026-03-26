@@ -204,6 +204,7 @@ namespace TEN::Renderer
 		ConstantBuffer<ConstantBuffers::CVolumetricCloudBuffer> _cbVolumetricCloud;
 		RenderTarget2D _cloudRenderTarget;
 		RenderTarget2D _cloudOcclusionTarget;
+		RenderTarget2D _scenePreCloudBackup;          // Full-res copy of scene before cloud composite
 
 		// Atmospheric sky dome
 		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;

@@ -140,6 +140,13 @@ namespace TEN::Sky
 		float AltoHorizonWidth     = 0.0f; // [0,1]   0=wide (to near horizon), 1=zenith-only cap
 		float AltoBleedDepth       = 0.0f; // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 
+		// Compositor hybrid-blend thresholds (only meaningful for AltocumulusMid)
+		// Luminance above BlendThresholdHigh → screen blend (bright clouds, no halos).
+		// Luminance below BlendThresholdLow  → screen blend (dark cloud edges, no halos).
+		// Luminance in-between              → alpha blend  (dense/mid clouds absorb properly).
+		float BlendThresholdHigh = 0.85f;  // [0,1] bright cutoff (left  arrow on gradient bar)
+		float BlendThresholdLow  = 0.106f; // [0,1] dark  cutoff (right arrow on gradient bar)
+
 		// Lightning parameters (only for AltocumulusMid — internal flash + bolt glow)
 		bool  LightningEnabled      = false;
 		float LightningStrikeFreq   = 0.1f;  // [0,1]      probability of visible bolt per cycle

@@ -21,9 +21,10 @@
 // Samplers (reuse existing engine samplers)
 // ---------------------------------------------------------------------------
 
-Texture2D SceneColorTexture : register(t0);  // Background sky color (for composite)
-Texture2D CloudTexture	  : register(t1);  // Half-res cloud RGBA (for upscale)
-Texture2D DepthTexture	  : register(t2);  // Scene depth (for composite masking)
+Texture2D SceneColorTexture : register(t0);  // Half-res cloud RGBA (from cloud pass)
+Texture2D CloudTexture      : register(t1);  // (unused in composite)
+Texture2D DepthTexture      : register(t2);  // Scene depth (for composite masking)
+Texture2D SceneBackgroundTex : register(t3); // Full-res scene before cloud composite
 SamplerState PointSamp	  : register(s1);  // Point sampler
 SamplerState LinearSamp	 : register(s2);  // Linear sampler
 
@@ -2139,11 +2140,12 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float3 outRGBPremul = accumRGBPremul / accumWeightRGB;
 
     // Thin-alpha suppression: soft-threshold stochastic speckle noise at cloud
-    // silhouettes. Applied to premultiplied RGB so the screen-blend output
-    // correctly fades to zero (no background effect) when alpha is negligible.
+    // silhouettes. Applied to premultiplied RGB so stochastic single-pixel hits
+    // don't create bright speckles at cloud edges.
     float tinyAlphaThresh    = lerp(0.035f, 0.02f, saturate((Absorption - 0.2f) * 2.5f));
-    float alphaSuppress       = saturate(outAlpha / tinyAlphaThresh);
-    float3 outRGBPremulFinal  = outRGBPremul * alphaSuppress;
+    float alphaSuppress      = saturate(outAlpha / tinyAlphaThresh);
+    float3 outRGBPremulFinal = outRGBPremul * alphaSuppress;
+    float  finalAlpha        = outAlpha * alphaSuppress;
 
     // HorizonAtmosphericFade is applied here in the composite pass, NOT during
     // raymarching.  The cloud RT stores un-faded alpha with valid RGB so the
@@ -2163,14 +2165,65 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     else
         opacityScale = CloudIsBleedPass * CloudCompositeScale;
 
-    // Screen blending: output premultiplied cloud contribution.
-    // Hardware blend state: SrcBlend=ONE, DestBlend=INV_SRC_COLOR, Op=ADD.
-    //   finalPixel = cloudOut + sceneDst * (1 - cloudOut)
-    //             = 1 - (1 - cloudOut) * (1 - sceneDst)
-    // Black (zero) cloud pixels have zero output — no darkening of the background.
-    // Dark silhouette halos are impossible with this formula.
-    // Alpha channel is unused by the screen blend state.
-    return float4(saturate(outRGBPremulFinal * opacityScale), 0.0f);
+    float3 cloudContrib = saturate(outRGBPremulFinal * opacityScale);
+    float  cloudAlpha   = saturate(finalAlpha * opacityScale);
+
+    // Recover straight-alpha cloud color for thick-cloud alpha blending.
+    float3 cloudStraight = (cloudAlpha > 0.001f)
+                         ? (cloudContrib / cloudAlpha)
+                         : float3(0.0f, 0.0f, 0.0f);
+
+    // Read the scene background (sky) from the pre-cloud backup copy.
+    float3 bg = SceneBackgroundTex.Sample(LinearSamp, uv).rgb;
+
+    // === Hybrid screen / alpha composite ===
+    //
+    // Screen blend:  result = 1 - (1 - bg) * (1 - cloud)
+    //   → Can only brighten. Black cloud = no effect. Perfect for thin bright clouds.
+    //   → But dark clouds become transparent (bad for thunderstorms / rain).
+    //
+    // Alpha blend:   result = lerp(bg, cloudColor, alpha)
+    //   → Can darken. Dark clouds properly absorb light.
+    //   → But thin bright edges get dark halos.
+    //
+    // Solution: blend between both modes based on cloud brightness.
+    //   Bright areas → screen blend (no halos).
+    //   Dark areas   → alpha blend (proper absorption).
+    //
+    // The crossover threshold is ~27/255 ≈ 0.106 in linear space.
+    // A smoothstep transition avoids any visible seam.
+
+    // Screen blend result.
+    float3 screenResult = 1.0f - (1.0f - bg) * (1.0f - cloudContrib);
+
+    // Alpha blend result.
+    float3 alphaResult = lerp(bg, cloudStraight, cloudAlpha);
+
+    // Brightness-based blend factor: measured on straight-alpha cloud color,
+    // NOT on the premultiplied contribution. The premultiplied value is small
+    // for thin bright edges (bright * low alpha ≈ small), which would wrongly
+    // classify them as dark and apply alpha blend → dark halos. cloudStraight
+    // gives the intrinsic color brightness regardless of cloud density.
+    float cloudLuma = dot(cloudStraight, float3(0.299f, 0.587f, 0.114f));
+
+    // Dual-zone screen blend: screen blend at both the bright AND dark ends,
+    // alpha blend only in the mid-luminance range.
+    //   luma > BlendThresholdHigh  →  bright clouds / thin edges  →  screen blend (no halos)
+    //   luma < BlendThresholdLow   →  very dark cloud edges        →  screen blend (no dark halos)
+    //   BlendThresholdLow ≤ luma ≤ BlendThresholdHigh  →  alpha blend (dense clouds absorb properly)
+    const float transW = 0.025f;
+    float brightScreen = smoothstep(BlendThresholdHigh - transW, BlendThresholdHigh + transW, cloudLuma);
+    float darkScreen   = 1.0f - smoothstep(BlendThresholdLow - transW, BlendThresholdLow + transW, cloudLuma);
+    float screenFactor = max(brightScreen, darkScreen);
+
+    // Final hybrid composite.
+    float3 finalColor = lerp(alphaResult, screenResult, screenFactor);
+
+    // Where there is no cloud at all, preserve the background exactly.
+    // cloudAlpha acts as the master presence signal.
+    finalColor = lerp(bg, finalColor, saturate(cloudAlpha * 10.0f));
+
+    return float4(finalColor, 1.0f);
 }
 
 // ===========================================================================

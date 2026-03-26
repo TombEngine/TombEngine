@@ -205,13 +205,16 @@ namespace TEN::Renderer
 
 		// --- Pass 2: Composite over scene ---
 		_context->RSSetViewports(1, &renderView.Viewport);
+
+		// Copy scene to backup RT for hybrid in-shader blending.
+		_context->CopyResource(_scenePreCloudBackup.Texture.Get(),
+			_renderTarget.Texture.Get());
+
 		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
 			_renderTarget.DepthStencilView.Get());
 
-		// Screen-blend clouds over the sky: Out = src + dst*(1-src).
-		// Shader outputs premultiplied contribution (SrcBlend=ONE, DstBlend=INV_SRC_COLOR).
-		// Zero-luminance cloud pixels output exactly zero — no dark halos possible.
-		SetBlendMode(BlendMode::Screen);
+		// Opaque blend — the shader computes the final composited color itself.
+		SetBlendMode(BlendMode::Opaque);
 
 		// Bind atmospheric sky CB so the composite shader can fade thin cloud
 		// edges toward the sky tint instead of leaving dark low-alpha rims.
@@ -224,6 +227,10 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &renderTarget,
 			SamplerStateRegister::LinearClamp);
 
+		// Bind scene backup as texture (t3 = ShadowMap slot, safe during cloud pass).
+		BindRenderTargetAsTexture(TextureRegister::ShadowMap, &_scenePreCloudBackup,
+			SamplerStateRegister::LinearClamp);
+
 		_shaders.Bind(Shader::VolumetricCloudComposite);
 		DrawTriangles(3, 0);
 
@@ -231,8 +238,8 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 2, nullSRVs);
+		ID3D11ShaderResourceView* nullSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 4, nullSRVs);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);

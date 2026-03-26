@@ -20,6 +20,7 @@
 #include "Game/Sky/SkyCloudDebug.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -362,6 +363,164 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// Dual-zone blend threshold widget.
+	//
+	// Renders a white-to-black gradient bar with two downward-pointing
+	// triangle markers that the user can drag:
+	//   Left  marker = BlendThresholdHigh (bright cutoff, near white)
+	//   Right marker = BlendThresholdLow  (dark  cutoff, near black)
+	//
+	// The region between the two markers is highlighted in blue —
+	// that's the alpha-blend zone.  Outside the markers = screen blend.
+	//
+	// Coordinate mapping: bar-x = (1 - luminance) * barWidth
+	//   So luma=1 (white) is at the LEFT, luma=0 (black) is at the RIGHT.
+	// ====================================================================
+
+	static bool DrawBlendThresholdWidget(float& threshHigh, float& threshLow, const char* id)
+	{
+		bool changed = false;
+
+		const float barH   = 18.0f;
+		const float mkH    = 11.0f;       // arrow triangle height
+		const float mkHW   = 8.0f;        // arrow hit half-width
+		const float mkHitH = mkH + 6.0f;  // arrow button height (extra tolerance)
+		const float valH   = 28.0f;       // room for value text
+		const float totalH = barH + 1.0f + mkHitH + valH;
+
+		ImDrawList* dl     = ImGui::GetWindowDrawList();
+		ImVec2      origin = ImGui::GetCursorScreenPos();
+		float       barW   = ImGui::GetContentRegionAvail().x - 10.0f;
+		if (barW < 60.0f) barW = 60.0f;
+
+		ImVec2 barMin = origin;
+		ImVec2 barMax = ImVec2(origin.x + barW, origin.y + barH);
+		float  mkY    = origin.y + barH + 1.0f;
+
+		// pixel <-> luma helpers
+		auto xOf    = [&](float luma) -> float { return origin.x + (1.0f - luma) * barW; };
+		auto lumaOf = [&](float px)   -> float { return 1.0f - std::clamp((px - origin.x) / barW, 0.0f, 1.0f); };
+
+		float xHigh = xOf(threshHigh);
+		float xLow  = xOf(threshLow);
+
+		// ---- gradient bar (white left -> black right) ----
+		dl->AddRectFilledMultiColor(barMin, barMax,
+			IM_COL32(255, 255, 255, 255), IM_COL32(0, 0, 0, 255),
+			IM_COL32(0, 0, 0, 255),       IM_COL32(255, 255, 255, 255));
+		if (xHigh < xLow)
+			dl->AddRectFilled(ImVec2(xHigh, origin.y), ImVec2(xLow, origin.y + barH),
+				IM_COL32(80, 140, 255, 55));
+		dl->AddRect(barMin, barMax, IM_COL32(160, 160, 160, 220));
+
+		// ---- bar button: mouse-wheel + tooltip (bar area only) ----
+		ImGui::SetCursorScreenPos(origin);
+		char barId[128]; snprintf(barId, sizeof(barId), "##blendbar_%s", id);
+		ImGui::InvisibleButton(barId, ImVec2(barW, barH));
+		bool barHov = ImGui::IsItemHovered();
+		if (barHov && ImGui::GetIO().MouseWheel != 0.0f)
+		{
+			float step = ImGui::GetIO().MouseWheel * 0.01f;
+			float mx   = ImGui::GetIO().MousePos.x;
+			if (std::abs(mx - xHigh) <= std::abs(mx - xLow))
+				threshHigh = std::clamp(threshHigh + step, threshLow + 0.02f, 1.0f);
+			else
+				threshLow  = std::clamp(threshLow  + step, 0.0f, threshHigh - 0.02f);
+			changed = true;
+		}
+		if (barHov)
+			ImGui::SetTooltip(
+				"Drag red arrows or use mouse-wheel to adjust:\n"
+				"  Left  arrow (Hi=%.3f): bright cutoff - screen blend above this\n"
+				"  Right arrow (Lo=%.3f): dark  cutoff  - screen blend below this\n"
+				"  Blue zone between     = alpha blend (dense clouds absorb properly)",
+				threshHigh, threshLow);
+
+		// ---- high (left) arrow button ----
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::SetCursorScreenPos(ImVec2(xHigh - mkHW, mkY));
+		char highId[128]; snprintf(highId, sizeof(highId), "##blendhigh_%s", id);
+		ImGui::InvisibleButton(highId, ImVec2(mkHW * 2.0f, mkHitH));
+		bool highActive  = ImGui::IsItemActive();
+		bool highHovered = ImGui::IsItemHovered();
+		if (highActive)
+		{
+			threshHigh = std::clamp(lumaOf(ImGui::GetIO().MousePos.x), threshLow + 0.02f, 1.0f);
+			changed = true;
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		}
+		else if (highHovered)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+		// ---- low (right) arrow button ----
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::SetCursorScreenPos(ImVec2(xLow - mkHW, mkY));
+		char lowId[128]; snprintf(lowId, sizeof(lowId), "##blendlow_%s", id);
+		ImGui::InvisibleButton(lowId, ImVec2(mkHW * 2.0f, mkHitH));
+		bool lowActive  = ImGui::IsItemActive();
+		bool lowHovered = ImGui::IsItemHovered();
+		if (lowActive)
+		{
+			threshLow = std::clamp(lumaOf(ImGui::GetIO().MousePos.x), 0.0f, threshHigh - 0.02f);
+			changed = true;
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		}
+		else if (lowHovered)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+		// ---- recompute positions after possible drag ----
+		xHigh = xOf(threshHigh);
+		xLow  = xOf(threshLow);
+
+		// ---- marker lines on bar ----
+		dl->AddLine(ImVec2(xHigh, origin.y), ImVec2(xHigh, origin.y + barH), IM_COL32(255, 80, 80, 200), 1.5f);
+		dl->AddLine(ImVec2(xLow,  origin.y), ImVec2(xLow,  origin.y + barH), IM_COL32(255, 80, 80, 200), 1.5f);
+
+		// ---- arrow triangles ----
+		auto DrawArrow = [&](float cx, bool active, bool hovered) {
+			ImU32 fill = active  ? IM_COL32(255, 210, 60,  255)
+			           : hovered ? IM_COL32(255, 150, 80,  255)
+			           :           IM_COL32(220,  60, 60,  255);
+			ImU32 edge = IM_COL32(160, 30, 30, 255);
+			dl->AddTriangleFilled(
+				ImVec2(cx - mkHW + 1.0f, mkY),
+				ImVec2(cx + mkHW - 1.0f, mkY),
+				ImVec2(cx, mkY + mkH), fill);
+			dl->AddTriangle(
+				ImVec2(cx - mkHW + 1.0f, mkY),
+				ImVec2(cx + mkHW - 1.0f, mkY),
+				ImVec2(cx, mkY + mkH), edge, 1.2f);
+		};
+		DrawArrow(xHigh, highActive, highHovered);
+		DrawArrow(xLow,  lowActive,  lowHovered);
+
+		// ---- labels ----
+		float lblY = mkY + mkH + 2.0f;
+		const ImU32 scrU = ImGui::ColorConvertFloat4ToU32(ImVec4(0.55f, 0.90f, 0.55f, 1.0f));
+		const ImU32 alpU = ImGui::ColorConvertFloat4ToU32(ImVec4(0.55f, 0.75f, 1.00f, 1.0f));
+		dl->AddText(ImVec2(origin.x + 2.0f, lblY),         scrU, "screen");
+		dl->AddText(ImVec2(origin.x + barW - 42.0f, lblY), scrU, "screen");
+		if (xHigh < xLow)
+		{
+			float midX = (xHigh + xLow) * 0.5f - 14.0f;
+			dl->AddText(ImVec2(midX, lblY), alpU, "alpha");
+		}
+
+		// ---- value display ----
+		char valBuf[64];
+		snprintf(valBuf, sizeof(valBuf), "Hi: %.3f    Lo: %.3f", threshHigh, threshLow);
+		ImVec2 ts = ImGui::CalcTextSize(valBuf);
+		dl->AddText(ImVec2(origin.x + barW * 0.5f - ts.x * 0.5f, lblY + 14.0f),
+			IM_COL32(190, 190, 190, 255), valBuf);
+
+		// ---- advance cursor past entire widget ----
+		ImGui::SetCursorScreenPos(ImVec2(origin.x, origin.y + totalH));
+		ImGui::Dummy(ImVec2(barW, 0.0f));
+
+		return changed;
+	}
+
+	// ====================================================================
 	// Draw a cloud layer section with all parameter sliders.
 	// ====================================================================
 
@@ -455,6 +614,17 @@ namespace TEN::Sky
 			}
 			if (ImGui::Checkbox("Lightning Enabled", &snap.LightningEnabled))
 				changed = true;
+
+			// ----------------------------------------------------------------
+			// Composite Blend — dual-zone gradient widget with draggable arrows
+			// ----------------------------------------------------------------
+			ImGui::Separator();
+			ImGui::TextDisabled("Composite Blend");
+			ImGui::TextDisabled("  Drag arrows to set blend zones (mouse-wheel also works):");
+			ImGui::TextDisabled("  Screen blend: bright (left) + very dark (right)  |  Alpha blend: middle.");
+			char wgtId[64];
+			snprintf(wgtId, sizeof(wgtId), "blend_%s", idPrefix);
+			changed |= DrawBlendThresholdWidget(snap.BlendThresholdHigh, snap.BlendThresholdLow, wgtId);
 		}
 
 		// Reset all button.

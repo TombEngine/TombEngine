@@ -128,4 +128,10 @@ cbuffer CBVolumetricCloud : register(b9)
     float CloudSunWarmthInfluence;      // [0,1]   sun color warmth blend.
     float CloudIsBleedPass;             // 0 = normal composite, 1 = bleed-through-mountains pass (un-fades horizon).
     float DriftOutProgress;             // [0,1] wind-directional dissolution progress (0 = normal, 1 = fully dissolved).
+    //--
+    // Row 23 — Compositor hybrid-blend thresholds
+    float BlendThresholdHigh;           // [0,1] luminance above which screen blend starts (bright side).
+    float BlendThresholdLow;            // [0,1] luminance below which screen blend starts (dark side).
+    float CBuf23Pad1;
+    float CBuf23Pad2;
 };

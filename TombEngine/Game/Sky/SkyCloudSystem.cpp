@@ -119,6 +119,10 @@ namespace TEN::Sky
 		s.LightningBoltLengthScale    = LightningBoltLengthScale;
 		s.LightningBoltThicknessScale = LightningBoltThicknessScale;
 
+		// Blend thresholds
+		s.BlendThresholdHigh = BlendThresholdHigh;
+		s.BlendThresholdLow  = BlendThresholdLow;
+
 		return s;
 	}
 
@@ -176,6 +180,10 @@ namespace TEN::Sky
 		snap.LightningAmbientContrib = src.LightningAmbientContrib;
 		snap.LightningBoltLengthScale    = src.LightningBoltLengthScale;
 		snap.LightningBoltThicknessScale = src.LightningBoltThicknessScale;
+
+		// Blend thresholds
+		snap.BlendThresholdHigh = src.BlendThresholdHigh;
+		snap.BlendThresholdLow  = src.BlendThresholdLow;
 
 		return snap;
 	}
@@ -276,6 +284,10 @@ namespace TEN::Sky
 		result.LightningAmbientContrib = LerpFloat(a.LightningAmbientContrib, b.LightningAmbientContrib, t);
 		result.LightningBoltLengthScale    = LerpFloat(a.LightningBoltLengthScale,    b.LightningBoltLengthScale,    t);
 		result.LightningBoltThicknessScale = LerpFloat(a.LightningBoltThicknessScale, b.LightningBoltThicknessScale, t);
+
+		// Blend thresholds
+		result.BlendThresholdHigh = LerpFloat(a.BlendThresholdHigh, b.BlendThresholdHigh, t);
+		result.BlendThresholdLow  = LerpFloat(a.BlendThresholdLow,  b.BlendThresholdLow,  t);
 
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;

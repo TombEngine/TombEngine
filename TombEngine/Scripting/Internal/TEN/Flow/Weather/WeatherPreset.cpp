@@ -81,6 +81,10 @@ namespace TEN::Scripting
 		snap.LightningFlashIntensity = std::clamp(tf("lightningFlashIntensity", 4.0  ), 0.5f, 15.0f);
 		snap.LightningAmbientContrib = std::clamp(tf("lightningAmbientContrib", 0.15 ), 0.0f,  1.0f);
 
+		// Composite blend thresholds (AltocumulusMid only, optional).
+		snap.BlendThresholdHigh = std::clamp(tf("blendThresholdHigh", 0.85), 0.0f, 1.0f);
+		snap.BlendThresholdLow  = std::clamp(tf("blendThresholdLow",  0.106), 0.0f, 1.0f);
+
 		// Quality string -> enum.
 		std::string qualStr = table.get_or("quality", std::string("Medium"));
 		if (qualStr == "Low")
