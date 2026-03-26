@@ -667,6 +667,26 @@ namespace TEN::Renderer
 			}
 
 			color = (byte)Lerp(prevColor, color, GetInterpolationFactor());
+			float interpolationFactor = GetInterpolationFactor();
+			auto position = Vector3::Lerp(splash.PrevPosition, splash.Position, interpolationFactor);
+			float height = Lerp(splash.PrevHeight, splash.height, interpolationFactor);
+
+			if (splash.isRipple)
+			{
+				AddSpriteBillboardConstrainedLookAt(
+					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_RIPPLES],
+					position,
+					Vector4(color / 255.0f, color / 255.0f, color / 255.0f, 1.0f),
+					0.0f,
+					1.0f,
+					Vector2(Lerp(splash.PrevOuterRadius, splash.OuterRadius, interpolationFactor) * 2.0f),
+					BlendMode::Additive,
+					Vector3::Down,
+					true,
+					view);
+
+				continue;
+			}
 
 			float xInner;
 			float zInner;

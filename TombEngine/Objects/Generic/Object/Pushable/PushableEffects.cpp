@@ -14,6 +14,13 @@ using namespace TEN::Effects::Splash;
 
 namespace TEN::Entities::Generic
 {
+	static float GetSplashFootprintRadius(const GameBoundingBox& bounds)
+	{
+		float halfWidth = bounds.GetWidth() * 0.5f;
+		float halfDepth = bounds.GetDepth() * 0.5f;
+		return std::sqrt((halfWidth * halfWidth) + (halfDepth * halfDepth));
+	}
+
 	void HandlePushableRippleEffect(ItemInfo& pushableItem)
 	{
 		constexpr auto FRAMES_BETWEEN_RIPPLES		 = 8;
@@ -40,10 +47,11 @@ namespace TEN::Entities::Generic
 	void SpawnPushableSplash(ItemInfo& pushableItem)
 	{
 		auto& pushable = GetPushableInfo(pushableItem);
+		auto bounds = GameBoundingBox(&pushableItem);
 
 		SplashSetup.Position = Vector3(pushableItem.Pose.Position.x, pushable.WaterSurfaceHeight - 1, pushableItem.Pose.Position.z);
 		SplashSetup.SplashPower = pushableItem.Animation.Velocity.y * 2;
-		SplashSetup.InnerRadius = 250;
+		SplashSetup.InnerRadius = std::max(250.0f, GetSplashFootprintRadius(bounds));
 
 		SetupSplash(&SplashSetup, pushableItem.RoomNumber);
 	}

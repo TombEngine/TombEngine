@@ -27,7 +27,7 @@ namespace TEN::Effects::Drip
 
 	std::vector<Drip> Drips = {};
 
-	void SpawnDrip(const Vector3& pos, int roomNumber, const Vector3& velocity, float lifeInSec, float gravity)
+	void SpawnDrip(const Vector3& pos, int roomNumber, const Vector3& velocity, float lifeInSec, float gravity, float sizeScale)
 	{
 		constexpr auto WIDTH = 4.0f;
 
@@ -36,7 +36,7 @@ namespace TEN::Effects::Drip
 		drip.Position = pos;
 		drip.RoomNumber = roomNumber;
 		drip.Velocity = velocity;
-		drip.Size = Vector2(WIDTH, 0.0f);
+		drip.Size = Vector2(WIDTH * fmax(sizeScale, 1.0f), 0.0f);
 		drip.Color = DRIP_COLOR_WHITE;
 		drip.Life =
 		drip.LifeMax = std::round(lifeInSec * FPS);
@@ -44,7 +44,7 @@ namespace TEN::Effects::Drip
 		drip.StoreInterpolationData();
 	}
 
-	void SpawnSplashDrips(const Vector3& pos, int roomNumber, unsigned int count, bool isSmallSplash)
+	void SpawnSplashDrips(const Vector3& pos, int roomNumber, unsigned int count, bool isSmallSplash, float splashScale)
 	{
 		constexpr auto LIFE_MAX					  = 4.0f;
 		constexpr auto VELOCITY_BASE			  = 16.0f;
@@ -55,19 +55,29 @@ namespace TEN::Effects::Drip
 		constexpr auto SPAWN_RADIUS_LARGE		  = BLOCK(1 / 8.0f);
 		constexpr auto SPAWN_RADIUS_SMALL		  = BLOCK(1 / 64.0f);
 
+		auto scaledLifeMax = LIFE_MAX * splashScale;
+		auto scaledVelocityBase = VELOCITY_BASE * splashScale;
+		auto scaledSpawnRadius = (isSmallSplash ? SPAWN_RADIUS_SMALL : SPAWN_RADIUS_LARGE) * splashScale;
+		auto scaledVerticalVelocityHighMin = VERTICAL_VELOCITY_HIGH_MIN * splashScale;
+		auto scaledVerticalVelocityHighMax = VERTICAL_VELOCITY_HIGH_MAX * splashScale;
+		auto scaledVerticalVelocityLowMin = VERTICAL_VELOCITY_LOW_MIN * splashScale;
+		auto scaledVerticalVelocityLowMax = VERTICAL_VELOCITY_LOW_MAX * splashScale;
+		auto scaledSpriteSize = fmax(1.0f, splashScale * 1.25f);
+
 		// TODO: Can spawn beneath water surface.
-		auto sphere = BoundingSphere(pos, isSmallSplash ? SPAWN_RADIUS_SMALL : SPAWN_RADIUS_LARGE);
+		auto sphere = BoundingSphere(pos, scaledSpawnRadius);
 
 		for (int i = 0; i < count; i++)
 		{
 			auto dripPos = Random::GeneratePointInSphere(sphere);
 			auto direction = dripPos - pos;
 			direction.Normalize();
+			float spriteScale = scaledSpriteSize * Random::GenerateFloat(0.85f, 1.15f);
 
 			float verticalVel = isSmallSplash ?
-				Random::GenerateFloat(VERTICAL_VELOCITY_LOW_MIN, VERTICAL_VELOCITY_LOW_MAX) :
-				Random::GenerateFloat(VERTICAL_VELOCITY_HIGH_MIN, VERTICAL_VELOCITY_HIGH_MAX);
-			auto vel = (direction * VELOCITY_BASE) + Vector3(0.0f, -verticalVel, 0.0f);
+				Random::GenerateFloat(scaledVerticalVelocityLowMin, scaledVerticalVelocityLowMax) :
+				Random::GenerateFloat(scaledVerticalVelocityHighMin, scaledVerticalVelocityHighMax);
+			auto vel = (direction * scaledVelocityBase) + Vector3(0.0f, -verticalVel, 0.0f);
 
 			float systemGravity = g_GameFlow->GetSettings()->Physics.Gravity;
 
@@ -75,7 +85,7 @@ namespace TEN::Effects::Drip
 				Random::GenerateFloat(systemGravity / 3, systemGravity / 2) :
 				Random::GenerateFloat(systemGravity / 2, systemGravity);
 
-			SpawnDrip(dripPos, roomNumber, vel, LIFE_MAX, gravity);
+			SpawnDrip(dripPos, roomNumber, vel, scaledLifeMax, gravity, spriteScale);
 		}
 	}
 
@@ -97,6 +107,7 @@ namespace TEN::Effects::Drip
 		constexpr auto RIPPLE_SIZE_GROUND_MAX = 16.0f;
 		constexpr auto RIPPLE_SIZE_GROUND_MIN = 8.0f;
 		constexpr auto RIPPLE_HEIGHT_OFFSET	  = 4;
+		constexpr auto WIND_INFLUENCE_SCALE   = 0.1f;
 
 		if (Drips.empty())
 			return;
@@ -111,7 +122,7 @@ namespace TEN::Effects::Drip
 			// Update velocity.
 			drip.Velocity.y += drip.Gravity;
 			if (TestEnvironment(ENV_FLAG_WIND, drip.RoomNumber))
-				drip.Velocity += Weather.Wind();
+				drip.Velocity += Weather.Wind() * WIND_INFLUENCE_SCALE;
 
 			int prevRoomNumber = drip.RoomNumber;
 			auto pointColl = GetPointCollision(drip.Position, drip.RoomNumber);
