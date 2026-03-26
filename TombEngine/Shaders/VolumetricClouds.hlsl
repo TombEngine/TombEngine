@@ -1470,15 +1470,12 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // extinction in their interior samples) and doesn't cause a
                     // warm tint (the warm lerp only applies after color is finalized).
                     float sampleOptDepth = density * effAbsorption * stepSize;
-                    float heightBlend = heightFrac;
+                    float thinEdge = 1.0f - saturate(sampleOptDepth * 12.0f);
+                    float heightBlend = saturate(heightFrac + thinEdge * 1.0f);
                     float3 cloudColor = lerp(AltoCloudColorDark, AltoCloudColor,
                         heightBlend);
-                    // Only the optically thinnest wisps should go fully white.
-                    // Keep the transition narrow so thicker puffs retain their
-                    // dark underside shading instead of flattening out.
-                    float thinWispWhite = 1.0f - smoothstep(0.015f, 0.05f, sampleOptDepth);
-                    cloudColor = lerp(cloudColor, AltoCloudColor, thinWispWhite);
                     float  heightIllum = exp(heightFrac) / 1.95f;
+                    heightIllum = lerp(heightIllum, 1.0f, thinEdge * 0.5f);
 
                     // Sun-elevation modulation for Altocumulus:
                     float altoSunFade = saturate(CloudSunElevation * 6.0f + 0.5f);
@@ -2141,13 +2138,12 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float outAlpha	  = accumAlpha / accumWeightA;
     float3 outRGBPremul = accumRGBPremul / accumWeightRGB;
 
-    // Suppress isolated tiny-alpha speckles from stochastic edge sampling.
-    // At very low absorption we use a slightly higher threshold to remove the
-    // remaining pepper pattern in cloud interiors/silhouettes.
-    float tinyAlphaThresh = lerp(0.035f, 0.02f, saturate((Absorption - 0.2f) * 2.5f));
-    outAlpha *= saturate(outAlpha / tinyAlphaThresh);
-
-    float3 outRGB	   = (outAlpha > 0.0001f) ? (outRGBPremul / outAlpha) : cCenter.rgb;
+    // Thin-alpha suppression: soft-threshold stochastic speckle noise at cloud
+    // silhouettes. Applied to premultiplied RGB so the screen-blend output
+    // correctly fades to zero (no background effect) when alpha is negligible.
+    float tinyAlphaThresh    = lerp(0.035f, 0.02f, saturate((Absorption - 0.2f) * 2.5f));
+    float alphaSuppress       = saturate(outAlpha / tinyAlphaThresh);
+    float3 outRGBPremulFinal  = outRGBPremul * alphaSuppress;
 
     // HorizonAtmosphericFade is applied here in the composite pass, NOT during
     // raymarching.  The cloud RT stores un-faded alpha with valid RGB so the
@@ -2161,18 +2157,20 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   screen-space elevation fade would produce a flat horizontal cut that
     //   ignores the mountain silhouette — exactly what we don't want.
     float3 compRayDir = GetViewRayDir(uv);
-    float finalAlpha = outAlpha;
+    float opacityScale;
     if (CloudIsBleedPass < 0.001f)
-    {
-        // Normal pass: clouds dissolve naturally at the horizon.
-        finalAlpha *= HorizonAtmosphericFade(compRayDir);
-    }
+        opacityScale = HorizonAtmosphericFade(compRayDir) * CloudCompositeScale;
     else
-    {
-        // Bleed pass: raymarcher geometry provides all shaping — no composite fade.
-        finalAlpha *= CloudIsBleedPass;
-    }
-    return float4(outRGB, finalAlpha * CloudCompositeScale);
+        opacityScale = CloudIsBleedPass * CloudCompositeScale;
+
+    // Screen blending: output premultiplied cloud contribution.
+    // Hardware blend state: SrcBlend=ONE, DestBlend=INV_SRC_COLOR, Op=ADD.
+    //   finalPixel = cloudOut + sceneDst * (1 - cloudOut)
+    //             = 1 - (1 - cloudOut) * (1 - sceneDst)
+    // Black (zero) cloud pixels have zero output — no darkening of the background.
+    // Dark silhouette halos are impossible with this formula.
+    // Alpha channel is unused by the screen blend state.
+    return float4(saturate(outRGBPremulFinal * opacityScale), 0.0f);
 }
 
 // ===========================================================================

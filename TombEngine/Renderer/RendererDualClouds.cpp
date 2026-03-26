@@ -182,6 +182,12 @@ namespace TEN::Renderer
 		BindConstantBufferPS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 		BindConstantBufferVS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 
+		if (_atmosphericSkySettings.Enabled)
+		{
+			auto* atmoSkyBuf = _cbAtmosphericSky.get();
+			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
+		}
+
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
@@ -202,7 +208,18 @@ namespace TEN::Renderer
 		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
 			_renderTarget.DepthStencilView.Get());
 
-		SetBlendMode(BlendMode::AlphaBlend);
+		// Screen-blend clouds over the sky: Out = src + dst*(1-src).
+		// Shader outputs premultiplied contribution (SrcBlend=ONE, DstBlend=INV_SRC_COLOR).
+		// Zero-luminance cloud pixels output exactly zero — no dark halos possible.
+		SetBlendMode(BlendMode::Screen);
+
+		// Bind atmospheric sky CB so the composite shader can fade thin cloud
+		// edges toward the sky tint instead of leaving dark low-alpha rims.
+		if (_atmosphericSkySettings.Enabled)
+		{
+			auto* atmoSkyBuf = _cbAtmosphericSky.get();
+			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
+		}
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, &renderTarget,
 			SamplerStateRegister::LinearClamp);
