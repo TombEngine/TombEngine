@@ -5,6 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/floordata.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
 #include "Game/control/los.h"
@@ -44,6 +45,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Hair;
@@ -703,27 +705,18 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 	// Open doors in front by pressing the Draw button.
 	if (IsClicked(In::Draw))
 	{
-		auto origin = item->Pose.Position;
-		auto target = Geometry::TranslatePoint(item->Pose.Position, item->Pose.Orientation, BLOCK(2));
-		auto gameOrigin = GameVector(origin, item->RoomNumber);
-		auto gameTarget = GameVector(target, FindRoomNumber(target, item->RoomNumber, true));
+		auto los = GetItemLosCollision(item->Pose.Position.ToVector3(), item->RoomNumber, item->Pose.Orientation.ToDirection(), BLOCK(2));
 
-		Vector3i vector = {};
-		bool inSight = !LOS(&gameOrigin, &gameTarget);
-		int itemNumber = ObjectOnLOS2(&gameOrigin, &gameTarget, &vector, nullptr);
-
-		if (inSight && itemNumber != NO_LOS_ITEM)
+		if (los.has_value() && los.value().Item)
 		{
-			auto distance = Vector3i::Distance(origin, vector);
-			auto objectName = GetObjectName(g_Level.Items[itemNumber].ObjectNumber);
+			auto objectName = GetObjectName(los.value().Item->ObjectNumber);
 
-			if (distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			if (los.value().Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
 			{
-				g_Level.Items[itemNumber].Flags |= CODE_BITS;
-				Trigger(itemNumber);
+				los.value().Item->Flags |= CODE_BITS;
+				Trigger(los.value().Item->Index);
 			}
 		}
-
 	}
 }
 
