@@ -168,12 +168,20 @@ namespace TEN::Renderer
 			auto clip = Vector4::Transform(
 				Vector4(sunPos.x, sunPos.y, sunPos.z, 1.0f),
 				renderView.Camera.ViewProjection);
-			float absW = std::abs(clip.w);
-			if (absW > 0.0001f)
+			// Only project if the source is in front of the camera (clip.w > 0).
+			// Using abs(clip.w) was wrong: when the sun is behind the camera clip.w is
+			// negative, and abs() inverts the sign, placing the projected UV near the
+			// screen centre instead of the off-screen sentinel.
+			if (clip.w > 0.0001f)
 			{
-				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
-				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
-				rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
+				float ndcX = clip.x / clip.w;
+				float ndcY = clip.y / clip.w;
+				// Cap at ±10 NDC to avoid numeric issues with near-clipped positions.
+				// Off-screen sources are handled gracefully by the shader: sunDiscVis
+				// fades to zero and off-screen march samples are excluded, giving a
+				// smooth natural fade-out instead of an abrupt cutoff.
+				if (std::abs(ndcX) <= 10.0f && std::abs(ndcY) <= 10.0f)
+					rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
 
@@ -185,12 +193,12 @@ namespace TEN::Renderer
 			auto clip = Vector4::Transform(
 				Vector4(virtualPos.x, virtualPos.y, virtualPos.z, 1.0f),
 				renderView.Camera.ViewProjection);
-			float absW = std::abs(clip.w);
-			if (absW > 0.0001f)
+			if (clip.w > 0.0001f)
 			{
-				float ndcX = std::clamp(clip.x / absW, -8.0f, 8.0f);
-				float ndcY = std::clamp(clip.y / absW, -8.0f, 8.0f);
-				rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
+				float ndcX = clip.x / clip.w;
+				float ndcY = clip.y / clip.w;
+				if (std::abs(ndcX) <= 10.0f && std::abs(ndcY) <= 10.0f)
+					rayScreenUV = Vector2(ndcX * 0.5f + 0.5f, ndcY * -0.5f + 0.5f);
 			}
 		}
 

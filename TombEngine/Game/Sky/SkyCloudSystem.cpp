@@ -1388,6 +1388,31 @@ namespace TEN::Sky
 		_layerDwellB = {};
 	}
 
+	void SkyCloudSystem::PauseLayerADwell()
+	{
+		if (_layerDwellA.Target >= 0.0f)
+			_layerDwellA.Paused = true;
+	}
+
+	void SkyCloudSystem::PauseLayerBDwell()
+	{
+		if (_layerDwellB.Target >= 0.0f)
+			_layerDwellB.Paused = true;
+	}
+
+	void SkyCloudSystem::ResumeLayerADwell()
+	{
+		_layerDwellA.Paused = false;
+	}
+
+	void SkyCloudSystem::ResumeLayerBDwell()
+	{
+		_layerDwellB.Paused = false;
+	}
+
+	bool SkyCloudSystem::IsLayerADwellPaused() const { return _layerDwellA.Paused; }
+	bool SkyCloudSystem::IsLayerBDwellPaused() const { return _layerDwellB.Paused; }
+
 	bool SkyCloudSystem::IsLayerATransitioning() const { return _layerTransitionA.Active; }
 	bool SkyCloudSystem::IsLayerBTransitioning() const { return _layerTransitionB.Active; }
 
@@ -1576,6 +1601,8 @@ namespace TEN::Sky
 	void SkyCloudSystem::UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset, bool isLayerA)
 	{
 		if (dwellState.Target < 0.0f)
+			return;
+		if (dwellState.Paused)
 			return;
 
 		dwellState.Elapsed += deltaTime;
@@ -1937,6 +1964,8 @@ namespace TEN::Sky
 		info.LayerADwellTarget        = _layerDwellA.Target;
 		info.LayerBDwellElapsed       = _layerDwellB.Elapsed;
 		info.LayerBDwellTarget        = _layerDwellB.Target;
+		info.LayerADwellPaused        = _layerDwellA.Paused;
+		info.LayerBDwellPaused        = _layerDwellB.Paused;
 		return info;
 	}
 }

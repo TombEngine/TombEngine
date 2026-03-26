@@ -3083,7 +3083,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		if ((!levelPtr->GetHorizonEnabled(0) && !levelPtr->GetHorizonEnabled(1)) || (!anyOutsideRooms && !reflectionPass))
+		if (!anyOutsideRooms && !reflectionPass)
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)

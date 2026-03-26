@@ -680,6 +680,19 @@ namespace TEN::Sky
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerA"))
 					g_SkyCloudSystem.TransitionLayerAToPreset(typeA, layerADur);
+				ImGui::SameLine();
+				{
+					bool hasLayerADwell = (info.LayerADwellTarget >= 0.0f);
+					ImGui::BeginDisabled(!hasLayerADwell);
+					if (ImGui::Button(info.LayerADwellPaused ? "Resume Dwell##layerA" : "Pause Dwell##layerA"))
+					{
+						if (info.LayerADwellPaused)
+							g_SkyCloudSystem.ResumeLayerADwell();
+						else
+							g_SkyCloudSystem.PauseLayerADwell();
+					}
+					ImGui::EndDisabled();
+				}
 				if (g_SkyCloudSystem.IsLayerATransitioning())
 				{
 					ImGui::SameLine();
@@ -712,6 +725,19 @@ namespace TEN::Sky
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerB"))
 					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
+				ImGui::SameLine();
+				{
+					bool hasLayerBDwell = (info.LayerBDwellTarget >= 0.0f);
+					ImGui::BeginDisabled(!hasLayerBDwell);
+					if (ImGui::Button(info.LayerBDwellPaused ? "Resume Dwell##layerB" : "Pause Dwell##layerB"))
+					{
+						if (info.LayerBDwellPaused)
+							g_SkyCloudSystem.ResumeLayerBDwell();
+						else
+							g_SkyCloudSystem.PauseLayerBDwell();
+					}
+					ImGui::EndDisabled();
+				}
 				if (g_SkyCloudSystem.IsLayerBTransitioning())
 				{
 					ImGui::SameLine();
@@ -1177,7 +1203,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 	}
 
 	// ====================================================================
-	// Horizon mesh section (Sun/Moon/Horizon/Stars tab)
+	// Horizon mesh section (Atmospheric Sky/Horizon tab)
 	// ====================================================================
 
 	static void DrawHorizonSection(Level* level)
@@ -1229,8 +1255,12 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 	{
 		using namespace TEN::Renderer;
 		auto& settings = g_Renderer.GetAtmosphericSkySettings();
+		auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 
 		ImGui::Checkbox("Enabled", &settings.Enabled);
+		ImGui::Separator();
+
+		DrawHorizonSection(levelPtr);
 		ImGui::Separator();
 
 		if (!settings.Enabled)
@@ -1241,7 +1271,6 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 
 		// --- Sun info (read-only) ---
 		ImGui::Text("Sun Info (from Lens Flare):");
-		auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 		if (levelPtr && levelPtr->GetLensFlareEnabled())
 		{
 			float pitch = (float)levelPtr->GetLensFlarePitch();
@@ -1462,18 +1491,17 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Sun/Moon/Horizon/Stars"))
+			if (ImGui::BeginTabItem("Sun/Moon/Stars"))
 			{
 				TEN::Effects::DrawLensFlareTabContent();
 				DrawMoonTabContent();
 				auto* levelPtr = dynamic_cast<Level*>(
 					g_GameFlow->GetLevel(CurrentLevel));
-				DrawHorizonSection(levelPtr);
 				DrawStarfieldSection(levelPtr);
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Atmospheric Sky"))
+			if (ImGui::BeginTabItem("Atmospheric Sky/Horizon"))
 			{
 				DrawAtmosphericSkyTabContent();
 				ImGui::EndTabItem();

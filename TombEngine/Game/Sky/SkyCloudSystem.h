@@ -333,6 +333,7 @@ namespace TEN::Sky
 	{
 		float Elapsed = 0.0f;
 		float Target  = -1.0f; // < 0 = no dwell pending.
+		bool  Paused  = false;
 	};
 
 	// ====================================================================
@@ -372,6 +373,12 @@ namespace TEN::Sky
 		void SetLayerBPresetImmediate(WeatherPresetType preset);
 		void InterruptLayerATransition();
 		void InterruptLayerBTransition();
+		void PauseLayerADwell();
+		void PauseLayerBDwell();
+		void ResumeLayerADwell();
+		void ResumeLayerBDwell();
+		bool IsLayerADwellPaused() const;
+		bool IsLayerBDwellPaused() const;
 
 		// Progress queries for per-layer transitions.
 		bool  IsLayerATransitioning() const;
@@ -466,6 +473,8 @@ namespace TEN::Sky
 			float LayerADwellTarget  = -1.0f;
 			float LayerBDwellElapsed = 0.0f;
 			float LayerBDwellTarget  = -1.0f;
+			bool  LayerADwellPaused  = false;
+			bool  LayerBDwellPaused  = false;
 		};
 
 		DebugInfo GetDebugInfo() const;

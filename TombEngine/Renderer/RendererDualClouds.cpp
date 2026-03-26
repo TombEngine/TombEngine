@@ -80,6 +80,14 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDualVolumetricClouds(RenderView& renderView)
 	{
+		// Always clear both targets first. This prevents stale cloud data from a
+		// previously active layer (e.g. altocumulus on B, then switched to clear sky)
+		// from being read by the GodRay shader as if clouds were still present.
+		// DrawSingleVolumetricCloudLayer will re-clear and overwrite when it renders.
+		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(),  clearColor);
+		_context->ClearRenderTargetView(_cloudRenderTargetB.RenderTargetView.Get(), clearColor);
+
 		// Draw Cloud Layer A (higher / thinner — composited first = behind).
 		if (g_SkyCloudSystem.IsCloudAActive())
 		{

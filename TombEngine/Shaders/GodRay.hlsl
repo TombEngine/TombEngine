@@ -103,12 +103,18 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     // Cloud occlusion AT the sun position: sample both layers at the projected sun UV.
     // Clamp to [0,1] so off-screen sun positions sample the nearest screen edge instead
     // of wrapping/clamping to garbage. A value of 1 means dense cloud in front of the sun.
-    float2 sunUV       = saturate(GodRaySunScreenPos);
-    float  sunCloudA   = CloudTexture.SampleLevel(LinearSamp, sunUV, 0).a;
-    float  sunCloudB   = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0).a;
-    float  sunOcclusion = saturate(max(sunCloudA, sunCloudB));
+    // Sun disc occlusion query — only valid when the sun is actually on-screen.
+    // saturate(GodRaySunScreenPos) for an off-screen sun clamps to the nearest screen
+    // edge, which may be clear sky, setting sunDiscVis=1 and burning a false bright
+    // source onto the screen edge. Fade sunDiscVis to zero as the sun exits the border.
+    float2 sunEdgeDist    = max(abs(GodRaySunScreenPos - 0.5f) - 0.5f, 0.0f);
+    float  sunOnScreenFade = 1.0f - saturate(max(sunEdgeDist.x, sunEdgeDist.y) * 6.0f);
+    float2 sunUV          = saturate(GodRaySunScreenPos);
+    float  sunCloudA      = CloudTexture.SampleLevel(LinearSamp, sunUV, 0).a;
+    float  sunCloudB      = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0).a;
+    float  sunOcclusion   = saturate(max(sunCloudA, sunCloudB));
     // Tight threshold: disc starts fading when cloud at sun > 0.2, fully gone at 0.55.
-    float  sunDiscVis  = 1.0f - smoothstep(0.2f, 0.55f, sunOcclusion);
+    float  sunDiscVis     = sunOnScreenFade * (1.0f - smoothstep(0.2f, 0.55f, sunOcclusion));
 
     float  accumulated = 0.0f;
     float  w           = 1.0f;           // weight starts full, decays as we move toward sun
@@ -118,6 +124,11 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     {
         sampleUV -= marchStep;                         // step toward sun
         float2 cuv = saturate(sampleUV);
+        // Skip samples that have marched off the screen boundary. The saturate() above
+        // would clamp them to the nearest screen edge (possibly clear sky), inflating
+        // the accumulated brightness when the sun source is off-screen.
+        float sampleOnScreen = (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f &&
+                                sampleUV.y >= 0.0f && sampleUV.y <= 1.0f) ? 1.0f : 0.0f;
 
         // Cloud opacity: 0 = clear sky gap (light passes), 1 = dense cloud (blocked).
         float cloudAlphaA  = CloudTexture.SampleLevel(LinearSamp, cuv, 0).a;
@@ -137,7 +148,7 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         float sunDisc = exp(-sunDist * discScale) * sunDiscVis;
 
         // Scene brightness = sky gap fill + sun disc.
-        float sceneBrightness = saturate(cloudGap + sunDisc);
+        float sceneBrightness = saturate(cloudGap + sunDisc) * sampleOnScreen;
 
         accumulated += sceneBrightness * w;
 

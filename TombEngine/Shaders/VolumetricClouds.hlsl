@@ -1445,8 +1445,39 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                 if (CloudType == 1)
                 {
                     // === AltocumulusMid: fully self-contained lighting ===
+                    // The dark-base shading (lerp toward AltoCloudColorDark at low
+                    // heightFrac) models self-shadowing by the cloud mass above —
+                    // physically correct only when there IS a thick cloud roof.
+                    //
+                    // For thin wisps and cloud edges that same code forces the color
+                    // dark even though the optical depth is too small to shadow
+                    // anything — producing the visible dark outlines.
+                    //
+                    // Fix: thin wisps and cloud edges have low accumulated optical
+                    // depth and should appear bright (they can't self-shadow).
+                    //
+                    // Use extinction (density * absorption * stepSize) as the
+                    // per-sample optical thickness. A sample is "thin" when its
+                    // own extinction is small — regardless of what other samples
+                    // in the same ray have already contributed.
+                    //   extinction → 0   : optically transparent sample (edge/wisp)
+                    //                      → force toward bright cloud color, no dark base
+                    //   extinction → large: optically thick sample (cloud interior)
+                    //                      → preserve natural height gradient
+                    //
+                    // This is strictly per-sample: it doesn't flatten the overall
+                    // dark/bright gradient of thick clouds (which accumulate large
+                    // extinction in their interior samples) and doesn't cause a
+                    // warm tint (the warm lerp only applies after color is finalized).
+                    float sampleOptDepth = density * effAbsorption * stepSize;
+                    float heightBlend = heightFrac;
                     float3 cloudColor = lerp(AltoCloudColorDark, AltoCloudColor,
-                        saturate(heightFrac));
+                        heightBlend);
+                    // Only the optically thinnest wisps should go fully white.
+                    // Keep the transition narrow so thicker puffs retain their
+                    // dark underside shading instead of flattening out.
+                    float thinWispWhite = 1.0f - smoothstep(0.015f, 0.05f, sampleOptDepth);
+                    cloudColor = lerp(cloudColor, AltoCloudColor, thinWispWhite);
                     float  heightIllum = exp(heightFrac) / 1.95f;
 
                     // Sun-elevation modulation for Altocumulus:
