@@ -65,7 +65,7 @@ float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
 if (CameraUnderwater != Water)
 {
     float dist = length(pos - CamPositionWS.xyz);
-    float factor = InterpolatedFrame + (input.Position.x + input.Position.z) * 0.2f;
+    float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
     float xOffset = (sin(factor * PI / 20.0f)) * (dist / 1024) * 3;
     float yOffset = (cos(factor * PI / 20.0f)) * (dist / 1024) * 3;
     screenPos.x += xOffset * weight;
