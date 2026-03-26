@@ -14,7 +14,6 @@
 #include "Game/setup.h"
 #include "Math/Random.h"
 #include "Objects/Generic/Object/BridgeObject.h"
-#include "Renderer/Renderer.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -25,7 +24,6 @@ using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Math::Random;
-using namespace TEN::Renderer;
 using namespace TEN::Utils;
 
 // NOTES:
@@ -191,6 +189,8 @@ namespace TEN::Entities::Traps
 
 			// Update room number.
 			int probedRoomNumber = pointColl.GetRoomNumber();
+			auto spheres = item.GetSpheres();
+
 			if (item.RoomNumber != probedRoomNumber)
 			{
 				// Spawn splash for each bone of the platform when entering water.
@@ -198,10 +198,6 @@ namespace TEN::Entities::Traps
 					!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 				{
 					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
-
-					// Force-update bone matrices for this logic frame so sphere positions are current.
-					g_Renderer.UpdateItemAnimations(itemNumber, true);
-					auto spheres = item.GetSpheres();
 
 					for (const auto& sphere : spheres)
 					{
@@ -218,11 +214,13 @@ namespace TEN::Entities::Traps
 			// Spawn bubbles every frame while sinking underwater.
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 			{
-				constexpr auto bubbleCount = 6;
-				for (int i = 0; i < bubbleCount; i++)
-					SpawnBubble(
-						GeneratePointInBox(box.ToBoundingOrientedBox(item.Pose)),
-						item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
+				for (const auto& sphere : spheres)
+				{
+					if (Random::TestProbability(1 / 2.0f))
+						SpawnBubble(
+							GeneratePointInSphere(sphere),
+							item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
+				}
 			}
 		}
 
@@ -233,7 +231,7 @@ namespace TEN::Entities::Traps
 			// Align to surface.
 			auto radius = Vector2(Objects[item.ObjectNumber].radius);
 			AlignEntityToSurface(&item, radius);
-			
+
 			// Deactivate.
 			if (TestLastFrame(*&item))
 			{
