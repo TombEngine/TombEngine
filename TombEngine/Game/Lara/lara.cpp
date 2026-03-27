@@ -8,7 +8,6 @@
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
-#include "Game/control/los.h"
 #include "Game/control/volume.h"
 #include "Game/effects/Hair.h"
 #include "Game/effects/item_fx.h"
@@ -709,12 +708,13 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 
 		if (los.has_value() && los.value().Item)
 		{
-			auto objectName = GetObjectName(los.value().Item->ObjectNumber);
+			auto& losValue = los.value();
+			auto objectName = GetObjectName(losValue.Item->ObjectNumber);
 
-			if (los.value().Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			if (losValue.Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
 			{
-				los.value().Item->Flags |= CODE_BITS;
-				Trigger(los.value().Item->Index);
+				losValue.Item->Flags |= CODE_BITS;
+				Trigger(losValue.Item->Index);
 			}
 		}
 	}
