@@ -28,12 +28,12 @@ namespace TEN::Renderer
 		float MieIntensity           = 0.00f;   // [0,5]   Mie glow disk intensity around sun.
 		float RayleighIntensity      = 0.00f;   // [0,5]   Rayleigh brightness multiplier.
 		float SunGlowIntensity       = 0.248f;   // [0,10]  Broad sun glow field intensity.
-		float HorizonDarkeningStr    = 1.534f;   // [0.1,5] Horizon darkening exponent.
+		float HorizonDarkeningStr    = 2.361f;   // [0.1,5] Horizon darkening exponent.
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
 		// --- Night sky ---
 		float NightSkyBrightness     = 5.0f;   // [0,5]   Night sky base brightness.
-		float TwilightOffset         = 0.0f;   // [0,0.3] Sun elevation where twilight starts (radians).
+		float TwilightOffset         = 0.0265f;   // [0,0.3] Sun elevation where twilight starts (radians).
 		float NightBlendSpeed        = 6.37f;   // [1,20]  How quickly night blends in.
 
 		// --- Cloud sun-lighting integration ---
@@ -43,8 +43,8 @@ namespace TEN::Renderer
 		float CloudForwardScatterStrength  = 0.60f;   // [0,3]   Broad forward scatter (HG-like).
 		float CloudLightAbsorption         = 1.10f;   // [0.1,5] Beer-Lambert absorption coefficient.
 		float CloudSunWarmthInfluence      = 0.30f;   // [0,1]   How much sun color tints clouds.
-		float CloudTwilightAmbient         = 0.15f;   // [0,1]   Twilight ambient contribution.
-		float CloudNightAmbient            = 0.03f;   // [0,0.5] Night ambient minimum.
+		float CloudTwilightAmbient         = 1.0f;   // [0,1]   Twilight ambient contribution.
+		float CloudNightAmbient            = 0.048f;   // [0,0.5] Night ambient minimum.
 
 		// --- Sun elevation color ramp ---
 		// Controls the "2-color mode" gradient: white (zenith) <-> warm sun color (horizon).
