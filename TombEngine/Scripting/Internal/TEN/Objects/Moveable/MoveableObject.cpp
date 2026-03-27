@@ -827,7 +827,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
 {
-	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(*_moveable.Get(), (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
 }
 
 /// Retrieve frame number.
