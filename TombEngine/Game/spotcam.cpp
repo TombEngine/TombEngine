@@ -379,7 +379,7 @@ namespace TEN::SpotCam
 		RunHeavyTriggers = false;
 	}
 	
-	// Advances the spline position by the given normalised speed and manages the pause state machine (ease-out, hold, ease-in).
+	// Advances the spline position by the given normalized speed and manages the pause state machine (ease-out, hold, ease-in).
 	static bool AdvanceOrPauseSequence(float normalizedSpeed)
 	{
 		constexpr auto EASE_DISTANCE = 0.15f;
