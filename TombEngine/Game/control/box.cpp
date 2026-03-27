@@ -2649,7 +2649,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		: !TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber); // Other Creatures.
 
 	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand)
-		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
+		? Vector3i(0, GetFrame(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
 
 	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
 	LOT->RequiredBox = enemy->BoxNumber;
