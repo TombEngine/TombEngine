@@ -687,9 +687,10 @@ namespace TEN::Scripting::Effects
 	// @tparam[opt=128] int splashPower Determines the height of splash, ranging from 0 to 1024.
 	static void EmitSplash(const Vec3& pos, TypeOrNil<int> splashPower)
 	{
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
 		auto convertedPower = std::clamp(ValueOr<int>(splashPower, 128), 0, 1024);
 
-		Splash(pos.ToVector3i(), convertedPower);
+		Splash(pos.ToVector3i(), roomNumber, convertedPower);
 	}
 
 	/// Make an explosion. Does not hurt Lara

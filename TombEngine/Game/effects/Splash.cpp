@@ -139,13 +139,12 @@ namespace TEN::Effects::Splash
 
 	void Splash(ItemInfo* item)
 	{
-		Splash(item->Pose.Position, item->Animation.Velocity.y);
+		int probedRoomNumber = GetPointCollision(*item).GetRoomNumber();
+		Splash(item->Pose.Position, probedRoomNumber, item->Animation.Velocity.y);
 	}
 
-	void Splash(Vector3i position, int splashPower)
+	void Splash(Vector3i position, int roomNumber, int splashPower)
 	{
-		int roomNumber = FindRoomNumber(position);
-
 		if (!TestEnvironment(ENV_FLAG_WATER, roomNumber))
 			return;
 
