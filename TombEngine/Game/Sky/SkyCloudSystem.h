@@ -144,8 +144,9 @@ namespace TEN::Sky
 		// Luminance above BlendThresholdHigh → screen blend (bright clouds, no halos).
 		// Luminance below BlendThresholdLow  → screen blend (dark cloud edges, no halos).
 		// Luminance in-between              → alpha blend  (dense/mid clouds absorb properly).
-		float BlendThresholdHigh = 0.85f;  // [0,1] bright cutoff (left  arrow on gradient bar)
-		float BlendThresholdLow  = 0.106f; // [0,1] dark  cutoff (right arrow on gradient bar)
+		float BlendThresholdHigh      = 0.85f;  // [0,1]     bright cutoff (left  arrow on gradient bar)
+		float BlendThresholdHighWidth = 0.05f;  // [0.005,0.4] half-width of the bright→alpha transition zone
+		float BlendThresholdLow       = 0.106f; // [0,1]     dark  cutoff (right arrow on gradient bar)
 
 		// Lightning parameters (only for AltocumulusMid — internal flash + bolt glow)
 		bool  LightningEnabled      = false;

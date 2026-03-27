@@ -2211,9 +2211,14 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   luma > BlendThresholdHigh  →  bright clouds / thin edges  →  screen blend (no halos)
     //   luma < BlendThresholdLow   →  very dark cloud edges        →  screen blend (no dark halos)
     //   BlendThresholdLow ≤ luma ≤ BlendThresholdHigh  →  alpha blend (dense clouds absorb properly)
-    const float transW = 0.025f;
-    float brightScreen = smoothstep(BlendThresholdHigh - transW, BlendThresholdHigh + transW, cloudLuma);
-    float darkScreen   = 1.0f - smoothstep(BlendThresholdLow - transW, BlendThresholdLow + transW, cloudLuma);
+    // Bright side: transition width comes from the per-preset BlendThresholdHighWidth.
+    // Dark side: use a small fixed transition (0.025) — its own width knob can be
+    // added later if needed.
+    const float darkTransW = 0.025f;
+    float brightScreen = smoothstep(BlendThresholdHigh - BlendThresholdHighWidth,
+                                    BlendThresholdHigh + BlendThresholdHighWidth, cloudLuma);
+    float darkScreen   = 1.0f - smoothstep(BlendThresholdLow - darkTransW,
+                                           BlendThresholdLow + darkTransW, cloudLuma);
     float screenFactor = max(brightScreen, darkScreen);
 
     // Final hybrid composite.

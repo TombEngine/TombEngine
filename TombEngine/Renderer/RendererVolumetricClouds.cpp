@@ -291,10 +291,10 @@ namespace TEN::Renderer
 		_stVolumetricCloud.DriftOutProgress             = settings.DriftOutProgress;
 
 		// Compositor hybrid-blend thresholds (global, adjustable via debug slider).
-		_stVolumetricCloud.BlendThresholdHigh = settings.BlendThresholdHigh;
-		_stVolumetricCloud.BlendThresholdLow  = settings.BlendThresholdLow;
-		_stVolumetricCloud.CBuf23Pad1         = 0.0f;
-		_stVolumetricCloud.CBuf23Pad2         = 0.0f;
+		_stVolumetricCloud.BlendThresholdHigh      = settings.BlendThresholdHigh;
+		_stVolumetricCloud.BlendThresholdHighWidth = settings.BlendThresholdHighWidth;
+		_stVolumetricCloud.BlendThresholdLow       = settings.BlendThresholdLow;
+		_stVolumetricCloud.CBuf23Pad1              = 0.0f;
 
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.

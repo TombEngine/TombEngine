@@ -377,32 +377,37 @@ namespace TEN::Sky
 	//   So luma=1 (white) is at the LEFT, luma=0 (black) is at the RIGHT.
 	// ====================================================================
 
-	static bool DrawBlendThresholdWidget(float& threshHigh, float& threshLow, const char* id)
+	static bool DrawBlendThresholdWidget(float& threshHigh, float& transWidth, float& threshLow, const char* id)
 	{
 		bool changed = false;
 
-		const float barH   = 18.0f;
-		const float mkH    = 11.0f;       // arrow triangle height
-		const float mkHW   = 8.0f;        // arrow hit half-width
-		const float mkHitH = mkH + 6.0f;  // arrow button height (extra tolerance)
-		const float valH   = 28.0f;       // room for value text
-		const float totalH = barH + 1.0f + mkHitH + valH;
+		const float barH     = 18.0f;
+		const float mkH      = 11.0f;        // arrow triangle height
+		const float mkHW     = 8.0f;         // arrow hit half-width
+		const float mkHitH   = mkH + 6.0f;   // arrow button height (extra tolerance)
+		const float tierStep = 10.0f;        // vertical stagger between arrow tiers
+		const float valH     = 28.0f;        // room for value text
+		const float totalH   = barH + 1.0f + 2.0f * tierStep + mkHitH + valH;
 
 		ImDrawList* dl     = ImGui::GetWindowDrawList();
 		ImVec2      origin = ImGui::GetCursorScreenPos();
 		float       barW   = ImGui::GetContentRegionAvail().x - 10.0f;
 		if (barW < 60.0f) barW = 60.0f;
 
-		ImVec2 barMin = origin;
-		ImVec2 barMax = ImVec2(origin.x + barW, origin.y + barH);
-		float  mkY    = origin.y + barH + 1.0f;
+		ImVec2 barMin  = origin;
+		ImVec2 barMax  = ImVec2(origin.x + barW, origin.y + barH);
+		float  mkY     = origin.y + barH + 1.0f;
+		float  mkYHigh = mkY;                     // tier 0: threshHigh (left red)
+		float  mkYTrans= mkY + tierStep;          // tier 1: transWidth  (orange)
+		float  mkYLow  = mkY + 2.0f * tierStep;  // tier 2: threshLow  (right red)
 
 		// pixel <-> luma helpers
 		auto xOf    = [&](float luma) -> float { return origin.x + (1.0f - luma) * barW; };
 		auto lumaOf = [&](float px)   -> float { return 1.0f - std::clamp((px - origin.x) / barW, 0.0f, 1.0f); };
 
-		float xHigh = xOf(threshHigh);
-		float xLow  = xOf(threshLow);
+		float xHigh  = xOf(threshHigh);
+		float xTrans = xOf(threshHigh - transWidth);  // orange arrow: lower edge of bright smoothstep
+		float xLow   = xOf(threshLow);
 
 		// ---- gradient bar (white left -> black right) ----
 		dl->AddRectFilledMultiColor(barMin, barMax,
@@ -411,6 +416,14 @@ namespace TEN::Sky
 		if (xHigh < xLow)
 			dl->AddRectFilled(ImVec2(xHigh, origin.y), ImVec2(xLow, origin.y + barH),
 				IM_COL32(80, 140, 255, 55));
+		// Orange tint over the bright-side transition zone (threshHigh ± transWidth).
+		{
+			float xTL = std::max(origin.x, xOf(std::min(1.0f, threshHigh + transWidth)));
+			float xTR = std::min(barMax.x, xTrans);
+			if (xTL < xTR)
+				dl->AddRectFilled(ImVec2(xTL, origin.y), ImVec2(xTR, origin.y + barH),
+					IM_COL32(255, 160, 40, 45));
+		}
 		dl->AddRect(barMin, barMax, IM_COL32(160, 160, 160, 220));
 
 		// ---- bar button: mouse-wheel + tooltip (bar area only) ----
@@ -430,15 +443,16 @@ namespace TEN::Sky
 		}
 		if (barHov)
 			ImGui::SetTooltip(
-				"Drag red arrows or use mouse-wheel to adjust:\n"
-				"  Left  arrow (Hi=%.3f): bright cutoff - screen blend above this\n"
-				"  Right arrow (Lo=%.3f): dark  cutoff  - screen blend below this\n"
-				"  Blue zone between     = alpha blend (dense clouds absorb properly)",
-				threshHigh, threshLow);
+				"Drag arrows or use mouse-wheel to adjust:\n"
+				"  Left  red  (Hi=%.3f):   bright cutoff - screen blend above this\n"
+				"  Orange     (W=%.4f):    transition half-width around Hi cutoff\n"
+				"  Right red  (Lo=%.3f):   dark cutoff  - screen blend below this\n"
+				"  Blue zone between red arrows = alpha blend zone",
+				threshHigh, transWidth, threshLow);
 
-		// ---- high (left) arrow button ----
+		// ---- high (left) arrow button  [tier 0] ----
 		ImGui::SetNextItemAllowOverlap();
-		ImGui::SetCursorScreenPos(ImVec2(xHigh - mkHW, mkY));
+		ImGui::SetCursorScreenPos(ImVec2(xHigh - mkHW, mkYHigh));
 		char highId[128]; snprintf(highId, sizeof(highId), "##blendhigh_%s", id);
 		ImGui::InvisibleButton(highId, ImVec2(mkHW * 2.0f, mkHitH));
 		bool highActive  = ImGui::IsItemActive();
@@ -452,9 +466,27 @@ namespace TEN::Sky
 		else if (highHovered)
 			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
-		// ---- low (right) arrow button ----
+		// ---- transition-width (orange) arrow button  [tier 1] ----
 		ImGui::SetNextItemAllowOverlap();
-		ImGui::SetCursorScreenPos(ImVec2(xLow - mkHW, mkY));
+		ImGui::SetCursorScreenPos(ImVec2(xTrans - mkHW, mkYTrans));
+		char transId[128]; snprintf(transId, sizeof(transId), "##blendtrans_%s", id);
+		ImGui::InvisibleButton(transId, ImVec2(mkHW * 2.0f, mkHitH));
+		bool transActive  = ImGui::IsItemActive();
+		bool transHovered = ImGui::IsItemHovered();
+		if (transActive)
+		{
+			float mx   = ImGui::GetIO().MousePos.x;
+			float maxW = std::clamp(threshHigh - threshLow - 0.02f, 0.005f, 0.4f);
+			transWidth = std::clamp(threshHigh - lumaOf(mx), 0.005f, maxW);
+			changed = true;
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		}
+		else if (transHovered)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+		// ---- low (right) arrow button  [tier 2] ----
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::SetCursorScreenPos(ImVec2(xLow - mkHW, mkYLow));
 		char lowId[128]; snprintf(lowId, sizeof(lowId), "##blendlow_%s", id);
 		ImGui::InvisibleButton(lowId, ImVec2(mkHW * 2.0f, mkHitH));
 		bool lowActive  = ImGui::IsItemActive();
@@ -469,30 +501,44 @@ namespace TEN::Sky
 			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
 		// ---- recompute positions after possible drag ----
-		xHigh = xOf(threshHigh);
-		xLow  = xOf(threshLow);
+		xHigh  = xOf(threshHigh);
+		xTrans = xOf(threshHigh - transWidth);
+		xLow   = xOf(threshLow);
 
-		// ---- marker lines on bar ----
-		dl->AddLine(ImVec2(xHigh, origin.y), ImVec2(xHigh, origin.y + barH), IM_COL32(255, 80, 80, 200), 1.5f);
-		dl->AddLine(ImVec2(xLow,  origin.y), ImVec2(xLow,  origin.y + barH), IM_COL32(255, 80, 80, 200), 1.5f);
+		// ---- marker lines: extend from bar top down to each arrow tip ----
+		dl->AddLine(ImVec2(xHigh,  origin.y), ImVec2(xHigh,  mkYHigh  + mkH), IM_COL32(255,  80,  80, 170), 1.5f);
+		dl->AddLine(ImVec2(xTrans, origin.y), ImVec2(xTrans, mkYTrans + mkH), IM_COL32(255, 160,  40, 150), 1.0f);
+		dl->AddLine(ImVec2(xLow,   origin.y), ImVec2(xLow,   mkYLow   + mkH), IM_COL32(255,  80,  80, 170), 1.5f);
 
-		// ---- arrow triangles ----
-		auto DrawArrow = [&](float cx, bool active, bool hovered) {
-			ImU32 fill = active  ? IM_COL32(255, 210, 60,  255)
-			           : hovered ? IM_COL32(255, 150, 80,  255)
-			           :           IM_COL32(220,  60, 60,  255);
-			ImU32 edge = IM_COL32(160, 30, 30, 255);
+		// ---- arrow triangles (each at its own tier Y) ----
+		auto DrawArrow = [&](float cx, float ay, bool active, bool hovered, bool isOrange) {
+			ImU32 fill, edge;
+			if (isOrange)
+			{
+				fill = active  ? IM_COL32(255, 235, 100, 255)
+				     : hovered ? IM_COL32(255, 195,  60, 255)
+				     :           IM_COL32(210, 130,  20, 255);
+				edge = IM_COL32(140, 80, 0, 255);
+			}
+			else
+			{
+				fill = active  ? IM_COL32(255, 210,  60, 255)
+				     : hovered ? IM_COL32(255, 150,  80, 255)
+				     :           IM_COL32(220,  60,  60, 255);
+				edge = IM_COL32(160, 30, 30, 255);
+			}
 			dl->AddTriangleFilled(
-				ImVec2(cx - mkHW + 1.0f, mkY),
-				ImVec2(cx + mkHW - 1.0f, mkY),
-				ImVec2(cx, mkY + mkH), fill);
+				ImVec2(cx - mkHW + 1.0f, ay),
+				ImVec2(cx + mkHW - 1.0f, ay),
+				ImVec2(cx, ay + mkH), fill);
 			dl->AddTriangle(
-				ImVec2(cx - mkHW + 1.0f, mkY),
-				ImVec2(cx + mkHW - 1.0f, mkY),
-				ImVec2(cx, mkY + mkH), edge, 1.2f);
+				ImVec2(cx - mkHW + 1.0f, ay),
+				ImVec2(cx + mkHW - 1.0f, ay),
+				ImVec2(cx, ay + mkH), edge, 1.2f);
 		};
-		DrawArrow(xHigh, highActive, highHovered);
-		DrawArrow(xLow,  lowActive,  lowHovered);
+		DrawArrow(xHigh,  mkYHigh,  highActive,  highHovered,  false);
+		DrawArrow(xTrans, mkYTrans, transActive, transHovered, true);
+		DrawArrow(xLow,   mkYLow,   lowActive,   lowHovered,   false);
 
 		// ---- labels ----
 		float lblY = mkY + mkH + 2.0f;
@@ -507,8 +553,8 @@ namespace TEN::Sky
 		}
 
 		// ---- value display ----
-		char valBuf[64];
-		snprintf(valBuf, sizeof(valBuf), "Hi: %.3f    Lo: %.3f", threshHigh, threshLow);
+		char valBuf[80];
+		snprintf(valBuf, sizeof(valBuf), "Hi: %.3f  W: %.4f  Lo: %.3f", threshHigh, transWidth, threshLow);
 		ImVec2 ts = ImGui::CalcTextSize(valBuf);
 		dl->AddText(ImVec2(origin.x + barW * 0.5f - ts.x * 0.5f, lblY + 14.0f),
 			IM_COL32(190, 190, 190, 255), valBuf);
@@ -624,7 +670,7 @@ namespace TEN::Sky
 			ImGui::TextDisabled("  Screen blend: bright (left) + very dark (right)  |  Alpha blend: middle.");
 			char wgtId[64];
 			snprintf(wgtId, sizeof(wgtId), "blend_%s", idPrefix);
-			changed |= DrawBlendThresholdWidget(snap.BlendThresholdHigh, snap.BlendThresholdLow, wgtId);
+			changed |= DrawBlendThresholdWidget(snap.BlendThresholdHigh, snap.BlendThresholdHighWidth, snap.BlendThresholdLow, wgtId);
 		}
 
 		// Reset all button.

@@ -130,8 +130,8 @@ cbuffer CBVolumetricCloud : register(b9)
     float DriftOutProgress;             // [0,1] wind-directional dissolution progress (0 = normal, 1 = fully dissolved).
     //--
     // Row 23 — Compositor hybrid-blend thresholds
-    float BlendThresholdHigh;           // [0,1] luminance above which screen blend starts (bright side).
-    float BlendThresholdLow;            // [0,1] luminance below which screen blend starts (dark side).
+    float BlendThresholdHigh;           // [0,1]     luminance above which screen blend starts (bright side).
+    float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright→alpha smoothstep.
+    float BlendThresholdLow;            // [0,1]     luminance below which screen blend starts (dark side).
     float CBuf23Pad1;
-    float CBuf23Pad2;
 };

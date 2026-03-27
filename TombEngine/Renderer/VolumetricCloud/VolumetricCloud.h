@@ -141,8 +141,9 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoBleedDepth       = 30.0f; // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
 
 		// Compositor hybrid-blend thresholds.
-		float BlendThresholdHigh = 0.85f;  // [0,1] bright cutoff → screen blend above this
-		float BlendThresholdLow  = 0.106f; // [0,1] dark  cutoff → screen blend below this
+		float BlendThresholdHigh      = 0.85f;   // [0,1]     bright cutoff → screen blend above this
+		float BlendThresholdHighWidth = 0.05f;   // [0.005,0.4] half-width of bright→alpha smoothstep
+		float BlendThresholdLow       = 0.106f;  // [0,1]     dark  cutoff → screen blend below this
 
 		// Lightning
 		int   LightningEnabled     = 0;
