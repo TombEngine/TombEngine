@@ -104,7 +104,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 
 		if (std::holds_alternative<int>(animNumber))
 		{
-			scriptMov->SetAnimNumber(std::get<int>(animNumber), objID);
+			scriptMov->SetAnimNumber(std::get<int>(animNumber), objID, 0);
 			scriptMov->SetFrameNumber(ValueOr<int>(frameNumber, 0));
 		}
 
@@ -825,9 +825,10 @@ int Moveable::GetAnimNumber() const
 // @function Moveable:SetAnim
 // @tparam int index The index of the desired animation.
 // @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
-void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
+// @tparam[opt] int blendFrames Amount of frames to blend between current and new animation (if omitted, no blending will be performed).
+void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames)
 {
-	SetAnimation(*_moveable.Get(), (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimation(*_moveable.Get(), (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber, 0, blendFrames.value_or(0), BezierCurve2::EaseInOut);
 }
 
 /// Retrieve frame number.
