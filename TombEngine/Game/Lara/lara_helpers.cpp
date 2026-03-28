@@ -548,7 +548,7 @@ bool HandleLaraVehicle(ItemInfo* item, CollisionInfo* coll)
 	{
 		lara->Context.Vehicle = NO_VALUE;
 		item->Animation.IsAirborne = true;
-		SetAnimation(*item, LA_FALL_START, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+		SetAnimation(*item, LA_FALL_START, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 		return false;
 	}
 
@@ -815,7 +815,7 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 
 			if (player.Control.WaterStatus != WaterStatus::FlyCheat)
 			{
-				SetAnimation(item, LA_FLY_CHEAT, -0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+				SetAnimation(item, LA_FLY_CHEAT);
 				ResetPlayerFlex(&item);
 				item.Animation.Velocity = Vector3::Zero;
 				item.Animation.IsAirborne = true;
@@ -1502,14 +1502,14 @@ void SetLaraLand(ItemInfo* item, CollisionInfo* coll)
 
 void SetLaraFallAnimation(ItemInfo* item)
 {
-	SetAnimation(*item, LA_FALL_START, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+	SetAnimation(*item, LA_FALL_START, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
 
 void SetLaraFallBackAnimation(ItemInfo* item)
 {
-	SetAnimation(*item, LA_FALL_BACK, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+	SetAnimation(*item, LA_FALL_BACK, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
@@ -1520,7 +1520,7 @@ void SetLaraMonkeyFallAnimation(ItemInfo* item)
 	if (item->Animation.ActiveState == LS_MONKEY_TURN_180)
 		return;
 
-	SetAnimation(*item, LA_MONKEY_TO_FREEFALL, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+	SetAnimation(*item, LA_MONKEY_TO_FREEFALL, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	SetLaraMonkeyRelease(item);
 }
 
@@ -1557,7 +1557,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && oldAngle == angle)
 			return;
 
-		SetAnimation(*item, LA_SLIDE_BACK_START, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+		SetAnimation(*item, LA_SLIDE_BACK_START, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 		item->Pose.Orientation.y = angle + ANGLE(180.0f);
 	}
 	else
@@ -1565,7 +1565,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && oldAngle == angle)
 			return;
 
-		SetAnimation(*item, LA_SLIDE_FORWARD, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+		SetAnimation(*item, LA_SLIDE_FORWARD, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 		item->Pose.Orientation.y = angle;
 	}
 
@@ -1597,7 +1597,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && abs(deltaAngle) <= ANGLE(180.0f))
 			return;
 
-		SetAnimation(*item, LA_SLIDE_FORWARD, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+		SetAnimation(*item, LA_SLIDE_FORWARD, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	}
 	// Slide backward.
 	else
@@ -1605,7 +1605,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && abs((short)(deltaAngle - ANGLE(180.0f))) <= -ANGLE(180.0f))
 			return;
 
-		SetAnimation(*item, LA_SLIDE_BACK_START, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseOut);
+		SetAnimation(*item, LA_SLIDE_BACK_START, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	}
 }
 
@@ -1642,7 +1642,7 @@ void SetLaraSwimDiveAnimation(ItemInfo* item)
 {
 	auto* lara = GetLaraInfo(item);
 
-	SetAnimation(*item, LA_ONWATER_DIVE, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT, BezierCurve2::EaseInOut);
+	SetAnimation(*item, LA_ONWATER_DIVE, 0, GetSystemBlendDuration(), BezierCurve2::EaseInOut);
 	item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 	item->Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.SwimVelocity * 0.4f;
 	item->Pose.Orientation.x = -ANGLE(45.0f);

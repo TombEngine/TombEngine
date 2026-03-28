@@ -43,7 +43,7 @@ void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 		if (!laraItem->Animation.IsAirborne && 
 			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, laraItem))
 		{
-			SetAnimation(laraItem, LA_BOULDER_DEATH, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT);
+			SetAnimation(laraItem, LA_BOULDER_DEATH, 0, GetSystemBlendDuration());
 
 			Camera.flags = CF_FOLLOW_CENTER;
 			Camera.targetAngle = ANGLE(170.0f);
@@ -376,7 +376,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 				lara->Pose.Orientation.y = item->Pose.Orientation.y;
 				lara->Pose.Orientation.x = lara->Pose.Orientation.z = 0;
 
-				SetAnimation(lara, LA_BOULDER_DEATH, 0, DEFAULT_PLAYER_ANIM_BLEND_FRAME_COUNT);
+				SetAnimation(lara, LA_BOULDER_DEATH, 0, GetSystemBlendDuration());
 						
 				Camera.flags = CF_FOLLOW_CENTER;
 				Camera.targetAngle = ANGLE(170.0f);

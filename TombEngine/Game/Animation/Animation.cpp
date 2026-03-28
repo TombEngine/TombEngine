@@ -394,12 +394,12 @@ namespace TEN::Animation
 
 	const FrameData& GetFrame(const ItemInfo& item, int animNumber, int frameNumber)
 	{
-		return GetFrame(item.ObjectNumber, animNumber, frameNumber);
+		return GetFrame(item.Animation.AnimObjectID, animNumber, frameNumber);
 	}
 
 	const FrameData& GetFrame(const ItemInfo& item)
 	{
-		return GetFrame(item.ObjectNumber, item.Animation.AnimNumber, item.Animation.FrameNumber);
+		return GetFrame(item.Animation.AnimObjectID, item.Animation.AnimNumber, item.Animation.FrameNumber);
 	}
 
 	const FrameData& GetFirstFrame(GAME_OBJECT_ID objectID, int animNumber)
@@ -463,6 +463,11 @@ namespace TEN::Animation
 	float GetEffectiveGravity(float verticalVel)
 	{
 		return ((verticalVel >= VERTICAL_VELOCITY_GRAVITY_THRESHOLD) ? 1.0f : g_GameFlow->GetSettings()->Physics.Gravity);
+	}
+
+	int GetSystemBlendDuration()
+	{
+		return std::max(0, g_GameFlow->GetSettings()->Animations.SystemBlendDuration);
 	}
 
 	Vector3i GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset)
