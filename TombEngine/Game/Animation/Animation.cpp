@@ -519,7 +519,7 @@ namespace TEN::Animation
 		return g_Renderer.GetMoveableBoneOrientation(item.Index, boneID);
 	}
 
-	void SetAnimation(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2& blendCurve)
+	void SetAnimationFromSlot(ItemInfo& item, GAME_OBJECT_ID animObjectID, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2& blendCurve)
 	{
 		// Check if animation is already set.
 		if (item.Animation.AnimObjectID == animObjectID &&
@@ -569,12 +569,12 @@ namespace TEN::Animation
 
 	void SetAnimation(ItemInfo& item, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2& blendCurve)
 	{
-		SetAnimation(item, item.ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
+		SetAnimationFromSlot(item, item.ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
 	}
 
 	void SetAnimation(ItemInfo* item, int animNumber, int frameNumber, int blendFrameCount, const BezierCurve2& blendCurve)
 	{
-		SetAnimation(*item, item->ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
+		SetAnimationFromSlot(*item, item->ObjectNumber, animNumber, frameNumber, blendFrameCount, blendCurve);
 	}
 
 	void SetExtendedAnimation(ItemInfo& item, int rawAnimNumber)

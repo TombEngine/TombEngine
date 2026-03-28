@@ -828,7 +828,7 @@ int Moveable::GetAnimNumber() const
 // @tparam[opt] int blendFrames Number of frames to blend between current and new animation. If omitted, no blending will be performed.
 void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames)
 {
-	SetAnimation(*_moveable.Get(), (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber, 0, blendFrames.value_or(0), BezierCurve2::EaseInOut);
+	SetAnimationFromSlot(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber, 0, blendFrames.value_or(0), BezierCurve2::EaseInOut);
 }
 
 /// Retrieve frame number.
