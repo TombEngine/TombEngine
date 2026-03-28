@@ -223,6 +223,12 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
 	auto boneRot = rootMotionCounter.Rotation.ToQuaternion();
 
+	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from I-pose.
+	if (IsLara())
+		g_Renderer.UpdateLaraAnimations(true);
+	else
+		g_Renderer.UpdateItemAnimations(Index, true);
+
 	Animation.Blend.FrameNumber = 0;
 	Animation.Blend.FrameCount = frameCount;
 	Animation.Blend.Curve = curve;
