@@ -80,21 +80,21 @@ namespace TEN::Animation
 				(Flags & (int)AnimFlags::RootMotionTranslationX) ? rootTranslation.x : 0.0f,
 				(Flags & (int)AnimFlags::RootMotionTranslationY) ? rootTranslation.y : 0.0f,
 				(Flags & (int)AnimFlags::RootMotionTranslationZ) ? rootTranslation.z : 0.0f);
-	}
+		}
 
 		// Compute relative rotation.
 		auto rot = EulerAngles::Identity;
 		if (hasRot)
-	{
-			const auto& rootOrient = Frames[frameNumber].BoneOrientations.front();
-			const auto& prevRootOrient = Frames[frameNumber - 1].BoneOrientations.front();
-			auto rootRot = rootOrient - prevRootOrient;
+		{
+				const auto& rootOrient = EulerAngles(Frames[frameNumber].BoneOrientations.front());
+				const auto& prevRootOrient = EulerAngles(Frames[frameNumber - 1].BoneOrientations.front());
+				auto rootRot = rootOrient - prevRootOrient;
 
-			rot = EulerAngles(
-				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
-				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
-				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
-	}
+				rot = EulerAngles(
+					(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
+					(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
+					(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
+		}
 
 		// Return root motion.
 		return RootMotionData
@@ -318,7 +318,7 @@ namespace TEN::Animation
 		if (item.IsLara() && g_Renderer.GetDebugPage() == RendererDebugPage::PlayerStats)
 		{
 			PrintDebugMessage("Fixed motion: %s", (fixedMotion.Translation != Vector3::Zero) ? "Enabled" : "Disabled");
-			PrintDebugMessage("Root motion: %s", (rootMotion.Translation != Vector3::Zero && rootMotion.Rotation != EulerAngles::Identity) ? "Enabled" : "Disabled");
+			PrintDebugMessage("Root motion: %s", (rootMotion.Translation != Vector3::Zero || rootMotion.Rotation != EulerAngles::Identity) ? "Enabled" : "Disabled");
 			PrintDebugMessage("Blend: %s", item.Animation.Blend.IsEnabled() ? "Enabled" : "Disabled");
 			PrintDebugMessage("Blend frame number: %d", item.Animation.Blend.FrameNumber);
 			PrintDebugMessage("Blend frame count: %d", item.Animation.Blend.FrameCount);
