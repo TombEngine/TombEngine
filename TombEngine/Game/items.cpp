@@ -56,12 +56,12 @@ BoundingOrientedBox ItemInfo::GetObb() const
 {
 	// Get anim data.
 	const auto& anim = GetAnimData(*this);
-	auto rootMotionCounter = anim.GetRootMotionCounteraction(Animation.FrameNumber);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(Animation.FrameNumber);
 
 	// Compute offset.
 	const auto& relOffset = anim.Frames[Animation.FrameNumber].LocalAabb.Center;
-	auto rotMatrix = (Pose.Orientation + rootMotionCounter.Rotation).ToRotationMatrix();
-	auto offset = Vector3::Transform(relOffset + rootMotionCounter.Translation, rotMatrix);
+	auto rotMatrix = (Pose.Orientation + rootMotionCounteract.Rotation).ToRotationMatrix();
+	auto offset = Vector3::Transform(relOffset + rootMotionCounteract.Translation, rotMatrix);
 
 	// Get extents.
 	const auto& extents = anim.Frames[Animation.FrameNumber].LocalAabb.Extents;
@@ -218,21 +218,25 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	const auto& object = Objects[ObjectNumber];
 
 	const auto& anim = GetAnimData(*this);
-	auto rootMotionCounter = anim.GetRootMotionCounteraction(Animation.FrameNumber);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(Animation.FrameNumber);
 
 	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
-	auto boneRot = rootMotionCounter.Rotation.ToQuaternion();
+	auto boneRot = rootMotionCounteract.Rotation.ToQuaternion();
 
-	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from I-pose.
+	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from default pose.
 	if (IsLara())
+	{
 		g_Renderer.UpdateLaraAnimations(true);
+	}
 	else
+	{
 		g_Renderer.UpdateItemAnimations(Index, true);
+	}
 
 	Animation.Blend.FrameNumber = 0;
 	Animation.Blend.FrameCount = frameCount;
 	Animation.Blend.Curve = curve;
-	Animation.Blend.RootPosition = rootPos + rootMotionCounter.Translation;
+	Animation.Blend.RootPosition = rootPos + rootMotionCounteract.Translation;
 
 	for (int i = 0; i < object.nmeshes; i++)
 	{

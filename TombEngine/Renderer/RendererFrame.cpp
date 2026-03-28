@@ -480,12 +480,12 @@ namespace TEN::Renderer
 			}
 
 			const auto& anim = GetAnimData(item);
-			auto rootMotionCounter = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
 
-			auto orient = item.Pose.Orientation + rootMotionCounter.Rotation;
+			auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
 			auto rotMatrix = orient.ToRotationMatrix();
 
-			auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounter.Translation, rotMatrix);
+			auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
 			auto translationMatrix = Matrix::CreateTranslation(pos);
 
 			auto& newItem = _items[itemNumber];

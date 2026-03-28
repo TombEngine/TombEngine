@@ -50,16 +50,16 @@ using namespace TEN::Animation;
 		}
 
 		const auto& anim = GetAnimData(*item);
-		auto rootMotionCounter = anim.GetRootMotionCounteraction(item->Animation.FrameNumber);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item->Animation.FrameNumber);
 
 		*this = anim.Frames[item->Animation.FrameNumber].BoundingBox;
 
-		X1 += rootMotionCounter.Translation.x;
-		X2 += rootMotionCounter.Translation.x;
-		Y1 += rootMotionCounter.Translation.y;
-		Y2 += rootMotionCounter.Translation.y;
-		Z1 += rootMotionCounter.Translation.z;
-		Z2 += rootMotionCounter.Translation.z;
+		X1 += rootMotionCounteract.Translation.x;
+		X2 += rootMotionCounteract.Translation.x;
+		Y1 += rootMotionCounteract.Translation.y;
+		Y2 += rootMotionCounteract.Translation.y;
+		Z1 += rootMotionCounteract.Translation.z;
+		Z2 += rootMotionCounteract.Translation.z;
 	}
 
 	int GameBoundingBox::GetWidth() const

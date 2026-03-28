@@ -124,12 +124,12 @@ void Renderer::UpdateLaraAnimations(bool force)
 		bonePtr->ExtraRotation = Quaternion::Identity;
 
 	const auto& anim = GetAnimData(nativeItem);
-	auto rootMotionCounter = anim.GetRootMotionCounteraction(nativeItem.Animation.FrameNumber);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem.Animation.FrameNumber);
 
-	auto orient = nativeItem.Pose.Orientation + rootMotionCounter.Rotation;
+	auto orient = nativeItem.Pose.Orientation + rootMotionCounteract.Rotation;
 	auto rotMatrix = orient.ToRotationMatrix();
 
-	auto pos = nativeItem.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounter.Translation, rotMatrix);
+	auto pos = nativeItem.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
 	auto translationMatrix = Matrix::CreateTranslation(pos);
 
 	auto scaleMatrix = Matrix::CreateScale(nativeItem.Pose.Scale);

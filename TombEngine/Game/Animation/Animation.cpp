@@ -199,7 +199,7 @@ namespace TEN::Animation
 		// Handle link.
 		if (item.Animation.FrameNumber > anim->EndFrameNumber)
 		{
-			// Rewind the frame number to avoid getting out of bounds exceptions.
+			// Clamp to end frame number to remain in bounds.
 			item.Animation.FrameNumber = anim->EndFrameNumber;
 			ExecuteAnimCommands(item, false);
 
