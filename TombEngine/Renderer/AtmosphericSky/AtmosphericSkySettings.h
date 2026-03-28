@@ -27,24 +27,24 @@ namespace TEN::Renderer
 		// --- Glow and brightness ---
 		float MieIntensity           = 0.00f;   // [0,5]   Mie glow disk intensity around sun.
 		float RayleighIntensity      = 0.00f;   // [0,5]   Rayleigh brightness multiplier.
-		float SunGlowIntensity       = 0.248f;   // [0,10]  Broad sun glow field intensity.
+		float SunGlowIntensity       = 0.217f;   // [0,10]  Broad sun glow field intensity.
 		float HorizonDarkeningStr    = 2.361f;   // [0.1,5] Horizon darkening exponent.
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
 		// --- Night sky ---
 		float NightSkyBrightness     = 5.0f;   // [0,5]   Night sky base brightness.
-		float TwilightOffset         = 0.0265f;   // [0,0.3] Sun elevation where twilight starts (radians).
-		float NightBlendSpeed        = 6.37f;   // [1,20]  How quickly night blends in.
+		float TwilightOffset         = 0.0648f;   // [0,0.3] Sun elevation where twilight starts (radians).
+		float NightBlendSpeed        = 6.29f;   // [1,20]  How quickly night blends in.
 
 		// --- Cloud sun-lighting integration ---
 		float CloudSunLightIntensity       = 1.00f;   // [0,5]   Direct sun light on clouds.
-		float CloudAmbientIntensity        = 0.35f;   // [0,2]   Ambient light on clouds.
+		float CloudAmbientIntensity        = 0.0f;   // [0,2]   Ambient light on clouds.
 		float CloudSilverliningStrength    = 0.40f;   // [0,3]   Forward scattering / silverlining.
 		float CloudForwardScatterStrength  = 0.60f;   // [0,3]   Broad forward scatter (HG-like).
 		float CloudLightAbsorption         = 1.10f;   // [0.1,5] Beer-Lambert absorption coefficient.
 		float CloudSunWarmthInfluence      = 0.30f;   // [0,1]   How much sun color tints clouds.
-		float CloudTwilightAmbient         = 1.0f;   // [0,1]   Twilight ambient contribution.
-		float CloudNightAmbient            = 0.048f;   // [0,0.5] Night ambient minimum.
+		float CloudTwilightAmbient         = 0.432f;   // [0,1]   Twilight ambient contribution.
+		float CloudNightAmbient            = 0.0f;   // [0,0.5] Night ambient minimum.
 
 		// --- Sun elevation color ramp ---
 		// Controls the "2-color mode" gradient: white (zenith) <-> warm sun color (horizon).

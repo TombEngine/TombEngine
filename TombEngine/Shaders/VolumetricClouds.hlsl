@@ -2211,14 +2211,30 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   luma > BlendThresholdHigh  →  bright clouds / thin edges  →  screen blend (no halos)
     //   luma < BlendThresholdLow   →  very dark cloud edges        →  screen blend (no dark halos)
     //   BlendThresholdLow ≤ luma ≤ BlendThresholdHigh  →  alpha blend (dense clouds absorb properly)
-    // Bright side: transition width comes from the per-preset BlendThresholdHighWidth.
-    // Dark side: use a small fixed transition (0.025) — its own width knob can be
-    // added later if needed.
+
+    // Sunset / night occlusion modulation:
+    // As the sun descends toward the horizon (CloudSunElevation → 0) the blend thresholds
+    // shift so that clouds become fully opaque (alpha-blend dominated).  This causes the
+    // sun, moon, and stars to disappear behind the cloud layer instead of bleeding through.
+    // Transition window: elevation [kSunsetStart … 0.0].  Below the horizon (night) the
+    // fully-shifted values are kept (sunsetFactor clamped to 1).
+    const float kSunsetStart = 0.25f;   // elevation (sin) at which sunset modulation begins
+    const float kSunsetHigh  = 0.199f;  // target BlendThresholdHigh  at the horizon
+    const float kSunsetWidth = 0.400f;  // target BlendThresholdHighWidth at the horizon
+    const float kSunsetLow   = 0.000f;  // target BlendThresholdLow   at the horizon
+    float sunsetFactor  = saturate(1.0f - CloudSunElevation / kSunsetStart);
+    float effectiveHigh  = lerp(BlendThresholdHigh,      kSunsetHigh,  sunsetFactor);
+    float effectiveWidth = lerp(BlendThresholdHighWidth,  kSunsetWidth, sunsetFactor);
+    float effectiveLow   = lerp(BlendThresholdLow,        kSunsetLow,   sunsetFactor);
+
+    // Bright side: transition width comes from the per-preset BlendThresholdHighWidth
+    // (runtime-blended toward the sunset target above).
+    // Dark side: use a small fixed transition (0.025).
     const float darkTransW = 0.025f;
-    float brightScreen = smoothstep(BlendThresholdHigh - BlendThresholdHighWidth,
-                                    BlendThresholdHigh + BlendThresholdHighWidth, cloudLuma);
-    float darkScreen   = 1.0f - smoothstep(BlendThresholdLow - darkTransW,
-                                           BlendThresholdLow + darkTransW, cloudLuma);
+    float brightScreen = smoothstep(effectiveHigh - effectiveWidth,
+                                    effectiveHigh + effectiveWidth, cloudLuma);
+    float darkScreen   = 1.0f - smoothstep(effectiveLow - darkTransW,
+                                           effectiveLow + darkTransW, cloudLuma);
     float screenFactor = max(brightScreen, darkScreen);
 
     // Final hybrid composite.
