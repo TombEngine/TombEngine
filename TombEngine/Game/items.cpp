@@ -56,17 +56,15 @@ BoundingOrientedBox ItemInfo::GetObb() const
 {
 	// Get anim data.
 	const auto& anim = GetAnimData(*this);
-
-	int frameNumber = std::min(Animation.FrameNumber, (int)anim.Frames.size() - 1);
-	auto rootMotionCounter = anim.GetRootMotionCounteraction(frameNumber);
+	auto rootMotionCounter = anim.GetRootMotionCounteraction(Animation.FrameNumber);
 
 	// Compute offset.
-	const auto& relOffset = anim.Frames[frameNumber].LocalAabb.Center;
+	const auto& relOffset = anim.Frames[Animation.FrameNumber].LocalAabb.Center;
 	auto rotMatrix = (Pose.Orientation + rootMotionCounter.Rotation).ToRotationMatrix();
 	auto offset = Vector3::Transform(relOffset + rootMotionCounter.Translation, rotMatrix);
 
 	// Get extents.
-	const auto& extents = anim.Frames[frameNumber].LocalAabb.Extents;
+	const auto& extents = anim.Frames[Animation.FrameNumber].LocalAabb.Extents;
 
 	// Create and return OBB.
 	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, Pose.Orientation.ToQuaternion());
@@ -220,11 +218,9 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	const auto& object = Objects[ObjectNumber];
 
 	const auto& anim = GetAnimData(*this);
-	int frameNumber = std::min(Animation.FrameNumber, (int)anim.Frames.size() - 1);
+	auto rootMotionCounter = anim.GetRootMotionCounteraction(Animation.FrameNumber);
 
-	auto rootMotionCounter = anim.GetRootMotionCounteraction(frameNumber);
-
-	const auto& rootPos = anim.Frames[frameNumber].RootPosition;
+	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
 	auto boneRot = rootMotionCounter.Rotation.ToQuaternion();
 
 	Animation.Blend.FrameNumber = 0;

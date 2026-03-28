@@ -199,6 +199,8 @@ namespace TEN::Animation
 		// Handle link.
 		if (item.Animation.FrameNumber > anim->EndFrameNumber)
 		{
+			// Rewind the frame number to avoid getting out of bounds exceptions.
+			item.Animation.FrameNumber = anim->EndFrameNumber;
 			ExecuteAnimCommands(item, false);
 
 			item.SetAnimBlend(anim->BlendFrameCount, anim->BlendCurve);
