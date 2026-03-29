@@ -490,17 +490,20 @@ namespace TEN::Entities::Creatures::TR3
 		CreatureJoint(&item, 2, headOrient.x, PUNA_HEAD_X_ANGLE_MAX);
 		CreatureAnimation(itemNumber, headingAngle, 0);
 
-		// Emit sound while chair is rotating.
-		if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
+		// Emit sound while chair is rotating, but not while dying.
+		if (item.HitPoints > 0)
 		{
-			hasTurned = true;
-			SoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR, &item.Pose);
-		}
-		else if (prevYOrient == item.Pose.Orientation.y)
-		{
-			hasTurned = false;
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+			if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
+			{
+				hasTurned = true;
+				SoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR, &item.Pose);
+			}
+			else if (prevYOrient == item.Pose.Orientation.y)
+			{
+				hasTurned = false;
+				StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
+				StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+			}
 		}
 	}
 

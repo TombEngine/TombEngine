@@ -11,7 +11,6 @@
 #include "Game/misc.h"
 #include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
-#include "Objects/game_object_ids.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 
 using namespace TEN::Collision::Point;
@@ -269,6 +268,7 @@ namespace TEN::Effects::Boss
 		int counter = item.ItemFlags[(int)BossItemFlags::ExplodeCount];
 		if (counter == 1)
 		{
+			SoundEffect(SFX_TR4_EXPLOSION2, &item.Pose);
 			SpawnShockwaveExplosion(item, color);
 		}
 
