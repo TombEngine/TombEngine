@@ -98,15 +98,15 @@ namespace TEN::Effects::Boss
 			if (ring.IsActive)
 				continue;
 
-			ring.IsActive = true;
-			ring.ColorType = colorType;
-			ring.Life = BOSS_EXPLOSION_RING_LIFE_MAX;
-			ring.Speed = speed;
-			ring.Radius = 0;
-			ring.XRot = (short)Random::GenerateInt(0, SHRT_MAX);
-			ring.ZRot = (short)Random::GenerateInt(0, SHRT_MAX);
-			ring.Position = pos;
-			return;
+			   ring.IsActive = true;
+			   ring.ColorType = colorType;
+			   ring.Life = BOSS_EXPLOSION_RING_LIFE_MAX;
+			   ring.Speed = speed;
+			   ring.Radius = 0;
+			   ring.XRot = (short)Random::GenerateInt(0, USHRT_MAX);
+			   ring.ZRot = (short)Random::GenerateInt(0, USHRT_MAX);
+			   ring.Position = pos;
+			   return;
 		}
 	}
 

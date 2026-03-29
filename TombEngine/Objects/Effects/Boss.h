@@ -35,7 +35,7 @@ namespace TEN::Effects::Boss
 	};
 
 	// Procedural explosion ring effect spawned during boss death, matching classic TR3.
-	constexpr auto MAX_BOSS_EXPLOSION_RINGS     = 6;
+	constexpr auto MAX_BOSS_EXPLOSION_RINGS     = 12;
 	constexpr auto BOSS_EXPLOSION_RING_LIFE_MAX = 1.0f * FPS;
 
 	struct BossExplosionRing
