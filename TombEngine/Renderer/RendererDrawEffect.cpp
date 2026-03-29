@@ -1046,32 +1046,30 @@ namespace TEN::Renderer
 	// Generates a randomized vertex color for boss explosion rings, matching classic TR3 per-boss color patterns.
 	static Vector4 GenerateRingVertexColor(BossExplosionRingColor colorType, float lifeFraction)
 	{
-		float r, g, b;
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
 
 		switch (colorType)
 		{
 		case BossExplosionRingColor::Tony:
 			r = (Random::GenerateInt(0, 31) + 224) / 255.0f;
-			g = (r * 0.25f) + Random::GenerateInt(0, 63) / 255.0f;
-			b = Random::GenerateInt(0, 63) / 255.0f;
+			g = (Random::GenerateInt(0, 31) + 64) / 255.0f;
 			break;
 
 		case BossExplosionRingColor::Sophia:
-			r = Random::GenerateInt(0, 63) / 255.0f;
 			g = (Random::GenerateInt(0, 31) + 224) / 255.0f;
-			b = (g * 0.25f) + Random::GenerateInt(0, 63) / 255.0f;
+			b = Random::GenerateInt(0, 63) / 255.0f;
 			break;
 
 		case BossExplosionRingColor::Puna:
-			r = Random::GenerateInt(0, 31) / 255.0f;
 			b = (Random::GenerateInt(0, 63) + 224) / 255.0f;
-			g = (b * 0.25f) + Random::GenerateInt(0, 63) / 255.0f;
+			g = Random::GenerateInt(0, 63) / 255.0f;
 			break;
 
 		default:
-			r = Random::GenerateInt(0, 63) / 255.0f;
 			g = (Random::GenerateInt(0, 31) + 224) / 255.0f;
-			b = (g * 0.5f) + Random::GenerateInt(0, 63) / 255.0f;
+			b = (Random::GenerateInt(0, 31) + 96) / 255.0f;
 			break;
 		}
 
