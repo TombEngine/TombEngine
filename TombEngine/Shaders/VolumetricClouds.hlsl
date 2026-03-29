@@ -2215,10 +2215,11 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // sun, moon, and stars to disappear behind the cloud layer instead of bleeding through.
     // Transition window: elevation [kSunsetStart … 0.0].  Below the horizon (night) the
     // fully-shifted values are kept (sunsetFactor clamped to 1).
-    const float kSunsetStart = 0.10f;   // elevation (sin) at which sunset modulation begins
-    const float kSunsetHigh  = 0.700f;  // target BlendThresholdHigh  at the horizon
+    const float kSunsetStart = 0.15f;   // elevation (sin) at which sunset modulation begins
+    const float kSunsetHigh  = 0.12f;  // target BlendThresholdHigh  at the horizon
     const float kSunsetWidth = 0.400f;  // target BlendThresholdHighWidth at the horizon
-    const float kSunsetLow   = 0.100f;  // target BlendThresholdLow   at the horizon
+    const float kSunsetLow   = 0.150f;  // target BlendThresholdLow   at the horizon
+    //float sunsetFactor  = 0.0f; // TEMP: sunset composite blend disabled
     float sunsetFactor  = saturate(1.0f - CloudSunElevation / kSunsetStart);
     float effectiveHigh  = lerp(BlendThresholdHigh,      kSunsetHigh,  sunsetFactor);
     float effectiveWidth = lerp(BlendThresholdHighWidth,  kSunsetWidth, sunsetFactor);
@@ -2285,6 +2286,27 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float sunDiscPresent = saturate((bgMaxPresence - 0.75f) * 10.0f);
     float masterGateMult = lerp(10.0f, 50.0f, sunDiscPresent);
     finalColor = lerp(bg, finalColor, saturate(cloudAlpha * masterGateMult));
+
+    // Alto dark-edge screen-blend override: applied AFTER all composite blend logic
+    // (luma classifier, sunset factor, master gate) so it is fully independent
+    // of every blend setting.
+    //
+    // Targets ONLY the dark/grey boundary halos:
+    //   altoEdgeAlpha — tight boundary zone: full at alpha=0, zero at alpha=0.12.
+    //                   Keeps the effect away from the visible cloud body.
+    //   altoEdgeDark  — luma gate: 1.0 for dark pixels (luma=0), 0.0 at luma>=0.5.
+    //                   Bright cloud edges are already handled correctly by the
+    //                   normal luma classifier; only dark/grey outlines need forcing.
+    //
+    // Combined: only dark boundary pixels get screen-blended. Dense or bright
+    // cloud pixels (altoEdgeAlpha=0 or altoEdgeDark=0) are completely unaffected.
+    if (CloudType == 1)
+    {
+        float altoEdgeAlpha = 1.0f - smoothstep(0.0f, 0.92f, cloudAlpha);
+        float altoEdgeDark  = 1.0f - saturate(cloudLuma / 0.5f);
+        float altoAbsEdge   = altoEdgeAlpha * altoEdgeDark;
+        finalColor = lerp(finalColor, screenResult, altoAbsEdge);
+    }
 
     return float4(finalColor, 1.0f);
 }
