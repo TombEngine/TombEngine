@@ -27,6 +27,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Boss.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/Utils/object_helper.h"
@@ -35,8 +37,6 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
-#include "Objects/Effects/Boss.h"
-#include "Objects/Effects/Fireflies.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
@@ -1095,7 +1095,7 @@ namespace TEN::Renderer
 			float interpolationFactor = GetInterpolationFactor();
 			float outerRadius = Lerp((float)ring.PrevRadius, (float)ring.Radius, interpolationFactor);
 			float innerRadius = outerRadius * 0.5f;
-			float lifeFraction = Lerp(ring.PrevLife / 32.0f, ring.Life / 32.0f, interpolationFactor);
+			float lifeFraction = Lerp(ring.PrevLife / BOSS_EXPLOSION_RING_LIFE_MAX, ring.Life / BOSS_EXPLOSION_RING_LIFE_MAX, interpolationFactor);
 
 			constexpr int NUM_SEGMENTS = 8;
 			float wibbleOffset = (GlobalCounter & 0x3F) * 0.1f;

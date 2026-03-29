@@ -21,6 +21,7 @@ using namespace TEN::Entities::Creatures::TR3;
 namespace TEN::Effects::Boss
 {
 	constexpr auto EXPLOSION_RING_SPEED  = 256;
+	constexpr auto EXPLOSION_LIGHT_RANGE = BLOCK(8);
 
 	std::array<BossExplosionRing, MAX_BOSS_EXPLOSION_RINGS> BossExplosionRings = {};
 
@@ -99,7 +100,7 @@ namespace TEN::Effects::Boss
 
 			ring.IsActive = true;
 			ring.ColorType = colorType;
-			ring.Life = 32;
+			ring.Life = BOSS_EXPLOSION_RING_LIFE_MAX;
 			ring.Speed = speed;
 			ring.Radius = 0;
 			ring.XRot = (short)Random::GenerateInt(0, SHRT_MAX);
@@ -279,7 +280,7 @@ namespace TEN::Effects::Boss
 
 			auto lightPos = item.Pose.Position.ToVector3();
 			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
-			SpawnDynamicPointLight(lightPos, lightColor, 8096.0f);
+			SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
 
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(3), 0.0f), BLOCK(0.5f));
 			for (int i = 0; i < 3; i++)
@@ -316,7 +317,7 @@ namespace TEN::Effects::Boss
 
 			auto lightPos = item.Pose.Position.ToVector3();
 			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
-			SpawnDynamicPointLight(lightPos, lightColor, 8096.0f);
+			SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
 		}
 
 		SpawnDynamicLight(

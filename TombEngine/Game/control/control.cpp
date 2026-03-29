@@ -68,6 +68,7 @@
 using namespace std::chrono;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
+using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
@@ -219,7 +220,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateSimpleParticles();
 	UpdateExplosionParticles();
 	UpdateShockwaves();
-	TEN::Effects::Boss::UpdateBossExplosionRings();
+	UpdateBossExplosionRings();
 	UpdateBeetleSwarm();
 	UpdateLocusts();
 	UpdateUnderwaterBloodParticles();
