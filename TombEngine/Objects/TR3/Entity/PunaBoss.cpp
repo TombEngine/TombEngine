@@ -337,9 +337,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				// Avoid having the object stop working.
 				item.Animation.FrameNumber = endFrameNumber;
-
-				if (item.GetFlagField((int)BossItemFlags::ExplodeCount) < PUNA_EXPLOSION_NUM_MAX)
-					item.ItemFlags[(int)BossItemFlags::ExplodeCount]++;
+				item.MeshBits.ClearAll();
 
 				if (item.ItemFlags[7] < PUNA_EXPLOSION_NUM_MAX)
 					item.ItemFlags[7]++;
