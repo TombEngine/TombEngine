@@ -35,7 +35,7 @@ namespace TEN::Entities::TR3
 	constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.6f;
 
 	// Dynamic lighting parameters.
-	constexpr auto FUSEBOX_FLASH_DURATION  = 0.5f * FPS;
+	constexpr auto FUSEBOX_FLASH_DURATION  = FPS / 2;
 	constexpr auto FUSEBOX_FLASH_FALLOFF   = BLOCK(4);
 	constexpr auto FUSEBOX_FLICKER_FALLOFF = BLOCK(2);
 
@@ -254,11 +254,8 @@ namespace TEN::Entities::TR3
 			SpawnDestructionBlast(item, pos);
 			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, const_cast<Pose*>(&item.Pose));
 
-			// Activate triggers placed under the fusebox.
-			short roomNumber = item.RoomNumber;
-			auto* floor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber);
-			GetFloorHeight(floor, item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z);
-			TestTriggers(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, roomNumber, true);
+			// Activate triggers placed under the fusebox, using this item as activator.
+			TestTriggers(&item, true, item.Flags & IFLAG_ACTIVATION_MASK);
 		}
 
 		AnimateItem(&item);
