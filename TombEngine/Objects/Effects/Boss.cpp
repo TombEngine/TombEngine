@@ -202,7 +202,7 @@ namespace TEN::Effects::Boss
 		UpdateItemRoom(itemNumber);
 	}
 
-	void SpawnExplosionSmoke(const Vector3& pos)
+	void SpawnExplosionSmoke(const Vector3& pos, const Vector4& color)
 	{
 		auto& smoke = *GetFreeParticle();
 
@@ -218,12 +218,12 @@ namespace TEN::Effects::Boss
 		smoke.xVel = Random::GenerateFloat(BLOCK(0.5f), BLOCK(0.5f));
 		smoke.yVel = GetRandomControl() - 128;
 		smoke.zVel = Random::GenerateFloat(BLOCK(0.5f), BLOCK(0.5f));
-		smoke.sR = 75;
-		smoke.sG = 125;
-		smoke.sB = 175;
-		smoke.dR = 25;
-		smoke.dG = 80;
-		smoke.dB = 100;
+		smoke.sR = color.x * 200;
+		smoke.sG = color.y * 200;
+		smoke.sB = color.z * 200;
+		smoke.dR = color.x * 100;
+		smoke.dG = color.y * 100;
+		smoke.dB = color.z * 100;
 		smoke.colFadeSpeed = 8;
 		smoke.fadeToBlack = 64;
 		smoke.life =
@@ -280,7 +280,7 @@ namespace TEN::Effects::Boss
 			for (int i = 0; i < 3; i++)
 			{
 				auto pos = Random::GeneratePointInSphere(sphere);
-				SpawnExplosionSmoke(pos);
+				SpawnExplosionSmoke(pos, color);
 
 				TriggerExplosionSparks(
 					item.Pose.Position.x + (Random::GenerateInt(0, 127) - 64 * 2),
@@ -299,7 +299,7 @@ namespace TEN::Effects::Boss
 			for (int i = 0; i < 3; i++)
 			{
 				auto pos = Random::GeneratePointInSphere(sphere);
-				SpawnExplosionSmoke(pos);
+				SpawnExplosionSmoke(pos, color);
 
 				TriggerExplosionSparks(
 					item.Pose.Position.x + (Random::GenerateInt(0, 127) - 64 * 2),
