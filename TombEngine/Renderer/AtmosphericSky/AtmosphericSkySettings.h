@@ -19,7 +19,7 @@ namespace TEN::Renderer
 		float SkyColorR              = 0.065f;   // [0,1]   Base sky color R (Rayleigh tint).
 		float SkyColorG              = 0.145f;   // [0,1]   Base sky color G.
 		float SkyColorB              = 0.422f;   // [0,1]   Base sky color B.
-		float Density                = 0.830f;   // [0.1,3] Atmospheric density factor.
+		float Density                = 0.470f;   // [0.1,3] Atmospheric density factor.
 		float ZenithOffset           = 0.039f;   // [0,0.5] Vertical offset for zenith density.
 		float MultiScatterPhase      = 0.902f;   // [0,1]   Multi-scatter sun elevation influence.
 		float AnisotropicIntensity   = 0.00f;   // [0,2]   Mie anisotropic scattering strength.

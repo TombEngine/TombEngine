@@ -109,12 +109,33 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     // source onto the screen edge. Fade sunDiscVis to zero as the sun exits the border.
     float2 sunEdgeDist    = max(abs(GodRaySunScreenPos - 0.5f) - 0.5f, 0.0f);
     float  sunOnScreenFade = 1.0f - saturate(max(sunEdgeDist.x, sunEdgeDist.y) * 6.0f);
-    float2 sunUV          = saturate(GodRaySunScreenPos);
-    float  sunCloudA      = CloudTexture.SampleLevel(LinearSamp, sunUV, 0).a;
-    float  sunCloudB      = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0).a;
-    float  sunOcclusion   = saturate(max(sunCloudA, sunCloudB));
-    // Tight threshold: disc starts fading when cloud at sun > 0.2, fully gone at 0.55.
-    float  sunDiscVis     = sunOnScreenFade * (1.0f - smoothstep(0.2f, 0.55f, sunOcclusion));
+    float2 sunUV           = saturate(GodRaySunScreenPos);
+    float4 sunCloudSampleA = CloudTexture.SampleLevel(LinearSamp, sunUV, 0);
+    float4 sunCloudSampleB = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0);
+    float  sunCloudA       = sunCloudSampleA.a;
+    float  sunCloudB       = sunCloudSampleB.a;
+    float  sunOcclusion    = saturate(max(sunCloudA, sunCloudB));
+    // Dark-underside detection: alto second color produces low-luma RGB in the cloud RT.
+    // Sample the dominant layer's color at the sun UV and compute luminance.
+    // A presence gate (alpha > ~0.05) prevents empty/black sky from triggering the boost.
+    // Luma < 0.5 → dark face → boost aggressiveness up to 8x so even screen-blend
+    // dark undersides hide the sun disc, independent of the sunset-elevation ramp.
+    float3 sunCloudRGB        = (sunCloudA >= sunCloudB) ? sunCloudSampleA.rgb : sunCloudSampleB.rgb;
+    float  sunCloudLuma       = dot(saturate(sunCloudRGB), float3(0.299f, 0.587f, 0.114f));
+    float  cloudPresenceGate  = saturate(sunOcclusion * 20.0f);
+    float  darkUndersideBoost = saturate(1.0f - sunCloudLuma / 0.5f) * cloudPresenceGate;
+    // Sunset factor: 0 when sun is high, 1 when sun is at/below horizon (elevation<0.25).
+    // Day:    disc fades when cloud alpha > 0.20, fully gone at 0.55.
+    // Sunset: disc fades when cloud alpha > 0.05, fully gone at 0.25.
+    //         (cloudAlpha*aggressiveness replaces the direct smoothstep input.)
+    float sunsetFac       = saturate(1.0f - GodRaySunElevation / 0.25f);
+    float godRayOccAggr   = lerp(1.0f, 8.0f, max(sunsetFac, darkUndersideBoost));
+    float sunOccludeInput = saturate(sunOcclusion * godRayOccAggr);
+    // Ease-in cubic: sun stays nearly fully visible until clouds are dense,
+    // then drops sharply over a short window to full occlusion.
+    float  occludeT   = smoothstep(0.2f, 0.55f, sunOccludeInput);
+    occludeT          = occludeT * occludeT * occludeT;
+    float  sunDiscVis = sunOnScreenFade * (1.0f - occludeT);
 
     float  accumulated = 0.0f;
     float  w           = 1.0f;           // weight starts full, decays as we move toward sun

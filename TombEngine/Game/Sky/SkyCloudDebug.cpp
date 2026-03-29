@@ -1533,6 +1533,16 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::TextDisabled("  Apparent half-angle of the sun disk in degrees.");
 			ImGui::SliderFloat("Sun Disk Intensity", &settings.SunDiskIntensity, 1.0f, 200.0f, "%.1f");
 			ImGui::TextDisabled("  Brightness before tone mapping. High = solid white disk.");
+
+			// Cloud occlusion indicator — green = disc clear, red = disc behind screen-blend cloud
+			float transmittance = g_Renderer.GetCloudLensFlareOcclusion();
+			bool  discOccluded  = (transmittance < 0.5f);
+			ImVec4 indicatorColor = discOccluded
+				? ImVec4(1.0f, 0.15f, 0.15f, 1.0f)
+				: ImVec4(0.15f, 1.0f, 0.15f, 1.0f);
+			ImGui::TextColored(indicatorColor, discOccluded ? "  [DISC OCCLUDED]" : "  [DISC CLEAR]");
+			ImGui::SameLine();
+			ImGui::TextDisabled("cloud transmittance: %.2f", transmittance);
 		}
 
 		// --- Glow and brightness ---

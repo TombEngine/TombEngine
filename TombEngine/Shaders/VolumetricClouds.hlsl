@@ -2196,9 +2196,6 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // Screen blend result.
     float3 screenResult = 1.0f - (1.0f - bg) * (1.0f - cloudContrib);
 
-    // Alpha blend result.
-    float3 alphaResult = lerp(bg, cloudStraight, cloudAlpha);
-
     // Brightness-based blend factor: measured on straight-alpha cloud color,
     // NOT on the premultiplied contribution. The premultiplied value is small
     // for thin bright edges (bright * low alpha ≈ small), which would wrongly
@@ -2218,10 +2215,10 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // sun, moon, and stars to disappear behind the cloud layer instead of bleeding through.
     // Transition window: elevation [kSunsetStart … 0.0].  Below the horizon (night) the
     // fully-shifted values are kept (sunsetFactor clamped to 1).
-    const float kSunsetStart = 0.25f;   // elevation (sin) at which sunset modulation begins
-    const float kSunsetHigh  = 0.199f;  // target BlendThresholdHigh  at the horizon
+    const float kSunsetStart = 0.10f;   // elevation (sin) at which sunset modulation begins
+    const float kSunsetHigh  = 0.700f;  // target BlendThresholdHigh  at the horizon
     const float kSunsetWidth = 0.400f;  // target BlendThresholdHighWidth at the horizon
-    const float kSunsetLow   = 0.000f;  // target BlendThresholdLow   at the horizon
+    const float kSunsetLow   = 0.100f;  // target BlendThresholdLow   at the horizon
     float sunsetFactor  = saturate(1.0f - CloudSunElevation / kSunsetStart);
     float effectiveHigh  = lerp(BlendThresholdHigh,      kSunsetHigh,  sunsetFactor);
     float effectiveWidth = lerp(BlendThresholdHighWidth,  kSunsetWidth, sunsetFactor);
@@ -2233,16 +2230,61 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     const float darkTransW = 0.025f;
     float brightScreen = smoothstep(effectiveHigh - effectiveWidth,
                                     effectiveHigh + effectiveWidth, cloudLuma);
-    float darkScreen   = 1.0f - smoothstep(effectiveLow - darkTransW,
-                                           effectiveLow + darkTransW, cloudLuma);
+    // Dark-screen zone is only for transparent edges (near-zero alpha with residual dark color
+    // from premultiplied filtering). Alto second color produces solid dark faces (high alpha,
+    // low luma) — those must alpha-blend to properly occlude the background sun disc.
+    // Gate darkScreen by the inverse of cloud presence: 1 at fully transparent, 0 at solid.
+    float darkEdgeWeight = 1.0f - saturate(cloudAlpha * 10.0f);
+    float darkScreen     = (1.0f - smoothstep(effectiveLow - darkTransW,
+                                              effectiveLow + darkTransW, cloudLuma))
+                           * darkEdgeWeight;
     float screenFactor = max(brightScreen, darkScreen);
 
+    // Alpha blend result.
+    //
+    // At day (sunsetFactor=0): cloudAlpha is used directly for alphaResult.
+    //   Thin screen-blend clouds (low cloudAlpha) stay semi-transparent → sun visible ✓
+    //   Dense alpha-blend clouds (high cloudAlpha, screenFactor≈0) are boosted via the
+    //   gentle curve 1-(1-α)² → sun hidden ✓
+    //
+    // At sunset (sunsetFactor>0): cloudAlpha is blended toward cloudPresence.
+    //   cloudPresence = sat(cloudAlpha*10) — already 1.0 for any pixel with α≥0.1,
+    //   the same binary "cloud exists here" signal used by the master presence gate below.
+    //   This makes ANY cloud (even thin screen-blend ones) fully opaque in alpha-blend
+    //   so the sun disc stored in bg is properly hidden.
+    //
+    // effectiveSunset = sqrt(sunsetFactor) — power curve that makes the ramp approach 1.0
+    //   faster than linear.  At elevation=0.07 (sunsetFactor≈0.72): sqrt(0.72)≈0.849,
+    //   giving alphaForBg≈0.96 for a cloud with cloudAlpha=0.15.
+    //
+    // effectiveScreenFactor uses (1-effectiveSunset)² so the screen-blend contribution
+    //   (which cannot darken the background sun disc) is suppressed at sunset.
+    //   At elevation=0.07: (1-0.849)²≈0.023 → only 2.3% screen blend remains.
+    float cloudPresence     = saturate(cloudAlpha * 10.0f);
+    float effectiveSunset   = sqrt(sunsetFactor);
+    float bgLuma            = dot(bg, float3(0.299f, 0.587f, 0.114f));
+    float brightBgBoost     = saturate((bgLuma - 0.7f) * 5.0f) * cloudPresence;
+    float alphaForBg        = lerp(cloudAlpha, cloudPresence, max(effectiveSunset, brightBgBoost));
+    float alphaOcclude      = lerp(alphaForBg,
+                                   1.0f - (1.0f - alphaForBg) * (1.0f - alphaForBg),
+                                   1.0f - screenFactor);
+    float3 alphaResult      = lerp(bg, cloudStraight, alphaOcclude);
+
+    float sfSuppression     = (1.0f - effectiveSunset) * (1.0f - effectiveSunset);
+    float effectiveScreenFactor = screenFactor * sfSuppression;
+
     // Final hybrid composite.
-    float3 finalColor = lerp(alphaResult, screenResult, screenFactor);
+    float3 finalColor = lerp(alphaResult, screenResult, effectiveScreenFactor);
 
     // Where there is no cloud at all, preserve the background exactly.
     // cloudAlpha acts as the master presence signal.
-    finalColor = lerp(bg, finalColor, saturate(cloudAlpha * 10.0f));
+    // When the sun disc (very bright bg) is present AND cloud is present, boost the gate
+    // multiplier so even cloudAlpha=0.02 produces gate=1.0, preventing the sun from
+    // bleeding back through the lerp at low alpha values.
+    float bgMaxPresence  = max(bg.r, max(bg.g, bg.b));
+    float sunDiscPresent = saturate((bgMaxPresence - 0.75f) * 10.0f);
+    float masterGateMult = lerp(10.0f, 50.0f, sunDiscPresent);
+    finalColor = lerp(bg, finalColor, saturate(cloudAlpha * masterGateMult));
 
     return float4(finalColor, 1.0f);
 }
@@ -2334,9 +2376,11 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
     // across a wider "corona" area around the sun's projected screen position.
     //
     // CORONA_RADIUS: sample ring offset in half-res cloud RT pixels.
-    // 8 pixels at typical half-res (960x540) ??? 16 full-res pixels from sun center.
+    // 20 pixels at typical half-res (960x540) ≈ 40 full-res pixels from sun center.
+    // Larger radius ensures that clouds surrounding a small gap at the sun position
+    // are still captured, preventing sprite/flare bleed through cloud patches.
     // ---------------------------------------------------------------------------
-    static const float CORONA_RADIUS = 8.0f;
+    static const float CORONA_RADIUS = 20.0f;
 
     bool sunOnScreen = (SunScreenUV.x > 0.01f && SunScreenUV.x < 0.99f &&
                         SunScreenUV.y > 0.01f && SunScreenUV.y < 0.99f);
@@ -2364,7 +2408,15 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
         cloudAlpha /= 9.0f;
 
         // Screen-space visibility: 1 = no cloud near sun, 0 = sun area fully covered.
-        float screenVisibility = 1.0f - cloudAlpha;
+        // occAggressiveness scales the cloud alpha before subtracting from 1.
+        // Day (sunsetFactor=0):    multiplier=1  → matches raw transmittance.
+        // Sunset (sunsetFactor=1): multiplier=8  → cloudAlpha≥0.125 yields full occlusion.
+        // This makes the sun sprite / lens flare halo / starflare disappear behind
+        // screen-blend clouds (moderate alpha in cloud RT) at sunset, exactly mirroring
+        // the sunDiscVis logic in GodRay.hlsl (same 0.25-elevation ramp, same multiplier).
+        float occSunsetFactor   = saturate(1.0f - CloudSunElevation / 0.25f);
+        float occAggressiveness = lerp(1.0f, 8.0f, occSunsetFactor);
+        float screenVisibility  = saturate(1.0f - cloudAlpha * occAggressiveness);
 
         // Use the most-occluding estimate from either method.
         visibility = min(rayVisibility, screenVisibility);

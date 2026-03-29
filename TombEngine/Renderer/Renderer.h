@@ -517,8 +517,9 @@ namespace TEN::Renderer
 		                                 RenderView& view);
 		void DrawVolumetricClouds(RenderView& renderView);
 		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
-		float GetCloudLensFlareOcclusion() const;
 		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
+	public:
+		float GetCloudLensFlareOcclusion() const;
 
 		// Dual volumetric cloud layers (new layered system).
 		void InitializeDualVolumetricClouds();
