@@ -4,6 +4,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/Light.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
@@ -276,6 +277,10 @@ namespace TEN::Effects::Boss
 			auto ringPos = item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f);
 			TriggerBossExplosionRing(ringPos, EXPLOSION_RING_SPEED, ringColor);
 
+			auto lightPos = item.Pose.Position.ToVector3();
+			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
+			SpawnDynamicPointLight(lightPos, lightColor, 8096.0f);
+
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(3), 0.0f), BLOCK(0.5f));
 			for (int i = 0; i < 3; i++)
 			{
@@ -308,6 +313,10 @@ namespace TEN::Effects::Boss
 					2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z),
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
+
+			auto lightPos = item.Pose.Position.ToVector3();
+			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
+			SpawnDynamicPointLight(lightPos, lightColor, 8096.0f);
 		}
 
 		SpawnDynamicLight(
