@@ -96,6 +96,12 @@ cbuffer CBAtmosphericSky : register(b10)
     float  AuroraHorizonFade;         // How quickly aurora fades near horizon.
     float  AuroraSunSuppressionStr;   // How strongly sunlight suppresses aurora.
     float  AuroraTime;                // Accumulated animation time.
+    //--
+    // Row 17 — Cloud occlusion of sun disc
+    float  CloudDiscOcclusion;        // [0,1] 1 = fully occluded. Suppresses AtmoSunDisk brightness.
+    float  AtmoPad0;
+    float  AtmoPad1;
+    float  AtmoPad2;
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

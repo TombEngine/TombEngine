@@ -203,7 +203,10 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     float sunDisk = smoothstep(AtmoSunDiskCosRadius - sunEdgeWidth,
                                AtmoSunDiskCosRadius + sunEdgeWidth,
                                sunCosAngle);
-    totalSky += sunDisk * AtmoSunColor * AtmoSunDiskIntensity * sunBelowFade;
+    // Suppress the sun disc when clouds occlude it (CloudDiscOcclusion from prev-frame readback).
+    // Threshold 0.5: disc disappears once transmittance < 0.5 (same as debug indicator).
+    float discVisibility = saturate(1.0f - CloudDiscOcclusion * 2.0f);
+    totalSky += sunDisk * AtmoSunColor * AtmoSunDiskIntensity * sunBelowFade * discVisibility;
 
     // Horizon darkening: darken the sky near and below the horizon.
     // viewDir.y near 0 or negative = near/below horizon.
