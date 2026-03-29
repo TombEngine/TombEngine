@@ -38,10 +38,10 @@
 
 // Objects
 #include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"
-#include "Objects/TR3/Trap/Fusebox.h" 
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"

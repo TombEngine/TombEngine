@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Trap/Fusebox.h"
+#include "Objects/TR3/Object/Fusebox.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
@@ -19,7 +19,7 @@ using namespace TEN::Effects::Spark;
 using namespace TEN::Math;
 using namespace TEN::Math::Random;
 
-namespace TEN::Entities::Traps
+namespace TEN::Entities::TR3
 {
 	// ItemFlags indices.
 	enum FuseboxFlags

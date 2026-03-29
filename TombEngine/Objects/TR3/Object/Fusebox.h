@@ -3,7 +3,7 @@
 struct CollisionInfo;
 struct ItemInfo;
 
-namespace TEN::Entities::Traps
+namespace TEN::Entities::TR3
 {
 	void InitializeFusebox(short itemNumber);
 	void ControlFusebox(short itemNumber);
