@@ -286,7 +286,8 @@ namespace TEN::Renderer
 
 		// Cloud disc occlusion: 1 - transmittance, clamped. Suppresses sun disc in shader
 		// when clouds cover the sun position (prev-frame readback, 1-frame latency is fine).
-		float cloudTransmittance = GetCloudLensFlareOcclusion();
+		// Use combined dual-layer transmittance (Beer-Lambert product of both layers).
+		float cloudTransmittance = g_SkyCloudSystem.GetCombinedCloudTransmittance();
 		_stAtmosphericSky.CloudDiscOcclusion = 1.0f - cloudTransmittance;
 
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);

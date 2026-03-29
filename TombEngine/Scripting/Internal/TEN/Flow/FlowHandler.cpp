@@ -489,6 +489,7 @@ void FlowHandler::LoadFlowScript()
 	ResetInventoryTablesToDefault();
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
+	_handler.ExecuteScript(_gameDir + "Scripts/WeatherPresets.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Strings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Settings.lua", true);

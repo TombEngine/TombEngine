@@ -2163,6 +2163,14 @@ namespace TEN::Sky
 
 	float SkyCloudSystem::GetCombinedCloudTransmittance() const
 	{
+		// When neither dual layer is actively rendering, the stored transmittances may be stale
+		// from a previous cloud state (e.g. after a transition from Thunderstorm to ClearSky,
+		// UpdateDualCloudLensFlareOcclusion is never called while both layers are inactive,
+		// so _cloudATransmittance/_cloudBTransmittance keep their last cloud-state value near 0).
+		// Return full transmittance (no occlusion) whenever no dual layer is rendering.
+		if (!IsCloudAActive() && !IsCloudBActive())
+			return 1.0f;
+
 		// Beer-Lambert-style composition: multiply transmittances.
 		return _cloudATransmittance * _cloudBTransmittance;
 	}

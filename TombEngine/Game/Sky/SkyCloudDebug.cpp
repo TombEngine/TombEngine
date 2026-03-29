@@ -1534,7 +1534,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::TextDisabled("  Brightness before tone mapping. High = solid white disk.");
 
 			// Cloud occlusion indicator — green = disc clear, red = disc behind screen-blend cloud
-			float transmittance = g_Renderer.GetCloudLensFlareOcclusion();
+			float transmittance = g_SkyCloudSystem.GetCombinedCloudTransmittance();
 			bool  discOccluded  = (transmittance < 0.5f);
 			ImVec4 indicatorColor = discOccluded
 				? ImVec4(1.0f, 0.15f, 0.15f, 1.0f)
