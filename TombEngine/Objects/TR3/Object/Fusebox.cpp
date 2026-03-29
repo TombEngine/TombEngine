@@ -5,7 +5,6 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Electricity.h"
 #include "Game/effects/spark.h"
 #include "Game/items.h"
 #include "Game/Setup.h"
