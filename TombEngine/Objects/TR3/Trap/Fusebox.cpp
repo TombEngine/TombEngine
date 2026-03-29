@@ -35,7 +35,7 @@ namespace TEN::Entities::Traps
 	constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.6f;
 
 	// Dynamic lighting parameters.
-	constexpr auto FUSEBOX_FLASH_DURATION  = (int)(0.5f * FPS);
+	constexpr auto FUSEBOX_FLASH_DURATION  = 0.5f * FPS;
 	constexpr auto FUSEBOX_FLASH_FALLOFF   = BLOCK(4);
 	constexpr auto FUSEBOX_FLICKER_FALLOFF = BLOCK(2);
 
