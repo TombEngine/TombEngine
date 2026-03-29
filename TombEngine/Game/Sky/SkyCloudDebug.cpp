@@ -230,7 +230,6 @@ namespace TEN::Sky
 		switch (snap.Category)
 		{
 		case CloudCategory::AltocumulusMid:
-			// Schaefchenwolken: reference-shader-inspired soft cotton-ball puffs.
 			// Uses only Alto-specific parameters for density/lighting.
 			snap.AltoBillowStrength = 0.85f;
 			snap.AltoCovSoftWidth   = 0.035f;
@@ -1711,7 +1710,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 
 		if (ImGui::BeginTabBar("##SkyDebugTabs"))
 		{
-			if (ImGui::BeginTabItem("Wolken"))
+			if (ImGui::BeginTabItem("Clouds"))
 			{
 				DrawCloudTabContent();
 				ImGui::EndTabItem();
