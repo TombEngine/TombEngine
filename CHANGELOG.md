@@ -3,6 +3,11 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.11.1]
+
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
+
 ## [Version 1.11]
 
 ### New features
