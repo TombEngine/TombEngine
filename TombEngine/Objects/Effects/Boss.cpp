@@ -10,6 +10,7 @@
 #include "Game/misc.h"
 #include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
+#include "Objects/game_object_ids.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 
 using namespace TEN::Collision::Point;
@@ -18,6 +19,10 @@ using namespace TEN::Entities::Creatures::TR3;
 
 namespace TEN::Effects::Boss
 {
+	constexpr auto EXPLOSION_RING_SPEED  = 256;
+
+	std::array<BossExplosionRing, MAX_BOSS_EXPLOSION_RINGS> BossExplosionRings = {};
+
 	void SpawnShield(const ItemInfo& item, const Vector4& color)
 	{
 		if (!item.TestFlags((int)BossItemFlags::Object, (short)BossFlagValue::Shield))
@@ -76,12 +81,51 @@ namespace TEN::Effects::Boss
 		result.w = 1.0f;
 		shockwaveItem.Model.Color = result;
 		shockwaveItem.Collidable = false;					   // No collision for this entity.
-		shockwaveItem.ItemFlags[0] = 70;					   // Timer before clearing; will fade out, then get destroyed.
+		shockwaveItem.ItemFlags[0] = 64;					   // Timer before clearing; will fade out, then get destroyed.
 		shockwaveItem.Model.Mutators[0].Scale = Vector3::Zero; // Start without scale.
 		shockwaveItem.Status = ITEM_ACTIVE;
 
 		AddActiveItem(itemNumber);
 		SoundEffect(SFX_TR3_BLAST_CIRCLE, &shockwaveItem.Pose);
+	}
+
+	void TriggerBossExplosionRing(const Vector3& pos, int speed, BossExplosionRingColor colorType)
+	{
+		for (auto& ring : BossExplosionRings)
+		{
+			if (ring.IsActive)
+				continue;
+
+			ring.IsActive = true;
+			ring.ColorType = colorType;
+			ring.Life = 32;
+			ring.Speed = speed;
+			ring.Radius = 0;
+			ring.XRot = (short)Random::GenerateInt(0, SHRT_MAX);
+			ring.ZRot = (short)Random::GenerateInt(0, SHRT_MAX);
+			ring.Position = pos;
+			return;
+		}
+	}
+
+	void UpdateBossExplosionRings()
+	{
+		for (auto& ring : BossExplosionRings)
+		{
+			if (!ring.IsActive)
+				continue;
+
+			ring.StoreInterpolationData();
+
+			ring.Life--;
+			if (ring.Life <= 0)
+			{
+				ring.IsActive = false;
+				continue;
+			}
+
+			ring.Radius += ring.Speed;
+		}
 	}
 
 	void ShieldControl(int itemNumber)
@@ -127,7 +171,7 @@ namespace TEN::Effects::Boss
 			}
 		}
 
-		item.Model.Mutators[0].Scale += Vector3::One;
+		item.Model.Mutators[0].Scale += Vector3(0.25f);
 		UpdateItemRoom(itemNumber);
 	}
 
@@ -154,7 +198,7 @@ namespace TEN::Effects::Boss
 		}
 
 		item.Pose.Orientation.y += ANGLE(5.0f);
-		item.Model.Mutators[0].Scale += Vector3(0.5f);
+		item.Model.Mutators[0].Scale += Vector3(0.15f);
 		UpdateItemRoom(itemNumber);
 	}
 
@@ -204,11 +248,33 @@ namespace TEN::Effects::Boss
 		item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
 		item.HitPoints = NOT_TARGETABLE;
 
+		// Determine ring color type from boss object ID.
+		auto ringColor = BossExplosionRingColor::Willard;
+		switch (item.ObjectNumber)
+		{
+		case ID_TONY_BOSS:
+			ringColor = BossExplosionRingColor::Tony;
+			break;
+		case ID_SOPHIA_LEIGH_BOSS:
+			ringColor = BossExplosionRingColor::Sophia;
+			break;
+		case ID_PUNA_BOSS:
+			ringColor = BossExplosionRingColor::Puna;
+			break;
+		}
+
 		// Start explosion (entity will keep duration count).
 		int counter = item.ItemFlags[(int)BossItemFlags::ExplodeCount];
 		if (counter == 1)
 		{
 			SpawnShockwaveExplosion(item, color);
+		}
+
+		// Spawn staggered explosion rings, smoke and sparks at classic TR3 intervals.
+		if (counter == 1 || counter == 15 || counter == 25 || counter == 35 || counter == 45 || counter == 55)
+		{
+			auto ringPos = item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f);
+			TriggerBossExplosionRing(ringPos, EXPLOSION_RING_SPEED, ringColor);
 
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(3), 0.0f), BLOCK(0.5f));
 			for (int i = 0; i < 3; i++)
@@ -223,6 +289,8 @@ namespace TEN::Effects::Boss
 					2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z), 
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
+
+			SoundEffect(SFX_TR3_BLAST_CIRCLE, &item.Pose);
 		}
 
 		if (counter > 0 && !(counter % 10))
@@ -240,26 +308,6 @@ namespace TEN::Effects::Boss
 					2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z),
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
-
-			sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
-			auto shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
-
-			int speed = Random::GenerateInt(BLOCK(0.5f), BLOCK(1.6f));
-			auto orient2D = Random::GenerateAngle(ANGLE(-24.0f), ANGLE(24.0f));
-
-			TriggerShockwave(
-				&shockwavePos, 300, BLOCK(0.5f), speed,
-				color.x * UCHAR_MAX, color.y * UCHAR_MAX, color.z * UCHAR_MAX,
-				36, EulerAngles(orient2D, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
-
-			TriggerExplosionSparks(
-				item.Pose.Position.x + (Random::GenerateInt(0, 127) - 64 * 2),
-				(item.Pose.Position.y - CLICK(2)) + (Random::GenerateInt(0, 127) - 64 * 2),
-				item.Pose.Position.z + (Random::GenerateInt(0, 127) - 64 * 2),
-				2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z),
-				Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
-
-			SoundEffect(SFX_TR3_BLAST_CIRCLE, &shockwavePos);
 		}
 
 		SpawnDynamicLight(

@@ -1834,6 +1834,7 @@ namespace TEN::Renderer
 		PrepareUnderwaterBloodParticles(view);
 		PrepareSplashes(view);
 		PrepareShockwaves(view);
+		PrepareBossExplosionRings(view);
 		PrepareElectricity(view);
 		PrepareHelicalLasers(view);
 		PrepareRopes(view);

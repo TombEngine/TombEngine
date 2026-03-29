@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "Game/items.h"
 
 namespace TEN::Effects::Boss
@@ -23,6 +24,41 @@ namespace TEN::Effects::Boss
 		Lizard			   = (1 << 2)
 	};
 
+	// Color pattern matching the classic TR3 per-boss explosion ring colors.
+	enum class BossExplosionRingColor
+	{
+		Tony = 0,
+		Sophia = 1,
+		Puna = 2,
+		Willard = 3
+	};
+
+	// Procedural explosion ring effect spawned during boss death, matching classic TR3.
+	constexpr int MAX_BOSS_EXPLOSION_RINGS = 6;
+
+	struct BossExplosionRing
+	{
+		bool IsActive = false;
+		BossExplosionRingColor ColorType = BossExplosionRingColor::Willard;
+		int Life = 0;
+		int Speed = 0;
+		int Radius = 0;
+		short XRot = 0;
+		short ZRot = 0;
+		Vector3 Position = Vector3::Zero;
+
+		int PrevRadius = 0;
+		int PrevLife = 0;
+
+		void StoreInterpolationData()
+		{
+			PrevRadius = Radius;
+			PrevLife = Life;
+		}
+	};
+
+	extern std::array<BossExplosionRing, MAX_BOSS_EXPLOSION_RINGS> BossExplosionRings;
+
 	void ShieldControl(int itemNumber);
 	void ShockwaveRingControl(int itemNumber);
 	void ShockwaveExplosionControl(int itemNumber);
@@ -32,6 +68,9 @@ namespace TEN::Effects::Boss
 
 	void SpawnShield(const ItemInfo& item, const Vector4& color);
 	void SpawnShockwaveExplosion(const ItemInfo& item, const Vector4& color);
+
+	void TriggerBossExplosionRing(const Vector3& pos, int speed, BossExplosionRingColor colorType);
+	void UpdateBossExplosionRings();
 
 	void SpawnShieldAndRichochetSparks(const ItemInfo& item, const Vector3& pos, const Vector4& color);
 }

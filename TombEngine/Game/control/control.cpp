@@ -39,6 +39,7 @@
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Boss.h"
 #include "Objects/Effects/LensFlare.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
@@ -218,6 +219,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateSimpleParticles();
 	UpdateExplosionParticles();
 	UpdateShockwaves();
+	TEN::Effects::Boss::UpdateBossExplosionRings();
 	UpdateBeetleSwarm();
 	UpdateLocusts();
 	UpdateUnderwaterBloodParticles();
