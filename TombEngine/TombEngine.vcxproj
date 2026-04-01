@@ -631,7 +631,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR3\Entity\tr3_tribesman.h" />
     <ClInclude Include="Objects\TR3\Entity\Winston.h" />
     <ClInclude Include="Objects\TR3\Object\Corpse.h" />
-	<ClInclude Include="Objects\TR3\Object\Fusebox.h" />
+    <ClInclude Include="Objects\TR3\Object\Fusebox.h" />
     <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
     <ClInclude Include="Objects\TR3\Trap\FirePendulum.h" />
     <ClInclude Include="Objects\TR3\Trap\train.h" />
