@@ -28,7 +28,7 @@
 --		if not EventSequence.IfExists("my_seq") then
 --			EventSequence.Create("my_seq",
 --				false, -- does not loop
---				{seconds = true, deciseconds = true}, -- timer format, see Timer for details
+--				{seconds = true, centiseconds = true}, -- timer format, see Timer for details
 --				6, -- seconds until call the function specified in next arg 
 --				LevelFuncs.HealLara, -- first function to call. If we don't need to pass any arguments, we can just pass the function
 --				2.1, -- seconds until the next function, after the previous one has been called
@@ -57,15 +57,33 @@ LevelVars.Engine.EventSequence = {sequences = {}}
 
 LevelFuncs.Engine.EventSequence.CallNext = function(sequenceName, nextTimerName, func, ...)
 	local thisES = LevelVars.Engine.EventSequence.sequences[sequenceName]
+	if not thisES then
+		return
+	end
 	func(...)
+
+	-- Callback may stop or delete the sequence; re-read state and bail out safely.
+	thisES = LevelVars.Engine.EventSequence.sequences[sequenceName]
+	if not thisES then
+		return
+	end
+
+	if thisES.stopRequested then
+		thisES.stopRequested = false
+		return
+	end
 
 	thisES.currentTimer = thisES.currentTimer + 1
 	if thisES.currentTimer <= #thisES.timers then
-		local theTimer = Timer.Get(nextTimerName)
-		theTimer:Start(true)
+		if Timer.IfExists(nextTimerName) then
+			local theTimer = Timer.Get(nextTimerName)
+			theTimer:Start(true)
+		end
 	elseif thisES.loop then
-		local theTimer = Timer.Get(thisES.firstTimerName)
-		theTimer:Start(true)
+		if Timer.IfExists(thisES.firstTimerName) then
+			local theTimer = Timer.Get(thisES.firstTimerName)
+			theTimer:Start(true)
+		end
 		thisES.currentTimer = 1
 	else
 		thisES.currentTimer = 1
@@ -78,7 +96,7 @@ end
 -- @tparam bool loop If `true`, the sequence will start again from its first timer once its final function has been called.
 -- @tparam ?table|bool timerFormat Same as in <a href="Timer.html#timerFormat">Timer format</a> for Timer. This is mainly for debugging. __This will not work properly if another sequence or timer is showing a countdown.__
 -- @tparam float|LevelFuncs|table ... A variable number of pairs of arguments, each pair consisting of:<br>
--- - a time in seconds (positive values are accepted and with only 1 tenth of a second [__0.1__]),<br>
+-- - a time in seconds that can be rounded internally to the nearest game frame (1/30 of a second),<br>
 -- - followed by the function defined in the *LevelFuncs* table to call once the time has elapsed,<br>
 -- - followed by another duration in seconds, another function name, etc.
 --
@@ -87,7 +105,7 @@ end
 -- @treturn[2] nil If there was an error creating the sequence.
 -- @usage
 -- local EventSequence = require("Engine.EventSequence")
--- local TimerFormat = {seconds = true, deciseconds = true}
+-- local TimerFormat = {seconds = true, centiseconds = true}
 --
 -- -- Example 1 function without arguments:
 -- -- This creates a sequence that calls LevelFuncs.Func after 2 seconds
@@ -142,6 +160,7 @@ EventSequence.Create = function (name, loop, timerFormat, ...)
 	thisES.name = name
 	thisES.timers = {}
 	thisES.currentTimer = 1
+	thisES.stopRequested = false
 
 	if not Type.IsBoolean(loop) then
 		TEN.Util.PrintLog("Warning in EventSequence.Create(): wrong value for loop, loop for '".. name .."' sequence will be set to false", TEN.Util.LogLevel.WARNING)
@@ -155,6 +174,16 @@ EventSequence.Create = function (name, loop, timerFormat, ...)
 	thisES.timesFuncsAndArgs = {...}
 	local tfa = thisES.timesFuncsAndArgs
 
+	if #tfa == 0 then
+		TEN.Util.PrintLog("Error in EventSequence.Create(): no timers/functions specified, '".. name .."' sequence was not created", TEN.Util.LogLevel.ERROR)
+		LevelVars.Engine.EventSequence.sequences[name] = nil
+		return
+	end
+	if #tfa % 2 ~= 0 then
+		TEN.Util.PrintLog("Error in EventSequence.Create(): odd number of variable arguments, each time value must be followed by a function, '".. name .."' sequence was not created", TEN.Util.LogLevel.ERROR)
+		LevelVars.Engine.EventSequence.sequences[name] = nil
+		return
+	end
 	for i = 1, #tfa, 2 do
 		local time = tfa[i]
 		local funcAndArgs = tfa[i+1]
@@ -177,18 +206,21 @@ EventSequence.Create = function (name, loop, timerFormat, ...)
 
 		local timerIndex = #thisES.timers + 1
 		local timerName = "__TEN_eventSequence_" .. name .. "_timer" .. timerIndex
-		local nextTimerName = "__TEN_eventSequence_" .. name .. "_timer" .. timerIndex + 1
+		local nextTimerName = "__TEN_eventSequence_" .. name .. "_timer" .. (timerIndex + 1)
 
-		local func, args
+		local func
+		local args = {}
 		if i == 1 then
 			thisES.firstTimerName = timerName
 		end
 		if Type.IsTable(funcAndArgs) then
-			func = table.remove(funcAndArgs, 1)
-			args = funcAndArgs
+			local n = #funcAndArgs
+			func = funcAndArgs[1]
+			if n > 1 then
+				table.move(funcAndArgs, 2, n, 1, args) -- Copy arguments.
+			end
 		else
 			func = funcAndArgs
-			args = {}
 		end
 		Timer.Create(timerName,
 				time,
@@ -213,13 +245,15 @@ end
 -- -- Example:
 -- EventSequence.Get("my_seq")
 EventSequence.Get = function(name)
-	local self = {}
 	if not Type.IsString(name) then
-		return TEN.Util.PrintLog("Error in EventSequence.Get(): invalid name", TEN.Util.LogLevel.ERROR)
+		TEN.Util.PrintLog("Error in EventSequence.Get(): invalid name", TEN.Util.LogLevel.ERROR)
+		return nil
 	end
+
 	local thisES = LevelVars.Engine.EventSequence.sequences[name]
 	if not thisES then
-		return TEN.Util.PrintLog("Warning in EventSequence.Get(): sequence with name '".. name .."' sequence not found", TEN.Util.LogLevel.WARNING)
+		TEN.Util.PrintLog("Warning in EventSequence.Get(): sequence with name '".. name .."' not found", TEN.Util.LogLevel.WARNING)
+		return nil
 	end
 	return setmetatable({name = name}, EventSequence)
 end
@@ -284,6 +318,27 @@ end
 -- end
 function EventSequence:Start()
 	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
+	thisES.stopRequested = false -- Clear stale stop requests before a new run.
+	Timer.Get(thisES.timers[thisES.currentTimer]):Start()
+end
+
+--- Restart the sequence from its first timer. If showing the remaining time on-screen, its color will be set to white.
+-- @usage
+-- -- Example:
+-- if EventSequence.IfExists("my_seq") then
+--    EventSequence.Get("my_seq"):Restart()
+-- end
+function EventSequence:Restart()
+	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
+	-- Ensure a clean restart by stopping every timer in this sequence.
+	for i = 1, #thisES.timers do
+		local timerName = thisES.timers[i]
+		if Timer.IfExists(timerName) then
+			Timer.Get(timerName):Stop()
+		end
+	end
+	thisES.currentTimer = 1
+	thisES.stopRequested = false -- clear stale stop requests before a new run
 	Timer.Get(thisES.timers[thisES.currentTimer]):Start(true)
 end
 
@@ -308,13 +363,22 @@ function EventSequence:SetPaused(p)
 	end
 end
 
---- Stop the sequence.
+--- Stop and reset the sequence to the first element.
 -- @usage
 -- -- Example:
 -- EventSequence.Get("my_seq"):Stop()
 function EventSequence:Stop()
 	local thisES = LevelVars.Engine.EventSequence.sequences[self.name]
-	Timer.Get(thisES.timers[thisES.currentTimer]):Stop()
+	thisES.stopRequested = true
+	for i = 1, #thisES.timers do
+		local timerName = thisES.timers[i]
+		if Timer.IfExists(timerName) then
+			Timer.Get(timerName):Stop()
+		end
+	end
+	thisES.currentTimer = 1
+	local timer = Timer.Get(thisES.timers[thisES.currentTimer])
+	timer:SetRemainingTime(timer:GetTotalTimeInSeconds())
 end
 
 --- Returns whether the sequence is paused.
