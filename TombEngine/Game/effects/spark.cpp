@@ -199,6 +199,71 @@ namespace TEN::Effects::Spark
 		}
 	}
 
+	// Custom fusebox spark effect (yellow and close-range blue/white)
+	void TriggerFuseboxSparks(const Vector3i& pos, int roomNumber)
+	{
+		// Yellow-white sparks for colour variation.
+		for (int i = 0; i < 12; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age      = 0;
+			spark.life     = GenerateFloat(12.0f, 24.0f);
+			spark.friction = 0.94f;
+			spark.gravity  = 2.0f;
+			spark.height   = GenerateFloat(128.0f, 384.0f);
+			spark.width    = GenerateFloat(10.0f, 20.0f);
+			spark.room     = roomNumber;
+			spark.pos      = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(40.0f, 88.0f);
+			spark.sourceColor      = Vector4(1.0f, 1.0f, 0.9f, 1.0f);
+			spark.destinationColor = Vector4(1.0f, 0.6f, 0.0f, 0.0f);
+			spark.active           = true;
+		}
+
+		// Close-range sparks for density.
+		for (int i = 0; i < 10; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age      = 0;
+			spark.life     = GenerateFloat(12.0f, 22.0f);
+			spark.friction = 0.96f;
+			spark.gravity  = 2.0f;
+			spark.height   = GenerateFloat(96.0f, 320.0f);
+			spark.width    = GenerateFloat(8.0f, 20.0f);
+			spark.room     = roomNumber;
+			spark.pos      = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(24.0f, 64.0f);
+			spark.sourceColor      = Vector4(0.9f, 0.95f, 1.0f, 1.0f);
+			spark.destinationColor = Vector4(0.2f, 0.4f, 1.0f, 0.0f);
+			spark.active           = true;
+		}
+	}
+
+	// Custom fusebox blast spark effect (blue-white burst)
+	void TriggerFuseboxBlastSparks(const Vector3i& pos, int roomNumber)
+	{
+		// Blue-white sparks shooting outward up to 1 BLOCK distance.
+		for (int i = 0; i < 20; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age      = 0;
+			spark.life     = GenerateFloat(16.0f, 28.0f);
+			spark.friction = 0.95f;
+			spark.gravity  = 1.5f;
+			spark.height   = GenerateFloat(192.0f, 512.0f);
+			spark.width    = GenerateFloat(12.0f, 24.0f);
+			spark.room     = roomNumber;
+			spark.pos      = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(48.0f, 96.0f);
+			spark.sourceColor      = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+			spark.destinationColor = Vector4(0.1f, 0.3f, 1.0f, 0.0f);
+			spark.active           = true;
+		}
+	}
+
 	void TriggerAttackSpark(const Vector3& basePos, const Vector3& color)
 	{
 		auto& spark = *GetFreeParticle();
