@@ -60,11 +60,11 @@ namespace TEN::Entities::TR3
 
 	static void SpawnDestructionBlast(const ItemInfo& item, const Vector3i& pos)
 	{
-		   // Blue-white sparks shooting outward up to 1 BLOCK distance.
-		   TriggerFuseboxBlastSparks(pos, item.RoomNumber);
+		// Blue-white sparks shooting outward up to 1 BLOCK distance.
+		TriggerFuseboxBlastSparks(pos, item.RoomNumber);
 
-		   // Custom fusebox sparks (yellow and close-range blue/white)
-		   TriggerFuseboxSparks(pos, item.RoomNumber);
+		// Custom fusebox sparks (yellow and close-range blue/white).
+		TriggerFuseboxSparks(pos, item.RoomNumber);
 	}
 
 	static void SpawnContinuousSparks(const ItemInfo& item, const Vector3i& pos, float intensity)
@@ -156,39 +156,39 @@ namespace TEN::Entities::TR3
 		auto  pos  = GetBoundingBoxCenter(item);
 
 		// Already destroyed; run spark wind-down effects.
-		   if (item.ItemFlags[FuseboxFlags::IsDestroyed] == 1)
-		   {
-			   int sparkTimer = item.ItemFlags[FuseboxFlags::SparkTimer];
-			   int flashTimer = item.ItemFlags[FuseboxFlags::FlashTimer];
+		if (item.ItemFlags[FuseboxFlags::IsDestroyed] == 1)
+		{
+			int sparkTimer = item.ItemFlags[FuseboxFlags::SparkTimer];
+			int flashTimer = item.ItemFlags[FuseboxFlags::FlashTimer];
 
-			   if (flashTimer > 0)
-			   {
-				   flashTimer--;
-				   item.ItemFlags[FuseboxFlags::FlashTimer] = flashTimer;
-			   }
+			if (flashTimer > 0)
+			{
+				flashTimer--;
+				item.ItemFlags[FuseboxFlags::FlashTimer] = flashTimer;
+			}
 
-			   if (sparkTimer > 0)
-			   {
-				   float intensity = (float)sparkTimer / FUSEBOX_SPARK_DURATION;
+			if (sparkTimer > 0)
+			{
+				float intensity = (float)sparkTimer / FUSEBOX_SPARK_DURATION;
 
-				   SpawnContinuousSparks(item, pos, intensity);
-				   UpdateDynamicLight(item, pos, sparkTimer, flashTimer);
+				SpawnContinuousSparks(item, pos, intensity);
+				UpdateDynamicLight(item, pos, sparkTimer, flashTimer);
 
-				   if (TestProbability(0.5f * intensity))
-					   SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, const_cast<Pose*>(&item.Pose));
+				if (TestProbability(0.5f * intensity))
+					SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 
-				   sparkTimer--;
-				   item.ItemFlags[FuseboxFlags::SparkTimer] = sparkTimer;
-			   }
-			   else
-			   {
-				   // Deactivate the item after sparks have finished.
-				   item.Status = ITEM_NOT_ACTIVE;
-			   }
+				sparkTimer--;
+				item.ItemFlags[FuseboxFlags::SparkTimer] = sparkTimer;
+			}
+			else
+			{
+				// Deactivate the item after sparks have finished.
+				item.Status = ITEM_NOT_ACTIVE;
+			}
 
-			   AnimateItem(&item);
-			   return;
-		   }
+			AnimateItem(&item);
+			return;
+		}
 
 		// Check if fusebox has been destroyed by gunfire.
 		if (item.HitPoints <= 0)
@@ -199,7 +199,7 @@ namespace TEN::Entities::TR3
 
 			SetAnimation(item, item.ObjectNumber, 1);
 			SpawnDestructionBlast(item, pos);
-			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, const_cast<Pose*>(&item.Pose));
+			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 
 			// Activate triggers placed under the fusebox, using this item as activator.
 			TestTriggers(&item, true, item.Flags & IFLAG_ACTIVATION_MASK);
