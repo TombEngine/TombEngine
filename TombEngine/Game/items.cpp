@@ -958,6 +958,9 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 	if (item->HitPoints <= 0)
 		return;
 
+	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
+		return;
+
 	item->HitStatus = true;
 	item->HitPoints -= damage;
 
