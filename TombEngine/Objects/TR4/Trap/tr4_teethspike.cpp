@@ -82,7 +82,9 @@ namespace TEN::Entities::Traps
 
 			auto intersection = TestBoundsCollideTeethSpikes(&item, LaraItem);
 
-			if (LaraItem->Animation.ActiveState != LS_DEATH && intersection != ContainmentType::DISJOINT)
+			if (LaraItem->Animation.ActiveState != LS_DEATH &&
+				Lara.Control.WaterStatus != WaterStatus::FlyCheat &&
+				intersection != ContainmentType::DISJOINT)
 			{
 				// Calculate spike angle to horizon. If angle is upward, impale player.
 				auto normal = Vector3::Transform(Vector3::UnitY, item.Pose.Orientation.ToRotationMatrix());
