@@ -69,7 +69,6 @@ namespace TEN::Entities::Traps
 				for (int i = 0; i < 4; i++)
 				{
 					GameVector targetPos = GameVector(prevPos.x, item.Pose.Position.y, prevPos.z, item.RoomNumber);
-					//SpawnDartSmoke(Vector3(prevPos.x, item.Pose.Position.y, prevPos.z), Vector3::Zero, true);  item.Pose.Orientation.y
 					
 					TriggerRicochetSpark(targetPos, 5, 1, Vector4(1.0f, 0.7f, 0.1f, 1.0f));
 					SoundEffect(SFX_TR2_CIRCLE_BLADE_HIT, &item.Pose);
