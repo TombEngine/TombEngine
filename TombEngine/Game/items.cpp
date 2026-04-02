@@ -987,7 +987,7 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 				Rumble(power, 0.15f);
 			}
 
-			int damageDelta = oldHitPoints - item->HitPoints;
+			int damageDelta = std::max(0, oldHitPoints - item->HitPoints);
 			SaveGame::Statistics.Game.DamageTaken += damageDelta;
 			SaveGame::Statistics.Level.DamageTaken += damageDelta;
 		}
