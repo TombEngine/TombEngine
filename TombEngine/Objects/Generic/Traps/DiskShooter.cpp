@@ -117,9 +117,6 @@ namespace TEN::Entities::Traps
 			diskItem.TriggerFlags = item.TriggerFlags;
 			diskItem.Model.Color = item.Model.Color;
 
-			//for (int i = 0; i < 4; i++)
-				//SpawnDartSmoke(diskItem.Pose.Position.ToVector3(), Vector3::Zero, false);
-
 			AddActiveItem(diskItemNumber);
 			diskItem.Status = ITEM_ACTIVE;
 
