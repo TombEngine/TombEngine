@@ -81,7 +81,7 @@ namespace TEN::Entities::Traps
 			item.Status = ITEM_ACTIVE;
 
 			auto intersection = TestBoundsCollideTeethSpikes(&item, LaraItem);
-			
+
 			if (LaraItem->Animation.ActiveState != LS_DEATH && intersection != ContainmentType::DISJOINT)
 			{
 				// Calculate spike angle to horizon. If angle is upward, impale player.
