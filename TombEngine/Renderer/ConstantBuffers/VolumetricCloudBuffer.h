@@ -141,5 +141,15 @@ namespace TEN::Renderer::ConstantBuffers
 		float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright→alpha smoothstep.
 		float BlendThresholdLow;            // [0,1]     luminance below which screen blend starts (dark side).
 		float CBuf23Pad1;
+		//--
+		// Row 24 — Sunset underside lighting
+		Vector3 SunsetUndersideColor;       // Pre-computed sunset color (yellow→orange→red→magenta gradient).
+		float   SunsetUndersideIntensity;   // [0,1] overall sunset underside activation (0 = off, 1 = full).
+		//--
+		// Row 25 — Sunset underside parameters
+		float   SunsetUndersideSpread;      // [0.5,4] angular spread of sunset glow around sun direction.
+		float   SunsetUndersideHeightFade;  // [0.5,4] exponent controlling how quickly glow fades from base to top.
+		float   SunsetPad0;
+		float   SunsetPad1;
 	};
 }

@@ -28,12 +28,12 @@ namespace TEN::Renderer
 		float MieIntensity           = 0.00f;   // [0,5]   Mie glow disk intensity around sun.
 		float RayleighIntensity      = 0.00f;   // [0,5]   Rayleigh brightness multiplier.
 		float SunGlowIntensity       = 0.217f;   // [0,10]  Broad sun glow field intensity.
-		float HorizonDarkeningStr    = 2.361f;   // [0.1,5] Horizon darkening exponent.
+		float HorizonDarkeningStr    = 0.656f;   // [0.1,5] Horizon darkening exponent.
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
 		// --- Night sky ---
 		float NightSkyBrightness     = 5.0f;   // [0,5]   Night sky base brightness.
-		float TwilightOffset         = 0.0648f;   // [0,0.3] Sun elevation where twilight starts (radians).
+		float TwilightOffset         = 0.0387f;   // [0,0.3] Sun elevation where twilight starts (radians).
 		float NightBlendSpeed        = 6.29f;   // [1,20]  How quickly night blends in.
 
 		// --- Cloud sun-lighting integration ---
@@ -59,5 +59,11 @@ namespace TEN::Renderer
 		// darkened by the same horizon band — giving a natural half-set appearance.
 		float SunDiskSize      = 1.62f;    // [0.1,10] Apparent half-angle in degrees.
 		float SunDiskIntensity = 103.6f;   // [1,200]  Brightness before tone mapping.
+
+		// --- Sunset underside cloud lighting ---
+		// Controls warm sunset illumination on cloud undersides when the sun is low.
+		float SunsetUndersideIntensity  = 2.881f;   // [0,3]   Overall brightness of sunset underside glow.
+		float SunsetUndersideSpread     = 4.0f;   // [0.5,4] Angular spread of sunset glow around sun direction (higher = wider).
+		float SunsetUndersideHeightFade = 3.26f;   // [0.5,4] Exponent: how quickly glow fades from cloud base to top (higher = more concentrated at base).
 	};
 }

@@ -96,7 +96,7 @@ namespace TEN::Renderer
 		// Starts fading in during twilight, fully visible at night.
 		// Uses a slightly earlier threshold than starfield so the moon
 		// appears before the stars.
-		float twilightStart = _atmosphericSkySettings.TwilightOffset * 0.25f;
+		float twilightStart = _atmosphericSkySettings.TwilightOffset * 1.5f;
 		float moonFade = Saturate((-sunElevation + twilightStart) * 3.0f);
 		moonFade = moonFade * moonFade * (3.0f - 2.0f * moonFade); // smoothstep
 		return moonFade;

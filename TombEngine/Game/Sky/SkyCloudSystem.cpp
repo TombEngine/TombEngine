@@ -1355,13 +1355,13 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 1.0f;
 			a.BottomHeight        = 1536.0f;
-			a.AltoHorizonWidth    = 0.036f;
+			a.AltoHorizonWidth    = 0.0052f;
 			a.WindDirectionX      = 1.0f;
 			a.WindDirectionY      = 0.0f;
 			a.WindSpeed           = 0.2140f;
 			a.EvolutionSpeed      = 5.0f;
 			a.HorizonFade         = 1.0f;
-			a.DistanceFade        = 0.170f;
+			a.DistanceFade        = 0.0f;
 			a.AltoBillowStrength  = 0.0f;
 			a.AltoCovSoftWidth    = 0.25f;
 			a.AltoAbsorption      = 0.1f;
@@ -1377,9 +1377,9 @@ namespace TEN::Sky
 			a.AltoFbmLacunarity   = 4.0f;
 			a.AltoFbmGain         = 0.322f;
 			a.AltoThickness       = 1164.0f;
-			a.AltoBottomSoftness  = 0.0f;
+			a.AltoBottomSoftness  = 0.465f;
 			a.AltoZenithBias      = 0.269f;
-			a.AltoHeightBlendPower = 0.723f;
+			a.AltoHeightBlendPower = 0.749f;
 			a.BlendThresholdHigh      = 0.020f;
 			a.BlendThresholdHighWidth = 0.005f;
 			a.BlendThresholdLow       = 0.0f;

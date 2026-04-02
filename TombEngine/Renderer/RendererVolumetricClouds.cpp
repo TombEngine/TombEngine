@@ -296,6 +296,63 @@ namespace TEN::Renderer
 		_stVolumetricCloud.BlendThresholdLow       = settings.BlendThresholdLow;
 		_stVolumetricCloud.CBuf23Pad1              = 0.0f;
 
+		// ---- Sunset underside cloud lighting ----
+		// Compute sunset color gradient and activation intensity based on sun elevation.
+		// The effect activates when the sun is low (near horizon or slightly below).
+		//
+		// Elevation zones (cloudSunElev = sin(pitch)):
+		//   0.15 .. 0.05  : early sunset — yellow/amber tones fade in
+		//   0.05 .. -0.02 : deep sunset  — orange/red peak intensity
+		//  -0.02 .. -0.10 : post-sunset  — red/magenta, fading out
+		//  below  -0.10   : night — no sunset underside
+		{
+			const auto& atmo = _atmosphericSkySettings;
+			float sunE = cloudSunElev;
+
+			// Activation envelope: bell-shaped curve centered around sunE ≈ 0.0.
+			// Ramps up from 0.15, peaks at ~0.0, fades out below -0.10.
+			float sunsetOnset   = std::clamp((0.15f - sunE) * 8.0f,  0.0f, 1.0f);  // 0 at sunE=0.15, 1 at sunE≈0.03
+			float sunsetFadeOut = std::clamp((sunE + 0.10f) * 10.0f, 0.0f, 1.0f);  // 1 at sunE>0, 0 at sunE=-0.10
+			float sunsetActivation = sunsetOnset * sunsetFadeOut;
+			// Smoothstep the activation for a gentle transition.
+			sunsetActivation = sunsetActivation * sunsetActivation * (3.0f - 2.0f * sunsetActivation);
+
+			// Color gradient based on sun elevation:
+			// Map elevation to a 0→1 parameter where 0 = early sunset (warm yellow)
+			// and 1 = deep/post-sunset (magenta/pink).
+			float colorT = std::clamp((0.10f - sunE) * 6.0f, 0.0f, 1.0f); // 0 at sunE=0.10, 1 at sunE≈-0.07
+
+			// Four-stop color gradient: yellow → orange → red → magenta
+			Vector3 cYellow (1.0f,  0.85f, 0.35f);
+			Vector3 cOrange (1.0f,  0.55f, 0.15f);
+			Vector3 cRed    (1.0f,  0.25f, 0.10f);
+			Vector3 cMagenta(0.90f, 0.25f, 0.45f);
+
+			Vector3 sunsetColor;
+			if (colorT < 0.333f)
+			{
+				float s = colorT / 0.333f;
+				sunsetColor = Vector3::Lerp(cYellow, cOrange, s);
+			}
+			else if (colorT < 0.666f)
+			{
+				float s = (colorT - 0.333f) / 0.333f;
+				sunsetColor = Vector3::Lerp(cOrange, cRed, s);
+			}
+			else
+			{
+				float s = (colorT - 0.666f) / 0.334f;
+				sunsetColor = Vector3::Lerp(cRed, cMagenta, s);
+			}
+
+			_stVolumetricCloud.SunsetUndersideColor     = sunsetColor;
+			_stVolumetricCloud.SunsetUndersideIntensity  = sunsetActivation * atmo.SunsetUndersideIntensity;
+			_stVolumetricCloud.SunsetUndersideSpread     = atmo.SunsetUndersideSpread;
+			_stVolumetricCloud.SunsetUndersideHeightFade = atmo.SunsetUndersideHeightFade;
+			_stVolumetricCloud.SunsetPad0 = 0.0f;
+			_stVolumetricCloud.SunsetPad1 = 0.0f;
+		}
+
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.
 		_stVolumetricCloud.SunScreenUV = Vector2(-1.0f, -1.0f); // default: no sun / off-screen

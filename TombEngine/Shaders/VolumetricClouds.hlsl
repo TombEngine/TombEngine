@@ -1497,6 +1497,35 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     sampleLight = altoLitColor * cloudColor
                         * (altoDirectFactor + altoAmbientFactor + altoSilver + altoForward);
 
+                    // === Sunset underside illumination (AltocumulusMid) ===
+                    // Warm sunset glow on cloud undersides when the sun is near/below the horizon.
+                    // CPU pre-computes: SunsetUndersideColor (elevation-dependent gradient),
+                    // SunsetUndersideIntensity (activation envelope × user intensity).
+                    if (SunsetUndersideIntensity > 0.001f)
+                    {
+                        // Underside factor: strongest at cloud base, fades toward top.
+                        float undersideFactor = pow(saturate(1.0f - heightFrac), SunsetUndersideHeightFade);
+
+                        // Sun-direction factor: glow is concentrated toward the sun's azimuth.
+                        // Use XZ (horizontal) components to ignore elevation — the sun is at/below
+                        // the horizon, so the lit region is on the horizon side of the cloud.
+                        float2 rayDirXZ = normalize(rayDir.xz + float2(0.0001f, 0.0001f));
+                        float2 sunDirXZ = normalize(CloudLightDirection.xz + float2(0.0001f, 0.0001f));
+                        float  sunDot   = dot(rayDirXZ, sunDirXZ);
+                        // Remap [-1,1] → [0,1] with spread control: higher spread = wider glow.
+                        float  sunGlow  = saturate((sunDot + 1.0f) * 0.5f);
+                        sunGlow = pow(sunGlow, SunsetUndersideSpread);
+
+                        // Thin edges receive less sunset glow (they can't hold much light).
+                        float sunsetDensityGate = saturate(extinction * 8.0f);
+
+                        // Combine and add as warm illumination.
+                        float3 sunsetContrib = SunsetUndersideColor * SunsetUndersideIntensity
+                            * undersideFactor * sunGlow * sunsetDensityGate
+                            * AltoCloudBrightness;
+                        sampleLight += sunsetContrib * cloudColor;
+                    }
+
                     // === Lightning / internal flash illumination ===
                     // Positions are computed in world-space, centered on the camera (rayOrigin.xz)
                     // so that all distance calculations (samplePos - source) remain correct
@@ -1626,6 +1655,21 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     float3 stdWarmTint = float3(1.0f, 0.88f, 0.65f);
                     float3 stdLitColor = lerp(CloudLightColor, CloudLightColor * stdWarmTint, CloudSunWarmthInfluence * sunFade);
                     sampleLight = stdLitColor * (directSun + silverGlow + ambLight);
+
+                    // === Sunset underside illumination (standard clouds) ===
+                    if (SunsetUndersideIntensity > 0.001f)
+                    {
+                        float undersideFactor = pow(saturate(1.0f - heightFrac), SunsetUndersideHeightFade);
+                        float2 rayDirXZ = normalize(rayDir.xz + float2(0.0001f, 0.0001f));
+                        float2 sunDirXZ = normalize(CloudLightDirection.xz + float2(0.0001f, 0.0001f));
+                        float  sunDot   = dot(rayDirXZ, sunDirXZ);
+                        float  sunGlow  = saturate((sunDot + 1.0f) * 0.5f);
+                        sunGlow = pow(sunGlow, SunsetUndersideSpread);
+                        float sunsetDensityGate = saturate(extinction * 8.0f);
+                        float3 sunsetContrib = SunsetUndersideColor * SunsetUndersideIntensity
+                            * undersideFactor * sunGlow * sunsetDensityGate;
+                        sampleLight += sunsetContrib;
+                    }
                 }
 
                 float sampleTransmittance = exp(-extinction);

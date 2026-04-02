@@ -1575,6 +1575,14 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SliderFloat("Cloud Night Ambient",            &settings.CloudNightAmbient,           0.0f, 0.5f,  "%.3f");
 		}
 
+		// --- Sunset underside lighting ---
+		if (ImGui::CollapsingHeader("Sunset Underside Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::SliderFloat("Sunset Underside Intensity",   &settings.SunsetUndersideIntensity,  0.0f, 3.0f,  "%.3f");
+			ImGui::SliderFloat("Sunset Underside Spread",      &settings.SunsetUndersideSpread,     0.5f, 4.0f,  "%.2f");
+			ImGui::SliderFloat("Sunset Underside Height Fade", &settings.SunsetUndersideHeightFade, 0.5f, 4.0f,  "%.2f");
+		}
+
 		// --- Reset button ---
 		ImGui::Separator();
 		if (ImGui::Button("Reset Defaults"))
