@@ -960,6 +960,8 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 
 	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
 		return;
+	
+	int damageDelta = item->HitPoints;
 
 	item->HitStatus = true;
 	item->HitPoints -= damage;
@@ -975,6 +977,8 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 		}
 	}
 
+	damageDelta = damageDelta - item->HitPoints;
+
 	if (item->IsLara())
 	{
 		if (damage > 0)
@@ -985,8 +989,8 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 				Rumble(power, 0.15f);
 			}
 
-			SaveGame::Statistics.Game.DamageTaken += damage;
-			SaveGame::Statistics.Level.DamageTaken += damage;
+			SaveGame::Statistics.Game.DamageTaken += damageDelta;
+			SaveGame::Statistics.Level.DamageTaken += damageDelta;
 		}
 
 		if (!silent && (GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))
