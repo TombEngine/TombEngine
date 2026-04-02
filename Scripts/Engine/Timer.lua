@@ -1,5 +1,5 @@
 -----<style>table.function_list td.name {min-width: 395px;}</style>
---- Basic frame-based timer that performs countdown. It updates at 30 FPS (one tick per frame), so time is quantized to 1/30s (0.03s) precision. When it expires, you can set a specific *LevelFuncs* function to be activated. Timers are updated automatically at every frame before OnLoop event. To use Timer inside scripts you need to call the module:
+--- Basic timer that performs countdown. When it expires, you can set a specific *LevelFuncs* function to be activated. Timers are updated automatically at every frame before OnLoop event. To use Timer inside scripts you need to call the module:
 --	local Timer = require("Engine.Timer")
 --
 -- Example usage:
@@ -16,7 +16,7 @@
 --	-- This function triggers the timer
 --	LevelFuncs.TriggerTimer = function(obj)
 --		Timer.Create("my_timer",
---			5.03,
+--			5.0,
 --			false,
 --			{minutes = false, seconds = true, centiseconds = true},
 --			LevelFuncs.FinishTimer,
@@ -37,7 +37,7 @@ LevelVars.Engine.Timer = {timers = {}}
 
 local ZERO = TEN.Time()
 local DEFAULT_TEXT_OPTIONS = {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.VERTICAL_CENTER}
-local DEFAULT_TIMER_FORMAT = {minutes = true, seconds = true, centiseconds = true}
+local DEFAULT_TIMER_FORMAT = {minutes = true, seconds = true, deciseconds = true}
 local FPS = 30
 local FRAME_TIME = 1 / FPS
 local COMPARISON_OPS =
@@ -52,10 +52,6 @@ local COMPARISON_OPS =
 local floor = math.floor
 local pairs = pairs
 local unpack = table.unpack
-
-local function Round2Decimal(second)
-	return floor(second * 100 + 0.5) / 100
-end
 
 local CheckOperator = function(operator)
 	if not Type.IsNumber(operator) then
@@ -110,7 +106,8 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 	local thisTimer = LevelVars.Engine.Timer.timers[name]
 	thisTimer.name = name
 	thisTimer.isInternal = string.match(name, "__TEN") and true or false
-	thisTimer.totalTime = TEN.Time(Round2Decimal(totalTime) * FPS)
+	thisTimer.totalTime = TEN.Time((floor(totalTime * 10) / 10) * FPS)
+	thisTimer.realRemainingTime = thisTimer.totalTime
 	thisTimer.remainingTime = thisTimer.totalTime
 
 	loop = loop or false
@@ -131,6 +128,8 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 	thisTimer.funcArgs = { ... }
 	thisTimer.active = false
 	thisTimer.paused = true
+	thisTimer.skipFirstTick = true
+	thisTimer.hasTicked = true
 	thisTimer.posX = 50.0
 	thisTimer.posY = 90.0
 	thisTimer.scale = 1
@@ -237,6 +236,7 @@ end
 function Timer:Start(reset)
 	local thisTimer = LevelVars.Engine.Timer.timers[self.name]
 	thisTimer.remainingTime = reset and thisTimer.totalTime or thisTimer.remainingTime
+	thisTimer.realRemainingTime = reset and thisTimer.totalTime or thisTimer.realRemainingTime
 	thisTimer.active = true
 	thisTimer.paused = false
 end
@@ -308,7 +308,7 @@ function Timer:GetRemainingTimeInSeconds()
 	local remainingFrames = LevelVars.Engine.Timer.timers[self.name].remainingTime:GetFrameCount()
 	-- Truncate to 2 decimals, accuracy is 1 frame (1/30 second)
 	-- not necessary to round, as the remaining time is already quantized to 1 frame, but this way we avoid displaying values like 0.33333333334 instead of 0.3
-	return math.floor(remainingFrames / FPS * 100) / 100
+	return floor(remainingFrames / FPS * 10) / 10
 end
 
 --- Get the formatted remaining time of a timer.
@@ -365,7 +365,9 @@ function Timer:SetRemainingTime(remainingTime)
 		TEN.Util.PrintLog("Error in Timer:SetRemainingTime(): wrong value  (" .. tostring(remainingTime) .. ")  for remainingTime in '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 	else
 		local thisTimer = LevelVars.Engine.Timer.timers[self.name]
-		thisTimer.remainingTime = TEN.Time(Round2Decimal(remainingTime) * FPS)
+		thisTimer.remainingTime = TEN.Time((floor(remainingTime * 10) / 10) * FPS)
+		thisTimer.realRemainingTime = thisTimer.remainingTime
+		thisTimer.skipFirstTick = true
 	end
 end
 
@@ -417,8 +419,17 @@ function Timer:IfRemainingTimeIs(operator, seconds)
 	end
 	local timer = LevelVars.Engine.Timer.timers[self.name]
 	local remainingTime = timer.remainingTime
-	local time = TEN.Time(Round2Decimal(seconds) * FPS)
-	return op(remainingTime, time)
+	local seconds_ = math.floor(seconds * 10) / 10
+	local time = TEN.Time(seconds_ * 30)
+	local test = op(remainingTime, time)
+
+	-- Only for equality/difference operators (==, !=) we check hasTicked.
+	-- This avoids false results due to the internal tick (0.1s) and ensures relational comparisons (> < >= <=) are always valid every 0.03s.
+	if operator == 0 or operator == 1 then
+		return timer.hasTicked and test or false
+	else
+		return test
+	end
 end
 
 --- Get the total time of a timer in game frames. This is the amount of time the timer will start with, as well as when starting a new loop.
@@ -445,7 +456,7 @@ function Timer:GetTotalTimeInSeconds()
 	local totalFrames = LevelVars.Engine.Timer.timers[self.name].totalTime:GetFrameCount()
 	-- Truncate to 2 decimals, accuracy is 1 frame (1/30 second)
 	-- not necessary to round, as the remaining time is already quantized to 1 frame, but this way we avoid displaying values like 0.33333333334 instead of 0.3
-	return math.floor(totalFrames / FPS * 100) / 100
+	return floor(totalFrames / FPS * 10) / 10
 end
 
 --- Get the formatted total time of a timer. This is the amount of time the timer will start with, as well as when starting a new loop
@@ -499,7 +510,8 @@ function Timer:SetTotalTime(totalTime)
 	if not Type.IsNumber(totalTime) or totalTime < 0 then
 		TEN.Util.PrintLog("Error in Timer:SetTotalTime(): wrong value (" .. tostring(totalTime) .. ") for totalTime in '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 	else
-		LevelVars.Engine.Timer.timers[self.name].totalTime = TEN.Time(Round2Decimal(totalTime) * FPS)
+		local seconds = floor(totalTime * 10) / 10
+		LevelVars.Engine.Timer.timers[self.name].totalTime = TEN.Time(seconds * 30)
 	end
 end
 
@@ -533,7 +545,8 @@ function Timer:IfTotalTimeIs(operator, seconds)
 		return false
 	end
 	local totalTime = LevelVars.Engine.Timer.timers[self.name].totalTime
-	local time = TEN.Time(Round2Decimal(seconds) * FPS)
+	local seconds_ = floor(seconds * 10) / 10
+	local time = TEN.Time(seconds_ * 30)
 	return op(totalTime, time)
 end
 
@@ -790,18 +803,41 @@ function Timer:IsActive()
 	return LevelVars.Engine.Timer.timers[self.name].active
 end
 
---- Checks if the timer has ticked.
--- Returns `true` only if the timer is ticking, i.e., it is active and not paused.
--- @treturn bool `true` if the timer ticked, `false` otherwise.
+--- Checks if the timer has ticked (every 0.1 seconds).
+--
+-- Returns `true` every 0.1 seconds when the timer is active and not paused.<br>
+-- TEN's engine runs on a 0.03-second internal tick, while this timer ticks every 0.1 seconds.<br>
+-- Use `IsTicking()` to ensure consistency and avoid unexpected behavior — for example, inside the `OnLoop` event.
+--
+-- @treturn boolean `true` if the timer ticked during this frame, `false` otherwise.
+--
+-- @usage
+-- -- Example: Displays the time remaining when the timer is active
+-- LevelFuncs.OnLoop = function() -- this function is present in the .lua file of the level
+--    if Timer.IfExists("my_timer") and Timer.Get("my_timer"):IsActive() and Timer.Get("my_timer"):IsTicking() then
+--       local TimerFormat = {seconds = true, deciseconds = true}
+--       local remainingTime = Timer.Get("my_timer"):GetRemainingTimeFormatted(TimerFormat)
+--       TEN.Util.PrintLog("Remaining time: " .. remainingTime, TEN.Util.LogLevel.INFO)
+--    end
+-- end
 function Timer:IsTicking()
-    local thisTimer = LevelVars.Engine.Timer.timers[self.name]
-    return not thisTimer.paused and thisTimer.active or false
+	local thisTimer = LevelVars.Engine.Timer.timers[self.name]
+	return not thisTimer.paused and thisTimer.hasTicked or false
 end
+
 
 LevelFuncs.Engine.Timer.Decrease = function ()
 	for _, t in pairs(LevelVars.Engine.Timer.timers) do
 		if t.active and not t.paused then
-			t.remainingTime = t.remainingTime - 1
+			if t.skipFirstTick then
+				t.skipFirstTick = false
+			else
+				t.realRemainingTime = t.realRemainingTime - 1
+				t.hasTicked = (t.realRemainingTime.c % 10 == 0)
+				if t.hasTicked then
+					t.remainingTime = t.remainingTime - 3
+				end
+			end
 		end
 	end
 end
@@ -820,10 +856,12 @@ LevelFuncs.Engine.Timer.UpdateAll = function()
 			end
 			if t.remainingTime == ZERO then
 				if t.loop then
+					t.realRemainingTime = t.totalTime
 					t.remainingTime = t.totalTime
 				else
 					t.active = false
 				end
+				t.skipFirstTick = true
 				if t.func then
 					t.func(unpack(t.funcArgs))
 				end

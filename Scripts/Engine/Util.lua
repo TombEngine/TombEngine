@@ -5,12 +5,13 @@
 local Util = {}
 local Type = require("Engine.Type")
 -- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
-local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
+local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true}
 local LogMessage  = TEN.Util.PrintLog
 local logLevelWarning = TEN.Util.LogLevel.WARNING
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local IsBoolean = Type.IsBoolean
+local floor = math.floor
 
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
@@ -78,10 +79,10 @@ Util.GenerateTimeFormattedString = function(time, timerFormat)
 	-- The visual difference with the previous version is 2 decimal places instead of 1.
 	-- Before: 5.0
 	-- After: 5.00
-	if timerFormat.centiseconds or timerFormat.deciseconds then
-        out = (out == "" and pad2(time.c)) or (out .. "." .. pad2(time.c))
-    end
-
+	if timerFormat.deciseconds then
+		local deciseconds = floor(time.c / 10)
+		out = (out == "" and tostring(deciseconds)) or (out .. "." .. deciseconds)
+	end
     return out
 end
 
