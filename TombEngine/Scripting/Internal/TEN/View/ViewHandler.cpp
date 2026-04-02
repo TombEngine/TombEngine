@@ -59,11 +59,10 @@ namespace TEN::Scripting::View
 
 	static void SetCineBars(TypeOrNil<float> height, TypeOrNil<float> speed)
 	{
-		// divide by 200 so that a percentage of 100 means that each
-		// bar takes up half the screen
+		// Divide by 200 so that a percentage of 100 means that each bar takes up half the screen.
 		float heightProportion = ValueOr<float>(height, 30) / 200.0f;
-		float speedProportion = ValueOr<float>(speed, 30) / 200.0f;
-		SetCinematicBars(heightProportion, speedProportion / float(FPS));
+		float speedProportion = ValueOr<float>(speed, 1);
+		SetCinematicBars(heightProportion, speedProportion);
 	}
 
 	static void SetFOV(float angle)
@@ -220,12 +219,6 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
-	static void UseBinoculars()
-	{
-		auto& item = *LaraItem;
-		g_Gui.UseBinoculars(item);
-	}
-
 	void Register(sol::state* state, sol::table& parent)
 	{
 		auto tableView = sol::table(state->lua_state(), sol::create);
@@ -245,10 +238,10 @@ namespace TEN::Scripting::View
 		//@treturn bool State of the fade out.
 		tableView.set_function(ScriptReserved_FadeOutComplete, &FadeOutComplete);
 
-		///Move black cinematic bars in from the top and bottom of the game window.
+		///Animate black cinematic bars in from the top and bottom of the game window.
 		//@function SetCineBars
 		//@tparam[opt=30] float height Percentage of the screen to be covered.
-		//@tparam[opt=30] float speed Coverage percent per second.
+		//@tparam[opt=1] float speed Speed in units per second. A value of 1 will make the animation take one second.
 		tableView.set_function(ScriptReserved_SetCineBars, &SetCineBars);
 
 		///Set field of view.
@@ -372,19 +365,16 @@ namespace TEN::Scripting::View
 		// @treturn float Display resolution's aspect ratio.
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
 
-		/// Sets the view to binoculars mode.
-		// @function UseBinoculars
-		tableView.set_function(ScriptReserved_UseBinoculars, &UseBinoculars);
-
 		// COMPATIBILITY
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
 		ScriptDisplaySprite::Register(*state, tableView);
+		ScriptDisplayItem::Register(*state, tableView);
+		ScriptDisplayAnchors::Register(tableView);
 
 		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
-		ScriptDisplayItem::Register(*state, tableView);
 
 		// Register enums.
 		auto handler = LuaHandler(state);

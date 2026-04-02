@@ -94,10 +94,6 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
      // Emissive material
     output.Color.xyz += lighting * output.Color.a;
     output.Color.xyz = saturate(output.Color.xyz);
-
-	// Adding some pertubations to the lighting to add a cool effect
-    float3 noise = SimplexNoise(output.Color.xyz);
-    output.Color.xyz = NormalNoise(output.Color, noise, normal);
     
     output.Emissive = float4(emissive, 1.0f);
 	

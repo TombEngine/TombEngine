@@ -32,6 +32,7 @@ namespace TEN::Math
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint);
 	Vector4 Screen(const Vector4& ambient, const Vector4& tint);
 	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c);
+	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 secondColor);
 }
 
 struct PairHash

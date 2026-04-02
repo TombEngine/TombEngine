@@ -2,7 +2,7 @@
 #include "Scripting/Include/ScriptInterfaceState.h"
 
 #include "Scripting/Internal/ReservedScriptNames.h"
-#include "Scripting/Internal/TEN/Collision/Probe.h"
+#include "Scripting/Internal/TEN/Collision/CollisionHandler.h"
 #include "Scripting/Internal/TEN/Effects/EffectsFunctions.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 #include "Scripting/Internal/TEN/Input/InputHandler.h"

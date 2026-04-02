@@ -43,6 +43,7 @@ using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Light;
 using namespace TEN::Effects::Ripple;
+using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Effects::WaterfallEmitter;
@@ -1175,14 +1176,16 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 
 short DoBloodSplat(int x, int y, int z, short speed, short direction, short roomNumber)
 {
-	short probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+	int intensity = Random::GenerateInt(10, 20);
+	int probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+
 	if (TestEnvironment(ENV_FLAG_WATER, probedRoomNumber))
 	{
-		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, speed);
+		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, intensity);
 	}
 	else
 	{
-		TriggerBlood(x, y, z, direction >> 4, speed);
+		TriggerBlood(x, y, z, direction >> 4, intensity);
 	}
 
 	return 0;
@@ -1454,17 +1457,6 @@ void TriggerRocketFire(int x, int y, int z)
 	int size = (GetRandomControl() & 7) + 128;
 	sptr->size = sptr->sSize = size >> 2;
 	sptr->dSize = size;
-}
-
-
-void TriggerRocketSmoke(int x, int y, int z)
-{
-	TEN::Effects::Smoke::TriggerRocketSmoke(x, y, z);
-}
-
-void SpawnCorpseEffect(const Vector3& pos)
-{
-	TEN::Effects::Smoke::SpawnCorpseEffect(pos);
 }
 
 void TriggerFlashSmoke(int x, int y, int z, short roomNumber)
@@ -1988,6 +1980,27 @@ void TriggerAttackFlame(const Vector3i& pos, const Vector3& color, int scale)
 	spark.dSize = spark.size / 4;
 }
 
+void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo& muzzleFlash)
+{
+	constexpr auto CREATURE_GUN_EFFECT_VERTICAL_OFFSET = 75;
+	constexpr auto CREATURE_GUN_EFFECT_LIGHT_FALLOFF = 15.0f * (float)UCHAR_MAX;
+
+	if (muzzleFlash.Delay == 0)
+		return;
+
+	auto intensity = Random::GenerateFloat(0.75f, 1.0f);
+	auto muzzlePos = muzzleFlash.Bite;
+	auto pos = GetJointPosition(item, muzzlePos);
+	SpawnDynamicPointLight(pos.ToVector3(), CREATURE_GUNFLASH_COLOR * intensity, CREATURE_GUN_EFFECT_LIGHT_FALLOFF * intensity);
+
+	if (muzzleFlash.UseSmoke)
+	{
+		muzzlePos.Position.y -= CREATURE_GUN_EFFECT_VERTICAL_OFFSET;
+		auto smokePos = GetJointPosition(item, muzzlePos);
+		SpawnGunSmokeParticles(smokePos.ToVector3(), Vector3::Zero, item.RoomNumber, 1, LaraWeaponType::Pistol, 12);
+	}
+}
+
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth)
 {
 	const auto& player = GetLaraInfo(item);
@@ -2038,43 +2051,4 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 			item.RoomNumber, Random::GenerateFloat(112.0f, 128.0f),
 			flags);
 	}
-}
-
-std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
-{
-	std::array<int, 3> colorS = {
-		int(mainColor.x * UCHAR_MAX),
-		int(mainColor.y * UCHAR_MAX),
-		int(mainColor.z * UCHAR_MAX)
-	};
-
-	std::array<int, 3> colorD = {
-		int(additionalColor.x * UCHAR_MAX),
-		int(additionalColor.y * UCHAR_MAX),
-		int(additionalColor.z * UCHAR_MAX)
-	};
-
-	// Determine weakest RGB component
-	int lowestS = *std::min_element(colorS.begin(), colorS.end());
-	int lowestD = *std::min_element(colorD.begin(), colorD.end());
-
-	constexpr auto CHROMA_SHIFT = 32;
-	constexpr auto LUMA_SHIFT = 0.5f;
-
-	for (int i = 0; i < 3; i++)
-	{
-		if (colorS[i] != lowestS)
-			colorS[i] += GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
-
-		if (colorD[i] != lowestD)
-			colorD[i] += GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
-
-		colorS[i] = int(colorS[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-		colorD[i] = int(colorD[i] * (1.0f + GenerateFloat(-LUMA_SHIFT, 0)));
-
-		colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
-		colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
-	}
-
-	return { colorS, colorD };
 }

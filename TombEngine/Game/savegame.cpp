@@ -682,25 +682,26 @@ const std::vector<byte> SaveGame::Build()
 				jointRotations.push_back(creature->JointRotation[i]);
 			auto jointRotationsOffset = fbb.CreateVector(jointRotations);
 
+			std::vector<flatbuffers::Offset<Save::BadBox>> badBoxes;
+			for (auto& box : creature->LOT.BadBoxes)
+				badBoxes.push_back(Save::CreateBadBox(fbb, box.Valid, box.BoxNumber, box.Count));
+			auto badBoxesOffset = fbb.CreateVector(badBoxes);
+
 			Save::CreatureBuilder creatureBuilder{ fbb };
 			creatureBuilder.add_alerted(creature->Alerted);
-			creatureBuilder.add_can_jump(creature->LOT.CanJump);
-			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
-			creatureBuilder.add_enemy(creature->Enemy == nullptr ? -1 : creature->Enemy->Index);
+			creatureBuilder.add_enemy(creature->Enemy == nullptr ? NO_VALUE : creature->Enemy->Index);
 			creatureBuilder.add_flags(creature->Flags);
 			creatureBuilder.add_friendly(creature->Friendly);
 			creatureBuilder.add_head_left(creature->HeadLeft);
 			creatureBuilder.add_head_right(creature->HeadRight);
 			creatureBuilder.add_hurt_by_lara(creature->HurtByLara);
-			creatureBuilder.add_is_amphibious(creature->LOT.IsAmphibious);
-			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
-			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
 			creatureBuilder.add_joint_rotation(jointRotationsOffset);
 			creatureBuilder.add_jump_ahead(creature->JumpAhead);
 			creatureBuilder.add_location_ai(creature->LocationAI);
 			creatureBuilder.add_weapon_delay1(creature->MuzzleFlash[0].Delay);
 			creatureBuilder.add_weapon_delay2(creature->MuzzleFlash[1].Delay);
 			creatureBuilder.add_maximum_turn(creature->MaxTurn);
+			creatureBuilder.add_fly_rate(creature->FlyRate);
 			creatureBuilder.add_monkey_swing_ahead(creature->MonkeySwingAhead);
 			creatureBuilder.add_mood((int)creature->Mood);
 			creatureBuilder.add_patrol(creature->Patrol);
@@ -708,6 +709,12 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_reached_goal(creature->ReachedGoal);
 			creatureBuilder.add_tosspad(creature->Tosspad);
 			creatureBuilder.add_ai_target_number(creature->AITargetNumber);
+			creatureBuilder.add_can_jump(creature->LOT.CanJump);
+			creatureBuilder.add_can_monkey(creature->LOT.CanMonkey);
+			creatureBuilder.add_is_jumping(creature->LOT.IsJumping);
+			creatureBuilder.add_is_monkeying(creature->LOT.IsMonkeying);
+			creatureBuilder.add_bad_boxes(badBoxesOffset);
+
 			creatureOffset = creatureBuilder.Finish();
 		}
 		else if (itemToSerialize.Data.is<QuadBikeInfo>())
@@ -1103,7 +1110,7 @@ const std::vector<byte> SaveGame::Build()
 
 	// Flyby cameras
 	std::vector<flatbuffers::Offset<Save::FlyByCamera>> flybyCameras;
-	for (int i = 0; i < NumberSpotcams; i++)
+	for (int i = 0; i < (int)SpotCam.size(); i++)
 	{
 		Save::FlyByCameraBuilder flyby{ fbb };
 		flyby.add_flags(SpotCam[i].flags);
@@ -2720,7 +2727,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Flyby cameras 
 	for (int i = 0; i < s->flyby_cameras()->size(); i++)
 	{
-		if (i < NumberSpotcams)
+		if (i < (int)SpotCam.size())
 			SpotCam[i].flags = s->flyby_cameras()->Get(i)->flags();
 	}
 
@@ -2872,14 +2879,23 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			if (savedCreature == nullptr)
 				continue;
 
-			creature->Alerted = savedCreature->alerted();
+			creature->LOT.IsJumping = savedCreature->is_jumping();
+			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 			creature->LOT.CanJump = savedCreature->can_jump();
 			creature->LOT.CanMonkey = savedCreature->can_monkey();
+
+			for (int j = 0; j < creature->LOT.BadBoxes.size(); j++)
+			{
+				creature->LOT.BadBoxes[j].BoxNumber = savedCreature->bad_boxes()->Get(j)->box_number();
+				creature->LOT.BadBoxes[j].Count = savedCreature->bad_boxes()->Get(j)->count();
+				creature->LOT.BadBoxes[j].Valid = savedCreature->bad_boxes()->Get(j)->valid();
+			}
 
 			if (savedCreature->enemy() >= 0)
 				creature->Enemy = &g_Level.Items[savedCreature->enemy()];
 
 			creature->Flags = savedCreature->flags();
+			creature->Alerted = savedCreature->alerted();
 			creature->Friendly = savedCreature->friendly();
 			creature->HeadLeft = savedCreature->head_left();
 			creature->HeadRight = savedCreature->head_right();
@@ -2887,15 +2903,13 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->LocationAI = savedCreature->location_ai();
 			creature->MuzzleFlash[0].Delay = savedCreature->weapon_delay1();
 			creature->MuzzleFlash[1].Delay = savedCreature->weapon_delay2();
-			creature->LOT.IsAmphibious = savedCreature->is_amphibious();
-			creature->LOT.IsJumping = savedCreature->is_jumping();
-			creature->LOT.IsMonkeying = savedCreature->is_monkeying();
 
 			for (int j = 0; j < 4; j++)
 				creature->JointRotation[j] = savedCreature->joint_rotation()->Get(j);
 
 			creature->JumpAhead = savedCreature->jump_ahead();
 			creature->MaxTurn = savedCreature->maximum_turn();
+			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
 			creature->Patrol = savedCreature->patrol();

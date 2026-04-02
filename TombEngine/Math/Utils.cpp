@@ -113,6 +113,47 @@ namespace TEN::Math
 		return normalizedChroma;
 	}
 
+	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
+	{
+		std::array<int, 3> colorS =
+		{
+			int(mainColor.x * UCHAR_MAX),
+			int(mainColor.y * UCHAR_MAX),
+			int(mainColor.z * UCHAR_MAX)
+		};
+
+		std::array<int, 3> colorD =
+		{
+			int(additionalColor.x * UCHAR_MAX),
+			int(additionalColor.y * UCHAR_MAX),
+			int(additionalColor.z * UCHAR_MAX)
+		};
+
+		// Determine weakest RGB component
+		int lowestS = *std::min_element(colorS.begin(), colorS.end());
+		int lowestD = *std::min_element(colorD.begin(), colorD.end());
+
+		constexpr auto CHROMA_SHIFT = 32;
+		constexpr auto LUMA_SHIFT = 0.5f;
+
+		for (int i = 0; i < 3; i++)
+		{
+			if (colorS[i] != lowestS)
+				colorS[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			if (colorD[i] != lowestD)
+				colorD[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			colorS[i] = int(colorS[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+			colorD[i] = int(colorD[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+
+			colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
+			colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
+		}
+
+		return { colorS, colorD };
+	}
+
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint)
 	{
 		float luma = Luma(tint);
