@@ -1,0 +1,87 @@
+name: Cross repo dependency
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-linked-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for dependency
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const match = body.match(/Depends on:\s+([\w-]+)\/([\w-]+)#(\d+)/);
+
+            if (!match) {
+              // No dependency → do NOT create a status check
+              core.setOutput("skip", "true");
+              return;
+            }
+
+            core.setOutput("skip", "false");
+            core.setOutput("depOwner", match[1]);
+            core.setOutput("depRepo", match[2]);
+            core.setOutput("depNumber", match[3]);
+
+      - name: Exit early if no dependency
+        if: steps.parse.outputs.skip == 'true'
+        run: echo "No dependency found — skipping."
+
+      - name: Check linked PR status
+        if: steps.parse.outputs.skip == 'false'
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = steps.parse.outputs.depOwner;
+            const repo = steps.parse.outputs.depRepo;
+            const number = Number(steps.parse.outputs.depNumber);
+
+            const linked = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const reviews = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: number
+            });
+
+            const approved = reviews.data.some(r => r.state === "APPROVED");
+            const mergeable = linked.data.mergeable === true;
+
+            core.setOutput("approved", approved);
+            core.setOutput("mergeable", mergeable);
+
+      - name: Set dependency status
+        if: steps.parse.outputs.skip == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const approved = steps.check.outputs.approved === 'true';
+            const mergeable = steps.check.outputs.mergeable === 'true';
+
+            let state = "pending";
+            let description = "Waiting for linked PR to be approved and mergeable";
+
+            if (approved && mergeable) {
+              state = "success";
+              description = "Linked PR is approved and mergeable";
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state,
+              context: "cross-repo-dependency",
+              description
+            });
