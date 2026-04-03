@@ -33,8 +33,8 @@ public:
 	int GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const;
 	void SetAmmoType(PlayerAmmoType ammoType);
 	int GetAmmoCount() const;
-	int GetWeaponMode() const;
-	void SetWeaponMode(PlayerWeaponMode weaponMode);
+	int GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const;
+	void SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode);
 
 	void UndrawWeapon();
 	void DiscardTorch();

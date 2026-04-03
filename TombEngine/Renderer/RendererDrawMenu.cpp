@@ -983,12 +983,15 @@ namespace TEN::Renderer
 			return;
 
 		float alpha = GetInterpolationFactor();
+		auto color = item.GetInterpolatedColor(alpha);
+
+		if (color.A() <= EPSILON)
+			return;
 
 		auto objectNumber = item.GetObjectID();
 		auto pos = item.GetInterpolatedPosition(alpha);
 		auto orient = item.GetInterpolatedOrientation(alpha);
 		auto scale = item.GetInterpolatedScale(alpha);
-		auto color = item.GetInterpolatedColor(alpha);
 		int meshBits = item.GetMeshBits();
 
 		unsigned int stride = sizeof(Vertex);

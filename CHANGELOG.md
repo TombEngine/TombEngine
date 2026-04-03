@@ -5,8 +5,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ## [Version 1.11.1]
 
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
+
 ### Lua API changes
 * Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
 
 ## [Version 1.11]
 
