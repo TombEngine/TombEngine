@@ -6,10 +6,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### New features
- * Added gamma correction setting.
+* Added gamma correction setting.
  
 ### Bug fixes
- * Fixed incorrect dynamic range for vertex colors, ambient light and particle effects.
+* Fixed incorrect dynamic range for vertex colors, ambient light and particle effects.
 
 ## [Version 1.11.1]
 
