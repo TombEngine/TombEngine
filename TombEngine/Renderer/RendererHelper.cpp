@@ -467,7 +467,8 @@ namespace TEN::Renderer
 			jointIndex = 0;
 
 		auto* rendererItem = &_items[itemNumber];
-		auto& object = *_moveableObjects[rendererItem->ObjectID];
+		auto* nativeItem = &g_Level.Items[itemNumber];
+		auto& object = *_moveableObjects[nativeItem->ObjectNumber];
 
 		if (!rendererItem->DoneAnimations)
 			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(true) : UpdateItemAnimations(itemNumber, true);
