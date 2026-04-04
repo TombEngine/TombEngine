@@ -6,12 +6,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### New features
- * Added animation blending support and blended transitions for hardcoded animation changes.
- * Added root motion support.
+* Added animation blending support and blended transitions for hardcoded animation changes.
+* Added root motion support.
  
 ## Lua API changes
- * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
- * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
+* Added third argument to `Moveable:SetAnim` function to specify blend frame count.
+* Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
 
 ## [Version 1.11.1]
 
