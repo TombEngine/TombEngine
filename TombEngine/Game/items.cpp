@@ -60,16 +60,16 @@ BoundingOrientedBox ItemInfo::GetObb() const
 
 	// Compute offset.
 	const auto& relOffset = anim.Frames[Animation.FrameNumber].LocalAabb.Center;
-	const auto rotation = Pose.Orientation + rootMotionCounteract.Rotation;
+	const auto orient = Pose.Orientation + rootMotionCounteract.Rotation;
 
-	auto rotMatrix = rotation.ToRotationMatrix();
+	auto rotMatrix = orient.ToRotationMatrix();
 	auto offset = Vector3::Transform(relOffset + rootMotionCounteract.Translation, rotMatrix);
 
 	// Get extents.
 	const auto& extents = anim.Frames[Animation.FrameNumber].LocalAabb.Extents;
 
 	// Create and return OBB.
-	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, rotation.ToQuaternion());
+	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, orient.ToQuaternion());
 }
 
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
