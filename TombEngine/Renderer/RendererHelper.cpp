@@ -451,7 +451,7 @@ namespace TEN::Renderer
 		{
 			const auto& mesh = *moveable.ObjectMeshes[i];
 
-			const auto& translationMatrix = itemToDraw.InterpolatedAnimationTransforms[i];
+			const auto& translationMatrix = itemToDraw.AnimationTransforms[i];
 			auto pos = Vector3::Transform(mesh.Sphere.Center, translationMatrix * worldMatrix);
 
 			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
@@ -463,21 +463,19 @@ namespace TEN::Renderer
 
 	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)
 	{
+		if (jointIndex >= BONE_COUNT_MAX)
+			jointIndex = 0;
+
+		auto* rendererItem = &_items[itemNumber];
+		auto& object = *_moveableObjects[rendererItem->ObjectID];
+
+		if (!rendererItem->DoneAnimations)
+			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(true) : UpdateItemAnimations(itemNumber, true);
+
 		if (itemNumber == LaraItem->Index)
-		{
-			auto& object = *_moveableObjects[ID_LARA];
 			*outMatrix = object.AnimationTransforms[jointIndex] * _playerWorldMatrix;
-		}
 		else
-		{
-			UpdateItemAnimations(itemNumber, true);
-
-			auto* rendererItem = &_items[itemNumber];
-			auto* nativeItem = &g_Level.Items[itemNumber];
-
-			auto& obj = *_moveableObjects[nativeItem->ObjectNumber];
-			*outMatrix = obj.AnimationTransforms[jointIndex] * rendererItem->World;
-		}
+			*outMatrix = object.AnimationTransforms[jointIndex] * rendererItem->World;
 	}
 
 	SkinningMode Renderer::GetSkinningMode(const RendererObject& obj, int skinIndex)
@@ -598,7 +596,7 @@ namespace TEN::Renderer
 		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
-		auto world = rendererItem->InterpolatedAnimationTransforms[boneID] * rendererItem->World;
+		auto world = rendererItem->AnimationTransforms[boneID] * rendererItem->World;
 
 		return Vector3::Transform(relOffset, world);
 	}

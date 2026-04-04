@@ -55,7 +55,9 @@ namespace TEN::Effects::Hair
 		worldMatrix = Matrix::CreateTranslation(relOffset) * worldMatrix;
 
 		// Use player's head bone orientation as base.
-		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(GetBoneOrientation(item, LM_HEAD))) * item.Pose.Orientation.ToQuaternion();
+		auto rootMotionCounteract = GetAnimData(item).GetRootMotionCounteraction(item.Animation.FrameNumber);
+		auto itemOrient = (item.Pose.Orientation + rootMotionCounteract.Rotation).ToQuaternion();
+		auto baseOrient = Geometry::ConvertDirectionToQuat(-Geometry::ConvertQuatToDirection(GetBoneOrientation(item, LM_HEAD))) * itemOrient;
 
 		// Set position of base segment.
 		Segments[0].Position = worldMatrix.Translation();

@@ -303,7 +303,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 	// Copy matrices in player object.
 	for (int m = 0; m < NUM_LARA_MESHES; m++)
-		playerObject.AnimationTransforms[m] = rItem.InterpolatedAnimationTransforms[m];
+		playerObject.AnimationTransforms[m] = rItem.AnimationTransforms[m];
 
 	// Copy meshswap indices.
 	rItem.SkinIndex = LaraItem->Model.SkinIndex;
