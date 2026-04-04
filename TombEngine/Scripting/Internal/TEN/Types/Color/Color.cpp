@@ -128,7 +128,9 @@ namespace TEN::Scripting::Types
 
 	ScriptColor ScriptColor::PremultiplyAlpha()
 	{
+		auto alpha = _color.GetA();
 		_color = Vector3(_color) * ((float)_color.GetA() / (float)UCHAR_MAX);
+		_color.SetA(alpha);
 		return *this;
 	}
 
