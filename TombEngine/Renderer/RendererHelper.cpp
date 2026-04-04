@@ -79,7 +79,7 @@ namespace TEN::Renderer
 			if (frame.BoneOrientations.size() <= bone->Index)
 			{
 				TENLog(
-					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rendererItem->ObjectID) +
+					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rendererObject.Id) +
 					" using incorrect animation data. Bad animations set for slot?",
 					LogLevel::Error);
 

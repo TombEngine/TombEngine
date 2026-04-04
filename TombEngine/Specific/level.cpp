@@ -435,7 +435,8 @@ void LoadObjects()
 			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
 			// Load keyframes.
-			anim.Frames.resize(ReadInt32());
+			int frameCount = ReadCount();
+			anim.Frames.resize(frameCount);
 			for (auto& keyframe : anim.Frames)
 			{
 				auto center = ReadVector3();

@@ -142,14 +142,6 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	// debug
-	auto& object = Objects[ID_LARA];
-	object.Animations[LA_RUN].Flags |= (int)AnimFlags::RootMotionTranslationZ;
-	object.Animations[LA_WALK].Flags |= (int)AnimFlags::RootMotionTranslationZ;
-	object.Animations[LA_TURN_180_START].Flags |= (int)AnimFlags::RootMotionRotationY;
-	object.Animations[LA_CROUCH_TURN_180_START].Flags |= (int)AnimFlags::RootMotionRotationY;
-	//object.Animations[LA_CRAWL_TURN_180_START].Flags |= (int)AnimFlags::RootMotionRotationY; // cant set??
-
 	// Alert nearby creatures.
 	if (player.Control.Weapon.HasFired)
 	{

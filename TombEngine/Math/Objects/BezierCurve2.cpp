@@ -74,6 +74,9 @@ namespace TEN::Math
 			auto point = GetPoint(alpha);
 			auto derivative = GetDerivative(alpha);
 
+			if (abs(derivative.x) < EPSILON)
+				break;
+
 			float delta = (point.x - x) / derivative.x;
 			alpha -= delta;
 			if (abs(delta) <= TOLERANCE)

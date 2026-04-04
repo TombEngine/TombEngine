@@ -1067,7 +1067,6 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 	static auto defautBounds = GameBoundingBox(-MIN_BOUND, MIN_BOUND, 0, MIN_BOUND, -MIN_BOUND, MIN_BOUND);
 
 	return &defautBounds;
-	//return &GetFrame(g_Level.Items[itemNumber]).BoundingBox;
 }
 
 void InitializePickup(short itemNumber)
