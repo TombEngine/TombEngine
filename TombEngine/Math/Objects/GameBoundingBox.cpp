@@ -50,9 +50,16 @@ using namespace TEN::Animation;
 		}
 
 		const auto& anim = GetAnimData(*item);
-		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item->Animation.FrameNumber);
 
-		*this = anim.Frames[item->Animation.FrameNumber].BoundingBox;
+		if (anim.Frames.empty())
+		{
+			*this = GameBoundingBox::Zero;
+			return;
+		}
+
+		int frameNumber = std::clamp(item->Animation.FrameNumber, 0, (int)anim.Frames.size() - 1);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(frameNumber);
+		*this = anim.Frames[frameNumber].BoundingBox;
 
 		X1 += rootMotionCounteract.Translation.x;
 		X2 += rootMotionCounteract.Translation.x;
