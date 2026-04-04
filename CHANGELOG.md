@@ -3,6 +3,16 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 2.0]
+
+### New features
+* Added a property system for moveables and static meshes that is intended to supersede the legacy OCB system.
+
+### Lua API changes
+* Added `Objects.GetMoveableProperty`, `Objects.SetMoveableProperty`, `Objects.GetStaticProperty` and `Objects.SetStaticProperty` functions.
+* Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
+* Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
+
 ## [Version 1.11]
 
 ### New features
