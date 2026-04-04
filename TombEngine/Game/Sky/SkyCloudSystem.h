@@ -139,6 +139,7 @@ namespace TEN::Sky
 		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp
 		float AltoHorizonWidth     = 0.0f; // [0,1]   0=wide (to near horizon), 1=zenith-only cap
 		float AltoBleedDepth       = 0.0f; // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
+		float AltoHorizonGradientFade = 0.0f; // [0,1] top-to-bottom alpha gradient on horizon mesh (0=none, 1=full)
 
 		// Compositor hybrid-blend thresholds (only meaningful for AltocumulusMid)
 		// Luminance above BlendThresholdHigh → screen blend (bright clouds, no halos).

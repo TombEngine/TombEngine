@@ -3136,6 +3136,9 @@ namespace TEN::Renderer
 				_stSky.Color = Weather.SkyColor(layer);
 				_stSky.ApplyFogBulbs = layer == 0 ? 1 : 0;
 				_stSky.Ambient = Vector4::One;
+				_stSky.HorizonGradientFade = 0.0f;
+				_stSky.MeshWorldYMin  = 0.0f;
+				_stSky.MeshWorldYRange = 1.0f;
 				UpdateConstantBuffer(_stSky, _cbSky);
 
 				DrawIndexedTriangles(SKY_INDICES_COUNT, 0, 0);
@@ -3365,23 +3368,71 @@ namespace TEN::Renderer
 
 			float alpha = levelPtr->GetHorizonTransparency(layer);
 
-			// Cap alpha to 0.99 when the cloud bleed-overlay pass is active.
+			// Cap alpha to 0.99 when the cloud bleed-overlay pass is active or
+			// the horizon gradient fade is in use.
 			// alpha=1.0 triggers fully-opaque blending (overwriting cloud pixels painted
 			// after the horizon mesh); 0.99 forces alpha-blending (visually identical,
 			// but lets the post-horizon bleed composite survive).
-			// Triggered by HorizonMeshBleed > 0 OR AltoBleedDepth > 0.
+			// Triggered by HorizonMeshBleed > 0 OR AltoBleedDepth > 0 OR AltoHorizonGradientFade > 0.
 			if (!reflectionPass)
 			{
 				const auto& bleedState = g_SkyCloudSystem.GetCurrentState();
 				float maxBleed = std::max(bleedState.CloudA.HorizonMeshBleed, bleedState.CloudB.HorizonMeshBleed);
 				float maxBleedDepth = std::max(bleedState.CloudA.AltoBleedDepth, bleedState.CloudB.AltoBleedDepth);
-				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f) && alpha >= 1.0f)
+				float maxGradient = std::max(
+					(bleedState.CloudA.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudA.AltoHorizonGradientFade : 0.0f,
+					(bleedState.CloudB.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudB.AltoHorizonGradientFade : 0.0f);
+				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f || maxGradient > 0.001f) && alpha >= 1.0f)
 					alpha = 0.99f;
 			}
 
 			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
 			_stSky.Color = Color(1.0f, 1.0f, 1.0f, alpha);
 			_stSky.ApplyFogBulbs = 1;
+
+			// Horizon gradient fade: take max from both cloud layers (AltocumulusMid only).
+			// Compute actual mesh Y bounds by transforming vertex positions — bounding sphere radius
+			// is dominated by X/Z extent of wide horizon rings and would give a useless Y range.
+			if (!reflectionPass)
+			{
+				const auto& gradState = g_SkyCloudSystem.GetCurrentState();
+				float gradA = (gradState.CloudA.Category == CloudCategory::AltocumulusMid) ? gradState.CloudA.AltoHorizonGradientFade : 0.0f;
+				float gradB = (gradState.CloudB.Category == CloudCategory::AltocumulusMid) ? gradState.CloudB.AltoHorizonGradientFade : 0.0f;
+				_stSky.HorizonGradientFade = std::max(gradA, gradB);
+
+				if (_stSky.HorizonGradientFade > 0.001f)
+				{
+					const auto& gradMeshObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
+					float yMin =  FLT_MAX;
+					float yMax = -FLT_MAX;
+					for (const auto* m : gradMeshObj.ObjectMeshes)
+					{
+						for (const auto& localPos : m->Positions)
+						{
+							// Transform object-space vertex position into world space.
+							Vector3 worldPos = Vector3::Transform(localPos, _stSky.World);
+							float camRelY = worldPos.y - renderView.Camera.WorldPosition.y;
+							yMin = std::min(yMin, camRelY);
+							yMax = std::max(yMax, camRelY);
+						}
+					}
+					// yMin = topmost Y (most negative = highest in Y-down), yMax = bottommost.
+					_stSky.MeshWorldYMin   = yMin;
+					_stSky.MeshWorldYRange = std::max(yMax - yMin, 1.0f);
+				}
+				else
+				{
+					_stSky.MeshWorldYMin  = 0.0f;
+					_stSky.MeshWorldYRange = 1.0f;
+				}
+			}
+			else
+			{
+				_stSky.HorizonGradientFade = 0.0f;
+				_stSky.MeshWorldYMin  = 0.0f;
+				_stSky.MeshWorldYRange = 1.0f;
+			}
+
 			UpdateConstantBuffer(_stSky, _cbSky);
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];

@@ -103,6 +103,7 @@ namespace TEN::Sky
 		s.AltoHeightBlendPower  = AltoHeightBlendPower;
 		s.AltoHorizonWidth      = AltoHorizonWidth;
 		s.AltoBleedDepth        = AltoBleedDepth;
+		s.AltoHorizonGradientFade = AltoHorizonGradientFade;
 
 		// Lightning
 		s.LightningEnabled      = LightningEnabled ? 1 : 0;
@@ -166,6 +167,7 @@ namespace TEN::Sky
 		snap.AltoHeightBlendPower  = src.AltoHeightBlendPower;
 		snap.AltoHorizonWidth      = src.AltoHorizonWidth;
 		snap.AltoBleedDepth        = src.AltoBleedDepth;
+		snap.AltoHorizonGradientFade = src.AltoHorizonGradientFade;
 
 		// Lightning
 		snap.LightningEnabled      = (src.LightningEnabled != 0);
@@ -271,6 +273,7 @@ namespace TEN::Sky
 		result.AltoHeightBlendPower  = LerpFloat(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
 		result.AltoHorizonWidth      = LerpFloat(a.AltoHorizonWidth,      b.AltoHorizonWidth,      t);
 		result.AltoBleedDepth        = LerpFloat(a.AltoBleedDepth,        b.AltoBleedDepth,        t);
+		result.AltoHorizonGradientFade = LerpFloat(a.AltoHorizonGradientFade, b.AltoHorizonGradientFade, t);
 
 		// Lightning
 		result.LightningEnabled      = (t < 0.5f) ? a.LightningEnabled : b.LightningEnabled;

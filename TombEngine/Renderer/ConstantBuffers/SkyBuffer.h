@@ -16,5 +16,8 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector4 Ambient;
 		//--
 		int ApplyFogBulbs;
+		float HorizonGradientFade;  // [0,1] top-to-bottom alpha gradient on horizon mesh
+		float MeshWorldYMin;        // world-space Y of mesh bottom edge (camera-relative)
+		float MeshWorldYRange;      // world-space Y extent: top - bottom (positive value)
 	};
 }

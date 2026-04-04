@@ -67,6 +67,11 @@ namespace TEN::Scripting
 		snap.AltoBottomSoftness  = std::clamp(tf("altoBottomSoftness",  0.35  ), 0.0f, 1.0f);
 		snap.AltoZenithBias      = std::clamp(tf("altoZenithBias",       0.0  ), -1.0f, 1.0f);
 		snap.AltoHeightBlendPower= std::clamp(tf("altoHeightBlendPower", 1.0  ), 0.25f, 4.0f);
+		snap.AltoBleedDepth      = std::clamp(tf("altoBleedDepth",       0.0  ), 0.0f, 100.0f);
+		snap.AltoHorizonGradientFade = std::clamp(
+			static_cast<float>(table.get_or("altoHorizonGradientFade",
+				table.get_or("altoHorizonGradient", 0.0))),
+			0.0f, 1.0f);
 
 		// Lightning parameters (AltocumulusMid only).
 		snap.LightningEnabled        = table.get_or("lightningEnabled",        false);
