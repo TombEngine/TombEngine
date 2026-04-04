@@ -6,10 +6,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### New features
- * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
  
 ### Bug fixes
- * Fixed flyby camera jitter by converting the spline type to floating-point.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
 
 ## [Version 1.11.1]
 
