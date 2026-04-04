@@ -56,17 +56,18 @@ BoundingOrientedBox ItemInfo::GetObb() const
 {
 	// Get anim data.
 	const auto& anim = GetAnimData(*this);
-	auto rootMotionCounteract = anim.GetRootMotionCounteraction(Animation.FrameNumber);
+	int frameNumber = std::clamp(Animation.FrameNumber, 0, (int)anim.Frames.size() - 1);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(frameNumber);
 
 	// Compute offset.
-	const auto& relOffset = anim.Frames[Animation.FrameNumber].LocalAabb.Center;
+	const auto& relOffset = anim.Frames[frameNumber].LocalAabb.Center;
 	const auto orient = Pose.Orientation + rootMotionCounteract.Rotation;
 
 	auto rotMatrix = orient.ToRotationMatrix();
 	auto offset = Vector3::Transform(relOffset + rootMotionCounteract.Translation, rotMatrix);
 
 	// Get extents.
-	const auto& extents = anim.Frames[Animation.FrameNumber].LocalAabb.Extents;
+	const auto& extents = anim.Frames[frameNumber].LocalAabb.Extents;
 
 	// Create and return OBB.
 	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, orient.ToQuaternion());
