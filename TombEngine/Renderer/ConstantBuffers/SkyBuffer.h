@@ -19,5 +19,8 @@ namespace TEN::Renderer::ConstantBuffers
 		float HorizonGradientFade;  // [0,1] top-to-bottom alpha gradient on horizon mesh
 		float MeshWorldYMin;        // world-space Y of mesh bottom edge (camera-relative)
 		float MeshWorldYRange;      // world-space Y extent: top - bottom (positive value)
+		//--
+		float HorizonGradientRise;  // [0,1] bottom-to-top alpha gradient on horizon mesh
+		float _pad0, _pad1, _pad2;
 	};
 }

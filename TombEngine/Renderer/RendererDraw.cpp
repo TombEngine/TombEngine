@@ -3137,6 +3137,7 @@ namespace TEN::Renderer
 				_stSky.ApplyFogBulbs = layer == 0 ? 1 : 0;
 				_stSky.Ambient = Vector4::One;
 				_stSky.HorizonGradientFade = 0.0f;
+				_stSky.HorizonGradientRise = 0.0f;
 				_stSky.MeshWorldYMin  = 0.0f;
 				_stSky.MeshWorldYRange = 1.0f;
 				UpdateConstantBuffer(_stSky, _cbSky);
@@ -3382,7 +3383,8 @@ namespace TEN::Renderer
 				float maxGradient = std::max(
 					(bleedState.CloudA.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudA.AltoHorizonGradientFade : 0.0f,
 					(bleedState.CloudB.Category == CloudCategory::AltocumulusMid) ? bleedState.CloudB.AltoHorizonGradientFade : 0.0f);
-				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f || maxGradient > 0.001f) && alpha >= 1.0f)
+				float layerRise = _atmosphericSkySettings.HorizonGradientRise[layer];
+				if ((maxBleed > 0.001f || maxBleedDepth > 0.001f || maxGradient > 0.001f || layerRise > 0.001f) && alpha >= 1.0f)
 					alpha = 0.99f;
 			}
 
@@ -3399,8 +3401,9 @@ namespace TEN::Renderer
 				float gradA = (gradState.CloudA.Category == CloudCategory::AltocumulusMid) ? gradState.CloudA.AltoHorizonGradientFade : 0.0f;
 				float gradB = (gradState.CloudB.Category == CloudCategory::AltocumulusMid) ? gradState.CloudB.AltoHorizonGradientFade : 0.0f;
 				_stSky.HorizonGradientFade = std::max(gradA, gradB);
+				_stSky.HorizonGradientRise = _atmosphericSkySettings.HorizonGradientRise[layer];
 
-				if (_stSky.HorizonGradientFade > 0.001f)
+				if (_stSky.HorizonGradientFade > 0.001f || _stSky.HorizonGradientRise > 0.001f)
 				{
 					const auto& gradMeshObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 					float yMin =  FLT_MAX;
@@ -3429,6 +3432,7 @@ namespace TEN::Renderer
 			else
 			{
 				_stSky.HorizonGradientFade = 0.0f;
+				_stSky.HorizonGradientRise = 0.0f;
 				_stSky.MeshWorldYMin  = 0.0f;
 				_stSky.MeshWorldYRange = 1.0f;
 			}

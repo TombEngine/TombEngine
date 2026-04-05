@@ -65,5 +65,8 @@ namespace TEN::Renderer
 		float SunsetUndersideIntensity  = 2.881f;   // [0,3]   Overall brightness of sunset underside glow.
 		float SunsetUndersideSpread     = 4.0f;   // [0.5,4] Angular spread of sunset glow around sun direction (higher = wider).
 		float SunsetUndersideHeightFade = 3.26f;   // [0.5,4] Exponent: how quickly glow fades from cloud base to top (higher = more concentrated at base).
+
+		// --- Horizon mesh bottom-to-top alpha gradient (per layer, index 0 = Horizon 1, index 1 = Horizon 2) ---
+		float HorizonGradientRise[2] = { 0.0f, 0.0f }; // [0,1] bottom-to-top alpha gradient (debug / runtime override)
 	};
 }

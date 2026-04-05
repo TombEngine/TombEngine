@@ -1432,6 +1432,8 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 
 		ImGui::Indent(8.0f);
 
+		auto& atmoSettings = g_Renderer.GetAtmosphericSkySettings();
+
 		ImGui::TextDisabled("Horizont 1");
 		{
 			bool enabled = level->Horizon1.GetEnabled();
@@ -1442,6 +1444,9 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
 			if (ImGui::SliderFloat("Alpha##h1", &alpha, 0.0f, 1.0f, "%.2f"))
 				level->Horizon1.SetTransparency(alpha);
+
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
+			ImGui::SliderFloat("Horizon Rise##h1", &atmoSettings.HorizonGradientRise[0], 0.0f, 1.0f, "%.3f");
 		}
 
 		ImGui::Separator();
@@ -1456,6 +1461,9 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
 			if (ImGui::SliderFloat("Alpha##h2", &alpha, 0.0f, 1.0f, "%.2f"))
 				level->Horizon2.SetTransparency(alpha);
+
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
+			ImGui::SliderFloat("Horizon Rise##h2", &atmoSettings.HorizonGradientRise[1], 0.0f, 1.0f, "%.3f");
 		}
 
 		ImGui::Unindent(8.0f);

@@ -73,5 +73,20 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		output.w *= lerp(1.0, gradientAlpha, gradientStrength);
 	}
 
+	// Bottom-to-top alpha gradient on horizon mesh (Altocumulus-driven).
+	// Mirrors the top-to-bottom gradient but fades the mesh from bottom (transparent) upward.
+	// t = 0 at mesh bottom (transparent), t = 1 at mesh top (opaque).
+	if (HorizonGradientRise > 0.0f && MeshWorldYRange > 0.0f)
+	{
+		float relY = input.WorldY - CamPositionWS.y;
+		// Invert t so bottom of mesh = 0 (transparent), top = 1 (opaque).
+		float t = saturate(1.0f - (relY - MeshWorldYMin) / MeshWorldYRange);
+		float fadeExtent = max(HorizonGradientRise * 0.75f, 0.001f);
+		float remappedT = saturate(t / fadeExtent);
+		float gradientAlpha = smoothstep(0.0f, 1.0f, pow(remappedT, 2.2f));
+		float gradientStrength = saturate(HorizonGradientRise * 2.0f);
+		output.w *= lerp(1.0, gradientAlpha, gradientStrength);
+	}
+
 	return output;
 }
