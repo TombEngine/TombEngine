@@ -1592,6 +1592,22 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SliderFloat("Sunset Underside Height Fade", &settings.SunsetUndersideHeightFade, 0.5f, 4.0f,  "%.2f");
 		}
 
+		// --- Horizon ground color ---
+		if (ImGui::CollapsingHeader("Horizon Ground Color", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::TextDisabled("Color for the lower horizon band (replaces black).");
+			float horizonCol[3] = { settings.HorizonColorR, settings.HorizonColorG, settings.HorizonColorB };
+			if (ImGui::ColorEdit3("Horizon Color", horizonCol))
+			{
+				settings.HorizonColorR = horizonCol[0];
+				settings.HorizonColorG = horizonCol[1];
+				settings.HorizonColorB = horizonCol[2];
+			}
+			ImGui::SliderFloat("Horizon Color R", &settings.HorizonColorR, 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Color G", &settings.HorizonColorG, 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Color B", &settings.HorizonColorB, 0.0f, 1.0f, "%.3f");
+		}
+
 		// --- Reset button ---
 		ImGui::Separator();
 		if (ImGui::Button("Reset Defaults"))

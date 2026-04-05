@@ -100,10 +100,10 @@ namespace TEN::Renderer::ConstantBuffers
 		float   AuroraSunSuppressionStr;  // How strongly sunlight suppresses aurora.
 		float   AuroraTime;               // Accumulated animation time.
 		//--
-		// Row 17 — Cloud occlusion of sun disc
+		// Row 17 — Cloud occlusion of sun disc + horizon ground color
 		float   CloudDiscOcclusion;       // [0,1] 1 = fully occluded, 0 = clear. Suppresses AtmoSunDisk.
-		float   AtmoPad0;
-		float   AtmoPad1;
-		float   AtmoPad2;
+		float   HorizonColorR;            // [0,1] Red channel of horizon ground color.
+		float   HorizonColorG;            // [0,1] Green channel of horizon ground color.
+		float   HorizonColorB;            // [0,1] Blue channel of horizon ground color.
 	};
 }

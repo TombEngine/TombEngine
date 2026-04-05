@@ -167,7 +167,11 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     float3 mie = GetMie(viewDir, sunDir) * sunAbsorption;
 
     // Additional sun glow field.
-    float3 sunGlow = GetSunGlow(viewDir, sunDir) * sunAbsorption * AtmoSunColor;
+    // Color: white at zenith (no tint); warm AtmoSunColor at sunset.
+    // Avoids the greyish look caused by sunAbsorption at high elevations.
+    float3 sunGlowColor = lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor,
+                               saturate(1.0f - sunY * 2.0f) * AtmoSunWarmInfluence);
+    float3 sunGlow = GetSunGlow(viewDir, sunDir) * sunGlowColor;
 
     // Fade all sun-dependent effects when the sun is below the horizon.
     // Matches the sun sprite fade and god ray fade for visual consistency.
@@ -193,29 +197,70 @@ float3 ComputeAtmosphericScattering(float3 viewDir, float3 sunDir)
     float sunInfluence = saturate(1.0f - sunY * AtmoSunElevationRampSpeed);
     totalSky *= lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor, sunInfluence * AtmoSunWarmInfluence * sunBelowFade);
 
-    // Shader sun disk — replaces the billboard sprite so the disk is subject to the
-    // same horizon darkening below. The bottom half naturally fades into the dark band,
-    // giving a physically correct half-set appearance.
-    // AtmoSunDiskCosRadius = cos(half_angle), precomputed on CPU.
-    // Edge softness: 15% of disk radius for a smooth limb.
-    float sunCosAngle  = dot(viewDir, sunDir);
-    float sunEdgeWidth = (1.0f - AtmoSunDiskCosRadius) * 0.15f;
-    float sunDisk = smoothstep(AtmoSunDiskCosRadius - sunEdgeWidth,
-                               AtmoSunDiskCosRadius + sunEdgeWidth,
-                               sunCosAngle);
-    // Suppress the sun disc when clouds occlude it (CloudDiscOcclusion from prev-frame readback).
-    // Threshold 0.5: disc disappears once transmittance < 0.5 (same as debug indicator).
-    float discVisibility = saturate(1.0f - CloudDiscOcclusion * 2.0f);
-    totalSky += sunDisk * AtmoSunColor * AtmoSunDiskIntensity * sunBelowFade * discVisibility;
-
     // Horizon darkening: darken the sky near and below the horizon.
     // viewDir.y near 0 or negative = near/below horizon.
-    // The sun disk is added BEFORE this so its bottom half is darkened identically.
     float horizonFactor = saturate(viewY * 4.0f + 0.1f); // Ramps from dark at horizon to full above.
     horizonFactor = pow(horizonFactor, AtmoHorizonDarkeningStr);
     totalSky *= horizonFactor;
 
+    // NOTE: Sun halo/aureole is computed in ComputeSunDiskAndCorona so it is added
+    // after the horizon-color lerp in PSAtmosphericSky and is never scaled down by it.
+
     return totalSky;
+}
+
+float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
+{
+    float sunY        = -sunDir.y;
+    float viewY       = -viewDir.y;
+    float sunCosAngle = dot(viewDir, sunDir);
+    float diskRadius  = 1.0f - AtmoSunDiskCosRadius;
+
+    float discVisibility = saturate(1.0f - CloudDiscOcclusion * 2.0f);
+
+    // Disk fades out only when the sun is well below the horizon (~-12 deg).
+    float sunDiskBelowFade = saturate(1.0f + sunY * 5.0f);
+    sunDiskBelowFade = sunDiskBelowFade * sunDiskBelowFade * (3.0f - 2.0f * sunDiskBelowFade);
+
+    // Soft half-set clipping: only hides the part of the disk below the horizon plane.
+    float diskAngularRadius = sqrt(max(2.0f * diskRadius, 1e-5f));
+    float diskHorizonFade   = smoothstep(-diskAngularRadius, diskAngularRadius, viewY);
+
+    // Sun disk — original edge width 0.15x restores intended visual size.
+    float sunEdgeWidth = diskRadius * 0.15f;
+    float sunDisk = smoothstep(AtmoSunDiskCosRadius - sunEdgeWidth,
+                               AtmoSunDiskCosRadius + sunEdgeWidth,
+                               sunCosAngle);
+    float3 result = sunDisk * AtmoSunColor * AtmoSunDiskIntensity
+                  * sunDiskBelowFade * discVisibility * diskHorizonFade;
+
+    // Sun halo (aureole + wide diffuse bloom) — placed here instead of inside
+    // ComputeAtmosphericScattering so it is added AFTER the horizon-color lerp in
+    // PSAtmosphericSky. Inside ComputeAtmosphericScattering it would be dimmed by the
+    // lerp's horizonMask (which is ~0.175 right at the horizon), causing the glow to
+    // visually shrink as the sun approaches the horizon.
+    {
+        float angDist   = max(1.0f - sunCosAngle, 0.0f) / max(diskRadius, 1e-6f);
+        // At sunset (sunY≈0) the outer spread is wider; above horizon it tightens.
+        float sunsetSpread = lerp(0.07f, 0.025f, saturate(sunY * 8.0f));
+        float inner     = exp(-angDist * 0.50f);
+        float outer     = exp(-angDist * sunsetSpread) * 0.25f;
+
+        // Fade out: full at horizon (sunY=0), gone by ~-4° below (sunY≈-0.067).
+        float haloBelowFade = saturate(1.0f + sunY * 15.0f);
+        haloBelowFade = haloBelowFade * haloBelowFade * (3.0f - 2.0f * haloBelowFade);
+
+        // Stronger boost at sunset so the glow is visibly wider when the sun is low.
+        float boost = 1.0f + saturate(1.0f - abs(sunY) * 4.0f) * 5.0f;
+
+        float3 haloColor = lerp(float3(1.0f, 1.0f, 1.0f), AtmoSunColor,
+                                saturate(1.0f - sunY * 2.0f) * AtmoSunWarmInfluence);
+
+        result += (inner + outer) * AtmoSunGlowIntensity * 0.6f
+                * haloColor * boost * haloBelowFade * discVisibility;
+    }
+
+    return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -686,9 +731,26 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
 
     float3 finalColor = lerp(daySky, nightSky, nightFactor);
 
+    // Add sun disk/corona after the atmospheric horizon darkening pass so the disc stays
+    // opaque while still being softly clipped only where it crosses the true horizon.
+    float3 sunDiskColor = ComputeSunDiskAndCorona(viewDir, sunDir);
+
     // --- Moon disk (rendered on top of the sky blend, behind clouds) ---
     // The moon can be faintly visible during the day but becomes prominent at night.
     finalColor += ComputeMoonDisk(viewDir, moonDir, sunDir);
+
+    // --- Apply horizon ground color ---
+    // Replace the default black below the horizon with a user-defined color.
+    // horizonMask: 0 = below horizon (ground area), 1 = above (sky).
+    float viewYHorizon = -viewDir.y;
+    float horizonMask = saturate(viewYHorizon * 4.0f + 0.1f);
+    horizonMask = pow(horizonMask, AtmoHorizonDarkeningStr);
+    float3 horizonColor = float3(AtmoHorizonColorR, AtmoHorizonColorG, AtmoHorizonColorB);
+    finalColor = lerp(horizonColor, finalColor, horizonMask);
+
+    // Add the sun after the horizon ground color mix; otherwise the horizon color interpolation
+    // makes the disc look transparent as soon as it enters the darkening band.
+    finalColor += sunDiskColor;
 
     // Output with alpha = 1 (opaque sky background).
     // Stars and sun sprite render separately in their own passes.

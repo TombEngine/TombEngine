@@ -27,7 +27,7 @@ namespace TEN::Renderer
 		// --- Glow and brightness ---
 		float MieIntensity           = 0.00f;   // [0,5]   Mie glow disk intensity around sun.
 		float RayleighIntensity      = 0.00f;   // [0,5]   Rayleigh brightness multiplier.
-		float SunGlowIntensity       = 0.217f;   // [0,10]  Broad sun glow field intensity.
+		float SunGlowIntensity       = 0.248f;   // [0,10]  Broad sun glow field intensity.
 		float HorizonDarkeningStr    = 0.656f;   // [0.1,5] Horizon darkening exponent.
 		float ExposureMultiplier     = 2.032f;   // [0.1,5] Tone mapping exposure control.
 
@@ -58,13 +58,20 @@ namespace TEN::Renderer
 		// Rendered inside the atmospheric scattering pass so the bottom half is
 		// darkened by the same horizon band — giving a natural half-set appearance.
 		float SunDiskSize      = 1.62f;    // [0.1,10] Apparent half-angle in degrees.
-		float SunDiskIntensity = 103.6f;   // [1,200]  Brightness before tone mapping.
+		float SunDiskIntensity = 4.1f;   // [1,200]  Brightness before tone mapping.
 
 		// --- Sunset underside cloud lighting ---
 		// Controls warm sunset illumination on cloud undersides when the sun is low.
 		float SunsetUndersideIntensity  = 2.881f;   // [0,3]   Overall brightness of sunset underside glow.
 		float SunsetUndersideSpread     = 4.0f;   // [0.5,4] Angular spread of sunset glow around sun direction (higher = wider).
 		float SunsetUndersideHeightFade = 3.26f;   // [0.5,4] Exponent: how quickly glow fades from cloud base to top (higher = more concentrated at base).
+
+		// --- Horizon ground color ---
+		// RGB color for the lower horizon/ground band. Replaces the default black
+		// below the horizon line. Set to (0,0,0) for the classic black falloff.
+		float HorizonColorR = 0.0f;   // [0,1] Red channel of horizon ground color.
+		float HorizonColorG = 0.0f;   // [0,1] Green channel of horizon ground color.
+		float HorizonColorB = 0.0f;   // [0,1] Blue channel of horizon ground color.
 
 		// --- Horizon mesh bottom-to-top alpha gradient (per layer, index 0 = Horizon 1, index 1 = Horizon 2) ---
 		float HorizonGradientRise[2] = { 0.0f, 0.0f }; // [0,1] bottom-to-top alpha gradient (debug / runtime override)

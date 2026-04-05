@@ -97,11 +97,11 @@ cbuffer CBAtmosphericSky : register(b10)
     float  AuroraSunSuppressionStr;   // How strongly sunlight suppresses aurora.
     float  AuroraTime;                // Accumulated animation time.
     //--
-    // Row 17 — Cloud occlusion of sun disc
+    // Row 17 — Cloud occlusion of sun disc + horizon ground color
     float  CloudDiscOcclusion;        // [0,1] 1 = fully occluded. Suppresses AtmoSunDisk brightness.
-    float  AtmoPad0;
-    float  AtmoPad1;
-    float  AtmoPad2;
+    float  AtmoHorizonColorR;         // [0,1] Red channel of horizon ground color.
+    float  AtmoHorizonColorG;         // [0,1] Green channel of horizon ground color.
+    float  AtmoHorizonColorB;         // [0,1] Blue channel of horizon ground color.
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

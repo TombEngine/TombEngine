@@ -290,6 +290,11 @@ namespace TEN::Renderer
 		float cloudTransmittance = g_SkyCloudSystem.GetCombinedCloudTransmittance();
 		_stAtmosphericSky.CloudDiscOcclusion = 1.0f - cloudTransmittance;
 
+		// --- Horizon ground color ---
+		_stAtmosphericSky.HorizonColorR = settings.HorizonColorR;
+		_stAtmosphericSky.HorizonColorG = settings.HorizonColorG;
+		_stAtmosphericSky.HorizonColorB = settings.HorizonColorB;
+
 		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
 	}
 

@@ -430,12 +430,18 @@ namespace TEN::Scripting
 		///     the sun rises — higher = white zone starts sooner.
 		///   sunWarmInfluence (float, default 0.3): max warmth blend at the horizon
 		///     (0 = always white, 1 = full AtmoSunColor at the horizon).
+		///   horizonColorR (float, default 0.0): red channel [0,1] of the lower horizon color.
+		///   horizonColorG (float, default 0.0): green channel [0,1] of the lower horizon color.
+		///   horizonColorB (float, default 0.0): blue channel [0,1] of the lower horizon color.
 		parent.set_function("SetAtmosphericSkySettings",
 			[](sol::table settings)
 			{
 				auto& s = g_Renderer.GetAtmosphericSkySettings();
 				if (auto v = settings.get<sol::optional<float>>("sunElevationRampSpeed"); v.has_value()) s.SunElevationRampSpeed = *v;
 				if (auto v = settings.get<sol::optional<float>>("sunWarmInfluence");       v.has_value()) s.SunWarmInfluence       = *v;
+				if (auto v = settings.get<sol::optional<float>>("horizonColorR");          v.has_value()) s.HorizonColorR          = std::clamp(*v, 0.0f, 1.0f);
+				if (auto v = settings.get<sol::optional<float>>("horizonColorG");          v.has_value()) s.HorizonColorG          = std::clamp(*v, 0.0f, 1.0f);
+				if (auto v = settings.get<sol::optional<float>>("horizonColorB");          v.has_value()) s.HorizonColorB          = std::clamp(*v, 0.0f, 1.0f);
 			});
 
 		/// Set the aurora fade-in/fade-out duration when switching weather presets.
