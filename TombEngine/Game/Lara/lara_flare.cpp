@@ -324,8 +324,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 
 	auto& flareItem = g_Level.Items[itemNumber];
 
-	flareItem.Animation.AnimObjectID = flareItem.ObjectNumber;
-	flareItem.ObjectNumber = objectID;
+	flareItem.Animation.AnimObjectID = flareItem.ObjectNumber = objectID;
 	flareItem.RoomNumber = laraItem.RoomNumber;
 
 	auto pos = GetJointPosition(&laraItem, LM_LHAND, Vector3i(-16, 32, 42));
