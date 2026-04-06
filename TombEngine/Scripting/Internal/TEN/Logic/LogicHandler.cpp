@@ -115,6 +115,7 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table& parent) : _handler{ lua 
 
 	tableLogic.set_function(ScriptReserved_AddCallback, &LogicHandler::AddCallback, this);
 	tableLogic.set_function(ScriptReserved_RemoveCallback, &LogicHandler::RemoveCallback, this);
+	tableLogic.set_function(ScriptReserved_HasCallback, &LogicHandler::HasCallback, this);
 	tableLogic.set_function(ScriptReserved_HandleEvent, &LogicHandler::HandleEvent, this);
 	tableLogic.set_function(ScriptReserved_EnableEvent, &LogicHandler::EnableEvent, this);
 	tableLogic.set_function(ScriptReserved_DisableEvent, &LogicHandler::DisableEvent, this);
@@ -244,6 +245,28 @@ void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFun
 	}
 
 	it->second->erase(levelFunc.m_funcName);
+}
+
+/*** Check if a function is registered as a callback for a specific callback point.
+
+@function HasCallback
+@tparam Logic.CallbackPoint point The callback point to check.
+@tparam function func The function to check; must be in the `LevelFuncs` hierarchy.
+@treturn boolean True if the function is registered for the callback point, false otherwise.
+@usage
+	if TEN.Logic.HasCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.MyFunc) then
+		print("MyFunc is registered for PRE_LOOP")
+	end
+*/
+bool LogicHandler::HasCallback(CallbackPoint point, const LevelFunc& levelFunc)
+{
+	auto it = _callbacks.find(point);
+	if (it == _callbacks.end())
+	{
+		return false;
+	}
+
+	return it->second->find(levelFunc.m_funcName) != it->second->end();
 }
 
 /*** Attempt to find an event set and execute a particular event from it.

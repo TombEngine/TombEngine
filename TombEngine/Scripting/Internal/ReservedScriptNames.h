@@ -342,6 +342,7 @@ static constexpr char ScriptReserved_HasLineOfSight[]				= "HasLineOfSight";
 
 static constexpr char ScriptReserved_AddCallback[]					= "AddCallback";
 static constexpr char ScriptReserved_RemoveCallback[]				= "RemoveCallback";
+static constexpr char ScriptReserved_HasCallback[]					= "HasCallback";
 static constexpr char ScriptReserved_HandleEvent[]					= "HandleEvent";
 static constexpr char ScriptReserved_EnableEvent[]					= "EnableEvent";
 static constexpr char ScriptReserved_DisableEvent[]					= "DisableEvent";

@@ -149,6 +149,7 @@ public:
 
 	void AddCallback(CallbackPoint point, const LevelFunc& levelFunc);
 	void RemoveCallback(CallbackPoint point, const LevelFunc& levelFunc);
+	bool HasCallback(CallbackPoint point, const LevelFunc& levelFunc);
 	void HandleEvent(const std::string& name, EventType type, sol::optional<Moveable&> activator);
 	void EnableEvent(const std::string& name, EventType type);
 	void DisableEvent(const std::string& name, EventType type);
