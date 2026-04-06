@@ -536,12 +536,14 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
 
             float worleyB   = WorleyNoise2D(wPos * 1.05f);
             float invWB     = 1.0f - saturate(worleyB * 1.4f);
-            // Constant strength (no distLOD dependence): distLOD was used here as a
-            // Value-Noise workaround but caused measurable coverage drop at distance
-            // even at AltoZenithBias=0, breaking the uniform-at-0 guarantee.
-            // With Perlin gradient noise the iso-contour shape is already organic at
-            // all distances, so a flat 0.15 gives equal erosion near/far.
-            dens = saturate(Remap(dens, -(invWB * 0.15f), 1.0f, 0.0f, 1.0f));
+            // Fine Worley erosion fades out toward the horizon: at distance the
+            // fine cellular gaps that separate nearby fragments become very small
+            // on screen and just look like scatter noise.  Reducing strength to
+            // zero at distLOD=1 lets adjacent fragments merge into coherent cloud
+            // masses rather than floating as isolated specks.  Coverage impact is
+            // offset by the horizThin threshold raise below.
+            float wBStrength = lerp(0.15f, 0.0f, distLOD);
+            dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
         }
 
         // Reference: dens *= smoothstep(cld_coverage, cld_coverage + .035, dens);
@@ -550,8 +552,36 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // covThreshold = 1.0 - amount: higher amount -> lower threshold -> more clouds.
         // Default amount=0.6875 -> thresh=0.3125 -> matches reference cld_coverage.
         // AltoCloudAmount always controls global density; bias only shifts the spatial balance.
+        //
+        // Coarse cluster noise shared by both bias and coverage modulation.
+        // Scale 0.18x p -> each cluster spans ~5-6 cloud cells.
+        // p already carries wind drift, so clusters co-move with the clouds.
+        float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
+
+        // Cluster-shaped bias modulation:
+        // Without this, densityShift is purely elevation-dependent (same value for every
+        // cloud at the same ring height), so clouds dissolve as a smooth uniform band.
+        // Scaled by abs(AltoZenithBias) so effect is zero at bias=0 (uniform-at-0 parity).
+        if (abs(AltoZenithBias) > 0.001f)
+        {
+            densityShift += clusterNoise * abs(AltoZenithBias) * 0.35f;
+        }
+
         float effectiveAmount = saturate(AltoCloudAmount + densityShift);
         float covThresh = saturate(1.0f - effectiveAmount);
+
+        // Cluster-shaped coverage modulation:
+        // AltoCloudAmount controls global fill but applies identically everywhere,
+        // making all clouds thin/dissolve as a uniform gradient rather than in groups.
+        // Shifting covThresh by clusterNoise creates spatial zones where clouds
+        // survive (cluster peaks) or dissolve (cluster gaps) independent of elevation.
+        // Factor peaks at intermediate coverage (sparse/medium) and shrinks toward
+        // zero at full overcast (covThresh~0, no room to group) via the covThresh
+        // multiplier — so heavy cloud presets are not fragmented into isolated puffs.
+        {
+            float clusterStrength = covThresh * 0.30f;
+            covThresh = saturate(covThresh - clusterNoise * clusterStrength);
+        }
         // Edge-softness evolution: cloud edges widen where clouds are building/forming
         // and tighten where they are dissipating/breaking apart.
         // evoBias: +1 = this sky region is favored by the current distribution bias
@@ -562,6 +592,15 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // Clamped to [0.3, 3.0] to prevent degenerate coverage response.
         float evoBias = -AltoZenithBias * biasFactor;
         float covSoft = max(AltoCovSoftWidth, 0.001f) * clamp(exp2(evoBias * 0.5f), 0.3f, 3.0f);
+        // Widen the coverage soft-threshold at distance so cloud masses that
+        // survived the horizThin cull have fuzzy, overlapping edges and read
+        // as large coherent clusters rather than sharp isolated puffs.
+        // Scale with sizeFactor so large-pattern presets (small AltoCloudSize)
+        // are unaffected — they naturally form big masses already.
+        {
+            float sizeFactor = saturate(AltoCloudSize - 0.5f);
+            covSoft *= lerp(1.0f, 2.5f, distLOD2 * sizeFactor);
+        }
 
         // Evolution / pulsing: slowly oscillate the coverage threshold so cloud
         // masses gently puff up and deflate over time.
@@ -578,6 +617,34 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             // Evolution speed is already a global parameter; uniform swell amplitude
             // keeps cloud "presence" consistent at all distances at bias=0.
             covThresh = saturate(covThresh - sin(swellPhase) * swellAmp);
+        }
+
+        // --- Distance-based horizon thinning + cluster grouping ---
+        // Shared factor: no effect for large-pattern presets (AltoCloudSize <= 0.5),
+        // full effect for fine-pattern presets (AltoCloudSize >= 1.5).
+        {
+            float sizeFactor = saturate((AltoCloudSize - 0.5f) / 1.0f);
+
+            // 1. Base thinning: raises threshold globally at distance to kill the
+            //    weakest individual peaks (the small loose fragments).
+            float horizThin = distLOD * sizeFactor * 0.28f;
+            covThresh = saturate(covThresh + horizThin);
+
+            // 2. Cluster envelope: a coarse large-scale noise (~4x the cloud cell size)
+            //    modulates covThresh regionally — lower in cluster zones, higher in gaps.
+            //    This groups surviving clouds into broad cohesive masses instead of a
+            //    uniform scatter field.
+            //    p is already wind-drifted so the clusters co-move with the clouds.
+            float clusterAmt = distLOD * sizeFactor * 0.22f;
+            if (clusterAmt > 0.001f)
+            {
+                // Sample at 0.22x the FBM base scale -> each cluster spans ~5 cloud cells.
+                float clusterNoise = PerlinNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
+                // PerlinNoise3D is in [~-0.5, ~+0.5]:
+                //   positive region -> cluster zone (lower thresh) -> more/denser clouds
+                //   negative region -> gap zone   (raise thresh)  -> mostly clear
+                covThresh = saturate(covThresh - clusterNoise * clusterAmt);
+            }
         }
 
         dens *= smoothstep(covThresh, covThresh + covSoft, dens);
