@@ -86,14 +86,14 @@ namespace TEN::Animation
 		auto rot = EulerAngles::Identity;
 		if (hasRot)
 		{
-				const auto& rootOrient = EulerAngles(Frames[frameNumber].BoneOrientations.front());
-				const auto& prevRootOrient = EulerAngles(Frames[frameNumber - 1].BoneOrientations.front());
-				auto rootRot = rootOrient - prevRootOrient;
+			const auto& rootOrient = EulerAngles(Frames[frameNumber].BoneOrientations.front());
+			const auto& prevRootOrient = EulerAngles(Frames[frameNumber - 1].BoneOrientations.front());
+			auto rootRot = rootOrient - prevRootOrient;
 
-				rot = EulerAngles(
-					(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
-					(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
-					(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
+			rot = EulerAngles(
+				(Flags & (int)AnimFlags::RootMotionRotationX) ? rootRot.x : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationY) ? rootRot.y : ANGLE(0.0f),
+				(Flags & (int)AnimFlags::RootMotionRotationZ) ? rootRot.z : ANGLE(0.0f));
 		}
 
 		// Return root motion.
