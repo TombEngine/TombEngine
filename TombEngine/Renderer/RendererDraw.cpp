@@ -3330,6 +3330,17 @@ namespace TEN::Renderer
 			_context->RSSetViewports(1, &renderView.Viewport);
 			stride = sizeof(Vertex);
 			offset = 0;
+
+			// Draw sun and moon discs AFTER cloud compositing so that clouds
+			// naturally occlude them via the cloud coverage alpha channel.
+			if (_atmosphericSkySettings.Enabled)
+			{
+				DrawSunMoonDisc(renderView);
+				_context->IASetInputLayout(_inputLayout.Get());
+				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				stride = sizeof(Vertex);
+				offset = 0;
+			}
 		}
 
 		// Draw aurora BEFORE the horizon mesh so that opaque horizon geometry

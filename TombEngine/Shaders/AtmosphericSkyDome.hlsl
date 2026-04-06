@@ -216,7 +216,10 @@ float3 ComputeSunDiskAndCorona(float3 viewDir, float3 sunDir)
     float sunCosAngle = dot(viewDir, sunDir);
     float diskRadius  = 1.0f - AtmoSunDiskCosRadius;
 
-    float discVisibility = saturate(1.0f - CloudDiscOcclusion * 2.0f);
+    // discVisibility: always 1 — clouds render after the sky dome and naturally
+    // occlude the sun disk by draw order. The old transmittance-based suppression
+    // made the disk disappear before clouds actually covered it visually.
+    float discVisibility = 1.0f;
 
     // Disk fades out only when the sun is well below the horizon (~-12 deg).
     float sunDiskBelowFade = saturate(1.0f + sunY * 5.0f);
@@ -731,13 +734,9 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
 
     float3 finalColor = lerp(daySky, nightSky, nightFactor);
 
-    // Add sun disk/corona after the atmospheric horizon darkening pass so the disc stays
-    // opaque while still being softly clipped only where it crosses the true horizon.
-    float3 sunDiskColor = ComputeSunDiskAndCorona(viewDir, sunDir);
-
-    // --- Moon disk (rendered on top of the sky blend, behind clouds) ---
-    // The moon can be faintly visible during the day but becomes prominent at night.
-    finalColor += ComputeMoonDisk(viewDir, moonDir, sunDir);
+    // Sun disk and moon disk are NOT added here. They are rendered in a separate
+    // additive pass (PSSunMoonDisc) AFTER volumetric cloud compositing, so that
+    // clouds naturally occlude them by masking the disc contribution with cloud coverage.
 
     // --- Apply horizon ground color ---
     // Replace the default black below the horizon with a user-defined color.
@@ -748,13 +747,9 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
     float3 horizonColor = float3(AtmoHorizonColorR, AtmoHorizonColorG, AtmoHorizonColorB);
     finalColor = lerp(horizonColor, finalColor, horizonMask);
 
-    // Add the sun after the horizon ground color mix; otherwise the horizon color interpolation
-    // makes the disc look transparent as soon as it enters the darkening band.
-    finalColor += sunDiskColor;
-
-    // Output with alpha = 1 (opaque sky background).
-    // Stars and sun sprite render separately in their own passes.
-    return float4(finalColor, 1.0f);
+    // Alpha = 0: no cloud coverage. The cloud compositor will write cloud
+    // coverage into alpha later. The sun/moon disc pass reads this alpha.
+    return float4(finalColor, 0.0f);
 }
 
 // ---------------------------------------------------------------------------
@@ -775,4 +770,54 @@ float4 PSAurora(VSOutput input) : SV_TARGET
     float3 aurora = ComputeAurora(viewDir, input.Position.xy);
     // Output additive color — alpha is unused in additive blend mode.
     return float4(aurora, 1.0);
+}
+
+// ---------------------------------------------------------------------------
+// Sun/Moon disc pass — separate additive draw AFTER volumetric cloud compositing
+// ---------------------------------------------------------------------------
+// The cloud compositor writes cloud coverage in the alpha channel of _renderTarget.
+// This pass reads that alpha to mask the sun and moon discs so clouds naturally
+// occlude them — no blend-mode hacks needed.
+//
+// Bound to t0 (ColorMap) = _renderTarget (scene after cloud composite).
+
+Texture2D SceneAfterClouds : register(t0);
+SamplerState SunMoonLinearSamp : register(s2);
+
+VSOutput VSSunMoonDisc(VSInput input)
+{
+    VSOutput output;
+    output.Position     = float4(input.Position, 1.0f);
+    output.UV           = input.UV;
+    output.PositionCopy = output.Position;
+    return output;
+}
+
+float4 PSSunMoonDisc(VSOutput input) : SV_TARGET
+{
+    float3 viewDir = GetViewDirection(input.UV);
+    float3 sunDir  = normalize(AtmoSunDirection);
+    float3 moonDir = normalize(AtmoMoonDirection);
+
+    // Read cloud coverage from the alpha channel of the composited scene.
+    float cloudCoverage = SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV).a;
+
+    // Non-linear sun suppression: thin screen-blend edges (coverage < 0.3) pass
+    // the sun through almost unaffected so they stay bright via screen-blend.
+    // Only dense alpha-blend clouds (coverage > 0.85) fully block the disc.
+    float sunMask = smoothstep(0.3f, 0.85f, cloudCoverage);
+    float visibility = 1.0f - sunMask;
+
+    // Sun disc + corona (identical computation to the original sky pass).
+    float3 sunDiskColor = ComputeSunDiskAndCorona(viewDir, sunDir);
+
+    // Moon disc.
+    float3 moonDiskColor = ComputeMoonDisk(viewDir, moonDir, sunDir);
+
+    // Combined, masked by cloud visibility.
+    float3 result = (sunDiskColor + moonDiskColor) * visibility;
+
+    // Additive blend uses SrcAlpha * src + dest. Alpha must be 1 so the full
+    // color is added. (Same convention as PSAurora.)
+    return float4(result, 1.0f);
 }

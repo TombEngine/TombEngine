@@ -78,6 +78,7 @@ namespace TEN::Renderer::Utils
 
 		AtmosphericSkyDome,
 		Aurora,
+		SunMoonDisc,
 
 		// God rays
 

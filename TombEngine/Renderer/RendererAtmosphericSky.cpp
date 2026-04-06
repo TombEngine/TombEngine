@@ -382,4 +382,60 @@ namespace TEN::Renderer
 		_context->IASetInputLayout(_inputLayout.Get());
 		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
+
+	// ========================================================================
+	// Draw sun/moon disc — separate additive pass AFTER cloud compositing
+	// ========================================================================
+	// The cloud compositor writes cloud coverage into the alpha channel of
+	// _renderTarget. This pass reads that alpha to mask sun and moon discs
+	// so that clouds naturally occlude them without blend-mode hacks.
+
+	void Renderer::DrawSunMoonDisc(RenderView& renderView)
+	{
+		if (!_atmosphericSkySettings.Enabled)
+			return;
+
+		// Bind atmospheric sky CB to register b10.
+		auto* buf = _cbAtmosphericSky.get();
+		_context->PSSetConstantBuffers(10, 1, buf);
+		_context->VSSetConstantBuffers(10, 1, buf);
+
+		// Copy current _renderTarget to _scenePreCloudBackup so we can read
+		// the scene (including cloud coverage alpha) as a texture input.
+		_context->CopyResource(_scenePreCloudBackup.Texture.Get(),
+			_renderTarget.Texture.Get());
+
+		// Bind the copy as t0 (ColorMap) for the shader to read cloud coverage.
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_scenePreCloudBackup,
+			SamplerStateRegister::LinearClamp);
+
+		// Render target: _renderTarget (additive on top of the composited scene).
+		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
+			_renderTarget.DepthStencilView.Get());
+
+		// Additive blend: sun/moon disc light is added on top.
+		SetBlendMode(BlendMode::Additive);
+		SetCullMode(CullMode::CounterClockwise);
+		SetDepthState(DepthState::None);
+
+		// Fullscreen triangle rendering.
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+
+		unsigned int stride = sizeof(PostProcessVertex);
+		unsigned int offset = 0;
+		_context->IASetVertexBuffers(0, 1,
+			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+
+		_shaders.Bind(Shader::SunMoonDisc);
+		DrawTriangles(3, 0);
+
+		// Unbind the SRV so _renderTarget can be used as RT again.
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
+
+		// Restore regular input layout.
+		_context->IASetInputLayout(_inputLayout.Get());
+		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
 }

@@ -2218,7 +2218,16 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
                          : float3(0.0f, 0.0f, 0.0f);
 
     // Read the scene background (sky) from the pre-cloud backup copy.
-    float3 bg = SceneBackgroundTex.Sample(LinearSamp, uv).rgb;
+    // The sun/moon disc is NO LONGER in this background — it is rendered in a
+    // separate additive pass after cloud compositing. This means screen blend
+    // works correctly (bg is never near 1.0 from the sun) and no special
+    // sun-disc masking is needed.
+    // .a contains any previous cloud layer's coverage (for dual-layer accumulation).
+    float4 bgFull = SceneBackgroundTex.Sample(LinearSamp, uv);
+    float3 bg = bgFull.rgb;
+
+    // Cloud presence (cloud exists here).
+    float cloudPresence = saturate(cloudAlpha * 10.0f);
 
     // === Hybrid screen / alpha composite ===
     //
@@ -2303,13 +2312,12 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   giving alphaForBg≈0.96 for a cloud with cloudAlpha=0.15.
     //
     // effectiveScreenFactor uses (1-effectiveSunset)² so the screen-blend contribution
-    //   (which cannot darken the background sun disc) is suppressed at sunset.
-    //   At elevation=0.07: (1-0.849)²≈0.023 → only 2.3% screen blend remains.
-    float cloudPresence     = saturate(cloudAlpha * 10.0f);
+    //   naturally fades toward sunset.
+    // cloudPresence already declared above.
     float effectiveSunset   = sqrt(sunsetFactor);
-    float bgLuma            = dot(bg, float3(0.299f, 0.587f, 0.114f));
-    float brightBgBoost     = saturate((bgLuma - 0.7f) * 5.0f) * cloudPresence;
-    float alphaForBg        = lerp(cloudAlpha, cloudPresence, max(effectiveSunset, brightBgBoost));
+    // brightBgBoost removed: the sun disc is no longer in bg (handled by the separate
+    // PSSunMoonDisc additive pass), so there is no bright bg to compensate for here.
+    float alphaForBg        = lerp(cloudAlpha, cloudPresence, effectiveSunset);
     float alphaOcclude      = lerp(alphaForBg,
                                    1.0f - (1.0f - alphaForBg) * (1.0f - alphaForBg),
                                    1.0f - screenFactor);
@@ -2323,13 +2331,8 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
 
     // Where there is no cloud at all, preserve the background exactly.
     // cloudAlpha acts as the master presence signal.
-    // When the sun disc (very bright bg) is present AND cloud is present, boost the gate
-    // multiplier so even cloudAlpha=0.02 produces gate=1.0, preventing the sun from
-    // bleeding back through the lerp at low alpha values.
-    float bgMaxPresence  = max(bg.r, max(bg.g, bg.b));
-    float sunDiscPresent = saturate((bgMaxPresence - 0.75f) * 10.0f);
-    float masterGateMult = lerp(10.0f, 50.0f, sunDiscPresent);
-    finalColor = lerp(bg, finalColor, saturate(cloudAlpha * masterGateMult));
+    // The sun disc is no longer in bg, so no special bright-bg gate needed.
+    finalColor = lerp(bg, finalColor, saturate(cloudAlpha * 10.0f));
 
     // Alto dark-edge screen-blend override: applied AFTER all composite blend logic
     // (luma classifier, sunset factor, master gate) so it is fully independent
@@ -2352,7 +2355,15 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
         finalColor = lerp(finalColor, screenResult, altoAbsEdge);
     }
 
-    return float4(finalColor, 1.0f);
+    // Output cloud coverage in alpha channel so the sun/moon disc pass can
+    // mask out the disc where clouds are present.
+    // Use cloudAlpha directly (not cloudPresence) so thin cloud edges
+    // (cloudAlpha ≈ 0.1) don't aggressively suppress the sun disc.
+    // cloudPresence = sat(cloudAlpha*10) would give 1.0 at cloudAlpha=0.1,
+    // fully blocking the sun at semi-transparent edges → dark outline.
+    // Accumulate with previous layer's coverage via max().
+    float combinedCoverage = max(bgFull.a, cloudAlpha);
+    return float4(finalColor, combinedCoverage);
 }
 
 // ===========================================================================

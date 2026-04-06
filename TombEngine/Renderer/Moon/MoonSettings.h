@@ -39,7 +39,7 @@ namespace TEN::Renderer::Moon
 		float BaseColorB     = 0.90f;   // [0, 1]      Moon surface base color B.
 
 		// --- Moon glow (local sky illumination) ---
-		float GlowIntensity  = 0.237f;   // [0, 2]      Halo/glow brightness around moon.
+		float GlowIntensity  = 0.671f;   // [0, 2]      Halo/glow brightness around moon.
 		float GlowFalloff    = 100.0f;    // [1, 100]    How quickly glow fades from moon center.
 
 		// --- Moonlight strength for clouds ---

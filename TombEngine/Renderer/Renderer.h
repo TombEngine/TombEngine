@@ -483,6 +483,7 @@ namespace TEN::Renderer
 		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
 		void DrawAtmosphericSkyDome(RenderView& renderView);
 		void DrawAurora(RenderView& renderView);
+		void DrawSunMoonDisc(RenderView& renderView);
 	public:
 		float ComputeDayNightBlend(float sunElevation) const;
 		float ComputeStarfieldVisibility(float sunElevation) const;
