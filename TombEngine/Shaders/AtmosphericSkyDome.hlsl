@@ -802,11 +802,33 @@ float4 PSSunMoonDisc(VSOutput input) : SV_TARGET
     // Read cloud coverage from the alpha channel of the composited scene.
     float cloudCoverage = SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV).a;
 
-    // Non-linear sun suppression: thin screen-blend edges (coverage < 0.3) pass
-    // the sun through almost unaffected so they stay bright via screen-blend.
-    // Only dense alpha-blend clouds (coverage > 0.85) fully block the disc.
-    float sunMask = smoothstep(0.3f, 0.85f, cloudCoverage);
-    float visibility = 1.0f - sunMask;
+    // --- Sun visibility ---
+    // Non-linear suppression: thin screen-blend edges (coverage < 0.3) pass
+    // the sun through almost unaffected. Only dense alpha-blend clouds (coverage > 0.85)
+    // fully block the disc.
+    float sunMask       = smoothstep(0.3f, 0.85f, cloudCoverage);
+    float sunVisibility = 1.0f - sunMask;
+
+    // --- Moon visibility ---
+    // The moon shines through thin cloud wisps but is hidden by thick opaque cloud bodies.
+    // Physics: thin ice/water clouds scatter moonlight forward → soft glow around the disc.
+    // Dense opaque clouds absorb/scatter it fully → moon disappears.
+    //
+    // Rendering approach:
+    //   1. Blur the coverage sample (6px radius, 5-tap) to avoid pixel-level hard edges
+    //      at cloud/sky boundaries (the AA-gradient look in the reference).
+    //   2. Wide smoothstep range (0.05 → 0.95) — smooth transition all the way from
+    //      thin cloud edges to fully opaque interiors.
+    //   3. No visibility floor — thick dark cloud (coverage ≈ 1.0) fully hides the moon.
+    float2 ps     = AtmoInvViewSize * 6.0f;   // 6-pixel blur radius
+    float moonCov = cloudCoverage;
+    moonCov += SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV + float2( ps.x,  0.0f)).a;
+    moonCov += SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV + float2(-ps.x,  0.0f)).a;
+    moonCov += SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV + float2( 0.0f,  ps.y)).a;
+    moonCov += SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV + float2( 0.0f, -ps.y)).a;
+    moonCov /= 5.0f;
+    float moonMask       = smoothstep(0.05f, 0.95f, moonCov);
+    float moonVisibility = 1.0f - moonMask;
 
     // Sun disc + corona (identical computation to the original sky pass).
     float3 sunDiskColor = ComputeSunDiskAndCorona(viewDir, sunDir);
@@ -814,8 +836,8 @@ float4 PSSunMoonDisc(VSOutput input) : SV_TARGET
     // Moon disc.
     float3 moonDiskColor = ComputeMoonDisk(viewDir, moonDir, sunDir);
 
-    // Combined, masked by cloud visibility.
-    float3 result = (sunDiskColor + moonDiskColor) * visibility;
+    // Combined: sun and moon use their own separate visibility masks.
+    float3 result = sunDiskColor * sunVisibility + moonDiskColor * moonVisibility;
 
     // Additive blend uses SrcAlpha * src + dest. Alpha must be 1 so the full
     // color is added. (Same convention as PSAurora.)

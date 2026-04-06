@@ -294,7 +294,28 @@ namespace TEN::Renderer
 		_stVolumetricCloud.BlendThresholdHigh      = settings.BlendThresholdHigh;
 		_stVolumetricCloud.BlendThresholdHighWidth = settings.BlendThresholdHighWidth;
 		_stVolumetricCloud.BlendThresholdLow       = settings.BlendThresholdLow;
-		_stVolumetricCloud.CBuf23Pad1              = 0.0f;
+
+		// Moonlight direct illumination factor for the cloud shader.
+		// At night the CPU blends LightDirection/LightColor from sun→moon,
+		// but the shader's sunFade kills direct lighting. This factor tells
+		// the shader how much direct/silver/forward-scatter to restore.
+		{
+			float moonFactor = 0.0f;
+			if (moon.Enabled && dayNightBlend > 0.01f)
+			{
+				float moonPitchRad = moon.Pitch * (DirectX::XM_PI / 180.0f);
+				float moonYawRad   = moon.Yaw   * (DirectX::XM_PI / 180.0f);
+				Vector3 moonLightDir(
+					std::cos(moonPitchRad) * std::sin(moonYawRad),
+					-std::sin(moonPitchRad),
+					std::cos(moonPitchRad) * std::cos(moonYawRad));
+				moonLightDir.Normalize();
+				float moonPhase       = ComputeMoonPhase(sunLightDir, moonLightDir);
+				float phaseBrightness = moonPhase * moonPhase * (3.0f - 2.0f * moonPhase);
+				moonFactor = dayNightBlend * phaseBrightness;
+			}
+			_stVolumetricCloud.CloudMoonLightFactor = moonFactor;
+		}
 
 		// ---- Sunset underside cloud lighting ----
 		// Compute sunset color gradient and activation intensity based on sun elevation.

@@ -1481,21 +1481,39 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // Sun-elevation modulation for Altocumulus:
                     float altoSunFade = saturate(CloudSunElevation * 6.0f + 0.5f);
                     altoSunFade = altoSunFade * altoSunFade;
+                    // Moonlight: restore direct/silver/forward at night (light dir/color
+                    // already blended to moon on CPU). Keep sunFade for warmth tint only.
+                    float altoLightFade = max(altoSunFade, CloudMoonLightFactor);
                     float altoTwilightBoost = saturate(1.0f - abs(CloudSunElevation) * 8.0f) * CloudTwilightAmbient;
                     float altoNightBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
-                    float altoDirectFactor = AltoCloudBrightness * heightIllum * altoSunFade * CloudSunLightIntensity;
+                    float altoDirectFactor = AltoCloudBrightness * heightIllum * altoLightFade * CloudSunLightIntensity;
                     float altoAmbientFactor = (altoTwilightBoost + altoNightBase) * max(CloudAmbientIntensity, 0.001f);
 
-                    // Silverlining: top-edge brightening toward the sun.
-                    float altoSilver  = CloudSilverliningStrength * 0.25f * heightFrac * altoSunFade * CloudSunLightIntensity;
-                    // Forward scatter: broad sun-aligned hazy glow boost.
-                    float altoForward = CloudForwardScatterStrength * 0.12f * altoSunFade * CloudSunLightIntensity;
+                    // Silverlining: top-edge brightening toward the light source.
+                    float altoSilver  = CloudSilverliningStrength * 0.25f * heightFrac * altoLightFade * CloudSunLightIntensity;
+                    // Forward scatter: broad light-aligned hazy glow boost.
+                    float altoForward = CloudForwardScatterStrength * 0.12f * altoLightFade * CloudSunLightIntensity;
                     // Sun warmth: tint cloud illumination toward golden tone at low sun angles.
+                    // Only active during day (altoSunFade), not during moonlight.
                     float3 altoWarmTint = float3(1.0f, 0.88f, 0.65f);
                     float3 altoLitColor = lerp(CloudLightColor, CloudLightColor * altoWarmTint, CloudSunWarmthInfluence * altoSunFade);
 
                     sampleLight = altoLitColor * cloudColor
                         * (altoDirectFactor + altoAmbientFactor + altoSilver + altoForward);
+
+                    // Moon warm corona: brighten and warm the angular (phase-dependent)
+                    // components near the moon direction. cosTheta (dot(ray, lightDir))
+                    // is already computed once before the march loop. At night
+                    // CloudLightDirection = moon direction (CPU-blended), so this
+                    // concentrates the warm yellowish glow in clouds directly facing the moon.
+                    // Tint delta: R+22% G+7% B-22% → shifts cool blue-grey → warm yellow.
+                    if (CloudMoonLightFactor > 0.001f)
+                    {
+                        float moonWarmGate      = pow(max(cosTheta, 0.0f), 3.0f) * CloudMoonLightFactor;
+                        float3 altoAngularLight = altoLitColor * cloudColor
+                            * (altoDirectFactor + altoSilver + altoForward);
+                        sampleLight += altoAngularLight * float3(0.22f, 0.07f, -0.22f) * moonWarmGate;
+                    }
 
                     // === Sunset underside illumination (AltocumulusMid) ===
                     // Warm sunset glow on cloud undersides when the sun is near/below the horizon.
@@ -1639,22 +1657,34 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // and only ambient/twilight/night contribution remains.
                     float sunFade = saturate(CloudSunElevation * 6.0f + 0.5f); // 1.0 at day, fades to 0 below horizon.
                     sunFade = sunFade * sunFade; // Smooth falloff.
+                    // Moonlight: restore direct/silver/forward at night (light dir/color
+                    // already blended to moon on CPU). Keep sunFade for warmth tint only.
+                    float lightFade = max(sunFade, CloudMoonLightFactor);
                     float twilightBoost = saturate(1.0f - abs(CloudSunElevation) * 8.0f) * CloudTwilightAmbient;
                     float nightAmbientBase = lerp(CloudNightAmbient, 0.0f, saturate(CloudSunElevation * 4.0f));
                     float effectiveAmbient = ambient * (1.0f + edgeColorHold) + twilightBoost + nightAmbientBase;
 
                     // Beer-Lambert absorption exponent on shadow transmittance.
                     float absLightT = pow(max(lightT, 0.001f), CloudLightAbsorption);
-                    // Direct sun: HG phase boosted by forward-scatter strength.
-                    float directSun = absLightT * phase * CloudForwardScatterStrength * sunFade * CloudSunLightIntensity;
-                    // Silverlining: additive phase-squared forward glow (edge brightening toward sun).
-                    float silverGlow = phase * phase * sunFade * CloudSilverliningStrength * 0.3f * CloudSunLightIntensity;
+                    // Direct light: HG phase boosted by forward-scatter strength.
+                    float directSun = absLightT * phase * CloudForwardScatterStrength * lightFade * CloudSunLightIntensity;
+                    // Silverlining: additive phase-squared forward glow (edge brightening toward light source).
+                    float silverGlow = phase * phase * lightFade * CloudSilverliningStrength * 0.3f * CloudSunLightIntensity;
                     // Ambient scaled by CloudAmbientIntensity.
                     float ambLight = effectiveAmbient * max(CloudAmbientIntensity, 0.001f);
                     // Sun warmth: tint light toward warm golden tone.
+                    // Only active during day (sunFade), not during moonlight.
                     float3 stdWarmTint = float3(1.0f, 0.88f, 0.65f);
                     float3 stdLitColor = lerp(CloudLightColor, CloudLightColor * stdWarmTint, CloudSunWarmthInfluence * sunFade);
                     sampleLight = stdLitColor * (directSun + silverGlow + ambLight);
+
+                    // Moon warm corona: same as the alto path above.
+                    if (CloudMoonLightFactor > 0.001f)
+                    {
+                        float moonWarmGate      = pow(max(cosTheta, 0.0f), 3.0f) * CloudMoonLightFactor;
+                        float3 stdAngularLight  = stdLitColor * (directSun + silverGlow);
+                        sampleLight += stdAngularLight * float3(0.22f, 0.07f, -0.22f) * moonWarmGate;
+                    }
 
                     // === Sunset underside illumination (standard clouds) ===
                     if (SunsetUndersideIntensity > 0.001f)
@@ -2262,18 +2292,28 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     //   luma < BlendThresholdLow   →  very dark cloud edges        →  screen blend (no dark halos)
     //   BlendThresholdLow ≤ luma ≤ BlendThresholdHigh  →  alpha blend (dense clouds absorb properly)
 
-    // Sunset / night occlusion modulation:
-    // As the sun descends toward the horizon (CloudSunElevation → 0) the blend thresholds
-    // shift so that clouds become fully opaque (alpha-blend dominated).  This causes the
-    // sun, moon, and stars to disappear behind the cloud layer instead of bleeding through.
-    // Transition window: elevation [kSunsetStart … 0.0].  Below the horizon (night) the
-    // fully-shifted values are kept (sunsetFactor clamped to 1).
-    const float kSunsetStart = 0.15f;   // elevation (sin) at which sunset modulation begins
-    const float kSunsetHigh  = 0.12f;  // target BlendThresholdHigh  at the horizon
-    const float kSunsetWidth = 0.400f;  // target BlendThresholdHighWidth at the horizon
-    const float kSunsetLow   = 0.150f;  // target BlendThresholdLow   at the horizon
-    //float sunsetFactor  = 0.0f; // TEMP: sunset composite blend disabled
-    float sunsetFactor  = saturate(1.0f - CloudSunElevation / kSunsetStart);
+    // Two-stage threshold modulation: day → sunset → (back to sliders at night).
+    //
+    // DAY   (elev > 0.15):  sunsetFactor=0 → effectiveHigh = BlendThresholdHigh (slider).
+    //                        Only bright/thin cloud wisps screen blend; dense bodies alpha-blend.
+    //
+    // SUNSET (elev ≈ 0.0):  sunsetFactor=1 → shifts toward kSunset* constants.
+    //                        sfSuppression=0 kills screen blend; sun occlusion via alphaForBg.
+    //
+    // NIGHT  (elev < -0.15): sunsetFactor=0 again → effectiveHigh = BlendThresholdHigh (slider).
+    //                        Sliders are fully active. The alphaOcclude boost is suppressed via
+    //                        nightThreshFade so no hard cutout silhouette forms on a black sky.
+    const float kSunsetStart = 0.15f;
+    const float kNightStart  = 0.15f;
+    const float kSunsetHigh  = 0.12f;
+    const float kSunsetWidth = 0.400f;
+    const float kSunsetLow   = 0.150f;
+    float sunsetRise   = saturate(1.0f - CloudSunElevation / kSunsetStart);  // 0→1 as elev 0.15→0
+    float nightReturn  = saturate(-CloudSunElevation / kNightStart);          // 0→1 as elev 0→-kNight
+    float sunsetFactor = sunsetRise * (1.0f - nightReturn);
+    // Smooth night factor (used to suppress alphaOcclude boost, not to override thresholds).
+    float nightThreshFade = nightReturn * nightReturn * (3.0f - 2.0f * nightReturn);
+    // Thresholds blend day→sunset, then back to slider values at night (sunsetFactor returns to 0).
     float effectiveHigh  = lerp(BlendThresholdHigh,      kSunsetHigh,  sunsetFactor);
     float effectiveWidth = lerp(BlendThresholdHighWidth,  kSunsetWidth, sunsetFactor);
     float effectiveLow   = lerp(BlendThresholdLow,        kSunsetLow,   sunsetFactor);
@@ -2318,9 +2358,13 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // brightBgBoost removed: the sun disc is no longer in bg (handled by the separate
     // PSSunMoonDisc additive pass), so there is no bright bg to compensate for here.
     float alphaForBg        = lerp(cloudAlpha, cloudPresence, effectiveSunset);
+    // Opacity boost (1-(1-α)²) strengthens occlusion for dense clouds during the day.
+    // At night (nightThreshFade=1) this boost is suppressed completely — there is no sun
+    // disc to occlude and the boost would create a hard dark silhouette on the black sky.
+    float boostWeight       = (1.0f - screenFactor) * (1.0f - nightThreshFade);
     float alphaOcclude      = lerp(alphaForBg,
                                    1.0f - (1.0f - alphaForBg) * (1.0f - alphaForBg),
-                                   1.0f - screenFactor);
+                                   boostWeight);
     float3 alphaResult      = lerp(bg, cloudStraight, alphaOcclude);
 
     float sfSuppression     = (1.0f - effectiveSunset) * (1.0f - effectiveSunset);

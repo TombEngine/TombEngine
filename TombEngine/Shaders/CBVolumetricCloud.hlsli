@@ -133,7 +133,7 @@ cbuffer CBVolumetricCloud : register(b9)
     float BlendThresholdHigh;           // [0,1]     luminance above which screen blend starts (bright side).
     float BlendThresholdHighWidth;      // [0.005,0.4] half-width of bright→alpha smoothstep.
     float BlendThresholdLow;            // [0,1]     luminance below which screen blend starts (dark side).
-    float CBuf23Pad1;
+    float CloudMoonLightFactor;         // [0,1]     moonlight direct illumination factor (0 = day/no moon, >0 = moon contributing).
     //--
     // Row 24 — Sunset underside lighting
     float3 SunsetUndersideColor;        // Pre-computed sunset color (yellow→orange→red→magenta gradient).

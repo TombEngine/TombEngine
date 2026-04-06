@@ -14,9 +14,9 @@ namespace TEN::Renderer::Moon
 	{
 		bool  Enabled      = true;
 
-		float Length        = 0.309f;    // [0.05, 1.5]  Max ray reach in UV space.
+		float Length        = 0.242f;    // [0.05, 1.5]  Max ray reach in UV space.
 		float Intensity    = 0.005f;    // [0.0, 1.0]   Overall brightness (dimmer than sun).
-		float Decay        = 0.9000f;    // [0.90, 1.0]   Per-sample exponential decay.
+		float Decay        = 0.9593f;    // [0.90, 1.0]   Per-sample exponential decay.
 		int   SampleCount  = 43;       // [16, 128]    Radial sample count.
 		float Softness     = 3.0f;     // [0.1, 3.0]    Moon-glow source falloff.
 		float AutoStrength = 1.0f;     // [0.0, 1.0]   Blend between manual and auto strength.
@@ -39,11 +39,11 @@ namespace TEN::Renderer::Moon
 		float BaseColorB     = 0.90f;   // [0, 1]      Moon surface base color B.
 
 		// --- Moon glow (local sky illumination) ---
-		float GlowIntensity  = 0.671f;   // [0, 2]      Halo/glow brightness around moon.
+		float GlowIntensity  = 0.162f;   // [0, 2]      Halo/glow brightness around moon.
 		float GlowFalloff    = 100.0f;    // [1, 100]    How quickly glow fades from moon center.
 
 		// --- Moonlight strength for clouds ---
-		float CloudLightIntensity = 0.542f;  // [0, 2]   Direct moonlight on clouds at night.
+		float CloudLightIntensity = 0.089f;  // [0, 2]   Direct moonlight on clouds at night.
 		float CloudAmbientBoost   = 0.285f;  // [0, 0.5] Additional ambient for moonlit clouds.
 
 		// --- Moon god rays ---
