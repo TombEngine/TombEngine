@@ -61,7 +61,7 @@ namespace TEN::Sky
 		CirrocumulusFew,       // Sparse patches of rippled cirrocumulus.
 		Cirrustratus,          // Thin translucent veil of cirrus covering the sky.
 		StormBuildUpHigh,
-		BrokenClouds,
+		FewToClearSky,
 		Overcast,
 		Altocumulus,
 		AltocumulusHigh,       // Altocumulus pushed to higher altitude, thinner.

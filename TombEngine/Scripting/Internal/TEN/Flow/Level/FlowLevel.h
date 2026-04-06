@@ -27,7 +27,7 @@ struct Level : public ScriptInterfaceLevel
 	std::optional<TEN::Scripting::VolumetricCloudLayer> VolumetricLayer2;
 
 	// New weather preset system.
-	std::optional<std::string>              WeatherPreset; // e.g. "BrokenClouds"
+	std::optional<std::string>              WeatherPreset; // e.g. "FewToClearSky"
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};

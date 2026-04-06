@@ -132,7 +132,7 @@ namespace TEN::Scripting
 		/// @tparam string presetName Name of the weather preset.
 		/// Valid values: "ClearSky", "ClearSkyHigh", "ClearSkyLow",
 		/// "CirrocumulusClear", "CirrocumulusLots", "CirrocumulusFew",
-		/// "Cirrustratus", "StormBuildUpHigh", "BrokenClouds",
+		/// "Cirrustratus", "StormBuildUpHigh", "FewToClearSky",
 		/// "Overcast", "Altocumulus", "AltocumulusHigh", "AuroraBorealis",
 		/// "RainSnowOvercast", "StormBuildUp", "StormTransformation",
 		/// "Thunderstorm", "Random"

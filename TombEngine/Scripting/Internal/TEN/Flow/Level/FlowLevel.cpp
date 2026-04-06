@@ -69,7 +69,7 @@ void Level::Register(sol::table& parent)
 /// (string) Start the level with a fixed weather preset.
 // Valid values: "ClearSky", "ClearSkyHigh", "ClearSkyLow",
 // "CirrocumulusClear", "CirrocumulusLots", "CirrocumulusFew",
-// "Cirrustratus", "StormBuildUpHigh", "BrokenClouds", "Overcast",
+// "Cirrustratus", "StormBuildUpHigh", "FewToClearSky", "Overcast",
 // "Altocumulus", "AltocumulusHigh", "AuroraBorealis", "RainSnowOvercast",
 // "StormBuildUp", "StormTransformation", "Thunderstorm".
 //@mem weatherPreset

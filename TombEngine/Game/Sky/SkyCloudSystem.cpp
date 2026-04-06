@@ -535,13 +535,13 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- BrokenClouds -----
+		// ----- FewToClearSky -----
 		// Partial coverage: distinct cloud groups at varying heights.
 		// Uses CloudB only (AltocumulusMid).
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::BrokenClouds;
-			def.Name = "BrokenClouds";
+			def.Type = WeatherPresetType::FewToClearSky;
+			def.Name = "FewToClearSky";
 			def.DefaultTransitionDuration = 45.0f;
 
 			auto& b = def.TargetState.CloudB;
@@ -2237,7 +2237,7 @@ namespace TEN::Sky
 		case WeatherPresetType::CirrocumulusFew:       return "CirrocumulusFew";
 		case WeatherPresetType::Cirrustratus:          return "Cirrustratus";
 		case WeatherPresetType::StormBuildUpHigh:      return "StormBuildUpHigh";
-		case WeatherPresetType::BrokenClouds:          return "BrokenClouds";
+		case WeatherPresetType::FewToClearSky:         return "FewToClearSky";
 		case WeatherPresetType::Overcast:              return "Overcast";
 		case WeatherPresetType::Altocumulus:           return "Altocumulus";
 		case WeatherPresetType::AltocumulusHigh:       return "AltocumulusHigh";
@@ -2261,7 +2261,7 @@ namespace TEN::Sky
 			{ "CirrocumulusFew",       WeatherPresetType::CirrocumulusFew },
 			{ "Cirrustratus",          WeatherPresetType::Cirrustratus },
 			{ "StormBuildUpHigh",      WeatherPresetType::StormBuildUpHigh },
-			{ "BrokenClouds",          WeatherPresetType::BrokenClouds },
+			{ "FewToClearSky",          WeatherPresetType::FewToClearSky },
 			{ "Overcast",              WeatherPresetType::Overcast },
 			{ "Altocumulus",           WeatherPresetType::Altocumulus },
 			{ "AltocumulusHigh",       WeatherPresetType::AltocumulusHigh },
