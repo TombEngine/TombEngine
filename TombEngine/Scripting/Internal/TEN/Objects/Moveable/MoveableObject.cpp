@@ -198,6 +198,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetAIBits, &Moveable::SetAIBits,
 		ScriptReserved_SetOnHit, &Moveable::SetOnHit,
 		ScriptReserved_SetOnKilled, &Moveable::SetOnKilled,
+		ScriptReserved_SetOnLoop, &Moveable::SetOnLoop,
 		ScriptReserved_SetOnCollidedWithRoom, &Moveable::SetOnCollidedWithRoom,
 		ScriptReserved_SetOnCollidedWithObject, &Moveable::SetOnCollidedWithObject,
 
@@ -322,7 +323,7 @@ int Moveable::GetIndex() const
 // @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is shot.
 void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 {
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks.OnHit);
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks[(int)EntityCallbackPoint::Hit]);
 }
 
 /// Set the name of the function to be called when the moveable is destroyed/killed.
@@ -335,7 +336,28 @@ void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
 // baddy:SetOnKilled(LevelFuncs.baddyKilled)
 void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 {
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnKilled, *this, _moveable->Callbacks.OnKilled);
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnKilled, *this, _moveable->Callbacks[(int)EntityCallbackPoint::Killed]);
+}
+
+/// Set the function to be called during the moveable control loop.
+// This callback runs on the fixed-timestep game loop either before or after the moveable's hardcoded control routine.
+// @function Moveable:SetOnLoop
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call during moveable update.
+// @bool[opt=false] post If true, run after hardcoded control; otherwise run before it.
+// @usage
+// LevelFuncs.preBaddyLoop = function(baddy)
+//     print("Pre-loop callback for " .. baddy:GetName())
+// end
+//
+// LevelFuncs.postBaddyLoop = function(baddy)
+//     print("Post-loop callback for " .. baddy:GetName())
+// end
+//
+// baddy:SetOnLoop(LevelFuncs.preBaddyLoop)
+// baddy:SetOnLoop(LevelFuncs.postBaddyLoop, true)
+void Moveable::SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnLoop, *this, post.value_or(false) ? _moveable->Callbacks[(int)EntityCallbackPoint::PostLoop] : _moveable->Callbacks[(int)EntityCallbackPoint::PreLoop]);
 }
 
 /// Set the function to be called when this moveable collides with another moveable.
@@ -351,7 +373,7 @@ void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 // baddy:SetOnCollidedWithObject(LevelFuncs.objCollided)
 void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
 {
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithObject, *this, _moveable->Callbacks.OnObjectCollided);
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithObject, *this, _moveable->Callbacks[(int)EntityCallbackPoint::ObjectCollided]);
 }
 
 /// Set the function called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
@@ -364,7 +386,7 @@ void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
 // baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)
 void Moveable::SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb)
 {
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, *this, _moveable->Callbacks.OnRoomCollided);
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, *this, _moveable->Callbacks[(int)EntityCallbackPoint::RoomCollided]);
 }
 
 /// Get the moveable's name (its unique string identifier). This corresponds with the "Lua Name" field in a moveable's properties in Tomb Editor.

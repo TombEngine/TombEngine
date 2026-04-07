@@ -18,6 +18,7 @@
 #include "Game/Setup.h"
 #include "Objects/TR3/Vehicles/big_gun_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -111,6 +112,11 @@ namespace TEN::Entities::Vehicles
 
 		short deltaAngle = abs(laraItem->Pose.Orientation.y - bigGunItem->Pose.Orientation.y);
 		if (deltaAngle > ANGLE(35.0f) || deltaAngle < -ANGLE(35.0f))
+			return false;
+
+		// Re-evaluate mount after the callback which may have intercepted the input (e.g. for vehicle keys check).
+		g_GameScript->OnVehicleEnter(bigGunItem->Index, false);
+		if (!IsHeld(In::Action))
 			return false;
 
 		return true;

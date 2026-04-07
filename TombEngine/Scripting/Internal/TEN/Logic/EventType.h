@@ -43,7 +43,7 @@ namespace TEN::Scripting
 		// @mem USE_ITEM
 		{ ScriptReserved_EventOnUseItem, EventType::UseItem },
 
-		/// Triggered when any of the Freeze modes are activated.
+		/// Triggered when any of the @{Flow.FreezeMode} is activated.
 		// @mem FREEZE
 		{ ScriptReserved_EventOnFreeze, EventType::Freeze },
 

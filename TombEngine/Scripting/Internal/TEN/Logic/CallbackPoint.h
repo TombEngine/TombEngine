@@ -3,6 +3,48 @@
 
 namespace TEN::Scripting
 {
+	enum class EntityCallbackPoint
+	{
+		Killed,
+		Hit,
+		PreLoop,
+		PostLoop,
+		ObjectCollided,
+		RoomCollided,
+
+		Count
+	};
+
+	enum class LevelFuncCallbackPoint
+	{
+		Start,
+		Load,
+		Loop,
+		Save,
+		End,
+		UseItem,
+		Pickup,
+		EnterVehicle,
+		ExitVehicle,
+		Freeze,
+
+		Count
+	};
+
+	static auto LEVELFUNC_CALLBACK_POINTS = std::unordered_map<LevelFuncCallbackPoint, std::string>
+	{
+		{ LevelFuncCallbackPoint::Start, ScriptReserved_OnStart },
+		{ LevelFuncCallbackPoint::Load, ScriptReserved_OnLoad },
+		{ LevelFuncCallbackPoint::Loop, ScriptReserved_OnLoop },
+		{ LevelFuncCallbackPoint::Save, ScriptReserved_OnSave },
+		{ LevelFuncCallbackPoint::End, ScriptReserved_OnEnd },
+		{ LevelFuncCallbackPoint::UseItem, ScriptReserved_OnUseItem },
+		{ LevelFuncCallbackPoint::Pickup, ScriptReserved_OnPickup },
+		{ LevelFuncCallbackPoint::EnterVehicle, ScriptReserved_OnEnterVehicle },
+		{ LevelFuncCallbackPoint::ExitVehicle, ScriptReserved_OnExitVehicle },
+		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze }
+	};
+
 	enum class CallbackPoint
 	{
 		PreStart,
@@ -17,11 +59,19 @@ namespace TEN::Scripting
 		PostEnd,
 		PreUseItem,
 		PostUseItem,
+		PrePickup,
+		PostPickup,
+		PreEnterVehicle,
+		PostEnterVehicle,
+		PreExitVehicle,
+		PostExitVehicle,
 		PreFreeze,
-		PostFreeze
+		PostFreeze,
+
+		Count
 	};
 
-	/// Points in the game flow where level scripts can hook into.
+	/// Points in the game flow where level scripts can hook into. Used with @{Logic.AddCallback} and @{Logic.RemoveCallback} methods.
 	// @enum Logic.CallbackPoint
 	// @pragma nostrip
 	static const auto CALLBACK_POINTS = std::unordered_map<std::string, CallbackPoint>
@@ -74,6 +124,30 @@ namespace TEN::Scripting
 		// @mem POST_USE_ITEM
 		{ ScriptReserved_PostUseItem, CallbackPoint::PostUseItem },
 
+		/// Will be called when a pickup animation starts, before the item is added to inventory.
+		// @mem PRE_PICKUP
+		{ ScriptReserved_PrePickup, CallbackPoint::PrePickup },
+
+		/// Will be called after a pickup is added to inventory.
+		// @mem POST_PICKUP
+		{ ScriptReserved_PostPickup, CallbackPoint::PostPickup },
+
+		/// Will be called immediately before a vehicle mount is committed.
+		// @mem PRE_ENTER_VEHICLE
+		{ ScriptReserved_PreEnterVehicle, CallbackPoint::PreEnterVehicle },
+
+		/// Will be called immediately after player is assigned to a vehicle.
+		// @mem POST_ENTER_VEHICLE
+		{ ScriptReserved_PostEnterVehicle, CallbackPoint::PostEnterVehicle },
+
+		/// Will be called immediately before a vehicle dismount is committed.
+		// @mem PRE_EXIT_VEHICLE
+		{ ScriptReserved_PreExitVehicle, CallbackPoint::PreExitVehicle },
+
+		/// Will be called immediately after player leaves a vehicle.
+		// @mem POST_EXIT_VEHICLE
+		{ ScriptReserved_PostExitVehicle, CallbackPoint::PostExitVehicle },
+
 		/// Will be called immediately before LevelFuncs.OnFreeze.
 		// @mem PRE_FREEZE
 		{ ScriptReserved_PreFreeze, CallbackPoint::PreFreeze },
@@ -96,6 +170,12 @@ namespace TEN::Scripting
 		{ "POSTEND", CallbackPoint::PostEnd },
 		{ "PREUSEITEM", CallbackPoint::PreUseItem },
 		{ "POSTUSEITEM", CallbackPoint::PostUseItem },
+		{ "PREPICKUP", CallbackPoint::PrePickup },
+		{ "POSTPICKUP", CallbackPoint::PostPickup },
+		{ "PREENTERVEHICLE", CallbackPoint::PreEnterVehicle },
+		{ "POSTENTERVEHICLE", CallbackPoint::PostEnterVehicle },
+		{ "PREEXITVEHICLE", CallbackPoint::PreExitVehicle },
+		{ "POSTEXITVEHICLE", CallbackPoint::PostExitVehicle },
 		{ "PREFREEZE", CallbackPoint::PreFreeze },
 		{ "POSTFREEZE", CallbackPoint::PostFreeze }
 	};

@@ -275,17 +275,14 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 	auto* item = &g_Level.Items[itemNumber];
 
 	g_GameScriptEntities->TryRemoveColliding(itemNumber, true);
-	if (!item->Callbacks.OnKilled.empty())
-		g_GameScript->ExecuteFunction(item->Callbacks.OnKilled, itemNumber);
+	if (!item->Callbacks[(int)EntityCallbackPoint::Killed].empty())
+		g_GameScript->ExecuteFunction(item->Callbacks[(int)EntityCallbackPoint::Killed], itemNumber);
 
 	if (destroyed)
 	{
 		g_GameScriptEntities->NotifyKilled(item);
 		item->Name.clear();
-		item->Callbacks.OnKilled.clear();
-		item->Callbacks.OnHit.clear();
-		item->Callbacks.OnObjectCollided.clear();
-		item->Callbacks.OnRoomCollided.clear();
+		item->Callbacks = {};
 	}
 }
 
@@ -893,8 +890,14 @@ void UpdateAllItems()
 
 		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
+			if (!item.Callbacks[(int)EntityCallbackPoint::PreLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PreLoop], item.Index);
+
 			if (Objects[item.ObjectNumber].control)
 				Objects[item.ObjectNumber].control(item.Index);
+
+			if (!item.Callbacks[(int)EntityCallbackPoint::PostLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PostLoop], item.Index);
 
 			TestVolumes(item.Index);
 			ProcessEffects(&item);
@@ -1018,12 +1021,11 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (isExplosive && allowBurn && Random::TestProbability(1 / 2.0f))
 		ItemBurn(target);
 
-	if (!target->Callbacks.OnHit.empty())
+	if (!target->Callbacks[(int)EntityCallbackPoint::Hit].empty())
 	{
-		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-
+		int index = g_GameScriptEntities->GetIndexByName(target->Name);
 		if (index != NO_VALUE)
-			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+			g_GameScript->ExecuteFunction(target->Callbacks[(int)EntityCallbackPoint::Hit], index);
 	}
 }
 

@@ -111,6 +111,7 @@ public:
 	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
 	void SetOnKilled(const TypeOrNil<LevelFunc>& cb);
+	void SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post);
 	void SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb);
 

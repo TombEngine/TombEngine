@@ -12,8 +12,9 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
-#include "Math/Random.h"
 #include "Game/room.h"
+#include "Math/Random.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -91,7 +92,7 @@ namespace TEN::Entities::Vehicles
 
 			case VehicleMountType::Front:
 				if (hasInputAction &&
-					deltaHeadingAngle > ANGLE(135.0f) && deltaHeadingAngle < -ANGLE(135.0f) &&
+					(deltaHeadingAngle > ANGLE(135.0f) || deltaHeadingAngle < -ANGLE(135.0f)) &&
 					onCorrectSide &&
 					!laraItem->Animation.IsAirborne)
 				{
@@ -146,6 +147,12 @@ namespace TEN::Entities::Vehicles
 			default:
 				return VehicleMountType::None;
 			}
+
+			g_GameScript->OnVehicleEnter(vehicleItem->Index, false);
+
+			// Re-evaluate mount type after the callback which may have intercepted the input (e.g. for vehicle keys check).
+			if (mountType != VehicleMountType::LevelStart && !IsHeld(In::Action))
+				return VehicleMountType::None;
 
 			return mountType;
 		}

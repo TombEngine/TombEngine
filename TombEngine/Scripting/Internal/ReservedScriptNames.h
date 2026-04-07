@@ -85,6 +85,12 @@ static constexpr char ScriptReserved_PreLoop[]			= "PRE_LOOP";
 static constexpr char ScriptReserved_PostLoop[]			= "POST_LOOP";
 static constexpr char ScriptReserved_PreUseItem[]		= "PRE_USE_ITEM";
 static constexpr char ScriptReserved_PostUseItem[]		= "POST_USE_ITEM";
+static constexpr char ScriptReserved_PrePickup[]		= "PRE_PICKUP";
+static constexpr char ScriptReserved_PostPickup[]		= "POST_PICKUP";
+static constexpr char ScriptReserved_PreEnterVehicle[]	= "PRE_ENTER_VEHICLE";
+static constexpr char ScriptReserved_PostEnterVehicle[]	= "POST_ENTER_VEHICLE";
+static constexpr char ScriptReserved_PreExitVehicle[]	= "PRE_EXIT_VEHICLE";
+static constexpr char ScriptReserved_PostExitVehicle[]	= "POST_EXIT_VEHICLE";
 static constexpr char ScriptReserved_PreFreeze[]		= "PRE_FREEZE";
 static constexpr char ScriptReserved_PostFreeze[]		= "POST_FREEZE";
 
@@ -95,6 +101,9 @@ static constexpr char ScriptReserved_OnLoop[]			= "OnLoop";
 static constexpr char ScriptReserved_OnSave[]			= "OnSave";
 static constexpr char ScriptReserved_OnEnd[]			= "OnEnd";
 static constexpr char ScriptReserved_OnUseItem[]		= "OnUseItem";
+static constexpr char ScriptReserved_OnPickup[]			= "OnPickup";
+static constexpr char ScriptReserved_OnEnterVehicle[]	= "OnEnterVehicle";
+static constexpr char ScriptReserved_OnExitVehicle[]	= "OnExitVehicle";
 static constexpr char ScriptReserved_OnFreeze[]			= "OnFreeze";
 
 // Event types (volume events + global events)
@@ -220,6 +229,7 @@ static constexpr char ScriptReserved_GetOnKilled[]			= "GetOnKilled";
 static constexpr char ScriptReserved_SetOnKilled[]			= "SetOnKilled";
 static constexpr char ScriptReserved_GetOnHit[]				= "GetOnHit";
 static constexpr char ScriptReserved_SetOnHit[]				= "SetOnHit";
+static constexpr char ScriptReserved_SetOnLoop[]			= "SetOnLoop";
 static constexpr char ScriptReserved_ToVec2[]				= "ToVec2";
 static constexpr char ScriptReserved_AttachObjCamera[]		= "AttachObjCamera";
 static constexpr char ScriptReserved_AnimFromObject[]		= "AnimFromObject";

@@ -149,7 +149,33 @@ public:
 // 		end
 // 	end
 
-/// Called when any of the Freeze modes are activated.
+/// Called when a pickup is added to the inventory.
+/// Receives the picked up moveable as an @{Objects.Moveable} object.
+// @function OnPickup
+// @usage
+// 	LevelFuncs.OnPickup = function(pickup)
+// 		if pickup:GetObjectID() == TEN.Objects.ObjID.FLARE_ITEM then
+// 			-- implementation goes here
+// 		end
+// 	end
+
+/// Called after player enters a vehicle.
+/// Receives the mounted vehicle as an @{Objects.Moveable} object.
+// @function OnEnterVehicle
+// @usage
+// 	LevelFuncs.OnEnterVehicle = function(vehicle)
+// 		-- implementation goes here
+// 	end
+
+/// Called after player exits a vehicle.
+/// Receives the vehicle player has just left as an @{Objects.Moveable} object.
+// @function OnExitVehicle
+// @usage
+// 	LevelFuncs.OnExitVehicle = function(vehicle)
+// 		-- implementation goes here
+// 	end
+
+/// Called when any of the @{Flow.FreezeMode} is activated.
 // @function OnFreeze
 // @usage
 // 	LevelFuncs.OnFreeze = function()

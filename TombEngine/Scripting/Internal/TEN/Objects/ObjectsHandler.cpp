@@ -214,19 +214,19 @@ void ObjectsHandler::TestCollidingObjects()
 	for (int itemNumber0 : _collidingItems)
 	{
 		auto& item = g_Level.Items[itemNumber0];
-		if (!item.Callbacks.OnObjectCollided.empty())
+		if (!item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty())
 		{
 			// Test against other moveables.
 			auto collObjects = GetCollidedObjects(item, true, false);
 			for (const auto& collidedItemPtr : collObjects.Items)
-				g_GameScript->ExecuteFunction(item.Callbacks.OnObjectCollided, itemNumber0, collidedItemPtr->Index);
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided], itemNumber0, collidedItemPtr->Index);
 		}
 
-		if (!item.Callbacks.OnRoomCollided.empty())
+		if (!item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty())
 		{
 			// Test against room geometry.
 			if (TestItemRoomCollisionAABB(&item))
-				g_GameScript->ExecuteFunction(item.Callbacks.OnRoomCollided, itemNumber0);
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::RoomCollided], itemNumber0);
 		}
 	}
 }
