@@ -2678,13 +2678,18 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (!item->Name.empty())
 			g_GameScriptEntities->AddName(item->Name, (short)i);
 
+		// Clear callbacks in case some of the callbacks were removed in the runtime before saving the game.
+		item->Callbacks.fill({});
+
 		auto itemCallbacks = savedItem->lua_callbacks();
 		if (itemCallbacks)
 		{
 			for (const auto& entry : *itemCallbacks)
 			{
 				auto type = entry->type();
-				if (type >= 0 && type < (int)EntityCallbackPoint::Count)
+				auto name = entry->name();
+
+				if (type >= 0 && type < (int)EntityCallbackPoint::Count && name)
 					item->Callbacks[type] = entry->name()->str();
 			}
 		}
@@ -3004,7 +3009,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	file.open(fileName, std::ios_base::app | std::ios_base::binary);
 
 	file.seekg(0, std::ios::end);
-	int length = (int)file.tellg();
+	size_t length = file.tellg();
 	file.seekg(0, std::ios::beg);
 
 	if (length == 0)

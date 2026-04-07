@@ -1,8 +1,5 @@
 #pragma once
-#include <array>
-#include <functional>
-#include <string>
-
+#include "framework.h"
 #include "Game/control/event.h"
 #include "Game/room.h"
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"

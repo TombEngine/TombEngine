@@ -132,10 +132,11 @@ namespace TEN::Entities::Vehicles
 		auto* bigGunItem = &g_Level.Items[itemNumber];
 		auto* bigGun = GetBigGunInfo(bigGunItem);
 		auto* lara = GetLaraInfo(laraItem);
-		auto mountType = GetVehicleMountType(bigGunItem, laraItem, coll, BigGunMountTypes, BGUN_MOUNT_DISTANCE);
 
 		if (laraItem->HitPoints <= 0 || lara->Context.Vehicle != NO_VALUE)
 			return;
+
+		auto mountType = GetVehicleMountType(bigGunItem, laraItem, coll, BigGunMountTypes, BGUN_MOUNT_DISTANCE);
 
 		if (mountType != VehicleMountType::None)
 		{
