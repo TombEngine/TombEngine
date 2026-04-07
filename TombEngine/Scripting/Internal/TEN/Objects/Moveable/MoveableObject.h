@@ -37,6 +37,8 @@ private:
 	int	 _moveableID  = 0;
 	bool _initialized = false;
 
+	void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, std::string& toModify);
+
 public:
 	using IdentifierType = int;
 
@@ -114,8 +116,6 @@ public:
 	void SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post);
 	void SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb);
-
-	friend void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify);
 
 	// Utilities
 
