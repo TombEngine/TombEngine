@@ -185,7 +185,7 @@ public:
 	void OnLoop(float deltaTime, bool postLoop) override;
 	void OnSave() override;
 	void OnEnd(GameStatus reason) override;
-	void OnUseItem(GAME_OBJECT_ID item) override;
+	void OnUseItem(short itemNumber, GAME_OBJECT_ID item) override;
 	void OnPickup(short itemNumber, bool post) override;
 	void OnVehicleEnter(short itemNumber, bool post) override;
 	void OnVehicleExit(short itemNumber, bool post) override;

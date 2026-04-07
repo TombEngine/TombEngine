@@ -890,6 +890,7 @@ void LogicHandler::OnStart()
 	PerformCallbacks(CallbackPoint::PreStart);
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::Start);
 	PerformCallbacks(CallbackPoint::PostStart);
+	HandleAllGlobalEvents(EventType::Start, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnLoad()
@@ -897,6 +898,7 @@ void LogicHandler::OnLoad()
 	PerformCallbacks(CallbackPoint::PreLoad);
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::Load);
 	PerformCallbacks(CallbackPoint::PostLoad);
+	HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnLoop(float deltaTime, bool postLoop)
@@ -909,6 +911,7 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 
 		lua_gc(_handler.GetState()->lua_state(), LUA_GCCOLLECT, 0);
 		PerformLevelFuncCallback(LevelFuncCallbackPoint::Loop, deltaTime);
+		HandleAllGlobalEvents(EventType::Loop, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -921,6 +924,7 @@ void LogicHandler::OnSave()
 	PerformCallbacks(CallbackPoint::PreSave);
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::Save);
 	PerformCallbacks(CallbackPoint::PostSave);
+	HandleAllGlobalEvents(EventType::Save, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnEnd(GameStatus reason)
@@ -948,28 +952,36 @@ void LogicHandler::OnEnd(GameStatus reason)
 	PerformCallbacks(CallbackPoint::PreEnd, int(endReason));
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::End, endReason);
 	PerformCallbacks(CallbackPoint::PostEnd, int(endReason));
+	HandleAllGlobalEvents(EventType::End, (Activator)short(LaraItem->Index));
 }
 
-void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
+void LogicHandler::OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber)
 {
 	PerformCallbacks(CallbackPoint::PreUseItem, objectNumber);
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::UseItem, objectNumber);
 	PerformCallbacks(CallbackPoint::PostUseItem, objectNumber);
+	HandleAllGlobalEvents(EventType::UseItem, (Activator)itemNumber);
 }
 
 void LogicHandler::OnPickup(short itemNumber, bool post)
 {
 	PerformMoveableCallbacks(LevelFuncCallbackPoint::Pickup, CallbackPoint::PrePickup, CallbackPoint::PostPickup, itemNumber, post);
+	if (post)
+		HandleAllGlobalEvents(EventType::Pickup, (Activator)itemNumber);
 }
 
 void LogicHandler::OnVehicleEnter(short itemNumber, bool post)
 {
 	PerformMoveableCallbacks(LevelFuncCallbackPoint::EnterVehicle, CallbackPoint::PreEnterVehicle, CallbackPoint::PostEnterVehicle, itemNumber, post);
+	if (post)
+		HandleAllGlobalEvents(EventType::VehicleEnter, (Activator)itemNumber);
 }
 
 void LogicHandler::OnVehicleExit(short itemNumber, bool post)
 {
 	PerformMoveableCallbacks(LevelFuncCallbackPoint::ExitVehicle, CallbackPoint::PreExitVehicle, CallbackPoint::PostExitVehicle, itemNumber, post);
+	if (post)
+		HandleAllGlobalEvents(EventType::VehicleExit, (Activator)itemNumber);
 }
 
 void LogicHandler::OnFreeze()
@@ -979,6 +991,7 @@ void LogicHandler::OnFreeze()
 	PerformConsoleInput();
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::Freeze);
 	PerformCallbacks(CallbackPoint::PostFreeze);
+	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::InitCallbacks()

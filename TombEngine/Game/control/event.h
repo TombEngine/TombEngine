@@ -40,6 +40,9 @@ namespace TEN::Control::Volumes
 		Start,
 		End,
 		UseItem,
+		Pickup,
+		VehicleEnter,
+		VehicleExit,
 		Freeze,
 
 		Count

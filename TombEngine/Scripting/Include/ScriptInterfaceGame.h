@@ -60,7 +60,7 @@ public:
 	virtual void OnLoop(float deltaTime, bool postLoop) = 0;
 	virtual void OnSave() = 0;
 	virtual void OnEnd(GameStatus reason) = 0;
-	virtual void OnUseItem(GAME_OBJECT_ID objectNumber) = 0;
+	virtual void OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber) = 0;
 	virtual void OnPickup(short itemNumber, bool post) = 0;
 	virtual void OnVehicleEnter(short itemNumber, bool post) = 0;
 	virtual void OnVehicleExit(short itemNumber, bool post) = 0;
