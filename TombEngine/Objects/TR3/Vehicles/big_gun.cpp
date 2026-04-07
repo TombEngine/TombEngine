@@ -116,7 +116,7 @@ namespace TEN::Entities::Vehicles
 
 		// Re-evaluate mount after the callback which may have intercepted the input (e.g. for vehicle keys check).
 		g_GameScript->OnVehicleEnter(bigGunItem->Index, false);
-		if (!IsHeld(In::Action))
+		if (lara->Control.HandStatus != HandStatus::Free)
 			return false;
 
 		return true;
