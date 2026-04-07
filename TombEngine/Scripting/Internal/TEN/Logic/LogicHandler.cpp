@@ -233,13 +233,11 @@ void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFun
 */
 bool LogicHandler::HasCallback(CallbackPoint point, const LevelFunc& levelFunc)
 {
-	auto it = _callbacks.find(point);
-	if (it == _callbacks.end())
-	{
+	if (point == CallbackPoint::Count)
 		return false;
-	}
 
-	return it->second->find(levelFunc.m_funcName) != it->second->end();
+	auto& callbacks = _callbackSets[(int)point];
+	return callbacks.find(levelFunc.m_funcName) != callbacks.end();
 }
 
 /*** Attempt to find an event set and execute a particular event from it.
