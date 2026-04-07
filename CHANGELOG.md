@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### Lua API changes
+* Added `Moveable:SetOnLoop` method.
 * Added callbacks for item pickup and vehicle mount/dismount events.
 
 ## [Version 1.11.1]
