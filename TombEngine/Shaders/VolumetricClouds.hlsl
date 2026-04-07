@@ -470,39 +470,123 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         float densityShift = -AltoZenithBias * biasFactor * 0.4f;
 
         float baseScale = 0.001f * AltoCloudSize;
-        // Wind drift in noise-space. WindSpeed in the CB carries the pre-integrated
-        // wind offset (accumulated on the CPU each frame as WindSpeed * dt).
-        float3 windOfs  = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
-        float3 p        = skyPos * baseScale + windOfs;
 
-        // Domain warping via curl noise (divergence-free) eliminates the
-        // grid-aligned jigsaw artifacts that value-noise displacement produces.
-        // Because curl(F) has zero divergence, iso-contour deformation never
-        // creates convergence points where edges pinch into L/T/puzzle corners.
+        // ===================================================================
+        // Continuous wind-driven flow with organic deformation.
         //
-        // Three passes target three distinct frequency bands:
-        //   Pass 1 (coarse, 0.41x): large organic sweep of each cloud mass.
-        //   Pass 2 (medium, 0.80x): billow detail within each mass.
-        //   Pass 3 (fine,   1.60x): targets cell-to-cell boundary iso-contours
-        //     specifically the frequency band where value-noise grid alignment
-        //     is most visible when AltoCloudSize is large and many cells fill
-        //     the screen. Small eps gives a higher-frequency curl field so
-        //     individual cell edges are broken into short curved segments.
+        // Two-layer movement model:
+        //   1. GLOBAL ADVECTION — the entire noise field drifts in WindDirection
+        //      at WindSpeed.  This is the primary "endless stream" that makes
+        //      clouds scroll across the sky.  WindSpeed is the pre-integrated
+        //      offset (∫speed·dt on CPU), so p simply adds windOfs.
+        //   2. LOCAL DEFORMATION — three curl-noise frequency bands warp the
+        //      sampling domain on top of the advected position.  The curl
+        //      lookups themselves evolve with time, so the warp pattern changes
+        //      continuously: new formations emerge on the upwind side while
+        //      existing masses reshape and eventually dissolve downwind.
+        //
+        // The combination produces the "endless river" look: clouds translate
+        // cohesively in the wind direction (global drift), while their internal
+        // structure mutates organically (curl deformation), so no two frames
+        // show the same cloud shape.
+        //
+        // Performance: identical cost to the previous static warp (6 ValueNoise3D
+        // calls for 3 curl passes).  The only extra ALU is the windOfs addition
+        // and the time offsets in the curl lookup coordinates.
+        // ===================================================================
+
+        // --- 1. Global advection: wind-directed translation ---
+        // Driven by WindSpeed (pre-integrated ∫rate·dt on CPU).
+        // Controls how fast clouds travel across the sky as visible objects.
+        float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
+
+        // --- 2. Evolution-driven formation scrolling ---
+        // Continuously scrolls the noise sampling domain in WindDirection.
+        // This produces the "endless stream" — new formations emerge upwind,
+        // old ones dissolve downwind — even at very low physical wind speed.
+        //
+        // Two additive terms, both gated by EvolutionSpeed (ES=0 → no cycling):
+        //
+        //   TIME TERM:  CloudTime * ES * 0.05
+        //     Internal atmospheric dynamics — formations cycle by themselves
+        //     even in calm air, driven purely by EvolutionSpeed.
+        //     ES=0.15 → cycle every ~67s.  ES=1.0 → ~10s.  ES=5.0 → ~2s.
+        //
+        //   WIND TERM:  WindSpeed * ES * 0.15
+        //     Wind shear accelerates cycling: stronger wind breaks up existing
+        //     masses and sweeps in fresh ones faster.  WindSpeed is the
+        //     pre-integrated offset (∫rate·dt), so this term grows in lock-step
+        //     with real wind — faster wind = proportionally faster cycling.
+        //     Rate ratio at steady state: windRate * 0.15 / 0.05 = windRate * 3×
+        //     so at windRate=0.2 the wind term adds 60% on top of the time term.
+        //
+        //   ES=0 → evoOfs = 0, clouds scroll only from windOfs (static texture).
+        float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
+        float3 evoOfs = evoDir * EvolutionSpeed
+                      * (CloudTime * 0.05f + WindSpeed * 0.15f);
+
+        float3 p = skyPos * baseScale + windOfs + evoOfs;
+
+        // --- 2. Organic deformation via time-evolving curl noise flow field ---
+        //
+        // flowTime drives the temporal evolution of the curl lookups.
+        // EvolutionSpeed controls exclusively the deformation rate:
+        //   EvolutionSpeed = 0   → flowTime = 0, no shape change → clouds scroll
+        //                          as a static texture driven purely by wind.
+        //   EvolutionSpeed = 0.15 → ~1 full curl cycle per 20s (clearly perceptible).
+        //   EvolutionSpeed = 5.0  → actively churning, formations build and dissolve fast.
+        // Factor 0.30: at EvolutionSpeed=0.15 and 60s → flowTime=2.7 (2.7 noise periods
+        // traversed → roughly one formation cycle per 22s, clearly visible).
+        float flowTime = CloudTime * EvolutionSpeed * 0.30f;
+
+        // Height-dependent deformation speed: lower boundary layer more turbulent.
+        float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
+
+        // Directional bias on the warp evolution: curl lookups drift preferentially
+        // along WindDirection — deformation pattern has the same heading as the global
+        // drift, so formations emerge from upwind and dissolve downwind.
+        float2 windBias = WindDirection * flowTime * 0.06f;
+
+        // Curl amplitude is damped at high EvolutionSpeed so fast evolution
+        // increases formation cycling without twisting clouds into knots.
+        // At ES=0 → curlDamp=1.0 (full).  At ES=1 → 0.75.  At ES=5 → 0.55.
+        float curlDamp = lerp(1.0f, 0.55f, saturate(EvolutionSpeed * 0.25f));
+
+        // --- Low Frequency Band: large-scale formation morphing ---
+        // Slowest evolution, largest spatial scale (0.41× base).
         {
-            float3 pW  = float3(p.x, 0.0f, p.z) * 0.41f;
-            float2 c1  = CurlNoise2D(pW  + float3(3.17f, 0.0f, 7.63f), 0.15f);
-            p.x += c1.x * 0.22f;
-            p.z += c1.y * 0.22f;
+            float tLow  = flowTime * 0.35f * heightFlow;
+            float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
+                        + float3(3.17f + windBias.x + tLow * 0.7f,
+                                 0.0f,
+                                 7.63f + windBias.y + tLow * 0.5f);
+            float2 cLow = CurlNoise2D(pLow, 0.15f);
+            p.x += cLow.x * 0.16f * curlDamp;
+            p.z += cLow.y * 0.16f * curlDamp;
+        }
 
-            float3 pW2 = float3(p.x, 0.0f, p.z) * 0.80f;
-            float2 c2  = CurlNoise2D(pW2 + float3(0.59f, 0.0f, 2.44f), 0.10f);
-            p.x += c2.x * 0.09f;
-            p.z += c2.y * 0.09f;
+        // --- Mid Frequency Band: medium-scale streaming ---
+        {
+            float tMid  = flowTime * 0.75f * heightFlow;
+            float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
+                        + float3(0.59f + tMid * 0.9f,
+                                 0.0f,
+                                 2.44f + tMid * 0.6f);
+            float2 cMid = CurlNoise2D(pMid, 0.10f);
+            p.x += cMid.x * 0.06f * curlDamp;
+            p.z += cMid.y * 0.06f * curlDamp;
+        }
 
-            float3 pW3 = float3(p.x, 0.0f, p.z) * 1.60f;
-            float2 c3  = CurlNoise2D(pW3 + float3(5.33f, 0.0f, 1.88f), 0.06f);
-            p.x += c3.x * 0.035f;
-            p.z += c3.y * 0.035f;
+        // --- High Frequency Band: fine turbulence at cloud edges ---
+        {
+            float tHigh  = flowTime * 1.80f * heightFlow;
+            float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
+                         + float3(5.33f + tHigh * 1.2f,
+                                  0.0f,
+                                  1.88f + tHigh * 0.8f);
+            float2 cHigh = CurlNoise2D(pHigh, 0.06f);
+            p.x += cHigh.x * 0.025f * curlDamp;
+            p.z += cHigh.y * 0.025f * curlDamp;
         }
 
         // Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
@@ -555,7 +639,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         //
         // Coarse cluster noise shared by both bias and coverage modulation.
         // Scale 0.18x p -> each cluster spans ~5-6 cloud cells.
-        // p already carries wind drift, so clusters co-move with the clouds.
+        // p is flow-deformed, so clusters co-move with the clouds.
         float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
 
         // Cluster-shaped bias modulation:
@@ -634,7 +718,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             //    modulates covThresh regionally — lower in cluster zones, higher in gaps.
             //    This groups surviving clouds into broad cohesive masses instead of a
             //    uniform scatter field.
-            //    p is already wind-drifted so the clusters co-move with the clouds.
+            //    p is flow-deformed so the clusters co-move with the clouds.
             float clusterAmt = distLOD * sizeFactor * 0.22f;
             if (clusterAmt > 0.001f)
             {
@@ -647,9 +731,60 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             }
         }
 
-        dens *= smoothstep(covThresh, covThresh + covSoft, dens);
+        // --- Wind-directional formation / dissolution ---
+        // Makes small isolated patches either merge with an oncoming cluster
+        // (formation on the leading/downwind edge) or dissolve (trailing edge fades).
+        //
+        // Mechanism: sample coarse density potential at p ± windDir * offset.
+        // windSlope = fwdPotential - bwdPotential
+        //   > 0  →  density growing in wind direction (LEADING edge)
+        //           → lower covThresh → encourage new patch to form / merge
+        //   < 0  →  density falling in wind direction (TRAILING edge)
+        //           → raise covThresh → dissolve the rear of the patch
+        //
+        // Isolation penalty: if a patch sits in a deep gap zone (clusterNoise
+        // strongly negative), no cluster is approaching to merge with it →
+        // raise its threshold so it fades rather than persisting as a lone speck.
+        //
+        // Both effects gate on EvolutionSpeed (ES=0 → fully disabled).
+        if (EvolutionSpeed > 0.001f)
+        {
+            float evoStr = saturate(EvolutionSpeed * 2.0f);  // [0,1], full at ES≥0.5
 
-        // Reference shader does NOT use height gradient in density.
+            float3 windDir3 = float3(WindDirection.x, 0.0f, WindDirection.y);
+            float  scaleG   = 0.18f;
+
+            // --- Leading-edge formation ---
+            // Sample potential slightly ahead in wind direction (≈ 1 cloud radius).
+            // If there is dense sky ahead, lower covThresh here so a matching
+            // formation starts building in front of the existing cloud.
+            // Search distance 1.8: roughly one cloud-cell diameter at scaleG=0.18.
+            float3 pFwd    = p + windDir3 * 1.8f;
+            float  fwdPot  = PerlinNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG));
+            // fwdPot ∈ [-0.5, +0.5]: positive = dense sky ahead → form here too.
+            float formStr  = saturate(fwdPot) * evoStr * covThresh * 0.28f;
+            covThresh = saturate(covThresh - formStr);
+
+            // --- Trailing-edge fraying ---
+            // Sample potential behind in wind direction (≈ 1–2 cloud radii).
+            // If sky behind is thinning/empty, raise covThresh there so the rear
+            // of the cloud frays and dissolves into smaller wisps.
+            // Asymmetric search (3.2 > 1.8): the trailing fringe dissolves over a
+            // longer distance than the leading buildup, which looks more natural.
+            float3 pBwd    = p - windDir3 * 3.2f;
+            float  bwdPot  = PerlinNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG));
+            // bwdPot < 0 = gap zone behind → fray the current pixel.
+            float frayStr  = saturate(-bwdPot) * evoStr * covThresh * 0.22f;
+            covThresh = saturate(covThresh + frayStr);
+
+            // --- Isolation penalty ---
+            // Patches in deep gap zones (no cluster nearby) get an additional
+            // threshold raise so lone specks dissolve rather than persisting.
+            float isolationPenalty = saturate(-clusterNoise - 0.1f) * evoStr * 0.35f;
+            covThresh = saturate(covThresh + isolationPenalty * covThresh);
+        }
+
+        dens *= smoothstep(covThresh, covThresh + covSoft, dens);
         // Height-dependent behavior is in illumination (exp(h)/1.95 + dark/bright blend).
 
         // --- Organic bottom shaping ---
@@ -660,7 +795,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // clearly hang at different heights rather than all equally deep.
         if (AltoBottomSoftness > 0.001f)
         {
-            float3 basePos	= skyPos + windOfs / baseScale;
+            float3 basePos	= skyPos + (windOfs + evoOfs) / baseScale;
             // Coarse scale: large cluster-level depth variation (~every few km).
             float3 coarsePos  = basePos * 0.000045f;
             // Fine scale: column-level detail within each cluster.
