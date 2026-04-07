@@ -31,7 +31,7 @@ using namespace TEN::Input;
 namespace TEN::Entities::Vehicles
 {
 	constexpr auto BGUN_ROCKET_SPAWN_DISTANCE = CLICK(1);
-	constexpr auto BGUN_MOUNT_DISTANCE		  = CLICK(2);
+	constexpr auto BGUN_MOUNT_DISTANCE		  = CLICK(0.5f);
 
 	constexpr auto BGUN_RECOIL_TIME		= 26;
 	constexpr auto BGUN_RECOIL_Z		= 25;
@@ -94,34 +94,6 @@ namespace TEN::Entities::Vehicles
 		bigGun->XOrientFrame = BGUN_X_ORIENT_MIDDLE_FRAME;
 	}
 
-	static bool BigGunTestMount(ItemInfo* bigGunItem, ItemInfo* laraItem)
-	{
-		// TODO: If Lara global is not used, the game crashes upon level load. Not sure why. @Sezz 2022.01.09
-		auto* lara = &Lara/* GetLaraInfo(laraItem)*/;
-
-		if (!IsHeld(In::Action) ||
-			lara->Control.HandStatus != HandStatus::Free ||
-			laraItem->Animation.IsAirborne)
-		{
-			return false;
-		}
-
-		auto distance = Vector3i::Distance(laraItem->Pose.Position, bigGunItem->Pose.Position);
-		if (distance > CLICK(0.5f))
-			return false;
-
-		short deltaAngle = abs(laraItem->Pose.Orientation.y - bigGunItem->Pose.Orientation.y);
-		if (deltaAngle > ANGLE(35.0f) || deltaAngle < -ANGLE(35.0f))
-			return false;
-
-		// Re-evaluate mount after the callback which may have intercepted the input (e.g. for vehicle keys check).
-		g_GameScript->OnVehicleEnter(bigGunItem->Index, false);
-		if (lara->Control.HandStatus != HandStatus::Free)
-			return false;
-
-		return true;
-	}
-
 	void BigGunFire(ItemInfo* bigGunItem, ItemInfo* laraItem)
 	{
 		short itemNumber = CreateItem();
@@ -160,13 +132,12 @@ namespace TEN::Entities::Vehicles
 		auto* bigGunItem = &g_Level.Items[itemNumber];
 		auto* bigGun = GetBigGunInfo(bigGunItem);
 		auto* lara = GetLaraInfo(laraItem);
+		auto mountType = GetVehicleMountType(bigGunItem, laraItem, coll, BigGunMountTypes, BGUN_MOUNT_DISTANCE);
 
 		if (laraItem->HitPoints <= 0 || lara->Context.Vehicle != NO_VALUE)
 			return;
 
-		g_Hud.InteractionHighlighter.Test(*laraItem, *bigGunItem);
-
-		if (BigGunTestMount(laraItem, bigGunItem))
+		if (mountType != VehicleMountType::None)
 		{
 			SetLaraVehicle(laraItem, bigGunItem);
 
