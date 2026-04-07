@@ -31,20 +31,6 @@ namespace TEN::Scripting
 		Count
 	};
 
-	static auto LEVELFUNC_CALLBACK_POINTS = std::unordered_map<LevelFuncCallbackPoint, std::string>
-	{
-		{ LevelFuncCallbackPoint::Start, ScriptReserved_OnStart },
-		{ LevelFuncCallbackPoint::Load, ScriptReserved_OnLoad },
-		{ LevelFuncCallbackPoint::Loop, ScriptReserved_OnLoop },
-		{ LevelFuncCallbackPoint::Save, ScriptReserved_OnSave },
-		{ LevelFuncCallbackPoint::End, ScriptReserved_OnEnd },
-		{ LevelFuncCallbackPoint::UseItem, ScriptReserved_OnUseItem },
-		{ LevelFuncCallbackPoint::Pickup, ScriptReserved_OnPickup },
-		{ LevelFuncCallbackPoint::EnterVehicle, ScriptReserved_OnEnterVehicle },
-		{ LevelFuncCallbackPoint::ExitVehicle, ScriptReserved_OnExitVehicle },
-		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze }
-	};
-
 	enum class CallbackPoint
 	{
 		PreStart,
@@ -69,6 +55,20 @@ namespace TEN::Scripting
 		PostFreeze,
 
 		Count
+	};
+
+	static auto LEVELFUNC_CALLBACK_POINTS = std::unordered_map<LevelFuncCallbackPoint, std::string>
+	{
+		{ LevelFuncCallbackPoint::Start, ScriptReserved_OnStart },
+		{ LevelFuncCallbackPoint::Load, ScriptReserved_OnLoad },
+		{ LevelFuncCallbackPoint::Loop, ScriptReserved_OnLoop },
+		{ LevelFuncCallbackPoint::Save, ScriptReserved_OnSave },
+		{ LevelFuncCallbackPoint::End, ScriptReserved_OnEnd },
+		{ LevelFuncCallbackPoint::UseItem, ScriptReserved_OnUseItem },
+		{ LevelFuncCallbackPoint::Pickup, ScriptReserved_OnPickup },
+		{ LevelFuncCallbackPoint::EnterVehicle, ScriptReserved_OnEnterVehicle },
+		{ LevelFuncCallbackPoint::ExitVehicle, ScriptReserved_OnExitVehicle },
+		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze }
 	};
 
 	/// Points in the game flow where level scripts can hook into. Used with @{Logic.AddCallback} and @{Logic.RemoveCallback} methods.

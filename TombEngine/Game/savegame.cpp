@@ -1606,6 +1606,8 @@ const std::vector<byte> SaveGame::Build()
 		callbackOffsets.push_back(Save::CreateCallbackSet(fbb, i, callbackNamesOffset));
 	}
 
+	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
+
 	Save::SaveGameBuilder sgb{ fbb };
 
 	sgb.add_header(headerOffset);
@@ -1662,7 +1664,7 @@ const std::vector<byte> SaveGame::Build()
 	}
 
 	sgb.add_script_vars(unionVecOffset);
-	sgb.add_callbacks(fbb.CreateVector(callbackOffsets));
+	sgb.add_callbacks(callbacksOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);

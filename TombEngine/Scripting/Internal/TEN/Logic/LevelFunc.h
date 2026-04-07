@@ -126,8 +126,8 @@ public:
 
 /// Called when leaving a level.
 /// This includes finishing it, exiting to the menu, or loading a save in a different level.
-/// Receives a @{Logic.EndReason}.
 // @function OnEnd
+// @tparam Logic.EndReason reason A reason why level has ended.
 // @usage
 // 	LevelFuncs.OnEnd = function(reason)
 // 		if reason == TEN.Logic.EndReason.LEVEL_COMPLETE then
@@ -140,8 +140,8 @@ public:
 // 	end
 
 /// Called when the player uses an item from their inventory.
-/// Receives an @{Objects.ObjID}.
 // @function OnUseItem
+// @tparam Objects.ObjID itemID Object ID of an item that was used.
 // @usage
 // 	LevelFuncs.OnUseItem = function(itemID)
 // 		if itemID == TEN.Objects.ObjID.SMALLMEDI_ITEM then
@@ -150,8 +150,8 @@ public:
 // 	end
 
 /// Called when a pickup is added to the inventory.
-/// Receives the picked up moveable as an @{Objects.Moveable} object.
 // @function OnPickup
+// @tparam Objects.Moveable pickup Moveable pickup item that was picked up.
 // @usage
 // 	LevelFuncs.OnPickup = function(pickup)
 // 		if pickup:GetObjectID() == TEN.Objects.ObjID.FLARE_ITEM then
@@ -160,16 +160,16 @@ public:
 // 	end
 
 /// Called after player enters a vehicle.
-/// Receives the mounted vehicle as an @{Objects.Moveable} object.
 // @function OnEnterVehicle
+// @tparam Objects.Moveable vehicle A vehicle that was mounted.
 // @usage
 // 	LevelFuncs.OnEnterVehicle = function(vehicle)
 // 		-- implementation goes here
 // 	end
 
 /// Called after player exits a vehicle.
-/// Receives the vehicle player has just left as an @{Objects.Moveable} object.
 // @function OnExitVehicle
+// @tparam Objects.Moveable vehicle A vehicle that was dismounted.
 // @usage
 // 	LevelFuncs.OnExitVehicle = function(vehicle)
 // 		-- implementation goes here
