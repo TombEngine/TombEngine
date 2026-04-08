@@ -61,7 +61,7 @@ namespace TEN::Sky
 		CirrocumulusFew,       // Sparse patches of rippled cirrocumulus.
 		Cirrustratus,          // Thin translucent veil of cirrus covering the sky.
 		StormBuildUpHigh,
-		FewToClearSky,
+		CloudsTransformation,
 		Overcast,
 		Altocumulus,
 		AltocumulusHigh,       // Altocumulus pushed to higher altitude, thinner.
@@ -166,10 +166,31 @@ namespace TEN::Sky
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 
-		// Transform dissolve phase [0,1]. Set only by TransformPresets (DissolveToClear).
+		// Transform dissolve phase [0,1]. Set only by TransformPresets (CloudMorph).
 		// 0 = no dissolve (normal rendering), 1 = fully dissolved.
 		// NOT interpolated by Lerp — set directly by UpdateTransition.
 		float DissolvePhase = 0.0f;
+
+		// Transform formation phase [0,1]. Set only by CloudMorph transitions.
+		// 0 = fully suppressed (clouds not yet formed), 1 = fully formed.
+		// NOT interpolated by Lerp — set directly by UpdateTransition.
+		float FormationPhase = 0.0f;
+
+		// CloudMorph dual-density: source preset density params.
+		// These let the shader evaluate where source clouds ARE so it can dissolve them
+		// at their actual positions while simultaneously forming target clouds elsewhere.
+		// NOT interpolated by Lerp — set directly by ApplyMorphToLayer.
+		float MorphActive          = 0.0f;
+		float MorphSrcCloudSize    = 1.0f;
+		float MorphSrcCloudAmount  = 0.6875f;
+		float MorphSrcBillowStr    = 0.75f;
+		float MorphSrcCovSoftWidth = 0.08f;
+		float MorphSrcFbmLac       = 2.6434f;
+		float MorphSrcFbmGain      = 0.5f;
+		float MorphSrcBottomSoft   = 0.35f;
+		float MorphSrcZenithBias   = 0.0f;
+		float MorphSrcEvolutionSpd = 0.15f;
+		float MorphSrcHorizonWidth = 0.0f;
 
 		// Convert to/from the renderer's CloudRenderSettings.
 		CloudRenderSettings ToRenderSettings() const;
@@ -230,7 +251,7 @@ namespace TEN::Sky
 	enum class TransformType
 	{
 		None,              // Regular preset: interpolate toward target state.
-		DissolveToClear    // Keep source attributes, dissolve existing clouds to clear sky.
+		CloudMorph    // Morph source clouds into target formation via dissolve + formation.
 	};
 
 	// Used when nextPreset is defined as a table in Lua instead of a single string.
@@ -253,6 +274,10 @@ namespace TEN::Sky
 		// Transform behavior: when not None, the preset modifies the current state
 		// rather than interpolating toward its own TargetState.
 		TransformType Transform = TransformType::None;
+
+		// Transform duration override (seconds). When >= 0, CloudMorph transitions
+		// TO this preset use this duration instead of the caller-supplied value.
+		float TransformDuration = -1.0f;
 
 		// Transition defaults (seconds).
 		float DefaultTransitionDuration = 30.0f;

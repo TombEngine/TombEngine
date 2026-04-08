@@ -165,9 +165,25 @@ namespace TEN::Renderer::VolumetricCloud
 		// 0 = normal rendering, 1 = fully dissolved.
 		float DriftOutProgress = 0.0f;
 
-		// Transform dissolve phase [0,1]. Set by TransformPresets (DissolveToClear).
+		// Transform dissolve phase [0,1]. Set by TransformPresets (CloudMorph).
 		// 0 = no dissolve (shader dissolve logic skipped), 1 = fully dissolved.
 		float DissolvePhase = 0.0f;
+
+		// Transform formation phase [0,1]. Reverse of dissolve — clouds appear.
+		float FormationPhase = 0.0f;
+
+		// CloudMorph dual-density morph source params (only used during morph transitions).
+		float MorphActive          = 0.0f;
+		float MorphSrcCloudSize    = 1.0f;
+		float MorphSrcCloudAmount  = 0.6875f;
+		float MorphSrcBillowStr    = 0.75f;
+		float MorphSrcCovSoftWidth = 0.08f;
+		float MorphSrcFbmLac       = 2.6434f;
+		float MorphSrcFbmGain      = 0.5f;
+		float MorphSrcBottomSoft   = 0.35f;
+		float MorphSrcZenithBias   = 0.0f;
+		float MorphSrcEvolutionSpd = 0.15f;
+		float MorphSrcHorizonWidth = 0.0f;
 
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;

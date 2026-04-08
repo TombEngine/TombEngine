@@ -402,6 +402,210 @@ float DissolveMask(float3 skyPos)
 }
 
 // ===========================================================================
+// Parameterized Alto density evaluation for CloudMorph dual-density system.
+// Called once for normal rendering, twice during morph (target + source).
+// Only the density-shaping params vary; wind/time/fade are shared globals.
+// ===========================================================================
+
+struct AltoDensityParams
+{
+    float CloudSize;     // AltoCloudSize      — feature scale multiplier
+    float CloudAmount;   // AltoCloudAmount    — coverage/fill control
+    float BillowStr;     // AltoBillowStrength — billow vs smooth FBM
+    float CovSoftWidth;  // AltoCovSoftWidth   — coverage soft-threshold width
+    float FbmLac;        // AltoFbmLacunarity  — FBM frequency ratio
+    float FbmGain;       // AltoFbmGain        — FBM amplitude scaling
+    float BottomSoft;    // AltoBottomSoftness  — organic bottom shaping
+    float ZenithBias;    // AltoZenithBias     — sky-height distribution bias
+    float EvolutionSpd;  // EvolutionSpeed     — formation cycling rate
+};
+
+// Returns raw Alto density BEFORE dissolve/formation/zenith-cap/drift-out.
+float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
+                          float distLOD, float distLOD2, AltoDensityParams ap)
+{
+    // --- Sky-height redistribution (bias-based) ---
+    float horizonEdge = saturate(HorizonFade * 0.10f + DistanceFade * 0.06f);
+    static const float zenithEdge = 0.65f;
+    float activeRange = max(zenithEdge - horizonEdge, 0.05f);
+    float biasFactor;
+    {
+        float t = saturate((skyH - horizonEdge) / activeRange);
+        float s = t * t * (3.0f - 2.0f * t);
+        biasFactor = s * 2.0f - 1.0f;
+    }
+
+    float densityShift = -ap.ZenithBias * biasFactor * 0.4f;
+
+    float baseScale = 0.001f * ap.CloudSize;
+
+    // --- Global advection ---
+    float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
+
+    // --- Evolution-driven formation scrolling ---
+    float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
+    float3 evoOfs = evoDir * ap.EvolutionSpd
+                  * (CloudTime * 0.05f + WindSpeed * 0.15f);
+
+    float3 p = skyPos * baseScale + windOfs + evoOfs;
+
+    // --- Organic deformation via time-evolving curl noise flow field ---
+    float flowTime = CloudTime * ap.EvolutionSpd * 0.30f;
+    float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
+    float2 windBias = WindDirection * flowTime * 0.06f;
+    float curlDamp = lerp(1.0f, 0.55f, saturate(ap.EvolutionSpd * 0.25f));
+
+    // Low Frequency Band
+    {
+        float tLow  = flowTime * 0.35f * heightFlow;
+        float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
+                    + float3(3.17f + windBias.x + tLow * 0.7f,
+                             0.0f,
+                             7.63f + windBias.y + tLow * 0.5f);
+        float2 cLow = CurlNoise2D(pLow, 0.15f);
+        p.x += cLow.x * 0.16f * curlDamp;
+        p.z += cLow.y * 0.16f * curlDamp;
+    }
+
+    // Mid Frequency Band
+    {
+        float tMid  = flowTime * 0.75f * heightFlow;
+        float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
+                    + float3(0.59f + tMid * 0.9f,
+                             0.0f,
+                             2.44f + tMid * 0.6f);
+        float2 cMid = CurlNoise2D(pMid, 0.10f);
+        p.x += cMid.x * 0.06f * curlDamp;
+        p.z += cMid.y * 0.06f * curlDamp;
+    }
+
+    // High Frequency Band
+    {
+        float tHigh  = flowTime * 1.80f * heightFlow;
+        float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
+                     + float3(5.33f + tHigh * 1.2f,
+                              0.0f,
+                              1.88f + tHigh * 0.8f);
+        float2 cHigh = CurlNoise2D(pHigh, 0.06f);
+        p.x += cHigh.x * 0.025f * curlDamp;
+        p.z += cHigh.y * 0.025f * curlDamp;
+    }
+
+    // FBM evaluation
+    float dens = FBMAlto5(p * 2.032f, ap.FbmLac, ap.FbmGain,
+                          ap.BillowStr, distLOD);
+
+    // Dual-scale Worley cellular erosion
+    {
+        float2 wPos     = float2(p.x, p.z) * 2.032f;
+        float worleyA   = WorleyNoise2D(wPos * 0.55f);
+        float invWA     = 1.0f - saturate(worleyA * 1.3f);
+        dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
+
+        float worleyB   = WorleyNoise2D(wPos * 1.05f);
+        float invWB     = 1.0f - saturate(worleyB * 1.4f);
+        float wBStrength = lerp(0.15f, 0.0f, distLOD);
+        dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
+    }
+
+    // Coverage threshold
+    float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
+
+    if (abs(ap.ZenithBias) > 0.001f)
+    {
+        densityShift += clusterNoise * abs(ap.ZenithBias) * 0.35f;
+    }
+
+    float effectiveAmount = saturate(ap.CloudAmount + densityShift);
+    float covThresh = saturate(1.0f - effectiveAmount);
+
+    {
+        float clusterStrength = covThresh * 0.30f;
+        covThresh = saturate(covThresh - clusterNoise * clusterStrength);
+    }
+
+    float evoBias = -ap.ZenithBias * biasFactor;
+    float covSoft = max(ap.CovSoftWidth, 0.001f) * clamp(exp2(evoBias * 0.5f), 0.3f, 3.0f);
+    {
+        float sizeFactor = saturate(ap.CloudSize - 0.5f);
+        covSoft *= lerp(1.0f, 2.5f, distLOD2 * sizeFactor);
+    }
+
+    // Evolution / pulsing
+    if (ap.EvolutionSpd > 0.001f)
+    {
+        float spatialPhase = ValueNoise3D(p * 0.4f) * 6.2832f;
+        float swellPhase   = CloudTime * ap.EvolutionSpd * 0.04f + spatialPhase;
+        float swellAmp     = 0.08f * saturate(ap.EvolutionSpd * 0.5f + 0.1f);
+        covThresh = saturate(covThresh - sin(swellPhase) * swellAmp);
+    }
+
+    // Distance-based horizon thinning + cluster grouping
+    {
+        float sizeFactor = saturate((ap.CloudSize - 0.5f) / 1.0f);
+
+        float horizThin = distLOD * sizeFactor * 0.28f;
+        covThresh = saturate(covThresh + horizThin);
+
+        float clusterAmt = distLOD * sizeFactor * 0.22f;
+        if (clusterAmt > 0.001f)
+        {
+            float cn = PerlinNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
+            covThresh = saturate(covThresh - cn * clusterAmt);
+        }
+    }
+
+    // Wind-directional formation / dissolution
+    if (ap.EvolutionSpd > 0.001f)
+    {
+        float evoStr = saturate(ap.EvolutionSpd * 2.0f);
+
+        float3 windDir3 = float3(WindDirection.x, 0.0f, WindDirection.y);
+        float  scaleG   = 0.18f;
+
+        float3 pFwd    = p + windDir3 * 1.8f;
+        float  fwdPot  = PerlinNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG));
+        float formStr  = saturate(fwdPot) * evoStr * covThresh * 0.28f;
+        covThresh = saturate(covThresh - formStr);
+
+        float3 pBwd    = p - windDir3 * 3.2f;
+        float  bwdPot  = PerlinNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG));
+        float frayStr  = saturate(-bwdPot) * evoStr * covThresh * 0.22f;
+        covThresh = saturate(covThresh + frayStr);
+
+        float isolationPenalty = saturate(-clusterNoise - 0.1f) * evoStr * 0.35f;
+        covThresh = saturate(covThresh + isolationPenalty * covThresh);
+    }
+
+    dens *= smoothstep(covThresh, covThresh + covSoft, dens);
+
+    // Organic bottom shaping
+    if (ap.BottomSoft > 0.001f)
+    {
+        float3 basePos    = skyPos + (windOfs + evoOfs) / baseScale;
+        float3 coarsePos  = basePos * 0.000045f;
+        float3 detailPos  = basePos * 0.00012f;
+        float coarseNoise = ValueNoise3D(float3(coarsePos.x,  0.0f, coarsePos.z));
+        float detailNoise = ValueNoise3D(float3(detailPos.x,  0.0f, detailPos.z));
+
+        float combinedNoise = saturate(coarseNoise * 0.65f + detailNoise * 0.35f);
+
+        float depthBase  = 0.05f;
+        float depthRange = ap.BottomSoft * 0.35f;
+        float threshold  = depthBase + combinedNoise * depthRange;
+
+        float fadeRange  = lerp(0.03f, 0.30f, ap.BottomSoft);
+        float bottomFade = smoothstep(threshold, threshold + fadeRange, heightFrac);
+        dens *= bottomFade;
+    }
+
+    // Crown fade
+    dens *= 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
+
+    return dens;
+}
+
+// ===========================================================================
 // Cloud density sampling
 // ===========================================================================
 
@@ -431,6 +635,147 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // Used by edge-width, minVisible, and coverage softening below.
     float distLOD2  = distLOD * distLOD;
 
+    // ===================================================================
+    // AltocumulusMid density evaluation via parameterized helper.
+    // Supports CloudMorph dual-density transitions: when MorphActive > 0.5
+    // the shader evaluates density with BOTH target and source params,
+    // applies formation to target / dissolve to source, and combines.
+    // ===================================================================
+    if (CloudType == 1)
+    {
+        // --- Fill target (main) params from current CB ---
+        AltoDensityParams mainParams;
+        mainParams.CloudSize    = AltoCloudSize;
+        mainParams.CloudAmount  = AltoCloudAmount;
+        mainParams.BillowStr    = AltoBillowStrength;
+        mainParams.CovSoftWidth = AltoCovSoftWidth;
+        mainParams.FbmLac       = AltoFbmLacunarity;
+        mainParams.FbmGain      = AltoFbmGain;
+        mainParams.BottomSoft   = AltoBottomSoftness;
+        mainParams.ZenithBias   = AltoZenithBias;
+        mainParams.EvolutionSpd = EvolutionSpeed;
+
+        float dens = EvalAltoDensityCore(skyPos, heightFrac, skyH, distLOD, distLOD2, mainParams);
+
+        // --- CloudMorph dual-density path ---
+        if (MorphActive > 0.5f)
+        {
+            float tgtDens = dens;
+
+            // Evaluate source preset density at the same sky position.
+            AltoDensityParams srcParams;
+            srcParams.CloudSize    = MorphSrcCloudSize;
+            srcParams.CloudAmount  = MorphSrcCloudAmount;
+            srcParams.BillowStr    = MorphSrcBillowStr;
+            srcParams.CovSoftWidth = MorphSrcCovSoftWidth;
+            srcParams.FbmLac       = MorphSrcFbmLac;
+            srcParams.FbmGain      = MorphSrcFbmGain;
+            srcParams.BottomSoft   = MorphSrcBottomSoft;
+            srcParams.ZenithBias   = MorphSrcZenithBias;
+            srcParams.EvolutionSpd = MorphSrcEvolutionSpd;
+
+            float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, distLOD, distLOD2, srcParams);
+
+            // Dissolve source density (edges vanish first, cluster-staggered).
+            if (DissolvePhase > 0.001f && srcDens > 0.0001f)
+            {
+                const float maxDelay  = 0.55f;
+                float clusterDelay    = DissolveMask(skyPos) * maxDelay;
+                float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+
+                if (localPhase > 0.0001f)
+                {
+                    float cloudStr  = 1.0f - exp(-srcDens * 8.0f);
+                    float threshold = lerp(-0.1f, 1.1f, localPhase);
+                    float edgeW     = 0.08f;
+                    srcDens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+                }
+            }
+
+            // Form target density (cores appear first, cluster-staggered).
+            if (FormationPhase > 0.001f && FormationPhase < 0.999f && tgtDens > 0.0001f)
+            {
+                const float maxDelay  = 0.55f;
+                float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
+                float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
+
+                float cloudStr  = 1.0f - exp(-tgtDens * 8.0f);
+                float threshold = lerp(1.1f, -0.1f, localPhase);
+                float edgeW     = 0.08f;
+                tgtDens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+            }
+
+            // Combine: where source had cloud → dissolving, where target has cloud → forming.
+            dens = srcDens + tgtDens;
+
+            if (dens <= 0.0001f)
+                return 0.0f;
+        }
+        else
+        {
+            // --- Non-morph path: original dissolve/formation ---
+            if (dens <= 0.0001f)
+                return 0.0f;
+
+            if (DissolvePhase > 0.001f)
+            {
+                const float maxDelay  = 0.55f;
+                float clusterDelay    = DissolveMask(skyPos) * maxDelay;
+                float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+
+                if (localPhase > 0.0001f)
+                {
+                    float cloudStr  = 1.0f - exp(-dens * 8.0f);
+                    float threshold = lerp(-0.1f, 1.1f, localPhase);
+                    float edgeW     = 0.08f;
+                    dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+                    if (dens <= 0.0001f)
+                        return 0.0f;
+                }
+            }
+
+            if (FormationPhase > 0.001f && FormationPhase < 0.999f)
+            {
+                const float maxDelay  = 0.55f;
+                float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
+                float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
+
+                float cloudStr  = 1.0f - exp(-dens * 8.0f);
+                float threshold = lerp(1.1f, -0.1f, localPhase);
+                float edgeW     = 0.08f;
+                dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+                if (dens <= 0.0001f)
+                    return 0.0f;
+            }
+        }
+
+        // AltoHorizonWidth zenith cap (shared by morph and non-morph).
+        if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f)
+        {
+            float altoCapEdge = AltoHorizonWidth * 0.90f;
+            dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
+        }
+
+        // Wind-directional drift-out dissolution.
+        if (DriftOutProgress > 0.001f)
+        {
+            float2 windDir2D = normalize(WindDirection);
+            float windProjSky = dot(skyPos.xz, windDir2D);
+            float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
+            float normalizedProj = windProjSky / fieldExtent;
+
+            float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
+            float softness = 0.4f;
+            float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
+            dens *= (1.0f - suppress);
+        }
+
+        return dens;
+    }
+
+#if 0  // OLD INLINE ALTO PATH — replaced by EvalAltoDensityCore above
     // ===================================================================
     // AltocumulusMid FULLY SELF-CONTAINED density path.
     // Ported from reference shader. Uses ONLY Alto-specific CB parameters.
@@ -873,6 +1218,28 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             }
         }
 
+        // --- Transform-preset cloud formation (reverse dissolve) ---
+        // At FormationPhase=0 all density is suppressed (clouds not yet formed).
+        // At FormationPhase=1 density is fully restored. Dense cores appear first,
+        // thin edges fill in last. Clusters form at staggered times via inverted
+        // spatial delay (clusters that dissolve first also form last and vice versa).
+        if (FormationPhase > 0.001f && FormationPhase < 0.999f)
+        {
+            const float maxDelay  = 0.55f;
+            // Inverted delay: clusters with high mask form first (they dissolved last).
+            float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
+            float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
+
+            // Reverse threshold: at localPhase=0 everything suppressed, at 1 everything kept.
+            float cloudStr  = 1.0f - exp(-dens * 8.0f);
+            float threshold = lerp(1.1f, -0.1f, localPhase); // sweeps down
+            float edgeW     = 0.08f;
+            dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+            if (dens <= 0.0001f)
+                return 0.0f;
+        }
+
         // AltoHorizonWidth zenith cap (disabled in bleed pass — bleed clouds must be
         // visible from near-horizontal rays that point toward the mountains).
         if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f)
@@ -911,6 +1278,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
 
         return dens;
     }
+#endif  // OLD INLINE ALTO PATH
 
     // --- Coverage / Weather noise ---
     // Large-scale weather map controls where clouds exist.
@@ -1247,6 +1615,22 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             if (finalDensity <= 0.0001f)
                 return 0.0f;
         }
+    }
+
+    // --- Transform-preset cloud formation (reverse dissolve) ---
+    if (FormationPhase > 0.001f && FormationPhase < 0.999f)
+    {
+        const float maxDelay = 0.55f;
+        float clusterDelay   = (1.0f - DissolveMask(skyPos)) * maxDelay;
+        float localPhase     = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
+
+        float cloudStr  = 1.0f - exp(-finalDensity * 8.0f);
+        float threshold = lerp(1.1f, -0.1f, localPhase);
+        float edgeW     = 0.08f;
+        finalDensity *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+        if (finalDensity <= 0.0001f)
+            return 0.0f;
     }
 
     // --- Wind-directional drift-out dissolution ---
@@ -2742,7 +3126,7 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
 
     float totalTransmittance = 0.0f;
 
-    [unroll]
+    [loop]
     for (int s = 0; s < 5; s++)
         totalTransmittance += MarchSunTransmittance(rayOrigin, dirs[s]);
 

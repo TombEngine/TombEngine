@@ -371,8 +371,22 @@ namespace TEN::Renderer
 			_stVolumetricCloud.SunsetUndersideSpread     = atmo.SunsetUndersideSpread;
 			_stVolumetricCloud.SunsetUndersideHeightFade = atmo.SunsetUndersideHeightFade;
 			_stVolumetricCloud.SunsetPad0 = 0.0f;
-			_stVolumetricCloud.SunsetPad1 = 0.0f;
+			_stVolumetricCloud.FormationPhase = settings.FormationPhase;
 		}
+
+		// CloudMorph dual-density source params.
+		_stVolumetricCloud.MorphSrcCloudSize    = settings.MorphSrcCloudSize;
+		_stVolumetricCloud.MorphSrcCloudAmount  = settings.MorphSrcCloudAmount;
+		_stVolumetricCloud.MorphSrcBillowStr    = settings.MorphSrcBillowStr;
+		_stVolumetricCloud.MorphSrcCovSoftWidth = settings.MorphSrcCovSoftWidth;
+		_stVolumetricCloud.MorphSrcFbmLac       = settings.MorphSrcFbmLac;
+		_stVolumetricCloud.MorphSrcFbmGain      = settings.MorphSrcFbmGain;
+		_stVolumetricCloud.MorphSrcBottomSoft   = settings.MorphSrcBottomSoft;
+		_stVolumetricCloud.MorphSrcZenithBias   = settings.MorphSrcZenithBias;
+		_stVolumetricCloud.MorphSrcEvolutionSpd = settings.MorphSrcEvolutionSpd;
+		_stVolumetricCloud.MorphSrcHorizonWidth = settings.MorphSrcHorizonWidth;
+		_stVolumetricCloud.MorphActive          = settings.MorphActive;
+		_stVolumetricCloud.MorphPad0            = 0.0f;
 
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.

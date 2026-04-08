@@ -132,7 +132,7 @@ namespace TEN::Scripting
 		/// @tparam string presetName Name of the weather preset.
 		/// Valid values: "ClearSky", "ClearSkyHigh", "ClearSkyLow",
 		/// "CirrocumulusClear", "CirrocumulusLots", "CirrocumulusFew",
-		/// "Cirrustratus", "StormBuildUpHigh", "FewToClearSky",
+		/// "Cirrustratus", "StormBuildUpHigh", "CloudsTransformation",
 		/// "Overcast", "Altocumulus", "AltocumulusHigh", "AuroraBorealis",
 		/// "RainSnowOvercast", "StormBuildUp", "StormTransformation",
 		/// "Thunderstorm", "Random"
@@ -295,6 +295,16 @@ namespace TEN::Scripting
 			def.TransitionDurationB = (float)definition.get_or("transitionDurationB", -1.0);
 			def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
 					(double)def.HighLayerLeadFraction), 0.0f, 1.0f);
+
+			// Transform preset: enables CloudMorph behavior for transitions TO this preset.
+			// transformPreset = "CloudsTransformation" → dissolve old + form new clouds.
+			{
+				sol::optional<std::string> tp = definition["transformPreset"];
+				if (tp.has_value() && tp.value() == "CloudsTransformation")
+					def.Transform = TransformType::CloudMorph;
+			}
+			// Transform duration override: if set, CloudMorph uses this duration.
+			def.TransformDuration = (float)definition.get_or("transformDuration", (double)def.TransformDuration);
 
 			// ----------------------------------------------------------------
 			// Auto-chain helpers: parses a Lua key that can be either

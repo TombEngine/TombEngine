@@ -150,6 +150,24 @@ namespace TEN::Renderer::ConstantBuffers
 		float   SunsetUndersideSpread;      // [0.5,4] angular spread of sunset glow around sun direction.
 		float   SunsetUndersideHeightFade;  // [0.5,4] exponent controlling how quickly glow fades from base to top.
 		float   SunsetPad0;
-		float   SunsetPad1;
+		float   FormationPhase;             // [0,1] cloud formation phase (reverse dissolve). 0 = suppressed, 1 = fully formed.
+		//--
+		// Row 26 — Morph source density params (only used during CloudMorph transitions)
+		float MorphSrcCloudSize;     // Source preset AltoCloudSize
+		float MorphSrcCloudAmount;   // Source preset AltoCloudAmount
+		float MorphSrcBillowStr;     // Source preset AltoBillowStrength
+		float MorphSrcCovSoftWidth;  // Source preset AltoCovSoftWidth
+		//--
+		// Row 27 — Morph source density params continued
+		float MorphSrcFbmLac;        // Source preset AltoFbmLacunarity
+		float MorphSrcFbmGain;       // Source preset AltoFbmGain
+		float MorphSrcBottomSoft;    // Source preset AltoBottomSoftness
+		float MorphSrcZenithBias;    // Source preset AltoZenithBias
+		//--
+		// Row 28 — Morph source density params continued + morph activation flag
+		float MorphSrcEvolutionSpd;  // Source preset EvolutionSpeed
+		float MorphSrcHorizonWidth;  // Source preset AltoHorizonWidth
+		float MorphActive;           // 0 = normal rendering, 1 = dual-density morph active
+		float MorphPad0;
 	};
 }

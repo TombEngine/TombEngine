@@ -1,5 +1,5 @@
-﻿// ============================================================================
-// SkyCloudSystem.cpp — Layered Sky & Cloud Weather System Implementation
+// ============================================================================
+// SkyCloudSystem.cpp � Layered Sky & Cloud Weather System Implementation
 // ============================================================================
 
 #include "framework.h"
@@ -55,7 +55,18 @@ namespace TEN::Sky
 		}
 	}
 
-	static SkyCloudSnapshot BuildDissolveToClearTarget(const SkyCloudSnapshot& current);
+	// Copy only interpolated appearance fields (color, lightning, blend thresholds)
+	// from a Lerp'd snapshot into a morph-frozen shape snapshot.
+	static void CopyMorphAppearance(VolumetricCloudLayerSnapshot& dst,
+	                                const VolumetricCloudLayerSnapshot& src);
+
+	// Apply CloudMorph transition to a single cloud layer.
+	static void ApplyMorphToLayer(
+		VolumetricCloudLayerSnapshot& out,
+		const VolumetricCloudLayerSnapshot& source,
+		const VolumetricCloudLayerSnapshot& target,
+		const VolumetricCloudLayerSnapshot& lerpAppearance,
+		float layerT);
 
 	// ====================================================================
 	// VolumetricCloudLayerSnapshot
@@ -73,10 +84,10 @@ namespace TEN::Sky
 		s.WindDirection   = Vector2(WindDirectionX, WindDirectionY);
 		s.WindSpeed       = WindSpeed;
 		s.EvolutionSpeed  = EvolutionSpeed;
-		s.Noise.ShapeScale    = 0.00008f;  // Default — unused (no standard cloud types left).
+		s.Noise.ShapeScale    = 0.00008f;  // Default � unused (no standard cloud types left).
 		s.Noise.DetailScale   = 0.0008f;
 		s.Noise.DetailStrength = 0.35f;
-		s.Absorption      = 1.1f;          // Default — unused (Alto has AltoAbsorption).
+		s.Absorption      = 1.1f;          // Default � unused (Alto has AltoAbsorption).
 		s.AmbientContrib  = 0.35f;
 		s.SilverliningStr = 0.4f;
 		s.HorizonFade     = HorizonFade;
@@ -129,6 +140,20 @@ namespace TEN::Sky
 
 		// Transform dissolve
 		s.DissolvePhase = DissolvePhase;
+		s.FormationPhase = FormationPhase;
+
+		// CloudMorph dual-density source params
+		s.MorphActive          = MorphActive;
+		s.MorphSrcCloudSize    = MorphSrcCloudSize;
+		s.MorphSrcCloudAmount  = MorphSrcCloudAmount;
+		s.MorphSrcBillowStr    = MorphSrcBillowStr;
+		s.MorphSrcCovSoftWidth = MorphSrcCovSoftWidth;
+		s.MorphSrcFbmLac       = MorphSrcFbmLac;
+		s.MorphSrcFbmGain      = MorphSrcFbmGain;
+		s.MorphSrcBottomSoft   = MorphSrcBottomSoft;
+		s.MorphSrcZenithBias   = MorphSrcZenithBias;
+		s.MorphSrcEvolutionSpd = MorphSrcEvolutionSpd;
+		s.MorphSrcHorizonWidth = MorphSrcHorizonWidth;
 
 		return s;
 	}
@@ -196,6 +221,20 @@ namespace TEN::Sky
 
 		// Transform dissolve
 		snap.DissolvePhase = src.DissolvePhase;
+		snap.FormationPhase = src.FormationPhase;
+
+		// CloudMorph dual-density source params
+		snap.MorphActive          = src.MorphActive;
+		snap.MorphSrcCloudSize    = src.MorphSrcCloudSize;
+		snap.MorphSrcCloudAmount  = src.MorphSrcCloudAmount;
+		snap.MorphSrcBillowStr    = src.MorphSrcBillowStr;
+		snap.MorphSrcCovSoftWidth = src.MorphSrcCovSoftWidth;
+		snap.MorphSrcFbmLac       = src.MorphSrcFbmLac;
+		snap.MorphSrcFbmGain      = src.MorphSrcFbmGain;
+		snap.MorphSrcBottomSoft   = src.MorphSrcBottomSoft;
+		snap.MorphSrcZenithBias   = src.MorphSrcZenithBias;
+		snap.MorphSrcEvolutionSpd = src.MorphSrcEvolutionSpd;
+		snap.MorphSrcHorizonWidth = src.MorphSrcHorizonWidth;
 
 		return snap;
 	}
@@ -307,8 +346,22 @@ namespace TEN::Sky
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
 
 		// DissolvePhase: NOT interpolated. Set directly by UpdateTransition
-		// for DissolveToClear transforms; always 0 for normal transitions.
+		// for CloudMorph transforms; always 0 for normal transitions.
 		result.DissolvePhase = 0.0f;
+		result.FormationPhase = 0.0f;
+
+		// Morph source fields: NOT interpolated — set directly by ApplyMorphToLayer.
+		result.MorphActive          = 0.0f;
+		result.MorphSrcCloudSize    = a.MorphSrcCloudSize;
+		result.MorphSrcCloudAmount  = a.MorphSrcCloudAmount;
+		result.MorphSrcBillowStr    = a.MorphSrcBillowStr;
+		result.MorphSrcCovSoftWidth = a.MorphSrcCovSoftWidth;
+		result.MorphSrcFbmLac       = a.MorphSrcFbmLac;
+		result.MorphSrcFbmGain      = a.MorphSrcFbmGain;
+		result.MorphSrcBottomSoft   = a.MorphSrcBottomSoft;
+		result.MorphSrcZenithBias   = a.MorphSrcZenithBias;
+		result.MorphSrcEvolutionSpd = a.MorphSrcEvolutionSpd;
+		result.MorphSrcHorizonWidth = a.MorphSrcHorizonWidth;
 
 		return result;
 	}
@@ -366,7 +419,7 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
-	// SkyCloudSystem — Construction & Initialization
+	// SkyCloudSystem � Construction & Initialization
 	// ====================================================================
 
 	SkyCloudSystem::SkyCloudSystem()
@@ -547,22 +600,20 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- FewToClearSky -----
-		// Transform preset: dissolves existing clouds to clear sky.
-		// The TargetState cloud values are NOT used during transitions — the
-		// DissolveToClear transform copies the current (source) state and zeroes
-		// density parameters so existing clouds fade out naturally while wind,
-		// colors, and other appearance settings are preserved.
-		// Layers dissolve with staggered timing (higher clouds first).
+		// ----- CloudsTransformation -----
+		// General cloud morph transform preset. When transitioning TO a preset that
+		// has transformPreset = "CloudsTransformation", the morph mechanism dissolves
+		// old clouds and forms new clouds matching the target preset.
+		// The TargetState here is clear sky (both layers disabled) — used as fallback
+		// for SetPresetImmediate or when CloudsTransformation is itself the target.
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::FewToClearSky;
-			def.Name = "FewToClearSky";
-			def.Transform = TransformType::DissolveToClear;
+			def.Type = WeatherPresetType::CloudsTransformation;
+			def.Name = "CloudsTransformation";
+			def.Transform = TransformType::CloudMorph;
 			def.DefaultTransitionDuration = 45.0f;
 
-			// TargetState is clear sky (used only by SetPresetImmediate).
-			// Both layers disabled — no cloud content.
+			// TargetState is clear sky (fallback for direct transitions).
 			def.TargetState.CloudA.Enabled = false;
 			def.TargetState.CloudB.Enabled = false;
 
@@ -920,7 +971,7 @@ namespace TEN::Sky
 		}
 
 		// ----- AltocumulusHigh -----
-		// Altocumulus pushed to higher altitude — lighter, thinner, more broken.
+		// Altocumulus pushed to higher altitude � lighter, thinner, more broken.
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::AltocumulusHigh;
@@ -1396,7 +1447,7 @@ namespace TEN::Sky
 		else
 			UpdatePresetDwell(deltaTime);
 
-		// Per-layer independent transitions — run last so they take priority over
+		// Per-layer independent transitions � run last so they take priority over
 		// any CloudA/B values written by the full-preset transition above.
 		if (!_manualOverrideCloudA && _layerTransitionA.Active)
 		{
@@ -1434,19 +1485,27 @@ namespace TEN::Sky
 		auto& tr = _transition;
 		tr.Elapsed += deltaTime;
 
+		// Look up transform type once — used by completion and update logic.
+		auto targetIt = _presets.find(tr.Target);
+		bool isMorph  = targetIt != _presets.end() &&
+		                targetIt->second.Transform == TransformType::CloudMorph;
+
 		if (tr.Elapsed >= tr.Duration)
 		{
 			// Transition complete.
 			tr.Progress = 1.0f;
 			_currentState  = tr.TargetSnapshot;
 
-			auto targetIt = _presets.find(tr.Target);
-			if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+			if (isMorph)
 			{
-				_currentState.CloudA.Enabled = false;
-				_currentState.CloudB.Enabled = false;
-				_currentState.CloudA.DissolvePhase = 0.0f;
-				_currentState.CloudB.DissolvePhase = 0.0f;
+				// Morph complete: target snapshot already holds the real destination
+				// preset state. Clear transform phases so clouds render normally.
+				_currentState.CloudA.DissolvePhase  = 0.0f;
+				_currentState.CloudB.DissolvePhase  = 0.0f;
+				_currentState.CloudA.FormationPhase = 0.0f;
+				_currentState.CloudB.FormationPhase = 0.0f;
+				_currentState.CloudA.MorphActive    = 0.0f;
+				_currentState.CloudB.MorphActive    = 0.0f;
 			}
 
 			_currentPreset = tr.Target;
@@ -1493,24 +1552,27 @@ namespace TEN::Sky
 		blended.CloudA = VolumetricCloudLayerSnapshot::Lerp(tr.SourceSnapshot.CloudA, tr.TargetSnapshot.CloudA, highT);
 		blended.CloudB = VolumetricCloudLayerSnapshot::Lerp(tr.SourceSnapshot.CloudB, tr.TargetSnapshot.CloudB, lowT);
 
+		// --- CloudMorph override ---
+		// Shape params are NOT interpolated. Instead they are frozen at the source
+		// formation during the dissolve half, then snapped to the target formation
+		// during the formation half. Only appearance fields (color, lightning, blend
+		// thresholds) use the Lerp'd values computed above.
+		if (isMorph)
+		{
+			if (!_manualOverrideCloudA && !_layerTransitionA.Active)
+				ApplyMorphToLayer(blended.CloudA, tr.SourceSnapshot.CloudA,
+				                  tr.TargetSnapshot.CloudA, blended.CloudA, highT);
+			if (!_manualOverrideCloudB && !_layerTransitionB.Active)
+				ApplyMorphToLayer(blended.CloudB, tr.SourceSnapshot.CloudB,
+				                  tr.TargetSnapshot.CloudB, blended.CloudB, lowT);
+		}
+
 		// Apply manual overrides if set.
 		if (!_manualOverrideLayer1) _currentState.Layer1 = blended.Layer1;
 		if (!_manualOverrideLayer2) _currentState.Layer2 = blended.Layer2;
 		// Skip per-layer if an independent layer transition is running (it takes priority).
 		if (!_manualOverrideCloudA && !_layerTransitionA.Active) _currentState.CloudA = blended.CloudA;
 		if (!_manualOverrideCloudB && !_layerTransitionB.Active) _currentState.CloudB = blended.CloudB;
-
-		// --- Shader dissolve phase injection ---
-		// When the target is a DissolveToClear transform, drive DissolvePhase from the
-		// per-layer eased progress. This is NOT part of Lerp — it's set directly here.
-		auto targetIt = _presets.find(tr.Target);
-		if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
-		{
-			if (!_manualOverrideCloudA && !_layerTransitionA.Active)
-				_currentState.CloudA.DissolvePhase = highT;
-			if (!_manualOverrideCloudB && !_layerTransitionB.Active)
-				_currentState.CloudB.DissolvePhase = lowT;
-		}
 	}
 
 	void SkyCloudSystem::SetPresetImmediate(WeatherPresetType preset)
@@ -1530,12 +1592,17 @@ namespace TEN::Sky
 		_layerAPreset  = preset;
 		_layerBPreset  = preset;
 
-		if (it->second.Transform == TransformType::DissolveToClear)
+		if (it->second.Transform == TransformType::CloudMorph)
 		{
-			_currentState.CloudA.Enabled = false;
-			_currentState.CloudB.Enabled = false;
-			_currentState.CloudA.DissolvePhase = 0.0f;
-			_currentState.CloudB.DissolvePhase = 0.0f;
+			// CloudMorph preset set immediately: clouds already match target.
+			// Nothing special needed — just use TargetState.
+			_currentState = it->second.TargetState;
+			_currentState.CloudA.DissolvePhase  = 0.0f;
+			_currentState.CloudB.DissolvePhase  = 0.0f;
+			_currentState.CloudA.FormationPhase = 0.0f;
+			_currentState.CloudB.FormationPhase = 0.0f;
+			_currentState.CloudA.MorphActive    = 0.0f;
+			_currentState.CloudB.MorphActive    = 0.0f;
 		}
 		else
 			_currentState = it->second.TargetState;
@@ -1545,21 +1612,159 @@ namespace TEN::Sky
 		StartNextPresetDwell(def);
 	}
 
-	// Helper: build a dissolve-to-clear target snapshot from the current state.
-	// Copies all visual attributes but zeroes density-contributing parameters
-	// so the existing Lerp naturally dissolves clouds while preserving wind,
-	// colors, and other appearance settings.
-	static SkyCloudSnapshot BuildDissolveToClearTarget(const SkyCloudSnapshot& current)
+	// Helper: copy all fields that should smoothly interpolate during a CloudMorph transition.
+	// This includes appearance (color, brightness, blend thresholds, lightning) AND all
+	// geometry/positional params that are global CB variables in the shader and thus affect
+	// BOTH source and target density evaluations simultaneously.
+	//
+	// NOT copied here (kept as target values in the main CB):
+	//   AltoCloudSize, AltoCloudAmount, AltoBillowStrength, AltoCovSoftWidth,
+	//   AltoFbmLacunarity, AltoFbmGain, AltoBottomSoftness, AltoZenithBias,
+	//   AltoHorizonWidth (cpu shape field), EvolutionSpeed — these are the per-preset
+	//   density-shaping params. The source copies live in MorphSrc* CB slots.
+	static void CopyMorphAppearance(VolumetricCloudLayerSnapshot& dst,
+	                                const VolumetricCloudLayerSnapshot& src)
 	{
-		SkyCloudSnapshot target = current;
+		// Cloud color and brightness
+		dst.AltoCloudColorR     = src.AltoCloudColorR;
+		dst.AltoCloudColorG     = src.AltoCloudColorG;
+		dst.AltoCloudColorB     = src.AltoCloudColorB;
+		dst.AltoCloudColorDarkR = src.AltoCloudColorDarkR;
+		dst.AltoCloudColorDarkG = src.AltoCloudColorDarkG;
+		dst.AltoCloudColorDarkB = src.AltoCloudColorDarkB;
+		dst.AltoCloudBrightness = src.AltoCloudBrightness;
+		dst.AltoAbsorption      = src.AltoAbsorption;
+		// Blend thresholds
+		dst.BlendThresholdHigh      = src.BlendThresholdHigh;
+		dst.BlendThresholdHighWidth = src.BlendThresholdHighWidth;
+		dst.BlendThresholdLow       = src.BlendThresholdLow;
+		// Geometry and positional params — these are global CB variables used by the shader
+		// for both source and target density lookups. Snapping them to target values at t=0
+		// causes visible position/shape jumps in the source clouds:
+		//   AltoThickness   — determines heightFrac for every sample (CRITICAL: 344 vs 1164).
+		//   HorizonFade/DistanceFade — global thresholds inside EvalAltoDensityCore.
+		//   AltoHeightBlendPower — modifies skyH passed to EvalAltoDensityCore.
+		//   AltoHorizonWidth — global zenith-cap applied to the combined morph density.
+		//   WindDirection   — multiplied with WindAccumOffset; direction snap causes position jump.
+		//   WindSpeed       — drift rate; smooth transition prevents abrupt speed change.
+		dst.BottomHeight        = src.BottomHeight;
+		dst.Thickness           = src.Thickness;
+		dst.WindDirectionX      = src.WindDirectionX;
+		dst.WindDirectionY      = src.WindDirectionY;
+		dst.WindSpeed           = src.WindSpeed;
+		dst.HorizonFade         = src.HorizonFade;
+		dst.DistanceFade        = src.DistanceFade;
+		dst.HorizonMeshBleed    = src.HorizonMeshBleed;
+		dst.AltoThickness       = src.AltoThickness;
+		dst.AltoHeightBlendPower = src.AltoHeightBlendPower;
+		dst.AltoHorizonWidth    = src.AltoHorizonWidth;
+		dst.AltoBleedDepth      = src.AltoBleedDepth;
+		dst.AltoHorizonGradientFade = src.AltoHorizonGradientFade;
+		// Lightning
+		dst.LightningEnabled           = src.LightningEnabled;
+		dst.LightningStrikeFreq        = src.LightningStrikeFreq;
+		dst.LightningInternalFreq      = src.LightningInternalFreq;
+		dst.LightningSpeed             = src.LightningSpeed;
+		dst.LightningInternalSpeed     = src.LightningInternalSpeed;
+		dst.LightningGlowIntensity     = src.LightningGlowIntensity;
+		dst.LightningBoltColorR        = src.LightningBoltColorR;
+		dst.LightningBoltColorG        = src.LightningBoltColorG;
+		dst.LightningBoltColorB        = src.LightningBoltColorB;
+		dst.LightningFlashIntensity    = src.LightningFlashIntensity;
+		dst.LightningAmbientContrib    = src.LightningAmbientContrib;
+		dst.LightningBoltLengthScale   = src.LightningBoltLengthScale;
+		dst.LightningBoltThicknessScale = src.LightningBoltThicknessScale;
+	}
 
-		// The visual dissolve is driven entirely by DissolvePhase on the GPU.
-		// All cloud parameters, including Enabled/Coverage, stay at their source
-		// values during the blend so the generic Lerp path does not fade the layer.
-		// The layer is switched off explicitly when the transition completes.
-		target.CloudA.DissolvePhase = 0.0f;
-		target.CloudB.DissolvePhase = 0.0f;
-		return target;
+	// Apply CloudMorph transition to a single cloud layer.
+	//
+	// Simultaneous dual-density approach:
+	//   The shader's main CB params carry the TARGET preset shape.
+	//   MorphSrc* CB fields carry the SOURCE preset shape.
+	//   When MorphActive=1, the shader evaluates density with BOTH param sets,
+	//   applies DissolvePhase to the source density and FormationPhase to the
+	//   target density, then combines them. Where source had cloud but target
+	//   doesn't → dissolve. Where target has cloud but source doesn't → form.
+	//   Where both overlap → natural crossfade.
+	//
+	// DissolvePhase and FormationPhase both run 0→1 over the full duration.
+	// Appearance (color, lightning, blend) always from lerpAppearance.
+	static void ApplyMorphToLayer(
+		VolumetricCloudLayerSnapshot& out,
+		const VolumetricCloudLayerSnapshot& source,
+		const VolumetricCloudLayerSnapshot& target,
+		const VolumetricCloudLayerSnapshot& lerpAppearance,
+		float layerT)
+	{
+		// IMPORTANT: capture lerpAppearance as a value copy before touching `out`.
+		// The caller may alias lerpAppearance with out (e.g. ApplyMorphToLayer(x,...,x,t)).
+		// After `out = target` below, a reference alias would silently become target values,
+		// turning CopyMorphAppearance into a no-op and snapping colors/thresholds to target.
+		const VolumetricCloudLayerSnapshot appearance = lerpAppearance;
+
+		constexpr float kFormEps = 0.002f;
+
+		bool srcOn = source.Enabled;
+		bool tgtOn = target.Enabled;
+
+		if (!srcOn && !tgtOn)
+		{
+			out = source;
+			return;
+		}
+
+		if (!srcOn && tgtOn)
+		{
+			// Formation only: grow target clouds over full duration.
+			out = target;
+			out.Enabled        = true;
+			out.MorphActive    = 0.0f;
+			out.DissolvePhase  = 0.0f;
+			out.FormationPhase = std::max(kFormEps, layerT);
+			CopyMorphAppearance(out, appearance);
+			return;
+		}
+
+		if (srcOn && !tgtOn)
+		{
+			// Dissolve only: shrink source clouds over full duration.
+			out = source;
+			out.Enabled        = (layerT < 0.95f);
+			out.MorphActive    = 0.0f;
+			out.DissolvePhase  = layerT;
+			out.FormationPhase = 0.0f;
+			return;
+		}
+
+		// ---- Both enabled: simultaneous dual-density morph ----
+		// Main (target) shape params drive the normal CB fields.
+		out = target;
+		// Preserve source category so the shader's cloud path matches the dissolving source
+		// clouds. Without this, if the target has Category=None (e.g. a "clear" preset with
+		// an enabled-but-empty cloud layer), CloudType=0 bypasses the Alto density evaluation
+		// entirely and the source clouds vanish on the first frame instead of dissolving.
+		out.Category = source.Category;
+		out.Enabled = true;
+
+		// Overlay Lerp'd appearance (color, brightness, absorption, lightning, blend thresholds).
+		CopyMorphAppearance(out, appearance);
+
+		// Both phases run 0→1 simultaneously over the full duration.
+		out.DissolvePhase  = layerT;
+		out.FormationPhase = std::max(kFormEps, layerT);
+
+		// Activate dual-density evaluation and supply source preset density params.
+		out.MorphActive          = 1.0f;
+		out.MorphSrcCloudSize    = source.AltoCloudSize;
+		out.MorphSrcCloudAmount  = source.AltoCloudAmount;
+		out.MorphSrcBillowStr    = source.AltoBillowStrength;
+		out.MorphSrcCovSoftWidth = source.AltoCovSoftWidth;
+		out.MorphSrcFbmLac       = source.AltoFbmLacunarity;
+		out.MorphSrcFbmGain      = source.AltoFbmGain;
+		out.MorphSrcBottomSoft   = source.AltoBottomSoftness;
+		out.MorphSrcZenithBias   = source.AltoZenithBias;
+		out.MorphSrcEvolutionSpd = source.EvolutionSpeed;
+		out.MorphSrcHorizonWidth = source.AltoHorizonWidth;
 	}
 
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1569,13 +1774,17 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell / drift-out before starting a new transition.
+		// Cancel any pending dwell / drift-out and per-layer transitions before starting a new
+		// full-preset transition. Per-layer transitions would otherwise take priority (by design)
+		// and silently block the morph from writing to CloudA/CloudB.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
+		_layerTransitionA.Active = false;
+		_layerTransitionB.Active = false;
 
 		const auto& def = it->second;
 		float effA = (def.TransitionDurationA >= 0.0f) ? def.TransitionDurationA : durationSeconds;
@@ -1592,12 +1801,16 @@ namespace TEN::Sky
 		tr.SourceSnapshot    = _currentState;
 
 		// Transform presets override the target snapshot construction.
-		if (def.Transform == TransformType::DissolveToClear)
+		if (def.Transform == TransformType::CloudMorph)
 		{
-			// DissolveToClear: keep all source attributes and let the shader-side
-			// dissolve mask remove cloud mass over time. Only the final enabled state
-			// changes so the layer is off after the transition completes.
-			tr.TargetSnapshot = BuildDissolveToClearTarget(_currentState);
+			// CloudMorph: target is the actual destination preset. The morph
+			// logic in UpdateTransition freezes shape params and drives
+			// dissolve/formation phases on the GPU.
+			tr.TargetSnapshot = def.TargetState;
+
+			// Apply per-preset transform duration override if set.
+			if (def.TransformDuration >= 0.0f)
+				durationSeconds = def.TransformDuration;
 
 			// Stagger layers so they don't dissolve simultaneously:
 			// higher clouds (A) dissolve faster, lower clouds (B) use full duration.
@@ -1626,13 +1839,17 @@ namespace TEN::Sky
 		if (it == _presets.end())
 			return;
 
-		// Cancel any pending dwell and drift-out before starting a new transition.
+		// Cancel any pending dwell, drift-out, and per-layer transitions before starting a new
+		// full-preset transition. Per-layer transitions would otherwise take priority (by design)
+		// and silently block the morph from writing to CloudA/CloudB.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
+		_layerTransitionA.Active = false;
+		_layerTransitionB.Active = false;
 
 		auto& tr = _transition;
 		tr.Active           = true;
@@ -1641,9 +1858,16 @@ namespace TEN::Sky
 		tr.SourceSnapshot    = _currentState;
 
 		// Transform presets override the target snapshot construction.
-		if (it->second.Transform == TransformType::DissolveToClear)
+		if (it->second.Transform == TransformType::CloudMorph)
 		{
-			tr.TargetSnapshot = BuildDissolveToClearTarget(_currentState);
+			tr.TargetSnapshot = it->second.TargetState;
+
+			// Apply per-preset transform duration override if set.
+			if (it->second.TransformDuration >= 0.0f)
+			{
+				durationASeconds = it->second.TransformDuration;
+				durationBSeconds = it->second.TransformDuration;
+			}
 
 			// Stagger layers: higher clouds dissolve faster.
 			bool bothActive = _currentState.CloudA.Enabled && _currentState.CloudB.Enabled;
@@ -1669,9 +1893,13 @@ namespace TEN::Sky
 	{
 		// Freeze the current blended state and stop transitioning.
 		_transition.Active = false;
-		// Clear shader dissolve phase — no residual dissolve effect.
-		_currentState.CloudA.DissolvePhase = 0.0f;
-		_currentState.CloudB.DissolvePhase = 0.0f;
+		// Clear shader dissolve/formation/morph phases — no residual effect.
+		_currentState.CloudA.DissolvePhase  = 0.0f;
+		_currentState.CloudB.DissolvePhase  = 0.0f;
+		_currentState.CloudA.FormationPhase = 0.0f;
+		_currentState.CloudB.FormationPhase = 0.0f;
+		_currentState.CloudA.MorphActive    = 0.0f;
+		_currentState.CloudB.MorphActive    = 0.0f;
 		// Also cancel any pending dwell / drift-out that might fire from the interrupted target.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
@@ -1688,9 +1916,13 @@ namespace TEN::Sky
 		// Per-layer independent transitions.
 		_layerTransitionA.Active = false;
 		_layerTransitionB.Active = false;
-		// Clear shader dissolve phase — no residual dissolve effect.
-		_currentState.CloudA.DissolvePhase = 0.0f;
-		_currentState.CloudB.DissolvePhase = 0.0f;
+		// Clear shader dissolve/formation/morph phases — no residual effect.
+		_currentState.CloudA.DissolvePhase  = 0.0f;
+		_currentState.CloudB.DissolvePhase  = 0.0f;
+		_currentState.CloudA.FormationPhase = 0.0f;
+		_currentState.CloudB.FormationPhase = 0.0f;
+		_currentState.CloudA.MorphActive    = 0.0f;
+		_currentState.CloudB.MorphActive    = 0.0f;
 		// Preset dwell timer.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
@@ -1715,16 +1947,21 @@ namespace TEN::Sky
 
 		layerTr.Elapsed += deltaTime;
 
+		auto targetIt = _presets.find(layerTr.TargetPreset);
+		bool isMorph  = targetIt != _presets.end() &&
+		                targetIt->second.Transform == TransformType::CloudMorph;
+
 		if (layerTr.Elapsed >= layerTr.Duration)
 		{
 			layerTr.Progress = 1.0f;
 			current          = layerTr.Target;
 
-			auto targetIt = _presets.find(layerTr.TargetPreset);
-			if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+			if (isMorph)
 			{
-				current.Enabled = false;
-				current.DissolvePhase = 0.0f;
+				// Morph complete: clear transform phases.
+				current.DissolvePhase  = 0.0f;
+				current.FormationPhase = 0.0f;
+				current.MorphActive    = 0.0f;
 			}
 
 			layerTr.Active   = false;
@@ -1736,9 +1973,8 @@ namespace TEN::Sky
 		layerTr.Progress = easedT;
 		current = VolumetricCloudLayerSnapshot::Lerp(layerTr.Source, layerTr.Target, easedT);
 
-		auto targetIt = _presets.find(layerTr.TargetPreset);
-		if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
-			current.DissolvePhase = easedT;
+		if (isMorph)
+			ApplyMorphToLayer(current, layerTr.Source, layerTr.Target, current, easedT);
 
 		return false;
 	}
@@ -1760,16 +1996,13 @@ namespace TEN::Sky
 		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudA;
 
-		// Transform preset: keep the current layer attributes and let DissolvePhase
-		// drive the visual breakup. Only the final enabled state changes.
-		if (it->second.Transform == TransformType::DissolveToClear && _currentState.CloudA.Enabled)
-		{
-			tr.Target = _currentState.CloudA;
-		}
-		else
-		{
-			tr.Target = it->second.TargetState.CloudA;
-		}
+		// CloudMorph: use the actual destination preset's CloudA as morph target.
+		// Regular transitions also use the same target.
+		tr.Target = it->second.TargetState.CloudA;
+
+		// Apply per-preset transform duration override if set.
+		if (it->second.Transform == TransformType::CloudMorph && it->second.TransformDuration >= 0.0f)
+			durationSeconds = it->second.TransformDuration;
 
 		tr.Duration = std::max(durationSeconds, 0.1f);
 		tr.Elapsed  = 0.0f;
@@ -1794,16 +2027,12 @@ namespace TEN::Sky
 		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudB;
 
-		// Transform preset: keep the current layer attributes and let DissolvePhase
-		// drive the visual breakup. Only the final enabled state changes.
-		if (it->second.Transform == TransformType::DissolveToClear && _currentState.CloudB.Enabled)
-		{
-			tr.Target = _currentState.CloudB;
-		}
-		else
-		{
-			tr.Target = it->second.TargetState.CloudB;
-		}
+		// CloudMorph: use the actual destination preset's CloudB as morph target.
+		tr.Target = it->second.TargetState.CloudB;
+
+		// Apply per-preset transform duration override if set.
+		if (it->second.Transform == TransformType::CloudMorph && it->second.TransformDuration >= 0.0f)
+			durationSeconds = it->second.TransformDuration;
 
 		tr.Duration = std::max(durationSeconds, 0.1f);
 		tr.Elapsed  = 0.0f;
@@ -1821,10 +2050,11 @@ namespace TEN::Sky
 		_layerTransitionA.Active = false;
 		_layerAPreset            = preset;
 
-		if (it->second.Transform == TransformType::DissolveToClear)
+		if (it->second.Transform == TransformType::CloudMorph)
 		{
-			_currentState.CloudA.Enabled = false;
-			_currentState.CloudA.DissolvePhase = 0.0f;
+			_currentState.CloudA = it->second.TargetState.CloudA;
+			_currentState.CloudA.DissolvePhase  = 0.0f;
+			_currentState.CloudA.FormationPhase = 0.0f;
 		}
 		else
 		{
@@ -1844,10 +2074,11 @@ namespace TEN::Sky
 		_layerTransitionB.Active = false;
 		_layerBPreset            = preset;
 
-		if (it->second.Transform == TransformType::DissolveToClear)
+		if (it->second.Transform == TransformType::CloudMorph)
 		{
-			_currentState.CloudB.Enabled = false;
-			_currentState.CloudB.DissolvePhase = 0.0f;
+			_currentState.CloudB = it->second.TargetState.CloudB;
+			_currentState.CloudB.DissolvePhase  = 0.0f;
+			_currentState.CloudB.FormationPhase = 0.0f;
 		}
 		else
 		{
@@ -2021,25 +2252,25 @@ namespace TEN::Sky
 			anyChainFired = true;
 		}
 
-		// No chain fired → preset stays active indefinitely. No drift-out.
+		// No chain fired ? preset stays active indefinitely. No drift-out.
 	}
 
 	void SkyCloudSystem::StartNextPresetDwell(const WeatherPresetDefinition& def)
 	{
 		float dwell = ResolveNextPresetDwell(def);
 
-		// duration < 0 (omitted / -1) → stay at this preset forever, no chaining.
+		// duration < 0 (omitted / -1) ? stay at this preset forever, no chaining.
 		if (dwell < 0.0f)
 			return;
 
-		// duration == 0 → fire all chains immediately.
+		// duration == 0 ? fire all chains immediately.
 		if (dwell == 0.0f)
 		{
 			FireNextPresetChains(def);
 			return;
 		}
 
-		// duration > 0 → start dwell timer; chains fire when it expires.
+		// duration > 0 ? start dwell timer; chains fire when it expires.
 		_nextPresetDwellTarget  = dwell;
 		_nextPresetDwellElapsed = 0.0f;
 	}
@@ -2122,7 +2353,7 @@ namespace TEN::Sky
 		if (_nextPresetDwellElapsed < _nextPresetDwellTarget)
 			return;
 
-		// Dwell expired — clear timer and fire all chains.
+		// Dwell expired � clear timer and fire all chains.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 
@@ -2166,11 +2397,11 @@ namespace TEN::Sky
 		// Slow down evolution so no new micro-formation appears.
 		current.EvolutionSpeed  = state.StartSnapshot.EvolutionSpeed  * fade;
 
-		// Wind stays unchanged — clouds keep drifting.
+		// Wind stays unchanged � clouds keep drifting.
 
 		if (state.Elapsed >= state.Duration)
 		{
-			// Drift-out complete — layer fully dissolved.
+			// Drift-out complete � layer fully dissolved.
 			state.Active    = false;
 			current.Enabled = false;
 			current.Coverage        = 0.0f;
@@ -2375,7 +2606,7 @@ namespace TEN::Sky
 		case WeatherPresetType::CirrocumulusFew:       return "CirrocumulusFew";
 		case WeatherPresetType::Cirrustratus:          return "Cirrustratus";
 		case WeatherPresetType::StormBuildUpHigh:      return "StormBuildUpHigh";
-		case WeatherPresetType::FewToClearSky:         return "FewToClearSky";
+		case WeatherPresetType::CloudsTransformation:         return "CloudsTransformation";
 		case WeatherPresetType::Overcast:              return "Overcast";
 		case WeatherPresetType::Altocumulus:           return "Altocumulus";
 		case WeatherPresetType::AltocumulusHigh:       return "AltocumulusHigh";
@@ -2399,7 +2630,7 @@ namespace TEN::Sky
 			{ "CirrocumulusFew",       WeatherPresetType::CirrocumulusFew },
 			{ "Cirrustratus",          WeatherPresetType::Cirrustratus },
 			{ "StormBuildUpHigh",      WeatherPresetType::StormBuildUpHigh },
-			{ "FewToClearSky",          WeatherPresetType::FewToClearSky },
+			{ "CloudsTransformation",          WeatherPresetType::CloudsTransformation },
 			{ "Overcast",              WeatherPresetType::Overcast },
 			{ "Altocumulus",           WeatherPresetType::Altocumulus },
 			{ "AltocumulusHigh",       WeatherPresetType::AltocumulusHigh },
