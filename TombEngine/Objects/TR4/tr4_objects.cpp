@@ -53,7 +53,6 @@
 #include "Objects/TR4/Object/tr4_senet.h"
 #include "Objects/TR4/Object/tr4_clockwork_beetle.h"
 #include "Objects/TR4/Object/tr4_obelisk.h"
-#include "Objects/TR4/Object/tr4_scales.h"
 
 // Switches
 
@@ -705,8 +704,17 @@ namespace TEN::Entities
 		if (obj->loaded)
 		{
 			obj->Initialize = InitializeElementPuzzle;
-			obj->control = ElementPuzzleControl;
-			obj->collision = ElementPuzzleCollision;
+			obj->control = AnimatingControl;
+			obj->collision = ObjectCollision;
+			obj->SetHitEffect(true);
+		}
+
+		obj = &Objects[ID_SCALES];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeAnimating;
+			obj->control = AnimatingControl;
+			obj->collision = ObjectCollision;
 			obj->SetHitEffect(true);
 		}
 

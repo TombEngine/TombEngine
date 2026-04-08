@@ -680,7 +680,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR4\Entity\tr4_troops.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_von_croy.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_wild_boar.h" />
-    <ClInclude Include="Objects\TR4\Floor\tr4_burningfloor.h" />
     <ClInclude Include="Objects\TR4\Object\FireRope.h" />
     <ClInclude Include="Objects\TR4\Object\StatuePlinth.h" />
     <ClInclude Include="Objects\TR4\Object\WraithTrap.h" />
@@ -689,7 +688,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR4\Object\tr4_mapper.h" />
     <ClInclude Include="Objects\TR4\Object\tr4_obelisk.h" />
     <ClInclude Include="Objects\TR4\Object\tr4_sarcophagus.h" />
-    <ClInclude Include="Objects\TR4\Object\tr4_scales.h" />
     <ClInclude Include="Objects\TR4\Object\tr4_senet.h" />
     <ClInclude Include="Objects\TR4\Trap\SpikyCeiling.h" />
     <ClInclude Include="Objects\TR4\Trap\SpikyWall.h" />
@@ -1250,7 +1248,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR4\Entity\tr4_von_croy.cpp" />
     <ClCompile Include="Objects\TR4\Entity\tr4_wild_boar.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Wraith.cpp" />
-    <ClCompile Include="Objects\TR4\Floor\tr4_burningfloor.cpp" />
     <ClCompile Include="Objects\TR4\Object\FireRope.cpp" />
     <ClCompile Include="Objects\TR4\Object\StatuePlinth.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_clockwork_beetle.cpp" />
@@ -1258,7 +1255,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR4\Object\tr4_mapper.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_obelisk.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_sarcophagus.cpp" />
-    <ClCompile Include="Objects\TR4\Object\tr4_scales.cpp" />
     <ClCompile Include="Objects\TR4\Object\tr4_senet.cpp" />
     <ClCompile Include="Objects\TR4\Object\WraithTrap.cpp" />
     <ClCompile Include="Objects\TR4\tr4_objects.cpp" />
